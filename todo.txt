@@ -1,0 +1,3266 @@
+It's best to think of tower as a blend of
+ - C with familiar syntax for blocks, control flow, loops
+ - C++ with familiar concepts to methods and statics
+ - C# with the focus on ease of use and simplicity of syntax
+ - Rust with the traits and how you can implement them for types not your own (extensions)
+ - TypeScript interfaces and types as it's own expression language: (A | B) means it could be A or B
+
+Tower however introduces novel concepts on top:
+ - BNF parse rules can be written and extended in tower code itself to extend the language syntax at any pointer
+ - The compiler and runtime are combined and can safely execute compiled code during compilation allowing us to use code in tower to generate more tower code, eliminating the need for templates, generics, and other complicated compile time syntaxes.
+
+Tower moves away from the typical AST walking approach when compiling to use a more novel dependency graph with tasks that wait for other tasks to complete.
+This allows the Tower compiler to compile full sections of code all the way to code-gen and runtime execution, while another piece of code is waiting for a type check.
+
+It is also important 
+
+Tower is a type safe language with duck typing features that compiles to approaching native performance.
+
+By separating out all steps of the 
+By targeting WebAssembly like sandboxes, our compiler can run safely in a sandbox and execute code
+
+
+------------------------------
+When a parse rule matches, do we really want to perform callbacks right there?
+ - Or just build the parse tree?
+ - We really just want the AST out of it, and then afterwards we can do stuff with the AST
+ - But I like the idea of transformers
+ - We kind of want any type of logic...
+   - Rewrites, transforms, or just running code directly
+ - Cool examples of transforms:
+   - Calling operator functions: a + b => a.add(b)
+   - for loops, etc
+
+We can do everything in passes, but I think a cool generic architecture might be that we just run code until it hits a dependency that isn't met yet, and then like a closure yield, it waits there until the dependency is satisfied and continues
+
+That can even go for type names, like if you refer to a type name but it's not found, as the compiler writer you can choose to defer and wait for the type name to become available
+
+Basically it's symbol lookup (possibly with a predicate?)
+If anything is left unsolved, then we omit an error
+The symbol we're looking for should be fully qualified, and if that symbol is ever discovered we resume
+
+// This is OK if they are both pointers
+
+class Foo {
+  var Bar; // Here we don't know what Bar is, so processing for the AST/parse tree of "var Bar;" hangs until we find Bar
+}
+
+// We register Bar here, so know var Bar can resume
+class Bar {
+  var Foo;
+}
+
+We can wait on a fully qualified symbol (by name basically) or for any of the parts of the AST to fully resolve
+ - That's how we can do inference
+ - Lets think about rust style
+
+fn test() {
+  let mut x;
+  x = 10;
+}
+
+Here the type of 'x' should be incomplete
+ - the line "x = 10" should apply a "preferred type" or something like that
+ - basically we register an operation to be "inferred"
+ - and then later things can register what they prefer
+ - and your code handles taking all the preferred usages and turning them to inferred
+
+
+
+
+Lets pretend to implement a basic language
+
+
+
+Wasm here, declaraitons and code that runs directly
+
+All code instances run in isolation, but are given access to the parse tree
+ - All parse nodes should just be property bags
+ - Otherwise it would get unmanagable pretty quick
+ - That doesn't mean everything in the langauge needs to be variants
+ - Eventually we write an object that binds itself and looks like the parse tree (expose it)
+
+Maybe instead of using strings, we make it easier with 64bit ascii 8 byte "strings"
+
+
+tower_ast_child(parent_node, index)
+tower_ast_remove(node) // Deletes node and all children below it
+
+tower nodes can have properties that point at other nodes, and we will serialize it all properly
+
+Our language should definately support "extern" types that are variably sized and have their own meta interface
+ - This way we can bind tower nodes properly
+
+(data (i32.const 0) "Hi")
+
+So part of implementating the language is implementing a generic definition of these AST nodes
+ - As well as the parsing algorithm, and WASM emitting / execution
+ - I like that this may be the entirety of the bootstrapping for this language
+ - Our "Standard" will eventually include the exact details of the LALR(1) parser
+ - And then we can make a meta binding library per language, one for C/C++, one for Rust, etc
+ - Easy to bind to each
+ - Maybe we can translate our language to each language, so we don't need to update, just generate bindings
+
+
+Like most compilers, we need passes over the AST, it can't all be one pass
+ - And we have this idea for the "solver"
+ - So how do we register with wasm that we need to execute more passes?
+ - In order to think this through, I need to think about how we even compile or include files
+ - Because in general the compiler should start with a "prelude" that includes all the core compiler stuff
+ - When we add a new rule, we may want to run some wasm immediately to modify the AST
+   - But we also want to run some WASM later when we walk the tree (register a tree handler)
+   - I had several passes in zilch, including a final code-gen pass
+   - Passes solve a lot and are easy to understand, but they have limits and they don't handle general solving well
+ - Ideally if you introduce a new type of parse node, you should have to handle it in certain passes
+ - We can make up the passes for now, but it's basically like
+   - Constant folding
+   - Collecting type names first (module style)
+   - Assigning types
+   - Borrow checker (as an example)
+   - Bytecode generation
+ - We can blur the lines between these passes by exposing all features needed at all times
+   - Maybe we can register our own passes with depencies (must be before, must be after, etc)
+   - At any point, technically any of them can code-gen (tower_emit?)
+ - Lots of ast helpers (find any parent, etc)
+ - In general, I want a super generic solver that works somehow with the AST
+   - Imagine that a type is assigned to a node, we can wait for that type
+   - Support Rust style inference
+ - And then we automatically emit errors if we don't find any
+   - Tower nodes should directly serialize to JSON, basically just JSON without any complicated rules
+   - They also don't need to be our "variant" in the language, we can handle that later, since we have wasm
+ - Unfolded form wast example: https://stackoverflow.com/questions/61399299/how-can-i-make-this-wasm-function-easily-readable-in-its-native-language
+ - Might just add an extension to wast for our i64 constants: i64.conststr "test"
+   - Could even get away with 9 characters or more if we don't go for ascii encoding
+   - If we only allow lowercase and some symbols, 5 bits per letter (26 + 6 extra, underscore, etc)
+   - We could fit up to 12 characters with 5 bit encoding, and possibly up to 15 if we get clever with only 27 symbols)
+ - https://github.com/WebAssembly/stringref/blob/main/proposals/stringref/Overview.md
+   - Can also possibly just support first party strings, might make writing our language easier too
+Tower nodes are generic and take an i64 key
+ - Tower nodes can also hold a value, basically a variant
+ - Can hold integers, floats, any wasm primitive data type, and strings
+ - Can also hold children (and be an object) - can't be both an value and object at the same time (keep it JSON)
+ - Can also be an array, really just treat a tower node like a JSON object
+ - Maybe just take a look at quick js and duktape to see what their api looks like, keep our simple
+
+Since tower nodes are meant to be parse nodes, we may have them point at ranges of begin/end in the text they were created from, as well as possibly a pointer to the source text (or make sure we have some way to read the substrings)
+ - So a tower node has some implicit parse node data on the root of it
+ - How does that turn into JSON?
+ - Technically generated parse nodes wouldn't necessarily need a line associated
+ - But it's amazing for errors to always be able to derive a "stack" of where a node came from
+   - Basically a member that is an array of infos that tell us how this node was created during tower_node_create()
+ - So nodes basically should implicitly store a way to know what tokens they were derived from
+ - And a way to print out a stack of how they were created (in expanding rule, etc etc)
+ - Most of this should be read only / managed by the compiler, so users can't muck with it
+ - Maybe all this information should be savable in the JSON, but it's in a separate table
+ - Even if it's json, it would just mean every node is an object, but we have a "value":
+ - Ok that's all fine then, does the API use our key value system or is it a new API?
+   - Maybe we just reserve those keys, you're not allowed to write over a reserved key
+   - Introduced a new collision problem for ourselves, but that's why we have language version bumps
+   - It's going to have to happen anyways as we introduce new rules in the language
+ - token_start, token_end
+ - The root might have more, like source info, etc
+ - TypeScript interfaces would give order to this chaos
+ - But again, we have many helper methods that assumes we're a JSON style tree
+ - tower_find_up, etc treat it like a game engine finding components on an object tree
+ - We only store the minimal data we need, no duplicates
+ - Tower nodes should be able to safely point at other nodes, but like a weak pointer (node ids)
+ - Our types should just be tower nodes too
+ - All files are compiled under a single wasm context (maybe we can split this up later by module or something)
+
+So we want the solver to be able to wait for a specific tower node member to be created
+ - Basically we want a condition to be satisfied, and once it's satisfied we want our code to run
+ - Very simple to think of an idea how we can register a "wait" for this type of node to be attached
+ - Does our code run on attachment (potentially during our own code running and making an attachment)
+   - or does it run once all code finishes running, like a task
+   - I think task based is most suitable for a solver
+ - So whatever condition we do triggers a task potentially being activated to run
+   - But tasks should have conditions, and the conditions should always be re-checked before we run
+   - Since whatever triggered the "check if this task should be run"
+ - Tasks have a condition, as well as a trigger
+   - The trigger loosely follows the condition, but may trigger more often than the condition
+   - The condition's responsibility to only allow it to run if exactly a condition is met
+   - The trigger is basically an optimization for not having to call conditions for every task every frame
+ - We can do the "every frame" simple solution for now
+ - On top of the parse tree, we also want a sort of module / type / member tree
+   - It's often a merging and trimming of parse trees, basically a simplified tree that's joined from multiple files
+ - Maybe the root has different types of trees, and we can have a 'type' tree
+   - How language implementers can do a::b::c nesting
+ - Up to your language what kind of extra trees you will need
+ - So if we typed in a type name that we wanted to be resolved, we could put a dependency on:
+   - root::types::<typename>
+   - Or something like that, if it's allowed to be resolved in your module, parent module, etc then
+     we could have a multi-depenedency task where "any" condition that gets met satisfies it
+   - But not multiple, if we ever see multiple, it's an ambiguity error, unless we have a resolve function
+ - Makes our language design really nice I think
+
+If I wanted to make a scripting language that could do this:
+```
+let p: Player;
+struct Player {
+}
+```
+
+When we came to a node that referenced Player (let p: Player) then we would go to our type tree
+and attempt to look up a type, which we would not find yet
+
+Because what I'm going to do is first look up the type by name, and if I find it I will then
+tag my own node with that type. So the task I would register would have a condition to find that
+type first
+
+And if the task never completes at the end it would emit an error
+ - Ideally we have a way to identify that tasks are depending upon the same thing, or upon each other
+ - So we don't just emit a huge spam of errors for every single task
+
+So our rule would be like 
+
+Var = "let" name(Id) ":" typename(Id) ";" => register a task with a condition on finding a typename of Id and the code it runs when the condition is met (the side effect) is to add a 'type' member to the Var node (point at the type node)
+
+Conditions can produce a value - e.g. the node that we were waiting on
+ - So the side effect code can use that value, like get the type
+ - Conditions could be generic wasm, but we might just have a set of supported conditions that we can optimize
+   - Maybe support a generic condition... ideally run in a sandbox
+
+Here we actually don't care about "let", ":", or ";" so we should find a way to drop all those as nodes
+ - as well as name children nodes
+
+```
+let x;
+x = 0x01; // consider x as i8
+x = 2000; // consider x as i32
+```
+Since i32 fits both, we use both
+
+We want to be able to implicitly type x as i32 here, rust style
+So we also want a way to say that a node 
+ 
+```rust
+  let mut x = vec![];
+
+  fn test<T: core::fmt::Debug + Copy>(vec: &Vec<T>) -> T {
+    println!("Test: {:?}", vec);
+    vec[0]
+  }
+
+  let mut y = test(&x);
+
+  let mut z = test(&x);
+
+  y = z;
+
+  //z = 5;
+```
+
+When I uncomment `z = 5;`, rust can trace the dependency chain of types
+
+y depeneds on the return type of test
+but since the return type of test is generic, it depends
+ - it's really just being able to solve the chain anywhere along the way
+
+I want our language to be able to solve types like this
+ - As well as TypeScript style situations
+
+When I write the line z = 5, we know or can assume 5 is i32
+ - and since Z is a local var reference and is not typed yet, we can set the type of z to be i32
+ - ideally this triggers typing for call to `test(&x)` somehow
+ - Because the line `let mut z = test(&x);` test's return type should also depend on the type of z
+ - Seems like a cycle of dependencies
+
+But at the end of the day, all we really care about is that everyone gets a type
+ - So maybe tasks can be satisified and cancelled
+
+like y's type depends on the return type of test, but test's return type also depends on y and z
+Since z gets solved, then test's return type gets solved, which solves y's type too
+
+I imagine the task for assigning the type of y to the return type of `test(&x)`
+ - test is a function call expression, and it should have a result_type
+ - We wait for that result type, and our action sets our node's result type to the same type
+ - Every local variable node also waits for their parent's result type
+ - But when we do `z = 5;` the assignment operator would check if the types match
+   and would see that z doesn't have a type yet, it would assign it to rhs type
+ - rhs may not have a type yet, so we might need to wait on that too
+ - Our assignment operator would wait on a type for the rhs, and optionally get a type for lhs
+ - Since we hit a condition that matches rhs type, but no lhs type, we run and assign
+   a type to z
+ - Since z gets assigned a type, it cancels waiting on the return type of test
+ - Note that y is still waiting on the return type of test
+ - Since test's return type also has a dependency on the type of both y and z
+ - z got assigned a type, so that triggers and sets the return type of test to i32
+ - this also cancels test's return type waiting on test's parameter type
+ - And test's parameter type depends on the return type too, so that fires
+ - which goes all the way back to the vec
+ - y also depends upon test's return type, so it fires and resolves
+
+ - We basically want these conditions / waits to be coroutine style pauses/yields
+
+Conditions are basically like:
+
+What we want to accomplish (adding type, cancels if it's already done by someone else)
+What we're waiting on to accomplish this
+
+ideally we keep the way we register these as simple so we can establish a clear dependency chain
+ - we know this task will add this member, we know this other task is waiting on that member, etc
+ - can be multiple tasks that solve the same problem in different ways, so it's more a graph
+
+and then we get stellar errors at the end when we can't complete something
+
+And we just register wasm functions to run based on these conditions
+
+a compile(expression) feature that runs all the code of an expression (including block or closure)
+ - it depends upon the bitcode portion of an AST to run (dependency)
+ - WASI functions have well defined ways that they run at compile time (and hooks you can override)
+   - Can see any folder under the compiled directory, command flags for adding more, etc
+
+A cycle of dependencies is detected when we can no longer run any of the tasks, but there are still tasks pending
+ - But it would be nice to explicitly build these dependencies so we know the second a cycle task is added
+
+It would be great if the whole compiler could fit within the runtime too, since the parser is surely part of it
+ - I like the idea that there isn't exactly "compile time" but just steps, like you can precompile a bit
+ - and then compile more later with more data
+ - But ultimately, the runtime can ask if the current call is during a compile step
+
+
+
+  // Rust style type inference is actually simple, the first time someone wants to use an inferred node
+  // as a certain type, we just automatically register it as that type, and any future changes error
+
+  // TODO: Cleanup and make it nicer for rust
+  // Make cleaner way to print out tables
+  // Check if predict rules are correct (try in our own Welp too)
+  // https://www.usna.edu/Users/cs/wcbrown/courses/F20SI413/firstFollowPredict/ffp.html
+  // Things to discover:
+  // - Does adding a new production invalidating things we did before? I assume so
+  // - Is there any way to incrementally add a production?
+  // Next implement BNF + Sets to NFA
+  // And then NFA to DFA with shift/reduce stack
+  // Basically get this parser actually working with inputs
+  // Not sure how much I love rust currently, I mean it's alright but the readability is bleh
+  // I think typescript has been the cleanest language for reading so far
+  // Just thinking about how much easier this would have been to write in TypeScript...
+  // And easier to write UI for debugging...
+  // Graphviz, etc
+  // Make the whole thing in VIZ
+  // I want the first thing we do to be a very minimal implementation of the compiler
+
+the traits in rust are much easier that Typescript interfaces
+ - Because they can have default implementations
+ - And "classes" in typescript have so many annoying requirements
+ - I love that there is no "new", it's just static methods and you have to constructor the class
+ - and no private, just internal / crates / modules
+
+but typescript union / subtract, etc is also awesome
+
+Just like we have compile() to evaluate an expression, we should be able to write any type expressions
+type1.union(type2)
+
+so if we compile() an expression, and it returns a typeid, we can use that as a T
+
+function foo(bar: i32, baz: compile(if name.contains("a") { typeid(i32) } else { typeid(i64) })
+we should also be able to eval(string) which executes codes with the current set of rules where eval lives
+
+----------------------------------------------
+
+The worst part about the TypeScript implementation was the annoying Map behavior
+ - If we could make custom object types with hash and equality
+   it would be much cleaner than having to use unique strings
+The worst part about the rust implementation is that it's extra verbose and lines are long
+ - Because of having to get a mutable reference to data, it meant all the pieces of the sets were
+   constructed individually and only combined at the end. This isn't bad at all, but having to take
+   each by reference, as well as "has_changed" was super annoying. It really does mean do less with objects
+ - I also thought all the RefCell and other garbage caused it to be somewhat unreadable
+ - I can see how if I understood rust to the T, I would read it like butter
+ - But I think the need to be explicit with nearly everything is taking away from what the actual program is
+   (the idea of the program, which I should easily get from reading good code)
+
+To be fair, maybe there are much better implementations now that I understand the rust one better
+ - Maybe it's easy to clean up and someone could show me the right way
+ - But having to like... deref,deref_mut,borrow, borrow_mut... it's just taking away from the code idea itself,
+   it's safety and optimizations rolled into one
+
+Next step is BNF Sets + BNF Grammar to NFA, then NFA to DFA
+
+Once we have that, we can start authoring the nodes
+
+I really just feel like I should support LALR(1) only, but the old Welp grammar parsing was interesting
+
+It's a language whose parser is part of the language
+ - I think most languages end up hand rolling their parsers so they can do special tricks
+
+
+----------------------------------------
+
+
+// I think instead of trying to store weak nodes within nodes (it kind of gets confusing)
+// lets just support weak nodes as children (graph nodes basically)
+// they aren't considered owned when attached/detached/deleted
+// In all our find functions, we should take options, whether we only consider owned nodes or not
+// we also want to make sure find never cycles if it indeed is a graph
+// I wonder if we should remove "kind/parse_start/parse_end" and just make those members
+// basically we can't declare structs yet
+
+/*
+
+AssemblyScript when I try and write A | B:
+  Not implemented: union types
+
+This seems like the entire point: we do traits/interfaces plus union types
+ - where possible, we don't use interfaces and just deal directly with data
+ - and maybe our vtable even has "virtual member offsets" so two structs with different layouts but same members can work
+ - basically members can be direct offsets, or get/set, but the compiler oversees this internal detail
+
+possibility to have stack handles, handles to members, handles to values inside an array, etc
+ - All properly checked when we dereference the pointer, and we can only use the pointer lifetime temporarily
+ - and we focus on the optimizer eliding dereferences and reducing ref count operations as much as possible
+ - Find out how to make arrays and slices safe and fast
+
+no garbage collector, but you can leak
+ - we could maybe do something like not allowing cycles of pointers
+
+I like the idea that you have to write a:  A | null
+ - We make you be explicit about nullability
+
+And we attempt typescript style:
+ if (a) { A } else { null }
+
+And we also need dynamic objects too, like indexable typescript objects, so our meta should have dynamic access operators too
+
+Focus on the language being pleasant to use and easy to understand
+all reference counted, with explicit delete, and hard locks
+easy thread safe models too
+100% safe language with no data races, determanism (no undefined / unpredictable behavior, even for containers)
+ - not native performance, but still stellar perf for tight loops, etc
+ - basically give C# a run for it's money
+ - and make it easily embeddable in other languages (small runtime, wasm interpreter, expose wasi functions)
+ - make sure the resulting runtime and compiler binary are small too, run on embeddable
+
+
+
+Ok, even if in the future we port this structure over, we still want it
+It's still a great generic tree structure, and maybe in the future we'll merge it with our object / trait model
+I basically want rust, but with everything being dyn traits
+and do it C#/Zilch style, structs are copy, but everything else is allocated automatically
+ - it just simplifies move/copy behavior
+ - but maybe we can reign in handles a bit
+ - typescript style where any matching interface is an interface
+ - and interfaces can require data (can they add data too, I always loved that idea)
+   - Might make ABI compatability annoying, but at that point you're already in C land
+ - And we want to be able to do typescript style A | B
+
+
+In some ways we would want to write in our own language
+tower nodes are generic, support virtual behavior, easy to generically iterate over
+but could we just create tower nodes in our language as a struct
+ - just a bunch of pointer and arrays (would want a dynamic sizing vector at least)
+
+Fascinating idea, we may be able to solve tasks WHILE parsing
+ - if we make the parser re-entrant so it's iterative
+ - when we resolve a type, we could potentially even allow the type to introduce it's own parse rules
+ - it would have to be after some operator or something on the type, "test".
+ - I like this idea as a way we could introduce swizzle operators but entirely using grammar rules
+ - maybe we can design it where some member access operators get their own rules that temporarily apply
+   - but they type would have to be wholly known, no inference
+   - let a;
+   - a.something // no idea what happens here since we haven't parsed a=64 yet
+   - a = 64;
+ - Actually as much as I love this, I think it's better to do everything with a "dynamic" access operator that resolves members
+   - It can also error, which sends up a compiler error
+   - So we can allow any code to handle any member it wants, e.g. swizzles for .xyzw
+ - I like this better, it fits that a type can also be generated at compile time
+
+
+// Maybe all tower nodes should be owned by a parse object, which holds the source code strings (context)
+// Here string may just be i64 with a specific compressed ascii encoding to fit 15 chars and underscores
+
+For our sanity, we almost want a way to describe tower node interfaces (like TypeScript / JsonSchemas)
+ - and have them be checked / validated
+ - maybe this comes later as we advance the language and start writing things in our own language
+
+tower_node_create(context: tower*) -> node*
+tower_node_destroy(context: tower*, node: node*) // panic on double destroy, check free list header
+tower_node_attach(context: tower*, child: node*, parent: node*) // automatically unlink and relink
+tower_node_attach_member(context: tower*, child: node*, parent: node*, member_name: string) // automatically unlink and relink, any member of the same name is removed
+tower_node_get_parent(context: tower*, child: node*) -> node* // or null if it's the root
+tower_node_get_child_count(context: tower*, parent: node*) -> u32
+tower_node_get_child(context: tower*, parent: node*, index: u32) -> node* // or null if not found, panic if out of range
+tower_node_get_child_member(context: tower*, parent: node*, member_name: string) -> node* // or null if not found
+tower_node_get_kind(context: tower*, node: node*) -> string
+tower_node_get_parent_member_name(context: tower*, child: node*) -> string // returns empty string if not named
+
+enum type {
+i32,
+i64,
+f32,
+f64,
+string,
+bytes,
+weak node*, // safe, nullable
+strong node*, // panic if we attempt to delete the other node without releasing this
+}
+
+tower_node_set_value_T(node: node*, value: T)
+tower_node_has_value_T(node: node*) -> bool
+tower_node_get_value_T(node: node*, default: T) -> T // uses default if T is not valid
+tower_node_expect_value_T(node: node*) -> T // error if the value is not correct
+
+// all the traversal orders, probably better correct names for this
+// any combination of these
+bitfield order {
+  self,
+  up,
+  children,
+  down_breadth_first,
+  down_depth_first,
+  siblings,
+  ancestors_children,
+  etc
+  // do some orders that walk up, but also visit siblings
+}
+
+tower_node_find(node: node*, order: order, predicate: callback) -> node*
+tower_node_find_kind(node: node*, order: order, kind: string) -> node*
+tower_node_find_type(node: node*, order: order, type: type) -> node*
+tower_node_find_member(node: node*, order: order, member_name: string) -> node*
+
+We should find a way to make all the find functions take a previous value, so they can find the "next" one
+ - We can use this for iteration
+ - callback?
+
+tower values are kind of already arrays because they can have indexed children
+they are also sort of string maps and variants too
+
+Solver:
+ - We want the solver to be able to wait on children of a specific kind, type, members, etc
+ - Almost want paths, or relative paths, to a specific node
+ - We want these dependencies to be easily analyzed, so we can track cyclic dependencies and have better errors
+ - We can still run manual code to check dependencies more specifically (a test function)
+ - Some tasks can run on nodes with no dependencies, basically what it looks like when we do => at the end of a rule or production
+   - That defines a task to run when the production completes, but it has no dependencies
+   - I guess you could say it has a dependency on the node's existance
+   - If someone else runs before and deletes the sub-tree, that task shouldn't run anymore
+ - So it just has a dependence on the completed "sub tree root" node itself
+   - Kind of the same feature as the cancel, tasks can have conditions in which they self cancel
+   - One of those conditions is basically always that the task's associated node gets deleted
+     - But maybe we can expand this concept to require multiple nodes, etc
+
+ - Generally when I look at the types of zilch walkers, we really just needed the basic ones that ran on the nodes themselves
+ - And then the ones that ran once we figured out the types
+ - 
+
+Tasks should run in order of those with 0 dependencies, and the order they were scheduled
+ - If it makes sense we can add a priority to differentiate within those levels, but I hate priorities
+ - Dependencies make much better priorities
+ - The run order makes sense, for example literal constant nodes would run first
+ - Local variable references would try and find an associated variable up the stack
+   - Is that a dependence?
+   - I imagine in Zilch I had something where as I walked down, I pushed things onto a scope stack
+   - We could also search the tree, but it's a bit annoying as it involves searching 
+
+{
+  let a;
+  {
+    let b;
+    a + b;
+  }
+}
+
+The reference to a here has to scan up it's parent until it find's any body that can hold local variable declarations
+ - Then it must scan all the statements to find a local variable reference
+ - I believe in Zilch we did a few passes, one where local variable declarations added themselves to scopes
+ - And another where as we walked down, those scopes pushed onto a stack where we could look them up easily
+ - This would be a really interesting language toolkit thing, but how do we solve this with our nodes?
+
+`let a` could create a task that only has a dependency upon it's parent
+ - That task could push itself into some sort of parent array of in scope items
+ - But that's a hard thing to depend on, ideally someone else would want to depend on like "all scope items complete"
+ - But that's not a concrete thing, that array would just keep getting filled
+ - So maybe another feature is needed here, this is kind of like passes, we need to make sure an entire pass is completed
+ - it's like having a dependency on a group, maybe that's the better idea
+ - we can group tasks under a single group (or group name) and you can have a dependency upon that group being completed
+ - That sort of eliminates the idea of passes, and a group is really kind of just an "and" dependency
+   - Maybe that's it, our dependencies can be an expression not just a node
+   - And for convenience, we can just label tasks with a group name and depend upon that group names (automatically depeneds on all those tasks)
+ - rather than passing scope down as we walk down the tree, because we no longer "walk down", we just execute tasks
+ - then we really just need good tree find functions
+ - So 'a' really needs to make a task that's dependent upon the scope it's within
+   - But that's not an immediate parent
+   - Maybe dependencies can be fluid like that, they can output a node...
+   - Like dependencies are re-evaluated every time, parents can change, etc
+   - And we can build a dependency graph from evaluated node pointers
+ - We only need to re-evaluate these when the graph changes, maybe we can keep track of who needs re-evaluation instead
+ - I like this as the primary thing
+   - Maybe we can even use the traversal's in our dependencies
+   - When we add, delete, detach, reattach nodes, we need a way to know who needs to be updated / notified
+   - Maybe when evaluating a dependency, we mark all nodes in the path used to get there
+     - And if we change anything about those nodes, we know who needs to be updated
+
+I can imagine that tower nodes can actually be pretty complicated, because they know who needs to be updated if they update
+
+I'm imaginging that every time we evaluate a path, we record all the nodes used to get there
+ - paths are evaluated left to right, on a find first basis
+ - if the path can't be completed (e.g. nodes don't exist) then the last node we found we register a "waiting for this"
+ - that way, if the node is ever modified we know who needs to be updated
+ - we should call those 'partial evaluated paths' or 'complete evaluated paths'
+ - when we modify the structure
+
+this seems cool, but for now lets go with a much less complicated "ask the tasks"
+
+yeah, part of the point of tasks was to say what they output too
+
+Ok maybe dependencies are just functions, but they are expected to output evaluated paths
+and since we actually evaluate node, the result is one or more (remember conditions) of evaluated paths
+
+evaluated path:
+ - the most recent node* we found
+ - the rest of the path that we didn't get to
+
+paths should always be normalized as they will be compared
+
+so when we attempt to ask the + operator if it's task is ready to run, it checks all it's dependencies
+ - it may have lhs and rhs, but maybe they haven't evaluated types yet
+ - so it returns the most recent pointer to lhs, with a remaining ".type" to be evaluated
+ - another task can say that it outputs "self.type", and since it's the child node
+   - we evaluate self easily, but ".type" has not been output yet so the partial path is emitted
+   - We can match up the dependency with the output to build a graph
+ - dependencies and outputs are parts of tasks that we always ask for
+   - it may fluidly change with each iteration, so maybe it's best if we don't try to make an efficent graph for now
+ - at some point we can make optimizations to the solver algorithm if we need to
+
+the tower_find functions should output partial or complete paths
+ - if it's complete, we keep going, if it's partial, we stop and output that (like a rust Err check)
+
+instead of saying ancestor's immediate children, why don't we just allow find to evaluate paths
+ - so basically for every node, in the find order, it will attempt to find another path
+ - first to evaluate wins
+
++ operator:
+  dependencies:
+    self.lhs.type
+    self.rhs.type
+  outputs:
+    self.type
+
+local variable reference:
+  dependencies:
+    find(up, kind(scope), find(children, kind(local_variable), .name{a}))
+  outputs:
+    self.type
+
+there's not one single scope, so I guess when we evaluate the partials we need to output an "any of these"
+ - the whole point is better error messages, and basically what we're trying to do is point out all the places
+   that we might find a local variable
+ - I almost think it's better if we maintain some sort of scope concept
+ - Maybe this isn't really a dependency, it's not something we really output and say hey we're waiting for this
+
+What would scope look like as a concept
+ - maybe there are scope types that are just string identifiers
+ - a local variable declaration would add itself to the nearest parent scope
+ - we'd need to define if the language allows shadowing, all that, kinda gets messy
+ - we could always just do find first / nearest, and implementors can make separate tasks to emit shadowing errors
+ - this is also where "using" could come in
+ - basically scope is a short hand symbol table
+ - I kind of like this concept, especially since they are just nodes in the scope table
+
+
+dependency:
+ - on a path
+ - on a node
+ - on a group of nodes
+ - on a group name
+ - on a and/or condition
+ - find(order) + path
+
+
+tower_task(target: node*, test_callback_no_side_effects, callback)
+
+
+Maybe we also check outputs, and if an output is satisfied, then we don't run it / cancel the task
+ - can be an option on tasks
+
+tower nodes can be registered to act as scope collectors
+ - tasks can add to the scope
+ - local variable declarations could just walk up to their parent scope and add declarations in
+ - makes sense, since:
+   using foo;
+   bar();
+   using bar;
+ - Here, bar should not be visible, so we should do them in order (top to bottom)
+ - Technically just by parse order we will visit things in this order
+ - Using declarations should just bring in weak pointers to nodes
+ - basically we want a tree that is just visible scopes
+ - technically some of the things may not be AST nodes, they could be just symbols
+   - that's really what we want types to be
+
+What things do tower nodes need?
+ - the start and end indices from parsing
+ - the string they parsed? not really, can technically get that from start/end and the source str
+   - but a helper to get that string would be really good
+ - ability to store values and constants
+ - A tower node has children, but it's sort of a variant too
+ - how do we know what an "expression" node is? is there a type string on the tower node?
+
+ - I almost want tower nodes to attach whatever binary data they want
+ - In json, an object only has children if it has a member for children
+
+ - Start/end for parsing, when we create a new node we may not have a start/end
+ - But we can require it for all nodes, it might make it easier
+ - Technically all nodes should be derived from some sort of source, even if generated
+ - Should nodes just have a pointer directly into the string? I kinda like that, and a length
+
+
+rust separates out traits and structs, do we even need to?
+ - what if there were only traits, and traits could have data members, and you can implement traits for other traits
+ - what does this look like
+ - this means that our sizes of our structs change as we compile more things in
+   - meaning that loading code at runtime might be odd since it causes structs to change size
+   - maybe if an interface needs data, we have to create it with & including that data
+
+trait Enemy {
+  lives: i32;
+  health: i32;
+
+  fn hurt(amount: i32) {
+    this.health -= amount;
+    if (this.health < 0) {
+      --this.lives;
+      this.health = 100;
+    }
+  }
+}
+
+trait Named {
+  name: string;
+
+  fn hello() {
+    console.printline("hello from `this.name`");
+  }
+}
+
+trait Health {
+  health: i32 = 200; // can have defaults
+}
+
+let e = Enemy {
+  health: 100,
+  lives: 3
+};
+e.hurt(12);
+
+Enemy {  lives: 3 }; // error, no health
+Enemy & Health {  lives: 3 }; // ok, since Health has a default
+
+let h: Health = e; // ok, because even though we never implemented Health, it implicitly matches as an interface
+
+trait Debug {
+  fn print(self: Self);
+}
+
+impl Debug for Enemy {
+  fn print(self: Self) {
+    console.printline("health: `self.health`");
+    console.printline("lives: `self.lives`");
+  }
+}
+
+e.print();
+
+// Since Debug is a functional only trait, and more importantly Enemy implements everything Debug does, then it shows up
+let d: Debug = e;
+d.print();
+d.lives = 5; // error
+
+impl Named for Enemy {
+  // override / custom implementation
+  fn hello() {
+    console.printline("roar I'm `this.name`");
+  }
+}
+
+let n: Named = e; // does not work, since Named adds data and e was not allocated with that data
+
+let e2 = Named & Enemy {
+  name: "boss",
+  lives: 5,
+  health: 1000,
+};
+
+let n2: Named = e2; // legal now
+
+let eref: Enemy = e2; // sliced off Named from the type
+let nref: Named = eref; // dynamically pulls the trait/interface out
+
+and we have 'instanceof' and the other kind of same stuff
+
+
+I do really like the idea of anyone within the same module / crate as being able to add data without requiring the allocation
+ - but we'd have to know everything up front
+ - we'd also have to have default values, what are they allocated as?
+ - it's more explicit if we have to force the user to allocate the types
+ - but I really like that we just don't really have types
+
+
+It's possible that we effectively get the diamond of death now:
+
+impl Test for A;
+impl Test for B;
+
+let x = A & B {};
+
+impl Test for A & B; // can we have this? I don't see why not, we're being way less strict with types
+ - it would have to be something where we basically normalize a type (meaning all A & B are the same)
+ - and we then have some specificity rule, eg "x as Test" will use this
+ - what about like, A & B & C? ideally since A & B is more specific it will use that logic
+
+let t: Test = x; // here this would be an error, or maybe we have some algorithm for choosing which one
+ - We can try and enforce the rust style rule for who gets to implement
+ - I don't mind some rule about choosing one, and it involves "closeness" to the call site
+   - e.g. we pick implementations within the same module first,
+
+Technically we have two different problems:
+ - two different people from different modules implementing a trait for a common type
+ - but also since we now allow union types, union types introduce multiple of the same trait implementations
+ - Maybe the order of the union actually matters, e.g. A | B, vs B | A, it just means when we dynamically
+   pull off an interface, we'll go in order of the types as declared when we constructed it
+   a = A & B {}
+   a = B & A {}
+ - I still think we're going to end up in scenarios where it's not all that clear
+ - we can always double cast for explicitness, e.g. `a as B as Test` or maybe even `a as B:Test` (B's version of Test)
+ - technically we only care about call sites where we extract the interface, but that call site could be in internal code
+ - but maybe we care about who is calling... like the actual call stack?
+
+ - I actually don't mind the idea that it's based on the order of A & B, or B & A, when allocated
+ - the & forms it's own tree, and we basically just go order first, (e.g. if A is also a combo)
+ - we also go most derived first, e.g.
+
+
+trait A implements X {
+}
+
+trait A implements Test {
+}
+
+trait X implements Test {
+}
+
+trait B implements Test {
+}
+
+// Can do this
+trait A implements X & Copy {...}
+// Or separately
+trait A implements Copy;
+
+the only question becomes if we get inherited data, because previously we said that you had to do A & B
+ - but I don't want you to have to always write Player & Component {} to create a component
+ - this is why data gets weird, because if you have to be explicit every time...
+
+Maybe we can allow you to add data, but if any instances of a class exist then you can't
+
+adding data I think would annoy people, since we can suddenly add data to primitives and standard library types
+ - which is cool, but like, also annoying
+ - but also cool in its own way, just bringing libraries in might be kinda gross
+
+
+let a = A & B {};
+
+let t: Test = a; // Here we get A's version of Test, since A is first, and lowest on the tree
+
+and we can't have cycles of trait impls, e.g trait Test implements
+
+it's a little more loosy goosy
+
+how do we decide the whole class/struct thing? if all we have is traits...
+ - we can determine if something is implicitly copyable pretty easily (only primitives, no handles / ref counts)
+ - we can use & or ref, but I wish we didn't have to, I don't like extra syntax if we can avoid it
+ - maybe we can say on a trait, and when we use that trait
+ - or maybe all traits are allocated, but we can say "implements Copy" or other special traits
+ - And that means the value is now copyable, but we can't have any other non copyable values
+   - we can't add any non-copyable members then
+ - I don't like the idea that something we do can perminantly change usage everywhere
+ - or fine, if you suddenly turn a trait into Copy, we have to update all places in code
+
+The whole idea that we change code and it changes everywhere makes all sorts of weird problems
+ - we basically can't compile code in a static way because new members have to be addable (and defaulted, otherwise it breaks code)
+ - that means you really can't ever "compile" a library, we're always going back through when types are modified
+ - that is unless we make it some sort of dynamic type, but that defeats the purpose, we want like 80% native performance
+ - adding members would change sizes, initialization code, etc, it would have to be recompiled everywhere it's used
+
+why do I want that model?
+ - basically it's the same as having ability to implement traits for any type and having collision resolution
+ - but that happens at runtime, and potentially we can make that into a call so we abstract away the behavior and don't need to recompile
+ - e.g. the wasm stays exactly the same since it's all dynamic dispatch as a boundary
+ - but suddenly when we change sizes, the actual code itself has to recompile, especially since initialization logic has to run
+ - unless initialization logic is like pre-constructor in zilch (sets all values to defaults)
+ - but still sizes change, and wasm doesn't have structs, so you really have to do structs manually
+
+we also could get clever and cache instances of compilations, so we don't need to keep recompiling because we know the size
+  hasn't changed (but if you change that struct, it causes recompile, just basic minimimal recompilation)
+
+any time dependency-libraries change dependent libraries (e.g. my lib changes std lib) causes recompile, all parts of the tree
+ - you can dynamically load libraries into an existing runtime, but if they change parent libraries then it requires recompile
+ - if there are existing types... well
+ - we could do the zilch thing where we rebase and reinitialize all heap types / new members
+   - would have to support default initialization always then
+
+is there ever a case where the standard library needs to recompile
+ - I'm not a huge fan of the fact that adding Copy suddenly changes how things compile
+ - like previously even if I change sizes (which would mean we need to re-emit bitcode)
+ - it did not cause me to re-check types, as we we're only able to add to types (and you could say the whole it has to be in scope thing too)
+ - 
+
+if we were able to add to std library traits, can that ever cause a compile error or ambiguity in the standard library?
+ - yes in that
+
+module Std {
+  interface Test {
+    fn test(): i32;
+  }
+
+  interface Standard implements Test {
+    fn test(): i32 {
+      return 1;
+    }
+  }
+}
+
+// Standard brings in Test because the only definition we see of it shows Test
+// basically the only ones that see our new additions are those who also see our module
+
+trait Foo implements A & B {} // error, it's known at compile time that these conflict
+// Maybe this syntax makes less sense anyway, we're trying to jam two things together (which is which?)
+// or maybe A & B is basically a unique type
+
+interface BetterTest {
+  fn test(): f32;
+}
+
+interface std.Standard implements BetterTest {
+  fn test(): f32 {
+    return 123.0;
+  }
+}
+
+// but now this is an error
+let s = std.Standard{...};
+s.test(); // error, ambiguous, which one does it call? since both are in scope and only change return value
+// we can make it so overloading always requires disambiguation for now, or can make some sort of select algorithm
+(s as BetterTest).test();
+
+trait Foo implements A {}
+trait Foo implements B {}
+
+so generally no, adding a new member will never cause a compile error because the base module doesn't even see it
+ - even when it adds size
+ - but maybe we can only say implements Copy in the same module it first appears in
+ - so some traits that control compiler details must be implemented at the declaring module level
+ - means we need to code-gen again, but not semantic analysis
+ - note that operator overloading should still work since a + b is just a.add(b), so implementing the add trait is easy
+
+we can only declare copy in the declaring module, but anywhere within the module
+
+right now we can basically do single dispatch with dynamically pulling out interfaces
+- e.g. virtualism: sphere prints radius, cube prints extents, etc
+- maybe we do allow overloading, and our overloading technique can handle dynamic dispatch
+- and since anyone can implement the trait anywhere, free dynamic dispatch
+
+trait Shape;
+
+trait Collider {
+  fn collide(a: Shape, b: Shape): bool {
+    return false;
+  }
+}
+
+trait Collider {
+  fn collide(a: Sphere, b: Box) {
+  }
+}
+
+// since there's no self we can call it like a static...
+Collider.collide()
+
+collide(a, b) // pick the right version of collide?
+// we have to use some algorithm for specificity, but it's cool to provide it
+// overloads can just be a way to provide dynamic dispatch, and since anyone can implmement the overload anywhere...
+
+since we have union types and all that, 
+
+What if we do everything like this syntax:
+
+type Collider {
+};
+
+Ignore all the += stuff, basically what we're saying is that any {} is a type like in TypeScript
+ - but we alias it with names for convenience
+ - but also, name aliases act as the group holder for interfaces
+
+Can we grab any interface "just because it works"?
+ - well if it imposes no restrictions on the type (it matches) and has default functions, then yes
+ - in typescript interfaces don't have defaults (function implementation, default values, etc)
+ - so it's not a worry since casting interfaces is always checking that data matches
+   - it only makes sense for an interface with function defaults, but members/data make no sense
+
+The way we do type and interface mapping should be entirely by which members fit
+ - so for example, when we say type A implements B, what we're really saying is here is an implementation for B
+ - that works with anything that looks like an A (it can even have more members than an A, e.g. A & C, or just a new type D that quacks)
+ - That means that type names are actually irrelevant, we just use them to identify types
+ - so a big operator we need to implement is "does this interface / data layout match this interface"
+   - or is there an implementation of it, or can we cover 
+ - for allocated objects, why don't we make the pointer at the base of the object able to attach components / new interfaces at runtime
+   - component based design basically
+   - nah I think rather than making that something we just magically do for users, I like just overloading the operator
+   - we can build a standard Composition interface
+
+when we do implements, all data members must be initialized
+
+type X implements Y; // that's just a statement basically, Y must be complete
+
+the component idea is basically instead of actually extending the type with new members, we attach the members as a component interface
+ - but then our language would need to bridge the gap between "owner" and "self"
+ - I guess in interfaces, that could be a thing, self means the interface itself, and owner means the one composing it
+ - But, I think the part we're missing here is that we don't just want to be able to get C# style interfaces where a thing "IS" that interface
+ - we want it to work where anything that can be, IS
+ - true duck typing, but still very type safe
+ - and use strict style TypeScript for explicit null checks, eliminate that issue
+ - and add some sort of cool match expression in to match interfaces and destructure
+   - we can play to rust strengths
+
+// in type parsing:
+// Y {}
+// means taking an abstract or complete interface Y and implementing it (all functions must be implemented)
+
+
+type Collider implements Copyable;
+
+// legal syntax
+type Collider implements {fn foo();} {
+  fn foo() {
+  }
+}
+
+we could even do
+
+type {health: i32} implements {
+  print(self) {
+    console.log("I have `self.health` health");
+  }
+}
+
+let monster = {
+  health: 100
+};
+
+// Now any type with a health: i32 matches the definition and gets a print function (if this is in scope)
+
+So that means we should be able to basically do this
+
+
+let f : {fn: print()} = monster; // legal cast, since we implemented print and it's in scope
+
+normalize all types and make them all comparable
+
+
+
+Basically as a parsed type, {} is a trait/interface/struct
+
+traits are all basically compared purely on "if it matches it works"
+ - which means that type names are really only a convenience
+ - but no, we really do want type names to be a single trait, since we want to attach things to it later
+ - and 
+
+I can extend a type anywhere
+
+type Collider += A + B;
+
+anywhere that has an unimplemented interface needs an in place implementation, maybe that's just a { } following type expressions
+
+think of this like JSON and typescript
+
+I want to be able to do:
+
+let a = {
+  a: 5,
+  test: (a: i32) => {
+    console.log("a", a);
+  }
+};
+
+typescript interfaces are all compile time, there is no "dynamic cast" which is unfortunate
+ - we'd love the data to be validated and to fit within the interface
+
+typescript/javascript have classes, and that has instanceof, but that's only a single chain of inheritance check
+ - basically what we want is data compatability checks and a sort of as
+ - but functions make that kinda weird, since it's like "static data" (kind of the same as two constants)
+   - ok so this is a new paradigm, where we can pull out interfaces dynamically based on the data
+   - it's sort of like, imagine taking every allocated struct with all it's data members
+   - and then meticulously go through all named interfaces and generate a cast if it can be
+   - and the confusion comes from when we can have more than one implementation of a thing
+
+we should also be able to implement the is/as/has operator ourselves - component lookup
+ - only called when the built in interface lookup fails
+
+// typescript
+let a: number | string;
+if (typeof a === "number") {
+}
+let b = a as number;
+
+if (a is number) {
+ // a is a number here
+}
+
+now ast nodes would make more sense as just compositions that hold interfaces
+that seems a lot nicer
+
+basically now we just need to optimize interface lookup
+ - and ideally anything that can be statically figured out should be
+
+maybe a "fat" handle to a container locks it, and modifying it means 
+ - containers can implement returning a 'fat handle', maybe just an i32 + handle to container
+ - any existing fat handle locks the original value (can't call any mutating interface?)
+
+we always return a vtable basically for an interface
+
+so part of our language's algorithm should be to match up vtables
+ - but the weird part is that we can extract them even not knowing if they implement that or have it
+ - sort of makes sense, ultimately you can in typescript and javascript
+ - in C# you can pull any interface off a class, or any derived class (or null if it doesn't implement it)
+
+we do need the allocated object to have some sort of vtable pointer, so we can recast
+ - basically we just need to know with any piece of data sitting wherever it's allocated, what is the type
+ - because we may be pointing at the data through a random interface pointer and need to change
+ - so it's like, what's the actual data type, the memory layout, etc (member types)
+   - in a way, do we even care about the type (e.g. any methods) or is it really just data?
+
+lets imagine we're making a player and an enemy, right now the only difference is what they say
+
+type Player = {
+  speak(self) {
+    ...
+  }
+};
+
+// OR
+
+// This is partial because it has no implementation for speak, so speak must be implemented (no default)
+type Speaker = {
+  speak(self: Self);
+};
+
+type HasColor += {
+  getColor(self: Self): i32;
+};
+
+type Player += {
+  name: string;
+  speak(self: Self) {
+    console.printline("Hi my name is `self.name` how are you?");
+  }
+}
+
+Ok this whole idea is stupid and flawed, we're not unioning types when we implement an interface for a type
+ - implementing an interface for a type is fundamentally different than extending the type
+ - i'm implementing an interface FOR a type
+ - in C#, only the class itself could do this
+ - in TypeScript, there is no such thing really, it's all dynamic under the hood
+ - what I really want is that "anyone who looks like this can fit in this interface"
+ - but interfaces can also be allocated, it's not like C# where they aren't full types
+ - so in many ways, no difference than structs (data) and functions
+ - but then we ask what it means to implement an interface for another interface
+   - especially because interfaces can have full function implementations in them
+   - 
+
+
+let t: HasColor = p; // error since Player does not implement getColor / does not match the interface
+uld implicitly cast to Speaker because of the speak function
+type Player += Speaker;
+
+type Player += HasColor; // error, missing implementation for getColor
+
+type Player += HasColor {
+}; // error, getColor was not implemented
+
+type Player &= HasColor {
+}; // error, getColor was not implemented
+
+When you write a type expression, and then you put {} after it, ALL must be redeclared, no partials
+you can re-declare without an implementation however (e.g. fn foo();)
+
+type Enemy = {
+  health: i32;
+  speak(self: Player) {
+    console.printline("arrrrgg I only have `self.health` hp!");
+  }
+// technically OK, but a little silly since player already implements speak, this is basically a NOP
+// Player already co
+}
+
+let e = Enemy { health: 100 };
+let p = Player { name: "Bob" };
+let s: Speaker = p; // implicit cast to an interface
+
+
+// basically, we want our language to be almost as easy to use as a dynamic language with little casts or anything
+// but still as close to native as we can get with eliding and assuming as much as we can
+// so a 100% safe language, but running as fast as we can make it go without unsafe behavior (like a scripting language)
+
+
+
+Lets come up with some examples of how we want interface selection to work
+
+type A = {
+  health: i32;
+};
+
+type A implements {
+  speak: fn(self) {
+    console.log("hi `self.health`");
+  }
+};
+
+
+// In the same module or if the above was in any of our dependencies, this would be an error
+// Rust avoids this by saying you can only implement your traits for other types, or other traits for your types, or if they're both yours
+// We could adopt that same rule, but it doesn't prevent the case where there are multiple interfaces that satisfy the same thing
+type A implements {
+  speak: fn(self) {
+    console.log("yoooo `self.health`");
+  }
+};
+
+if the above were in another module, now we have two conflicting definitions of speak
+even if we gave the interfaces names... they are compared member by member
+ - maybe we could say something like, if a type is named, then if you pull it out by name it will attempt to pull a complete
+   implemented interface registered to that name first, and then member by member (duck typing)
+ - I kinda like that, it's a little odd but it's complete
+ - but I'm also not sure I like the idea of giving names more meaning
+ - or we could say something along the lines of, an exact interface match when doing implements/runtime lookup
+   will always prioritize over member by member matching
+ - I mean, we could even start with that for a long time, implementation's only (exact matches)
+
+ - the beauty of not just doing typescript style interfaces is that we can implmement interfaces for other classes without
+   necessarily adding data
+ - like in TypeScript, trying to turn a type into an iterator means most likely wrapping it in a whole data class
+ - but here we can probably just implement an iterator interface (no extra allocation, it's all static)
+
+all type expressions have a defined order that they walk to pull out interfaces
+
+basically what we're saying, when you pull an interface out of a type, you're really just doing it member by member
+ the fact that you said A implements B, and then you pulled out B later, it's not actually pulling out B, it's pulling out
+ every available member by matching name and type
+
+So it means that we basically need to worry about making members and their types unique
+ - because we're saying if the members match exactly, then they are considered as implementing the interface
+ - conflicts can become pretty strange, I think
+
+Ok so the algorithm first prioritizes exact interface matches first
+ - and since we want anyone to extend from anywhere, and we are ignoring type names, then
+
+
+hmm, if we do it this way we're basically tossing out type names (they are just aliases)
+
+it's also a little odd since we're saying X implements Y, but if Y adds members to X, does everyone
+who creates X automatically have to allocate the members of Y, (any type that looks like X?)
+ - it makes more sense when we're using type names and it's not just "anyone who matches"
+ - X implements Y, X could always have to be a type name and not just a type?
+
+
+
+module X
+A implements B
+
+module Y
+A implements B
+
+module X
+casts A to B, we should get module X's B implementation
+
+module X
+calls into std code and passes A
+std code casts A to B, we should get module X's B implementation
+
+basically we want the "closest to the call site"
+ - since STD has no implementation and sees no implementation
+ - module X was the last caller that had a clear result
+
+one reason we want to do it like this where names are just aliases is because we already have type expressions
+ - and it's weird to have full types with names, and then also a random expression language
+
+we could require that all things we want to "impl" we have to alias with type names
+ - like we're attaching to the type names themselves, not to the types
+ - then we could enforce the rust rule about impl
+
+I think the closesness to callsite example would be best
+ - or we just make it an error for two modules to be imported that both make the same change
+ - maybe you just have to resolve it, or maybe it's resolve automatically by module import order
+ - kinda sucks but it's less runtime than "by the call stack"
+
+what we're basically going to say is, hey we have this allocated interface with members laid out in whatever form
+ - are there any exact matches to the interface that we're looking up
+ - if there are more than one exact matches, which one is closest to the call site
+ - ideally we do this all in constant time
+   - every module has a table that is "if you ask X for Y, this is the Y (or none)"
+   - we just walk up the module call stack
+
+if interfaces couldn't add data, (but could add getter/setters) then this might be ok
+ - it's not weird because we're never actually allocating anything for them
+ - basically when we go to implement an interface that has a member, we can do it with members, or with getters/setters
+ - that also eliminates the issue of how we set the values of those added members (default initialization, pre-constructors, etc)
+ - in rust traits don't need that because they don't have members
+
+maybe I drop the idea of extending other types with members
+ - because without separating data, it complicates that question
+
+something like
+
+type Bridge = {
+  length: i32;
+};
+
+type Bridge implements {
+  height: i32;
+};
+
+It looks like I just added height to bridge, but really if I stick to my definition of the language
+then I technically added it to ANY type that looks like a Bridge, e.g. has a length: i32
+That means it suddenly might add that height to arrays
+
+Maybe this is a reason to use type names
+ - We can use type expressions everywhere, but we're encouraged to use type names because they hold the interface bindings
+
+OR!!
+
+when we do type X implements Y {}; you're only allowed to add members in the implementation if X is a type name
+ - otherwise it has to be a getter/setter
+ - note that means when we do interface lookup, that's a specific scenario, hmm actually not really
+ - it's nothing more special than looking up an interface on a type, but we just need to know the TypeName itself has its own that we also need to look through
+ - yeah that's it basically, a shared type may have other interfaces registered for it (if it looks like X, it also implements Y)
+
+ideally should have no difference between closures, methods, and functions
+ - functions are effectively just statics
+ - static means it's part of the type, instance means it's a data member (like a closure)
+ - by default it's instance mutable, vs static const
+ - normally in C++ a static method meant it's part of the type, but the only reason we had to do that
+   was because you don't declare this/self, so static means no this
+ - But here it's static because we only need one definition of it
+ - single vs shared vs static, which one, unqiue? type (since it's part of the type?)
+ - per_instance vs per_type
+
+ - visibility is just a function too, takes type ids
+ - default is public (all access allowed)
+
+type Player implements {
+  public unique const max_lives: i32 = 64;
+
+  unique const speak = fn(self: Self): void {
+    console.log("hi", self.length);
+  }
+
+  fn speak() { // shorthand for unique const speak = fn(): void {
+  }
+
+  private instance mutable length: i32;
+};
+
+If you only ever use a class on the stack, we should find a way to avoid allocation
+
+
+// this is saying there is a data member foo that is default initialized to a closure
+
+type Foo implements {
+  instance mutable foo = fn(a: i32): i64 {
+    return (a * 2) as i64;
+  }
+}
+
+it means it also can be changed
+does const imply static/shared/single/unique/type?
+ - because what is the point of having a const
+ - well really const is just saying the interface only supports a getter for this
+ - so if it's a const instance, that means it's a getter
+
+ and any const static function that takes self will appear on the interface too
+ since we can access static members from an instance too, then 
+
+a = {
+  mutable instance speak: fn(): void {}
+}
+
+type X implements {
+  fn speak() {}; // this is const static
+}
+
+let x: X = a;
+ - this is OK?
+ x.speak();
+
+I like how simple this language is
+lets talk about safety, is it all going to work
+
+how do we safely point at stack types?
+
+we want to be able to basically pass everything by pointer, including structs
+ (except small enough data types / primitives)
+
+if I have a Player with a position, I want to be able to pass it in to every function as a reference
+
+the only way that's safe is if either we "lock" the object so it can't be deleted
+or we have to increment the reference count
+
+Lets not support "delete", just remove all references if you want to delete
+ - weak references
+
+that would mean we always pass fat pointers, basically an owning type that needs to be ref counted 
+
+we can never declare or hold a ref to a copyable/value type
+ - it's ok because as long as we inc ref before entering a function, and we have no delete, we're guaranteed it stays alive
+ - ideally we can do optimizations to reduce the inc/dec (like if we can see a whole function does multiple)
+
+And we can safely take pointers to structs on the stack because we can't store it (it always copies)
+ - so passing values is always by pointer unless it's primitive
+
+What about the whole read/write issue, before thinking about threads, lets think about containers and iterators
+,
+Can we ever store pointers to members
+ - fat pointers yes, because we could store a ref counted pointer to the root of the object and an offset
+ - For value types, we always take by pointer, but maybe we can say like "ref value" to mean take a fat pointer
+   - If we just have a value, we can't store it in a ref Value
+
+For threading:
+ - Maybe it's ok to pass or share an object
+ - we can clone/serialize objects to pass over boundaries
+ - but also any object with ref-count 1 can be transferred
+ - sub objects can have different ref counts, do we need to traverse all child objects?
+   - basically almost the same as serialization but only checking refs (can even have cycles and > 1 count but must be contained)
+ - maybe non-const statics always have a mutex?
+   - ehh, but we can't ensure it doesn't point at something else shared, hmm well actually we can because it would have to grab another static
+ - someone could allocate an object and point at a static's member
+
+really just JS transferrable model with workers, can't really think of anything better
+ - maybe we can have some specialized containers that support threading, maybe memorycopyable values only (no refs) etc
+
+
+do we support slices too?
+
+And is there any issue with copy values having ref counted values
+ - not really, but we may want to know if a value is MemoryCopyable vs Copyable (optimization)
+
+we can have a ref, but not a ref to a ref, otherwise we would need a pointer that keeps multiple things alive
+ - we can support pointer to member syntax so you can build whatever kind of fat pointers you want
+
+moving a ref counted value does nothing, right, since the ref count stays the same, the pointer is still valid
+ - can't move something with an internal ref
+ - but we don't need to move anything really in this language
+
+weak ref is kinda the way, but I don't like Weak<T>, I almost want T | null to just mean weak
+ - but that's kinda weird, the user didn't sign up for that technically
+ - but as a simple language I kinda love it, if you want it to be a weak reference, Player | null
+ - now if all other references to player go away, this one will not keep player alive (it will go to null)
+ - Player | Enemy | Targettable; // this would mean Player Enemy and Target are all weak references
+ - type Targettable = Target | null;
+
+
+function calls are syntax sugar
+foo(1, 2, 3)
+is actually
+foo.call@(1, 2, 3)
+
+call is a sort of keyword, because how does ( not expand again to a call
+ - somehow we can enforce that it only expands once, but that's odd)
+ - @() is a special function call syntax that does not expand
+ - you can in fact write this syntax yourself, but generally it's hidden (same with `a.add(b)`)
+
+a + b
+a.add(b)
+
+the only reason this matters is that all types should be compatible
+ - a closure / function has a type, and that should be implementable by an interface
+
+type Player implements fn(a: i32): void {
+  fn call(a: i32) {
+
+  }
+}
+
+let p = Player {};
+p(5); // works!
+
+use C# style generics, templates do not actually cause tree copying/expansion
+ - we may choose as a final release step to allow templates to be instantiated and optimized individually
+ - ideally, our language operates in this mode that in development everything is super fast to compile, like a scripting language
+ - but in release, we run as many optimizations, inlining everything we can, eliding ref counts, really keep an eye on perf
+ - I want it to be like 85% native perf, ideally beat C# with predictable and no GCs
+ - as easy to use as TypeScript with sane containers, in Rust style
+ - no invisible nulls, everything force checked, with match statements like Rust too
+ - but super easy to read, and everything just makes sense and is easy to use
+ - plus expand the language with ability to customize parse rules however we want
+ - and compile time steps, evaluates wasm on the fly to get constants (plus WASI well defined way of running in compile mode)
+ - it's gonna be a kick ass cool language
+ - for each will be a feature you can include, whole parts of the language you can toss out
+ - people will build crazy libraries on top, compiler is very much part of the runtime
+ - all runs in browsers, all in wasm, completely safe because our language ensures safety, and because wasm sandbox
+
+side note, maybe when you give something a type alias, type aliases cannot be assigned to each other without a cast
+type A = i32;
+type B = i32;
+
+let a: A = 5;
+let b: B = a; // error, a is of type A an alias for i32, but needs an explicit cast
+basically compatable for all interfaces and things we can pull, but just that one case helps
+
+
+the fundamental types we have are objects {}, arrays [], tuples? (), primitives i32, null?, string, etc, and functions/delegates
+
+another type of object we can share in threading are fundamentally immutable types, like our string should be
+ - that's how you could share string constants
+
+how do we implement weak ref?
+
+// great example, i32 should actually be a type/interface
+// i32 can fundamentally declare members of a size;
+// but this is a perfect example where we're saying Player implements everything an i32 is
+// in our case, we could implement it all with just functions, or it could actually add the data member
+type Player implements i32 {
+  // technically because Player is a type name, it implicitly gets the member private value: $i32; without us having to
+  // implement it manually
+}
+
+type i32 implements AddOp {
+  fundamental i32; // special declaration that says this type 
+  public fn add(rhs: i32): i32 {...};
+}
+
+I would love to see the actual implementation of i32 in the language
+ - like how it can emit wasm instructions, everything, it would be so cool if the type could do all that
+
+
+named types can be forced to implement members, but when it comes to i32, since it is a primitive it actually IS the value itself
+
+i32 being a struct and having a private 32 bit sized member makes sense, but what's the type of that member?
+ - where does the recursion end, like what if I try to say I implement $i32 (maybe that's just illegal... weird)
+ - I don't like this, I'd rather just have some sort of keyword that's like this is a fundamental
+ - I like that it's a member because it's always awkward to say you are a primitive
+ - maybe we just reserve a keyword for members
+   - it means the type must be one of the primitive types
+
+type i32 implements AddOp {
+  fundamental i32; // special declaration that says this type 
+  public fn add(rhs: i32): i32 {...}
+}
+
+like somehow the "add" implementation here should somehow declare that it emits the wasm add op, I love this
+ - I want to see the whole implementation of i32!!!
+
+type i32 implements AddOp {
+  fundamental i32; // special declaration that says this type 
+  public fn add(rhs: i32): i32 {
+    builder.emit("add", this, rhs); // something like this?
+    // but this is odd, it runs at runtime or compile time?
+  }
+}
+
+type i32 implements AddOp {
+  fundamental i32; // special declaration that says this type 
+  public fn add(rhs: i32): i32 {
+    wasm(i32.add self rhs) // or somehow declare wasm inline
+    // this way doesn't really let us generate wasm, this wasm is fixed (but at least works with params)
+  }
+}
+
+
+maybe we can introduce some fundamental emit step for functions that's compile time
+
+type i32 implements AddOp {
+  fundamental i32; // special declaration that says this type 
+  public fn add(rhs: i32): i32 emit {
+    // when we do a compiletime function, we're saying we're going to emit the wasm
+    // we get some fundamental inputs here, maybe we can declare but it's really just provided by the compiler
+    // it's like a bytecode builder for a function
+    // here, parameters are provided as named constant aliases for wasm, so I can use rhs but it's not an i32, it's like a WasmRef<i32>
+    // or something
+    builder.emit(Wasm.Add, this, rhs); // something like that
+    // this will be run at compile time and the result will be checked to make sure its an i32
+  }
+}
+
+THIS LANGUAGE IS SIIIIICK
+
+basically the compiler uses compiletime evaluation wherever it can, types, functions, etc
+ - I like that we can fundamentally use this with closures too
+ fn(a: i32): void emit {}
+
+emit could be like a compile time keyword, and it acts like a closure with refs to values
+
+// Here we know the result of emit must be an i32, and it will do this all at compile time
+let a: i32 = emit {
+};
+
+inline wasm works the same way, pretty much just short hand for emit
+
+I do wonder if we should be using something more llvm like, with structs
+
+lets just use the binaryen API for now, that's what we'll expose
+
+emit is an expression, emit can be used in place of a function implementation
+
+that means we can write fundamentally unsafe functions
+ - maybe there's a "safe" version of wasm that uses no dereferences, or we do all the dereferences
+
+basically wasm emit is a fundamental part of the language
+
+we make binaryen part of our language too
+
+we want to modify binaryen to add our ref counted / allocated types
+ - so we can make optimizations to reduce inc/dec
+
+sort of want to add structs in too, or at least just make them really easy to work with
+
+really need to find a collaborator on this language
+
+fundamentally the language should not get in your way with syntax, implicit everything where it makes sense
+
+.t files
+
+main.t
+
+we register tasks for visting ast nodes
+ - fundamentally running code at compile time
+ - but some tasks can emit, during a pass
+
+Maybe the way we emit is by attaching sub-trees to our nodes
+ - it's not all one code builder, we build our little pieces and they get fundementally linked at the end
+
+#BinOp = Lhs(Expression) + Rhs(Expression) => Lhs.add(Rhs) // automatically reparsed as a new tree
+
+I love this whole language, it's so flexible and extensible
+ - and we can easily bring in Binaryen C Api into WASM (and compile it all as WASM)
+
+or compile it all in rust too
+
+need to take a look at Mojo to see what they are doing that's different
+
+I love that we can just bind binaryen and wasm stuff, as well as tower nodes to the compiler interface
+
+dynamic indexing should definately be a part of the language
+
+I never like how constants were passed around as almost their own language
+ - like the fact that a template type could be a constant
+
+like a.test could be a.index<"test">()
+
+really we're just trying to at compile time find a member by the name of "test"
+
+does that mean that some operators evaluate at compile time?
+
+like a "compiletime" version of a function can be called when all constants are known at compile time
+
+index should effectively be a templated function
+
+but it's odd, it's type completely changes based on the string (because the member type changes)
+ - this is a great opportunity to write some compile time code
+ - I think other languages like TypeScript handle this with special syntax where you can index a type ["string"]
+ - I want to do away with that stuff, it should just be more code, less language
+
+if we want to write index within our own language (member access) how does it look?
+
+
+type Object implements {
+  fn index(value: string) {
+  }
+}
+
+// Here we know we're evaluating an expression
+let a = emit: i32 {
+  // builder should be able to eval code in the language, as well as emit wasm instructions
+} // means the result should be an i32
+
+let a = emit {
+  compiler.set_result_type(typeid(i32));
+}
+
+ahhh, so compiletime values are basically directly usable inside of emit code
+ - if it's not compile time, then it's just an SSA address in wasm
+
+fn test(compiler value: string) emit: {
+  // If you leave off the type of emit, we can attempt to infer it from your compiled code like an inferred return
+}
+
+all compile values are visible in emit, I love that
+
+Keep our generics simple, but template meta programming is just coding, way easier to understand
+
+Anywhere that accepts a type we could also use "emit: Type {}"
+
+
+I also like the idea that we can just leave off as much or as little as we want for an emit function
+ - like we should allow any kind of parameter arguments, allow the users to test what was passed in
+ - if they specify types then they are checked by the type system, but otherwise you can check them manually in compiler code
+
+
+type Object implements {
+  fn index(...) emit: {
+    builder.arg[0] // says whether it's a reference or compile time
+  }
+
+  fn index(a:, ...) emit: {
+    // a can be either a compile time or runtime value (can be used as a wasm value in both cases)
+    builder.arg[0] // says whether it's a reference or compile time
+  }
+
+  fn index(compiletime a:, ...) emit: {
+    // a is only a compile time value
+    builder.arg[0] // says whether it's a reference or compile time
+  }
+
+  fn index(a: i32, ...) emit: {
+    // a must satisfy i32
+    builder.arg[0] // says whether it's a reference or compile time
+  }
+}
+
+can an interface say that a particular function must be evaluated at compile time?
+
+emit: Type {
+}
+
+
+the only thing I'm not in love with now is how our language operates at any level of performance if it's all interfaces
+ - like i32, I'm really just saying I take anything that looks like an i32, add is virtual, all that
+
+but maybe we're also talking about having an aggressive optimizer that inlines
+ - maybe at runtime / development time everything is virtual, but at production time we optimize all output including inlines
+
+or maybe there's a way to say we take concrete things
+ - heck, even at development time we could do something where we generate two versions of every function
+ - one with all parameters as interfaces, and one with them as exact types (if only type names are used)
+
+maybe even as the development version, we still code gen if all types match exactly
+
+I could imagine a syntax where we're saying like foo(test: @i32), where test must match exactly the i32 type, not a lookalike
+ - in this case since we know they type is exactly i32 and not just "anything that looks like an i32"
+
+we're basically saying all things are templates at that point
+once we got to a call where we did foo(123) we would know that 123 is exactly an @i32, so we could call the exact version
+ - it's bascically like there are points where we know things concretely (the types)
+
+or if we did it rust style, separate data from interface
+ - then functions could explicitly declare that they just take a struct instead of an interface
+ - i32 would be the struct data
+
+right now if I said
+
+type Player = {
+  health: i32;
+};
+
+
+// then this would be legal
+let p: Player = {
+  health: ObjThatImplementsI32Interface {}
+};
+
+But technically doing Player { health: 123 } is @Player (exact type)
+
+Doing things the rust struct way is nice because we can easily just take the data itself
+ - it's not an interface, it's just actual concrete data
+ - and interfaces can be declared to work on that data (operators, etc) statically
+
+what about the idea that there aren't value types, just automatic promotions from to heap objects
+example:
+
+let a = {
+  count: 100,
+  lives: 9
+};
+
+let p = Vec::new();
+
+p.push(a); // we either need to copy a, move a, or share a reference to a
+
+technically with our language only pointing at heap objects with offsets
+every object should be movable, copyable, and heap allocatable
+
+how do we do weak references?
+ - technically adds overhead, but maybe it's small enough to not care
+
+So the idea is for any allocated object, when we request a weak pointer we allocate a single object that has it's own
+reference count (any attempt to get a weak ref to the same object returns the same weak ref count object)
+ - weak ref is a heap object itself
+the weak ref is lazily created, but takes an extra pointer of space on each object, so now objects look like
+ - typeid (maybe, might be on the pointer), ref count, and weak ref object pointer
+
+weak references only work on non copy types
+
+what if it worked on all types, what if even stack types could have ref counts
+ - it would work by the stack creating a single shared handle object (one pointer for it)
+ - null it out when it's completed
+ - could do it only if you get a ref to it, e.g. the stack doesn't generate one if it's never taken by ref
+
+What if objects still had ref counts on the stack, and when they got unrolled/destructed if anyone still had a ref
+it would exception
+
+always a copy or move depending on what we can elide
+
+let p = &Player {
+  
+};
+
+
+
+if it's on the stack, then passing it to any function will elide whatever is possible
+Maybe when we declare a type, we can declare if it's primarily by ref or value, so & can be implicit, maybe & just flips it lol
+ - I kinda love this, it's awesome
+ - could be one of those pieces of info that's only attached to TypeNames, since it's just syntax sugar And
+   doesn't actually affect the type comparability, and also TypeNames are already unique types
+
+How can we tell if a stack object needs a ref count and all that?
+ - I don't want every i32 and random struct to be ref counted
+ - only if we ever use a type on the stack as a ref, maybe & operator or ref (or maybe use ref and val)
+
+let a = 32;
+return a; // never passed as a ref, no need to allocate overhead
+
+
+let a = 32;
+foo(&a); // a passed by reference here, could all be implicit and no need for &?
+return a;
+
+
+fn foo(a: &i32) {
+  let b: i32 = a; // implicit convert / copy
+}
+
+all types copied or moved as possible
+
+
+let a = SomeBigValueType{};
+v.push(a); // if that's the last reference to a, it's moved
+
+
+Oh actually & is really cool if it just flips, because it is actually part of the type, not just a convenience
+
+type Player = &{
+};
+
+Player {} // this will allocate because Player produces a reference
+
+So when we say & types vs copyable types, what's the diff
+ - Maybe this is where we differentiate the whole "exact type" thing we talked about before
+ - value / copy types we don't do interfaces for, or basically we only take the exact object
+ - or maybe we differentiate whether it's an interface or a concrete type by a new keyword, "like"
+ - basically just dyn in rust but cuter I guess
+
+fn foo(bar: like Player) {
+}
+
+I like the idea of "like" meaning any kind of interface
+Or exact meaning only the type itself, copy types are exact only (must be a ref to be a like)
+
+But I also like that code is basically always templated, if it looks like a duck...
+And we use monomorphism / inlining
+like and exact can be keywords you rarely see (like is implied)
+
+Love it, allocating a like type produces an exact type
+Player{...} always produces an exact player
+ - returning a copy and then allocating it can move it
+
+
+
+How does that work efficiently in rust, if a class is ::new() and returned by copy, and then put into a Box, we have to move it right? Or does it optimize to the point of allocating directly in the type itself (probably HIR/MIR and all) move is still cheaper, but not as cheap as allocating/constructing all in place
+For now we won't worry about it, if rust can we can
+
+When we get a ref to a temporary, we should have the option of ref on the stack or allocating
+
+Hmm, in Rust there is no Copy because copy makes objects weird, except copyable types
+ - can copy constructors be implemented?
+
+Can copy be deleted or removed...
+
+Maybe once you mark something as ref you can't unmark it, except in the crate it exists in maybe
+
+So it's assumed all non ref types are copyable
+ - maybe if you do the opposite, it can only be moved
+
+I do like that copy types are exact types
+
+We can also just have non-copyable be different, maybe ref types imply non-copyable but you can have a value type that's move only?
+
+Mutex has data that is normally only modifiable when you lock and unlock
+ - only get a ref to it when it's locked, ref count must be zero on unlock
+
+All statics and global should be read only / immutable or mutexed
+
+Actually when you unlock a mutex, all objects in the graph (mutex as the root) must be internally contained
+ - graph walk? Hmm let's look more into thread systems here
+
+Immutable objects really just mean no interfaces modify our own / self object
+What does it mean to modify, do we introduce the const concept?
+
+I don't mind having to mark mutable parameters as you won't need to do it often if we assume everything is mutable by default, or just self keyword is mutable by default
+
+How does rust handle mutable / const iterators?
+ - always hated this in c++
+
+I do like the c# doesn't really have this, you just have to make read only interfaces if that's what you want
+ - I like that, just easier
+ - never really missed it in TypeScript
+
+simple is the goal, less syntax
+ - would be nice to know if an object is entirely immutable tho, not sure how to signal that
+
+Match statements vs rust, it's interesting that their match is basically enum destructuring, and fundamentally no other way to do so
+- basically have to store type ids in a pseudo union
+- since it's typeid we should be able to use instanceof, but also match
+
+Can we do value | ref type?
+Well we should be able to | any 
+Yeah, but non copyable infects so to speak
+
+What about typescript isms like their control flow weirdness
+
+Like instanceof fundamentally changes compile type
+
+let a : string | Player;
+
+if (a instanceof Player) {
+// a is now player, a.attack() is legal
+a = "foo"; // exception, is is locked as a Player (is this even legal too if a is now typed as Player...
+}
+
+I see, rust fixes this by fundamentally not allowing you to mutate while having a read only ref to 'a'
+
+In C# instanceof is only pulling interfaces off objects which cannot be changed at runtime
+
+But here | types are a bit different because they can be one or the other
+
+My only thought is that maybe | types can't be assigned over (immutable once created)
+Hmm kinda hate that but it could work
+
+Or alternatively it's a little more runtime, type unions have an "instanceof" / match lock
+- basically just a ref count of who has an instance of a particular type
+
+When I say A | B (string | i32) just remember we need to specify interfaces or not (like string | like i32). What does like (string | i32) mean? Anything that looks like the common interface between string and i32
+
+Can I promote a member or function parameter I don't own to be a like type? Or maybe an event sender for property changes?
+
+Also for like types, when I declare a member am
+I making a concrete type or like type. Might just have to do like as a keyword, and it's part of the type (anything like this).
+
+type Foo = enum {
+  A,
+  B,
+}
+
+Is just syntax sugar for:
+
+type Foo = u32 {
+  static const compiled A = 0 as Foo,
+  static const compiled B = 1 as Foo,
+}
+
+When we put statics on an interface is that part of the interface? Like does the type need to have the same statics to be considered an interface match? It sort of makes sense that a type could reimplement its own statics, but when you pull the interface with instanceof, how do you access overwritten statics, see that's kinda weird. 
+
+Maybe we should treat statics like their own interface that the type implements? Using a Type name is basically like using a singleton instance
+
+So we can have a static or shared keyword or whatever, but interfaces actually can define two interface, the static and the instance. Don't have to implement the static, but you can static({}). By default using any interface leaves off static members (not part of equality comparison)
+
+I kinda also like the idea that static is a type expression keyword, so you can do {...} & static {...}
+Using static on a member or fn is just syntax sugar for the above. static(...) extracts all statics
+
+Hmm why do we like doing Player.staticmember When Player is a type. Could put those constants anywhere, but since it's associated with a Player it makes most sense to be on that type.
+
+type Player = {
+  instance_members: ...;
+};
+
+let Player = {
+  compiletime readonly max_lives = 9;
+}
+
+Player has no actual size or any members
+And you can now do Player.
+
+Maybe we can do a shorthand
+
+type X = Y static Z;
+
+So static isn't part of type expressions, just shorthand for type names. Sort of makes sense, where is its storage? But can we just magically 'let' in the middle of a module to create the static type?
+
+I like this too because now Player is both a type name and a value
+
+Should start organizing this all into a spec, maybe hand it to gpt 4 lol!
+
+Why a new language
+ - memory safe, but also 90% "near" native performance without much thought
+ - no garbage collection, deterministic performance
+ - duck typing and interfaces / rust like traits
+ - easy to build DSLs and custom syntax
+ - wasm first approach
+ - checked/ enforced semver with public interfaces
+ - shading language? Need to really understand cuda / compute langs / mojo
+ - typescript style interfaces and type expressions (A|B)
+ - unique compile time features (visibility, compile, emit, etc)
+ - crazy good inference
+ - reflection
+
+I also like the studio / easy gui interface solution
+ - basically like you can make small prototype apps with property grid and some simple automatic Ui components - see anything in the app
+
+Events and notifications for property changes
+ - this is where we can now write super sick type wrappers that just replace all setters with a wrapper that notifies about property changes
+
+So I guess we should start by making our own IR
+And then lower that into wasm instead, can be very wasm based
+
+So now what do we want tower nodes to be, if we have this new interface concept working
+ - must support dynamic composition
+ - or being forced to implement interfaces at least
+ - dynamic seems better, it's not one giant bloated type
+ - and we want to attach things like types
+ - we can almost do bloated static style composition, just add T | null pointers to the tower node type for each T component type
+ - I mean, it works surprisingly well actually and fast
+ - We probably won't have that many and who cares about bloat
+ - but if we wanted we could implement an operator to look up components by typeid at runtime (exact? Can it be efficient with all "like" interface queries?)
+ - typeid.instance_of(typeid)?
+ - can also maybe implement instanceof operator
+I also love the component operators we had in Zilch, can do a lot of this with type expressions and implements + custom syntax (language extensions)
+ - but that could also become standard
+ - same with Zilch style event systems, all these should be types that are automatically generated and use implements cleverly to add members to other types
+
+Has takes a compiletime typeid, any compile time typeid can be turned back into a type (for the return type too)
+
+fn has(compiletime t: type_id): t {
+  return this.has(runtime t) as t;
+}
+
+Or maybe shorthand
+
+fn has(t: type): t {
+  return this.has(runtime t) as t;
+}
+
+I almost wonder if typeid can be a typed expression to limit typeids to those that implement a specific interface, same with type()
+
+Basically trying to get away from either complex templates or introducing template syntax
+
+I Really love the idea that a templated type is somehow just a normal function call:
+
+I want our templates to be:
+let a : container(i32);
+
+Because array is literally a function that takes a compiletime typeid (or type for short) and returns a compiletime typeid 
+Like we said above that 'type Player' ... also has 'let Player' for statics.
+So the idea here is while an array 
+
+// leave off the return type so it can be inferred, but inferrence depends on the passed in type t, which is required to
+// be a compiletime value, so it will all depend upon the instance when it is called and the t passed in
+// since we return a typeid, and typeid is always a compiletime value, then the return type will be compiletime
+// Because we're returning a compiletime typeid, this may be used as a type anywhere in the language
+fn container(t: type) {
+  return typeid({
+    val: t
+  });
+}
+
+// So now I can do
+let a : container(i32) = {
+  val: 123
+};
+
+// or shorter
+let a = container(i32) {
+  val: 123
+};
+
+// Can also do
+
+type container(i32) implements {
+}
+
+// how do we do this...
+type container(T) implements {
+
+}
+
+in my head this is almost a case for code gen
+normally in languages like Rust we can say we're only implementing this for T where some-condition
+and the compiler handles the details of who all that actually gets implemented for based on who has what and satisfies what interface
+ - can we use like types here...
+
+// does that mean anyone satisfies it, because it has no members (basically 'any' can be a keyword for `like {}`)
+type container(like {}) implements {
+
+}
+
+type container(like Player) implements {
+
+}
+
+
+Lets try this experiment, evaluate container(like Player):
+
+fn container(compiletime t: typeid(like Player)) {
+  return typeid({
+    val: t
+  });
+}
+
+so this returns a type like this:
+{
+  val: like Player
+}
+
+Technically an 'exact' that accepts anything with a member val who looks like a Player
+
+I guess my question becomes one about container(like Player) vs container(Player)
+ - if I impl for container(like Player), does that impl also for container(Player)?
+ - I assume so because I'm basically saying anyone who looks like this
+ - or maybe I need to use like here... hmm!!!
+
+type i32 implements {
+  // whatever
+}
+
+// can we do this? anyone who looks like this implements this
+type like i32 implements {
+}
+
+maybe thats the difference between how we implement interfaces
+
+Technically here then, container(like Player) is an exact type, so we're saying no implement it for that type
+
+
+Ok I'm still thinking that type names introduce exact unique types, they're not just aliases, and we can also attach interfaces to them specifically
+ - or maybe when it's an exact you have to make sure to "capture it" in a type alias so that everyone refers to the same one... yikes
+ - I like the idea that you're saying you're implementing for exactly this type (allocated) not just a lookalike, but that can be anyone who looks "exactly"
+ - So type names introduce a uniqueness concept
+
+
+Note that means that container(like Player) used in two different places technically runs and creates two different types, but they are equiavalent and therefore shared
+ - typeid must share them automagically
+
+type container(like Player) implements ... // means anyone who looks exactly like container(like Player) gets this
+
+type any = like {}
+
+
+We could introduce Template syntax but just for easy container cases
+
+We kinda want to say that we only accept types that implement a specific component interface like CogComponent. C# generics uses concepts or traits or whatever it's called, rust has similar "where" clauses. 
+
+type Cog implements {
+  readonly Player { // getter shorthand with self
+    return self.has(typeid(Player));
+  }
+}
+
+Cog implements an instanceof operator or just its own .has, really whatever. I kinda like in a way this feature isn't a "built in operator". We can just make it our own operators.
+
+
+Q: is it type names that implement interfaces, or exact types? Now that we have the exact type concept I wonder if type names should go back to being aliases, and exact types are unique.
+
+alias A = {
+  a: i32;
+};
+
+type A = like { // is this ok, should type names always be exact types? I guess it sort of works still
+  a: i32;
+};
+
+type A = {
+  a: i32;
+};
+
+
+
+Investigate MLIR, and maybe talk with River: https://llvm.org/devmtg/2020-09/slides/MLIR_Tutorial.pdf
+
+
+Do we want slices?
+Start with npm as our package manager
+Tests built in like Rust
+Destructors / Drop trait
+
+Rust traits can have sub types:
+  impl Add for Point {
+      type Output = Point;
+      ...
+  }
+
+In a really weird way, we can just output a compiletime typeid
+ - I guess in reality all of our type expressions are really just syntax sugar for compiletime typeids
+
+type Player implements Add {
+  static Output: compiletime TypeId = typeid(Point);
+}
+
+Really need to organize this all into a spec to keep track of features
+
+Topics to cover:
+
+https://doc.rust-lang.org/reference/introduction.html
+https://doc.rust-lang.org/stable/book/
+
+Intro:
+  Hello, World!
+  Show off templates
+  Show off bnf rules / foreach
+  Implement a simple program
+
+The base:
+  BNF Grammar Rules
+  AST
+  Tasks
+  Compile Time
+
+The language:
+ - Lexical
+   - Keywords
+   - Operators and Symbols
+   - Upper camel names vs lower underscore names (enforced)
+ - Compile Time vs Run Time
+ - Variables
+ - Expressions
+   - Literals & Constants
+   - Operators
+ - Statements
+ - Functions
+   - Methods syntax sugar
+ - Closures
+ - Comments
+ - Control Flow
+ - Modules
+   - Scope paths
+ - Scope
+   - Using statements
+ - Name Lookup
+ - Declarations
+ - Types & Interfaces
+   - ref, exact, like
+   - Instantiating a type
+   - implements (also discuss like types)
+ - Type Expressions
+   - Or types and memory representation
+   - instanceof / is
+ - Match statement / destructuring
+ - Exception Handling
+ - Memory (Representation + Ref counting)
+ - Strings
+ - Collections
+   - Arrays
+   - do we have tuples? or can our arrays support this like TS [string, i32]
+ - Templates (or more importantly, how we don't have templates)
+ - Standard library
+   - WASI
+   - IO (files, printing, etc)
+   - Threading
+   - Containers / Collections
+   - Iterators / ranges
+ - Inline WASM / IR
+
+
+What if we also turned tokens into tower nodes
+ - so the token stream is basically a big stream of tower nodes just in an array
+ - they already have all the start/end info and all that
+ - When we parse them, we can attach them to our parse tree, or turn them into real tree nodes
+ - This also kinda makes sense for how complex our tokenizer can be
+ - We can even parent things to the token, it will still sit in the stream (forest)
+
+Little bit of brainstorm here on tower nodes, tokens, etc, we want replacements,
+all that, but ultimately it should really just boil down to syntax sugar for running custom wasm / tower compiler API calls
+
+how do we want the replacement and tree transform API stuff to work?
+ - it shouldn't be too complex, just enough for simple stuff otherwise use WASM / user code
+
+// Two separate references to expression
+parse Expression = '@' Expression "," Expression => ...;
+
+// N number of references to expression
+parse Expression = '@' Expression ("," Expression)* => ...;
+
+We basically just want regex features for capture
+
+$0 means the whole thing, $1 means the first capture group, etc
+ - parentheses are captures in regex, I always hated that
+ - we should do named captures only
+
+I never liked how regex replace worked when a group got matched multiple times, I think it just takes the first
+
+As we parse sub-rules, the handlers for those sub-rules will run (either replacements, or they generate their own parse tree/AST)
+
+The tokens become the parse tree becomes the AST
+
+I think it's possible to compile time analyze a rule to see how many matches we expect
+ - if it's a single, then it refers to the single node
+ - if it's multiple, then it refers to a group (all placed under a single tower group node)
+ - do we need indexing here? kinda don't think we want to go that far
+
+named captures will capture non-terminals
+ - Do rules always capture non-terminals?
+ - If a rule has no logic, it always just outputs it's parse tree
+ - Otherwise when we refer to a name like Expression, it just outputs whatever AST nodes that the handler for Expression output
+
+I like everything I'm seeing here!
+
+Ok, tokenization vs parsing, there are some things we can't really support in parsing like character ranges
+ - string literals should actually create tokens in parse mode
+
+This is a great example of why we would want the tokenizer to create AST nodes
+ - the rule range should show up as a single token when we parse, but all the information about the parse should be contained in parse nodes
+ - I can see where we don't want parse nodes just for invoking rules
+ - maybe we can make like an inline operator or something
+
+// Character Sets: [abc], [a-z], [^abc], [abc-], etc
+token RuleRange = "[" "^"? (RuleRangeChar ("-" RuleRangeChar)?)+ "-"? "]";
+
+// Match any character except ] or \, but allow escaping \] or \\
+token RuleRangeChar = [^\]\\] | "\]" | "\\";
+
+Part of our language should maybe automatically remove useless tokens from the input, if there's no variation on them?
+ - e.g. they always have that token ( at the beginning...
+
+dumb side note, what would a language look like where all objects are components / compositions
+ - any object can have any number of components, children, 
+
+Right now we separate tokens from parse rules
+ - part of the reason is so we can define white space, and separate out words and symbols
+ - the question is, should parse rules be able to use characters?
+   - Or can parse rules only refer to token rules
+ - I think trying to combine them sounds neat, but it's sort of confusing
+ - When it comes to whitespace, I like that we can define the ignore rule
+ - We can still have that though, since it's entirely a character rule...
+
+
+So the idea is basically if there are spaces between token characters, then spaces are allowed
+ - do we also allow spaces between any sub-rule? that seems annoying because now tokens can't define sub-rules
+ - in pascal, white space does literally nothing (like it's removed)
+ - but in C, whitespace acts as a token separator
+ - int foo bar; is not the same as int foobar;
+
+I could introduce something gross like token groups or something, but I think just having two passes is better
+
+ - But the passes should be driven by the parser, the parser should reach the end of the token stream and request another token
+   (which invokes the tokenizer, skips any ignored rules / whitespace until it gets a token, or EOF)
+
+Also make sure the parser is iterative
+
+Foo = 'for' '$'
+
+always results in only "for$" being a valid token, not "for $"
+
+The main issue is just that we don't know when we're defining a token that should have no whitespace
+ - 'for' could be a single token, or 'for$' could be a single token
+
+So basically we could do some sort of grouping operator that means "this is a whole token"
+ - but I kinda hate that, we're adding new operators just to remove the token phase
+ - it's also really weird, we need to identify which rules are contained in {}
+   - the same rule could be used for parser and tokenizer, that's weird
+
+
+Foo = {'for' '$'}
+
+
+Ok, just separate them, it's better
+ - but usually for a tokenizer, there isn't a single root token rule
+ - like in GOLD parser builder, all tokens are just separate rules
+ - So what's the root rule look like for tokens, maybe we just have a special one called root
+ - but like... we have to add every token we want to add to it? That kinda sucks for tokenizing
+ - and as far as the AST goes, we could always remove the root if there's only one node (that node can have N children tho)
+   - I like that, it's kinda like captures
+ - For parsing it makes a lot of sense since the parser must parse the whole file
+ - But the tokenizer is basically just a splitter, so it makes no sense 
+ - Keywords are odd, since they are technically identifiers
+   - So how do we know when something is a keyword or an identifier?
+   - exact match afterwards I suppose
+
+We should probably add ways of doing tests in the language, specifically tests for the parser / tokenizer
+ - Basically "we expect an error" or this should compile
+ - maybe even can specify the kind of error expected
+
+Do we have to add token rules to the root?
+ - I'm not in love with the idea, but yeah we could
+ - We could do something like any orphan token rule is auto applied to the root...
+   - but if it's not orphaned, e.g. it's referenced somewhere, then it's not added to the root
+ - makes writing tokens easier
+ - I think if our langauge is going to use +=, we should too for the parser
+ - Actually no, |= makes a lot more sense
+
+But I could write:
+
+token Foo = "foo";
+token Root |= Foo; // This line is optional, orphaned tokens are automatically appended to the root
+
+For named captures, how do we discard tokens we don't care about?
+ - if it's not in the named capture, obviously you would have to pull it out yourself
+ - could make up some sort of 'discard' which just means get rid of these, e.g. discard()
+ - but now we're like into function calls in our BNF... I guess BNF just uses operators otherwise...
+
+token Whitespace = [ \t\r\n\f]+ => discard;
+ - This means when the token finishes parsing, the action is to discard it
+
+token Whitespace = discard([ \t\r\n\f]+);
+
+ - technically no action, but we're saying please discard all the nodes
+ - in that regard, we need to think about how the token phase does parse trees
+
+I think the basic idea is to do some minor cleanup of the tree nodes before they get to code
+ - look at some example, binary operators, etc
+
+Grammar rule examples that we should look at:
+-----------------------------------------
+```ts
+// An identifier is any letter or underscore, followed by any number of letters, numbers, or underscores
+token Identifier = [a-zA-Z_][a-zA-Z0-9_]*;
+
+// A string literal is quoted, and allows escapes
+token String = '"' ([^"\\] | "\\\"" | "\\\\") '"';
+
+// Define a new rule that is either a transform or has a code handler
+parse Rule = ("token" | "parse") Identifier ("=" | "|=") RuleAlternation ("=>" RuleHandler)? ";"
+
+// Alternation: A | B | C parses any one and only one of A, B, or C
+parse RuleAlternation = RuleConcatenation ("|" RuleConcatenation)*;
+
+// Concatenation: A B parses A first and then B
+parse RuleConcatenation = RuleUnaryOperators RuleUnaryOperators*;
+
+// Unary Operators: A*, A+, A?
+parse RuleUnaryOperators = RuleValue [*+?]*;
+
+// Character Sets: [abc], [a-z], [^abc], [abc-], etc
+token RuleRange = "[" "^"? (RuleRangeChar ("-" RuleRangeChar)?)+ "-"? "]";
+
+// Match any character except ] or \, but allow escaping \] or \\
+token RuleRangeChar = [^\]\\] | "\]" | "\\";
+
+// A capture group captures all the AST nodes in a parse
+parse RuleCapture = "$" Identifier "(" RuleAlternation ")"
+
+// Values and grouped expressions
+parse RuleValue = Identifier | String | RuleRange | RuleCapture | "(" RuleAlternation ")";
+
+// Handle the rule in one of the following ways
+parse RuleHandler =
+  "replace" "(" UserCode ")"  | // Replace parsed rule with with parsed user code
+  "wasm" "(" Wasm ")"         | // Run WASM code that has access to the Tower compiler API
+  "run" "(" UserCode ")"      | // Run user code that has access to the Tower compiler API
+  "discard"                   ; // Skip/ignore the parsed text, used to skip whitespace
+```
+
+
+RuleRange is problematic since '-' is a valid character
+
+S = A+;
+A = C;
+A = C '-' C; // How do I say that this one has priority?
+C = 'a' | '-';
+https://stackoverflow.com/questions/21858092/conflict-resolution-in-lalr1-parser
+
+Ok pretending we have that all fixed and there's some way to specify conflict resolution...
+
+```ts
+// Character Sets: [abc], [a-z], [^abc], [abc-], etc
+token RuleCharacterClass = "[" $Not("^"?) (RuleCharacterClassRange | RuleCharacterClassChar)+ "]";
+
+// Character ranges, such as "a-z"
+token RuleCharacterClassRange = RuleCharacterClassChar "-" RuleCharacterClassChar;
+
+// Match any character except ] or \, but allow escaping \] or \\ so we can write [a-z\]]
+token RuleCharacterClassChar = [^\]\\] | "\]" | "\\";
+```
+
+What should the parse tree look like?
+ - By default, we create child nodes for all terminals and non-terminals
+ - none of them are named, just in order children
+ - named capture groups and non-terminals can be added as named members
+
+What's the ideal that I want here?
+
+Well, in general I want to be able tp refer to a type of token by name, like "RuleCharacterClass"
+
+so if I'm looking at a token stream with all it's input discarded
+
+"foo" [a-zA-Z_] "bar"
+
+would be:
+
+String       RuleCharacterClass       String
+            /    /        |    \
+         Not RCCRange RCCRange  RCCChar
+            /    \      /    \     _
+      RCCChar RCCChar RCCChar RCCChar
+         a       z       A       Z
+
+And each of these nodes hold the start/end
+
+[a-zA-Z_] makes sense as a single token because whitespace inside would change the meaning (like a string)
+
+Should "Not" exist if it didn't capture anything?
+ - tower nodes need to say which rule they were parsed by
+
+Also, since Not is named, should it be a named member?
+
+Should non-terminals be named members?
+
+I guess it's OK, they're not a map, it's all in an array anyways
+ - So maybe we don't name the node, we just name the members?
+ - naming members is kind of a way of collapsing nodes, since the "Not" could just be a name and not a whole node
+
+I guess since the node has a parent pointer, we can always do tower_node_get_parent_member_name
+
+Hmm, ok so how do we know what a token is, if it doesn't have a completed rule name by itself?
+ - I think we should only use member names for named captures (and maybe non-terminals)
+
+But nodes need to know what rule captured them
+
+Ok, lets just pretend for now that nodes have a rule name or rule pointer on them
+ - as well as the start/end of where they parsed (or start/length)
+
+So will all children end up being named?
+ - Is there any case where a child ends up not named?
+ - It really depends if we make non-terminals named members
+ - Almost thinking not, since those nodes have their own name/rule which is the non-terminal
+ - But it would be kinda nice if iteration worked like that
+
+We can, I mean if we had the rule pointer, we would just take the rule's name as the member name (ref counted)
+
+So now AFAIK, all nodes have an array of children in the order of parse (or whatever code re-arranged them)
+ - and all children have a member name, as well as an accepted rule themselves
+
+
+---------------------------------------------------------------
+My idea:How to write a safe type container
+Oh, and parameter types should be able to be listed in any order (called by name, or by position). Optionals must go to the end however for positional calling, but types can be inferred in any order (param 2 dependent upon 5, 6 dependent upon 1, etc)
+This allows us to write templates like this:
+fn foo(a: t, t: compiletime typeid) {}
+
+Also another idea, what if objects or structure in our language could be like JSON kinda, but for component based design. The principles of one type per container (type map, type multi map)
+There is a reason our serialization language was a little different. So then my next idea or questions is can an interface in Tower be used to specify the structure of our component trees? Much like JSON and JSONSchemas / avj
+I wish TypeScript could validate, ya know?
+So what’s the idea now, components must be exact types (right?), type lookup must be O(1) for mapped types and mapped interfaces (interfaces must map explicitly, may only have one). Component addition can fail
+Dependencies, how as a language do we also guarantee things, like always having a parent pointer
+A type interface could require a specific component tree, or maybe it safisfies interfaces
+Maybe they can also declare what kind of types can own them (do we merge owner statements in type expressions?)
+Maybe we just know that type operations are O(1), and others are expensive (you can if any type implements an exact interface, like interface, etc)
+Component based design language - has operator - parent type declaration - child type declaration - children can be named (json members)
+We’re basically saying what if everything in our language was a tower node? How can we do that and not be horribly non-native?
+For starters, features on an object header should be based on what traits they use - we only get memory for children when we use the children statement
+We can always walk children and components, and possibly index them?
+Do we really even need like interfaces anymore? - it’s true duck typing, but in a way component based design with interfaces solves pretty much all that… can still add it in the future, or maybe there’s a really good reason it makes sense to keep in
+We should be able to check if a sub tree matches an interface, that’s what cast should do
+So now maybe has is a statement on interfaces too. - has exact types should be fast, has like types should be slow walk (first in order to satisfy the condition)
+Component interface paths? - we have indices for children - names for named members - has for components - dependency
+Dependencies are always on siblings, and are 
+(That could be how arrays are implemented, just object with children templated on T)
+So this is built in - or, built up from the ground level of tower
+If all members were lower underscore, then we know when we do dot .UpperName it must be a component, so implicitly that’s just a has operator
+Must return ‘Component | null’ though
+If you do dependencies, then it doesn’t need to be null (guaranteed and ref counted)
+I like it better that you can just . off a potential nullable and get an exception, rather than being forced to handle it. Hmmmm
+Construction and interface syntax should be similar.
+{  has Player; // in the interface  has Player {}; // in construction
+  owner foo}
+
+Maybe component types are only constructable as children of a parent (e.g it can’t ever live alone) - you could potentially move them, but must always be to another living owner
+When constructed under 
+
+------------------------------
+I got some crazy fun ideas about how the compiler should work
+
+if it's all component based trees
+
+when you declare you can have components of a type (or maybe it's implicitly from owners being declared)
+ - it also means you need to be able to enforce dependencies, replacements, etc
+ - can dependencies just be pointers, I would love this
+ - Order of releasing references, etc
+
+So one question, does casting into an interface mean that the interface can hold some components?
+
+like my weird situation:
+
+let a = {
+  test: 123,
+  owner: ...
+};
+
+
+In TypeScript, you can cast away, the underlying interpretation may change
+
+let a : {
+  foo: string | number
+} = {
+  foo: "hello"
+};
+
+let b = a as { foo: number };
+
+That's all legal, and unchecked
+
+casting in most languages is either just on the type, or on a runtime where it's exact and simple
+ - and more importantly can't change configuration
+
+Here we would say something similar
+
+has A & B, has A | B, what does that mean?
+ - I do like this concept, we can have both, or one or the other
+ - When we register a component with a type expression, we're saying it's these things
+ - For A & B, we would walk the type expression and register the component as both
+ - For A | B, we would error? You don't register A | B...
+   - I guess it would just resolve what it actually is and register it as that
+ - 
+
+I do wonder what and types should do, do they just create a new exact type, or are operations on type expressions run over the expresions themselves?
+
+When we make interfaces, we say has Type
+ - We can also say has BaseType or another explictly implemented interface Type
+ - has can come in any order, it's not specifying an order of any kind
+ - it's simply just saying it has this
+ - 
+
+maybe we can only use named types?
+
+I already had something similar with finding interfaces, where A | B instanceof would do something different
+
+We need a way of pinning data
+ - Or maybe when we cast, for things that can vary, we capture references?
+ - 
+
+
+has A;
+has B;
+
+would technically be different than 
+has A & B;
+
+that implies a single item satisfies both A & B.
+
+has A & B;
+
+however would satisfy
+
+has A;
+has B;
+
+but
+
+has A;
+has B;
+
+may not satisfy 
+
+has A & B;
+
+
+
+previously it was all interfaces on struct values, like typed enums basically
+
+dependency also means we cannot be constructed unless the dependency is satisfied
+ - is that just an exception to add then?
+
+constructing a component with an owner means it's automatically added to the owner
+ - Owners are implicit when constructing under a parent type
+
+BoxCollider {
+  owner cog,
+}
+
+owner also establishes dependencies
+ - I guess it's just kinda weird, do I establish dependencies?
+
+I'm not totally in love with component based design as part of the language
+ - but not against it either, still thinking about it
+
+it makes sense for my language to be based heavily around the tower parse tree as the general object form
+
+also recognizing patterns and subtrees seems really important
+ - https://stackoverflow.com/questions/14425568/interface-type-check-with-typescript
+
+Ok, so either it needs to lock it, all members need to be functions that retrieve and throw if they fail, hmm
+
+The allow modify and throw if they fail is the nicest towards writing any code
+ - But it technically could be slow if you grab the same thing over and over, but who cares I guess
+
+into {
+  has RigidBody;
+}
+
+let a = b as {
+  has RigidBody;
+};
+
+Or when we get an interface, it could be all functions, but maybe we capture everything as it's current type
+ - kinda weird that the cast adds a bunch of ref counts, but I guess it makes sense
+ - Then it doesn't matter if we modify, it's captured
+ - So basically an interface captures, like a closure...
+   - Hmm I don't like this, that would end up being confusing
+   - If you replace a component suddenly the interface is storing it's own stuff and doesn't reflect the change??
+ - Ok so interfaces are purely functional when casted to
+ - That means they basically only store the root object that they were grabbed from
+   - Then all other functions of the interface must traverse the hierarchy
+   - kinda goes back to paths again...
+   - yeah I like it, then they fail if it no longer exists
+   - interfaces throw if they don't hold anymore, but at the time of retrieval they will match
+ - and obviously, if it's just a type itself and you're casting it with as, that is also fine
+
+We'll need to make sure that every form of type we have can be represented by an interface
+ - TypeScript for example can represent tuples [string, number]
+ - This is because JavaScript's arrays don't care which type they hold
+
+I guess it's odd, does tower need arrays?
+ - I can declare that I have children of a type
+ - that can be implemented as arrays
+ - but maybe I want something closer to real arrays?
+   - I kind of never care about fixed arrays... do I?
+
+How high level is tower?!? lol
+
+maybe lets just say that components are an addition to tower
+ - The final language of tower can support components and events
+ - But ultimately it's sort of an addition to just basic interfaces version of tower
+ - thinking of it as an addition, then no, it's not a replacement for arrays
+
+I think the main question floating in my head was, can components be a replacement for arrays?
+ - Obviously with TypeScript, we can kind of path down to any member or type
+ - Since arrays support any types, it could be [BoxCollider, RigidBody, Model], etc.
+ - As long as we strongly type the object (take a snapshot of all it's exact runtime types)
+ - Pathing down is important for interfaces (structural types)
+
+is everything a tower node? no, tower node is just easily built with our component constructs
+ - tower nodes can have all sorts of components, and anyone can ask for them
+ - I really love it, we can also get specific with the requirements
+
+why are children a special construct? Why not just an array called children?
+ - I guess it's because we want owner to also be special and the two are linked
+ - and we can optimize our implementation of children/owners
+ - we would need some way of marking that array as the children array
+ - maybe children is always an array?
+
+See this is what I'm trying to consolodate, is array it's own syntax?
+ - Or is children the replacement for array?
+ - Or does the children syntax require an array?
+
+
+maybe owner and children are just reserved keywords, but used like members with :
+
+is it children? or components?
+
+{
+  owner: Cog;
+  components: Component[];
+}
+
+
+What if components isn't special, it just is any array with children
+ - if the children have an owner, it's set to the parent automatically, but types must match
+ - And there's an order to things
+
+
+// ref wraps the entire type, note that ref ref is idempotent (ref ref = ref)
+type Cog = ref EventHandler {
+  owner: Cog | null;
+  contains: Component;
+
+  name: string;
+  children: Cog[];
+}
+
+type Component = ref EventHandler {
+  owner: Cog;
+  dependency: RigidBody;
+}
+
+let c = Cog {
+  name: "Player",
+  owner: null,
+  children: [Cog {
+    name: "Gun",
+    // don't need to set owner
+    children: []
+  }]
+}
+
+// All named types that implement the same interface Component appear on Cog
+// any named types are enumerated and shown here
+
+c.RigidBody.owner
+
+
+EventHandler is a construct that uses owner, and maybe children too
+
+
+Something we should think about, how can this whole component based design thing be just an include
+ - the concept of type containers / has
+ - how it's stored
+ - keywords, has, etc
+ - lifetime logic
+
+everything should be able to be configured or included, like we extended the language big time
+
+including also structure interfaces, like when we do a cast
+ - normally for duck interfaces, they just look to make sure the type has all the correct functions/members
+ - but now we're also asking to make sure it has the right components too
+   - these components are runtime, not fixed at compile time
+ - in some cases, like owner, we could probably just do it fundamentally as a getter property
+   - that will match with no issues
+ - but has is a different story, since owner is fixed at compile time
+ - so has is kind of like saying hey your interface has a child type map and one of those types is X
+ - Maybe we can do this all with macro style expansions in interfaces
+   - e.g. has RigidBody, expands to something like components(): type_map(with: RigidBody)
+
+ - and maybe typemap has a special behavior where we can cast a type map into one that contains components
+
+let t: type_map(Component);
+let z: type_map(Component, with: RigidBody) | null = t.with(RigidBody);
+let b: type_map(with: RigidBody) | null = t;
+
+b.  //nothing shows up except RigidBody
+
+if (z) {
+  // It's a type map that's guaranteed to have a rigid body... is there a better way of doing this?
+  // maybe type maps implicitly satisfy any interface cast
+}
+
+Ok, well I like all these ideas anyways, I'm sure the full thing will come out in the future
+
+-------------------------------------------------
+
+Ok, next topic, what's the MINIMAL set of tower that we need to start building tower?
+ - Technically I keep going back to this thought that the tower compiler can all be WASM
+ - so ultimately for binding to other languages, they really just need a WASM interpreter
+
+However, there is a still a minimal set of tower that we need to start building tower ourselves in tower
+ - it's the tower bootstrap
+ - grammar rules BNF, pointers, ast, wasm execution
+
+basically it's if I was to run the tower compiler without including any of the "prelude", no-std if you will
+ - what does that version of tower look like
+ - before interfaces, before ref counting, before anything
+
+it's very C like, even the concept of interfaces should be something we extend
+
+well, what about just the token/parse rules + wasm + tower nodes?
+ - I guess in order to properly support tower nodes, we need component based design
+ - that's the ideal correct, to have everything work from component based design?
+
+the basics of tower could start possibly as an interpreter
+basically just directly translating actions to immediate wasm execution
+kind of like syntax directed translation
+there's no parse tree, just the parser directly runs code on reduce
+
+so the beginning of tower is just a direct interpreter
+ - it lets us start building tower nodes from within tower, instead of outside
+ - and the concept of interfaces, all that
+ - what can we do with just wasm, no syntax nodes
+
+Normally when we do => we get parse nodes, tower nodes, but we don't have them yet?
+ - we could maybe have some simplified wasm form that only passes like start/end pointers
+ - easy enough to write in wasm, but tokenizing gets kinda weird
+ - and I don't like the idea of rewriting rules constantly (like starting with a completely different language)
+ - I like the idea that each piece is a subset of the next pieces
+ - obviously we get rid of things like pointers for safety, but they're not gone, and they're fundamentally still there
+
+
+we want to define tower nodes within our language, how the heck do we do this
+ - can have some sort of compiler callbacks that tell the language to do everything (defined in wasm)
+ - so maybe phase 1 tower nodes are very simple (tokens and parse tree, no interfaces...)
+ - tower nodes evolve in type??
+
+ - and then we ensure the language dumps everything, and implement phase 2 nodes
+
+ - the main ideal here is to have as much as we can written within the language, and minimise the amount
+   of hand rolled wasm needed
+   - basically I don't want any algorithms written in wasm, only like primitives that it makes 100% sense and
+     we'll always need it around, like how pointers work, or maybe structs, etc
+
+ - or maybe we can make tower nodes and reserve exactly what's needed in terms of space
+ - or maybe we can run an upgrader on them to upgrade them all to the latest definition... hmmm
+
+the entire point of this is so that we can write the fundamental architecture of tower within tower
+ - we really just need enough of the basics to code interfaces and components
+
+I don't want to have to rewrite all the rules again as an AST form after the SDT form...
+ - Ideally want to re-use the rules, but do something else with them
+ - Maybe I need a way for rules to have a name, so we can reference them and redefine an action
+ - I can do that, just give them all unique names
+
+I'll figure out the best way to do all this as I go, I'm sure I can find a way to reuse it
+
+With wasm linking, I can sort of rely on a top to bottom execution
+ - Ok I like this, the compiler asks the wasm to define what a tower node looks like
+ - the wasm callback passes in the start/ends, raw info we get from the parser
+
+That means the parser is implemented externally
+
+This kind of makes sense, there are two ways to bootstrap:
+ - wasm interpreter + implement the exact parser algorithm / compiler callbacks into wasm
+ - we also write the parser algorithm in wasm, first using any language, but then eventually using tower
+ - so you also only need a wasm interpreter to run everything
+
+But maybe we write all of tower in wasm and tower itself
+ - Hmm, basically saying to write the parser in wasm first
+ - so it's like, everything is the same, there is no just "run the wasm"
+
+And if that's the case, the wasm that it starts with defines
+
+so that means we don't ever end up rewriting the parse algorithms
+ - I bet we can make them really small and easy to define in wasm
+
+once the parser is running
+
+we also need to get really clever about how it allocates, all that
+ - I like that tower nodes are callbacks, because in the beginning there could be no allocator
+
+maybe write an allocator in wasm
+
+wasm is a subset of tower
+
+it should basically be normal wasm + WASI, but with some extra compile functions that expose the wasm compiler / execution
+ - expose self compiling wasm to wasm
+ - should be able to replace existing definitions with new ones
+
+wasm allocator
+ - simplest possible form
+
+the start will look like wasm + wasi file reads
+
+parser implementation in wasm too, creates tower nodes
+ - rules finish parsing, calls attached wasm to rule
+ - passes in tower nodes
+ - as rules are parsed, we add wasm
+   - wasm can lookup existing functions, etc
+   - can we support forward declarations in wasm?
+     - we should be able to add declarations apart from definitions
+ - C like language to start, everything must be seen (forward declarations)
+
+
+Function = 'fn' id '(' paramlist ')' statements => wasm(
+)
+
+fn foo(a: i32, b: i32) {
+}
+
+is this approach bad?
+ - don't we ultimately want to emit binaryen or something more sensical?
+ - shouldn't we be writing this in C/C++, and maybe just bringing in WASM
+ - compile it to wasm so we can just import it as part of our stack
+ - replace it in the future with our own implementation maybe
+
+
+if we do direct wasm, somehow we have to be able to return sub-expressions when code generating
+
+so when we ask it to compile wasm, we need to get expressions
+
+ultimately we do want this mostly all written in our language
+ - I don't want to rely on binaryen to extend anything in our language
+
+that means we'll basically be running debug wasm, but maybe the implementors can
+pass to binaryen and do optimizing - like it's part of the wasm host
+ - we can even pass in a flag that says if we want to optimize it or not
+
+Maybe we don't even need to return a pointer, maybe we just build a string as we go
+ - can we just concatenate wasm together?
+
+I suppose we're actually saying that we also need a full wasm parser implemenation too
+ - because we're not outputting direct wasm codes...
+ - I suppose we could?
+
+ - Would be kinda neat to write wasm binary output in wasm itself
+   - not as easy as text, obviously
+   - but certainly more direct
+ - maybe it's not that hard...
+
+so we output assembly that poops out assembly
+ - I like this
+
+if the beginning of our compiler is wasm text, doesn't that imply our interpreter should deal with text wasm?
+ - but we can compile the wasm text to .wasm with wabt or binaryen...
+ - at that point, what's the difference between using C or something else, we still have to interpret text
+   - unless we're hand writing the binary...
+
+browsers cant deal with text wasm, I could compile it
+
+so even for browsers, I'd have to compile wat2wasm or binaryen...
+
+then kinda who cares... I already will eventually rewrite this in tower anyways
+
+ARRRRGHHH I DONT KNOW
+
+maybe we only compile the foundation with wat2wasm or binaryen
+ - we do it offline to get a wasm file
+ - from there, it's all running in wasm itself
+ - need some basic utilities to build wasm byte code, can be written in wasm
+
+the browser
+
+I don't mind running a tool offline to produce wasm
+ - eventually this will be our code anyways, so lets not try to make it in wasm then
+
+Or, build a wat2wasm parser myself using our parser logic
+ - we could write the text parser in our own language
+ - it kinda makes no sense, since we need our language first
+
+alternatively, instead of wasm, we could make our own
+ - either represented by the tree, or 
+
+If we make our own, we'd want to lower it to WASM at some point anyways
+
+I think the primary pain point is that text form isn't a good AST/IR
+ - Returning values in expressions isn't straightforward
+
+But maybe we can do it anyways...
+
+should it be part of the platform, or should we just incorporate it?
+ - lets just compile it to wasm, expose some specific C calls
+ - wrap it in C and only expose our compiler API
+
+Making it a requirement of the platform should be a non-starter, especially when we could do it all in WASM itself
+ - the compiler we ship should contain the whole wasm
+
+Ok, so it has to be part of our language, but we're going to basically use a wasm that we will scaffold
+ - maybe we write it in wasm lol
+
+And then either we output wasm (binary wasm)
+
+One dumb question, do we want tower nodes to be our IR?
+ - It would make sense in a way, however the IR doesn't need to be flexible
+ - technically the IR should be something that's fixed, doesn't change
+ - we know at the end of the day it has an exact structure that doesn't change
+ - still could be done with tower nodes... hmm
+
+the only advantage to tower nodes being our IR is that whatever low level language we invent is a "subset"
+ - like, we can make it very C like with calls, ops, etc
+ - everything is a call
+ - but also just emitting wasm is easy too
+
+ - I also like that we can just keep up with wasm, and people who know wasm can contribute
+ - wasm has a lot of IR features
+ - but binaryen api is just pointers, not safe to expose...
+
+But suddenly now the version of binaryen that we integrate changes our language and what wasm we support
+ - Still ok
+
+Technically our C++ compiled wasm can host our allocator, and lots of other functions
+ - we'll make it very explicit which are provided, generate a header based on binaryen exports
+ - it could also implement our parser, until we rewrite it
+
+Ok, so we're going with a C++ base then, built to wasm, with very explicit and curated exports
+
+is the IR all just pointers
+ - or do we somehow just emit wasm text
+   - emitting wasm text seems unessesarily slow, but possibly nicer to deal with, and safer
+
+at the end of the day, we really want our language to be able to output it's own optimization loops
+ - should be able to easily extend optimization passes, etc
+ - really build most any language you want in tower
+
+so how do we start then...
+
+I love the idea of writing a wasm parser and outputting wasm, but it has to be in a style that's getting ready to BE binaryen
+
+Ok, what we need to do now is start to author the language
+
+Lets just go with WASM text for now, we can always change this later
+ - Like syntax directed translation
+
+we write the whole parser in C++, including all the extension stuff
+ - expose all the functions for creating tower nodes and callbacks
+ - everything will be rewritten, but for now it all runs in WASM so it's good
+ - we do rely on binaryen, but we state the intention to eventually remove it
+ - we also specifically are built on top of wasm for it's mostly deteramistic characteristics and safety sandbox
+   - but may someday opt for an entirely safe and 100% determansitic IR
+
+it can just be pointers for now, and we can regard that as a generally not safe part of the language
+ - but our future iteration will switch to a fully in language represented IR that's safe and ref counted
+ - would need to be sort of generic, who says what tower nodes should look like if they don't include components??
+
+maybe we could support a primitive lowering pass
+
+ok so with binaryen, we also get text parsing
+
+but you know what, we're making fucking tower, it's all built in itself
+ - I want to one day be like, yeah bro look at it all
+ - the baseline can still be wasm, in fact we can make that explicit
+
+But I'd rather get to writing, the faster I get into writing tower code that's not just wasm, the better
+ - that way I don't need to implement the parser yet, 
+
+shoot, I just realized my compiler also needs to run wasm too, does binaryen simulate?
+ - seems like it does have the ability to simulate
+ - so we technically could ask the OS, or we could rely on binaryen...
+
+at the end of the day, this can all be rewritten, keep it fast and loose
+
+so we start by writing in C++, the tower API is the creation of tower nodes
+
+WE JUST NEED TO GET STARTED, C++ IT IS!
+
+it's more like a context has all these virtual functions about how to deal with tower nodes
+ - and so our "passes" are just us dumping a context
+ - but it's not like we want the context to stop existing
+ - we just want to upgrade it, and ideally it should be compatible
+
+lets think of the example here, we get our new version of interfaces all written within tower, structs as well
+ - now it's time to "upgrade" the language to v2
+ - do I need to specify all the rules again?
+ - are we deleting everything before (pointers included?)
+ - when do we discard tower nodes, or do we always keep them around?
+   - 
+
+
+tower_node_create(context: tower*) -> node*
+tower_node_destroy(context: tower*, node: node*) // panic on double destroy, check free list header
+tower_node_attach(context: tower*, child: node*, parent: node*) // automatically unlink and relink
+tower_node_attach_member(context: tower*, child: node*, parent: node*, member_name: string) // automatically unlink and relink, any member of the same name is removed
+tower_node_get_parent(context: tower*, child: node*) -> node* // or null if it's the root
+tower_node_get_child_count(context: tower*, parent: node*) -> u32
+tower_node_get_child(context: tower*, parent: node*, index: u32) -> node* // or null if not found, panic if out of range
+tower_node_get_child_member(context: tower*, parent: node*, member_name: string) -> node* // or null if not found
+tower_node_get_kind(context: tower*, node: node*) -> string
+tower_node_get_parent_member_name(context: tower*, child: node*) -> string // returns empty string if not named
+
+
+lets just try doing this in wasm, why not
+
+Ok screw that we're doing C++ to get started faster
+ - along with binaryen
+
+we'll build out the wasm
+our end goal is to have a parser that can parse the very basic BNF rules, as well as support
+
+one of the first things we'll want to implement is structs and types
+ - and determining how pointers to types work (members, etc)
+
+ah fudge fine, the whole reason of tower is to build from the ground up so lets start with wasm
+ - it'll force us to use super optimized structs
+
+Now that I can add on to the root parse rules, what's the first thing to do?
+
+all I can really do is execute wasm, so now I need to start building my tree
+ - tower nodes are implicitly created during parse
+ - but we can also create them by hand in wasm
+
+do we need the tower node executor framework setup yet?
+ - can dependency inputs and outputs just be strings for tasks, and we determine what those strings are later (paths)
+ - for now we can do the terrible dependency graph, that just checks if every task is ready to run
+ - maybe we allow tower to hook into and redefine this execution model
+
+since we will be reducing leafs first, those tasks will be the first registered
+ - so as long as we basically keep things in order, most tasks will complete in their first iteration
+
+maybe when tasks fail, they are automatically placed on the back
+ - technically when we finish a sweep, only failed tasks will be left
+ - we keep iterating over the lists until nothing changes
+
+lets not get clever until we get stats, we'll know better what to do
+
+- I think this task model where we check our dependencies first is golden
+  - does the check need to be separated from the task, e.g. two different functions?
+  - In the future we'd want one to be immutable
+
+We still need to know if a tower node is alive, and kill it when the associated tasks fail
+ - otherwise those tasks would either keep the node alive, or just continuously fail to run (stuck)
+
+lets worry about that when we get there, assume nodes don't delete
+ - and if any task gets abandoned, we'll know about it
+
+So a task has a condition, an action, and a failure action that produces an error
+
+When a task completes, it's removed (do we ever expose tasks?)
+ - can you hold on to them, cancel them? etc
+ - tasks can self cancel, or complete
+ - not sure if they technically need a state for that or not
+
+basically if the function returns continue, it continues, if it returns complete, it stops
+
+tasks may need to be closures at some point, may need to keep their own data
+
+I think this is kinda everything, right?
+
+is => wasm() actually a task, or is it immediate?
+ - does the parser just keep going?
+ - when do tasks get executed, after parsing completes?
+
+I like that the tokenizer is lazy, but is anyone driving the parser, or is it just driving until it consumes the rest of the input?
+ - does it ever pause to execute code, and if so why?
+ - code can add parse rules and affect globals
+ - maybe that's reason that the parse rules should run the wasm on parsing immediately, not a scheduled task
+ - we can make adding parse rules during scheduled tasks like an error or something
+ - but we can add them while directly parsing
+
+So our tokenizer and lexer need to be able to rebuild
+ - I love the idea of lazily building a DFA from an NFA (only building it for rules we go down)
+ - but not required for now
+
+so the bare minimum C++ is this:
+ - parser/tokenizer implementation
+ - callbacks for creation and linking of tower nodes
+ - basic language and tokens for BNF rules (subset of tower)
+ - parser rules should just be specified as tower nodes if we register them (or maybe reparsed as strings...)
+ - tower API for emitting and compiling wasm (can just be text for now)
+ - run and parse wasm text format
+ - parse wasm after the end of a rule, and in the main context at any time
+ - some defined way that different wasms modules run and link together
+   - maybe don't need to specify an entire module
+ - tasks and dependencies, cancel/complete
+ - allocator
+
+With that we should be able to write everything we need
+
+We could do direct syntax translation as we walk and parse rules
+ - but now we have dependency tasks, so why do that when we can do proper codegen
+ - I would want to do a basic type pass, even for our early language (again, subset...)
+ - maybe we specify the binary format of tower nodes long before
+   - so we don't replace them or change them in any way
+ - this would mean the concept of type ids needs to be figured out
+ - our initial C like language would need to decorate tower nodes like usual
+ - if we did component based design, that means attaching components
+
+I don't like that our object format changes (header, etc)
+ - what if we add weak refs
+ - we should make every feature we add to the header an extension
+ - I want to be able to include type safe object systems
+ - as long as we can extend remote types, who cares what we do
+   - since at any point, if say we couldn't get a weak ref because they didn't declare they supported it
+   - make them support it!
+
+Maybe the same approach I take for hot compiling will work for updating tower nodes
+ - we would need to reallocate
+ - move all "features" from one to another
+ - can figure this all out later
+
+my main question is now, without just doing basic syntax directed translation, how do we do types?
+ - ideally I want to attach types like components
+ - we can reserve a type id that's literally for the type id structure
+ - type is basically just an interface though that gets the actual typeid
+ - we can just start with a tower node for now for primitive types
+ - we also want a type id to just be tower node itself
+
+ - we can also attach this as a named member, kind of like 'pre interfaces'
+ - or, all types of types (pointers, primitives, interfaces, etc) all implement a single type interface
+   - and we can add that to the tower node, mapped by the type interface
+ - yeah, that would also work, both are OK
+ - whatever we do, ideally I want it to be a subset (we don't change how we represent types on tower AST nodes)
+ - attaching a 'type' interface makes sense
+ - like adding a component would register every interface
+
+you know, maybe we just support "queryable" interfaces?
+ - when we add a component to a composition, we don't want to have to register every single type we want as fast lookup
+
+can we pre-compute component configurations?
+ - kind of want a map at this point, constant time lookup
+ - instead of having a map on every object, we can share maps of similar component layouts
+ - basically lazily pre-compute interface lookups
+   - the map just tells us the index, or memory offset, something like that
+
+ok, but either way for getting started we can just map the single base type interface
+ - as if it was a component that declared "interface Type"
+
+C++, binaryen, compiled to wasm with no-std
+ - possibly just use the wasi SDK for this
+ - ideally minimize wasi calls, we shouldn't import them if we don't need them
+ - may need like wasmtime or something, not just binaryen
+   - if we want to execute WASI functions and not have to get them all working in binaryen
+ - browsers would only need binaryen
+ - really, the wasmtime part should be the "host" platform, not part of our wasm
+   - unless we really want to have an entirely emulated version of wasi
+ 
+checkout binrayen as a third_party sub-repo
+
