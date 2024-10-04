@@ -3262,5 +3262,1970 @@ C++, binaryen, compiled to wasm with no-std
  - really, the wasmtime part should be the "host" platform, not part of our wasm
    - unless we really want to have an entirely emulated version of wasi
  
-checkout binrayen as a third_party sub-repo
+checkout binaryen as a third_party sub-repo
+ - create scaffolding cpp project with cmake
+ - add binaryen to our cmake project
+ - get WASI sdk docker container building our scaffolding (no-std, or minimize it ideally)
+
+copy welp code over just to get things working quickly (can rename and all)
+ - get parser running with tests and samples
+ - show that we can execute our wasm
+
+
+-----
+for minimal rebuild in the future, I really need to dive in to see how it would work as I haven't done it
+before and don't know the pitfalls (I can only imagine). So the idea would be that we can basically save state
+at any point in the parse, including the states of tasks and their wasms, etc.
+ - almost like docker container layers, we 
+ - basically if we see a change in source, it rebuilds from there down
+ - but that's sort of a very basic minimal rebuild, how can it know just to ignore whole subtrees in the parse?
+
+note that we must call _initialize on the scaffolding, we may want that in the future too (maybe we can rename this)
+
+tower_allocate
+tower_free
+
+-----------
+
+what does our parser definition look like?
+ - do we really care if it's tower nodes or not, ultimately it's just going to come down to a BNF API
+
+If we used tower nodes, how would it work
+ - we'd really just be building the parser from a tower node configuration
+ - and ultimately, it would only work on specific BNF type nodes
+ - I think it's like trying to create an IR for no reason
+
+ultimately we have productions, non terminals, terminals, and grammar symbols
+ - character sets are probably important
+
+what would the tower API look like?
+
+I think it should be tower nodes, a non terminal node with a bunch of children
+
+in order for a node to "be something" 
+
+one thing I like about using tower nodes, it simplifies our API
+ - otherwise we have to be able to create and delete productions, add and remove grammar symbols, etc
+
+tower_production* tower_create_production(non_terminal);
+tower_production_remove_element(tower_production*, index)
+
+push, pop, insert, clear, etc
+
+basically array like functions
+
+We pretty much need all those for tower node children
+
+so if tower nodes need to be component based, is that insane?
+ - ultimately parse rules are pretty small
+ - it's not like we're making a ton of them
+
+Ok, so in order to support components we just need the type map structure
+ - again, this can all change
+
+
+TowerNode* non_terminal_type = tower_node_create(context);
+
+TowerNode* non_terminal_node = tower_node_create(context);
+
+struct NonTerminal {
+  string name;
+  owner TowerNode;
+};
+
+NonTerminal* component;
+
+tower_node_map_component(non_terminal_node);
+
+type ids need to be perminantly kept around...
+
+Ok, we'll start off with component based design, doesn't matter what the implmementation is
+ - We can make it match the future implementation of components
+ - and we can static assert that all the member positions match so everything lines up
+ - but also, we can totally do the thing where we swap out all the pointers on the tower table
+
+are captures really just mostly syntax sugar for generated capturing rules?
+ - like captures ultimately just make a new rule right...
+
+
+maybe we also want all tower node components themselves to also be tower nodes
+
+What would this look like in tower...
+
+can you add more than one of the same component?
+ - if not, then it's not really a substitute for children
+ - we can allow it, but it only ever maps the first one (kinda like, it's only useful if it's useful to the component)
+
+// Adding an owner line implicitly adds a children: TowerNode?
+type TowerNode = {
+  owner: TowerNode;
+};
+
+// So now tower node can have an owner and children
+// When we do this with a single chain, we should mimic C++ inheritance (with no v-table)
+// Basically structs packed one after another so that they can be memory compatable
+type CharacterRange = TowerNode {
+  charStart: u32 = '\0';
+  charEnd: u32 = '\0';
+};
+
+random thought, what if the ability to get interfaces off a type dynamically via pointer was a feature
+ - like a vtable feature, you can add it to your type
+ - normally in class/struct in C++ with a virtual function gets one
+ - I guess we can still mark functions as virtual or not, that tells us if we get a vtable...
+   - but I kinda hated that, like typeid doesn't work cause no virtual functions... gross
+ - or all of our allocations have vtables, at the end of the day tower should be easy
+   - value types don't have them, reference types do, something like that
+
+new problem, should components be able to not have owners?
+
+type TowerNode = {
+  owner: TowerNode | null;
+  component: TowerNode;
+};
+
+
+We're only able to extend exact types (or named types), basically types with a fixed single type definition
+ - they're basically like a reference to an extensible type
+
+so effectively owner can work with any extensible type or null
+ - is that just a built in thing for owner...
+ - that's probably a reason owner shouldn't just automatically extend children for components
+ - maybe for any non-extensible type other than null, we require children
+   - basically we always require the type to declare that it has children that support our type
+   - but if the type does not, and it's extensible, extend it instead!
+   - kinda like that...
+
+dumb side note, if we can get a good dependency system going, the tasks could possibly be kept alive for monitoring if types change
+ - e.g. if a type is extended, then it's like a minimal rebuild only for things that are directly dependent upon that type
+ - we just need a really solid dependency system (also it shouldn't run all the time, ideally only when it needs to)
+
+-----------------
+ok, so how should tower node allocation work
+
+at first I wanted to just allocate it on the heap
+ - but it gets odd if we do 
+   type CharacterRange = TowerNode {...}
+ - because how do we extend a type that is only a pointer now (unless tower node allocates children)
+
+originally, tower nodes were not supposed to be extended so it didn't matter,
+but I'm grappling hard with what I want the tower node format to be
+
+since TowerNode is a named type or exact type, whatever we settle on, then those are hard requirements.
+
+whatever it is, it must match structural interfaces
+
+I need to be able to match an interface as it will be very common, say for example I want to easily
+check that this tower node represents an expression between two integers
+
+// IF A VALUE IS USED IN A TYPE, THEN IT IS ASSUMED TO BE THE TYPE OF THAT VALUE (THE TYPE OF A CONSTANT IS A CONSTANT TYPE)
+// In typescript: 'a' refers to a value, but is being used as a type here. Did you mean 'typeof a'?
+// you could only ever use a value within a type if the value was in scope of the type
+// but ideally it could be part of it, and we would actually check for that specific value
+
+let rootExpression: TowerNode = ...;
+let binaryIntegerOp = rootExpression as TowerNode {
+  has: BinaryOperator;
+
+  left: TowerNode {
+    has: typeid(i32)
+  },
+
+  right: TowerNode {
+  },
+};
+
+let binaryIntegerOp = rootExpression as TowerNode {
+  [0]: TowerNode {
+    
+  },
+  [1]: TowerNode {
+  },
+} | null;
+
+
+----------------
+I almost think that keeping tower nodes as individuals themselves (not extensible) is better
+ - yes the api is larger, however it forces a sort of nice structure where tower nodes are just the skeleton
+ - and components are just components, not children
+ - we can still allow components to have sub-components, at the end of the day you can declare anything in tower
+   - so maybe I shouldn't try and make it generic, it's just kinda weird
+
+I actually don't really like the idea of single chain inheritance either for tower nodes
+like I feel people are just going to start getting odd with tree structures
+
+
+Ok now one last thought here, lets revisit our token stream:
+
+String       RuleCharacterClass       String
+            /    /        |    \
+         Not RCCRange RCCRange  RCCChar
+            /    \      /    \     _
+      RCCChar RCCChar RCCChar RCCChar
+         a       z       A       Z
+
+This is just the raw parse tree
+ - We could do it where these were all tower nodes, but what does the raw parse tree mean in component form
+
+our nodes should be pretty generic as just the parse tree, since we don't even know what components to attach
+Parse trees haven non-terminals as parents and tokens as leafs
+
+ah, so it's just a component that's like NonTerminal, and Terminal
+so if I just read the roots of each token in the stream, they should all have a single NonTerminal component
+
+
+basically our token stream is [TowerNode{ has: NonTerminal }];
+ - So now because of that, every element in the array I can go tokens[0].NonTerminal // and that's a component!
+ - AWESOME!
+ - This was a great example of the parse tree as it comes in raw (RuleCharacterClass), but then we transform it
+   - we compact the RCC ranges into 'CharacterRange' classes as a single component
+   - we extract the two RCCChar values (should do a neat interface style cast in the future here)
+
+WAIT, IN THE FUTURE GRAMMAR RULES CAN DEFINE REALLY SLICK TOWER TYPES!!!
+ - since we know the structure, we can actually apply TYPES TO THE PARSE RULES
+
+Holy cow that's awesome, that means when we do 
+
+
+"elixir implements the language constructs such as defining modules, functions, other macros etc in the form of macros"
+ - phew, almost thought it was going to be a nice looking language... lol
+
+
+
+token RuleCharacterClass = "[" $Not("^"?) (RuleCharacterClassRange | RuleCharacterClassChar)+ "]" => fn(node) {
+  
+  type NonTerminalNode = TowerNode {
+    has: NonTerminal;
+  };
+  type TerminalNode = TowerNode {
+    has: Terminal;
+  };
+
+  // The type of node here would be
+  node as TowerNode {
+    children: [
+      TowerNode {
+        has: NonTerminal {
+          name: "Not"
+        }
+      },
+      
+      TowerNode {
+        has: NonTerminal {
+          name: "Not"
+        }
+      },
+
+    ],
+    RuleCharacterClassRange: 
+  };
+
+
+  // We can detect everything, like if a rule is nullable (locally)
+};
+
+// OK LET ME COME BACK TO THIS, MY BRAIN HURTS
+
+how about before we do ANY type syntax, we just start with compile time type ids, so we can start immediately generating
+types
+
+
+it's like we really want to be able to say children also has a child that looks like this
+ - possibly by index, but 
+
+
+Ok one more question, how are we using member names, I guess for the parse tree are we even?
+
+what if types are always just functions that return compiletime typeids, and functions with no arguments are called implicitly
+ - then I can really just use that compiletime typeid anywhere
+
+let Type = fn(): compiletime typeid {
+  ...
+}
+
+
+let b: Type ...;
+
+I'm basically just arguing that the phrase type
+
+```
+type X = ...;
+```
+is just syntax sugar for
+```
+let X: compiletime typeid = ...;
+```
+OOOOOOOOOOOOOOOO OK
+
+except I don't want X. to give me typeid members
+ - unless typeid implements MEMBER ACCESS OPERATOR :O!
+ - no that's not good lol
+ - I think it's more that X is the statics
+
+```
+let typeid_X: compiletime typeid = ...;
+let X = typeid_X.statics;
+```
+
+Trying to think of how to make statics feel correct when associated with a type
+ - I've always felt weird about this concept
+ - like ultimately, accessing a static through a type is using it just like a namespace
+ - that's probably why C++ did :: instead of .
+ - but . feels so goooooood
+
+it's almost going to be so common to specify has... I wonder if has can just become a shorthand
+
+let t: has RigidBody = owner;
+// same as
+let t: { has RigidBody } = owner;
+
+------------
+
+
+------------
+when it comes to destructing a type, we need to do it when the ref count reaches zero
+ - at compile time, the compiler should look to see if the type is virtual or not
+ - if not, it calls the destruction logic directly on the memory before releasing it
+   decrement reference
+   placement destructor on memory
+   free memory
+ - if it's virtual, it needs to consult the vtable or typeid to see what virutal destruction needs to occur
+   - for tower, this also involes destructing extension members, etc
+ - does that really mean every path needs to generate an if == 0 and inline the destruction logic?
+   - or, every type can have it's own dec-ref logic that simplifies the whole process
+ - then it's up to the optimizer if it wants to inline that function or not, sweet
+
+------------
+
+maybe we don't make any of the tower functions automatically add references
+-------------------------
+
+I think our idea should basically be this:
+ - we define the initial version of tower nodes in C++
+ - right now, lets not worry about the memory layout or implementation too much
+ - in the future when we fully settle on how the object layout works, we'll make a matching type definition in tower
+ - we can even do the whole replacement thing where we replace all the tower functions with ones implemented in language
+
+
+---------------
+ok so this is a case to consider, normally we wont' allow construction of a component without an owner
+
+in Rust, we would require the owner member to be filled out
+ - but also, we'd probably mark it as private, because we require construction logic to be run for the component
+ - including adding itself to the owner, dependencies, etc
+
+
+---------------
+next problem, for component based design, reference counts are kind of strange
+ - since the owner holds a refernece to the child, and the child holds a reference to the owner
+ - it's a unique pointer situation, except we do want others to be able to store references
+
+that's why we did handles for Zilch, Components were OWNED entirely by Cogs
+
+we could do something odd like the stack thing we were going to do before
+(any ref count non zero on stack destruction is an error)
+
+So in this case, if the component has a reference count that's not 1, it's an error
+
+is that... ok?
+
+I mean in most cases we don't store components anywhere
+ - dependencies... actually that's kinda cool, it's implicit!
+ - as long as the other component stores a reference, we can't remove the dependency
+ - do the components also store a reference to their owner too (cyclic?)
+
+Maybe components don't increment owner reference count
+ - but then how is it safe?
+ - when an owner reaches ref count 0, it will always detach all components whose reference counts must be 1
+
+e.g. it's illegal to let all references to an owner die, but keep a reference to the component around
+
+kinda weird to throw during destruction...
+
+I guess we can also have the component store a "weak reference" to the owner
+ - and throw if it's ever non-null
+ - and call some sort of detach logic, effectively akin to a destructor but like, you've been removed from the component...
+
+ayah....
+
+we pretty much want components to die exactly when their owner dies
+ - we honestly want the references to kind of just... be the same?
+
+ - like a reference to a Component really just increments the owner reference...
+ - whoa... that's interesting...
+   - other than just using pointers under the hood, I wonder what would be a way to declare this in language generically
+   - like, my object is fundamentally linked to the lifetime of another object
+     - my reference is their reference
+
+- maybe independent of components, we can "own" child objects, and their references are references to the parent
+- therefore the must exist within the context of the parent only, even if dynamically
+
+Somewhat interestingly, since it's reference counted, we know all references are gone once we release the last one
+
+Technically components only need a parent pointer to be SAFE, owners don't need to point at components
+ - Once the reference count reaches 0 on the owner, we also know that no components are still referenced
+ - HOWEVER, we would have no way of calling component destructors or freeing component memory if we had no pointers from the owner
+ - so the owner must hold direct pointers to components in some fashion and guarantee that they are freed and destroyed too
+   - fascinating, can we make this concept generic...
+ - 
+
+it's really just unique ownership but with reference counts
+ - and the idea of redirecting the ref count
+
+
+So what are the fundamnetals here, its safe IF:
+1. The child has no reference count and refers to the parent (child must have parent access)
+
+
+Ok this is really cool, one thing though that also breaks down is ownership trees of tower nodes
+tower nodes point at children, children point at parents, etc (another cylcic reference)
+
+we almost just want roots to have reference counts here...
+ - like, I don't want children to keep parents alive so parent should be weak
+
+hmm...
+
+what happens if children did not increment their parent
+ - it would be OK if when the parent died, it removed the child's parent pointer (nulled it out)
+
+hmm actually I forgot about this, parents are already nullable!
+ - so when the parent dies, it can null out the child's owner pointer
+
+cool, so basically now we have this ownership concept too that involves weak parents
+ - but rather than doing a whole crazy thing for weak parent pointers
+   (like python allocating another extra object with it's own ref count)
+   we just declare owner: TowerNode | null; and somehow this means it's weak?
+
+it works, maybe we can formalize these ownership safe models
+
+as long as a type removes all references to itself... hmmm!
+
+ok but now dependencies get weird
+ - need a separate count for them to hold them
+ - weird wierd
+
+I want tower to also be an exploration of alternate, less restrictive forms of memory safety than Rust / borrow checker
+ - I love what Rust is doing, but I would sacrifice 10% of my speed to have the language feel like C# (but not GC fuck GC)
+ - unless there's a way to do GC objects, but have it be less intrusive (manually called or something)
+
+---------------
+
+so right now the model is this:
+ - lets start thinking of object's as just having hidden intrinsic features that you add in
+ - so like reference counting should be one
+ - when you attach that interface to an object (maybe implements?) you also somehow affect the storage of that object
+   - that includes what kind of memory restrictions you need, like can it go on the stack?
+   - you're basically defining all the parts of a type, fundamentally what we can do with it in memory
+ - Originally I was thinking of this as 'ref' or & on the type, but now I'm thinking of this a little differently
+ - like how can an interface modify a type behavior? defining a handle
+
+I do like the idea that Tower can have many different kinds of objects for different scenarios
+ - with a really good default of ref counting
+ - handles that go null when the object is deleted
+ - handles that always return a valid object and throw on access
+ - unique handles that only grant temporary access or are moved/nullable
+ - raw pointers
+ - but the point is, these features are added to the object piece by piece, along with the type definitions
+
+--------------------
+
+so now rather than having a "TowerHeader", we need to pick
+what's appropriate for each, like TowerComponent has no reference count
+ - hmm, that does make things a little harder to be generic
+ - like, it's nice if we know the first 4 bytes of every object is a reference count
+   - otherwise dynamic features like interfaces need...
+     well actually they just need to consult a virtual object anyways to say "what happens when I make a new handle"
+
+maybe in tower we can have this handle concept, almost like a built in operator
+ - basically you can return another type that the compiler will use as a fill in for storing a handle to your object
+ - the fill in object is always given a pointer to the original object
+ - it's like we have the "make an initial handle" and then "copy/move a handle"
+
+-------------
+
+ok lets go back to ref counting, it's now tower node specific
+
+ok for example, we don't want people to inherit from tower node
+ - so tower node is not virtual
+ - and we would require virtual destructors when implementing an interface
+ - also tower node is sealed so we can't add features to it to force it to allow inheritance / extension
+
+hmmm
+
+ rust fundamentally does not have inheritance
+
+check out rust deref tho:
+struct StructA;
+`````
+impl StructA {
+    fn name(&self) -> &'static str {
+        "Anna"
+    }
+}
+
+struct StructB {
+    a: StructA, 
+    c: i32,
+    // other fields...
+}
+
+impl std::ops::Deref for StructB {
+    type Target = StructA;
+    fn deref(&self) -> &Self::Target {
+        &self.a
+    }
+}
+
+fn main() {
+    let b = StructB { a: StructA, c: 123 };
+    println!("{}", b.name());
+    println!("{}", b.c);
+}
+
+`````
+
+I think the issue is we're still trying to have it all. In rust, structs are just data types
+the fundamental question is, why do we need virtual destructors, isn't that a relic of C++ inheritance
+ - but rust DOES have destructors
+ - how do they work in memory??
+ - because I can create a Box<Thing> and thing has a vec, which must be dropped?
+ - hmm, but it's never virtual
+ - so I think rust kind of gets away with it because the type that's dropped is never virtual
+   - or even if it is, it's only got one single destructor to every call
+     - well, it technically has some built in ones since it needs to destruct members
+
+so a question would be, in rust can I hold a dyn interface to keep a reference counted object alive
+ - and then have it destruct through the dyn...
+
+------------------------
+https://users.rust-lang.org/t/v-tables-differences-between-rust-and-c/92445
+
+I would draw it like this:
+
+&dyn Foo (Trait Object)
++--------+----------+
+| Data * | Vtable * |
++--------+----------+
+    |        |
+    |        v
+    |     +---------------+--------+----------+-------+
+    |     | drop_in_place | size   | method_1 | ...   |
+    |     +---------------+--------+----------+-------+
+    v
++---------+---------+--------+
+| field_1 | field_2 | ...    |
++---------+---------+--------+
+And the C++ version:
+
+Foo* (Pointer to derived object)
+    |
+    v
++--------+---------+---------+--------+
+| Vtable*| field_1 | field_2 | ...    |
++--------+---------+---------+--------+
+    |
+    v
++----------+-----+
+| method_1 | ... |
++----------+-----+
+
+------------
+interestingly, Rc in rust is always on the heap, it's like Box
+ - there is no RC where it's not allocated
+
+hmmmmmmmmmmmmmmmmm, I don't hate rust's way of doing things (no inheritance, no including types within yourself)
+
+what would components be?
+ - a type component that wraps one single type, no inheritance
+
+still has a virtual destructor
+
+Anything dyn is a fat pointer, so it has to be a vector of fat pointers to be polymorphic
+
+HUMMMMMMMMMMMMMMMMMMMMMMMMM
+
+how does an Rc work with dyn objects
+ - I see, so they just specialized Rc and Box to work different for dyn object than pointers
+
+ok so now lets really think about 
+
+I started brainstorming what a purely component based language would look like, difinitively
+ - we make a statement with tower, the cool parse rules, the awesome compiletime syntax, how templates and generative types work
+ - and then we wow the world with a new(ish) language paradigm: Component Based Design
+
+My declaration is that the only kind of pointer or tree traversal should be with compositions and components
+ - the language has no other way to represent anything
+
+all structs are pods
+
+We do need some sort of way of doing mixins however, and I still like A & B for this
+but what if we went simple, all types must be named, like you can't do {} & {}, has to be C = A & B
+ - I don't really know where I'm going with this, let me just think a bit
+
+
+or like, what if we stated that all heap allocated structs are always colocated
+ - even member by member colocated? we can do that weird thing in arrays where the first member of struct[0]
+   is grouped with the first member of struct[1], and so on, like each member of a struct is an array
+ - this can be a hidden detail
+ - so inheritance and interfaces is really just a single pointer to the super
+
+
+I guess the idea here is there are only owners, components, and pod data types/structs, that is the only data types
+
+that would basically imply that interfaces are tied to data, like a component is an interface
+ - 
+
+
+One thing I want to think about is GameSession, Space, etc, how do we solve those?
+
+in Zero, Space was a Cog, but it was kinda awkward, there were space components that had a dependency on their owner being a Space
+
+Space being a Cog meant it could have normal Components too (like ZilchComponents)
+
+owner Space
+
+what are all the types we want
+ - owners (cannot be components themselves, lets just put our foot down, it's too awkward)
+ - components
+ - pod data types
+ - ref counted pod data types?
+
+we're also saying there's no dynamic cast or interface stuff, there's only asking an owner for a specific interface
+ - ok yeah lets be weird with it, lets say that 100% for sure there are no other interfaces other than 'base' component interfaces
+ - I'm just thinking of a world where there are no Rust style traits or anything, it's just very simple
+ - like maybe BoxCollider actually just has a dependency upon Collider, but Collider is never constructed by itself...
+   - the only advantage I can think of is that you can swap from a BoxCollider to a SphereCollider
+
+Lets also imagine a world where the owner tree/hierarchy concept is extremely lightweight
+ - then we may refer to objects just by their components, but really we're saying 
+
+like when I allocate an object and point to it, I'm really always pointing to an owner that has a child
+
+and maybe we can make optimizations for owner declarations that specify they always have specific components (allocated together)
+
+ - this was the true component based language I thought about a while back, lets try it as a thought experiment
+
+should derived components just be sub-components?
+ WHOA
+
+so like... Collider is basically a component that declares that it ALWAYS has at least one sub-component
+
+Collider = {
+  has: ... hmm wat
+}
+
+I really do like sub-components for some cases, 
+
+the whole structural interface matching part of tower is where I feel like it starts to diverge from being native perf
+ - but maybe we can make this extremely fast, and practical/useful
+
+the main problem we're trying to solve with Collider is that while it may also have data (we don't know or care) it
+does have an actual interface, with un-implemented methods
+ - and now the question becomes who gets to implement those?
+
+moreover, one part of Zero that I think is paramount is events
+ - basically we're declaring that owners should always have parents and children, regardless
+
+
+when would I want to use a heap allocated value that wasn't a composition?
+ - lets try and think of how we can make it so you would never know the difference...
+ - I'm basically saying what if there was no struct/interface keyword, just components, no pods
+
+we're basically saying that any interface on any object should be swappable
+
+a: RigidBody
+
+is the same as 
+
+a: { has: RigidBody }
+
+we only pass owners...
+
+I think at the end of the day we're still going to want pod structs, containers, etc
+
+
+all of this brainstorming is great, but I think the main blocker I have right now is that I don't know the data
+layout of tower nodes and tower components
+
+because Rust gave me a serious pause with thinking about how vtables in C++ work vs fat pointers in rust
+
+wait, one cool thing about components, they don't need to store their RTTI type this way
+ - if it's always only stored by the owner, kinda cool
+
+
+So the weird thought experiment is that components could basically require
+that an interface gets implemented, like a pure virtual function with inheritance
+ - it means that the component isn't valid without being added along with a component that implements that interface
+ - this sounds exactly like a dependency, EXCEPT
+   - A dependency is offering an interface
+   - This is a dependency that is asking someone to implement it's interface
+     - it's odd because it's still going to call it in the same way, gah it's so similar
+   - it's really like BoxCollider is saying it implements Collider
+   - BoxCollider cannot be constructed without a Collider
+   - Collider cannot be constructed without a type that implements Collider interface
+   - That means it's cylic
+   - Normally in C++ the base can "access/do work on" the derived members through virtual functions
+   - and the derived class can just directly modify the base because it IS a base
+   - but here we're saying in order to communicate, we need pointers on each to each
+   - but obviously, in the case of collider, it's like an opaque interface
+
+really is just a dependency upon an interface... right?
+
+Hmm, it's odd then, is it...
+
+------
+interface ColliderPureVirtuals {
+  fn get_mass(): f32;
+}
+
+component Collider {
+  dependency ColliderPureVirtuals; // except these methods should also appear ON Collider too
+}
+
+component BoxCollider implements ColliderPureVirtuals {
+  dependency Collider;
+}
+
+------
+and then maybe we have a shorthand for the same thing above
+------
+component Collider {
+  fn get_mass(): f32; // because this is not implemented, it means this component implicitly
+                      // has a dependency upon any component that implements our interface
+}
+
+component BoxCollider implements Collider {
+  // implicit dependency Collider;
+}
+-----
+and in the same way, we could have done
+------
+component ColliderPureVirtuals {
+  fn get_mass(): f32;
+}
+
+component Collider {
+  dependency ColliderPureVirtuals; // except these methods should also appear ON Collider too
+}
+
+component BoxCollider implements ColliderPureVirtuals {
+  dependency Collider; // collider methods could appear on BoxCollider too, correct?
+}
+------
+
+component BoxCollider {
+  implements Collider {
+    ...?
+  }
+}
+
+so then what if we just don't have interfaces, just components with functions only
+
+I guess the kinda cool thing is since we can always separate out interfaces into separated components
+
+
+lets just imagine tower not being so low level anymore, except for when we're starting to build it
+ - but just imagine it wasn't built in all these layers yet, just direct to component support
+ - we'll break it apart where it makes sense, but for right now just picture a purely component based language
+
+so basically interfaces are really just questions answered by compositions
+
+components can implement multiple interfaces
+ - remember, when we say implements, we have a dependency upon it too,
+   and we offer an implementation for their unimplemented parts
+ - lets examine diamond of death (bad example but yeah):
+
+component Stringify {
+  fn toString(): string;
+}
+
+component Damageable implements Stringify {
+  int damageTaken = 0;
+
+  fn Stringify.toString() {
+    print("Damageable");
+  }
+
+  fn takeDamage();
+}
+
+component Breakable implements Stringify {
+  fn shatter();
+
+  fn Stringify.toString() {
+    print("Breakable");
+  }
+}
+
+component Player implements Damageable, Breakable {
+  dependency RigidBody;
+
+  fn Damageable.takeDamage() {
+    ...
+  }
+
+  fn Breakable.shatter() {
+    ...
+  }
+}
+
+
+so if I look at it, Player implements Damageable and Breakable, which both implement toString
+
+when we add a Player component to an owner, we must also add Damageable and Breakable
+ - both of them also have a dependency upon Stringify
+ - however Stringify has a reverse dependency upon whoever implements its interface
+ - in this case, Stringify will lookup and get the first component that implements it
+
+component based design doesn't make much sense when you start duplicating components, unless you use that functionality for meaning
+
+so that's it, thats component based design in a nutshell
+
+ok so what's the object layout look like
+
+oh and owners are basically just basic ass data types, always ref counted, deletable, etc
+ - treat them like cogs, but you can't abandon them either
+
+cogs had members like name, so maybe we allow owners to declare info like that
+ - but I almost rather that be a component, go all in
+ - because the second I allow owners to have data, I need to suddenly have syntax for owners implementing interfaces, etc
+
+I'd almost rather that all compositions are equal in binary memory,
+but the type system differentiates them by which components they are allowed to have
+
+ - We would make spaces just by creating a component, and that component can hold a new root tree
+
+yeah, if you want to "Tag" a composition as a specific type, use a tag component, it's light weight
+ - and the component can even have data
+ - e.g. this is a Cog, the composition is never a Cog
+ - compositions are just magical creatures with a fixed set of functionality and API
+ - we just define exactly how they work
+ - so we're saying all the components just have the same "dependency Cog;" line
+
+some components implement a specialized tree of pointers that point down the heirarchy
+ - lets worry about hyper optimizations later
+
+having all compositions be equal except differentiated by type only is really fascinating
+
+do I even need to declare compositions or give them a name?
+ - lets just imagine for a second that compositions are completely generic
+ - you can't declare them, they have no component types
+ - then what makes up different compositions? maybe header components
+   - just basic components that provide some shared features like object names, etc
+ - so we fundamentally don't have compositions that can only take a specific type of component
+   - all compositions take all components
+   - components don't have an owner type, it's generic and always the same
+   - but we can be a CogComponent by just having dependency Cog
+ - we can call those like Header components
+ - Space might have a dependency on Cog, and TimeSpace has a dependency on Space, etc
+
+- ok this hierarchy along with safe handles describes all heap objects
+
+so compositions have children, parents, all that jazz and are ref counted
+ - basically they have a single form and definition, there is only one composition
+ - but you distinguish types by their pieces
+   - it's almost like if it looks like a duck, but more like if it has a mouth and some eyes
+ - we make sure compositions support all the best types of handles (weak, strong, throwing, deletable, unique, etc)
+ - we also make sure the memory layout is kick ass for game engines, cache, etc
+
+now the last little hole is how we handle struct types, really just pod types
+ - I think we just support pod types? it doesn't really make sense to have component based design on the stack
+
+maybe my "frozen" objects concept... basically the idea of freezing a known composition definition
+ - but I think structs are just better for this
+ - the freezing advantage would have to be like it's minimizing the object
+   - it would have to look exactly like components in memory, but it's statically composed together
+ - eh... I don't feel it plays well
+
+ - I think just pod structs is fine
+ - initialized entirely by name
+ - maybe not pod, we can have vector<T>... fn vector(t: compiled Type): compiled Type {}
+
+ - how do we handle containers and all that?? full component based design would scream and say EVERYTHING POLYMORPHIC!!
+
+ no arrays, only compositions
+ - no containers, ONLY COMPOSITIONS!!!
+ - bleh
+
+well, maybe it's not "frozen" per se but I do think the idea of declaring an interface with "has" means it must have that
+ - which means that as a type, we can reserve memory for it and all of it's dependencies
+ - (the ones we know about that cannot be dynamic)
+
+so I guess my weird point about frozen things is that they could also remove features (sealed)
+
+is trying to throw component based design at everything too much of a hammer?
+ - I'm trying to make it ok so that there are no arrays or anything
+ - like I really want compositions to be your arrays too
+ - ah see that's where defining a composition starts to make sense
+   - I want to be able to say what my children type can be
+{
+  [{has RigidBody}]
+}
+
+
+that's saying a composition whose children all have a RigidBody component
+ - can I do better?
+ - casting is just comparing interfaces, or doing runtime casts
+
+compositions are tuples too
+
+{
+  [0]: { dependency RigidBody };
+
+  [
+    { has }
+  ]
+}
+
+
+
+// is this what they look like?
+{
+  RigidBody,
+  [
+    {RigidBody}... // array syntax
+  ]
+}
+
+
+when we say the name RigidBody, it is also usable in places as {RigidBody} (any composition that has a RigidBody)
+
+[RigidBody]
+
+so RigidBody is shorthand for {RigidBody}
+ - but RigidBody in parameters actually does take a RigidBody pointer
+ - and declaring it as a member actually does hold a strong ref count to the composition that holds the RigidBody
+
+- but what we're saying is that technically the two are one to one convertable (when it delcares that it has RigidBody)
+  - so we implicit convert and treat them as interchangable
+  - well we may end up needing to always pass the composition anyways to keep it alive
+
+
+[RigidBody...]
+
+is actually just
+
+[{RigidBody}...]
+
+which is actually just
+
+{ // composition
+  [ // children
+    {RigidBody}... // composition of RigidBody
+  ]
+}
+
+
+component RigidBody {
+}
+
+let a: [RigidBody];
+
+a.add(RigidBody { // shorthand to construct a new composition with that component
+});
+
+
+composition as [RigidBody...] // this cast would check that all children have a RigidBody
+
+
+
+
+that's really just saying `a` is a composition whose children have RigidBody components
+ - may have a lot of other components
+
+so for this composition, 
+
+
+who cares, people still use JavaScript to date...
+ - and ultimately these are at least structs and assembly level implemented
+
+WOW I LIKE THIS LANGUAGE KINDA!
+if I stop thinking of it as being bad.. I mean look at JS arrays, they're arrays of variants
+ - so much allocation and random overhead, GC, prototypes, etc
+
+this is not rust!
+
+we can also do tuples too, [A, B, C]
+
+can we do compositions on the stack?
+ - or are we just going to be happy enough about temporary component allocation
+
+technically if we do structs, it won't make any sense with using compositions as arrays
+ - since we can't do [Vec3...] if Vec3 was a struct (it has no parent, etc)
+ - that's kinda gross though, we can't even have just an array of vectors?
+ - But I mean, we can they just have parent pointers... who cares JS is worse!!
+ - so everything is a component, it's higher level
+ - again, just look at an array of vec3 in python or JS... this is leaps better
+
+ - also does it always have to be heap allocateed?
+   - hmm, but maybe that's ok, especially if we're using a fast typed allocator for cache
+ - lightning fast amortized O(1) allocation and freeing
+ - yeah ok, whatever!
+ - basically we're saying it doesn't matter if we're heap allocating or not
+ - ideally we want an array of Vec3 to be colocated together
+   - but they may not be contiguous, while they are all allocated together with all other Vec3s
+   - and the likelyhood is that if you allocate a bunch in a row, they will sit nearby each other
+     (they first occupy free spaces, so there's always that issue first)
+   - but otherwise they're mostly together, I can live with that
+
+yeah, it's kinda crazy, everything is structs...
+
+and then really serious code gen for templates and stuff
+ - maybe we can define new tricks with reflection type + compiletime generics
+ - like whatever we need for Rust style enums/match, or TypeScript type expressions + typeof/instanceof
+
+it's not a native perf language, but it's pretty damn fast
+and it's crazy extensible
+
+everything is a component
+
+hmm, what if I just want
+  position: Vec3
+
+value types again?
+
+component Vec3 {
+  // implicit owner, dependency count, etc
+  x: f32;
+  y: f32;
+  z: f32;
+};
+
+component Foo {
+  position: Vec3; // hmmm?? does that create a whole composition?
+}
+
+I guess this is the C# part where it's still nice to have proper value types
+
+but virtuals, interfaces, etc only work with components
+
+hmm, well dang I really wanted [] to be syntax for just compositions / tower nodes
+
+well fundamentally we really just need a few kinds of data structures:
+ - hash maps, arrays, lists
+
+maybe at the end of the day, a component based language isn't one that forces everything to be component based
+ - after all, C is part of C++, you can always go back to structs
+
+I guess that's a part of rust I really like, they only have structs, pure data
+ - and then interfaces implemented for those structs
+ - it's very simple and beautiful
+ - although they do have tuples, arrays, and a complex generics syntax
+
+so then if I take a step further back and ask myself, with a language that has component based design built in
+can it be broken down into pieces or features, instead of having one type of composition?
+ - The only reason to ask this is that it could be interesting and maybe break the difference between struct/component
+ - part of me kind of likes the idea tha a struct can be a component with the right members
+ - hmm, but maybe composition is still fixed?
+ - I love the idea that component is just syntax sugar
+ - that's one thing in my language, I never mind syntax sugar because it's shorthand!
+   - it's not a "new way" of doing things, just shorthand for something larger
+
+maybe compositions can store structs that don't have owners?
+
+I guess we haven't figured out component layout anyways yet, kind of want to talk with Chris...
+
+I mean, the wacky ass way this langugae would work is that everything is a component, including like Vec3
+ - component just means it has owner and like next/prev pointer or something
+
+
+Lets take a look back at this problem:
+
+component Foo {
+  position: Vec3; // hmmm?? does that create a whole composition?
+}
+
+yes, yes it does!
+
+is there any way to do value like semantics though?
+ - value really just means it clones every time we move the handle
+ - I mean... yeah we can, that sounds horribly slow but whatever!
+
+what are f32, i32? I feel like those have to be structs...
+
+how do I do [i32]?
+
+I mean even in JS that's a variant, so at best it's an array of variants
+ - basically just saying a composition doesn't sound that crazy
+ - can compositions be stack allocated and copied?
+
+ - technically the pointers to a composition
+
+And even though we're allocating it, we're doing so with a lightning fast allocator (amortized)
+ - but cache coherency becomes the issue
+
+I think if I go all in on component based design, I don't know if I'll love it as a language
+ - part of the reason I love TypeScript so much is how flexible it is
+ - even just native TypeScript + Rust style traits would be a big win in a langugae
+
+let me just think more about component based design languages
+
+we could also do the equivalent of "boxing", where any value type that gets used in an array or whatever gets boxed
+ - C# does pretty much that anyways with allocating objects
+
+basically even if we have value types, an array of value types would be
+
+struct Vec3 {
+  x: f32;
+  y: f32;
+  z: f32;
+}
+
+Hmm wait maybe thats the idea, maybe we only have structs, but any struct can be used as a component?
+ - it would implictly wrap the struct
+ - hmm but what are dependencies, unimplemented interfaces, owner pointer that the user can access...
+   - that should be the things you get when you declare you are a component...
+
+so maybe we still have structs and components, but structs can be components (just no owner, etc)
+
+[Vec3...] // is just a composition whose children (not components) all "has Vec3"
+
+same as
+
+{[{Vec3}...]}
+
+lets make it illegal to add more than one component of the same type, I like this design
+ - if you want children, use children, not components, components are a map functionality
+
+I don't mind where this is going for a high level language, but for a native language, eh
+
+components listen for events on their composition
+
+events can propegate in many ways
+
+events are just a composition themselves
+
+we can drop the has keyword too
+
+cog.send({
+  RigidBody {
+  },
+}, Propegate.Up);
+
+hummm, not quite the language I wanted to work on...
+
+I mean if it just had the type expressions and other native "handle" features, I think I would not mind
+
+hmm, well now that we have an idea for our composition structure, can we start structuring tower nodes?
+
+component based design is really just a piece of tower
+ - the main reason it's so important right now is I'm trying to find a way to represent it in language
+
+what I'm overwhelmed by is implementing Rust style trait generics, C# where clauses, etc
+ - type constraints
+ - A where clause should just be a compiletime function
+
+lets plan to have components, but lets still just focus 
+
+lets stop worrying about making tower nodes this perfect layout
+we can always change it later
+
+and ultimately, even if we dont match in memory we can always just wrap the tower node API
+with a structured / componentized version of the tree...
+
+For tower's foundation, we need both a generic parse tree (to hand to wasm)
+ - as well as a tree structure for specifying productions/rules
+ - we also have no types
+
+
+instead of ever exposing how tower nodes actually work, lets just give them all the facilities we would ever need
+to wrap a tower node with our own type
+
+ - Tower node's can actually take pointers to our types, but lets not assume anything
+   about memory or how components work in the future
+ - this is just tower nodes, their own thing, yes they are extenisible
+ - we don't try and assume an rtti layout or anything, just give it what's needed
+   - like for a destructor, tower nodes just have to take in a destructor
+
+so then our goal is really the easiest extensible structure in wasm
+ we can make it match later!
+
+lets just gooooooo
+
+ok so one last thing to remember here, our parent pointers are weak pointers
+ - child compositions don't increment parent refs
+
+
+--------
+random other dumb question, can we make a language with safe fat pointers?
+ - basically like C, but you can use pointers freely because we know they'll throw
+ - even the concept that at runtime everything is a refcell...
+
+can we also enforce single writer multiple readers?
+ - we just need to know which chunks of memory are considered "together" and mutate with each other
+ - this would be data you'd normally wrap in a mutex
+
+Basically our version of this data always has a header
+ - for multithreaded, maybe we can do mutex or atomics
+ - basically it's like wrapping a thing in a block, but if another bigger block contains it, it removes the inner wrap
+
+basically the idea for pointers is that we can always point to the head of an object
+ - we will guarantee that these allocations are done on some aligned boundary
+
+
+we don't want think about sizes or sizeofs, because ultimately we could have a void* or u8* that just points anywhere
+ - how can pointers to anywhere be made safe?
+
+I think to answer that, we have to think about what memory is even ok to point at
+ - generally when thinking about a safe language, we can say that a
+   pointer can never be initialized to point at an unallocated location (stack or heap)
+ - And also that if a memory is freed, the pointer should become invalid or nullable
+ - and that even if a new memory is allocated in it's place and the pointer coincidentally points there
+   it should still be considered invalidated/nulled
+
+the most granular way of breaking this up would most likely be stack frames and malloc allocations, alloca's
+ - since the stack is reserved usually by call frames (unless things like alloca exist)
+ - so the idea would be that at the header of every one of these is an intrusive list of all pointers
+
+ - I would love to do handle style, but with pointers that gets difficult
+   - and I think fundamentally a well behaved program should not have outstanding pointers
+   - so a well behaved program will have O(1) deletion (only one reference left to it)
+   - though it makes the pointers "fat", it only does so by next, prev, and then the pointer itself
+   - the intrusive list also acts as a reference count, we can either auto-delete or mark it as an error that it wasn't deleted
+     - you get to pick your behavior, some of them are lowerable to release mode variants
+
+ - ah but it's a bit more, because technically we also want to point anywhere inside of a memory block, so we also need an offset
+   - we need to also constrain any memory moves to be within the block, as well as reads
+
+I think most of our work will be in reducing these pointers and the cost of moving them around
+ - reads are more likely, so read cost is not inhibited
+
+ - we do know that pointers have a fundamental width (the size of the type)
+ - meaning that no matter what, all reads from a pointer (except ones like memcpy)
+   will have a compiletime size associated with how much they can read
+ - we do NOT want reads to have to check if they are within range every time
+   - ideally we make an assertion, we do NOT allow you to ever even point, without reads, to invalid memory
+   - that is because it is far more common to read from a pointer than modify a pointer
+   - so we want to do the bulk of our safety constraints on pointer modification, not on read which is more likely
+ - so because of that, it is possible to ensure valid pointers
+   - casting from a u8* to a u32* will incur a check, if it is within range of the memory it's pointing at
+
+ - so that means the pointer does not need to be any fatter, just next, prev, and ptr
+   - because we know the size we'll read, upon construction of the pointer (or cast to pointer, etc)
+     we do the checks to ensure that pointer never points outside the memory
+
+Moreover, a pointer can only point within it's allocation, not to other allocations
+ - that would be considered a different pointer and constructed from another location
+
+this all ultimately means that you cannot construct a pointer from a constant (such as foo: i32* = 0x1234 as i32*;)
+ - I think it's probably a security benefit to not ever allow that, we can ensure only some things can be pointed at
+ - at some point in our language, we could offer a way to point at 
+
+this can be the default style for allocations, it's almost all C++ like but safe with an overhead
+ - but then we can introduce other handle primitive types, which can ease pointer restrictions but still be memory safe
+ - reference counting, etc
+ - and ultimately, we can always compile in a way that lowers some primitives to actual pointers (almost like "release mode")
+   - technically "unsafe" but great for non restrictive environments and sandboxes like wasm
+
+ok next issue, if we can point anywhere in the class and at anything, then we can point to internals of pointers (next, prev)
+ - we could mess with those, which is unsafe
+
+I think then it just matters what we're pointing at, and if we're allowed to point at that thing with that kind of pointer type
+ - is it reading on boundaries?
+ - is it a type that makes sense?
+
+maybe we can come up with a very fast table lookup for if the pointer is viable or illegal
+ - and I could see how we could enforce rules, even with structs, on certain layouts
+ - I wonder if there's a fast way to generate all these, maybe they cache on the first occurance?
+   - if it ends up being so big, then have a way we can declare and pre-cache (this memory here will be casted to X)
+ - but that also means when we allocate memory, we need to give it an explicit layout
+ - stack memory is also weird, doing it by stack frames makes no sense as it will change with optimizations
+
+We also need to think about arrays!
+ - does it matter how the memory was allocated then?
+
+I guess we're saying that the way pointers work should be up to the struct itself
+
+but in C, memory is just memory, the interpretation does not matter
+ - our language is basically taking a step and saying that there is a physical layout
+ - in rust, is it just considered unsafe to re-interpret memory?
+
+I think we can declare that every stack allocation and every malloc has an
+interpretation of memory that cannot be changed without deallocating
+ - it's kind of like it's type, but really just says what memory exists where
+ - it's only needed if we get a pointer to that type (which is always the case with malloc)
+
+so that also means an array of u8's can be re-interpreted, but not as pointers!
+ - I love that... 
+
+imagine there was a pointer inside a struct to a Thing
+ - and then we reinterpret the struct itself to a new struct, which now has a pointer to a Foo
+ - we would check that the pointer to Thing is compatible with the pointer to Foo
+
+
+some memory should be opaque, and never pointed at
+ - for example, if we did rust style enums, the tag value is not technically exposed (unless we did expose it...)
+   - but that memory shoudln't ever be pointed at or modified, it's unknown!
+
+it's all simply about binary compatability
+
+what about arrays or uninitialized values?
+ - we also have to guarantee that all memory is initialized, not really important for pod types, just pointers
+ - but, how do we say allocate an array of memory and keep track of what's allocated and what's not?
+ - well at least we know we only really care about the vector/array case,
+   which can use a moving index to let us know the capacity vs size
+ - I don't love that this would be a special case, but otherwise we'd need like some duplicate memory to keep track
+
+
+
+Well, so far I really like this C style version of Tower
+ - we make it so some primitives are effectively invisible to the eye (maybe, we'll see)
+ - I kinda like the approach where a type can say what it wants, but then it's overridable on the pointer level
+
+------------------
+lets think about the reading from array while modifying it case
+ - if the iterator was pointing into a vector, and then the vector resized, it's now pointing at invalid memory
+ - I think the primary issue here is that it could have invalidated the pointer, but you don't know until it lazily happens
+   - our code is technically still safe, but has a sleeper bug in it
+ - can operations know if they might affect memory (the allocation) and therefore check if any strong references exist and bail?
+   - we really want push to throw while we have an iterator already to it
+   - and the thought is that maybe push can declare it affects memory somehow
+     - or maybe this can be inferred somehow
+
+
+I'm not sure about threading though, or about data modification guarantees
+ - I guess the nice thing is that, at least manually right now,
+   we can invalidate any references at any point to a piece of memory
+ - so even if a hash table operation may have added something to the hash map which may cause it to rehash
+   - a pointer to anywhere inside there could be invalidated on every add, even if it didn't break it
+ - again would just be cool to mark functions as "affecting memory"
+
+
+so for threading, in a way we can guarantee that nobody else can get references to a piece of memory
+ - if there is only one reference
+ - but really, we would need to scan the tree to see that the only references held are all internal
+   - e.g. if the tree/graph is an island
+ - this is basically like a lightweight version of serialization of state for workers
+   - but instead of serializing, we're just guaranteeing nobody else is reading it
+ - I do like the pure sandboxable worker tasks that you can basically farm out (all copied in out)
+   - if something needs to be lockable, maybe it must be it's own memory object
+ - like an object doesn't need to have one ref count if it's always a mutexed object
+
+ - thread safe, sandboxy threads too (launch threads with only dependencies needed, pulls out the wasm)
+   - I love the idea we can send this over a network and create a networked wasm protocol for massive parallelism
+   - the compiler/runtime should support this, pure tasks! (copy in out!)
+
+note that if a type is wrapped in a mutex, because of the intrusive linked
+list we can't technically even move around or modify pointers to it
+unless there's some sort of magical atomic intrusive list that you can add/remove links from different threads?
+ - how could something be accessible by different threads
+ - instead of intrusive list, it could be atomically reference counted
+ - basically just changes the kind of pointers we're allowed to use
+
+side note, two threads should't be able to point at the same thing and have it null out, that should be an error
+ - only one reference left to an object when we delete it for threading purposes...
+
+---------------------
+
+We really do want memory to be contiguous
+ - maybe for arrays, in memory we separately contain inlist headers per element
+ - it means array allocations are actually larger (and must support resizing)
+
+maybe when we declare that a memory has a structure, it must all be initialized simultaneously to a layout that is binary compatable
+ - that means memory can even be uninitialized (which also destroys all intrusive linked lists)
+
+note that if we don't care about getting references to the elements in the array (e.g. copy is fine)
+then we don't need that extra data
+ - it's not that the array is immutable, it's just that we only ever copy in and out
+
+hmm, technically as a feature memory would be relocatable
+ - obviously if you supported relocatable memory, then you can't lower the pointers into a release mode style
+ - but it would allow us to re-allocate arrays and keep pointers in-tact
+   - so you can iterate through it while pushing to it
+ - basically we can allow re-allocate, and if it fails it can even move all the pointers and re-allocate
+   - the re-allocation would require a binary compatable definition if we were to re-allocate
+
+--------------------
+
+last odd side note, instead of the memory storing anything about it's layout, can that be stored by the pointer?
+ - like rust style fat pointers, obviously this will make our pointer even fatter
+ - we could certainly do this, so then the memory itself never needs to know it's own layout
+   - but what gets odd about that, we already need an intrusive linked list
+   - we'll think about it, may still need it for rust style interfaces
+
+in our language, we're saying anything you can get a pointer to anything
+ - it's almost like it's changing the type of the value we got the reference to
+   - it's wrapping it in a structure that has an intrusive list
+ - we can infer this for local variables
+   - we can also get a reference to any child member of a struct, as it will always get the reference from the parent with an offset
+
+our pointers look like this:
+  next
+  prev
+  pointer // always points to exactly what we want it to, reads are FAST
+  inverse_offset // offset in reverse from the pointer to the header that holds type info, etc
+
+
+with these odd but safe pointers/shared contstructs, we can basically make our language look very nice
+ - especially with compiletime constructs
+
+ - then we might consider just adding rust/dyno traits
+
+
+if we start off considering memory as uninitialized, and then any initializing operation on that memory
+marks the memory as being initialized
+
+I am thinking what it might look like to support a dynamic layout in memory
+ - maybe we can support it but it's slow?
+ - my dumb thought was we obviously need some data that tells us what the layout is
+   - what if that layout could be dynamically constructed
+   - but that kind sounds slow...
+ - that's really if we just wanted to allow anyone to use placement construction anywhere
+
+fundamentally we could have different kinds of memory for optimization:
+ - an N layout, always instantly initialized (needs no flags)
+ - an N layout, uninitialized but initializes in contiguous array order, needs a number to say how many initialized
+
+memory needs an intrusive list next/prev (does it technically need a prev?)
+ - in a weird way, pointers could all point to themselves, and we only need a pointer from the memory block to the first
+   pointer in the list (any pointer really, they're circular)
+
+so a memory block that can have references looks like:
+
+head_pointer
+layout_pointer
+initialized_count
+
+hmm wait, do we need to have the head_pointer per array index?
+ - since we want to keep track of references to each individual array item
+   - but we want a pointer to be able to move anywhere in the memory block right...
+   - simple, even if we keep a head pointer per array index, if the pointer moves within the array
+     we just relink it to the correct position!
+
+- for the initialized count, the only check we do is that the placement construction only happens
+  on the end (or placement destruct / back to uninitialized)
+- it's actually the act of placement construction that validates it's in the right place for that type of memory
+  - same with placement destruct (again, only adds O(1) overhead...)
+I like this concept that the overhead is always fixed, possibly always constant (at least we can argue it's constant)
+
+I had this idea that for uninitialized memory where you "placement new" anywhere inside it
+ - my dumb idea is that we just update the layout pointer with a new layout pointer
+ - but this is kinda... like almost just maintaining a separate map again
+
+or the memory maintains a sorted list of layouts, still need up to N of them...
+ - the layout would also need to store the location, now it needs a layout pointer AND index...
+ - it could always resort to allocating if it needs more than like 1/4 it's space, that wouldn't be terrible
+ - keep in mind we also need a head pointer per too!
+
+I'm OK if this memory layout ends up taking up 2x memory, but not 4x that's crazy
+ - 2x would only work if we character by character specified primitive types
+ - if we could do everything in 4 bytes aligned chunks, and somehow only needed 1 byte to represent...
+ - for example, we could have special bytes for all the primitives, and then all byte values above
+   went to a table (like 8 bit color pallette tables)
+ - that table could store the layout pointer, only needed for pointers
+ - technically, our memory could have more than 256 types of pointers in it
+   - so we could also have a 2 byte table version, etc
+   - we always pick the lowest memory size we can get away with
+ - I think in practice the sorted linear search is going to be the best...
+   - it's worst case scenario is the same as the indexed table
+
+
+there might be something clever I can do, because while I know u8 is a problem technically any struct of size 1 (u8)
+ - can only be composed of a single u8 (struct foo { test: u8; })
+ - a pointer at minimum is 4 bytes, and if we have our fat pointers they are much larger
+ - so maybe we can do everything by 4 byte layout minimums
+ - but we have specialized layouts that represent the only ways to get to 4 bytes
+   - 
+
+
+
+I think the ultimate problem is that imagine we had two types, u8 and i8
+ - maybe we could boil them down to the same type, but just imagine different
+ - if we initialized an uninitialized block of N bytes of memory byte by byte, we would need N layout pointers
+ - think if we did u8, i8, u8, i8...
+ - I guess if you really need that type of memory, go for it
+
+is this a DFA recognizing task??
+ - the idea of representing memory in small words/characters
+ - because every time we need to reinterpret a pointer inside a pointer, we need to do the same thing again
+ - it's almost like a grammar... I think? pointers are like grammar rules / non terminals, they can be recursed
+ - the job of checking if two layouts match is really fascinating
+   - I'm sure we can come up with this algorithm
+ - it's kinda crazy but I think it almost is, like in one form we can have the memory boiled down to primitives
+   - and then run a dfa/grammar to check if a layout matches those primitives, sort of, interesting...
+
+an even dumb thought too
+ - we could even support storing function pointers, and cast those too... craycray!
+ - it would ensure it's all correctly memory compatable, safe, and initialized
+
+---------------
+ok well that's the whole idea, safe memory!
+ - we can invalidate any references to memory
+ - we can ensure we only ever point to initialized memory
+ - pointer reads and writes are as fast as in C
+ - pointer manipulation however is checked (we make every attempt to make this fast)
+ - allocations are also fast
+
+ - have many other different safe memory models to choose from
+   - reference counting (allows weak, strong, deletion/handle)
+     - pointer is only 4 bytes
+   - unique pointer / moved
+     - pointer is only 4 bytes
+   - child/parent pointer
+     - a relationship between two allocated objects that says the lifetime of the child is tied to the lifetime of the parent
+     - but these relationships must be kept, the child may not exist without the parent
+     - children can also have children, so long as their removal keeps the child attached to the parent
+     - somehow declare and enforce this relationship...
+ - That gives us a ton of options to memory manage and control our pointer sizes
+   - and the language is maintained as entirely safe
+ - this does mean that any time we pass in a pointer to a function, the pointer itself must be copied (added to a list)
+   - even calling on self.something()
+     - if self is a normal safe pointer, a new one must be copied/added to the intrusive list
+     - if self is a shared pointer, we can pass the pointer in directly as 4 bytes, but must inc-ref and dec ref as we leave
+ - that's fine, it's a fixed and quite small overhead
+   - inlining will be our hero here
+
+If you use this special kind of pointer, in a release mode it can be treated as if it's just a normal pointer IF:
+ - It's the normal intrusive memory model safe pointers
+ - The pointer cannot be invalidated / is set to error/panic on memory deletion
+ - This also means that any attempt to manually invalidate memory, such as a container add, would immediately error/panic
+ - I say panic because this type of error should not be catchable, we're basically using this as a debug mode only assert
+Same thing with reinterpret casts, if you do one that panics on failure, that can be release mode
+ - release will not check if the type layout matches, nor will it panic
+
+Work with JD to come up with other memory safe data structures
+ - mainly just thinking about that crazy intrusive list structure
+ - really want to be able to write an engine in this, and then go release mode if we need it
+
+ - when we specify an object, we should specify all the traits of it's lifetime
+   - is it deletable
+   - does it have a reference count?
+   - weak references?
+   - etc
+
+---------------
+dumb thought, we were already planning that `a + b` is just `a.add(b)` approximately
+ - why not the same with type expressions?
+
+like isn't a type expression really just a binary call
+
+A | B is really just A.union(B)
+
+it's just taking in compiletime types...
+hmm!
+
+---------------
+
+for tower nodes, right now we have it where we call alloc and then construct in place
+ - this means the user is also responsible for deleting component memory
+ - but that kinda sucks, I'd rather have it where we allocate a tower node with extra space leftover
+
+-------------
+note, one interesting place that might make sense for a borrow checker is unique pointer and similar...
+ - we could potentially also use the borrow checker to know when we can use just a raw pointer,
+   or if we need to pass the full fat pointer
+ - an interesting idea, lets think on that...
+
+-----------
+
+double initialize of the same region also needs to be illegal
+ - I think we just need a concept of an initializer that covers an area of memory, and sets up the layout pointer
+ - it's illegal to call an initializer over any area of memory already initialized
+ - the single object and N array cases are very easy to check
+ - the general area memory case is more difficult
+ - technically we could support initializers overwriting pod data as it doesn't matter...
+   - that can be an option
+
+we can also support memcpy
+ - it will copy initializer data / layout maps and ensure it's not trouncing anything
+ - we can support overwriting pod data too (u8s to u8s...)
+ - again, we can support a version of this that just panics, but in release continues (debug panic)
+
+I love the fact that you can always code in a style that is exactly akin to C,
+ - and ideally as fast if you stick to exact C primitives
+ - as long as you compile down to a release mode setting
+ - we can do the same with alloc and free
+ - just always look for these opportunities, it will make the language attractive
+
+and ultimately you can also just use pointers too
+
+so we'll have the concept of "uninitialized" pointers, pointers that are allowed to point at uninitialized memory
+ - maybe that kind of pointer (like a void*) can point at anything
+ - we can also use it to uninitialize memory
+ - note that they don't have a size, other than a single byte for convenience (and because that's the smallest)
+ - that means they aren't checked when you point them around
+   - I do like that, it's basically just an integer
+ - Hmm, not exactly, tbh it never makes sense to allow them to point at dead memory, just any live memory
+   - they just don't care about layout/memory format or initialized/uninitialized
+   - they are specifically tied to a block/region of memory
+     - so they still act the same as our fat pointers
+     - but you can use them to initialize memory, with placement new, etc
+ - as much as we could support initializing a pointer from an arbitrary int
+   - I think it defeats one of our security guarnatees, that a pointer from one object can't point into another
+   - and pointers only point to valid places in memory
+ - (unless running in unsafe release mode)
+ - so these void*s still need to point at valid memory, but we can move them anywhere around inside
+   - initialization of a type, e.g. Player {}, should require one of these pointers
+   - almost like placement new, allocate(memory) Player { }
+     - maybe this is also how we indicate we want a heap object...
+     - I wonder if I can find a tasteful way to make the memory layout a type in the language
+       - and you specify which type of memory block you're allocating
+       - basically allowing the user to extend memory block types
+       - but we do want them to be very fast in execution
+   - we'll think on that syntax, something that I never liked about C++ was that you kinda had to pass that down
+     - e.g. if you wanted to do placement new, you had to pass down the buffer for every function that wrapped the placement new
+     - I guess it's not that bad, but Rust solves this by moving everything
+     - Things are moved into the memory, but theoretically their optimizer and aggresive inlining/templates
+       will cause it to actually just initialize the memory in the correct place
+
+What comes out of the allocation should be the Player*
+
+so basically memory blocks have this virtual behavior (but ideally we want it almost unvirtual for perf...)
+ - check if a given uninitialized pointer manipulation is legal within the memory block
+ - check if an initialized pointer manipulation is legal within the memory block, and pointing at a matching layout
+ - whether the memory supports deleting or not
+ - on deletion of the memory, ensuring that the memory has been fully uninitialized (or that it's pod...)
+ - also responsible for constructing the initial pointer handle
+   - this is probably how we should implement reference counting / shared ptr
+ - on initialization of a type from an uninitialized pointer
+   - validate that the size of the memory's uninitialized space will fit the type
+   - if our memory block is an array block (contiguous initializations, only need a count)
+     - the first initialization at 0 determines the type
+     - because technically the memory can be unallocated
+     - if we deallocate all the values, the the layout type will vanish (the next 0 will set the type)
+   - store which area is now initialized to what layout
+
+ - I also wonder if uninitialized pointers should only point at uninitialized areas
+ - Technically, if you need to UN-initialize something... use an initialized pointer!
+   - how do we ensure that the last pointer you delete dissapears...
+     - this is where the compiler keeping track of moves is kinda nice, we can "move" the pointer out
+     - we could still do this in tower, like after deleting
+     - How does rust know when a value has been moved out of a heap type, is there a runtime component that knows it's gone?
+
+-----------------
+fn test(b: Vec<i32>) {
+    println!("woooo {:?}", b);
+}
+
+#[derive(Debug)]
+struct Foo {
+  z: Vec<i32>,  
+}
+
+fn main() {
+    let f = Box::new(Foo {
+      z: vec![1, 2, 3],
+    });
+    
+    if rand::random() {
+        test(f.z);
+    }
+    println!("Hello, world! {:?}", f);
+}
+-----------------
+error[E0382]: borrow of partially moved value: `f`
+  --> src/main.rs:18:36
+   |
+16 |         test(f.z);
+   |              --- value partially moved here
+17 |     }
+18 |     println!("Hello, world! {:?}", f);
+   |                                    ^ value borrowed here after partial move
+   |
+   = note: partial move occurs because `f.z` has type `Vec<i32>`, which does not implement the `Copy` trait
+-----------------
+
+Basically as far as I understand, because they completely keep track of borrows, they know if anyone has borrowed the parent
+ - while a child has been potentially moved out (illegal)
+
+For us, we're not going to keep track of any of that
+ - at best we could do so inside a single function, but this is a full fledged feature of Rust
+
+we can make it so you can only delete Player* | null, and it nulls after...
+ - Actually I do like the idea that it always must be initialized, so either you declare it as nullable
+   or you fill it with something else
+ - how do you delete a value inside an |?
+   - maybe that's just something delete implicitly works with
+   - Player* | Enemy* | i32 | null; // how do we delete this?
+   - I guess you can cast it first?
+   - or delete just works on any union, and will invoke delete on any pointer values stored within
+   - but then you have to set the union value afterwards
+
+let a: Player* | Enemy* | i32 | null = ...;
+
+delete a; // since null is present, it will implicitly pick null
+
+let b: Player* | Enemy* | i32 = ...;
+
+delete b; // error, b will be left uninitialized and must be set to a value
+
+delete b (123); // eh... we need to come up with a syntax that's like the allocate syntax kinda
+
+--------
+
+let mem: void* = malloc(sizeof(Player));
+let p: Player* = new (mem) Player{};
+
+
+
+delete p; // error...
+
+
+Or deleting p could set the leftover single pointer to null
+ - obviously if you have Player* | null, the type will change to null and will force you to check it everywhere
+ - at the end of the day, nulling out P would result in a panic if we ever read/wrote to it
+   - and we shouldn't be able to perform any pointer manipulation on a null pointer, other than assigning to a new value
+
+- this is one of those 'release unsafe' things, where the Player* doesn't need a check on every access, we just read
+  - our language may need to handle traps
+  - in wasm, null pointer dereference isn't invalid
+  - maybe we make it -1? that way we can actually trap on out of bounds access and see it's "null"
+  - I like these panic behaivors
+
+- we can also introduce "unsafe" pointer | null checks
+  - basically you can say we assume this pointer is not null in some cases, and the check will vanish
+  - it's when we "know" a value is not null
+  - oh, better yet you can just do '.' off any pointer, but that's implicitly a panic if it's null
+  - basically we're saying that in order to do . off a | null type, we can 
+
+ - as a side note, we could introduce uninitialized typed pointers, basically a pointer that will eventually become typed
+   - it would just be something that users could use for type safety
+   - Player*, Player uninitialized*... something like that
+   - The reason for this would be that you aren't allowed to do pointer manipulation if it goes beyond the size of
+     uninitialized memory
+   - so technically it acts a little different than just a pure uninitialized memory pointer
+   - I wonder what Player* | Player uninitialized* would be...
+     - basically just a tagged union of the two identical structured fat pointers
+     - still have to check the type...
+     - I don't know why this thought is interesting to me...
+
+So a safety guarantee in Tower is that, provided you're not using the raw pointers (we'll have some sort of true unsafe)
+ - you can basically provide true access control:
+   - if you can't reach an allocation in code, you can't mess with it
+   - we can then define "visibility" or access, for compile time features
+ - so then the cool thing is unless someone finds a way to exploit one our types (a bug)
+   - then people can't mess with memory that isn't theirs
+ - then the pointers are all checked and safe
+ - and you can ultimately work in this "debug panic" mode that sheds all checks in release (C mode)
+   - maybe we just require code coverage tests, lol!
+   - I guess that could be a mode, for areas that are covered by code coverage, we allow release optimizations...
+   - too far and too fancy I think (basically just PGO...)
+--------
+when we do array.push(123), we're implicitly passing array as Self
+ - at some point, internally, push is going to check if it has memory capacity
+   (side note, can we just get this from the memory object, kind of like C++ delete on arrays)?
+ - some function is going to eventually operator on memory, either resizing it (deleting and mallocing)
+   or it has enough capacity and we don't touch it
+ - ultimately, our compiler CAN track that a particular function will attempt to resize
+
+is this something we should push onto the user... basically that memory references can be invalidated...
+ - like in this case, `array` obviously owns the memory pointer
+   - in fact, it's probably just a unique ptr, but we can get our intrusive fat pointers to it
+ - when the array dies, the memory itself will be destructed
+
+we really just want to make sure this case is always detected
+
+can we just avoid having references if pointers always automatically dereference
+ - hmm, well then we can't have any methods on the pointers themselves...
+   - or we do that Deref thing rust does, where it hides it, sure why not
+
+let a: array(i32) = [1, 2, 3];
+
+i32* foo = a[1];
+
+foo = 123; // am I assigning a pointer here, or a number to the pointer value?
+*foo = 123; // should we still have to do this
+
+// no comparison between pointers and i32, so it must be the value of the pointer
+if foo > 100 {
+}
+
+I guess as long as we're careful with pointer types, we can kind of perform the above
+ - but it would be weird if 123 was a value with implicit conversions to either...
+
+that's why references exist in C++
+ - we could always introduce references, but I kind of don't want to
+
+I like the idea that you can just use pointers interchangably, and address-of can be implicit too
+
+Self pointers technically can be ignored on cleanup, as they will be released
+ - but that's a rare case anyways (maybe sentinel node in a data structure)
+
+one thing, I do like the idea that we can just allocate "memory blocks"
+ - but technically the array-like memory block needs to know how many elements it can store
+ - because that's how many inlist head pointer's it needs to reserve (one for each element that is initialized)
+ - that kind of also tells us we need to know the actual size of the element (because if we know how many bytes)
+ - I know initially my concept was that memory blocks could pre-declare the layout
+   - maybe that's just required for array like memory blocks
+ - The arbitrary memory block will use some reserved avilable space to represent an in memory data structure
+   - but if it runs out of space, it will expand memory (realloc first, but otherwise point to a new block of memory)
+   - it could technically realloc in place..., that's one of those odd features we can support
+
+one memory type could be copy in out only, no references
+ - the only thing we need to make it safe is to ensure that it can't be indexed out of range
+ - so we still need a count of how many things initialized
+   - normally we do placement new on a type with an uninitialized memory pointer
+   - but in this case, we can't get that uninitialized memory pointer
+   - we really just need to ask the memory block for the next place to allocate
+   - or in this case, maybe we do support an uninitialized memory pointer
+     - because technically we still have pointers to the base, there's no issue allowing an uninitialized pointer
+       to point anywhere in there
+   - but the difference is that when you initialize a type there, you cannot get a pointer to it back
+     - e.g. new (that_kind_of_memory) Player() results in a Player, not Player* (or maybe void)
+ - we could also allow this type of memory if the pointer is actually just an offset
+   - but now the cost is not zero to read/write
+
+I'm really just trying to make the use case for pod data... I don't want a u8 array to be 5x the size in memory
+ - the only reason I need an intrusive list header pointer PER array elment is because I want to make sure to null out
+   exactly the pointers that need to be (or error) upon uninitialization of the end element(s)
+ - the reason for that is because we never want to allow pointers to point at uninitialized data
+ - this is so that we know the memory read/write can't corrupt (dereferencing a pointer made from random uninitialized data)
+ - we really care a lot less for anything but pod data
+   - at most, there are maybe some weirdness with float format and word boundaries
+   - but other than that, it's really just pod data is pod data
+ - so if the struct is pod, an optimization is that we kind of don't care about tracking initialized values
+   - but we do want a guarantee of at least one time initialization, this can be memset, initializing all elements
+   - and only pod data can be put in that memory
+   - we can point anywhere in it, and there's no invalidation because it's always valid
+
+Hmm, interesting concept
+ - if the memory is "always valid" memory, meaning it's initialization is tied with allocation
+ - and uninitialization is tied with deallocation
+ - then it means the data structure doesn't need to track anything
+   - in this case, it's like we're making a fixed array of u8's all initialized to 0
+ - fascinating, I love this! this is probably how we do fixed arrays too
+ - we can still have an array wrapper that wraps this type of memory and pushes/pops
+   - but it means we can get references to anywhere in the array, even when we pop (it's just pod data...)
+   - kinda don't like that, but you know maybe we just don't do arrays like that
+   - I mean it's fast, we don't really touch the pointers
+   - Yeah, actually, it's a good thing for really perf heavy code
+   - and I'm sure knowing if a struct is pod (whether it has pointers/memcpy able) is a good optimization feature
+ - pod array, cool
+
+
+we can also have static array types (initialized to a fixed N, all is initialized at once)
+
+it's really just when we have pointers I think
+
+what about structs that have A | B types, are those pod?
+ - I think the requirement is that we can't be allowed to put anything in an invalid state
+ - well actually, no that doesn't really matter, you can absolutely mangle your own stuff
+ - but you can't mess up other people's memory lol (NO GASLIGHTING)
+ - We can make sure the format of A | B things is very well defined with tags, and what those tag values will be
+ - So you can always predict what the memory layout will be
+   - but technically, you can set that tag to a value that isn't valid
+   - upon trying to read it or do anything with it, our code will panic
+   - I guess one bummer is that we could say the compiler could make optimizations for that
+   - I'll see when I get there
+ - I know the idea is that any opaque thing we don't want to give the user access to gets it's own layout marker
+ - it's basically just that thing that if we muck data, we might muck an algorithm, but that's sort of up to us
+
+Tower, a programming language without gaslighting
+ - You can mess up your own memory, but you can't mess up anyone else's!
+
+is const and transitive const more meaningful here?
+ - it still really doesn't mean that it's const
+ - but does it mean we can have different interfaces that can return const pointers
+ - const is just saying whether the pointer is mutable through that pointer
+ - in Rust, what makes it so novel is that you can't mutate something while someone else has a borrowed read
+ - so it'll never be something where you're looking at something with a "const pointer" and then it suddenly changes
+
+maybe const is a bad name, mut/mutable kind of makes it a little better, because then I have a Player* and Player mut*
+ - in my head, it doesn't imply that Player* won't change, just that *I* won't change it
+
+ok I like that, as much as I want it to be C like I think it's better to be explicit about mutability
+ - does it ever make sense to keep track of mutable pointers vs read only pointers differently?
+ - some sort of enforcement of multi-reader OR single-writer...
+   - for threading, we could have as many readers as we want to the same memory
+   - it would have to be like a magical intrusive list that's thread safe to add to
+ - hmm, just something to think about!
+
+let player: pointer_to mutable Player = ...;
+
+with C style syntax it would be
+
+let player: Player mut* = ...; // pointer to a mutable Player
+
+Yeah, I really like this...
+
+
+when we get a mutable pointer to a type, in C we could obviously just re-interpret cast it
+ - but I think it might be something you want control over
+ - almost like returning a safe reference (basically just a pointer, but you can't do "unsafe" stuff to it)
+
+basically our root level security guarantee is:
+ - wasm sandbox
+ - secure memory access (only get pointers to objects that have granted you access)
+   - cannot move the pointers to other objects in memory
+ - secure type or struct level layout enforcement
+
+so basically even though we offer "raw" memory access, we can return restrictable types that don't allow
+the user to circumvent type enforcement
+ - is that what references basically are, just a way to preserve type safety (no pointer arithmetic, only reads/writes)
+ - must be an error/panic to destroy any memory that's still being referenced
+ - you can usually get pointers from references, but not in this case, it needs to basically be guarded
+
+---------------------------
+
+side note, it's almost like pointers need to say what kind of memory they could point at
+ - changes the pointer layout... maybe can do A|B to mean the pointer needs to support either... heh...
+
+-------------
+
+ok, so the tree and components are ready for prime time
+ - now we need to just write the parser part
+ - the parser needs to produce tower nodes to represent the parse tree
+ - and we need to be able to consume tower trees with parser components for building parse rules
+ - random idea, we can support sub-rules if we encounter a Production within the rule definition
+   - We can use the Production as a NonTerminal (maybe even have them inherit so the layout is the same)
+   - But since we know its a Production, we special case it and recursively walk it's children
+ - This is how we can define sub-rules, we can even have a parsed format for this too
+   - so that we can just define our rules as replacements
+   - hmm, doesn't exactly work, we want sub rules that we don't have to reference
+   - we really want to do this all in replace
+ - and in this case, we're only replacing B*
+ - it means we need like scope blocks or whatever
+
+
+For Kleene closure
+  parse E = AB*C;
+into
+  parse E = AZC;
+  parse Z = BZ;
+  parse Z = epsilon;
+
+I need a syntax to specify inline rules
+ - does it ever make sense for this syntax to be shared anywhere else
+ - or like, treated as a scope, is it code?
+
+  parse E = A <parse Z = BZ; parse Z = epsilon;> C;
+
+We (almost) generically want to say add this stuff to the outer scope:
+  parse Z = BZ;
+  parse Z = epsilon;
+- and then result in just Z...
+
+what if the "replace" rule was also just wasm?
+
+parse E = A <parse Z = BZ; parse Z = ;> C;
+
+Expression = Expression '*' => replace(<parse Z = $Expression Z; parse Z = ;>)
+
+This problem of whole statements inside expressions is not a new one
+ - I sort of like the idea that we define a syntax for this
+ - But I don't like making random gross new syntax
+ - () is always used for grouping, and valid in every expression syntax
+ - {} is what we use for scope normally
+ - in regex, {N, M} usually means, N to M of the previous
+ - lets imagine we didn't do that operator
+
+parse E = A {parse Z = BZ; parse Z = ; Z} C;
+parse Expression = Expression '*' => replace({parse Z' = $Expression Z'; parse Z' = ; Z'})
+
+
+Because we make the rule under a scope, the rules are not actually referencable?
+
+----------------
+Rename non-terminal, since when we're in the parser we can reference token rules by name, but that's
+technically a terminal, not a non-terminal
+
+How about just CharacterRange, CharacterSequence (for 'aaa'), Reference, Production
+
+---------------
+one of the earlier primitives we need to introduce for tower is error reporting
+ - basically just the error stack like we had in zero for attaching context information (and eventually a real stack)
+ - can be a very simple push/pop api, with user_data and a callback
+ - or a simple string version too (maybe a string format/interpolant version?)
+
+
 

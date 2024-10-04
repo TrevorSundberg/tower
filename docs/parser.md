@@ -61,7 +61,7 @@ token Identifier = [a-zA-Z_][a-zA-Z0-9_]*;
 token String = '"' ([^"\\] | "\\\"" | "\\\\") '"';
 
 // Define a new rule that is either a transform or has a code handler
-parse Rule = ("token" | "parse") Identifier ("=" | "|=") RuleAlternation ("=>" RuleHandler)? ";"
+parse Rule = ("token" | "parse") Identifier ("=" | "|=") RuleAlternation ("=>" RuleHandler)? ";";
 
 // Alternation: A | B | C parses any one and only one of A, B, or C
 parse RuleAlternation = RuleConcatenation ("|" RuleConcatenation)*;
