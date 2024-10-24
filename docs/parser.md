@@ -123,7 +123,7 @@ Tower's rule syntax has the following operators:
 |                 | +           | One or more of the previous (Positive Closure)    |
 |                 | ?           | Optional, zero or one of the previous             |
 | 3               | A B         | Concatenation                                     |
-| 4               | A | B       | Alternation                                       |
+| 4               | A \| B      | Alternation                                       |
 
 
 ## Productions and Redefines

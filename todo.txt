@@ -323,7 +323,6 @@ It would be great if the whole compiler could fit within the runtime too, since 
   // Rust style type inference is actually simple, the first time someone wants to use an inferred node
   // as a certain type, we just automatically register it as that type, and any future changes error
 
-  // TODO: Cleanup and make it nicer for rust
   // Make cleaner way to print out tables
   // Check if predict rules are correct (try in our own Welp too)
   // https://www.usna.edu/Users/cs/wcbrown/courses/F20SI413/firstFollowPredict/ffp.html
@@ -2054,7 +2053,9 @@ So the idea here is while an array
 // be a compiletime value, so it will all depend upon the instance when it is called and the t passed in
 // since we return a typeid, and typeid is always a compiletime value, then the return type will be compiletime
 // Because we're returning a compiletime typeid, this may be used as a type anywhere in the language
-fn container(t: type) {
+fn container(t: compiletime type) {
+  parse("struct { val: T }").replace("T", t);
+
   return typeid({
     val: t
   });
@@ -3282,8 +3283,8 @@ at any point in the parse, including the states of tasks and their wasms, etc.
 
 note that we must call _initialize on the scaffolding, we may want that in the future too (maybe we can rename this)
 
-tower_allocate
-tower_free
+tower_memory_allocate
+tower_memory_free
 
 -----------
 
@@ -5226,6 +5227,2267 @@ one of the earlier primitives we need to introduce for tower is error reporting
  - basically just the error stack like we had in zero for attaching context information (and eventually a real stack)
  - can be a very simple push/pop api, with user_data and a callback
  - or a simple string version too (maybe a string format/interpolant version?)
+
+-------------
+eventually when we add callbacks, we will want those to be part of the Rule component I think
+ - just a simple function pointer callback that can be set on the component
+
+For the virtual stream, we want to have it return tokens
+ - but we also want to actually consume the TowerNode out of it
+ - A gross way of doing this would be to make every character into a tower node, and consume it that way
+ - e.g. the parser only consumes tower nodes, and the root of the node can have the value on it
+ - It's sort of nice because it's generic, we really just consume components
+ - but that's SO heavy, in a way we should be able to do all this through interfaces
+ - I do like however that we can run our parser on anything, as long as it has a numeric value
+
+Maybe we should have the concept of an INLINE rule?
+ - meaning all calls to that rule act as if they are inlined, would be nice for token speed possibly
+ - token inline A = 'a';
+ - obviously, inline rules can't be recursive
+
+we can just have an implementation for utf8 characters and for tower nodes
+ - Hmm, well, we're already going to be creating tower nodes for parsing of characters
+ - remember the CharacterRange and String cases
+ - but tbh, for most of it, we really don't want to create parse nodes
+ - like for identifier, we just want one single node, not like 20 when we have aaaaaaaaaaaaaaaaaaaa
+ - I think just having the interface return two things, a numeric value for the token
+ - And then also a tower node if we have One
+   - we can attach that
+
+--------------
+When it comes to the parser reading from the tokenizer, I think we need a way to resolve references
+ - or do we really process token and parse rules together?
+
+Hmm, I think the primary idea is that I actually think I should create two separate parsers with separate state
+ - I think we just enforce the range rule via the parser, not by actually saying tokenizer or whatever
+ - keep the parser generic
+ - basically saying that we should separate out the token and parse rules into different parent nodes
+ - I mean, that's pretty easy from the perspective of our parser running wasm
+   - when a token/parse rule completes, we look at the keyword and add it to a child tower node keyed on token/parse
+
+So does the parser even know about parse phases?
+ - nope!
+ - I like that, nice and generic!
+
+------------
+so... when we have sub-rules, I know we said when they are in thier own scope they can resolve by themselves (e.g. Z')
+ - But now if we're saying we separate token and parse rules, then can sub-rules of a parser have token rules?
+ - Since sub-rules are almost entirely intended for regex operators, then we can just keep them to being the same type only
+ - not exactly what I want in the future, but it works...
+ - Either that, or the parser needs a way to "weed out" which rules are for it
+   - YUCKERS!
+ - We can just generate names I guess
+
+-----------
+Note the parser isn't just a parser, we need to separate it into the table portion
+ - technically as a good API, we should be able to run the table with as many simultaneously active parsers as we want
+   (all from the same parse table of course)
+ - So parse tables really need to be their own thing
+ - We can just call it that, however it's implemented internally
+
+And then we have the actual parser, but I don't want to just call it parser
+ - what can we call it... it keeps track of shifts/reduces and the grammar symbol stack
+ - runner... lol
+ - parser_table
+ - parser_parser...
+ - parser_runner, I hate it but it's the only thing I can come up with
+
+for the parse table, we don't actually need to hold on to any data related to the construction of the parse table
+ - we just need to resolve symbols on construction and then we're done with the resolve function
+
+-----------------
+
+ok dumb discussion on if we should just have streams return tower nodes with a match component on them
+ - the "rule" value would be the read in utf8 value, which all works
+   - side note maybe we rename that rule, that's like eh, it's more like just 'value'
+   - and then we can mention, cannonically for the tokenizer it's a character value, for the parser it's a token's rule index
+ - it's really just allocating a tower node and a match component, two allocations per
+   - that's probably heavy for an embedded system
+ - but also, we can always put these into pooled allocators for fast allocation and locality
+   - plus those work almost like a stack if you allocate one temporarily and release it
+ - and even though we're making one per character, we're also releasing it almost immediately
+   - is that a sign that we're also being stupid here... using a whole heap object
+   - not to mention the parser has to look up the component (or we return the Match* component instead?)
+ - I also don't want to give any intention that these character nodes are going to be held on to
+   - so in reality, I don't want to keep them, because who is going to decide to get rid of them?
+   - I don't want to have to toss them every single time
+   - it's too much of a waste to keep them per character, so that right there tells me no
+ - Ok, so maybe I just need to output to a match (and we can make that one on the stack...)
+
+----------------------
+ok another issue, in the parser phase we said that any String literals / String components
+would actually indicate a token, basically we can use them as keywords
+these would need to register with the tokenizer
+ - or, maybe we have a "keyword recognizer" that goes in between, or is even part of the parser
+ - we could try to do this by bytes in a string, but another way we could do it is by code points,
+   basically a u32 string that is the result of the decoding
+ - one issue, I don't really want to keep those around or allocate space for them
+   - it's ok if we have a temporary small buffer with reserved space and every time we complete a token
+     we run a runtime check over that token
+   - maybe that's something we can pass in to the 
+
+I think it's fine if the parser holds on to these strings and gives them ids
+ - how do we give them ids that are distinguished from the tokenizer?
+ - maybe the recognizer can be registered with a "keyword callback"
+   - at the end of recognizing and completing a rule, we invoke the keyword callback with the shifted inputs
+     - keep track of the code points on a stack (only if keyword recognition is registered)
+ - it invokes the callback, passing the last index of the rules defined (so you know any index above that is free)
+ - perform recognition, and if we find it (can just do simple hash map for now)
+   - add the last token rule index plus the keyword index to make a whole new id
+ - SO EFFICIENT lol
+ - I mean not as efficient as just having precedence between keywords and identifiers...
+   - hmmm... actually? I mean to be fair maybe that makes a lot of extra nodes...
+   - I'll have to read on that again, I remember the book just recommends hash lookup or whatever
+   - but really could just be a DFA lol
+ - whatevs, I like the keyword callback solution
+---------------
+
+next task, implement the recognizer stream
+parser_stream_recognizer_create
+ - I think this will make sure the recognizer interface is going to work properly
+ - after the recognizer stream and maybe some tests, down to get to the algorithm
+ - parser_table_create will become the main focus
+ - also should extract the unicode read function, and make it length based instead
+   - and maybe the char* stream has a strlen stored so we know not to read past
+ - then we can test that unicode function by itself too
+ - should also put debug markers for all this stuff, maybe have a debug mode
+----------------------------
+
+odd idea, is it a weird concept to "try something" and rewind?
+ - kind of comes back to the determinism thing
+ - it reminds me of that idea that I had for everything being reversable
+ - but back to try and rewind, it was the idea of save-stating wasm and running it (modifies memory, etc)
+ - I think it was just some dumb thing that popped into my head about like seeing if something is viable
+   - like run an algorithm with determansitic inputs and pick the first that succeeds
+
+----------------------------
+should we make it an error to overwrite a member of the same name?
+ - I mean not really, that's kind of just JS style...
+ - I guess my thought would be, is it uncommon to overwrite a member in our AST
+ - it is sort of annoying having to know beforehand
+   - I guess that's where we should pass the flag, is it an error or overwrite
+
+technically a few modes
+ - overwrite (whether there or not, always write)
+ - only write if it's there
+   - exception/fail
+   - return some indicator that it didn't add
+   - return some specifiable default (also supports the above if you pass nullptr)
+   - return the object that is currently there in place
+ - only write if it's not there
+   - same as the above options for errors
+
+
+since components aren't moved between objects (yet)
+ - and they are always constructed with an owner
+ - then we sort of have another option
+ - do we overwrite, or return the one that's there?
+   - can kind of do that with tower nodes too, but it sucks because you need a whole object
+
+I think we can kind of say we really just want has_or_add behavior
+ - and ultimately you can implement everything with just get_component/has
+ - you can check if it's there beforehand and throw an error
+ - if I ever end up supporting remove, you could remove it and re-add it
+ - so yeah I think for now it's just has or add behavior
+
+probably should do the same for components then
+
+so this really only affects object parenting, otherwise components will just get the one that exists
+
+
+---------------------------------
+random ideas again
+given a wasm, prove X
+LLM combined
+say something like "prove that this can never return null"
+ - I wonder if this is where I can use the llm, for the compiler
+ - it's like you ask it to determansitcially compile a function that has X inputs and Y outputs
+ - we can test the function the llm generates
+ - must be a pure function, or maybe this is where memory is reversable lol
+ - no, must be pure, I think it would be pretty bad to affect things
+
+// generates a function in the current context, with the includes and grammar rules we have access too
+// ideally we can run within a sandbox to generate this pure function, something to think about!
+// basically with tower we always want to be able to eval
+// we should make a feature in tower where we can specify local test blocks for a function
+// especially useful for pure functions
+// basically we can detect the tests that are for a specific function and evaluate those tests
+// and for the llm, they must be true otherwise it needs to keep trying
+let f = llm(a: i32, b: array(i32)): i32 {
+  pick the first value in b that's higher than a
+}
+test {
+  assert(this(5, [1,9,3]) == 9);
+  assert(this(-100, [0,1,2]) == 0);
+  assert(this(100, [0,1,2]) == 100);
+}
+
+ok that's neat and all, but I guess what I was weirdly wondering is if there's any way to prove with an llm
+ - it's really just like, imagine we ask an llm to do something
+ - and then we can verify if it did the thing
+ - if not, we provide feedback, try again
+ - this is a process we can repeat until it solves something
+ - and we can verify it's solved, at least for what we asked it
+
+but I have some bug in my head telling me:
+ - it's like imagine asking it to prove that every element:
+ - the ask is basically a predicate, it's like
+
+prove that after sort(a)
+
+for (let i = 1; i < a.length; ++i) {
+  assert(a[i] > a[i - 1]);
+}
+
+and then what does a formal proof look like
+ - and now that we have this code concept, what can we do with that?
+ - as a human it's easier for me to infer something...
+
+but is there like a really cool llm proving way to ask a compiler to do something
+
+like now can I go in the type system:
+
+a[1] > a[0] (and now it's always true?)
+
+because what I attached to it was a code truth...
+
+ah this is so bonkers and weird, what am I doing, I'm out of my league lol
+lets think about the proof for a second
+I mainly am just thinking, is there any sound language or data structure that can "prove" something is true
+
+obviously we could run all possible values of "a", but that's also impossible and unrealistic
+ - that would effectively prove that for every input, this function will produce the desired result
+ - and an exhaustive proof like that is valid
+ - so then the next question becomes, can we start to cut corners
+ - rather than us providing test inputs, can we get some formal guarnatees here
+ - what would the first step we could take to proving this
+ - just a basic step, start with all default arguments
+   - ideally for a pure function we can build any structure, just imagine it's all pod right now
+   - copy in copy out, pure
+   - or even imagine that you have to hand it a memory block, like everything is serialized
+ - so we generate defaults, call it for the first time, run the asserty code on it
+ - verify that it doesn't fail/assert
+ - if we have a single counter example, we've failed the proof
+ - the llm needs to generate examples based on what it sees in the code
+ - complete code coverage
+ - we want the llm to be able to see every choice that was made while running
+   - so we can examine branches
+   - indices too
+   - base case and recursive case
+ - another question to solve would be like, are these two exactly equivalent?
+ - because the idea would be we could separate out things into base cases and verify that the base+recursion
+   is equivalent, and then move onto proving that one alone
+
+ok next dumb question, what if a type was defined by how it was used instead
+
+just like, if a type is defined by a proof rather than it's definition?
+ - the weird thought came to me because technically a type system offers a form of proof or guarantee
+ - like a function call that always returns an object and never null, and takes some inputs is like
+   saying that no matter what for any input, we will always have an output
+ - provided no exceptions, aborts, etc (again, talking pure here)
+ - so in that way, it's a form of proof
+
+so what I'm talking about is a weird proof based language
+
+the definition of sort is like:
+
+// this is a pure function, all copy in/out
+proven sort(a: array(i32)): array(i32) {
+  // prove that we have the same amount of elements
+  prove(return.length = a.length);
+  // prove that we have exactly the same elements from before
+  for (let i = 0; i < return.length; ++i) {
+    a.contains(return[i]);
+  }
+  for (let i = 1; i < return.length; ++i) {
+    prove(return[i] > return[i - 1]);
+  }
+}
+
+or like, for saying a struct needs members
+
+let a;
+prove(a.lives = 9);
+
+things don't declare what they do, they declare what's true after they're done
+and it's like part of the type system, now it's true for that thing
+ - and we just allow an AI to determine the middle parts
+
+I really just like the idea that a proof could be code
+
+--------------------------------
+
+going back to the parser I had this keywording idea
+but I kinda forgot that the parser might just need symbols too like "{" "}"
+ - it's not just kewyording, it's literally adding new rules
+ - I wonder if when the parse encounters a string, we should like find and add
+   a token by the same name, and then replace the parser node with just a reference...
+
+I guess it's odd since I'm doing a lot of tree manipulation, and the parser table builder
+really just expects one format, so I'm just prepping the tree to be in that format
+ - but a lot of me is wondering whether I should be prepping the tree
+ - or if the tree should just be as is, and I hand the table builder some sort of
+   predicate/stream for walking the tree
+ - like an adapter for a component tree... ehhhh
+ - I guess that's where the custom magic can come in for the marrying the tokenizer and parser
+
+is that taking it too far?
+ - I mean... parse tree adaptors / transformers should be a thing
+
+virtual children... huh...
+
+-------------------------
+but that said, altering the tree is supposed to be something we do
+ - that's like a big part of tower, so lets not be afraid of it
+ - there's no need to preserve the original parse tree as long as we can preserve
+   the information in the transformations, and make errors appear like a normal language would
+ (replacements need to be traced!)
+
+A String component should probably actually take a Stream, and we give it a utf8 stream
+ - can do the same thing in the parser
+ - but when we complete the String rule, if we're under a parse rule, then we swap ourselves with a reference 
+   and re-attach ourselves to the token grammar with a new name
+
+-----------------
+another side note, I also love that instead of a bound type like in zilch, it's really just a component tree
+ - so now when we say any compiletime evaluated function that returns a "type", we really just mean anything that
+   fits the definintion of a type as per a component tree (maybe has components that implement an interface)
+ - so if we want to build a "bound type" we really just output a type that probably uses the tree as it's interface
+   - like there's an implementation of type that reads the type info entirely from the tower node tree
+   - so now we just attached named members, etc to an object
+   - and suddenly we can have types
+ - I love this way of building a type, it's so natural
+ - we still need to understand dependencies though
+
+-------------------------
+if we want to do has or add, then component create should not have to pass in the size
+ - ideally it would be part of the type...
+ - A size component at least, right?
+ - I mean, that's not a bad change...
+ - it's like the beginning of us defining what a type is
+ - but then how far do we take it, construction? etc?
+ - hmm
+ - I guess for right now, if you do has or add for a type you guarantee your call matches the size
+
+-----------------
+In the tokenizer's case, it runs the recognizer until a single token is completed
+ - in the parser's case, it will usually return the entire root node
+ - but maybe it returns any root node, as we will execute them
+
+the next thing we need to figure out is how recognizer steps work
+ - needs to return more than just a pointer
+ - in the case of tokenizers, we return any node that would be attached to the root
+
+we can run the recognizer manually step by step
+but really we just want to run it until something changes
+ - that may means we either get a tower node (for tokenizers)
+ - or we executed some callback (like wasm) and tasks/dependencies may have changed
+
+as a side note, the dependency check is just about like an interface cast in tower for components
+ - we just say something like, don't run until this cast is true
+   - we can even use constants, etc
+ - it is really just arbitrary code that we execute to see if we run the dependency
+ - it's not my favorite, but if it's organized well it might be ok
+ - I think that way to start is ok
+ - tasks can hold on to references to tower nodes, like a closure
+ - then they run some condition against that node (may traverse it, etc)
+   - the condition is just code, and ideally we want to say it's pure
+ - the user could really just write a condition before, but I think we want to make
+   it more obvious how your task should work (readonly/pure condition first)
+ - so a task takes an array of nodes to hold on to, correct?
+   - a condition to check upon any change
+
+in the future, to optimize our conditions can have triggers
+ - things that must be true, but we can listen on easily too
+ - like we might say this node must have a "left" child
+   - we can add callbacks/event listeners for adding children
+   - and when a child is added, we check the name
+   - if it matches, we mark the trigger to true and move it to an active list
+   - then the full condition gets checked
+   - it is left in that list until the trigger (or any of the triggers) become false
+     - for example if the "left" member is removed, then the trigger is removed
+ - we attempt to optimize as many conditions as possible with triggers
+   - but ultimately there may be conditions that are just easier to write without triggers
+ - the important idea is that triggers are true/false storage too
+ - that means that triggers also have to be true for the condition to even run (aka part of the condition)
+ - we can chain triggers
+ - types of triggers
+   - trigger on a child by index
+   - trigger on a child 
+
+------------
+ok so even without triggers, we can just blindly run conditions in a row
+ - but we do still hold on to the tower node(s)
+ - maybe that's how we start doing triggers, or conditions?
+ - we can make it so that we can add conditions...
+ - each condition may optionally take a node, this is how we refer to more than one
+ - does that always work? I think so
+ - or we just separately keep track of an array of tower nodes
+ - and then register whatever condition(s) we want
+
+the recognizer needs to return:
+ - to continue the parse, but no tower node
+ - to continue the parse, with a tower node
+ - to end the parse, no tower node
+ - maybe those are just mutually exclusive
+ - we just return a value that is whether we keep going
+
+----------------
+unless we have a 'do events' style loop for tasks
+ - we're going to have a problem with tokens
+
+ - otherwise the streams need a way to also return 'continue'
+ - basically that they did some work, but it's not ready yet (they did a unit of work)
+
+hmm, do we do this?
+ - at least we know the inner tokenizer recognizer doesn't return until it's done
+ - I guess we just bubble the 'running' boolean out of streams too
+
+- I dont want to deal with re-entrant problems in the recognizer or table
+  - calling step within step...
+------------------
+you use english to specify what you want
+ - then it uses inputs, available APIs, etc to write a script with no side effects
+ - no matter what, we always run the asserts
+ - technically slower, but even if we come up with a proper algorithm it may not work in all cases
+ - so this techniuqe is self correcting
+
+ai add(a: i32, b: i32): i32 {
+  // comments, everything is eaten!
+  do whatever we want here, it's just a suggestion
+} test {
+  assert(self(1, 1) == 2);
+}
+
+once it finds a viable version of the function, it will compile it and cache it
+ - as you run more, a better version may be discovered
+ - eventually when we compile to release mode, we remove the checks and the llm
+
+could the function be not pure if we did the whole wasm backup thing...
+ - I think the issue with not pure, it's more just that llm writing in isolation is baaad
+
+
+why this could be considered part of the language:
+ - first, it uses the current grammar/context to write the code (we need to write the token selection algorithm)
+ - in order to generate code, we can't rely on pre-training for everything
+ - so when we ask AI to gen a function, we must walk all parameter types and return and format them
+   as text to give to the llm (all the context)
+ - whatever the llm generates, we must run and test
+ - upon any compile errors or hitting any asserts/exceptions, we must give the llm feedback and try again
+ - it relies heavily on our compilation and sandboxing techniques too
+ - we can pass all sorts of ai options into the llm (model, heat, seed, retries, prompt framework, etc)
+ - also need to create an agent for function / class / type selection
+ - also ensure it doesn't get stuck in cycles, and do as much as we can to help the convergence to be faster
+ - we can also record previous implementations and ideally ensure we don't do the same one
+
+struct Sphere {
+  radius: f32;
+  pos: vec3;
+}
+
+struct Aabb {
+  center: vec3;
+  extentds: vec3;
+}
+
+struct Collision {
+  point: vec3;
+  normal: vec3;
+  depth: f32;
+}
+
+ai(opts) collide(a: Sphere, b: Aabb): Collision | null {
+  compute the collision between the sphere and AABB
+}
+
+
+we can have it generate non-pure functions if the generator runs entirely in a sandbox
+ - e.g., we can pass in tower nodes, etc, and have it correctly generate them
+
+I also like the idea we can sort of do the same thing for structs... maybe?
+ - I guess it's odd here, because this is a hidden case
+ - We're basically saying, hey we know nothing about the implementation, but we know exactly how the type works
+   (parameters, and return)
+ - does it ever make sense to do the same for structs? I guess not really
+ - because ultimately that's changing my usage
+   - we're really just allowing AI to use anything
+
+Maybe this is the idea where we can create a network of hidden structures
+ - Basically, if all it ever returns is a Thing*, we never know the implementation
+ - We're just declaring how we want to work with it, and what it should produce
+ - but it may opt to change the internals of the struct based on the functions
+
+I think they should in general all be solved as a group
+ - otherwise we run into the same weird re-compiling scenario
+ - like it's easy to exchange a function, but structs have actual allocations in memory
+ - well it's the same problem we already have, if we modify a struct need to recompile all the affected places
+   - and re-build anything in memory, or require a shutdown
+
+for now that just means we need to solve it all together
+
+based on the performance of the demo I just tried, LLMs still have a ways to go
+---------------------------------
+ok back to the language then, what's next:
+ - we need to start creating then table and the recognizer now
+
+-----------
+I could use a hash set, but I want to preserve order in some way
+ - insertion order would be ideal
+ - but we can also just do sorted order for now
+ - a quick insertion order way would be a vec + unordered_set
+ - is that worse than just doing a set, we just want determanism really
+
+One problem right now is that we use tower node indices as grammar symbols
+ - but for String, it's actually a bunch of symbols
+
+I think that means we should translate our structure into a simpler internal form
+we can parse String into it's respective codepoint values
+ - or alternatively, do the "reference" lookup for String
+ - that could either handle breaking string into individual codepoints
+ - we should reserve a bit on uint32_t (check unicode for one we can use)
+   - the bit will indicate if it's a codepoint or a rule reference
+ - basically an array of arrays, very fast
+
+I think at the end of the day, String should not be something we try and directly consume
+ - it always has to be processed, in both cases
+
+---------------------
+When we point 
+
+Right now the rules come in any order
+
+We need a two way data structure, one that is indexed by productions
+ - as well as one that we can refer to the rule non-terminal (meaning all the productions for the same A)
+ - so I think the easiest way to do this is just to put all the rules in sorted order
+
+String serves a dual purpose
+ - in tokenization, it's a literal array of concatenated characters
+ - this saves us on allocations of tons of nodes (Range nodes)
+ - it's also just really convenient for anyone writing a parser to just pass a utf8 string
+   - or even ascii string (cause that's utf8)
+
+In the parser, it's really just a new rule added to tokenization (like a keyword)
+ - so what's the reason we don't just require the parse rules to handle this
+ - at the end of the day this is a specific detail of our parser language
+
+So maybe what we do is just populate the String component from a Stream (or something like that)
+ - I think the primary danger here is that you can use it really
+   stupidly if you accidentally place that component into the parser
+ - But then again, that's a concern everywhere, like using the wrong values in Range
+
+Ok so we just don't use String components in parsers!
+ - That means that when we finish parsing a new rule, and we see it's a "parse" token
+ - we then need to walk the tree and replace any String
+ - or, alternatively we place a task on the node and the dependency waits until it's connected to the node
+   that says whether we're a "parse" or "token"
+ - we're bottom up, so we know we have children before we're even connected to the root (backwards yo!)
+
+So then what the String component really should be is just a bunch of uint32_t's in a row
+ - we can have convenience functions to populate them from a stream, or just set their value
+
+--------------------------
+I think we should probably stop using std::set and implement our own basic order preserving set
+I think as long as we keep it to only functions we use, only for LRItem
+Basically just a vector + unordered_map, and we're not really worried about removing elements ever
+ - is that a little heavy?
+ - I mean it's probably fastest
+
+------------------
+
+since we're using ranges, it's getting a little bit confusing
+ - specifically with goto
+ - I get the feeling that goto needs to return how much of the range it consumed?
+   - like an upper bound that cut the range?
+   - I don't know it's weird :/
+ - because they should not be considered the same
+ - it's almost like what we need to do is a query first to see what sub-ranges would make it through
+ - I think the thing I really need to do is construct an example grammar and walk through it by hand
+ - run closures and gotos myself to understand what the final result should look like
+ - can simply just do [a-b] as a range, and also see what it's like if we do:
+   X = a
+   X = b
+
+I bet that will tell us the exact thing we need to know
+
+
+Side note, I love the idea that I had in welp for comparing two sorted sets
+ - that kinda changes my idea for unordered_map/array (sort of)
+ - althought we don't actually need to sort the until we compare them
+
+-----------------
+ok so another side idea that keeps popping into my head is that struct layouts are kind of like grammars
+ - and that technically any qualified sequence that matches could be considered
+ - and pointer types and such could be described via this grammar (if they had unique ids)
+ - the token stream is like asking what is the token value for
+   - pointers would almost be like, instead of diving in and shifting those values, we just shift on a non-terminal/rule
+
+so a simple example might be that you're trying to cast a void pointer into a pointer of a type
+ - and we need ot see if the memory is laid out correctly
+ - we're basically going to do a broadphase
+
+lets just think about this now because it's fun, my brain is too fried to get into tree sitter
+
+so there are kind of two conflicting constructs
+one is that we think of things as struct values, (floats, ints, pointers, u8s, etc)
+ - all these values can have different sizes too (f32, i64, etc)
+ - in general it would make sense to constrain data to be correct and align
+
+- so I think some of the primary operations that we must solve is whether a pointer can point at a spot
+  - which is basically also like 'reinterpret_cast'
+
+my claim is that we can do a full sweep in linear time with the number of bytes
+ - we do say that pointer manipulation is expensive in this language
+
+ok, so linear number of bytes should be my minimal requirement, it can't take any more than that
+ - but there may be some ways to validate it quicker than linear
+
+we have two questions to answer:
+1. What is the current memory layout at position N, length L
+2. Is that memory layout compatable with X
+
+Answering #1 is actually not trivial
+ - if you asked it right at the head of the memory allocation for an array allocation type
+   then it would easily know it's of type A (whatever the array type was of the first element pushed)
+ - in that case, it's like A is a non-terminal (it's a layout that's already been fully described with children)
+   it's kind of like accepting an existing parse tree
+  
+Lets take the trivial case first where #1 is answered, and lets focus on #2
+ - so the case of the memory having exactly A at the base position 0 and then asking for A would complete instantly
+ - but now imagine we asked for if the memory at A was compatable with memory B
+ - if we imagine these all as parse rules that describe what kind of memory is valid
+
+struct healer {
+  health: f32;
+};
+
+struct enemy {
+  lives: i32;
+  wizard: healer* | null;
+};
+
+struct player {
+  life_count: i32;
+  health: f32*;
+};
+
+let e = enemy{
+  lives: 9,
+  wizard: null;
+};
+
+let enemy_ptr = &e;
+
+// this cast is going to be checked
+let player_ptr = enemy_ptr as player*;
+
+
+that's basically saying hey take this current initialized enemy_ptr with layout enemy
+
+
+so the question is how do I quickly know, or even just know, that B and A are compatable
+
+since we know about the cast from enemy to player, we can generate the check at compile time
+
+ok, well the first question to even answer period is if they are compatable at compile time
+ - we actually don't even care yet if the runtime is somehow compatable
+ - I think, right? maybe we do, but the thing we need to answer first is just knowing two layouts A, B
+
+ - the compile time check would save a runtime check I think
+   - because we know we had a memory compatable value
+ - but obviously it has to do runtime checks if the types are bigger
+   - or if you're doing a void* casted to anything
+
+I think the effective idea would be to linearize the layout, but still use symbols
+kind of like, if we normalied it
+ - then it might make those checks a lot easier
+ - ok yeah so first thing we do is 
+
+Hmm, wait, so in this case if this was a grammar, what we're
+actually saying is that safe casts are actually ambiguous rules
+e.g. two structs have different definitions but can both fit the same memory, ambiguous!
+ - but here we're doing it as if we put both A | B into a grammar, and then we expected ambiguity
+ - well actually that's one way to see if they are compatable, if they are ambiguous
+   - if that's easy to detect that specific case, then yeah that's a good way to check
+   - we can also test struct compat offline, or do it at runtime and cache it between known types
+
+Ok so that's the simple case of A as B
+
+but now lets imagine memory was more complicated, it was an A with a C right after it
+ - This is going to happen all the time when you point into the guts of a struct
+ - I imagine solving part #1 mentioned above will involve querying a tree with a range
+   - if any part of the range cuts a type that must be whole, its an error (like a pointer)
+ - so #1 may return back AC (it could return back every single byte, but lets imagine A and C are huge)
+
+but lets say we wanted to answer these queries in as minimal as possible time
+
+
+side note, I also don't want users to just be able to grab a pointer to the internals of a container
+and just start jacking with it, so we may need to answer privacy/security questions here too
+
+
+it's like a little more complicated than just pod data
+
+we just want to prevent corruption and non-determanism / undefined behavior
+ - beyond that, who cares!
+
+
+I think it never makes sense to just do the interface cast with the data thats "there right now"
+ - because that's always going to be out of date if anything changes
+ - but maybe we can do it where it either returns a full copy of the data
+ - or it returns an interface where everything is checked
+
+struct player {
+  target: enemy | object;
+}
+
+struct foo {
+  target: enemy;
+}
+
+let p = player {...};
+
+&p as foo*; // this would not work currently because (enemy | object) has a header
+
+but in typescript it works, because everything looks the same in memory (bloated!)
+
+so now I'm wondering, can we do something with layouts instead then
+ - like every decision point needs to know...
+ - it needs to be in memory, but technically not 
+
+
+A = 
+
+side note, maybe we could support an interface definition that still lists all the types it could be but selects one of them
+
+struct player {
+  target: enemy | object;
+}
+
+struct foo {
+  target: @enemy | object;
+}
+
+ok, that's just something we do to make it so we can acquire direct pointers to things
+ - hmm, but there's the problem again, we're pointing at it with a specific type of pointer
+
+hmm, the whole | thing hits one dilemma, if we're claiming that we know how memory is initialized
+ - but maybe we just know it could be one or the other
+ - how do we ever safely point at target?
+ - I think this kind of needs to be a feature of "memory"
+
+
+ - any type that can change it's initialization kind requires an intrusive list too
+   - because how can we safely point at the sub-type
+
+
+we're really just saying there are multiple type configurations
+
+type configurations are interesting, they're basically a way of saying this type can occupy tons of forms
+ - and we know which one based on some runtime information
+
+for a flat data structure that only has one form
+ - the advantage is that we know we only need one intrusively linked list head
+ - otherwise we effectively need a pointer per byte
+ - we're basically just defining it as "change points" in memory
+   - any place that can be pointed at and changed
+ - kind of just maintaining a broadphase of what memory is initialized where
+
+hmmm, well if I'm thinking of this more like C, and this is a replacement for unions
+ - then this wouldn't add any byte for what kind of data it holds
+ - it would be exactly like a union
+ - however, our memory checker system would independently verify that you're pointing to it correctly
+ - unions use members to distinguish the type from each other
+
+union enemy_or_object {
+  enemy emember;
+  object omember;
+}
+
+struct player {
+  target: enemy_or_object;
+}
+
+struct foo {
+  target: enemy;
+}
+
+let p = player { target: enemy{} }
+
+let f: foo* = &p as foo*; technically this could work (foo might have less bytes than player, but can still point at it)
+
+but the problem would be if we then did
+
+p.target = object{}; // note that this changes layout in memory and invalidates the pointers
+
+and now we changed it, what becomes of f
+
+f must be nulled, or it's an error
+ - pretty much the same as deleting memory
+
+
+so weirdly in this case...
+ - the f pointer is affected by ANY change to any fixed part of a definition of an object
+
+it's because the intrusive list is for a range of memory, like a lock almost
+
+we're also saying that pointer manipulation as well as initialization in memory can be spensive!
+
+lets take a step back, I think the array case optimization is really cool, but I want to think
+of a fast but generic structure that we can tolerate the performance of
+
+we're claiming that because [un]initialization can happen on any memory, we may need to invalidate
+pointers pointing to that region
+
+this entire structure could be stored within the memory block itself
+ - and the worst case scenario could be that it allocates more to keep track (every byte has a pointer)
+
+but again, the cool thing is that we know we only need the intrusive lists / layouts at decision points
+ - so if I wanted a mutable array of bytes that I can point anywhere into, I allocate a fixed byte[]
+ - now that memory is all accounted for, it's flat with one possibly layout structure
+ - and we can do anything within that region
+ - can we uninitialize a sesction of bytes?
+   - not without invalidating pointers, but yes we could
+ - it's something like, every allocation allocates 150% of its size, the extra 50% (with some minimum amount)
+   is used for the broadphase
+ - and we need to be able to query that broadphase for basically like grammar tokens
+   - I want it to be super fast to check if it's the layout matches
+
+hmmm, technically pointer invalidation should only happen if it doesn't match the new layout
+
+so we almost need a broadphase for the pointers pointing instead
+
+like, we need to be able to query the broadphase for initiailization data when a pointer is starting to point in an area
+
+but then we also need to query the broadphase of pointers when we change any initialization
+ - which pointers cover which regions
+ - and now that we know, do they now match the new layout after initialization
+
+it's almost like we'd want to use the tree sitter kind of approach here
+ - we changed memory, layout, which pointers are affected, how is it reparsed
+ - but the only difference here, we know what we're changing it to exactly (as in like an existing parse rule)
+
+A = aaaa
+B = bbbb
+C = aaaabbbb
+
+AB as C
+
+That is the primary problem, we actually know what we have is AB (simpler than going byte by byte)
+
+
+We could test if AB | C is ambiguous
+ - but that doesn't exactly tell us that it's wholly ambiguous
+
+of course another idea is that we could cache it, so like do a linear scan
+ - and now we know (given flat layouts) that AB is C
+ - If A has multiple definitions, it's like we pick one specific production
+   - but it's not just one specific production, it's like a specific parse tree
+
+Or maybe we really just have to maintain the tree like tree sitter
+ - and when we say that we modify memory, all interpretations of that same memory must be re-parsed
+
+ - and then maybe we just make some specific optimizations, like if it's the same layout type, it's instant
+
+we're basically saying that a bunch of people are pointing at the same memory, with different structural definitions
+that may be compatable
+
+f1f2f3f4i1i2
+
+wait, some kind of crazy issues, if we have to traverse safety through pointers, then we
+also need to walk the pointers and register "fixed ranges" of memory holds
+
+
+
+struct player {
+  target: enemy* | object*;
+}
+
+struct foo {
+  target: enemy*;
+}
+
+let p = player { target: ...an enemy pointer }
+
+let f: foo* = &p as foo*;
+
+// whatever, I'm just giving an example
+uninitialize(p.target);
+
+I mean, technically foo is holding a pointer to enemy so it's all good
+this would throw on the internal pointer inside, pointers are kinda nice like that
+
+problem: in this case foo* is putting a restriction on what type target can be
+ - that means we want from player having this sort of "empty hole" in the middle of it leaving it "undecided"
+   - I should not say undecided, it's very specifically up to the user
+   - and it specifically should always be initialized to one or the other, as in the type declares it will initialize it
+   - so it's not like we can just change that memory tho, it's not a hold, it's still accounted for
+   - I guess the thing is we guarantee that with the initialization of player, we fully initialize the area
+   - like when we say we're initializing memory, we pass a region that we're initializing (I don't think it can have holes)
+     - or that would be two different calls, lets think on that for right now
+   - 
+
+struct player {
+  target: enemy | object;
+}
+
+
+
+
+again, the argument should be that you shouldn't be holding pointers to things that are changing
+
+side note, can pointers actually not be fat?
+ - e.g. can we get away without storing the links on the pointer itself
+ - the pointer always knows what memory it's pointing to
+ - yeah but this avoids allocation, if we did it that style, we need reserve space in the memory...
+
+------
+should probably just look directly into what tree sitter is doing
+ - I really do like the idea that it's fast enough to act on a keystroke
+ - although we'll be doing a lot more than tree sitter would be doing just by itself
+ - so probably not as realistic as an expectation, but you know if we profile it a lot lol
+
+still, I can see a game engine with tower embedded, lots of parse rules added and restrictions made to keep it simple
+ - custom parse rules to describe game features, components, etc
+
+embedded and running a wasm sandbox with exposed calls to the game engine
+ - reflection library for C/C++/Rust
+
+editor has a code window and as you type, the minimal rebuild occurs live
+ - the compiler / runtime is sort of meant to be run live together
+ - yes you can just run the compiler until it spits out a wasm
+
+with that level of minimal rebuild, we could better support object patching
+ - we could possibly even rebuild the stack
+ - can even support serialization, updates possibly
+
+can we just use tree-sitter?
+ - might as well just take a look at the api
+---------------------
+
+I think for the reinterpretation of memory, a pattern matcher is the best idea
+ - can just basically be a dfa
+ - I think my only remaining question is if I have to traverse pointers, and if there's like a graph issue here
+
+
+
+struct C2 {
+  c: i32;
+}
+
+struct B2 {
+  b: i32;
+  c: C2*;
+}
+
+struct A2 {
+  b: B2*;
+}
+
+struct C1 {
+  c: i32;
+}
+
+struct B1 {
+  b: i32;
+  c: C1*;
+}
+
+struct A1 {
+  b: B1*;
+}
+
+let foo1 = A1{...};
+
+let foo2: A2* = &foo1 as A2*;
+
+// In this trivial case, the definitions of A1 and A2 should have been reduced to the same
+
+
+struct C2 {
+  c: i32*;
+}
+
+struct B2 {
+  b: i32;
+  c: C2*;
+}
+
+struct A2 {
+  b: B2*;
+}
+
+struct C1 {
+  c: i32;
+}
+
+struct B1 {
+  b: i32;
+  c: C1*;
+}
+
+struct A1 {
+  b: B1*;
+}
+
+let foo1 = A1{...};
+
+// Whatever we decide here, we're basically saying we have an unknown pointer
+let v: void* = &foo1;
+
+// From an unknown pointer there is no way to do a compile check, so at runtime we must look at the memory
+// pointer to by v and see if we're allowed to even point there with A2* (is it initialized?)
+let foo2: A2* = v as A2*;
+
+In this case, A1 cannot be reduced to B1
+ - so we must perform a recursive check
+ - And technically if that void* came from anywhere, we have no way to compiletime deduce any type
+
+One thing we could compute is if two types were overlayable, even if not exactly the same
+ - That's sort of N^2 though, for every type check if it's compatable with every other type
+
+But I think we could argue "amortized" time here, since it will cache it once it's done
+ - I could see how you could setup a worse case scenario here though
+ - and you could argue that even if it's N^2 in the number of types, it's fixed
+
+But I think that it does have to be a recursive approach
+ - note that when we recurse, if we find the same type again, it's all clear
+
+Right, if we do anything to invalidate the memory, it invalidates the pointer, so all good
+ - or the pointers revalidate, and then invalidate if they don't match (or panic, error, etc)
+
+so... because we're storing a pointer over a region, doesn't that already mean we need more than just an intrusive pointer
+ - or maybe that's what we do, we walk the pointers to see what region they hold...
+
+can we ensure that intrusive pointers are sorted... does that help?
+ - we can't randomly index into them so kinda no
+
+question, if we've already reduced types down to their shared equivalents, how could A1 ever be compatable with B1
+
+struct A1 {
+  a1: i32;
+  a2: B*;
+  a3: i32;
+}
+
+struct A2 {
+  a2: B*;
+  a3: i32;
+}
+
+locking is basically all about decision points, which also have pointers
+ - but the issue potentially comes from interpreting two consecutive values as one
+ - e.g.
+
+let v = malloc(sizeof(B*) + sizeof(i32));
+B* (v) {};
+i32 (v + sizeof(B*)) {};
+
+let a2 = v as A2*; // legal, but now there are two decision points
+ - so if we attempt to point over multiple decision points, what happens
+ - well technically now both memory needs to be responsible for invalidating the pointer
+ - almost saying that the pointer needs to appear in two intrusive lists
+
+so it's really all about these decision points
+ - and yeah the pointer may need to be in both, that's... PROBLEMATIC!
+ - gotta really
+
+when a pointer could exist in a single decision point only, it made sense
+
+another memory model that could help here is actually the multi-reader single writer of rust
+ - because we can ensure that we have zero readers pointing to any part of memory
+ - and the writer pointer can be typed, but also untyped so it can point at uninitialized data
+   - hmm, that does beg the question now, do we need to know if it's typed?
+   - I guess that's what the locking region does
+ - but we only have one writer in this case, so it's easy to store the region
+
+as far as a pointer spanning two regions / decision points
+ - I think this is where we treat this more like a general data structure
+ - We -can- just iterate over all pointers and invalidate any pointing at that region
+ - we would need to be able to know the pointer's runtime layout
+ - so now we need to have a layout pointer as well at runtime?
+   - starting to sound pretty heavy
+
+
+what we need is a broadphase
+
+
+I really love the array case of structs because without any decision points, it's so easy
+ - but the second we add in unions (a | b) it gets complicated
+ - technically even with decision points / unions we can still just scan the pointers to see if they are
+   - pointing in any re-initialized area (like changing a to b)
+
+maybe what we want is a general broad phase that can work for almost anything
+ - and we just allocate an amount of memory reserved (it will re-allocate if it needs more)
+ - we can do some sort of run-length encoding structure so that arrays can be efficient
+
+and since the pointer no longer needs the information stored on it, we can store it all in memory
+ - I kind of like that too, especially if we put it at the end of memory
+ - then we can ensure that this feature can be entirely turned off
+
+but technically the multi-reader scenario would still benefit from an intrusively linked list (no allocations)
+ - but in that case, we don't even need the broadphase or whatever
+
+so now pointer sizes can be different
+ - and it's not exactly tied to the type either, it's tied to the kind of memory
+
+if we took a max of all pointer sizes like zilch
+ - but then the pointer needs to know what kind of pointer it is
+ - now all calls virtual, ehhhh
+
+but I suppose that's also something we appreciate, that no matter what we can stuff everything into a "handle"
+ - but like, wouldn't we rather that be a generic feature
+
+ - I guess the neat thing about pointers or handles is that getting a pointer directly to read/write is always easy
+
+some handles will require calling something for read/write and dereference
+
+unless I can think of a generic structure
+
+ptr(Player)
+
+shared_ptr(Player)... eh.
+
+
+
+
+I mean, we could go the C# route and somehow make the pointers invisible
+
+I mean, * could also just mean handle for us
+ - but again, the issue is that I suddenly can point to the same memory from different types of handles
+
+handle(Player)
+
+ - this actually seems alright
+
+But I do think the original idea was to have pointers just be pointers
+
+it's just that I did like this about zilch, it was nice
+ - that memory tracking was decoupled from the actual thing itself
+
+but yeah now suddenly handles need to be virtual
+
+I think if not, then we need some kind of way of denoting what kind of pointer something is
+ - and ideally since we can just define new safe types of memory along with handles
+ - then we need a syntax for that
+ - we could have it so just Player* always means one kind of memory, like the default kind
+   - and otherwise you have to say the kind of pointer
+   - but see that's the same issue thing though, I don't want to have to define the type of pointer everywhere
+   - I guess, is it really that bad... hmm
+
+honestly if we're allowing child libraries to modify their parents (any library can modify anything and cause a recompile)
+ - then maybe one approach we can take is looking at all the ways a pointer gets used
+ - I'm not super duper in love with this, but it's kind of a neat idea
+   - or maybe this is just something we do when building the 'release' mode version of it
+ - the idea is basically a type that might need to handle a variety of different situations
+   - but if those situations never occur in code, then the structure can change to something lighter
+ - I don't think there's really anything like that in most languages
+ - it's easy to keep track of every point where something is referenced or used
+   - and how it's used too
+ - this could even be a first class feature of tower, like a morphing type
+
+so we're almost just saying a handle is like
+
+Handle = Pointer | SharedPointer | MultiReaderSingleWriterPointer ...
+
+And then boiling it down lighter later
+
+at least when it comes to the idea of the memory runtime, I think we can handle it all
+ - we can have the concept of just the fat pointers themselves, minimally sized as needed
+ - and then we also support the concept of the handle
+ - a single size object that fits all pointer types generically and uses a virtualism behavior to determine which
+ - moreover, the handle is extensible (anyone can implement a handle using unsafe code)
+
+MultiReaderSingleWriterPointer is actually just a pointer I think
+ - since only one can change initialization
+
+Well shoot, maybe we just go with that concept instead?
+ - it's a lot simpler, but yeah attempting to push into a vector while someone holds a pointer will throw
+ - but then the single writer pointer needs to basically be moved (like the old one nulled out or something)
+
+maybe we just make a library of determanistic memory safe routines
+ - and yeah we can define a virtual interface for handle behaviors
+
+hmmmmm
+
+one thought I had was if the last pointer is deleted, we can kind of think of that memory that the pointer occupies
+as being "uninitialized"
+ - kind of like when we move Something
+ - C++ has what is called "non-destructive" move, the destructor is still called on the moved object
+ - Rust has a destructive move, the object that is moved can no longer be referenced and is destroyed
+
+I think it's not particularly easy for us to keep track of that
+ - rust's compiler and borrow checker has specific tracking and restrictions
+ - I was thinking we can do something that lines up with what our language typically does,
+   keep track of the uninitialized area of memory, but now we're kinda back to adding a decision point
+   (and does that mean every pointer, or specific types of pointers, always add decision points?)
+ - Player**
+ - I think we just have to support non-destructive move
+ - In our case, the pointer is nulled or 0xFFFFFFFed to indicate that it's been deleted (can have a special value)
+   - can still assign over it, etc, just can't read/write to it or do any pointer manipulation / casting
+   - all those operations will throw
+ - 
+
+side note, if we allow uninitialized holes of memory, it might mean that member access gets weird
+ - Ideally, member access should be no worse than offsetting a pointer
+ - and I think that's something we should always know is quick and safe (since it's like nested)
+ - even in the `target: enemy | object` case, we still knew it was initialized
+ - although technically the empty space at the end should not be pointed at (if enemy or object was smaller)
+ - yeah so, the whole memory is initialized
+
+so then what's this data structure look like ultimately
+ - the most common cases should be optimally accounted for
+
+can we have a type that declares an uninitialized region of memory?
+ - and basically we know we're going to be allocating in here
+ - again, this is a hole
+ - but you know what, the hole actually isn't a problem
+ - like, if you do a member access to a hole, or even a (enemy | object) it's the same issue
+   - whatever you access it as has to be checked
+ - so yeah seems like we should be able to declare an uninitialized region of memory
+ - and then that region can be initialized to anything it wants
+ - side note though, gaps from (enemy | object) are not "uninitialized", they are blocked/reserved!
+
+what is a data layout?
+ - pod
+ - pointers & system primitive types
+ - blocked/reserved (for gap's in data with unions)
+ - also unions themselves probably appear there
+ - uninitialized - specifically not set to anything
+
+the memory management system should just be told about the existance of pointers
+ - and manage everything internally
+ - we should only have just raw pointers... (32bit)
+
+maybe that's what we can do to make it all work out, it's always just pointers like C
+ - I feel like we still need a way to know where the head of memory is (or where the reserved space is)
+ - so pointers may have to be at least two 'pointers'
+
+is there some clever way to know where the head of memory is
+ - has to be in constant time
+
+a dual pointer is not a bad way of doing it, especially since that would be dropped in release mode
+ - I was just really hoping for a clever way to use only a single pointer, be very C compat but still safe!
+
+I think there's no way to do that period without extra data on the pointer
+ - because if we want the pointer to be able to point at whatever it wants
+
+lets think for a second, because maybe we want that
+
+pointer goes to move, we look up what block it's within by asking the memory manager
+ - that operation could be say O(log N) (binary search)
+ - then we need to find the reserved space for our data structures
+ - to keep it in the realm of safe, this would be an operation we do on the memory manager itself
+   - basically telling it we're going to do something to this pointer
+
+memory manager comes back at us with whether that's illegal or not, or the new value on success
+same with creating a new pointer from an existing pointer
+or reinterpreting a pointer
+
+we should ask the memory manager for the memory block
+ - and then ask the memory block
+
+when we finish this library, we should publish it
+ - with all algorithms detailed, memory layouts and structures detailed (sizes, pointer sizes, etc)
+ - and complexities of each of the kind of memory block types
+ - as well as limitations
+
+I like this little memory management system, it's safe
+ - and at the end of the day, it's very removable
+
+also should think about slices too
+
+because ultimately a slice is just a range (larger locked area)
+ - then it shouldn't be too hard to add
+ - and moreover, moving any of the pointers inward should be trivial
+ - may still need to check layout
+ - but that's a point, if we have an array of things, and we advance one whole pointer forward
+ - whatever that operation is should be fast (constant time ideally)
+
+------------------
+I think the one thing that's really bumming me out is that whole initialized uninitialized thing
+ - because it takes a broadphase to invalidate pointers
+ - I had a way better argument for "constant time" before this
+ - the main issue is pointers, we bascically really just need to know that the pointer is 
+
+in an interesting way, it solves the whole "lock this in this format" issue
+
+I think there's another really odd issue with pointers
+
+struct B1 {
+  x: i32 | void*;
+}
+
+struct A1 {
+  b: B1*;
+}
+
+struct B2 {
+  z: i32;
+}
+
+struct A2 {
+  b: B2*;
+}
+
+let a1 = A1{... new B1{x: 123}};
+let a2 = &a1 as A2*; // now we're looking an A1 through the lense of A2
+
+but that technically means that B1 is being pointed at in 2 ways
+ - hmm, does that mean that literally the same exact pointer has two ways it can be invalidated?
+ - see I think that makes no sense...
+
+a1.b vs a2.b
+
+a1.b.x = void*; // this would remove the x as i32, and thus invalidate B2
+
+but that makes no sense, since those two pointers are the 
+
+This is because B2 is more specific than the original definition
+
+I think casting something into a definition that's more specific than the original is problematic
+
+I really want you to be able to do almost anything C can do, but that's possibly difficult
+
+maybe that's the restriction, you can't force a pointer to have more than one view of the same thing
+ - unless you make a new pointer
+
+ok rule:
+ - you cannot force the same pointer to have two different layouts
+
+------------------
+I want to go back to another thought, the main thing was that pointers (and internal pointers)
+are the only thing we need to avoid pointing at or changing
+
+without change points, we only need intrusive list links at the head
+
+that's really the only important part is that we ensure pointers only point at valid spots
+
+but I think the parts that threw a wrench in that plan were being able to point over multiple initializations
+ - as well as being able to point at more specific versions of a type
+ - and change points
+
+if we only had vanilla structs and we only allowed them to point at a whole allocated object, not over multiple
+
+but we really just have lots of interpretations of the same memory that need to be checked anytime we change anything
+
+I really want to know if there is some way to abuse quantum instructions to create safe memory
+
+When I move a pointer or reinterpret memory, am I always going to end up doing that linear scan?
+ - No, in the event that I point at the exact same layout (constant time)
+ - So can I just argue that if you point at exactly the right type, maybe we have a head inlist so to speak
+ - but we always have to query anyways...
+
+If memory was literally doubled, or if every byte basically got it's own value
+ - but then we have to set all those bytes, but then again that's the same size as what you'd have to initialize anyways
+
+--------
+
+at the end of the day, what's the justification for all this
+ - I like coding in C style with components
+ - not as steep of a learning curve, very familiar to C family
+ - and I like having perfect memory safety guaranteed
+ - plus the fact that I can always compile this all out if you use AssumePanic (something that says we assume this is true)
+ - you can teach tower as if you're learning C with raw pointers, but it's checked
+   (the safety system is effectively removable unless you use it's side-effect features)
+
+I basically need a very compelling argument for why it's all "constant"* time overhead
+ - I will make a real argument about amortized, and about choosing the right memory kind
+ - as well as arguments about how things generally *should* be used, and why those cases lead to constant time
+ - as well as how they could be used esoterically or for the advantage that the safety check also provides (nulling pointers, etc)
+ - maybe show some real world C programs and how I transformed them with correct memory choices
+   - starts off with the worst case scenarios
+ - I do kinda love that I could compile full C programs, especially using the grammar from tree-sitter
+
+that would be a sell right there in a way, hey compile your C programs in tower and get instant memory safety
+but it doesn't quite work like that, C doesn't have the concept of "initializing memory"
+ - in C it's perfectly legal to just allocate something, immediately interpret it as a struct pointer even tho it's all garbo
+ - and then start setting values on it (initializing it yourself) while leaving some values completely uninitiialized
+
+Can our memory model work for C?
+ - the main issue would then be following pointers
+ - we can't know if the pointer following is going to be 
+
+the only way that would work is if we checked during the re-interpretation of a pointer that it's pointers were safe
+ - well, that's an idea I guess...
+
+so one note in tower is that it checks things like double initialize and stuff for you, or accessing uninitialized data
+ - C doesn't really care about that at all, there's no "placement new"
+ - so for C it's really just "is it initialized yes/no" and is the pointer legal
+
+because basically in C, the memory itself has no layout (unlike tower)
+ - interpreting it is what gives it a layout, temporarily, through pointers
+ - so since we can't guarantee that pointers stay safe until interpreted, we'd have to check upon interpretation
+   - well, it still kinda fits one part of our memory model that a pointer holds a specific interpretation
+ - but C also does all kinds of weird stuff (like probably storing bits in a pointer, etc)
+   - things we just can't deal with basically
+
+just a side note, memcpy needs to copy all the initialization information, and also handle duplication of pointers, etc
+ - it's no longer a trivial pod copy
+ - I imagine now if you tried to write that using byte by byte logic in tower, you would hit an error when you tried to copy
+   the bytes of a pointer (because all the pod bytes would allow reinterpretation)
+ - but the pointer bytes would throw going WAT
+ - which, kinda cool, but also an odd limitation for those who know C
+ - so now that I think about this, yeah this memory model does not exactly work for C
+
+
+let me think about C style for a second, if all we care about is whether it's been initialized
+ - and then upon interpretation, we have to check
+ - but we only need to check the things that are accessed, like if I access a pointer on a struct
+ - and then once we have a live pointer
+ - and then any time we interpret some memory as a pointer,
+   I need to check if that pointer is into valid memory and the size matches
+ - is there anything more than that? hmm, is this my simplified hail mary?
+ - hmm but there are no object safety guarantees (e.g. you can point anywhere)
+ - but it really would just be validating that a pointer is within a region of memory upon use
+   - hmm that ultra sucks
+   - I want to say I could just resolve it on interpretation
+   - but the problem is anyone else could have a pointer to that pointer and manipulate it
+   - so on every write, it's invalidated and I have to check it again
+   - tower's memory model keeps track of layout/structure, so you can't just write over a pointer
+   - the tower memory model makes sure you don't just trounce your memory with memset too!
+ - I mean, for C style we could have a fast cache of memory regions, maybe even sorted
+
+maybe one of the operations in the tower memory model can be "pointer accessed"
+ - for tower's memory model, we never care about that because pointers are always guaranteed to point correctly
+ - but for C style pointers, we need that
+
+I do like the idea that different memory models just care about different parts of how things were accessed
+ - I would note that the C style pointers would not be allowed to point within the tower safe memory
+   - when we do the pointer resolve, it would result in an error
+ - but they can point anywhere within each other
+ - and use a runtime cache for fast validation
+ - I kinda like this, because even in tower we could utilize this for really fast memory manipulation
+   - but you can't put any pointers in there to any place that tower can't track with proper calls
+   - we need to ensure all writes
+
+Big Note!: It's only legal to initialize tower pointers in memory locations where you can guarantee all calls to:
+ - initialize, move, etc are respected
+ - and nobody trounces memory randomly
+ - so even the stack is a place that tower has to be respectful of
+ - although it should be it's own kind of memory allocation
+
+
+This can be one of the types of memory blocks we publish, but when the compiler uses the pointer it needs to report it
+ - it only just purely guarantees that the memory is safe to access and will report access violations
+ - anyone can resolve a pointer, no guarantees of it's correctness or if access was allowed
+
+so tower has a slightly stricter requirement for memory safety, but not that restrictive
+ - we can also in the future make weird memory types that leave the bits open on pointers, etc just to fit weird uses)
+ - C++ motto is don't pay for what you don't use
+ - I think we can mimic that in a way with the AssumePanic, at the end of the day we always have that to lean on
+
+when it comes to memory safety in tower, the point is that we can tell at debug time all the places we screwed up
+ - the most common cases should be O(1)
+
+---------------------
+thread safety:
+ - each memory block will define how it can be used by multiple threads and under what circumstances
+ - any globals strickly require mutual exclusion
+ - like the multiple reader / single writer can be used by any thread (the values are atomic)
+ - so we always know there's only one way to talk to the block
+ - most memory blocks can only be accessed by a single thread
+ - does the multi-reader one need another type of pointer, one that we can't read from but can control it's lifetime
+   - a lifetime only pointer... hmm
+   - we can acquire a read or a write pointer from it
+   - ehhh I dunno let me think
+
+--------------------
+
+you know, when we point at a memory location if it isn't an exact layout match
+ - we can require that the operation be constant time (e.g. a special kind of cast, fast-cast)
+ - and then we can have a verifying cast that will verify anything (still usable with AssumePanic)
+ - that way it's not that unpredictable
+
+what does the data structure look like, well in my simple opinion it's really just a sorted list
+ - I'm not sure but I think we keep a separate one for pointers
+ - do we need separate read/write ones too?
+ - the whole issue with threads is that it's only ok for one person to write
+
+
+The reason it's OK for the same thread to have multiple readers/writers to the same memory
+is because you can kind of think of it as like whole functions are atomic (all their changes to memory)
+ - it's as if you froze memory and said this is my region
+ - everything you do is "transactional"
+
+---------------
+imagine a weird language where you could define transactions
+ - they were fully simulated in almost like a copy or a reversable part of the environment, a fork
+ - when they completed, the result and all changes to memory were recorded
+
+ - The simulation could take as long as it wants, but the final application of changes to memory and the result
+   can be must faster to apply
+ - if another task runs and changes memory in the same way, we have to stop and re-run
+ - need to worry about starvation I suppose, it shouldn't be based on how long it takes things to run
+   - and then the transaction is basically "atomic compare exchange"
+   - e.g. if everything matches the original state (all the reads are still the same)
+ - I suppose the starvation system could involve locking after a number of retries
+
+the second we start a transaction, what we really want to do is effectively freeze/copy all memory
+ - but we only actually need to freeze the memory that we're going to read from
+ - but we don't know what we're going to read from until we actually read
+ - copy on write memory... COPY ON WRITE MEMORY!
+   - we have a mix of instrumentation between OS features like CoW plus knowing all the loads/stores in wasm
+ - we can basically run this entire transaction in it's own thread
+   - as many times until it completes
+   - and then we have a thread that can own a region of memory
+
+ - just kind of insane ramblings, but the idea would be the owning thread would then lock required regions of memory
+   and apply the transactions (or some system would do it)
+ - it's basically just every thread running on it's own doing things to memory, but someone is trasacting them together or re-running
+
+ - you still need to be careful to mark transactions where they are needed
+   - anything that is analyzed to be pure (even like an std vector) can be run without transacting
+   - but for example, if the vector had a type that used a global pointer, then it would require transacting
+   - say for example push_back
+   - you might both write to the value, and change the size
+   - but if you don't do that as a transaction...
+
+so the flow for calling a transaction would be like cow memory, and then running the wasm on the current thread
+ - record all reads and writes, sort reads before writes, optimize and compact (duplicate writes ignored, etc)
+
+when the transaction completes, we ask the scheduler (wherever that is) to apply it
+ - this will cause a lock so to speak, and if it fails because the reads are no longer the same, we try again with new reads
+ - we do this until some starvation
+
+basically the advantage would be running transacting wasm on as many threads as you want
+ - the contention comes from applying transactions, but we could compile them to make them a very fast function call
+ - so once they reach the main thread, they are "atomically executed"
+
+hmm, maybe the other way of saying this is that writes only occur on the transacting thread
+
+kind of interesting that we can also save state (like, it's a database!)
+ - replica memory is easy enough to maintain
+ - I mean that's a pretty cool advantage right there is if this model scales to arbitrary processes
+ - we can sync memory
+-------------------
+
+shoot, I don't think I can actually use tree-sitter
+ - it uses nodejs to define the grammar
+ - and uses a C compiler
+ - side note, a wasm based version would be kick ass, compile it's rules as wasm
+
+
+I could maybe do some weird port that uses like a wasm based JS version
+ - and a C compiler that compiles to Wasm
+
+hmm, well I may actually want LLVM...
+
+nah, that's sillyness, that would take forever (we'd have to literally compile the parser rules...)
+
+----------------------------------
+
+Tower Demo page:
+
+Tower solves
+ - macros
+ - templates
+ - memory safety
+ - code generation
+ - DSLs
+
+the three main features of tower:
+ - the parser and ability to define new parse rules in language
+ - the ability to run code at compile time (macros, templates, generation)
+ - the memory safety, with pointers!
+ - (also component based design weeeeee)
+
+-------
+
+
+A = BC?D
+
+
+
+A = BD
+A = BCD
+
+vs
+
+A = BZD
+Z = C
+Z = 
+
+But that above approach means:
+
+
+A = BC?DE?F
+
+A = BCDEF
+A = BCDF
+A = BDEF
+A = BDF
+
+maybe not so bad, but the number of optionals in a single production can become a lot 2^N
+
+
+Also
+
+
+A = BC*D
+
+with epsilon
+
+A = BZD
+Z = CZ
+Z = 
+
+without epsilon becomes
+
+A = BZD
+A = BD
+Z = CZ
+Z = C
+
+
+-----------
+
+otherwise I need to know "nullable"
+which, maybe we need to compute first anyways so we can just do nullable then
+but it seems like getting rid of epsilons might be a good idea
+
+nullable might make the closure algorithm more complicated...
+but maybe not, it's really just like goto on nothing right?
+
+I'm not sure which algorithm I should go with
+
+https://cs.stackexchange.com/questions/33999/lalr1-parsers-and-the-epsilon-transition
+
+Turns out nullable does not matter, and I should treat epsilon like any other production
+------------------
+
+awesome, now I have the lr0 items, need to continue with the parser
+can also just do an slr parser to get started
+
+I should make my debug format into graphviz
+ - so I can just print all the states out
+
+----------------------
+
+side thought in tower, could we enforce "const" correctness?
+ - there's kind of levels of it
+ - maybe tie this to visibility
+ - but the idea would be that if there are any const pointers out there
+   then it is write locked
+ - in C++ const is only enforced as a promise that the individual function will not modify
+   that specific parameter
+ - foo(a: z*, b: const z*) { *a = ...; }, foo(x, x); // x was passed const but modified
+   (but a func that takes A const B, and modifies A, and pass the same X, X in as A, B
+   then now B is modified even though it was const)
+ - it's obviously easy to spot that but happens in insidious (many references) ways
+ - or through globals access, why rust declared fundamentally unsafe without some constraints
+ - there was the idea of transitive const that I liked
+   - but that's again just the idea to further const
+   - a declaration that A's pointing to B's treats B's also as const (D does this I believe)
+ - but all of it is just like a farce, it's like helpful and has some more restrictions
+ - and I had liked the idea at the time that const could be inferred
+ - but again, all just BS until Rust came along and actually solved it
+ - it's not BS, I get it, but my brain always was angry at the flaws and compromises
+ - like as a guarantee, it's meaningless, there's no guarantee
+ - the only guarantee is internal, and AFAIK it's a black box so how does that help the caller
+ - basically from the caller's point of view, I'm promised nothing
+ - that's always been my hatred of const, and no matter how hard I try nothing makes it better
+ - that's also why I liked C#, no const
+ - they just do read only interfaces
+ - I like it because I feel like it solved my hatred of broken promises
+ - and even though I don't love coding in Rust, I love Rust purely on principles
+ - ok so how am I fixing const
+ - well screw all those non-guarantees, even transitive gives you no promises
+ - so const now means hold up, someone says no do not write to this
+ - ok but how is that implemented at runtime
+ - obviously we can then infer at compile time as many places as we want so that we can optimize or whatever
+ - but fundamentally we can protect from it at runtime, so what does it mean
+ - and is it transitive? the parts along the path of access (this.a.b.c) can be locked
+   - except that we don't know the path that the internals of a function will take
+   - the caller is oblivious to this, it may run a full algorithm
+ - but maybe there are points where it's like, mutable makes sense actually
+ - like the idea I'm thinking is const pointers, inferred pointers (just pointers), and mutable pointers (declared)
+ - or maybe we have the concept of inferred pointers, where we have const, and normal which is mutable
+ - and then you can say this pointer infers, so that way you can safely point at something you "own"
+ - and if anyone makes you const, the things you point at become const
+
+so at least the traversal of memory could stop at some point
+ - but it's still so weird
+ - this kind of has the same implications we were thinking about for threading
+ - like anything marked mutable you can't access
+ - but any pointer, transitively will be locked for access
+
+ - at least by having the inferred be a keyword it's kind of like
+   a declaration of knowledge that you know it's going to be a lil expensive
+ - ok so the idea would be that anyone who constructs a const pointer locks the object
+ - I would hate to 'instrument" every write operation, that kind of violates my free reads/writes principle
+ - but I wonder if another ok way would be to 'null' out all the pointers, or use some sort of special code
+   - and if the pointer access and traps and we catch the value of that special code, we know that someone attempted
+     a write to a const piece of memory
+ - but that would block access to reads, so every fat pointer would now need a read and write pointer
+   - and we only 'const_null' out the write pointer
+ - also now that means passing anything into a const does like a freaking O(N) operation with N being number of pointers
+ - To fix the N problem we could have writes have a slight overhead, again removed in DebugPanic
+ - Such as writes could check a flag on the object instead, something like that (or be a double pointer)
+ - that way you can stop all the writes at once with a single operation
+ - but now you made writes everywhere more expensive, and I like saying that reads/writes are always fast
+ - it could also be an error to pass a thing in to a const function while anyone else is pointing to it
+   - basically saying it needs to be the only pointer, or only const pointers are allowed to point rn
+   - would need a way to 'move' it from a pointer to a const pointer (nulls out the pointer so that it traps)
+ - maybe we'll have to support move or something like that, but non-destructive move maybe...
+ - so whilst anyone else points at it, it's not ok to pass as const!
+ - but then we have to analyze it for transitive
+ - basically it means from inside a const object, you cannot access something that's not marked const or inferred/transitive
+ - but that also means that once it's passed in as const, we're going to traverse the graph and do some work
+   - make sure nobody else is pointing at it, or panic
+   - do that recursively for all transivite / inferred pointers, or also const pointers
+   - I do wonder though if we might actually just want a way to say this is also const, but stop the transitive here
+   - like maybe transitive is just a keyword, or nontransitive
+ - we're basically saying that from a const pointer, only things that are transitive are accessable
+ - anything else is not just like 'not const', it's straight up off limits
+ - in C, if you had a Player with a Gun*, const Player* -> gun would give you Gun* not const Gun*
+ - it's unexpected that something a player owns is 
+ - C++ solved this somewhat through privacy, but making members (C style) off limits and providing accessors
+ - the accessors basically were a wrapper around C behavior,
+ - because C++ could not change that to be transitive and break C
+ - so yes, in tower, it's just OFF LIMITs period, you can't even access the members
+ - and we mark all memory in the graph as const from that point
+ - so now we have a true promise to the caller, that this pointer and anything transitively owned by this pointer
+   will be locked and never written to for the duration of this call
+ - personally to me, though this comes at a runtime cost, it's one I'm happy to pay over Rust
+ - and again, I can always compile out the safety checks
+ - the last point here is that this is just for const, but for passing over to threads we actually aren't even making it const
+   - this concept is kind of deeper, it's just islanding
+   - the compiler will generate checks to make sure that a part of the graph is now an island
+     but the user must enforce this
+ - const just means we changed the interface to be const only and islanded it, and we can make guarantees there internally
+ - it's really that we force islanding any time we change a property about how we look at the island
+
+--------------
+bizarre idea of llm safety checks, I guess it's just a linter but it's more like instead of a Rust level proof
+ - if you can convince an AI to let your code be unsafe, you're good
+ - that might involve code coverage
+
+------------------
+
+really side weird idea for tower
+ - I was thinking about how we could have number ranges like [0, 100) whatever
+ - and as part of the pointer manipulation, if the compiler guarnateed a range then we could
+   possibly rely on static analysis to skirt some or all checks or something
+ - but the weird idea I was getting was that if a safety check, like pointer manipulation, actually had a way to
+   declare what would "make it go away" or change to something less rigorous
+ - like if you can prove X, I'll go away
+ - keep coming back to the idea of proofs... so interested in this
+ - it's almost like an overload, but probably should be controllable too
+ - like hey, we're going to do this expensive stuff
+ - but we'll choose this less expensive version if you satisfy these conditions
+ - it's not just an optimization that some magical compiler is doing under the hood
+ - it's explicit about it in user code
+ - but I mean overloads can be like that anyways, so am I just being stupid here
+ - that's really what we do with the type system is allow the user to connect the dots
+ - we're telling the user to proove it to us that 
+ - stupid babble I guess, but I think I was wondering if the compiler could infer it
+   - or if we can write functions that have requirements that automatically annotate the parse tree and infer
+ - but that could become impossible with indirection, so blehs!
+   - but then there we go, we were explicit about it!
+ - this sounds like we can just add optimization steps...
+ - yeah ok, CFG analysis
+ - but I think the idea that I had in my head was kind of like
+ - Ultimately the type system is always the explicit way to represent any data structure/graph
+ - in my head, it was also stemming from input sanitization
+ - this idea that we don't know where an input came from or what it's values will be
+ - as long as we were able to prove anything about a range of a number for example after say a loop or some logic
+ - like I could go as far as providing number range types (like this number can only be 0 - 50)
+ - but in a way, what I really want to say is, this number satisfies this fn(n: number): bool;
+ - can be anything, even numbers, primes, etc
+ - types are just runtime types that satisfy some constraints, even member existance
+ - so then a range is really just us saying possible values
+   - and technically because uint32_t, etc, it's actually fininte values (not sure if that matters to us)
+ - my question would be, given two of those fn(n: i32): bool
+ - can we tell that they will be equatable
+ - like can I know that one fits into another, just from it's wasm say
+
+so ultimately what I'm really trying to write is like this:
+
+lets just take the array example where we have a fixed size array
+
+let a = fixed_array(i32, 100)::construct(0);
+let pa: fixed_array(i32, 100)* = &a; // ok!
+let pe: i32* = &a; // ok! since the first element is i32* compatable
+++pe; // ok, no check, this is what I want
+
+for n : 0 to str.len {
+  ++pe;
+}
+
+
+
+yes pe is i32*, but we can also infer so much more
+ - like we know right now if we consider ssa form that pe_ssa0 is actually at index 0, provably
+ - and we know index 0 is provably safe
+ - so we offer up a proof, fn (value: i32*): bool;
+
+&a;
+
+fn pointer_manipulate(n: i32_range(0, 100) {
+}
+
+// an overloaded version on 
+fn pointer_manipulate(n: ) {
+}
+
+hmm
+
+we have to balance making the compiler too slow though
+
+but now we'd need to analyze how str.len got there, kind of slow sounds like Rust
+ - everything is trying to trace and figure out
+ - it's almost like we carry and annotate types at runtime (to be their specific types)
+ - like a[5] = 9, is now part of the type, because we know element 5 is 9
+ - if we then to a.remove(3), we know a[4] = 9
+ - the idea would be that operations can annotate type information (like a copy, or a layer?)
+ - like if I say let a: i32, it's like a copy of i32, and anything can attach and modify info for that specific type
+ - I mean, maybe all the template functions can just allocate the full type and return it (not shared)
+ - hmm, I'm not sure, we can at least just clone, or do some kind of layering system
+ - so obviously, if we're evaluating a function under compile time, it will also change and output type information
+ - but if we're actually doing it at runtime, we can opt to have it, but it can be entirely removed / compiled out
+   - would have to figure out how to opt in for that kind of info to be attached, same compile-time flag
+   - and the reason to do so even at runtime might be that you intend to pass this runtime type to some eval / compile
+
+ - ok this is maybe a really cool concept, I have to think on it for a second
+ - we're really just trying to glean out as much compile time info as possible
+ - and allowing the functions to affect the types output
+
+let a: i32;
+
+// is it even
+if (a % 2 == 0) {
+  // a: i32 & proof(value % 2 == 0)
+
+  assert(value == 1); // error, this will never be true as it violates the proof
+
+  if (a >= 0 && a < 100) {
+    // a: i32 & proof(a % 2 == 0 && a >= 0 && a < 100)
+    // Now we know a is an even number between 0 and 100 exclusively
+    
+  }
+}
+
+how do we compare two conditionals?
+ - it's like you need to evaluate possibilities, find a counter proof, not sure...
+ - like how do I know (value % 2 == 0) and (value == 1) are incompatable?
+ - one way I can think of, value % 2 doesn't narrow the search range, but value == 1 does
+ - we can do search range narrowing with each conditional (using actual ranges, but here it's just 1)
+ - and then I guess we have to find a counter proof?
+ - have to imagine this with structs too
+ - I feel like any brute forcing attempt is going to be doomed
+ - epsecially because I believe this becomes permutation based somewhat, I think?
+ - well maybe not, maybe it always boils the information down to individual members
+
+note also assert itself could be a construct for narrowing type info
+
+like if at compile time
+
+fn foo(n: i32) {
+  assert(n < 100); // this should affect both the type of n, as well as at compile-time any n passed in
+}
+
+because really this is an overload in a way, e.g. we can remove the assert if we knew the value coming in
+ - we can remove as many proofs as we want
+
+// could be written nicer as an i32_range or something like that, but you get the idea
+fn foo(n: i32 & proof(n < 100)) {
+}
+
+we both know that foo is going to fail with any n > 100
+ - but we also want that if foo succeeds when called with an unknown number, the type will be annotated
+
+so
+
+let f: i32 = ...; // say we read a number from a file, completely unconstrained i32
+
+foo(f); // at runtime, the assert will still fire to ensure the value is < 100
+// but now at compile time, past this point f is attached with the constraint/proof
+
+// this call now technically doesn't need the assert, is that going to be expensive to check all this logic?
+// that means we need to code-gen and optimize a separate version of that call, sounds kinda nasty
+// f: i32 & proof(f < 100)
+foo(f);
+
+What's odd is how proofs work with pointer types and indirection
+ - like for copy types, it's all easy peasy, they can't change
+
+
+store(&a); // someone stored a pointer to a
+
+if (a == 100) {
+  // we can always make copies, those will hold the proofs even with pointers pointing at it
+  // it doesn't make sense to update the layouts/types of the pointers pointing at it
+  // you're just checking if it's 100, not forcing every pointer looking at it to know it's 100
+
+  // I really know it's only 100 unless I make any function calls, and those calls may result in indirection
+  // unless those calls are pure
+  // so any non-pure call invalidates all proofs with references
+
+  // a: i32 & proof(a == 100);
+
+
+  
+  // now any call anywhere will disrupt this proof, because we have pointers to it and we don't know if it can change
+  foo();
+
+  // a: i32...
+
+  // 
+}
+
+
+
+  // the ssa version of a will always be 100 period
+  // a can be changed in here, in which the type of a will change below
+  // but any pointer to a loses it's proofs, 
+}
+
+
+
+
+let value: u64 = ...;
+
+if (value % 2 == 0)
+
+if (value & 1 == 0)
+
+// I want to know those are equivalent without testing every value
+// maybe there's a compressed form we can compare, we know this is a repeating pattern
+// it's really just a repeating pattern starting at 0 of [0, true, false...]
+// but what about prime numbers and weird sequences like that, we can't always just optimize it all away
+
+is there a reversal here with the proofs
+ - like algebra now
+ - I guess I'm talking about algebraic equivalence
+ - turns out it has a name, SAT solver or SMT solver
+ - if it has a finite domain then it can be searched but may be very slow (i64, for example)
+
+so we really can do proofs but it might be stupid slow
+https://avigad.github.io/lamr/using_smt_solvers.html
+
+might be worth it to do some smt verification on proofs, member by member possibly
+
+but also, maybe we can just add this
+
+- I love the idea that we can just introduce the SMT feature to tower
+- it just auto attaches type information, and we can compute constraints from that as well as optimizations
+- but you just like, include it, and all of a sudden types can have proofs
+
+https://en.wikipedia.org/wiki/Boolean_satisfiability_problem
+
+it really is just this idea that we can include proof systems into tower
+ - ideally just as compiled wasm binaries
+
+// C++, can be compiled down to wasm!
+https://github.com/bitwuzla/bitwuzla
+
+https://bitwuzla.github.io/docs/c/api.html
+
+ok so the idea would be at some point we think about how to annotate type information
+ - some for optimizations, but some as a straight up requirement
+
+or maybe just like we can output wasm, we can also output SMC-LIB format too
+ - then you just need an SMC-LIB interpreter, hence bitwuzla
+
+----------------------
+
+we're really just saying the base is wasm, but that doesn't mean we wouldn't add in llvm for the optimizations
+ - as a wasm module!
+ - or qasm
+ - or bitwuzla / SMC-LIB
+
+wasm is just our common interop and determanistic / safe language
+ - from there, we import more libraries externally
+
+----------------------
+
+Should eof/epsilon just be a reserved value at the end?
+ - we can ensure it's not valid unicode...
+
+eof can definately be emitted by the stream
+ - but it never makes sense to emit epsilon from a Stream
+ - epsilon only makes sense in rules
+ - so that's why we should switch to a union and do a typed enum thingy
+ - eof will just be TOWER_INVALID_INDEX, that's already what's returned from stream on eof
+ - but epsilon should be a new value
+
+--------------------
+
+do the uintptr_t pass before it's too late!
+
+also do a pass on memory and sanitization
+
+get it building natively with -fsanitize=undefined -fsanitize=address -fsanitize=memory
+
+
+-----------
+note: we might consider actually removing non-kernel items, it will make the sets faster to compare (I think...)
+ - well actually we have kernels first so it really shouldn't matter
+
+Look into WIT (wasm interface types)
+and WebAssembly component model
+
+I think it still makes sense that we only execute text wasm as our base
+ - but we still integrate APIs for qasm, spirv, smt, etc
+ - but just as function calls, not text
+ - called from wasm, or our own code
+ - basically wasm is our base, since it's platform agnostic
+ - llvm could be our base, but it's huuuuuge
+ - and ultimately we need a bunch of wasm specific functions (like compile wasm binary)
+
+but maybe we can execute any text code we support
+ - but what's odd is that the backend actually affects the frontend
+ - like spirv and qasm
+ - not all calls are legal with those
+
+next steps:
+ - actually perform the lookahead propegation and build the table
+ - implement the lr parsing algorithm (or lalr if it's any different)
+ - use compact tables where possible
+
+test out ranges, make sure they work and get the full idea down
+
+
+
+-----------------
+one area we need to look into is incremental
+ - I'm not super clear on this part yet, but ideally what I want is that not only is a part of the tree replaced
+ - but all things that dependend upon any part of that tree recalculate
+   - some of them may stop early (memoize)
+------------
+What is the minimal state for a table
+ - doing a big 2d array just seems bad
+ - especially since we have ranges, it's not indexable in that way
+ - so really we want almost a hash map ish
+ - states can be an array / index
+ - but the states will have edges / actions
+   - which as observed there are often shared, so we can compact and share these edges
+ - but the question then becomes, how do we lookup a character
+   - they can be unordered maps I suppose...
+ - or a sorted vector that we binary search for ranges/characters...
+ - many states have empty actions and don't handle inputs (sparce matrix)
+ - I don't mind doing unordered maps, but how can we lookup ranges then
+   - it's like we basically need to either walk the inputs or do a binary search
+ - just doesn't seem practical to have a real array when it can include ranges
+ - binary sort seems the best, shouldn't be that many, it's compact
+ - or we even do the unordered_map for individual values, and then binary search sorted vector for ranges
+ - it's not as compact, but quite fast
+ - ok, that seems good enough for now
+ - even just binary search should be profiled itself
+
+Need to fix the fact that I'm not propegating lookouts to states / (groups of kernel items)
+-------------------------
+
+when it comes to targeting other languages, I know rust kinda does it where a crate must support a target or not
+ - I do think it's neat that it either fully supports it or it doesn't, as a crate
+ - meaning that the author is forced to section things off
+ - for example, if we had an std/common library in tower, it would probably target everything ideally (spirv, wasm)
+   - a very small math library may cover qasm, smt, spirv, and wasm
+
+that said, we really could do it any way, we can even infer everything (only some parts are not usable, etc)
+ - might be even better...
+
+----------------------
+also might consider integrating Legion (https://regent-lang.org/)
+----------------
+
+The purpose of lookahead is to clarifty shift/reduce conflicts
+ - so technically we should be able to build our states and edges from the original LR0 items
+ - and now we should know all the lookaheads for all the states
+
+side note, we have the LR item in state struct that we used to attach to speific LR items
+ - but now effectively we just want the lr1 items with lookaheads
+ - I guess we can just keep using the lookahead map and look every item up again
+
+but it's really like we just want a direct pointer to an LR1 item that has no lookahead attached
+
+---------------------
+weird idea, I want people to be able to create their own types with their own rules, etc
+ - not just talking like structs with members, that's a way to make a specific kind of type
+   - even with operator overloads, it's still just a kind of farce
+ - to create a real type, such as pointers, quantum, etc
+ - with it's own rules about how it can be used, constructed, moved, optimized, etc
+   - think creating Delegate in Zilch
+ - or even like union types, etc, that's a new type
+ - I think we get a part win here with components, there's no longer "Delegate" or "Class"
+ - there are just types, which is a tree of components
+   - and they can have both, but they can't conflict (or if they do they override and it's well defined)
+   - but I think like with component interface only one implements...
+ - there aren't really type names though, there are just compiletime type variables (side note can they change??)
+   - mmmmmmmmm odd I need to think about that
+ - maybe every fundamental thing we can do to a type is a component itself with overridable behavior
+   - gotta think that through...
+
+let i32 : compiletime type = ...;
+
+let t = {
+  a: i32
+};
+
+let f: t = {
+  a: 123
+};
+
+t = {
+  b: i32
+};
+let i32 : compiletime type = ...;
+
+f.a = 123; // valid
+f as t; // technically valid with exact layout match...
+
+// DIRECT COMPARISON OF TYPES, OH MY GLOB ITS SO GOOD
+if (type(f) == t) {
+}
+
+let z : t* = null; // AWESOME YEEE
+
+Ok but one advantage of types was that we can do them like phases, because types can reference above, below etc
+So my next stupid question becomes, how do we do that here, in a way that makes sense and plays well with compiletime
+ - I mean, the easiest thing to do would be to just declare there is a pass that handles a special 'type' declaration
+
+
+
+let Player = {
+  gun: Gun,
+};
+
+let Gun = {
+  ammo: i32,
+};
+
+
+maybe when we go to look up Gun, we create a task to wait for it to appear as a compiletime within the scope (or above scope?)
+ - no, just the same scope, I think...
+ - can still use scope resolve operators though
+ - very, very interesting
+ - it makes sense if it can be resolved at compile time
+
+// I would not like it if this could resolve...
+{
+  let Player = {
+    gun: Gun,
+  };
+}
+
+let Gun = {
+  ammo: i32,
+};
+
+
+// but that means...
+let a = b;
+
+++a;
+
+let b = 5;
+
+
+eh.... that would all be legal, because b isn't initialized
+ - but since b can be figured out at compiletime
+
+
+let a: compiletime i32 = b;
+
+++a;
+
+let b: compiletime i32 = 5;
+
+above annotated as the resolved types, it only works because we can compute it entirely at compiletime
+ - but...
+ - well when something is compiletime, does it have to be pure?
+ - hum... I have to reallllly think about this
+ - it could also be that we do enforce order, but when it comes to pointers, they can resolve later
+   - simply just by putting a task on it, I don't mind that
+   - has to resolve to a compiletime type
+ - it's also not really special, it's just any type that want's to act as an indirection
+ - OK I LIKE THIS BETTER!
+   - I mean, I wish order completely didnt matter
+ - it's a bit odd tho still, since A*, the pointer isn't really the thing looking up with the task, 'A' is
+
+
+what if we did everything in dependency order, and then maybe enforce illegal ordering as an after pass
+ - like just as a dumb ass idea, what if code doesn't flow top to bottom
+ - what if code just flows in order of dependencies
+ - that doesn't work though, because we have memory
+ - e.g. order matters because of writes to memory
+   - can we identify all those places and enforce them?
+   - function calls are just a big unknown then (unless pure)
+ - maybe that's it, it has to be both pure and compiletime...?
+   - because then we know order truly would not matter
+
+
+imagine this without compiletime:
+
+
+let a = globalvar + b;
+++globalvar;
+let b = something();
+
+
+if something had side effects that changed globalvar, that would be so odd...
+ - basically something would have to mark a dependency on globalvar too, but now we're into perfect semantics...
+ - but maybe if we had the concept of pure (is it possible that pure is a part of a type, not just a function...)
+
+have to really think this all through, but I think there's a happy medium solution that makes sense
+ - doing the pointer thing where pointers allow a waiting task, kinda cool...
+
+------------------
+a side note, I think the idea I was trying to convey is that {} is a way to initialize an object
+ - but if we initialize it entirely with compiletime types as the members, shouldn't the whole thing be a compiletime
+ - type itself? it would be cool in a way if that was just a valid definition of a compiletime type
+
+{
+  a: i32
+}
+
+because I'm actually constructing an object! like typescript
+
+except because I used compiletime types the result is:
+
+{
+  a: compiletime type;
+}
+
+since all members are compiletime, the whole object is known at compiletime
+
+it is a compiletime object where all members are compiletime types
+I like this idea, think more on it, especially if like the members were just named tower nodes...
+
+it means that ideally, functions that create types are both pure and compiletime
+ - for the same inputs, it will never generate a different type, determanistic
+ - because we enforce pointers and safety, then as long as you only pass const compiletime values
+
+---------------------
+at some point we should support code-gen for our lalr parser, plus codegen for regex / DFA
+
+I like the idea too that we can create the parser in tower almost like regex primitives
+
+// Something like this...
+let a = Parser{
+  token foo = [a-z];
+}
+
+a.parse("a"); // tower nodes!
+
+I kinda like the idea that types can somehow support their own parse rules, maybe just in initialization... not sure
+ - so like, the member access operator wouldn't be special in any way
+ - it's simply just a type that registers parse rules
+
+
+a.foo
+
+INTERESTING
+
+even :: for accessing statics...
+
+so when we get to seeing a, it's like we temporarily push on custom parse rules after a (with $ / empty being valid too)
+
+ultimately they are just compiletime parse rules!
+
+
+
+
 
 
 

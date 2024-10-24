@@ -11,10 +11,13 @@ void tower_tests();
 
 
 // Allocate memory and return a pointer to it, or null if the allocation fails
-void* tower_allocate(uint32_t size);
+void* tower_memory_allocate(uintptr_t size);
 
 // Free a pointer to allocated memory
-void tower_free(void* memory);
+void tower_memory_free(void* memory);
+
+// Get how many tower allocations there have been
+uint32_t tower_memory_get_allocated_count();
 
 
 // Get how many tower nodes are allocated
@@ -34,6 +37,10 @@ uint32_t tower_node_release_ref(TowerNode* node);
 
 // Get the current reference count of a tower node
 uint32_t tower_node_get_ref_count(TowerNode* node);
+
+// Every tower node has a unique id that counts up from the start of the program
+// This is useful to uniquely identify a node without pointing at it, or to maintin creation order
+uint32_t tower_node_get_id(TowerNode* node);
 
 // Attach a child tower node to a parent, automatically detaching it from any parent it's attached to
 // If parent is null, then this will detach the child from any parent it's currently attached to
@@ -66,7 +73,7 @@ TowerNode* tower_node_get_child(TowerNode* parent, uint32_t index);
 // This does NOT increment the reference count of the returned node
 TowerNode* tower_node_get_child_member(TowerNode* parent, const char* member_name);
 
-// Get the index of a specfic child node by member name, or -1 if the member is not found
+// Get the index of a specfic child node by member name, or TOWER_INVALID_INDEX if the member is not found
 uint32_t tower_node_get_child_member_index(TowerNode* parent, const char* member_name);
 
 // Get the member name of a specific child from the parent
@@ -75,14 +82,17 @@ uint32_t tower_node_get_child_member_index(TowerNode* parent, const char* member
 // If the child has no name, or the child has no parent, null will be returned
 const char* tower_node_get_parent_member_name(TowerNode* child);
 
+// Get the index of a specfic child node, or TOWER_INVALID_INDEX if the child has no parent
+uint32_t tower_node_get_parent_child_index(TowerNode* child);
+
 // Lookup a component on a tower node by type id, or returns null if it's not found
 // This does NOT increment the reference count of the owner or the type
 TowerComponent* tower_node_get_component(TowerNode* owner, TowerNode* type);
 
 // Lookup a component on a tower node by type id, or returns null if it's not found
-// This then offsets to the reserved user data section of the component
+// This then offsets to the reserved userdata section of the component
 // This does NOT increment the reference count of the owner or the type
-uint8_t* tower_node_get_component_data(TowerNode* owner, TowerNode* type);
+uint8_t* tower_node_get_component_userdata(TowerNode* owner, TowerNode* type);
 
 // Return how many components the node has
 uint32_t tower_node_get_component_count(TowerNode* owner);
@@ -94,12 +104,13 @@ TowerComponent* tower_node_get_component_by_index(TowerNode* owner, uint32_t ind
 
 
 // Virtual destructor for a component
-typedef void (*TowerComponentDestructor)(TowerComponent* component, uint8_t* data);
+typedef void (*TowerComponentDestructor)(TowerComponent* component, uint8_t* userdata);
 
 // Get how many tower components are allocated
 uint32_t tower_component_get_allocated_count();
 
 // Construct a tower component at the specified location in memory
+// If a component of the same type exists, it will be returned instead
 // The owner owns the memory for the component, any any references held to
 // the component must increase the reference count of the owner
 // This does NOT change the reference count of the owner,
@@ -119,10 +130,10 @@ TowerNode* tower_component_get_owner(TowerComponent* component);
 // This does NOT increment the reference count of the returned node
 TowerNode* tower_component_get_type(TowerComponent* component);
 
-// Get a pointer to the arbitrary data section of the tower component
-// The size of the data section matches data_bytes passed in tower_component_create
-uint8_t* tower_component_get_data(TowerComponent* component);
+// Get a pointer to the arbitrary userdata section of the tower component
+// The size of the userdata section matches data_bytes passed in tower_component_create
+uint8_t* tower_component_get_userdata(TowerComponent* component);
 
-// From a pointer to a component's data section, get the original TowerComponent
-TowerComponent* tower_component_get_from_data(uint8_t* data);
+// From a pointer to a component's userdata section, get the original TowerComponent
+TowerComponent* tower_component_from_userdata(uint8_t* userdata);
 
