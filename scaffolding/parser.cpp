@@ -1,4 +1,5 @@
 #include "parser.hpp"
+#include <unordered_set>
 #include <unordered_map>
 #include <string>
 #include <vector>
@@ -244,7 +245,7 @@ void parser_tests() {
   assert(tower_node_get_allocated_count() == tower_node_initial_count);
   assert(tower_component_get_allocated_count() == tower_component_initial_count);
   assert(tower_memory_get_allocated_count() == tower_memory_initial_count);
-/*
+
   // token E = E '+' T;
   // token E = T;
   // token T = T '*' F;
@@ -286,15 +287,17 @@ void parser_tests() {
 
     // Test it actually parsing a value
 
-    tower_node_release_ref(token_rules);
     parser_table_destroy(table);
+    parser_stream_destroy(stream);
+    tower_node_release_ref(token_rules);
   }
-*/
+
 
   assert(tower_node_get_allocated_count() == tower_node_initial_count);
   assert(tower_component_get_allocated_count() == tower_component_initial_count);
   assert(tower_memory_get_allocated_count() == tower_memory_initial_count);
 
+  /*
   // Non-SLR grammar
   // token S = L '=' R;
   // token S = R;
@@ -333,7 +336,7 @@ void parser_tests() {
     parser_table_destroy(table);
     parser_stream_destroy(stream);
     tower_node_release_ref(token_rules);
-  }
+  }*/
 
   assert(tower_node_get_allocated_count() == tower_node_initial_count);
   assert(tower_component_get_allocated_count() == tower_component_initial_count);
@@ -858,6 +861,13 @@ struct GrammarTerminal {
   }
 };
 
+template <>
+struct std::hash<GrammarTerminal> {
+  std::size_t operator()(const GrammarTerminal& key) const {
+    return std::hash<uint32_t>()(key.start) ^ std::hash<uint32_t>()(key.end);
+  }
+};
+
 struct GrammarSymbol {
   TowerNode* symbol_node = nullptr;
 
@@ -907,7 +917,7 @@ struct Grammar {
   std::vector<GrammarRule> rules;
 };
 
-void parser_grammar_create(Grammar* grammar, TowerNode* root, uint8_t* userdata, ParserTableResolveReference resolve) {
+void parser_grammar_create(Grammar& grammar, TowerNode* root, uint8_t* userdata, ParserTableResolveReference resolve) {
   std::vector<Rule*> rules;
   rules.reserve(tower_node_get_child_count(root));
 
@@ -924,18 +934,18 @@ void parser_grammar_create(Grammar* grammar, TowerNode* root, uint8_t* userdata,
     rules.push_back(rule);
   }
 
-  // WARNING: This is required as we MUST ensure that grammar->rules
+  // WARNING: This is required as we MUST ensure that grammar.rules
   // does not reallocate (we store direct pointers into the array)
   // This is an overestimation / worst case every rule has a unique non terminal
   std::unordered_map<std::string, GrammarNonTerminal*> non_terminals;
   size_t rule_count_with_start = rules.size() + 1;
-  grammar->rules.reserve(rule_count_with_start);
+  grammar.rules.reserve(rule_count_with_start);
   non_terminals.reserve(rule_count_with_start);
-  grammar->non_terminals.reserve(rule_count_with_start);
+  grammar.non_terminals.reserve(rule_count_with_start);
 
   // Reserve a spot for the starting rule at index 0 (has no associated Rule*)
-  GrammarRule& starting_rule = grammar->rules.emplace_back();
-  GrammarNonTerminal& starting_non_terminal = grammar->non_terminals.emplace_back();
+  GrammarRule& starting_rule = grammar.rules.emplace_back();
+  GrammarNonTerminal& starting_non_terminal = grammar.non_terminals.emplace_back();
   starting_non_terminal.rules.push_back(&starting_rule);
   starting_non_terminal.name = "S'";
   starting_non_terminal.index = 0;
@@ -945,14 +955,14 @@ void parser_grammar_create(Grammar* grammar, TowerNode* root, uint8_t* userdata,
   for (uint32_t i = 0; i < rules.size(); ++i) {
     Rule* rule = rules[i];
 
-    GrammarRule& grammar_rule = grammar->rules.emplace_back();
+    GrammarRule& grammar_rule = grammar.rules.emplace_back();
     grammar_rule.rule = rule;
 
     GrammarNonTerminal*& non_terminal = non_terminals[rule->name];
     // If this is the first time we're seeing this name, create a new non-terminal for it and set the name
     if (non_terminal == nullptr) {
-      size_t index = grammar->non_terminals.size();
-      non_terminal = &grammar->non_terminals.emplace_back();
+      size_t index = grammar.non_terminals.size();
+      non_terminal = &grammar.non_terminals.emplace_back();
       non_terminal->name = rule->name;
       non_terminal->index = index;
     }
@@ -961,15 +971,15 @@ void parser_grammar_create(Grammar* grammar, TowerNode* root, uint8_t* userdata,
   }
 
   // As long as we have a non-terminal that isn't the starting rule
-  if (grammar->non_terminals.size() > 1) {
+  if (grammar.non_terminals.size() > 1) {
     GrammarSymbol& symbol = starting_rule.symbols.emplace_back();
-    symbol.non_terminal = &grammar->non_terminals[1];
+    symbol.non_terminal = &grammar.non_terminals[1];
   }
 
   // Walk through the rules in sorted order (skipping the starting rule 0)
   // Now we can map all rule names/references
-  for (uint32_t r = 1; r < grammar->rules.size(); ++r) {
-    GrammarRule& grammar_rule = grammar->rules[r];
+  for (uint32_t r = 1; r < grammar.rules.size(); ++r) {
+    GrammarRule& grammar_rule = grammar.rules[r];
     TowerNode* rule_node = tower_component_get_owner(tower_component_from_userdata((uint8_t*) grammar_rule.rule));
     
     // Assume we will have at least as many grammar symbols as we have children
@@ -1077,7 +1087,8 @@ struct LR0Item {
   }
 };
 
-struct LR0ItemHash {
+template <>
+struct std::hash<LR0Item> {
   std::size_t operator()(const LR0Item& key) const {
     return std::hash<uint32_t>()(key.rule_index) ^ std::hash<uint32_t>()(key.symbol_index);
   }
@@ -1270,21 +1281,235 @@ std::set<LRItem> parser_table_goto(
   return result;
 }
 
-std::set<std::set<LR0Item>> parser_table_lr0_items(const Grammar& grammar, uint8_t* userdata, ParserTableIdToString to_string) {
+struct State;
+struct StateEdge {
+  const State* shift_state = nullptr;
+  const GrammarRule* reduce_rule = nullptr;
+  // TODO(trevor): Error edges / recovery
+
+  bool operator==(const StateEdge& rhs) const {
+    return shift_state == rhs.shift_state && reduce_rule == rhs.reduce_rule;
+  }
+};
+
+template <>
+struct std::hash<StateEdge> {
+  std::size_t operator()(const StateEdge& key) const {
+    return std::hash<const State*>()(key.shift_state) ^ std::hash<const GrammarRule*>()(key.reduce_rule);
+  }
+};
+
+struct StateEdgeRange {
+  GrammarTerminal range;
+  StateEdge edge;
+
+  bool operator<(const StateEdgeRange& rhs) const {
+    // We only compare range here and do not look at edge because we use the range
+    // effectively as a key (almost like a map, except it's not a specific value it's a range)
+    // However we're storing this in a vector for performance and coherency
+    return range < rhs.range;
+  }
+
+  // Used to binary search ids in a sorted vector of ranges
+  bool operator<(uint32_t id) const {
+    if (range.end < id) {
+      return true;
+    }
+    return false;
+  }
+
+  bool operator==(const StateEdgeRange& rhs) const {
+    return range == rhs.range && edge == rhs.edge;
+  }
+};
+
+template <>
+struct std::hash<StateEdgeRange> {
+  std::size_t operator()(const StateEdgeRange& key) const {
+    return std::hash<GrammarTerminal>()(key.range) ^ std::hash<StateEdge>()(key.edge);
+  }
+};
+
+struct StateTransitions {
+  // These edges are sorted by the start symbol so that you can use binary search to find
+  // There will never be any overlap in edges with ranges
+  std::vector<StateEdgeRange> range_edges;
+  // For non-ranges we can use a more optimal hash map to directly move to an edge
+  std::unordered_map<uint32_t, StateEdge> direct_edges;
+
+  bool operator==(const StateTransitions& rhs) const {
+    return range_edges == rhs.range_edges && direct_edges == rhs.direct_edges;
+  }
+};
+
+template <>
+struct std::hash<std::vector<StateEdgeRange>> {
+  std::size_t operator()(const std::vector<StateEdgeRange>& key) const {
+    std::size_t hash = 0;
+    for (const auto& value : key) {
+      hash ^= std::hash<StateEdgeRange>()(value);
+    }
+    return hash;
+  }
+};
+
+template <>
+struct std::hash<std::unordered_map<uint32_t, StateEdge>> {
+  std::size_t operator()(const std::unordered_map<uint32_t, StateEdge>& key) const {
+    std::size_t hash = 0;
+    for (const auto& value : key) {
+      hash ^= std::hash<uint32_t>()(value.first);
+      hash ^= std::hash<StateEdge>()(value.second);
+    }
+    return hash;
+  }
+};
+
+template <>
+struct std::hash<StateTransitions> {
+  std::size_t operator()(const StateTransitions& key) const {
+    return std::hash<std::vector<StateEdgeRange>>()(key.range_edges) ^
+      std::hash<std::unordered_map<uint32_t, StateEdge>>()(key.direct_edges);
+  }
+};
+
+template <>
+struct std::hash<const StateTransitions*> {
+  std::size_t operator()(const StateTransitions* const& key) const {
+    return std::hash<StateTransitions>()(*key);
+  }
+};
+
+template <>
+struct std::equal_to<const StateTransitions*> {
+  std::size_t operator()(const StateTransitions* const& lhs, const StateTransitions* const& rhs) const {
+    return *lhs == *rhs;
+  }
+};
+
+struct State {
+  // This is a pointer because there are many states
+  // that share the same exact set of transitions
+  // This is effectively ACTION[state, terminal] in the dragon book
+  // Note that as we build the states, every one gets their own transitions
+  // At the end however we will compact/allocate/share these inside the Table
+  const StateTransitions* transitions = new StateTransitions();
+
+  // We never need to share these as there will never be a goto that has the same state within it
+  // This is effectively GOTO[state, rule] in the dragon book
+  std::unordered_map<const GrammarNonTerminal*, const State*> reductions;
+
+  // This is useful for debug printing and tracking back to the source
+  const GrammarSymbol* symbol = nullptr;
+};
+
+struct Table {
+  static std::atomic<uint32_t> allocated_count;
+
+  Grammar grammar;
+  std::vector<State> states;
+  std::vector<StateTransitions> shared_transitions;
+};
+std::atomic<uint32_t> Table::allocated_count = 0;
+
+
+std::string debug_str_header(const State& state, const Table& table, uint8_t* userdata, ParserTableIdToString to_string) {
+  std::stringstream stream;
+  size_t state_index = &state - table.states.data();
+  stream << "state(" << state_index;
+  if (state.symbol) {
+    stream << ", " << debug_str(*state.symbol, userdata, to_string);
+  }
+  stream << ")";
+  return stream.str();
+}
+
+// Only call this on edges/states that have been compacted withing the table
+std::string debug_str(const StateEdge& edge, const Table& table, uint8_t* userdata, ParserTableIdToString to_string) {
+  std::stringstream stream;
+  if (edge.reduce_rule) {
+    LR0Item reduce {
+      .rule_index = (uint32_t)(edge.reduce_rule - table.grammar.rules.data()),
+      .symbol_index = edge.reduce_rule->symbols.size()
+    };
+    stream << "reduce(" << debug_str(reduce, table.grammar, userdata, to_string) << ")";
+  } else {
+    assert(edge.shift_state);
+    assert(!edge.reduce_rule);
+    stream << debug_str_header(*edge.shift_state, table, userdata, to_string);
+  }
+  return stream.str();
+}
+
+// Only call this on transitions that have been compacted withing the table
+std::string debug_str(const StateTransitions& transitions, const Table& table, uint8_t* userdata, ParserTableIdToString to_string) {
+  std::stringstream stream;
+  for (auto& edge : transitions.direct_edges) {
+    stream << "  edge(";
+    debug_append_id(edge.first, stream, userdata, to_string);
+    stream << ", " << debug_str(edge.second, table, userdata, to_string) << ")\n";
+  }
+  for (auto& edge : transitions.range_edges) {
+    stream << "  edge(";
+    stream << debug_str(edge.range, userdata, to_string);
+    stream << ", " << debug_str(edge.edge, table, userdata, to_string) << ")\n";
+  }
+  return stream.str();
+}
+
+// Only call this on states that have been compacted withing the table
+std::string debug_str(const State& state, const Table& table, uint8_t* userdata, ParserTableIdToString to_string) {
+  std::stringstream stream;
+
+  stream << debug_str_header(state, table, userdata, to_string);
+  stream << ":\n";
+  stream << debug_str(*state.transitions, table, userdata, to_string);
+  
+  for (auto& goto_reduction : state.reductions) {
+    stream << "  goto(" << goto_reduction.first->name;
+    stream << ", " << debug_str_header(*goto_reduction.second, table, userdata, to_string) << ")\n";
+  }
+
+  return stream.str();
+}
+
+std::string debug_str(const Table& table, uint8_t* userdata, ParserTableIdToString to_string) {
+  std::stringstream stream;
+
+  stream << "~~~~~~~~~~\n";
+  for (auto& state : table.states) {
+    stream << debug_str(state, table, userdata, to_string) << "\n";
+  }
+
+  stream << "..........\n";
+  return stream.str();
+}
+
+std::set<std::set<LR0Item>> parser_table_lr0_items(Table& table, uint8_t* userdata, ParserTableIdToString to_string) {
   std::set<LR0Item> starting = {
     LR0Item{0, 0}
   };
+  Grammar& grammar = table.grammar;
   parser_table_closure(grammar, nullptr, starting);
+
+  std::vector<std::pair<uint32_t, const std::set<LR0Item>*>> unprocessed;
+  // Make estimates on how much space we'll use
+  unprocessed.reserve(grammar.rules.size());
+  table.states.reserve(grammar.rules.size());
 
   std::set<std::set<LR0Item>> states; // C in dragon book
   auto start_result = states.insert(std::move(starting));
+  table.states.emplace_back();
 
-  std::vector<const std::set<LR0Item>*> unprocessed {
-    &*start_result.first
-  };
+  unprocessed.push_back(std::pair<uint32_t, const std::set<LR0Item>*>(0, &*start_result.first));
+
+  // TODO(trevor): Horrible, remove this with the builder stuff
+  std::map<std::set<LR0Item>, uintptr_t> state_to_index;
   
   while (!unprocessed.empty()) {
-    const std::set<LR0Item>* state = unprocessed.back(); // I in dragon book
+    auto pair = unprocessed.back(); // I in dragon book;
+    State& dfa_state = table.states[pair.first];
+    const std::set<LR0Item>* state = pair.second;
     unprocessed.pop_back();
     
     printf("state %s\n", debug_str(*state, grammar, userdata, to_string).c_str());
@@ -1295,26 +1520,44 @@ std::set<std::set<LR0Item>> parser_table_lr0_items(const Grammar& grammar, uint8
       // Our gotos should never be empty since we only query with symbols that are valid
       assert(!gotos.empty());
       printf("gotos %s\n", debug_str(gotos, grammar, userdata, to_string).c_str());
-      auto result = states.insert(std::move(gotos));
+      auto result = states.insert(gotos);
+      // TODO(trevor): make this a move again
+      //auto result = states.insert(std::move(gotos));
+      uintptr_t next_dfa_index = 0;
       if (result.second) {
+        next_dfa_index = (uintptr_t)table.states.size();
+        state_to_index[gotos] = next_dfa_index;
+        State& next_dfa_state = table.states.emplace_back();
+        next_dfa_state.symbol = symbol;
         printf("added state\n");
-        unprocessed.push_back(&*result.first);
+        unprocessed.push_back(std::pair<uint32_t, const std::set<LR0Item>*>(next_dfa_index, &*result.first));
+      } else {
+        next_dfa_index = state_to_index[gotos];
+      }
+
+      if (symbol->non_terminal) {
+        dfa_state.reductions[symbol->non_terminal] = (State*)next_dfa_index; // Realign State*
+      } else {
+        // Note we remove const while building the transitions
+        StateTransitions* transitions = const_cast<StateTransitions*>(dfa_state.transitions);
+        if (symbol->terminal.start == symbol->terminal.end) {
+          // We can't directly use State*'s as the array can be resized
+          transitions->direct_edges[symbol->terminal.start] = StateEdge {
+            .shift_state = (State*)next_dfa_index // Realign State*
+          };
+        } else {
+          transitions->range_edges.push_back(StateEdgeRange {
+            .range = symbol->terminal,
+            .edge = StateEdge {
+              .shift_state = (State*)next_dfa_index // Realign State*
+            },
+          });
+        }
       }
     }
   }
-
   return states;
 }
-
-//std::set<LR0Item> parser_table_kernel_items(const std::set<LR0Item>& items) {
-//  std::set<LR0Item> result;
-//  for (auto& item : items) {
-//    if (parser_table_is_kernel_item(item)) {
-//      result.insert(item);
-//    }
-//  }
-//  return result;
-//}
 
 struct GrammarSets {
   // Sized exactly to the size of the the Grammar's non_terminals
@@ -1417,16 +1660,6 @@ struct LR1Item : LR0Item {
     return lookahead < rhs.lookahead;
   }
 };
-
-std::set<LR0Item> parser_table_lr0_kernels_from_lr1_items(const std::set<LR1Item>& items) {
-  std::set<LR0Item> result;
-  for (const LR1Item& lr1_item : items) {
-    if (parser_table_is_kernel_item(lr1_item)) {
-      result.insert(lr1_item);
-    }
-  }
-  return result;
-}
 
 std::string debug_str(const LR1Item& item, const Grammar& grammar, uint8_t* userdata, ParserTableIdToString to_string) {
   std::stringstream stream;
@@ -1543,12 +1776,15 @@ struct LR0ItemInKernelState {
 };
 
 void parser_table_lalr_lookaheads(
-  const Grammar& grammar,
+  Table& table,
   const GrammarSets& sets,
   const std::set<std::set<LR0Item>>& kernel_states,
+  const std::map<std::set<LR0Item>, uint32_t>& kernel_state_indices,
   uint8_t* userdata,
   ParserTableIdToString to_string
 ) {
+  const Grammar& grammar = table.grammar;
+
   // Note: We could use unordered_map but we have to make a copy for lookahead_terminals instead of a reference
   //std::unordered_map<LR0Item, std::vector<GrammarTerminal>, LR0ItemHash> lookaheads;
   std::map<LR0ItemInKernelState, std::set<GrammarTerminal>> lookaheads;
@@ -1600,7 +1836,7 @@ void parser_table_lalr_lookaheads(
         parser_table_filter_kernels_only(goto_state_lr1);
         assert(goto_state_lr1.size() != 0);
         printf("GOTO KERNELS: %s\n", debug_str(goto_state_lr1, grammar, userdata, to_string).c_str());
-        std::set<LR0Item> goto_state_lr0 = parser_table_lr0_kernels_from_lr1_items(goto_state_lr1);
+        std::set<LR0Item> goto_state_lr0(goto_state_lr1.begin(), goto_state_lr1.end());
         assert(goto_state_lr0.size() != 0);
 
         // The goto LR0 items should combine to make a state that exists in our kernel states
@@ -1654,7 +1890,7 @@ void parser_table_lalr_lookaheads(
 
     // PRINT DEBUG LOOKAHEADS
     printf("LOOKAHEADS:\n");
-    for (auto entry : lookaheads) {
+    for (auto& entry : lookaheads) {
       printf("ITEM: %s\n", debug_str(entry.first.item, grammar, userdata, to_string).c_str());
       printf("IN: %s\n", debug_str(entry.first.kernel_state, grammar, userdata, to_string).c_str());
       for (const auto& lookahead : entry.second) {
@@ -1676,6 +1912,88 @@ void parser_table_lalr_lookaheads(
       }
     }
   } while(has_changed);
+
+  // Finally, take care of all the reduce transitions since we now know the lookaheads
+  for (auto& entry : lookaheads) {
+    const GrammarRule& rule = grammar.rules[entry.first.item.rule_index];
+
+    // If this is a reduction (the dot is at the end of the production / no grammar symbols left)
+    if (entry.first.item.rule_index != 0 && entry.first.item.symbol_index == rule.symbols.size()) {
+      auto found = kernel_state_indices.find(entry.first.kernel_state);
+      assert(found != kernel_state_indices.end());
+      size_t state_index = found->second;
+      State& state = table.states[state_index];
+
+      // For each lookahead
+      for (auto& lookahead_terminal : entry.second) {
+        // Note we remove const while building the transitions
+        StateTransitions* transitions = const_cast<StateTransitions*>(state.transitions);
+        if (lookahead_terminal.start == lookahead_terminal.end) {
+          // We can't directly use State*'s as the array can be resized
+          transitions->direct_edges[lookahead_terminal.start] = StateEdge {
+            .reduce_rule = &rule
+          };
+        } else {
+          transitions->range_edges.push_back(StateEdgeRange {
+            .range = lookahead_terminal,
+            .edge = StateEdge {
+              .reduce_rule = &rule
+            },
+          });
+        }
+      }
+    }
+  }
+
+  std::unordered_map<const StateTransitions*, uintptr_t> shared_transitions;
+  // We'll never have more transitions than states
+  shared_transitions.reserve(table.states.size());
+
+  for (auto& state : table.states) {
+    // Before we try to handle any of the transitions / state realigning
+    // we first put them all in a set to see which ones are unique (share them)
+    // We also point to an index into the table.shared_transitions vector
+    uintptr_t new_index = (uintptr_t)shared_transitions.size();
+    auto result = shared_transitions.insert(
+      std::pair<const StateTransitions*, uintptr_t>(state.transitions, new_index));
+    // If this is the first time we've seen this set of transitions (we inserted it)
+    if (result.second) {
+      state.transitions = (StateTransitions*)new_index; // Realign StateTransitions*
+    } else {
+      // If we already have a transitions with the same values (delete and share)
+      delete state.transitions;
+      state.transitions = (StateTransitions*)result.first->second; // Realign StateTransitions*
+    }
+  }
+
+  // Now we know exactly how many transitions we have after sharing
+  // Move them all into a single array
+  table.shared_transitions.resize(shared_transitions.size());
+  for (auto& transitions : shared_transitions) {
+    table.shared_transitions[transitions.second] = std::move(*const_cast<StateTransitions*>(transitions.first));
+    delete transitions.first;
+  }
+
+  printf("REDUCED SHARED TRANSITIONS: %d to %d\n", (int)table.states.size(), (int)shared_transitions.size());
+
+  // Perform re-aligning of all State* values and compacting the transitions
+  for (auto& state : table.states) {
+    // Re-align shared transitions pointers to point inside the table
+    state.transitions = &table.shared_transitions[(const uintptr_t)state.transitions];
+
+    // Perform state relaignment for all transitions (direct and ranges)
+    for (auto& direct : const_cast<StateTransitions*>(state.transitions)->direct_edges) {
+      direct.second.shift_state = &table.states[(const uintptr_t)direct.second.shift_state];
+    }
+    for (auto& range : const_cast<StateTransitions*>(state.transitions)->range_edges) {
+      range.edge.shift_state = &table.states[(const uintptr_t)range.edge.shift_state];
+    }
+
+    // Perform state relaignment for all reductions
+    for (auto& reduction : state.reductions) {
+      reduction.second = &table.states[(const uintptr_t)reduction.second];
+    }
+  }
 }
 
 char* parser_table_utf8_id_to_string(uint8_t* userdata, uint32_t id) {
@@ -1689,85 +2007,34 @@ char* parser_table_utf8_id_to_string(uint8_t* userdata, uint32_t id) {
   return (char*)str_mem;
 }
 
-struct State;
-struct StateEdge {
-  const State* shift_state = nullptr;
-  const GrammarRule* reduce_rule = nullptr;
-  // TODO(trevor): Error edges / recovery
-};
-
-struct StateEdgeRange {
-  GrammarTerminal range;
-  StateEdge edge;
-
-  bool operator<(const StateEdgeRange& rhs) const {
-    // We only compare range here and do not look at edge because we use the range
-    // effectively as a key (almost like a map, except it's not a specific value it's a range)
-    // However we're storing this in a vector for performance and coherency
-    return range < rhs.range;
-  }
-
-  // Used to binary search ids in a sorted vector of ranges
-  bool operator<(uint32_t id) const {
-    if (range.end < id) {
-      return true;
-    }
-    return false;
-  }
-};
-
-struct StateTransitions {
-  // These edges are sorted by the start symbol so that you can use binary search to find
-  // There will never be any overlap in edges with ranges
-  std::vector<StateEdgeRange> range_edges;
-  // For non-ranges we can use a more optimal hash map to directly move to an edge
-  std::unordered_map<uint32_t, StateEdge> direct_edges;
-
-  // TODO(trevor): Need to be able to hash this and join them
-};
-
-struct State {
-  // This is a pointer because there are many states
-  // that share the same exact set of transitions
-  // This is effectively ACTION[state, terminal] in the dragon book
-  const StateTransitions* transitions = nullptr;
-
-  // We never need to share these as there will never be a goto that has the same state within it
-  // This is effectively GOTO[state, rule] in the dragon book
-  std::unordered_map<const GrammarRule*, const State*> reductions;
-
-  // This is useful for debug printing and tracking back to the source
-  const GrammarSymbol* symbol = nullptr;
-};
-
-struct Table {
-  static std::atomic<uint32_t> allocated_count;
-
-  std::vector<State> states;
-  std::vector<StateTransitions> transitions;
-};
-std::atomic<uint32_t> Table::allocated_count = 0;
-
 Table* parser_table_create(
   TowerNode* root,
   uint8_t* userdata,
   ParserTableResolveReference resolve,
   ParserTableIdToString to_string
 ) {
-  Grammar grammar;
-  parser_grammar_create(&grammar, root, userdata, resolve);
+  void* memory = tower_memory_allocate(sizeof(Table));
+  ++Table::allocated_count;
+  Table* table = new (memory) Table();
 
-  auto states = parser_table_lr0_items(grammar, userdata, to_string);
+  Grammar& grammar = table->grammar;
+  parser_grammar_create(grammar, root, userdata, resolve);
+
+  auto states = parser_table_lr0_items(*table, userdata, to_string);
   std::set<std::set<LR0Item>> kernel_states;
+  std::map<std::set<LR0Item>, uint32_t> kernel_state_indices;
 
   printf("completed - states: %zu\n", states.size());
+  size_t state_index = 0;
   for (auto it = states.begin(); it != states.end();) {
     printf("%s\n", debug_str(*it, grammar, userdata, to_string).c_str());
     auto state = std::move(states.extract(it++).value());
     parser_table_filter_kernels_only(state);
     assert(!state.empty());
+    kernel_state_indices[state] = state_index;
     printf("KERNELS ONLY: %s\n", debug_str(state, grammar, userdata, to_string).c_str());
     kernel_states.insert(std::move(state));
+    ++state_index;
 
     // TODO(trevor): Build the actual final states here for the table
     // We know kernel_states is the same size as states, and the indices will always match up
@@ -1793,6 +2060,7 @@ Table* parser_table_create(
     // or... we know it's a reduce but we don't know the lookahead yet
 
     // maybe we can hold off on create reduce edges until the end when we have the lookahead
+    // PAGE 265!
   }
 
   GrammarSets sets;
@@ -1803,14 +2071,11 @@ Table* parser_table_create(
 
   printf("%s\n", debug_str(sets, grammar, userdata, to_string).c_str());
 
-  parser_table_lalr_lookaheads(grammar, sets, kernel_states, userdata, to_string);
+  parser_table_lalr_lookaheads(*table, sets, kernel_states, kernel_state_indices, userdata, to_string);
 
-  //void* memory = tower_memory_allocate(sizeof(Table) + userdata_bytes);
-  //++Table::allocated_count;
-  //Table* table = new (memory) Table();
-  //return table;
+  printf("%s\n", debug_str(*table, userdata, to_string).c_str());
 
-  return nullptr;
+  return table;
 }
 
 void parser_table_destroy(Table* table) {
@@ -1824,14 +2089,13 @@ void parser_table_destroy(Table* table) {
 }
 
 struct Recognizer {
-  std::vector<State*> stack;
+  std::vector<const State*> stack;
 
   // TODO(trevor): The recgonizer needs to hold on to these (reference count?)
   Stream* stream = nullptr;
 
-  // Note thhat we never actually use the table, we just need to keep the states inside the table alive
+  // Note that we never actually use the table, we just need to keep the states inside the table alive
   const Table* table = nullptr;
-  const Grammar* grammar = nullptr;
 };
 
 Recognizer* parser_recognizer_create(Table* table, Stream* stream) {
@@ -1882,8 +2146,8 @@ TowerNode* parser_recognizer_step(Recognizer* recognizer, bool* running) {
       assert(recognizer->stack.size() > found_edge->reduce_rule->symbols.size());
       size_t erase_index = recognizer->stack.size() - found_edge->reduce_rule->symbols.size();
       recognizer->stack.erase(recognizer->stack.begin() + erase_index, recognizer->stack.end());
-      State* top_state = recognizer->stack.back();
-      auto found_reduction = top_state->reductions.find(found_edge->reduce_rule);
+      const State* top_state = recognizer->stack.back();
+      auto found_reduction = top_state->reductions.find(found_edge->reduce_rule->non_terminal);
       // We should always find it otherwise we built the table wrong
       assert(found_reduction != top_state->reductions.end());
       // The next state is the dictated by the GOTO[state, 
