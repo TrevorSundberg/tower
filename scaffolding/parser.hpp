@@ -237,7 +237,8 @@ char* parser_table_utf8_id_to_string(uint8_t* userdata, uint32_t id);
 // Note that the parser does not hold on to the tree, and changes no reference counts
 // The resolve callback is optional (null), and is used to resolve named references when they don't
 // refer to another rule (canonically when a parser refers to token's by rule index)
-// The table does not hold on to the userdata, it is only used for reference resolving
+// The table only uses the resolve callback while building the table and will not be called again
+// However the userdata and to_string will be stored with the table for error reporting and debug
 // The tree should take the following format:
 /*
 type ParseRules = {

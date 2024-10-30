@@ -250,6 +250,9 @@ So we also want a way to say that a node
   //z = 5;
 ```
 
+5 => run(
+)
+
 When I uncomment `z = 5;`, rust can trace the dependency chain of types
 
 y depeneds on the return type of test
@@ -7064,8 +7067,36 @@ if (a % 2 == 0) {
     // a: i32 & proof(a % 2 == 0 && a >= 0 && a < 100)
     // Now we know a is an even number between 0 and 100 exclusively
     
+
+    
+    b: i32 & proof(b > 5 && b < 10 & b & ~0x01);
+
+    a = b;
   }
 }
+
+
+
+
+
+interface Foo {
+  kind = "player";
+  health: f32;
+}
+
+interface Foo {
+  kind = "enemy"
+  lives: i32
+}
+
+
+let a : Foo = ..;
+
+
+if (a.kind == "player") {
+  a.
+}
+
 
 how do we compare two conditionals?
  - it's like you need to evaluate possibilities, find a counter proof, not sure...
@@ -7432,6 +7463,12 @@ if something had side effects that changed globalvar, that would be so odd...
 have to really think this all through, but I think there's a happy medium solution that makes sense
  - doing the pointer thing where pointers allow a waiting task, kinda cool...
 
+
+going back to this idea, what if we have scopes that can have dependency ordering, not just top to bottom
+hmm I dunno, I just like the idea that our main is really just like file scope
+ and types defined in file scope can somehow traverse, or maybe we have a special keyword for it
+ const pure compiletime.... CPC
+
 ------------------
 a side note, I think the idea I was trying to convey is that {} is a way to initialize an object
  - but if we initialize it entirely with compiletime types as the members, shouldn't the whole thing be a compiletime
@@ -7457,6 +7494,7 @@ I like this idea, think more on it, especially if like the members were just nam
 it means that ideally, functions that create types are both pure and compiletime
  - for the same inputs, it will never generate a different type, determanistic
  - because we enforce pointers and safety, then as long as you only pass const compiletime values
+
 
 ---------------------
 at some point we should support code-gen for our lalr parser, plus codegen for regex / DFA
@@ -7485,9 +7523,458 @@ so when we get to seeing a, it's like we temporarily push on custom parse rules 
 
 ultimately they are just compiletime parse rules!
 
+-----------------------------
+
+compiletime bool visible(BoundType* looker, BoundType* target) {
+  looker->namespace == "
+}
+
+let a = 5 + 5;
+
+
+let Player: compeletime type = {
+
+};
+
+let i32: compiletime type = 
+
+let a = {
+  b: i32
+};
+-------------
+Talking with Josh:
+
+read about rust transmutes
+Sean Baxter - circle
+inochi 2d
+
+opt into compiletime safety
+
+
+let a = tagged(Enemy* | Player*) = ;
+
+
+// Based on https://www.geeksforgeeks.org/topological-sorting/
+// as well as https://www.geeksforgeeks.org/detect-cycle-in-a-graph/
+
+
+compiletime TowerNode* = tree(a)
+
+-------------
+
+if you mutate the tree, isn't it a little odd since things may be relying on it while you're mutating it...
+it's kind of like transactions, we want to mutate it at a time where it's ready to be mutable
+ - nobody is looking at it
+ - like delayed destruction
+
+if we have the language be more like nodejs, with a task runtime that you need to pump
+ - we can still just have main start/end program as usual
+ - but if there are tasks pending, the runtime runs them
+ - and in between is how we do async
+ - as well as publish any pending tree changes
+ - that means we need to be able to lock trees and perform replacements without reparenting...
+ - but I really love the idea that if we wanted to add memory safety, we include it
+   - and the include goes through and physically modifies the trees or the definition of pointers and allocate
+   - like extreme monkey patching
+
+I think what I've decided is this:
+ - it's not like zig, the runtime safety is always enforced
+ - however, you can disable it with unsafe sections
+   - or alternatively, you can use proofs to ensure that you'll never do anything wrong
+   - number ranges, etc
+
+---------------------
+Side note, I really liked the idea that {...} was actually just a tower node...
+ - it's sort of like a json object, and we can index it dynamically too (has all the type defines to do that)
+ - but for us, it's also the struct definition
+
+let t = {
+
+}; // compiletime is inferred since everything we use is compiletime
+
+let f: t = {
+};
+
+I think we really are just trying to figure out what types look like as tower nodes
+ - because we also want i32 to be a type, and just a tower node itself
+ - how is size computed, how are member alignments computed, etc
+
+Maybe {} is a tower node with a struct component on it
+ - I love the fact that Struct would be a component that implements some of a Type interface
+ - the task associated with computing the layout of the struct
+ - 
+
+{
+  test: i32,
+  Struct;
+}
+// hmm I don't like that...
+
+// I don't mind this, but I also would love it if it was just {} somehow
+struct {
+}
+
+
+or maybe...
+
+
+let struct = {
+  has Struct;
+};
+
+// INTERESTING, THIS WORKS WITH OUR EXTENDING SYNTAX!!
+struct {
+}
+
+// And maybe Struct is implicitly constructable as a component, so we auto add it?
+
+hmm, I like it so far
+
+We have to have layout computed at some point
+
+Maybe all tower nodes need hashes for changes
+
+because our Struct component implicitly has a dependency on every child member it has
+ - as well as every newly added member
+ - basically any changes causes a recompute
+
+is this at all similar to imgui / react?
+ - like, when any input changes, we recompute everything...
+
+
+it means that yeah, when we modify the struct definition, anyone that relied on it needs to update
+ - but a question...
+
+
+let t = {
+  a: i32
+}; // compiletime, pure, but not const!
+
+let f: t = {// error: missing member b
+  a: 123
+};
+
+t.b = i32; // legal
+
+
+t.b = default(i32, 0); // legal, now no longer an error
+// since this specialization of i32 is defaulty constructable (it's also a copy)
+
+
+NOTE:
+
+
+let t = {
+  a: i32 = 123
+};
+
+// This: i32 = 123 is the same as default(i32, 0)
+// Note that the 0 is actually like a lambda, you can also do expressions
+
+let t = {
+  a: i32 = ++Player.counter
+};
+
+// This: i32 = 123 is the same as default(i32, ++Player.counter)
+// Note that the 0 is actually like a lambda, you can also do expressions
+
+
+t.b = default(i32, 0); // legal, now no longer an error
+// since this specialization of i32 is defaulty constructable (it's also a copy)
+
+forces the struct to recompute layout, and all dependencies upon that struct must recompute
+since `f` is using `t` directly as its type, f must recompute
+
+I wonder if overlaying component trees should be a feature of tower
+ - e.g., like lua meta tables in a way
+ - I mean maybe tower nodes should just be meta tables themselves
+ - but basically if one tower node can have it's own components that come first, and as a fallback query another node
+ - would only work if the number of children was matching
+   - can have overlay modes, like overlay children by same name/index
+   - or add children by indices together in one larger list, A first then B
+   - etc
+ - I just see & types as kind of being like this thing that we want to extend constantly, but not make copies everywhere
+ - maybe that's why we just put them as children in a tree, e.g. A & proof, we're not overlaying proof, we're just making
+   a new tree with & as the parent, A is it's own type, proof is it's own type
+ - we just have to do comparison work to make them appear like a single type
+
+ - we can make a pass that simplifies proofs together, etc
+--------------------------------
 
 
 
+a random idea, what if we could promote a runtime value into a compile time value
+ - by invoking the compiler on the same code
+ - like, we examine the value at the current time and snapshot it, ok it's `123`
+ - has to have no external references (value typed, pure)
 
 
+
+hmmmmmm!!!
+I know obviously about pure functions, but something about pure functions is that their inputs must not have
+external references, that could even mean memory...
+
+however, we don't allow our memory to point at unsafe locations
+ - so the only other problem is that we need ALL inputs to be the exact same, no reading random global memory
+ - so maybe a pure input is one who may have external references, but it's an island, like in physics
+ - all pointers only point internally within the island (may be many allocations)
+ - maybe one of them is the pointer, kind of like a topological sort... dag
+ - maybe like a root owner, internals can also point at the root
+ - but two roots can't be joined together
+ - roots could be explicit types, but I wonder if they can just be GC roots too...
+ - I do like that it's like a movable structure...
+
+so the idea would be that we can call the pure function, but the input must be const, and must be an island
+ - so effectively that's what pure is, an island
+ - it can either be const (neither side can modify it)
+   - or it can be entirely moved into the pure function, in which it can do any manipulation it wants
+   - it can even return it, but it basically owns it for a time
+
+we basically need to be guaranteed it's serializable, or static/unchangable
+ - can it be changed after we call the pure function?
+ - I think we mainly just need to be able to identify it's uniqueness...?
+ - for caching / memoization purposes, we really just need to be able to hash / compare the whole thing
+
+---------------------
+I think trying to go direct to the final State/StateTransitions
+result was kind of stupid, we have to move all the states anyways, didn't save much
+
+I think we should make a "builder" version that has exactly what we need for simplifying the next steps
+ - use unique_ptr, etc where it makes sense
+ - builder can just use indices for everything
+ - can also hold a reference to the states
+
+can just store all the edges in the same set, can optimize it later but just need to compare
+
+Well now that we're on the idea, what should our set structure look like
+ - we use it in only two ways, one with kernel items only and one with everything (closure)
+ - parser_table_goto
+
+We never need to remove from the set (except when filtering kernel items)
+ - but we can just rebuild a new state for that anyways
+
+ - closure just adds items (ok)
+
+do we know a distinct spot where they must be sorted, or is it always?
+ - only when comparing
+ - but insert needs to check if it's in there already
+
+insert can do a linear walk
+ - but comparison of two sets definately needs sorted, for lexographic
+
+set comparison could be faster since we have indices...
+ - actually lexographic comparison should be very fast
+ - compare that two 
+
+also a side note, once these are built, we can use indices for states so we never need to use a full set as a key
+
+
+very few kernel items per state, so insertion sort should be fast
+
+if we knew that two sets, even not sorted, had the same count of LR items
+ - we could then write to a big bool array or bit vector, like a preallocated thing for each rule and symbol
+ - we walk one set, marking every symbol as true
+ - then we walk the other set, and make sure every symbol is set to true
+ - then clear the first ones back to false (temporary scratch space)
+
+can also have an unordered_map... can we just compare those?
+ - technically they should be in the exact same spots with the same keys...
+ - unordered_set
+
+I mean, we can just say fuck it and switch to unordered everything
+
+I really just wanted it for consistency but fuck it really
+ - it's not non-determanistic, just kinda unpredictable, but... who cares
+
+I mean yeah... why not
+
+if I really wanted to preserve iteration order, I would use a hash map with an intrusive linked list on node's
+ - so it can remember order of insertion
+ - I really would like this
+
+My hash function for unordered_set might actually suck ass now that I think of it...
+
+weird side note, an lr item points at a grammar symbol, and every grammar symbol is unique
+ - technically a grammar symbol can know it's lr item
+ - except we don't have one at the end (we can make a fake one at the tail / terminator)
+   - and it's easy to get the lr item from that too as long as they have their indices
+ - and I think what I'm saying is that the pointer value itself can be faster
+   - but now that's reaaaaally non-determansitic
+ - funny though in wasm it's a little more determanistic I think, probably not randomized addresses?
+
+the result should always be the same no matter what... it's just the order is a little wonky
+yeah I don't like that, it would annoy me
+now that I think about it, I should make a tradeoff here for speed
+ - at the end of the day, I want this to be debugabble and determansitic
+
+I think the sorted std::vector is just the best idea
+
+TableBuilder holds StateBuilders indexed by state
+
+since these are builders, we can over-reserve (but it's mostly just to prevent move cascades, at least it's moved tho!)
+
+and StateBuilder we add edges, but we just use indices and ranges for everything
+the state builder also has the LR items, which will start off first as full sets
+ - but then we'll reduce them to kernel items (in place) I think (or into temporaries and then move back over)
+
+ - any time we insert an lritem into the set, we insertion sort it in
+
+and then we use lexographic compare to compare sets (linear in smallest time)
+
+quick sort is going to have to do the exact same thing
+ - literally we add 
+
+What if when we hashed, we only considered kernel items
+ - after all the rest are the same
+ - that actually kinda works?
+ - the only reason we had to convert an lr1 set to an lr0 set was to do the lookup
+
+so with this, we'd be able to look up the state
+
+- we can even modify the key (lr items) if we guarnatee the hash and compare don't change
+
+hmm, then lexographically compare needs to skip
+ - we already store kernel items at the front...
+
+so its' really just compare up to kernel ranges
+ - actually we can do that instead of ing std::end...
+ - walk each just to get the first non-kernel item
+
+the idea I had when I was out, the LR sets should store kernel items separately
+- delete lr0item comparison, make sure we no longer need it (kernel comparison)
+
+----------
+at runtime you should be able to read in a value / values, and then create types from those (even ranges, etc)
+ - then recompile parts of code with inlined values
+ - when an engine reads in tweakables at the beginning, global "values", we can compile those all out at start
+   - I really like the idea of "memoize" except it means make it compiletime...such an interesting concept
+ - moreover, if we know the change never affects layout or ABI, we can hot swap code (may need to exit stack?
+   - would be amazing if we could support patching low level assembly too (like what wasm jits to)
+ - I also love the idea of compiling ABI compatable code in the background and hot swapping it.. so cool
+   (while assets are loading, etc!)
+   also just turning on optimizations is ABI compatable
+ - can compile a debug version first (not even debug, just like direct to wasm)
+
+ - as far as making a runtime value into compiletime,
+   it really just means pretending to recompile all the code as if that was the compiletime value
+ - the nice thing is we already have the v1 of code (compiled with the assumption that it's not compiletime)
+   - so we can always call that version, and then ideally fall back to the optimized version
+   - technically behavior could change if someone did something stupid like (if node(a).compiletime)
+   - but that's maybe where we just say it's your job to keep it the same
+ - and ultimately the user is the one who gets to either wait for the compiletime code to finish, or allow it to hot swap later
+ - can really apply to any expression
+
+ const v = await compiletime(readInt(stream));
+ // here v is just an i32, we don't know what it actually could be
+ // but we do know that the code will be optimized as if v was whatever value we read in
+ // kinda weird, if we don't await, we don't want v to be a promise, it should just be i
+ // or maybe implicitly convertable to the i32? I dunno hmm
+ // or the promise has the value on it, and it's also implicitly convertable, eh...
+
+side note, we should make forking a supported feature
+ - I mean you can spin off an empty sandbox if you want
+ - or even attempt to copy your own memory
+ - but forking would be awesome (still in the same program memory tho)
+   - or maybe not, maybe someone is down to come up with a dope multi-process isolated architecture for tower
+
+I just really love the idea of taking a heavy algorithm with inputs that some of them are 'cachable' / don't change often
+ - and then recompiling it as if some of those inputs were constants
+ - maybe it needs to be pure for that to be ok though
+ - but that's not a bad idea to require pure
+ - well one thing we know is that this 'optimization' can apply to ANY pure function
+   - we just need value type semantics (even for graphs of objects) to ensure the pure function can't look outside of all its inputs
+   - and that its inputs are effectively hashable / comparable
+ - it's also one of those things where like, it can't just be user comparable, it needs to be like equivalent of mem comparable
+   - but even for graphs of objects
+   - there can be no single difference between the graphs
+   - or if there is, it must not be accessable by the pure function
+   - maybe that's what we were talking about with the pure keyword on members...
+ - everything that's pure can only point internally, need to read my previous notes and think that all through
+ - but yeah pure functions can definately do that sort of memoization
+   - then again, pure functions can just remember the results too
+   - but that's remembering the results for ALL parameters / inputs
+   - this is the idea that like, some parameters may be constants, and like shaders, any compiletime constants can be compiled out
+     - down the entire call graph
+ - OH MY GLOB this is such a perfect feature for shader compositing with values that are 'constants' but tweakables
+   - every engine supports this, this would be built in to tower!
+
+AHH, side note, shaders must be pure!
+------------------
+another dumb idea side note, I love the idea that tower can support save-stating
+ - I need to think it through but I also think we can abuse the idea that some values become 'constants'
+ - and when we save state, we take any of these variables marked this way and automatically pretend at that point that they are constants
+ - obviously if they change, we need to switch the code we use
+
+but the idea would be that we could run the game, load all the assets, and then save state (everything in wasm memory)
+ - we also run it in a startup mode that preserves memory (e.g. vectors don't over allocate, etc)
+ - the memory allocator will attempt to compact / defrag, may be slower to allocate
+ - an idea there, anything that is technically allocated but now only pointed at by const pointers is open for optimization...
+
+-----------------
+
+next thing to do, make a general sorted vector for grammar terminals (FIRST set)
+
+After we're done, examine every use uint32_t and uintptr_t and size_t
+
+I think I should move the entire parser to it's own place so we can run tests...
+
+
+A side note on optimization, when we add the LR1 states we also add grammar symbols
+ - but many of the LR1 states are duplicates of LR0 states with different lookaheads
+
+GOTO: ==========
+[F = '(' •E ')' , #]
+[E = •E '+' T , ')']
+[E = •E '+' T , '+']
+[E = •T , ')']
+[E = •T , '+']
+[T = •T '*' F , ')']
+[T = •T '*' F , '*']
+[T = •T '*' F , '+']
+[T = •F , ')']
+[T = •F , '*']
+[T = •F , '+']
+[F = •'(' E ')' , ')']
+[F = •'(' E ')' , '*']
+[F = •'(' E ')' , '+']
+[F = •'1' , ')']
+[F = •'1' , '*']
+[F = •'1' , '+']
+----------
+
+we don't need to add grammar symbols for each LR1 state, only for each unique LR0 state
+ - all LR1 states with the same kernel will have the same grammar symbol
+ - we could separate out the insert call to insert grammar symbols separately from items...
+ - or alternatively, we simplify it into always being LR0 states with a separate lookaheads sorted vector for each...
+
+-----------
+
+I think we can remove the allocated count stuff, and just have one for memory
+
+---------
+
+Also I think we should come up with a better debug output thing, like start with it right away
+ - basically output graphviz style structures, but as minimal as possible
+ - like writing to a preallocated buffer
+ - and somehow what's written can be converted, like debug draw
+ - I mean right now printf debugging is fine, but I want a debug stream
+ - I really just want graphviz...
+
+------------
+Does the table really need to hold on to the grammar?
+ - or can the grammar be ephemeral so to speak, only created for the algorithm
+
+Right now beyond the builder, every state only holds on to the grammar rule and grammar symbol per state
+ - but holding the grammar symbol, there's no need for that, that just helps us identify the state
+
+and all we actually need from the grammar rule is the index and Rule* component
+ - and maybe the rule name, just for convenience
+
+------------
+side note, for the debug stuff, we can possibly use that for tests too
+ - but we'd need to remove the unordered_map
+ - can we know about rehashes?
+ - if our unordered map is just an index into an std::vector...
+
+- lets make the ordered map
 
