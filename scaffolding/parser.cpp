@@ -19,8 +19,6 @@ void parser_tests_internal();
 void parser_tests() {
   parser_tests_internal();
 
-  const size_t tower_node_initial_count = tower_node_get_allocated_count();
-  const size_t tower_component_initial_count = tower_component_get_allocated_count();
   const size_t tower_memory_initial_count = tower_memory_get_allocated_count();
 
   {
@@ -72,8 +70,6 @@ void parser_tests() {
     parser_stream_destroy(stream);
   }
   
-  assert(tower_node_get_allocated_count() == tower_node_initial_count);
-  assert(tower_component_get_allocated_count() == tower_component_initial_count);
   assert(tower_memory_get_allocated_count() == tower_memory_initial_count);
 
   // Test the rule component (create_subtree calls create + all setters)
@@ -89,8 +85,6 @@ void parser_tests() {
     tower_node_release_ref(root);
   }
 
-  assert(tower_node_get_allocated_count() == tower_node_initial_count);
-  assert(tower_component_get_allocated_count() == tower_component_initial_count);
   assert(tower_memory_get_allocated_count() == tower_memory_initial_count);
 
   // Test the reference component (create_subtree calls create + all setters)
@@ -105,8 +99,6 @@ void parser_tests() {
     tower_node_release_ref(root);
   }
 
-  assert(tower_node_get_allocated_count() == tower_node_initial_count);
-  assert(tower_component_get_allocated_count() == tower_component_initial_count);
   assert(tower_memory_get_allocated_count() == tower_memory_initial_count);
 
   // Test the string component (create_subtree calls create + all setters)
@@ -134,8 +126,6 @@ void parser_tests() {
     tower_node_release_ref(root);
   }
 
-  assert(tower_node_get_allocated_count() == tower_node_initial_count);
-  assert(tower_component_get_allocated_count() == tower_component_initial_count);
   assert(tower_memory_get_allocated_count() == tower_memory_initial_count);
 
   // Test the range component (create_subtree calls create + all setters)
@@ -151,8 +141,6 @@ void parser_tests() {
     tower_node_release_ref(root);
   }
 
-  assert(tower_node_get_allocated_count() == tower_node_initial_count);
-  assert(tower_component_get_allocated_count() == tower_component_initial_count);
   assert(tower_memory_get_allocated_count() == tower_memory_initial_count);
 
   // Test the match component (create_subtree calls create + all setters)
@@ -169,8 +157,6 @@ void parser_tests() {
     tower_node_release_ref(root);
   }
 
-  assert(tower_node_get_allocated_count() == tower_node_initial_count);
-  assert(tower_component_get_allocated_count() == tower_component_initial_count);
   assert(tower_memory_get_allocated_count() == tower_memory_initial_count);
 
   // Test infinite recursion (rules with no base case)
@@ -263,8 +249,6 @@ void parser_tests() {
   }
 */
 
-  assert(tower_node_get_allocated_count() == tower_node_initial_count);
-  assert(tower_component_get_allocated_count() == tower_component_initial_count);
   assert(tower_memory_get_allocated_count() == tower_memory_initial_count);
 /*
   // token E = E '+' T;
@@ -328,8 +312,6 @@ void parser_tests() {
   }
   */
 
-  assert(tower_node_get_allocated_count() == tower_node_initial_count);
-  assert(tower_component_get_allocated_count() == tower_component_initial_count);
   assert(tower_memory_get_allocated_count() == tower_memory_initial_count);
 
 
@@ -390,8 +372,6 @@ void parser_tests() {
     tower_node_release_ref(token_rules);
   }
 
-  assert(tower_node_get_allocated_count() == tower_node_initial_count);
-  assert(tower_component_get_allocated_count() == tower_component_initial_count);
   assert(tower_memory_get_allocated_count() == tower_memory_initial_count);
 
 /*
@@ -418,8 +398,6 @@ void parser_tests() {
   }
   */
 
-  assert(tower_node_get_allocated_count() == tower_node_initial_count);
-  assert(tower_component_get_allocated_count() == tower_component_initial_count);
   assert(tower_memory_get_allocated_count() == tower_memory_initial_count);
 }
 
@@ -744,15 +722,12 @@ TowerNode* parser_match_create_subtree(TowerNode* parent, uint32_t id, size_t st
 
 
 struct Stream {
-  static std::atomic<size_t> allocated_count;
   ParserStreamDestructor destructor = nullptr;
   ParserStreamRead read = nullptr;
 };
-std::atomic<size_t> Stream::allocated_count = 0;
 
 Stream* parser_stream_create(size_t userdata_bytes, ParserStreamDestructor destructor, ParserStreamRead read) {
   void* memory = tower_memory_allocate(sizeof(Stream) + userdata_bytes);
-  ++Stream::allocated_count;
   Stream* stream = new (memory) Stream();
   stream->destructor = destructor;
   stream->read = read;
@@ -763,7 +738,6 @@ void parser_stream_destroy(Stream* stream) {
   if (stream->destructor) {
     stream->destructor(stream, parser_stream_get_userdata(stream));
   }
-  --Stream::allocated_count;
   stream->~Stream();
   tower_memory_free(stream);
 }
@@ -1828,13 +1802,11 @@ struct State {
 };
 
 struct Table {
-  static std::atomic<size_t> allocated_count;
 
   Grammar grammar;
   std::vector<State> states;
   std::vector<StateTransitions> shared_transitions;
 };
-std::atomic<size_t> Table::allocated_count = 0;
 
 
 std::string debug_str_header(const State& state, const Table& table, const char* prefix = "state") {
@@ -2424,7 +2396,6 @@ Table* parser_table_create(
   ParserTableIdToString to_string
 ) {
   void* memory = tower_memory_allocate(sizeof(Table));
-  ++Table::allocated_count;
   Table* table = new (memory) Table();
 
   Grammar& grammar = table->grammar;
@@ -2460,13 +2431,11 @@ void parser_table_destroy(Table* table) {
     return;
   }
 
-  --Table::allocated_count;
   table->~Table();
   tower_memory_free(table);
 }
 
 struct Recognizer {
-  static std::atomic<size_t> allocated_count;
   std::vector<const State*> stack;
 
   // TODO(trevor): The recgonizer needs to hold on to these (reference count?)
@@ -2481,7 +2450,6 @@ struct Recognizer {
   size_t read_start = PARSER_ID_EOF;
   size_t read_length = 0;
 };
-std::atomic<size_t> Recognizer::allocated_count = 0;
 
 void parser_recognizer_read_id(Recognizer* recognizer) {
   // To start the algorithm, we must read in a single character (even if it's EOF)
@@ -2501,7 +2469,6 @@ void parser_recognizer_read_id(Recognizer* recognizer) {
 
 Recognizer* parser_recognizer_create(Table* table, Stream* stream) {
   void* memory = tower_memory_allocate(sizeof(Recognizer));
-  ++Recognizer::allocated_count;
   Recognizer* recognizer = new (memory) Recognizer();
   recognizer->stream = stream;
   recognizer->table = table;
@@ -2512,7 +2479,6 @@ Recognizer* parser_recognizer_create(Table* table, Stream* stream) {
 
 // Destructs the parser and frees it's memory
 void parser_recognizer_destroy(Recognizer* recognizer) {
-  --Recognizer::allocated_count;
   recognizer->~Recognizer();
   tower_memory_free(recognizer);
 }
