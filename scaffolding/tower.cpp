@@ -296,17 +296,17 @@ void tower_memory_free(void* memory) {
   free(memory);
 #else
   // Back up to the start of the allocation
-  uintptr_t* mem = ((uintptr_t*)memory) - 2;
+  size_t* mem = ((size_t*)memory) - 2;
 
   // Validate the first guard before checking size in case size has been corrupted
   assert(mem[1] == TOWER_MEMORY_GUARD);
 
-  uintptr_t size = mem[0];
-  uintptr_t end_guard_index = (size / sizeof(uintptr_t)) + 2;
+  size_t size = mem[0];
+  size_t end_guard_index = (size / sizeof(size_t)) + 2;
   assert(mem[end_guard_index] == TOWER_MEMORY_GUARD);
 
   // Clear the guards and all memory so that we can possibly detect double free
-  memset(mem, 0xFE, size + sizeof(uintptr_t) * 3);
+  memset(mem, 0xFE, size + sizeof(size_t) * 3);
   free(mem);
 #endif
 }
