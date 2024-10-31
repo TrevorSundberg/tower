@@ -4,43 +4,43 @@
 struct TowerNode;
 struct TowerComponent;
 
-const uint32_t TOWER_INVALID_INDEX = (uint32_t)-1;
+const size_t TOWER_INVALID_INDEX = (size_t)-1;
 
 // Run a suite of tests over tower nodes and components
 void tower_tests();
 
 
 // Allocate memory and return a pointer to it, or null if the allocation fails
-void* tower_memory_allocate(uintptr_t size);
+void* tower_memory_allocate(size_t size);
 
 // Free a pointer to allocated memory
 void tower_memory_free(void* memory);
 
 // Get how many tower allocations there have been
-uint32_t tower_memory_get_allocated_count();
+size_t tower_memory_get_allocated_count();
 
 
 // Get how many tower nodes are allocated
-uint32_t tower_node_get_allocated_count();
+size_t tower_node_get_allocated_count();
 
 // Construct a tower node at the specified location in memory
 // The reference count will be 1 (reference is returned to caller)
 TowerNode* tower_node_create();
 
 // Increment the reference count of a node in tower and returns the new count
-uint32_t tower_node_add_ref(TowerNode* node);
+size_t tower_node_add_ref(TowerNode* node);
 
 // Decrement the reference count of a node in tower and returns the new count
 // When the ref count reaches zero, the node and it's components will be destructed
 // Any child nodes that have no references holding them alive (or only weak references) will be destroyed
-uint32_t tower_node_release_ref(TowerNode* node);
+size_t tower_node_release_ref(TowerNode* node);
 
 // Get the current reference count of a tower node
-uint32_t tower_node_get_ref_count(TowerNode* node);
+size_t tower_node_get_ref_count(TowerNode* node);
 
 // Every tower node has a unique id that counts up from the start of the program
 // This is useful to uniquely identify a node without pointing at it, or to maintin creation order
-uint32_t tower_node_get_id(TowerNode* node);
+size_t tower_node_get_id(TowerNode* node);
 
 // Attach a child tower node to a parent, automatically detaching it from any parent it's attached to
 // If parent is null, then this will detach the child from any parent it's currently attached to
@@ -62,19 +62,19 @@ void tower_node_detach(TowerNode* child);
 TowerNode* tower_node_get_parent(TowerNode* child);
 
 // Return how many children the parent node has
-uint32_t tower_node_get_child_count(TowerNode* parent);
+size_t tower_node_get_child_count(TowerNode* parent);
 
 // Get a specfic child node by index, or null if it's out of range
 // Children cannot be null by themselves, so null always indicates out of range
 // This does NOT increment the reference count of the returned node
-TowerNode* tower_node_get_child(TowerNode* parent, uint32_t index);
+TowerNode* tower_node_get_child(TowerNode* parent, size_t index);
 
 // Get a specfic child node by member name, or null if the member is not found
 // This does NOT increment the reference count of the returned node
 TowerNode* tower_node_get_child_member(TowerNode* parent, const char* member_name);
 
 // Get the index of a specfic child node by member name, or TOWER_INVALID_INDEX if the member is not found
-uint32_t tower_node_get_child_member_index(TowerNode* parent, const char* member_name);
+size_t tower_node_get_child_member_index(TowerNode* parent, const char* member_name);
 
 // Get the member name of a specific child from the parent
 // The string memory is owned by the parent node, and will be destroyed if the parent
@@ -83,7 +83,7 @@ uint32_t tower_node_get_child_member_index(TowerNode* parent, const char* member
 const char* tower_node_get_parent_member_name(TowerNode* child);
 
 // Get the index of a specfic child node, or TOWER_INVALID_INDEX if the child has no parent
-uint32_t tower_node_get_parent_child_index(TowerNode* child);
+size_t tower_node_get_parent_child_index(TowerNode* child);
 
 // Lookup a component on a tower node by type id, or returns null if it's not found
 // This does NOT increment the reference count of the owner or the type
@@ -95,19 +95,19 @@ TowerComponent* tower_node_get_component(TowerNode* owner, TowerNode* type);
 uint8_t* tower_node_get_component_userdata(TowerNode* owner, TowerNode* type);
 
 // Return how many components the node has
-uint32_t tower_node_get_component_count(TowerNode* owner);
+size_t tower_node_get_component_count(TowerNode* owner);
 
 // Get a specfic component by index, or null if it's out of range
 // Components cannot be null by themselves, so null always indicates out of range
 // This does NOT increment the reference count of the owner
-TowerComponent* tower_node_get_component_by_index(TowerNode* owner, uint32_t index);
+TowerComponent* tower_node_get_component_by_index(TowerNode* owner, size_t index);
 
 
 // Virtual destructor for a component
 typedef void (*TowerComponentDestructor)(TowerComponent* component, uint8_t* userdata);
 
 // Get how many tower components are allocated
-uint32_t tower_component_get_allocated_count();
+size_t tower_component_get_allocated_count();
 
 // Construct a tower component at the specified location in memory
 // If a component of the same type exists, it will be returned instead
@@ -118,7 +118,7 @@ uint32_t tower_component_get_allocated_count();
 TowerComponent* tower_component_create(
   TowerNode* owner,
   TowerNode* type,
-  uint32_t data_bytes,
+  size_t data_bytes,
   TowerComponentDestructor destructor
 );
 

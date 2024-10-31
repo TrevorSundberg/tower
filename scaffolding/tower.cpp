@@ -7,9 +7,9 @@
 
 // The tests come first so that we don't see the definition of any structs
 void tower_tests() {
-  const uint32_t tower_node_initial_count = tower_node_get_allocated_count();
-  const uint32_t tower_component_initial_count = tower_component_get_allocated_count();
-  const uint32_t tower_memory_initial_count = tower_memory_get_allocated_count();
+  const size_t tower_node_initial_count = tower_node_get_allocated_count();
+  const size_t tower_component_initial_count = tower_component_get_allocated_count();
+  const size_t tower_memory_initial_count = tower_memory_get_allocated_count();
 
   // Attach child and release parent (destroys both)
   {
@@ -40,7 +40,7 @@ void tower_tests() {
     assert(tower_node_get_allocated_count() == tower_node_initial_count + 2);
 
     // Both parent and child are destroyed here
-    uint32_t parent_ref_count = tower_node_release_ref(parent);
+    size_t parent_ref_count = tower_node_release_ref(parent);
     assert(parent_ref_count == 0);
   }
 
@@ -68,7 +68,7 @@ void tower_tests() {
     assert(tower_node_get_allocated_count() == tower_node_initial_count + 1);
 
     // Release the last reference to the parent and destroy it
-    uint32_t parent_ref_count = tower_node_release_ref(parent);
+    size_t parent_ref_count = tower_node_release_ref(parent);
     assert(parent_ref_count == 0);
   }
 
@@ -92,9 +92,9 @@ void tower_tests() {
     assert(tower_node_get_allocated_count() == tower_node_initial_count + 2);
 
     // Release the last references to the parent and child and destroy both
-    uint32_t parent_ref_count = tower_node_release_ref(parent);
+    size_t parent_ref_count = tower_node_release_ref(parent);
     assert(parent_ref_count == 0);
-    uint32_t child_ref_count = tower_node_release_ref(child);
+    size_t child_ref_count = tower_node_release_ref(child);
     assert(child_ref_count == 0);
   }
 
@@ -155,7 +155,7 @@ void tower_tests() {
     assert(tower_node_get_child_member(parent, member2) == nullptr);;
   
     // Release the last reference to the parent and destroy the parent, as well as release child2
-    uint32_t parent_ref_count = tower_node_release_ref(parent);
+    size_t parent_ref_count = tower_node_release_ref(parent);
     assert(parent_ref_count == 0);
 
     // Since we held a reference to child2, it's still alive even though the parent died
@@ -167,9 +167,9 @@ void tower_tests() {
     assert(tower_node_get_parent(child2) == nullptr);
 
     // Release the and destroy the children
-    uint32_t child1_ref_count = tower_node_release_ref(child1);
+    size_t child1_ref_count = tower_node_release_ref(child1);
     assert(child1_ref_count == 0);
-    uint32_t child2_ref_count = tower_node_release_ref(child2);
+    size_t child2_ref_count = tower_node_release_ref(child2);
     assert(child2_ref_count == 0);
   }
 
@@ -237,45 +237,45 @@ struct TowerNodeChild {
 };
 
 struct TowerNode {
-  static std::atomic<uint32_t> allocated_count;
-  static std::atomic<uint32_t> id_counter;
-  uint32_t id = TOWER_INVALID_INDEX;
-  uint32_t reference_count = 1;
+  static std::atomic<size_t> allocated_count;
+  static std::atomic<size_t> id_counter;
+  size_t id = TOWER_INVALID_INDEX;
+  size_t reference_count = 1;
 
   TowerNode* /*weak*/ parent = nullptr;
 
   std::vector<TowerComponent*> components;
   std::vector<TowerNodeChild> children;
 };
-std::atomic<uint32_t> TowerNode::allocated_count = 0;
-std::atomic<uint32_t> TowerNode::id_counter = 0;
+std::atomic<size_t> TowerNode::allocated_count = 0;
+std::atomic<size_t> TowerNode::id_counter = 0;
 
 struct TowerComponent {
-  static std::atomic<uint32_t> allocated_count;
+  static std::atomic<size_t> allocated_count;
   TowerComponentDestructor destructor = nullptr;
   TowerNode* type = nullptr;
   TowerNode* owner = nullptr;
 };
-std::atomic<uint32_t> TowerComponent::allocated_count = 0;
+std::atomic<size_t> TowerComponent::allocated_count = 0;
 
-std::atomic<uint32_t> tower_allocated_count = 0;
+std::atomic<size_t> tower_allocated_count = 0;
 
 // This will truncate to 4 bytes on 32 bit systems
-const uintptr_t TOWER_MEMORY_GUARD = (uintptr_t)0xDEADBEEFDEADBEEF;
+const size_t TOWER_MEMORY_GUARD = (size_t)0xDEADBEEFDEADBEEF;
 
-void* tower_memory_allocate(uintptr_t size) {
+void* tower_memory_allocate(size_t size) {
   ++tower_allocated_count;
 #ifdef NDEBUG
   return malloc(size);
 #else
   // Round up to make sure the size is aligned
-  if (size % sizeof(uintptr_t) != 0) {
-    size += sizeof(uintptr_t) - (size % sizeof(uintptr_t));
+  if (size % sizeof(size_t) != 0) {
+    size += sizeof(size_t) - (size % sizeof(size_t));
   }
 
   // One for a guard at the beginning, one for the size, and one for the guard at the end
-  uintptr_t* mem = (uintptr_t*)malloc(size + sizeof(uintptr_t) * 3);
-  uintptr_t end_guard_index = (size / sizeof(uintptr_t)) + 2;
+  size_t* mem = (size_t*)malloc(size + sizeof(size_t) * 3);
+  size_t end_guard_index = (size / sizeof(size_t)) + 2;
   mem[0] = size;
   mem[1] = TOWER_MEMORY_GUARD;
   mem[end_guard_index] = TOWER_MEMORY_GUARD;
@@ -290,7 +290,7 @@ void* tower_memory_allocate(uintptr_t size) {
 void tower_memory_free(void* memory) {
   // If the allocation count was already 0, it will wrap around
   auto new_count = --tower_allocated_count;
-  assert(new_count != (uint32_t)-1);
+  assert(new_count != (size_t)-1);
 
 #ifdef NDEBUG
   free(memory);
@@ -311,42 +311,42 @@ void tower_memory_free(void* memory) {
 #endif
 }
 
-uint32_t tower_memory_get_allocated_count() {
+size_t tower_memory_get_allocated_count() {
   return tower_allocated_count;
 }
 
-uint32_t tower_node_get_allocated_count() {
+size_t tower_node_get_allocated_count() {
   return TowerNode::allocated_count;
 }
 
 TowerNode* tower_node_create() {
   void* memory = tower_memory_allocate(sizeof(TowerNode));
   ++TowerNode::allocated_count;
-  uint32_t id = TowerNode::id_counter++;
+  size_t id = TowerNode::id_counter++;
   TowerNode* node = new (memory) TowerNode();
   node->id = id;
   return node;
 }
 
-uint32_t tower_node_add_ref(TowerNode* node) {
+size_t tower_node_add_ref(TowerNode* node) {
   assert(node->reference_count >= 1);
   return ++node->reference_count;
 }
 
-uint32_t tower_node_release_ref(TowerNode* node) {
+size_t tower_node_release_ref(TowerNode* node) {
   assert(node->reference_count >= 1);
-  uint32_t new_count = --node->reference_count;
+  size_t new_count = --node->reference_count;
 
   // Destruct the node and all it's components, and release references to children
   if (new_count == 0) {
-    for (uint32_t i = 0; i < node->children.size(); ++i) {
+    for (size_t i = 0; i < node->children.size(); ++i) {
       auto& child = node->children[i];
       // This logic needs to mimic tower_node_detach
       child.child->parent = nullptr;
       tower_node_release_ref(child.child);
     }
 
-    for (uint32_t i = 0; i < node->components.size(); ++i) {
+    for (size_t i = 0; i < node->components.size(); ++i) {
       TowerComponent* component = node->components[i];
       tower_node_release_ref(component->type);
       if (component->destructor) {
@@ -366,11 +366,11 @@ uint32_t tower_node_release_ref(TowerNode* node) {
   return new_count;
 }
 
-uint32_t tower_node_get_ref_count(TowerNode* node) {
+size_t tower_node_get_ref_count(TowerNode* node) {
   return node->reference_count;
 }
 
-uint32_t tower_node_get_id(TowerNode* node) {
+size_t tower_node_get_id(TowerNode* node) {
   return node->id;
 }
 
@@ -435,11 +435,11 @@ TowerNode* tower_node_get_parent(TowerNode* child) {
   return child->parent;
 }
 
-uint32_t tower_node_get_child_count(TowerNode* parent) {
+size_t tower_node_get_child_count(TowerNode* parent) {
   return parent->children.size();
 }
 
-TowerNode* tower_node_get_child(TowerNode* parent, uint32_t index) {
+TowerNode* tower_node_get_child(TowerNode* parent, size_t index) {
   if (index < parent->children.size()) {
     return parent->children[index].child;
   }
@@ -447,14 +447,14 @@ TowerNode* tower_node_get_child(TowerNode* parent, uint32_t index) {
 }
 
 TowerNode* tower_node_get_child_member(TowerNode* parent, const char* member_name) {
-  uint32_t index = tower_node_get_child_member_index(parent, member_name);
+  size_t index = tower_node_get_child_member_index(parent, member_name);
   return (index == TOWER_INVALID_INDEX) ? nullptr : parent->children[index].child;
 }
 
-uint32_t tower_node_get_child_member_index(TowerNode* parent, const char* member_name) {
+size_t tower_node_get_child_member_index(TowerNode* parent, const char* member_name) {
   assert(member_name && *member_name != '\0');
 
-  for (uint32_t i = 0; i < parent->children.size(); ++i) {
+  for (size_t i = 0; i < parent->children.size(); ++i) {
     auto& child = parent->children[i];
     if (child.member_name == member_name) {
       return i;
@@ -469,7 +469,7 @@ const char* tower_node_get_parent_member_name(TowerNode* child) {
   }
 
   auto& children = child->parent->children;
-  for (uint32_t i = 0; i < children.size(); ++i) {
+  for (size_t i = 0; i < children.size(); ++i) {
     auto& current_child = children[i];
     if (current_child.child == child) {
       if (current_child.member_name.empty()) {
@@ -485,13 +485,13 @@ const char* tower_node_get_parent_member_name(TowerNode* child) {
   return nullptr;
 }
 
-uint32_t tower_node_get_parent_child_index(TowerNode* child) {
+size_t tower_node_get_parent_child_index(TowerNode* child) {
   if (!child->parent) {
     return TOWER_INVALID_INDEX;
   }
 
   auto& children = child->parent->children;
-  for (uint32_t i = 0; i < children.size(); ++i) {
+  for (size_t i = 0; i < children.size(); ++i) {
     auto& current_child = children[i];
     if (current_child.child == child) {
       return i;
@@ -504,7 +504,7 @@ uint32_t tower_node_get_parent_child_index(TowerNode* child) {
 }
 
 TowerComponent* tower_node_get_component(TowerNode* owner, TowerNode* type) {
-  for (uint32_t i = 0; i < owner->components.size(); ++i) {
+  for (size_t i = 0; i < owner->components.size(); ++i) {
     TowerComponent* component = owner->components[i];
     if (component->type == type) {
       return component;
@@ -517,25 +517,25 @@ uint8_t* tower_node_get_component_userdata(TowerNode* owner, TowerNode* type) {
   return tower_component_get_userdata(tower_node_get_component(owner, type));
 }
 
-uint32_t tower_node_get_component_count(TowerNode* owner) {
+size_t tower_node_get_component_count(TowerNode* owner) {
   return owner->components.size();
 }
 
-TowerComponent* tower_node_get_component_by_index(TowerNode* owner, uint32_t index) {
+TowerComponent* tower_node_get_component_by_index(TowerNode* owner, size_t index) {
   if (index < owner->components.size()) {
     return owner->components[index];
   }
   return nullptr;
 }
 
-uint32_t tower_component_get_allocated_count() {
+size_t tower_component_get_allocated_count() {
   return TowerComponent::allocated_count;
 }
 
 TowerComponent* tower_component_create(
   TowerNode* owner,
   TowerNode* type,
-  uint32_t data_bytes,
+  size_t data_bytes,
   TowerComponentDestructor destructor
 ) {
   // Never add the same component twice
