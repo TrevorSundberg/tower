@@ -7915,6 +7915,7 @@ but the idea would be that we could run the game, load all the assets, and then 
 next thing to do, make a general sorted vector for grammar terminals (FIRST set)
 
 After we're done, examine every use uint32_t and uintptr_t and size_t
+ - also all uses of TOWER_INVALID_INDEX
 
 I think I should move the entire parser to it's own place so we can run tests...
 
@@ -7977,4 +7978,31 @@ side note, for the debug stuff, we can possibly use that for tests too
  - if our unordered map is just an index into an std::vector...
 
 - lets make the ordered map
+
+can we make an ordered map?
+
+if we insert a wrapper object into unordered map
+
+we know the key (or pair) will be moved to a new bucket
+
+we don't get a callback for rehashing though
+ -we need to maintain the head/tail
+ -so we have a sentinel node
+ - moves move the object and the node/pointer, but they don't change the order
+
+but yeah it's more than just ordered map, because it maintains that order
+ - I wonder if this removes the need for SortedVector in most cases...
+
+I'd have OrderedSet too, I think that would sub for most SortedVector cases
+ - and the order would probably be more akin to the book
+
+
+Things I need to finish:
+ - OrderedMap
+ - creating tower nodes for shifts/reduces
+ - doing something with the stream's returned tower node
+ - report and handle shift/reduce conflicts
+
+
+
 

@@ -230,22 +230,42 @@ void parser_tests() {
     parser_string_create_subtree_utf8_null_terminated(f1, "1");
     
     Table* table = parser_table_create(token_rules, nullptr, nullptr, parser_table_utf8_id_to_string);
-    Stream* stream = parser_stream_utf8_null_terminated_create("a");
-    //Recognizer* recognizer = parser_recognizer_create(table, stream);
+    Stream* stream = parser_stream_utf8_null_terminated_create("1+1*1");
+    Recognizer* recognizer = parser_recognizer_create(table, stream);
 
-    //TowerNode* parser_recognizer_step(recognizer);
+    bool running = true;
+    TowerNode* node = nullptr;
+    node = parser_recognizer_step(recognizer, &running);
+    node = parser_recognizer_step(recognizer, &running);
+    node = parser_recognizer_step(recognizer, &running);
+    node = parser_recognizer_step(recognizer, &running);
+    node = parser_recognizer_step(recognizer, &running);
+    node = parser_recognizer_step(recognizer, &running);
+    node = parser_recognizer_step(recognizer, &running);
+    node = parser_recognizer_step(recognizer, &running);
+    node = parser_recognizer_step(recognizer, &running);
+    node = parser_recognizer_step(recognizer, &running);
+    node = parser_recognizer_step(recognizer, &running);
+    node = parser_recognizer_step(recognizer, &running);
+    node = parser_recognizer_step(recognizer, &running);
+    node = parser_recognizer_step(recognizer, &running);
+    node = parser_recognizer_step(recognizer, &running);
+    node = parser_recognizer_step(recognizer, &running);
+    node = parser_recognizer_step(recognizer, &running);
 
     // Test it actually parsing a value
 
-    tower_node_release_ref(token_rules);
+    parser_recognizer_destroy(recognizer);
     parser_table_destroy(table);
+    parser_stream_destroy(stream);
+    tower_node_release_ref(token_rules);
   }
 */
 
   assert(tower_node_get_allocated_count() == tower_node_initial_count);
   assert(tower_component_get_allocated_count() == tower_component_initial_count);
   assert(tower_memory_get_allocated_count() == tower_memory_initial_count);
-
+/*
   // token E = E '+' T;
   // token E = T;
   // token T = T '*' F;
@@ -307,12 +327,13 @@ void parser_tests() {
     parser_stream_destroy(stream);
     tower_node_release_ref(token_rules);
   }
+  */
 
   assert(tower_node_get_allocated_count() == tower_node_initial_count);
   assert(tower_component_get_allocated_count() == tower_component_initial_count);
   assert(tower_memory_get_allocated_count() == tower_memory_initial_count);
 
-/*
+
   // Non-SLR grammar
   // token S = L '=' R;
   // token S = R;
@@ -341,19 +362,37 @@ void parser_tests() {
     parser_reference_create_subtree(r0, "L");
 
     Table* table = parser_table_create(token_rules, nullptr, nullptr, parser_table_utf8_id_to_string);
-    Stream* stream = parser_stream_utf8_null_terminated_create("a");
-    //Recognizer* recognizer = parser_recognizer_create(table, stream);
+    Stream* stream = parser_stream_utf8_null_terminated_create("**i=*i");
+    Recognizer* recognizer = parser_recognizer_create(table, stream);
 
-    //TowerNode* parser_recognizer_step(recognizer);
+    bool running = true;
+    TowerNode* node = nullptr;
+    node = parser_recognizer_step(recognizer, &running);
+    node = parser_recognizer_step(recognizer, &running);
+    node = parser_recognizer_step(recognizer, &running);
+    node = parser_recognizer_step(recognizer, &running);
+    node = parser_recognizer_step(recognizer, &running);
+    node = parser_recognizer_step(recognizer, &running);
+    node = parser_recognizer_step(recognizer, &running);
+    node = parser_recognizer_step(recognizer, &running);
+    node = parser_recognizer_step(recognizer, &running);
+    node = parser_recognizer_step(recognizer, &running);
+    node = parser_recognizer_step(recognizer, &running);
+    node = parser_recognizer_step(recognizer, &running);
+    node = parser_recognizer_step(recognizer, &running);
+    node = parser_recognizer_step(recognizer, &running);
+    node = parser_recognizer_step(recognizer, &running);
+    node = parser_recognizer_step(recognizer, &running);
+    node = parser_recognizer_step(recognizer, &running);
 
     // Test it actually parsing a value
 
-    //parser_recognizer_destroy(recognizer);
+    parser_recognizer_destroy(recognizer);
     parser_table_destroy(table);
     parser_stream_destroy(stream);
     tower_node_release_ref(token_rules);
   }
-*/
+
 
   assert(tower_node_get_allocated_count() == tower_node_initial_count);
   assert(tower_component_get_allocated_count() == tower_component_initial_count);
@@ -1208,9 +1247,6 @@ void parser_table_compute_grammar_sets(const Grammar& grammar, GrammarSets& sets
   } while(has_changed);
 }
 
-struct LR0Item;
-bool parser_table_is_kernel_item(const LR0Item& item);
-
 struct LR0Item {
   uint32_t rule_index = TOWER_INVALID_INDEX;
   uint32_t symbol_index = TOWER_INVALID_INDEX;
@@ -1283,10 +1319,21 @@ struct LR1Item : LR0Item {
   }
 };
 
-bool parser_table_is_kernel_item(const LR0Item& item) {
+bool parser_table_is_kernel_item(const Grammar& grammar, const LR0Item& item) {
   // A kernel item is an item whose dots are not at
   // the left side (0) or the initial item (0, 0)
-  return item.symbol_index != 0 || item.rule_index == 0;
+  if (item.symbol_index != 0) {
+    return true;
+  } else if (item.rule_index == 0) {
+    return true;
+  }
+
+  // Special case for empty productions, since the dot is always at the end
+  const GrammarRule& rule = grammar.rules[item.rule_index];
+  if (rule.symbols.size() == 0) {
+    return true;
+  }
+  return false;
 }
 
 void debug_append_id(uint32_t id, std::stringstream& stream, const Grammar& grammar) {
@@ -1363,6 +1410,31 @@ std::string debug_str(const LR0Item& item, const Grammar& grammar) {
   return stream.str();
 }
 
+std::string debug_str(const GrammarRule& rule, const Grammar& grammar) {
+  LR0Item lr0_print_item(rule.index, TOWER_INVALID_INDEX);
+  return debug_str(lr0_print_item, grammar);
+}
+
+std::string debug_str(const GrammarNonTerminal& non_terminal, const Grammar& grammar) {
+  std::stringstream stream;
+  stream << "non_terminal(" << non_terminal.index << ", " << non_terminal.name << ")\n";
+  for (const auto& rule : non_terminal.rules) {
+    stream << "  " << debug_str(*rule, grammar) << "\n";
+  }
+  return stream.str();
+}
+
+std::string debug_str(const Grammar& grammar) {
+  std::stringstream stream;
+  for (const auto& rule : grammar.rules) {
+    stream << debug_str(rule, grammar) << "\n";
+  }
+  for (const auto& non_terminal : grammar.non_terminals) {
+    stream << debug_str(non_terminal, grammar);
+  }
+  return stream.str();
+}
+
 std::string debug_str(const LR1Item& item, const Grammar& grammar) {
   std::stringstream stream;
   stream << '[';
@@ -1394,7 +1466,7 @@ struct LRSet {
   SortedVector<GrammarSymbolRef> symbols;
 
   bool insert(const Grammar& grammar, const LRItem& item) {
-    SortedVector<LRItem>& items = parser_table_is_kernel_item(item)
+    SortedVector<LRItem>& items = parser_table_is_kernel_item(grammar, item)
       ? kernels
       : nonkernels;
 
@@ -2069,6 +2141,11 @@ struct OrderedMap {
     }
   }
 
+  bool contains(const Key& key) {
+    LinkedKey linked_key(key);
+    return map.find(linked_key) != map.end();
+  }
+
   struct Iterator {
     const OrderedMap* map = nullptr;
     const LinkedNode* current = nullptr;
@@ -2139,7 +2216,7 @@ void parser_table_lalr_lookaheads(
 
   for (const auto& state_builder : table_builder.states) {
     for (const auto& kernel_item : state_builder->items.kernels) {
-      assert(parser_table_is_kernel_item(kernel_item));
+      assert(parser_table_is_kernel_item(grammar, kernel_item));
       printf("KERNEL ITEM BEGIN: %s\n", debug_str(kernel_item, grammar).c_str());
       LRSet<LR1Item> lr1_items;
       GrammarTerminal lookahead {
@@ -2236,6 +2313,22 @@ void parser_table_lalr_lookaheads(
       }
     }
   } while(has_changed);
+
+  // Validate that all the reduce items have
+#ifndef NDEBUG
+  for (const auto& state_builder : table_builder.states) {
+    // Note that only kernel items can be reduce items
+    for (const auto& kernel_item : state_builder->items.kernels) {
+      const GrammarRule& rule = grammar.rules[kernel_item.rule_index];
+      // If this is a reduce rule (dot at the end)
+      // Note that this may be an empty production
+      if (kernel_item.symbol_index == rule.symbols.size()) {
+        LR0ItemInKernelState item_in_kernel(kernel_item, state_builder->state_index);
+        assert(lookaheads.contains(item_in_kernel));
+      }
+    }
+  }
+#endif
 
   // Finally, take care of all the reduce transitions since we now know the lookaheads
   for (const auto& entry : lookaheads) {
@@ -2346,6 +2439,7 @@ Table* parser_table_create(
   parser_grammar_create(grammar, root, userdata, resolve);
   assert(grammar.rules.size() > 0);
   assert(grammar.non_terminals.size() > 0);
+  printf("%s\n", debug_str(grammar).c_str());
 
   TableBuilder table_builder;
   parser_table_lr0_items(table_builder, grammar);
@@ -2538,18 +2632,28 @@ void parser_tests_internal() {
   // Test OrderedMap
   {
     OrderedMap<uint32_t, uint32_t> map;
-    map.reserve(10);
     assert(map.begin() == map.end());
+    assert(map.contains(1) == false);
     map[1] = 100;
     assert(map[1] == 100);
+    assert(map.contains(1) == true);
     assert(map.begin() != map.end());
     assert(++map.begin() == map.end());
     assert((*map.begin()).first == 1);
     assert((*map.begin()).second == 100);
+
+    assert(map.contains(2) == false);
     map[2] = 200;
     assert(map[2] == 200);
+    assert(map.contains(1) == true);
+    assert(map.contains(2) == true);
+
+    assert(map.contains(3) == false);
     map[3] = 300;
     assert(map[3] == 300);
+    assert(map.contains(1) == true);
+    assert(map.contains(2) == true);
+    assert(map.contains(3) == true);
 
     {
       auto it = map.begin();
@@ -2585,8 +2689,10 @@ void parser_tests_internal() {
     assert(map[2] == 200);
     assert(map[3] == 300);
 
+    assert(map.contains(0) == false);
     map[0] = 0;
     assert(map[0] == 0);
+    assert(map.contains(0) == true);
 
     {
       auto it = map.begin();
