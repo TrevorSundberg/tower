@@ -253,8 +253,6 @@ void parser_tests() {
     node = parser_recognizer_step(recognizer, &running);
     node = parser_recognizer_step(recognizer, &running);
 
-    // Test it actually parsing a value
-
     parser_recognizer_destroy(recognizer);
     parser_table_destroy(table);
     parser_stream_destroy(stream);
@@ -320,8 +318,6 @@ void parser_tests() {
     node = parser_recognizer_step(recognizer, &running);
     node = parser_recognizer_step(recognizer, &running);
 
-    // Test it actually parsing a value
-
     parser_recognizer_destroy(recognizer);
     parser_table_destroy(table);
     parser_stream_destroy(stream);
@@ -385,14 +381,11 @@ void parser_tests() {
     node = parser_recognizer_step(recognizer, &running);
     node = parser_recognizer_step(recognizer, &running);
 
-    // Test it actually parsing a value
-
     parser_recognizer_destroy(recognizer);
     parser_table_destroy(table);
     parser_stream_destroy(stream);
     tower_node_release_ref(token_rules);
   }
-
 
   assert(tower_node_get_allocated_count() == tower_node_initial_count);
   assert(tower_component_get_allocated_count() == tower_component_initial_count);
@@ -416,8 +409,6 @@ void parser_tests() {
     //Recognizer* recognizer = parser_recognizer_create(table, stream);
 
     //TowerNode* parser_recognizer_step(recognizer);
-
-    // Test it actually parsing a value
 
     tower_node_release_ref(token_rules);
     parser_table_destroy(table);
