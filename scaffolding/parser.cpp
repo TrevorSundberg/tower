@@ -1844,7 +1844,6 @@ std::string debug_str(const Table& table) {
 void parser_table_lr0_items(TableBuilder& table_builder, const Grammar& grammar) {
   std::vector<StateBuilder*> unprocessed;
 
-  // TODO(trevor): Fix this by making unique_ptr<StateBuilder>
   // Rough guess on the number of states
   table_builder.states.reserve(grammar.rules.size()); // C in dragon book
   table_builder.item_sets_to_state_index.reserve(grammar.rules.size());
@@ -1992,12 +1991,122 @@ LRSet<LR0Item> parser_table_lr0_from_lr1_kernels(const LRSet<LR1Item>& items) {
 // then a vector + unordered_map should be fine
 template <typename Key, typename Value>
 struct OrderedMap {
-  std::vector<Value> values;
-  std::unordered_map<Key, size_t> key_to_index;
+  struct LinkedNode {
+    LinkedNode* next = nullptr;
+    LinkedNode* prev = nullptr;
+
+    LinkedNode() :
+      next(this), prev(this) {
+    };
+    LinkedNode(LinkedNode&& moved) {
+      next = moved.next;
+      prev = moved.prev;
+      next->prev = this;
+      prev->next = this;
+      moved.next = &moved;
+      moved.prev = &moved;
+    }
+    LinkedNode(const LinkedNode& copy) = delete;
+
+    ~LinkedNode() {
+      next->prev = prev;
+      prev->next = next;
+    }
+
+    void prepend(LinkedNode& prepended) {
+      LinkedNode* this_prev = prev;
+      prev = &prepended;
+      this_prev->next = &prepended;
+      prepended.prev = this_prev;
+      prepended.next = this;
+    }
+  };
+
+  struct LinkedKey : LinkedNode {
+    Key key;
+
+    LinkedKey() {}
+    LinkedKey(const Key& key) : key(key) {}
+    LinkedKey(LinkedKey&& moved) :
+      LinkedNode(std::move(moved)),
+      key(std::move(moved.key)) {
+    }
+    LinkedKey(const LinkedKey& copy) = delete;
+  };
+
+  struct Hasher {
+    size_t operator()(const LinkedKey& value) const {
+      return std::hash<Key>()(value.key);
+    }
+  };
+  struct EqualTo {
+    bool operator()(const LinkedKey& lhs, const LinkedKey& rhs) const {
+      return std::equal_to<Key>()(lhs.key, rhs.key);
+    }
+  };
+
+  std::unordered_map<LinkedKey, Value, Hasher, EqualTo> map;
+  LinkedNode sentinel;
 
   void reserve(size_t size) {
-    values.reserve(size);
-    key_to_index.reserve(size);
+    map.reserve(size);
+  }
+
+  Value& operator[](const Key& key) {
+    printf("SEARCHING FOR KEY\n");
+    auto result = map.emplace(key, Value());
+    if (result.second) {
+      printf("INSERTED NEW KEY\n");
+      // We modify the key which is unsafe, however we never use that part of the key
+      // for hashing or equality, so we can't change the key value by modifying it
+      LinkedKey& inserted_key = const_cast<LinkedKey&>(result.first->first);
+      assert(inserted_key.next == &inserted_key && inserted_key.prev == &inserted_key);
+      // We use prepend because we don't want the last thing inserted to be at the front
+      sentinel.prepend(inserted_key);
+      return result.first->second;
+    } else {
+      printf("KEY FOUND\n");
+      return result.first->second;
+    }
+  }
+
+  struct Iterator {
+    const OrderedMap* map = nullptr;
+    const LinkedNode* current = nullptr;
+
+    Iterator& operator++() {
+      current = current->next;
+      return *this;
+    }
+    std::pair<Key, const Value&> operator*() const {
+      assert(current != &map->sentinel);
+      const LinkedKey& linked_key = *static_cast<const LinkedKey*>(current);
+      // I wish there was a way to get to the value without having to hash/find
+      // but maybe this is where we need to use boost containers
+      auto found = map->map.find(linked_key);
+      assert(found != map->map.end());
+      return std::pair<Key, const Value&>(linked_key.key, found->second);
+    }
+    bool operator==(const Iterator& other) const {
+      return current == other.current;
+    }
+    bool operator!=(const Iterator& other) const {
+      return current != other.current;
+    }
+  };
+
+  // Always start with kernel items first
+  Iterator begin() const {
+    return Iterator {
+      .map = this,
+      .current = sentinel.next,
+    };
+  }
+  Iterator end() const {
+    return Iterator {
+      .map = this,
+      .current = &sentinel,
+    };
   }
 };
 
@@ -2007,12 +2116,12 @@ void parser_table_lalr_lookaheads(
   const GrammarSets& sets
 ) {
   // By reserving the total maximum amount we have, we guarantee this will never reallocate
-  std::unordered_map<LR0ItemInKernelState, SortedVector<GrammarTerminal>> lookaheads;
+  OrderedMap<LR0ItemInKernelState, SortedVector<GrammarTerminal>> lookaheads;
   lookaheads.reserve(table_builder.total_kernel_lr_items);
 
   // The propegation isn't just an LR0 item, it's a specific LR0 item in a state
   // It's significant because when we go to look up 
-  std::unordered_map<LR0ItemInKernelState, SortedVector<LR0ItemInKernelState>> propegation;
+  OrderedMap<LR0ItemInKernelState, SortedVector<LR0ItemInKernelState>> propegation;
   propegation.reserve(table_builder.total_kernel_lr_items);
 
   // By default the starting rulne has an implict lookahead of EOF / $
@@ -2335,6 +2444,11 @@ TowerNode* parser_recognizer_step(Recognizer* recognizer, bool* running) {
   const StateEdge* found_edge = nullptr;
 
   const auto id = recognizer->read_id;
+  printf("LAST READ: %s id(%d) start(%d) len(%d)\n",
+    debug_str(recognizer->read_id, recognizer->table->grammar).c_str(),
+    (int)recognizer->read_id,
+    (int)recognizer->read_start,
+    (int)recognizer->read_length);
 
   // If we found a direct edge then follow it (fast path)
   auto found = transitions->direct_edges.find(id);
@@ -2393,18 +2507,103 @@ TowerNode* parser_recognizer_step(Recognizer* recognizer, bool* running) {
 void parser_tests_internal() {
   // Test SortedVector
   {
-    SortedVector<int> values;
+    SortedVector<int32_t> values;
+    values.insert(0);
+    values.insert(0);
+    assert(values.size() == 1);
     values.insert(1);
-    values.insert(1);
-    values.insert(2);
-    values.insert(3);
-    values.insert(1);
-    values.insert(3);
+    assert(values.size() == 2);
     values.insert(2);
     assert(values.size() == 3);
-    values.insert(4);
-    assert(values.size() == 4);
+    values.insert(0);
     values.insert(1);
+    values.insert(2);
+    assert(values.size() == 3);
+    values.insert(3);
     assert(values.size() == 4);
+    values.insert(0);
+    assert(values.size() == 4);
+    assert(values[0] == 0);
+    assert(values[1] == 1);
+    assert(values[2] == 2);
+    assert(values[3] == 3);
+    values.insert(-1);
+    assert(values.size() == 5);
+    assert(values[0] == -1);
+    assert(values[1] == 0);
+    assert(values[2] == 1);
+    assert(values[3] == 2);
+    assert(values[4] == 3);
+  }
+
+  // Test OrderedMap
+  {
+    OrderedMap<uint32_t, uint32_t> map;
+    map.reserve(10);
+    assert(map.begin() == map.end());
+    map[1] = 100;
+    assert(map[1] == 100);
+    assert(map.begin() != map.end());
+    assert(++map.begin() == map.end());
+    assert((*map.begin()).first == 1);
+    assert((*map.begin()).second == 100);
+    map[2] = 200;
+    assert(map[2] == 200);
+    map[3] = 300;
+    assert(map[3] == 300);
+
+    {
+      auto it = map.begin();
+      assert((*it).first == 1);
+      assert((*it).second == 100);
+      ++it;
+      assert((*it).first == 2);
+      assert((*it).second == 200);
+      ++it;
+      assert((*it).first == 3);
+      assert((*it).second == 300);
+      ++it;
+      assert(it == map.end());
+    }
+  
+    map.reserve(100);
+
+    {
+      auto it = map.begin();
+      assert((*it).first == 1);
+      assert((*it).second == 100);
+      ++it;
+      assert((*it).first == 2);
+      assert((*it).second == 200);
+      ++it;
+      assert((*it).first == 3);
+      assert((*it).second == 300);
+      ++it;
+      assert(it == map.end());
+    }
+  
+    assert(map[1] == 100);
+    assert(map[2] == 200);
+    assert(map[3] == 300);
+
+    map[0] = 0;
+    assert(map[0] == 0);
+
+    {
+      auto it = map.begin();
+      assert((*it).first == 1);
+      assert((*it).second == 100);
+      ++it;
+      assert((*it).first == 2);
+      assert((*it).second == 200);
+      ++it;
+      assert((*it).first == 3);
+      assert((*it).second == 300);
+      ++it;
+      assert((*it).first == 0);
+      assert((*it).second == 0);
+      ++it;
+      assert(it == map.end());
+    }
   }
 }
