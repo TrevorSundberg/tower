@@ -1646,11 +1646,13 @@ void parser_table_closure(const Grammar& grammar, const GrammarSets* sets_for_lr
     // We only care if the grammar symbol is a reference (another rule to expand)
     if (symbol && symbol->non_terminal) {
       for (GrammarRule* rule : symbol->non_terminal->rules) {
-        auto add_item = [&](const GrammarTerminal* terminal) {
-          LRItem nonkernel_item(rule->index, 0, terminal);
+        auto add_item = [&](const GrammarTerminal* terminal_or_null) {
+          LRItem nonkernel_item(rule->index, 0, terminal_or_null);
 
           // Attempt to insert it and if it's the first time it's been inserted, we need to process it
-          printf("adding terminal: %d\n", (int)terminal->start);
+          if (terminal_or_null) {
+            printf("adding terminal: %d\n", (int)terminal_or_null->start);
+          }
           if (items.insert(grammar, nonkernel_item)) {
             printf("added\n");
             unprocessed.push_back(nonkernel_item);
@@ -2053,10 +2055,8 @@ struct OrderedMap {
   }
 
   Value& operator[](const Key& key) {
-    printf("SEARCHING FOR KEY\n");
     auto result = map.emplace(key, Value());
     if (result.second) {
-      printf("INSERTED NEW KEY\n");
       // We modify the key which is unsafe, however we never use that part of the key
       // for hashing or equality, so we can't change the key value by modifying it
       LinkedKey& inserted_key = const_cast<LinkedKey&>(result.first->first);
@@ -2065,7 +2065,6 @@ struct OrderedMap {
       sentinel.prepend(inserted_key);
       return result.first->second;
     } else {
-      printf("KEY FOUND\n");
       return result.first->second;
     }
   }
