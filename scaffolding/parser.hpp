@@ -71,14 +71,14 @@ String* parser_string_create(TowerNode* owner);
 // If the string length is not long enough it will be
 // resized and any gaps will be filled with PARSER_ID_EOF
 // Canonically this id is used as a character codepoint in tokenizing
-void parser_string_set_id(String* component, uint32_t index, uint32_t id);
-uint32_t parser_string_get_id(String* component, uint32_t index);
+void parser_string_set_id(String* component, size_t index, uint32_t id);
+uint32_t parser_string_get_id(String* component, size_t index);
 
 // The length of the string of ids
 // Setting the length will truncate end elements if it's smaller,
 // or if it is larger it will be filled with PARSER_ID_EOF
-void parser_string_set_length(String* component, uint32_t length);
-uint32_t parser_string_get_length(String* component);
+void parser_string_set_length(String* component, size_t length);
+size_t parser_string_get_length(String* component);
 
 // Appends the string of ids from a null-terminated utf8 string (the character codepoint values)
 // Each utf8 character will be decoded and stored within a 32 bit integer as an id
@@ -110,18 +110,18 @@ TowerNode* parser_range_get_type();
 Range* parser_range_create(TowerNode* owner);
 
 // The start of the character range (inclusive)
-void parser_range_set_start(Range* component, uint32_t start);
+void parser_range_set_start(Range* component, uint32_t start_id);
 uint32_t parser_range_get_start(Range* component);
 
 // The end of the character range (inclusive)
-void parser_range_set_end(Range* component, uint32_t end);
+void parser_range_set_end(Range* component, uint32_t end_id);
 uint32_t parser_range_get_end(Range* component);
 
 // Creates a child node and attaches it to the parent,
 // adds the Range component to the child, and sets up the component
 // Returns the child node, not the component itself (it's most common to create and move on)
 // This also releases the reference to the child node since it's attached to the parent
-TowerNode* parser_range_create_subtree(TowerNode* parent, uint32_t start, uint32_t end);
+TowerNode* parser_range_create_subtree(TowerNode* parent, uint32_t start_id, uint32_t end_id);
 
 
 // Get the compiletime type of the Match component
@@ -144,21 +144,21 @@ uint32_t parser_match_get_id(Match* component);
 // the start is often bubbled up from the tokenizer and will refer to character bytes (not nodes)
 // It is also common practice that if the Match has children Matches, the
 // parents start  and length with encompass it's children, and so on recursively
-void parser_match_set_start(Match* component, uint32_t start);
-uint32_t parser_match_get_start(Match* component);
+void parser_match_set_start(Match* component, size_t start_index);
+size_t parser_match_get_start(Match* component);
 
 // The length of the match relative to the stream where the match was successfully parsed
 // Canonically this is the byte length of the characters that created this match
 // It is also common practice that if the Match has children Matches, the
 // parents start and length with encompass it's children, and so on recursively
-void parser_match_set_length(Match* component, uint32_t length);
-uint32_t parser_match_get_length(Match* component);
+void parser_match_set_length(Match* component, size_t length);
+size_t parser_match_get_length(Match* component);
 
 // Creates a child node and attaches it to the parent,
 // adds the Match component to the child, and sets up the component
 // Returns the child node, not the component itself (it's most common to create and move on)
 // This also releases the reference to the child node since it's attached to the parent
-TowerNode* parser_match_create_subtree(TowerNode* parent, uint32_t id, uint32_t start, uint32_t length);
+TowerNode* parser_match_create_subtree(TowerNode* parent, uint32_t id, size_t start_index, size_t length);
 
 
 // Virtual destructor for a stream
@@ -170,12 +170,12 @@ typedef TowerNode* (*ParserStreamRead)(
   Stream* stream,
   uint8_t* userdata,
   uint32_t* id,
-  uint32_t* start,
-  uint32_t* length
+  size_t* start_index,
+  size_t* length
 );
 
 // Create a stream that the parser will consume
-Stream* parser_stream_create(uint32_t userdata_bytes, ParserStreamDestructor destructor, ParserStreamRead read);
+Stream* parser_stream_create(size_t userdata_bytes, ParserStreamDestructor destructor, ParserStreamRead read);
 
 // Destroy a parser stream
 void parser_stream_destroy(Stream* stream);
@@ -195,8 +195,8 @@ Stream* parser_stream_from_userdata(uint8_t* data);
 TowerNode* parser_stream_read(
   Stream* stream,
   uint32_t* id,
-  uint32_t* start,
-  uint32_t* length
+  size_t* start_index,
+  size_t* length
 );
 
 // Create a specialized null-terminated utf8 reading stream (also works for ASCII)

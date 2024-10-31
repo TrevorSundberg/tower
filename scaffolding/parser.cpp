@@ -7,6 +7,9 @@
 #include <algorithm>
 #include <memory>
 
+// Note that IDs are always uint32_t, this is because realistically a language will never need
+// more than this many ids to represent all tokens / characters. We also put unicode code-points
+// within the uint32_t and it makes no sense for it to expand to anything greater in size
 // We don't use -1 just to ensure it never gets mixed with TOWER_INVALID_INDEX
 const uint32_t PARSER_ID_EOF = (uint32_t)-2;
 const uint32_t PARSER_ID_LOOKAHEAD = (uint32_t)-3;
@@ -16,9 +19,9 @@ void parser_tests_internal();
 void parser_tests() {
   parser_tests_internal();
 
-  const uint32_t tower_node_initial_count = tower_node_get_allocated_count();
-  const uint32_t tower_component_initial_count = tower_component_get_allocated_count();
-  const uint32_t tower_memory_initial_count = tower_memory_get_allocated_count();
+  const size_t tower_node_initial_count = tower_node_get_allocated_count();
+  const size_t tower_component_initial_count = tower_component_get_allocated_count();
+  const size_t tower_memory_initial_count = tower_memory_get_allocated_count();
 
   {
     assert(parser_rule_get_type() != nullptr);
@@ -32,8 +35,8 @@ void parser_tests() {
   {
     Stream* stream = parser_stream_utf8_null_terminated_create("aé€🏰");
     uint32_t id = 0;
-    uint32_t start = 0;
-    uint32_t length = 0;
+    size_t start = 0;
+    size_t length = 0;
     TowerNode* node = nullptr;
     node = parser_stream_read(stream, &id, &start, &length);
     assert(id == U'a');
@@ -531,7 +534,7 @@ String* parser_string_create(TowerNode* owner) {
   return create_component<String>(owner);
 }
 
-void parser_string_set_id(String* component, uint32_t index, uint32_t id) {
+void parser_string_set_id(String* component, size_t index, uint32_t id) {
   assert(component);
   if (index >= component->ids.size()) {
     size_t new_size = index + 1;
@@ -541,27 +544,27 @@ void parser_string_set_id(String* component, uint32_t index, uint32_t id) {
   component->ids[index] = id;
 }
 
-uint32_t parser_string_get_id(String* component, uint32_t index) {
+uint32_t parser_string_get_id(String* component, size_t index) {
   assert(component);
   assert(index < component->ids.size());
   return component->ids[index];
 }
 
-void parser_string_set_length(String* component, uint32_t length) {
+void parser_string_set_length(String* component, size_t length) {
   assert(component);
   component->ids.resize(length, PARSER_ID_EOF);
 }
 
-uint32_t parser_string_get_length(String* component) {
+size_t parser_string_get_length(String* component) {
   assert(component);
   return component->ids.size();
 }
 
 // Returns the amount of bytes that were read (or 0 if it wasn't successful)
-uint32_t parser_decode_utf8_codepoint(const char* utf8_begin, const char* utf8_end, uint32_t* codepoint) {
+size_t parser_decode_utf8_codepoint(const char* utf8_begin, const char* utf8_end, uint32_t* codepoint) {
   *codepoint = 0;
 
-  uintptr_t length = utf8_end - utf8_begin;
+  size_t length = utf8_end - utf8_begin;
 
   // Determine the number of bytes in the UTF-8 character
   if ((utf8_begin[0] & 0x80) == 0) { // 1-byte character (ASCII)
@@ -614,7 +617,7 @@ void parser_string_append_utf8(String* component, const char* utf8_begin, const 
 
   for (;;) {
     uint32_t codepoint = 0;
-    uint32_t bytes_read = parser_decode_utf8_codepoint(utf8_begin, utf8_end, &codepoint);
+    size_t bytes_read = parser_decode_utf8_codepoint(utf8_begin, utf8_end, &codepoint);
     if (bytes_read == 0) {
       break;
     }
@@ -656,9 +659,9 @@ Range* parser_range_create(TowerNode* owner) {
   return create_component<Range>(owner);
 }
 
-void parser_range_set_start(Range* component, uint32_t start) {
+void parser_range_set_start(Range* component, uint32_t start_id) {
   assert(component);
-  component->start = start;
+  component->start = start_id;
 }
 
 uint32_t parser_range_get_start(Range* component) {
@@ -666,9 +669,9 @@ uint32_t parser_range_get_start(Range* component) {
   return component->start;
 }
 
-void parser_range_set_end(Range* component, uint32_t end) {
+void parser_range_set_end(Range* component, uint32_t end_id) {
   assert(component);
-  component->end = end;
+  component->end = end_id;
 }
 
 uint32_t parser_range_get_end(Range* component) {
@@ -676,19 +679,19 @@ uint32_t parser_range_get_end(Range* component) {
   return component->end;
 }
 
-TowerNode* parser_range_create_subtree(TowerNode* parent, uint32_t start, uint32_t end) {
+TowerNode* parser_range_create_subtree(TowerNode* parent, uint32_t start_id, uint32_t end_id) {
   TowerNode* child = create_attached_child_without_ref(parent);
   Range* component = parser_range_create(child);
-  parser_range_set_start(component, start);
-  parser_range_set_end(component, end);
+  parser_range_set_start(component, start_id);
+  parser_range_set_end(component, end_id);
   return child;
 }
 
 struct Match {
   static TowerNode* compiletime_type;
   uint32_t id = PARSER_ID_EOF;
-  uint32_t start = 0;
-  uint32_t length = 0;
+  size_t start = 0;
+  size_t length = 0;
 };
 TowerNode* Match::compiletime_type = tower_node_create();
 
@@ -710,27 +713,27 @@ uint32_t parser_match_get_id(Match* component) {
   return component->id;
 }
 
-void parser_match_set_start(Match* component, uint32_t start) {
+void parser_match_set_start(Match* component, size_t start) {
   assert(component);
   component->start = start;
 }
 
-uint32_t parser_match_get_start(Match* component) {
+size_t parser_match_get_start(Match* component) {
   assert(component);
   return component->start;
 }
 
-void parser_match_set_length(Match* component, uint32_t length) {
+void parser_match_set_length(Match* component, size_t length) {
   assert(component);
   component->length = length;
 }
 
-uint32_t parser_match_get_length(Match* component) {
+size_t parser_match_get_length(Match* component) {
   assert(component);
   return component->length;
 }
 
-TowerNode* parser_match_create_subtree(TowerNode* parent, uint32_t id, uint32_t start, uint32_t length) {
+TowerNode* parser_match_create_subtree(TowerNode* parent, uint32_t id, size_t start, size_t length) {
   TowerNode* child = create_attached_child_without_ref(parent);
   Match* component = parser_match_create(child);
   parser_match_set_id(component, id);
@@ -741,13 +744,13 @@ TowerNode* parser_match_create_subtree(TowerNode* parent, uint32_t id, uint32_t 
 
 
 struct Stream {
-  static std::atomic<uint32_t> allocated_count;
+  static std::atomic<size_t> allocated_count;
   ParserStreamDestructor destructor = nullptr;
   ParserStreamRead read = nullptr;
 };
-std::atomic<uint32_t> Stream::allocated_count = 0;
+std::atomic<size_t> Stream::allocated_count = 0;
 
-Stream* parser_stream_create(uint32_t userdata_bytes, ParserStreamDestructor destructor, ParserStreamRead read) {
+Stream* parser_stream_create(size_t userdata_bytes, ParserStreamDestructor destructor, ParserStreamRead read) {
   void* memory = tower_memory_allocate(sizeof(Stream) + userdata_bytes);
   ++Stream::allocated_count;
   Stream* stream = new (memory) Stream();
@@ -782,10 +785,10 @@ Stream* parser_stream_from_userdata(uint8_t* userdata) {
 TowerNode* parser_stream_read(
   Stream* stream,
   uint32_t* id,
-  uint32_t* start,
-  uint32_t* length
+  size_t* start_index,
+  size_t* length
 ) {
-  return stream->read(stream, parser_stream_get_userdata(stream), id, start, length);
+  return stream->read(stream, parser_stream_get_userdata(stream), id, start_index, length);
 }
 
 struct StreamUtf8 {
@@ -797,21 +800,21 @@ TowerNode* parser_stream_utf8_read(
   Stream* stream,
   uint8_t* userdata,
   uint32_t* id,
-  uint32_t* start,
-  uint32_t* length
+  size_t* start_index,
+  size_t* length
 ) {
   StreamUtf8* stream_utf8 = (StreamUtf8*)userdata;
   std::string& data = stream_utf8->data;
   const char*& utf8_begin = stream_utf8->utf8_begin;
 
-  uint32_t bytes_read = parser_decode_utf8_codepoint(utf8_begin, data.c_str() + data.size(), id);
+  size_t bytes_read = parser_decode_utf8_codepoint(utf8_begin, data.c_str() + data.size(), id);
   if (bytes_read > 0) {
     *length = bytes_read;
-    *start = utf8_begin - data.c_str();
+    *start_index = utf8_begin - data.c_str();
     utf8_begin += bytes_read;
   } else {
     *id = PARSER_ID_EOF;
-    *start = PARSER_ID_EOF;
+    *start_index = PARSER_ID_EOF;
     *length = 0;
   }
 
@@ -842,8 +845,8 @@ TowerNode* parser_stream_recognizer_read(
   Stream* stream,
   uint8_t* userdata,
   uint32_t* id,
-  uint32_t* start,
-  uint32_t* length
+  size_t* start_index,
+  size_t* length
 ) {
   StreamRecognizer* stream_recognizer = (StreamRecognizer*)userdata;
   bool running = false;
@@ -856,13 +859,13 @@ TowerNode* parser_stream_recognizer_read(
     Match* match = (Match*)tower_node_get_component_userdata(node, parser_match_get_type());
     assert(match);
     *id = match->id;
-    *start = match->start;
+    *start_index = match->start;
     *length = match->length;
     return node;
   }
 
   *id = PARSER_ID_EOF;
-  *start = PARSER_ID_EOF;
+  *start_index = PARSER_ID_EOF;
   *length = 0;
   return nullptr; 
 }
@@ -877,7 +880,7 @@ Stream* parser_stream_recognizer_create(Recognizer* recognizer) {
 
 struct GrammarRule;
 struct GrammarNonTerminal {
-  uint32_t index = TOWER_INVALID_INDEX;
+  size_t index = TOWER_INVALID_INDEX;
   std::string name;
   // Rules that all share the same non-terminal (productions)
   // Since these pointers are internal to rules, they must be built after (and rules never resized)
@@ -1008,7 +1011,7 @@ void parser_grammar_create(Grammar& grammar, TowerNode* root, uint8_t* userdata,
   rules.reserve(tower_node_get_child_count(root));
 
   // Walk all the rules we have
-  for (uint32_t p = 0;; ++p) {
+  for (size_t p = 0;; ++p) {
     TowerNode* rule_node = tower_node_get_child(root, p);
     if (!rule_node) {
       break;
@@ -1039,7 +1042,7 @@ void parser_grammar_create(Grammar& grammar, TowerNode* root, uint8_t* userdata,
   starting_rule.non_terminal = &starting_non_terminal;
 
   // Now build our grammar rules and map from the sorted rules above
-  for (uint32_t i = 0; i < rules.size(); ++i) {
+  for (size_t i = 0; i < rules.size(); ++i) {
     Rule* rule = rules[i];
 
     size_t grammar_rule_index = grammar.rules.size();
@@ -1067,7 +1070,7 @@ void parser_grammar_create(Grammar& grammar, TowerNode* root, uint8_t* userdata,
 
   // Walk through the rules in sorted order (skipping the starting rule 0)
   // Now we can map all rule names/references
-  for (uint32_t r = 1; r < grammar.rules.size(); ++r) {
+  for (size_t r = 1; r < grammar.rules.size(); ++r) {
     GrammarRule& grammar_rule = grammar.rules[r];
     TowerNode* rule_node = tower_component_get_owner(tower_component_from_userdata((uint8_t*) grammar_rule.rule));
     
@@ -1077,7 +1080,7 @@ void parser_grammar_create(Grammar& grammar, TowerNode* root, uint8_t* userdata,
     symbols.reserve(tower_node_get_child_count(rule_node));
 
     // Walk over all the grammar symbols
-    for (uint32_t g = 0;; ++g) {
+    for (size_t g = 0;; ++g) {
       TowerNode* symbol_node = tower_node_get_child(rule_node, g);
       if (!symbol_node) {
         break;
@@ -1239,14 +1242,14 @@ void parser_table_compute_grammar_sets(const Grammar& grammar, GrammarSets& sets
 }
 
 struct LR0Item {
-  uint32_t rule_index = TOWER_INVALID_INDEX;
-  uint32_t symbol_index = TOWER_INVALID_INDEX;
+  size_t rule_index = TOWER_INVALID_INDEX;
+  size_t symbol_index = TOWER_INVALID_INDEX;
 
   // Note that GrammarTerminal is only passed here for compatability with the LR1Item constructor
-  inline LR0Item(uint32_t rule_index, uint32_t symbol_index, const GrammarTerminal* lookahead) :
+  inline LR0Item(size_t rule_index, size_t symbol_index, const GrammarTerminal* lookahead) :
     LR0Item(rule_index, symbol_index) {
   }
-  LR0Item(uint32_t rule_index_, uint32_t symbol_index_) :
+  LR0Item(size_t rule_index_, size_t symbol_index_) :
     rule_index(rule_index_),
     symbol_index(symbol_index_) {
   }
@@ -1273,15 +1276,15 @@ struct LR0Item {
 template <>
 struct std::hash<LR0Item> {
   std::size_t operator()(const LR0Item& key) const {
-    size_t hash = std::hash<uint32_t>()(key.rule_index);
-    return hash_combine(hash, std::hash<uint32_t>()(key.symbol_index));
+    size_t hash = std::hash<size_t>()(key.rule_index);
+    return hash_combine(hash, std::hash<size_t>()(key.symbol_index));
   }
 };
 
 struct LR1Item : LR0Item {
   GrammarTerminal lookahead;
 
-  inline LR1Item(uint32_t rule_index, uint32_t symbol_index, const GrammarTerminal* lookahead) :
+  inline LR1Item(size_t rule_index, size_t symbol_index, const GrammarTerminal* lookahead) :
     LR0Item(rule_index, symbol_index),
     lookahead(*lookahead) {
   }
@@ -1825,13 +1828,13 @@ struct State {
 };
 
 struct Table {
-  static std::atomic<uint32_t> allocated_count;
+  static std::atomic<size_t> allocated_count;
 
   Grammar grammar;
   std::vector<State> states;
   std::vector<StateTransitions> shared_transitions;
 };
-std::atomic<uint32_t> Table::allocated_count = 0;
+std::atomic<size_t> Table::allocated_count = 0;
 
 
 std::string debug_str_header(const State& state, const Table& table, const char* prefix = "state") {
@@ -2463,7 +2466,7 @@ void parser_table_destroy(Table* table) {
 }
 
 struct Recognizer {
-  static std::atomic<uint32_t> allocated_count;
+  static std::atomic<size_t> allocated_count;
   std::vector<const State*> stack;
 
   // TODO(trevor): The recgonizer needs to hold on to these (reference count?)
@@ -2475,10 +2478,10 @@ struct Recognizer {
   // Holds the last read value from the stream
   TowerNode* read_node_or_null = nullptr;
   uint32_t read_id = PARSER_ID_EOF;
-  uint32_t read_start = PARSER_ID_EOF;
-  uint32_t read_length = 0;
+  size_t read_start = PARSER_ID_EOF;
+  size_t read_length = 0;
 };
-std::atomic<uint32_t> Recognizer::allocated_count = 0;
+std::atomic<size_t> Recognizer::allocated_count = 0;
 
 void parser_recognizer_read_id(Recognizer* recognizer) {
   // To start the algorithm, we must read in a single character (even if it's EOF)
@@ -2622,7 +2625,7 @@ void parser_tests_internal() {
 
   // Test OrderedMap
   {
-    OrderedMap<uint32_t, uint32_t> map;
+    OrderedMap<size_t, size_t> map;
     assert(map.begin() == map.end());
     assert(map.contains(1) == false);
     map[1] = 100;
