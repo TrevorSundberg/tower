@@ -7244,8 +7244,6 @@ eof can definately be emitted by the stream
 
 --------------------
 
-do the uintptr_t pass before it's too late!
-
 also do a pass on memory and sanitization
 
 get it building natively with -fsanitize=undefined -fsanitize=address -fsanitize=memory
@@ -7914,11 +7912,7 @@ but the idea would be that we could run the game, load all the assets, and then 
 
 next thing to do, make a general sorted vector for grammar terminals (FIRST set)
 
-After we're done, examine every use uint32_t and uintptr_t and size_t
- - also all uses of TOWER_INVALID_INDEX
-
 I think I should move the entire parser to it's own place so we can run tests...
-
 
 A side note on optimization, when we add the LR1 states we also add grammar symbols
  - but many of the LR1 states are duplicates of LR0 states with different lookaheads
@@ -7996,12 +7990,757 @@ but yeah it's more than just ordered map, because it maintains that order
 I'd have OrderedSet too, I think that would sub for most SortedVector cases
  - and the order would probably be more akin to the book
 
-
 Things I need to finish:
  - OrderedMap
  - creating tower nodes for shifts/reduces
  - doing something with the stream's returned tower node
  - report and handle shift/reduce conflicts
+ - make sure ranges are working
+
+-----------------
+
+After we're done, examine every use uint32_t and uintptr_t and size_t
+ - also all uses of TOWER_INVALID_INDEX
+
+Also remove allocated counts in parser (just keep the tower ones for tests)
+
+-------------
+
+I think the recognizer step function should return some sort of object that says what action to take
+ - let the user take the action, not us
+
+but does the parser keep track of the whole tree?
+
+it's bottom up, so leafs are created first, and then attached to parents on reduce
+ - so reduce creates a node and pops off all the nodes from the stack
+ - we want to allow the user to modify the tree too
+ - maybe the user should be the one keeping track of the tree?
+
+We really only want to capture important nodes
+
+ForEach = 'for' '(' Variable 'in' Expression ')' '{' Statement+ '}'
+
+Here, almost every keyword or string can be tossed, we really just need to know:
+1. It's a for-each loop (reduce)
+2. The variable, expression, and statements
+
+Maybe we can toss everything that we know is constant...
+
+I think it makes more sense to be explicit about captures, maybe we only capture $...
+
+Should probably read about what tree sitter does here
+
+ForEach = 'for' '(' $Variable 'in' $Expression ')' '{' $Statement+ '}'
+
+Parser might want to keep track of row/column too... (match)
+
+Well we have the concept of named nodes, I wonder if the nodes themselves should have a name
+ - I mean ultimately we have the functions and we don't need to know how they work, we can always optimize later
+
+Right now to get started, lets just give everything a node
+
+or lets get the debug stream working
+
+the debug stream needs the ability to build a graph
+ - I can output the entire graph every single time
+ - or I can iteratively build it with instructions
+ - but it's like we need a proper scope or something, how does the debug drawer know when it's done?
+ - maybe if we do that approach, we have to explicitly delete or end it
+ - can do so when the algorithm finishes
+ - I do like the idea of declaring the start/end of an algorithm, even for timing
+
+debug should be a thread local, or something where we can atomically queue
+ - maybe we create a debug object, and we just have one global one for everything
+ - like stdout or something
+
+Everything in debug should be based on mapped pointers or unique ids, but if you call it with 0 it generates an id
+ - so we can use any pointer to represent the graph
+
+A unique id should be a pointer, a string, or generated internally
+
+// We just support a specific number of shapes
+enum class Shape : uint8_t {
+  box,
+  square,
+  hexagon,
+  octagon,
+  ellipse,
+  circle,
+  diamond,
+  triangle,
+  plaintext,
+}
+
+struct Color {
+  r: uint8_t;
+  g: uint8_t;
+  b: uint8_t;
+  a: uint8_t;
+};
+
+enum class Style : uint8_t {
+  solid,
+  dashed,
+  dotted,
+  invis,
+  bold,
+}
+
+// instant might mean we don't want to display the graph as it builds, we intend for it to show up when done
+// makes more sense when all we're doing is traversing an existing structure, but want to draw it as we traverse
+// like debug draw for an object
+
+Debug* = debug_create();
+debug_destroy();
+
+debug_begin_scope(Debug* context);
+debug_end_scope();
+string_id = debug_string("fooo");
+
+graph_unique_id = debug_graph_start(Debug* context, graph_unique_id = 0, options, instant?)
+debug_graph_add_node(Debug* context, graph_unique_id, node_unique_id, label, shape, color);
+debug_graph_add_edge(Debug* context, graph_unique_id, from_node_unique_id, to_node_unique_id, label, style, color);
+debug_graph_end(Debug* context, graph_unique_id)
+
+void AddNode(const char* uniqueId, const char* label = "", const char* shape = "box", const char* color = "black");
+void AddNode(const void* pointer, const char* label = "", const char* shape = "box", const char* color = "black");
+void AddEdge(const char* fromUniqueId, const char* toUniqueId, const char* label = "", const char* style = "solid", const char* color = "black");
+void AddEdge(const void* fromPointer, const void* toPointer, const char* label = "", const char* style = "solid", const char* color = "black");
+
+do we want like, a scope, that automatically ends the algorithm?
+
+I think all debug structures should be time marked, might be expensive but it gives us a good profiling view too
+
+I kind of like the idea that all the debug draw stuff is captured in a scope (including string and text)
+ - and freed when the scope... goes out of scope...
+
+basically just means we can't start something and keep adding to it later if it's out of the scope
+ - or we need to create in an above scope, that might be odd (I don't love it, lets see what we can do without that)
+
+should I use protobuf for this, or captain proto...
+ - I suppose why not...
+
+what does this look like in the debugger
+ - I kind of imagine it's like 
+
+support the Debug Adapter Protocol
+ - ideally the entire thing as binary, protobuffs
+ - I don't want to have to write json, that's SPENSIVE!
+
+or maybe we write bson...
+
+I want it to be really fast, but that's a problem if it's generic
+
+ultimately we don't really need to accept this format
+ - debug draw only produces, does not consume
+
+and the process of sending/serializing it can be done later
+
+I guess I do want some sort of unified communication here
+ - json in/out might be the most reasonable and easy to use
+
+------------------
+
+random other thing I keep thinking about
+ - I want to unify structs with named members as well as static arrays, tuples, unnamed members, etc
+ - treating them differently annoys me
+ - even C has the whole end of the struct can be an unsized array (variably sized by allocation)
+
+and really it just comes down to how we want to access it
+ - afaik we can provide multiple ways
+ - access all members by index
+ - named members by index
+ - unnamed members by index
+ - named members by name, etc
+ - members beyond the end by index
+
+and then the thought I had on top of that, aren't function calls really just taking in a struct or tuple...
+
+like foo(1,2,3) is really just a struct with 3 unnamed members (still ordered)
+ - so then maybe in the weirdest way, it's really just any expression that follows is a call...
+ - like a 5, calls a with the value 5...
+ - but in our case, foo(1,2,3) calls a with a tuple
+ - and we can do named tuples too
+
+fn foo(a: i32, b: i32: c: i32) {
+}
+
+maybe all structs are implicitly convertable:
+ - and named members must match
+ - or if all members by index match
+ - I almost thing if there are any names in common, it does not try to do positional fallback
+ - or maybe we only do positional from no names to (no names or names)
+   - this is probably the more correct thing people want...
+ - can it be partial, does that even make sense...
+    foo(1, 2, c: 123);
+    - this one only works because the exact named arguments are in the correct position, so that's ok
+    foo(1, c: 123, 2)
+    - could *technically* resolve because we remove the named arguments and set them explicitly first
+    - then assume the other arguments "compact" and as long as all members are covered
+ - or we just only allow named members at the end, so positional arguments must all be first
+   - and then named members only work to override?? all values must be filled
+ - remember we also have defaults too, as long as all arguments get filled it's ok
+ - positional first doens't sound so bad
+
+
+and the unit "tuple" with only positional arguments... should it just be the type itself
+(123) = 123...
+ - or is it just implicitly convertable
+ - and does this mean that all parentheses do this
+
+it's just an interesting idea that we always only take in a single value
+ - obviously in wasm we'd expand it to their stack based approach for calling
+
+again, so interesting to me that tower nodes can basically take this exact form with unnamed members...
+
+let a = (1,2); // (i32, i32)
+
+a[0] = 123;
+a.0 = 123;
+
+so even a static array is really just the same type repeated N times
+ - and we can obviously have some syntax wrapper around that `array(i32, 10)`
+
+hmm, maybe "compiletime" is just another target?
+ - because I like how I keep thinking about code being partially usable by graph traversal
+   - meaning, rather than breaking things up by library, it's by reachability and what primitives are used
+ - still broken up by imports / libraries, but I mean as far as bringing incompatable code or rules in
+
+
+fn array(type: compiletime { has: Type }, n: compiletime i32): compiletime { has: Type } {
+  // build the compiletime type here
+}
+
+
+ultimately, we can treat everything as operators
+ - but fundamentally we do need a way to look up those functions or operators from a type
+ - members by name... simple as that?
+ - is a tower node expressive enough to represent everything?
+
+
+
+// hmm, for this we're really just saying that the type when indexed is i32 beyond that point
+// but that doesn't imply anything about the actual storage of the type
+let b: (i32...) = ();
+
+b[555] is i32 is all we're saying... how is not really up to us
+
+hmm interesting, that also means...
+basically like an i32* is just (i32...)
+
+HMMM...
+
+
+
+and the implementation of i32* (read, write, etc) is using a pointer sized value (32/64bit)
+ - and has all it's logic for emitting read and write to those values, whether it's safe or not
+
+weird!
+
+I don't mind the way this is going though, it's sort of neat
+
+
+so what is a type then...
+ - well as far as what we need to know
+ - how it's represented in wasm
+   - possibly what the size and layout is
+   - so we can offset into it if needed, etc
+ - but for other targets, it's also like how it's represented in spirv too
+
+ - but as far as compile time goes... like imagine all we're doing is validation not running anything or producing bitcode
+ - then really all we need to know is just fundamentally how we pass it around
+ - and the members, etc, like what operations are valid on it
+ - casts, that sort of stuff too
+ - can sort of lump that up as operators...
+
+ - I guess kinda like meta tables, we can just have some special members
+
+ - that means the Llvm/Wasm/Spirv components would be computed on demand
+   - so how do we 'invalidate' those parts of the tree in a very automatic way
+
+ - and what does a constant value look like
+
+like if I do { a: 5 }.... ( a: 5 )... what is that exactly
+ - well I guess it's just some Constant component that holds a binary blob of what the value is
+   - also needs a type as well... but the type is just itself?
+     - itself with a virtual parent
+ - and then Llvm/Wasm/Spirv construct their version of that constant based on the type, etc
+
+like.. the constant has a type of i32
+ - but the constant itself... is a type?
+   - its a subset, constants are always subsets technically
+
+I want the structure of types to be super intuitive
+
+this comes back to the difference between values and types
+I'm trying to unify them, that's why this is hurting my brain
+
+because normally even in type script there's a difference between types and values
+
+type t = {
+  a: 5
+};
+
+vs
+
+let t = {
+  a: 5
+};
+
+
+I don't want there to be a difference
+
+TypeScript also relaxes constants from their value when used in an expression
+e.g. 5 is "number" as an expression, but 5 is "5" as a type
+
+in our case, I don't think I want that, I think it's fine if 5 is always 5 but implicitly converts
+
+that does mean if you do let a = 5;.... a = 6 is an error!
+let a: i32 = 5;
+
+
+// how do I know what I want here is either a tower node or a compacted down struct?
+// Like right now it's suggesting that 
+let t = {
+  a: 5
+};
+
+t.a = 123;
+
+can it somehow be both?
+
+
+well, if tower nodes can implicitly convert to constructed values
+ - if all their values are expressions or constants...
+
+so the idea would be like
+let t = {
+  a: i32
+};
+
+let x: t = {
+  a: 123
+};
+
+or even 'as'
+like if you try and cast a tower node into a value that has a type
+ - it will construct an instance of that type
+
+let t = {
+  a: 5
+};
+
+is actually just a tower node, so I can then do (link more tower nodes)
+t.b = i32;
+
+but if I want to use it as a type, or create an instance of a thing that's all constants
+ - instance keyword?
+
+let x.... definately not compile time, can't know what it is
+
+let t = {
+  a: x // x is not a tower node? (anything compiletime is a tower node, I think)...
+};
+
+let t = (
+  a: x
+);
+
+if {} is for tower nodes
+and () is for instances, basically just creates a tower node and then creates the structure out of it
+
+let player = {
+  lives: i32 = 5
+};
+
+let f = player (
+  lives: 9
+);
+
+I want to be able to use any type as a type, not just the tower nodes
+
+
+
+
+------------------
+
+I hate going this deep but I almost want the debugger to be skugo again
+ - with the remote interface, all that stuff
+
+-----------------------
+
+I like all the debug stuff I'm doing, but part of me wants to writem this in tower itself and get going with the language
+
+-----------------
+
+when we do the reduce, we need to create a Match component that encompasses all the children
+ - but ideally, we somehow record this without requiring a whole match component
+ - like on the states info, when we pop it, we store all the index / length (maybe even column/row) info
+
+ - especially considering that we don't want to allocate for every character when doing tokenizing
+
+ - but obviously right now
+
+-------------------
+
+ok so problem, if we attach the parse tree's for the
+tokenization then the Match component will have conflicting/overlapping ids
+
+Somehow we have to be able to distinguish match ids,
+maybe we can put 'userdata' on the match that is just the pointer to the table
+
+basically the ids need to be global
+
+any anyone using two or more parsers will run into this problem
+
+also, what are the ids of the matches for tokens that were just characters...
+ - those ids came from unicode codepoints
+ - shifts don't really produce ids... so maybe we just need to say that a token was shifted (a special id)
+ - but still, overlapping ids between tokenizer and parser
+ - for the Match component, maybe the userdata* would be the stream for the match id
+   - I kind of don't mind that, it lets us tell where it comes from
+ - how does it decide whether to use the Table* or Stream*... where the ids came from?
+ - maybe the stream read produces an owner pointer... ehhhh
+and it's not like the match object keeps them alive
+
+maybe we can have an id generator for Streams/Tables?
+ - and we can have the match object have a parent id...
+ - shared between them so we can tell which is which
+ - ehh.. a pointer works just fine but it's a little unsafe
+
+Ulimately every match is generated by some set of ids
+ - each table represents ids in and ids out
+ - so we actually have 3 sets of ids at play
+ - ids in to tokenizer (characters)
+ - ids out of tokenizer into parser (tokens)
+ - ids out of parser (parse rulse)
+
+Matches are always produced by a table / recognizer
+ - so maybe instead of pointing at the stream, we point at the table
+ - and we say whether it's an input or output value
+ - although we never create a tower node for the parser parsing tokens, because the tokenizer will actually return tower nodes
+ - so then we only ever have:
+   - input to tokens
+   - output from tokens (also input to parser but the parser doesn't create tower nodes here)
+   - output from parser
+ - hmm, that's just confusing then
+ - and ideally we never create matches on character inputs from the stream, since we will want to discard those
+   - but that's just a caveat with our specific implementation
+   - anyone generically using this has this same problem
+ - if our streams output the 'origin' of the id
+   - then the recognizer stream would probably forward the table pointer...
+ - I don't mind if it's Stream* Table* Table*...
+ - hmmm
+ - it's so weird to point at things, maybe they should just be components / compositions
+   - then it's not so odd to point at a stream, if it's just another component on a tower node...
+ - and we can make pointing at tower nodes weakly a safe thing
+   - maybe tower nodes can even have ids, so we can refer to ids beyond lifetime (and they count forever, u64, unique, etc)
+   - maybe even uids...?
+ - point is that it makes everything implicitly 'safe' to point at
+   - or ids need to not overlap... but that sounds stupid because we need to look them up all the time
+   - and sounds tedious as a requirement
+   - need an id mapper at each stage
+ - or maybe match always uses a u64, and we put the ids as hi/lo
+   - at least makes it easier to not mess up as a single value
+ - ultimately, what we actually care about is that match points at the rule or tower node that produced it
+   - we don't care about nitty gritty grammar symbols, or even rule indices, we care about the rule that defined us
+   - ultimately it's always from tower nodes
+   - and we must store weak references to them
+
+so maybe that's really what we want
+ - for every shifted symbol, the component that caused it
+ - for every production reduced, the Rule* component
+ - with those, and the fact that they themselves should have matches (can point to the rule)
+   - note that a String component may be responsible for many shifts
+   - but to be fair, that's typically only used in the tokenizer, we don't care about those shifts (they don't get parse nodes)
+
+I think match is going to end up being the component that keeps track of transforms
+
+how do we non-destructively hold on to error information after transforms
+ - we don't do things by string (no reparsing)
+ - we do it by parse tree replacements
+
+This would all be easier with safe memory, or with anyone able to reference anyone else
+
+ - but holding on to the tower nodes seems odd, weak references at best
+
+------------------------
+
+side note, for memory safety, I'm wondering if I back it off a little bit (e.g. make it not as capable)
+ - can we make it simpler again
+ - still might be restrictive, but how restrictive
+
+like for example, if we say you can only initialize, point at, etc decision points, with layous
+ - so no arbirary pointing inside of memory
+ - but can we arbitrarily point inside a sized block of memory that we made decisions for?
+   - well, kind of because member offsets are deemed safe
+   - so anything statically accessible within the layout is safe
+ - lets think about arrays, why can't we just point at any element
+   - because we're saying the entire array must be initialized
+ - oh, because the array gets statically allocated at one size
+
+ - so we're really saying that the overhead is just decision points again
+   - why did we need the lock on memory stuff, const?
+   - reinterpreting memory as a different kind
+     - well screw that, you can't, or it takes multiple pointers
+
+it's really just 'pointable regions'
+ - anything that can be pointed at (anywhere inside too with correct layout)
+ - can be reinterpreted, but not pointers
+ - and we don't worry about 'locking' memory as read only
+   - or if we do, we have to hit each decision point
+ - can't point across boundaries
+   - but I think the structs *can* have holes...
+
+so basically it would be like, if you did:
+
+struct X {
+  a: i32;
+  b: f32 | i32;
+  c: i32;
+};
+
+struct Y {
+  a: i32;
+  b: i32;
+  c: i32;
+};
+
+let x: X* = ...; // somehow get a pointer to an X
+
+x as Y*; // legal, safe?
+
+in this case we know there must be a decision ponit at 'b', so effectively an unknown hole of initialization in X
+ - in this case, it's pod data, but imagine it had pointers
+ - we could just say that | is only for pod data... that would save us somewhat
+
+but lets imagine it's for any type of data, now we have a problem that we can't have pointers to it
+ - well we can, but we can't interpret X as a Y
+ - because that would require holding two pointers
+   - or some weird bullshit region of memory thing
+
+the problem is if anyone then tried to store that "Y*"
+ - how does it hold on to two pointers?
+
+but what if that's just not a legal cast, because it would require holding two pointers
+
+so we can't cast an X like that in memory, I guess a reason for that is because it would also have the decision points at the head
+ - decision point also has layout, right? maybe that's how we know which A|B you picked
+
+I really don't hate this
+
+it's got some tradeoffs, and it means we have to potentially limit the things we can do in our language
+ - but it's not horrible
+
+and then reinterprets are just if they match the structure, and we don't allow pointer reinterpretation
+ - you can reinterpret any pod data, or follow a pointer and reinterpret, but that's all
+
+so reinterprets are checked with layout?
+ - is that always constant time?
+ - maybe it has to be known at compile time
+ - like you can't just take random memory and reinterpret it...
+   - it means you would need memory of a equal or greater size (compile time type)
+   - to know if the cast would be valid
+
+so I couldn't just take a u8* and reinterpret it
+
+ok but what about say inheritance, 'static_cast' from Base* to Dervied*
+ - we could support that layout operation efficiently
+ - that is still a runtime check
+ - but we know about that cast at compile time (from Base* to Derived*)
+   - so we can efficiently generate a lookup between layout* -> layout*
+ - we ideally do something to make this actually const time
+ - a single constant time lookup, even a hash of the pair of layouts (from/to)
+   - has to be extensible with runtime code
+
+so like I know Base* to Derived* becuase it's done at compiletime
+
+but we can never just do void* casts
+ - to anything except the exact type
+ - hmm, well why not actually, because if the void* points at the layout*
+ - then we know what we're casting it into, and we know what the layout is
+
+
+
+so what if we pass a pointer in, but a pointer doesn't normally have the ability to do any arithmetic or change
+ - that's like a feature of the pointer
+
+similar to vtables, we also have pointers that point to things with 'layout'
+ - meaning that at runtime, we can check
+ - but otherwise things can't just be casted
+ - unless it's pod
+
+
+if the pointer doesn't point to layout, we can't cast it to anything else
+ - other than a pointer of lesser size (base, etc)
+ - completely compiletime safe upcasting (is it upcast or downcast, whatever, smaller data)
+
+but if it points to layout, then we can interpret
+ - what if the pointer is fat, and the fat part has the layout?
+ - well we're not ever supposed to lose the last pointer...
+
+
+fat pointer can also have interface info if we go that route
+
+pointer is already fat because of intrusive list tho...
+
+Ok but we're saying it's constant, good enoguh
+
+
+ok so interesting, so if we want to take a pointer in that can move, we need to say it can move around
+ - and maybe in what region it can move around in (like what the layout is?)
+ - almost needs to be templated on it's parent layout...
+
+
+
+so what I was saying before, imagine if you had a Derived* and Base*
+ - but you never casted from Dervied* to Base* (a very safe cast)
+ - imagine moreover it's not derived and base, just two things with identical beginning layouts (derived is longer)
+ - e.g. Base is a prefix of Derived
+ - but we never did a compiletime cast with these prefixes
+ - then an attempt to cast a void* whose real underlying type is Derived*
+ - fails to cast to Base*, because that cast was never generated anywhere
+ - I hate that...
+   - we could say that casts that would fail are checked as if they could have been done at compile time
+   - and if it succeeeds, we cache it in a hash map to be considered constant time from there out
+   - that check could be expensive, linear in bytes
+   - amortized constant time because it only happens once
+ - ok, I can argue that...
+ - also the compiler can pre-generate casts for sub-types
+
+
+ok, now when it comes to layout and initialization
+
+struct X {
+  a: i32;
+  b: f32 | i32;
+  c: i32;
+};
+
+hmm, ah see there's a problem
+ - I claimed we must always maintain a pointer to it
+ - but that's only for allocated memory
+ - for arbitrary regions or decision points, they may be a region within a region
+   - does that imply some kind of parent ownership?
+
+
+in that case, we know it's a subset
+ - how do we ever access b, or get a pointer to it
+
+any | type must be checked, ask if it's a type of layout
+
+&x.b is literally type (f32 | i32)*
+ - we're going to initialize a fat pointer from that
+
+
+
+but here's the thing, f32 | i32 has to store a tag to know what kind of layout it is
+ - so how is that different from the memory itself storing the layout pointer
+ - vs the fat pointer storing the layout pointer
+
+what we're saying is, if a thing doesn't have a layout pointer, we can still point at it, but we can't fuck with the pointer
+ - because we fundamentally don't know what it is
+ - but we know that we got it somehow, and since we got it, it must be valid
+ - so we can always read and write to it
+ - but we can't reinterpret it, we can't cast it, etc
+
+if a pointer is fat, it can point at anything as long as it tracks
+the layout (where it is within the layout, and the layout itself)
+
+fat pointers have that advantage of pointing at not just regions
+
+so maybe we use both
+ - because not every piece of memory needs a decision point
+
+maybe we say that it's kind of both
+
+we have fat pointers
+
+we can have pointers that can only point at objects with layout
+or fat pointers that have the layout on them
+
+but those are the only pointers that can be reinterpreted
+
+
+anything that is constant time we do, otherweise we don't
+
+lets just say all pointers are fat, and maybe we can optimize things out
+
+because forcing the user to make the decision on what kind of pointer to use sucks
+
+it's really like we want all pointer types to be templated
+
+that's what handle was, just a big generic version of it, but at runtime instead of templated
+
+I want const to meant that nobody can modify it
+ - and because of that, we also can't reach things that are modifyable
+ - either they are transitively const too
+
+constant time overhead for all checks
+ - but the compiler must guarantee it initializes a region
+
+At some point, we could possibly lock the definition
+ - if we store all decision points at the head or tail of an object
+ - more like, when you compose a struct, it actually lifts all child decision points to the head of the root
+ - so that way memory is contiguous like C
+
+the way we 'lock' any definition is by obtaining a bunch of pointers that throw on delete/uninitialize of the thing they point at
+
+struct X {
+  a: i32;
+  b: f32 | i32;
+  c: i32;
+};
+
+struct Y {
+  a: i32;
+  b: i32;
+  c: i32;
+};
+
+let x: X* = ...; // somehow get a pointer to an X
+
+x as Y*; // error: Casting to a Y* requires a lock on all changeable types
+
+let foo: lock(X, Y) = lock(x, Y);
+
+foo.b = 123;
+
+wait, why can't we just do a reference count...
+ - and throw if anyone is still pointing at us
+ - why does it need to be an intrusively linked list
+ - I guess so we can null out weak pointers if we wanted to
+
+A reference count only sucks for weak references
+ - I mean we can always just use a ref count for strong references and intrusive list for weak
+
+but the idea that I'm mainly contemplating is that locking would be much easier with reference counts
+ - locking an object would not require N many pointers of storage
+ - we only need to increment ref counts for all locked objects
+ - but we need to be able to remember all the locked objects, meaning like at compile time we'd have to know what to release
+
+because we take all the region/decision point stuff and lift it to the header (or footer)
+then it means if you allocate two objects side by side, but both with decision points, you cannot point
+with a pointer overlaying both of them
+
+it only works if they were allocated together, so the allocation system can know to lift the regions together
+
+-------------------
+DEBUG DRAW:
+
+tables (make them work with the graph viz)
+maybe with debug_graph_node?
+structures, as well as tables (with columns and row labels)...
+very useful for first/nullable, and propegation of lookaheads
+
+when I just want to display debug text, I think I can just create a graph with a node
+- but maybe there's a better way
+I also wonder if we can create 'routines' so that we send less data / encode less
+
+we might want the concept of a 'frame'
+
+do scopes need a name? for flame graph stuff, it's pretty nice...
+   can be optional
 
 
 
