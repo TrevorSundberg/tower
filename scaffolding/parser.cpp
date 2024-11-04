@@ -314,7 +314,108 @@ void parser_tests() {
 
   assert(tower_memory_get_allocated_count() == tower_memory_initial_count);
 
+  // token Identifier = '0';
+  // token Identifier = '1';
+  // token Identifier = '2';
+  // token Identifier = '3';
+  // token Identifier = '4';
+  // token Identifier = '5';
+  // token Identifier = '6';
+  // token Identifier = '7';
+  // token Identifier = '8';
+  // token Identifier = '9';
+  // parse E = E '+' T;
+  // parse E = T;
+  // parse T = T '*' F;
+  // parse T = F;
+  // parse F = '(' E ')';
+  // parse F = Identifier
+  {
+    TowerNode* token_rules = tower_node_create();
 
+    TowerNode* i0 = parser_rule_create_subtree(token_rules, "Identifier", false);
+    parser_string_create_subtree_utf8_null_terminated(i0, "0");
+    TowerNode* i1 = parser_rule_create_subtree(token_rules, "Identifier", false);
+    parser_string_create_subtree_utf8_null_terminated(i1, "1");
+    TowerNode* i2 = parser_rule_create_subtree(token_rules, "Identifier", false);
+    parser_string_create_subtree_utf8_null_terminated(i2, "2");
+    TowerNode* i3 = parser_rule_create_subtree(token_rules, "Identifier", false);
+    parser_string_create_subtree_utf8_null_terminated(i3, "3");
+    TowerNode* i4 = parser_rule_create_subtree(token_rules, "Identifier", false);
+    parser_string_create_subtree_utf8_null_terminated(i4, "4");
+    TowerNode* i5 = parser_rule_create_subtree(token_rules, "Identifier", false);
+    parser_string_create_subtree_utf8_null_terminated(i5, "5");
+    TowerNode* i6 = parser_rule_create_subtree(token_rules, "Identifier", false);
+    parser_string_create_subtree_utf8_null_terminated(i6, "6");
+    TowerNode* i7 = parser_rule_create_subtree(token_rules, "Identifier", false);
+    parser_string_create_subtree_utf8_null_terminated(i7, "7");
+    TowerNode* i8 = parser_rule_create_subtree(token_rules, "Identifier", false);
+    parser_string_create_subtree_utf8_null_terminated(i8, "8");
+    TowerNode* i9 = parser_rule_create_subtree(token_rules, "Identifier", false);
+    parser_string_create_subtree_utf8_null_terminated(i9, "9");
+
+
+    TowerNode* parse_rules = tower_node_create();
+
+    TowerNode* e0 = parser_rule_create_subtree(parse_rules, "E", false);
+    parser_reference_create_subtree(e0, "E");
+    parser_string_create_subtree_utf8_null_terminated(e0, "+");
+    parser_reference_create_subtree(e0, "T");
+
+    TowerNode* e1 = parser_rule_create_subtree(parse_rules, "E", false);
+    parser_reference_create_subtree(e1, "T");
+
+    TowerNode* t0 = parser_rule_create_subtree(parse_rules, "T", false);
+    parser_reference_create_subtree(t0, "T");
+    parser_string_create_subtree_utf8_null_terminated(t0, "*");
+    parser_reference_create_subtree(t0, "F");
+
+    TowerNode* t1 = parser_rule_create_subtree(parse_rules, "T", false);
+    parser_reference_create_subtree(t1, "F");
+
+    TowerNode* f0 = parser_rule_create_subtree(parse_rules, "F", false);
+    parser_string_create_subtree_utf8_null_terminated(f0, "(");
+    parser_reference_create_subtree(f0, "E");
+    parser_string_create_subtree_utf8_null_terminated(f0, ")");
+
+    TowerNode* f1 = parser_rule_create_subtree(parse_rules, "F", false);
+    parser_reference_create_subtree(f1, "Identifier");
+
+
+    Table* token_table = parser_table_create(token_rules, nullptr, nullptr, parser_table_utf8_id_to_string);
+
+    Table* parse_table = parser_table_create(
+      parse_rules,
+      (uint8_t*)token_table,
+      parser_table_non_terminal_resolve_reference,
+      parser_table_non_terminal_id_to_string
+    );
+
+    // The tokenizer consumes utf8 text and produces tower nodes that have token matches
+    Stream* utf8_stream = parser_stream_utf8_null_terminated_create("1*1+1");
+    Recognizer* token_recognizer = parser_recognizer_create(token_table, utf8_stream);
+
+    // The token stream pumps the token recognizer to produce tokens in a stream that the parser will consume
+    Stream* token_stream = parser_stream_recognizer_create(token_recognizer);
+    Recognizer* parse_recognizer = parser_recognizer_create(parse_table, token_stream);
+
+    bool running = true;
+    TowerNode* node = nullptr;
+    node = parser_recognizer_step(parse_recognizer, &running);
+
+    parser_recognizer_destroy(parse_recognizer);
+    parser_stream_destroy(token_stream);
+    parser_recognizer_destroy(token_recognizer);
+    parser_stream_destroy(utf8_stream);
+    parser_table_destroy(parse_table);
+    parser_table_destroy(token_table);
+    tower_node_release_ref(parse_rules);
+    tower_node_release_ref(token_rules);
+  }
+
+  assert(tower_memory_get_allocated_count() == tower_memory_initial_count);
+
+/*
   // Non-SLR grammar
   // token S = L '=' R;
   // token S = R;
@@ -373,6 +474,7 @@ void parser_tests() {
   }
 
   assert(tower_memory_get_allocated_count() == tower_memory_initial_count);
+*/
 
 /*
   // token A = 'a';
@@ -1802,12 +1904,10 @@ struct State {
 };
 
 struct Table {
-
   Grammar grammar;
   std::vector<State> states;
   std::vector<StateTransitions> shared_transitions;
 };
-
 
 std::string debug_str_header(const State& state, const Table& table, const char* prefix = "state") {
   std::stringstream stream;
@@ -2378,15 +2478,45 @@ void parser_table_build_states(
   printf("REDUCED SHARED TRANSITIONS: %d to %d\n", (int)table.states.size(), (int)shared_transitions.size());
 }
 
-char* parser_table_utf8_id_to_string(uint8_t* userdata, uint32_t id) {
-  // TODO(trevor): This should be a lot more efficient, but currently we don't have a way to measure utf8 size
-  std::stringstream stream;
-  stream << '\'' << (char)id << '\'';
-  std::string str = stream.str();
+uint32_t parser_table_non_terminal_resolve_reference(uint8_t* userdata, const char* name) {
+  assert(userdata);
+  Table* table = (Table*)userdata;
+  // A few sanity checks to make sure we got a proper Table object
+  assert(table->states.size() > 0);
+  assert(table->grammar.non_terminals.size() > 0);
+  assert(table->grammar.rules.size() >= table->grammar.non_terminals.size());
+
+  for (const auto& non_terminal : table->grammar.non_terminals) {
+    if (non_terminal.name == name) {
+      return non_terminal.index;
+    }
+  }
+  return PARSER_ID_EOF;
+}
+
+char* parser_copy_string(const std::string& str) {
   // Include the null terminator
   void* str_mem = tower_memory_allocate(str.size() + 1);
   memcpy(str_mem, str.c_str(), str.size() + 1);
   return (char*)str_mem;
+}
+
+char* parser_table_utf8_id_to_string(uint8_t* userdata, uint32_t id) {
+  // TODO(trevor): This should be a lot more efficient, but currently we don't have a way to measure utf8 size
+  std::stringstream stream;
+  stream << '\'' << (char)id << '\'';
+  return parser_copy_string(stream.str());
+}
+
+char* parser_table_non_terminal_id_to_string(uint8_t* userdata, uint32_t id) {
+  assert(userdata);
+  Table* table = (Table*)userdata;
+  // A few sanity checks to make sure we got a proper Table object
+  assert(table->states.size() > 0);
+  assert(table->grammar.non_terminals.size() > 0);
+  assert(table->grammar.rules.size() >= table->grammar.non_terminals.size());
+  assert(id < table->grammar.non_terminals.size());
+  return parser_copy_string(table->grammar.non_terminals[id].name);
 }
 
 Table* parser_table_create(
@@ -2435,8 +2565,15 @@ void parser_table_destroy(Table* table) {
   tower_memory_free(table);
 }
 
+struct StackState {
+  const State* state = nullptr;
+  TowerNode* node = nullptr;
+  size_t start = (size_t)-1;
+  size_t length = 0;
+};
+
 struct Recognizer {
-  std::vector<const State*> stack;
+  std::vector<StackState> stack;
 
   // TODO(trevor): The recgonizer needs to hold on to these (reference count?)
   Stream* stream = nullptr;
@@ -2472,7 +2609,9 @@ Recognizer* parser_recognizer_create(Table* table, Stream* stream) {
   Recognizer* recognizer = new (memory) Recognizer();
   recognizer->stream = stream;
   recognizer->table = table;
-  recognizer->stack.push_back(&table->states[0]);
+  recognizer->stack.push_back(StackState {
+    .state = &table->states[0]
+  });
   parser_recognizer_read_id(recognizer);
   return recognizer;
 }
@@ -2486,7 +2625,8 @@ void parser_recognizer_destroy(Recognizer* recognizer) {
 TowerNode* parser_recognizer_step(Recognizer* recognizer, bool* running) {
   assert(*running);
 
-  const State* state = recognizer->stack.back();
+  StackState stack_state = recognizer->stack.back();
+  const State* state = stack_state.state;
   const StateTransitions* transitions = state->transitions;
 
   printf("STACK:\n");
@@ -2523,18 +2663,50 @@ TowerNode* parser_recognizer_step(Recognizer* recognizer, bool* running) {
   if (found_edge) {
     printf("STEP: %s\n", debug_str(*found_edge, *recognizer->table).c_str());
     if (found_edge->shift_state) {
-      recognizer->stack.push_back(found_edge->shift_state);
+      // Create a node for each shift to represent the character or token
+      // TODO(trevor): Add a recognizer 'token' mode that discards unnamed nodes (doesn't create one for each character)
+      TowerNode* node = tower_node_create();
+      Match* match = parser_match_create(node);
+      parser_match_set_id(match, id);
+      parser_match_set_start(match, recognizer->read_start);
+      parser_match_set_length(match, recognizer->read_length);
+
+      recognizer->stack.push_back(StackState {
+        .state = found_edge->shift_state,
+        .node = node,
+        .start = recognizer->read_start,
+        .length = recognizer->read_length
+      };
       // Read the id for the next step/iteration
       parser_recognizer_read_id(recognizer);
     } else if (found_edge->reduce_rule) {
       if (found_edge->reduce_rule->index == 0) {
         printf("ACCEPT\n");
+        *running = false;
       } else {
+        // Create a node for each shift to represent the character or token
+        // TODO(trevor): Add a recognizer 'token' mode that discards unnamed nodes (doesn't create one for each character)
+        TowerNode* node = tower_node_create();
+        Match* match = parser_match_create(node);
+        parser_match_set_id(match, id);
+        parser_match_set_start(match, recognizer->read_start);
+        parser_match_set_length(match, recognizer->read_length);
+        ffffffff;
+
         // We should always have at least one state on the stack after reducing
         const size_t pop_size = found_edge->reduce_rule->symbols.size();
         assert(recognizer->stack.size() > pop_size);
-        size_t erase_index = recognizer->stack.size() - pop_size;
+        const size_t erase_index = recognizer->stack.size() - pop_size;
+
+        // Take any nodes from the states we're popping off and attach them
+        for (size_t i = erase_index; i < recognizer->stack.size(); ++i) {
+fffff;
+        }
+
         recognizer->stack.erase(recognizer->stack.begin() + erase_index, recognizer->stack.end());
+
+        // Capture all the 
+
         const State* top_state = recognizer->stack.back();
         auto found_reduction = top_state->gotos_after_reduction.find(found_edge->reduce_rule->non_terminal);
         // We should always find it otherwise we built the table wrong

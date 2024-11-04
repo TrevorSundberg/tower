@@ -223,6 +223,11 @@ Stream* parser_stream_recognizer_create(Recognizer* recognizer);
 // A returned value of PARSER_ID_EOF means that we did not resolve the name
 typedef uint32_t (*ParserTableResolveReference)(uint8_t* userdata, const char* name);
 
+// Looks up rule id's from a table by name (see ParserTableResolveReference)
+// The userdata parameter passed here MUST be a Table*
+// This is most commonly used by a parser that wants to resolve the names of token rules
+uint32_t parser_table_non_terminal_resolve_reference(uint8_t* userdata, const char* name);
+
 // Virtual stringify for ids for the table
 // This is primarily used for debugging and is optional
 // The string returned should be utf8 null-terminated and allocated with tower_memory_allocate (freed by caller)
@@ -232,6 +237,11 @@ typedef char* (*ParserTableIdToString)(uint8_t* userdata, uint32_t id);
 // Stringify utf8 codepoints to look like 'x' (see ParserTableIdToString)
 // The userdata parameter passed here is not used and can be any value (including nullptr)
 char* parser_table_utf8_id_to_string(uint8_t* userdata, uint32_t id);
+
+// Looks a non-terminal from a table by id/index (see ParserTableIdToString)
+// The userdata parameter passed here MUST be a Table*
+// This is most commonly used by a parser that wants to resolve the names of token rules
+char* parser_table_non_terminal_id_to_string(uint8_t* userdata, uint32_t id);
 
 // Create a parser for the given BNF parse rules specified by a component tree
 // Note that the parser does not hold on to the tree, and changes no reference counts
