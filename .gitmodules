@@ -1,3 +1,6 @@
 [submodule "third_party/binaryen"]
 	path = third_party/binaryen
 	url = https://github.com/WebAssembly/binaryen.git
+[submodule "third_party/llvm-project"]
+	path = third_party/llvm-project
+	url = https://github.com/llvm/llvm-project.git
