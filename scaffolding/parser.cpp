@@ -683,6 +683,46 @@ size_t parser_decode_utf8_codepoint(const char* utf8_begin, const char* utf8_end
   }
 }
 
+size_t parser_encode_utf8_codepoint(uint32_t codepoint, char* buffer, size_t buffer_size) {
+  assert(bool(buffer) == bool(buffer_size));
+
+  // Determine the number of bytes needed for the encoding
+  if (codepoint <= 0x7F) { // 1-byte character (ASCII)
+    if (buffer) {
+      assert(buffer_size >= 1);
+      buffer[0] = static_cast<char>(codepoint);
+    }
+    return 1;
+  } else if (codepoint <= 0x7FF) { // 2-byte character
+    if (buffer) {
+      assert(buffer_size >= 2);
+      buffer[0] = static_cast<char>(0xC0 | ((codepoint >> 6) & 0x1F));
+      buffer[1] = static_cast<char>(0x80 | (codepoint & 0x3F));
+    }
+    return 2;
+  } else if (codepoint <= 0xFFFF) { // 3-byte character
+    if (buffer) {
+      assert(buffer_size >= 3);
+      buffer[0] = static_cast<char>(0xE0 | ((codepoint >> 12) & 0x0F));
+      buffer[1] = static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F));
+      buffer[2] = static_cast<char>(0x80 | (codepoint & 0x3F));
+    }
+    return 3;
+  } else if (codepoint <= 0x10FFFF) { // 4-byte character
+    if (buffer) {
+      assert(buffer_size >= 4);
+      buffer[0] = static_cast<char>(0xF0 | ((codepoint >> 18) & 0x07));
+      buffer[1] = static_cast<char>(0x80 | ((codepoint >> 12) & 0x3F));
+      buffer[2] = static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F));
+      buffer[3] = static_cast<char>(0x80 | (codepoint & 0x3F));
+    }
+    return 4;
+  } else {
+    // Codepoint is outside of valid UTF-8 range
+    return 0;
+  }
+}
+
 void parser_string_append_utf8_null_terminated(String* component, const char* utf8) {
   const char* utf8_end = utf8 + strlen(utf8);
   return parser_string_append_utf8(component, utf8, utf8_end);
@@ -2502,6 +2542,15 @@ char* parser_copy_string(const std::string& str) {
 }
 
 char* parser_table_utf8_id_to_string(uint8_t* userdata, uint32_t id) {
+  size_t encode_size = parser_encode_utf8_codepoint(id, nullptr, 0);
+  // Include the null terminator, and two '' characters
+  char* str_mem = (char*)tower_memory_allocate(encode_size + 3);
+  str_mem[0] = '\'';
+  str_mem[encode_size + 1] = '\'';
+  str_mem[encode_size + 2] = 0;
+  parser_encode_utf8_codepoint(id, str_mem + 1, encode_size);
+  return str_mem;
+
   // TODO(trevor): This should be a lot more efficient, but currently we don't have a way to measure utf8 size
   std::stringstream stream;
   stream << '\'' << (char)id << '\'';
