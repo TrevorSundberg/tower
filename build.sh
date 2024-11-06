@@ -1,3 +1,5 @@
 #!/bin/bash
-docker run --rm -it --user 1000:1000 -v `pwd`:/src -w /src ghcr.io/webassembly/wasi-sdk ./internal.sh
+set -ex
+docker buildx build --progress=plain -t tower_build ./docker
+docker run --rm -it --user 1000:1000 -v `pwd`:/src -w /src tower_build ./internal.sh
 
