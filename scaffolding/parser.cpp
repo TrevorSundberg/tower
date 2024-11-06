@@ -2631,7 +2631,7 @@ TowerNode* parser_recognizer_step(Recognizer* recognizer, bool* running) {
 
   printf("STACK:\n");
   for (size_t i = 0; i < recognizer->stack.size(); ++i) {
-    printf("  %s\n", debug_str_header(*recognizer->stack[i], *recognizer->table).c_str());
+    printf("  %s\n", debug_str_header(*recognizer->stack[i].state, *recognizer->table).c_str());
   }
 
   const StateEdge* found_edge = nullptr;
@@ -2676,7 +2676,7 @@ TowerNode* parser_recognizer_step(Recognizer* recognizer, bool* running) {
         .node = node,
         .start = recognizer->read_start,
         .length = recognizer->read_length
-      };
+      });
       // Read the id for the next step/iteration
       parser_recognizer_read_id(recognizer);
     } else if (found_edge->reduce_rule) {
@@ -2691,7 +2691,6 @@ TowerNode* parser_recognizer_step(Recognizer* recognizer, bool* running) {
         parser_match_set_id(match, id);
         parser_match_set_start(match, recognizer->read_start);
         parser_match_set_length(match, recognizer->read_length);
-        ffffffff;
 
         // We should always have at least one state on the stack after reducing
         const size_t pop_size = found_edge->reduce_rule->symbols.size();
@@ -2700,19 +2699,25 @@ TowerNode* parser_recognizer_step(Recognizer* recognizer, bool* running) {
 
         // Take any nodes from the states we're popping off and attach them
         for (size_t i = erase_index; i < recognizer->stack.size(); ++i) {
-fffff;
+          // TODO(trevor): continue work here
         }
 
         recognizer->stack.erase(recognizer->stack.begin() + erase_index, recognizer->stack.end());
 
         // Capture all the 
 
-        const State* top_state = recognizer->stack.back();
-        auto found_reduction = top_state->gotos_after_reduction.find(found_edge->reduce_rule->non_terminal);
+        StackState top_state = recognizer->stack.back();
+        auto found_reduction = top_state.state->gotos_after_reduction.find(found_edge->reduce_rule->non_terminal);
         // We should always find it otherwise we built the table wrong
-        assert(found_reduction != top_state->gotos_after_reduction.end());
+        assert(found_reduction != top_state.state->gotos_after_reduction.end());
         // The next state is the dictated by the GOTO[state, non-terminal]
-        recognizer->stack.push_back(found_reduction->second);
+        // TODO(trevor): NOT CORRECT
+        recognizer->stack.push_back(StackState {
+          .state = found_reduction->second,
+          .node = node,
+          .start = recognizer->read_start,
+          .length = recognizer->read_length
+        });
         printf("REDUCE: pop(%d) to %s\n", (int)pop_size, debug_str(*found_reduction->second, *recognizer->table).c_str());
       }
 

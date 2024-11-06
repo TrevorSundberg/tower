@@ -8742,6 +8742,115 @@ we might want the concept of a 'frame'
 do scopes need a name? for flame graph stuff, it's pretty nice...
    can be optional
 
+--------------------
+
+get llvm compiling under wasi-sdk
+
+In order to get it building, it looks like we need python3 as part of our container
+ - time to get our own docker container building...
+
+get llvm built, and minimize the crap out of it if we can
+
+curiously...
+/opt/wasi-sdk/bin/../share/wasi-sysroot/include/wasm32-wasi-threads/setjmp.h:13:2: error: Setjmp/longjmp support requires Exception handling support, which is [not yet standardized](https://github.com/WebAssembly/proposals?tab=readme-ov-file#phase-3---implementation-phase-cg--wg). To enable it, compile with `-mllvm -wasm-enable-sjlj` and use an engine that implements the Exception handling proposal.
+
+what is -mllvm...
+does that mean I have to rebuild wasi-sdk with those options?
+
+Does this mean I can remove my weird wasm exceptions thing?
+
+anyways, as a side note, all of CrashRecoveryContext.cpp should be removed
+ - it doesn't make any sense in wasm anyways, signals, etc, and it uses setjmp
+
+
+
+-----------
+
+lets get ccache working inside the container, and mounted to a temporary directory
+ - look into raverie engine
+ - lets also see if we can use ninja too, gotta speed up this build
+
+the wasm being produced is wrong, I believe the endianness is bad
+but hey we got llvm working...
+
+verify if our endianness fix worked, that we're writing out a proper wasm file
+
+next step I'd like to try, build in release as minimal as possible
+ - even try wasm-opt... see if we can make it smaller
+
+I want to see how small we can make this, < 50mb would make me happy
+
+get a custom build of wasmtime where we expose wasm compile functions as if they were wasi
+
+build a browser shim that supports wasi + our wasm wasi functions
+ - threads implementation too
+
+ - also really want to make a webgl exposed api, just get something for now
+ - spirv for shaders
+
+the reason to go llvm is so we could build serious projects
+ - target x86, and get some real feedback on performance
+
+but I personally never want to leave WASM
+ - and all our compiletime stuff is going to be wasm, should just be wasm64
+
+that's also partly why I wondered about compiletime,
+it's really just like we need an unoptimized determanistic wasm execution
+
+what we're saying is that 'cannon' is wasm64
+ - or... again might be our own in the future
+ - one that's truly 32/64 independent, can run in it's own sandbox
+
+but, it's more likely that calling direct llvm will produce better code than
+binaryen > wasm > x86, for example
+
+So in order to be "taken seriously" we still just produce llvm bitcode
+ - but we output wasm as our main target
+
+we can import wasm directly, possibly llvm bitcode directly, and tower code
+
+llvm also supports structs so we can optimally use that
+
+OH HELL YEAH, 25mb and it makes binaries... wooows
+
+-----------
+
+an intention of tower should be to make a game engine in it
+ - great scripting language, great dependencies system, component based design, etc
+ - even assets should be loaded as dependencies, changing them causes re-imports
+ - everything file-watched, etc
+
+I just realized, make is pretty similar to what I need for the build
+ - dependencies on paths, and rules that produce dependencies
+ - tracking which files are produced by whom, etc
+
+I would almost love it if every asset you add to the engine gets imported into code
+ - and is usable from there, with all features, as a compile time object
+ - like imagine running through wasm
+
+ok now I have llvm working in wasm
+
+- cleanup the llvm project, create our own fork/commit/branch
+
+We can produce entire executables from the web... pretty damn amazing
+ - if we integrate lld
+
+of course, ideally we link things together, like other programs, etc
+
+I think that's a part that sucks, I like wasm, but it's not a great format for object files
+ - since you lose a lot of info, like struct layouts, etc
+ - so in a way I want to keep to the wasm ecosystem only...
+
+--------------------------------------
+
+ok now we have a few things, cleanup llvm, getting the tokenizer/parser working together
+
+so now we're getting the llvm version up and running
+ - part of me wonders if I should do a more proper port...
+
+
+
+
 
 
 
