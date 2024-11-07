@@ -187,9 +187,9 @@ void tower_tests() {
     assert(tower_node_get_component_by_index(owner, 0) == nullptr);
     assert(tower_component_get_userdata(nullptr) == nullptr);
     assert(tower_component_from_userdata(nullptr) == nullptr);
-    TowerComponentDestructor destructor = [](TowerComponent* component, uint8_t* userdata) {
+    TowerComponentDestructor destructor = [](TowerComponent* component, void* userdata) {
       assert(tower_component_get_userdata(component) == userdata);
-      assert(*userdata == 123);
+      assert(*static_cast<uint8_t*>(userdata) == 123);
       assert(tower_component_get_owner(component) != nullptr);
       assert(tower_component_get_type(component) != nullptr);
     };
@@ -207,7 +207,7 @@ void tower_tests() {
     assert(tower_component_get_type(component) == type);
     assert(tower_component_get_owner(component) == owner);
 
-    *tower_component_get_userdata(component) = 123;
+    *static_cast<uint8_t*>(tower_component_get_userdata(component)) = 123;
     assert(tower_component_from_userdata(tower_component_get_userdata(component)) == component);
 
     // Create another of the same type, which will return the original instead
@@ -513,7 +513,7 @@ TowerComponent* tower_node_get_component(TowerNode* owner, TowerNode* type) {
   return nullptr;
 }
 
-uint8_t* tower_node_get_component_userdata(TowerNode* owner, TowerNode* type) {
+void* tower_node_get_component_userdata(TowerNode* owner, TowerNode* type) {
   return tower_component_get_userdata(tower_node_get_component(owner, type));
 }
 
@@ -564,17 +564,17 @@ TowerNode* tower_component_get_type(TowerComponent* component) {
   return component->type;
 }
 
-uint8_t* tower_component_get_userdata(TowerComponent* component) {
+void* tower_component_get_userdata(TowerComponent* component) {
   if (component == nullptr) {
     return nullptr;
   }
   return ((uint8_t*)component) + sizeof(TowerComponent);
 }
 
-TowerComponent* tower_component_from_userdata(uint8_t* userdata) {
+TowerComponent* tower_component_from_userdata(void* userdata) {
   if (userdata == nullptr) {
     return nullptr;
   }
-  return (TowerComponent*)(userdata - sizeof(TowerComponent));
+  return (TowerComponent*)((uint8_t*)userdata - sizeof(TowerComponent));
 }
 

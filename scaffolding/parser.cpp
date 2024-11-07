@@ -386,7 +386,7 @@ void parser_tests() {
 
     Table* parse_table = parser_table_create(
       parse_rules,
-      (uint8_t*)token_table,
+      token_table,
       parser_table_non_terminal_resolve_reference,
       parser_table_non_terminal_id_to_string
     );
@@ -506,12 +506,12 @@ void parser_tests() {
 template <typename T>
 T* create_component(TowerNode* owner) {
   TowerComponent* component =
-    tower_component_create(owner, T::compiletime_type, sizeof(T), [](TowerComponent* component, uint8_t* userdata) {
+    tower_component_create(owner, T::compiletime_type, sizeof(T), [](TowerComponent* component, void* userdata) {
       ((T*)userdata)->~T();
     });
 
 
-  uint8_t* userdata = tower_component_get_userdata(component);
+  void* userdata = tower_component_get_userdata(component);
   return new (userdata) T();
 }
 
@@ -884,18 +884,18 @@ void parser_stream_destroy(Stream* stream) {
   tower_memory_free(stream);
 }
 
-uint8_t* parser_stream_get_userdata(Stream* stream) {
+void* parser_stream_get_userdata(Stream* stream) {
   if (stream == nullptr) {
     return nullptr;
   }
   return ((uint8_t*)stream) + sizeof(Stream);
 }
 
-Stream* parser_stream_from_userdata(uint8_t* userdata) {
+Stream* parser_stream_from_userdata(void* userdata) {
   if (userdata == nullptr) {
     return nullptr;
   }
-  return (Stream*)(userdata - sizeof(Stream));
+  return (Stream*)((uint8_t*)userdata - sizeof(Stream));
 }
 
 TowerNode* parser_stream_read(
@@ -914,7 +914,7 @@ struct StreamUtf8 {
 
 TowerNode* parser_stream_utf8_read(
   Stream* stream,
-  uint8_t* userdata,
+  void* userdata,
   uint32_t* id,
   size_t* start_index,
   size_t* length
@@ -945,7 +945,7 @@ Stream* parser_stream_utf8_null_terminated_create(const char* utf8) {
 
 Stream* parser_stream_utf8_create(const char* utf8_begin, const char* utf8_end) {
   Stream* stream = parser_stream_create(sizeof(StreamUtf8), nullptr, parser_stream_utf8_read);
-  uint8_t* userdata = parser_stream_get_userdata(stream);
+  void* userdata = parser_stream_get_userdata(stream);
   StreamUtf8* stream_utf8 = new (userdata) StreamUtf8();
   stream_utf8->data.assign(utf8_begin, utf8_end);
   stream_utf8->utf8_begin = stream_utf8->data.c_str();
@@ -959,7 +959,7 @@ struct StreamRecognizer {
 
 TowerNode* parser_stream_recognizer_read(
   Stream* stream,
-  uint8_t* userdata,
+  void* userdata,
   uint32_t* id,
   size_t* start_index,
   size_t* length
@@ -988,7 +988,7 @@ TowerNode* parser_stream_recognizer_read(
 
 Stream* parser_stream_recognizer_create(Recognizer* recognizer) {
   Stream* stream = parser_stream_create(sizeof(StreamRecognizer), nullptr, parser_stream_recognizer_read);
-  uint8_t* userdata = parser_stream_get_userdata(stream);
+  void* userdata = parser_stream_get_userdata(stream);
   StreamRecognizer* stream_recognizer = new (userdata) StreamRecognizer();
   stream_recognizer->recognizer = recognizer;
   return stream;
@@ -1118,11 +1118,11 @@ struct Grammar {
   // The first rule is the starting rule S'
   std::vector<GrammarRule> rules;
 
-  uint8_t* userdata = nullptr;
+  void* userdata = nullptr;
   ParserTableIdToString to_string = nullptr;
 };
 
-void parser_grammar_create(Grammar& grammar, TowerNode* root, uint8_t* userdata, ParserTableResolveReference resolve) {
+void parser_grammar_create(Grammar& grammar, TowerNode* root, void* userdata, ParserTableResolveReference resolve) {
   std::vector<Rule*> rules;
   rules.reserve(tower_node_get_child_count(root));
 
@@ -1188,7 +1188,7 @@ void parser_grammar_create(Grammar& grammar, TowerNode* root, uint8_t* userdata,
   // Now we can map all rule names/references
   for (size_t r = 1; r < grammar.rules.size(); ++r) {
     GrammarRule& grammar_rule = grammar.rules[r];
-    TowerNode* rule_node = tower_component_get_owner(tower_component_from_userdata((uint8_t*) grammar_rule.rule));
+    TowerNode* rule_node = tower_component_get_owner(tower_component_from_userdata(grammar_rule.rule));
     
     // Assume we will have at least as many grammar symbols as we have children
     // Note that strings often contain many grammar symbols packed in a single component
@@ -2518,7 +2518,7 @@ void parser_table_build_states(
   printf("REDUCED SHARED TRANSITIONS: %d to %d\n", (int)table.states.size(), (int)shared_transitions.size());
 }
 
-uint32_t parser_table_non_terminal_resolve_reference(uint8_t* userdata, const char* name) {
+uint32_t parser_table_non_terminal_resolve_reference(void* userdata, const char* name) {
   assert(userdata);
   Table* table = (Table*)userdata;
   // A few sanity checks to make sure we got a proper Table object
@@ -2541,7 +2541,7 @@ char* parser_copy_string(const std::string& str) {
   return (char*)str_mem;
 }
 
-char* parser_table_utf8_id_to_string(uint8_t* userdata, uint32_t id) {
+char* parser_table_utf8_id_to_string(void* userdata, uint32_t id) {
   size_t encode_size = parser_encode_utf8_codepoint(id, nullptr, 0);
   // Include the null terminator, and two '' characters
   char* str_mem = (char*)tower_memory_allocate(encode_size + 3);
@@ -2557,7 +2557,7 @@ char* parser_table_utf8_id_to_string(uint8_t* userdata, uint32_t id) {
   return parser_copy_string(stream.str());
 }
 
-char* parser_table_non_terminal_id_to_string(uint8_t* userdata, uint32_t id) {
+char* parser_table_non_terminal_id_to_string(void* userdata, uint32_t id) {
   assert(userdata);
   Table* table = (Table*)userdata;
   // A few sanity checks to make sure we got a proper Table object
@@ -2570,7 +2570,7 @@ char* parser_table_non_terminal_id_to_string(uint8_t* userdata, uint32_t id) {
 
 Table* parser_table_create(
   TowerNode* root,
-  uint8_t* userdata,
+  void* userdata,
   ParserTableResolveReference resolve,
   ParserTableIdToString to_string
 ) {

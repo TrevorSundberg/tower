@@ -92,7 +92,7 @@ TowerComponent* tower_node_get_component(TowerNode* owner, TowerNode* type);
 // Lookup a component on a tower node by type id, or returns null if it's not found
 // This then offsets to the reserved userdata section of the component
 // This does NOT increment the reference count of the owner or the type
-uint8_t* tower_node_get_component_userdata(TowerNode* owner, TowerNode* type);
+void* tower_node_get_component_userdata(TowerNode* owner, TowerNode* type);
 
 // Return how many components the node has
 size_t tower_node_get_component_count(TowerNode* owner);
@@ -104,7 +104,7 @@ TowerComponent* tower_node_get_component_by_index(TowerNode* owner, size_t index
 
 
 // Virtual destructor for a component
-typedef void (*TowerComponentDestructor)(TowerComponent* component, uint8_t* userdata);
+typedef void (*TowerComponentDestructor)(TowerComponent* component, void* userdata);
 
 // Get how many tower components are allocated
 size_t tower_component_get_allocated_count();
@@ -132,8 +132,8 @@ TowerNode* tower_component_get_type(TowerComponent* component);
 
 // Get a pointer to the arbitrary userdata section of the tower component
 // The size of the userdata section matches data_bytes passed in tower_component_create
-uint8_t* tower_component_get_userdata(TowerComponent* component);
+void* tower_component_get_userdata(TowerComponent* component);
 
 // From a pointer to a component's userdata section, get the original TowerComponent
-TowerComponent* tower_component_from_userdata(uint8_t* userdata);
+TowerComponent* tower_component_from_userdata(void* userdata);
 
