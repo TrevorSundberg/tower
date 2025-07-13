@@ -6,12 +6,12 @@ An important concept in Tower is that the features of the language are defined w
 // Tower uses a familiar syntax to Extended Backus-Naur Form (EBNF)
 parse ForEachLoop = "for" Identifier "in" Expression Statements => replace(
   {
-    let iterator = $Expression;
+    let __iterator = $Expression;
     loop {
-      if (iterator.empty()) {
+      if (__iterator.empty()) {
         break;
       }
-      let $Identifier = iterator.next();
+      let $Identifier = __iterator.next();
       $Statements
     }
   }
@@ -34,12 +34,12 @@ And transform them into:
 
 ```ts
 {
-  let __range = bar;
+  let __iterator = bar;
   loop {
-    if (__range.empty()) {
+    if (__iterator.empty()) {
       break;
     }
-    let foo = __range.next();
+    let foo = __iterator.next();
     {
       print(foo);
     }
