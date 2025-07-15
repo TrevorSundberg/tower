@@ -47,6 +47,72 @@ And transform them into:
 }
 ```
 
+Tower was greatly inspired by pondering why we can't write C++ style Range-based For loop in langauge:
+
+https://en.cppreference.com/w/cpp/language/range-for.html (See Explanation and how it expands to more C++ code)
+
+
+At the base of tower is a primitive SSA (Static Single Assignment) form instruction set similar to LLVM which includes basic blocks, conditional and uncoditional jumps, and primitive operations.
+
+```ts
+parse If = "if" Expression Statements => replace(
+  let conditional = $Expression;
+  goto_if(conditional, __if_true, __if_false);
+__if_true:
+  $Statements;
+__if_false:
+);
+```
+
+```ts
+parse Loop = "loop" Statements => replace(
+__loop_start:
+  $Statements
+__loop_continue:
+  goto(__loop_start);
+__loop_exit:
+);
+```
+
+```ts
+parse Break = "break" => replace(
+  goto(__loop_exit);
+);
+```
+
+```ts
+parse Continue = "continue" => replace(
+  goto(__loop_continue);
+);
+```
+
+Just like we saw with the range based for loop, we can also write other primitive loops using the above concepts:
+
+```ts
+parse WhileLoop = "while" Expression Statements => replace(
+  loop {
+    if !$Expression
+    {
+      break;
+    }
+    $Statements;
+  }
+);
+```
+
+And with the above definitions, we could now write code like:
+
+```ts
+if isSunny {
+  print("go surfing!");
+
+  while isSunny {
+    catchRadWaves();
+  }
+}
+```
+
+
 The Identifier, Expression, and Statements are simply other grammar rules defined within the standard library of Tower. Tower uses a clever technique that pre-parses transformations and performs simple Abstract Syntax Tree (AST) substitutions to keep parsing fast.
 
 ## Grammar Rule Syntax
@@ -210,21 +276,10 @@ To apply a rule replacement, use `=> replace(user code)` after the rule. The use
 - User code
 - What does it mean if the name we referencm e has more than one capture, how can I just insert that
 
-## Rule Handlers
+# Tasks & Dependencies
 
-Tower also allows the user to define rules that run custom code to generate ASTs using common node types or even create their own nodes. The most common type of rule handler is one that runs user code.
+This part is still being worked out, but the concept is that an Abstract Syntax Tree is sometimes difficult to work with, and to make it easier, we take inspiration from UI frameworks like React. The idea is that React takes in values as dependencies and automatically rebuilds parts of the UI tree (React elements) when any dependency changes. This means that some nodes in the AST are somewhat ephemeral and can change or be rebuilt.
 
-```ts
-#Loop = "loop" Statements => run(
-  
-);
-```
+A great example of this would be how template evaluation works, we end up building out a new ephermeral tree of AST nodes based on the template definition and whatever types T we are given. However, most compilers would stop there, but to support minimal rebuild at runtime, especially when the language is being run in live mode, we should only rebuild parts of the tree when aspects of T changes, not the entire thing.
 
-- User code
-
-# Tasks
-
-
-# Dependencies
-
-
+Tasks are effectively React components that define how these nodes get created and react based on the dependencies taken in.
