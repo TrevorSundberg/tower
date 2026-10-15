@@ -8849,8 +8849,65 @@ so now we're getting the llvm version up and running
  - part of me wonders if I should do a more proper port...
 
 
+NEW CHAPTER OF TOWER
+====================
+
+Given the research we did, what would be your first task?
+I was originally basing a lot of this on WASM just because it's a very small determininstic subset of instructions, however I think before I dive into determinsim or even ECS or any of that, I just need to make a very C like language with pointers and unsafe memory, all that. That is the core, then I build on top of the core. Unless the core itself really needs to be memory safe, but even LLVM isnt memory safe so I'm fine building an unsafe core, then a safe core on top of that.
+
+Next thing I need concrete proof of, what is the model and minimum overhead for how this state tracking is going to work
+ - how will it be stored in memory, allocated in a very efficient manner (reading is more common than writing and should be less expensive, cache coherency is important)
+ - can we get a proof of it working with native llvm, like an example that we custom write (even without a language) where we use the C like API and track all writes
+ - and then we do a past edit and reconcile, measure the performance vs just rewinding and redoing the whole thing
+
+I'm interested again because this is what I would move the engine into ideally
+ - we'd just maintain our own kind of intgine, but its intgine in a way that hides all the backend crap
+ - and ideally lets us declare components and figures out exactly what's needed minimally, changes compilation with features
+ - so we don't ever really worry about how a particular component is stored, it may be different than others, but all in the name of performance
+ - then we have some model loading format, some shader compilation target, get dx12 and vulkan both working with split jobs or whatever that means
+ - great amazing job scheduler, that's required
+ - works with intgine late joining and "worlds" concept for independent but possibly overlapping sections
+ - I wonder if you could literally just do like overlapping tiles in some way that's infinite
+ - simulate with others when you're connected, etc
+ - only thing about independent worlds is that obviously things have a max range that they can interact
+ - overlapping actually makes no sense, both things would have to simulate exactly the same and that just can't be guarnateed even with ints
+ - we could try hard, but it's always possible to write code that desyncs just based on knowledge another one doesn't have
+ - I guess whatever? we could have differring versions of events depending on the cell, but these are bugs and ideally we fix them and maybe try and tailor things to not be affected like this?
+ - weird calculus, not in love with that
+ - also when you go to a spot by yourself, you could just cheat, others have to trust when you join the realm
+ - I guess with intgine as it is, we could just simulate the entire world or try to
+ - we already have like 180+ characters running around at the end
+ - I see why david would say coop, it means our world needs to be simple
+ - certainly needs the static collider optimization, pull that data out unchanging
+   - but maybe not a problem with tower? it would never change on the opcode level!
+ - I think my hope would be that tower with intgine style would work even better for a huge simulated world
+ - you still have to simulate literally everything every frame, so that cost never goes away
+ - but rewind and replay cost significantly goes down and doesn't scale to the size of the world, intgine currently does scale (performance gets slower)
+ - could we get away with say 60 players in a server?
+ - obviously we could lower the game fps again even more since it's survival, but say we keep it at 45
+ - I think the biggest problem then has nothing to do with tower or intgine, it's packet inputs and udp sizes
+ - but maybe we can still push it, that's fine, some big badass relaying protocol that tracks
+ - that's a lot of people to rewind for!
+ - probably why we need tower in the first place, need to minimize what rewind is affecting
+ - otherwise with intgine right now, networking wise how would we get that many together
+ - again this is why david said small server of coop, we can support 8 people now I suppose?
+ - I wonder how far we can push this
+ - to go true mmo, we could always do some kind of you stay connected to nearby cells and leave/join new ones instantly, etc
+ - warcraft 3 like game engine with hotloadable intgine code woooo
+ - honestly rather than trying to keep that dynamic, just be explicit and move through areas
+ - it's ok to cheese it on a normal connection game, but trying to maintian determinism and who can go where, it's madness
+ - just do shards and areas with explicit transitions
+ - join with your party when you go to areas
+ - this is the whole intgine hotjoinable stuff
+ - and then you can leave and go to new areas, probably would need server relay to simulate world as well
+ -
 
 
+how does tower store its data?
+ - I guess just ECS components
+ - as in what does my AST look like
+ - yeah I think ECS structs basically
+ - and some kind of internal architecture/runtime to allocate them early on
 
 
 
