@@ -13,14 +13,14 @@
   <header class="app-header">
     <div class="brand" title="Tower syntax playground"><span class="brand-mark" aria-hidden="true">T</span><strong>Tower</strong></div>
     <div class="toolbar">
-      <div class="file-controls"><select id="example-kind" aria-label="Editor document"><option value="bedrock.tower">Bedrock</option><option value="foundation.tower">Foundation</option><option value="foreach.tower" selected>ForEach</option><option value="execution.tower">Execution</option><option value="functions.tower">Functions</option><option value="structs.tower">Structs</option><option value="replacements.tower">Replacements</option><option value="tokens.tower">Token rules</option></select><button id="example" class="quiet">Example</button><button id="open" class="quiet">Open</button><button id="save" class="quiet">Save</button><input id="file" type="file" accept=".tower,.txt,text/plain" hidden></div>
+      <div class="file-controls"><select id="example-kind" aria-label="Editor document"><option value="bedrock.tower">Bedrock</option><option value="foundation.tower">Foundation</option><option value="foreach.tower" selected>ForEach</option><option value="execution.tower">Execution</option><option value="functions.tower">Functions</option><option value="structs.tower">Structs</option><option value="replacements.tower">Replacements</option><option value="tokens.tower">Token rules</option></select><button id="open" class="quiet">Open</button><button id="save" class="quiet">Save</button><input id="file" type="file" accept=".tower,.txt,text/plain" hidden></div>
     </div>
     <span id="runtime" class="runtime"><span class="dot"></span><span id="runtime-text">Loading WASM</span></span>
   </header>
   <main>
     <div class="workspace">
       <section class="source-panel panel" aria-label="Source editor">
-        <div class="panel-heading"><div><span class="file-icon" aria-hidden="true">≡</span><strong id="filename">foreach.tower</strong><span class="file-language">Tower</span><button id="restore-foundation" class="quiet" hidden>Restore</button></div></div>
+        <div class="panel-heading"><div><span class="file-icon" aria-hidden="true">≡</span><strong id="filename">foreach.tower</strong><span class="file-language">Tower</span><button id="restore" class="quiet" title="Restore bundled source">Restore</button></div></div>
         <div id="editor"></div>
         <div class="editor-footer"><span id="position">Ln 1, Col 1</span><button id="editor-error" hidden>Go to error</button><span><i class="legend-keyword"></i> keyword <i class="legend-capture"></i> capture <span class="desktop-only">· Ctrl/⌘ Enter to run</span></span></div>
       </section>
