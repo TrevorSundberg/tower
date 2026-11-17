@@ -5969,3 +5969,29 @@ storage/linking prerequisites and the subsequently requested grammar/call/module
 changes. Full OS services, general imports, local type inference, indirect calls,
 atomic grammar groups and strict compile-time memory/effect policy remain future
 work. Concurrent ECS/bulk-analysis notes and todo.txt are outside this commit.
+
+## 2026-11-17 - Published cross-target playground and verified online
+
+Pushed implementation commit f3a24ac and its preserved baseline checkpoint to
+master. Published the tested static build as gh-pages commit 7651ec5. GitHub's
+[Pages deployment run](https://github.com/TrevorSundberg/tower/actions/runs/44197623712)
+completed successfully. The live playground is
+[trevorsundberg.github.io/tower](https://trevorsundberg.github.io/tower/).
+
+Ran `node playground/scripts/verify-deployment.mjs
+https://trevorsundberg.github.io/tower/` against the public site. All 19 checked
+assets (compiler reactors, application/workers, grammar and target packs) match
+the local build byte-for-byte by SHA-256. Desktop Chromium and Pixel 7 emulation
+both passed: later function/type/module-variable bindings, a struct-field return,
+interpreter/Wasm agreement, editable incremental Bedrock, empty-literal inline
+errors, Foundation upgrade/persistence, Restore/reload, equal result columns,
+automatic native builds and platform downloads. No browser page errors occurred.
+The same script passed against the local server before publication.
+
+Saved and visually inspected desktop/phone screenshots of the live native-target
+view. Downloaded Windows x64 and Linux x64 executables in both browser profiles;
+all four executed locally and printed 5, 84, 42. macOS output remains link-verified
+only. Reproduction report, SHA-256 values, screenshots and downloaded outputs are
+in ignored `build/deployment-verification/`; the online log is
+`build/online-deployment-verification.log`. Source and deployment branches are
+pushed. Existing C++ subsystems remain in place for the next migration discussion.
