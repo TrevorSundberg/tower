@@ -6166,3 +6166,44 @@ module declarations. Browser tests cover retained workers/fresh program memory,
 grammar reconfiguration, target-pack reuse, cancellation/stale replies, target
 visibility, downloads/disassembly and viewport sizing. Final static deployment
 verification and online results are recorded separately below.
+
+
+### 2026-11-17 — Published and verified
+
+Source changes pushed as `751e824`; tested static artifacts pushed to gh-pages as
+`b6e4947`. GitHub Pages deployment
+[44202605335](https://github.com/TrevorSundberg/tower/actions/runs/44202605335)
+completed successfully. Ran:
+
+```text
+node playground/scripts/verify-deployment.mjs https://trevorsundberg.github.io/tower/
+```
+
+All 20 remote assets matched local SHA-256 hashes, including both LLVM assets,
+the cross compiler and target support packs. Desktop and mobile browser checks
+passed: matching execution, forward module bindings, editable/incremental grammar,
+legacy-module migration, persistence, native platform downloads, equal columns and
+no page errors. Screenshots/report are under build/deployment-verification.
+The shared download-footer layout and non-wrapping Wasm disassembly were also
+inspected in the final screenshots.
+
+An additional real-network profile (`TOWER_PROFILE_URL` set to the public URL,
+`profile-execution.mjs`) measured fresh-page completion at 7.35 seconds desktop and
+3.21 seconds mobile emulation. LLVM fetch/decompress/instantiate/bootstrap accounted
+for 5.86 and 2.31 seconds respectively; compile was about 152 ms on its first run.
+Warm edits finished around 159/162 ms median, including the 120 ms debounce.
+First example selections ranged 259–350 ms desktop and 121–175 ms mobile emulation,
+including source-file fetches. This explicitly supersedes any interpretation that
+the 0.94-second localhost cold result promises subsecond first visits online:
+the 15.47 MB LLVM transfer remains a cold-start cost, while retained workers avoid
+it on subsequent completed runs. No public-network before/after comparison was
+claimed. Demand loading/smaller backend assets and optional example prefetching
+are future cold-network improvements; no compiler code was moved into Tower here.
+
+Added `*.tower text eol=lf` to .gitattributes after noticing this Windows checkout
+uses core.autocrlf=true. Canonical output uses LF, so fresh checkouts must preserve
+LF for byte-for-byte formatter enforcement. Checked Git's effective attributes
+for Bedrock, Foundation and nested library files; this is a repository-only change
+and does not alter the already verified deployed artifacts. Source formatting
+retains comments; generated canonical executable instructions still omit source
+comments until provenance/comment propagation is implemented.

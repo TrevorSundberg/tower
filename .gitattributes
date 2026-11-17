@@ -1,1 +1,2 @@
 playground/scripts/*.sh text eol=lf
+*.tower text eol=lf
