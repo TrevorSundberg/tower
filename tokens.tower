@@ -19,9 +19,8 @@ café;
 `hello from Tower`;
 0xff;
 # Comments are defined in Tower too.
-
 // Token replacement takes effect only after this declaration.
 token Identifier = /@[A-Za-z_][A-Za-z_0-9]*/ as identifier;
 @player;
 // This also changes subsequent declaration names; the rules above are already installed.
-@score:42.5;
+@score: 42.5;

@@ -12,7 +12,9 @@ loop {
     increment count;
     total = total + count;
     finished = count == 5;
-    if finished { break; }
+    if finished {
+        break;
+    }
 }
 print(total);
 

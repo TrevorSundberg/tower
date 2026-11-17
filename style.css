@@ -54,19 +54,20 @@ main{display:flex;flex-direction:column;flex:1;min-height:0;min-width:0;gap:6px;
 .keywords{display:flex;gap:4px;flex-wrap:wrap}.keywords code{border-radius:3px;padding:2px 6px;background:#20362d;border:1px solid #355141;font-size:11px}
 .rules{padding:2px 10px 12px}.rule{padding:9px 0;border-bottom:1px solid #29363c}.rule strong{display:block;color:var(--blue);font:11px ui-monospace,Consolas,monospace;margin-bottom:4px}.rule code{color:#bccdd0;font-size:11px;white-space:pre-wrap;overflow-wrap:anywhere}
 
-/* Five persistent columns; each scrolls within the viewport. */
+/* Equal columns follow the selected targets and scroll within the viewport. */
 .execution-panel{display:flex;flex-direction:column;flex:0 0 clamp(190px,32vh,340px);overflow:visible}
 .target-picker{position:relative;font-size:11px}.target-picker summary{cursor:pointer;border:1px solid #3a4a50;border-radius:4px;padding:3px 7px;min-height:26px;white-space:nowrap}.target-menu{position:absolute;right:0;bottom:calc(100% + 5px);z-index:20;background:#202c31;border:1px solid #5e757b;border-radius:4px;padding:7px;min-width:155px;box-shadow:0 4px 20px #0008}.target-menu label{display:flex;align-items:center;gap:6px;padding:6px;white-space:nowrap;cursor:pointer}.target-downloads{display:flex;flex-direction:column;gap:3px;padding:5px 8px;font-size:10px;border-top:1px solid var(--line);max-height:75px;overflow:auto}.target-downloads a{margin-left:4px}.native-column>pre{white-space:pre;font-size:10px}.native-column .runner-error{max-height:80px;overflow:auto}
 .execution-heading{padding-top:3px;padding-bottom:3px;gap:6px}.execution-title{flex:1;overflow:hidden}
 #execution-status{font-size:10px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .execution-controls{flex:none;gap:4px!important}.execution-controls button{min-height:26px;font-size:11px;padding:3px 7px}.auto-execute{display:flex;align-items:center;gap:3px;font-size:11px;white-space:nowrap;margin-right:5px;cursor:pointer}.auto-execute input{margin:0}
-.execution-body{display:grid;grid-template-columns:repeat(var(--columns,5),minmax(0,1fr));flex:1;min-height:0;overflow:hidden}
+.target-downloads:empty{display:none}
+.execution-body{display:grid;grid-template-columns:repeat(var(--columns,6),minmax(0,1fr));flex:1;min-height:0;overflow:hidden}
 .execution-column{display:flex;flex-direction:column;min-width:0;min-height:0;border-right:1px solid var(--line)}.execution-column:last-child{border:0}
 .execution-column h2{margin:0;padding:4px 8px;border-bottom:1px solid var(--line);font-size:10px;font-weight:500;color:var(--accent);display:flex;flex-wrap:wrap;justify-content:space-between;gap:3px}.execution-column h2 span{color:var(--muted);font-size:9px}
 .execution-column>pre,.runner-result{flex:1;overflow:auto;scrollbar-width:thin;min-height:0}
 .execution-panel pre{font:11px/1.55 ui-monospace,Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere;margin:0;padding:6px 8px}
+.execution-panel .native-column>pre{white-space:pre;overflow-wrap:normal;font-size:10px}
 .runner-error{padding:5px 8px;font-size:11px;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--danger)}
-.llvm-result{padding:0 8px;font-size:9px;color:var(--muted);overflow-wrap:anywhere}.llvm-result a{margin-left:6px}
 .replacement-preview{border-left:2px solid #599b81;background:#111b1d;margin:4px 0!important;padding:3px;max-width:100%}.replacement-preview pre{margin:0;padding:4px 6px;white-space:pre-wrap;overflow-wrap:anywhere;max-height:160px;overflow:auto;font:11px/1.6 ui-monospace,Consolas,monospace;user-select:text}
 #foundation-file[aria-pressed=true]{color:var(--accent);border-color:#599b81}
 .diagnostic{display:flex;gap:8px;padding:6px 10px;background:#302322;border:1px solid #775047;border-radius:4px;color:var(--danger);font-size:11px;flex:none;max-height:70px;overflow:auto}.diagnostic p{margin-top:2px;white-space:pre-wrap;overflow-wrap:anywhere}.error-icon{display:grid;place-content:center;height:18px;width:18px;flex-shrink:0;border:1px solid var(--danger);border-radius:50%;font-weight:700}

@@ -1,17 +1,25 @@
 // Raw buffers and views are ordinary structs. There are no implicit bounds checks.
-struct Bytes { data: u8*; length: usize; capacity: usize; }
+struct Bytes {
+    data: u8*;
+    length: usize;
+    capacity: usize;
+}
+
 fn append(buffer: Bytes*, value: u8): void {
     var full: bool = buffer.length == buffer.capacity;
     if full {
         var capacity: usize = buffer.capacity * 2;
         var empty: bool = capacity == 0;
-        if empty { capacity = 8; }
+        if empty {
+            capacity = 8;
+        }
         buffer.data = realloc(u8, buffer.data, capacity);
         buffer.capacity = capacity;
     }
     buffer.data[buffer.length] = value;
     buffer.length = buffer.length + 1;
 }
+
 var buffer: Bytes;
 buffer.data = null;
 buffer.length = 0;
@@ -21,7 +29,9 @@ var text: u8* = "Tower";
 var i: usize = 0;
 loop {
     var done: bool = i == 5;
-    if done { break; }
+    if done {
+        break;
+    }
     append(ref, text[i]);
     i = i + 1;
 }
