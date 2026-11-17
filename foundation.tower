@@ -1,0 +1,44 @@
+// Shares Whitespace, LineComment, BlockComment, Identifier and String from bedrock.tower.
+// The host loads bedrock first; foundation will import it when imports exist.
+token Number = /[0-9]+/ as number;
+
+// Bootstrap semantic ABI: these Core* tree labels and captures name typed ops.
+// No precedence hierarchy: an assignment contains at most one operation.
+parse CoreType = Identifier | CoreType '*';
+parse CorePlace = $name:Identifier | $base:CorePlace '.' $field:Identifier;
+parse CoreOperand = CorePlace | Number | '-' Number | 'true' | 'false';
+parse CoreOperator = '+' | '-' | '*' | '/' | '%' | '&' | '|' | '^'
+                   | '==' | '!=' | '<' | '<=' | '>' | '>=';
+parse CoreBinary = $left:CoreOperand $op:CoreOperator $right:CoreOperand;
+parse CoreAddress = '&' $name:CorePlace;
+parse CoreLoad = '*' $name:CorePlace;
+parse CoreConvert = 'convert' $type:CoreType $value:CoreOperand;
+parse CoreBits = 'bits' $type:CoreType $value:CoreOperand;
+parse CoreValue = CoreOperand | CoreBinary | CoreAddress | CoreLoad | CoreConvert | CoreBits;
+parse CoreTarget = $name:CorePlace | '*' $name:CorePlace;
+parse CoreDeclare = 'var' $name:Identifier ':' $type:CoreType ';'
+                  | 'var' $name:Identifier ':' $type:CoreType '=' $value:CoreValue ';';
+parse CoreAssign = $target:CoreTarget '=' $value:CoreValue ';';
+parse CorePrint = 'print' $value:CoreOperand ';';
+parse Statement = CoreDeclare | CoreAssign | CorePrint;
+parse CoreBlock = '{' Statement* '}';
+parse CoreIf = 'if' $condition:CoreOperand $body:CoreBlock
+             | 'if' $condition:CoreOperand $body:CoreBlock 'else' $otherwise:CoreBlock;
+parse CoreLoop = 'loop' $body:CoreBlock;
+parse CoreBreak = 'break' ';';
+parse CoreContinue = 'continue' ';';
+parse Statement |= CoreBlock | CoreIf | CoreLoop | CoreBreak | CoreContinue;
+
+parse CoreParameter = $name:Identifier ':' $type:CoreType;
+parse CoreParameters = CoreParameter | CoreParameters ',' CoreParameter;
+parse CoreArguments = CoreOperand | CoreArguments ',' CoreOperand;
+parse CoreCall = $name:Identifier '(' $args:CoreArguments? ')';
+parse CoreValue |= CoreCall;
+parse CoreFunction = 'fn' $name:Identifier '(' $params:CoreParameters? ')' ':' $type:CoreType $body:CoreBlock;
+parse CoreReturn = 'return' $value:CoreOperand? ';';
+parse CoreCallStatement = $call:CoreCall ';';
+parse Statement |= CoreFunction | CoreReturn | CoreCallStatement;
+
+parse CoreField = $name:Identifier ':' $type:CoreType ';';
+parse CoreStruct = 'struct' $name:Identifier '{' $fields:CoreField* '}';
+parse Statement |= CoreStruct;
