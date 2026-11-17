@@ -2,7 +2,7 @@
 // Edit their grammar in the shared foundation.tower module.
 var answer: i32;
 answer = factorial(6);
-print answer;
+print(answer);
 
 // Forward calls and recursion use the same foundation nodes in both backends.
 fn factorial(n: i32): i32 {
@@ -28,4 +28,4 @@ fn increment(value: i32*): void {
 var pointer: i32*;
 pointer = &answer;
 increment(pointer);
-print answer;
+print(answer);

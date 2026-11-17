@@ -13,7 +13,8 @@
   <header class="app-header">
     <div class="brand" title="Tower syntax playground"><span class="brand-mark" aria-hidden="true">T</span><strong>Tower</strong></div>
     <div class="toolbar">
-      <div class="file-controls"><select id="example-kind" aria-label="Editor document"><option value="bedrock.tower">Bedrock</option><option value="foundation.tower">Foundation</option><option value="foreach.tower" selected>ForEach</option><option value="execution.tower">Execution</option><option value="functions.tower">Functions</option><option value="structs.tower">Structs</option><option value="replacements.tower">Replacements</option><option value="tokens.tower">Token rules</option></select><button id="open" class="quiet">Open</button><button id="save" class="quiet">Save</button><input id="file" type="file" accept=".tower,.txt,text/plain" hidden></div>
+      <div class="file-controls"><select id="example-kind" aria-label="Editor document"><option value="bedrock.tower">Bedrock</option><option value="foundation.tower">Foundation</option><option value="foreach.tower" selected>ForEach</option><option value="execution.tower">Execution</option><option value="functions.tower">Functions</option><option value="structs.tower">Structs</option><option value="memory.tower">Memory</option><option value="replacements.tower">Replacements</option><option value="tokens.tower">Token rules</option></select><button id="open" class="quiet">Open</button><button id="save" class="quiet">Save</button><input id="file" type="file" accept=".tower,.txt,text/plain" hidden></div>
+      <div class="export-controls"><button id="link-files" class="quiet" title="Add object files or static libraries">Link files</button><input id="link-input" type="file" accept=".o,.obj,.a,.lib,.tbd,.bc" multiple hidden></div>
     </div>
     <span id="runtime" class="runtime"><span class="dot"></span><span id="runtime-text">Loading WASM</span></span>
   </header>
@@ -34,18 +35,20 @@
     <section id="execution-panel" class="execution-panel panel" aria-label="Program execution">
       <div class="panel-heading execution-heading">
         <div class="execution-title"><strong>Instructions &amp; results</strong><span id="execution-status" role="status" aria-live="polite">Ready</span></div>
-        <div class="execution-controls"><label class="auto-execute"><input id="auto-execute" type="checkbox" checked> Auto execute</label><button id="execute" disabled>Execute</button><button id="cancel-execution" disabled>Cancel</button></div>
+        <div class="execution-controls"><details id="build-targets" class="target-picker"><summary>Targets</summary><div class="target-menu"><label><input id="target-wasm" type="checkbox" checked> WebAssembly</label><label><input id="target-x86" type="checkbox"> x86-64</label><label><input id="target-arm" type="checkbox"> ARM64</label></div></details><label class="auto-execute"><input id="auto-execute" type="checkbox" checked> Auto execute</label><button id="execute" disabled>Execute</button><button id="cancel-execution" disabled>Cancel</button></div>
       </div>
       <div class="execution-body">
         <section class="execution-column"><h2>Tower instructions</h2><pre id="core-instructions" aria-label="Canonical foundation source"></pre></section>
-        <section class="execution-column"><h2>LLVM raw</h2><pre id="llvm-before" aria-label="LLVM raw"></pre></section>
-        <section class="execution-column"><h2>LLVM optimized</h2><pre id="llvm-after" aria-label="LLVM optimized"></pre></section>
+        <section id="llvm-raw-column" class="execution-column"><h2>LLVM raw</h2><pre id="llvm-before" aria-label="LLVM raw"></pre></section>
+        <section id="llvm-optimized-column" class="execution-column"><h2>LLVM optimized</h2><pre id="llvm-after" aria-label="LLVM optimized"></pre></section>
         <section class="execution-column runner-column"><h2>Interpreter <span id="interpreter-phase">Ready</span></h2><div class="runner-result"><pre id="execution-output" aria-label="Interpreter output"></pre><p id="execution-error" class="runner-error" role="alert" hidden></p><p id="output-limit" class="runner-error" hidden>Output limited to 64 KiB.</p></div></section>
-        <section class="execution-column runner-column"><h2>LLVM <span id="llvm-phase">Ready</span></h2><div class="runner-result"><pre id="llvm-output" aria-label="LLVM output"></pre><p id="llvm-error" class="runner-error" role="alert" hidden></p><p id="llvm-output-limit" class="runner-error" hidden>Output limited to 64 KiB.</p><div class="llvm-result"><span id="llvm-status"></span><a id="llvm-download" hidden download="tower-program.wasm">WASM</a></div></div></section>
+        <section id="wasm-column" class="execution-column runner-column"><h2>Wasm <span id="llvm-phase">Ready</span></h2><div class="runner-result"><pre id="llvm-output" aria-label="LLVM output"></pre><p id="llvm-error" class="runner-error" role="alert" hidden></p><p id="llvm-output-limit" class="runner-error" hidden>Output limited to 64 KiB.</p></div><div class="llvm-result"><span id="llvm-status"></span><a id="llvm-download" hidden download="tower-program.wasm">WASM</a></div></section>
+        <section id="x86-column" class="execution-column native-column" hidden><h2>x86-64 disassembly <span id="x86-phase">Ready</span></h2><pre id="x86-disassembly" aria-label="x86-64 disassembly"></pre><p id="x86-error" class="runner-error" role="alert" hidden></p><div id="x86-downloads" class="target-downloads"></div></section>
+        <section id="arm-column" class="execution-column native-column" hidden><h2>ARM64 disassembly <span id="arm-phase">Ready</span></h2><pre id="arm-disassembly" aria-label="ARM64 disassembly"></pre><p id="arm-error" class="runner-error" role="alert" hidden></p><div id="arm-downloads" class="target-downloads"></div></section>
       </div>
     </section>
     <div id="diagnostic" class="diagnostic" role="alert" hidden><span class="error-icon" aria-hidden="true">!</span><div><strong>Unable to continue</strong><p id="error-message"></p></div></div>
-    <footer class="statusbar"><div class="status-summary"><span id="status" role="status" aria-live="polite">Loading Tower?</span><span id="revision"></span><span id="steps"></span><a href="./THIRD-PARTY-NOTICES.txt" target="_blank" rel="noopener">Notices</a></div><div id="timings" class="timings" aria-label="Compilation and execution timings"></div></footer>
+    <footer class="statusbar"><div class="status-summary"><span id="status" role="status" aria-live="polite">Loading Tower?</span><span id="revision"></span><span id="steps"></span><span id="build-status" role="status" aria-live="polite"></span><button id="clear-link-files" hidden>Clear link files</button><a href="./THIRD-PARTY-NOTICES.txt" target="_blank" rel="noopener">Notices</a></div><div id="timings" class="timings" aria-label="Compilation and execution timings"></div></footer>
   </main>
   <noscript>This playground needs JavaScript to host Tower’s WebAssembly module.</noscript>
 </body>
