@@ -36,7 +36,7 @@ test('shared bedrock whitespace, comments and identifiers affect declarations an
     .replace('skip LineComment = /', 'skip LineComment = /#[^\\r\\n]*|');
   try {
     tower.configureBedrock(edited); tower.configure(foundation);
-    const source = 'parse~extra-rule~=~Number;\n# shared comment\nvar~player-name:~i32~=~42;print~player-name;';
+    const source = 'parse~extra-rule~=~Number;\n# shared comment\nvar~player-name:~i32~=~42;print(~player-name);';
     const result = inspect(source);
     assert.equal(result.end.status, 'done', result.end.error);
     assert.ok(result.snapshot.highlights.some(t => t.kind === 'comment' && source.slice(t.start, t.end) === '# shared comment'));
@@ -61,13 +61,13 @@ test('shared grammar rules can be referenced, extended and replaced without a re
 });
 
 test('local overrides preserve inherited bindings in other sessions and canonical grammar names round trip', () => {
-  const pinned = tower.create('var x: i32 = 1;print x;');
+  const pinned = tower.create('var x: i32 = 1;print(x);');
   try {
     const source = "skip Whitespace = /[ ~\\t\\r\\n]+/;parse `rule name` = Number;parse Statement = `rule name` ';';";
     const result = inspect(source);
     assert.equal(result.end.status, 'done', result.end.error);
     assert.equal(inspect(result.formatted.source + '~42;').end.status, 'done');
-    assert.equal(inspect('~print 1;').end.status, 'error');
+    assert.equal(inspect('~print(1);').end.status, 'error');
     assert.equal(runToEnd(tower, pinned).end.status, 'done');
   } finally { tower.destroy(pinned); }
 });
@@ -135,20 +135,20 @@ test('formatting retains declaration order, replace versus extend, holes and com
 test('bedrock keyword edits affect following declarations, foundation and source without mutating the seed', () => {
   const edited = bedrock.replace("'parse'", "'rule'").replace("'token'", "'lex'").replace("'skip'", "'ignore'")
     .replace(/^parse (?!GrammarDeclaration\b)/gm, 'rule ');
-  const pinned = tower.create('print 7;');
+  const pinned = tower.create('print(7);');
   try {
     tower.configureBedrock(edited);
     assert.equal(inspect(edited, 'bedrock').end.status, 'done');
     assert.throws(() => tower.configure(foundation), /Foundation may contain only/);
     const adapted = foundation.replace(/^parse /gm, 'rule ').replace(/^token /gm, 'lex ').replace(/^skip /gm, 'ignore ');
     tower.configure(adapted);
-    const result = inspect("rule Statement |= 'show' $value:CoreOperand ';' => replace { print $value; };show 42;");
+    const result = inspect("rule Statement |= 'show' $value:CoreOperand ';' => replace { print($value); };show 42;");
     assert.equal(result.end.status, 'done', result.end.error);
-    assert.ok(result.events.at(-1).nodes.some(node => node.label === 'CorePrint'));
-    const exec = tower.compile("rule Statement |= 'show' $value:CoreOperand ';' => replace { print $value; };show 42;");
+    assert.ok(result.events.at(-1).nodes.some(node => node.label === 'CoreCall'));
+    const exec = tower.compile("rule Statement |= 'show' $value:CoreOperand ';' => replace { print($value); };show 42;");
     try { assert.equal(tower.execute(exec).output, '42\n'); } finally { tower.destroyExecution(exec); }
     // The pinned session keeps its old declaration grammar even across reset.
-    tower.reset(pinned, "parse Extra = Number;print 7;");
+    tower.reset(pinned, "parse Extra = Number;print(7);");
     assert.equal(runToEnd(tower, pinned).end.status, 'done');
     assert.notEqual(inspect(edited.replace(/^parse /gm, 'rule '), 'bedrock').end.status, 'done');
     assert.equal(tower.bedrockSeed(), bedrock);
@@ -184,7 +184,7 @@ test('every file installs token, trivia and declaration-reader edits at the same
 test('bedrock installation is atomic, validates semantic captures and is idempotent', () => {
   const invalid = bedrock.replace('$name:Identifier', '$wrong:Identifier');
   assert.throws(() => tower.configureBedrock(invalid), /must preserve capture 'name'/);
-  assert.equal(inspect('print 1;').end.status, 'done');
+  assert.equal(inspect('print(1);').end.status, 'done');
   const nodes = tower.exports.tw_live_nodes(), allocations = tower.exports.tw_live_allocations();
   tower.configureBedrock(bedrock); tower.configureBedrock(bedrock);
   assert.equal(tower.exports.tw_live_nodes(), nodes);

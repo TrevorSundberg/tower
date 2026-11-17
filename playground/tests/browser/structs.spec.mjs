@@ -26,20 +26,20 @@ test('struct milestone executes automatically in both workers and round-trips vi
   expect(errors).toEqual([]);
 });
 
-test('field mistakes and lifetime traps are inline, compared, and recover on edits', async ({ page }, info) => {
+test('field and pointer type mistakes are inline, compared, and recover on edits', async ({ page }, info) => {
   await page.goto('/'); await expect(page.locator('#status')).toContainText('Complete');
   const prefix = 'struct Pair { x: i32; y: i32; }\nvar pair: Pair;\npair.x = 42;\n';
-  await setSource(page, prefix + 'print pair.y;');
+  await setSource(page, prefix + 'pair.y = true;');
   await expect(page.locator('#execution-status')).toHaveText('Failed · backends match');
-  await expect(page.locator('.tw-inline-error-message')).toContainText("uninitialized field 'pair.y'");
+  await expect(page.locator('.tw-inline-error-message')).toContainText("Expected i32");
   await page.locator('#editor-error').click();
   await page.locator('#editor').screenshot({ path: `../build/playground-struct-error-${info.project.name}.png` });
   await setSource(page, prefix + 'pair.missing = 1;');
   await expect(page.locator('.tw-inline-error-message')).toContainText("Unknown field 'missing'");
-  await setSource(page, 'struct Pair { x: i32; } var escaped: i32*; { var pair: Pair; escaped = &pair.x; } var n: i32 = *escaped;');
+  await setSource(page, 'struct Pair { x: i32; } var pair: Pair; var wrong: u32* = &pair.x;');
   await expect(page.locator('#execution-status')).toHaveText('Failed · backends match');
-  await expect(page.locator('.tw-inline-error-message')).toContainText('expired local');
-  await setSource(page, prefix + 'print pair.x;');
+  await expect(page.locator('.tw-inline-error-message')).toContainText('Expected u32*');
+  await setSource(page, prefix + 'print(pair.x);');
   await expect(page.locator('#execution-status')).toHaveText('Finished · backends match');
   await expect(page.locator('.tw-inline-error')).toHaveCount(0);
   await expect(page.locator('#llvm-output')).toHaveText('42\n');
@@ -50,7 +50,7 @@ test('an untouched saved baseline upgrades while a customized foundation stays i
     if (!localStorage.getItem('foundation-upgrade-test')) {
       localStorage.setItem('tower-playground-foundation-v1', 'old bundled module');
       localStorage.setItem('tower-playground-foundation-base-v1', 'old bundled module');
-      localStorage.setItem('tower-playground-source-v1', 'struct S { x: i32; } var s: S; s.x = 42; print s.x;');
+      localStorage.setItem('tower-playground-source-v1', 'struct S { x: i32; } var s: S; s.x = 42; print(s.x);');
       localStorage.setItem('foundation-upgrade-test', 'set');
     }
   });
@@ -61,7 +61,7 @@ test('an untouched saved baseline upgrades while a customized foundation stays i
   await page.evaluate(bundled => {
     localStorage.setItem('tower-playground-foundation-base-v1', bundled);
     localStorage.setItem('tower-playground-foundation-v1', bundled.replace("'struct'", "'record'"));
-    localStorage.setItem('tower-playground-source-v1', 'record S { x: i32; } var s: S; s.x = 7; print s.x;');
+    localStorage.setItem('tower-playground-source-v1', 'record S { x: i32; } var s: S; s.x = 7; print(s.x);');
   }, bundled);
   // A pagehide persist would correctly save the open buffers; close this page
   // without navigating and test the stored revision in a new page instead.

@@ -25,7 +25,7 @@ export class TowerWASI {
     };
   }
   initialize(instance) { this.instance = instance; instance.exports._initialize?.(); }
-  node(type) { return { type, inode: this.nextInode++, data: new Uint8Array(), time: BigInt(Date.now()) * 1000000n }; }
+  node(type) { return { type, inode: this.nextInode++, links: 1n, data: new Uint8Array(), time: BigInt(Date.now()) * 1000000n }; }
   fail(code) { throw new Errno(code); }
   memory(pointer, length) {
     pointer >>>= 0; length >>>= 0;
@@ -83,7 +83,7 @@ export class TowerWASI {
   stat(node, pointer) {
     this.memory(pointer, 64).fill(0); const view = this.view(pointer, 64);
     view.setBigUint64(8, node.inode, true); view.setUint8(16, node.type);
-    view.setBigUint64(24, 1n, true); view.setBigUint64(32, BigInt(node.data.length), true);
+    view.setBigUint64(24, node.links, true); view.setBigUint64(32, BigInt(node.data.length), true);
     for (const offset of [40, 48, 56]) view.setBigUint64(offset, node.time, true);
   }
   operations() { return {
@@ -113,6 +113,7 @@ export class TowerWASI {
       if (!this.fd(fd).preopen) this.fail(E.BADF);
       if (length < 1) this.fail(E.INVAL); this.memory(result, 1)[0] = 46;
     },
+    fd_fdstat_set_flags: (fd, flags) => { const h = this.fd(fd); if (flags & ~1) this.fail(E.NOTSUP); h.flags = flags; },
     fd_fdstat_get: (fd, result) => {
       const h = this.fd(fd); this.memory(result, 24).fill(0); const view = this.view(result, 24);
       view.setUint8(0, h.node.type); view.setUint16(2, h.flags ?? 0, true);
@@ -166,7 +167,15 @@ export class TowerWASI {
     },
     path_unlink_file: (fd, pointer, length) => {
       const path = this.path(fd, pointer, length); if (this.lookup(path).type === 3) this.fail(E.ISDIR);
+      this.lookup(path).links--;
       this.files.delete(path);
+    },
+    path_link: (fd, flags, pointer, length, toFd, toPointer, toLength) => {
+      if (flags & ~1) this.fail(E.INVAL);
+      const from = this.path(fd, pointer, length), to = this.path(toFd, toPointer, toLength);
+      const node = this.lookup(from); if (node.type !== 4) this.fail(E.NOTSUP);
+      this.parent(to); if (this.files.has(to)) this.fail(E.EXIST);
+      this.files.set(to, node); node.links++;
     },
     path_remove_directory: (fd, pointer, length) => {
       const path = this.path(fd, pointer, length); if (this.lookup(path).type !== 3) this.fail(E.NOTDIR);
@@ -179,8 +188,10 @@ export class TowerWASI {
       const node = this.lookup(from); if (from === to) return;
       this.parent(to); if (!from || !to || to.startsWith(from + '/')) this.fail(E.INVAL);
       const previous = this.files.get(to);
+      if (previous === node) return;
       if (previous && previous.type !== node.type) this.fail(previous.type === 3 ? E.ISDIR : E.NOTDIR);
       if (previous?.type === 3 && [...this.files.keys()].some(key => key.startsWith(to + '/'))) this.fail(E.NOTEMPTY);
+      if (previous) previous.links--;
       for (const [path, item] of [...this.files]) if (path === from || path.startsWith(from + '/')) {
         this.files.delete(path); this.files.set(to + path.slice(from.length), item);
       }

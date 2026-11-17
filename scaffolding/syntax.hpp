@@ -49,8 +49,8 @@ struct SyntaxHighlight {
   size_t start, end, revision;
   std::string kind;
 };
-struct SyntaxRuleInfo { std::string name, definition; };
-struct SyntaxTokenInfo { std::string name, pattern, kind; bool skip; };
+struct SyntaxRuleInfo { std::string name, definition; bool pending = false; };
+struct SyntaxTokenInfo { std::string name, pattern, kind; bool skip, contextual = false; };
 std::vector<SyntaxTokenInfo> syntax_get_tokens(SyntaxSession* session);
 std::vector<SyntaxHighlight> syntax_get_highlights(SyntaxSession* session);
 std::vector<SyntaxRuleInfo> syntax_get_rules(SyntaxSession* session);

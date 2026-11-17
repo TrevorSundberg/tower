@@ -93,6 +93,15 @@ Do NOT modify todo.txt
 - Function calls use `name(arguments)` without a `call` keyword. Parentheses
   distinguish calls under the foundation grammar; keep the existing typed call
   components and instruction-like operands rather than adding expression precedence.
+- Built-in calls such as print, alloc/free, copy/fill, sizeof/alignof and
+  convert/bits share the ordinary call and argument grammar. Resolve them to
+  Foundation operations semantically and share names/arity with formatting.
+- Module functions, types and variables bind across the file; initialization
+  and effects retain source order. Block/function locals retain lexical scope.
+  Grammar definitions may refer forward while unreachable from active parsing
+  roots. Resolve their dependencies before activation, diagnose unresolved names
+  at module completion, and reject incomplete edits to the active declaration
+  reader. File order controls grammar updates, not silent LR conflict priority.
 - Support future local type inference as `var name = initializer`; resolve it
   during type checking with explicit numeric literal defaults and range rules.
 - Prioritize working language features before replacement-chain optimizations.
@@ -118,8 +127,8 @@ Do NOT modify todo.txt
   Lower pointers to target pointers with explicit target layout; the interpreter
   may model target byte addresses without exposing unchecked host C++ memory.
   Wasm/host containment is not a Tower object-lifetime or bounds guarantee.
-  This supersedes the prototype's checked-handle design; that implementation
-  remains to be migrated. Define invalid-access and strict compile-time policies
+  This supersedes the prototype's checked-handle design, archived at commit
+  8571a8d. Define invalid-access and strict compile-time policies
   explicitly rather than silently inheriting C++ or LLVM behavior.
 - Keep built-ins and user structs in one type-object registry. Resolve ordinary
   type names semantically; struct and field metadata enrich the shared parse nodes.

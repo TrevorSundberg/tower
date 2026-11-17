@@ -1,0 +1,6 @@
+// Concatenate library/platform.tower before this program.
+var message: u8* = "hello from Tower\n";
+var written: i64 = platform_write(1, message, 17);
+print(written);
+written = platform_write(0, message, 17);
+print(written);

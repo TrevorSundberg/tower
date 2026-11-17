@@ -1,6 +1,7 @@
 param(
   [switch]$Trace,
   [switch]$Sanitize,
+  [switch]$Optimize,
   [string]$Source,
   [string]$VcVars = "${env:ProgramFiles(x86)}/Microsoft Visual Studio/2022/BuildTools/VC/Auxiliary/Build/vcvars64.bat"
 )
@@ -12,6 +13,7 @@ Copy-Item -LiteralPath "$repo/scaffolding/foundation.tower" -Destination $out
 Copy-Item -LiteralPath "$repo/scaffolding/bedrock.tower" -Destination $out
 $flags = '/Od /Zi /MDd'
 if ($Sanitize) { $flags = '/Od /Zi /MD /fsanitize=address' }
+if ($Optimize) { $flags = $flags.Replace('/Od', '/O2') }
 $runArguments = ''
 if ($Trace) { $runArguments = '--trace' }
 if ($Source) {

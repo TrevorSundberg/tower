@@ -5641,3 +5641,331 @@ as their foundation acceptance contract.
 This turn changes the recorded requirements and migration tasks only; executable
 behavior is still the checked prototype. No compiler build or execution tests
 were run. Documentation diff checks passed; todo.txt was not modified.
+
+## 2026-11-17 - Raw foundation memory, foreign calls and executable linking
+
+### Scope and preserved baseline
+
+Implemented the user's raw-pointer direction and the first three self-hosting
+prerequisites: usable storage, foreign declarations/exports, and target object/
+executable linking. The later request also authorizes browser-native cross
+compilation. Stop before migrating existing compiler/runtime C++ into Tower.
+The concrete Tower storage library is new client code exercising the primitives,
+not a claim that any existing compiler subsystem has been ported.
+
+Checkpoint commit 8571a8d preserves the complete previous checked-memory prototype
+and playground before this migration. Future safe-layer research can inspect its
+CoreCell/CoreSlot initialization flags, cell indexes, generations, field lifetime
+logic, checked LLVM pointer aggregate, symbolic pointer printing and old tests.
+Those representations/guards are removed from ordinary foundation execution.
+Allocator bookkeeping and interpreter/Wasm execution-space containment remain;
+neither is an implicit Tower object lifetime or bounds guarantee.
+
+### Shared semantic model and raw storage
+
+CoreNode components still enrich the parser entities, and the same formatting
+engine emits compilable foundation code. New array/type/expression/statement
+metadata lives on those entities. No binary Tower graph or public bytecode was
+introduced. Native and browser LLVM compilation share llvm-engine.cpp rather
+than maintaining independent lowering implementations.
+
+Implemented u8/i64/u64/usize, fixed arrays, indexed places, raw pointer offsets,
+equal-width pointer/integer reinterpretation, null, sizeof/alignof, UTF-8 string
+literal data, typed alloc/realloc/free, overlap-safe byte copy and byte fill.
+Integers wrap at their declared width; numeric conversion, division by zero and
+signed division overflow retain explicit diagnostics/traps. Struct/array values
+remain addressable aggregates; by-value copying/calling is deliberately not added.
+
+Pointer/usize width comes from the explicit target: wasm32 uses four bytes;
+the selected x64/ARM64 CPU targets use eight. Struct metadata and actual byte
+storage now agree. LLVM receives ordinary ptr/alloca/load/store and byte GEPs
+without inbounds assumptions; the interpreter uses unsigned target addresses
+inside a byte arena. It never dereferences an arbitrary browser/host C++ address.
+No slot identity/generation/name is encoded in a foundation pointer. Printing a
+pointer prints its target address, which can differ between independent runners;
+tests compare relationships rather than promising identical native addresses.
+
+Uninitialized reads, dangling references, out-of-object access, invalid frees
+and invalid bool representations are outside the portable valid-program contract;
+there is no guaranteed result or safety diagnostic. The incidental initial zero
+bytes of interpreter/Wasm memory are not language initialization semantics. A
+future strict compile-time mode must define/instrument invalid access and control
+foreign effects; the raw runtime does not yet provide that mode. This explicitly
+limits current determinism claims rather than inheriting accidental host behavior.
+
+### Allocation and new Tower library
+
+Allocation overflow/failure returns null; failed realloc retains the previous
+allocation. Realloc(nonnull,0) frees and returns null. Free(null) does nothing.
+Successful realloc preserves the existing prefix and invalidates old views.
+The Wasm runtime implements its own aligned allocator and coalescing free list;
+the interpreter has independent allocation/free-list bookkeeping. Neither stores
+safety metadata in pointer values. runtime.c supplies a small target runtime,
+with our own WASI file/host bridge; no outside JavaScript shim was adopted.
+
+library/storage.tower provides concrete byte buffers/string building, a resettable
+16-byte-aligned arena and a growing open-addressed u32-to-i32 map. The library
+checks allocation results and overflow, supports buffer self-append across realloc,
+and preserves map entries during rehash. It needs explicit init/dispose and caller
+ownership, has no generic collection/reflection framework or map deletion, and
+does not promise automatic safety. Imports remain future work; tests concatenate
+library/client source and also emit exported library objects.
+
+### ABI, linking and browser targets
+
+extern fn and export fn use ordinary function syntax and typed semantic nodes.
+Raw scalar/pointer parameters and results use the selected C ABI. Structs cross
+the boundary by pointer with target field offsets. The real C fixture exercises
+integer widths, narrow/bool values, pointer identity, buffer mutation, strings,
+struct-pointer layout and calls back into exported Tower. The interpreter instead
+requires registered callbacks and exposes a fresh byte view to each host call;
+it cannot directly execute machine-code library inputs. Cross-instance Wasm
+offsets are not interchangeable. C++ classes/variadics/indirect callbacks, exception
+propagation, shared-library loading and a general import system are not implemented.
+
+towerc emits objects, LLVM raw/optimized text and linked executables; it accepts
+explicit target triples, additional objects/archives, compiler/linker selection
+and sysroots. Library mode omits tower_main and rejects executable top-level code.
+The native driver still uses its build-time source checkout for grammar/runtime
+files; it is not yet a relocatable installed SDK.
+
+Browser exports add a disposable worker, target/output controls, local link-file
+inputs and a download. Editing/cancellation terminates compilation/linking too,
+and obsolete results cannot replace a new document. Regular interpreter and LLVM
+Wasm execution remain parallel and independent. A larger lazy-loaded compiler
+includes X86/AArch64 plus LLD ELF/COFF/MachO, while ordinary editing uses the smaller
+WebAssembly-only reactor. Tiny target packs provide Linux syscall startup/memory,
+Windows kernel32 imports and a macOS libSystem stub. They are not full SDKs;
+third-party libraries must be built for the requested target with all needed
+dependencies. Emitting/linking native code in a browser does not execute it there.
+
+Sources checked: repository LLVM/LLD headers and test stubs;
+[LLD embedding/cross-linking](https://lld.llvm.org/),
+[Clang cross-compilation](https://clang.llvm.org/docs/CrossCompilation.html),
+[MachO linker](https://lld.llvm.org/MachO/index.html).
+
+### Debugging and validation during implementation
+
+- Initial native build needed the installed LLVM version's TargetParser/Host.h
+  and explicit Module include; fixed, then tested against installed LLVM 19.
+- The byte layout changes the previous Outer example from 40 bytes/24-byte
+  checked pointers to 20 bytes/four-byte pointers on wasm32. Updated assertions
+  for the actual target layout rather than retaining checked-cell expectations.
+- A malformed void-pointer index reached a node without a semantic component;
+  added early error propagation in places/conversions/allocation/memory operations.
+  Invalid source now reports a compile error before effects instead of aborting.
+- Byte-offset trap reporting initially used expression starts; LLVM now retains
+  the statement provenance used by the interpreter, restoring diagnostic parity.
+- std::ofstream required fd_fdstat_set_flags in our WASI host. Implemented the
+  supported append flag instead of importing a third-party shim.
+- Kept a split Wasm free-list block in its original sorted position, preserving
+  the allocator's coalescing invariant.
+- The first macOS pack link reported missing dyld_stub_binder. Checked LLVM's
+  MachO SDK fixture and added that libSystem export to our minimal description.
+- Old pointer-lifetime/uninitialized trap tests were retired; valid raw aliasing,
+  allocation, indexing, actual byte layouts, ABI fixtures and round trips replace
+  those foundation acceptance expectations. The old implementation/tests remain
+  available in the checkpoint for the future safe layer.
+- 110 Node tests passed at the first integration checkpoint. The expanded raw
+  storage suite then passed all 25 cases, including the Tower library, real C
+  archive, separately linked Tower objects and explicit 32/64-bit compilation.
+- Native Linux and Windows fixtures executed successfully, including exported
+  callbacks and raw buffers. All five CPU runtime packs linked with installed
+  LLD; x64 Linux/Windows and ARM64 Linux under QEMU printed 5, 84, 42. macOS
+  execution is not validated here because no Mac is available.
+- First full browser pass: 70/74 passed. Two assertions omitted the new Memory
+  selector entry; corrected. The two long Foundation edit/reload tests hit their
+  total 30-second timeout while the LLVM build saturated CPUs; raised only that
+  multi-load scenario to 60 seconds, leaving per-operation expectations intact.
+  Desktop/mobile export screenshots show all panes and controls within the viewport.
+
+Environment: Windows PowerShell, WSL Ubuntu 24.04, WASI SDK 34, vendored LLVM
+1e57ee22ca274b663eeb279fd86e7010a8441c99, installed clang/LLVM/LLD 19 for native
+tests (target runtime C objects built with the available Clang). Reproduction
+scripts are build-wasm.sh, build-llvm.sh, build-native.sh, build-targets.sh,
+test-linking.sh, test-windows-linking.sh and test-target-packs.sh. Final cross-Wasm
+linker validation/publication results will be recorded separately after completion.
+todo.txt was not modified by this implementation task.
+
+## 2026-11-17 - Shared calls, data-driven grammar scanners and build selection
+
+### Direction and implementation
+
+The user asked that Foundation operations look like function calls and share
+their grammar. `print`, `alloc`, `realloc`, `free`, `copy`, `fill`, `sizeof`,
+`alignof`, `convert` and `bits` now use the ordinary CoreCall/CoreArguments
+productions. They are semantic built-in names, no longer literal lexer keywords.
+One CoreBuiltin definition table supplies names, operation kinds and arities;
+the shared formatter uses that table. Type-taking calls accept ordinary operand
+syntax and pointer/array type suffixes, interpreted as types by the built-in's
+signature. Both interpreters and LLVM consume the same augmented call nodes.
+The old per-operation grammar spellings have been removed and examples migrated.
+Built-in function names cannot currently be shadowed by a user function: allowing
+that needs binding-qualified canonical spellings to preserve graph round trips.
+
+GrammarPattern is now a contextual regex token in Bedrock, and GrammarTemplate
+is an ordinary recursive grammar. The native pattern and balanced-brace scanners
+and the prohibition on overriding their names were removed. Generic `when
+expected` tokens consult the current LR ACTION table, without speculative parsing
+or backtracking. Longest-match still applies; an eligible contextual token wins
+an equal-length tie against an ordinary token that the current state cannot
+accept. Ordinary keywords still win equal-length lexical ties. `[^'{' '}']` is
+a generic terminal-set atom excluding those literal tokens; contextual tokens
+are excluded from these sets unless explicitly referenced. GrammarCharacter is
+an ordinary contextual fallback, active only where the template grammar permits.
+These flags and exclusion terms are semantic components on the shared nodes and
+serialize through the same formatter. Templates retain exact source envelopes,
+including comments and provenance. The declaration handler currently extracts
+the payload between single-character pattern/template delimiters; changing to
+multi-character delimiters needs an explicit payload-capture contract.
+
+An initial experiment emitted terminal sets as contiguous ranges. The existing
+table builder treated overlapping range and singleton lookaheads as conflicting
+even when they requested the same reduction. The implementation instead emits
+singleton terminal alternatives at grammar-build time, using ordinary ACTION
+entries at runtime. This preserves existing conflict detection and adds no
+runtime search through possible grammar branches. Generic EOF diagnostics now
+say `Unexpected end of input`, rather than exposing the `$` EOF notation.
+
+The target picker is immediately left of Auto execute: Wasm enabled by default,
+optional x86-64 and ARM64. Selected native architectures compile automatically in
+disposable workers and show disassembly plus per-platform download links. Wasm
+unchecked means no Wasm compiler/execution; the interpreter still runs. No
+targets means only Tower instructions and interpreter columns. All visible lower
+columns have equal widths. Native outputs are built, not executed by the browser.
+
+The initial shared platform ABI is `platform_write(stream, data, length): i64`:
+streams 1/2, bytes accepted or -1. Native runtimes and browser hosts implement the
+same declaration. Browser output is a byte stream decoded across execution steps
+so split UTF-8 sequences survive, with stdout/stderr combined in the playground.
+Other platform services remain future work; this is not a complete OS library.
+External imports can bind another instance's exported Wasm function directly
+using `{wasm: function}`; a WebAssembly.Table may supply that function at binding
+time. This does not implement source-level indirect/table calls. Sharing pointer
+arguments across instances still requires an explicit common-memory arrangement.
+
+### Forward declarations discussion (proposal, not implemented)
+
+The user wants module-style forward references. Function/type name resolution
+is distinct from syntax availability: known declaration grammar can parse a rule
+name without knowing its definition. A future implementation could record
+`parse A = B;` as unresolved, resolve it when B is encountered, and validate the
+complete dependency closure before connecting A to an active parsing root.
+The current implementation still rejects unresolved references immediately.
+
+Do not prescan the remainder using a stale grammar: declarations may change the
+declaration grammar itself. File order determines when definitions become active,
+not an implicit tie-breaker for ambiguous LR actions. Incomplete rules may be
+stored, but an active root cannot safely ignore an unresolved branch because it
+could change matches or introduce conflicts. An unresolved edit to the declaration
+reader must be rejected or placed in an explicit atomic grammar group read under
+the previous grammar. Such groups and deferred rule resolution are proposals;
+neither has been added in this change.
+
+Validation outcomes and reproducible commands will be appended after the final
+test/build/deployment runs. Earlier results describe earlier checkpoints and do
+not by themselves validate these subsequent changes.
+
+## 2026-11-17 - Forward grammar definitions and module symbol binding implemented
+
+The user explicitly requested implementing the preceding forward-reference
+proposal. This supersedes its proposal-only status above. Unreachable grammar
+definitions may now refer to later parse or token definitions. A derived reverse
+dependency index propagates missing names; incomplete definitions remain on the
+shared semantic nodes but are omitted from executable parser tables. Once their
+dependencies exist they join normal validation/table generation. Statement and
+all three declaration roots must always have complete closures, including optional
+branches. Activation errors show the chain, for example Statement -> A -> B.
+At module completion, any remaining unresolved definition is diagnosed. A failed
+activation does not publish a new grammar revision. Existing pinned sessions keep
+their own definitions. Forward declarations do not weaken ambiguity, nullable
+repetition, nonproductive-cycle or duplicate-capture validation.
+
+The declaration reader continues using the grammar current at each boundary.
+A test defines A using `parse`, changes GrammarDeclaration's keyword to `rule`,
+then defines B and activates A using `rule`. No prescan or reparse of earlier input
+is involved. Atomic grammar groups remain unimplemented. Foundation's earlier
+workaround was removed: CoreCallArgument again directly lists CorePointerArgument
+before its definition. Parser inspection marks unresolved definitions `(pending)`.
+
+Module type/function headers already resolved before bodies; added complete
+module variable binding before checking executable statements. Functions can
+access module variables declared later. Top-level variables use module storage
+(LLVM globals; explicit fixed offsets in interpreter memory), while block/function
+locals retain their lexical scopes and stack allocation. Initializers/effects
+still execute in source order. Forward lookup does not imply initialization;
+uninitialized reads retain the raw Foundation contract. The shared declaration
+node carries the storage classification, and its placement at module scope is
+the canonical text spelling. Round-trip structural checks include that flag.
+
+Tests cover indirect missing chains, later token definitions, mutual grammar
+references with a productive base, replacing an unresolved definition, rejection
+at activation/EOF, declaration syntax changes, explicit conflict reporting,
+forward types/functions/module variables, local shadowing and initialization
+order. The initial token-forward test used `/hello/`, which ties the earlier
+Identifier token under existing lexical precedence; it was corrected to
+`/@hello/` to test forward resolution independently of token priority. An older
+negative test forbidding a function from reading a module variable was updated
+to use a block-local variable, which remains correctly inaccessible.
+
+## 2026-11-17 - Integration validation and return-capture correction
+
+The native forward-module fixture exposed a previously untested return case:
+`return state.value;` was looking up the literal name `state.value`. CoreReturn's
+optional capture contains a list wrapper around CoreOperand; scalar names had
+worked accidentally through concatenated token text. The compiler now extracts
+exactly one CoreOperand from that capture before semantic resolution. Added
+field/index returns from later module variables to interpreter, LLVM, canonical
+round-trip and native sanitizer coverage. The native fixture now prints 42.
+
+Final local validation on Windows and WSL Ubuntu 24.04:
+
+- Rebuilt the parser reactor, both LLVM reactors and native towerc using
+  `bash playground/scripts/build-wasm.sh`,
+  `TOWER_BROWSER_CROSS=ON bash playground/scripts/build-llvm.sh`, and
+  `bash playground/scripts/build-native.sh`; then `npm run build` in playground.
+  Keep CROSS enabled in this shared cache to avoid rebuilding LLVM target headers
+  when switching between the two reactor targets.
+- Full Node run covered 132 tests: 130 initially passed. Two old assertions
+  expected unused forward rules to fail immediately and functions to reject
+  module variables. Updated them to test incomplete active roots and inaccessible
+  block locals. The affected llvm-execution/wasm files then passed 36/36.
+- After the return fix, `node --test --test-concurrency=2` over
+  forward-references, execution, llvm-execution and cross-compilation passed
+  42/42 (53.8 seconds). Cross tests check all six targets, executable signatures,
+  actual disassembly, deterministic repeated linking and recovery after failures.
+- `bash playground/scripts/test-native-core.sh` passed 2/2 under Linux ASan and
+  UBSan (96.36 seconds), including the new module return round trips.
+- `bash playground/scripts/test-linking.sh` passed: native interpreter/executable
+  parity, C static archives, exported callbacks, separately linked Tower objects,
+  native-to-Wasm output, storage library, actual LLVM C API, platform_write and
+  forward module functions/types/variables. `test-windows-linking.sh` also passed.
+- Browser-built Windows x64 and Linux x64 memory executables printed 5, 84, 42;
+  the browser cross-compiler's ARM64 Linux artifact ran under qemu-aarch64 with
+  those values plus its explicit eight-byte pointer-size check. macOS x64/ARM64
+  link/disassembly are verified; execution still requires a Mac and is unverified.
+- Full desktop/mobile Playwright run passed 66/76. Nine failures were stale
+  call/diagnostic test expectations or a cold-load timeout during concurrent
+  native/ASan work; one assumed the interpreter error column was horizontally
+  visible on a 320-pixel screen. Updated obsolete syntax tests, used a real
+  replacement when testing editable Foundation now that print is an ordinary
+  call, and scrolled the equal-width result columns for the visibility assertion.
+  `npx playwright test --last-failed --workers=1` passed all 10 affected cases
+  (2.2 minutes); the cold-load case passed unchanged. No production workaround
+  or blanket timeout increase was added for these failures.
+- Viewed desktop, phone and ARM disassembly screenshots. Lower columns have equal
+  widths and the page stays within the viewport; narrow screens scroll inside
+  the result area. Native targets build automatically and place per-platform
+  downloads beneath disassembly. Cancellation and editing reject stale results.
+
+The final static build contains a 4,276,722-byte parser reactor,
+68,153,556-byte Wasm-only LLVM reactor, and a 17,268,630-byte gzipped native-target
+reactor, loaded only for native compilation. Native startup packs are separate
+small assets. These sizes are this build's measurements, not size guarantees.
+
+Publication and online verification follow as a separate entry. Existing custom
+C++ compiler subsystems have not been ported to Tower; this completes the raw
+storage/linking prerequisites and the subsequently requested grammar/call/module
+changes. Full OS services, general imports, local type inference, indirect calls,
+atomic grammar groups and strict compile-time memory/effect policy remain future
+work. Concurrent ECS/bulk-analysis notes and todo.txt are outside this commit.

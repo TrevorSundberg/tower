@@ -2509,6 +2509,10 @@ static const StateEdge* parser_action(Recognizer* recognizer, const State* state
   return range != transitions.range_edges.end() && id >= range->range.start ? &range->edge : nullptr;
 }
 
+bool parser_recognizer_accepts(Recognizer* recognizer, uint32_t id) {
+  return recognizer && !recognizer->stack.empty() && parser_action(recognizer, recognizer->stack.back().state, id);
+}
+
 static ParseForest parser_forest_leaf(Recognizer* recognizer, TowerNode* node) {
   const size_t index = recognizer->forest.size();
   recognizer->forest.push_back({.node = node});
@@ -2567,7 +2571,7 @@ TowerNode* parser_recognizer_step(Recognizer* recognizer, bool* running) {
   }
   if (!edge) {
     recognizer->error = recognizer->lookahead_error.empty() ?
-      "Unexpected " + debug_str(recognizer->read_id, recognizer->table->grammar)
+      "Unexpected " + (recognizer->read_id == PARSER_ID_EOF ? std::string("end of input") : debug_str(recognizer->read_id, recognizer->table->grammar))
       + " at byte " + std::to_string(recognizer->read_start)
       + " in " + debug_str_header(*state, *recognizer->table) : recognizer->lookahead_error;
     recognizer->complete = true;

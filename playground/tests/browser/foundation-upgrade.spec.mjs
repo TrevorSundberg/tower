@@ -9,7 +9,7 @@ test('the screenshot-era saved Foundation upgrades in the editor, persists and e
     localStorage.setItem('tower-playground-foundation-v1', legacy);
     // Reproduce the old UI writing a new baseline beside the old document.
     localStorage.setItem('tower-playground-foundation-base-v1', foundation);
-    localStorage.setItem('tower-playground-source-v1', 'print 42;');
+    localStorage.setItem('tower-playground-source-v1', 'print(42);');
     localStorage.setItem('legacy-upgrade-seeded', '1');
   }, {legacy,foundation});
   await page.goto('/');

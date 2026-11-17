@@ -126,7 +126,7 @@ test('invalid captures, wrong categories and unclosed bodies fail atomically at 
     assert.ok(end.errorOffset >= source.indexOf('replace {') + 'replace {'.length);
   }
   const broken = analyze(base + "parse Expression |= 'bad' => replace { 1;");
-  assert.equal(broken.end.status, 'error'); assert.match(broken.end.error, /Unterminated replacement/);
+  assert.equal(broken.end.status, 'error'); assert.match(broken.end.error, /Unexpected end of input/);
   const missing = analyze(base + "parse Expression |= 'x' '(' $value:Expression ')' => replace { $value $value };");
   assert.equal(missing.end.status, 'error');
   assert.equal(missing.end.revision, 2);

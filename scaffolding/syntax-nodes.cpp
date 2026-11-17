@@ -24,6 +24,7 @@ bool syntax_equal(TowerNode* a, TowerNode* b, bool locations) {
     auto& x = syntax_node(left); auto& y = syntax_node(right);
     if (x.kind != y.kind || x.name != y.name || x.text != y.text || x.capture != y.capture ||
         x.style != y.style || x.literal != y.literal || x.append != y.append ||
+        x.contextual != y.contextual || x.terminal_set != y.terminal_set ||
         x.repetition != y.repetition || x.items.size() != y.items.size()) return false;
     // Compiled templates retain definition coordinates. Other locations/comments
     // do not affect parser-table identity and stay on the current source nodes.

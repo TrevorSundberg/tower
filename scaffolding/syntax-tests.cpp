@@ -85,7 +85,10 @@ void syntax_tests() {
     auto document = TowerNodeRef(syntax_document(session.get()));
     assert(syntax_equal(document.get(), syntax_native_bedrock()));
     assert(syntax_format(session.get()).source == source);
-    auto& declaration = syntax_node(syntax_node(document.get()).items[5]);
+    TowerNode* declaration_node = nullptr;
+    for (auto* item : syntax_node(document.get()).items) if (syntax_node(item).name == "GrammarDeclaration") declaration_node = item;
+    assert(declaration_node);
+    auto& declaration = syntax_node(declaration_node);
     auto* literal = syntax_node(declaration.items[0]).items[0];
     assert(syntax_node(literal).text == "parse");
     assert(tower_node_get_component_userdata(literal, parser_match_get_type()));

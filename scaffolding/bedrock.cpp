@@ -16,6 +16,11 @@ TowerNodeRef reference(const char* name, const char* capture = "") {
 TowerNodeRef literal(const char* value) {
   auto node = reference(value); syntax_node(node.get()).literal = true; return node;
 }
+TowerNodeRef terminal_set(std::initializer_list<const char*> exclusions) {
+  auto node = entity(SyntaxKind::Term); syntax_node(node.get()).terminal_set = true;
+  for (auto* value : exclusions) append(node.get(), literal(value));
+  return node;
+}
 TowerNodeRef alternative(std::initializer_list<TowerNodeRef> terms) {
   auto node = entity(SyntaxKind::Alternative);
   for (const auto& term : terms) append(node.get(), term);
@@ -26,9 +31,9 @@ void rule(TowerNode* document, const char* name, std::initializer_list<TowerNode
   for (const auto& alternative : alternatives) append(node.get(), alternative);
   append(document, node);
 }
-void token(TowerNode* document, SyntaxKind kind, const char* name, const char* pattern, const char* style = "") {
+void token(TowerNode* document, SyntaxKind kind, const char* name, const char* pattern, const char* style = "", bool contextual = false) {
   auto node = entity(kind); auto& value = syntax_node(node.get());
-  value.name = name; value.text = pattern; value.style = style;
+  value.name = name; value.text = pattern; value.style = style; value.contextual = contextual;
   std::string error; value.compiled = lex_pattern_compile(pattern, error); assert(error.empty());
   append(document, node);
 }
@@ -50,13 +55,19 @@ TowerNode* syntax_native_bedrock() {
       "// GrammarPattern reads /patterns/ for token and skip rules.",
       "// GrammarTemplate reads {replacement bodies} with balanced braces."
     };
+    token(doc, SyntaxKind::Token, "GrammarPattern", R"(\/([^/\\\[\r\n]|\\[^\r\n]|\[([^\\\]\r\n]|\\[^\r\n])*\])*\/)", "pattern", true);
+    token(doc, SyntaxKind::Token, "GrammarCharacter", R"([^{}\r\n])", "operator", true);
     rule(doc, "GrammarDeclaration", {alternative({literal("parse"), reference("Identifier", "name"),
       reference("GrammarAssignment", "op"), reference("GrammarAlternatives", "alternatives"),
       reference("GrammarReplacement", "replacement"), literal(";")})});
+    rule(doc, "GrammarTemplate", {alternative({literal("{"), reference("GrammarTemplateItems"), literal("}")})});
+    rule(doc, "GrammarTemplateItems", {alternative({reference("GrammarTemplateItems"), reference("GrammarTemplateItem")}), alternative({})});
+    rule(doc, "GrammarTemplateItem", {alternative({reference("GrammarTemplate")}), alternative({terminal_set({"{", "}"})}), alternative({reference("GrammarCharacter")})});
     rule(doc, "GrammarTokenDeclaration", {alternative({literal("token"), reference("Identifier", "name"), literal("="),
-      reference("GrammarPattern", "pattern"), reference("GrammarStyle", "style"), literal(";")})});
+      reference("GrammarPattern", "pattern"), reference("GrammarTokenMode", "mode"), reference("GrammarStyle", "style"), literal(";")})});
     rule(doc, "GrammarSkipDeclaration", {alternative({literal("skip"), reference("Identifier", "name"), literal("="),
-      reference("GrammarPattern", "pattern"), reference("GrammarStyle", "style"), literal(";")})});
+      reference("GrammarPattern", "pattern"), reference("GrammarTokenMode", "mode"), reference("GrammarStyle", "style"), literal(";")})});
+    rule(doc, "GrammarTokenMode", {alternative({}), alternative({literal("when"), literal("expected")})});
     rule(doc, "GrammarAssignment", {alternative({literal("=")}), alternative({literal("|=")})});
     rule(doc, "GrammarReplacement", {alternative({}), alternative({literal("=>"), literal("replace"), reference("GrammarTemplate", "body")})});
     rule(doc, "GrammarAlternatives", {
@@ -68,7 +79,9 @@ TowerNode* syntax_native_bedrock() {
     rule(doc, "GrammarSuffix", {alternative({literal("*")}), alternative({literal("+")}), alternative({literal("?")}), alternative({})});
     rule(doc, "GrammarAtom", {alternative({reference("String", "literal")}), alternative({reference("Identifier", "reference")}),
       alternative({literal("$"), reference("Identifier", "capture")}),
-      alternative({literal("$"), reference("Identifier", "capture"), literal(":"), reference("Identifier", "reference")})});
+      alternative({literal("$"), reference("Identifier", "capture"), literal(":"), reference("Identifier", "reference")}),
+      alternative({literal("[^"), reference("GrammarTokenSet", "set"), literal("]")})});
+    rule(doc, "GrammarTokenSet", {alternative({reference("GrammarTokenSet", "previous"), reference("String", "literal")}), alternative({})});
     rule(doc, "GrammarStyle", {alternative({}), alternative({literal("as"), reference("Identifier", "kind")})});
     return root;
   }();

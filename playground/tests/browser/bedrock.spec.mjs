@@ -19,7 +19,7 @@ test.beforeEach(async ({page}) => {
 test('modules show their source and grammar tree without executable instruction output', async ({page,request}, info) => {
   const bedrock = await (await request.get('/bedrock.tower')).text();
   expect(await page.locator('#example-kind option').allTextContents()).toEqual([
-    'Bedrock', 'Foundation', 'ForEach', 'Execution', 'Functions', 'Structs', 'Replacements', 'Token rules'
+    'Bedrock', 'Foundation', 'ForEach', 'Execution', 'Functions', 'Structs', 'Memory', 'Replacements', 'Token rules'
   ]);
   await expect(page.locator('#example-kind optgroup')).toHaveCount(0);
   await page.locator('#example-kind').selectOption('bedrock.tower');
@@ -45,10 +45,10 @@ test('modules show their source and grammar tree without executable instruction 
   await expect(page.locator('#execution-output')).toBeEmpty();
   await expect(page.locator('#llvm-output')).toBeEmpty();
   await page.locator('#example-kind').selectOption('foreach.tower');
-  await setSource(page, 'print 42;');
+  await setSource(page, 'print(42);');
   await expect(page.locator('#execution-panel')).toBeVisible();
   await expect(page.locator('#execution-status')).toHaveText('Finished \u00b7 backends match');
-  await expect(page.locator('#core-instructions')).toContainText('print 42;');
+  await expect(page.locator('#core-instructions')).toContainText('print(42);');
   await expect(page.locator('#execution-output')).toHaveText('42\n');
   await expect(page.locator('#llvm-output')).toHaveText('42\n');
   await page.locator('#example-kind').selectOption('bedrock.tower');
@@ -70,7 +70,7 @@ test('editing bedrock updates its next declarations and downstream modules while
   await setSource(page,foundation.replace(/^parse /gm,'rule '));
   await expect(page.locator('#status')).toContainText('Complete');
   await page.locator('#example-kind').selectOption('foreach.tower');
-  await setSource(page,"rule Statement |= 'show' $value:CoreOperand ';' => replace { print $value; };show 42;");
+  await setSource(page,"rule Statement |= 'show' $value:CoreOperand ';' => replace { print($value); };show 42;");
   await expect(page.locator('#execution-status')).toHaveText('Finished \u00b7 backends match',{timeout:30000});
   await expect(page.locator('#execution-output')).toHaveText('42\n');
   await expect(page.locator('#llvm-output')).toHaveText('42\n');
@@ -94,7 +94,7 @@ test('one bedrock whitespace and identifier definition drives foundation and bot
   await setSource(page, bedrock.replace('[ \\t\\r\\n]+', '[ ~\\t\\r\\n]+').replace('[A-Za-z0-9_]*', '[A-Za-z0-9_-]*'));
   await expect(page.locator('#status')).toContainText('Complete');
   await page.locator('#example-kind').selectOption('foreach.tower');
-  await setSource(page, 'var~player-name:~i32~=~42;print~player-name;');
+  await setSource(page, 'var~player-name:~i32~=~42;print(~player-name);');
   await expect(page.locator('#execution-status')).toHaveText('Finished \u00b7 backends match');
   await expect(page.locator('#execution-output')).toHaveText('42\n');
   await expect(page.locator('#llvm-output')).toHaveText('42\n');
@@ -135,7 +135,7 @@ test('Identifier edits immediately affect following declarations in every docume
     await setSource(page, source);
     await expect(page.locator('#status')).toContainText('Stopped');
     await page.locator('#editor-error').click();
-    await expect(page.locator('.tw-inline-error-message')).toContainText('Unknown token');
+    await expect(page.locator('.tw-inline-error-message')).toContainText('No token rule matches source');
     const line = source.slice(0, source.indexOf('token String')).split('\n').length;
     await expect(page.locator('.tw-inline-error-heading')).toHaveText(`ErrorLn ${line}, Col 7`);
     await expect(page.locator('#execution-panel')).toBeVisible();

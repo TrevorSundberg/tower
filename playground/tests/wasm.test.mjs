@@ -89,7 +89,7 @@ test('invalid grammar returns an error, preserves revision, and does not poison 
     assert.match(end.error, /Token literal is empty/);
     assert.equal(end.errorOffset, source.indexOf(quotes));
   }
-  for (const bad of ["parse Statement |= Expression ';';", 'parse Bad = Missing;', 'parse Bad = Bad;',
+  for (const bad of ["parse Statement |= Expression ';';", 'parse Statement = Missing;', 'parse Bad = Bad;',
     "parse Bad = 'a b';", 'parse Bad = $Expression $Expression;', 'parse Statement = ;']) {
     const { end } = analyze(base + bad);
     assert.equal(end.status, 'error', bad); assert.equal(end.revision, 3, bad); assert.ok(end.error);
@@ -121,7 +121,7 @@ test('new multi-character punctuation and malformed lexical input use the native
 });
 
 test('one foundation module bootstraps itself, installs idempotently and pins existing sessions', () => {
-  const module = tower.createFoundation(bootstrap), pinned = tower.create('print 3;');
+  const module = tower.createFoundation(bootstrap), pinned = tower.create('print(3);');
   try {
     const initial = runToEnd(tower, module);
     assert.equal(initial.end.status, 'done', initial.end.error);
@@ -130,14 +130,14 @@ test('one foundation module bootstraps itself, installs idempotently and pins ex
     assert.equal(runToEnd(tower, module).end.status, 'done');
     assert.equal(tower.inspect(module).grammarBuilds, 0);
     tower.configure(bootstrap); tower.configure(bootstrap);
-    assert.equal(analyze('fn answer(): i32 { return 42; } var x: i32 = answer(); print x;').end.status, 'done');
-    const edited = bootstrap.replace("'print'", "'emit'");
+    assert.equal(analyze('fn answer(): i32 { return 42; } var x: i32 = answer(); print(x);').end.status, 'done');
+    const edited = bootstrap.replace("parse CoreCall = $name:Identifier '(' $args:CoreArguments? ')';", "parse CoreCall = 'invoke' $name:Identifier '(' $args:CoreArguments? ')';");
     tower.configure(edited); tower.configure(edited);
-    assert.equal(analyze('emit 4;').end.status, 'done');
-    assert.equal(analyze('print 4;').end.status, 'error');
+    assert.equal(analyze('invoke print(4);').end.status, 'done');
+    assert.equal(analyze('print(4);').end.status, 'error');
     assert.equal(runToEnd(tower, pinned).end.status, 'done');
-    assert.throws(() => tower.configure(edited + '\nprint 5;'), /only token, skip and parse/);
-    assert.equal(analyze('emit 4;').end.status, 'done');
+    assert.throws(() => tower.configure(edited + '\nprint(5);'), /only token, skip and parse/);
+    assert.equal(analyze('invoke print(4);').end.status, 'done');
     tower.reset(module, bootstrap + '\nvar forbidden: i32;');
     assert.match(runToEnd(tower, module).end.error, /only token, skip and parse/);
   } finally { tower.configure(bootstrap); tower.destroy(module); tower.destroy(pinned); }

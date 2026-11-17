@@ -3,7 +3,7 @@ import { loadLLVM, executeWasm } from './llvm-host.mjs';
 import { originalDiagnostic } from './foundation-source.mjs';
 
 // One disposable worker per backend. Neither runner waits for the other.
-self.onmessage = async ({ data: { id, source, foundation, bedrock, backend } }) => {
+self.onmessage = async ({ data: { id, source, foundation, bedrock, backend, pointerBytes=4, inputs={} } }) => {
   let tower, handle;
   const timings = {}, start = performance.now();
   const send = data => postMessage({ id, backend, ...data });
@@ -14,7 +14,7 @@ self.onmessage = async ({ data: { id, source, foundation, bedrock, backend } }) 
     tower = await loadTower(await response.arrayBuffer(), undefined, foundation, undefined, bedrock);
     timings.load = performance.now() - start;
     let at = performance.now();
-    handle = tower.compile(source);
+    handle = tower.compile(source,{pointerBytes});
     timings.tower = performance.now() - at;
     const checked = tower.execute(handle, 0);
     if (checked.status === 'error') { send({ result: checked, timings }); return; }
@@ -47,7 +47,7 @@ self.onmessage = async ({ data: { id, source, foundation, bedrock, backend } }) 
       timings.llvmLoad = performance.now() - at;
       send({ phase: 'Compiling LLVM…' });
       at = performance.now();
-      const compiled = compiler.compile(formatted.source);
+      const compiled = compiler.compile(formatted.source,{inputs});
       timings.llvm = performance.now() - at;
       Object.assign(timings, compiled.timings);
       const diagnostic = result => originalDiagnostic(result, formatted.spans);

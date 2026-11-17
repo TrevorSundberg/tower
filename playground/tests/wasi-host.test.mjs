@@ -60,3 +60,15 @@ test('Tower WASI reports faults, supplies clocks/entropy and handles UTF-8 strea
   assert.deepEqual(h.logs, ['€']);
   assert.throws(() => h.api.proc_exit(7), error => error instanceof WASIExit && error.code === 7);
 });
+
+test('Tower WASI hard links share contents and survive unlinking the original', () => {
+  const h = host(), fd = h.open('a'); h.write(fd, 'value');
+  const source = h.text('a'), dest = h.text('b',200);
+  assert.equal(h.api.path_link(3,0,...source,3,...dest),0);
+  assert.equal(h.api.path_link(3,0,...source,3,...dest),20);
+  const alias = h.open('b',0); h.write(alias,'other');
+  assert.equal(h.api.path_unlink_file(3,...h.text('a')),0);
+  assert.equal(h.api.fd_filestat_get(fd,300),0); assert.equal(h.view().getBigUint64(324,true),1n);
+  assert.equal(new TextDecoder().decode(h.wasi.files.get('b').data),'other');
+  assert.equal(h.api.path_link(3,0,...h.text('b'),3,...h.text('../escape',200)),76);
+});

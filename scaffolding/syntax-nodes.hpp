@@ -12,7 +12,7 @@ enum class SyntaxKind { Document, Rule, Token, Skip, Alternative, Term, Template
 struct SyntaxNode {
   SyntaxKind kind = SyntaxKind::Document;
   std::string name, text, capture, style;
-  bool literal = false, append = false;
+  bool literal = false, append = false, contextual = false, terminal_set = false;
   char repetition = 0;
   std::vector<TowerNode*> items;
   TowerNodeRef replacement;

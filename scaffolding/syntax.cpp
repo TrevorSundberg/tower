@@ -13,8 +13,7 @@
 #include <unordered_set>
 
 namespace {
-constexpr uint32_t MetaName = 0x110000, MetaString = MetaName + 1, MetaPattern = MetaName + 2;
-constexpr uint32_t MetaTemplate = MetaName + 3, FirstHole = 0x300000;
+constexpr uint32_t MetaName = 0x110000, MetaString = MetaName + 1, FirstHole = 0x300000;
 constexpr uint32_t FirstToken = 0x120000, FirstLiteral = 0x200000;
 
 using Node = std::unique_ptr<TowerNode, decltype(&tower_node_release_ref)>;
@@ -25,6 +24,8 @@ using Sequence = TowerNodeRef;
 using Alternatives = std::vector<Sequence>;
 using Definitions = std::map<std::string, Alternatives>;
 using TokenDefinitions = std::vector<TowerNodeRef>;
+struct PendingRule { std::string dependency; size_t offset = TOWER_INVALID_INDEX; };
+using PendingRules = std::map<std::string, PendingRule>;
 SyntaxNode& semantic(const TowerNodeRef& node) { return syntax_node(node.get()); }
 bool same(const std::vector<TowerNodeRef>& a, const std::vector<TowerNodeRef>& b) {
   if (a.size() != b.size()) return false;
@@ -88,6 +89,7 @@ struct Version {
   std::map<std::string, uint32_t> literals;
   std::map<uint32_t, std::string> names;
   TokenDefinitions tokens;
+  PendingRules pending;
   std::shared_ptr<const Bedrock> bedrock;
   std::set<std::string> used_names;
   std::map<std::string, std::string> template_tokens;
@@ -171,8 +173,6 @@ uint32_t resolve_token(const TokenDefinitions& tokens, const std::string& name) 
   return PARSER_ID_EOF;
 }
 uint32_t resolve(void* context, const char* name) {
-  if (strcmp(name, "GrammarPattern") == 0) return MetaPattern;
-  if (strcmp(name, "GrammarTemplate") == 0) return MetaTemplate;
   return resolve_token(((Version*)context)->tokens, name);
 }
 
@@ -217,9 +217,26 @@ void literal(Version& version, TowerNode* rule, const std::string& text) {
   tower_node_release_ref(node);
 }
 
+std::string emit_token_set(Version& version, const SyntaxNode& term) {
+  std::set<std::string> excluded;
+  for (auto* item : term.items) excluded.insert(syntax_node(item).text);
+  std::set<uint32_t> ids;
+  for (size_t i = 0; i < version.tokens.size(); ++i) {
+    const auto& token = semantic(version.tokens[i]);
+    if (token.kind != SyntaxKind::Skip && !token.contextual) ids.insert(token_id(token.name, i));
+  }
+  for (const auto& [name, id] : version.literals) if (!excluded.contains(name)) ids.insert(id);
+  auto helper = helper_name(version, "token set");
+  // Singleton terminals share the existing ACTION table, including lookaheads
+  // already named by other productions. No runtime token-set search is needed.
+  for (uint32_t id : ids) parser_range_create_subtree(production(version, helper, true), id, id);
+  return helper;
+}
+
 void atom(Version& version, TowerNode* rule, TowerNode* entity) {
   const auto& term = syntax_node(entity);
-  if (term.literal) literal(version, rule, term.text);
+  if (term.terminal_set) reference(rule, emit_token_set(version, term), term.capture);
+  else if (term.literal) literal(version, rule, term.text);
   else reference(rule, version.templating && resolve_token(version.tokens, term.text) != PARSER_ID_EOF
     ? template_token(version, term.text) : term.text);
 }
@@ -232,7 +249,8 @@ void emit(Version& version, const std::string& name, const Sequence& sequence, s
   for (auto* entity : semantic(sequence).items) {
     const auto& term = syntax_node(entity);
     if (!term.repetition) {
-      if (term.literal) literal(version, rule, term.text);
+      if (term.terminal_set) reference(rule, emit_token_set(version, term), term.capture);
+      else if (term.literal) literal(version, rule, term.text);
       else reference(rule, version.templating && resolve_token(version.tokens, term.text) != PARSER_ID_EOF
         ? template_token(version, term.text) : term.text, term.capture);
       continue;
@@ -257,6 +275,12 @@ void emit(Version& version, const std::string& name, const Sequence& sequence, s
 
 // Seed and loaded bedrock share the exact same grammar entities and emission.
 void seed(Version& v, const Definitions& definitions) {
+  for (const auto& [name, alternatives] : definitions)
+    for (const auto& alternative : alternatives) for (auto* entity : semantic(alternative).items) {
+      const auto& term = syntax_node(entity);
+      if (term.literal) add_literal(v, term.text);
+      if (term.terminal_set) for (auto* item : term.items) add_literal(v, syntax_node(item).text);
+    }
   auto top = helper_name(v, "document");
   auto* r = production(v, top); reference(r, "GrammarDeclaration");
   reference(production(v, top), "GrammarTokenDeclaration");
@@ -298,7 +322,6 @@ void seed(Version& v, const Definitions& definitions) {
     v.declaration_starts.insert(first[name].begin(), first[name].end());
 }
 
-bool scanner(const std::string& name) { return name == "GrammarPattern" || name == "GrammarTemplate"; }
 std::string validate_declaration_rules(const Definitions& definitions, size_t* error_offset) {
   // Native declaration handlers require these semantic roles regardless of the
   // file that changes the reader. Reject incompatible updates before installing.
@@ -319,16 +342,41 @@ std::string validate_declaration_rules(const Definitions& definitions, size_t* e
         if (error_offset && semantic(alternative).start != TOWER_INVALID_INDEX) *error_offset = semantic(alternative).start;
         return "Declaration rule " + name + " must preserve capture '" + capture + "'";
       }
-      if (name == "GrammarAtom" && !present.contains("literal") && !present.contains("reference") && !present.contains("capture"))
+      if (name == "GrammarAtom" && !present.contains("literal") && !present.contains("reference") && !present.contains("capture") && !present.contains("set"))
         return "GrammarAtom must capture a literal, reference or capture name";
     }
   }
   return {};
 }
-std::string validate(const Definitions& defs, const TokenDefinitions& tokens, size_t* error_offset) {
+PendingRules pending_rules(const Definitions& defs, const TokenDefinitions& tokens) {
+  std::map<std::string, std::vector<std::pair<std::string, size_t>>> dependents;
+  PendingRules pending; std::vector<std::string> queue;
+  for (const auto& [name, alternatives] : defs) for (const auto& sequence : alternatives)
+    for (auto* entity : semantic(sequence).items) {
+      const auto& term = syntax_node(entity);
+      if (term.literal || term.terminal_set || resolve_token(tokens, term.text) != PARSER_ID_EOF) continue;
+      dependents[term.text].push_back({name, term.start});
+      if (!defs.contains(term.text) && pending.try_emplace(name, PendingRule{term.text, term.start}).second) queue.push_back(name);
+    }
+  for (size_t i = 0; i < queue.size(); ++i) {
+    auto dependency = queue[i];
+    for (const auto& [name, offset] : dependents[dependency])
+      if (pending.try_emplace(name, PendingRule{dependency, offset}).second) queue.push_back(name);
+  }
+  return pending;
+}
+std::string pending_message(const PendingRules& pending, std::string name, size_t* error_offset) {
+  std::string message = name;
+  while (pending.contains(name)) {
+    const auto& missing = pending.at(name);
+    if (error_offset && missing.offset != TOWER_INVALID_INDEX) *error_offset = missing.offset;
+    name = missing.dependency; message += " -> " + name;
+  }
+  return message + " (undefined rule '" + name + "')";
+}
+std::string validate(Definitions& defs, const TokenDefinitions& tokens, size_t* error_offset, PendingRules& pending) {
   std::map<std::string, bool> nullable, productive;
   for (const auto& [name, alternatives] : defs) {
-    if (scanner(name)) return "Native scanner cannot be replaced by a parse rule: " + name;
     if (std::any_of(tokens.begin(), tokens.end(), [&](const auto& t) { return semantic(t).name == name; }))
       return "Name already defines a token or skip rule: " + name;
     for (const auto& seq : alternatives) {
@@ -342,8 +390,6 @@ std::string validate(const Definitions& defs, const TokenDefinitions& tokens, si
             return error;
           }
         }
-        if (!term.literal && !defs.contains(term.text) && resolve_token(tokens, term.text) == PARSER_ID_EOF && !scanner(term.text))
-          return "Unresolved grammar rule: " + term.text;
         if (!term.capture.empty() && !captures.insert(term.capture).second)
           return "Duplicate capture: " + term.capture;
       }
@@ -351,6 +397,12 @@ std::string validate(const Definitions& defs, const TokenDefinitions& tokens, si
   }
   auto declaration_error = validate_declaration_rules(defs, error_offset);
   if (!declaration_error.empty()) return declaration_error;
+  pending = pending_rules(defs, tokens);
+  for (const char* root : {"GrammarDeclaration", "GrammarTokenDeclaration", "GrammarSkipDeclaration", "Statement"})
+    if (pending.contains(root)) return "Cannot activate incomplete grammar: " + pending_message(pending, root, error_offset);
+  // Keep the declarations as shared semantic nodes. Only the derived executable
+  // table excludes incomplete, unreachable definitions until their names resolve.
+  for (const auto& [name, dependency] : pending) defs.erase(name);
   bool changed;
   do {
     changed = false;
@@ -360,8 +412,8 @@ std::string validate(const Definitions& defs, const TokenDefinitions& tokens, si
         for (auto* entity : semantic(seq).items) {
           const auto& term = syntax_node(entity);
           bool optional = term.repetition == '*' || term.repetition == '?';
-          n &= optional || (!term.literal && nullable[term.text]);
-          p &= optional || term.literal || resolve_token(tokens, term.text) != PARSER_ID_EOF || scanner(term.text) || productive[term.text];
+          n &= optional || (!term.literal && !term.terminal_set && nullable[term.text]);
+          p &= optional || term.literal || resolve_token(tokens, term.text) != PARSER_ID_EOF || term.terminal_set || productive[term.text];
         }
         if (n && !nullable[name]) { nullable[name] = true; changed = true; }
         if (p && !productive[name]) { productive[name] = true; changed = true; }
@@ -393,17 +445,20 @@ std::unique_ptr<Version> build(const Definitions& defs, const TokenDefinitions& 
     auto found = std::find_if(effective_tokens.begin(), effective_tokens.end(), [&](const auto& old) { return semantic(old).name == semantic(entity).name; });
     if (found == effective_tokens.end()) effective_tokens.push_back(entity); else *found = entity;
   }
-  message = validate(definitions, effective_tokens, error_offset);
+  PendingRules pending;
+  message = validate(definitions, effective_tokens, error_offset, pending);
   if (!message.empty()) return nullptr;
   auto v = std::make_unique<Version>();
+  v->pending = std::move(pending);
   v->tokens = std::move(effective_tokens);
   v->bedrock = std::move(bedrock);
-  v->names = {{MetaName, "declaration name"}, {MetaString, "quoted grammar literal"}, {MetaPattern, "token pattern"}, {MetaTemplate, "replacement template"}};
+  v->names = {{MetaName, "declaration name"}, {MetaString, "quoted grammar literal"}};
   for (const auto& token : v->tokens) {
     const auto& value = semantic(token); v->used_names.insert(value.name);
     if (value.kind != SyntaxKind::Skip) v->names[resolve_token(v->tokens, value.name)] = value.name;
   }
   for (const auto& [name, alternatives] : definitions) v->used_names.insert(name);
+  for (const auto& [name, dependency] : v->pending) v->used_names.insert(name);
   seed(*v, definitions);
   char* error = nullptr;
   v->table = parser_table_create(v->rules.get(), v.get(), resolve, token_name, &error, ParserTableMode::Constructs);
@@ -442,7 +497,17 @@ TowerNode* read_term(TowerNode* node, const std::string& source, std::string& er
   auto* atom = required(node, "atom", error); auto* suffix = required(node, "suffix", error);
   if (!error.empty()) return node;
   auto* literal = member(atom, "literal"); auto* ref = member(atom, "reference"); auto* capture = member(atom, "capture");
-  if (literal) {
+  if (auto* set = member(atom, "set")) {
+    term.terminal_set = true;
+    while (set && tower_node_get_child_count(set) && error.empty()) {
+      auto* item = required(set, "literal", error); if (!item) break;
+      auto& exclusion = syntax_attach(item, SyntaxKind::Term); location(exclusion, item); exclusion.literal = true;
+      size_t start = parser_match_get_start(match(item)); error = quoted(source, start, exclusion.text);
+      if (error.empty()) error = literal_error(exclusion.text);
+      term.items.push_back(item); set = member(set, "previous");
+    }
+    std::reverse(term.items.begin(), term.items.end());
+  } else if (literal) {
     term.literal = true; size_t start = parser_match_get_start(match(literal));
     error = quoted(source, start, term.text);
   } else if (ref || capture) {
@@ -482,6 +547,7 @@ struct SyntaxSession {
   size_t revision = 0;
   Definitions definitions, baseline_definitions;
   TokenDefinitions tokens, baseline;
+  Recognizer* recognizer = nullptr; // borrowed only while reading this stream
   bool bootstrapping = false, declaration = false;
   bool building_bedrock = false, finalized = false, declarations_only = true;
   size_t comment_cursor = 0;
@@ -519,28 +585,6 @@ std::shared_ptr<Version> compiled(SyntaxSession& session, const Definitions& def
   return version;
 }
 
-std::string read_pattern(const std::string& source, size_t& pos, std::string& pattern) {
-  ++pos; bool bracket = false;
-  while (pos < source.size()) {
-    char c = source[pos++];
-    if (c == '\n' || c == '\r') return "Newline in token pattern; use an escaped newline";
-    if (c == '\\') {
-      pattern += c;
-      if (pos == source.size()) break;
-      c = source[pos++];
-      if (c == '\n' || c == '\r') return "Newline in token pattern";
-      pattern += c; continue;
-    }
-    if (c == '/' && !bracket) return {};
-    if (c == '[') bracket = true;
-    if (c == ']') bracket = false;
-    pattern += c;
-  }
-  return "Unterminated /token pattern/";
-}
-
-std::string read_template(SyntaxSession& session, size_t& pos, std::vector<SyntaxHighlight>& highlights);
-
 std::string skip_meta(SyntaxSession& session, size_t& pos, std::vector<SyntaxHighlight>& highlights) {
   while (pos < session.source.size()) {
     const SyntaxNode* chosen = nullptr; size_t length = 0;
@@ -557,62 +601,21 @@ std::string skip_meta(SyntaxSession& session, size_t& pos, std::vector<SyntaxHig
   return {};
 }
 
-// Pattern/template scanning is native. Names, quoted strings, trivia and
-// declaration literals come from the active grammar's shared entities. Every
-// file installs declarations at the same boundary without mutating its baseline.
-std::string scan_meta(SyntaxSession& session, size_t& pos, std::vector<SyntaxHighlight>& highlights,
-    uint32_t& id, size_t& start, size_t& length) {
-  auto& source = session.source;
-  id = PARSER_ID_EOF; length = 0; start = pos;
-  std::string error = skip_meta(session, pos, highlights);
-  if (!error.empty()) { start = highlights.back().start; return error; }
-  start = pos;
-  if (pos == source.size()) return {};
-  std::string kind;
-  if (source[pos] == '{') {
-    error = read_template(session, pos, highlights); id = MetaTemplate;
-  } else if (source[pos] == '/') {
-    std::string pattern; error = read_pattern(source, pos, pattern); id = MetaPattern; kind = "pattern";
-  } else {
-    size_t longest = 0;
-    for (const auto& entity : session.version->tokens) {
-      const auto& token = semantic(entity);
-      if (token.kind == SyntaxKind::Skip) continue;
-      auto count = token.compiled->match(source, pos);
-      if (count > longest) {
-        longest = count; kind = token.style;
-        id = resolve_token(session.version->tokens, token.name);
-      }
-    }
-    for (const auto& [literal, value] : session.version->declaration_literals) {
-      if (literal.size() >= longest && source.compare(pos, literal.size(), literal) == 0) {
-        longest = literal.size(); id = value; kind = word(literal) ? "keyword" : "operator";
-      }
-    }
-    if (!longest) {
-      error = "Unknown token"; uint32_t cp;
-      longest = lex_codepoint(source, pos, cp); if (!longest) longest = 1;
-    }
-    pos += longest;
-  }
-  length = pos - start;
-  if (id != MetaTemplate) highlights.push_back({start, pos, session.revision, error.empty() ? kind : "invalid"});
-  return error;
-}
-
 struct Choice { size_t length = 0; uint32_t id = PARSER_ID_EOF; std::string kind; bool skip = false; };
 Choice choose(const SyntaxSession& session, size_t pos) {
   Choice choice;
-  for (size_t i = 0; i < session.tokens.size(); ++i) {
-    const auto& token = semantic(session.tokens[i]);
+  for (size_t i = 0; i < session.version->tokens.size(); ++i) {
+    const auto& token = semantic(session.version->tokens[i]);
+    if (token.contextual && !parser_recognizer_accepts(session.recognizer, token_id(token.name, i))) continue;
     size_t length = token.compiled->match(session.source, pos);
     // Longest match, then declaration order. Replacements retain their slot.
-    if (length > choice.length) choice = {length, token_id(token.name, i), token.style, token.kind == SyntaxKind::Skip};
+    if (length > choice.length || (length && length == choice.length && token.contextual && !parser_recognizer_accepts(session.recognizer, choice.id)))
+      choice = {length, token_id(token.name, i), token.style, token.kind == SyntaxKind::Skip};
   }
   // Grammar literals beat token patterns on equal length. A longer identifier
   // still beats a keyword prefix, including custom Unicode identifier rules.
   for (const auto& [literal, id] : session.version->literals)
-    if (literal.size() >= choice.length && session.source.compare(pos, literal.size(), literal) == 0)
+    if ((!session.declaration || session.version->declaration_literals.contains(literal) || parser_recognizer_accepts(session.recognizer, id)) && (literal.size() >= choice.length && session.source.compare(pos, literal.size(), literal) == 0))
       choice = {literal.size(), id, word(literal) ? "keyword" : "operator", false};
   return choice;
 }
@@ -624,31 +627,6 @@ size_t capture_name_length(const SyntaxSession& session, size_t pos) {
   return 0;
 }
 
-std::string read_template(SyntaxSession& session, size_t& pos, std::vector<SyntaxHighlight>& highlights) {
-  const size_t opening = pos++;
-  size_t depth = 1;
-  highlights.push_back({opening, pos, session.revision, "operator"});
-  while (pos < session.source.size()) {
-    size_t start = pos;
-    // A complete lexical token (including custom strings/comments) owns its
-    // delimiters. Only standalone braces affect template nesting.
-    auto choice = choose(session, pos);
-    if (session.source[pos] == '$' && capture_name_length(session, pos + 1)) {
-      pos += 1 + capture_name_length(session, pos + 1);
-      highlights.push_back({start, pos, session.revision, "capture"});
-      continue;
-    }
-    if (choice.length <= 1 && session.source[pos] == '{') ++depth;
-    if (choice.length <= 1 && session.source[pos] == '}' && --depth == 0) {
-      highlights.push_back({pos, pos + 1, session.revision, "operator"}); ++pos; return {};
-    }
-    if (!choice.length) { uint32_t cp; choice.length = lex_codepoint(session.source, pos, cp); }
-    if (!choice.length) choice.length = 1;
-    pos += choice.length;
-    if (!choice.kind.empty()) highlights.push_back({start, pos, session.revision, choice.kind});
-  }
-  return "Unterminated replacement template at byte " + std::to_string(opening);
-}
 bool declaration_at(const SyntaxSession& session, size_t pos) {
   const auto& source = session.source;
   for (const auto& keyword : session.version->declaration_starts) {
@@ -656,14 +634,14 @@ bool declaration_at(const SyntaxSession& session, size_t pos) {
     bool prefix = false;
     for (const auto& entity : session.version->tokens) {
       const auto& token = semantic(entity);
-      if (token.kind != SyntaxKind::Skip && token.compiled->match(source, pos) > keyword.size()) { prefix = true; break; }
+      if (token.kind != SyntaxKind::Skip && !token.contextual && token.compiled->match(source, pos) > keyword.size()) { prefix = true; break; }
     }
     if (!prefix) return true;
   }
   return false;
 }
 std::string skip_source(SyntaxSession& session, size_t& pos, std::vector<SyntaxHighlight>& highlights) {
-  if (session.bootstrapping) return skip_meta(session, pos, highlights);
+  if (session.bootstrapping || session.declaration) return skip_meta(session, pos, highlights);
   while (pos < session.source.size() && !declaration_at(session, pos)) {
     auto choice = choose(session, pos);
     if (!choice.length || !choice.skip) break;
@@ -674,7 +652,6 @@ std::string skip_source(SyntaxSession& session, size_t& pos, std::vector<SyntaxH
 }
 std::string scan(SyntaxSession& session, size_t& pos, std::vector<SyntaxHighlight>& highlights,
     uint32_t& id, size_t& start, size_t& length) {
-  if (session.declaration) return scan_meta(session, pos, highlights, id, start, length);
   id = PARSER_ID_EOF; length = 0; start = pos;
   std::string error = skip_source(session, pos, highlights);
   if (!error.empty()) { start = highlights.back().start; return error; }
@@ -814,6 +791,7 @@ bool compile_template(Version& version, const Definitions& defs, const Sequence&
   *(TemplateInput**)parser_stream_get_userdata(stream.get()) = &input;
   std::unique_ptr<Recognizer, decltype(&parser_recognizer_destroy)> recognizer(
     parser_recognizer_create(grammar->table, stream.get()), parser_recognizer_destroy);
+  input.session.recognizer = recognizer.get();
   Node root = owned(nullptr);
   bool running = true;
   while (running) root = owned(parser_recognizer_step(recognizer.get(), &running));
@@ -1200,8 +1178,10 @@ TowerText syntax_format(SyntaxSession* session) {
 
 namespace {
 std::string validate_bedrock(const Bedrock& module, size_t& error_offset) {
-  auto error = validate(module.definitions, module.tokens, &error_offset);
+  auto definitions = module.definitions; PendingRules pending;
+  auto error = validate(definitions, module.tokens, &error_offset, pending);
   if (!error.empty()) return error;
+  if (!pending.empty()) return "Unresolved grammar reference at end of module: " + pending_message(pending, pending.begin()->first, &error_offset);
   for (const auto& [name, alternatives] : module.definitions) {
     for (const auto& alternative : alternatives) if (semantic(alternative).replacement)
       return "Bedrock declaration rules cannot use replacement handlers yet";
@@ -1210,7 +1190,6 @@ std::string validate_bedrock(const Bedrock& module, size_t& error_offset) {
   for (const auto& entity : module.tokens) {
     const auto& token = semantic(entity);
     if (token.name == "Identifier" && token.kind == SyntaxKind::Token) name_token = true;
-    else if (scanner(token.name)) return "Native scanner cannot be replaced by a token pattern: " + token.name;
   }
   if (!name_token) return "Bedrock must define token Identifier";
   return {};
@@ -1245,7 +1224,9 @@ TowerNode* syntax_next(SyntaxSession* session) {
   if (session->cursor == session->source.size()) {
     if (!session->finalized) {
       preserve_comments(*session, semantic(session->document), session->cursor);
-      if (session->building_bedrock) {
+      if (!session->version->pending.empty())
+        session->error = "Unresolved grammar reference at end of module: " + pending_message(session->version->pending, session->version->pending.begin()->first, &session->error_offset);
+      if (session->building_bedrock && session->error.empty()) {
         auto module = collected_bedrock(*session);
         session->error = validate_bedrock(*module, session->error_offset);
         if (session->error.empty()) {
@@ -1277,8 +1258,10 @@ TowerNode* syntax_next(SyntaxSession* session) {
       *(SyntaxSession**)parser_stream_get_userdata(stream.get()) = session;
       std::unique_ptr<Recognizer, decltype(&parser_recognizer_destroy)> recognizer(
         parser_recognizer_create_prefix(session->version->table, stream.get()), parser_recognizer_destroy);
+      session->recognizer = recognizer.get();
       bool running = true;
       while (running) root = owned(parser_recognizer_step(recognizer.get(), &running));
+      session->recognizer = nullptr;
       if (!root) return fail(parser_recognizer_get_error(recognizer.get()));
       // The recognizer may have inspected one following token. Keep only the
       // committed span; the next construct gets its own declaration/lexer mode.
@@ -1298,12 +1281,14 @@ TowerNode* syntax_next(SyntaxSession* session) {
       auto& token = syntax_attach(construct, construct_kind == "GrammarSkipDeclaration" ? SyntaxKind::Skip : SyntaxKind::Token);
       token.name = tower_identifier_value(text(name, session->source));
       if (token.name.empty()) return fail("Token name cannot be empty");
-      if (scanner(token.name)) return fail("Native scanner cannot be replaced by a token pattern: " + token.name);
       if (session->definitions.contains(token.name)) return fail("Name already defines a parse rule: " + token.name);
       if (auto* kind = member(style, "kind")) token.style = tower_identifier_value(text(kind, session->source));
       else token.style = token.kind == SyntaxKind::Skip ? "" : "identifier";
-      size_t pos = parser_match_get_start(match(pattern));
-      error = read_pattern(session->source, pos, token.text); if (!error.empty()) return fail(error);
+      const auto envelope = text(pattern, session->source);
+      if (envelope.size() < 2) return fail("Token pattern must contain opening and closing delimiters");
+      token.text = envelope.substr(1, envelope.size() - 2);
+      if (auto* mode = member(construct, "mode")) token.contextual = !text(mode, session->source).empty();
+      if (token.contextual && token.kind == SyntaxKind::Skip) return fail("Skip rules cannot be contextual");
       for (const auto& entry : session->cache) for (const auto& old : entry.tokens)
         if (semantic(old).text == token.text) token.compiled = semantic(old).compiled;
       if (!token.compiled) token.compiled = lex_pattern_compile(token.text, error);
@@ -1413,7 +1398,7 @@ std::vector<SyntaxTokenInfo> syntax_get_tokens(SyntaxSession* session) {
   std::vector<SyntaxTokenInfo> result;
   for (const auto& entity : session->tokens) {
     const auto& token = semantic(entity);
-    result.push_back({token.name, token.text, token.style, token.kind == SyntaxKind::Skip});
+    result.push_back({token.name, token.text, token.style, token.kind == SyntaxKind::Skip, token.contextual});
   }
   return result;
 }
@@ -1484,7 +1469,7 @@ std::vector<SyntaxRuleInfo> syntax_get_rules(SyntaxSession* session) {
       const auto part = tower_format(sequence.get()).source;
       definition += part.empty() ? "ε" : part;
     }
-    result.push_back({name, definition});
+    result.push_back({name, definition, session->version && session->version->pending.contains(name)});
   }
   return result;
 }

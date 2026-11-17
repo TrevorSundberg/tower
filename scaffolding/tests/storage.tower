@@ -1,0 +1,63 @@
+// Concatenate after library/storage.tower; module imports are future work.
+var bytes: ByteBuffer;
+var buffer: ByteBuffer* = &bytes;
+bytes_init(buffer);
+var text: u8* = "Tower";
+var ok: bool = bytes_append(buffer, text, 5);
+print(ok);
+ok = bytes_append(buffer, bytes.data, bytes.length);
+print(ok);
+print(bytes.length);
+print(bytes.data[5]);
+ok = bytes_push(buffer, 0);
+print(ok);
+print(bytes.data[10]);
+bytes_dispose(buffer);
+
+var arena: ByteArena;
+var pool: ByteArena* = &arena;
+ok = arena_init(pool, 64);
+print(ok);
+var a: u8* = arena_take(pool, 7);
+var b: u8* = arena_take(pool, 17);
+var one: usize = bits(usize, a);
+var two: usize = bits(usize, b);
+var distance: usize = two - one;
+print(distance);
+var missing: u8* = arena_take(pool, 32);
+ok = missing == null;
+print(ok);
+arena_reset(pool);
+var fresh: u8* = arena_take(pool, 64);
+ok = fresh == a;
+print(ok);
+fill(fresh, 42, 64);
+print(fresh[63]);
+arena_dispose(pool);
+
+var map: IntMap;
+var index: IntMap* = &map;
+map_init(index);
+var key: u32 = 0;
+loop {
+    var done: bool = key == 200;
+    if done { break; }
+    var value: i32 = convert(i32, key);
+    value = value * 3;
+    ok = map_set(index, key, value);
+    if ok {} else { print(false); break; }
+    key = key + 1;
+}
+print(map.count);
+var answer: i32 = -1;
+var result: i32* = &answer;
+ok = map_get(index, 199, result);
+print(ok);
+print(answer);
+ok = map_set(index, 199, 42);
+ok = map_get(index, 199, result);
+print(answer);
+ok = map_get(index, 400, result);
+print(ok);
+print(map.count);
+map_dispose(index);

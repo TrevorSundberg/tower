@@ -2,7 +2,7 @@
 
 The **foundation** comprises Tower's built-in primitives and bootstrap grammar.
 
-## Raw memory direction (2026-11-17; supersedes the checked-pointer prototype)
+## Raw memory (2026-11-17; supersedes the checked-pointer prototype)
 
 Foundation pointers are raw address values. Address-taking, dereferencing and
 stores operate on memory directly, with pointer width/alignment and struct
@@ -12,12 +12,10 @@ and initialization checks are not mandatory foundation semantics. Safe pointer
 types, checked collections and ownership policies will be built in Tower above
 these operations. Static type checking remains part of the foundation.
 
-The existing executable still implements checked handles in both the interpreter
-and LLVM backend. Its behavior and layout described below are implementation
-status, not the desired permanent contract. Migration must replace value storage
-and pointer lowering together; deleting guards from the cell implementation is
-insufficient. Ordinary target pointers and byte-layout-compatible struct storage
-are needed for direct external calls under a matching ABI.
+The interpreter now uses target byte addresses in a byte memory space; LLVM uses
+ordinary `ptr`, allocas, loads/stores and byte offsets. Both share the same type
+layouts. The previous checked-cell implementation is archived at commit 8571a8d
+for future safe-layer design; it is no longer the foundation implementation.
 
 The interpreter can model target byte addresses in an execution memory space;
 it need not dereference arbitrary C++ host addresses. Wasm linear-memory bounds
@@ -27,8 +25,9 @@ under this direction. Invalid-access policy and strict compile-time execution
 rules still need an explicit definition; raw pointers alone do not settle them.
 
 The current loading boundary is C++ seed -> bedrock.tower -> foundation.tower ->
-source. The C++ seed always reads bedrock; bedrock never changes its own reader.
-Its rules supply the declaration syntax used to read foundation and later source.
+source. The seed initializes Bedrock's reader. Each completed declaration updates
+the active reader for subsequent input, including within Bedrock, without mutating
+the immutable seed. Its resulting rules initialize Foundation and later source.
 The host supplies this order today. Future imports should have foundation import
 bedrock and user files import foundation.
 
@@ -47,13 +46,41 @@ dispatches on these components and emits compilable canonical declaration or
 executable source. Definition maps contain references to these entities; tables,
 lexer DFAs and repetition helpers are derived caches. A declaration's alternatives,
 captures, replacement template, ordering and comments are retained for formatting.
-Native scanner/installation hooks and the Core* semantic contracts remain C++.
+GrammarPattern and GrammarTemplate are ordinary Bedrock definitions: a contextual
+regex token and recursive parse rules. Generic `when expected` tokens consult the
+current LR ACTION table; terminal sets such as `[^'{' '}']` match ordinary tokens
+other than the listed literals. The lexer/table engines, installation hooks and
+Core* semantic contracts remain C++.
 This is shared representation and serialization, not a self-hosted implementation
 of every parser/compiler operation or a completed public ECS transformation API.
 Functions, typed parameters, calls, returns, storage, operations and control flow
 belong here. Tower rules and replacements build richer surface languages above it.
 The Tower graph is the shared typed representation consumed by the interpreter
 and the LLVM backend; LLVM does not define Tower's language semantics.
+
+Built-ins use ordinary call grammar: `print(5)`, `alloc(u8, 100)`,
+`realloc(u8, p, 200)`, `free(p)`, `copy(dst, src, count)`,
+`fill(dst, byte, count)`, `sizeof(Type)`, `alignof(Type)`, `convert(Type, value)`
+and `bits(Type, value)`. Statements end with `;`. These names resolve to Foundation
+operations during semantic checking; they are not separate keyword productions.
+A shared built-in definition table supplies operation names and arities to
+validation and formatting. Their arguments remain simple operands/type spellings,
+without general nested expressions or an expression-precedence grammar.
+
+Module functions, types and top-level variables bind across the file. Initializers
+and other effects run in source order; forward lookup does not initialize storage.
+Top-level variables have module storage accessible to functions, while function
+and block locals retain lexical scope. Reads before initialization remain outside
+the defined raw Foundation contract. Redeclaring a module variable is an error.
+
+Grammar definitions may refer forward while unreachable from active parsing
+roots. A declaration such as `parse A = B;` records a pending dependency. Defining
+B resolves it before A is connected to Statement or another active root. Active
+grammar closures must be complete, including optional branches; incomplete
+activation reports the dependency chain. Unresolved names at module completion
+are errors. The current reader parses each declaration in order, so changing the
+declaration syntax affects following definitions normally; no prescan or
+retroactive parsing is involved. Atomic grammar groups remain future work.
 
 ## Hard requirement: foundation source and program data are the same language
 
@@ -199,8 +226,8 @@ candidate. Small register/operand indices, packed instructions, constant pools,
 branch targets and frame storage are execution data. AST structure, reflection
 information, source provenance and compiler metadata do not belong in the hot
 instruction stream. They remain on the shared entities or in optional external
-debug maps. Runtime state/checks needed to preserve language semantics still
-exist; omitting compiler metadata does not license dropping lifetime/type traps.
+debug maps. Runtime state/checks needed to preserve defined language semantics
+still exist; raw foundation pointers do not promise lifetime traps.
 
 The private stream can use dispatch instructions, specialized operations or
 fusion derived from foundation nodes when behavior is preserved. It is not
@@ -269,9 +296,13 @@ References: [LLVM language reference](https://llvm.org/docs/LangRef.html#fast-ma
 [WebAssembly nondeterminism](https://github.com/WebAssembly/design/blob/main/Nondeterminism.md).
 
 These are requirements and research tasks, not a claim of cross-platform proof.
-Current interpreter/LLVM comparison tests cover the implemented integer/bool/
-checked-pointer and struct subset on the tested WASM host; floats, external ABI layouts and a
-strict compile-time effect environment remain to be implemented and validated.
+Current interpreter/LLVM comparison tests cover integers, bools, valid raw memory,
+structs, arrays and registered external calls, with native ABI fixtures as well.
+Floats and a strict compile-time effect environment remain future work. Invalid
+raw memory accesses and uninitialized reads have no portable defined result or
+guaranteed diagnostic; these programs are outside the differential contract.
+A future strict compile-time mode must reject or instrument invalid operations
+and control external effects. The ordinary raw runtime does not provide that mode.
 
 ## Declaration direction (2026-11-16)
 
@@ -288,7 +319,7 @@ var answer: i32 = 123;
 
 This syntax is implemented, including optional simple initializers. Type spellings
 are ordinary identifiers parsed independently of name lookup; the current semantic
-registry contains i32/u32/bool/void and user-declared structs as type objects.
+registry contains i32/u32/u8/i64/u64/usize/bool/void, structs and fixed arrays as type objects.
 Their metadata is inspectable through the native/host API; Tower-language
 reflection operations remain future work.
 Initializers stay instruction-like; this does not introduce precedence.
@@ -325,7 +356,7 @@ pair.first = 20;
 pair.second = 22;
 var pointer: Pair* = &pair;
 accumulate(pointer);
-print pair.first;
+print(pair.first);
 ```
 
 `struct` is an intent-first top-level declaration. Its name and field names are
@@ -342,20 +373,15 @@ start with each field uninitialized; writing one field does not initialize its
 siblings. Aggregate assignment, comparison, printing, parameters and returns by
 value are diagnosed for now. Pass a pointer or operate on individual fields.
 
-Layouts follow a fixed portable profile: i32/u32 size/alignment 4/4, bool 1/1,
-void 0/1, and checked pointers 24/8. Fields are placed in declaration order at
+Layouts use explicit little-endian target profiles: i32/u32 size/alignment 4/4,
+u8/bool 1/1, i64/u64 8/8, void 0/1, and pointers/usize 4/4 for wasm32 or 8/8
+for the supported 64-bit CPU targets. Fields are placed in declaration order at
 the next aligned byte offset; the struct is padded to its maximum field alignment.
-An empty struct has size/alignment 1/1. The pointer layout reserves a 32-bit cell
-index, 64-bit generation and 32-bit display-name index with explicit alignment
-padding. It is a checked handle, not a host address or a C/shader ABI promise.
-
-Execution derives scalar-cell indexes from those same field/type entities. The
-interpreter and LLVM currently store aggregates in checked cells, with auxiliary
-initialization/lifetime state; that internal storage is not a packed byte image
-of the reflected value layout. All cells in one local share a lifetime generation.
-Field pointers expire with their owner at block exit, frame return or the next
-loop declaration. Address-taken structs currently use this checked storage even
-when an optimizer might later prove that scalar promotion is safe.
+An empty struct has size/alignment 1/1. Actual storage matches reflected byte
+layout. Pointers are raw addresses with no attached metadata. Pointer validity
+remains the caller's responsibility; keeping an address does not extend a local's
+lifetime. Structs cross a foreign ABI by pointer, with matching field layouts.
+This is not a claim of compatibility with every C, C++ or shader ABI.
 
 When a call supplies an assignment's value, its scalar arguments are read and
 the destination address is captured before entering the callee. Redirecting a
@@ -363,14 +389,60 @@ pointer during that call cannot redirect the pending store. Errors and captured
 source locations must agree across interpreter and LLVM, including these cases.
 
 Limits are 256 user struct types, 256 fields per type, 128 nested by-value types
-or member accesses, and 4,096 scalar storage cells per struct/function frame.
-The existing 65,536-live-cell / 128-frame runtime limits still apply.
+or member accesses, and 4 MiB per struct/function frame. The interpreter has
+4 MiB of stack, 128 call frames and a 256 MiB execution-space limit. These are
+implementation resource limits, not pointer safety or language ABI guarantees.
+
+## Raw storage and foreign calls
+
+```tower
+extern fn sum(values: i32*, count: usize): i32;
+export fn twice(value: i32): i32 { var result: i32 = value * 2; return result; }
+var values: i32* = alloc(i32, 2);
+values[0] = 20; values[1] = 22;
+var result: i32 = sum(values, 2);
+print(result);
+free(values);
+```
+
+`T[N]` is a fixed array; `p[index]` selects an element. `p + integer` and
+`p - integer` scale by the pointee size. Explicit `bits(Type, value)` permits
+equal-width integer/pointer reinterpretation; `convert` checks numeric ranges.
+`sizeof(Type)` and `alignof(Type)` query the selected target, not the compiler host.
+Integer arithmetic wraps at the operand width; division faults still trap.
+
+`alloc(T, count)` and `realloc(T, pointer, count)` return raw T pointers. Failed or
+overflowing allocations return null. Realloc preserves the existing prefix on
+success; failure leaves the old allocation intact. Realloc of a nonnull pointer
+to zero frees it and returns null; allocation of zero may return nonnull storage
+which must still be freed. `free(null)` is a no-op. Only allocator-owned base
+addresses may be freed/reallocated. `copy(dest, source, bytes);` permits overlap;
+`fill(dest, byte, bytes);` writes bytes. Neither operation is implicitly bounded.
+Storage has no implicit initialization contract. Bool storage must contain 0 or 1.
+
+A string literal is a NUL-terminated UTF-8 `u8*` with program lifetime and mutable
+storage. Each literal occurrence has its own storage; callers must not free it.
+The starter [storage library](../scaffolding/library/storage.tower) implements
+byte buffers/string building, a resettable arena and a growing u32-to-i32 map.
+These are concrete Tower code, not new native collection operations or migrated
+compiler code. Callers initialize/dispose containers and check allocation results.
+Reallocation invalidates old views; arena reset invalidates its views. Imports
+are not implemented: concatenate the library with a client or link exported
+functions from a separately compiled object with matching declarations.
+
+Extern/export signatures support scalars, raw pointers and void returns under
+the selected C ABI. Structs/arrays pass by pointer. C++ classes, variadics, indirect
+function pointers, dynamic loading and exception propagation are not implemented.
+The interpreter needs registered host functions; it cannot execute a native
+object. Its addresses refer to its byte arena, and browser Wasm addresses refer
+to that instance's linear memory. They are not interchangeable across instances.
+See [building and linking](../playground/README.md#native-output-and-browser-cross-compilation).
 
 ## Follow-up tasks
 
-- [ ] Replace checked pointer handles/cell storage with raw target pointers and
+- [x] Replace checked pointer handles/cell storage with raw target pointers and
   actual byte layouts in interpreter and LLVM. Keep one shared type/layout model.
-- [ ] Replace foundation tests requiring lifetime/initialization traps with tests
+- [x] Replace foundation tests requiring lifetime/initialization traps with tests
   for valid aliasing, direct memory operations, target layouts and external calls;
   retain safety checks only in explicitly selected higher layers/instrumentation.
 - [ ] Extend the long-term unified Tower backend plan to SPIR-V tooling and WGSL
@@ -468,7 +540,8 @@ The existing 65,536-live-cell / 128-frame runtime limits still apply.
 - [x] Select Bedrock and Foundation in the editor dropdown, with independent
   buffers/undo, persistence, restore, downloads and canonical formatting previews.
 - [ ] Express module relationships as imports: foundation imports bedrock; user
-  modules import foundation. Keep bedrock's own reader fixed to the C++ seed.
+  modules import foundation. Bedrock starts from the C++ seed and applies its
+  declarations incrementally, using the same update path as every other file.
 - [x] Consolidate lexical and executable grammar into `scaffolding/foundation.tower`.
   Bootstrap its declarations in order, install atomically, reuse identical source,
   and pin existing sessions to their original baseline.
@@ -477,9 +550,10 @@ The existing 65,536-live-cell / 128-frame runtime limits still apply.
   to the parser and both runner frontends without prepending it to examples.
 - [x] Show final replacement text inline at each resulting subtree, including
   chains, nested replacements and repeated captures.
-- [x] Always launch interpreter and LLVM workers concurrently and compare terminal
-  observable results. Show both outputs, Tower instructions, and LLVM before/after
-  in persistent columns. Cancel all unfinished workers and reject obsolete replies.
+- [x] Always launch the interpreter; launch LLVM concurrently when Wasm is selected
+  and compare terminal observable results. Selected native targets build in workers.
+  Show equal-width instruction, result, LLVM raw/optimized and disassembly columns.
+  Cancel all unfinished workers and reject obsolete replies.
 - [x] Put steps and measured compilation, formatting, LLVM phase and execution
   timings at the bottom. Keep the compact interpreter encoding a future cache;
   the current interpreter executes shared Foundation nodes directly.

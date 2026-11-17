@@ -30,7 +30,7 @@ test('executes replacements and displays typed core instructions', async ({ page
 });
 
 test('replacement errors explain the required syntax inline and recover after correction', async ({ page }, info) => {
-  const source = "parse Statement |= 'fart' $name:Identifier ';'\n    => replace { $name - $name; };\n\nvar value: i32 = 5;\nfart value;\nprint value;";
+  const source = "parse Statement |= 'fart' $name:Identifier ';'\n    => replace { $name - $name; };\n\nvar value: i32 = 5;\nfart value;\nprint(value);";
   await setSource(page, source);
   await expect(page.locator('.tw-inline-error-message')).toContainText('Replacement for Statement must produce a valid Statement.');
   await expect(page.locator('.tw-inline-error-message')).toContainText('"$name - $name;" is not a valid Statement.');
@@ -47,7 +47,7 @@ test('replacement errors explain the required syntax inline and recover after co
 
 test('infinite execution stays responsive, cancels, and rejects results after edits', async ({ page }) => {
   await page.locator('#auto-execute').uncheck();
-  await setSource(page, grammar + '\nloop { print 7; }');
+  await setSource(page, grammar + '\nloop { print(7); }');
   await page.locator('#execute').click();
   await expect(page.locator('#execution-status')).toHaveText('Executing…');
   await expect(page.locator('#execution-output')).toContainText('7');
@@ -58,7 +58,7 @@ test('infinite execution stays responsive, cancels, and rejects results after ed
   await expect(page.locator('#execute')).toBeEnabled();
   await page.locator('#execute').click();
   await expect(page.locator('#execution-output')).toContainText('7');
-  await setSource(page, grammar + '\nprint 42;');
+  await setSource(page, grammar + '\nprint(42);');
   await expect(page.locator('#execution-status')).toHaveText('Cancelled by edit');
   await expect(page.locator('#execution-output')).toHaveText('');
   await expect(page.locator('#status')).toContainText('Complete');
@@ -79,7 +79,7 @@ test('compile and runtime errors appear inline and clear after editing', async (
   await expect(page.locator('#execution-error')).toBeHidden();
   await page.locator('#execute').click();
   await expect(page.locator('.tw-inline-error-message')).toContainText('Division by zero');
-  await setSource(page, grammar + '\nprint 1;');
+  await setSource(page, grammar + '\nprint(1);');
   await expect(page.locator('.tw-inline-error')).toHaveCount(0);
   await page.locator('#execute').click();
   await expect(page.locator('#execution-output')).toHaveText('1\n');
@@ -96,7 +96,7 @@ test('cancellation also stops compilation and loading', async ({ page }) => {
   await expect(page.locator('#execution-status')).toHaveText('Cancelled');
   await expect(page.locator('#execute')).toBeEnabled();
   release();
-  await setSource(page, grammar + '\nprint 2;');
+  await setSource(page, grammar + '\nprint(2);');
   await page.unroute('**/execution-worker.js');
   await page.locator('#execute').click();
   await expect(page.locator('#execution-output')).toHaveText('2\n');
@@ -106,16 +106,16 @@ test('auto execution follows edits, waits for valid syntax, and recovers from in
   await expect(page.locator('#auto-execute')).toBeChecked();
   await expect(page.locator('#execution-status')).toHaveText('Syntax only');
   await expect(page.locator('.tw-inline-error')).toHaveCount(0);
-  await setSource(page, grammar + '\nprint 41;');
+  await setSource(page, grammar + '\nprint(41);');
   await expect(page.locator('#execution-output')).toHaveText('41\n');
   // An unfinished edit must not execute an old program or report a semantic error.
-  await setSource(page, grammar + '\nprint ');
+  await setSource(page, grammar + '\nprint(');
   await expect(page.locator('#execution-status')).toHaveText('Waiting for valid source');
   await expect(page.locator('#execution-output')).toHaveText('');
   await page.getByRole('textbox', { name: 'Tower source' }).press('ControlOrMeta+End');
-  await page.keyboard.type('42;', { delay: 70 });
+  await page.keyboard.type('42);', { delay: 70 });
   await expect(page.locator('#execution-output')).toHaveText('42\n');
-  await setSource(page, grammar + '\nloop { print 7; }');
+  await setSource(page, grammar + '\nloop { print(7); }');
   await expect(page.locator('#execution-status')).toHaveText('Executing…');
   await expect(page.locator('#execution-output')).toContainText('7');
   await page.locator('#cancel-execution').click();
@@ -125,17 +125,17 @@ test('auto execution follows edits, waits for valid syntax, and recovers from in
   await page.locator('.document-root').click();
   await expect(page.locator('#status')).toContainText('Complete');
   await expect(page.locator('#execution-status')).toHaveText('Cancelled');
-  await setSource(page, grammar + '\nprint 43;');
+  await setSource(page, grammar + '\nprint(43);');
   await expect(page.locator('#execution-output')).toHaveText('43\n');
   await setSource(page, grammar + '\nloop {}');
   await expect(page.locator('#execution-status')).toHaveText('Executing…');
-  await setSource(page, grammar + '\nprint 44;');
+  await setSource(page, grammar + '\nprint(44);');
   await expect(page.locator('#execution-output')).toHaveText('44\n');
 });
 
 test('auto execution can be disabled, persisted and enabled again', async ({ page }) => {
   await page.locator('#auto-execute').uncheck();
-  await setSource(page, grammar + '\nprint 12;');
+  await setSource(page, grammar + '\nprint(12);');
   await expect(page.locator('#status')).toContainText('Complete');
   await expect(page.locator('#execution-output')).toHaveText('');
   await page.locator('#execute').click();
@@ -148,7 +148,7 @@ test('auto execution can be disabled, persisted and enabled again', async ({ pag
   await expect(page.locator('#execution-output')).toHaveText('12\n');
   await setSource(page, grammar + '\nvar a: i32; a = 1 / 0;');
   await expect(page.locator('.tw-inline-error-message')).toContainText('Division by zero');
-  await setSource(page, grammar + '\nprint 13;');
+  await setSource(page, grammar + '\nprint(13);');
   await expect(page.locator('#execution-output')).toHaveText('13\n');
   await expect(page.locator('.tw-inline-error')).toHaveCount(0);
 });
@@ -183,6 +183,8 @@ test('workspace fits the viewport with output, instructions and errors', async (
   }
   await setSource(page, grammar + '\nvar a: i32; a = true;');
   await expect(page.locator('.tw-inline-error-message')).toContainText('Expected i32');
+  // Equal-width result columns scroll horizontally on narrow screens.
+  await page.locator('#execution-error').scrollIntoViewIfNeeded();
   await expect(page.locator('#execution-error')).toBeInViewport();
   expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(true);
 });
@@ -215,7 +217,7 @@ test('functions compile and execute off the UI thread with matching backends', a
 
 test('LLVM infinite execution cancels on edits and traps remain inline', async ({ page, request }) => {
   test.skip(!(await (await request.get('/capabilities.json')).json()).llvm);
-  await setSource(page, grammar + '\nloop { print 7; }');
+  await setSource(page, grammar + '\nloop { print(7); }');
   await expect(page.locator('#execution-output')).toContainText('7', { timeout: 30000 });
   await page.getByRole('tab', { name: 'Active grammar' }).click();
   await expect(page.locator('#grammar-pane')).toBeVisible();
@@ -225,7 +227,7 @@ test('LLVM infinite execution cancels on edits and traps remain inline', async (
   await expect(page.locator('.tw-inline-error-message')).toContainText('Division by zero', { timeout: 30000 });
   await setSource(page, grammar + '\nloop {}');
   await expect(page.locator('#llvm-phase')).toHaveText('Executing…', { timeout: 30000 });
-  await setSource(page, grammar + '\nprint 42;');
+  await setSource(page, grammar + '\nprint(42);');
   await expect(page.locator('#execution-output')).toHaveText('42\n', { timeout: 30000 });
   await expect(page.locator('#execution-status')).toHaveText('Finished · backends match');
 });
@@ -233,7 +235,7 @@ test('LLVM infinite execution cancels on edits and traps remain inline', async (
 test('LLVM loading can be cancelled without obsolete results replacing a new run', async ({ page, request }) => {
   test.skip(!(await (await request.get('/capabilities.json')).json()).llvm);
   await page.locator('#auto-execute').uncheck();
-  await setSource(page, grammar + '\nprint 12;');
+  await setSource(page, grammar + '\nprint(12);');
   let release; const gate = new Promise(resolve => { release = resolve; });
   await page.route('**/tower-llvm.wasm', async route => { await gate; await route.continue().catch(() => {}); });
   await page.locator('#execute').click();
@@ -244,7 +246,7 @@ test('LLVM loading can be cancelled without obsolete results replacing a new run
   await page.locator('#cancel-execution').click();
   await expect(page.locator('#execution-status')).toHaveText('Cancelled');
   release(); await page.unroute('**/tower-llvm.wasm');
-  await setSource(page, grammar + '\nprint 34;');
+  await setSource(page, grammar + '\nprint(34);');
   await page.locator('#execute').click();
   await expect(page.locator('#execution-output')).toHaveText('34\n');
   await expect(page.locator('#execution-status')).toHaveText('Finished · backends match');

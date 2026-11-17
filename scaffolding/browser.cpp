@@ -56,7 +56,7 @@ void grammar(std::string& out, SyntaxSession* syntax) {
   for (const auto& rule : syntax_get_rules(syntax)) {
     if (!first) out += ','; first = false;
     out += "{\"name\":"; quote(out, rule.name);
-    field(out, "definition", rule.definition); out += '}';
+    field(out, "definition", rule.definition); out += rule.pending ? ",\"pending\":true}" : ",\"pending\":false}";
   }
   out += "],\"keywords\":[";
   first = true;
@@ -69,7 +69,8 @@ void grammar(std::string& out, SyntaxSession* syntax) {
     if (!first) out += ','; first = false;
     out += "{\"name\":"; quote(out, token.name);
     field(out, "pattern", token.pattern); field(out, "kind", token.kind);
-    out += token.skip ? ",\"skip\":true}" : ",\"skip\":false}";
+    out += token.skip ? ",\"skip\":true" : ",\"skip\":false";
+    out += token.contextual ? ",\"contextual\":true}" : ",\"contextual\":false}";
   }
   out += ']';
 }
@@ -290,16 +291,43 @@ EXPORT("tw_self_test") int tw_self_test() {
 EXPORT("tw_live_nodes") size_t tw_live_nodes() { return tower_node_get_allocated_count(); }
 EXPORT("tw_live_allocations") size_t tw_live_allocations() { return tower_memory_get_allocated_count(); }
 
-EXPORT("tw_exec_create") uint32_t tw_exec_create(const char* source, size_t bytes) {
+extern "C" __attribute__((import_module("tower_host"), import_name("call"))) uint64_t tw_foreign_call(uint32_t handle, const char* request);
+void bind_foreign(uint32_t handle, CoreMachine& machine) {
+  machine.foreign = [handle](CoreMachine& machine, TowerNode* function, const std::vector<CoreValue>& args) {
+    auto& fn = core_node(function); std::string request = "{\"name\":"; quote(request, fn.name);
+    field(request, "pointerBytes", machine.program.pointer_bytes);
+    request += ",\"types\":[";
+    for (size_t i = 0; i < fn.parameters.size(); ++i) { if (i) request += ','; quote(request, core_type_name(core_node(fn.parameters[i]).type)); }
+    request += "],\"args\":[";
+    for (size_t i = 0; i < args.size(); ++i) { if (i) request += ','; quote(request, std::to_string(args[i].bits)); }
+    request += "]}"; return CoreValue{tw_foreign_call(handle, request.c_str())};
+  };
+}
+EXPORT("tw_exec_memory") uint8_t* tw_exec_memory(uint32_t handle) { auto it = machines.find(handle); return it == machines.end() ? nullptr : it->second->memory.data(); }
+EXPORT("tw_exec_memory_size") size_t tw_exec_memory_size(uint32_t handle) { auto it = machines.find(handle); return it == machines.end() ? 0 : it->second->memory.size(); }
+EXPORT("tw_exec_allocate") uint32_t tw_exec_allocate(uint32_t handle, uint32_t size) { auto it = machines.find(handle); return it == machines.end() ? 0 : uint32_t(it->second->allocate(size)); }
+EXPORT("tw_exec_deallocate") void tw_exec_deallocate(uint32_t handle, uint32_t pointer) { auto it = machines.find(handle); if (it != machines.end()) it->second->deallocate(pointer); }
+EXPORT("tw_exec_fail") void tw_exec_fail(uint32_t handle, const char* error, size_t length) { auto it = machines.find(handle); if (it != machines.end()) it->second->fail(std::string(error, length), 0); }
+EXPORT("tw_exec_output") void tw_exec_output(uint32_t handle, const char* data, size_t length) {
+  auto it = machines.find(handle); if (it == machines.end()) return;
+  auto& machine = *it->second;
+  if (length > 65536 - machine.output_bytes) { machine.output_truncated = true; return; }
+  machine.output.append(data, length); machine.output_bytes += length;
+}
+
+EXPORT("tw_exec_create_target") uint32_t tw_exec_create_target(const char* source, size_t bytes, unsigned pointer_bytes) {
   if (!valid_source(source, bytes)) return 0;
+  if (pointer_bytes != 4 && pointer_bytes != 8) { last_error = "Unsupported target pointer width"; return 0; }
   if (machines.size() >= 8) { last_error = "Too many execution sessions"; return 0; }
   std::string copy(source, bytes);
-  auto machine = std::make_unique<CoreMachine>(core_compile(copy.c_str()));
+  auto machine = std::make_unique<CoreMachine>(core_compile(copy.c_str(), pointer_bytes));
   uint32_t handle = next_handle++;
   if (!handle) handle = next_handle++;
+  bind_foreign(handle, *machine);
   machines.emplace(handle, std::move(machine));
   return handle;
 }
+EXPORT("tw_exec_create") uint32_t tw_exec_create(const char* source, size_t bytes) { return tw_exec_create_target(source, bytes, 4); }
 EXPORT("tw_exec_step") const char* tw_exec_step(uint32_t handle, uint32_t budget) {
   auto found = machines.find(handle);
   if (found == machines.end()) return "{\"status\":\"error\",\"error\":\"Invalid execution handle\"}";
@@ -308,7 +336,11 @@ EXPORT("tw_exec_step") const char* tw_exec_step(uint32_t handle, uint32_t budget
   auto& out = execution_response;
   out = "{\"status\":"; quote(out, !machine.error.empty() ? "error" : machine.done ? "done" : "executing");
   field(out, "error", machine.error); field(out, "errorOffset", machine.error_offset);
-  field(out, "output", machine.output); machine.output.clear();
+  out += ",\"outputBytes\":[";
+  for (size_t i = 0; i < machine.output.size(); ++i) {
+    if (i) out += ','; out += std::to_string(static_cast<unsigned char>(machine.output[i]));
+  }
+  out += ']'; machine.output.clear();
   out += ",\"steps\":" + std::to_string(machine.steps); 
   out += machine.output_truncated ? ",\"outputTruncated\":true}" : ",\"outputTruncated\":false}";
   return out.c_str();
@@ -327,7 +359,8 @@ EXPORT("tw_exec_foundation") const char* tw_exec_foundation(uint32_t handle) {
     for (auto* entity : found->second->program.types) {
       if (!first) out += ','; first = false; auto& type = core_node(entity);
       out += "{\"name\":"; quote(out, type.name);
-      out += ",\"kind\":"; quote(out, type.type.scalar == CoreScalar::Struct ? "struct" : type.type.scalar == CoreScalar::Void ? "void" : "scalar");
+      out += ",\"kind\":"; quote(out, type.type.scalar == CoreScalar::Array ? "array" : type.type.scalar == CoreScalar::Struct ? "struct" : type.type.scalar == CoreScalar::Void ? "void" : "scalar");
+      if (type.type.scalar == CoreScalar::Array) { out += ",\"element\":"; quote(out, core_type_name(type.element)); field(out, "length", type.length); }
       field(out, "size", type.size); field(out, "alignment", type.alignment); out += ",\"fields\":[";
       for (size_t i = 0; i < type.items.size(); ++i) {
         if (i) out += ','; auto& member = core_node(type.items[i]);
@@ -346,5 +379,6 @@ EXPORT("tw_exec_create_foundation") uint32_t tw_exec_create_foundation(const cha
   std::string copy(source, bytes);
   auto machine = std::make_unique<CoreMachine>(core_compile_foundation(copy.c_str()));
   uint32_t handle = next_handle++; if (!handle) handle = next_handle++;
+  bind_foreign(handle, *machine);
   machines.emplace(handle, std::move(machine)); return handle;
 }

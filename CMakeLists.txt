@@ -2,8 +2,25 @@ cmake_minimum_required(VERSION 3.20)
 
 project(scaffolding LANGUAGES C CXX VERSION 1)
 
+option(TOWER_NATIVE "Build Tower's native compiler/linker driver against an installed LLVM" OFF)
+if(TOWER_NATIVE)
+  find_package(LLVM REQUIRED CONFIG)
+  add_executable(towerc scaffolding/driver.cpp scaffolding/llvm-engine.cpp
+    scaffolding/core.cpp scaffolding/core-nodes.cpp scaffolding/core-machine.cpp
+    scaffolding/tower.cpp scaffolding/parser.cpp scaffolding/parser-tree-tests.cpp
+    scaffolding/syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/bedrock.cpp
+    scaffolding/format.cpp scaffolding/lex-pattern.cpp scaffolding/syntax-tests.cpp)
+  target_include_directories(towerc PRIVATE ${LLVM_INCLUDE_DIRS})
+  target_compile_features(towerc PRIVATE cxx_std_20)
+  target_compile_definitions(towerc PRIVATE TOWER_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+  target_compile_options(towerc PRIVATE -fno-exceptions)
+  target_link_libraries(towerc PRIVATE LLVM)
+  return()
+endif()
+
 option(TOWER_BROWSER "Build the static playground's WASI reactor" OFF)
 option(TOWER_BROWSER_LLVM "Also build the LLVM compiler experiment as a separate reactor" OFF)
+option(TOWER_BROWSER_CROSS "Include CPU backends and native linkers in a separate browser compiler" OFF)
 if(TOWER_BROWSER)
   add_executable(tower-browser scaffolding/browser.cpp
     scaffolding/core.cpp scaffolding/core-nodes.cpp scaffolding/core-machine.cpp
@@ -17,7 +34,11 @@ if(TOWER_BROWSER)
   if(TOWER_BROWSER_LLVM)
     set(TOWER_LLVM_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/llvm-project" CACHE PATH "LLVM source checkout")
     include_directories(${TOWER_LLVM_SOURCE_DIR}/wasi-include)
-    set(LLVM_TARGETS_TO_BUILD WebAssembly CACHE STRING "" FORCE)
+    if(TOWER_BROWSER_CROSS)
+      set(LLVM_TARGETS_TO_BUILD "WebAssembly;X86;AArch64" CACHE STRING "" FORCE)
+    else()
+      set(LLVM_TARGETS_TO_BUILD WebAssembly CACHE STRING "" FORCE)
+    endif()
     set(LLVM_HOST_TRIPLE wasm32-unknown-wasi CACHE STRING "" FORCE)
     set(LLVM_DEFAULT_TARGET_TRIPLE wasm32-unknown-wasi CACHE STRING "" FORCE)
     set(LLVM_ENABLE_THREADS OFF CACHE BOOL "" FORCE)
@@ -43,20 +64,37 @@ if(TOWER_BROWSER)
     set(CMAKE_SYSTEM_NAME Wasi)
     add_subdirectory(${TOWER_LLVM_SOURCE_DIR}/llvm third_party/llvm-project/llvm)
     set(CMAKE_SYSTEM_NAME "${tower_sdk_system_name}")
-    add_executable(tower-browser-llvm scaffolding/main.cpp
-      scaffolding/llvm-backend.cpp scaffolding/llvm-wasi.cpp scaffolding/core.cpp scaffolding/core-nodes.cpp
+    set(tower_llvm_sources scaffolding/main.cpp
+      scaffolding/llvm-backend.cpp scaffolding/llvm-engine.cpp scaffolding/llvm-wasi.cpp scaffolding/core.cpp scaffolding/core-nodes.cpp
       scaffolding/tower.cpp scaffolding/parser.cpp scaffolding/parser-tree-tests.cpp
       scaffolding/syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/bedrock.cpp scaffolding/format.cpp scaffolding/lex-pattern.cpp scaffolding/syntax-tests.cpp)
-    target_include_directories(tower-browser-llvm PRIVATE
-      ${TOWER_LLVM_SOURCE_DIR}/lld/include
-      ${TOWER_LLVM_SOURCE_DIR}/llvm/include ${CMAKE_CURRENT_BINARY_DIR}/third_party/llvm-project/llvm/include)
-    target_compile_features(tower-browser-llvm PRIVATE cxx_std_20)
-    target_compile_options(tower-browser-llvm PRIVATE -fno-exceptions -UNDEBUG)
-    target_link_options(tower-browser-llvm PRIVATE -mexec-model=reactor
-      -Wl,--export=malloc -Wl,--export=free
-      -Wl,-z,stack-size=8388608 -Wl,--initial-memory=33554432 -Wl,--max-memory=536870912)
-    target_link_libraries(tower-browser-llvm PRIVATE LLVMCore LLVMWebAssemblyCodeGen LLVMWebAssemblyAsmParser LLVMPasses lldWasm)
-    set_target_properties(tower-browser-llvm PROPERTIES OUTPUT_NAME tower-llvm SUFFIX .wasm)
+    get_filename_component(tower_sdk_bin "${CMAKE_C_COMPILER}" DIRECTORY)
+    add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/tower-runtime.inc"
+      COMMAND "${CMAKE_C_COMPILER}" --target=wasm32-unknown-unknown -O2 -ffreestanding -fno-builtin
+        -c "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/runtime.c" -o "${CMAKE_CURRENT_BINARY_DIR}/tower-runtime.o"
+      COMMAND python3 "${CMAKE_CURRENT_SOURCE_DIR}/playground/scripts/embed-object.py"
+        "${CMAKE_CURRENT_BINARY_DIR}/tower-runtime.o" "${CMAKE_CURRENT_BINARY_DIR}/tower-runtime.inc"
+      DEPENDS scaffolding/runtime.c playground/scripts/embed-object.py)
+    function(tower_llvm_reactor name output)
+      add_executable(${name} ${tower_llvm_sources} "${CMAKE_CURRENT_BINARY_DIR}/tower-runtime.inc")
+      target_include_directories(${name} PRIVATE ${TOWER_LLVM_SOURCE_DIR}/lld/include
+        ${TOWER_LLVM_SOURCE_DIR}/llvm/include ${CMAKE_CURRENT_BINARY_DIR}/third_party/llvm-project/llvm/include
+        "${CMAKE_CURRENT_BINARY_DIR}")
+      target_compile_features(${name} PRIVATE cxx_std_20)
+      target_compile_options(${name} PRIVATE -fno-exceptions -UNDEBUG)
+      target_link_options(${name} PRIVATE -mexec-model=reactor
+        -Wl,--export=malloc -Wl,--export=free
+        -Wl,-z,stack-size=8388608 -Wl,--initial-memory=33554432 -Wl,--max-memory=536870912)
+      target_link_libraries(${name} PRIVATE LLVMCore LLVMWebAssemblyCodeGen LLVMWebAssemblyAsmParser LLVMPasses lldWasm)
+      set_target_properties(${name} PROPERTIES OUTPUT_NAME ${output} SUFFIX .wasm)
+    endfunction()
+    tower_llvm_reactor(tower-browser-llvm tower-llvm)
+    target_compile_definitions(tower-browser-llvm PRIVATE TOWER_LLVM_WASM_ONLY=1)
+    if(TOWER_BROWSER_CROSS)
+      tower_llvm_reactor(tower-browser-cross tower-cross)
+      target_compile_definitions(tower-browser-cross PRIVATE TOWER_BROWSER_CROSS=1)
+      target_link_libraries(tower-browser-cross PRIVATE LLVMX86CodeGen LLVMAArch64CodeGen LLVMX86Disassembler LLVMAArch64Disassembler LLVMMCDisassembler lldELF lldCOFF lldMachO)
+    endif()
   endif()
   return()
 endif()

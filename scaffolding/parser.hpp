@@ -329,6 +329,8 @@ struct ParserWork {
   size_t reads = 0, actions = 0, shifts = 0, reductions = 0, popped = 0, forest_visits = 0;
 };
 ParserWork parser_recognizer_get_work(const Recognizer* recognizer);
+// Current LR ACTION lookup; no speculative reductions or backtracking.
+bool parser_recognizer_accepts(Recognizer* recognizer, uint32_t id);
 
 // Destructs the parser and frees it's memory
 void parser_recognizer_destroy(Recognizer* recognizer);

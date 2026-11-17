@@ -10,3 +10,6 @@ cmake "$@" -S "$repo" -B "$repo/build/browser-wasi" -G Ninja \
   -DCMAKE_TOOLCHAIN_FILE="$sdk/share/cmake/wasi-sdk-p1.cmake" \
   -DCMAKE_BUILD_TYPE=Release -DTOWER_BROWSER=ON
 cmake --build "$repo/build/browser-wasi" --parallel 4
+mkdir -p "$repo/build/linking"
+"$sdk/bin/clang" --target=wasm32-unknown-unknown -O2 -ffreestanding -c "$repo/scaffolding/tests/foreign-fixture.c" -o "$repo/build/linking/wasm-fixture.o"
+"$sdk/bin/llvm-ar" rcs "$repo/build/linking/wasm-fixture.a" "$repo/build/linking/wasm-fixture.o"

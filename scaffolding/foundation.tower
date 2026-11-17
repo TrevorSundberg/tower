@@ -4,23 +4,21 @@ token Number = /[0-9]+/ as number;
 
 // Bootstrap semantic ABI: these Core* tree labels and captures name typed ops.
 // No precedence hierarchy: an assignment contains at most one operation.
-parse CoreType = Identifier | CoreType '*';
+parse CoreType = $name:Identifier | $base:CoreType '*' | $base:CoreType '[' $count:Number ']';
 parse CorePlace = $name:Identifier | $base:CorePlace '.' $field:Identifier;
-parse CoreOperand = CorePlace | Number | '-' Number | 'true' | 'false';
+parse CoreOperand = CorePlace | Number | '-' Number | 'true' | 'false' | 'null' | String;
+parse CorePlace |= $base:CorePlace '[' $index:CoreOperand ']';
 parse CoreOperator = '+' | '-' | '*' | '/' | '%' | '&' | '|' | '^'
                    | '==' | '!=' | '<' | '<=' | '>' | '>=';
 parse CoreBinary = $left:CoreOperand $op:CoreOperator $right:CoreOperand;
 parse CoreAddress = '&' $name:CorePlace;
 parse CoreLoad = '*' $name:CorePlace;
-parse CoreConvert = 'convert' $type:CoreType $value:CoreOperand;
-parse CoreBits = 'bits' $type:CoreType $value:CoreOperand;
-parse CoreValue = CoreOperand | CoreBinary | CoreAddress | CoreLoad | CoreConvert | CoreBits;
+parse CoreValue = CoreOperand | CoreBinary | CoreAddress | CoreLoad;
 parse CoreTarget = $name:CorePlace | '*' $name:CorePlace;
 parse CoreDeclare = 'var' $name:Identifier ':' $type:CoreType ';'
                   | 'var' $name:Identifier ':' $type:CoreType '=' $value:CoreValue ';';
 parse CoreAssign = $target:CoreTarget '=' $value:CoreValue ';';
-parse CorePrint = 'print' $value:CoreOperand ';';
-parse Statement = CoreDeclare | CoreAssign | CorePrint;
+parse Statement = CoreDeclare | CoreAssign;
 parse CoreBlock = '{' Statement* '}';
 parse CoreIf = 'if' $condition:CoreOperand $body:CoreBlock
              | 'if' $condition:CoreOperand $body:CoreBlock 'else' $otherwise:CoreBlock;
@@ -31,7 +29,10 @@ parse Statement |= CoreBlock | CoreIf | CoreLoop | CoreBreak | CoreContinue;
 
 parse CoreParameter = $name:Identifier ':' $type:CoreType;
 parse CoreParameters = CoreParameter | CoreParameters ',' CoreParameter;
-parse CoreArguments = CoreOperand | CoreArguments ',' CoreOperand;
+// Calls share one argument grammar. Type arguments are resolved semantically.
+parse CoreCallArgument = CoreOperand | CorePointerArgument;
+parse CorePointerArgument = $base:CoreCallArgument '*' | $base:CorePointerArgument '[' $index:CoreOperand ']';
+parse CoreArguments = CoreCallArgument | CoreArguments ',' CoreCallArgument;
 parse CoreCall = $name:Identifier '(' $args:CoreArguments? ')';
 parse CoreValue |= CoreCall;
 parse CoreFunction = 'fn' $name:Identifier '(' $params:CoreParameters? ')' ':' $type:CoreType $body:CoreBlock;
@@ -42,3 +43,8 @@ parse Statement |= CoreFunction | CoreReturn | CoreCallStatement;
 parse CoreField = $name:Identifier ':' $type:CoreType ';';
 parse CoreStruct = 'struct' $name:Identifier '{' $fields:CoreField* '}';
 parse Statement |= CoreStruct;
+
+// Raw memory and external symbols; safety policies can be layered above these.
+parse CoreExternal = 'extern' 'fn' $name:Identifier '(' $params:CoreParameters? ')' ':' $type:CoreType ';';
+parse CoreExport = 'export' 'fn' $name:Identifier '(' $params:CoreParameters? ')' ':' $type:CoreType $body:CoreBlock;
+parse Statement |= CoreExternal | CoreExport;

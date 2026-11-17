@@ -14,10 +14,10 @@ loop {
     finished = count == 5;
     if finished { break; }
 }
-print total;
+print(total);
 
 // Aliases share the same typed storage.
 var alias: i32*;
 alias = &total;
 *alias = total + 1;
-print total;
+print(total);

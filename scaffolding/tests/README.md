@@ -9,6 +9,7 @@ Run the native tree/parser checks without building LLVM or the WASI runtime:
 ./scaffolding/tests/run.ps1
 ./scaffolding/tests/run.ps1 -Trace
 ./scaffolding/tests/run.ps1 -Sanitize
+./scaffolding/tests/run.ps1 -Sanitize -Optimize
 ./scaffolding/tests/run.ps1 -Source scaffolding/examples/foreach.tower
 ./scaffolding/tests/run.ps1 -Source scaffolding/examples/replacements.tower
 ```

@@ -195,39 +195,42 @@ them for interpretation and LLVM lowering. It never executes the debug token rec
 those trees works; introducing an entirely new semantic operation still needs a
 native handler or a replacement into existing operations.
 
-The initial subset supports `i32`, `u32`, `bool`, typed pointers, lexical blocks,
+The current subset supports `i32`, `u32`, `u8`, `i64`, `u64`, `usize`, `bool`, raw typed pointers, lexical blocks,
 mutable declarations, one-operation assignments, comparisons, arithmetic and bit
 operations, `if`/`else`, `loop`, `break`, `continue`, `print`, typed functions,
 arguments, calls, returns and named structs with typed fields. Forward calls,
 type references and recursive pointer fields are supported. Conditions must
-be bool. There is no base precedence hierarchy. `convert u32 a` checks numeric
-range; `bits u32 a` reinterprets the 32 bits of an integer. No implicit mixed-type
-arithmetic, pointer casts, pointer arithmetic, heap, external ABI layouts, floats, closures, indirect calls,
-or user-written phi nodes are implemented yet.
+be bool. There is no base precedence hierarchy. `convert(u32, a)` checks numeric
+range; `bits(Type, a)` reinterprets equal-width integers/pointers. Fixed arrays,
+indexing, heap allocation/reallocation/free, byte copy/fill, pointer arithmetic,
+UTF-8 string literals, sizeof/alignof(and) extern/export functions are implemented.
+Floats, closures, indirect calls and aggregate-by-value ABIs remain future work.
 
-Integer addition/subtraction/multiplication wrap modulo 2^32. Division by zero
+Integer addition/subtraction/multiplication wrap at the operand width. Division by zero
 and signed division overflow trap. All statements are type-checked before any
-execution, including unreachable branches. Uninitialized reads trap at runtime.
-Pointers refer to typed local cells and carry a lifetime generation: aliases
-share writes, but dereferencing after block exit or after a later loop iteration reuses
-the slot traps. Function parameters have fresh lifetimes on each call; returning
-a pointer to a local does not extend its lifetime. Functions have lexical locals
-and explicit arguments; they cannot capture the entry program's locals. This checked prototype memory model is not a raw-address ABI.
+execution, including unreachable branches. Pointers are raw target addresses;
+there are no implicit object bounds, initialization or lifetime checks. Invalid
+raw access and uninitialized reads have no portable defined result. Safe layers
+belong above this foundation. Functions have lexical locals and explicit arguments;
+they cannot capture the entry program's locals. Returning a pointer does not extend
+a local's lifetime. The interpreter models addresses in its own byte memory;
+compiled code uses real target pointers.
 Generated operations retain invocation source locations for errors; captured
 operands retain their original locations.
 
 Choose **Structs** for the new data/type milestone: define a `Pair`, initialize its
 fields, pass its address to a function, modify a field, and alias a field through
 an `i32*`. Both runners print `42`, `22`, `7`. `pair.first` works on a value or a
-single pointer to a struct; `&pair.first` takes a checked field pointer. Nested
-inline structs and recursive pointer fields work. Each field has independent
-initialization state and shares its owner's lifetime. Whole-struct copies,
+single pointer to a struct; `&pair.first` takes a raw field pointer. Nested
+inline structs and recursive pointer fields work. Whole-struct copies,
 printing and passing/returning structs by value are currently diagnosed.
 
 Built-ins and user structs resolve through one type-object registry, with size,
 alignment, field types and offsets. See the [struct layout and alias contract](../docs/foundation.md#struct-milestone).
-The checked-cell execution representation is internal; it is not a C or GPU
-memory ABI. Unmodified saved Foundation defaults upgrade with the bundled module;
+Reflected layouts now match actual byte storage for the selected target. The
+included C fixtures verify scalar, pointer, buffer and struct-pointer ABI calls.
+Choose **Memory** for a growing byte buffer and indexed arrays.
+Unmodified saved Foundation defaults upgrade with the bundled module;
 customized modules are retained and can be reset with **Foundation → Restore**.
 
 Auto execution waits for a successful complete parse and a 120 ms quiet period,
@@ -243,9 +246,9 @@ the interpreter runs bounded instruction slices. LLVM compiles, optimizes, links
 and executes inside that same disposable worker; terminating it also interrupts
 a non-cooperative compiled infinite loop. Output is batched and capped at
 64 KiB so a printing loop cannot flood the UI. Core compilation is limited to
-256 functions, 64 parameters per function, 4,096 scalar storage cells per function,
+256 functions, 64 parameters per function, 4 MiB storage per function,
 65,536 semantic nodes and 128 nested blocks. Runtime limits are 128 call frames
-(including entry) and 65,536 live local cells.
+(including entry), 4 MiB of interpreter stack and 256 MiB of execution memory.
 
 The toolbar combines the brand and file controls. The page fits the
 viewport on desktop and mobile; editor, tree, output and instruction panes scroll
@@ -259,18 +262,115 @@ modules, the program is shared as canonical foundation text and resolved with th
 same foundation grammar, node schema and verifier. No binary Tower program format
 or separate debug instruction language remains. It lowers ordinary locals to entry allocas, runs
 SROA/mem2reg plus O2, verifies the LLVM IR, emits an object and links it with LLD.
-Address-taken locals use checked cells and generation-bearing pointers so the
-same lifetime traps remain observable. No language exceptions or user phi nodes.
+Address-taken locals remain ordinary allocas; typed raw pointers lower to LLVM ptr.
+No language exceptions or user phi nodes.
 Dispatch canonicalization and incremental compilation remain future work.
 
 Current spelling is `var answer: i32 = add(20, 22);` and
 `fn add(a: i32, b: i32): i32 { ... }`; void calls use `f();`.
 Types are parsed as ordinary identifiers and checked by the semantic registry.
-Local inference and reflected/user-defined types remain follow-up work.
+Local inference and language-level reflection remain follow-up work.
 Canonical output uses backtick-quoted identifiers when an extended lexer allows
 names such as `player-name` or names colliding with foundation keywords. Escapes
 preserve backticks, backslashes, tabs and newlines; semantic names remain unchanged.
 See [foundation direction/tasks](../docs/foundation.md).
+
+## Native output and browser cross-compilation
+
+The checkbox picker left of **Auto execute** selects Wasm (default), x86-64 and
+ARM64. The interpreter always runs. Wasm adds LLVM compilation/execution and
+automatic result comparison; x86-64 builds Windows/Linux/macOS executables and
+ARM64 builds Linux/macOS executables. Each selected architecture has a disposable
+worker, disassembly column and platform download links with byte counts. All lower
+columns have equal widths. With every target unchecked, only Tower instructions
+and the interpreter remain. **Cancel** or an edit terminates pending workers.
+**Link files** adds matching objects/archives; **Clear link files** removes them.
+Prefix an input name with `windows--`, `linux--`, `linux-arm--`, `mac--`, `mac-arm--`
+or `wasm--` to restrict it to that target. Unprefixed files go to all selected
+targets and must therefore be compatible. Files stay local to the browser.
+Object/library emission remains available through the compiler API and CLI;
+library objects omit `tower_main` and reject executable top-level statements.
+
+All compilation/linking runs in Wasm, with our in-memory WASI host. Native targets
+load the larger `tower-cross.wasm.gz` only when requested and decompress it in the
+worker using the browser's native gzip support. Small support packs provide
+Linux syscall startup/allocation, Windows console/heap imports and macOS libSystem
+imports. These are not full SDKs: extra libraries and their transitive dependencies
+must be supplied for the selected target. This compiles Tower, not arbitrary C++
+source; build third-party C/C++ libraries for that target with their own toolchain.
+Native files run on their target OS, not inside the page. macOS files need execution
+validation on a Mac and normal platform signing/distribution treatment as applicable.
+
+Build the native-target browser module/support packs under Linux or WSL:
+
+```sh
+TOWER_BROWSER_CROSS=ON bash playground/scripts/build-llvm.sh
+bash playground/scripts/build-targets.sh
+npm run build --prefix playground
+```
+
+Build the standalone native compiler with an installed LLVM development package
+(tested with LLVM 19, clang and lld on Ubuntu 24.04 under WSL):
+
+```sh
+bash playground/scripts/build-native.sh
+build/native/towerc scaffolding/examples/memory.tower -o build/memory
+build/native/towerc scaffolding/tests/linking.tower --link build/linking/native-fixture.a -o build/linked
+build/native/towerc scaffolding/library/storage.tower --library -o build/storage.o
+build/native/towerc source.tower --target wasm32-unknown-unknown --link library.a -o build/program.wasm
+```
+
+`--emit object|llvm|llvm-optimized|exe`, `--target`, `--link`, `--cc`, `--linker`
+and `--sysroot` control emission/tool selection. `--interpret` uses the portable
+interpreter. The current native driver locates Bedrock, Foundation and runtime.c
+in its build-time source checkout; it is not yet an installed relocatable SDK.
+The browser includes already-built runtime packs; the native driver compiles its
+runtime with Clang and invokes the selected linker/compiler driver. Windows linking
+can use the small `build/targets/kernel32.lib` import library without a full SDK.
+General native libraries can require a matching SDK/sysroot and additional inputs.
+
+`loadLLVM(...).compile(source, {target, inputs, emit, library})` exposes the same
+object/archive path to JS tools. For interpreted foreign calls or Wasm host imports,
+register `imports: {name: (context, ...args) => result}` with `loadTower` or
+`executeWasm`. Context provides a fresh byte-memory view, allocation and free.
+Use BigInt for i64/u64. A native library cannot execute through this callback API;
+it must be compiled/linked for the execution target. The C fixture tests cover
+both directions, including a C function calling an exported Tower function.
+
+`scaffolding/library/platform.tower` defines a first portable binding:
+`platform_write(stream: u32, data: u8*, length: usize): i64`. Stream 1 is stdout,
+2 is stderr; the result is bytes accepted or -1. Buffers are borrowed during the
+call. Native runtime packs and browser hosts implement it; the playground combines
+both output streams and decodes UTF-8 across writes. This is runtime I/O, not an
+implicit deterministic compile-time effect. Files, clocks, networking and a
+general import/module system remain future work.
+
+`executeWasm` also accepts `imports: {name: {wasm: instance.exports.function}}`:
+the exported Wasm function is bound directly without a JS function body. It may
+come from `table.get(index)` as well. Pure Wasm hosts can bind imports directly
+without JS. This is binding-time table selection, not source-level indirect calls;
+pointers across instances need an explicit shared-memory ABI.
+
+Foundation built-ins use ordinary call grammar: `print(42);`, `alloc(u8, 64)`,
+`free(p);`, `sizeof(Type)` and `convert(Type, value)`. Functions/types/module
+variables resolve forward; initialization stays in source order. Grammar rules
+may refer forward while inactive, but their complete dependency closure must
+resolve before activation, and outstanding references fail at module completion.
+GrammarPattern and GrammarTemplate now live in Bedrock as editable contextual
+token and recursive grammar definitions, using the same nodes and formatter.
+
+Validation commands:
+
+```sh
+bash playground/scripts/test-linking.sh
+bash playground/scripts/test-windows-linking.sh
+node --test playground/tests/raw-memory.test.mjs
+node --test playground/tests/cross-compilation.test.mjs
+```
+
+The checked-pointer prototype is preserved at commit `8571a8d`; the migration
+details and safe-layer follow-ups are in the research journal. Existing compiler
+and runtime implementation code has not yet been ported from C++ to Tower.
 
 ## LLVM module
 
@@ -286,10 +386,12 @@ local LLVM edits directly, and a separate `TOWER_LLVM_WASM_BUILD` /
 parallel compilation (default 6). The checked-in vendor directory is preserved.
 
 LLVM loads on demand inside the execution worker. It consumes canonical foundation text
-and emits a linked executable exporting `tower_main`, using only Tower's
-`print`/`trap` host imports as needed. The playground supplies these imports and
+and emits a linked executable exporting `tower_main`, with Tower's
+`print`/`trap` host imports and declared foreign imports as needed. The playground supplies its built-in imports and
 source/name metadata. The downloaded WASM also needs those imports when embedded
-elsewhere. Only the WebAssembly target backend is built; this is not x86 output.
+elsewhere. This ordinary execution module includes only WebAssembly. The optional
+export module adds the CPU targets/linkers described above; enabling it builds
+both reactors in one cache without repeatedly rebuilding LLVM for different target lists.
 
 `src/wasi-host.mjs` is Tower's own small WASI Preview 1 adapter, with memory-backed
 files, standard streams, clocks and entropy. It replaces the external browser

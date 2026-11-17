@@ -34,10 +34,10 @@ std::vector<TowerNode*> collect(TowerNode* n, const std::string& wanted) {
 std::string identifier(std::string text) {
   return tower_identifier_value(text);
 }
-bool integer(CoreType t) { return !t.pointers && (t.scalar == CoreScalar::I32 || t.scalar == CoreScalar::U32); }
+bool integer(CoreType t) { return core_integer(t); }
 bool literal(TowerNode* n) {
   auto text = tokens(n);
-  return !text.empty() && (text == "true" || text == "false" || text[0] == '-' || (text[0] >= '0' && text[0] <= '9'));
+  return !text.empty() && (text == "true" || text == "false" || text == "null" || text[0] == '\'' || text[0] == '"' || text[0] == '-' || (text[0] >= '0' && text[0] <= '9'));
 }
 enum Flow : unsigned { Next = 1, Break = 2, Continue = 4, Return = 8 };
 struct Compiler {
@@ -46,9 +46,10 @@ struct Compiler {
   size_t prefix = 0, count = 0, loops = 0;
   std::map<std::string, TowerNode*> functions;
   std::map<std::string, TowerNode*> types;
+  std::map<std::string, TowerNode*> globals;
   std::map<TowerNode*, unsigned> layout_state;
   std::vector<std::map<std::string, TowerNode*>> scopes{1};
-  Compiler() { for (auto* type : program.types) types.emplace(core_node(type).name, type); }
+  explicit Compiler(unsigned width) : program(width), current(program.root) { for (auto* type : program.types) types.emplace(core_node(type).name, type); }
   CoreNode& function() { return core_node(current); }
   size_t offset(TowerNode* n) { auto* m = match(n); auto start = m ? parser_match_get_start(m) : 0; return start > prefix ? start - prefix : 0; }
   void fail(TowerNode* n, const std::string& text) { if (program.error.empty()) { program.error = text; program.error_offset = offset(n); } }
@@ -67,16 +68,35 @@ struct Compiler {
     return result;
   }
   CoreType type(TowerNode* n) {
+    while ((label(n) == "CoreCallArgument" || label(n) == "CoreOperand") && tower_node_get_child_count(n) == 1) n = child(n, 0);
     // Types are ordinary identifier references. This bootstrap registry is the
     // first semantic namespace; type spellings are absent from the grammar.
-    auto text = tokens(n); CoreType t;
-    while (!text.empty() && text.back() == '*') { ++t.pointers; text.pop_back(); }
-    text = identifier(text);
+    if (auto* base = member(n, "base")) {
+      auto t = type(base);
+      auto* count = member(n, "count"); if (!count) count = member(n, "index");
+      if (count) {
+        auto digits = tokens(count);
+        if (digits.empty() || digits.find_first_not_of("0123456789") != std::string::npos) { fail(n, "Array type requires a constant positive length"); return t; }
+        uint64_t length = 0;
+        for (char c : tokens(count)) { length = length * 10 + (c - '0'); if (length > 1048576) break; }
+        if (!length || length > 1048576) { fail(n, "Array length must be between 1 and 1,048,576"); return t; }
+        if (!t.pointers && t.scalar == CoreScalar::Void) { fail(n, "An array cannot have void elements"); return t; }
+        auto name = core_type_name(t) + "[" + std::to_string(length) + "]";
+        auto found = types.find(name);
+        if (found != types.end()) return core_node(found->second).type;
+        auto* entity = tower_node_create(); tower_node_attach(entity, program.root);
+        auto& a = core_attach(entity, CoreKind::Type); a.name = name; a.element = t; a.length = size_t(length);
+        a.type = {CoreScalar::Array, 0, entity, program.pointer_bytes}; types[name] = entity; program.types.push_back(entity);
+        tower_node_release_ref(entity); return a.type;
+      }
+      if (member(n, "field")) { fail(n, "Expected a type name, not field access"); return t; }
+      if (++t.pointers > 16) fail(n, "Foundation pointer nesting limit is 16");
+      return t;
+    }
+    auto text = identifier(tokens(n)); CoreType t{CoreScalar::I32, 0, nullptr, program.pointer_bytes};
     auto found = types.find(text);
     if (found == types.end()) fail(n, "Unknown type '" + text + "'");
-    else { auto pointers = t.pointers; t = core_node(found->second).type; t.pointers = pointers; }
-    if (t.pointers > 16) fail(n, "Foundation pointer nesting limit is 16");
-    if (t.pointers && t.scalar == CoreScalar::Void) fail(n, "void pointers are not supported");
+    else t = core_node(found->second).type;
     return t;
   }
   void type_header(TowerNode* n) {
@@ -84,7 +104,7 @@ struct Compiler {
     auto& t = node(n, CoreKind::Type); t.name = identifier(tokens(member(n, "name")));
     if (t.name.empty() || types.contains(t.name)) { fail(n, "Missing or duplicate type '" + t.name + "'"); return; }
     if (program.types.size() >= 260) { fail(n, "Foundation struct type limit is 256"); return; }
-    t.type = {CoreScalar::Struct, 0, n}; types[t.name] = n; program.types.push_back(n);
+    t.type = {CoreScalar::Struct, 0, n, program.pointer_bytes}; types[t.name] = n; program.types.push_back(n);
   }
   void type_fields(TowerNode* n) {
     auto& t = core_node(n); std::map<std::string, bool> names;
@@ -92,7 +112,7 @@ struct Compiler {
       if (!shape(field, {"name", "type"})) return;
       auto& f = node(field, CoreKind::FieldDeclaration); f.name = identifier(tokens(member(field, "name"))); f.type = type(member(field, "type"));
       if (f.name.empty() || names.contains(f.name)) fail(field, "Missing or duplicate field '" + f.name + "'");
-      if (f.type.scalar == CoreScalar::Void) fail(field, "A field cannot have void type");
+      if (!f.type.pointers && f.type.scalar == CoreScalar::Void) fail(field, "A field cannot have void type");
       names[f.name] = true; t.items.push_back(field);
       if (t.items.size() > 256) { fail(field, "Foundation field limit is 256"); return; }
     }
@@ -101,7 +121,13 @@ struct Compiler {
     if (!program.error.empty() || layout_state[n] == 2) return;
     if (layout_state[n] == 1) { fail(n, "Recursive by-value layout for '" + core_node(n).name + "'; use a pointer"); return; }
     if (depth > 128) { fail(n, "Foundation type nesting limit is 128"); return; }
-    layout_state[n] = 1; auto& t = core_node(n); t.size = 0; t.cell_count = 0;
+    layout_state[n] = 1; auto& t = core_node(n); t.size = 0;
+    if (t.type.scalar == CoreScalar::Array) {
+      if (core_aggregate(t.element)) layout(t.element.record, depth + 1);
+      auto size = core_type_size(t.element);
+      if (size > CORE_STACK_BYTES / t.length) fail(n, "Array storage exceeds 4 MiB");
+      t.size = size * t.length; t.alignment = core_type_alignment(t.element); layout_state[n] = 2; return;
+    }
     for (auto* field : t.items) {
       auto& f = core_node(field);
       if (core_aggregate(f.type)) layout(f.type.record, depth + 1);
@@ -110,31 +136,29 @@ struct Compiler {
       t.alignment = std::max(t.alignment, alignment);
       f.byte_offset = (t.size + alignment - 1) / alignment * alignment;
       t.size = f.byte_offset + core_type_size(f.type);
-      f.index = t.cell_count; t.cell_count += core_type_cells(f.type);
-      if (t.cell_count > 4096) { fail(field, "Foundation struct storage limit is 4,096 cells"); return; }
+      if (t.size > CORE_STACK_BYTES) { fail(field, "Foundation struct storage exceeds 4 MiB"); return; }
     }
     t.size = std::max(size_t(1), (t.size + t.alignment - 1) / t.alignment * t.alignment);
-    t.cell_count = std::max(size_t(1), t.cell_count); layout_state[n] = 2;
-  }
-  void storage(TowerNode* local, CoreType type) {
-    if (core_aggregate(type) && !core_node(type.record).items.empty()) {
-      for (auto* field : core_node(type.record).items) storage(local, core_node(field).type);
-    } else function().slots.push_back({local, core_aggregate(type) ? CoreType{} : type});
+    layout_state[n] = 2;
   }
   void add_local(TowerNode* n) {
     auto& local = core_node(n);
-    if (function().slots.size() + core_type_cells(local.type) > 4096) { fail(n, "Foundation local storage limit is 4,096 cells"); return; }
-    local.index = function().slots.size(); local.cell_count = core_type_cells(local.type);
-    local.address_taken |= core_aggregate(local.type);
-    function().locals.push_back(n); storage(n, local.type);
+    if (core_aggregate(local.type)) layout(local.type.record);
+    auto alignment = core_type_alignment(local.type);
+    local.index = function().locals.size(); local.byte_offset = (function().frame_size + alignment - 1) / alignment * alignment;
+    function().frame_size = local.byte_offset + core_type_size(local.type);
+    if (function().frame_size > CORE_STACK_BYTES) fail(n, "Foundation local storage exceeds 4 MiB");
+    function().locals.push_back(n);
   }
   TowerNode* lookup(TowerNode* n) {
     auto name = identifier(tokens(n));
     for (auto it = scopes.rbegin(); it != scopes.rend(); ++it) { auto found = it->find(name); if (found != it->end()) return found->second; }
+    if (auto found = globals.find(name); found != globals.end()) return found->second;
     fail(n, "Unknown local '" + name + "'"); return nullptr;
   }
   TowerNode* place(TowerNode* n, unsigned depth = 0) {
-    if (label(n) == "CoreOperand" && tower_node_get_child_count(n) == 1) n = child(n, 0);
+    while ((label(n) == "CoreCallArgument" || label(n) == "CoreOperand") && tower_node_get_child_count(n) == 1) n = child(n, 0);
+    if (label(n) == "CorePointerArgument") { node(n, CoreKind::Operand); fail(n, "Expected a value argument, got a type spelling"); return n; }
     if (depth > 128) { node(n, CoreKind::Operand); fail(n, "Foundation field path limit is 128"); return n; }
     if (core_get(n)) return n;
     if (label(n) != "CorePlace" || !member(n, "base")) {
@@ -142,6 +166,21 @@ struct Compiler {
       if (!name) { fail(n, "Malformed CorePlace tree: missing capture 'name'"); return n; }
       auto& value = node(n, CoreKind::Operand); value.binding = lookup(name);
       if (value.binding) value.type = core_node(value.binding).type;
+      return n;
+    }
+    if (auto* index = member(n, "index")) {
+      auto& value = node(n, CoreKind::Index); value.left = place(member(n, "base"), depth + 1);
+      if (!program.error.empty()) return n;
+      auto parent = core_node(value.left).type; value.indirect = parent.pointers != 0;
+      if (parent.pointers) { --parent.pointers; value.type = parent; }
+      else if (parent.scalar == CoreScalar::Array) value.type = core_node(parent.record).element;
+      else { fail(n, "Indexing requires a pointer or an array"); return n; }
+      if (core_aggregate(value.type)) layout(value.type.record);
+      if (!core_type_size(value.type)) { fail(n, "Cannot index a void pointer"); return n; }
+      CoreType size{CoreScalar::USize, 0, nullptr, program.pointer_bytes};
+      value.right = operand(index, literal(index) ? &size : nullptr);
+      if (!program.error.empty()) return n;
+      if (!integer(core_node(value.right).type)) fail(index, "An index must be an integer");
       return n;
     }
     if (!shape(n, {"base", "field"})) return n;
@@ -152,8 +191,7 @@ struct Compiler {
     if (parent.scalar != CoreScalar::Struct || parent.pointers > 1) { fail(n, "Field access requires a struct or a single pointer to a struct"); return n; }
     for (auto* field : core_node(parent.record).items) if (core_node(field).name == value.name) value.binding = field;
     if (!value.binding) { fail(n, "Unknown field '" + value.name + "' in '" + core_node(parent.record).name + "'"); return n; }
-    value.type = core_node(value.binding).type; value.index = core_node(value.binding).index;
-    value.name_id = program.names.size(); program.names.push_back(core_place_name(n));
+    value.type = core_node(value.binding).type; value.byte_offset = core_node(value.binding).byte_offset;
     return n;
   }
   TowerNode* operand(TowerNode* n, const CoreType* expected = nullptr) {
@@ -164,30 +202,81 @@ struct Compiler {
     if (literal(n)) {
       value.constant = true;
       if (text == "true" || text == "false") { value.type = {CoreScalar::Bool}; value.bits = text == "true"; }
+      else if (text == "null") {
+        value.type = expected ? *expected : CoreType{CoreScalar::Void, 1, nullptr, program.pointer_bytes};
+        value.bits = 0; if (!value.type.pointers) fail(n, "null requires a pointer type");
+      } else if (text[0] == '\'' || text[0] == '"') {
+        value.kind = CoreKind::String; value.type = {CoreScalar::U8, 1, nullptr, program.pointer_bytes};
+        for (size_t i = 1; i + 1 < text.size(); ++i) {
+          char c = text[i]; if (c == '\\' && i + 2 < text.size()) { c = text[++i]; if (c == 'n') c = '\n'; else if (c == 'r') c = '\r'; else if (c == 't') c = '\t'; }
+          value.name += c;
+        }
+      }
       else {
         value.type = expected ? *expected : CoreType{};
-        if (!integer(value.type)) fail(n, "An integer literal needs an integer type");
+        if (!integer(value.type)) { fail(n, "An integer literal needs an integer type"); return n; }
         bool negative = text[0] == '-'; uint64_t number = 0;
         for (size_t i = negative ? 1 : 0; i < text.size(); ++i) {
-          if (text[i] < '0' || text[i] > '9' || number > 0xffffffffULL / 10) { fail(n, "Integer literal out of range"); break; }
-          number = number * 10 + (text[i] - '0'); if (number > 0xffffffffULL) { fail(n, "Integer literal out of range"); break; }
+          auto digit = unsigned(text[i] - '0');
+          if (digit > 9 || number > (UINT64_MAX - digit) / 10) { fail(n, "Integer literal out of range"); break; }
+          number = number * 10 + digit;
         }
-        uint64_t limit = value.type.scalar == CoreScalar::U32 ? 0xffffffffULL : negative ? 0x80000000ULL : 0x7fffffffULL;
-        if (number > limit || (negative && value.type.scalar == CoreScalar::U32)) fail(n, "Integer literal out of range for " + core_type_name(value.type));
-        value.bits = negative ? uint32_t(0) - uint32_t(number) : uint32_t(number);
+        uint64_t limit = core_signed(value.type) ? (uint64_t(1) << (core_width(value.type) - 1)) - (negative ? 0 : 1) : core_mask(value.type);
+        if (number > limit || (negative && !core_signed(value.type))) fail(n, "Integer literal out of range for " + core_type_name(value.type));
+        value.bits = (negative ? uint64_t(0) - number : number) & core_mask(value.type);
       }
     }
     if (core_aggregate(value.type)) fail(n, "Struct values require field access or a pointer; aggregate copies are not implemented");
     if (expected && value.type != *expected) fail(n, "Expected " + core_type_name(*expected) + ", got " + core_type_name(value.type) + "; use an explicit conversion");
     return n;
   }
+  TowerNode* builtin(TowerNode* n, const CoreBuiltin& definition, const std::vector<TowerNode*>& args) {
+    auto& value = node(n, definition.kind); value.type = {CoreScalar::Void};
+    if (args.size() != definition.arguments) { fail(n, "Wrong argument count for '" + std::string(definition.name) + "': expected " + std::to_string(definition.arguments)); return n; }
+    CoreType size{CoreScalar::USize, 0, nullptr, program.pointer_bytes}, byte{CoreScalar::U8};
+    switch (value.kind) {
+      case CoreKind::Print: value.value = operand(args[0]); break;
+      case CoreKind::Free: case CoreKind::Copy: case CoreKind::Fill:
+        value.left = operand(args[0]); if (!program.error.empty()) return n;
+        if (!core_node(value.left).type.pointers) fail(n, "Memory operations require a pointer");
+        if (value.kind != CoreKind::Free) {
+          value.value = operand(args[2], &size);
+          value.right = operand(args[1], value.kind == CoreKind::Fill ? &byte : nullptr);
+          if (!program.error.empty()) return n;
+          if (value.kind == CoreKind::Copy && !core_node(value.right).type.pointers) fail(n, "copy requires source and destination pointers");
+        }
+        break;
+      case CoreKind::SizeOf: case CoreKind::AlignOf:
+        value.element = type(args[0]); if (core_aggregate(value.element)) layout(value.element.record); value.type = size; break;
+      case CoreKind::Allocate: case CoreKind::Reallocate:
+        value.element = type(args[0]); if (core_aggregate(value.element)) layout(value.element.record);
+        if (!core_type_size(value.element)) { fail(n, "Cannot allocate void elements"); return n; }
+        value.type = value.element; ++value.type.pointers;
+        value.right = operand(args.back(), &size);
+        if (value.kind == CoreKind::Reallocate) value.left = operand(args[1], &value.type);
+        break;
+      case CoreKind::Convert: case CoreKind::Bits: {
+        value.type = type(args[0]); value.value = operand(args[1]); if (!program.error.empty()) return n;
+        auto from = core_node(value.value).type;
+        if (core_aggregate(value.type) || (!value.type.pointers && value.type.scalar == CoreScalar::Void)) fail(n, "Conversion requires scalar values");
+        if (value.kind == CoreKind::Convert && (value.type.pointers || from.pointers)) fail(n, "Pointer reinterpretation requires bits");
+        if (value.kind == CoreKind::Bits && (core_width(value.type) != core_width(from) || (!integer(value.type) && !value.type.pointers) || (!integer(from) && !from.pointers)))
+          fail(n, "bits requires equal-width integers or pointers");
+        break;
+      }
+      default: fail(n, "Unsupported foundation builtin"); break;
+    }
+    return n;
+  }
   TowerNode* call(TowerNode* n) {
     if (!shape(n, {"name"})) return nullptr;
-    auto& value = node(n, CoreKind::Call); auto name = identifier(tokens(member(n, "name")));
+    auto name = identifier(tokens(member(n, "name")));
+    auto args = collect(member(n, "args"), "CoreCallArgument");
+    for (const auto& definition : core_builtins()) if (name == definition.name) return builtin(n, definition, args);
+    auto& value = node(n, CoreKind::Call);
     auto found = functions.find(name);
     if (found == functions.end()) { fail(n, "Unknown function '" + name + "'"); return n; }
     value.binding = found->second; auto& callee = core_node(value.binding); value.type = callee.type;
-    auto args = collect(member(n, "args"), "CoreOperand");
     if (args.size() != callee.parameters.size()) { fail(n, "Wrong argument count for '" + name + "'"); return n; }
     for (size_t i = 0; i < args.size(); ++i) value.items.push_back(operand(args[i], &core_node(callee.parameters[i]).type));
     return n;
@@ -211,9 +300,17 @@ struct Compiler {
         if (named) { auto* value = operand(named); if (value) input = core_node(value).type; }
         else if (tokens(left) == "true" || tokens(left) == "false") input = {CoreScalar::Bool};
       }
-      value.left = operand(left, &input); value.right = operand(right, &input);
+      value.left = operand(left, &input);
+      if (!program.error.empty()) return n;
+      bool pointer_offset = input.pointers && (value.op == CoreOp::Add || value.op == CoreOp::Sub);
+      CoreType size{CoreScalar::USize, 0, nullptr, program.pointer_bytes};
+      value.right = operand(right, pointer_offset ? literal(right) ? &size : nullptr : &input);
+      if (!program.error.empty()) return n;
       value.type = comparison ? CoreType{CoreScalar::Bool} : input;
-      if (!integer(input) && value.op != CoreOp::Eq && value.op != CoreOp::Ne) fail(n, "This operation requires integer operands");
+      if (pointer_offset) {
+        if (!integer(core_node(value.right).type)) fail(n, "A pointer offset must be an integer");
+        auto element = input; --element.pointers; if (!core_type_size(element)) fail(n, "Cannot offset a void pointer");
+      } else if (!integer(input) && value.op != CoreOp::Eq && value.op != CoreOp::Ne) fail(n, "This operation requires integer operands");
     } else if (kind == "CoreAddress" || kind == "CoreLoad") {
       if (!shape(n, {"name"})) return nullptr;
       auto& value = node(n, kind == "CoreAddress" ? CoreKind::Address : CoreKind::Load);
@@ -222,23 +319,18 @@ struct Compiler {
       value.type = core_node(value.value).type;
       if (value.kind == CoreKind::Address) {
         ++value.type.pointers;
-        auto* base = value.value; while (core_node(base).kind == CoreKind::Field) base = core_node(base).left;
-        auto* binding = core_node(base).binding; if (binding) core_node(binding).address_taken = true;
       } else if (!value.type.pointers) fail(n, "Load requires a pointer"); else --value.type.pointers;
-    } else if (kind == "CoreConvert" || kind == "CoreBits") {
-      if (!shape(n, {"type", "value"})) return nullptr;
-      auto& value = node(n, kind == "CoreConvert" ? CoreKind::Convert : CoreKind::Bits);
-      value.type = type(member(n, "type")); value.value = operand(member(n, "value")); auto from = core_node(value.value).type;
-      if (value.type.pointers || from.pointers || value.type.scalar == CoreScalar::Void || core_aggregate(value.type)) fail(n, "Conversion requires matching scalar destination and scalar source");
-      if (value.kind == CoreKind::Bits && (!integer(value.type) || !integer(from))) fail(n, "bits requires i32 or u32; pointer casts are not supported");
     } else { fail(n, "Unsupported foundation expression '" + kind + "'"); return nullptr; }
     if (core_aggregate(core_node(n).type)) fail(n, "Struct values require field access or a pointer; aggregate copies are not implemented");
     if (core_node(n).type != expected) fail(n, "Expected " + core_type_name(expected) + ", got " + core_type_name(core_node(n).type));
     return n;
   }
   void header(TowerNode* n) {
-    if (!shape(n, {"name", "type", "body"})) return;
+    bool external = label(n) == "CoreExternal";
+    if (!shape(n, {"name", "type"}) || (!external && !shape(n, {"body"}))) return;
     auto& fn = node(n, CoreKind::Function); fn.name = identifier(tokens(member(n, "name"))); fn.type = type(member(n, "type"));
+    for (const auto& definition : core_builtins()) if (fn.name == definition.name) fail(n, "Function name '" + fn.name + "' already names a foundation builtin");
+    fn.external = external; fn.exported = label(n) == "CoreExport";
     if (core_aggregate(fn.type)) fail(n, "Struct returns require a pointer; by-value returns are not implemented");
     if (fn.name.empty() || functions.contains(fn.name)) { fail(n, "Missing or duplicate function '" + fn.name + "'"); return; }
     if (program.functions.size() >= 256) { fail(n, "Foundation function limit is 256"); return; }
@@ -247,7 +339,7 @@ struct Compiler {
     for (auto* p : collect(member(n, "params"), "CoreParameter")) {
       if (!shape(p, {"name", "type"})) return;
       auto& param = node(p, CoreKind::Parameter); param.name = identifier(tokens(member(p, "name"))); param.type = type(member(p, "type"));
-      if (param.type.scalar == CoreScalar::Void || param.name.empty() || names.contains(param.name)) fail(p, "Invalid or duplicate function parameter");
+      if ((!param.type.pointers && param.type.scalar == CoreScalar::Void) || param.name.empty() || names.contains(param.name)) fail(p, "Invalid or duplicate function parameter");
       if (core_aggregate(param.type)) fail(p, "Struct parameters require a pointer; by-value arguments are not implemented");
       names[param.name] = true; auto* saved = current; current = n; add_local(p); current = saved; fn.parameters.push_back(p);
     }
@@ -274,9 +366,9 @@ struct Compiler {
     if (kind == "CoreDeclare") {
       if (!shape(n, {"name", "type"})) return Next;
       auto& value = node(n, CoreKind::Declare); value.name = identifier(tokens(member(n, "name"))); value.type = type(member(n, "type"));
-      if (value.name.empty() || scopes.back().contains(value.name)) { fail(n, "Missing or duplicate local '" + value.name + "'"); return Next; }
-      if (value.type.scalar == CoreScalar::Void) fail(n, "A local cannot have void type");
-      add_local(n); scopes.back()[value.name] = n;
+      if (value.name.empty() || (!value.global && scopes.back().contains(value.name))) { fail(n, "Missing or duplicate local '" + value.name + "'"); return Next; }
+      if (!value.type.pointers && value.type.scalar == CoreScalar::Void) fail(n, "A local cannot have void type");
+      if (!value.global) { add_local(n); scopes.back()[value.name] = n; }
       if (auto* initial = member(n, "value")) value.value = expression(initial, value.type);
     } else if (kind == "CoreAssign") {
       if (!shape(n, {"target", "value"}) || !shape(member(n, "target"), {"name"})) return Next;
@@ -294,14 +386,18 @@ struct Compiler {
     else if (kind == "CoreReturn") {
       auto& value = node(n, CoreKind::Return); auto* returned = member(n, "value");
       bool present = !tokens(returned).empty();
-      if (function().type.scalar == CoreScalar::Void) { if (present) fail(n, "A void function cannot return a value"); }
+      if (!function().type.pointers && function().type.scalar == CoreScalar::Void) { if (present) fail(n, "A void function cannot return a value"); }
       else if (!present) fail(n, "A non-void function must return a value");
-      else value.value = operand(returned, &function().type);
+      else {
+        // The optional capture owns a list wrapper, not the operand itself.
+        auto operands = collect(returned, "CoreOperand");
+        if (operands.size() != 1) fail(n, "A return value must contain one Foundation operand");
+        else value.value = operand(operands.front(), &function().type);
+      }
       return Return;
-    } else if (kind == "CoreFunction") fail(n, "Functions must be declared at top level");
+    } else if (kind == "CoreFunction" || kind == "CoreExternal" || kind == "CoreExport") fail(n, "Functions must be declared at top level");
     else if (kind == "CoreStruct") fail(n, "Struct types must be declared at top level");
     else if (kind == "CoreBlock") return block(n, depth);
-    else if (kind == "CorePrint") { auto& value = node(n, CoreKind::Print); value.value = operand(member(n, "value")); }
     else if (kind == "CoreIf") {
       if (!shape(n, {"condition", "body"})) return Next;
       auto& value = node(n, CoreKind::If); CoreType boolean{CoreScalar::Bool}; value.value = operand(member(n, "condition"), &boolean);
@@ -318,8 +414,8 @@ struct Compiler {
     return Next;
   }
 };
-CoreProgram compile(const char* source, size_t prefix) {
-  Compiler compiler; compiler.prefix = prefix; auto* session = syntax_create(source); size_t count = 0;
+CoreProgram compile(const char* source, size_t prefix, unsigned width) {
+  Compiler compiler(width); compiler.prefix = prefix; auto* session = syntax_create(source); size_t count = 0;
   auto& statements = core_node(compiler.program.root).items;
   while (compiler.program.error.empty()) {
     auto revision = syntax_get_revision(session); auto* root = syntax_next(session); if (!root) break;
@@ -335,30 +431,39 @@ CoreProgram compile(const char* source, size_t prefix) {
   }
   syntax_destroy(session);
   for (auto* n : statements) if (compiler.program.error.empty() && label(n) == "CoreStruct") compiler.type_header(n);
-  for (size_t i = 4; i < compiler.program.types.size() && compiler.program.error.empty(); ++i) compiler.type_fields(compiler.program.types[i]);
-  for (size_t i = 4; i < compiler.program.types.size() && compiler.program.error.empty(); ++i) compiler.layout(compiler.program.types[i]);
-  for (auto* n : statements) if (compiler.program.error.empty() && label(n) == "CoreFunction") compiler.header(n);
-  for (auto*& n : statements) if (label(n) != "CoreFunction" && label(n) != "CoreStruct") {
+  for (size_t i = 8; i < compiler.program.types.size() && compiler.program.error.empty(); ++i)
+    if (core_node(compiler.program.types[i]).type.scalar == CoreScalar::Struct) compiler.type_fields(compiler.program.types[i]);
+  for (size_t i = 8; i < compiler.program.types.size() && compiler.program.error.empty(); ++i) compiler.layout(compiler.program.types[i]);
+  for (auto* n : statements) if (compiler.program.error.empty() && (label(n) == "CoreFunction" || label(n) == "CoreExternal" || label(n) == "CoreExport")) compiler.header(n);
+  // Module declarations bind across the entire file. Initializers and other
+  // effects still execute in source order; forward lookup does not initialize.
+  for (auto* n : statements) if (compiler.program.error.empty() && label(n) == "CoreDeclare") {
+    if (!compiler.shape(n, {"name", "type"})) break;
+    auto& value = compiler.node(n, CoreKind::Declare); value.global = true;
+    value.name = identifier(tokens(member(n, "name"))); value.type = compiler.type(member(n, "type"));
+    if (!compiler.globals.emplace(value.name, n).second) { compiler.fail(n, "Duplicate module variable '" + value.name + "'"); break; }
+    if (!value.type.pointers && value.type.scalar == CoreScalar::Void) { compiler.fail(n, "A module variable cannot have void type"); break; }
+    compiler.add_local(n);
+  }
+  for (auto*& n : statements) if (label(n) != "CoreFunction" && label(n) != "CoreExternal" && label(n) != "CoreExport" && label(n) != "CoreStruct") {
     compiler.statement(n); if (label(n) == "CoreCallStatement") n = member(n, "call");
   }
   for (size_t i = 1; i < compiler.program.functions.size() && compiler.program.error.empty(); ++i) {
     auto* n = compiler.program.functions[i]; auto& fn = core_node(n); compiler.current = n;
+    if (fn.external) continue;
     compiler.scopes = {std::map<std::string, TowerNode*>{}}; compiler.loops = 0;
     for (auto* p : fn.parameters) compiler.scopes.back()[core_node(p).name] = p;
     fn.body = member(n, "body"); auto flow = compiler.block(fn.body, 0);
-    if (fn.type.scalar != CoreScalar::Void && (flow & Next)) compiler.fail(n, "Function '" + fn.name + "' can finish without returning a value");
-  }
-  for (auto* fn : compiler.program.functions) for (auto* local : core_node(fn).locals) {
-    auto& value = core_node(local); value.name_id = compiler.program.names.size(); compiler.program.names.push_back(value.name);
+    if ((fn.type.pointers || fn.type.scalar != CoreScalar::Void) && (flow & Next)) compiler.fail(n, "Function '" + fn.name + "' can finish without returning a value");
   }
   return std::move(compiler.program);
 }
 }
-CoreProgram core_compile(const char* source) { return compile(source, 0); }
+CoreProgram core_compile(const char* source, unsigned pointer_bytes) { return compile(source, 0, pointer_bytes); }
 void core_set_foundation(const std::string& grammar) { foundation_grammar = syntax_set_bootstrap(grammar.c_str()); }
-CoreProgram core_compile_foundation(const char* source) {
+CoreProgram core_compile_foundation(const char* source, unsigned pointer_bytes) {
   if (!foundation_grammar.empty()) { CoreProgram p; p.error = foundation_grammar; return p; }
-  return compile(source, 0);
+  return compile(source, 0, pointer_bytes);
 }
 #if defined(__wasm__)
 extern "C" __attribute__((export_name("tw_set_foundation"))) int tw_set_foundation(const char* source, size_t length) {
