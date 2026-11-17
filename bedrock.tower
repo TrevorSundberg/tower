@@ -1,5 +1,6 @@
-// C++ always parses this file. These rules govern foundation.tower and later source.
-// GrammarPattern and GrammarTemplate are native scanner primitives.
+// This bedrock.tower is loaded first, then foundation.tower.
+// GrammarPattern reads /patterns/ for token and skip rules.
+// GrammarTemplate reads {replacement bodies} with balanced braces.
 skip Whitespace = /[ \t\r\n]+/;
 skip LineComment = /\/\/[^\r\n]*/ as comment;
 skip BlockComment = /\/\*([^*]|\*+[^*/])*\*+\// as comment;
