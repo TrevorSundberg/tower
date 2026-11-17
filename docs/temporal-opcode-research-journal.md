@@ -1,12 +1,12 @@
 # Temporal opcode research journal
 
-Started: 2026-09-05. Last updated: 2026-09-05.
+Started: 2026-09-05. Last updated: 2026-11-15.
 
 **Scope clarification from the author: Tower is a GENERAL-PURPOSE programming language. Games are an example application, not the language's intended scope. Its compiler is another intended application. Entry 14 corrects the earlier overemphasis on a game-product gap; general-purpose native incremental languages, especially CEAL, are direct comparisons.**
 
 **Competition clarification: direct technical prior art is not the same as active product competition. CEAL's public repository and the three visible forks checked remain at a December 2011 commit. Entry 15 classifies it as dormant public research code, not an established maintained alternative to Tower.**
 
-Status: literature, implementation-source review, and a bounded executable correctness diagnostic. No production temporal runtime, LLVM implementation, or native/game performance benchmark has been implemented. Published results, repository observations, and experiments are distinguished below. This journal records the current assessment; it does not replace the original [temporal-opcode proposal](temporal-opcode.md). Entries 8–9 address the author's correction of the earlier framing and record the deeper validation.
+Status: literature and implementation-source review, bounded executable semantic models, and a restricted native LLVM selective-repair experiment (2026-10-15). No production temporal runtime, general LLVM temporal implementation, or representative compiler/game benchmark has been established. Published results, repository observations, experiments, and subsequent design proposals are distinguished below. This journal records the current assessment; it does not replace the original [temporal-opcode proposal](temporal-opcode.md). Entries 8–9 address the author's correction of the earlier framing and record the deeper validation.
 
 Entries 10–11 add a broad language/runtime/product landscape scan and a recommendation about pursuing Tower. The scan found substantial native prior art and adjacent products, but no documented maintained game product establishing the complete proposed historical instruction/memory repair capability. That is a bounded research finding, not proof of absence.
 
@@ -2445,3 +2445,3199 @@ scheduler, all-program correctness, native C safety, physical allocation
 reclamation, external I/O/FFI replay, concurrency, arbitrary shared mutable
 histories, or self-editing continuation resumption. The header and source example
 are C-like specifications; the executed implementation is JavaScript/fake opcodes.
+
+## 2026-10-15 Native LLVM storage and selective repair experiment
+
+The next experiment addresses the distinction between the preceding Node
+semantic proof and actual native execution cost. The user also raised indefinite
+history growth in an editor and paging old asset-import histories to disk, and
+confirmed that the current ten-operation C API above remains the target.
+
+Artifacts:
+
+- [Native build, scope and reproduction](research/native-temporal/README.md).
+- [Storage model, measurements and editor retention design](research/temporal-native-model.md).
+- [LLVM construction and load/store lowering](research/native-temporal/generate.py).
+- [Native runtime, public API example, oracle and benchmark](research/native-temporal/benchmark.cpp).
+- [Raw timing samples and build provenance](research/native-temporal/results/windows-x64.json).
+- [Compiled mutation results](research/native-temporal/results/mutations.json).
+
+### What is native and what is supported
+
+LLVM 20.1.8, through llvmlite 0.46.0, verifies/optimizes generated LLVM IR and
+emits Windows x64 COFF objects. MSVC compiles the runtime and links a native
+executable. Python is a build/measurement driver only. The workload contains an
+actual native arithmetic loop, six ordinary LLVM loads and two stores; the
+lowering replaces every state load/store in the tracked variant. The resulting
+audit finds zero unlowered state memory operations. Ordinary compiler spill
+slots and runtime metadata are not temporal application state.
+
+The example includes the existing `temporal-core.h`, creates an end Point,
+inserts a captured input through `temporal_store_at`, runs the native entry,
+and later replaces that past input through `temporal_replace`/`temporal_repair`.
+Generated callbacks use the existing `builtin_temporal_load/store` signatures.
+The internal `nt_*` hooks are harness/runtime plumbing, not an API revision.
+
+This is a fixed-memory-access-shape, aligned-u64, isolated-history subset.
+The repair unit is an entity update, not an individual arithmetic opcode.
+Every read records its exact word producer; every ordinary state store produces
+a new version. A chronological dirty queue reruns affected native regions and
+cuts propagation at equal outputs. Candidate values publish only after successful
+shape validation. The history arena and per-repair buffers allocate once, not
+per instruction. Supported past editing is replacement of a captured input;
+insertion into an older gap and removal are not implemented.
+
+Nested histories, default-root globals, allocation/free lifetime lowering,
+arbitrary byte overlap, general callbacks, internal-instruction Points, changing
+trace topology, raw-pointer persistence and a production validation boundary
+remain outside this native experiment. The earlier Node models remain the wider
+semantic evidence. This native test does not upgrade those models' coverage
+claims into a general native proof.
+
+### Results and checks
+
+On a Ryzen 9 5900HX, Windows 11 x64, the retained measurement uses 1,024 entities,
+64 ticks, one correction at tick 16, one discarded warmup and 15 measured trials.
+Snapshot replay starts at the exact correction-tick checkpoint and refreshes the
+suffix checkpoints. Undo/redo reverses and re-records the suffix writes. Thus the
+baseline does not unnecessarily rerun the unaffected prefix.
+
+For 32 mixing iterations per update and independent entities, plain execution
+takes 1.427 ms, write-only recording 1.679 ms, snapshot recording 1.658 ms, and
+selective recording 11.339 ms. Selective repair takes 0.028 ms and reruns 48 of
+65,536 updates; snapshot replay takes 1.180 ms. The sparse repair is about 43x
+faster, but recording plus one correction is slower overall. With a shared
+dependency, 49,152 updates rerun and selective repair takes 5.657 ms against
+1.211 ms snapshot replay. For more expensive independent updates, selective
+recording is about 1.48x plain execution and repair about 321x faster than
+snapshot replay. Cheap updates show much higher recording overhead. These are
+measurements of this implementation, not a proven minimum overhead.
+
+Native validation passes 304 retained-history correction comparisons, plus
+public API/capture/cancel/no-op/killed-write/atomic-trap cases. All versions are
+checked against an independent C++ numerical oracle, not just final memory.
+Four runtime mutations compile successfully and are rejected by behavioral
+assertions: lost subscriptions, reading present instead of historical values,
+publishing a failed repair, and scheduling unchanged values. No mutation
+survives. All 18 existing Node validation suites pass unchanged.
+
+### Memory and disk findings
+
+For this workload, the arena consumes `228 * updates + 176 * entities + 640`
+bytes, plus separately reserved scheduling scratch. The retained 64-tick history
+is 14.42 MiB plus 1.03 MiB scratch for 32 KiB of current state. Snapshots consume
+2 MiB; the write-only undo log consumes 3 MiB. Continuing this layout at 60 Hz
+and 1,024 entities projects to approximately 47 GiB/hour before compaction.
+
+The same arena can record directly into a file mapping. A flush/unmap/remap test
+and a separate-process reopen both repair correctly and match every historical
+version against fresh execution. The retained file is 15,123,072 bytes. Flushing
+takes 200.249 ms in the smoke test; the post-remap repair takes 0.609 ms, and a
+separate-process repair 0.379 ms. OS cache contents are not evicted, so these are
+not cold-drive latency measurements. No resident-memory cap, large-history paging
+benchmark, asynchronous writer, eviction policy or crash recovery is established.
+
+The editor design retains immutable captured file versions, replaces the original
+input on a watcher notification, and lets the ordinary temporal graph propagate
+the change. Changing file sizes needs a fixed-size captured descriptor plus
+retained blob/lifetime semantics, because replacement preserves write extent.
+GPU/FFI/filesystem effects remain explicit publication boundaries. Paging is
+compatible with stable Points; deleting old history silently is not. Long-running
+use needs both cold storage and a defined policy for pinned history, reconstruction
+from checkpoints, reachable computation caches and bounded simulation windows.
+
+## 2026-11-15: Minimal rebuild, structural edits and automatic region tracking
+
+### Author's motivation and desired programming model
+
+The author clarified that minimal rebuild was an original motivation for temporal
+opcodes. Their experience of unreliable compiler minimal-rebuild systems,
+including Microsoft's VC++, and the burden of compiler-specific AST diffing
+motivated a more general mechanism. This is the author's experience and design
+motivation, not a newly verified assessment of those compilers.
+
+The desired outcome is to write a scripting language/compiler in Tower and have
+ordinary execution participate in incremental rebuilding. Its author should not
+need to manually declare every pointer/global dependency or maintain a separate
+invalidation implementation for every compiler pass. Tower remains a
+general-purpose language; compilation is a motivating application.
+
+The author proposed supplying a richer diff to temporal reconciliation: insertions,
+moves, deletions and replacements, rather than only reporting changed bytes at
+fixed addresses. They also favored compiler-selected recomputation regions, with
+heuristics analogous to inlining, provided pointers, aliases and globals remain
+correctly tracked.
+
+### Feasibility and the performance distinction
+
+**Assessment:** this is a credible design direction. Complete dependency tracking
+supports correctness; stable identities and suitable recomputation granularity
+determine whether small edits preserve enough work to make repair worthwhile.
+The useful contract is agreement with fresh execution under the same inputs and
+effect model, not an assurance of the mathematically smallest possible rebuild.
+
+Existing native measurements illustrate the tradeoff: the independent work-32
+case recorded at about 7.9x plain execution cost while sparse repair was about
+43x faster than snapshot replay. The work-256 case recorded at about 1.48x plain
+cost. These are previously measured synthetic, fixed-access workloads, not
+compiler benchmarks or lower bounds. See [the native analysis](research/temporal-native-model.md).
+Repeated edits in a persistent compiler session could amortize initial recording,
+but that must be measured on a representative workload.
+
+Related work supports both ingredients. [Traceable Data Types for Self-Adjusting
+Computation](https://www.cs.cmu.edu/~guyb/papers/ABLT10.pdf) extends tracing from
+individual memory operations to queries and updates on abstract data types to
+reduce dependency overhead. [Incremental Computation with
+Names](https://arxiv.org/abs/1503.07792) uses names to identify reusable computation
+across executions and establishes from-scratch consistency for its calculus.
+These are precedents, not proofs of Tower's proposed implementation.
+
+### Structural diffs and stable identity
+
+An insertion into a contiguous source buffer changes many subsequent addressed
+bytes. A correct byte tracker may consequently invalidate most of the parser.
+A diff can identify surviving text, but cannot reinterpret an old observation
+of numeric offset 10 as an observation of whichever character used to be there.
+The value at that offset may really have changed.
+
+A candidate standard sequence/text representation uses stable item or piece
+identities, backed by a piece table or persistent tree. Distinguish observations
+of contents, adjacency/order, membership, length and current numerical position.
+Inserting before a surviving piece can leave its contents unchanged while
+changing its position; inserting after an item changes its successor. All these
+observable facts must participate in tracking. Stable identity alone is not a
+complete incremental sequence implementation.
+
+Proposed conceptual pipeline:
+
+```text
+editor operations, or diff(old source, new source)
+    -> update a sequence while preserving surviving identities
+    -> repair the recorded compiler/interpreter computation
+    -> publish revised results and diagnostics
+```
+
+Candidate collection operations are `insert(anchor, items)`, `delete(range)`,
+`move(range, destination)` and `replace(item, contents)`. These are design sketches,
+not additions to the agreed temporal C API. They can lower to tracked state
+changes or use a separately specified traceable-collection implementation.
+Direct editor operations should preserve correspondence when available; external
+file replacement can use a diff. Ambiguous move matching can conservatively fall
+back to deletion/insertion, sacrificing reuse without sacrificing correctness.
+
+A move preserves identity, not necessarily computed meaning. Moving code into a
+different scope must invalidate relevant name-resolution dependencies. Duplicate
+text is not automatically the same logical object. Execution identity also needs
+attention: identifying work solely by loop iteration number shifts correspondence
+after insertion. Stable source items need a suitable mapping to surviving dynamic
+computation and allocation occurrences.
+
+Compiler utilities could support ordinary functions such as parsing from a source
+anchor and context, resolving a syntax node in a scope, checking a declaration,
+and generating code for a function. Automatic tracking and equality-based stopping
+can avoid manual dependency lists. Efficient reuse still depends on representation:
+fresh identities on every parse, flattened buffers and pervasive absolute offsets
+can create unnecessary changes. Source-position observations should be separated
+from semantic observations where appropriate. Reparsing a changed file in full
+could still preserve expensive downstream work if equivalent outputs retain
+usable identity/equality semantics.
+
+Some broad invalidation is necessary: a quote or comment delimiter can alter the
+rest of a file, and a shared declaration can affect many consumers. Missing-name
+lookups must depend on continued absence so a newly introduced declaration is
+noticed. File contents and configuration must enter as tracked inputs.
+
+### Region boundaries do not eliminate dynamic memory instrumentation
+
+**Clarification:** assigning dependencies to a function or region does not mean
+observing memory only at entry and exit. Accesses inside the region still need
+instrumentation wherever compiler analysis cannot safely remove it. The boundary
+identifies the owner of those dependencies and the unit of reexecution.
+
+For example:
+
+```c
+int calculate(Node* p) {
+    int x = p->next->value;
+    return x * global_scale;
+}
+```
+
+The compiler knows the load instructions, but not necessarily the selected node.
+At runtime the invocation depends on its argument, the observed version of
+`p->next`, the selected node's value version and the global's version. Changing
+`p->next` reruns the region and discovers new dependencies. Repair must update old
+subscriptions. The system need not scan every object reachable through `p`.
+Globals are tracked storage too; they are not inherently untrackable or forbidden.
+
+Pointers that alias are recognized through actual storage identity and overlapping
+byte ranges, rather than variable names. Allocation identity and lifetime separate
+historical objects from later objects at reused numerical addresses. Ordering and
+memory versions remain essential:
+
+```c
+int example(int* p, int* q) {
+    int a = *p;
+    *q = 7;
+    int b = *p;
+    return a + b;
+}
+```
+
+When `p == q`, the reads observe different versions. Neither deduplicating by
+address alone nor moving both observations to entry is sound. Repeated reads of
+the same version within a region can share a dependency when the complete trace
+and historical-observation contract permits it.
+
+Exact pointer targets, call targets and access sets are not generally known
+statically. Conservative compiler analysis can prove some accesses independent,
+some state private and some values invariant. LLVM's [alias and Mod/Ref
+analysis](https://llvm.org/docs/AliasAnalysis.html) supplies relevant machinery;
+uncertainty must retain conservative behavior. Static analysis reduces cost,
+while runtime instrumentation supplies unresolved facts.
+
+Candidate implementation choices:
+
+- Scalar inputs and proven private temporary state: ordinary native computation
+  with dependencies/effects recorded at its external boundary.
+- Predictable memory ranges: batch observations where version, ordering and
+  lifetime semantics permit it.
+- Dynamic addresses, aliases and calls: instrument actual accesses and supported
+  callees. Unknown aliases are not permission to omit tracking.
+
+A region's outputs include writes, allocation/lifetime changes and other modeled
+effects, not only its return value. Repair must replace old historical effects,
+including retracting a store when a changed branch no longer executes it. An equal
+return value does not hide changed writes. Rerun must observe the corrected
+historical state at its execution point, not simply the latest live memory.
+
+### Inlining-style heuristics and legality
+
+The author supports heuristics for choosing recomputation granularity. Candidate
+policies merge tiny helpers into callers, retain expensive computations with narrow
+dependencies as separate regions, and split large loops into iterations or chunks.
+Profiling could identify regions that repeatedly invalidate together. Larger
+regions reduce bookkeeping but redo more work on invalidation; smaller regions
+offer finer reuse at higher recording/scheduling cost.
+
+Correctness must not depend on the quality of a heuristic. First establish legal
+region boundaries and transformations, then choose among them by estimated or
+measured cost. A poor choice should cause extra work or storage, never stale output.
+Region selection need not follow source-language function boundaries exactly.
+
+Historical Points are observable constraints. If the API permits an intervention
+inside a function, an opaque entry/exit record alone loses required behavior.
+The implementation must preserve that boundary or retain sufficient information
+to reconstruct its exact historical position and effects. Coalescing writes or
+discarding internal records must also respect retained Points and history policy.
+
+Automatic coverage requires all relevant execution to participate: instrumented
+Tower code, supported indirect calls, bulk memory operations and lifetime events.
+Foreign code, external mutations, I/O and concurrency require explicit semantics
+and integration. A conservative summary that foreign code may write anything
+does not capture its actual effects or make external effects reversible. The
+initial reasoning here assumes deterministic, single-threaded tracked execution.
+
+### Evidence boundary and next experiment
+
+The native prototype already demonstrates region repair but requires unchanged
+access addresses/order/counts. It does not yet implement general pointer-graph
+changes, dynamic dependency reconstruction, native allocation lifetimes or internal
+Points. The broader executable model specifies more semantics but uses full
+replay. Neither establishes a production incremental compiler.
+
+A proposed next experiment is a small scripting-language implementation with
+stable source identities and automatic tracking. Compare every repaired result
+and observable effect with fresh execution after insertions, moves, deletions,
+scope changes, aliasing writes and changed pointer/call targets. Measure initial
+recording cost, retained memory and repeated-edit latency separately. Exercise
+dense invalidation and any fallback as well as favorable sparse edits. This is a
+recommended experiment, not newly authorized implementation work.
+
+**Outcome:** pursue automatic instrumentation with conservative static optimization
+and heuristic region selection, plus structural input edits that preserve useful
+identity. This entry records the discussion and checked prior sources; it adds no
+runtime implementation, API revision, benchmark or correctness proof.
+
+## 2026-11-15: Tracking LLVM execution through final code emission
+
+The author wants incremental work to extend through opcode construction,
+optimization and machine-code emission. Their ideal example is changing a literal
+and changing only the corresponding immediate byte in the output executable.
+They value LLVM's comprehensive existing machinery and proposed translating LLVM
+into Tower rather than independently reproducing all its optimizations.
+
+Two meanings must be distinguished. Translating an application's LLVM IR into
+Tower opcodes does not import LLVM's optimization implementations. Compiling
+LLVM's C++ implementation to LLVM IR and translating that implementation into
+temporally instrumented Tower execution could bring the optimizer/backend itself
+inside the tracked computation. Instrumented native compilation is compatible
+with this direction; an interpreter is not inherently required.
+
+```text
+LLVM optimizer/backend C++ implementation
+    -> compiled LLVM IR describing that implementation
+    -> Tower lowering with temporal instrumentation
+    -> tracked execution of optimization and code emission
+```
+
+This requires a defined supported IR/runtime boundary: memory/lifetime operations,
+indirect calls, bulk memory, intrinsics and external facilities must be handled.
+LLVM poison, undefined behavior and other semantic details cannot be translated
+by merely matching opcode names. The [LLVM language reference](https://llvm.org/docs/LangRef.html)
+defines that compatibility problem. This is a proposed route, not an implemented
+LLVM importer or evidence that all LLVM code is currently supported.
+
+The desired dependency chain includes source, syntax/semantic values, IR
+construction, optimization decisions, instruction selection, encoding and output
+publication. LLVM mutates intermediate representations: amend an earlier input
+and repair subsequent execution rather than assuming that modifying an already
+optimized module recreates its original decisions.
+
+An illustrative fixed x86 encoding makes the author's target concrete:
+
+```text
+return 42: B8 2A 00 00 00 C3   // mov eax, 42; ret
+return 43: B8 2B 00 00 00 C3   // mov eax, 43; ret
+```
+
+Only one encoded byte differs if those instructions and layout remain selected.
+Compiler work can still be required to verify that previous decisions remain
+valid. A one-byte output difference does not imply one operation of repair work.
+Other constant changes legitimately affect folding, branches, instruction sizes,
+register allocation or inlining, and can propagate into layout and relocations.
+See [LLVM transformations](https://www.llvm.org/docs/Passes.html) and its
+[code generator](https://llvm.org/docs/CodeGenerator.html).
+
+Faithfully tracking LLVM also tracks incidental dependencies in allocators,
+work queues, hash tables and mutation order. Translation alone does not make those
+algorithms stable under small edits. First establish correctness for a selected
+pipeline; then measure and improve allocation/computation identities, region
+boundaries and the specific structures causing excessive invalidation.
+
+Output publication needs its own tracked model. Unchanged-size fragments at stable
+addresses permit small patches. Growth can move other fragments; reserved space,
+stable placement or indirection can trade code size/quality for less disruption.
+Checksums, build IDs and debug metadata can change beyond the instruction bytes.
+History-dependent placement would need an explicit reproducibility policy rather
+than an unqualified claim of byte-for-byte equality with a canonical fresh link.
+
+The inspected [scaffolding](../scaffolding/main.cpp) already constructs an LLVM
+module and emits object code through LLVM APIs. The current CMake configuration
+enables the WebAssembly backend; an x86 experiment needs corresponding backend
+configuration. A future experiment should change a literal through a small
+optimization/emission pipeline and measure both rerun computation and changed
+bytes, followed by instruction-size and control-flow changes. Full LLVM translation
+is a later milestone, not the prerequisite for getting Tower's bootstrap working.
+
+## 2026-11-15: In-language parser extensions and compiler in the runtime
+
+The author reaffirmed that the parser is part of the Tower compiler, the compiler
+is available in the runtime, and ordinary Tower code should extend the language.
+Their notes explicitly describe optional language features such as `foreach` and
+captures such as:
+
+```text
+ForEach = 'for' '(' $Variable 'in' $Expression ')' '{' $Statement+ '}'
+```
+
+See [the original notes](../todo.txt), including the feature discussion near line
+1499, staged parsing near 3180, and captures near 8021. Line positions describe
+the inspected version. The example's `+` requires at least one statement; accepting
+an empty body would require the library's grammar to permit it.
+
+A feature module can own its grammar, captured syntax schema, binding/type rules,
+lowering and diagnostics. `foreach` can lower to ordinary control flow and calls,
+then use the common optimizer/backend. Generated bindings need hygienic identity;
+the collection should be evaluated with the intended frequency, and control exits,
+scope and cleanup must preserve the feature's specified behavior. Source provenance
+and access to trivia/text remain useful even when punctuation is omitted from
+semantic captures.
+
+Recognition, elaboration and execution may use the same runtime while retaining
+distinct dependencies. Parsing need not finish type checking immediately. Extension
+installation that changes subsequent syntax does need a defined activation point.
+An initial rule is: parse the extension declaration under the current grammar,
+compile/execute it, then activate the resulting grammar for subsequent constructs
+in its scope. This supplies a finite bootstrap and avoids a declaration requiring
+its own not-yet-installed syntax.
+
+For LALR parsing, an active stack belongs to a particular table. Swapping tables
+does not automatically preserve state identities. Activation requires suitable
+boundaries, restart, or a defined state-migration mechanism. Grammar composition
+must detect conflicts or impose sufficient compatibility restrictions; separately
+valid extensions are not automatically compatible. Scoped grammar environments
+avoid unrelated modules silently changing syntax.
+
+Temporal tracking must include grammar observations, successful and unsuccessful
+lookups, binding environments, and extension implementation versions. An unused
+new alternative can still change tokenization or a previous parse decision.
+Changing handler code is not detected solely by its old data-read dependencies.
+Historical repair also needs to retract generated declarations, diagnostics and
+other modeled effects when an extension's revised execution no longer produces
+them. A grammar change may legitimately invalidate a large parse suffix.
+
+Relevant precedents include Lean's [syntax/elaboration environment](https://lean-lang.org/doc/reference/latest/Elaboration-and-Compilation/)
+and [hygienic macros](https://lean-lang.org/doc/reference/latest/Notations-and-Macros/Macros/),
+and [ableC's language-extension composition](https://melt.cs.umn.edu/ableC/).
+These establish related capabilities, not Tower's proposed temporal integration.
+
+## 2026-11-15: Component-based compiler data and the first bootstrap milestone
+
+### Author's direction and current repository evidence
+
+The author wants a generic, script-traversable tree and proposes ECS-style
+components whose declarations belong to the compiler module itself, eventually
+written in Tower. The concern is how to reach that model before Tower can compile
+its own compiler. This is an architectural discussion and journaling request;
+no runtime rewrite or implementation is performed in this entry.
+
+The existing native scaffold is C++ with a C-like interface. `TowerNode` already
+has an identity, typed attached payloads, named/ordered children and generic
+component/child enumeration. Component types themselves are represented by nodes.
+Storage currently uses raw pointers, reference counts, per-node vectors and
+separate component allocations. This is a useful component-based starting point;
+it need not be discarded to adopt an ECS-style logical model.
+
+The inspected `parser_recognizer_step` remains unfinished: reduction-child
+attachment, reduction/source-span handling, callback/event delivery and the returned
+tree contain TODOs; the function currently returns null. Table/stream lifetimes
+also have an explicit TODO. Existing parser/table tests do not establish a complete
+parse-to-script pipeline. These are source observations, not newly executed tests.
+See [tree implementation](../scaffolding/tower.cpp), [tree API](../scaffolding/tower.hpp)
+and [recognizer](../scaffolding/parser.cpp).
+
+### Recommended data model
+
+Treat a syntax node as a logical entity and compiler facts as typed components.
+Candidate schemas include `SourceSpan`, `IntegerLiteral`, `BinaryExpression`,
+`ForEachSyntax`, and separate derived facts such as resolved binding or inferred
+type. Compiler and extension modules own those declarations; the general storage
+layer understands identities, component types, layouts/lifetimes and relationships,
+without knowing what a particular language construct means.
+
+An ordinary Tower record can be registered as a component. This does not require
+every Tower object or every field to become an entity. Component granularity
+should group useful data; a runtime may later track individual observed fields.
+Source positions should not be the identity of semantic nodes.
+
+Generic traversal requires reflection beyond a type ID and payload byte count:
+field names/types, access/layout information, and relationship roles. Distinguish
+ordered syntax-child edges from semantic references to declarations, types or
+control-flow blocks. The syntax hierarchy can remain a tree, while the complete
+compiler data is a graph. A generic syntax walker must not recursively traverse
+every entity reference or take ownership of every semantic link.
+
+Choose one authoritative representation of child relationships. Typed accessors
+and generic child enumeration should be views of that representation, or maintain
+explicitly checked indexes; unrelated mutable child lists and component fields
+must not silently disagree. Reflection can provide a visitor for components the
+script did not know statically. Unknown components can be inspected generically;
+their semantic meaning still requires the appropriate extension implementation.
+
+Use logical identities rather than storage positions in the script-facing contract.
+Initially an adapter can keep existing allocations behind opaque references.
+Generational handles can detect stale reuse, but do not by themselves preserve
+identity across reparsing or temporal repair. Surviving source/creation occurrences
+need explicit correspondence. Retained history and current storage lifetime are
+separate: freeing a current object cannot discard data still required by a Point.
+
+An ECS-style model does not mandate archetype storage or a per-frame system loop.
+Compiler passes can be ordinary dependency-tracked functions. Start with existing
+storage or simple stable/sparse storage behind the contract; use measurements
+before adopting moving dense layouts. Runtime registration and reflection have
+precedent in [Flecs](https://www.flecs.dev/flecs/EntitiesComponents.html), but adopting
+that library is not a decision made here.
+
+Incrementality is not supplied merely by naming the storage ECS. Dependencies
+include component presence/absence, fields, child ordering, query membership and
+schema versions. A query for all nodes with a component must notice new matches,
+not only writes to prior results. Derived facts need defined producing computations
+so repair replaces obsolete facts/effects. Broad global scans can still cause
+broad invalidation. Ordinary accesses should remain automatically tracked in the
+eventual temporal implementation; this is not a request for manual dependency
+declarations throughout compiler code.
+
+### Bootstrap and implementation order
+
+**Recommended first milestone:** a complete parse-to-component-tree-to-generic-visitor
+path, followed immediately by a tiny Tower program using that same interface.
+The first code patch should finish recognizer output using the existing node store
+and a narrowly specified schema/traversal contract. A full ECS rewrite, full LLVM
+translation and full temporal engine are not prerequisites for this patch.
+
+1. Specify the small interface for node/type identity, reflected component fields,
+   ordered/role-named children, semantic references and lifetimes. Define tiny
+   expression schemas in a compiler bootstrap module using that interface. Add
+   only the metadata needed for generic inspection and later scripted registration.
+2. Complete shift/reduce tree construction, consumed spans, acceptance/root return,
+   lifetime handling and useful failure reporting. Parse a small expression grammar
+   and walk its typed components generically. Check actual tree structure and
+   spans, including empty productions where supported; table construction alone
+   is not sufficient validation.
+3. Provide a minimal Tower execution path for functions, basic values, calls,
+   control flow and the registration/traversal API. A small interpreter or the
+   existing code-generation route is a bootstrap choice to settle with a focused
+   implementation assessment. The small seed may use fixed syntax. Success is an
+   actual Tower program traversing the tree and registering a component, not only
+   a native callback pretending to be an in-language feature.
+4. Move compiler schema declarations and one grammar/handler extension into Tower.
+   Begin with a small syntax extension, then `foreach` once binding and loop
+   semantics exist. Installation executes through the same interface previously
+   used by the native bootstrap module. Remove duplicate native schema authority
+   as each module moves across.
+5. Add an edit/repair test through this pipeline against fresh execution, with
+   surviving-node identities checked separately from semantic equality. Exercise
+   literal changes, insertions, absent-component becoming present, and handler
+   revisions. Report full replay honestly until selective work is actually measured.
+   Grow the executable core until a Tower compiler can build the next compiler
+   generation; then expand the tracked native backend/LLVM experiment.
+
+The bootstrap terminates in a small native seed that knows primitive values,
+type-descriptor representation, storage/access and enough execution to load the
+next module. A schema is data that the seed can register before the final Tower
+compiler exists. The seed does not need the final extensible language to parse
+itself. Later Tower declarations generate equivalent descriptors through the
+same interface. Runtime exposure of the compiler remains a goal throughout.
+
+Component layout revisions need a defined policy: immutable/versioned descriptors,
+recreation or migration of instances, and invalidation of dependent compiled code.
+Do not overwrite a live descriptor and reinterpret old bytes under new offsets.
+For the bootstrap, rejecting unsupported live schema replacement is adequate;
+automatic migration can follow separately.
+
+**Outcome:** retain the generic component-tree idea, make compiler schemas owned
+by modules, and prioritize a working parser plus reflective traversal through a
+small bootstrap. The nearest visible implementation gap is the recognizer's
+unfinished tree output. This direction preserves the author's ECS-style extension
+goal while providing a finite route to in-language declarations and self-hosting.
+
+## 2026-11-15: Completed whole-input parse-tree construction and debug output
+
+Implemented the first parser milestone in the existing native scaffold. Reductions
+now attach consumed nodes in source order, record the reduced non-terminal and
+specific production, compute spans from the consumed stack frames, and transfer
+the accepted root to the caller. Generated helper productions flatten their
+children; the start production retains a public root. Stream-supplied nodes retain
+their identity, payloads and children. Destruction releases partial trees and owned
+lookahead; completed trees retain copied labels independently of table lifetime.
+
+`parser_tree_debug_print` and `parser_tree_debug_string` provide indented labels,
+production indices and half-open source spans. Verbose table and shift/reduce traces
+are optional. Unexpected input now terminates recognition with a diagnostic instead
+of asserting. The recognizer-backed stream transfers one complete root and then
+EOF, and propagates upstream errors; it is not a repeated tokenizer.
+
+Executable tests exposed related existing table-builder issues: nullable reductions
+in the initial state, lookahead through nullable suffixes, same-state empty reductions,
+and successor lookup from a single kernel rather than the full LR0 state. These
+were corrected along with disjoint/equal range transitions. Shared table transitions
+and UTF-8 stream storage now have owning cleanup; the decoder checks end-of-input
+before dereferencing the input pointer.
+
+The retained [public-API tests](../scaffolding/parser-tree-tests.cpp) exercise exact
+tree output, precedence/associativity, parentheses, an LALR-not-SLR grammar, empty
+and generated productions, nullable sequences, UTF-8 byte spans, debug escaping,
+node-stream payloads, layering, invalid input and early destruction. Node/component/
+allocation counts return to baseline. The original scaffold checks also pass.
+Validated with MSVC native debug execution, MSVC AddressSanitizer, the new standalone
+CMake/CTest target (1/1 suite passed), and verbose trace execution. The full WASI/LLVM
+application was not rebuilt. Reproduction and API ownership are documented in
+[the parser test README](../scaffolding/tests/README.md).
+
+This implements complete tree output for supported whole-input grammars. Repeated
+tokenization, reduction callbacks, grammar-conflict recovery, general overlapping
+range partitioning, script reflection and temporal instrumentation remain separate
+work. No compiler self-hosting or incremental-performance result is claimed.
+
+## 2026-11-15: In-source grammar declarations and the foreach example
+
+Added a native bootstrap for source-level `parse Name = ...;` declarations and
+`parse Name |= ...;` extensions. The declaration syntax is parsed using the same
+LALR engine as application constructs. Its native evaluator registers rules;
+application syntax is supplied by source, not by a native foreach special case.
+[foreach.tower](../scaffolding/examples/foreach.tower) declares variables,
+expressions, statements and the loop grammar, parses nested loops, then replaces
+the loop keyword and parses the revised spelling later in the same file.
+
+The bootstrap supports concatenation, alternatives, postfix repetition/optionality,
+quoted token literals, rule references and named captures. Repeated captures have
+one named container whose children are the captured items, including an empty
+container for zero items. Primitive identifier/number/string token categories and
+trivia handling remain native. Whole-word keywords and longest punctuation tokens
+come from the active grammar revision. Scope is recorded in
+[the usage documentation](../scaffolding/tests/README.md).
+
+The new explicit prefix-recognition mode probes acceptance using EOF reductions
+on a state-only copy before reading another token. It accepts the first nonempty
+complete construct; it is intended for self-delimiting syntax. The syntax driver
+destroys that recognizer before publishing the next grammar table. Consequently
+the next token is lexed under the new grammar, even with no intervening whitespace.
+Each declaration builds a candidate table; unresolved references, conflicting
+actions and bootstrap validation errors reject installation without advancing the
+published grammar revision. Checked table creation now returns diagnostics for
+unresolved rules and action conflicts instead of aborting on those cases.
+
+The [session interface](../scaffolding/syntax.hpp) exposes one tree per construct,
+source position, grammar revision and errors. Earlier trees retain their labels,
+captures and payloads across revision changes and session destruction. Numeric
+non-terminal/production IDs are table-local, not stable semantic IDs across revisions.
+
+Validation: native debug tests and MSVC AddressSanitizer pass. CTest passes both
+the combined suite and the actual foreach example (2/2). Coverage includes immediate
+keyword activation/replacement/removal, nested and empty loops, named captures,
+optional/repeated forms, quoted delimiters, comments, conflicts, invalid source,
+revision preservation on failure, lifetime counts, and exact stream-read boundaries
+when switching tables. The full LLVM/WASI application was not rebuilt.
+
+This implements parsing and declaration installation in a bootstrap grammar
+language. It does not yet execute/lower loops, run arbitrary Tower functions as
+handlers, implement scoped syntax imports or perform temporal repair. Tables are
+rebuilt per declaration. The user's follow-up proposes an easy visual demonstration;
+a browser playground showing source, grammar revisions and trees is under discussion.
+
+## 2026-11-15: Static WASM playground and explicit errors
+
+The browser playground now runs the Tower node/component runtime, parser, syntax
+bootstrap and existing C++ tests in a WASI Preview 1 reactor compiled with Clang
+from WASI SDK 34. The user explicitly chose Clang/WASI and then directed that we
+remove C++ exceptions rather than add exception support. Grammar construction,
+validation and scanning now return errors explicitly; failed declarations still
+leave the prior grammar installed. Native tests and the browser module compile
+with exception handling disabled. The old custom WASM exception implementation
+was removed from the build and source tree.
+
+The [playground](../playground/README.md) is a set of static files: HTML/CSS,
+bundled JavaScript adapters and WASM. CodeMirror 6 supplies the current editor;
+the parser runs in a worker. Reset and next-construct actions operate the actual
+native session. Run reads through the rest of the source. A selectable history
+shows each declaration/statement, its grammar snapshot, ordered tree nodes,
+captures and source byte spans. Errors identify the stopping location. The
+source can be opened, saved and edited locally, with automatic reanalysis.
+
+Highlighting is supplied by Tower's scanner and successful parsed declarations.
+Tokens record the revision under which they were read. A word can be an ordinary
+identifier before a declaration, a keyword while that rule is active, then an
+identifier again after replacement. Whole-word matching and longest punctuation
+matching are shared with parsing. Strings and comments keep their lexical roles.
+During stepping or after an error, unread source is previewed with the last
+committed grammar; inspection never evaluates future declarations or consumes
+the session's source. UTF-8 byte offsets are mapped to the editor's UTF-16 indices.
+
+The versioned [C ABI](../playground/ABI.md) exposes creation/destruction, stepping,
+inspection, caller-owned input buffers and borrowed JSON results. The browser
+copies results before their native storage is reused. Tests cover lifetime counts
+and repeated successful/failed sessions. Worker cancellation and generation IDs
+prevent stale results after edits; a time limit can discard an unresponsive
+instance. The page does not require a parsing server, CDN assets, shared memory,
+threads or cross-origin isolation headers.
+
+The user's longer-term direction is explicit: **the entire playground should
+eventually be written in Tower, including rendering, the text editor and syntax
+highlighting**. CodeMirror/DOM/JavaScript are bootstrap adapters. The session and
+tree interface should survive replacing them; JSON is only the initial transport.
+This does not yet implement stable identities across edits, temporal repair,
+incremental table construction, loop lowering/execution or arbitrary Tower parser
+handlers. Editing currently restarts parsing from the beginning.
+
+Validation: the existing C++ suites pass inside WASM; all nine retained WASM
+tests pass, including the LLVM compiler check; all eight Playwright checks pass
+across desktop Chromium and Android mobile emulation. Native AddressSanitizer
+passes without exceptions, and native CTest passes both tests. Desktop and mobile
+screenshots were inspected. Physical mobile keyboards/IME remain a separate
+device check.
+
+The LLVM compiler experiment also builds successfully with WASI SDK 34 and
+exception handling disabled. It loads on demand in a separate worker, runs the
+scaffold checks, and emits a downloadable WebAssembly object into an in-memory
+WASI filesystem. The emitted `sum.o` was linked with the SDK's `wasm-ld`; executing
+its exported `mainCRTStartup` in WebAssembly returned the expected constant 124.
+The parser module is 3,315,394 bytes and the optional LLVM module is 26,199,904
+bytes before HTTP compression. Only the WebAssembly backend is included. This
+validates LLVM running inside WASM; it does not compile the example's loops.
+
+Build scripts pin and verify the SDK download, build matching native LLVM
+TableGen tools, and cache a clean revision-pinned LLVM snapshot and intermediates
+on the Linux filesystem for WSL. This avoids costly header access through the
+Windows mount. The existing LLVM vendor checkout is unchanged. Rebuilding the
+page copies the finished modules and bundles all browser dependencies locally;
+the resulting `playground/dist/` can be served by an ordinary static HTTP host.
+
+## 2026-11-16: Profiling and immediate live parsing
+
+The user found live compilation/parsing slow and requested profiling and updates
+as they type. Profiling the actual browser editor found a 450 ms trailing debounce
+dominated latency. An edit also cleared visible results and could destroy a busy
+worker. Native phase timings showed another avoidable cost: almost all of the
+small example's parsing time rebuilt unchanged grammar tables.
+
+Edits now schedule on the next animation frame, preserving the warm WASM worker
+and coalescing pending edits to the newest source. Stale replies cannot replace
+newer results. Highlight spans map through edits while the next result is pending;
+the old inspector remains visible but cannot select stale source offsets. Local
+storage persistence has its own debounce. Automatic analysis waits for IME
+composition to finish.
+
+Added native `syntax_reset` and C ABI `tw_reset`. Reset clears source progress,
+errors, highlights, definitions and revision, while retaining at most 16 compiled
+grammars in a session-owned LRU cache. Complete structural grammar definitions
+are the key, including literals, captures, alternatives and repetition. Only
+successful tables enter the cache. Reusing a table never activates a future
+declaration early. Destruction releases the entire cache. Inspection exposes
+build/hit/entry counts for profiling.
+
+Measured desktop median edit-to-result DOM latency fell from 476.6 ms to 16.8 ms
+(p95 19.6 ms); Android emulation fell from 478.4 ms to 17.4 ms (p95 19.1 ms).
+Browser worker parsing is about 1 ms for the example, with no grammar rebuilds
+after ordinary edits. A continuous 44-character burst now produced 44 live
+updates rather than a single update after typing stopped. The Node/WASM full
+example cycle fell from 24.89 ms to 1.29 ms median. The 500-loop stress case still
+takes about 43 ms because parsing/tree serialization remains linear full-document
+work. These are local measurements, not a guarantee for arbitrary grammars or
+physical mobile hardware. [Performance notes](../playground/PERFORMANCE.md)
+document methods, before/after timings and the reproducible profiler.
+
+Validation: 10 WASM tests, 12 desktop/mobile-emulation browser checks and native
+AddressSanitizer pass. Tests compare cached results with fresh parsing after
+grammar edits, failures, Unicode offset changes, recovery and eviction; exercise
+continuous typing and delayed replies; and verify cache lifetimes. Both parser
+and LLVM WASM modules were rebuilt with exceptions still disabled. This is reuse
+of compiled grammars, not yet temporal repair or stable incremental syntax trees.
+
+## 2026-11-16: Token definitions in Tower and a minimal native bootstrap
+
+The user requested that Identifier, Number and String become definable in Tower,
+and that hardcoded C++/WASM language rules be removed where possible. They
+explicitly accepted a small fixed internal reader to solve the chicken-and-egg
+problem of reading the declarations that define the language.
+
+Implemented `token Name = /pattern/ as style;` and
+`skip Name = /pattern/ as style;`. Names are arbitrary; the scanner no longer has
+special application branches for Identifier, Number or String. Ordinary
+whitespace and comments also come from skip declarations. The default lexer is
+now [syntax-bootstrap.tower](../scaffolding/foundation.tower) (since consolidated into foundation.tower), loaded as
+source at runtime instead of being baked into the production scanner. Tests
+successfully install a seed with a differently named `Word` terminal and no
+Identifier/Number/String definitions. Changing the seed requires no WASM rebuild.
+
+The native core retains the fixed declaration reader (names, quoted grammar
+literals, token-pattern delimiters, parse/token/skip/as syntax and metadata
+trivia), a bounded regular-pattern compiler, and the parser-table machinery.
+This separation lets application identifiers or string delimiters change without
+making subsequent declarations unreadable. The optional `@` identifier rule in
+the demo applies to application token occurrences after that declaration; it is
+not a new default or a requirement for declaration names. The user asked about
+this distinction and confirmed understanding.
+
+Patterns support Unicode scalar literals and ranges, negated character classes,
+groups, alternatives, `*`, `+`, `?`, dot and explicit escapes. A Thompson NFA is
+converted to a bounded DFA; errors are explicit and C++ exceptions remain off.
+Nullable patterns, malformed patterns and excessive compilation complexity are
+rejected. Matching uses longest match, grammar literals win equal ties, and
+otherwise declaration order wins. Replacing a token retains its priority slot.
+Lexical definitions, styles and skip flags participate in the session cache key.
+Failed changes preserve the installed revision; inspection does not install
+future declarations; reset restores the session's original lexical baseline.
+
+The browser now offers ForEach, Token rules and Lexical bootstrap examples. The
+grammar inspector shows active token patterns and styles. The new example parses
+hyphenated/Unicode identifiers, decimals, backtick strings, a new Hex terminal,
+hash comments, and a later identifier replacement in one source stream. Browser
+ABI version 2 adds mandatory runtime bootstrap configuration and exposes token
+snapshots. Both parser and LLVM modules use the external seed.
+
+Validation: 13 WASM tests, 14 desktop/mobile-emulation browser checks and native
+AddressSanitizer pass. Tests cover patterns, Unicode byte spans, longest match,
+ties, cache reuse/invalidation, atomic failures, changing seeds, lifetime cleanup
+and continued declaration parsing after token replacement. Desktop/mobile
+screenshots were inspected. The original example still updates in about 17–18 ms
+median, with roughly 1–2 ms of worker parsing and live updates throughout typing.
+[Token documentation](../playground/TOKENS.md) records syntax, limits and the
+remaining native boundary. General Tower parser functions, full self-hosting and
+temporal repair remain later work.
+
+## 2026-11-16: Inline editor diagnostics
+
+Source errors now appear beneath their editor line, with an underlined token,
+gutter marker and line/column label. End-of-input errors use a caret marker.
+The editor footer jumps to offscreen errors. UTF-8 byte offsets are converted
+to editor positions without splitting Unicode surrogate pairs. Edits clear old
+diagnostics immediately; reset and stepping show only the current result.
+File-loading and runtime failures without source positions retain a separate
+message. The parser still reports its first error rather than recovering to
+collect multiple diagnostics.
+
+Desktop and mobile-emulation screenshots were captured and visually inspected.
+All 20 browser checks pass, including Unicode, end-of-input, stale-error removal,
+offscreen navigation, source download integrity and existing live-typing checks.
+Long-file testing exposed a desktop pane sizing issue; panes now retain their
+declared heights and scroll internally. No native parser or WASM changes were
+needed.
+
+The user also asked about `__` rule names. This is the bootstrap's reserved
+internal prefix: names such as `__Declaration` and `__Sequence` describe the
+declaration grammar, while `__repeat` and `__capture` helpers are generated.
+User grammar and token definitions cannot use that prefix. Ordinary names such
+as `Identifier`, `Expression` and `ForEach` remain application-defined rules;
+the prefix is an implementation convention, not a requirement of Tower itself.
+
+## 2026-11-16: LR lookahead, linear parser work and playground cleanup
+
+The user added `ForEach | 'for'` and correctly challenged the driver's premature
+acceptance of the short prefix. They requested ordinary deterministic LR behavior,
+real conflict diagnostics and amortized constant parser work per token, without
+searching or backtracking. A semicolon workaround did not address that requirement.
+
+Construct tables now include FIRST(start) in the start rule's boundary lookaheads.
+The normal table builder checks conflicts across consecutive constructs. `for (`
+continues into ForEach; bare `for` remains valid. A genuine ambiguity such as
+`'x' | 'x' 'x'` is rejected. Diagnostics name shift/reduce or reduce/reduce conflicts
+and show competing actions. Failed candidates preserve the current grammar.
+
+Removed the per-token copied-stack EOF probe. Lookahead drives table actions;
+uniform default reductions allow declarations to commit without lexing ahead.
+Unconsumed lookahead is buffered with its ownership/error, and the syntax driver
+discards uncommitted spans before reading with the next declaration/lexer mode.
+Once a continuation shifts, failure remains an error; there is no retry of a
+previous shorter match. Generated child forests now concatenate in O(1), apply
+captures lazily and flatten once. Browser serialization no longer searches all
+siblings to retrieve each node's member name.
+
+Native operation-count checks demonstrate linear growth for nesting and left/right
+recursive repetitions. At 2,048 items the local warm repetition benchmark fell
+from 95.28 ms to 9.77 ms, including tree JSON. The parser/tree work bound is O(n)
+for a fixed grammar; grammar compilation and the current lexer remain separate
+costs. Details and reproduction commands are in the playground performance notes.
+
+Also completed the user's added cleanup task: removed the intro heading/subtitle,
+How to explore button and help panel, automatic-parsing copy, and unused styles
+and event handlers. Desktop/mobile screenshots were visually inspected. Native
+AddressSanitizer, all 14 WASM checks and all 22 browser checks pass. Both parser
+and LLVM modules were rebuilt with exceptions still disabled.
+
+## 2026-11-16: Replacement templates and safe composition of expansion chains
+
+The user proposes parsing a replacement when its rule is declared, determining
+how it will collapse, and shortening chains such as C -> B -> A. Their question
+is about correctness across captures, recursion, changing grammar and conflicts,
+as well as preserving the parser's performance. This entry records research and
+an executable experiment; production Tower replacement syntax is not implemented
+by this work. `todo.txt` was read but not changed, as required by `AGENTS.md`.
+
+### Earlier notes
+
+Related ideas are present, but the exact transitive shortcut algorithm was not
+found in the notes:
+
+| Location in `todo.txt` | Existing idea |
+| --- | --- |
+| [1633](../todo.txt#L1633) | A binary operator replaces to `Lhs.add(Rhs)`, "automatically reparsed as a new tree". |
+| [2291](../todo.txt#L2291) | Subrule handlers run while parsing; handlers can replace syntax or produce their own tree/AST. |
+| [2420-2449](../todo.txt#L2420) | Proposed `=>` handlers include `replace`, `wasm`, `run` and `discard`. |
+| [5173-5217](../todo.txt#L5173) | Transform repetition into generated productions, including generated rules inside replacements. |
+| [5545-5547](../todo.txt#L5545) | Intermediate trees need not survive if transformation information and normal diagnostics do; "replacements need to be traced!" |
+| [7282-7285](../todo.txt#L7282) | Replacing a subtree should trigger dependent recomputation with early stopping. |
+| [8457-8461](../todo.txt#L8457) | Later preference: retain error information through transforms, use parse-tree replacements, and avoid string reparsing. |
+
+The later tree-replacement direction fits the proposed optimization especially
+well. This is an elaboration of that direction, not a claim that the notes
+already specify its correctness conditions.
+
+### Two separate optimizations
+
+1. Parse a replacement template once, using the syntax category inferred from its
+   grammar context and a known grammar revision. Captures are typed syntax holes,
+   not example strings. Compile
+   a tree-construction recipe that splices the actual captured subtrees at use.
+2. Partially evaluate known replacement operations inside that recipe. For
+   example, `C(x) -> B(Wrap(x))` and `B(y) -> A(y)` can become
+   `C(x) -> A(Wrap(x))` under the conditions below. The intermediate B node and
+   its rule dispatch need not happen on each use.
+
+The first technique has a direct precedent in Lean's syntax quotations and
+antiquotations: quoted syntax is parsed, holes have syntax categories, and
+generated code constructs syntax while preserving inserted syntax and supplying
+binding scopes/source references. It does not mean that all macro expansion is
+performed at declaration time. [Lean macro reference](https://lean-lang.org/doc/reference/latest/Notations-and-Macros/Macros/)
+
+The second technique is a form of partial evaluation: specialize a general
+computation using its known inputs, leaving a residual computation for the
+unknown inputs. Here the known inputs include templates and applicable rules;
+captures and dynamic decisions can remain unknown. The literature supplies the
+concept, not a correctness proof for Tower's future expander.
+[Jones, Gomard and Sestoft](https://raspi.itu.dk/people/sestoft/pebook/pebook.html)
+
+Pre-parsing raw text with EOF is not sufficient to certify an arbitrary splice
+into a running LR parser. Entry state, lookahead and the surrounding stack can
+affect reductions; reductions can pop into older states, so caching by the top
+state alone is not a general solution. A more ambitious token-fragment optimizer
+would need a verified summary of stack effects and applicable contexts, with
+residual work where decisions remain unknown. Typed tree templates avoid much
+of this problem by making the splice boundary part of the language's semantics.
+
+### Correctness boundary
+
+A sound optimizer can guarantee that each shortcut it accepts preserves specified
+semantics, while refusing cases it cannot establish. It cannot generally discover
+and fully collapse every arbitrary replacement program. Termination and confluence
+are undecidable for general term rewriting; arbitrary Tower/WASM handlers add
+ordinary program termination/equivalence problems too.
+[Berkeley term-rewriting lecture](https://inst.eecs.berkeley.edu/~cs294-260/sp24/2024-01-22-term-rewriting)
+
+The first semantics should specify child/parent expansion order, rule priority,
+syntax categories, binding/hygiene, source provenance, identity and the rule
+environment used by a particular expansion. The model below chooses child-first
+expansion, consistent with the earlier subrule-handler notes. Other strategies
+are possible, but the optimizer must preserve the chosen one.
+
+| Case | Required behavior |
+| --- | --- |
+| Pure unconditional structural chain | Compose by substituting captures; do not infer equivalence from rule names alone. |
+| Capture-dependent patterns or conditions | Keep the relevant tests and priority in residual code, or fall back. Seeing one successful sample expansion proves nothing about other captures. |
+| Raw token splice versus tree splice | Preserve the declared semantics. `$x * 2` with `x = 1 + 2` means `1 + 2 * 2` under token substitution but `(1 + 2) * 2` under expression-tree substitution. |
+| Grammar/rule edits | Pin an immutable environment or invalidate/recompile plans. Adding a rule where none existed is also a dependency change. |
+| Handler effects, grammar mutations, fresh bindings | Preserve their order, multiplicity and scope. Do not execute them early or erase them merely because the final tree looks identical. |
+| Capture duplication or erasure | Preserve expansion/evaluation order, sharing semantics and possible errors/divergence. The first optimizer can simply refuse these cases. |
+| Recursive rules | Stop specialization when a proof or work budget runs out; residualize or fall back. Structural recursion may terminate and be efficient; a cycle is not proof that every use is invalid. |
+| Diagnostics and reflection | Retain logical expansion history and source mappings. If intermediate allocation identity is exposed, erasing allocations needs an additional contract or virtualization. |
+| Grammar conflicts | Keep LR shift/reduce and reduce/reduce validation. A cached RHS parse must not bypass conflict checking. |
+| Overlapping replacement rules | Separate issue from LR conflicts. Preserve the specified priority/strategy, or prove that alternate paths join before reordering them. |
+
+Confluence is not necessary if Tower defines a deterministic rewrite strategy and
+the optimizer preserves it. It is relevant if the implementation wants freedom
+to choose or reorder overlapping rewrites. Blanket rejection of all recursion or
+overlaps would unnecessarily restrict the language; refusing an optimization is
+different from rejecting the program.
+
+For dynamic grammar, there are two legitimate policies: templates retain their
+definition environment, or they are recompiled against the current environment
+at use. This entry recommends definition-time parsing for quotation structure
+and an explicit versioned expansion environment. It does not silently choose
+whether a later B-rule change should affect an older C definition. That language
+policy must be specified before implementing live replacement updates.
+
+Initially, one environment epoch is a sufficient conservative cache guard. Later
+Tower's automatic dependency tracking can make invalidation more precise. Reads
+performed while compiling a plan must remain dependencies of that plan, including
+negative rule lookups, lexical definitions and relevant scope/schema versions.
+Retaining a previously generated plan without retaining those dependencies would
+break minimal rebuild.
+
+### Executable checks and their limits
+
+Added [replacement-shortcuts.mjs](research/replacement-shortcuts.mjs) and
+[its tests](research/replacement-shortcuts.test.mjs). Run from the repository root:
+
+```powershell
+node --test docs/research/replacement-shortcuts.test.mjs
+```
+
+The model uses immutable first-order trees, fixed-arity constructors, one rule per
+constructor and a fixed snapshot during expansion. Its optimizer accepts only
+structural templates with each capture used exactly once and an acyclic reachable
+rule dependency graph, within a bounded specialization budget. Captures are
+already normalized before substituting them. Other rules use the ordinary
+expander. The model's holes are positional; this is not yet Tower's syntax-category
+type checker, hygiene implementation or source-location system.
+
+The conditional correctness argument is induction over the acyclic dependencies
+and template structure. Holes denote normalized opaque trees. Constructors expand
+their children in the reference order. Each known rule is replaced by its
+normalized substituted template under the same environment. Thus substitution
+commutes with this restricted normalization; the resulting tree and logical rule
+sequence agree. Captured tree references are preserved. This is an explanatory
+argument, not a machine-checked proof or a proof about arbitrary macro programs.
+
+All **12 tests pass**, including:
+
+- An independent unspecialized oracle compared against 722 bounded input trees,
+  then the same 722 after adding a previously absent downstream rule.
+- Changed existing rules, capture reference identity, logical traces, conditional
+  handlers, effects, ordered alternatives, handler failures, cycles, conservative
+  duplication/erasure refusal, and specialization-budget fallback.
+- Logical expansion limits: the optimized path falls back before crossing the
+  budget, preserving the exact reference trace prefix and failure.
+- Deliberately bypassing the version guard or deleting a trace entry is detected
+  by the independent oracle.
+- A 64-rule chain across 1,000 uses: replacement-created nodes decrease from
+  **64,000 to 1,000**; interpreted rule dispatches decrease from **64,000 to zero**,
+  replaced by 1,000 plan uses. The logical trace is shared static data until
+  requested. These are model operation counts, not native timing measurements.
+- A finite acyclic family that doubles generated branches yields 1,024 leaves
+  and 2,047 output nodes. Precomputation cannot remove the cost of materializing
+  those nodes under this tree representation.
+- Three checks use the **real existing Tower WASM parser**: tree versus token
+  substitution gives different precedence, changing grammar changes the parsed
+  replacement text, and shift/reduce plus reduce/reduce conflicts remain errors.
+
+The WASM checks need the built `build/browser-wasi/tower.wasm`, the current lexical
+bootstrap and installed playground dependencies. They use an ordinary `@x` test
+terminal and a small arithmetic-tree adapter; they do not implement replacement
+declarations in Tower. Native compiler, browser UI and existing WASM binaries
+were not changed for this research.
+
+The model does not cover bindings, source maps, intermediate public node IDs,
+mutable trees, allocation failure, arbitrary grammar-changing handlers, or all
+possible overlapping rewrite systems. Passing finite tests cannot establish
+correctness in those omitted cases. In particular, its structural equality and
+capture-identity contract deliberately excludes newly allocated node identities.
+
+### Performance and implementation direction
+
+Recursion is not itself a performance defect. Repeatedly reparsing unchanged
+replacement text and allocating intermediate trees are avoidable costs. The
+fixed-grammar LR input scan can remain linear, while total expansion work is
+additional: input processing + actual dynamic rewrite work + materialized output.
+No universal O(1) work per original token is possible for arbitrary handlers,
+unbounded recursive expansion or growing output. For a fixed, bounded collection
+of certified templates, composition can retain linear overall construction while
+substantially reducing its constant factor. A compact recipe/provenance DAG and
+specialization budget prevent eager composition from exploding compiler memory;
+actual output size can still dominate.
+
+Recommended first production slice: add quoted tree templates with typed capture
+holes and source origins, plus an intentionally simple reference expansion path.
+Infer the template's output category from its grammar context, use the existing
+grammar validator, and make each expansion's environment/ordering rules explicit. Then implement
+the restricted composition pass and compare it with the reference path on every
+regression case. Preserve expansion traces even when intermediate nodes vanish.
+Extend to conditional residual plans or raw-token parser summaries only when a
+concrete example requires them. This realizes the user's shortcut idea without
+requiring every replacement program to be statically decidable.
+
+## 2026-11-16: Remove redundant replacement category syntax
+
+The user chose `=> replace { ... }`, without a separate parenthesized category.
+The earlier illustrative `replace(Expression)` annotation was redundant when
+the grammar context already establishes Expression as the destination. No concrete
+Tower case requiring that extra annotation was established; hypothetical standalone
+syntax-construction features do not justify adding it to replacement rules.
+
+For example, the proposed declaration is:
+
+```tower
+parse Expression |= 'increment' '(' $Expression ')'
+    => replace {
+        $Expression + 1
+    };
+```
+
+The template is parsed as Expression because that is the rule being extended.
+Its outer braces delimit the replacement template, rather than adding a block to
+the generated expression. Capture category checks and source provenance still
+apply. Replacements remain a proposed language feature; the current C++/WASM
+parser and research model contain no category-argument syntax to remove.
+
+## 2026-11-16: Tree replacements implemented in the native and WASM compiler
+
+Implemented `=> replace { ... }` in the declaration bootstrap, without a category
+argument. Added `$name:Rule` captures alongside existing `$Rule` shorthand. The
+replacement's `$name` means a placeholder for a captured syntax tree; it is not
+a new user-facing concept or a string substitution operation.
+
+Templates compile into trees when the grammar becomes usable. Temporary template
+grammars admit typed capture placeholders and repeated/optional capture lists.
+Their production identities are mapped back into the active grammar. The declared
+rule is tried as the destination first; named helpers may infer a destination
+through the nearest unit-rule parents. Unreachable helper templates stay pending
+until a declaration connects them to Statement. Conflicting or invalid candidates
+fail before publishing a revision, and an incompatible inferred destination at
+use is reported rather than silently leaving a replacement unexpanded.
+
+This is a reference expander, using an explicit child-first work stack. It reads
+the matched production, constructs the template's nodes, and inserts captured
+subtrees directly. Already-expanded captures are not expanded again. Single-use
+captures move; extra uses copy; repeated captures splice their children in order,
+including empty lists. Unused captures are discarded after their children expand.
+The node runtime now supports replacing a child at its existing index and taking
+the final child in constant time, preserving member names and sibling order.
+
+Generated nodes carry both invocation and template coordinates. Captured nodes
+retain input spans and previous transformation history. Provenance uses shared
+expansion records that survive session destruction. Browser JSON transmits a
+shared expansion table, rather than repeating the entire chain on every node.
+The tree inspector marks generated nodes, shows their origins, and keeps named
+terminal captures visible when ordinary tokens are hidden.
+
+Grammar or lexical changes revalidate active templates against the candidate
+environment. Tests cover changing a downstream replacement within one source
+stream, edited bodies, source shifts, cache reuse, and failed lexical changes.
+Template source coordinates participate in cache keys to prevent stale origins;
+more precise dependency-driven reuse remains future work.
+
+The [Replacements example](../scaffolding/examples/replacements.tower) is available
+in the browser selector. It demonstrates increment, an add_one-to-increment chain,
+nested foreach-to-Loop tree construction and duplicated statement lists. It uses
+no generated local identifiers. Structural expansion does not yet provide Tower
+execution, binding resolution, hygiene or general user-code transformation
+handlers. Replacement-chain shortcut composition is also not implemented yet.
+
+Capture categories must fit the grammar position. A precedence grammar can use
+its ordinary grouping rule, such as `($value)`, when placing a general Expression
+in an Atom position. There is no token flattening, guessing of precedence or
+runtime parser backtracking. Expansion is limited to 4,096 replacements and
+65,536 generated/copied result nodes per statement, with a 256-frame generated
+expansion ancestry limit. Exhaustion reports an error and releases partial trees.
+
+Validation: native AddressSanitizer and the full native node/parser/syntax suite
+pass; all **22 WASM/host tests** and **24 desktop/mobile browser checks** pass.
+Tests compare expanded expression shape with ordinary parsed source, verify
+distinct IDs for duplicated captures, check empty/optional/repeated lists and
+source provenance, exercise failures and allocation cleanup, and expand 400
+nested identity replacements with zero generated/copied result nodes. Desktop
+and mobile screenshots were captured and visually inspected.
+
+The reproducible replacement profile measured about 281 ms for the first parse
+of the 15-declaration example, then 2.66 ms median and 4.60 ms maximum for warm
+invocation edits including reset, expansion, JSON and inspection. Warm runs
+rebuilt no grammars and hit all 16 cache entries. This is compiler/host time, not
+browser input-to-paint latency; changing definitions may cost more. Run
+`node scripts/profile-replacements.mjs` from `playground`; results are in
+`build/replacements-profile.json`. Both WASM modules were rebuilt with exceptions
+disabled. The [parser documentation](parser.md#rule-replacements) records the
+implemented syntax and current limits. `todo.txt` was not modified.
+
+## 2026-11-16: Readable expanded code in the parse tree view
+
+Added an open-by-default, collapsible Expanded code panel above the tree. It
+shows the complete selected statement after replacement expansion, using terminal
+labels from the final WASM tree rather than original source spans or replacement
+definitions. Nested chains, repeated captures and generated punctuation therefore
+appear in the reconstructed result. The display stays independent of the Show
+tokens toggle and node selection, and clears for declarations/reset.
+
+This is a debug rendering with normalized spacing and block indentation. String
+token contents are kept intact; skipped comments/whitespace are unavailable. It
+is not a universal round-trip serializer for arbitrary user-defined grammars.
+The bundled expression, nested loop and duplicate-body results were reparsed
+with Tower and checked against the expanded tree shapes. All 22 WASM/host tests
+and 24 desktop/mobile browser checks pass. Screenshots of both layouts were
+visually inspected. The static page and downloadable archive were refreshed;
+no native parser or WASM changes were required.
+
+## 2026-11-16: Typed instruction core, interpreter, and LLVM direction
+
+The user authorized a small interpreter to make the execution model concrete,
+then clarified the intended base language: simple instruction-like operations,
+including three-address assignments such as `a = b + c;`, with typed mutable
+variables and stack storage. Do not add a precedence hierarchy or Term/Factor
+expression grammar to the base. Convenient shorthand such as `a = b = 1;` is
+acceptable if it follows naturally from existing machinery without expanding
+the core rules. This is a preference for simplicity, not a demand for awkward
+bare syntax.
+
+Core operations need type checking, including pointer and alias semantics and
+explicit conversions/reinterpretations where types are incompatible. The initial
+control-flow vocabulary can use if and loop constructs. The user should not write
+phi nodes. LLVM lowering can start with entry-block allocas plus loads/stores;
+mem2reg introduces SSA values and phi nodes for eligible locals. Address-taking
+or escaping locals are not promised promotion. The checked-in LLVM tutorial
+`llvm/docs/tutorial/MyFirstLanguageFrontend/LangImpl07.rst` describes this path
+and its restrictions.
+
+The longer-term target is real LLVM declarations, compilation and execution of
+Tower's operations. The existing LLVM smoke module only returns a constant and
+does not meet that target. The small interpreter should establish the semantics
+and provide a reference for that path, before optimization work.
+
+The web demo must execute in a worker, asynchronously. It must show Executing
+while running, allow cancellation and continued editing even for infinite loops,
+and allow a new run without accepting obsolete output from the old worker.
+These directions are also recorded in AGENTS.md. This entry records requirements;
+implementation and validation results follow separately.
+
+## 2026-11-16: Expressive core and explicit optimization contracts
+
+The user wants language authors to build broadly different languages on Tower's
+small core without paying for surface syntax or having to hand-optimize ordinary
+local variables. Distinguish expressive completeness from efficient lowering:
+the eventual core needs typed arithmetic/conversions, memory and layouts,
+functions/calls/returns, and control flow. Features such as GC, atomics and
+suspension need deliberate runtime/compiler support as they are added. A small
+grammar can expose these operations without a built-in precedence hierarchy.
+
+Keep language semantics visible through lowering. Generic boxed operations and
+opaque runtime calls are not guaranteed to become native scalar operations.
+Use the same typed core for the reference interpreter and eventual LLVM backend,
+rather than expecting LLVM to optimize away an interpreter dispatch loop.
+Guarantee eligible canonicalizations with tests, not globally optimal code.
+Running mem2reg is guaranteed by a chosen pipeline; promotion depends on the
+allocation's uses. Only emit alias/effect/overflow assumptions that Tower can
+justify. LLVM frontend guidance: https://llvm.org/docs/Frontend/PerformanceTips.html
+and mutable-variable tutorial:
+https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/LangImpl07.html .
+
+The user additionally requests a future guarantee that large if/else chains
+testing constants or ranges receive switch-like optimization, without requiring
+switch statements in source. Adopt this as an eventual recognition contract for
+eligible chains: a common stable discriminant, preserved priority for overlapping
+ranges, and no changes to observable evaluation or effects. Canonicalize to a
+dispatch representation. Select jump tables, bit tests, range tests, or decision
+trees using density/cost and target information; a jump table is not an unconditional
+promise for sparse or tiny cases. Chains that reload mutable storage after
+effectful calls cannot simply be collapsed into one read. This is a future
+optimization milestone, not part of the first interpreter implementation.
+
+## 2026-11-16: Typed core interpreter and cancellable browser execution implemented
+
+Added `scaffolding/core.tower`, `core.hpp` and `core.cpp`. The grammar remains
+Tower source and has simple operands plus one operation per assignment, with no
+precedence hierarchy. A native compiler consumes expanded parse trees directly,
+resolves lexical scopes, checks the complete program before execution and emits
+typed slot-based instructions. Core rule labels and capture names are the
+bootstrap semantic ABI; changing keyword spellings does not require C++ changes.
+New operations need native semantics or replacement into existing operations.
+
+The first subset has i32/u32/bool, typed local pointers, arithmetic/bit operations,
+comparisons, explicit checked numeric conversion and integer bit reinterpretation,
+blocks, if/else, loop, break/continue and print. No user phi nodes. Add/sub/multiply
+wrap modulo 2^32; zero division and signed division overflow trap. Reads of
+uninitialized storage trap. Aliases share typed cells; pointers include a lifetime
+generation so dereferencing an expired block local or an earlier incarnation of
+a loop local traps. Scope cleanup also occurs on break and continue. This is a
+checked prototype memory model, not a general byte-addressed machine or final
+layout/ABI specification. Functions, call frames, heap, pointer arithmetic,
+aggregate layouts and floats remain future work.
+
+The Execution playground example appends a Tower-defined increment replacement
+to the editable core grammar. Its loop sums 1 through 5 and prints 15, then an
+aliased write produces 16. The UI shows the actual lowered instruction listing.
+This validates replacements flowing into execution rather than executing debug
+text or adding a native increment keyword. Type and runtime errors appear inline,
+including source locations from generated replacement nodes/captured operands.
+
+Added execution C ABI handles and bounded step calls. Compilation and the whole
+machine run in a dedicated worker, separate from the existing live parser worker.
+The UI displays Executing, supports Cancel, terminates execution on edits and
+rejects obsolete worker replies. A new run starts fresh. There is no execution
+time cutoff; the worker uses 10,000-instruction slices. Output is batched around
+50 ms and capped at 64 KiB. Source/construct limits remain; the compiler also
+bounds local slots, instruction count and block depth.
+
+The execution example uses 22 cached grammar versions, exceeding the earlier
+16-entry capacity. Raised the bounded capacity to 32 and added a regression
+requiring zero grammar builds for a loop-constant edit. Measured reset + full
+parse/expansion + JSON + inspection at 316 ms cold, 7.75 ms warm median and
+9.95 ms warm maximum, with 22 cache hits and zero warm builds. This is WASM/host
+time, not browser input-to-paint latency. Larger sources can still exceed the cache.
+
+Validation: native parser/runtime/syntax/core checks pass under AddressSanitizer;
+all 30 WASM/host tests and 32 desktop/mobile Playwright checks pass. Coverage
+includes conversion/overflow behavior, type failures before any effects,
+scope/loop lifetime safety, nested flow, output bounds, source provenance,
+infinite execution with live editing/cancellation/restart, cancellation while
+loading, and inline error recovery. Desktop/mobile screenshots were visually
+inspected. Both WASM modules and the static bundle were rebuilt; dist/module
+hashes match. The LLVM module remains its existing constant-return smoke test:
+actual Tower-to-LLVM lowering, mem2reg and dispatch optimization are not implemented
+by this milestone. The interpreter is the reference for those future passes.
+
+## 2026-11-16: Auto execution and viewport layout
+
+The user requested execution while typing, a default-on auto-execute option,
+a page that fits the viewport, a merged header/toolbar, tighter spacing, and
+removal of the bottom LLVM experiment dropdown. Implemented these in the static
+playground. Auto execute is enabled unless the user has explicitly disabled it;
+the preference persists in local storage. Successful full parses containing
+Core* statement trees schedule execution after a 120 ms quiet period. IME
+composition defers it, and incomplete syntax waits. Syntax-only examples keep
+working as parser demos. Each edit immediately cancels the preceding worker and
+clears obsolete output/errors. Cancel marks the current source revision handled,
+preventing late parsing or re-inspection from restarting that same infinite loop;
+another edit or explicit Execute may start a new run.
+
+Combined branding, parser actions and file/example controls into one compact
+toolbar, with responsive wrapping on phones. Replaced fixed pane heights and
+large margins with a viewport-sized flex/grid layout. Editor/inspection panes
+share the available space, the execution console has bounded height, and long
+source/trees/output/instructions scroll internally. The document itself does not
+scroll. Reduced spacing and corner radii, and placed output and instructions
+side-by-side within the console. Run LLVM check now sits with execution controls;
+its result/download appear in the console. The bottom experiment dropdown is gone.
+
+Validation: all 38 desktop/mobile browser checks pass across the complete run
+and targeted rerun. The small-screen test initially clicked the center of the
+entire offscreen contenteditable rather than its visible viewport; it now clicks
+visible editor coordinates and verifies editing there. Auto execution tests cover
+default behavior, incomplete edits, infinite-loop cancellation/edit/restart,
+manual mode persistence, runtime errors and recovery. Viewport geometry and
+screenshots were checked at 1440x900, 1280x720, 1024x600, 393x851, 360x640 and
+320x568, including expanded instructions and errors. Screenshots were visually
+inspected. The static bundle/archive were refreshed; native code was unchanged.
+
+## 2026-11-16: Foundation terminology and intent-first declarations
+
+The user names Tower's built-in primitives and bootstrap grammar its foundation.
+Functions, typed parameters, calls and returns belong to that foundation, alongside
+storage, typed operations and control flow. Higher-level syntax is built above it.
+
+The user prefers `var foo: i32 = 123;`, parameters `foo: i32`, and `fn name(...):
+ReturnType` rather than `->`. Intent-first declarations make both human reading
+and parser recognition independent of whether the leading name is a type. Keep
+initializers simple; this does not request a precedence hierarchy.
+
+Type names must eventually be ordinary names resolved to type objects, including
+built-in i32/u32/bool. Reflection should expose built-in and user-defined types
+through the same model. The compiler still needs primitive representation and
+operation metadata, but should discover it from resolved type identity rather
+than privileged source spellings. Type-name lookup belongs in semantic analysis,
+not in parser decisions about whether a declaration has started.
+
+Recorded the direction and outstanding implementation tasks in docs/foundation.md
+and AGENTS.md. The current implementation retains the previous declaration and
+function spelling pending that syntax change. todo.txt remains untouched under
+the repository instruction.
+
+The user also confirms future local type inference: `var a = 5;`. The annotation
+is optional when an initializer determines the type; explicit annotations supply
+an expected type. Specify numeric literal defaults/ranges and diagnose uninferable
+declarations. This is additional semantic checking, not parser-side type lookup.
+The task is recorded in docs/foundation.md and the guidelines.
+
+## 2026-11-16: Foundation functions, Tower graph, LLVM execution and our WASI host
+
+Implemented typed top-level functions, parameters, direct calls and returns in
+Tower's foundation. Signatures are collected before bodies, allowing forward and
+mutually recursive calls. Function locals are separate from entry locals; there
+are no implicit captures. Calls/returns are checked before effects. Parameters
+are mutable local values; pointer arguments preserve aliases into caller storage.
+Returning a local's address does not extend its lifetime. Limits are 256 functions,
+64 parameters, 4,096 locals per function, 65,536 instructions, 128 live call frames
+including entry, and 65,536 live cells. The current grammar still uses the earlier
+`fn add(i32 a, i32 b) -> i32` spelling; the declaration direction above remains an
+explicit follow-up, not an implemented feature.
+
+Split frontend compilation, graph verification/transport and interpretation into
+core.cpp, core-graph.cpp and core-machine.cpp. The graph has typed instructions,
+function signatures, source spans and basic blocks with successor edges. Its
+versioned TWRG binary transport is bounded and verified on decode. Both consumers
+use this representation; LLVM receives no source or parse trees. A new Functions
+example demonstrates factorial recursion and a pointer argument, printing 720/721.
+
+The real LLVM backend lowers ordinary locals to entry allocas and runs explicit
+SROA/mem2reg, instcombine, simplifycfg and O2 with verification. LLVM emits a WASM
+object and LLD links an executable exporting tower_main. The executable runs
+actual compiled operations, using only Tower print/trap imports as needed.
+Address-taken locals use checked generation-bearing cells; this deliberately
+preserves the interpreter's alias/lifetime/error semantics. It is not a general
+raw-pointer ABI. Optimization tests check ordinary allocas disappear, not a
+promise that all memory disappears or the output is globally optimal. Dispatch
+canonicalization and minimal/incremental compilation remain future work.
+
+The user explicitly rejected using someone else's shim. Added our own small
+WASI Preview 1 adapter in playground/src/wasi-host.mjs and removed the external
+browser_wasi_shim dependency and notices. It provides the modules' actual import
+subset: memory-backed files, standard streams, clocks, entropy and exit handling.
+It exposes no OS filesystem/network/environment. Unsupported operations fail;
+this is not a full WASI runtime. Tower's C++ WASI integration supplies LLD a
+heap-backed output buffer because upstream LLVM's buffer requires unavailable
+mmap, and uses disposable workers instead of signal-based crash recovery. No
+C++ exceptions or language-level exception feature were introduced.
+
+The execution worker now owns frontend compilation, LLVM loading, optimization,
+linking, generated-module instantiation and execution. The UI offers Interpreter,
+LLVM and Compare both. Run LLVM operates on the current program; the old smoke
+worker was retired (the legacy native smoke export remains independently tested).
+Instructions can show Tower graph or LLVM before/after optimization, with a linked
+WASM download. Compare checks output, status, error message/location and output
+truncation. Cancel/edit terminates the worker through all phases, including a
+non-cooperative compiled infinite loop; stale messages are ignored. Live parsing
+keeps its independent warm worker. Execution still rebuilds its program per run;
+this milestone does not implement temporal repair or minimal LLVM rebuild.
+
+Validation so far: all 55 WASM/host tests and 44 desktop/mobile Playwright checks
+pass. Differential cases cover recursion, unsigned results, pointer aliases,
+returned/expired locals and parameters, reused frames, destination capture across
+an effectful call, initialization checks, bounded recursion/output, conversions,
+integer traps, loops and replacements. Browser checks prohibit WASM compilation
+on the main thread, exercise all execution choices and cancellation during load
+or infinite code, verify inline errors and viewport bounds, and compare results.
+Desktop/mobile screenshots were inspected. The native AddressSanitizer run is
+still in progress at this entry; its final result is recorded below.
+
+A Node/WASM timing sample for Functions measured 344 ms cold parse and 4.5-7.3 ms
+warm reset/full parse/inspection after constant edits, with zero grammar builds
+and 30 cache hits. Fresh frontend compilation took 327 ms, LLVM instantiation
+114 ms, first graph lowering/optimization/linking 568 ms, and generated-module
+instantiation/execution 0.9 ms. The executable was 927 bytes. These are local
+sample timings, not browser input-to-paint or performance guarantees. They make
+clear that warm parsing is fast while fresh execution compilation still needs
+future reuse/incrementality work. Measurements: build/functions-profile.json.
+The static dist and ZIP were refreshed; parser/LLVM module hashes match builds.
+
+Final validation: the native runtime/parser/syntax/foundation tests passed under
+MSVC AddressSanitizer, including function recursion, escaped-local lifetime
+errors, type checking, graph round-trip execution, all truncated wire prefixes,
+and invalid call targets/opcodes. No sanitizer findings were reported. Together
+with 55 WASM/host tests and 44 browser checks, this completes the implementation
+and validation of this milestone.
+
+## 2026-11-16: Hard requirement for a unified foundation representation
+
+The user requires Tower's graph, bytecode and opcodes to correspond 1:1 with
+foundation instructions and expressions. Generated program output must be
+compilable foundation source, using the ordinary fn/var/type/call constructs.
+This is also Tower's assembly-like authoring format. A separate debug vocabulary
+or a listing that merely resembles Tower does not satisfy the requirement.
+
+The same node/entity/component model must serve syntax, normalized foundation
+programs, transformations and interpreter/LLVM inputs. Share semantic operation
+definitions, validation and formatting. Binary bytecode encodes the same
+constructs and references; it must not invent a second Tower instruction language.
+The editor formatter and program emitter must use the same formatting engine and
+foundation rules. Extra syntax can provide formatting recipes through that system;
+grammar recognition alone does not determine preferred layout. Syntax comments,
+original spelling, resolved bindings/types and provenance are components or
+associated metadata, allowing both source-aware and canonical rendering.
+
+The existing code was inspected: TowerNode already supports components and an
+ownership tree, but CoreProgram/CoreInstruction are currently separate objects.
+core_debug is not recompilable, and explicit End/Jump/BranchFalse instructions
+have no corresponding foundation source forms. The current TWRG bytecode encodes
+that separate instruction set. Therefore this requirement needs an architectural
+refactor, not cosmetic output changes; it is not yet implemented.
+
+Recommended canonical representation retains foundation if/loop/scope nodes and
+derives CFG/execution indexes over them. Exposing arbitrary jumps or other new
+Tower operations would require foundation syntax and semantics first. Ownership
+edges must remain separate from callee/symbol/type/control-flow references;
+recursive functions cannot be modeled by reparenting nodes or blindly creating
+strong reference-count cycles. Shared infrastructure does not require preserving
+a high-level extension node unchanged after replacement, or discarding source
+snapshots when enriching foundation nodes.
+
+The acceptance criterion is a semantic structural round trip: valid program ->
+canonical foundation source -> parse/resolve/check -> equivalent foundation
+program, with stable reformatting and preserved types, bindings, sharing, order,
+effects and lifetimes. Entity allocation IDs/source offsets can change; observed
+program behavior cannot. Test binary round trips and both backends as well.
+Canonical output uses a specified foundation grammar and has the declarations
+or explicit dependencies needed to compile, independent of the input's custom
+syntax. Source provenance may be carried by accompanying metadata.
+
+Recorded as hard guidelines in AGENTS.md and design/implementation tasks in
+docs/foundation.md. This turn is discussion and documentation; no runtime
+refactor or claim of satisfying the new requirement yet. todo.txt is untouched.
+
+## 2026-11-16: Text-only program format, private interpreter encoding and determinism
+
+The user clarifies that Tower should not have a public/distributable binary
+bytecode or graph format. Foundation text is the saved/interchanged program form.
+Shared nodes/components remain the representation for traversal, transformation,
+reflection and compilation. Normal emission to platform objects/executables is
+still intended. This supersedes the preceding entry's plan for a binary encoding
+of the canonical graph and binary round-trip requirements; it does not relax the
+canonical graph/foundation source correspondence or the shared formatter.
+
+The sole exception is a private fast-interpreter encoding. Tower must retain an
+interpreter path for running foundation code without guest JIT compilation or
+executable-memory allocation. A compact register interpreter, inspired by Lua,
+with small operand addresses/indices and roughly 255 registers is a possible
+optimization. It is guidance for research, not a fixed encoding or a language
+register limit. mem2reg promotes eligible locals into SSA; bounded register reuse
+requires a separate allocation/liveness step with wider operands or spills for
+larger cases. Address-taken storage and aliases must preserve their semantics.
+
+This private stream contains execution essentials only, not AST/reflection/source
+metadata, and must not be used for compiler graph traversal or exchange. Keep
+compiler information on shared entities and optional diagnostic mappings outside
+the hot stream. Specialized/fused interpreter instructions may be derived when
+they preserve behavior; canonical foundation nodes still supply source printing
+and transformations. No standalone stable binary ABI or saved Tower bytecode
+asset is planned. Initially treat the stream as a discardable in-memory cache.
+
+Compile-time execution MUST be deterministic across hosts for the same program,
+explicit inputs, semantic version and target description. Define integers,
+floating point (including NaNs, rounding and subnormals), conversions, memory,
+pointer identity, initialization, effects and observable ordering. Host clocks,
+randomness, files, environment and scheduling cannot silently influence a
+supposedly reproducible result. Explicit external inputs should be dependency
+tracked. Cross-compilation queries must consult declared target information,
+not the compiler host. Resource failures and any deterministic fuel policy need
+specified handling; equal semantics is not a promise of equal host resources.
+
+Runtime behavior may be explicitly target-dependent or selectable, as the user
+suggests, but must be well-defined. Exact option/profile syntax remains open.
+Recommended direction is strict portable compile-time execution with explicit
+runtime profiles, documented boundaries, and profile/target included in folding,
+optimization and dependency/cache assumptions. Folding runtime code at compile
+time must honor its selected semantics or decline the fold. Identical execution
+behavior is distinct from identical machine-code bytes across architectures.
+
+LLVM can remain the backend under Tower's contract: do not introduce undefined
+behavior, poison or relaxed floating-point assumptions where Tower specifies a
+result/trap. WASM is useful inspiration, but allows some NaN variation, so it
+does not by itself establish the stronger Tower requirement. Source references
+and the detailed semantic checklist are in docs/foundation.md. Current tests
+cover the implemented integer/bool/checked-pointer subset on the tested WASM
+host; they are not a cross-platform determinism proof.
+
+Updated AGENTS.md, the foundation design/tasks, and the ABI documentation to mark
+TWRG as a temporary prototype to retire. Backends should consume shared entities
+directly where possible, or foundation text across an isolated boundary. These
+are recorded architectural requirements; no runtime encoding/refactor was
+implemented in this discussion turn, and todo.txt remains untouched.
+
+## 2026-11-16: Compute shader targets are explicit goals
+
+The user explicitly wants Tower compute shaders for Vulkan and DirectX 12 and
+requests that the foundation refactor account for sharing across those targets.
+Vulkan shader output is SPIR-V; DirectX 12's corresponding modern shader path is
+DXIL. Keep both as planned backend goals rather than treating SPIR-V as a binary
+accepted by both APIs. References: the Khronos Vulkan environment for SPIR-V and
+Microsoft's DirectXShaderCompiler README.
+
+Share foundation entities, source formatting, type/layout information, validation
+and applicable transformations across interpreter, native, WASM and GPU paths.
+Model shader entry points/workgroup dimensions, resources/bindings, address
+spaces/storage classes, vectors, synchronization/atomics and target capabilities
+explicitly as those features are added. Reject unsupported target operations;
+the current CPU-style recursive functions, checked-pointer runtime and host print
+imports are not automatically valid GPU shader operations. GPU target output is
+permitted platform output under the text-only Tower program-format requirement.
+
+These are recorded target goals and design constraints; this refactor does not
+claim to implement GPU backends yet. Future tests must include target validators
+and execution of reference kernels with clearly specified floating-point and
+memory behavior, while strict compile-time execution retains its own contract.
+
+## 2026-11-16: Target declarations, shared CPU/shader code and usable emulation
+
+The user recalls earlier notes about declaring supported targets on foundation
+operations. Historical evidence in todo.txt (read only): lines 7267-7270 note
+that some calls are not legal on SPIR-V/QASM; lines 7310-7317 discuss library-wide
+target support, a common math library spanning SPIR-V/WASM/QASM/SMT, and inferring
+support for individual parts. Lines 8243-8267 discuss per-target representations
+and computing LLVM/WASM/SPIR-V components on demand. These notes establish the
+direction, but do not specify a finished per-operation annotation syntax.
+
+The intended design now is explicit foundation implementation/capability metadata
+with inferred transitive support: a function can compile for both CPU and shader
+targets when its reachable operations, types, effects and chosen implementations
+satisfy both targets. A selected implementation can be native or emulated. Stage,
+device features, address spaces and execution-context requirements matter as well
+as the target name. Recursive call graphs require a fixed-point analysis; target
+specialization may remove unreachable dependencies before checking eligibility.
+An explicit multi-target declaration should be a checked contract, with a useful
+call chain explaining a missing capability. Exact annotation syntax remains open.
+
+Motivating example: write ocean-wave evaluation once in Tower; run it in shaders
+to render the ocean and call it on the CPU for buoyancy, collision/height queries
+and simulation at the same time/coordinates. Pure wave math should call naturally
+on either target. Rendering-specific sampling/derivatives may require additional
+context. Other examples include shared procedural noise, terrain displacement,
+normal calculations and CPU-side reference tests for compute kernels.
+
+The user wants shader code generally callable/emulatable on CPU, with broad
+coverage as an explicit goal. This is primarily execution of Tower's shared
+foundation semantics, not a requirement to round-trip through SPIR-V or a claim
+that arbitrary third-party SPIR-V ingestion already exists. Shader targets remain
+more restricted than CPU/native/interpreter targets; their restrictions should not
+prevent CPU code from using vectors, swizzles, shader-style mathematical operations
+and explicitly selected fast numeric implementations as language facilities.
+
+Correct CPU execution of ddx/ddy can require a quad of neighboring invocations,
+defined lane arrangement, fine/coarse derivative rules, divergence/helper-lane
+behavior, and rasterization inputs. Sampling may additionally require resources,
+sampler state, coordinates, gradients/LOD and filtering rules. Workgroup/subgroup
+collectives and barriers require their execution context too. An ordinary scalar
+CPU call does not manufacture those inputs. Allow explicit overrides or an
+emulation context, and diagnose requirements for which neither is available.
+
+The user's follow-up emphasizes ease of use: provide good defaults as well as
+faithful emulation. A convenient CPU-call profile may use configurable zero
+derivatives when no gradients exist, and sample the finest available mip (level 0)
+when no implicit LOD can be computed. Interpret the user's "highest lod" as highest
+detail, not the numerically largest/coarsest mip. Resource and sampler inputs still
+need a real binding or an explicitly configured fallback. Defaults must be easy
+to override, documented and inspectable; do not present them as equivalent to
+quad-based shader execution. The strict profile requires the appropriate context
+or an explicit implementation. Do not make users manually emulate a rasterizer
+just to call ordinary wave math or intentionally use the convenient profile.
+
+Desired long-term behavior is deterministic CPU/GPU execution under the same
+selected contract and explicit inputs. Separate strict reproducible arithmetic
+from permitted fast approximations, and distinguish exact reference emulation
+from convenient context defaults. Fast math, texture filtering, reduction order,
+NaNs/subnormals, races and hardware-defined choices need specified policies;
+merely accepting a program on two targets does not prove equal results. Strict
+operations may require software/reference implementations or rejection on an
+unsupported target. A deterministic CPU approximation alone does not prove that
+its GPU counterpart agrees. Target, semantic profile, context/fallback choices,
+resource inputs and selected implementations belong in dependency/cache identity.
+
+Research references: Microsoft's derivative specification describes 2x2 quad
+semantics and stage/device requirements:
+https://microsoft.github.io/DirectX-Specs/d3d/HLSL_SM_6_6_Derivatives.html
+Khronos documents that Vulkan does not generally guarantee identical images
+between implementations:
+https://github.khronos.org/Vulkan-Site/spec/latest/appendices/invariance.html
+These are design goals and follow-up tasks, not implemented GPU/emulation features.
+Guidelines and foundation tasks were updated; todo.txt remains untouched.
+
+## 2026-11-16: Optional hardware dependencies and bundled implementation variants
+
+The user wants convenient optional dependencies for many CPU/GPU hardware features:
+SSE availability is the CPU example; optional Vulkan/3D features are the GPU
+example. Prefer writing one operation with alternative implementations, selecting
+real hardware support where available and using portable or CPU-emulated fallbacks
+where appropriate. One executable/package may contain multiple compiled paths.
+Exact declaration/selection syntax is open; do not hardwire each feature as a
+special case throughout the compiler or require users to hand-maintain every
+permutation of backend logic.
+
+Design direction: implementations declare required target capabilities, context,
+effects and semantic contract, and may have a fallback or preference. Selection
+considers what is compiled into the package, hardware support, CPU OS-state support,
+GPU features/extensions actually enabled on the chosen device, context/resources,
+user overrides and strict/relaxed numerical policy. Availability is not proof of
+semantic equivalence. A precise portable implementation must not silently switch
+to a faster approximate one under a strict contract. A relaxed implementation can
+be used when the caller's selected contract permits it. Record the selected variant
+for inspection/reproducibility; deterministic compile-time behavior never consults
+ambient host feature detection instead of explicit target inputs.
+
+Separate build-time specialization from runtime dispatch. Known targets can select
+and discard unused alternatives while compiling. A distributed executable may
+bundle baseline and SIMD CPU functions and dispatch at startup/call boundaries;
+GPU alternatives can be separately compiled modules selected at device/pipeline
+creation. Do not put an unsupported SPIR-V capability into a supposedly baseline
+module merely because its branch is not expected to execute. Separate modules may
+live in the same package/executable. Prevent optional CPU instructions from leaking
+into baseline code through inlining/whole-program optimization too.
+
+CPU emulation of a whole kernel may require moving resources and synchronizing
+with GPU work. It is not generally a transparent scalar call from an executing
+GPU shader into arbitrary CPU code. Make such scheduling/transfer boundaries
+explicit, preserve ordering/effects, and share interfaces/layouts or validated
+adapters across variants. Optional implementation build dependencies should only
+be required for enabled variants; missing optional tools/libraries must not disable
+a valid baseline build.
+
+Avoid an eager Cartesian product of every independent feature: specialize reachable
+code on demand, cache reusable fragments/variants, and bound variant growth. Include
+feature sets, semantic policies, chosen implementations and resources in appropriate
+compilation/minimal-rebuild keys. Test forced baseline/fallback selection even on
+feature-rich hardware, missing enabled features, incompatible profiles and shared
+CPU/GPU reference kernels. These are requirements/tasks, not implemented dispatch.
+
+## 2026-11-16: Absorb selected LLVM and Binaryen machinery into Tower
+
+The user explicitly sets the long-term direction: inline/translate/convert the
+needed LLVM and Binaryen compiler code into Tower itself, remove what Tower does
+not need, make the retained compiler deterministic and targeted to Tower's
+requirements, and build extensive tests. This is architectural guidance and a
+future migration; it is not an instruction to replace both upstream projects in
+the current foundation/browser refactor.
+
+Combine the useful LLVM-to-WASM machinery and Binaryen's additional optimizations
+within Tower's own compiler. Crucially, Tower's graph/opcode representation uses
+the SAME node/entity/component system as the parse tree and AST, augmented with
+instruction/semantic information. Compiler analysis, formatting, transformations,
+interpretation and target emission should share those definitions. No independent
+public graph dialect or binary bytecode is introduced. Canonical operations retain
+foundation spellings and semantic source round trips; target-specific analyses or
+execution caches remain derived views rather than competing program semantics.
+Being written in Tower also lets the compiler participate in Tower's dependency
+tracking and minimal rebuild facilities as they mature.
+
+This clarifies the preceding Binaryen discussion. Near term, use the working LLVM
+backend; optionally benchmark Binaryen wasm-opt as a post-link optimization step.
+The existing repo only has commented-out Binaryen integration, not a maintained
+direct Tower-to-Binaryen backend. Emscripten's current optimization documentation
+still describes Binaryen optimizations after LLVM/LLD, and Binaryen accepts final
+WASM directly. Long term, the user wants the useful optimizations combined inside
+Tower rather than permanently maintaining two opaque external pipelines:
+https://emscripten.org/docs/optimizing/Optimizing-Code
+https://github.com/WebAssembly/binaryen/blob/main/README.md
+
+Translation/adaptation must preserve applicable upstream licensing and attribution.
+Port only with understood preconditions and Tower's explicit semantics: upstream
+assumptions about poison/undefined behavior, trapping, aliasing or fast math cannot
+silently become Tower rules. Some passes operate on target-specific details that
+are unavailable earlier, so combining them does not imply running every pass at
+one abstraction level. Derived target views/components are compatible with shared
+node infrastructure; target instructions need an explicit supported representation
+if exposed as canonical Tower operations.
+
+Testing direction: keep the reference interpreter and upstream backends as
+independent comparison points during migration; test each pass before/after on
+valid inputs under a stated profile. Include known regression cases, generated
+and adversarial programs, bindings/types/scopes, pointer alias/lifetime behavior,
+effects/traps, canonical text round trips, feature variants and forced fallbacks.
+Distinguish defined deterministic Tower results from upstream unspecified behavior
+when comparing. Add reproducibility checks for same program/inputs/target/profile
+across hosts and repeated/incremental builds, plus performance and size benchmarks.
+Bit-identical artifacts require fixed toolchain/configuration and deterministic
+ordering; execution determinism alone does not imply identical emitted bytes.
+These plans were added to guidelines/tasks; no migration completion is claimed.
+
+## 2026-11-16: One shared backend architecture including SPIR-V and WGSL
+
+The user extends the LLVM/Binaryen translation direction to SPIR-V machinery and
+the SPIR-V-to-WGSL translator as well. The end goal is a broadly targeting compiler
+written in Tower: absorb/translate the needed implementation code, share what is
+applicable across all of it, and specialize for Tower's semantics and determinism.
+"Inline SPIR-V" here means the relevant implementation/tooling (generation,
+validation, transformations and conversion), not treating a specification or
+binary format itself as executable compiler source. Exact upstream projects and
+the boundary of code to adopt are not selected yet.
+
+All of these paths use the same Tower node/entity/component architecture for parse
+trees, ASTs and foundation instructions, with semantic/target components and
+derived analyses as needed. Share types, layouts, effects, validation, transforms,
+dependency tracking and formatting rules wherever their contracts align. Keep
+target-specific legality and lowering explicit; sharing infrastructure does not
+make every CPU operation legal in a shader or erase backend execution models.
+The saved/interchanged Tower program remains compilable foundation text.
+
+Browser WebGPU accepts WGSL source, not SPIR-V binary. Native wgpu's optional
+SPIR-V input support is a separate implementation API. Therefore the future target
+paths include Vulkan/SPIR-V, DirectX 12/DXIL, and browser WebGPU/WGSL:
+https://gpuweb.github.io/gpuweb/#dictdef-gpushadermoduledescriptor
+https://docs.rs/wgpu/latest/wgpu/enum.ShaderSource.html
+
+Initially a suitable translator could bridge compatible SPIR-V into WGSL. The
+user does not want that intermediate conversion to be permanent: translate/adapt
+its useful conversion and validation machinery into Tower, then generate WGSL
+directly from the shared internal representation. Avoid serializing to SPIR-V
+and reparsing it merely to reach another backend when internal information is
+already available. WGSL/WebGPU restrictions still require validation even when
+no external translator is used. Retain relevant upstream attribution/licenses.
+
+Apply the same incremental migration and large conformance suite as for LLVM and
+Binaryen: canonical source round trips, per-pass checks, independent reference
+execution, upstream comparisons on defined overlapping semantics, target validators,
+actual CPU/GPU execution, forced capability/fallback variants and deterministic
+build/evaluation tests. The intended "mega backend" is this unified architecture,
+not a claim that the SPIR-V/WGSL paths or self-hosted translations exist today.
+
+## 2026-11-16: Function invocation uses parentheses without a call keyword
+
+The user asks whether the call keyword is needed, then explicitly requests its
+removal. Foundation calls now use `name(arguments)`, both for value-producing
+expressions (`var result: i32 = add(20, 22);`, `result = add(20, 22);`) and
+standalone invocations (`increment(pointer);`). Function declarations remain
+`fn name(arguments): Type`, and variable declarations retain `var name: Type`.
+
+In the current foundation grammar, the token after a name distinguishes `(`
+for calls, `=` for assignments, or an operand continuation/boundary. This does
+not require precedence rules, backtracking, parser symbol lookup or an additional
+runtime search algorithm. A language built above the foundation can choose its
+own meaning for parenthesized forms through its rules and replacements.
+
+The `CoreCall` parse shape/captures, semantic components, parameter checks,
+callee binding, recursion and return behavior are unchanged. The grammar and
+canonical formatter now share the bare-call spelling. Examples and execution,
+round-trip and browser tests are being updated together. Nested call expressions,
+callable values/indirect calls and general expression precedence are separate
+features, not implicitly added by dropping this keyword.
+
+## 2026-11-16: Shared foundation entities and whole-document inspection implemented
+
+Replaced the separate CoreInstruction/operand/function/block representation and
+binary graph transport. `CoreNode` semantic components are attached directly to
+the retained expanded parser entities; the program owns the parse-tree roots,
+while bindings/callees/semantic child links are non-owning within that lifetime.
+Recursion therefore needs no ownership cycle. Derived slot/function indexes stay
+metadata on those entities. The reference interpreter and LLVM lowering read
+these same components; the interpreter walks structured nodes with task stacks.
+LLVM derives its own blocks and retains the existing checked-pointer behavior,
+local promotion/O2, verification and LLD executable output.
+
+`core_format` emits compilable foundation text using the agreed var/colon
+declarations and bare calls. The old `%slot`/block/debug-op listing and binary
+serialization exports are gone. The isolated LLVM module accepts foundation text
+and runs the shared parser/resolver/type checker with the configured foundation
+grammar. Source-map sidecars preserve diagnostic locations, including generated
+replacement operations. The browser ABI is version 3; README/ABI/foundation docs
+and bundled examples were updated. Ordinary type names are identifiers resolved
+through the current scalar registry, rather than grammar keywords. Reflected
+types, user-defined types and local inference remain future work.
+
+The parse inspector now presents all successful top-level trees as ordered
+children of one Document root. Nested statements remain under their parents.
+Select a declaration, statement, nested capture/token, or replacement trace to
+highlight its source; the expanded-code preview follows the selected subtree.
+Children are populated lazily. Declaration names and source snippets make the
+collapsed roots identifiable. The construct timeline and Run all/Next construct/
+Reset controls are removed. Active grammar shows the final installed revision.
+Live parsing/highlighting still uses the warm worker; all execution and LLVM
+compilation/linking remain cancellable in a separate disposable worker.
+
+Native round-trip tests compare semantic structure, types, declaration references,
+order and bindings, and assert that semantic nodes also carry parser components.
+They verify ownership release after destroying machines. Differential WASM cases
+cover recursion, initializers, shadowing, ordinary type/call names, aliases,
+lifetimes, traps, generated-source mapping and malformed editable semantic rules.
+Review also found and fixed structured-interpreter break/continue unwinding:
+an enclosing loop continuation must be distinguished from an unentered sibling
+loop still in the task stack. Dedicated differential cases exercise both forms.
+
+Desktop/mobile browser checks cover document/nested-node/replacement selection,
+inline errors, compilation/execution cancellation, worker-only WASM execution,
+source persistence, viewport containment and continuous typing. Screenshots are
+saved under build/playground-document-*, playground-foundation-* and other
+playground-*.png artifacts and were visually inspected. The latest typing profile
+(build/foundation-profile.json) measured desktop median warm parsing 0.9 ms,
+median editor-to-result DOM update 17.1 ms (p95 19.2 ms), and emulated-mobile
+median update 17.6 ms (p95 19.7 ms). Both used one parser worker; the continuous
+44-character burst produced 44 updates on each. These are local measurements on
+the small example, not guarantees for arbitrary grammars, real phone hardware,
+cold compilation or LLVM execution.
+
+Remaining related work includes a general editor formatting command/extension
+recipes, comment preservation, generated/escaped-name policies, verified public
+node-construction/transformation APIs and stable identities across edits. The
+current component schema is the foundation for that work, not a completed
+reflection/ECS editing system or incremental optimizing compiler.
+
+Final validation for this implementation: 61 Node/WASM tests passed (including
+real LLVM/LLD execution and the loop-unwinding regressions), all 42 Playwright
+desktop/mobile tests passed, and the complete Windows native AddressSanitizer
+suite passed with the bare-call grammar and shared-node round-trip checks.
+The static dist was rebuilt and packaged as build/tower-playground.zip. The local
+preview is http://127.0.0.1:4173/. todo.txt was not modified by this work.
+
+## 2026-11-16 — One editable foundation module and parallel reference execution
+
+The user asked to show the real foundation file, not a token-only example that
+redeclares its own defaults, and confirmed that there should be just
+`foundation.tower`. Consolidated the former lexical seed and core grammar into
+`scaffolding/foundation.tower`, containing token/skip declarations followed by
+the instruction-like grammar, including functions, arguments, calls and returns.
+The static build copies that exact file; executable examples no longer receive
+a generated grammar prefix. The native test runner uses the same file.
+
+The native declaration reader starts from an empty environment when loading the
+module. Token definitions enable ordinary tokens; later parse declarations build
+the grammar. Installation is atomic and identical module source is idempotent,
+so loading it again cannot accumulate duplicate `|=` alternatives. Changed source
+rebuilds the module from its beginning. Existing sessions pin their baseline;
+new sessions inherit both tokens and grammar. This is module-load idempotence,
+not a change to the ordinary meaning of repeating an extension declaration in
+one source document. This is not yet a general file-import language feature.
+
+The Foundation button edits that shared module in the browser, with separate
+source/module buffers and undo histories. The source parser and both executable
+frontends use its current contents. Invalid modules remain editable, produce
+inline diagnostics in the module view and block dependent source analysis/runs.
+Restore reads the bundled version; Save downloads the current file. Both buffers
+persist in local storage. This static page cannot write edits back into the
+repository or server filesystem. The immutable compiled-grammar cache is now
+bounded at 64 entries so the complete foundation declaration sequence can remain
+warm without cycling through a 32-entry cache.
+
+The user also requested fully expanded code at the replacement locations in the
+tree. Removed the single shared preview. Provenance locates each replacement at
+the root of its resulting subtree; nested replacements receive their own preview,
+chains share their final result at one root, and duplicated captures retain
+separate occurrences. Previews use the final token reconstruction and remain lazy
+with the tree, independent of Show tokens. Selecting a replacement still highlights
+its invocation and reports definition coordinates. Module-qualified definition
+navigation remains follow-up work; definition coordinates are module-local.
+
+### Always compare interpreter and LLVM
+
+Removed Run LLVM, the backend selector, instruction representation selector and
+the instruction expander. Each execution now starts two disposable workers in
+parallel, separate from the warm live-parser worker. Interpreter and LLVM each
+compile from the same source/module revision and expose independent progress and
+output. Completion compares status, captured output, trap message, source location
+and truncation automatically. A mismatch is visible; loading/host failures report
+comparison unavailable. Cancellation terminates whichever workers remain active;
+an edit cancels both and discards obsolete messages. A finished interpreter does
+not prevent cancellation of a still-compiling or infinitely running LLVM program.
+
+Five persistent columns show Tower instructions as compilable Foundation source,
+LLVM before optimization, LLVM after optimization, interpreter output and LLVM
+output. On phones, the three instruction columns sit above the two output columns.
+All scrolling stays inside the viewport. Steps and measured timings appear at the
+bottom: Tower compilation, instruction formatting, LLVM total compilation,
+lowering/before IR, optimization/after IR, object emission/linking, each execution,
+and module loading. Timings describe actual stages; there is no fabricated
+bytecode-build timing. The interpreter still executes shared Foundation nodes;
+a compact private interpreter encoding remains future work.
+
+Comparison currently checks observable output/traps for this run, not a proof of
+semantic equivalence for every input or unobserved memory state. Output remains
+bounded at 64 KiB per runner. If both outputs truncate identically, the UI explicitly
+says that the captured results match; it does not claim to have compared the tail.
+The LLVM timings include its canonical-source frontend, lowering, verification,
+optimization, emission and linking. Execution elapsed time includes guest module
+initialization for LLVM and cooperative yields for the interpreter; these are
+debugging timings rather than isolated backend benchmarks.
+
+The user wants to extend this model to shader emulators and actual SPIR-V or
+WebGPU/WGSL execution, including reading back results. Preserve this direction:
+independent runners consume the same semantic program and explicit inputs, and
+comparison uses the selected numeric/resource/context contract. GPU capability
+checks, derivative/workgroup context, upload/readback and relaxed-math tolerances
+must be explicit. No shader backend was implemented in this change.
+
+### Canonical names across an edited input grammar
+
+Testing a real module edit exposed a round-trip bug: allowing `player-name` in
+Identifier worked in the interpreter but the canonical text could not be read
+by LLVM's bundled foundation. Foundation now includes backtick-quoted identifiers.
+The shared formatter quotes names that are not ordinary identifiers or collide
+with canonical keywords. Semantic name decoding preserves backticks, backslashes,
+newlines and tabs, as well as bindings and pointer display names. Plain names keep
+their existing spelling. Quoting is defined by the Foundation token rule; no new
+native parser branch was added. LLVM parses canonical output with the bundled
+module, while both runners' input frontends use the editable module. Thus an input
+keyword such as `emit` can still serialize as the canonical `print` operation.
+
+Validation includes module installation/pinning/idempotence and invalid-module
+recovery, real renamed-keyword and hyphenated-identifier execution in both backends,
+quoted-name structural round trips, nested/duplicated replacement previews,
+independent undo histories, deliberate mismatch injection, parallel progress and
+cancellation during LLVM loading, and desktop/mobile viewport checks.
+
+The latest local profile measured warm example parsing around 1–2 ms and median
+edit-to-DOM updates of 18.0 ms desktop / 18.3 ms mobile emulation (p95 20.3 / 19.8 ms).
+Both retained one parser worker and produced 44 updates for 44 continuous edits.
+This is a small-program local measurement, not a guarantee for arbitrary grammar
+changes, cold LLVM compilation or real phone hardware.
+
+Final validation: all 66 Node/WASM checks passed, including real LLVM/LLD runs
+with quoted/escaped names; all 50 Playwright desktop/mobile checks passed; and
+the complete Windows native AddressSanitizer suite passed. Visually inspected
+desktop/mobile instruction/output columns, the 320-pixel layout and inline
+replacement previews. A final stale node-info cleanup was covered by targeted
+tree/viewport browser checks. Rebuilt the static dist and refreshed
+`build/tower-playground.zip`. Preview: http://127.0.0.1:4173/. No edits to todo.txt.
+
+## 2026-11-16 — User-defined struct types and checked fields
+
+The user accepted the next milestone: a common registry for built-ins and user
+types, structs with deterministic layouts and typed field access, and one complete
+program that passes a local struct's address into a function, mutates a field and
+prints the same result in interpreter and LLVM. The implementation now includes
+that program as the playground's Structs example.
+
+Foundation syntax is `struct Pair { first: i32; second: i32; }`. Names after
+`struct`, field names and names after `:` remain ordinary identifiers; the parser
+does not look up types. A shared `CorePlace` rule adds `pair.first`, nested member
+selection, assignment targets and `&pair.first`. Member selection also accepts
+exactly one level of struct pointer, so a `Pair*` parameter uses `pair.first`.
+This adds no arithmetic precedence hierarchy. Pointer-to-pointer access requires
+an explicit load first. All grammar remains in the one foundation.tower module.
+
+The program owns one type registry containing built-in and user type entities.
+Built-ins carry their representation and layout metadata; user structs and fields
+attach semantic components to their actual parse nodes. CoreType references a
+primitive representation or nominal struct entity plus pointer depth. References
+from fields and accesses are non-owning, so recursive pointers create no ownership
+cycle. Field access binds to the declared field entity. Canonical formatting emits
+the struct declaration and normal member syntax, preserving quoted names, forward
+references and bindings. No separate public type graph or instruction format was
+introduced. The host inspection result exposes the same registry's names, kinds,
+sizes, alignments and fields/offsets; Tower-language reflection remains future work.
+
+Headers register first, then fields resolve, layouts validate, function signatures
+resolve and ordinary bodies type-check. This supports forward type references,
+nested inline structs and recursive/mutually recursive pointers. By-value layout
+cycles, duplicate types/fields, unknown fields/types and nominal pointer mismatches
+are rejected before effects. A type named i32 cannot replace the existing registry
+entry, just as one user type cannot redeclare another. Value variables named i32
+remain legal because declaration recognition and type lookup are separate.
+
+The initial portable value-layout profile specifies i32/u32 4-byte size/alignment,
+bool 1/1, void 0/1 and checked pointers 24/8. Fields follow declaration order with
+alignment padding and final struct padding. Empty structs occupy one byte and one
+storage cell, preserving distinct object addresses. The checked pointer contains
+a cell index, lifetime generation and display-name index; this is neither a native
+address nor an external C/shader ABI. The interpreter and LLVM currently derive
+scalar storage-cell indexes from the same type/field metadata and retain separate
+initialization/lifetime bookkeeping. Those cells are not a packed memory image of
+the reflected byte layout. External ABI profiles and GPU resource layout remain
+explicit follow-up work rather than an implied property of these structs.
+
+Each field has independent initialization state. All cells belonging to a local
+share a generation, including nested fields. Field pointers alias the original
+storage and expire when the owner leaves scope, returns from its frame or is
+declared again on a loop iteration. A field address can be taken before that field
+is initialized; reading its contents still traps. Runtime traps and source locations
+agree between the interpreter and generated LLVM/WASM. If a call produces the
+right-hand side of an assignment, arguments are read and the destination address
+is captured before entering the callee; changing an alias inside that function
+does not redirect the pending store.
+
+For this first slice, structs are local storage and are passed/returned through
+typed pointers. Whole-struct assignment, comparison, printing and by-value
+parameters/returns produce explicit diagnostics. Fixed arrays, vectors, copying,
+by-value ABIs and Tower-level reflection are next steps. Struct metadata and member
+syntax are already shared with the formatter and both backends. Resource limits
+bound types, fields, nesting and flattened storage; excessively deep member paths
+or exponentially large by-value layouts fail without exhausting the native stack.
+
+The Structs example prints 42 after a function adds two fields, 22 for its unchanged
+second field, then 7 after writing through an i32 pointer to that field. It runs
+automatically in both workers and appears in all existing instruction/output
+columns. Browser tests exercise inline missing/uninitialized-field errors and
+expired field pointers, then edit back to valid source. Desktop/mobile screenshots
+were visually inspected.
+
+Saved Foundation defaults now record their bundled baseline. If unchanged, they
+upgrade when the bundled grammar changes; custom module source remains intact.
+An exact SHA-256 identity also recognizes the previous bundled default, whose
+older UI stored no baseline. Unrecognized legacy modules are preserved rather than
+guessed to be disposable defaults. This prevents ordinary returning users from
+accidentally retaining a pre-struct default while protecting grammar edits.
+
+Validation: the complete 84-test Node/WASM suite passed, including 18 new struct
+checks and real LLVM differential execution, layout inspection, canonical round
+trips, pre-effect diagnostics and allocation ownership. A further storage-selection
+unit test passed. All 54 desktop/mobile browser checks passed, followed by 12
+targeted checks for the saved-baseline changes (including two new upgrade/preserve
+cases). The complete Windows AddressSanitizer suite passed with native struct
+layout, shared-node structural round-trip and field-lifetime tests. todo.txt was
+not modified.
+
+Rebuilt the static page and refreshed `build/tower-playground.zip`. The preview
+remains http://127.0.0.1:4173/; refresh and select Structs to run the milestone.
+The prior packaged Foundation source was also checked directly against the saved
+module selector: the exact old default upgrades, while adding an edit preserves it.
+
+## 2026-11-17 - Replacement diagnostics and bootstrap clarification
+
+Renamed the playground's LLVM columns to LLVM raw and LLVM optimized. Replacement
+template failures now explain the required syntax category and quote the invalid
+template: `Replacement for Statement must produce a valid Statement.
+"$name - $name;" is not a valid Statement.` The original parser cause remains
+available, and the editor still underlines the offending token at its original
+UTF-8 source offset. Empty templates are explicit; excerpts are bounded and do
+not split UTF-8 characters. Helper-rule failures list their attempted destination
+categories rather than claiming that only the helper itself is permitted.
+Grammar-table failures are described as validation failures, not proof that the
+template itself is invalid. Declaration installation remains atomic.
+
+Rebuilt both WASM modules and the static playground. All 10 replacement tests
+passed, including category reporting, source offsets, unknown captures and helper
+destinations. Desktop and mobile browser checks passed; screenshots confirmed the
+inline error fits, and correcting the assignment recovers to matching execution
+in both workers. The earlier column rename also passed desktop/mobile execution
+checks. No changes to todo.txt.
+
+Clarified the current bootstrap boundary: `parse`, `token`, `skip` and declaration
+names use the native seed grammar/lexer in syntax.cpp. That reader recognizes the
+name `Identifier` while installing its token declaration; it does not depend on
+the ordinary Identifier token being defined. Editing Identifier changes ordinary
+Tower code, not grammar declaration names. The seed is part of the foundation
+conceptually, but is not yet authored in foundation.tower. A starting reader is
+necessary; permanently keeping the entire declaration grammar in C++ is not.
+Moving more of this machinery into Tower remains future work, not a change made
+as part of these diagnostics.
+
+## 2026-11-17 - Shared grammar entities and a proposed bedrock module
+
+The user reiterated that data-driven grammar declarations must use the same
+node/entity/component architecture as parse trees, ASTs and foundation semantics,
+including the eventual ECS implementation. They proposed formatting the native
+declaration grammar into Tower source, possibly as bedrock.tower with
+foundation.tower layered above it. Recorded the shared grammar-node/formatter
+requirement in AGENTS.md; this discussion does not implement a new module loader.
+
+Verified current identity behavior in the built WASM parser: repeating
+`parse Statement = 'x';` succeeds and reuses a cached table, but still advances the
+session revision. Repeating it using `|=` instead appends a duplicate alternative
+and diagnoses a reduce/reduce conflict. Installing the exact same complete
+foundation module through syntax_set_bootstrap returns immediately. Thus semantic
+idempotence of replacing a definition, revision/provenance updates, and idempotent
+module installation are separate concerns; ordinary extension is not deduplicated.
+
+Current foundation.tower really supplies the ordinary lexer and grammar as source.
+The native declaration seed still lives in syntax.cpp. Foundation execution,
+validation, canonical spelling and expected Core* labels/captures still have C++
+implementations/contracts. The current grammar pipeline already constructs
+TowerNode rule/reference/literal components, but also copies declaration semantics
+into Definitions/Sequence/Term and TokenDefinition structures. Complete shared
+grammar entities and a declaration formatter are therefore work to do, not an
+already completed property of the implementation.
+
+Recommended layering: a minimal seed loads bedrock.tower (declaration syntax),
+which loads foundation.tower (ordinary tokens and executable foundation grammar).
+Keep irreducible scanners/grammar installation hooks explicit during migration.
+Bedrock should become an actual consumed source module; a generated text display
+of hardcoded rules alone would not make its edits authoritative. A bootstrap
+snapshot/table may be generated from the same source, avoiding a second manually
+maintained grammar. Current reserved __ names and fixed declaration dispatch mean
+that simply appending a dump cannot yet replace the native seed.
+
+The first slice should attach declaration semantics to shared nodes, extend the
+common formatting engine to serialize those declarations, and verify reloads.
+Format source-level grammar entities, retaining order, `=` versus `|=`, token
+styles, captures, replacement templates and provenance, rather than trying to
+reverse generated LR tables/repetition helpers into source. Require canonical
+round trips and seed/bedrock agreement on accepted syntax, resulting rule
+structure and replacement behavior before changing the bootstrap boundary.
+
+## 2026-11-17 - Shared grammar nodes, formatter and editable bedrock implemented
+
+Implemented the three steps above. Parse/token/skip declarations, alternatives,
+terms, captures and replacement templates now carry SyntaxNode components on the
+actual TowerNode parse entities. Grammar tables, token lookup and compiled patterns
+are derived indexes/caches over those entities. The previous copied Term/Sequence
+and token-definition semantic structures have been removed. Syntax and executable
+foundation nodes use one tower_format engine; core_format delegates to it. Grammar
+formatting preserves declaration order, replacement versus extension, capture names,
+styles, patterns and template bodies. Declaration comments are retained, with
+comments inside a declaration moved before it; template contents retain their own
+text. Source spans remain metadata, and generated seed entities have no fabricated
+source positions. Published grammar versions are immutable; a general verified
+live entity-editing API and the eventual ECS implementation remain future work.
+
+Added real scaffolding/bedrock.tower, generated by formatting the native grammar's
+shared entities. An exact-output test prevents the bundled default and native seed
+from drifting. The immutable C++ seed ALWAYS reads bedrock, even when bedrock
+changes the downstream declaration keywords. Installed bedrock then reads
+foundation.tower and user declarations. Named captures specify the declaration
+installation contract. The remaining native scanner primitives are __Quoted,
+__Pattern and __Template; installation and semantic validation also remain native.
+Changing bedrock is atomic, invalidates the dependent foundation baseline, and
+does not change existing sessions that retain their installed grammar versions.
+Identical complete module installations return immediately. Ordinary repeated
+declarations still retain the revision/extension behavior documented above.
+
+The host loads bedrock, foundation, then the user program. This is not yet a
+general import implementation: the intended future source relationship is
+foundation importing bedrock and user modules importing foundation. Canonical
+grammar text uses the default bedrock spelling, even if an edited bedrock accepts
+different declaration keywords. Formatting requires a completed, valid declaration
+document and refuses to silently discard executable statements. Bedrock's own
+declaration grammar currently rejects replacement handlers; ordinary language
+replacement rules remain supported. These boundaries are documented in the ABI.
+
+The playground now fetches both actual module files. Bedrock and Foundation are
+options in the editor document dropdown, as requested; their separate buttons
+were removed. Each module has its own saved source and undo history, Restore and
+download support, inline diagnostics, parse tree, and canonical text in the Tower
+instructions column. Bedrock remains editable when its downstream foundation is
+invalid. Both execution workers receive the edited modules; the LLVM canonical
+source reader uses the bundled spelling. A browser test changes parse to rule in
+bedrock, adapts foundation and user source, and gets matching result 42 from both
+backends. Additional checks cover independent histories and invalid-edit recovery.
+
+Validation: rebuilt the frontend and LLVM WASM modules and static page. All 92
+Node/WASM tests passed, all 64 desktop/mobile Playwright checks passed, and the
+complete Windows AddressSanitizer suite passed. Native checks include shared-node
+ownership, immutable seed isolation, semantic round trips and formatting a changed
+uninstalled entity. Visually inspected the desktop/mobile Bedrock and Foundation
+screenshots after moving the modules into the dropdown. No changes to todo.txt.
+
+The typing profile uses the real bedrock load path. For the example, browser parse
+medians were 2.0 ms desktop and 1.7 ms mobile-emulated; editor update medians were
+18.3 and 18.7 ms, with p95 20.9 and 21.3 ms. These are local measurements, not a
+hardware-independent latency guarantee. Warm Node/WASM parsing plus inspection
+was 1.54 ms median for the example and 58.47 ms for 500 loops, with zero grammar
+table builds. Continuous typing reused one analysis worker and reached the final
+edit on both viewport profiles. Results are in build/bedrock-profile.json. The
+local preview remains http://127.0.0.1:4173/; the static package was refreshed.
+
+## 2026-11-17 - Public Bedrock vocabulary and inherited lexical definitions
+
+The user rejected the internal `__` naming convention: Bedrock's definitions are
+meant to be used and shared. Removed that convention and the blanket prefix ban.
+Concepts specific to grammar declarations now use consistent descriptive names:
+GrammarDeclaration, GrammarTokenDeclaration, GrammarSkipDeclaration,
+GrammarAssignment, GrammarReplacement, GrammarAlternatives, GrammarSequence,
+GrammarTerm, GrammarSuffix, GrammarAtom and GrammarStyle. GrammarPattern and
+GrammarTemplate name the remaining native scanner primitives. Grammar literals
+now use the ordinary shared String token. Names such as __number are legal user
+bindings; generated parser helpers avoid all declared names rather than reserving
+a source prefix. Template helper remapping uses the shared source term entity,
+so its correctness no longer depends on matching generated names.
+
+Foundation now inherits Bedrock's token/skip and grammar entities by reference.
+Whitespace, LineComment, BlockComment, Identifier and String are defined once in
+bedrock.tower; Foundation adds Number and executable syntax. The duplicate
+declarations have been removed from Foundation. Changing those Bedrock patterns
+therefore affects both downstream declaration reading and ordinary program input.
+Inherited grammar rules can be referenced, extended or replaced, for example
+`parse Statement = 'assignment' GrammarAssignment ';';`. Snapshots show inherited
+definitions; the common formatter serializes only the current document's own
+declarations, preserving the module boundary.
+
+Local replacement changes a binding, not the imported entity. In particular,
+an application's override of Identifier does not alter the pinned Bedrock lexer
+that reads its grammar declarations. This keeps the existing ability to change
+application identifiers to @name while writing later declaration names normally.
+Bedrock edits change the shared baseline for both uses. Bedrock itself continues
+to use the immutable native seed; general imports remain future work. Existing
+sessions retain their old imported entities across module changes and resets.
+Inherited token priority follows declaration order, and replacing a name keeps
+its slot; adding a differently named pattern does not automatically outrank an
+equal-length inherited Identifier match.
+
+The same quoted Identifier definition and semantic decoder are now used for
+grammar names/captures and executable identifiers. The common formatter quotes
+grammar names when needed, including names that contain spaces or coincide with
+keywords. Replacement holes accept quoted capture names too. Round-trip checks
+cover those names and user bindings that resemble generated parser helper names.
+
+The editor dropdown now starts Bedrock, Foundation, ForEach, then the other
+examples, with no Modules heading. The original ForEach document remains the
+initial selection. Existing separate module buffers, undo histories, persistence,
+Restore and download behavior are retained. Untouched saved module defaults
+upgrade through their recorded baseline; customized modules remain preserved.
+
+The user also asked about `as comment`, `as number` and `as string`, then noted
+that this resembles an overly limited attribute syntax. Currently `as` supplies
+one string-valued highlighting category; familiar names have editor styles,
+custom names are accepted, and the comment label also supports source-comment
+preservation. It does not select a semantic value type, numeric conversion or
+execution handler. Recorded this syntax as provisional, rather than expanding it
+into a general attribute system now. Future extensible attributes should live on
+the same shared nodes and distinguish presentation hints from semantic contracts.
+
+Rebuilt both WASM modules and the static page. All 97 Node/WASM checks passed,
+including native self-tests, shared-pattern edits, rule reuse, prefix/helper-name
+collisions, quoted captures, round trips and interpreter/LLVM comparisons. The
+full browser run passed 63 checks and exposed three test-assumption failures:
+CodeMirror's virtualized DOM is not the full serialized document, and an inline
+diagnostic may be outside the mobile viewport. The corrected checks download the
+actual source and reveal errors through the existing error shortcut. All eight
+Bedrock checks then passed on desktop/mobile, covering the three failures and all
+66 browser scenarios overall. Visually inspected Bedrock and shared Foundation
+screenshots on both viewport profiles. One Bedrock edit adds tilde whitespace and
+hyphenated identifiers; unchanged Foundation accepts the program and both workers
+return 42.
+
+Local warm typing measurements: parse medians 2.2 ms desktop and 2.0 ms mobile-
+emulated; editor update medians 19.5 and 19.2 ms, p95 20.4 and 19.9 ms. Both
+continuous-typing runs applied all 44 edits using one analysis worker. The larger
+500-loop Node workload measured 84.15 ms median while the native sanitizer suite
+was running, so these measurements are observations rather than a performance
+guarantee or an isolated before/after comparison. Results are saved in
+build/shared-bedrock-profile.json. Refreshed build/tower-playground.zip and verified
+the local server responds at http://127.0.0.1:4173/. No changes to todo.txt.
+
+The complete Windows AddressSanitizer suite also passed, including shared-node
+ownership, declaration/formatter round trips, public Bedrock rule reuse and
+generated-symbol collision coverage. No remaining validation failures.
+
+Rechecked the user's requirement that Foundation must not duplicate Bedrock:
+the current source and static page contain no overlapping declarations. Broadened
+the existing regression check from the five shared lexical names to every parsed
+token/skip/parse declaration in both bundled modules. It passes. The Active grammar
+inspector intentionally includes inherited definitions; their presence there is
+not a second declaration in foundation.tower. Older customized local module text
+can still be retained by the editor's persistence policy.
+
+## 2026-11-17 - Fix stale Foundation in the actual editor and publish Pages
+
+The user's screenshot showed duplicate Whitespace/comment/Identifier/String
+declarations in the Foundation editor. My prior check covered the bundled file
+and a fresh browser, not the saved document the user was seeing; dismissing the
+screenshot as inherited entries in Active grammar was incorrect.
+
+Reproduced the screenshot-era Foundation as a saved local document. An older UI
+could preserve that document while recording the current bundled baseline beside
+it. The existing upgrade test then treated the old default as a customization;
+the legacy hash check also ran only when no baseline existed. A regression using
+the screenshot's old lexer and the newer baseline failed before the fix.
+
+Known old defaults now upgrade regardless of the baseline-key mismatch. Added a
+narrow, versioned migration for the known old lexical preambles: remove unchanged
+definitions now inherited from Bedrock, retain actual lexical/grammar edits, and
+upgrade the old lexer-only module to the complete current Foundation. Unknown
+headers/syntax remain untouched. This migration matches known historical source
+text; it is not an alternative Tower parser or semantic representation. Before
+persisting an upgrade, the original saved text is backed up locally under
+tower-playground-foundation-before-inheritance-v1. The updated document is saved
+immediately so switching files or reloading cannot restore the stale copy.
+
+All four storage checks and 16 related desktop/mobile browser tests passed. The
+browser regression seeds the old module plus the incorrect newer baseline,
+inspects the actual editor, downloads its complete source, verifies the backup,
+executes both backends, and reloads. Desktop/mobile screenshots confirm that
+Foundation starts with Number and executable grammar, without the duplicate
+shared declarations. C++/WASM code was unchanged by this persistence fix.
+
+The user explicitly requested publication to GitHub Pages, superseding their
+earlier withdrawal. Published the tested static dist files and .nojekyll in the
+repository's gh-pages branch at commit e69173b556cf5a87e604c18190f49391787d6331.
+GitHub's pages build and deployment run 44163200362 completed successfully; Pages
+serves gh-pages at / with HTTPS enforced. Live URL:
+https://trevorsundberg.github.io/tower/.
+
+Added scripts/verify-deployment.mjs and ran it against the live Pages URL. All ten
+checked assets, including both WASM modules, matched local SHA-256 digests, and
+WASM responses had the expected content type. Actual desktop/mobile browser runs
+compiled a typed add function, got matching interpreter/LLVM output 42, displayed
+raw and optimized LLVM, opened both modules, upgraded the old saved Foundation,
+verified its downloaded source and backup, and stayed correct after reload.
+Neither browser recorded a page error. Evidence is in build/deployment-verification
+and build/deployment-online-verification.log. No changes to todo.txt.
+
+## 2026-11-17 - Keep execution UI uniform; remove copied grammar output
+
+The instructions column had a special module-editing path that displayed the
+shared formatter's grammar text, duplicating the editor. Those declarations are
+not executable instruction output. Removed that substitution and the unused
+formatting request from the analysis worker. The instructions column now receives
+only the execution compiler's canonical foundation operations.
+
+The user explicitly rejected hiding execution or special editor behavior for
+Bedrock/Foundation. All files retain the same execution columns and controls;
+removed the module-specific execution guard, disabled button and status. The
+existing content-based automatic execution policy applies to every file. Grammar
+declarations alone produce no Tower instructions. Manual execution remains
+available, with interpreter and LLVM both checking the same compiled program.
+The compiler's required seed/Bedrock/Foundation loading boundaries remain intact.
+Shared grammar entities and their formatting API remain available; sharing a
+formatter does not mean grammar source belongs in runtime instruction output.
+
+Validation: all 18 related desktop/mobile browser checks passed, including manual
+execution of declaration-only Foundation, empty instruction/output panes, visible
+execution controls, switching back to executable source, undo histories and saved
+module upgrades. Inspected Bedrock screenshots at both viewport sizes. Rebuilt the
+static package and published commit 4d794f6b18094db359e1f788b08713b201b8db22;
+Pages deployment run 44165275881 succeeded. No changes to todo.txt.
+
+Verified the live Pages deployment on desktop and mobile: ten asset hashes match
+the local build, Bedrock/Foundation retain visible execution panes with no copied
+grammar instructions, and executable code still returns 42 in both backends after
+reload. The deployment report and screenshots were refreshed.
+
+## 2026-11-17 - Explain empty token literals and consolidate Restore
+
+An empty quoted grammar token previously produced the incomplete diagnostic
+"Unsupported token literal:" at the start of the declaration. It now reports
+"Token literal is empty. Expected at least one character between the quotes."
+Literal validation uses the term's existing shared-node source location, so the
+inline underline points at the quotes. Both single and double quotes are covered;
+grammar rejection still preserves the last valid revision. Empty alternatives
+retain their existing separate spelling and semantics.
+
+Example and Restore duplicated the reset action for Bedrock/Foundation. Removed
+Example and kept one Restore action for the selected document, including ordinary
+bundled examples. The document selector loads files; Restore resets their text to
+the bundled version through the same loading path and remains undoable. Updated
+documentation and browser checks to use the single action.
+
+Rebuilt both WASM modules. All 25 parser/WASM checks (including the native self-test
+suite running in WASM) and 10 related desktop/mobile browser checks passed.
+Inspected screenshots of the new inline error at both viewport sizes. No changes
+to todo.txt.
+
+The rebuilt LLVM suite also passed all 29 checks. Published these changes as
+2631ed793d7a8ae36a143fec538abe1f92d234c0; Pages run 44168644614 succeeded. Live
+verification is being combined with the following incremental Bedrock correction.
+
+## 2026-11-17 - Every file updates its active reader incrementally
+
+The user clarified that the seed is a starting baseline, not a frozen reader for
+all of Bedrock. This supersedes the earlier whole-file immutable-reader decision.
+Every successful declaration takes effect after its boundary and changes following
+source, including declaration syntax and lexical rules. Bedrock, Foundation and
+ordinary source use the same installation path; their initial grammar differs.
+The shared C++ seed and imported entities remain immutable. Failed declarations
+leave the last valid local grammar intact, and failed module loads do not publish
+a partial module. Existing sessions retain their own baseline versions.
+
+Removed Bedrock's bypass of incremental table installation and its native trivia
+shortcut. Declaration names, quoted literals, whitespace, comments and capture
+names now use the active version's lexical entities in every file, rather than
+pinned imported lexical definitions. Native handler capture requirements are
+validated before each reader update, regardless of the originating file. The
+existing LR recognizer, boundary behavior and bounded grammar cache are retained;
+there is no new search or backtracking. Structurally unchanged definitions can
+reuse their compiled grammar through that same cache.
+
+The reported Identifier edit to /ffff[A-Za-z_][A-Za-z0-9_]*/ now rejects the next
+unprefixed String declaration name in Bedrock itself. Changing the declaration
+keyword from parse to rule likewise requires rule on the following declarations
+of that same file. Updated examples that redefine Identifier/String so rules using
+their old spellings precede those updates; changing a lexical binding no longer
+has a hidden exception for declaration text. Updated the project instructions,
+API comments, token documentation and browser/module regressions accordingly.
+
+Kept comment support. Bedrock's header now states its load order and gives one
+concise line each for GrammarPattern and GrammarTemplate, in both the source file
+and the native shared-node seed used by the formatter.
+
+Both WASM builds completed and all 101 Node/WASM checks passed, including native
+self-tests, immediate reader updates in all three file contexts, default-module
+formatting round trips, lexical failure recovery and interpreter/LLVM comparisons.
+
+All 70 browser tests passed across desktop and mobile, including cancellation,
+typing/cache reuse, rule renaming, empty-literal diagnostics, the unified Restore
+action, and the exact reported Identifier-prefix edit. Screenshots show the latter
+failing at the next String declaration in Bedrock, with the execution area retained.
+
+The full native Windows AddressSanitizer run also passed, including parser linear
+work checks, ownership and grammar cache checks, and foundation execution tests.
+The static package was refreshed and published as
+3cbc28daa9a28849c5289537b17f32c9cd0efea0. No changes to todo.txt.
+
+Pages deployment 44172076968 succeeded. Live desktop/mobile verification passed:
+all ten checked asset hashes match the tested local build; both backends return
+42; editing Bedrock's Identifier immediately errors at the following String name;
+Restore recovers; the empty-token message marks its quotes; and persisted
+Foundation upgrades remain correct after reload. Updated deployment screenshots
+and the report in build/deployment-verification.
+
+## 2026-11-17 - Burst-style CPU SIMD, independent iteration and shared GPU primitives
+
+### Request, scope and status
+
+The user requested read-only research into how Tower could support a Unity
+Burst-like compiler and eventually a job system written in Tower, with emphasis
+on small, independently useful primitives and simple rules for language authors.
+The intended scope includes generic LLVM-friendly vectorization, CPU and GPU
+execution, SPIR-V shaders/compute kernels, and the existing DXIL/WGSL goals.
+The user clarified that arrays, buffers and eventual capabilities comparable to
+C/LLVM are planned foundations: their current absence should not dominate the
+long-term design discussion. The user also explicitly invited reading the journals.
+
+The research turn made no repository changes. This entry and the broader journal
+instruction in AGENTS.md were subsequently authorized by the user. todo.txt is
+untouched. This records a design proposal and observed experiments, not an
+implementation of SIMD, buffers, shader backends or jobs. Proposed API names,
+annotation syntax and numerical profiles below remain provisional; requesting
+that the discussion be recorded does not settle every language-design choice.
+
+### Main recommendation and simple author rules
+
+Make Burst-style performance emerge from ordinary Tower features: typed memory
+views, explicit access permissions, independent iteration, visible function bodies
+and well-defined numeric operations. Share those contracts between CPU SIMD, jobs
+and GPU kernels. First solve and test the individual primitives; do not require
+an integrated scheduler/GPU framework before establishing their usefulness.
+
+The easy path for an author should be:
+
+1. Write a function for one item using ordinary scalar or vector values.
+2. Put bulk data in typed buffers with explicit read or exclusive-write access.
+3. Use a standard independent iteration operation when items do not depend on
+   one another.
+4. Prefer contiguous access; use field arrays when processing the same fields
+   across many objects.
+5. Freely compose ordinary, statically known helper functions.
+6. Select reduction and numerical policies explicitly where ordering affects
+   results.
+7. Ask the compiler to verify important performance expectations.
+
+No special Burst-only language subset or mandatory kernel declaration is needed
+for an otherwise eligible ordinary function. Explicit target declarations can
+request verification of inferred eligibility. General-purpose code remains
+available; an independent iteration contract applies only where its conditions
+are established.
+
+### What LLVM and a Burst-like frontend each contribute
+
+The supplied discussion correctly separates compilation from scheduling. LLVM
+provides loop/SLP vectorization and many optimization/code-generation passes.
+Unity's job system distributes batches across worker cores. A frontend must still
+establish memory semantics, effects, specialization, numerical behavior, target
+legality and useful diagnostics. Simply emitting LLVM does not establish these
+facts, and enabling a vectorizer does not promise either vectorization or speed.
+See [LLVM vectorizers](https://llvm.org/docs/Vectorizers.html) and
+[Unity parallel jobs](https://docs.unity3d.com/2023.1/Documentation/Manual/JobSystemParallelForJobs.html).
+
+Comparable machine code for eligible numerical kernels is a realistic goal when
+Tower communicates equivalent facts under matching semantics and target settings.
+Broad production parity is a much larger engineering effort. No calendar estimate
+or performance parity was established by this research.
+
+### Local repository evidence
+
+Inspected scaffolding/core.hpp, core-nodes.cpp, foundation.tower,
+llvm-backend.cpp, relevant examples/tests/build settings, docs/foundation.md and
+the journal entries on shared CPU/shader code, target implementations, optional
+features, deterministic execution, backend integration and struct layout.
+
+- CoreNode components already share foundation semantics across formatting,
+  interpretation and LLVM lowering. This is the appropriate place to extend
+  contracts; a second public semantic IR is unnecessary.
+- The current scalar enum contains i32, u32, bool, void and structs; buffers,
+  floating-point values, vectors and shader execution contracts are future work.
+- LLVM lowering already uses entry-block allocas for eligible ordinary locals
+  and runs function(sroa,mem2reg,instcombine,simplifycfg),default<O2>.
+- The executable LLVM path inspected targets wasm32-unknown-unknown with a
+  generic CPU and no explicit target-feature string. The build enables the
+  WebAssembly target. Native CPU/SIMD and shader targets need explicit target
+  configuration, not just a higher optimization level.
+- Current pointers are checked-cell handles carrying an index, generation and
+  display-name identity. Loads/stores perform initialization/lifetime checks.
+  Struct reflected byte layout is separate from this execution storage.
+- The backend currently has global cell/stack/depth/generation state. Concurrent
+  execution needs per-execution ownership of that state or a proven alternative.
+- The vendored LLVM version file identifies a 20.0.0git source tree; the independent
+  llvmlite probe below used LLVM 20.1.8. They are not asserted to be the same build.
+
+For future buffers, use contiguous typed value storage with separate validation
+bookkeeping. Eligible access can then lower to ordinary LLVM memory operations
+once bounds, lifetimes and permissions are established. Preserve existing
+checked behavior wherever proofs do not justify removing checks. LLVM's
+[frontend performance guidance](https://llvm.org/docs/Frontend/PerformanceTips.html)
+also supports the existing entry-alloca/SROA/mem2reg direction.
+
+### Memory views, permissions and aliasing
+
+Proposed facilities, with names subject to later design:
+
+| Facility | Contract |
+| --- | --- |
+| ReadView<T> | Read access to a bounded region; readers may overlap. |
+| WriteView<T> | Exclusive access to a bounded region, allowing reads and writes through that view. |
+| split(view, boundary) | Produce provably disjoint subviews. |
+| Contiguous view | Element size and unit stride are known. |
+| Strided view | Stride is explicit; contiguous access is a specialization. |
+
+Exclusive access must prevent conflicting overlapping access through unrelated
+aliases for the duration of the borrow or scheduled work. A mutable parameter
+annotation alone does not prove this. An initial implementation can use scoped
+access tokens, runtime region checks, allocation lifetime tracking and static
+proofs for simple cases; a complete general-purpose borrow checker is not a
+prerequisite to experimenting with this contract.
+
+Read-only does not imply non-aliasing. Separate wrapper objects can refer to the
+same storage. Multiple read views may overlap. In-place operations should use
+one read/write view rather than pretending that their input and output regions
+are disjoint. Subviews of the same allocation can still describe disjoint regions.
+
+Emit LLVM noalias only when Tower's access rules justify its actual contract.
+General overlapping-pointer programs remain supported through dependency
+analysis, runtime checks or scalar execution as needed. Proven alignment,
+non-escape and memory effects should likewise be communicated only when valid.
+The [LLVM noalias contract](https://llvm.org/docs/LangRef.html#noalias) is stronger
+than a casual optimization hint; a false promise can introduce undefined behavior.
+
+Region information can also support job dependency checking and GPU resource
+tracking, making it a general memory primitive rather than a scheduler-only rule.
+
+### Independent iteration and ordinary functions
+
+Illustrative future Tower code, not accepted by the current integer-only core:
+
+```tower
+fn advance(position: f32, velocity: f32, dt: f32): f32 {
+    var delta: f32 = velocity * dt;
+    var result: f32 = position + delta;
+    return result;
+}
+
+zip_map_into(next_position, position, velocity, dt, advance);
+```
+
+The function uses simple foundation-style operands and three-address operations.
+The hypothetical zip_map_into supplies corresponding input elements and a shared
+dt value to a statically known function, with one output element per iteration.
+It validates matching lengths, lifetimes and required non-overlap before dispatch.
+
+| Execution choice | Implementation |
+| --- | --- |
+| Reference interpreter | Iterate through items. |
+| Single CPU thread | Generate a conventional loop and allow LLVM to vectorize. |
+| CPU jobs | Schedule chunks, each containing that optimized loop. |
+| GPU compute | Map logical items to shader invocations. |
+
+Infer eligibility through the body and its callees. Explicit multi-target
+requirements should be checked assertions with an explanatory call chain.
+For more flexible independent iteration, initially provide exclusive access to
+the current output element and permitted read inputs. Providing every iteration
+with unrestricted writable access to the full output would complicate the proof.
+
+Keep these cases distinct: pointwise maps; stencils reading neighbors from a
+separate input buffer; potentially dependent in-place stencils; reductions;
+scans; scatters with possible write conflicts. Give the latter operations their
+own explicit contracts. A generic parallel annotation cannot erase dependence.
+
+### Mathematical vectors, SIMD lanes and layout
+
+A vec3<f32> is one three-component value. CPU SIMD might process eight such values
+at once; a GPU subgroup contains several invocations, each possibly holding a
+vec3. Mathematical vector width, CPU SIMD width, GPU subgroup size and workgroup
+size are distinct concepts. Authors should not need to pack buffers into float4
+just to request automatic vectorization. Vectors and swizzles belong in ordinary
+eligible CPU functions as well as shaders.
+
+ISPC is a useful reference for shared/uniform versus per-instance values and for
+layout. Borrow those concepts while initially using LLVM's loop vectorizer.
+A fuller masked SPMD transformation is later work for cases that auto-vectorization
+handles poorly; merely marking a function as vectorizable does not implement it.
+See the [ISPC performance guide](https://ispc.github.io/perfguide.html).
+
+Support both array-of-structures and structure-of-arrays storage:
+
+```text
+AoS: x0 y0 z0 mass0 | x1 y1 z1 mass1 | ...
+SoA: x0 x1 ... | y0 y1 ... | z0 z1 ... | mass0 mass1 ...
+```
+
+Field arrays often help neighboring iterations access the same field. AoS remains
+useful for operations consuming whole objects. A future generic SoA<T> container
+could derive field arrays from reflected metadata and expose convenient field
+access. Blocked AoSoA storage is another later option, not a mandatory language
+layout or an assumption that SIMD width is fixed across targets.
+
+An element of SoA<T> is not necessarily a contiguous T object. Taking its address
+cannot silently produce an ordinary T*. Use field-access proxies, component
+references or an explicit materialized value with defined copy semantics.
+
+Keep CPU storage, GPU storage-buffer layout, uniform/constant-buffer layout and
+external C ABI layout explicit. One registry can describe them without declaring
+them byte-identical. Offsets, strides, padding and alignment need validation or
+adapters; do not infer interoperability from host sizeof or an LLVM vector type.
+See [Vulkan shader memory layout](https://docs.vulkan.org/guide/latest/shader_memory_layout.html).
+
+### Function composition and math implementations
+
+Extracting code into ordinary helpers should preserve vectorization when eligible.
+Support specialization of statically known functions/types, visible bodies during
+optimization, inferred memory/escape effects and transitive target/context
+requirements. Shared math operations should select implementations suitable for
+the target and numeric policy, including vector-capable math where required.
+
+Pure alone is insufficient: an opaque scalar function can have no effects yet
+lack a vector implementation. A function writing its own output element can be
+suitable for independent iteration despite not being pure. Treat trapping and
+execution-context requirements separately from memory effects.
+
+Dynamic dispatch is useful at chunk/dispatch boundaries. An opaque per-element
+function-pointer call makes vectorization harder. Unity's own
+[Burst function-pointer guidance](https://docs.unity3d.com/Packages/com.unity.burst@1.8/manual/csharp-function-pointers.html)
+recommends batching such work. Do not require authors to manually inline every
+helper; preserve bodies and contracts so specialization and LLVM can do the work.
+
+### Numerical behavior, failures and checks
+
+Distinguish ordinary elementwise arithmetic, explicit fused multiply-add,
+approximate math with stated accuracy, ordered reductions, reductions with a
+specified reproducible tree and reductions permitting target-dependent
+reassociation. Do not apply blanket fast math merely to enable SIMD.
+
+A reproducible reduction tree must specify grouping independently of worker count
+or SIMD width. Deterministic scheduling alone does not establish floating-point
+reproducibility. Strict compile-time behavior remains a function of explicit
+program/inputs/target/semantics, never ambient host features. Runtime profiles,
+selected implementations and context/fallback policies belong in specialization
+and cache identity. No-fast-math LLVM arithmetic alone is not a complete proof of
+Tower's stronger cross-host NaN, subnormal or mathematical-library contract.
+
+Moving a check before earlier writes can change observable behavior. A new bulk
+operation may specify shape/lifetime/access validation before any work starts;
+that does not permit changing existing sequential-loop trap ordering. Initially
+require portable independent bodies to be non-trapping after validation, or to
+return errors as data. Later parallel failure/partial-result semantics must be
+explicit rather than determined accidentally by scheduling.
+
+Checks do not categorically prevent vectorization. The experiment below found
+that LLVM vectorized a safe prefix of a bounds-checked loop and retained checked
+scalar execution at the boundary. Preserve checks that remain necessary, and
+measure/prove elimination rather than claiming all safety overhead disappears.
+
+### GPU execution contexts and target legality
+
+Introduce context-sensitive primitives independently, after ordinary item maps:
+
+| Primitive | CPU interpretation | GPU interpretation |
+| --- | --- | --- |
+| Logical item index | Loop index | Invocation index |
+| Shared launch parameters | Values outside the loop | Shader parameters/resources |
+| Workgroup storage | Storage owned by an emulated group | Workgroup/shared memory |
+| Workgroup barrier | Suspend/resume group execution through phases | Target synchronization |
+| Subgroup collective | Explicit group emulation or a supported implementation | Subgroup/wave operation |
+| Derivative or implicit-LOD sampling | Supplied context or selected fallback | Stage-appropriate operation |
+
+Simple maps share a body readily. Running each invocation to completion in a
+scalar loop does not generally emulate barriers. Group execution must preserve
+synchronization points and participating invocations. Keep scope, address space,
+memory ordering and capability requirements explicit; target support is checked
+before emission. Never assume that CPU atomics and every shader target expose
+identical ordering facilities.
+
+Uniformity analysis should identify which values and control flow are shared
+within the relevant group. WGSL requires appropriate uniform control flow for
+collectives such as workgroup barriers. Partial-workgroup handling must guard
+invalid memory access while retaining required barrier participation; returning
+every out-of-range invocation immediately is not universally valid. See
+[WGSL uniformity](https://gpuweb.github.io/gpuweb/wgsl/#uniformity) and
+[Vulkan shader execution](https://docs.vulkan.org/spec/latest/chapters/shaders.html).
+
+Retain the ocean-wave acceptance example: ordinary wave math executes on the CPU
+for buoyancy and in rendering shaders. Sampling receives resources and sampler
+state. The convenient CPU-call profile can select documented zero derivatives
+and level-zero sampling without gradients. Faithful derivative emulation needs
+quad context; convenient defaults are not bit-identical shader emulation.
+
+Share Tower semantics and applicable transforms, then legalize per target:
+CPU/WASM through LLVM; Vulkan through Vulkan-valid SPIR-V; DirectX 12 through
+DXIL; browser WebGPU through WGSL. Preserve the planned direct shared-node-to-WGSL
+path. LLVM's SPIR-V backend distinguishes Vulkan and OpenCL environments;
+emitting some SPIR-V is not sufficient. Prototype the pinned toolchain's coverage
+before selecting it as the only shader path. Use independent target validators
+and actual execution, not successful serialization alone, as acceptance evidence.
+
+References: [LLVM SPIR-V target guide](https://llvm.org/docs/SPIRVUsage.html),
+[DXC](https://github.com/microsoft/DirectXShaderCompiler), and
+[SPIRV-Tools](https://github.com/KhronosGroup/SPIRV-Tools).
+
+Optional implementations retain the earlier journal policy: select only variants
+satisfying the semantic profile and enabled capabilities, keep unsupported CPU
+instructions out of baseline paths and unsupported GPU capabilities out of
+baseline modules, and separate build-time specialization from runtime selection.
+
+### Eventual Tower job system
+
+Build scheduling on the same access contracts. Initially accept a compiled chunk
+function, captures and range; track read/write regions and dependencies; keep
+resources alive and conflicting access excluded until completion; distribute
+chunks; and provide completion, cancellation and defined failures.
+
+Worker count, chunk size, SIMD width and GPU workgroup size remain independent.
+Most scheduling policy can eventually be Tower code over a small platform layer
+for threads, atomics, parking/waking and device submission. Make execution state
+per execution before concurrent use of the present backend. A cancelled task must
+not release resource ownership while work using those resources is still running.
+
+GPU dispatch additionally requires explicit resource availability, transfers and
+completion dependencies. A GPU implementation must not silently turn an ordinary
+scalar call into hidden asynchronous work or imply that a running shader can call
+arbitrary CPU fallback code. CPU and GPU scheduling can share interfaces while
+preserving these execution boundaries.
+
+### Optimization diagnostics and expectations
+
+Make optimization evidence visible early. A useful report identifies which loop
+was widened, lane width, tail handling, remaining overlap checks, helper inlining
+and target eligibility. A missed optimization should explain the relevant call,
+access/dependency, numerical policy or unsupported operation with provenance.
+For example, report that external_noise has no available vector implementation.
+
+Offer target-specific expectations that turn an unexpected loss of vectorization
+into a build error. Scalar tails can be allowed explicitly. Successful widening
+is not a promise of faster or globally optimal code, and an expectation must name
+its eligibility and target rather than applying blindly to the interpreter/GPU.
+Burst's [ExpectVectorized](https://docs.unity.com/en-us/engine/7000.0/script-reference/unity/burst/compilerservices/loop/expectvectorized)
+is a useful precedent. LLVM vectorization hints are not substitutes for valid
+memory-dependence facts or for checking the optimization result.
+
+### Actual trials and validation limits
+
+Ran independent code-generation probes outside the repository using the existing
+build/temporal-native/venv/Scripts/python.exe with -B, llvmlite 0.46.0 and LLVM
+20.1.8. The explicit target was x86_64-pc-windows-msvc, CPU haswell, O3 with loop
+and SLP vectorization enabled. Parsed and verified scalar LLVM input, optimized
+it, verified the result and emitted x86 assembly. No JIT/native workload execution,
+GPU execution, performance timing or Tower vector lowering was tested.
+
+| Probe | Observed optimized code |
+| --- | --- |
+| axpy_may_alias | 8- and 4-wide float operations; runtime vector.memcheck; vaddps/vmulps. |
+| axpy_noalias | 8- and 4-wide float operations without overlap version checks. |
+| axpy_opaque_call | Scalar call remained; no float vector operations, even though the declaration had memory(none), nounwind and willreturn. |
+| axpy_visible_call | Always-inline helper eliminated; 8- and 4-wide float operations. |
+| axpy_per_item_bounds | 8-wide safe prefix plus checked scalar boundary; vaddps/vmulps. |
+| axpy_upfront_bounds | Validation before work, then 8- and 4-wide float operations. |
+| sum_ordered | Scalar floating-point accumulation on this target. |
+| sum_reassociate | 8- and 4-wide operations with reassoc nsz on the addition. |
+
+AXPY used separate fmul and fadd with no fast-math flags. These results support
+ordinary elementwise SIMD without blanket fast math. The reduction result is
+specific to the tested target/pipeline, not a claim that all targets prohibit
+ordered vector reductions. The upfront-check and per-item-check examples differ
+on invalid-input partial effects; they are not claimed to be equivalent rewrites.
+Raw-pointer validity and noalias are assumed in the independent probe; Tower still
+needs to establish those conditions in its own implementation.
+
+The initial exploratory Python -c invocation hit PowerShell/native argument
+quoting that removed embedded string quotes. Re-running through a single-quoted
+here-string passed over stdin resolved it; no compiler defect was inferred.
+
+The raw probe files, results.json and generated .before.ll/.after.ll/.s artifacts
+were written to the temporary directory:
+C:/Users/trevo/AppData/Local/Temp/tower-vector-research-7f2146c0817f44448beff5a96ca2dd79.
+That directory is disposable. The source is archived below so this entry does not
+depend on its continued existence. To reproduce, save the archived source as
+probe.py in a scratch directory, use llvmlite==0.46.0 and run python -B probe.py;
+it writes generated files beside itself. This is a standalone compiler probe,
+not a public Tower IR or program interchange format.
+
+Also ran the existing suites from a temporary working directory:
+
+```text
+node --test --test-reporter=dot C:/Sandbox/tower/playground/tests/llvm-execution.test.mjs C:/Sandbox/tower/playground/tests/structs.test.mjs
+```
+
+Both suites completed with exit code zero using existing built WASM artifacts.
+The inspected WASI host uses memory files, not host filesystem writes. No rebuild
+was performed, so this is validation of the available artifacts against those
+suites, not a fresh build of every current source file. Repository status before
+and after the research was unchanged; pre-existing modifications were retained.
+
+### Proposed independently testable milestones
+
+| Milestone | Acceptance evidence |
+| --- | --- |
+| Memory views and access contracts | Overlapping readers accepted; conflicts rejected; splitting, lifetimes and canonical round trips verified. |
+| Single-thread CPU bulk operations | Map, in-place map and stencil loops compared with equivalent Clang output using matching semantics/target settings. |
+| Function specialization and math | Helpers preserve eligible vectorization; unsupported calls explain the failure. |
+| Vector values and layout adapters | Vectors work in ordinary functions; AoS/SoA layout and address/copy semantics are checked. |
+| GPU independent kernels | Corresponding map/stencil kernels validate and execute through SPIR-V and WGSL paths, with DXIL covered by its target work. |
+| Reductions and cooperative execution | Ordered/reproducible/relaxed policies tested; CPU reference execution covers group context and barriers. |
+| Jobs | Dependencies, resource lifetimes, cancellation and chunk execution tested independently of GPU integration. |
+
+Prioritize a single-threaded checked buffer map producing code comparable to Clang,
+including when arithmetic is factored into ordinary helpers. That tests the memory,
+function and numeric primitives before requiring a scheduler. Expand benchmarks
+with lengths around vector boundaries, overlap cases, alignment, branches,
+read-neighbor stencils, reductions and forced baseline/fallback variants. Compare
+under equivalent defined semantics; do not benchmark C undefined behavior against
+Tower checks and attribute the difference to poor code generation.
+
+For each public primitive or declared contract, require a compilable foundation
+spelling, components on the existing entities, shared validation, interpreter
+behavior and formatter support. Proven analyses may remain derived/recomputed;
+user-selected numerical/context policies and semantic permissions must survive
+canonical source round trips. Rich map/iteration/layout syntax can be Tower rules
+above those operations. Do not extend the provisional as-style highlighting
+clause into a general attribute design without revisiting that design explicitly.
+
+Outstanding design work includes exact view/borrow APIs, region identity and escape
+rules, parameterized types/function specialization, numeric profiles, failure
+policies, explicit address spaces/resources, target legality, reflection-driven
+layout adapters and performance-expectation syntax. These are follow-up choices,
+not claimed implemented features. Long-term absorption of LLVM/Binaryen/SPIR-V
+machinery should preserve these same contracts and retain upstream/reference
+comparison tests.
+
+### Archived standalone LLVM probe
+
+The following is the exact probe source used for the reported code-generation
+trial (UTF-8 BOM omitted). It is included for reproducibility, not as proposed
+Tower foundation syntax.
+
+<details>
+<summary>Python source for the eight LLVM vectorization probes</summary>
+
+```python
+from pathlib import Path
+import json, re
+from llvmlite import binding as llvm
+
+out = Path(__file__).resolve().parent
+llvm.initialize_native_target()
+llvm.initialize_native_asmprinter()
+tm = llvm.Target.from_default_triple().create_target_machine(cpu='haswell', opt=3)
+pto = llvm.create_pipeline_tuning_options(speed_level=3)
+pto.loop_vectorization = True
+pto.slp_vectorization = True
+pb = llvm.create_pass_builder(tm, pto)
+
+def axpy(name, noalias=False, call=None, checks=None):
+    attr = 'noalias' if noalias else ''
+    extra = ', i64 %len' if checks else ''
+    pre = ''
+    entry_target = 'header'
+    if checks == 'upfront':
+        pre = '''%valid = icmp ule i64 %n, %len
+  br i1 %valid, label %header, label %bad
+bad:
+  call void @llvm.trap()
+  unreachable
+header:
+'''
+    body = '''%xp = getelementptr float, ptr %x, i64 %i
+  %yp = getelementptr float, ptr %y, i64 %i
+  %xv = load float, ptr %xp, align 4
+  %yv = load float, ptr %yp, align 4
+'''
+    if call:
+        body += '  %v = call float @point(float %xv, float %yv, float %a)\n'
+    else:
+        body += '  %product = fmul float %xv, %a\n  %v = fadd float %yv, %product\n'
+    body += '  store float %v, ptr %yp, align 4\n'
+    incoming = 'header' if checks == 'upfront' else 'entry'
+    latch = 'work' if checks == 'per_item' else 'loop'
+    check = ''
+    if checks == 'per_item':
+        check = '''%valid = icmp ult i64 %i, %len
+  br i1 %valid, label %work, label %bad
+bad:
+  call void @llvm.trap()
+  unreachable
+work:
+'''
+    text = f'''define void @{name}(ptr {attr} %y, ptr {attr} %x, float %a, i64 %n{extra}) {{
+entry:
+  {pre}%empty = icmp eq i64 %n, 0
+  br i1 %empty, label %exit, label %loop
+loop:
+  %i = phi i64 [0, %{incoming}], [%next, %{latch}]
+  {check}{body}  %next = add i64 %i, 1
+  %done = icmp eq i64 %next, %n
+  br i1 %done, label %exit, label %loop
+exit:
+  ret void
+}}
+'''
+    if checks:
+        text += 'declare void @llvm.trap() cold noreturn nounwind\n'
+    if call == 'opaque':
+        text += 'declare float @point(float, float, float) nounwind willreturn memory(none)\n'
+    if call == 'inline':
+        text += '''define internal float @point(float %x, float %y, float %a) alwaysinline nounwind memory(none) {
+  %m = fmul float %x, %a
+  %r = fadd float %y, %m
+  ret float %r
+}
+'''
+    return text
+
+def reduction(name, relaxed=False):
+    flags = 'reassoc nsz ' if relaxed else ''
+    return f'''define float @{name}(ptr %x, i64 %n) {{
+entry:
+  %empty = icmp eq i64 %n, 0
+  br i1 %empty, label %exit, label %loop
+loop:
+  %i = phi i64 [0, %entry], [%next, %loop]
+  %sum = phi float [0.0, %entry], [%r, %loop]
+  %p = getelementptr float, ptr %x, i64 %i
+  %v = load float, ptr %p, align 4
+  %r = fadd {flags}float %sum, %v
+  %next = add i64 %i, 1
+  %done = icmp eq i64 %next, %n
+  br i1 %done, label %exit, label %loop
+exit:
+  %result = phi float [0.0, %entry], [%r, %loop]
+  ret float %result
+}}
+'''
+
+cases = {
+ 'axpy_may_alias': axpy('axpy_may_alias'),
+ 'axpy_noalias': axpy('axpy_noalias', True),
+ 'axpy_opaque_call': axpy('axpy_opaque_call', True, 'opaque'),
+ 'axpy_visible_call': axpy('axpy_visible_call', True, 'inline'),
+ 'axpy_per_item_bounds': axpy('axpy_per_item_bounds', True, checks='per_item'),
+ 'axpy_upfront_bounds': axpy('axpy_upfront_bounds', True, checks='upfront'),
+ 'sum_ordered': reduction('sum_ordered'),
+ 'sum_reassociate': reduction('sum_reassociate', True),
+}
+results = []
+for name, ir in cases.items():
+    m = llvm.parse_assembly(ir)
+    m.triple = llvm.get_default_triple()
+    m.data_layout = str(tm.target_data)
+    m.verify()
+    (out / (name + '.before.ll')).write_text(str(m))
+    pm = pb.getModulePassManager()
+    pm.run(m, pb)
+    m.verify()
+    optimized = str(m)
+    assembly = tm.emit_assembly(m)
+    (out / (name + '.after.ll')).write_text(optimized)
+    (out / (name + '.s')).write_text(assembly)
+    widths = sorted(set(re.findall(r'<(\d+) x float>', optimized)))
+    results.append(dict(case=name, float_vector_widths=widths,
+        alias_version_check='vector.memcheck' in optimized,
+        vector_fp_ops=len(re.findall(r'\b(?:fadd|fmul)\b[^\n]*<\d+ x float>', optimized)),
+        packed_x86_ops=sorted(set(re.findall(r'\b(?:v?addps|v?mulps|vfmadd\d+ps)\b', assembly))),
+        scalar_point_call=bool(re.search(r'call float @point', optimized))))
+summary = dict(llvm=llvm.llvm_version_info, triple=llvm.get_default_triple(), target_cpu='haswell', optimization='O3, loop+SLP vectorization enabled', kind='code-generation probes, not performance benchmarks or Tower lowering', results=results)
+(out / 'results.json').write_text(json.dumps(summary, indent=2))
+print(str(out))
+print(json.dumps(summary, indent=2))
+```
+
+</details>
+
+## 2026-11-17 - Self-host Tower and retire the custom C++ implementation
+
+The user wants all of Tower's own compiler/runtime implementation moved into
+Tower, retaining LLVM and other external dependencies where still needed. This
+includes compiling and linking against those libraries to produce native
+executables and WebAssembly output. Treat self-hosting as the next major direction;
+deleting the current implementation is the end of a verified migration, not its
+first step. This entry records discussion and a proposed sequence, not newly
+implemented language features or a claim that self-hosting already works.
+
+### Current implementation and gaps
+
+Inspected scaffolding/foundation.tower, core.hpp, tower.hpp, lex-pattern.hpp,
+llvm-backend.cpp, syntax.cpp, the browser LLVM host, CMakeLists.txt and the vendored
+LLVM-C/LLD headers. Functions, mutable locals, structured control flow, typed
+checked pointers and nominal structs already work. Shared CoreNode/SyntaxNode
+components and the common formatter are the representation to preserve.
+
+The executable scalar set is currently i32/u32/bool/void plus structs. Dynamic
+buffers, source-language strings, indexed collections, heap allocation, general
+module imports, external function declarations and public language-level node
+construction/reflection are missing. The existing String token is a lexical
+facility, not an executable string value type. C++ collections currently provide
+the compiler's growing arrays, strings, maps and ownership infrastructure.
+
+The browser backend already lowers Tower to an object and calls lld::wasm::link
+to produce executable WebAssembly. General external-library linking is not
+exposed by Tower: the current host admits only print/trap imports, functions have
+Tower-private calling details, and the build only enables the WebAssembly LLVM
+target. Native executable output needs explicit target configuration, object/ABI
+support, entry/startup handling and required runtime/system libraries.
+
+Checked Tower pointers are allocation/cell references with lifetime metadata,
+not C addresses. The reflected portable struct layout is also distinct from
+checked execution storage and a target C ABI. Casting current handles to a C
+pointer would be incorrect. External calls need typed signatures, explicit target
+calling conventions/layout, ownership/lifetime rules and deliberate conversion
+between Tower storage and foreign buffers/opaque handles.
+
+### Recommended work sequence
+
+1. Implement compiler-usable storage: byte values, bounded typed arrays/views,
+   indexed access, dynamic allocation and release, defined initialization/copy
+   behavior and lifetime checks. Use contiguous value storage with separate
+   checking metadata where practical; do not make the current fixed checked-cell
+   pool the permanent compiler heap. Define growth and invalidation explicitly.
+   Add wider integers as required by handles, hashing and ABI sizes, without
+   accidentally making strict arithmetic depend on the host pointer width.
+   Build strings, growable collections and lookup tables as Tower library code.
+   A complete generic/type-inference system is not a prerequisite for the first
+   concrete byte and node collections. These facilities also advance the earlier
+   buffer/numerical-kernel direction; they should share one implementation.
+
+2. Add general external declarations/exports and link inputs on the same semantic
+   nodes, with canonical foundation formatting. First prove scalar calls in both
+   directions, then a pointer-plus-length buffer call with correct lifetimes and
+   a defined mutation policy. Test an actual compiled C fixture, not just a JS
+   mock. Use status/result values rather than requiring exceptions. The portable
+   interpreter needs registered implementations for foreign operations; it cannot
+   execute arbitrary linked machine code itself. File I/O, allocation and other
+   host services need explicit interfaces and effects. Foreign calls during strict
+   compile-time execution must satisfy its determinism policy or be unavailable.
+
+3. Generalize compilation/linking to explicit targets, objects, libraries,
+   symbols and entry points. First static-link matching Wasm objects/libraries
+   into one module, with explicit host imports; extend native output with the
+   corresponding runtime/startup dependencies. Keep compiler-host and generated-
+   program targets distinct. A native LLVM library cannot be linked into a Wasm
+   compiler: the dependency must itself be built for that environment. Our
+   existing LLVM-in-Wasm build is a useful starting point. Linking separately
+   instantiated Wasm modules also needs deliberate memory/handle boundaries;
+   memory offsets do not automatically transfer between their memories.
+
+4. Move real implementation pieces across incrementally. A byte/UTF-8 utility
+   used by the existing lexer is a small first migrated slice. Follow with Tower
+   containers and the shared entity/component store, then formatting, lexical
+   machinery, parsing and incremental grammar installation, replacements,
+   resolution/type checking, interpretation and LLVM lowering. Exact order can
+   follow dependencies. Expose/import functions and compiler entities through
+   a real module system; migrate the current host-only Bedrock/Foundation order
+   into that model. Do not copy into a parallel Tower AST or wrap every C++
+   implementation and declare that self-hosting is complete. Preserve the same
+   semantic node contracts and validate each replacement against the reference.
+
+5. Close the bootstrap loop: the current C++ compiler builds the Tower-written
+   compiler (stage 1); stage 1 builds that compiler again (stage 2); stage 2 builds
+   stage 3. Compare canonical structures/text, diagnostics, execution results and
+   defined traps, including malformed input and live grammar changes. Compare
+   artifacts under pinned target/build inputs where reproducibility is promised;
+   self-hosting alone does not prove bit-identical LLVM output or eliminate
+   compiler bugs. Remove custom C++ from the normal build only after these gates.
+   Preserve an archived seed compiler/build recipe for bootstrap recovery. A
+   platform Wasm bootstrap executable is allowed target output, not a new public
+   Tower binary graph/interchange format.
+
+The first useful acceptance target is a Tower-written byte-processing/compiler
+utility built by the existing compiler, called by the existing lexer, with
+matching results through interpretation and compiled execution. Implement the
+storage and foreign-call tests in small steps on the way to that target. Full
+reflection/ECS ergonomics, shader support, temporal minimal rebuild and backend
+translations are not prerequisites for this first migration. Preserve identities,
+provenance and explicit inputs so self-hosting does not obstruct those goals;
+self-hosting alone does not provide dependency tracking or minimal rebuild.
+
+### Third-party boundary and bootstrap seed
+
+LLVM provides a C API for IR construction, passes and object emission, including
+LLVMTargetMachineEmitToMemoryBuffer; the functions needed for the initial path
+are present in this vendored checkout. Tower can call that API without acquiring
+a complete C++ class/template ABI. LLVM does not compile arbitrary C++ source;
+use Clang/the existing dependency builds to build third-party objects/libraries.
+See [LLVM-C](https://llvm.org/doxygen/group__LLVMC.html) and
+[target emission](https://llvm.org/doxygen/group__LLVMCTarget.html).
+
+The current LLD entry is C++, using LLVM containers/streams. A small bridge we
+own is a practical temporary external-dependency adapter; it is still custom
+C++ and must not be presented as literally zero custom C++. Native builds can
+alternatively invoke the linker executable; browser workers need an embedded
+or imported callable linker interface. If literal removal includes all adapter
+code, replace that boundary as a later explicit milestone. LLD handles native
+and Wasm object linking; Wasm imports/exports/memory must be configured explicitly.
+See [LLD embedding](https://lld.llvm.org/) and
+[Wasm linking](https://lld.llvm.org/WebAssembly.html). Current upstream docs describe
+newer versions; local headers/source were checked for the APIs discussed here.
+
+The initial grammar is still needed after C++ disappears. Its construction,
+scanner primitives and per-declaration update machinery can themselves be Tower
+code compiled into the compiler, loading the same Bedrock/Foundation source.
+This resolves bootstrapping through an earlier compiler; it does not remove the
+need for a starting reader or introduce a hidden grammar serialization format.
+
+Validation for this discussion: repository/header inspection and primary-source
+documentation review only. No compiler behavior changed and no builds or test
+suites were run. todo.txt was not modified.
+
+### Pointer-representation clarification
+
+The user expected ordinary address-valued pointers and asked what the checked
+representation means. Verified core.hpp, CoreMachine::address/dereference and
+the LLVM backend: source-level T* currently stores a cell index, lifetime
+generation and display-name ID. Dereferencing resolves the indexed cell and
+checks its active generation; reads also check initialization. LLVM currently
+lowers this to a tower.pointer aggregate of i32/i64/i32, not a plain LLVM ptr.
+This is an implementation choice in the current prototype, not evidence that
+the user requested handles as Tower's permanent pointer representation. Native
+TowerNode* pointers used inside the C++ compiler are a separate matter. No new
+pointer design or semantic change was selected by this clarification.
+
+## 2026-11-17 - Foundation memory is raw; safety belongs above it
+
+The user explicitly rejected checked handles as the foundation pointer model:
+the low level must provide raw pointers and raw memory access, with the eventual
+safe Tower language implemented in layers above it. This supersedes the earlier
+checked-pointer/field-lifetime requirements and the assumption that compiler-
+usable storage must first provide mandatory runtime lifetime/initialization
+checks. Updated AGENTS.md and docs/foundation.md to preserve that decision.
+
+Foundation T* is a target address value, without a cell index, generation or
+display-name payload. Address-taking, loads and stores lower to direct target
+memory operations. Size/alignment and field placement come from an explicit
+target layout. The current reflected 24-byte checked-pointer profile and
+separate checked scalar-cell storage must both be replaced; simply removing
+the guard calls would leave the wrong representation in place. Typed operands,
+type resolution, explicit conversions and semantic validation remain useful
+and do not require runtime memory safety.
+
+Safe references/views, bounds checks, ownership/lifetime tracking and related
+policies belong in Tower libraries/language layers over the raw foundation.
+Optional diagnostic instrumentation can exist without making it the ordinary
+pointer contract. An uninitialized foundation local is uninitialized storage;
+the new direction does not promise either zero or the current runtime diagnostic.
+No wholesale adoption of C++ undefined behavior, arithmetic changes or particular
+invalid-access result was chosen. Those semantics and the strict compile-time
+execution policy must be specified explicitly.
+
+For compiled code, use ordinary target pointers. For an interpreter, raw guest
+byte addresses can model the target memory space without exposing arbitrary
+host C++ memory; address identity must not depend on hidden lifetime generations.
+Wasm's linear-memory containment likewise is distinct from per-object bounds
+or lifetime checks. A portable evaluator's explicit memory/target model remains
+necessary for deterministic compile-time execution.
+
+Inspected core.hpp, core-machine.cpp, core-nodes.cpp, llvm-backend.cpp and the
+pointer/struct tests. The implementation currently checks generation, activity
+and initialization and the tests explicitly require those traps. Next migration
+must change interpreter storage, LLVM lowering, type/field layouts and tests
+together. Validate valid aliasing, pointer-to-pointer values, pointer fields,
+field offsets, captured assignment destinations and C ABI calls. Programs with
+invalid raw memory use should not retain mandatory checked-handle diagnostics
+as their foundation acceptance contract.
+
+This turn changes the recorded requirements and migration tasks only; executable
+behavior is still the checked prototype. No compiler build or execution tests
+were run. Documentation diff checks passed; todo.txt was not modified.

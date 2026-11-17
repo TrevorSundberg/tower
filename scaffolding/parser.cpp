@@ -6,16 +6,33 @@
 #include <sstream>
 #include <algorithm>
 #include <memory>
+#include <cstdio>
+#include <cstring>
+#include <cstdarg>
 
 // Note that IDs are always uint32_t, this is because realistically a language will never need
 // more than this many ids to represent all tokens / characters. We also put unicode code-points
 // within the uint32_t and it makes no sense for it to expand to anything greater in size
 // We don't use -1 just to ensure it never gets mixed with TOWER_INVALID_INDEX
-const uint32_t PARSER_ID_EOF = (uint32_t)-2;
 const uint32_t PARSER_ID_LOOKAHEAD = (uint32_t)-3;
+
+static bool parser_debug_trace = false;
+
+void parser_set_debug_trace(bool enabled) {
+  parser_debug_trace = enabled;
+}
+
+static void parser_trace(const char* format, ...) {
+  if (!parser_debug_trace) return;
+  va_list args;
+  va_start(args, format);
+  vprintf(format, args);
+  va_end(args);
+}
 
 // The tests come first so that we don't see the definition of any structs
 void parser_tests_internal();
+void parser_tree_tests();
 void parser_tests() {
   parser_tests_internal();
 
@@ -164,342 +181,7 @@ void parser_tests() {
   // Test orphaned rules (no references to them)
   // Test token strings
   // Test recursive rules
-  // Test character ranges
-  // Test parse rule referring to token rules
-  // Tets parse rule with direct strings
-  // Test SLR failure case
-  // Test associativity
-  // Test precedence
-  // Test callbacks, ah hmm we have to be able to specify a callback...
-  // Ideally, just write test cases for the actual rules we write
-  // e.g. lets actually implement the parser for BNF (identifiers, etc)
-  // and then setup tests to run against those, as they will test all features
-
-/*
-  // token E = T E'
-  // token E' = '+' T E';
-  // token E' = ;
-  // token T = F T';
-  // token T' = '*' F T';
-  // token T' = ;
-  // token F = '(' E ')';
-  // token F = '1'
-  {
-    TowerNode* token_rules = tower_node_create();
-
-    TowerNode* e0 = parser_rule_create_subtree(token_rules, "E", false);
-    parser_reference_create_subtree(e0, "T");
-    parser_reference_create_subtree(e0, "E'");
-
-    TowerNode* e1 = parser_rule_create_subtree(token_rules, "E'", false);
-    parser_string_create_subtree_utf8_null_terminated(e1, "+");
-    parser_reference_create_subtree(e1, "T");
-    parser_reference_create_subtree(e1, "E'");
-
-    parser_rule_create_subtree(token_rules, "E'", false); // epsilon rule, no children
-
-
-    TowerNode* t0 = parser_rule_create_subtree(token_rules, "T", false);
-    parser_reference_create_subtree(t0, "F");
-    parser_reference_create_subtree(t0, "T'");
-
-    TowerNode* t1 = parser_rule_create_subtree(token_rules, "T'", false);
-    parser_string_create_subtree_utf8_null_terminated(t1, "*");
-    parser_reference_create_subtree(t1, "F");
-    parser_reference_create_subtree(t1, "T'");
-
-    parser_rule_create_subtree(token_rules, "T'", false); // epsilon rule, no children
-
-    TowerNode* f0 = parser_rule_create_subtree(token_rules, "F", false);
-    parser_string_create_subtree_utf8_null_terminated(f0, "(");
-    parser_reference_create_subtree(f0, "E");
-    parser_string_create_subtree_utf8_null_terminated(f0, ")");
-
-    TowerNode* f1 = parser_rule_create_subtree(token_rules, "F", false);
-    parser_string_create_subtree_utf8_null_terminated(f1, "1");
-    
-    Table* table = parser_table_create(token_rules, nullptr, nullptr, parser_table_utf8_id_to_string);
-    Stream* stream = parser_stream_utf8_null_terminated_create("1+1*1");
-    Recognizer* recognizer = parser_recognizer_create(table, stream);
-
-    bool running = true;
-    TowerNode* node = nullptr;
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-
-    parser_recognizer_destroy(recognizer);
-    parser_table_destroy(table);
-    parser_stream_destroy(stream);
-    tower_node_release_ref(token_rules);
-  }
-*/
-
-  assert(tower_memory_get_allocated_count() == tower_memory_initial_count);
-/*
-  // token E = E '+' T;
-  // token E = T;
-  // token T = T '*' F;
-  // token T = F;
-  // token F = '(' E ')';
-  // token F = '1'
-  {
-    TowerNode* token_rules = tower_node_create();
-
-    TowerNode* e0 = parser_rule_create_subtree(token_rules, "E", false);
-    parser_reference_create_subtree(e0, "E");
-    parser_string_create_subtree_utf8_null_terminated(e0, "+");
-    parser_reference_create_subtree(e0, "T");
-
-    TowerNode* e1 = parser_rule_create_subtree(token_rules, "E", false);
-    parser_reference_create_subtree(e1, "T");
-
-    TowerNode* t0 = parser_rule_create_subtree(token_rules, "T", false);
-    parser_reference_create_subtree(t0, "T");
-    parser_string_create_subtree_utf8_null_terminated(t0, "*");
-    parser_reference_create_subtree(t0, "F");
-
-    TowerNode* t1 = parser_rule_create_subtree(token_rules, "T", false);
-    parser_reference_create_subtree(t1, "F");
-
-    TowerNode* f0 = parser_rule_create_subtree(token_rules, "F", false);
-    parser_string_create_subtree_utf8_null_terminated(f0, "(");
-    parser_reference_create_subtree(f0, "E");
-    parser_string_create_subtree_utf8_null_terminated(f0, ")");
-
-    TowerNode* f1 = parser_rule_create_subtree(token_rules, "F", false);
-    parser_string_create_subtree_utf8_null_terminated(f1, "1");
-    
-    Table* table = parser_table_create(token_rules, nullptr, nullptr, parser_table_utf8_id_to_string);
-    Stream* stream = parser_stream_utf8_null_terminated_create("1*1+1");
-    Recognizer* recognizer = parser_recognizer_create(table, stream);
-
-    bool running = true;
-    TowerNode* node = nullptr;
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-
-    parser_recognizer_destroy(recognizer);
-    parser_table_destroy(table);
-    parser_stream_destroy(stream);
-    tower_node_release_ref(token_rules);
-  }
-  */
-
-  assert(tower_memory_get_allocated_count() == tower_memory_initial_count);
-
-  // token Identifier = '0';
-  // token Identifier = '1';
-  // token Identifier = '2';
-  // token Identifier = '3';
-  // token Identifier = '4';
-  // token Identifier = '5';
-  // token Identifier = '6';
-  // token Identifier = '7';
-  // token Identifier = '8';
-  // token Identifier = '9';
-  // parse E = E '+' T;
-  // parse E = T;
-  // parse T = T '*' F;
-  // parse T = F;
-  // parse F = '(' E ')';
-  // parse F = Identifier
-  {
-    TowerNode* token_rules = tower_node_create();
-
-    TowerNode* i0 = parser_rule_create_subtree(token_rules, "Identifier", false);
-    parser_string_create_subtree_utf8_null_terminated(i0, "0");
-    TowerNode* i1 = parser_rule_create_subtree(token_rules, "Identifier", false);
-    parser_string_create_subtree_utf8_null_terminated(i1, "1");
-    TowerNode* i2 = parser_rule_create_subtree(token_rules, "Identifier", false);
-    parser_string_create_subtree_utf8_null_terminated(i2, "2");
-    TowerNode* i3 = parser_rule_create_subtree(token_rules, "Identifier", false);
-    parser_string_create_subtree_utf8_null_terminated(i3, "3");
-    TowerNode* i4 = parser_rule_create_subtree(token_rules, "Identifier", false);
-    parser_string_create_subtree_utf8_null_terminated(i4, "4");
-    TowerNode* i5 = parser_rule_create_subtree(token_rules, "Identifier", false);
-    parser_string_create_subtree_utf8_null_terminated(i5, "5");
-    TowerNode* i6 = parser_rule_create_subtree(token_rules, "Identifier", false);
-    parser_string_create_subtree_utf8_null_terminated(i6, "6");
-    TowerNode* i7 = parser_rule_create_subtree(token_rules, "Identifier", false);
-    parser_string_create_subtree_utf8_null_terminated(i7, "7");
-    TowerNode* i8 = parser_rule_create_subtree(token_rules, "Identifier", false);
-    parser_string_create_subtree_utf8_null_terminated(i8, "8");
-    TowerNode* i9 = parser_rule_create_subtree(token_rules, "Identifier", false);
-    parser_string_create_subtree_utf8_null_terminated(i9, "9");
-
-
-    TowerNode* parse_rules = tower_node_create();
-
-    TowerNode* e0 = parser_rule_create_subtree(parse_rules, "E", false);
-    parser_reference_create_subtree(e0, "E");
-    parser_string_create_subtree_utf8_null_terminated(e0, "+");
-    parser_reference_create_subtree(e0, "T");
-
-    TowerNode* e1 = parser_rule_create_subtree(parse_rules, "E", false);
-    parser_reference_create_subtree(e1, "T");
-
-    TowerNode* t0 = parser_rule_create_subtree(parse_rules, "T", false);
-    parser_reference_create_subtree(t0, "T");
-    parser_string_create_subtree_utf8_null_terminated(t0, "*");
-    parser_reference_create_subtree(t0, "F");
-
-    TowerNode* t1 = parser_rule_create_subtree(parse_rules, "T", false);
-    parser_reference_create_subtree(t1, "F");
-
-    TowerNode* f0 = parser_rule_create_subtree(parse_rules, "F", false);
-    parser_string_create_subtree_utf8_null_terminated(f0, "(");
-    parser_reference_create_subtree(f0, "E");
-    parser_string_create_subtree_utf8_null_terminated(f0, ")");
-
-    TowerNode* f1 = parser_rule_create_subtree(parse_rules, "F", false);
-    parser_reference_create_subtree(f1, "Identifier");
-
-
-    Table* token_table = parser_table_create(token_rules, nullptr, nullptr, parser_table_utf8_id_to_string);
-
-    Table* parse_table = parser_table_create(
-      parse_rules,
-      token_table,
-      parser_table_non_terminal_resolve_reference,
-      parser_table_non_terminal_id_to_string
-    );
-
-    // The tokenizer consumes utf8 text and produces tower nodes that have token matches
-    Stream* utf8_stream = parser_stream_utf8_null_terminated_create("1*1+1");
-    Recognizer* token_recognizer = parser_recognizer_create(token_table, utf8_stream);
-
-    // The token stream pumps the token recognizer to produce tokens in a stream that the parser will consume
-    Stream* token_stream = parser_stream_recognizer_create(token_recognizer);
-    Recognizer* parse_recognizer = parser_recognizer_create(parse_table, token_stream);
-
-    bool running = true;
-    TowerNode* node = nullptr;
-    node = parser_recognizer_step(parse_recognizer, &running);
-
-    parser_recognizer_destroy(parse_recognizer);
-    parser_stream_destroy(token_stream);
-    parser_recognizer_destroy(token_recognizer);
-    parser_stream_destroy(utf8_stream);
-    parser_table_destroy(parse_table);
-    parser_table_destroy(token_table);
-    tower_node_release_ref(parse_rules);
-    tower_node_release_ref(token_rules);
-  }
-
-  assert(tower_memory_get_allocated_count() == tower_memory_initial_count);
-
-/*
-  // Non-SLR grammar
-  // token S = L '=' R;
-  // token S = R;
-  // token L = '*' R;
-  // token L = 'i';
-  // token R = L;
-  {
-    TowerNode* token_rules = tower_node_create();
-
-    TowerNode* s0 = parser_rule_create_subtree(token_rules, "S", false);
-    parser_reference_create_subtree(s0, "L");
-    parser_string_create_subtree_utf8_null_terminated(s0, "=");
-    parser_reference_create_subtree(s0, "R");
-
-    TowerNode* s1 = parser_rule_create_subtree(token_rules, "S", false);
-    parser_reference_create_subtree(s1, "R");
-
-    TowerNode* l0 = parser_rule_create_subtree(token_rules, "L", false);
-    parser_string_create_subtree_utf8_null_terminated(l0, "*");
-    parser_reference_create_subtree(l0, "R");
-
-    TowerNode* l1 = parser_rule_create_subtree(token_rules, "L", false);
-    parser_string_create_subtree_utf8_null_terminated(l1, "i");
-
-    TowerNode* r0 = parser_rule_create_subtree(token_rules, "R", false);
-    parser_reference_create_subtree(r0, "L");
-
-    Table* table = parser_table_create(token_rules, nullptr, nullptr, parser_table_utf8_id_to_string);
-    Stream* stream = parser_stream_utf8_null_terminated_create("**i=*i");
-    Recognizer* recognizer = parser_recognizer_create(table, stream);
-
-    bool running = true;
-    TowerNode* node = nullptr;
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-    node = parser_recognizer_step(recognizer, &running);
-
-    parser_recognizer_destroy(recognizer);
-    parser_table_destroy(table);
-    parser_stream_destroy(stream);
-    tower_node_release_ref(token_rules);
-  }
-
-  assert(tower_memory_get_allocated_count() == tower_memory_initial_count);
-*/
-
-/*
-  // token A = 'a';
-  {
-    TowerNode* token_rules = tower_node_create();
-
-    TowerNode* rule_node = parser_rule_create_subtree(token_rules, "A", false);
-    Rule* rule = (Rule*)tower_node_get_component_userdata(rule_node, parser_rule_get_type());
-    assert(rule != nullptr);
-    assert(strcmp(parser_rule_get_name(rule), "A") == 0);
-    assert(parser_rule_get_generated(rule) == false);
-
-    parser_string_create_subtree_utf8_null_terminated(rule_node, "a");
-    
-    Table* table = parser_table_create(token_rules, nullptr, nullptr, parser_table_utf8_id_to_string);
-    Stream* stream = parser_stream_utf8_null_terminated_create("a");
-    //Recognizer* recognizer = parser_recognizer_create(table, stream);
-
-    //TowerNode* parser_recognizer_step(recognizer);
-
-    tower_node_release_ref(token_rules);
-    parser_table_destroy(table);
-  }
-  */
-
+  parser_tree_tests();
   assert(tower_memory_get_allocated_count() == tower_memory_initial_count);
 }
 
@@ -573,6 +255,7 @@ TowerNode* parser_rule_create_subtree(
 struct Reference {
   static TowerNode* compiletime_type;
   std::string name;
+  std::string capture;
 };
 TowerNode* Reference::compiletime_type = tower_node_create();
 
@@ -591,6 +274,10 @@ void parser_reference_set_name(Reference* component, const char* name) {
 
 const char* parser_reference_get_name(Reference* component) {
   return component->name.c_str();
+}
+
+void parser_reference_set_capture(Reference* component, const char* name) {
+  component->capture = name;
 }
 
 TowerNode* parser_reference_create_subtree(TowerNode* parent, const char* name) {
@@ -643,6 +330,8 @@ size_t parser_string_get_length(String* component) {
 // Returns the amount of bytes that were read (or 0 if it wasn't successful)
 size_t parser_decode_utf8_codepoint(const char* utf8_begin, const char* utf8_end, uint32_t* codepoint) {
   *codepoint = 0;
+
+  if (utf8_begin == utf8_end) return 0;
 
   size_t length = utf8_end - utf8_begin;
 
@@ -812,6 +501,8 @@ struct Match {
   uint32_t id = PARSER_ID_EOF;
   size_t start = 0;
   size_t length = 0;
+  size_t rule_index = TOWER_INVALID_INDEX;
+  std::string label;
 };
 TowerNode* Match::compiletime_type = tower_node_create();
 
@@ -853,6 +544,59 @@ size_t parser_match_get_length(Match* component) {
   return component->length;
 }
 
+size_t parser_match_get_rule_index(Match* component) {
+  return component->rule_index;
+}
+void parser_match_set_rule_index(Match* component, size_t index) {
+  component->rule_index = index;
+}
+
+const char* parser_match_get_label(Match* component) {
+  return component->label.c_str();
+}
+
+void parser_match_set_label(Match* component, const char* label) {
+  component->label = label;
+}
+
+char* parser_copy_string(const std::string& str);
+
+char* parser_tree_debug_string(TowerNode* root) {
+  std::ostringstream out;
+  struct Entry { TowerNode* node; size_t depth; };
+  std::vector<Entry> pending;
+  if (root) pending.push_back({root, 0});
+  else out << "<empty tree>\n";
+  while (!pending.empty()) {
+    Entry entry = pending.back();
+    pending.pop_back();
+    out << std::string(entry.depth * 2, ' ');
+    const char* member = tower_node_get_parent_member_name(entry.node);
+    if (member && *member) out << member << ": ";
+    auto* match = (Match*)tower_node_get_component_userdata(entry.node, parser_match_get_type());
+    if (match) {
+      bool is_rule = match->rule_index != TOWER_INVALID_INDEX;
+      out << (is_rule ? "rule " : "token ");
+      out << (match->label.empty() ? std::to_string(match->id) : match->label);
+      if (is_rule) out << " #" << match->rule_index;
+      out << " [" << match->start << ", " << match->start + match->length << ")";
+    } else {
+      out << "node";
+    }
+    out << '\n';
+    for (size_t i = tower_node_get_child_count(entry.node); i > 0; --i) {
+      pending.push_back({tower_node_get_child(entry.node, i - 1), entry.depth + 1});
+    }
+  }
+  return parser_copy_string(out.str());
+}
+
+void parser_tree_debug_print(TowerNode* root) {
+  char* text = parser_tree_debug_string(root);
+  fputs(text, stdout);
+  tower_memory_free(text);
+}
+
 TowerNode* parser_match_create_subtree(TowerNode* parent, uint32_t id, size_t start, size_t length) {
   TowerNode* child = create_attached_child_without_ref(parent);
   Match* component = parser_match_create(child);
@@ -866,6 +610,12 @@ TowerNode* parser_match_create_subtree(TowerNode* parent, uint32_t id, size_t st
 struct Stream {
   ParserStreamDestructor destructor = nullptr;
   ParserStreamRead read = nullptr;
+  std::string error;
+  bool buffered = false;
+  TowerNode* buffered_node = nullptr;
+  uint32_t buffered_id = PARSER_ID_EOF;
+  size_t buffered_start = 0, buffered_length = 0;
+  std::string buffered_error;
 };
 
 Stream* parser_stream_create(size_t userdata_bytes, ParserStreamDestructor destructor, ParserStreamRead read) {
@@ -877,6 +627,7 @@ Stream* parser_stream_create(size_t userdata_bytes, ParserStreamDestructor destr
 }
 
 void parser_stream_destroy(Stream* stream) {
+  if (stream->buffered_node) tower_node_release_ref(stream->buffered_node);
   if (stream->destructor) {
     stream->destructor(stream, parser_stream_get_userdata(stream));
   }
@@ -904,7 +655,23 @@ TowerNode* parser_stream_read(
   size_t* start_index,
   size_t* length
 ) {
+  if (stream->buffered) {
+    stream->buffered = false;
+    *id = stream->buffered_id; *start_index = stream->buffered_start; *length = stream->buffered_length;
+    stream->error = std::move(stream->buffered_error);
+    auto* node = stream->buffered_node; stream->buffered_node = nullptr;
+    return node;
+  }
+  stream->error.clear();
   return stream->read(stream, parser_stream_get_userdata(stream), id, start_index, length);
+}
+
+const char* parser_stream_get_error(Stream* stream) {
+  return stream->error.c_str();
+}
+
+void parser_stream_set_error(Stream* stream, const char* error) {
+  stream->error = error;
 }
 
 struct StreamUtf8 {
@@ -944,7 +711,9 @@ Stream* parser_stream_utf8_null_terminated_create(const char* utf8) {
 }
 
 Stream* parser_stream_utf8_create(const char* utf8_begin, const char* utf8_end) {
-  Stream* stream = parser_stream_create(sizeof(StreamUtf8), nullptr, parser_stream_utf8_read);
+  Stream* stream = parser_stream_create(sizeof(StreamUtf8), [](Stream*, void* userdata) {
+    ((StreamUtf8*)userdata)->~StreamUtf8();
+  }, parser_stream_utf8_read);
   void* userdata = parser_stream_get_userdata(stream);
   StreamUtf8* stream_utf8 = new (userdata) StreamUtf8();
   stream_utf8->data.assign(utf8_begin, utf8_end);
@@ -955,6 +724,7 @@ Stream* parser_stream_utf8_create(const char* utf8_begin, const char* utf8_end) 
 
 struct StreamRecognizer {
   Recognizer* recognizer = nullptr;
+  bool complete = false;
 };
 
 TowerNode* parser_stream_recognizer_read(
@@ -965,11 +735,13 @@ TowerNode* parser_stream_recognizer_read(
   size_t* length
 ) {
   StreamRecognizer* stream_recognizer = (StreamRecognizer*)userdata;
-  bool running = false;
+  bool running = !stream_recognizer->complete;
   TowerNode* node = nullptr;
-  do {
+  while (running && !node) {
     node = parser_recognizer_step(stream_recognizer->recognizer, &running);
-  } while (running && !node);
+  }
+  stream_recognizer->complete = !running;
+  stream->error = parser_recognizer_get_error(stream_recognizer->recognizer);
 
   if (node) {
     Match* match = (Match*)tower_node_get_component_userdata(node, parser_match_get_type());
@@ -1045,6 +817,7 @@ struct std::hash<GrammarTerminal> {
 
 struct GrammarSymbol {
   TowerNode* symbol_node = nullptr;
+  std::string capture;
 
   // Set if this represents a non-terminal (a reference to other rules)
   // If this is set, the start/end are ignored
@@ -1096,11 +869,11 @@ struct GrammarSymbolRef {
   const GrammarSymbol* symbol = nullptr;
 
   bool operator<(const GrammarSymbolRef& rhs) const {
-    printf("MAKE SURE const GrammarSymbol* LESS CALLED\n");
+    parser_trace("MAKE SURE const GrammarSymbol* LESS CALLED\n");
     return *symbol < *rhs.symbol;
   }
   bool operator==(const GrammarSymbolRef& rhs) const {
-    printf("MAKE SURE const GrammarSymbol* EQUALS CALLED\n");
+    parser_trace("MAKE SURE const GrammarSymbol* EQUALS CALLED\n");
     return *symbol == *rhs.symbol;
   }
 };
@@ -1108,6 +881,7 @@ struct GrammarSymbolRef {
 struct GrammarRule {
   size_t index = (size_t)-1;
   Rule* rule = nullptr;
+  bool generated = false;
   GrammarNonTerminal* non_terminal = nullptr;
   std::vector<GrammarSymbol> symbols;
 };
@@ -1122,7 +896,7 @@ struct Grammar {
   ParserTableIdToString to_string = nullptr;
 };
 
-void parser_grammar_create(Grammar& grammar, TowerNode* root, void* userdata, ParserTableResolveReference resolve) {
+std::string parser_grammar_create(Grammar& grammar, TowerNode* root, void* userdata, ParserTableResolveReference resolve) {
   std::vector<Rule*> rules;
   rules.reserve(tower_node_get_child_count(root));
 
@@ -1164,6 +938,7 @@ void parser_grammar_create(Grammar& grammar, TowerNode* root, void* userdata, Pa
     size_t grammar_rule_index = grammar.rules.size();
     GrammarRule& grammar_rule = grammar.rules.emplace_back();
     grammar_rule.rule = rule;
+    grammar_rule.generated = rule->generated;
     grammar_rule.index = grammar_rule_index;
 
     GrammarNonTerminal*& non_terminal = non_terminals[rule->name];
@@ -1214,6 +989,7 @@ void parser_grammar_create(Grammar& grammar, TowerNode* root, void* userdata, Pa
           GrammarSymbol& symbol = symbols.emplace_back();
           symbol.non_terminal = it->second;
           symbol.symbol_node = symbol_node;
+          symbol.capture = reference->capture;
         } else {
           uint32_t id = PARSER_ID_EOF;
           // Otherwise, this might be a reference to a terminal
@@ -1222,10 +998,11 @@ void parser_grammar_create(Grammar& grammar, TowerNode* root, void* userdata, Pa
           }
 
           if (id == PARSER_ID_EOF) {
-            assert(false && "unable to resolve rule by name");
+            return "Unresolved grammar rule: " + reference->name;
           } else {
             GrammarSymbol& symbol = symbols.emplace_back();
             symbol.symbol_node = symbol_node;
+            symbol.capture = reference->capture;
             symbol.terminal.start = id;
             symbol.terminal.end = id;
           }
@@ -1257,6 +1034,7 @@ void parser_grammar_create(Grammar& grammar, TowerNode* root, void* userdata, Pa
       }
     }
   }
+  return {};
 }
 
 template <typename T>
@@ -1646,7 +1424,7 @@ struct std::hash<LRSet<LR0Item>> {
 template <>
 struct std::hash<const LRSet<LR0Item>*> {
   std::size_t operator()(const LRSet<LR0Item>* set) const {
-    printf("MAKE SURE const LRSet<LR0Item>* HASH CALLED\n");
+    parser_trace("MAKE SURE const LRSet<LR0Item>* HASH CALLED\n");
     return std::hash<LRSet<LR0Item>>()(*set);
   }
 };
@@ -1654,7 +1432,7 @@ struct std::hash<const LRSet<LR0Item>*> {
 template <>
 struct std::equal_to<const LRSet<LR0Item>*> {
   bool operator()(const LRSet<LR0Item>* lhs, const LRSet<LR0Item>* rhs) const {
-    printf("MAKE SURE const LRSet<LR0Item>* EQUALS CALLED\n");
+    parser_trace("MAKE SURE const LRSet<LR0Item>* EQUALS CALLED\n");
     return *lhs == *rhs;
   }
 };
@@ -1705,7 +1483,7 @@ struct StateBuilderEdge {
 template <>
 struct std::hash<StateBuilderEdge> {
   std::size_t operator()(const StateBuilderEdge& edge) const {
-    printf("MAKE SURE StateBuilderEdge HASH CALLED\n");
+    parser_trace("MAKE SURE StateBuilderEdge HASH CALLED\n");
     size_t hash = std::hash<GrammarTerminal>()(edge.terminal);
     hash = hash_combine(hash, std::hash<size_t>()(edge.shift_state_index));
     if (edge.reduce_rule) {
@@ -1738,7 +1516,7 @@ struct StateBuilder {
 template <>
 struct std::hash<const SortedVector<StateBuilderEdge>*> {
   std::size_t operator()(const SortedVector<StateBuilderEdge>* set) const {
-    printf("MAKE SURE const SortedVector<StateBuilderEdge>* HASH CALLED\n");
+    parser_trace("MAKE SURE const SortedVector<StateBuilderEdge>* HASH CALLED\n");
     return std::hash<SortedVector<StateBuilderEdge>>()(*set);
   }
 };
@@ -1746,7 +1524,7 @@ struct std::hash<const SortedVector<StateBuilderEdge>*> {
 template <>
 struct std::equal_to<const SortedVector<StateBuilderEdge>*> {
   bool operator()(const SortedVector<StateBuilderEdge>* lhs, const SortedVector<StateBuilderEdge>* rhs) const {
-    printf("MAKE SURE const SortedVector<StateBuilderEdge>* EQUALS CALLED\n");
+    parser_trace("MAKE SURE const SortedVector<StateBuilderEdge>* EQUALS CALLED\n");
     return *lhs == *rhs;
   }
 };
@@ -1786,43 +1564,27 @@ void parser_table_closure(const Grammar& grammar, const GrammarSets* sets_for_lr
     // For each item in the closure, find the next grammar symbol after the dot or null at the end (B in the dragon book)
     const GrammarSymbol* symbol = parser_table_get_grammar_symbol_or_null(grammar, item);
 
-    // β might be a non-terminal with epsilon     FIRST(βa) = {x, y..., a}    (uses first_set + first_terminal)
-    // β might be a non-terminal with no epsilon  FIRST(βa) = {x, y...}       (uses first_set)
-    // β might be a terminal                      FIRST(βa) = {β}             (uses first_terminal)
-    // β might be null (end of production)        FIRST(βa) = {a}             (uses first_terminal)
-    const SortedVector<GrammarTerminal>* first_set = nullptr;
-    const GrammarTerminal* first_terminal = nullptr;
-
-    // We only need to examine FIRST for the lookaheads of LR1 items
+    // Compute FIRST of the entire suffix followed by the item's lookahead.
+    // Looking at only the next symbol loses tokens after nullable sequences.
+    SortedVector<GrammarTerminal> closure_lookaheads;
     if (sets_for_lr1) {
-      // Also find the grammar symbol after (β in the dragon book)
-      const GrammarSymbol* after = parser_table_get_grammar_symbol_or_null(grammar, LR0Item(
-        item.rule_index,
-        item.symbol_index + 1
-      ));
-
-      // Do we have β?
-      if (after) {
-        // Is β a non-terminal?
-        if (after->non_terminal) {
-          // At this point we know no matter what we're going to use FIRST(β) terminals
-          first_set = &sets_for_lr1->first[after->non_terminal->index];
-
-          // If β contain epsilon then we also need to inlude the lookahead (if not then FIRST(βa) = FIRST(β))
-          if (sets_for_lr1->nullable[after->non_terminal->index]) {
-            first_terminal = parser_table_get_lookahead(item);
-          }
-        } else {
-          // β is be a terminal, easy case FIRST(βa) = {β}
-          first_terminal = &after->terminal;
+      bool nullable_suffix = true;
+      const auto& symbols = grammar.rules[item.rule_index].symbols;
+      for (size_t i = item.symbol_index + 1; i < symbols.size(); ++i) {
+        const auto& after = symbols[i];
+        if (!after.non_terminal) {
+          closure_lookaheads.insert(after.terminal);
+          nullable_suffix = false;
+          break;
         }
-      } else {
-        // We're at the end of the production and there is no β, so FIRST(βa) = FIRST(a) = {a}
-        // Conceptually, we would have to know the FOLLOW of the production then since there is no FIRST after
-        // However, the LR1 item contains 'a' the lookahead passed down to us from our parent rule caller
-        // So we do not need FOLLOW here because 'a' essentially is the FOLLOW
-        first_terminal = parser_table_get_lookahead(item);
+        const auto& first = sets_for_lr1->first[after.non_terminal->index];
+        closure_lookaheads.insert(first.begin(), first.end());
+        if (!sets_for_lr1->nullable[after.non_terminal->index]) {
+          nullable_suffix = false;
+          break;
+        }
       }
+      if (nullable_suffix) closure_lookaheads.insert(*parser_table_get_lookahead(item));
     }
 
     // We only care if the grammar symbol is a reference (another rule to expand)
@@ -1833,29 +1595,18 @@ void parser_table_closure(const Grammar& grammar, const GrammarSets* sets_for_lr
 
           // Attempt to insert it and if it's the first time it's been inserted, we need to process it
           if (terminal_or_null) {
-            printf("adding terminal: %d\n", (int)terminal_or_null->start);
+            parser_trace("adding terminal: %d\n", (int)terminal_or_null->start);
           }
           if (items.insert(grammar, nonkernel_item)) {
-            printf("added\n");
+            parser_trace("added\n");
             unprocessed.push_back(nonkernel_item);
           } else {
-            printf("did not add\n");
+            parser_trace("did not add\n");
           }
         };
 
-        // If this is LR1, we need to walk all the terminals in the FIRST(βa) set and add new items for each lookahead
         if (sets_for_lr1) {
-          printf("first_set %p first_terminal %p\n", first_set, first_terminal); 
-          // Add new LR1 items with lookahead for
-          if (first_set) {
-            for (const GrammarTerminal& terminal : *first_set) {
-              add_item(&terminal);
-            }
-          }
-          if (first_terminal) {
-            printf("terminal: %d\n", (int)first_terminal->start);
-            add_item(first_terminal);
-          }
+          for (const auto& terminal : closure_lookaheads) add_item(&terminal);
         } else {
           // Otherwise, this is LR0 and we only need to add a single item with no lookahead
           add_item(nullptr);
@@ -1885,13 +1636,9 @@ LRSet<LRItem> parser_table_goto(
       if (symbol->non_terminal) {
         result.insert(grammar, next_item);
       } else {
-        // TODO(trevor): Optimize this, right now the query goto_symbol must always be a single value, not a range
-        // I believe instead of passing in every single character value we can break up the ranges, but I really need to
-        // sit down and figure that one out. To move on for now, I'm just going to do it character by character
-        printf("%d - %d\n", goto_symbol.terminal.start, goto_symbol.terminal.end);
-        assert(goto_symbol.terminal.start == goto_symbol.terminal.end);
-
-        if (goto_symbol.terminal.start >= symbol->terminal.start && goto_symbol.terminal.start <= symbol->terminal.end) {
+        // A disjoint/equal terminal range has the same transition for every
+        // member. Partially overlapping ranges still require table partitioning.
+        if (goto_symbol.terminal.start >= symbol->terminal.start && goto_symbol.terminal.end <= symbol->terminal.end) {
           result.insert(grammar, next_item);
         }
       }
@@ -1934,6 +1681,9 @@ struct State {
   // that share the same exact set of transitions
   // This is effectively ACTION[state, terminal] in the dragon book
   const StateTransitions* transitions = nullptr;
+  // Safe default reduction: every populated action is the same EOF reduction.
+  // This lets self-delimiting declarations finish without lexing the next revision.
+  const GrammarRule* default_reduce = nullptr;
 
   // We never need to share these as there will never be a goto that has the same state within it
   // This is effectively GOTO[state, rule] in the dragon book
@@ -1946,7 +1696,8 @@ struct State {
 struct Table {
   Grammar grammar;
   std::vector<State> states;
-  std::vector<StateTransitions> shared_transitions;
+  std::vector<std::unique_ptr<StateTransitions>> shared_transitions;
+  ParserTableMode mode = ParserTableMode::WholeInput;
 };
 
 std::string debug_str_header(const State& state, const Table& table, const char* prefix = "state") {
@@ -2037,6 +1788,7 @@ void parser_table_lr0_items(TableBuilder& table_builder, const Grammar& grammar)
     starting.items.insert(grammar, LR0Item{0, 0});
     parser_table_closure(grammar, nullptr, starting.items);
     unprocessed.push_back(&starting);
+    table_builder.total_kernel_lr_items += starting.items.kernels.size();
   }
 
   const auto find_or_add_state = [&](const LRSet<LR0Item>& set, const GrammarSymbol* symbol) -> StateBuilder& {
@@ -2054,17 +1806,16 @@ void parser_table_lr0_items(TableBuilder& table_builder, const Grammar& grammar)
     unprocessed.push_back(&builder);
     table_builder.item_sets_to_state_index.insert(std::pair<const LRSet<LR0Item>*, size_t>(&builder.items, state_index));
     table_builder.total_kernel_lr_items += set.kernels.size();
-    printf("added state\n");
+    parser_trace("added state\n");
     return builder;
   };
 
   while (!unprocessed.empty()) {
-    assert(table_builder.states.size() < 50);
 
     StateBuilder& state_builder = *unprocessed.back(); // I in dragon book;
     unprocessed.pop_back();
     
-    printf("state %s\n", debug_str(state_builder.items, grammar).c_str());
+    parser_trace("state %s\n", debug_str(state_builder.items, grammar).c_str());
     // X in dragon book
     // This is potentially unsafe because we resize the number of states as we add more
     // However, upon resizing each element is moved, and since we don't use any custom allocators
@@ -2072,11 +1823,11 @@ void parser_table_lr0_items(TableBuilder& table_builder, const Grammar& grammar)
     // https://stackoverflow.com/questions/11021764/does-moving-a-vector-invalidate-iterators
     for (GrammarSymbolRef symbol_ref : state_builder.items.symbols) {
       const GrammarSymbol* symbol = symbol_ref.symbol;
-      printf("capacity %d size %d\n", (int)table_builder.states.capacity(), (int)table_builder.states.size());
-      printf("from state %s\n", debug_str(state_builder.items, grammar).c_str());
-      printf("symbol %s\n", debug_str(*symbol, grammar).c_str());
+      parser_trace("capacity %d size %d\n", (int)table_builder.states.capacity(), (int)table_builder.states.size());
+      parser_trace("from state %s\n", debug_str(state_builder.items, grammar).c_str());
+      parser_trace("symbol %s\n", debug_str(*symbol, grammar).c_str());
       LRSet<LR0Item> gotos = parser_table_goto(grammar, nullptr, state_builder.items, *symbol);
-      printf("gotos %s\n", debug_str(gotos, grammar).c_str());
+      parser_trace("gotos %s\n", debug_str(gotos, grammar).c_str());
       // Our gotos should never be empty since we only query with symbols that are valid
       assert(!gotos.empty());
       
@@ -2295,7 +2046,8 @@ struct OrderedMap {
 void parser_table_lalr_lookaheads(
   TableBuilder& table_builder,
   const Grammar& grammar,
-  const GrammarSets& sets
+  const GrammarSets& sets,
+  ParserTableMode mode
 ) {
   // By reserving the total maximum amount we have, we guarantee this will never reallocate
   OrderedMap<LR0ItemInKernelState, SortedVector<GrammarTerminal>> lookaheads;
@@ -2307,10 +2059,10 @@ void parser_table_lalr_lookaheads(
   propegation.reserve(table_builder.total_kernel_lr_items);
 
   // By default the starting rulne has an implict lookahead of EOF / $
-  // The first state should only have the generated starting rule as the only kernel item
+  // Empty productions may also be kernels in the starting closure.
   assert(table_builder.states.size() > 0);
   StateBuilder& state = *table_builder.states[0].get();
-  assert(state.items.kernels.size() == 1);
+  assert(!state.items.kernels.empty());
   const LR0Item& start_kernel = state.items.kernels[0];
   assert(start_kernel.rule_index == 0);
   assert(start_kernel.symbol_index == 0);
@@ -2319,11 +2071,17 @@ void parser_table_lalr_lookaheads(
     .start = PARSER_ID_EOF,
     .end = PARSER_ID_EOF,
   });
+  if (mode == ParserTableMode::Constructs) {
+    // Equivalent boundary lookaheads to a sequence of start-rule constructs.
+    // Keep these in the ordinary LALR conflict check, not a runtime shift bias.
+    const auto& first = sets.first[grammar.rules[0].symbols[0].non_terminal->index];
+    lookaheads[start_item].insert(first.begin(), first.end());
+  }
 
   for (const auto& state_builder : table_builder.states) {
     for (const auto& kernel_item : state_builder->items.kernels) {
       assert(parser_table_is_kernel_item(grammar, kernel_item));
-      printf("KERNEL ITEM BEGIN: %s\n", debug_str(kernel_item, grammar).c_str());
+      parser_trace("KERNEL ITEM BEGIN: %s\n", debug_str(kernel_item, grammar).c_str());
       LRSet<LR1Item> lr1_items;
       GrammarTerminal lookahead {
         .start = PARSER_ID_LOOKAHEAD,
@@ -2334,32 +2092,47 @@ void parser_table_lalr_lookaheads(
 
       parser_table_closure(grammar, &sets, lr1_items);
 
+      // Empty productions reduce in this state without traversing a GOTO edge.
+      for (const auto& closure_item : lr1_items.kernels) {
+        if (!grammar.rules[closure_item.rule_index].symbols.empty()) continue;
+        LR0ItemInKernelState destination(closure_item, state_builder->state_index);
+        if (closure_item.lookahead.start == PARSER_ID_LOOKAHEAD) {
+          LR0ItemInKernelState source(kernel_item, state_builder->state_index);
+          propegation[source].insert(destination);
+        } else {
+          lookaheads[destination].insert(closure_item.lookahead);
+        }
+      }
+
       for (GrammarSymbolRef symbol_ref : lr1_items.symbols) {
         const GrammarSymbol* symbol = symbol_ref.symbol;
         // Note that if we did goto on 'kernel_state' we would need to run closure first as the state is kernel items only
         // Goto also preserves the lookaheads
-        printf("KERNEL ITEM: %s\n", debug_str(kernel_item, grammar).c_str());
-        printf("KERNEL ITEM CLOSURE: %s\n", debug_str(lr1_items, grammar).c_str());
-        printf("SYMBOL: %s\n", debug_str(*symbol, grammar).c_str());
+        parser_trace("KERNEL ITEM: %s\n", debug_str(kernel_item, grammar).c_str());
+        parser_trace("KERNEL ITEM CLOSURE: %s\n", debug_str(lr1_items, grammar).c_str());
+        parser_trace("SYMBOL: %s\n", debug_str(*symbol, grammar).c_str());
         LRSet<LR1Item> goto_state_lr1 = parser_table_goto(grammar, &sets, lr1_items, *symbol);
-        printf("GOTO: %s\n", debug_str(goto_state_lr1, grammar).c_str());
+        parser_trace("GOTO: %s\n", debug_str(goto_state_lr1, grammar).c_str());
         // Always should have items since we only query with valid symbols from lr1_items
         assert(goto_state_lr1.kernels.size() != 0);
-        printf("GOTO KERNELS: %s\n", debug_str(goto_state_lr1, grammar).c_str());
+        parser_trace("GOTO KERNELS: %s\n", debug_str(goto_state_lr1, grammar).c_str());
         
-        // TODO(trevor): Ideally we would be able to look into the unordered map using heterogenous lookup
-        // e.g. no need to convert the LRSet<LR1Item> to LRSet<LR0Item>, we can just look up wtih LRSet<LR1Item> kernels
-        // We would need to filter LRSet<LR1Item> kernels for duplicate LR0 kernels however (same LR0 item, different lookahead)
-        // However heterogenous lookups are not supported until C++20 on unordered_map, and C++20 breaks wasi-sdk for some reason
-        // https://www.reddit.com/r/cpp_questions/comments/12xw3sn/find_stdstring_view_in_unordered_map_with/
-        // However, one advantage that we have here is we can only assign the kernels because that's all we need to look up
-        LRSet<LR0Item> goto_state_lr0 = parser_table_lr0_from_lr1_kernels(goto_state_lr1);
-        assert(!goto_state_lr0.kernels.empty());
-        auto found_state = table_builder.item_sets_to_state_index.find(&goto_state_lr0);
-        assert(found_state != table_builder.item_sets_to_state_index.end());
+        // Use the full LR0 state's transition. A single kernel's closure may
+        // advance only a subset of the destination's kernels.
+        size_t destination_state = TOWER_INVALID_INDEX;
+        if (symbol->non_terminal) {
+          for (const auto& transition : state_builder->gotos_after_reduction)
+            if (transition.non_terminal == symbol->non_terminal)
+              destination_state = transition.shift_state_index;
+        } else {
+          for (const auto& transition : state_builder->edges)
+            if (!transition.reduce_rule && transition.terminal == symbol->terminal)
+              destination_state = transition.shift_state_index;
+        }
+        assert(destination_state != TOWER_INVALID_INDEX);
 
         for (const LR1Item& propegate_to : goto_state_lr1.kernels) {
-          LR0ItemInKernelState propegation_dest(propegate_to, found_state->second);
+          LR0ItemInKernelState propegation_dest(propegate_to, destination_state);
 
           // Is lookahead propegated?
           if (propegate_to.lookahead.start == PARSER_ID_LOOKAHEAD) {
@@ -2368,22 +2141,22 @@ void parser_table_lalr_lookaheads(
             propegation[propegation_source].insert(propegation_dest);
           } else {
             // Otherwise it's generated / spontaneous
-            printf("SPONTANEOUS %s\n", debug_str(propegate_to.lookahead, grammar).c_str());
+            parser_trace("SPONTANEOUS %s\n", debug_str(propegate_to.lookahead, grammar).c_str());
             lookaheads[propegation_dest].insert(propegate_to.lookahead);
           }
         }
       }
 
-      printf("%s\n", debug_str(lr1_items, grammar).c_str());
+      parser_trace("%s\n", debug_str(lr1_items, grammar).c_str());
     }
   }
 
   for (const auto& entry : propegation) {
-    printf("FROM: %s\n", debug_str(entry.first, grammar).c_str());
-    printf("IN: %s\n", debug_str(table_builder.states[entry.first.state_index]->items, grammar).c_str());
+    parser_trace("FROM: %s\n", debug_str(entry.first, grammar).c_str());
+    parser_trace("IN: %s\n", debug_str(table_builder.states[entry.first.state_index]->items, grammar).c_str());
     for (const auto& to_states : entry.second) {
-      printf("  TO:\n%s\n", debug_str(to_states, grammar).c_str());
-      printf("  IN: %s\n", debug_str(table_builder.states[to_states.state_index]->items, grammar).c_str());
+      parser_trace("  TO:\n%s\n", debug_str(to_states, grammar).c_str());
+      parser_trace("  IN: %s\n", debug_str(table_builder.states[to_states.state_index]->items, grammar).c_str());
     }
   }
 
@@ -2394,14 +2167,14 @@ void parser_table_lalr_lookaheads(
     has_changed = false;
 
     // PRINT DEBUG LOOKAHEADS
-    printf("LOOKAHEADS:\n");
+    parser_trace("LOOKAHEADS:\n");
     for (const auto& entry : lookaheads) {
-      printf("ITEM: %s\n", debug_str(entry.first, grammar).c_str());
-      printf("IN: %s\n", debug_str(table_builder.states[entry.first.state_index]->items, grammar).c_str());
+      parser_trace("ITEM: %s\n", debug_str(entry.first, grammar).c_str());
+      parser_trace("IN: %s\n", debug_str(table_builder.states[entry.first.state_index]->items, grammar).c_str());
       for (const auto& lookahead : entry.second) {
-        printf(" %s", debug_str(lookahead, grammar).c_str());
+        parser_trace(" %s", debug_str(lookahead, grammar).c_str());
       }
-      printf("\n");
+      parser_trace("\n");
     }
 
     for (const auto& propegate_pair : propegation) {
@@ -2458,7 +2231,7 @@ void parser_table_lalr_lookaheads(
   }
 }
 
-void parser_table_build_states(
+std::string parser_table_build_states(
   Table& table,
   TableBuilder& table_builder
 ) {
@@ -2474,12 +2247,13 @@ void parser_table_build_states(
 
     StateTransitions*& transitions = shared_transitions[&builder.edges];
     if (!transitions) {
-      transitions = new StateTransitions();
+      table.shared_transitions.push_back(std::make_unique<StateTransitions>());
+      transitions = table.shared_transitions.back().get();
 
       const auto add_edge = [&](const GrammarTerminal& terminal) -> StateEdge& {
         if (terminal.start == terminal.end) {
           // Make sure there are no duplicates
-          assert(transitions->direct_edges.find(terminal.start) == transitions->direct_edges.end());
+          assert(!transitions->direct_edges.contains(terminal.start));
           return transitions->direct_edges[terminal.start];
         } else {
           // These will be already sorted as they are coming from SortedVector<StateBuilderEdge>
@@ -2492,7 +2266,17 @@ void parser_table_build_states(
       const StateBuilderEdge* last_edge = nullptr;
       for (const auto& builder_edge : builder.edges) {
         if (last_edge) {
-          assert(last_edge->terminal.entirely_less(builder_edge.terminal));
+          if (!last_edge->terminal.entirely_less(builder_edge.terminal)) {
+            const char* kind = last_edge->reduce_rule && builder_edge.reduce_rule ? "reduce/reduce" :
+              last_edge->reduce_rule || builder_edge.reduce_rule ? "shift/reduce" : "shift/shift";
+            const auto describe = [&](const StateBuilderEdge& edge) {
+              return edge.reduce_rule ? "reduce " + debug_str(*edge.reduce_rule, table.grammar) :
+                "shift to state " + std::to_string(edge.shift_state_index);
+            };
+            return "Conflicting parser actions (" + std::string(kind) + ") in state " + std::to_string(i)
+              + " on " + debug_str(builder_edge.terminal, table.grammar) + ": "
+              + describe(*last_edge) + " versus " + describe(builder_edge);
+          }
         }
 
         StateEdge& state_edge = add_edge(builder_edge.terminal);
@@ -2515,7 +2299,8 @@ void parser_table_build_states(
     }
   }
 
-  printf("REDUCED SHARED TRANSITIONS: %d to %d\n", (int)table.states.size(), (int)shared_transitions.size());
+  parser_trace("REDUCED SHARED TRANSITIONS: %d to %d\n", (int)table.states.size(), (int)shared_transitions.size());
+  return {};
 }
 
 uint32_t parser_table_non_terminal_resolve_reference(void* userdata, const char* name) {
@@ -2542,7 +2327,16 @@ char* parser_copy_string(const std::string& str) {
 }
 
 char* parser_table_utf8_id_to_string(void* userdata, uint32_t id) {
+  switch (id) {
+    case '\n': return parser_copy_string("'\\n'");
+    case '\r': return parser_copy_string("'\\r'");
+    case '\t': return parser_copy_string("'\\t'");
+    case '\0': return parser_copy_string("'\\0'");
+    case '\\': return parser_copy_string("'\\\\'");
+    case '\'': return parser_copy_string("'\\\''");
+  }
   size_t encode_size = parser_encode_utf8_codepoint(id, nullptr, 0);
+  if (!encode_size) return nullptr;
   // Include the null terminator, and two '' characters
   char* str_mem = (char*)tower_memory_allocate(encode_size + 3);
   str_mem[0] = '\'';
@@ -2551,10 +2345,6 @@ char* parser_table_utf8_id_to_string(void* userdata, uint32_t id) {
   parser_encode_utf8_codepoint(id, str_mem + 1, encode_size);
   return str_mem;
 
-  // TODO(trevor): This should be a lot more efficient, but currently we don't have a way to measure utf8 size
-  std::stringstream stream;
-  stream << '\'' << (char)id << '\'';
-  return parser_copy_string(stream.str());
 }
 
 char* parser_table_non_terminal_id_to_string(void* userdata, uint32_t id) {
@@ -2564,7 +2354,7 @@ char* parser_table_non_terminal_id_to_string(void* userdata, uint32_t id) {
   assert(table->states.size() > 0);
   assert(table->grammar.non_terminals.size() > 0);
   assert(table->grammar.rules.size() >= table->grammar.non_terminals.size());
-  assert(id < table->grammar.non_terminals.size());
+  if (id >= table->grammar.non_terminals.size()) return nullptr;
   return parser_copy_string(table->grammar.non_terminals[id].name);
 }
 
@@ -2572,37 +2362,59 @@ Table* parser_table_create(
   TowerNode* root,
   void* userdata,
   ParserTableResolveReference resolve,
-  ParserTableIdToString to_string
+  ParserTableIdToString to_string,
+  char** error,
+  ParserTableMode mode
 ) {
+  if (error) *error = nullptr;
   void* memory = tower_memory_allocate(sizeof(Table));
   Table* table = new (memory) Table();
+  table->mode = mode;
+  const auto fail = [&](const std::string& message) -> Table* {
+    if (error) *error = parser_copy_string(message);
+    parser_table_destroy(table);
+    return nullptr;
+  };
+  {
+    if (!root || !tower_node_get_child_count(root)) return fail("Empty grammar");
+    Grammar& grammar = table->grammar;
+    grammar.userdata = userdata;
+    grammar.to_string = to_string;
+    std::string message = parser_grammar_create(grammar, root, userdata, resolve);
+    if (!message.empty()) return fail(message);
+    assert(grammar.rules.size() > 0);
+    assert(grammar.non_terminals.size() > 0);
+    parser_trace("%s\n", debug_str(grammar).c_str());
 
-  Grammar& grammar = table->grammar;
-  grammar.userdata = userdata;
-  grammar.to_string = to_string;
-  parser_grammar_create(grammar, root, userdata, resolve);
-  assert(grammar.rules.size() > 0);
-  assert(grammar.non_terminals.size() > 0);
-  printf("%s\n", debug_str(grammar).c_str());
+    TableBuilder table_builder;
+    parser_table_lr0_items(table_builder, grammar);
+    assert(table_builder.states.size() > 0);
+    assert(table_builder.total_kernel_lr_items > 0);
 
-  TableBuilder table_builder;
-  parser_table_lr0_items(table_builder, grammar);
-  assert(table_builder.states.size() > 0);
-  assert(table_builder.item_sets_to_state_index.size() > 0);
-  assert(table_builder.total_kernel_lr_items > 0);
+    GrammarSets sets;
+    parser_table_compute_grammar_sets(grammar, sets);
+    assert(sets.first.size() == grammar.non_terminals.size());
+    assert(sets.nullable.size() == grammar.non_terminals.size());
+    parser_trace("%s\n", debug_str(sets, grammar).c_str());
 
-  GrammarSets sets;
-  parser_table_compute_grammar_sets(grammar, sets);
-  assert(sets.first.size() == grammar.non_terminals.size());
-  assert(sets.nullable.size() == grammar.non_terminals.size());
-  printf("%s\n", debug_str(sets, grammar).c_str());
+    parser_table_lalr_lookaheads(table_builder, grammar, sets, mode);
 
-  parser_table_lalr_lookaheads(table_builder, grammar, sets);
+    message = parser_table_build_states(*table, table_builder);
+    if (!message.empty()) return fail(message);
+    for (auto& state : table->states) {
+      const auto& transitions = *state.transitions;
+      auto eof = transitions.direct_edges.find(PARSER_ID_EOF);
+      if (eof == transitions.direct_edges.end() || !eof->second.reduce_rule) continue;
+      auto* rule = eof->second.reduce_rule;
+      bool same = true;
+      for (const auto& [id, edge] : transitions.direct_edges) same &= edge.reduce_rule == rule;
+      for (const auto& edge : transitions.range_edges) same &= edge.edge.reduce_rule == rule;
+      if (same) state.default_reduce = rule;
+    }
+    parser_trace("%s\n", debug_str(*table).c_str());
 
-  parser_table_build_states(*table, table_builder);
-  printf("%s\n", debug_str(*table).c_str());
-
-  return table;
+    return table;
+  }
 }
 
 void parser_table_destroy(Table* table) {
@@ -2614,172 +2426,261 @@ void parser_table_destroy(Table* table) {
   tower_memory_free(table);
 }
 
+struct ParseChild {
+  TowerNode* node = nullptr; // Owned leaf; null denotes a capture wrapper.
+  std::string capture;
+  size_t first = TOWER_INVALID_INDEX, next = TOWER_INVALID_INDEX;
+};
+
+struct ParseForest {
+  size_t first = TOWER_INVALID_INDEX, last = TOWER_INVALID_INDEX;
+};
+
 struct StackState {
   const State* state = nullptr;
-  TowerNode* node = nullptr;
-  size_t start = (size_t)-1;
+  // Arena-linked forests concatenate in O(1), including generated repetitions.
+  ParseForest nodes;
+  size_t start = 0;
   size_t length = 0;
 };
 
 struct Recognizer {
   std::vector<StackState> stack;
-
-  // TODO(trevor): The recgonizer needs to hold on to these (reference count?)
-  Stream* stream = nullptr;
-
-  // Note that we never actually use the table, we just need to keep the states inside the table alive
+  std::vector<ParseChild> forest;
+  Stream* stream = nullptr;       // Borrowed; caller keeps both dependencies alive.
   const Table* table = nullptr;
-
-  // Holds the last read value from the stream
-  TowerNode* read_node_or_null = nullptr;
+  TowerNode* read_node_or_null = nullptr; // Owned lookahead, transferred on shift.
   uint32_t read_id = PARSER_ID_EOF;
-  size_t read_start = PARSER_ID_EOF;
+  size_t read_start = 0;
   size_t read_length = 0;
+  size_t consumed_end = 0;
+  bool complete = false;
+  bool has_lookahead = false;
+  bool prefix = false;
+  bool shifted = false;
+  bool finishing = false;
+  std::string lookahead_error;
+  std::string error;
+  ParserWork work;
 };
 
 void parser_recognizer_read_id(Recognizer* recognizer) {
-  // To start the algorithm, we must read in a single character (even if it's EOF)
+  assert(!recognizer->read_node_or_null);
+  ++recognizer->work.reads;
   recognizer->read_node_or_null = parser_stream_read(
-    recognizer->stream,
-    &recognizer->read_id,
-    &recognizer->read_start,
-    &recognizer->read_length
-  );
-
-  printf("READ: %s id(%d) start(%d) len(%d)\n",
-    debug_str(recognizer->read_id, recognizer->table->grammar).c_str(),
-    (int)recognizer->read_id,
-    (int)recognizer->read_start,
-    (int)recognizer->read_length);
+    recognizer->stream, &recognizer->read_id,
+    &recognizer->read_start, &recognizer->read_length);
+  if (recognizer->read_id == PARSER_ID_EOF) {
+    // Streams historically report the EOF sentinel as the position. Empty
+    // reductions instead need a real source gap, including on an empty input.
+    if (recognizer->read_start == PARSER_ID_EOF || recognizer->read_start == TOWER_INVALID_INDEX)
+      recognizer->read_start = recognizer->consumed_end;
+    recognizer->read_length = 0;
+  }
+  recognizer->lookahead_error = parser_stream_get_error(recognizer->stream);
+  recognizer->has_lookahead = true;
 }
 
 Recognizer* parser_recognizer_create(Table* table, Stream* stream) {
+  assert(table && !table->states.empty() && stream);
   void* memory = tower_memory_allocate(sizeof(Recognizer));
   Recognizer* recognizer = new (memory) Recognizer();
   recognizer->stream = stream;
   recognizer->table = table;
-  recognizer->stack.push_back(StackState {
-    .state = &table->states[0]
-  });
-  parser_recognizer_read_id(recognizer);
+  recognizer->stack.push_back(StackState{.state = &table->states[0]});
   return recognizer;
 }
 
-// Destructs the parser and frees it's memory
+Recognizer* parser_recognizer_create_prefix(Table* table, Stream* stream) {
+  assert(table->mode == ParserTableMode::Constructs);
+  auto* recognizer = parser_recognizer_create(table, stream);
+  recognizer->prefix = true;
+  return recognizer;
+}
+
+ParserWork parser_recognizer_get_work(const Recognizer* recognizer) { return recognizer->work; }
+
+static const StateEdge* parser_action(Recognizer* recognizer, const State* state, uint32_t id) {
+  ++recognizer->work.actions;
+  const auto& transitions = *state->transitions;
+  auto direct = transitions.direct_edges.find(id);
+  if (direct != transitions.direct_edges.end()) return &direct->second;
+  auto range = std::lower_bound(transitions.range_edges.begin(), transitions.range_edges.end(), id);
+  return range != transitions.range_edges.end() && id >= range->range.start ? &range->edge : nullptr;
+}
+
+static ParseForest parser_forest_leaf(Recognizer* recognizer, TowerNode* node) {
+  const size_t index = recognizer->forest.size();
+  recognizer->forest.push_back({.node = node});
+  return {index, index};
+}
+
+static void parser_return_lookahead(Recognizer* recognizer) {
+  if (!recognizer->has_lookahead) return;
+  auto* stream = recognizer->stream;
+  assert(!stream->buffered);
+  stream->buffered = true;
+  stream->buffered_node = recognizer->read_node_or_null;
+  stream->buffered_id = recognizer->read_id;
+  stream->buffered_start = recognizer->read_start;
+  stream->buffered_length = recognizer->read_length;
+  stream->buffered_error = std::move(recognizer->lookahead_error);
+  stream->error.clear();
+  recognizer->read_node_or_null = nullptr;
+  recognizer->has_lookahead = false;
+}
+
 void parser_recognizer_destroy(Recognizer* recognizer) {
+  if (!recognizer) return;
+  for (auto& child : recognizer->forest) if (child.node) tower_node_release_ref(child.node);
+  if (recognizer->read_node_or_null) tower_node_release_ref(recognizer->read_node_or_null);
   recognizer->~Recognizer();
   tower_memory_free(recognizer);
 }
 
+const char* parser_recognizer_get_error(Recognizer* recognizer) {
+  return recognizer->error.c_str();
+}
+
 TowerNode* parser_recognizer_step(Recognizer* recognizer, bool* running) {
-  assert(*running);
-
-  StackState stack_state = recognizer->stack.back();
-  const State* state = stack_state.state;
-  const StateTransitions* transitions = state->transitions;
-
-  printf("STACK:\n");
-  for (size_t i = 0; i < recognizer->stack.size(); ++i) {
-    printf("  %s\n", debug_str_header(*recognizer->stack[i].state, *recognizer->table).c_str());
-  }
-
-  const StateEdge* found_edge = nullptr;
-
-  const auto id = recognizer->read_id;
-  printf("LAST READ: %s id(%d) start(%d) len(%d)\n",
-    debug_str(recognizer->read_id, recognizer->table->grammar).c_str(),
-    (int)recognizer->read_id,
-    (int)recognizer->read_start,
-    (int)recognizer->read_length);
-
-  // If we found a direct edge then follow it (fast path)
-  auto found = transitions->direct_edges.find(id);
-  if (found != transitions->direct_edges.end()) {
-    found_edge = &found->second;
+  assert(recognizer && running);
+  *running = false;
+  if (recognizer->complete) return nullptr;
+  const State* state = recognizer->stack.back().state;
+  uint32_t id = PARSER_ID_EOF;
+  StateEdge default_edge;
+  const StateEdge* edge = nullptr;
+  if (recognizer->prefix && !recognizer->has_lookahead && state->default_reduce) {
+    ++recognizer->work.actions;
+    default_edge.reduce_rule = state->default_reduce; edge = &default_edge;
   } else {
-    // Otherwise, look for any character range
-    auto found = std::lower_bound(
-      transitions->range_edges.begin(),
-      transitions->range_edges.end(),
-      id
-    );
-    // The value we found may not be the range we're looking for (just lower/closest in binary search)
-    if (found != transitions->range_edges.end() && id >= found->range.start && id <= found->range.end) {
-      found_edge = &found->edge;
+    if (!recognizer->has_lookahead && !recognizer->finishing) parser_recognizer_read_id(recognizer);
+    id = recognizer->finishing ? PARSER_ID_EOF : recognizer->read_id;
+    if (recognizer->lookahead_error.empty() || recognizer->finishing) edge = parser_action(recognizer, state, id);
+    if (!edge && recognizer->prefix && recognizer->shifted && !recognizer->finishing) {
+      // An unrecognized following token can end this construct. Perform EOF
+      // reductions once on the real stack; never probe, copy, rewind, or retry.
+      // A failed continuation remains an error, not a fallback to an older match.
+      edge = parser_action(recognizer, state, PARSER_ID_EOF);
+      if (edge) { recognizer->finishing = true; id = PARSER_ID_EOF; }
     }
   }
+  if (!edge) {
+    recognizer->error = recognizer->lookahead_error.empty() ?
+      "Unexpected " + debug_str(recognizer->read_id, recognizer->table->grammar)
+      + " at byte " + std::to_string(recognizer->read_start)
+      + " in " + debug_str_header(*state, *recognizer->table) : recognizer->lookahead_error;
+    recognizer->complete = true;
+    return nullptr;
+  }
+  if (parser_debug_trace)
+    parser_trace("STEP: %s at byte %zu\n", debug_str(*edge, *recognizer->table).c_str(), recognizer->read_start);
 
-  if (found_edge) {
-    printf("STEP: %s\n", debug_str(*found_edge, *recognizer->table).c_str());
-    if (found_edge->shift_state) {
-      // Create a node for each shift to represent the character or token
-      // TODO(trevor): Add a recognizer 'token' mode that discards unnamed nodes (doesn't create one for each character)
+  if (edge->shift_state) {
+    ++recognizer->work.shifts;
+    TowerNode* node = recognizer->read_node_or_null;
+    if (node && tower_node_get_parent(node)) {
+      recognizer->error = "Stream returned an attached node";
+      recognizer->complete = true;
+      return nullptr;
+    }
+    if (!node) node = tower_node_create();
+    auto* match = (Match*)tower_node_get_component_userdata(node, parser_match_get_type());
+    if (!match) {
+      match = parser_match_create(node);
+      match->id = id;
+      match->start = recognizer->read_start;
+      match->length = recognizer->read_length;
+    }
+    if (match->label.empty()) match->label = debug_str(id, recognizer->table->grammar);
+    recognizer->read_node_or_null = nullptr;
+    recognizer->stack.push_back(StackState{
+      .state = edge->shift_state, .nodes = parser_forest_leaf(recognizer, node),
+      .start = recognizer->read_start, .length = recognizer->read_length
+    });
+    recognizer->consumed_end = recognizer->read_start + recognizer->read_length;
+    recognizer->has_lookahead = false;
+    recognizer->shifted = true;
+  } else {
+    const GrammarRule& rule = *edge->reduce_rule;
+    if (rule.index == 0) {
+      if (recognizer->prefix && !recognizer->shifted) {
+        recognizer->error = "Prefix construct must consume input";
+        recognizer->complete = true;
+        return nullptr;
+      }
+      const auto roots = recognizer->stack.back().nodes;
+      assert(recognizer->stack.size() == 2 && roots.first == roots.last && roots.first != TOWER_INVALID_INDEX);
+      auto& leaf = recognizer->forest[roots.first];
+      TowerNode* root = leaf.node;
+      assert(root); leaf.node = nullptr; // Transfer the existing reference.
+      if (recognizer->prefix) parser_return_lookahead(recognizer);
+      recognizer->complete = true;
+      return root;
+    }
+    const size_t count = rule.symbols.size();
+    ++recognizer->work.reductions;
+    recognizer->work.popped += count;
+    assert(count < recognizer->stack.size());
+    const size_t begin = recognizer->stack.size() - count;
+    size_t start = recognizer->has_lookahead && !recognizer->finishing ? recognizer->read_start : recognizer->consumed_end;
+    size_t end = start;
+    // Empty productions span the current gap; other reductions cover the RHS,
+    // not the unconsumed lookahead.
+    if (count) {
+      start = recognizer->stack[begin].start;
+      end = start;
+      for (size_t i = begin; i < recognizer->stack.size(); ++i)
+        end = std::max(end, recognizer->stack[i].start + recognizer->stack[i].length);
+    }
+    ParseForest children;
+    for (size_t i = begin; i < recognizer->stack.size(); ++i) {
+      auto part = recognizer->stack[i].nodes;
+      if (part.first == TOWER_INVALID_INDEX) continue;
+      const auto& capture = rule.symbols[i - begin].capture;
+      if (!capture.empty()) {
+        size_t wrapper = recognizer->forest.size();
+        recognizer->forest.push_back({.capture = capture, .first = part.first});
+        part = {wrapper, wrapper};
+      }
+      if (children.first == TOWER_INVALID_INDEX) children = part;
+      else { recognizer->forest[children.last].next = part.first; children.last = part.last; }
+    }
+    recognizer->stack.resize(begin);
+    auto next = recognizer->stack.back().state->gotos_after_reduction.find(rule.non_terminal);
+    assert(next != recognizer->stack.back().state->gotos_after_reduction.end());
+    // Keep the public start root even when its declaration is generated.
+    if (!rule.generated || rule.non_terminal->index == 1) {
       TowerNode* node = tower_node_create();
       Match* match = parser_match_create(node);
-      parser_match_set_id(match, id);
-      parser_match_set_start(match, recognizer->read_start);
-      parser_match_set_length(match, recognizer->read_length);
-
-      recognizer->stack.push_back(StackState {
-        .state = found_edge->shift_state,
-        .node = node,
-        .start = recognizer->read_start,
-        .length = recognizer->read_length
-      });
-      // Read the id for the next step/iteration
-      parser_recognizer_read_id(recognizer);
-    } else if (found_edge->reduce_rule) {
-      if (found_edge->reduce_rule->index == 0) {
-        printf("ACCEPT\n");
-        *running = false;
-      } else {
-        // Create a node for each shift to represent the character or token
-        // TODO(trevor): Add a recognizer 'token' mode that discards unnamed nodes (doesn't create one for each character)
-        TowerNode* node = tower_node_create();
-        Match* match = parser_match_create(node);
-        parser_match_set_id(match, id);
-        parser_match_set_start(match, recognizer->read_start);
-        parser_match_set_length(match, recognizer->read_length);
-
-        // We should always have at least one state on the stack after reducing
-        const size_t pop_size = found_edge->reduce_rule->symbols.size();
-        assert(recognizer->stack.size() > pop_size);
-        const size_t erase_index = recognizer->stack.size() - pop_size;
-
-        // Take any nodes from the states we're popping off and attach them
-        for (size_t i = erase_index; i < recognizer->stack.size(); ++i) {
-          // TODO(trevor): continue work here
-        }
-
-        recognizer->stack.erase(recognizer->stack.begin() + erase_index, recognizer->stack.end());
-
-        // Capture all the 
-
-        StackState top_state = recognizer->stack.back();
-        auto found_reduction = top_state.state->gotos_after_reduction.find(found_edge->reduce_rule->non_terminal);
-        // We should always find it otherwise we built the table wrong
-        assert(found_reduction != top_state.state->gotos_after_reduction.end());
-        // The next state is the dictated by the GOTO[state, non-terminal]
-        // TODO(trevor): NOT CORRECT
-        recognizer->stack.push_back(StackState {
-          .state = found_reduction->second,
-          .node = node,
-          .start = recognizer->read_start,
-          .length = recognizer->read_length
-        });
-        printf("REDUCE: pop(%d) to %s\n", (int)pop_size, debug_str(*found_reduction->second, *recognizer->table).c_str());
+      match->id = (uint32_t)rule.non_terminal->index;
+      match->rule_index = rule.index;
+      match->label = rule.non_terminal->name;
+      match->start = start;
+      match->length = end - start;
+      // Flatten each generated fragment once, when attached to a real node.
+      // Capture wrappers apply lazily; outer captures override inner ones.
+      struct Visit { size_t index; const std::string* capture; };
+      std::vector<Visit> pending;
+      if (children.first != TOWER_INVALID_INDEX) pending.push_back({children.first, nullptr});
+      while (!pending.empty()) {
+        auto visit = pending.back(); pending.pop_back();
+        auto& child = recognizer->forest[visit.index];
+        ++recognizer->work.forest_visits;
+        if (child.next != TOWER_INVALID_INDEX) pending.push_back({child.next, visit.capture});
+        const auto* capture = visit.capture ? visit.capture : child.capture.empty() ? nullptr : &child.capture;
+        if (child.node) {
+          tower_node_attach_member(child.node, node, capture ? capture->c_str() : nullptr);
+          tower_node_release_ref(child.node); child.node = nullptr;
+        } else if (child.first != TOWER_INVALID_INDEX) pending.push_back({child.first, capture});
       }
-
-      // TODO(trevor): Report the reduction to the user, callback?
-      // Or maybe we return some sort of structure that indicates what happened so we allow the user to call
-    } else {
-      assert(false && "bad edge"); // ERROR!
+      children = parser_forest_leaf(recognizer, node);
     }
-  } else {
-    assert(false && "unable to find edge, parse error"); // ERROR!
+    recognizer->stack.push_back(StackState{
+      .state = next->second, .nodes = std::move(children), .start = start, .length = end - start
+    });
   }
-
-  // TODO(trevor): Return parse tree here, and use read_node_or_null too
+  *running = true;
   return nullptr;
 }
 

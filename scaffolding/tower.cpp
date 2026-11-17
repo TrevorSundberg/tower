@@ -4,6 +4,8 @@
 #include <string>
 #include <atomic>
 #include <algorithm>
+#include <cstdlib>
+#include <cstring>
 
 // The tests come first so that we don't see the definition of any structs
 void tower_tests() {
@@ -446,6 +448,25 @@ TowerNode* tower_node_get_child(TowerNode* parent, size_t index) {
   return nullptr;
 }
 
+void tower_node_replace_child(TowerNode* parent, size_t index, TowerNode* replacement) {
+  assert(index < parent->children.size() && replacement && !replacement->parent && replacement != parent);
+  auto*& slot = parent->children[index].child;
+  auto* previous = slot;
+  tower_node_add_ref(replacement);
+  replacement->parent = parent;
+  slot = replacement;
+  previous->parent = nullptr;
+  tower_node_release_ref(previous);
+}
+
+TowerNode* tower_node_take_last_child(TowerNode* parent) {
+  if (parent->children.empty()) return nullptr;
+  auto* result = parent->children.back().child;
+  parent->children.pop_back();
+  result->parent = nullptr;
+  return result;
+}
+
 TowerNode* tower_node_get_child_member(TowerNode* parent, const char* member_name) {
   size_t index = tower_node_get_child_member_index(parent, member_name);
   return (index == TOWER_INVALID_INDEX) ? nullptr : parent->children[index].child;
@@ -483,6 +504,11 @@ const char* tower_node_get_parent_member_name(TowerNode* child) {
   // Should not ever get here, the child should be within the parent
   assert(false);
   return nullptr;
+}
+
+const char* tower_node_get_child_member_name(TowerNode* parent, size_t index) {
+  if (index >= parent->children.size() || parent->children[index].member_name.empty()) return nullptr;
+  return parent->children[index].member_name.c_str();
 }
 
 size_t tower_node_get_parent_child_index(TowerNode* child) {

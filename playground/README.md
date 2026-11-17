@@ -1,0 +1,364 @@
+# Tower browser playground
+
+The real Tower node runtime, LALR parser, grammar bootstrap and lexer run in
+`tower.wasm`, compiled with **Clang / WASI SDK and `-fno-exceptions`**. CodeMirror 6
+provides the temporary desktop/mobile editor. The JavaScript UI receives parse
+trees, grammar snapshots, diagnostics and highlight spans from Tower.
+The immutable C++ seed initializes `bedrock.tower`; its result initializes
+`foundation.tower`, which initializes user source. Every file applies declarations
+incrementally to its own active grammar. Both modules are loaded at runtime.
+C++ retains the pattern engine, pattern/template scanners, literal decoding and
+the implementations of grammar installation and foundation operations.
+
+## Try the built page
+
+Live playground: **https://trevorsundberg.github.io/tower/**.
+
+From this directory:
+
+```powershell
+npm run serve
+```
+
+Open **http://127.0.0.1:4173/**. The server only serves static files; parsing runs
+in a browser worker. Source edits remain on the device and the latest document
+is saved in this origin's local storage. **Restore** reloads the selected document's bundled source;
+editor undo can restore the previous text. **Save** downloads a `.tower` file.
+
+Recognized older Foundation files saved by the editor upgrade automatically,
+including the old lexer-only file. Unchanged shared definitions now inherit from
+Bedrock; custom lexical and grammar edits are retained. Before replacing a saved
+module, its original text is kept locally under
+`tower-playground-foundation-before-inheritance-v1`. Unrecognized modules are
+preserved. The migration also handles old text stored beside a newer baseline.
+
+The parse tree shows the entire source under one **Document** root, in reading
+order. Expand any declaration or statement and select a node to highlight its
+source. Replacement entries highlight their invocation and show the fully expanded
+text inline at the affected subtree. Children are rendered lazily.
+**Show tokens** reveals punctuation and terminals. **Active grammar** shows the
+final installed rules; earlier tokens retain their original classifications.
+Edits automatically reparse using the warm worker and cached grammar tables.
+
+Source errors appear directly below the affected editor line, with an underline,
+gutter marker and line/column location. Missing syntax at end of input gets a
+caret marker. Select **Error · Ln …** in the editor footer to jump to an offscreen
+error. Editing clears stale diagnostics immediately; the next parse replaces
+them. The parser currently stops at its first error. File-loading and runtime
+failures without source locations appear separately below the workspace.
+
+Shared prefixes use lookahead: `parse Statement |= ForEach | 'for';` supports
+both the complete loop and the standalone keyword. A malformed loop after `for (`
+is an error; parsing does not backtrack to the shorter statement. Ambiguous
+boundaries such as `'x' | 'x' 'x'` report a shift/reduce conflict when the grammar
+is installed. Failed declarations leave the previous grammar intact.
+
+Choose **Token rules** in the example selector to redefine identifiers, numbers,
+strings and comments in Tower. Select **Bedrock** or **Foundation** in the editor
+dropdown (Bedrock, Foundation, ForEach, then the other examples) to switch to either real module. **Bedrock** edits the declaration grammar;
+its edits affect following declarations in Bedrock as well as downstream modules.
+**Foundation** edits the ordinary tokens and function/statement grammar. Both
+execution workers use the selected modules. Source, Bedrock and Foundation have
+separate buffers and undo histories. **Restore** reloads the selected document's
+bundled version. All three files persist in local storage;
+**Save** downloads the current file. A static page does not write to the repository.
+See [token syntax and precedence](TOKENS.md).
+
+Foundation inherits Bedrock's actual grammar/token entities. Whitespace, line and
+block comments, Identifier and String are defined only in Bedrock; Foundation adds
+Number and executable syntax. Changing a shared Bedrock pattern affects both
+downstream declaration reading and ordinary source. A local override creates a new
+binding without mutating the imported entity. The file's declaration lexer uses
+that active binding too; no separate fixed lexer protects later declarations.
+Declaration-specific names use `Grammar` consistently, such as GrammarAssignment
+and GrammarSequence. These rules can be referenced, replaced or extended normally.
+There is no reserved `__` prefix. Generated table helpers avoid all declared names.
+
+All files use the same execution area and controls. Its instruction column shows
+compiled foundation operations, never a copy of the grammar declarations being
+edited. Grammar declarations use the same formatter as executable foundation
+nodes through the formatting API. Grammar declarations,
+alternatives, terms and replacement templates carry semantic components on their
+actual parse nodes. The native seed uses this same entity model; its formatter
+output is the bundled bedrock file. Declaration order, `=` versus `|=`, token
+styles, captures, replacement bodies and comments survive formatting/reloading.
+Canonical declaration text uses the native/default bedrock spelling, even if an
+edited input bedrock renames keywords. Templates retain their source language.
+Comments within a declaration may move before it; template comments stay inside.
+
+For example, changing `'parse'` to `'rule'` in `GrammarDeclaration` uses `parse` for
+that declaration, then requires `rule` for following declarations in the same file
+and downstream modules. Required semantic capture names remain part of
+the current native handler contract. Grammar errors install atomically; existing
+sessions pin their original module versions. Bedrock declaration-rule replacement
+handlers are not implemented; ordinary source replacements remain supported.
+The host currently performs this load order. Future imports should express
+foundation importing bedrock and user modules importing foundation.
+
+Choose **Replacements** to try `=> replace { ... }` in the real
+WASM compiler. The example expands `increment`, an `add_one` chain, nested
+`foreach` forms into Loop trees, and repeated statement captures. The tree pane
+shows the expanded result and replacement count. Generated nodes are marked;
+select one to see its invocation span and template source coordinates. Named
+captures remain visible even with Show tokens disabled.
+
+Each replacement preview reconstructs its own final subtree, including nested
+chains and duplicated captures. Chains share a preview at their resulting root;
+copied captures retain separate previews at each occurrence.
+It uses final token text, with readable spacing and indentation. String contents
+are preserved; skipped comments and original whitespace are not reconstructed.
+
+Replacement templates are parsed when the grammar becomes usable, and ordinary
+invocations splice trees without reparsing source text. Single-use captures move;
+repeated uses get independent copies. Errors in templates are shown inline.
+See [replacement semantics and current limits](../docs/parser.md#rule-replacements).
+
+The bottom status line describes the current parser session. Grammar revisions
+count declarations in the open document, excluding its imported foundation.
+Future declarations are only
+installed when the parser reaches them. After an error, suffix highlighting
+uses the last successfully committed grammar.
+
+To test from a phone on your local network, serve on a LAN interface, then use
+the computer's LAN address in the phone's browser (local firewall rules apply):
+
+```powershell
+$env:HOST = '0.0.0.0'
+npm run serve
+```
+
+Alternatively upload the **contents of `dist/`** to any ordinary static HTTP(S)
+host. All dependencies are bundled; there are no CDN scripts, API servers,
+cross-origin isolation requirements or shared-memory requirements. Keep the
+relative file layout. Serve `.wasm` as `application/wasm`. Opening `index.html`
+directly with `file://` does not provide the fetch/worker environment required.
+
+## Build
+
+Prerequisites: Node/npm; CMake, Ninja and WASI SDK 34 for C++ compilation.
+Windows can use WSL for the SDK build and Windows Node for the page bundle.
+The SDK setup script pins the release and verifies its SHA-256.
+
+From the repository root on Windows:
+
+```powershell
+wsl --exec bash /mnt/c/Sandbox/tower/playground/scripts/setup-wasi.sh
+wsl --exec bash /mnt/c/Sandbox/tower/playground/scripts/build-wasm.sh
+cd playground
+npm ci
+npm run build
+npm run serve
+```
+
+On Linux, run `bash playground/scripts/setup-wasi.sh`, then
+`bash playground/scripts/build-wasm.sh`. Set `WASI_SDK_PATH` to use another SDK
+location. The core build output is `build/browser-wasi/tower.wasm`. An equivalent
+direct CMake configuration is:
+
+```sh
+cmake -S . -B build/browser-wasi -G Ninja \
+  -DCMAKE_TOOLCHAIN_FILE="$WASI_SDK_PATH/share/cmake/wasi-sdk-p1.cmake" \
+  -DCMAKE_BUILD_TYPE=Release -DTOWER_BROWSER=ON
+cmake --build build/browser-wasi
+```
+
+If moving the SDK after configuring a build, pass `--fresh` to `build-wasm.sh`
+(CMake 3.24+) to reset the cached toolchain path.
+
+The module uses WASI Preview 1 as a reactor (`-mexec-model=reactor`). It links
+wasi-libc and libc++; it does not use Emscripten, exception handling or threads.
+Expected parse and grammar errors use explicit return values. Internal invariant
+assertions and unrecoverable allocation failures can still stop an instance.
+The worker reports failures and the next analysis can create a fresh instance.
+
+## Execute Tower's foundation
+
+Choose **Execution** in the example selector. **Auto execute** is on by default,
+so the example runs immediately and runs again as you edit. The example
+prints `15` and `16`: its Tower-defined `increment` syntax expands to addition,
+and a pointer aliases the accumulated total. Disable **Auto execute** for manual **Execute** runs; the preference
+is saved in this browser. Five persistent columns show Tower instructions as
+compilable Foundation source, LLVM raw, LLVM optimized, interpreter output,
+and LLVM output. There is no separate compact interpreter bytecode yet.
+Choose **Functions** for typed calls, recursion and pointer arguments; it prints
+`720` and `721`. Every execution starts interpreter and LLVM workers in parallel.
+Completion automatically compares output, status, trap messages/locations and
+truncation. A missing backend reports comparison unavailable; a difference is
+shown as a mismatch. Matching truncated output is explicitly labelled as captured
+results, not a comparison of text beyond the output limit.
+
+`scaffolding/foundation.tower` defines the shared editable module. Examples inherit
+it without a generated grammar prefix. The C++ compiler consumes the expanded
+trees directly, attaches typed semantic components to those same nodes, and uses
+them for interpretation and LLVM lowering. It never executes the debug token reconstruction. The current bootstrap semantic ABI recognizes the
+`Core*` rule labels and their named captures. Renaming a keyword while retaining
+those trees works; introducing an entirely new semantic operation still needs a
+native handler or a replacement into existing operations.
+
+The initial subset supports `i32`, `u32`, `bool`, typed pointers, lexical blocks,
+mutable declarations, one-operation assignments, comparisons, arithmetic and bit
+operations, `if`/`else`, `loop`, `break`, `continue`, `print`, typed functions,
+arguments, calls, returns and named structs with typed fields. Forward calls,
+type references and recursive pointer fields are supported. Conditions must
+be bool. There is no base precedence hierarchy. `convert u32 a` checks numeric
+range; `bits u32 a` reinterprets the 32 bits of an integer. No implicit mixed-type
+arithmetic, pointer casts, pointer arithmetic, heap, external ABI layouts, floats, closures, indirect calls,
+or user-written phi nodes are implemented yet.
+
+Integer addition/subtraction/multiplication wrap modulo 2^32. Division by zero
+and signed division overflow trap. All statements are type-checked before any
+execution, including unreachable branches. Uninitialized reads trap at runtime.
+Pointers refer to typed local cells and carry a lifetime generation: aliases
+share writes, but dereferencing after block exit or after a later loop iteration reuses
+the slot traps. Function parameters have fresh lifetimes on each call; returning
+a pointer to a local does not extend its lifetime. Functions have lexical locals
+and explicit arguments; they cannot capture the entry program's locals. This checked prototype memory model is not a raw-address ABI.
+Generated operations retain invocation source locations for errors; captured
+operands retain their original locations.
+
+Choose **Structs** for the new data/type milestone: define a `Pair`, initialize its
+fields, pass its address to a function, modify a field, and alias a field through
+an `i32*`. Both runners print `42`, `22`, `7`. `pair.first` works on a value or a
+single pointer to a struct; `&pair.first` takes a checked field pointer. Nested
+inline structs and recursive pointer fields work. Each field has independent
+initialization state and shares its owner's lifetime. Whole-struct copies,
+printing and passing/returning structs by value are currently diagnosed.
+
+Built-ins and user structs resolve through one type-object registry, with size,
+alignment, field types and offsets. See the [struct layout and alias contract](../docs/foundation.md#struct-milestone).
+The checked-cell execution representation is internal; it is not a C or GPU
+memory ABI. Unmodified saved Foundation defaults upgrade with the bundled module;
+customized modules are retained and can be reset with **Foundation → Restore**.
+
+Auto execution waits for a successful complete parse and a 120 ms quiet period,
+coalescing edits and deferring IME composition. Syntax-only examples remain parser
+demos. Cancel stops the current source revision until another edit or explicit
+execution; re-inspecting it does not restart a cancelled infinite loop.
+
+Compilation and execution run in **one worker per backend**, separate from live parsing.
+Each column shows its own progress. **Cancel** terminates whichever workers remain;
+editing also cancels them and clears stale output/errors. A new run gets fresh
+machine and obsolete replies are rejected. Execution has no elapsed-time cutoff;
+the interpreter runs bounded instruction slices. LLVM compiles, optimizes, links
+and executes inside that same disposable worker; terminating it also interrupts
+a non-cooperative compiled infinite loop. Output is batched and capped at
+64 KiB so a printing loop cannot flood the UI. Core compilation is limited to
+256 functions, 64 parameters per function, 4,096 scalar storage cells per function,
+65,536 semantic nodes and 128 nested blocks. Runtime limits are 128 call frames
+(including entry) and 65,536 live local cells.
+
+The toolbar combines the brand and file controls. The page fits the
+viewport on desktop and mobile; editor, tree, output and instruction panes scroll
+internally when needed. On phones the three instruction columns sit above two
+output columns. Steps and separate compilation/execution timings sit at the bottom.
+The LLVM column includes the linked WASM download.
+
+The compilation path is expanded Tower nodes enriched with typed foundation
+components -> interpreter or LLVM -> linked executable WASM. Across isolated WASM
+modules, the program is shared as canonical foundation text and resolved with the
+same foundation grammar, node schema and verifier. No binary Tower program format
+or separate debug instruction language remains. It lowers ordinary locals to entry allocas, runs
+SROA/mem2reg plus O2, verifies the LLVM IR, emits an object and links it with LLD.
+Address-taken locals use checked cells and generation-bearing pointers so the
+same lifetime traps remain observable. No language exceptions or user phi nodes.
+Dispatch canonicalization and incremental compilation remain future work.
+
+Current spelling is `var answer: i32 = add(20, 22);` and
+`fn add(a: i32, b: i32): i32 { ... }`; void calls use `f();`.
+Types are parsed as ordinary identifiers and checked by the semantic registry.
+Local inference and reflected/user-defined types remain follow-up work.
+Canonical output uses backtick-quoted identifiers when an extended lexer allows
+names such as `player-name` or names colliding with foundation keywords. Escapes
+preserve backticks, backslashes, tabs and newlines; semantic names remain unchanged.
+See [foundation direction/tasks](../docs/foundation.md).
+
+## LLVM module
+
+`bash playground/scripts/build-llvm.sh` builds native `llvm-tblgen` from the
+repository's LLVM revision, then cross-compiles the Tower LLVM backend and LLD to `build/browser-wasi-llvm/tower-llvm.wasm`. This is a considerably
+larger build. Run `npm run build` afterward to include it in `dist/`.
+
+The script keeps a revision-pinned snapshot of a clean LLVM checkout and its
+intermediate build under `~/.cache/tower/`, avoiding slow Windows/WSL header I/O.
+It refuses to snapshot a dirty LLVM checkout. Set `TOWER_LLVM_SOURCE_DIR` to use
+local LLVM edits directly, and a separate `TOWER_LLVM_WASM_BUILD` /
+`TOWER_LLVM_HOST_BUILD` for an alternative build. `TOWER_BUILD_JOBS` controls
+parallel compilation (default 6). The checked-in vendor directory is preserved.
+
+LLVM loads on demand inside the execution worker. It consumes canonical foundation text
+and emits a linked executable exporting `tower_main`, using only Tower's
+`print`/`trap` host imports as needed. The playground supplies these imports and
+source/name metadata. The downloaded WASM also needs those imports when embedded
+elsewhere. Only the WebAssembly target backend is built; this is not x86 output.
+
+`src/wasi-host.mjs` is Tower's own small WASI Preview 1 adapter, with memory-backed
+files, standard streams, clocks and entropy. It replaces the external browser
+shim. It implements our modules' import subset, not a general WASI runtime or
+OS. No host filesystem/network/environment access is exposed to WASM. Unsupported
+operations fail. Files are limited to 64 MiB apiece. Tower's C++ WASI adapter also
+provides LLD a heap-backed output buffer (WASI has no mmap) and substitutes worker
+termination for unavailable signal-based crash recovery.
+
+The parser module is approximately 3.9 MiB before HTTP compression. LLVM is a
+separate larger download. Opening the editor only loads the parser module and
+the small foundation module.
+
+## Checks
+
+```powershell
+npm test
+npx playwright install chromium
+npm run test:browser
+```
+
+The WASM suite runs the existing C++ runtime/parser/syntax tests in the module,
+then checks the ABI, revision-aware highlights, strings/comments, Unicode spans,
+invalid grammars, atomic installation and session cleanup. Playwright checks the
+actual static page in desktop and Android mobile emulation. Device emulation
+does not replace testing a physical phone's keyboard/IME.
+
+Validation on 2026-11-15: all nine WASM tests and all eight browser checks passed,
+including LLVM on desktop and mobile emulation. The emitted `sum.o` was also
+linked with WASI SDK's `wasm-ld --no-entry --export=mainCRTStartup` and executed;
+`mainCRTStartup()` returned the expected constant `124`.
+
+Native checks remain available through `scaffolding/tests/run.ps1 -Sanitize` and
+the `TOWER_PARSER_ONLY` CMake target. Build products, screenshots and test traces
+are ignored under `build/` and `playground/dist/`.
+
+Validation on 2026-11-16: native AddressSanitizer checks, all 55 WASM/host tests
+and 44 desktop/mobile browser checks pass. These include real Tower-to-LLVM
+compilation/execution, interpreter comparisons, our WASI host, worker cancellation
+and inline errors. Functions screenshots were visually inspected.
+
+To profile parsing and live typing, keep the static server running and use
+`npm run profile`. Results go to `build/playground-profile.json`. The script
+measures WASM phases and real keyboard edits in desktop/mobile browser emulation,
+including updates during continuous typing. Browser timings start at the editor
+text mutation and end at the result DOM update or the next animation frame;
+they do not measure physical display latency. Native timings include the ABI and
+JSON transport. See [performance notes](PERFORMANCE.md) for the before/after run.
+
+## Toward a Tower-written playground
+
+JavaScript currently handles the DOM, editor input, worker scheduling and WASI
+hosting. Parser decisions and highlighting come from native Tower code. The
+[browser ABI](ABI.md) is intentionally independent of CodeMirror and the DOM:
+Tower's own renderer, editor and highlighter can replace those adapters while
+keeping the same session/source/tree boundary. A binary transport can replace
+the current JSON snapshots later.
+
+This bootstrap caches up to 64 validated compiled grammars per session and
+reuses them after edits. Cache keys include the ordered token patterns, styles
+and skip flags. A new structural grammar still builds a new table;
+parsing itself still reads the whole document. Stable syntax identities, temporal repair,
+Tower rendering and general in-language parser handlers remain future work.
+The playground caps input at 128 KiB, a parse at 1,024 constructs, parser worker work at
+10 seconds and the visible tree at 5,000 nodes / 120 levels. Execution runs until
+completion, error, cancellation or an edit. The native tree
+snapshot itself is complete. Rule/production IDs are local to a grammar table;
+node IDs are lifetime identifiers, not stable identities across reparses.
+
+Dependencies: [CodeMirror](https://codemirror.net/), LLVM/LLD,
+[WASI SDK](https://github.com/WebAssembly/wasi-sdk). Bundled dependency licenses
+are in `dist/THIRD-PARTY-NOTICES.txt`; versions are pinned in `package-lock.json`.

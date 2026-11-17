@@ -10,6 +10,11 @@ struct Stream;
 struct Table;
 struct Recognizer;
 
+inline constexpr uint32_t PARSER_ID_EOF = (uint32_t)-2;
+
+// Enable verbose table-building and recognizer traces (off by default).
+void parser_set_debug_trace(bool enabled);
+
 // Run a suite of tests for the parser and tower node configurations
 void parser_tests();
 
@@ -27,7 +32,8 @@ Rule* parser_rule_create(TowerNode* owner);
 void parser_rule_set_name(Rule* component, const char* name);
 const char* parser_rule_get_name(Rule* component);
 
-// If the rule is generated which means it will not produce parse nodes
+// Generated helper rules flatten their children into the containing rule.
+// The start rule always keeps a root node, even if marked generated.
 void parser_rule_set_generated(Rule* component, bool generated);
 bool parser_rule_get_generated(Rule* component);
 
@@ -52,6 +58,9 @@ Reference* parser_reference_create(TowerNode* owner);
 // Note that the string memory is copied in and owned by the component
 void parser_reference_set_name(Reference* component, const char* name);
 const char* parser_reference_get_name(Reference* component);
+
+// Name the reduced child in its parent's generic member map (empty means unnamed).
+void parser_reference_set_capture(Reference* component, const char* name);
 
 // Creates a child node and attaches it to the parent,
 // adds the Reference component to the child, and sets up the component
@@ -127,14 +136,15 @@ TowerNode* parser_range_create_subtree(TowerNode* parent, uint32_t start_id, uin
 // Get the compiletime type of the Match component
 TowerNode* parser_match_get_type();
 
-// A Match component represents a successful parse of a Rule and holds the index value of the rule
+// A Match describes a consumed terminal or a reduced non-terminal.
 // Match components will appear on the root of all nodes produced by a Recognizer (akin to a parse tree)
 // Match nodes also contain the start/end indices of the range they parsed
 // Construct a parse component and attach it to the node
 Match* parser_match_create(TowerNode* owner);
 
 // Used to indicate a generic id or value of what was successfully parsed
-// Canonically this is the index of the rule that was parsed
+// For reductions this is the table's non-terminal id, compatible with reference
+// resolution. Use get_rule_index to distinguish productions with the same name.
 void parser_match_set_id(Match* component, uint32_t id);
 uint32_t parser_match_get_id(Match* component);
 
@@ -153,6 +163,21 @@ size_t parser_match_get_start(Match* component);
 // parents start and length with encompass it's children, and so on recursively
 void parser_match_set_length(Match* component, size_t length);
 size_t parser_match_get_length(Match* component);
+
+// A reduction's id is its non-terminal id; its production index distinguishes
+// alternatives of that non-terminal. Terminals have TOWER_INVALID_INDEX here.
+size_t parser_match_get_rule_index(Match* component);
+// Used when copying/remapping a parsed template into another grammar table.
+void parser_match_set_rule_index(Match* component, size_t index);
+
+// A copied debug label, independent of the lifetime of the parser table.
+const char* parser_match_get_label(Match* component);
+void parser_match_set_label(Match* component, const char* label);
+
+// Format/print the tree with labels, production indices and byte spans.
+// Free the returned string with tower_memory_free. Neither function takes ownership.
+char* parser_tree_debug_string(TowerNode* root);
+void parser_tree_debug_print(TowerNode* root);
 
 // Creates a child node and attaches it to the parent,
 // adds the Match component to the child, and sets up the component
@@ -192,6 +217,8 @@ Stream* parser_stream_from_userdata(void* data);
 // This also outputs the start and length of the value read
 // Canonically this is the byte index and byte length of the characters range this read covers
 // The start and length between consecutive valid reads must never overlap
+// A non-null returned node transfers one owned reference to the caller and must
+// be unattached. Its payload/children are preserved by the consuming recognizer.
 TowerNode* parser_stream_read(
   Stream* stream,
   uint32_t* id,
@@ -212,10 +239,14 @@ Stream* parser_stream_utf8_null_terminated_create(const char* utf8);
 Stream* parser_stream_utf8_create(const char* utf8_begin, const char* utf8_end);
 
 // Create a specialized node reading stream that reads from the output of another Recognizer
-// Canonically this is used for parsing, where the Recognizer provided is the utf8 tokenizer
-// Every tower node consumed is expected to have the Match component on the root with the token value
-// The stream will only lazily invoke the recognizer when more nodes are needed for parsing
+// Lazily exposes the recognizer's one completed root as a token, then EOF.
+// This is not a repeated/maximal-munch tokenizer. The recognizer must remain alive
+// until this stream is destroyed. Recognition failure propagates to a consuming recognizer.
 Stream* parser_stream_recognizer_create(Recognizer* recognizer);
+
+// Empty unless this stream has reported an error (currently used by recognizer streams).
+const char* parser_stream_get_error(Stream* stream);
+void parser_stream_set_error(Stream* stream, const char* error);
 
 
 // Virtual reference resolution for the table
@@ -265,12 +296,19 @@ type ParseRules = {
   ]
 }
 */
+enum class ParserTableMode { WholeInput, Constructs };
+
 Table* parser_table_create(
   TowerNode* root,
   void* userdata,
   ParserTableResolveReference resolve,
-  ParserTableIdToString to_string
+  ParserTableIdToString to_string,
+  char** error = nullptr,
+  ParserTableMode mode = ParserTableMode::WholeInput
 );
+
+// Creation returns null for unresolved rules or conflicting actions. If error is
+// supplied it receives an allocated diagnostic (free with tower_memory_free).
 
 // Destructs the parser table and frees it's memory
 void parser_table_destroy(Table* table);
@@ -279,18 +317,31 @@ void parser_table_destroy(Table* table);
 // The table and the stream must be kept alive for the duration of the Recognizer
 Recognizer* parser_recognizer_create(Table* table, Stream* stream);
 
+// Read one nonempty construct, using real lookahead to prefer a continuation.
+// Requires a Constructs table, whose start-rule FOLLOW includes the next
+// construct's FIRST set so ambiguous boundaries are rejected during construction.
+// An unconsumed lookahead is returned to the stream (including ownership/errors).
+// If tokenization changes, discard that stream and resume at the root's end byte.
+Recognizer* parser_recognizer_create_prefix(Table* table, Stream* stream);
+
+// Work counters for checking scaling independently of wall-clock noise.
+struct ParserWork {
+  size_t reads = 0, actions = 0, shifts = 0, reductions = 0, popped = 0, forest_visits = 0;
+};
+ParserWork parser_recognizer_get_work(const Recognizer* recognizer);
+
 // Destructs the parser and frees it's memory
 void parser_recognizer_destroy(Recognizer* recognizer);
 
-// Take a single iterative step on the recognizer, which is defined by some 
-// change occuring such as an attachment to the parse tree or a callback.
-// When the recognizer is complete, the running bool will be set to false.
-// If the root node was completely parsed, it will return the node encompassing the root
-// Otherwise it will return null, however 'running' may be true indicating there is more
-// The root node returned will always have a Match component, indicating which Rule was accepted
-// When the parser successfully completes a Rule, the rule may have an associated callback that will
-// be called with the given parse nodes, and may return it's own parse tree with it's own components
-// The recognizer maintains a parse tree and builds it as the grammar rules are recognized
+// Perform one shift/reduction. running is an output, false on acceptance or error.
+// On acceptance, transfers one owned reference to the root; caller must release it.
+// Intermediate steps return null. Stepping after completion returns null/running=false.
+// Destroying an unfinished recognizer releases all partial nodes and lookahead.
+// The accepted root survives recognizer/table/stream destruction. Reduction callbacks
+// and repeated tokenization are not implemented by this interface yet.
 TowerNode* parser_recognizer_step(Recognizer* recognizer, bool* running);
+
+// Empty on success/in-progress; otherwise a diagnostic owned by the recognizer.
+const char* parser_recognizer_get_error(Recognizer* recognizer);
 
 

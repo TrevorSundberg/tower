@@ -1,0 +1,27 @@
+{
+  "type": "mutations",
+  "detected": 4,
+  "survivors": 0,
+  "results": [
+    {
+      "mutation": "lost_dependency",
+      "detected": true,
+      "diagnostic": "FAIL: state differs from oracle"
+    },
+    {
+      "mutation": "read_present_in_past",
+      "detected": true,
+      "diagnostic": "FAIL: state differs from oracle"
+    },
+    {
+      "mutation": "publish_failed_repair",
+      "detected": true,
+      "diagnostic": "FAIL: historical version differs"
+    },
+    {
+      "mutation": "schedule_no_op",
+      "detected": true,
+      "diagnostic": "FAIL: no-op scheduled work"
+    }
+  ]
+}

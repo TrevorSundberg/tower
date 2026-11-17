@@ -1,0 +1,34 @@
+// Core grammar: ordinary expressions, blocks, and a primitive loop form.
+parse Atom = Identifier | Number;
+parse Term = Atom;
+parse Expression = Term;
+parse Atom |= '(' Expression ')';
+parse Term |= Term '*' Atom;
+parse Expression |= Expression '+' Term;
+parse Statement = Expression ';';
+parse Block = '{' $Statement* '}';
+parse Statement |= Block;
+parse Loop = 'loop' '(' $item:Identifier 'in' $collection:Expression ')' $body:Block;
+parse Statement |= Loop;
+
+// Replacement bodies are parsed as trees. Captures retain their grouping.
+parse Expression |= 'increment' '(' $value:Expression ')'
+    => replace { $value + 1 };
+parse Expression |= 'add_one' '(' $value:Expression ')'
+    => replace { increment($value) };
+
+// foreach is defined here and expands to the primitive Loop tree.
+parse Statement |= 'foreach' '(' $item:Identifier 'in' $collection:Expression ')' $body:Block
+    => replace { loop ($item in $collection) $body };
+
+// Repeated captures can be inserted more than once, including empty lists.
+parse Statement |= 'twice' '{' $body:Statement* '}'
+    => replace { { $body $body } };
+
+increment(2 * 3);
+add_one(4);
+foreach (item in items) {
+    increment(item);
+    foreach (child in children) { child; }
+}
+twice { add_one(7); }

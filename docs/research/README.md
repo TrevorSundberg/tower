@@ -1,5 +1,12 @@
 # Temporal opcode validation artifacts
 
+The [native LLVM experiment](native-temporal/README.md) now adds compiled x64
+write tracking, selective past-input repair, snapshot/undo comparisons, and a
+file-backed history that can be reopened in another process. Its
+[storage model and measured costs](temporal-native-model.md) cover game rollback
+and long-lived editor histories. This is a fixed-shape, aligned-word, region-level
+subset of the current API, not the full dynamic core running natively.
+
 The current core is the [ten-operation API](temporal-core-api.md), its
 [complete commented C declarations](temporal-core.h), and its
 [runnable example](temporal-core-example.mjs). Compiler intrinsics come first
@@ -29,6 +36,8 @@ node docs/research/temporal-validation-all.mjs
 
 | Artifact | Purpose and limit |
 | --- | --- |
+| [Native proof and benchmark](native-temporal/README.md) | Real LLVM objects, agreed C API subset, all generated state stores tracked, fixed-shape region repair, independent historical-value oracle and disk remapping. |
+| [Native model and measurements](temporal-native-model.md) | Concrete arena layout, read/write tradeoffs, raw performance evidence, retention and cold-history design; no universal minimum-overhead claim. |
 | [Current C declarations](temporal-core.h) | Five compiler memory/lifetime intrinsics first; ten non-convenience user operations. |
 | [Current core contract](temporal-core-api.md) | Explicit storage ownership, execution entry, stable Points, source capture and historical lifetime rules. |
 | [Current runtime](temporal-core-runtime.mjs) | One numeric address space, allocation identities, automatic ordinary opcode tracking and atomic subtree replay. |
@@ -63,7 +72,8 @@ node docs/research/temporal-validation-all.mjs
 | [Earlier selective scheduler](temporal-memory-validation.mjs) | Genuine dirty queue and memory subscriptions, but fixed instruction universe and integer cells rather than overlapping byte memory. |
 
 The engines validate different pieces. Combining their passing reports does
-not prove an optimized dynamic/native engine that has not been implemented.
+not prove a general optimized dynamic/native engine. The native experiment has
+the narrower scope described above and does not close the following obligations.
 Source-level C/LLVM lowering, physical reclamation/address recycling, external
 effects, arbitrary live-linked independent histories and self-edit resumption
 remain outside these executable models. The current core models historical
@@ -71,3 +81,20 @@ allocation/free with reserved addresses; this is not a native allocator result.
 Closed-owned recursively controlled histories are covered; they are not equivalent
 to arbitrary shared mutable clocks. All results and discovered defects are retained in the
 [research journal](../temporal-opcode-research-journal.md).
+
+## Replacement composition experiment
+
+[Replacement shortcuts](replacement-shortcuts.mjs) is a separate bounded model
+of declaration-time template specialization, guarded rule-chain composition and
+fallback. [Its tests](replacement-shortcuts.test.mjs) compare an independent
+reference expander, exercise rule edits/effects/cycles, and use the real Tower
+WASM parser for precedence and conflict counterexamples. It is not a production
+replacement-language implementation or part of the temporal validation runner.
+
+```powershell
+node --test docs/research/replacement-shortcuts.test.mjs
+```
+
+The WASM checks require `build/browser-wasi/tower.wasm` and installed playground
+dependencies. The journal's 2026-11-16 replacement entry records the original
+notes, literature, soundness conditions, operation counts and omitted semantics.

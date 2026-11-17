@@ -1,0 +1,23 @@
+// Uses the shared foundation.tower module.
+// This syntax has no native execution handler: it expands into CoreAssign.
+parse Statement |= 'increment' $name:Identifier ';'
+    => replace { $name = $name + 1; };
+
+var count: i32;
+var total: i32;
+var finished: bool;
+count = 0;
+total = 0;
+loop {
+    increment count;
+    total = total + count;
+    finished = count == 5;
+    if finished { break; }
+}
+print total;
+
+// Aliases share the same typed storage.
+var alias: i32*;
+alias = &total;
+*alias = total + 1;
+print total;

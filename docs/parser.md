@@ -1,10 +1,16 @@
 # Parser
 
+The C++/WASM parser now supports tree replacements with `=> replace { ... }`.
+The [working example](../scaffolding/examples/replacements.tower) defines expression
+replacements, a nested foreach-to-loop transformation, and repeated statement
+captures. The older lowering sketches below also assume core grammar and runtime
+operations that are not yet implemented.
+
 An important concept in Tower is that the features of the language are defined within the language itself, including in your own code. Tower allows the user to add new parse rules to the language and implement their behavior. A common use of this is to add new syntax sugar that when parsed, is transformed into the expanded verbose version. For example, for-each loops in Tower can be written as:
 
 ```ts
 // Tower uses a familiar syntax to Extended Backus-Naur Form (EBNF)
-parse ForEachLoop = "for" Identifier "in" Expression Statements => replace(
+parse ForEachLoop = "for" Identifier "in" Expression Statements => replace {
   {
     let __iterator = $Expression;
     loop {
@@ -15,7 +21,7 @@ parse ForEachLoop = "for" Identifier "in" Expression Statements => replace(
       $Statements
     }
   }
-)
+};
 ```
 
 This allows Tower to parse for-each loops in the format:
@@ -55,41 +61,41 @@ https://en.cppreference.com/w/cpp/language/range-for.html (See Explanation and h
 At the base of tower is a primitive SSA (Static Single Assignment) form instruction set similar to LLVM which includes basic blocks, conditional and uncoditional jumps, and primitive operations.
 
 ```ts
-parse If = "if" Expression Statements => replace(
+parse If = "if" Expression Statements => replace {
   let conditional = $Expression;
   goto_if(conditional, __if_true, __if_false);
 __if_true:
   $Statements;
 __if_false:
-);
+};
 ```
 
 ```ts
-parse Loop = "loop" Statements => replace(
+parse Loop = "loop" Statements => replace {
 __loop_start:
   $Statements
 __loop_continue:
   goto(__loop_start);
 __loop_exit:
-);
+};
 ```
 
 ```ts
-parse Break = "break" => replace(
+parse Break = "break" => replace {
   goto(__loop_exit);
-);
+};
 ```
 
 ```ts
-parse Continue = "continue" => replace(
+parse Continue = "continue" => replace {
   goto(__loop_continue);
-);
+};
 ```
 
 Just like we saw with the range based for loop, we can also write other primitive loops using the above concepts:
 
 ```ts
-parse WhileLoop = "while" Expression Statements => replace(
+parse WhileLoop = "while" Expression Statements => replace {
   loop {
     if !$Expression
     {
@@ -97,7 +103,7 @@ parse WhileLoop = "while" Expression Statements => replace(
     }
     $Statements;
   }
-);
+};
 ```
 
 And with the above definitions, we could now write code like:
@@ -236,14 +242,14 @@ let a = @@@; // error: invalid parse, unknown token @
 // At this point, user code does not include @@@ in expressions
 
 // Extend expressions to also parse the string @@@
-parse Expression = '@@@' => replace(123);
+parse Expression = '@@@' => replace { 123 };
 
 // Now user code has the concept of parsing @@@
 
 let b = @@@; // successful parse, b is now 123
 
 // Because @@@ is now part of user code, it can be used in replacements too
-parse Expression = '%%%' => replace(@@@ + 1);
+parse Expression = '%%%' => replace { @@@ + 1 };
 
 // Now user code has the concept of parsing %%%
 
@@ -259,7 +265,7 @@ let a = @bar; // error: invalid parse, unknown token @
 // At this point, user code does not include @ in expressions
 
 // Extend expressions to also parse @ with specific keywords after it
-parse Expression = '@' MyKeywords => replace(123);
+parse Expression = '@' MyKeywords => replace { 123 };
 
 let b = @bar; // error: invalid parse, unknown token @
 
@@ -270,7 +276,68 @@ let c = @bar; // successful parse, c is now 123
 
 ## Rule Replacements
 
-To apply a rule replacement, use `=> replace(user code)` after the rule. The user code provided will be parsed using the complete rules up to that point.
+The replacement form is `=> replace { user code }` after the rule.
+The template's output category is inferred from its grammar context, rather than
+supplied as an extra parenthesized argument. For example:
+
+```tower
+parse Expression |= 'increment' '(' $Expression ')'
+    => replace {
+        $Expression + 1
+    };
+```
+
+Here the template is parsed as an Expression because that is the rule being
+extended. The outer braces delimit the template; they do not introduce a block
+into the generated expression. The template is parsed using the grammar available
+at grammar installation, with captures inserted as syntax trees. Named captures
+use `$name:Rule`; `$Rule` is shorthand for a capture with that rule's name. Use
+`$name` inside the replacement. A capture with `*`, `+`, or `?` contains a list,
+including an empty list when permitted; inserting it splices the list in order.
+
+The handler applies to every alternative in that declaration. Use a separate
+`parse Expression |= ... => replace { ... };` declaration when only the new
+alternative should expand. Templates are checked against the declared rule first.
+A named helper can instead infer its destination through an enclosing unit rule,
+such as `parse Expression |= Increment;`. Unreachable helpers remain pending;
+their templates are checked before a declaration makes them reachable from
+Statement. An inferred destination must also exist at the actual use site.
+
+Captures must fit the grammar position where they are inserted. For example, in
+a precedence grammar where the right operand of multiplication is Atom, write
+`($value)` to place a captured Expression there using the grammar's grouping rule.
+Tower does not flatten a captured expression into tokens or change its grouping.
+
+Expansion is child-first. A captured subtree used once is moved, repeated uses
+are copied, and unused captures are discarded after their children have expanded.
+Named members and sibling order are preserved. Generated nodes retain template
+and invocation coordinates; captured nodes retain their original input spans.
+`syntax_get_origin` exposes shared expansion history after the session is gone.
+
+Grammar and lexical changes revalidate active templates before publishing a new
+revision. Failed changes preserve the prior grammar. Source coordinates are part
+of the template cache key, preventing stale origins after edits. The current
+reference expander has limits of 4,096 replacements and 65,536 constructed/copied
+nodes per statement, plus 256 generated expansions in one ancestry chain.
+
+The replacement engine implements structural syntax expansion. It does not itself
+execute Tower code, resolve bindings or provide hygienic generated identifiers. The bundled foreach
+example introduces no fresh local names. General transformation handlers and
+shortcut composition remain later work.
+
+The small typed core in `scaffolding/core.cpp` now consumes expanded trees,
+resolves scoped locals, type-checks operations and lowers structured control flow
+to branches. `scaffolding/foundation.tower` supplies its grammar; `Core*` labels and named
+captures form the bootstrap semantic ABI. The playground's Execution example
+adds an `increment` replacement and executes the resulting foundation program.
+Functions, typed parameters, calls, returns and structs also use those shared
+semantic components. `CorePlace` adds field selection without an arithmetic
+precedence hierarchy; type names remain ordinary identifiers until semantic lookup.
+Both backends consume this schema; the isolated LLVM module reparses canonical
+Foundation text to reconstruct it. See
+[foundation terminology and syntax direction](foundation.md). It has
+no precedence grammar and no user-written phi nodes. See
+[execution semantics and limits](../playground/README.md#execute-towers-foundation).
 
 - $Expression operator
 - User code

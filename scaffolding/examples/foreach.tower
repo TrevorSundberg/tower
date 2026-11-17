@@ -1,0 +1,19 @@
+// These are grammar declarations executed by the native Tower seed.
+parse Variable = Identifier;
+parse Expression = Identifier | Number;
+parse Statement = Expression ';';
+
+// This feature is defined here, not in the C++ parser.
+parse ForEach = 'for' '(' $Variable 'in' $Expression ')' '{' $Statement* '}';
+parse Statement |= ForEach;
+
+for (item in items) {
+    item;
+    for (child in children) {
+        child;
+    }
+}
+
+// A later declaration changes syntax again, in the same source stream.
+parse ForEach = 'foreach' '(' $Variable 'in' $Expression ')' '{' $Statement* '}';
+foreach (entry in entries) {}

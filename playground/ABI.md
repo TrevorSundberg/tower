@@ -1,0 +1,242 @@
+# Tower browser ABI, version 3
+
+`scaffolding/browser.cpp` exports ordinary C functions. Integers/pointers are
+wasm32 values. Instantiate with WASI Preview 1 imports, then call `_initialize`
+exactly once before calling any Tower export. Load `bedrock.tower` through
+`tw_set_bedrock`, then `foundation.tower` through `tw_set_bootstrap` before
+creating sessions. The provided JavaScript adapter
+is `src/tower-host.mjs`, usable from both browser workers and Node tests.
+
+| Export | Contract |
+| --- | --- |
+| `tw_abi_version() -> u32` | Currently `3`; the runtime-loaded bootstrap is required. |
+| `tw_alloc(bytes) -> pointer` | Caller-owned input storage; zero indicates failure. |
+| `tw_free(pointer)` | Release storage returned by `tw_alloc`. |
+| `tw_set_bedrock(pointer, byteLength) -> pointer` | Read bedrock with the immutable native grammar and atomically install its downstream declaration grammar. Same source is idempotent. A changed bedrock requires reloading foundation; existing sessions keep their old modules. Same diagnostic/64 KiB contract as `tw_set_bootstrap`. |
+| `tw_bedrock_seed() -> pointer` | Borrowed canonical text produced by the common formatter from the native seed's actual grammar entities. |
+| `tw_create_bedrock(pointer, byteLength) -> u32` | Create a module-inspection session pinned to the immutable native reader. Validate the collected downstream grammar at end of input; never replace its own reader while reading. |
+| `tw_format(handle) -> pointer` | For a completed, valid declaration-only document, return `{source, spans}` using the common foundation formatter. Otherwise return `{error}`. Source maps use `{begin,end,source}` byte offsets. Never silently drops executable statements. |
+| `tw_set_bootstrap(pointer, byteLength) -> pointer` | Parse token/skip/parse declarations over the installed bedrock definitions and atomically install the baseline for new sessions. Identical source is idempotent. Returns a borrowed, NUL-terminated diagnostic: empty means success. Read before another call. Maximum 64 KiB; NUL bytes are rejected. |
+| `tw_create_foundation(pointer, byteLength) -> handle` | Inspect foundation using the installed bedrock reader, without importing the previous foundation. Only declarations are allowed. Reset pins this reader and mode. |
+| `tw_create(pointer, byteLength) -> handle` | Copies valid UTF-8 source, without NUL bytes, into a new session. Zero indicates failure. No input terminator required. |
+| `tw_reset(handle, pointer, byteLength) -> int` | Copies edited source and restarts at revision zero, retaining compiled grammar tables. Returns 1 on success, 0 on error. Invalid input/handle leaves the existing session unchanged. |
+| `tw_last_error() -> pointer` | Borrowed, NUL-terminated UTF-8 create/reset diagnostic. Read before another create/reset. |
+| `tw_step(handle) -> pointer` | Parse/install exactly one construct and return a JSON snapshot. |
+| `tw_inspect(handle) -> pointer` | Return current grammar/highlights without advancing parsing or installing declarations. |
+| `tw_destroy(handle)` | Release a session. An unknown/already destroyed handle is harmless. |
+| `tw_self_test() -> int` | Run the existing C++ suites; zero on success, invariant failure traps. |
+| `tw_live_nodes()`, `tw_live_allocations()` | Test counters for Tower-managed allocations (not all libc++ memory). |
+
+Step/inspect results are borrowed UTF-8, NUL-terminated JSON. Copy a result
+**before another step/inspect/reset on the same handle**, and before destruction.
+Do not free borrowed results. Recreate typed-array views after any WASM call
+that might grow memory. A host must pass valid pointer/length pairs; exports
+are an application ABI, not a memory-safe boundary inside one WASM instance.
+
+The `loadTower(bytes, log, foundationSource, undefined, bedrockSource)` adapter
+loads the modules after WASI initialization. Browser workers fetch both `.tower`
+files beside the module; Node hosts can read them from `scaffolding`. Omitting
+the fifth argument retains the native declaration reader for compatibility with
+existing embedding callers; the playground always loads the real bedrock file.
+Foundation inherits Bedrock's shared entities, then adds its own definitions.
+Whitespace, comments, Identifier and String are shared defaults; Number and the
+executable grammar are added by Foundation. Snapshots include inherited definitions,
+but formatting prints only declarations belonging to the inspected document.
+Local overrides replace bindings without mutating imported entities. Existing
+sessions pin both modules, including across resets. Invalid installation leaves
+the previous baseline intact. The LLVM module also exports both setters, with
+`malloc`/`free` for its input buffer; `src/bootstrap.mjs` handles both modules.
+
+At most 32 sessions are open at once. Source is limited to 128 KiB. UTF-8 is
+validated at creation, including overlong encodings and surrogates. Grammar
+errors return data; they do not throw C++ exceptions. Invalid session step or
+inspect calls return `{ "status": "error", "error": "Invalid session handle" }`.
+
+## Responses
+
+Common fields: `status`, `revision`, `offset`, `error`, `errorOffset`, `rules`,
+`tokens` and `keywords`. `offset` is the next unread UTF-8 byte offset. `errorOffset`
+identifies the offending token or the rejected declaration's beginning, and
+is meaningful only with a nonempty `error`.
+
+Step statuses: `declaration`, `statement`, `done`, `error`. `previousRevision`
+is the revision used to read the construct. A successful declaration advances
+`revision`; its returned grammar snapshot is the newly committed grammar.
+A rejected declaration leaves the revision and installed rules unchanged and
+stops the session. Repeated steps on that failed session return the error.
+
+Successful constructs include a `nodes` array in preorder. Each node contains:
+
+```json
+{
+  "id": 123,
+  "parent": 0,
+  "label": "Variable",
+  "role": "Variable",
+  "start": 341,
+  "end": 345,
+  "production": 18
+}
+```
+
+`parent` indexes this array, or is null for its root. Children appear in source
+order. `role` is the named capture, or an empty string. Null `production` means
+a token; a number identifies a table-local production. Spans are half-open
+UTF-8 byte ranges. Empty productions/capture lists may have zero-length spans.
+Labels and roles are copied; snapshots remain usable after the session closes.
+Grammar declaration nodes also expose `semantic` (`parse`, `token`, `skip`,
+`alternative`, `term` or `template`), describing components on those same nodes.
+Canonical formatting uses the default declaration spelling rather than an edited
+input dialect. Compiled parser tables/lexer DFAs are derived caches. Published
+module nodes are treated as immutable; edit a new document/version and install
+its formatted source rather than mutating a live parser's cached entities.
+
+Inspect uses `snapshot` or `error` status and adds `highlights`:
+
+```json
+{ "start": 336, "end": 339, "revision": 5, "kind": "keyword" }
+```
+
+Inspect also reports `grammarBuilds` and `grammarCacheHits` since the latest
+create/reset, and `cachedGrammars` (at most 64). The cache belongs to the session
+and is freed on destroy. It contains successful compiled tables keyed by the
+complete structural grammar and ordered token/skip definitions, including
+patterns, styles, literals, captures and repetition. A
+reset clears definitions, revisions, progress, errors and highlights; cached
+future grammars never activate early. Parse trees are rebuilt with current spans.
+
+Built-in display kinds are `keyword`, `rule`, `capture`, `identifier`, `number`,
+`string`, `pattern`, `operator`, `comment`, `invalid`. Token declarations may
+supply another kind with `as Name`. Ranges are sorted and non-overlapping;
+skip rules without a style produce no span. Parsed tokens use the revision under which they
+were actually read. The unread suffix is a **lexical preview** under the last
+committed revision; no declarations in that suffix are evaluated by inspect.
+
+`rules` is an array of `{ name, definition }` with normalized readable rule
+bodies. `keywords` contains all currently reserved word literals, including
+the declaration keywords supplied by bedrock (normally `parse`, `token`, `skip`,
+`as`, and `replace`). No application keyword
+vocabulary is duplicated in JavaScript. `tokens` is an ordered array of
+`{ name, pattern, kind, skip }` describing the active lexical rules. Token
+declarations return the same `declaration` step status as parse declarations.
+
+## Worker protocol
+
+`src/worker.mjs` receives `{ id, source }` and analyzes the whole document. It returns `{ id, result: { events, end, snapshot, ms } }`
+or `{ id, error }`. The worker owns one native session and resets it in place.
+`events` contains successful top-level trees; `end` reports done/error. The UI
+presents them as ordered children of one Document root; native stepping is an
+internal parsing API, not a separate construct-history interface.
+
+The UI schedules edits on the next animation frame, keeping one request in
+flight and coalescing pending edits to the latest source. It rejects stale
+replies and keeps the worker warm. A timeout or runtime failure terminates the
+worker; the next reset/analyze can instantiate a fresh module. Active IME
+composition postpones automatic analysis. Old decorations map through edits
+until the new highlights arrive; old tree spans cannot be selected while stale.
+`src/offsets.mjs` maps UTF-8 bytes to CodeMirror's UTF-16 positions, preserving
+non-ASCII strings and comments. This adapter is a candidate for replacement
+when Tower owns editing and rendering.
+
+For example, another static page alongside these assets can query Tower directly:
+
+```js
+const worker = new Worker('./worker.js', { type: 'module' });
+worker.onmessage = ({ data }) => {
+  if (data.error) console.error(data.error);
+  else {
+    console.log(data.result.events);              // declarations and parse trees
+    console.log(data.result.snapshot.highlights); // revision-aware source ranges
+  }
+};
+worker.postMessage({
+  id: 1,
+  source: "parse Statement = Number ';'; 42;",
+});
+// Later: worker.terminate() releases the worker and its WASM instance.
+```
+
+Wait for each reply before sending the next request on one worker.
+
+## Foundation execution (ABI version 3)
+
+`tw_exec_create(source, bytes)` parses, expands and type-checks the entire source,
+returning an execution handle. The source must contain its own core grammar.
+Source validation/resource failure returns zero and sets `tw_last_error`;
+ordinary compilation errors remain on the machine and are returned by step.
+There are at most eight machines per instance, independently of parser sessions.
+
+`tw_exec_step(handle, budget)` runs at most `min(budget, 100000)` reference
+interpreter tasks (statement/scope work, not a stable instruction encoding).
+Zero inspects without running. It returns JSON with `status` (`executing`, `done`
+or `error`), `error`, UTF-8 `errorOffset`, `output` (only new text), `steps`
+and `outputTruncated`. Output is drained on each call and capped at 65,536 bytes
+over the entire run. No execution occurs after a compile error. Runtime errors
+stop the machine and preserve output already produced. Step counters are JSON
+numbers; exact display of counts beyond JavaScript's safe-integer range is not
+promised.
+
+`tw_exec_create_foundation(source, bytes)` accepts bare foundation source using
+the installed module and reports offsets relative to that text. Both compile
+entry points share that baseline; no generated grammar prefix is required.
+`tw_exec_foundation(handle)` returns borrowed JSON `{ source, spans, types }`:
+canonical foundation text plus UTF-8 `{ begin, end, source }` statement mappings
+from canonical ranges to original locations. Failed programs return empty source.
+Nested ranges use the most specific containing span for diagnostics. Copy this
+result before another execution call. `tw_exec_destroy(handle)` releases the
+machine and its owned tree; unknown handles are harmless to destroy.
+
+`types` reads the same program-owned type entities used for semantic checking.
+Entries contain `{ name, kind, size, alignment, fields }`, with kind `scalar`,
+`void` or `struct`. Fields contain `{ name, type, offset, size, alignment }`.
+The table includes built-ins and user structs; rejected programs return an empty
+table. Offsets describe the [portable value layout](../docs/foundation.md#struct-milestone),
+not the interpreter's auxiliary checked-cell storage or a host/native ABI.
+This is inspection metadata, not a second program interchange representation or
+Tower-language reflection API.
+
+`src/execution-worker.mjs` receives one `{ id, source, foundation, backend }` request per worker.
+Backend is `interpreter` or `llvm`; the UI starts both concurrently. Messages
+include `backend` and return `{ id, foundation }`, then `{ id, result }` updates (same step fields), or
+`{ id, error }` for host failures. Output updates are batched at approximately
+50 ms, with a final update immediately on completion/error. The UI owns worker
+termination on cancellation/edit and rejects messages from earlier runs. This
+worker is distinct from `src/worker.mjs`; running code cannot stall live parsing.
+
+LLVM work reports `{ id, phase }` and `{ id, llvm: { before, after, wasm } }` before
+execution result updates. LLVM results omit interpreter step counts. The UI compares
+the two terminal results: captured output, status, trap message/location and truncation.
+It reports mismatches or unavailable backends explicitly. LLVM compilation, linking,
+module instantiation and execution all stay in this worker. Cancellation is
+worker termination rather than a cooperative interrupt or language exception.
+Each message may carry `timings`: `load`, `tower`, `instructions`, `llvmLoad`,
+`llvm`, `parse`, `before`, `after`, `emit`, `execute`, in milliseconds. LLVM's native
+clock measures source checking, lowering/unoptimized IR, optimization/optimized IR,
+and emission/linking separately. Host timing includes calls and result copying.
+Instruction timing is shared-node formatting, not a compact bytecode compilation.
+Execution timing includes guest module initialization (LLVM) or cooperative yields
+(interpreter); it is elapsed time to finish, not an isolated benchmark.
+
+The interpreter and LLVM consume semantic components attached to retained
+TowerNode parse entities. Canonical foundation text is the only Tower program
+transport. The old binary graph and debug-instruction exports are removed.
+See [foundation direction](../docs/foundation.md).
+
+The separate LLVM reactor exports `tw_llvm_compile(pointer, length)` for UTF-8 foundation source
+(maximum 8 MiB, no NUL). Configure its foundation module
+first. It parses and checks source using the shared frontend before lowering,
+returning
+JSON with compilation status/error, source offset, name/error tables and byte
+count. On success, `tw_llvm_before()` / `tw_llvm_after()` return LLVM IR strings;
+`tw_llvm_bytes()` / `tw_llvm_size()` expose the linked module. Copy borrowed
+results before another compilation. `src/llvm-host.mjs` handles allocations and
+copies, and hosts the resulting module's `tower.print` / `tower.trap` imports.
+Calling exported `tower_main` runs the compiled program. The WASM executable
+does not contain the interpreter.
+
+The UI defaults to auto execution after successful full parses containing Core*
+statement trees. A 120 ms quiet period coalesces edits; composition defers runs.
+Syntax-only documents keep parsing without execution errors. Cancellation marks
+the current document revision as handled, so a late parse/re-inspection cannot
+restart it; another edit or explicit Execute can. The Auto execute toggle is
+persisted independently of source text and can restore manual operation.

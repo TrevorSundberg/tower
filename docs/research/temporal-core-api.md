@@ -10,6 +10,12 @@ the separate interpreter-budget status. It also replaces the earlier hidden
 `Address { owner, offset }` assumption with an actual allocation/ownership model.
 Earlier experiments remain available for comparison, not as competing current APIs.
 
+The later [native LLVM proof](native-temporal/README.md) links a restricted subset
+of these exact declarations and measures region-level selective repair. It does
+not replace this contract: nested control, arbitrary byte accesses, native
+allocation lifetimes, internal Points and general dynamic traces remain outside
+that experiment. See its [storage and performance analysis](temporal-native-model.md).
+
 ## Compiler responsibilities
 
 The compiler emits ordinary arithmetic, load/store, branch, loop, call and return

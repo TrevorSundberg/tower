@@ -1,4 +1,5 @@
 #pragma once
+#include <cstddef>
 #include <cstdint>
 
 struct TowerNode;
@@ -69,6 +70,12 @@ size_t tower_node_get_child_count(TowerNode* parent);
 // This does NOT increment the reference count of the returned node
 TowerNode* tower_node_get_child(TowerNode* parent, size_t index);
 
+// Replace a child in place, retaining its member name and sibling order.
+// Replacement must be unattached. Parent acquires a reference and releases old.
+void tower_node_replace_child(TowerNode* parent, size_t index, TowerNode* replacement);
+// Remove the last child in O(1), transferring the parent's owned reference.
+TowerNode* tower_node_take_last_child(TowerNode* parent);
+
 // Get a specfic child node by member name, or null if the member is not found
 // This does NOT increment the reference count of the returned node
 TowerNode* tower_node_get_child_member(TowerNode* parent, const char* member_name);
@@ -81,6 +88,8 @@ size_t tower_node_get_child_member_index(TowerNode* parent, const char* member_n
 // is destroyed, or if the child is removed as a member
 // If the child has no name, or the child has no parent, null will be returned
 const char* tower_node_get_parent_member_name(TowerNode* child);
+// Indexed access while traversing a parent's children; avoids a sibling search.
+const char* tower_node_get_child_member_name(TowerNode* parent, size_t index);
 
 // Get the index of a specfic child node, or TOWER_INVALID_INDEX if the child has no parent
 size_t tower_node_get_parent_child_index(TowerNode* child);

@@ -2,6 +2,88 @@ cmake_minimum_required(VERSION 3.20)
 
 project(scaffolding LANGUAGES C CXX VERSION 1)
 
+option(TOWER_BROWSER "Build the static playground's WASI reactor" OFF)
+option(TOWER_BROWSER_LLVM "Also build the LLVM compiler experiment as a separate reactor" OFF)
+if(TOWER_BROWSER)
+  add_executable(tower-browser scaffolding/browser.cpp
+    scaffolding/core.cpp scaffolding/core-nodes.cpp scaffolding/core-machine.cpp
+    scaffolding/tower.cpp scaffolding/parser.cpp scaffolding/parser-tree-tests.cpp
+    scaffolding/syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/bedrock.cpp scaffolding/format.cpp scaffolding/lex-pattern.cpp scaffolding/syntax-tests.cpp)
+  target_compile_features(tower-browser PRIVATE cxx_std_20)
+  target_compile_options(tower-browser PRIVATE -fno-exceptions -UNDEBUG)
+  target_link_options(tower-browser PRIVATE -mexec-model=reactor
+    -Wl,-z,stack-size=2097152 -Wl,--initial-memory=8388608 -Wl,--max-memory=268435456)
+  set_target_properties(tower-browser PROPERTIES OUTPUT_NAME tower SUFFIX .wasm)
+  if(TOWER_BROWSER_LLVM)
+    set(TOWER_LLVM_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/llvm-project" CACHE PATH "LLVM source checkout")
+    include_directories(${TOWER_LLVM_SOURCE_DIR}/wasi-include)
+    set(LLVM_TARGETS_TO_BUILD WebAssembly CACHE STRING "" FORCE)
+    set(LLVM_HOST_TRIPLE wasm32-unknown-wasi CACHE STRING "" FORCE)
+    set(LLVM_DEFAULT_TARGET_TRIPLE wasm32-unknown-wasi CACHE STRING "" FORCE)
+    set(LLVM_ENABLE_THREADS OFF CACHE BOOL "" FORCE)
+    set(LLVM_ENABLE_EH OFF CACHE BOOL "" FORCE)
+    set(LLVM_ENABLE_ZLIB OFF CACHE BOOL "" FORCE)
+    set(LLVM_ENABLE_ZSTD OFF CACHE BOOL "" FORCE)
+    set(LLVM_ENABLE_LIBXML2 OFF CACHE BOOL "" FORCE)
+    set(LLVM_ENABLE_TERMINFO OFF CACHE BOOL "" FORCE)
+    set(LLVM_ENABLE_LIBEDIT OFF CACHE BOOL "" FORCE)
+    set(LLVM_ENABLE_BACKTRACES OFF CACHE BOOL "" FORCE)
+    set(LLVM_INCLUDE_TESTS OFF CACHE BOOL "" FORCE)
+    set(LLVM_INCLUDE_EXAMPLES OFF CACHE BOOL "" FORCE)
+    set(LLVM_INCLUDE_BENCHMARKS OFF CACHE BOOL "" FORCE)
+    set(LLVM_INCLUDE_TOOLS ON CACHE BOOL "" FORCE)
+    set(LLVM_ENABLE_PROJECTS lld CACHE STRING "" FORCE)
+    set(LLD_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+    set(LLVM_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+    set(LLVM_INCLUDE_UTILS OFF CACHE BOOL "" FORCE)
+    set(LLVM_ENABLE_PIC OFF CACHE BOOL "" FORCE)
+    set(LLVM_BUILD_LLVM_DYLIB OFF CACHE BOOL "" FORCE)
+    # This checkout's WASI support predates the SDK's uppercase platform name.
+    set(tower_sdk_system_name "${CMAKE_SYSTEM_NAME}")
+    set(CMAKE_SYSTEM_NAME Wasi)
+    add_subdirectory(${TOWER_LLVM_SOURCE_DIR}/llvm third_party/llvm-project/llvm)
+    set(CMAKE_SYSTEM_NAME "${tower_sdk_system_name}")
+    add_executable(tower-browser-llvm scaffolding/main.cpp
+      scaffolding/llvm-backend.cpp scaffolding/llvm-wasi.cpp scaffolding/core.cpp scaffolding/core-nodes.cpp
+      scaffolding/tower.cpp scaffolding/parser.cpp scaffolding/parser-tree-tests.cpp
+      scaffolding/syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/bedrock.cpp scaffolding/format.cpp scaffolding/lex-pattern.cpp scaffolding/syntax-tests.cpp)
+    target_include_directories(tower-browser-llvm PRIVATE
+      ${TOWER_LLVM_SOURCE_DIR}/lld/include
+      ${TOWER_LLVM_SOURCE_DIR}/llvm/include ${CMAKE_CURRENT_BINARY_DIR}/third_party/llvm-project/llvm/include)
+    target_compile_features(tower-browser-llvm PRIVATE cxx_std_20)
+    target_compile_options(tower-browser-llvm PRIVATE -fno-exceptions -UNDEBUG)
+    target_link_options(tower-browser-llvm PRIVATE -mexec-model=reactor
+      -Wl,--export=malloc -Wl,--export=free
+      -Wl,-z,stack-size=8388608 -Wl,--initial-memory=33554432 -Wl,--max-memory=536870912)
+    target_link_libraries(tower-browser-llvm PRIVATE LLVMCore LLVMWebAssemblyCodeGen LLVMWebAssemblyAsmParser LLVMPasses lldWasm)
+    set_target_properties(tower-browser-llvm PROPERTIES OUTPUT_NAME tower-llvm SUFFIX .wasm)
+  endif()
+  return()
+endif()
+
+option(TOWER_PARSER_ONLY "Build native parser tests without LLVM or WASI" OFF)
+if(TOWER_PARSER_ONLY)
+  add_executable(tower-parser-tests scaffolding/tests/main.cpp
+    scaffolding/core.cpp scaffolding/core-nodes.cpp scaffolding/core-machine.cpp scaffolding/core-tests.cpp
+    scaffolding/tower.cpp scaffolding/parser.cpp scaffolding/parser-tree-tests.cpp
+    scaffolding/syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/bedrock.cpp scaffolding/format.cpp scaffolding/lex-pattern.cpp scaffolding/syntax-tests.cpp)
+  target_compile_features(tower-parser-tests PRIVATE cxx_std_20)
+  if(MSVC)
+    string(REPLACE "/EHsc" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    target_compile_options(tower-parser-tests PRIVATE /utf-8 /UNDEBUG)
+    target_compile_definitions(tower-parser-tests PRIVATE _HAS_EXCEPTIONS=0)
+  else()
+    target_compile_options(tower-parser-tests PRIVATE -UNDEBUG -fno-exceptions)
+  endif()
+  enable_testing()
+  add_test(NAME tower-parser-tests COMMAND tower-parser-tests)
+  add_test(NAME tower-foreach-example COMMAND tower-parser-tests --parse
+    "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/examples/foreach.tower")
+  set_tests_properties(tower-parser-tests tower-foreach-example PROPERTIES
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
+  return()
+endif()
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fstack-protector-all -fno-optimize-sibling-calls -fno-omit-frame-pointer")
 set(  CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -fstack-protector-all -fno-optimize-sibling-calls -fno-omit-frame-pointer")
 
@@ -41,7 +123,13 @@ add_executable(scaffolding
   scaffolding/main.cpp
   scaffolding/tower.cpp
   scaffolding/parser.cpp
-  scaffolding/wasm-exceptions.cpp)
+  scaffolding/parser-tree-tests.cpp
+  scaffolding/syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/bedrock.cpp scaffolding/format.cpp
+  scaffolding/lex-pattern.cpp
+  scaffolding/syntax-tests.cpp)
+
+target_compile_features(scaffolding PRIVATE cxx_std_20)
+target_compile_options(scaffolding PRIVATE -fno-exceptions)
 
 # Disable gtest requirement
 #option(BUILD_TESTS "" OFF)
@@ -64,4 +152,4 @@ target_link_libraries(scaffolding PRIVATE
   LLVMWebAssemblyDisassembler
 )
 
-target_link_options(scaffolding PRIVATE -mexec-model=reactor)
+target_link_options(scaffolding PRIVATE -mexec-model=reactor -Wl,--export=malloc -Wl,--export=free)

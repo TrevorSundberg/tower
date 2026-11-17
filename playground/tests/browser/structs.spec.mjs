@@ -1,0 +1,72 @@
+import { test, expect } from '@playwright/test';
+async function setSource(page, text) {
+  await page.locator('#editor').click({ position: { x: 80, y: 20 } });
+  await page.getByRole('textbox', { name: 'Tower source' }).press('ControlOrMeta+a');
+  await page.keyboard.insertText(text);
+}
+test('struct milestone executes automatically in both workers and round-trips visibly', async ({ page }, info) => {
+  const errors = []; page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/'); await expect(page.locator('#status')).toContainText('Complete');
+  await page.locator('#example-kind').selectOption('structs.tower');
+  await expect(page.locator('#filename')).toHaveText('structs.tower');
+  await expect(page.locator('#execution-status')).toHaveText('Finished · backends match');
+  await expect(page.locator('#execution-output')).toHaveText('42\n22\n7\n');
+  await expect(page.locator('#llvm-output')).toHaveText('42\n22\n7\n');
+  await expect(page.locator('#core-instructions')).toContainText('struct Pair {');
+  await expect(page.locator('#core-instructions')).toContainText('pair.first = pair.first + pair.second;');
+  await expect(page.locator('#core-instructions')).toContainText('var field: i32* = &pair.second;');
+  await expect(page.locator('#llvm-before')).toContainText('tower.fn.accumulate');
+  await expect(page.locator('#llvm-after')).toContainText('tower_main');
+  await page.screenshot({ path: `../build/playground-structs-${info.project.name}.png` });
+  expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight && document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  const canonical = await page.locator('#core-instructions').textContent();
+  await setSource(page, canonical);
+  await expect(page.locator('#execution-status')).toHaveText('Finished · backends match');
+  await expect(page.locator('#llvm-output')).toHaveText('42\n22\n7\n');
+  expect(errors).toEqual([]);
+});
+
+test('field mistakes and lifetime traps are inline, compared, and recover on edits', async ({ page }, info) => {
+  await page.goto('/'); await expect(page.locator('#status')).toContainText('Complete');
+  const prefix = 'struct Pair { x: i32; y: i32; }\nvar pair: Pair;\npair.x = 42;\n';
+  await setSource(page, prefix + 'print pair.y;');
+  await expect(page.locator('#execution-status')).toHaveText('Failed · backends match');
+  await expect(page.locator('.tw-inline-error-message')).toContainText("uninitialized field 'pair.y'");
+  await page.locator('#editor-error').click();
+  await page.locator('#editor').screenshot({ path: `../build/playground-struct-error-${info.project.name}.png` });
+  await setSource(page, prefix + 'pair.missing = 1;');
+  await expect(page.locator('.tw-inline-error-message')).toContainText("Unknown field 'missing'");
+  await setSource(page, 'struct Pair { x: i32; } var escaped: i32*; { var pair: Pair; escaped = &pair.x; } var n: i32 = *escaped;');
+  await expect(page.locator('#execution-status')).toHaveText('Failed · backends match');
+  await expect(page.locator('.tw-inline-error-message')).toContainText('expired local');
+  await setSource(page, prefix + 'print pair.x;');
+  await expect(page.locator('#execution-status')).toHaveText('Finished · backends match');
+  await expect(page.locator('.tw-inline-error')).toHaveCount(0);
+  await expect(page.locator('#llvm-output')).toHaveText('42\n');
+});
+
+test('an untouched saved baseline upgrades while a customized foundation stays in use', async ({ page, request }) => {
+  await page.addInitScript(() => {
+    if (!localStorage.getItem('foundation-upgrade-test')) {
+      localStorage.setItem('tower-playground-foundation-v1', 'old bundled module');
+      localStorage.setItem('tower-playground-foundation-base-v1', 'old bundled module');
+      localStorage.setItem('tower-playground-source-v1', 'struct S { x: i32; } var s: S; s.x = 42; print s.x;');
+      localStorage.setItem('foundation-upgrade-test', 'set');
+    }
+  });
+  await page.goto('/');
+  await expect(page.locator('#execution-status')).toHaveText('Finished · backends match');
+  await expect(page.locator('#llvm-output')).toHaveText('42\n');
+  const bundled = await (await request.get('/foundation.tower')).text();
+  await page.evaluate(bundled => {
+    localStorage.setItem('tower-playground-foundation-base-v1', bundled);
+    localStorage.setItem('tower-playground-foundation-v1', bundled.replace("'struct'", "'record'"));
+    localStorage.setItem('tower-playground-source-v1', 'record S { x: i32; } var s: S; s.x = 7; print s.x;');
+  }, bundled);
+  // A pagehide persist would correctly save the open buffers; close this page
+  // without navigating and test the stored revision in a new page instead.
+  const reopened = await page.context().newPage(); await reopened.goto('/');
+  await expect(reopened.locator('#execution-status')).toHaveText('Finished · backends match');
+  await expect(reopened.locator('#llvm-output')).toHaveText('7\n');
+  await reopened.close();
+});

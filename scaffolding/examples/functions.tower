@@ -1,0 +1,31 @@
+// Functions, arguments and returns are part of Tower's foundation.
+// Edit their grammar in the shared foundation.tower module.
+var answer: i32;
+answer = factorial(6);
+print answer;
+
+// Forward calls and recursion use the same foundation nodes in both backends.
+fn factorial(n: i32): i32 {
+    var finished: bool;
+    finished = n <= 1;
+    if finished { return 1; }
+    var previous: i32;
+    previous = n - 1;
+    var product: i32;
+    product = factorial(previous);
+    product = product * n;
+    return product;
+}
+
+fn increment(value: i32*): void {
+    var next: i32;
+    next = *value;
+    next = next + 1;
+    *value = next;
+    return;
+}
+
+var pointer: i32*;
+pointer = &answer;
+increment(pointer);
+print answer;

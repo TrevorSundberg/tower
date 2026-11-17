@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include "tower.hpp"
 #include "parser.hpp"
+#include "syntax.hpp"
 
 #include <llvm-c/Core.h>
 #include <llvm-c/ExecutionEngine.h>
@@ -30,6 +31,7 @@ __attribute__((export_name("entry"))) int entry() {
 
   tower_tests();
   parser_tests();
+  syntax_tests();
 
   char* default_triple = LLVMGetDefaultTargetTriple();
   printf("Current target triple for the native system: %s\n", default_triple);
@@ -64,7 +66,7 @@ __attribute__((export_name("entry"))) int entry() {
   LLVMInitializeWebAssemblyAsmPrinter();
 
   // Set up the target and target machine for WebAssembly
-  const char* triple = "wasm32-wasi-thread"; //"wasm32-unknown-unknown-wasm"
+  const char* triple = "wasm32-unknown-wasi";
   //const char* triple = "x86_64-pc-linux-gnu";
   //const char* triple = "x86_64-pc-windows-msvc";
   LLVMTargetRef target;
@@ -96,6 +98,7 @@ __attribute__((export_name("entry"))) int entry() {
   }
 
   // Clean up
+  LLVMDisposeMemoryBuffer(buffer);
   LLVMDisposeBuilder(builder);
   LLVMDisposeTargetMachine(target_machine);
   LLVMDisposeModule(mod);

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#11181c">
+  <title>Tower · Syntax playground</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='8' fill='%2311181c'/%3E%3Cpath d='M10 10h20v6H23v16h-6V16h-7' fill='%2387deba'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./style.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand" title="Tower syntax playground"><span class="brand-mark" aria-hidden="true">T</span><strong>Tower</strong></div>
+    <div class="toolbar">
+      <div class="file-controls"><select id="example-kind" aria-label="Editor document"><option value="bedrock.tower">Bedrock</option><option value="foundation.tower">Foundation</option><option value="foreach.tower" selected>ForEach</option><option value="execution.tower">Execution</option><option value="functions.tower">Functions</option><option value="structs.tower">Structs</option><option value="replacements.tower">Replacements</option><option value="tokens.tower">Token rules</option></select><button id="open" class="quiet">Open</button><button id="save" class="quiet">Save</button><input id="file" type="file" accept=".tower,.txt,text/plain" hidden></div>
+    </div>
+    <span id="runtime" class="runtime"><span class="dot"></span><span id="runtime-text">Loading WASM</span></span>
+  </header>
+  <main>
+    <div class="workspace">
+      <section class="source-panel panel" aria-label="Source editor">
+        <div class="panel-heading"><div><span class="file-icon" aria-hidden="true">≡</span><strong id="filename">foreach.tower</strong><span class="file-language">Tower</span><button id="restore" class="quiet" title="Restore bundled source">Restore</button></div></div>
+        <div id="editor"></div>
+        <div class="editor-footer"><span id="position">Ln 1, Col 1</span><button id="editor-error" hidden>Go to error</button><span><i class="legend-keyword"></i> keyword <i class="legend-capture"></i> capture <span class="desktop-only">· Ctrl/⌘ Enter to run</span></span></div>
+      </section>
+      <section class="inspector-panel panel" aria-label="Parser inspection">
+        <div class="panel-heading inspector-heading"><div class="tabs" role="tablist" aria-label="Inspect"><button id="tree-tab" role="tab" aria-selected="true" aria-controls="tree-pane">Parse tree</button><button id="grammar-tab" role="tab" aria-selected="false" aria-controls="grammar-pane">Active grammar</button></div></div>
+        <div id="tree-pane" role="tabpanel" aria-labelledby="tree-tab"><div class="tree-tools"><span id="tree-caption">Document</span><label><input id="tokens" type="checkbox"> Show tokens</label></div><div id="tree" class="tree"></div></div>
+        <div id="grammar-pane" role="tabpanel" aria-labelledby="grammar-tab" hidden><div class="grammar-top"><p class="eyebrow">ACTIVE KEYWORDS</p><div id="keywords" class="keywords"></div></div><div id="rules" class="rules"></div><div id="token-rules" class="rules"></div></div>
+        <div id="node-info" class="node-info">Tree spans refer to UTF-8 source bytes.</div>
+      </section>
+    </div>
+    <section id="execution-panel" class="execution-panel panel" aria-label="Program execution">
+      <div class="panel-heading execution-heading">
+        <div class="execution-title"><strong>Instructions &amp; results</strong><span id="execution-status" role="status" aria-live="polite">Ready</span></div>
+        <div class="execution-controls"><label class="auto-execute"><input id="auto-execute" type="checkbox" checked> Auto execute</label><button id="execute" disabled>Execute</button><button id="cancel-execution" disabled>Cancel</button></div>
+      </div>
+      <div class="execution-body">
+        <section class="execution-column"><h2>Tower instructions</h2><pre id="core-instructions" aria-label="Canonical foundation source"></pre></section>
+        <section class="execution-column"><h2>LLVM raw</h2><pre id="llvm-before" aria-label="LLVM raw"></pre></section>
+        <section class="execution-column"><h2>LLVM optimized</h2><pre id="llvm-after" aria-label="LLVM optimized"></pre></section>
+        <section class="execution-column runner-column"><h2>Interpreter <span id="interpreter-phase">Ready</span></h2><div class="runner-result"><pre id="execution-output" aria-label="Interpreter output"></pre><p id="execution-error" class="runner-error" role="alert" hidden></p><p id="output-limit" class="runner-error" hidden>Output limited to 64 KiB.</p></div></section>
+        <section class="execution-column runner-column"><h2>LLVM <span id="llvm-phase">Ready</span></h2><div class="runner-result"><pre id="llvm-output" aria-label="LLVM output"></pre><p id="llvm-error" class="runner-error" role="alert" hidden></p><p id="llvm-output-limit" class="runner-error" hidden>Output limited to 64 KiB.</p><div class="llvm-result"><span id="llvm-status"></span><a id="llvm-download" hidden download="tower-program.wasm">WASM</a></div></div></section>
+      </div>
+    </section>
+    <div id="diagnostic" class="diagnostic" role="alert" hidden><span class="error-icon" aria-hidden="true">!</span><div><strong>Unable to continue</strong><p id="error-message"></p></div></div>
+    <footer class="statusbar"><div class="status-summary"><span id="status" role="status" aria-live="polite">Loading Tower?</span><span id="revision"></span><span id="steps"></span><a href="./THIRD-PARTY-NOTICES.txt" target="_blank" rel="noopener">Notices</a></div><div id="timings" class="timings" aria-label="Compilation and execution timings"></div></footer>
+  </main>
+  <noscript>This playground needs JavaScript to host Tower’s WebAssembly module.</noscript>
+</body>
+</html>
