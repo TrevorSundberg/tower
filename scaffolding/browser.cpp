@@ -210,10 +210,11 @@ EXPORT("tw_format") const char* tw_format(uint32_t handle) {
   if (!session) return "{\"error\":\"Invalid session handle\"}";
   auto& out = session->response; out = "{";
   if (!syntax_can_format(session->syntax)) {
-    out += "\"error\":\"Formatting requires a complete, valid grammar declaration document\"}";
+    out += "\"error\":\"Formatting requires a complete, valid source document\"}";
     return out.c_str();
   }
   const auto formatted = syntax_format(session->syntax);
+  if (!formatted.error.empty()) { out += "\"error\":"; quote(out, formatted.error); out += '}'; return out.c_str(); }
   out += "\"source\":"; quote(out, formatted.source);
   out += ",\"spans\":[";
   for (size_t i = 0; i < formatted.spans.size(); ++i) {

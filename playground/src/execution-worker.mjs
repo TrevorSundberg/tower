@@ -1,17 +1,16 @@
-import { loadTower } from './tower-host.mjs';
-import { loadLLVM, executeWasm } from './llvm-host.mjs';
+import { executeWasm } from './llvm-host.mjs';
 import { originalDiagnostic } from './foundation-source.mjs';
+import { getTower, getCompiler } from './compiler-runtime.mjs';
 
-// One disposable worker per backend. Neither runner waits for the other.
+// Completed workers retain compiler/grammar state. Active cancellation still
+// terminates the worker, including synchronous compilation or an infinite loop.
 self.onmessage = async ({ data: { id, source, foundation, bedrock, backend, pointerBytes=4, inputs={} } }) => {
   let tower, handle;
   const timings = {}, start = performance.now();
   const send = data => postMessage({ id, backend, ...data });
   try {
     send({ phase: 'Loading…' });
-    const response = await fetch('./tower.wasm');
-    if (!response.ok) throw new Error('Unable to load Tower execution module');
-    tower = await loadTower(await response.arrayBuffer(), undefined, foundation, undefined, bedrock);
+    tower = await getTower(foundation, bedrock);
     timings.load = performance.now() - start;
     let at = performance.now();
     handle = tower.compile(source,{pointerBytes});
@@ -39,11 +38,9 @@ self.onmessage = async ({ data: { id, source, foundation, bedrock, backend, poin
     } else {
       send({ phase: 'Loading LLVM…' });
       at = performance.now();
-      const [wasm, canonical, canonicalBedrock] = await Promise.all([fetch('./tower-llvm.wasm'), fetch('./foundation.tower'), fetch('./bedrock.tower')]);
-      if (!wasm.ok || !canonical.ok || !canonicalBedrock.ok) throw new Error('LLVM module, bedrock.tower or foundation.tower is unavailable');
       // Canonical text uses the bundled foundation spelling, even when the
       // editable input module gives those same semantic nodes different syntax.
-      const compiler = await loadLLVM(await wasm.arrayBuffer(), undefined, await canonical.text(), undefined, await canonicalBedrock.text());
+      const compiler = await getCompiler('./tower-llvm.wasm.gz');
       timings.llvmLoad = performance.now() - at;
       send({ phase: 'Compiling LLVM…' });
       at = performance.now();
@@ -52,7 +49,7 @@ self.onmessage = async ({ data: { id, source, foundation, bedrock, backend, poin
       Object.assign(timings, compiled.timings);
       const diagnostic = result => originalDiagnostic(result, formatted.spans);
       if (compiled.status === 'error') { send({ result: diagnostic(compiled), timings }); return; }
-      send({ llvm: { before: compiled.before, after: compiled.after, wasm: compiled.wasm }, timings });
+      send({ llvm: { before: compiled.before, after: compiled.after, disassembly: compiled.disassembly, wasm: compiled.wasm }, timings });
       send({ phase: 'Executing…' });
       const execution = performance.now();
       await executeWasm(compiled, result => {

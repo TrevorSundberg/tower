@@ -25,6 +25,7 @@ for (const name of ['execution', 'functions', 'structs', 'memory']) await writeF
 let llvm = false;
 try {
   await copyFile(path.join(root, '../build/browser-wasi-llvm/tower-llvm.wasm'), path.join(dist, 'tower-llvm.wasm'));
+  await writeFile(path.join(dist, 'tower-llvm.wasm.gz'), gzipSync(await readFile(path.join(dist, 'tower-llvm.wasm')), {level:9}));
   llvm = true;
 } catch (error) { if (error.code !== 'ENOENT') throw error; }
 let cross = false;

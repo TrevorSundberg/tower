@@ -1,6 +1,12 @@
-fn result(): i32 { return state.value; }
+fn result(): i32 {
+    return state.value;
+}
+
 var state: Later;
 state.value = 42;
 var answer: i32 = result();
 print(answer);
-struct Later { value: i32; }
+
+struct Later {
+    value: i32;
+}

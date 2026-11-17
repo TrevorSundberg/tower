@@ -15,7 +15,7 @@ is `src/tower-host.mjs`, usable from both browser workers and Node tests.
 | `tw_set_bedrock(pointer, byteLength) -> pointer` | Read bedrock with the immutable native grammar and atomically install its downstream declaration grammar. Same source is idempotent. A changed bedrock requires reloading foundation; existing sessions keep their old modules. Same diagnostic/64 KiB contract as `tw_set_bootstrap`. |
 | `tw_bedrock_seed() -> pointer` | Borrowed canonical text produced by the common formatter from the native seed's actual grammar entities. |
 | `tw_create_bedrock(pointer, byteLength) -> u32` | Create a module-inspection session pinned to the immutable native reader. Validate the collected downstream grammar at end of input; never replace its own reader while reading. |
-| `tw_format(handle) -> pointer` | For a completed, valid declaration-only document, return `{source, spans}` using the common foundation formatter. Otherwise return `{error}`. Source maps use `{begin,end,source}` byte offsets. Never silently drops executable statements. |
+| `tw_format(handle) -> pointer` | For a completed, valid source document, return `{source, spans}` using the common formatter on original parse nodes before replacement. Comments and replacement invocations are retained. Reparse with the same baseline must preserve its trees; otherwise return `{error}`. Source maps use `{begin,end,source}` byte offsets. |
 | `tw_set_bootstrap(pointer, byteLength) -> pointer` | Parse token/skip/parse declarations over the installed bedrock definitions and atomically install the baseline for new sessions. Identical source is idempotent. Returns a borrowed, NUL-terminated diagnostic: empty means success. Read before another call. Maximum 64 KiB; NUL bytes are rejected. |
 | `tw_create_foundation(pointer, byteLength) -> handle` | Inspect foundation using the installed bedrock reader, without importing the previous foundation. Only declarations are allowed. Reset pins this reader and mode. |
 | `tw_create(pointer, byteLength) -> handle` | Copies valid UTF-8 source, without NUL bytes, into a new session. Zero indicates failure. No input terminator required. |
@@ -41,7 +41,7 @@ existing embedding callers; the playground always loads the real bedrock file.
 Foundation inherits Bedrock's shared entities, then adds its own definitions.
 Whitespace, comments, Identifier and String are shared defaults; Number and the
 executable grammar are added by Foundation. Snapshots include inherited definitions,
-but formatting prints only declarations belonging to the inspected document.
+but source formatting prints only the inspected document, including its statements.
 Local overrides replace bindings without mutating imported entities. Existing
 sessions pin both modules, including across resets. Invalid installation leaves
 the previous baseline intact. The LLVM module also exports both setters, with
@@ -86,8 +86,10 @@ UTF-8 byte ranges. Empty productions/capture lists may have zero-length spans.
 Labels and roles are copied; snapshots remain usable after the session closes.
 Grammar declaration nodes also expose `semantic` (`parse`, `token`, `skip`,
 `alternative`, `term` or `template`), describing components on those same nodes.
-Canonical formatting uses the default declaration spelling rather than an edited
-input dialect. Compiled parser tables/lexer DFAs are derived caches. Published
+Canonical grammar serialization uses the default declaration spelling. Source
+formatting additionally verifies that the current file's grammar accepts the result
+with the same trees; an incompatible edited dialect returns an error. Compiled
+parser tables/lexer DFAs are derived caches. Published
 module nodes are treated as immutable; edit a new document/version and install
 its formatted source rather than mutating a live parser's cached entities.
 

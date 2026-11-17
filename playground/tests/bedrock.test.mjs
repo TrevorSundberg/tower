@@ -129,7 +129,8 @@ test('formatting retains declaration order, replace versus extend, holes and com
   const use = inspect(formatted + 'two;');
   assert.equal(use.end.status, 'done', use.end.error);
   assert.ok(use.events.at(-1).nodes.some(node => node.label === '2'));
-  assert.match(use.formatted.error, /grammar declaration document/);
+  assert.equal(use.formatted.error, undefined);
+  assert.match(use.formatted.source, /\ntwo;\n$/);
 });
 
 test('bedrock keyword edits affect following declarations, foundation and source without mutating the seed', () => {
@@ -193,7 +194,7 @@ test('bedrock installation is atomic, validates semantic captures and is idempot
   try {
     assert.equal(runToEnd(tower, handle).end.status, 'done');
     tower.reset(handle, invalid); assert.equal(runToEnd(tower, handle).end.status, 'error');
-    assert.match(tower.format(handle).error, /valid grammar/);
+    assert.match(tower.format(handle).error, /valid source/);
     tower.reset(handle, bedrock); assert.equal(runToEnd(tower, handle).end.status, 'done');
   } finally { tower.destroy(handle); }
   assert.equal(tower.exports.tw_live_nodes(), nodes);

@@ -59,10 +59,12 @@ const engine = new Engine();
 let editor, source = '', offsets = [0], result = null, generation = 0;
 let frame = 0, queued = null, saveTimer, dirty = true, busy = false, example = '';
 let executionId = 0, executionError = null, runners = {};
+const idleExecutionWorkers = new Map();
 let linkInputs = {}, nativeDownloads = [], llvmViews = {};
 let selectedTargets = {wasm:true,x86:false,arm:false};
 try { Object.assign(selectedTargets, JSON.parse(localStorage.getItem('tower-build-targets-v1') || '{}')); } catch {}
 let autoTimer = 0, documentRevision = 0, executedRevision = -1;
+let executionDelay = 0;
 let llvmDownload, foundation = '', bundledFoundation = '', editingModule = '', bedrock = '', bundledBedrock = '';
 let programSource = '', programFilename = 'foreach.tower';
 let editorExtensions, programState;
@@ -76,8 +78,9 @@ function updateColumns() {
   const any = Object.values(selectedTargets).some(Boolean);
   $('llvm-raw-column').hidden = $('llvm-optimized-column').hidden = !any;
   $('wasm-column').hidden = !selectedTargets.wasm;
+  $('wasm-disassembly-column').hidden = !selectedTargets.wasm;
   for (const architecture of ['x86','arm']) $(architecture+'-column').hidden = !selectedTargets[architecture];
-  const count = 2 + (any ? 2 : 0) + Object.values(selectedTargets).filter(Boolean).length;
+  const count = 2 + (any ? 2 : 0) + Object.values(selectedTargets).filter(Boolean).length + (selectedTargets.wasm ? 1 : 0);
   document.querySelector('.execution-body').style.setProperty('--columns',count);
 }
 function showLLVM(key,before,after) {
@@ -87,9 +90,14 @@ function showLLVM(key,before,after) {
     $(id).textContent = keys.map(key => (keys.length > 1 ? '; '+targets[key].label+'\n' : '')+llvmViews[key][field]).join('\n\n');
 }
 function compileNative(architecture,id,text) {
-  const worker = new Worker(new URL('./target-worker.js',import.meta.url),{type:'module'});
+  const worker = idleExecutionWorkers.get(architecture) ?? new Worker(new URL('./target-worker.js',import.meta.url),{type:'module'});
+  idleExecutionWorkers.delete(architecture);
   const runner = runners[architecture] = {worker,timings:{},failure:null};
-  const finish = () => { worker.terminate(); runner.worker=null; $(architecture+'-phase').textContent=runner.failure?'Failed':'Finished'; showTimings(); updateComparison(); };
+  const finish = () => {
+    worker.onmessage = worker.onerror = null;
+    if (runner.failure) worker.terminate(); else idleExecutionWorkers.set(architecture,worker);
+    runner.worker=null; $(architecture+'-phase').textContent=runner.failure?'Failed':'Finished'; showTimings(); updateComparison();
+  };
   worker.onerror = event => { event.preventDefault(); if(id!==executionId)return; runner.failure=event.message; $(architecture+'-error').textContent=event.message; $(architecture+'-error').hidden=false; finish(); };
   worker.onmessage = ({data}) => {
     if(id!==executionId || data.id!==id)return;
@@ -125,9 +133,10 @@ function showTimings() {
 function clearCompiled() {
   nativeDownloads.forEach(url=>URL.revokeObjectURL(url)); nativeDownloads=[]; llvmViews={};
   for(const architecture of ['x86','arm']) { $(architecture+'-disassembly').textContent=''; $(architecture+'-downloads').replaceChildren(); $(architecture+'-error').textContent=''; $(architecture+'-error').hidden=true; $(architecture+'-phase').textContent='Ready'; }
-  for (const id of ['core-instructions', 'llvm-before', 'llvm-after']) $(id).textContent = '';
+  for (const id of ['core-instructions', 'llvm-before', 'llvm-after', 'wasm-disassembly']) $(id).textContent = '';
   if (llvmDownload) URL.revokeObjectURL(llvmDownload); llvmDownload = null;
   $('llvm-download').hidden = true; $('llvm-status').textContent = '';
+  $('wasm-downloads').hidden = true;
   runners = {}; showTimings();
   for (const backend of backendIds) {
     $(outputId(backend)).textContent = ''; $(errorId(backend)).hidden = true;
@@ -150,7 +159,7 @@ function scheduleAutoExecution() {
     if (revision !== documentRevision || dirty || !$('auto-execute').checked) return;
     if (editor.composing) { scheduleAutoExecution(); return; }
     execute();
-  }, 120);
+  }, executionDelay);
 }
 function stopExecution(message) {
   clearTimeout(autoTimer); autoTimer = 0; ++executionId;
@@ -196,10 +205,15 @@ function execute() {
   $('execute').disabled = true; $('cancel-execution').disabled = false;
   const id = executionId, text = editor.state.doc.toString();
   for (const backend of selectedTargets.wasm ? backendIds : ['interpreter']) {
-    const worker = new Worker(new URL('./execution-worker.js', import.meta.url), { type: 'module' });
+    const worker = idleExecutionWorkers.get(backend) ?? new Worker(new URL('./execution-worker.js', import.meta.url), { type: 'module' });
+    idleExecutionWorkers.delete(backend);
     const runner = runners[backend] = { worker, output: '', timings: {} };
     $(backend + '-phase').textContent = 'Loading…';
-    const finish = () => { worker.terminate(); runner.worker = null; showTimings(); updateComparison(); };
+    const finish = () => {
+      worker.onmessage = worker.onerror = null;
+      if (runner.failure) worker.terminate(); else idleExecutionWorkers.set(backend, worker);
+      runner.worker = null; showTimings(); updateComparison();
+    };
     const fail = message => {
       runner.failure = message; $(errorId(backend)).textContent = message; $(errorId(backend)).hidden = false;
       $(backend + '-phase').textContent = 'Unavailable'; finish();
@@ -213,9 +227,11 @@ function execute() {
       if (data.foundation !== undefined && backend === 'interpreter') $('core-instructions').textContent = data.foundation;
       if (data.llvm) {
         showLLVM('wasm',data.llvm.before,data.llvm.after);
+        $('wasm-disassembly').textContent = data.llvm.disassembly;
         llvmDownload = URL.createObjectURL(new Blob([data.llvm.wasm], { type: 'application/wasm' }));
         $('llvm-download').href = llvmDownload; $('llvm-download').hidden = false;
         $('llvm-status').textContent = `${data.llvm.wasm.length.toLocaleString()} bytes`;
+        $('wasm-downloads').hidden = false;
       }
       const answer = data.result;
       if (!answer) return;
@@ -443,6 +459,7 @@ function persist() {
 }
 window.addEventListener('pagehide', () => { if (editor) persist(); stopExecution(); });
 function changed() {
+  executionDelay = 120; // Coalesce typing; opening a document needs no debounce.
   ++documentRevision;
   const wasExecuting = isExecuting();
   stopExecution(wasExecuting ? 'Cancelled by edit' : 'Ready');
@@ -462,6 +479,7 @@ function changed() {
 function replaceSource(text, filename = 'scratch.tower') {
   $('filename').textContent = editingModule ? editingModule + '.tower' : filename;
   editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: text } });
+  executionDelay = 0;
 }
 function switchDocument(target = '') {
   if (editingModule === target) return;
@@ -477,6 +495,7 @@ function switchDocument(target = '') {
     extensions: editorExtensions,
   }));
   changed();
+  executionDelay = 0;
 }
 
 function showTab(which) {
@@ -500,6 +519,10 @@ for(const key of ['wasm','x86','arm']) {
   $('target-'+key).checked=!!selectedTargets[key];
   $('target-'+key).onchange=()=>{
     selectedTargets[key]=$('target-'+key).checked;
+    if (!selectedTargets[key]) {
+      const backend = key === 'wasm' ? 'llvm' : key;
+      idleExecutionWorkers.get(backend)?.terminate(); idleExecutionWorkers.delete(backend);
+    }
     try {localStorage.setItem('tower-build-targets-v1',JSON.stringify(selectedTargets));}catch{}
     stopExecution('Targets changed'); clearCompiled(); updateColumns(); executedRevision=-1; scheduleAutoExecution();
   };

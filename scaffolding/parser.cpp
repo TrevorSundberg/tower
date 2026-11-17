@@ -22,13 +22,17 @@ void parser_set_debug_trace(bool enabled) {
   parser_debug_trace = enabled;
 }
 
-static void parser_trace(const char* format, ...) {
-  if (!parser_debug_trace) return;
+static void parser_trace_write(const char* format, ...) {
   va_list args;
   va_start(args, format);
   vprintf(format, args);
   va_end(args);
 }
+
+// Guard the call, not just its body: constructing LR-state debug strings is
+// much more expensive than building the table itself. Disabled tracing must
+// not evaluate those arguments.
+#define parser_trace(...) do { if (parser_debug_trace) parser_trace_write(__VA_ARGS__); } while (false)
 
 // The tests come first so that we don't see the definition of any structs
 void parser_tests_internal();

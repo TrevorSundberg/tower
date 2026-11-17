@@ -1,6 +1,8 @@
 #include "core.hpp"
 #include "syntax-nodes.hpp"
 #include "format.hpp"
+#include "parser.hpp"
+#include <algorithm>
 #include <cassert>
 #include <set>
 
@@ -42,6 +44,15 @@ struct Formatter {
   size_t depth = 0;
   void text(const std::string& s) { result.source += s; }
   void indent() { text(std::string(depth * 4, ' ')); }
+  void newline(bool blank = false) {
+    while (!result.source.empty() && (result.source.back() == ' ' || result.source.back() == '\t')) result.source.pop_back();
+    if (result.source.empty()) return;
+    const size_t wanted = blank ? 2 : 1;
+    size_t count = 0;
+    for (auto at = result.source.size(); at && result.source[at - 1] == '\n'; --at) ++count;
+    while (count++ < wanted) text("\n");
+  }
+  void separate(bool before, bool after) { if (before || after) newline(true); }
   void quote(const std::string& value) {
     text("'");
     for (char c : value) {
@@ -77,7 +88,8 @@ struct Formatter {
   }
   void replacement(const SyntaxNode& n) {
     if (!n.replacement) return;
-    text(" => replace {"); text(syntax_node(n.replacement.get()).text); text("}");
+    text("\n"); ++depth; indent(); --depth;
+    text("=> replace {"); text(syntax_node(n.replacement.get()).text); text("}");
   }
   void grammar(TowerNode* entity) {
     const auto& n = syntax_node(entity);
@@ -88,8 +100,14 @@ struct Formatter {
     comments(n); indent(); const size_t begin = result.source.size();
     if (n.kind == SyntaxKind::Rule) {
       text("parse " + identifier(n.name) + (n.append ? " |=" : " ="));
+      const auto continuation = result.source.size() - result.source.rfind('\n') - 1;
       for (size_t i = 0; i < n.items.size(); ++i) {
-        if (i) text(" |");
+        if (i) {
+          Formatter probe; probe.grammar_alternative(n.items[i]);
+          auto column = result.source.size() - result.source.rfind('\n') - 1;
+          if (column + 3 + probe.result.source.size() > 110) text("\n" + std::string(continuation, ' ') + "|");
+          else text(" |");
+        }
         if (!syntax_node(n.items[i]).items.empty()) text(" ");
         grammar_alternative(n.items[i]);
       }
@@ -112,7 +130,12 @@ struct Formatter {
   void node(TowerNode* entity) {
     if (syntax_get(entity)) grammar(entity);
     else if (core_node(entity).kind == CoreKind::Program) {
-      for (auto* item : core_node(entity).items) node(item);
+      bool previous = false;
+      for (auto* item : core_node(entity).items) {
+        auto kind = core_node(item).kind;
+        bool declaration = kind == CoreKind::Function || kind == CoreKind::Type;
+        separate(previous, declaration); node(item); previous = declaration;
+      }
     } else statement(entity);
   }
   void type(CoreType t) {
@@ -158,6 +181,7 @@ struct Formatter {
     }
   }
   void block(TowerNode* node) {
+    if (core_node(node).items.empty()) { text("{}"); return; }
     text("{\n"); ++depth;
     for (auto* item : core_node(node).items) statement(item);
     --depth; indent(); text("}");
@@ -197,9 +221,93 @@ struct Formatter {
     }
     result.spans.push_back({begin, result.source.size(), n.start}); text("\n");
   }
+  struct SourceToken { size_t start, end; bool comment = false, pointer = false, unary = false, call = false; };
+  void source_tokens(TowerNode* entity, std::vector<SourceToken>& out, bool pointer = false, bool unary = false, bool call = false) {
+    auto* match = static_cast<Match*>(tower_node_get_component_userdata(entity, parser_match_get_type()));
+    if (!match) return;
+    std::string_view label = parser_match_get_label(match);
+    pointer |= label == "CoreType" || label == "CorePointerArgument";
+    unary |= label == "CoreAddress" || label == "CoreLoad" || label == "CoreTarget" || label == "CoreOperand";
+    call |= label == "CoreCall" || label == "CoreFunction" || label == "CoreExternal" || label == "CoreExport";
+    if (parser_match_get_rule_index(match) == TOWER_INVALID_INDEX) {
+      auto start = parser_match_get_start(match), end = start + parser_match_get_length(match);
+      if (end > start) out.push_back({start, end, false, pointer, unary, call});
+    } else for (size_t i = 0; i < tower_node_get_child_count(entity); ++i)
+      source_tokens(tower_node_get_child(entity, i), out, pointer, unary, call);
+  }
+  bool source_declaration(TowerNode* node) {
+    auto* match = static_cast<Match*>(tower_node_get_component_userdata(node, parser_match_get_type()));
+    if (!match) return false;
+    std::string_view label = parser_match_get_label(match);
+    if (label == "CoreFunction" || label == "CoreExternal" || label == "CoreExport" || label == "CoreStruct") return true;
+    return tower_node_get_child_count(node) == 1 && source_declaration(tower_node_get_child(node, 0));
+  }
+  void source_statement(TowerNode* entity, std::string_view original, size_t from, size_t end,
+      const std::vector<TowerCommentSpan>& comments) {
+    std::vector<SourceToken> tokens; source_tokens(entity, tokens);
+    for (auto comment : comments) if (comment.start >= from && comment.end <= end)
+      tokens.push_back({comment.start, comment.end, true});
+    std::sort(tokens.begin(), tokens.end(), [](auto a, auto b) { return a.start < b.start; });
+    SourceToken previous{}; std::string_view last;
+    size_t previous_end = from, parentheses = 0;
+    for (auto token : tokens) {
+      auto value = original.substr(token.start, token.end - token.start);
+      auto gap = original.substr(previous_end, token.start - previous_end);
+      auto lines = std::count(gap.begin(), gap.end(), '\n');
+      if (!token.comment && value == "}" && depth) --depth;
+      bool close_empty = value == "}" && last == "{";
+      bool break_line = !last.empty() && !close_empty &&
+        (previous.comment || (last == ";" && !parentheses && !(token.comment && !lines)) ||
+         last == "{" || value == "}" || (last == "}" && value != ";" && value != "else" && value != "," && value != ")") || lines);
+      if (break_line) newline(lines > 1 && last != "{");
+      bool line_start = result.source.empty() || result.source.back() == '\n';
+      if (line_start) indent();
+      else if (!close_empty) {
+        bool tight = value == ";" || value == "," || value == ")" || value == "]" || value == "." || value == ":" || value == "[" ||
+          last == "(" || last == "[" || last == "." ||
+          (value == "(" && (token.call || gap.empty())) ||
+          (value == "*" && token.pointer) ||
+          ((last == "*" || last == "&" || last == "-") && previous.unary && !previous.pointer);
+        if (!tight || token.comment) text(" ");
+      }
+      const auto begin = result.source.size(); text(std::string(value));
+      result.spans.push_back({begin, result.source.size(), token.start});
+      if (!token.comment) {
+        if (value == "{") ++depth;
+        if (value == "(") ++parentheses;
+        if (value == ")" && parentheses) --parentheses;
+      }
+      previous = token; previous_end = token.end; last = value;
+    }
+    newline();
+  }
 };
 }
 TowerText tower_format(TowerNode* node) {
   Formatter f; f.node(node);
+  return std::move(f.result);
+}
+TowerText tower_format_source(const std::vector<TowerNode*>& roots, std::string_view source,
+    const std::vector<TowerCommentSpan>& comments) {
+  Formatter f; size_t previous_end = 0; bool previous_declaration = false;
+  for (auto* root : roots) {
+    auto* match = static_cast<Match*>(tower_node_get_component_userdata(root, parser_match_get_type()));
+    assert(match);
+    auto start = parser_match_get_start(match), end = start + parser_match_get_length(match);
+    auto first = start;
+    for (auto comment : comments) if (comment.start >= previous_end && comment.start < first) first = comment.start;
+    auto gap = source.substr(previous_end, first - previous_end);
+    const bool declaration = f.source_declaration(root);
+    f.separate(previous_declaration, declaration);
+    if (std::count(gap.begin(), gap.end(), '\n') > 1) f.newline(true);
+    auto* grammar = root;
+    while (!syntax_get(grammar) && tower_node_get_child_count(grammar) == 1) grammar = tower_node_get_child(grammar, 0);
+    if (syntax_get(grammar)) f.grammar(grammar);
+    else f.source_statement(root, source, previous_end, end, comments);
+    previous_end = end; previous_declaration = declaration;
+  }
+  for (auto comment : comments) if (comment.start >= previous_end) {
+    f.text(std::string(source.substr(comment.start, comment.end - comment.start))); f.newline();
+  }
   return std::move(f.result);
 }

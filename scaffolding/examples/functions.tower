@@ -8,7 +8,9 @@ print(answer);
 fn factorial(n: i32): i32 {
     var finished: bool;
     finished = n <= 1;
-    if finished { return 1; }
+    if finished {
+        return 1;
+    }
     var previous: i32;
     previous = n - 1;
     var product: i32;

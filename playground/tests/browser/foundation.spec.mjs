@@ -81,7 +81,7 @@ test('a backend mismatch is reported automatically and does not survive an edit'
   await page.route('**/execution-worker.js', async route => {
     const response = await route.fetch();
     const script = await response.text();
-    await route.fulfill({ response, body: script + `\nconst send = self.postMessage.bind(self); self.postMessage = data => { if (data.backend === 'llvm' && data.result?.status === 'done') data.result.output += 'mismatch'; send(data); };` });
+    await route.fulfill({ response, body: script + `\nconst send = self.postMessage.bind(self); self.restoreTestOutput = () => { self.postMessage = send; }; self.postMessage = data => { if (data.backend === 'llvm' && data.result?.status === 'done') data.result.output += 'mismatch'; send(data); };` });
   });
   await page.goto('/'); await expect(page.locator('#status')).toContainText('Complete');
   await setSource(page, 'print(42);');
@@ -89,6 +89,7 @@ test('a backend mismatch is reported automatically and does not survive an edit'
   await expect(page.locator('#execution-output')).toHaveText('42\n');
   await expect(page.locator('#llvm-output')).toHaveText('42\nmismatch');
   await page.unroute('**/execution-worker.js');
+  for (const worker of page.workers()) if (worker.url().includes('execution-worker')) await worker.evaluate(() => self.restoreTestOutput());
   await setSource(page, 'print(43);');
   await expect(page.locator('#execution-status')).toHaveText('Finished · backends match');
 });

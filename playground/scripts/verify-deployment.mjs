@@ -11,7 +11,7 @@ await mkdir(output, {recursive:true});
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 const report = {url:base.href, assets:[], browsers:[]};
 const assets=['index.html','app.js','worker.js','execution-worker.js','target-worker.js','style.css',
-  'bedrock.tower','foundation.tower','tower.wasm','tower-llvm.wasm','tower-cross.wasm.gz','capabilities.json',
+  'bedrock.tower','foundation.tower','tower.wasm','tower-llvm.wasm','tower-llvm.wasm.gz','tower-cross.wasm.gz','capabilities.json',
   ...new Set(Object.values(targets).flatMap(t=>t.pointerBytes===4?[]:[t.triple+'-runtime.o',...t.inputs]).map(name=>'targets/'+name))];
 for (const name of assets) {
   const response = await fetch(new URL(name, base));

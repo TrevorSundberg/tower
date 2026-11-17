@@ -5995,3 +5995,174 @@ only. Reproduction report, SHA-256 values, screenshots and downloaded outputs ar
 in ignored `build/deployment-verification/`; the online log is
 `build/online-deployment-verification.log`. Source and deployment branches are
 pushed. Existing C++ subsystems remain in place for the next migration discussion.
+
+
+## 2026-11-17 — Compiler reuse, end-to-end profiling, disassembly panels and formatting contracts
+
+Implemented after reports that initial file opening, highlighting, Tower instructions
+and Wasm execution had become slow. Follow-up requests added a Wasm disassembly
+column/download footer, explicit execution-column names, declaration spacing and
+enforced formatting for every bundled Tower source file.
+
+### Root cause and compiler lifetime
+
+- The largest initialization cost was disabled parser tracing. `parser_trace`
+  returned early inside its function, but C++ had already evaluated its arguments:
+  LR-state `debug_str` calls, stringstreams and number/string formatting. A Node
+  CPU profile of the actual parser Wasm showed these dominating initialization.
+  Guarding the call site avoids all argument evaluation when tracing is disabled.
+  A regression counts display-name callbacks during table construction and requires
+  zero callbacks without tracing/errors. Tracing itself remains available.
+- An isolated Wasm probe before the fix measured instantiate 3.55 ms, WASI init
+  0.45 ms, Bedrock 46.83 ms and Foundation 1509.09 ms. With the guard, the same
+  probe measured about 4, 0.48, 21.82 and 176.88 ms respectively. Foundation built
+  38 grammar revisions within the 64-entry cache; this was not cache thrashing.
+- Completed interpreter and LLVM/Wasm workers now retain compiler instances and
+  grammar state. Optional x86/ARM workers use the same worker-local loader and
+  retain their cross compiler and target runtime inputs as well. Parsing already
+  had its own retained worker. There is one idle worker per enabled backend, not
+  one concurrently mutated Wasm instance shared between threads. Every execution
+  still gets fresh program memory; grammar edits reconfigure the retained frontend.
+- Active cancellation or editing during work terminates only active workers,
+  including synchronous LLVM work or compiled infinite loops. Host failures discard
+  the failed worker. Unchecking a target releases its idle compiler. Normal program
+  completion/error can reuse valid compiler state; stale IDs remain rejected.
+- Opening a file runs immediately after parsing. Ordinary typing retains the
+  intentional 120 ms coalescing delay. No parser/backtracking algorithm changed.
+
+### Compiler optimization and transfer size
+
+Verified the actual LLVM Wasm CMake cache: Release, `-O3 -DNDEBUG`, LLVM assertions
+OFF, LTO OFF. The build script now explicitly specifies assertions OFF. This is
+the optimization of LLVM's own C++ code compiled into Wasm, separate from the O2
+pipeline applied to Tower programs. Tower's development assertions remain enabled.
+The native compiler is Release/O3; installed LLVM 19 reports RelWithDebInfo with
+assertions OFF. The browser uses the pinned LLVM source at
+`1e57ee22ca274b663eeb279fd86e7010a8441c99`, WASI SDK 34.
+
+Normal LLVM was also shipping its large name/debug sections unstripped. It now
+uses llvm-strip and a gzip asset decoded in the worker (or accepts already decoded
+HTTP content). Before: 68,153,556-byte raw compiler. Final compiler including Wasm
+disassembly: 51,753,116 bytes raw, 15,468,564 bytes gzipped. Static hosts need no
+special Content-Encoding setup. The uncompressed artifact remains available.
+
+### Measurements and reproduction
+
+Windows Chromium through Playwright, localhost Node static server, desktop
+1440x1000 and Pixel 7 emulation (not physical-phone CPU measurements). Compare
+old deployed build `gh-pages` 7651ec5 on port 4175 against the current build on
+4173, using the same Node server and `profile-execution.mjs`. Each device opens
+Execution, Functions and Memory once, edits a tiny print program five times, then
+types comments with execution disabled. Final profile includes the new disassembly
+panel and formatted files. DOM updates are measured, not physical display latency.
+
+| Desktop phase | Before | Final |
+| --- | ---: | ---: |
+| Navigation to first highlighting | 1287 ms | 284 ms |
+| Navigation to first Tower instructions | 2662 ms | 435 ms |
+| Navigation to both backends finished/matching | 4248 ms | 944 ms |
+| Open Execution: both finished | 3002 ms | 142 ms |
+| Open Functions: both finished | 3150 ms | 77 ms |
+| Open Memory: both finished | 2917 ms | 98 ms |
+| Median edit to both finished, including debounce | 2713 ms | 154 ms |
+
+Mobile emulation first completion went from 3874 ms to 867 ms; warm file opening
+finished in 80–143 ms and median edit completion was 147 ms. The earlier matched
+before/after run measured grammar-only typing around 17 ms for Memory and 26 ms
+for Foundation in both builds: the major regression was initialization/repeated
+compiler boot, not warm lexer updates. Warm tiny-program LLVM compile was about
+8–9 ms; actual Wasm execution generally below 1 ms. Warm loads report zero or near
+zero and tests assert no repeated compiler or target-pack requests across runs.
+
+Native measurements use fresh Linux/WSL processes (Orchestral-Revng, Ubuntu 24.04),
+five samples per fixture, including process creation and generated executable
+execution. Before/after trace fix: Memory interpretation 1003→142 ms, executable
+compilation/linking 1175→368 ms, object emission 1016→153 ms. Functions: 971→126,
+1216→328 and 979→136 ms respectively. Native executable startup/execution remained
+about 4 ms. The new `towerc --timings` reports bootstrap, compilation, LLVM phases,
+runtime C compilation, linking and interpretation separately on stderr. Remaining
+Memory costs were about 95 ms bootstrap, 30 ms frontend/LLVM, 68 ms compiling the
+runtime C shim and 149 ms external linking. LLVM optimization itself was about
+7 ms. No persistent native compiler daemon or target/toolchain runtime-object
+cache was added; those require explicit identity/lifetime design.
+
+Commands (from repository root unless noted):
+
+```text
+node --cpu-prof --cpu-prof-dir=build --cpu-prof-name=grammar.cpuprofile build/profile-grammar.mjs
+wsl -- bash -lc 'cd /mnt/c/Sandbox/tower && bash playground/scripts/build-wasm.sh'
+wsl -- bash -lc 'cd /mnt/c/Sandbox/tower && TOWER_BROWSER_CROSS=ON bash playground/scripts/build-llvm.sh'
+npm run build --prefix playground
+cd playground
+node scripts/profile-execution.mjs ../build/perf-publish-final.json
+TOWER_PROFILE_URL=http://127.0.0.1:4175/ node scripts/profile-execution.mjs ../build/perf-before-final.json
+cd ..
+wsl -- bash -lc 'cd /mnt/c/Sandbox/tower && bash playground/scripts/build-native.sh'
+wsl -- bash -lc 'cd /mnt/c/Sandbox/tower && python3 playground/scripts/profile-native.py build/native/towerc build/perf-native-publish.json --timings'
+```
+
+The URL environment assignment above uses POSIX syntax; in PowerShell use
+`$env:TOWER_PROFILE_URL = 'http://127.0.0.1:4175/'`. Profiling helpers/reports under
+build are local artifacts. The reusable browser/native profiling scripts are
+tracked. An initial old-build comparison using a WSL Python server was rejected:
+its server/startup costs differed from the Node server. Final comparisons use the
+same server implementation. Earlier cold figures measured from DOMContentLoaded;
+the final table includes navigation and script loading. These are fixture-specific
+measurements, not an instant-compile guarantee for arbitrary input/network/hardware.
+
+### Wasm disassembly and controls
+
+Wasm now has a separate equal-width disassembly column with the same download
+footer layout as x86/ARM. It and Wasm Execution follow the Wasm target checkbox;
+unchecking all targets leaves Tower instructions and Interpreter Execution. Names
+are now exactly Interpreter Execution and Wasm Execution. Disassembly text scrolls
+without wrapping instructions. Steps/timings remain in the shared bottom status area.
+
+The existing C++ disassembler uses LLVM's Wasm object reader and instruction decoder
+on the actual linked module, including runtime/link-input functions. Function-body
+lengths and local declarations are not mistaken for instructions. Printed addresses
+are Wasm file offsets, function labels include indices/names. The same instruction
+rendering/2 MiB display limit serves native targets. Tests require all generated
+Wasm instructions in the execution corpus to decode without `.byte` fallbacks.
+
+### Shared formatter and built-in source enforcement
+
+The common Formatter now separates functions/structs from adjacent constructs with
+one blank line, keeps ordinary statements grouped and uses consistent four-space
+indentation. Empty blocks use `{}`. Grammar alternatives wrap at alternative
+boundaries; replacement clauses go on a continuation line. The native Bedrock seed
+and checked-in bedrock.tower continue to be exact common-formatter equivalents.
+
+Source formatting now accepts complete mixed documents, not only declarations.
+It obtains original parse nodes before replacements during an opt-in pass over the
+session's pinned baseline/cache, then uses the same formatting engine with parsed
+token roles and lexer-derived comment spans. It does not expand foreach/macros in
+the saved source or copy extra trees on the live parsing path. Comments and literal
+spellings are retained; replacement template text keeps its own language/trivia.
+Generated canonical executable output still omits source comments; propagating
+comments onto expanded executable nodes is not implemented by this change.
+
+Because user grammars can assign different meaning to whitespace/punctuation,
+formatted source is reparsed with the same baseline, and original parse trees and
+grammar semantics must match. Incompatible layouts return an explicit error rather
+than silently altering the source. This validation is not a universal formatting
+policy for every possible future user language. A malformed test initially tried
+to use an address expression directly as a foundation call argument; it was corrected
+to a named pointer, keeping the instruction-like operand rules. Earlier tests that
+expected declaration-only formatting errors were updated to the implemented mixed
+document behavior, not relaxed to ignore errors.
+
+`npm run check:format --prefix playground` recursively checks every `.tower` file
+under scaffolding (16 current modules/examples/test programs). Each must equal the
+formatter output, formatting twice must be stable, and statement trees/final lexical
+and grammar rules must survive. `npm run format:tower --prefix playground` writes
+the style. The normal Node test suite enforces the same contract. Historical legacy
+migration fixtures outside scaffolding intentionally keep their old spelling.
+
+Validation before publishing: 136/136 Node tests, 78/78 desktop/mobile Playwright
+tests, 2/2 ASan+UBSan native tests, native executable/object/archive linking,
+native-to-Wasm, buffers/arena/map, real LLVM C API linking, platform_write and forward
+module declarations. Browser tests cover retained workers/fresh program memory,
+grammar reconfiguration, target-pack reuse, cancellation/stale replies, target
+visibility, downloads/disassembly and viewport sizing. Final static deployment
+verification and online results are recorded separately below.

@@ -1,26 +1,44 @@
 // Concrete starter containers; no compiler implementation is ported here.
 // Callers initialize these structs, check allocation results, and own disposal.
-struct ByteBuffer { data: u8*; length: usize; capacity: usize; }
-export fn bytes_init(buffer: ByteBuffer*): void {
-    buffer.data = null; buffer.length = 0; buffer.capacity = 0;
+struct ByteBuffer {
+    data: u8*;
+    length: usize;
+    capacity: usize;
 }
+
+export fn bytes_init(buffer: ByteBuffer*): void {
+    buffer.data = null;
+    buffer.length = 0;
+    buffer.capacity = 0;
+}
+
 export fn bytes_reserve(buffer: ByteBuffer*, needed: usize): bool {
     var enough: bool = needed <= buffer.capacity;
-    if enough { return true; }
+    if enough {
+        return true;
+    }
     var capacity: usize = buffer.capacity * 2;
     var small: bool = capacity < needed;
-    if small { capacity = needed; }
+    if small {
+        capacity = needed;
+    }
     var next: u8* = realloc(u8, buffer.data, capacity);
     var failed: bool = next == null;
-    if failed { return false; }
-    buffer.data = next; buffer.capacity = capacity;
+    if failed {
+        return false;
+    }
+    buffer.data = next;
+    buffer.capacity = capacity;
     return true;
 }
+
 // Source bytes must remain valid until copied. Self-append is supported.
 export fn bytes_append(buffer: ByteBuffer*, source: u8*, count: usize): bool {
     var total: usize = buffer.length + count;
     var overflow: bool = total < buffer.length;
-    if overflow { return false; }
+    if overflow {
+        return false;
+    }
     var start: usize = bits(usize, source);
     var base: usize = bits(usize, buffer.data);
     var offset: usize = start - base;
@@ -28,101 +46,163 @@ export fn bytes_append(buffer: ByteBuffer*, source: u8*, count: usize): bool {
     if inside {
         var remaining: usize = buffer.length - offset;
         var invalid: bool = count > remaining;
-        if invalid { return false; }
+        if invalid {
+            return false;
+        }
     }
     var ok: bool = bytes_reserve(buffer, total);
     if ok {
-        if inside { source = buffer.data + offset; }
+        if inside {
+            source = buffer.data + offset;
+        }
         var dest: u8* = buffer.data + buffer.length;
         copy(dest, source, count);
         buffer.length = total;
     }
     return ok;
 }
+
 export fn bytes_push(buffer: ByteBuffer*, value: u8): bool {
     var byte: u8* = &value;
     var ok: bool = bytes_append(buffer, byte, 1);
     return ok;
 }
+
 export fn bytes_dispose(buffer: ByteBuffer*): void {
-    free(buffer.data); bytes_init(buffer);
+    free(buffer.data);
+    bytes_init(buffer);
 }
 
 // A byte arena with 16-byte allocation alignment. Reset invalidates its views.
-struct ByteArena { data: u8*; used: usize; capacity: usize; }
+struct ByteArena {
+    data: u8*;
+    used: usize;
+    capacity: usize;
+}
+
 export fn arena_init(arena: ByteArena*, capacity: usize): bool {
-    arena.data = alloc(u8, capacity); arena.used = 0; arena.capacity = capacity;
+    arena.data = alloc(u8, capacity);
+    arena.used = 0;
+    arena.capacity = capacity;
     var ok: bool = arena.data != null;
     return ok;
 }
+
 export fn arena_take(arena: ByteArena*, count: usize): u8* {
     var missing: bool = arena.data == null;
-    if missing { return null; }
+    if missing {
+        return null;
+    }
     var rounded: usize = count + 15;
     var overflow: bool = rounded < count;
-    if overflow { return null; }
+    if overflow {
+        return null;
+    }
     rounded = rounded / 16;
     rounded = rounded * 16;
     var left: usize = arena.capacity - arena.used;
     var full: bool = rounded > left;
-    if full { return null; }
+    if full {
+        return null;
+    }
     var result: u8* = arena.data + arena.used;
     arena.used = arena.used + rounded;
     return result;
 }
-export fn arena_reset(arena: ByteArena*): void { arena.used = 0; }
+
+export fn arena_reset(arena: ByteArena*): void {
+    arena.used = 0;
+}
+
 export fn arena_dispose(arena: ByteArena*): void {
-    free(arena.data); arena.data = null; arena.used = 0; arena.capacity = 0;
+    free(arena.data);
+    arena.data = null;
+    arena.used = 0;
+    arena.capacity = 0;
 }
 
 // Concrete u32 -> i32 open-addressed map. All u32 keys are available; no deletes.
-struct IntMapSlot { key: u32; value: i32; occupied: bool; }
-struct IntMap { slots: IntMapSlot*; count: usize; capacity: usize; }
-export fn map_init(map: IntMap*): void { map.slots = null; map.count = 0; map.capacity = 0; }
+struct IntMapSlot {
+    key: u32;
+    value: i32;
+    occupied: bool;
+}
+
+struct IntMap {
+    slots: IntMapSlot*;
+    count: usize;
+    capacity: usize;
+}
+
+export fn map_init(map: IntMap*): void {
+    map.slots = null;
+    map.count = 0;
+    map.capacity = 0;
+}
+
 fn map_index(key: u32, capacity: usize): usize {
     var hash: u32 = key * 2654435761;
     var wide: usize = convert(usize, hash);
     wide = wide % capacity;
     return wide;
 }
+
 fn map_insert(map: IntMap*, key: u32, value: i32): void {
     var index: usize = map_index(key, map.capacity);
     loop {
         var vacant: bool = map.slots[index].occupied == false;
         if vacant {
-            map.slots[index].key = key; map.slots[index].value = value;
+            map.slots[index].key = key;
+            map.slots[index].value = value;
             map.slots[index].occupied = true;
             map.count = map.count + 1;
             return;
         }
         var same: bool = map.slots[index].key == key;
-        if same { map.slots[index].value = value; return; }
-        index = index + 1; index = index % map.capacity;
+        if same {
+            map.slots[index].value = value;
+            return;
+        }
+        index = index + 1;
+        index = index % map.capacity;
     }
 }
+
 export fn map_set(map: IntMap*, key: u32, value: i32): bool {
     var half: usize = map.capacity / 2;
     var grow: bool = map.count >= half;
     if grow {
         var capacity: usize = map.capacity * 2;
         var overflow: bool = capacity < map.capacity;
-        if overflow { return false; }
+        if overflow {
+            return false;
+        }
         var first: bool = capacity == 0;
-        if first { capacity = 8; }
+        if first {
+            capacity = 8;
+        }
         var slots: IntMapSlot* = alloc(IntMapSlot, capacity);
         var failed: bool = slots == null;
-        if failed { return false; }
+        if failed {
+            return false;
+        }
         var size: usize = sizeof(IntMapSlot);
         var bytes: usize = capacity * size;
         fill(slots, 0, bytes);
         var old: IntMapSlot* = map.slots;
         var length: usize = map.capacity;
-        map.slots = slots; map.capacity = capacity; map.count = 0;
+        map.slots = slots;
+        map.capacity = capacity;
+        map.count = 0;
         var i: usize = 0;
         loop {
             var done: bool = i == length;
-            if done { break; }
-            if old[i].occupied { map_insert(map, old[i].key, old[i].value); }
+            if done {
+                break;
+            }
+            if old[i].occupied {
+                map_insert(map, old[i].key, old[i].value);
+            }
             i = i + 1;
         }
         free(old);
@@ -130,16 +210,29 @@ export fn map_set(map: IntMap*, key: u32, value: i32): bool {
     map_insert(map, key, value);
     return true;
 }
+
 export fn map_get(map: IntMap*, key: u32, result: i32*): bool {
     var empty: bool = map.capacity == 0;
-    if empty { return false; }
+    if empty {
+        return false;
+    }
     var index: usize = map_index(key, map.capacity);
     loop {
         var vacant: bool = map.slots[index].occupied == false;
-        if vacant { return false; }
+        if vacant {
+            return false;
+        }
         var same: bool = map.slots[index].key == key;
-        if same { *result = map.slots[index].value; return true; }
-        index = index + 1; index = index % map.capacity;
+        if same {
+            *result = map.slots[index].value;
+            return true;
+        }
+        index = index + 1;
+        index = index % map.capacity;
     }
 }
-export fn map_dispose(map: IntMap*): void { free(map.slots); map_init(map); }
+
+export fn map_dispose(map: IntMap*): void {
+    free(map.slots);
+    map_init(map);
+}

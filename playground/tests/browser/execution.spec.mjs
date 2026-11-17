@@ -215,6 +215,25 @@ test('functions compile and execute off the UI thread with matching backends', a
   expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight && document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
+test('completed execution workers stay warm across files and edits without retaining program memory', async ({ page, request }) => {
+  test.skip(!(await (await request.get('/capabilities.json')).json()).llvm);
+  await page.locator('#example-kind').selectOption('functions.tower');
+  await expect(page.locator('#execution-status')).toContainText('backends match');
+  const workers = page.workers().filter(worker => worker.url().includes('execution-worker'));
+  expect(workers).toHaveLength(2);
+  const requests = []; page.on('request', request => requests.push(request.url()));
+  await page.locator('#example-kind').selectOption('memory.tower');
+  await expect(page.locator('#execution-output')).toHaveText('5\n84\n42\n');
+  await expect(page.locator('#execution-status')).toContainText('backends match');
+  for (const value of [42, 43]) {
+    await setSource(page, `var value: i32 = ${value}; print(value);`);
+    await expect(page.locator('#llvm-output')).toHaveText(value + '\n');
+    await expect(page.locator('#execution-status')).toContainText('backends match');
+  }
+  expect(page.workers().filter(worker => worker.url().includes('execution-worker'))).toEqual(workers);
+  expect(requests.filter(url => /tower(?:-llvm)?\.wasm/.test(url))).toEqual([]);
+});
+
 test('LLVM infinite execution cancels on edits and traps remain inline', async ({ page, request }) => {
   test.skip(!(await (await request.get('/capabilities.json')).json()).llvm);
   await setSource(page, grammar + '\nloop { print(7); }');
@@ -237,7 +256,7 @@ test('LLVM loading can be cancelled without obsolete results replacing a new run
   await page.locator('#auto-execute').uncheck();
   await setSource(page, grammar + '\nprint(12);');
   let release; const gate = new Promise(resolve => { release = resolve; });
-  await page.route('**/tower-llvm.wasm', async route => { await gate; await route.continue().catch(() => {}); });
+  await page.route('**/tower-llvm.wasm.gz', async route => { await gate; await route.continue().catch(() => {}); });
   await page.locator('#execute').click();
   await expect(page.locator('#llvm-phase')).toHaveText('Loading LLVM…');
   await expect(page.locator('#execution-output')).toHaveText('12\n');
@@ -245,7 +264,7 @@ test('LLVM loading can be cancelled without obsolete results replacing a new run
   await expect(page.locator('#cancel-execution')).toBeEnabled();
   await page.locator('#cancel-execution').click();
   await expect(page.locator('#execution-status')).toHaveText('Cancelled');
-  release(); await page.unroute('**/tower-llvm.wasm');
+  release(); await page.unroute('**/tower-llvm.wasm.gz');
   await setSource(page, grammar + '\nprint(34);');
   await page.locator('#execute').click();
   await expect(page.locator('#execution-output')).toHaveText('34\n');

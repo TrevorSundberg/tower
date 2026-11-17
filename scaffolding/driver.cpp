@@ -7,9 +7,27 @@
 #include <fstream>
 #include <iostream>
 #include <filesystem>
+#include <chrono>
 
 namespace fs = std::filesystem;
 namespace {
+struct Timings {
+  using Clock = std::chrono::steady_clock;
+  Clock::time_point start = Clock::now(), previous = start;
+  bool enabled = false;
+  std::map<std::string, double> values;
+  void mark(const std::string& name) {
+    if (!enabled) return;
+    auto now = Clock::now(); values[name] = std::chrono::duration<double, std::milli>(now - previous).count(); previous = now;
+  }
+  ~Timings() {
+    if (!enabled) return;
+    values["total"] = std::chrono::duration<double, std::milli>(Clock::now() - start).count();
+    std::cerr << "Tower timings (ms): {"; bool first = true;
+    for (const auto& [name, ms] : values) { if (!first) std::cerr << ','; first = false; std::cerr << '"' << name << "\":" << ms; }
+    std::cerr << "}\n";
+  }
+};
 std::string read(const fs::path& path) { std::ifstream input(path, std::ios::binary); return {std::istreambuf_iterator<char>(input), {}}; }
 bool write(const fs::path& path, const char* bytes, size_t count) { std::ofstream out(path, std::ios::binary); out.write(bytes, std::streamsize(count)); return bool(out); }
 int run(const std::string& executable, const std::vector<std::string>& args) {
@@ -26,6 +44,7 @@ struct Temporary {
 };
 }
 int main(int argc, char** argv) {
+  Timings timings;
   std::string source, output, target = llvm::sys::getDefaultTargetTriple(), emit = "exe", cc = "clang", linker, sysroot, raw, optimized;
   std::vector<std::string> inputs; bool optimize = true, interpret = false, library = false;
   for (int i = 1; i < argc; ++i) {
@@ -33,10 +52,11 @@ int main(int argc, char** argv) {
     if (arg == "--help") {
       std::cout << "towerc source.tower -o output [--target triple] [--emit object|llvm|llvm-optimized|exe]\n"
         "  [--link object-or-library] [--cc clang] [--linker tool] [--sysroot path]\n"
-        "  [--raw-ir file] [--optimized-ir file] [--no-optimize] [--interpret] [--library]\n"; return 0;
+        "  [--raw-ir file] [--optimized-ir file] [--no-optimize] [--interpret] [--library] [--timings]\n"; return 0;
     }
     if (arg == "--no-optimize") { optimize = false; continue; }
     if (arg == "--interpret") { interpret = true; continue; }
+    if (arg == "--timings") { timings.enabled = true; continue; }
     if (arg == "--library") { library = true; emit = "object"; continue; }
     if (arg == "-o" || arg == "--target" || arg == "--emit" || arg == "--link" || arg == "--cc" || arg == "--linker" || arg == "--sysroot" || arg == "--raw-ir" || arg == "--optimized-ir") {
       if (++i == argc) { std::cerr << "Missing argument for " << arg << '\n'; return 1; }
@@ -51,6 +71,7 @@ int main(int argc, char** argv) {
   auto error = syntax_set_bedrock(read(root / "scaffolding/bedrock.tower").c_str());
   if (error.empty()) error = syntax_set_bootstrap(read(root / "scaffolding/foundation.tower").c_str());
   if (!error.empty()) { std::cerr << error << '\n'; return 1; }
+  timings.mark("bootstrap");
   auto text = read(source);
   if (text.find('\0') != std::string::npos) { std::cerr << "Source contains NUL bytes\n"; return 1; }
   bool wasm = target.starts_with("wasm"), windows = target.find("windows") != std::string::npos;
@@ -58,6 +79,7 @@ int main(int argc, char** argv) {
     auto width = tower_target_pointer_bytes(target, error);
     if (!error.empty()) { std::cerr << error << '\n'; return 1; }
     CoreMachine machine(core_compile_foundation(text.c_str(), width));
+    timings.mark("compile");
     machine.foreign = [](CoreMachine& machine, TowerNode* function, const std::vector<CoreValue>& args) -> CoreValue {
       const auto& fn = core_node(function);
       if (fn.name != "platform_write" || args.size() != 3) { machine.fail("No native interpreter binding for '" + fn.name + "'", 0); return {}; }
@@ -70,9 +92,12 @@ int main(int argc, char** argv) {
       return {out ? args[2].bits : UINT64_MAX};
     };
     while (!machine.done) { machine.step(10000); std::cout << machine.output; machine.output.clear(); }
+    timings.mark("execute");
     if (!machine.error.empty()) { std::cerr << machine.error << " at byte " << machine.error_offset << '\n'; return 1; } return 0;
   }
   auto object = tower_emit_object(text.c_str(), target, optimize, library);
+  timings.mark("compile");
+  if (timings.enabled) timings.values.insert(object.timings.begin(), object.timings.end());
   if (!object.error.empty()) { std::cerr << source << ':' << object.error_offset << ": " << object.error << '\n'; return 1; }
   if ((!raw.empty() && !write(raw, object.raw.data(), object.raw.size())) || (!optimized.empty() && !write(optimized, object.optimized.data(), object.optimized.size()))) { std::cerr << "Cannot write LLVM output\n"; return 1; }
   if (output.empty()) output = emit == "object" ? "tower.o" : emit.starts_with("llvm") ? "tower.ll" : wasm ? "tower.wasm" : windows ? "tower.exe" : "tower.out";
@@ -86,6 +111,7 @@ int main(int argc, char** argv) {
   std::vector<std::string> compile{"--target=" + target, "-O2", "-ffreestanding", "-fno-builtin", "-c", (root / "scaffolding/runtime.c").string(), "-o", runtime.str()};
   if (!sysroot.empty()) compile.push_back("--sysroot=" + sysroot);
   if (run(cc, compile)) return 1;
+  timings.mark("runtimeCompile");
   std::vector<std::string> args;
   if (wasm) {
     if (linker.empty()) linker = "wasm-ld-19";
@@ -103,5 +129,5 @@ int main(int argc, char** argv) {
   }
   args.insert(args.end(), inputs.begin(), inputs.end());
   if (!windows) { args.push_back("-o"); args.push_back(output); }
-  return run(linker, args);
+  auto result = run(linker, args); timings.mark("link"); return result;
 }

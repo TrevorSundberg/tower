@@ -240,10 +240,11 @@ execution; re-inspecting it does not restart a cancelled infinite loop.
 
 Compilation and execution run in **one worker per backend**, separate from live parsing.
 Each column shows its own progress. **Cancel** terminates whichever workers remain;
-editing also cancels them and clears stale output/errors. A new run gets fresh
-machine and obsolete replies are rejected. Execution has no elapsed-time cutoff;
+editing also cancels them and clears stale output/errors. Completed workers retain
+their compiler and grammar state; each new run gets fresh program memory and
+obsolete replies are rejected. Execution has no elapsed-time cutoff;
 the interpreter runs bounded instruction slices. LLVM compiles, optimizes, links
-and executes inside that same disposable worker; terminating it also interrupts
+and executes inside that same worker; terminating it also interrupts
 a non-cooperative compiled infinite loop. Output is batched and capped at
 64 KiB so a printing loop cannot flood the UI. Core compilation is limited to
 256 functions, 64 parameters per function, 4 MiB storage per function,
@@ -252,9 +253,11 @@ a non-cooperative compiled infinite loop. Output is batched and capped at
 
 The toolbar combines the brand and file controls. The page fits the
 viewport on desktop and mobile; editor, tree, output and instruction panes scroll
-internally when needed. On phones the three instruction columns sit above two
-output columns. Steps and separate compilation/execution timings sit at the bottom.
-The LLVM column includes the linked WASM download.
+internally when needed. On phones the equal-width result columns scroll horizontally.
+Steps and separate compilation/execution timings sit at the bottom. Interpreter
+Execution and Wasm Execution have separate output columns. Wasm disassembly decodes
+the actual linked binary using LLVM, including linked runtime functions; its addresses
+are file offsets. Its download footer shares the native disassembly-column layout.
 
 The compilation path is expanded Tower nodes enriched with typed foundation
 components -> interpreter or LLVM -> linked executable WASM. Across isolated WASM
@@ -280,10 +283,12 @@ See [foundation direction/tasks](../docs/foundation.md).
 The checkbox picker left of **Auto execute** selects Wasm (default), x86-64 and
 ARM64. The interpreter always runs. Wasm adds LLVM compilation/execution and
 automatic result comparison; x86-64 builds Windows/Linux/macOS executables and
-ARM64 builds Linux/macOS executables. Each selected architecture has a disposable
+ARM64 builds Linux/macOS executables. Each selected architecture has a retained
 worker, disassembly column and platform download links with byte counts. All lower
 columns have equal widths. With every target unchecked, only Tower instructions
 and the interpreter remain. **Cancel** or an edit terminates pending workers.
+Completed compiler workers and target runtime inputs are reused; unchecking a
+target releases its idle worker. Canceling active work discards that worker's cache.
 **Link files** adds matching objects/archives; **Clear link files** removes them.
 Prefix an input name with `windows--`, `linux--`, `linux-arm--`, `mac--`, `mac-arm--`
 or `wasm--` to restrict it to that target. Unprefixed files go to all selected
@@ -440,6 +445,42 @@ including updates during continuous typing. Browser timings start at the editor
 text mutation and end at the result DOM update or the next animation frame;
 they do not measure physical display latency. Native timings include the ABI and
 JSON transport. See [performance notes](PERFORMANCE.md) for the before/after run.
+
+For first-page load, file selection, Tower instructions and complete execution,
+run `node scripts/profile-execution.mjs ../build/execution-profile.json`.
+Set `TOWER_PROFILE_URL` to compare another served build. The probe measures desktop
+and mobile emulation separately, waiting for each result; it also records individual
+worker phase timings and grammar-only typing. File opening executes immediately
+after parsing; ordinary typing keeps its 120 ms coalescing delay. Compiler loading
+uses a stripped, gzipped LLVM asset to reduce cold network transfer. Parser tracing
+is guarded before evaluating debug-format arguments, so disabled tracing does no
+state-dump formatting work.
+
+For native end-to-end measurements, build `towerc`, then run under Linux/WSL:
+`python3 playground/scripts/profile-native.py build/native/towerc build/native-profile.json --timings`.
+The CLI's `--timings` flag reports bootstrap, frontend/LLVM phases, runtime C
+compilation, linking and interpreter execution to stderr. The probe also measures
+process startup and the generated executable separately, checking its output.
+The browser LLVM C++ library is built in Release with `-O3 -DNDEBUG` and LLVM
+assertions off; Tower's development assertions and opt-in parser tracing are
+separate. LLVM's O2 pass pipeline controls the generated Tower program, not the
+optimization level of the compiler's own Wasm binary.
+
+`npm run check:format` requires every current Tower file under `scaffolding`
+(Bedrock, Foundation, examples, libraries and test programs) to equal its formatted
+source. `npm run format:tower` updates them. The normal test suite also enforces this
+and checks formatting twice is stable and parsed statement trees stay unchanged.
+Historical migration fixtures intentionally retain their old spelling.
+
+The shared formatter separates functions and structs with a blank line before
+and after, groups ordinary statements, uses four-space indentation, and wraps
+long grammar alternatives. Source formatting retains comments and unexpanded
+replacement invocations from the original parse nodes. Replacement template text
+retains its own language and trivia. This extra parse/validation pass is opt-in;
+live parsing does not copy source trees for formatting. A custom grammar that
+assigns different meaning to whitespace or punctuation can reject the default
+layout; the formatter checks the result against the same baseline and refuses
+changes that alter its parsed trees.
 
 ## Toward a Tower-written playground
 

@@ -17,10 +17,12 @@ parse GrammarSkipDeclaration = 'skip' $name:Identifier '=' $pattern:GrammarPatte
 parse GrammarTokenMode = | 'when' 'expected';
 parse GrammarAssignment = '=' | '|=';
 parse GrammarReplacement = | '=>' 'replace' $body:GrammarTemplate;
-parse GrammarAlternatives = $previous:GrammarAlternatives '|' $sequence:GrammarSequence | $sequence:GrammarSequence;
+parse GrammarAlternatives = $previous:GrammarAlternatives '|' $sequence:GrammarSequence
+                           | $sequence:GrammarSequence;
 parse GrammarSequence = $previous:GrammarSequence $term:GrammarTerm | ;
 parse GrammarTerm = $atom:GrammarAtom $suffix:GrammarSuffix;
 parse GrammarSuffix = '*' | '+' | '?' | ;
-parse GrammarAtom = $literal:String | $reference:Identifier | '$' $capture:Identifier | '$' $capture:Identifier ':' $reference:Identifier | '[^' $set:GrammarTokenSet ']';
+parse GrammarAtom = $literal:String | $reference:Identifier | '$' $capture:Identifier
+                   | '$' $capture:Identifier ':' $reference:Identifier | '[^' $set:GrammarTokenSet ']';
 parse GrammarTokenSet = $previous:GrammarTokenSet $literal:String | ;
 parse GrammarStyle = | 'as' $kind:Identifier;

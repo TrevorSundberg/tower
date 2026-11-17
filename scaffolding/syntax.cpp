@@ -550,6 +550,7 @@ struct SyntaxSession {
   Recognizer* recognizer = nullptr; // borrowed only while reading this stream
   bool bootstrapping = false, declaration = false;
   bool building_bedrock = false, finalized = false, declarations_only = true;
+  bool formatting = false;
   size_t comment_cursor = 0;
   std::shared_ptr<const Bedrock> bedrock;
   std::shared_ptr<Version> version;
@@ -1168,12 +1169,54 @@ size_t syntax_get_revision(SyntaxSession* session) { return session->revision; }
 size_t syntax_get_offset(SyntaxSession* session) { return session->cursor; }
 size_t syntax_get_error_offset(SyntaxSession* session) { return session->error_offset; }
 TowerNode* syntax_document(SyntaxSession* session) { return session->document.get(); }
+namespace {
+bool same_formatted_tree(TowerNode* a, TowerNode* b, std::string_view source_a, std::string_view source_b) {
+  if (syntax_get(a) || syntax_get(b)) return syntax_get(a) && syntax_get(b) && syntax_equal(a, b);
+  auto* x = match(a); auto* y = match(b);
+  if (!x || !y || std::string_view(parser_match_get_label(x)) != parser_match_get_label(y) ||
+      parser_match_get_rule_index(x) != parser_match_get_rule_index(y) ||
+      tower_node_get_child_count(a) != tower_node_get_child_count(b)) return false;
+  if (parser_match_get_rule_index(x) == TOWER_INVALID_INDEX &&
+      source_a.substr(parser_match_get_start(x), parser_match_get_length(x)) !=
+      source_b.substr(parser_match_get_start(y), parser_match_get_length(y))) return false;
+  for (size_t i = 0; i < tower_node_get_child_count(a); ++i)
+    if (!same_formatted_tree(tower_node_get_child(a, i), tower_node_get_child(b, i), source_a, source_b)) return false;
+  return true;
+}
+}
 bool syntax_can_format(SyntaxSession* session) {
-  return session->error.empty() && session->finalized && session->declarations_only;
+  return session->error.empty() && session->finalized;
 }
 TowerText syntax_format(SyntaxSession* session) {
   if (!syntax_can_format(session)) return {};
-  return tower_format(session->document.get());
+  // Formatting is opt-in: retain original trees only for this pass, before
+  // replacements rewrite them. Ordinary live parsing does no extra tree copies.
+  SyntaxSession copy;
+  copy.baseline = session->baseline; copy.baseline_definitions = session->baseline_definitions;
+  copy.bedrock = session->bedrock; copy.bootstrapping = session->bootstrapping;
+  copy.building_bedrock = session->building_bedrock; copy.cache = session->cache;
+  copy.formatting = true; syntax_reset(&copy, session->source.c_str());
+  std::vector<TowerNodeRef> owned; std::vector<TowerNode*> roots;
+  while (auto* root = syntax_next(&copy)) { owned.push_back(TowerNodeRef::adopt(root)); roots.push_back(root); }
+  if (!copy.error.empty()) return {};
+  std::vector<TowerCommentSpan> comments;
+  for (const auto& token : copy.highlights) if (token.kind == "comment") comments.push_back({token.start, token.end});
+  auto result = tower_format_source(roots, copy.source, comments);
+  // User grammars may give punctuation or whitespace a different meaning.
+  // Accept layout changes only if the same grammar reads the same source trees.
+  SyntaxSession verify;
+  verify.baseline = copy.baseline; verify.baseline_definitions = copy.baseline_definitions;
+  verify.bedrock = copy.bedrock; verify.bootstrapping = copy.bootstrapping;
+  verify.building_bedrock = copy.building_bedrock; verify.formatting = true; verify.cache = copy.cache;
+  syntax_reset(&verify, result.source.c_str());
+  size_t index = 0; bool same = true;
+  while (auto* raw = syntax_next(&verify)) {
+    auto node = TowerNodeRef::adopt(raw);
+    same &= index < roots.size() && same_formatted_tree(roots[index], raw, copy.source, verify.source); ++index;
+  }
+  if (!same || index != roots.size() || !verify.error.empty())
+    return {{}, {}, "Formatting would change the parsed source under this grammar; source was left unchanged"};
+  return result;
 }
 
 namespace {
@@ -1364,10 +1407,11 @@ TowerNode* syntax_next(SyntaxSession* session) {
       }
     } else {
       session->declarations_only = false;
-      if (!session->version->replacements.empty()) {
+      if (!session->formatting && !session->version->replacements.empty()) {
         Expander expander{*session};
         if (!expander.run(root)) return nullptr;
       }
+      session->comment_cursor = session->cursor;
     }
     return root.release();
   }

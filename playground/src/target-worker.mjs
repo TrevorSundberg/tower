@@ -1,31 +1,25 @@
-import { loadTower } from './tower-host.mjs';
-import { loadLLVM } from './llvm-host.mjs';
+import { getTower, getCompiler } from './compiler-runtime.mjs';
 import { originalDiagnostic } from './foundation-source.mjs';
 import { targets, targetInputs } from './targets.mjs';
+import { fetchBytes as bytes } from './fetch-bytes.mjs';
 
+const runtimes = new Map();
 self.onmessage = async ({data:{id,source,foundation,bedrock,architecture,inputs={}}}) => {
   let tower, handle;
   const send = data => postMessage({id,architecture,...data});
-  const bytes = async url => {
-    const response = await fetch(url); if (!response.ok) throw new Error('Unable to load '+url);
-    const data = new Uint8Array(await response.arrayBuffer());
-    if (data[0] === 31 && data[1] === 139)
-      return new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer());
-    return data;
-  };
   try {
     send({phase:'Loading…'});
-    tower = await loadTower(await bytes('./tower.wasm'),undefined,foundation,undefined,bedrock);
+    tower = await getTower(foundation,bedrock);
     handle = tower.compile(source,{pointerBytes:8});
     const checked = tower.execute(handle,0);
     if (checked.status === 'error') { send({error:checked.error,diagnostic:checked,done:true}); return; }
     const formatted = tower.foundation(handle);
-    const [wasm,canonical,seed] = await Promise.all([bytes('./tower-cross.wasm.gz'),fetch('./foundation.tower').then(r=>r.text()),fetch('./bedrock.tower').then(r=>r.text())]);
-    const compiler = await loadLLVM(wasm,undefined,canonical,undefined,seed);
+    const compiler = await getCompiler('./tower-cross.wasm.gz');
     const keys = architecture === 'x86' ? ['windows','linux','mac'] : ['linux-arm','mac-arm'];
     for (const key of keys) {
       const target = targets[key]; send({phase:'Compiling '+target.label+'…'});
-      const runtime = await targetInputs(target,bytes);
+      if (!runtimes.has(key)) runtimes.set(key,await targetInputs(target,bytes));
+      const runtime = runtimes.get(key);
       const start = performance.now();
       // Platform-specific object files must match this target. A target-prefixed
       // filename scopes an uploaded object to that target; plain files go to all.

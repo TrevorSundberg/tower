@@ -120,6 +120,18 @@ TowerNode* add_token(Stream* stream, uint32_t id, size_t start, size_t length) {
 }
 
 void parser_tree_tests() {
+  {
+    AllocationCheck check;
+    Parse parse; expression_grammar(parse.rules);
+    size_t formatted = 0;
+    parser_set_debug_trace(false);
+    parse.table = parser_table_create(parse.rules, &formatted, nullptr,
+      [](void* count, uint32_t id) {
+        ++*static_cast<size_t*>(count);
+        return parser_table_utf8_id_to_string(nullptr, id);
+      });
+    assert(parse.table && formatted == 0); // No display-name work without tracing/errors.
+  }
   // Exact tree, precedence, alternative production identity, and ownership after
   // parser/table/source destruction. Labels must not borrow grammar storage.
   {

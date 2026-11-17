@@ -8,20 +8,19 @@ parse CoreType = $name:Identifier | $base:CoreType '*' | $base:CoreType '[' $cou
 parse CorePlace = $name:Identifier | $base:CorePlace '.' $field:Identifier;
 parse CoreOperand = CorePlace | Number | '-' Number | 'true' | 'false' | 'null' | String;
 parse CorePlace |= $base:CorePlace '[' $index:CoreOperand ']';
-parse CoreOperator = '+' | '-' | '*' | '/' | '%' | '&' | '|' | '^'
-                   | '==' | '!=' | '<' | '<=' | '>' | '>=';
+parse CoreOperator = '+' | '-' | '*' | '/' | '%' | '&' | '|' | '^' | '==' | '!=' | '<' | '<=' | '>' | '>=';
 parse CoreBinary = $left:CoreOperand $op:CoreOperator $right:CoreOperand;
 parse CoreAddress = '&' $name:CorePlace;
 parse CoreLoad = '*' $name:CorePlace;
 parse CoreValue = CoreOperand | CoreBinary | CoreAddress | CoreLoad;
 parse CoreTarget = $name:CorePlace | '*' $name:CorePlace;
 parse CoreDeclare = 'var' $name:Identifier ':' $type:CoreType ';'
-                  | 'var' $name:Identifier ':' $type:CoreType '=' $value:CoreValue ';';
+                   | 'var' $name:Identifier ':' $type:CoreType '=' $value:CoreValue ';';
 parse CoreAssign = $target:CoreTarget '=' $value:CoreValue ';';
 parse Statement = CoreDeclare | CoreAssign;
 parse CoreBlock = '{' Statement* '}';
 parse CoreIf = 'if' $condition:CoreOperand $body:CoreBlock
-             | 'if' $condition:CoreOperand $body:CoreBlock 'else' $otherwise:CoreBlock;
+              | 'if' $condition:CoreOperand $body:CoreBlock 'else' $otherwise:CoreBlock;
 parse CoreLoop = 'loop' $body:CoreBlock;
 parse CoreBreak = 'break' ';';
 parse CoreContinue = 'continue' ';';

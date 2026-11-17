@@ -11,6 +11,7 @@
 #include <llvm-c/Transforms/PassBuilder.h>
 #include <llvm-c/Disassembler.h>
 #include <llvm/Object/ObjectFile.h>
+#include <llvm/Object/Wasm.h>
 #include <llvm/Support/Format.h>
 #include <chrono>
 #include <memory>
@@ -270,13 +271,10 @@ unsigned tower_target_pointer_bytes(const std::string& triple, std::string& erro
   auto machine = target_machine(triple, error); return machine ? machine->createDataLayout().getPointerSize() : 0;
 }
 std::string tower_disassemble(const std::vector<uint8_t>& bytes, const std::string& triple) {
-#ifdef TOWER_LLVM_WASM_ONLY
-  return {};
-#else
-  if (triple.starts_with("wasm")) return {};
-#ifdef TOWER_BROWSER_CROSS
+  LLVMInitializeWebAssemblyDisassembler();
+#if defined(TOWER_BROWSER_CROSS)
   LLVMInitializeX86Disassembler(); LLVMInitializeAArch64Disassembler();
-#else
+#elif !defined(TOWER_LLVM_WASM_ONLY)
   InitializeAllDisassemblers();
 #endif
   auto* decoder = LLVMCreateDisasm(triple.c_str(), nullptr, 0, nullptr, nullptr);
@@ -292,26 +290,41 @@ std::string tower_disassemble(const std::vector<uint8_t>& bytes, const std::stri
     else { if (!name) consumeError(name.takeError()); if (!address) consumeError(address.takeError()); }
   }
   std::string result; raw_string_ostream out(result);
+  auto instructions = [&](ArrayRef<uint8_t> contents, uint64_t base) {
+    size_t offset = 0;
+    while (offset < contents.size() && result.size() < 2 * 1024 * 1024) {
+      auto address = base + offset;
+      if (auto found = labels.find(address); found != labels.end()) out << found->second << ":\n";
+      char line[1024];
+      auto size = LLVMDisasmInstruction(decoder, const_cast<uint8_t*>(contents.data()) + offset, contents.size() - offset, address, line, sizeof(line));
+      out << format_hex(address, 10) << "  ";
+      if (size) out << line;
+      else { out << ".byte " << format_hex(contents[offset],4); size = 1; }
+      out << '\n'; offset += size;
+    }
+  };
+  if (auto* wasm = dyn_cast<object::WasmObjectFile>(object->get())) {
+    // Code-section lengths and local declarations are not instructions. LLVM's
+    // object reader provides each exact function body, including linked inputs.
+    labels.clear(); out << "; Wasm instructions; addresses are file offsets.\n";
+    for (const auto& fn : wasm->functions()) {
+      auto name = fn.DebugName.empty() ? fn.ExportName.value_or(fn.SymbolName) : fn.DebugName;
+      out << "\nfunc[" << fn.Index << "]"; if (!name.empty()) out << " <" << name << ">"; out << ":\n";
+      instructions(fn.Body, fn.Body.data() - bytes.data());
+      if (result.size() >= 2 * 1024 * 1024) break;
+    }
+  } else {
   for (auto section : (*object)->sections()) {
     if (!section.isText()) continue;
     auto contents = section.getContents(); auto name = section.getName();
     if (!contents) { consumeError(contents.takeError()); if (!name) consumeError(name.takeError()); continue; }
     out << '\n'; if (name) out << *name; else consumeError(name.takeError()); out << ":\n";
-    size_t offset = 0;
-    while (offset < contents->size() && result.size() < 2 * 1024 * 1024) {
-      auto address = section.getAddress() + offset;
-      if (auto found = labels.find(address); found != labels.end()) out << found->second << ":\n";
-      char line[1024];
-      auto size = LLVMDisasmInstruction(decoder, (uint8_t*)contents->data() + offset, contents->size() - offset, address, line, sizeof(line));
-      out << format_hex(address, 10) << "  ";
-      if (size) out << line;
-      else { out << ".byte " << format_hex(uint8_t((*contents)[offset]),4); size = 1; }
-      out << '\n'; offset += size;
-    }
-    if (result.size() >= 2 * 1024 * 1024) { out << "Disassembly display limited to 2 MiB.\n"; break; }
+    instructions(ArrayRef<uint8_t>((const uint8_t*)contents->data(), contents->size()), section.getAddress());
+    if (result.size() >= 2 * 1024 * 1024) break;
   }
+  }
+  if (result.size() >= 2 * 1024 * 1024) out << "Disassembly display limited to 2 MiB.\n";
   LLVMDisasmDispose(decoder); return result;
-#endif
 }
 TowerObject tower_emit_object(const char* source, const std::string& triple, bool optimize, bool library) {
   using Clock = std::chrono::steady_clock; auto started = Clock::now(); TowerObject result;

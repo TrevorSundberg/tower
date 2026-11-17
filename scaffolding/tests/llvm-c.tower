@@ -1,9 +1,14 @@
 // Direct calls into the real LLVM C API; no Tower-side adapter is needed here.
 extern fn LLVMContextCreate(): void*;
+
 extern fn LLVMContextDispose(context: void*): void;
+
 extern fn LLVMInt32TypeInContext(context: void*): void*;
+
 extern fn LLVMConstInt(type: void*, value: u64, sign_extend: i32): void*;
+
 extern fn LLVMConstIntGetZExtValue(value: void*): u64;
+
 var context: void* = LLVMContextCreate();
 var type: void* = LLVMInt32TypeInContext(context);
 var value: void* = LLVMConstInt(type, 42, 0);

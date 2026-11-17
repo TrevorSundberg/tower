@@ -41,11 +41,16 @@ map_init(index);
 var key: u32 = 0;
 loop {
     var done: bool = key == 200;
-    if done { break; }
+    if done {
+        break;
+    }
     var value: i32 = convert(i32, key);
     value = value * 3;
     ok = map_set(index, key, value);
-    if ok {} else { print(false); break; }
+    if ok {} else {
+        print(false);
+        break;
+    }
     key = key + 1;
 }
 print(map.count);

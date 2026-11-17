@@ -10,7 +10,11 @@ async function choose(page,key,checked){
  await page.locator('#build-targets summary').click();
 }
 test('target selection controls compilation and equal columns without stopping the interpreter',async({page},info)=>{
- await expect(page.locator('#llvm-download')).toBeVisible();
+ await expect(page.locator('#wasm-disassembly-column #llvm-download')).toBeVisible();
+ await expect(page.locator('#wasm-disassembly')).toContainText('tower_main');
+ await expect(page.locator('#wasm-disassembly')).toContainText('i32.const');
+ await expect(page.locator('.runner-column h2').first()).toContainText('Interpreter Execution');
+ await expect(page.locator('#wasm-column h2')).toContainText('Wasm Execution');
  const event=page.waitForEvent('download');await page.locator('#llvm-download').click();
  expect(WebAssembly.validate(await readFile(await(await event).path()))).toBe(true);
  const widths=await page.locator('.execution-column:visible').evaluateAll(items=>items.map(x=>x.getBoundingClientRect().width));
@@ -21,6 +25,7 @@ test('target selection controls compilation and equal columns without stopping t
  await expect(page.locator('#execution-output')).toHaveText('5\n84\n42\n');
  await expect(page.locator('.execution-column:visible')).toHaveCount(2);
  await expect(page.locator('#llvm-raw-column')).toBeHidden();await expect(page.locator('#wasm-column')).toBeHidden();
+ await expect(page.locator('#wasm-disassembly-column')).toBeHidden();await expect(page.locator('#llvm-download')).toBeHidden();
  const requests=[];page.on('request',r=>requests.push(r.url()));
  await page.locator('#execute').click();await expect(page.locator('#execution-status')).toHaveText('Finished');
  expect(requests.some(url=>url.includes('tower-llvm')||url.includes('tower-cross'))).toBe(false);
@@ -36,9 +41,23 @@ test('native targets compile automatically, display disassembly and download pla
   const download=await event;await download.saveAs(`../build/browser-export-${info.project.name}.${extension}`);
   expect([...(await readFile(await download.path())).subarray(0,magic.length)]).toEqual(magic);
  }
+ async function reuse(architecture,file,count) {
+  await expect(page.locator('#'+architecture+'-phase')).toHaveText('Finished');
+  const workers=page.workers().filter(w=>w.url().includes('target-worker'));
+  expect(workers).toHaveLength(1);
+  const requests=[];const record=r=>requests.push(r.url());page.on('request',record);
+  await page.locator('#example-kind').selectOption(file);
+  await expect(page.locator('#'+architecture+'-downloads a')).toHaveCount(count);
+  await expect(page.locator('#'+architecture+'-phase')).toHaveText('Finished');
+  expect(page.workers().filter(w=>w.url().includes('target-worker'))).toEqual(workers);
+  expect(requests.filter(url=>/tower(?:-cross)?\.wasm|\/targets\//.test(url))).toEqual([]);
+  page.off('request',record);
+ }
+ await reuse('x86','functions.tower',3);
  await choose(page,'x86',false);await choose(page,'arm',true);
  await expect(page.locator('#arm-downloads a')).toHaveCount(2,{timeout:120000});
  await expect(page.locator('#arm-error')).toBeHidden();await expect(page.locator('#arm-disassembly')).toContainText('ret');
+ await reuse('arm','memory.tower',2);
  await page.screenshot({path:`../build/targets-arm-${info.project.name}.png`,fullPage:true});
 });
 test('cancel stops pending native builds and edits discard stale downloads',async({page})=>{

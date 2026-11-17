@@ -46,6 +46,7 @@ cmake --build "$host" --target llvm-tblgen --parallel "${TOWER_BUILD_JOBS:-6}"
 cmake -S "$repo" -B "$cross" -G Ninja \
   -DCMAKE_TOOLCHAIN_FILE="$sdk/share/cmake/wasi-sdk-p1.cmake" \
   -DCMAKE_BUILD_TYPE=Release -DTOWER_BROWSER=ON -DTOWER_BROWSER_LLVM=ON \
+  -DLLVM_ENABLE_ASSERTIONS=OFF \
   -DTOWER_BROWSER_CROSS="${TOWER_BROWSER_CROSS:-OFF}" \
   -DTOWER_LLVM_SOURCE_DIR="$source" \
   -DLLVM_TABLEGEN="$host/bin/llvm-tblgen" -DLLVM_NATIVE_TOOL_DIR="$host/bin"
@@ -54,6 +55,7 @@ if [ "${TOWER_BROWSER_CROSS:-OFF}" = ON ]; then targets+=(tower-browser-cross); 
 cmake --build "$cross" --target "${targets[@]}" --parallel "${TOWER_BUILD_JOBS:-6}"
 mkdir -p "$repo/build/browser-wasi-llvm"
 cp "$cross/tower-llvm.wasm" "$repo/build/browser-wasi-llvm/tower-llvm.wasm"
+"$sdk/bin/llvm-strip" "$repo/build/browser-wasi-llvm/tower-llvm.wasm"
 if [ "${TOWER_BROWSER_CROSS:-OFF}" = ON ]; then
   cp "$cross/tower-cross.wasm" "$repo/build/browser-wasi-llvm/tower-cross.wasm"
   "$sdk/bin/llvm-strip" "$repo/build/browser-wasi-llvm/tower-cross.wasm"

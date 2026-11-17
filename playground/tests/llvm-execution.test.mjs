@@ -55,6 +55,9 @@ for (const [name, source, expected, failure] of cases) test(`LLVM matches interp
     const compiled = llvm.compile(formatted.source);
     assert.equal(compiled.status, 'compiled', compiled.error || reference.error);
     assert.match(compiled.before, /define void @tower_main/);
+    assert.match(compiled.disassembly, /func\[\d+\] <tower_main>:/);
+    assert.match(compiled.disassembly, /end/);
+    assert.doesNotMatch(compiled.disassembly, /\.byte/, 'every emitted Wasm instruction decodes');
     assert.doesNotMatch(compiled.after, /\balloca\b/, 'eligible ordinary local allocas are promoted');
     const actual = originalDiagnostic(await executeWasm(compiled), formatted.spans);
     for (const key of ['status', 'error', 'errorOffset', 'outputTruncated']) assert.equal(actual[key], reference[key], key);
