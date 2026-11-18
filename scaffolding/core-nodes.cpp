@@ -1,5 +1,6 @@
 ﻿#include "core.hpp"
 #include <cassert>
+#include "compiler-foundation.hpp"
 #include <new>
 #include <utility>
 #include <set>
@@ -25,9 +26,12 @@ CoreNode* core_get(TowerNode* n) {
 CoreNode& core_node(TowerNode* n) { auto* c = core_get(n); assert(c); return *c; }
 CoreNode& core_attach(TowerNode* n, CoreKind kind) {
   if (auto* c = core_get(n)) { c->kind = kind; return *c; }
-  auto* component = tower_component_create(n, core_component_type(), sizeof(CoreNode),
-    [](TowerComponent*, void* data) { static_cast<CoreNode*>(data)->~CoreNode(); });
+  const auto bytes = foundation_node_size();
+  assert(bytes == sizeof(CoreNode));
+  auto* component = tower_component_create(n, core_component_type(), bytes,
+    [](TowerComponent*, void* data) { foundation_node_dispose(static_cast<CoreNode*>(data)); });
   auto* c = new(tower_component_get_userdata(component)) CoreNode;
+  foundation_node_init(c);
   c->kind = kind; return *c;
 }
 TowerNode* core_binding(TowerNode* n) { return core_node(n).binding ? core_node(n).binding : n; }

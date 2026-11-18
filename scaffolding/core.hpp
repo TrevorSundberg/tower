@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "syntax.hpp"
 #include "format.hpp"
+#include "foundation-values.hpp"
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -28,19 +29,20 @@ struct CoreBuiltin { const char* name; CoreKind kind; size_t arguments; };
 const std::vector<CoreBuiltin>& core_builtins();
 const char* core_builtin_name(CoreKind kind);
 
-// A semantic component ON the expanded parser node. References below are
-// non-owning edges within CoreProgram's tree, including recursive calls.
+// Temporary native ABI view of compiler/foundation-nodes.tower's component ON
+// the expanded parser entity. Tower owns initialization and dynamic field storage.
+// References below are non-owning edges within CoreProgram's tree.
 // Both backends and the formatter consume these same nodes, not a copied IR.
 struct CoreNode {
   CoreKind kind = CoreKind::Program;
   CoreType type;
   CoreOp op = CoreOp::Add;
-  std::string name;
+  CoreName name;
   TowerNode *binding = nullptr, *left = nullptr, *right = nullptr,
     *value = nullptr, *target = nullptr, *body = nullptr, *otherwise = nullptr;
-  std::vector<TowerNode*> items;
-  std::vector<TowerNode*> locals; // derived function storage index
-  std::vector<TowerNode*> parameters;
+  CoreNodes items;
+  CoreNodes locals; // derived function storage index
+  CoreNodes parameters;
   CoreType element; // array element / allocation / size-query type
   size_t size = 0, alignment = 1, length = 0, byte_offset = 0, frame_size = 0;
   size_t index = 0, start = 0, end = 0;

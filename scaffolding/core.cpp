@@ -667,7 +667,7 @@ CoreProgram compile(const char* source, size_t prefix, unsigned width) {
     if ((fn.type.pointers || fn.type.scalar != CoreScalar::Void) && (flow & Next)) compiler.fail(n, "Function '" + fn.name + "' can finish without returning a value");
   }
   for (size_t i = 8; i < compiler.program.types.size() && compiler.program.error.empty(); ++i) compiler.layout(compiler.program.types[i]);
-  statements.insert(statements.begin(), compiler.generated.begin(), compiler.generated.end());
+  statements.prepend(compiler.generated.data(), compiler.generated.size());
   return std::move(compiler.program);
 }
 }

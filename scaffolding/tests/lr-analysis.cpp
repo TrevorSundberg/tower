@@ -290,11 +290,12 @@ bool control_allocation_trial(bool specialize) {
   const LRProduction rules[]={{0,0,1},{1,1,16}};
   auto* analysis=lr_analysis_create(rules,2,symbols.data(),symbols.size(),2);
   LRStates* states=nullptr; LRRuntime* runtime=nullptr; LRParser* parser=nullptr;
+  bool specialized=false;
   bool ok=analysis && lr_analysis_compute(analysis);
   if(ok) { states=lr_states_create(analysis); ok=states && lr_states_lalr(states,false); }
   if(ok) { runtime=lr_runtime_create(states); ok=runtime!=nullptr; }
   if(ok) {
-    if(specialize) lr_runtime_specialize(runtime,states);
+    if(specialize) { lr_runtime_specialize(runtime,states); specialized=lr_runtime_sequence(runtime)!=SIZE_MAX; }
     parser=lr_parser_create(runtime,false,specialize); ok=parser!=nullptr;
   }
   if(ok) for(size_t position=0;position<16;++position) {
@@ -318,7 +319,7 @@ bool control_allocation_trial(bool specialize) {
     ok=lr_parser_commit(parser,&step,16,16);
   }
   lr_parser_destroy(parser); lr_runtime_destroy(runtime); lr_states_destroy(states); lr_analysis_destroy(analysis);
-  return ok;
+  return ok && (!specialize || specialized);
 }
 void compare_propagation(std::mt19937& random) {
   const size_t count=1+random()%80;

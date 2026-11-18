@@ -53,8 +53,8 @@ struct Backend {
         if (narrow(f.type)) value->addRetAttr(Attribute::ZExt);
         for (unsigned j = 0; j < f.parameters.size(); ++j) if (narrow(core_node(f.parameters[j]).type)) value->addParamAttr(j, Attribute::ZExt);
       }
-      if (wasm && f.external) { value->addFnAttr("wasm-import-module", "env"); value->addFnAttr("wasm-import-name", f.name); }
-      if (wasm && f.exported) value->addFnAttr("wasm-export-name", f.name);
+      if (wasm && f.external) { value->addFnAttr("wasm-import-module", "env"); value->addFnAttr("wasm-import-name", f.name.view()); }
+      if (wasm && f.exported) value->addFnAttr("wasm-export-name", f.name.view());
       functions.push_back(value);
     }
   }
@@ -109,7 +109,7 @@ struct Backend {
     if (n.kind != CoreKind::Operand && n.kind != CoreKind::String && n.kind != CoreKind::Field && n.kind != CoreKind::Index) return expression(node);
     if (n.kind == CoreKind::String) {
       auto it = strings.find(node); if (it != strings.end()) return it->second;
-      auto* data = ConstantDataArray::getString(context, n.name);
+      auto* data = ConstantDataArray::getString(context, n.name.view());
       auto* global = new GlobalVariable(module, data->getType(), false, GlobalValue::PrivateLinkage, data, "tower.string");
       global->setAlignment(Align(1)); strings[node] = global; return global;
     }
@@ -237,7 +237,7 @@ struct Backend {
     for (auto* node : core.locals) {
       auto& n = core_node(node);
       if (n.global) { locals.push_back(nullptr); continue; }
-      auto* storage = b.CreateAlloca(type(n.type), nullptr, n.name); storage->setAlignment(Align(core_type_alignment(n.type))); locals.push_back(storage);
+      auto* storage = b.CreateAlloca(type(n.type), nullptr, n.name.view()); storage->setAlignment(Align(core_type_alignment(n.type))); locals.push_back(storage);
     }
     for (unsigned i = 0; i < core.parameters.size(); ++i) store(core.parameters[i], fn->getArg(i));
     block(index ? core.body : program.root);

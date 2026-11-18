@@ -8613,3 +8613,109 @@ semantic component storage into Tower so checking, formatting, interpretation an
 LLVM can progressively consume Tower-defined payloads on the same shared entities.
 The remaining native bridges/seeds and compiler stages still count toward full
 C++ removal; portable self-hosted compiler binaries are not completed.
+
+## 2026-11-18 — Foundation component storage in Tower; honest migration status
+
+The user's question about continued `parser.cpp` edits is justified: the project
+is not close enough to claim that only third-party C++ remains. Tower now runs
+the entity/component store, parse-forest operations, explicit template
+specialization, regex grammar/lowering and automata, grammar indexing, LR
+analysis/state construction/LALR actions, runtime table lookup, recognizer
+control and bounded diagnostic probes. Between `3156273` and `7ebcb41`,
+`parser.cpp` removed 807 lines and added 236 integration lines. That is a useful
+concrete change, not a percentage of the remaining migration.
+
+Still native: stream adapters, tree assembly and diagnostic presentation,
+incremental grammar revisions and replacements, substantial type checking and
+type/layout registry logic, formatting, interpretation, compiler driver and
+backend/linker integration. Our native seeds, allocation hooks, ABI adapters and
+LLVM integration code count as our own C++, not third-party exemptions. A
+portable self-building Tower compiler for Windows/macOS/Linux has not been
+produced. Matching compiled utility objects is narrower than that endpoint.
+
+### Implemented in this stage
+
+- `compiler/foundation-nodes.tower` defines `FoundationType` and the Foundation
+  semantic component fields. Production native/Wasm builds use Tower for
+  component initialization/disposal and owned node-list storage. The component
+  remains attached to the existing expanded parse entity; checker, formatter,
+  interpreter and LLVM read this same payload. No second graph or public binary
+  format was introduced.
+- Replaced `CoreNode`'s C++ string/vector ownership with temporary passive native
+  views (`foundation-values.hpp`) of Tower buffers. Names retain length-aware
+  strings, including embedded NUL bytes; byte assignment uses the existing Tower
+  byte-buffer implementation. Tower owns list growth, erasure and prepend,
+  including overlapping self-slices and allocation-failure preservation. Edges
+  remain borrowed; component disposal does not release their target entities.
+- Existing native passes still assign/read these fields. Their logic and the
+  private operation-tag definitions have NOT been ported merely by changing
+  storage. The checked ABI view is transitional migration work, not a new
+  independent semantic representation.
+- Added a native reference seed for the new storage exports so clean builds
+  retain an acyclic seed → stage1 → production dependency. This seed must also
+  disappear once the portable Tower-built bootstrap is available.
+
+### Trials and validation
+
+The first native build exposed two hidden `std::vector` uses (template filtering
+and generated-declaration prepend), plus LLVM APIs requiring explicit string
+views. Those were connected to Tower list operations and length-aware views;
+the LLVM string-literal path must not truncate embedded NULs.
+
+New storage tests compare all 29 component field offsets and total size with
+the actual compiled Tower layout, check initialization and component reuse,
+deep name assignment/self-slices/NULs, growing self-prepend, removal, borrowed
+edges, cleanup and injected allocation failures. Native Linux sanitizer tests
+passed 4/4; optimized Windows tests passed. The sanitizer instruments the C++
+harness/adapters, not every instruction in the separately Tower-produced object;
+explicit allocation tracking and behavioral comparisons cover those routines.
+
+Also corrected the LR allocation-failure test loop: successful LR fallback after
+an optional DFA-cache allocation failure previously ended the sweep too early.
+The sweep now continues until the specialized route itself completes, exercising
+later evidence/probe allocations as well. This is a coverage correction, not a
+claim that the old run exercised every specialized allocation.
+
+Validation commands (PowerShell from `C:\Sandbox\tower`, WSL Orchestral-Revng,
+LLVM 19 for native, WASI SDK 34 for browser reactors):
+
+```
+wsl -- bash -lc 'cd /mnt/c/Sandbox/tower && bash playground/scripts/test-native-core.sh'
+.\scaffolding\tests\run.ps1 -Optimize -BootstrapCompiler C:\Sandbox\tower\build\parser-tests\host-bootstrap.cmd
+# In WSL, with TOWER_BOOTSTRAP_COMPILER=/root/.cache/tower/native/towerc-stage1:
+bash playground/scripts/build-wasm.sh
+TOWER_BROWSER_CROSS=ON TOWER_BUILD_JOBS=3 bash playground/scripts/build-llvm.sh
+npm run format:tower --prefix playground
+npm run check:format --prefix playground
+node --test playground/tests/*.test.mjs
+npm run build --prefix playground
+npx --prefix playground playwright test --config playground/playwright.config.mjs
+bash playground/scripts/test-bootstrap.sh
+```
+
+All 179 Node tests, 102 desktop/mobile browser tests, 38 formatted Tower files
+and 16 bootstrap comparisons passed. The bootstrap checks compare optimized IR
+and object bytes for Linux x64, Windows x64, Wasm32 and macOS ARM64, including the
+new component code inside the composed compiler module. Logs are in
+`build/foundation-nodes-{asan,windows,wasm,llvm,node,browser,bootstrap,format-check}.log`.
+
+Next migration work remains native syntax/replacement and semantic passes on
+these shared entities, then formatter/interpreter, driver/platform integration
+and the complete bootstrap replacement. Storage ownership moving is a necessary
+step; it does not mean those passes have already moved.
+
+Performance comparison after the test builds finished: `build/profile-foundation-nodes-native.py`
+uses complete optimized compilers (baseline `7ebcb41` in an isolated worktree,
+`TOWER_NATIVE_BUILD=/root/.cache/tower/foundation-baseline`) and 4 warmups plus 24
+alternating paired process runs. Median milliseconds before → after were:
+small 109.887 → 113.035, 500 declarations 118.167 → 115.390, templates
+113.176 → 113.668, 50 token definitions 507.362 → 512.128.
+`node build/profile-foundation-nodes-wasm.mjs` uses Node 21.7.3 hosting Wasm,
+12 warmups plus 40 alternating pairs of compile + canonical formatting. Against
+published `dc51620`/Pages `8f120d4`, medians were small 4.444 → 4.436,
+inference 4.599 → 4.664, replacements 15.330 → 15.496, 500 declarations
+12.658 → 12.944 ms. The latter comparison also includes the diagnostic-probe
+migration since that deployment. Full p50/p95 results and fixture definitions
+are in the corresponding scripts and `build/foundation-nodes-{native,wasm}-performance.json`.
+These samples show roughly preserved performance, not a speedup claim or a
+statistical guarantee; Node-hosted Wasm timing is not browser UI latency.

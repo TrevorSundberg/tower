@@ -3,16 +3,86 @@
 #include "../syntax-nodes.hpp"
 #include "../compiler-generics.hpp"
 #include "../compiler-parser-nodes.hpp"
+#include "../compiler-foundation.hpp"
+#include "../core.hpp"
 #include <cassert>
 #include <cstring>
 #include <string>
+#include <type_traits>
 
 extern "C" size_t tower_test_buffer_count();
 extern "C" size_t tower_test_buffer_allocations();
 extern "C" void tower_test_buffer_fail_next();
 
 void compiler_storage_tests() {
+  core_component_type();
   const auto baseline = tower_test_buffer_count();
+  {
+    static_assert(std::is_standard_layout_v<CoreNode> && std::is_trivially_destructible_v<CoreNode>);
+    const size_t offsets[] = {offsetof(CoreNode,kind),offsetof(CoreNode,type),offsetof(CoreNode,op),offsetof(CoreNode,name),
+      offsetof(CoreNode,binding),offsetof(CoreNode,left),offsetof(CoreNode,right),offsetof(CoreNode,value),offsetof(CoreNode,target),
+      offsetof(CoreNode,body),offsetof(CoreNode,otherwise),offsetof(CoreNode,items),offsetof(CoreNode,locals),offsetof(CoreNode,parameters),
+      offsetof(CoreNode,element),offsetof(CoreNode,size),offsetof(CoreNode,alignment),offsetof(CoreNode,length),offsetof(CoreNode,byte_offset),
+      offsetof(CoreNode,frame_size),offsetof(CoreNode,index),offsetof(CoreNode,start),offsetof(CoreNode,end),offsetof(CoreNode,bits),
+      offsetof(CoreNode,constant),offsetof(CoreNode,indirect),offsetof(CoreNode,external),offsetof(CoreNode,exported),offsetof(CoreNode,global)};
+    assert(foundation_node_size() == sizeof(CoreNode));
+    for (size_t i = 0; i < std::size(offsets); ++i) assert(foundation_node_offset(i) == offsets[i]);
+    auto owner = TowerNodeRef::adopt(tower_node_create());
+    auto child = TowerNodeRef::adopt(tower_node_create());
+    auto& value = core_attach(owner.get(), CoreKind::Function);
+    assert(value.type.pointer_bytes == 4 && value.element.pointer_bytes == 4 && value.alignment == 1);
+    assert(value.name.empty() && value.items.empty() && value.locals.empty() && value.parameters.empty());
+    assert(!value.binding && !value.body && !value.bits && !value.external && !value.global);
+    value.name = std::string_view("a\0bc", 4);
+    value.name += 'd';
+    assert(value.name.view() == std::string_view("a\0bcd", 5) && !value.name.data()[5]);
+    auto& other = core_attach(child.get(), CoreKind::Parameter);
+    other.name = value.name;
+    assert(other.name.view() == value.name.view() && other.name.data() != value.name.data());
+    value.name = value.name.view().substr(2);
+    assert(value.name == "bcd" && other.name.view() == std::string_view("a\0bcd", 5));
+    value.name = value.name;
+    assert(value.name == "bcd");
+    while (value.name.size() + 1 < value.name.storage.capacity) value.name += 'x';
+    auto saved_name = std::string(value.name.view());
+    auto* name_data = value.name.data(); const auto name_capacity = value.name.storage.capacity;
+    tower_test_buffer_fail_next();
+    assert(!foundation_name_append(&value.name.storage, 'y'));
+    assert(value.name.data() == name_data && value.name.storage.capacity == name_capacity && value.name.view() == saved_name);
+    for (size_t i = 0; i < 8; ++i) value.items.push_back(i & 1 ? owner.get() : child.get());
+    auto* data = value.items.data; const auto capacity = value.items.capacity;
+    tower_test_buffer_fail_next();
+    assert(!foundation_nodes_push(&value.items, owner.get()));
+    assert(value.items.data == data && value.items.size() == 8 && value.items.capacity == capacity);
+    for (size_t i = 8; i < 16; ++i) value.items.push_back(i & 1 ? owner.get() : child.get());
+    auto saved = std::vector<TowerNode*>(value.items.begin(), value.items.end());
+    tower_test_buffer_fail_next();
+    assert(!foundation_nodes_prepend(&value.items, value.items.data + 2, 5));
+    assert(std::vector<TowerNode*>(value.items.begin(), value.items.end()) == saved);
+    assert(foundation_nodes_prepend(&value.items, value.items.data + 2, 5));
+    auto expected = saved;
+    expected.insert(expected.begin(), saved.begin() + 2, saved.begin() + 7);
+    assert(std::vector<TowerNode*>(value.items.begin(), value.items.end()) == expected);
+    assert(foundation_nodes_erase(&value.items, 1, 3));
+    expected.erase(expected.begin() + 1, expected.begin() + 4);
+    assert(std::vector<TowerNode*>(value.items.begin(), value.items.end()) == expected);
+    assert(!foundation_nodes_erase(&value.items, SIZE_MAX, 0));
+    assert(!foundation_nodes_erase(&value.items, 1, SIZE_MAX));
+    assert(!foundation_nodes_prepend(&value.items, &value.items.back(), 2));
+    assert(!foundation_nodes_prepend(&value.items, value.items.data, SIZE_MAX));
+    value.locals.push_back(child.get()); value.parameters.push_back(child.get());
+    value.binding = child.get();
+    assert(&core_attach(owner.get(), CoreKind::Block) == &value && value.kind == CoreKind::Block);
+    assert(value.binding == child.get() && value.name.view() == saved_name && value.locals.size() == 1);
+    // Component removal releases owned storage, never these borrowed node edges.
+    assert(tower_node_remove_component(owner.get(), core_component_type()));
+    assert(core_get(child.get()) == &other && other.name.view() == std::string_view("a\0bcd", 5));
+    auto& fresh = core_attach(owner.get(), CoreKind::Operand);
+    assert(fresh.name.empty() && fresh.items.empty() && fresh.locals.empty() && fresh.parameters.empty());
+    assert(foundation_nodes_prepend(&fresh.items, nullptr, 0));
+    assert(foundation_nodes_erase(&fresh.items, 0, 0));
+  }
+  assert(tower_test_buffer_count() == baseline);
   {
     auto owner = TowerNodeRef::adopt(tower_node_create());
     auto* rule = parser_rule_create(owner.get());
