@@ -49,6 +49,8 @@ struct Compiler {
   std::map<std::string, TowerNode*> types;
   std::map<std::string, TowerNode*> globals;
   std::map<TowerNode*, unsigned> layout_state;
+  std::map<TowerNode*, unsigned> declaration_state;
+  std::vector<TowerNode*> inferring;
   std::vector<std::map<std::string, TowerNode*>> scopes{1};
   explicit Compiler(unsigned width) : program(width), current(program.root) { for (auto* type : program.types) types.emplace(core_node(type).name, type); }
   CoreNode& function() { return core_node(current); }
@@ -153,9 +155,38 @@ struct Compiler {
   }
   TowerNode* lookup(TowerNode* n) {
     auto name = identifier(tokens(n));
-    for (auto it = scopes.rbegin(); it != scopes.rend(); ++it) { auto found = it->find(name); if (found != it->end()) return found->second; }
-    if (auto found = globals.find(name); found != globals.end()) return found->second;
+    for (auto it = scopes.rbegin(); it != scopes.rend(); ++it) {
+      auto found = it->find(name);
+      if (found != it->end()) return declaration_type(found->second) ? found->second : nullptr;
+    }
+    if (auto found = globals.find(name); found != globals.end()) return declaration_type(found->second) ? found->second : nullptr;
     fail(n, "Unknown local '" + name + "'"); return nullptr;
+  }
+  bool declaration_type(TowerNode* n) {
+    auto& value = core_node(n);
+    if (value.kind != CoreKind::Declare || declaration_state[n] == 2) return true;
+    if (declaration_state[n] == 1) {
+      std::string chain;
+      auto begin = std::find(inferring.begin(), inferring.end(), n);
+      for (auto it = begin; it != inferring.end(); ++it) chain += core_node(*it).name + " -> ";
+      fail(n, "Cannot infer the type of '" + value.name + "': initializer dependency cycle " + chain + value.name + "; add an explicit type annotation");
+      return false;
+    }
+    if (auto* annotation = member(n, "type")) value.type = type(annotation);
+    else {
+      auto* initial = member(n, "value");
+      if (!initial) { fail(n, "Variable '" + value.name + "' requires a type annotation or an initializer"); return false; }
+      if (inferring.size() >= 128) { fail(n, "Foundation inferred-type dependency limit is 128"); return false; }
+      declaration_state[n] = 1; inferring.push_back(n);
+      value.value = expression(initial);
+      inferring.pop_back();
+      if (!program.error.empty() || !value.value) return false;
+      value.type = core_node(value.value).type;
+      value.type.pointer_bytes = program.pointer_bytes;
+    }
+    if (!value.type.pointers && value.type.scalar == CoreScalar::Void) fail(n, "A variable cannot have void type");
+    if (!program.error.empty()) return false;
+    declaration_state[n] = 2; return true;
   }
   TowerNode* location(TowerNode* n, unsigned depth = 0) {
     while ((label(n) == "CoreCallArgument" || label(n) == "CoreOperand") && tower_node_get_child_count(n) == 1) n = child(n, 0);
@@ -300,10 +331,10 @@ struct Compiler {
     for (size_t i = 0; i < args.size(); ++i) value.items.push_back(operand(args[i], &core_node(callee.parameters[i]).type));
     return n;
   }
-  TowerNode* expression(TowerNode* n, CoreType expected) {
+  TowerNode* expression(TowerNode* n, const CoreType* expected = nullptr) {
     if (label(n) == "CoreValue" && tower_node_get_child_count(n) == 1) n = child(n, 0);
     auto kind = label(n);
-    if (kind == "CoreOperand" || kind == "CoreAddress" || kind == "CoreLoad") return operand(n, &expected);
+    if (kind == "CoreOperand" || kind == "CoreAddress" || kind == "CoreLoad") return operand(n, expected);
     if (!n) { fail(n, "Missing expression"); return nullptr; }
     if (kind == "CoreCall") { if (!call(n)) return nullptr; }
     else if (kind == "CoreBinary") {
@@ -311,13 +342,15 @@ struct Compiler {
       auto& value = node(n, CoreKind::Binary); auto op = tokens(member(n, "op")); bool found = false;
       for (unsigned i = 0; i <= unsigned(CoreOp::Ge); ++i) if (op == core_operator(CoreOp(i))) { value.op = CoreOp(i); found = true; break; }
       if (!found) fail(n, "Unknown foundation binary operation");
-      CoreType input = expected; bool comparison = value.op >= CoreOp::Eq;
+      CoreType input = expected ? *expected : CoreType{}; bool comparison = value.op >= CoreOp::Eq;
       auto* left = member(n, "left"); auto* right = member(n, "right");
-      if (comparison) {
-        input = {};
-        auto* named = !literal(left) ? left : !literal(right) ? right : nullptr;
-        if (named) { auto* value = operand(named); if (value) input = core_node(value).type; }
-        else if (tokens(left) == "true" || tokens(left) == "false") input = {CoreScalar::Bool};
+      if (comparison || !expected) {
+        // Concrete operand types constrain literal peers. Two bare numeric
+        // literals default to i32; there is no widening between typed values.
+        auto* anchor = !literal(left) ? left : !literal(right) ? right : left;
+        auto* known = operand(anchor);
+        if (!program.error.empty() || !known) return n;
+        input = core_node(known).type;
       }
       value.left = operand(left, &input);
       if (!program.error.empty()) return n;
@@ -332,7 +365,7 @@ struct Compiler {
       } else if (!integer(input) && value.op != CoreOp::Eq && value.op != CoreOp::Ne) fail(n, "This operation requires integer operands");
     } else { fail(n, "Unsupported foundation expression '" + kind + "'"); return nullptr; }
     if (core_aggregate(core_node(n).type)) fail(n, "Struct values require field access or a pointer; aggregate copies are not implemented");
-    if (core_node(n).type != expected) fail(n, "Expected " + core_type_name(expected) + ", got " + core_type_name(core_node(n).type));
+    if (expected && core_node(n).type != *expected) fail(n, "Expected " + core_type_name(*expected) + ", got " + core_type_name(core_node(n).type));
     return n;
   }
   void header(TowerNode* n) {
@@ -374,12 +407,13 @@ struct Compiler {
     if (!program.error.empty()) return Next;
     auto kind = label(n);
     if (kind == "CoreDeclare") {
-      if (!shape(n, {"name", "type"})) return Next;
-      auto& value = node(n, CoreKind::Declare); value.name = identifier(tokens(member(n, "name"))); value.type = type(member(n, "type"));
+      if (!shape(n, {"name"})) return Next;
+      auto& value = node(n, CoreKind::Declare); value.name = identifier(tokens(member(n, "name")));
       if (value.name.empty() || (!value.global && scopes.back().contains(value.name))) { fail(n, "Missing or duplicate local '" + value.name + "'"); return Next; }
-      if (!value.type.pointers && value.type.scalar == CoreScalar::Void) fail(n, "A local cannot have void type");
-      if (!value.global) { add_local(n); scopes.back()[value.name] = n; }
-      if (auto* initial = member(n, "value")) value.value = expression(initial, value.type);
+      if (!value.global) scopes.back()[value.name] = n;
+      if (!declaration_type(n)) return Next;
+      if (!value.global) add_local(n);
+      if (auto* initial = member(n, "value"); initial && !value.value) value.value = expression(initial, &value.type);
     } else if (kind == "CoreAssign") {
       if (!shape(n, {"target", "value"}) || !shape(member(n, "target"), {"name"})) return Next;
       auto& value = node(n, CoreKind::Assign); auto* target = member(n, "target");
@@ -391,7 +425,7 @@ struct Compiler {
         dest.type = expected; value.target = target;
       }
       if (core_aggregate(expected)) fail(target, "Struct values require field access or a pointer; aggregate copies are not implemented");
-      value.value = expression(member(n, "value"), expected);
+      value.value = expression(member(n, "value"), &expected);
     } else if (kind == "CoreCallStatement") call(member(n, "call"));
     else if (kind == "CoreReturn") {
       auto& value = node(n, CoreKind::Return); auto* returned = member(n, "value");
@@ -448,11 +482,15 @@ CoreProgram compile(const char* source, size_t prefix, unsigned width) {
   // Module declarations bind across the entire file. Initializers and other
   // effects still execute in source order; forward lookup does not initialize.
   for (auto* n : statements) if (compiler.program.error.empty() && label(n) == "CoreDeclare") {
-    if (!compiler.shape(n, {"name", "type"})) break;
+    if (!compiler.shape(n, {"name"})) break;
     auto& value = compiler.node(n, CoreKind::Declare); value.global = true;
-    value.name = identifier(tokens(member(n, "name"))); value.type = compiler.type(member(n, "type"));
+    value.name = identifier(tokens(member(n, "name")));
     if (!compiler.globals.emplace(value.name, n).second) { compiler.fail(n, "Duplicate module variable '" + value.name + "'"); break; }
-    if (!value.type.pointers && value.type.scalar == CoreScalar::Void) { compiler.fail(n, "A module variable cannot have void type"); break; }
+  }
+  // Resolve initializer type dependencies after all module names are known.
+  // Allocate in source order even when inference visits a later declaration.
+  for (auto* n : statements) if (compiler.program.error.empty() && label(n) == "CoreDeclare") {
+    if (!compiler.declaration_type(n)) break;
     compiler.add_local(n);
   }
   for (auto*& n : statements) if (label(n) != "CoreFunction" && label(n) != "CoreExternal" && label(n) != "CoreExport" && label(n) != "CoreStruct") {

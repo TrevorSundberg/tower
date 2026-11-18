@@ -19,7 +19,7 @@ test.beforeEach(async ({page}) => {
 test('modules show their source and grammar tree without executable instruction output', async ({page,request}, info) => {
   const bedrock = await (await request.get('/bedrock.tower')).text();
   expect(await page.locator('#example-kind option').allTextContents()).toEqual([
-    'Bedrock', 'Foundation', 'ForEach', 'Execution', 'Increment', 'Functions', 'Structs', 'Memory', 'Replacements', 'Token rules'
+    'Bedrock', 'Foundation', 'ForEach', 'Execution', 'Increment', 'Inference', 'Functions', 'Structs', 'Memory', 'Replacements', 'Token rules'
   ]);
   await expect(page.locator('#example-kind optgroup')).toHaveCount(0);
   await page.locator('#example-kind').selectOption('bedrock.tower');

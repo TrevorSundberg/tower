@@ -11,7 +11,7 @@ await mkdir(output, {recursive:true});
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 const report = {url:base.href, assets:[], browsers:[]};
 const assets=['index.html','app.js','worker.js','execution-worker.js','target-worker.js','style.css',
-  'bedrock.tower','foundation.tower','increment.tower','tower.wasm','tower-llvm.wasm','tower-llvm.wasm.gz','tower-cross.wasm.gz','capabilities.json',
+  'bedrock.tower','foundation.tower','increment.tower','inference.tower','tower.wasm','tower-llvm.wasm','tower-llvm.wasm.gz','tower-cross.wasm.gz','capabilities.json',
   ...new Set(Object.values(targets).flatMap(t=>t.pointerBytes===4?[]:[t.triple+'-runtime.o',...t.inputs]).map(name=>'targets/'+name))];
 for (const name of assets) {
   const response = await fetch(new URL(name, base));
@@ -122,6 +122,13 @@ try {
     await expect(page.locator('#llvm-after')).not.toContainText('post_increment');
     await expect(page.locator('.tw-inline-error')).toHaveCount(0);
     await page.screenshot({path:new URL(name+'-increment.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
+    await page.locator('#example-kind').selectOption('inference.tower');
+    await expect(page.locator('#execution-status')).toContainText('backends match',{timeout:60000});
+    await expect(page.locator('#execution-output')).toHaveText('42\ntrue\n43\n42\n');
+    await expect(page.locator('#llvm-output')).toHaveText('42\ntrue\n43\n42\n');
+    await expect(page.locator('#core-instructions')).toContainText('var answer: i32 = add_one(41);');
+    await expect(page.locator('#core-instructions')).toContainText('var pointer: i32* = &answer;');
+    await page.screenshot({path:new URL(name+'-inference.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
     await page.locator('#example-kind').selectOption('execution.tower');
     await expect(page.locator('#execution-status')).toContainText('backends match',{timeout:60000});
     await page.reload();

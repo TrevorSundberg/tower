@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {loadTower,runToEnd} from '../src/tower-host.mjs';
 const read=name=>readFile(new URL('../../'+name,import.meta.url));
+const foundation=(await read('scaffolding/foundation.tower')).toString();
 const tower=await loadTower(await read('build/browser-wasi/tower.wasm'),undefined,
-  (await read('scaffolding/foundation.tower')).toString(),undefined,(await read('scaffolding/bedrock.tower')).toString());
+  foundation,undefined,(await read('scaffolding/bedrock.tower')).toString());
 function parse(source){const h=tower.create(source);try{return runToEnd(tower,h).end;}finally{tower.destroy(h);}}
 function error(source){const end=parse(source);assert.equal(end.status,'error');assert.doesNotMatch(end.error,/\bat byte\b|\bstate\s*\(|\bstate \d|shift to state|repeat\(\d|capture\(\d/);return end;}
 
@@ -13,9 +14,16 @@ test('missing delimiters are inferred from the active grammar and point at the i
   ['print(42)\nvar answer: i32;',"';'",9],
   ['print(42)',"';'",9],
   ['print(42;',"')'",8],
-  ['var answer i32;',"':'",10],
   ['print(42) // comment\nvar answer: i32;',"';'",9],
  ]) {const result=error(source);assert.ok(result.error.startsWith('Missing '+literal),result.error);assert.equal(result.errorOffset,offset);assert.equal(result.errorLength,0);assert.match(result.error,/foundation\.tower, line \d+, column \d+/);}
+});
+
+test('an omitted declaration separator reports both type and initializer alternatives',()=>{
+ const result=error('var answer i32;');
+ assert.match(result.error,/Expected '=' or ':'/);
+ assert.doesNotMatch(result.error,/Missing/);
+ assert.equal(parse('var answer: i32;').status,'done');
+ assert.equal(parse('var answer = i32;').status,'done','i32 is an ordinary name, not a reserved type keyword');
 });
 
 test('line breaks suggest a unique construct boundary without claiming other repairs are impossible',()=>{
@@ -104,7 +112,8 @@ test('statement boundaries never cite an unstarted call or other possible next r
  assert.doesNotMatch(nullable.error,/In rule Future/,'empty prefixes do not mean a rule consumed source');
  const partial=error('print(42)\nvar answer: i32;');
  assert.match(partial.error,/In rule CoreCallStatement/);
- assert.match(partial.error,/foundation\.tower, line 39,/);
+ const line=foundation.split('\n').findIndex(text=>text.startsWith('parse CoreCallStatement ='))+1;
+ assert.ok(partial.error.includes('foundation.tower, line '+line+','),partial.error);
  assert.doesNotMatch(partial.error,/Required by/);
  assert.equal(parse("parse Statement |= ';'; var x: i32;;").status,'done','a user rule may permit empty statements');
 });

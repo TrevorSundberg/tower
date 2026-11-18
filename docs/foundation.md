@@ -324,11 +324,32 @@ Their metadata is inspectable through the native/host API; Tower-language
 reflection operations remain future work.
 Initializers stay instruction-like; this does not introduce precedence.
 
-Future local inference allows `var a = 5;`: an omitted annotation infers the type
-from the initializer. An explicit `var a: u32 = 5;` supplies the expected type.
-Define numeric literal defaults/ranges explicitly (i32 is a candidate default),
-and diagnose declarations without either an annotation or an inferable initializer.
-This is semantic analysis, not a parser dependency on inferred types.
+Initializer inference is implemented for local and module variables:
+`var a = 5;` infers i32; `var a: u32 = 5;` supplies an explicit expected type.
+The grammar stays independent of name/type lookup. Without an annotation, an
+initializer is required. Parameters and return types remain explicitly typed.
+
+Bare integer literals default to i32 and must fit its signed range. In a binary
+operation, a typed operand constrains its literal peer; two typed operands must
+agree, with no implicit widening or signed/unsigned conversion. Comparisons
+produce bool. Calls supply their declared result type; address-taking and loads
+preserve the pointed-to type. Strings infer u8*, null defaults to void*, and
+sizeof/alignof results infer target-sized usize. Explicit annotations and the
+existing literal range checks still apply. Aggregate copies remain unsupported.
+
+Module names bind before initializer type dependencies are resolved. Forward
+references are supported; initializer cycles without a known type are diagnosed
+with their name chain and can be broken with an explicit annotation. This does
+not initialize forward storage or reorder effects: initializers execute in source
+order, and raw uninitialized reads remain undefined. Locals retain lexical scope;
+an inferred declaration referring to itself is a type cycle, including when it
+shadows an outer name. Later assignments do not determine an earlier declaration's
+type. Inference is initializer-based, not a general bidirectional constraint solver.
+
+Checked types attach to the existing declaration/operation nodes. Temporary
+dependency state is an analysis index only. Source formatting retains omitted
+annotations; canonical Foundation output spells every checked type explicitly,
+preserving source-order storage allocation and bindings through round trips.
 
 Parse the name after `:` as a type reference and resolve it during semantic
 analysis. Built-in `i32` and a user-defined `Blah` should both resolve to reflected
@@ -515,7 +536,7 @@ See [building and linking](../playground/README.md#native-output-and-browser-cro
 - [x] Change declarations to `var name: Type` with optional simple initializer.
 - [x] Change parameters to `name: Type` and function returns from `->` to `:`.
 - [x] Use `name(arguments)` calls without a `call` keyword in grammar and formatter.
-- [ ] Add `var name = initializer` local inference, with specified literal defaults,
+- [x] Add `var name = initializer` local/module inference, with specified literal defaults,
   explicit annotation constraints, overflow diagnostics and no silent type mixing.
 - [x] Parse type names as identifiers and resolve them in the semantic type registry.
 - [x] Register foundation scalars and user structs in one type-object registry;

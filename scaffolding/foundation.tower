@@ -15,7 +15,8 @@ parse CoreLoad = '*' $name:CoreLocation;
 parse CoreValue = CoreOperand | CoreBinary;
 parse CoreTarget = $name:CoreLocation | '*' $name:CoreLocation;
 parse CoreDeclare = 'var' $name:Identifier ':' $type:CoreType ';'
-                   | 'var' $name:Identifier ':' $type:CoreType '=' $value:CoreValue ';';
+                   | 'var' $name:Identifier ':' $type:CoreType '=' $value:CoreValue ';'
+                   | 'var' $name:Identifier '=' $value:CoreValue ';';
 parse CoreAssign = $target:CoreTarget '=' $value:CoreValue ';';
 parse Statement = CoreDeclare | CoreAssign;
 parse CoreBlock = '{' Statement* '}';

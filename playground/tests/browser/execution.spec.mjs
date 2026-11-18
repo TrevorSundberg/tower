@@ -29,6 +29,24 @@ test('executes replacements and displays typed core instructions', async ({ page
   expect(errors).toEqual([]);
 });
 
+test('initializer inference shows explicit checked types and clear dependency errors', async ({page},info) => {
+  await page.locator('#example-kind').selectOption('inference.tower');
+  await expect(page.locator('#execution-status')).toHaveText('Finished \u00b7 backends match',{timeout:30000});
+  await expect(page.locator('#execution-output')).toHaveText('42\ntrue\n43\n42\n');
+  await expect(page.locator('#llvm-output')).toHaveText('42\ntrue\n43\n42\n');
+  await expect(page.getByRole('textbox',{name:'Tower source'})).toContainText('var answer = add_one(41);');
+  await expect(page.locator('#core-instructions')).toContainText('var answer: i32 = add_one(41);');
+  await expect(page.locator('#core-instructions')).toContainText('var pointer: i32* = &answer;');
+  await page.screenshot({path:`../build/inference-${info.project.name}.png`});
+  await setSource(page,'var a = b;\nvar b = a;');
+  await expect(page.locator('.tw-inline-error-message')).toContainText('initializer dependency cycle a -> b -> a');
+  await page.screenshot({path:`../build/inference-cycle-${info.project.name}.png`});
+  await setSource(page,'var answer = 42; print(answer);');
+  await expect(page.locator('#execution-status')).toHaveText('Finished \u00b7 backends match');
+  await expect(page.locator('.tw-inline-error')).toHaveCount(0);
+  await expect(page.locator('#execution-output')).toHaveText('42\n');
+});
+
 test('replacement errors explain the required syntax inline and recover after correction', async ({ page }, info) => {
   const source = "parse Statement |= 'fart' $name:Identifier ';'\n    => replace { $name - $name; };\n\nvar value: i32 = 5;\nfart value;\nprint(value);";
   await setSource(page, source);

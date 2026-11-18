@@ -6905,3 +6905,85 @@ Logs/artifacts: build/core-location-online.log, build/core-location-pages.log,
 build/deployment-verification/. Old saved custom rules require the new name;
 refresh and Restore loads the revised bundled examples. Unrelated changes remain
 unstaged, including all pre-existing journal work and todo.txt.
+
+### 2026-11-17 - Initializer type inference implemented
+
+The user requested the next item from the project list. Reviewed the self-hosting
+sequence, completed storage/linking work, Foundation checklist and recent journal.
+Selected the explicitly listed `var name = initializer` feature as a bounded
+Foundation improvement. This does not port a compiler algorithm out of C++;
+the earlier boundary to discuss that migration remains intact. Module imports,
+public node/reflection APIs and the Tower-written store remain later work.
+
+Implemented one additional CoreDeclare alternative in foundation.tower. Type
+checking enriches the same declaration and operation entities used by both
+backends. An annotation supplies the expected type; without one, the initializer
+supplies it. Bare integers default to signed i32 and retain range diagnostics.
+Typed binary operands constrain literal peers, without widening incompatible
+typed operands. Comparisons yield bool; calls, addresses, loads, indexing and
+built-ins supply their ordinary result types. String/null defaults are u8*/void*;
+sizeof/alignof use explicit target-sized usize. Parameters and returns remain
+explicit. There is no added expression precedence or aggregate-copy behavior.
+
+Module names register first, then initializer type dependencies resolve. A
+temporary visiting/resolved index detects cycles and reports their name chain
+with an annotation suggestion. Inference is bounded (128 active declaration
+dependencies, alongside the existing expression limit). It neither executes
+initializers nor uses later assignments to solve types. Storage allocation and
+effects keep source order even if a dependency is checked early. Locals retain
+lexical scope and their existing self-shadowing rule; self-referential inferred
+locals are diagnosed. Raw uninitialized reads remain outside the defined contract.
+
+Canonical Foundation output always spells checked types; source formatting keeps
+omitted annotations and comments. Native structural round trips check bindings
+and storage order, in addition to result comparisons. Inferred declaration types
+carry the selected pointer width even when their scalar initializer's type does
+not otherwise depend on width: taking its address must work on both 32/64-bit
+targets. Dedicated checks cover inferred integer/bool locations and their pointers.
+
+Added an Inference playground example with matching output 42, true, 43, 42.
+Updated Foundation docs/checklist and playground docs. No todo.txt edits. Only
+this task's Foundation doc changes are staged, preserving concurrent notes.
+
+Trials/corrections: an early test expected a double-quoted canonical string;
+the shared formatter correctly emits single quotes, so the assertion was fixed.
+The first full suite passed 160/162: an old diagnostic assumed a missing colon
+was unique in `var answer i32;`, and another fixed a Foundation source line number.
+With inference, both ':' and '=' are syntactically valid repairs, since i32 is an
+ordinary identifier. Tests now verify both alternatives and derive the definition
+line from the source. Parser heuristics were not weakened. The browser suite's
+only failures were its exact dropdown list omitting the new Inference option;
+the expected list was updated and both affected cases rerun successfully.
+
+Validation/environment: C:\Sandbox\tower, Windows / WSL Orchestral-Revng,
+WASI SDK 34, existing optimized LLVM/LLD Wasm and native sanitizer configurations.
+- Rebuilt `build/browser-wasi` and both LLVM reactors via
+  `TOWER_BROWSER_CROSS=ON TOWER_BUILD_JOBS=4 bash playground/scripts/build-llvm.sh`.
+- `node --test playground/tests/*.test.mjs`: final 163/163 pass. Tests directly
+  compile inferred source and canonical text with LLVM, compare execution,
+  check all 18 bundled canonical files, invalid input before any effects,
+  forward inference, cycle limits, mixed widths, replacements and literal limits.
+- `bash playground/scripts/test-native-core.sh`: 2/2 ASan/UBSan suites pass,
+  including structural round trips and released-node accounting.
+- `npm run build --prefix playground`; full Playwright run 94/96 passed initially,
+  then corrected dropdown assertions passed 2/2 on desktop/mobile. All 96 cases
+  are verified. New tests cover inference output, canonical types, inline cycles
+  and recovery. Inspected build/inference-desktop.png and inference-cycle-mobile.png.
+- Cross-target suite builds/repeats all supported targets. The generated
+  build/cross/windows.exe and linux.elf (via WSL) both ran and printed
+  5, 84, 42, 8, 41, 42, exercising inferred locals and target-sized values.
+- Logs: build/inference-{llvm,native,tests-final,browser}.log; focused browser
+  rerun artifacts in build/inference-browser-final/.
+
+Timing trial: `node build/profile-inference.mjs`, 8 warmups + 24 samples, median,
+previous Pages compiler versus new compiler, each with its own Foundation.
+Tiny compilation 4.512 -> 4.913 ms, 5,000-call program compilation 4.863 -> 5.297 ms,
+pure-loop compilation 4.662 -> 5.097 ms. Execution samples respectively
+0.030 -> 0.031 ms, 5.696 -> 6.009 ms, and 2.208 -> 2.337 ms. This is a local
+sequential trial, not a controlled cross-platform benchmark or proof of zero cost.
+No interpreter scheduling/runtime changes were made. Recorded at
+build/inference-runtime-profile.json and build/inference-profile.log.
+
+Publication and live verification follow. This is initializer-based inference,
+not a general bidirectional constraint solver, inferred function signatures or
+generic specialization. Those require their own semantic and diagnostic design.

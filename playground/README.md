@@ -299,7 +299,15 @@ Dispatch canonicalization and incremental compilation remain future work.
 Current spelling is `var answer: i32 = add(20, 22);` and
 `fn add(a: i32, b: i32): i32 { ... }`; void calls use `f();`.
 Types are parsed as ordinary identifiers and checked by the semantic registry.
-Local inference and language-level reflection remain follow-up work.
+An initializer can supply the variable type: `var answer = add(20, 22);`.
+Choose **Inference** to try calls, comparisons and raw addresses with inferred
+types. Canonical Foundation output writes the checked types explicitly.
+Bare integer literals default to i32; typed operands constrain literal peers,
+and mixed typed operands still require explicit conversions. Module variables
+can infer through forward references, with dependency cycles diagnosed before
+execution; initialization order is unchanged. Local scope remains lexical.
+Inference uses the initializer only; parameters and return types remain explicit.
+Language-level reflection remains follow-up work.
 Canonical output uses backtick-quoted identifiers when an extended lexer allows
 names such as `player-name` or names colliding with foundation keywords. Escapes
 preserve backticks, backslashes, tabs and newlines; semantic names remain unchanged.

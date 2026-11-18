@@ -8,7 +8,7 @@ let bytes;
 try { bytes = await read('build/browser-wasi-llvm/tower-cross.wasm'); } catch (error) { if (error.code !== 'ENOENT') throw error; }
 const foundation = (await read('scaffolding/foundation.tower')).toString();
 const compiler = bytes ? await loadLLVM(bytes, console.error, foundation) : null;
-const source = (await read('scaffolding/examples/memory.tower')).toString() + '\nvar width: usize = sizeof(void*); print(width); fn increment(p: i32*): i32 { var old: i32 = *p; *p = old + 1; return old; } var value: i32 = 41; print(increment(&value)); print(value);';
+const source = (await read('scaffolding/examples/memory.tower')).toString() + '\nvar width = sizeof(void*); print(width); fn increment(p: i32*): i32 { var old = *p; *p = old + 1; return old; } var value = 41; print(increment(&value)); print(value);';
 await mkdir(new URL('../../build/cross', import.meta.url), {recursive:true});
 
 for (const [key,target] of Object.entries(targets)) test('browser cross compiler: ' + target.label, {skip: !compiler, timeout:120000}, async () => {

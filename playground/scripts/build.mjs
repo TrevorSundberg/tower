@@ -20,7 +20,7 @@ await copyFile(path.join(root, '../scaffolding/bedrock.tower'), path.join(dist, 
 await copyFile(path.join(root, '../scaffolding/examples/tokens.tower'), path.join(dist, 'tokens.tower'));
 await copyFile(path.join(root, '../scaffolding/examples/replacements.tower'), path.join(dist, 'replacements.tower'));
 // All examples import the single shared foundation module.
-for (const name of ['execution', 'increment', 'functions', 'structs', 'memory']) await writeFile(path.join(dist, name + '.tower'),
+for (const name of ['execution', 'increment', 'inference', 'functions', 'structs', 'memory']) await writeFile(path.join(dist, name + '.tower'),
   await readFile(path.join(root, '../scaffolding/examples/' + name + '.tower'), 'utf8'));
 let llvm = false;
 try {

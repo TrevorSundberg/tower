@@ -69,6 +69,10 @@ void core_tests() {
   assert(module.error.empty() && module.output == "42\n73\n");
   auto shadow = execute("var i32: i32 = 4; { var i32: i32 = 9; print(i32); } print(i32);");
   assert(shadow.error.empty() && shadow.output == "9\n4\n");
+  auto inferred = execute("later = 40; var early = later + 2; var later = seed(); var p = &early; print(*p); print(later); fn seed(): i32 { var result = 7; return result; }");
+  assert(inferred.error.empty() && inferred.output == "42\n7\n");
+  auto inference_cycle = execute("print(99); var a = b; var b = a;");
+  assert(inference_cycle.error.find("initializer dependency cycle a -> b -> a") != std::string::npos && inference_cycle.steps == 0 && inference_cycle.output.empty());
   auto unknown = execute("var x: Unknown;");
   assert(unknown.error.find("Unknown") != std::string::npos);
   auto pair = execute("struct Pair { x: i32; y: i32; } var p: Pair; p.x = 20; p.y = 22; var ref: Pair* = &p; add(ref); print(p.x); fn add(p: Pair*): void { p.x = p.x + p.y; }");
@@ -99,12 +103,19 @@ void core_tests() {
     assert(target.error.empty()); auto& p = core_node(target.types.back());
     assert(p.size == width * 2 && p.alignment == width && core_node(p.items.back()).byte_offset == width);
     CoreMachine m(std::move(target)); m.step(10000); assert(m.output == (width == 4 ? "8\n" : "16\n"));
+    auto inferred_target = core_compile("var value = 41; var p = &value; var flag = value == 41; var bp = &flag; var address = bits(usize, p); *p = 42; *bp = false; print(value); print(flag);", width);
+    assert(inferred_target.error.empty());
+    for (auto* local : core_node(inferred_target.root).locals) assert(core_node(local).type.pointer_bytes == width);
+    auto explicit_target = core_compile_foundation(core_format(inferred_target).source.c_str(), width);
+    assert(explicit_target.error.empty() && structure(inferred_target.root) == structure(explicit_target.root));
+    CoreMachine inferred_machine(std::move(explicit_target)); inferred_machine.step(10000);
+    assert(inferred_machine.error.empty() && inferred_machine.output == "42\nfalse\n");
   }
   auto recursive_type = execute("struct A { a: A; }");
   assert(recursive_type.error.find("Recursive by-value") != std::string::npos && recursive_type.steps == 0);
   auto malformed = execute("parse CoreIf = 'broken'; broken");
   assert(malformed.error.find("missing capture") != std::string::npos && malformed.steps == 0);
-  for (auto* original : {&sum, &alias, &loop, &recursive, &shadow, &pair, &layout, &raw, &module, &composed}) {
+  for (auto* original : {&sum, &alias, &loop, &recursive, &shadow, &pair, &layout, &raw, &module, &composed, &inferred}) {
     const auto formatted = core_format(original->program);
     assert(!formatted.source.empty());
     auto decoded = core_compile_foundation(formatted.source.c_str());
