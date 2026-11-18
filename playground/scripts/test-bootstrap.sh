@@ -36,6 +36,12 @@ if sys.argv[1] == 'parser-nodes': allowed |= {
     'entity_create_related', 'entity_attach', 'entity_child_at', 'entity_child_count', 'entity_parent', 'entity_release', 'entity_retain',
     'compiler_parse_match', 'parse_forest_leaf', 'parse_forest_join',
     'parse_forest_attach', 'parse_forest_take', 'bytes_assign_text', 'bytes_append'}
+if sys.argv[1] == 'parser-nodes': allowed |= {
+    'format_foundation_kind', 'format_builtin', 'format_operator', 'format_scalar_name',
+    'format_array', 'format_record', 'format_boolean', 'format_signed', 'format_mask', 'format_sign'}
+if sys.argv[1] == 'parser-nodes': allowed |= {
+    'format_is_' + kind for kind in
+    'Program Function Parameter Declare Assign Operand Binary Address Load Convert Bits Call Block If Loop Break Continue Print Return Type FieldDeclaration Field Index String SizeOf AlignOf Allocate Reallocate Free Copy Fill'.split()}
 symbols = {line.split()[-1].lstrip('_') for line in pathlib.Path(sys.argv[2]).read_text().splitlines() if line.strip()}
 assert symbols <= allowed, f'Unexpected runtime dependencies: {symbols - allowed}'
 PY
