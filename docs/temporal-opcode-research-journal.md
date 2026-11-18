@@ -6790,3 +6790,20 @@ bindings, richer surface arithmetic and additional addressable-place syntax
 remain future work. Existing edited documents are preserved; Restore loads the
 updated Increment example. Publication and online verification follow local
 checks. Unrelated AGENTS.md/foundation/journal edits and todo.txt stay unstaged.
+
+### 2026-11-17 — Composable increments published and verified online
+
+- Source pushed as `ede26bb`; Pages artifacts pushed as `f0b89ef`.
+- GitHub Pages run `44218065299` succeeded:
+  https://github.com/TrevorSundberg/tower/actions/runs/44218065299 .
+- Final focused desktop/mobile tests passed after the newline-suggestion change,
+  including a caret for `Possible missing ';'`, normal increment statements,
+  print arguments, and infinite nested-call cancellation/recovery.
+- Local and online deployment verification both passed all 21 asset hashes and
+  desktop/mobile flows. The published Increment example compiles to
+  `post_increment(&value)` and both executions print 5, 6, 7, 7, 9. Editable
+  grammar, saved-document recovery, native downloads and equal columns passed.
+- Artifacts: build/increment-{final-browser,final-local,online-deployment,
+  pages-workflow}.log and build/deployment-verification/. No unrelated working
+  changes or todo.txt were staged. Refresh and Restore are needed to replace a
+  previously edited Increment document with the revised bundled source.
