@@ -1,0 +1,345 @@
+// LR and proven finite-sequence control over integer symbols. Frames borrow
+// forest handles; the shared entity forest retains ownership of syntax nodes.
+// A pull protocol keeps stream callbacks outside the deterministic control loop.
+struct LRFrame {
+    state: usize;
+    first: usize;
+    last: usize;
+    start: usize;
+    length: usize;
+}
+
+struct LRStep {
+    rule: usize;
+    next: usize;
+    pop: usize;
+    start: usize;
+    end: usize;
+    id: u32;
+    kind: u32;
+}
+
+struct LRWork {
+    actions: usize;
+    shifts: usize;
+    reductions: usize;
+    popped: usize;
+}
+
+struct LRParser {
+    runtime: LRRuntime*;
+    stack: vector(LRFrame);
+    work: LRWork;
+    prefix: bool;
+    shifted: bool;
+    finishing: bool;
+    consumed: usize;
+    sequence: bool;
+    evidence: vector(u8);
+    sequence_first: usize;
+    sequence_last: usize;
+    sequence_start: usize;
+    sequence_end: usize;
+}
+
+export fn lr_parser_destroy(value: LRParser*): void {
+    var missing = value == null;
+    if missing {
+        return;
+    }
+    vector_dispose(LRFrame, &value.stack);
+    vector_dispose(u8, &value.evidence);
+    free(value);
+}
+
+export fn lr_parser_create(runtime: LRRuntime*, prefix: bool, specialize: bool): LRParser* {
+    var value = alloc(LRParser, 1);
+    var missing = value == null;
+    if missing {
+        return null;
+    }
+    fill(value, 0, sizeof(LRParser));
+    value.runtime = runtime;
+    value.prefix = prefix;
+    if specialize {
+        value.sequence = runtime.sequence != null;
+    }
+    value.sequence_first = lr_none();
+    value.sequence_last = lr_none();
+    var frame: LRFrame;
+    fill(&frame, 0, sizeof(LRFrame));
+    frame.first = lr_none();
+    frame.last = lr_none();
+    var ok = lr_append(LRFrame, &value.stack, &frame);
+    if ok {
+        return value;
+    }
+    lr_parser_destroy(value);
+    return null;
+}
+
+// Statuses are the private host pull protocol, not Foundation instructions:
+// input, shift, reduce, accept, unexpected, empty-prefix, DFA shift/reduce, invalid.
+fn lr_parser_sequence_step(value: LRParser*, ready: bool, id: u32, error: bool, result: LRStep*): u32 {
+    var runtime = value.runtime;
+    var position = value.evidence.length;
+    var rule = &runtime.rules.data[runtime.sequence_rule];
+    var complete = position == rule.count;
+    var needs_input = true;
+    if complete {
+        if value.prefix {
+            needs_input = false;
+        }
+    }
+    if needs_input {
+        if ready {} else {
+            return 0;
+        }
+    }
+    value.work.actions = value.work.actions + 1;
+    result.rule = runtime.sequence_rule;
+    if complete {
+        if needs_input {
+            var trailing = id != 4294967294;
+            if trailing {
+                return 4;
+            }
+            if error {
+                return 4;
+            }
+        }
+        result.next = lr_runtime_goto(runtime, 0, rule.owner);
+        result.start = value.sequence_start;
+        result.end = value.sequence_end;
+        return 7;
+    }
+    if error {
+        return 4;
+    }
+    var accepted = symbol_sequence_accepts(runtime.sequence, position, id);
+    if accepted {} else {
+        return 4;
+    }
+    var next = position + 1;
+    result.next = runtime.sequence_states.data[next];
+    result.pop = position;
+    return 6;
+}
+
+fn lr_parser_decide(value: LRParser*, ready: bool, id: u32, error: bool, result: LRStep*): u32 {
+    if value.sequence {
+        return lr_parser_sequence_step(value, ready, id, error, result);
+    }
+    var top = value.stack.length - 1;
+    var state = value.stack.data[top].state;
+    var action: LRAction;
+    action.rule = lr_none();
+    action.state = lr_none();
+    var use_default = false;
+    if value.prefix {
+        if ready {} else {
+            action.rule = lr_runtime_default(value.runtime, state);
+            use_default = action.rule != lr_none();
+        }
+    }
+    var found = use_default;
+    if use_default {
+        value.work.actions = value.work.actions + 1;
+    } else {
+        if ready {} else {
+            if value.finishing {} else {
+                return 0;
+            }
+        }
+        if value.finishing {
+            id = 4294967294;
+            error = false;
+        }
+        if error {} else {
+            value.work.actions = value.work.actions + 1;
+            found = lr_runtime_action(value.runtime, state, id, &action);
+        }
+        if found {} else {
+            if value.prefix {
+                if value.shifted {
+                    if value.finishing {} else {
+                        value.work.actions = value.work.actions + 1;
+                        found = lr_runtime_action(value.runtime, state, 4294967294, &action);
+                        if found {
+                            value.finishing = true;
+                            id = 4294967294;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if found {} else {
+        return 4;
+    }
+    result.id = id;
+    result.rule = action.rule;
+    result.next = action.state;
+    var shift = action.state != lr_none();
+    if shift {
+        return 1;
+    }
+    var accept = action.rule == 0;
+    if accept {
+        if value.prefix {
+            if value.shifted {} else {
+                return 5;
+            }
+        }
+        return 3;
+    }
+    var rule = &value.runtime.rules.data[action.rule];
+    var invalid = rule.count >= value.stack.length;
+    if invalid {
+        return 8;
+    }
+    result.pop = rule.count;
+    if ready {} else {
+        result.start = value.consumed;
+    }
+    if value.finishing {
+        result.start = value.consumed;
+    }
+    result.end = result.start;
+    var begin = value.stack.length - rule.count;
+    var nonempty = rule.count != 0;
+    if nonempty {
+        result.start = value.stack.data[begin].start;
+        result.end = result.start;
+        var index = begin;
+        loop {
+            var done = index == value.stack.length;
+            if done {
+                break;
+            }
+            var frame = &value.stack.data[index];
+            var end = frame.start + frame.length;
+            var larger = end > result.end;
+            if larger {
+                result.end = end;
+            }
+            index = index + 1;
+        }
+    }
+    var previous = begin - 1;
+    result.next = lr_runtime_goto(value.runtime, value.stack.data[previous].state, rule.owner);
+    invalid = result.next == lr_none();
+    if invalid {
+        return 8;
+    }
+    return 2;
+}
+
+export fn lr_parser_step(value: LRParser*, ready: bool, id: u32, error: bool, start: usize, length: usize, result: LRStep*): u32 {
+    fill(result, 0, sizeof(LRStep));
+    result.rule = lr_none();
+    result.next = lr_none();
+    result.id = id;
+    result.start = start;
+    result.end = start + length;
+    result.kind = lr_parser_decide(value, ready, id, error, result);
+    return result.kind;
+}
+
+export fn lr_parser_commit(value: LRParser*, step: LRStep*, first: usize, last: usize): bool {
+    var sequence_shift = step.kind == 6;
+    if sequence_shift {
+        var evidence = step.end != step.start;
+        var byte = convert(u8, evidence);
+        var ok = vector_push(u8, &value.evidence, byte);
+        if ok {} else {
+            return false;
+        }
+        var initial = value.evidence.length == 1;
+        if initial {
+            value.sequence_start = step.start;
+        }
+        var larger = step.end > value.sequence_end;
+        if larger {
+            value.sequence_end = step.end;
+        }
+        value.sequence_first = first;
+        value.sequence_last = last;
+        value.consumed = step.end;
+        value.shifted = true;
+        value.work.shifts = value.work.shifts + 1;
+        return true;
+    }
+    var length = value.stack.length - step.pop;
+    var count = length + 1;
+    var ok = vector_reserve(LRFrame, &value.stack, count);
+    if ok {} else {
+        return false;
+    }
+    var frame = &value.stack.data[length];
+    frame.state = step.next;
+    frame.first = first;
+    frame.last = last;
+    frame.start = step.start;
+    frame.length = step.end - step.start;
+    value.stack.length = count;
+    var shift = step.kind == 1;
+    if shift {
+        value.consumed = step.end;
+        value.shifted = true;
+        value.work.shifts = value.work.shifts + 1;
+    } else {
+        value.work.reductions = value.work.reductions + 1;
+        value.work.popped = value.work.popped + step.pop;
+        value.sequence = false;
+    }
+    return true;
+}
+
+export fn lr_parser_frame_count(value: LRParser*): usize {
+    if value.sequence {
+        var count = value.evidence.length + 1;
+        return count;
+    }
+    return value.stack.length;
+}
+
+export fn lr_parser_frame(value: LRParser*, index: usize, result: LRFrame*): void {
+    if value.sequence {
+        fill(result, 0, sizeof(LRFrame));
+        result.first = lr_none();
+        result.last = lr_none();
+        result.state = value.runtime.sequence_states.data[index];
+        var nonzero = index != 0;
+        if nonzero {
+            var previous = index - 1;
+            result.length = convert(usize, value.evidence.data[previous]);
+        }
+    } else {
+        copy(result, &value.stack.data[index], sizeof(LRFrame));
+    }
+}
+
+export fn lr_parser_frames(value: LRParser*): LRFrame* {
+    return value.stack.data;
+}
+
+export fn lr_parser_sequence_forest(value: LRParser*, result: LRFrame*): void {
+    fill(result, 0, sizeof(LRFrame));
+    result.first = value.sequence_first;
+    result.last = value.sequence_last;
+    result.start = value.sequence_start;
+    result.length = value.sequence_end - value.sequence_start;
+}
+
+export fn lr_parser_consumed(value: LRParser*): usize {
+    return value.consumed;
+}
+
+export fn lr_parser_shifted(value: LRParser*): bool {
+    return value.shifted;
+}
+
+export fn lr_parser_work(value: LRParser*, result: LRWork*): void {
+    copy(result, &value.work, sizeof(LRWork));
+}

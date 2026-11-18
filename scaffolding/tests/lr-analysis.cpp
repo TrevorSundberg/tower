@@ -47,12 +47,58 @@ bool reference_lr_runtime_action(LRRuntime*, size_t, uint32_t, LRAction*);
 size_t reference_lr_runtime_goto_count(LRRuntime*, size_t);
 const LRGoto* reference_lr_runtime_goto_data(LRRuntime*, size_t);
 size_t reference_lr_runtime_goto(LRRuntime*, size_t, size_t);
+void reference_lr_runtime_specialize(LRRuntime*, LRStates*);
+size_t reference_lr_runtime_sequence(LRRuntime*);
+LRParser* reference_lr_parser_create(LRRuntime*, bool, bool);
+void reference_lr_parser_destroy(LRParser*);
+uint32_t reference_lr_parser_step(LRParser*, bool, uint32_t, bool, size_t, size_t, LRStep*);
+bool reference_lr_parser_commit(LRParser*, const LRStep*, size_t, size_t);
+size_t reference_lr_parser_frame_count(LRParser*);
+void reference_lr_parser_frame(LRParser*, size_t, LRFrame*);
+void reference_lr_parser_sequence_forest(LRParser*, LRFrame*);
+size_t reference_lr_parser_consumed(LRParser*);
+bool reference_lr_parser_shifted(LRParser*);
+void reference_lr_parser_work(LRParser*, LRWork*);
 size_t tower_test_buffer_count();
 void tower_test_buffer_fail_after(size_t);
 }
 namespace {
 void compare_action(const LRAction& a, const LRAction& b) {
   assert(a.first==b.first && a.last==b.last && a.rule==b.rule && a.state==b.state);
+}
+void compare_control(LRRuntime* actual, LRRuntime* expected, const std::vector<uint32_t>& tokens,
+    bool prefix, bool specialize, size_t error_at=SIZE_MAX) {
+  auto* a=lr_parser_create(actual,prefix,specialize); auto* b=reference_lr_parser_create(expected,prefix,specialize);
+  assert(a && b);
+  size_t position=0; bool ready=false;
+  for(size_t iteration=0;iteration<512;++iteration) {
+    const auto id=position<tokens.size() ? tokens[position] : 0xfffffffeu;
+    const auto length=position<tokens.size() && position%3 ? 2u : 0u;
+    LRStep x,y;
+    const auto kind=lr_parser_step(a,ready,id,position==error_at,10+position*3,length,&x);
+    assert(kind==reference_lr_parser_step(b,ready,id,position==error_at,10+position*3,length,&y));
+    assert(x.rule==y.rule && x.next==y.next && x.pop==y.pop && x.start==y.start && x.end==y.end && x.id==y.id && x.kind==y.kind);
+    assert(lr_parser_consumed(a)==reference_lr_parser_consumed(b));
+    assert(lr_parser_shifted(a)==reference_lr_parser_shifted(b));
+    LRWork aw,bw; lr_parser_work(a,&aw); reference_lr_parser_work(b,&bw);
+    assert(aw.actions==bw.actions && aw.shifts==bw.shifts && aw.reductions==bw.reductions && aw.popped==bw.popped);
+    const auto count=lr_parser_frame_count(a);
+    assert(count==reference_lr_parser_frame_count(b));
+    for(size_t i=0;i<count;++i) {
+      LRFrame af,bf; lr_parser_frame(a,i,&af); reference_lr_parser_frame(b,i,&bf);
+      assert(af.state==bf.state && af.first==bf.first && af.last==bf.last && af.start==bf.start && af.length==bf.length);
+    }
+    LRFrame af,bf; lr_parser_sequence_forest(a,&af); reference_lr_parser_sequence_forest(b,&bf);
+    assert(af.first==bf.first && af.last==bf.last && af.start==bf.start && af.length==bf.length);
+    if(kind==LR_NEED_INPUT) { assert(!ready); ready=true; continue; }
+    if(kind==LR_SHIFT || kind==LR_SEQUENCE_SHIFT || kind==LR_REDUCE || kind==LR_SEQUENCE_REDUCE) {
+      assert(lr_parser_commit(a,&x,iteration,iteration));
+      assert(reference_lr_parser_commit(b,&y,iteration,iteration));
+      if(kind==LR_SEQUENCE_REDUCE) break;
+      if(kind==LR_SHIFT || kind==LR_SEQUENCE_SHIFT) { ++position; ready=false; }
+    } else { assert(kind!=LR_INVALID); break; }
+  }
+  lr_parser_destroy(a); reference_lr_parser_destroy(b);
 }
 void compare_runtime(LRStates* actual, LRStates* expected, size_t nonterminals) {
   auto* a=lr_runtime_create(actual); auto* b=reference_lr_runtime_create(expected);
@@ -63,6 +109,8 @@ void compare_runtime(LRStates* actual, LRStates* expected, size_t nonterminals) 
   if(left.state!=SIZE_MAX) {
     compare_action(left.left,right.left); compare_action(left.right,right.right);
   } else {
+    lr_runtime_specialize(a,actual); reference_lr_runtime_specialize(b,expected);
+    assert(lr_runtime_sequence(a)==reference_lr_runtime_sequence(b));
     assert(lr_runtime_row_count(a)==reference_lr_runtime_row_count(b));
     for(size_t state=0;state<lr_states_count(actual);++state) {
       assert(lr_runtime_default(a,state)==reference_lr_runtime_default(b,state));
@@ -88,6 +136,23 @@ void compare_runtime(LRStates* actual, LRStates* expected, size_t nonterminals) 
       const auto* gotos=lr_runtime_goto_data(a,state); const auto* expected_gotos=reference_lr_runtime_goto_data(b,state);
       for(size_t i=0;i<lr_runtime_goto_count(a,state);++i)
         assert(gotos[i].nonterminal==expected_gotos[i].nonterminal && gotos[i].state==expected_gotos[i].state);
+    }
+    std::vector<uint32_t> walk;
+    size_t state=0;
+    for(size_t i=0;i<20;++i) {
+      auto count=lr_runtime_action_count(a,state); auto* actions=lr_runtime_actions(a,state);
+      auto* shift=std::find_if(actions,actions+count,[](auto action){return action.state!=SIZE_MAX;});
+      if(shift==actions+count) break;
+      walk.push_back(shift->first); state=shift->state;
+    }
+    for(bool prefix:{false,true}) for(bool specialize:{false,true}) {
+      compare_control(a,b,{},prefix,specialize);
+      compare_control(a,b,walk,prefix,specialize);
+      auto incomplete=walk; if(!incomplete.empty()) incomplete.pop_back();
+      compare_control(a,b,incomplete,prefix,specialize);
+      auto trailing=walk; trailing.push_back(0xfffffffc);
+      compare_control(a,b,trailing,prefix,specialize);
+      compare_control(a,b,walk,prefix,specialize,walk.size()/2);
     }
   }
   lr_runtime_destroy(a); reference_lr_runtime_destroy(b);
@@ -186,6 +251,34 @@ bool allocation_trial() {
   lr_items_destroy(input); lr_items_destroy(output); lr_analysis_destroy(analysis);
   return ok;
 }
+bool control_allocation_trial(bool specialize) {
+  std::vector<LRSymbol> symbols{{1,0,0}};
+  for(uint32_t i=0;i<16;++i) symbols.push_back({SIZE_MAX,32+i,32+i});
+  const LRProduction rules[]={{0,0,1},{1,1,16}};
+  auto* analysis=lr_analysis_create(rules,2,symbols.data(),symbols.size(),2);
+  LRStates* states=nullptr; LRRuntime* runtime=nullptr; LRParser* parser=nullptr;
+  bool ok=analysis && lr_analysis_compute(analysis);
+  if(ok) { states=lr_states_create(analysis); ok=states && lr_states_lalr(states,false); }
+  if(ok) { runtime=lr_runtime_create(states); ok=runtime!=nullptr; }
+  if(ok) {
+    if(specialize) lr_runtime_specialize(runtime,states);
+    parser=lr_parser_create(runtime,false,specialize); ok=parser!=nullptr;
+  }
+  if(ok) for(size_t position=0;position<16;++position) {
+    LRStep step;
+    auto kind=lr_parser_step(parser,true,uint32_t(32+position),false,position,1,&step);
+    assert(kind==LR_SHIFT || kind==LR_SEQUENCE_SHIFT);
+    ok=lr_parser_commit(parser,&step,position,position);
+    if(!ok) break;
+  }
+  if(ok) {
+    LRStep step; auto kind=lr_parser_step(parser,true,0xfffffffe,false,16,0,&step);
+    assert(kind==LR_REDUCE || kind==LR_SEQUENCE_REDUCE);
+    ok=lr_parser_commit(parser,&step,16,16);
+  }
+  lr_parser_destroy(parser); lr_runtime_destroy(runtime); lr_states_destroy(states); lr_analysis_destroy(analysis);
+  return ok;
+}
 void compare_propagation(std::mt19937& random) {
   const size_t count=1+random()%80;
   auto* actual=lr_propagation_create(count); auto* reference=reference_lr_propagation_create(count);
@@ -224,6 +317,15 @@ void lr_analysis_tests() {
     assert(tower_test_buffer_count()==baseline);
   }
   assert(success);
+  for(bool specialize:{false,true}) {
+    success=false;
+    for(size_t i=0;i<4096 && !success;++i) {
+      tower_test_buffer_fail_after(i); success=control_allocation_trial(specialize);
+      tower_test_buffer_fail_after(SIZE_MAX);
+      assert(tower_test_buffer_count()==baseline);
+    }
+    assert(success);
+  }
   // Force several kernel hash-table resizes, using IDs above Unicode. This is
   // also the table-building path used before the fixed-sequence DFA shortcut.
   {

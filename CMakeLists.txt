@@ -160,7 +160,9 @@ if(TOWER_PARSER_ONLY)
       propagation_create propagation_destroy propagation_seed propagation_edge propagation_solve propagation_count propagation_data
       analysis_order states_create states_destroy states_count states_items states_origin states_edge_count states_edges
       states_lalr states_action_count states_actions runtime_create runtime_destroy runtime_conflict runtime_row_count
-      runtime_action_count runtime_actions runtime_default runtime_action runtime_goto_count runtime_goto_data runtime_goto)
+      runtime_action_count runtime_actions runtime_default runtime_action runtime_goto_count runtime_goto_data runtime_goto
+      runtime_specialize runtime_sequence parser_create parser_destroy parser_step parser_commit parser_frame_count parser_frame
+      parser_frames parser_sequence_forest parser_consumed parser_shifted parser_work)
     target_compile_definitions(tower-lr-reference PRIVATE lr_${name}=reference_lr_${name})
   endforeach()
   target_link_libraries(tower-parser-tests PRIVATE tower-lr-reference)

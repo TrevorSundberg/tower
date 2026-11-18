@@ -254,12 +254,17 @@ struct ReferenceRuntimeState {
 };
 struct LRRuntime {
   std::vector<ReferenceRuntimeState> states;
+  std::vector<LRProduction> rules;
+  std::vector<SymbolRange> sequence;
+  std::vector<size_t> sequence_states;
+  size_t sequence_rule=SIZE_MAX;
   LRConflict conflict{SIZE_MAX,{},{}};
   size_t rows=0;
 };
 extern "C" {
 LRRuntime* lr_runtime_create(LRStates* source) {
   auto* value=new LRRuntime;
+  value->rules.assign(source->analysis->rules,source->analysis->rules+source->analysis->rule_count);
   value->states.resize(source->states.size());
   using Key=std::vector<std::tuple<uint32_t,uint32_t,size_t,size_t>>;
   std::map<Key,size_t> rows;
@@ -313,4 +318,128 @@ size_t lr_runtime_goto(LRRuntime* value,size_t state,size_t nonterminal) {
   for(auto edge:value->states[state].gotos) if(edge.nonterminal==nonterminal) return edge.state;
   return SIZE_MAX;
 }
+void lr_runtime_specialize(LRRuntime* value,LRStates* source) {
+  size_t root=SIZE_MAX;
+  for(size_t i=0;i<value->rules.size();++i) if(value->rules[i].owner==1) {
+    if(root!=SIZE_MAX) return;
+    root=i;
+  }
+  if(root==SIZE_MAX) return;
+  auto rule=value->rules[root];
+  if(!rule.count || rule.count>4096) return;
+  for(size_t i=0;i<rule.count;++i) {
+    const auto& s=source->analysis->symbols[rule.begin+i];
+    if(s.nonterminal!=SIZE_MAX || s.last>=0xfffffffd) return;
+  }
+  std::vector<SymbolRange> sequence;
+  std::vector<size_t> states{0};
+  for(size_t i=0;i<rule.count;++i) {
+    const auto& s=source->analysis->symbols[rule.begin+i]; LRAction action;
+    if(!lr_runtime_action(value,states.back(),s.first,&action) || action.state==SIZE_MAX) return;
+    states.push_back(action.state); sequence.push_back({s.first,s.last});
+  }
+  value->sequence_rule=root; value->sequence=std::move(sequence); value->sequence_states=std::move(states);
+}
+size_t lr_runtime_sequence(LRRuntime* value) { return value->sequence_rule; }
+}
+
+struct LRParser {
+  LRRuntime* runtime;
+  std::vector<LRFrame> stack{{0,SIZE_MAX,SIZE_MAX,0,0}};
+  LRWork work{};
+  bool prefix=false,shifted=false,finishing=false,sequence=false;
+  size_t consumed=0;
+  std::vector<bool> evidence;
+  LRFrame forest{0,SIZE_MAX,SIZE_MAX,0,0};
+};
+extern "C" {
+LRParser* lr_parser_create(LRRuntime* runtime,bool prefix,bool specialize) {
+  auto* result=new LRParser;
+  result->runtime=runtime; result->prefix=prefix;
+  result->sequence=specialize && runtime->sequence_rule!=SIZE_MAX;
+  return result;
+}
+void lr_parser_destroy(LRParser* value) { delete value; }
+static uint32_t reference_parser_decide(LRParser* value,bool ready,uint32_t id,bool error,LRStep* result) {
+  auto* runtime=value->runtime;
+  if(value->sequence) {
+    const size_t position=value->evidence.size();
+    bool complete=position==runtime->sequence.size();
+    bool needs_input=!complete || !value->prefix;
+    if(needs_input && !ready) return LR_NEED_INPUT;
+    ++value->work.actions; result->rule=runtime->sequence_rule;
+    if(complete) {
+      if(needs_input && (id!=0xfffffffe || error)) return LR_UNEXPECTED;
+      result->next=lr_runtime_goto(runtime,0,runtime->rules[result->rule].owner);
+      result->start=value->forest.start; result->end=value->forest.start+value->forest.length;
+      return LR_SEQUENCE_REDUCE;
+    }
+    const auto range=runtime->sequence[position];
+    if(error || id<range.first || id>range.last) return LR_UNEXPECTED;
+    result->next=runtime->sequence_states[position+1]; result->pop=position; return LR_SEQUENCE_SHIFT;
+  }
+  const size_t state=value->stack.back().state;
+  LRAction action{0,0,SIZE_MAX,SIZE_MAX};
+  bool found=false;
+  if(value->prefix && !ready) {
+    action.rule=lr_runtime_default(runtime,state); found=action.rule!=SIZE_MAX;
+  }
+  if(found) ++value->work.actions;
+  else {
+    if(!ready && !value->finishing) return LR_NEED_INPUT;
+    if(value->finishing) { id=0xfffffffe; error=false; }
+    if(!error) { ++value->work.actions; found=lr_runtime_action(runtime,state,id,&action); }
+    if(!found && value->prefix && value->shifted && !value->finishing) {
+      ++value->work.actions; found=lr_runtime_action(runtime,state,0xfffffffe,&action);
+      if(found) { value->finishing=true; id=0xfffffffe; }
+    }
+  }
+  if(!found) return LR_UNEXPECTED;
+  result->id=id; result->rule=action.rule; result->next=action.state;
+  if(action.state!=SIZE_MAX) return LR_SHIFT;
+  if(!action.rule) return value->prefix && !value->shifted ? LR_EMPTY_PREFIX : LR_ACCEPT;
+  const auto rule=runtime->rules[action.rule];
+  if(rule.count>=value->stack.size()) return LR_INVALID;
+  result->pop=rule.count;
+  if(!ready || value->finishing) result->start=value->consumed;
+  result->end=result->start;
+  const auto begin=value->stack.size()-rule.count;
+  if(rule.count) {
+    result->start=result->end=value->stack[begin].start;
+    for(size_t i=begin;i<value->stack.size();++i)
+      result->end=std::max(result->end,value->stack[i].start+value->stack[i].length);
+  }
+  result->next=lr_runtime_goto(runtime,value->stack[begin-1].state,rule.owner);
+  return result->next==SIZE_MAX ? LR_INVALID : LR_REDUCE;
+}
+uint32_t lr_parser_step(LRParser* value,bool ready,uint32_t id,bool error,size_t start,size_t length,LRStep* result) {
+  *result={SIZE_MAX,SIZE_MAX,0,start,start+length,id,0};
+  return result->kind=reference_parser_decide(value,ready,id,error,result);
+}
+bool lr_parser_commit(LRParser* value,const LRStep* step,size_t first,size_t last) {
+  if(step->kind==LR_SEQUENCE_SHIFT) {
+    value->evidence.push_back(step->end!=step->start);
+    const auto end=std::max(value->forest.start+value->forest.length,step->end);
+    if(value->evidence.size()==1) value->forest.start=step->start;
+    value->forest.length=end-value->forest.start;
+    value->forest.first=first; value->forest.last=last;
+    value->consumed=step->end; value->shifted=true; ++value->work.shifts; return true;
+  }
+  value->stack.resize(value->stack.size()-step->pop);
+  value->stack.push_back({step->next,first,last,step->start,step->end-step->start});
+  if(step->kind==LR_SHIFT) {
+    value->consumed=step->end; value->shifted=true; ++value->work.shifts;
+  } else { ++value->work.reductions; value->work.popped+=step->pop; value->sequence=false; }
+  return true;
+}
+size_t lr_parser_frame_count(LRParser* value) { return value->sequence ? value->evidence.size()+1 : value->stack.size(); }
+void lr_parser_frame(LRParser* value,size_t index,LRFrame* result) {
+  if(value->sequence) *result={value->runtime->sequence_states[index],SIZE_MAX,SIZE_MAX,0,index?size_t(value->evidence[index-1]):0};
+  else *result=value->stack[index];
+}
+const LRFrame* lr_parser_frames(LRParser* value) { return value->stack.data(); }
+void lr_parser_sequence_forest(LRParser* value,LRFrame* result) { *result=value->forest; }
+size_t lr_parser_consumed(LRParser* value) { return value->consumed; }
+bool lr_parser_shifted(LRParser* value) { return value->shifted; }
+void lr_parser_work(LRParser* value,LRWork* result) { *result=value->work; }
 }

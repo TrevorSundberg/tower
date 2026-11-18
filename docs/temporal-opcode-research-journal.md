@@ -8458,3 +8458,54 @@ The prior template change (3156273) is also published as gh-pages eb89110, Pages
 workflow 44380620133 succeeded. verify-deployment.mjs verified all 23 online assets
 and desktop/mobile compilation, execution agreement, edits and downloads; log
 build/template-values-online.log. All custom C++ removal remains unfinished.
+
+## 2026-11-18 — Tower recognizer control and finite-sequence specialization
+
+compiler/lr-parser.tower now owns the recognizer stack, shift/reduce selection,
+prefix completion, consumed-input tracking, reduction spans and work counters.
+It uses a pull protocol: request input, shift, reduce, accept or report failure.
+The remaining native wrapper supplies stream input and attaches shared entity
+forests; it no longer implements the LR decision loop. Frames contain disposable
+state/forest indexes and spans, never a second authoritative tree representation.
+
+Moved the existing proven terminal-sequence eligibility check and LR-state mapping
+into lr-runtime.tower, and its execution into the Tower control module. The DFA
+path still avoids a per-token LR stack; it keeps compact consumed-input evidence
+for error context and joins captured forests as symbols arrive. Whole-input mode
+checks EOF, while prefix mode finishes at the declaration boundary without reading
+the next grammar revision. Ordinary LR prefix fallback performs EOF reductions on
+the current stack once; there is no speculative parse, rewind or retry.
+
+The native parser.cpp change removes 193 lines and adds 91 lines of pull/forest
+adaptation. The transitional C++ reference/seed remains independently implemented
+with vectors and straightforward control, and is still migration debt. Stream
+callbacks, diagnostic presentation/probes, grammar entity indexing, syntax and
+semantic/compiler pipeline code remain to move. This is not the full C++ removal
+or the portable-bootstrap-binary endpoint.
+
+Validation: native optimized and Windows optimized suites; native sanitizer harness
+4/4; Node 178/178; Playwright 102/102 desktop/mobile; 36 canonical Tower formatting
+and parse round trips; 16 bootstrap pairs with identical optimized LLVM and object
+bytes on Linux x64, Windows x64, macOS ARM64 and Wasm. The existing DFA-versus-LR
+tests verify trees, custom payloads, captures, spans, diagnostics at every prefix,
+no extra stream reads and lower action/stack work. Added direct reference-control
+comparisons (bounded to 512 decisions per generated trace) for both modes, complete,
+incomplete, trailing and stream-error inputs, comparing frames, spans and counters.
+Injected allocation failures cover stack/evidence growth and runtime specialization;
+optional specialization failure falls back to LR without changing acceptance.
+Logs: build/lr-control-{native,wasm,llvm,windows,asan-final,node,browser,bootstrap,
+format-check}.log. Commands are the existing build/test scripts and full suites.
+
+Performance measurements, not universal guarantees: table-only migration c251eee
+versus 3156273, native optimized process startup/module load/compile/interpret,
+4 warmups plus 24 alternating pairs, median milliseconds: small 123.221 -> 110.355,
+50 token declarations 521.557 -> 492.241, 25 parse extensions 275.442 -> 245.518.
+The native reference binary replaces only parser.cpp's object, keeping other objects
+identical. Warm Wasm table-only compile plus Foundation formatting (12 warmups,
+40 alternating pairs) improved all four fixtures by roughly 6–8% in that run.
+With Tower control included, the same Wasm method versus deployed 3156273 measured:
+small 5.164 -> 4.768, inference 5.435 -> 5.108, replacements 18.040 -> 16.616,
+500 declarations 17.411 -> 16.820 ms. Absolute times vary between runs. Scripts and
+full p50/p95 results: build/profile-lr-{runtime,control}-{native,wasm}.* and matching
+build/lr-*-performance.json files. Source-length complexity and grammar conflicts
+are unchanged; these measurements do not imply every grammar becomes faster.
