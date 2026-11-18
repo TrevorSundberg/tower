@@ -5,7 +5,11 @@
 #include <random>
 #include <string>
 #include <vector>
+#include <cstring>
 std::shared_ptr<const LexPattern> reference_lex_pattern_compile(const std::string&, std::string&);
+extern "C" const char* regex_compile_tree(TowerNode*, const char*, TowerNode*, LexerTable*, size_t*);
+extern "C" size_t tower_test_buffer_count();
+extern "C" void tower_test_buffer_fail_after(size_t);
 namespace {
 std::string pattern(std::mt19937& random, unsigned depth) {
   static const char* atoms[] = {"a", "b", ".", "[a-c]", "[^b]", "\\x61", "\\u{e9}", "[a\\-c]", "[\\]\\\\]"};
@@ -37,6 +41,30 @@ void compare(const std::string& source, std::mt19937& random) {
 }
 }
 void regex_tests() {
+  // Lowering reads the same entities without rewriting their payloads. Every
+  // failed scratch allocation must leave the retained parse tree usable.
+  {
+    const std::string source = "(a|bc)+[d-f]?\\u{e9}";
+    std::string error;
+    auto parsed = lex_pattern_compile(source, error); assert(parsed);
+    char* before = parser_tree_debug_string(parsed->grammar.get());
+    const auto baseline = tower_test_buffer_count();
+    bool success = false;
+    for (size_t failure = 0; failure < 256 && !success; ++failure) {
+      auto* table = lex_table_create(); size_t offset = 0;
+      tower_test_buffer_fail_after(failure);
+      auto* message = regex_compile_tree(parsed->grammar.get(), source.data(), parser_match_get_type(), table, &offset);
+      tower_test_buffer_fail_after(SIZE_MAX);
+      assert(!message || std::strstr(message, "allocate"));
+      success = !message;
+      lex_table_destroy(table);
+      assert(tower_test_buffer_count() == baseline);
+    }
+    assert(success);
+    char* after = parser_tree_debug_string(parsed->grammar.get());
+    assert(!std::strcmp(before, after));
+    tower_memory_free(before); tower_memory_free(after);
+  }
   std::mt19937 random(0x52454758);
   for (unsigned i = 0; i < 300; ++i) compare(pattern(random, 3), random);
   for (const auto* source : {"()a", "a()", "a(b?)*", "(a|)b", "[^^]", "[a-b-c]", "[a\\-z]", "[a-]", "[]", "[^]", "a**", "\\x0", "\\u{}", "\\u{0000000}", "\\u{d800}", "[z-a]", "[a--b]", "]", "a|ab"}) compare(source, random);

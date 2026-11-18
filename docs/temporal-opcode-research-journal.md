@@ -8073,3 +8073,98 @@ extend output-preserving specialization to more proven regular regions. Semantic
 type checking, formatting, interpreter/driver/backend bridges and native bootstrap
 stages also remain to migrate. Do not confuse a shared regex-syntax reader with
 completed arbitrary scannerless/recursive lexical grammar support.
+
+## 2026-11-18 — Regex tree lowering is now Tower code; bootstrap retirement remains the endpoint
+
+Continued the user-requested migration after the symbol-automaton checkpoint
+`f03f1e9`. `compiler/regex-lowering.tower` now implements traversal, alternatives,
+concatenation, repetition, character classes/ranges, escaped scalar decoding,
+fragment patching and lowering diagnostics. It reads the actual shared entities
+and Tower-defined ParserMatchData through the entity API; it does not copy the
+tree into another semantic representation. An iterative borrowed-node visit stack
+and fragment/patch arenas replace the old native unordered_map of fragments.
+The derived automaton is then compiled by `compiler/automaton.tower`.
+
+Production `lex-pattern.cpp` is reduced to a temporary wrapper for the still-native
+parser entry points, grammar caching, source validation and diagnostic string
+formatting. Its regex semantic traversal and NFA/DFA algorithms are no longer C++.
+The reference seed remains intentionally independent until the complete compiler
+has a validated Tower-built successor. There are no new native semantic adapters:
+the lowering module imports existing Tower entity APIs and receives the shared
+Match component type from its caller. Its source remains canonical Foundation text.
+
+An initial edit attempt used the Windows `python` app alias, which has no installed
+interpreter in this environment; it made no source change. The native-wrapper edit
+was then applied with PowerShell. The initial compile-only test had consequently
+linked the new Tower module without calling it; validation was repeated after
+switching the production wrapper. This distinction matters: a linked, unused port
+is not evidence that the port executes.
+
+The native tests now inject failures at every allocation during a complete regex
+lowering/compilation and verify no live-buffer increase. The retained input entity
+tree's full debug representation is unchanged after all failures and success.
+Existing randomized regex/reference and integer-symbol automaton comparisons also
+exercise the actual Tower implementation. The signed accepting-state conversion
+has an explicit local nonnegative proof, preserving checked-conversion semantics
+without introducing a trap runtime dependency in compiler modules.
+
+Migration order remains to port LR grammar analysis/table generation and parser
+control, incremental grammar application, semantic/type components and checking,
+formatting, interpreter/compilation control, backend/FFI integration and the CLI.
+The precise split can follow prerequisites, but it must not leave an owned C++
+adapter or seed behind at the endpoint. LLVM and other external libraries can
+remain native; their interfaces must be callable from Tower (e.g. existing C APIs
+where available, explicitly supported ABI where needed). Do not relabel our own
+wrappers as third-party code to satisfy the goal superficially.
+
+Portable checked-in compiler binaries are still future work. Before replacing the
+bootstrap sources, require self-rebuild/stage agreement and execution tests on each
+supported platform, reproducible explicit target/profile inputs, a bootstrap
+manifest/provenance, and dependency checks showing no undeclared LLVM/SDK/runtime
+installation is required. Current WSL native development binaries dynamically use
+the installed LLVM library and are not the promised dependency-free distribution.
+No last-known-working bootstrap is removed before that successor is validated.
+
+This stage does not complete arbitrary recursive character/token grammar support
+or the optimizer for all regular parser regions. The new shared integer-symbol
+automaton engine and fixed-terminal-root specialization are implemented; extending
+their eligibility must preserve captures, node outputs, conflicts, source context
+and grammar revision boundaries, with ordinary LR as the reference.
+
+Validation of the active port: 4/4 native ASan/UBSan-harness tests, optimized MSVC
+tests, 177/177 Node tests, 102/102 desktop/mobile Playwright tests, 31 canonical
+Tower source round trips, and all 16 optimized-LLVM/object bootstrap comparisons
+pass. The browser parser, LLVM reactor and cross-target reactor were rebuilt.
+Commands: `test-native-core.sh`, `scaffolding/tests/run.ps1 -Optimize`,
+`build-wasm.sh`, `TOWER_BROWSER_CROSS=ON build-llvm.sh`, `node --test
+playground/tests/*.test.mjs`, `npm run check:format --prefix playground`,
+`npm run build --prefix playground`, `npx --prefix playground playwright test
+--config playground/playwright.config.mjs`, and `test-bootstrap.sh`.
+Logs are `build/regex-lowering-{asan-final,windows,wasm,llvm,node-tests,format-check,
+browser,bootstrap}.log`.
+
+Measured performance, not a speedup guarantee:
+
+- Paired warm Wasm compile+format versus published `4ecb3bd`, 12 warmups/40 pairs:
+  median milliseconds small 5.607 -> 5.504; inference 5.906 -> 5.885;
+  replacements 19.897 -> 20.466; 500 declarations 22.544 -> 21.875.
+- Native optimized Linux x64: rebuilt the C++ regex-lowering file from `f03f1e9`
+  and relinked it against the same remaining current objects, isolating this port.
+  Four warmups/24 alternating pairs, including process launch, LLVM/module load,
+  compilation and interpretation: small median 132.587 -> 128.739 ms; 50 new
+  token declarations 542.991 -> 536.199 ms. The latter p95 went 564.064 ->
+  579.961 ms, so these data support broadly comparable performance, not a universal
+  improvement. `build/profile-regex-port-native.py` reproduces the reference link
+  and samples; results are `build/regex-port-native-performance.json`.
+- Fresh Wasm instances with code precompiled (2 warmups/8 alternating samples),
+  versus `4ecb3bd`: upper-median module/grammar load 229.053 -> 238.158 ms;
+  compiling/formatting 50 new token patterns 768.371 -> 785.282 ms. Fresh-load
+  samples have substantial GC/runtime variance; the playground retains warm workers.
+  See `build/profile-regex-port-load.mjs` / `build/regex-port-load.json` and
+  `build/profile-regex-lowering.mjs` / `build/regex-lowering-performance.json`.
+  The first native stress fixture attempted 100 new token declarations and correctly
+  hit the existing 64-token-rule budget; it was reduced to 50 for a valid workload.
+
+The previous regex-parser deployment (`4ecb3bd`, Pages `8435d16`) was verified
+online before these new changes: all 23 assets matched and desktop/mobile checks
+passed. This new checkpoint will be published and independently verified next.

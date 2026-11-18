@@ -31,7 +31,9 @@ if sys.argv[1] == 'entities': allowed |= {
 if sys.argv[1] == 'parser-nodes': allowed |= {
     'tower_utf8_decode', 'tower_allocate', 'compiler_grammar_root',
     'compiler_grammar_rule', 'compiler_grammar_reference',
-    'compiler_grammar_literal', 'compiler_grammar_range'}
+    'compiler_grammar_literal', 'compiler_grammar_range',
+    'entity_component_get', 'entity_component_data', 'entity_member_index',
+    'entity_child_at', 'entity_child_count'}
 symbols = {line.split()[-1].lstrip('_') for line in pathlib.Path(sys.argv[2]).read_text().splitlines() if line.strip()}
 assert symbols <= allowed, f'Unexpected runtime dependencies: {symbols - allowed}'
 PY
