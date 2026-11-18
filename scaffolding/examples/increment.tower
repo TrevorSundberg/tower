@@ -21,17 +21,17 @@ parse CoreCall |= '++' $place:CorePlace
     => replace { pre_increment(&$place) };
 
 var value: i32 = 5;
-var before: i32 = value ++;
+var before: i32 = value++;
 // 5: the old value, then 6: the updated variable.
 print(before);
 print(value);
-var after: i32 = ++ value;
+var after: i32 = ++value;
 // 7: the new value, then 7: the updated variable.
 print(after);
 print(value);
 
 // Discarding the result uses the same rules.
-value ++;
-++ value;
+value++;
+++value;
 // Calls accept increment results too: prints 9, then value becomes 10.
-print(value ++);
+print(value++);

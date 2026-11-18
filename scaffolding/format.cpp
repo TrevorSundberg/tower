@@ -221,8 +221,20 @@ struct Formatter {
     }
     result.spans.push_back({begin, result.source.size(), n.start}); text("\n");
   }
-  struct SourceToken { size_t start, end; bool comment = false, pointer = false, unary = false, call = false; };
-  void source_tokens(TowerNode* entity, std::vector<SourceToken>& out, bool pointer = false, bool unary = false, bool call = false) {
+  static bool symbolic_operator(std::string_view value) {
+    return !value.empty() && value.find_first_not_of("+-*/%&|^~!<>=?") == std::string_view::npos;
+  }
+  static bool operator_leaf(TowerNode* node, std::string_view source) {
+    auto* match = static_cast<Match*>(tower_node_get_component_userdata(node, parser_match_get_type()));
+    return match && parser_match_get_rule_index(match) == TOWER_INVALID_INDEX &&
+      symbolic_operator(source.substr(parser_match_get_start(match), parser_match_get_length(match)));
+  }
+  struct SourceToken {
+    size_t start, end;
+    bool comment = false, pointer = false, unary = false, call = false, prefix = false, postfix = false;
+  };
+  void source_tokens(TowerNode* entity, std::string_view source, std::vector<SourceToken>& out,
+      bool pointer = false, bool unary = false, bool call = false) {
     auto* match = static_cast<Match*>(tower_node_get_component_userdata(entity, parser_match_get_type()));
     if (!match) return;
     std::string_view label = parser_match_get_label(match);
@@ -232,8 +244,21 @@ struct Formatter {
     if (parser_match_get_rule_index(match) == TOWER_INVALID_INDEX) {
       auto start = parser_match_get_start(match), end = start + parser_match_get_length(match);
       if (end > start) out.push_back({start, end, false, pointer, unary, call});
-    } else for (size_t i = 0; i < tower_node_get_child_count(entity); ++i)
-      source_tokens(tower_node_get_child(entity, i), out, pointer, unary, call);
+    } else {
+      const auto begin = out.size(), children = tower_node_get_child_count(entity);
+      for (size_t i = 0; i < children; ++i)
+        source_tokens(tower_node_get_child(entity, i), source, out, pointer, unary, call);
+      // A symbol and one operand form an affix. Derive its spacing from the
+      // matched production, including user rules, without naming an operator.
+      if (children == 2 && out.size() > begin + 1) {
+        const bool first = operator_leaf(tower_node_get_child(entity, 0), source);
+        const bool last = operator_leaf(tower_node_get_child(entity, 1), source);
+        if (first != last) {
+          if (first) out[begin].prefix = true;
+          else out.back().postfix = true;
+        }
+      }
+    }
   }
   bool source_declaration(TowerNode* node) {
     auto* match = static_cast<Match*>(tower_node_get_component_userdata(node, parser_match_get_type()));
@@ -244,7 +269,7 @@ struct Formatter {
   }
   void source_statement(TowerNode* entity, std::string_view original, size_t from, size_t end,
       const std::vector<TowerCommentSpan>& comments) {
-    std::vector<SourceToken> tokens; source_tokens(entity, tokens);
+    std::vector<SourceToken> tokens; source_tokens(entity, original, tokens);
     for (auto comment : comments) if (comment.start >= from && comment.end <= end)
       tokens.push_back({comment.start, comment.end, true});
     std::sort(tokens.begin(), tokens.end(), [](auto a, auto b) { return a.start < b.start; });
@@ -267,6 +292,8 @@ struct Formatter {
           last == "(" || last == "[" || last == "." ||
           (value == "(" && (token.call || gap.empty())) ||
           (value == "*" && token.pointer) ||
+          ((previous.prefix || token.postfix) && !previous.comment &&
+            !(symbolic_operator(last) && symbolic_operator(value))) ||
           ((last == "*" || last == "&" || last == "-") && previous.unary && !previous.pointer);
         if (!tight || token.comment) text(" ");
       }

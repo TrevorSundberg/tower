@@ -6807,3 +6807,42 @@ checks. Unrelated AGENTS.md/foundation/journal edits and todo.txt stay unstaged.
   pages-workflow}.log and build/deployment-verification/. No unrelated working
   changes or todo.txt were staged. Refresh and Restore are needed to replace a
   previously edited Increment document with the revised bundled source.
+
+### 2026-11-17 - Format prefix/postfix syntax without operand spaces
+
+The parser already accepted `++value` and `value++`. The shared source formatter
+treated a user-defined operator like an ordinary separated token, and the bundled
+Increment example had been made canonical as `++ value` / `value ++`. That style
+was unwanted; it is superseded here.
+
+The formatter now recognizes a two-child matched production with one symbolic
+operator leaf and one operand as prefix/postfix syntax. This derives attachment
+from the existing parse nodes, without hardcoding increment names or adding an
+increment operation. Conventional symbolic operator characters are a formatting
+heuristic, not a new lexical restriction. Binary productions retain spaces,
+comments remain intact, and adjacent operator tokens remain separated in the
+new attachment path to avoid merging their spellings. The existing reparse and
+tree-equivalence guard still refuses output that changes custom lexical meaning.
+Arbitrary multi-part syntax and configurable formatting metadata remain separate
+future work; this is a small default style for directly expressed affix rules.
+
+The Increment example now uses `++value`, `value++`, and `print(value++)`.
+Tests cover assigned/standalone increments, fields, indexed elements, binary
+operands, intervening comments, custom `~~`/`!!` affixes and `%%` infix syntax,
+format idempotence, and canonical equality of all 17 bundled Tower files.
+
+Validation: Windows C:\Sandbox\tower, WSL Orchestral-Revng, WASI SDK 34.
+- Rebuilt `build/browser-wasi` and both optimized LLVM reactors with
+  `TOWER_BROWSER_CROSS=ON TOWER_BUILD_JOBS=4 bash playground/scripts/build-llvm.sh`.
+- `node --test playground/tests/*.test.mjs`: 155/155 pass, including differential
+  interpreter/LLVM execution and canonical source checks.
+- `bash playground/scripts/test-native-core.sh`: 2/2 ASan/UBSan suites pass.
+- `npm run build --prefix playground` and the focused Playwright `extra semicolons`
+  test: both desktop/mobile pass. The test asserts tight example spelling and
+  matching interpreter/Wasm output, and checks cancellation/recovery as before.
+  Inspected build/increment-desktop.png: the editor visibly shows both spellings.
+- Logs: build/increment-spacing-{llvm,native,tests}.log; browser results in
+  build/increment-spacing-browser/. Publication follows these local checks.
+
+Unrelated AGENTS.md, foundation documentation, journal work and todo.txt are
+preserved. Only this entry is staged from the shared journal.

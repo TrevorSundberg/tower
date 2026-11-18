@@ -66,6 +66,9 @@ test('extra semicolons have concise context and increment demonstrates both retu
   await expect(page.locator('#tree')).toContainText('post_increment');
   await page.screenshot({path:`../build/increment-${info.project.name}.png`});
   const source=await page.getByRole('textbox',{name:'Tower source'}).innerText();
+    expect(source).toContain('var after: i32 = ++value;');
+    expect(source).toContain('var before: i32 = value++;');
+    expect(source).not.toMatch(/\+\+ value|value \+\+/);
   await setSource(page,source+'\nvalue++;\nprint(value++);');
   await expect(page.locator('#execution-output')).toHaveText('5\n6\n7\n7\n9\n11\n');
   await expect(page.locator('#execution-status')).toHaveText('Finished \u00b7 backends match');
