@@ -339,16 +339,19 @@ and the interpreter remain. **Cancel** or an edit terminates pending workers;
 completed compiler workers and target inputs are reused. Disabling all native
 profiles releases their idle worker; canceling active work discards its cache.
 
-First visits select WebAssembly plus a suggested supported native profile.
+Initial selection is exactly one auto-detected target (or one fallback).
 OS and architecture are inferred independently, preferring browser client hints
 with a bounded 200 ms wait. When architecture is hidden, macOS defaults to ARM64
 (an "Intel" UA is ambiguous), Windows/Linux to x64; completely unknown browsers
 default to Windows x64. These are explicit heuristics, not measured market-share
 claims or CPU capability detection. Known unsupported OS/architecture combinations
 (including Android, iOS, Chrome OS, Windows ARM64 and 32-bit native hosts) default
-to WebAssembly. The picker explains its suggestion; users can always override it.
-Saved selections take precedence, including all-off selections. Older x86/ARM
-group choices migrate to the corresponding platform entries. No probing or
+to WebAssembly. Only an explicit OS and architecture match receives a short
+"(detected)" marker next to its name; guessed defaults are not marked. There is no
+diagnostic paragraph in the picker. Users can always select additional targets.
+Pre-update v1/v2 saved selections are ignored so the old grouped migration and
+Wasm-plus-native defaults cannot override detection. Explicit choices made with
+the corrected picker persist in v3, including all-off selections. No probing or
 network lookup is used, and detection never changes a target's layout or semantics.
 
 Tower instructions, LLVM raw/optimized and x86/ARM64/Wasm disassembly use read-only

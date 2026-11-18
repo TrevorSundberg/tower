@@ -35,8 +35,9 @@ export function inferBrowserTarget(nav = {}, hints = {}) {
   if (!os) os = 'windows';
   const key = Object.keys(targets).find(key => targets[key].os === os && targets[key].architecture === architecture) ?? 'wasm';
   const reason = `${os} (${osEvidence}), ${architecture} (${architectureEvidence})`;
-  return { key, os, architecture, reason,
-    description: key === 'wasm' ? `WebAssembly default: no native profile for ${reason}.` : `Suggested ${targets[key].label}: ${reason}. You can change this.` };
+  const strongMatch = key !== 'wasm' && osEvidence === 'reported' &&
+    ['reported', 'client hints'].includes(architectureEvidence);
+  return { key, os, architecture, reason, strongMatch };
 }
 
 export async function detectBrowserTarget(nav = {}, timeoutMs = 200) {
@@ -52,5 +53,5 @@ export async function detectBrowserTarget(nav = {}, timeoutMs = 200) {
 }
 
 export function defaultTargetSelection(detection) {
-  return { ...emptySelection(), wasm: true, [detection.key]: true };
+  return { ...emptySelection(), [detection.key]: true };
 }

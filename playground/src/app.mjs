@@ -63,7 +63,7 @@ let frame = 0, queued = null, saveTimer, dirty = true, busy = false, example = '
 let executionId = 0, executionError = null, runners = {};
 const idleExecutionWorkers = new Map();
 let linkInputs = {}, nativeDownloads = {}, llvmViews = {};
-let selectedTargets = {...emptySelection(),wasm:true}, savedSelection = null, targetsChanged = false;
+let selectedTargets = emptySelection(), savedSelection = null, targetsChanged = false;
 try { savedSelection = savedTargetSelection(localStorage); } catch {}
 if (savedSelection) selectedTargets = savedSelection;
 const browserTarget = detectBrowserTarget(navigator);
@@ -622,6 +622,7 @@ $('execute').onclick = () => execute();
 $('cancel-execution').onclick = () => { executedRevision = documentRevision; stopExecution('Cancelled'); };
 for(const [key,target] of Object.entries(targets)) {
   const label=node('label'), input=node('input'), caption=node('span','',target.label);
+  caption.id='target-label-'+key;
   input.type='checkbox'; input.id='target-'+key; input.checked=!!selectedTargets[key];
   if(key!=='wasm') caption.append(node('small','',target.triple));
   else caption.append(node('small','','32-bit · browser module'));
@@ -725,7 +726,7 @@ $('editor-error').onclick = () => goToDiagnostic(editor);
 
 async function start() {
   const detection = await browserTarget;
-  $('target-default').textContent=detection.description + (savedSelection ? ' Saved choices restored.' : '');
+  if (detection.strongMatch) $('target-label-'+detection.key).firstChild.appendData(' (detected)');
   if (!savedSelection && !targetsChanged) {
     selectedTargets=defaultTargetSelection(detection);
     for (const key of Object.keys(targets)) $('target-'+key).checked=selectedTargets[key];

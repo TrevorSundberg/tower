@@ -43,7 +43,7 @@ try {
       localStorage.setItem('tower-playground-foundation-v1', legacy);
       localStorage.setItem('tower-playground-foundation-base-v1', foundation);
       localStorage.setItem('tower-playground-source-v1', program);
-      localStorage.setItem('tower-build-targets-v2', JSON.stringify({wasm:true}));
+      localStorage.setItem('tower-build-targets-v3', JSON.stringify({wasm:true}));
       localStorage.setItem('deployment-check', '1');
     }, {foundation,legacy,program});
     await page.goto(base.href);
@@ -175,6 +175,30 @@ try {
     report.browsers.push({name,output:'42\n',incrementOutput:'5\n6\n7\n7\n9\n',extraSemicolonDiagnostic:true,forwardModuleBindings:true,migration:true,uniformExecutionUI:true,incrementalBedrock:true,emptyLiteralDiagnostic:true,restore:true,reload:true,nativeTargets:Object.entries(targets).filter(([key])=>key!=='wasm').map(([,target])=>target.label),equalColumns:true,errors});
     console.log(name + ': backends agree; forward module bindings, editable grammar, persistence, native builds/downloads and equal columns verified.');
     await context.close();
+    const detectionContext = await browser.newContext(options);
+    await detectionContext.addInitScript(({mobile})=>{
+      localStorage.setItem('tower-build-targets-v1',JSON.stringify({wasm:true,x86:true}));
+      localStorage.setItem('tower-build-targets-v2',JSON.stringify({wasm:true,windows:true,linux:true,'linux-arm':true,mac:true,'mac-arm':true}));
+      Object.defineProperty(navigator,'userAgentData',{value:{platform:mobile?'Android':'Windows',
+        getHighEntropyValues:async()=>({architecture:mobile?'arm':'x86',bitness:'64'})}});
+    },{mobile:name==='mobile'});
+    const detectionPage=await detectionContext.newPage();
+    detectionPage.on('pageerror',error=>errors.push(error.message));
+    await detectionPage.goto(base.href);
+    await expect(detectionPage.locator('#status')).toContainText('Complete');
+    await detectionPage.locator('#build-targets summary').click();
+    const detectedKey=name==='mobile'?'wasm':'windows';
+    await expect(detectionPage.locator('#target-options input:checked')).toHaveCount(1);
+    await expect(detectionPage.locator('#target-'+detectedKey)).toBeChecked();
+    await expect(detectionPage.locator('#target-default')).toHaveCount(0);
+    if(name==='mobile') await expect(detectionPage.locator('#target-options')).not.toContainText('(detected)');
+    else await expect(detectionPage.locator('#target-label-windows')).toContainText('Windows x64 (detected)');
+    await detectionPage.screenshot({path:new URL(name+'-target-default.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
+    assert.deepEqual(errors,[]);
+    report.browsers.at(-1).defaultTarget=detectedKey;
+    report.browsers.at(-1).legacySelectionsIgnored=true;
+    await detectionContext.close();
+    console.log(name+': legacy selections ignored; single default and detection marker verified.');
   }
 } finally { await browser.close(); }
 await writeFile(new URL('report.json',output),JSON.stringify(report,null,2)+'\n');

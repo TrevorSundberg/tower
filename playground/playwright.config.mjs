@@ -9,7 +9,7 @@ export default defineConfig({
     // Language tests retain their original Wasm-only selection. Detection tests
     // explicitly start with empty storage instead of depending on the test host.
     storageState: { cookies: [], origins: [{ origin: 'http://127.0.0.1:4173', localStorage: [
-      { name: 'tower-build-targets-v1', value: '{"wasm":true,"x86":false,"arm":false}' },
+      { name: 'tower-build-targets-v3', value: '{"wasm":true,"x86":false,"arm":false}' },
     ] }] },
   },
   projects: [

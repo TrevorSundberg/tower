@@ -9108,3 +9108,36 @@ all five native downloads, highlighted disassembly and equal pane widths, with
 zero page errors. Logs: build/target-deploy-live.log and
 build/deployment-verification/report.json; screenshots/downloads share that
 verification directory. Public URL: https://trevorsundberg.github.io/tower/.
+
+
+## 2026-11-18 - Correct initial target selection and simplify detection label
+
+User reported all platform checkboxes selected after deployment despite requesting
+one detected target, and supplied a screenshot showing Windows x64 was correctly
+inferred but overridden by "Saved choices restored". They reported previously
+using Wasm and x86 only. Correction to the initial diagnosis: old x86 flags explain
+selection of Windows/Linux/macOS x64, but do not explain ARM64 being checked.
+We did not inspect the user's actual localStorage, so the exact historical origin
+of the ARM64 selections is unknown. The verified defect is that persisted v1/v2
+state could override the intended initial detection, plus fresh defaults added
+Wasm alongside the native target without the user requesting that.
+
+Implementation supersedes the earlier migration/default policy above:
+- Initial selection now contains exactly one detected target, or one fallback.
+  Wasm is selected initially only when it is the fallback profile.
+- Ignore pre-correction v1 and v2 target settings. Only explicit checkbox changes
+  made with this corrected picker persist in v3; manual additions remain possible.
+  No browser-storage access is required for the one-target default.
+- Remove the requested diagnostic paragraph entirely, including the temporary
+  detecting message. Append only "(detected)" to the matching target's name when
+  both OS and architecture are explicit (reported architecture or client hints
+  with bitness). Guessed OS/architecture defaults and unsupported-host Wasm
+  fallbacks receive no marker. The marker describes detection, not selection.
+- Add unit/browser regressions for legacy Wasm+x86 and v2 all-target state,
+  repeated reloads, one-target defaults, strong-match marking and unmarked
+  fallbacks. Keep the language-test fixture's deliberate Wasm selection in v3.
+
+Validation so far: npm run build --prefix playground succeeded; all 25 tests in
+playground/tests/targets.test.mjs passed (build/target-default-fix-node.log).
+Full desktop/mobile regression tests and deployment verification follow.
+No changes to todo.txt.

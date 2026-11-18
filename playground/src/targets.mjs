@@ -10,7 +10,9 @@ export const targets = {
 };
 
 export const nativeTargetKeys = Object.keys(targets).filter(key => key !== 'wasm');
-export const targetSelectionKey = 'tower-build-targets-v2';
+// Earlier grouped/multi-default selections must not override detection after
+// this update. Only deliberate selections made with the corrected picker persist.
+export const targetSelectionKey = 'tower-build-targets-v3';
 export const emptySelection = () => Object.fromEntries(Object.keys(targets).map(key => [key, false]));
 
 export function savedTargetSelection(storage) {
@@ -19,10 +21,6 @@ export function savedTargetSelection(storage) {
     if (current && typeof current === 'object' && !Array.isArray(current) &&
         Object.keys(targets).some(key => typeof current[key] === 'boolean'))
       return Object.fromEntries(Object.keys(targets).map(key => [key, current[key] === true]));
-    const old = JSON.parse(storage.getItem('tower-build-targets-v1'));
-    if (old && ['wasm', 'x86', 'arm'].some(key => typeof old[key] === 'boolean'))
-      return Object.fromEntries(Object.entries(targets).map(([key, target]) =>
-        [key, key === 'wasm' ? old.wasm !== false : old[target.syntax] === true]));
   } catch { /* Storage may be unavailable or corrupt. Use detection. */ }
   return null;
 }

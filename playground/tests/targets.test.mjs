@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { inferBrowserTarget, detectBrowserTarget, defaultTargetSelection } from '../src/browser-target.mjs';
-import { targets, nativeTargetKeys, savedTargetSelection, targetInputs, linkInputsForTarget } from '../src/targets.mjs';
+import { targets, savedTargetSelection, targetSelectionKey, targetInputs, linkInputsForTarget } from '../src/targets.mjs';
 
 const cases = [
   ['unknown', {}, {}, 'windows'],
@@ -28,7 +28,7 @@ const cases = [
 for (const [name,nav,hints,key] of cases) test('browser target: '+name, () => {
   const result=inferBrowserTarget(nav,hints);
   assert.equal(result.key,key);
-  assert.equal(defaultTargetSelection(result).wasm,true);
+  assert.equal(Object.values(defaultTargetSelection(result)).filter(Boolean).length,1);
   assert.equal(defaultTargetSelection(result)[key],true);
 });
 test('denied, absent and stalled client hints fall back promptly', async () => {
@@ -43,14 +43,23 @@ test('client hints improve independently inferred architecture', async () => {
   assert.equal(result.key,'linux-arm');
 });
 const storage = values => ({getItem:key=>values[key]??null});
-test('saved selections sanitize keys, preserve all-off and migrate architecture groups', () => {
-  const current=savedTargetSelection(storage({'tower-build-targets-v2':'{"wasm":false,"linux-arm":true,"x86":true,"unknown":true}'}));
+test('new explicit selections persist while all pre-fix selections are ignored', () => {
+  const current=savedTargetSelection(storage({[targetSelectionKey]:'{"wasm":false,"linux-arm":true,"x86":true,"unknown":true}'}));
   assert.deepEqual(Object.keys(current),Object.keys(targets)); assert.equal(current['linux-arm'],true); assert.equal(current.linux,false);
-  assert.ok(Object.values(savedTargetSelection(storage({'tower-build-targets-v2':'{"wasm":false}'}))).every(x=>!x));
-  const legacy=savedTargetSelection(storage({'tower-build-targets-v1':'{"wasm":false,"x86":true,"arm":true}'}));
-  assert.equal(legacy.wasm,false); for(const key of nativeTargetKeys) assert.equal(legacy[key],true);
-  assert.equal(savedTargetSelection(storage({'tower-build-targets-v2':'broken'})),null);
+  assert.ok(Object.values(savedTargetSelection(storage({[targetSelectionKey]:'{"wasm":false}'}))).every(x=>!x));
+  assert.equal(savedTargetSelection(storage({'tower-build-targets-v1':'{"wasm":true,"x86":true,"arm":true}'})),null);
+  assert.equal(savedTargetSelection(storage({'tower-build-targets-v2':JSON.stringify(Object.fromEntries(Object.keys(targets).map(key=>[key,true])))})),null);
+  assert.equal(savedTargetSelection(storage({[targetSelectionKey]:'broken'})),null);
   assert.equal(savedTargetSelection({getItem(){throw Error('denied');}}),null);
+});
+test('detected marker requires explicit OS and architecture without fallback assumptions',()=>{
+  assert.equal(inferBrowserTarget({platform:'Win32'},{architecture:'x86',bitness:'64'}).strongMatch,true);
+  assert.equal(inferBrowserTarget({platform:'Linux aarch64'}).strongMatch,true);
+  assert.equal(inferBrowserTarget({platform:'Win32'}).strongMatch,false);
+  assert.equal(inferBrowserTarget({platform:'MacIntel'}).strongMatch,false);
+  assert.equal(inferBrowserTarget({},{architecture:'x86',bitness:'64'}).strongMatch,false);
+  assert.equal(inferBrowserTarget({platform:'Win32'},{architecture:'x86'}).strongMatch,false);
+  assert.equal(inferBrowserTarget({platform:'Android'},{architecture:'arm',bitness:'64'}).strongMatch,false);
 });
 test('explicit profiles load only their runtime and scope uploaded link inputs', async () => {
   const requested=[];

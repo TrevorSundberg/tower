@@ -361,7 +361,7 @@ test('disabled targets do not preload LLVM and enabling Wasm starts warming with
   const source=await (await request.get('/foundation.tower')).text();
   await page.addInitScript(source=>{
     localStorage.setItem('tower-playground-document-v1',JSON.stringify({source,filename:'foundation.tower',module:'foundation'}));
-    localStorage.setItem('tower-build-targets-v1',JSON.stringify({wasm:false,x86:false,arm:false}));
+    localStorage.setItem('tower-build-targets-v3',JSON.stringify({wasm:false,x86:false,arm:false}));
   },source);
   const requests=[];page.on('request',request=>requests.push(request.url()));
   await page.reload();await expect(page.locator('#execution-status')).toHaveText('Syntax only');
