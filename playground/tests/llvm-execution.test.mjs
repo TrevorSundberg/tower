@@ -18,7 +18,7 @@ const cases = [
   ['escaped quoted names', 'var `back\\\\tick\\`line\\n`: i32 = 5; print(`back\\\\tick\\`line\\n`);', '5\n'],
   ['forward calls and recursion', (await read('scaffolding/examples/functions.tower')).toString(), '720\n721\n'],
   ['replacements and loops', (await read('scaffolding/examples/execution.tower')).toString(), '15\n16\n'],
-  ['prefix and postfix increment replacements', (await read('scaffolding/examples/increment.tower')).toString(), '5\n6\n7\n7\n'],
+  ['prefix and postfix increment replacements', (await read('scaffolding/examples/increment.tower')).toString(), '5\n6\n7\n7\n9\n'],
   ['mutual recursion', `fn even(n: i32): bool { var b: bool; b = n == 0; if b { return true; } var p: i32; p = n - 1; b = odd(p); return b; }
     fn odd(n: i32): bool { var b: bool; b = n == 0; if b { return false; } var p: i32; p = n - 1; b = even(p); return b; }
     var a: bool; a = even(8); print(a); a = odd(8); print(a);`, 'true\nfalse\n'],
@@ -71,11 +71,11 @@ test('increment helper calls inline with a runtime pointer argument', {skip: !ll
   const source = `
 fn post(p: i32*): i32 { var old: i32 = *p; *p = old + 1; return old; }
 fn pre(p: i32*): i32 { var next: i32 = *p; next = next + 1; *p = next; return next; }
-parse CoreValue |= '(' '*' $p:CorePlace ')' '++' => replace { post($p) };
-parse CoreValue |= '++' '*' $p:CorePlace => replace { pre($p) };
+parse CoreCall |= $place:CorePlace '++' => replace { post(&$place) };
+parse CoreCall |= '++' $place:CorePlace => replace { pre(&$place) };
 export fn increment_pair(p: i32*): i32 {
-    var old: i32 = (*p)++;
-    var next: i32 = ++*p;
+    var old: i32 = p[0]++;
+    var next: i32 = ++p[0];
     var sum: i32 = old + next;
     return sum;
 }`;

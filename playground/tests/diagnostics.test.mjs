@@ -11,12 +11,24 @@ function error(source){const end=parse(source);assert.equal(end.status,'error');
 test('missing delimiters are inferred from the active grammar and point at the insertion gap',()=>{
  for(const [source,literal,offset] of [
   ['print(42)\nvar answer: i32;',"';'",9],
-  ['var answer: i32 = 42\nprint(answer);',"';'",20],
   ['print(42)',"';'",9],
   ['print(42;',"')'",8],
   ['var answer i32;',"':'",10],
   ['print(42) // comment\nvar answer: i32;',"';'",9],
  ]) {const result=error(source);assert.ok(result.error.startsWith('Missing '+literal),result.error);assert.equal(result.errorOffset,offset);assert.equal(result.errorLength,0);assert.match(result.error,/foundation\.tower, line \d+, column \d+/);}
+});
+
+test('line breaks suggest a unique construct boundary without claiming other repairs are impossible',()=>{
+ const source='var answer: i32 = 42\nprint(answer);';
+ const result=error(source);
+ assert.match(result.error,/^Possible missing ';' before 'print'/);
+ assert.equal(result.errorOffset,20);
+ assert.equal(result.errorLength,0);
+ assert.match(result.error,/In rule CoreDeclare/);
+ // Adding an operator also parses now that calls are operands. Type checking
+ // may reject print's void result, but syntactic repair must not assume that.
+ assert.equal(parse(source.replace('42\n','42 +\n')).status,'done');
+ assert.doesNotMatch(error(source.replace('\n',' ')).error,/Missing|Possible missing/);
 });
 
 test('user grammar literals, including keywords, participate without compiler annotations',()=>{

@@ -167,13 +167,15 @@ Wait for each reply before sending the next request on one worker.
 ## Foundation execution (ABI version 3)
 
 `tw_exec_create(source, bytes)` parses, expands and type-checks the entire source,
-returning an execution handle. The source must contain its own core grammar.
+returning an execution handle. Source inherits the installed Foundation grammar
+and may extend it with local declarations.
 Source validation/resource failure returns zero and sets `tw_last_error`;
 ordinary compilation errors remain on the machine and are returned by step.
 There are at most eight machines per instance, independently of parser sessions.
 
 `tw_exec_step(handle, budget)` runs at most `min(budget, 100000)` reference
-interpreter tasks (statement/scope work, not a stable instruction encoding).
+interpreter tasks (statement/scope work and resumable expression evaluation,
+not a stable instruction encoding). Nested calls obey the same budget.
 Zero inspects without running. It returns JSON with `status` (`executing`, `done`
 or `error`), `error`, UTF-8 `errorOffset`, `output` (only new text), `steps`
 and `outputTruncated`. Output is drained on each call and capped at 65,536 bytes

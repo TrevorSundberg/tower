@@ -357,6 +357,7 @@ struct ParserExpectation {
   uint32_t id;
   std::string label;
   bool insertion = false;
+  bool completes = false;
   std::vector<ParserRulePosition> contexts;
 };
 struct ParserDiagnostic {

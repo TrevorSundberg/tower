@@ -63,6 +63,8 @@ void core_tests() {
   assert(!wrong_arg.error.empty() && wrong_arg.steps == 0);
   auto calls = execute("fn call(value: i32): i32 { return value; } var call: i32 = call(4); print(call);");
   assert(calls.error.empty() && calls.output == "4\n");
+  auto composed = execute("fn next(p: i32*): i32 { var old: i32 = *p; *p = old + 1; return old; } parse CoreCall |= $place:CorePlace '++' => replace { next(&$place) }; var a: i32 = 1; a++; print(a++); print(a);");
+  assert(composed.error.empty() && composed.output == "2\n3\n");
   auto module = execute("fn field(): i32 { return state.value; } fn index(): i32 { return values[1]; } var state: Later; state.value = 42; var values: i32[2]; values[1] = 73; var a: i32 = field(); var b: i32 = index(); print(a); print(b); struct Later { value: i32; }");
   assert(module.error.empty() && module.output == "42\n73\n");
   auto shadow = execute("var i32: i32 = 4; { var i32: i32 = 9; print(i32); } print(i32);");
@@ -82,7 +84,7 @@ void core_tests() {
   assert(outer.size == 20 && outer.alignment == 4 && core_node(outer.items.back()).byte_offset == 16);
   auto raw = execute("var a: i32[3]; a[1] = 42; var p: i32* = &a[1]; var raw_address: usize = bits(usize, p); var q: i32* = bits(i32*, raw_address); *q = 7; print(a[1]); var b: u8* = alloc(u8, 4); fill(b, 9, 4); b = realloc(u8, b, 32); print(b[3]); free(b);");
   assert(raw.error.empty() && raw.output == "7\n9\n");
-  auto foreign_program = core_compile("extern fn increment(p: i32*): i32; var a: i32 = 41; var p: i32* = &a; var answer: i32 = increment(p); print(answer); print(a);");
+  auto foreign_program = core_compile("extern fn increment(p: i32*): i32; var a: i32 = 41; var answer: i32 = increment(&a); print(answer); print(a);");
   const auto foreign_text = core_format(foreign_program);
   auto foreign_round = core_compile_foundation(foreign_text.source.c_str());
   assert(foreign_round.error.empty() && structure(foreign_program.root) == structure(foreign_round.root));
@@ -102,7 +104,7 @@ void core_tests() {
   assert(recursive_type.error.find("Recursive by-value") != std::string::npos && recursive_type.steps == 0);
   auto malformed = execute("parse CoreIf = 'broken'; broken");
   assert(malformed.error.find("missing capture") != std::string::npos && malformed.steps == 0);
-  for (auto* original : {&sum, &alias, &loop, &recursive, &shadow, &pair, &layout, &raw, &module}) {
+  for (auto* original : {&sum, &alias, &loop, &recursive, &shadow, &pair, &layout, &raw, &module, &composed}) {
     const auto formatted = core_format(original->program);
     assert(!formatted.source.empty());
     auto decoded = core_compile_foundation(formatted.source.c_str());

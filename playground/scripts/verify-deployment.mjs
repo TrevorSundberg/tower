@@ -116,8 +116,9 @@ try {
     await page.screenshot({path:new URL(name+'-extra-semicolon.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
     await page.locator('#example-kind').selectOption('increment.tower');
     await expect(page.locator('#execution-status')).toContainText('backends match',{timeout:60000});
-    await expect(page.locator('#execution-output')).toHaveText('5\n6\n7\n7\n');
-    await expect(page.locator('#llvm-output')).toHaveText('5\n6\n7\n7\n');
+    await expect(page.locator('#execution-output')).toHaveText('5\n6\n7\n7\n9\n');
+    await expect(page.locator('#llvm-output')).toHaveText('5\n6\n7\n7\n9\n');
+    await expect(page.locator('#core-instructions')).toContainText('post_increment(&value)');
     await expect(page.locator('#llvm-after')).not.toContainText('post_increment');
     await expect(page.locator('.tw-inline-error')).toHaveCount(0);
     await page.screenshot({path:new URL(name+'-increment.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
@@ -150,7 +151,7 @@ try {
     }
     await page.screenshot({path:new URL(name+'-native-targets.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
     assert.deepEqual(errors, []);
-    report.browsers.push({name,output:'42\n',incrementOutput:'5\n6\n7\n7\n',extraSemicolonDiagnostic:true,forwardModuleBindings:true,migration:true,uniformExecutionUI:true,incrementalBedrock:true,emptyLiteralDiagnostic:true,restore:true,reload:true,nativeTargets:['Windows x64','Linux x64','macOS x64'],equalColumns:true,errors});
+    report.browsers.push({name,output:'42\n',incrementOutput:'5\n6\n7\n7\n9\n',extraSemicolonDiagnostic:true,forwardModuleBindings:true,migration:true,uniformExecutionUI:true,incrementalBedrock:true,emptyLiteralDiagnostic:true,restore:true,reload:true,nativeTargets:['Windows x64','Linux x64','macOS x64'],equalColumns:true,errors});
     console.log(name + ': backends agree; forward module bindings, editable grammar, persistence, native builds/downloads and equal columns verified.');
     await context.close();
   }

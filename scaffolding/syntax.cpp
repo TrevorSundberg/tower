@@ -642,6 +642,7 @@ std::string syntax_diagnostic(SyntaxSession& session, Recognizer* recognizer, bo
     actual += "'";
   }
   const ParserExpectation* repair = nullptr; size_t repair_count = 0;
+  const ParserExpectation* boundary = nullptr; size_t boundary_count = 0;
   for (const auto& option : expected) {
     // Try every expected grammar literal, including user-defined keywords.
     // Token patterns have no unique spelling: never invent names or values.
@@ -649,12 +650,23 @@ std::string syntax_diagnostic(SyntaxSession& session, Recognizer* recognizer, bo
       [&](const auto& value) { return value.second == option.id; });
     if (option.insertion && literal != session.version->literals.end()) {
       ++repair_count; repair = &option;
+      if (option.completes) { ++boundary_count; boundary = &option; }
     }
   }
-  if (!repairs || repair_count != 1 || !diagnostic.complete) repair = nullptr;
+  bool suggested = false;
+  if (repair_count != 1) {
+    repair = nullptr;
+    // A line break can suggest a new construct when multiple insertions are
+    // valid. Prefer a unique grammar-completing choice, but label it as a hint:
+    // continuing the expression on the next line may also be intentional.
+    const auto gap = session.source.substr(std::min(diagnostic.insertion_offset, session.source.size()),
+      diagnostic.offset >= diagnostic.insertion_offset ? diagnostic.offset - diagnostic.insertion_offset : 0);
+    if (boundary_count == 1 && gap.find_first_of("\r\n") != std::string::npos) { repair = boundary; suggested = true; }
+  }
+  if (!repairs || !diagnostic.complete) repair = nullptr;
   std::string message;
   if (repair) {
-    message = "Missing " + repair->label + " before " + actual + ".";
+    message = std::string(suggested ? "Possible missing " : "Missing ") + repair->label + " before " + actual + ".";
     session.error_offset = diagnostic.insertion_offset;
     session.error_insertion = true;
   } else {

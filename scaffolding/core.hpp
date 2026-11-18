@@ -96,15 +96,18 @@ struct CoreMachine {
   size_t stack = 16, heap = CORE_STACK_BYTES;
   using Foreign = std::function<CoreValue(CoreMachine&, TowerNode*, const std::vector<CoreValue>&)>;
   Foreign foreign;
-  struct Task { TowerNode* node; bool loop_resume = false; };
+  enum class Phase { Statement, Resume, Value, Address, FinishValue, FinishAddress };
+  struct Task { TowerNode* node; bool loop_resume = false; Phase phase = Phase::Statement; size_t offset = 0; };
   struct Frame {
     TowerNode* function = nullptr;
     size_t base = 0, call_offset = 0;
-    TowerNode* destination = nullptr;
-    CoreValue pointer;
+    TowerNode* call = nullptr;
     std::vector<Task> tasks;
+    // Per-statement evaluation results only; never authoritative program data.
+    std::map<TowerNode*, CoreValue> values, addresses;
   };
   std::vector<Frame> frames;
+  std::map<TowerNode*, bool> sequenced;
   size_t error_offset = 0, output_bytes = 0;
   uint64_t steps = 0;
   std::string error, output;
@@ -125,5 +128,6 @@ private:
   void store(TowerNode*, CoreValue, size_t, const CoreValue* = nullptr);
   void enter(TowerNode*);
   void returned(CoreValue = {});
-  void call(TowerNode*, TowerNode*, size_t);
+  void call(TowerNode*, size_t);
+  bool needs_evaluation(TowerNode*);
 };

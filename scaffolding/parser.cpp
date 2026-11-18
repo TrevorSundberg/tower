@@ -2657,6 +2657,10 @@ ParserDiagnostic parser_recognizer_diagnostic(Recognizer* r, ParserDiagnosticRea
         expected.insertion = consume(token) != 0;
         if (token == PARSER_ID_EOF) break;
       }
+      if (expected.insertion && r->prefix) {
+        auto end = stack;
+        expected.completes = probe(end, PARSER_ID_EOF, nullptr) == 2;
+      }
     }
     result.expected.push_back(std::move(expected));
   }

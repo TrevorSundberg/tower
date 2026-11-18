@@ -70,6 +70,9 @@ uint64_t CoreMachine::reallocate(uint64_t address, size_t count) {
 }
 CoreValue CoreMachine::read(TowerNode* node, size_t offset) {
   auto& n = core_node(node);
+  if (auto found = frames.back().values.find(node); found != frames.back().values.end()) return found->second;
+  if (n.kind == CoreKind::Address) return address(n.value, offset);
+  if (n.kind != CoreKind::Operand && n.kind != CoreKind::String && n.kind != CoreKind::Field && n.kind != CoreKind::Index) return evaluate(node, offset);
   if (n.kind == CoreKind::String) {
     auto found = strings.find(node); if (found != strings.end()) return {found->second};
     auto at = allocate(n.name.size() + 1); if (!at) { fail("String allocation failed", offset); return {}; }
@@ -79,6 +82,7 @@ CoreValue CoreMachine::read(TowerNode* node, size_t offset) {
   auto p = address(node, offset); return error.empty() ? load(p.bits, n.type, offset) : CoreValue{};
 }
 CoreValue CoreMachine::address(TowerNode* node, size_t offset) {
+  if (auto found = frames.back().addresses.find(node); found != frames.back().addresses.end()) return found->second;
   auto& n = core_node(node);
   if (n.kind == CoreKind::Load) return read(n.value, offset);
   if (n.kind == CoreKind::Field || n.kind == CoreKind::Index) {
@@ -96,9 +100,10 @@ CoreValue CoreMachine::address(TowerNode* node, size_t offset) {
   return {(binding.global ? uint64_t(16) : frames.back().base) + binding.byte_offset};
 }
 CoreValue CoreMachine::evaluate(TowerNode* node, size_t offset) {
+  if (auto found = frames.back().values.find(node); found != frames.back().values.end()) return found->second;
   auto& n = core_node(node);
-  if (n.kind == CoreKind::Operand || n.kind == CoreKind::String || n.kind == CoreKind::Field || n.kind == CoreKind::Index) return read(node, offset);
-  if (n.kind == CoreKind::Address) return address(n.value, offset);
+  if (n.kind == CoreKind::Call) { fail("Missing suspended call result", offset); return {}; }
+  if (n.kind == CoreKind::Operand || n.kind == CoreKind::String || n.kind == CoreKind::Field || n.kind == CoreKind::Index || n.kind == CoreKind::Address) return read(node, offset);
   if (n.kind == CoreKind::SizeOf || n.kind == CoreKind::AlignOf) return {n.kind == CoreKind::SizeOf ? core_type_size(n.element) : core_type_alignment(n.element)};
   if (n.kind == CoreKind::Allocate || n.kind == CoreKind::Reallocate) {
     auto p = n.left ? read(n.left, offset).bits : 0; auto count = read(n.right, offset).bits; auto size = core_type_size(n.element);
@@ -159,22 +164,31 @@ void CoreMachine::enter(TowerNode* node) {
 }
 void CoreMachine::returned(CoreValue value) {
   auto frame = std::move(frames.back()); stack = frame.base; frames.pop_back();
-  if (!frames.empty() && frame.destination && error.empty()) store(frame.destination, value, frame.call_offset, &frame.pointer);
+  if (!frames.empty() && frame.call && error.empty()) frames.back().values[frame.call] = value;
 }
-void CoreMachine::call(TowerNode* call_node, TowerNode* destination, size_t offset) {
+void CoreMachine::call(TowerNode* call_node, size_t offset) {
   auto& n = core_node(call_node); auto& fn = core_node(n.binding); std::vector<CoreValue> args;
   for (auto* arg : n.items) args.push_back(read(arg, offset));
-  auto pointer = destination ? address(destination, offset) : CoreValue{};
   if (!error.empty()) return;
   if (fn.external) {
     if (!foreign) { fail("No interpreter implementation registered for external function '" + fn.name + "'", offset); return; }
-    auto value = foreign(*this, n.binding, args); if (destination) store(destination, value, offset, &pointer); return;
+    auto value = foreign(*this, n.binding, args); if (error.empty()) frames.back().values[call_node] = value; return;
   }
   if (frames.size() >= CORE_MAX_FRAMES || aligned(fn.frame_size) > CORE_STACK_BYTES - stack) { fail("Tower call stack limit exceeded", offset); return; }
-  Frame frame; frame.function = n.binding; frame.base = stack; frame.call_offset = offset; frame.destination = destination; frame.pointer = pointer;
+  Frame frame; frame.function = n.binding; frame.base = stack; frame.call_offset = offset; frame.call = call_node;
   stack += aligned(fn.frame_size);
   for (size_t i = 0; i < args.size(); ++i) { auto& p = core_node(fn.parameters[i]); write(frame.base + p.byte_offset, args[i], p.type, offset); }
   frames.push_back(std::move(frame)); enter(fn.body);
+}
+bool CoreMachine::needs_evaluation(TowerNode* node) {
+  if (!node) return false;
+  if (auto found = sequenced.find(node); found != sequenced.end()) return found->second;
+  auto& n = core_node(node);
+  bool result = n.kind == CoreKind::Call || n.kind == CoreKind::Allocate || n.kind == CoreKind::Reallocate;
+  // Bodies and bindings are not evaluated when their containing statement is
+  // entered. Only immediate expression edges participate in this derived index.
+  for (auto* child : {n.left, n.right, n.value, n.target}) result |= needs_evaluation(child);
+  return sequenced[node] = result;
 }
 void CoreMachine::step(size_t budget) {
   if (done) return;
@@ -182,14 +196,55 @@ void CoreMachine::step(size_t budget) {
     ++steps; auto& frame = frames.back();
     if (frame.tasks.empty()) { returned(); continue; }
     auto task = frame.tasks.back(); frame.tasks.pop_back(); auto& n = core_node(task.node);
+    const auto queue = [&](TowerNode* node, Phase phase) {
+      if (node) frame.tasks.push_back({node, false, phase, task.phase == Phase::Statement ? n.start : task.offset});
+    };
+    if (task.phase == Phase::Statement) {
+      frame.values.clear(); frame.addresses.clear();
+      if (needs_evaluation(task.node)) {
+        frame.tasks.push_back({task.node, task.loop_resume, Phase::Resume, n.start});
+        if (n.kind == CoreKind::Declare || n.kind == CoreKind::Assign) {
+          queue(n.value, Phase::Value);
+          queue(n.kind == CoreKind::Declare ? task.node : n.target, Phase::Address);
+        } else if (n.kind == CoreKind::Print || n.kind == CoreKind::Return || n.kind == CoreKind::If) queue(n.value, Phase::Value);
+        else if (n.kind == CoreKind::Free) queue(n.left, Phase::Value);
+        else if (n.kind == CoreKind::Copy || n.kind == CoreKind::Fill) {
+          queue(n.value, Phase::Value); queue(n.right, Phase::Value); queue(n.left, Phase::Value);
+        } else queue(task.node, Phase::Value);
+        continue;
+      }
+    } else if (task.phase == Phase::Value) {
+      if (frame.values.contains(task.node)) continue;
+      queue(task.node, Phase::FinishValue);
+      if (n.kind == CoreKind::Call) {
+        for (auto it = n.items.rbegin(); it != n.items.rend(); ++it) queue(*it, Phase::Value);
+      } else if (n.kind == CoreKind::Address) queue(n.value, Phase::Address);
+      else if (n.kind == CoreKind::Field || n.kind == CoreKind::Index || (n.kind == CoreKind::Operand && !n.constant)) queue(task.node, Phase::Address);
+      else { queue(n.value, Phase::Value); queue(n.right, Phase::Value); queue(n.left, Phase::Value); }
+      continue;
+    } else if (task.phase == Phase::Address) {
+      if (frame.addresses.contains(task.node)) continue;
+      queue(task.node, Phase::FinishAddress);
+      if (n.kind == CoreKind::Load) queue(n.value, Phase::Value);
+      else if (n.kind == CoreKind::Field || n.kind == CoreKind::Index) {
+        if (n.kind == CoreKind::Index) queue(n.right, Phase::Value);
+        queue(n.left, n.indirect ? Phase::Value : Phase::Address);
+      }
+      continue;
+    } else if (task.phase == Phase::FinishAddress) {
+      frame.addresses[task.node] = address(task.node, task.offset); continue;
+    } else if (task.phase == Phase::FinishValue) {
+      if (n.kind == CoreKind::Call) call(task.node, task.offset);
+      else frame.values[task.node] = evaluate(task.node, task.offset);
+      continue;
+    }
     switch (n.kind) {
       case CoreKind::Block: enter(task.node); break;
       case CoreKind::Declare:
-        if (n.value) { if (core_node(n.value).kind == CoreKind::Call) call(n.value, task.node, n.start); else store(task.node, evaluate(n.value, n.start), n.start); }
+        if (n.value) store(task.node, evaluate(n.value, n.start), n.start);
         break;
       case CoreKind::Assign:
-        if (core_node(n.value).kind == CoreKind::Call) call(n.value, n.target, n.start);
-        else store(n.target, evaluate(n.value, n.start), n.start); break;
+        store(n.target, evaluate(n.value, n.start), n.start); break;
       case CoreKind::Free: deallocate(read(n.left, n.start).bits); break;
       case CoreKind::Copy: case CoreKind::Fill: {
         auto dest = read(n.left, n.start).bits, source = read(n.right, n.start).bits, size = read(n.value, n.start).bits;
@@ -198,7 +253,7 @@ void CoreMachine::step(size_t budget) {
         auto* q = n.kind == CoreKind::Copy ? bytes(source, size_t(size), n.start) : nullptr;
         if (error.empty()) { if (q) std::memmove(p, q, size_t(size)); else std::memset(p, uint8_t(source), size_t(size)); } break;
       }
-      case CoreKind::Call: call(task.node, nullptr, n.start); break;
+      case CoreKind::Call: break; // Already evaluated by the resumable expression tasks.
       case CoreKind::Allocate: case CoreKind::Reallocate: case CoreKind::SizeOf: case CoreKind::AlignOf: case CoreKind::Convert: case CoreKind::Bits:
         evaluate(task.node, n.start); break;
       case CoreKind::Return: { auto value = n.value ? read(n.value, n.start) : CoreValue{}; returned(value); break; }

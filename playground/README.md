@@ -194,10 +194,12 @@ compilable Foundation source, LLVM raw, LLVM optimized, interpreter output,
 and LLVM output. There is no separate compact interpreter bytecode yet.
 Choose **Functions** for typed calls, recursion and pointer arguments; it prints
 `720` and `721`. Every execution starts interpreter and LLVM workers in parallel.
-Choose **Increment** for Tower-defined prefix/postfix syntax calling typed pointer
-helpers. It prints `5`, `6`, `7`, `7`: postfix returns the old value and prefix the
-new value. Both update the same variable; inspect LLVM optimized for eliminated
-helper calls and temporaries.
+Choose **Increment** for Tower-defined prefix/postfix syntax on assignable places.
+The same two CoreCall replacements work as standalone statements, assigned values,
+call arguments and arithmetic operands. They take the place's address once and
+call ordinary i32 helpers; this example is not a type-generic function facility.
+It prints `5`, `6`, `7`, `7`, `9`: postfix returns the old value and prefix the new
+value. Inspect LLVM optimized for eliminated helper calls and temporaries.
 Completion automatically compares output, status, trap messages/locations and
 truncation. A missing backend reports comparison unavailable; a difference is
 shown as a mismatch. Matching truncated output is explicitly labelled as captured
@@ -221,6 +223,12 @@ range; `bits(Type, a)` reinterprets equal-width integers/pointers. Fixed arrays,
 indexing, heap allocation/reallocation/free, byte copy/fill, pointer arithmetic,
 UTF-8 string literals, sizeof/alignof(and) extern/export functions are implemented.
 Floats, closures, indirect calls and aggregate-by-value ABIs remain future work.
+
+Calls, address-taking and loads are operands, including inside arguments, returns,
+conditions and indices. Arguments and binary operands evaluate left to right;
+assignment captures its destination address before evaluating the right side.
+Nested calls remain resumable and cancellable. Foundation still has no arithmetic
+precedence hierarchy: a binary value contains two operands and one operator.
 
 Integer addition/subtraction/multiplication wrap at the operand width. Division by zero
 and signed division overflow trap. All statements are type-checked before any

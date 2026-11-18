@@ -357,7 +357,10 @@ Literals include custom keywords; no punctuation list or Foundation rule-name
 list decides eligibility. Named token patterns are reported as expectations but
 do not supply invented identifier names or values. A unique viable insertion
 produces a message such as `Missing ';' before 'var'.` at the source gap. Multiple
-viable insertions remain alternatives. This is a local suggestion, not a proof
+viable insertions normally remain alternatives. Across a line break, a unique
+candidate that completes the current construct can be reported as `Possible
+missing ...`; this grammar-derived heuristic never claims that continuing the
+expression would be impossible. This is a local suggestion, not a proof
 that the rest of the file is correct, and the invalid program is never executed.
 
 Trials are bounded: at most 64 expected terminal candidates, 128 parser actions
@@ -380,6 +383,26 @@ context resolves those positions through current bindings so moving a declaratio
 does not retain its previous line number. A suggested insertion is exposed to
 browser hosts as `errorOffset` plus `errorLength: 0`; the UI renders its location
 once. Other internal UTF-8 offsets remain transport data, not diagnostic prose.
+
+## Composable call replacements
+
+Foundation CoreOperand includes calls, address-taking and pointer loads. The
+binary form still has exactly two operands and one operator: no precedence
+hierarchy is added. Calls may nest in arguments, returns, conditions, indices
+and binary operands, so a replacement into CoreCall works in all those contexts
+and as a standalone call statement. The Increment example defines only two
+rules, capturing a CorePlace and passing its address to an ordinary typed helper.
+It does not give increment any special C++ execution semantics.
+
+Operands and call arguments evaluate left to right. An assignment captures its
+target address before evaluating the right side. This preserves exactly-once
+index evaluation and the original destination even when nested calls mutate an
+index or pointer. The interpreter schedules nested calls through resumable tasks
+on the shared nodes. Per-statement value/address caches and a derived dependency
+index are execution state only, not a second semantic graph or public encoding.
+Unselected branches are not evaluated. LLVM lowering preserves the same order.
+Expression nesting is limited to 128 during checking; arithmetic precedence,
+type-generic helper selection and hygienic generated bindings remain separate work.
 
 # Tasks & Dependencies
 

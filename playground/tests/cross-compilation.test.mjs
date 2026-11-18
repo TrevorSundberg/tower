@@ -8,7 +8,7 @@ let bytes;
 try { bytes = await read('build/browser-wasi-llvm/tower-cross.wasm'); } catch (error) { if (error.code !== 'ENOENT') throw error; }
 const foundation = (await read('scaffolding/foundation.tower')).toString();
 const compiler = bytes ? await loadLLVM(bytes, console.error, foundation) : null;
-const source = (await read('scaffolding/examples/memory.tower')).toString() + '\nvar width: usize = sizeof(void*); print(width);';
+const source = (await read('scaffolding/examples/memory.tower')).toString() + '\nvar width: usize = sizeof(void*); print(width); fn increment(p: i32*): i32 { var old: i32 = *p; *p = old + 1; return old; } var value: i32 = 41; print(increment(&value)); print(value);';
 await mkdir(new URL('../../build/cross', import.meta.url), {recursive:true});
 
 for (const [key,target] of Object.entries(targets)) test('browser cross compiler: ' + target.label, {skip: !compiler, timeout:120000}, async () => {
@@ -19,7 +19,7 @@ for (const [key,target] of Object.entries(targets)) test('browser cross compiler
   const output = result.binary ?? result.wasm;
   const magic = key === 'wasm' ? [0,97,115,109] : key === 'windows' ? [77,90] : key.startsWith('mac') ? [207,250,237,254] : [127,69,76,70];
   assert.deepEqual([...output.subarray(0,magic.length)], magic);
-  if (key === 'wasm') assert.equal((await executeWasm(result)).output, '5\n84\n42\n4\n');
+  if (key === 'wasm') assert.equal((await executeWasm(result)).output, '5\n84\n42\n4\n41\n42\n');
   else { assert.match(result.before, /@tower_allocate\(i64/); assert.match(result.disassembly,/\bret\b/); }
   await writeFile(new URL(`../../build/cross/${key}.${target.extension}`,import.meta.url),output);
   const repeat = compiler.compile(source, options);

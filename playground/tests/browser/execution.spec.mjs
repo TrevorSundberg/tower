@@ -52,16 +52,30 @@ test('extra semicolons have concise context and increment demonstrates both retu
   await expect(page.locator('.tw-error-range')).toHaveText(';');
   expect(await page.locator('.tw-inline-error-card').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
   await page.locator('#editor').screenshot({path:`../build/extra-semicolon-${info.project.name}.png`});
+  await setSource(page,'var answer: i32 = 42\nprint(answer);');
+  await expect(page.locator('.tw-inline-error-message')).toContainText("Possible missing ';' before 'print'.");
+  await expect(page.locator('.tw-error-point')).toHaveCount(1);
   await page.locator('#example-kind').selectOption('increment.tower');
   await expect(page.locator('#filename')).toHaveText('increment.tower');
   await expect(page.locator('#execution-status')).toHaveText('Finished \u00b7 backends match',{timeout:30000});
-  await expect(page.locator('#execution-output')).toHaveText('5\n6\n7\n7\n');
-  await expect(page.locator('#llvm-output')).toHaveText('5\n6\n7\n7\n');
+  await expect(page.locator('#execution-output')).toHaveText('5\n6\n7\n7\n9\n');
+  await expect(page.locator('#llvm-output')).toHaveText('5\n6\n7\n7\n9\n');
   await expect(page.locator('.tw-inline-error')).toHaveCount(0);
-  await expect(page.locator('#core-instructions')).toContainText('post_increment(pointer)');
+  await expect(page.locator('#core-instructions')).toContainText('post_increment(&value)');
   await expect(page.locator('#llvm-after')).not.toContainText('post_increment');
   await expect(page.locator('#tree')).toContainText('post_increment');
   await page.screenshot({path:`../build/increment-${info.project.name}.png`});
+  const source=await page.getByRole('textbox',{name:'Tower source'}).innerText();
+  await setSource(page,source+'\nvalue++;\nprint(value++);');
+  await expect(page.locator('#execution-output')).toHaveText('5\n6\n7\n7\n9\n11\n');
+  await expect(page.locator('#execution-status')).toHaveText('Finished \u00b7 backends match');
+  await setSource(page,'fn forever(): i32 { loop {} } print(forever());');
+  await expect(page.locator('#core-instructions')).toContainText('print(forever());');
+  await expect(page.locator('#execution-status')).toContainText('Executing');
+  await page.locator('#cancel-execution').click();
+  await expect(page.locator('#execution-status')).toHaveText('Cancelled');
+  await setSource(page,'print(42);');
+  await expect(page.locator('#execution-status')).toHaveText('Finished \u00b7 backends match');
 });
 
 test('infinite execution stays responsive, cancels, and rejects results after edits', async ({ page }) => {

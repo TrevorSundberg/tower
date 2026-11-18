@@ -105,6 +105,8 @@ struct Backend {
   }
   Value* read(TowerNode* node) {
     auto& n = core_node(node);
+    if (n.kind == CoreKind::Address) return address(n.value);
+    if (n.kind != CoreKind::Operand && n.kind != CoreKind::String && n.kind != CoreKind::Field && n.kind != CoreKind::Index) return expression(node);
     if (n.kind == CoreKind::String) {
       auto it = strings.find(node); if (it != strings.end()) return it->second;
       auto* data = ConstantDataArray::getString(context, n.name);
@@ -115,18 +117,16 @@ struct Backend {
     return b.CreateAlignedLoad(type(n.type), address(node), Align(1));
   }
   void store(TowerNode* target, Value* value, Value* p = nullptr) { b.CreateAlignedStore(value, p ? p : address(target), Align(1)); }
-  Value* call(TowerNode* node, TowerNode* destination = nullptr) {
+  Value* call(TowerNode* node) {
     auto& n = core_node(node); std::vector<Value*> args;
     for (auto* arg : n.items) args.push_back(read(arg));
-    auto* p = destination ? address(destination) : nullptr;
     auto* callee = functions[core_node(n.binding).index]; auto* result = b.CreateCall(callee, args);
     result->setAttributes(callee->getAttributes());
-    if (destination) store(destination, result, p); return result;
+    return result;
   }
   Value* expression(TowerNode* node) {
     auto& n = core_node(node);
-    if (n.kind == CoreKind::Operand || n.kind == CoreKind::String || n.kind == CoreKind::Field || n.kind == CoreKind::Index) return read(node);
-    if (n.kind == CoreKind::Address) return address(n.value);
+    if (n.kind == CoreKind::Operand || n.kind == CoreKind::String || n.kind == CoreKind::Field || n.kind == CoreKind::Index || n.kind == CoreKind::Address) return read(node);
     if (n.kind == CoreKind::Call) return call(node);
     if (n.kind == CoreKind::SizeOf || n.kind == CoreKind::AlignOf) return size(n.kind == CoreKind::SizeOf ? core_type_size(n.element) : core_type_alignment(n.element));
     if (n.kind == CoreKind::Allocate) return b.CreateCall(allocate, {read(n.right), size(core_type_size(n.element))});
@@ -188,7 +188,8 @@ struct Backend {
     return b.CreateZExt(cmp, i8);
   }
   void assign(TowerNode* target, TowerNode* value) {
-    if (core_node(value).kind == CoreKind::Call) call(value, target); else store(target, expression(value));
+    auto* destination = address(target);
+    store(target, expression(value), destination);
   }
   void block(TowerNode* node) { for (auto* item : core_node(node).items) { if (b.GetInsertBlock()->getTerminator()) break; statement(item); } }
   void statement(TowerNode* node) {

@@ -44,6 +44,7 @@ struct Compiler {
   CoreProgram program;
   TowerNode* current = program.root;
   size_t prefix = 0, count = 0, loops = 0;
+  unsigned value_depth = 0;
   std::map<std::string, TowerNode*> functions;
   std::map<std::string, TowerNode*> types;
   std::map<std::string, TowerNode*> globals;
@@ -196,7 +197,25 @@ struct Compiler {
   }
   TowerNode* operand(TowerNode* n, const CoreType* expected = nullptr) {
     if (!n) { fail(n, "Missing operand"); return nullptr; }
-    if (!literal(n)) n = place(n);
+    struct Depth { unsigned& value; ~Depth() { --value; } } depth{value_depth};
+    if (++value_depth > 128) { fail(n, "Foundation expression nesting limit is 128"); return n; }
+    while ((label(n) == "CoreCallArgument" || label(n) == "CoreOperand") && tower_node_get_child_count(n) == 1) n = child(n, 0);
+    if (label(n) == "CoreCall") {
+      if ((!core_get(n) && !call(n)) || !program.error.empty()) return n;
+      if (!core_node(n).type.pointers && core_node(n).type.scalar == CoreScalar::Void) {
+        fail(n, "A void call cannot be used as a value"); return n;
+      }
+    } else if (label(n) == "CoreAddress" || label(n) == "CoreLoad") {
+      if (!shape(n, {"name"})) return n;
+      const bool address = label(n) == "CoreAddress";
+      auto& value = node(n, address ? CoreKind::Address : CoreKind::Load);
+      value.value = address ? place(member(n, "name")) : operand(member(n, "name"));
+      if (!program.error.empty()) return n;
+      value.type = core_node(value.value).type;
+      if (address) ++value.type.pointers;
+      else if (!value.type.pointers) { fail(n, "Load requires a pointer"); return n; }
+      else --value.type.pointers;
+    } else if (!literal(n)) n = place(n);
     if (!program.error.empty()) return n;
     auto& value = core_get(n) ? core_node(n) : node(n, CoreKind::Operand); auto text = tokens(n);
     if (literal(n)) {
@@ -284,7 +303,7 @@ struct Compiler {
   TowerNode* expression(TowerNode* n, CoreType expected) {
     if (label(n) == "CoreValue" && tower_node_get_child_count(n) == 1) n = child(n, 0);
     auto kind = label(n);
-    if (kind == "CoreOperand") return operand(n, &expected);
+    if (kind == "CoreOperand" || kind == "CoreAddress" || kind == "CoreLoad") return operand(n, &expected);
     if (!n) { fail(n, "Missing expression"); return nullptr; }
     if (kind == "CoreCall") { if (!call(n)) return nullptr; }
     else if (kind == "CoreBinary") {
@@ -311,15 +330,6 @@ struct Compiler {
         if (!integer(core_node(value.right).type)) fail(n, "A pointer offset must be an integer");
         auto element = input; --element.pointers; if (!core_type_size(element)) fail(n, "Cannot offset a void pointer");
       } else if (!integer(input) && value.op != CoreOp::Eq && value.op != CoreOp::Ne) fail(n, "This operation requires integer operands");
-    } else if (kind == "CoreAddress" || kind == "CoreLoad") {
-      if (!shape(n, {"name"})) return nullptr;
-      auto& value = node(n, kind == "CoreAddress" ? CoreKind::Address : CoreKind::Load);
-      value.value = kind == "CoreAddress" ? place(member(n, "name")) : operand(member(n, "name"));
-      if (!program.error.empty()) return n;
-      value.type = core_node(value.value).type;
-      if (value.kind == CoreKind::Address) {
-        ++value.type.pointers;
-      } else if (!value.type.pointers) fail(n, "Load requires a pointer"); else --value.type.pointers;
     } else { fail(n, "Unsupported foundation expression '" + kind + "'"); return nullptr; }
     if (core_aggregate(core_node(n).type)) fail(n, "Struct values require field access or a pointer; aggregate copies are not implemented");
     if (core_node(n).type != expected) fail(n, "Expected " + core_type_name(expected) + ", got " + core_type_name(core_node(n).type));

@@ -6687,3 +6687,106 @@ AGENTS.md/foundation notes and earlier journal edits; do not modify todo.txt.
 - Logs: `build/context-{online-deployment,pages-workflow}.log`; online screenshots
   and report: `build/deployment-verification/`. The source tree retains only the
   unrelated pre-existing AGENTS.md, foundation/journal notes and todo.txt changes.
+
+### 2026-11-17 — Ordinary increment places and composable call operands
+
+The user's `value++;` failed because the previous Increment demo deliberately
+matched only `(*pointer)++` / `++*pointer` as CoreValue, not a standalone call
+statement. That was too narrow for the intended demonstration. This entry
+supersedes that example and the earlier limitation on direct address arguments.
+The accidentally posted explosion-rendering request was explicitly withdrawn;
+no graphics project or rendering work was performed.
+
+Increment now has just two Tower rules extending CoreCall: postfix captures
+`$place:CorePlace '++'`, prefix captures `'++' $place:CorePlace`. Each replacement
+passes `&$place` to an ordinary typed helper. Captured places cover variables,
+fields, indexed elements, quoted names and fields through struct pointers. No
+native increment opcode, keyword, special-case evaluator or temporary-name
+generation was added. The helpers remain i32-specific, not generic functions.
+
+To support the requested general composition, CoreCall, CoreAddress and CoreLoad
+are now CoreOperand alternatives. CoreValue is CoreOperand or CoreBinary, so
+there is no duplicate call parse path. Calls compose in arguments, returns,
+conditions, array indices and binary operands. Binary syntax still has only two
+operands and one operator; no Term/Factor hierarchy, arithmetic precedence or
+arbitrary parenthesized expression syntax was introduced. The original pointer
+type-argument grammar remains shared. Foundation text still serializes these
+same enriched nodes, including nested calls and addresses; round trips retain
+their types and bindings. Types, void results and expression nesting (128) are
+checked before any execution.
+
+Semantic lowering now shares address/load checking between assignment values
+and operands. Re-visiting a call for comparison type inference reuses its typed
+components; it must not append a second argument list. This was caught during
+review and covered by a comparison of two calls with increment arguments.
+
+Evaluation is defined left to right: binary operands, call arguments, and the
+base/index of a place. An assignment captures its target address before its
+right side is evaluated. The LLVM backend follows that order explicitly. In
+the interpreter, expressions containing user/foreign calls or allocation effects
+use resumable value/address tasks, with per-statement scalar-result caches and a
+derived node dependency index. These are execution state, not another semantic
+graph, public instruction format or pointer metadata. Cached results freeze
+earlier reads before later argument effects and prevent repeated index/address
+evaluation. Each callee has its own frame/cache; returning resumes its parent's
+expression. Unselected branches remain unevaluated. Pure expressions keep the
+direct path. Task budgeting includes the new phases (documented in ABI.md), and
+an infinite nested call still yields with a one-task budget and is cancellable
+by the browser worker. Raw pointer semantics and containment are unchanged.
+
+The example prints 5, 6, 7, 7, 9 and demonstrates assigned results, discarded
+results, and `print(value++)`. Tests additionally exercise `value++ + ++value`,
+nested identity calls, returns/conditions, `array[index++]++`, struct fields,
+argument snapshots, assignment address capture and unsupported types/void calls.
+For a runtime pointer parameter, LLVM O2 still removes both helpers and leaves
+one load, one store and arithmetic. C++ does not know the increment spelling.
+
+A diagnostic assumption changed with the grammar: after `var x: i32 = 42` and
+a newline followed by `print(x);`, inserting an arithmetic operator now also
+parses, because calls can be operands. The full suite first reported 151/152
+passing for this reason. We kept the bounded grammar-only insertion search and
+added a conservative newline heuristic: if exactly one viable candidate also
+completes the current construct, report `Possible missing ...`. Completion is
+probed from the table; no punctuation list or semicolon-specific rule is used.
+Other repairs remain possible, so this is not phrased as a definite requirement.
+Same-line ambiguities remain expected alternatives. New tests prove that both
+the suggested terminator and an operator parse, and that the hint is qualified.
+
+Validation/environment: Windows checkout C:\Sandbox\tower, WSL Orchestral-Revng,
+WASI SDK 34. Rebuilt parser/interpreter and both optimized LLVM reactors with
+`cmake --build build/browser-wasi --parallel 4` and
+`TOWER_BROWSER_CROSS=ON TOWER_BUILD_JOBS=4 bash playground/scripts/build-llvm.sh`.
+- Final `node --test playground/tests/*.test.mjs`: 153/153 pass, including all
+  cross targets and repeat output determinism, canonical round trips, nested
+  evaluation with one-task budgets and differential interpreter/LLVM cases.
+- `bash playground/scripts/test-native-core.sh`: 2/2 ASan/UBSan suites pass;
+  includes nested increment calls, direct address arguments to foreign calls,
+  structure-preserving text round trips and node release accounting.
+- Full browser suite: 94/94 desktop/mobile checks pass, including entering
+  `value++;` without spaces, composed print calls, and cancellation/recovery
+  from `print(forever())`. The final newline-hint UI check is run separately
+  after rebuilding the diagnostic change. Screenshots were visually inspected.
+- All 17 bundled Tower sources equal their canonical formatting.
+- Browser-hosted LLVM emitted Windows x64 and Linux x64 executables containing
+  `print(increment(&value))`. Running build/cross/windows.exe directly and
+  build/cross/linux.elf through WSL both printed 5, 84, 42, 8, 41, 42.
+- Logs: build/increment-{composition,final}-{node,browser,native,llvm}*.log;
+  focused tests in playground/tests/increment.test.mjs. Parser-only development
+  trials can use TOWER_INTERPRETER_ONLY=1; final tests did not use that shortcut.
+
+Performance trial: `node build/profile-composed-calls.mjs`, 8 warmups and 24
+samples, each runtime using its own shipped Foundation, prior Pages module
+versus the new build. Median compilation was 10.842 -> 11.073 ms for the tiny
+program and 11.253 -> 11.376 ms for a 5,000-call loop. Tiny execution was
+0.077 -> 0.067 ms; 5,000 ordinary calls 8.736 -> 14.170 ms; 5,000 pure iterations
+4.571 -> 5.281 ms. Explicit sequencing adds interpreter overhead, particularly
+for calls; do not claim it is free. Compilation remained close in this trial.
+The recorded artifact is build/increment-composition-runtime-profile.json.
+Further interpreter scheduling/cache optimization is separate work; the LLVM
+inlining check already removes the tested runtime helper overhead.
+
+Limitations: full type-generic functions/overload resolution, hygienic generated
+bindings, richer surface arithmetic and additional addressable-place syntax
+remain future work. Existing edited documents are preserved; Restore loads the
+updated Increment example. Publication and online verification follow local
+checks. Unrelated AGENTS.md/foundation/journal edits and todo.txt stay unstaged.
