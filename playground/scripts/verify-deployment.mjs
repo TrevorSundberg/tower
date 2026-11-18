@@ -209,17 +209,19 @@ try {
     await expect(detectionPage.locator('#status')).toContainText('Complete');
     await detectionPage.locator('#build-targets summary').click();
     const detectedKey=name==='mobile'?'wasm':'windows';
-    await expect(detectionPage.locator('#target-options input:checked')).toHaveCount(1);
+    await expect(detectionPage.locator('#target-options input:checked')).toHaveCount(detectedKey==='wasm'?1:2);
+    await expect(detectionPage.locator('#target-wasm')).toBeChecked();
+    await expect(detectionPage.locator('#wasm-column')).toBeVisible();
     await expect(detectionPage.locator('#target-'+detectedKey)).toBeChecked();
     await expect(detectionPage.locator('#target-default')).toHaveCount(0);
     if(name==='mobile') await expect(detectionPage.locator('#target-options')).not.toContainText('(detected)');
     else await expect(detectionPage.locator('#target-label-windows')).toContainText('Windows x64 (detected)');
     await detectionPage.screenshot({path:new URL(name+'-target-default.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
     assert.deepEqual(errors,[]);
-    report.browsers.at(-1).defaultTarget=detectedKey;
+    report.browsers.at(-1).defaultTargets=[...new Set(['wasm',detectedKey])];
     report.browsers.at(-1).legacySelectionsIgnored=true;
     await detectionContext.close();
-    console.log(name+': legacy selections ignored; single default and detection marker verified.');
+    console.log(name+': legacy selections ignored; Wasm plus detected target defaults and detection marker verified.');
   }
 } finally { await browser.close(); }
 await writeFile(new URL('report.json',output),JSON.stringify(report,null,2)+'\n');

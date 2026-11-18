@@ -53,5 +53,5 @@ export async function detectBrowserTarget(nav = {}, timeoutMs = 200) {
 }
 
 export function defaultTargetSelection(detection) {
-  return { ...emptySelection(), [detection.key]: true };
+  return { ...emptySelection(), [detection.key]: true, wasm: true };
 }

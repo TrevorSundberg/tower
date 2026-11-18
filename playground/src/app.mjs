@@ -65,7 +65,7 @@ let frame = 0, queued = null, dirty = true, busy = false;
 let executionId = 0, executionError = null, runners = {};
 const idleExecutionWorkers = new Map();
 let linkInputs = {}, nativeDownloads = {}, llvmViews = {};
-let selectedTargets = emptySelection(), savedSelection = null, targetsChanged = false;
+let selectedTargets = { ...emptySelection(), wasm: true }, savedSelection = null, targetsChanged = false;
 try { savedSelection = savedTargetSelection(localStorage); } catch {}
 if (savedSelection) selectedTargets = savedSelection;
 const browserTarget = detectBrowserTarget(navigator);

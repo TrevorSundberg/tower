@@ -9477,3 +9477,24 @@ then continue semantic checking, formatting, interpretation, backend/driver and
 bootstrap retirement. Removing the active declaration-reading implementation from
 syntax.cpp does not mean all parser/frontend ownership or compiler control is
 already Tower code.
+
+### 2026-11-18: browser Wasm execution enabled alongside native defaults
+
+The user requested that browser targets always start with WebAssembly checked
+for execution and comparison with the interpreter, followed by push/deployment.
+The previous single detected default could select only a native profile and hide
+Wasm execution. Browser initialization and detected defaults now include Wasm;
+restored v3 preferences also enable it while preserving native selections. A
+manual session toggle remains available, but reopening/reloading enables Wasm
+again. This supersedes the earlier single-default policy without changing target
+ABI inference or introducing additional native defaults.
+
+Updated existing target unit/browser checks and deployment verification to cover
+Wasm plus the detected native profile, mobile Wasm-only fallback, native preference
+preservation, reload after disabling Wasm, syntax-only compiler warming, and real
+interpreter/Wasm output agreement alongside a native build. On Windows, `npm run
+build --prefix playground` succeeded and `npm test --prefix playground` passed
+217 tests with one optional fixture skipped (218 total); log:
+`build/wasm-default-node.log`. Browser validation and publication results follow.
+Fetched upstream compiler migration `b1a38d6` before publication; integration and
+artifact validation remain required. `todo.txt` is untouched.

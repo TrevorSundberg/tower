@@ -361,17 +361,16 @@ test('LLVM warms on a syntax-only document and the first program reuses that wor
   await expect(page.locator('#timings [data-label="LLVM load"]')).toContainText('(cached)');
 });
 
-test('disabled targets do not preload LLVM and enabling Wasm starts warming without execution',async({page,request})=>{
+test('saved disabled Wasm is reenabled and warmed even for syntax-only source',async({page,request})=>{
   test.skip(!(await (await request.get('/capabilities.json')).json()).llvm);
   const source=await (await request.get('/foundation.tower')).text();
   await page.addInitScript(source=>{
     localStorage.removeItem('tower-project-migrated-v1');localStorage.setItem('tower-playground-document-v1',JSON.stringify({source,filename:'foundation.tower',module:'foundation'}));
     localStorage.setItem('tower-build-targets-v3',JSON.stringify({wasm:false,x86:false,arm:false}));
   },source);
-  const requests=[];page.on('request',request=>requests.push(request.url()));
   await page.reload();await expect(page.locator('#execution-status')).toHaveText('Syntax only');
-  expect(requests.filter(url=>url.includes('tower-llvm.wasm'))).toEqual([]);
-  await page.locator('#build-targets summary').click();await page.locator('#target-wasm').check();
+  await expect(page.locator('#target-wasm')).toBeChecked();
+  await expect(page.locator('#wasm-column')).toBeVisible();
   await expect.poll(()=>page.evaluate(()=>performance.getEntriesByName('tower-llvm-warm').length)).toBe(1);
   await expect(page.locator('#execution-status')).toHaveText('Syntax only');
   await expect(page.locator('#llvm-output')).toBeEmpty();
