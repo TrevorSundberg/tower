@@ -10594,3 +10594,35 @@ and retained seed/reference remain native migration debt. Existing C++ semantic
 checking, parser orchestration, interpreter and LLVM lowering are outside this
 port. Re-run full native LLVM/bootstrap validation in an equipped environment
 before treating those integration paths as independently verified.
+
+### Formatter integration follow-up: pull/rebase and branch push
+
+The user subsequently authorized committing to a clean tree, pulling/rebasing
+and pushing. The formatter worktree was already clean. Fetched origin and
+rebased the two formatter commits onto origin/master 42e2349. The only conflict
+was the append-only journal; preserved the upstream shared-pane and pane-order
+entries followed by the formatter entry. The initial no-push statement above
+describes the earlier implementation turn; this follow-up authorizes pushing
+the formatter branch, without merging master or publishing site artifacts.
+
+Verified that git diff e99b73f HEAD -- CMakeLists.txt cmake scaffolding
+playground/tests/formatter-port.test.mjs playground/scripts/test-bootstrap.sh
+is empty. The formatter implementation, registration and tests are unchanged;
+the upstream changes affect playground presentation and documentation.
+Reused the already validated compiler artifacts in the isolated worktree.
+
+Revalidation passed: CTest 4/4; node --test playground/tests/*.test.mjs
+220 passed, 0 failed, 1 optional native-output fixture skipped;
+npm run build --prefix playground; and six desktop/mobile Playwright cases
+covering typed instructions/replacements, target selection/equal columns and
+viewport layout. Browser command from playground:
+npx playwright test tests/browser/execution.spec.mjs tests/browser/export.spec.mjs
+--grep 'executes replacements|target selection controls|workspace fits the viewport'
+--reporter=line. The initial frontend build lacked the two LLVM/libc++ license
+files because this worktree's LLVM submodule is uninitialized. Copied those
+existing license files from the original workspace into the isolated worktree
+and rebuilt successfully; no third-party implementation was altered.
+
+Logs: build/formatter-bootstrap/rebase-{ctest,node,build,browser}.log.
+todo.txt and the original workspace remain unchanged. No compiler performance
+rerun was needed because the compiler/build-source comparison above is empty.
