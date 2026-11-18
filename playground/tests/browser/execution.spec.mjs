@@ -45,6 +45,25 @@ test('replacement errors explain the required syntax inline and recover after co
   await expect(page.locator('#execution-status')).toHaveText('Finished \u00b7 backends match', { timeout: 30000 });
 });
 
+test('extra semicolons have concise context and increment demonstrates both returned values', async ({page},info) => {
+  await setSource(page,'// Aliases share the same typed storage.\nvar alias: i32*;;');
+  await expect(page.locator('.tw-inline-error-message')).toHaveText("Unexpected ';'. Expected a statement or grammar declaration.");
+  await expect(page.locator('.tw-inline-error-heading')).toHaveText('ErrorLn 2, Col 17');
+  await expect(page.locator('.tw-error-range')).toHaveText(';');
+  expect(await page.locator('.tw-inline-error-card').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
+  await page.locator('#editor').screenshot({path:`../build/extra-semicolon-${info.project.name}.png`});
+  await page.locator('#example-kind').selectOption('increment.tower');
+  await expect(page.locator('#filename')).toHaveText('increment.tower');
+  await expect(page.locator('#execution-status')).toHaveText('Finished \u00b7 backends match',{timeout:30000});
+  await expect(page.locator('#execution-output')).toHaveText('5\n6\n7\n7\n');
+  await expect(page.locator('#llvm-output')).toHaveText('5\n6\n7\n7\n');
+  await expect(page.locator('.tw-inline-error')).toHaveCount(0);
+  await expect(page.locator('#core-instructions')).toContainText('post_increment(pointer)');
+  await expect(page.locator('#llvm-after')).not.toContainText('post_increment');
+  await expect(page.locator('#tree')).toContainText('post_increment');
+  await page.screenshot({path:`../build/increment-${info.project.name}.png`});
+});
+
 test('infinite execution stays responsive, cancels, and rejects results after edits', async ({ page }) => {
   await page.locator('#auto-execute').uncheck();
   await setSource(page, grammar + '\nloop { print(7); }');

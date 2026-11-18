@@ -75,7 +75,24 @@ test('large expected sets and deep invalid input fall back without a definite re
  const alternatives=Array.from({length:80},(_,i)=>`'choice${i}' 'body'`).join(' | ');
  const broad=error('parse Statement = '+alternatives+'; body');
  assert.doesNotMatch(broad.error,/Missing/);
- assert.match(broad.error,/Expected a valid continuation such as/);
+ assert.match(broad.error,/Expected a statement or grammar declaration/);
  const deep=error("parse Value = '(' Value ')' | Number;parse Statement = Value ';';"+'('.repeat(4200)+'42;');
  assert.doesNotMatch(deep.error,/Missing/);
+});
+
+test('statement boundaries never cite an unstarted call or other possible next rule',()=>{
+ for(const source of ['var alias: i32*;;', ';', 'print(42);;', 'fn f(): void {} ;']) {
+  const result=error(source);
+  assert.equal(result.error,"Unexpected ';'. Expected a statement or grammar declaration.");
+  assert.equal(result.errorOffset,source.lastIndexOf(';'));
+ }
+ const nested=error('fn f(): void { var x: i32;; }');
+ assert.doesNotMatch(nested.error,/Required by|CoreCall|CorePlace/);
+ const nullable=error("parse Empty = ; parse Future = Empty 'next'; parse Statement = '{' Future '}'; { ;");
+ assert.doesNotMatch(nullable.error,/In rule Future/,'empty prefixes do not mean a rule consumed source');
+ const partial=error('print(42)\nvar answer: i32;');
+ assert.match(partial.error,/In rule CoreCallStatement/);
+ assert.match(partial.error,/foundation\.tower, line 39,/);
+ assert.doesNotMatch(partial.error,/Required by/);
+ assert.equal(parse("parse Statement |= ';'; var x: i32;;").status,'done','a user rule may permit empty statements');
 });

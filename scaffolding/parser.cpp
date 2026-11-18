@@ -2580,35 +2580,39 @@ const char* parser_recognizer_get_error(Recognizer* recognizer) {
 
 ParserDiagnostic parser_recognizer_diagnostic(Recognizer* r, ParserDiagnosticRead read, void* source) {
   ParserDiagnostic result{r->read_start, r->consumed_end};
+  result.at_start = !r->shifted;
   if (r->stack.empty() || r->stack.size() > 4096) return result;
-  using States = std::vector<const State*>;
+  struct DiagnosticState { const State* state; bool consumed; };
+  using States = std::vector<DiagnosticState>;
   States original;
-  for (const auto& entry : r->stack) original.push_back(entry.state);
+  for (const auto& entry : r->stack) original.push_back({entry.state, entry.length != 0});
   size_t budget = 8192;
   // 0 = not proven, 1 = shifted, 2 = accepted. No semantic actions or lexing.
   const auto probe = [&](States& stack, uint32_t id, const State** before) {
     for (size_t steps = 0; steps < 128 && budget; ++steps) {
       --budget;
-      const State* state = stack.back();
+      const State* state = stack.back().state;
       const auto* edge = parser_find_action(state, id);
       if (!edge) return 0;
       if (edge->shift_state) {
         if (before) *before = state;
-        stack.push_back(edge->shift_state); return 1;
+        stack.push_back({edge->shift_state, false}); return 1;
       }
       const auto& rule = *edge->reduce_rule;
       if (!rule.index) return 2;
       if (rule.symbols.size() >= stack.size()) return 0;
-      stack.resize(stack.size() - rule.symbols.size());
-      auto next = stack.back()->gotos_after_reduction.find(rule.non_terminal);
-      if (next == stack.back()->gotos_after_reduction.end()) return 0;
-      stack.push_back(next->second);
+      const auto first = stack.end() - rule.symbols.size();
+      bool consumed = std::any_of(first, stack.end(), [](const auto& entry) { return entry.consumed; });
+      stack.erase(first, stack.end());
+      auto next = stack.back().state->gotos_after_reduction.find(rule.non_terminal);
+      if (next == stack.back().state->gotos_after_reduction.end()) return 0;
+      stack.push_back({next->second, consumed});
     }
     result.complete = false; return 0;
   };
   std::vector<uint32_t> candidates;
-  for (const auto& [id, edge] : original.back()->transitions->direct_edges) candidates.push_back(id);
-  for (const auto& range : original.back()->transitions->range_edges) candidates.push_back(range.range.start);
+  for (const auto& [id, edge] : original.back().state->transitions->direct_edges) candidates.push_back(id);
+  for (const auto& range : original.back().state->transitions->range_edges) candidates.push_back(range.range.start);
   std::sort(candidates.begin(), candidates.end());
   // A large grammar must not turn one error into an unbounded repair search.
   if (candidates.size() > 64) { candidates.resize(64); result.complete = false; }
@@ -2618,6 +2622,14 @@ ParserDiagnostic parser_recognizer_diagnostic(Recognizer* r, ParserDiagnosticRea
     if (!accepted) continue;
     ParserExpectation expected{id, id == PARSER_ID_EOF ? "end of input" : debug_str(id, r->table->grammar)};
     if (before) for (const auto& item : before->diagnostic_items) {
+      // Closure items at position zero are possible future rules, not context
+      // already read from the source. Never attribute the error to those rules.
+      if (!item.symbol_index) continue;
+      // Empty reductions do not establish context either. The final stack entry
+      // is the hypothetical expected token, so only inspect its preceding prefix.
+      if (item.symbol_index >= stack.size() - 1 ||
+          !std::any_of(stack.end() - 1 - item.symbol_index, stack.end() - 1,
+            [](const auto& entry) { return entry.consumed; })) continue;
       const auto* symbol = parser_table_get_grammar_symbol_or_null(r->table->grammar, item);
       if (symbol && !symbol->non_terminal && id >= symbol->terminal.start && id <= symbol->terminal.end)
         expected.contexts.push_back({item.rule_index, item.symbol_index});
@@ -2629,7 +2641,7 @@ ParserDiagnostic parser_recognizer_diagnostic(Recognizer* r, ParserDiagnosticRea
         int status = probe(continuation, token, nullptr);
         if (r->prefix && token != PARSER_ID_EOF &&
             (status == 2 || (!status && probe(previous, PARSER_ID_EOF, nullptr) == 2))) {
-          continuation = {&r->table->states.front()};
+          continuation = {{&r->table->states.front(), false}};
           status = probe(continuation, token, nullptr);
         }
         return status;
@@ -2639,7 +2651,7 @@ ParserDiagnostic parser_recognizer_diagnostic(Recognizer* r, ParserDiagnosticRea
       for (size_t ahead = 0; expected.insertion && read && ahead < 3; ++ahead) {
         uint32_t token;
         auto accepts = [](void* context, uint32_t token) {
-          return parser_find_action(static_cast<States*>(context)->back(), token) != nullptr;
+          return parser_find_action(static_cast<States*>(context)->back().state, token) != nullptr;
         };
         if (!read(source, position, accepts, &continuation, token)) { expected.insertion = false; result.complete = false; break; }
         expected.insertion = consume(token) != 0;

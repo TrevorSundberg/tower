@@ -11,7 +11,7 @@ await mkdir(output, {recursive:true});
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 const report = {url:base.href, assets:[], browsers:[]};
 const assets=['index.html','app.js','worker.js','execution-worker.js','target-worker.js','style.css',
-  'bedrock.tower','foundation.tower','tower.wasm','tower-llvm.wasm','tower-llvm.wasm.gz','tower-cross.wasm.gz','capabilities.json',
+  'bedrock.tower','foundation.tower','increment.tower','tower.wasm','tower-llvm.wasm','tower-llvm.wasm.gz','tower-cross.wasm.gz','capabilities.json',
   ...new Set(Object.values(targets).flatMap(t=>t.pointerBytes===4?[]:[t.triple+'-runtime.o',...t.inputs]).map(name=>'targets/'+name))];
 for (const name of assets) {
   const response = await fetch(new URL(name, base));
@@ -108,6 +108,19 @@ try {
     await page.getByRole('button',{name:'Restore',exact:true}).click();
     await expect(page.locator('#status')).toContainText('Complete');
     await expect(page.locator('.tw-inline-error')).toHaveCount(0);
+    await page.locator('#editor').click({position:{x:80,y:20}});
+    await page.getByRole('textbox',{name:'Tower source'}).press('ControlOrMeta+a');
+    await page.keyboard.insertText('var alias: i32*;;');
+    await expect(page.locator('.tw-inline-error-message')).toHaveText("Unexpected ';'. Expected a statement or grammar declaration.");
+    await expect(page.locator('.tw-error-range')).toHaveText(';');
+    await page.screenshot({path:new URL(name+'-extra-semicolon.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
+    await page.locator('#example-kind').selectOption('increment.tower');
+    await expect(page.locator('#execution-status')).toContainText('backends match',{timeout:60000});
+    await expect(page.locator('#execution-output')).toHaveText('5\n6\n7\n7\n');
+    await expect(page.locator('#llvm-output')).toHaveText('5\n6\n7\n7\n');
+    await expect(page.locator('#llvm-after')).not.toContainText('post_increment');
+    await expect(page.locator('.tw-inline-error')).toHaveCount(0);
+    await page.screenshot({path:new URL(name+'-increment.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
     await page.locator('#example-kind').selectOption('execution.tower');
     await expect(page.locator('#execution-status')).toContainText('backends match',{timeout:60000});
     await page.reload();
@@ -137,7 +150,7 @@ try {
     }
     await page.screenshot({path:new URL(name+'-native-targets.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
     assert.deepEqual(errors, []);
-    report.browsers.push({name,output:'42\n',forwardModuleBindings:true,migration:true,uniformExecutionUI:true,incrementalBedrock:true,emptyLiteralDiagnostic:true,restore:true,reload:true,nativeTargets:['Windows x64','Linux x64','macOS x64'],equalColumns:true,errors});
+    report.browsers.push({name,output:'42\n',incrementOutput:'5\n6\n7\n7\n',extraSemicolonDiagnostic:true,forwardModuleBindings:true,migration:true,uniformExecutionUI:true,incrementalBedrock:true,emptyLiteralDiagnostic:true,restore:true,reload:true,nativeTargets:['Windows x64','Linux x64','macOS x64'],equalColumns:true,errors});
     console.log(name + ': backends agree; forward module bindings, editable grammar, persistence, native builds/downloads and equal columns verified.');
     await context.close();
   }

@@ -194,6 +194,10 @@ compilable Foundation source, LLVM raw, LLVM optimized, interpreter output,
 and LLVM output. There is no separate compact interpreter bytecode yet.
 Choose **Functions** for typed calls, recursion and pointer arguments; it prints
 `720` and `721`. Every execution starts interpreter and LLVM workers in parallel.
+Choose **Increment** for Tower-defined prefix/postfix syntax calling typed pointer
+helpers. It prints `5`, `6`, `7`, `7`: postfix returns the old value and prefix the
+new value. Both update the same variable; inspect LLVM optimized for eliminated
+helper calls and temporaries.
 Completion automatically compares output, status, trap messages/locations and
 truncation. A missing backend reports comparison unavailable; a difference is
 shown as a mismatch. Matching truncated output is explicitly labelled as captured

@@ -6555,3 +6555,121 @@ deletion/replacement fixes and machine-applicable fix actions remain future work
   143 Node/Wasm checks, 92 Playwright desktop/mobile checks, and 2 native sanitizer
   suites. Other-thread changes to AGENTS.md, docs/foundation.md and earlier journal
   notes were left unstaged; todo.txt was not modified or staged by this task.
+
+### 2026-11-17 — Prefix/postfix increment as Tower syntax: feasibility probe
+
+The user asked whether grammar replacements can implement increment, including
+value-returning helpers which LLVM inlines like ordinary compiled code. This was
+an investigation, not a change to the shipped grammar or compiler.
+
+Verified using the existing optimized Wasm parser/interpreter and LLVM reactor:
+`node build/probe-increment.mjs` from C:\Sandbox\tower. The ignored probe saves
+source, expanded Foundation, raw LLVM and optimized LLVM as
+`build/increment-{statements,values}*`. No rebuild was needed.
+
+- Statement rules capturing CorePlace and expanding `x++;` / `++x;` into
+  `x = x + 1;` already work for identifiers, struct fields and array elements.
+  Interpreter and LLVM-generated Wasm both printed 7, 11, 21 in the probe.
+- Typed pointer helpers already implement the value distinction: postfix loads
+  the old value, stores old + 1, returns old; prefix stores and returns the new
+  value. Grammar-only CoreValue extensions for `(*p)++` and `++*p` expanded into
+  `postinc_i32(p)` and `preinc_i32(p)`. Starting at 5, both backends printed
+  old=5, new=7, final=7.
+- An exported function with an unknown pointer argument calls both helpers and
+  returns the sum of their results. LLVM O2 removed both calls and all helper
+  temporaries. Its body has one load, add 2, one store, an addition of old/new,
+  and return. This tests actual inlining without relying on a constant input.
+- Existing semantic checking rejected u32* passed to the i32* helper with
+  `Expected i32*, got u32*; use an explicit conversion`, and rejected loading
+  an i32 as a pointer with `Load requires a pointer`. Foundation already has
+  typed addressable places and raw-pointer load/store validation; these are
+  compile-time type checks, not restored runtime safe handles.
+
+Limits and next steps: direct `postinc_i32(&x)` is currently rejected because
+call arguments are CoreOperand/type spellings, not arbitrary CoreValue trees;
+the native call checker also consumes operands. Merely extending its grammar
+would not implement evaluation of nested values. General `y = x++` composition
+therefore needs address-valued arguments or a lowering step which introduces a
+pointer temporary and call. Broader expressions need deterministic sequencing,
+exactly-once evaluation of an address (especially future side-effectful indexes),
+and hygienic bindings for generated temporaries and helper references. Current
+templates are structural and not hygienic. The duplicate-place statement demo
+is suitable for today's restricted places, not a general effectful-expression
+translation. Generic typed helpers/overload selection also remain future work;
+the tested value helpers specifically operate on i32.
+
+No new increment-specific Foundation opcode is required for ordinary scalar
+increments. Existing load/add/store/call/return operations suffice; richer syntax
+can stay above the instruction-like Foundation without adding precedence there.
+LLVM currently runs function(sroa,mem2reg,instcombine,simplifycfg),default<O2>.
+Inlining here is observed, not a universal guarantee or a Clang equivalence
+proof. Tower's wrapping arithmetic and conservatively aligned raw accesses are
+not necessarily identical to C's optimization assumptions. Preserve the selected
+semantics instead of promising identical IR for every source expression.
+
+References checked: https://llvm.org/docs/Passes.html (inlining and promotion),
+https://llvm.org/docs/LangRef.html#add-instruction (modular addition versus
+nsw/nuw poison contracts). This task did not modify todo.txt or unrelated work.
+
+### 2026-11-17 — Correct misleading rule context; add the Increment example
+
+The user's `var alias: i32*;;` screenshot exposed a diagnostic regression:
+`Required by CoreCall` / `CorePlace` described possible future rules, although
+the previous declaration was complete and no call had begun. The LR closure
+contains those items because an identifier can begin the next statement; they
+were incorrectly presented as an explanation for the unexpected semicolon.
+
+The error-only probe now distinguishes an unstarted parse from a partly read
+rule, filters position-zero closure items, and carries a consumed-source bit
+through speculative reductions. Empty prefixes do not establish user context.
+At a new top-level boundary, the message is now:
+`Unexpected ';'. Expected a statement or grammar declaration.` No punctuation
+allowlist, semicolon exception, deletion repair or normal parse-path change was
+added. Defining `parse Statement |= ';';` still permits empty statements.
+
+For an in-progress rule, unique context is introduced as `In rule ...` with
+source provenance, not `Required by`. If alternatives of one rule remain viable,
+name that rule at its definition rather than selecting an arbitrary alternative.
+If multiple different rules remain possible, do not present one as the user's
+intent. Existing missing-literal suggestions and conflict provenance remain.
+Tests cover the exact screenshot, start-of-file, call/function boundaries,
+nested blocks, nullable prefixes, user-enabled empty statements and a missing
+semicolon which still correctly identifies CoreCallStatement.
+
+Added `scaffolding/examples/increment.tower` and an Increment dropdown option.
+Its Tower rules translate `(* pointer) ++` and `++ * pointer` into typed helper
+calls. Outputs are 5, 6, 7, 7, showing old/new results and the updated variable.
+An independent LLVM test uses an exported function with an unknown pointer
+argument: both calls inline, leaving one load, one store and arithmetic, with
+no alloca or helper call. No Foundation opcode or parser special case was added.
+The example follows the existing canonical formatter: arbitrary custom operators
+receive generic spacing, and output comments precede statements. Initial tight
+operator spelling and trailing comments failed the canonical-source check; the
+example was adjusted rather than introducing increment-specific formatting.
+
+Reproduction/validation (Windows checkout, WSL Orchestral-Revng, WASI SDK 34):
+- Rebuilt `build/browser-wasi` and both optimized LLVM reactors using
+  `TOWER_BROWSER_CROSS=ON TOWER_BUILD_JOBS=4 bash playground/scripts/build-llvm.sh`.
+- `node --test playground/tests/*.test.mjs`: 146/146 pass.
+- `bash playground/scripts/test-native-core.sh`: 2/2 ASan/UBSan suites pass.
+- `npm run check:format --prefix playground`: all 17 Tower sources pass.
+- Full Playwright run: existing 92 checks passed; two new desktop/mobile checks
+  initially expected column 16 instead of the actual second semicolon's column
+  17. Corrected the test expectation; both focused checks then passed. The
+  screenshots were visually inspected on desktop/mobile, including the bubble,
+  marked extra token, wrapping and Increment execution columns.
+- `node playground/scripts/verify-deployment.mjs http://127.0.0.1:4173/` passed:
+  21 asset hashes and desktop/mobile workflows, including the new error/example.
+  Logs/artifacts: `build/context-{node-tests,native-tests,browser-tests,
+  focused-browser,local-deployment,llvm-build}.log`,
+  `build/extra-semicolon-{desktop,mobile}.png`, `build/increment-desktop.png`.
+- An initial timing trial overlapped builds/tests and was discarded as a useful
+  comparison. After they finished, `node playground/scripts/profile-diagnostics.mjs
+  build/pages-deploy/tower.wasm` compared the previous deployment with this build:
+  missing-semicolon median 0.182 -> 0.187 ms (p95 0.290 -> 0.293), valid source
+  0.505 -> 0.530 ms, deep invalid 3.580 -> 3.719 ms. Forty warm samples follow
+  eight warmups; includes reset/parse/JSON, excludes module loading. No material
+  latency regression observed; this is not an optimization claim.
+
+Source and Pages publication follow these local checks. Preserve unrelated
+AGENTS.md/foundation notes and earlier journal edits; do not modify todo.txt.

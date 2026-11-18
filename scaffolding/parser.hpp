@@ -362,6 +362,7 @@ struct ParserExpectation {
 struct ParserDiagnostic {
   size_t offset = 0, insertion_offset = 0;
   bool complete = true;
+  bool at_start = false;
   std::vector<ParserExpectation> expected;
 };
 using ParserDiagnosticAccepts = bool (*)(void*, uint32_t);

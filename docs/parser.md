@@ -366,8 +366,13 @@ skipped tokens per speculative read. Exhaustion suppresses definite repair hints
 No deletion, replacement, multi-insertion search or multi-error resynchronization
 is implemented. Parsing still stops at the first error.
 
-Expectations cite the relevant rule spellings through the shared formatter and
-their definition file/line/column. Conflict errors describe finishing versus
+An error at a fresh statement/declaration boundary reports that category instead
+of listing arbitrary possible next tokens. Rule context is shown only when a
+nonempty prefix has actually been read, never for unstarted closure items or an
+empty prefix. A unique active rule is named with its definition file/line/column;
+when several alternatives of that rule remain possible, only the rule name is
+cited. Multiple different possible rules are not presented as requirements.
+Specific rule spellings use the shared formatter. Conflict errors describe finishing versus
 continuing named productions (or the two possible completed productions) and
 both definition locations, without state numbers. Source provenance resides on
 shared grammar nodes; cached tables retain only derived positions. Runtime error

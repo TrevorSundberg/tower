@@ -133,12 +133,13 @@ std::string source_location(const SyntaxNode& node) {
   }
   return node.source->name + ", line " + std::to_string(line) + ", column " + std::to_string(column);
 }
-std::string describe_production(const Version& version, const Definitions& definitions, size_t index) {
+std::string describe_production(const Version& version, const Definitions& definitions, size_t index, bool name_only = false) {
   auto found = version.productions.find(index);
   if (found == version.productions.end()) return {};
   const auto& [name, alternative] = found->second;
   auto rule = definitions.find(name);
   if (rule == definitions.end() || alternative >= rule->second.size()) return {};
+  if (name_only) return name + " (" + source_location(semantic(rule->second.front())) + ")";
   const auto& sequence = semantic(rule->second[alternative]);
   std::string spelling;
   for (auto* term : sequence.items) {
@@ -659,6 +660,13 @@ std::string syntax_diagnostic(SyntaxSession& session, Recognizer* recognizer, bo
   } else {
     const std::string original = parser_recognizer_get_error(recognizer);
     message = original.starts_with("Unexpected ") ? "Unexpected " + actual + "." : original + ".";
+    // A new top-level parse has not entered any statement. Listing arbitrary
+    // leaf rules here (e.g. CoreCall) falsely suggests that the user began one.
+    // Template parsers have a different root and keep their checked expectations.
+    if (repairs && diagnostic.at_start) {
+      message += definitions.contains("Statement") ? " Expected a statement or grammar declaration." : " Expected a grammar declaration.";
+      return message;
+    }
     message += diagnostic.complete ? " Expected " : " Expected a valid continuation such as ";
     for (size_t i = 0; i < std::min(expected.size(), size_t(6)); ++i) {
       if (i) message += i + 1 == expected.size() ? " or " : ", ";
@@ -668,16 +676,21 @@ std::string syntax_diagnostic(SyntaxSession& session, Recognizer* recognizer, bo
     message += ".";
   }
   std::set<size_t> seen;
-  size_t contexts = 0;
+  std::map<std::string, std::vector<size_t>> contexts;
   for (const auto& option : expected) {
     if (repair && &option != repair) continue;
     for (const auto& position : option.contexts) {
       if (!seen.insert(position.production).second) continue;
-      auto description = describe_production(*session.version, definitions, position.production);
-      if (description.empty()) continue;
-      message += "\nRequired by " + description + ".";
-      if (++contexts == 2) return message;
+      auto found = session.version->productions.find(position.production);
+      if (found != session.version->productions.end()) contexts[found->second.first].push_back(position.production);
     }
+  }
+  // A unique active rule is useful provenance. Multiple possible rules are not
+  // proof that any particular one was intended; don't pick arbitrary examples.
+  if (contexts.size() == 1) {
+    const auto& alternatives = contexts.begin()->second;
+    auto description = describe_production(*session.version, definitions, alternatives.front(), alternatives.size() > 1);
+    if (!description.empty()) message += "\nIn rule " + description + ".";
   }
   return message;
 }
