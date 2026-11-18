@@ -9695,3 +9695,23 @@ previous Ubuntu WSL distribution nor a local Clang/llvm-ar toolchain available;
 this unrelated fixture was not fabricated or the test weakened. Browser execution
 and native artifact generation are covered by the passing browser suite.
 git diff --check passed. README documents the shared presentation contract.
+
+
+Publication: the local deployment verifier passed both device profiles, all 23
+asset hashes and all five native downloads (build/shared-panes-deployment-local.log).
+A final pull/rebase included f034216's grammar-validation source migration; only
+journal append conflicts required resolution. git diff b95053d HEAD -- playground
+was empty after the rebase, confirming the tested playground sources were unchanged.
+The deployment intentionally retains bbe018e's published compiler binaries and
+does not claim to include f034216's newer internal compiler migration.
+
+Source cda5425 (implementation 2f80d01) was pushed normally to master. Static output
+2038bba was pushed normally to gh-pages, changing only app.js/map, index.html,
+style.css and target-worker.js/map. GitHub Pages run
+https://github.com/TrevorSundberg/tower/actions/runs/44415313097 succeeded.
+Live command from playground: node scripts/verify-deployment.mjs
+https://trevorsundberg.github.io/tower/ . All 23 fetched assets matched the local
+build by SHA-256; desktop and mobile verified execution agreement, project
+persistence, editable grammar, native builds/downloads, equal columns and defaults.
+No browser page errors were reported. Log: build/shared-panes-deployment-live.log;
+report/screenshots: build/deployment-verification/. todo.txt was not modified.
