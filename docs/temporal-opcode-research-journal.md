@@ -7479,3 +7479,23 @@ entities-browser-final-tests.log. Earlier failed browser/sanitizer runs and thei
 causes are retained above rather than represented as uninterrupted success.
 The existing LLVM CreateGlobalStringPtr deprecation remains unrelated to this port.
 Unrelated working notes and todo.txt were not modified.
+
+## 2026-11-18 - Entity/parser migration and preload published
+
+Pushed implementation 0f09230. Pages commit 3bd85bf deployed the tested compiler
+binaries and worker/UI bundles; workflow 44340239269 completed successfully.
+Before publishing, all three built Wasm reactors were compared byte-for-byte with
+the local dist assets used by the passing final 100-test browser run.
+
+`node playground/scripts/verify-deployment.mjs https://trevorsundberg.github.io/tower/`
+then confirmed all 22 remote asset hashes match that local build and verified
+desktop/mobile execution agreement, editable grammar, persistence, forward module
+bindings, native builds/downloads and equal columns. Logs are
+build/entities-pages.log and build/entities-online.log; the report/screenshots
+are in build/deployment-verification/. Live playground:
+https://trevorsundberg.github.io/tower/.
+
+The next parser migration is recognizer control/Match access and then LR table
+construction and grammar installation on the Tower entity store. The production
+node/forest algorithms have moved; the remaining C++ adapters and semantic/compiler
+algorithms are still explicitly tracked work, not a completed self-hosting claim.
