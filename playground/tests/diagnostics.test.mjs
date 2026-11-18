@@ -99,7 +99,7 @@ test('statement boundaries never cite an unstarted call or other possible next r
   assert.equal(result.errorOffset,source.lastIndexOf(';'));
  }
  const nested=error('fn f(): void { var x: i32;; }');
- assert.doesNotMatch(nested.error,/Required by|CoreCall|CorePlace/);
+ assert.doesNotMatch(nested.error,/Required by|CoreCall|CoreLocation/);
  const nullable=error("parse Empty = ; parse Future = Empty 'next'; parse Statement = '{' Future '}'; { ;");
  assert.doesNotMatch(nullable.error,/In rule Future/,'empty prefixes do not mean a rule consumed source');
  const partial=error('print(42)\nvar answer: i32;');

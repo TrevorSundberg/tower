@@ -71,8 +71,8 @@ test('increment helper calls inline with a runtime pointer argument', {skip: !ll
   const source = `
 fn post(p: i32*): i32 { var old: i32 = *p; *p = old + 1; return old; }
 fn pre(p: i32*): i32 { var next: i32 = *p; next = next + 1; *p = next; return next; }
-parse CoreCall |= $place:CorePlace '++' => replace { post(&$place) };
-parse CoreCall |= '++' $place:CorePlace => replace { pre(&$place) };
+parse CoreCall |= $target:CoreLocation '++' => replace { post(&$target) };
+parse CoreCall |= '++' $target:CoreLocation => replace { pre(&$target) };
 export fn increment_pair(p: i32*): i32 {
     var old: i32 = p[0]++;
     var next: i32 = ++p[0];

@@ -71,7 +71,7 @@ test('invalid structs and field operations are checked before effects', () => {
     ['struct A {} var a: A; var b: A = a;', /aggregate copies/], ['struct A {} var a: A; print(a);', /field access or a pointer/],
     ['struct A {} fn f(a: A): void {}', /Struct parameters/], ['struct A {} fn f(): A {}', /Struct returns/],
     ["parse CoreStruct = 'broken'; broken", /missing capture/],
-    ["parse CorePlace = 'broken'; var a: i32 = broken;", /missing capture/],
+    ["parse CoreLocation = 'broken'; var a: i32 = broken;", /missing capture/],
   ]) {
     const handle = tower.compile('print(99); ' + source);
     try { const result = tower.execute(handle); assert.equal(result.status, 'error', source); assert.match(result.error, error, source); assert.equal(result.steps, 0); assert.equal(result.output, ''); }

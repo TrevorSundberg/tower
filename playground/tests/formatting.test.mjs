@@ -59,9 +59,9 @@ test('affix spacing follows rule shape, keeps infix spacing and separates adjace
  const grammar=`parse Prefix = '~~' Identifier;
 parse NestedPrefix = '~~' Prefix;
 parse Statement |= 'prefix' NestedPrefix ';' | 'postfix' Identifier '!!' ';';
-parse CoreCall |= $place:CorePlace '!!' => replace { post(&$place) };
-parse CoreCall |= '~~' $place:CorePlace => replace { pre(&$place) };
-parse CoreCall |= $a:CorePlace '%%' $b:CorePlace => replace { combine($a, $b) };
+parse CoreCall |= $target:CoreLocation '!!' => replace { post(&$target) };
+parse CoreCall |= '~~' $target:CoreLocation => replace { pre(&$target) };
+parse CoreCall |= $a:CoreLocation '%%' $b:CoreLocation => replace { combine($a, $b) };
 `;
  const formatted=format(grammar+'prefix ~~ ~~ x;\nvar a:i32=~~ x; var b:i32=x !!; var c:i32=x%%y;');
  assert.ok(formatted.includes('prefix ~~ ~~x;'));

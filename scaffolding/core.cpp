@@ -157,20 +157,20 @@ struct Compiler {
     if (auto found = globals.find(name); found != globals.end()) return found->second;
     fail(n, "Unknown local '" + name + "'"); return nullptr;
   }
-  TowerNode* place(TowerNode* n, unsigned depth = 0) {
+  TowerNode* location(TowerNode* n, unsigned depth = 0) {
     while ((label(n) == "CoreCallArgument" || label(n) == "CoreOperand") && tower_node_get_child_count(n) == 1) n = child(n, 0);
     if (label(n) == "CorePointerArgument") { node(n, CoreKind::Operand); fail(n, "Expected a value argument, got a type spelling"); return n; }
     if (depth > 128) { node(n, CoreKind::Operand); fail(n, "Foundation field path limit is 128"); return n; }
     if (core_get(n)) return n;
-    if (label(n) != "CorePlace" || !member(n, "base")) {
-      auto* name = label(n) == "CorePlace" ? member(n, "name") : n;
-      if (!name) { fail(n, "Malformed CorePlace tree: missing capture 'name'"); return n; }
+    if (label(n) != "CoreLocation" || !member(n, "base")) {
+      auto* name = label(n) == "CoreLocation" ? member(n, "name") : n;
+      if (!name) { fail(n, "Malformed CoreLocation tree: missing capture 'name'"); return n; }
       auto& value = node(n, CoreKind::Operand); value.binding = lookup(name);
       if (value.binding) value.type = core_node(value.binding).type;
       return n;
     }
     if (auto* index = member(n, "index")) {
-      auto& value = node(n, CoreKind::Index); value.left = place(member(n, "base"), depth + 1);
+      auto& value = node(n, CoreKind::Index); value.left = location(member(n, "base"), depth + 1);
       if (!program.error.empty()) return n;
       auto parent = core_node(value.left).type; value.indirect = parent.pointers != 0;
       if (parent.pointers) { --parent.pointers; value.type = parent; }
@@ -185,7 +185,7 @@ struct Compiler {
       return n;
     }
     if (!shape(n, {"base", "field"})) return n;
-    auto& value = node(n, CoreKind::Field); value.left = place(member(n, "base"), depth + 1);
+    auto& value = node(n, CoreKind::Field); value.left = location(member(n, "base"), depth + 1);
     if (!program.error.empty()) return n;
     auto parent = core_node(value.left).type;
     value.name = identifier(tokens(member(n, "field"))); value.indirect = parent.pointers == 1;
@@ -209,13 +209,13 @@ struct Compiler {
       if (!shape(n, {"name"})) return n;
       const bool address = label(n) == "CoreAddress";
       auto& value = node(n, address ? CoreKind::Address : CoreKind::Load);
-      value.value = address ? place(member(n, "name")) : operand(member(n, "name"));
+      value.value = address ? location(member(n, "name")) : operand(member(n, "name"));
       if (!program.error.empty()) return n;
       value.type = core_node(value.value).type;
       if (address) ++value.type.pointers;
       else if (!value.type.pointers) { fail(n, "Load requires a pointer"); return n; }
       else --value.type.pointers;
-    } else if (!literal(n)) n = place(n);
+    } else if (!literal(n)) n = location(n);
     if (!program.error.empty()) return n;
     auto& value = core_get(n) ? core_node(n) : node(n, CoreKind::Operand); auto text = tokens(n);
     if (literal(n)) {
@@ -383,7 +383,7 @@ struct Compiler {
     } else if (kind == "CoreAssign") {
       if (!shape(n, {"target", "value"}) || !shape(member(n, "target"), {"name"})) return Next;
       auto& value = node(n, CoreKind::Assign); auto* target = member(n, "target");
-      value.target = place(member(target, "name")); if (!program.error.empty()) return Next;
+      value.target = location(member(target, "name")); if (!program.error.empty()) return Next;
       auto expected = core_node(value.target).type;
       if (tokens(child(target, 0)) == "*") {
         auto& dest = node(target, CoreKind::Load); dest.value = value.target; dest.type = expected;

@@ -6858,3 +6858,37 @@ Increment example's matching interpreter/Wasm results. Online log:
 build/increment-spacing-online.log; screenshots/report: build/deployment-verification/.
 Saved edited documents stay intact; refresh and Increment -> Restore loads the
 updated bundled spellings. Unrelated working changes remain unstaged.
+
+### 2026-11-17 - Rename CorePlace to CoreLocation
+
+Renamed the public Foundation rule to `CoreLocation`: it describes a storage
+location (a variable, field or indexed element) used for reads, writes and
+address-taking. Increment rules now capture `$target:CoreLocation`, matching
+the operation's role. The compiler's shared-node label checks, internal location
+helper, malformed-tree diagnostic, native/browser tests and current parser docs
+use the new name. Existing journal entries retain the historical name; this
+entry supersedes that terminology. Syntax, pointer behavior and execution order
+are unchanged. No compatibility alias was added: custom rules using CorePlace
+must change that reference to CoreLocation; Restore reloads bundled examples.
+
+Trial correction: an initial mechanical helper rename also changed two C++
+`emplace` calls. The first Wasm build caught that compile error immediately;
+those calls were restored before the successful builds and tests below.
+
+Validation on Windows C:\Sandbox\tower / WSL Orchestral-Revng / WASI SDK 34:
+- Rebuilt parser/interpreter with `cmake --build build/browser-wasi --parallel 4`
+  and both optimized LLVM reactors with `TOWER_BROWSER_CROSS=ON TOWER_BUILD_JOBS=4
+  bash playground/scripts/build-llvm.sh`.
+- `node --test playground/tests/*.test.mjs`: 155/155 pass, including all 17
+  bundled canonical formatting checks, location type checking, field/index
+  operations and differential interpreter/LLVM increment execution.
+- `bash playground/scripts/test-native-core.sh`: 2/2 ASan/UBSan suites pass.
+- Built the static playground. Focused Playwright `extra semicolons` tests pass
+  on desktop/mobile, including updated Increment execution and cancellation.
+- Repository search finds the old name only in historical journal entries
+  (excluding generated/build/vendor files and the untouched todo.txt).
+  Logs: build/core-location-{llvm,native,tests}.log; browser artifacts:
+  build/core-location-browser/. Publication follows local validation.
+
+Unrelated working changes remain untouched; only this entry is staged from
+the shared journal. The new spelling is the current grammar/semantic ABI.

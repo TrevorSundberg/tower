@@ -331,7 +331,7 @@ to branches. `scaffolding/foundation.tower` supplies its grammar; `Core*` labels
 captures form the bootstrap semantic ABI. The playground's Execution example
 adds an `increment` replacement and executes the resulting foundation program.
 Functions, typed parameters, calls, returns and structs also use those shared
-semantic components. `CorePlace` adds field selection without an arithmetic
+semantic components. `CoreLocation` adds field selection without an arithmetic
 precedence hierarchy; type names remain ordinary identifiers until semantic lookup.
 Both backends consume this schema; the isolated LLVM module reparses canonical
 Foundation text to reconstruct it. See
@@ -391,7 +391,7 @@ binary form still has exactly two operands and one operator: no precedence
 hierarchy is added. Calls may nest in arguments, returns, conditions, indices
 and binary operands, so a replacement into CoreCall works in all those contexts
 and as a standalone call statement. The Increment example defines only two
-rules, capturing a CorePlace and passing its address to an ordinary typed helper.
+rules, capturing a CoreLocation and passing its address to an ordinary typed helper.
 It does not give increment any special C++ execution semantics.
 
 Operands and call arguments evaluate left to right. An assignment captures its
