@@ -6846,3 +6846,15 @@ Validation: Windows C:\Sandbox\tower, WSL Orchestral-Revng, WASI SDK 34.
 
 Unrelated AGENTS.md, foundation documentation, journal work and todo.txt are
 preserved. Only this entry is staged from the shared journal.
+
+### 2026-11-17 - Tight increment formatting published
+
+Source `82d57d3` and Pages artifacts `d5bec63` were pushed. GitHub Pages run
+`44221781915` completed successfully:
+https://github.com/TrevorSundberg/tower/actions/runs/44221781915 .
+`node playground/scripts/verify-deployment.mjs https://trevorsundberg.github.io/tower/`
+passed all 21 deployed asset hashes and desktop/mobile workflows, including the
+Increment example's matching interpreter/Wasm results. Online log:
+build/increment-spacing-online.log; screenshots/report: build/deployment-verification/.
+Saved edited documents stay intact; refresh and Increment -> Restore loads the
+updated bundled spellings. Unrelated working changes remain unstaged.
