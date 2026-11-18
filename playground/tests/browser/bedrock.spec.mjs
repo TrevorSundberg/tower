@@ -1,3 +1,4 @@
+import { outputText } from './output-text.mjs';
 import { test, expect } from '@playwright/test';
 async function setSource(page, text) {
   await page.locator('#editor').click({ position: { x: 80, y: 20 } });
@@ -48,7 +49,7 @@ test('modules show their source and grammar tree without executable instruction 
   await setSource(page, 'print(42);');
   await expect(page.locator('#execution-panel')).toBeVisible();
   await expect(page.locator('#execution-status')).toHaveText('Finished \u00b7 backends match');
-  await expect(page.locator('#core-instructions')).toContainText('print(42);');
+  await expect.poll(()=>outputText(page,'core-instructions')).toContain('print(42);');
   await expect(page.locator('#execution-output')).toHaveText('42\n');
   await expect(page.locator('#llvm-output')).toHaveText('42\n');
   await page.locator('#example-kind').selectOption('bedrock.tower');

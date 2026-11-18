@@ -1,0 +1,48 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { StringStream } from '@codemirror/language';
+import { outputParser } from '../src/output-syntax.mjs';
+
+function tokens(syntax,text) {
+  const parser=outputParser(syntax), state=parser.startState(), result=[];
+  for(const line of text.split('\n')) {
+    const stream=new StringStream(line,4,2);
+    while(!stream.eol()) {
+      stream.start=stream.pos;
+      const tag=parser.token(stream,state);
+      assert.ok(stream.pos>stream.start,'lexer must always advance');
+      result.push([stream.current(),tag]);
+    }
+  }
+  return result;
+}
+test('foundation comments, quoted names, calls, types and operands retain their text',()=>{
+  const result=tokens('tower','/* comment\nstill comment */ var `my name`: i32 = alloc(42); // end');
+  for(const item of [['var','keyword'],['`my name`','variableName'],['i32','typeName'],['alloc','variableName.function'],['42','number']])
+    assert.ok(result.some(token=>token[0]===item[0]&&token[1]===item[1]),item.join(':'));
+  assert.ok(result.some(([text,tag])=>text.includes('still comment')&&tag==='comment'));
+});
+test('LLVM raw and optimized syntax includes SSA, metadata, labels and opcodes',()=>{
+  const result=tokens('llvm','define i32 @main() {\nentry:\n %value = load i32, ptr @global, align 4 ; read\n ret i32 %value\n}');
+  for(const item of [['define','keyword'],['@main','variableName'],['entry','labelName'],['load','keyword'],['ptr','typeName'],['ret','keyword']])
+    assert.ok(result.some(token=>token[0]===item[0]&&token[1]===item[1]),item.join(':'));
+});
+for(const [syntax,text,opcode,register] of [
+  ['x86','0x00001000  mov rax, qword ptr [rsp + 0x10]','mov','rax'],
+  ['arm','0x00001000  ldr x0, [sp, #16]','ldr','x0'],
+  ['wasm','0x00000100  i32.const 42','i32.const',null],
+]) test(syntax+' disassembly highlights decoded instructions',()=>{
+  const result=tokens(syntax,text);
+  assert.equal(result.map(([text])=>text).join(''),text);
+  assert.ok(result.some(([word,tag])=>word===opcode&&tag==='keyword'));
+  if(register) assert.ok(result.some(([word,tag])=>word===register&&tag==='variableName.special'));
+});
+test('long and hostile display text remains literal and lexer always advances',()=>{
+  const input='<img src=x onerror=alert(1)> '+ '"\\'.repeat(10000);
+  assert.equal(tokens('tower',input).map(([text])=>text).join(''),input);
+});
+test('native-width Tower types and prefixed x86 instructions are highlighted',()=>{
+  assert.ok(tokens('tower','var count: usize = 0;').some(([word,tag])=>word==='usize'&&tag==='typeName'));
+  const result=tokens('x86','0x00001000  rep stosq');
+  for(const instruction of ['rep','stosq']) assert.ok(result.some(([word,tag])=>word===instruction&&tag==='keyword'));
+});

@@ -47,7 +47,7 @@ for (const [name, file] of [
   ['cloudlibc', 'licenses/cloudlibc.txt'],
   ['musl-fts', 'licenses/musl-fts.txt'],
 ]) licenses += `\n${name}\n${await readFile(path.join(root, file), 'utf8')}\n`;
-for (const name of ['@codemirror/view', '@codemirror/state', '@codemirror/commands', '@codemirror/language',
+for (const name of ['@codemirror/view', '@codemirror/state', '@codemirror/commands', '@codemirror/language', '@codemirror/streamparser',
   '@lezer/common', '@lezer/highlight', '@lezer/lr', '@marijn/find-cluster-break', 'crelt', 'style-mod', 'w3c-keyname']) {
   const dir = path.join(root, 'node_modules', name);
   for (const file of await readdir(dir)) if (/^license/i.test(file))

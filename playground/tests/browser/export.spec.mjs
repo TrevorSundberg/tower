@@ -1,3 +1,4 @@
+import { outputText } from './output-text.mjs';
 import {test,expect} from '@playwright/test';
 import {readFile} from 'node:fs/promises';
 test.beforeEach(async({page})=>{
@@ -11,8 +12,8 @@ async function choose(page,key,checked){
 }
 test('target selection controls compilation and equal columns without stopping the interpreter',async({page},info)=>{
  await expect(page.locator('#wasm-disassembly-column #llvm-download')).toBeVisible();
- await expect(page.locator('#wasm-disassembly')).toContainText('tower_main');
- await expect(page.locator('#wasm-disassembly')).toContainText('i32.const');
+ await expect.poll(()=>outputText(page,'wasm-disassembly')).toContain('tower_main');
+ await expect.poll(()=>outputText(page,'wasm-disassembly')).toContain('i32.const');
  await expect(page.locator('.runner-column h2').first()).toContainText('Interpreter Execution');
  await expect(page.locator('#wasm-column h2')).toContainText('Wasm Execution');
  const event=page.waitForEvent('download');await page.locator('#llvm-download').click();
@@ -32,40 +33,45 @@ test('target selection controls compilation and equal columns without stopping t
 });
 test('native targets compile automatically, display disassembly and download platform files',async({page},info)=>{
  test.setTimeout(180000);
- await choose(page,'wasm',false);await choose(page,'x86',true);
- await expect(page.locator('#x86-downloads a')).toHaveCount(3,{timeout:120000});
- await expect(page.locator('#x86-error')).toBeHidden();await expect(page.locator('#x86-disassembly')).toContainText('ret');
+ await choose(page,'wasm',false);
+ await page.locator('#auto-execute').uncheck();
+ for(const key of ['windows','linux','mac','linux-arm','mac-arm']) await choose(page,key,true);
+ await page.locator('#auto-execute').check();
+ await expect(page.locator('#mac-arm-downloads a')).toHaveCount(1,{timeout:120000});
  await expect(page.locator('#llvm-raw-column')).toBeVisible();await expect(page.locator('#wasm-column')).toBeHidden();
- for(const [label,extension,magic] of [['Windows x64','exe',[77,90]],['Linux x64','elf',[127,69,76,70]],['macOS x64','macho',[207,250,237,254]]]){
-  const event=page.waitForEvent('download');await page.locator('#x86-downloads').getByRole('link',{name:label,exact:true}).click();
+ for(const [key,label,extension,magic] of [['windows','Windows x64','exe',[77,90]],['linux','Linux x64','elf',[127,69,76,70]],['mac','macOS x64','macho',[207,250,237,254]],['linux-arm','Linux ARM64','elf',[127,69,76,70]],['mac-arm','macOS ARM64','macho',[207,250,237,254]]]){
+  await expect(page.locator('#'+key+'-error')).toBeHidden();
+  await expect(page.locator('#'+key+'-column h2')).toHaveText(label+' disassembly');
+  await expect.poll(()=>outputText(page,key+'-disassembly')).toContain('ret');
+  const event=page.waitForEvent('download');await page.locator('#'+key+'-downloads').getByRole('link',{name:label,exact:true}).click();
   const download=await event;await download.saveAs(`../build/browser-export-${info.project.name}.${extension}`);
+  expect(download.suggestedFilename()).toBe('memory-'+key+'.'+extension);
   expect([...(await readFile(await download.path())).subarray(0,magic.length)]).toEqual(magic);
+  await page.locator('#'+key+'-disassembly').scrollIntoViewIfNeeded();
+  await expect(page.locator('#'+key+'-disassembly .tw-keyword').first()).toBeVisible();
  }
- async function reuse(architecture,file,count) {
-  await expect(page.locator('#'+architecture+'-phase')).toHaveText('Finished');
+ async function reuse(file) {
+  await expect(page.locator('#mac-arm-phase')).toHaveText('Finished');
   const workers=page.workers().filter(w=>w.url().includes('target-worker'));
   expect(workers).toHaveLength(1);
   const requests=[];const record=r=>requests.push(r.url());page.on('request',record);
   await page.locator('#example-kind').selectOption(file);
-  await expect(page.locator('#'+architecture+'-downloads a')).toHaveCount(count);
-  await expect(page.locator('#'+architecture+'-phase')).toHaveText('Finished');
+  await expect(page.locator('#mac-arm-downloads a')).toHaveAttribute('download',file.replace('.tower','-mac-arm.macho'));
+  await expect(page.locator('#mac-arm-phase')).toHaveText('Finished');
   expect(page.workers().filter(w=>w.url().includes('target-worker'))).toEqual(workers);
   expect(requests.filter(url=>/tower(?:-cross)?\.wasm|\/targets\//.test(url))).toEqual([]);
   page.off('request',record);
  }
- await reuse('x86','functions.tower',3);
- await choose(page,'x86',false);await choose(page,'arm',true);
- await expect(page.locator('#arm-downloads a')).toHaveCount(2,{timeout:120000});
- await expect(page.locator('#arm-error')).toBeHidden();await expect(page.locator('#arm-disassembly')).toContainText('ret');
- await reuse('arm','memory.tower',2);
+ await reuse('functions.tower');
+ await reuse('memory.tower');
  await page.screenshot({path:`../build/targets-arm-${info.project.name}.png`,fullPage:true});
 });
 test('cancel stops pending native builds and edits discard stale downloads',async({page})=>{
  let release;const gate=new Promise(r=>release=r);
  await page.route('**/tower-cross.wasm.gz',async route=>{await gate;await route.continue().catch(()=>{});});
- await choose(page,'x86',true);await expect(page.locator('#x86-phase')).toHaveText('Loading…');
+ await choose(page,'windows',true);await expect(page.locator('#windows-phase')).toHaveText('Loading…');
  await page.locator('#cancel-execution').click();await expect(page.locator('#execution-status')).toHaveText('Cancelled');
- release();await page.unroute('**/tower-cross.wasm.gz');await choose(page,'x86',false);
+ release();await page.unroute('**/tower-cross.wasm.gz');await choose(page,'windows',false);
  const editor=page.getByRole('textbox',{name:'Tower source'});await editor.click();await editor.press('ControlOrMeta+a');await page.keyboard.insertText('print(42);');
- await expect(page.locator('#execution-output')).toHaveText('42\n');await expect(page.locator('#x86-downloads a')).toHaveCount(0);
+ await expect(page.locator('#execution-output')).toHaveText('42\n');await expect(page.locator('#windows-downloads a')).toHaveCount(0);
 });

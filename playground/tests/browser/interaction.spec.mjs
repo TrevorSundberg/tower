@@ -1,3 +1,4 @@
+import { outputText } from './output-text.mjs';
 import {test,expect} from '@playwright/test';
 async function edit(page,text){
  await page.locator('#editor').click({position:{x:80,y:20}});
@@ -50,7 +51,7 @@ test('old semantic errors clear after compilation while a new infinite loop is s
  await edit(page,'var value: i32 = true;');
  await expect(page.locator('.tw-inline-error-message')).toContainText('Expected i32');
  await edit(page,'loop { }');
- await expect(page.locator('#core-instructions')).toContainText('loop {');
+ await expect.poll(()=>outputText(page,'core-instructions')).toContain('loop {');
  await expect(page.locator('#execution-status')).toContainText('Executing');
  await expect(page.locator('.tw-inline-error')).toHaveCount(0);
  await page.locator('#cancel-execution').click();

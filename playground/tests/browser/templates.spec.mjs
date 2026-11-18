@@ -1,3 +1,4 @@
+import { outputText } from './output-text.mjs';
 import {test,expect} from '@playwright/test';
 
 test('Templates run in both workers and show concrete shared foundation output',async({page},info)=>{
@@ -7,9 +8,9 @@ test('Templates run in both workers and show concrete shared foundation output',
  await expect(page.locator('#filename')).toHaveText('templates.tower');
  await expect(page.locator('#execution-output')).toHaveText('20\n10\n');
  await expect(page.locator('#llvm-output')).toHaveText('20\n10\n',{timeout:25000});
- await expect(page.locator('#core-instructions')).toContainText('struct `buffer(i32, 4)`');
- await expect(page.locator('#core-instructions')).toContainText('fn `push(i32)`');
- await expect(page.locator('#core-instructions')).not.toContainText('T: type');
+ await expect.poll(()=>outputText(page,'core-instructions')).toContain('struct `buffer(i32, 4)`');
+ await expect.poll(()=>outputText(page,'core-instructions')).toContain('fn `push(i32)`');
+ await expect.poll(()=>outputText(page,'core-instructions')).not.toContain('T: type');
  await expect(page.locator('#execution-status')).toContainText('match');
  await page.screenshot({path:`../build/templates-${info.project.name}.png`});
  expect(errors).toEqual([]);

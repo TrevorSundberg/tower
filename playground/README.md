@@ -316,15 +316,56 @@ See [foundation direction/tasks](../docs/foundation.md).
 
 ## Native output and browser cross-compilation
 
-The checkbox picker left of **Auto execute** selects Wasm (default), x86-64 and
-ARM64. The interpreter always runs. Wasm adds LLVM compilation/execution and
-automatic result comparison; x86-64 builds Windows/Linux/macOS executables and
-ARM64 builds Linux/macOS executables. Each selected architecture has a retained
-worker, disassembly column and platform download links with byte counts. All lower
-columns have equal widths. With every target unchecked, only Tower instructions
-and the interpreter remain. **Cancel** or an edit terminates pending workers.
-Completed compiler workers and target runtime inputs are reused; unchecking a
-target releases its idle worker. Canceling active work discards that worker's cache.
+The checkbox picker left of **Auto execute** enumerates these supported executable
+profiles. Each native entry displays its actual compiler triple:
+
+| Target | Compiler triple | Download |
+| --- | --- | --- |
+| WebAssembly | `wasm32-unknown-unknown` (browser module) | `.wasm` |
+| Windows x64 | `x86_64-pc-windows-msvc` | `.exe` |
+| Linux x64 | `x86_64-unknown-linux-gnu` | `.elf` |
+| Linux ARM64 | `aarch64-unknown-linux-gnu` | `.elf` |
+| macOS x64 | `x86_64-apple-macos11` | `.macho` |
+| macOS ARM64 | `arm64-apple-macos11` | `.macho` |
+
+The interpreter always runs. WebAssembly adds LLVM execution and automatic result
+comparison. Each selected target has its own disassembly pane and download footer;
+native pane titles are just the target name plus "disassembly". Native profiles
+compile sequentially in one retained worker, sharing a single LLVM instance and
+loading only the selected profiles' support packs. LLVM raw/optimized panes label
+each profile when several are selected. Columns stay equally sized and scroll
+horizontally when needed. With every target unchecked, only Tower instructions
+and the interpreter remain. **Cancel** or an edit terminates pending workers;
+completed compiler workers and target inputs are reused. Disabling all native
+profiles releases their idle worker; canceling active work discards its cache.
+
+First visits select WebAssembly plus a suggested supported native profile.
+OS and architecture are inferred independently, preferring browser client hints
+with a bounded 200 ms wait. When architecture is hidden, macOS defaults to ARM64
+(an "Intel" UA is ambiguous), Windows/Linux to x64; completely unknown browsers
+default to Windows x64. These are explicit heuristics, not measured market-share
+claims or CPU capability detection. Known unsupported OS/architecture combinations
+(including Android, iOS, Chrome OS, Windows ARM64 and 32-bit native hosts) default
+to WebAssembly. The picker explains its suggestion; users can always override it.
+Saved selections take precedence, including all-off selections. Older x86/ARM
+group choices migrate to the corresponding platform entries. No probing or
+network lookup is used, and detection never changes a target's layout or semantics.
+
+Tower instructions, LLVM raw/optimized and x86/ARM64/Wasm disassembly use read-only
+CodeMirror views with incremental display lexers and viewport rendering. Unchanged
+output is not re-highlighted on phase/timing updates. Full documents remain
+selectable/copyable while only visible lines create DOM nodes. These display lexers
+do not parse or define Tower semantics; the compiler still supplies canonical
+foundation source through its shared formatter.
+
+32-bit native support remains planned: Cortex-M (for example `thumbv6m-none-eabi`
+and `thumbv7em-none-eabi`) and RV32 (`riscv32-unknown-elf`, with explicit ISA/ABI
+profiles) are useful embedded candidates. They require backend inclusion, target
+legality/layout tests, board startup/linker scripts and runtime/effect policies
+before they become supported downloads. WebAssembly already uses 32-bit addresses.
+Windows ARM64, mobile platforms and GPU profiles also need their own validated
+runtime/ABI implementations; they are not silently aliased to an existing profile.
+
 **Link files** adds matching objects/archives; **Clear link files** removes them.
 Prefix an input name with `windows--`, `linux--`, `linux-arm--`, `mac--`, `mac-arm--`
 or `wasm--` to restrict it to that target. Unprefixed files go to all selected
@@ -626,7 +667,7 @@ Wasm also runs that program privately. No editor source executes during warming,
 and no warm output replaces the displayed program results. Real requests queue
 behind initialization in the same worker; cancellation terminates that worker.
 Unchecked targets do not preload. Browser performance entries named
-`tower-llvm-warm`, `tower-x86-warm` and `tower-arm-warm` measure startup separately
+`tower-llvm-warm` and `tower-native-warm` measure startup separately
 from the current run's status-bar timings.
 
 For native end-to-end measurements, build `towerc`, then run under Linux/WSL:

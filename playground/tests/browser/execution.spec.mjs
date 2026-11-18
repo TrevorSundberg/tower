@@ -1,3 +1,4 @@
+import { outputText } from './output-text.mjs';
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 const grammar = ''; // Executable documents inherit the shared foundation module.
@@ -19,7 +20,7 @@ test('executes replacements and displays typed core instructions', async ({ page
   await expect(page.locator('#filename')).toHaveText('execution.tower');
   await expect(page.locator('#execution-status')).toContainText('Finished');
   await expect(page.locator('#execution-output')).toHaveText('15\n16\n');
-  await expect(page.locator('#core-instructions')).toContainText('if finished {');
+  await expect.poll(()=>outputText(page,'core-instructions')).toContain('if finished {');
   await expect(page.locator('#execution-error')).toBeHidden();
   // Show executable source near the bottom, not just the editable core grammar.
   const editor = page.getByRole('textbox', { name: 'Tower source' });
@@ -35,8 +36,8 @@ test('initializer inference shows explicit checked types and clear dependency er
   await expect(page.locator('#execution-output')).toHaveText('42\ntrue\n43\n42\n');
   await expect(page.locator('#llvm-output')).toHaveText('42\ntrue\n43\n42\n');
   await expect(page.getByRole('textbox',{name:'Tower source'})).toContainText('var answer = add_one(41);');
-  await expect(page.locator('#core-instructions')).toContainText('var answer: i32 = add_one(41);');
-  await expect(page.locator('#core-instructions')).toContainText('var pointer: i32* = &answer;');
+  await expect.poll(()=>outputText(page,'core-instructions')).toContain('var answer: i32 = add_one(41);');
+  await expect.poll(()=>outputText(page,'core-instructions')).toContain('var pointer: i32* = &answer;');
   await page.screenshot({path:`../build/inference-${info.project.name}.png`});
   await setSource(page,'var a = b;\nvar b = a;');
   await expect(page.locator('.tw-inline-error-message')).toContainText('initializer dependency cycle a -> b -> a');
@@ -79,8 +80,8 @@ test('extra semicolons have concise context and increment demonstrates both retu
   await expect(page.locator('#execution-output')).toHaveText('5\n6\n7\n7\n9\n');
   await expect(page.locator('#llvm-output')).toHaveText('5\n6\n7\n7\n9\n');
   await expect(page.locator('.tw-inline-error')).toHaveCount(0);
-  await expect(page.locator('#core-instructions')).toContainText('post_increment(&value)');
-  await expect(page.locator('#llvm-after')).not.toContainText('post_increment');
+  await expect.poll(()=>outputText(page,'core-instructions')).toContain('post_increment(&value)');
+  await expect.poll(()=>outputText(page,'llvm-after')).not.toContain('post_increment');
   await expect(page.locator('#tree')).toContainText('post_increment');
   await page.screenshot({path:`../build/increment-${info.project.name}.png`});
   const source=await page.getByRole('textbox',{name:'Tower source'}).innerText();
@@ -91,7 +92,7 @@ test('extra semicolons have concise context and increment demonstrates both retu
   await expect(page.locator('#execution-output')).toHaveText('5\n6\n7\n7\n9\n11\n');
   await expect(page.locator('#execution-status')).toHaveText('Finished \u00b7 backends match');
   await setSource(page,'fn forever(): i32 { loop {} } print(forever());');
-  await expect(page.locator('#core-instructions')).toContainText('print(forever());');
+  await expect.poll(()=>outputText(page,'core-instructions')).toContain('print(forever());');
   await expect(page.locator('#execution-status')).toContainText('Executing');
   await page.locator('#cancel-execution').click();
   await expect(page.locator('#execution-status')).toHaveText('Cancelled');
@@ -255,10 +256,10 @@ test('functions compile and execute off the UI thread with matching backends', a
   await page.locator('#example-kind').selectOption('functions.tower');
   await expect(page.locator('#execution-status')).toHaveText('Finished · backends match', { timeout: 30000 });
   await expect(page.locator('#execution-output')).toHaveText('720\n721\n');
-  await expect(page.locator('#core-instructions')).toContainText('fn factorial(n: i32): i32');
-  await expect(page.locator('#llvm-before')).toContainText('alloca');
-  await expect(page.locator('#llvm-after')).toContainText('define void @tower_main');
-  await expect(page.locator('#llvm-after')).not.toContainText('alloca');
+  await expect.poll(()=>outputText(page,'core-instructions')).toContain('fn factorial(n: i32): i32');
+  await expect.poll(()=>outputText(page,'llvm-before')).toContain('alloca');
+  await expect.poll(()=>outputText(page,'llvm-after')).toContain('define void @tower_main');
+  await expect.poll(()=>outputText(page,'llvm-after')).not.toContain('alloca');
   await expect(page.locator('#llvm-output')).toHaveText('720\n721\n');
   await expect(page.locator('#steps')).toContainText('steps');
   await expect(page.locator('#timings')).toContainText('LLVM optimize');
