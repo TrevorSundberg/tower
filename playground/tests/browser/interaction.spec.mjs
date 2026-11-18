@@ -1,4 +1,5 @@
 import { outputText } from './output-text.mjs';
+import {selectDocument, savedSource} from './project-helpers.mjs';
 import {test,expect} from '@playwright/test';
 async function edit(page,text){
  await page.locator('#editor').click({position:{x:80,y:20}});
@@ -59,33 +60,30 @@ test('old semantic errors clear after compilation while a new infinite loop is s
 
 test('reload restores the selected document and its text together',async({page,request},info)=>{
  const source=await(await request.get('/execution.tower')).text();
- await page.locator('#example-kind').selectOption('execution.tower');
+ await selectDocument(page, 'execution.tower');
  await expect(page.locator('#execution-output')).toHaveText('15\n16\n');
  await edit(page,source+'\n// saved execution edit');
  await page.reload();
  await expect(page.locator('#status')).toContainText('Complete');
- await expect(page.locator('#example-kind')).toHaveValue('execution.tower');
  await expect(page.locator('#filename')).toHaveText('execution.tower');
- expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('tower-playground-document-v1')).source)).toBe(source+'\n// saved execution edit');
+ expect(await savedSource(page)).toBe(source+'\n// saved execution edit');
  await page.screenshot({path:`../build/reload-execution-${info.project.name}.png`});
- await page.locator('#example-kind').selectOption('foundation.tower');
+ await selectDocument(page, 'foundation.tower');
  await expect(page.locator('#status')).toContainText('Complete');
  await page.reload();
- await expect(page.locator('#example-kind')).toHaveValue('foundation.tower');
  await expect(page.locator('#filename')).toHaveText('foundation.tower');
  await expect(page.locator('#status')).toContainText('Complete');
- await page.locator('#example-kind').selectOption('execution.tower');
+ await selectDocument(page, 'execution.tower');
  await expect(page.locator('#execution-output')).toHaveText('15\n16\n');
  await page.locator('#restore').click();
- await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem('tower-playground-document-v1')).source)).toBe(source);
+ await expect.poll(()=>savedSource(page)).toBe(source);
 });
 
 test('legacy saved example text recovers its filename without discarding edits',async({page,request})=>{
  const source=await(await request.get('/execution.tower')).text();
- await page.addInitScript(source=>{localStorage.removeItem('tower-playground-document-v1');localStorage.setItem('tower-playground-source-v1',source);},source);
+ await page.addInitScript(source=>{localStorage.removeItem('tower-playground-document-v1');localStorage.removeItem('tower-project-migrated-v1');localStorage.setItem('tower-playground-source-v1',source);},source);
  await page.reload();
  await expect(page.locator('#execution-output')).toHaveText('15\n16\n');
- await expect(page.locator('#example-kind')).toHaveValue('execution.tower');
  await expect(page.locator('#filename')).toHaveText('execution.tower');
 });
 

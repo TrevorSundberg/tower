@@ -83,14 +83,14 @@ declarations and control flow. The static page loads both files at runtime. Edit
 run `npm run build` to copy it into `dist/`, or edit the deployed copy directly,
 then reload. No C++/WASM rebuild is needed for different default patterns.
 
-The editor dropdown begins **Bedrock**, **Foundation**, **ForEach**, then the other
-examples. Bedrock edits affect shared defaults in all downstream modules. Foundation
+The project browser pins **Bedrock** and **Foundation** above each project's
+files; the project selector includes **ForEach** and the other examples. Bedrock edits affect shared defaults in all downstream modules. Foundation
 edits change the baseline used by source parsing and both execution frontends.
 Identical module source loads idempotently; changed Foundation modules are rebuilt
 over Bedrock's definitions, without importing the previous Foundation,
 instead of accumulating `|=` alternatives. Invalid modules block dependent runs.
 Edits persist locally but do not overwrite the server's file; **Save** downloads
-the edited source and **Restore** returns to the bundled module.
+the whole project archive and **Restore** returns to the bundled module.
 
 Backtick-quoted identifiers preserve names that would otherwise collide with
 keywords or need an extended token pattern, for example `` `player-name` ``.

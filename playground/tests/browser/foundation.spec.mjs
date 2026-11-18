@@ -1,4 +1,5 @@
 import { outputText } from './output-text.mjs';
+import {selectDocument} from './project-helpers.mjs';
 import { test, expect } from '@playwright/test';
 const withEmit = foundation => foundation + "\nparse Statement |= 'emit' $value:CoreOperand ';' => replace { print($value); };";
 async function setSource(page, text) {
@@ -11,7 +12,7 @@ test('editing the shared foundation changes parsing, highlights and both runners
   const foundation = await (await request.get('/foundation.tower')).text();
   await page.goto('/'); await expect(page.locator('#status')).toContainText('Complete');
   await setSource(page, 'var player-name: i32 = 42; emit player-name;');
-  await page.locator('#example-kind').selectOption('foundation.tower');
+  await selectDocument(page, 'foundation.tower');
   await expect(page.locator('#filename')).toHaveText('foundation.tower');
   await expect(page.locator('#rules')).toContainText('CoreFunction');
   await expect(page.locator('#execute')).toBeEnabled();
@@ -21,7 +22,7 @@ test('editing the shared foundation changes parsing, highlights and both runners
   await page.getByRole('tab', { name: 'Active grammar' }).click();
   await expect(page.locator('#rules')).toContainText("'emit'");
   await page.screenshot({ path: `../build/playground-foundation-${info.project.name}.png` });
-  await page.locator('#example-kind').selectOption('foreach.tower');
+  await selectDocument(page, 'foreach.tower');
   await expect(page.locator('#execution-status')).toHaveText('Finished · backends match');
   await expect(page.locator('#execution-output')).toHaveText('42\n');
   await expect(page.locator('#llvm-output')).toHaveText('42\n');
@@ -29,11 +30,11 @@ test('editing the shared foundation changes parsing, highlights and both runners
   await expect.poll(()=>outputText(page,'core-instructions')).toContain('print(`player-name`);');
   await page.reload();
   await expect(page.locator('#execution-status')).toHaveText('Finished · backends match');
-  await page.locator('#example-kind').selectOption('foundation.tower');
+  await selectDocument(page, 'foundation.tower');
   await expect(page.locator('#rules')).toContainText("'emit'");
   await page.locator('#restore').click();
   await expect(page.locator('#status')).toContainText('Complete');
-  await page.locator('#example-kind').selectOption('foreach.tower');
+  await selectDocument(page, 'foreach.tower');
   await expect(page.locator('#status')).toContainText('Stopped');
   await setSource(page, 'print(7);');
   await expect(page.locator('#execution-status')).toHaveText('Finished · backends match');
@@ -43,20 +44,20 @@ test('source and foundation keep independent undo histories', async ({ page, req
   const foundation = await (await request.get('/foundation.tower')).text();
   await page.goto('/'); await expect(page.locator('#status')).toContainText('Complete');
   await setSource(page, 'print(42);');
-  await page.locator('#example-kind').selectOption('foundation.tower');
+  await selectDocument(page, 'foundation.tower');
   await setSource(page, withEmit(foundation));
   await expect(page.locator('#status')).toContainText('Complete');
-  await page.locator('#example-kind').selectOption('foreach.tower');
+  await selectDocument(page, 'foreach.tower');
   await setSource(page, 'emit 43;');
   await page.getByRole('textbox', { name: 'Tower source' }).press('ControlOrMeta+z');
   await expect(page.getByRole('textbox', { name: 'Tower source' })).toHaveText('print(42);');
-  await page.locator('#example-kind').selectOption('foundation.tower');
+  await selectDocument(page, 'foundation.tower');
   await expect(page.locator('#rules')).toContainText("'emit'");
   await page.locator('#editor').click({ position: { x: 80, y: 20 } });
   await page.getByRole('textbox', { name: 'Tower source' }).press('ControlOrMeta+z');
   await expect(page.locator('#rules')).not.toContainText("'emit'");
   await expect(page.locator('#rules')).toContainText('CoreCall');
-  await page.locator('#example-kind').selectOption('foreach.tower');
+  await selectDocument(page, 'foreach.tower');
   await expect(page.locator('#execution-status')).toHaveText('Finished · backends match');
   await expect(page.locator('#llvm-output')).toHaveText('42\n');
 });
@@ -64,16 +65,16 @@ test('source and foundation keep independent undo histories', async ({ page, req
 test('invalid foundation stays editable and cannot silently run with stale definitions', async ({ page, request }) => {
   const foundation = await (await request.get('/foundation.tower')).text();
   await page.goto('/'); await expect(page.locator('#status')).toContainText('Complete');
-  await page.locator('#example-kind').selectOption('foundation.tower');
+  await selectDocument(page, 'foundation.tower');
   await setSource(page, foundation + '\ntoken Broken = /a*/;');
   await expect(page.locator('.tw-inline-error-message')).toContainText('empty input');
-  await page.locator('#example-kind').selectOption('foreach.tower');
+  await selectDocument(page, 'foreach.tower');
   await expect(page.locator('#diagnostic')).toContainText('foundation.tower');
   await expect(page.locator('#llvm-output')).toHaveText('');
-  await page.locator('#example-kind').selectOption('foundation.tower');
+  await selectDocument(page, 'foundation.tower');
   await page.locator('#restore').click();
   await expect(page.locator('#status')).toContainText('Complete');
-  await page.locator('#example-kind').selectOption('foreach.tower');
+  await selectDocument(page, 'foreach.tower');
   await setSource(page, 'print(9);');
   await expect(page.locator('#execution-status')).toHaveText('Finished · backends match');
 });

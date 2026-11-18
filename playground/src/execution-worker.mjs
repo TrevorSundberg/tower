@@ -1,10 +1,11 @@
 import { executeWasm } from './llvm-host.mjs';
 import { originalDiagnostic } from './foundation-source.mjs';
 import { getTower, getCompiler, warmCompiler } from './compiler-runtime.mjs';
+import {projectDiagnostic} from './projects.mjs';
 
 // Completed workers retain compiler/grammar state. Active cancellation still
 // terminates the worker, including synchronous compilation or an infinite loop.
-async function receive({ data: { command, id, source, foundation, bedrock, backend, pointerBytes=4, inputs={} } }) {
+async function receive({ data: { command, id, source, foundation, bedrock, backend, pointerBytes=4, inputs={}, files, drive=[] } }) {
   if (command === 'warm') {
     try { await warmCompiler('./tower-llvm.wasm.gz'); postMessage({warm:true}); }
     catch (error) { postMessage({warm:true,error:error.message}); }
@@ -12,13 +13,14 @@ async function receive({ data: { command, id, source, foundation, bedrock, backe
   }
   let tower, handle;
   const timings = {};
-  const send = data => postMessage({ id, backend, ...data });
+  const send = data => postMessage({ id, backend, ...data, ...(data.result ? {result:projectDiagnostic(data.result, files)} : {}) });
   try {
     send({ phase: 'Loading…' });
     const frontend = await getTower(foundation, bedrock); tower = frontend.tower;
     timings.load = frontend.loadMs; timings.loadCached = frontend.cached;
     let at = performance.now();
-    handle = tower.compile(source,{pointerBytes});
+    tower.mountFiles(drive);
+    handle = files ? tower.compileFiles(files,{pointerBytes}) : tower.compile(source,{pointerBytes});
     timings.tower = performance.now() - at;
     const checked = tower.execute(handle, 0);
     if (checked.status === 'error') { send({ result: checked, timings }); return; }

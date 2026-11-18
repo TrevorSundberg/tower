@@ -10,6 +10,8 @@ import { selectFoundation } from './foundation-storage.mjs';
 import { targets, nativeTargetKeys, emptySelection, savedTargetSelection, targetSelectionKey, linkInputsForTarget } from './targets.mjs';
 import { detectBrowserTarget, defaultTargetSelection } from './browser-target.mjs';
 import { CodeOutput } from './code-output.mjs';
+import {examples, filePath, newProject, projectStore, validateProject, projectSources} from './projects.mjs';
+import {exportProject, importProject} from './project-archive.mjs';
 
 const $ = id => document.getElementById(id);
 const paint = StateEffect.define(), selectSpan = StateEffect.define();
@@ -59,7 +61,7 @@ class Engine {
 }
 const engine = new Engine();
 let editor, source = '', offsets = [0], result = null, generation = 0;
-let frame = 0, queued = null, saveTimer, dirty = true, busy = false, example = '';
+let frame = 0, queued = null, dirty = true, busy = false;
 let executionId = 0, executionError = null, runners = {};
 const idleExecutionWorkers = new Map();
 let linkInputs = {}, nativeDownloads = {}, llvmViews = {};
@@ -78,10 +80,9 @@ const typingDebounceMs = 200;
 let diagnosticPhase = null;
 let typingDeadline = 0, typingTimer = 0;
 let llvmDownload, foundation = '', bundledFoundation = '', editingModule = '', bedrock = '', bundledBedrock = '';
-let programSource = '', programFilename = 'foreach.tower';
 let documentLoadId = 0;
-let editorExtensions, programState;
-const moduleStates = {};
+let editorExtensions, projects = [], project, storage, activePath = '', saveSequence = 0;
+const fileStates = new Map(), bundledExamples = new Map();
 const backendIds = ['interpreter', 'llvm'];
 const outputId = backend => backend === 'interpreter' ? 'execution-output' : 'llvm-output';
 const errorId = backend => backend === 'interpreter' ? 'execution-error' : 'llvm-error';
@@ -162,7 +163,7 @@ function compileNative(id,text) {
     }
     if(data.done)finish();
   };
-  worker.postMessage({id,source:text,foundation,bedrock,targetKeys:keys,inputs:linkInputs});
+  worker.postMessage({id,source:text,foundation,bedrock,targetKeys:keys,inputs:linkInputs, files:editingModule ? undefined : projectSources(project), drive:project.files});
 }
 function showTimings() {
   const a = runners.interpreter?.timings ?? {}, b = runners.llvm?.timings ?? {};
@@ -213,7 +214,7 @@ function scheduleAutoExecution() {
   clearTimeout(autoTimer); autoTimer = 0;
   if (!$('auto-execute').checked || dirty || executedRevision === documentRevision) return;
   if (result?.end?.status !== 'done') { $('execution-status').textContent = 'Waiting for valid source'; return; }
-  if (!result.events.some(event => event.status === 'statement' && event.nodes.some(item => item.production !== null && item.label.startsWith('Core')))) {
+  if ((editingModule || projectSources(project).length === 1) && !result.events.some(event => event.status === 'statement' && event.nodes.some(item => item.production !== null && item.label.startsWith('Core')))) {
     clearCompiled(); $('execution-status').textContent = 'Syntax only'; return;
   }
   $('execution-status').textContent = 'Waiting…';
@@ -239,6 +240,9 @@ function stopExecution(message) {
   if (message) $('execution-status').textContent = message;
 }
 function executionDiagnostic(error) {
+  if (error?.errorFile && error.errorFile !== activePath) {
+    showError(error.errorFile + ': ' + error.error); return;
+  }
   diagnosticPhase = error ? 'execution' : null;
   const diagnostic = sourceDiagnostic(editor.state.doc, byteOffsets(editor.state.doc.toString()), error, result?.snapshot?.highlights ?? []);
   editor.dispatch({ effects: setDiagnostic.of(diagnostic) });
@@ -329,7 +333,7 @@ function execute() {
       }
       finish();
     };
-    worker.postMessage({ id, source: text, foundation, bedrock, backend, pointerBytes:selectedTargets.wasm || !selectedNativeKeys().length ? 4 : 8, inputs:linkInputsForTarget(linkInputs,'wasm') });
+    worker.postMessage({ id, source: text, foundation, bedrock, backend, files:editingModule ? undefined : projectSources(project), drive:project.files, pointerBytes:selectedTargets.wasm || !selectedNativeKeys().length ? 4 : 8, inputs:linkInputsForTarget(linkInputs,'wasm') });
   }
   if(selectedNativeKeys().length) compileNative(id,text);
 }
@@ -347,7 +351,8 @@ function empty(container, title, description) {
 function controls() {
   $('auto-execute').disabled = !editor;
   $('execute').disabled = !editor || isExecuting();
-  for (const id of ['open', 'save', 'restore', 'example-kind']) $(id).disabled = !editor;
+  for (const id of ['open', 'save', 'new-project', 'new-file', 'project-kind']) $(id).disabled = !editor;
+  $('restore').disabled = !editor || !editingModule && !bundledExamples.has(activePath);
   // Keep the last result visible while typing, but do not use its old spans.
   for (const id of ['tree']) {
     $(id).inert = dirty;
@@ -540,68 +545,132 @@ function schedule(method = 'analyze') {
     perform(queued);
   });
 }
-function persist() {
-  clearTimeout(saveTimer);
+function captureDocument() {
+  if (!project || !editor || !activePath) return;
+  const text = editor.state.doc.toString();
+  if (editingModule) project.builtins[editingModule] = text;
+  else project.files.find(file => file.path === activePath).text = text;
+  foundation = project.builtins.foundation; bedrock = project.builtins.bedrock;
+  project.active = activePath; project.links = linkInputs;
+}
+async function persist() {
+  captureDocument();
+  if (!project) return;
+  const sequence = ++saveSequence;
+  $('project-storage').textContent = 'Saving...';
   try {
-    if (editingModule === 'bedrock') bedrock = editor.state.doc.toString();
-    else if (editingModule === 'foundation') foundation = editor.state.doc.toString();
-    else programSource = editor.state.doc.toString();
-    localStorage.setItem('tower-playground-source-v1', programSource);
-    localStorage.setItem('tower-playground-foundation-v1', foundation);
-    localStorage.setItem('tower-playground-foundation-base-v1', bundledFoundation);
-    localStorage.setItem('tower-playground-bedrock-v1', bedrock);
-    localStorage.setItem('tower-playground-bedrock-base-v1', bundledBedrock);
-    localStorage.setItem('tower-playground-document-v1', JSON.stringify({
-      source:programSource, filename:programFilename, module:editingModule,
-    }));
-  } catch {}
+    if (!storage) throw new Error('Browser storage unavailable');
+    await storage.save(project);
+    if (sequence === saveSequence) $('project-storage').textContent = 'Saved in browser';
+  } catch (error) {
+    if (sequence === saveSequence) $('project-storage').textContent = 'Not saved: ' + error.message + '. Use Save to download.';
+  }
 }
 window.addEventListener('pagehide', () => { if (editor) persist(); stopExecution(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden && editor) persist(); });
 function changed() {
+  ++saveSequence; // an older write must not mark these newer edits as saved
   typingDeadline = performance.now() + typingDebounceMs;
   clearTimeout(typingTimer); typingTimer=0; cancelAnimationFrame(frame); frame=0;
   ++documentRevision;
   const wasExecuting = isExecuting();
   stopExecution(wasExecuting ? 'Cancelled by edit' : 'Ready');
-  executionError = null;
-  if (editingModule === 'bedrock') bedrock = editor.state.doc.toString();
-  else if (editingModule === 'foundation') foundation = editor.state.doc.toString();
-  else programSource = editor.state.doc.toString();
+  executionError = null; captureDocument();
   ++generation; dirty = true; controls();
   $('node-info').textContent = 'Tree spans refer to UTF-8 source bytes.';
-  $('status').textContent = 'Updating…';
-  clearTimeout(saveTimer); saveTimer = setTimeout(persist, 250);
+  $('status').textContent = 'Updating...';
+  $('project-storage').textContent = 'Unsaved changes';
+  persist();
   schedule();
 }
-function replaceSource(text, filename = 'scratch.tower') {
-  if (!editingModule) programFilename=filename;
-  selectCurrentDocument();
+function replaceSource(text) {
   editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: text } });
   typingDeadline = 0; schedule();
 }
-function selectCurrentDocument() {
-  const filename = editingModule ? editingModule + '.tower' : programFilename;
-  const picker = $('example-kind');
-  for (const option of picker.querySelectorAll('[data-local]')) if (option.value !== programFilename) option.remove();
-  if (![...picker.options].some(option=>option.value===programFilename)) {
-    const option = new Option(programFilename, programFilename); option.dataset.local='true'; picker.add(option);
+function renderFiles() {
+  $('project-kind').replaceChildren(...projects.map(p => new Option(p.name, p.id)));
+  $('project-kind').value = project.id;
+  const tree = $('file-tree');
+  const opened = new Map([...tree.querySelectorAll('details')].map(el => [el.dataset.path, el.open]));
+  tree.replaceChildren();
+  const add = (parent, path, label, builtin = false) => {
+    const button = node('button', 'file-entry', label); button.dataset.path = path;
+    button.setAttribute('aria-current', String(path === activePath)); button.title = path;
+    if (builtin) button.append(node('span', 'builtin-badge', 'built-in'));
+    button.onclick = () => selectFile(path); parent.append(button);
+  };
+  for (const name of ['bedrock','foundation']) add(tree, '.tower/' + name + '.tower', name + '.tower', true);
+  const root = node('div', 'project-files'); tree.append(root);
+  root.append(node('div', 'project-root', project.name));
+  const folders = new Map([['', root]]);
+  for (const file of project.files) {
+    const parts = file.path.split('/'); let parent = root, path = '';
+    for (const part of parts.slice(0,-1)) {
+      path = path ? path + '/' + part : part;
+      if (!folders.has(path)) {
+        const folder = node('details', 'file-folder'); folder.dataset.path = path; folder.open = opened.get(path) ?? true;
+        folder.append(node('summary', '', part)); parent.append(folder); folders.set(path, folder);
+      }
+      parent = folders.get(path);
+    }
+    add(parent, file.path, parts.at(-1));
   }
-  picker.value=filename; $('filename').textContent=filename;
+  for (const id of ['rename-file','delete-file','move-file-up']) $(id).disabled = !!editingModule;
+  $('delete-file').disabled ||= project.files.length === 1;
+  $('move-file-up').disabled ||= project.files[0].path === activePath;
+  $('restore').disabled = !editingModule && !bundledExamples.has(activePath);
 }
-function switchDocument(target = '') {
-  if (editingModule === target) return;
-  persist();
-  if (editingModule) moduleStates[editingModule] = editor.state;
-  else { programState = editor.state; programFilename = $('filename').textContent; }
-  editingModule = target;
-  selectCurrentDocument();
-  editor.setState((target ? moduleStates[target] : programState) ?? EditorState.create({
-    doc: target === 'bedrock' ? bedrock : target === 'foundation' ? foundation : programSource,
-    extensions: editorExtensions,
-  }));
-  changed();
-  typingDeadline = 0; schedule();
+function selectFile(path, fresh = false) {
+  if (!fresh && path === activePath) return;
+  if (!fresh && editor) { persist(); fileStates.set(activePath, editor.state); }
+  activePath = project.active = path;
+  editingModule = path === '.tower/bedrock.tower' ? 'bedrock' : path === '.tower/foundation.tower' ? 'foundation' : '';
+  foundation = project.builtins.foundation; bedrock = project.builtins.bedrock;
+  const text = editingModule ? project.builtins[editingModule] : project.files.find(f => f.path === path).text;
+  $('filename').textContent = editingModule ? editingModule + '.tower' : path;
+  editor.setState(fileStates.get(path) ?? EditorState.create({doc:text, extensions:editorExtensions}));
+  stopExecution(); clearCompiled(); clearInspection(); renderFiles(); changed(); typingDeadline = 0; schedule();
 }
+function selectProject(id) {
+  const next = projects.find(p => p.id === id); if (!next || next === project) return;
+  if (project) persist();
+  ++documentLoadId; ++generation; engine.stop(); stopExecution();
+  for (const worker of idleExecutionWorkers.values()) worker.terminate();
+  idleExecutionWorkers.clear(); fileStates.clear();
+  project = next; linkInputs = project.links; activePath = '';
+  try { localStorage.setItem('tower-project-selected-v1', id); } catch {}
+  updateLinkFiles(); selectFile(project.active, true);
+}
+function projectAction(action) {
+  try { action(); } catch (error) { showError(error.message); }
+}
+$('project-kind').onchange = () => selectProject($('project-kind').value);
+$('new-project').onclick = () => projectAction(() => {
+  const name = prompt('Project name', 'Untitled'); if (!name?.trim()) return;
+  const next = newProject(name.trim(), {bedrock:bundledBedrock, foundation:bundledFoundation});
+  projects.push(next); selectProject(next.id);
+});
+$('new-file').onclick = () => projectAction(() => {
+  const path = prompt('File path (folders use /)', 'src/main.tower'); if (!path) return;
+  filePath(path); validateProject({...project, files:[...project.files, {path, text:''}]});
+  project.files.push({path, text:''}); selectFile(path);
+});
+$('rename-file').onclick = () => projectAction(() => {
+  const path = prompt('File path', activePath); if (!path || path === activePath) return;
+  filePath(path); captureDocument();
+  validateProject({...project, files:project.files.map(f => f.path === activePath ? {...f, path} : f)});
+  project.files.find(f => f.path === activePath).path = path;
+  fileStates.set(path, editor.state); fileStates.delete(activePath); selectFile(path, true);
+});
+$('delete-file').onclick = () => {
+  if (!confirm('Delete ' + activePath + ' from this project?')) return;
+  project.files = project.files.filter(f => f.path !== activePath); fileStates.delete(activePath);
+  selectFile(project.files[0].path, true);
+};
+$('move-file-up').onclick = () => {
+  const index = project.files.findIndex(f => f.path === activePath);
+  if (index > 0) { [project.files[index-1], project.files[index]] = [project.files[index], project.files[index-1]]; renderFiles(); changed(); }
+};
 
 function showTab(which) {
   for (const tab of ['tree', 'grammar']) {
@@ -654,6 +723,7 @@ document.addEventListener('click',event=>{if(!$('build-targets').contains(event.
 $('build-targets').addEventListener('keydown',event=>{if(event.key==='Escape')$('build-targets').open=false;});
 $('link-files').onclick = () => $('link-input').click();
 function updateLinkFiles() {
+  if (project) { project.links = linkInputs; persist(); }
   const names = Object.keys(linkInputs);
   $('link-files').textContent = names.length ? `Link files (${names.length})` : 'Link files';
   $('link-files').title = names.length ? names.join('\n') : 'Add object files or static libraries';
@@ -661,6 +731,7 @@ function updateLinkFiles() {
   stopExecution('Link inputs changed'); clearCompiled(); executedRevision=-1; scheduleAutoExecution();
 }
 $('link-input').onchange = async () => {
+  const owner = project;
   try {
     const additions = {};
     for (const file of $('link-input').files) {
@@ -668,6 +739,7 @@ $('link-input').onchange = async () => {
       additions[file.name] = new Uint8Array(await file.arrayBuffer());
     }
     if (Object.keys({ ...linkInputs, ...additions }).length > 60) throw new Error('At most 60 link inputs');
+    if (owner !== project) return;
     Object.assign(linkInputs, additions); updateLinkFiles();
   } catch (error) { $('build-status').textContent = error.message; }
   finally { $('link-input').value = ''; }
@@ -681,45 +753,23 @@ $('auto-execute').onchange = () => {
     else scheduleAutoExecution();
   } else stopExecution('Auto off');
 };
-async function loadDocument(reset = false) {
-  const ticket = ++documentLoadId;
-  const filename = $('example-kind').value;
-  if (filename === 'bedrock.tower' || filename === 'foundation.tower') {
-    const target = filename.slice(0, -6);
-    switchDocument(target);
-    if (reset) replaceSource(target === 'bedrock' ? bundledBedrock : bundledFoundation, filename);
-    return;
-  }
-  if (!reset && filename === programFilename) { switchDocument(''); return; }
-  if ($('example-kind').selectedOptions[0]?.dataset.local) { switchDocument(''); return; }
-  try {
-    let text = example;
-    if (filename !== 'foreach.tower') {
-      const response = await fetch('./' + filename);
-      if (!response.ok) throw new Error('Unable to load example');
-      text = await response.text();
-    }
-    if (ticket !== documentLoadId) return;
-    switchDocument('');
-    programFilename = filename; $('example-kind').value = filename; replaceSource(text, filename);
-  } catch (error) { showError(error.message); }
-}
-$('restore').onclick = () => loadDocument(true);
-$('example-kind').onchange = () => loadDocument();
+$('restore').onclick = () => replaceSource(editingModule === 'bedrock' ? bundledBedrock : editingModule === 'foundation' ? bundledFoundation : bundledExamples.get(activePath));
 $('open').onclick = () => $('file').click();
 $('file').onchange = async () => {
   const file = $('file').files[0]; if (!file) return;
   const ticket = ++documentLoadId;
   try {
-    if (file.size > 128 * 1024) throw new Error('Playground source limit is 128 KiB');
-    const text=await file.text(); if(ticket===documentLoadId) replaceSource(text,file.name);
+    const next = await importProject(file);
+    if (ticket !== documentLoadId) return;
+    projects.push(next); selectProject(next.id);
   } catch (error) { showError(error.message); }
   $('file').value = '';
 };
-$('save').onclick = () => {
-  const url = URL.createObjectURL(new Blob([editor.state.doc.toString()], { type: 'text/plain;charset=utf-8' }));
-  const link = node('a'); link.href = url; link.download = $('filename').textContent; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-};
+$('save').onclick = () => projectAction(() => {
+  persist();
+  const url = URL.createObjectURL(exportProject(project));
+  const link = node('a'); link.href = url; link.download = project.name.replace(/[^a-zA-Z0-9._-]/g, '_') + '.zip'; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
 $('editor-error').onclick = () => goToDiagnostic(editor);
 
 
@@ -732,45 +782,44 @@ async function start() {
     for (const key of Object.keys(targets)) $('target-'+key).checked=selectedTargets[key];
     updateColumns();
   }
-  const [response, module, seed] = await Promise.all([fetch('./foreach.tower'), fetch('./foundation.tower'), fetch('./bedrock.tower')]);
-  if (!seed.ok) throw new Error('Unable to load bedrock.tower');
-  bedrock = bundledBedrock = await seed.text();
-  if (!module.ok) throw new Error('Unable to load foundation.tower');
-  foundation = bundledFoundation = await module.text();
-  if (!response.ok) throw new Error('Unable to load the example');
-  example = await response.text();
-  let initial = example;
+  const names = ['bedrock','foundation',...examples];
+  const texts = await Promise.all(names.map(async name => {
+    const response = await fetch('./' + name + '.tower');
+    if (!response.ok) throw new Error('Unable to load ' + name);
+    return response.text();
+  }));
+  bundledBedrock = texts[0]; bundledFoundation = texts[1];
+  for (const [i, name] of examples.entries()) bundledExamples.set(name + '.tower', texts[i+2]);
+  try { storage = await projectStore(); projects = (await storage.list()).map(validateProject); }
+  catch (error) { $('project-storage').textContent = 'Browser storage unavailable: ' + error.message; }
+  const builtins = {bedrock:bundledBedrock, foundation:bundledFoundation};
+  for (const name of examples) if (!projects.some(p => p.id === 'example:' + name)) {
+    const initial = newProject(name === 'foreach' ? 'ForEach' : name[0].toUpperCase() + name.slice(1), builtins, [{path:name + '.tower', text:bundledExamples.get(name + '.tower')}]);
+    initial.id = 'example:' + name; projects.push(initial);
+    if (storage) try { await storage.save(initial); }
+    catch (error) { $('project-storage').textContent = 'Not saved: ' + error.message; }
+  }
+  // One-time migration leaves localStorage documents intact as backup.
   try {
-    initial = localStorage.getItem('tower-playground-source-v1') ?? example;
-    let saved;
-    try { saved=JSON.parse(localStorage.getItem('tower-playground-document-v1') || 'null'); } catch {}
-    if (saved && typeof saved.source==='string' && typeof saved.filename==='string' && saved.filename.length) {
-      initial=saved.source; programFilename=saved.filename;
-      editingModule=['bedrock','foundation'].includes(saved.module) ? saved.module : '';
-    } else if (initial !== example) {
-      // Older versions saved text without its filename. Recover an exact bundled
-      // example match once; otherwise label it honestly as a local scratch file.
-      const names=[...$('example-kind').options].map(option=>option.value)
-        .filter(name=>!['bedrock.tower','foundation.tower','foreach.tower'].includes(name));
-      const candidates=await Promise.all(names.map(async name=>{
-        try { const response=await fetch('./'+name); return response.ok && await response.text()===initial ? name : null; } catch { return null; }
-      }));
-      programFilename=candidates.find(Boolean) ?? 'scratch.tower';
+    if (!localStorage.getItem('tower-project-migrated-v1')) {
+      const old = JSON.parse(localStorage.getItem('tower-playground-document-v1') || 'null');
+      const text = old?.source ?? localStorage.getItem('tower-playground-source-v1');
+      const savedBedrock = await selectFoundation(bundledBedrock, localStorage.getItem('tower-playground-bedrock-v1'), localStorage.getItem('tower-playground-bedrock-base-v1'));
+      const savedFoundation = await selectFoundation(bundledFoundation, localStorage.getItem('tower-playground-foundation-v1'), localStorage.getItem('tower-playground-foundation-base-v1'), {bedrock:savedBedrock});
+      if (text !== null || savedBedrock !== bundledBedrock || savedFoundation !== bundledFoundation) {
+        const legacy = newProject('Recovered workspace', {bedrock:savedBedrock, foundation:savedFoundation}, [{path:old?.filename || [...bundledExamples].find(([,source]) => source === text)?.[0] || 'scratch.tower', text:text ?? bundledExamples.get('foreach.tower')}]);
+        if (['bedrock','foundation'].includes(old?.module)) legacy.active = '.tower/' + old.module + '.tower';
+        legacy.baseline = builtins;
+        if (storage) { await storage.save(legacy); localStorage.setItem('tower-project-migrated-v1','true'); }
+        projects.push(legacy); localStorage.setItem('tower-project-selected-v1',legacy.id);
+      } else if (storage) localStorage.setItem('tower-project-migrated-v1','true');
     }
-    bedrock = await selectFoundation(bundledBedrock, localStorage.getItem('tower-playground-bedrock-v1'), localStorage.getItem('tower-playground-bedrock-base-v1'));
-    const savedFoundation = localStorage.getItem('tower-playground-foundation-v1');
-    foundation = await selectFoundation(bundledFoundation, savedFoundation, localStorage.getItem('tower-playground-foundation-base-v1'), { bedrock });
-    if (savedFoundation !== null && foundation !== savedFoundation) {
-      // Keep the original locally before upgrading the editor's saved document.
-      // A reload or another document switch must not bring the old copy back.
-      const backup = 'tower-playground-foundation-before-inheritance-v1';
-      if (localStorage.getItem(backup) === null) localStorage.setItem(backup, savedFoundation);
-      localStorage.setItem('tower-playground-foundation-v1', foundation);
-      localStorage.setItem('tower-playground-foundation-base-v1', bundledFoundation);
-    }
-  } catch {}
-  programSource = initial;
-  initial = editingModule === 'bedrock' ? bedrock : editingModule === 'foundation' ? foundation : programSource;
+  } catch (error) { $('project-storage').textContent = 'Previous workspace could not migrate: ' + error.message; }
+  for (const p of projects) {
+    p.builtins.bedrock = await selectFoundation(bundledBedrock, p.builtins.bedrock, p.baseline?.bedrock ?? null);
+    p.builtins.foundation = await selectFoundation(bundledFoundation, p.builtins.foundation, p.baseline?.foundation ?? null, {bedrock:p.builtins.bedrock});
+    p.baseline = {...builtins};
+  }
   editorExtensions = [
     lineNumbers(), highlightActiveLineGutter(), highlightActiveLine(), history(), highlighting, selectionMark, editorDiagnostics,
     EditorView.lineWrapping, EditorView.theme({ '&': { color: '#d4e0e2', backgroundColor: '#121a1e' } }, { dark: true }),
@@ -784,8 +833,9 @@ async function start() {
       }
     }),
   ];
-  editor = new EditorView({ parent: $('editor'), state: EditorState.create({ doc: initial, extensions: editorExtensions }) });
-  selectCurrentDocument(); persist();
+  editor = new EditorView({ parent: $('editor'), state: EditorState.create({ doc: '', extensions: editorExtensions }) });
+  let selected; try { selected = localStorage.getItem('tower-project-selected-v1'); } catch {}
+  selectProject(projects.find(p => p.id === selected)?.id ?? 'example:foreach');
   clearCompiled(); clearInspection(); showTab('tree'); controls();
   warmSelectedTargets();
   await perform('analyze');

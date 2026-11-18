@@ -7257,11 +7257,11 @@ bytes-browser-tests.log. Unrelated notes and todo.txt were not modified.
 ### Performance and remaining migration
 
 Paired Wasm trial, 12 warmups + 40 alternating samples, compile plus canonical
-output medians (ms): small 5.318→5.303; inference example 5.572→5.628;
-104 KiB ASCII source 6.486→6.330; 99 KiB Unicode source 6.086→6.042;
-500 declarations 12.974→12.838. Fresh native process trial, 3 warmups + 20 paired
-samples: inference total 110.381→105.764 ms; UTF-8 utility source
-110.733→105.779 ms. Compared with the saved prior compiler; these local trials
+output medians (ms): small 5.318â†’5.303; inference example 5.572â†’5.628;
+104 KiB ASCII source 6.486â†’6.330; 99 KiB Unicode source 6.086â†’6.042;
+500 declarations 12.974â†’12.838. Fresh native process trial, 3 warmups + 20 paired
+samples: inference total 110.381â†’105.764 ms; UTF-8 utility source
+110.733â†’105.779 ms. Compared with the saved prior compiler; these local trials
 show no material regression, not a universal speed guarantee. Scripts/reports:
 build/profile-bytes.mjs, profile-bytes-native.py, bytes-performance.json and
 bytes-native-performance.json.
@@ -7721,7 +7721,7 @@ and backend adapters. Each continues using the same shared entity model and
 canonical Foundation semantics. This entry does not claim that full migration
 or the portable self-hosting binary distribution is complete.
 
-## 2026-11-18 — Deterministic runtime rationale and templates deployment
+## 2026-11-18 â€” Deterministic runtime rationale and templates deployment
 
 The user clarified that deterministic execution is essential because the compiler
 will invoke ordinary Tower code when evaluating constants. This strengthens the
@@ -7749,7 +7749,7 @@ last working seed before validating its successor. The final endpoint remains
 pure Tower project-owned source and portable compiler binaries, not a permanent
 C++ bootstrap.
 
-## 2026-11-18 — Ordinary execution for constants; selectable determinism profiles
+## 2026-11-18 â€” Ordinary execution for constants; selectable determinism profiles
 
 User clarification: `5 + 5` during compilation means running Tower's own addition
 operation. Constant evaluation must not be a separate arithmetic mini-language or
@@ -7784,7 +7784,7 @@ must compare interpreter, optimized execution and hosts for both values and defi
 effects. These profiles and general compile-time function execution remain design
 direction; the current bounded type-function evaluator does not implement them.
 
-## 2026-11-18 — Shared character grammars versus specialized token matching
+## 2026-11-18 â€” Shared character grammars versus specialized token matching
 
 The user asked whether regex compilation already uses Tower parsing tables and
 whether token recognition should use the same parser. Inspection corrected a
@@ -7833,7 +7833,7 @@ Primary sources consulted:
 - Flex performance: https://westes.github.io/flex/manual/Performance.html
   (small scanning loop, backup/trailing-context costs).
 
-## 2026-11-18 — Approved: one symbol-stream grammar with proven DFA specialization
+## 2026-11-18 â€” Approved: one symbol-stream grammar with proven DFA specialization
 
 The user approved implementing shared grammars for character and token streams,
 with regex notation as shorthand for grammar rules over characters. Both stream
@@ -7865,7 +7865,7 @@ This approval adds to the ongoing full self-hosting migration and does not repla
 it. As of this entry, the unified regex grammar and generic parser specialization
 are authorized work, not completed features.
 
-## 2026-11-18 — Tower-owned parser payloads and lexer matching
+## 2026-11-18 â€” Tower-owned parser payloads and lexer matching
 
 Moved Rule, Reference, String, Range and Match component fields/ownership from
 parser.cpp into compiler/parser-nodes.tower. They remain components of the actual
@@ -7938,7 +7938,7 @@ specialization, alongside continued migration of native semantic payloads and
 parser algorithms. Higher-level grammar/foundation components, LR construction/
 control, formatter, interpreter, backend/driver and native adapters remain to port.
 
-## 2026-11-18 — Regex syntax now uses Tower's ordinary character parser
+## 2026-11-18 â€” Regex syntax now uses Tower's ordinary character parser
 
 Implemented the first shared-grammar step. compiler/regex-grammar.tower builds
 ordinary Rule/Reference/String/Range entities for regex notation; production
@@ -8004,7 +8004,7 @@ error context with LR as reference. Broader regular alternatives, recursive toke
 grammars and in-context regular subrule specialization remain authorized work;
 do not describe the entire DFA direction or pure-Tower endpoint as complete.
 
-## 2026-11-18 — Tower-owned symbol automata and the first parser DFA specialization
+## 2026-11-18 â€” Tower-owned symbol automata and the first parser DFA specialization
 
 The user reaffirmed both ongoing tasks: finish moving project-owned native code
 into Tower (including the bootstrap), and continue DFA specialization/sharing.
@@ -8074,7 +8074,7 @@ type checking, formatting, interpreter/driver/backend bridges and native bootstr
 stages also remain to migrate. Do not confuse a shared regex-syntax reader with
 completed arbitrary scannerless/recursive lexical grammar support.
 
-## 2026-11-18 — Regex tree lowering is now Tower code; bootstrap retirement remains the endpoint
+## 2026-11-18 â€” Regex tree lowering is now Tower code; bootstrap retirement remains the endpoint
 
 Continued the user-requested migration after the symbol-automaton checkpoint
 `f03f1e9`. `compiler/regex-lowering.tower` now implements traversal, alternatives,
@@ -8169,7 +8169,7 @@ The previous regex-parser deployment (`4ecb3bd`, Pages `8435d16`) was verified
 online before these new changes: all 23 assets matched and desktop/mobile checks
 passed. This new checkpoint will be published and independently verified next.
 
-## 2026-11-18 — Regex/automaton migration checkpoint published and verified
+## 2026-11-18 â€” Regex/automaton migration checkpoint published and verified
 
 Pushed `f03f1e9` (Tower automata plus fixed terminal parser specialization) and
 `afdb920` (Tower regex tree lowering) to master. Published the tested static build
@@ -8188,7 +8188,7 @@ formatter/interpreter, backend/CLI adapters and bootstrap retirement in scope.
 Portable per-platform bootstrap executables are not delivered by this checkpoint.
 Existing unrelated working edits, including todo.txt, were preserved.
 
-## 2026-11-18 — Tower-owned LR analysis, states and LALR actions
+## 2026-11-18 â€” Tower-owned LR analysis, states and LALR actions
 
 Continued the requested removal of project-owned C++, including the eventual
 bootstrap, alongside shared character/token parsing and DFA specialization. This
@@ -8373,7 +8373,7 @@ remains zero project-owned C++ (including bootstrap), not merely LR construction
 The existing type constructor implementation currently rejects value parameters;
 implement that missing capability rather than hardcoding an example's size in C++.
 
-## 2026-11-18 — Short Templates example with integer type arguments
+## 2026-11-18 â€” Short Templates example with integer type arguments
 
 Implemented the requested example as `buffer(T, size)` containing `data: T[size]`,
 then `stack(T)` containing a four-element buffer and a count. Generic `push` and
@@ -8415,7 +8415,7 @@ Next: move runtime LR table normalization, action/goto lookup and parser control
 into Tower. Full project-owned C++ removal and portable bootstrap executables
 remain unfinished; this example does not change that endpoint.
 
-## 2026-11-18 — Runtime LR rows and lookups are Tower-owned
+## 2026-11-18 â€” Runtime LR rows and lookups are Tower-owned
 
 Added compiler/lr-runtime.tower: sorted action normalization, overlap/conflict
 detection, hash-interned shared rows, singleton-token hash lookup, range lookup,
@@ -8459,7 +8459,7 @@ workflow 44380620133 succeeded. verify-deployment.mjs verified all 23 online ass
 and desktop/mobile compilation, execution agreement, edits and downloads; log
 build/template-values-online.log. All custom C++ removal remains unfinished.
 
-## 2026-11-18 — Tower recognizer control and finite-sequence specialization
+## 2026-11-18 â€” Tower recognizer control and finite-sequence specialization
 
 compiler/lr-parser.tower now owns the recognizer stack, shift/reduce selection,
 prefix completion, consumed-input tracking, reduction spans and work counters.
@@ -8502,7 +8502,7 @@ versus 3156273, native optimized process startup/module load/compile/interpret,
 50 token declarations 521.557 -> 492.241, 25 parse extensions 275.442 -> 245.518.
 The native reference binary replaces only parser.cpp's object, keeping other objects
 identical. Warm Wasm table-only compile plus Foundation formatting (12 warmups,
-40 alternating pairs) improved all four fixtures by roughly 6–8% in that run.
+40 alternating pairs) improved all four fixtures by roughly 6â€“8% in that run.
 With Tower control included, the same Wasm method versus deployed 3156273 measured:
 small 5.164 -> 4.768, inference 5.435 -> 5.108, replacements 18.040 -> 16.616,
 500 declarations 17.411 -> 16.820 ms. Absolute times vary between runs. Scripts and
@@ -8510,7 +8510,7 @@ full p50/p95 results: build/profile-lr-{runtime,control}-{native,wasm}.* and mat
 build/lr-*-performance.json files. Source-length complexity and grammar conflicts
 are unchanged; these measurements do not imply every grammar becomes faster.
 
-## 2026-11-18 — Grammar entity indexing moved into Tower
+## 2026-11-18 â€” Grammar entity indexing moved into Tower
 
 compiler/lr-grammar.tower now reads the shared Rule/Reference/String/Range entity
 components, groups productions by name, binds forward nonterminal references,
@@ -8569,7 +8569,7 @@ and all native seeds. The endpoint is still pure Tower plus verified portable
 compiler binaries and third-party implementations. Adapters/seeds do count as our
 C++; current successful stages do not mean the full compiler is self-hosted.
 
-## 2026-11-18 — Correction to the grammar migration source cleanup
+## 2026-11-18 â€” Correction to the grammar migration source cleanup
 
 After the grammar migration's successful builds/tests, a PowerShell EOF cleanup
 read parser.cpp without an explicit UTF-8 encoding and rewrote four Unicode test
@@ -8581,7 +8581,7 @@ staged only that correction while retaining the ongoing diagnostic-probe migrati
 Future scripted source rewrites must use explicit encoding. This supersedes any
 implication that the post-cleanup dc51620 source itself had passed the native build.
 
-## 2026-11-18 — Bounded diagnostic table probes moved into Tower
+## 2026-11-18 â€” Bounded diagnostic table probes moved into Tower
 
 lr-parser.tower now also owns the isolated stacks used to test expected tokens
 and insertion continuations after an error. Probes retain consumed-input evidence,
@@ -8614,7 +8614,7 @@ LLVM can progressively consume Tower-defined payloads on the same shared entitie
 The remaining native bridges/seeds and compiler stages still count toward full
 C++ removal; portable self-hosted compiler binaries are not completed.
 
-## 2026-11-18 — Foundation component storage in Tower; honest migration status
+## 2026-11-18 â€” Foundation component storage in Tower; honest migration status
 
 The user's question about continued `parser.cpp` edits is justified: the project
 is not close enough to claim that only third-party C++ remains. Tower now runs
@@ -8652,7 +8652,7 @@ produced. Matching compiled utility objects is narrower than that endpoint.
   storage. The checked ABI view is transitional migration work, not a new
   independent semantic representation.
 - Added a native reference seed for the new storage exports so clean builds
-  retain an acyclic seed → stage1 → production dependency. This seed must also
+  retain an acyclic seed â†’ stage1 â†’ production dependency. This seed must also
   disappear once the portable Tower-built bootstrap is available.
 
 ### Trials and validation
@@ -8707,14 +8707,14 @@ step; it does not mean those passes have already moved.
 Performance comparison after the test builds finished: `build/profile-foundation-nodes-native.py`
 uses complete optimized compilers (baseline `7ebcb41` in an isolated worktree,
 `TOWER_NATIVE_BUILD=/root/.cache/tower/foundation-baseline`) and 4 warmups plus 24
-alternating paired process runs. Median milliseconds before → after were:
-small 109.887 → 113.035, 500 declarations 118.167 → 115.390, templates
-113.176 → 113.668, 50 token definitions 507.362 → 512.128.
+alternating paired process runs. Median milliseconds before â†’ after were:
+small 109.887 â†’ 113.035, 500 declarations 118.167 â†’ 115.390, templates
+113.176 â†’ 113.668, 50 token definitions 507.362 â†’ 512.128.
 `node build/profile-foundation-nodes-wasm.mjs` uses Node 21.7.3 hosting Wasm,
 12 warmups plus 40 alternating pairs of compile + canonical formatting. Against
-published `dc51620`/Pages `8f120d4`, medians were small 4.444 → 4.436,
-inference 4.599 → 4.664, replacements 15.330 → 15.496, 500 declarations
-12.658 → 12.944 ms. The latter comparison also includes the diagnostic-probe
+published `dc51620`/Pages `8f120d4`, medians were small 4.444 â†’ 4.436,
+inference 4.599 â†’ 4.664, replacements 15.330 â†’ 15.496, 500 declarations
+12.658 â†’ 12.944 ms. The latter comparison also includes the diagnostic-probe
 migration since that deployment. Full p50/p95 results and fixture definitions
 are in the corresponding scripts and `build/foundation-nodes-{native,wasm}-performance.json`.
 These samples show roughly preserved performance, not a speedup claim or a
@@ -9197,3 +9197,137 @@ grammar, persistence, native downloads, equal columns, legacy-selection reset,
 single-target defaults and detection markers. Command:
 `node playground/scripts/verify-deployment.mjs https://trevorsundberg.github.io/tower/`.
 Logs: `build/syntax-nodes-pages.log`, `build/syntax-nodes-online.log`.
+
+## 2026-11-18 — Browser projects, virtual drives and independent source files
+
+Implemented the requested project workspace in `playground`, without changing
+`todo.txt` or adding a package dependency. The old document dropdown is gone.
+The left browser has a project selector, pinned Bedrock/Foundation entries with
+built-in badges, collapsible folders, file creation/rename/delete and explicit
+file reordering. Every previous example is a seeded project. Built-in edits are
+project-local environment overrides; switching projects terminates all parser,
+interpreter and backend workers and drops outputs, downloads and link inputs.
+Within a project, editor states preserve separate file undo histories.
+
+Storage is whole-project IndexedDB transactions, not source in localStorage.
+Old source/module/localStorage records migrate once to a recovered project;
+original records remain untouched as backup. Known Foundation baseline upgrades
+still use the existing migration rules. Save/Open now export/import the complete
+project as ZIP: ordinary source files, `.tower/bedrock.tower`,
+`.tower/foundation.tower`, `.tower/project.json` (order/metadata/baselines) and
+`.tower/links/` inputs. The small writer uses standard stored ZIP records and
+CRC32, with no library; the reader also supports Deflate through the browser
+DecompressionStream. It rejects duplicate/traversal/conflicting paths, bad CRCs,
+unsupported compression/encryption and oversized contents. Storage handles text
+assets larger than localStorage's practical limit; a >7 MB Unicode archive and
+>8 MB browser project were exercised. Archive allocation remains bounded at
+256 MiB; source compilation is separately bounded at 8 MiB combined, with the
+existing 1,024 construct and 64 KiB bootstrap module limits. This is not an
+unbounded-file-size guarantee.
+
+Research/choices:
+
+- [MDN IndexedDB](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API)
+  documents transactional structured storage including larger files/blobs.
+  [Storage quotas](https://developer.mozilla.org/en-US/docs/Web/API/Storage_API/Storage_quotas_and_eviction_criteria)
+  distinguishes browser-managed IndexedDB quotas from the small Web Storage
+  limit. Quota errors are surfaced in the UI; browser data can still be evicted.
+- [MDN directory picker](https://developer.mozilla.org/en-US/docs/Web/API/Window/showDirectoryPicker)
+  still documents limited browser availability and secure-context requirements.
+  Direct directory synchronization was considered and deferred; ZIP plus virtual
+  files works without making that API a prerequisite.
+- ZIP records follow [PKWARE APPNOTE 6.3.10](https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT).
+  Stored output avoids a compression package; Python `zipfile.testzip()` and
+  Python-produced ZIP_DEFLATED input independently verified interoperability.
+  Foundation text stays the program interchange; ZIP is just a file container.
+
+Project compilation is an explicit ordered list, not a concatenating JS parser
+or a new Tower import language. `core_compile_files` starts a syntax session from
+Foundation for every source, attaches those same parsed executable entities to
+one program and runs existing binding/type-checking/formatting/lowering. Module
+bindings span that compilation unit while initialization and effects retain file
+order. A derived source-base index maps source-local spans (including generated
+template instances) to project diagnostic coordinates; workers map these to
+path/byte positions. Canonical Foundation text remains the backend boundary.
+The additive `tw_exec_create_files` host ABI and `compileFiles` adapter use the
+existing execution handle model. Both interpreter and LLVM branches consume the
+same checked project. Ordinary parser inspection remains file-local. Built-in
+inspection retains its ordinary execution area and controls.
+
+`TowerWASI.mountFiles` atomically replaces the frontend virtual file tree and
+invalidates opened guest file descriptors. Invalid mounts preserve the previous
+tree. This is filesystem plumbing for the compiler host; the Tower browser
+platform API still only exposes output and does not gain guest file-I/O functions
+or capability semantics from this change. General Tower imports, effect-tracked
+file reads and native-directory synchronization remain follow-up work.
+
+Debugging/trials:
+
+- The clean Windows checkout had no build products, node_modules, WASI SDK or
+  installed LLVM development package. Installed pinned npm dependencies,
+  Playwright Chromium, WASI SDK 34 and Ubuntu LLVM 19 development files; built the
+  native bootstrap and actual frontend reactor through the repository scripts.
+  The PowerShell `python` alias was unavailable; Python scripting used WSL
+  Ubuntu's python3 instead.
+- The first browser launch found one residual `example-kind` reference in the
+  control enablement list; removing it restored startup. Browser tests now use
+  file-tree clicks/project selection and read whole-project archives/IndexedDB.
+- A delayed save could report an old transaction as current after selecting a
+  different file. Save generations now prevent that. Immediate-reload regression
+  additionally demonstrated that relying on a debounced write plus pagehide can
+  lose edits: transactions now start on each edit, and the UI only reports Saved
+  when the matching transaction commits. This favors durable edits over a small
+  debounce optimization, at the cost of snapshot cloning for large projects.
+- Async link-file reads used to act on whichever global input map was current
+  when the read completed. They now capture the owning project and discard a
+  result after a project switch. Project import already has a supersession token.
+- Old tests expected execution workers to survive changing examples. Examples are
+  now projects, so those expectations were changed to require environment
+  replacement and continue testing worker reuse for edits inside that environment.
+- First broad browser trial: 100/108 passed, with failures identifying the reload
+  save issue, stale selector/worker-lifetime expectations and narrow mobile
+  editor virtualization. The mobile sidebar was given the full workspace height
+  to make project files visible, while keeping parser inspection available.
+
+Environment and reproducible checks (PowerShell, repository root unless noted):
+
+```
+npm ci --prefix playground
+wsl -d Ubuntu -- bash playground/scripts/setup-wasi.sh
+wsl -d Ubuntu -- bash playground/scripts/build-wasm.sh
+node --test playground/tests/*.test.mjs
+npm run build --prefix playground
+npx --prefix playground playwright test --config playground/playwright.config.mjs
+wsl -d Ubuntu -- bash playground/scripts/test-native-core.sh
+```
+
+The frontend reactor was rebuilt from this checkout. For independent backend
+comparison, the unchanged LLVM/cross reactors and target runtime packs were
+fetched from the project's published `https://trevorsundberg.github.io/tower/`
+into ignored `build/` directories; these backend binaries were not rebuilt in
+this trial and are not claimed as fresh backend builds. Node validation after
+that setup: 185 passed, zero failed, one skipped (optional native-produced Wasm
+fixture absent). This includes multi-file binding/order, isolated grammars,
+Unicode diagnostics, specialization, Foundation round trips, large-file ZIP,
+invalid mounts and path validation. Final browser/native outcomes follow below.
+
+Final validation: the full desktop/mobile run passed 113 of 116 checks. The
+remaining three were mobile viewport assumptions in tests, not missing semantic
+results: CodeMirror did not render offscreen source/error widgets. Tests now
+read the complete IndexedDB source, navigate to the error, or scroll to the
+highlighted tokens. The focused rerun passed all 22 checks, including all three
+previous failures, both device profiles, project CRUD/order, large archives,
+quota failure/download recovery, pending link input isolation and cancellation.
+No unresolved test failure remains. Native ASan/UBSan CTest passed 4/4 suites;
+Node passed 185 with one optional fixture skip. The final ZIP bounds/date cleanup
+also passed all seven project Node tests and the 22 focused browser checks.
+ZIP output has a deterministic valid 1980-01-01 DOS date. Python's independent
+stored/deflated ZIP interoperability checks passed. `git diff --check` passed.
+
+Logs: `build/project-node-final.log`, `build/project-browser-final.log`,
+`build/project-browser-focused.log`, and `build/project-native-tests.log`.
+The README, TOKENS guide and browser ABI now document project behavior and its
+limits. No runtime dependency or web framework was added; no website deployment
+was performed. Next: language-level imports and tracked filesystem capabilities,
+then optional directory synchronization if useful, without making those APIs
+required for the portable browser workspace.

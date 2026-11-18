@@ -25,6 +25,23 @@ export class TowerWASI {
     };
   }
   initialize(instance) { this.instance = instance; instance.exports._initialize?.(); }
+  // Replace the complete virtual drive and invalidate every open guest file.
+  mountFiles(files) {
+    const mounted = new Map([['', this.files.get('')]]);
+    for (const {path, text} of files) {
+      if (!path || /[\\\x00:]/.test(path) || path.split('/').some(p => !p || p === '.' || p === '..')) throw new Error('Invalid virtual file path: ' + path);
+      const parts = path.split('/'); let directory = '';
+      for (const part of parts.slice(0,-1)) {
+        directory += (directory ? '/' : '') + part;
+        if (mounted.has(directory) && mounted.get(directory).type !== 3) throw new Error('Virtual folder conflicts with file');
+        if (!mounted.has(directory)) mounted.set(directory,this.node(3));
+      }
+      if (mounted.has(path)) throw new Error('Duplicate virtual file: ' + path);
+      const file = this.node(4); file.data = encoder.encode(text); mounted.set(path,file);
+    }
+    for (const fd of this.fds.keys()) if (fd > 3) this.fds.delete(fd);
+    this.files = mounted;
+  }
   node(type) { return { type, inode: this.nextInode++, links: 1n, data: new Uint8Array(), time: BigInt(Date.now()) * 1000000n }; }
   fail(code) { throw new Errno(code); }
   memory(pointer, length) {

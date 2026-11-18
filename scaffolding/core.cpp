@@ -45,7 +45,7 @@ enum Flow : unsigned { Next = 1, Break = 2, Continue = 4, Return = 8 };
 struct Compiler {
   CoreProgram program;
   TowerNode* current = program.root;
-  size_t prefix = 0, count = 0, loops = 0;
+  size_t count = 0, loops = 0;
   unsigned value_depth = 0;
   std::map<std::string, TowerNode*> functions;
   std::map<std::string, TowerNode*> types;
@@ -57,6 +57,7 @@ struct Compiler {
   std::set<std::string> source_names;
   std::set<TowerNode*> template_nodes, fields_done, resolving_types;
   const char* source = "";
+  std::map<TowerNode*, size_t> source_bases; // derived provenance index, not an IR
   unsigned type_depth = 0;
   std::map<TowerNode*, unsigned> layout_state;
   std::map<TowerNode*, unsigned> declaration_state;
@@ -67,7 +68,11 @@ struct Compiler {
     generics = generic_begin(program.root);
   }
   CoreNode& function() { return core_node(current); }
-  size_t offset(TowerNode* n) { auto* m = match(n); auto start = m ? parser_match_get_start(m) : 0; return start > prefix ? start - prefix : 0; }
+  size_t source_base(TowerNode* n) {
+    for (; n; n = tower_node_get_parent(n)) if (auto it = source_bases.find(n); it != source_bases.end()) return it->second;
+    return 0;
+  }
+  size_t offset(TowerNode* n) { auto* m = match(n); return (m ? parser_match_get_start(m) : 0) + source_base(n); }
   void fail(TowerNode* n, const std::string& text) {
     if (!program.error.empty()) return;
     program.error = text; program.error_offset = offset(n);
@@ -157,10 +162,12 @@ struct Compiler {
     }
     auto* instance = generic_instantiate(generics, found->second, n, arguments.data(), arguments.size());
     if (!generic_ok(n) || !instance) return invalid;
+    source_bases[instance] = source_base(found->second);
     if (auto result = type_results.find(instance); result != type_results.end()) return result->second;
     if (!resolving_types.insert(instance).second) { fail(n, "Recursive type constructor '" + name + "' has no concrete struct to resolve"); return invalid; }
     auto* result = generic_type_result(generics, instance);
     if (!generic_ok(n) || !result) return invalid;
+    source_bases[result] = source_base(found->second);
     if (label(result) == "CoreStruct") {
       type_header(result, instance_name(found->second, arguments));
       if (!program.error.empty()) return invalid;
@@ -468,6 +475,7 @@ struct Compiler {
       }
       auto* instance = generic_instantiate(generics, definition, n, arguments.data(), arguments.size());
       if (!generic_ok(n) || !instance) return n;
+      source_bases[instance] = source_base(definition);
       if (!core_get(instance)) {
         header(instance, instance_name(definition, arguments), definition);
         if (!program.error.empty()) return n;
@@ -615,22 +623,31 @@ struct Compiler {
     return Next;
   }
 };
-CoreProgram compile(const char* source, size_t prefix, unsigned width) {
-  Compiler compiler(width); compiler.prefix = prefix; compiler.source = source; auto* session = syntax_create(source); size_t count = 0;
+CoreProgram compile(const std::vector<std::string>& sources, unsigned width) {
+  Compiler compiler(width); size_t count = 0, base = 0;
+  std::string source;
+  for (const auto& file : sources) { source += file; source += '\n'; }
+  compiler.source = source.c_str();
   auto& statements = core_node(compiler.program.root).items;
-  while (compiler.program.error.empty()) {
-    auto revision = syntax_get_revision(session); auto* root = syntax_next(session); if (!root) break;
-    if (revision == syntax_get_revision(session)) {
-      auto* n = unwrap(child(root, 0)); tower_node_attach(root, compiler.program.root); statements.push_back(n);
+  for (const auto& file : sources) {
+    auto* session = syntax_create(file.c_str());
+    while (compiler.program.error.empty()) {
+      auto revision = syntax_get_revision(session); auto* root = syntax_next(session); if (!root) break;
+      if (revision == syntax_get_revision(session)) {
+        auto* n = unwrap(child(root, 0)); tower_node_attach(root, compiler.program.root); statements.push_back(n);
+        compiler.source_bases[root] = base;
+      }
+      tower_node_release_ref(root);
+      if (++count > 1024) compiler.fail(nullptr, "Foundation source limit is 1,024 top-level nodes");
     }
-    tower_node_release_ref(root);
-    if (++count > 1024) compiler.fail(nullptr, "Foundation source limit is 1,024 top-level nodes");
+    if (compiler.program.error.empty() && *syntax_get_error(session)) {
+      compiler.program.error = syntax_get_error(session); auto at = syntax_get_error_offset(session);
+      compiler.program.error_offset = base + at;
+    }
+    syntax_destroy(session);
+    base += file.size() + 1;
+    if (!compiler.program.error.empty()) break;
   }
-  if (compiler.program.error.empty() && *syntax_get_error(session)) {
-    compiler.program.error = syntax_get_error(session); auto at = syntax_get_error_offset(session);
-    compiler.program.error_offset = at > prefix ? at - prefix : 0;
-  }
-  syntax_destroy(session);
   for (auto* n : statements) {
     if (auto* name = member(n, "name")) compiler.source_names.insert(identifier(tokens(name)));
     if (compiler.program.error.empty() && (label(n) == "CoreFunction" || label(n) == "CoreExternal" || label(n) == "CoreExport")) compiler.register_template(n);
@@ -671,11 +688,12 @@ CoreProgram compile(const char* source, size_t prefix, unsigned width) {
   return std::move(compiler.program);
 }
 }
-CoreProgram core_compile(const char* source, unsigned pointer_bytes) { return compile(source, 0, pointer_bytes); }
+CoreProgram core_compile(const char* source, unsigned pointer_bytes) { return compile({source}, pointer_bytes); }
+CoreProgram core_compile_files(const std::vector<std::string>& sources, unsigned pointer_bytes) { return compile(sources, pointer_bytes); }
 void core_set_foundation(const std::string& grammar) { foundation_grammar = syntax_set_bootstrap(grammar.c_str()); }
 CoreProgram core_compile_foundation(const char* source, unsigned pointer_bytes) {
   if (!foundation_grammar.empty()) { CoreProgram p; p.error = foundation_grammar; return p; }
-  return compile(source, 0, pointer_bytes);
+  return compile({source}, pointer_bytes);
 }
 #if defined(__wasm__)
 extern "C" __attribute__((export_name("tw_set_foundation"))) int tw_set_foundation(const char* source, size_t length) {

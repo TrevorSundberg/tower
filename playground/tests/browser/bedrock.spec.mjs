@@ -1,4 +1,5 @@
 import { outputText } from './output-text.mjs';
+import {selectDocument, downloadedProject} from './project-helpers.mjs';
 import { test, expect } from '@playwright/test';
 async function setSource(page, text) {
   await page.locator('#editor').click({ position: { x: 80, y: 20 } });
@@ -9,21 +10,15 @@ async function downloadSource(page, filename) {
   const pending = page.waitForEvent('download');
   await page.getByRole('button', {name:'Save',exact:true}).click();
   const download = await pending;
-  expect(download.suggestedFilename()).toBe(filename);
-  let source = '';
-  for await (const chunk of await download.createReadStream()) source += chunk.toString();
-  return source;
+  return (await downloadedProject(download)).builtins[filename.replace('.tower','')];
 }
 test.beforeEach(async ({page}) => {
   await page.goto('/'); await expect(page.locator('#status')).toContainText('Complete');
 });
 test('modules show their source and grammar tree without executable instruction output', async ({page,request}, info) => {
   const bedrock = await (await request.get('/bedrock.tower')).text();
-  expect(await page.locator('#example-kind option').allTextContents()).toEqual([
-    'Bedrock', 'Foundation', 'ForEach', 'Execution', 'Increment', 'Inference', 'Templates', 'Functions', 'Structs', 'Memory', 'Replacements', 'Token rules'
-  ]);
-  await expect(page.locator('#example-kind optgroup')).toHaveCount(0);
-  await page.locator('#example-kind').selectOption('bedrock.tower');
+  await expect(page.locator('.builtin-badge')).toHaveCount(2);
+  await selectDocument(page, 'bedrock.tower');
   await expect(page.locator('#filename')).toHaveText('bedrock.tower');
   await expect(page.locator('#status')).toContainText('Complete');
   await expect(page.locator('#execution-status')).toHaveText('Syntax only');
@@ -34,7 +29,7 @@ test('modules show their source and grammar tree without executable instruction 
   expect(await downloadSource(page, 'bedrock.tower')).toBe(bedrock);
   await page.screenshot({path:'../build/playground-bedrock-'+info.project.name+'.png'});
   expect(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth && document.documentElement.scrollHeight <= innerHeight)).toBe(true);
-  await page.locator('#example-kind').selectOption('foundation.tower');
+  await selectDocument(page, 'foundation.tower');
   await expect(page.locator('#filename')).toHaveText('foundation.tower');
   await expect(page.locator('#status')).toContainText('Complete');
   await expect(page.locator('#execution-panel')).toBeVisible();
@@ -45,14 +40,14 @@ test('modules show their source and grammar tree without executable instruction 
   await expect(page.locator('#core-instructions')).toBeEmpty();
   await expect(page.locator('#execution-output')).toBeEmpty();
   await expect(page.locator('#llvm-output')).toBeEmpty();
-  await page.locator('#example-kind').selectOption('foreach.tower');
+  await selectDocument(page, 'foreach.tower');
   await setSource(page, 'print(42);');
   await expect(page.locator('#execution-panel')).toBeVisible();
   await expect(page.locator('#execution-status')).toHaveText('Finished \u00b7 backends match');
   await expect.poll(()=>outputText(page,'core-instructions')).toContain('print(42);');
   await expect(page.locator('#execution-output')).toHaveText('42\n');
   await expect(page.locator('#llvm-output')).toHaveText('42\n');
-  await page.locator('#example-kind').selectOption('bedrock.tower');
+  await selectDocument(page, 'bedrock.tower');
   await expect(page.locator('#execution-panel')).toBeVisible();
   for (const id of ['core-instructions','llvm-before','llvm-after','execution-output','llvm-output'])
     await expect(page.locator('#' + id)).toBeEmpty();
@@ -60,30 +55,30 @@ test('modules show their source and grammar tree without executable instruction 
 test('editing bedrock updates its next declarations and downstream modules while undo histories remain independent', async ({page,request}) => {
   const bedrock = await (await request.get('/bedrock.tower')).text();
   const foundation = await (await request.get('/foundation.tower')).text();
-  await page.locator('#example-kind').selectOption('bedrock.tower');
+  await selectDocument(page, 'bedrock.tower');
   const edited = bedrock.replace("'parse'", "'rule'").replace(/^parse (?!GrammarDeclaration\b)/gm, 'rule ');
   await setSource(page,edited);
   await expect(page.locator('#status')).toContainText('Complete');
   expect(await downloadSource(page, 'bedrock.tower')).toBe(edited);
-  await page.locator('#example-kind').selectOption('foundation.tower');
+  await selectDocument(page, 'foundation.tower');
   await page.locator('#editor-error').click();
   await expect(page.locator('.tw-inline-error-message')).toContainText('Foundation may contain only');
   await setSource(page,foundation.replace(/^parse /gm,'rule '));
   await expect(page.locator('#status')).toContainText('Complete');
-  await page.locator('#example-kind').selectOption('foreach.tower');
+  await selectDocument(page, 'foreach.tower');
   await setSource(page,"rule Statement |= 'show' $value:CoreOperand ';' => replace { print($value); };show 42;");
   await expect(page.locator('#execution-status')).toHaveText('Finished \u00b7 backends match',{timeout:30000});
   await expect(page.locator('#execution-output')).toHaveText('42\n');
   await expect(page.locator('#llvm-output')).toHaveText('42\n');
-  await page.locator('#example-kind').selectOption('bedrock.tower');
+  await selectDocument(page, 'bedrock.tower');
   await page.getByRole('textbox',{name:'Tower source'}).press('ControlOrMeta+z');
   expect(await downloadSource(page, 'bedrock.tower')).toBe(bedrock);
-  await page.locator('#example-kind').selectOption('foundation.tower');
+  await selectDocument(page, 'foundation.tower');
   await page.locator('#editor-error').click();
   await expect(page.locator('.tw-inline-error-message')).toContainText('Foundation may contain only');
   await page.getByRole('textbox',{name:'Tower source'}).press('ControlOrMeta+z');
   await expect(page.locator('#status')).toContainText('Complete');
-  await page.locator('#example-kind').selectOption('bedrock.tower');
+  await selectDocument(page, 'bedrock.tower');
   await expect(page.locator('#status')).toContainText('Complete');
 });
 
@@ -91,20 +86,19 @@ test('one bedrock whitespace and identifier definition drives foundation and bot
   const bedrock = await (await request.get('/bedrock.tower')).text();
   const foundation = await (await request.get('/foundation.tower')).text();
   expect(foundation).not.toMatch(/^(?:skip Whitespace|token Identifier)\b/m);
-  await page.locator('#example-kind').selectOption('bedrock.tower');
+  await selectDocument(page, 'bedrock.tower');
   await setSource(page, bedrock.replace('[ \\t\\r\\n]+', '[ ~\\t\\r\\n]+').replace('[A-Za-z0-9_]*', '[A-Za-z0-9_-]*'));
   await expect(page.locator('#status')).toContainText('Complete');
-  await page.locator('#example-kind').selectOption('foreach.tower');
+  await selectDocument(page, 'foreach.tower');
   await setSource(page, 'var~player-name:~i32~=~42;print(~player-name);');
   await expect(page.locator('#execution-status')).toHaveText('Finished \u00b7 backends match');
   await expect(page.locator('#execution-output')).toHaveText('42\n');
   await expect(page.locator('#llvm-output')).toHaveText('42\n');
-  await page.locator('#example-kind').selectOption('foundation.tower');
+  await selectDocument(page, 'foundation.tower');
   await expect(page.locator('#status')).toContainText('Complete');
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', {name:'Save',exact:true}).click();
-  let saved = '';
-  for await (const chunk of await (await downloadPromise).createReadStream()) saved += chunk.toString();
+  const saved = (await downloadedProject(await downloadPromise)).builtins.foundation;
   expect(saved).toBe(foundation);
   await page.getByRole('tab', { name: 'Active grammar' }).click();
   await expect(page.locator('#rules')).toContainText('GrammarAssignment');
@@ -112,25 +106,26 @@ test('one bedrock whitespace and identifier definition drives foundation and bot
 });
 test('invalid bedrock stays editable, persists and restores without damaging foundation', async ({page,request}) => {
   const bedrock = await (await request.get('/bedrock.tower')).text();
-  await page.locator('#example-kind').selectOption('bedrock.tower');
+  await selectDocument(page, 'bedrock.tower');
   await setSource(page,bedrock.replace('$name:Identifier','$wrong:Identifier'));
+  await page.locator('#editor-error').click();
   await expect(page.locator('.tw-inline-error-message')).toContainText("must preserve capture 'name'");
-  await page.locator('#example-kind').selectOption('foreach.tower');
+  await selectDocument(page, 'foreach.tower');
   await expect(page.locator('#error-message')).toContainText('bedrock.tower');
   await page.reload();
-  await page.locator('#example-kind').selectOption('bedrock.tower');
+  await selectDocument(page, 'bedrock.tower');
   await page.locator('#editor-error').click();
   await expect(page.locator('.tw-inline-error-message')).toContainText("must preserve capture 'name'");
   await page.getByRole('button',{name:'Restore',exact:true}).click();
   await expect(page.locator('#status')).toContainText('Complete');
-  await page.locator('#example-kind').selectOption('foundation.tower');
+  await selectDocument(page, 'foundation.tower');
   await expect(page.locator('#status')).toContainText('Complete');
 });
 
 test('Identifier edits immediately affect following declarations in every document', async ({page,request}, info) => {
   const bedrock = await (await request.get('/bedrock.tower')).text();
   for (const filename of ['bedrock.tower', 'foundation.tower', 'foreach.tower']) {
-    await page.locator('#example-kind').selectOption(filename);
+    await selectDocument(page, filename);
     const source = filename === 'bedrock.tower' ? bedrock.replace('[A-Za-z_][A-Za-z0-9_]*', 'ffff[A-Za-z_][A-Za-z0-9_]*')
       : 'token Identifier = /ffff[A-Za-z_][A-Za-z0-9_]*/ as identifier;\ntoken String = /[a-z]+/;';
     await setSource(page, source);

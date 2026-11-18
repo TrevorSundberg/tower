@@ -2,9 +2,10 @@ import { getTower, getCompiler, warmCompiler } from './compiler-runtime.mjs';
 import { originalDiagnostic } from './foundation-source.mjs';
 import { targets, targetInputs, nativeTargetKeys, linkInputsForTarget } from './targets.mjs';
 import { fetchBytes as bytes } from './fetch-bytes.mjs';
+import {projectDiagnostic} from './projects.mjs';
 
 const runtimes = new Map();
-async function receive({data:{command,id,source,foundation,bedrock,targetKeys=[],inputs={}}}) {
+async function receive({data:{command,id,source,foundation,bedrock,targetKeys=[],inputs={},files,drive=[]}}) {
   const keys = nativeTargetKeys.filter(key => targetKeys.includes(key));
   if (command === 'warm') {
     try {
@@ -23,9 +24,10 @@ async function receive({data:{command,id,source,foundation,bedrock,targetKeys=[]
   try {
     send({phase:'Loading…'});
     tower = (await getTower(foundation,bedrock)).tower;
-    handle = tower.compile(source,{pointerBytes:8});
+    tower.mountFiles(drive);
+    handle = files ? tower.compileFiles(files,{pointerBytes:8}) : tower.compile(source,{pointerBytes:8});
     const checked = tower.execute(handle,0);
-    if (checked.status === 'error') { send({error:checked.error,diagnostic:checked,done:true}); return; }
+    if (checked.status === 'error') { const diagnostic = projectDiagnostic(checked,files); send({error:(diagnostic.errorFile ? diagnostic.errorFile + ': ' : '') + checked.error,diagnostic,done:true}); return; }
     const formatted = tower.foundation(handle);
     const {compiler} = await getCompiler('./tower-cross.wasm.gz');
     for (const key of keys) {

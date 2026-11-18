@@ -1,3 +1,4 @@
+import {savedSource} from './project-helpers.mjs';
 import {test,expect} from '@playwright/test';
 
 test('error bubble connects to the marked text at both corners, across wide and wrapped tokens',async({page},info)=>{
@@ -55,7 +56,7 @@ test('error bubble connects to the marked text at both corners, across wide and 
     expect(geometry.fill).toBe('rgb(48, 35, 34)');
     expect(geometry.stroke).toBe('rgb(119, 80, 71)');
     expect(geometry.cardFill).toBe('rgba(0, 0, 0, 0)');
-    await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem('tower-playground-document-v1')).source)).toBe(source);
+    await expect.poll(()=>savedSource(page)).toBe(source);
     await page.locator('#editor').screenshot({path:`../build/error-bubble-${name}-${info.project.name}.png`});
   }
   expect(errors).toEqual([]);

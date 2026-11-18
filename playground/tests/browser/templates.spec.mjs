@@ -1,10 +1,11 @@
 import { outputText } from './output-text.mjs';
+import {selectDocument} from './project-helpers.mjs';
 import {test,expect} from '@playwright/test';
 
 test('Templates run in both workers and show concrete shared foundation output',async({page},info)=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/');
- await page.locator('#example-kind').selectOption('templates.tower');
+ await selectDocument(page, 'templates.tower');
  await expect(page.locator('#filename')).toHaveText('templates.tower');
  await expect(page.locator('#execution-output')).toHaveText('20\n10\n');
  await expect(page.locator('#llvm-output')).toHaveText('20\n10\n',{timeout:25000});

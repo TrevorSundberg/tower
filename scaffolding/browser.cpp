@@ -25,7 +25,7 @@ std::string last_error;
 std::map<uint32_t, std::unique_ptr<CoreMachine>> machines;
 std::string execution_response;
 
-constexpr size_t max_source = 128 * 1024;
+constexpr size_t max_source = 8 * 1024 * 1024;
 
 void quote(std::string& out, const std::string& text) {
   out += '"';
@@ -144,7 +144,7 @@ void tree(std::string& out, TowerNode* root) {
 }
 bool valid_source(const char* source, size_t bytes) {
   last_error.clear();
-  if (bytes > max_source) { last_error = "Playground source limit is 128 KiB"; return false; }
+  if (bytes > max_source) { last_error = "Compilation source limit is 8 MiB"; return false; }
   if (!source || !tower_utf8_validate(reinterpret_cast<const uint8_t*>(source), bytes, 1)) {
     last_error = "Source must be valid UTF-8 without NUL bytes"; return false;
   }
@@ -315,6 +315,23 @@ EXPORT("tw_exec_create_target") uint32_t tw_exec_create_target(const char* sourc
   return handle;
 }
 EXPORT("tw_exec_create") uint32_t tw_exec_create(const char* source, size_t bytes) { return tw_exec_create_target(source, bytes, 4); }
+// Temporary host ABI input list, not a program storage/interchange format.
+// Each item is ordinary UTF-8 Tower source; lengths are wasm32 byte lengths.
+EXPORT("tw_exec_create_files") uint32_t tw_exec_create_files(const char* const* sources, const uint32_t* lengths, uint32_t count, unsigned pointer_bytes) {
+  if (!sources || !lengths || !count || count > 1024 || (pointer_bytes != 4 && pointer_bytes != 8) || machines.size() >= 8) {
+    last_error = "Invalid project compilation request"; return 0;
+  }
+  std::vector<std::string> files; size_t total = 0;
+  for (uint32_t i = 0; i < count; ++i) {
+    if (!valid_source(sources[i], lengths[i])) return 0;
+    total += lengths[i];
+    if (total > max_source) { last_error = "Project compilation limit is 8 MiB"; return 0; }
+    files.emplace_back(sources[i], lengths[i]);
+  }
+  auto machine = std::make_unique<CoreMachine>(core_compile_files(files, pointer_bytes));
+  uint32_t handle = next_handle++; if (!handle) handle = next_handle++;
+  bind_foreign(handle, *machine); machines.emplace(handle, std::move(machine)); return handle;
+}
 EXPORT("tw_exec_step") const char* tw_exec_step(uint32_t handle, uint32_t budget) {
   auto found = machines.find(handle);
   if (found == machines.end()) return "{\"status\":\"error\",\"error\":\"Invalid execution handle\"}";

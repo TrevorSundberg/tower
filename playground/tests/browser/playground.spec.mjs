@@ -1,3 +1,4 @@
+import {selectDocument, downloadedProject} from './project-helpers.mjs';
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 const base = "parse Variable = Identifier;\nparse Expression = Identifier | Number;\nparse Statement = Expression ';';\n";
@@ -30,7 +31,7 @@ test('whole-document tree selects roots, nested nodes and replacements', async (
   const last = page.locator('.document-children > li').last().locator(':scope > details > summary');
   await last.click();
   await expect(page.locator('.tw-selected')).toContainText('foreach');
-  await page.locator('#example-kind').selectOption('replacements.tower');
+  await selectDocument(page, 'replacements.tower');
   await expect(page.locator('.document-children > li')).toHaveCount(19);
   const root = i => page.locator('.document-children > li').nth(i).locator(':scope > details > summary');
   // Open lazy subtrees to expose previews at their actual replacement roots.
@@ -112,7 +113,7 @@ test('diagnostics, corrected input, local persistence and source download work',
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   const download = await downloadPromise;
-  expect(download.suggestedFilename()).toBe('foreach.tower');
+  expect(download.suggestedFilename()).toBe('ForEach.zip');
   await page.reload();
   await expect(page.locator('#status')).toContainText('Complete');
   await expect(page.getByRole('button', { name: 'Example', exact: true })).toHaveCount(0);
@@ -145,7 +146,7 @@ test('inline errors mark the source and preserve the saved document', async ({ p
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   const download = await downloadPromise;
-  expect(await readFile(await download.path(), 'utf8')).toBe(source);
+  expect((await downloadedProject(download)).files[0].text).toBe(source);
   await setSource(page, source.replace('item)', 'item;'));
   await expect(page.locator('#status')).toContainText('Complete');
   await expect(page.locator('.tw-inline-error')).toHaveCount(0);
@@ -204,7 +205,7 @@ test('LLVM compiles the current program into a downloadable executable', async (
   test.skip(!capabilities.llvm, 'Optional LLVM module has not been built');
   await expect(page.locator('details#compiler-check')).toHaveCount(0);
   await page.locator('#auto-execute').uncheck();
-  await page.locator('#example-kind').selectOption('functions.tower');
+  await selectDocument(page, 'functions.tower');
   await expect(page.locator('#status')).toContainText('Complete');
   await page.getByRole('button', { name: 'Execute', exact: true }).click();
   await expect(page.locator('#execution-status')).toContainText('Finished · backends match', { timeout: 30000 });
@@ -271,8 +272,9 @@ test('edits during a slow response coalesce and cannot display an obsolete parse
 });
 
 test('editable token rules update parsing, highlighting and the grammar inspector', async ({ page, request }, info) => {
-  await page.getByRole('combobox', { name: 'Editor document' }).selectOption('tokens.tower');
+  await selectDocument(page, 'tokens.tower');
   await expect(page.locator('#status')).toContainText('Complete · 10 grammar revisions');
+  await page.getByRole('textbox',{name:'Tower source'}).press('ControlOrMeta+End');
   await expect(page.locator('.tw-identifier').filter({ hasText: /^player-name$/ })).toHaveCount(1);
   await expect(page.locator('.tw-number').filter({ hasText: /^3\.14$/ })).toHaveCount(1);
   await page.getByRole('tab', { name: 'Active grammar' }).click();
@@ -289,7 +291,7 @@ test('editable token rules update parsing, highlighting and the grammar inspecto
   await expect(page.locator('#status')).toContainText('Complete');
   await page.screenshot({ path: `../build/playground-tokens-${info.project.name}.png`, fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
-  await page.locator('#example-kind').selectOption('foundation.tower');
+  await selectDocument(page, 'foundation.tower');
   await expect(page.locator('#status')).toContainText('Complete');
   await expect(page.locator('#filename')).toHaveText('foundation.tower');
   await expect(page.locator('#rules')).toContainText('CoreFunction');

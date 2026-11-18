@@ -1,0 +1,60 @@
+// Project files are plain source text. IndexedDB stores whole project snapshots
+// atomically; localStorage is only used for the small last-project preference.
+export const examples = ['foreach', 'execution', 'increment', 'inference', 'templates', 'functions', 'structs', 'memory', 'replacements', 'tokens'];
+export function filePath(path) {
+  if (typeof path !== 'string' || !path || path.length > 1024 || /[\\\x00-\x1f:]/.test(path) || path.split('/').some(p => !p || p === '.' || p === '..') || path === '.tower' || path.startsWith('.tower/'))
+    throw new Error('Use a relative file path, such as src/main.tower.');
+  return path;
+}
+export function validateProject(project) {
+  if (!project || project.version !== 1 || typeof project.name !== 'string' || !project.name.trim() || !Array.isArray(project.files) || !project.files.length)
+    throw new Error('Invalid Tower project.');
+  const paths = new Set();
+  for (const file of project.files) {
+    filePath(file.path);
+    if (typeof file.text !== 'string' || paths.has(file.path)) throw new Error('Invalid or duplicate file: ' + file.path);
+    paths.add(file.path);
+  }
+  for (const path of paths) for (let at = path.indexOf('/'); at >= 0; at = path.indexOf('/', at + 1))
+    if (paths.has(path.slice(0, at))) throw new Error('A file conflicts with a folder: ' + path);
+  for (const key of ['bedrock', 'foundation']) if (typeof project.builtins?.[key] !== 'string') throw new Error('Missing built-in: ' + key);
+  if (!paths.has(project.active) && !['.tower/bedrock.tower', '.tower/foundation.tower'].includes(project.active)) project.active = project.files[0].path;
+  project.links ??= {};
+  for (const [name, bytes] of Object.entries(project.links))
+    if (!/^[a-zA-Z0-9._-]{1,128}$/.test(name) || name.startsWith('tower-') || !(bytes instanceof Uint8Array) || bytes.length > 64 * 1024 * 1024)
+      throw new Error('Invalid link input: ' + name);
+  if (Object.keys(project.links).length > 60) throw new Error('At most 60 link inputs');
+  return project;
+}
+export function newProject(name, builtins, files = [{path:'main.tower', text:'print(42);\n'}]) {
+  return validateProject({version:1, id:crypto.randomUUID(), name, files, active:files[0].path, builtins:{...builtins}, baseline:{...builtins}, links:{}});
+}
+export async function projectStore() {
+  const db = await new Promise((resolve, reject) => {
+    const request = indexedDB.open('tower-projects', 1);
+    request.onupgradeneeded = () => request.result.createObjectStore('projects', {keyPath:'id'});
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  function transaction(mode, action) {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('projects', mode), request = action(tx.objectStore('projects'));
+      tx.oncomplete = () => resolve(request.result);
+      tx.onabort = () => reject(tx.error ?? new Error('Project storage transaction aborted.'));
+    });
+  }
+  return {list:() => transaction('readonly', s => s.getAll()), save:p => transaction('readwrite', s => s.put(p))};
+}
+
+// Flattened byte coordinates are only a derived diagnostic index. Each source
+// is parsed independently by Tower; this is not source concatenation/imports.
+export function projectSources(project) { return project.files.filter(file => file.path.endsWith('.tower')); }
+export function projectDiagnostic(result, files) {
+  if (result.status !== 'error' || !files?.length) return result;
+  let offset = result.errorOffset ?? 0;
+  for (const [index, file] of files.entries()) {
+    const length = new TextEncoder().encode(file.text).length;
+    if (offset <= length || index === files.length - 1) return {...result, errorFile:file.path, errorOffset:offset};
+    offset -= length + 1;
+  }
+}

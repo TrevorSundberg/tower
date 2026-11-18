@@ -1,4 +1,5 @@
 import { outputText } from './output-text.mjs';
+import {selectDocument} from './project-helpers.mjs';
 import { test, expect } from '@playwright/test';
 async function setSource(page, text) {
   await page.locator('#editor').click({ position: { x: 80, y: 20 } });
@@ -8,7 +9,7 @@ async function setSource(page, text) {
 test('struct milestone executes automatically in both workers and round-trips visibly', async ({ page }, info) => {
   const errors = []; page.on('pageerror', error => errors.push(error.message));
   await page.goto('/'); await expect(page.locator('#status')).toContainText('Complete');
-  await page.locator('#example-kind').selectOption('structs.tower');
+  await selectDocument(page, 'structs.tower');
   await expect(page.locator('#filename')).toHaveText('structs.tower');
   await expect(page.locator('#execution-status')).toHaveText('Finished · backends match');
   await expect(page.locator('#execution-output')).toHaveText('42\n22\n7\n');
@@ -51,7 +52,7 @@ test('an untouched saved baseline upgrades while a customized foundation stays i
     if (!localStorage.getItem('foundation-upgrade-test')) {
       localStorage.setItem('tower-playground-foundation-v1', 'old bundled module');
       localStorage.setItem('tower-playground-foundation-base-v1', 'old bundled module');
-      localStorage.setItem('tower-playground-source-v1', 'struct S { x: i32; } var s: S; s.x = 42; print(s.x);');
+      localStorage.removeItem('tower-project-migrated-v1');localStorage.setItem('tower-playground-source-v1', 'struct S { x: i32; } var s: S; s.x = 42; print(s.x);');
       localStorage.setItem('foundation-upgrade-test', 'set');
     }
   });
@@ -62,7 +63,7 @@ test('an untouched saved baseline upgrades while a customized foundation stays i
   await page.evaluate(bundled => {
     localStorage.setItem('tower-playground-foundation-base-v1', bundled);
     localStorage.setItem('tower-playground-foundation-v1', bundled.replace("'struct'", "'record'"));
-    localStorage.setItem('tower-playground-source-v1', 'record S { x: i32; } var s: S; s.x = 7; print(s.x);');
+    localStorage.removeItem('tower-project-migrated-v1');localStorage.setItem('tower-playground-source-v1', 'record S { x: i32; } var s: S; s.x = 7; print(s.x);');
     localStorage.removeItem('tower-playground-document-v1'); // Exercise legacy source migration.
   }, bundled);
   // A pagehide persist would correctly save the open buffers; close this page

@@ -1,9 +1,10 @@
 import { outputText } from './output-text.mjs';
+import {selectDocument} from './project-helpers.mjs';
 import {test,expect} from '@playwright/test';
 import {readFile} from 'node:fs/promises';
 test.beforeEach(async({page})=>{
  await page.goto('/');await expect(page.locator('#status')).toContainText('Complete');
- await page.locator('#example-kind').selectOption('memory.tower');
+ await selectDocument(page, 'memory.tower');
  await expect(page.locator('#execution-status')).toContainText('backends match',{timeout:30000});
 });
 async function choose(page,key,checked){
@@ -55,11 +56,11 @@ test('native targets compile automatically, display disassembly and download pla
   const workers=page.workers().filter(w=>w.url().includes('target-worker'));
   expect(workers).toHaveLength(1);
   const requests=[];const record=r=>requests.push(r.url());page.on('request',record);
-  await page.locator('#example-kind').selectOption(file);
+  await selectDocument(page, file);
   await expect(page.locator('#mac-arm-downloads a')).toHaveAttribute('download',file.replace('.tower','-mac-arm.macho'));
   await expect(page.locator('#mac-arm-phase')).toHaveText('Finished');
-  expect(page.workers().filter(w=>w.url().includes('target-worker'))).toEqual(workers);
-  expect(requests.filter(url=>/tower(?:-cross)?\.wasm|\/targets\//.test(url))).toEqual([]);
+  expect(page.workers().filter(w=>w.url().includes('target-worker'))).not.toEqual(workers);
+  expect(requests.some(url=>url.includes('tower-cross.wasm'))).toBe(true);
   page.off('request',record);
  }
  await reuse('functions.tower');

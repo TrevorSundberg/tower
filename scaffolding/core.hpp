@@ -70,6 +70,9 @@ struct CoreProgram {
   CoreProgram& operator=(const CoreProgram&) = delete;
 };
 CoreProgram core_compile(const char* source, unsigned pointer_bytes = 4);
+// Ordered project sources share module bindings, but each parser starts from
+// Foundation. Diagnostic offsets index their UTF-8 texts separated by one byte.
+CoreProgram core_compile_files(const std::vector<std::string>& sources, unsigned pointer_bytes = 4);
 void core_set_foundation(const std::string& grammar);
 CoreProgram core_compile_foundation(const char* source, unsigned pointer_bytes = 4);
 std::string core_type_name(CoreType type);

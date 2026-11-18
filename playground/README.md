@@ -21,17 +21,49 @@ npm run serve
 ```
 
 Open **http://127.0.0.1:4173/**. The server only serves static files; parsing runs
-in a browser worker. Source edits remain on the device and the latest document
-is saved with its filename and selected document in this origin's local storage,
-so refreshing keeps the dropdown and editor in agreement. **Restore** reloads the selected document's bundled source;
-editor undo can restore the previous text. **Save** downloads a `.tower` file.
+in a browser worker. The top-left project browser lists the bundled examples as
+starter projects, with Bedrock and Foundation pinned above the project's folders
+and marked **built-in**. Those modules remain editable, with overrides isolated
+per project. **New project** starts with `main.tower`; **New file** accepts paths
+such as `src/math.tower`. Rename, Delete and Earlier manage files and their
+compilation order. Each file has its own undo history while the project is open.
 
-Recognized older Foundation files saved by the editor upgrade automatically,
-including the old lexer-only file. Unchanged shared definitions now inherit from
-Bedrock; custom lexical and grammar edits are retained. Before replacing a saved
-module, its original text is kept locally under
-`tower-playground-foundation-before-inheritance-v1`. Unrecognized modules are
-preserved. The migration also handles old text stored beside a newer baseline.
+Whole project snapshots (files, built-in overrides, order, selected file and link
+inputs) save atomically to **IndexedDB** after edits. The storage indicator reports
+completion or failure; it never silently claims a quota failure was saved. This
+avoids localStorage's small document limit. Browser quotas and eviction still
+apply. **Save** downloads the entire project as a standard `.zip`; **Open** restores
+that archive as a separate project. Export uses a small dependency-free ZIP writer
+with stored entries; import accepts stored or deflated entries and validates CRCs,
+paths and declared sizes (256 MiB total). `.tower/project.json` holds project
+metadata/order, `.tower/bedrock.tower` and `.tower/foundation.tower` hold the built-in
+sources, and `.tower/links/` holds binary link inputs. Source files remain ordinary
+Tower text. Saving a single editor file is no longer an operation.
+
+Old localStorage workspaces migrate once into a **Recovered workspace** project;
+the original keys remain untouched as backup. Recognized older Foundation defaults
+upgrade, while custom edits remain. **Restore** replaces the selected built-in or
+bundled example file; editor undo can recover the previous text.
+
+All `.tower` project files compile together in their explicit project order.
+Each file independently starts from Foundation: local grammar declarations do not
+leak into other files. Functions, types and module variables bind across this
+initial project compilation unit; initialization/effects retain file/statement
+order. This is a host compilation file list, **not yet a Tower import/module
+system**. Non-`.tower` text files remain project assets. The inspector analyzes the
+selected file; Execute compiles the project, except when inspecting a built-in,
+which retains its ordinary standalone execution controls. Cross-file failures
+identify their path instead of marking the wrong editor buffer.
+
+Changing projects cancels work, terminates parser and backend workers, clears
+outputs/downloads and replaces link inputs, built-in overrides and editor state.
+The frontend's WASI drive is replaced with the project's virtual files on each
+compile; old paths and open file descriptors cannot survive replacement. Tower's
+current browser platform API still exposes output only: mounting does not itself
+introduce language file-I/O operations. Filesystem capabilities/imports and direct
+OS directory synchronization remain future work. Browser directory pickers are
+not required. Source compilation accepts up to 8 MiB total UTF-8, with the existing
+1,024-construct and built-in 64 KiB limits; storage/import can hold larger assets.
 
 The parse tree shows the entire source under one **Document** root, in reading
 order. Expand any declaration or statement and select a node to highlight its
@@ -65,15 +97,9 @@ is an error; parsing does not backtrack to the shorter statement. Ambiguous
 boundaries such as `'x' | 'x' 'x'` report a shift/reduce conflict when the grammar
 is installed. Failed declarations leave the previous grammar intact.
 
-Choose **Token rules** in the example selector to redefine identifiers, numbers,
-strings and comments in Tower. Select **Bedrock** or **Foundation** in the editor
-dropdown (Bedrock, Foundation, ForEach, then the other examples) to switch to either real module. **Bedrock** edits the declaration grammar;
-its edits affect following declarations in Bedrock as well as downstream modules.
-**Foundation** edits the ordinary tokens and function/statement grammar. Both
-execution workers use the selected modules. Source, Bedrock and Foundation have
-separate buffers and undo histories. **Restore** reloads the selected document's
-bundled version. All three files persist in local storage;
-**Save** downloads the current file. A static page does not write to the repository.
+Choose the **Tokens** project to explore lexical rules. Select the pinned
+**Bedrock** or **Foundation** file to edit the declaration or ordinary grammar.
+Their changes apply to the current project and both execution backends.
 See [token syntax and precedence](TOKENS.md).
 
 Foundation inherits Bedrock's actual grammar/token entities. Whitespace, line and
@@ -713,7 +739,7 @@ reuses them after edits. Cache keys include the ordered token patterns, styles
 and skip flags. A new structural grammar still builds a new table;
 parsing itself still reads the whole document. Stable syntax identities, temporal repair,
 Tower rendering and general in-language parser handlers remain future work.
-The playground caps input at 128 KiB, a parse at 1,024 constructs, parser worker work at
+The playground caps compiled input at 8 MiB, a parse at 1,024 constructs, parser worker work at
 10 seconds and the visible tree at 5,000 nodes / 120 levels. Execution runs until
 completion, error, cancellation or an edit. The native tree
 snapshot itself is complete. Rule/production IDs are local to a grammar table;

@@ -45,7 +45,7 @@ export async function loadTower(bytes, log = () => {}, bootstrap, foundation, be
   }
   function withSource(source, action) {
       const bytes = new TextEncoder().encode(source);
-      if (bytes.length > 128 * 1024) throw new Error('Playground source limit is 128 KiB');
+      if (bytes.length > 8 * 1024 * 1024) throw new Error('Compilation source limit is 8 MiB');
       const pointer = exports.tw_alloc(bytes.length + 1);
       if (!pointer) throw new Error('Unable to allocate source memory');
       try {
@@ -57,6 +57,7 @@ export async function loadTower(bytes, log = () => {}, bootstrap, foundation, be
   }
   return {
     exports,
+    mountFiles: files => wasi.mountFiles(files),
     configure: source => configureTower(exports, source),
     configureBedrock: source => configureBedrock(exports, source),
     bedrockSeed: () => string(exports.tw_bedrock_seed()),
@@ -69,6 +70,25 @@ export async function loadTower(bytes, log = () => {}, bootstrap, foundation, be
     format: handle => JSON.parse(string(exports.tw_format(handle))),
     destroy: handle => exports.tw_destroy(handle),
     compile: (source, { pointerBytes = 4 } = {}) => withSource(source, (pointer, length) => exports.tw_exec_create_target(pointer, length, pointerBytes)),
+    compileFiles(files, {pointerBytes = 4} = {}) {
+      if (!files.length || files.length > 1024) throw new Error('Project needs 1–1,024 source files.');
+      const allocated = [];
+      const allocate = size => { const p = exports.tw_alloc(size || 1); if (!p) throw new Error('Unable to allocate project sources'); allocated.push(p); return p; };
+      try {
+        const pointers = allocate(files.length * 4), lengths = allocate(files.length * 4); let total = 0;
+        files.forEach((file, i) => {
+          const bytes = new TextEncoder().encode(file.text); total += bytes.length;
+          if (total > 8 * 1024 * 1024) throw new Error('Project compilation limit is 8 MiB');
+          const p = allocate(bytes.length + 1);
+          new Uint8Array(exports.memory.buffer).set(bytes, p);
+          const view = new DataView(exports.memory.buffer);
+          view.setUint32(pointers + i * 4, p, true); view.setUint32(lengths + i * 4, bytes.length, true);
+        });
+        const handle = exports.tw_exec_create_files(pointers, lengths, files.length, pointerBytes);
+        if (!handle) throw new Error(string(exports.tw_last_error()));
+        return handle;
+      } finally { for (const p of allocated) exports.tw_free(p); }
+    },
     execute(handle, budget = 10000) {
       const result=JSON.parse(string(exports.tw_exec_step(handle,budget)));
       let outputDecoder=outputDecoders.get(handle);

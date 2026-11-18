@@ -47,7 +47,7 @@ sessions pin both modules, including across resets. Invalid installation leaves
 the previous baseline intact. The LLVM module also exports both setters, with
 `malloc`/`free` for its input buffer; `src/bootstrap.mjs` handles both modules.
 
-At most 32 sessions are open at once. Source is limited to 128 KiB. UTF-8 is
+At most 32 sessions are open at once. Source is limited to 8 MiB. UTF-8 is
 validated at creation, including overlong encodings and surrogates. Grammar
 errors return data; they do not throw C++ exceptions. Invalid session step or
 inspect calls return `{ "status": "error", "error": "Invalid session handle" }`.
@@ -254,3 +254,20 @@ Syntax-only documents keep parsing without execution errors. Cancellation marks
 the current document revision as handled, so a late parse/re-inspection cannot
 restart it; another edit or explicit Execute can. The Auto execute toggle is
 persisted independently of source text and can restore manual operation.
+
+
+## Project compilation
+
+`tw_exec_create_files(sources, lengths, count, pointer_bytes) -> handle` accepts
+wasm32 arrays of source pointers and UTF-8 byte lengths (1-1,024 files, 8 MiB
+combined). It copies ordinary Tower source, independently parses each file from
+the installed Foundation, and checks the resulting shared nodes as one ordered
+program. It returns the same execution handle used by the existing step,
+foundation-format and destruction functions. No extra IR or storage encoding is
+introduced. The JS adapter exposes `compileFiles([{path, text}, ...], options)`.
+Paths belong to the host's project manifest. Diagnostic and formatter provenance
+indices count file UTF-8 lengths plus one separator byte between files; hosts map
+them back to the original path/byte position. Grammar changes remain file-local;
+module declarations bind across the ordered compilation unit and effects retain
+source order. This additive ABI entry point requires a rebuilt frontend reactor;
+ABI version 3's existing exports retain their contracts except the raised limit.

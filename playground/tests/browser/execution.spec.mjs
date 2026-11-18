@@ -1,4 +1,5 @@
 import { outputText } from './output-text.mjs';
+import {selectDocument, savedSource} from './project-helpers.mjs';
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 const grammar = ''; // Executable documents inherit the shared foundation module.
@@ -16,7 +17,7 @@ test.beforeEach(async ({ page }) => {
 test('executes replacements and displays typed core instructions', async ({ page }, info) => {
   const errors = []; page.on('pageerror', error => errors.push(error.message));
   await expect(page.locator('#auto-execute')).toBeChecked();
-  await page.locator('#example-kind').selectOption('execution.tower');
+  await selectDocument(page, 'execution.tower');
   await expect(page.locator('#filename')).toHaveText('execution.tower');
   await expect(page.locator('#execution-status')).toContainText('Finished');
   await expect(page.locator('#execution-output')).toHaveText('15\n16\n');
@@ -31,7 +32,7 @@ test('executes replacements and displays typed core instructions', async ({ page
 });
 
 test('initializer inference shows explicit checked types and clear dependency errors', async ({page},info) => {
-  await page.locator('#example-kind').selectOption('inference.tower');
+  await selectDocument(page, 'inference.tower');
   await expect(page.locator('#execution-status')).toHaveText('Finished \u00b7 backends match',{timeout:30000});
   await expect(page.locator('#execution-output')).toHaveText('42\ntrue\n43\n42\n');
   await expect(page.locator('#llvm-output')).toHaveText('42\ntrue\n43\n42\n');
@@ -74,7 +75,7 @@ test('extra semicolons have concise context and increment demonstrates both retu
   await setSource(page,'var answer: i32 = 42\nprint(answer);');
   await expect(page.locator('.tw-inline-error-message')).toContainText("Possible missing ';' before 'print'.");
   await expect(page.locator('.tw-error-point')).toHaveCount(1);
-  await page.locator('#example-kind').selectOption('increment.tower');
+  await selectDocument(page, 'increment.tower');
   await expect(page.locator('#filename')).toHaveText('increment.tower');
   await expect(page.locator('#execution-status')).toHaveText('Finished \u00b7 backends match',{timeout:30000});
   await expect(page.locator('#execution-output')).toHaveText('5\n6\n7\n7\n9\n');
@@ -84,7 +85,7 @@ test('extra semicolons have concise context and increment demonstrates both retu
   await expect.poll(()=>outputText(page,'llvm-after')).not.toContain('post_increment');
   await expect(page.locator('#tree')).toContainText('post_increment');
   await page.screenshot({path:`../build/increment-${info.project.name}.png`});
-  const source=await page.getByRole('textbox',{name:'Tower source'}).innerText();
+  const source=await savedSource(page); // CodeMirror renders only its viewport.
     expect(source).toContain('var after: i32 = ++value;');
     expect(source).toContain('var before: i32 = value++;');
     expect(source).not.toMatch(/\+\+ value|value \+\+/);
@@ -170,7 +171,7 @@ test('auto execution follows edits, waits for valid syntax, and recovers from in
   await page.getByRole('textbox', { name: 'Tower source' }).press('ControlOrMeta+End');
   await page.keyboard.type('42);', { delay: 70 });
   await expect(page.locator('#execution-output')).toHaveText('42\n');
-  await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem('tower-playground-document-v1')).source)).toBe(grammar + '\nprint(42);');
+  await expect.poll(()=>savedSource(page)).toBe(grammar + '\nprint(42);');
   await setSource(page, grammar + '\nloop { print(7); }');
   await expect(page.locator('#execution-status')).toHaveText('Executing…');
   await expect(page.locator('#execution-output')).toContainText('7');
@@ -210,7 +211,7 @@ test('auto execution can be disabled, persisted and enabled again', async ({ pag
 });
 
 test('workspace fits the viewport with output, instructions and errors', async ({ page }, info) => {
-  await page.locator('#example-kind').selectOption('execution.tower');
+  await selectDocument(page, 'execution.tower');
   await expect(page.locator('#execution-output')).toHaveText('15\n16\n');
   const sizes = info.project.name === 'mobile' ? [[393,851],[360,640],[320,568]] : [[1440,900],[1280,720],[1024,600]];
   for (const [width, height] of sizes) {
@@ -253,7 +254,7 @@ test('functions compile and execute off the UI thread with matching backends', a
     WebAssembly.compile = WebAssembly.instantiate = () => { throw new Error('WASM ran on the UI thread'); };
     window.__ticks = 0; setInterval(() => ++window.__ticks, 10);
   });
-  await page.locator('#example-kind').selectOption('functions.tower');
+  await selectDocument(page, 'functions.tower');
   await expect(page.locator('#execution-status')).toHaveText('Finished · backends match', { timeout: 30000 });
   await expect(page.locator('#execution-output')).toHaveText('720\n721\n');
   await expect.poll(()=>outputText(page,'core-instructions')).toContain('fn factorial(n: i32): i32');
@@ -271,22 +272,25 @@ test('functions compile and execute off the UI thread with matching backends', a
   expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight && document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
-test('completed execution workers stay warm across files and edits without retaining program memory', async ({ page, request }) => {
+test('projects replace execution workers while edits reuse the new environment', async ({ page, request }) => {
   test.skip(!(await (await request.get('/capabilities.json')).json()).llvm);
-  await page.locator('#example-kind').selectOption('functions.tower');
+  await selectDocument(page, 'functions.tower');
   await expect(page.locator('#execution-status')).toContainText('backends match');
   const workers = page.workers().filter(worker => worker.url().includes('execution-worker'));
   expect(workers).toHaveLength(2);
   const requests = []; page.on('request', request => requests.push(request.url()));
-  await page.locator('#example-kind').selectOption('memory.tower');
+  await selectDocument(page, 'memory.tower');
   await expect(page.locator('#execution-output')).toHaveText('5\n84\n42\n');
   await expect(page.locator('#execution-status')).toContainText('backends match');
+  const nextWorkers = page.workers().filter(worker => worker.url().includes('execution-worker'));
+  expect(nextWorkers.every(worker => !workers.includes(worker))).toBe(true);
+  requests.length = 0;
   for (const value of [42, 43]) {
     await setSource(page, `var value: i32 = ${value}; print(value);`);
     await expect(page.locator('#llvm-output')).toHaveText(value + '\n');
     await expect(page.locator('#execution-status')).toContainText('backends match');
   }
-  expect(page.workers().filter(worker => worker.url().includes('execution-worker'))).toEqual(workers);
+  expect(page.workers().filter(worker => worker.url().includes('execution-worker'))).toEqual(nextWorkers);
   expect(requests.filter(url => /tower(?:-llvm)?\.wasm/.test(url))).toEqual([]);
 });
 
@@ -306,7 +310,7 @@ test('LLVM infinite execution cancels on edits and traps remain inline', async (
   await expect(page.locator('#execution-output')).toHaveText('42\n', { timeout: 30000 });
   await expect(page.locator('#execution-status')).toHaveText('Finished · backends match');
   // An error's caret/widget must never become source when replacing the document.
-  await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem('tower-playground-document-v1')).source)).toBe(grammar + '\nprint(42);');
+  await expect.poll(()=>savedSource(page)).toBe(grammar + '\nprint(42);');
 });
 
 test('LLVM loading can be cancelled without obsolete results replacing a new run', async ({ page, request }) => {
@@ -339,7 +343,7 @@ test('LLVM warms on a syntax-only document and the first program reuses that wor
   test.skip(!(await (await request.get('/capabilities.json')).json()).llvm);
   const foundation=await (await request.get('/foundation.tower')).text();
   await page.addInitScript(source=>{
-    localStorage.setItem('tower-playground-document-v1',JSON.stringify({source,filename:'foundation.tower',module:'foundation'}));
+    localStorage.removeItem('tower-project-migrated-v1');localStorage.setItem('tower-playground-document-v1',JSON.stringify({source,filename:'foundation.tower',module:'foundation'}));
     localStorage.setItem('tower-auto-execute-v1','true');
   },foundation);
   await page.reload();
@@ -349,7 +353,8 @@ test('LLVM warms on a syntax-only document and the first program reuses that wor
   await expect(page.locator('#core-instructions')).toBeEmpty();
   const warmed=page.workers().find(worker=>worker.url().includes('execution-worker'));
   const requests=[];page.on('request',request=>requests.push(request.url()));
-  await page.locator('#example-kind').selectOption('functions.tower');
+  await page.locator('#file-tree button[data-path="foundation.tower"]').click();
+  await setSource(page, 'print(42);');
   await expect(page.locator('#execution-status')).toContainText('backends match');
   expect(page.workers()).toContain(warmed);
   expect(requests.filter(url=>url.includes('tower-llvm.wasm'))).toEqual([]);
@@ -360,7 +365,7 @@ test('disabled targets do not preload LLVM and enabling Wasm starts warming with
   test.skip(!(await (await request.get('/capabilities.json')).json()).llvm);
   const source=await (await request.get('/foundation.tower')).text();
   await page.addInitScript(source=>{
-    localStorage.setItem('tower-playground-document-v1',JSON.stringify({source,filename:'foundation.tower',module:'foundation'}));
+    localStorage.removeItem('tower-project-migrated-v1');localStorage.setItem('tower-playground-document-v1',JSON.stringify({source,filename:'foundation.tower',module:'foundation'}));
     localStorage.setItem('tower-build-targets-v3',JSON.stringify({wasm:false,x86:false,arm:false}));
   },source);
   const requests=[];page.on('request',request=>requests.push(request.url()));

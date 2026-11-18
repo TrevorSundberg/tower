@@ -144,7 +144,7 @@ test('one foundation module bootstraps itself, installs idempotently and pins ex
 });
 test('ABI rejects unsupported input and handles; repeated analysis releases native nodes', () => {
   assert.throws(() => tower.create('a\0b'), /UTF-8/);
-  assert.throws(() => tower.create('a'.repeat(128 * 1024 + 1)), /128 KiB/);
+  assert.throws(() => tower.create('a'.repeat(8 * 1024 * 1024 + 1)), /8 MiB/);
   const pointer = tower.exports.tw_alloc(2);
   new Uint8Array(tower.exports.memory.buffer).set([0xc0,0x80], pointer);
   assert.equal(tower.exports.tw_create(pointer, 2), 0); tower.exports.tw_free(pointer);
