@@ -7499,3 +7499,59 @@ The next parser migration is recognizer control/Match access and then LR table
 construction and grammar installation on the Tower entity store. The production
 node/forest algorithms have moved; the remaining C++ adapters and semantic/compiler
 algorithms are still explicitly tracked work, not a completed self-hosting claim.
+
+## 2026-11-18 - Generics bootstrapping after the entity-store migration
+
+The user asked whether generics should come next and whether bootstrapping would
+require implementing their semantics in C++. This entry records a recommendation,
+not implemented generic syntax or authorization to start that implementation.
+
+Inspected foundation.tower, core.cpp's type/header/layout and compilation paths,
+core.hpp's shared semantic components, and the new entity-store ABI. Tower has
+ordinary functions, structs, raw allocation, pointer arrays, external calls and
+shared entity storage sufficient to express a specialization algorithm. It does
+not yet expose a complete Tower-facing compiler transformation/type API, a generic
+instantiation stage, first-class source-language Type values, or general user
+compile-time execution. Much semantic metadata is still C++ strings/vectors in
+CoreNode/SyntaxNode components; access to the entity store alone does not expose
+those payloads safely or make generic calls resolve automatically.
+
+Recommended next milestone: a small Tower compiler-transformation API followed by
+explicit type-parameter specialization and one reusable typed growable vector.
+Start with scalar/pointer elements already supported by ordinary function calls.
+Aggregate by-value copying, ownership/copy/destruction policies, constraints,
+generic argument inference and general compile-time metaprogramming need separate
+contracts; generics must not silently invent them. This would support the parser
+port rather than replace the goal of moving actual compiler algorithms into Tower.
+
+The bootstrap can remain acyclic:
+
+1. Write the first specializer using only today's nongeneric Tower constructs.
+2. Compile it with the existing compiler into a native/Wasm object and link it
+   into the next compiler, just as entities.tower and parse-tree.tower are linked.
+3. Add a narrow host bridge for syntax/component access, type identity/resolution,
+   diagnostics and invocation at the appropriate semantic stage. The old seed
+   only needs to compile the nongeneric implementation; it need not implement
+   generic specialization itself. An unsupported-generic diagnostic/seed adapter
+   or an explicitly supplied prior bootstrap executable can preserve that boundary.
+4. Once the new compiler supports generics, migrate compiler collections to them.
+   Do not make the first specializer depend on its own not-yet-built feature;
+   later checked-in bootstrap compiler binaries can remove that restriction.
+
+Generic syntax can use Tower grammar declarations, while semantic specialization
+operates on the existing shared entities. It must substitute bound type parameters,
+clone/remap local bindings correctly, preserve definition/use provenance, and
+produce ordinary concrete Foundation structs/functions for current checking and
+lowering. Name-string replacement alone is insufficient. Cache instantiated
+definitions by template identity and semantic arguments within an explicit target/
+semantics context; recursive instantiation needs in-progress entries and bounded,
+useful diagnostics. Generic symbol lookup can remain module-style without changing
+the ordered activation of parse declarations.
+
+This proposal is compiler code written in Tower and called by the compiler; it
+does not require arbitrary source programs to execute compile-time code against
+host pointers. A portable interpreted compiler-pass path will need explicit APIs
+or shared target-memory representation rather than passing native pointers into
+the current guest-memory interpreter. No independent public IR or binary format
+is proposed: specialized output remains shared nodes with compilable Foundation
+text. No generics code, syntax choice or runtime behavior changed in this discussion.
