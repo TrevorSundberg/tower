@@ -10626,3 +10626,62 @@ and rebuilt successfully; no third-party implementation was altered.
 Logs: build/formatter-bootstrap/rebase-{ctest,node,build,browser}.log.
 todo.txt and the original workspace remain unchanged. No compiler performance
 rerun was needed because the compiler/build-source comparison above is empty.
+
+
+### 2026-11-18 — Tower formatter published to GitHub Pages
+
+The user explicitly authorized deployment/publication, superseding the earlier
+no-publication scope. Fetched both source and Pages branches. The existing
+gh-pages bd3a856 had newer Linux-built LLVM reactors/runtime packs than the
+copies used during initial formatter validation. Preserved those exact deployed
+assets and rebuilt the production tower.wasm with
+TOWER_FORMAT_DIFFERENTIAL=OFF using the isolated Windows WASI SDK build.
+llvm-nm confirms format_entity and format_source definitions and no
+reference_tower_format definition in that binary.
+
+Assembled the frontend and compared every manifest asset against bd3a856:
+only tower.wasm differs. Published deployment-manifest.json records the new
+hash, formatter source commit 9d59053, previous deployment and the explicit
+retention of the existing LLVM/cross reactors. No LLVM reactor rebuild is
+claimed. The deployed Tower formatter binary is 4,289,828 bytes, SHA256
+dd85d69d32781237c4367d12fd348639a507b81ef19d3cae8f46f80f4ce3ba6d.
+
+Prepublication validation: 220 Node passes / one optional native-output skip;
+all 128 desktop/mobile Playwright cases passed in 2.2 minutes; local deployment
+verification passed for execution, editable grammar, persistence, target defaults,
+all five native downloads and asset hashes. A final fetch found upstream
+235cdbe's restored Linux build/packaging/verification workflow. Rebased onto it,
+preserving both journal histories; there were no formatter/compiler/build-
+registration source differences. Rebuilt with TOWER_REQUIRE_BACKENDS=1 and
+checked that the candidate asset diff was still just tower.wasm and its manifest.
+The initial temporary comparison helper mistakenly read the modified deployment
+worktree manifest as its baseline and reported zero changes. Corrected it to read
+HEAD:deployment-manifest.json from that detached worktree, then rechecked.
+
+After the rebase: 221 Node passes / one skip (including the new packaging test),
+the changed Bedrock browser case passed on desktop and mobile, and the updated
+verify-local.mjs passed its complete 36-served-asset manifest and browser checks.
+Its Linux-host-only detection check was not run on this Windows host. The
+earlier full browser suite used byte-identical deployed client/grammar/compiler
+assets; the upstream changes were packaging and verification code.
+
+Pushed the rebased source branch port/canonical-formatter-tower using an exact
+lease against its previously published 25770e5 head. No master merge was made.
+Pushed Pages commit 9c52b593cead5018539aeb566e6a38066f5a37a7 as a normal
+fast-forward of gh-pages from bd3a856. Only tower.wasm and the manifest changed.
+GitHub Pages build/deployment run 44422938317 completed successfully:
+https://github.com/TrevorSundberg/tower/actions/runs/44422938317 .
+
+Live verification command, from playground:
+node scripts/verify-deployment.mjs https://trevorsundberg.github.io/tower/
+passed. All 36 served assets matched the tested local build by SHA256.
+Desktop and mobile verified interpreter/Wasm agreement, forward module bindings,
+project/archive persistence, editable Bedrock/Foundation, native builds/downloads,
+equal-width panes and default targets, with no browser page errors.
+
+Logs in build/formatter-bootstrap: deploy-compiler.log, deploy-node.log,
+deploy-browser.log, deploy-local.log, deploy-upstream-{build,node,browser,local}.log,
+deploy-action.log and deploy-live.log. Local and live reports are preserved as
+deploy-upstream-local-report.json and deploy-live-report.json; screenshots and
+downloaded artifacts are in build/deployment-verification. todo.txt and the
+original workspace were not modified by this deployment.
