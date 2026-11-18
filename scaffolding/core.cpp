@@ -1,8 +1,10 @@
 ﻿#include "core.hpp"
 #include <algorithm>
+#include "compiler-generics.hpp"
 #include <map>
 #include <initializer_list>
 #include <utility>
+#include <set>
 
 namespace {
 std::string foundation_grammar;
@@ -48,14 +50,85 @@ struct Compiler {
   std::map<std::string, TowerNode*> functions;
   std::map<std::string, TowerNode*> types;
   std::map<std::string, TowerNode*> globals;
+  GenericContext* generics = nullptr;
+  std::map<std::string, TowerNode*> templates, type_functions;
+  std::map<TowerNode*, CoreType> type_results;
+  std::vector<TowerNode*> type_arguments, generated;
+  std::set<std::string> source_names;
+  std::set<TowerNode*> template_nodes, fields_done, resolving_types;
+  const char* source = "";
+  unsigned type_depth = 0;
   std::map<TowerNode*, unsigned> layout_state;
   std::map<TowerNode*, unsigned> declaration_state;
   std::vector<TowerNode*> inferring;
   std::vector<std::map<std::string, TowerNode*>> scopes{1};
-  explicit Compiler(unsigned width) : program(width), current(program.root) { for (auto* type : program.types) types.emplace(core_node(type).name, type); }
+  explicit Compiler(unsigned width) : program(width), current(program.root) {
+    for (auto* type : program.types) types.emplace(core_node(type).name, type);
+    generics = generic_begin(program.root);
+  }
   CoreNode& function() { return core_node(current); }
   size_t offset(TowerNode* n) { auto* m = match(n); auto start = m ? parser_match_get_start(m) : 0; return start > prefix ? start - prefix : 0; }
-  void fail(TowerNode* n, const std::string& text) { if (program.error.empty()) { program.error = text; program.error_offset = offset(n); } }
+  void fail(TowerNode* n, const std::string& text) {
+    if (!program.error.empty()) return;
+    program.error = text; program.error_offset = offset(n);
+    std::set<TowerNode*> seen;
+    for (auto* use = generic_origin(generics, n); use && seen.size() < 8 && seen.insert(use).second; use = generic_origin(generics, use)) {
+      const auto at = offset(use); size_t line = 1, column = 1;
+      for (size_t i = 0; i < at && source[i]; ++i) { if (source[i] == '\n') { ++line; column = 1; } else ++column; }
+      program.error += "\nInstantiated by " + tokens(use) + " at line " + std::to_string(line) + ", column " + std::to_string(column) + ".";
+    }
+  }
+  bool generic_ok(TowerNode* at) { if (auto* error = generic_error(generics)) fail(at, error); return program.error.empty(); }
+  TowerNode* type_entity(CoreType t) {
+    for (auto* n : program.types) if (core_node(n).type == t) return n;
+    for (auto* n : type_arguments) if (core_node(n).type == t) return n;
+    auto* n = tower_node_create(); tower_node_attach(n, program.root);
+    auto& value = core_attach(n, CoreKind::Type); value.type = t; value.name = core_type_name(t);
+    type_arguments.push_back(n); tower_node_release_ref(n); return n;
+  }
+  std::string instance_name(TowerNode* definition, const std::vector<TowerNode*>& arguments) {
+    auto name = identifier(tokens(member(definition, "name"))) + "(";
+    for (size_t i = 0; i < arguments.size(); ++i) { if (i) name += ", "; name += core_type_name(core_node(arguments[i]).type); }
+    name += ")"; auto unique = name; size_t suffix = 1;
+    while (source_names.contains(unique) || types.contains(unique) || functions.contains(unique)) unique = name + "_" + std::to_string(++suffix);
+    return unique;
+  }
+  void register_template(TowerNode* n) {
+    auto kind = generic_register(generics, n); if (!generic_ok(n) || !kind) return;
+    auto name = identifier(tokens(member(n, "name")));
+    if (label(n) != "CoreFunction") { fail(n, "Templates cannot be extern or export declarations; export a concrete wrapper"); return; }
+    std::set<std::string> names;
+    for (auto* parameter : collect(member(n, "params"), "CoreParameter")) {
+      auto value = identifier(tokens(member(parameter, "name")));
+      if (!names.insert(value).second) { fail(parameter, "Duplicate template parameter '" + value + "'"); return; }
+    }
+    auto& registry = kind == 2 ? type_functions : templates;
+    if (!registry.emplace(name, n).second) { fail(n, "Duplicate template '" + name + "'"); return; }
+    for (const auto& definition : core_builtins()) if (name == definition.name) fail(n, "Template name '" + name + "' already names a foundation builtin");
+    template_nodes.insert(n);
+  }
+  CoreType type_call(TowerNode* n) {
+    auto name = identifier(tokens(member(n, "name"))); auto found = type_functions.find(name);
+    CoreType invalid{CoreScalar::I32, 0, nullptr, program.pointer_bytes};
+    if (found == type_functions.end()) { fail(n, "Unknown type constructor '" + name + "'"); return invalid; }
+    auto args = collect(member(n, "args"), label(n) == "CoreCall" ? "CoreCallArgument" : "CoreType");
+    if (args.size() != generic_parameter_count(generics, found->second)) { fail(n, "Wrong argument count for type constructor '" + name + "'"); return invalid; }
+    std::vector<TowerNode*> arguments;
+    for (auto* arg : args) { arguments.push_back(type_entity(type(arg))); if (!program.error.empty()) return invalid; }
+    auto* instance = generic_instantiate(generics, found->second, n, arguments.data(), arguments.size());
+    if (!generic_ok(n) || !instance) return invalid;
+    if (auto result = type_results.find(instance); result != type_results.end()) return result->second;
+    if (!resolving_types.insert(instance).second) { fail(n, "Recursive type constructor '" + name + "' has no concrete struct to resolve"); return invalid; }
+    auto* result = generic_type_result(generics, instance);
+    if (!generic_ok(n) || !result) return invalid;
+    if (label(result) == "CoreStruct") {
+      type_header(result, instance_name(found->second, arguments));
+      if (!program.error.empty()) return invalid;
+      auto t = core_node(result).type; type_results[instance] = t; generated.push_back(result);
+      type_fields(result); resolving_types.erase(instance); return t;
+    }
+    auto t = type(result); type_results[instance] = t; resolving_types.erase(instance); return t;
+  }
   bool shape(TowerNode* n, std::initializer_list<const char*> captures) {
     if (!n) { fail(n, "Missing foundation tree"); return false; }
     for (auto* name : captures) if (!member(n, name)) {
@@ -71,7 +144,10 @@ struct Compiler {
     return result;
   }
   CoreType type(TowerNode* n) {
+    struct Depth { unsigned& value; ~Depth() { --value; } } depth{type_depth};
+    if (++type_depth > 128) { fail(n, "Type construction nesting exceeds 128; check recursive type arguments"); return {}; }
     while ((label(n) == "CoreCallArgument" || label(n) == "CoreOperand") && tower_node_get_child_count(n) == 1) n = child(n, 0);
+    if ((label(n) == "CoreType" || label(n) == "CoreCall") && member(n, "args")) return type_call(n);
     // Types are ordinary identifier references. This bootstrap registry is the
     // first semantic namespace; type spellings are absent from the grammar.
     if (auto* base = member(n, "base")) {
@@ -85,11 +161,15 @@ struct Compiler {
         if (!length || length > 1048576) { fail(n, "Array length must be between 1 and 1,048,576"); return t; }
         if (!t.pointers && t.scalar == CoreScalar::Void) { fail(n, "An array cannot have void elements"); return t; }
         auto name = core_type_name(t) + "[" + std::to_string(length) + "]";
-        auto found = types.find(name);
-        if (found != types.end()) return core_node(found->second).type;
+        // Composite identity is semantic, not its display spelling. A quoted
+        // user struct named `i32[2]` must not alias the fixed array i32[2].
+        for (auto* candidate : program.types) {
+          auto& a = core_node(candidate);
+          if (a.type.scalar == CoreScalar::Array && a.element == t && a.length == length) return a.type;
+        }
         auto* entity = tower_node_create(); tower_node_attach(entity, program.root);
         auto& a = core_attach(entity, CoreKind::Type); a.name = name; a.element = t; a.length = size_t(length);
-        a.type = {CoreScalar::Array, 0, entity, program.pointer_bytes}; types[name] = entity; program.types.push_back(entity);
+        a.type = {CoreScalar::Array, 0, entity, program.pointer_bytes}; program.types.push_back(entity);
         tower_node_release_ref(entity); return a.type;
       }
       if (member(n, "field")) { fail(n, "Expected a type name, not field access"); return t; }
@@ -97,19 +177,28 @@ struct Compiler {
       return t;
     }
     auto text = identifier(tokens(n)); CoreType t{CoreScalar::I32, 0, nullptr, program.pointer_bytes};
+    // A type constructor's local struct retains its lexical self name, even
+    // though canonical output gives the instance a unique concrete name.
+    if (generic_origin(generics, n))
+      for (auto* parent = tower_node_get_parent(n); parent; parent = tower_node_get_parent(parent)) {
+        if (label(parent) == "CoreStruct" && core_get(parent) && text == identifier(tokens(member(parent, "name")))) return core_node(parent).type;
+      }
+    if (auto* bound = generic_lookup(generics, n, n)) return core_node(bound).type;
+    if (text == "type") { fail(n, "Type values currently require a template parameter or a type-constructor result"); return t; }
     auto found = types.find(text);
     if (found == types.end()) fail(n, "Unknown type '" + text + "'");
     else t = core_node(found->second).type;
     return t;
   }
-  void type_header(TowerNode* n) {
+  void type_header(TowerNode* n, const std::string& name = {}) {
     if (!shape(n, {"name", "fields"})) return;
-    auto& t = node(n, CoreKind::Type); t.name = identifier(tokens(member(n, "name")));
-    if (t.name.empty() || types.contains(t.name)) { fail(n, "Missing or duplicate type '" + t.name + "'"); return; }
+    auto& t = node(n, CoreKind::Type); t.name = name.empty() ? identifier(tokens(member(n, "name"))) : name;
+    if (t.name.empty() || t.name == "type" || types.contains(t.name) || type_functions.contains(t.name)) { fail(n, "Missing or duplicate type '" + t.name + "'"); return; }
     if (program.types.size() >= 260) { fail(n, "Foundation struct type limit is 256"); return; }
     t.type = {CoreScalar::Struct, 0, n, program.pointer_bytes}; types[t.name] = n; program.types.push_back(n);
   }
   void type_fields(TowerNode* n) {
+    if (!fields_done.insert(n).second) return;
     auto& t = core_node(n); std::map<std::string, bool> names;
     for (auto* field : collect(member(n, "fields"), "CoreField")) {
       if (!shape(field, {"name", "type"})) return;
@@ -221,6 +310,7 @@ struct Compiler {
     auto parent = core_node(value.left).type;
     value.name = identifier(tokens(member(n, "field"))); value.indirect = parent.pointers == 1;
     if (parent.scalar != CoreScalar::Struct || parent.pointers > 1) { fail(n, "Field access requires a struct or a single pointer to a struct"); return n; }
+    layout(parent.record); if (!program.error.empty()) return n;
     for (auto* field : core_node(parent.record).items) if (core_node(field).name == value.name) value.binding = field;
     if (!value.binding) { fail(n, "Unknown field '" + value.name + "' in '" + core_node(parent.record).name + "'"); return n; }
     value.type = core_node(value.binding).type; value.byte_offset = core_node(value.binding).byte_offset;
@@ -323,6 +413,28 @@ struct Compiler {
     auto name = identifier(tokens(member(n, "name")));
     auto args = collect(member(n, "args"), "CoreCallArgument");
     for (const auto& definition : core_builtins()) if (name == definition.name) return builtin(n, definition, args);
+    if (type_functions.contains(name)) { fail(n, "Type constructor '" + name + "' produces a type, not a runtime value"); return n; }
+    if (auto found = templates.find(name); found != templates.end()) {
+      auto* definition = found->second;
+      if (args.size() != generic_parameter_count(generics, definition)) { fail(n, "Wrong argument count for template '" + name + "'"); return n; }
+      std::vector<TowerNode*> arguments, values;
+      for (size_t i = 0; i < args.size(); ++i) {
+        if (generic_type_parameter(generics, definition, i)) arguments.push_back(type_entity(type(args[i])));
+        else values.push_back(args[i]);
+        if (!program.error.empty()) return n;
+      }
+      auto* instance = generic_instantiate(generics, definition, n, arguments.data(), arguments.size());
+      if (!generic_ok(n) || !instance) return n;
+      if (!core_get(instance)) {
+        header(instance, instance_name(definition, arguments), definition);
+        if (!program.error.empty()) return n;
+        generated.push_back(instance);
+      }
+      auto& value = node(n, CoreKind::Call); auto& callee = core_node(instance);
+      value.binding = instance; value.type = callee.type;
+      for (size_t i = 0; i < values.size(); ++i) value.items.push_back(operand(values[i], &core_node(callee.parameters[i]).type));
+      return n;
+    }
     auto& value = node(n, CoreKind::Call);
     auto found = functions.find(name);
     if (found == functions.end()) { fail(n, "Unknown function '" + name + "'"); return n; }
@@ -361,25 +473,28 @@ struct Compiler {
       value.type = comparison ? CoreType{CoreScalar::Bool} : input;
       if (pointer_offset) {
         if (!integer(core_node(value.right).type)) fail(n, "A pointer offset must be an integer");
-        auto element = input; --element.pointers; if (!core_type_size(element)) fail(n, "Cannot offset a void pointer");
+        auto element = input; --element.pointers; if (core_aggregate(element)) layout(element.record);
+        if (!core_type_size(element)) fail(n, "Cannot offset a void pointer");
       } else if (!integer(input) && value.op != CoreOp::Eq && value.op != CoreOp::Ne) fail(n, "This operation requires integer operands");
     } else { fail(n, "Unsupported foundation expression '" + kind + "'"); return nullptr; }
     if (core_aggregate(core_node(n).type)) fail(n, "Struct values require field access or a pointer; aggregate copies are not implemented");
     if (expected && core_node(n).type != *expected) fail(n, "Expected " + core_type_name(*expected) + ", got " + core_type_name(core_node(n).type));
     return n;
   }
-  void header(TowerNode* n) {
+  void header(TowerNode* n, const std::string& name = {}, TowerNode* definition = nullptr) {
     bool external = label(n) == "CoreExternal";
     if (!shape(n, {"name", "type"}) || (!external && !shape(n, {"body"}))) return;
-    auto& fn = node(n, CoreKind::Function); fn.name = identifier(tokens(member(n, "name"))); fn.type = type(member(n, "type"));
+    auto& fn = node(n, CoreKind::Function); fn.name = name.empty() ? identifier(tokens(member(n, "name"))) : name; fn.type = type(member(n, "type"));
     for (const auto& definition : core_builtins()) if (fn.name == definition.name) fail(n, "Function name '" + fn.name + "' already names a foundation builtin");
     fn.external = external; fn.exported = label(n) == "CoreExport";
     if (core_aggregate(fn.type)) fail(n, "Struct returns require a pointer; by-value returns are not implemented");
-    if (fn.name.empty() || functions.contains(fn.name)) { fail(n, "Missing or duplicate function '" + fn.name + "'"); return; }
+    if (fn.name.empty() || functions.contains(fn.name) || templates.contains(fn.name) || type_functions.contains(fn.name)) { fail(n, "Missing or duplicate function '" + fn.name + "'"); return; }
     if (program.functions.size() >= 256) { fail(n, "Foundation function limit is 256"); return; }
     fn.index = program.functions.size(); functions[fn.name] = n; program.functions.push_back(n);
     std::map<std::string, bool> names;
+    size_t parameter_index = 0;
     for (auto* p : collect(member(n, "params"), "CoreParameter")) {
+      if (definition && generic_type_parameter(generics, definition, parameter_index++)) continue;
       if (!shape(p, {"name", "type"})) return;
       auto& param = node(p, CoreKind::Parameter); param.name = identifier(tokens(member(p, "name"))); param.type = type(member(p, "type"));
       if ((!param.type.pointers && param.type.scalar == CoreScalar::Void) || param.name.empty() || names.contains(param.name)) fail(p, "Invalid or duplicate function parameter");
@@ -459,7 +574,7 @@ struct Compiler {
   }
 };
 CoreProgram compile(const char* source, size_t prefix, unsigned width) {
-  Compiler compiler(width); compiler.prefix = prefix; auto* session = syntax_create(source); size_t count = 0;
+  Compiler compiler(width); compiler.prefix = prefix; compiler.source = source; auto* session = syntax_create(source); size_t count = 0;
   auto& statements = core_node(compiler.program.root).items;
   while (compiler.program.error.empty()) {
     auto revision = syntax_get_revision(session); auto* root = syntax_next(session); if (!root) break;
@@ -474,6 +589,11 @@ CoreProgram compile(const char* source, size_t prefix, unsigned width) {
     compiler.program.error_offset = at > prefix ? at - prefix : 0;
   }
   syntax_destroy(session);
+  for (auto* n : statements) {
+    if (auto* name = member(n, "name")) compiler.source_names.insert(identifier(tokens(name)));
+    if (compiler.program.error.empty() && (label(n) == "CoreFunction" || label(n) == "CoreExternal" || label(n) == "CoreExport")) compiler.register_template(n);
+  }
+  statements.erase(std::remove_if(statements.begin(), statements.end(), [&](auto* n) { return compiler.template_nodes.contains(n); }), statements.end());
   for (auto* n : statements) if (compiler.program.error.empty() && label(n) == "CoreStruct") compiler.type_header(n);
   for (size_t i = 8; i < compiler.program.types.size() && compiler.program.error.empty(); ++i)
     if (core_node(compiler.program.types[i]).type.scalar == CoreScalar::Struct) compiler.type_fields(compiler.program.types[i]);
@@ -504,6 +624,8 @@ CoreProgram compile(const char* source, size_t prefix, unsigned width) {
     fn.body = member(n, "body"); auto flow = compiler.block(fn.body, 0);
     if ((fn.type.pointers || fn.type.scalar != CoreScalar::Void) && (flow & Next)) compiler.fail(n, "Function '" + fn.name + "' can finish without returning a value");
   }
+  for (size_t i = 8; i < compiler.program.types.size() && compiler.program.error.empty(); ++i) compiler.layout(compiler.program.types[i]);
+  statements.insert(statements.begin(), compiler.generated.begin(), compiler.generated.end());
   return std::move(compiler.program);
 }
 }

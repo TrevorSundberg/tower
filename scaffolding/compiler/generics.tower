@@ -1,0 +1,493 @@
+// Compiler transformations over the shared entity store. C++ only exposes
+// existing payload access until those components are also defined in Tower.
+extern fn compiler_node_label(node: Entity*, label: u8*): bool;
+
+extern fn compiler_name_is(node: Entity*, name: u8*): bool;
+
+extern fn compiler_name_equal(left: Entity*, right: Entity*): bool;
+
+extern fn compiler_node_copy_metadata(source: Entity*, destination: Entity*): void;
+
+extern fn compiler_generic_type(index: usize): Entity*;
+
+fn compiler_component_get(node: Entity*, type: Entity*): void* {
+    var missing = node == null;
+    if missing {
+        return null;
+    }
+    var component = entity_component_get(node, type);
+    var data = entity_component_data(component);
+    return bits(void*, data);
+}
+
+extern fn compiler_component_add(node: Entity*, type: Entity*, size: usize): void*;
+
+fn compiler_node_count(node: Entity*): usize {
+    var missing = node == null;
+    if missing {
+        return 0;
+    }
+    return entity_child_count(node);
+}
+
+fn compiler_node_member(node: Entity*, role: u8*): Entity* {
+    var missing = node == null;
+    if missing {
+        return null;
+    }
+    var index = entity_member_index(node, role);
+    return entity_child_at(node, index);
+}
+
+// These are semantic components attached to real definition/instance nodes.
+// Fixed bounds match the current foundation parameter and function limits.
+struct GenericTemplate {
+    parameters: Entity*[64];
+    type_parameters: bool[64];
+    count: usize;
+    type_count: usize;
+    kind: u32;
+}
+
+struct GenericInstance {
+    definition: Entity*;
+    use: Entity*;
+    node: Entity*;
+    arguments: Entity*[64];
+    count: usize;
+    next: GenericInstance*;
+}
+
+struct GenericOrigin {
+    definition: Entity*;
+    use: Entity*;
+}
+
+// This linked index is derived from instance components, scoped to one program
+// and its explicit target. It is not a second representation of the program.
+struct GenericContext {
+    root: Entity*;
+    template_type: Entity*;
+    instance_type: Entity*;
+    origin_type: Entity*;
+    first: GenericInstance*;
+    count: usize;
+    copied: usize;
+    error: u8*;
+}
+
+export fn generic_begin(root: Entity*): GenericContext* {
+    var type = compiler_generic_type(0);
+    var data = compiler_component_add(root, type, sizeof(GenericContext));
+    var context = bits(GenericContext*, data);
+    fill(context, 0, sizeof(GenericContext));
+    context.root = root;
+    context.template_type = compiler_generic_type(1);
+    context.instance_type = compiler_generic_type(2);
+    context.origin_type = compiler_generic_type(3);
+    return context;
+}
+
+export fn generic_error(context: GenericContext*): u8* {
+    return context.error;
+}
+
+fn generic_parameters(context: GenericContext*, template: GenericTemplate*, node: Entity*, depth: usize): void {
+    var deep = depth > 128;
+    if deep {
+        context.error = "Template parameter nesting exceeds 128";
+        return;
+    }
+    var parameter = compiler_node_label(node, "CoreParameter");
+    if parameter {
+        var full = template.count == 64;
+        if full {
+            context.error = "A template supports at most 64 parameters";
+            return;
+        }
+        var annotation = compiler_node_member(node, "type");
+        var type = compiler_name_is(annotation, "type");
+        template.parameters[template.count] = node;
+        template.type_parameters[template.count] = type;
+        template.count = template.count + 1;
+        if type {
+            template.type_count = template.type_count + 1;
+        }
+        return;
+    }
+    var i: usize = 0;
+    var count = compiler_node_count(node);
+    loop {
+        var done = i == count;
+        if done {
+            break;
+        }
+        var child = entity_child_at(node, i);
+        var next = depth + 1;
+        generic_parameters(context, template, child, next);
+        i = i + 1;
+    }
+}
+
+export fn generic_register(context: GenericContext*, definition: Entity*): u32 {
+    var temporary: GenericTemplate;
+    var template = &temporary;
+    fill(template, 0, sizeof(GenericTemplate));
+    var params = compiler_node_member(definition, "params");
+    generic_parameters(context, template, params, 0);
+    var result = compiler_node_member(definition, "type");
+    var produces_type = compiler_name_is(result, "type");
+    var generic = template.type_count != 0;
+    if generic {
+        template.kind = 1;
+    }
+    if produces_type {
+        template.kind = 2;
+        var mixed = template.type_count != template.count;
+        if mixed {
+            context.error = "Type constructors currently require type parameters; compile-time value parameters are not implemented";
+        }
+    }
+    var needed = template.kind != 0;
+    if needed {
+        var data = compiler_component_add(definition, context.template_type, sizeof(GenericTemplate));
+        copy(data, template, sizeof(GenericTemplate));
+    }
+    return template.kind;
+}
+
+export fn generic_parameter_count(context: GenericContext*, definition: Entity*): usize {
+    var data = compiler_component_get(definition, context.template_type);
+    var template = bits(GenericTemplate*, data);
+    return template.count;
+}
+
+export fn generic_type_parameter(context: GenericContext*, definition: Entity*, index: usize): bool {
+    var data = compiler_component_get(definition, context.template_type);
+    var template = bits(GenericTemplate*, data);
+    var valid = index < template.count;
+    if valid {
+        return template.type_parameters[index];
+    }
+    return false;
+}
+
+struct CloneFrame {
+    source: Entity*;
+    destination: Entity*;
+    next: usize;
+}
+
+fn compiler_clone_node(source: Entity*, context: GenericContext*, use: Entity*): Entity* {
+    var result = entity_create(source.store);
+    var failed = result == null;
+    if failed {
+        return null;
+    }
+    compiler_node_copy_metadata(source, result);
+    var record = context != null;
+    if record {
+        var data = compiler_component_add(result, context.origin_type, sizeof(GenericOrigin));
+        var origin = bits(GenericOrigin*, data);
+        origin.definition = source;
+        origin.use = use;
+    }
+    return result;
+}
+
+// An explicit work stack preserves deep-tree support without host recursion.
+fn compiler_clone_branch(source: Entity*, remaining: usize*, context: GenericContext*, use: Entity*): Entity* {
+    var exhausted = *remaining == 0;
+    if exhausted {
+        return null;
+    }
+    var capacity: usize = 16;
+    var frames = alloc(CloneFrame, capacity);
+    var failed = frames == null;
+    if failed {
+        return null;
+    }
+    var result = compiler_clone_node(source, context, use);
+    failed = result == null;
+    if failed {
+        free(frames);
+        return null;
+    }
+    *remaining = *remaining - 1;
+    frames[0].source = source;
+    frames[0].destination = result;
+    frames[0].next = 0;
+    var length: usize = 1;
+    loop {
+        var empty = length == 0;
+        if empty {
+            break;
+        }
+        var top = length - 1;
+        var frame = &frames[top];
+        var count = compiler_node_count(frame.source);
+        var done = frame.next == count;
+        if done {
+            length = top;
+            continue;
+        }
+        exhausted = *remaining == 0;
+        if exhausted {
+            failed = true;
+            break;
+        }
+        var full = length == capacity;
+        if full {
+            capacity = capacity * 2;
+            var next = realloc(CloneFrame, frames, capacity);
+            failed = next == null;
+            if failed {
+                break;
+            }
+            frames = next;
+            frame = &frames[top];
+        }
+        var child = entity_child_at(frame.source, frame.next);
+        var role = entity_child_name(frame.source, frame.next);
+        var copy = compiler_clone_node(child, context, use);
+        failed = copy == null;
+        if failed {
+            break;
+        }
+        *remaining = *remaining - 1;
+        var attached = entity_attach(copy, frame.destination, role);
+        entity_release(copy);
+        failed = attached == false;
+        if failed {
+            break;
+        }
+        frame.next = frame.next + 1;
+        frames[length].source = child;
+        frames[length].destination = copy;
+        frames[length].next = 0;
+        length = length + 1;
+    }
+    free(frames);
+    if failed {
+        entity_release(result);
+        return null;
+    }
+    return result;
+}
+
+export fn compiler_clone_tree(source: Entity*, limit: usize, copied: usize*): Entity* {
+    var remaining = limit;
+    var result = compiler_clone_branch(source, &remaining, null, null);
+    *copied = limit - remaining;
+    return result;
+}
+
+export fn generic_instantiate(context: GenericContext*, definition: Entity*, use: Entity*, arguments: Entity**, count: usize): Entity* {
+    var data = compiler_component_get(definition, context.template_type);
+    var template = bits(GenericTemplate*, data);
+    var wrong = count != template.type_count;
+    if wrong {
+        context.error = "Wrong number of compile-time type arguments";
+        return null;
+    }
+    var current = context.first;
+    loop {
+        var done = current == null;
+        if done {
+            break;
+        }
+        var same = current.definition == definition;
+        var i: usize = 0;
+        loop {
+            var complete = i == count;
+            if complete {
+                break;
+            }
+            var different = current.arguments[i] != arguments[i];
+            if different {
+                same = false;
+            }
+            i = i + 1;
+        }
+        if same {
+            return current.node;
+        }
+        current = current.next;
+    }
+    var full = context.count == 256;
+    if full {
+        context.error = "Template specialization limit exceeded (256 instances); check recursive type arguments";
+        return null;
+    }
+    var remaining: usize = 65536;
+    remaining = remaining - context.copied;
+    var before = remaining;
+    var node = compiler_clone_branch(definition, &remaining, context, use);
+    var copied = before - remaining;
+    context.copied = context.copied + copied;
+    var failed = node == null;
+    if failed {
+        context.error = "Template expansion exceeds 65536 nodes or could not allocate its work stack";
+        return null;
+    }
+    data = compiler_component_add(node, context.instance_type, sizeof(GenericInstance));
+    var instance = bits(GenericInstance*, data);
+    fill(instance, 0, sizeof(GenericInstance));
+    instance.definition = definition;
+    instance.use = use;
+    instance.node = node;
+    instance.count = count;
+    var i: usize = 0;
+    loop {
+        var done = i == count;
+        if done {
+            break;
+        }
+        instance.arguments[i] = arguments[i];
+        i = i + 1;
+    }
+    var attached = entity_attach(node, context.root, null);
+    if attached {} else {
+        entity_release(node);
+        context.error = "Unable to attach template instance";
+        return null;
+    }
+    // Publish before semantic resolution, so recursive references reuse this node.
+    instance.next = context.first;
+    context.first = instance;
+    context.count = context.count + 1;
+    entity_release(node);
+    return node;
+}
+
+export fn generic_lookup(context: GenericContext*, node: Entity*, name: Entity*): Entity* {
+    var empty = context.first == null;
+    if empty {
+        return null;
+    }
+    var origin = compiler_component_get(node, context.origin_type);
+    var original = origin == null;
+    if original {
+        return null;
+    }
+    loop {
+        var done = node == null;
+        if done {
+            return null;
+        }
+        var data = compiler_component_get(node, context.instance_type);
+        var present = data != null;
+        if present {
+            var instance = bits(GenericInstance*, data);
+            data = compiler_component_get(instance.definition, context.template_type);
+            var template = bits(GenericTemplate*, data);
+            var i: usize = 0;
+            var argument: usize = 0;
+            loop {
+                var finished = i == template.count;
+                if finished {
+                    return null;
+                }
+                if template.type_parameters[i] {
+                    var parameter = compiler_node_member(template.parameters[i], "name");
+                    var same = compiler_name_equal(parameter, name);
+                    if same {
+                        return instance.arguments[argument];
+                    }
+                    argument = argument + 1;
+                }
+                i = i + 1;
+            }
+        }
+        node = entity_parent(node);
+    }
+}
+
+// Initial type-function evaluator: one optional struct declaration, then return
+// that struct or an existing type/type-producing call. General staged execution
+// will extend this instead of introducing a second template expression language.
+export fn generic_type_result(context: GenericContext*, instance: Entity*): Entity* {
+    var body = compiler_node_member(instance, "body");
+    var structure: Entity* = null;
+    var returned: Entity* = null;
+    var count = compiler_node_count(body);
+    var i: usize = 0;
+    loop {
+        var done = i == count;
+        if done {
+            break;
+        }
+        var statement = entity_child_at(body, i);
+        var relevant = compiler_node_label(statement, "Statement");
+        if relevant {
+            statement = entity_child_at(statement, 0);
+            var already_returned = returned != null;
+            var is_struct = compiler_node_label(statement, "CoreStruct");
+            var is_return = compiler_node_label(statement, "CoreReturn");
+            if already_returned {
+                context.error = "A type constructor must end with its return";
+                return null;
+            }
+            if is_struct {
+                var duplicate = structure != null;
+                if duplicate {
+                    context.error = "A type constructor currently supports one local struct";
+                    return null;
+                }
+                structure = statement;
+            } else {
+                if is_return {
+                    returned = compiler_node_member(statement, "value");
+                } else {
+                    context.error = "Type constructors currently support a struct and return; general compile-time execution is not implemented";
+                    return null;
+                }
+            }
+        }
+        i = i + 1;
+    }
+    var missing = returned == null;
+    if missing {
+        context.error = "A type constructor must return a type";
+        return null;
+    }
+    var local = structure != null;
+    if local {
+        var name = compiler_node_member(structure, "name");
+        var same = compiler_name_equal(name, returned);
+        if same {
+            return structure;
+        }
+        context.error = "A type constructor with a local struct must return that struct";
+        return null;
+    }
+    loop {
+        var children = compiler_node_count(returned);
+        var wrapper = children == 1;
+        if wrapper {
+            returned = entity_child_at(returned, 0);
+        } else {
+            return returned;
+        }
+    }
+}
+
+export fn generic_origin(context: GenericContext*, node: Entity*): Entity* {
+    var data = compiler_component_get(node, context.origin_type);
+    var present = data != null;
+    if present {
+        var origin = bits(GenericOrigin*, data);
+        return origin.use;
+    }
+    return null;
+}
+
+export fn generic_definition(context: GenericContext*, node: Entity*): Entity* {
+    var data = compiler_component_get(node, context.origin_type);
+    var present = data != null;
+    if present {
+        var origin = bits(GenericOrigin*, data);
+        return origin.definition;
+    }
+    return node;
+}

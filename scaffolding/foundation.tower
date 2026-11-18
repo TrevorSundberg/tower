@@ -4,7 +4,9 @@ token Number = /[0-9]+/ as number;
 
 // Bootstrap semantic ABI: these Core* tree labels and captures name typed ops.
 // No precedence hierarchy: a binary value has two operands and one operator.
-parse CoreType = $name:Identifier | $base:CoreType '*' | $base:CoreType '[' $count:Number ']';
+parse CoreType = $name:Identifier | $base:CoreType '*' | $base:CoreType '[' $count:Number ']'
+                | $name:Identifier '(' $args:CoreTypeArguments? ')';
+parse CoreTypeArguments = CoreType | CoreTypeArguments ',' CoreType;
 parse CoreLocation = $name:Identifier | $base:CoreLocation '.' $field:Identifier;
 parse CoreOperand = CoreLocation | Number | '-' Number | 'true' | 'false' | 'null' | String;
 parse CoreLocation |= $base:CoreLocation '[' $index:CoreOperand ']';

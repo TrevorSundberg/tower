@@ -74,6 +74,7 @@ struct SyntaxOrigin {
   std::vector<std::shared_ptr<const SyntaxExpansion>> splices;
 };
 const SyntaxOrigin* syntax_get_origin(TowerNode* node);
+void syntax_copy_origin(TowerNode* source, TowerNode* destination);
 struct SyntaxExpansionStats { size_t replacements = 0, generated_nodes = 0, copied_nodes = 0; };
 SyntaxExpansionStats syntax_get_expansion_stats(SyntaxSession* session);
 

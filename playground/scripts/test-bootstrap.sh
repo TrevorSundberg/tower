@@ -21,8 +21,11 @@ for utility in utf8 bytes entities; do
       "${LLVM_NM:-llvm-nm-19}" --undefined-only "$out/$utility-$target-$stage.o" > "$out/symbols.txt"
       python3 - "$utility" "$out/symbols.txt" <<'PY'
 import pathlib, sys
-allowed = set() if sys.argv[1] == 'utf8' else {'tower_reallocate', 'tower_deallocate', 'memcpy', 'memmove', 'memset', 'stack_pointer'}
-if sys.argv[1] == 'entities': allowed |= {'tower_allocate', 'tower_entity_finalize'}
+allowed = set() if sys.argv[1] == 'utf8' else {'tower_reallocate', 'tower_deallocate', 'memcpy', 'memmove', 'memset', 'bzero', 'stack_pointer', 'memory_base'}
+if sys.argv[1] == 'entities': allowed |= {
+    'tower_allocate', 'tower_entity_finalize', 'compiler_node_label',
+    'compiler_name_is', 'compiler_name_equal', 'compiler_node_copy_metadata',
+    'compiler_generic_type', 'compiler_component_add'}
 symbols = {line.split()[-1].lstrip('_') for line in pathlib.Path(sys.argv[2]).read_text().splitlines() if line.strip()}
 assert symbols <= allowed, f'Unexpected runtime dependencies: {symbols - allowed}'
 PY

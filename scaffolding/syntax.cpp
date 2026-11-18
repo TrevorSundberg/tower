@@ -1,4 +1,5 @@
 #include "syntax.hpp"
+#include "compiler-generics.hpp"
 #include "lex-pattern.hpp"
 #include "syntax-nodes.hpp"
 #include "format.hpp"
@@ -1143,20 +1144,17 @@ struct Expander {
     return true;
   }
   Node copy_tree(TowerNode* source) {
-    if (!count_node(true)) return owned(nullptr);
-    auto result = copy_match(source);
-    normal.insert(tower_node_get_id(result.get()));
-    struct Pair { TowerNode* from; TowerNode* to; };
-    std::vector<Pair> pending{{source, result.get()}};
+    auto& stats = session.expansion_stats;
+    size_t copied = 0;
+    auto result = owned(compiler_clone_tree(source, max_nodes - stats.generated_nodes - stats.copied_nodes, &copied));
+    stats.copied_nodes += copied;
+    if (!result) { session.error = "Replacement output limit exceeded (65536 nodes) or could not allocate its work stack"; return result; }
+    // The copied tree is already expanded. This host-only derived set can be
+    // retired when the rest of the expander migrates; ownership/copying is Tower.
+    std::vector<TowerNode*> pending{result.get()};
     while (!pending.empty()) {
-      auto [from, to] = pending.back(); pending.pop_back();
-      for (size_t i = 0; i < tower_node_get_child_count(from); ++i) {
-        if (!count_node(true)) return owned(nullptr);
-        auto part = copy_match(child(from, i));
-        normal.insert(tower_node_get_id(part.get()));
-        tower_node_attach_member(part.get(), to, tower_node_get_child_member_name(from, i));
-        pending.push_back({child(from, i), part.get()});
-      }
+      auto* at = pending.back(); pending.pop_back(); normal.insert(tower_node_get_id(at));
+      for (size_t i = 0; i < tower_node_get_child_count(at); ++i) pending.push_back(child(at, i));
     }
     return result;
   }
@@ -1284,6 +1282,9 @@ struct Expander {
 
 const SyntaxOrigin* syntax_get_origin(TowerNode* node) {
   return (const SyntaxOrigin*)tower_node_get_component_userdata(node, origin_type);
+}
+void syntax_copy_origin(TowerNode* source, TowerNode* destination) {
+  if (auto* previous = syntax_get_origin(source)) *origin(destination) = *previous;
 }
 SyntaxExpansionStats syntax_get_expansion_stats(SyntaxSession* session) { return session->expansion_stats; }
 

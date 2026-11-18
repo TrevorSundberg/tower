@@ -240,7 +240,7 @@ struct Formatter {
     std::string_view label = parser_match_get_label(match);
     pointer |= label == "CoreType" || label == "CorePointerArgument";
     unary |= label == "CoreAddress" || label == "CoreLoad" || label == "CoreTarget" || label == "CoreOperand";
-    call |= label == "CoreCall" || label == "CoreFunction" || label == "CoreExternal" || label == "CoreExport";
+    call |= label == "CoreCall" || label == "CoreFunction" || label == "CoreExternal" || label == "CoreExport" || label == "CoreType";
     if (parser_match_get_rule_index(match) == TOWER_INVALID_INDEX) {
       auto start = parser_match_get_start(match), end = start + parser_match_get_length(match);
       if (end > start) out.push_back({start, end, false, pointer, unary, call});

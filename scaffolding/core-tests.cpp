@@ -33,6 +33,26 @@ void core_tests() {
   { auto warm = execute("print(1);"); }
   auto before = tower_node_get_allocated_count();
   {
+  {
+    auto generic = core_compile("fn box(T: type): type { struct S { value: T; next: S*; } return S; } fn id(T: type, v: T): T { return v; } var a: box(i32); var b: box(i32); a.value = id(i32, 42); b.value = a.value; print(b.value);");
+    assert(generic.error.empty());
+    TowerNode *a = nullptr, *b = nullptr;
+    for (auto* n : core_node(generic.root).items) if (core_node(n).kind == CoreKind::Declare) {
+      if (core_node(n).name == "a") a = n;
+      if (core_node(n).name == "b") b = n;
+    }
+    assert(a && b && core_node(a).type.record == core_node(b).type.record);
+    auto* type = core_node(a).type.record;
+    assert(tower_node_get_component_userdata(type, parser_match_get_type()));
+    assert(core_node(core_node(type).items[1]).type.record == type);
+    auto canonical = core_format(generic).source;
+    auto round = core_compile(canonical.c_str()); assert(round.error.empty());
+    assert(core_format(round).source == canonical);
+    CoreMachine machine(std::move(round)); machine.step(10000);
+    assert(machine.done && machine.error.empty() && machine.output == "42\n");
+    auto bad = core_compile("fn broken(T: type): type { struct S { value: broken(T); } return S; } var x: broken(i32);");
+    assert(bad.error.find("Recursive by-value") != std::string::npos);
+  }
   auto sum = execute("var a: i32; var b: i32; a = 1; b = a + 2; print(b);");
   assert(sum.done && sum.error.empty() && sum.output == "3\n");
   {

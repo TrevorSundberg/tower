@@ -359,8 +359,113 @@ information, rather than treating built-in type names as reserved grammar words.
 
 `var` makes declaration recognition independent of whether a name already denotes
 a type. The same approach extends to pointers, named aggregates, aliases and
-parameterized types without requiring parser-side type-name lookup. Their precise
-type-expression syntax and reflection interface remain to be designed.
+parameterized types without requiring parser-side type-name lookup. Parameterized
+types use parenthesized application, such as `vector(i32)`, rather than angle
+brackets. The full reflection interface remains to be designed.
+
+## Combined compiler/runtime and type-producing functions
+
+The intended model is ordinary Tower code running at explicit stages. The
+compiler belongs to the runtime: code can parse, inspect shared entities, create
+types, generate more Tower code, compile it and execute it. Keep interpretation
+available without executable memory. This is the user's original direction,
+reaffirmed on 2026-11-18, with Zig-like type-producing functions as inspiration;
+it is not a commitment to Zig's syntax or complete semantics.
+
+Types should be first-class values represented by the same entities/components
+as syntax, grammar and foundation operations. Built-in type names resolve like
+other names. A call such as `vector(i32)` should ultimately be an ordinary Tower
+function accepting a type and returning a type. Generic functions can accept
+compile-time type arguments that determine their other parameter/result types.
+Template metaprogramming becomes Tower programming, rather than another language.
+Explicit specialization can provide an initial implementation without closing
+off general type-producing execution later.
+
+Compile-time and runtime share language operations, with explicit execution
+contexts and effects. Compile-time file reads are intended: expose permitted
+files through a host capability or virtual filesystem, track the observed inputs,
+and invalidate affected computations when those inputs change. Observed absence
+or directory contents are dependencies too when they influence results. Identical
+program, inputs, semantic profile and target must still produce identical defined
+results. Effectful calls cannot be folded, reordered or cached merely because
+their arguments are known. Browser access uses supplied files/capabilities, not
+unrestricted host filesystem access.
+
+Distinguish static type construction from runtime reflection. A type required for
+a compiled layout or function signature must be available at that stage. Runtime
+type values can support reflection, dynamic storage or later compilation; they do
+not change the static layout of already compiled storage. Nominal identity,
+structural equivalence, repeated type construction, forward dependencies and
+mutation/finalization rules need explicit contracts. Existing notes explore
+alternatives and do not establish that every equal-looking type is identical.
+
+This records direction, not implemented arbitrary compile-time evaluation, file
+I/O during compilation, or general first-class type values. The original notes
+are in [todo.txt](../todo.txt) at lines 10, 311-322, 2030-2064, 2534-2537,
+3533-3571, 5555-5562 and 7334-7433; that file remains unmodified.
+
+## Explicit type functions and templates (initial implementation)
+
+```tower
+fn box(T: type): type {
+    struct Result {
+        value: T;
+    }
+    return Result;
+}
+
+fn identity(T: type, value: T): T {
+    return value;
+}
+
+var value: box(i32);
+value.value = identity(i32, 42);
+```
+
+This bounded milestone supports explicit type parameters in any parameter
+position, dependent parameter/result types, forward references, recursive
+functions/types, nested type calls, pointers and fixed-array type arguments.
+Type arguments are resolved before checking value arguments and disappear from
+the concrete runtime signature. They are not runtime arguments and do not imply
+argument inference. Generic exports/extern declarations require a concrete
+wrapper. Existing restrictions on aggregate by-value calls still apply.
+
+A type-producing function currently accepts only type parameters and contains
+either one local struct followed by returning that struct, or a return of an
+existing type/type-producing call. General control flow, value parameters,
+compile-time file access, mutable type variables and runtime reflection are not
+implemented by this evaluator. `type` is recognized semantically in parameter
+and result annotations, not as a lexer keyword. This is a path toward the fuller
+combined compiler/runtime model, not its completion.
+
+[generics.tower](../scaffolding/compiler/generics.tower) implements parameter
+discovery, instance lookup/publication, binding lookup, syntax cloning and the
+bounded type-function evaluator. It is compiled together with the existing
+Entity store and parser forest. Definitions, instances and origin information
+are components on those actual entities. C++ still supplies semantic checking,
+name/type resolution, target layouts and narrow access to its remaining payloads.
+The nongeneric bootstrap seed compiles this pass but cannot itself instantiate
+templates. No duplicate C++ specializer is maintained.
+
+Within a compilation/target, the same definition and semantic type arguments
+reuse the same instance. Distinct nominal types remain distinct. Recursive
+instances are registered before field/body resolution; invalid by-value cycles
+and unbounded specialization fail with source/instantiation context. Current
+bounds are 64 parameters, 256 instances, 65,536 copied nodes and 128 nested type
+construction steps, alongside existing foundation limits. These are implementation
+limits, not a permanent generics ABI.
+
+The source formatter preserves template declarations. Canonical executable
+foundation output contains concrete structs/functions, with quoted unique names
+such as `box(i32)` when needed, and recompiles without a template engine. The
+same syntax copier now serves parser replacement captures; it preserves child
+order, capture names, Match metadata and replacement provenance using a Tower
+work stack. It does not blindly copy arbitrary unknown component payloads.
+
+[vector.tower](../scaffolding/library/vector.tower) provides a raw typed growable
+vector with explicit initialize/reserve/push/dispose functions. Push supports
+scalar and pointer values; aggregate ownership/copy policy remains future work.
+Capacity growth checks overflow and preserves existing storage on failure.
 
 ## Struct milestone
 
@@ -548,6 +653,12 @@ See [building and linking](../playground/README.md#native-output-and-browser-cro
 - [x] Test name collisions, forward type references, unknown types and shadowing;
   keep parser decisions independent of the type registry.
 - [ ] Expose type/field metadata to Tower programs through reflection operations.
+- [x] Add parenthesized type-producing calls and explicit type-parameter
+  specialization in Tower over shared entities.
+- [ ] Extend the bounded type-function evaluator to general staged execution/type
+  construction, rather than introducing a separate template language.
+- [ ] Define compile-time file/effect capabilities, dependency recording and
+  invalidation, including missing files and directory observations.
 - [ ] Add fixed-size arrays and typed indexing with explicit bounds behavior.
 - [ ] Define aggregate copying and by-value argument/return semantics before
   implementing them, including partial initialization and aliasing rules.

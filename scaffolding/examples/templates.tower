@@ -1,0 +1,28 @@
+// A type-producing function. Repeated box(i32) calls share one concrete type.
+fn box(T: type): type {
+    struct Result {
+        value: T;
+    }
+    return Result;
+}
+
+// Type parameters may appear after parameters whose types depend on them.
+fn store(destination: box(T)*, T: type, value: T): void {
+    destination.value = value;
+}
+
+fn identity(T: type, value: T): T {
+    return value;
+}
+
+var number: box(i32);
+store(&number, i32, 42);
+print(number.value);
+
+var wide: box(u64);
+store(&wide, u64, 9000000000);
+print(identity(u64, wide.value));
+
+var nested: box(box(i32));
+nested.value.value = 7;
+print(nested.value.value);

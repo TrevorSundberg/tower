@@ -7555,3 +7555,168 @@ or shared target-memory representation rather than passing native pointers into
 the current guest-memory interpreter. No independent public IR or binary format
 is proposed: specialized output remains shared nodes with compilable Foundation
 text. No generics code, syntax choice or runtime behavior changed in this discussion.
+
+## 2026-11-18 - Original type-function notes and the combined compiler/runtime
+
+The user requests parenthesized type application (`vector(int)`, `Vector(i32)`),
+eventual first-class types, and implementation of templates followed by more
+compiler migration into Tower. They explicitly require the existing generic
+entity/component representation for templates, AST/parser nodes, foundation
+operations and rules. No alternative authoritative IR is permitted.
+
+Read the original todo.txt without changing it. Relevant earlier notes:
+
+- Line 10 combines compiler/runtime and executes Tower during compilation to
+  generate more Tower instead of introducing a separate template language.
+- Lines 311-322 propose compile(expression), compile-stage WASI hooks, access to
+  the compilation directory plus explicitly supplied folders, and compilation
+  as stages that can resume with more data. This supports compile-time file I/O
+  as an intended direction, not a claim that it is implemented today.
+- Lines 2030-2064 explicitly show container(i32) and a function receiving a
+  compile-time type/typeid and returning another type usable in annotations.
+- Lines 2534-2537 explore dependent parameter types, including a type parameter
+  appearing after the value whose type depends on it.
+- Lines 3533-3571 explore type declarations as syntax over compile-time type
+  values and type-producing functions, with static-member behavior left open.
+- Lines 5555-5562 say a generated type is a component tree with type information,
+  not a separate bound-type representation. Lines 7334-7433 explore extensible
+  type behavior, type variables and unresolved/forward dependencies.
+- These are exploratory notes: lines 1488-1497 prefer shared generic code for
+  rapid development with optional later specialization; lines 2135-2142 discuss
+  nominal versus structural identity, and 7047-7052 revisit sharing/cloning and
+  optional runtime type information. They do not settle one universal identity
+  rule or promise free code generation/performance.
+
+Correction/clarification to the preceding generics-bootstrap entry: its explicit
+specializer is a possible first implementation step, not the desired permanent
+language model. The user has now authorized implementation. Preserve the path
+to ordinary Tower functions accepting and returning first-class types, with
+parentheses, and ordinary Tower control flow for eventual metaprogramming.
+The user describes this as Zig-like in spirit; no Zig compatibility or finalized
+comptime syntax has been specified.
+
+Reconcile compile-time I/O with the existing deterministic-execution requirement:
+use explicit inputs/capabilities, track file contents and any other observable
+filesystem facts, and invalidate dependent work on change. Do not accidentally
+memoize or reorder effectful calls, use ambient host state for target queries,
+or expose native pointers to the guest interpreter. Runtime type values can
+support reflection/dynamic storage/later compilation, but cannot retroactively
+change an already compiled static layout. Keep type identity, finalization,
+recursive dependencies, target layout and effect policies explicit.
+
+Updated AGENTS.md and docs/foundation.md with this direction and outstanding
+tasks. This entry is design/source research; no generic implementation, general
+compile-time evaluation or compile-time filesystem API is claimed here. Next:
+implement a bounded type-function/specialization milestone in Tower, with shared
+node components and reference/round-trip/backend tests, then move further parser
+metadata/control over that same substrate.
+
+## 2026-11-18 - Tower type functions, specialization and shared syntax copying
+
+Implemented parenthesized type application with the existing Foundation call
+and type rules: fn box(T: type): type can return a local struct, and
+fn identity(T: type, value: T): T specializes through identity(i32, 42).
+Type parameters may occur after dependent value parameters. No angle brackets,
+precedence hierarchy, separate template expression language or public IR was added.
+
+compiler/generics.tower is real compiler code compiled by the nongeneric seed
+and linked into native, browser frontend, LLVM-Wasm and CPU-cross reactors. It is
+composed with library/entities.tower and compiler/parse-tree.tower, and uses their
+actual Entity pointers/storage/relationships directly. GenericTemplate,
+GenericInstance, GenericOrigin and GenericContext are components on shared nodes.
+The context's instance chain is a derived index scoped to one program/target.
+The pass discovers parameters, creates/reuses instances by definition and semantic
+type arguments, binds parameters and evaluates the bounded type-function form.
+Instances publish before field/body checking so recursive references share them.
+
+C++ integration still resolves types, checks/lowers concrete nodes, interns
+semantic type arguments and supplies access to remaining C++ payloads. Type
+bindings are attached to instance scope and consulted in type positions; identifiers
+in value positions are not textually replaced. Original definition/use nodes and
+existing replacement history survive cloning. Errors retain source spans and a
+bounded instantiation chain in line/column terms. Concrete definitions serialize
+through the existing formatter to re-compilable Foundation with collision-checked
+quoted names, e.g. `box(i32)`. Source formatting retains the original template.
+
+The initial type-function evaluator deliberately accepts only type arguments and
+one optional local struct followed by return, or returning an existing type/type
+call. Arbitrary staged control flow, first-class runtime type values, compile-time
+value arguments/inference and compile-time filesystem capabilities remain planned.
+Exported/foreign templates require a concrete wrapper; aggregate by-value calls
+remain rejected. Bounds: 64 parameters, 256 instances, 65,536 copied syntax nodes
+and 128 nested type-resolution steps, plus existing Foundation resource limits.
+
+Added library/vector.tower: raw typed storage, explicit init/reserve/push/dispose,
+geometric growth, overflow checks and failure preserving storage. Scalar/pointer
+push is supported; aggregate copy/destruction policies are not invented. The new
+Templates playground example demonstrates two scalar instances, nesting and a
+type argument declared after its dependent pointer parameter. Both existing
+workers compile/execute the same source automatically.
+
+Also moved the parser replacement expander's actual subtree copying into Tower.
+The shared copier preserves ordered/named children, Match metadata and replacement
+provenance; it is not an arbitrary component bitwise copier. The C++ expander still
+maintains its derived normalized-node set and most rewrite control. A first recursive
+Tower copier trial imposed a new depth bound; replaced it with an explicit growing
+work stack to retain deep-tree behavior. A 600-level native test, partial-copy
+failure and allocator-failure cleanup now cover that path.
+
+Findings/fixes from trials:
+- Constructor-local struct names must resolve lexically inside their own fields;
+  the first test rejected Node* while constructing list(i32). Fixed self binding.
+- Types instantiated after the module's initial layout pass need layout before
+  field offsets/pointer strides are consumed, plus final layout validation.
+- Array interning by display name let a user struct named `i32[2]` collide with
+  the fixed array i32[2]. Composite identity now uses element type and length;
+  templates preserve both distinct nominal and composite identities.
+- Removed per-function template component allocation when no template is present.
+- Bootstrap dependency checks initially rejected Wasm __memory_base (relocatable
+  literal data) and Darwin bzero (backend zero-fill lowering). These are linker/
+  system-runtime dependencies, not an added Tower shim; the allowed-symbol check
+  now records them explicitly. Other unexpected dependencies still fail.
+
+Validation on Windows/WSL Orchestral-Revng, clang/LLVM 19 native, WASI SDK 34,
+Release browser LLVM with assertions disabled:
+- node --test playground/tests/*.test.mjs: 177/177 pass, including interpreter
+  layouts 4/8, LLVM-Wasm differential results, canonical round trips, recursion,
+  forward names, nominal distinctions, shadowing, effect counts and failures.
+- npx playwright test in playground: 102/102 desktop/mobile pass. Inspected
+  build/templates-desktop.png; both execution columns agree. Worker cancellation,
+  preload, debouncing and existing grammar/error UI checks continue passing.
+- TOWER_BOOTSTRAP_COMPILER=/root/.cache/tower/native/towerc-seed
+  bash playground/scripts/test-native-core.sh: 4/4 ASan/UBSan suites pass.
+  The C++ tests/bridge are instrumented; the generated Tower objects are not
+  claimed to have received an independent full memory-safety proof.
+- bash playground/scripts/test-bootstrap.sh: all 12 utility/target pairs have
+  identical seed/full optimized LLVM and object output, now including the
+  specializer in the composed entities module. Explicit grammar-input checks pass.
+- bash playground/scripts/test-linking.sh: native executable/object/archive,
+  raw memory, storage helpers, LLVM C API, platform ABI and forward bindings pass.
+- npm run check:format --prefix playground: all 26 Tower sources are canonical.
+- build/generics-target-check.sh: Templates prints 42 / 9000000000 / 7 natively;
+  emits Wasm, Windows x64 COFF, macOS ARM64 Mach-O and Linux ARM64 ELF objects.
+  Initial --library trial correctly rejected its top-level effects; --emit object
+  is the appropriate mode for a program object containing tower_main.
+
+Logs: build/generics-{native-final,wasm-final,llvm-final,asan-final,node-tests,
+browser-tests,bootstrap,linking,format-check,targets}.log. Reproduce normal builds
+with playground/scripts/build-native.sh, build-wasm.sh and build-llvm.sh (the
+latter with TOWER_BROWSER_CROSS=ON and the explicit native bootstrap path).
+build/profile-generics.mjs alternates published 3bd85bf and current runtimes with
+their own Foundation modules: 12 warmups, 40 samples of compile plus formatting.
+Median before/after milliseconds: small 6.387/6.500, inference 6.494/7.034,
+replacement example 27.376/27.719, 500 declarations 22.441/23.096. Recorded in
+build/generics-performance.json; modest measured overhead, not an instant-time
+or universal performance guarantee.
+
+The user further makes the endpoint explicit: no project-owned C++ or C remains,
+including bootstrap sources; keep portable Tower compiler binaries for supported
+Windows/macOS/Linux hosts and pure Tower sources, with LLVM/SPIR-V and other
+third-party libraries remaining external until their separate translation.
+Do not delete the last working seed before a tested Tower-built successor exists.
+Next migration: basic parser payloads (Rule, Reference, String, Range, Match), then
+remaining syntax/type/operation components, containers, parser/table construction,
+semantic checking, formatting, interpreter, platform/driver/browser interfaces
+and backend adapters. Each continues using the same shared entity model and
+canonical Foundation semantics. This entry does not claim that full migration
+or the portable self-hosting binary distribution is complete.

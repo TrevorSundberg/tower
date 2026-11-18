@@ -90,6 +90,25 @@ Do NOT modify todo.txt
   resolve to reflected type objects through ordinary name lookup, not reserved
   type keywords or parser-side symbol-table disambiguation. The declaration syntax
   and identifier parsing are implemented; reflected type objects remain future work.
+- Treat the compiler and runtime as one Tower programming environment. Compilation
+  is an explicit execution stage with dependencies, not a separate metaprogramming
+  language. Keep a portable interpreted path for compiler code as well.
+- The migration endpoint is pure Tower source for all project-owned compiler and
+  runtime code, including bootstrap code, plus checked-in portable Tower compiler
+  binaries for Windows/macOS/Linux. Only third-party implementations such as
+  LLVM/SPIR-V tooling remain external/native until their separate translation.
+  Retire each native seed/adapter after a validated Tower-built successor exists.
+- Types should become first-class values on the shared entity/component model.
+  Parameterized types use ordinary parenthesized application, e.g. vector(i32),
+  with Tower functions accepting and producing types. Templates/generics should
+  grow from this model; explicit specialization is a bootstrap milestone, not a
+  permanent independent template language. Do not introduce angle-bracket syntax.
+- Compile-time file reads and other effects should use explicit capabilities and
+  tracked inputs. Preserve effect order and invalidate dependent results when
+  inputs change. Shared compile-time/runtime code does not make arbitrary effects
+  safe to fold or memoize, or let runtime types change existing static layouts.
+  Type identity, construction, reflection and target layout require explicit
+  contracts; do not infer type equality from incidental entity addresses.
 - Function calls use `name(arguments)` without a `call` keyword. Parentheses
   distinguish calls under the foundation grammar; keep the existing typed call
   components and instruction-like operands rather than adding expression precedence.

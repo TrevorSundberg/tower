@@ -1,0 +1,100 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {loadTower,runToEnd} from '../src/tower-host.mjs';
+import {loadLLVM,executeWasm} from '../src/llvm-host.mjs';
+const read=name=>readFile(new URL('../../'+name,import.meta.url));
+const foundation=(await read('scaffolding/foundation.tower')).toString();
+const tower=await loadTower(await read('build/browser-wasi/tower.wasm'),undefined,foundation);
+const llvm=process.env.TOWER_INTERPRETER_ONLY?null:await loadLLVM(await read('build/browser-wasi-llvm/tower-llvm.wasm'),undefined,foundation);
+function execute(source,pointerBytes=4){
+ const h=tower.compile(source,{pointerBytes});
+ try{let result,output='';do{result=tower.execute(h,100000);output+=result.output;}while(result.status==='executing');return {...result,output,source:tower.foundation(h).source};}
+ finally{tower.destroyExecution(h);}
+}
+async function compare(source,expected){
+ let result;
+ for(const width of [4,8]){
+  result=execute(source,width);assert.equal(result.status,'done',result.error);assert.equal(result.output,expected);
+  const round=execute(result.source,width);assert.equal(round.status,'done',round.error);assert.equal(round.output,expected);assert.equal(round.source,result.source);
+ }
+ if(llvm)for(const input of [source,result.source]){
+  const built=llvm.compile(input);assert.equal(built.status,'compiled',built.error);
+  const actual=await executeWasm(built);assert.equal(actual.status,'done',actual.error);assert.equal(actual.output,expected);
+ }
+ return result.source;
+}
+const box='fn box(T: type): type { struct Result { value: T; } return Result; }';
+test('type-producing calls, nested types, and explicit type parameters round trip',async()=>{
+ const source=(await read('scaffolding/examples/templates.tower')).toString();
+ const text=await compare(source,'42\n9000000000\n7\n');
+ assert.equal((text.match(/struct `box\(i32\)`/g)||[]).length,1);
+ assert.ok(!text.includes('T: type'));
+ assert.ok(!text.includes('fn box('));
+ const h=tower.create(source);
+ try{assert.equal(runToEnd(tower,h).end.status,'done');assert.equal(tower.format(h).source,source);}finally{tower.destroy(h);}
+});
+test('generic calls bind types without replacing value identifiers or duplicating effects',async()=>{
+ await compare(`fn id(T: type, value: T): T { var T: i32 = 99; print(T); return value; }
+var calls = 0; fn next(): i32 { calls = calls + 1; return calls; }
+print(id(i32, next())); print(id(i32, next())); print(calls);`,'99\n1\n99\n2\n2\n');
+ await compare(`fn id(T: type, value: T): T { return value; }
+var value = 42; var p = id(i32*, &value); print(*p);
+fn same(T: type): type { return T; } var x: same(i32) = 7; print(x);
+fn fixed(): type { return i32; } var y: fixed() = 8; print(y);`,'42\n7\n8\n');
+});
+test('template names bind forward and recursion reuses concrete nodes',async()=>{
+ await compare(`var p: list(i32); p.next = null; p.value = factorial(i32, 5); print(p.value);
+fn list(T: type): type { struct Node { value: T; next: list(T)*; self: Node*; } return Node; }
+fn factorial(T: type, n: T): T { var done = n <= 1; if done { return 1; } var previous = n - 1; var rest = factorial(T, previous); var result = n * rest; return result; }
+fn alias(T: type): type { return list(T); }
+var pointer: alias(i32)* = &p; print(pointer.value);`,'120\n120\n');
+});
+test('nominal identities, type-argument shapes and generated name collisions stay distinct',async()=>{
+ const text=await compare(`${box}
+struct \`box(i32)\` { other: i32; }
+struct \`i32[2]\` { other: i32; }
+struct Left { value: i32; } struct Right { value: i32; }
+var a: box(i32); a.value = 42; print(a.value);
+var b: box(Left); b.value.value = 3; print(b.value.value);
+var c: box(Right); c.value.value = 4; print(c.value.value);
+var d: box(i32[2]); d.value[1] = 7; print(d.value[1]);
+var e: box(\`i32[2]\`); e.value.other = 8; print(e.value.other);`,'42\n3\n4\n7\n8\n');
+ assert.ok(text.includes('struct `box(i32)_2`'));
+ assert.ok(text.includes('struct `box(Left)`'));assert.ok(text.includes('struct `box(Right)`'));
+});
+test('the typed vector grows scalar and pointer storage with target layouts',async()=>{
+ const vector=(await read('scaffolding/library/vector.tower')).toString();
+ await compare(vector+`
+var values: vector(i32); vector_init(i32, &values);
+var i: i32 = 0; loop { var done = i == 40; if done { break; } var ok = vector_push(i32, &values, i); if ok {} else { print(999); break; } i = i + 1; }
+print(values.length); print(values.data[39]);
+var maximum: usize = 0; maximum = maximum - 1; print(vector_reserve(i32, &values, maximum)); print(values.data[0]);
+var pointers: vector(i32*); vector_init(i32*, &pointers); var value = 42;
+print(vector_push(i32*, &pointers, &value)); var p = pointers.data[0]; print(*p);
+vector_dispose(i32, &values); vector_dispose(i32*, &pointers); print(values.length);`,'40\n39\nfalse\n0\ntrue\n42\n0\n');
+});
+test('invalid templates fail before effects and retain instantiation context',()=>{
+ for(const [source,expected] of [
+  [box+'var a: box();',/Wrong argument count/],
+  [box+'var a: box(Missing);',/Unknown type 'Missing'/],
+  [box+'var a = box(i32);',/produces a type, not a runtime value/],
+  ['fn f(T: type, v: T): T { return v; } var x = f(5, 1);',/Unknown type '5'/],
+  ['fn f(T: type, v: T): T { return v; } var x: u32 = 1; f(i32,x);',/Expected i32, got u32/],
+  ['fn f(T: type, T: i32): T { return T; }',/Duplicate template parameter/],
+  ['fn f(T: type): type { struct S { value: f(T); } return S; } var x: f(i32);',/Recursive by-value/],
+  ['fn f(T: type): type { return f(T); } var x: f(i32);',/Recursive type constructor/],
+  ['fn f(T: type): type { struct S { value: f(T*)*; } return S; } var x: f(i32);',/nesting|specialization limit/],
+  ['fn f(T: type): type { print(9); return T; } var x: f(i32);',/general compile-time execution is not implemented/],
+  ['fn f(T: type): type { struct S { value: T; } return i32; } var x: f(i32);',/must return that struct/],
+  ['fn f(n: i32): type { return i32; }',/compile-time value parameters/],
+  ['export fn f(T: type, v: T): T { return v; }',/export a concrete wrapper/],
+  ['fn f(T: type, v: T): void {} struct S { x: i32; } var s: S; f(S,s);',/by-value arguments/],
+  ['fn f(T: type): void {} fn f(): void {}',/duplicate function/],
+  ['struct type { value: i32; }',/duplicate type/],
+ ]){
+  const result=execute('print(123); '+source);assert.equal(result.status,'error',source);assert.match(result.error,expected,source);assert.equal(result.output,'');assert.equal(result.steps,0);
+ }
+ const bad=execute('fn broken(T: type, value: T): T { return absent; }\nprint(broken(i32, 1));');
+ assert.match(bad.error,/Unknown local 'absent'/);assert.match(bad.error,/Instantiated by broken\(i32,1\) at line 2/);
+});
