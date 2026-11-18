@@ -9902,3 +9902,195 @@ ARM64-under-QEMU execution, browser execution and the live Pages deployment;
 Windows/macOS native execution and portable standalone compiler distribution
 remain outside the verified results. Re-run `./build.sh` for the complete local
 pipeline; publishing remains an explicit separate action.
+
+### 2026-11-18 — Grammar production construction and its tests move to Tower
+
+Scope agreed with the user: this task owns grammar construction; independent
+tasks own formatting and interpretation. Those implementations were not edited.
+The user also made measured performance an acceptance criterion and asked that
+new tests be written in Tower rather than adding more C++ to translate. This
+supersedes the first draft's native test fixture: that uncommitted C++ test file
+was removed, and the fixtures/checks now live in `scaffolding/tests/syntax-emission.tower`.
+
+Implemented `compiler/syntax-emission.tower` and switched production `syntax.cpp`
+to it for both ordinary revisions and replacement-template parser construction.
+Tower now assigns literal IDs, avoids generated-name collisions (including names
+of pending definitions), emits ordinary/repeated/captured productions and token
+exclusions, builds template token wrappers, and computes declaration reachability
+and leading token/literal sets. Production order, generated flags, capture roles,
+and user-alternative/provenance mappings preserve the previous implementation.
+Template hole insertion, template checking/expansion and session/environment
+ownership remain native; this port does not claim those stages are complete.
+
+Construction directly creates the existing shared Rule/Reference/String/Range
+entities, using Tower's entity/component APIs and existing payload definitions.
+There is no second AST, serialized instruction stream or authoritative grammar
+model. Hash tables, FIRST sets, provenance/name views and queues are disposable
+revision indexes. A small `entity_create_related` primitive allocates in the
+existing entity's store. Parser component types now register their existing Tower
+payload size/finalizer when first requested; the native creation adapter uses
+that same finalizer, so Tower can create the components directly without hidden
+native grammar-building algorithms. The `SyntaxEmissionInput` ABI borrows shared
+source entities; source declarations are not modified. A failed emission frees
+its indexes, leaves partial output children owned by its output root, and the
+caller discards that root. Existing revisions remain usable.
+
+Performance-related choices: intern names in a hash index, use one monotonically
+increasing helper ordinal with exact collision checks, and mark token exclusions
+through that index instead of comparing every literal with every exclusion.
+The exclusion mark identifies the immutable source term, so repeated emission
+of the same term needs neither a global clear nor an overflowing generation
+counter. Removed duplicate native reservations of every rule/token name; Tower
+already reserves them and supplies the complete used-name index back to the
+temporary native revision adapter. This is construction-time work only; source
+recognition retains the existing LR/DFA control and does not gain a search or
+backtracking path. Rebuilding tables after successive grammar edits is still a
+separate optimization opportunity.
+
+Bootstrap accounting: `bootstrap/syntax-emission-seed.cpp` retains the prior C++
+algorithm as the seed/stage1 and separately renamed differential reference.
+It is not an additional production implementation or a third-party exemption.
+Its native ABI adaptation, the production borrowed-view adapter, native test
+runner and component registration remain migration debt. New functional test
+logic is Tower: the existing native runner merely supplies component type IDs,
+invokes the Tower test entry and reports its failure index. Test-only Tower code
+is appended only for `TOWER_PARSER_ONLY`, not shipped in browser/compiler builds.
+An eventual validated portable Tower compiler distribution must replace the
+owned bootstrap sources; that endpoint has not been reached by this port.
+
+Validation and trials (Windows/PowerShell, WSL Orchestral-Revng, LLVM 19,
+WASI SDK 34, Node 21.7.3):
+
+- Tower fixtures compare exact shared parser component trees, token IDs,
+  generated flags, captures, production indexes, helper origins, literal/name
+  metadata, declaration starts and template wrapper names against the retained
+  native algorithm. Cases include Bedrock, absent Statement, empty alternatives,
+  collisions with generated spellings, skipped/contextual tokens, cyclic and
+  nullable references, all repetition kinds, captures and large exclusions.
+- 400 deterministic generated graphs are checked in ordinary and template modes.
+  The Tower test generator uses an explicit u32 LCG (seed 1162692948), replacing
+  the draft's native mt19937 fixture. The 512-literal exclusion fixture exercises
+  multiple repeated sets. Failure injection sweeps every allocation until
+  success on representative ordinary/template inputs and checks live allocation
+  counts after disposing partial roots. The earlier native fixture also passed
+  before being removed, but it is not the maintained test implementation.
+- Linux CTest with ASan/UBSan passed 4/4; optimized Windows parser/compiler checks
+  passed. The sanitizers instrument the native harness/adapters, not every
+  instruction in generated Tower objects. The failure/parity suites execute the
+  production Tower implementation on both targets.
+- Native compiler, Wasm frontend and Wasm LLVM/cross reactors built successfully.
+  The canonical formatter check covers 46 Tower files, including this new
+  implementation and the new Tower tests.
+- Early compilation failures identified reserved names (`token`, `skip`,
+  `expected`) used as internal identifiers, unsupported member access directly
+  on a returned call, and bool bitwise expressions in test scaffolding. These
+  were rewritten using ordinary Foundation declarations/operands; no special
+  grammar or semantic features were added for the port.
+- Narrowing computed terminal ordinals generated an unwanted `tower_trap`
+  dependency. Explicit width masks preserve the previous uint32 truncation
+  semantics and allow the backend to prove the conversions safe. Test-generated
+  ASCII ordinals use explicit masks as well. No trap import was added.
+- One early four-target bootstrap comparison saw different source revisions
+  because the exclusion-index edit rebuilt the composed module during the run
+  (72-byte versus 80-byte name entries in the IR). This was an invalid trial,
+  not evidence of host nondeterminism. Final comparisons must run with inputs
+  frozen for the entire seed/Tower pair.
+
+Reproduction commands and logs use the `build/syntax-emission-*` prefix:
+
+```text
+wsl -- bash -lc 'cd /mnt/c/Sandbox/tower && bash playground/scripts/build-native.sh'
+wsl -- bash -lc 'cd /mnt/c/Sandbox/tower && cmake --build /root/.cache/tower/core-asan --parallel 3 && ctest --test-dir /root/.cache/tower/core-asan --output-on-failure'
+.\scaffolding\tests\run.ps1 -Optimize -BootstrapCompiler C:\Sandbox\tower\build\parser-tests\host-bootstrap.cmd
+TOWER_BOOTSTRAP_COMPILER=/root/.cache/tower/native/towerc-stage1 bash playground/scripts/build-wasm.sh
+TOWER_BOOTSTRAP_COMPILER=/root/.cache/tower/native/towerc-stage1 TOWER_BROWSER_CROSS=ON TOWER_BUILD_JOBS=3 bash playground/scripts/build-llvm.sh
+npm run check:format --prefix playground
+node --test playground/tests/*.test.mjs
+npm run build --prefix playground
+npx --prefix playground playwright test --config playground/playwright.config.mjs
+bash playground/scripts/test-bootstrap.sh
+```
+
+Paired benchmarks are now reproducible checked-in scripts rather than new C++
+test programs. Save an f034216 Wasm build before rebuilding the frontend, and
+build the baseline native compiler in its own clean checkout/cache. This run
+used detached 5ce6497 (compiler/build sources identical to f034216) and
+`/root/.cache/tower/emission-baseline`; comparisons explicitly pass the same
+Bedrock/Foundation files to both native binaries. The Wasm baseline is
+`build/syntax-emission-baseline/tower.wasm`. Commands:
+
+```text
+python3 playground/scripts/profile-grammar-port-native.py /root/.cache/tower/emission-baseline/towerc /root/.cache/tower/native/towerc build/syntax-emission-native-performance-final.json
+node playground/scripts/profile-grammar-port.mjs build/syntax-emission-baseline/tower.wasm build/syntax-emission-performance-final.json
+```
+
+Native measurements use 4 warmups and 30 alternating paired fresh processes;
+Wasm uses 12 warmups and 40 alternating paired samples in initialized runtimes.
+The reports retain raw samples and p50/p95. Native output and Wasm canonical
+Foundation results are checked for agreement. Native CLI `compile` includes
+interpreter-machine construction; it is not an isolated front-end timer.
+Wasm timings include compilation and canonical Foundation formatting, not
+browser UI latency or LLVM optimization. Some exploratory runs overlapped other
+build/test work and are retained as exploratory logs, not clean speed guarantees.
+
+Final paired medians (milliseconds, native total includes bootstrap/compile/execute):
+
+| Fixture | Native before | Native Tower | Wasm before | Wasm Tower |
+| --- | ---: | ---: | ---: | ---: |
+| small | 102.173 | 99.215 | 4.735 | 4.633 |
+| inference | 103.475 | 100.596 | 5.169 | 5.041 |
+| replacements | 111.377 | 107.853 | 16.223 | 15.766 |
+| declarations500 | 107.753 | 104.332 | 12.717 | 12.818 |
+| grammar50 | 486.796 | 482.211 | 434.105 | 425.073 |
+
+The final native compilation-phase medians also improved for all five fixtures.
+The Wasm declaration-only fixture was 0.101 ms (about 0.8%) slower in this
+run; earlier paired runs changed direction by similarly small amounts. Treat
+that workload as approximately unchanged, not a verified speedup. Grammar-edit
+and replacement-heavy fixtures improved. These modest measured gains are not
+a guarantee that every input, host or percentile gets faster. Tail timings
+were noisy; the reports retain them and raw paired samples. Final benchmark
+scripts ran sequentially after our builds completed; this is still a shared
+developer machine, not exclusive benchmark hardware. The frontend Wasm shrank
+from 4,312,645 bytes to 4,287,221 bytes before the final redundant-registration
+cleanup (artifact sizes are measurements, not semantic requirements).
+
+Before upstream UI integration, the browser integration suites passed 218 Node
+tests and 128 desktop/mobile Playwright tests. Final frozen-input bootstrap
+and combined UI integration results are recorded in the follow-up entry.
+
+
+Remaining native migration work includes grammar revision/session ownership,
+replacement template checking/expansion, diagnostics/presentation, semantic
+checking, formatter/interpreter (separate assigned tasks), backend/driver
+orchestration and the owned seeds/adapters. No production formatter/interpreter
+source was changed here. Unrelated local notes and todo.txt were not edited or
+staged by this task. Source pushes and Pages publication are separate; this
+task does not republish Pages.
+
+Grammar-construction integration follow-up: rebased `020888e` onto upstream
+`42e2349` (shared output panes and execution-pane ordering) in a separate detached
+worktree. The only conflict was append-only journal text; retained all upstream
+entries followed by this migration entry. Stashed only the unrelated working
+journal notes during `reset --keep`, then restored them. All 1,045 unrelated
+journal additions remain unstaged, along with the pre-existing AGENTS.md,
+docs/foundation.md and todo.txt edits. Compiler/build sources are unchanged by
+this rebase (`git diff 020888e HEAD -- scaffolding CMakeLists.txt cmake` is empty).
+
+Final validation on the combined checkout: 46 canonical Tower files, 218 Node
+tests, 128 desktop/mobile Playwright tests (3.2 minutes), and all 16 optimized-IR
+plus object comparisons across Linux x64, Wasm32, Windows x64 and macOS ARM64.
+Explicit bootstrap grammar-path checks also passed. The final bootstrap run kept
+the composed source frozen across each native-reference/Tower pair. Logs are
+`build/syntax-emission-{format,node,dist,browser,bootstrap}-final.log`; native,
+ASan/UBSan and Windows checks are in the corresponding non-final log names.
+The static playground was rebuilt with the combined code. Source is pushed;
+Pages publication is separate and was not performed here.
+
+Clarification: the failure-injection sweep covers Tower allocator calls,
+including shared entity/component allocation. It does not inject failures into
+the remaining native std::map/std::vector adapter allocations. Final frontend
+Wasm size after removing redundant native reservations is 4,286,924 bytes
+(baseline 4,312,645). New functional test logic remains entirely Tower; the
+remaining native seed/reference and thin ABI/test-runner wiring are still owned
+migration debt, not exceptions to the eventual C++-removal goal.

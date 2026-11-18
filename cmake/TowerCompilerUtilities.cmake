@@ -88,6 +88,10 @@ function(tower_compiler_parser_nodes)
   get_property(triple GLOBAL PROPERTY TOWER_COMPILER_TRIPLE)
   set(input "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-parser-nodes.tower")
   set(object "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-parser-nodes.o")
+  set(emission_tests "")
+  if(TOWER_PARSER_ONLY)
+    set(emission_tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/syntax-emission.tower")
+  endif()
   add_custom_command(OUTPUT "${input}"
     COMMAND "${CMAKE_COMMAND}"
       -DVECTOR=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/library/vector.tower
@@ -109,9 +113,12 @@ function(tower_compiler_parser_nodes)
       -DSYNTAX=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/syntax-nodes.tower
       -DREADER=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/syntax-reader.tower
       -DVALIDATION=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/syntax-validation.tower
+      -DEMISSION=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/syntax-emission.tower
+      -DEMISSION_TESTS=${emission_tests}
       -DOUTPUT=${input} -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ComposeParserNodes.cmake"
     DEPENDS scaffolding/library/vector.tower scaffolding/compiler/parser-nodes.tower scaffolding/compiler/lexer-table.tower scaffolding/compiler/regex-grammar.tower scaffolding/compiler/automaton.tower scaffolding/compiler/regex-lowering.tower scaffolding/compiler/lr-analysis.tower scaffolding/compiler/lr-states.tower scaffolding/compiler/lr-lalr.tower scaffolding/compiler/lr-runtime.tower scaffolding/compiler/lr-parser.tower scaffolding/compiler/lr-grammar.tower scaffolding/compiler/lr-tree.tower scaffolding/compiler/foundation-nodes.tower scaffolding/compiler/syntax-lexer.tower scaffolding/compiler/syntax-source.tower cmake/ComposeParserNodes.cmake
-    DEPENDS scaffolding/compiler/syntax-nodes.tower scaffolding/compiler/syntax-reader.tower scaffolding/compiler/syntax-validation.tower
+    DEPENDS scaffolding/compiler/syntax-nodes.tower scaffolding/compiler/syntax-reader.tower scaffolding/compiler/syntax-validation.tower scaffolding/compiler/syntax-emission.tower
+    DEPENDS ${emission_tests}
     VERBATIM)
   add_custom_command(OUTPUT "${object}"
     COMMAND "${bootstrap}" "${input}"

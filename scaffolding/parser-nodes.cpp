@@ -5,14 +5,18 @@
 
 namespace {
 void require(bool ok) { if (!ok) std::abort(); }
+template<unsigned Kind> void dispose(TowerComponent*, void* data) { node_payload_dispose(Kind, data); }
 template<unsigned Kind> TowerNode* type() {
-  static auto* node = tower_node_create();
+  static auto* node = [] {
+    auto* value = tower_node_create();
+    require(tower_component_register(value, node_payload_size(Kind), dispose<Kind>));
+    return value;
+  }();
   return node;
 }
 template<class T, unsigned Kind> T* create(TowerNode* owner) {
   if (auto* data = tower_node_get_component_userdata(owner, type<Kind>())) return static_cast<T*>(data);
-  auto* component = tower_component_create(owner, type<Kind>(), node_payload_size(Kind),
-    [](TowerComponent*, void* data) { node_payload_dispose(Kind, data); });
+  auto* component = tower_component_create(owner, type<Kind>(), node_payload_size(Kind), dispose<Kind>);
   auto* data = tower_component_get_userdata(component);
   require(data != nullptr);
   node_payload_init(Kind, data);

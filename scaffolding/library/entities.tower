@@ -87,6 +87,11 @@ export fn entity_retain(entity: Entity*): usize {
     return entity.references;
 }
 
+// Allocate an unattached entity in an existing entity's store.
+export fn entity_create_related(entity: Entity*): Entity* {
+    return entity_create(entity.store);
+}
+
 // Ownership must be acyclic. Query cursors are invalidated by structural edits.
 export fn entity_release(entity: Entity*): usize {
     entity.references = entity.references - 1;

@@ -1,6 +1,8 @@
 #include "../tower.hpp"
 #include "../parser.hpp"
 #include "../syntax.hpp"
+#include "../compiler-syntax-emission.hpp"
+#include <cassert>
 void core_tests();
 void compiler_storage_tests();
 void entity_store_tests();
@@ -10,6 +12,7 @@ void syntax_lexer_tests();
 void syntax_nodes_tests();
 void syntax_reader_tests();
 void syntax_validation_tests();
+extern "C" size_t syntax_emission_tests(const SyntaxEmissionInput*);
 void lr_analysis_tests();
 #include <cstdio>
 #include <cstring>
@@ -72,6 +75,13 @@ int main(int argc, char** argv) {
   syntax_nodes_tests();
   syntax_reader_tests();
   syntax_validation_tests();
+  SyntaxEmissionInput emission{};
+  emission.root = syntax_native_bedrock(); emission.syntax_kind = syntax_component_type();
+  emission.rule_kind = parser_rule_get_type(); emission.reference_kind = parser_reference_get_type();
+  emission.string_kind = parser_string_get_type(); emission.range_kind = parser_range_get_type();
+  auto emission_failure = syntax_emission_tests(&emission);
+  if (emission_failure) fprintf(stderr, "Tower grammar emission test failed: %zu\n", emission_failure);
+  assert(!emission_failure);
   lr_analysis_tests();
   entity_store_tests();
   puts("Tower and parser tests passed.");

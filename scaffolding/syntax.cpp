@@ -1,6 +1,7 @@
 #include "syntax.hpp"
 #include "compiler-syntax-reader.hpp"
 #include "compiler-syntax-validation.hpp"
+#include "compiler-syntax-emission.hpp"
 #include "compiler-generics.hpp"
 #include "compiler-syntax-lexer.hpp"
 #include "lex-pattern.hpp"
@@ -19,7 +20,7 @@
 namespace {
 bool diagnostic_peek(void*, size_t&, const ParserLookahead&, uint32_t&);
 constexpr uint32_t MetaName = 0x110000, MetaString = MetaName + 1, FirstHole = 0x300000;
-constexpr uint32_t FirstToken = 0x120000, FirstLiteral = 0x200000;
+constexpr uint32_t FirstToken = 0x120000;
 
 using Node = std::unique_ptr<TowerNode, decltype(&tower_node_release_ref)>;
 Node owned(TowerNode* node) { return Node(node, tower_node_release_ref); }
@@ -110,9 +111,7 @@ struct Version {
   std::map<std::string, size_t> named_indices;
   std::map<std::string, Term> repetitions;
   std::map<size_t, Replacement> replacements;
-  bool templating = false;
   size_t replacement_error_offset = TOWER_INVALID_INDEX;
-  size_t helper = 0;
   ~Version() { lexicon_destroy(lexicon); parser_table_destroy(table); }
 };
 
@@ -170,13 +169,6 @@ std::string describe_rule(void* context, size_t index) {
   return "start of a statement or grammar declaration";
 }
 
-void add_literal(Version& version, const std::string& text) {
-  if (version.literals.contains(text)) return;
-  uint32_t id = FirstLiteral + (uint32_t)version.literals.size();
-  version.literals.emplace(text, id);
-  version.names.emplace(id, "'" + text + "'");
-}
-
 uint32_t token_id(const std::string& name, size_t index) {
   if (name == "Identifier") return MetaName;
   if (name == "String") return MetaString;
@@ -206,20 +198,6 @@ uint32_t resolve(void* context, const char* name) {
   return resolve_token(((Version*)context)->tokens, name);
 }
 
-// Generated table symbols cannot collide with any source-defined name. No
-// spelling or prefix is reserved for users; these are derived parser helpers.
-std::string helper_name(Version& version, const std::string& kind) {
-  std::string name;
-  do { name = kind + "(" + std::to_string(version.helper++) + ")"; }
-  while (!version.used_names.insert(name).second);
-  return name;
-}
-std::string template_token(Version& version, const std::string& name) {
-  auto [it, added] = version.template_tokens.try_emplace(name);
-  if (added) it->second = helper_name(version, "token " + name);
-  return it->second;
-}
-
 char* token_name(void* context, uint32_t id) {
   auto& version = *(Version*)context;
   auto found = version.names.find(id);
@@ -238,118 +216,53 @@ void reference(TowerNode* rule, const std::string& name, const std::string& capt
   parser_reference_set_capture(ref, capture.c_str());
 }
 
-void literal(Version& version, TowerNode* rule, const std::string& text) {
-  add_literal(version, text);
-  auto* node = tower_node_create();
-  tower_node_attach(node, rule);
-  auto* value = parser_string_create(node);
-  parser_string_set_id(value, 0, version.literals.at(text));
-  tower_node_release_ref(node);
-}
-
-std::string emit_token_set(Version& version, const SyntaxNode& term) {
-  std::set<std::string> excluded;
-  for (auto* item : term.items) excluded.insert(syntax_node(item).text);
-  std::set<uint32_t> ids;
-  for (size_t i = 0; i < version.tokens.size(); ++i) {
-    const auto& token = semantic(version.tokens[i]);
-    if (token.kind != SyntaxKind::Skip && !token.contextual) ids.insert(token_id(token.name, i));
+// Borrowed ABI views and native presentation indexes around Tower emission.
+bool seed(Version& version, const Definitions& definitions, const char* category = nullptr) {
+  std::vector<std::vector<TowerNode*>> alternatives;
+  std::vector<SyntaxRuleView> rules;
+  std::vector<TowerNode*> tokens;
+  std::vector<const char*> reserved;
+  std::vector<SyntaxEmissionLiteral> literals;
+  alternatives.reserve(definitions.size()); rules.reserve(definitions.size());
+  for (const auto& [name, sequences] : definitions) {
+    auto& list = alternatives.emplace_back();
+    for (const auto& sequence : sequences) list.push_back(sequence.get());
+    rules.push_back({name.data(), name.size(), list.data(), list.size()});
   }
-  for (const auto& [name, id] : version.literals) if (!excluded.contains(name)) ids.insert(id);
-  auto helper = helper_name(version, "token set");
-  // Singleton terminals share the existing ACTION table, including lookaheads
-  // already named by other productions. No runtime token-set search is needed.
-  for (uint32_t id : ids) parser_range_create_subtree(production(version, helper, true), id, id);
-  return helper;
-}
-
-void atom(Version& version, TowerNode* rule, TowerNode* entity) {
-  const auto& term = syntax_node(entity);
-  if (term.terminal_set) reference(rule, emit_token_set(version, term), term.capture);
-  else if (term.literal) literal(version, rule, term.text);
-  else reference(rule, version.templating && resolve_token(version.tokens, term.text) != PARSER_ID_EOF
-    ? template_token(version, term.text) : term.text);
-}
-
-void emit(Version& version, const std::string& name, const Sequence& sequence, size_t alternative) {
-  auto* rule = production(version, name);
-  size_t index = tower_node_get_child_count(version.rules.get());
-  version.productions[index] = {name, alternative};
-  version.indices[{name, alternative}] = index;
-  for (auto* entity : semantic(sequence).items) {
-    const auto& term = syntax_node(entity);
-    if (!term.repetition) {
-      if (term.terminal_set) reference(rule, emit_token_set(version, term), term.capture);
-      else if (term.literal) literal(version, rule, term.text);
-      else reference(rule, version.templating && resolve_token(version.tokens, term.text) != PARSER_ID_EOF
-        ? template_token(version, term.text) : term.text, term.capture);
-      continue;
-    }
-    std::string list = helper_name(version, "repeat");
-    version.repetitions[list] = TowerNodeRef(entity);
-    if (term.repetition != '+') production(version, list, true);
-    else atom(version, production(version, list, true), entity);
-    auto* repeated = production(version, list, true);
-    if (term.repetition != '?') reference(repeated, list);
-    atom(version, repeated, entity);
-    if (!term.capture.empty()) {
-      // Capture the entire repetition under one named node, including zero items.
-      std::string capture = helper_name(version, "capture");
-      version.capture_sources[capture] = entity;
-      version.capture_names[entity] = capture;
-      reference(production(version, capture), list);
-      reference(rule, capture, term.capture);
-    } else reference(rule, list);
+  for (const auto& token : version.tokens) tokens.push_back(token.get());
+  for (const auto& name : version.used_names) reserved.push_back(name.c_str());
+  for (const auto& [text, id] : version.literals) literals.push_back({text.data(), text.size(), id});
+  SyntaxEmissionInput input{rules.data(), rules.size(), tokens.data(), tokens.size(),
+    reserved.data(), reserved.size(), literals.data(), literals.size(), category,
+    version.rules.get(), syntax_component_type(), parser_rule_get_type(), parser_reference_get_type(),
+    parser_string_get_type(), parser_range_get_type()};
+  std::unique_ptr<SyntaxEmission, decltype(&syntax_emission_destroy)> emitted(syntax_emit(&input), syntax_emission_destroy);
+  if (!emitted) return false;
+  for (size_t i = 0; i < syntax_emission_name_count(emitted.get()); ++i) {
+    SyntaxEmissionName entry{}; syntax_emission_name(emitted.get(), i, &entry);
+    std::string name(entry.text, entry.length);
+    if (entry.used) version.used_names.insert(name);
+    if (entry.literal != PARSER_ID_EOF) { version.literals[name] = entry.literal; version.names[entry.literal] = "'" + name + "'"; }
+    if (entry.wrapper) version.template_tokens[name] = entry.wrapper;
+    if (entry.declaration) version.declaration_literals[name] = entry.literal;
+    if (entry.start) version.declaration_starts.insert(name);
   }
-}
-
-// Seed and loaded bedrock share the exact same grammar entities and emission.
-void seed(Version& v, const Definitions& definitions) {
-  for (const auto& [name, alternatives] : definitions)
-    for (const auto& alternative : alternatives) for (auto* entity : semantic(alternative).items) {
-      const auto& term = syntax_node(entity);
-      if (term.literal) add_literal(v, term.text);
-      if (term.terminal_set) for (auto* item : term.items) add_literal(v, syntax_node(item).text);
-    }
-  auto top = helper_name(v, "document");
-  auto* r = production(v, top); reference(r, "GrammarDeclaration");
-  reference(production(v, top), "GrammarTokenDeclaration");
-  reference(production(v, top), "GrammarSkipDeclaration");
-  if (definitions.contains("Statement")) reference(production(v, top), "Statement");
-  for (const auto& [name, alternatives] : definitions)
-    for (size_t i = 0; i < alternatives.size(); ++i) emit(v, name, alternatives[i], i);
-  std::set<std::string> visited;
-  std::vector<std::string> pending{"GrammarDeclaration", "GrammarTokenDeclaration", "GrammarSkipDeclaration"};
-  while (!pending.empty()) {
-    auto name = std::move(pending.back()); pending.pop_back();
-    if (!visited.insert(name).second || !definitions.contains(name)) continue;
-    for (const auto& alternative : definitions.at(name)) for (auto* entity : semantic(alternative).items) {
-      const auto& term = syntax_node(entity);
-      if (term.literal) v.declaration_literals.emplace(term.text, v.literals.at(term.text));
-      else pending.push_back(term.text);
-    }
+  for (size_t i = 0; i < syntax_emission_production_count(emitted.get()); ++i) {
+    SyntaxEmissionProduction entry{}; syntax_emission_production(emitted.get(), i, &entry);
+    ProductionKey key{entry.name, entry.alternative};
+    version.productions[entry.index] = key; version.indices[key] = entry.index;
   }
-  // Declarations are intent-first. Compute their leading literal keywords from
-  // bedrock, so renaming parse/token/skip changes the downstream reader.
-  std::map<std::string, std::set<std::string>> first;
-  std::map<std::string, bool> nullable;
-  bool changed;
-  do {
-    changed = false;
-    for (const auto& [name, alternatives] : definitions) for (const auto& alternative : alternatives) {
-      bool empty = true;
-      for (auto* entity : semantic(alternative).items) {
-        const auto& term = syntax_node(entity);
-        if (term.literal) changed |= first[name].insert(term.text).second;
-        else if (!definitions.contains(term.text)) changed |= first[name].insert("\1" + term.text).second;
-        else for (const auto& literal : first[term.text]) changed |= first[name].insert(literal).second;
-        if (term.repetition != '*' && term.repetition != '?' && (term.literal || !nullable[term.text])) { empty = false; break; }
-      }
-      if (empty && !nullable[name]) { nullable[name] = true; changed = true; }
-    }
-  } while (changed);
-  for (const auto* name : {"GrammarDeclaration", "GrammarTokenDeclaration", "GrammarSkipDeclaration"})
-    v.declaration_starts.insert(first[name].begin(), first[name].end());
+  for (size_t i = 0; i < syntax_emission_helper_count(emitted.get()); ++i) {
+    SyntaxEmissionHelper entry{}; syntax_emission_helper(emitted.get(), i, &entry);
+    if (entry.capture) { version.capture_sources[entry.name] = entry.source; version.capture_names[entry.source] = entry.name; }
+    else version.repetitions.emplace(entry.name, TowerNodeRef(entry.source));
+  }
+  for (size_t i = 0; i < tower_node_get_child_count(version.rules.get()); ++i) {
+    auto* node = tower_node_get_child(version.rules.get(), i);
+    auto* rule = static_cast<Rule*>(tower_node_get_component_userdata(node, parser_rule_get_type()));
+    version.named_indices.try_emplace(parser_rule_get_name(rule), i + 1);
+  }
+  return true;
 }
 
 std::string pending_message(const PendingRules& pending, std::string name, size_t* error_offset) {
@@ -409,12 +322,11 @@ std::unique_ptr<Version> build(const Definitions& defs, const TokenDefinitions& 
   v->bedrock = std::move(bedrock);
   v->names = {{MetaName, "declaration name"}, {MetaString, "quoted grammar literal"}};
   for (const auto& token : v->tokens) {
-    const auto& value = semantic(token); v->used_names.insert(value.name);
+    const auto& value = semantic(token);
     if (value.kind != SyntaxKind::Skip) v->names[resolve_token(v->tokens, value.name)] = value.name;
   }
-  for (const auto& [name, alternatives] : definitions) v->used_names.insert(name);
   for (const auto& [name, dependency] : v->pending) v->used_names.insert(name);
-  seed(*v, definitions);
+  if (!seed(*v, definitions)) { message = "Unable to allocate grammar construction"; return nullptr; }
   char* error = nullptr;
   v->table = parser_table_create(v->rules.get(), v.get(), resolve, token_name, &error, ParserTableMode::Constructs, describe_rule);
   if (!v->table) {
@@ -737,16 +649,12 @@ bool compile_template(Version& version, const Definitions& defs, const Sequence&
   replacement.uses.clear();
   auto grammar = std::make_shared<Version>();
   grammar->definitions = defs;
-  grammar->templating = true; grammar->tokens = version.tokens;
+  grammar->tokens = version.tokens;
   grammar->bedrock = version.bedrock;
   grammar->used_names = version.used_names;
   grammar->literals = version.literals; grammar->names = version.names;
-  reference(production(*grammar, helper_name(*grammar, "template")), replacement.category);
-  for (const auto& [name, alternatives] : defs)
-    for (size_t i = 0; i < alternatives.size(); ++i) emit(*grammar, name, alternatives[i], i);
-  for (const auto& entity : version.tokens) {
-    const auto& token = semantic(entity);
-    if (token.kind != SyntaxKind::Skip) reference(production(*grammar, template_token(*grammar, token.name), true), token.name);
+  if (!seed(*grammar, defs, replacement.category.c_str())) {
+    error = "Unable to allocate replacement grammar"; return false;
   }
   TemplateInput input;
   input.base = replacement.start;
@@ -763,7 +671,7 @@ bool compile_template(Version& version, const Definitions& defs, const Sequence&
     input.holes[name] = id; grammar->names[id] = "$" + name;
     if (!term.repetition) {
       hole_production(*grammar, resolve_token(version.tokens, term.text) == PARSER_ID_EOF
-        ? term.text : template_token(*grammar, term.text), id);
+        ? term.text : grammar->template_tokens.at(term.text), id);
     } else {
       for (const auto& [helper, target_entity] : grammar->repetitions) {
         const auto& target = semantic(target_entity);
