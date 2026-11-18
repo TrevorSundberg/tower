@@ -7002,3 +7002,28 @@ build/inference-pages.log and build/deployment-verification/.
 Refresh the published page and choose Inference. The Foundation inference task
 is marked complete. Unrelated AGENTS.md, Foundation/journal notes and todo.txt
 remain unstaged and preserved.
+
+## 2026-11-17: First compiler utility migration and eventual bootstrap binaries
+
+The user explicitly authorized beginning the compiler implementation migration:
+write the byte/UTF-8 utility previously proposed here in Tower and call its
+compiled functions from the real compiler. This supersedes the earlier request
+to stop before moving custom C++ algorithms. The migration remains incremental;
+it does not authorize replacing the shared entity model with a parallel AST.
+
+The user also specified the eventual bootstrap distribution: commit self-contained,
+dependency-free portable Tower compiler binaries for Windows, macOS and Linux to
+the repository, so a fresh checkout can compile Tower itself without first
+installing C++, LLVM or other compiler toolchains. Include the required backend
+and linker machinery in those binaries as needed; ordinary operating-system
+requirements and supported architectures must be explicit. These are platform
+executables, permitted separately from Foundation text as Tower's only program
+interchange format. This is an eventual goal, not a claim that today's native
+driver is dependency-free (it currently links installed LLVM). Version, provenance,
+hashes and reproducible stage comparisons will be required when packaging them.
+
+Implementation and verification of the first utility are in progress. Initial
+inspection found duplicate UTF-8 decoders in lex-pattern.cpp, parser.cpp and browser.cpp.
+The older raw parser decoder accepted malformed continuation bytes, overlong
+sequences and surrogate code points that the ordinary lexer already rejected;
+the migrated shared codec will use the stricter Unicode scalar contract.
