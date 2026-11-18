@@ -93,12 +93,22 @@ inline constexpr size_t CORE_MAX_FRAMES = 128, CORE_STACK_BYTES = 4 * 1024 * 102
 
 // Execution values are scalar bits or a raw target byte address. No safety handle.
 struct CoreValue { uint64_t bits = 0; };
-struct CoreMachine {
+// Scalar execution state is shared directly with Tower. Host containers below
+// remain transitional storage; they carry no second program representation.
+struct CoreMachineState {
+  size_t stack = 16, heap = CORE_STACK_BYTES;
+  size_t error_offset = 0, output_bytes = 0;
+  uint64_t steps = 0;
+  bool done = false, output_truncated = false;
+  bool failed = false;
+  size_t frame_count = 0, task_count = 0;
+  bool cached = false; // current task may read suspended per-statement results
+};
+struct CoreMachine : CoreMachineState {
   CoreProgram program;
   std::vector<uint8_t> memory;
   std::map<uint64_t, size_t> allocations, free_blocks;
   std::map<TowerNode*, uint64_t> strings;
-  size_t stack = 16, heap = CORE_STACK_BYTES;
   using Foreign = std::function<CoreValue(CoreMachine&, TowerNode*, const std::vector<CoreValue>&)>;
   Foreign foreign;
   enum class Phase { Statement, Resume, Value, Address, FinishValue, FinishAddress };
@@ -113,10 +123,7 @@ struct CoreMachine {
   };
   std::vector<Frame> frames;
   std::map<TowerNode*, bool> sequenced;
-  size_t error_offset = 0, output_bytes = 0;
-  uint64_t steps = 0;
   std::string error, output;
-  bool done = false, output_truncated = false;
   explicit CoreMachine(CoreProgram source);
   void step(size_t budget);
   void fail(const std::string&, size_t);
@@ -127,6 +134,7 @@ struct CoreMachine {
   uint64_t reallocate(uint64_t address, size_t bytes);
   void deallocate(uint64_t address);
 private:
+  // Retained seed declarations; production algorithms are in interpreter.tower.
   CoreValue read(TowerNode*, size_t);
   CoreValue address(TowerNode*, size_t);
   CoreValue evaluate(TowerNode*, size_t);
