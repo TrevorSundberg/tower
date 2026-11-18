@@ -45,31 +45,39 @@ struct Temporary {
 }
 int main(int argc, char** argv) {
   Timings timings;
-  std::string source, output, target = llvm::sys::getDefaultTargetTriple(), emit = "exe", cc = "clang", linker, sysroot, raw, optimized;
+  std::string source, output, target = llvm::sys::getDefaultTargetTriple(), emit = "exe", cc = "clang", linker, sysroot, raw, optimized, bedrock_path, foundation_path;
   std::vector<std::string> inputs; bool optimize = true, interpret = false, library = false;
   for (int i = 1; i < argc; ++i) {
     std::string arg = argv[i];
     if (arg == "--help") {
       std::cout << "towerc source.tower -o output [--target triple] [--emit object|llvm|llvm-optimized|exe]\n"
         "  [--link object-or-library] [--cc clang] [--linker tool] [--sysroot path]\n"
-        "  [--raw-ir file] [--optimized-ir file] [--no-optimize] [--interpret] [--library] [--timings]\n"; return 0;
+        "  [--raw-ir file] [--optimized-ir file] [--no-optimize] [--interpret] [--library] [--timings]\n"
+        "  [--bedrock file] [--foundation file]\n"; return 0;
     }
     if (arg == "--no-optimize") { optimize = false; continue; }
     if (arg == "--interpret") { interpret = true; continue; }
     if (arg == "--timings") { timings.enabled = true; continue; }
     if (arg == "--library") { library = true; emit = "object"; continue; }
-    if (arg == "-o" || arg == "--target" || arg == "--emit" || arg == "--link" || arg == "--cc" || arg == "--linker" || arg == "--sysroot" || arg == "--raw-ir" || arg == "--optimized-ir") {
+    if (arg == "-o" || arg == "--target" || arg == "--emit" || arg == "--link" || arg == "--cc" || arg == "--linker" || arg == "--sysroot" || arg == "--raw-ir" || arg == "--optimized-ir" || arg == "--bedrock" || arg == "--foundation") {
       if (++i == argc) { std::cerr << "Missing argument for " << arg << '\n'; return 1; }
       if (arg == "-o") output = argv[i]; else if (arg == "--target") target = argv[i]; else if (arg == "--emit") emit = argv[i];
       else if (arg == "--link") inputs.push_back(argv[i]); else if (arg == "--cc") cc = argv[i]; else if (arg == "--linker") linker = argv[i];
-      else if (arg == "--sysroot") sysroot = argv[i]; else if (arg == "--raw-ir") raw = argv[i]; else optimized = argv[i];
+      else if (arg == "--sysroot") sysroot = argv[i]; else if (arg == "--raw-ir") raw = argv[i];
+      else if (arg == "--bedrock") bedrock_path = argv[i]; else if (arg == "--foundation") foundation_path = argv[i]; else optimized = argv[i];
     } else if (arg.starts_with('-') || !source.empty()) { std::cerr << "Unexpected argument: " << arg << '\n'; return 1; }
     else source = arg;
   }
   if (source.empty() || !fs::exists(source)) { std::cerr << "Supply a Tower source file; use --help for options\n"; return 1; }
   const fs::path root(TOWER_SOURCE_DIR);
-  auto error = syntax_set_bedrock(read(root / "scaffolding/bedrock.tower").c_str());
-  if (error.empty()) error = syntax_set_bootstrap(read(root / "scaffolding/foundation.tower").c_str());
+  const auto bedrock_file = bedrock_path.empty() ? root / "scaffolding/bedrock.tower" : fs::path(bedrock_path);
+  const auto foundation_file = foundation_path.empty() ? root / "scaffolding/foundation.tower" : fs::path(foundation_path);
+  for (const auto& module : {bedrock_file, foundation_file}) {
+    std::ifstream input(module, std::ios::binary);
+    if (!input) { std::cerr << "Cannot read grammar module: " << module.string() << '\n'; return 1; }
+  }
+  auto error = syntax_set_bedrock(read(bedrock_file).c_str());
+  if (error.empty()) error = syntax_set_bootstrap(read(foundation_file).c_str());
   if (!error.empty()) { std::cerr << error << '\n'; return 1; }
   timings.mark("bootstrap");
   auto text = read(source);

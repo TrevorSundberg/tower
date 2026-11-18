@@ -170,6 +170,7 @@ direct CMake configuration is:
 ```sh
 cmake -S . -B build/browser-wasi -G Ninja \
   -DCMAKE_TOOLCHAIN_FILE="$WASI_SDK_PATH/share/cmake/wasi-sdk-p1.cmake" \
+  -DTOWER_BOOTSTRAP_COMPILER="$(bash playground/scripts/build-bootstrap.sh)" \
   -DCMAKE_BUILD_TYPE=Release -DTOWER_BROWSER=ON
 cmake --build build/browser-wasi
 ```
@@ -409,8 +410,58 @@ node --test playground/tests/cross-compilation.test.mjs
 ```
 
 The checked-pointer prototype is preserved at commit `8571a8d`; the migration
-details and safe-layer follow-ups are in the research journal. Existing compiler
-and runtime implementation code has not yet been ported from C++ to Tower.
+details and safe-layer follow-ups are in the research journal.
+
+## Compiler utilities written in Tower
+
+`scaffolding/compiler/utf8.tower` implements scalar decoding, encoding and source
+validation. The native compiler, browser parser and both browser LLVM compilers
+link its compiled object and call it directly from the lexer/parser. It uses the
+ordinary Foundation grammar, shared semantic nodes, interpreter and LLVM lowering.
+It needs no allocator, runtime imports or special compiler opcode.
+
+The codec accepts Unicode scalars, rejecting overlong encodings, surrogate values,
+invalid continuations, truncation and values above U+10FFFF. Decode returns bytes
+consumed (zero on failure), clearing the output scalar on failure. Encoding with
+a null output queries the size; insufficient capacity writes nothing. Validation
+has an explicit NUL policy: source text rejects NUL, general byte buffers may
+contain it. This also fixes the older raw parser decoder's permissive handling of
+malformed UTF-8. Buffer lifetime/length validity remains the caller's responsibility;
+the decoded output scalar must not overlap its input buffer.
+
+The transitional native build first makes `towerc-seed` using the small independent
+C++ codec in `scaffolding/bootstrap/utf8-seed.cpp`. The seed compiles the Tower
+utility for the host/target, then the normal compiler links that object. The seed
+codec is absent from normal compiler targets; tests retain it as a reference.
+Generated objects stay in ignored build directories, and dependencies include
+the compiler executable, utility source, Bedrock and Foundation.
+
+The build scripts prepare the seed automatically, currently requiring host Clang,
+CMake/Ninja and LLVM 19 development libraries (`LLVM_CONFIG` can override the
+config tool). Set `TOWER_BOOTSTRAP_COMPILER` to an existing host compiler to bypass
+building that seed; direct CMake builds accept the same cache option. Bootstrap
+commands pass `--bedrock file --foundation file` explicitly so an external compiler
+uses this checkout's grammar modules. These driver options are also available
+for normal builds; they are host loading controls, not language imports. The native
+build produces both `build/native/towerc` and `build/native/towerc-seed`.
+The eventual distribution will include self-contained bootstrap Tower compiler
+binaries for Windows/macOS/Linux in the repository; those binaries are not shipped
+yet. General module imports and the rest of the compiler migration remain future work.
+
+```sh
+bash playground/scripts/test-bootstrap.sh
+bash playground/scripts/test-native-core.sh
+node --test playground/tests/compiler-utf8.test.mjs
+```
+
+The bootstrap check compares seed-built and Tower-utility-built optimized LLVM
+and object bytes for Linux, Windows, macOS and Wasm, and rejects undefined runtime
+dependencies. This verifies the first migrated utility, not a fully self-hosted
+compiler. Native tests cover every Unicode scalar, every one/two-byte input,
+random malformed buffers and inaccessible-page boundaries. The C++ host/tests run
+under sanitizers; generated Tower objects currently do not carry sanitizer
+instrumentation. Wasm tests also compare the codec with TextEncoder/TextDecoder,
+interpret it at both pointer widths and compile its canonical Foundation output.
 
 ## LLVM module
 

@@ -1,3 +1,4 @@
+#include "compiler-utf8.hpp"
 #include "parser.hpp"
 #include <unordered_map>
 #include <string>
@@ -331,89 +332,13 @@ size_t parser_string_get_length(String* component) {
   return component->ids.size();
 }
 
-// Returns the amount of bytes that were read (or 0 if it wasn't successful)
-size_t parser_decode_utf8_codepoint(const char* utf8_begin, const char* utf8_end, uint32_t* codepoint) {
-  *codepoint = 0;
-
-  if (utf8_begin == utf8_end) return 0;
-
-  size_t length = utf8_end - utf8_begin;
-
-  // Determine the number of bytes in the UTF-8 character
-  if ((utf8_begin[0] & 0x80) == 0) { // 1-byte character (ASCII)
-      if (length < 1) {
-        return 0;
-      }
-      *codepoint |= utf8_begin[0];
-      return 1;
-  } else if ((utf8_begin[0] & 0xE0) == 0xC0) { // 2-byte character
-      if (length < 2) {
-        return 0;
-      }
-      *codepoint |= (utf8_begin[0] & 0x1F) << 6;
-      *codepoint |= (utf8_begin[1] & 0x3F);
-      return 2;
-  } else if ((utf8_begin[0] & 0xF0) == 0xE0) { // 3-byte character
-      if (length < 3) {
-        return 0;
-      }
-      *codepoint |= (utf8_begin[0] & 0x0F) << 12;
-      *codepoint |= (utf8_begin[1] & 0x3F) << 6;
-      *codepoint |= (utf8_begin[2] & 0x3F);
-      return 3;
-  } else if ((utf8_begin[0] & 0xF8) == 0xF0) { // 4-byte character
-      if (length < 4) {
-        return 0;
-      }
-      *codepoint |= (utf8_begin[0] & 0x07) << 18;
-      *codepoint |= (utf8_begin[1] & 0x3F) << 12;
-      *codepoint |= (utf8_begin[2] & 0x3F) << 6;
-      *codepoint |= (utf8_begin[3] & 0x3F);
-      return 4;
-  } else {
-    // Unknown character
-    return 0;
-  }
+// The same Tower-written scalar codec is used by the token lexer and raw streams.
+size_t parser_decode_utf8_codepoint(const char* begin, const char* end, uint32_t* codepoint) {
+  return tower_utf8_decode(reinterpret_cast<const uint8_t*>(begin), size_t(end - begin), codepoint);
 }
 
 size_t parser_encode_utf8_codepoint(uint32_t codepoint, char* buffer, size_t buffer_size) {
-  assert(bool(buffer) == bool(buffer_size));
-
-  // Determine the number of bytes needed for the encoding
-  if (codepoint <= 0x7F) { // 1-byte character (ASCII)
-    if (buffer) {
-      assert(buffer_size >= 1);
-      buffer[0] = static_cast<char>(codepoint);
-    }
-    return 1;
-  } else if (codepoint <= 0x7FF) { // 2-byte character
-    if (buffer) {
-      assert(buffer_size >= 2);
-      buffer[0] = static_cast<char>(0xC0 | ((codepoint >> 6) & 0x1F));
-      buffer[1] = static_cast<char>(0x80 | (codepoint & 0x3F));
-    }
-    return 2;
-  } else if (codepoint <= 0xFFFF) { // 3-byte character
-    if (buffer) {
-      assert(buffer_size >= 3);
-      buffer[0] = static_cast<char>(0xE0 | ((codepoint >> 12) & 0x0F));
-      buffer[1] = static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F));
-      buffer[2] = static_cast<char>(0x80 | (codepoint & 0x3F));
-    }
-    return 3;
-  } else if (codepoint <= 0x10FFFF) { // 4-byte character
-    if (buffer) {
-      assert(buffer_size >= 4);
-      buffer[0] = static_cast<char>(0xF0 | ((codepoint >> 18) & 0x07));
-      buffer[1] = static_cast<char>(0x80 | ((codepoint >> 12) & 0x3F));
-      buffer[2] = static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F));
-      buffer[3] = static_cast<char>(0x80 | (codepoint & 0x3F));
-    }
-    return 4;
-  } else {
-    // Codepoint is outside of valid UTF-8 range
-    return 0;
-  }
+  return tower_utf8_encode(codepoint, reinterpret_cast<uint8_t*>(buffer), buffer_size);
 }
 
 void parser_string_append_utf8_null_terminated(String* component, const char* utf8) {

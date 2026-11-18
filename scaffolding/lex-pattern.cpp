@@ -1,23 +1,12 @@
 #include "lex-pattern.hpp"
+#include "compiler-utf8.hpp"
 #include <algorithm>
 #include <map>
 #include <utility>
 
 size_t lex_codepoint(const std::string& source, size_t start, uint32_t& value) {
-  if (start >= source.size()) return 0;
-  unsigned char c = source[start];
-  if (c < 128) { value = c; return 1; }
-  size_t count; uint32_t minimum;
-  if (c >= 0xc2 && c <= 0xdf) { count = 2; value = c & 31; minimum = 0x80; }
-  else if (c >= 0xe0 && c <= 0xef) { count = 3; value = c & 15; minimum = 0x800; }
-  else if (c >= 0xf0 && c <= 0xf4) { count = 4; value = c & 7; minimum = 0x10000; }
-  else return 0;
-  if (start + count > source.size()) return 0;
-  for (size_t i = 1; i < count; ++i) {
-    c = source[start + i]; if ((c & 0xc0) != 0x80) return 0;
-    value = (value << 6) | (c & 63);
-  }
-  return value >= minimum && value <= 0x10ffff && !(value >= 0xd800 && value <= 0xdfff) ? count : 0;
+  if (start >= source.size()) { value = 0; return 0; }
+  return tower_utf8_decode(reinterpret_cast<const uint8_t*>(source.data() + start), source.size() - start, &value);
 }
 
 namespace {

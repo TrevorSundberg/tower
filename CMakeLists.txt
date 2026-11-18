@@ -1,19 +1,25 @@
 cmake_minimum_required(VERSION 3.20)
 
 project(scaffolding LANGUAGES C CXX VERSION 1)
+include(cmake/TowerCompilerUtilities.cmake)
 
 option(TOWER_NATIVE "Build Tower's native compiler/linker driver against an installed LLVM" OFF)
 if(TOWER_NATIVE)
   find_package(LLVM REQUIRED CONFIG)
-  add_executable(towerc scaffolding/driver.cpp scaffolding/llvm-engine.cpp
+  add_library(tower-native-compiler OBJECT scaffolding/driver.cpp scaffolding/llvm-engine.cpp
     scaffolding/core.cpp scaffolding/core-nodes.cpp scaffolding/core-machine.cpp
     scaffolding/tower.cpp scaffolding/parser.cpp scaffolding/parser-tree-tests.cpp
     scaffolding/syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/bedrock.cpp
     scaffolding/format.cpp scaffolding/lex-pattern.cpp scaffolding/syntax-tests.cpp)
-  target_include_directories(towerc PRIVATE ${LLVM_INCLUDE_DIRS})
-  target_compile_features(towerc PRIVATE cxx_std_20)
-  target_compile_definitions(towerc PRIVATE TOWER_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
-  target_compile_options(towerc PRIVATE -fno-exceptions)
+  target_include_directories(tower-native-compiler PRIVATE ${LLVM_INCLUDE_DIRS})
+  target_compile_features(tower-native-compiler PRIVATE cxx_std_20)
+  target_compile_definitions(tower-native-compiler PRIVATE TOWER_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+  target_compile_options(tower-native-compiler PRIVATE -fno-exceptions)
+  add_executable(towerc-seed $<TARGET_OBJECTS:tower-native-compiler> scaffolding/bootstrap/utf8-seed.cpp)
+  target_link_libraries(towerc-seed PRIVATE LLVM)
+  tower_compiler_utilities()
+  add_executable(towerc $<TARGET_OBJECTS:tower-native-compiler>)
+  target_link_libraries(towerc PRIVATE tower-compiler-utilities)
   target_link_libraries(towerc PRIVATE LLVM)
   return()
 endif()
@@ -22,11 +28,13 @@ option(TOWER_BROWSER "Build the static playground's WASI reactor" OFF)
 option(TOWER_BROWSER_LLVM "Also build the LLVM compiler experiment as a separate reactor" OFF)
 option(TOWER_BROWSER_CROSS "Include CPU backends and native linkers in a separate browser compiler" OFF)
 if(TOWER_BROWSER)
+  tower_compiler_utilities()
   add_executable(tower-browser scaffolding/browser.cpp
     scaffolding/core.cpp scaffolding/core-nodes.cpp scaffolding/core-machine.cpp
     scaffolding/tower.cpp scaffolding/parser.cpp scaffolding/parser-tree-tests.cpp
     scaffolding/syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/bedrock.cpp scaffolding/format.cpp scaffolding/lex-pattern.cpp scaffolding/syntax-tests.cpp)
   target_compile_features(tower-browser PRIVATE cxx_std_20)
+  target_link_libraries(tower-browser PRIVATE tower-compiler-utilities)
   target_compile_options(tower-browser PRIVATE -fno-exceptions -UNDEBUG)
   target_link_options(tower-browser PRIVATE -mexec-model=reactor
     -Wl,-z,stack-size=2097152 -Wl,--initial-memory=8388608 -Wl,--max-memory=268435456)
@@ -81,6 +89,7 @@ if(TOWER_BROWSER)
         ${TOWER_LLVM_SOURCE_DIR}/llvm/include ${CMAKE_CURRENT_BINARY_DIR}/third_party/llvm-project/llvm/include
         "${CMAKE_CURRENT_BINARY_DIR}")
       target_compile_features(${name} PRIVATE cxx_std_20)
+      target_link_libraries(${name} PRIVATE tower-compiler-utilities)
       target_compile_options(${name} PRIVATE -fno-exceptions -UNDEBUG)
       target_link_options(${name} PRIVATE -mexec-model=reactor
         -Wl,--export=malloc -Wl,--export=free
@@ -101,11 +110,13 @@ endif()
 
 option(TOWER_PARSER_ONLY "Build native parser tests without LLVM or WASI" OFF)
 if(TOWER_PARSER_ONLY)
+  tower_compiler_utilities()
   add_executable(tower-parser-tests scaffolding/tests/main.cpp
     scaffolding/core.cpp scaffolding/core-nodes.cpp scaffolding/core-machine.cpp scaffolding/core-tests.cpp
     scaffolding/tower.cpp scaffolding/parser.cpp scaffolding/parser-tree-tests.cpp
     scaffolding/syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/bedrock.cpp scaffolding/format.cpp scaffolding/lex-pattern.cpp scaffolding/syntax-tests.cpp)
   target_compile_features(tower-parser-tests PRIVATE cxx_std_20)
+  target_link_libraries(tower-parser-tests PRIVATE tower-compiler-utilities)
   if(MSVC)
     string(REPLACE "/EHsc" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
     target_compile_options(tower-parser-tests PRIVATE /utf-8 /UNDEBUG)
@@ -114,6 +125,19 @@ if(TOWER_PARSER_ONLY)
     target_compile_options(tower-parser-tests PRIVATE -UNDEBUG -fno-exceptions)
   endif()
   enable_testing()
+  add_library(tower-utf8-reference STATIC scaffolding/bootstrap/utf8-seed.cpp)
+  target_compile_definitions(tower-utf8-reference PRIVATE
+    tower_utf8_decode=reference_utf8_decode tower_utf8_encode=reference_utf8_encode
+    tower_utf8_validate=reference_utf8_validate)
+  add_executable(tower-utf8-tests scaffolding/tests/utf8.cpp)
+  target_compile_features(tower-utf8-tests PRIVATE cxx_std_20)
+  target_link_libraries(tower-utf8-tests PRIVATE tower-compiler-utilities tower-utf8-reference)
+  if(MSVC)
+    target_compile_options(tower-utf8-tests PRIVATE /UNDEBUG)
+  else()
+    target_compile_options(tower-utf8-tests PRIVATE -UNDEBUG -fno-exceptions)
+  endif()
+  add_test(NAME tower-utf8-tests COMMAND tower-utf8-tests)
   add_test(NAME tower-parser-tests COMMAND tower-parser-tests)
   add_test(NAME tower-foreach-example COMMAND tower-parser-tests --parse
     "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/examples/foreach.tower")
@@ -165,6 +189,8 @@ add_executable(scaffolding
   scaffolding/syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/bedrock.cpp scaffolding/format.cpp
   scaffolding/lex-pattern.cpp
   scaffolding/syntax-tests.cpp)
+tower_compiler_utilities()
+target_link_libraries(scaffolding PRIVATE tower-compiler-utilities)
 
 target_compile_features(scaffolding PRIVATE cxx_std_20)
 target_compile_options(scaffolding PRIVATE -fno-exceptions)

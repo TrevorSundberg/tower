@@ -7027,3 +7027,109 @@ inspection found duplicate UTF-8 decoders in lex-pattern.cpp, parser.cpp and bro
 The older raw parser decoder accepted malformed continuation bytes, overlong
 sequences and surrogate code points that the ordinary lexer already rejected;
 the migrated shared codec will use the stricter Unicode scalar contract.
+
+## 2026-11-17: Tower-written UTF-8 is now part of the compiler
+
+Implemented `scaffolding/compiler/utf8.tower`: ordinary exported Foundation
+functions for decoding one scalar, encoding one scalar and validating a byte
+span. The real lexer, raw parser streams/debug string encoder and browser source
+validation call these compiled functions. Removed their duplicate C++ algorithms;
+only small C ABI adapters remain. No new opcode, special Tower parser behavior,
+alternate AST or runtime interpretation callback was introduced. The same source
+uses existing shared nodes, type checking, canonical formatting and LLVM lowering.
+
+Decode returns 1–4 bytes consumed, or zero with a cleared result on failure. The
+output scalar is writable storage disjoint from the input. Encode accepts scalar
+values, returns zero without modifying an undersized output, and supports a null
+output size query. Validation accepts empty spans and has an explicit reject-NUL
+option; browser source enables it. Both native and Wasm use target-sized usize,
+raw pointers and a narrow C ABI. Overlong sequences, bad continuation bytes,
+surrogates, out-of-range scalars and truncation are rejected consistently. This
+corrects the earlier raw parser codec; its failure-as-end stream interface is
+otherwise unchanged. Buffer validity/lifetime still belongs to the caller.
+
+### Build path and bootstrap boundary
+
+Native CMake shares the existing C++ compiler objects between `towerc-seed` and
+`towerc`. The seed links only the independent codec in `bootstrap/utf8-seed.cpp`;
+the normal compiler links the object compiled from `compiler/utf8.tower`. Browser
+parser, Wasm LLVM and CPU-cross LLVM reactors link that same source compiled for
+wasm32. Parser test targets likewise use the Tower object, with the C++ reference
+linked under different names only into the dedicated differential test.
+
+`cmake/TowerCompilerUtilities.cmake` records dependencies on source, bootstrap
+compiler and both grammar modules. `build-bootstrap.sh` builds the transitional
+host seed, or accepts an explicit TOWER_BOOTSTRAP_COMPILER. All normal build
+scripts prepare it, and generated objects remain ignored platform artifacts.
+This presently adds a host LLVM development-library requirement to a clean Wasm
+build unless a suitable bootstrap executable is supplied. It is not yet the
+dependency-free binary distribution requested in the preceding journal entry.
+
+Added native driver `--bedrock file` / `--foundation file` inputs and passed them
+explicitly during bootstrap. An external compiler must read the current checkout's
+grammar, not silently use its original checkout's compiled-in paths. These are
+host load controls, not a new language import system. The override test installs
+a temporary grammar rule and interprets it, and checks a missing module failure.
+
+### Trials, corrections and validation
+
+- An early manual trial used the stale native compiler from before initializer
+  inference and failed on a missing CoreDeclare type capture. Rebuilding the
+  native compiler fixed this; the automated bootstrap now builds its own seed.
+- The first production native link exposed an encoder narrowing check that O2
+  could not discharge through the loop, leaving a tower_trap dependency. Masking
+  the final byte explicitly before checked conversion made the byte range local
+  and provable. No runtime shim was added. The bootstrap gate uses llvm-nm to
+  require zero undefined symbols for all four generated object targets.
+- The initial JS test oracle incorrectly passed ordinary arrays to TextDecoder
+  (its TypeError looked like invalid input), and incorrectly expected library=true
+  to return linked Wasm rather than the documented object. Corrected the oracle
+  to Uint8Array and tested a linked module. These were test harness failures.
+- `bash playground/scripts/test-native-core.sh`: **3/3** pass, including the
+  existing ASan/UBSan parser/core tests and new exhaustive codec tests. Every
+  Unicode scalar and surrogate, every one/two-byte input, 100,000 deterministic
+  random spans and 50,000 page-boundary probes are covered. Generated Tower
+  objects are not sanitizer-instrumented; inaccessible-page inputs/outputs and
+  unchanged-buffer checks explicitly test their boundaries instead.
+- `bash playground/scripts/test-bootstrap.sh`: byte-identical optimized LLVM and
+  objects from seed versus the compiler using Tower utilities for
+  x86_64-pc-linux-gnu, wasm32-unknown-unknown, x86_64-pc-windows-msvc and
+  aarch64-apple-darwin. No undefined symbols. Explicit grammar inputs pass.
+  Native execution is tested on Linux; macOS object agreement does not claim
+  execution on a Mac or a fully self-hosted compiler.
+- `node --test playground/tests/*.test.mjs`: **166/166** pass. New tests compare
+  TextEncoder/TextDecoder, direct compiler exports, real source rejection, Unicode
+  token rules, a recompiled standalone codec with no host imports, deterministic
+  repeated Wasm emission, memory-end truncation, both interpreter pointer widths,
+  compiled execution and canonical Foundation round trips.
+- `npm run check:format --prefix playground`: **19** Tower files match their
+  canonical formatting, with idempotence and parse-tree preservation.
+- `npx playwright test` in playground: **96/96**, desktop and mobile, pass in
+  2.7 minutes. Rebuilt final artifacts after host/build changes; all three Wasm
+  modules exactly match the bytes exercised by those tests.
+
+Environment: Windows Node v21.7.3; WSL Orchestral-Revng, host Clang/LLVM 19,
+WASI SDK 34, Release/O3 browser compiler builds with LLVM assertions off and no
+exceptions. Commands and logs are under ignored `build/utf8-*`; rebuild LLVM with
+`TOWER_BROWSER_CROSS=ON TOWER_BUILD_JOBS=4 bash playground/scripts/build-llvm.sh`.
+
+### Performance and next slice
+
+Paired Wasm trials (`build/profile-utf8.mjs`, 12 warmups + 40 alternating samples)
+measured compile plus canonical output, medians in ms: small 5.648→5.670,
+inference example 5.902→6.022, 104 KiB ASCII comment 6.646→6.782,
+99 KiB Unicode comment 6.290→6.336, 500 declarations 13.680→13.864.
+This local trial found no material latency regression; it is not a cross-device
+performance guarantee. JSON: build/utf8-performance.json.
+
+Fresh-process native trials (`build/profile-utf8-native.py`, 3 warmups + 20 paired
+samples) compare the C++ seed and Tower-codec compiler: inference total
+118.020→117.182 ms, utility source 123.269→121.693 ms. Bootstrap grammar startup
+is approximately 96–100 ms in both; no persistent native runtime was introduced.
+JSON: build/utf8-native-performance.json.
+
+Next: integrate the existing Tower ByteBuffer/arena helpers into a real owned
+compiler buffer, with explicit allocator bindings, failure/ownership rules and
+the same differential gates. Real module imports and Tower entity/component
+storage remain larger prerequisites for broader migration. Most compiler code
+is still C++; this is the first implemented compiler algorithm slice in Tower.

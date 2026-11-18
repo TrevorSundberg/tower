@@ -8,3 +8,4 @@ cmake -S "$repo" -B "$native" -G Ninja -DTOWER_NATIVE=ON \
 cmake --build "$native" --parallel "${TOWER_BUILD_JOBS:-4}"
 mkdir -p "$repo/build/native"
 cp "$native/towerc" "$repo/build/native/towerc"
+cp "$native/towerc-seed" "$repo/build/native/towerc-seed"

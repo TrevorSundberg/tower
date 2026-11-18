@@ -2,6 +2,7 @@
 set -euo pipefail
 repo="$(cd "$(dirname "$0")/../.." && pwd)"
 sdk="${WASI_SDK_PATH:-$HOME/.cache/tower/wasi-sdk/wasi-sdk-34.0-x86_64-linux}"
+bootstrap="$(bash "$repo/playground/scripts/build-bootstrap.sh")"
 revision="$(git -C "$repo/third_party/llvm-project" rev-parse HEAD)"
 source="${TOWER_LLVM_SOURCE_DIR:-$(bash "$repo/playground/scripts/cache-llvm-source.sh")}"
 # Native tablegen must be built with the same LLVM source revision. Keep the
@@ -46,6 +47,7 @@ cmake --build "$host" --target llvm-tblgen --parallel "${TOWER_BUILD_JOBS:-6}"
 cmake -S "$repo" -B "$cross" -G Ninja \
   -DCMAKE_TOOLCHAIN_FILE="$sdk/share/cmake/wasi-sdk-p1.cmake" \
   -DCMAKE_BUILD_TYPE=Release -DTOWER_BROWSER=ON -DTOWER_BROWSER_LLVM=ON \
+  -DTOWER_BOOTSTRAP_COMPILER="$bootstrap" \
   -DLLVM_ENABLE_ASSERTIONS=OFF \
   -DTOWER_BROWSER_CROSS="${TOWER_BROWSER_CROSS:-OFF}" \
   -DTOWER_LLVM_SOURCE_DIR="$source" \

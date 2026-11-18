@@ -1,5 +1,6 @@
 // A small C ABI shared by browser workers and other WebAssembly hosts.
-// JSON is a transport here; syntax, grammar activation and highlighting live in C++.
+// JSON is a transport; compilation stays in the compiler, including its Tower utilities.
+#include "compiler-utf8.hpp"
 #include "syntax.hpp"
 #include "core.hpp"
 #include <algorithm>
@@ -141,26 +142,10 @@ void tree(std::string& out, TowerNode* root) {
   }
   out += ']';
 }
-bool valid_utf8(const unsigned char* s, size_t size) {
-  for (size_t i = 0; i < size;) {
-    unsigned char c = s[i++];
-    if (c == 0) return false;
-    if (c < 128) continue;
-    size_t n; uint32_t value, minimum;
-    if (c >= 0xc2 && c <= 0xdf) { n = 1; value = c & 31; minimum = 0x80; }
-    else if (c >= 0xe0 && c <= 0xef) { n = 2; value = c & 15; minimum = 0x800; }
-    else if (c >= 0xf0 && c <= 0xf4) { n = 3; value = c & 7; minimum = 0x10000; }
-    else return false;
-    if (i + n > size) return false;
-    while (n--) { c = s[i++]; if ((c & 0xc0) != 0x80) return false; value = (value << 6) | (c & 63); }
-    if (value < minimum || value > 0x10ffff || (value >= 0xd800 && value <= 0xdfff)) return false;
-  }
-  return true;
-}
 bool valid_source(const char* source, size_t bytes) {
   last_error.clear();
   if (bytes > max_source) { last_error = "Playground source limit is 128 KiB"; return false; }
-  if (!source || !valid_utf8((const unsigned char*)source, bytes)) {
+  if (!source || !tower_utf8_validate(reinterpret_cast<const uint8_t*>(source), bytes, 1)) {
     last_error = "Source must be valid UTF-8 without NUL bytes"; return false;
   }
   return true;
