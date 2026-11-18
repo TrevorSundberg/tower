@@ -3,15 +3,24 @@
 #include <new>
 #include <utility>
 
-TowerNode* syntax_component_type() { static auto* type = tower_node_create(); return type; }
+namespace {
+void dispose_syntax(TowerComponent*, void* data) { syntax_node_dispose(static_cast<SyntaxNode*>(data)); }
+}
+TowerNode* syntax_component_type() {
+  static auto* type = [] {
+    auto* value = tower_node_create();
+    if (!tower_component_register(value, syntax_node_size(), dispose_syntax)) std::abort();
+    return value;
+  }();
+  return type;
+}
 SyntaxNode* syntax_get(TowerNode* node) {
   return node ? static_cast<SyntaxNode*>(tower_node_get_component_userdata(node, syntax_component_type())) : nullptr;
 }
 SyntaxNode& syntax_node(TowerNode* node) { auto* value = syntax_get(node); assert(value); return *value; }
 SyntaxNode& syntax_attach(TowerNode* node, SyntaxKind kind) {
   if (auto* value = syntax_get(node)) { value->kind = kind; return *value; }
-  auto* component = tower_component_create(node, syntax_component_type(), sizeof(SyntaxNode),
-    [](TowerComponent*, void* data) { syntax_node_dispose(static_cast<SyntaxNode*>(data)); });
+  auto* component = tower_component_create(node, syntax_component_type(), sizeof(SyntaxNode), dispose_syntax);
   auto* value = new(tower_component_get_userdata(component)) SyntaxNode;
   syntax_node_init(value);
   value->kind = kind; return *value;

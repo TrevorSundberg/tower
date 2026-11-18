@@ -9389,3 +9389,91 @@ No browser page errors were reported. Results: `build/projects-deployment-live.l
 and `build/deployment-verification/report.json` (ignored local artifacts).
 The previous entry's statement that no deployment was performed applies only to
 the earlier implementation trial; this entry records the authorized publication.
+
+### 2026-11-18 — Requested sync and Tower declaration interpretation
+
+Performed the requested pull/rebase/push against master. The upstream project
+workspace changes through `7262584` were a fast-forward. Used a clean detached
+sync worktree for `git pull --rebase --no-recurse-submodules origin master`, then
+pushed normally and advanced the working checkout while retaining its unrelated
+notes. The journal stash conflicted where upstream had accidentally decoded UTF-8
+punctuation as Windows-1252. Preserved the local research entry and repaired 30
+verified damaged lines using exact text from `b90810d`; committed/pushed that
+repair as `a3d09ff`. The 1,045 unrelated journal additions remain unstaged.
+todo.txt was never changed: before/after SHA-256 was
+`4DD43451D390112F0AA9FE2168982A7F837E5B37C3D0B5F17BF94EEE79659BC8`.
+
+Added `compiler/syntax-reader.tower` and routed production declaration reading
+through it. Tower now interprets parse-rule alternatives, sequence ordering,
+captures, references, repetitions, token-exclusion sets, assignment/extension
+flags, token/skip patterns, contextual/style metadata and replacement bodies.
+The semantic fields are attached directly to the existing parse entities. There
+is no second declaration AST. Source is retained on those components, now also
+on replacement templates, and template coordinates exclude the enclosing braces.
+Grammar version installation, environment validation/caches, replacement-template
+compilation/expansion and the remaining compiler pipeline are still native.
+
+Literal classification and identifier decoding moved into Tower as well.
+Formatting/name lookup use the same decoder. Review found that an initial native
+adapter created an unnecessary Tower heap buffer for each decoded name; added an
+in-place Tower entry point so it reuses the caller's existing string storage.
+The copying entry point still supports overlapping input via the shared Tower
+byte-buffer implementation. This avoided introducing that allocation before final
+profiling; no before/after speedup for the initial adapter is claimed.
+
+The reader attaches registered components directly through the Tower entity
+store and reports allocation failures instead of entering the native fail-fast
+constructor. A small native lifecycle-registration adapter remains. The seed
+store retains its old per-component registration convention; the independent
+native declaration-reader seed remains bootstrap/reference debt. Those files are
+not exempt from the final no-project-owned-C++ goal.
+
+Reader contracts: consume fresh declaration parse entities; caller retains tree
+and source and commits a grammar revision only after success. Failed partial
+components are owned/reclaimed by the input tree. Missing captures, invalid source
+spans and too-short replacement/token envelopes produce diagnostics. An allocation
+failure while constructing a diagnostic returns an empty error buffer for the
+native adapter's allocation-error fallback. For malformed token declarations,
+structural declaration validation now precedes the environment's name-collision
+check; valid declaration semantics and incremental installation order are intact.
+
+Tests compare Tower against the independent native reader on alternatives,
+nullable sequences, capture/repetition forms, exclusions, escaped names,
+extensions/replacements and token/skip variants. They compare shared semantic
+structure and canonical formatting, retain provenance after session destruction,
+check malformed spans/envelopes, and inject every allocation failure through
+representative rule/token/skip construction paths until success. Partial-tree
+cleanup returns entity/buffer counts to baseline. Added 1,000 deterministic random
+identifier/literal cases, in-place/copying agreement, embedded-byte handling,
+overlapping input and failed-growth preservation. The native sanitizer harness
+does not instrument every generated Tower instruction; these tests execute the
+actual Tower implementations and inspect their effects/lifetime counters.
+
+Validation passed: native build; Linux sanitizer suite 4/4; optimized Windows
+suite; Wasm, LLVM and cross-target reactor builds; canonical formatting for 43
+Tower files; 218 Node tests; 128 desktop/mobile browser cases including the pulled
+multi-file project/ZIP/IndexedDB features; and all 16 bootstrap optimized-IR/object
+comparisons across Linux x64, Windows x64, Wasm32 and macOS ARM64. The Node suite
+was repeated after all reactor builds finished to ensure it used matching final
+artifacts. Commands follow the preceding migration entries: `build-native.sh`,
+sanitizer CMake build/CTest, `tests/run.ps1 -Optimize`, `build-wasm.sh`,
+`build-llvm.sh` with cross targets, `check:format`, Node, Playwright and
+`test-bootstrap.sh`. Logs are `build/syntax-reader-{native,asan,windows,wasm,llvm,
+format,node-final,browser,bootstrap}.log`.
+
+Warm Wasm comparison against Pages `41f35ca` (source `79c9729`), with baseline
+assets saved in `build/syntax-reader-baseline`: Node 21.7.3, 12 warmups and 40
+alternating pairs, compile plus canonical formatting. Median milliseconds before
+-> after: small 6.248 -> 6.362; inference 6.134 -> 6.109; replacements
+21.188 -> 21.258; 500 declarations 14.493 -> 14.418. These are essentially
+unchanged at this scale. Reproducer `node build/profile-syntax-reader.mjs` saves
+the baseline and prepares `build/profile-syntax-reader-wasm.mjs`; run the latter
+for the measurements. Full p50/p95 values are in
+`build/syntax-reader-wasm-performance.json`. Node-hosted Wasm measurements are
+not a browser UI latency claim.
+
+Next: migrate grammar environment/revision validation and replacement processing,
+then continue semantic checking, formatting, interpretation, backend/driver and
+bootstrap retirement. Removing the active declaration-reading implementation from
+syntax.cpp does not mean all parser/frontend ownership or compiler control is
+already Tower code.

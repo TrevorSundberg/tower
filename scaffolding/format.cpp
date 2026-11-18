@@ -1,4 +1,5 @@
 #include "core.hpp"
+#include "compiler-syntax-reader.hpp"
 #include "syntax-nodes.hpp"
 #include "format.hpp"
 #include "parser.hpp"
@@ -7,17 +8,9 @@
 #include <set>
 
 std::string tower_identifier_value(std::string_view text) {
-  if (text.size() < 2 || text.front() != '`' || text.back() != '`') return std::string(text);
-  std::string out;
-  for (size_t i = 1; i + 1 < text.size(); ++i) {
-    char c = text[i];
-    if (c == '\\' && i + 2 < text.size()) {
-      c = text[++i];
-      if (c == 'n') c = '\n'; else if (c == 'r') c = '\r'; else if (c == 't') c = '\t';
-    }
-    out += c;
-  }
-  return out;
+  std::string result(text);
+  result.resize(syntax_identifier_decode_in_place(result.data(), result.size()));
+  return result;
 }
 
 namespace {

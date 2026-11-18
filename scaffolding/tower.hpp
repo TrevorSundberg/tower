@@ -122,6 +122,9 @@ bool tower_node_remove_component(TowerNode* owner, TowerNode* type);
 // Virtual destructor for a component
 typedef void (*TowerComponentDestructor)(TowerComponent* component, void* userdata);
 
+// Register a payload lifecycle before Tower code attaches components directly.
+bool tower_component_register(TowerNode* type, size_t bytes, TowerComponentDestructor destructor);
+
 // Get how many tower components are allocated
 size_t tower_component_get_allocated_count();
 

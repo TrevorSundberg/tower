@@ -333,6 +333,10 @@ size_t tower_component_get_allocated_count() {
   return TowerComponent::allocated_count;
 }
 
+// This transitional seed keeps layout/lifecycle per component; production uses the
+// registered Tower entity store. Seed construction below still supplies both.
+bool tower_component_register(TowerNode*, size_t, TowerComponentDestructor) { return true; }
+
 TowerComponent* tower_component_create(
   TowerNode* owner,
   TowerNode* type,

@@ -1,4 +1,5 @@
 #include "syntax.hpp"
+#include "compiler-syntax-reader.hpp"
 #include "compiler-generics.hpp"
 #include "compiler-syntax-lexer.hpp"
 #include "lex-pattern.hpp"
@@ -168,38 +169,10 @@ std::string describe_rule(void* context, size_t index) {
   return "start of a statement or grammar declaration";
 }
 
-std::string quoted(std::string_view source, size_t& cursor, std::string& result) {
-  char quote = source[cursor++];
-  while (cursor < source.size()) {
-    char c = source[cursor++];
-    if (c == quote) return {};
-    if (c == '\n' || c == '\r') return "Newline in quoted literal";
-    if (c == '\\') {
-      if (cursor == source.size()) break;
-      c = source[cursor++];
-      switch (c) {
-        case 'n': c = '\n'; break;
-        case 'r': c = '\r'; break;
-        case 't': c = '\t'; break;
-        case '\\': case '\'': case '"': break;
-        default: return "Unsupported literal escape";
-      }
-    }
-    result += c;
-  }
-  return "Unterminated quoted literal";
-}
-
 std::string literal_error(const std::string& text) {
-  if (text.empty()) return "Token literal is empty. Expected at least one character between the quotes.";
-  // Keep lexical categories deterministic. Words become keywords; punctuation
-  // uses longest match. Mixed word/punctuation literals need an explicit lexer rule.
-  if (text.find('\0') != std::string::npos ||
-      std::any_of(text.begin(), text.end(), space) || text.find_first_of("\"'") != std::string::npos ||
-      (std::any_of(text.begin(), text.end(), [](char c) { return letter(c) || digit(c); }) && !word(text)) ||
-      text.starts_with("//") || text.starts_with("/*"))
-    return "Unsupported token literal: " + text;
-  return {};
+  auto status = syntax_literal_check(text.data(), text.size());
+  if (status == 1) return "Token literal is empty. Expected at least one character between the quotes.";
+  return status == 2 ? "Unsupported token literal: " + text : "";
 }
 
 void add_literal(Version& version, const std::string& text) {
@@ -548,59 +521,14 @@ std::string text(TowerNode* node, std::string_view source) {
 }
 
 TowerNode* member(TowerNode* node, const char* name) { return node ? tower_node_get_child_member(node, name) : nullptr; }
-TowerNode* required(TowerNode* node, const char* name, std::string& error) {
-  auto* value = member(node, name);
-  if (!value && error.empty()) error = "Malformed bedrock tree: missing capture '" + std::string(name) + "'";
-  return value;
-}
-void location(SyntaxNode& value, TowerNode* node) {
-  value.start = parser_match_get_start(match(node)); value.end = value.start + parser_match_get_length(match(node));
-}
-TowerNode* read_term(TowerNode* node, std::string_view source, std::string& error) {
-  auto& term = syntax_attach(node, SyntaxKind::Term); location(term, node);
-  auto* atom = required(node, "atom", error); auto* suffix = required(node, "suffix", error);
-  if (!error.empty()) return node;
-  auto* literal = member(atom, "literal"); auto* ref = member(atom, "reference"); auto* capture = member(atom, "capture");
-  if (auto* set = member(atom, "set")) {
-    term.terminal_set = true;
-    while (set && tower_node_get_child_count(set) && error.empty()) {
-      auto* item = required(set, "literal", error); if (!item) break;
-      auto& exclusion = syntax_attach(item, SyntaxKind::Term); location(exclusion, item); exclusion.literal = true;
-      size_t start = parser_match_get_start(match(item)); std::string decoded; error = quoted(source, start, decoded); exclusion.text = decoded;
-      if (error.empty()) error = literal_error(exclusion.text);
-      term.items.push_back(item); set = member(set, "previous");
-    }
-    std::reverse(term.items.begin(), term.items.end());
-  } else if (literal) {
-    term.literal = true; size_t start = parser_match_get_start(match(literal));
-    std::string decoded; error = quoted(source, start, decoded); term.text = decoded;
-  } else if (ref || capture) {
-    term.text = tower_identifier_value(text(ref ? ref : capture, source));
-    if (capture) term.capture = tower_identifier_value(text(capture, source));
-  } else error = "Malformed bedrock atom: expected literal, reference or capture";
-  const auto repetition = text(suffix, source);
-  if (!repetition.empty()) {
-    if (repetition != "*" && repetition != "+" && repetition != "?") error = "Unknown grammar repetition: " + repetition;
-    else term.repetition = repetition[0];
-  }
-  return node;
-}
-Sequence read_sequence(TowerNode* node, std::string_view source, std::string& error) {
-  Sequence result(node); auto& sequence = syntax_attach(node, SyntaxKind::Alternative); location(sequence, node);
-  while (tower_node_get_child_count(node) && error.empty()) {
-    auto* term = required(node, "term", error); auto* previous = required(node, "previous", error);
-    if (!error.empty()) break;
-    sequence.items.push_back(read_term(term, source, error)); node = previous;
-  }
-  std::reverse(sequence.items.begin(), sequence.items.end()); return result;
-}
-Alternatives read_alternatives(TowerNode* node, std::string_view source, std::string& error) {
-  Alternatives result;
-  while (node && error.empty()) {
-    auto* sequence = required(node, "sequence", error); if (!sequence) break;
-    result.push_back(read_sequence(sequence, source, error)); node = member(node, "previous");
-  }
-  std::reverse(result.begin(), result.end()); return result;
+std::string read_declaration(TowerNode* node, const SyntaxSource* source, SyntaxKind kind) {
+  TowerByteBuffer error{};
+  const auto match_kind = parser_match_get_type(), syntax_kind = syntax_component_type();
+  const bool ok = kind == SyntaxKind::Rule ? syntax_read_rule(node, source, match_kind, syntax_kind, &error) :
+    syntax_read_token(node, source, match_kind, syntax_kind, kind == SyntaxKind::Skip, &error);
+  std::string message;
+  if (!ok) message = error.length ? std::string(reinterpret_cast<const char*>(error.data), error.length) : "Unable to allocate grammar declaration";
+  bytes_dispose(&error); return message;
 }
 
 }
@@ -637,10 +565,6 @@ bool set_source(SyntaxSession& session, std::string_view text, const char* name)
   session.source_info = std::move(source);
   session.source = session.source_info->text.view();
   return true;
-}
-void record_source(TowerNode* entity, const SyntaxSourceRef& source) {
-  auto& value = syntax_node(entity); syntax_node_source(&value, source.get());
-  for (auto* item : value.items) record_source(item, source);
 }
 std::string syntax_diagnostic(SyntaxSession& session, Recognizer* recognizer, bool repairs = true) {
   const auto diagnostic = parser_recognizer_diagnostic(recognizer, repairs ? diagnostic_peek : nullptr, &session);
@@ -1479,21 +1403,11 @@ TowerNode* syntax_next(SyntaxSession* session) {
     const std::string construct_kind = parser_match_get_label(match(construct));
     if (construct_kind == "GrammarTokenDeclaration" || construct_kind == "GrammarSkipDeclaration") {
       session->error_offset = construct_start;
-      std::string error;
-      auto* name = required(construct, "name", error); auto* pattern = required(construct, "pattern", error);
-      auto* style = required(construct, "style", error); if (!error.empty()) return fail(error);
-      auto& token = syntax_attach(construct, construct_kind == "GrammarSkipDeclaration" ? SyntaxKind::Skip : SyntaxKind::Token);
-      location(token, construct); syntax_node_source(&token, session->source_info.get());
-      token.name = tower_identifier_value(text(name, session->source));
-      if (token.name.empty()) return fail("Token name cannot be empty");
+      auto error = read_declaration(construct, session->source_info.get(),
+        construct_kind == "GrammarSkipDeclaration" ? SyntaxKind::Skip : SyntaxKind::Token);
+      if (!error.empty()) return fail(error);
+      auto& token = syntax_node(construct);
       if (session->definitions.contains(token.name)) return fail("Name already defines a parse rule: " + token.name);
-      if (auto* kind = member(style, "kind")) token.style = tower_identifier_value(text(kind, session->source));
-      else token.style = token.kind == SyntaxKind::Skip ? "" : "identifier";
-      const auto envelope = text(pattern, session->source);
-      if (envelope.size() < 2) return fail("Token pattern must contain opening and closing delimiters");
-      token.text = envelope.substr(1, envelope.size() - 2);
-      if (auto* mode = member(construct, "mode")) token.contextual = !text(mode, session->source).empty();
-      if (token.contextual && token.kind == SyntaxKind::Skip) return fail("Skip rules cannot be contextual");
       for (const auto& entry : session->cache) for (const auto& old : entry.tokens)
         if (semantic(old).text == token.text) syntax_node_pattern(&token, semantic(old).compiled);
       if (!token.compiled) { auto pattern = lex_pattern_compile(token.text, error); syntax_node_pattern(&token, pattern.get()); }
@@ -1513,33 +1427,14 @@ TowerNode* syntax_next(SyntaxSession* session) {
     }
     if (construct_kind == "GrammarDeclaration") {
       session->error_offset = construct_start;
-      std::string error;
-      auto* name_node = required(construct, "name", error); auto* op_node = required(construct, "op", error);
-      auto* alternatives_node = required(construct, "alternatives", error); auto* replacement = required(construct, "replacement", error);
+      auto error = read_declaration(construct, session->source_info.get(), SyntaxKind::Rule);
       if (!error.empty()) return fail(error);
-      std::string name = tower_identifier_value(text(name_node, session->source)), op = text(op_node, session->source);
-      if (name.empty()) return fail("Rule name cannot be empty");
-      if (op != "=" && op != "|=") return fail("Unknown grammar assignment: " + op);
-      Alternatives alternatives = read_alternatives(alternatives_node, session->source, error);
-      if (!error.empty()) return fail(error);
-      auto& rule = syntax_attach(construct, SyntaxKind::Rule);
-      rule.name = name; rule.append = op == "|=";
-      for (const auto& alternative : alternatives) rule.items.push_back(alternative.get());
-      record_source(construct, session->source_info);
-      if (auto* entity = member(replacement, "body")) {
-        auto* body = match(entity);
-        size_t start = parser_match_get_start(body) + 1;
-        size_t length = parser_match_get_length(body) - 2;
-        auto& value = syntax_attach(entity, SyntaxKind::Template);
-        value.start = start; value.end = start + length;
-        value.text = session->source.substr(start, length);
-        syntax_node_replacement(&rule, entity);
-        for (auto& seq : alternatives) {
-          syntax_node_replacement(&semantic(seq), entity);
-        }
-      }
+      auto& rule = syntax_node(construct);
+      const std::string name = rule.name;
+      Alternatives alternatives;
+      for (auto* item : rule.items) alternatives.emplace_back(item);
       Definitions candidate = session->definitions;
-      if (op == "|=") {
+      if (rule.append) {
         if (!candidate.contains(name)) return fail("Cannot extend undefined rule: " + name);
         auto& target = candidate[name];
         target.insert(target.end(), alternatives.begin(), alternatives.end());

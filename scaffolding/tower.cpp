@@ -117,8 +117,11 @@ void* tower_node_get_component_userdata(TowerNode* owner, TowerNode* type) { ret
 size_t tower_node_get_component_count(TowerNode* owner) { return entity_component_count(owner); }
 TowerComponent* tower_node_get_component_by_index(TowerNode* owner, size_t index) { return entity_component_at(owner, index); }
 TowerComponent* tower_component_create(TowerNode* owner, TowerNode* type, size_t size, TowerComponentDestructor destructor) {
-  require(entity_register(type, size, alignof(std::max_align_t), lifecycle(destructor)));
+  require(tower_component_register(type, size, destructor));
   auto* component = entity_component_add(owner, type); require(component); return component;
+}
+bool tower_component_register(TowerNode* type, size_t size, TowerComponentDestructor destructor) {
+  return entity_register(type, size, alignof(std::max_align_t), lifecycle(destructor));
 }
 TowerNode* tower_component_get_owner(TowerComponent* component) { return entity_component_owner(component); }
 TowerNode* tower_component_get_type(TowerComponent* component) { return entity_component_type(component); }
