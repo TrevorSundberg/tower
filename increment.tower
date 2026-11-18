@@ -1,5 +1,5 @@
 // Increment syntax is defined here and expands into ordinary Tower calls.
-// Postfix returns the old value; prefix returns the new value.
+// These helpers increment i32 locations; postfix returns old, prefix returns new.
 fn post_increment(p: i32*): i32 {
     var old: i32 = *p;
     *p = old + 1;
@@ -13,19 +13,25 @@ fn pre_increment(p: i32*): i32 {
     return next;
 }
 
-parse CoreValue |= '(' '*' $p:CorePlace ')' '++'
-    => replace { post_increment($p) };
-parse CoreValue |= '++' '*' $p:CorePlace
-    => replace { pre_increment($p) };
+// CorePlace matches variables, fields and indexed elements.
+// Extending CoreCall covers both standalone statements and assigned results.
+parse CoreCall |= $place:CorePlace '++'
+    => replace { post_increment(&$place) };
+parse CoreCall |= '++' $place:CorePlace
+    => replace { pre_increment(&$place) };
 
-// Pass a pointer so the helpers can update the original variable.
 var value: i32 = 5;
-var pointer: i32* = &value;
-var before: i32 = (* pointer) ++;
+var before: i32 = value ++;
 // 5: the old value, then 6: the updated variable.
 print(before);
 print(value);
-var after: i32 = ++ * pointer;
+var after: i32 = ++ value;
 // 7: the new value, then 7: the updated variable.
 print(after);
 print(value);
+
+// Discarding the result uses the same rules.
+value ++;
+++ value;
+// Calls accept increment results too: prints 9, then value becomes 10.
+print(value ++);
