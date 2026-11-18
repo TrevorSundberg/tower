@@ -2,6 +2,7 @@
 #include "../parser.hpp"
 #include "../syntax.hpp"
 void core_tests();
+void formatter_tests();
 void compiler_storage_tests();
 void entity_store_tests();
 void lexer_table_tests();
@@ -65,6 +66,7 @@ int main(int argc, char** argv) {
   parser_tests();
   syntax_tests();
   core_tests();
+  formatter_tests();
   compiler_storage_tests();
   lexer_table_tests();
   regex_tests();
