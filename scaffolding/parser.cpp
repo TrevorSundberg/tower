@@ -713,45 +713,6 @@ std::string parser_grammar_create(Grammar& grammar, TowerNode* root, void* userd
   return {};
 }
 
-template <typename T>
-struct SortedVector : std::vector<T> {
-  using std::vector<T>::vector;
-
-  bool insert(const T& item) {
-    auto result = std::lower_bound(this->begin(), this->end(), item);
-    // As long as we didn't find the same item
-    if (result == this->end() || !(*result == item)) {
-      std::vector<T>::insert(result, item);
-      return true;
-    }
-    return false;
-  }
-
-  template <typename I>
-  bool insert(I begin, const I& end) {
-    bool any_inserted = false;
-    while (begin != end) {
-      if (insert(*begin)) {
-        any_inserted = true;
-      }
-      ++begin;
-    }
-    return any_inserted;
-  }
-};
-
-template <typename T>
-struct std::hash<SortedVector<T>> {
-  std::size_t operator()(const SortedVector<T>& set) const {
-    size_t hash = 0;
-    // We only need to hash the kernels
-    for (const auto& item : set) {
-      hash = hash_combine(hash, std::hash<T>()(item));
-    }
-    return hash;
-  }
-};
-
 struct LR0Item {
   size_t rule_index = TOWER_INVALID_INDEX;
   size_t symbol_index = TOWER_INVALID_INDEX;
@@ -908,154 +869,19 @@ const GrammarSymbol* parser_table_get_grammar_symbol_or_null(const Grammar& gram
   return &grammar_rule.symbols[item.symbol_index];
 }
 
-// Borrowed grammar positions retained for diagnostics while native presentation
-// adapters remain. Tower owns item closure, interning and lookahead computation.
-struct DiagnosticItems {
-  std::vector<LR0Item> kernels, nonkernels;
-};
-
-struct StateBuilderEdge {
-  GrammarTerminal terminal;
-  // If this is a valid pointer, then this will be considered a reduction, otherwise shift
-  const GrammarRule* reduce_rule = nullptr;
-  size_t shift_state_index = (size_t)-1;
-
-  bool operator<(const StateBuilderEdge& rhs) const {
-    if (terminal < rhs.terminal) {
-      return true;
-    }
-    if (rhs.terminal < terminal) {
-      return false;
-    }
-    if (shift_state_index < rhs.shift_state_index) {
-      return true;
-    }
-    if (rhs.shift_state_index < shift_state_index) {
-      return false;
-    }
-    size_t lhs_rule_index =     reduce_rule ? reduce_rule->index : (size_t)-1;
-    size_t rhs_rule_index = rhs.reduce_rule ? rhs.reduce_rule->index : (size_t)-1;
-    return lhs_rule_index < rhs_rule_index;
-  }
-
-  bool operator==(const StateBuilderEdge& rhs) const {
-    return
-      terminal == rhs.terminal &&
-      shift_state_index == rhs.shift_state_index &&
-      reduce_rule == rhs.reduce_rule;
-  }
-};
-
-template <>
-struct std::hash<StateBuilderEdge> {
-  std::size_t operator()(const StateBuilderEdge& edge) const {
-    parser_trace("MAKE SURE StateBuilderEdge HASH CALLED\n");
-    size_t hash = std::hash<GrammarTerminal>()(edge.terminal);
-    hash = hash_combine(hash, std::hash<size_t>()(edge.shift_state_index));
-    if (edge.reduce_rule) {
-      hash = hash_combine(hash, std::hash<size_t>()(edge.reduce_rule->index));
-    }
-    return hash;
-  }
-};
-
-struct StateBuilderGotoAfterReduction {
-  const GrammarNonTerminal* non_terminal = nullptr;
-  size_t shift_state_index = (size_t)-1;
-};
-
-struct StateBuilder {
-  size_t state_index = (size_t)-1;
-  // No terminal range should ever overlap with these edges
-  SortedVector<StateBuilderEdge> edges;
-  // There shouldn never be a reduction upon the same grammar symbol
-  // This is effectively GOTO[state, rule] in the dragon book
-  std::vector<StateBuilderGotoAfterReduction> gotos_after_reduction;
-
-  // These items are always insertion sorted and lexographically comparable
-  DiagnosticItems items;
-
-  // This is useful for debug printing and tracking back to the source
-  const GrammarSymbol* symbol = nullptr;
-};
-
-template <>
-struct std::hash<const SortedVector<StateBuilderEdge>*> {
-  std::size_t operator()(const SortedVector<StateBuilderEdge>* set) const {
-    parser_trace("MAKE SURE const SortedVector<StateBuilderEdge>* HASH CALLED\n");
-    return std::hash<SortedVector<StateBuilderEdge>>()(*set);
-  }
-};
-
-template <>
-struct std::equal_to<const SortedVector<StateBuilderEdge>*> {
-  bool operator()(const SortedVector<StateBuilderEdge>* lhs, const SortedVector<StateBuilderEdge>* rhs) const {
-    parser_trace("MAKE SURE const SortedVector<StateBuilderEdge>* EQUALS CALLED\n");
-    return *lhs == *rhs;
-  }
-};
-
-struct TableBuilder {
-  std::vector<std::unique_ptr<StateBuilder>> states;
-
-
-  // How many kernel lr items we have in total, used for reserving memory
-  size_t total_kernel_lr_items = 0;
-};
-
-void parser_lr_result(const Grammar& grammar, LRItems* result, DiagnosticItems& items) {
-  const auto* values = lr_items_data(result);
-  for (size_t i = 0; i < lr_items_count(result); ++i) {
-    const auto& value = values[i];
-    LR0Item item(value.rule, value.position);
-    (parser_table_is_kernel_item(grammar, item) ? items.kernels : items.nonkernels).push_back(item);
-  }
-}
-
-
+struct Table;
 struct State;
 struct StateEdge {
   const State* shift_state = nullptr;
   const GrammarRule* reduce_rule = nullptr;
-  // TODO(trevor): Error edges / recovery
-};
-
-struct StateEdgeRange {
-  GrammarTerminal range;
-  StateEdge edge;
-
-  // Used to binary search ids in a sorted vector of ranges (lower_bound)
-  bool operator<(uint32_t id) const {
-    if (range.end < id) {
-      return true;
-    }
-    return false;
-  }
-};
-
-struct StateTransitions {
-  // These edges are sorted by the start symbol so that you can use binary search to find
-  // There will never be any overlap in edges with ranges
-  std::vector<StateEdgeRange> range_edges;
-  // For non-ranges we can use a more optimal hash map to directly move to an edge
-  std::unordered_map<uint32_t, StateEdge> direct_edges;
+  operator bool() const { return shift_state || reduce_rule; }
 };
 
 struct State {
+  const Table* table = nullptr;
+  size_t index = 0;
   std::vector<LR0Item> diagnostic_items; // derived grammar positions, error path only
-  // This is a pointer because there are many states
-  // that share the same exact set of transitions
-  // This is effectively ACTION[state, terminal] in the dragon book
-  const StateTransitions* transitions = nullptr;
-  // Safe default reduction: every populated action is the same EOF reduction.
-  // This lets self-delimiting declarations finish without lexing the next revision.
   const GrammarRule* default_reduce = nullptr;
-
-  // We never need to share these as there will never be a goto that has the same state within it
-  // This is effectively GOTO[state, rule] in the dragon book
-  std::unordered_map<const GrammarNonTerminal*, const State*> gotos_after_reduction;
-
-  // This is useful for debug printing and tracking back to the source
   const GrammarSymbol* symbol = nullptr;
 };
 
@@ -1063,12 +889,12 @@ struct Table {
   ParserDescribeRule describe_rule = nullptr;
   Grammar grammar;
   std::vector<State> states;
-  std::vector<std::unique_ptr<StateTransitions>> shared_transitions;
+  LRRuntime* runtime = nullptr;
   ParserTableMode mode = ParserTableMode::WholeInput;
   SymbolSequence* sequence = nullptr;
   const GrammarRule* sequence_rule = nullptr;
   std::vector<const State*> sequence_states; // LR equivalents for diagnostics/context
-  ~Table() { symbol_sequence_destroy(sequence); }
+  ~Table() { symbol_sequence_destroy(sequence); lr_runtime_destroy(runtime); }
 };
 
 static void parser_prepare_sequence(Table* table);
@@ -1102,35 +928,29 @@ std::string debug_str(const StateEdge& edge, const Table& table) {
   return stream.str();
 }
 
-// Only call this on transitions that have been compacted withing the table
-std::string debug_str(const StateTransitions& transitions, const Table& table) {
-  std::stringstream stream;
-  for (const auto& edge : transitions.direct_edges) {
-    stream << "  edge(";
-    debug_append_id(edge.first, stream, table.grammar);
-    stream << ", " << debug_str(edge.second, table) << ")\n";
-  }
-  for (const auto& edge : transitions.range_edges) {
-    stream << "  edge(";
-    stream << debug_str(edge.range, table.grammar);
-    stream << ", " << debug_str(edge.edge, table) << ")\n";
-  }
-  return stream.str();
+static StateEdge parser_state_edge(const Table& table, const LRAction& action) {
+  return {action.state == SIZE_MAX ? nullptr : &table.states[action.state],
+    action.rule == SIZE_MAX ? nullptr : &table.grammar.rules[action.rule]};
 }
 
-// Only call this on states that have been compacted withing the table
+static const State* parser_find_goto(const State* state, const GrammarNonTerminal* nonterminal) {
+  auto next = lr_runtime_goto(state->table->runtime, state->index, nonterminal->index);
+  return next == SIZE_MAX ? nullptr : &state->table->states[next];
+}
+
 std::string debug_str(const State& state, const Table& table) {
   std::stringstream stream;
-
-  stream << debug_str_header(state, table);
-  stream << ":\n";
-  stream << debug_str(*state.transitions, table);
-  
-  for (const auto& goto_reduction : state.gotos_after_reduction) {
-    stream << "  goto(" << goto_reduction.first->name;
-    stream << ", " << debug_str_header(*goto_reduction.second, table) << ")\n";
+  stream << debug_str_header(state, table) << ":\n";
+  const auto* actions = lr_runtime_actions(table.runtime, state.index);
+  for (size_t i = 0; i < lr_runtime_action_count(table.runtime, state.index); ++i) {
+    const auto& action = actions[i];
+    stream << "  edge(" << debug_str(GrammarTerminal{action.first, action.last}, table.grammar)
+      << ", " << debug_str(parser_state_edge(table, action), table) << ")\n";
   }
-
+  const auto* gotos = lr_runtime_goto_data(table.runtime, state.index);
+  for (size_t i = 0; i < lr_runtime_goto_count(table.runtime, state.index); ++i)
+    stream << "  goto(" << table.grammar.non_terminals[gotos[i].nonterminal].name
+      << ", " << debug_str_header(table.states[gotos[i].state], table) << ")\n";
   return stream.str();
 }
 
@@ -1146,142 +966,64 @@ std::string debug_str(const Table& table) {
   return stream.str();
 }
 
-void parser_table_build_lr(TableBuilder& table_builder, const Grammar& grammar, ParserTableMode mode) {
+std::string parser_table_build_lr(Table& table) {
+  auto& grammar = table.grammar;
   std::unique_ptr<LRStates, decltype(&lr_states_destroy)> states(
     lr_states_create(grammar.analysis.get()), lr_states_destroy);
-  if (!states || !lr_states_lalr(states.get(), mode == ParserTableMode::Constructs)) {
-    grammar.analysis_failed = true; return;
-  }
-  table_builder.states.reserve(lr_states_count(states.get()));
-  for (size_t i = 0; i < lr_states_count(states.get()); ++i) {
-    auto state = std::make_unique<StateBuilder>();
-    state->state_index = i;
+  if (!states || !lr_states_lalr(states.get(), table.mode == ParserTableMode::Constructs))
+    return "Unable to construct LR parser tables";
+  table.states.resize(lr_states_count(states.get()));
+  for (size_t i = 0; i < table.states.size(); ++i) {
+    auto& state = table.states[i]; state.table = &table; state.index = i;
     const auto origin = lr_states_origin(states.get(), i);
-    if (origin != SIZE_MAX) state->symbol = grammar.lr_origins[origin];
-    parser_lr_result(grammar, lr_states_items(states.get(), i), state->items);
-    table_builder.total_kernel_lr_items += state->items.kernels.size();
-    const auto* edges = lr_states_edges(states.get(), i);
-    for (size_t j = 0; j < lr_states_edge_count(states.get(), i); ++j) {
-      const auto& edge = edges[j];
-      const auto* symbol = grammar.lr_origins[edge.symbol];
-      if (symbol->non_terminal)
-        state->gotos_after_reduction.push_back({symbol->non_terminal, edge.state});
-
+    if (origin != SIZE_MAX) state.symbol = grammar.lr_origins[origin];
+    auto* items = lr_states_items(states.get(), i);
+    const auto* values = lr_items_data(items);
+    for (bool kernel : {true, false}) for (size_t j = 0; j < lr_items_count(items); ++j) {
+      LR0Item item(values[j].rule, values[j].position);
+      if (parser_table_is_kernel_item(grammar, item) == kernel) state.diagnostic_items.push_back(item);
     }
-    const auto* actions = lr_states_actions(states.get(), i);
-    for (size_t j = 0; j < lr_states_action_count(states.get(), i); ++j) {
-      const auto& action = actions[j];
-      state->edges.insert(StateBuilderEdge{.terminal = {action.first, action.last},
-        .reduce_rule = action.rule == SIZE_MAX ? nullptr : &grammar.rules[action.rule],
-        .shift_state_index = action.state});
-    }
-    table_builder.states.push_back(std::move(state));
   }
-}
-
-std::string parser_table_build_states(
-  Table& table,
-  TableBuilder& table_builder
-) {
-  // We must resize the states so that no re-allocation can occur
-  table.states.resize(table_builder.states.size());
-
-  std::unordered_map<const SortedVector<StateBuilderEdge>*, StateTransitions*> shared_transitions;
-
-  for (size_t i = 0; i < table_builder.states.size(); ++i) {
-    StateBuilder& builder = *table_builder.states[i].get();
-    // LALR lookahead unions can contain overlapping character ranges for the
-    // same action. Union them before conflict checks and transition sharing.
-    // Different actions must stay distinct so real conflicts are diagnosed.
-    SortedVector<StateBuilderEdge> normalized;
-    normalized.reserve(builder.edges.size());
-    for (const auto& edge : builder.edges) {
-      if (!normalized.empty() && normalized.back().reduce_rule == edge.reduce_rule &&
-          normalized.back().shift_state_index == edge.shift_state_index &&
-          uint64_t(edge.terminal.start) <= uint64_t(normalized.back().terminal.end) + 1) {
-        normalized.back().terminal.end = std::max(normalized.back().terminal.end, edge.terminal.end);
-      } else normalized.push_back(edge);
-    }
-    builder.edges = std::move(normalized);
-    State& state = table.states[i];
-    state.symbol = builder.symbol;
-    state.diagnostic_items.assign(builder.items.kernels.begin(), builder.items.kernels.end());
-    state.diagnostic_items.insert(state.diagnostic_items.end(), builder.items.nonkernels.begin(), builder.items.nonkernels.end());
-
-    StateTransitions*& transitions = shared_transitions[&builder.edges];
-    if (!transitions) {
-      table.shared_transitions.push_back(std::make_unique<StateTransitions>());
-      transitions = table.shared_transitions.back().get();
-
-      const auto add_edge = [&](const GrammarTerminal& terminal) -> StateEdge& {
-        if (terminal.start == terminal.end) {
-          // Make sure there are no duplicates
-          assert(!transitions->direct_edges.contains(terminal.start));
-          return transitions->direct_edges[terminal.start];
-        } else {
-          // These will be already sorted as they are coming from SortedVector<StateBuilderEdge>
-          StateEdgeRange& edge_range = transitions->range_edges.emplace_back();
-          edge_range.range = terminal;
-          return edge_range.edge;
+  table.runtime = lr_runtime_create(states.get());
+  if (!table.runtime) return "Unable to allocate LR runtime tables";
+  LRConflict conflict;
+  if (lr_runtime_conflict(table.runtime, &conflict)) {
+    const bool left_reduce = conflict.left.rule != SIZE_MAX, right_reduce = conflict.right.rule != SIZE_MAX;
+    const char* kind = left_reduce && right_reduce ? "reduce/reduce" :
+      left_reduce || right_reduce ? "shift/reduce" : "shift/shift";
+    const auto describe = [&](const LRAction& action) {
+      const auto rule_text = [&](const GrammarRule& rule) {
+        if (table.describe_rule) {
+          auto text = table.describe_rule(grammar.userdata, rule.index);
+          if (!text.empty()) return text;
         }
+        return debug_str(rule, grammar);
       };
-
-      const StateBuilderEdge* last_edge = nullptr;
-      for (const auto& builder_edge : builder.edges) {
-        if (last_edge) {
-          if (!last_edge->terminal.entirely_less(builder_edge.terminal)) {
-            const char* kind = last_edge->reduce_rule && builder_edge.reduce_rule ? "reduce/reduce" :
-              last_edge->reduce_rule || builder_edge.reduce_rule ? "shift/reduce" : "shift/shift";
-            const auto describe = [&](const StateBuilderEdge& edge) {
-              const auto rule_text = [&](const GrammarRule& rule) {
-                if (table.describe_rule) {
-                  auto text = table.describe_rule(table.grammar.userdata, rule.index);
-                  if (!text.empty()) return text;
-                }
-                return debug_str(rule, table.grammar);
-              };
-              if (edge.reduce_rule) return "finish " + rule_text(*edge.reduce_rule);
-              std::string text = "continue "; size_t count = 0;
-              const auto append = [&](const auto& items) {
-                for (const auto& item : items) {
-                  const auto* symbol = parser_table_get_grammar_symbol_or_null(table.grammar, item);
-                  if (!symbol || symbol->non_terminal || symbol->terminal.entirely_less(edge.terminal) || edge.terminal.entirely_less(symbol->terminal)) continue;
-                  if (count++) text += " or ";
-                  text += rule_text(table.grammar.rules[item.rule_index]);
-                  if (count == 3) break;
-                }
-              };
-              append(builder.items.kernels);
-              if (!count) append(builder.items.nonkernels);
-              return text;
-            };
-            return "Grammar conflict (" + std::string(kind) + ") on " + debug_str(builder_edge.terminal, table.grammar)
-              + ": the parser could " + describe(*last_edge) + ", or " + describe(builder_edge)
-              + ". Make these alternatives distinct; their order does not resolve the conflict.";
-          }
+      if (action.rule != SIZE_MAX) return "finish " + rule_text(grammar.rules[action.rule]);
+      const GrammarTerminal terminal{action.first, action.last};
+      std::string text = "continue "; size_t count = 0;
+      for (bool kernel : {true, false}) {
+        for (const auto& item : table.states[conflict.state].diagnostic_items) {
+          if (parser_table_is_kernel_item(grammar, item) != kernel) continue;
+          const auto* symbol = parser_table_get_grammar_symbol_or_null(grammar, item);
+          if (!symbol || symbol->non_terminal || symbol->terminal.entirely_less(terminal) || terminal.entirely_less(symbol->terminal)) continue;
+          if (count++) text += " or ";
+          text += rule_text(grammar.rules[item.rule_index]);
+          if (count == 3) break;
         }
-
-        StateEdge& state_edge = add_edge(builder_edge.terminal);
-        if (builder_edge.reduce_rule) {
-          state_edge.reduce_rule = builder_edge.reduce_rule;
-        } else {
-          state_edge.shift_state = &table.states[builder_edge.shift_state_index];
-        }
-
-        last_edge = &builder_edge;
+        if (count) break;
       }
-    }
-    state.transitions = transitions;
-
-    for (const auto& builder_gotos : builder.gotos_after_reduction) {
-      const State*& goto_state = state.gotos_after_reduction[builder_gotos.non_terminal];
-      // As mentioned in the dragon book, there should never be any duplicates on gotos with non-terminals
-      assert(!goto_state);
-      goto_state = &table.states[builder_gotos.shift_state_index];
-    }
+      return text;
+    };
+    return "Grammar conflict (" + std::string(kind) + ") on "
+      + debug_str(GrammarTerminal{conflict.right.first, conflict.right.last}, grammar)
+      + ": the parser could " + describe(conflict.left) + ", or " + describe(conflict.right)
+      + ". Make these alternatives distinct; their order does not resolve the conflict.";
   }
-
-  parser_trace("REDUCED SHARED TRANSITIONS: %d to %d\n", (int)table.states.size(), (int)shared_transitions.size());
+  for (auto& state : table.states) {
+    auto reduction = lr_runtime_default(table.runtime, state.index);
+    if (reduction != SIZE_MAX) state.default_reduce = &grammar.rules[reduction];
+  }
   return {};
 }
 
@@ -1372,24 +1114,8 @@ Table* parser_table_create(
     parser_trace("%s\n", debug_str(grammar).c_str());
 
     if (!parser_grammar_analyze(grammar)) return fail("Unable to allocate LR grammar analysis");
-    TableBuilder table_builder;
-    parser_table_build_lr(table_builder, grammar, mode);
-    if (grammar.analysis_failed) return fail("Unable to construct LR parser tables");
-    assert(table_builder.states.size() > 0);
-    assert(table_builder.total_kernel_lr_items > 0);
-
-    message = parser_table_build_states(*table, table_builder);
+    message = parser_table_build_lr(*table);
     if (!message.empty()) return fail(message);
-    for (auto& state : table->states) {
-      const auto& transitions = *state.transitions;
-      auto eof = transitions.direct_edges.find(PARSER_ID_EOF);
-      if (eof == transitions.direct_edges.end() || !eof->second.reduce_rule) continue;
-      auto* rule = eof->second.reduce_rule;
-      bool same = true;
-      for (const auto& [id, edge] : transitions.direct_edges) same &= edge.reduce_rule == rule;
-      for (const auto& edge : transitions.range_edges) same &= edge.edge.reduce_rule == rule;
-      if (same) state.default_reduce = rule;
-    }
     grammar.analysis.reset();
     std::vector<LRProduction>().swap(grammar.lr_rules);
     std::vector<LRSymbol>().swap(grammar.lr_symbols);
@@ -1483,12 +1209,10 @@ ParserWork parser_recognizer_get_work(const Recognizer* recognizer) {
   auto work = recognizer->work; work.forest_visits = parse_forest_visits(recognizer->forest); return work;
 }
 
-static const StateEdge* parser_find_action(const State* state, uint32_t id) {
-  const auto& transitions = *state->transitions;
-  auto direct = transitions.direct_edges.find(id);
-  if (direct != transitions.direct_edges.end()) return &direct->second;
-  auto range = std::lower_bound(transitions.range_edges.begin(), transitions.range_edges.end(), id);
-  return range != transitions.range_edges.end() && id >= range->range.start ? &range->edge : nullptr;
+static StateEdge parser_find_action(const State* state, uint32_t id) {
+  LRAction action;
+  if (!lr_runtime_action(state->table->runtime, state->index, id, &action)) return {};
+  return parser_state_edge(*state->table, action);
 }
 
 static void parser_prepare_sequence(Table* table) {
@@ -1503,9 +1227,9 @@ static void parser_prepare_sequence(Table* table) {
   std::vector<const State*> states{&table->states.front()};
   states.reserve(rule->symbols.size() + 1);
   for (const auto& symbol : rule->symbols) {
-    auto* action = parser_find_action(states.back(), symbol.terminal.start);
-    if (!action || !action->shift_state) return;
-    states.push_back(action->shift_state);
+    auto action = parser_find_action(states.back(), symbol.terminal.start);
+    if (!action || !action.shift_state) return;
+    states.push_back(action.shift_state);
   }
   auto* sequence = symbol_sequence_create(rule->symbols.size());
   if (!sequence) return; // Optional cache allocation must not change acceptance.
@@ -1513,7 +1237,7 @@ static void parser_prepare_sequence(Table* table) {
     symbol_sequence_set(sequence, i, rule->symbols[i].terminal.start, rule->symbols[i].terminal.end);
   table->sequence = sequence; table->sequence_rule = rule; table->sequence_states = std::move(states);
 }
-static const StateEdge* parser_action(Recognizer* recognizer, const State* state, uint32_t id) {
+static StateEdge parser_action(Recognizer* recognizer, const State* state, uint32_t id) {
   ++recognizer->work.actions;
   return parser_find_action(state, id);
 }
@@ -1575,27 +1299,28 @@ ParserDiagnostic parser_recognizer_diagnostic(Recognizer* r, ParserDiagnosticRea
     for (size_t steps = 0; steps < 128 && budget; ++steps) {
       --budget;
       const State* state = stack.back().state;
-      const auto* edge = parser_find_action(state, id);
+      const auto edge = parser_find_action(state, id);
       if (!edge) return 0;
-      if (edge->shift_state) {
+      if (edge.shift_state) {
         if (before) *before = state;
-        stack.push_back({edge->shift_state, false}); return 1;
+        stack.push_back({edge.shift_state, false}); return 1;
       }
-      const auto& rule = *edge->reduce_rule;
+      const auto& rule = *edge.reduce_rule;
       if (!rule.index) return 2;
       if (rule.symbols.size() >= stack.size()) return 0;
       const auto first = stack.end() - rule.symbols.size();
       bool consumed = std::any_of(first, stack.end(), [](const auto& entry) { return entry.consumed; });
       stack.erase(first, stack.end());
-      auto next = stack.back().state->gotos_after_reduction.find(rule.non_terminal);
-      if (next == stack.back().state->gotos_after_reduction.end()) return 0;
-      stack.push_back({next->second, consumed});
+      auto* next = parser_find_goto(stack.back().state, rule.non_terminal);
+      if (!next) return 0;
+      stack.push_back({next, consumed});
     }
     result.complete = false; return 0;
   };
   std::vector<uint32_t> candidates;
-  for (const auto& [id, edge] : original.back().state->transitions->direct_edges) candidates.push_back(id);
-  for (const auto& range : original.back().state->transitions->range_edges) candidates.push_back(range.range.start);
+  const auto state_index = original.back().state->index;
+  const auto* actions = lr_runtime_actions(r->table->runtime, state_index);
+  for (size_t i = 0; i < lr_runtime_action_count(r->table->runtime, state_index); ++i) candidates.push_back(actions[i].first);
   std::sort(candidates.begin(), candidates.end());
   // A large grammar must not turn one error into an unbounded repair search.
   if (candidates.size() > 64) { candidates.resize(64); result.complete = false; }
@@ -1634,7 +1359,7 @@ ParserDiagnostic parser_recognizer_diagnostic(Recognizer* r, ParserDiagnosticRea
       for (size_t ahead = 0; expected.insertion && read && ahead < 3; ++ahead) {
         uint32_t token;
         auto accepts = [](void* context, uint32_t token) {
-          return parser_find_action(static_cast<States*>(context)->back().state, token) != nullptr;
+          return bool(parser_find_action(static_cast<States*>(context)->back().state, token));
         };
         if (!read(source, position, accepts, &continuation, token)) { expected.insertion = false; result.complete = false; break; }
         expected.insertion = consume(token) != 0;
@@ -1703,7 +1428,8 @@ static TowerNode* parser_sequence_step(Recognizer* recognizer, bool* running) {
     ++recognizer->work.reductions;
     auto* root = parser_reduction_value(recognizer, rule, recognizer->sequence_start,
       recognizer->sequence_end, recognizer->sequence_nodes);
-    auto* next = recognizer->stack.front().state->gotos_after_reduction.at(rule.non_terminal);
+    auto* next = parser_find_goto(recognizer->stack.front().state, rule.non_terminal);
+    assert(next);
     recognizer->stack.push_back(StackState{.state = next, .start = recognizer->sequence_start,
       .length = recognizer->sequence_end - recognizer->sequence_start});
     recognizer->sequence = false; recognizer->complete = true;
@@ -1736,11 +1462,10 @@ TowerNode* parser_recognizer_step(Recognizer* recognizer, bool* running) {
   if (recognizer->sequence) return parser_sequence_step(recognizer, running);
   const State* state = recognizer->stack.back().state;
   uint32_t id = PARSER_ID_EOF;
-  StateEdge default_edge;
-  const StateEdge* edge = nullptr;
+  StateEdge edge;
   if (recognizer->prefix && !recognizer->has_lookahead && state->default_reduce) {
     ++recognizer->work.actions;
-    default_edge.reduce_rule = state->default_reduce; edge = &default_edge;
+    edge.reduce_rule = state->default_reduce;
   } else {
     if (!recognizer->has_lookahead && !recognizer->finishing) parser_recognizer_read_id(recognizer);
     id = recognizer->finishing ? PARSER_ID_EOF : recognizer->read_id;
@@ -1758,22 +1483,22 @@ TowerNode* parser_recognizer_step(Recognizer* recognizer, bool* running) {
     return nullptr;
   }
   if (parser_debug_trace)
-    parser_trace("STEP: %s at byte %zu\n", debug_str(*edge, *recognizer->table).c_str(), recognizer->read_start);
+    parser_trace("STEP: %s at byte %zu\n", debug_str(edge, *recognizer->table).c_str(), recognizer->read_start);
 
-  if (edge->shift_state) {
+  if (edge.shift_state) {
     ++recognizer->work.shifts;
     TowerNode* node = parser_shift_value(recognizer, id);
     if (!node) return nullptr;
     recognizer->read_node_or_null = nullptr;
     recognizer->stack.push_back(StackState{
-      .state = edge->shift_state, .nodes = parser_forest_leaf(recognizer, node),
+      .state = edge.shift_state, .nodes = parser_forest_leaf(recognizer, node),
       .start = recognizer->read_start, .length = recognizer->read_length
     });
     recognizer->consumed_end = recognizer->read_start + recognizer->read_length;
     recognizer->has_lookahead = false;
     recognizer->shifted = true;
   } else {
-    const GrammarRule& rule = *edge->reduce_rule;
+    const GrammarRule& rule = *edge.reduce_rule;
     if (rule.index == 0) {
       if (recognizer->prefix && !recognizer->shifted) {
         recognizer->error = "Prefix construct must consume input";
@@ -1810,59 +1535,19 @@ TowerNode* parser_recognizer_step(Recognizer* recognizer, bool* running) {
       if (!parse_forest_join(recognizer->forest, &children, part.first, part.last, capture.c_str())) std::abort();
     }
     recognizer->stack.resize(begin);
-    auto next = recognizer->stack.back().state->gotos_after_reduction.find(rule.non_terminal);
-    assert(next != recognizer->stack.back().state->gotos_after_reduction.end());
+    auto* next = parser_find_goto(recognizer->stack.back().state, rule.non_terminal);
+    assert(next);
     // Keep the public start root even when its declaration is generated.
     if (!rule.generated || rule.non_terminal->index == 1) {
       TowerNode* node = parser_reduction_value(recognizer, rule, start, end, children);
       children = parser_forest_leaf(recognizer, node);
     }
     recognizer->stack.push_back(StackState{
-      .state = next->second, .nodes = std::move(children), .start = start, .length = end - start
+      .state = next, .nodes = std::move(children), .start = start, .length = end - start
     });
   }
   *running = true;
   return nullptr;
 }
 
-void parser_tests_internal() {
-  {
-    GrammarRule first, second; first.index = 1; second.index = 2;
-    StateBuilderEdge a{.terminal = {'a', 'z'}, .reduce_rule = &first};
-    StateBuilderEdge b{.terminal = {'a', 'z'}, .reduce_rule = &second};
-    assert(a < b && !(b < a) && !(a < a));
-    SortedVector<StateBuilderEdge> edges;
-    assert(edges.insert(a) && edges.insert(b) && edges.size() == 2);
-  }
-  // Test SortedVector
-  {
-    SortedVector<int32_t> values;
-    values.insert(0);
-    values.insert(0);
-    assert(values.size() == 1);
-    values.insert(1);
-    assert(values.size() == 2);
-    values.insert(2);
-    assert(values.size() == 3);
-    values.insert(0);
-    values.insert(1);
-    values.insert(2);
-    assert(values.size() == 3);
-    values.insert(3);
-    assert(values.size() == 4);
-    values.insert(0);
-    assert(values.size() == 4);
-    assert(values[0] == 0);
-    assert(values[1] == 1);
-    assert(values[2] == 2);
-    assert(values[3] == 3);
-    values.insert(-1);
-    assert(values.size() == 5);
-    assert(values[0] == -1);
-    assert(values[1] == 0);
-    assert(values[2] == 1);
-    assert(values[3] == 2);
-    assert(values[4] == 3);
-  }
-
-}
+void parser_tests_internal() {}

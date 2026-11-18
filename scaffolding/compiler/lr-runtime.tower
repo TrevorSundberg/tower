@@ -1,0 +1,554 @@
+// Disposable runtime indexes. Grammar entities and their provenance remain the
+// source of truth; rows preserve conflicts instead of selecting an alternative.
+struct LRGoto {
+    nonterminal: usize;
+    state: usize;
+}
+
+struct LRConflict {
+    state: usize;
+    left: LRAction;
+    right: LRAction;
+}
+
+struct LRRow {
+    actions: vector(LRAction);
+    direct: vector(usize);
+    hash: usize;
+    next: usize;
+    reduction: usize;
+}
+
+struct LRRuntimeState {
+    row: LRRow*;
+    gotos: vector(LRGoto);
+}
+
+struct LRRuntime {
+    states: vector(LRRuntimeState);
+    rows: vector(LRRow*);
+    conflict: LRConflict;
+}
+
+fn lr_action_less(a: LRAction*, b: LRAction*): bool {
+    var different = a.first != b.first;
+    if different {
+        var less = a.first < b.first;
+        return less;
+    }
+    different = a.last != b.last;
+    if different {
+        var less = a.last < b.last;
+        return less;
+    }
+    different = a.state != b.state;
+    if different {
+        var less = a.state < b.state;
+        return less;
+    }
+    var less = a.rule < b.rule;
+    return less;
+}
+
+fn lr_action_insert(values: vector(LRAction)*, value: LRAction*): bool {
+    var low: usize = 0;
+    var high = values.length;
+    loop {
+        var done = low == high;
+        if done {
+            break;
+        }
+        var middle = high - low;
+        middle = middle / 2;
+        middle = middle + low;
+        var less = lr_action_less(&values.data[middle], value);
+        if less {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
+    }
+    var present = low < values.length;
+    if present {
+        var different = lr_action_less(value, &values.data[low]);
+        if different {} else {
+            return true;
+        }
+    }
+    var count = values.length + 1;
+    var ok = vector_reserve(LRAction, values, count);
+    if ok {} else {
+        return false;
+    }
+    var moved = values.length - low;
+    var bytes = moved * sizeof(LRAction);
+    var next = low + 1;
+    copy(&values.data[next], &values.data[low], bytes);
+    copy(&values.data[low], value, sizeof(LRAction));
+    values.length = count;
+    return true;
+}
+
+fn lr_row_destroy(value: LRRow*): void {
+    vector_dispose(LRAction, &value.actions);
+    vector_dispose(usize, &value.direct);
+    free(value);
+}
+
+export fn lr_runtime_destroy(value: LRRuntime*): void {
+    var missing = value == null;
+    if missing {
+        return;
+    }
+    var index: usize = 0;
+    loop {
+        var done = index == value.states.length;
+        if done {
+            break;
+        }
+        vector_dispose(LRGoto, &value.states.data[index].gotos);
+        index = index + 1;
+    }
+    index = 0;
+    loop {
+        var done = index == value.rows.length;
+        if done {
+            break;
+        }
+        lr_row_destroy(value.rows.data[index]);
+        index = index + 1;
+    }
+    vector_dispose(LRRuntimeState, &value.states);
+    vector_dispose(LRRow*, &value.rows);
+    free(value);
+}
+
+fn lr_row_normalize(row: LRRow*, conflict: LRConflict*, state: usize): void {
+    var read: usize = 0;
+    var count: usize = 0;
+    loop {
+        var done = read == row.actions.length;
+        if done {
+            break;
+        }
+        var action = &row.actions.data[read];
+        var merged = false;
+        var present = count != 0;
+        if present {
+            var previous = count - 1;
+            var last = &row.actions.data[previous];
+            var same = last.rule == action.rule;
+            if same {
+                same = last.state == action.state;
+            }
+            if same {
+                var first = convert(u64, action.first);
+                var limit = convert(u64, last.last);
+                limit = limit + 1;
+                merged = first <= limit;
+                if merged {
+                    var larger = action.last > last.last;
+                    if larger {
+                        last.last = action.last;
+                    }
+                }
+            }
+            if merged {} else {
+                var overlap = action.first <= last.last;
+                if overlap {
+                    conflict.state = state;
+                    copy(&conflict.left, last, sizeof(LRAction));
+                    copy(&conflict.right, action, sizeof(LRAction));
+                    return;
+                }
+            }
+        }
+        if merged {} else {
+            copy(&row.actions.data[count], action, sizeof(LRAction));
+            count = count + 1;
+        }
+        read = read + 1;
+    }
+    row.actions.length = count;
+}
+
+fn lr_row_equal(a: LRRow*, b: LRRow*): bool {
+    var same = a.hash == b.hash;
+    if same {
+        same = a.actions.length == b.actions.length;
+    }
+    if same {} else {
+        return false;
+    }
+    var index: usize = 0;
+    loop {
+        var done = index == a.actions.length;
+        if done {
+            return true;
+        }
+        var left = &a.actions.data[index];
+        var right = &b.actions.data[index];
+        var different = lr_action_less(left, right);
+        if different {
+            return false;
+        }
+        different = lr_action_less(right, left);
+        if different {
+            return false;
+        }
+        index = index + 1;
+    }
+}
+
+fn lr_row_hash(row: LRRow*): usize {
+    var hash: usize = 2166136261;
+    var index: usize = 0;
+    loop {
+        var done = index == row.actions.length;
+        if done {
+            return hash;
+        }
+        var action = &row.actions.data[index];
+        var first = convert(usize, action.first);
+        var last = convert(usize, action.last);
+        hash = hash ^ first;
+        hash = hash * 16777619;
+        hash = hash ^ last;
+        hash = hash * 16777619;
+        hash = hash ^ action.rule;
+        hash = hash * 16777619;
+        hash = hash ^ action.state;
+        hash = hash * 16777619;
+        index = index + 1;
+    }
+}
+
+// Singleton tokens have a direct hash index; arbitrary character ranges use
+// binary search. The grammar size determines table size, not source length.
+fn lr_row_index(row: LRRow*): bool {
+    var singles: usize = 0;
+    var index: usize = 0;
+    row.reduction = lr_none();
+    loop {
+        var done = index == row.actions.length;
+        if done {
+            break;
+        }
+        var action = &row.actions.data[index];
+        var single = action.first == action.last;
+        if single {
+            singles = singles + 1;
+            var eof = action.first == 4294967294;
+            if eof {
+                row.reduction = action.rule;
+            }
+        }
+        index = index + 1;
+    }
+    var needed = singles * 2;
+    var size: usize = 1;
+    loop {
+        var enough = size > needed;
+        if enough {
+            break;
+        }
+        size = size * 2;
+    }
+    var ok = vector_reserve(usize, &row.direct, size);
+    if ok {} else {
+        return false;
+    }
+    row.direct.length = size;
+    var bytes = size * sizeof(usize);
+    fill(row.direct.data, 255, bytes);
+    var mask = size - 1;
+    index = 0;
+    loop {
+        var done = index == row.actions.length;
+        if done {
+            return true;
+        }
+        var action = &row.actions.data[index];
+        var different = action.rule != row.reduction;
+        if different {
+            row.reduction = lr_none();
+        }
+        var single = action.first == action.last;
+        if single {
+            var bucket = convert(usize, action.first);
+            bucket = bucket * 16777619;
+            bucket = bucket & mask;
+            loop {
+                var empty = row.direct.data[bucket] == lr_none();
+                if empty {
+                    break;
+                }
+                bucket = bucket + 1;
+                bucket = bucket & mask;
+            }
+            row.direct.data[bucket] = index;
+        }
+        index = index + 1;
+    }
+}
+
+fn lr_runtime_gotos(state: LRRuntimeState*, input: LRState*, analysis: LRAnalysis*): bool {
+    var index: usize = 0;
+    loop {
+        var done = index == input.edges.length;
+        if done {
+            return true;
+        }
+        var edge = &input.edges.data[index];
+        var symbol = &analysis.symbols[edge.symbol];
+        var terminal = symbol.nonterminal == lr_none();
+        if terminal {} else {
+            var entry: LRGoto;
+            entry.nonterminal = symbol.nonterminal;
+            entry.state = edge.state;
+            var position = state.gotos.length;
+            var ok = lr_append(LRGoto, &state.gotos, &entry);
+            if ok {} else {
+                return false;
+            }
+            loop {
+                var first = position == 0;
+                if first {
+                    break;
+                }
+                var previous = position - 1;
+                var sorted = state.gotos.data[previous].nonterminal < entry.nonterminal;
+                if sorted {
+                    break;
+                }
+                copy(&state.gotos.data[position], &state.gotos.data[previous], sizeof(LRGoto));
+                position = previous;
+            }
+            copy(&state.gotos.data[position], &entry, sizeof(LRGoto));
+        }
+        index = index + 1;
+    }
+}
+
+fn lr_runtime_build(value: LRRuntime*, source: LRStates*, buckets: vector(usize)*): bool {
+    var count = source.states.length;
+    var ok = vector_reserve(LRRuntimeState, &value.states, count);
+    if ok {} else {
+        return false;
+    }
+    var bytes = count * sizeof(LRRuntimeState);
+    fill(value.states.data, 0, bytes);
+    value.states.length = count;
+    var bucket_count = count * 2;
+    bucket_count = bucket_count + 1;
+    ok = vector_reserve(usize, buckets, bucket_count);
+    if ok {} else {
+        return false;
+    }
+    buckets.length = bucket_count;
+    bytes = bucket_count * sizeof(usize);
+    fill(buckets.data, 255, bytes);
+    var index: usize = 0;
+    loop {
+        var done = index == count;
+        if done {
+            return true;
+        }
+        var row = alloc(LRRow, 1);
+        var missing = row == null;
+        if missing {
+            return false;
+        }
+        fill(row, 0, sizeof(LRRow));
+        var input = source.states.data[index];
+        var position: usize = 0;
+        loop {
+            done = position == input.actions.length;
+            if done {
+                break;
+            }
+            ok = lr_action_insert(&row.actions, &input.actions.data[position]);
+            if ok {} else {
+                lr_row_destroy(row);
+                return false;
+            }
+            position = position + 1;
+        }
+        lr_row_normalize(row, &value.conflict, index);
+        var conflict = value.conflict.state != lr_none();
+        if conflict {
+            lr_row_destroy(row);
+            return true;
+        }
+        row.hash = lr_row_hash(row);
+        var zero = bucket_count == 0;
+        if zero {
+            lr_row_destroy(row);
+            return false;
+        }
+        var bucket = row.hash % bucket_count;
+        var existing = buckets.data[bucket];
+        var shared = false;
+        loop {
+            done = existing == lr_none();
+            if done {
+                break;
+            }
+            var other = value.rows.data[existing];
+            shared = lr_row_equal(row, other);
+            if shared {
+                lr_row_destroy(row);
+                row = other;
+                break;
+            }
+            existing = other.next;
+        }
+        if shared {} else {
+            ok = lr_row_index(row);
+            if ok {
+                ok = vector_push(LRRow*, &value.rows, row);
+            }
+            if ok {} else {
+                lr_row_destroy(row);
+                return false;
+            }
+            row.next = buckets.data[bucket];
+            buckets.data[bucket] = value.rows.length - 1;
+        }
+        var state = &value.states.data[index];
+        state.row = row;
+        ok = lr_runtime_gotos(state, input, source.analysis);
+        if ok {} else {
+            return false;
+        }
+        index = index + 1;
+    }
+}
+
+export fn lr_runtime_create(source: LRStates*): LRRuntime* {
+    var value = alloc(LRRuntime, 1);
+    var missing = value == null;
+    if missing {
+        return null;
+    }
+    fill(value, 0, sizeof(LRRuntime));
+    value.conflict.state = lr_none();
+    var buckets: vector(usize);
+    vector_init(usize, &buckets);
+    var ok = lr_runtime_build(value, source, &buckets);
+    vector_dispose(usize, &buckets);
+    if ok {
+        return value;
+    }
+    lr_runtime_destroy(value);
+    return null;
+}
+
+export fn lr_runtime_conflict(value: LRRuntime*, result: LRConflict*): bool {
+    copy(result, &value.conflict, sizeof(LRConflict));
+    var present = value.conflict.state != lr_none();
+    return present;
+}
+
+export fn lr_runtime_action_count(value: LRRuntime*, state: usize): usize {
+    return value.states.data[state].row.actions.length;
+}
+
+export fn lr_runtime_actions(value: LRRuntime*, state: usize): LRAction* {
+    return value.states.data[state].row.actions.data;
+}
+
+export fn lr_runtime_default(value: LRRuntime*, state: usize): usize {
+    return value.states.data[state].row.reduction;
+}
+
+export fn lr_runtime_row_count(value: LRRuntime*): usize {
+    return value.rows.length;
+}
+
+export fn lr_runtime_goto_count(value: LRRuntime*, state: usize): usize {
+    return value.states.data[state].gotos.length;
+}
+
+export fn lr_runtime_goto_data(value: LRRuntime*, state: usize): LRGoto* {
+    return value.states.data[state].gotos.data;
+}
+
+export fn lr_runtime_goto(value: LRRuntime*, state: usize, nonterminal: usize): usize {
+    var gotos = &value.states.data[state].gotos;
+    var low: usize = 0;
+    var high = gotos.length;
+    loop {
+        var done = low == high;
+        if done {
+            break;
+        }
+        var middle = high - low;
+        middle = middle / 2;
+        middle = middle + low;
+        var less = gotos.data[middle].nonterminal < nonterminal;
+        if less {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
+    }
+    var present = low < gotos.length;
+    if present {
+        present = gotos.data[low].nonterminal == nonterminal;
+        if present {
+            return gotos.data[low].state;
+        }
+    }
+    return lr_none();
+}
+
+export fn lr_runtime_action(value: LRRuntime*, state: usize, id: u32, result: LRAction*): bool {
+    var row = value.states.data[state].row;
+    var mask = row.direct.length - 1;
+    var bucket = convert(usize, id);
+    bucket = bucket * 16777619;
+    bucket = bucket & mask;
+    loop {
+        var index = row.direct.data[bucket];
+        var missing = index == lr_none();
+        if missing {
+            break;
+        }
+        var action = &row.actions.data[index];
+        var same = action.first == id;
+        if same {
+            copy(result, action, sizeof(LRAction));
+            return true;
+        }
+        bucket = bucket + 1;
+        bucket = bucket & mask;
+    }
+    var low: usize = 0;
+    var high = row.actions.length;
+    loop {
+        var done = low == high;
+        if done {
+            break;
+        }
+        var middle = high - low;
+        middle = middle / 2;
+        middle = middle + low;
+        var less = row.actions.data[middle].last < id;
+        if less {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
+    }
+    var present = low < row.actions.length;
+    if present {
+        var action = &row.actions.data[low];
+        present = action.first <= id;
+        if present {
+            copy(result, action, sizeof(LRAction));
+            return true;
+        }
+    }
+    return false;
+}

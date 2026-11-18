@@ -36,10 +36,62 @@ const LRTransition* reference_lr_states_edges(LRStates*, size_t);
 bool reference_lr_states_lalr(LRStates*, bool);
 size_t reference_lr_states_action_count(LRStates*, size_t);
 const LRAction* reference_lr_states_actions(LRStates*, size_t);
+LRRuntime* reference_lr_runtime_create(LRStates*);
+void reference_lr_runtime_destroy(LRRuntime*);
+bool reference_lr_runtime_conflict(LRRuntime*, LRConflict*);
+size_t reference_lr_runtime_row_count(LRRuntime*);
+size_t reference_lr_runtime_action_count(LRRuntime*, size_t);
+const LRAction* reference_lr_runtime_actions(LRRuntime*, size_t);
+size_t reference_lr_runtime_default(LRRuntime*, size_t);
+bool reference_lr_runtime_action(LRRuntime*, size_t, uint32_t, LRAction*);
+size_t reference_lr_runtime_goto_count(LRRuntime*, size_t);
+const LRGoto* reference_lr_runtime_goto_data(LRRuntime*, size_t);
+size_t reference_lr_runtime_goto(LRRuntime*, size_t, size_t);
 size_t tower_test_buffer_count();
 void tower_test_buffer_fail_after(size_t);
 }
 namespace {
+void compare_action(const LRAction& a, const LRAction& b) {
+  assert(a.first==b.first && a.last==b.last && a.rule==b.rule && a.state==b.state);
+}
+void compare_runtime(LRStates* actual, LRStates* expected, size_t nonterminals) {
+  auto* a=lr_runtime_create(actual); auto* b=reference_lr_runtime_create(expected);
+  assert(a && b);
+  LRConflict left,right;
+  assert(lr_runtime_conflict(a,&left)==reference_lr_runtime_conflict(b,&right));
+  assert(left.state==right.state);
+  if(left.state!=SIZE_MAX) {
+    compare_action(left.left,right.left); compare_action(left.right,right.right);
+  } else {
+    assert(lr_runtime_row_count(a)==reference_lr_runtime_row_count(b));
+    for(size_t state=0;state<lr_states_count(actual);++state) {
+      assert(lr_runtime_default(a,state)==reference_lr_runtime_default(b,state));
+      auto count=lr_runtime_action_count(a,state);
+      assert(count==reference_lr_runtime_action_count(b,state));
+      const auto* actions=lr_runtime_actions(a,state); const auto* other=reference_lr_runtime_actions(b,state);
+      std::vector<uint32_t> probes{0,0xfffffffd,0xfffffffe,0xffffffff,0x200000,32};
+      for(size_t i=0;i<count;++i) {
+        compare_action(actions[i],other[i]);
+        for(auto id:{actions[i].first,actions[i].last}) {
+          probes.push_back(id); probes.push_back(id-1); probes.push_back(id+1);
+        }
+      }
+      for(auto id:probes) {
+        LRAction x,y;
+        auto found=lr_runtime_action(a,state,id,&x);
+        assert(found==reference_lr_runtime_action(b,state,id,&y));
+        if(found) compare_action(x,y);
+      }
+      for(size_t n=0;n<=nonterminals;++n)
+        assert(lr_runtime_goto(a,state,n)==reference_lr_runtime_goto(b,state,n));
+      assert(lr_runtime_goto_count(a,state)==reference_lr_runtime_goto_count(b,state));
+      const auto* gotos=lr_runtime_goto_data(a,state); const auto* expected_gotos=reference_lr_runtime_goto_data(b,state);
+      for(size_t i=0;i<lr_runtime_goto_count(a,state);++i)
+        assert(gotos[i].nonterminal==expected_gotos[i].nonterminal && gotos[i].state==expected_gotos[i].state);
+    }
+  }
+  lr_runtime_destroy(a); reference_lr_runtime_destroy(b);
+}
 void compare_items(LRItems* a, LRItems* b) {
   assert(lr_items_count(a)==reference_lr_items_count(b));
   const auto* actual=lr_items_data(a); const auto* expected=reference_lr_items_data(b);
@@ -102,12 +154,15 @@ void compare(const std::vector<LRProduction>& rules, const std::vector<LRSymbol>
       assert(a.first==b.first && a.last==b.last && a.rule==b.rule && a.state==b.state);
     }
   }
+  compare_runtime(states,expected_states,nonterminals);
+  assert(lr_states_lalr(states,true)); assert(reference_lr_states_lalr(expected_states,true));
+  compare_runtime(states,expected_states,nonterminals);
   lr_states_destroy(states); reference_lr_states_destroy(expected_states);
   lr_analysis_destroy(a); reference_lr_analysis_destroy(b);
 }
 bool allocation_trial() {
   const LRProduction rules[]={{0,0,1},{1,1,3},{1,4,0},{2,4,1},{2,5,1}};
-  const LRSymbol symbols[]={{1,0,0},{2,0,0},{1,0,0},{SIZE_MAX,100,200},{SIZE_MAX,0x200000,0x200004},{2,0,0}};
+  const LRSymbol symbols[]={{1,0,0},{2,0,0},{1,0,0},{SIZE_MAX,100,200},{SIZE_MAX,0x200000,0x200004},{SIZE_MAX,42,42}};
   auto* analysis=lr_analysis_create(rules,5,symbols,6,3);
   if(!analysis) return false;
   auto* input=lr_items_create(); auto* output=lr_items_create();
@@ -120,7 +175,13 @@ bool allocation_trial() {
     && lr_propagation_edge(propagation,2,0) && lr_propagation_solve(propagation);
   lr_propagation_destroy(propagation);
   if(ok) {
-    auto* states=lr_states_create(analysis); ok=states && lr_states_lalr(states,true); lr_states_destroy(states);
+    auto* states=lr_states_create(analysis); ok=states && lr_states_lalr(states,false);
+    if(ok) {
+      auto* runtime=lr_runtime_create(states); ok=runtime!=nullptr;
+      if(ok) { LRConflict conflict; assert(!lr_runtime_conflict(runtime,&conflict)); }
+      lr_runtime_destroy(runtime);
+    }
+    lr_states_destroy(states);
   }
   lr_items_destroy(input); lr_items_destroy(output); lr_analysis_destroy(analysis);
   return ok;
@@ -184,6 +245,21 @@ void lr_analysis_tests() {
     assert(tower_test_buffer_count()==baseline);
   }
   std::mt19937 random(0x4c525441);
+  // Empty input, maximum-range boundaries, many disjoint singleton alternatives
+  // (including deliberate direct-hash collisions), and shared reduction rows.
+  compare({{0,0,1},{1,1,0}},{{1,0,0}},2);
+  compare({{0,0,1},{1,1,1},{1,2,1}},{{1,0,0},{SIZE_MAX,0xfffffff0,0xffffffff},{SIZE_MAX,0xfffffffe,0xfffffffe}},2);
+  {
+    std::vector<LRProduction> rules{{0,0,1}};
+    std::vector<LRSymbol> symbols{{1,0,0}};
+    for(size_t i=0;i<128;++i) {
+      rules.push_back({1,symbols.size(),2});
+      symbols.push_back({SIZE_MAX,uint32_t(0x200000+i*1024),uint32_t(0x200000+i*1024)});
+      symbols.push_back({2,0,0});
+    }
+    rules.push_back({2,symbols.size(),1}); symbols.push_back({SIZE_MAX,1,4});
+    compare(rules,symbols,3);
+  }
   for(size_t trial=0;trial<150;++trial) {
     std::vector<LRProduction> rules;
     std::vector<LRSymbol> symbols;

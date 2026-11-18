@@ -8414,3 +8414,47 @@ npm run check:format --prefix playground, and the full Playwright config.
 Next: move runtime LR table normalization, action/goto lookup and parser control
 into Tower. Full project-owned C++ removal and portable bootstrap executables
 remain unfinished; this example does not change that endpoint.
+
+## 2026-11-18 — Runtime LR rows and lookups are Tower-owned
+
+Added compiler/lr-runtime.tower: sorted action normalization, overlap/conflict
+detection, hash-interned shared rows, singleton-token hash lookup, range lookup,
+sparse nonterminal GOTO lookup, and safe default reductions. These are disposable
+indexes derived from the same grammar entities, not a new authoritative grammar
+or public representation. Conflicts retain both alternatives for the existing
+human diagnostic adapter; order does not choose a winning action.
+
+Removed the native StateBuilder/StateTransitions implementations and their STL
+action/GOTO maps (420 lines removed, 105 adapter lines added in parser.cpp).
+Runtime action results are returned by value, avoiding a mutable temporary-pointer
+cache. A default reduction still requires an explicit singleton EOF reduction and
+every populated action to reduce the same rule, preserving grammar-revision
+boundaries. Full-range arithmetic uses u64 so the u32 maximum does not wrap when
+checking adjacent intervals. Singleton hash tables retain spare capacity so a
+missing token terminates probing. Sparse range/GOTO lookup remains logarithmic
+in grammar-table size, independent of source length.
+
+The old-style implementation remains only as a transitional independent C++ seed
+and test reference, using standard sorting/maps and linear reference lookup.
+It is still project-owned migration debt and must ultimately be retired with the
+portable bootstrap binaries. Recognizer stack/control, streams and diagnostic
+presentation are the next parser pieces to move.
+
+Validation: native optimized and Wasm/LLVM/cross builds; native ASan/UBSan harness
+4/4; Windows optimized parser suite; Node 178/178; 35 canonical Tower source
+format/parse round trips; 16 bootstrap pairs with identical optimized LLVM and
+object bytes on Linux x64, Windows x64, macOS ARM64 and Wasm. Tower objects are
+not themselves instrumented by the C++ sanitizer flags; allocation-failure and
+ownership checks also run explicitly. Runtime differential tests compare both
+whole-input and incremental modes on 150 random grammars, plus empty productions,
+u32 boundary ranges, 128 deliberate hash collisions and shared rows. Every action
+endpoint and its neighbors, missing GOTOs, defaults, conflict pairs and row counts
+are compared. Allocation failures are injected through the complete LR pipeline.
+Logs: build/lr-runtime-{native,wasm,llvm,asan,windows,node,format-check,bootstrap}.log.
+Commands use the existing build-native/build-wasm/build-llvm/test-bootstrap scripts,
+test-native-core.sh, scaffolding/tests/run.ps1 -Optimize, Node tests, and check:format.
+
+The prior template change (3156273) is also published as gh-pages eb89110, Pages
+workflow 44380620133 succeeded. verify-deployment.mjs verified all 23 online assets
+and desktop/mobile compilation, execution agreement, edits and downloads; log
+build/template-values-online.log. All custom C++ removal remains unfinished.

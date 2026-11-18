@@ -245,3 +245,72 @@ bool lr_states_lalr(LRStates* value,bool constructs) {
 size_t lr_states_action_count(LRStates* value,size_t index) { return value->states[index]->actions.size(); }
 const LRAction* lr_states_actions(LRStates* value,size_t index) { return value->states[index]->actions.data(); }
 }
+
+// Temporary independent reference/seed. Production uses lr-runtime.tower.
+struct ReferenceRuntimeState {
+  std::vector<LRAction> actions;
+  std::vector<LRGoto> gotos;
+  size_t reduction=SIZE_MAX;
+};
+struct LRRuntime {
+  std::vector<ReferenceRuntimeState> states;
+  LRConflict conflict{SIZE_MAX,{},{}};
+  size_t rows=0;
+};
+extern "C" {
+LRRuntime* lr_runtime_create(LRStates* source) {
+  auto* value=new LRRuntime;
+  value->states.resize(source->states.size());
+  using Key=std::vector<std::tuple<uint32_t,uint32_t,size_t,size_t>>;
+  std::map<Key,size_t> rows;
+  for(size_t i=0;i<source->states.size();++i) {
+    auto& state=value->states[i];
+    auto actions=source->states[i]->actions;
+    std::sort(actions.begin(),actions.end(),[](const auto& a,const auto& b) {
+      return std::tie(a.first,a.last,a.state,a.rule)<std::tie(b.first,b.last,b.state,b.rule);
+    });
+    for(auto action:actions) {
+      if(!state.actions.empty()) {
+        auto& previous=state.actions.back();
+        if(previous.rule==action.rule && previous.state==action.state &&
+            uint64_t(action.first)<=uint64_t(previous.last)+1) {
+          previous.last=std::max(previous.last,action.last); continue;
+        }
+        if(action.first<=previous.last) {
+          value->conflict={i,previous,action}; return value;
+        }
+      }
+      state.actions.push_back(action);
+    }
+    Key key;
+    for(auto action:state.actions) {
+      key.emplace_back(action.first,action.last,action.state,action.rule);
+      if(action.first==0xfffffffe && action.last==0xfffffffe) state.reduction=action.rule;
+    }
+    rows.try_emplace(key,rows.size());
+    for(auto action:state.actions) if(action.rule!=state.reduction) state.reduction=SIZE_MAX;
+    for(auto edge:source->states[i]->edges) {
+      auto n=source->analysis->symbols[edge.symbol].nonterminal;
+      if(n!=SIZE_MAX) state.gotos.push_back({n,edge.state});
+    }
+    std::sort(state.gotos.begin(),state.gotos.end(),[](auto a,auto b){return a.nonterminal<b.nonterminal;});
+  }
+  value->rows=rows.size(); return value;
+}
+void lr_runtime_destroy(LRRuntime* value) { delete value; }
+bool lr_runtime_conflict(LRRuntime* value,LRConflict* result) { *result=value->conflict; return result->state!=SIZE_MAX; }
+size_t lr_runtime_row_count(LRRuntime* value) { return value->rows; }
+size_t lr_runtime_action_count(LRRuntime* value,size_t state) { return value->states[state].actions.size(); }
+const LRAction* lr_runtime_actions(LRRuntime* value,size_t state) { return value->states[state].actions.data(); }
+size_t lr_runtime_default(LRRuntime* value,size_t state) { return value->states[state].reduction; }
+bool lr_runtime_action(LRRuntime* value,size_t state,uint32_t id,LRAction* result) {
+  for(auto action:value->states[state].actions) if(id>=action.first && id<=action.last) { *result=action; return true; }
+  return false;
+}
+size_t lr_runtime_goto_count(LRRuntime* value,size_t state) { return value->states[state].gotos.size(); }
+const LRGoto* lr_runtime_goto_data(LRRuntime* value,size_t state) { return value->states[state].gotos.data(); }
+size_t lr_runtime_goto(LRRuntime* value,size_t state,size_t nonterminal) {
+  for(auto edge:value->states[state].gotos) if(edge.nonterminal==nonterminal) return edge.state;
+  return SIZE_MAX;
+}
+}
