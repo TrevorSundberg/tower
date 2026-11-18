@@ -9524,3 +9524,15 @@ scripts/verify-deployment.mjs` passed both device profiles, all 23 asset hashes,
 interpreter/Wasm comparison, project persistence/import/export, and all five
 native targets (`build/wasm-default-deployment-local.log`). `git diff --check`
 passed; source and static artifacts are ready for the authorized normal pushes.
+
+Publication completed: source `986fb0a` (implementation `5d31b45`) was pushed
+normally to master, and static artifacts `bbe018e` to gh-pages. Pages run
+https://github.com/TrevorSundberg/tower/actions/runs/44413572192 succeeded.
+Live verification from `playground`, `node scripts/verify-deployment.mjs
+https://trevorsundberg.github.io/tower/`, passed: all 23 asset SHA-256 hashes match
+the tested build; desktop and mobile both verify Wasm plus detected defaults,
+matching interpreter/Wasm execution, persistence, project archives, grammar edits,
+and all five native outputs. No browser page errors were reported. Log:
+`build/wasm-default-deployment-live.log`; report:
+`build/deployment-verification/report.json`. Both worktrees were clean after the
+pushes; this final journal record is the only subsequent source change.
