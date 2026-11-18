@@ -13,12 +13,12 @@ fn pre_increment(p: i32*): i32 {
     return next;
 }
 
-// CorePlace matches variables, fields and indexed elements.
+// CoreLocation matches variables, fields and indexed elements.
 // Extending CoreCall covers both standalone statements and assigned results.
-parse CoreCall |= $place:CorePlace '++'
-    => replace { post_increment(&$place) };
-parse CoreCall |= '++' $place:CorePlace
-    => replace { pre_increment(&$place) };
+parse CoreCall |= $target:CoreLocation '++'
+    => replace { post_increment(&$target) };
+parse CoreCall |= '++' $target:CoreLocation
+    => replace { pre_increment(&$target) };
 
 var value: i32 = 5;
 var before: i32 = value++;
