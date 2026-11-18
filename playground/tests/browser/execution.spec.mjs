@@ -60,7 +60,7 @@ test('infinite execution stays responsive, cancels, and rejects results after ed
   await expect(page.locator('#execution-output')).toContainText('7');
   await setSource(page, grammar + '\nprint(42);');
   await expect(page.locator('#execution-status')).toHaveText('Cancelled by edit');
-  await expect(page.locator('#execution-output')).toHaveText('');
+  await expect(page.locator('#execution-output')).toContainText('7');
   await expect(page.locator('#status')).toContainText('Complete');
   await page.locator('#execute').click();
   await expect(page.locator('#execution-status')).toContainText('Finished');
@@ -76,7 +76,7 @@ test('compile and runtime errors appear inline and clear after editing', async (
   await page.locator('#editor-error').click();
   await page.locator('#editor').screenshot({ path: `../build/playground-execution-error-${info.project.name}.png` });
   await setSource(page, grammar + '\nvar a: i32; a = 1 / 0;');
-  await expect(page.locator('#execution-error')).toBeHidden();
+  await expect(page.locator('#execution-error')).toContainText('Expected i32, got u32');
   await page.locator('#execute').click();
   await expect(page.locator('.tw-inline-error-message')).toContainText('Division by zero');
   await setSource(page, grammar + '\nprint(1);');
@@ -111,10 +111,11 @@ test('auto execution follows edits, waits for valid syntax, and recovers from in
   // An unfinished edit must not execute an old program or report a semantic error.
   await setSource(page, grammar + '\nprint(');
   await expect(page.locator('#execution-status')).toHaveText('Waiting for valid source');
-  await expect(page.locator('#execution-output')).toHaveText('');
+  await expect(page.locator('#execution-output')).toHaveText('41\n');
   await page.getByRole('textbox', { name: 'Tower source' }).press('ControlOrMeta+End');
   await page.keyboard.type('42);', { delay: 70 });
   await expect(page.locator('#execution-output')).toHaveText('42\n');
+  await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem('tower-playground-document-v1')).source)).toBe(grammar + '\nprint(42);');
   await setSource(page, grammar + '\nloop { print(7); }');
   await expect(page.locator('#execution-status')).toHaveText('Executing…');
   await expect(page.locator('#execution-output')).toContainText('7');
@@ -249,6 +250,8 @@ test('LLVM infinite execution cancels on edits and traps remain inline', async (
   await setSource(page, grammar + '\nprint(42);');
   await expect(page.locator('#execution-output')).toHaveText('42\n', { timeout: 30000 });
   await expect(page.locator('#execution-status')).toHaveText('Finished · backends match');
+  // An error's caret/widget must never become source when replacing the document.
+  await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem('tower-playground-document-v1')).source)).toBe(grammar + '\nprint(42);');
 });
 
 test('LLVM loading can be cancelled without obsolete results replacing a new run', async ({ page, request }) => {

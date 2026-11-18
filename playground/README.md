@@ -22,7 +22,8 @@ npm run serve
 
 Open **http://127.0.0.1:4173/**. The server only serves static files; parsing runs
 in a browser worker. Source edits remain on the device and the latest document
-is saved in this origin's local storage. **Restore** reloads the selected document's bundled source;
+is saved with its filename and selected document in this origin's local storage,
+so refreshing keeps the dropdown and editor in agreement. **Restore** reloads the selected document's bundled source;
 editor undo can restore the previous text. **Save** downloads a `.tower` file.
 
 Recognized older Foundation files saved by the editor upgrade automatically,
@@ -42,9 +43,15 @@ Edits automatically reparse using the warm worker and cached grammar tables.
 
 Source errors appear directly below the affected editor line, with an underline,
 gutter marker and line/column location. Missing syntax at end of input gets a
-caret marker. Select **Error · Ln …** in the editor footer to jump to an offscreen
-error. Editing clears stale diagnostics immediately; the next parse replaces
-them. The parser currently stops at its first error. File-loading and runtime
+caret marker. The error card has a filled trapezoid connecting it to the width
+of the marked text; wrapped tokens connect at their final visual row. Its border
+and rounded corners form one outline, including at the left and right edges.
+At an edge the adjacent top corner becomes straight, keeping the connector a
+trapezoid rather than leaving an inset notch.
+Select **Error · Ln …** in the editor footer to jump to an offscreen
+error. Editing retains the current diagnostic until debounced analysis and
+execution supply its replacement, avoiding a disappearing/reappearing card.
+The parser currently stops at its first error. File-loading and runtime
 failures without source locations appear separately below the workspace.
 
 Shared prefixes use lookahead: `parse Statement |= ForEach | 'for';` supports
@@ -233,14 +240,17 @@ Choose **Memory** for a growing byte buffer and indexed arrays.
 Unmodified saved Foundation defaults upgrade with the bundled module;
 customized modules are retained and can be reset with **Foundation → Restore**.
 
-Auto execution waits for a successful complete parse and a 120 ms quiet period,
-coalescing edits and deferring IME composition. Syntax-only examples remain parser
+Typing waits for a **250 ms quiet period**, reset by each edit, before parsing,
+highlighting, diagnostics and auto execution update together. There is no second
+execution delay. Opening a document and explicit Execute bypass the debounce;
+IME composition defers automatic work. Syntax-only examples remain parser
 demos. Cancel stops the current source revision until another edit or explicit
 execution; re-inspecting it does not restart a cancelled infinite loop.
 
 Compilation and execution run in **one worker per backend**, separate from live parsing.
 Each column shows its own progress. **Cancel** terminates whichever workers remain;
-editing also cancels them and clears stale output/errors. Completed workers retain
+editing also cancels them and keeps the last output/errors visible until new
+results arrive. Completed workers retain
 their compiler and grammar state; each new run gets fresh program memory and
 obsolete replies are rejected. Execution has no elapsed-time cutoff;
 the interpreter runs bounded instruction slices. LLVM compiles, optimizes, links
@@ -441,7 +451,7 @@ and inline errors. Functions screenshots were visually inspected.
 To profile parsing and live typing, keep the static server running and use
 `npm run profile`. Results go to `build/playground-profile.json`. The script
 measures WASM phases and real keyboard edits in desktop/mobile browser emulation,
-including updates during continuous typing. Browser timings start at the editor
+including the single trailing update after continuous typing. Browser timings start at the editor
 text mutation and end at the result DOM update or the next animation frame;
 they do not measure physical display latency. Native timings include the ABI and
 JSON transport. See [performance notes](PERFORMANCE.md) for the before/after run.
@@ -451,7 +461,11 @@ run `node scripts/profile-execution.mjs ../build/execution-profile.json`.
 Set `TOWER_PROFILE_URL` to compare another served build. The probe measures desktop
 and mobile emulation separately, waiting for each result; it also records individual
 worker phase timings and grammar-only typing. File opening executes immediately
-after parsing; ordinary typing keeps its 120 ms coalescing delay. Compiler loading
+after parsing; ordinary typing uses the same 250 ms trailing debounce as diagnostics.
+Status timings list each backend's stages in pipeline order (backends run in
+parallel). A `(cached)` load reports the **current run's** measured reuse time,
+even when it rounds to 0.0 ms; it never substitutes an earlier cold-load measurement.
+Compiler loading
 uses a stripped, gzipped LLVM asset to reduce cold network transfer. Parser tracing
 is guarded before evaluating debug-format arguments, so disabled tracing does no
 state-dump formatting work.

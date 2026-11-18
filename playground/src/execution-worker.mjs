@@ -6,12 +6,12 @@ import { getTower, getCompiler } from './compiler-runtime.mjs';
 // terminates the worker, including synchronous compilation or an infinite loop.
 self.onmessage = async ({ data: { id, source, foundation, bedrock, backend, pointerBytes=4, inputs={} } }) => {
   let tower, handle;
-  const timings = {}, start = performance.now();
+  const timings = {};
   const send = data => postMessage({ id, backend, ...data });
   try {
     send({ phase: 'Loading…' });
-    tower = await getTower(foundation, bedrock);
-    timings.load = performance.now() - start;
+    const frontend = await getTower(foundation, bedrock); tower = frontend.tower;
+    timings.load = frontend.loadMs; timings.loadCached = frontend.cached;
     let at = performance.now();
     handle = tower.compile(source,{pointerBytes});
     timings.tower = performance.now() - at;
@@ -37,11 +37,10 @@ self.onmessage = async ({ data: { id, source, foundation, bedrock, backend, poin
       }
     } else {
       send({ phase: 'Loading LLVM…' });
-      at = performance.now();
       // Canonical text uses the bundled foundation spelling, even when the
       // editable input module gives those same semantic nodes different syntax.
-      const compiler = await getCompiler('./tower-llvm.wasm.gz');
-      timings.llvmLoad = performance.now() - at;
+      const loaded = await getCompiler('./tower-llvm.wasm.gz'), compiler = loaded.compiler;
+      timings.llvmLoad = loaded.loadMs; timings.llvmLoadCached = loaded.cached;
       send({ phase: 'Compiling LLVM…' });
       at = performance.now();
       const compiled = compiler.compile(formatted.source,{inputs});

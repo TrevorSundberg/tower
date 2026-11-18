@@ -62,6 +62,7 @@ test('an untouched saved baseline upgrades while a customized foundation stays i
     localStorage.setItem('tower-playground-foundation-base-v1', bundled);
     localStorage.setItem('tower-playground-foundation-v1', bundled.replace("'struct'", "'record'"));
     localStorage.setItem('tower-playground-source-v1', 'record S { x: i32; } var s: S; s.x = 7; print(s.x);');
+    localStorage.removeItem('tower-playground-document-v1'); // Exercise legacy source migration.
   }, bundled);
   // A pagehide persist would correctly save the open buffers; close this page
   // without navigating and test the stored revision in a new page instead.

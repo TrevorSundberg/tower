@@ -154,7 +154,7 @@ test('inline errors mark the source and preserve the saved document', async ({ p
   expect(errors).toEqual([]);
 });
 
-test('inline Unicode and end-of-input locations are correct and clear during edits', async ({ page }, info) => {
+test('inline Unicode and end-of-input locations stay visible until fresh diagnostics arrive', async ({ page }, info) => {
   await setSource(page, "// 雪🚀\nparse Statement = Number ';';\n🚀;");
   await expect(page.locator('.tw-error-range')).toHaveText('🚀');
   await expect(page.locator('.tw-inline-error-heading')).toHaveText('ErrorLn 3, Col 1');
@@ -171,10 +171,13 @@ test('inline Unicode and end-of-input locations are correct and clear during edi
   });
   await page.keyboard.insertText(';');
   await expect(page.locator('#status')).toContainText('Tower is parsing');
+  await expect(page.locator('.tw-inline-error')).toHaveCount(1);
+  await expect(page.locator('.tw-error-point')).toHaveCount(1);
+  await expect(page.locator('#editor-error')).toBeVisible();
+  await expect(page.locator('#status')).toContainText('Complete');
   await expect(page.locator('.tw-inline-error')).toHaveCount(0);
   await expect(page.locator('.tw-error-point')).toHaveCount(0);
   await expect(page.locator('#editor-error')).toBeHidden();
-  await expect(page.locator('#status')).toContainText('Complete');
   await setSource(page, incomplete + '\n');
   await expect(page.locator('.tw-inline-error-heading')).toHaveText('ErrorLn 4, Col 1');
   await expect(page.locator('.tw-error-point')).toHaveCount(1);
@@ -208,7 +211,7 @@ test('LLVM compiles the current program into a downloadable executable', async (
   await expect(page.locator('#llvm-download')).toHaveAttribute('download', 'tower-program.wasm');
 });
 
-test('continuous typing updates live and reuses the same WASM worker and grammar tables', async ({ page }) => {
+test('continuous typing coalesces into one update and reuses the WASM worker and grammar tables', async ({ page }) => {
   const workers = []; page.on('worker', worker => workers.push(worker));
   const worker = page.workers()[0];
   await worker.evaluate(() => {
@@ -223,6 +226,7 @@ test('continuous typing updates live and reuses the same WASM worker and grammar
   await editor.click(); await editor.press('ControlOrMeta+End');
   await page.keyboard.insertText('\n// typing ');
   await expect(page.locator('#status')).toContainText('Complete');
+  await worker.evaluate(() => { self.__editReplies=[]; });
   await page.evaluate(() => {
     window.__liveUpdates = 0;
     new MutationObserver(() => {
@@ -230,13 +234,11 @@ test('continuous typing updates live and reuses the same WASM worker and grammar
     }).observe(document.querySelector('#status'), { childList: true });
   });
   await page.keyboard.type('updates throughout a continuous burst of typing', { delay: 15 });
-  // This is checked BEFORE waiting for the final result: a trailing debounce
-  // would produce no updates during the burst even if its final tree is right.
-  expect(await page.evaluate(() => window.__liveUpdates)).toBeGreaterThan(3);
+  expect(await page.evaluate(() => window.__liveUpdates)).toBe(0);
   await expect(page.locator('#status')).toContainText('Complete');
   expect(workers).toHaveLength(0);
   const replies = await worker.evaluate(() => self.__editReplies);
-  expect(replies.length).toBeGreaterThan(3);
+  expect(replies).toHaveLength(1);
   expect(replies.every(reply => reply.builds === 0)).toBe(true);
 });
 

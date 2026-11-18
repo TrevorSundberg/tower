@@ -176,3 +176,24 @@ and a 120 ms quiet period. Edits immediately terminate the old execution worker;
 parser caching stays warm independently. This coalesces short typing bursts,
 but execution compilation still incurs a fresh parse/type check. The timing
 above describes live parsing, not total edit-to-execution latency.
+
+## 2026-11-17: worker reuse and trailing typing debounce
+
+The worker-lifetime and 120 ms scheduling descriptions above are historical.
+Completed backend workers now retain their compiler state; each execution still
+gets fresh program memory. Active cancellation terminates a worker, while the
+parser worker retains its separate grammar cache.
+
+Typing now has one 250 ms trailing debounce before analysis and automatic
+execution, reset by every edit. Opening files and explicit Execute remain
+immediate. Errors and previous results stay visible until replacements arrive.
+The typing profiler includes this intentional wait and checks the final update
+after a continuous burst. The execution profiler detects a new instructions DOM
+update rather than treating retained instructions as a completed new compile.
+See the project journal for sources and the reason for choosing 250 ms.
+
+Runtime load timings measure each current request. Reusing an installed runtime
+is labeled `(cached)` even if the measured lookup rounds to 0.0 ms; the display
+does not retain a cold-load measurement as a substitute for this work. Detailed
+LLVM phases and their aggregate compile total are shown separately. Each backend
+is ordered by its pipeline; the backend workers run in parallel.

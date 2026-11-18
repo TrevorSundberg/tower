@@ -76,15 +76,20 @@ try {
     await expect(page.locator('#status')).toContainText('Stopped');
     await page.locator('#editor-error').click();
     await expect(page.locator('.tw-inline-error-message')).toContainText('No token rule matches source');
+    await expect(page.locator('.has-bubble-outline')).toBeVisible();
     const badLine = bedrock.slice(0,bedrock.indexOf('token String')).split('\n').length;
     await expect(page.locator('.tw-inline-error-heading')).toHaveText(`ErrorLn ${badLine}, Col 7`);
     await page.screenshot({path:new URL(name+'-bedrock-identifier.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
     await page.getByRole('button',{name:'Restore',exact:true}).click();
     await expect(page.locator('#status')).toContainText('Complete');
     await page.reload();
-    await expect(page.locator('#execution-status')).toHaveText('Finished \u00b7 backends match',{timeout:60000});
+    await expect(page.locator('#example-kind')).toHaveValue('bedrock.tower');
+    await expect(page.locator('#filename')).toHaveText('bedrock.tower');
+    await expect(page.locator('#status')).toContainText('Complete');
     await expect(page.locator('#execution-panel')).toBeVisible();
     assert.equal(await page.evaluate(()=>localStorage.getItem('tower-playground-foundation-v1')),foundation);
+    await page.locator('#example-kind').selectOption('foreach.tower');
+    await expect(page.locator('#status')).toContainText('Complete');
     await expect(page.getByRole('button',{name:'Example',exact:true})).toHaveCount(0);
     await page.locator('#editor').click({position:{x:80,y:20}});
     await page.getByRole('textbox',{name:'Tower source'}).press('ControlOrMeta+a');
@@ -95,8 +100,20 @@ try {
     await page.getByRole('button',{name:'Restore',exact:true}).click();
     await expect(page.locator('#status')).toContainText('Complete');
     await expect(page.locator('.tw-inline-error')).toHaveCount(0);
+    await page.locator('#example-kind').selectOption('execution.tower');
+    await expect(page.locator('#execution-status')).toContainText('backends match',{timeout:60000});
+    await page.reload();
+    await expect(page.locator('#example-kind')).toHaveValue('execution.tower');
+    await expect(page.locator('#filename')).toHaveText('execution.tower');
+    await expect(page.locator('#execution-output')).toHaveText('15\n16\n',{timeout:60000});
+    await expect(page.locator('#execution-status')).toContainText('backends match',{timeout:60000});
     await page.locator('#example-kind').selectOption('memory.tower');
     await expect(page.locator('#execution-status')).toContainText('backends match',{timeout:60000});
+    for (const label of ['Tower load','LLVM load']) {
+      const timing=page.locator(`#timings [data-label="${label}"]`);
+      await expect(timing).toContainText('(cached)');
+      assert.ok(Number((await timing.textContent()).match(/([\d.]+) ms/)[1])<20);
+    }
     await page.locator('#build-targets summary').click();
     await page.locator('#target-wasm').uncheck();await page.locator('#target-x86').check();
     await page.locator('#build-targets summary').click();

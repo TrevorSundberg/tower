@@ -9,12 +9,12 @@ self.onmessage = async ({data:{id,source,foundation,bedrock,architecture,inputs=
   const send = data => postMessage({id,architecture,...data});
   try {
     send({phase:'Loading…'});
-    tower = await getTower(foundation,bedrock);
+    tower = (await getTower(foundation,bedrock)).tower;
     handle = tower.compile(source,{pointerBytes:8});
     const checked = tower.execute(handle,0);
     if (checked.status === 'error') { send({error:checked.error,diagnostic:checked,done:true}); return; }
     const formatted = tower.foundation(handle);
-    const compiler = await getCompiler('./tower-cross.wasm.gz');
+    const {compiler} = await getCompiler('./tower-cross.wasm.gz');
     const keys = architecture === 'x86' ? ['windows','linux','mac'] : ['linux-arm','mac-arm'];
     for (const key of keys) {
       const target = targets[key]; send({phase:'Compiling '+target.label+'…'});

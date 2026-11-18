@@ -6207,3 +6207,159 @@ for Bedrock, Foundation and nested library files; this is a repository-only chan
 and does not alter the already verified deployed artifacts. Source formatting
 retains comments; generated canonical executable instructions still omit source
 comments until provenance/comment propagation is implemented.
+
+
+## 2026-11-17: trailing typing debounce, stable diagnostics, document identity and honest timings
+
+The user requested a small debounce that resets on every key, applies to errors
+as well, retains current results until replacements arrive, and preserves the
+recent warm-worker speedups. They also reported that reloading Execution could
+show ForEach in the picker while retaining Execution's source, requested pipeline
+ordering and explicit cache labels for timings, and asked for more consistent
+control spacing. This entry supersedes the earlier policy of parsing every frame
+during continuous typing and waiting another 120 ms before auto execution.
+
+Research (primary sources consulted):
+
+- Algolia recommends a 200 ms autocomplete debounce and says delays above 300 ms
+  worsen perceived responsiveness:
+  https://www.algolia.com/doc/ui-libraries/autocomplete/guides/debouncing-sources
+- jQuery UI's autocomplete delay defaults to 300 ms:
+  https://api.jqueryui.com/autocomplete/#option-delay
+- CodeMirror documents 100 ms for activate-on-typing completion and 750 ms for
+  linting: https://codemirror.net/docs/ref/ . Different jobs use different delays;
+  these are examples, not a universal editor standard.
+- Aalto's 168,000-person typing study reported a mean 52 words/minute:
+  https://www.aalto.fi/en/news/the-traits-of-fast-typists-discovered-by-analysing-136-million-keystrokes
+  Using five characters per word gives an approximate 231 ms character interval.
+  That arithmetic is an inference, not a measured distribution of coding pauses
+  or a guarantee that all typists' bursts will be coalesced.
+
+Decision/implementation: a single **250 ms trailing debounce** gates parsing,
+highlight refresh, diagnostics and automatic execution. Each edit resets the
+deadline. Auto execution follows a successful analysis immediately, without a
+second debounce. File selection and explicit Execute remain immediate; IME
+composition still defers automatic work. The one-request-in-flight/latest-pending
+parser queue and retained compiler workers are unchanged. Editing cancels active
+execution immediately and rejects obsolete replies; it does not delay cancellation.
+
+Diagnostics no longer clear on each document transaction. Their source anchors
+map through edits while the existing error card widget remains visible. New parse
+or execution diagnostics replace it; a successful automatic run clears it after
+the runners finish. Output, instructions and downloads similarly remain until
+their replacement result arrives. Each architecture retires its old download URLs
+when its new build arrives. Timing spans reuse DOM nodes instead of reconstructing
+the full bar for every timing message.
+
+The first regression run exposed a real retained-decoration bug: selecting all
+and replacing source after an execution error could insert the error caret's
+literal `▏` into the document. A captured local-storage record was
+`"\nprint(42);▏\n"`, producing "No token rule matches source" and preventing a
+cancelled infinite loop from restarting. The marker now has no text content and
+uses a CSS border, with contentEditable=false. Focused cancellation/recovery tests
+then passed; the test now also verifies the saved source remains exact. Keeping
+the decorative text glyph was rejected. The reload test initially assumed a
+cursor-to-end insertion preserved a particular final blank line; it was changed
+to replace the document with a known exact edited source before reloading.
+
+Persistence root cause: the old storage saved program text without its filename
+or active module. Startup therefore defaulted the selector to ForEach independently
+of that text. The new document record stores source, filename and selected module
+together, flushing on pagehide as well as after a short save delay. Existing
+Foundation/Bedrock edits remain in their established storage keys. Legacy exact
+example matches recover their original name once; unmatched edited text becomes
+scratch.tower rather than being mislabeled. A local filename gets a matching
+picker option. Async file requests carry a generation ticket so an older download
+cannot replace a newer selection. Refresh tests cover edited Execution, Foundation
+and legacy Execution text; Restore still fetches the selected bundled file.
+
+Timing correction: an initial suggestion to retain the original cold-load cost
+was explicitly rejected by the user. No original measurement or timing history is
+stored for display. getTower/getCompiler measure **this request's actual elapsed
+time**, separately reporting whether installed runtime state was reused. A warm
+lookup may correctly display `0.0 ms (cached)`. Timing order follows each backend's
+pipeline: Tower load/compile/format/interpreter, LLVM load/parse/raw/optimize/emit/
+link/disassembly/compile total/run, followed by selected native builds. Tooltips
+explain parallel branches and that compile total includes its detailed phases.
+The execution profiler now detects an actual instructions DOM update, since merely
+seeing nonempty old instructions is no longer evidence that the new compile finished.
+
+Shared `--control-gap: 8px` now controls Targets/Auto execute/Execute/Cancel,
+file controls, link controls and panel-heading controls. Removed the Auto execute
+label's one-off right margin. The checkbox-to-label gap remains smaller.
+
+Validation environment: Windows PowerShell, Node/Playwright Chromium, local static
+server http://127.0.0.1:4173/, existing optimized Tower/LLVM WASM assets. Only the JS
+bundle/CSS changed; no C++/LLVM rebuild was required. Commands and final results
+are recorded below. One early concurrent focused/full test invocation reused the
+same Playwright output directory and caused trace ENOENT failures; subsequent
+focused runs used separate output directories and the final suite ran alone.
+
+Further regression findings: removing the literal caret alone left an extra
+trailing newline in the desktop full-document replacement case. The retained
+underline had collapsed to zero width and was being reclassified as a new EOF
+caret. Retaining whether the original diagnostic was a point, rather than
+inventing a point for a deleted range, fixed exact-source preservation; both
+desktop/mobile cancellation and incomplete-input recovery now assert exact saved
+text. Existing EOF carets continue to track edits. Legacy persistence tests were
+updated to seed genuinely legacy records and expect Foundation to remain selected
+after refresh. That also caught a missing scratch-file picker option when reloading
+while Foundation was selected; the picker now includes the saved local program
+even while another document is active. A failed attempt to use Python for a small
+CSS cleanup hit Windows' unavailable Python alias; the actual edit used Node.
+
+The user then requested an error speech bubble whose top connector spans the
+marked text, including left/right corner cases. The card and trapezoid now share
+one filled SVG outline behind the normal accessible error text, measured through
+CodeMirror's batched requestMeasure API. This avoids overlapping triangle borders,
+transparent seams or mismatched corner backgrounds. The connector's top matches
+the marked range's last visual row; its base stays inside the card's rounded
+corners, including when the source text extends beyond a corner. End-of-input
+errors use a small connector at the caret. Measurements refresh on diagnostics,
+edits, viewport and geometry changes; no compiler work is involved. Browser tests
+exercise left, right, wide and wrapped errors on desktop and phone layouts, sample
+the rendered outline against the marked text and capture screenshots for review.
+
+The user rejected the first edge treatment because clamping the connector's base
+inside a rounded corner made a notched neck instead of a trapezoid. Superseding
+that geometry: when the marked text reaches a corner, align that body edge with
+the text and omit that upper rounded corner. The connector then has one vertical
+side (`|__\` or `/__|`), with the opposite slope intact. Interior connectors keep
+both slopes, and bottom corners retain rounding. The revised tests check the
+vertical side at half connector height as well as full text-width alignment.
+Reviewed desktop/phone screenshots of left, right, wide and wrapped errors: solid
+fill, one border and no corner notch. The phone edge fixture uses a 390px viewport
+so the final monospace token actually intersects the rounded-corner region;
+393px left it just outside that region, correctly failing the original fixture's
+edge assertion rather than a rendering/alignment assertion.
+
+A final visual adjustment adds a shared 3px gap above the connector and moves the
+card down by the same amount, keeping the connector just below the squiggle rather
+than touching it. Its slopes, width and flattened edge corners are unchanged.
+
+Validation and reproduction:
+
+- `npm run build --prefix playground` rebuilt the browser assets.
+- `npm test --prefix playground`: 136/136 Node/WASM/host tests passed.
+- From playground, `npx playwright test --workers=2`: the debounce/persistence/
+  timing build passed all 86 desktop/mobile tests before the bubble addition.
+- `node scripts/profile-execution.mjs ../build/debounce-execution-profile.json`:
+  cold complete execution was 1,102 ms desktop / 1,022 ms phone emulation locally.
+  Warm file opening completed in 81–143 ms desktop and 81–141 ms phone; edits
+  including the intentional 250 ms delay completed in 296–304 / 281–300 ms.
+  Highlighting was ready in 273–287 / 266–282 ms after edits. Cached LLVM reuse
+  measured 0.0–0.1 ms on those runs, separately flagged as cached. These are local
+  browser-emulation DOM timings, not physical-device input-to-display latency.
+  Profile logs/JSON are under build/debounce-execution-profile.*.
+- The bubble corner checks passed on desktop and 390x844 phone emulation,
+  including source preservation, full marked-width alignment and both vertical
+  edge sides. Screenshots are build/error-bubble-{left,right,wide,wrapped}-{desktop,mobile}.png.
+- Other desktop/phone screenshots verified refreshed Execution selection,
+  current-run cached timing labels and shared 8px gaps, including 320px controls.
+  No native/compiler semantic files changed, so this task did not rerun a native
+  C++ rebuild or sanitizer suite.
+- With the bubble, the full suite passed **88/88** desktop/mobile checks
+  (build/playground-final-browser.log). After the final 3px gap adjustment, all
+  **10/10** relevant bubble, viewport, Unicode/EOF, saved-source and infinite-loop
+  recovery checks passed (build/bubble-gap-tests.log). The final build was rebuilt
+  and its 20 static deployment assets matched the local server by SHA-256.

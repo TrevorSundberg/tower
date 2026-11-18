@@ -30,7 +30,9 @@ test('the screenshot-era saved Foundation upgrades in the editor, persists and e
   expect(await page.evaluate(() => localStorage.getItem('tower-playground-foundation-v1'))).toBe(foundation);
   await page.screenshot({path:'../build/playground-foundation-upgraded-'+info.project.name+'.png'});
   await page.reload();
-  await expect(page.locator('#execution-status')).toHaveText('Finished \u00b7 backends match');
-  await page.locator('#example-kind').selectOption('foundation.tower');
+  await expect(page.locator('#example-kind')).toHaveValue('foundation.tower');
+  await expect(page.locator('#status')).toContainText('Complete');
   await expect(page.getByRole('textbox',{name:'Tower source'})).not.toContainText('skip Whitespace');
+  await page.locator('#example-kind').selectOption('scratch.tower');
+  await expect(page.locator('#execution-status')).toHaveText('Finished \u00b7 backends match');
 });

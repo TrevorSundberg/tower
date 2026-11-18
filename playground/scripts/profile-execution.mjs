@@ -17,12 +17,13 @@ try {
    };
    window.addEventListener('DOMContentLoaded',()=>{
     p.current={start:0,domReady:performance.now(),kind:'cold',expected:'1\n'};
-    new MutationObserver(()=>{
+    new MutationObserver(mutations=>{
      const r=p.current;if(!r)return;
      const status=document.querySelector('#status')?.textContent || '';
      if(status.startsWith('Updating')||status.startsWith('Tower is parsing'))r.sawBusy=true;
      if(r.sawBusy&&r.highlight===undefined&&status.startsWith('Complete'))r.highlight=performance.now()-r.start;
-     if(r.sawBusy&&r.instructions===undefined&&document.querySelector('#core-instructions')?.textContent)r.instructions=performance.now()-r.start;
+     const instructions=document.querySelector('#core-instructions');
+     if(r.sawBusy&&r.instructions===undefined&&instructions?.textContent&&mutations.some(m=>instructions.contains(m.target)))r.instructions=performance.now()-r.start;
      if(document.querySelector('#execution-status')?.textContent.includes('backends match')&&document.querySelector('#execution-output')?.textContent===r.expected){r.total=performance.now()-r.start;p.runs.push(r);p.current=null;}
     }).observe(document.body,{subtree:true,childList:true,characterData:true});
    });

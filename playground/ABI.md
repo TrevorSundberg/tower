@@ -237,7 +237,11 @@ Calling exported `tower_main` runs the compiled program. The WASM executable
 does not contain the interpreter.
 
 The UI defaults to auto execution after successful full parses containing Core*
-statement trees. A 120 ms quiet period coalesces edits; composition defers runs.
+statement trees. A single 250 ms quiet period, reset by each edit, precedes analysis
+and auto execution; composition defers automatic work. Opening a document or
+explicitly executing bypasses the delay. Diagnostics and output remain visible
+until replacement results arrive. Reused runtime load timings describe the current
+request and carry a separate cached flag, not a saved cold-load duration.
 Syntax-only documents keep parsing without execution errors. Cancellation marks
 the current document revision as handled, so a late parse/re-inspection cannot
 restart it; another edit or explicit Execute can. The Auto execute toggle is

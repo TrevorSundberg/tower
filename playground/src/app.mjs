@@ -60,13 +60,15 @@ let editor, source = '', offsets = [0], result = null, generation = 0;
 let frame = 0, queued = null, saveTimer, dirty = true, busy = false, example = '';
 let executionId = 0, executionError = null, runners = {};
 const idleExecutionWorkers = new Map();
-let linkInputs = {}, nativeDownloads = [], llvmViews = {};
+let linkInputs = {}, nativeDownloads = {x86:[],arm:[]}, llvmViews = {};
 let selectedTargets = {wasm:true,x86:false,arm:false};
 try { Object.assign(selectedTargets, JSON.parse(localStorage.getItem('tower-build-targets-v1') || '{}')); } catch {}
 let autoTimer = 0, documentRevision = 0, executedRevision = -1;
-let executionDelay = 0;
+const typingDebounceMs = 250;
+let typingDeadline = 0, typingTimer = 0;
 let llvmDownload, foundation = '', bundledFoundation = '', editingModule = '', bedrock = '', bundledBedrock = '';
 let programSource = '', programFilename = 'foreach.tower';
+let documentLoadId = 0;
 let editorExtensions, programState;
 const moduleStates = {};
 const backendIds = ['interpreter', 'llvm'];
@@ -85,6 +87,9 @@ function updateColumns() {
 }
 function showLLVM(key,before,after) {
   llvmViews[key] = {before,after};
+  renderLLVM();
+}
+function renderLLVM() {
   const keys = Object.keys(targets).filter(key=>llvmViews[key]);
   for (const [field,id] of [['before','llvm-before'],['after','llvm-after']])
     $(id).textContent = keys.map(key => (keys.length > 1 ? '; '+targets[key].label+'\n' : '')+llvmViews[key][field]).join('\n\n');
@@ -93,21 +98,23 @@ function compileNative(architecture,id,text) {
   const worker = idleExecutionWorkers.get(architecture) ?? new Worker(new URL('./target-worker.js',import.meta.url),{type:'module'});
   idleExecutionWorkers.delete(architecture);
   const runner = runners[architecture] = {worker,timings:{},failure:null};
+  const beginDisplay = () => { if (!runner.displayStarted) { clearNative(architecture); renderLLVM(); runner.displayStarted=true; } };
   const finish = () => {
     worker.onmessage = worker.onerror = null;
     if (runner.failure) worker.terminate(); else idleExecutionWorkers.set(architecture,worker);
     runner.worker=null; $(architecture+'-phase').textContent=runner.failure?'Failed':'Finished'; showTimings(); updateComparison();
   };
-  worker.onerror = event => { event.preventDefault(); if(id!==executionId)return; runner.failure=event.message; $(architecture+'-error').textContent=event.message; $(architecture+'-error').hidden=false; finish(); };
+  worker.onerror = event => { event.preventDefault(); if(id!==executionId)return; beginDisplay(); runner.failure=event.message; $(architecture+'-error').textContent=event.message; $(architecture+'-error').hidden=false; finish(); };
   worker.onmessage = ({data}) => {
     if(id!==executionId || data.id!==id)return;
     if(data.phase) $(architecture+'-phase').textContent=data.phase;
+    if(data.error || data.bytes || data.done) beginDisplay();
     if(data.error) { runner.failure=data.error; $(architecture+'-error').append(document.createTextNode((data.target ? targets[data.target].label+': ' : '')+data.error+'\n')); $(architecture+'-error').hidden=false; }
     if(data.bytes) {
       const target=targets[data.target];
       showLLVM(data.target,data.before,data.after);
       $(architecture+'-disassembly').append(document.createTextNode(target.label+'\n'+data.disassembly+'\n'));
-      const url=URL.createObjectURL(new Blob([data.bytes],{type:'application/octet-stream'})); nativeDownloads.push(url);
+      const url=URL.createObjectURL(new Blob([data.bytes],{type:'application/octet-stream'})); nativeDownloads[architecture].push(url);
       const link=node('a','',target.label); link.href=url; link.download=$('filename').textContent.replace(/\.tower$/,'')+'-'+data.target+'.'+target.extension;
       const item=node('span','',data.bytes.length.toLocaleString()+' bytes '); item.append(link); $(architecture+'-downloads').append(item);
       runner.timings[target.label]=data.ms; showTimings();
@@ -118,25 +125,41 @@ function compileNative(architecture,id,text) {
 }
 function showTimings() {
   const a = runners.interpreter?.timings ?? {}, b = runners.llvm?.timings ?? {};
-  const values = [['Tower compile', a.tower], ['Instructions', a.instructions], ['LLVM compile', b.llvm],
+  const values = [['Tower load', a.load, a.loadCached], ['Tower compile', a.tower], ['Instructions', a.instructions],
+    ['Interpreter run', a.execute], ['LLVM load', b.llvmLoad, b.llvmLoadCached], ['LLVM parse', b.parse],
     ['LLVM raw', b.before], ['LLVM optimize', b.after], ['LLVM emit', b.emit], ['Link', b.link],
-    ['Interpreter run', a.execute], ['LLVM run', b.execute], ['Tower load', a.load], ['LLVM load', b.llvmLoad]];
+    ['LLVM disassembly', b.disassembly], ['LLVM compile total', b.llvm], ['LLVM run', b.execute]];
   for(const architecture of ['x86','arm']) for(const [label,ms] of Object.entries(runners[architecture]?.timings??{})) values.push([label+' compile',ms]);
   const shown = values.filter(([label]) => selectedTargets.wasm || !label.startsWith('LLVM') && label !== 'Link');
-  $('timings').replaceChildren(...shown.map(([label, ms]) => {
-    const value = node('span', '', `${label} ${ms === undefined ? '—' : ms.toFixed(1) + ' ms'}`);
-    value.title = label === 'Instructions' ? 'Format shared Foundation nodes as compilable Tower source; no separate bytecode is built.' : label;
+  const existing = new Map([...$('timings').children].map(value=>[value.dataset.label,value]));
+  const elements = shown.map(([label, ms, cached]) => {
+    const value = existing.get(label) ?? node('span'); value.dataset.label = label;
+    const text = `${label} ${ms === undefined ? '—' : ms.toFixed(1) + ' ms'}${cached ? ' (cached)' : ''}`;
+    if (value.textContent !== text) value.textContent = text;
+    value.title = cached ? 'Time measured this run to reuse cached compiler state.' :
+      label === 'LLVM compile total' ? 'Total includes the LLVM phases above; it is not an additional stage.' :
+      label === 'Instructions' ? 'Format shared Foundation nodes as compilable Tower source; no separate bytecode is built.' : label;
     return value;
-  }));
-  $('steps').textContent = runners.interpreter?.result?.steps !== undefined ? `${runners.interpreter.result.steps.toLocaleString()} steps` : '';
+  });
+  if (elements.some((element,index)=>$('timings').children[index]!==element) || elements.length!==$('timings').children.length) $('timings').replaceChildren(...elements);
+  $('timings').title = 'Backend branches run in parallel; each is listed in pipeline order. Totals include their detailed phases.';
+  if (runners.interpreter?.result?.steps !== undefined) $('steps').textContent = `${runners.interpreter.result.steps.toLocaleString()} steps`;
 }
-function clearCompiled() {
-  nativeDownloads.forEach(url=>URL.revokeObjectURL(url)); nativeDownloads=[]; llvmViews={};
-  for(const architecture of ['x86','arm']) { $(architecture+'-disassembly').textContent=''; $(architecture+'-downloads').replaceChildren(); $(architecture+'-error').textContent=''; $(architecture+'-error').hidden=true; $(architecture+'-phase').textContent='Ready'; }
-  for (const id of ['core-instructions', 'llvm-before', 'llvm-after', 'wasm-disassembly']) $(id).textContent = '';
+function clearNative(architecture) {
+  nativeDownloads[architecture].forEach(url=>URL.revokeObjectURL(url)); nativeDownloads[architecture]=[];
+  for (const key of architecture === 'x86' ? ['windows','linux','mac'] : ['linux-arm','mac-arm']) delete llvmViews[key];
+  $(architecture+'-disassembly').textContent=''; $(architecture+'-downloads').replaceChildren();
+  $(architecture+'-error').textContent=''; $(architecture+'-error').hidden=true;
+}
+function clearWasm() {
   if (llvmDownload) URL.revokeObjectURL(llvmDownload); llvmDownload = null;
   $('llvm-download').hidden = true; $('llvm-status').textContent = '';
-  $('wasm-downloads').hidden = true;
+  $('wasm-downloads').hidden = true; $('wasm-disassembly').textContent = ''; delete llvmViews.wasm;
+}
+function clearCompiled() {
+  for(const architecture of ['x86','arm']) { clearNative(architecture); $(architecture+'-phase').textContent='Ready'; }
+  clearWasm(); llvmViews={}; $('steps').textContent = '';
+  for (const id of ['core-instructions', 'llvm-before', 'llvm-after']) $(id).textContent = '';
   runners = {}; showTimings();
   for (const backend of backendIds) {
     $(outputId(backend)).textContent = ''; $(errorId(backend)).hidden = true;
@@ -150,7 +173,7 @@ function scheduleAutoExecution() {
   if (!$('auto-execute').checked || dirty || executedRevision === documentRevision) return;
   if (result?.end?.status !== 'done') { $('execution-status').textContent = 'Waiting for valid source'; return; }
   if (!result.events.some(event => event.status === 'statement' && event.nodes.some(item => item.production !== null && item.label.startsWith('Core')))) {
-    $('execution-status').textContent = 'Syntax only'; return;
+    clearCompiled(); $('execution-status').textContent = 'Syntax only'; return;
   }
   $('execution-status').textContent = 'Waiting…';
   const revision = documentRevision;
@@ -159,7 +182,7 @@ function scheduleAutoExecution() {
     if (revision !== documentRevision || dirty || !$('auto-execute').checked) return;
     if (editor.composing) { scheduleAutoExecution(); return; }
     execute();
-  }, executionDelay);
+  }, editor.composing ? typingDebounceMs : 0);
 }
 function stopExecution(message) {
   clearTimeout(autoTimer); autoTimer = 0; ++executionId;
@@ -178,6 +201,8 @@ function executionDiagnostic(error) {
   const diagnostic = sourceDiagnostic(editor.state.doc, byteOffsets(editor.state.doc.toString()), error, result?.snapshot?.highlights ?? []);
   editor.dispatch({ effects: setDiagnostic.of(diagnostic) });
   $('editor-error').hidden = !diagnostic;
+  $('diagnostic').hidden = true;
+  if (error && !diagnostic) showError(error.error);
   if (diagnostic) {
     $('editor-error').textContent = `Error · Ln ${diagnostic.line}`;
     $('editor-error').setAttribute('aria-label', `Go to error on line ${diagnostic.line}`);
@@ -196,11 +221,12 @@ function updateComparison() {
   if(nativeRunning) $('execution-status').textContent += ' · compiling targets…';
   else if(['x86','arm'].some(key=>runners[key]?.failure)) $('execution-status').textContent += ' · target build failed';
   $('execute').disabled = isExecuting();
+  if (!isExecuting() && !executionError && result?.end?.status === 'done') executionDiagnostic(null);
   cancelState();
 }
 function execute() {
-  stopExecution(); clearCompiled();
-  executedRevision = documentRevision; executionError = null; executionDiagnostic(null);
+  stopExecution(); runners = {};
+  executedRevision = documentRevision; executionError = null;
   $('execution-status').textContent = 'Executing…';
   $('execute').disabled = true; $('cancel-execution').disabled = false;
   const id = executionId, text = editor.state.doc.toString();
@@ -215,6 +241,7 @@ function execute() {
       runner.worker = null; showTimings(); updateComparison();
     };
     const fail = message => {
+      $(outputId(backend)).textContent='';
       runner.failure = message; $(errorId(backend)).textContent = message; $(errorId(backend)).hidden = false;
       $(backend + '-phase').textContent = 'Unavailable'; finish();
     };
@@ -224,10 +251,15 @@ function execute() {
       if (data.timings) { runner.timings = data.timings; showTimings(); }
       if (data.error) { fail(data.error); return; }
       if (data.phase) $(backend + '-phase').textContent = data.phase;
-      if (data.foundation !== undefined && backend === 'interpreter') $('core-instructions').textContent = data.foundation;
+      if (data.foundation !== undefined) {
+        runner.formatted=true;
+        if (backend === 'interpreter') $('core-instructions').textContent = data.foundation;
+      }
       if (data.llvm) {
+        runner.compiled=true;
         showLLVM('wasm',data.llvm.before,data.llvm.after);
         $('wasm-disassembly').textContent = data.llvm.disassembly;
+        if (llvmDownload) URL.revokeObjectURL(llvmDownload);
         llvmDownload = URL.createObjectURL(new Blob([data.llvm.wasm], { type: 'application/wasm' }));
         $('llvm-download').href = llvmDownload; $('llvm-download').hidden = false;
         $('llvm-status').textContent = `${data.llvm.wasm.length.toLocaleString()} bytes`;
@@ -235,12 +267,18 @@ function execute() {
       }
       const answer = data.result;
       if (!answer) return;
+      if (!runner.displayStarted) {
+        $(outputId(backend)).textContent=''; $(errorId(backend)).hidden=true;
+        runner.displayStarted=true;
+      }
       if (answer.output) { runner.output += answer.output; $(outputId(backend)).append(document.createTextNode(answer.output)); }
       $(backend === 'interpreter' ? 'output-limit' : 'llvm-output-limit').hidden = !answer.outputTruncated;
       if (answer.status === 'executing') return;
       runner.result = { ...answer, output: runner.output };
       $(backend + '-phase').textContent = answer.status === 'error' ? 'Failed' : 'Finished';
       if (answer.status === 'error') {
+        if (backend === 'interpreter' && !runner.formatted) $('core-instructions').textContent='';
+        if (backend === 'llvm' && !data.llvm && !runner.compiled) { clearWasm(); renderLLVM(); }
         $(errorId(backend)).textContent = answer.error; $(errorId(backend)).hidden = false;
         if (!executionError) { executionError = answer; executionDiagnostic(answer); }
       }
@@ -396,15 +434,22 @@ function render() {
   });
   const error = result.end?.status === 'error' ? result.end : executionError;
   const diagnostic = sourceDiagnostic(editor.state.doc, offsets, error, snapshot.highlights);
-  editor.dispatch({ effects: [paint.of(Decoration.set(decorations, true)), setDiagnostic.of(diagnostic)] });
-  $('editor-error').hidden = !diagnostic;
-  if (diagnostic) {
+  const awaitingExecution = result.end?.status === 'done' && $('auto-execute').checked &&
+    (executedRevision !== documentRevision || isExecuting()) &&
+    result.events.some(event => event.status === 'statement' && event.nodes.some(item => item.production !== null && item.label.startsWith('Core')));
+  const effects = [paint.of(Decoration.set(decorations, true))];
+  if (!awaitingExecution) effects.push(setDiagnostic.of(diagnostic));
+  editor.dispatch({effects});
+  if (!awaitingExecution) $('editor-error').hidden = !diagnostic;
+  if (!awaitingExecution && diagnostic) {
     $('editor-error').textContent = `Error · Ln ${diagnostic.line}`;
     $('editor-error').setAttribute('aria-label', `Go to error on line ${diagnostic.line}`);
     $('editor-error').title = diagnostic.message;
   }
-  $('diagnostic').hidden = true;
-  if (error && !diagnostic) showError(error.error);
+  if (!awaitingExecution) {
+    $('diagnostic').hidden = true;
+    if (error && !diagnostic) showError(error.error);
+  }
   renderTree(); renderGrammar(snapshot);
   const prefix = result.end?.status === 'error' ? 'Stopped' : result.end?.status === 'done' ? 'Complete' : 'Paused';
   $('status').textContent = `${prefix} · ${snapshot.revision} grammar revisions · ${result.ms.toFixed(1)} ms`;
@@ -414,7 +459,7 @@ async function perform(method) {
   // One request in flight, one latest pending request. Ordinary edits never
   // destroy the warm WASM worker or accumulate a backlog of obsolete sources.
   if (busy) { queued = method; return; }
-  cancelAnimationFrame(frame); frame = 0; queued = null;
+  cancelAnimationFrame(frame); clearTimeout(typingTimer); typingTimer=0; frame = 0; queued = null;
   const ticket = ++generation;
   method = 'analyze';
   source = editor.state.doc.toString(); offsets = byteOffsets(source);
@@ -437,6 +482,9 @@ async function perform(method) {
 function schedule(method = 'analyze') {
   queued = method;
   if (frame || busy) return;
+  clearTimeout(typingTimer); typingTimer=0;
+  const remaining = typingDeadline - performance.now();
+  if (remaining > 0) { typingTimer=setTimeout(()=>{typingTimer=0;schedule(queued);},remaining); return; }
   frame = requestAnimationFrame(() => {
     frame = 0;
     // Do not disturb a mobile/IME composition with parse decorations.
@@ -455,31 +503,42 @@ function persist() {
     localStorage.setItem('tower-playground-foundation-base-v1', bundledFoundation);
     localStorage.setItem('tower-playground-bedrock-v1', bedrock);
     localStorage.setItem('tower-playground-bedrock-base-v1', bundledBedrock);
+    localStorage.setItem('tower-playground-document-v1', JSON.stringify({
+      source:programSource, filename:programFilename, module:editingModule,
+    }));
   } catch {}
 }
 window.addEventListener('pagehide', () => { if (editor) persist(); stopExecution(); });
 function changed() {
-  executionDelay = 120; // Coalesce typing; opening a document needs no debounce.
+  typingDeadline = performance.now() + typingDebounceMs;
+  clearTimeout(typingTimer); typingTimer=0; cancelAnimationFrame(frame); frame=0;
   ++documentRevision;
   const wasExecuting = isExecuting();
   stopExecution(wasExecuting ? 'Cancelled by edit' : 'Ready');
-  clearCompiled();
   executionError = null;
   if (editingModule === 'bedrock') bedrock = editor.state.doc.toString();
   else if (editingModule === 'foundation') foundation = editor.state.doc.toString();
   else programSource = editor.state.doc.toString();
   ++generation; dirty = true; controls();
   $('node-info').textContent = 'Tree spans refer to UTF-8 source bytes.';
-  $('diagnostic').hidden = true;
-  $('editor-error').hidden = true;
   $('status').textContent = 'Updating…';
   clearTimeout(saveTimer); saveTimer = setTimeout(persist, 250);
   schedule();
 }
 function replaceSource(text, filename = 'scratch.tower') {
-  $('filename').textContent = editingModule ? editingModule + '.tower' : filename;
+  if (!editingModule) programFilename=filename;
+  selectCurrentDocument();
   editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: text } });
-  executionDelay = 0;
+  typingDeadline = 0; schedule();
+}
+function selectCurrentDocument() {
+  const filename = editingModule ? editingModule + '.tower' : programFilename;
+  const picker = $('example-kind');
+  for (const option of picker.querySelectorAll('[data-local]')) if (option.value !== programFilename) option.remove();
+  if (![...picker.options].some(option=>option.value===programFilename)) {
+    const option = new Option(programFilename, programFilename); option.dataset.local='true'; picker.add(option);
+  }
+  picker.value=filename; $('filename').textContent=filename;
 }
 function switchDocument(target = '') {
   if (editingModule === target) return;
@@ -487,15 +546,13 @@ function switchDocument(target = '') {
   if (editingModule) moduleStates[editingModule] = editor.state;
   else { programState = editor.state; programFilename = $('filename').textContent; }
   editingModule = target;
-  const selection = target ? target + '.tower' : programFilename;
-  if ([...$('example-kind').options].some(option => option.value === selection)) $('example-kind').value = selection;
-  $('filename').textContent = target ? target + '.tower' : programFilename;
+  selectCurrentDocument();
   editor.setState((target ? moduleStates[target] : programState) ?? EditorState.create({
     doc: target === 'bedrock' ? bedrock : target === 'foundation' ? foundation : programSource,
     extensions: editorExtensions,
   }));
   changed();
-  executionDelay = 0;
+  typingDeadline = 0; schedule();
 }
 
 function showTab(which) {
@@ -560,6 +617,7 @@ $('auto-execute').onchange = () => {
   } else stopExecution('Auto off');
 };
 async function loadDocument(reset = false) {
+  const ticket = ++documentLoadId;
   const filename = $('example-kind').value;
   if (filename === 'bedrock.tower' || filename === 'foundation.tower') {
     const target = filename.slice(0, -6);
@@ -568,6 +626,7 @@ async function loadDocument(reset = false) {
     return;
   }
   if (!reset && filename === programFilename) { switchDocument(''); return; }
+  if ($('example-kind').selectedOptions[0]?.dataset.local) { switchDocument(''); return; }
   try {
     let text = example;
     if (filename !== 'foreach.tower') {
@@ -575,6 +634,7 @@ async function loadDocument(reset = false) {
       if (!response.ok) throw new Error('Unable to load example');
       text = await response.text();
     }
+    if (ticket !== documentLoadId) return;
     switchDocument('');
     programFilename = filename; $('example-kind').value = filename; replaceSource(text, filename);
   } catch (error) { showError(error.message); }
@@ -584,9 +644,10 @@ $('example-kind').onchange = () => loadDocument();
 $('open').onclick = () => $('file').click();
 $('file').onchange = async () => {
   const file = $('file').files[0]; if (!file) return;
+  const ticket = ++documentLoadId;
   try {
     if (file.size > 128 * 1024) throw new Error('Playground source limit is 128 KiB');
-    replaceSource(await file.text(), file.name);
+    const text=await file.text(); if(ticket===documentLoadId) replaceSource(text,file.name);
   } catch (error) { showError(error.message); }
   $('file').value = '';
 };
@@ -609,6 +670,21 @@ async function start() {
   let initial = example;
   try {
     initial = localStorage.getItem('tower-playground-source-v1') ?? example;
+    let saved;
+    try { saved=JSON.parse(localStorage.getItem('tower-playground-document-v1') || 'null'); } catch {}
+    if (saved && typeof saved.source==='string' && typeof saved.filename==='string' && saved.filename.length) {
+      initial=saved.source; programFilename=saved.filename;
+      editingModule=['bedrock','foundation'].includes(saved.module) ? saved.module : '';
+    } else if (initial !== example) {
+      // Older versions saved text without its filename. Recover an exact bundled
+      // example match once; otherwise label it honestly as a local scratch file.
+      const names=[...$('example-kind').options].map(option=>option.value)
+        .filter(name=>!['bedrock.tower','foundation.tower','foreach.tower'].includes(name));
+      const candidates=await Promise.all(names.map(async name=>{
+        try { const response=await fetch('./'+name); return response.ok && await response.text()===initial ? name : null; } catch { return null; }
+      }));
+      programFilename=candidates.find(Boolean) ?? 'scratch.tower';
+    }
     bedrock = await selectFoundation(bundledBedrock, localStorage.getItem('tower-playground-bedrock-v1'), localStorage.getItem('tower-playground-bedrock-base-v1'));
     const savedFoundation = localStorage.getItem('tower-playground-foundation-v1');
     foundation = await selectFoundation(bundledFoundation, savedFoundation, localStorage.getItem('tower-playground-foundation-base-v1'), { bedrock });
@@ -622,6 +698,7 @@ async function start() {
     }
   } catch {}
   programSource = initial;
+  initial = editingModule === 'bedrock' ? bedrock : editingModule === 'foundation' ? foundation : programSource;
   editorExtensions = [
     lineNumbers(), highlightActiveLineGutter(), highlightActiveLine(), history(), highlighting, selectionMark, editorDiagnostics,
     EditorView.lineWrapping, EditorView.theme({ '&': { color: '#d4e0e2', backgroundColor: '#121a1e' } }, { dark: true }),
@@ -636,6 +713,7 @@ async function start() {
     }),
   ];
   editor = new EditorView({ parent: $('editor'), state: EditorState.create({ doc: initial, extensions: editorExtensions }) });
+  selectCurrentDocument(); persist();
   clearCompiled(); clearInspection(); showTab('tree'); controls();
   await perform('analyze');
 }
