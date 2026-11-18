@@ -9,7 +9,7 @@ import { compareResults } from './comparison.mjs';
 import { selectFoundation } from './foundation-storage.mjs';
 import { targets, nativeTargetKeys, emptySelection, savedTargetSelection, targetSelectionKey, linkInputsForTarget } from './targets.mjs';
 import { detectBrowserTarget, defaultTargetSelection } from './browser-target.mjs';
-import { CodeOutput } from './code-output.mjs';
+import { OutputPane } from './output-pane.mjs';
 import {examples, filePath, newProject, projectStore, validateProject, projectSources} from './projects.mjs';
 import {exportProject, importProject} from './project-archive.mjs';
 
@@ -64,22 +64,38 @@ let editor, source = '', offsets = [0], result = null, generation = 0;
 let frame = 0, queued = null, dirty = true, busy = false;
 let executionId = 0, executionError = null, runners = {};
 const idleExecutionWorkers = new Map();
-let linkInputs = {}, nativeDownloads = {}, llvmViews = {};
+let linkInputs = {}, llvmViews = {};
 let selectedTargets = { ...emptySelection(), wasm: true }, savedSelection = null, targetsChanged = false;
 try { savedSelection = savedTargetSelection(localStorage); } catch {}
 if (savedSelection) selectedTargets = savedSelection;
 const browserTarget = detectBrowserTarget(navigator);
-const codeOutputs = new Map();
-function showCode(id,text,syntax) {
-  if (!codeOutputs.has(id)) codeOutputs.set(id,new CodeOutput($(id),syntax));
-  codeOutputs.get(id).setText(text);
+const outputPanes = new Map(), runnerPanes = new Map();
+const outputBody = document.querySelector('.execution-body');
+function addPane(config, runner) {
+  const pane = new OutputPane(outputBody, config);
+  outputPanes.set(config.output, pane);
+  if (runner) runnerPanes.set(runner, pane);
+  return pane;
 }
+addPane({title:'Tower instructions', output:'core-instructions', label:'Canonical foundation source', syntax:'tower'});
+addPane({id:'llvm-raw-column', title:'LLVM raw', output:'llvm-before', syntax:'llvm'});
+addPane({id:'llvm-optimized-column', title:'LLVM optimized', output:'llvm-after', syntax:'llvm'});
+addPane({id:'interpreter-column', title:'Interpreter Execution', output:'execution-output', label:'Interpreter output', phase:'interpreter-phase', error:'execution-error', limit:'output-limit'}, 'interpreter');
+addPane({id:'wasm-column', title:'Wasm Execution', output:'llvm-output', label:'LLVM output', phase:'llvm-phase', error:'llvm-error', limit:'llvm-output-limit'}, 'llvm');
+addPane({id:'wasm-disassembly-column', title:'WebAssembly disassembly', output:'wasm-disassembly', label:'Wasm disassembly', syntax:'wasm', downloads:{id:'wasm-downloads', link:'llvm-download', size:'llvm-status'}});
+for (const key of nativeTargetKeys) {
+  const target = targets[key];
+  addPane({id:key+'-column', title:target.label+' disassembly', description:target.triple, output:key+'-disassembly', syntax:target.syntax, phase:key+'-phase', error:key+'-error', downloads:{id:key+'-downloads'}}, key);
+}
+function showCode(id, text) { outputPanes.get(id).code.setText(text); }
+function setPhase(backend, text = '') { runnerPanes.get(backend).setPhase(text); }
+function downloadName(key, extension) { return $('filename').textContent.replace(/\.tower$/, '')+'-'+key+'.'+extension; }
 const selectedNativeKeys = () => nativeTargetKeys.filter(key => selectedTargets[key]);
 let autoTimer = 0, documentRevision = 0, executedRevision = -1;
 const typingDebounceMs = 200;
 let diagnosticPhase = null;
 let typingDeadline = 0, typingTimer = 0;
-let llvmDownload, foundation = '', bundledFoundation = '', editingModule = '', bedrock = '', bundledBedrock = '';
+let foundation = '', bundledFoundation = '', editingModule = '', bedrock = '', bundledBedrock = '';
 let documentLoadId = 0;
 let editorExtensions, projects = [], project, storage, activePath = '', saveSequence = 0;
 const fileStates = new Map(), bundledExamples = new Map();
@@ -124,20 +140,20 @@ function showLLVM(key,before,after) {
 function renderLLVM() {
   const keys = Object.keys(targets).filter(key=>llvmViews[key]);
   for (const [field,id] of [['before','llvm-before'],['after','llvm-after']])
-    showCode(id,keys.map(key => (keys.length > 1 ? '; '+targets[key].label+'\n' : '')+llvmViews[key][field]).join('\n\n'),'llvm');
+    showCode(id,keys.map(key => (keys.length > 1 ? '; '+targets[key].label+'\n' : '')+llvmViews[key][field]).join('\n\n'));
 }
 function compileNative(id,text) {
   const keys = selectedNativeKeys();
   const worker = idleExecutionWorkers.get('native') ?? new Worker(new URL('./target-worker.js',import.meta.url),{type:'module'});
   idleExecutionWorkers.delete('native');
   const runner = runners.native = {worker,keys,timings:{},failure:null,completed:new Set()};
-  for (const key of keys) $(key+'-phase').textContent='Loading…';
+  for (const key of keys) setPhase(key,'Loading…');
   const beginDisplay = () => { if (!runner.displayStarted) { keys.forEach(clearNative); renderLLVM(); runner.displayStarted=true; } };
   const fail = (message,key) => {
     runner.failure=message;
     for (const target of key ? [key] : keys.filter(key=>!runner.completed.has(key))) {
       $(target+'-error').textContent=message; $(target+'-error').hidden=false;
-      $(target+'-phase').textContent='Failed'; runner.completed.add(target);
+      setPhase(target,'Failed'); runner.completed.add(target);
     }
   };
   const finish = () => {
@@ -148,17 +164,15 @@ function compileNative(id,text) {
   worker.onerror = event => { event.preventDefault(); if(id!==executionId)return; beginDisplay(); fail(event.message); finish(); };
   worker.onmessage = ({data}) => {
     if(id!==executionId || data.id!==id)return;
-    if(data.phase && !data.done) for (const key of data.target ? [data.target] : keys) $(key+'-phase').textContent=data.phase;
+    if(data.phase && !data.done) for (const key of data.target ? [data.target] : keys) setPhase(key,data.phase);
     if(data.error || data.bytes || data.done) beginDisplay();
     if(data.error) fail(data.error,data.target);
     if(data.bytes) {
       const target=targets[data.target];
       showLLVM(data.target,data.before,data.after);
-      showCode(data.target+'-disassembly',data.disassembly,target.syntax);
-      const url=URL.createObjectURL(new Blob([data.bytes],{type:'application/octet-stream'})); nativeDownloads[data.target]=url;
-      const link=node('a','',target.label); link.href=url; link.download=$('filename').textContent.replace(/\.tower$/,'')+'-'+data.target+'.'+target.extension;
-      const item=node('span','',data.bytes.length.toLocaleString()+' bytes '); item.append(link); $(data.target+'-downloads').replaceChildren(item);
-      $(data.target+'-phase').textContent='Finished'; runner.completed.add(data.target);
+      showCode(data.target+'-disassembly',data.disassembly);
+      outputPanes.get(data.target+'-disassembly').setDownload(data.bytes, {label:target.label, filename:downloadName(data.target,target.extension)});
+      setPhase(data.target); runner.completed.add(data.target);
       runner.timings[target.label]=data.ms; showTimings();
     }
     if(data.done)finish();
@@ -188,24 +202,23 @@ function showTimings() {
   if (runners.interpreter?.result?.steps !== undefined) $('steps').textContent = `${runners.interpreter.result.steps.toLocaleString()} steps`;
 }
 function clearNative(key) {
-  if (nativeDownloads[key]) URL.revokeObjectURL(nativeDownloads[key]); delete nativeDownloads[key];
+  outputPanes.get(key+'-disassembly').clearDownload();
   delete llvmViews[key];
-  showCode(key+'-disassembly','',targets[key].syntax); $(key+'-downloads').replaceChildren();
+  showCode(key+'-disassembly','');
   $(key+'-error').textContent=''; $(key+'-error').hidden=true;
 }
 function clearWasm() {
-  if (llvmDownload) URL.revokeObjectURL(llvmDownload); llvmDownload = null;
-  $('llvm-download').hidden = true; $('llvm-status').textContent = '';
-  $('wasm-downloads').hidden = true; showCode('wasm-disassembly','','wasm'); delete llvmViews.wasm;
+  outputPanes.get('wasm-disassembly').clearDownload();
+  showCode('wasm-disassembly',''); delete llvmViews.wasm;
 }
 function clearCompiled() {
-  for(const key of nativeTargetKeys) { clearNative(key); $(key+'-phase').textContent='Ready'; }
+  for(const key of nativeTargetKeys) { clearNative(key); setPhase(key); }
   clearWasm(); llvmViews={}; $('steps').textContent = '';
-  for (const id of ['core-instructions', 'llvm-before', 'llvm-after']) showCode(id,'',id==='core-instructions'?'tower':'llvm');
+  for (const id of ['core-instructions', 'llvm-before', 'llvm-after']) showCode(id,'');
   runners = {}; showTimings();
   for (const backend of backendIds) {
     $(outputId(backend)).textContent = ''; $(errorId(backend)).hidden = true;
-    $(backend + '-phase').textContent = 'Ready';
+    setPhase(backend);
   }
   $('output-limit').hidden = $('llvm-output-limit').hidden = true;
 }
@@ -232,7 +245,7 @@ function stopExecution(message) {
     const runner = runners[backend];
     if (runner?.worker) {
       runner.worker.terminate(); runner.worker = null;
-      for (const key of backend === 'native' ? runner.keys.filter(key=>!runner.completed.has(key)) : [backend]) $(key + '-phase').textContent = 'Cancelled';
+      for (const key of backend === 'native' ? runner.keys.filter(key=>!runner.completed.has(key)) : [backend]) setPhase(key,'Cancelled');
     }
   }
   $('execute').disabled = !editor;
@@ -280,7 +293,7 @@ function execute() {
     const worker = idleExecutionWorkers.get(backend) ?? new Worker(new URL('./execution-worker.js', import.meta.url), { type: 'module' });
     idleExecutionWorkers.delete(backend);
     const runner = runners[backend] = { worker, output: '', timings: {} };
-    $(backend + '-phase').textContent = 'Loading…';
+    setPhase(backend,'Loading…');
     const finish = () => {
       worker.onmessage = worker.onerror = null;
       if (runner.failure) worker.terminate(); else idleExecutionWorkers.set(backend, worker);
@@ -289,30 +302,26 @@ function execute() {
     const fail = message => {
       $(outputId(backend)).textContent='';
       runner.failure = message; $(errorId(backend)).textContent = message; $(errorId(backend)).hidden = false;
-      $(backend + '-phase').textContent = 'Unavailable'; finish();
+      setPhase(backend,'Unavailable'); finish();
     };
     worker.onerror = event => { event.preventDefault(); if (id === executionId) fail(event.message || 'Execution worker stopped'); };
     worker.onmessage = ({ data }) => {
       if (id !== executionId || data.id !== id) return;
       if (data.timings) { runner.timings = data.timings; showTimings(); }
       if (data.error) { fail(data.error); return; }
-      if (data.phase) $(backend + '-phase').textContent = data.phase;
+      if (data.phase) setPhase(backend,data.phase);
       if (data.foundation !== undefined) {
         // Semantic compilation has succeeded. A previous run's diagnostic no
         // longer applies, even if this new program executes indefinitely.
         if (!executionError && diagnosticPhase === 'execution') executionDiagnostic(null);
         runner.formatted=true;
-        if (backend === 'interpreter') showCode('core-instructions',data.foundation,'tower');
+        if (backend === 'interpreter') showCode('core-instructions',data.foundation);
       }
       if (data.llvm) {
         runner.compiled=true;
         showLLVM('wasm',data.llvm.before,data.llvm.after);
-        showCode('wasm-disassembly',data.llvm.disassembly,'wasm');
-        if (llvmDownload) URL.revokeObjectURL(llvmDownload);
-        llvmDownload = URL.createObjectURL(new Blob([data.llvm.wasm], { type: 'application/wasm' }));
-        $('llvm-download').href = llvmDownload; $('llvm-download').hidden = false;
-        $('llvm-status').textContent = `${data.llvm.wasm.length.toLocaleString()} bytes`;
-        $('wasm-downloads').hidden = false;
+        showCode('wasm-disassembly',data.llvm.disassembly);
+        outputPanes.get('wasm-disassembly').setDownload(data.llvm.wasm, {label:'WASM', filename:downloadName('wasm','wasm'), type:'application/wasm'});
       }
       const answer = data.result;
       if (!answer) return;
@@ -324,9 +333,9 @@ function execute() {
       $(backend === 'interpreter' ? 'output-limit' : 'llvm-output-limit').hidden = !answer.outputTruncated;
       if (answer.status === 'executing') return;
       runner.result = { ...answer, output: runner.output };
-      $(backend + '-phase').textContent = answer.status === 'error' ? 'Failed' : 'Finished';
+      setPhase(backend,answer.status === 'error' ? 'Failed' : '');
       if (answer.status === 'error') {
-        if (backend === 'interpreter' && !runner.formatted) showCode('core-instructions','','tower');
+        if (backend === 'interpreter' && !runner.formatted) showCode('core-instructions','');
         if (backend === 'llvm' && !data.llvm && !runner.compiled) { clearWasm(); renderLLVM(); }
         $(errorId(backend)).textContent = answer.error; $(errorId(backend)).hidden = false;
         if (!executionError) { executionError = answer; executionDiagnostic(answer); }
@@ -696,15 +705,6 @@ for(const [key,target] of Object.entries(targets)) {
   if(key!=='wasm') caption.append(node('small','',target.triple));
   else caption.append(node('small','','32-bit · browser module'));
   label.append(input,caption); $('target-options').append(label);
-  if(key!=='wasm') {
-    const column=node('section','execution-column native-column'); column.id=key+'-column'; column.hidden=true;
-    const heading=node('h2','',target.label+' disassembly'); heading.title=target.triple;
-    const code=node('div'); code.id=key+'-disassembly'; code.setAttribute('aria-label',target.label+' disassembly');
-    const status=node('div','target-phase','Ready'); status.id=key+'-phase'; status.setAttribute('role','status');
-    const error=node('p','runner-error'); error.id=key+'-error'; error.hidden=true; error.setAttribute('role','alert');
-    const downloads=node('div','target-downloads'); downloads.id=key+'-downloads';
-    column.append(heading,code,error,status,downloads); document.querySelector('.execution-body').append(column);
-  }
   input.onchange=()=>{
     targetsChanged=true;
     selectedTargets[key]=input.checked;

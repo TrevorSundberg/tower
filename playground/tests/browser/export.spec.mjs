@@ -13,9 +13,13 @@ async function choose(page,key,checked){
 }
 test('target selection controls compilation and equal columns without stopping the interpreter',async({page},info)=>{
  await expect(page.locator('#wasm-disassembly-column #llvm-download')).toBeVisible();
+ await expect(page.locator('.output-phase:visible')).toHaveCount(0);
+ await expect(page.locator('.target-phase')).toHaveCount(0);
+ await expect(page.locator('.execution-column:visible > .output-body')).toHaveCount(6);
+ await expect(page.locator('.target-downloads:visible')).toHaveCount(1);
  await expect.poll(()=>outputText(page,'wasm-disassembly')).toContain('tower_main');
  await expect.poll(()=>outputText(page,'wasm-disassembly')).toContain('i32.const');
- await expect(page.locator('.runner-column h2').first()).toContainText('Interpreter Execution');
+ await expect(page.locator('#interpreter-column h2')).toContainText('Interpreter Execution');
  await expect(page.locator('#wasm-column h2')).toContainText('Wasm Execution');
  const event=page.waitForEvent('download');await page.locator('#llvm-download').click();
  expect(WebAssembly.validate(await readFile(await(await event).path()))).toBe(true);
@@ -42,6 +46,8 @@ test('native targets compile automatically, display disassembly and download pla
  await expect(page.locator('#llvm-raw-column')).toBeVisible();await expect(page.locator('#wasm-column')).toBeHidden();
  for(const [key,label,extension,magic] of [['windows','Windows x64','exe',[77,90]],['linux','Linux x64','elf',[127,69,76,70]],['mac','macOS x64','macho',[207,250,237,254]],['linux-arm','Linux ARM64','elf',[127,69,76,70]],['mac-arm','macOS ARM64','macho',[207,250,237,254]]]){
   await expect(page.locator('#'+key+'-error')).toBeHidden();
+  await expect(page.locator('#'+key+'-column > h2 > .output-phase')).toBeHidden();
+  await expect(page.locator('#'+key+'-column > .target-downloads')).toBeVisible();
   await expect(page.locator('#'+key+'-column h2')).toHaveText(label+' disassembly');
   await expect.poll(()=>outputText(page,key+'-disassembly')).toContain('ret');
   const event=page.waitForEvent('download');await page.locator('#'+key+'-downloads').getByRole('link',{name:label,exact:true}).click();
@@ -52,13 +58,13 @@ test('native targets compile automatically, display disassembly and download pla
   await expect(page.locator('#'+key+'-disassembly .tw-keyword').first()).toBeVisible();
  }
  async function reuse(file) {
-  await expect(page.locator('#mac-arm-phase')).toHaveText('Finished');
+  await expect(page.locator('#mac-arm-phase')).toBeHidden();
   const workers=page.workers().filter(w=>w.url().includes('target-worker'));
   expect(workers).toHaveLength(1);
   const requests=[];const record=r=>requests.push(r.url());page.on('request',record);
   await selectDocument(page, file);
   await expect(page.locator('#mac-arm-downloads a')).toHaveAttribute('download',file.replace('.tower','-mac-arm.macho'));
-  await expect(page.locator('#mac-arm-phase')).toHaveText('Finished');
+  await expect(page.locator('#mac-arm-phase')).toBeHidden();
   expect(page.workers().filter(w=>w.url().includes('target-worker'))).not.toEqual(workers);
   expect(requests.some(url=>url.includes('tower-cross.wasm'))).toBe(true);
   page.off('request',record);
@@ -72,6 +78,7 @@ test('cancel stops pending native builds and edits discard stale downloads',asyn
  await page.route('**/tower-cross.wasm.gz',async route=>{await gate;await route.continue().catch(()=>{});});
  await choose(page,'windows',true);await expect(page.locator('#windows-phase')).toHaveText('Loading…');
  await page.locator('#cancel-execution').click();await expect(page.locator('#execution-status')).toHaveText('Cancelled');
+ await expect(page.locator('#windows-column > h2 > .output-phase')).toHaveText('Cancelled');
  release();await page.unroute('**/tower-cross.wasm.gz');await choose(page,'windows',false);
  const editor=page.getByRole('textbox',{name:'Tower source'});await editor.click();await editor.press('ControlOrMeta+a');await page.keyboard.insertText('print(42);');
  await expect(page.locator('#execution-output')).toHaveText('42\n');await expect(page.locator('#windows-downloads a')).toHaveCount(0);

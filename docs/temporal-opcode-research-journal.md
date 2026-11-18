@@ -9654,3 +9654,21 @@ suites: 218 Node tests and 128 desktop/mobile tests passed, the latter in 3.3
 minutes. Logs: `build/syntax-validation-combined-{dist,node,browser}.log`.
 The local playground contains the new compiler. This task pushes source to
 master; it does not republish the gh-pages artifacts.
+### 2026-11-18: shared playground output panes
+
+The output area had static instruction/LLVM/Wasm panes, separate execution markup,
+and dynamically built native panes with a dedicated status footer. Introduced
+OutputPane for a shared heading, scrolling body, optional diagnostics and optional
+download footer. Active/cancelled/failed statuses share the heading; successful
+pane statuses clear, leaving the single overall execution/comparison summary.
+Wasm and native artifacts now share blob URL replacement/revocation, byte counts,
+and source/target download naming. Removed the native-only status bar and styles.
+
+Initial Windows validation found stale local build/browser-wasi/tower.wasm:
+execution failed with "tw_exec_create_files is not a function". This is an artifact
+mismatch with the existing project UI, before compilation reaches the pane changes.
+The first focused Playwright run was stopped; fetch found newer compiler and target
+default work on origin/master. Rebase and reuse of the corresponding published
+compiler artifacts precede further validation. Python and Ubuntu WSL are absent
+on this host; Node is available at the local nvm v21.7.3 path (added to command PATH).
+Validation and publication results follow. todo.txt remains untouched.

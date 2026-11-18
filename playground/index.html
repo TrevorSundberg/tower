@@ -43,14 +43,7 @@
         <div class="execution-title"><strong>Instructions &amp; results</strong><span id="execution-status" role="status" aria-live="polite">Ready</span></div>
         <div class="execution-controls"><details id="build-targets" class="target-picker"><summary>Targets</summary><div class="target-menu"><div id="target-options"></div></div></details><label class="auto-execute"><input id="auto-execute" type="checkbox" checked> Auto execute</label><button id="execute" disabled>Execute</button><button id="cancel-execution" disabled>Cancel</button></div>
       </div>
-      <div class="execution-body">
-        <section class="execution-column"><h2>Tower instructions</h2><div id="core-instructions" aria-label="Canonical foundation source"></div></section>
-        <section id="llvm-raw-column" class="execution-column"><h2>LLVM raw</h2><div id="llvm-before" aria-label="LLVM raw"></div></section>
-        <section id="llvm-optimized-column" class="execution-column"><h2>LLVM optimized</h2><div id="llvm-after" aria-label="LLVM optimized"></div></section>
-        <section class="execution-column runner-column"><h2>Interpreter Execution <span id="interpreter-phase">Ready</span></h2><div class="runner-result"><pre id="execution-output" aria-label="Interpreter output"></pre><p id="execution-error" class="runner-error" role="alert" hidden></p><p id="output-limit" class="runner-error" hidden>Output limited to 64 KiB.</p></div></section>
-        <section id="wasm-column" class="execution-column runner-column"><h2>Wasm Execution <span id="llvm-phase">Ready</span></h2><div class="runner-result"><pre id="llvm-output" aria-label="LLVM output"></pre><p id="llvm-error" class="runner-error" role="alert" hidden></p><p id="llvm-output-limit" class="runner-error" hidden>Output limited to 64 KiB.</p></div></section>
-        <section id="wasm-disassembly-column" class="execution-column native-column"><h2>WebAssembly disassembly</h2><div id="wasm-disassembly" aria-label="Wasm disassembly"></div><div id="wasm-downloads" class="target-downloads" hidden><span><span id="llvm-status"></span><a id="llvm-download" hidden download="tower-program.wasm">WASM</a></span></div></section>
-      </div>
+      <div class="execution-body"></div>
     </section>
     <div id="diagnostic" class="diagnostic" role="alert" hidden><span class="error-icon" aria-hidden="true">!</span><div><strong>Unable to continue</strong><p id="error-message"></p></div></div>
     <footer class="statusbar"><div class="status-summary"><span id="status" role="status" aria-live="polite">Loading Tower?</span><span id="revision"></span><span id="steps"></span><span id="build-status" role="status" aria-live="polite"></span><button id="clear-link-files" hidden>Clear link files</button><a href="./THIRD-PARTY-NOTICES.txt" target="_blank" rel="noopener">Notices</a></div><div id="timings" class="timings" aria-label="Compilation and execution timings"></div></footer>

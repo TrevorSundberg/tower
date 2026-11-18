@@ -326,7 +326,7 @@ test('LLVM loading can be cancelled without obsolete results replacing a new run
   await page.locator('#execute').click();
   await expect(page.locator('#llvm-phase')).toHaveText('Loading…');
   await expect(page.locator('#execution-output')).toHaveText('12\n');
-  await expect(page.locator('#interpreter-phase')).toHaveText('Finished');
+  await expect(page.locator('#interpreter-phase')).toBeHidden();
   await expect(page.locator('#cancel-execution')).toBeEnabled();
   await page.locator('#cancel-execution').click();
   await expect(page.locator('#execution-status')).toHaveText('Cancelled');

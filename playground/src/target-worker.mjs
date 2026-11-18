@@ -44,7 +44,7 @@ async function receive({data:{command,id,source,foundation,bedrock,targetKeys=[]
       const output = result.binary;
       postMessage({id,target:key,bytes:output,before:result.before,after:result.after,disassembly:result.disassembly,ms:performance.now()-start,timings:result.timings},[output.buffer]);
     }
-    send({done:true,phase:'Finished'});
+    send({done:true});
   } catch(error) { send({error:error.message,done:true}); }
   finally { if(handle) tower.destroyExecution(handle); }
 }

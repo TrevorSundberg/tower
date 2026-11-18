@@ -211,7 +211,7 @@ test('LLVM compiles the current program into a downloadable executable', async (
   await expect(page.locator('#execution-status')).toContainText('Finished · backends match', { timeout: 30000 });
   await expect(page.locator('#execution-output')).toHaveText('720\n721\n');
   await expect(page.locator('#llvm-download')).toBeVisible();
-  await expect(page.locator('#llvm-download')).toHaveAttribute('download', 'tower-program.wasm');
+  await expect(page.locator('#llvm-download')).toHaveAttribute('download', 'functions-wasm.wasm');
 });
 
 test('continuous typing coalesces into one update and reuses the WASM worker and grammar tables', async ({ page }) => {
