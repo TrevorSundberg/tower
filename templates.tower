@@ -1,28 +1,33 @@
-// A type-producing function. Repeated box(i32) calls share one concrete type.
-fn box(T: type): type {
+// Type and integer arguments determine the fields of a concrete struct.
+fn buffer(T: type, size: usize): type {
     struct Result {
-        value: T;
+        data: T[size];
     }
     return Result;
 }
 
-// Type parameters may appear after parameters whose types depend on them.
-fn store(destination: box(T)*, T: type, value: T): void {
-    destination.value = value;
+fn stack(T: type): type {
+    struct Result {
+        storage: buffer(T, 4);
+        count: usize;
+    }
+    return Result;
 }
 
-fn identity(T: type, value: T): T {
-    return value;
+// This small example assumes there is space to push and a value to pop.
+fn push(T: type, values: stack(T)*, value: T): void {
+    values.storage.data[values.count] = value;
+    values.count = values.count + 1;
 }
 
-var number: box(i32);
-store(&number, i32, 42);
-print(number.value);
+fn pop(T: type, values: stack(T)*): T {
+    values.count = values.count - 1;
+    return values.storage.data[values.count];
+}
 
-var wide: box(u64);
-store(&wide, u64, 9000000000);
-print(identity(u64, wide.value));
-
-var nested: box(box(i32));
-nested.value.value = 7;
-print(nested.value.value);
+var values: stack(i32);
+values.count = 0;
+push(i32, &values, 10);
+push(i32, &values, 20);
+print(pop(i32, &values));
+print(pop(i32, &values));
