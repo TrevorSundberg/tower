@@ -9161,3 +9161,39 @@ native downloads and old-state override regression checks passed with zero page
 errors: Windows x64 alone with (detected), Android fallback Wasm alone without
 the marker, and no diagnostic paragraph. Live log: build/target-default-fix-live.log;
 report/screenshots: build/deployment-verification/.
+
+### 2026-11-18 — Integrating the syntax migration with concurrent playground work
+
+Source commits `bff7a0c` and `bb98324` contain the Tower snapshot/component
+migrations. Publishing encountered concurrent source/Pages updates, first
+`67302b1`/`c81058e` and then `f59cd6c`/`dd7a363`. Normal pushes rejected the
+outdated branch tips; no force push was used. Merged the target profiles,
+virtualized highlighted output, and subsequent single-target defaults rather
+than overwriting them. Journal conflicts were append-only and retained both
+entries. Unrelated local journal notes were restored after each merge; the
+existing AGENTS/foundation notes and todo.txt changes were not included.
+
+The first merged build passed 210 Node tests. The browser run passed 110 cases
+and failed the two large-output fixture cases because their esbuild import
+resolved against `process.cwd()` and the command ran from the repository root.
+Changed that test fixture to resolve from its own module URL; all four
+output-highlighting cases then passed from the same root invocation. This is a
+test path correction, not a product rendering failure. Logs:
+`build/syntax-merged-{node,browser,highlighting}.log`.
+
+After the follow-up target-default change, rebuilt the combined static site and
+passed all 211 Node tests plus the 44 affected desktop/mobile target-default,
+execution and highlighting cases. Logs: `build/syntax-final-{node,browser}.log`.
+The compiler code is unchanged from the fully checked syntax migration, so the
+native/Windows/Wasm/format/bootstrap results in the preceding entry still apply.
+Retained the performance baseline assets from Pages `110b5a3` in
+`build/syntax-nodes-baseline`; the profiling script now reads that immutable local
+snapshot instead of the deployment checkout which necessarily changes.
+
+Published the combined artifacts as Pages commit `d664f8f`; workflow
+`44403119583` succeeded. Online verification matched all 23 assets to the local
+build and passed desktop/mobile backend agreement, forward bindings, editable
+grammar, persistence, native downloads, equal columns, legacy-selection reset,
+single-target defaults and detection markers. Command:
+`node playground/scripts/verify-deployment.mjs https://trevorsundberg.github.io/tower/`.
+Logs: `build/syntax-nodes-pages.log`, `build/syntax-nodes-online.log`.

@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { build } from 'esbuild';
+import { fileURLToPath } from 'node:url';
 import { outputText } from './output-text.mjs';
 
 test('real compilation highlights foundation, both LLVM forms and Wasm',async({page})=>{
@@ -16,7 +17,7 @@ test('real compilation highlights foundation, both LLVM forms and Wasm',async({p
 });
 
 test('multi-megabyte output virtualizes, stays read-only, and highlights after scrolling',async({page},info)=>{
-  const bundle=await build({stdin:{contents:`import { CodeOutput } from './src/code-output.mjs'; window.output=new CodeOutput(document.getElementById('large'),'llvm');`,resolveDir:process.cwd()},bundle:true,format:'esm',write:false});
+  const bundle=await build({stdin:{contents:`import { CodeOutput } from './src/code-output.mjs'; window.output=new CodeOutput(document.getElementById('large'),'llvm');`,resolveDir:fileURLToPath(new URL('../../',import.meta.url))},bundle:true,format:'esm',write:false});
   await page.route('**/output-fixture.js',route=>route.fulfill({contentType:'text/javascript',body:bundle.outputFiles[0].text}));
   await page.route('**/highlight-fixture',route=>route.fulfill({contentType:'text/html',body:'<link rel="stylesheet" href="/style.css"><div id="large" aria-label="Large output" style="height:200px;flex:none"></div><script type="module" src="/output-fixture.js"></script>'}));
   await page.goto('/highlight-fixture');
