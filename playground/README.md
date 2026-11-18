@@ -471,8 +471,10 @@ specialization, bindings, provenance and iterative syntax cloning.
 payloads, including their text and arrays through `vector(T)`. Native consumers
 borrow opaque payloads through accessors; they do not mirror their field layouts.
 `compiler/lexer-table.tower` owns flat DFA transition rows and performs Unicode
-maximal-prefix matching. These tables are derived caches. Regex syntax compilation,
-the LALR table builder, recognizer control loop, higher-level grammar/foundation
+maximal-prefix matching. These tables are derived caches. Regex notation is now
+defined in `compiler/regex-grammar.tower` using the ordinary grammar components
+and parsed by the same LR engine over Unicode scalars. Its parse tree stays on
+shared entities. NFA/DFA lowering, the LALR table builder, recognizer control loop, higher-level grammar/foundation
 payloads, formatter and backends still contain C++ to migrate.
 
 The remaining native node adapter binds allocation and existing C++ component

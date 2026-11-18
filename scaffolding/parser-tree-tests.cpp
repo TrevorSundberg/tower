@@ -120,6 +120,40 @@ TowerNode* add_token(Stream* stream, uint32_t id, size_t start, size_t length) {
 }
 
 void parser_tree_tests() {
+  // One reduction can inherit overlapping character lookaheads from several
+  // callers. Their union is one action, not a reduce/reduce conflict.
+  for (const char* input : {"pxb", "pxz", "qxm", "qxz"}) {
+    AllocationCheck allocations;
+    Parse parse;
+    for (bool narrow : {false, true}) {
+      auto* rule = parser_rule_create_subtree(parse.rules, "S", false);
+      parser_string_create_subtree_utf8_null_terminated(rule, narrow ? "q" : "p");
+      parser_reference_create_subtree(rule, "A");
+      parser_range_create_subtree(rule, narrow ? 'm' : 'a', 'z');
+    }
+    auto* rule = parser_rule_create_subtree(parse.rules, "A", false);
+    parser_string_create_subtree_utf8_null_terminated(rule, "x");
+    parse.begin(input);
+    auto* root = finish(parse.recognizer);
+    match(root, 1, 0, 3);
+    tower_node_release_ref(root);
+  }
+  // Identical lookahead ranges with different reductions remain a real conflict.
+  {
+    AllocationCheck allocations;
+    Parse parse;
+    for (const char* name : {"A", "B"}) {
+      auto* rule = parser_rule_create_subtree(parse.rules, "S", false);
+      parser_reference_create_subtree(rule, name);
+      parser_range_create_subtree(rule, 'a', 'z');
+      rule = parser_rule_create_subtree(parse.rules, name, false);
+      parser_string_create_subtree_utf8_null_terminated(rule, "x");
+    }
+    char* error = nullptr;
+    parse.table = parser_table_create(parse.rules, nullptr, nullptr, parser_table_utf8_id_to_string, &error);
+    assert(!parse.table && error && std::strstr(error, "reduce/reduce"));
+    tower_memory_free(error);
+  }
   {
     AllocationCheck check;
     Parse parse; expression_grammar(parse.rules);

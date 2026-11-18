@@ -2,4 +2,5 @@
 file(READ "${VECTOR}" vector)
 file(READ "${PAYLOADS}" payloads)
 file(READ "${LEXER}" lexer)
-file(WRITE "${OUTPUT}" "${vector}\n${payloads}\n${lexer}")
+file(READ "${REGEX}" regex)
+file(WRITE "${OUTPUT}" "${vector}\n${payloads}\n${lexer}\n${regex}")

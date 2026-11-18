@@ -1169,7 +1169,7 @@ struct StateBuilderEdge {
       return false;
     }
     size_t lhs_rule_index =     reduce_rule ? reduce_rule->index : (size_t)-1;
-    size_t rhs_rule_index = rhs.reduce_rule ? reduce_rule->index : (size_t)-1;
+    size_t rhs_rule_index = rhs.reduce_rule ? rhs.reduce_rule->index : (size_t)-1;
     return lhs_rule_index < rhs_rule_index;
   }
 
@@ -1945,6 +1945,19 @@ std::string parser_table_build_states(
 
   for (size_t i = 0; i < table_builder.states.size(); ++i) {
     StateBuilder& builder = *table_builder.states[i].get();
+    // LALR lookahead unions can contain overlapping character ranges for the
+    // same action. Union them before conflict checks and transition sharing.
+    // Different actions must stay distinct so real conflicts are diagnosed.
+    SortedVector<StateBuilderEdge> normalized;
+    normalized.reserve(builder.edges.size());
+    for (const auto& edge : builder.edges) {
+      if (!normalized.empty() && normalized.back().reduce_rule == edge.reduce_rule &&
+          normalized.back().shift_state_index == edge.shift_state_index &&
+          uint64_t(edge.terminal.start) <= uint64_t(normalized.back().terminal.end) + 1) {
+        normalized.back().terminal.end = std::max(normalized.back().terminal.end, edge.terminal.end);
+      } else normalized.push_back(edge);
+    }
+    builder.edges = std::move(normalized);
     State& state = table.states[i];
     state.symbol = builder.symbol;
     state.diagnostic_items.assign(builder.items.kernels.begin(), builder.items.kernels.end());
@@ -2478,6 +2491,14 @@ TowerNode* parser_recognizer_step(Recognizer* recognizer, bool* running) {
 }
 
 void parser_tests_internal() {
+  {
+    GrammarRule first, second; first.index = 1; second.index = 2;
+    StateBuilderEdge a{.terminal = {'a', 'z'}, .reduce_rule = &first};
+    StateBuilderEdge b{.terminal = {'a', 'z'}, .reduce_rule = &second};
+    assert(a < b && !(b < a) && !(a < a));
+    SortedVector<StateBuilderEdge> edges;
+    assert(edges.insert(a) && edges.insert(b) && edges.size() == 2);
+  }
   // Test SortedVector
   {
     SortedVector<int32_t> values;

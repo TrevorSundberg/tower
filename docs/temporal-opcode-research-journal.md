@@ -7937,3 +7937,69 @@ browser,format-check}.log. Next: shared regex grammar and safe symbol-stream DFA
 specialization, alongside continued migration of native semantic payloads and
 parser algorithms. Higher-level grammar/foundation components, LR construction/
 control, formatter, interpreter, backend/driver and native adapters remain to port.
+
+## 2026-11-18 — Regex syntax now uses Tower's ordinary character parser
+
+Implemented the first shared-grammar step. compiler/regex-grammar.tower builds
+ordinary Rule/Reference/String/Range entities for regex notation; production
+lex_pattern_compile parses with the existing LR engine and raw Unicode-scalar
+stream. The grammar handles sequences, choices, grouping, suffix operators,
+character classes and escapes. The resulting parse tree is retained on the same
+entity model by the compiled pattern; DFA arrays remain derived caches. A narrow
+compiler-grammar.cpp construction ABI bridges the current native API. The old
+hand-written reader moved to bootstrap/lex-pattern-seed.cpp for seed builds and
+differential tests. NFA/DFA lowering still lives in C++ and reads the parsed nodes;
+this does not yet finish the broader regular-rule compiler or all native migration.
+
+The class grammar intentionally exposes dash entries; semantic range grouping
+preserves escaped dashes, leading/trailing dashes and cases such as [a-b-c]. The
+lowerer is iterative over the shared tree, with the existing 64 group-depth bound.
+Empty fragments need no artificial epsilon node until a choice requires one.
+Invalid pattern diagnostics use character positions. A source-wide UTF-8 check
+prevents the raw stream's EOF-on-invalid-input convention from accepting a valid
+prefix of a malformed pattern.
+
+This exposed real LR-table bugs, not an ambiguity to resolve by priority:
+- LALR lookahead unions contained overlapping ranges selecting the SAME reduction;
+  conflict checking incorrectly called them reduce/reduce conflicts. Normalize
+  overlapping/adjacent ranges with identical actions before table sharing/checking.
+- StateBuilderEdge's ordering read the left reduction index when comparing the
+  right edge. Correct it so different reductions remain distinct and real
+  conflicts cannot be silently discarded. Tests check ordering, identical-action
+  range unions, and genuine reduce/reduce conflicts.
+
+Initial failures included a namespace collision between the parser Range payload
+and the NFA range alias (rename ScalarRange), and a temporary source-generation
+escape mistake (fixed before validation). A seed-token assertion was disabled in
+release builds, allowing a failed immutable token definition to cause a later null
+matcher crash; seed initialization now reports its error and aborts immediately.
+The initial foreach CLI execution probe was the wrong fixture because that file
+contains parse-only syntax; templates.tower correctly prints 42, 9000000000, 7.
+
+Validation: native/WasM/LLVM+cross reactors build; 4/4 ASan/UBSan suites, optimized
+Windows MSVC suite, 177/177 Node tests, 102/102 desktop/mobile browser tests and
+all 16 bootstrap module/target pairs pass. The bootstrap output is identical in
+optimized LLVM and object bytes. Added regex differential checks against the old
+reader: 300 generated patterns, 500 randomized syntax strings, explicit escape/
+class/nullability cases, embedded NUL and invalid UTF-8. Successful patterns match
+the same byte lengths at every offset in generated Unicode/malformed inputs.
+All 29 Tower source files pass canonical formatting. Logs: build/regex-shared-*.log.
+
+Profile against published 478cbd4: 12 warmups plus 40 alternating warm compile+
+format samples, median ms small 6.419 -> 6.127, inference 6.308 -> 6.267,
+replacements 25.774 -> 23.812, 500 declarations 20.664 -> 21.078. The latter p95
+was 25.422 -> 37.069, so these samples do not establish a universal speedup or
+identical tail latency. Fresh-instance loads with Wasm code precompiled had
+medians about 124.5 -> 121.1 ms (six measured pairs, with outliers on both sides).
+Scripts/reports: build/profile-regex-shared.mjs, build/profile-regex-load.mjs,
+build/regex-shared-performance.json, build/regex-shared-load.json.
+
+Separately, the prior payload/matcher checkpoint 478cbd4 was deployed as cc985fe;
+Pages workflow 44360016473 succeeded. verify-deployment.mjs confirmed all 23 assets
+and desktop/mobile behavior online (build/parser-payload-online.log).
+
+Next implementation: a conservative finite-state specialization for fixed terminal
+sequences on either character or token streams, preserving captures/entities and
+error context with LR as reference. Broader regular alternatives, recursive token
+grammars and in-context regular subrule specialization remain authorized work;
+do not describe the entire DFA direction or pure-Tower endpoint as complete.

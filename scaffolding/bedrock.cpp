@@ -1,6 +1,8 @@
 #include "syntax-nodes.hpp"
 #include <cassert>
 #include <initializer_list>
+#include <cstdio>
+#include <cstdlib>
 
 namespace {
 TowerNodeRef entity(SyntaxKind kind) {
@@ -34,7 +36,8 @@ void rule(TowerNode* document, const char* name, std::initializer_list<TowerNode
 void token(TowerNode* document, SyntaxKind kind, const char* name, const char* pattern, const char* style = "", bool contextual = false) {
   auto node = entity(kind); auto& value = syntax_node(node.get());
   value.name = name; value.text = pattern; value.style = style; value.contextual = contextual;
-  std::string error; value.compiled = lex_pattern_compile(pattern, error); assert(error.empty());
+  std::string error; value.compiled = lex_pattern_compile(pattern, error);
+  if (!value.compiled) { std::fprintf(stderr, "Invalid seed token %s: %s\n", name, error.c_str()); std::abort(); }
   append(document, node);
 }
 }

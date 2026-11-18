@@ -5,11 +5,13 @@
 #include <string_view>
 #include <vector>
 #include "compiler-lexer-table.hpp"
+#include "node-ref.hpp"
 
 // A compiled regular token pattern. UTF-8 input, Unicode scalar character
 // ranges, longest prefix match. No exceptions or recursive backtracking.
 struct LexPattern {
   LexerTable* table;
+  TowerNodeRef grammar; // regex syntax stays on the shared entities; tables are derived
   LexPattern();
   ~LexPattern();
   LexPattern(const LexPattern&) = delete;
