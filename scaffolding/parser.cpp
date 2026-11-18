@@ -1067,12 +1067,6 @@ bool parser_recognizer_accepts(Recognizer* recognizer, uint32_t id) {
   return parser_find_action(&recognizer->table->states[frame.state], id);
 }
 
-static ParseForest parser_forest_leaf(Recognizer* recognizer, TowerNode* node) {
-  ParseForest result;
-  if (!parse_forest_leaf(recognizer->forest, node, &result)) std::abort();
-  return result;
-}
-
 static void parser_return_lookahead(Recognizer* recognizer) {
   if (!recognizer->has_lookahead) return;
   auto* stream = recognizer->stream;
@@ -1189,36 +1183,6 @@ static void parser_unexpected(Recognizer* recognizer) {
   recognizer->complete = true;
 }
 
-static TowerNode* parser_shift_value(Recognizer* recognizer, uint32_t id) {
-  TowerNode* node = recognizer->read_node_or_null;
-  if (node && tower_node_get_parent(node)) {
-    recognizer->error = "Stream returned an attached node"; recognizer->complete = true; return nullptr;
-  }
-  if (!node) node = tower_node_create();
-  auto* match = (Match*)tower_node_get_component_userdata(node, parser_match_get_type());
-  if (!match) {
-    match = parser_match_create(node);
-    parser_match_set_id(match, id);
-    parser_match_set_start(match, recognizer->read_start);
-    parser_match_set_length(match, recognizer->read_length);
-  }
-  if (!*parser_match_get_label(match)) parser_match_set_label(match, debug_str(id, recognizer->table->grammar).c_str());
-  return node;
-}
-
-static TowerNode* parser_reduction_value(Recognizer* recognizer, const GrammarRule& rule,
-    size_t start, size_t end, ParseForest children) {
-  TowerNode* node = tower_node_create();
-  Match* match = parser_match_create(node);
-  parser_match_set_id(match, (uint32_t)rule.non_terminal->index);
-  parser_match_set_rule_index(match, rule.index);
-  parser_match_set_label(match, rule.non_terminal->name.data());
-  parser_match_set_start(match, start);
-  parser_match_set_length(match, end - start);
-  if (!parse_forest_attach(recognizer->forest, node, children.first)) std::abort();
-  return node;
-}
-
 TowerNode* parser_recognizer_step(Recognizer* recognizer, bool* running) {
   assert(recognizer && running);
   *running = false;
@@ -1237,10 +1201,7 @@ TowerNode* parser_recognizer_step(Recognizer* recognizer, bool* running) {
     recognizer->complete = true; return nullptr;
   }
   if (kind == LR_ACCEPT) {
-    assert(lr_parser_frame_count(recognizer->control) == 2);
-    LRFrame frame; lr_parser_frame(recognizer->control, 1, &frame);
-    assert(frame.first == frame.last && frame.first != TOWER_INVALID_INDEX);
-    auto* root = parse_forest_take(recognizer->forest, frame.first);
+    auto* root = static_cast<TowerNode*>(lr_tree_accept(recognizer->control, recognizer->forest));
     assert(root);
     if (recognizer->prefix) parser_return_lookahead(recognizer);
     recognizer->complete = true; return root;
@@ -1253,44 +1214,20 @@ TowerNode* parser_recognizer_step(Recognizer* recognizer, bool* running) {
     parser_trace("STEP: %s at byte %zu\n", debug_str(edge, *recognizer->table).c_str(), recognizer->read_start);
   }
   if (shift) {
-    auto* node = parser_shift_value(recognizer, step.id);
-    if (!node) return nullptr;
-    auto nodes = parser_forest_leaf(recognizer, node);
-    if (kind == LR_SEQUENCE_SHIFT) {
-      LRFrame frame; lr_parser_sequence_forest(recognizer->control, &frame);
-      ParseForest joined{frame.first, frame.last};
-      const auto& capture = recognizer->table->grammar.rules[step.rule].symbols[step.pop].capture;
-      if (!parse_forest_join(recognizer->forest, &joined, nodes.first, nodes.last, capture.data())) std::abort();
-      nodes = joined;
+    void* input = recognizer->read_node_or_null;
+    const auto label = lr_tree_needs_label(input, parser_match_get_type()) ? debug_str(step.id, recognizer->table->grammar) : std::string{};
+    const auto status = lr_tree_shift(recognizer->control, recognizer->forest, recognizer->table->grammar.view.get(),
+      parser_match_get_type(), &step, &input, label.c_str());
+    recognizer->read_node_or_null = static_cast<TowerNode*>(input);
+    if (status == 2) {
+      recognizer->error = "Stream returned an attached node"; recognizer->complete = true; return nullptr;
     }
-    if (!lr_parser_commit(recognizer->control, &step, nodes.first, nodes.last)) std::abort();
-    recognizer->read_node_or_null = nullptr;
+    if (!status) std::abort();
     recognizer->has_lookahead = false;
   } else {
-    const auto& rule = recognizer->table->grammar.rules[step.rule];
-    ParseForest children;
-    if (kind == LR_SEQUENCE_REDUCE) {
-      LRFrame frame; lr_parser_sequence_forest(recognizer->control, &frame);
-      children = {frame.first, frame.last};
-    } else {
-      const auto count = lr_parser_frame_count(recognizer->control);
-      const auto begin = count - step.pop;
-      const auto* frames = lr_parser_frames(recognizer->control);
-      for (size_t i = begin; i < count; ++i) {
-        const auto& frame = frames[i];
-        const auto& capture = rule.symbols[i - begin].capture;
-        if (!parse_forest_join(recognizer->forest, &children, frame.first, frame.last, capture.data())) std::abort();
-      }
-    }
-    if (!rule.generated || rule.non_terminal->index == 1) {
-      auto* node = parser_reduction_value(recognizer, rule, step.start, step.end, children);
-      if (kind == LR_SEQUENCE_REDUCE) {
-        if (!lr_parser_commit(recognizer->control, &step, SIZE_MAX, SIZE_MAX)) std::abort();
-        recognizer->complete = true; return node;
-      }
-      children = parser_forest_leaf(recognizer, node);
-    }
-    if (!lr_parser_commit(recognizer->control, &step, children.first, children.last)) std::abort();
+    void* result = nullptr;
+    if (!lr_tree_reduce(recognizer->control, recognizer->forest, recognizer->table->grammar.view.get(), &step, &result)) std::abort();
+    if (result) { recognizer->complete = true; return static_cast<TowerNode*>(result); }
   }
   *running = true;
   return nullptr;

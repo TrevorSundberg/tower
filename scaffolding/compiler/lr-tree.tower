@@ -1,0 +1,185 @@
+// Assemble shifts/reductions into the shared entities. Forests are temporary
+// ownership/work indexes; generated productions flatten without another AST.
+struct ParserForestSpan {
+    first: usize;
+    last: usize;
+}
+
+extern fn entity_parent(node: void*): void*;
+
+extern fn entity_release(node: void*): usize;
+
+extern fn compiler_parse_match(node: void*): ParserMatchData*;
+
+extern fn parse_forest_leaf(forest: void*, node: void*, result: ParserForestSpan*): bool;
+
+extern fn parse_forest_join(forest: void*, result: ParserForestSpan*, first: usize, last: usize, capture: u8*): bool;
+
+extern fn parse_forest_attach(forest: void*, parent: void*, first: usize): bool;
+
+extern fn parse_forest_take(forest: void*, index: usize): void*;
+
+fn lr_tree_match(node: void*, kind: void*): ParserMatchData* {
+    var missing = node == null;
+    if missing {
+        return null;
+    }
+    var data = entity_component_data(entity_component_get(node, kind));
+    return bits(ParserMatchData*, data);
+}
+
+export fn lr_tree_needs_label(node: void*, kind: void*): bool {
+    var data = lr_tree_match(node, kind);
+    var missing = data == null;
+    if missing {
+        return true;
+    }
+    var empty = data.label.length == 0;
+    return empty;
+}
+
+// 0 allocation failure, 1 committed, 2 input node already attached.
+// On ownership transfer input becomes null, including if a later step fails.
+export fn lr_tree_shift(parser: LRParser*, forest: void*, grammar: LRGrammar*, kind: void*, step: LRStep*, input: void**, label: u8*): u32 {
+    var node = *input;
+    var supplied = node != null;
+    if supplied {
+        var attached = entity_parent(node) != null;
+        if attached {
+            return 2;
+        }
+    } else {
+        node = compiler_grammar_root();
+    }
+    var data = lr_tree_match(node, kind);
+    var missing = data == null;
+    if missing {
+        data = compiler_parse_match(node);
+        data.id = step.id;
+        data.start = step.start;
+        data.length = step.end - step.start;
+    }
+    var empty = data.label.length == 0;
+    if empty {
+        var ok = node_match_set_label(data, label);
+        if ok {} else {
+            if supplied {} else {
+                entity_release(node);
+            }
+            return 0;
+        }
+    }
+    var nodes: ParserForestSpan;
+    var ok = parse_forest_leaf(forest, node, &nodes);
+    if ok {} else {
+        if supplied {} else {
+            entity_release(node);
+        }
+        return 0;
+    }
+    *input = null;
+    var sequence = step.kind == 6;
+    if sequence {
+        var joined: ParserForestSpan;
+        joined.first = parser.sequence_first;
+        joined.last = parser.sequence_last;
+        var symbol = parser.runtime.rules.data[step.rule].begin;
+        symbol = symbol + step.pop;
+        var capture = lr_grammar_capture(grammar, symbol);
+        ok = parse_forest_join(forest, &joined, nodes.first, nodes.last, capture);
+        if ok {} else {
+            return 0;
+        }
+        copy(&nodes, &joined, sizeof(ParserForestSpan));
+    }
+    ok = lr_parser_commit(parser, step, nodes.first, nodes.last);
+    return convert(u32, ok);
+}
+
+// A non-null result is the completed finite-sequence root. Ordinary LR roots
+// stay in the forest until acceptance. Empty reductions retain their source gap.
+export fn lr_tree_reduce(parser: LRParser*, forest: void*, grammar: LRGrammar*, step: LRStep*, result: void**): bool {
+    *result = null;
+    var rule = &parser.runtime.rules.data[step.rule];
+    var children: ParserForestSpan;
+    children.first = lr_none();
+    children.last = lr_none();
+    var sequence = step.kind == 7;
+    if sequence {
+        children.first = parser.sequence_first;
+        children.last = parser.sequence_last;
+    } else {
+        var count = parser.stack.length;
+        var begin = count - step.pop;
+        var index = begin;
+        loop {
+            var done = index == count;
+            if done {
+                break;
+            }
+            var frame = &parser.stack.data[index];
+            var symbol = index - begin;
+            symbol = symbol + rule.begin;
+            var capture = lr_grammar_capture(grammar, symbol);
+            var ok = parse_forest_join(forest, &children, frame.first, frame.last, capture);
+            if ok {} else {
+                return false;
+            }
+            index = index + 1;
+        }
+    }
+    var materialize = grammar.rule_metadata.data[step.rule].generated == false;
+    var root = rule.owner == 1;
+    if root {
+        materialize = true;
+    }
+    if materialize {
+        var node = compiler_grammar_root();
+        var data = compiler_parse_match(node);
+        var id = rule.owner & 4294967295;
+        data.id = convert(u32, id);
+        data.rule = step.rule;
+        data.start = step.start;
+        data.length = step.end - step.start;
+        var ok = node_match_set_label(data, lr_grammar_name(grammar, rule.owner));
+        if ok {
+            ok = parse_forest_attach(forest, node, children.first);
+        }
+        if ok {} else {
+            entity_release(node);
+            return false;
+        }
+        if sequence {
+            ok = lr_parser_commit(parser, step, lr_none(), lr_none());
+            if ok {
+                *result = node;
+            } else {
+                entity_release(node);
+            }
+            return ok;
+        }
+        ok = parse_forest_leaf(forest, node, &children);
+        if ok {} else {
+            entity_release(node);
+            return false;
+        }
+    }
+    return lr_parser_commit(parser, step, children.first, children.last);
+}
+
+export fn lr_tree_accept(parser: LRParser*, forest: void*): void* {
+    var invalid = parser.stack.length != 2;
+    if invalid {
+        return null;
+    }
+    var frame = &parser.stack.data[1];
+    invalid = frame.first != frame.last;
+    if invalid {
+        return null;
+    }
+    invalid = frame.first == lr_none();
+    if invalid {
+        return null;
+    }
+    return parse_forest_take(forest, frame.first);
+}

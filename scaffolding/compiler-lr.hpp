@@ -109,4 +109,8 @@ size_t lr_grammar_missing_count(LRGrammar*);
 const char* lr_grammar_missing_name(LRGrammar*, size_t);
 bool lr_grammar_resolve(LRGrammar*, size_t, uint32_t);
 void lr_grammar_finish(LRGrammar*);
+bool lr_tree_needs_label(void*, void*);
+uint32_t lr_tree_shift(LRParser*, void*, LRGrammar*, void*, const LRStep*, void**, const char*);
+bool lr_tree_reduce(LRParser*, void*, LRGrammar*, const LRStep*, void**);
+void* lr_tree_accept(LRParser*, void*);
 }

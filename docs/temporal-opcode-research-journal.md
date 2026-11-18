@@ -8719,3 +8719,51 @@ migration since that deployment. Full p50/p95 results and fixture definitions
 are in the corresponding scripts and `build/foundation-nodes-{native,wasm}-performance.json`.
 These samples show roughly preserved performance, not a speedup claim or a
 statistical guarantee; Node-hosted Wasm timing is not browser UI latency.
+
+## 2026-11-18 — Tree assembly follows LR control into Tower
+
+Continued the requested removal of all project-owned native compiler code.
+`compiler/lr-tree.tower` now assembles shifts and reductions into the same shared
+entities used by syntax, Foundation and the backends. It handles stream nodes
+with existing metadata, missing match components, captured forest joins,
+flattening generated productions, materializing the root, source extents and
+final ownership transfer for both LR and finite-sequence execution. Native
+`parser.cpp` now delegates this work; this stage removes 75 lines there and adds
+12 integration lines. Stream callbacks, diagnostics and other remaining native
+parts are still migration debt.
+
+The runtime borrows rule-generated flags, names and capture snapshots from its
+Tower grammar index. `lr_grammar_finish` keeps the flags needed for assembly and
+clears construction-only entity addresses, so the original grammar tree can be
+released without leaving callable accessors to stale source nodes. These are
+derived indexes over the grammar entities, not another authoritative grammar.
+One temporary `compiler_parse_match` bridge creates/registers the match component;
+all of its data and disposal already live in Tower. The native reference assembly
+is retained only for seed/reference targets and must be retired with the bootstrap.
+
+Two build findings: the native seed exposes `parser_match_set_label`, not the
+Tower payload export `node_match_set_label`; the reference uses its existing API.
+An unconstrained usize-to-u32 conversion introduced a `tower_trap` dependency in
+the standalone object. Masking the ID to the parser's existing 32-bit encoding
+before conversion preserves the old native cast and lets LLVM prove that the
+conversion cannot fail. The object dependency check remains enforced.
+
+New direct tests cover attached-node rejection, preserving supplied payloads,
+source-grammar release before parsing, root construction/captures/spans in both
+execution modes, allocation failure before forest ownership transfer, and failure
+in DFA evidence growth after transfer. The latter must leave the caller's input
+null and release the node exactly once when the forest is destroyed. Existing
+generated-rule, nullable, prefix, tree-shape and DFA/LR comparisons also pass.
+
+Validation: native Linux sanitizer suite 4/4, optimized Windows suite, Wasm and
+LLVM/cross reactors, 179 Node tests, 102 desktop/mobile browser tests, canonical
+formatting (39 Tower files at this stage), and all 16 seed/production optimized-IR
+and object comparisons for Linux/Windows/Wasm/macOS. Commands are the same native,
+Wasm, Windows, Node, Playwright and bootstrap commands recorded immediately above;
+the logs are `build/lr-tree-{asan,windows,wasm,llvm,node,browser,bootstrap,format}.log`.
+As before, native sanitizers instrument the C++ harness/adapters; explicit failure
+and ownership assertions test the separately Tower-compiled routines.
+
+Next: token selection, contextual tokens and declaration-boundary detection from
+`syntax.cpp`, followed by the remaining syntax/replacement and compiler pipeline.
+This is another running Tower subsystem, not completion of the full migration.

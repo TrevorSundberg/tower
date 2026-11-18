@@ -86,8 +86,8 @@ bool lr_grammar_resolve(LRGrammar* value,size_t index,uint32_t id) {
 void lr_grammar_finish(LRGrammar* value) {
   std::vector<LRProduction>().swap(value->rules);
   std::vector<LRSymbol>().swap(value->symbols);
-  std::vector<void*>().swap(value->rule_nodes);
-  std::vector<bool>().swap(value->generated);
+  std::fill(value->rule_nodes.begin(),value->rule_nodes.end(),nullptr);
+  std::fill(value->symbol_nodes.begin(),value->symbol_nodes.end(),nullptr);
   std::vector<std::pair<std::string,size_t>>().swap(value->missing);
 }
 }

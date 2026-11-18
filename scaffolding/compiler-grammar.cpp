@@ -2,6 +2,7 @@
 #include "parser.hpp"
 extern "C" {
 TowerNode* compiler_grammar_root() { return tower_node_create(); }
+Match* compiler_parse_match(TowerNode* node) { return parser_match_create(node); }
 TowerNode* compiler_grammar_rule(TowerNode* root, const char* name, bool generated) {
   return parser_rule_create_subtree(root, name, generated);
 }

@@ -168,7 +168,8 @@ if(TOWER_PARSER_ONLY)
       probe_create probe_clone probe_destroy probe_reset probe_count probe_frames probe_accepts probe_step
       grammar_create grammar_destroy grammar_rule_count grammar_rule_data grammar_rule_node grammar_generated
       grammar_symbol_count grammar_symbol_data grammar_symbol_node grammar_capture grammar_name_count grammar_name grammar_name_order
-      grammar_missing_count grammar_missing_name grammar_resolve grammar_finish)
+      grammar_missing_count grammar_missing_name grammar_resolve grammar_finish
+      tree_needs_label tree_shift tree_reduce tree_accept)
     target_compile_definitions(tower-lr-reference PRIVATE lr_${name}=reference_lr_${name})
   endforeach()
   target_link_libraries(tower-parser-tests PRIVATE tower-lr-reference)

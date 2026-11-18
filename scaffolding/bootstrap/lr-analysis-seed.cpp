@@ -1,5 +1,7 @@
 // Transitional bootstrap/reference. Production links lr-analysis.tower instead.
 #include "../compiler-lr.hpp"
+#include "../compiler-parse-tree.hpp"
+#include "../parser.hpp"
 #include <algorithm>
 #include <vector>
 #include <tuple>
@@ -485,5 +487,70 @@ uint32_t lr_probe_step(LRProbe* value,uint32_t id,size_t* before) {
     stack.push_back({next,consumed});
   }
   value->budget->complete=false; return 0;
+}
+}
+
+// Reference tree assembly, retained only for the native bootstrap/differential tests.
+extern "C" {
+bool lr_tree_needs_label(void* node,void* kind) {
+  auto* data=node ? static_cast<Match*>(tower_node_get_component_userdata(static_cast<TowerNode*>(node),static_cast<TowerNode*>(kind))) : nullptr;
+  return !data || !*parser_match_get_label(data);
+}
+uint32_t lr_tree_shift(LRParser* parser,void* arena,LRGrammar* grammar,void* kind,const LRStep* step,void** input,const char* label) {
+  auto* forest=static_cast<ParseForestStore*>(arena);
+  auto* node=static_cast<TowerNode*>(*input); const bool supplied=node;
+  if(node && tower_node_get_parent(node)) return 2;
+  if(!node) node=tower_node_create();
+  auto* data=static_cast<Match*>(tower_node_get_component_userdata(node,static_cast<TowerNode*>(kind)));
+  if(!data) {
+    data=parser_match_create(node); parser_match_set_id(data,step->id);
+    parser_match_set_start(data,step->start); parser_match_set_length(data,step->end-step->start);
+  }
+  if(!*parser_match_get_label(data)) parser_match_set_label(data,label);
+  ParseForest nodes;
+  if(!parse_forest_leaf(forest,node,&nodes)) { if(!supplied) tower_node_release_ref(node); return 0; }
+  *input=nullptr;
+  if(step->kind==LR_SEQUENCE_SHIFT) {
+    LRFrame frame; lr_parser_sequence_forest(parser,&frame);
+    ParseForest joined{frame.first,frame.last};
+    const auto symbol=parser->runtime->rules[step->rule].begin+step->pop;
+    if(!parse_forest_join(forest,&joined,nodes.first,nodes.last,lr_grammar_capture(grammar,symbol))) return 0;
+    nodes=joined;
+  }
+  return lr_parser_commit(parser,step,nodes.first,nodes.last);
+}
+bool lr_tree_reduce(LRParser* parser,void* arena,LRGrammar* grammar,const LRStep* step,void** result) {
+  *result=nullptr; auto* forest=static_cast<ParseForestStore*>(arena);
+  const auto rule=parser->runtime->rules[step->rule]; ParseForest children;
+  if(step->kind==LR_SEQUENCE_REDUCE) {
+    LRFrame frame; lr_parser_sequence_forest(parser,&frame); children={frame.first,frame.last};
+  } else {
+    const auto count=lr_parser_frame_count(parser),begin=count-step->pop;
+    const auto* frames=lr_parser_frames(parser);
+    for(size_t i=begin;i<count;++i)
+      if(!parse_forest_join(forest,&children,frames[i].first,frames[i].last,lr_grammar_capture(grammar,rule.begin+i-begin))) return false;
+  }
+  if(!lr_grammar_generated(grammar,step->rule) || rule.owner==1) {
+    auto* node=tower_node_create(); auto* data=parser_match_create(node);
+    parser_match_set_id(data,uint32_t(rule.owner)); parser_match_set_rule_index(data,step->rule);
+    parser_match_set_start(data,step->start); parser_match_set_length(data,step->end-step->start);
+    parser_match_set_label(data,lr_grammar_name(grammar,rule.owner));
+    if(!parse_forest_attach(forest,node,children.first)) {
+      tower_node_release_ref(node); return false;
+    }
+    if(step->kind==LR_SEQUENCE_REDUCE) {
+      const auto ok=lr_parser_commit(parser,step,SIZE_MAX,SIZE_MAX);
+      if(ok) *result=node; else tower_node_release_ref(node);
+      return ok;
+    }
+    if(!parse_forest_leaf(forest,node,&children)) { tower_node_release_ref(node); return false; }
+  }
+  return lr_parser_commit(parser,step,children.first,children.last);
+}
+void* lr_tree_accept(LRParser* parser,void* arena) {
+  if(lr_parser_frame_count(parser)!=2) return nullptr;
+  LRFrame frame; lr_parser_frame(parser,1,&frame);
+  if(frame.first!=frame.last || frame.first==SIZE_MAX) return nullptr;
+  return parse_forest_take(static_cast<ParseForestStore*>(arena),frame.first);
 }
 }

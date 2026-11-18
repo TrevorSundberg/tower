@@ -1,4 +1,6 @@
 #include "../compiler-lr.hpp"
+#include "../compiler-parse-tree.hpp"
+#include "../parser.hpp"
 #include <cassert>
 #include <cstring>
 #include <random>
@@ -72,6 +74,71 @@ size_t tower_test_buffer_count();
 void tower_test_buffer_fail_after(size_t);
 }
 namespace {
+void tree_assembly_trial(bool specialize, bool fail_after_transfer) {
+  auto* source=tower_node_create();
+  auto* rule=parser_rule_create_subtree(source,"Root",true);
+  for(const auto* name:{"first","second"}) {
+    auto* node=parser_reference_create_subtree(rule,name);
+    auto* data=static_cast<Reference*>(tower_node_get_component_userdata(node,parser_reference_get_type()));
+    parser_reference_set_capture(data,name);
+  }
+  auto* grammar=lr_grammar_create(source,parser_rule_get_type(),parser_reference_get_type(),parser_string_get_type(),parser_range_get_type());
+  assert(grammar && lr_grammar_missing_count(grammar)==2);
+  assert(lr_grammar_resolve(grammar,0,'a') && lr_grammar_resolve(grammar,1,'b'));
+  auto* analysis=lr_analysis_create(lr_grammar_rule_data(grammar),lr_grammar_rule_count(grammar),
+    lr_grammar_symbol_data(grammar),lr_grammar_symbol_count(grammar),lr_grammar_name_count(grammar));
+  assert(analysis && lr_analysis_compute(analysis));
+  auto* states=lr_states_create(analysis); assert(states && lr_states_lalr(states,false));
+  auto* runtime=lr_runtime_create(states); assert(runtime);
+  if(specialize) { lr_runtime_specialize(runtime,states); assert(lr_runtime_sequence(runtime)!=SIZE_MAX); }
+  lr_states_destroy(states); lr_analysis_destroy(analysis);
+  lr_grammar_finish(grammar); tower_node_release_ref(source);
+  assert(lr_grammar_generated(grammar,1) && !lr_grammar_rule_node(grammar,1));
+  auto* parser=lr_parser_create(runtime,false,specialize);
+  auto* forest=parse_forest_create(); assert(parser && forest);
+  LRStep step; assert(lr_parser_step(parser,true,'a',false,10,1,&step)==(specialize?LR_SEQUENCE_SHIFT:LR_SHIFT));
+  auto* parent=tower_node_create(); auto* attached=tower_node_create(); tower_node_attach(attached,parent);
+  void* input=attached;
+  assert(lr_tree_shift(parser,forest,grammar,parser_match_get_type(),&step,&input,"attached")==2 && input==attached);
+  tower_node_release_ref(attached); tower_node_release_ref(parent);
+  auto* first=tower_node_create(); auto* data=parser_match_create(first);
+  parser_match_set_id(data,1234); parser_match_set_start(data,77); parser_match_set_length(data,5);
+  parser_match_set_label(data,"existing stream payload"); input=first;
+  assert(!lr_tree_needs_label(input,parser_match_get_type()));
+  tower_test_buffer_fail_after(0);
+  assert(lr_tree_shift(parser,forest,grammar,parser_match_get_type(),&step,&input,"unused")==0 && input==first);
+  tower_test_buffer_fail_after(SIZE_MAX);
+  assert(lr_parser_frame_count(parser)==1);
+  if(fail_after_transfer) {
+    // The forest allocation succeeds; the DFA evidence allocation fails after
+    // the input reference has moved to the forest. Destruction must release once.
+    assert(specialize); tower_test_buffer_fail_after(1);
+    assert(lr_tree_shift(parser,forest,grammar,parser_match_get_type(),&step,&input,"unused")==0 && !input);
+    tower_test_buffer_fail_after(SIZE_MAX);
+  } else {
+    assert(lr_tree_shift(parser,forest,grammar,parser_match_get_type(),&step,&input,"unused")==1 && !input);
+    assert(lr_parser_step(parser,true,'b',false,13,1,&step)==(specialize?LR_SEQUENCE_SHIFT:LR_SHIFT));
+    assert(lr_tree_shift(parser,forest,grammar,parser_match_get_type(),&step,&input,"second token")==1 && !input);
+    const auto reduction=lr_parser_step(parser,true,PARSER_ID_EOF,false,14,0,&step);
+    assert(reduction==(specialize?LR_SEQUENCE_REDUCE:LR_REDUCE));
+    void* result=nullptr;
+    assert(lr_tree_reduce(parser,forest,grammar,&step,&result));
+    if(!specialize) {
+      assert(!result && lr_parser_step(parser,true,PARSER_ID_EOF,false,14,0,&step)==LR_ACCEPT);
+      result=lr_tree_accept(parser,forest);
+    }
+    auto* root=static_cast<TowerNode*>(result); assert(root && tower_node_get_child_count(root)==2);
+    auto* root_data=static_cast<Match*>(tower_node_get_component_userdata(root,parser_match_get_type()));
+    assert(!strcmp(parser_match_get_label(root_data),"Root"));
+    assert(parser_match_get_start(root_data)==10 && parser_match_get_length(root_data)==4);
+    assert(tower_node_get_child_member(root,"first")==first);
+    assert(tower_node_get_child_member(root,"second")==tower_node_get_child(root,1));
+    assert(parser_match_get_id(data)==1234 && parser_match_get_start(data)==77 && parser_match_get_length(data)==5);
+    assert(!strcmp(parser_match_get_label(data),"existing stream payload"));
+    tower_node_release_ref(root);
+  }
+  parse_forest_destroy(forest); lr_parser_destroy(parser); lr_runtime_destroy(runtime); lr_grammar_destroy(grammar);
+}
 void compare_action(const LRAction& a, const LRAction& b) {
   assert(a.first==b.first && a.last==b.last && a.rule==b.rule && a.state==b.state);
 }
@@ -352,6 +419,13 @@ void compare_propagation(std::mt19937& random) {
 }
 void lr_analysis_tests() {
   lr_grammar_tests();
+  {
+    const auto buffers=tower_test_buffer_count(), nodes=tower_node_get_allocated_count();
+    tree_assembly_trial(false,false);
+    tree_assembly_trial(true,false);
+    tree_assembly_trial(true,true);
+    assert(tower_test_buffer_count()==buffers && tower_node_get_allocated_count()==nodes);
+  }
   const auto baseline=tower_test_buffer_count();
   bool success=false;
   for(size_t i=0;i<1024 && !success;++i) {
