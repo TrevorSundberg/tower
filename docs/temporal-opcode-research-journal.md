@@ -10094,3 +10094,22 @@ Wasm size after removing redundant native reservations is 4,286,924 bytes
 (baseline 4,312,645). New functional test logic remains entirely Tower; the
 remaining native seed/reference and thin ABI/test-runner wiring are still owned
 migration debt, not exceptions to the eventual C++-removal goal.
+
+Final concurrent-work integration: the first push was rejected because upstream
+`235cdbe` added Linux build/deployment validation while this task was testing.
+Rebased again with the same journal-only conflict resolution and preservation of
+local notes. No compiler/build-definition source changed (`git diff 35a4231 HEAD
+-- scaffolding CMakeLists.txt cmake` was empty before this note). The port was
+successfully pushed as `60f1653` over that upstream commit.
+
+Validated the combined packaging changes rather than overwriting them: a full
+static build with `TOWER_REQUIRE_BACKENDS=1` contains both LLVM reactors and all
+declared target support files; 219 Node tests (including the new packaging test)
+and 128 desktop/mobile browser tests (3.5 minutes) passed. The new
+`node playground/scripts/verify-local.mjs` also passed: all 36 manifest assets
+matched, and desktop/mobile checks verified matching execution, forward module
+bindings, editable grammar, persistence, target defaults and native downloads.
+That verification served the local bundle on an ephemeral HTTP port; it was not
+a GitHub Pages deployment. Logs: `build/syntax-emission-packaging-{dist,node,
+browser,verify}.log`. The earlier final native, sanitizer, formatter and
+four-target bootstrap results still apply to these unchanged compiler sources.
