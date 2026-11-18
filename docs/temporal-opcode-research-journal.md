@@ -6892,3 +6892,16 @@ Validation on Windows C:\Sandbox\tower / WSL Orchestral-Revng / WASI SDK 34:
 
 Unrelated working changes remain untouched; only this entry is staged from
 the shared journal. The new spelling is the current grammar/semantic ABI.
+
+### 2026-11-17 - CoreLocation rename published and verified
+
+Source `e41fd4c` and Pages artifacts `94c9afa` were pushed. GitHub Pages run
+`44231224306` succeeded:
+https://github.com/TrevorSundberg/tower/actions/runs/44231224306 .
+`node playground/scripts/verify-deployment.mjs https://trevorsundberg.github.io/tower/`
+passed all 21 asset hashes and desktop/mobile workflows, including matching
+interpreter/Wasm results for the updated Increment example and native downloads.
+Logs/artifacts: build/core-location-online.log, build/core-location-pages.log,
+build/deployment-verification/. Old saved custom rules require the new name;
+refresh and Restore loads the revised bundled examples. Unrelated changes remain
+unstaged, including all pre-existing journal work and todo.txt.
