@@ -7783,3 +7783,52 @@ equivalence; wrappers/emulation handle operations that differ. Differential test
 must compare interpreter, optimized execution and hosts for both values and defined
 effects. These profiles and general compile-time function execution remain design
 direction; the current bounded type-function evaluator does not implement them.
+
+## 2026-11-18 — Shared character grammars versus specialized token matching
+
+The user asked whether regex compilation already uses Tower parsing tables and
+whether token recognition should use the same parser. Inspection corrected a
+potentially misleading description: token/skip declarations and their pattern
+text are parsed through Tower's declaration grammar, but lex-pattern.cpp contains
+a separate hand-written recursive-descent regex compiler (Thompson-style NFA
+construction and subset construction). It is not std::regex or a third-party regex
+library, and it does not currently parse regex syntax with Tower's LR tables.
+Its history was already present in checkpoint 8571a8d; the inspected history does
+not establish which person originally wrote it. The current migration moves DFA
+storage and matching into Tower, not that entire regex compiler yet.
+
+Tower's raw UTF-8 stream and character-range grammar symbols already demonstrate
+that LR terminal symbols can be characters. A fixed conflict-free LR grammar can
+recognize character input in linear time with amortized constant work per input
+symbol. This does not imply the same instruction count as DFA scanning: stack
+operations, reductions and optional node construction add costs. Do not allocate
+an AST node for every identifier character merely to unify grammar descriptions.
+Grammar construction/update cost is separate from steady-state recognition cost.
+
+Research supports sharing lexical and context-free syntax descriptions, but also
+highlights disambiguation. Longest token matching, keyword boundaries, whitespace,
+overlapping definitions and capture behavior need explicit semantics. Combining
+grammars can introduce conflicts; generalized LR is not a free way to retain
+Tower's deterministic/linear recognition contract. Similarly, repeated longest-
+prefix scans with arbitrarily long failed lookahead need a separate work bound;
+one linear automaton scan does not prove an entire tokenizer is linear.
+
+Proposed direction (not implemented by this payload migration): parse regex
+notation with ordinary Tower rules; represent its character grammar on the same
+entities; specialize proven eligible regular regions to DFA tables while using
+the general parser for richer structure. Preserve token-selection semantics,
+captures, provenance and errors. Tables are derived caches, not a competing
+authoritative grammar. Benchmark against both reference character parsing and
+the existing matcher before promising equivalent speed; report conflicts rather
+than silently changing parsing algorithms.
+
+Primary sources consulted:
+- van den Brand, Scheerder, Vinju and Visser, Disambiguation filters for
+  scannerless generalized LR parsers: https://ir.cwi.nl/pub/4306
+  (integrated lexical/context-free syntax and explicit ambiguity filters).
+- GNU Bison calling convention: https://www.gnu.org/software/bison/manual/html_node/Calling-Convention.html
+  (character codes may be terminals).
+- Flex matching: https://westes.github.io/flex/manual/Matching.html
+  (longest match and equal-length rule priority).
+- Flex performance: https://westes.github.io/flex/manual/Performance.html
+  (small scanning loop, backup/trailing-context costs).
