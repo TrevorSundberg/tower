@@ -6,6 +6,17 @@
 #include <string>
 #include <vector>
 
+struct SyntaxComments;
+extern "C" bool syntax_comments_push(SyntaxComments*, const char*, size_t);
+struct SyntaxComments {
+  CoreName* data;
+  size_t length, capacity;
+  const CoreName* begin() const { return data; }
+  const CoreName* end() const { return data ? data + length : data; }
+  size_t size() const { return length; }
+  void emplace_back(std::string_view text) { if (!syntax_comments_push(this, text.data(), text.size())) std::abort(); }
+};
+
 enum class SyntaxKind { Document, Rule, Token, Skip, Alternative, Term, Template };
 
 // Grammar meaning lives ON the declaration's actual parse nodes. items are
@@ -13,16 +24,26 @@ enum class SyntaxKind { Document, Rule, Token, Skip, Alternative, Term, Template
 // template so an indexed alternative can outlive its declaration's parse tree.
 struct SyntaxNode {
   SyntaxKind kind = SyntaxKind::Document;
-  std::string name, text, capture, style;
-  SyntaxSourceRef source;
+  CoreName name, text, capture, style;
+  const SyntaxSource* source = nullptr;
   bool literal = false, append = false, contextual = false, terminal_set = false;
   char repetition = 0;
-  std::vector<TowerNode*> items;
-  TowerNodeRef replacement;
-  std::vector<std::string> comments;
+  CoreNodes items;
+  TowerNode* replacement = nullptr;
+  SyntaxComments comments;
   size_t start = TOWER_INVALID_INDEX, end = TOWER_INVALID_INDEX;
-  std::shared_ptr<const LexPattern> compiled; // derived lexer cache only
+  const LexPattern* compiled = nullptr; // derived lexer cache only
 };
+extern "C" {
+size_t syntax_node_size();
+size_t syntax_node_offset(size_t);
+void syntax_node_init(SyntaxNode*);
+void syntax_node_dispose(SyntaxNode*);
+void syntax_node_source(SyntaxNode*, const SyntaxSource*);
+void syntax_node_replacement(SyntaxNode*, TowerNode*);
+void syntax_node_pattern(SyntaxNode*, const LexPattern*);
+int32_t syntax_nodes_equal(TowerNode*, TowerNode*, TowerNode* type, bool locations);
+}
 TowerNode* syntax_component_type();
 SyntaxNode* syntax_get(TowerNode* node);
 SyntaxNode& syntax_node(TowerNode* node);

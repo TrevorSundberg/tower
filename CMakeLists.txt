@@ -19,7 +19,7 @@ if(TOWER_NATIVE)
   target_compile_features(towerc-seed PRIVATE cxx_std_20)
   target_sources(towerc-seed PRIVATE scaffolding/bootstrap/foundation-nodes-seed.cpp)
   target_sources(towerc-seed PRIVATE scaffolding/bootstrap/syntax-lexer-seed.cpp)
-  target_sources(towerc-seed PRIVATE scaffolding/bootstrap/syntax-source-seed.cpp)
+  target_sources(towerc-seed PRIVATE scaffolding/bootstrap/syntax-source-seed.cpp scaffolding/bootstrap/syntax-nodes-seed.cpp)
   target_sources(towerc-seed PRIVATE scaffolding/bootstrap/lr-analysis-seed.cpp scaffolding/bootstrap/lr-grammar-seed.cpp scaffolding/bootstrap/lexer-table-seed.cpp scaffolding/bootstrap/lex-pattern-seed.cpp)
   target_link_libraries(towerc-seed PRIVATE LLVM tower-compiler-memory)
   tower_compiler_utilities()
@@ -29,7 +29,7 @@ if(TOWER_NATIVE)
   target_compile_features(towerc-stage1 PRIVATE cxx_std_20)
   target_sources(towerc-stage1 PRIVATE scaffolding/bootstrap/foundation-nodes-seed.cpp)
   target_sources(towerc-stage1 PRIVATE scaffolding/bootstrap/syntax-lexer-seed.cpp)
-  target_sources(towerc-stage1 PRIVATE scaffolding/bootstrap/syntax-source-seed.cpp)
+  target_sources(towerc-stage1 PRIVATE scaffolding/bootstrap/syntax-source-seed.cpp scaffolding/bootstrap/syntax-nodes-seed.cpp)
   target_sources(towerc-stage1 PRIVATE scaffolding/bootstrap/lr-analysis-seed.cpp scaffolding/bootstrap/lr-grammar-seed.cpp scaffolding/bootstrap/lexer-table-seed.cpp scaffolding/bootstrap/lex-pattern-seed.cpp)
   target_link_libraries(towerc-stage1 PRIVATE tower-compiler-entities tower-compiler-utilities tower-compiler-memory LLVM)
   tower_compiler_parser_nodes()
@@ -131,7 +131,7 @@ if(TOWER_PARSER_ONLY)
   tower_compiler_parser_nodes()
   target_compile_definitions(tower-compiler-memory PRIVATE TOWER_COMPILER_MEMORY_TESTS=1)
   add_executable(tower-parser-tests scaffolding/tests/main.cpp
-    scaffolding/tests/compiler-storage.cpp scaffolding/tests/entities.cpp scaffolding/tests/lexer-table.cpp scaffolding/tests/regex.cpp scaffolding/tests/lr-analysis.cpp scaffolding/tests/lr-grammar.cpp scaffolding/tests/syntax-lexer.cpp
+    scaffolding/tests/compiler-storage.cpp scaffolding/tests/entities.cpp scaffolding/tests/lexer-table.cpp scaffolding/tests/regex.cpp scaffolding/tests/lr-analysis.cpp scaffolding/tests/lr-grammar.cpp scaffolding/tests/syntax-lexer.cpp scaffolding/tests/syntax-nodes.cpp
     scaffolding/core.cpp scaffolding/core-nodes.cpp scaffolding/core-machine.cpp scaffolding/core-tests.cpp
     scaffolding/tower.cpp scaffolding/tests/nodes.cpp scaffolding/parser.cpp scaffolding/parser-tree-tests.cpp
     scaffolding/syntax.cpp scaffolding/compiler-syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/bedrock.cpp scaffolding/format.cpp scaffolding/lex-pattern.cpp scaffolding/lex-pattern-common.cpp scaffolding/syntax-tests.cpp)

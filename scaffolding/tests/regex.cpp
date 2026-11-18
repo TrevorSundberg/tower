@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 #include <cstring>
-std::shared_ptr<const LexPattern> reference_lex_pattern_compile(const std::string&, std::string&);
+LexPatternRef reference_lex_pattern_compile(const std::string&, std::string&);
 extern "C" const char* regex_compile_tree(TowerNode*, const char*, TowerNode*, LexerTable*, size_t*);
 extern "C" size_t tower_test_buffer_count();
 extern "C" void tower_test_buffer_fail_after(size_t);
@@ -30,7 +30,7 @@ void compare(const std::string& source, std::mt19937& random) {
   assert(bool(actual) == bool(reference));
   if (!actual) { assert(!actual_error.empty() && !reference_error.empty()); return; }
   assert(actual->grammar && actual_error.empty() && reference_error.empty());
-  auto* root = static_cast<Match*>(tower_node_get_component_userdata(actual->grammar.get(), parser_match_get_type()));
+  auto* root = static_cast<Match*>(tower_node_get_component_userdata(actual->grammar, parser_match_get_type()));
   assert(root && parser_match_get_start(root) == 0 && parser_match_get_length(root) == source.size());
   const std::vector<std::string> alphabet{"a", "b", "c", "]", "\\", "\n", "\xc3\xa9", "\xf0\x9f\x8f\xb0", "\xff", std::string(1, '\0')};
   for (unsigned sample = 0; sample < 60; ++sample) {
@@ -47,13 +47,13 @@ void regex_tests() {
     const std::string source = "(a|bc)+[d-f]?\\u{e9}";
     std::string error;
     auto parsed = lex_pattern_compile(source, error); assert(parsed);
-    char* before = parser_tree_debug_string(parsed->grammar.get());
+    char* before = parser_tree_debug_string(parsed->grammar);
     const auto baseline = tower_test_buffer_count();
     bool success = false;
     for (size_t failure = 0; failure < 256 && !success; ++failure) {
       auto* table = lex_table_create(); size_t offset = 0;
       tower_test_buffer_fail_after(failure);
-      auto* message = regex_compile_tree(parsed->grammar.get(), source.data(), parser_match_get_type(), table, &offset);
+      auto* message = regex_compile_tree(parsed->grammar, source.data(), parser_match_get_type(), table, &offset);
       tower_test_buffer_fail_after(SIZE_MAX);
       assert(!message || std::strstr(message, "allocate"));
       success = !message;
@@ -61,7 +61,7 @@ void regex_tests() {
       assert(tower_test_buffer_count() == baseline);
     }
     assert(success);
-    char* after = parser_tree_debug_string(parsed->grammar.get());
+    char* after = parser_tree_debug_string(parsed->grammar);
     assert(!std::strcmp(before, after));
     tower_memory_free(before); tower_memory_free(after);
   }

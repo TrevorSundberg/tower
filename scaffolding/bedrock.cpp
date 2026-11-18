@@ -36,7 +36,8 @@ void rule(TowerNode* document, const char* name, std::initializer_list<TowerNode
 void token(TowerNode* document, SyntaxKind kind, const char* name, const char* pattern, const char* style = "", bool contextual = false) {
   auto node = entity(kind); auto& value = syntax_node(node.get());
   value.name = name; value.text = pattern; value.style = style; value.contextual = contextual;
-  std::string error; value.compiled = lex_pattern_compile(pattern, error);
+  std::string error; auto compiled = lex_pattern_compile(pattern, error);
+  syntax_node_pattern(&value, compiled.get());
   if (!value.compiled) { std::fprintf(stderr, "Invalid seed token %s: %s\n", name, error.c_str()); std::abort(); }
   append(document, node);
 }
@@ -53,11 +54,11 @@ TowerNode* syntax_native_bedrock() {
     token(doc, SyntaxKind::Skip, "BlockComment", R"(\/\*([^*]|\*+[^*/])*\*+\/)", "comment");
     token(doc, SyntaxKind::Token, "Identifier", R"([A-Za-z_][A-Za-z0-9_]*|`([^`\\\r\n]|\\[nrt\\`])*`)", "identifier");
     token(doc, SyntaxKind::Token, "String", R"("([^"\\\r\n]|\\[nrt\\'"])*"|'([^'\\\r\n]|\\[nrt\\'"])*')", "string");
-    syntax_node(syntax_node(doc).items.front()).comments = {
+    for (const auto* comment : {
       "// This bedrock.tower is loaded first, then foundation.tower.",
       "// GrammarPattern reads /patterns/ for token and skip rules.",
       "// GrammarTemplate reads {replacement bodies} with balanced braces."
-    };
+    }) syntax_node(syntax_node(doc).items.front()).comments.emplace_back(comment);
     token(doc, SyntaxKind::Token, "GrammarPattern", R"(\/([^/\\\[\r\n]|\\[^\r\n]|\[([^\\\]\r\n]|\\[^\r\n])*\])*\/)", "pattern", true);
     token(doc, SyntaxKind::Token, "GrammarCharacter", R"([^{}\r\n])", "operator", true);
     rule(doc, "GrammarDeclaration", {alternative({literal("parse"), reference("Identifier", "name"),

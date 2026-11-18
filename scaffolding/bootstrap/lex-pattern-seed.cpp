@@ -136,7 +136,7 @@ struct Compiler {
 };
 }
 
-std::shared_ptr<const LexPattern> lex_pattern_compile(const std::string& pattern, std::string& error) {
+LexPatternRef lex_pattern_compile(const std::string& pattern, std::string& error) {
   error.clear();
   if (pattern.size() > 4096) { error = "Token pattern exceeds 4096 bytes"; return nullptr; }
   Compiler compiler{pattern, error};
@@ -145,7 +145,8 @@ std::shared_ptr<const LexPattern> lex_pattern_compile(const std::string& pattern
   if (!error.empty()) return nullptr;
   int accept = compiler.add({State::Accept}); compiler.patch(fragment.ends, accept);
   if (!error.empty()) return nullptr;
-  auto result = std::make_shared<LexPattern>();
+  auto result = LexPatternRef::adopt(syntax_pattern_create(nullptr));
+  if (!result) { error = "Unable to allocate token pattern"; return {}; }
   std::vector<uint32_t> alphabet = {0, 0x110000};
   for (const auto& state : compiler.states) for (auto [low, high] : state.ranges) {
     alphabet.push_back(low); alphabet.push_back(high + 1);

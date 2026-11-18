@@ -226,7 +226,7 @@ void compiler_storage_tests() {
     auto root = TowerNodeRef::adopt(syntax_next(session)); assert(root.get());
     auto* declaration = tower_node_get_child(root.get(), 0);
     auto* semantic = syntax_get(declaration); assert(semantic && semantic->source);
-    auto retained = semantic->source;
+    auto retained = SyntaxSourceRef(semantic->source);
     assert(retained->text.view() == "parse Keep = 'old';");
     const auto* original = retained->text.c_str();
     for (int i = 0; i < 100; ++i) {

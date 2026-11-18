@@ -89,7 +89,7 @@ struct Formatter {
   void replacement(const SyntaxNode& n) {
     if (!n.replacement) return;
     text("\n"); ++depth; indent(); --depth;
-    text("=> replace {"); text(syntax_node(n.replacement.get()).text); text("}");
+    text("=> replace {"); text(syntax_node(n.replacement).text); text("}");
   }
   void grammar(TowerNode* entity) {
     const auto& n = syntax_node(entity);

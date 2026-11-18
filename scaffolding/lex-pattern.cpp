@@ -45,15 +45,15 @@ TowerNodeRef parse_pattern(const std::string& source, std::string& error) {
 }
 }
 
-std::shared_ptr<const LexPattern> lex_pattern_compile(const std::string& pattern, std::string& error) {
+LexPatternRef lex_pattern_compile(const std::string& pattern, std::string& error) {
   error.clear();
   if (pattern.size() > 4096) { error = "Token pattern exceeds 4096 bytes"; return nullptr; }
   auto root = parse_pattern(pattern, error);
   if (!root) return nullptr;
-  auto result = std::make_shared<LexPattern>();
-  result->grammar = std::move(root);
+  auto result = LexPatternRef::adopt(syntax_pattern_create(root.get()));
+  if (!result) { error = "Unable to allocate token pattern"; return {}; }
   size_t offset = 0;
-  if (const auto* message = regex_compile_tree(result->grammar.get(), pattern.data(), parser_match_get_type(), result->table, &offset)) {
+  if (const auto* message = regex_compile_tree(result->grammar, pattern.data(), parser_match_get_type(), result->table, &offset)) {
     error = std::string(message) + " at pattern character " + std::to_string(character_position(pattern, offset));
     return nullptr;
   }

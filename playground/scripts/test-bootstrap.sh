@@ -33,7 +33,7 @@ if sys.argv[1] == 'parser-nodes': allowed |= {
     'compiler_grammar_rule', 'compiler_grammar_reference',
     'compiler_grammar_literal', 'compiler_grammar_range',
     'entity_component_get', 'entity_component_data', 'entity_member_index',
-    'entity_child_at', 'entity_child_count', 'entity_parent', 'entity_release',
+    'entity_child_at', 'entity_child_count', 'entity_parent', 'entity_release', 'entity_retain',
     'compiler_parse_match', 'parse_forest_leaf', 'parse_forest_join',
     'parse_forest_attach', 'parse_forest_take'}
 symbols = {line.split()[-1].lstrip('_') for line in pathlib.Path(sys.argv[2]).read_text().splitlines() if line.strip()}

@@ -30,6 +30,7 @@ using TokenDefinitions = std::vector<TowerNodeRef>;
 struct PendingRule { std::string dependency; size_t offset = TOWER_INVALID_INDEX; };
 using PendingRules = std::map<std::string, PendingRule>;
 SyntaxNode& semantic(const TowerNodeRef& node) { return syntax_node(node.get()); }
+SyntaxNode& semantic(TowerNode* node) { return syntax_node(node); }
 bool same(const std::vector<TowerNodeRef>& a, const std::vector<TowerNodeRef>& b) {
   if (a.size() != b.size()) return false;
   for (size_t i = 0; i < a.size(); ++i) if (!syntax_equal(a[i].get(), b[i].get(), true)) return false;
@@ -128,7 +129,7 @@ char* copy_string(const std::string& text) {
 
 std::string source_location(const SyntaxNode& node) {
   if (!node.source || node.start == TOWER_INVALID_INDEX) return "native seed";
-  size_t line, column; syntax_source_location(node.source.get(), node.start, &line, &column);
+  size_t line, column; syntax_source_location(node.source, node.start, &line, &column);
   return node.source->name + ", line " + std::to_string(line) + ", column " + std::to_string(column);
 }
 std::string describe_production(const Version& version, const Definitions& definitions, size_t index, bool name_only = false) {
@@ -565,14 +566,14 @@ TowerNode* read_term(TowerNode* node, std::string_view source, std::string& erro
     while (set && tower_node_get_child_count(set) && error.empty()) {
       auto* item = required(set, "literal", error); if (!item) break;
       auto& exclusion = syntax_attach(item, SyntaxKind::Term); location(exclusion, item); exclusion.literal = true;
-      size_t start = parser_match_get_start(match(item)); error = quoted(source, start, exclusion.text);
+      size_t start = parser_match_get_start(match(item)); std::string decoded; error = quoted(source, start, decoded); exclusion.text = decoded;
       if (error.empty()) error = literal_error(exclusion.text);
       term.items.push_back(item); set = member(set, "previous");
     }
     std::reverse(term.items.begin(), term.items.end());
   } else if (literal) {
     term.literal = true; size_t start = parser_match_get_start(match(literal));
-    error = quoted(source, start, term.text);
+    std::string decoded; error = quoted(source, start, decoded); term.text = decoded;
   } else if (ref || capture) {
     term.text = tower_identifier_value(text(ref ? ref : capture, source));
     if (capture) term.capture = tower_identifier_value(text(capture, source));
@@ -638,7 +639,7 @@ bool set_source(SyntaxSession& session, std::string_view text, const char* name)
   return true;
 }
 void record_source(TowerNode* entity, const SyntaxSourceRef& source) {
-  auto& value = syntax_node(entity); value.source = source;
+  auto& value = syntax_node(entity); syntax_node_source(&value, source.get());
   for (auto* item : value.items) record_source(item, source);
 }
 std::string syntax_diagnostic(SyntaxSession& session, Recognizer* recognizer, bool repairs = true) {
@@ -1482,7 +1483,7 @@ TowerNode* syntax_next(SyntaxSession* session) {
       auto* name = required(construct, "name", error); auto* pattern = required(construct, "pattern", error);
       auto* style = required(construct, "style", error); if (!error.empty()) return fail(error);
       auto& token = syntax_attach(construct, construct_kind == "GrammarSkipDeclaration" ? SyntaxKind::Skip : SyntaxKind::Token);
-      location(token, construct); token.source = session->source_info;
+      location(token, construct); syntax_node_source(&token, session->source_info.get());
       token.name = tower_identifier_value(text(name, session->source));
       if (token.name.empty()) return fail("Token name cannot be empty");
       if (session->definitions.contains(token.name)) return fail("Name already defines a parse rule: " + token.name);
@@ -1494,8 +1495,8 @@ TowerNode* syntax_next(SyntaxSession* session) {
       if (auto* mode = member(construct, "mode")) token.contextual = !text(mode, session->source).empty();
       if (token.contextual && token.kind == SyntaxKind::Skip) return fail("Skip rules cannot be contextual");
       for (const auto& entry : session->cache) for (const auto& old : entry.tokens)
-        if (semantic(old).text == token.text) token.compiled = semantic(old).compiled;
-      if (!token.compiled) token.compiled = lex_pattern_compile(token.text, error);
+        if (semantic(old).text == token.text) syntax_node_pattern(&token, semantic(old).compiled);
+      if (!token.compiled) { auto pattern = lex_pattern_compile(token.text, error); syntax_node_pattern(&token, pattern.get()); }
       if (!token.compiled) return fail(error);
       auto candidate = session->tokens;
       auto old = std::find_if(candidate.begin(), candidate.end(), [&](const auto& t) { return semantic(t).name == token.name; });
@@ -1532,9 +1533,9 @@ TowerNode* syntax_next(SyntaxSession* session) {
         auto& value = syntax_attach(entity, SyntaxKind::Template);
         value.start = start; value.end = start + length;
         value.text = session->source.substr(start, length);
-        rule.replacement = TowerNodeRef(entity);
+        syntax_node_replacement(&rule, entity);
         for (auto& seq : alternatives) {
-          semantic(seq).replacement = TowerNodeRef(entity);
+          syntax_node_replacement(&semantic(seq), entity);
         }
       }
       Definitions candidate = session->definitions;

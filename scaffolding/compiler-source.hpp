@@ -16,6 +16,7 @@ class SyntaxSourceRef {
   const SyntaxSource* value = nullptr;
 public:
   SyntaxSourceRef() = default;
+  explicit SyntaxSourceRef(const SyntaxSource* source) : value(source) { syntax_source_retain(value); }
   static SyntaxSourceRef adopt(const SyntaxSource* source) { SyntaxSourceRef result; result.value = source; return result; }
   SyntaxSourceRef(const SyntaxSourceRef& other) : value(other.value) { syntax_source_retain(value); }
   SyntaxSourceRef(SyntaxSourceRef&& other) noexcept : value(std::exchange(other.value, nullptr)) {}

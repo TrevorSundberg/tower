@@ -8867,3 +8867,63 @@ Next: migrate syntax-component storage/lifetime and structural comparison,
 including retained lexer caches and comment storage. Type checking, formatting,
 interpretation, driver/backend integration and the native bootstrap still need
 porting; this is continued progress, not completion of C++ removal.
+
+### 2026-11-18 — Tower grammar-component ownership and comparison
+
+`compiler/syntax-nodes.tower` now defines and owns the grammar semantic component:
+names, text, captures, highlighting style, ordered borrowed child edges, owned
+replacement references, retained source snapshots, comments and retained derived
+lexer caches. These remain components on the existing parse entities; there is no
+new semantic graph or serialization format. The native `SyntaxNode` is a passive
+ABI view with a Tower finalizer. Source/replacement/cache setters retain before
+releasing, including self-assignment. Native lexer-cache `shared_ptr` ownership
+was replaced by Tower reference counting; the regex parse tree remains retained
+with the derived DFA. The native reference wrappers are still migration debt.
+
+Structural grammar comparison now runs in Tower using an explicit work vector.
+It compares semantic fields and ordered children/replacements, ignores comments,
+source identity and cache addresses, and optionally compares template coordinates
+exactly as before. Allocation failure has a separate result from unequal nodes;
+the current native caller retains its fail-fast allocation policy. Comment copies
+are transactional and support embedded NULs and sources borrowed from existing
+comments during list growth. The bootstrap still has an independent native seed;
+this is not the endpoint where project-owned native code can be deleted.
+
+Initial native compilation found two decoder calls requiring mutable C++ strings.
+Those calls now decode into a temporary and assign the Tower-owned text. Decoding
+and declaration interpretation themselves are still native and are a subsequent
+port, not functionality claimed to have moved in this step.
+
+Tests verify every syntax-field ABI offset, payload/cache sizes, all semantic
+comparison fields, metadata exclusions, template coordinates, 64-child trees,
+borrowed versus owned edges, component removal/reuse, cache/source/reference
+self-assignment and moves, embedded-NUL comments, and allocation failures during
+comment copying/growth, cache construction and comparison-stack growth. A native
+reference comparison is exercised alongside Tower. Leak counters return to the
+baseline. Native sanitizers instrument the C++ harness/bridges, not all generated
+Tower instructions; the ownership/allocation tests run the actual Tower code.
+
+Validation passed in this Windows/WSL checkout: native sanitizer suite 4/4,
+optimized Windows suite, Wasm/LLVM/cross-reactor builds, 179 Node tests, 102
+desktop/mobile Playwright tests, canonical formatting for 42 Tower files, and all
+16 bootstrap optimized-IR/object comparisons across Linux x64, Windows x64,
+Wasm32 and macOS ARM64. These include the preceding source-snapshot change.
+Commands: `build-native.sh`, existing sanitizer CMake build plus CTest,
+`tests/run.ps1 -Optimize -BootstrapCompiler .../host-bootstrap.cmd`,
+`build-wasm.sh`, `build-llvm.sh` with `TOWER_BROWSER_CROSS=ON`, `check:format`,
+Node tests, `npm run build`, Playwright and `test-bootstrap.sh`. Logs:
+`build/syntax-nodes-{native,asan,windows,wasm,llvm,node,browser,format,bootstrap}.log`.
+
+Warm Wasm comparison (`node build/profile-syntax-nodes-wasm.mjs`, Node 21.7.3,
+12 warmups and 40 alternating pairs, compile plus canonical formatting) against
+the published `61f93cc`/Pages `110b5a3`: median milliseconds before -> after:
+small 5.121 -> 5.236; inference 5.164 -> 5.107; replacements 16.004 -> 16.120;
+500 declarations 11.015 -> 11.394. These are close, with a small increase on three
+fixtures; no speedup is claimed. Full p50/p95 values are in
+`build/syntax-nodes-wasm-performance.json`. This is Node-hosted Wasm, not an
+end-to-end UI latency measurement.
+
+Remaining work is substantive: declaration/rule interpretation and replacements,
+type checking, formatting, execution, driver/backend integration, and removal of
+the native seeds/adapters in favor of portable compiler binaries. Existing ABI
+bridges and bootstrap code still count as project-owned C++.

@@ -41,7 +41,7 @@ void syntax_lexer_tests() {
   {
     const char* patterns[]={"[a-z_][a-z0-9_]*","[a-z]+","[ \\t]+","[ \\t]+","[0-9]+","雪+"};
     const char* styles[]={"identifier","contextual","comment","contextual trivia","number","unicode"};
-    std::vector<std::shared_ptr<const LexPattern>> compiled;
+    std::vector<LexPatternRef> compiled;
     auto* a=lexicon_create(); auto* b=reference_lexicon_create(); assert(a && b);
     for(size_t i=0;i<6;++i) {
       compiled.push_back(lex_pattern_compile(patterns[i],error)); assert(compiled.back());
