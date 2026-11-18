@@ -13,10 +13,59 @@
 extern "C" size_t tower_test_buffer_count();
 extern "C" size_t tower_test_buffer_allocations();
 extern "C" void tower_test_buffer_fail_next();
+extern "C" void tower_test_buffer_fail_after(size_t);
 
 void compiler_storage_tests() {
   core_component_type();
   const auto baseline = tower_test_buffer_count();
+  {
+    static_assert(std::is_standard_layout_v<SyntaxSource> && std::is_trivially_destructible_v<SyntaxSource>);
+    assert(syntax_source_size() == sizeof(SyntaxSource));
+    char name[] = "source.tower";
+    char input[] = "a\xc3\xa9\n\xe9\x9b\xaa\0z";
+    auto source = SyntaxSourceRef::adopt(syntax_source_create(name, input, sizeof(input) - 1));
+    assert(source && source->references == 1);
+    name[0] = 'X'; input[0] = 'X';
+    assert(source->name == "source.tower" && source->text.view() == std::string_view("a\xc3\xa9\n\xe9\x9b\xaa\0z", 9));
+    assert(!source->text.data()[source->text.size()]);
+    const size_t lines[]   = {1,1,1,1,2,2,2,2,2,2};
+    const size_t columns[] = {1,2,3,3,1,2,2,2,3,4};
+    for (size_t offset = 0; offset < std::size(lines); ++offset) {
+      size_t line = 0, column = 0;
+      syntax_source_location(source.get(), offset, &line, &column);
+      assert(line == lines[offset] && column == columns[offset]);
+    }
+    size_t line = 0, column = 0;
+    syntax_source_location(source.get(), SIZE_MAX, &line, &column);
+    assert(line == 2 && column == 4);
+    auto copy = source;
+    assert(source->references == 2);
+    auto moved = std::move(copy);
+    assert(!copy && moved.get() == source.get() && source->references == 2);
+    source = source;
+    assert(source->references == 2);
+    source = {};
+    assert(moved->references == 1 && moved->name == "source.tower");
+    auto empty = SyntaxSourceRef::adopt(syntax_source_create("", nullptr, 0));
+    assert(empty && empty->name.empty() && empty->text.empty() && !empty->text.data()[0]);
+    syntax_source_location(empty.get(), SIZE_MAX, &line, &column);
+    assert(line == 1 && column == 1);
+    assert(!syntax_source_create("overflow", nullptr, SIZE_MAX));
+  }
+  assert(tower_test_buffer_count() == baseline);
+  {
+    bool success = false;
+    for (size_t failure = 0; failure < 16 && !success; ++failure) {
+      tower_test_buffer_fail_after(failure);
+      auto* source = syntax_source_create("failure.tower", "snapshot", 8);
+      tower_test_buffer_fail_after(SIZE_MAX);
+      success = source != nullptr;
+      if (success) assert(source->name == "failure.tower" && source->text == "snapshot");
+      syntax_source_release(source);
+      assert(tower_test_buffer_count() == baseline);
+    }
+    assert(success);
+  }
   {
     static_assert(std::is_standard_layout_v<CoreNode> && std::is_trivially_destructible_v<CoreNode>);
     const size_t offsets[] = {offsetof(CoreNode,kind),offsetof(CoreNode,type),offsetof(CoreNode,op),offsetof(CoreNode,name),

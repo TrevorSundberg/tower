@@ -128,12 +128,7 @@ char* copy_string(const std::string& text) {
 
 std::string source_location(const SyntaxNode& node) {
   if (!node.source || node.start == TOWER_INVALID_INDEX) return "native seed";
-  size_t line = 1, column = 1;
-  for (size_t i = 0; i < std::min(node.start, node.source->text.size()); ++i) {
-    const auto c = static_cast<unsigned char>(node.source->text[i]);
-    if (c == '\n') { ++line; column = 1; }
-    else if ((c & 0xc0) != 0x80) ++column;
-  }
+  size_t line, column; syntax_source_location(node.source.get(), node.start, &line, &column);
   return node.source->name + ", line " + std::to_string(line) + ", column " + std::to_string(column);
 }
 std::string describe_production(const Version& version, const Definitions& definitions, size_t index, bool name_only = false) {
@@ -611,7 +606,7 @@ Alternatives read_alternatives(TowerNode* node, std::string_view source, std::st
 
 struct SyntaxSession {
   std::string_view source; // Borrowed from source_info, retained by source nodes.
-  std::shared_ptr<const SyntaxSource> source_info;
+  SyntaxSourceRef source_info;
   size_t cursor = 0;
   size_t revision = 0;
   Definitions definitions, baseline_definitions;
@@ -636,13 +631,13 @@ struct SyntaxSession {
 
 namespace {
 bool set_source(SyntaxSession& session, std::string_view text, const char* name) {
-  auto source = std::make_shared<SyntaxSource>(); source->name = name;
-  if (!source->text.assign(text)) return false;
+  auto source = SyntaxSourceRef::adopt(syntax_source_create(name, text.data(), text.size()));
+  if (!source) return false;
   session.source_info = std::move(source);
   session.source = session.source_info->text.view();
   return true;
 }
-void record_source(TowerNode* entity, const std::shared_ptr<const SyntaxSource>& source) {
+void record_source(TowerNode* entity, const SyntaxSourceRef& source) {
   auto& value = syntax_node(entity); value.source = source;
   for (auto* item : value.items) record_source(item, source);
 }

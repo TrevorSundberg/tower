@@ -8836,3 +8836,34 @@ speedup claim, and Node-hosted Wasm measurements are not UI latency measurements
 Next remains syntax component ownership, rule processing/replacements and the
 remaining compiler/runtime passes. The compiler still requires our native seeds
 and adapters; the all-Tower portable bootstrap endpoint remains unfinished.
+
+### 2026-11-18 — Tower source snapshots and coordinate lookup
+
+Moved immutable source-name/text allocation, reference counting, disposal and
+UTF-8 source-coordinate lookup into `compiler/syntax-source.tower`. Syntax
+sessions and declaration provenance share the same Tower-owned snapshot through
+a temporary native reference adapter. This preserves source text when a session
+is reset or destroyed; the counter follows the existing single-threaded compiler
+runtime, not a newly promised concurrent ownership contract. The native seed
+remains transitional project-owned code, not an external-library exemption.
+
+Native build and sanitizer suites pass (`build/syntax-source-native.log` and
+`build/syntax-source-asan.log`; `build-native.sh` and `test-native-core.sh`, 4/4).
+Added ABI-size, copied-input, embedded-NUL, Unicode/newline/EOF coordinate,
+reference-copy/move, and allocation-failure cleanup checks. Existing integration
+coverage retains declaration provenance across 100 session resets and destruction.
+Cross-target/browser validation will accompany the following syntax-component
+migration; it has not yet been rerun for this snapshot change alone.
+
+Also verified the preceding lexer/tree migration online: Pages commit `110b5a3`,
+workflow `44398225183` succeeded. `node playground/scripts/verify-deployment.mjs
+https://trevorsundberg.github.io/tower/` matched all 23 deployed assets and passed
+desktop/mobile execution agreement, forward bindings, editable grammar,
+persistence, native downloads and equal-column checks. Log:
+`build/syntax-lexer-online.log`. This deployed build corresponds to source commit
+`61f93cc`, before the source-snapshot migration.
+
+Next: migrate syntax-component storage/lifetime and structural comparison,
+including retained lexer caches and comment storage. Type checking, formatting,
+interpretation, driver/backend integration and the native bootstrap still need
+porting; this is continued progress, not completion of C++ removal.
