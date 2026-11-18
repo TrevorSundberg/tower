@@ -33,8 +33,16 @@
     "tower-cross.wasm.gz": "0c69ecde70629053799305cbfa94938aaf77f7de4bb8f3f63edd70218a0641ae",
     "tower-llvm.wasm": "863aab364e96392da13a90b33a88aec102d902f0351fd3a2eba51b3ec2694ba5",
     "tower-llvm.wasm.gz": "7330405ebe8622bb4eae3be3f2c759d738ccf45d269ec208b1e51dc592e540f0",
-    "tower.wasm": "6e95af3efd7e5380d33bec8417bf9ede162bda406547056333700203d037f319",
+    "tower.wasm": "dd85d69d32781237c4367d12fd348639a507b81ef19d3cae8f46f80f4ce3ba6d",
     "worker.js": "128651fe1b1e39d99b015ec5b82d9544b9a1e0544612d9c2b56a7675df4dd544",
     "worker.js.map": "f90f41faeca5d9797ea9b08501dd18eeb6980fb8f6cdb96987f73c94295d338a"
+  },
+  "formatter": {
+    "sourceCommit": "9d5905332a70ac8990b8045c049da18675b3ff40",
+    "previousDeployment": "bd3a8566b4b861b9e0c006f09b011900041111a1",
+    "updatedAssets": [
+      "tower.wasm"
+    ],
+    "retainedLLVM": "Existing published LLVM and cross-target reactors; not rebuilt by the formatter deployment."
   }
 }
