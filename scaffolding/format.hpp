@@ -8,6 +8,7 @@ struct TowerSourceSpan { size_t begin, end, source; };
 struct TowerText { std::string source; std::vector<TowerSourceSpan> spans; std::string error; };
 // One formatter dispatches on semantic components on ordinary Tower entities.
 // Executable foundation nodes and grammar declarations share this entry point.
+// Production traversal/layout is implemented in compiler/format*.tower.
 TowerText tower_format(TowerNode* node);
 // Source layout uses original parse nodes before replacement. Comments are
 // lexer-derived trivia spans, never rescanned with a second token grammar.

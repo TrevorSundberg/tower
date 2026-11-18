@@ -1,0 +1,235 @@
+// Grammar terms, alternatives and declarations retain shared entity identity.
+fn format_grammar_term(f: FormatEngine*, entity: void*): void {
+    var term = format_syntax(f, entity);
+    var condition1 = term.capture.length != 0;
+    if condition1 {
+        format_text(f, "$");
+        format_identifier(f, &term.capture);
+        var same = term.capture.length == term.text.length;
+        var i: usize = 0;
+        loop {
+            var condition2 = i == term.capture.length;
+            if condition2 {
+                break;
+            }
+            if same {} else {
+                break;
+            }
+            same = term.capture.data[i] == term.text.data[i];
+            i = i + 1;
+        }
+        if same {
+            var condition3 = term.repetition != 0;
+            if condition3 {
+                format_char(f, term.repetition);
+            }
+            return;
+        }
+        format_text(f, ":");
+    }
+    if term.terminal_set {
+        format_text(f, "[^");
+        var i: usize = 0;
+        loop {
+            var condition4 = i == term.items.length;
+            if condition4 {
+                break;
+            }
+            var condition5 = i != 0;
+            if condition5 {
+                format_text(f, " ");
+            }
+            var item = format_syntax(f, term.items.data[i]);
+            format_quote(f, &item.text);
+            i = i + 1;
+        }
+        format_text(f, "]");
+    } else {
+        if term.literal {
+            format_quote(f, &term.text);
+        }
+        else {
+            format_identifier(f, &term.text);
+        }
+    }
+    var condition6 = term.repetition != 0;
+    if condition6 {
+        format_char(f, term.repetition);
+    }
+}
+
+fn format_alternative(f: FormatEngine*, entity: void*): void {
+    var n = format_syntax(f, entity);
+    var i: usize = 0;
+    loop {
+        var condition7 = i == n.items.length;
+        if condition7 {
+            break;
+        }
+        var condition8 = i != 0;
+        if condition8 {
+            format_text(f, " ");
+        }
+        format_grammar_term(f, n.items.data[i]);
+        i = i + 1;
+    }
+}
+
+fn format_comments(f: FormatEngine*, n: SyntaxNode*): void {
+    var i: usize = 0;
+    loop {
+        var condition9 = i == n.comments.length;
+        if condition9 {
+            break;
+        }
+        format_indent(f);
+        format_bytes(f, &n.comments.data[i]);
+        format_text(f, "\n");
+        i = i + 1;
+    }
+}
+
+fn format_replacement(f: FormatEngine*, n: SyntaxNode*): void {
+    var condition10 = n.replacement == null;
+    if condition10 {
+        return;
+    }
+    format_text(f, "\n");
+    f.result.depth = f.result.depth + 1;
+    format_indent(f);
+    f.result.depth = f.result.depth - 1;
+    format_text(f, "=> replace {");
+    var replacement = format_syntax(f, n.replacement);
+    format_bytes(f, &replacement.text);
+    format_text(f, "}");
+}
+
+fn format_grammar(f: FormatEngine*, entity: void*): void {
+    var n = format_syntax(f, entity);
+    var condition11 = n.kind == 0;
+    if condition11 {
+        var i: usize = 0;
+        loop {
+            var condition12 = i == n.items.length;
+            if condition12 {
+                break;
+            }
+            format_node(f, n.items.data[i]);
+            i = i + 1;
+        }
+        format_comments(f, n);
+        return;
+    }
+    format_comments(f, n);
+    format_indent(f);
+    var begin = f.result.text.length;
+    var condition13 = n.kind == 1;
+    if condition13 {
+        format_text(f, "parse ");
+        format_identifier(f, &n.name);
+        if n.append {
+            format_text(f, " |=");
+        }
+        else {
+            format_text(f, " =");
+        }
+        var continuation = format_column(f);
+        var i: usize = 0;
+        loop {
+            var condition14 = i == n.items.length;
+            if condition14 {
+                break;
+            }
+            var condition15 = i != 0;
+            if condition15 {
+                var output: FormatResult;
+                fill(&output, 0, sizeof(FormatResult));
+                var probe: FormatEngine;
+                probe.result = &output;
+                probe.syntax_kind = f.syntax_kind;
+                probe.foundation_kind = f.foundation_kind;
+                probe.match_kind = f.match_kind;
+                format_alternative(&probe, n.items.data[i]);
+                f.result.failed = format_or(f.result.failed, output.failed);
+                var column = format_column(f);
+                column = column + 3;
+                column = column + output.text.length;
+                format_dispose(&output);
+                var condition16 = column > 110;
+                if condition16 {
+                    format_text(f, "\n");
+                    format_repeat(f, 32, continuation);
+                    format_text(f, "|");
+                } else {
+                    format_text(f, " |");
+                }
+            }
+            var alternative = format_syntax(f, n.items.data[i]);
+            var condition17 = alternative.items.length != 0;
+            if condition17 {
+                format_text(f, " ");
+            }
+            format_alternative(f, n.items.data[i]);
+            i = i + 1;
+        }
+        format_replacement(f, n);
+        var condition18 = n.replacement == null;
+        if condition18 {
+            var condition19 = n.items.length != 0;
+            if condition19 {
+                var last = n.items.length - 1;
+                var alternative = format_syntax(f, n.items.data[last]);
+                var condition20 = alternative.items.length == 0;
+                if condition20 {
+                    format_text(f, " ");
+                }
+            }
+        }
+        format_text(f, ";\n");
+    } else {
+        var entry = n.kind == 2;
+        var skipped = n.kind == 3;
+        var lexical = format_or(entry, skipped);
+        if lexical {
+            if skipped {
+                format_text(f, "skip ");
+            } else {
+                format_text(f, "token ");
+            }
+            format_identifier(f, &n.name);
+            format_text(f, " = /");
+            format_bytes(f, &n.text);
+            format_text(f, "/");
+            if n.contextual {
+                format_text(f, " when expected");
+            }
+            var condition21 = n.style.length != 0;
+            if condition21 {
+                format_text(f, " as ");
+                format_identifier(f, &n.style);
+            }
+            format_text(f, ";\n");
+        } else {
+            var condition22 = n.kind == 4;
+            if condition22 {
+                format_alternative(f, entity);
+                format_replacement(f, n);
+            }
+            else {
+                var condition23 = n.kind == 5;
+                if condition23 {
+                    format_grammar_term(f, entity);
+                }
+                else {
+                    format_bytes(f, &n.text);
+                }
+            }
+        }
+    }
+    var invalid: usize = 0;
+    invalid = invalid - 1;
+    var condition24 = n.start != invalid;
+    if condition24 {
+        format_span(f, begin, n.start);
+    }
+}
