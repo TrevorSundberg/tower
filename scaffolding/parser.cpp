@@ -193,60 +193,11 @@ void parser_tests() {
   assert(tower_memory_get_allocated_count() == tower_memory_initial_count);
 }
 
-template <typename T>
-T* create_component(TowerNode* owner) {
-  TowerComponent* component =
-    tower_component_create(owner, T::compiletime_type, sizeof(T), [](TowerComponent* component, void* userdata) {
-      ((T*)userdata)->~T();
-    });
-
-
-  void* userdata = tower_component_get_userdata(component);
-  return new (userdata) T();
-}
-
 TowerNode* create_attached_child_without_ref(TowerNode* parent) {
   TowerNode* child = tower_node_create();
   tower_node_attach(child, parent);
   tower_node_release_ref(child);
   return child;
-}
-
-struct Rule {
-  static TowerNode* compiletime_type;
-  
-  std::string name;
-  bool generated = false;
-};
-TowerNode* Rule::compiletime_type = tower_node_create();
-
-TowerNode* parser_rule_get_type() {
-  return Rule::compiletime_type;
-}
-
-Rule* parser_rule_create(TowerNode* owner) {
-  return create_component<Rule>(owner);
-}
-
-void parser_rule_set_name(Rule* component, const char* name) {
-  assert(name);
-  assert(component);
-  component->name = name;
-}
-
-const char* parser_rule_get_name(Rule* component) {
-  assert(component);
-  return component->name.c_str();
-}
-
-void parser_rule_set_generated(Rule* component, bool generated) {
-  assert(component);
-  component->generated = generated;
-}
-
-bool parser_rule_get_generated(Rule* component) {
-  assert(component);
-  return component->generated;
 }
 
 TowerNode* parser_rule_create_subtree(
@@ -260,34 +211,6 @@ TowerNode* parser_rule_create_subtree(
   return child;
 }
 
-struct Reference {
-  static TowerNode* compiletime_type;
-  std::string name;
-  std::string capture;
-};
-TowerNode* Reference::compiletime_type = tower_node_create();
-
-TowerNode* parser_reference_get_type() {
-  return Reference::compiletime_type;
-}
-
-Reference* parser_reference_create(TowerNode* owner) {
-  return create_component<Reference>(owner);
-}
-
-void parser_reference_set_name(Reference* component, const char* name) {
-  assert(name);
-  component->name = name;
-}
-
-const char* parser_reference_get_name(Reference* component) {
-  return component->name.c_str();
-}
-
-void parser_reference_set_capture(Reference* component, const char* name) {
-  component->capture = name;
-}
-
 TowerNode* parser_reference_create_subtree(TowerNode* parent, const char* name) {
   TowerNode* child = create_attached_child_without_ref(parent);
   Reference* component = parser_reference_create(child);
@@ -295,47 +218,6 @@ TowerNode* parser_reference_create_subtree(TowerNode* parent, const char* name) 
   return child;
 }
 
-struct String {
-  static TowerNode* compiletime_type;
-  std::vector<uint32_t> ids;
-};
-TowerNode* String::compiletime_type = tower_node_create();
-
-TowerNode* parser_string_get_type() {
-  return String::compiletime_type;
-}
-
-String* parser_string_create(TowerNode* owner) {
-  return create_component<String>(owner);
-}
-
-void parser_string_set_id(String* component, size_t index, uint32_t id) {
-  assert(component);
-  if (index >= component->ids.size()) {
-    size_t new_size = index + 1;
-    component->ids.reserve(new_size * 2);
-    component->ids.resize(new_size, PARSER_ID_EOF);
-  }
-  component->ids[index] = id;
-}
-
-uint32_t parser_string_get_id(String* component, size_t index) {
-  assert(component);
-  assert(index < component->ids.size());
-  return component->ids[index];
-}
-
-void parser_string_set_length(String* component, size_t length) {
-  assert(component);
-  component->ids.resize(length, PARSER_ID_EOF);
-}
-
-size_t parser_string_get_length(String* component) {
-  assert(component);
-  return component->ids.size();
-}
-
-// The same Tower-written scalar codec is used by the token lexer and raw streams.
 size_t parser_decode_utf8_codepoint(const char* begin, const char* end, uint32_t* codepoint) {
   return tower_utf8_decode(reinterpret_cast<const uint8_t*>(begin), size_t(end - begin), codepoint);
 }
@@ -349,25 +231,6 @@ void parser_string_append_utf8_null_terminated(String* component, const char* ut
   return parser_string_append_utf8(component, utf8, utf8_end);
 }
 
-void parser_string_append_utf8(String* component, const char* utf8_begin, const char* utf8_end) {
-  assert(component);
-  
-  // This will overshoot allocation if we have unicode characters, but it's alright
-  size_t reserved = component->ids.size() + (utf8_end - utf8_begin);
-  component->ids.reserve(component->ids.size() + (utf8_end - utf8_begin));
-
-  for (;;) {
-    uint32_t codepoint = 0;
-    size_t bytes_read = parser_decode_utf8_codepoint(utf8_begin, utf8_end, &codepoint);
-    if (bytes_read == 0) {
-      break;
-    }
-    utf8_begin += bytes_read;
-    assert(utf8_begin <= utf8_end);
-    component->ids.push_back(codepoint);
-  }
-}
-
 TowerNode* parser_string_create_subtree_utf8_null_terminated(TowerNode* parent, const char* utf8) {
   const char* utf8_end = utf8 + strlen(utf8);
   return parser_string_create_subtree_utf8(parent, utf8, utf8_end);
@@ -379,45 +242,9 @@ TowerNode* parser_string_create_subtree_utf8(TowerNode* parent, const char* utf8
   assert(child);
   String* component = parser_string_create(child);
   assert(component);
-  assert(component->ids.size() == 0);
+  assert(parser_string_get_length(component) == 0);
   parser_string_append_utf8(component, utf8_begin, utf8_end);
   return child;
-}
-
-struct Range {
-  static TowerNode* compiletime_type;
-  // Inclusive start and end of characters
-  uint32_t start = '\0';
-  uint32_t end = '\0';
-};
-TowerNode* Range::compiletime_type = tower_node_create();
-
-TowerNode* parser_range_get_type() {
-  return Range::compiletime_type;
-}
-
-Range* parser_range_create(TowerNode* owner) {
-  return create_component<Range>(owner);
-}
-
-void parser_range_set_start(Range* component, uint32_t start_id) {
-  assert(component);
-  component->start = start_id;
-}
-
-uint32_t parser_range_get_start(Range* component) {
-  assert(component);
-  return component->start;
-}
-
-void parser_range_set_end(Range* component, uint32_t end_id) {
-  assert(component);
-  component->end = end_id;
-}
-
-uint32_t parser_range_get_end(Range* component) {
-  assert(component);
-  return component->end;
 }
 
 TowerNode* parser_range_create_subtree(TowerNode* parent, uint32_t start_id, uint32_t end_id) {
@@ -426,69 +253,6 @@ TowerNode* parser_range_create_subtree(TowerNode* parent, uint32_t start_id, uin
   parser_range_set_start(component, start_id);
   parser_range_set_end(component, end_id);
   return child;
-}
-
-struct Match {
-  static TowerNode* compiletime_type;
-  uint32_t id = PARSER_ID_EOF;
-  size_t start = 0;
-  size_t length = 0;
-  size_t rule_index = TOWER_INVALID_INDEX;
-  std::string label;
-};
-TowerNode* Match::compiletime_type = tower_node_create();
-
-TowerNode* parser_match_get_type() {
-  return Match::compiletime_type;
-}
-
-Match* parser_match_create(TowerNode* owner) {
-  return create_component<Match>(owner);
-}
-
-void parser_match_set_id(Match* component, uint32_t id) {
-  assert(component);
-  component->id = id;
-}
-
-uint32_t parser_match_get_id(Match* component) {
-  assert(component);
-  return component->id;
-}
-
-void parser_match_set_start(Match* component, size_t start) {
-  assert(component);
-  component->start = start;
-}
-
-size_t parser_match_get_start(Match* component) {
-  assert(component);
-  return component->start;
-}
-
-void parser_match_set_length(Match* component, size_t length) {
-  assert(component);
-  component->length = length;
-}
-
-size_t parser_match_get_length(Match* component) {
-  assert(component);
-  return component->length;
-}
-
-size_t parser_match_get_rule_index(Match* component) {
-  return component->rule_index;
-}
-void parser_match_set_rule_index(Match* component, size_t index) {
-  component->rule_index = index;
-}
-
-const char* parser_match_get_label(Match* component) {
-  return component->label.c_str();
-}
-
-void parser_match_set_label(Match* component, const char* label) {
-  component->label = label;
 }
 
 char* parser_copy_string(const std::string& str);
@@ -507,11 +271,11 @@ char* parser_tree_debug_string(TowerNode* root) {
     if (member && *member) out << member << ": ";
     auto* match = (Match*)tower_node_get_component_userdata(entry.node, parser_match_get_type());
     if (match) {
-      bool is_rule = match->rule_index != TOWER_INVALID_INDEX;
+      bool is_rule = parser_match_get_rule_index(match) != TOWER_INVALID_INDEX;
       out << (is_rule ? "rule " : "token ");
-      out << (match->label.empty() ? std::to_string(match->id) : match->label);
-      if (is_rule) out << " #" << match->rule_index;
-      out << " [" << match->start << ", " << match->start + match->length << ")";
+      out << (*parser_match_get_label(match) ? parser_match_get_label(match) : std::to_string(parser_match_get_id(match)));
+      if (is_rule) out << " #" << parser_match_get_rule_index(match);
+      out << " [" << parser_match_get_start(match) << ", " << parser_match_get_start(match) + parser_match_get_length(match) << ")";
     } else {
       out << "node";
     }
@@ -680,9 +444,9 @@ TowerNode* parser_stream_recognizer_read(
   if (node) {
     Match* match = (Match*)tower_node_get_component_userdata(node, parser_match_get_type());
     assert(match);
-    *id = match->id;
-    *start_index = match->start;
-    *length = match->length;
+    *id = parser_match_get_id(match);
+    *start_index = parser_match_get_start(match);
+    *length = parser_match_get_length(match);
     return node;
   }
 
@@ -872,15 +636,15 @@ std::string parser_grammar_create(Grammar& grammar, TowerNode* root, void* userd
     size_t grammar_rule_index = grammar.rules.size();
     GrammarRule& grammar_rule = grammar.rules.emplace_back();
     grammar_rule.rule = rule;
-    grammar_rule.generated = rule->generated;
+    grammar_rule.generated = parser_rule_get_generated(rule);
     grammar_rule.index = grammar_rule_index;
 
-    GrammarNonTerminal*& non_terminal = non_terminals[rule->name];
+    GrammarNonTerminal*& non_terminal = non_terminals[parser_rule_get_name(rule)];
     // If this is the first time we're seeing this name, create a new non-terminal for it and set the name
     if (non_terminal == nullptr) {
       size_t index = grammar.non_terminals.size();
       non_terminal = &grammar.non_terminals.emplace_back();
-      non_terminal->name = rule->name;
+      non_terminal->name = parser_rule_get_name(rule);
       non_terminal->index = index;
     }
     grammar_rule.non_terminal = non_terminal;
@@ -918,25 +682,25 @@ std::string parser_grammar_create(Grammar& grammar, TowerNode* root, void* userd
       Reference* reference = (Reference*)tower_node_get_component_userdata(symbol_node, parser_reference_get_type());
       if (reference) {
         // First we look internally to see if have satisfied a name
-        auto it = non_terminals.find(reference->name);
+        auto it = non_terminals.find(parser_reference_get_name(reference));
         if (it != non_terminals.end()) {
           GrammarSymbol& symbol = symbols.emplace_back();
           symbol.non_terminal = it->second;
           symbol.symbol_node = symbol_node;
-          symbol.capture = reference->capture;
+          symbol.capture = parser_reference_get_capture(reference);
         } else {
           uint32_t id = PARSER_ID_EOF;
           // Otherwise, this might be a reference to a terminal
           if (resolve) {
-            id = resolve(userdata, reference->name.c_str());
+            id = resolve(userdata, parser_reference_get_name(reference));
           }
 
           if (id == PARSER_ID_EOF) {
-            return "Unresolved grammar rule: " + reference->name;
+            return std::string("Unresolved grammar rule: ") + parser_reference_get_name(reference);
           } else {
             GrammarSymbol& symbol = symbols.emplace_back();
             symbol.symbol_node = symbol_node;
-            symbol.capture = reference->capture;
+            symbol.capture = parser_reference_get_capture(reference);
             symbol.terminal.start = id;
             symbol.terminal.end = id;
           }
@@ -945,8 +709,11 @@ std::string parser_grammar_create(Grammar& grammar, TowerNode* root, void* userd
 
       String* string = (String*)tower_node_get_component_userdata(symbol_node, parser_string_get_type());
       if (string) {
-        symbols.reserve(symbols.size() + string->ids.size());
-        for (uint32_t id : string->ids) {
+        const size_t count = parser_string_get_length(string);
+        const uint32_t* ids = parser_string_get_data(string);
+        symbols.reserve(symbols.size() + count);
+        for (size_t i = 0; i < count; ++i) {
+          const uint32_t id = ids[i];
           GrammarSymbol& symbol = symbols.emplace_back();
           symbol.symbol_node = symbol_node;
           symbol.terminal.start = id;
@@ -958,12 +725,12 @@ std::string parser_grammar_create(Grammar& grammar, TowerNode* root, void* userd
       if (range) {
         GrammarSymbol& symbol = symbols.emplace_back();
         symbol.symbol_node = symbol_node;
-        if (range->start < range->end) {
-          symbol.terminal.start = range->start;
-          symbol.terminal.end = range->end;
+        if (parser_range_get_start(range) < parser_range_get_end(range)) {
+          symbol.terminal.start = parser_range_get_start(range);
+          symbol.terminal.end = parser_range_get_end(range);
         } else {
-          symbol.terminal.start = range->end;
-          symbol.terminal.end = range->start;
+          symbol.terminal.start = parser_range_get_end(range);
+          symbol.terminal.end = parser_range_get_start(range);
         }
       }
     }
@@ -2636,11 +2403,11 @@ TowerNode* parser_recognizer_step(Recognizer* recognizer, bool* running) {
     auto* match = (Match*)tower_node_get_component_userdata(node, parser_match_get_type());
     if (!match) {
       match = parser_match_create(node);
-      match->id = id;
-      match->start = recognizer->read_start;
-      match->length = recognizer->read_length;
+      parser_match_set_id(match, id);
+      parser_match_set_start(match, recognizer->read_start);
+      parser_match_set_length(match, recognizer->read_length);
     }
-    if (match->label.empty()) match->label = debug_str(id, recognizer->table->grammar);
+    if (!*parser_match_get_label(match)) parser_match_set_label(match, debug_str(id, recognizer->table->grammar).c_str());
     recognizer->read_node_or_null = nullptr;
     recognizer->stack.push_back(StackState{
       .state = edge->shift_state, .nodes = parser_forest_leaf(recognizer, node),
@@ -2693,11 +2460,11 @@ TowerNode* parser_recognizer_step(Recognizer* recognizer, bool* running) {
     if (!rule.generated || rule.non_terminal->index == 1) {
       TowerNode* node = tower_node_create();
       Match* match = parser_match_create(node);
-      match->id = (uint32_t)rule.non_terminal->index;
-      match->rule_index = rule.index;
-      match->label = rule.non_terminal->name;
-      match->start = start;
-      match->length = end - start;
+      parser_match_set_id(match, (uint32_t)rule.non_terminal->index);
+      parser_match_set_rule_index(match, rule.index);
+      parser_match_set_label(match, rule.non_terminal->name.c_str());
+      parser_match_set_start(match, start);
+      parser_match_set_length(match, end - start);
       // Tower assembles the existing shared entities, including lazy captures.
       if (!parse_forest_attach(recognizer->forest, node, children.first)) std::abort();
       children = parser_forest_leaf(recognizer, node);

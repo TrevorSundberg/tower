@@ -35,6 +35,7 @@ function(tower_compiler_utilities)
       OUTPUT_VARIABLE triple OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND_ERROR_IS_FATAL ANY)
   endif()
   add_library(tower-compiler-memory STATIC scaffolding/compiler-memory.cpp)
+  set_property(GLOBAL PROPERTY TOWER_COMPILER_TRIPLE "${triple}")
   add_library(tower-compiler-utilities INTERFACE)
   add_library(tower-compiler-entities INTERFACE)
   foreach(source IN ITEMS scaffolding/compiler/utf8.tower scaffolding/library/bytes.tower scaffolding/library/entities.tower)
@@ -67,4 +68,42 @@ function(tower_compiler_utilities)
       target_sources(tower-compiler-utilities INTERFACE "${object}")
     endif()
   endforeach()
+endfunction()
+
+# These components use the Tower-written specializer (vector(T)), so compile
+# them with stage1 or a supplied recent compiler, not the pre-template seed.
+function(tower_compiler_parser_nodes)
+  if(TARGET tower-compiler-parser-nodes)
+    return()
+  endif()
+  if(TOWER_BOOTSTRAP_COMPILER)
+    set(bootstrap "${TOWER_BOOTSTRAP_COMPILER}")
+    set(dependency "${TOWER_BOOTSTRAP_COMPILER}")
+  elseif(TARGET towerc-stage1)
+    set(bootstrap "$<TARGET_FILE:towerc-stage1>")
+    set(dependency towerc-stage1)
+  else()
+    message(FATAL_ERROR "Parser components require a template-capable host Tower compiler.")
+  endif()
+  get_property(triple GLOBAL PROPERTY TOWER_COMPILER_TRIPLE)
+  set(input "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-parser-nodes.tower")
+  set(object "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-parser-nodes.o")
+  add_custom_command(OUTPUT "${input}"
+    COMMAND "${CMAKE_COMMAND}"
+      -DVECTOR=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/library/vector.tower
+      -DPAYLOADS=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/parser-nodes.tower
+      -DLEXER=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/lexer-table.tower
+      -DOUTPUT=${input} -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ComposeParserNodes.cmake"
+    DEPENDS scaffolding/library/vector.tower scaffolding/compiler/parser-nodes.tower scaffolding/compiler/lexer-table.tower cmake/ComposeParserNodes.cmake
+    VERBATIM)
+  add_custom_command(OUTPUT "${object}"
+    COMMAND "${bootstrap}" "${input}"
+      --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
+      --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
+      --library --target "${triple}" -o "${object}"
+    DEPENDS ${dependency} "${input}" scaffolding/bedrock.tower scaffolding/foundation.tower
+    COMMENT "Compiling Tower-owned parser components for ${triple}" VERBATIM)
+  set_source_files_properties("${object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
+  add_library(tower-compiler-parser-nodes INTERFACE)
+  target_sources(tower-compiler-parser-nodes INTERFACE "${object}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/parser-nodes.cpp")
 endfunction()

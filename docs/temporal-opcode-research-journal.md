@@ -7864,3 +7864,76 @@ prefixes, captures and error boundaries); expand eligibility based on evidence.
 This approval adds to the ongoing full self-hosting migration and does not replace
 it. As of this entry, the unified regex grammar and generic parser specialization
 are authorized work, not completed features.
+
+## 2026-11-18 — Tower-owned parser payloads and lexer matching
+
+Moved Rule, Reference, String, Range and Match component fields/ownership from
+parser.cpp into compiler/parser-nodes.tower. They remain components of the actual
+shared entity store. Names, capture labels and decoded token IDs use the new
+vector(T) library; the native adapter holds no duplicate payload layout. Consumers
+use opaque accessors. Creation on an existing component now preserves its payload
+instead of placement-constructing over live owned strings (a pre-existing leak
+hazard); the seed reference has the same corrected behavior. Allocation failure
+returns from Tower setters leave prior values intact; the existing native API
+still treats unrecoverable setter allocation failure as fatal.
+
+Moved compiled lexer alphabet/transition/acceptance storage and the maximal-prefix
+matcher into compiler/lexer-table.tower. Transition rows are contiguous. Unicode
+decoding uses the existing Tower codec; binary alphabet lookup and longest accepted
+prefix behavior match the reference. Table append failure preserves logical rows,
+even if an earlier reserve has already increased capacity. Regex syntax parsing
+and NFA/DFA construction remain native for now, as corrected in the earlier
+scannerless journal entry. This is not yet the approved shared-regex grammar work.
+
+The build now has an acyclic intermediate stage: towerc-seed compiles the Tower
+entity store, parse forest and generic specializer; towerc-stage1 uses them and can
+compile generic parser/lexer payloads; towerc links the resulting objects. The
+explicit host-bootstrap option must name a template-capable compiler for those
+modules. Old payload/matcher implementations live only in bootstrap references,
+not the production targets. Final deletion of all project-owned native code,
+including seeds/adapters, still depends on validated self-hosted successors and
+the requested portable binary distribution. We have not reached that endpoint.
+
+Repaired the older Windows parser test script, which manually listed native
+sources and omitted the migrated Tower objects. It now uses the same CMake graph,
+accepts a native bootstrap compiler, or bridges to the WSL intermediate compiler
+to emit Windows COFF modules before MSVC links the native test executable.
+Initial trials exposed WSL shell handling of Windows backslashes and Windows
+PowerShell interpreting ordinary native stderr status lines as terminating errors;
+use `wsl --exec`, normalize paths, and explicitly check the exit status. The first
+payload extraction also needed a UTF-8 wrapper declaration in the seed. The
+dependency audit initially rejected tower_allocate after adding the table object;
+it is the expected allocator primitive and is now explicitly allowed.
+
+Validation (Windows host, WSL Orchestral-Revng, LLVM 19, WASI SDK 34):
+- `bash playground/scripts/build-native.sh`, `build-wasm.sh`, and
+  `TOWER_BROWSER_CROSS=ON TOWER_BUILD_JOBS=3 ... build-llvm.sh` passed. Cross builds
+  used TOWER_BOOTSTRAP_COMPILER=/root/.cache/tower/native/towerc-stage1.
+- `bash playground/scripts/test-native-core.sh`: 4/4 ASan/UBSan suites passed.
+  Native C++ is instrumented; generated Tower objects do not yet carry sanitizer
+  instrumentation. Payload tests cover defaults, self/subspan assignment,
+  removal/recreation, growth, overflow and injected allocation failures.
+- `scaffolding/tests/run.ps1 -Optimize`: MSVC native parser/core/storage/entity
+  tests passed using the cross-compiled Tower objects.
+- Lexer differential test: 500 randomized automata, 20 inputs each, every byte
+  offset including EOF/beyond EOF, Unicode, embedded NUL and malformed/truncated
+  UTF-8; compare against the seed. Test both first and second reserve failures.
+- `bash playground/scripts/test-bootstrap.sh`: all 16 module/target pairs have
+  identical optimized LLVM and object bytes (Linux x64, Windows x64, macOS ARM64,
+  Wasm). Generic payloads/matcher compare stage1 versus final compiler.
+- `node --test playground/tests/*.test.mjs`: 177/177; Playwright: 102/102 desktop
+  and mobile. All 28 Tower source files satisfy canonical formatting.
+- Paired Wasm profile against published ea3d6bd/Pages 35826d9: 12 warmups and 40
+  alternating compile+format samples. Median milliseconds: small 6.066 -> 5.961;
+  inference 6.806 -> 7.058; replacements 22.425 -> 22.408; 500 declarations
+  15.479 -> 16.382. This does not establish a general speedup; the largest measured
+  overhead here is about 0.9 ms. build/profile-parser-payload.mjs and
+  build/parser-payload-performance.json reproduce/record the trial. An earlier
+  exploratory invocation reused an old baseline label; this dedicated report
+  records the actual deployed baseline correctly.
+
+Logs: build/parser-payload-{native,wasm,llvm,asan,windows,node-tests,bootstrap,
+browser,format-check}.log. Next: shared regex grammar and safe symbol-stream DFA
+specialization, alongside continued migration of native semantic payloads and
+parser algorithms. Higher-level grammar/foundation components, LR construction/
+control, formatter, interpreter, backend/driver and native adapters remain to port.

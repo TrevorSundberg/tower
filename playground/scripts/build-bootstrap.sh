@@ -11,5 +11,5 @@ config="${LLVM_CONFIG:-llvm-config-19}"
 native="${TOWER_NATIVE_BUILD:-$HOME/.cache/tower/native}"
 cmake -S "$repo" -B "$native" -G Ninja -DTOWER_NATIVE=ON \
   -DLLVM_DIR="$("$config" --cmakedir)" -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=clang++ >&2
-cmake --build "$native" --target towerc-seed --parallel "${TOWER_BUILD_JOBS:-4}" >&2
-printf '%s\n' "$native/towerc-seed"
+cmake --build "$native" --target towerc-stage1 --parallel "${TOWER_BUILD_JOBS:-4}" >&2
+printf '%s\n' "$native/towerc-stage1"

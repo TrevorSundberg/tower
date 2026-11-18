@@ -3,6 +3,10 @@
 #include <algorithm>
 #include <map>
 #include <utility>
+#include <cstdlib>
+
+LexPattern::LexPattern() : table(lex_table_create()) { if (!table) std::abort(); }
+LexPattern::~LexPattern() { lex_table_destroy(table); }
 
 size_t lex_codepoint(std::string_view source, size_t start, uint32_t& value) {
   if (start >= source.size()) { value = 0; return 0; }
@@ -149,17 +153,17 @@ std::shared_ptr<const LexPattern> lex_pattern_compile(const std::string& pattern
   int accept = compiler.add({State::Accept}); compiler.patch(fragment.ends, accept);
   if (!error.empty()) return nullptr;
   auto result = std::make_shared<LexPattern>();
-  result->alphabet = {0, 0x110000};
+  std::vector<uint32_t> alphabet = {0, 0x110000};
   for (const auto& state : compiler.states) for (auto [low, high] : state.ranges) {
-    result->alphabet.push_back(low); result->alphabet.push_back(high + 1);
+    alphabet.push_back(low); alphabet.push_back(high + 1);
   }
-  auto& alphabet = result->alphabet;
   std::sort(alphabet.begin(), alphabet.end()); alphabet.erase(std::unique(alphabet.begin(), alphabet.end()), alphabet.end());
+  if (!lex_table_set_alphabet(result->table, alphabet.data(), alphabet.size())) { error = "Unable to allocate lexer alphabet"; return nullptr; }
   std::vector<std::vector<int>> subsets{compiler.closure({fragment.start})};
   if (std::binary_search(subsets[0].begin(), subsets[0].end(), accept)) { error = "Token pattern must not match empty input"; return nullptr; }
   std::map<std::vector<int>, int> indices{{subsets[0], 0}};
   for (size_t i = 0; i < subsets.size(); ++i) {
-    result->accepting.push_back(std::binary_search(subsets[i].begin(), subsets[i].end(), accept));
+    const bool accepting = std::binary_search(subsets[i].begin(), subsets[i].end(), accept);
     std::vector<int> row;
     for (size_t c = 0; c + 1 < alphabet.size(); ++c) {
       std::vector<int> next;
@@ -179,21 +183,11 @@ std::shared_ptr<const LexPattern> lex_pattern_compile(const std::string& pattern
         int id = (int)subsets.size(); indices.emplace(closed, id); subsets.push_back(std::move(closed)); row.push_back(id);
       } else row.push_back(found->second);
     }
-    result->transitions.push_back(std::move(row));
+    if (!lex_table_append(result->table, row.data(), row.size(), accepting)) { error = "Unable to allocate lexer transitions"; return nullptr; }
   }
   return result;
 }
 
 size_t LexPattern::match(std::string_view source, size_t start) const {
-  size_t pos = start, longest = 0; int state = 0;
-  while (pos < source.size()) {
-    uint32_t value; size_t bytes = lex_codepoint(source, pos, value);
-    if (!bytes) break;
-    size_t column = std::upper_bound(alphabet.begin(), alphabet.end(), value) - alphabet.begin() - 1;
-    state = transitions[state][column];
-    if (state < 0) break;
-    pos += bytes;
-    if (accepting[state]) longest = pos - start;
-  }
-  return longest;
+  return lex_table_match(table, reinterpret_cast<const uint8_t*>(source.data()), source.size(), start);
 }

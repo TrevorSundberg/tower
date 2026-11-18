@@ -15,13 +15,21 @@ if(TOWER_NATIVE)
   target_compile_features(tower-native-compiler PRIVATE cxx_std_20)
   target_compile_definitions(tower-native-compiler PRIVATE TOWER_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
   target_compile_options(tower-native-compiler PRIVATE -fno-exceptions)
-  add_executable(towerc-seed $<TARGET_OBJECTS:tower-native-compiler> scaffolding/bootstrap/utf8-seed.cpp scaffolding/bootstrap/bytes-seed.cpp scaffolding/bootstrap/nodes-seed.cpp scaffolding/bootstrap/parse-tree-seed.cpp scaffolding/bootstrap/generics-seed.cpp)
+  add_executable(towerc-seed $<TARGET_OBJECTS:tower-native-compiler> scaffolding/bootstrap/utf8-seed.cpp scaffolding/bootstrap/bytes-seed.cpp scaffolding/bootstrap/nodes-seed.cpp scaffolding/bootstrap/parse-tree-seed.cpp scaffolding/bootstrap/generics-seed.cpp scaffolding/bootstrap/parser-nodes-seed.cpp)
   target_compile_features(towerc-seed PRIVATE cxx_std_20)
+  target_sources(towerc-seed PRIVATE scaffolding/bootstrap/lexer-table-seed.cpp)
   target_link_libraries(towerc-seed PRIVATE LLVM tower-compiler-memory)
   tower_compiler_utilities()
+  # The seed builds the Tower specializer; this stage can then build generic
+  # compiler components. Keep the dependency graph acyclic from a clean checkout.
+  add_executable(towerc-stage1 $<TARGET_OBJECTS:tower-native-compiler> scaffolding/tower.cpp scaffolding/bootstrap/parser-nodes-seed.cpp)
+  target_compile_features(towerc-stage1 PRIVATE cxx_std_20)
+  target_sources(towerc-stage1 PRIVATE scaffolding/bootstrap/lexer-table-seed.cpp)
+  target_link_libraries(towerc-stage1 PRIVATE tower-compiler-entities tower-compiler-utilities tower-compiler-memory LLVM)
+  tower_compiler_parser_nodes()
   add_executable(towerc $<TARGET_OBJECTS:tower-native-compiler> scaffolding/tower.cpp)
   target_compile_features(towerc PRIVATE cxx_std_20)
-  target_link_libraries(towerc PRIVATE tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
+  target_link_libraries(towerc PRIVATE tower-compiler-parser-nodes tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
   target_link_libraries(towerc PRIVATE LLVM)
   return()
 endif()
@@ -31,12 +39,13 @@ option(TOWER_BROWSER_LLVM "Also build the LLVM compiler experiment as a separate
 option(TOWER_BROWSER_CROSS "Include CPU backends and native linkers in a separate browser compiler" OFF)
 if(TOWER_BROWSER)
   tower_compiler_utilities()
+  tower_compiler_parser_nodes()
   add_executable(tower-browser scaffolding/browser.cpp
     scaffolding/core.cpp scaffolding/core-nodes.cpp scaffolding/core-machine.cpp
     scaffolding/tower.cpp scaffolding/tests/nodes.cpp scaffolding/parser.cpp scaffolding/parser-tree-tests.cpp
     scaffolding/syntax.cpp scaffolding/compiler-syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/bedrock.cpp scaffolding/format.cpp scaffolding/lex-pattern.cpp scaffolding/syntax-tests.cpp)
   target_compile_features(tower-browser PRIVATE cxx_std_20)
-  target_link_libraries(tower-browser PRIVATE tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
+  target_link_libraries(tower-browser PRIVATE tower-compiler-parser-nodes tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
   target_compile_options(tower-browser PRIVATE -fno-exceptions -UNDEBUG)
   target_link_options(tower-browser PRIVATE -mexec-model=reactor
     -Wl,-z,stack-size=2097152 -Wl,--initial-memory=8388608 -Wl,--max-memory=268435456)
@@ -91,7 +100,7 @@ if(TOWER_BROWSER)
         ${TOWER_LLVM_SOURCE_DIR}/llvm/include ${CMAKE_CURRENT_BINARY_DIR}/third_party/llvm-project/llvm/include
         "${CMAKE_CURRENT_BINARY_DIR}")
       target_compile_features(${name} PRIVATE cxx_std_20)
-      target_link_libraries(${name} PRIVATE tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
+      target_link_libraries(${name} PRIVATE tower-compiler-parser-nodes tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
       target_compile_options(${name} PRIVATE -fno-exceptions -UNDEBUG)
       target_link_options(${name} PRIVATE -mexec-model=reactor
         -Wl,--export=malloc -Wl,--export=free
@@ -113,14 +122,15 @@ endif()
 option(TOWER_PARSER_ONLY "Build native parser tests without LLVM or WASI" OFF)
 if(TOWER_PARSER_ONLY)
   tower_compiler_utilities()
+  tower_compiler_parser_nodes()
   target_compile_definitions(tower-compiler-memory PRIVATE TOWER_COMPILER_MEMORY_TESTS=1)
   add_executable(tower-parser-tests scaffolding/tests/main.cpp
-    scaffolding/tests/compiler-storage.cpp scaffolding/tests/entities.cpp
+    scaffolding/tests/compiler-storage.cpp scaffolding/tests/entities.cpp scaffolding/tests/lexer-table.cpp
     scaffolding/core.cpp scaffolding/core-nodes.cpp scaffolding/core-machine.cpp scaffolding/core-tests.cpp
     scaffolding/tower.cpp scaffolding/tests/nodes.cpp scaffolding/parser.cpp scaffolding/parser-tree-tests.cpp
     scaffolding/syntax.cpp scaffolding/compiler-syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/bedrock.cpp scaffolding/format.cpp scaffolding/lex-pattern.cpp scaffolding/syntax-tests.cpp)
   target_compile_features(tower-parser-tests PRIVATE cxx_std_20)
-  target_link_libraries(tower-parser-tests PRIVATE tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
+  target_link_libraries(tower-parser-tests PRIVATE tower-compiler-parser-nodes tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
   if(MSVC)
     string(REPLACE "/EHsc" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
     target_compile_options(tower-parser-tests PRIVATE /utf-8 /UNDEBUG)
@@ -129,6 +139,13 @@ if(TOWER_PARSER_ONLY)
     target_compile_options(tower-parser-tests PRIVATE -UNDEBUG -fno-exceptions)
   endif()
   enable_testing()
+  add_library(tower-lexer-reference STATIC scaffolding/bootstrap/lexer-table-seed.cpp)
+  target_compile_features(tower-lexer-reference PRIVATE cxx_std_20)
+  target_compile_definitions(tower-lexer-reference PRIVATE LexerTable=ReferenceLexerTable
+    lex_table_create=reference_lex_table_create lex_table_destroy=reference_lex_table_destroy
+    lex_table_set_alphabet=reference_lex_table_set_alphabet lex_table_append=reference_lex_table_append
+    lex_table_match=reference_lex_table_match)
+  target_link_libraries(tower-parser-tests PRIVATE tower-lexer-reference)
   add_library(tower-utf8-reference STATIC scaffolding/bootstrap/utf8-seed.cpp)
   target_compile_definitions(tower-utf8-reference PRIVATE
     tower_utf8_decode=reference_utf8_decode tower_utf8_encode=reference_utf8_encode
@@ -209,7 +226,8 @@ add_executable(scaffolding
   scaffolding/lex-pattern.cpp
   scaffolding/syntax-tests.cpp)
 tower_compiler_utilities()
-target_link_libraries(scaffolding PRIVATE tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
+tower_compiler_parser_nodes()
+target_link_libraries(scaffolding PRIVATE tower-compiler-parser-nodes tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
 
 target_compile_features(scaffolding PRIVATE cxx_std_20)
 target_compile_options(scaffolding PRIVATE -fno-exceptions)

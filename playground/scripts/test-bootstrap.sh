@@ -7,14 +7,16 @@ out="$repo/build/bootstrap-check"
 mkdir -p "$out"
 # A production compiler already uses Tower-written utilities when it reads the
 # utility source again. Compare its output with the independent C++ seed.
-for utility in utf8 bytes entities; do
+for utility in utf8 bytes entities parser-nodes; do
   source="$repo/scaffolding/compiler/utf8.tower"
   if [ "$utility" = bytes ]; then source="$repo/scaffolding/library/bytes.tower"; fi
   if [ "$utility" = entities ]; then source="$native/tower-compiler-entities.tower"; fi
+  if [ "$utility" = parser-nodes ]; then source="$native/tower-compiler-parser-nodes.tower"; fi
   for target in x86_64-pc-linux-gnu wasm32-unknown-unknown x86_64-pc-windows-msvc aarch64-apple-darwin; do
     for stage in seed tower; do
       compiler="$native/towerc"
       if [ "$stage" = seed ]; then compiler="$native/towerc-seed"; fi
+      if [ "$utility" = parser-nodes ] && [ "$stage" = seed ]; then compiler="$native/towerc-stage1"; fi
       "$compiler" "$source" --library --target "$target" \
         --bedrock "$repo/scaffolding/bedrock.tower" --foundation "$repo/scaffolding/foundation.tower" \
         --optimized-ir "$out/$utility-$target-$stage.ll" -o "$out/$utility-$target-$stage.o"
@@ -26,6 +28,7 @@ if sys.argv[1] == 'entities': allowed |= {
     'tower_allocate', 'tower_entity_finalize', 'compiler_node_label',
     'compiler_name_is', 'compiler_name_equal', 'compiler_node_copy_metadata',
     'compiler_generic_type', 'compiler_component_add'}
+if sys.argv[1] == 'parser-nodes': allowed |= {'tower_utf8_decode', 'tower_allocate'}
 symbols = {line.split()[-1].lstrip('_') for line in pathlib.Path(sys.argv[2]).read_text().splitlines() if line.strip()}
 assert symbols <= allowed, f'Unexpected runtime dependencies: {symbols - allowed}'
 PY

@@ -17,6 +17,10 @@ Run the native tree/parser checks without building LLVM or the WASI runtime:
 The Windows script uses Visual Studio 2022 Build Tools; `-VcVars` can select a
 different developer environment. `-Trace` enables table construction and individual
 shift/reduce events. `-Sanitize` enables MSVC AddressSanitizer.
+The script now uses CMake to compile and link the Tower-written compiler modules.
+Supply a template-capable native compiler with `-BootstrapCompiler` (or
+`TOWER_BOOTSTRAP_COMPILER`); otherwise it builds the intermediate host compiler in
+WSL and cross-compiles those modules to Windows COFF before linking with MSVC.
 
 The syntax suite also checks replacement chains, named/repeated captures, empty
 bodies, duplicate-use ownership, unused captures, named helper activation, atomic
@@ -29,7 +33,7 @@ from the earlier JavaScript replacement-shortcut research model.
 Alternatively, with CMake and a C++20 compiler:
 
 ```text
-cmake -S . -B build/parser-cmake -DTOWER_PARSER_ONLY=ON
+cmake -S . -B build/parser-cmake -DTOWER_PARSER_ONLY=ON -DTOWER_BOOTSTRAP_COMPILER=/path/to/towerc
 cmake --build build/parser-cmake --config Debug
 ctest --test-dir build/parser-cmake -C Debug --output-on-failure
 ```

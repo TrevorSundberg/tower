@@ -63,6 +63,7 @@ const char* parser_reference_get_name(Reference* component);
 
 // Name the reduced child in its parent's generic member map (empty means unnamed).
 void parser_reference_set_capture(Reference* component, const char* name);
+const char* parser_reference_get_capture(Reference* component);
 
 // Creates a child node and attaches it to the parent,
 // adds the Reference component to the child, and sets up the component
@@ -90,6 +91,8 @@ uint32_t parser_string_get_id(String* component, size_t index);
 // or if it is larger it will be filled with PARSER_ID_EOF
 void parser_string_set_length(String* component, size_t length);
 size_t parser_string_get_length(String* component);
+// Borrowed storage, invalidated by mutation.
+const uint32_t* parser_string_get_data(String* component);
 
 // Appends the string of ids from a null-terminated utf8 string (the character codepoint values)
 // Each utf8 character will be decoded and stored within a 32 bit integer as an id

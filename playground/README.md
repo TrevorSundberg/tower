@@ -464,8 +464,16 @@ columns, safe handles, access scopes or jobs. Ownership cycles remain invalid.
 lazy capture wrappers, generated-node flattening and ownership transfer into those
 entities. It preserves O(1) fragment concatenation and visits each flattened
 fragment once. CMake temporarily composes it after `entities.tower`; this is not a
-new import syntax. The LALR table builder, recognizer control loop, lexer, semantic
-payload definitions, formatter and backends still contain C++ to migrate.
+new import syntax. `compiler/generics.tower` uses the same entities for type-function
+specialization, bindings, provenance and iterative syntax cloning.
+
+`compiler/parser-nodes.tower` owns rule, reference, token-string, range and match
+payloads, including their text and arrays through `vector(T)`. Native consumers
+borrow opaque payloads through accessors; they do not mirror their field layouts.
+`compiler/lexer-table.tower` owns flat DFA transition rows and performs Unicode
+maximal-prefix matching. These tables are derived caches. Regex syntax compilation,
+the LALR table builder, recognizer control loop, higher-level grammar/foundation
+payloads, formatter and backends still contain C++ to migrate.
 
 The remaining native node adapter binds allocation and existing C++ component
 destructors. Its lifecycle registry lasts as long as static compiler caches; the
@@ -474,20 +482,23 @@ Tower clients can use plain components with lifecycle zero, or supply the declar
 `tower_entity_finalize` dispatch through the existing external-call mechanism.
 
 The transitional native build first makes `towerc-seed` using the independent
-C++ references in `scaffolding/bootstrap/`. The seed compiles the Tower code
-for the host/target, then normal compilers link those objects. The seed algorithms
+C++ references in `scaffolding/bootstrap/`. The seed compiles the entity store,
+parse-forest routines and Tower specializer. `towerc-stage1` links those components
+and can then compile generic parser/lexer components using `vector(T)`; the final
+compiler links those as well. The seed algorithms
 are absent from normal compiler targets; tests retain them as references.
 Generated objects stay in ignored build directories, and dependencies include
 the compiler executable, utility source, Bedrock and Foundation.
 
-The build scripts prepare the seed automatically, currently requiring host Clang,
+The build scripts prepare the intermediate compiler automatically, currently requiring host Clang,
 CMake/Ninja and LLVM 19 development libraries (`LLVM_CONFIG` can override the
 config tool). Set `TOWER_BOOTSTRAP_COMPILER` to an existing host compiler to bypass
-building that seed; direct CMake builds accept the same cache option. Bootstrap
+building those stages; it must support type functions/templates. Direct CMake
+builds accept the same cache option. Bootstrap
 commands pass `--bedrock file --foundation file` explicitly so an external compiler
 uses this checkout's grammar modules. These driver options are also available
 for normal builds; they are host loading controls, not language imports. The native
-build produces both `build/native/towerc` and `build/native/towerc-seed`.
+build produces `build/native/towerc`, `towerc-seed` and `towerc-stage1`.
 The eventual distribution will include self-contained bootstrap Tower compiler
 binaries for Windows/macOS/Linux in the repository; those binaries are not shipped
 yet. General module imports and the rest of the compiler migration remain future work.
@@ -500,11 +511,15 @@ node --test playground/tests/compiler-bytes.test.mjs
 node --test playground/tests/compiler-entities.test.mjs
 ```
 
-The bootstrap check compares seed-built and Tower-built optimized LLVM
-and object bytes for Linux, Windows, macOS and Wasm. UTF-8 has no runtime dependencies;
+The bootstrap check compares earlier-stage and final-compiler optimized LLVM
+and object bytes for Linux, Windows, macOS and Wasm. The generic parser/lexer
+components use stage1 as their reference builder. UTF-8 has no runtime dependencies;
 byte buffers allow only allocation/copy primitives and the Wasm stack-pointer symbol.
 The entity/parser module also permits the allocation and component-lifecycle
 bridges. This verifies the migrated compiler pieces, not a fully self-hosted compiler.
+Parser payload tests cover ownership, aliasing, growth, default metadata and failed
+allocations. Lexer tests compare the Tower matcher with the seed on 500 randomized
+automata, Unicode/invalid UTF-8, every input offset and partial allocation failure.
 Native tests cover every Unicode scalar, every one/two-byte input,
 random malformed buffers and inaccessible-page boundaries. The C++ host/tests run
 under sanitizers; generated Tower objects currently do not carry sanitizer

@@ -2,6 +2,7 @@
 #include "../syntax.hpp"
 #include "../syntax-nodes.hpp"
 #include "../compiler-generics.hpp"
+#include "../compiler-parser-nodes.hpp"
 #include <cassert>
 #include <cstring>
 #include <string>
@@ -12,6 +13,53 @@ extern "C" void tower_test_buffer_fail_next();
 
 void compiler_storage_tests() {
   const auto baseline = tower_test_buffer_count();
+  {
+    auto owner = TowerNodeRef::adopt(tower_node_create());
+    auto* rule = parser_rule_create(owner.get());
+    assert(!*parser_rule_get_name(rule) && !parser_rule_get_generated(rule));
+    parser_rule_set_name(rule, "prefix-name");
+    parser_rule_set_name(rule, parser_rule_get_name(rule) + 7);
+    assert(!std::strcmp(parser_rule_get_name(rule), "name"));
+    assert(parser_rule_create(owner.get()) == rule);
+    assert(!std::strcmp(parser_rule_get_name(rule), "name"));
+    tower_test_buffer_fail_next();
+    assert(!node_rule_set_name(rule, std::string(4096, 'r').c_str()));
+    assert(!std::strcmp(parser_rule_get_name(rule), "name"));
+    parser_rule_set_name(rule, "");
+    assert(!*parser_rule_get_name(rule));
+    auto* ref = parser_reference_create(owner.get());
+    assert(!*parser_reference_get_name(ref) && !*parser_reference_get_capture(ref));
+    parser_reference_set_name(ref, "Rule"); parser_reference_set_capture(ref, "argument");
+    assert(!std::strcmp(parser_reference_get_capture(ref), "argument"));
+    auto* range = parser_range_create(owner.get());
+    assert(!parser_range_get_start(range) && !parser_range_get_end(range));
+    auto* match = parser_match_create(owner.get());
+    assert(parser_match_get_id(match) == PARSER_ID_EOF);
+    assert(parser_match_get_rule_index(match) == TOWER_INVALID_INDEX);
+    assert(!parser_match_get_start(match) && !parser_match_get_length(match) && !*parser_match_get_label(match));
+    parser_match_set_label(match, "retained");
+    tower_test_buffer_fail_next();
+    assert(!node_match_set_label(match, std::string(4096, 'm').c_str()));
+    assert(!std::strcmp(parser_match_get_label(match), "retained"));
+    auto* string = parser_string_create(owner.get());
+    assert(!parser_string_get_length(string));
+    parser_string_append_utf8_null_terminated(string, "A\xc3\xa9\xf0\x9f\x8f\xb0");
+    assert(parser_string_get_length(string) == 3);
+    assert(parser_string_get_id(string, 0) == 'A' && parser_string_get_id(string, 1) == 0xe9);
+    assert(parser_string_get_id(string, 2) == 0x1f3f0);
+    parser_string_set_length(string, 1); parser_string_set_id(string, 4, 'Z');
+    assert(parser_string_get_length(string) == 5 && parser_string_get_id(string, 4) == 'Z');
+    for (size_t i = 1; i < 4; ++i) assert(parser_string_get_id(string, i) == PARSER_ID_EOF);
+    assert(!node_string_resize(string, SIZE_MAX));
+    assert(!node_string_set(string, SIZE_MAX, 'X'));
+    tower_test_buffer_fail_next();
+    assert(!node_string_resize(string, 4096));
+    assert(parser_string_get_length(string) == 5 && parser_string_get_id(string, 4) == 'Z');
+    // Removing a component must release its Tower-owned vector as well as the payload.
+    assert(tower_node_remove_component(owner.get(), parser_string_get_type()));
+    string = parser_string_create(owner.get()); assert(!parser_string_get_length(string));
+  }
+  assert(tower_test_buffer_count() == baseline);
   {
     auto root = TowerNodeRef::adopt(tower_node_create()); auto* at = root.get();
     for (size_t i = 0; i < 600; ++i) {
