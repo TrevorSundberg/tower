@@ -10212,3 +10212,207 @@ Pages build API reports that revision built. The read-only live hash check
 (build/verify-migration-audit-pages.mjs) verified the manifest and all 35 served
 assets against origin/gh-pages; report build/cpp-migration-audit-pages.json.
 No new combined compiler build or browser behavior test is claimed here.
+
+## 2026-11-18 — Port interpreter execution into Tower (isolated worktree)
+
+Started from `f034216` on `port/interpreter-tower` in
+`C:/Sandbox/tower-interpreter`. The original checkout and `todo.txt` were not
+modified. Build products are under that worktree's `build/` and the separate
+WSL cache `/home/trevo/.cache/tower-interpreter/{native,tests,asan,wasm-tests}`.
+No merge, push, publication, UI/worker, grammar construction, formatting engine,
+type-checker, shared foundation component-layout, or LLVM-lowering change is
+part of this port.
+
+Implemented execution in `scaffolding/compiler/interpreter.tower`: target-byte
+memory access; aligned first-fit allocation, splitting, coalescing, reallocation
+and free; scalar arithmetic/conversion; raw target-address calculation; literal
+storage; function frames and foreign calls; resumable expression tasks; loops,
+break/continue/returns; output formatting and truncation. The implementation reads
+the original FoundationNode components. It introduces no instruction stream,
+public bytecode, replacement program graph, checked pointer handle, or executable
+memory requirement. Pointer widths still come from the guest's explicit target;
+the interpreter's own host ABI is a distinct layout, verified in the tests.
+
+The C++ CoreMachine source is now an adapter for public methods, host containers,
+existing shared type/component queries, diagnostic-string storage, and callback
+marshalling. Container bridges do not choose operations, schedule evaluation,
+calculate addresses, merge allocations, or format guest output. Ordered neighbor
+queries return ordinary container observations; coalescing remains Tower code.
+Public source-level CoreMachine members/methods remain available. Its scalar
+state is a shared ABI base; derived frame/task counts and error/cache flags remove
+repeated host calls. Counts/error state refresh on public step entry and foreign
+callback return. All native callers must rebuild against the updated header.
+
+The composed interpreter input reuses FoundationType/FoundationNode declarations
+from `foundation-nodes.tower`, and generates kind/operator/scalar tag spellings
+from the existing C++ enums. It does not duplicate those schemas or introduce
+new semantic operation definitions. This is temporary source composition until
+imports exist; the declaration boundary is checked. Task-phase and bootstrap
+limits have static assertions; state size and every field offset are compared
+against the actual Tower-compiled layout for native and Wasm targets.
+
+Production `towerc`, parser/core tests, and the browser reactor link the Tower
+interpreter object. `towerc-seed` and `towerc-stage1` deliberately retain the
+original execution algorithms in `bootstrap/interpreter-seed.cpp` to avoid a
+bootstrap dependency cycle. That same frozen implementation is independently
+renamed for differential testing. It is retained migration debt, not a completed
+pure-Tower bootstrap. Native std::vector/std::map/string/function storage, the
+host allocation primitives, shared native type queries/component accessors, and
+the fatal internal `tower_trap` adapter also remain migration debt. Guest errors
+are checked/diagnosed by Tower; that fatal adapter is for compiler-owned runtime
+invariant failures. Integration with other ports must provide only one definition
+of the compiler-owned `tower_trap` symbol.
+
+Experiments and corrections:
+
+- A direct translation initially failed because `skip` is reserved, boolean
+  bitwise operations are disallowed, and `bits` cannot change integer widths.
+  Used an ordinary local name, Tower boolean helpers, and explicit masking before
+  narrowing conversion. No grammar/type-checker exception was added.
+- Linking the first Tower object exposed its `tower_trap` dependency; supplied
+  the small fatal adapter rather than weakening checked operation semantics.
+- Differential fixture corrections respected Foundation's existing syntax:
+  binary return/argument expressions require locals; pointer reinterpretation
+  requires target-width integers; a negative index uses an explicitly typed
+  signed variable (a bare index literal receives usize context).
+- WASI reference linking initially needed `-fno-exceptions` on the reference
+  library as well as the test executable. Corrected only test registration.
+- The first native loop sample regressed: Tower 73.39 ms versus C++ 53.43 ms.
+  Direct scalar-state access reduced the Tower sample to 64.65 ms; reusing already
+  fetched shared components reduced it to 55.10 ms. Subsequent changes bypass
+  provably empty statement caches, avoid redundant FinishValue probes, defer
+  component lookup until after a cache hit check, specialize container bridges,
+  and combine ordered-neighbor observations. They preserve step counts, caches,
+  task order, output, errors and memory at suspension boundaries. These are
+  execution/index optimizations, not new program semantics. Performance remains
+  workload/target dependent; in particular Wasm allocation is not a demonstrated
+  speedup over the native reference.
+- Exhaustive full-memory comparisons during thousands of identical infinite-loop
+  suspensions made the first WASI harness unnecessarily slow; those trials were
+  stopped. The final suite compares the first 128 budgeted steps of those loops,
+  then separately crosses the output limit with a larger slice. Finite programs
+  still compare at every suspension and must terminate (including error exits).
+- Windows Node 22.23.4's native `node:wasi` binding reproducibly terminated with
+  process code -1073741819 (access violation), sometimes during literal-output
+  tests, without a Wasm exception. Disabling Wasm tier-up did not resolve it.
+  Wrapping/logging the WASI imports allowed the complete suite to pass. The exact
+  native-host cause is NOT established. The checked-in runner instead uses the
+  project's existing portable TowerWASI host, which passes the suite and matches
+  the playground's host path; no host implementation or worker was changed.
+- An initial broader Node test command included raw-memory/inference/templates
+  suites that require a separate LLVM reactor and failed at missing-artifact
+  imports. No result is claimed for those suites. The focused reactor tests and
+  freshly built native LLVM comparisons below cover the executed paths.
+
+Reproduction (WSL Ubuntu, clang++ 21.1.8, installed LLVM 19; WASI SDK 34.0 with
+clang 23.1.0; Windows Node 22.23.4). From `/mnt/c/Sandbox/tower-interpreter`:
+
+```sh
+cache=/home/trevo/.cache/tower-interpreter
+cmake -S . -B "$cache/native" -G Ninja -DTOWER_NATIVE=ON \
+  -DLLVM_DIR="$(llvm-config-19 --cmakedir)" -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_CXX_COMPILER=clang++
+cmake --build "$cache/native" --parallel 4
+cmake -S . -B "$cache/tests" -G Ninja -DTOWER_PARSER_ONLY=ON \
+  -DTOWER_BOOTSTRAP_COMPILER="$cache/native/towerc-stage1" \
+  -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=clang++
+cmake --build "$cache/tests" --parallel 4
+ctest --test-dir "$cache/tests" --output-on-failure
+(cd scaffolding && "$cache/tests/tower-interpreter-tests" --benchmark)
+python3 scaffolding/tests/interpreter-llvm.py "$cache/native/towerc" build/llvm-comparisons
+cmake -S . -B "$cache/asan" -G Ninja -DTOWER_PARSER_ONLY=ON \
+  -DTOWER_BOOTSTRAP_COMPILER="$cache/native/towerc-stage1" \
+  -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++ \
+  -DCMAKE_CXX_FLAGS='-fsanitize=address,undefined' \
+  -DCMAKE_EXE_LINKER_FLAGS=-fsanitize=address,undefined
+cmake --build "$cache/asan" --parallel 4
+ctest --test-dir "$cache/asan" --output-on-failure
+sdk=/home/trevo/.cache/tower/wasi-sdk/wasi-sdk-34.0-x86_64-linux
+cmake -S . -B "$cache/wasm-tests" -G Ninja \
+  -DCMAKE_TOOLCHAIN_FILE="$sdk/share/cmake/wasi-sdk-p1.cmake" \
+  -DTOWER_PARSER_ONLY=ON -DCMAKE_BUILD_TYPE=Release \
+  -DTOWER_BOOTSTRAP_COMPILER="$cache/native/towerc-stage1" \
+  -DTOWER_UTILITIES_TARGET=wasm32-unknown-unknown \
+  -DCMAKE_EXE_LINKER_FLAGS=-Wl,-z,stack-size=2097152
+cmake --build "$cache/wasm-tests" --target tower-interpreter-tests --parallel 4
+cp "$cache/wasm-tests/tower-interpreter-tests" build/interpreter-tests.wasm
+TOWER_BOOTSTRAP_COMPILER="$cache/native/towerc-stage1" bash playground/scripts/build-wasm.sh
+```
+
+From Windows in the worktree:
+
+```powershell
+node scaffolding/tests/interpreter-wasi.mjs build/interpreter-tests.wasm
+node scaffolding/tests/interpreter-wasi.mjs build/interpreter-tests.wasm --benchmark
+node --test playground/tests/execution.test.mjs playground/tests/structs.test.mjs
+```
+
+The differential suite runs 26 source fixtures with budgets 1/7/1000 and guest
+pointer widths 4/8 (156 runs), plus direct allocation-fragmentation trials.
+It compares full target memory, allocations/free blocks, output and truncation,
+errors/offsets, steps, frame/task stacks, and per-statement value/address caches.
+Coverage includes recursion/stack exhaustion, nested calls/effects and captured
+assignment destinations, loops/break/continue, literals, negative indexing,
+overlapping copy, reallocation success/failure/zero, raw addresses, foreign
+callbacks that mutate/relocate memory or fail, arithmetic wrap/division overflow,
+conversion errors, zero budgets and infinite-loop suspension. Layout offsets
+are checked under both actual compiler hosts. ASan/UBSan instrument the native
+adapter/reference/compiler, not the precompiled Tower LLVM object; their passing
+results must not be described as full instrumentation of Tower code.
+
+Next migration work: replace native storage/ABI helpers with Tower-owned runtime
+containers and callbacks while preserving the source-level interface, retire the
+seed after a validated Tower-built portable bootstrap exists, and improve the
+allocation-heavy Wasm path without changing step/effect contracts. The shared
+schema composition and runtime trap symbol are explicit integration points for
+parallel grammar/formatting ports. No MSVC/macOS validation or end-to-end browser
+UI timing is claimed here.
+
+Final review correction: empty literal components can have a null name buffer
+(the native CoreName::c_str supplies an empty string in that case). Copy only the
+nonempty payload and explicitly write the target NUL terminator in Tower; the
+literal fixture now includes empty strings. This was an implementation defect
+found during review and fixed before committing, not a change to raw-pointer
+semantics. The final differential suite covers this path on native and Wasm.
+
+Validation results: clean native seed/stage1/production compiler build; Release
+CTest 5/5; ASan/UBSan CTest 5/5; 156 native and 156 portable-WASI differential
+runs; 21 browser-reactor execution/struct tests; 16 fresh native LLVM comparisons
+(8 eligible programs each optimized and unoptimized); canonical formatting and
+idempotence for the two new Tower modules. Generated platform objects stay in
+build/cache directories. The formatting check used the existing formatter via
+a temporary worktree-local runner restricted to the new modules; no existing
+Tower file was rewritten. Native/Wasm tests validate execution state layout and
+32/64-bit guest layouts; the Wasm interpreter executable is wasm32. No generated
+compiler binary is checked in by this port.
+
+Paired performance trial, compile time excluded: one warmup followed by seven
+alternating-order pairs per fixture, comparing final memory/output/error/steps.
+Medians in milliseconds (reference C++ -> Tower):
+
+| Fixture | Linux x64 | Wasm32 / portable WASI host |
+| --- | ---: | ---: |
+| 100,000-iteration scalar loop | 20.7733 -> 17.4661 | 39.4360 -> 37.9799 |
+| 1,000 calls with recursion depth 50 | 28.9142 -> 26.8557 | 55.0138 -> 53.5015 |
+| 10,000 allocate/reallocate/free iterations | 8.02525 -> 7.70923 | 12.7652 -> 13.1670 |
+| 10,000 print iterations (including truncation) | 2.52418 -> 2.19047 | 4.9427 -> 4.8182 |
+
+These are workload-specific samples, not a universal optimization guarantee.
+They supersede the initial regression measurements above: native medians improve
+in these four fixtures; the allocation-heavy Wasm fixture still regresses about
+3%. Small Wasm differences can be noise; further allocation/container work is
+needed before claiming a Wasm speedup generally. Benchmarks were collected after
+execution optimizations and immediately before the empty-string correction,
+which is outside these benchmark fixtures. Full-suite timing varied with
+concurrent build/validation load and is not used as an execution benchmark.
+
+Evidence logs are local worktree build/native.log, tests-build.log, ctest.log,
+asan-build.log, asan-tests.log, wasm-build.log, wasm-differential-build.log,
+wasm-differential-final.log, wasm-execution-tests.log, llvm-comparisons.log,
+benchmarks-final.log and wasm-benchmarks.log. Trial logs include native
+state/component/cache/probe/count/storage experiments and wasi-host.log with the
+instrumented native-WASI trial. Build/test registration is committed separately
+from implementation for integration; the implementation needs that registration
+(or equivalent interpreter object linkage) to link. Source requires no changes
+to the independent grammar/formatting work other than reconciling CMake includes
+and the append-only journal.
