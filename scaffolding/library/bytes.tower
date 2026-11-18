@@ -1,0 +1,126 @@
+// Raw byte-buffer ownership. Initialize once, dispose once; structs are not copied.
+// Growth may move data. Failure preserves the pointer, length, capacity and bytes.
+struct ByteBuffer {
+    data: u8*;
+    length: usize;
+    capacity: usize;
+}
+
+export fn bytes_init(buffer: ByteBuffer*): void {
+    buffer.data = null;
+    buffer.length = 0;
+    buffer.capacity = 0;
+}
+
+export fn bytes_reserve(buffer: ByteBuffer*, needed: usize): bool {
+    var enough = needed <= buffer.capacity;
+    if enough {
+        return true;
+    }
+    var capacity = buffer.capacity * 2;
+    var overflow = capacity < buffer.capacity;
+    if overflow {
+        capacity = needed;
+    }
+    var small = capacity < needed;
+    if small {
+        capacity = needed;
+    }
+    small = capacity < 16;
+    if small {
+        capacity = 16;
+    }
+    var next = realloc(u8, buffer.data, capacity);
+    var failed = next == null;
+    if failed {
+        return false;
+    }
+    buffer.data = next;
+    buffer.capacity = capacity;
+    return true;
+}
+
+// Source must be readable; self-append may read only the buffer's live bytes.
+export fn bytes_append(buffer: ByteBuffer*, source: u8*, count: usize): bool {
+    var empty = count == 0;
+    if empty {
+        return true;
+    }
+    var total = buffer.length + count;
+    var overflow = total < buffer.length;
+    if overflow {
+        return false;
+    }
+    var start = bits(usize, source);
+    var base = bits(usize, buffer.data);
+    var offset = start - base;
+    var inside = offset < buffer.capacity;
+    if inside {
+        var outside = offset > buffer.length;
+        if outside {
+            return false;
+        }
+        var remaining = buffer.length - offset;
+        var invalid = count > remaining;
+        if invalid {
+            return false;
+        }
+    }
+    var ok = bytes_reserve(buffer, total);
+    if ok {
+        if inside {
+            source = buffer.data + offset;
+        }
+        var dest = buffer.data + buffer.length;
+        copy(dest, source, count);
+        buffer.length = total;
+    }
+    return ok;
+}
+
+export fn bytes_push(buffer: ByteBuffer*, value: u8): bool {
+    return bytes_append(buffer, &value, 1);
+}
+
+// Replace text atomically, including overlapping self-slices. Length excludes NUL.
+// Embedded NUL bytes are copied; source-text validation is a separate policy.
+export fn bytes_assign_text(buffer: ByteBuffer*, source: u8*, count: usize): bool {
+    var needed = count + 1;
+    var overflow = needed == 0;
+    if overflow {
+        return false;
+    }
+    var start = bits(usize, source);
+    var base = bits(usize, buffer.data);
+    var offset = start - base;
+    var inside = offset < buffer.capacity;
+    if inside {
+        var outside = offset > buffer.length;
+        if outside {
+            return false;
+        }
+        var remaining = buffer.length - offset;
+        var invalid = count > remaining;
+        if invalid {
+            return false;
+        }
+    }
+    var ok = bytes_reserve(buffer, needed);
+    if ok {
+        var nonempty = count != 0;
+        if nonempty {
+            if inside {
+                source = buffer.data + offset;
+            }
+            copy(buffer.data, source, count);
+        }
+        buffer.data[count] = 0;
+        buffer.length = count;
+    }
+    return ok;
+}
+
+export fn bytes_dispose(buffer: ByteBuffer*): void {
+    free(buffer.data);
+    bytes_init(buffer);
+}

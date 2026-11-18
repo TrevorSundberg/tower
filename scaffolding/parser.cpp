@@ -1,4 +1,5 @@
 #include "compiler-utf8.hpp"
+#include "compiler-bytes.hpp"
 #include "parser.hpp"
 #include <unordered_map>
 #include <string>
@@ -604,8 +605,9 @@ void parser_stream_set_error(Stream* stream, const char* error) {
 }
 
 struct StreamUtf8 {
-  std::string data;
+  CompilerText data;
   const char* utf8_begin = nullptr;
+  bool allocation_failed = false;
 };
 
 TowerNode* parser_stream_utf8_read(
@@ -616,10 +618,11 @@ TowerNode* parser_stream_utf8_read(
   size_t* length
 ) {
   StreamUtf8* stream_utf8 = (StreamUtf8*)userdata;
-  std::string& data = stream_utf8->data;
+  const auto& data = stream_utf8->data;
   const char*& utf8_begin = stream_utf8->utf8_begin;
 
-  size_t bytes_read = parser_decode_utf8_codepoint(utf8_begin, data.c_str() + data.size(), id);
+  if (stream_utf8->allocation_failed) parser_stream_set_error(stream, "Unable to allocate UTF-8 stream source");
+  size_t bytes_read = stream_utf8->allocation_failed ? 0 : parser_decode_utf8_codepoint(utf8_begin, data.c_str() + data.size(), id);
   if (bytes_read > 0) {
     *length = bytes_read;
     *start_index = utf8_begin - data.c_str();
@@ -645,7 +648,7 @@ Stream* parser_stream_utf8_create(const char* utf8_begin, const char* utf8_end) 
   }, parser_stream_utf8_read);
   void* userdata = parser_stream_get_userdata(stream);
   StreamUtf8* stream_utf8 = new (userdata) StreamUtf8();
-  stream_utf8->data.assign(utf8_begin, utf8_end);
+  stream_utf8->allocation_failed = !stream_utf8->data.assign({utf8_begin, size_t(utf8_end - utf8_begin)});
   stream_utf8->utf8_begin = stream_utf8->data.c_str();
   return stream;
 }

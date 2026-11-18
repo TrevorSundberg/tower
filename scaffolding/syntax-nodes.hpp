@@ -1,11 +1,12 @@
 #pragma once
 #include "node-ref.hpp"
+#include "compiler-bytes.hpp"
 #include "lex-pattern.hpp"
 #include <string>
 #include <vector>
 
 enum class SyntaxKind { Document, Rule, Token, Skip, Alternative, Term, Template };
-struct SyntaxSource { std::string name, text; };
+struct SyntaxSource { std::string name; CompilerText text; };
 
 // Grammar meaning lives ON the declaration's actual parse nodes. items are
 // non-owning edges to descendants; a replacement reference owns a sibling

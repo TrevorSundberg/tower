@@ -34,16 +34,20 @@ function(tower_compiler_utilities)
     execute_process(COMMAND "${CMAKE_CXX_COMPILER}" -dumpmachine
       OUTPUT_VARIABLE triple OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND_ERROR_IS_FATAL ANY)
   endif()
-  set(object "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-utf8.o")
-  add_custom_command(OUTPUT "${object}"
-    COMMAND "${bootstrap}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/utf8.tower"
-      --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
-      --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
-      --library --target "${triple}" -o "${object}"
-    DEPENDS ${bootstrap_dependency} scaffolding/compiler/utf8.tower
-      scaffolding/bedrock.tower scaffolding/foundation.tower
-    COMMENT "Compiling Tower-written UTF-8 utilities for ${triple}" VERBATIM)
-  set_source_files_properties("${object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
+  add_library(tower-compiler-memory STATIC scaffolding/compiler-memory.cpp)
   add_library(tower-compiler-utilities INTERFACE)
-  target_sources(tower-compiler-utilities INTERFACE "${object}")
+  foreach(source IN ITEMS scaffolding/compiler/utf8.tower scaffolding/library/bytes.tower)
+    get_filename_component(name "${source}" NAME_WE)
+    set(object "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-${name}.o")
+    add_custom_command(OUTPUT "${object}"
+      COMMAND "${bootstrap}" "${CMAKE_CURRENT_SOURCE_DIR}/${source}"
+        --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
+        --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
+        --library --target "${triple}" -o "${object}"
+      DEPENDS ${bootstrap_dependency} "${source}"
+        scaffolding/bedrock.tower scaffolding/foundation.tower
+      COMMENT "Compiling Tower-written ${name} utilities for ${triple}" VERBATIM)
+    set_source_files_properties("${object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
+    target_sources(tower-compiler-utilities INTERFACE "${object}")
+  endforeach()
 endfunction()

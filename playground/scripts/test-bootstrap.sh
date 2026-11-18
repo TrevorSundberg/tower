@@ -7,22 +7,28 @@ out="$repo/build/bootstrap-check"
 mkdir -p "$out"
 # A production compiler already uses Tower-written utilities when it reads the
 # utility source again. Compare its output with the independent C++ seed.
-for target in x86_64-pc-linux-gnu wasm32-unknown-unknown x86_64-pc-windows-msvc aarch64-apple-darwin; do
-  for stage in seed tower; do
-    compiler="$native/towerc"
-    if [ "$stage" = seed ]; then compiler="$native/towerc-seed"; fi
-    "$compiler" "$repo/scaffolding/compiler/utf8.tower" --library --target "$target" \
-      --bedrock "$repo/scaffolding/bedrock.tower" --foundation "$repo/scaffolding/foundation.tower" \
-      --optimized-ir "$out/$target-$stage.ll" -o "$out/$target-$stage.o"
-    # The utility must not drag a print/trap/allocator runtime into its host.
-    if [ -n "$("${LLVM_NM:-llvm-nm-19}" --undefined-only "$out/$target-$stage.o")" ]; then
-      echo "Unexpected undefined symbols in $target-$stage.o" >&2
-      exit 1
-    fi
+for utility in utf8 bytes; do
+  source="$repo/scaffolding/compiler/utf8.tower"
+  if [ "$utility" = bytes ]; then source="$repo/scaffolding/library/bytes.tower"; fi
+  for target in x86_64-pc-linux-gnu wasm32-unknown-unknown x86_64-pc-windows-msvc aarch64-apple-darwin; do
+    for stage in seed tower; do
+      compiler="$native/towerc"
+      if [ "$stage" = seed ]; then compiler="$native/towerc-seed"; fi
+      "$compiler" "$source" --library --target "$target" \
+        --bedrock "$repo/scaffolding/bedrock.tower" --foundation "$repo/scaffolding/foundation.tower" \
+        --optimized-ir "$out/$utility-$target-$stage.ll" -o "$out/$utility-$target-$stage.o"
+      "${LLVM_NM:-llvm-nm-19}" --undefined-only "$out/$utility-$target-$stage.o" > "$out/symbols.txt"
+      python3 - "$utility" "$out/symbols.txt" <<'PY'
+import pathlib, sys
+allowed = set() if sys.argv[1] == 'utf8' else {'tower_reallocate', 'tower_deallocate', 'memcpy', 'memmove', 'memset', 'stack_pointer'}
+symbols = {line.split()[-1].lstrip('_') for line in pathlib.Path(sys.argv[2]).read_text().splitlines() if line.strip()}
+assert symbols <= allowed, f'Unexpected runtime dependencies: {symbols - allowed}'
+PY
+    done
+    cmp "$out/$utility-$target-seed.ll" "$out/$utility-$target-tower.ll"
+    cmp "$out/$utility-$target-seed.o" "$out/$utility-$target-tower.o"
+    printf 'Bootstrap utility agreement: %s %s\n' "$utility" "$target"
   done
-  cmp "$out/$target-seed.ll" "$out/$target-tower.ll"
-  cmp "$out/$target-seed.o" "$out/$target-tower.o"
-  printf 'Bootstrap utility agreement: %s\n' "$target"
 done
 # A supplied bootstrap must use this checkout's explicitly passed grammar, not
 # silently use paths belonging to the checkout where that binary was built.

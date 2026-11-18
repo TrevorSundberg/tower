@@ -7149,3 +7149,125 @@ bindings, editable grammar, persistence, native compilation/downloads and equal
 columns. Logs are `build/utf8-online.log` and `build/utf8-pages.log`; reports and
 screenshots are in `build/deployment-verification/`. The live lexer/parser now
 uses the Tower-written codec. Other working notes and todo.txt were left untouched.
+
+## 2026-11-18: Tower-owned compiler source buffers
+
+Continued the authorized migration following the UTF-8 utility. The real parser
+now owns active source text, replacement-template input, raw UTF-8 stream input
+and retained grammar source snapshots using Tower byte-buffer functions. Extracted
+the existing ByteBuffer library into `scaffolding/library/bytes.tower`; arena/map
+helpers remain in storage.tower. There is one authoritative Tower buffer
+implementation, shared with ordinary programs, not a second compiler-only buffer.
+Current clients/build scripts explicitly concatenate/link those files until actual
+module imports exist; splitting them does not claim to implement imports.
+
+### Ownership and contracts
+
+Added `bytes_assign_text`, which copies a byte span with a trailing NUL excluded
+from length, including overlapping self-slices and growth that moves the source.
+Embedded NUL bytes are preserved by this generic operation; source validation is
+separate. Append and text assignment reject self-slices outside live bytes, check
+size overflow before allocation, and preserve pointer/length/capacity/content on
+failure. Zero-length append permits null input without copying or allocating.
+Reserve grows geometrically, starts at 16 bytes and handles doubling overflow.
+Raw pointer validity, metadata/data separation and exclusive ownership remain
+caller obligations. No foundation handles, hidden bounds policy or new opcode.
+
+`CompilerText` is a temporary move-only C++ ownership/view adapter over the Tower
+ByteBuffer C ABI. Its metadata layout is checked against Tower's type registry at
+32/64-bit widths. `SyntaxSource` retains this buffer on the existing metadata
+object. SyntaxSession reads a view into it, removing the previous independent
+session/provenance string copies. Existing grammar nodes and caches pin immutable
+snapshots across resets and session destruction. This preserves the shared node
+model, source spans, grammar order and formatter semantics. Token spellings,
+other strings/containers and the rest of the compiler remain C++ for now.
+
+Host allocation primitives in compiler-memory.cpp bind Foundation realloc/free
+to libc/wasi-libc, with multiplication-overflow handling. They do not link the
+guest program's allocator into the host compiler. Allocation/growth/copy policy
+lives in Tower. Failed source-buffer allocation produces an error before parsing;
+replacement/stream creation has equivalent explicit error handling. Existing C++
+object allocation can still abort on OOM; this is not a general recovery guarantee.
+Test-only fault/count instrumentation is excluded from production targets.
+
+The seed uses an independent bootstrap/bytes-seed.cpp reference to break the build
+cycle. Normal native and browser targets link the Tower object instead. CMake now
+compiles both utility sources, retaining explicit grammar/compiler dependencies.
+The eventual checked-in self-contained bootstrap binary goal still applies; the
+current host seed continues to require installed LLVM development libraries.
+
+### LLVM investigation and correction
+
+The first native bytes.tower build failed with `Instruction Combining did not
+reach a fixpoint after 1 iterations`. Reproduced independently from unoptimized
+emitted IR using opt-19 with the same pipeline and debug-pass-manager; the first
+explicit InstCombinePass on bytes_reserve failed. Raw LLVM passes verification.
+The installed LLVM 19 InstCombineOptions default VerifyFixpoint=false, but the
+textual pass parser enables it. The vendored PassBuilder.cpp
+parseInstCombineOptions likewise explicitly sets VerifyFixpoint(true).
+
+Changed the explicit spelling to `instcombine<no-verify-fixpoint>`, matching the
+bounded production pass rather than demanding convergence after one iteration.
+Kept VerifyEach and module verification. The same opt-19 command with this option
+and -verify-each succeeded; normal native/browser O2 compilation and behavior
+checks succeeded. Did not remove Tower overflow checks, lower optimization levels,
+disable IR validation or patch upstream LLVM. Reproducible local artifacts:
+build/bytes.raw.ll, bytes-opt-trial.sh, bytes-opt-trial2.sh and bytes-opt.log.
+
+An initial JS fixture put binary comparisons directly inside print arguments,
+which Foundation intentionally does not accept. Updated the test to use ordinary
+three-address temporaries; no expression precedence or base syntax was added.
+
+### Validation
+
+- `bash playground/scripts/test-native-core.sh`: **4/4** native suites pass with
+  host ASan/UBSan. New tests compare 20,000 deterministic operation sequences with
+  the independent seed while forcing every successful reallocation to move,
+  injecting failures, checking guard bytes and unchanged state, and testing
+  overflow/self-slice rejection. A dedicated full-buffer text assignment forces
+  movement when adding the NUL terminator. Generated Tower objects remain
+  uninstrumented; guards, differential tests and fault injection cover them.
+- Compiler integration tests overwrite caller-owned input, retain source nodes
+  through 100 resets and session destruction, require exactly one source-buffer
+  allocation per initial session, balance live buffer counts, inject failures
+  into source reset/UTF-8 stream creation and verify recovery. Move assignment
+  releases its prior buffer and transfers ownership once.
+- `bash playground/scripts/test-bootstrap.sh`: seed versus compiler-using-Tower
+  produces identical optimized LLVM and object bytes for both utilities across
+  Linux x86-64, Windows x86-64, macOS ARM64 and wasm32. UTF-8 has no undefined
+  symbols; buffer symbols are restricted to allocation/copy primitives and the
+  Wasm stack-pointer linker symbol. Explicit grammar-input checks still pass.
+- `bash playground/scripts/test-linking.sh`: native execution, C archive callbacks,
+  raw memory, native-to-Wasm output, split buffer/storage libraries, real LLVM C
+  API linkage, platform I/O and forward module bindings all pass.
+- `node --test playground/tests/*.test.mjs`: **169/169** pass. Buffer tests cover
+  interpreter and LLVM results, canonical text, both layout widths, real browser
+  compiler exports, failed growth, source resets and formatting.
+- `npm run check:format --prefix playground`: **20** Tower files match formatting,
+  idempotence and parse-tree preservation. `npx playwright test`: **96/96** pass
+  on desktop/mobile, including editable grammar, diagnostics, cancellation,
+  persistence, native targets and shared warm workers.
+
+Environment: Windows Node v21.7.3; WSL Orchestral-Revng; host Clang/LLVM 19,
+WASI SDK 34; optimized LLVM reactors built with TOWER_BROWSER_CROSS=ON and four
+build jobs, no exceptions or LLVM assertions. Logs: build/bytes-native-tests.log,
+bytes-bootstrap.log, bytes-linking.log, bytes-all-node-tests.log and
+bytes-browser-tests.log. Unrelated notes and todo.txt were not modified.
+
+### Performance and remaining migration
+
+Paired Wasm trial, 12 warmups + 40 alternating samples, compile plus canonical
+output medians (ms): small 5.318→5.303; inference example 5.572→5.628;
+104 KiB ASCII source 6.486→6.330; 99 KiB Unicode source 6.086→6.042;
+500 declarations 12.974→12.838. Fresh native process trial, 3 warmups + 20 paired
+samples: inference total 110.381→105.764 ms; UTF-8 utility source
+110.733→105.779 ms. Compared with the saved prior compiler; these local trials
+show no material regression, not a universal speed guarantee. Scripts/reports:
+build/profile-bytes.mjs, profile-bytes-native.py, bytes-performance.json and
+bytes-native-performance.json.
+
+Next candidates are Tower-owned interned strings/typed collections needed by the
+shared entity store, and a real module/import boundary to compose these files.
+The arena/map library is not yet compiler infrastructure, source snapshot sharing
+still uses the existing C++ metadata owner, and parsing/type checking/backend
+algorithms remain to be migrated. No full self-hosting claim is made.

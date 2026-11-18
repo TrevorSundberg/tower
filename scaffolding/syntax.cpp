@@ -169,7 +169,7 @@ std::string describe_rule(void* context, size_t index) {
   return "start of a statement or grammar declaration";
 }
 
-std::string quoted(const std::string& source, size_t& cursor, std::string& result) {
+std::string quoted(std::string_view source, size_t& cursor, std::string& result) {
   char quote = source[cursor++];
   while (cursor < source.size()) {
     char c = source[cursor++];
@@ -527,9 +527,9 @@ Match* match(TowerNode* node) {
   return (Match*)tower_node_get_component_userdata(node, parser_match_get_type());
 }
 TowerNode* child(TowerNode* node, size_t i) { return tower_node_get_child(node, i); }
-std::string text(TowerNode* node, const std::string& source) {
+std::string text(TowerNode* node, std::string_view source) {
   auto* m = match(node);
-  return source.substr(parser_match_get_start(m), parser_match_get_length(m));
+  return std::string(source.substr(parser_match_get_start(m), parser_match_get_length(m)));
 }
 
 TowerNode* member(TowerNode* node, const char* name) { return node ? tower_node_get_child_member(node, name) : nullptr; }
@@ -541,7 +541,7 @@ TowerNode* required(TowerNode* node, const char* name, std::string& error) {
 void location(SyntaxNode& value, TowerNode* node) {
   value.start = parser_match_get_start(match(node)); value.end = value.start + parser_match_get_length(match(node));
 }
-TowerNode* read_term(TowerNode* node, const std::string& source, std::string& error) {
+TowerNode* read_term(TowerNode* node, std::string_view source, std::string& error) {
   auto& term = syntax_attach(node, SyntaxKind::Term); location(term, node);
   auto* atom = required(node, "atom", error); auto* suffix = required(node, "suffix", error);
   if (!error.empty()) return node;
@@ -570,7 +570,7 @@ TowerNode* read_term(TowerNode* node, const std::string& source, std::string& er
   }
   return node;
 }
-Sequence read_sequence(TowerNode* node, const std::string& source, std::string& error) {
+Sequence read_sequence(TowerNode* node, std::string_view source, std::string& error) {
   Sequence result(node); auto& sequence = syntax_attach(node, SyntaxKind::Alternative); location(sequence, node);
   while (tower_node_get_child_count(node) && error.empty()) {
     auto* term = required(node, "term", error); auto* previous = required(node, "previous", error);
@@ -579,7 +579,7 @@ Sequence read_sequence(TowerNode* node, const std::string& source, std::string& 
   }
   std::reverse(sequence.items.begin(), sequence.items.end()); return result;
 }
-Alternatives read_alternatives(TowerNode* node, const std::string& source, std::string& error) {
+Alternatives read_alternatives(TowerNode* node, std::string_view source, std::string& error) {
   Alternatives result;
   while (node && error.empty()) {
     auto* sequence = required(node, "sequence", error); if (!sequence) break;
@@ -591,7 +591,7 @@ Alternatives read_alternatives(TowerNode* node, const std::string& source, std::
 }
 
 struct SyntaxSession {
-  std::string source;
+  std::string_view source; // Borrowed from source_info, retained by source nodes.
   std::shared_ptr<const SyntaxSource> source_info;
   size_t cursor = 0;
   size_t revision = 0;
@@ -616,6 +616,13 @@ struct SyntaxSession {
 };
 
 namespace {
+bool set_source(SyntaxSession& session, std::string_view text, const char* name) {
+  auto source = std::make_shared<SyntaxSource>(); source->name = name;
+  if (!source->text.assign(text)) return false;
+  session.source_info = std::move(source);
+  session.source = session.source_info->text.view();
+  return true;
+}
 void record_source(TowerNode* entity, const std::shared_ptr<const SyntaxSource>& source) {
   auto& value = syntax_node(entity); value.source = source;
   for (auto* item : value.items) record_source(item, source);
@@ -841,7 +848,7 @@ TowerNode* lex(Stream* stream, void* userdata, uint32_t* id, size_t* start, size
   parser_match_set_id(m, *id);
   parser_match_set_start(m, *start);
   parser_match_set_length(m, *length);
-  std::string label = session.source.substr(*start, *length);
+  std::string label(session.source.substr(*start, *length));
   parser_match_set_label(m, label.c_str());
   return node;
 }
@@ -914,7 +921,9 @@ bool compile_template(Version& version, const Definitions& defs, const Sequence&
   }
   TemplateInput input;
   input.base = replacement.start;
-  input.session.source = semantic(semantic(seq).replacement).text;
+  if (!set_source(input.session, semantic(semantic(seq).replacement).text, "replacement")) {
+    error = "Unable to allocate replacement source text"; return false;
+  }
   input.session.tokens = version.tokens;
   input.session.definitions = defs;
   input.session.bedrock = version.bedrock;
@@ -989,7 +998,7 @@ bool compile_template(Version& version, const Definitions& defs, const Sequence&
   return true;
 }
 
-std::string replacement_excerpt(const std::string& source) {
+std::string replacement_excerpt(std::string_view source) {
   size_t first = 0, last = source.size();
   while (first < last && space(source[first])) ++first;
   while (last > first && space(source[last - 1])) --last;
@@ -1309,9 +1318,8 @@ SyntaxSession* syntax_create_bedrock(const char* source) {
 }
 
 void syntax_reset(SyntaxSession* session, const char* source) {
-  session->source = source;
-  session->source_info = std::make_shared<SyntaxSource>(SyntaxSource{
-    session->building_bedrock ? "bedrock.tower" : session->bootstrapping ? "foundation.tower" : "this file", source});
+  const bool source_ready = set_source(*session, source,
+    session->building_bedrock ? "bedrock.tower" : session->bootstrapping ? "foundation.tower" : "this file");
   session->cursor = session->revision = session->error_offset = 0;
   session->error_insertion = false;
   session->builds = session->hits = 0;
@@ -1321,6 +1329,7 @@ void syntax_reset(SyntaxSession* session, const char* source) {
   session->declaration = false; session->tokens = session->baseline;
   session->document = TowerNodeRef::adopt(tower_node_create());
   syntax_attach(session->document.get(), SyntaxKind::Document);
+  if (!source_ready) { session->error = "Unable to allocate source text"; session->version.reset(); return; }
   session->version = compiled(*session, session->definitions, session->tokens, session->error);
 }
 SyntaxCacheStats syntax_get_cache_stats(SyntaxSession* session) {
@@ -1360,7 +1369,7 @@ TowerText syntax_format(SyntaxSession* session) {
   copy.baseline = session->baseline; copy.baseline_definitions = session->baseline_definitions;
   copy.bedrock = session->bedrock; copy.bootstrapping = session->bootstrapping;
   copy.building_bedrock = session->building_bedrock; copy.cache = session->cache;
-  copy.formatting = true; syntax_reset(&copy, session->source.c_str());
+  copy.formatting = true; syntax_reset(&copy, session->source.data());
   std::vector<TowerNodeRef> owned; std::vector<TowerNode*> roots;
   while (auto* root = syntax_next(&copy)) { owned.push_back(TowerNodeRef::adopt(root)); roots.push_back(root); }
   if (!copy.error.empty()) return {};
@@ -1414,7 +1423,7 @@ void preserve_comments(SyntaxSession& session, SyntaxNode& declaration, size_t t
       const auto& body = semantic(declaration.replacement);
       if (token.start >= body.start && token.end <= body.end) continue;
     }
-    declaration.comments.push_back(session.source.substr(token.start, token.end - token.start));
+    declaration.comments.emplace_back(session.source.substr(token.start, token.end - token.start));
   }
   session.comment_cursor = through;
 }

@@ -2,6 +2,7 @@
 #include "../parser.hpp"
 #include "../syntax.hpp"
 void core_tests();
+void compiler_storage_tests();
 #include <cstdio>
 #include <cstring>
 #include <fstream>
@@ -56,5 +57,6 @@ int main(int argc, char** argv) {
   parser_tests();
   syntax_tests();
   core_tests();
+  compiler_storage_tests();
   puts("Tower and parser tests passed.");
 }

@@ -358,6 +358,7 @@ bash playground/scripts/build-native.sh
 build/native/towerc scaffolding/examples/memory.tower -o build/memory
 build/native/towerc scaffolding/tests/linking.tower --link build/linking/native-fixture.a -o build/linked
 build/native/towerc scaffolding/library/storage.tower --library -o build/storage.o
+build/native/towerc scaffolding/library/bytes.tower --library -o build/bytes.o
 build/native/towerc source.tower --target wasm32-unknown-unknown --link library.a -o build/program.wasm
 ```
 
@@ -429,10 +430,30 @@ contain it. This also fixes the older raw parser decoder's permissive handling o
 malformed UTF-8. Buffer lifetime/length validity remains the caller's responsibility;
 the decoded output scalar must not overlap its input buffer.
 
-The transitional native build first makes `towerc-seed` using the small independent
-C++ codec in `scaffolding/bootstrap/utf8-seed.cpp`. The seed compiles the Tower
-utility for the host/target, then the normal compiler links that object. The seed
-codec is absent from normal compiler targets; tests retain it as a reference.
+`scaffolding/library/bytes.tower` now owns the compiler's source-text storage.
+Parsing, replacement templates, raw UTF-8 streams and retained grammar provenance
+use its byte buffers; parsing and provenance share one immutable source snapshot.
+The temporary C++ `CompilerText` adapter only manages ownership and exposes views.
+Growth, self-copying, NUL termination and disposal are Tower functions, with narrow
+host `realloc`/`free` bindings (wasi-libc in browser compilers). No host services
+are invoked from the editor thread. Source buffers remain alive while any grammar
+node/cache retains them, and an allocation failure is reported before parsing.
+
+Byte buffers grow geometrically with overflow checks. `bytes_assign_text` copies
+an explicit byte span, adds a terminator outside its length, and handles overlapping
+self-slices. `bytes_append` supports self-append across moving reallocation.
+Failed growth/overflow/invalid self-slices leave all existing state unchanged.
+Callers still own raw pointer validity, initialization and disposal. Do not duplicate
+ownership by copying the struct; metadata must be separate from input/data storage.
+The arena/map helpers remain in `library/storage.tower`; until imports exist,
+concatenate both library files before `tests/storage.tower`, or link their objects
+with matching declarations. The compiler currently uses the byte buffer, not those
+arena/map helpers.
+
+The transitional native build first makes `towerc-seed` using the independent
+C++ references in `scaffolding/bootstrap/`. The seed compiles the Tower utilities
+for the host/target, then normal compilers link those objects. The seed algorithms
+are absent from normal compiler targets; tests retain them as references.
 Generated objects stay in ignored build directories, and dependencies include
 the compiler executable, utility source, Bedrock and Foundation.
 
@@ -452,16 +473,27 @@ yet. General module imports and the rest of the compiler migration remain future
 bash playground/scripts/test-bootstrap.sh
 bash playground/scripts/test-native-core.sh
 node --test playground/tests/compiler-utf8.test.mjs
+node --test playground/tests/compiler-bytes.test.mjs
 ```
 
 The bootstrap check compares seed-built and Tower-utility-built optimized LLVM
-and object bytes for Linux, Windows, macOS and Wasm, and rejects undefined runtime
-dependencies. This verifies the first migrated utility, not a fully self-hosted
-compiler. Native tests cover every Unicode scalar, every one/two-byte input,
+and object bytes for Linux, Windows, macOS and Wasm. UTF-8 has no runtime dependencies;
+byte buffers allow only allocation/copy primitives and the Wasm stack-pointer symbol.
+This verifies the migrated utilities, not a fully self-hosted compiler.
+Native tests cover every Unicode scalar, every one/two-byte input,
 random malformed buffers and inaccessible-page boundaries. The C++ host/tests run
 under sanitizers; generated Tower objects currently do not carry sanitizer
 instrumentation. Wasm tests also compare the codec with TextEncoder/TextDecoder,
 interpret it at both pointer widths and compile its canonical Foundation output.
+Buffer tests force allocation movement/failure, check guards and unchanged state,
+compare 20,000 operation sequences, retain source nodes across resets/destruction,
+check exact allocation balance and exercise interpreter/Wasm layout agreement.
+
+The explicit LLVM instruction-combining pass uses `no-verify-fixpoint`, matching
+production O2 behavior. Its textual spelling otherwise enables a developer-only
+assertion that rejects valid code needing more than one worklist iteration (first
+exposed by buffer growth on LLVM 19). This does not disable IR verification:
+`VerifyEach` and module validation remain enabled.
 
 ## LLVM module
 

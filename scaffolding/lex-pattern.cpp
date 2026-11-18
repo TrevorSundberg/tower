@@ -4,7 +4,7 @@
 #include <map>
 #include <utility>
 
-size_t lex_codepoint(const std::string& source, size_t start, uint32_t& value) {
+size_t lex_codepoint(std::string_view source, size_t start, uint32_t& value) {
   if (start >= source.size()) { value = 0; return 0; }
   return tower_utf8_decode(reinterpret_cast<const uint8_t*>(source.data() + start), source.size() - start, &value);
 }
@@ -184,7 +184,7 @@ std::shared_ptr<const LexPattern> lex_pattern_compile(const std::string& pattern
   return result;
 }
 
-size_t LexPattern::match(const std::string& source, size_t start) const {
+size_t LexPattern::match(std::string_view source, size_t start) const {
   size_t pos = start, longest = 0; int state = 0;
   while (pos < source.size()) {
     uint32_t value; size_t bytes = lex_codepoint(source, pos, value);

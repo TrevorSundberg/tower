@@ -443,10 +443,13 @@ Storage has no implicit initialization contract. Bool storage must contain 0 or 
 
 A string literal is a NUL-terminated UTF-8 `u8*` with program lifetime and mutable
 storage. Each literal occurrence has its own storage; callers must not free it.
-The starter [storage library](../scaffolding/library/storage.tower) implements
-byte buffers/string building, a resettable arena and a growing u32-to-i32 map.
-These are concrete Tower code, not new native collection operations or migrated
-compiler code. Callers initialize/dispose containers and check allocation results.
+The [byte-buffer library](../scaffolding/library/bytes.tower) implements byte
+buffers/string building and now owns source text in the real compiler. Parsing and
+grammar provenance share immutable source buffers retained by their existing nodes.
+The [storage library](../scaffolding/library/storage.tower) provides a resettable
+arena and growing u32-to-i32 map; those are not yet used inside the compiler.
+These are ordinary Tower functions, not new native collection operations.
+Callers initialize/dispose containers and check allocation results.
 Reallocation invalidates old views; arena reset invalidates its views. Imports
 are not implemented: concatenate the library with a client or link exported
 functions from a separately compiled object with matching declarations.

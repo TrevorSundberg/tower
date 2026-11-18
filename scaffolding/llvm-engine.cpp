@@ -352,7 +352,10 @@ TowerObject tower_emit_object(const char* source, const std::string& triple, boo
   result.raw = text_ir(backend.module); auto lowered = Clock::now();
   if (optimize) {
     auto opts = LLVMCreatePassBuilderOptions(); LLVMPassBuilderOptionsSetVerifyEach(opts, true);
-    auto error = LLVMRunPasses(wrap(&backend.module), "function(sroa,mem2reg,instcombine,simplifycfg),default<O2>", reinterpret_cast<LLVMTargetMachineRef>(machine.get()), opts);
+    // Textual instcombine enables a developer-only fixed-point assertion by
+    // default. Valid input can require more than its one-iteration budget.
+    // Match production O2 behavior; VerifyEach still validates IR after every pass.
+    auto error = LLVMRunPasses(wrap(&backend.module), "function(sroa,mem2reg,instcombine<no-verify-fixpoint>,simplifycfg),default<O2>", reinterpret_cast<LLVMTargetMachineRef>(machine.get()), opts);
     LLVMDisposePassBuilderOptions(opts);
     if (error) { auto* message = LLVMGetErrorMessage(error); result.error = message; LLVMDisposeErrorMessage(message); return result; }
   }
