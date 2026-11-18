@@ -9733,3 +9733,13 @@ strictly increasing x coordinates on desktop (9, 246, 483, 720, 957) and mobile
 (7, 147, 287, 427, 567). Deployment updates only app.js and its source map from
 this build on top of gh-pages 2038bba, preserving the published compiler assets;
 no compiler rebuild is claimed. todo.txt remains untouched.
+
+Published artifacts as gh-pages 62c74e8 and pushed source 66b9bdd to master.
+GitHub Pages run 44415999332 succeeded. The live app.js SHA-256 matches the local
+build: a342681dfdeac43fee137ecaa0da145f2b774df940c2a52fcecbdb804cd0bbd7.
+Live Playwright checks confirmed the requested heading/geometry order on desktop
+and mobile, plus matching interpreter/Wasm output of 42 for `print(42);`.
+The first ad-hoc execution probe incorrectly expected execution from the default
+syntax-only example; a follow-up also exposed PowerShell pipe encoding replacing
+the status separator with `?`. Corrected the probe with explicit executable source
+and an ASCII regex for the status separator; both device checks then passed.
