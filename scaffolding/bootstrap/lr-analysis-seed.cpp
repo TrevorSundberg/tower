@@ -443,3 +443,47 @@ size_t lr_parser_consumed(LRParser* value) { return value->consumed; }
 bool lr_parser_shifted(LRParser* value) { return value->shifted; }
 void lr_parser_work(LRParser* value,LRWork* result) { *result=value->work; }
 }
+
+struct LRProbe {
+  LRRuntime* runtime;
+  LRProbeBudget* budget;
+  std::vector<LRProbeFrame> frames;
+};
+extern "C" {
+LRProbe* lr_probe_create(LRParser* parser,LRProbeBudget* budget) {
+  auto* value=new LRProbe{parser->runtime,budget,{}};
+  for(size_t i=0;i<lr_parser_frame_count(parser);++i) {
+    LRFrame frame; lr_parser_frame(parser,i,&frame);
+    value->frames.push_back({frame.state,frame.length!=0});
+  }
+  return value;
+}
+LRProbe* lr_probe_clone(LRProbe* value) { return new LRProbe(*value); }
+void lr_probe_destroy(LRProbe* value) { delete value; }
+void lr_probe_reset(LRProbe* value) { value->frames={{0,false}}; }
+size_t lr_probe_count(LRProbe* value) { return value->frames.size(); }
+const LRProbeFrame* lr_probe_frames(LRProbe* value) { return value->frames.data(); }
+bool lr_probe_accepts(LRProbe* value,uint32_t id) {
+  LRAction action; return lr_runtime_action(value->runtime,value->frames.back().state,id,&action);
+}
+uint32_t lr_probe_step(LRProbe* value,uint32_t id,size_t* before) {
+  *before=SIZE_MAX;
+  auto& stack=value->frames;
+  for(size_t steps=0;steps<128 && value->budget->remaining;++steps) {
+    --value->budget->remaining;
+    const auto state=stack.back().state; LRAction action;
+    if(!lr_runtime_action(value->runtime,state,id,&action)) return 0;
+    if(action.state!=SIZE_MAX) { *before=state; stack.push_back({action.state,false}); return 1; }
+    if(!action.rule) return 2;
+    const auto rule=value->runtime->rules[action.rule];
+    if(rule.count>=stack.size()) return 0;
+    const auto begin=stack.end()-rule.count;
+    bool consumed=std::any_of(begin,stack.end(),[](auto frame){return frame.consumed;});
+    stack.erase(begin,stack.end());
+    const auto next=lr_runtime_goto(value->runtime,stack.back().state,rule.owner);
+    if(next==SIZE_MAX) return 0;
+    stack.push_back({next,consumed});
+  }
+  value->budget->complete=false; return 0;
+}
+}

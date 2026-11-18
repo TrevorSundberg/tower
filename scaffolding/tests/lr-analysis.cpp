@@ -60,12 +60,43 @@ void reference_lr_parser_sequence_forest(LRParser*, LRFrame*);
 size_t reference_lr_parser_consumed(LRParser*);
 bool reference_lr_parser_shifted(LRParser*);
 void reference_lr_parser_work(LRParser*, LRWork*);
+LRProbe* reference_lr_probe_create(LRParser*, LRProbeBudget*);
+LRProbe* reference_lr_probe_clone(LRProbe*);
+void reference_lr_probe_destroy(LRProbe*);
+void reference_lr_probe_reset(LRProbe*);
+size_t reference_lr_probe_count(LRProbe*);
+const LRProbeFrame* reference_lr_probe_frames(LRProbe*);
+bool reference_lr_probe_accepts(LRProbe*, uint32_t);
+uint32_t reference_lr_probe_step(LRProbe*, uint32_t, size_t*);
 size_t tower_test_buffer_count();
 void tower_test_buffer_fail_after(size_t);
 }
 namespace {
 void compare_action(const LRAction& a, const LRAction& b) {
   assert(a.first==b.first && a.last==b.last && a.rule==b.rule && a.state==b.state);
+}
+void compare_probes(LRParser* actual, LRParser* expected) {
+  for(size_t allowance:{size_t(0),size_t(1),size_t(128),size_t(8192)}) {
+    LRProbeBudget ab{allowance,true},bb{allowance,true};
+    auto* a=lr_probe_create(actual,&ab); auto* b=reference_lr_probe_create(expected,&bb);
+    assert(a && b);
+    for(uint32_t id:{0u,32u,0x200000u,0xfffffffeu,0xffffffffu}) {
+      auto* x=lr_probe_clone(a); auto* y=reference_lr_probe_clone(b); assert(x && y);
+      for(bool reset:{false,true}) {
+        if(reset) { lr_probe_reset(x); reference_lr_probe_reset(y); }
+        assert(lr_probe_accepts(x,id)==reference_lr_probe_accepts(y,id));
+        size_t xs,ys;
+        assert(lr_probe_step(x,id,&xs)==reference_lr_probe_step(y,id,&ys));
+        assert(xs==ys && ab.remaining==bb.remaining && ab.complete==bb.complete);
+        assert(lr_probe_count(x)==reference_lr_probe_count(y));
+        auto* xf=lr_probe_frames(x); auto* yf=reference_lr_probe_frames(y);
+        for(size_t i=0;i<lr_probe_count(x);++i)
+          assert(xf[i].state==yf[i].state && xf[i].consumed==yf[i].consumed);
+      }
+      lr_probe_destroy(x); reference_lr_probe_destroy(y);
+    }
+    lr_probe_destroy(a); reference_lr_probe_destroy(b);
+  }
 }
 void compare_control(LRRuntime* actual, LRRuntime* expected, const std::vector<uint32_t>& tokens,
     bool prefix, bool specialize, size_t error_at=SIZE_MAX) {
@@ -99,6 +130,7 @@ void compare_control(LRRuntime* actual, LRRuntime* expected, const std::vector<u
       if(kind==LR_SHIFT || kind==LR_SEQUENCE_SHIFT) { ++position; ready=false; }
     } else { assert(kind!=LR_INVALID); break; }
   }
+  compare_probes(a,b);
   lr_parser_destroy(a); reference_lr_parser_destroy(b);
 }
 void compare_runtime(LRStates* actual, LRStates* expected, size_t nonterminals) {
@@ -271,6 +303,14 @@ bool control_allocation_trial(bool specialize) {
     assert(kind==LR_SHIFT || kind==LR_SEQUENCE_SHIFT);
     ok=lr_parser_commit(parser,&step,position,position);
     if(!ok) break;
+  }
+  if(ok) {
+    LRProbeBudget budget{8192,true};
+    auto* original=lr_probe_create(parser,&budget);
+    auto* copy=original ? lr_probe_clone(original) : nullptr;
+    ok=copy!=nullptr;
+    if(ok) { size_t before; ok=lr_probe_step(copy,0xfffffffe,&before)!=0 && budget.complete; }
+    lr_probe_destroy(copy); lr_probe_destroy(original);
   }
   if(ok) {
     LRStep step; auto kind=lr_parser_step(parser,true,0xfffffffe,false,16,0,&step);

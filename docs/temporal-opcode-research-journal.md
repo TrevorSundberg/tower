@@ -8580,3 +8580,36 @@ Restored the exact literals from f99abc3 using Node's explicit UTF-8 file I/O an
 staged only that correction while retaining the ongoing diagnostic-probe migration.
 Future scripted source rewrites must use explicit encoding. This supersedes any
 implication that the post-cleanup dc51620 source itself had passed the native build.
+
+## 2026-11-18 — Bounded diagnostic table probes moved into Tower
+
+lr-parser.tower now also owns the isolated stacks used to test expected tokens
+and insertion continuations after an error. Probes retain consumed-input evidence,
+perform reductions/GOTOs without semantic actions, and share the existing 8192-action
+budget with a 128-action limit per probe. They never mutate the real recognizer,
+execute replacements or consume source input. Candidate selection, source callbacks
+and human wording remain in the native diagnostic adapter for now.
+
+Allocation failure in probe creation/cloning/growth marks the diagnostic incomplete
+instead of asserting a repair. The ordinary parsing path is unaffected. The native
+reference remains independent and compares probe stacks, acceptance, origin states
+and exact budget consumption for zero, one, 128 and 8192-action budgets across the
+existing randomized/control fixtures. Failure injection now includes probe creation,
+cloning and reduction work. Existing missing-semicolon, provenance and error-repair
+tests exercise the integrated result, including desktop/mobile inline diagnostics.
+
+Validation: native sanitizer harness 4/4, Windows optimized suite, Node 179/179,
+Playwright 102/102, 37 canonical formatting checks at this stage, and 16 bootstrap
+LLVM/object comparisons. Wasm parser/LLVM/cross builds passed. Logs are
+build/lr-probe-{asan,windows,wasm,llvm,node,browser,bootstrap,format-check}.log.
+The corrected Unicode test literals from 54fa990 were included in these successful
+native/Windows builds. The earlier failure is retained in the encoding-correction
+entry; successful pre-cleanup checks were not treated as validation of bad source.
+
+The grammar-indexing deployment 8f120d4 succeeded in Pages workflow 44386814676;
+verify-deployment.mjs matched all 23 assets and passed desktop/mobile checks
+(build/lr-grammar-online.log). Next substantive compiler work is moving Foundation
+semantic component storage into Tower so checking, formatting, interpretation and
+LLVM can progressively consume Tower-defined payloads on the same shared entities.
+The remaining native bridges/seeds and compiler stages still count toward full
+C++ removal; portable self-hosted compiler binaries are not completed.

@@ -795,11 +795,6 @@ static StateEdge parser_state_edge(const Table& table, const LRAction& action) {
     action.rule == SIZE_MAX ? nullptr : &table.grammar.rules[action.rule]};
 }
 
-static const State* parser_find_goto(const State* state, const GrammarNonTerminal* nonterminal) {
-  auto next = lr_runtime_goto(state->table->runtime, state->index, nonterminal->index);
-  return next == SIZE_MAX ? nullptr : &state->table->states[next];
-}
-
 std::string debug_str(const State& state, const Table& table) {
   std::stringstream stream;
   stream << debug_str_header(state, table) << ":\n";
@@ -1111,46 +1106,28 @@ ParserDiagnostic parser_recognizer_diagnostic(Recognizer* r, ParserDiagnosticRea
   result.at_start = !lr_parser_shifted(r->control);
   const auto stack_size = lr_parser_frame_count(r->control);
   if (!stack_size || stack_size > 4096) return result;
-  struct DiagnosticState { const State* state; bool consumed; };
-  using States = std::vector<DiagnosticState>;
-  States original;
-  for (size_t i = 0; i < stack_size; ++i) {
-    LRFrame frame; lr_parser_frame(r->control, i, &frame);
-    original.push_back({&r->table->states[frame.state], frame.length != 0});
-  }
-  size_t budget = 8192;
-  // 0 = not proven, 1 = shifted, 2 = accepted. No semantic actions or lexing.
-  const auto probe = [&](States& stack, uint32_t id, const State** before) {
-    for (size_t steps = 0; steps < 128 && budget; ++steps) {
-      --budget;
-      const State* state = stack.back().state;
-      const auto edge = parser_find_action(state, id);
-      if (!edge) return 0;
-      if (edge.shift_state) {
-        if (before) *before = state;
-        stack.push_back({edge.shift_state, false}); return 1;
-      }
-      const auto& rule = *edge.reduce_rule;
-      if (!rule.index) return 2;
-      if (rule.symbols.size() >= stack.size()) return 0;
-      const auto first = stack.end() - rule.symbols.size();
-      bool consumed = std::any_of(first, stack.end(), [](const auto& entry) { return entry.consumed; });
-      stack.erase(first, stack.end());
-      auto* next = parser_find_goto(stack.back().state, rule.non_terminal);
-      if (!next) return 0;
-      stack.push_back({next, consumed});
-    }
-    result.complete = false; return 0;
+  LRProbeBudget budget{8192, true};
+  using Probe = std::unique_ptr<LRProbe, decltype(&lr_probe_destroy)>;
+  Probe original(lr_probe_create(r->control, &budget), lr_probe_destroy);
+  if (!original) { result.complete = false; return result; }
+  const auto clone = [](const Probe& source) { return Probe(lr_probe_clone(source.get()), lr_probe_destroy); };
+  const auto probe = [&](const Probe& value, uint32_t id, const State** before) -> uint32_t {
+    if (!value) return 0;
+    size_t state;
+    const auto status = lr_probe_step(value.get(), id, &state);
+    if (before && state != SIZE_MAX) *before = &r->table->states[state];
+    return status;
   };
   std::vector<uint32_t> candidates;
-  const auto state_index = original.back().state->index;
+  const auto state_index = lr_probe_frames(original.get())[stack_size - 1].state;
   const auto* actions = lr_runtime_actions(r->table->runtime, state_index);
   for (size_t i = 0; i < lr_runtime_action_count(r->table->runtime, state_index); ++i) candidates.push_back(actions[i].first);
   std::sort(candidates.begin(), candidates.end());
   // A large grammar must not turn one error into an unbounded repair search.
   if (candidates.size() > 64) { candidates.resize(64); result.complete = false; }
   for (auto id : candidates) {
-    auto stack = original; const State* before = nullptr;
+    auto stack = clone(original); const State* before = nullptr;
+    if (!stack) break;
     const auto accepted = probe(stack, id, &before);
     if (!accepted) continue;
     ParserExpectation expected{id, id == PARSER_ID_EOF ? "end of input" : debug_str(id, r->table->grammar)};
@@ -1160,43 +1137,48 @@ ParserDiagnostic parser_recognizer_diagnostic(Recognizer* r, ParserDiagnosticRea
       if (!item.symbol_index) continue;
       // Empty reductions do not establish context either. The final stack entry
       // is the hypothetical expected token, so only inspect its preceding prefix.
-      if (item.symbol_index >= stack.size() - 1 ||
-          !std::any_of(stack.end() - 1 - item.symbol_index, stack.end() - 1,
+      const auto count = lr_probe_count(stack.get());
+      const auto* frames = lr_probe_frames(stack.get());
+      if (item.symbol_index >= count - 1 ||
+          !std::any_of(frames + count - 1 - item.symbol_index, frames + count - 1,
             [](const auto& entry) { return entry.consumed; })) continue;
       const auto* symbol = parser_table_get_grammar_symbol_or_null(r->table->grammar, item);
       if (symbol && !symbol->non_terminal && id >= symbol->terminal.start && id <= symbol->terminal.end)
         expected.contexts.push_back({item.rule_index, item.symbol_index});
     }
     if (accepted == 1 && id != PARSER_ID_EOF && (read || r->lookahead_error.empty())) {
-      auto continuation = stack;
+      auto continuation = clone(stack);
       const auto consume = [&](uint32_t token) {
-        auto previous = continuation;
-        int status = probe(continuation, token, nullptr);
+        if (!continuation) return uint32_t(0);
+        auto previous = clone(continuation);
+        if (!previous) return uint32_t(0);
+        auto status = probe(continuation, token, nullptr);
         if (r->prefix && token != PARSER_ID_EOF &&
             (status == 2 || (!status && probe(previous, PARSER_ID_EOF, nullptr) == 2))) {
-          continuation = {{&r->table->states.front(), false}};
+          lr_probe_reset(continuation.get());
           status = probe(continuation, token, nullptr);
         }
         return status;
       };
-      expected.insertion = read ? true : consume(r->read_id) != 0;
+      expected.insertion = continuation && (read ? true : consume(r->read_id) != 0);
       size_t position = r->read_start;
       for (size_t ahead = 0; expected.insertion && read && ahead < 3; ++ahead) {
         uint32_t token;
         auto accepts = [](void* context, uint32_t token) {
-          return bool(parser_find_action(static_cast<States*>(context)->back().state, token));
+          return lr_probe_accepts(static_cast<LRProbe*>(context), token);
         };
-        if (!read(source, position, accepts, &continuation, token)) { expected.insertion = false; result.complete = false; break; }
+        if (!read(source, position, accepts, continuation.get(), token)) { expected.insertion = false; result.complete = false; break; }
         expected.insertion = consume(token) != 0;
         if (token == PARSER_ID_EOF) break;
       }
       if (expected.insertion && r->prefix) {
-        auto end = stack;
+        auto end = clone(stack);
         expected.completes = probe(end, PARSER_ID_EOF, nullptr) == 2;
       }
     }
     result.expected.push_back(std::move(expected));
   }
+  result.complete = result.complete && budget.complete;
   return result;
 }
 

@@ -343,3 +343,172 @@ export fn lr_parser_shifted(value: LRParser*): bool {
 export fn lr_parser_work(value: LRParser*, result: LRWork*): void {
     copy(result, &value.work, sizeof(LRWork));
 }
+
+// Error-path probes share one explicit work budget. They never execute semantic
+// actions, consume a source stream, or mutate the real recognizer's stack.
+struct LRProbeFrame {
+    state: usize;
+    consumed: bool;
+}
+
+struct LRProbeBudget {
+    remaining: usize;
+    complete: bool;
+}
+
+struct LRProbe {
+    runtime: LRRuntime*;
+    budget: LRProbeBudget*;
+    frames: vector(LRProbeFrame);
+}
+
+export fn lr_probe_destroy(value: LRProbe*): void {
+    var missing = value == null;
+    if missing {
+        return;
+    }
+    vector_dispose(LRProbeFrame, &value.frames);
+    free(value);
+}
+
+fn lr_probe_allocate(runtime: LRRuntime*, budget: LRProbeBudget*, count: usize): LRProbe* {
+    var value = alloc(LRProbe, 1);
+    var missing = value == null;
+    if missing {
+        budget.complete = false;
+        return null;
+    }
+    fill(value, 0, sizeof(LRProbe));
+    value.runtime = runtime;
+    value.budget = budget;
+    var ok = vector_reserve(LRProbeFrame, &value.frames, count);
+    if ok {
+        value.frames.length = count;
+        return value;
+    }
+    budget.complete = false;
+    lr_probe_destroy(value);
+    return null;
+}
+
+export fn lr_probe_create(parser: LRParser*, budget: LRProbeBudget*): LRProbe* {
+    var count = lr_parser_frame_count(parser);
+    var value = lr_probe_allocate(parser.runtime, budget, count);
+    var missing = value == null;
+    if missing {
+        return null;
+    }
+    var index: usize = 0;
+    loop {
+        var done = index == count;
+        if done {
+            return value;
+        }
+        var frame: LRFrame;
+        lr_parser_frame(parser, index, &frame);
+        value.frames.data[index].state = frame.state;
+        value.frames.data[index].consumed = frame.length != 0;
+        index = index + 1;
+    }
+}
+
+export fn lr_probe_clone(source: LRProbe*): LRProbe* {
+    var count = source.frames.length;
+    var value = lr_probe_allocate(source.runtime, source.budget, count);
+    var present = value != null;
+    if present {
+        var bytes = count * sizeof(LRProbeFrame);
+        copy(value.frames.data, source.frames.data, bytes);
+    }
+    return value;
+}
+
+export fn lr_probe_reset(value: LRProbe*): void {
+    value.frames.length = 1;
+    value.frames.data[0].state = 0;
+    value.frames.data[0].consumed = false;
+}
+
+export fn lr_probe_count(value: LRProbe*): usize {
+    return value.frames.length;
+}
+
+export fn lr_probe_frames(value: LRProbe*): LRProbeFrame* {
+    return value.frames.data;
+}
+
+export fn lr_probe_accepts(value: LRProbe*, id: u32): bool {
+    var top = value.frames.length - 1;
+    var action: LRAction;
+    return lr_runtime_action(value.runtime, value.frames.data[top].state, id, &action);
+}
+
+export fn lr_probe_step(value: LRProbe*, id: u32, before: usize*): u32 {
+    *before = lr_none();
+    var steps: usize = 0;
+    loop {
+        var exhausted = steps == 128;
+        if exhausted {
+            break;
+        }
+        exhausted = value.budget.remaining == 0;
+        if exhausted {
+            break;
+        }
+        value.budget.remaining = value.budget.remaining - 1;
+        var top = value.frames.length - 1;
+        var state = value.frames.data[top].state;
+        var action: LRAction;
+        var found = lr_runtime_action(value.runtime, state, id, &action);
+        if found {} else {
+            return 0;
+        }
+        var frame: LRProbeFrame;
+        frame.state = action.state;
+        frame.consumed = false;
+        var shift = action.state != lr_none();
+        if shift {
+            *before = state;
+            var ok = lr_append(LRProbeFrame, &value.frames, &frame);
+            if ok {
+                return 1;
+            }
+            break;
+        }
+        var accepted = action.rule == 0;
+        if accepted {
+            return 2;
+        }
+        var rule = &value.runtime.rules.data[action.rule];
+        var invalid = rule.count >= value.frames.length;
+        if invalid {
+            return 0;
+        }
+        var begin = value.frames.length - rule.count;
+        var index = begin;
+        loop {
+            var done = index == value.frames.length;
+            if done {
+                break;
+            }
+            if value.frames.data[index].consumed {
+                frame.consumed = true;
+            }
+            index = index + 1;
+        }
+        value.frames.length = begin;
+        var previous = begin - 1;
+        frame.state = lr_runtime_goto(value.runtime, value.frames.data[previous].state, rule.owner);
+        invalid = frame.state == lr_none();
+        if invalid {
+            return 0;
+        }
+        var ok = lr_append(LRProbeFrame, &value.frames, &frame);
+        if ok {} else {
+            break;
+        }
+        steps = steps + 1;
+    }
+    value.budget.complete = false;
+    return 0;
+}

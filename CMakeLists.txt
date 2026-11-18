@@ -163,6 +163,7 @@ if(TOWER_PARSER_ONLY)
       runtime_action_count runtime_actions runtime_default runtime_action runtime_goto_count runtime_goto_data runtime_goto
       runtime_specialize runtime_sequence parser_create parser_destroy parser_step parser_commit parser_frame_count parser_frame
       parser_frames parser_sequence_forest parser_consumed parser_shifted parser_work
+      probe_create probe_clone probe_destroy probe_reset probe_count probe_frames probe_accepts probe_step
       grammar_create grammar_destroy grammar_rule_count grammar_rule_data grammar_rule_node grammar_generated
       grammar_symbol_count grammar_symbol_data grammar_symbol_node grammar_capture grammar_name_count grammar_name grammar_name_order
       grammar_missing_count grammar_missing_name grammar_resolve grammar_finish)
