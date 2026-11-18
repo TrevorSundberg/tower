@@ -61,7 +61,7 @@ main{display:flex;flex-direction:column;flex:1;min-height:0;min-width:0;gap:6px;
 #execution-status{font-size:10px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .panel-heading>.execution-controls{flex:none;gap:var(--control-gap)}.execution-controls button{min-height:26px;font-size:11px;padding:3px 7px}.auto-execute{display:flex;align-items:center;gap:4px;font-size:11px;white-space:nowrap;cursor:pointer}.auto-execute input{margin:0}
 .target-downloads:empty{display:none}
-.execution-body{display:grid;grid-template-columns:repeat(var(--columns,6),minmax(0,1fr));flex:1;min-height:0;overflow:hidden}
+.execution-body{display:grid;grid-template-columns:repeat(var(--columns,6),minmax(180px,1fr));flex:1;min-height:0;overflow-x:auto}
 .execution-column{display:flex;flex-direction:column;min-width:0;min-height:0;border-right:1px solid var(--line)}.execution-column:last-child{border:0}
 .execution-column h2{margin:0;padding:4px 8px;border-bottom:1px solid var(--line);font-size:10px;font-weight:500;color:var(--accent);display:flex;flex-wrap:wrap;justify-content:space-between;gap:3px}.execution-column h2 span{color:var(--muted);font-size:9px}
 .execution-column>pre,.runner-result{flex:1;overflow:auto;scrollbar-width:thin;min-height:0}
@@ -102,3 +102,15 @@ main{display:flex;flex-direction:column;flex:1;min-height:0;min-width:0;gap:6px;
 @media(max-width:680px){.tw-inline-error{padding-right:10px}.tw-inline-error-card{padding:8px 10px}#editor-error{min-height:30px}}
 
 
+
+/* CodeMirror virtualizes read-only output; keep downloads outside its scroller. */
+.code-output{flex:1;min-height:0;overflow:hidden;background:var(--editor)}
+.code-output .cm-editor{font-size:11px;line-height:1.55}
+.code-output .cm-content{padding:6px 0!important}
+.code-output .cm-line{padding:0 8px!important}
+.target-menu{width:310px;max-width:calc(100vw - 24px);max-height:60vh;overflow:auto}
+.target-menu label{white-space:normal;align-items:flex-start}
+.target-menu small{display:block;color:var(--muted);font:9px/1.6 ui-monospace,Consolas,monospace;overflow-wrap:anywhere}
+.target-default{border-top:1px solid var(--line);padding:7px 6px 2px;color:var(--muted);font-size:10px;line-height:1.5}
+.target-phase{padding:3px 8px;color:var(--muted);font-size:9px;border-top:1px solid var(--line)}
+@media(max-width:760px){.code-output .cm-editor{font-size:10px}.code-output .cm-line{padding:0 5px!important}.execution-heading{position:relative}.target-picker{position:static}.target-menu{right:6px}}
