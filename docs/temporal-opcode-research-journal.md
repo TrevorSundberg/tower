@@ -9715,3 +9715,21 @@ build by SHA-256; desktop and mobile verified execution agreement, project
 persistence, editable grammar, native builds/downloads, equal columns and defaults.
 No browser page errors were reported. Log: build/shared-panes-deployment-live.log;
 report/screenshots: build/deployment-verification/. todo.txt was not modified.
+
+### 2026-11-18: execution panes before LLVM views
+
+Pulled master with `git pull --ff-only` to a887bfc before editing. Reordered
+the shared OutputPane initialization in playground/src/app.mjs so the horizontal
+order is Tower instructions, Interpreter Execution, Wasm Execution, LLVM raw,
+LLVM optimized, followed by the existing disassembly panes. DOM order supplies
+both desktop and mobile grid order; target visibility logic remains unchanged.
+
+Validation on Windows with Node and Chromium: `npm run build --prefix playground`
+and `git diff --check` passed. From playground, `npx playwright test
+tests/browser/export.spec.mjs --grep 'target selection controls' --reporter=line`
+passed both desktop/mobile checks, including target toggles and equal widths.
+A separate Playwright DOM/geometry probe confirmed the first five headings and
+strictly increasing x coordinates on desktop (9, 246, 483, 720, 957) and mobile
+(7, 147, 287, 427, 567). Deployment updates only app.js and its source map from
+this build on top of gh-pages 2038bba, preserving the published compiler assets;
+no compiler rebuild is claimed. todo.txt remains untouched.

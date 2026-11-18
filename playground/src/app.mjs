@@ -78,10 +78,10 @@ function addPane(config, runner) {
   return pane;
 }
 addPane({title:'Tower instructions', output:'core-instructions', label:'Canonical foundation source', syntax:'tower'});
-addPane({id:'llvm-raw-column', title:'LLVM raw', output:'llvm-before', syntax:'llvm'});
-addPane({id:'llvm-optimized-column', title:'LLVM optimized', output:'llvm-after', syntax:'llvm'});
 addPane({id:'interpreter-column', title:'Interpreter Execution', output:'execution-output', label:'Interpreter output', phase:'interpreter-phase', error:'execution-error', limit:'output-limit'}, 'interpreter');
 addPane({id:'wasm-column', title:'Wasm Execution', output:'llvm-output', label:'LLVM output', phase:'llvm-phase', error:'llvm-error', limit:'llvm-output-limit'}, 'llvm');
+addPane({id:'llvm-raw-column', title:'LLVM raw', output:'llvm-before', syntax:'llvm'});
+addPane({id:'llvm-optimized-column', title:'LLVM optimized', output:'llvm-after', syntax:'llvm'});
 addPane({id:'wasm-disassembly-column', title:'WebAssembly disassembly', output:'wasm-disassembly', label:'Wasm disassembly', syntax:'wasm', downloads:{id:'wasm-downloads', link:'llvm-download', size:'llvm-status'}});
 for (const key of nativeTargetKeys) {
   const target = targets[key];
