@@ -7832,3 +7832,35 @@ Primary sources consulted:
   (longest match and equal-length rule priority).
 - Flex performance: https://westes.github.io/flex/manual/Performance.html
   (small scanning loop, backup/trailing-context costs).
+
+## 2026-11-18 — Approved: one symbol-stream grammar with proven DFA specialization
+
+The user approved implementing shared grammars for character and token streams,
+with regex notation as shorthand for grammar rules over characters. Both stream
+kinds supply integer symbol IDs (plus positions/optional existing entities); input
+decoding and tokenization are adapters, not a second grammar semantic model.
+
+DFA specialization should apply to eligible token rules too. Example: the token
+sequence `'for' 'each' 'do' 'not' ';'` is a finite-state chain. Alternatives and
+repetitions also qualify when their semantics can be represented by finite state.
+Recursion alone is not a disqualifier: right-linear `A = 'x' A | empty` is regular.
+Unbounded balanced nesting requires stack state. Eligibility analysis must be
+conservative; do not promise to decide regularity for every context-free grammar.
+
+LR already combines finite-state control with a stack. The intended optimization
+removes provably unnecessary stack work, not merely renaming LR states as a DFA.
+Preserve the same accepted input, selected production, captures, replacements,
+entity structure, source spans, errors and surrounding lookahead decisions.
+Suppressing character-level nodes is only legal where those nodes are not part of
+the declared result. Complexity includes required output size. A standalone rule
+being regular does not authorize greedy consumption that changes its caller's
+parse. No silent GLR/backtracking fallback for grammars outside the deterministic
+contract. Keep LR available for ineligible rules and as a differential reference.
+
+Implementation sequence: finish/publish the current Tower payload and matcher
+migration; unify regex syntax/lowering with shared grammar nodes; add bounded,
+proven character/token DFA cases with LR equivalence tests (including overlapping
+prefixes, captures and error boundaries); expand eligibility based on evidence.
+This approval adds to the ongoing full self-hosting migration and does not replace
+it. As of this entry, the unified regex grammar and generic parser specialization
+are authorized work, not completed features.
