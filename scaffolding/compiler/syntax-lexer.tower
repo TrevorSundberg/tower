@@ -1,0 +1,320 @@
+// A revision's disposable lexical index. Patterns and text borrow its immutable
+// declaration entities; declarations remain the authoritative grammar nodes.
+struct LexiconToken {
+    table: LexerTable*;
+    id: u32;
+    style: u8*;
+    skipped: bool;
+    contextual: bool;
+    identifier: bool;
+}
+
+struct LexiconLiteral {
+    text: u8*;
+    length: usize;
+    id: u32;
+    word: bool;
+    declaration: bool;
+}
+
+struct SyntaxLexicon {
+    tokens: vector(LexiconToken);
+    literals: vector(LexiconLiteral);
+    starts: vector(LexiconLiteral);
+}
+
+struct LexiconChoice {
+    length: usize;
+    id: u32;
+    style: u8*;
+    skipped: bool;
+    checks: usize;
+}
+
+fn lexicon_letter(byte: u8): bool {
+    var valid = byte >= 97;
+    if valid {
+        valid = byte <= 122;
+    }
+    if valid {
+        return true;
+    }
+    valid = byte >= 65;
+    if valid {
+        valid = byte <= 90;
+    }
+    if valid {
+        return true;
+    }
+    valid = byte == 95;
+    return valid;
+}
+
+fn lexicon_word(text: u8*, length: usize): bool {
+    var empty = length == 0;
+    if empty {
+        return false;
+    }
+    var valid = lexicon_letter(text[0]);
+    if valid {} else {
+        return false;
+    }
+    var index: usize = 1;
+    loop {
+        var done = index == length;
+        if done {
+            return true;
+        }
+        var byte = text[index];
+        valid = lexicon_letter(byte);
+        if valid {} else {
+            valid = byte >= 48;
+            if valid {
+                valid = byte <= 57;
+            }
+            if valid {} else {
+                return false;
+            }
+        }
+        index = index + 1;
+    }
+}
+
+fn lexicon_prefix(source: u8*, length: usize, start: usize, text: u8*, count: usize): bool {
+    var invalid = start > length;
+    if invalid {
+        return false;
+    }
+    var remaining = length - start;
+    invalid = count > remaining;
+    if invalid {
+        return false;
+    }
+    var index: usize = 0;
+    loop {
+        var done = index == count;
+        if done {
+            return true;
+        }
+        var at = start + index;
+        var different = source[at] != text[index];
+        if different {
+            return false;
+        }
+        index = index + 1;
+    }
+}
+
+export fn lexicon_create(): SyntaxLexicon* {
+    var value = alloc(SyntaxLexicon, 1);
+    var present = value != null;
+    if present {
+        fill(value, 0, sizeof(SyntaxLexicon));
+    }
+    return value;
+}
+
+export fn lexicon_destroy(value: SyntaxLexicon*): void {
+    var missing = value == null;
+    if missing {
+        return;
+    }
+    vector_dispose(LexiconToken, &value.tokens);
+    vector_dispose(LexiconLiteral, &value.literals);
+    vector_dispose(LexiconLiteral, &value.starts);
+    free(value);
+}
+
+export fn lexicon_token(value: SyntaxLexicon*, table: LexerTable*, id: u32, style: u8*, skipped: bool, contextual: bool, identifier: bool): bool {
+    var entry: LexiconToken;
+    entry.table = table;
+    entry.id = id;
+    entry.style = style;
+    entry.skipped = skipped;
+    entry.contextual = contextual;
+    entry.identifier = identifier;
+    return lr_append(LexiconToken, &value.tokens, &entry);
+}
+
+export fn lexicon_literal(value: SyntaxLexicon*, text: u8*, length: usize, id: u32, declaration: bool): bool {
+    var literal: LexiconLiteral;
+    literal.text = text;
+    literal.length = length;
+    literal.id = id;
+    literal.word = lexicon_word(text, length);
+    literal.declaration = declaration;
+    return lr_append(LexiconLiteral, &value.literals, &literal);
+}
+
+export fn lexicon_start(value: SyntaxLexicon*, text: u8*, length: usize): bool {
+    var literal: LexiconLiteral;
+    fill(&literal, 0, sizeof(LexiconLiteral));
+    literal.text = text;
+    literal.length = length;
+    return lr_append(LexiconLiteral, &value.starts, &literal);
+}
+
+fn lexicon_choice_init(choice: LexiconChoice*): void {
+    fill(choice, 0, sizeof(LexiconChoice));
+    choice.id = 4294967294;
+    choice.style = "";
+}
+
+fn lexicon_accepts(runtime: LRRuntime*, state: usize, id: u32, choice: LexiconChoice*): bool {
+    var missing = runtime == null;
+    if missing {
+        return false;
+    }
+    var invalid = state >= runtime.states.length;
+    if invalid {
+        return false;
+    }
+    choice.checks = choice.checks + 1;
+    var action: LRAction;
+    return lr_runtime_action(runtime, state, id, &action);
+}
+
+// Longest match, then declaration order. Contextual ties prefer an accepted
+// token; equal-length literals win. The exact same path serves diagnostic peeks.
+export fn lexicon_choose(value: SyntaxLexicon*, source: u8*, length: usize, start: usize, declaration: bool, runtime: LRRuntime*, state: usize, choice: LexiconChoice*): void {
+    lexicon_choice_init(choice);
+    var index: usize = 0;
+    loop {
+        var done = index == value.tokens.length;
+        if done {
+            break;
+        }
+        var entry = &value.tokens.data[index];
+        var eligible = true;
+        if entry.contextual {
+            eligible = lexicon_accepts(runtime, state, entry.id, choice);
+        }
+        if eligible {
+            var count = lex_table_match(entry.table, source, length, start);
+            var selected = count > choice.length;
+            if selected {} else {
+                var tie = count != 0;
+                if tie {
+                    tie = count == choice.length;
+                }
+                if tie {
+                    if entry.contextual {
+                        selected = lexicon_accepts(runtime, state, choice.id, choice);
+                        selected = selected == false;
+                    }
+                }
+            }
+            if selected {
+                choice.length = count;
+                choice.id = entry.id;
+                choice.style = entry.style;
+                choice.skipped = entry.skipped;
+            }
+        }
+        index = index + 1;
+    }
+    index = 0;
+    loop {
+        var done = index == value.literals.length;
+        if done {
+            break;
+        }
+        var literal = &value.literals.data[index];
+        var eligible = declaration == false;
+        if literal.declaration {
+            eligible = true;
+        }
+        if eligible {} else {
+            eligible = lexicon_accepts(runtime, state, literal.id, choice);
+        }
+        if eligible {
+            eligible = literal.length >= choice.length;
+            if eligible {
+                eligible = lexicon_prefix(source, length, start, literal.text, literal.length);
+            }
+            if eligible {
+                choice.length = literal.length;
+                choice.id = literal.id;
+                choice.style = "operator";
+                if literal.word {
+                    choice.style = "keyword";
+                }
+                choice.skipped = false;
+            }
+        }
+        index = index + 1;
+    }
+}
+
+export fn lexicon_skip(value: SyntaxLexicon*, source: u8*, length: usize, start: usize, choice: LexiconChoice*): void {
+    lexicon_choice_init(choice);
+    var index: usize = 0;
+    loop {
+        var done = index == value.tokens.length;
+        if done {
+            return;
+        }
+        var entry = &value.tokens.data[index];
+        if entry.skipped {
+            var count = lex_table_match(entry.table, source, length, start);
+            var selected = count > choice.length;
+            if selected {
+                choice.length = count;
+                choice.id = entry.id;
+                choice.style = entry.style;
+                choice.skipped = true;
+            }
+        }
+        index = index + 1;
+    }
+}
+
+export fn lexicon_identifier(value: SyntaxLexicon*, source: u8*, length: usize, start: usize): usize {
+    var index: usize = 0;
+    loop {
+        var done = index == value.tokens.length;
+        if done {
+            return 0;
+        }
+        var entry = &value.tokens.data[index];
+        if entry.identifier {
+            return lex_table_match(entry.table, source, length, start);
+        }
+        index = index + 1;
+    }
+}
+
+export fn lexicon_declaration(value: SyntaxLexicon*, source: u8*, length: usize, start: usize): bool {
+    var index: usize = 0;
+    loop {
+        var done = index == value.starts.length;
+        if done {
+            return false;
+        }
+        var keyword = &value.starts.data[index];
+        var selected = lexicon_prefix(source, length, start, keyword.text, keyword.length);
+        if selected {
+            var position: usize = 0;
+            loop {
+                done = position == value.tokens.length;
+                if done {
+                    return true;
+                }
+                var entry = &value.tokens.data[position];
+                var eligible = entry.skipped == false;
+                if entry.contextual {
+                    eligible = false;
+                }
+                if eligible {
+                    var count = lex_table_match(entry.table, source, length, start);
+                    var longer = count > keyword.length;
+                    if longer {
+                        break;
+                    }
+                }
+                position = position + 1;
+            }
+        }
+        index = index + 1;
+    }
+}

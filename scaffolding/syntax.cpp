@@ -1,5 +1,6 @@
 #include "syntax.hpp"
 #include "compiler-generics.hpp"
+#include "compiler-syntax-lexer.hpp"
 #include "lex-pattern.hpp"
 #include "syntax-nodes.hpp"
 #include "format.hpp"
@@ -14,7 +15,7 @@
 #include <unordered_set>
 
 namespace {
-bool diagnostic_peek(void*, size_t&, ParserDiagnosticAccepts, void*, uint32_t&);
+bool diagnostic_peek(void*, size_t&, const ParserLookahead&, uint32_t&);
 constexpr uint32_t MetaName = 0x110000, MetaString = MetaName + 1, FirstHole = 0x300000;
 constexpr uint32_t FirstToken = 0x120000, FirstLiteral = 0x200000;
 
@@ -89,6 +90,7 @@ struct Version {
   Definitions definitions; // references to shared source entities, for diagnostics
   Node rules = owned(tower_node_create());
   Table* table = nullptr;
+  SyntaxLexicon* lexicon = nullptr;
   std::map<std::string, uint32_t> literals;
   std::map<uint32_t, std::string> names;
   TokenDefinitions tokens;
@@ -108,7 +110,7 @@ struct Version {
   bool templating = false;
   size_t replacement_error_offset = TOWER_INVALID_INDEX;
   size_t helper = 0;
-  ~Version() { parser_table_destroy(table); }
+  ~Version() { lexicon_destroy(lexicon); parser_table_destroy(table); }
 };
 
 bool letter(char c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'; }
@@ -215,6 +217,21 @@ uint32_t token_id(const std::string& name, size_t index) {
   if (name == "Identifier") return MetaName;
   if (name == "String") return MetaString;
   return FirstToken + (uint32_t)index;
+}
+bool build_lexicon(Version& version) {
+  assert(!version.lexicon);
+  version.lexicon = lexicon_create();
+  if (!version.lexicon) return false;
+  for (size_t i = 0; i < version.tokens.size(); ++i) {
+    const auto& token = semantic(version.tokens[i]);
+    if (!lexicon_token(version.lexicon, token.compiled->table, token_id(token.name, i), token.style.c_str(),
+        token.kind == SyntaxKind::Skip, token.contextual, token.name == "Identifier")) return false;
+  }
+  for (const auto& [literal, id] : version.literals)
+    if (!lexicon_literal(version.lexicon, literal.c_str(), literal.size(), id, version.declaration_literals.contains(literal))) return false;
+  for (const auto& text : version.declaration_starts)
+    if (!lexicon_start(version.lexicon, text.c_str(), text.size())) return false;
+  return true;
 }
 uint32_t resolve_token(const TokenDefinitions& tokens, const std::string& name) {
   for (size_t i = 0; i < tokens.size(); ++i)
@@ -517,6 +534,7 @@ std::unique_ptr<Version> build(const Definitions& defs, const TokenDefinitions& 
     tower_memory_free(error);
     return nullptr;
   }
+  if (!build_lexicon(*v)) { message = "Unable to allocate lexical indexes"; return nullptr; }
   if (!prepare_replacements(*v, definitions, message)) {
     if (error_offset && v->replacement_error_offset != TOWER_INVALID_INDEX) *error_offset = v->replacement_error_offset;
     return nullptr;
@@ -738,80 +756,51 @@ std::shared_ptr<Version> compiled(SyntaxSession& session, const Definitions& def
 
 std::string skip_meta(SyntaxSession& session, size_t& pos, std::vector<SyntaxHighlight>& highlights) {
   while (pos < session.source.size()) {
-    const SyntaxNode* chosen = nullptr; size_t length = 0;
-    for (const auto& entity : session.version->tokens) {
-      const auto& token = semantic(entity);
-      if (token.kind != SyntaxKind::Skip) continue;
-      const auto count = token.compiled->match(session.source, pos);
-      if (count > length) { chosen = &token; length = count; }
-    }
-    if (!chosen) break;
-    if (!chosen->style.empty()) highlights.push_back({pos, pos + length, session.revision, chosen->style});
-    pos += length;
+    LexiconChoice choice;
+    lexicon_skip(session.version->lexicon, session.source.data(), session.source.size(), pos, &choice);
+    if (!choice.length) break;
+    if (*choice.style) highlights.push_back({pos, pos + choice.length, session.revision, choice.style});
+    pos += choice.length;
   }
   return {};
 }
 
-struct Choice { size_t length = 0; uint32_t id = PARSER_ID_EOF; std::string kind; bool skip = false; };
-Choice choose(const SyntaxSession& session, size_t pos, ParserDiagnosticAccepts accept = nullptr, void* context = nullptr) {
-  Choice choice;
-  const auto accepts = [&](uint32_t id) { return accept ? accept(context, id) : parser_recognizer_accepts(session.recognizer, id); };
-  for (size_t i = 0; i < session.version->tokens.size(); ++i) {
-    const auto& token = semantic(session.version->tokens[i]);
-    if (token.contextual && !accepts(token_id(token.name, i))) continue;
-    size_t length = token.compiled->match(session.source, pos);
-    // Longest match, then declaration order. Replacements retain their slot.
-    if (length > choice.length || (length && length == choice.length && token.contextual && !accepts(choice.id)))
-      choice = {length, token_id(token.name, i), token.style, token.kind == SyntaxKind::Skip};
-  }
-  // Grammar literals beat token patterns on equal length. A longer identifier
-  // still beats a keyword prefix, including custom Unicode identifier rules.
-  for (const auto& [literal, id] : session.version->literals)
-    if ((!session.declaration || session.version->declaration_literals.contains(literal) || accepts(id)) && (literal.size() >= choice.length && session.source.compare(pos, literal.size(), literal) == 0))
-      choice = {literal.size(), id, word(literal) ? "keyword" : "operator", false};
+LexiconChoice choose(const SyntaxSession& session, size_t pos, const ParserLookahead* expected = nullptr) {
+  const auto context = expected ? *expected : parser_recognizer_lookahead(session.recognizer);
+  LexiconChoice choice;
+  lexicon_choose(session.version->lexicon, session.source.data(), session.source.size(), pos,
+    session.declaration, context.runtime, context.state, &choice);
+  if (!expected) parser_recognizer_account_lookahead(session.recognizer, choice.checks);
   return choice;
 }
-bool diagnostic_peek(void* context, size_t& pos, ParserDiagnosticAccepts accepts, void* stack, uint32_t& id) {
+bool diagnostic_peek(void* context, size_t& pos, const ParserLookahead& expected, uint32_t& id) {
   const auto& session = *static_cast<SyntaxSession*>(context);
   // The same lexer and candidate's parser state determine contextual tokens.
   // Only a local cursor changes; no highlights, declarations or trees are made.
   // Cap skipped tokens as well as parser actions on this error-only path.
   for (size_t count = 0; count < 32; ++count) {
     if (pos == session.source.size()) { id = PARSER_ID_EOF; return true; }
-    auto choice = choose(session, pos, accepts, stack);
+    auto choice = choose(session, pos, &expected);
     if (!choice.length) return false;
     pos += choice.length;
-    if (!choice.skip) { id = choice.id; return true; }
+    if (!choice.skipped) { id = choice.id; return true; }
   }
   return false;
 }
 
 size_t capture_name_length(const SyntaxSession& session, size_t pos) {
-  const auto& tokens = session.version->tokens;
-  for (const auto& entity : tokens) if (semantic(entity).name == "Identifier")
-    return semantic(entity).compiled->match(session.source, pos);
-  return 0;
+  return lexicon_identifier(session.version->lexicon, session.source.data(), session.source.size(), pos);
 }
 
 bool declaration_at(const SyntaxSession& session, size_t pos) {
-  const auto& source = session.source;
-  for (const auto& keyword : session.version->declaration_starts) {
-    if (source.compare(pos, keyword.size(), keyword) != 0) continue;
-    bool prefix = false;
-    for (const auto& entity : session.version->tokens) {
-      const auto& token = semantic(entity);
-      if (token.kind != SyntaxKind::Skip && !token.contextual && token.compiled->match(source, pos) > keyword.size()) { prefix = true; break; }
-    }
-    if (!prefix) return true;
-  }
-  return false;
+  return lexicon_declaration(session.version->lexicon, session.source.data(), session.source.size(), pos);
 }
 std::string skip_source(SyntaxSession& session, size_t& pos, std::vector<SyntaxHighlight>& highlights) {
   if (session.bootstrapping || session.declaration) return skip_meta(session, pos, highlights);
   while (pos < session.source.size() && !declaration_at(session, pos)) {
     auto choice = choose(session, pos);
-    if (!choice.length || !choice.skip) break;
-    if (!choice.kind.empty()) highlights.push_back({pos, pos + choice.length, session.revision, choice.kind});
+    if (!choice.length || !choice.skipped) break;
+    if (*choice.style) highlights.push_back({pos, pos + choice.length, session.revision, choice.style});
     pos += choice.length;
   }
   return {};
@@ -827,10 +816,10 @@ std::string scan(SyntaxSession& session, size_t& pos, std::vector<SyntaxHighligh
   if (!choice.length) {
     uint32_t value; choice.length = lex_codepoint(session.source, pos, value);
     if (!choice.length) choice.length = 1;
-    choice.kind = "invalid"; error = "No token rule matches source";
+    choice.style = "invalid"; error = "No token rule matches source";
   }
   pos += choice.length; length = choice.length; id = choice.id;
-  if (!choice.kind.empty()) highlights.push_back({start, pos, session.revision, choice.kind});
+  if (*choice.style) highlights.push_back({start, pos, session.revision, choice.style});
   return error;
 }
 
@@ -956,6 +945,7 @@ bool compile_template(Version& version, const Definitions& defs, const Sequence&
     if (diagnostic) tower_memory_free(diagnostic);
     return false;
   }
+  if (!build_lexicon(*grammar)) { error = "Unable to allocate replacement lexical indexes"; return false; }
   std::unique_ptr<Stream, decltype(&parser_stream_destroy)> stream(
     parser_stream_create(sizeof(TemplateInput*), nullptr, template_lex), parser_stream_destroy);
   *(TemplateInput**)parser_stream_get_userdata(stream.get()) = &input;

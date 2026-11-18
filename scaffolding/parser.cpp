@@ -501,8 +501,6 @@ struct GrammarTerminal {
 };
 
 struct GrammarSymbol {
-  std::string_view capture;
-
   // Set if this represents a non-terminal (a reference to other rules)
   // If this is set, the start/end are ignored
   GrammarNonTerminal* non_terminal = nullptr;
@@ -512,7 +510,6 @@ struct GrammarSymbol {
 
 struct GrammarRule {
   size_t index = (size_t)-1;
-  bool generated = false;
   GrammarNonTerminal* non_terminal = nullptr;
   std::vector<GrammarSymbol> symbols;
 };
@@ -564,14 +561,13 @@ std::string parser_grammar_create(Grammar& grammar, TowerNode* root, void* userd
   const auto* symbols = lr_grammar_symbol_data(view);
   for (size_t i = 0; i < grammar.rules.size(); ++i) {
     auto& rule = grammar.rules[i]; const auto& input = rules[i];
-    rule.index = i; rule.generated = lr_grammar_generated(view, i);
+    rule.index = i;
     rule.non_terminal = &grammar.non_terminals[input.owner];
     rule.non_terminal->rules.push_back(&rule);
     rule.symbols.resize(input.count);
     for (size_t j = 0; j < input.count; ++j) {
       auto& symbol = rule.symbols[j]; const auto position = input.begin + j;
       const auto& source = symbols[position];
-      symbol.capture = lr_grammar_capture(view, position);
       if (source.nonterminal != SIZE_MAX) symbol.non_terminal = &grammar.non_terminals[source.nonterminal];
       symbol.terminal = {source.first, source.last};
       grammar.lr_origins[position] = &symbol;
@@ -1052,19 +1048,21 @@ ParserWork parser_recognizer_get_work(const Recognizer* recognizer) {
   work.forest_visits = parse_forest_visits(recognizer->forest); return work;
 }
 
-static StateEdge parser_find_action(const State* state, uint32_t id) {
-  LRAction action;
-  if (!lr_runtime_action(state->table->runtime, state->index, id, &action)) return {};
-  return parser_state_edge(*state->table, action);
-}
-
-bool parser_recognizer_accepts(Recognizer* recognizer, uint32_t id) {
-  if (!recognizer) return false;
+ParserLookahead parser_recognizer_lookahead(Recognizer* recognizer) {
+  if (!recognizer) return {};
   const auto count = lr_parser_frame_count(recognizer->control);
-  if (!count) return false;
+  if (!count) return {};
   LRFrame frame; lr_parser_frame(recognizer->control, count - 1, &frame);
-  ++recognizer->work.actions;
-  return parser_find_action(&recognizer->table->states[frame.state], id);
+  return {recognizer->table->runtime, frame.state};
+}
+void parser_recognizer_account_lookahead(Recognizer* recognizer, size_t checks) {
+  if (recognizer) recognizer->work.actions += checks;
+}
+bool parser_recognizer_accepts(Recognizer* recognizer, uint32_t id) {
+  auto context = parser_recognizer_lookahead(recognizer);
+  if (!context.runtime) return false;
+  parser_recognizer_account_lookahead(recognizer, 1);
+  LRAction action; return lr_runtime_action(context.runtime, context.state, id, &action);
 }
 
 static void parser_return_lookahead(Recognizer* recognizer) {
@@ -1158,10 +1156,9 @@ ParserDiagnostic parser_recognizer_diagnostic(Recognizer* r, ParserDiagnosticRea
       size_t position = r->read_start;
       for (size_t ahead = 0; expected.insertion && read && ahead < 3; ++ahead) {
         uint32_t token;
-        auto accepts = [](void* context, uint32_t token) {
-          return lr_probe_accepts(static_cast<LRProbe*>(context), token);
-        };
-        if (!read(source, position, accepts, continuation.get(), token)) { expected.insertion = false; result.complete = false; break; }
+        const auto count = lr_probe_count(continuation.get());
+        ParserLookahead context{r->table->runtime, lr_probe_frames(continuation.get())[count - 1].state};
+        if (!read(source, position, context, token)) { expected.insertion = false; result.complete = false; break; }
         expected.insertion = consume(token) != 0;
         if (token == PARSER_ID_EOF) break;
       }

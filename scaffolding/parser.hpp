@@ -358,7 +358,7 @@ TowerNode* parser_recognizer_step(Recognizer* recognizer, bool* running);
 // Empty on success/in-progress; otherwise a diagnostic owned by the recognizer.
 const char* parser_recognizer_get_error(Recognizer* recognizer);
 
-// Error-only lookahead correction. Probes copy state pointers, never trees or
+// Error-only lookahead correction. Probes copy numeric state frames, never trees or
 // streams, and have fixed work limits. Unknown/budget-exhausted probes are omitted.
 struct ParserRulePosition { size_t production, term; };
 struct ParserExpectation {
@@ -374,8 +374,12 @@ struct ParserDiagnostic {
   bool at_start = false;
   std::vector<ParserExpectation> expected;
 };
-using ParserDiagnosticAccepts = bool (*)(void*, uint32_t);
-using ParserDiagnosticRead = bool (*)(void*, size_t&, ParserDiagnosticAccepts, void*, uint32_t&);
+struct LRRuntime;
+// Borrowed immutable table and a valid current state, shared with Tower's lexer.
+struct ParserLookahead { LRRuntime* runtime = nullptr; size_t state = TOWER_INVALID_INDEX; };
+ParserLookahead parser_recognizer_lookahead(Recognizer* recognizer);
+void parser_recognizer_account_lookahead(Recognizer* recognizer, size_t checks);
+using ParserDiagnosticRead = bool (*)(void*, size_t&, const ParserLookahead&, uint32_t&);
 ParserDiagnostic parser_recognizer_diagnostic(Recognizer* recognizer,
   ParserDiagnosticRead read = nullptr, void* source = nullptr);
 

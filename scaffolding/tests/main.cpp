@@ -6,6 +6,7 @@ void compiler_storage_tests();
 void entity_store_tests();
 void lexer_table_tests();
 void regex_tests();
+void syntax_lexer_tests();
 void lr_analysis_tests();
 #include <cstdio>
 #include <cstring>
@@ -64,6 +65,7 @@ int main(int argc, char** argv) {
   compiler_storage_tests();
   lexer_table_tests();
   regex_tests();
+  syntax_lexer_tests();
   lr_analysis_tests();
   entity_store_tests();
   puts("Tower and parser tests passed.");
