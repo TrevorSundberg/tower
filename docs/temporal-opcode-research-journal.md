@@ -7271,3 +7271,23 @@ shared entity store, and a real module/import boundary to compose these files.
 The arena/map library is not yet compiler infrastructure, source snapshot sharing
 still uses the existing C++ metadata owner, and parsing/type checking/backend
 algorithms remain to be migrated. No full self-hosting claim is made.
+
+## 2026-11-18 - Tower compiler buffers deployed and verified
+
+Implementation commit 5650e0b uses Tower byte buffers for compiler-owned source
+text in native and browser builds. The final ABI-header split rebuilt cleanly;
+all three resulting Wasm binaries exactly match the binaries used in the full
+169-test compiler and 96-test desktop/mobile runs. The final native sanitizer
+rerun passed all four suites (10.21 s).
+
+Published Pages commit ee01705; workflow 44331877497 completed successfully.
+`node playground/scripts/verify-deployment.mjs https://trevorsundberg.github.io/tower/`
+then verified all 22 deployed asset hashes against the tested local build and
+passed desktop/mobile execution agreement, forward bindings, editable grammar,
+persistence, native builds/downloads and equal-column checks. Logs and screenshots
+are in build/bytes-pages.log, build/bytes-online.log and
+build/deployment-verification/. Public playground: https://trevorsundberg.github.io/tower/.
+
+The build still reports the existing LLVM CreateGlobalStringPtr deprecation;
+this migration does not change that call. GitHub's managed Pages workflow also
+reports action/runtime migration notices, but deployment completed successfully.
