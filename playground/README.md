@@ -413,7 +413,7 @@ node --test playground/tests/cross-compilation.test.mjs
 The checked-pointer prototype is preserved at commit `8571a8d`; the migration
 details and safe-layer follow-ups are in the research journal.
 
-## Compiler utilities written in Tower
+## Compiler implementation moving into Tower
 
 `scaffolding/compiler/utf8.tower` implements scalar decoding, encoding and source
 validation. The native compiler, browser parser and both browser LLVM compilers
@@ -450,8 +450,31 @@ concatenate both library files before `tests/storage.tower`, or link their objec
 with matching declarations. The compiler currently uses the byte buffer, not those
 arena/map helpers.
 
+`scaffolding/library/entities.tower` now implements the compiler's actual shared
+entity/component store. `TowerNode*` and `TowerComponent*` are opaque C++ views of
+those same Tower allocations. Creation, reference ownership, ordered/named child
+relationships, component registration, lookup/removal and type-based query indexes
+run in Tower. Stable component payloads accommodate existing C++ semantic objects;
+query indexes grow independently and use swap removal. Structural edits invalidate
+query positions, and removal/destruction invalidates borrowed payload pointers.
+This first store is single-threaded and uses sparse stable payloads, not archetype
+columns, safe handles, access scopes or jobs. Ownership cycles remain invalid.
+
+`scaffolding/compiler/parse-tree.tower` implements parser forest concatenation,
+lazy capture wrappers, generated-node flattening and ownership transfer into those
+entities. It preserves O(1) fragment concatenation and visits each flattened
+fragment once. CMake temporarily composes it after `entities.tower`; this is not a
+new import syntax. The LALR table builder, recognizer control loop, lexer, semantic
+payload definitions, formatter and backends still contain C++ to migrate.
+
+The remaining native node adapter binds allocation and existing C++ component
+destructors. Its lifecycle registry lasts as long as static compiler caches; the
+Tower store retains each type until its payload destructor has finished. Ordinary
+Tower clients can use plain components with lifecycle zero, or supply the declared
+`tower_entity_finalize` dispatch through the existing external-call mechanism.
+
 The transitional native build first makes `towerc-seed` using the independent
-C++ references in `scaffolding/bootstrap/`. The seed compiles the Tower utilities
+C++ references in `scaffolding/bootstrap/`. The seed compiles the Tower code
 for the host/target, then normal compilers link those objects. The seed algorithms
 are absent from normal compiler targets; tests retain them as references.
 Generated objects stay in ignored build directories, and dependencies include
@@ -474,12 +497,14 @@ bash playground/scripts/test-bootstrap.sh
 bash playground/scripts/test-native-core.sh
 node --test playground/tests/compiler-utf8.test.mjs
 node --test playground/tests/compiler-bytes.test.mjs
+node --test playground/tests/compiler-entities.test.mjs
 ```
 
-The bootstrap check compares seed-built and Tower-utility-built optimized LLVM
+The bootstrap check compares seed-built and Tower-built optimized LLVM
 and object bytes for Linux, Windows, macOS and Wasm. UTF-8 has no runtime dependencies;
 byte buffers allow only allocation/copy primitives and the Wasm stack-pointer symbol.
-This verifies the migrated utilities, not a fully self-hosted compiler.
+The entity/parser module also permits the allocation and component-lifecycle
+bridges. This verifies the migrated compiler pieces, not a fully self-hosted compiler.
 Native tests cover every Unicode scalar, every one/two-byte input,
 random malformed buffers and inaccessible-page boundaries. The C++ host/tests run
 under sanitizers; generated Tower objects currently do not carry sanitizer
@@ -577,6 +602,15 @@ Compiler loading
 uses a stripped, gzipped LLVM asset to reduce cold network transfer. Parser tracing
 is guarded before evaluating debug-format arguments, so disabled tracing does no
 state-dump formatting work.
+
+Selected backends preload in their reusable workers even on syntax-only documents.
+A fixed internal program warms LLVM parsing, optimization, emission and linking;
+Wasm also runs that program privately. No editor source executes during warming,
+and no warm output replaces the displayed program results. Real requests queue
+behind initialization in the same worker; cancellation terminates that worker.
+Unchecked targets do not preload. Browser performance entries named
+`tower-llvm-warm`, `tower-x86-warm` and `tower-arm-warm` measure startup separately
+from the current run's status-bar timings.
 
 For native end-to-end measurements, build `towerc`, then run under Linux/WSL:
 `python3 playground/scripts/profile-native.py build/native/towerc build/native-profile.json --timings`.

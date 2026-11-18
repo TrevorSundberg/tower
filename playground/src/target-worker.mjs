@@ -1,10 +1,23 @@
-import { getTower, getCompiler } from './compiler-runtime.mjs';
+import { getTower, getCompiler, warmCompiler } from './compiler-runtime.mjs';
 import { originalDiagnostic } from './foundation-source.mjs';
 import { targets, targetInputs } from './targets.mjs';
 import { fetchBytes as bytes } from './fetch-bytes.mjs';
 
 const runtimes = new Map();
-self.onmessage = async ({data:{id,source,foundation,bedrock,architecture,inputs={}}}) => {
+async function receive({data:{command,id,source,foundation,bedrock,architecture,inputs={}}}) {
+  if (command === 'warm') {
+    try {
+      const keys = architecture === 'x86' ? ['windows','linux','mac'] : ['linux-arm','mac-arm'];
+      // Start the large reactor fetch alongside the small target runtimes.
+      const ready = getCompiler('./tower-cross.wasm.gz');
+      await Promise.all([ready,...keys.map(async key => runtimes.set(key,await targetInputs(targets[key],bytes)))]);
+      for (const key of keys) await warmCompiler('./tower-cross.wasm.gz',{
+        target:targets[key].triple,emit:'executable',inputs:runtimes.get(key),
+      });
+      postMessage({warm:true});
+    } catch(error) { postMessage({warm:true,error:error.message}); }
+    return;
+  }
   let tower, handle;
   const send = data => postMessage({id,architecture,...data});
   try {
@@ -33,4 +46,6 @@ self.onmessage = async ({data:{id,source,foundation,bedrock,architecture,inputs=
     send({done:true,phase:'Finished'});
   } catch(error) { send({error:error.message,done:true}); }
   finally { if(handle) tower.destroyExecution(handle); }
-};
+}
+let queue = Promise.resolve();
+self.onmessage = event => { queue = queue.then(() => receive(event)); };

@@ -7,9 +7,10 @@ out="$repo/build/bootstrap-check"
 mkdir -p "$out"
 # A production compiler already uses Tower-written utilities when it reads the
 # utility source again. Compare its output with the independent C++ seed.
-for utility in utf8 bytes; do
+for utility in utf8 bytes entities; do
   source="$repo/scaffolding/compiler/utf8.tower"
   if [ "$utility" = bytes ]; then source="$repo/scaffolding/library/bytes.tower"; fi
+  if [ "$utility" = entities ]; then source="$native/tower-compiler-entities.tower"; fi
   for target in x86_64-pc-linux-gnu wasm32-unknown-unknown x86_64-pc-windows-msvc aarch64-apple-darwin; do
     for stage in seed tower; do
       compiler="$native/towerc"
@@ -21,6 +22,7 @@ for utility in utf8 bytes; do
       python3 - "$utility" "$out/symbols.txt" <<'PY'
 import pathlib, sys
 allowed = set() if sys.argv[1] == 'utf8' else {'tower_reallocate', 'tower_deallocate', 'memcpy', 'memmove', 'memset', 'stack_pointer'}
+if sys.argv[1] == 'entities': allowed |= {'tower_allocate', 'tower_entity_finalize'}
 symbols = {line.split()[-1].lstrip('_') for line in pathlib.Path(sys.argv[2]).read_text().splitlines() if line.strip()}
 assert symbols <= allowed, f'Unexpected runtime dependencies: {symbols - allowed}'
 PY

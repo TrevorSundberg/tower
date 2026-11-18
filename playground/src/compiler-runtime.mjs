@@ -1,11 +1,12 @@
 import { loadTower } from './tower-host.mjs';
-import { loadLLVM } from './llvm-host.mjs';
+import { loadLLVM, executeWasm } from './llvm-host.mjs';
 import { fetchBytes } from './fetch-bytes.mjs';
 
 // Worker-local compiler state survives completed programs. Each compile still
 // creates a new execution handle; canceling active work terminates its worker.
 let towerReady, installedFoundation, installedBedrock;
 const compilers = new Map();
+const warmRuns = new Map();
 export async function getTower(foundation, bedrock) {
   const start = performance.now();
   const cached = !!towerReady && installedFoundation === foundation && installedBedrock === bedrock;
@@ -29,6 +30,32 @@ export async function getCompiler(url) {
     if (!canonical.ok || !seed.ok) throw new Error('bedrock.tower or foundation.tower is unavailable');
     return loadLLVM(wasm, undefined, await canonical.text(), undefined, await seed.text());
   })());
-  const compiler = await compilers.get(url);
-  return {compiler, loadMs:performance.now() - start, cached};
+  const pending = compilers.get(url);
+  try {
+    const compiler = await pending;
+    return {compiler, loadMs:performance.now() - start, cached};
+  } catch (error) {
+    if (compilers.get(url) === pending) compilers.delete(url);
+    throw error;
+  }
+}
+
+// Prime parsing, optimization, code generation and linking with fixed internal
+// source, never the editor contents. Wasm also instantiates/runs one small module.
+export function warmCompiler(url, options = {}) {
+  const key = url + ':' + (options.target ?? 'wasm');
+  if (!warmRuns.has(key)) {
+    const pending = (async () => {
+      const {compiler} = await getCompiler(url);
+      const compiled = compiler.compile('var warm: i32 = 42; print(warm);', options);
+      if (compiled.status === 'error') throw new Error(compiled.error);
+      if (!options.target) {
+        const result = await executeWasm(compiled);
+        if (result.status !== 'done' || result.output !== '42\n') throw new Error('LLVM warm run failed');
+      }
+    })();
+    warmRuns.set(key, pending);
+    pending.catch(() => { if (warmRuns.get(key) === pending) warmRuns.delete(key); });
+  }
+  return warmRuns.get(key);
 }

@@ -111,6 +111,13 @@ size_t tower_node_get_component_count(TowerNode* owner);
 // This does NOT increment the reference count of the owner
 TowerComponent* tower_node_get_component_by_index(TowerNode* owner, size_t index);
 
+// Query the shared entity store by component type. Results borrow their owner.
+// Structural edits invalidate query indices; payload addresses remain stable
+// until removal/destruction. Queries do not impose ownership or access scopes.
+size_t tower_component_type_count(TowerNode* type);
+TowerComponent* tower_component_type_at(TowerNode* type, size_t index);
+bool tower_node_remove_component(TowerNode* owner, TowerNode* type);
+
 
 // Virtual destructor for a component
 typedef void (*TowerComponentDestructor)(TowerComponent* component, void* userdata);

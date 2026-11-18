@@ -1,6 +1,6 @@
 # Build actual Tower source for the compiler's target, using a host bootstrap.
 # Generated objects are ordinary platform artifacts, never Tower interchange files.
-set(TOWER_BOOTSTRAP_COMPILER "" CACHE FILEPATH "Host Tower compiler used to build Tower-written compiler utilities")
+set(TOWER_BOOTSTRAP_COMPILER "" CACHE FILEPATH "Host Tower compiler used to build Tower-written compiler code")
 set(TOWER_UTILITIES_TARGET "" CACHE STRING "Override the compiler utility object's target triple")
 function(tower_compiler_utilities)
   if(TARGET tower-compiler-utilities)
@@ -36,18 +36,34 @@ function(tower_compiler_utilities)
   endif()
   add_library(tower-compiler-memory STATIC scaffolding/compiler-memory.cpp)
   add_library(tower-compiler-utilities INTERFACE)
-  foreach(source IN ITEMS scaffolding/compiler/utf8.tower scaffolding/library/bytes.tower)
+  add_library(tower-compiler-entities INTERFACE)
+  foreach(source IN ITEMS scaffolding/compiler/utf8.tower scaffolding/library/bytes.tower scaffolding/library/entities.tower)
     get_filename_component(name "${source}" NAME_WE)
     set(object "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-${name}.o")
+    set(input "${CMAKE_CURRENT_SOURCE_DIR}/${source}")
+    if(name STREQUAL "entities")
+      set(input "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-entities.tower")
+      add_custom_command(OUTPUT "${input}"
+        COMMAND "${CMAKE_COMMAND}"
+          -DENTITIES=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/library/entities.tower
+          -DPARSER=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/parse-tree.tower
+          -DOUTPUT=${input} -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ComposeTowerSources.cmake"
+        DEPENDS scaffolding/library/entities.tower scaffolding/compiler/parse-tree.tower cmake/ComposeTowerSources.cmake
+        VERBATIM)
+    endif()
     add_custom_command(OUTPUT "${object}"
-      COMMAND "${bootstrap}" "${CMAKE_CURRENT_SOURCE_DIR}/${source}"
+      COMMAND "${bootstrap}" "${input}"
         --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
         --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
         --library --target "${triple}" -o "${object}"
-      DEPENDS ${bootstrap_dependency} "${source}"
+      DEPENDS ${bootstrap_dependency} "${source}" "${input}"
         scaffolding/bedrock.tower scaffolding/foundation.tower
-      COMMENT "Compiling Tower-written ${name} utilities for ${triple}" VERBATIM)
+      COMMENT "Compiling Tower-written ${name} compiler code for ${triple}" VERBATIM)
     set_source_files_properties("${object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
-    target_sources(tower-compiler-utilities INTERFACE "${object}")
+    if(name STREQUAL "entities")
+      target_sources(tower-compiler-entities INTERFACE "${object}")
+    else()
+      target_sources(tower-compiler-utilities INTERFACE "${object}")
+    endif()
   endforeach()
 endfunction()

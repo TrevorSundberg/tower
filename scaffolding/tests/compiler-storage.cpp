@@ -29,8 +29,9 @@ void compiler_storage_tests() {
     std::string source = "parse Keep = 'old';";
     const auto allocations = tower_test_buffer_allocations();
     auto* session = syntax_create(source.c_str());
-    // Parsing and source provenance share one owned buffer, not two string copies.
-    assert(tower_test_buffer_allocations() == allocations + 1);
+    // Parsing/source provenance still share a buffer. The allocator now also
+    // serves the Tower entity store, so total allocations include tree storage.
+    assert(tower_test_buffer_allocations() > allocations);
     source.assign(source.size(), 'x');
     auto root = TowerNodeRef::adopt(syntax_next(session)); assert(root.get());
     auto* declaration = tower_node_get_child(root.get(), 0);

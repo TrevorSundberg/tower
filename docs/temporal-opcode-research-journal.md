@@ -7291,3 +7291,191 @@ build/deployment-verification/. Public playground: https://trevorsundberg.github
 The build still reports the existing LLVM CreateGlobalStringPtr deprecation;
 this migration does not change that call. GitHub's managed Pages workflow also
 reports action/runtime migration notices, but deployment completed successfully.
+
+## 2026-11-18 - Tower entity store, parser tree assembly and background LLVM warmup
+
+### Direction and implemented boundary
+
+The user clarified that self-hosting work must move the actual parser/compiler,
+not remain a sequence of small C++ utility replacements. They then selected the
+Tower-written Flecs-style entity/component substrate as the prerequisite, using
+the existing foundation/ECS journal decisions. All custom compiler code remains
+the eventual migration goal; external backend libraries may remain during it.
+
+Reviewed the earlier ECS/access-scope and bulk-analysis entries and the shared
+entity requirements in docs/foundation.md. Implemented an original small store
+in scaffolding/library/entities.tower; no Flecs code or dependency was added.
+Production native and browser compilers now allocate their actual TowerNode and
+TowerComponent objects through that Tower code. The C++ API sees opaque pointers,
+not a parallel native entity layout or a copied AST. Syntax, grammar declarations,
+reflected program types and foundation operations still enrich those same nodes.
+
+The store implements:
+
+- Per-store monotonic identities, reference ownership and explicit disposal.
+- Ordered child containment, owned names, named replacement, in-place child
+  replacement and transfer of the last child's existing reference.
+- Ordinary entities as component types, with consistent registered byte size,
+  alignment and lifecycle. Payloads are raw/uninitialized until constructed.
+- Stable aligned payloads, an owner component list and a per-type dense query
+  index. Removing a component swaps the final query entry into its index slot;
+  payloads themselves never move. Lookup is O(components on that entity), and
+  type iteration visits matching components directly. Named child lookup/removal
+  remains linear, as in the previous implementation.
+- Retention of the type through payload finalization. Same-store ownership is
+  required; failed allocation leaves semantic membership/links unchanged, though
+  a successful preparatory reserve may change internal capacity.
+
+Stable sparse payloads are deliberate for this first integration: C++ SyntaxNode,
+CoreNode and Match payloads contain nontrivial native objects and existing callers
+retain their addresses. Dense archetypes/relocation, multi-component query planning,
+safe handles, scoped access, pinning, jobs and edit-stable identities remain future
+work. This is not a claim of full Flecs behavior or a completed safe Tower layer.
+Foundation pointers stay raw. Query positions are invalidated by structural edits;
+payload pointers are invalidated by removal/destruction. Ownership cycles must be
+avoided or broken explicitly, and the current store is single-threaded.
+
+### Actual parser algorithm migrated
+
+scaffolding/compiler/parse-tree.tower now assembles the recognizer's trees:
+forest leaves own shared entities, generated fragments concatenate in O(1),
+capture wrappers apply lazily, outer captures win, flattening attaches into real
+entity relationships, and acceptance transfers the existing root reference.
+Work counters still record each fragment visit, preserving the existing linear
+scaling checks. Accepted roots retain their own names/components after the parser
+table and work arena are destroyed. Borrowed capture names are safe only because
+the parser's immutable table outlives that arena; attachment copies owned names.
+
+The forest is transient derived parser work, not another semantic node model.
+The LALR table builder, shift/reduce control, declaration reader, token-pattern
+compiler, semantic payloads/type checking, formatter and lowering still have C++
+code. The next substantial parser slice can move recognizer control and its
+Match/state access onto this store, followed by table construction and grammar
+installation. General imports will replace the temporary source composition.
+
+The transitional seed keeps the old C++ node implementation in
+bootstrap/nodes-seed.cpp and the previous forest algorithm in
+bootstrap/parse-tree-seed.cpp. Normal compilers do not link these implementations.
+CMake composes entities.tower plus parse-tree.tower, compiles that Foundation text
+with the seed and links the object into the normal native compiler and all three
+browser reactors. This is ordinary platform object output, not binary Tower IR.
+Existing node tests moved unchanged into tests/nodes.cpp so both paths retain them.
+
+### Failures and corrections during integration
+
+- An initial Tower spelling used a comparison directly after `if`; the foundation
+  correctly rejected it. Kept comparisons in explicit boolean locals, preserving
+  the instruction-like grammar rather than expanding the language for the port.
+- The first sanitizer run found a real shutdown use-after-free in the C++ lifecycle
+  adapter. Its function-local callback vector was destroyed before static grammar
+  caches released their nodes. Symbolized with addr2line against core-asan's
+  tower-parser-tests; the fault was tower_entity_finalize. The registry now has
+  process lifetime, like the compiler's seed type entities, so late cache teardown
+  can invoke valid destructors. Both native parser suites then passed.
+- Component header and aligned payload now share one allocation. Named attachment
+  copies a possibly borrowed name before unlinking its old relationship. Ownership
+  transfers retain the old parent's reference directly during reparenting, avoiding
+  an unnecessary retain/release pair in the parser's hot attachment path.
+- Allocation instrumentation now covers entity storage as well as text buffers;
+  the old test asserting one *total* host allocation for source creation was no
+  longer meaningful. It still checks owned input/provenance lifetimes and balanced
+  disposal, while the source buffer continues to be shared by parsing/provenance.
+- Tower-generated object code is not sanitizer-instrumented. C++ adapters/tests
+  run under ASan/UBSan; native payload/value/alignment/lifetime checks, fault injection,
+  interpreter/Wasm agreement and seed/compiler output comparisons remain necessary.
+
+### LLVM preload request and implementation
+
+The user observed that a syntax-only document deferred the first LLVM load until
+an executable file was selected. Confirmed: scheduleAutoExecution returns for
+syntax-only source and no execution worker existed to initialize LLVM.
+
+Selected Wasm/x86/ARM backends now create their reusable workers at startup and
+when enabled. A fixed internal `var warm: i32 = 42; print(warm);` program primes
+LLVM parsing, optimization, code emission and linking. Wasm also instantiates and
+runs that small module privately; native backends preload their target runtime
+objects and link a sample for each selected platform. No editor text executes as
+part of warmup, and its output/diagnostics never replace editor program results.
+
+Worker requests are serialized behind initialization so one reactor is not entered
+concurrently. An execution already queued behind warmup remains cancellable by
+worker termination. Disabling a target terminates its idle/preloading worker;
+unchecked targets do not fetch their compiler. Failed preload promises are evicted
+so a later real request can retry. Current-run cached load timings still measure
+the current wait/reuse operation, not a saved startup number. Separate browser
+performance measures tower-llvm-warm/tower-x86-warm/tower-arm-warm record warmup.
+
+The first broad browser run exposed one presentation bug: native requests queued
+behind warmup showed Ready until the worker began handling them. They now show
+Loading immediately. It also exposed test assumptions that the first created
+worker was the parser and the first LLVM load was cold. Tests now locate the
+parser by its worker URL; two independently measured cached loads may both round
+to 0.0 ms. The initial run had 90/100 passes; the final rerun is recorded below.
+
+### Measured performance
+
+Saved previous compiler binaries as build/entities-before-tower.wasm and
+build/entities-before-towerc before editing. Paired Wasm measurements used 12
+warmups plus 40 alternating-order samples of compile plus canonical Foundation
+output. Medians before/after, ms: small 5.362/5.660; inference 5.741/5.943;
+104 KiB ASCII source 6.553/6.654; 99 KiB Unicode source 6.069/6.351;
+500 declarations 13.236/13.820. This first entity store has a small measured
+Wasm frontend cost, roughly 0.1-0.6 ms on these fixtures; do not call it zero cost.
+An earlier trial before the attachment ownership simplification showed a similar
+few-percent difference. Scripts/reports: build/profile-entities.mjs and
+build/entities-performance.json.
+
+Fresh native processes, 3 warmups plus 20 paired alternating samples: inference
+total 112.376/110.364 ms; UTF-8 utility source 112.655/111.240 ms. Script/report:
+build/profile-entities-native.py and build/entities-native-performance.json.
+
+A local browser A/B probe suppressed only warm commands for the comparison arm,
+opened Foundation, then switched to Functions. Desktop completion was 840.2 ms
+without warmup versus 328.1 ms after warmup; mobile emulation 842.8 versus 328.0 ms.
+The switch made one LLVM fetch in the lazy arm and zero in the warmed arm.
+Current-run LLVM load was 389.6/0.1 ms desktop and 393.9/0.0 ms mobile; warmup itself
+took about 585/582 ms beforehand. This moves startup work earlier rather than
+eliminating it. This is one local sample per arm/device, not a statistical claim
+or a physical mobile benchmark. Reproduce with build/profile-entities-warm.mjs;
+results are in build/entities-warm-profile.json.
+
+### Final validation
+
+Environment: Windows Node v21.7.3, WSL Orchestral-Revng, host Clang/LLVM 19,
+WASI SDK 34; Release browser compilers with optimized LLVM, no exceptions,
+TOWER_BROWSER_CROSS=ON and four build jobs. Commands/results:
+
+- `bash playground/scripts/build-native.sh` builds the independent seed and the
+  normal compiler using the Tower entity/parser module.
+- `TOWER_BOOTSTRAP_COMPILER=/root/.cache/tower/native/towerc-seed bash playground/scripts/test-native-core.sh`:
+  all **4/4** ASan/UBSan suites pass (10.08 s in the final run). New checks grow
+  1,000 component instances, verify 128-byte alignment and fixed payload addresses,
+  query after swap removal, reject cross-store attachment, inject failed growth,
+  reuse borrowed names, test type/destructor lifetimes and find real compiled
+  program entities through the new type query API. Existing parser tree/capture,
+  cleanup, diagnostics and scaling checks pass with Tower forest assembly.
+- `node --test playground/tests/*.test.mjs`: **171/171** pass, including the entity
+  library running with both 32-bit and 64-bit interpreter layouts, canonical text
+  round trips, LLVM/Wasm execution and direct use of the real browser compiler's
+  entity exports. Browser-compiler query tests grow/remove 300 instances.
+- `npm run check:format --prefix playground`: all **23** Tower files equal their
+  canonical formatting, including the new library, parser code and client fixture.
+- `bash playground/scripts/test-bootstrap.sh`: all **12** module/target pairs
+  produce byte-identical optimized LLVM and object files between the C++ seed and
+  the compiler already using Tower nodes/tree assembly. Includes the composed
+  entity/parser source on Linux x86-64, Windows x86-64, macOS ARM64 and Wasm32.
+  Undefined-symbol allowlists and explicit grammar-input checks pass.
+- `bash playground/scripts/test-linking.sh`: native executable/archive callbacks,
+  memory/storage, native-to-Wasm compilation, real LLVM C API linkage, platform
+  I/O and forward module bindings all pass.
+- `npx playwright test`: final **100/100** desktop/mobile tests pass (2.5 min),
+  including automatic LLVM preload on syntax-only documents, first-program worker
+  reuse, disabled-target behavior, native-target warming/cancellation, current-run
+  timings, typing debounce, inline diagnostics and parse-worker reuse.
+
+Logs: build/entities-native-final-tests.log, entities-node-final-tests.log,
+entities-format-check.log, entities-bootstrap-final.log, entities-linking.log and
+entities-browser-final-tests.log. Earlier failed browser/sanitizer runs and their
+causes are retained above rather than represented as uninterrupted success.
+The existing LLVM CreateGlobalStringPtr deprecation remains unrelated to this port.
+Unrelated working notes and todo.txt were not modified.

@@ -77,6 +77,26 @@ const outputId = backend => backend === 'interpreter' ? 'execution-output' : 'll
 const errorId = backend => backend === 'interpreter' ? 'execution-error' : 'llvm-error';
 function isExecuting() { return Object.values(runners).some(runner => runner.worker); }
 function cancelState() { $('cancel-execution').disabled = !isExecuting(); }
+function warmSelectedTargets() {
+  for (const [target,backend] of [['wasm','llvm'],['x86','x86'],['arm','arm']]) {
+    if (!selectedTargets[target] || idleExecutionWorkers.has(backend) || runners[backend]?.worker) continue;
+    const worker = new Worker(new URL(backend === 'llvm' ? './execution-worker.js' : './target-worker.js',import.meta.url),{type:'module'});
+    idleExecutionWorkers.set(backend,worker);
+    const started = performance.now();
+    const discard = () => {
+      if (idleExecutionWorkers.get(backend) === worker) { idleExecutionWorkers.delete(backend); worker.terminate(); }
+    };
+    worker.addEventListener('error',discard,{once:true});
+    const warmed = ({data}) => {
+      if (!data.warm) return;
+      worker.removeEventListener('message',warmed); worker.removeEventListener('error',discard);
+      if (data.error) discard();
+      else performance.measure('tower-'+backend+'-warm',{start:started,end:performance.now()});
+    };
+    worker.addEventListener('message',warmed);
+    worker.postMessage({command:'warm',architecture:target});
+  }
+}
 function updateColumns() {
   const any = Object.values(selectedTargets).some(Boolean);
   $('llvm-raw-column').hidden = $('llvm-optimized-column').hidden = !any;
@@ -99,6 +119,7 @@ function compileNative(architecture,id,text) {
   const worker = idleExecutionWorkers.get(architecture) ?? new Worker(new URL('./target-worker.js',import.meta.url),{type:'module'});
   idleExecutionWorkers.delete(architecture);
   const runner = runners[architecture] = {worker,timings:{},failure:null};
+  $(architecture+'-phase').textContent='Loading…';
   const beginDisplay = () => { if (!runner.displayStarted) { clearNative(architecture); renderLLVM(); runner.displayStarted=true; } };
   const finish = () => {
     worker.onmessage = worker.onerror = null;
@@ -589,7 +610,7 @@ for(const key of ['wasm','x86','arm']) {
       idleExecutionWorkers.get(backend)?.terminate(); idleExecutionWorkers.delete(backend);
     }
     try {localStorage.setItem('tower-build-targets-v1',JSON.stringify(selectedTargets));}catch{}
-    stopExecution('Targets changed'); clearCompiled(); updateColumns(); executedRevision=-1; scheduleAutoExecution();
+    stopExecution('Targets changed'); clearCompiled(); updateColumns(); executedRevision=-1; warmSelectedTargets(); scheduleAutoExecution();
   };
 }
 updateColumns();
@@ -723,6 +744,7 @@ async function start() {
   editor = new EditorView({ parent: $('editor'), state: EditorState.create({ doc: initial, extensions: editorExtensions }) });
   selectCurrentDocument(); persist();
   clearCompiled(); clearInspection(); showTab('tree'); controls();
+  warmSelectedTargets();
   await perform('analyze');
 }
 controls();

@@ -1,5 +1,7 @@
 #include "compiler-utf8.hpp"
 #include "compiler-bytes.hpp"
+#include "compiler-parse-tree.hpp"
+#include <cstdlib>
 #include "parser.hpp"
 #include <unordered_map>
 #include <string>
@@ -2383,16 +2385,6 @@ void parser_table_destroy(Table* table) {
   tower_memory_free(table);
 }
 
-struct ParseChild {
-  TowerNode* node = nullptr; // Owned leaf; null denotes a capture wrapper.
-  std::string capture;
-  size_t first = TOWER_INVALID_INDEX, next = TOWER_INVALID_INDEX;
-};
-
-struct ParseForest {
-  size_t first = TOWER_INVALID_INDEX, last = TOWER_INVALID_INDEX;
-};
-
 struct StackState {
   const State* state = nullptr;
   // Arena-linked forests concatenate in O(1), including generated repetitions.
@@ -2403,7 +2395,7 @@ struct StackState {
 
 struct Recognizer {
   std::vector<StackState> stack;
-  std::vector<ParseChild> forest;
+  ParseForestStore* forest = nullptr;
   Stream* stream = nullptr;       // Borrowed; caller keeps both dependencies alive.
   const Table* table = nullptr;
   TowerNode* read_node_or_null = nullptr; // Owned lookahead, transferred on shift.
@@ -2442,6 +2434,8 @@ Recognizer* parser_recognizer_create(Table* table, Stream* stream) {
   assert(table && !table->states.empty() && stream);
   void* memory = tower_memory_allocate(sizeof(Recognizer));
   Recognizer* recognizer = new (memory) Recognizer();
+  recognizer->forest = parse_forest_create();
+  if (!recognizer->forest) std::abort();
   recognizer->stream = stream;
   recognizer->table = table;
   recognizer->stack.push_back(StackState{.state = &table->states[0]});
@@ -2455,7 +2449,9 @@ Recognizer* parser_recognizer_create_prefix(Table* table, Stream* stream) {
   return recognizer;
 }
 
-ParserWork parser_recognizer_get_work(const Recognizer* recognizer) { return recognizer->work; }
+ParserWork parser_recognizer_get_work(const Recognizer* recognizer) {
+  auto work = recognizer->work; work.forest_visits = parse_forest_visits(recognizer->forest); return work;
+}
 
 static const StateEdge* parser_find_action(const State* state, uint32_t id) {
   const auto& transitions = *state->transitions;
@@ -2474,9 +2470,9 @@ bool parser_recognizer_accepts(Recognizer* recognizer, uint32_t id) {
 }
 
 static ParseForest parser_forest_leaf(Recognizer* recognizer, TowerNode* node) {
-  const size_t index = recognizer->forest.size();
-  recognizer->forest.push_back({.node = node});
-  return {index, index};
+  ParseForest result;
+  if (!parse_forest_leaf(recognizer->forest, node, &result)) std::abort();
+  return result;
 }
 
 static void parser_return_lookahead(Recognizer* recognizer) {
@@ -2496,7 +2492,7 @@ static void parser_return_lookahead(Recognizer* recognizer) {
 
 void parser_recognizer_destroy(Recognizer* recognizer) {
   if (!recognizer) return;
-  for (auto& child : recognizer->forest) if (child.node) tower_node_release_ref(child.node);
+  parse_forest_destroy(recognizer->forest);
   if (recognizer->read_node_or_null) tower_node_release_ref(recognizer->read_node_or_null);
   recognizer->~Recognizer();
   tower_memory_free(recognizer);
@@ -2663,9 +2659,8 @@ TowerNode* parser_recognizer_step(Recognizer* recognizer, bool* running) {
       }
       const auto roots = recognizer->stack.back().nodes;
       assert(recognizer->stack.size() == 2 && roots.first == roots.last && roots.first != TOWER_INVALID_INDEX);
-      auto& leaf = recognizer->forest[roots.first];
-      TowerNode* root = leaf.node;
-      assert(root); leaf.node = nullptr; // Transfer the existing reference.
+      TowerNode* root = parse_forest_take(recognizer->forest, roots.first);
+      assert(root); // Transfer the existing reference.
       if (recognizer->prefix) parser_return_lookahead(recognizer);
       recognizer->complete = true;
       return root;
@@ -2687,16 +2682,9 @@ TowerNode* parser_recognizer_step(Recognizer* recognizer, bool* running) {
     }
     ParseForest children;
     for (size_t i = begin; i < recognizer->stack.size(); ++i) {
-      auto part = recognizer->stack[i].nodes;
-      if (part.first == TOWER_INVALID_INDEX) continue;
+      const auto part = recognizer->stack[i].nodes;
       const auto& capture = rule.symbols[i - begin].capture;
-      if (!capture.empty()) {
-        size_t wrapper = recognizer->forest.size();
-        recognizer->forest.push_back({.capture = capture, .first = part.first});
-        part = {wrapper, wrapper};
-      }
-      if (children.first == TOWER_INVALID_INDEX) children = part;
-      else { recognizer->forest[children.last].next = part.first; children.last = part.last; }
+      if (!parse_forest_join(recognizer->forest, &children, part.first, part.last, capture.c_str())) std::abort();
     }
     recognizer->stack.resize(begin);
     auto next = recognizer->stack.back().state->gotos_after_reduction.find(rule.non_terminal);
@@ -2710,22 +2698,8 @@ TowerNode* parser_recognizer_step(Recognizer* recognizer, bool* running) {
       match->label = rule.non_terminal->name;
       match->start = start;
       match->length = end - start;
-      // Flatten each generated fragment once, when attached to a real node.
-      // Capture wrappers apply lazily; outer captures override inner ones.
-      struct Visit { size_t index; const std::string* capture; };
-      std::vector<Visit> pending;
-      if (children.first != TOWER_INVALID_INDEX) pending.push_back({children.first, nullptr});
-      while (!pending.empty()) {
-        auto visit = pending.back(); pending.pop_back();
-        auto& child = recognizer->forest[visit.index];
-        ++recognizer->work.forest_visits;
-        if (child.next != TOWER_INVALID_INDEX) pending.push_back({child.next, visit.capture});
-        const auto* capture = visit.capture ? visit.capture : child.capture.empty() ? nullptr : &child.capture;
-        if (child.node) {
-          tower_node_attach_member(child.node, node, capture ? capture->c_str() : nullptr);
-          tower_node_release_ref(child.node); child.node = nullptr;
-        } else if (child.first != TOWER_INVALID_INDEX) pending.push_back({child.first, capture});
-      }
+      // Tower assembles the existing shared entities, including lazy captures.
+      if (!parse_forest_attach(recognizer->forest, node, children.first)) std::abort();
       children = parser_forest_leaf(recognizer, node);
     }
     recognizer->stack.push_back(StackState{

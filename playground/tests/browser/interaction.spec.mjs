@@ -98,7 +98,9 @@ test('timings follow pipeline order and label current-run cached loads; controls
   await expect(timing).toContainText('(cached)');
   expect(Number((await timing.textContent()).match(/([\d.]+) ms/)[1])).toBeLessThan(20);
  }
- expect(await page.locator('#timings [data-label="LLVM load"]').textContent()).not.toBe(first);
+ // Preloading means even the first run can be cached. Two current measurements
+ // can both round to 0.0 ms; do not require different display strings.
+ expect(first).toContain('(cached)');
  const labels=await page.locator('#timings span').evaluateAll(items=>items.map(item=>item.dataset.label));
  expect(labels).toEqual(['Tower load','Tower compile','Instructions','Interpreter run','LLVM load','LLVM parse','LLVM raw','LLVM optimize','LLVM emit','Link','LLVM disassembly','LLVM compile total','LLVM run']);
  const gaps=await page.locator('.execution-controls,.file-controls,.export-controls').evaluateAll(items=>items.map(item=>getComputedStyle(item).columnGap));

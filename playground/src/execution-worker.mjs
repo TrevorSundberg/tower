@@ -1,10 +1,15 @@
 import { executeWasm } from './llvm-host.mjs';
 import { originalDiagnostic } from './foundation-source.mjs';
-import { getTower, getCompiler } from './compiler-runtime.mjs';
+import { getTower, getCompiler, warmCompiler } from './compiler-runtime.mjs';
 
 // Completed workers retain compiler/grammar state. Active cancellation still
 // terminates the worker, including synchronous compilation or an infinite loop.
-self.onmessage = async ({ data: { id, source, foundation, bedrock, backend, pointerBytes=4, inputs={} } }) => {
+async function receive({ data: { command, id, source, foundation, bedrock, backend, pointerBytes=4, inputs={} } }) {
+  if (command === 'warm') {
+    try { await warmCompiler('./tower-llvm.wasm.gz'); postMessage({warm:true}); }
+    catch (error) { postMessage({warm:true,error:error.message}); }
+    return;
+  }
   let tower, handle;
   const timings = {};
   const send = data => postMessage({ id, backend, ...data });
@@ -58,4 +63,8 @@ self.onmessage = async ({ data: { id, source, foundation, bedrock, backend, poin
     }
   } catch (error) { send({ error: error.message, timings }); }
   finally { if (handle) tower.destroyExecution(handle); }
-};
+}
+// A real request can arrive while preloading. Serialize access to the reactor;
+// cancellation still terminates the worker, including a pending warm run.
+let queue = Promise.resolve();
+self.onmessage = event => { queue = queue.then(() => receive(event)); };

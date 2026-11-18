@@ -166,7 +166,7 @@ test('inline Unicode and end-of-input locations stay visible until fresh diagnos
   await expect(page.locator('.tw-error-range')).toHaveCount(0);
   await expect(page.locator('.tw-error-point')).toHaveCount(1);
   await page.locator('#editor').screenshot({ path: `../build/playground-error-eof-${info.project.name}.png` });
-  await page.workers()[0].evaluate(() => {
+  await page.workers().find(worker => new URL(worker.url()).pathname.endsWith('/worker.js')).evaluate(() => {
     const send = self.postMessage.bind(self);
     self.postMessage = (data, ...args) => setTimeout(() => send(data, ...args), 1000);
   });
@@ -214,8 +214,8 @@ test('LLVM compiles the current program into a downloadable executable', async (
 });
 
 test('continuous typing coalesces into one update and reuses the WASM worker and grammar tables', async ({ page }) => {
-  const workers = []; page.on('worker', worker => workers.push(worker));
-  const worker = page.workers()[0];
+  const workers = []; page.on('worker', worker => { if (new URL(worker.url()).pathname.endsWith('/worker.js')) workers.push(worker); });
+  const worker = page.workers().find(worker => new URL(worker.url()).pathname.endsWith('/worker.js'));
   await worker.evaluate(() => {
     const send = self.postMessage.bind(self);
     self.__editReplies = [];
@@ -245,8 +245,8 @@ test('continuous typing coalesces into one update and reuses the WASM worker and
 });
 
 test('edits during a slow response coalesce and cannot display an obsolete parse', async ({ page }) => {
-  const workers = []; page.on('worker', worker => workers.push(worker));
-  const worker = page.workers()[0];
+  const workers = []; page.on('worker', worker => { if (new URL(worker.url()).pathname.endsWith('/worker.js')) workers.push(worker); });
+  const worker = page.workers().find(worker => new URL(worker.url()).pathname.endsWith('/worker.js'));
   await worker.evaluate(() => {
     const send = self.postMessage.bind(self);
     self.__editReplies = [];

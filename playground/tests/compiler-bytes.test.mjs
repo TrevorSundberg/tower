@@ -75,6 +75,6 @@ test('source resets retain grammar provenance and formatting',()=>{
    const formatted=tower.format(h);assert.equal(formatted.error,undefined);assert.match(formatted.source,/🏰/);
   }
  }finally{tower.destroy(h);}
- // Native tests assert exact allocation counts and keep source nodes alive after
+ // Native tests check allocation ownership and keep source nodes alive after
  // their session is destroyed; this loop exercises the worker-facing reset API.
 });

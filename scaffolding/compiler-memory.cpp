@@ -38,3 +38,6 @@ extern "C" void tower_deallocate(void* pointer) {
 #endif
   std::free(pointer);
 }
+extern "C" void* tower_allocate(size_t count, size_t size) {
+  return tower_reallocate(nullptr, count, size);
+}

@@ -587,3 +587,36 @@ See [building and linking](../playground/README.md#native-output-and-browser-cro
   execution context instead of assuming arbitrary shader/CPU equivalence.
 - [ ] Extend provenance to module-qualified definition locations for multi-file
   replacement tooling; current definition byte coordinates are local to their module.
+
+## First Tower-written entity store
+
+The compiler now uses [entities.tower](../scaffolding/library/entities.tower) for
+its actual nodes: entity creation/identity, reference ownership, ordered named
+containment, component registration/storage/removal and component-type queries.
+The existing C++ node API adapts opaque pointers to those same Tower allocations.
+Syntax, grammar, type and foundation components keep their existing entities;
+this does not introduce a second AST, graph or program serialization.
+
+Component types are ordinary entities with registered size, alignment and
+lifecycle information. Stable payload allocations let existing C++ semantic
+objects survive query-index growth and unrelated structural edits. A type keeps
+a dense index of matching components; deletion swaps its final index entry into
+the removed position. Query positions are temporary, while payloads remain valid
+until removal/destruction. Component lookup on an entity is currently linear in
+its component count. Ordered containment retains children; semantic references
+inside components need not own their targets.
+
+This initial store is single-threaded. IDs are monotonic within a store, not
+identities preserved across source edits. Callers own raw pointer validity and
+must avoid ownership cycles; safe handles, pinning/access scopes, dense archetype
+columns, general relationship queries and jobs remain planned. A small host
+lifecycle bridge still invokes existing C++ payload destructors. The eventual
+Tower implementation must replace that bridge as those payloads move over.
+
+[parse-tree.tower](../scaffolding/compiler/parse-tree.tower) now performs parser
+forest concatenation, lazy capture application, generated-node flattening and
+ownership transfer into the same entities. Its temporary arena is a derived
+parsing work structure, not an authoritative alternative tree. Concatenation is
+O(1), and fragments are flattened once. CMake composes the two Tower sources in
+declaration order until module imports exist. LR table construction, recognizer
+control, semantic checking and formatting still have C++ implementations to port.

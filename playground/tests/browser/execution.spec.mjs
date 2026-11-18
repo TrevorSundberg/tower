@@ -311,11 +311,15 @@ test('LLVM infinite execution cancels on edits and traps remain inline', async (
 test('LLVM loading can be cancelled without obsolete results replacing a new run', async ({ page, request }) => {
   test.skip(!(await (await request.get('/capabilities.json')).json()).llvm);
   await page.locator('#auto-execute').uncheck();
+  await page.locator('#build-targets summary').click();
+  await page.locator('#target-wasm').uncheck();
   await setSource(page, grammar + '\nprint(12);');
   let release; const gate = new Promise(resolve => { release = resolve; });
   await page.route('**/tower-llvm.wasm.gz', async route => { await gate; await route.continue().catch(() => {}); });
+  await page.locator('#build-targets summary').click();
+  await page.locator('#target-wasm').check();
   await page.locator('#execute').click();
-  await expect(page.locator('#llvm-phase')).toHaveText('Loading LLVM…');
+  await expect(page.locator('#llvm-phase')).toHaveText('Loading…');
   await expect(page.locator('#execution-output')).toHaveText('12\n');
   await expect(page.locator('#interpreter-phase')).toHaveText('Finished');
   await expect(page.locator('#cancel-execution')).toBeEnabled();
@@ -328,4 +332,41 @@ test('LLVM loading can be cancelled without obsolete results replacing a new run
   await expect(page.locator('#execution-status')).toHaveText('Finished · backends match');
   await expect(page.locator('#llvm-output')).toHaveText('34\n');
   await expect(page.locator('#llvm-download')).toBeVisible();
+});
+
+test('LLVM warms on a syntax-only document and the first program reuses that worker',async({page,request})=>{
+  test.skip(!(await (await request.get('/capabilities.json')).json()).llvm);
+  const foundation=await (await request.get('/foundation.tower')).text();
+  await page.addInitScript(source=>{
+    localStorage.setItem('tower-playground-document-v1',JSON.stringify({source,filename:'foundation.tower',module:'foundation'}));
+    localStorage.setItem('tower-auto-execute-v1','true');
+  },foundation);
+  await page.reload();
+  await expect(page.locator('#execution-status')).toHaveText('Syntax only');
+  await expect.poll(()=>page.evaluate(()=>performance.getEntriesByName('tower-llvm-warm').length)).toBe(1);
+  await expect(page.locator('#llvm-output')).toBeEmpty();
+  await expect(page.locator('#core-instructions')).toBeEmpty();
+  const warmed=page.workers().find(worker=>worker.url().includes('execution-worker'));
+  const requests=[];page.on('request',request=>requests.push(request.url()));
+  await page.locator('#example-kind').selectOption('functions.tower');
+  await expect(page.locator('#execution-status')).toContainText('backends match');
+  expect(page.workers()).toContain(warmed);
+  expect(requests.filter(url=>url.includes('tower-llvm.wasm'))).toEqual([]);
+  await expect(page.locator('#timings [data-label="LLVM load"]')).toContainText('(cached)');
+});
+
+test('disabled targets do not preload LLVM and enabling Wasm starts warming without execution',async({page,request})=>{
+  test.skip(!(await (await request.get('/capabilities.json')).json()).llvm);
+  const source=await (await request.get('/foundation.tower')).text();
+  await page.addInitScript(source=>{
+    localStorage.setItem('tower-playground-document-v1',JSON.stringify({source,filename:'foundation.tower',module:'foundation'}));
+    localStorage.setItem('tower-build-targets-v1',JSON.stringify({wasm:false,x86:false,arm:false}));
+  },source);
+  const requests=[];page.on('request',request=>requests.push(request.url()));
+  await page.reload();await expect(page.locator('#execution-status')).toHaveText('Syntax only');
+  expect(requests.filter(url=>url.includes('tower-llvm.wasm'))).toEqual([]);
+  await page.locator('#build-targets summary').click();await page.locator('#target-wasm').check();
+  await expect.poll(()=>page.evaluate(()=>performance.getEntriesByName('tower-llvm-warm').length)).toBe(1);
+  await expect(page.locator('#execution-status')).toHaveText('Syntax only');
+  await expect(page.locator('#llvm-output')).toBeEmpty();
 });
