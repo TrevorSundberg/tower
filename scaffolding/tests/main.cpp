@@ -9,6 +9,7 @@ void regex_tests();
 void syntax_lexer_tests();
 void syntax_nodes_tests();
 void syntax_reader_tests();
+void syntax_validation_tests();
 void lr_analysis_tests();
 #include <cstdio>
 #include <cstring>
@@ -70,6 +71,7 @@ int main(int argc, char** argv) {
   syntax_lexer_tests();
   syntax_nodes_tests();
   syntax_reader_tests();
+  syntax_validation_tests();
   lr_analysis_tests();
   entity_store_tests();
   puts("Tower and parser tests passed.");

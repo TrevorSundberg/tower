@@ -9536,3 +9536,121 @@ and all five native outputs. No browser page errors were reported. Log:
 `build/wasm-default-deployment-live.log`; report:
 `build/deployment-verification/report.json`. Both worktrees were clean after the
 pushes; this final journal record is the only subsequent source change.
+
+### 2026-11-18 — Grammar revision validation moves into Tower
+
+Added `compiler/syntax-validation.tower` and routed the production compiler's
+grammar validation through it. Tower now checks token/rule name collisions,
+literal validity, duplicate captures and the declaration reader's required
+capture roles. It resolves forward-reference dependencies, propagates pending
+rules through reverse edges, rejects incomplete active roots, computes nullable
+and productive rules, and rejects nullable Statement/repetition or unproductive
+grammar. Diagnostic selection, text and source offsets agree with the preceding
+native implementation, including which missing-reference chain is reported.
+
+The validator reads the existing SyntaxNode components through the entity store.
+Its borrowed, sorted rule/alternative view, reverse dependency lists, queue and
+nullable/productive flags are disposable analysis indexes, not an authoritative
+grammar copy or another public IR. Nodes, comments, templates and provenance are
+not mutated. Pending slots point to the actual source terms responsible for the
+unresolved dependency. Only a successful executable revision filters those rules;
+their original declaration entities remain available for later resolution.
+Capture checks reuse a length-aware borrowed-name hash set; rule lookup uses a
+binary search of the current revision's sorted names. This changes no source
+recognition algorithm or parser complexity contract.
+
+Removed the active native validation algorithms from syntax.cpp (103 removed
+lines and 22 adapter lines added). The previous algorithms are retained in
+`bootstrap/syntax-validation-seed.cpp` for the transitional native seed/stage1
+and an independently named differential-test target. This is a production-code
+migration, not a claim that total project-owned C++ has vanished: that seed and
+the borrowed-view adapter must also be retired when the Tower-built bootstrap
+replaces them. No third-party implementations were changed.
+
+Allocation failures return false, dispose all temporary indexes and any partial
+diagnostic, and clear all pending outputs. The caller supplies the generic
+allocation-error message when the diagnostic buffer is empty. Ordinary invalid
+grammar retains its diagnostic and pending information. Source entities are
+borrowed for the duration of the call; the ABI requires unique, bytewise-sorted
+names and valid shared alternative/term components, and does not accept arbitrary
+untrusted native pointers as a serialization format.
+
+Implementation trials: the first compile rejected a comparison directly after
+return, because Foundation return accepts an operand; changed it to a named
+boolean. The next link exposed an accidental `tower_trap` dependency from the
+capture hash modulo's potentially zero divisor. Added an explicit nonzero-table
+guard before modulo, as the existing LR hash index already does. This allows
+lowering to prove the divisor is valid without adding a new host runtime import.
+Both issues were fixed before the final builds; no language semantics or trap
+contract was weakened to make the link succeed.
+
+Added tests against the preceding native validator on 600 deterministic random
+dependency graphs (seed 0x56414c49), including cycles, multiple unresolved names,
+alternatives, empty productions, repetitions and active roots. Tests compare
+acceptance, exact diagnostic bytes, offsets and the identity of pending source
+terms. Explicit cases cover reactivation after a forward name resolves, skip
+versus token references, declaration-role edits, capture/name bytes containing
+NUL, 1,500 distinct captures and duplicate detection. Allocation-failure sweeps
+exercise success, pending and diagnostic paths; entity and buffer counts return
+to baseline. Native ASan/UBSan instruments the harness/adapters, not every
+generated Tower instruction; the tests execute the actual Tower validator.
+
+Validation passed: native compiler build; Linux ASan/UBSan CTest 4/4;
+optimized Windows parser/compiler suite; Wasm plus LLVM/cross-target reactors;
+canonical formatting for all 44 Tower files; all 218 Node tests; all 16 bootstrap
+optimized-IR/object comparisons across Linux x64, Windows x64, Wasm32 and macOS
+ARM64, plus explicit-grammar-input checks; all 128 desktop/mobile browser cases
+(3.3 minutes).
+Commands from the repository root:
+`bash playground/scripts/build-native.sh` in WSL;
+`cmake --build /root/.cache/tower/core-asan --parallel 3` and CTest;
+`scaffolding/tests/run.ps1 -Optimize -BootstrapCompiler build/parser-tests/host-bootstrap.cmd`;
+`build-wasm.sh` and `build-llvm.sh` with
+`TOWER_BOOTSTRAP_COMPILER=/root/.cache/tower/native/towerc-stage1`,
+`TOWER_BROWSER_CROSS=ON`, `TOWER_BUILD_JOBS=3`;
+`npm run check:format --prefix playground`;
+`node --test playground/tests/*.test.mjs`;
+`npm run build --prefix playground`;
+`npx --prefix playground playwright test --config playground/playwright.config.mjs`;
+and `bash playground/scripts/test-bootstrap.sh` in WSL.
+Logs are `build/syntax-validation-{native,asan,windows,wasm,llvm,format,node,
+dist,browser,bootstrap}.log`.
+
+Performance check: saved the previously built b1a38d6 Wasm and grammar inputs in
+`build/syntax-validation-baseline` before rebuilding. Ran
+`node build/profile-syntax-validation.mjs` with Node 21.7.3, 12 warmups and 40
+alternating paired samples of compilation plus canonical Foundation formatting.
+Median milliseconds before -> after: small 4.896 -> 4.746; inference
+5.191 -> 5.101; replacements 17.050 -> 16.457; 500 variable declarations
+11.828 -> 11.948; 50 grammar declarations 450.464 -> 437.893. No meaningful
+regression was observed in these fixtures; the small differences do not establish
+a general speedup. Full p50/p95 results are in
+`build/syntax-validation-performance.json`. These are Node-hosted Wasm compiler
+measurements, not end-to-end browser typing latency. The grammar fixture still
+rebuilds derived tables as declarations change; this port is not incremental
+table construction optimization.
+
+Remaining native work includes revision/environment ownership, grammar emission
+and declaration-start analysis, template compilation/expansion, end-of-module
+pending-message presentation, semantic checking, formatting, interpretation,
+backend/driver orchestration and bootstrap/adapters. The next coherent migration
+is grammar revision construction or replacement processing over these same
+shared nodes. Checked-in portable Tower compiler binaries remain unfinished.
+Unrelated working notes and todo.txt were left untouched.
+
+Integration follow-up: rebased this port over upstream `5d31b45`, `986fb0a` and
+the deployment-note commit `99f28a5`. The upstream change enables Wasm alongside
+detected/saved native browser targets. Used a clean detached worktree for the
+rebase and reconciled the append-only journal conflict by preserving the upstream
+entries followed by this migration entry. Restored the working checkout with
+`git reset --keep` after stashing only its unrelated journal additions, then
+restored that stash. All 1,045 unrelated journal additions remain unstaged;
+todo.txt and the other local notes were not edited or staged by this work.
+
+Compiler/build sources are byte-identical to the versions validated before the
+rebase (`git diff 3ef45db HEAD -- CMakeLists.txt cmake scaffolding` is empty).
+Rebuilt the combined static playground and repeated the affected integration
+suites: 218 Node tests and 128 desktop/mobile tests passed, the latter in 3.3
+minutes. Logs: `build/syntax-validation-combined-{dist,node,browser}.log`.
+The local playground contains the new compiler. This task pushes source to
+master; it does not republish the gh-pages artifacts.
