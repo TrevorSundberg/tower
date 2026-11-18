@@ -130,10 +130,10 @@ try {
     await expect(page.locator('#core-instructions')).toContainText('var pointer: i32* = &answer;');
     await page.screenshot({path:new URL(name+'-inference.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
     await page.locator('#example-kind').selectOption('templates.tower');
-    await expect(page.locator('#execution-output')).toHaveText('42\n9000000000\n7\n',{timeout:60000});
-    await expect(page.locator('#llvm-output')).toHaveText('42\n9000000000\n7\n',{timeout:60000});
+    await expect(page.locator('#execution-output')).toHaveText('20\n10\n',{timeout:60000});
+    await expect(page.locator('#llvm-output')).toHaveText('20\n10\n',{timeout:60000});
     await expect(page.locator('#execution-status')).toContainText('backends match');
-    await expect(page.locator('#core-instructions')).toContainText('struct `box(i32)`');
+    await expect(page.locator('#core-instructions')).toContainText('struct `buffer(i32, 4)`');
     await page.screenshot({path:new URL(name+'-templates.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
     await page.locator('#example-kind').selectOption('execution.tower');
     await expect(page.locator('#execution-status')).toContainText('backends match',{timeout:60000});

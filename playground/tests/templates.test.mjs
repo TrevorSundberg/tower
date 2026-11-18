@@ -25,16 +25,42 @@ async function compare(source,expected){
  return result.source;
 }
 const box='fn box(T: type): type { struct Result { value: T; } return Result; }';
-test('type-producing calls, nested types, and explicit type parameters round trip',async()=>{
+test('the short fixed-size stack example specializes type and integer arguments',async()=>{
  const source=(await read('scaffolding/examples/templates.tower')).toString();
- const text=await compare(source,'42\n9000000000\n7\n');
- assert.equal((text.match(/struct `box\(i32\)`/g)||[]).length,1);
+ const text=await compare(source,'20\n10\n');
+ assert.equal((text.match(/struct `buffer\(i32, 4\)`/g)||[]).length,1);
+ assert.ok(text.includes('data: i32[4];'));
  assert.ok(!text.includes('T: type'));
- assert.ok(!text.includes('fn box('));
+ assert.ok(!text.includes('fn buffer('));
  const h=tower.create(source);
  try{assert.equal(runToEnd(tower,h).end.status,'done');assert.equal(tower.format(h).source,source);}finally{tower.destroy(h);}
 });
+
+test('integer type arguments preserve identity, forward through constructors and resolve array lengths',async()=>{
+ const source=`fn buffer(T: type, size: usize): type { struct Result { data: T[size]; } return Result; }
+fn wrapped(T: type, size: usize): type { return buffer(T, size); }
+var a: buffer(i32, 2); var b: buffer(i32, 3); var alias: wrapped(i32, 2)* = &a;
+a.data[1] = 42; b.data[2] = 7; print(alias.data[1]); print(b.data[2]);
+print(sizeof(buffer(i32, 2))); print(sizeof(buffer(i32, 3)));
+fn fixed(size: i32): type { struct R { data: i32[size]; } return R; }
+var c: fixed(3); c.data[2] = 9; print(c.data[2]);`;
+ const text=await compare(source,'42\n7\n8\n12\n9\n');
+ assert.equal((text.match(/struct `buffer\(i32, 2\)`/g)||[]).length,1);
+ for(const [program,error] of [
+  ['var x: buffer(i32,0);',/Array length/],
+  ['var x: buffer(i32,1048577);',/Array length/],
+  ['var x: buffer(i32,-1);',/out of range/],
+  ['var size: usize = 2; var x: buffer(i32,size);',/compile-time integer argument/],
+  ['var x: buffer(i32,i32);',/compile-time integer argument/],
+  ['fn bad(n: bool): type { return i32; } var x: bad(1);',/require an integer type/],
+ ]) {
+  const result=execute('fn buffer(T: type, size: usize): type { struct R { data: T[size]; } return R; } '+program);
+  assert.equal(result.status,'error',program);assert.match(result.error,error);
+ }
+});
 test('generic calls bind types without replacing value identifiers or duplicating effects',async()=>{
+ await compare(`parse CoreTypeArguments = CoreType | CoreTypeArguments ',' CoreType;
+${box} var x: box(i32); x.value = 42; print(x.value);`,'42\n');
  await compare(`fn id(T: type, value: T): T { var T: i32 = 99; print(T); return value; }
 var calls = 0; fn next(): i32 { calls = calls + 1; return calls; }
 print(id(i32, next())); print(id(i32, next())); print(calls);`,'99\n1\n99\n2\n2\n');
@@ -87,7 +113,6 @@ test('invalid templates fail before effects and retain instantiation context',()
   ['fn f(T: type): type { struct S { value: f(T*)*; } return S; } var x: f(i32);',/nesting|specialization limit/],
   ['fn f(T: type): type { print(9); return T; } var x: f(i32);',/general compile-time execution is not implemented/],
   ['fn f(T: type): type { struct S { value: T; } return i32; } var x: f(i32);',/must return that struct/],
-  ['fn f(n: i32): type { return i32; }',/compile-time value parameters/],
   ['export fn f(T: type, v: T): T { return v; }',/export a concrete wrapper/],
   ['fn f(T: type, v: T): void {} struct S { x: i32; } var s: S; f(S,s);',/by-value arguments/],
   ['fn f(T: type): void {} fn f(): void {}',/duplicate function/],

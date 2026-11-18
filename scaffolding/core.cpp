@@ -53,7 +53,7 @@ struct Compiler {
   GenericContext* generics = nullptr;
   std::map<std::string, TowerNode*> templates, type_functions;
   std::map<TowerNode*, CoreType> type_results;
-  std::vector<TowerNode*> type_arguments, generated;
+  std::vector<TowerNode*> type_arguments, constant_arguments, generated;
   std::set<std::string> source_names;
   std::set<TowerNode*> template_nodes, fields_done, resolving_types;
   const char* source = "";
@@ -86,9 +86,38 @@ struct Compiler {
     auto& value = core_attach(n, CoreKind::Type); value.type = t; value.name = core_type_name(t);
     type_arguments.push_back(n); tower_node_release_ref(n); return n;
   }
+  TowerNode* constant_argument(TowerNode* n, const CoreType* expected = nullptr) {
+    while ((label(n) == "CoreTypeArgument" || label(n) == "CoreCallArgument" || label(n) == "CoreOperand" || label(n) == "CoreArrayCount")
+        && tower_node_get_child_count(n) == 1) n = child(n, 0);
+    auto* bound = generic_lookup(generics, n, n);
+    TowerNode* value = bound;
+    if (!value) {
+      auto text = tokens(n);
+      if (text.empty() || (text[0] != '-' && (text[0] < '0' || text[0] > '9'))) {
+        fail(n, "Expected a compile-time integer argument (an integer literal or a bound template value)"); return nullptr;
+      }
+      CoreType size{CoreScalar::USize, 0, nullptr, program.pointer_bytes};
+      value = operand(n, expected ? expected : &size);
+      if (!program.error.empty()) return nullptr;
+    }
+    const auto& constant = core_node(value);
+    if (!constant.constant || !integer(constant.type)) { fail(n, "Expected a compile-time integer argument"); return nullptr; }
+    if (expected && constant.type != *expected) {
+      fail(n, "Expected " + core_type_name(*expected) + " compile-time argument, got " + core_type_name(constant.type)); return nullptr;
+    }
+    for (auto* existing : constant_arguments)
+      if (core_node(existing).type == constant.type && core_node(existing).bits == constant.bits) return existing;
+    auto* result = tower_node_create(); tower_node_attach(result, program.root);
+    auto& copy = core_attach(result, CoreKind::Operand);
+    copy.constant = true; copy.type = constant.type; copy.bits = constant.bits;
+    constant_arguments.push_back(result); tower_node_release_ref(result); return result;
+  }
   std::string instance_name(TowerNode* definition, const std::vector<TowerNode*>& arguments) {
     auto name = identifier(tokens(member(definition, "name"))) + "(";
-    for (size_t i = 0; i < arguments.size(); ++i) { if (i) name += ", "; name += core_type_name(core_node(arguments[i]).type); }
+    for (size_t i = 0; i < arguments.size(); ++i) {
+      if (i) name += ", "; const auto& argument = core_node(arguments[i]);
+      name += argument.constant ? core_number(argument.bits, argument.type) : core_type_name(argument.type);
+    }
     name += ")"; auto unique = name; size_t suffix = 1;
     while (source_names.contains(unique) || types.contains(unique) || functions.contains(unique)) unique = name + "_" + std::to_string(++suffix);
     return unique;
@@ -111,10 +140,21 @@ struct Compiler {
     auto name = identifier(tokens(member(n, "name"))); auto found = type_functions.find(name);
     CoreType invalid{CoreScalar::I32, 0, nullptr, program.pointer_bytes};
     if (found == type_functions.end()) { fail(n, "Unknown type constructor '" + name + "'"); return invalid; }
-    auto args = collect(member(n, "args"), label(n) == "CoreCall" ? "CoreCallArgument" : "CoreType");
+    auto args = collect(member(n, "args"), label(n) == "CoreCall" ? "CoreCallArgument" : "CoreTypeArgument");
+    // Existing edited grammars can still produce the former type-only wrapper.
+    if (args.empty() && label(n) != "CoreCall") args = collect(member(n, "args"), "CoreType");
     if (args.size() != generic_parameter_count(generics, found->second)) { fail(n, "Wrong argument count for type constructor '" + name + "'"); return invalid; }
     std::vector<TowerNode*> arguments;
-    for (auto* arg : args) { arguments.push_back(type_entity(type(arg))); if (!program.error.empty()) return invalid; }
+    auto parameters = collect(member(found->second, "params"), "CoreParameter");
+    for (size_t i = 0; i < args.size(); ++i) {
+      if (generic_type_parameter(generics, found->second, i)) arguments.push_back(type_entity(type(args[i])));
+      else {
+        auto expected = type(member(parameters[i], "type"));
+        if (!integer(expected)) { fail(parameters[i], "Compile-time value parameters currently require an integer type"); return invalid; }
+        arguments.push_back(constant_argument(args[i], &expected));
+      }
+      if (!program.error.empty()) return invalid;
+    }
     auto* instance = generic_instantiate(generics, found->second, n, arguments.data(), arguments.size());
     if (!generic_ok(n) || !instance) return invalid;
     if (auto result = type_results.find(instance); result != type_results.end()) return result->second;
@@ -146,7 +186,7 @@ struct Compiler {
   CoreType type(TowerNode* n) {
     struct Depth { unsigned& value; ~Depth() { --value; } } depth{type_depth};
     if (++type_depth > 128) { fail(n, "Type construction nesting exceeds 128; check recursive type arguments"); return {}; }
-    while ((label(n) == "CoreCallArgument" || label(n) == "CoreOperand") && tower_node_get_child_count(n) == 1) n = child(n, 0);
+    while ((label(n) == "CoreTypeArgument" || label(n) == "CoreCallArgument" || label(n) == "CoreOperand") && tower_node_get_child_count(n) == 1) n = child(n, 0);
     if ((label(n) == "CoreType" || label(n) == "CoreCall") && member(n, "args")) return type_call(n);
     // Types are ordinary identifier references. This bootstrap registry is the
     // first semantic namespace; type spellings are absent from the grammar.
@@ -154,10 +194,10 @@ struct Compiler {
       auto t = type(base);
       auto* count = member(n, "count"); if (!count) count = member(n, "index");
       if (count) {
-        auto digits = tokens(count);
-        if (digits.empty() || digits.find_first_not_of("0123456789") != std::string::npos) { fail(n, "Array type requires a constant positive length"); return t; }
-        uint64_t length = 0;
-        for (char c : tokens(count)) { length = length * 10 + (c - '0'); if (length > 1048576) break; }
+        auto* value = constant_argument(count);
+        if (!value) return t;
+        uint64_t length = core_node(value).bits;
+        if (core_signed(core_node(value).type) && (length >> (core_width(core_node(value).type) - 1))) length = 0;
         if (!length || length > 1048576) { fail(n, "Array length must be between 1 and 1,048,576"); return t; }
         if (!t.pointers && t.scalar == CoreScalar::Void) { fail(n, "An array cannot have void elements"); return t; }
         auto name = core_type_name(t) + "[" + std::to_string(length) + "]";
@@ -183,7 +223,10 @@ struct Compiler {
       for (auto* parent = tower_node_get_parent(n); parent; parent = tower_node_get_parent(parent)) {
         if (label(parent) == "CoreStruct" && core_get(parent) && text == identifier(tokens(member(parent, "name")))) return core_node(parent).type;
       }
-    if (auto* bound = generic_lookup(generics, n, n)) return core_node(bound).type;
+    if (auto* bound = generic_lookup(generics, n, n)) {
+      if (core_node(bound).kind != CoreKind::Type) fail(n, "Expected a type, got a compile-time integer value");
+      return core_node(bound).type;
+    }
     if (text == "type") { fail(n, "Type values currently require a template parameter or a type-constructor result"); return t; }
     auto found = types.find(text);
     if (found == types.end()) fail(n, "Unknown type '" + text + "'");

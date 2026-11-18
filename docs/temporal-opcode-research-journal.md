@@ -8372,3 +8372,45 @@ with push/pop. Continue the compiler migration after that; the requested endpoin
 remains zero project-owned C++ (including bootstrap), not merely LR construction.
 The existing type constructor implementation currently rejects value parameters;
 implement that missing capability rather than hardcoding an example's size in C++.
+
+## 2026-11-18 — Short Templates example with integer type arguments
+
+Implemented the requested example as `buffer(T, size)` containing `data: T[size]`,
+then `stack(T)` containing a four-element buffer and a count. Generic `push` and
+`pop` demonstrate real storage and print 20 then 10. Removed the identity and
+other unrelated demonstrations from the example, retaining their regression tests.
+The example deliberately assumes sufficient capacity/nonempty pop, consistent
+with raw Foundation access; it is not a checked container library.
+
+This needed integer arguments to type constructors, not just a cosmetic example
+edit. Foundation's shared grammar now accepts numeric type arguments and named
+array lengths. The Tower generic component binds all arguments of type-returning
+functions and caches instances by their canonical argument entities. The existing
+C++ semantic adapter interns typed integer constants on the shared node model,
+checks the declared integer type/range, and resolves forwarded size parameters.
+Ordinary generic functions still bind only their type parameters at specialization;
+their ordinary value parameters remain runtime arguments. Concrete Foundation
+output includes compilable struct names such as `buffer(i32, 4)`.
+
+Limits: this is the existing explicit-specialization bootstrap extended to typed
+integer literals/forwarded arguments. It is not arbitrary compile-time execution,
+a separate constant-expression evaluator, or the final first-class type system.
+Type constructors still use the existing optional local struct plus returned type
+form. Array lengths retain the 1..1048576 and target storage limits. The C++ semantic
+adapter is project-owned migration debt, not an exempt external library.
+
+Validation on Windows/WSL Orchestral-Revng: optimized native and Wasm/LLVM builds;
+native sanitizer harness 4/4; Windows optimized parser suite; Node 178/178;
+Playwright 102/102 desktop/mobile; 34 canonical formatting/round-trip fixtures;
+16 bootstrap comparisons (optimized LLVM and object bytes across Linux x64,
+Windows x64, macOS ARM64, and Wasm). New tests cover reused/distinct lengths,
+forwarded typed constants, 32/64-bit layouts, source/LLVM round trips, invalid
+sizes and argument kinds. The final Templates suite is 7/7, also testing saved
+older CoreTypeArguments grammar wrappers. Logs: build/template-values-*.log.
+Commands: build-native.sh, build-wasm.sh, build-llvm.sh, test-bootstrap.sh,
+scaffolding/tests/run.ps1 -Optimize, node --test playground/tests/*.test.mjs,
+npm run check:format --prefix playground, and the full Playwright config.
+
+Next: move runtime LR table normalization, action/goto lookup and parser control
+into Tower. Full project-owned C++ removal and portable bootstrap executables
+remain unfinished; this example does not change that endpoint.

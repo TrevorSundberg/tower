@@ -143,10 +143,6 @@ export fn generic_register(context: GenericContext*, definition: Entity*): u32 {
     }
     if produces_type {
         template.kind = 2;
-        var mixed = template.type_count != template.count;
-        if mixed {
-            context.error = "Type constructors currently require type parameters; compile-time value parameters are not implemented";
-        }
     }
     var needed = template.kind != 0;
     if needed {
@@ -285,9 +281,14 @@ export fn compiler_clone_tree(source: Entity*, limit: usize, copied: usize*): En
 export fn generic_instantiate(context: GenericContext*, definition: Entity*, use: Entity*, arguments: Entity**, count: usize): Entity* {
     var data = compiler_component_get(definition, context.template_type);
     var template = bits(GenericTemplate*, data);
-    var wrong = count != template.type_count;
+    var needed = template.type_count;
+    var type_constructor = template.kind == 2;
+    if type_constructor {
+        needed = template.count;
+    }
+    var wrong = count != needed;
     if wrong {
-        context.error = "Wrong number of compile-time type arguments";
+        context.error = "Wrong number of compile-time arguments";
         return null;
     }
     var current = context.first;
@@ -388,7 +389,12 @@ export fn generic_lookup(context: GenericContext*, node: Entity*, name: Entity*)
                 if finished {
                     return null;
                 }
-                if template.type_parameters[i] {
+                var compile_time = template.type_parameters[i];
+                var type_constructor = template.kind == 2;
+                if type_constructor {
+                    compile_time = true;
+                }
+                if compile_time {
                     var parameter = compiler_node_member(template.parameters[i], "name");
                     var same = compiler_name_equal(parameter, name);
                     if same {
