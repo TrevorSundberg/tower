@@ -8168,3 +8168,22 @@ Measured performance, not a speedup guarantee:
 The previous regex-parser deployment (`4ecb3bd`, Pages `8435d16`) was verified
 online before these new changes: all 23 assets matched and desktop/mobile checks
 passed. This new checkpoint will be published and independently verified next.
+
+## 2026-11-18 — Regex/automaton migration checkpoint published and verified
+
+Pushed `f03f1e9` (Tower automata plus fixed terminal parser specialization) and
+`afdb920` (Tower regex tree lowering) to master. Published the tested static build
+as Pages commit `ae484e8`; GitHub Pages workflow
+https://github.com/TrevorSundberg/tower/actions/runs/44369897453 completed successfully.
+Ran `node playground/scripts/verify-deployment.mjs https://trevorsundberg.github.io/tower/`:
+all 23 deployed assets matched the local build, and desktop/mobile checks confirmed
+matching interpreter/Wasm execution, forward module bindings, editable grammar,
+persistence, native downloads and equal output columns. Log:
+`build/regex-lowering-online.log`.
+
+The complete no-owned-C++ endpoint is still unfinished. The next major migration
+is LR grammar/table construction and recognizer control, continuing to share
+entities and proven DFA specializations. Keep the remaining semantic/type pipeline,
+formatter/interpreter, backend/CLI adapters and bootstrap retirement in scope.
+Portable per-platform bootstrap executables are not delivered by this checkpoint.
+Existing unrelated working edits, including todo.txt, were preserved.
