@@ -9498,3 +9498,29 @@ build --prefix playground` succeeded and `npm test --prefix playground` passed
 `build/wasm-default-node.log`. Browser validation and publication results follow.
 Fetched upstream compiler migration `b1a38d6` before publication; integration and
 artifact validation remain required. `todo.txt` is untouched.
+
+Integrated `b1a38d6` by rebase, preserving both appended journal entries in the
+only conflict. Rebuilt the frontend with `wsl -d Ubuntu -- bash
+playground/scripts/build-wasm.sh` (`build/wasm-default-rebuild.log`). An attempted
+`TOWER_BROWSER_CROSS=ON bash playground/scripts/build-llvm.sh` began configuring
+a fresh LLVM tablegen tree because this environment lacks the backend build cache;
+stopped it before compiling LLVM. This deployment retains the previously published
+LLVM/cross reactors and target packs, as the preceding deployment did. In particular,
+the retained LLVM reactor SHA-256 matches Pages `41f35ca`; the rebuilt frontend
+contains the new Tower declaration reader, while the retained backend reactors do
+not include that internal migration. No new backend rebuild is claimed.
+
+The initial browser run passed 126/128 checks; both failures were the same stale
+test selector counting the now-visible Wasm disassembly pane as a native pane
+because both use `.native-column`. Narrowed that assertion to exclude
+`#wasm-disassembly-column`, keeping the actual Linux runtime request, worker and
+output checks. Rebuilt the final static package and repeated Node tests: 217
+passed, one optional fixture skipped (`build/wasm-default-node-final.log`). Final
+browser and deployment checks use that rebuilt package.
+
+Final validation passed: all 128 desktop/mobile Playwright cases in 2.4 minutes
+(`build/wasm-default-browser-final.log`). Local `node
+scripts/verify-deployment.mjs` passed both device profiles, all 23 asset hashes,
+interpreter/Wasm comparison, project persistence/import/export, and all five
+native targets (`build/wasm-default-deployment-local.log`). `git diff --check`
+passed; source and static artifacts are ready for the authorized normal pushes.

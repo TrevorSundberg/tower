@@ -69,7 +69,7 @@ test('a single selected native profile fetches no sibling platform runtimes',asy
   const requests=[];page.on('request',r=>requests.push(r.url()));
   await page.goto('/');
   await expect(page.locator('#linux-downloads a')).toHaveCount(1,{timeout:45000});
-  await expect(page.locator('.native-column:visible')).toHaveCount(1);
+  await expect(page.locator('.native-column:visible:not(#wasm-disassembly-column)')).toHaveCount(1);
   await expect(page.locator('#linux-column h2')).toHaveText('Linux x64 disassembly');
   expect(requests.filter(url=>url.includes('/targets/')).map(url=>url.split('/').pop())).toEqual(['x86_64-unknown-linux-gnu-runtime.o']);
   expect(page.workers().filter(worker=>worker.url().includes('target-worker'))).toHaveLength(1);
