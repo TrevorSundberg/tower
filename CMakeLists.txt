@@ -2,12 +2,13 @@ cmake_minimum_required(VERSION 3.20)
 
 project(scaffolding LANGUAGES C CXX VERSION 1)
 include(cmake/TowerCompilerUtilities.cmake)
+include(cmake/TowerInterpreter.cmake)
 
 option(TOWER_NATIVE "Build Tower's native compiler/linker driver against an installed LLVM" OFF)
 if(TOWER_NATIVE)
   find_package(LLVM REQUIRED CONFIG)
   add_library(tower-native-compiler OBJECT scaffolding/driver.cpp scaffolding/llvm-engine.cpp
-    scaffolding/core.cpp scaffolding/core-nodes.cpp scaffolding/core-machine.cpp
+    scaffolding/core.cpp scaffolding/core-nodes.cpp
     scaffolding/tests/nodes.cpp scaffolding/parser.cpp scaffolding/parser-tree-tests.cpp
     scaffolding/syntax.cpp scaffolding/compiler-syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/bedrock.cpp
     scaffolding/format.cpp scaffolding/lex-pattern-common.cpp scaffolding/syntax-tests.cpp)
@@ -15,7 +16,7 @@ if(TOWER_NATIVE)
   target_compile_features(tower-native-compiler PRIVATE cxx_std_20)
   target_compile_definitions(tower-native-compiler PRIVATE TOWER_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
   target_compile_options(tower-native-compiler PRIVATE -fno-exceptions)
-  add_executable(towerc-seed $<TARGET_OBJECTS:tower-native-compiler> scaffolding/bootstrap/utf8-seed.cpp scaffolding/bootstrap/bytes-seed.cpp scaffolding/bootstrap/nodes-seed.cpp scaffolding/bootstrap/parse-tree-seed.cpp scaffolding/bootstrap/generics-seed.cpp scaffolding/bootstrap/parser-nodes-seed.cpp)
+  add_executable(towerc-seed scaffolding/bootstrap/interpreter-seed.cpp $<TARGET_OBJECTS:tower-native-compiler> scaffolding/bootstrap/utf8-seed.cpp scaffolding/bootstrap/bytes-seed.cpp scaffolding/bootstrap/nodes-seed.cpp scaffolding/bootstrap/parse-tree-seed.cpp scaffolding/bootstrap/generics-seed.cpp scaffolding/bootstrap/parser-nodes-seed.cpp)
   target_compile_features(towerc-seed PRIVATE cxx_std_20)
   target_sources(towerc-seed PRIVATE scaffolding/bootstrap/foundation-nodes-seed.cpp)
   target_sources(towerc-seed PRIVATE scaffolding/bootstrap/syntax-lexer-seed.cpp)
@@ -25,7 +26,7 @@ if(TOWER_NATIVE)
   tower_compiler_utilities()
   # The seed builds the Tower specializer; this stage can then build generic
   # compiler components. Keep the dependency graph acyclic from a clean checkout.
-  add_executable(towerc-stage1 $<TARGET_OBJECTS:tower-native-compiler> scaffolding/tower.cpp scaffolding/bootstrap/parser-nodes-seed.cpp)
+  add_executable(towerc-stage1 scaffolding/bootstrap/interpreter-seed.cpp $<TARGET_OBJECTS:tower-native-compiler> scaffolding/tower.cpp scaffolding/bootstrap/parser-nodes-seed.cpp)
   target_compile_features(towerc-stage1 PRIVATE cxx_std_20)
   target_sources(towerc-stage1 PRIVATE scaffolding/bootstrap/foundation-nodes-seed.cpp)
   target_sources(towerc-stage1 PRIVATE scaffolding/bootstrap/syntax-lexer-seed.cpp)
@@ -33,10 +34,11 @@ if(TOWER_NATIVE)
   target_sources(towerc-stage1 PRIVATE scaffolding/bootstrap/lr-analysis-seed.cpp scaffolding/bootstrap/lr-grammar-seed.cpp scaffolding/bootstrap/lexer-table-seed.cpp scaffolding/bootstrap/lex-pattern-seed.cpp)
   target_link_libraries(towerc-stage1 PRIVATE tower-compiler-entities tower-compiler-utilities tower-compiler-memory LLVM)
   tower_compiler_parser_nodes()
-  add_executable(towerc $<TARGET_OBJECTS:tower-native-compiler> scaffolding/tower.cpp scaffolding/lex-pattern.cpp)
+  tower_compiler_interpreter()
+  add_executable(towerc scaffolding/core-machine.cpp $<TARGET_OBJECTS:tower-native-compiler> scaffolding/tower.cpp scaffolding/lex-pattern.cpp)
   target_compile_features(towerc PRIVATE cxx_std_20)
   target_link_libraries(towerc PRIVATE tower-compiler-parser-nodes tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
-  target_link_libraries(towerc PRIVATE LLVM)
+  target_link_libraries(towerc PRIVATE LLVM tower-compiler-interpreter)
   return()
 endif()
 
@@ -46,12 +48,13 @@ option(TOWER_BROWSER_CROSS "Include CPU backends and native linkers in a separat
 if(TOWER_BROWSER)
   tower_compiler_utilities()
   tower_compiler_parser_nodes()
+  tower_compiler_interpreter()
   add_executable(tower-browser scaffolding/browser.cpp
     scaffolding/core.cpp scaffolding/core-nodes.cpp scaffolding/core-machine.cpp
     scaffolding/tower.cpp scaffolding/tests/nodes.cpp scaffolding/parser.cpp scaffolding/parser-tree-tests.cpp
     scaffolding/syntax.cpp scaffolding/compiler-syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/bedrock.cpp scaffolding/format.cpp scaffolding/lex-pattern.cpp scaffolding/lex-pattern-common.cpp scaffolding/syntax-tests.cpp)
   target_compile_features(tower-browser PRIVATE cxx_std_20)
-  target_link_libraries(tower-browser PRIVATE tower-compiler-parser-nodes tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
+  target_link_libraries(tower-browser PRIVATE tower-compiler-interpreter tower-compiler-parser-nodes tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
   target_compile_options(tower-browser PRIVATE -fno-exceptions -UNDEBUG)
   target_link_options(tower-browser PRIVATE -mexec-model=reactor
     -Wl,-z,stack-size=2097152 -Wl,--initial-memory=8388608 -Wl,--max-memory=268435456)
@@ -130,13 +133,14 @@ if(TOWER_PARSER_ONLY)
   tower_compiler_utilities()
   tower_compiler_parser_nodes()
   target_compile_definitions(tower-compiler-memory PRIVATE TOWER_COMPILER_MEMORY_TESTS=1)
+  tower_compiler_interpreter()
   add_executable(tower-parser-tests scaffolding/tests/main.cpp
     scaffolding/tests/compiler-storage.cpp scaffolding/tests/entities.cpp scaffolding/tests/lexer-table.cpp scaffolding/tests/regex.cpp scaffolding/tests/lr-analysis.cpp scaffolding/tests/lr-grammar.cpp scaffolding/tests/syntax-lexer.cpp scaffolding/tests/syntax-nodes.cpp scaffolding/tests/syntax-reader.cpp scaffolding/tests/syntax-validation.cpp
     scaffolding/core.cpp scaffolding/core-nodes.cpp scaffolding/core-machine.cpp scaffolding/core-tests.cpp
     scaffolding/tower.cpp scaffolding/tests/nodes.cpp scaffolding/parser.cpp scaffolding/parser-tree-tests.cpp
     scaffolding/syntax.cpp scaffolding/compiler-syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/bedrock.cpp scaffolding/format.cpp scaffolding/lex-pattern.cpp scaffolding/lex-pattern-common.cpp scaffolding/syntax-tests.cpp)
   target_compile_features(tower-parser-tests PRIVATE cxx_std_20)
-  target_link_libraries(tower-parser-tests PRIVATE tower-compiler-parser-nodes tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
+  target_link_libraries(tower-parser-tests PRIVATE tower-compiler-interpreter tower-compiler-parser-nodes tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
   if(MSVC)
     string(REPLACE "/EHsc" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
     target_compile_options(tower-parser-tests PRIVATE /utf-8 /UNDEBUG)
@@ -233,6 +237,7 @@ if(TOWER_PARSER_ONLY)
     "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/examples/foreach.tower")
   set_tests_properties(tower-parser-tests tower-foreach-example PROPERTIES
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
+  include(cmake/TowerInterpreterTests.cmake)
   return()
 endif()
 
