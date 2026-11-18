@@ -6673,3 +6673,17 @@ Reproduction/validation (Windows checkout, WSL Orchestral-Revng, WASI SDK 34):
 
 Source and Pages publication follow these local checks. Preserve unrelated
 AGENTS.md/foundation notes and earlier journal edits; do not modify todo.txt.
+
+### 2026-11-17 — Grammar context and Increment published and verified
+
+- Source pushed as `d27b978`; Pages artifacts pushed as `0673a28`.
+- GitHub Pages deployment `44213690901` succeeded:
+  https://github.com/TrevorSundberg/tower/actions/runs/44213690901 .
+- `node playground/scripts/verify-deployment.mjs https://trevorsundberg.github.io/tower/`
+  passed all 21 local/published asset SHA-256 comparisons and desktop/mobile
+  workflows. The online extra-semicolon message has no unrelated call context;
+  Increment is selectable and both executions print 5, 6, 7, 7. Persistence,
+  editable grammar, native downloads and equal columns also passed.
+- Logs: `build/context-{online-deployment,pages-workflow}.log`; online screenshots
+  and report: `build/deployment-verification/`. The source tree retains only the
+  unrelated pre-existing AGENTS.md, foundation/journal notes and todo.txt changes.
