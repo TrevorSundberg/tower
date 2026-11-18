@@ -8568,3 +8568,15 @@ components/type checking, formatting, interpretation, driver/backend/linking glu
 and all native seeds. The endpoint is still pure Tower plus verified portable
 compiler binaries and third-party implementations. Adapters/seeds do count as our
 C++; current successful stages do not mean the full compiler is self-hosted.
+
+## 2026-11-18 — Correction to the grammar migration source cleanup
+
+After the grammar migration's successful builds/tests, a PowerShell EOF cleanup
+read parser.cpp without an explicit UTF-8 encoding and rewrote four Unicode test
+literals as mojibake. The next native sanitizer build caught invalid multi-character
+Unicode literals. The earlier tests and deployed Wasm assets had been built before
+this accidental edit; the pushed source in dc51620 nevertheless contained it.
+Restored the exact literals from f99abc3 using Node's explicit UTF-8 file I/O and
+staged only that correction while retaining the ongoing diagnostic-probe migration.
+Future scripted source rewrites must use explicit encoding. This supersedes any
+implication that the post-cleanup dc51620 source itself had passed the native build.

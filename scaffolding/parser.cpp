@@ -55,7 +55,7 @@ void parser_tests() {
 
   // Test stream (ascii/unicode)
   {
-    Stream* stream = parser_stream_utf8_null_terminated_create("aÃ©â‚¬ðŸ°");
+    Stream* stream = parser_stream_utf8_null_terminated_create("aé€🏰");
     uint32_t id = 0;
     size_t start = 0;
     size_t length = 0;
@@ -66,17 +66,17 @@ void parser_tests() {
     assert(length == 1);
     assert(node == nullptr);
     node = parser_stream_read(stream, &id, &start, &length);
-    assert(id == U'Ã©');
+    assert(id == U'é');
     assert(start == 1);
     assert(length == 2);
     assert(node == nullptr);
     node = parser_stream_read(stream, &id, &start, &length);
-    assert(id == U'â‚¬');
+    assert(id == U'€');
     assert(start == 3);
     assert(length == 3);
     assert(node == nullptr);
     node = parser_stream_read(stream, &id, &start, &length);
-    assert(id == U'ðŸ°');
+    assert(id == U'🏰');
     assert(start == 6);
     assert(length == 4);
     assert(node == nullptr);
