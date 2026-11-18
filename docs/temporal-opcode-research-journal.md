@@ -9743,3 +9743,162 @@ The first ad-hoc execution probe incorrectly expected execution from the default
 syntax-only example; a follow-up also exposed PowerShell pipe encoding replacing
 the status separator with `?`. Corrected the probe with explicit executable source
 and an ASCII regex for the status separator; both device checks then passed.
+
+## 2026-11-18 — Native Linux return: build and deployment audit
+
+Environment: SteamOS x86-64 on Steam Deck, kernel 6.16.12, 14 GiB RAM and
+Docker 28.3.3. The host had Node 21.7.3 but no CMake, Ninja or native C/C++
+compiler. The checkout was initially clean at `8d5030c`. The root Docker entry
+point still deleted build directories, built an unrelated full host LLVM and
+used an old pthread WASI SDK path, bypassing the current seed → stage1 → Tower
+utilities build. It also required a TTY and assumed UID/GID 1000.
+
+Replaced that route with an Ubuntu 24.04 container supplying LLVM/Clang/LLD 19,
+CMake/Ninja, Node 22, Chromium system dependencies and qemu-user. The normal
+scripts retain their pinned/checksummed WASI SDK 34 installer. The wrapper uses
+the caller's IDs, preserves the source checkout path, persists caches and limits
+parallel compilation (default two jobs). `internal.sh` now runs current native,
+sanitizer, bootstrap, WASI, both browser compiler and linking checks, followed by
+Node/browser/formatting and static deployment verification. This is containerized
+native Linux validation, not a claim that Ubuntu-linked compiler binaries form
+the future portable compiler distribution.
+
+Inspection found that target-pack and Windows linking tests unconditionally ran
+PE files, assuming WSL interop. Linux now still compiles/links those artifacts,
+executes them with WSL/Wine when available, and reports execution unavailable
+otherwise. ARM64 Linux execution uses QEMU when installed; macOS execution still
+requires a Mac. Missing execution support is not counted as an execution pass.
+
+Packaging previously left stale optional LLVM/cross assets in `dist/`, and the
+broad cross-backend ENOENT handler could hide missing target support files.
+Builds now clear generated output, require all declared inputs when a cross
+compiler exists, support `TOWER_REQUIRE_BACKENDS=1` for full deployments, and
+write `.nojekyll` plus a SHA-256 manifest. The verifier checks every published
+file (excluding the hosting-only dotfile) against the local manifest before its
+existing desktop/mobile interaction checks. A new isolated packaging regression
+covers full→parser-only rebuilds, incomplete support packs and required-backend
+failure; `node --test playground/tests/build-packaging.test.mjs` passed.
+
+Reproduction started with `TOWER_BUILD_JOBS=3 ./build.sh`, with output retained
+in `build/linux-validation/full.log`; image setup is also recorded in
+`build/linux-validation/docker.log`. Full compiler/browser/deployment results
+will be appended after completion; these changes are not yet all validated.
+
+Before publishing, a remote-ref check found two newer compiler migrations already
+published (`origin/master` at `61f93cc`, Pages at `110b5a3`). Stopped the initial
+LLVM build, preserved these Linux changes, fast-forwarded the clean base, and
+restored the changes. The journal append conflict was resolved by retaining both
+complete entries. Initial `8d5030c` validation had passed native sanitizer 4/4,
+16 bootstrap comparisons, and the browser parser build; those results do not
+stand in for validation of the newly fetched compiler. Re-running the pipeline
+on `61f93cc` uses the existing completed LLVM object cache; its log is
+`build/linux-validation/current.log`. No older site was published.
+
+Current-checkout checkpoint: `TOWER_BUILD_JOBS=4 ./build.sh` on `61f93cc` has
+rebuilt the native compiler and browser parser and passed sanitizer CTest 4/4,
+all 16 bootstrap comparisons, and explicit grammar-input checks. The cold
+LLVM/WASI build is still running. Tool versions in this image are Clang 19.1.1,
+CMake 3.28.3, Ninja 1.11.1, Node 22.23.5 and QEMU 8.2.2; Chromium is Playwright's
+pinned build 1255. Root scripts now also have LF checkout attributes. Added a
+post-Node check that executes the browser-produced Linux x64/ARM64 programs and
+separately linked library fixtures; this new end-to-end check is pending the
+browser compiler build. `build.sh` also accepts a command to run in the same
+container, so its LLVM-dependent native compiler is usable without installing
+LLVM into SteamOS. The memory-example invocation produced `5`, `84`, `42` in
+the initial checkout check (`build/linux-validation/container-cli.log`).
+
+Container permission audit during the LLVM build found that Docker creates the
+parent `/tmp/tower-home` as root even though its mounted `.cache` directory is
+owned by the caller. npm's default `$HOME/.npm` would therefore be unwritable.
+The wrapper now explicitly sets `npm_config_cache=/tmp/tower-home/.cache/npm`.
+A fresh wrapper invocation reports that path (`build/linux-validation/npm-cache.log`),
+and `npm cache verify` succeeds as UID 1000. For the already-running container,
+an ephemeral root-owned `.npmrc` supplies the identical cache setting so the long
+compiler build need not restart. The host npm configuration was not changed.
+Also verified the LLVM submodule's pinned commit can be fetched from its configured
+upstream URL with a shallow, blob-filtered fetch into an ignored temporary bare
+repository (`build/linux-validation/submodule-fetch.log`); documentation now
+explicitly initializes submodules before a fresh build.
+
+Final integration checkpoint: all three vendored LLVM code-generation libraries
+(WebAssembly, X86, AArch64) and all four LLD libraries (Wasm, ELF, COFF, Mach-O)
+built successfully from a cold cache. Paused before finishing the now-superseded
+Tower reactors, fetched concurrent project work, and fast-forwarded to `cda5425`
+(shared output panes plus grammar revision validation). Preserved both journal
+histories and the newer deployment verifier's project/UI checks while retaining
+the full asset manifest check. No third-party revision, AGENTS.md or todo.txt
+changed in this update; `sha256sum -c build/linux-validation/todo.sha256` passed.
+The complete validation pipeline now runs on this integrated snapshot with
+`TOWER_BUILD_JOBS=4 ./build.sh`, logged to `build/linux-validation/final.log`.
+The native/parser/bootstrap checks are deliberately repeated because the compiler
+and UI changed; the expensive third-party compilation is reused. This snapshot,
+not the initial checkout or `61f93cc`, is the release candidate for this audit.
+
+The full integrated compiler build completed, native linking and Linux x64/ARM64
+execution passed (ARM64 under QEMU), all 219 Node tests passed with zero skips,
+and canonical formatting passed. Windows/macOS outputs linked; Windows execution
+was explicitly skipped without Wine/WSL. Browser tests were progressing when a
+final remote check found the execution-pane ordering update (`42e2349`). Its
+only executable-source change moves four pane-creation statements in app.mjs.
+Preserved that update, retained the unchanged compiler/Node validation, and restarted
+the browser/deployment checks on the rebuilt bundle rather than rerunning unrelated
+compiler builds. This supersedes cda5425 as the final UI snapshot. The remaining
+checks are logged in `build/linux-validation/web-final.log`.
+
+The first final-UI browser run exposed a test-helper race on desktop in the
+invalid-Bedrock reload case. The trace shows reload completing, then
+`selectDocument`'s instantaneous `entry.count()` returning zero before asynchronous
+project hydration completed. The helper incorrectly selected `example:bedrock`,
+which is not a project option, and waited until the 30-second test timeout.
+The page snapshot showed the persisted invalid grammar and expected diagnostic;
+the product was not frozen. Preserved the trace/screenshot/context under
+`build/linux-validation/bedrock-timeout/` (original log: `web-final.log`).
+
+The helper now awaits a visible file-tree entry before deciding whether to click
+an existing file or switch examples. The regression reload now waits only for
+navigation commit, deliberately exercising selection during startup. No global
+timeout increase or retry was added. Restarted all 128 desktop/mobile checks plus
+the local deployment verifier; final results go to `web-verified.log`. Compiler,
+Node and emitted-binary checks are unchanged by this test-only synchronization fix.
+
+Final local results: all **128/128 desktop/mobile Playwright tests passed** in
+5.3 minutes with the hydration synchronization fix, followed by successful local
+deployment verification. All 36 HTTP assets (manifest plus its non-dotfile entries)
+matched the tested bundle byte-for-byte; desktop/mobile compilation, execution,
+project import/export, editable grammar, persistence, downloads and layout checks
+passed. Added an unsimulated Linux Chromium context to the verifier: it selected
+WebAssembly plus Linux x64 automatically. The local report is preserved at
+`build/linux-validation/local-deployment-report.json`; combined output is in
+`build/linux-validation/web-verified.log`.
+
+Across this audit, final compiler validation passed sanitizer CTest 4/4, all 16
+bootstrap comparisons, native and browser compiler builds, native/archive linking,
+all target-pack links, Linux x64 execution and Linux ARM64 execution under QEMU,
+219/219 Node tests with no skips, browser-produced native executables and linked
+library fixtures, and canonical formatting. Windows PE execution remains explicitly
+unverified without Wine/WSL, and macOS execution requires a Mac; successful linking
+does not establish execution on those systems. Final shell syntax, diff whitespace
+and `todo.txt` checksum checks passed. No Tower semantic model or compiler
+operation was changed by the Linux infrastructure fixes.
+
+Published the validated `42e2349` UI/compiler snapshot from a dedicated Pages
+worktree after confirming the remote still pointed to the corresponding release
+`62c74e8`. Verified every staged asset against the local manifest, then made a
+normal fast-forward push to `gh-pages`: deployment commit
+`bd3a8566b4b861b9e0c006f09b011900041111a1`. The first commit attempt lacked local
+Git identity; retried with the repository's existing author identity scoped to
+that command, without changing global Git configuration. GitHub Pages reports
+this commit as `built` with no error. Source infrastructure changes remain in
+the working tree for review; the published branch contains generated site assets.
+
+Live verification passed with:
+`./build.sh node playground/scripts/verify-deployment.mjs https://trevorsundberg.github.io/tower/`.
+All 36 hosted assets matched the local build, all desktop/mobile interaction and
+target-selection checks passed, and real Linux Chromium again selected Wasm plus
+Linux x64. Evidence is in `build/linux-validation/online.log` and
+`build/linux-validation/online-deployment-report.json`. The generated deployment
+manifest is checked in on `gh-pages`. The audit is complete for Linux x64 and
+ARM64-under-QEMU execution, browser execution and the live Pages deployment;
+Windows/macOS native execution and portable standalone compiler distribution
+remain outside the verified results. Re-run `./build.sh` for the complete local
+pipeline; publishing remains an explicit separate action.

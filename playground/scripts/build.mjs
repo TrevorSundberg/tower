@@ -1,14 +1,15 @@
 import { build } from 'esbuild';
-import { mkdir, copyFile, readFile, writeFile, readdir, rm, cp } from 'node:fs/promises';
+import { mkdir, copyFile, readFile, writeFile, readdir, rm } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { gzipSync } from 'node:zlib';
+import { createHash } from 'node:crypto';
+import { targets, targetInputs } from '../src/targets.mjs';
 const root = fileURLToPath(new URL('..', import.meta.url));
 const dist = path.join(root, 'dist');
+// dist is generated output. Never publish stale optional backends/target packs.
+await rm(dist, { recursive: true, force: true });
 await mkdir(dist, { recursive: true });
-// Remove the retired, generated smoke-test worker when updating an older build.
-for (const name of ['llvm-worker.js', 'llvm-worker.js.map', 'llvm-worker.js.LEGAL.txt', 'export-worker.js', 'export-worker.js.map', 'syntax-bootstrap.tower', 'core.tower'])
-  await rm(path.join(dist, name), { force: true });
 await build({ absWorkingDir: root, entryPoints: ['src/app.mjs', 'src/worker.mjs', 'src/execution-worker.mjs', 'src/target-worker.mjs'],
   outdir: dist, bundle: true, format: 'esm', target: 'es2022', minify: true,
   sourcemap: true, outExtension: { '.js': '.js' }, legalComments: 'linked' });
@@ -29,14 +30,23 @@ try {
   llvm = true;
 } catch (error) { if (error.code !== 'ENOENT') throw error; }
 let cross = false;
-try {
-  const crossBytes = await readFile(path.join(root, '../build/browser-wasi-llvm/tower-cross.wasm'));
+let crossBytes;
+try { crossBytes = await readFile(path.join(root, '../build/browser-wasi-llvm/tower-cross.wasm')); }
+catch (error) { if (error.code !== 'ENOENT') throw error; }
+if (crossBytes) {
+  // A present compiler with missing support files is a broken build, not an
+  // absent optional feature. Copy exactly the inputs declared by each target.
+  await mkdir(path.join(dist, 'targets'), {recursive:true});
+  for (const target of Object.values(targets)) {
+    const inputs = await targetInputs(target, name => readFile(path.join(root, '../build', name)));
+    for (const [name, bytes] of Object.entries(inputs)) await writeFile(path.join(dist, 'targets', name), bytes);
+  }
   await writeFile(path.join(dist, 'tower-cross.wasm.gz'), gzipSync(crossBytes, {level:9}));
-  await rm(path.join(dist, 'tower-cross.wasm'), {force:true});
-  await cp(path.join(root, '../build/targets'), path.join(dist, 'targets'), { recursive: true });
   cross = true;
-} catch (error) { if (error.code !== 'ENOENT') throw error; }
+}
 await writeFile(path.join(dist, 'capabilities.json'), JSON.stringify({ llvm, cross }));
+if (process.env.TOWER_REQUIRE_BACKENDS === '1' && (!llvm || !cross))
+  throw new Error('Full deployment requires both LLVM reactors and target support packs.');
 let licenses = 'Tower playground: third-party notices\n\n';
 for (const [name, file] of [
   ['LLVM / LLD / compiler-rt (Apache 2.0 with LLVM exceptions)', '../third_party/llvm-project/llvm/LICENSE.TXT'],
@@ -54,4 +64,16 @@ for (const name of ['@codemirror/view', '@codemirror/state', '@codemirror/comman
     licenses += `\n${name} — ${file}\n${await readFile(path.join(dir, file), 'utf8')}\n`;
 }
 await writeFile(path.join(dist, 'THIRD-PARTY-NOTICES.txt'), licenses);
+await writeFile(path.join(dist, '.nojekyll'), '');
+const assets = {};
+async function collect(directory) {
+  for (const entry of (await readdir(directory, { withFileTypes: true })).sort((a,b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0)) {
+    const file = path.join(directory, entry.name);
+    if (entry.isDirectory()) await collect(file);
+    else assets[path.relative(dist, file).split(path.sep).join('/')] =
+      createHash('sha256').update(await readFile(file)).digest('hex');
+  }
+}
+await collect(dist);
+await writeFile(path.join(dist, 'deployment-manifest.json'), JSON.stringify({assets}, null, 2) + '\n');
 console.log(`Static playground built: ${dist} (LLVM module ${llvm ? 'included' : 'not built'})`);

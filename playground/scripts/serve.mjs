@@ -21,4 +21,4 @@ const server = http.createServer(async (request, response) => {
     response.end(request.method === 'HEAD' ? undefined : bytes);
   } catch { response.writeHead(404).end('Not found'); }
 });
-server.listen(port, host, () => console.log(`Tower playground: http://${host}:${port}`));
+server.listen(port, host, () => console.log(`Tower playground: http://${host}:${server.address().port}`));

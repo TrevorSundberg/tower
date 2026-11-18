@@ -1,6 +1,9 @@
 import {readFile} from 'node:fs/promises';
 import {importProject} from '../../src/project-archive.mjs';
 export async function selectDocument(page, name) {
+  // Project hydration continues after navigation's load event. An empty tree
+  // during startup does not mean this file belongs to another example project.
+  await page.locator('#file-tree button').first().waitFor({state:'visible'});
   const path = ['bedrock.tower','foundation.tower'].includes(name) ? '.tower/' + name : name;
   const entry = page.locator('#file-tree button').and(page.locator(`[data-path="${path}"]`));
   if (await entry.count()) await entry.click();

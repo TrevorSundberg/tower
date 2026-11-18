@@ -14,14 +14,15 @@ const output = new URL('../../build/deployment-verification/', import.meta.url);
 await mkdir(output, {recursive:true});
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 const report = {url:base.href, assets:[], browsers:[]};
-const assets=['index.html','app.js','worker.js','execution-worker.js','target-worker.js','style.css',
-  'bedrock.tower','foundation.tower','increment.tower','inference.tower','templates.tower','tower.wasm','tower-llvm.wasm','tower-llvm.wasm.gz','tower-cross.wasm.gz','capabilities.json',
-  ...new Set(Object.values(targets).flatMap(t=>t.pointerBytes===4?[]:[t.triple+'-runtime.o',...t.inputs]).map(name=>'targets/'+name))];
+const manifest = JSON.parse(await readFile(new URL('../dist/deployment-manifest.json', import.meta.url), 'utf8'));
+// .nojekyll is a hosting marker; GitHub Pages does not serve dotfiles.
+const assets = ['deployment-manifest.json', ...Object.keys(manifest.assets).filter(name => name !== '.nojekyll')];
 for (const name of assets) {
   const response = await fetch(new URL(name, base));
   assert.equal(response.status, 200, name);
   const remote = Buffer.from(await response.arrayBuffer());
   const local = await readFile(new URL('../dist/' + name, import.meta.url));
+  if (name !== 'deployment-manifest.json') assert.equal(digest(local), manifest.assets[name], name + ' local manifest');
   assert.equal(digest(remote), digest(local), name + ' must match the tested local build');
   if (name.endsWith('.wasm')) assert.match(response.headers.get('content-type'), /application\/wasm/);
   report.assets.push({name,bytes:remote.length,sha256:digest(remote)});
@@ -222,6 +223,21 @@ try {
     report.browsers.at(-1).legacySelectionsIgnored=true;
     await detectionContext.close();
     console.log(name+': legacy selections ignored; Wasm plus detected target defaults and detection marker verified.');
+  }
+  if (process.platform === 'linux' && ['x64','arm64'].includes(process.arch)) {
+    // Use Chromium's real Linux signals as well as the emulated platform cases.
+    const context = await browser.newContext();
+    try {
+      const page = await context.newPage();
+      await page.goto(base.href);
+      await expect(page.locator('#status')).toContainText('Complete');
+      const key = process.arch === 'arm64' ? 'linux-arm' : 'linux';
+      await expect(page.locator('#target-options input:checked')).toHaveCount(2);
+      await expect(page.locator('#target-wasm')).toBeChecked();
+      await expect(page.locator('#target-'+key)).toBeChecked();
+      report.host = {platform:process.platform, architecture:process.arch, defaultTargets:['wasm',key]};
+      console.log('Real Linux browser: Wasm and ' + targets[key].label + ' selected by default.');
+    } finally { await context.close(); }
   }
 } finally { await browser.close(); }
 await writeFile(new URL('report.json',output),JSON.stringify(report,null,2)+'\n');

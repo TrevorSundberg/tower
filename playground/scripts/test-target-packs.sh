@@ -18,11 +18,19 @@ for target in x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu x86_64-pc-windo
 done
 printf '5\n84\n42\n' > "$out/expected.txt"
 "$out/x86_64-unknown-linux-gnu.elf" > "$out/linux.txt"
-"$out/x86_64-pc-windows-msvc.exe" > "$out/windows.txt"
 diff -u "$out/expected.txt" "$out/linux.txt"
-diff -u "$out/expected.txt" "$out/windows.txt"
+if bash "$repo/playground/scripts/run-windows.sh" "$out/x86_64-pc-windows-msvc.exe" > "$out/windows.txt"; then
+  diff -u "$out/expected.txt" "$out/windows.txt"
+  echo 'Windows x64 target pack execution passed.'
+else
+  status=$?
+  if [ "$status" -ne 77 ]; then exit "$status"; fi
+fi
 if command -v qemu-aarch64 >/dev/null; then
   qemu-aarch64 "$out/aarch64-unknown-linux-gnu.elf" > "$out/linux-arm.txt"
   diff -u "$out/expected.txt" "$out/linux-arm.txt"
+  echo 'Linux ARM64 target pack execution passed under QEMU.'
+else
+  echo 'SKIP ARM64 Linux execution: install qemu-user for qemu-aarch64.' >&2
 fi
-printf 'All target packs link; x64 Linux and Windows execute. macOS needs a Mac for execution validation.\n'
+printf 'All target packs link; x64 Linux executes. macOS needs a Mac for execution validation.\n'

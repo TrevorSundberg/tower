@@ -112,7 +112,8 @@ test('invalid bedrock stays editable, persists and restores without damaging fou
   await expect(page.locator('.tw-inline-error-message')).toContainText("must preserve capture 'name'");
   await selectDocument(page, 'foreach.tower');
   await expect(page.locator('#error-message')).toContainText('bedrock.tower');
-  await page.reload();
+  // Select the built-in while the reloaded project's async hydration is pending.
+  await page.reload({waitUntil:'commit'});
   await selectDocument(page, 'bedrock.tower');
   await page.locator('#editor-error').click();
   await expect(page.locator('.tw-inline-error-message')).toContainText("must preserve capture 'name'");

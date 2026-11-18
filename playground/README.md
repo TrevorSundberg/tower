@@ -173,7 +173,38 @@ directly with `file://` does not provide the fetch/worker environment required.
 
 ## Build
 
-Prerequisites: Node/npm; CMake, Ninja and WASI SDK 34 for C++ compilation.
+On Linux x86-64, initialize the checkout's submodules, then use Docker for the
+complete build and validation route:
+
+```sh
+git submodule update --init --recursive
+./build.sh
+# On a machine with more available memory:
+TOWER_BUILD_JOBS=4 ./build.sh
+```
+
+This builds the native compiler, sanitizer harness, browser parser, LLVM/Wasm
+and native-target browser compilers, and target support packs. It then runs the
+bootstrap comparisons, native linking/execution, Node tests, formatting checks,
+desktop/mobile Chromium tests and deployment verification against a local static
+server. The first build downloads the toolchain and compiles LLVM; subsequent
+builds reuse `~/.cache/tower-docker` (override with `TOWER_DOCKER_CACHE`). It does
+not need an interactive terminal or delete previous compiler builds. Artifacts
+are in `build/` and the complete deployable website is in `playground/dist/`.
+The native compiler currently depends on the container's LLVM libraries; run it
+in that environment with `./build.sh build/native/towerc
+scaffolding/examples/memory.tower --interpret`. Arguments to `build.sh` select a
+command inside the same container instead of running the full pipeline.
+Windows executables are linked on Linux; running them requires WSL interop or
+Wine and is explicitly skipped otherwise. The container tests ARM64 Linux output
+with QEMU. macOS output requires a Mac for execution validation.
+
+For a direct build without Docker, prerequisites are Node 22/npm, CMake, Ninja,
+Clang/LLVM/LLD 19 development packages, Python 3, curl, Git and WASI SDK 34.
+On Ubuntu 24.04, install `clang-19 llvm-19-dev lld-19 libclang-rt-19-dev cmake
+ninja-build python3 curl git`, and put `/usr/lib/llvm-19/bin` on `PATH`.
+Install Chromium's system dependencies with `npx playwright install-deps chromium`
+from `playground/` after `npm ci`. `bash internal.sh` runs the same full pipeline.
 Windows can use WSL for the SDK build and Windows Node for the page bundle.
 The SDK setup script pins the release and verifies its SHA-256.
 
@@ -653,7 +684,21 @@ the small foundation module.
 npm test
 npx playwright install chromium
 npm run test:browser
+npm run test:deployment
 ```
+
+The deployment check starts its own local server, verifies every asset against
+`dist/deployment-manifest.json`, and exercises desktop/mobile compilation,
+execution, exports and editor interactions. Build release bundles with
+`TOWER_REQUIRE_BACKENDS=1 npm run build` to reject missing LLVM/cross backends.
+Bundling clears generated `dist/` contents so stale optional backends cannot
+silently survive a rebuild. A present cross compiler requires all target packs.
+
+GitHub Pages serves the contents of `dist/` from the repository's `gh-pages`
+branch. Publish the whole directory, including `.nojekyll` and the manifest,
+after these checks pass. Once Pages finishes deploying, verify the exact hosted
+build with `node scripts/verify-deployment.mjs https://trevorsundberg.github.io/tower/`.
+The build command validates deployment locally; it does not push or publish.
 
 The WASM suite runs the existing C++ runtime/parser/syntax tests in the module,
 then checks the ABI, revision-aware highlights, strings/comments, Unicode spans,

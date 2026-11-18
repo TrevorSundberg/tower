@@ -7,6 +7,7 @@
     "serve": "node scripts/serve.mjs",
     "test": "node --test tests/*.test.mjs",
     "test:browser": "playwright test",
+    "test:deployment": "node scripts/verify-local.mjs",
     "profile": "node scripts/profile.mjs",
     "format:tower": "node scripts/format-tower.mjs --write",
     "check:format": "node scripts/format-tower.mjs"
