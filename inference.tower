@@ -1,0 +1,25 @@
+// An initializer supplies the type; ordinary integer literals default to i32.
+// Functions can be defined later. Their parameter and return types stay explicit.
+var answer = add_one(41);
+print(answer);
+var correct = answer == 42;
+print(correct);
+
+// Addresses retain their pointed-to type: pointer is i32*.
+var pointer = &answer;
+*pointer = 43;
+print(answer);
+
+// A typed call supplies u32 here, including inside the function's initializer.
+var unsigned_result = twice(21);
+print(unsigned_result);
+
+fn add_one(value: i32): i32 {
+    var result = value + 1;
+    return result;
+}
+
+fn twice(value: u32): u32 {
+    var result = value + value;
+    return result;
+}
