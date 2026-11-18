@@ -4,7 +4,6 @@
 #include <algorithm>
 #include <cassert>
 #include <cstring>
-#include <map>
 #include <unordered_map>
 #include <utility>
 
@@ -65,16 +64,24 @@ struct Compiler {
   const std::string& pattern;
   std::string& error;
   size_t cursor = 0;
-  std::vector<State> states;
+  Automaton* automaton = automaton_create(0x110000);
+  Compiler(const std::string& source, std::string& message): pattern(source), error(message) {
+    if (!automaton) error = "Unable to allocate token automaton";
+  }
+  ~Compiler() { automaton_destroy(automaton); }
   void fail(const std::string& message) {
     if (error.empty()) error = message + " at pattern character " + std::to_string(character_position(pattern, cursor));
   }
   int add(State state) {
-    if (states.size() >= 512) { fail("Token pattern exceeds 512 NFA states"); return -1; }
-    states.push_back(std::move(state)); return int(states.size()) - 1;
+    if (!automaton) return -1;
+    int index = automaton_add(automaton, state.kind, state.out, state.other, state.negated);
+    if (index < 0) { fail("Token pattern exceeds 512 NFA states"); return -1; }
+    for (auto [first, last] : state.ranges)
+      if (!automaton_range(automaton, index, first, last)) { fail("Unable to allocate token ranges"); return -1; }
+    return index;
   }
   void patch(const std::vector<Patch>& ends, int target) {
-    for (auto end : ends) if (end.state >= 0) (end.other ? states[end.state].other : states[end.state].out) = target;
+    for (auto end : ends) if (end.state >= 0) automaton_patch(automaton, end.state, end.other, target);
   }
   uint32_t scalar(TowerNode* node) {
     auto* m = match(node); cursor = parser_match_get_start(m);
@@ -175,17 +182,6 @@ struct Compiler {
     }
     return std::move(fragments[root]);
   }
-  std::vector<int> closure(const std::vector<int>& seeds) const {
-    std::vector<bool> visited(states.size()); std::vector<int> pending = seeds, result;
-    while (!pending.empty()) {
-      int index = pending.back(); pending.pop_back();
-      if (index < 0 || visited[index]) continue;
-      visited[index] = true;
-      if (states[index].kind == State::Split) { pending.push_back(states[index].out); pending.push_back(states[index].other); }
-      else result.push_back(index);
-    }
-    std::sort(result.begin(), result.end()); return result;
-  }
 };
 }
 
@@ -202,37 +198,12 @@ std::shared_ptr<const LexPattern> lex_pattern_compile(const std::string& pattern
   if (!error.empty()) return nullptr;
   auto result = std::make_shared<LexPattern>();
   result->grammar = std::move(root);
-  std::vector<uint32_t> alphabet = {0, 0x110000};
-  for (const auto& state : compiler.states) for (auto [low, high] : state.ranges) {
-    alphabet.push_back(low); alphabet.push_back(high + 1);
-  }
-  std::sort(alphabet.begin(), alphabet.end()); alphabet.erase(std::unique(alphabet.begin(), alphabet.end()), alphabet.end());
-  if (!lex_table_set_alphabet(result->table, alphabet.data(), alphabet.size())) { error = "Unable to allocate lexer alphabet"; return nullptr; }
-  std::vector<std::vector<int>> subsets{compiler.closure({fragment.start})};
-  if (std::binary_search(subsets[0].begin(), subsets[0].end(), accept)) { error = "Token pattern must not match empty input"; return nullptr; }
-  std::map<std::vector<int>, int> indices{{subsets[0], 0}};
-  for (size_t i = 0; i < subsets.size(); ++i) {
-    const bool accepting = std::binary_search(subsets[i].begin(), subsets[i].end(), accept);
-    std::vector<int> row;
-    for (size_t c = 0; c + 1 < alphabet.size(); ++c) {
-      std::vector<int> next;
-      for (int index : subsets[i]) {
-        const auto& state = compiler.states[index];
-        if (state.kind != State::Character) continue;
-        bool inside = std::any_of(state.ranges.begin(), state.ranges.end(), [&](ScalarRange r) { return r.first <= alphabet[c] && alphabet[c] <= r.second; });
-        if (inside != state.negated) next.push_back(state.out);
-      }
-      auto closed = compiler.closure(next);
-      if (closed.empty()) { row.push_back(-1); continue; }
-      auto found = indices.find(closed);
-      if (found == indices.end()) {
-        if (subsets.size() >= 1024 || (subsets.size() + 1) * alphabet.size() > 262144) {
-          error = "Token pattern exceeds DFA complexity limit"; return nullptr;
-        }
-        int id = (int)subsets.size(); indices.emplace(closed, id); subsets.push_back(std::move(closed)); row.push_back(id);
-      } else row.push_back(found->second);
-    }
-    if (!lex_table_append(result->table, row.data(), row.size(), accepting)) { error = "Unable to allocate lexer transitions"; return nullptr; }
+  if (!result->table) { error = "Unable to allocate lexer table"; return nullptr; }
+  const auto status = automaton_compile(compiler.automaton, fragment.start, accept, result->table, true);
+  if (status) {
+    error = status == 1 ? "Token pattern exceeds 512 NFA states" : status == 3 ? "Token pattern exceeds DFA complexity limit" :
+      status == 4 ? "Token pattern must not match empty input" : "Unable to allocate token automaton";
+    return nullptr;
   }
   return result;
 }

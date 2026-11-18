@@ -311,8 +311,13 @@ Table* parser_table_create(
   ParserTableIdToString to_string,
   char** error = nullptr,
   ParserTableMode mode = ParserTableMode::WholeInput,
-  ParserDescribeRule describe_rule = nullptr
+  ParserDescribeRule describe_rule = nullptr,
+  bool specialize = true
 );
+
+// Derived execution choice only. parser_table_create(..., specialize=false)
+// forces the ordinary LR reference path; currently only fixed terminal roots specialize.
+bool parser_table_uses_dfa(const Table* table);
 
 // Creation returns null for unresolved rules or conflicting actions. If error is
 // supplied it receives an allocated diagnostic (free with tower_memory_free).

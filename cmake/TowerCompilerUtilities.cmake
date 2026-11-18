@@ -94,8 +94,9 @@ function(tower_compiler_parser_nodes)
       -DPAYLOADS=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/parser-nodes.tower
       -DLEXER=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/lexer-table.tower
       -DREGEX=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/regex-grammar.tower
+      -DAUTOMATON=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/automaton.tower
       -DOUTPUT=${input} -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ComposeParserNodes.cmake"
-    DEPENDS scaffolding/library/vector.tower scaffolding/compiler/parser-nodes.tower scaffolding/compiler/lexer-table.tower scaffolding/compiler/regex-grammar.tower cmake/ComposeParserNodes.cmake
+    DEPENDS scaffolding/library/vector.tower scaffolding/compiler/parser-nodes.tower scaffolding/compiler/lexer-table.tower scaffolding/compiler/regex-grammar.tower scaffolding/compiler/automaton.tower cmake/ComposeParserNodes.cmake
     VERBATIM)
   add_custom_command(OUTPUT "${object}"
     COMMAND "${bootstrap}" "${input}"

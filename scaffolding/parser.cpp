@@ -1,6 +1,7 @@
 #include "compiler-utf8.hpp"
 #include "compiler-bytes.hpp"
 #include "compiler-parse-tree.hpp"
+#include "compiler-lexer-table.hpp"
 #include <cstdlib>
 #include "parser.hpp"
 #include <unordered_map>
@@ -1401,7 +1402,14 @@ struct Table {
   std::vector<State> states;
   std::vector<std::unique_ptr<StateTransitions>> shared_transitions;
   ParserTableMode mode = ParserTableMode::WholeInput;
+  SymbolSequence* sequence = nullptr;
+  const GrammarRule* sequence_rule = nullptr;
+  std::vector<const State*> sequence_states; // LR equivalents for diagnostics/context
+  ~Table() { symbol_sequence_destroy(sequence); }
 };
+
+static void parser_prepare_sequence(Table* table);
+bool parser_table_uses_dfa(const Table* table) { return table && table->sequence; }
 
 std::string debug_str_header(const State& state, const Table& table, const char* prefix = "state") {
   std::stringstream stream;
@@ -2102,7 +2110,8 @@ Table* parser_table_create(
   ParserTableIdToString to_string,
   char** error,
   ParserTableMode mode,
-  ParserDescribeRule describe_rule
+  ParserDescribeRule describe_rule,
+  bool specialize
 ) {
   if (error) *error = nullptr;
   void* memory = tower_memory_allocate(sizeof(Table));
@@ -2150,6 +2159,7 @@ Table* parser_table_create(
       for (const auto& edge : transitions.range_edges) same &= edge.edge.reduce_rule == rule;
       if (same) state.default_reduce = rule;
     }
+    if (specialize) parser_prepare_sequence(table);
     parser_trace("%s\n", debug_str(*table).c_str());
 
     return table;
@@ -2191,6 +2201,10 @@ struct Recognizer {
   std::string lookahead_error;
   std::string error;
   ParserWork work;
+  bool sequence = false;
+  ParseForest sequence_nodes;
+  std::vector<bool> sequence_consumed; // one bit per symbol, error-context evidence
+  size_t sequence_start = 0, sequence_end = 0;
 };
 
 void parser_recognizer_read_id(Recognizer* recognizer) {
@@ -2218,6 +2232,7 @@ Recognizer* parser_recognizer_create(Table* table, Stream* stream) {
   if (!recognizer->forest) std::abort();
   recognizer->stream = stream;
   recognizer->table = table;
+  recognizer->sequence = table->sequence && !parser_debug_trace;
   recognizer->stack.push_back(StackState{.state = &table->states[0]});
   return recognizer;
 }
@@ -2240,13 +2255,38 @@ static const StateEdge* parser_find_action(const State* state, uint32_t id) {
   auto range = std::lower_bound(transitions.range_edges.begin(), transitions.range_edges.end(), id);
   return range != transitions.range_edges.end() && id >= range->range.start ? &range->edge : nullptr;
 }
+
+static void parser_prepare_sequence(Table* table) {
+  const auto& alternatives = table->grammar.non_terminals[1].rules;
+  if (alternatives.size() != 1) return;
+  const auto* rule = alternatives.front();
+  // First proven case: one nonempty, finite terminal sequence. No nonterminal
+  // expansion or greedy choice can change the surrounding grammar's decisions.
+  if (rule->symbols.empty() || rule->symbols.size() > 4096) return;
+  for (const auto& symbol : rule->symbols)
+    if (symbol.non_terminal || symbol.terminal.end >= PARSER_ID_LOOKAHEAD) return;
+  std::vector<const State*> states{&table->states.front()};
+  states.reserve(rule->symbols.size() + 1);
+  for (const auto& symbol : rule->symbols) {
+    auto* action = parser_find_action(states.back(), symbol.terminal.start);
+    if (!action || !action->shift_state) return;
+    states.push_back(action->shift_state);
+  }
+  auto* sequence = symbol_sequence_create(rule->symbols.size());
+  if (!sequence) return; // Optional cache allocation must not change acceptance.
+  for (size_t i = 0; i < rule->symbols.size(); ++i)
+    symbol_sequence_set(sequence, i, rule->symbols[i].terminal.start, rule->symbols[i].terminal.end);
+  table->sequence = sequence; table->sequence_rule = rule; table->sequence_states = std::move(states);
+}
 static const StateEdge* parser_action(Recognizer* recognizer, const State* state, uint32_t id) {
   ++recognizer->work.actions;
   return parser_find_action(state, id);
 }
 
 bool parser_recognizer_accepts(Recognizer* recognizer, uint32_t id) {
-  return recognizer && !recognizer->stack.empty() && parser_action(recognizer, recognizer->stack.back().state, id);
+  if (!recognizer || recognizer->stack.empty()) return false;
+  auto* state = recognizer->sequence ? recognizer->table->sequence_states[recognizer->sequence_consumed.size()] : recognizer->stack.back().state;
+  return parser_action(recognizer, state, id);
 }
 
 static ParseForest parser_forest_leaf(Recognizer* recognizer, TowerNode* node) {
@@ -2285,11 +2325,15 @@ const char* parser_recognizer_get_error(Recognizer* recognizer) {
 ParserDiagnostic parser_recognizer_diagnostic(Recognizer* r, ParserDiagnosticRead read, void* source) {
   ParserDiagnostic result{r->read_start, r->consumed_end};
   result.at_start = !r->shifted;
-  if (r->stack.empty() || r->stack.size() > 4096) return result;
+  const auto stack_size = r->sequence ? r->sequence_consumed.size() + 1 : r->stack.size();
+  if (!stack_size || stack_size > 4096) return result;
   struct DiagnosticState { const State* state; bool consumed; };
   using States = std::vector<DiagnosticState>;
   States original;
-  for (const auto& entry : r->stack) original.push_back({entry.state, entry.length != 0});
+  if (r->sequence) {
+    for (size_t i = 0; i < stack_size; ++i)
+      original.push_back({r->table->sequence_states[i], i ? r->sequence_consumed[i - 1] : false});
+  } else for (const auto& entry : r->stack) original.push_back({entry.state, entry.length != 0});
   size_t budget = 8192;
   // 0 = not proven, 1 = shifted, 2 = accepted. No semantic actions or lexing.
   const auto probe = [&](States& stack, uint32_t id, const State** before) {
@@ -2371,10 +2415,90 @@ ParserDiagnostic parser_recognizer_diagnostic(Recognizer* r, ParserDiagnosticRea
   return result;
 }
 
+static void parser_unexpected(Recognizer* recognizer) {
+  recognizer->error = recognizer->lookahead_error.empty() ?
+    "Unexpected " + (recognizer->read_id == PARSER_ID_EOF ? std::string("end of input") : debug_str(recognizer->read_id, recognizer->table->grammar))
+    + "." : recognizer->lookahead_error;
+  recognizer->complete = true;
+}
+
+static TowerNode* parser_shift_value(Recognizer* recognizer, uint32_t id) {
+  TowerNode* node = recognizer->read_node_or_null;
+  if (node && tower_node_get_parent(node)) {
+    recognizer->error = "Stream returned an attached node"; recognizer->complete = true; return nullptr;
+  }
+  if (!node) node = tower_node_create();
+  auto* match = (Match*)tower_node_get_component_userdata(node, parser_match_get_type());
+  if (!match) {
+    match = parser_match_create(node);
+    parser_match_set_id(match, id);
+    parser_match_set_start(match, recognizer->read_start);
+    parser_match_set_length(match, recognizer->read_length);
+  }
+  if (!*parser_match_get_label(match)) parser_match_set_label(match, debug_str(id, recognizer->table->grammar).c_str());
+  return node;
+}
+
+static TowerNode* parser_reduction_value(Recognizer* recognizer, const GrammarRule& rule,
+    size_t start, size_t end, ParseForest children) {
+  TowerNode* node = tower_node_create();
+  Match* match = parser_match_create(node);
+  parser_match_set_id(match, (uint32_t)rule.non_terminal->index);
+  parser_match_set_rule_index(match, rule.index);
+  parser_match_set_label(match, rule.non_terminal->name.c_str());
+  parser_match_set_start(match, start);
+  parser_match_set_length(match, end - start);
+  if (!parse_forest_attach(recognizer->forest, node, children.first)) std::abort();
+  return node;
+}
+
+static TowerNode* parser_sequence_step(Recognizer* recognizer, bool* running) {
+  const auto& rule = *recognizer->table->sequence_rule;
+  const size_t position = recognizer->sequence_consumed.size();
+  ++recognizer->work.actions;
+  if (position == rule.symbols.size()) {
+    // Prefix grammars finish at the boundary without reading the next revision.
+    // Whole-input grammars must still observe EOF and any stream error.
+    if (!recognizer->prefix) {
+      if (!recognizer->has_lookahead) parser_recognizer_read_id(recognizer);
+      if (recognizer->read_id != PARSER_ID_EOF || !recognizer->lookahead_error.empty()) {
+        parser_unexpected(recognizer); return nullptr;
+      }
+    }
+    ++recognizer->work.reductions;
+    auto* root = parser_reduction_value(recognizer, rule, recognizer->sequence_start,
+      recognizer->sequence_end, recognizer->sequence_nodes);
+    auto* next = recognizer->stack.front().state->gotos_after_reduction.at(rule.non_terminal);
+    recognizer->stack.push_back(StackState{.state = next, .start = recognizer->sequence_start,
+      .length = recognizer->sequence_end - recognizer->sequence_start});
+    recognizer->sequence = false; recognizer->complete = true;
+    return root;
+  }
+  if (!recognizer->has_lookahead) parser_recognizer_read_id(recognizer);
+  if (!recognizer->lookahead_error.empty() ||
+      !symbol_sequence_accepts(recognizer->table->sequence, position, recognizer->read_id)) {
+    parser_unexpected(recognizer); return nullptr;
+  }
+  auto* node = parser_shift_value(recognizer, recognizer->read_id);
+  if (!node) return nullptr;
+  const auto part = parser_forest_leaf(recognizer, node);
+  if (!parse_forest_join(recognizer->forest, &recognizer->sequence_nodes, part.first, part.last,
+      rule.symbols[position].capture.c_str())) std::abort();
+  recognizer->read_node_or_null = nullptr;
+  if (!position) recognizer->sequence_start = recognizer->read_start;
+  recognizer->consumed_end = recognizer->read_start + recognizer->read_length;
+  recognizer->sequence_end = std::max(recognizer->sequence_end, recognizer->consumed_end);
+  recognizer->sequence_consumed.push_back(recognizer->read_length != 0);
+  recognizer->has_lookahead = false; recognizer->shifted = true;
+  ++recognizer->work.shifts; *running = true;
+  return nullptr;
+}
+
 TowerNode* parser_recognizer_step(Recognizer* recognizer, bool* running) {
   assert(recognizer && running);
   *running = false;
   if (recognizer->complete) return nullptr;
+  if (recognizer->sequence) return parser_sequence_step(recognizer, running);
   const State* state = recognizer->stack.back().state;
   uint32_t id = PARSER_ID_EOF;
   StateEdge default_edge;
@@ -2395,10 +2519,7 @@ TowerNode* parser_recognizer_step(Recognizer* recognizer, bool* running) {
     }
   }
   if (!edge) {
-    recognizer->error = recognizer->lookahead_error.empty() ?
-      "Unexpected " + (recognizer->read_id == PARSER_ID_EOF ? std::string("end of input") : debug_str(recognizer->read_id, recognizer->table->grammar))
-      + "." : recognizer->lookahead_error;
-    recognizer->complete = true;
+    parser_unexpected(recognizer);
     return nullptr;
   }
   if (parser_debug_trace)
@@ -2406,21 +2527,8 @@ TowerNode* parser_recognizer_step(Recognizer* recognizer, bool* running) {
 
   if (edge->shift_state) {
     ++recognizer->work.shifts;
-    TowerNode* node = recognizer->read_node_or_null;
-    if (node && tower_node_get_parent(node)) {
-      recognizer->error = "Stream returned an attached node";
-      recognizer->complete = true;
-      return nullptr;
-    }
-    if (!node) node = tower_node_create();
-    auto* match = (Match*)tower_node_get_component_userdata(node, parser_match_get_type());
-    if (!match) {
-      match = parser_match_create(node);
-      parser_match_set_id(match, id);
-      parser_match_set_start(match, recognizer->read_start);
-      parser_match_set_length(match, recognizer->read_length);
-    }
-    if (!*parser_match_get_label(match)) parser_match_set_label(match, debug_str(id, recognizer->table->grammar).c_str());
+    TowerNode* node = parser_shift_value(recognizer, id);
+    if (!node) return nullptr;
     recognizer->read_node_or_null = nullptr;
     recognizer->stack.push_back(StackState{
       .state = edge->shift_state, .nodes = parser_forest_leaf(recognizer, node),
@@ -2471,15 +2579,7 @@ TowerNode* parser_recognizer_step(Recognizer* recognizer, bool* running) {
     assert(next != recognizer->stack.back().state->gotos_after_reduction.end());
     // Keep the public start root even when its declaration is generated.
     if (!rule.generated || rule.non_terminal->index == 1) {
-      TowerNode* node = tower_node_create();
-      Match* match = parser_match_create(node);
-      parser_match_set_id(match, (uint32_t)rule.non_terminal->index);
-      parser_match_set_rule_index(match, rule.index);
-      parser_match_set_label(match, rule.non_terminal->name.c_str());
-      parser_match_set_start(match, start);
-      parser_match_set_length(match, end - start);
-      // Tower assembles the existing shared entities, including lazy captures.
-      if (!parse_forest_attach(recognizer->forest, node, children.first)) std::abort();
+      TowerNode* node = parser_reduction_value(recognizer, rule, start, end, children);
       children = parser_forest_leaf(recognizer, node);
     }
     recognizer->stack.push_back(StackState{

@@ -1,0 +1,474 @@
+// Derived automata over integer symbols, shared by character and token grammars.
+// The source grammar/entities remain authoritative. Limits bound compilation work.
+struct AutomatonState {
+    kind: u32;
+    out: i32;
+    other: i32;
+    negated: bool;
+    ranges: vector(SymbolRange);
+}
+
+struct Automaton {
+    states: AutomatonState*;
+    count: usize;
+    limit: u32;
+    error: u32;
+}
+
+struct AutomatonSubset {
+    bits: u64[8];
+}
+
+struct AutomatonWork {
+    masks: u64[64];
+    visited: u8[512];
+    pending: i32[1024];
+    seeds: i32[512];
+    subsets: vector(AutomatonSubset);
+    links: vector(i32);
+    buckets: i32[2039];
+    row: vector(i32);
+    alphabet: vector(u32);
+}
+
+export fn automaton_create(symbol_limit: u32): Automaton* {
+    var result = alloc(Automaton, 1);
+    var failed = result == null;
+    if failed {
+        return null;
+    }
+    fill(result, 0, sizeof(Automaton));
+    result.states = alloc(AutomatonState, 512);
+    failed = result.states == null;
+    if failed {
+        free(result);
+        return null;
+    }
+    var bytes = sizeof(AutomatonState) * 512;
+    fill(result.states, 0, bytes);
+    result.limit = symbol_limit;
+    return result;
+}
+
+export fn automaton_destroy(value: Automaton*): void {
+    var empty = value == null;
+    if empty {
+        return;
+    }
+    var i: usize = 0;
+    loop {
+        var done = i == value.count;
+        if done {
+            break;
+        }
+        vector_dispose(SymbolRange, &value.states[i].ranges);
+        i = i + 1;
+    }
+    free(value.states);
+    free(value);
+}
+
+export fn automaton_error(value: Automaton*): u32 {
+    return value.error;
+}
+
+// Kinds: 0 = consuming range, 1 = epsilon split, 2 = accepting state.
+export fn automaton_add(value: Automaton*, kind: u32, out: i32, other: i32, negated: bool): i32 {
+    var full = value.count >= 512;
+    if full {
+        value.error = 1;
+        return -1;
+    }
+    var index = value.count;
+    value.states[index].kind = kind;
+    value.states[index].out = out;
+    value.states[index].other = other;
+    value.states[index].negated = negated;
+    value.count = index + 1;
+    return convert(i32, index);
+}
+
+export fn automaton_range(value: Automaton*, index: i32, first: u32, last: u32): bool {
+    var invalid = index < 0;
+    if invalid {
+        return false;
+    }
+    var state = &value.states[index];
+    var size = state.ranges.length + 1;
+    var ok = vector_reserve(SymbolRange, &state.ranges, size);
+    if ok {
+        state.ranges.data[state.ranges.length].first = first;
+        state.ranges.data[state.ranges.length].last = last;
+        state.ranges.length = size;
+    } else {
+        value.error = 2;
+    }
+    return ok;
+}
+
+export fn automaton_patch(value: Automaton*, index: i32, other: bool, target: i32): void {
+    var invalid = index < 0;
+    if invalid {
+        return;
+    }
+    if other {
+        value.states[index].other = target;
+    }
+    else {
+        value.states[index].out = target;
+    }
+}
+
+fn automaton_sift(values: u32*, size: usize, start: usize): void {
+    var root = start;
+    loop {
+        var child = root * 2;
+        child = child + 1;
+        var done = child >= size;
+        if done {
+            return;
+        }
+        var right = child + 1;
+        var exists = right < size;
+        if exists {
+            var larger = values[right] > values[child];
+            if larger {
+                child = right;
+            }
+        }
+        var ordered = values[root] >= values[child];
+        if ordered {
+            return;
+        }
+        var saved = values[root];
+        values[root] = values[child];
+        values[child] = saved;
+        root = child;
+    }
+}
+
+fn automaton_sort(values: u32*, size: usize): void {
+    var start = size / 2;
+    loop {
+        var done = start == 0;
+        if done {
+            break;
+        }
+        start = start - 1;
+        automaton_sift(values, size, start);
+    }
+    var end = size;
+    loop {
+        var done = end <= 1;
+        if done {
+            return;
+        }
+        end = end - 1;
+        var saved = values[0];
+        values[0] = values[end];
+        values[end] = saved;
+        automaton_sift(values, end, 0);
+    }
+}
+
+fn automaton_has(work: AutomatonWork*, subset: AutomatonSubset*, index: usize): bool {
+    var word = index / 64;
+    var bit = index % 64;
+    var masked = subset.bits[word] & work.masks[bit];
+    var present = masked != 0;
+    return present;
+}
+
+fn automaton_closure(value: Automaton*, work: AutomatonWork*, count: usize, result: AutomatonSubset*): bool {
+    fill(result, 0, sizeof(AutomatonSubset));
+    fill(&work.visited, 0, value.count);
+    var bytes = count * sizeof(i32);
+    copy(&work.pending, &work.seeds, bytes);
+    var any = false;
+    loop {
+        var done = count == 0;
+        if done {
+            return any;
+        }
+        count = count - 1;
+        var index = work.pending[count];
+        var absent = index < 0;
+        if absent {
+            continue;
+        }
+        var seen = work.visited[index] != 0;
+        if seen {
+            continue;
+        }
+        work.visited[index] = 1;
+        var state = &value.states[index];
+        var split = state.kind == 1;
+        if split {
+            work.pending[count] = state.out;
+            count = count + 1;
+            work.pending[count] = state.other;
+            count = count + 1;
+        } else {
+            var word = index / 64;
+            var bit = index % 64;
+            result.bits[word] = result.bits[word] | work.masks[bit];
+            any = true;
+        }
+    }
+}
+
+fn automaton_intern(value: Automaton*, work: AutomatonWork*, subset: AutomatonSubset*): i32 {
+    var hash: u64 = 2166136261;
+    var words = value.count + 63;
+    words = words / 64;
+    var i: usize = 0;
+    loop {
+        var done = i == words;
+        if done {
+            break;
+        }
+        hash = hash ^ subset.bits[i];
+        hash = hash * 16777619;
+        i = i + 1;
+    }
+    var bucket = hash % 2039;
+    var found = work.buckets[bucket];
+    loop {
+        var done = found < 0;
+        if done {
+            break;
+        }
+        var same = true;
+        i = 0;
+        loop {
+            done = i == words;
+            if done {
+                break;
+            }
+            var different = subset.bits[i] != work.subsets.data[found].bits[i];
+            if different {
+                same = false;
+                break;
+            }
+            i = i + 1;
+        }
+        if same {
+            return found;
+        }
+        found = work.links.data[found];
+    }
+    var index = work.subsets.length;
+    var count = index + 1;
+    var complexity = count * work.alphabet.length;
+    var large = index >= 1024;
+    if large {
+        value.error = 3;
+        return -1;
+    }
+    large = complexity > 262144;
+    if large {
+        value.error = 3;
+        return -1;
+    }
+    var ok = vector_reserve(AutomatonSubset, &work.subsets, count);
+    if ok {} else {
+        value.error = 2;
+        return -1;
+    }
+    ok = vector_push(i32, &work.links, work.buckets[bucket]);
+    if ok {} else {
+        value.error = 2;
+        return -1;
+    }
+    var result = convert(i32, index);
+    copy(&work.subsets.data[result], subset, sizeof(AutomatonSubset));
+    work.subsets.length = count;
+    work.buckets[bucket] = result;
+    return result;
+}
+
+fn automaton_build(value: Automaton*, start: i32, accepting: usize, table: LexerTable*, work: AutomatonWork*, reject_empty: bool): u32 {
+    var failed = value.error != 0;
+    if failed {
+        return value.error;
+    }
+    var mask: u64 = 1;
+    var i: usize = 0;
+    loop {
+        var done = i == 64;
+        if done {
+            break;
+        }
+        work.masks[i] = mask;
+        mask = mask * 2;
+        i = i + 1;
+    }
+    var bucket_bytes = sizeof(i32) * 2039;
+    fill(&work.buckets, 255, bucket_bytes);
+    var count: usize = 2;
+    i = 0;
+    loop {
+        var done = i == value.count;
+        if done {
+            break;
+        }
+        var ranges = value.states[i].ranges.length * 2;
+        count = count + ranges;
+        i = i + 1;
+    }
+    var ok = vector_reserve(u32, &work.alphabet, count);
+    if ok {} else {
+        return 2;
+    }
+    work.alphabet.data[0] = 0;
+    work.alphabet.data[1] = value.limit;
+    count = 2;
+    i = 0;
+    loop {
+        var done = i == value.count;
+        if done {
+            break;
+        }
+        var state = &value.states[i];
+        var j: usize = 0;
+        loop {
+            done = j == state.ranges.length;
+            if done {
+                break;
+            }
+            work.alphabet.data[count] = state.ranges.data[j].first;
+            count = count + 1;
+            work.alphabet.data[count] = state.ranges.data[j].last + 1;
+            count = count + 1;
+            j = j + 1;
+        }
+        i = i + 1;
+    }
+    automaton_sort(work.alphabet.data, count);
+    work.alphabet.length = 1;
+    i = 1;
+    loop {
+        var done = i == count;
+        if done {
+            break;
+        }
+        var previous = i - 1;
+        var different = work.alphabet.data[i] != work.alphabet.data[previous];
+        if different {
+            work.alphabet.data[work.alphabet.length] = work.alphabet.data[i];
+            work.alphabet.length = work.alphabet.length + 1;
+        }
+        i = i + 1;
+    }
+    ok = lex_table_set_alphabet(table, work.alphabet.data, work.alphabet.length);
+    if ok {} else {
+        return 2;
+    }
+    work.seeds[0] = start;
+    var initial: AutomatonSubset;
+    automaton_closure(value, work, 1, &initial);
+    var nullable = automaton_has(work, &initial, accepting);
+    if reject_empty {
+        if nullable {
+            return 4;
+        }
+    }
+    var first = automaton_intern(value, work, &initial);
+    failed = first < 0;
+    if failed {
+        return value.error;
+    }
+    var columns = work.alphabet.length - 1;
+    ok = vector_reserve(i32, &work.row, columns);
+    if ok {} else {
+        return 2;
+    }
+    var row: usize = 0;
+    loop {
+        var done = row == work.subsets.length;
+        if done {
+            return 0;
+        }
+        var accepted = automaton_has(work, &work.subsets.data[row], accepting);
+        var column: usize = 0;
+        loop {
+            done = column == columns;
+            if done {
+                break;
+            }
+            var symbol = work.alphabet.data[column];
+            var seeds: usize = 0;
+            i = 0;
+            loop {
+                done = i == value.count;
+                if done {
+                    break;
+                }
+                var present = automaton_has(work, &work.subsets.data[row], i);
+                var state = &value.states[i];
+                var character = state.kind == 0;
+                if present {
+                    if character {
+                        var inside = false;
+                        var j: usize = 0;
+                        loop {
+                            done = j == state.ranges.length;
+                            if done {
+                                break;
+                            }
+                            var above = symbol >= state.ranges.data[j].first;
+                            var below = symbol <= state.ranges.data[j].last;
+                            if above {
+                                if below {
+                                    inside = true;
+                                    break;
+                                }
+                            }
+                            j = j + 1;
+                        }
+                        var matches = inside != state.negated;
+                        if matches {
+                            work.seeds[seeds] = state.out;
+                            seeds = seeds + 1;
+                        }
+                    }
+                }
+                i = i + 1;
+            }
+            var subset: AutomatonSubset;
+            var nonempty = automaton_closure(value, work, seeds, &subset);
+            var next: i32 = -1;
+            if nonempty {
+                next = automaton_intern(value, work, &subset);
+                failed = next < 0;
+                if failed {
+                    return value.error;
+                }
+            }
+            work.row.data[column] = next;
+            column = column + 1;
+        }
+        ok = lex_table_append(table, work.row.data, columns, accepted);
+        if ok {} else {
+            return 2;
+        }
+        row = row + 1;
+    }
+}
+
+// Returns 0 on success, 1 for NFA size, 2 allocation, 3 DFA size, 4 nullable.
+export fn automaton_compile(value: Automaton*, start: i32, accepting: usize, table: LexerTable*, reject_empty: bool): u32 {
+    var work = alloc(AutomatonWork, 1);
+    var failed = work == null;
+    if failed {
+        return 2;
+    }
+    fill(work, 0, sizeof(AutomatonWork));
+    var result = automaton_build(value, start, accepting, table, work, reject_empty);
+    vector_dispose(AutomatonSubset, &work.subsets);
+    vector_dispose(i32, &work.links);
+    vector_dispose(i32, &work.row);
+    vector_dispose(u32, &work.alphabet);
+    free(work);
+    return result;
+}

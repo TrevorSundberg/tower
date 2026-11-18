@@ -117,9 +117,115 @@ TowerNode* add_token(Stream* stream, uint32_t id, size_t start, size_t length) {
   ((NodeStream*)parser_stream_get_userdata(stream))->nodes.push_back(node);
   return node;
 }
+
+void same_diagnostic(const ParserDiagnostic& a, const ParserDiagnostic& b) {
+  assert(a.offset == b.offset && a.insertion_offset == b.insertion_offset);
+  assert(a.complete == b.complete && a.at_start == b.at_start);
+  assert(a.expected.size() == b.expected.size());
+  for (size_t i = 0; i < a.expected.size(); ++i) {
+    const auto& x = a.expected[i]; const auto& y = b.expected[i];
+    assert(x.id == y.id && x.label == y.label && x.insertion == y.insertion && x.completes == y.completes);
+    assert(x.contexts.size() == y.contexts.size());
+    for (size_t j = 0; j < x.contexts.size(); ++j)
+      assert(x.contexts[j].production == y.contexts[j].production && x.contexts[j].term == y.contexts[j].term);
+  }
+}
+
+void sequence_dfa_tests() {
+  // Compare the optimized runner with ordinary LR, including diagnostics at
+  // every prefix, source spans, custom payloads and capture metadata. The same
+  // automaton works on character IDs and token IDs outside the Unicode range.
+  for (bool tokens : {false, true}) for (bool prefix : {false, true}) {
+    for (int variant = -1; variant <= 6; ++variant) {
+      AllocationCheck allocations;
+      std::string dumps[2], errors[2]; ParserDiagnostic diagnostics[2];
+      ParserWork work[2];
+      for (int optimized = 0; optimized < 2; ++optimized) {
+        Parse p;
+        auto* rule = parser_rule_create_subtree(p.rules, "Sequence", true);
+        const char* names[] = {"for", "each", "do", "not", ";"};
+        constexpr uint32_t token_base = 0x200000;
+        for (unsigned i = 0; i < 5; ++i) {
+          if (tokens) {
+            auto* ref = parser_reference_create_subtree(rule, names[i]);
+            parser_reference_set_capture((Reference*)tower_node_get_component_userdata(ref, parser_reference_get_type()), names[i]);
+          } else parser_range_create_subtree(rule, 'a' + i, 'a' + i + 1);
+        }
+        auto resolve = [](void*, const char* name) -> uint32_t {
+          const char* words[] = {"for", "each", "do", "not", ";"};
+          for (unsigned i = 0; i < 5; ++i) if (!strcmp(words[i], name)) return token_base + i;
+          return PARSER_ID_EOF;
+        };
+        p.table = parser_table_create(p.rules, nullptr, tokens ? resolve : ParserTableResolveReference(nullptr),
+          tokens ? nullptr : parser_table_utf8_id_to_string, nullptr,
+          prefix ? ParserTableMode::Constructs : ParserTableMode::WholeInput, nullptr, optimized != 0);
+        assert(p.table && parser_table_uses_dfa(p.table) == bool(optimized));
+        p.stream = node_stream_create();
+        std::vector<TowerNode*> originals;
+        // -1 succeeds; 0..4 stop early; 5 changes the middle symbol; 6 appends input.
+        const size_t count = variant >= 0 && variant < 5 ? size_t(variant) : variant == 6 ? 6u : 5u;
+        for (size_t i = 0; i < count; ++i) {
+          uint32_t id = (tokens ? token_base : 'a') + uint32_t(i);
+          if (variant == 5 && i == 2) id += 100;
+          auto* node = add_token(p.stream, id, 10 + i * 3, i == 1 ? 0 : 2);
+          auto* payload = parser_string_create(node);
+          parser_string_append_utf8_null_terminated(payload, "payload");
+          originals.push_back(node);
+        }
+        p.recognizer = prefix ? parser_recognizer_create_prefix(p.table, p.stream) : parser_recognizer_create(p.table, p.stream);
+        const bool success = variant == -1 || (variant == 6 && prefix);
+        auto* root = finish(p.recognizer, success);
+        work[optimized] = parser_recognizer_get_work(p.recognizer);
+        if (root) {
+          match(root, 1, 10, 14);
+          assert(tower_node_get_child_count(root) == 5);
+          for (size_t i = 0; i < 5; ++i) {
+            assert(tower_node_get_child(root, i) == originals[i]);
+            auto* payload = (String*)tower_node_get_component_userdata(originals[i], parser_string_get_type());
+            assert(payload && parser_string_get_length(payload) == 7);
+          }
+          char* dump = parser_tree_debug_string(root); dumps[optimized] = dump; tower_memory_free(dump);
+          tower_node_release_ref(root);
+          if (prefix) assert(((NodeStream*)parser_stream_get_userdata(p.stream))->next == 5);
+        } else {
+          errors[optimized] = parser_recognizer_get_error(p.recognizer);
+          diagnostics[optimized] = parser_recognizer_diagnostic(p.recognizer);
+        }
+      }
+      assert(dumps[0] == dumps[1] && errors[0] == errors[1]);
+      same_diagnostic(diagnostics[0], diagnostics[1]);
+      assert(work[0].reads == work[1].reads && work[0].shifts == work[1].shifts);
+      if (!dumps[0].empty()) {
+        assert(work[1].popped == 0 && work[0].popped == 5);
+        assert(work[1].actions < work[0].actions);
+      }
+    }
+  }
+  // Regular alternatives/right-linear recursion are eligible in principle,
+  // but deliberately stay on LR until their output-preserving lowering exists.
+  for (int shape = 0; shape < 4; ++shape) {
+    AllocationCheck allocations;
+    Parse p;
+    auto* rule = parser_rule_create_subtree(p.rules, "S", false);
+    if (shape == 1) {
+      parser_reference_create_subtree(rule, "A");
+      rule = parser_rule_create_subtree(p.rules, "A", false);
+      parser_string_create_subtree_utf8_null_terminated(rule, "x");
+    } else if (shape >= 2) {
+      parser_string_create_subtree_utf8_null_terminated(rule, "x");
+      if (shape == 3) parser_reference_create_subtree(rule, "S");
+      rule = parser_rule_create_subtree(p.rules, "S", false);
+      parser_string_create_subtree_utf8_null_terminated(rule, "y");
+    }
+    p.begin(shape == 0 ? "" : shape == 1 ? "x" : shape == 2 ? "y" : "xxxy");
+    assert(!parser_table_uses_dfa(p.table));
+    auto* root = finish(p.recognizer); tower_node_release_ref(root);
+  }
+}
 }
 
 void parser_tree_tests() {
+  sequence_dfa_tests();
   // One reduction can inherit overlapping character lookaheads from several
   // callers. Their union is one action, not a reduce/reduce conflict.
   for (const char* input : {"pxb", "pxz", "qxm", "qxz"}) {

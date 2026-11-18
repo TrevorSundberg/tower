@@ -8003,3 +8003,73 @@ sequences on either character or token streams, preserving captures/entities and
 error context with LR as reference. Broader regular alternatives, recursive token
 grammars and in-context regular subrule specialization remain authorized work;
 do not describe the entire DFA direction or pure-Tower endpoint as complete.
+
+## 2026-11-18 — Tower-owned symbol automata and the first parser DFA specialization
+
+The user reaffirmed both ongoing tasks: finish moving project-owned native code
+into Tower (including the bootstrap), and continue DFA specialization/sharing.
+The endpoint remains checked-in portable Tower compiler executables per platform
+which rebuild pure Tower sources. We are not self-hosted yet, and this entry does
+not claim portable standalone compiler binaries have been delivered.
+
+Implemented `compiler/automaton.tower`: derived NFA states/ranges, epsilon closure,
+alphabet partitioning, deterministic subset construction, hashed subset lookup,
+and bounded DFA emission. These operate on integer symbol IDs; UTF-8 decoding is
+an adapter over the shared `lex_table_step` transition engine. Regex lowering now
+uses these Tower-owned automata instead of the production C++ NFA containers and
+subset builder. The original implementation remains an independent bootstrap/test
+reference. The authoritative regex grammar/tree stays on shared entities; these
+automata are disposable derived caches, not another public language or node model.
+
+Parser tables also recognize a deliberately narrow proven case: a single nonempty
+root production consisting entirely of terminals/ranges, at most 4096 symbols.
+A Tower finite-state chain consumes character or token IDs without an LR stack
+frame per symbol. Shared shift/reduction helpers preserve incoming entity identity,
+payloads, captures, spans, root production and ownership. The equivalent LR states
+are retained in the table for the existing diagnostic probes; the runner retains
+one consumed-span bit per symbol for contextual errors. Prefix mode finishes at
+the terminating boundary without lexing under the next grammar revision. Ordinary
+LR remains available as a forced reference path and handles every other grammar.
+Alternatives and right-linear recursion are regular in principle but are not yet
+selected by this first specialization. We do not silently choose between LR
+conflicts, add backtracking, or claim all regular subregions are recognized.
+
+Significant trials and fixes:
+
+- The first Tower chain returned a binary expression directly; Foundation returns
+  operands, so it now binds the comparison result before returning it.
+- Checked usize-to-i32 conversions initially left unresolved `tower_trap` imports.
+  The bounded state-count checks were equality checks, and one conversion reloaded
+  a count after allocation calls. Explicit upper bounds and retaining the proven
+  local index let LLVM prove the conversions safe; no extra runtime dependency or
+  unchecked reinterpretation was introduced.
+- Work counters now report actual popped LR frames: zero in the finite chain,
+  versus one per consumed terminal in the reference runner.
+- Allocation injection was extended to fail each individual allocation in a DFA
+  compilation. Every tested failure frees owned buffers; a partially emitted
+  output table is discarded by the caller.
+
+Validation so far (Windows host; WSL Orchestral-Revng, LLVM 19/native and WASI SDK
+34): `build-native.sh`, `build-wasm.sh`, and `TOWER_BROWSER_CROSS=ON build-llvm.sh`
+build successfully. `test-native-core.sh` plus the final CMake rebuild/ctest pass
+4/4 with the native ASan/UBSan harness; `scaffolding/tests/run.ps1 -Optimize` passes
+on MSVC. Tower-generated objects are not themselves automatically ASan-instrumented.
+Tests compare fixed-chain trees/captures/errors with forced LR for character/token
+streams, gaps and zero-length spans, early EOF, mismatches and extra suffixes in
+both whole-input and prefix modes. Direct NFA simulation agrees with 150 generated
+integer-symbol NFAs, including epsilon cycles, complement ranges, and symbols
+outside Unicode. Existing regex differential tests (300 generated patterns, 500
+syntax strings, Unicode/malformed inputs) pass. All 177 Node tests pass. All 16
+bootstrap pairs produce identical optimized LLVM and platform object bytes across
+Linux x64, Windows x64, macOS ARM64 and Wasm. All 30 Tower files satisfy canonical
+format round trips. Browser UI tests are running; deployment will be verified after
+the final build. Logs: `build/automaton-{native,asan-final,windows,wasm,llvm,node-tests,
+bootstrap,format-check,browser}.log` (the successful native rebuild is also in the
+ASan/bootstrap logs).
+
+Remaining: port regex tree-to-automaton lowering and LR analysis/control; support
+character grammar lowering beyond regex shorthand and recursive token rules;
+extend output-preserving specialization to more proven regular regions. Semantics,
+type checking, formatting, interpreter/driver/backend bridges and native bootstrap
+stages also remain to migrate. Do not confuse a shared regex-syntax reader with
+completed arbitrary scannerless/recursive lexical grammar support.

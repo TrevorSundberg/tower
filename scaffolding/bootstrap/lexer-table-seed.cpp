@@ -3,6 +3,13 @@
 #include "../compiler-utf8.hpp"
 #include <algorithm>
 #include <vector>
+struct SymbolSequence { std::vector<std::pair<uint32_t, uint32_t>> symbols; };
+extern "C" SymbolSequence* symbol_sequence_create(size_t count) { return new SymbolSequence{std::vector<std::pair<uint32_t, uint32_t>>(count)}; }
+extern "C" void symbol_sequence_destroy(SymbolSequence* sequence) { delete sequence; }
+extern "C" void symbol_sequence_set(SymbolSequence* sequence, size_t state, uint32_t first, uint32_t last) { sequence->symbols[state] = {first, last}; }
+extern "C" bool symbol_sequence_accepts(SymbolSequence* sequence, size_t state, uint32_t symbol) {
+  return state < sequence->symbols.size() && symbol >= sequence->symbols[state].first && symbol <= sequence->symbols[state].second;
+}
 struct LexerTable {
   std::vector<uint32_t> alphabet;
   std::vector<std::vector<int32_t>> transitions;
@@ -30,4 +37,12 @@ extern "C" size_t lex_table_match(LexerTable* table, const uint8_t* source, size
     if (table->accepting[state]) longest = position - start;
   }
   return longest;
+}
+extern "C" int32_t lex_table_step(LexerTable* table, size_t state, uint32_t symbol) {
+  if (state >= table->transitions.size() || symbol < table->alphabet.front() || symbol >= table->alphabet.back()) return -1;
+  const auto column = std::upper_bound(table->alphabet.begin(), table->alphabet.end(), symbol) - table->alphabet.begin() - 1;
+  return table->transitions[state][column];
+}
+extern "C" bool lex_table_accepts(LexerTable* table, size_t state) {
+  return state < table->accepting.size() && table->accepting[state];
 }

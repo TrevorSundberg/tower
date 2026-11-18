@@ -6,6 +6,61 @@ struct LexerTable {
     accepting: vector(u8);
 }
 
+// A finite-state chain over arbitrary integer symbols. State n accepts; each
+// earlier state has one range transition to its successor. No parse stack.
+struct SymbolRange {
+    first: u32;
+    last: u32;
+}
+
+struct SymbolSequence {
+    symbols: SymbolRange*;
+    count: usize;
+}
+
+export fn symbol_sequence_create(count: usize): SymbolSequence* {
+    var sequence = alloc(SymbolSequence, 1);
+    var failed = sequence == null;
+    if failed {
+        return null;
+    }
+    sequence.symbols = alloc(SymbolRange, count);
+    failed = sequence.symbols == null;
+    if failed {
+        free(sequence);
+        return null;
+    }
+    sequence.count = count;
+    return sequence;
+}
+
+export fn symbol_sequence_destroy(sequence: SymbolSequence*): void {
+    var empty = sequence == null;
+    if empty {
+        return;
+    }
+    free(sequence.symbols);
+    free(sequence);
+}
+
+export fn symbol_sequence_set(sequence: SymbolSequence*, state: usize, first: u32, last: u32): void {
+    sequence.symbols[state].first = first;
+    sequence.symbols[state].last = last;
+}
+
+export fn symbol_sequence_accepts(sequence: SymbolSequence*, state: usize, symbol: u32): bool {
+    var done = state >= sequence.count;
+    if done {
+        return false;
+    }
+    var low = symbol < sequence.symbols[state].first;
+    if low {
+        return false;
+    }
+    var accepted = symbol <= sequence.symbols[state].last;
+    return accepted;
+}
+
 export fn lex_table_create(): LexerTable* {
     var table = alloc(LexerTable, 1);
     var ok = table != null;
@@ -80,11 +135,60 @@ export fn lex_table_append(table: LexerTable*, transitions: i32*, count: usize, 
     return ok;
 }
 
+// The transition engine knows integer IDs, not UTF-8. Character decoding is one
+// stream adapter; token grammar automata use these same rows directly.
+export fn lex_table_step(table: LexerTable*, state: usize, symbol: u32): i32 {
+    var invalid = state >= table.accepting.length;
+    if invalid {
+        return -1;
+    }
+    var columns = table.alphabet.length - 1;
+    invalid = symbol >= table.alphabet.data[columns];
+    if invalid {
+        return -1;
+    }
+    invalid = symbol < table.alphabet.data[0];
+    if invalid {
+        return -1;
+    }
+    var first: usize = 0;
+    var count = table.alphabet.length;
+    loop {
+        var done = count == 0;
+        if done {
+            break;
+        }
+        var half = count / 2;
+        var middle = first + half;
+        var higher = symbol < table.alphabet.data[middle];
+        if higher {
+            count = half;
+        }
+        else {
+            first = middle + 1;
+            count = count - half;
+            count = count - 1;
+        }
+    }
+    var column = first - 1;
+    var index = state * columns;
+    index = index + column;
+    return table.transitions.data[index];
+}
+
+export fn lex_table_accepts(table: LexerTable*, state: usize): bool {
+    var invalid = state >= table.accepting.length;
+    if invalid {
+        return false;
+    }
+    var accepted = table.accepting.data[state] != 0;
+    return accepted;
+}
+
 export fn lex_table_match(table: LexerTable*, source: u8*, length: usize, start: usize): usize {
     var position = start;
     var longest: usize = 0;
     var state: usize = 0;
-    var columns = table.alphabet.length - 1;
     loop {
         var done = position >= length;
         if done {
@@ -98,29 +202,7 @@ export fn lex_table_match(table: LexerTable*, source: u8*, length: usize, start:
         if invalid {
             return longest;
         }
-        // Upper bound in the same sorted scalar boundaries as table generation.
-        var first: usize = 0;
-        var count = table.alphabet.length;
-        loop {
-            done = count == 0;
-            if done {
-                break;
-            }
-            var half = count / 2;
-            var middle = first + half;
-            var higher = scalar < table.alphabet.data[middle];
-            if higher {
-                count = half;
-            } else {
-                first = middle + 1;
-                count = count - half;
-                count = count - 1;
-            }
-        }
-        var column = first - 1;
-        var index = state * columns;
-        index = index + column;
-        var next = table.transitions.data[index];
+        var next = lex_table_step(table, state, scalar);
         done = next < 0;
         if done {
             return longest;

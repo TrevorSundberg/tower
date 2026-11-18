@@ -142,9 +142,12 @@ if(TOWER_PARSER_ONLY)
   add_library(tower-lexer-reference STATIC scaffolding/bootstrap/lexer-table-seed.cpp)
   target_compile_features(tower-lexer-reference PRIVATE cxx_std_20)
   target_compile_definitions(tower-lexer-reference PRIVATE LexerTable=ReferenceLexerTable
+    SymbolSequence=ReferenceSymbolSequence symbol_sequence_create=reference_symbol_sequence_create
+    symbol_sequence_destroy=reference_symbol_sequence_destroy symbol_sequence_set=reference_symbol_sequence_set
+    symbol_sequence_accepts=reference_symbol_sequence_accepts
     lex_table_create=reference_lex_table_create lex_table_destroy=reference_lex_table_destroy
     lex_table_set_alphabet=reference_lex_table_set_alphabet lex_table_append=reference_lex_table_append
-    lex_table_match=reference_lex_table_match)
+    lex_table_match=reference_lex_table_match lex_table_step=reference_lex_table_step lex_table_accepts=reference_lex_table_accepts)
   target_link_libraries(tower-parser-tests PRIVATE tower-lexer-reference)
   add_library(tower-regex-reference STATIC scaffolding/bootstrap/lex-pattern-seed.cpp)
   target_compile_features(tower-regex-reference PRIVATE cxx_std_20)
