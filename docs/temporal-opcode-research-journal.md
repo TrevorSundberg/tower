@@ -9672,3 +9672,26 @@ default work on origin/master. Rebase and reuse of the corresponding published
 compiler artifacts precede further validation. Python and Ubuntu WSL are absent
 on this host; Node is available at the local nvm v21.7.3 path (added to command PATH).
 Validation and publication results follow. todo.txt remains untouched.
+
+
+Rebased onto origin/master 99f28a5, preserving the newer Wasm-plus-native defaults
+and both journal histories. Resolved overlapping pane initialization and target
+selection assertions. Reused compiler binaries and target packs from published
+gh-pages bbe018e; the frontend SHA-256 is
+cab8f1c28b4d634e2784a92137d019c75c71e8f9be6ef409fbd7b4bc3bb97afc.
+No compiler/backend rebuild is claimed for this UI change.
+
+Validation: npm run build --prefix playground succeeded; npx playwright test
+--reporter=line from playground passed all 128 desktop/mobile checks in 3.5 minutes
+(build/shared-panes-browser.log). Existing export/cancellation checks now assert
+shared pane bodies, hidden successful phases, heading cancellation and download
+footers. Inspected desktop and mobile target screenshots; code remains scrollable
+and downloads stay below the content without a native status row.
+
+npm test completed with 216 passes, one optional native-output fixture skipped,
+and one environment failure: the C-linking check cannot open the absent
+build/linking/wasm-fixture.a (build/shared-panes-node.log). Windows has neither the
+previous Ubuntu WSL distribution nor a local Clang/llvm-ar toolchain available;
+this unrelated fixture was not fabricated or the test weakened. Browser execution
+and native artifact generation are covered by the passing browser suite.
+git diff --check passed. README documents the shared presentation contract.

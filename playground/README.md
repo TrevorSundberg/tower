@@ -387,6 +387,13 @@ selectable/copyable while only visible lines create DOM nodes. These display lex
 do not parse or define Tower semantics; the compiler still supplies canonical
 foundation source through its shared formatter.
 
+All instruction, disassembly and execution panes use the same output-pane layout:
+a heading, scrolling content and optional download footer. Progress, cancellation
+and failures appear in the heading; successful panes clear their status, leaving
+one overall execution/comparison summary. Wasm and native downloads share byte
+counts, source/target filenames and blob URL cleanup. Empty download footers are
+hidden and never reserve space for a completion label.
+
 32-bit native support remains planned: Cortex-M (for example `thumbv6m-none-eabi`
 and `thumbv7em-none-eabi`) and RV32 (`riscv32-unknown-elf`, with explicit ISA/ABI
 profiles) are useful embedded candidates. They require backend inclusion, target
