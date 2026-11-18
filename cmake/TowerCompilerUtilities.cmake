@@ -96,8 +96,11 @@ function(tower_compiler_parser_nodes)
       -DREGEX=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/regex-grammar.tower
       -DAUTOMATON=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/automaton.tower
       -DLOWERING=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/regex-lowering.tower
+      -DLR=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/lr-analysis.tower
+      -DSTATES=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/lr-states.tower
+      -DLALR=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/lr-lalr.tower
       -DOUTPUT=${input} -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ComposeParserNodes.cmake"
-    DEPENDS scaffolding/library/vector.tower scaffolding/compiler/parser-nodes.tower scaffolding/compiler/lexer-table.tower scaffolding/compiler/regex-grammar.tower scaffolding/compiler/automaton.tower scaffolding/compiler/regex-lowering.tower cmake/ComposeParserNodes.cmake
+    DEPENDS scaffolding/library/vector.tower scaffolding/compiler/parser-nodes.tower scaffolding/compiler/lexer-table.tower scaffolding/compiler/regex-grammar.tower scaffolding/compiler/automaton.tower scaffolding/compiler/regex-lowering.tower scaffolding/compiler/lr-analysis.tower scaffolding/compiler/lr-states.tower scaffolding/compiler/lr-lalr.tower cmake/ComposeParserNodes.cmake
     VERBATIM)
   add_custom_command(OUTPUT "${object}"
     COMMAND "${bootstrap}" "${input}"

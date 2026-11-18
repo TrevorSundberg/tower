@@ -8187,3 +8187,169 @@ entities and proven DFA specializations. Keep the remaining semantic/type pipeli
 formatter/interpreter, backend/CLI adapters and bootstrap retirement in scope.
 Portable per-platform bootstrap executables are not delivered by this checkpoint.
 Existing unrelated working edits, including todo.txt, were preserved.
+
+## 2026-11-18 — Tower-owned LR analysis, states and LALR actions
+
+Continued the requested removal of project-owned C++, including the eventual
+bootstrap, alongside shared character/token parsing and DFA specialization. This
+entry supersedes the earlier status that LR table construction was entirely
+native. It does **not** claim that the compiler is now wholly self-hosted or that
+portable release bootstrap executables exist.
+
+Implemented:
+
+- `compiler/lr-analysis.tower` owns FIRST/nullable fixed points, sorted LR item
+  sets, LR(0)/LR(1) closure, GOTO, and a queued lookahead propagation graph.
+  Nullable suffixes include the originating lookahead only when the whole suffix
+  is nullable. Self/cyclic propagation converges without recursive host calls.
+- `compiler/lr-states.tower` owns LR(0) state discovery, kernel hashing/interning,
+  geometrically resized hash buckets and transition construction. State numbering
+  follows deterministic discovery order; hash iteration never determines it.
+- `compiler/lr-lalr.tower` constructs lookahead dependencies from kernel closures,
+  handles epsilon reductions in the current state, propagates spontaneous and
+  inherited lookaheads, and emits shift/reduce actions. Construct-mode FIRST
+  lookaheads still participate in ordinary conflict checking. No shift bias,
+  speculative recognition, backtracking or grammar-order conflict priority was
+  introduced.
+- FIRST and lookahead sets reuse the existing `SymbolRange` type from the DFA
+  module. Characters and token IDs follow the same algorithms, including IDs
+  above Unicode. The existing fixed-terminal-root DFA shortcut still runs after
+  LR construction/conflict checks. This does not expand DFA eligibility to all
+  regular subgrammars or implement arbitrary recursive lexical rules.
+- Removed 917 lines from production `parser.cpp`, adding 70 lines of adaptation.
+  The Tower APIs consume a disposable numeric view of the existing entity-backed
+  grammar. Production/symbol indices retain original rule/capture/provenance
+  associations; these are analysis indexes, not a second authoritative AST or a
+  public program/bytecode format. Successful table construction frees the analysis
+  and borrowed-array adapters rather than retaining them for execution.
+- `bootstrap/lr-analysis-seed.cpp` is an independent transitional C++ reference
+  for seed/stage1 and differential tests. Production links the Tower definitions.
+  CMake composition includes the three new modules for Linux, Windows and Wasm
+  compiler builds and four-target bootstrap comparisons. This seed is still our
+  own C++, and must eventually be retired along with the other bootstrap code.
+
+Important trials and corrections:
+
+1. The first compile used C-style boolean `||`/`&&`; Foundation intentionally
+   does not have them. Integer bitwise operators are not boolean substitutes.
+   Rewrote the conditions using ordinary `if`, without enlarging the grammar.
+2. Kernel bucket modulo initially retained a `tower_trap` dependency because LLVM
+   could not prove a loaded bucket count nonzero across calls. Guarding the local
+   count before modulo proved the invariant and kept the existing import contract.
+   No unchecked division semantics or new trap runtime was introduced.
+3. An initial comparison adapter propagated through every full-state transition.
+   Randomized action comparison failed: a partially overlapping range from another
+   kernel is not the current closure's exact transition. Restored exact symbol/
+   range identity in the reference, matching the prior production algorithm.
+   The Tower implementation already used the closure's own symbol set. Real
+   conflicting ranges remain for the ordinary conflict diagnostic, not silently
+   partitioned or prioritized by this port.
+4. The initial port regressed Wasm timings. Warm small-program medians went from
+   5.247 to 6.330 ms, replacements from 17.967 to 21.739 ms; compiling 50 newly
+   declared token patterns in fresh instances went from 480.886 to 874.395 ms.
+   Tower's sorted insertions were shifting elements with individual struct copies,
+   whereas C++ vectors used bulk moves. Replaced three element-shifting loops
+   (ranges, LR items and symbol indices) with overlap-safe Foundation `copy`.
+   Verified the contract in both `core-machine.cpp` (`memmove`) and LLVM lowering
+   (`CreateMemMove`). The final measurements below include this correction.
+   Initial measurements remain in `build/lr-wasm-performance-initial.json` and
+   `build/lr-wasm-load-initial.json`, rather than being discarded.
+
+Validation environment: Windows PowerShell, WSL Orchestral-Revng, optimized native
+Clang/LLVM 19 build, WASI SDK 34, Node v21.7.3, optimized MSVC harness. Commands from
+the repository root:
+
+```text
+wsl -- bash -lc 'cd /mnt/c/Sandbox/tower && bash playground/scripts/build-native.sh'
+wsl -- bash -lc 'cd /mnt/c/Sandbox/tower && bash playground/scripts/test-native-core.sh'
+wsl -- bash -lc 'cmake --build /root/.cache/tower/core-asan --parallel 3 && ctest --test-dir /root/.cache/tower/core-asan --output-on-failure'
+.\scaffolding\tests\run.ps1 -Optimize -BootstrapCompiler C:\Sandbox\tower\build\parser-tests\host-bootstrap.cmd
+wsl -- bash -lc 'cd /mnt/c/Sandbox/tower && TOWER_BOOTSTRAP_COMPILER=/root/.cache/tower/native/towerc-stage1 bash playground/scripts/build-wasm.sh'
+wsl -- bash -lc 'cd /mnt/c/Sandbox/tower && TOWER_BOOTSTRAP_COMPILER=/root/.cache/tower/native/towerc-stage1 TOWER_BROWSER_CROSS=ON TOWER_BUILD_JOBS=3 bash playground/scripts/build-llvm.sh'
+node --test playground/tests/*.test.mjs
+npm run check:format --prefix playground
+npm run build --prefix playground
+npx --prefix playground playwright test --config playground/playwright.config.mjs
+wsl -- bash -lc 'cd /mnt/c/Sandbox/tower && bash playground/scripts/test-bootstrap.sh'
+```
+
+The new native checks compare 150 randomized grammars' FIRST/nullable sets,
+closure, GOTO, state numbering, transitions and LALR actions with the independent
+reference. They also compare 150 cyclic propagation graphs across three rounds
+of added dependencies/seeds, test all injected allocation failures in a complete
+analysis/state/action-building fixture for leaks, and build a 512-symbol token
+sequence to force hash-table resizing. Existing parse-tree ownership, captures,
+nullable productions, conflicts, grammar revisions/boundaries, lexical patterns,
+error repair, DFA/LR differential and linear recognition-work checks still run.
+The ASan/UBSan harness instruments native code; the ordinary Tower-generated
+object is not automatically sanitizer-instrumented. Allocation-failure and
+differential tests exercise that code directly.
+
+Final Wasm measurements against published `afdb920` / Pages `ae484e8`:
+`node build/profile-lr-wasm.mjs`, 12 warmups plus 40 alternating paired samples,
+compile plus Foundation formatting, median milliseconds:
+
+| Fixture | Before | Tower LR |
+| --- | ---: | ---: |
+| Small program | 5.033 | 4.739 |
+| Inference example | 5.420 | 5.135 |
+| Replacements example | 17.984 | 16.611 |
+| 500 declarations | 13.367 | 12.940 |
+
+`node build/profile-lr-wasm-load.mjs` uses fresh instances with Wasm code already
+compiled, two warmups and eight alternating samples (upper median). Load plus
+baseline grammar installation: 172.992 to 156.887 ms. Compile/format 50 new token
+patterns: 474.677 to 470.170 ms. These are measured fixtures, not a general speedup
+guarantee. Results/scripts live under `build/lr-wasm-*` and `build/profile-lr-*`.
+
+Native comparison used `wsl -- bash -lc 'cd /mnt/c/Sandbox/tower && python3
+build/profile-lr-native.py'`: rebuild `01cb987:scaffolding/parser.cpp` using
+`clang++ -std=c++20 -O3 -DNDEBUG -fno-exceptions -Iscaffolding`, then replace only
+`CMakeFiles/tower-native-compiler.dir/scaffolding/parser.cpp.o` in the current
+Ninja `towerc` link command. All other linked objects remain identical. Invoke
+both binaries with `--interpret --bedrock scaffolding/bedrock.tower --foundation
+scaffolding/foundation.tower`, four warmups plus 24 alternating paired samples.
+The timed operation includes process launch, module/grammar loading, compilation
+and execution. Median milliseconds:
+
+| Fixture | Previous C++ parser | Tower LR |
+| --- | ---: | ---: |
+| `print(42);` | 117.747 | 106.630 |
+| 50 new token patterns | 491.343 | 470.654 |
+| 25 new Statement alternatives | 239.444 | 227.909 |
+
+Token fixtures declare `token BenchN = /(a|bc)+[0-9]?xyN/;` for N=0..49, then
+`print(42);`; rule fixtures declare `parse Statement |= 'benchN' ';';` for
+N=0..24, then `print(42);`. Every measured invocation must output `42`.
+Results: `build/lr-native-performance.json`; native reference artifacts and all
+three profiling scripts remain in `build/` as local experiment artifacts.
+
+Final validation: 4/4 native harness tests, optimized Windows tests, 177/177 Node
+tests, 34 canonical/idempotent Tower-source format/tree/rule round trips, and all
+16 bootstrap pairs passed. For each of utf8, bytes, entities and the composed
+parser modules, seed/stage1 versus production optimized LLVM and object bytes
+matched for Linux x64, Wasm, Windows x64 and macOS ARM64. This demonstrates
+agreement of these cross-compilations, not execution testing on a macOS host.
+The final desktop/mobile Playwright result and deployment are recorded below.
+Logs: `build/lr-bulk-{native,wasm,llvm,asan,windows}.log` (Wasm is
+`lr-bulk-wasm.log`), `lr-final-{node,format,bootstrap,web-build,browser}.log`.
+
+Final desktop/mobile Playwright validation passed **102/102** tests in 2.3 minutes
+against the build containing the bulk-copy fix. This includes live Bedrock and
+Foundation edits, forward references, inline diagnostics and recovery, typed
+operations, replacements, interpreter/LLVM agreement, cancellation and stale
+result rejection, target downloads, and reused worker/runtime behavior. Publication
+and online verification will be recorded separately after deployment completes.
+
+Remaining ownership boundary: C++ still adapts shared grammar entities into the
+numeric view, packs/shares runtime transition tables, normalizes action ranges
+and formats conflict diagnostics. Stream ownership, recognizer stack/control and
+diagnostic probing remain native as well. Next, move that runtime table/control
+boundary into Tower while preserving grammar-revision boundaries, node ownership,
+source spans, error contexts and amortized recognition work. Continue with the
+incremental syntax pipeline, semantic/type components, formatter, interpreter,
+backend interfaces and driver. Only after a Tower-built successor rebuilds and
+passes the platform/reproducibility/dependency checks should the remaining native
+seed be replaced by checked-in portable Windows/macOS/Linux executables. Current
+development executables still rely on external native dependencies and are not
+those portable distributions. No new public binary representation was added.

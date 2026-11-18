@@ -2,6 +2,7 @@
 #include "compiler-bytes.hpp"
 #include "compiler-parse-tree.hpp"
 #include "compiler-lexer-table.hpp"
+#include "compiler-lr.hpp"
 #include <cstdlib>
 #include "parser.hpp"
 #include <unordered_map>
@@ -523,58 +524,6 @@ struct GrammarSymbol {
   GrammarNonTerminal* non_terminal = nullptr;
   GrammarTerminal terminal;
 
-  bool operator<(const GrammarSymbol& rhs) const {
-    // Note that our operator does not consider the symbol_node, it is extra information
-    if (non_terminal) {
-      if (rhs.non_terminal) {
-        // Quick case for equals
-        if (non_terminal == rhs.non_terminal) {
-          return false;
-        }
-
-        return non_terminal->name < rhs.non_terminal->name;
-      } else {
-        // Non-terminals are always < terminals
-        return true;
-      }
-    } else {
-      if (rhs.non_terminal) {
-        // Terminals are always > non-terminals
-        return false;
-      } else {
-        // Both are non-terminals, compare the ranges
-        return terminal < rhs.terminal;
-      }
-    }
-  }
-  
-  bool operator==(const GrammarSymbol& rhs) const {
-    if (non_terminal) {
-      // We only need to compare non-terminals
-      return non_terminal == rhs.non_terminal;
-    } else {
-      // If the rhs has a non-terminal, we can't be equal
-      if (rhs.non_terminal) {
-        return false;
-      } else {
-        // Both are non-terminals, compare the ranges
-        return terminal == rhs.terminal;
-      }
-    }
-  }
-};
-
-struct GrammarSymbolRef {
-  const GrammarSymbol* symbol = nullptr;
-
-  bool operator<(const GrammarSymbolRef& rhs) const {
-    parser_trace("MAKE SURE const GrammarSymbol* LESS CALLED\n");
-    return *symbol < *rhs.symbol;
-  }
-  bool operator==(const GrammarSymbolRef& rhs) const {
-    parser_trace("MAKE SURE const GrammarSymbol* EQUALS CALLED\n");
-    return *symbol == *rhs.symbol;
-  }
 };
 
 struct GrammarRule {
@@ -593,7 +542,32 @@ struct Grammar {
 
   void* userdata = nullptr;
   ParserTableIdToString to_string = nullptr;
+  // Disposable numeric view of the entity-backed grammar, borrowed by Tower.
+  std::vector<LRProduction> lr_rules;
+  std::vector<LRSymbol> lr_symbols;
+  std::vector<const GrammarSymbol*> lr_origins;
+  std::unique_ptr<LRAnalysis, decltype(&lr_analysis_destroy)> analysis{nullptr, lr_analysis_destroy};
+  mutable bool analysis_failed = false;
 };
+
+bool parser_grammar_analyze(Grammar& grammar) {
+  for (const auto& rule : grammar.rules) {
+    grammar.lr_rules.push_back({rule.non_terminal->index, grammar.lr_symbols.size(), rule.symbols.size()});
+    for (const auto& symbol : rule.symbols) {
+      grammar.lr_symbols.push_back({symbol.non_terminal ? symbol.non_terminal->index : SIZE_MAX,
+        symbol.terminal.start, symbol.terminal.end});
+      grammar.lr_origins.push_back(&symbol);
+    }
+  }
+  grammar.analysis.reset(lr_analysis_create(grammar.lr_rules.data(), grammar.lr_rules.size(),
+    grammar.lr_symbols.data(), grammar.lr_symbols.size(), grammar.non_terminals.size()));
+  if (!grammar.analysis) return false;
+  std::vector<const GrammarNonTerminal*> names;
+  for (const auto& nonterminal : grammar.non_terminals) names.push_back(&nonterminal);
+  std::sort(names.begin(), names.end(), [](auto* a, auto* b) { return a->name < b->name; });
+  for (size_t i = 0; i < names.size(); ++i) lr_analysis_order(grammar.analysis.get(), names[i]->index, i);
+  return lr_analysis_compute(grammar.analysis.get());
+}
 
 std::string parser_grammar_create(Grammar& grammar, TowerNode* root, void* userdata, ParserTableResolveReference resolve) {
   std::vector<Rule*> rules;
@@ -778,73 +752,10 @@ struct std::hash<SortedVector<T>> {
   }
 };
 
-struct GrammarSets {
-  // Sized exactly to the size of the the Grammar's non_terminals
-  std::vector<SortedVector<GrammarTerminal>> first;
-  std::vector<bool> nullable;
-};
-
-void parser_table_compute_grammar_sets(const Grammar& grammar, GrammarSets& sets) {
-  sets.first.resize(grammar.non_terminals.size());
-  sets.nullable.resize(grammar.non_terminals.size());
-
-  bool has_changed = false;
-  do {
-    has_changed = false;
-
-    for (const auto& rule : grammar.rules) {      
-      // X = Y1 Y2 Y3...
-      auto rule_non_terminal_index = rule.non_terminal->index;
-      auto& rule_first_set = sets.first[rule_non_terminal_index];
-
-      // This also handles the case where X = 
-      bool is_all_nullable = true;
-
-      // Loop until we find a non-nullable symbol
-      for (const auto& symbol : rule.symbols) {
-        if (symbol.non_terminal) {
-          auto symbol_non_terminal_index = symbol.non_terminal->index;
-          auto& symbol_first_set = sets.first[symbol_non_terminal_index];
-
-          // Everything in FIRST(Yn) is in FIRST(X) except epsilon (but we use nullable for epsilon)
-          if (rule_first_set.insert(symbol_first_set.begin(), symbol_first_set.end())) {
-            has_changed = true;
-          }
-
-          // If this non-terminal is not known to be nullable, then 
-          if (!sets.nullable[symbol_non_terminal_index]) {
-            is_all_nullable = false;
-            break;
-          }
-        } else {
-          // FIRST(terminal) = {terminal}
-          if (rule_first_set.insert(symbol.terminal)) {
-            has_changed = true;
-          }
-
-          // We know terminals are are not nullable so we're done
-          is_all_nullable = false;
-          break;
-        }
-      }
-
-      // If everything was nullable
-      if (is_all_nullable && !sets.nullable[rule_non_terminal_index]) {
-        sets.nullable[rule_non_terminal_index] = true;
-        has_changed = true;
-      }
-    }
-  } while(has_changed);
-}
-
 struct LR0Item {
   size_t rule_index = TOWER_INVALID_INDEX;
   size_t symbol_index = TOWER_INVALID_INDEX;
 
-  // Note that GrammarTerminal is only passed here for compatability with the LR1Item constructor
-  inline LR0Item(size_t rule_index, size_t symbol_index, const GrammarTerminal* lookahead) :
-    LR0Item(rule_index, symbol_index) {
-  }
   LR0Item(size_t rule_index_, size_t symbol_index_) :
     rule_index(rule_index_),
     symbol_index(symbol_index_) {
@@ -866,46 +777,6 @@ struct LR0Item {
 
   bool operator==(const LR0Item& rhs) const {
     return rule_index == rhs.rule_index && symbol_index == rhs.symbol_index;
-  }
-};
-
-template <>
-struct std::hash<LR0Item> {
-  std::size_t operator()(const LR0Item& key) const {
-    size_t hash = std::hash<size_t>()(key.rule_index);
-    return hash_combine(hash, std::hash<size_t>()(key.symbol_index));
-  }
-};
-
-struct LR1Item : LR0Item {
-  GrammarTerminal lookahead;
-
-  inline LR1Item(size_t rule_index, size_t symbol_index, const GrammarTerminal* lookahead) :
-    LR0Item(rule_index, symbol_index),
-    lookahead(*lookahead) {
-  }
-  LR1Item(const LR0Item& lr0_item, const GrammarTerminal* lookahead) :
-    LR0Item(lr0_item),
-    lookahead(*lookahead) {
-  }
-
-  // Note: We use std::set<LR1Item> so that we have a deterministic order
-  bool operator<(const LR1Item& rhs) const {
-    const LR0Item& lhs_lr0 = *this;
-    const LR0Item& rhs_lr0 = rhs;
-    if (lhs_lr0 < rhs_lr0) {
-      return true;
-    }
-    if (rhs_lr0 < lhs_lr0) {
-      return false;
-    }
-    return lookahead < rhs.lookahead;
-  }
-
-  bool operator==(const LR1Item& rhs) const {
-    const LR0Item& lhs_lr0 = *this;
-    const LR0Item& rhs_lr0 = rhs;
-    return lhs_lr0 == rhs_lr0 && lookahead == rhs.lookahead;
   }
 };
 
@@ -1025,16 +896,6 @@ std::string debug_str(const Grammar& grammar) {
   return stream.str();
 }
 
-std::string debug_str(const LR1Item& item, const Grammar& grammar) {
-  std::stringstream stream;
-  stream << '[';
-  stream << debug_str(static_cast<const LR0Item&>(item), grammar);
-  stream << ", ";
-  stream << debug_str(item.lookahead, grammar);
-  stream << ']';
-  return stream.str();
-}
-
 const GrammarSymbol* parser_table_get_grammar_symbol_or_null(const Grammar& grammar, const LR0Item& item) {
   // Find the next grammar symbol after the dot
   const GrammarRule& grammar_rule = grammar.rules[item.rule_index];
@@ -1047,108 +908,11 @@ const GrammarSymbol* parser_table_get_grammar_symbol_or_null(const Grammar& gram
   return &grammar_rule.symbols[item.symbol_index];
 }
 
-// These items are always insertion sorted and lexographically comparable
-template <typename LRItem>
-struct LRSet {
-  // All of these vectors are sorted with custom comparison operators
-  SortedVector<LRItem> kernels;
-  SortedVector<LRItem> nonkernels;
-  SortedVector<GrammarSymbolRef> symbols;
-
-  bool insert(const Grammar& grammar, const LRItem& item) {
-    SortedVector<LRItem>& items = parser_table_is_kernel_item(grammar, item)
-      ? kernels
-      : nonkernels;
-
-    bool inserted = items.insert(item);
-    if (inserted) {
-      // Lookup the symbol for this item and add it to our sorted list of symbols
-      // Note that this symbol may already exist, but this item may have just been inserted
-      // (for example two items with a dot before a the same non-terminal)
-      const GrammarSymbol* symbol = parser_table_get_grammar_symbol_or_null(grammar, item);
-      if (symbol) {
-        symbols.insert(GrammarSymbolRef{ .symbol = symbol });
-      }
-    }
-    return inserted;
-  }
-
-  // Equalty only needs to compare kernels to see if two sets are fundamentally
-  // the same as all non-kernel items can be built from kernel items
-  bool operator==(const LRSet& rhs) const {
-    return this->kernels == rhs.kernels;
-  }
-
-  bool empty() {
-    return kernels.empty() && nonkernels.empty();
-  }
-
-  struct Iterator {
-    const LRSet<LRItem>* set = nullptr;
-    size_t index = 0;
-
-    Iterator& operator++() {
-      ++index;
-      return *this;
-    }
-    const LRItem& operator*() const {
-      return index < set->kernels.size()
-        ? set->kernels[index]
-        : set->nonkernels[index - set->kernels.size()];
-    }
-    bool operator!=(const Iterator& other) const {
-      return index != other.index;
-    }
-  };
-
-  // Always start with kernel items first
-  Iterator begin() const {
-    return Iterator {
-      .set = this,
-      .index = 0,
-    };
-  }
-  Iterator end() const {
-    return Iterator {
-      .set = this,
-      .index = kernels.size() + nonkernels.size(),
-    };
-  }
+// Borrowed grammar positions retained for diagnostics while native presentation
+// adapters remain. Tower owns item closure, interning and lookahead computation.
+struct DiagnosticItems {
+  std::vector<LR0Item> kernels, nonkernels;
 };
-
-template <>
-struct std::hash<LRSet<LR0Item>> {
-  std::size_t operator()(const LRSet<LR0Item>& set) const {
-    return std::hash<SortedVector<LR0Item>>()(set.kernels);
-  }
-};
-
-template <>
-struct std::hash<const LRSet<LR0Item>*> {
-  std::size_t operator()(const LRSet<LR0Item>* set) const {
-    parser_trace("MAKE SURE const LRSet<LR0Item>* HASH CALLED\n");
-    return std::hash<LRSet<LR0Item>>()(*set);
-  }
-};
-
-template <>
-struct std::equal_to<const LRSet<LR0Item>*> {
-  bool operator()(const LRSet<LR0Item>* lhs, const LRSet<LR0Item>* rhs) const {
-    parser_trace("MAKE SURE const LRSet<LR0Item>* EQUALS CALLED\n");
-    return *lhs == *rhs;
-  }
-};
-
-template <typename LRItem>
-std::string debug_str(const LRSet<LRItem>& items, const Grammar& grammar) {
-  std::stringstream stream;
-  stream << "==========\n";
-  for (const auto& item : items) {
-    stream << debug_str(item, grammar) << "\n";
-  }
-  stream << "----------";
-  return stream.str();
-}
 
 struct StateBuilderEdge {
   GrammarTerminal terminal;
@@ -1209,7 +973,7 @@ struct StateBuilder {
   std::vector<StateBuilderGotoAfterReduction> gotos_after_reduction;
 
   // These items are always insertion sorted and lexographically comparable
-  LRSet<LR0Item> items;
+  DiagnosticItems items;
 
   // This is useful for debug printing and tracking back to the source
   const GrammarSymbol* symbol = nullptr;
@@ -1234,121 +998,20 @@ struct std::equal_to<const SortedVector<StateBuilderEdge>*> {
 struct TableBuilder {
   std::vector<std::unique_ptr<StateBuilder>> states;
 
-  // These should only be inserted once the LR item vector is completed
-  // Note that this only compares kernels
-  std::unordered_map<const LRSet<LR0Item>*, size_t> item_sets_to_state_index;
 
   // How many kernel lr items we have in total, used for reserving memory
   size_t total_kernel_lr_items = 0;
 };
 
-// For compatability with LR1Items
-inline const GrammarTerminal* parser_table_get_lookahead(const LR0Item&) {
-  return nullptr;
-}
-inline const GrammarTerminal* parser_table_get_lookahead(const LR1Item& item) {
-  return &item.lookahead;
-}
-
-template <typename LRItem>
-void parser_table_closure(const Grammar& grammar, const GrammarSets* sets_for_lr1, LRSet<LRItem>& items) {
-  // Note: This should closely match the LR0 version
-  std::vector<LRItem> unprocessed;
-  unprocessed.reserve(items.kernels.size() + items.nonkernels.size());
-  unprocessed.insert(unprocessed.end(), items.kernels.begin(), items.kernels.end());
-  unprocessed.insert(unprocessed.end(), items.nonkernels.begin(), items.nonkernels.end());
-  
-  while (!unprocessed.empty()) {
-    // [A = α.Bβ, a] in dragon book
-    LRItem item = unprocessed.back();
-    unprocessed.pop_back();
-    
-    // For each item in the closure, find the next grammar symbol after the dot or null at the end (B in the dragon book)
-    const GrammarSymbol* symbol = parser_table_get_grammar_symbol_or_null(grammar, item);
-
-    // Compute FIRST of the entire suffix followed by the item's lookahead.
-    // Looking at only the next symbol loses tokens after nullable sequences.
-    SortedVector<GrammarTerminal> closure_lookaheads;
-    if (sets_for_lr1) {
-      bool nullable_suffix = true;
-      const auto& symbols = grammar.rules[item.rule_index].symbols;
-      for (size_t i = item.symbol_index + 1; i < symbols.size(); ++i) {
-        const auto& after = symbols[i];
-        if (!after.non_terminal) {
-          closure_lookaheads.insert(after.terminal);
-          nullable_suffix = false;
-          break;
-        }
-        const auto& first = sets_for_lr1->first[after.non_terminal->index];
-        closure_lookaheads.insert(first.begin(), first.end());
-        if (!sets_for_lr1->nullable[after.non_terminal->index]) {
-          nullable_suffix = false;
-          break;
-        }
-      }
-      if (nullable_suffix) closure_lookaheads.insert(*parser_table_get_lookahead(item));
-    }
-
-    // We only care if the grammar symbol is a reference (another rule to expand)
-    if (symbol && symbol->non_terminal) {
-      for (GrammarRule* rule : symbol->non_terminal->rules) {
-        auto add_item = [&](const GrammarTerminal* terminal_or_null) {
-          LRItem nonkernel_item(rule->index, 0, terminal_or_null);
-
-          // Attempt to insert it and if it's the first time it's been inserted, we need to process it
-          if (terminal_or_null) {
-            parser_trace("adding terminal: %d\n", (int)terminal_or_null->start);
-          }
-          if (items.insert(grammar, nonkernel_item)) {
-            parser_trace("added\n");
-            unprocessed.push_back(nonkernel_item);
-          } else {
-            parser_trace("did not add\n");
-          }
-        };
-
-        if (sets_for_lr1) {
-          for (const auto& terminal : closure_lookaheads) add_item(&terminal);
-        } else {
-          // Otherwise, this is LR0 and we only need to add a single item with no lookahead
-          add_item(nullptr);
-        }
-      }
-    }
+void parser_lr_result(const Grammar& grammar, LRItems* result, DiagnosticItems& items) {
+  const auto* values = lr_items_data(result);
+  for (size_t i = 0; i < lr_items_count(result); ++i) {
+    const auto& value = values[i];
+    LR0Item item(value.rule, value.position);
+    (parser_table_is_kernel_item(grammar, item) ? items.kernels : items.nonkernels).push_back(item);
   }
 }
 
-template <typename LRItem>
-LRSet<LRItem> parser_table_goto(
-  const Grammar& grammar,
-  const GrammarSets* sets, // GrammarSets may be null for lr0 (passed only to make this generic/templated)
-  const LRSet<LRItem>& items,
-  const GrammarSymbol& goto_symbol
-) {
-  LRSet<LRItem> result;
-  for (const LRItem& item : items) {
-    const GrammarSymbol* symbol = parser_table_get_grammar_symbol_or_null(grammar, item);
-  
-    // If they're the same non-terminal, or both null / terminals
-    if (symbol && symbol->non_terminal == goto_symbol.non_terminal) {
-      LRItem next_item = item;
-      ++next_item.symbol_index;
-
-      // Non-terminals or terminals?
-      if (symbol->non_terminal) {
-        result.insert(grammar, next_item);
-      } else {
-        // A disjoint/equal terminal range has the same transition for every
-        // member. Partially overlapping ranges still require table partitioning.
-        if (goto_symbol.terminal.start >= symbol->terminal.start && goto_symbol.terminal.end <= symbol->terminal.end) {
-          result.insert(grammar, next_item);
-        }
-      }
-    }
-  }
-  parser_table_closure(grammar, sets, result);
-  return result;
-}
 
 struct State;
 struct StateEdge {
@@ -1483,462 +1146,36 @@ std::string debug_str(const Table& table) {
   return stream.str();
 }
 
-void parser_table_lr0_items(TableBuilder& table_builder, const Grammar& grammar) {
-  std::vector<StateBuilder*> unprocessed;
-
-  // Rough guess on the number of states
-  table_builder.states.reserve(grammar.rules.size()); // C in dragon book
-  table_builder.item_sets_to_state_index.reserve(grammar.rules.size());
-  unprocessed.reserve(grammar.rules.size());
-
-  // Build the starting state
-  {
-    table_builder.states.push_back(std::make_unique<StateBuilder>());
-    StateBuilder& starting = *table_builder.states.back().get();
-    starting.state_index = 0;
-    starting.items.insert(grammar, LR0Item{0, 0});
-    parser_table_closure(grammar, nullptr, starting.items);
-    unprocessed.push_back(&starting);
-    table_builder.total_kernel_lr_items += starting.items.kernels.size();
+void parser_table_build_lr(TableBuilder& table_builder, const Grammar& grammar, ParserTableMode mode) {
+  std::unique_ptr<LRStates, decltype(&lr_states_destroy)> states(
+    lr_states_create(grammar.analysis.get()), lr_states_destroy);
+  if (!states || !lr_states_lalr(states.get(), mode == ParserTableMode::Constructs)) {
+    grammar.analysis_failed = true; return;
   }
+  table_builder.states.reserve(lr_states_count(states.get()));
+  for (size_t i = 0; i < lr_states_count(states.get()); ++i) {
+    auto state = std::make_unique<StateBuilder>();
+    state->state_index = i;
+    const auto origin = lr_states_origin(states.get(), i);
+    if (origin != SIZE_MAX) state->symbol = grammar.lr_origins[origin];
+    parser_lr_result(grammar, lr_states_items(states.get(), i), state->items);
+    table_builder.total_kernel_lr_items += state->items.kernels.size();
+    const auto* edges = lr_states_edges(states.get(), i);
+    for (size_t j = 0; j < lr_states_edge_count(states.get(), i); ++j) {
+      const auto& edge = edges[j];
+      const auto* symbol = grammar.lr_origins[edge.symbol];
+      if (symbol->non_terminal)
+        state->gotos_after_reduction.push_back({symbol->non_terminal, edge.state});
 
-  const auto find_or_add_state = [&](const LRSet<LR0Item>& set, const GrammarSymbol* symbol) -> StateBuilder& {
-    auto result = table_builder.item_sets_to_state_index.find(&set);
-    if (result != table_builder.item_sets_to_state_index.end()) {
-      return *table_builder.states[result->second].get();
     }
-
-    size_t state_index = table_builder.states.size();
-    table_builder.states.push_back(std::make_unique<StateBuilder>());
-    StateBuilder& builder = *table_builder.states.back().get();
-    builder.state_index = state_index;
-    builder.items = std::move(set);
-    builder.symbol = symbol;
-    unprocessed.push_back(&builder);
-    table_builder.item_sets_to_state_index.insert(std::pair<const LRSet<LR0Item>*, size_t>(&builder.items, state_index));
-    table_builder.total_kernel_lr_items += set.kernels.size();
-    parser_trace("added state\n");
-    return builder;
-  };
-
-  while (!unprocessed.empty()) {
-
-    StateBuilder& state_builder = *unprocessed.back(); // I in dragon book;
-    unprocessed.pop_back();
-    
-    parser_trace("state %s\n", debug_str(state_builder.items, grammar).c_str());
-    // X in dragon book
-    // This is potentially unsafe because we resize the number of states as we add more
-    // However, upon resizing each element is moved, and since we don't use any custom allocators
-    // then the moved memory should be unchanged (pointers and iterators to it should be valid, but not guaranteed by std)
-    // https://stackoverflow.com/questions/11021764/does-moving-a-vector-invalidate-iterators
-    for (GrammarSymbolRef symbol_ref : state_builder.items.symbols) {
-      const GrammarSymbol* symbol = symbol_ref.symbol;
-      parser_trace("capacity %d size %d\n", (int)table_builder.states.capacity(), (int)table_builder.states.size());
-      parser_trace("from state %s\n", debug_str(state_builder.items, grammar).c_str());
-      parser_trace("symbol %s\n", debug_str(*symbol, grammar).c_str());
-      LRSet<LR0Item> gotos = parser_table_goto(grammar, nullptr, state_builder.items, *symbol);
-      parser_trace("gotos %s\n", debug_str(gotos, grammar).c_str());
-      // Our gotos should never be empty since we only query with symbols that are valid
-      assert(!gotos.empty());
-      
-      StateBuilder& next_state = find_or_add_state(gotos, symbol);
-
-      if (symbol->non_terminal) {
-        StateBuilderGotoAfterReduction& goto_after_reductions = state_builder.gotos_after_reduction.emplace_back();
-        goto_after_reductions.non_terminal = symbol->non_terminal;
-        goto_after_reductions.shift_state_index = next_state.state_index;
-      } else {
-        StateBuilderEdge edge {
-          .terminal = symbol->terminal,
-          .shift_state_index = next_state.state_index,
-        };
-        
-        bool inserted = state_builder.edges.insert(edge);
-        assert(inserted); // We should never have collisions
-      }
+    const auto* actions = lr_states_actions(states.get(), i);
+    for (size_t j = 0; j < lr_states_action_count(states.get(), i); ++j) {
+      const auto& action = actions[j];
+      state->edges.insert(StateBuilderEdge{.terminal = {action.first, action.last},
+        .reduce_rule = action.rule == SIZE_MAX ? nullptr : &grammar.rules[action.rule],
+        .shift_state_index = action.state});
     }
-  }
-}
-
-std::string debug_str(const GrammarSets& sets, const Grammar& grammar) {
-  std::stringstream stream;
-
-  stream << "++++++++++\n";
-  for (size_t i = 0; i < grammar.non_terminals.size(); ++i) {
-    stream << "FIRST(" << grammar.non_terminals[i].name << ") = {";
-
-    auto& first = sets.first[i];
-    for (const auto& terminal : first) {
-      stream << ' ' << debug_str(terminal, grammar);
-    }
-
-    if (sets.nullable[i]) {
-      stream << " ε";
-    }
-
-    stream << " }\n";
-  }
-
-  stream << "----------";
-  return stream.str();
-}
-
-struct LR0ItemInKernelState : LR0Item {
-  size_t state_index = 0;
-
-  LR0ItemInKernelState(const LR0Item& lr0_item, size_t state_index_) :
-    LR0Item(lr0_item),
-    state_index(state_index_) {
-  }
-
-  bool operator==(const LR0ItemInKernelState& rhs) const {
-    const LR0Item& lhs_lr0 = *this;
-    const LR0Item& rhs_lr0 = rhs;
-    return lhs_lr0 == rhs_lr0 && state_index == rhs.state_index;
-  }
-};
-
-template <>
-struct std::hash<LR0ItemInKernelState> {
-  std::size_t operator()(const LR0ItemInKernelState& key) const {
-    size_t hash = std::hash<LR0Item>()(key);
-    return hash_combine(hash, std::hash<size_t>()(key.state_index));
-  }
-};
-
-LRSet<LR0Item> parser_table_lr0_from_lr1_kernels(const LRSet<LR1Item>& items) {
-  // Note that we cannot just assign kernels from LRSet<LR1Item> to LRSet<LR0Item>
-  // because the LRSet<LR1Item> may have the same LR0Item in it multiple times with different lookaheads
-  // Assigning directly from LR1 kernels would cause a potential duplicate LR0 item
-  LRSet<LR0Item> result;
-  result.kernels.reserve(items.kernels.size());
-
-  // Since we know the LR1 items are sorted (first by LR0 item and then by lookahead)
-  // then we know that duplicate LR0 items will be next to each other
-  // Note that last_inserted_item is initialized to an invalid default (will never be ==)
-  LR0Item last_inserted_item(TOWER_INVALID_INDEX, TOWER_INVALID_INDEX);
-  // Note that we loop through LR1Items but they inherit from LR0Item so we grab that reference
-  for (const LR0Item& item : items.kernels) {
-    if (!(item == last_inserted_item)) {
-      result.kernels.push_back(item);
-      last_inserted_item = item;
-    }
-  }
-  return result;
-}
-
-// If I had my druthers this would be implemented as an intrusively linked list inside the buckets
-// However since we're working within the STL, and since the cases we need only add to the container
-// then a vector + unordered_map should be fine
-template <typename Key, typename Value>
-struct OrderedMap {
-  struct LinkedNode {
-    LinkedNode* next = nullptr;
-    LinkedNode* prev = nullptr;
-
-    LinkedNode() :
-      next(this), prev(this) {
-    };
-    LinkedNode(LinkedNode&& moved) {
-      next = moved.next;
-      prev = moved.prev;
-      next->prev = this;
-      prev->next = this;
-      moved.next = &moved;
-      moved.prev = &moved;
-    }
-    LinkedNode(const LinkedNode& copy) = delete;
-
-    ~LinkedNode() {
-      next->prev = prev;
-      prev->next = next;
-    }
-
-    void prepend(LinkedNode& prepended) {
-      LinkedNode* this_prev = prev;
-      prev = &prepended;
-      this_prev->next = &prepended;
-      prepended.prev = this_prev;
-      prepended.next = this;
-    }
-  };
-
-  struct LinkedKey : LinkedNode {
-    Key key;
-
-    LinkedKey() {}
-    LinkedKey(const Key& key) : key(key) {}
-    LinkedKey(LinkedKey&& moved) :
-      LinkedNode(std::move(moved)),
-      key(std::move(moved.key)) {
-    }
-    LinkedKey(const LinkedKey& copy) = delete;
-  };
-
-  struct Hasher {
-    size_t operator()(const LinkedKey& value) const {
-      return std::hash<Key>()(value.key);
-    }
-  };
-  struct EqualTo {
-    bool operator()(const LinkedKey& lhs, const LinkedKey& rhs) const {
-      return std::equal_to<Key>()(lhs.key, rhs.key);
-    }
-  };
-
-  std::unordered_map<LinkedKey, Value, Hasher, EqualTo> map;
-  LinkedNode sentinel;
-
-  void reserve(size_t size) {
-    map.reserve(size);
-  }
-
-  Value& operator[](const Key& key) {
-    auto result = map.emplace(key, Value());
-    if (result.second) {
-      // We modify the key which is unsafe, however we never use that part of the key
-      // for hashing or equality, so we can't change the key value by modifying it
-      LinkedKey& inserted_key = const_cast<LinkedKey&>(result.first->first);
-      assert(inserted_key.next == &inserted_key && inserted_key.prev == &inserted_key);
-      // We use prepend because we don't want the last thing inserted to be at the front
-      sentinel.prepend(inserted_key);
-      return result.first->second;
-    } else {
-      return result.first->second;
-    }
-  }
-
-  bool contains(const Key& key) {
-    LinkedKey linked_key(key);
-    return map.find(linked_key) != map.end();
-  }
-
-  struct Iterator {
-    const OrderedMap* map = nullptr;
-    const LinkedNode* current = nullptr;
-
-    Iterator& operator++() {
-      current = current->next;
-      return *this;
-    }
-    std::pair<Key, const Value&> operator*() const {
-      assert(current != &map->sentinel);
-      const LinkedKey& linked_key = *static_cast<const LinkedKey*>(current);
-      // I wish there was a way to get to the value without having to hash/find
-      // but maybe this is where we need to use boost containers
-      auto found = map->map.find(linked_key);
-      assert(found != map->map.end());
-      return std::pair<Key, const Value&>(linked_key.key, found->second);
-    }
-    bool operator==(const Iterator& other) const {
-      return current == other.current;
-    }
-    bool operator!=(const Iterator& other) const {
-      return current != other.current;
-    }
-  };
-
-  // Always start with kernel items first
-  Iterator begin() const {
-    return Iterator {
-      .map = this,
-      .current = sentinel.next,
-    };
-  }
-  Iterator end() const {
-    return Iterator {
-      .map = this,
-      .current = &sentinel,
-    };
-  }
-};
-
-void parser_table_lalr_lookaheads(
-  TableBuilder& table_builder,
-  const Grammar& grammar,
-  const GrammarSets& sets,
-  ParserTableMode mode
-) {
-  // By reserving the total maximum amount we have, we guarantee this will never reallocate
-  OrderedMap<LR0ItemInKernelState, SortedVector<GrammarTerminal>> lookaheads;
-  lookaheads.reserve(table_builder.total_kernel_lr_items);
-
-  // The propegation isn't just an LR0 item, it's a specific LR0 item in a state
-  // It's significant because when we go to look up 
-  OrderedMap<LR0ItemInKernelState, SortedVector<LR0ItemInKernelState>> propegation;
-  propegation.reserve(table_builder.total_kernel_lr_items);
-
-  // By default the starting rulne has an implict lookahead of EOF / $
-  // Empty productions may also be kernels in the starting closure.
-  assert(table_builder.states.size() > 0);
-  StateBuilder& state = *table_builder.states[0].get();
-  assert(!state.items.kernels.empty());
-  const LR0Item& start_kernel = state.items.kernels[0];
-  assert(start_kernel.rule_index == 0);
-  assert(start_kernel.symbol_index == 0);
-  LR0ItemInKernelState start_item(start_kernel, 0);
-  lookaheads[start_item].insert(GrammarTerminal {
-    .start = PARSER_ID_EOF,
-    .end = PARSER_ID_EOF,
-  });
-  if (mode == ParserTableMode::Constructs) {
-    // Equivalent boundary lookaheads to a sequence of start-rule constructs.
-    // Keep these in the ordinary LALR conflict check, not a runtime shift bias.
-    const auto& first = sets.first[grammar.rules[0].symbols[0].non_terminal->index];
-    lookaheads[start_item].insert(first.begin(), first.end());
-  }
-
-  for (const auto& state_builder : table_builder.states) {
-    for (const auto& kernel_item : state_builder->items.kernels) {
-      assert(parser_table_is_kernel_item(grammar, kernel_item));
-      parser_trace("KERNEL ITEM BEGIN: %s\n", debug_str(kernel_item, grammar).c_str());
-      LRSet<LR1Item> lr1_items;
-      GrammarTerminal lookahead {
-        .start = PARSER_ID_LOOKAHEAD,
-        .end = PARSER_ID_LOOKAHEAD,
-      };
-      LR1Item lr1_item(kernel_item, &lookahead);
-      lr1_items.insert(grammar, lr1_item);
-
-      parser_table_closure(grammar, &sets, lr1_items);
-
-      // Empty productions reduce in this state without traversing a GOTO edge.
-      for (const auto& closure_item : lr1_items.kernels) {
-        if (!grammar.rules[closure_item.rule_index].symbols.empty()) continue;
-        LR0ItemInKernelState destination(closure_item, state_builder->state_index);
-        if (closure_item.lookahead.start == PARSER_ID_LOOKAHEAD) {
-          LR0ItemInKernelState source(kernel_item, state_builder->state_index);
-          propegation[source].insert(destination);
-        } else {
-          lookaheads[destination].insert(closure_item.lookahead);
-        }
-      }
-
-      for (GrammarSymbolRef symbol_ref : lr1_items.symbols) {
-        const GrammarSymbol* symbol = symbol_ref.symbol;
-        // Note that if we did goto on 'kernel_state' we would need to run closure first as the state is kernel items only
-        // Goto also preserves the lookaheads
-        parser_trace("KERNEL ITEM: %s\n", debug_str(kernel_item, grammar).c_str());
-        parser_trace("KERNEL ITEM CLOSURE: %s\n", debug_str(lr1_items, grammar).c_str());
-        parser_trace("SYMBOL: %s\n", debug_str(*symbol, grammar).c_str());
-        LRSet<LR1Item> goto_state_lr1 = parser_table_goto(grammar, &sets, lr1_items, *symbol);
-        parser_trace("GOTO: %s\n", debug_str(goto_state_lr1, grammar).c_str());
-        // Always should have items since we only query with valid symbols from lr1_items
-        assert(goto_state_lr1.kernels.size() != 0);
-        parser_trace("GOTO KERNELS: %s\n", debug_str(goto_state_lr1, grammar).c_str());
-        
-        // Use the full LR0 state's transition. A single kernel's closure may
-        // advance only a subset of the destination's kernels.
-        size_t destination_state = TOWER_INVALID_INDEX;
-        if (symbol->non_terminal) {
-          for (const auto& transition : state_builder->gotos_after_reduction)
-            if (transition.non_terminal == symbol->non_terminal)
-              destination_state = transition.shift_state_index;
-        } else {
-          for (const auto& transition : state_builder->edges)
-            if (!transition.reduce_rule && transition.terminal == symbol->terminal)
-              destination_state = transition.shift_state_index;
-        }
-        assert(destination_state != TOWER_INVALID_INDEX);
-
-        for (const LR1Item& propegate_to : goto_state_lr1.kernels) {
-          LR0ItemInKernelState propegation_dest(propegate_to, destination_state);
-
-          // Is lookahead propegated?
-          if (propegate_to.lookahead.start == PARSER_ID_LOOKAHEAD) {
-            assert(propegate_to.lookahead.end == PARSER_ID_LOOKAHEAD);
-            LR0ItemInKernelState propegation_source(kernel_item, state_builder->state_index);
-            propegation[propegation_source].insert(propegation_dest);
-          } else {
-            // Otherwise it's generated / spontaneous
-            parser_trace("SPONTANEOUS %s\n", debug_str(propegate_to.lookahead, grammar).c_str());
-            lookaheads[propegation_dest].insert(propegate_to.lookahead);
-          }
-        }
-      }
-
-      parser_trace("%s\n", debug_str(lr1_items, grammar).c_str());
-    }
-  }
-
-  for (const auto& entry : propegation) {
-    parser_trace("FROM: %s\n", debug_str(entry.first, grammar).c_str());
-    parser_trace("IN: %s\n", debug_str(table_builder.states[entry.first.state_index]->items, grammar).c_str());
-    for (const auto& to_states : entry.second) {
-      parser_trace("  TO:\n%s\n", debug_str(to_states, grammar).c_str());
-      parser_trace("  IN: %s\n", debug_str(table_builder.states[to_states.state_index]->items, grammar).c_str());
-    }
-  }
-
-  // From the above algorithm, we produced spontaneous lookaheads (real symbols)
-  // as well as the propegation map. Now propegate lookaheads until there's none left
-  bool has_changed = false;
-  do {
-    has_changed = false;
-
-    // PRINT DEBUG LOOKAHEADS
-    parser_trace("LOOKAHEADS:\n");
-    for (const auto& entry : lookaheads) {
-      parser_trace("ITEM: %s\n", debug_str(entry.first, grammar).c_str());
-      parser_trace("IN: %s\n", debug_str(table_builder.states[entry.first.state_index]->items, grammar).c_str());
-      for (const auto& lookahead : entry.second) {
-        parser_trace(" %s", debug_str(lookahead, grammar).c_str());
-      }
-      parser_trace("\n");
-    }
-
-    for (const auto& propegate_pair : propegation) {
-      // Normally it would not be safe to hold this reference as we possibly insert into lookaheads below
-      // however we avoid any rehash because we reserved the maxmium size that lookaheads can be already
-      // Therefore this reference will always be safe to hold
-      auto& lookahead_terminals = lookaheads[propegate_pair.first];
-      for (const auto& to_states : propegate_pair.second) {
-        auto& propegate_to_terminals = lookaheads[to_states];
-        size_t size_before = propegate_to_terminals.size();
-        propegate_to_terminals.insert(lookahead_terminals.begin(), lookahead_terminals.end());
-        if (propegate_to_terminals.size() != size_before) {
-          has_changed = true;
-        }
-      }
-    }
-  } while(has_changed);
-
-  // Validate that all the reduce items have
-#ifndef NDEBUG
-  for (const auto& state_builder : table_builder.states) {
-    // Note that only kernel items can be reduce items
-    for (const auto& kernel_item : state_builder->items.kernels) {
-      const GrammarRule& rule = grammar.rules[kernel_item.rule_index];
-      // If this is a reduce rule (dot at the end)
-      // Note that this may be an empty production
-      if (kernel_item.symbol_index == rule.symbols.size()) {
-        LR0ItemInKernelState item_in_kernel(kernel_item, state_builder->state_index);
-        assert(lookaheads.contains(item_in_kernel));
-      }
-    }
-  }
-#endif
-
-  // Finally, take care of all the reduce transitions since we now know the lookaheads
-  for (const auto& entry : lookaheads) {
-    const GrammarRule& rule = grammar.rules[entry.first.rule_index];
-
-    // If this is a reduction (the dot is at the end of the production / no grammar symbols left)
-    if (entry.first.symbol_index == rule.symbols.size()) {
-      StateBuilder& state_builder = *table_builder.states[entry.first.state_index].get();
-
-      // For each lookahead
-      for (const auto& lookahead_terminal : entry.second) {
-        StateBuilderEdge edge {
-          .terminal = lookahead_terminal,
-          .reduce_rule = &rule,
-        };
-        
-        bool inserted = state_builder.edges.insert(edge);
-        assert(inserted); // We should never have collisions
-      }
-    }
+    table_builder.states.push_back(std::move(state));
   }
 }
 
@@ -2134,18 +1371,12 @@ Table* parser_table_create(
     assert(grammar.non_terminals.size() > 0);
     parser_trace("%s\n", debug_str(grammar).c_str());
 
+    if (!parser_grammar_analyze(grammar)) return fail("Unable to allocate LR grammar analysis");
     TableBuilder table_builder;
-    parser_table_lr0_items(table_builder, grammar);
+    parser_table_build_lr(table_builder, grammar, mode);
+    if (grammar.analysis_failed) return fail("Unable to construct LR parser tables");
     assert(table_builder.states.size() > 0);
     assert(table_builder.total_kernel_lr_items > 0);
-
-    GrammarSets sets;
-    parser_table_compute_grammar_sets(grammar, sets);
-    assert(sets.first.size() == grammar.non_terminals.size());
-    assert(sets.nullable.size() == grammar.non_terminals.size());
-    parser_trace("%s\n", debug_str(sets, grammar).c_str());
-
-    parser_table_lalr_lookaheads(table_builder, grammar, sets, mode);
 
     message = parser_table_build_states(*table, table_builder);
     if (!message.empty()) return fail(message);
@@ -2159,6 +1390,10 @@ Table* parser_table_create(
       for (const auto& edge : transitions.range_edges) same &= edge.edge.reduce_rule == rule;
       if (same) state.default_reduce = rule;
     }
+    grammar.analysis.reset();
+    std::vector<LRProduction>().swap(grammar.lr_rules);
+    std::vector<LRSymbol>().swap(grammar.lr_symbols);
+    std::vector<const GrammarSymbol*>().swap(grammar.lr_origins);
     if (specialize) parser_prepare_sequence(table);
     parser_trace("%s\n", debug_str(*table).c_str());
 
@@ -2630,86 +1865,4 @@ void parser_tests_internal() {
     assert(values[4] == 3);
   }
 
-  // Test OrderedMap
-  {
-    OrderedMap<size_t, size_t> map;
-    assert(map.begin() == map.end());
-    assert(map.contains(1) == false);
-    map[1] = 100;
-    assert(map[1] == 100);
-    assert(map.contains(1) == true);
-    assert(map.begin() != map.end());
-    assert(++map.begin() == map.end());
-    assert((*map.begin()).first == 1);
-    assert((*map.begin()).second == 100);
-
-    assert(map.contains(2) == false);
-    map[2] = 200;
-    assert(map[2] == 200);
-    assert(map.contains(1) == true);
-    assert(map.contains(2) == true);
-
-    assert(map.contains(3) == false);
-    map[3] = 300;
-    assert(map[3] == 300);
-    assert(map.contains(1) == true);
-    assert(map.contains(2) == true);
-    assert(map.contains(3) == true);
-
-    {
-      auto it = map.begin();
-      assert((*it).first == 1);
-      assert((*it).second == 100);
-      ++it;
-      assert((*it).first == 2);
-      assert((*it).second == 200);
-      ++it;
-      assert((*it).first == 3);
-      assert((*it).second == 300);
-      ++it;
-      assert(it == map.end());
-    }
-  
-    map.reserve(100);
-
-    {
-      auto it = map.begin();
-      assert((*it).first == 1);
-      assert((*it).second == 100);
-      ++it;
-      assert((*it).first == 2);
-      assert((*it).second == 200);
-      ++it;
-      assert((*it).first == 3);
-      assert((*it).second == 300);
-      ++it;
-      assert(it == map.end());
-    }
-  
-    assert(map[1] == 100);
-    assert(map[2] == 200);
-    assert(map[3] == 300);
-
-    assert(map.contains(0) == false);
-    map[0] = 0;
-    assert(map[0] == 0);
-    assert(map.contains(0) == true);
-
-    {
-      auto it = map.begin();
-      assert((*it).first == 1);
-      assert((*it).second == 100);
-      ++it;
-      assert((*it).first == 2);
-      assert((*it).second == 200);
-      ++it;
-      assert((*it).first == 3);
-      assert((*it).second == 300);
-      ++it;
-      assert((*it).first == 0);
-      assert((*it).second == 0);
-      ++it;
-      assert(it == map.end());
-    }
-  }
 }

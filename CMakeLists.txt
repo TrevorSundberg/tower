@@ -17,14 +17,14 @@ if(TOWER_NATIVE)
   target_compile_options(tower-native-compiler PRIVATE -fno-exceptions)
   add_executable(towerc-seed $<TARGET_OBJECTS:tower-native-compiler> scaffolding/bootstrap/utf8-seed.cpp scaffolding/bootstrap/bytes-seed.cpp scaffolding/bootstrap/nodes-seed.cpp scaffolding/bootstrap/parse-tree-seed.cpp scaffolding/bootstrap/generics-seed.cpp scaffolding/bootstrap/parser-nodes-seed.cpp)
   target_compile_features(towerc-seed PRIVATE cxx_std_20)
-  target_sources(towerc-seed PRIVATE scaffolding/bootstrap/lexer-table-seed.cpp scaffolding/bootstrap/lex-pattern-seed.cpp)
+  target_sources(towerc-seed PRIVATE scaffolding/bootstrap/lr-analysis-seed.cpp scaffolding/bootstrap/lexer-table-seed.cpp scaffolding/bootstrap/lex-pattern-seed.cpp)
   target_link_libraries(towerc-seed PRIVATE LLVM tower-compiler-memory)
   tower_compiler_utilities()
   # The seed builds the Tower specializer; this stage can then build generic
   # compiler components. Keep the dependency graph acyclic from a clean checkout.
   add_executable(towerc-stage1 $<TARGET_OBJECTS:tower-native-compiler> scaffolding/tower.cpp scaffolding/bootstrap/parser-nodes-seed.cpp)
   target_compile_features(towerc-stage1 PRIVATE cxx_std_20)
-  target_sources(towerc-stage1 PRIVATE scaffolding/bootstrap/lexer-table-seed.cpp scaffolding/bootstrap/lex-pattern-seed.cpp)
+  target_sources(towerc-stage1 PRIVATE scaffolding/bootstrap/lr-analysis-seed.cpp scaffolding/bootstrap/lexer-table-seed.cpp scaffolding/bootstrap/lex-pattern-seed.cpp)
   target_link_libraries(towerc-stage1 PRIVATE tower-compiler-entities tower-compiler-utilities tower-compiler-memory LLVM)
   tower_compiler_parser_nodes()
   add_executable(towerc $<TARGET_OBJECTS:tower-native-compiler> scaffolding/tower.cpp scaffolding/lex-pattern.cpp)
@@ -125,7 +125,7 @@ if(TOWER_PARSER_ONLY)
   tower_compiler_parser_nodes()
   target_compile_definitions(tower-compiler-memory PRIVATE TOWER_COMPILER_MEMORY_TESTS=1)
   add_executable(tower-parser-tests scaffolding/tests/main.cpp
-    scaffolding/tests/compiler-storage.cpp scaffolding/tests/entities.cpp scaffolding/tests/lexer-table.cpp scaffolding/tests/regex.cpp
+    scaffolding/tests/compiler-storage.cpp scaffolding/tests/entities.cpp scaffolding/tests/lexer-table.cpp scaffolding/tests/regex.cpp scaffolding/tests/lr-analysis.cpp
     scaffolding/core.cpp scaffolding/core-nodes.cpp scaffolding/core-machine.cpp scaffolding/core-tests.cpp
     scaffolding/tower.cpp scaffolding/tests/nodes.cpp scaffolding/parser.cpp scaffolding/parser-tree-tests.cpp
     scaffolding/syntax.cpp scaffolding/compiler-syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/bedrock.cpp scaffolding/format.cpp scaffolding/lex-pattern.cpp scaffolding/lex-pattern-common.cpp scaffolding/syntax-tests.cpp)
@@ -153,6 +153,16 @@ if(TOWER_PARSER_ONLY)
   target_compile_features(tower-regex-reference PRIVATE cxx_std_20)
   target_compile_definitions(tower-regex-reference PRIVATE lex_pattern_compile=reference_lex_pattern_compile)
   target_link_libraries(tower-parser-tests PRIVATE tower-regex-reference)
+  add_library(tower-lr-reference STATIC scaffolding/bootstrap/lr-analysis-seed.cpp)
+  target_compile_features(tower-lr-reference PRIVATE cxx_std_20)
+  foreach(name IN ITEMS analysis_create analysis_destroy analysis_compute analysis_failed analysis_nullable
+      analysis_first_count analysis_first_data items_create items_destroy items_insert items_count items_data items_close items_goto
+      propagation_create propagation_destroy propagation_seed propagation_edge propagation_solve propagation_count propagation_data
+      analysis_order states_create states_destroy states_count states_items states_origin states_edge_count states_edges
+      states_lalr states_action_count states_actions)
+    target_compile_definitions(tower-lr-reference PRIVATE lr_${name}=reference_lr_${name})
+  endforeach()
+  target_link_libraries(tower-parser-tests PRIVATE tower-lr-reference)
   add_library(tower-utf8-reference STATIC scaffolding/bootstrap/utf8-seed.cpp)
   target_compile_definitions(tower-utf8-reference PRIVATE
     tower_utf8_decode=reference_utf8_decode tower_utf8_encode=reference_utf8_encode
