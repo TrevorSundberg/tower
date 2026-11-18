@@ -23,7 +23,7 @@ test('modules show their source and grammar tree without executable instruction 
   await expect(page.locator('#status')).toContainText('Complete');
   await expect(page.locator('#execution-status')).toHaveText('Syntax only');
   await expect(page.locator('#execution-panel')).toBeVisible();
-  await expect(page.locator('#core-instructions')).toBeEmpty();
+  await expect.poll(()=>outputText(page,'core-instructions')).toBe('');
   await expect(page.locator('#tree')).toContainText('GrammarDeclaration');
   await expect(page.locator('#execute')).toBeEnabled();
   expect(await downloadSource(page, 'bedrock.tower')).toBe(bedrock);
@@ -33,11 +33,11 @@ test('modules show their source and grammar tree without executable instruction 
   await expect(page.locator('#filename')).toHaveText('foundation.tower');
   await expect(page.locator('#status')).toContainText('Complete');
   await expect(page.locator('#execution-panel')).toBeVisible();
-  await expect(page.locator('#core-instructions')).toBeEmpty();
+  await expect.poll(()=>outputText(page,'core-instructions')).toBe('');
   await expect(page.locator('#tree')).toContainText('CoreFunction');
   await page.locator('#execute').click();
   await expect(page.locator('#execution-status')).toHaveText('Finished \u00b7 backends match');
-  await expect(page.locator('#core-instructions')).toBeEmpty();
+  await expect.poll(()=>outputText(page,'core-instructions')).toBe('');
   await expect(page.locator('#execution-output')).toBeEmpty();
   await expect(page.locator('#llvm-output')).toBeEmpty();
   await selectDocument(page, 'foreach.tower');
@@ -50,7 +50,7 @@ test('modules show their source and grammar tree without executable instruction 
   await selectDocument(page, 'bedrock.tower');
   await expect(page.locator('#execution-panel')).toBeVisible();
   for (const id of ['core-instructions','llvm-before','llvm-after','execution-output','llvm-output'])
-    await expect(page.locator('#' + id)).toBeEmpty();
+    await expect.poll(()=>['core-instructions','llvm-before','llvm-after'].includes(id) ? outputText(page,id) : page.locator('#'+id).textContent()).toBe('');
 });
 test('editing bedrock updates its next declarations and downstream modules while undo histories remain independent', async ({page,request}) => {
   const bedrock = await (await request.get('/bedrock.tower')).text();

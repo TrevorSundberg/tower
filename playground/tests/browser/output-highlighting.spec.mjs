@@ -1,3 +1,4 @@
+import {selectDocument} from './project-helpers.mjs';
 import { test, expect } from '@playwright/test';
 import { build } from 'esbuild';
 import { fileURLToPath } from 'node:url';
@@ -6,7 +7,7 @@ import { outputText } from './output-text.mjs';
 test('real compilation highlights foundation, both LLVM forms and Wasm',async({page})=>{
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto('/');await expect(page.locator('#status')).toContainText('Complete');
-  await page.locator('#example-kind').selectOption('functions.tower');
+  await selectDocument(page, 'functions.tower');
   await expect(page.locator('#execution-status')).toContainText('backends match');
   for(const id of ['core-instructions','llvm-before','llvm-after','wasm-disassembly']) {
     await page.locator('#'+id).scrollIntoViewIfNeeded();

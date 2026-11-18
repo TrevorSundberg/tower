@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import {readFile, mkdir, writeFile} from 'node:fs/promises';
+import {newProject} from '../src/projects.mjs';
+import {exportProject} from '../src/project-archive.mjs';
 import {targets} from '../src/targets.mjs';
+import {selectDocument, savedProject, downloadedProject} from '../tests/browser/project-helpers.mjs';
 import {outputText} from '../tests/browser/output-text.mjs';
 import {createHash} from 'node:crypto';
 import {chromium, devices, expect} from '@playwright/test';
@@ -53,23 +56,23 @@ try {
     await expect.poll(()=>outputText(page,'llvm-before')).toContain('define');
     await expect.poll(()=>outputText(page,'llvm-after')).toContain('define');
     await page.screenshot({path:new URL(name+'-execution.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
-    expect((await page.locator('#example-kind option').allTextContents()).slice(0,3)).toEqual(['Bedrock','Foundation','ForEach']);
-    await page.locator('#example-kind').selectOption('foundation.tower');
+    await expect(page.locator('#example-kind')).toHaveCount(0);
+    await expect(page.locator('.builtin-badge')).toHaveCount(2);
+    await selectDocument(page, 'foundation.tower');
     await expect(page.locator('#status')).toContainText('Complete');
     await expect(page.locator('#execution-panel')).toBeVisible();
-    await expect(page.locator('#core-instructions')).toBeEmpty();
+    await expect.poll(()=>outputText(page,'core-instructions')).toBe('');
     await expect(page.getByRole('textbox',{name:'Tower source'})).not.toContainText('skip Whitespace');
     const downloadPromise = page.waitForEvent('download');
     await page.getByRole('button',{name:'Save',exact:true}).click();
-    let saved = '';
-    for await (const chunk of await (await downloadPromise).createReadStream()) saved += chunk.toString();
-    assert.equal(saved, foundation);
-    assert.equal(await page.evaluate(()=>localStorage.getItem('tower-playground-foundation-before-inheritance-v1')),legacy);
+    const saved = await downloadedProject(await downloadPromise);
+    assert.equal(saved.builtins.foundation, foundation);
+    assert.equal(await page.evaluate(()=>localStorage.getItem('tower-playground-foundation-v1')),legacy);
     await page.screenshot({path:new URL(name+'-foundation.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
-    await page.locator('#example-kind').selectOption('bedrock.tower');
+    await selectDocument(page, 'bedrock.tower');
     await expect(page.locator('#status')).toContainText('Complete');
     await expect(page.locator('#execution-panel')).toBeVisible();
-    await expect(page.locator('#core-instructions')).toBeEmpty();
+    await expect.poll(()=>outputText(page,'core-instructions')).toBe('');
     await expect(page.locator('#tree')).toContainText('Whitespace');
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth && document.documentElement.scrollHeight <= innerHeight),true);
     await page.locator('#editor').click({position:{x:80,y:20}});
@@ -85,12 +88,11 @@ try {
     await page.getByRole('button',{name:'Restore',exact:true}).click();
     await expect(page.locator('#status')).toContainText('Complete');
     await page.reload();
-    await expect(page.locator('#example-kind')).toHaveValue('bedrock.tower');
     await expect(page.locator('#filename')).toHaveText('bedrock.tower');
     await expect(page.locator('#status')).toContainText('Complete');
     await expect(page.locator('#execution-panel')).toBeVisible();
-    assert.equal(await page.evaluate(()=>localStorage.getItem('tower-playground-foundation-v1')),foundation);
-    await page.locator('#example-kind').selectOption('foreach.tower');
+    assert.equal((await savedProject(page)).builtins.foundation,foundation);
+    await selectDocument(page, 'foreach.tower');
     await expect(page.locator('#status')).toContainText('Complete');
     await expect(page.getByRole('button',{name:'Example',exact:true})).toHaveCount(0);
     await page.locator('#editor').click({position:{x:80,y:20}});
@@ -116,7 +118,7 @@ try {
     await expect(page.locator('.tw-inline-error-message')).toHaveText("Unexpected ';'. Expected a statement or grammar declaration.");
     await expect(page.locator('.tw-error-range')).toHaveText(';');
     await page.screenshot({path:new URL(name+'-extra-semicolon.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
-    await page.locator('#example-kind').selectOption('increment.tower');
+    await selectDocument(page, 'increment.tower');
     await expect(page.locator('#execution-status')).toContainText('backends match',{timeout:60000});
     await expect(page.locator('#execution-output')).toHaveText('5\n6\n7\n7\n9\n');
     await expect(page.locator('#llvm-output')).toHaveText('5\n6\n7\n7\n9\n');
@@ -124,33 +126,52 @@ try {
     await expect.poll(()=>outputText(page,'llvm-after')).not.toContain('post_increment');
     await expect(page.locator('.tw-inline-error')).toHaveCount(0);
     await page.screenshot({path:new URL(name+'-increment.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
-    await page.locator('#example-kind').selectOption('inference.tower');
+    await selectDocument(page, 'inference.tower');
     await expect(page.locator('#execution-status')).toContainText('backends match',{timeout:60000});
     await expect(page.locator('#execution-output')).toHaveText('42\ntrue\n43\n42\n');
     await expect(page.locator('#llvm-output')).toHaveText('42\ntrue\n43\n42\n');
     await expect.poll(()=>outputText(page,'core-instructions')).toContain('var answer: i32 = add_one(41);');
     await expect.poll(()=>outputText(page,'core-instructions')).toContain('var pointer: i32* = &answer;');
     await page.screenshot({path:new URL(name+'-inference.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
-    await page.locator('#example-kind').selectOption('templates.tower');
+    await selectDocument(page, 'templates.tower');
     await expect(page.locator('#execution-output')).toHaveText('20\n10\n',{timeout:60000});
     await expect(page.locator('#llvm-output')).toHaveText('20\n10\n',{timeout:60000});
     await expect(page.locator('#execution-status')).toContainText('backends match');
     await expect.poll(()=>outputText(page,'core-instructions')).toContain('struct `buffer(i32, 4)`');
     await page.screenshot({path:new URL(name+'-templates.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
-    await page.locator('#example-kind').selectOption('execution.tower');
+    await selectDocument(page, 'execution.tower');
     await expect(page.locator('#execution-status')).toContainText('backends match',{timeout:60000});
     await page.reload();
-    await expect(page.locator('#example-kind')).toHaveValue('execution.tower');
     await expect(page.locator('#filename')).toHaveText('execution.tower');
     await expect(page.locator('#execution-output')).toHaveText('15\n16\n',{timeout:60000});
     await expect(page.locator('#execution-status')).toContainText('backends match',{timeout:60000});
-    await page.locator('#example-kind').selectOption('memory.tower');
+    await selectDocument(page, 'memory.tower');
+    await expect(page.locator('#execution-status')).toContainText('backends match',{timeout:60000});
+    await page.locator('#execute').click();
     await expect(page.locator('#execution-status')).toContainText('backends match',{timeout:60000});
     for (const label of ['Tower load','LLVM load']) {
       const timing=page.locator(`#timings [data-label="${label}"]`);
       await expect(timing).toContainText('(cached)');
       assert.ok(Number((await timing.textContent()).match(/([\d.]+) ms/)[1])<20);
     }
+    const project = newProject('Deployment project', {bedrock,foundation}, [
+      {path:'main.tower',text:'print(answer());'},
+      {path:'lib/answer.tower',text:'fn answer(): i32 { return 42; }'},
+      {path:'assets/notes.txt',text:'Project archive verification'},
+    ]);
+    await page.locator('#file').setInputFiles({name:'deployment.zip',mimeType:'application/zip',buffer:Buffer.from(await exportProject(project).arrayBuffer())});
+    await expect(page.locator('#execution-status')).toContainText('backends match',{timeout:60000});
+    await expect(page.locator('#execution-output')).toHaveText('42\n');
+    await expect(page.locator('#project-storage')).toHaveText('Saved in browser');
+    await page.reload();
+    await expect(page.locator('#project-kind option:checked')).toHaveText('Deployment project');
+    await expect(page.locator('#execution-status')).toContainText('backends match',{timeout:60000});
+    assert.deepEqual((await savedProject(page)).files, project.files);
+    const projectDownload = page.waitForEvent('download');
+    await page.locator('#save').click();
+    assert.deepEqual((await downloadedProject(await projectDownload)).files, project.files);
+    await selectDocument(page,'memory.tower');
+    await expect(page.locator('#execution-status')).toContainText('backends match',{timeout:60000});
     await page.locator('#auto-execute').uncheck();
     await page.locator('#build-targets summary').click();
     await page.locator('#target-wasm').uncheck();
@@ -172,7 +193,7 @@ try {
     }
     await page.screenshot({path:new URL(name+'-native-targets.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
     assert.deepEqual(errors, []);
-    report.browsers.push({name,output:'42\n',incrementOutput:'5\n6\n7\n7\n9\n',extraSemicolonDiagnostic:true,forwardModuleBindings:true,migration:true,uniformExecutionUI:true,incrementalBedrock:true,emptyLiteralDiagnostic:true,restore:true,reload:true,nativeTargets:Object.entries(targets).filter(([key])=>key!=='wasm').map(([,target])=>target.label),equalColumns:true,errors});
+    report.browsers.push({name,output:'42\n',incrementOutput:'5\n6\n7\n7\n9\n',extraSemicolonDiagnostic:true,forwardModuleBindings:true,multiFileProject:true,projectArchive:true,migration:true,uniformExecutionUI:true,incrementalBedrock:true,emptyLiteralDiagnostic:true,restore:true,reload:true,nativeTargets:Object.entries(targets).filter(([key])=>key!=='wasm').map(([,target])=>target.label),equalColumns:true,errors});
     console.log(name + ': backends agree; forward module bindings, editable grammar, persistence, native builds/downloads and equal columns verified.');
     await context.close();
     const detectionContext = await browser.newContext(options);

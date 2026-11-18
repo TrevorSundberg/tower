@@ -350,7 +350,7 @@ test('LLVM warms on a syntax-only document and the first program reuses that wor
   await expect(page.locator('#execution-status')).toHaveText('Syntax only');
   await expect.poll(()=>page.evaluate(()=>performance.getEntriesByName('tower-llvm-warm').length)).toBe(1);
   await expect(page.locator('#llvm-output')).toBeEmpty();
-  await expect(page.locator('#core-instructions')).toBeEmpty();
+  await expect.poll(()=>outputText(page,'core-instructions')).toBe('');
   const warmed=page.workers().find(worker=>worker.url().includes('execution-worker'));
   const requests=[];page.on('request',request=>requests.push(request.url()));
   await page.locator('#file-tree button[data-path="foundation.tower"]').click();

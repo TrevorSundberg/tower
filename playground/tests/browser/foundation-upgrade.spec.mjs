@@ -1,3 +1,4 @@
+import {outputText} from './output-text.mjs';
 import {selectDocument, savedProject, downloadedProject} from './project-helpers.mjs';
 import {test, expect} from '@playwright/test';
 import {readFile} from 'node:fs/promises';
@@ -20,7 +21,7 @@ test('the screenshot-era saved Foundation upgrades in the editor, persists and e
   await selectDocument(page, 'foundation.tower');
   await expect(page.locator('#status')).toContainText('Complete');
   await expect(page.locator('#execution-panel')).toBeVisible();
-  await expect(page.locator('#core-instructions')).toBeEmpty();
+  await expect.poll(()=>outputText(page,'core-instructions')).toBe('');
   await expect(page.getByRole('textbox',{name:'Tower source'})).not.toContainText('skip Whitespace');
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button',{name:'Save',exact:true}).click();

@@ -9331,3 +9331,44 @@ limits. No runtime dependency or web framework was added; no website deployment
 was performed. Next: language-level imports and tracked filesystem capabilities,
 then optional directory synchronization if useful, without making those APIs
 required for the portable browser workspace.
+
+### 2026-11-18: project workspace integration and deployment preparation
+
+The user authorized pulling, rebasing, pushing and deploying the project browser.
+Fetched ten newer source commits through `b90810d` and rebased the project work
+as `1da2831`. Resolved overlapping worker, UI, style, test and journal edits while
+retaining the upstream Tower syntax migration, individual native target profiles,
+single detected default and virtualized highlighted compiler output. Worker
+messages now carry project files/drives alongside the newer target-key selection.
+No force push is needed. `todo.txt` remains untouched.
+
+Rebuilt the frontend reactor with `wsl -d Ubuntu -- bash
+playground/scripts/build-wasm.sh` using WASI SDK 34, ran `npm ci --prefix
+playground`, then `npm run build --prefix playground`. Reused LLVM/cross reactors
+and target packs from the latest published `gh-pages` tree `d664f8f` via the ignored
+`build/pages-deploy` worktree; they are byte-identical to that deployment, not
+fresh backend builds. The frontend includes the rebased native/Tower components.
+
+Adapted deployment verification to the hierarchy, IndexedDB snapshots and ZIP
+saves. Legacy localStorage is retained as backup while the migrated project owns
+the current Foundation. Cached-load checks now repeat execution inside a project,
+because switching projects intentionally replaces the worker environment. Output
+checks read CodeMirror documents rather than assuming an empty DOM. The verifier
+also imports a project with two Tower files and a text asset, compiles a forward
+cross-file function call, reloads from IndexedDB and checks whole-project export.
+It retains all five native profile downloads, target detection and mobile checks.
+
+Validation so far: `npm test` passed 217 tests with one optional native-produced
+Wasm fixture skipped (218 total). Rebuilt `/home/trevo/.cache/tower/core-asan`
+and ran CTest: all four ASan/UBSan suites passed. Logs are
+`build/projects-rebased-node.log`, `build/projects-rebased-native.log`, and
+`build/projects-rebased-wasm.log`. Browser and publication results follow below.
+
+Combined validation completed: all 128 desktop/mobile Playwright checks passed
+in 2.4 minutes (`npm run test:browser`, log
+`build/projects-rebased-browser.log`). The updated local deployment verifier
+passed both device profiles, all 23 asset hashes, two-file project execution,
+ZIP/IndexedDB round trips, legacy migration and all five native outputs
+(`node scripts/verify-deployment.mjs`, log
+`build/projects-deployment-local.log`). `git diff --check` passed. No unresolved
+failure remains before publication.
