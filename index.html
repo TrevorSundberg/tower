@@ -13,13 +13,19 @@
   <header class="app-header">
     <div class="brand" title="Tower syntax playground"><span class="brand-mark" aria-hidden="true">T</span><strong>Tower</strong></div>
     <div class="toolbar">
-      <div class="file-controls"><select id="example-kind" aria-label="Editor document"><option value="bedrock.tower">Bedrock</option><option value="foundation.tower">Foundation</option><option value="foreach.tower" selected>ForEach</option><option value="execution.tower">Execution</option><option value="increment.tower">Increment</option><option value="inference.tower">Inference</option><option value="templates.tower">Templates</option><option value="functions.tower">Functions</option><option value="structs.tower">Structs</option><option value="memory.tower">Memory</option><option value="replacements.tower">Replacements</option><option value="tokens.tower">Token rules</option></select><button id="open" class="quiet">Open</button><button id="save" class="quiet">Save</button><input id="file" type="file" accept=".tower,.txt,text/plain" hidden></div>
+      <div class="file-controls"><button id="new-project" class="quiet">New project</button><button id="open" class="quiet" title="Open a whole project ZIP">Open</button><button id="save" class="quiet" title="Download all project files as ZIP">Save</button><input id="file" type="file" accept=".zip,application/zip" hidden></div>
       <div class="export-controls"><button id="link-files" class="quiet" title="Add object files or static libraries">Link files</button><input id="link-input" type="file" accept=".o,.obj,.a,.lib,.tbd,.bc" multiple hidden></div>
     </div>
     <span id="runtime" class="runtime"><span class="dot"></span><span id="runtime-text">Loading WASM</span></span>
   </header>
   <main>
     <div class="workspace">
+      <aside class="project-panel panel" aria-label="Project files">
+        <div class="panel-heading"><label for="project-kind">Project</label><select id="project-kind" aria-label="Project"></select></div>
+        <nav id="file-tree" aria-label="Files"></nav>
+        <div class="project-actions"><button id="new-file" class="quiet">New file</button><button id="rename-file" class="quiet" disabled>Rename</button><button id="delete-file" class="quiet" disabled>Delete</button><button id="move-file-up" class="quiet" title="Compile this file earlier" disabled>Earlier</button></div>
+        <span id="project-storage" role="status">Loading projects...</span>
+      </aside>
       <section class="source-panel panel" aria-label="Source editor">
         <div class="panel-heading"><div><span class="file-icon" aria-hidden="true">≡</span><strong id="filename">foreach.tower</strong><span class="file-language">Tower</span><button id="restore" class="quiet" title="Restore bundled source">Restore</button></div></div>
         <div id="editor"></div>
