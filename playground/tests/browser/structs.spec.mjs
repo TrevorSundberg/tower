@@ -1,3 +1,4 @@
+import { outputText } from './output-text.mjs';
 import { test, expect } from '@playwright/test';
 async function setSource(page, text) {
   await page.locator('#editor').click({ position: { x: 80, y: 20 } });
@@ -12,14 +13,14 @@ test('struct milestone executes automatically in both workers and round-trips vi
   await expect(page.locator('#execution-status')).toHaveText('Finished · backends match');
   await expect(page.locator('#execution-output')).toHaveText('42\n22\n7\n');
   await expect(page.locator('#llvm-output')).toHaveText('42\n22\n7\n');
-  await expect(page.locator('#core-instructions')).toContainText('struct Pair {');
-  await expect(page.locator('#core-instructions')).toContainText('pair.first = pair.first + pair.second;');
-  await expect(page.locator('#core-instructions')).toContainText('var field: i32* = &pair.second;');
-  await expect(page.locator('#llvm-before')).toContainText('tower.fn.accumulate');
-  await expect(page.locator('#llvm-after')).toContainText('tower_main');
+  await expect.poll(()=>outputText(page,'core-instructions')).toContain('struct Pair {');
+  await expect.poll(()=>outputText(page,'core-instructions')).toContain('pair.first = pair.first + pair.second;');
+  await expect.poll(()=>outputText(page,'core-instructions')).toContain('var field: i32* = &pair.second;');
+  await expect.poll(()=>outputText(page,'llvm-before')).toContain('tower.fn.accumulate');
+  await expect.poll(()=>outputText(page,'llvm-after')).toContain('tower_main');
   await page.screenshot({ path: `../build/playground-structs-${info.project.name}.png` });
   expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight && document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  const canonical = await page.locator('#core-instructions').textContent();
+  const canonical = await outputText(page,'core-instructions');
   await setSource(page, canonical);
   await expect(page.locator('#execution-status')).toHaveText('Finished · backends match');
   await expect(page.locator('#llvm-output')).toHaveText('42\n22\n7\n');

@@ -1,3 +1,4 @@
+import { outputText } from './output-text.mjs';
 import { test, expect } from '@playwright/test';
 const withEmit = foundation => foundation + "\nparse Statement |= 'emit' $value:CoreOperand ';' => replace { print($value); };";
 async function setSource(page, text) {
@@ -25,7 +26,7 @@ test('editing the shared foundation changes parsing, highlights and both runners
   await expect(page.locator('#execution-output')).toHaveText('42\n');
   await expect(page.locator('#llvm-output')).toHaveText('42\n');
   await expect(page.locator('.tw-keyword').filter({ hasText: /^emit$/ })).toHaveCount(1);
-  await expect(page.locator('#core-instructions')).toContainText('print(`player-name`);');
+  await expect.poll(()=>outputText(page,'core-instructions')).toContain('print(`player-name`);');
   await page.reload();
   await expect(page.locator('#execution-status')).toHaveText('Finished · backends match');
   await page.locator('#example-kind').selectOption('foundation.tower');

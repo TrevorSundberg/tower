@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFile, mkdir, writeFile} from 'node:fs/promises';
 import {targets} from '../src/targets.mjs';
+import {outputText} from '../tests/browser/output-text.mjs';
 import {createHash} from 'node:crypto';
 import {chromium, devices, expect} from '@playwright/test';
 
@@ -42,14 +43,15 @@ try {
       localStorage.setItem('tower-playground-foundation-v1', legacy);
       localStorage.setItem('tower-playground-foundation-base-v1', foundation);
       localStorage.setItem('tower-playground-source-v1', program);
+      localStorage.setItem('tower-build-targets-v2', JSON.stringify({wasm:true}));
       localStorage.setItem('deployment-check', '1');
     }, {foundation,legacy,program});
     await page.goto(base.href);
     await expect(page.locator('#execution-status')).toHaveText('Finished \u00b7 backends match',{timeout:60000});
     await expect(page.locator('#execution-output')).toHaveText('42\n');
     await expect(page.locator('#llvm-output')).toHaveText('42\n');
-    await expect(page.locator('#llvm-before')).toContainText('define');
-    await expect(page.locator('#llvm-after')).toContainText('define');
+    await expect.poll(()=>outputText(page,'llvm-before')).toContain('define');
+    await expect.poll(()=>outputText(page,'llvm-after')).toContain('define');
     await page.screenshot({path:new URL(name+'-execution.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
     expect((await page.locator('#example-kind option').allTextContents()).slice(0,3)).toEqual(['Bedrock','Foundation','ForEach']);
     await page.locator('#example-kind').selectOption('foundation.tower');
@@ -118,22 +120,22 @@ try {
     await expect(page.locator('#execution-status')).toContainText('backends match',{timeout:60000});
     await expect(page.locator('#execution-output')).toHaveText('5\n6\n7\n7\n9\n');
     await expect(page.locator('#llvm-output')).toHaveText('5\n6\n7\n7\n9\n');
-    await expect(page.locator('#core-instructions')).toContainText('post_increment(&value)');
-    await expect(page.locator('#llvm-after')).not.toContainText('post_increment');
+    await expect.poll(()=>outputText(page,'core-instructions')).toContain('post_increment(&value)');
+    await expect.poll(()=>outputText(page,'llvm-after')).not.toContain('post_increment');
     await expect(page.locator('.tw-inline-error')).toHaveCount(0);
     await page.screenshot({path:new URL(name+'-increment.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
     await page.locator('#example-kind').selectOption('inference.tower');
     await expect(page.locator('#execution-status')).toContainText('backends match',{timeout:60000});
     await expect(page.locator('#execution-output')).toHaveText('42\ntrue\n43\n42\n');
     await expect(page.locator('#llvm-output')).toHaveText('42\ntrue\n43\n42\n');
-    await expect(page.locator('#core-instructions')).toContainText('var answer: i32 = add_one(41);');
-    await expect(page.locator('#core-instructions')).toContainText('var pointer: i32* = &answer;');
+    await expect.poll(()=>outputText(page,'core-instructions')).toContain('var answer: i32 = add_one(41);');
+    await expect.poll(()=>outputText(page,'core-instructions')).toContain('var pointer: i32* = &answer;');
     await page.screenshot({path:new URL(name+'-inference.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
     await page.locator('#example-kind').selectOption('templates.tower');
     await expect(page.locator('#execution-output')).toHaveText('20\n10\n',{timeout:60000});
     await expect(page.locator('#llvm-output')).toHaveText('20\n10\n',{timeout:60000});
     await expect(page.locator('#execution-status')).toContainText('backends match');
-    await expect(page.locator('#core-instructions')).toContainText('struct `buffer(i32, 4)`');
+    await expect.poll(()=>outputText(page,'core-instructions')).toContain('struct `buffer(i32, 4)`');
     await page.screenshot({path:new URL(name+'-templates.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
     await page.locator('#example-kind').selectOption('execution.tower');
     await expect(page.locator('#execution-status')).toContainText('backends match',{timeout:60000});
@@ -149,22 +151,28 @@ try {
       await expect(timing).toContainText('(cached)');
       assert.ok(Number((await timing.textContent()).match(/([\d.]+) ms/)[1])<20);
     }
+    await page.locator('#auto-execute').uncheck();
     await page.locator('#build-targets summary').click();
-    await page.locator('#target-wasm').uncheck();await page.locator('#target-x86').check();
+    await page.locator('#target-wasm').uncheck();
+    for (const key of Object.keys(targets).filter(key=>key!=='wasm')) await page.locator('#target-'+key).check();
     await page.locator('#build-targets summary').click();
-    await expect(page.locator('#x86-downloads a')).toHaveCount(3,{timeout:120000});
-    await expect(page.locator('#x86-disassembly')).toContainText('ret');
+    await page.locator('#auto-execute').check();
+    await expect(page.locator('#mac-arm-downloads a')).toHaveCount(1,{timeout:120000});
     await expect(page.locator('#wasm-column')).toBeHidden();
     await expect(page.locator('#execution-output')).toHaveText('5\n84\n42\n');
     const widths=await page.locator('.execution-column:visible').evaluateAll(items=>items.map(x=>x.getBoundingClientRect().width));
     assert.ok(Math.max(...widths)-Math.min(...widths)<2);
-    for(const [label,extension] of [['Windows x64','exe'],['Linux x64','elf']]){
-      const download=page.waitForEvent('download');await page.locator('#x86-downloads').getByRole('link',{name:label,exact:true}).click();
-      await(await download).saveAs(new URL(name+'-native.'+extension,output).pathname.replace(/^\/([A-Za-z]:)/,'$1'));
+    for(const [key,target] of Object.entries(targets).filter(([key])=>key!=='wasm')){
+      await expect.poll(()=>outputText(page,key+'-disassembly')).toContain('ret');
+      await expect(page.locator('#'+key+'-column h2')).toHaveText(target.label+' disassembly');
+      await page.locator('#'+key+'-disassembly').scrollIntoViewIfNeeded();
+      await expect(page.locator('#'+key+'-disassembly .tw-keyword').first()).toBeVisible();
+      const download=page.waitForEvent('download');await page.locator('#'+key+'-downloads').getByRole('link',{name:target.label,exact:true}).click();
+      await(await download).saveAs(new URL(name+'-'+key+'.'+target.extension,output).pathname.replace(/^\/([A-Za-z]:)/,'$1'));
     }
     await page.screenshot({path:new URL(name+'-native-targets.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
     assert.deepEqual(errors, []);
-    report.browsers.push({name,output:'42\n',incrementOutput:'5\n6\n7\n7\n9\n',extraSemicolonDiagnostic:true,forwardModuleBindings:true,migration:true,uniformExecutionUI:true,incrementalBedrock:true,emptyLiteralDiagnostic:true,restore:true,reload:true,nativeTargets:['Windows x64','Linux x64','macOS x64'],equalColumns:true,errors});
+    report.browsers.push({name,output:'42\n',incrementOutput:'5\n6\n7\n7\n9\n',extraSemicolonDiagnostic:true,forwardModuleBindings:true,migration:true,uniformExecutionUI:true,incrementalBedrock:true,emptyLiteralDiagnostic:true,restore:true,reload:true,nativeTargets:Object.entries(targets).filter(([key])=>key!=='wasm').map(([,target])=>target.label),equalColumns:true,errors});
     console.log(name + ': backends agree; forward module bindings, editable grammar, persistence, native builds/downloads and equal columns verified.');
     await context.close();
   }

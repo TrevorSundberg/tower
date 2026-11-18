@@ -8867,3 +8867,161 @@ Next: migrate syntax-component storage/lifetime and structural comparison,
 including retained lexer caches and comment storage. Type checking, formatting,
 interpretation, driver/backend integration and the native bootstrap still need
 porting; this is continued progress, not completion of C++ removal.
+
+
+## 2026-11-18 - Explicit playground target profiles and highlighted output
+
+Request: replace architecture-group checkboxes with real supported platform
+profiles, separate disassembly/download panes, choose useful browser defaults,
+and highlight foundation instructions, raw/optimized LLVM and disassembly.
+
+Implemented in the playground (compiler semantics unchanged):
+
+- The executable catalog in playground/src/targets.mjs remains six validated
+  profiles: wasm32 browser modules; Windows x64/MSVC; Linux x64 and AArch64;
+  macOS x64 and ARM64 at the existing macOS 11 baseline. The picker shows native
+  triples; each profile has a separate disassembly pane/footer. No unsupported
+  LLVM triple is presented as a working executable target. Wasm's actual triple
+  remains explicit in the compiler catalog, despite the simplified UI label.
+- Replaced x86/ARM worker grouping with one native worker receiving explicit
+  selected keys. It compiles those profiles sequentially and shares its LLVM
+  instance and runtime cache. Target-prefixed uploads remain isolated. This avoids
+  allocating a complete compiler instance for every selected platform. Generation
+  IDs, worker cancellation, stale-result rejection, source-order effects and
+  foundation formatting remain unchanged. Native results are never executed by
+  the browser UI. Target input selection no longer equates 32-bit with Wasm.
+- Browser defaults use independently inferred OS/architecture. Client hints
+  override legacy UA signals; queries time out after 200 ms or fall back when
+  denied. macOS with hidden architecture defaults to ARM64; Windows/Linux to x64;
+  a fully unknown client defaults to Windows x64. These are chosen heuristics,
+  not measured population statistics. Known unsupported combinations select Wasm.
+  Wasm stays enabled initially, and saved v2 selections (including all-off) win.
+  Legacy architecture selections expand into their corresponding concrete keys.
+  Detection is local and never changes an explicit profile's target semantics.
+- Read-only CodeMirror views retain complete plain-text output but virtualize
+  rendered lines. StreamLanguage display lexers cover foundation, LLVM, x86,
+  ARM64 and decoded Wasm. Incremental/background parsing is supplied by CodeMirror;
+  unchanged text is skipped during phase/timing updates. These lexers are visual
+  classification only, not an authoritative grammar or a new semantic model.
+  Compiler foundation text is still produced by the shared formatting engine.
+  Empty output destroys its view. Text is never interpolated as HTML.
+- Tests reading/copying full output now inspect the CodeMirror document through
+  a centralized test-only DOM bridge, since DOM text contains just the viewport.
+  Existing language browser tests seed their historical Wasm-only selection;
+  new detection tests explicitly use empty storage.
+
+Research and scope decisions:
+
+- Chromium documents platform, architecture, bitness and WoW64 client hints and
+  the asynchronous getHighEntropyValues API:
+  https://developer.chrome.com/docs/privacy-security/user-agent-client-hints
+  The client-hints specification permits missing/fictitious values:
+  https://wicg.github.io/ua-client-hints/
+  Therefore this is a configurable suggestion, not a hardware capability check.
+  No GPU fingerprint, timing benchmark or network inference was added.
+- 32-bit embedded support remains useful. Arm/Keil describes STM32 as a family of
+  32-bit Cortex-M microcontrollers:
+  https://www.keil.arm.com/vendors/stmicroelectronics/devices/
+  Raspberry Pi documents RP2350's Cortex-M33/Hazard3 alternatives:
+  https://www.raspberrypi.com/documentation/microcontrollers/microcontroller-chips.html
+  Its datasheet explicitly identifies Hazard3's RV32I base:
+  https://pip-assets.raspberrypi.com/categories/1214-rp2350/documents/RP-008373-DS-3-rp2350-datasheet.pdf
+  Proposed next native profiles are Cortex-M (thumbv6m-none-eabi and
+  thumbv7em-none-eabi candidates) and riscv32-unknown-elf with explicit ISA/ABI.
+  They are not implemented here. Backend inclusion, board startup/linker scripts,
+  memory/layout validation and runtime/effect contracts must precede downloads.
+  Existing browser cross binaries include X86/AArch64/WebAssembly, not ARM/RISCV.
+  Windows ARM64 is also not yet supported: the native linker adapter currently
+  hardcodes /machine:x64 and the import pack is x64. No checkbox falsely aliases
+  Windows ARM to its x64 binary. Mobile/GPU ABI work remains separate.
+
+Trials, failures and fixes:
+
+- Local environment: Windows PowerShell, Node 21.7.3, npm 10.5.0, Playwright 1.65.1
+  with Chromium 159.0.8154.6; checkout began at 8d5030c. No build directory, native
+  compiler, Clang, or Linux WSL distribution was present (only docker-desktop).
+  Ran npm ci and installed the Playwright Chromium browser. Used published assets
+  from https://trevorsundberg.github.io/tower/ for unchanged compiler integration:
+  tower.wasm (4,310,927 bytes), tower-llvm.wasm.gz (15,480,501 bytes),
+  tower-cross.wasm.gz (17,296,753 bytes), five runtime objects, kernel32.lib and
+  libSystem.tbd. Decompressed LLVM files into build/browser-wasi-llvm and stored
+  runtime packs in build/targets. Verified deployed Bedrock/Foundation source
+  matches checkout text after CRLF normalization. This validates UI against the
+  published compiler; it is not a fresh native/bootstrap rebuild claim.
+- First detection unit run caught conflicting UA and client-hint platform strings:
+  combined matching let the UA's Windows text win over a Linux hint. Changed OS
+  inference to prioritize the explicit platform independently of architecture.
+- Browser regression testing exposed a real touch-device heuristic bug. This
+  Windows test machine reports maxTouchPoints=10 even for desktop Chromium. A Mac
+  platform simulation with explicit macOS/ARM64 hints was misclassified as iPad.
+  The iPad desktop-UA heuristic now runs only without an explicit client-hint OS.
+  Added a regression for this case. Another test incorrectly redefined a
+  nonconfigurable navigator mock across reloads; replaced that test setup with
+  one URL-dependent initialization script (not an application defect).
+- The expanded picker initially kept its right edge attached to the Targets
+  button on narrow screens, putting checkboxes left of the viewport. Mobile
+  screenshot/interaction failures revealed this; it now anchors to the full
+  execution heading. This preserves menu access without horizontal page overflow.
+- Initial desktop smoke run: six existing browser checks passed, including all
+  five native executable signatures, per-target filenames, warm worker reuse,
+  cancellation, and canonical struct source copied back into the editor.
+- Initial full Node run: 208 tests, 206 passed, one skipped and one environment
+  failure. The unrelated C-archive integration test requires the absent
+  build/linking/wasm-fixture.a (built by playground/scripts/build-wasm.sh or
+  test-linking.sh); native-compiled Wasm integration was skipped without its
+  optional artifact. No compiler source was changed to accommodate missing tools.
+
+Validation commands/logs and final results follow below. Future work: validate
+new ABI/runtime profiles before adding catalog entries, keep display lexers in
+step with emitted spellings, and replace UI display token tables with compiler
+metadata if/when shared output highlighting metadata is exposed.
+
+
+Final validation for this change:
+
+Commands from C:/Sandbox/tower (npm/npx browser commands run from playground):
+
+    npm ci --prefix playground
+    npm run build --prefix playground
+    node --test playground/tests/targets.test.mjs playground/tests/output-syntax.test.mjs playground/tests/cross-compilation.test.mjs
+    cd playground
+    npx playwright test
+    npx playwright test tests/browser/output-highlighting.spec.mjs --output=../build/targets-highlighting-final
+
+- 38 focused Node tests passed with no skips, including all six compiler targets,
+  deterministic repeated executable output, library linking, browser inference,
+  legacy selection migration, denied/stalled hints, target-specific link inputs,
+  and literal-safe lexical highlighting. Log: build/targets-focused-node.log.
+- All 112 desktop/mobile browser tests passed in 1.9 minutes after the detection
+  and mobile-menu corrections. Log: build/targets-browser-final.log. The earlier
+  failed exploratory run is retained as build/targets-browser-tests.log; it was
+  stopped after its already-open mobile picker test remained outside the viewport.
+  The separate corrected target/default/export run passed all 12 tests (14.3 s),
+  recorded in build/targets-browser-focused.log.
+- After adding highlighting for usize/isize and prefixed x86 mnemonics, rebuilt
+  dist and reran all four desktop/mobile output-highlighting cases: passed.
+  Log: build/targets-highlighting-final.log. The 50,000-line stress case holds
+  more than 2 MB of output, creates fewer than 200 rendered lines before/after
+  jumping to the final instruction, preserves readonly behavior, and does not
+  interpret embedded HTML. This is a DOM-size/responsiveness check, not a promise
+  about every browser's latency or complete background-parse duration.
+- PowerShell log redirection also records Node's NO_COLOR/FORCE_COLOR warning as
+  NativeCommandError; the Playwright summaries above report the actual cases.
+- Full Node-suite limitation remains the absent external C archive fixture
+  described above (build/targets-node-tests.log); native integration was not
+  rebuilt on this machine. All six published cross-compiler targets were exercised.
+- Inspected the desktop native-pane screenshot at build/targets-arm-desktop.png;
+  all five panes have their own title, highlighted assembly and matching download
+  footer. Desktop/mobile tests verify equal pane widths and viewport containment.
+- git diff --check passed. todo.txt was not modified. No deployment was performed.
+
+
+## 2026-11-18 - Deploy target picker and output highlighting
+
+User authorized publishing the reviewed playground update. The repository uses
+GitHub Pages from gh-pages at /, https://trevorsundberg.github.io/tower/.
+Fetched origin/master bff7a0c and gh-pages 110b5a3 before preparing deployment;
+upstream contains newer compiler migrations, which must be preserved. Reusing the
+current gh-pages compiler binaries/runtime packs, integrating source changes onto
+the updated master, and updating verify-deployment.mjs for the concrete target
+checkboxes and virtualized output before publication. No changes to todo.txt.
