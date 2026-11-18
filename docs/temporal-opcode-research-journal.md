@@ -7133,3 +7133,19 @@ compiler buffer, with explicit allocator bindings, failure/ownership rules and
 the same differential gates. Real module imports and Tower entity/component
 storage remain larger prerequisites for broader migration. Most compiler code
 is still C++; this is the first implemented compiler algorithm slice in Tower.
+
+## 2026-11-17: Compiler utility migration published and verified online
+
+Pushed implementation `3f69c08` after the 166 compiler/backend tests, 96 browser
+tests, three native suites, formatting and bootstrap agreement checks passed.
+Published the tested compiler artifacts as gh-pages `5c7b962`; Pages workflow
+[44239063813](https://github.com/TrevorSundberg/tower/actions/runs/44239063813)
+completed successfully.
+
+`node playground/scripts/verify-deployment.mjs https://trevorsundberg.github.io/tower/`
+verified all **22** deployed asset hashes against the tested local build and
+passed both desktop and mobile flows: interpreter/Wasm agreement, forward module
+bindings, editable grammar, persistence, native compilation/downloads and equal
+columns. Logs are `build/utf8-online.log` and `build/utf8-pages.log`; reports and
+screenshots are in `build/deployment-verification/`. The live lexer/parser now
+uses the Tower-written codec. Other working notes and todo.txt were left untouched.
