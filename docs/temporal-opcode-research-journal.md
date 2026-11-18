@@ -10113,3 +10113,33 @@ That verification served the local bundle on an ephemeral HTTP port; it was not
 a GitHub Pages deployment. Logs: `build/syntax-emission-packaging-{dist,node,
 browser,verify}.log`. The earlier final native, sanitizer, formatter and
 four-target bootstrap results still apply to these unchanged compiler sources.
+
+## 2026-11-18: require synchronization, deployment and push every turn
+
+The user requested a standing start/end workflow, including publishing this
+instruction change. AGENTS.md had no such rule. Added a Turn workflow section:
+start with `git pull --rebase`; finish by committing, pulling with rebase again,
+resolving conflicts, validating, deploying and pushing, including documentation-only
+turns. Preserve local work and report blocked steps accurately without force pushes.
+
+On Windows/PowerShell in C:\Sandbox\tower, the initial working tree was clean at
+`a887bfc`. `git pull --rebase` fast-forwarded master to `60f1653`. The existing
+GitHub Pages configuration publishes the root of `gh-pages`; its latest successful
+deployment is `9c52b59`, from the separate formatter worktree. This documentation
+change requires no new website assets, so redeploy that current published snapshot
+through the established Pages build API. This does not claim the latest master
+compiler sources have been rebuilt or published. Deployment verification and final
+source synchronization results follow below. todo.txt is outside this change.
+
+The end-of-turn `git pull --rebase` picked up `fa3bc51` and conflicted only where
+both commits appended journal entries. Kept the upstream integration notes and
+this entry, then `git -c core.editor=true rebase --continue` succeeded. Only
+AGENTS.md and this journal differ from upstream; `git diff --check` passed.
+
+`gh api --method POST repos/TrevorSundberg/tower/pages/builds` redeployed `9c52b59`.
+Pages run https://github.com/TrevorSundberg/tower/actions/runs/44423963639 completed
+successfully; the Pages build API reports `built` with no error. A Node fetch and
+SHA-256 check compared all 36 hosted assets to that commit's deployment manifest,
+including the manifest itself, HTTP 200 responses and Wasm content types. All
+passed; the local report is `build/turn-workflow-deployment-verification.json`.
+No compiler/browser regression suite was rerun for this documentation-only change.

@@ -1,5 +1,17 @@
 Do NOT modify todo.txt
 
+## Turn workflow
+
+- At the beginning of every turn, run `git pull --rebase` before starting work so
+  the checkout includes the latest upstream changes. Preserve any existing local
+  work and resolve rebase conflicts without discarding it.
+- At the end of every turn, commit the turn's changes, run `git pull --rebase`
+  again, resolve any conflicts and run the appropriate validation, then deploy
+  and push the commits. Follow this workflow for documentation-only turns too.
+- Use the established deployment process and verify the published result. If a
+  pull, rebase, deployment or push is blocked, report the specific blocker;
+  never claim an unfinished step succeeded or force-push to bypass it.
+
 ## Compiler direction
 
 - Call Tower's built-in primitives and bootstrap grammar its **foundation**.
