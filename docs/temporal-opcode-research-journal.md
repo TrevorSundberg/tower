@@ -9025,3 +9025,26 @@ upstream contains newer compiler migrations, which must be preserved. Reusing th
 current gh-pages compiler binaries/runtime packs, integrating source changes onto
 the updated master, and updating verify-deployment.mjs for the concrete target
 checkboxes and virtualized output before publication. No changes to todo.txt.
+
+Deployment preparation completed: rebased UI source as 67302b1 on bff7a0c,
+resolving only the append-only journal conflict and retaining both histories.
+All three compiler binaries were refreshed from gh-pages 110b5a3; final Pages
+diff changes only seven UI/notice assets and preserves compiler/runtime bytes.
+Rebuilt with npm run build --prefix playground. The 38 focused Node tests passed
+against these published artifacts (build/target-deploy-node.log). Updated local
+verification passed all 23 asset hashes and desktop/mobile grammar, persistence,
+execution and all five native profile downloads (build/target-deploy-local.log).
+Pushed master 67302b1 and gh-pages 8ed473f with ordinary fast-forward pushes.
+GitHub Pages run 44400330324 was then observed building the new deployment.
+
+Deployment succeeded: https://github.com/TrevorSundberg/tower/actions/runs/44400330324
+completed successfully for gh-pages 8ed473f. Live verification command:
+
+    node playground/scripts/verify-deployment.mjs https://trevorsundberg.github.io/tower/
+
+All 23 deployed assets match SHA-256 hashes of the tested build. Desktop and
+mobile checks passed execution/comparison, migrations, diagnostics, persistence,
+all five native downloads, highlighted disassembly and equal pane widths, with
+zero page errors. Logs: build/target-deploy-live.log and
+build/deployment-verification/report.json; screenshots/downloads share that
+verification directory. Public URL: https://trevorsundberg.github.io/tower/.
