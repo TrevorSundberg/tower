@@ -26,7 +26,34 @@ test('typing resets the quiet period and keeps errors until the replacement resu
  const requests=await page.evaluate(()=>window.__requests);
  expect(requests.filter(r=>r.method==='analyze')).toHaveLength(1);
  expect(requests.filter(r=>r.backend)).toHaveLength(2);
- expect(requests[0].afterInput).toBeGreaterThanOrEqual(240);
+ expect(requests[0].afterInput).toBeGreaterThanOrEqual(190);
+});
+
+test('parse errors clear on successful analysis even while execution replies are held',async({page},info)=>{
+ await edit(page,'print(42)\nvar answer: i32;');
+ await expect(page.locator('.tw-inline-error-message')).toContainText("Missing ';' before 'var'.");
+ await expect(page.locator('.tw-inline-error-heading')).toHaveText('ErrorLn 1, Col 10');
+ await expect(page.locator('.tw-error-point')).toHaveCount(1);
+ await page.locator('#editor').screenshot({path:`../build/diagnostics-semicolon-${info.project.name}.png`});
+ await page.evaluate(()=>{
+  const post=Worker.prototype.postMessage;
+  Worker.prototype.postMessage=function(data,...args){if(data.backend)return;return post.call(this,data,...args);};
+ });
+ await edit(page,'print(42);\nvar answer: i32;');
+ await expect(page.locator('#status')).toContainText('Complete');
+ await expect(page.locator('#execution-status')).toContainText('Executing');
+ await expect(page.locator('.tw-inline-error')).toHaveCount(0);
+ await page.locator('#cancel-execution').click();
+});
+
+test('old semantic errors clear after compilation while a new infinite loop is still running',async({page})=>{
+ await edit(page,'var value: i32 = true;');
+ await expect(page.locator('.tw-inline-error-message')).toContainText('Expected i32');
+ await edit(page,'loop { }');
+ await expect(page.locator('#core-instructions')).toContainText('loop {');
+ await expect(page.locator('#execution-status')).toContainText('Executing');
+ await expect(page.locator('.tw-inline-error')).toHaveCount(0);
+ await page.locator('#cancel-execution').click();
 });
 
 test('reload restores the selected document and its text together',async({page,request},info)=>{

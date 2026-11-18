@@ -64,7 +64,8 @@ let linkInputs = {}, nativeDownloads = {x86:[],arm:[]}, llvmViews = {};
 let selectedTargets = {wasm:true,x86:false,arm:false};
 try { Object.assign(selectedTargets, JSON.parse(localStorage.getItem('tower-build-targets-v1') || '{}')); } catch {}
 let autoTimer = 0, documentRevision = 0, executedRevision = -1;
-const typingDebounceMs = 250;
+const typingDebounceMs = 200;
+let diagnosticPhase = null;
 let typingDeadline = 0, typingTimer = 0;
 let llvmDownload, foundation = '', bundledFoundation = '', editingModule = '', bedrock = '', bundledBedrock = '';
 let programSource = '', programFilename = 'foreach.tower';
@@ -198,6 +199,7 @@ function stopExecution(message) {
   if (message) $('execution-status').textContent = message;
 }
 function executionDiagnostic(error) {
+  diagnosticPhase = error ? 'execution' : null;
   const diagnostic = sourceDiagnostic(editor.state.doc, byteOffsets(editor.state.doc.toString()), error, result?.snapshot?.highlights ?? []);
   editor.dispatch({ effects: setDiagnostic.of(diagnostic) });
   $('editor-error').hidden = !diagnostic;
@@ -252,6 +254,9 @@ function execute() {
       if (data.error) { fail(data.error); return; }
       if (data.phase) $(backend + '-phase').textContent = data.phase;
       if (data.foundation !== undefined) {
+        // Semantic compilation has succeeded. A previous run's diagnostic no
+        // longer applies, even if this new program executes indefinitely.
+        if (!executionError && diagnosticPhase === 'execution') executionDiagnostic(null);
         runner.formatted=true;
         if (backend === 'interpreter') $('core-instructions').textContent = data.foundation;
       }
@@ -434,11 +439,14 @@ function render() {
   });
   const error = result.end?.status === 'error' ? result.end : executionError;
   const diagnostic = sourceDiagnostic(editor.state.doc, offsets, error, snapshot.highlights);
-  const awaitingExecution = result.end?.status === 'done' && $('auto-execute').checked &&
+  const awaitingExecution = diagnosticPhase === 'execution' && result.end?.status === 'done' && $('auto-execute').checked &&
     (executedRevision !== documentRevision || isExecuting()) &&
     result.events.some(event => event.status === 'statement' && event.nodes.some(item => item.production !== null && item.label.startsWith('Core')));
   const effects = [paint.of(Decoration.set(decorations, true))];
-  if (!awaitingExecution) effects.push(setDiagnostic.of(diagnostic));
+  if (!awaitingExecution) {
+    effects.push(setDiagnostic.of(diagnostic));
+    diagnosticPhase = diagnostic ? (result.end?.status === 'error' ? 'parse' : 'execution') : null;
+  }
   editor.dispatch({effects});
   if (!awaitingExecution) $('editor-error').hidden = !diagnostic;
   if (!awaitingExecution && diagnostic) {

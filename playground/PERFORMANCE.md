@@ -184,13 +184,15 @@ Completed backend workers now retain their compiler state; each execution still
 gets fresh program memory. Active cancellation terminates a worker, while the
 parser worker retains its separate grammar cache.
 
-Typing now has one 250 ms trailing debounce before analysis and automatic
+Typing now has one 200 ms trailing debounce before analysis and automatic
 execution, reset by every edit. Opening files and explicit Execute remain
 immediate. Errors and previous results stay visible until replacements arrive.
 The typing profiler includes this intentional wait and checks the final update
 after a continuous burst. The execution profiler detects a new instructions DOM
 update rather than treating retained instructions as a completed new compile.
-See the project journal for sources and the reason for choosing 250 ms.
+The initial 250 ms choice has been shortened to 200 ms at the user's request.
+Parse errors clear after analysis, semantic/runtime errors after compilation;
+neither waits for program execution to finish. See the journal for measurements.
 
 Runtime load timings measure each current request. Reusing an installed runtime
 is labeled `(cached)` even if the measured lookup rounds to 0.0 ms; the display

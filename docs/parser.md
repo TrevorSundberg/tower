@@ -343,6 +343,39 @@ no precedence grammar and no user-written phi nodes. See
 - User code
 - What does it mean if the name we referencm e has more than one capture, how can I just insert that
 
+# Grammar-driven diagnostics
+
+Syntax errors are generated from the active LR table, without user-authored error
+annotations. The diagnostic path tests expected terminals through reductions on
+a temporary stack of state pointers (lookahead correction). It never runs semantic
+actions, constructs trees, installs declarations or changes the recognizer stack.
+Successful parsing keeps its existing shift/reduce path.
+
+For each expected grammar literal, an insertion trial checks up to three actual
+tokens, using the same lexer and the trial's parser state for contextual tokens.
+Literals include custom keywords; no punctuation list or Foundation rule-name
+list decides eligibility. Named token patterns are reported as expectations but
+do not supply invented identifier names or values. A unique viable insertion
+produces a message such as `Missing ';' before 'var'.` at the source gap. Multiple
+viable insertions remain alternatives. This is a local suggestion, not a proof
+that the rest of the file is correct, and the invalid program is never executed.
+
+Trials are bounded: at most 64 expected terminal candidates, 128 parser actions
+per probe, 8,192 actions per diagnostic, a 4,096-state copied-stack limit and 32
+skipped tokens per speculative read. Exhaustion suppresses definite repair hints.
+No deletion, replacement, multi-insertion search or multi-error resynchronization
+is implemented. Parsing still stops at the first error.
+
+Expectations cite the relevant rule spellings through the shared formatter and
+their definition file/line/column. Conflict errors describe finishing versus
+continuing named productions (or the two possible completed productions) and
+both definition locations, without state numbers. Source provenance resides on
+shared grammar nodes; cached tables retain only derived positions. Runtime error
+context resolves those positions through current bindings so moving a declaration
+does not retain its previous line number. A suggested insertion is exposed to
+browser hosts as `errorOffset` plus `errorLength: 0`; the UI renders its location
+once. Other internal UTF-8 offsets remain transport data, not diagnostic prose.
+
 # Tasks & Dependencies
 
 This part is still being worked out, but the concept is that an Abstract Syntax Tree is sometimes difficult to work with, and to make it easier, we take inspiration from UI frameworks like React. The idea is that React takes in values as dependencies and automatically rebuilds parts of the UI tree (React elements) when any dependency changes. This means that some nodes in the AST are somewhat ephemeral and can change or be rebuilt.

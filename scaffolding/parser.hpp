@@ -1,5 +1,7 @@
 #pragma once
 #include "tower.hpp"
+#include <string>
+#include <vector>
 
 struct Rule;
 struct Reference;
@@ -297,6 +299,7 @@ type ParseRules = {
 }
 */
 enum class ParserTableMode { WholeInput, Constructs };
+using ParserDescribeRule = std::string (*)(void* userdata, size_t production);
 
 Table* parser_table_create(
   TowerNode* root,
@@ -304,7 +307,8 @@ Table* parser_table_create(
   ParserTableResolveReference resolve,
   ParserTableIdToString to_string,
   char** error = nullptr,
-  ParserTableMode mode = ParserTableMode::WholeInput
+  ParserTableMode mode = ParserTableMode::WholeInput,
+  ParserDescribeRule describe_rule = nullptr
 );
 
 // Creation returns null for unresolved rules or conflicting actions. If error is
@@ -345,5 +349,24 @@ TowerNode* parser_recognizer_step(Recognizer* recognizer, bool* running);
 
 // Empty on success/in-progress; otherwise a diagnostic owned by the recognizer.
 const char* parser_recognizer_get_error(Recognizer* recognizer);
+
+// Error-only lookahead correction. Probes copy state pointers, never trees or
+// streams, and have fixed work limits. Unknown/budget-exhausted probes are omitted.
+struct ParserRulePosition { size_t production, term; };
+struct ParserExpectation {
+  uint32_t id;
+  std::string label;
+  bool insertion = false;
+  std::vector<ParserRulePosition> contexts;
+};
+struct ParserDiagnostic {
+  size_t offset = 0, insertion_offset = 0;
+  bool complete = true;
+  std::vector<ParserExpectation> expected;
+};
+using ParserDiagnosticAccepts = bool (*)(void*, uint32_t);
+using ParserDiagnosticRead = bool (*)(void*, size_t&, ParserDiagnosticAccepts, void*, uint32_t&);
+ParserDiagnostic parser_recognizer_diagnostic(Recognizer* recognizer,
+  ParserDiagnosticRead read = nullptr, void* source = nullptr);
 
 

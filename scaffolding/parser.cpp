@@ -1681,6 +1681,7 @@ struct StateTransitions {
 };
 
 struct State {
+  std::vector<LR0Item> diagnostic_items; // derived grammar positions, error path only
   // This is a pointer because there are many states
   // that share the same exact set of transitions
   // This is effectively ACTION[state, terminal] in the dragon book
@@ -1698,6 +1699,7 @@ struct State {
 };
 
 struct Table {
+  ParserDescribeRule describe_rule = nullptr;
   Grammar grammar;
   std::vector<State> states;
   std::vector<std::unique_ptr<StateTransitions>> shared_transitions;
@@ -2248,6 +2250,8 @@ std::string parser_table_build_states(
     StateBuilder& builder = *table_builder.states[i].get();
     State& state = table.states[i];
     state.symbol = builder.symbol;
+    state.diagnostic_items.assign(builder.items.kernels.begin(), builder.items.kernels.end());
+    state.diagnostic_items.insert(state.diagnostic_items.end(), builder.items.nonkernels.begin(), builder.items.nonkernels.end());
 
     StateTransitions*& transitions = shared_transitions[&builder.edges];
     if (!transitions) {
@@ -2274,12 +2278,31 @@ std::string parser_table_build_states(
             const char* kind = last_edge->reduce_rule && builder_edge.reduce_rule ? "reduce/reduce" :
               last_edge->reduce_rule || builder_edge.reduce_rule ? "shift/reduce" : "shift/shift";
             const auto describe = [&](const StateBuilderEdge& edge) {
-              return edge.reduce_rule ? "reduce " + debug_str(*edge.reduce_rule, table.grammar) :
-                "shift to state " + std::to_string(edge.shift_state_index);
+              const auto rule_text = [&](const GrammarRule& rule) {
+                if (table.describe_rule) {
+                  auto text = table.describe_rule(table.grammar.userdata, rule.index);
+                  if (!text.empty()) return text;
+                }
+                return debug_str(rule, table.grammar);
+              };
+              if (edge.reduce_rule) return "finish " + rule_text(*edge.reduce_rule);
+              std::string text = "continue "; size_t count = 0;
+              const auto append = [&](const auto& items) {
+                for (const auto& item : items) {
+                  const auto* symbol = parser_table_get_grammar_symbol_or_null(table.grammar, item);
+                  if (!symbol || symbol->non_terminal || symbol->terminal.entirely_less(edge.terminal) || edge.terminal.entirely_less(symbol->terminal)) continue;
+                  if (count++) text += " or ";
+                  text += rule_text(table.grammar.rules[item.rule_index]);
+                  if (count == 3) break;
+                }
+              };
+              append(builder.items.kernels);
+              if (!count) append(builder.items.nonkernels);
+              return text;
             };
-            return "Conflicting parser actions (" + std::string(kind) + ") in state " + std::to_string(i)
-              + " on " + debug_str(builder_edge.terminal, table.grammar) + ": "
-              + describe(*last_edge) + " versus " + describe(builder_edge);
+            return "Grammar conflict (" + std::string(kind) + ") on " + debug_str(builder_edge.terminal, table.grammar)
+              + ": the parser could " + describe(*last_edge) + ", or " + describe(builder_edge)
+              + ". Make these alternatives distinct; their order does not resolve the conflict.";
           }
         }
 
@@ -2368,12 +2391,14 @@ Table* parser_table_create(
   ParserTableResolveReference resolve,
   ParserTableIdToString to_string,
   char** error,
-  ParserTableMode mode
+  ParserTableMode mode,
+  ParserDescribeRule describe_rule
 ) {
   if (error) *error = nullptr;
   void* memory = tower_memory_allocate(sizeof(Table));
   Table* table = new (memory) Table();
   table->mode = mode;
+  table->describe_rule = describe_rule;
   const auto fail = [&](const std::string& message) -> Table* {
     if (error) *error = parser_copy_string(message);
     parser_table_destroy(table);
@@ -2504,13 +2529,16 @@ Recognizer* parser_recognizer_create_prefix(Table* table, Stream* stream) {
 
 ParserWork parser_recognizer_get_work(const Recognizer* recognizer) { return recognizer->work; }
 
-static const StateEdge* parser_action(Recognizer* recognizer, const State* state, uint32_t id) {
-  ++recognizer->work.actions;
+static const StateEdge* parser_find_action(const State* state, uint32_t id) {
   const auto& transitions = *state->transitions;
   auto direct = transitions.direct_edges.find(id);
   if (direct != transitions.direct_edges.end()) return &direct->second;
   auto range = std::lower_bound(transitions.range_edges.begin(), transitions.range_edges.end(), id);
   return range != transitions.range_edges.end() && id >= range->range.start ? &range->edge : nullptr;
+}
+static const StateEdge* parser_action(Recognizer* recognizer, const State* state, uint32_t id) {
+  ++recognizer->work.actions;
+  return parser_find_action(state, id);
 }
 
 bool parser_recognizer_accepts(Recognizer* recognizer, uint32_t id) {
@@ -2550,6 +2578,79 @@ const char* parser_recognizer_get_error(Recognizer* recognizer) {
   return recognizer->error.c_str();
 }
 
+ParserDiagnostic parser_recognizer_diagnostic(Recognizer* r, ParserDiagnosticRead read, void* source) {
+  ParserDiagnostic result{r->read_start, r->consumed_end};
+  if (r->stack.empty() || r->stack.size() > 4096) return result;
+  using States = std::vector<const State*>;
+  States original;
+  for (const auto& entry : r->stack) original.push_back(entry.state);
+  size_t budget = 8192;
+  // 0 = not proven, 1 = shifted, 2 = accepted. No semantic actions or lexing.
+  const auto probe = [&](States& stack, uint32_t id, const State** before) {
+    for (size_t steps = 0; steps < 128 && budget; ++steps) {
+      --budget;
+      const State* state = stack.back();
+      const auto* edge = parser_find_action(state, id);
+      if (!edge) return 0;
+      if (edge->shift_state) {
+        if (before) *before = state;
+        stack.push_back(edge->shift_state); return 1;
+      }
+      const auto& rule = *edge->reduce_rule;
+      if (!rule.index) return 2;
+      if (rule.symbols.size() >= stack.size()) return 0;
+      stack.resize(stack.size() - rule.symbols.size());
+      auto next = stack.back()->gotos_after_reduction.find(rule.non_terminal);
+      if (next == stack.back()->gotos_after_reduction.end()) return 0;
+      stack.push_back(next->second);
+    }
+    result.complete = false; return 0;
+  };
+  std::vector<uint32_t> candidates;
+  for (const auto& [id, edge] : original.back()->transitions->direct_edges) candidates.push_back(id);
+  for (const auto& range : original.back()->transitions->range_edges) candidates.push_back(range.range.start);
+  std::sort(candidates.begin(), candidates.end());
+  // A large grammar must not turn one error into an unbounded repair search.
+  if (candidates.size() > 64) { candidates.resize(64); result.complete = false; }
+  for (auto id : candidates) {
+    auto stack = original; const State* before = nullptr;
+    const auto accepted = probe(stack, id, &before);
+    if (!accepted) continue;
+    ParserExpectation expected{id, id == PARSER_ID_EOF ? "end of input" : debug_str(id, r->table->grammar)};
+    if (before) for (const auto& item : before->diagnostic_items) {
+      const auto* symbol = parser_table_get_grammar_symbol_or_null(r->table->grammar, item);
+      if (symbol && !symbol->non_terminal && id >= symbol->terminal.start && id <= symbol->terminal.end)
+        expected.contexts.push_back({item.rule_index, item.symbol_index});
+    }
+    if (accepted == 1 && id != PARSER_ID_EOF && (read || r->lookahead_error.empty())) {
+      auto continuation = stack;
+      const auto consume = [&](uint32_t token) {
+        auto previous = continuation;
+        int status = probe(continuation, token, nullptr);
+        if (r->prefix && token != PARSER_ID_EOF &&
+            (status == 2 || (!status && probe(previous, PARSER_ID_EOF, nullptr) == 2))) {
+          continuation = {&r->table->states.front()};
+          status = probe(continuation, token, nullptr);
+        }
+        return status;
+      };
+      expected.insertion = read ? true : consume(r->read_id) != 0;
+      size_t position = r->read_start;
+      for (size_t ahead = 0; expected.insertion && read && ahead < 3; ++ahead) {
+        uint32_t token;
+        auto accepts = [](void* context, uint32_t token) {
+          return parser_find_action(static_cast<States*>(context)->back(), token) != nullptr;
+        };
+        if (!read(source, position, accepts, &continuation, token)) { expected.insertion = false; result.complete = false; break; }
+        expected.insertion = consume(token) != 0;
+        if (token == PARSER_ID_EOF) break;
+      }
+    }
+    result.expected.push_back(std::move(expected));
+  }
+  return result;
+}
+
 TowerNode* parser_recognizer_step(Recognizer* recognizer, bool* running) {
   assert(recognizer && running);
   *running = false;
@@ -2576,8 +2677,7 @@ TowerNode* parser_recognizer_step(Recognizer* recognizer, bool* running) {
   if (!edge) {
     recognizer->error = recognizer->lookahead_error.empty() ?
       "Unexpected " + (recognizer->read_id == PARSER_ID_EOF ? std::string("end of input") : debug_str(recognizer->read_id, recognizer->table->grammar))
-      + " at byte " + std::to_string(recognizer->read_start)
-      + " in " + debug_str_header(*state, *recognizer->table) : recognizer->lookahead_error;
+      + "." : recognizer->lookahead_error;
     recognizer->complete = true;
     return nullptr;
   }

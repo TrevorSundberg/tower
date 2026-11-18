@@ -56,6 +56,7 @@ std::vector<SyntaxHighlight> syntax_get_highlights(SyntaxSession* session);
 std::vector<SyntaxRuleInfo> syntax_get_rules(SyntaxSession* session);
 std::vector<std::string> syntax_get_keywords(SyntaxSession* session);
 size_t syntax_get_error_offset(SyntaxSession* session);
+bool syntax_get_error_insertion(SyntaxSession* session);
 
 // Copied source coordinates and shared expansion history survive the session.
 // Match spans on generated nodes point to the invocation, while this component

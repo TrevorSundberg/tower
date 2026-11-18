@@ -73,6 +73,15 @@ int main(int argc, char** argv) {
   if (!error.empty()) { std::cerr << error << '\n'; return 1; }
   timings.mark("bootstrap");
   auto text = read(source);
+  const auto report_error = [&](const std::string& error, size_t offset) {
+    size_t line = 1, column = 1;
+    for (size_t i = 0; i < offset && i < text.size(); ++i) {
+      auto c = static_cast<unsigned char>(text[i]);
+      if (c == '\n') { ++line; column = 1; }
+      else if ((c & 0xc0) != 0x80) ++column;
+    }
+    std::cerr << source << ':' << line << ':' << column << ": " << error << '\n';
+  };
   if (text.find('\0') != std::string::npos) { std::cerr << "Source contains NUL bytes\n"; return 1; }
   bool wasm = target.starts_with("wasm"), windows = target.find("windows") != std::string::npos;
   if (interpret) {
@@ -93,12 +102,12 @@ int main(int argc, char** argv) {
     };
     while (!machine.done) { machine.step(10000); std::cout << machine.output; machine.output.clear(); }
     timings.mark("execute");
-    if (!machine.error.empty()) { std::cerr << machine.error << " at byte " << machine.error_offset << '\n'; return 1; } return 0;
+    if (!machine.error.empty()) { report_error(machine.error, machine.error_offset); return 1; } return 0;
   }
   auto object = tower_emit_object(text.c_str(), target, optimize, library);
   timings.mark("compile");
   if (timings.enabled) timings.values.insert(object.timings.begin(), object.timings.end());
-  if (!object.error.empty()) { std::cerr << source << ':' << object.error_offset << ": " << object.error << '\n'; return 1; }
+  if (!object.error.empty()) { report_error(object.error, object.error_offset); return 1; }
   if ((!raw.empty() && !write(raw, object.raw.data(), object.raw.size())) || (!optimized.empty() && !write(optimized, object.optimized.data(), object.optimized.size()))) { std::cerr << "Cannot write LLVM output\n"; return 1; }
   if (output.empty()) output = emit == "object" ? "tower.o" : emit.starts_with("llvm") ? "tower.ll" : wasm ? "tower.wasm" : windows ? "tower.exe" : "tower.out";
   if (emit == "object") return write(output, (const char*)object.bytes.data(), object.bytes.size()) ? 0 : 1;

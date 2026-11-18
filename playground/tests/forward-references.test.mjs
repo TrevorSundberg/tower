@@ -36,7 +36,7 @@ test('forward rules follow declaration grammar changes without prescanning or ch
  "rule B = 'hello';rule Statement |= A;hello";
  assert.equal(parse(source).end.status,'done');
  assert.equal(parse('print(42);').end.status,'done');
- assert.match(parse("parse A = B;parse B = 'x' | 'x';parse Statement |= A;").end.error,/Conflicting parser actions/);
+ assert.match(parse("parse A = B;parse B = 'x' | 'x';parse Statement |= A;").end.error,/Grammar conflict/);
 });
 test('module functions, types and variables resolve forward, preserving initialization order and local scopes',async()=>{
  const source=`fn read_later(): i32 { return later; }

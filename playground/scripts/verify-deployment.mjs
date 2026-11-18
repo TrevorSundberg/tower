@@ -97,6 +97,14 @@ try {
     await expect(page.locator('.tw-inline-error-message')).toHaveText('Token literal is empty. Expected at least one character between the quotes.');
     await expect(page.locator('.tw-error-range')).toHaveText("''");
     await page.screenshot({path:new URL(name+'-empty-literal.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
+    await page.locator('#editor').click({position:{x:80,y:20}});
+    await page.getByRole('textbox',{name:'Tower source'}).press('ControlOrMeta+a');
+    await page.keyboard.insertText('print(42)\nvar answer: i32;');
+    await expect(page.locator('.tw-inline-error-message')).toContainText("Missing ';' before 'var'.");
+    await expect(page.locator('.tw-inline-error-message')).toContainText('foundation.tower, line');
+    await expect(page.locator('.tw-inline-error-heading')).toHaveText('ErrorLn 1, Col 10');
+    await expect(page.locator('.tw-error-point')).toHaveCount(1);
+    await page.screenshot({path:new URL(name+'-missing-semicolon.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
     await page.getByRole('button',{name:'Restore',exact:true}).click();
     await expect(page.locator('#status')).toContainText('Complete');
     await expect(page.locator('.tw-inline-error')).toHaveCount(0);

@@ -49,9 +49,14 @@ and rounded corners form one outline, including at the left and right edges.
 At an edge the adjacent top corner becomes straight, keeping the connector a
 trapezoid rather than leaving an inset notch.
 Select **Error · Ln …** in the editor footer to jump to an offscreen
-error. Editing retains the current diagnostic until debounced analysis and
-execution supply its replacement, avoiding a disappearing/reappearing card.
-The parser currently stops at its first error. File-loading and runtime
+error. Editing retains the diagnostic through the debounce. A successful parse
+clears parse errors immediately; successful semantic compilation clears old
+semantic/runtime errors before execution finishes. Grammar-driven diagnostics
+list valid continuations and cite the requiring rules and their definition
+locations. A bounded insertion probe can suggest a missing literal (including
+custom keywords), with its caret at the insertion gap. It never changes source
+or executes a repaired program. Ambiguous repairs remain expected alternatives.
+The parser still stops at its first error. File-loading and runtime
 failures without source locations appear separately below the workspace.
 
 Shared prefixes use lookahead: `parse Statement |= ForEach | 'for';` supports
@@ -240,7 +245,7 @@ Choose **Memory** for a growing byte buffer and indexed arrays.
 Unmodified saved Foundation defaults upgrade with the bundled module;
 customized modules are retained and can be reset with **Foundation → Restore**.
 
-Typing waits for a **250 ms quiet period**, reset by each edit, before parsing,
+Typing waits for a **200 ms quiet period**, reset by each edit, before parsing,
 highlighting, diagnostics and auto execution update together. There is no second
 execution delay. Opening a document and explicit Execute bypass the debounce;
 IME composition defers automatic work. Syntax-only examples remain parser
@@ -461,7 +466,7 @@ run `node scripts/profile-execution.mjs ../build/execution-profile.json`.
 Set `TOWER_PROFILE_URL` to compare another served build. The probe measures desktop
 and mobile emulation separately, waiting for each result; it also records individual
 worker phase timings and grammar-only typing. File opening executes immediately
-after parsing; ordinary typing uses the same 250 ms trailing debounce as diagnostics.
+after parsing; ordinary typing uses the same 200 ms trailing debounce as diagnostics.
 Status timings list each backend's stages in pipeline order (backends run in
 parallel). A `(cached)` load reports the **current run's** measured reuse time,
 even when it rounds to 0.0 ms; it never substitutes an earlier cold-load measurement.

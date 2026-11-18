@@ -5,6 +5,7 @@
 #include <vector>
 
 enum class SyntaxKind { Document, Rule, Token, Skip, Alternative, Term, Template };
+struct SyntaxSource { std::string name, text; };
 
 // Grammar meaning lives ON the declaration's actual parse nodes. items are
 // non-owning edges to descendants; a replacement reference owns a sibling
@@ -12,6 +13,7 @@ enum class SyntaxKind { Document, Rule, Token, Skip, Alternative, Term, Template
 struct SyntaxNode {
   SyntaxKind kind = SyntaxKind::Document;
   std::string name, text, capture, style;
+  std::shared_ptr<const SyntaxSource> source;
   bool literal = false, append = false, contextual = false, terminal_set = false;
   char repetition = 0;
   std::vector<TowerNode*> items;

@@ -157,9 +157,7 @@ export function sourceDiagnostic(doc, offsets, error, highlights = []) {
   // UTF-8 offsets may point at a non-ASCII scalar; never split its UTF-16 pair.
   const character = doc.sliceString(from, Math.min(from + 2, doc.length));
   const characterEnd = from + (character.codePointAt(0) > 0xffff ? 2 : 1);
-  const to = from === line.to ? from : Math.min(line.to, token ? offsets[token.end] : characterEnd);
-  const message = error.error.replace(/^Construct at byte \d+:\s*/, '')
-    .replace(/^Unexpected \$ at byte \d+ in state\([^)]*\)$/, 'Unexpected end of input')
-    .replace(/ at byte \d+(?: in state\([^)]*\))?$/, '');
+  const to = error.errorLength === 0 || from === line.to ? from : Math.min(line.to, token ? offsets[token.end] : characterEnd);
+  const message = error.error;
   return { from, to, line: line.number, column: from - line.from + 1, message };
 }

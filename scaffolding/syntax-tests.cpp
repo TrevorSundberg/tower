@@ -220,7 +220,7 @@ void syntax_tests() {
     Session session(syntax_create("parse Statement = 'x';parse Statement |= 'x' 'x';"), syntax_destroy);
     next(session.get());
     assert(!syntax_next(session.get()));
-    assert(strstr(syntax_get_error(session.get()), "Conflicting parser actions (shift/reduce)"));
+    assert(strstr(syntax_get_error(session.get()), "Grammar conflict (shift/reduce)"));
     assert(syntax_get_revision(session.get()) == 1);
   }
   // Definition and use share a line with no separating whitespace. The first

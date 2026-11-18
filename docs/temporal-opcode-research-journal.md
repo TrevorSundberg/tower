@@ -6382,3 +6382,151 @@ gap adjustment. Logs: build/playground-online-deployment.log and
 build/playground-final-local-deployment.log; report/screenshots under
 build/deployment-verification/. Earlier unrelated working documentation and
 todo.txt edits were left out of these commits.
+
+### 2026-11-17 — Grammar-derived diagnostics, bounded insertion hints, and earlier diagnostic updates
+
+The user reported `Unexpected 'var' at byte 464 in state(264, ')')` after a
+missing semicolon and requested consistent, concise errors with expectations,
+rule names and definition provenance. They clarified that automatic generation
+matters more than author-supplied messages, and allowed heuristics if measurement
+shows they are needed. They also requested slightly faster typing updates and
+clearing diagnostics when their relevant phase succeeds rather than waiting for
+execution to finish.
+
+Root causes:
+
+- The native recognizer emitted its debug state/byte text as the diagnostic.
+  The editor then attempted to strip that suffix with `state\([^)]*\)`. A quoted
+  `')'` inside the state label defeated this regex. Thus identical parser failures
+  could display different amounts of implementation detail. Messages now originate
+  without that suffix; no frontend diagnostic-text regex remains.
+- The previous debounce implementation deliberately retained every diagnostic
+  until automatic execution finished. That also retained already-corrected syntax
+  errors, and a subsequent infinite program could keep an old semantic error
+  visible indefinitely.
+
+Research consulted:
+
+- GNU Bison, error reporting and LAC:
+  https://www.gnu.org/software/bison/manual/html_node/Error-Reporting-Function.html
+  and https://www.gnu.org/software/bison/manual/html_node/LAC.html . Expected
+  terminals from a merged LR state alone can be misleading; following reductions
+  on a temporary state stack checks whether a terminal really reaches a shift or
+  acceptance. Tower applies a bounded version only after failure, not as a change
+  to ordinary parsing.
+- Clinton L. Jeffery, *Generating LR Syntax Error Messages from Examples*:
+  https://www.cs.tufts.edu/~nr/cs257/archive/clinton-jefferey/lr-error-messages.pdf .
+  Example-driven diagnostic mappings are possible without exposing numeric states,
+  but introduce authored diagnostic data and invalidation concerns for changing
+  grammars. They are not implemented here.
+
+Rejected/superseded local trials:
+
+- Initially sketched/locally added an optional `expected 'message'` grammar-term
+  annotation on shared nodes. The user clarified their priority, so all of that
+  syntax, seed, formatter and metadata work was removed before committing. There
+  is no new `expected` clause; the existing `when expected` lexical syntax is
+  unchanged.
+- An initial filter only tried non-word literals. Removed after the user asked
+  whether punctuation was hardcoded. Candidates now come from the active grammar,
+  including custom keywords. Token patterns are valid expectations but do not
+  provide invented names/numeric values for insertion.
+- Checking only the offending token left `42` followed by `print(...)` ambiguous
+  with inserting a binary operator. Trials now inspect up to three real tokens.
+  The same lexer uses each temporary parser stack for contextual token choices,
+  including re-lexing the offending position. Prefix acceptance must return to
+  the initial state and consume the same next token; an early trial failed to do
+  this and lost valid semicolon hints. Regression tests cover this boundary.
+
+Implemented:
+
+- Error-only lookahead correction and single-literal insertion trials copy state
+  pointers, never parse trees or source. They do not execute semantic actions,
+  install declarations, modify the real recognizer or alter highlights. Successful
+  input follows the existing shift/reduce path. Derived LR positions are retained
+  in tables for diagnostics, not as another grammar semantic model.
+- Limits: 64 expected terminal candidates, 128 actions per probe, 8,192 actions
+  per diagnostic, an initial 4,096-state stack limit, three real continuation
+  tokens and 32 skipped tokens per speculative read. Uncertain/budget-limited
+  searches suppress definite repair hints. This is local guidance, not proof that
+  the rest of a file is valid. There is no deletion/substitution/multi-insertion
+  search or multi-error resynchronization, and invalid programs are not executed.
+- A unique viable grammar literal produces e.g. `Missing ';' before 'var'.`,
+  with a caret at the preceding token's end. Ambiguous candidates produce checked
+  expected alternatives. Lexical failures retain their lexical explanation and
+  add expectations. Replacement-template errors gain checked expectations but
+  do not guess insertions around typed holes.
+- `SyntaxSource` provenance lives on shared grammar entities. Rule excerpts use
+  the existing formatter. Messages cite named rules and definition file/line/
+  column, including Foundation/Bedrock and local declarations. Runtime diagnostic
+  positions resolve through current bindings rather than cached source nodes;
+  moving a rule through comments preserves a table cache hit but updates its line.
+- Shift/reduce errors describe continuing versus finishing competing productions;
+  reduce/reduce errors describe the competing completed productions. Both cite
+  their definitions. Generated repetition/capture conflicts describe the public
+  source term instead of a generated numeric helper. Numeric state IDs remain
+  available only in explicit parser traces/debug output.
+- Browser syntax responses optionally include `errorLength: 0` for insertion
+  carets. UTF-8 offsets remain transport data. The native driver now renders
+  filename:line:column for compilation/interpreter failures instead of byte offsets.
+- Typing debounce changed from 250 to 200 ms, retaining trailing/reset behavior.
+  Parse errors clear on successful analysis. With automatic execution, old
+  semantic/runtime diagnostics clear on the successful Foundation compilation
+  message rather than waiting for both executions. Existing diagnostics stay
+  visible during debounce; stale worker replies remain rejected.
+
+Environment and reproducible checks:
+
+- Windows workspace `C:\Sandbox\tower`; WSL `Orchestral-Revng`; WASI SDK 34,
+  Release builds without C++ exceptions. `cmake --build build/browser-wasi
+  --parallel 4` builds the parser/interpreter reactor. `TOWER_BROWSER_CROSS=ON
+  TOWER_BUILD_JOBS=4 bash playground/scripts/build-llvm.sh` rebuilds both optimized
+  LLVM reactors. An initial direct build of `build/browser-wasi-llvm` failed during
+  regeneration on the checkout's CRLF `config.guess`; that is an old build tree.
+  The maintained script uses the Linux source/build cache and completed correctly.
+- `bash playground/scripts/test-native-core.sh` passes both native ASan/UBSan
+  suites. The first run exposed an old test requiring the word `byte`; updated it
+  to require a human error, checked expectations and unchanged recognizer work
+  counters. The native `towerc` was rebuilt from `/root/.cache/tower/native`.
+- `towerc build/diagnostics-native.tower --interpret` reports
+  `build/diagnostics-native.tower:2:10: Missing ';' before 'var'.`, followed by
+  `CoreCallStatement` and its Foundation location. The fixture includes Unicode
+  on the preceding line.
+- `node --test playground/tests/*.test.mjs`: 143/143 pass. New tests include
+  punctuation and keyword insertion, contextual lexing, ambiguous/no valid repair,
+  two-token omissions, grammar conflicts, cached provenance, broad expected sets
+  and 4,200 nested delimiters. `npm run check:format` passes all 16 bundled Tower
+  files unchanged; no grammar spelling or format changes were introduced.
+- The initial full Playwright run passed 88/92 checks. Two desktop/mobile cases
+  expected the old lexical-only text (restored that useful cause while adding
+  expectations), and two expected EOF on a trailing blank line (updated to the
+  correct insertion gap after the preceding number). New checks hold all execution
+  requests to verify parsing alone clears a parse error, and replace a semantic
+  error with an infinite loop to verify compilation clears it before execution ends.
+- Final full Playwright run: 92/92 pass on the rebuilt parser, LLVM and cross
+  reactors. The final Node run passes 143/143 and native ASan/UBSan passes 2/2.
+- Screenshots `build/diagnostics-semicolon-{desktop,mobile}.png` were inspected:
+  the caret/bubble connects after `print(42)`, the location is Ln 1, Col 10, and
+  the rule definition wraps within the card without horizontal overflow.
+
+Performance trial:
+
+`node playground/scripts/profile-diagnostics.mjs build/pages-deploy/tower.wasm`
+compared the previous published reactor with this implementation. Each case uses
+eight warmups plus 40 warm reset/parse/JSON samples; module loading is excluded.
+Results are in `build/diagnostics-profile.json` (Node running the real Wasm, not
+physical mobile-device latency). Median milliseconds before/after: valid program
+0.795/0.625; missing semicolon 0.217/0.298; number followed by a call 0.181/0.241;
+custom missing keyword 0.431/0.469; ambiguous repair 0.520/0.489; deeply invalid
+input 4.329/3.947. After-change p95 is 0.672 ms for the semicolon and 0.419 ms for
+number/call. Treat the lower valid/deep medians as measurement variation, not an
+optimization claim. The measured extra work is small enough that a punctuation
+heuristic is unnecessary. The 200 ms intentional debounce still dominates typical
+interactive latency.
+
+Remaining limitations: suggestions validate only a short continuation under the
+current grammar; they cannot anticipate later declarations changing that grammar.
+Long or very ambiguous failures use bounded fallback expectations. Local rule
+locations are labeled `this file` (the editor/CLI already supplies the current
+filename); imported baselines identify their module. Full multi-error recovery,
+deletion/replacement fixes and machine-applicable fix actions remain future work.

@@ -100,7 +100,7 @@ test('diagnostics, corrected input, local persistence and source download work',
   await expect(page.locator('.tw-inline-error')).toBeInViewport();
   await page.screenshot({path:`../build/playground-empty-literal-${info.project.name}.png`});
   await setSource(page, base + "parse Statement |= Expression ';';");
-  await expect(page.getByRole('alert')).toContainText('Conflicting parser actions');
+  await expect(page.getByRole('alert')).toContainText('Grammar conflict');
   await expect(page.locator('#revision')).toHaveText('Revision 3');
   await page.locator('#editor-error').click();
   await expect(page.locator('.tw-inline-error')).toBeVisible();
@@ -160,7 +160,8 @@ test('inline Unicode and end-of-input locations stay visible until fresh diagnos
   await expect(page.locator('.tw-inline-error-heading')).toHaveText('ErrorLn 3, Col 1');
   const incomplete = "// 雪🚀\nparse Statement = Number ';';\n42";
   await setSource(page, incomplete);
-  await expect(page.locator('.tw-inline-error-message')).toHaveText('Unexpected end of input');
+  await expect(page.locator('.tw-inline-error-message')).toContainText('end of input');
+  await expect(page.locator('.tw-inline-error-message')).not.toContainText('at byte');
   await expect(page.locator('.tw-inline-error-heading')).toHaveText('ErrorLn 3, Col 3');
   await expect(page.locator('.tw-error-range')).toHaveCount(0);
   await expect(page.locator('.tw-error-point')).toHaveCount(1);
@@ -179,7 +180,8 @@ test('inline Unicode and end-of-input locations stay visible until fresh diagnos
   await expect(page.locator('.tw-error-point')).toHaveCount(0);
   await expect(page.locator('#editor-error')).toBeHidden();
   await setSource(page, incomplete + '\n');
-  await expect(page.locator('.tw-inline-error-heading')).toHaveText('ErrorLn 4, Col 1');
+  // The missing semicolon belongs after the last token, before trailing trivia.
+  await expect(page.locator('.tw-inline-error-heading')).toHaveText('ErrorLn 3, Col 3');
   await expect(page.locator('.tw-error-point')).toHaveCount(1);
 
 });

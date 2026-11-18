@@ -308,7 +308,12 @@ void parser_tree_tests() {
     expression_grammar(parse.rules);
     parse.begin(input);
     finish(parse.recognizer, false);
-    assert(strstr(parser_recognizer_get_error(parse.recognizer), "byte "));
+    assert(strstr(parser_recognizer_get_error(parse.recognizer), "Unexpected "));
+    assert(!strstr(parser_recognizer_get_error(parse.recognizer), "byte "));
+    auto work = parser_recognizer_get_work(parse.recognizer);
+    auto diagnostic = parser_recognizer_diagnostic(parse.recognizer);
+    assert(!diagnostic.expected.empty());
+    assert(parser_recognizer_get_work(parse.recognizer).actions == work.actions);
   }
   // Early destruction with a nonempty stack and an owned lookahead.
   for (int shifts : {0, 1, 2}) {

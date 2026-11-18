@@ -57,7 +57,11 @@ inspect calls return `{ "status": "error", "error": "Invalid session handle" }`.
 Common fields: `status`, `revision`, `offset`, `error`, `errorOffset`, `rules`,
 `tokens` and `keywords`. `offset` is the next unread UTF-8 byte offset. `errorOffset`
 identifies the offending token or the rejected declaration's beginning, and
-is meaningful only with a nonempty `error`.
+is meaningful only with a nonempty `error`. A suggested insertion instead points
+at the source gap and includes `errorLength: 0` for a caret rather than a token
+underline. Diagnostic text contains no parser state IDs or byte coordinates;
+hosts convert the separate UTF-8 offsets to their own line/column presentation.
+Grammar context uses rule names and definition file/line/column coordinates.
 
 Step statuses: `declaration`, `statement`, `done`, `error`. `previousRevision`
 is the revision used to read the construct. A successful declaration advances
@@ -237,10 +241,12 @@ Calling exported `tower_main` runs the compiled program. The WASM executable
 does not contain the interpreter.
 
 The UI defaults to auto execution after successful full parses containing Core*
-statement trees. A single 250 ms quiet period, reset by each edit, precedes analysis
+statement trees. A single 200 ms quiet period, reset by each edit, precedes analysis
 and auto execution; composition defers automatic work. Opening a document or
 explicitly executing bypasses the delay. Diagnostics and output remain visible
-until replacement results arrive. Reused runtime load timings describe the current
+until replacement results arrive. Parse errors clear with successful analysis;
+semantic/runtime errors clear with successful compilation, without waiting for
+execution to end. Reused runtime load timings describe the current
 request and carry a separate cached flag, not a saved cold-load duration.
 Syntax-only documents keep parsing without execution errors. Cancellation marks
 the current document revision as handled, so a late parse/re-inspection cannot

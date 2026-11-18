@@ -80,6 +80,7 @@ void status(std::string& out, SyntaxSession* syntax, const std::string& kind) {
   field(out, "offset", syntax_get_offset(syntax));
   field(out, "error", std::string(syntax_get_error(syntax)));
   field(out, "errorOffset", syntax_get_error_offset(syntax));
+  if (syntax_get_error_insertion(syntax)) field(out, "errorLength", size_t(0));
 }
 void tree(std::string& out, TowerNode* root) {
   struct Item { TowerNode* node; size_t parent; const char* role; };
