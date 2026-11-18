@@ -111,6 +111,5 @@ main{display:flex;flex-direction:column;flex:1;min-height:0;min-width:0;gap:6px;
 .target-menu{width:310px;max-width:calc(100vw - 24px);max-height:60vh;overflow:auto}
 .target-menu label{white-space:normal;align-items:flex-start}
 .target-menu small{display:block;color:var(--muted);font:9px/1.6 ui-monospace,Consolas,monospace;overflow-wrap:anywhere}
-.target-default{border-top:1px solid var(--line);padding:7px 6px 2px;color:var(--muted);font-size:10px;line-height:1.5}
 .target-phase{padding:3px 8px;color:var(--muted);font-size:9px;border-top:1px solid var(--line)}
 @media(max-width:760px){.code-output .cm-editor{font-size:10px}.code-output .cm-line{padding:0 5px!important}.execution-heading{position:relative}.target-picker{position:static}.target-menu{right:6px}}
