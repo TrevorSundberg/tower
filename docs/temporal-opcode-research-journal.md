@@ -10685,3 +10685,88 @@ deploy-action.log and deploy-live.log. Local and live reports are preserved as
 deploy-upstream-local-report.json and deploy-live-report.json; screenshots and
 downloaded artifacts are in build/deployment-verification. todo.txt and the
 original workspace were not modified by this deployment.
+
+### Interpreter follow-up: rebase, integrate concurrent ports, push and deploy
+
+The user subsequently authorized committing to a clean tree, pulling/rebasing,
+pushing, and deploying the latest version. This supersedes the earlier no-push
+and no-publication instruction for this follow-up. Work stayed in the isolated
+interpreter worktree/branch; master was not checked out or modified here.
+
+Fetched origin and rebased the three interpreter commits onto master 235cdbe.
+The source branch became 2ca4923 / 90b0604 / 1b1c6c1. The live Pages branch
+already contained formatter frontend 9d59053, which had not landed on master.
+Merged that formatter branch rather than replacing its deployed work with the
+old formatter. CMake conflicts were resolved by including both Tower modules,
+keeping both native seed adapters on seed/stage1, and retaining differential
+registration. Append-only journal histories were preserved. Windows-created
+worktree metadata is not directly readable by WSL git without an explicit Linux
+git-dir; used that for the read-only journal reconstruction. Conflict markers
+were removed and whitespace checked before the validated integration merge.
+
+The first combined build passed CTest 5/5, 156 portable-WASI differential runs,
+16 LLVM comparisons, 221 Node tests (one optional prebuilt native-output fixture
+skipped), canonical formatting, and all 128 desktop/mobile cases. A final fetch
+then found concurrent grammar-construction commits 60f1653/fa3bc51 on master and
+the formatter deployment note c50dfeb. Integrated all of them before publication,
+preserving the Tower grammar-emission modules/tests and the formatter modules in
+source composition. These merges are 77ade17 and 923fe7f. The interpreter's
+implementation files remain byte-identical to the previously validated port.
+
+Combining the test objects exposed a real registration dependency: the shared
+parser object now contains Tower grammar-emission tests referring to the renamed
+native emission reference. The interpreter executable also links that shared
+object, so it must link tower-syntax-emission-reference. Added the dependency and
+applied the existing no-exceptions policy for its portable WASI build. This
+changes test linkage only; no execution or grammar algorithm was changed here.
+
+Rebuilt the native seed/stage1/production compiler, parser/core test executables,
+portable-WASI differential executable, and production browser frontend reactor
+from the combined source. Node/npm dependencies were installed in this worktree.
+The full static build required both optional backend capabilities and all target
+packs (TOWER_REQUIRE_BACKENDS=1). Reused the already published LLVM/cross reactors
+and target packs byte-for-byte from gh-pages 9c52b59, retaining their existing
+provenance; they were not rebuilt by this deployment. They remain the previous
+published backend implementations, including their native bootstrap adapters.
+The rebuilt tower.wasm contains all three frontend ports. This is not a claim
+that the independently bundled LLVM reactors have themselves completed those
+native-to-Tower migrations. Fresh native LLVM comparisons and browser backend
+comparison/download tests validate interoperability with the published modules.
+
+Restored the original compressed backend artifacts after the static builder
+regenerated gzip headers on Windows. This avoids meaningless gzip-only changes.
+The deployment manifest preserves the formatter provenance and adds interpreter
+source/deployment provenance plus explicit retained-backend information. A
+separate ignored Pages worktree was created from origin/gh-pages; manifest hashes
+and its entire file set are checked against the local distribution. Staging was
+performed by updating the existing asset files after a bulk-removal command was
+rejected by automatic command review; no recursive deletion was needed.
+Only tower.wasm and deployment-manifest.json change from the prior publication.
+
+Reproduction uses the isolated native/tests/asan/wasm-tests caches already listed
+above, cmake --build on each, ctest --output-on-failure, the interpreter LLVM/WASI
+runners, npm ci --prefix playground, TOWER_REQUIRE_BACKENDS=1 npm run build,
+node --test playground/tests/*.test.mjs, and npm run check:format --prefix
+playground. Desktop/mobile tests use the unchanged repository suite with a
+worktree-local Playwright configuration on port 4187 so they cannot reuse the
+original checkout's server. Command: npx --prefix playground playwright test
+--config build/integration-playwright.config.mjs --reporter=line. Local/live
+verification uses the checked-in verify-local.mjs and verify-deployment.mjs.
+
+Latest combined results: Release CTest 5/5; ASan/UBSan CTest 5/5;
+156 portable-WASI differential runs; 16 native LLVM comparisons; 221 Node tests
+passed with one optional native-output fixture skipped; canonical formatting;
+and 128/128 desktop/mobile Playwright tests (2.4 minutes). Local deployment
+verification passed on an ephemeral server: all 36 served assets match the
+manifest, both browser profiles agree between backends, and editable grammar,
+project persistence, native build/download, equal columns and target defaults
+work. Logs are build/latest-{native,tests-build,ctest,asan-build,asan-tests,
+wasm,wasm-tests-build,wasm-differential,llvm-comparisons,frontend,node-tests,
+format,browser,local-deployment}.log. The verified local deployment report is
+saved separately before the live verifier reuses its output directory.
+
+A final remote check found f2c9542, an AGENTS.md workflow/journal-only update.
+It adds mandatory pull/rebase, deployment verification and push at turn end.
+Integrating it does not change the validated compiler, frontend or test inputs;
+follow the required final pull/rebase and publish the same validated artifacts.
+todo.txt remains byte-identical to the original starting commit.

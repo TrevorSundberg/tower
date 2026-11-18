@@ -20,3 +20,13 @@ endif()
 add_test(NAME tower-interpreter-tests COMMAND tower-interpreter-tests)
 
 set_tests_properties(tower-interpreter-tests PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
+# The shared parser test object also contains the grammar port's Tower tests.
+# Satisfy their reference ABI when linking the interpreter test executable.
+if(TARGET tower-syntax-emission-reference)
+  target_link_libraries(tower-interpreter-tests PRIVATE tower-syntax-emission-reference)
+  if(MSVC)
+    target_compile_definitions(tower-syntax-emission-reference PRIVATE _HAS_EXCEPTIONS=0)
+  else()
+    target_compile_options(tower-syntax-emission-reference PRIVATE -fno-exceptions)
+  endif()
+endif()
