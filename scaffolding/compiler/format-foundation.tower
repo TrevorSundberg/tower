@@ -1,0 +1,485 @@
+// Native bridges only query existing operation/type definitions.
+extern fn format_is_Program(n: FoundationNode*): bool;
+
+extern fn format_is_Function(n: FoundationNode*): bool;
+
+extern fn format_is_Parameter(n: FoundationNode*): bool;
+
+extern fn format_is_Declare(n: FoundationNode*): bool;
+
+extern fn format_is_Assign(n: FoundationNode*): bool;
+
+extern fn format_is_Operand(n: FoundationNode*): bool;
+
+extern fn format_is_Binary(n: FoundationNode*): bool;
+
+extern fn format_is_Address(n: FoundationNode*): bool;
+
+extern fn format_is_Load(n: FoundationNode*): bool;
+
+extern fn format_is_Convert(n: FoundationNode*): bool;
+
+extern fn format_is_Bits(n: FoundationNode*): bool;
+
+extern fn format_is_Call(n: FoundationNode*): bool;
+
+extern fn format_is_Block(n: FoundationNode*): bool;
+
+extern fn format_is_If(n: FoundationNode*): bool;
+
+extern fn format_is_Loop(n: FoundationNode*): bool;
+
+extern fn format_is_Break(n: FoundationNode*): bool;
+
+extern fn format_is_Continue(n: FoundationNode*): bool;
+
+extern fn format_is_Print(n: FoundationNode*): bool;
+
+extern fn format_is_Return(n: FoundationNode*): bool;
+
+extern fn format_is_Type(n: FoundationNode*): bool;
+
+extern fn format_is_FieldDeclaration(n: FoundationNode*): bool;
+
+extern fn format_is_Field(n: FoundationNode*): bool;
+
+extern fn format_is_Index(n: FoundationNode*): bool;
+
+extern fn format_is_String(n: FoundationNode*): bool;
+
+extern fn format_is_SizeOf(n: FoundationNode*): bool;
+
+extern fn format_is_AlignOf(n: FoundationNode*): bool;
+
+extern fn format_is_Allocate(n: FoundationNode*): bool;
+
+extern fn format_is_Reallocate(n: FoundationNode*): bool;
+
+extern fn format_is_Free(n: FoundationNode*): bool;
+
+extern fn format_is_Copy(n: FoundationNode*): bool;
+
+extern fn format_is_Fill(n: FoundationNode*): bool;
+
+extern fn format_builtin(n: FoundationNode*): u8*;
+
+extern fn format_operator(n: FoundationNode*): u8*;
+
+extern fn format_scalar_name(t: FoundationType*, output: vector(u8)*): bool;
+
+extern fn format_array(t: FoundationType*): bool;
+
+extern fn format_record(t: FoundationType*): bool;
+
+extern fn format_boolean(t: FoundationType*): bool;
+
+extern fn format_signed(t: FoundationType*): bool;
+
+extern fn format_mask(t: FoundationType*): u64;
+
+extern fn format_sign(t: FoundationType*): u64;
+
+fn format_type(f: FormatEngine*, t: FoundationType*): void {
+    var condition1 = format_array(t);
+    if condition1 {
+        var a = format_foundation(f, t.record);
+        format_type(f, &a.element);
+        format_text(f, "[");
+        format_unsigned(f, convert(u64, a.length));
+        format_text(f, "]");
+    } else {
+        var condition2 = format_record(t);
+        if condition2 {
+            var record = format_foundation(f, t.record);
+            format_identifier(f, &record.name);
+        } else {
+            var view: vector(u8);
+            vector_init(u8, &view);
+            var ok = format_scalar_name(t, &view);
+            if ok {} else {
+                f.result.failed = true;
+            }
+            format_identifier(f, &view);
+            vector_dispose(u8, &view);
+        }
+    }
+    format_repeat(f, 42, convert(usize, t.pointers));
+}
+
+fn format_number(f: FormatEngine*, n: FoundationNode*): void {
+    var mask = format_mask(&n.type);
+    var value = n.bits & mask;
+    var condition3 = format_signed(&n.type);
+    if condition3 {
+        var sign = format_sign(&n.type);
+        sign = value & sign;
+        var condition4 = sign != 0;
+        if condition4 {
+            format_text(f, "-");
+            var zero: u64 = 0;
+            value = zero - value;
+            value = value & mask;
+        }
+    }
+    format_unsigned(f, value);
+}
+
+fn format_expression(f: FormatEngine*, entity: void*): void {
+    var n = format_foundation(f, entity);
+    var builtin = format_builtin(n);
+    var condition5 = builtin != null;
+    if condition5 {
+        format_text(f, builtin);
+        format_text(f, "(");
+        var condition6 = format_is_Print(n);
+        if condition6 {
+            format_expression(f, n.value);
+        }
+        var size = format_is_SizeOf(n);
+        var align = format_is_AlignOf(n);
+        var query = format_or(size, align);
+        if query {
+            format_type(f, &n.element);
+        }
+        var allocate = format_is_Allocate(n);
+        var reallocate = format_is_Reallocate(n);
+        var allocation = format_or(allocate, reallocate);
+        if allocation {
+            format_type(f, &n.element);
+            format_text(f, ", ");
+            var condition7 = n.left != null;
+            if condition7 {
+                format_expression(f, n.left);
+                format_text(f, ", ");
+            }
+            format_expression(f, n.right);
+        }
+        var conversion = format_is_Convert(n);
+        var reinterpret = format_is_Bits(n);
+        conversion = format_or(conversion, reinterpret);
+        if conversion {
+            format_type(f, &n.type);
+            format_text(f, ", ");
+            format_expression(f, n.value);
+        }
+        var condition8 = format_is_Free(n);
+        if condition8 {
+            format_expression(f, n.left);
+        }
+        var copy = format_is_Copy(n);
+        var fill = format_is_Fill(n);
+        var memory = format_or(copy, fill);
+        if memory {
+            format_expression(f, n.left);
+            format_text(f, ", ");
+            format_expression(f, n.right);
+            format_text(f, ", ");
+            format_expression(f, n.value);
+        }
+        format_text(f, ")");
+        return;
+    }
+    var condition9 = format_is_Operand(n);
+    if condition9 {
+        if n.constant {
+            var condition10 = n.type.pointers != 0;
+            if condition10 {
+                format_text(f, "null");
+            }
+            else {
+                var condition11 = format_boolean(&n.type);
+                if condition11 {
+                    var condition12 = n.bits != 0;
+                    if condition12 {
+                        format_text(f, "true");
+                    }
+                    else {
+                        format_text(f, "false");
+                    }
+                } else {
+                    format_number(f, n);
+                }
+            }
+        } else {
+            var binding = format_foundation(f, n.binding);
+            format_identifier(f, &binding.name);
+        }
+        return;
+    }
+    var condition13 = format_is_String(n);
+    if condition13 {
+        format_quote(f, &n.name);
+        return;
+    }
+    var condition14 = format_is_Binary(n);
+    if condition14 {
+        format_expression(f, n.left);
+        format_text(f, " ");
+        format_text(f, format_operator(n));
+        format_text(f, " ");
+        format_expression(f, n.right);
+        return;
+    }
+    var condition15 = format_is_Field(n);
+    if condition15 {
+        format_expression(f, n.left);
+        format_text(f, ".");
+        format_identifier(f, &n.name);
+        return;
+    }
+    var condition16 = format_is_Index(n);
+    if condition16 {
+        format_expression(f, n.left);
+        format_text(f, "[");
+        format_expression(f, n.right);
+        format_text(f, "]");
+        return;
+    }
+    var condition17 = format_is_Address(n);
+    if condition17 {
+        format_text(f, "&");
+        format_expression(f, n.value);
+        return;
+    }
+    var condition18 = format_is_Load(n);
+    if condition18 {
+        format_text(f, "*");
+        format_expression(f, n.value);
+        return;
+    }
+    var condition19 = format_is_Call(n);
+    if condition19 {
+        var binding = format_foundation(f, n.binding);
+        format_identifier(f, &binding.name);
+        format_text(f, "(");
+        var i: usize = 0;
+        loop {
+            var condition20 = i == n.items.length;
+            if condition20 {
+                break;
+            }
+            var condition21 = i != 0;
+            if condition21 {
+                format_text(f, ", ");
+            }
+            format_expression(f, n.items.data[i]);
+            i = i + 1;
+        }
+        format_text(f, ")");
+        return;
+    }
+    f.result.failed = true;
+}
+
+fn format_block(f: FormatEngine*, entity: void*): void {
+    var n = format_foundation(f, entity);
+    var condition22 = n.items.length == 0;
+    if condition22 {
+        format_text(f, "{}");
+        return;
+    }
+    format_text(f, "{\n");
+    f.result.depth = f.result.depth + 1;
+    var i: usize = 0;
+    loop {
+        var condition23 = i == n.items.length;
+        if condition23 {
+            break;
+        }
+        format_statement(f, n.items.data[i]);
+        i = i + 1;
+    }
+    f.result.depth = f.result.depth - 1;
+    format_indent(f);
+    format_text(f, "}");
+}
+
+fn format_statement_body(f: FormatEngine*, entity: void*): void {
+    var n = format_foundation(f, entity);
+    var condition24 = format_is_Declare(n);
+    if condition24 {
+        format_text(f, "var ");
+        format_identifier(f, &n.name);
+        format_text(f, ": ");
+        format_type(f, &n.type);
+        var condition25 = n.value != null;
+        if condition25 {
+            format_text(f, " = ");
+            format_expression(f, n.value);
+        }
+        format_text(f, ";");
+        return;
+    }
+    var condition26 = format_is_Assign(n);
+    if condition26 {
+        format_expression(f, n.target);
+        format_text(f, " = ");
+        format_expression(f, n.value);
+        format_text(f, ";");
+        return;
+    }
+    var condition27 = format_is_Return(n);
+    if condition27 {
+        format_text(f, "return");
+        var condition28 = n.value != null;
+        if condition28 {
+            format_text(f, " ");
+            format_expression(f, n.value);
+        }
+        format_text(f, ";");
+        return;
+    }
+    var builtin = format_builtin(n);
+    var expression = builtin != null;
+    var call = format_is_Call(n);
+    expression = format_or(expression, call);
+    if expression {
+        format_expression(f, entity);
+        format_text(f, ";");
+        return;
+    }
+    var condition29 = format_is_Break(n);
+    if condition29 {
+        format_text(f, "break;");
+        return;
+    }
+    var condition30 = format_is_Continue(n);
+    if condition30 {
+        format_text(f, "continue;");
+        return;
+    }
+    var condition31 = format_is_Block(n);
+    if condition31 {
+        format_block(f, entity);
+        return;
+    }
+    var condition32 = format_is_Loop(n);
+    if condition32 {
+        format_text(f, "loop ");
+        format_block(f, n.body);
+        return;
+    }
+    var condition33 = format_is_If(n);
+    if condition33 {
+        format_text(f, "if ");
+        format_expression(f, n.value);
+        format_text(f, " ");
+        format_block(f, n.body);
+        var condition34 = n.otherwise != null;
+        if condition34 {
+            format_text(f, " else ");
+            format_block(f, n.otherwise);
+        }
+        return;
+    }
+    var condition35 = format_is_Function(n);
+    if condition35 {
+        if n.external {
+            format_text(f, "extern ");
+        }
+        else {
+            if n.exported {
+                format_text(f, "export ");
+            }
+        }
+        format_text(f, "fn ");
+        format_identifier(f, &n.name);
+        format_text(f, "(");
+        var i: usize = 0;
+        loop {
+            var condition36 = i == n.parameters.length;
+            if condition36 {
+                break;
+            }
+            var condition37 = i != 0;
+            if condition37 {
+                format_text(f, ", ");
+            }
+            var p = format_foundation(f, n.parameters.data[i]);
+            format_identifier(f, &p.name);
+            format_text(f, ": ");
+            format_type(f, &p.type);
+            i = i + 1;
+        }
+        format_text(f, "): ");
+        format_type(f, &n.type);
+        if n.external {
+            format_text(f, ";");
+        }
+        else {
+            format_text(f, " ");
+            format_block(f, n.body);
+        }
+        return;
+    }
+    var condition38 = format_is_Type(n);
+    if condition38 {
+        format_text(f, "struct ");
+        format_identifier(f, &n.name);
+        format_text(f, " {\n");
+        f.result.depth = f.result.depth + 1;
+        var i: usize = 0;
+        loop {
+            var condition39 = i == n.items.length;
+            if condition39 {
+                break;
+            }
+            var field = format_foundation(f, n.items.data[i]);
+            format_indent(f);
+            format_identifier(f, &field.name);
+            format_text(f, ": ");
+            format_type(f, &field.type);
+            format_text(f, ";\n");
+            i = i + 1;
+        }
+        f.result.depth = f.result.depth - 1;
+        format_indent(f);
+        format_text(f, "}");
+        return;
+    }
+    f.result.failed = true;
+}
+
+fn format_statement(f: FormatEngine*, entity: void*): void {
+    var n = format_foundation(f, entity);
+    format_indent(f);
+    var begin = f.result.text.length;
+    format_statement_body(f, entity);
+    format_span(f, begin, n.start);
+    format_text(f, "\n");
+}
+
+fn format_node(f: FormatEngine*, entity: void*): void {
+    var syntax = format_syntax(f, entity);
+    var condition40 = syntax != null;
+    if condition40 {
+        format_grammar(f, entity);
+        return;
+    }
+    var n = format_foundation(f, entity);
+    var condition41 = format_is_Program(n);
+    if condition41 {
+        var previous = false;
+        var i: usize = 0;
+        loop {
+            var condition42 = i == n.items.length;
+            if condition42 {
+                break;
+            }
+            var item = n.items.data[i];
+            var child = format_foundation(f, item);
+            var function = format_is_Function(child);
+            var type = format_is_Type(child);
+            var declaration = format_or(function, type);
+            var separate = format_or(previous, declaration);
+            if separate {
+                format_newline(f, true);
+            }
+            format_node(f, item);
+            previous = declaration;
+            i = i + 1;
+        }
+    } else {
+        format_statement(f, entity);
+    }
+}

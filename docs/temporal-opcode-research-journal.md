@@ -9902,3 +9902,181 @@ ARM64-under-QEMU execution, browser execution and the live Pages deployment;
 Windows/macOS native execution and portable standalone compiler distribution
 remain outside the verified results. Re-run `./build.sh` for the complete local
 pipeline; publishing remains an explicit separate action.
+
+## 2026-11-18 — Canonical formatter moved to Tower (base f034216)
+
+Implemented in isolated branch port/canonical-formatter-tower and worktree
+C:\Sandbox\tower-formatter. The original workspace and todo.txt are untouched.
+A second, unmodified detached worktree at C:\Sandbox\tower-formatter-reference
+pins f034216 for the controlled performance comparison. All generated objects,
+downloaded tools, npm cache, logs and reactors are under the formatter worktree's
+build directory. No merge, push or publication was performed.
+
+The production tower_format and tower_format_source entry points now invoke
+compiler/format.tower, format-foundation.tower, format-grammar.tower and
+format-source.tower. These modules read the existing FoundationNode, SyntaxNode
+and ParserMatchData components directly through entity_component_get/data.
+There is no additional authoritative AST, operation model or program format.
+Temporary source-token positions and spacing flags are derived layout data, as
+in the preceding implementation. Foundation and source output share the same
+byte writer, escaping, identifiers, indentation, newlines and span machinery.
+Grammar declarations dispatch through that same engine and preserve declaration
+order, = versus |=, captures/repetition, terminal sets, contextual tokens,
+replacement body bytes, comments and optional provenance. Source formatting
+continues to consume lexer-provided comments and original parser matches.
+The existing parse/format equivalence guard in syntax.cpp was not changed.
+
+Moved decimal conversion, quoting, identifier escaping, canonical reserved-name
+selection, grammar wrapping, type/expression/statement traversal, affix and call
+spacing, blank lines and ordered output-span creation to Tower. Reused existing
+type/operation definitions through small C bridges for CoreKind predicates,
+builtin/operator spellings and scalar type properties/names. Type layout and
+all shared component layouts remain unchanged. The native wrapper only supplies
+component kinds, adapts ownership/results and queries those shared definitions.
+Identifier decoding already lived in Tower's syntax reader and still uses it.
+
+The old formatter is retained in scaffolding/bootstrap/format-seed.cpp, with
+only include-path adjustments. It builds the seed and stage1 compilers and
+serves as the independently named differential reference. It is explicitly
+migration debt, not a second production formatter. Normal towerc and browser
+reactors link the Tower implementation; parser tests always compare it with the
+reference. TOWER_FORMAT_DIFFERENTIAL=ON also enables reference checks in the
+browser reactor. Checks compare exact bytes and every ordered (begin,end,source)
+triple, including nested spans. Production builds leave that option OFF and
+contain no reference formatter. Build/test registration is kept in a separate
+commit from formatter implementation and tests.
+
+Debugging/failed trials:
+- Initial authoring used unquoted token/skip local names and bitwise operations
+  on bool. Foundation correctly rejected both. Renamed the locals and used
+  ordinary Tower boolean helper functions; did not extend the foundation.
+- The first native suite found an entity-allocation-count change while formatting
+  Bedrock. Eagerly obtaining core_component_type registered a permanent foundation
+  component even on grammar-only calls. Made its registration lazy, matching the
+  preceding formatter's behavior. Native ownership checks subsequently pass.
+- A contextual-token fixture initially kept an Identifier-led Statement
+  alternative active and was tokenized as an assignment. Restricted that fixture's
+  active Statement to the contextual token; no parser changes were made.
+- The first broad Node run lacked build/linking/wasm-fixture.a. Built the existing
+  foreign-fixture.c with the SDK and llvm-ar, then reran successfully.
+- The initial large benchmark hit runToEnd's UI-only 1,024-construct budget.
+  The dedicated benchmark now uses a bounded direct step loop without changing
+  the playground. Also rejected its initial 5,000-root foundation timing:
+  compilation exceeds the foundation module limit and returns empty formatting.
+  That fixture now measures only source formatting; all measured outputs must
+  be nonempty and agree in text and spans before timing.
+
+After the user's explicit request to make Tower faster where possible, added
+measured optimizations with stated eligibility:
+- Check comment ordering once. Ordered lexer trivia uses binary lower bounds
+  rather than rescanning every comment for every root/statement. Unsorted
+  caller-supplied comments retain the preceding full-scan behavior and order;
+  a reversed-comment differential test covers this fallback.
+- Skip sorting already ordered source-token positions. Retain O(n log n)
+  heapsort for interleaved comments or otherwise unordered input.
+- Batch repeated bytes and decimal digits, and append runs of unescaped string
+  bytes rather than appending each byte individually.
+- Group canonical reserved names by length and stop after a match.
+No optimization changes evaluation, entity identity, trivia or source spans.
+These are workload-specific performance improvements, not a universal speed
+guarantee or an excuse to introduce new semantic representations.
+
+Validation, Windows x64, MSVC 19.44.35207, Node 21.7.3, WASI SDK 34.0:
+- Optimized MSVC production formatter through tower-parser-tests: passed.
+- CTest: 4/4 passed (utf8, bytes, parser/compiler, foreach).
+- Exact native-reference comparisons across the existing compiler/syntax suite
+  and new formatter cases: passed. Cases cover quoted identifiers, UTF-8 and
+  control bytes, signed minima/unsigned maxima, pointers/arrays, builtins,
+  structs/functions, extern/export, branches/loops, replacements, grammar
+  updates, comments, blank lines, prefix/postfix/infix spacing and spans.
+- Allocation-failure sweeps for foundation output and source-token work buffers
+  return allocation counts to baseline and discard partial public output.
+- All 48 checked-in Tower files equal canonical formatting and pass formatting
+  idempotence and parse/format round trips. Foundation tests also recompile
+  canonical output and compare the next canonical serialization.
+- Rebuilt Wasm reactor with differential checks: 220 Node tests passed,
+  0 failed, 1 skipped. This includes 100 deterministic spacing trials
+  (seed 0x464d5421) and exact UTF-8 source-coordinate assertions.
+- Rebuilt production Wasm reactor with reference disabled: the same
+  220 passed / 0 failed / 1 skipped; npm run check:format passed.
+- The skipped case requires a separately built native compiler output artifact.
+  Native LLVM towerc, LLVM/cross-reactor rebuilds, full bootstrap object/IR
+  comparisons, sanitizers and interactive-browser tests were not run here.
+  Existing LLVM/cross reactors and target runtime inputs were copied into this
+  worktree for downstream regression tests; those binaries are not evidence of
+  rebuilding their embedded formatter. Native execution of the new formatter
+  itself was exercised by the MSVC compiler/parser suite. No performance claim
+  is made for the unmeasured native LLVM-driver path.
+
+Reproduction:
+- Normal supported bootstrap path remains build-bootstrap.sh / a recent stage1
+  compiler supplied as TOWER_BOOTSTRAP_COMPILER. This machine had no Linux WSL
+  environment or installed native LLVM development toolchain. Its local
+  build/formatter-bootstrap/compiler.cmd instead invokes compiler.mjs through
+  Node. That adapter loads a copied tower-cross.wasm using loadLLVM from
+  playground/src/llvm-host.mjs, supplies the --bedrock and --foundation files,
+  calls compile(input,{emit:'object',library:true,target:targetArgument}), rejects
+  error status, and writes result.object to -o. The saved bootstrap reactor's
+  SHA256 is 679406CF05E2E3635DDFDE265CB5B851CB846B9DF8941168A1084CE25E35DF5C.
+- Downloaded wasi-sdk-34.0-x86_64-windows.tar.gz from
+  https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-34/wasi-sdk-34.0-x86_64-windows.tar.gz
+  into build/formatter-bootstrap; observed archive SHA256
+  CCCB5C323A9B34F0349A9B09E8804A0A7632C68C3310F4B5F437ED57D7E71D8F.
+- Native command: scaffolding/tests/run.ps1 -Optimize -BootstrapCompiler
+  C:/Sandbox/tower-formatter/build/formatter-bootstrap/compiler.cmd.
+  Then ctest --test-dir build/parser-tests/cmake --output-on-failure.
+- Wasm CMake: -S . -B build/browser-wasi -G Ninja
+  -DCMAKE_TOOLCHAIN_FILE=<sdk>/share/cmake/wasi-sdk-p1.cmake
+  -DCMAKE_BUILD_TYPE=Release -DTOWER_BROWSER=ON
+  -DTOWER_BOOTSTRAP_COMPILER=<adapter.cmd>, toggling
+  -DTOWER_FORMAT_DIFFERENTIAL=ON and OFF, each followed by
+  cmake --build build/browser-wasi --parallel 4 and
+  node --test playground/tests/*.test.mjs.
+  Used Visual Studio's bundled CMake/Ninja with explicit paths.
+- npm ci --prefix playground --cache build/npm-cache;
+  npm run check:format --prefix playground.
+- Link fixture: <sdk>/bin/clang --target=wasm32-unknown-unknown -O2
+  -ffreestanding -c scaffolding/tests/foreign-fixture.c
+  -o build/linking/wasm-fixture.o; llvm-ar rcs
+  build/linking/wasm-fixture.a build/linking/wasm-fixture.o.
+
+Performance: rebuilt f034216 in the detached reference worktree using exactly
+the same SDK, Release configuration and bootstrap adapter, with its separate
+build/formatter-reference directory. Ran
+node scaffolding/tests/format-benchmark.mjs build/formatter-reference/tower.wasm
+twice, with production reference checks disabled. Each run uses 10 warmups and
+40 alternating paired samples per fixture/method. Source-format timing includes
+the existing reparsing/equivalence guard; foundation timing includes host JSON
+output. This is Node-hosted Wasm, not browser typing latency or native timings.
+
+Controlled-run medians, original C++ -> Tower (milliseconds):
+- 10 declarations: source 0.2568 -> 0.2525; foundation 0.0111 -> 0.0107.
+- 1,000 declarations: source 18.9964 -> 19.3102; foundation 0.5689 -> 0.5402.
+- 5,000 declarations with comments: source 143.7436 -> 116.2151 (~19% faster).
+- 200 long strings: source 17.1277 -> 17.6152; foundation 3.0697 -> 1.5050
+  (~51% faster).
+The repeat retained ~19% improvement for comment-heavy source and ~50% for
+long-string foundation output. Small/common source cases varied around parity;
+one source-string run improved ~16% while the other regressed ~3%, so no stable
+claim is made for it. The consistent large-case wins justify the changes;
+near-noise differences do not establish that all Tower formatting is faster.
+
+Logs/results remain in build/formatter-bootstrap:
+windows-optimized.log, ctest-final.log, wasm-final-{differential,production}.log,
+node-final-{differential,production}.log, canonical-final.log, reference-build.log,
+benchmark-controlled.json and benchmark-controlled-repeat.json. The initial
+saved-reactor measurements are superseded by these same-toolchain baseline runs.
+The checked-in formatter benchmark can reproduce the paired procedure.
+
+Integration requirements and remaining debt:
+apply both the implementation and registration commits; compose format modules
+after the existing shared component/vector/reader definitions; regenerate Tower
+objects and rebuild each host/reactor. Reconcile only the small source-composition,
+target-registration and test-entry additions with concurrent grammar/interpreter
+ports, and append this journal entry without removing theirs. Keep the seed
+formatter on towerc-seed/stage1 until the bootstrap cycle can be retired.
+The CoreKind/type-query bridges, C++ result adapters, shared native registration
+and retained seed/reference remain native migration debt. Existing C++ semantic
+checking, parser orchestration, interpreter and LLVM lowering are outside this
+port. Re-run full native LLVM/bootstrap validation in an equipped environment
+before treating those integration paths as independently verified.

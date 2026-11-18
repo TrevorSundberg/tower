@@ -1,0 +1,455 @@
+// Canonical text and source mapping over the existing shared components.
+// Composed after their definitions; these buffers are output, not another IR.
+struct FormatSpan {
+    begin: usize;
+    end: usize;
+    source: usize;
+}
+
+struct FormatResult {
+    text: vector(u8);
+    spans: vector(FormatSpan);
+    depth: usize;
+    failed: bool;
+}
+
+struct FormatEngine {
+    result: FormatResult*;
+    syntax_kind: void*;
+    foundation_kind: void*;
+    match_kind: void*;
+}
+
+extern fn format_foundation_kind(): void*;
+
+fn format_syntax(f: FormatEngine*, entity: void*): SyntaxNode* {
+    var component = entity_component_get(entity, f.syntax_kind);
+    return bits(SyntaxNode*, entity_component_data(component));
+}
+
+fn format_foundation(f: FormatEngine*, entity: void*): FoundationNode* {
+    var absent = f.foundation_kind == null;
+    if absent {
+        f.foundation_kind = format_foundation_kind();
+    }
+    var component = entity_component_get(entity, f.foundation_kind);
+    return bits(FoundationNode*, entity_component_data(component));
+}
+
+fn format_match(f: FormatEngine*, entity: void*): ParserMatchData* {
+    var component = entity_component_get(entity, f.match_kind);
+    return bits(ParserMatchData*, entity_component_data(component));
+}
+
+fn format_write(f: FormatEngine*, bytes: u8*, count: usize): void {
+    var ok = bytes_append(&f.result.text, bytes, count);
+    if ok {} else {
+        f.result.failed = true;
+    }
+}
+
+fn format_text(f: FormatEngine*, text: u8*): void {
+    format_write(f, text, syntax_text_length(text));
+}
+
+fn format_bytes(f: FormatEngine*, text: vector(u8)*): void {
+    format_write(f, text.data, text.length);
+}
+
+fn format_char(f: FormatEngine*, byte: u8): void {
+    format_write(f, &byte, 1);
+}
+
+fn format_repeat(f: FormatEngine*, byte: u8, count: usize): void {
+    var empty = count == 0;
+    if empty {
+        return;
+    }
+    var text = &f.result.text;
+    var needed = text.length + count;
+    var overflow = needed < text.length;
+    if overflow {
+        f.result.failed = true;
+        return;
+    }
+    var ok = vector_reserve(u8, text, needed);
+    if ok {
+        fill(&text.data[text.length], byte, count);
+        text.length = needed;
+    } else {
+        f.result.failed = true;
+    }
+}
+
+fn format_indent(f: FormatEngine*): void {
+    var count = f.result.depth * 4;
+    format_repeat(f, 32, count);
+}
+
+fn format_newline(f: FormatEngine*, blank: bool): void {
+    var text = &f.result.text;
+    loop {
+        var condition2 = text.length == 0;
+        if condition2 {
+            return;
+        }
+        var at = text.length - 1;
+        var c = text.data[at];
+        var space = c == 32;
+        var tab = c == 9;
+        var trim = format_or(space, tab);
+        if trim {} else {
+            break;
+        }
+        text.length = at;
+    }
+    var wanted: usize = 1;
+    if blank {
+        wanted = 2;
+    }
+    var count: usize = 0;
+    var at = text.length;
+    loop {
+        var condition3 = at == 0;
+        if condition3 {
+            break;
+        }
+        at = at - 1;
+        var condition4 = text.data[at] != 10;
+        if condition4 {
+            break;
+        }
+        count = count + 1;
+    }
+    loop {
+        var condition5 = count >= wanted;
+        if condition5 {
+            break;
+        }
+        format_char(f, 10);
+        count = count + 1;
+    }
+}
+
+fn format_span(f: FormatEngine*, begin: usize, source: usize): void {
+    var spans = &f.result.spans;
+    var needed = spans.length + 1;
+    var ok = vector_reserve(FormatSpan, spans, needed);
+    if ok {
+        var span = &spans.data[spans.length];
+        span.begin = begin;
+        span.end = f.result.text.length;
+        span.source = source;
+        spans.length = needed;
+    } else {
+        f.result.failed = true;
+    }
+}
+
+fn format_equal(a: u8*, length: usize, b: u8*): bool {
+    var i: usize = 0;
+    loop {
+        var condition6 = i == length;
+        if condition6 {
+            var result = b[i] == 0;
+            return result;
+        }
+        var condition7 = b[i] == 0;
+        if condition7 {
+            return false;
+        }
+        var condition8 = a[i] != b[i];
+        if condition8 {
+            return false;
+        }
+        i = i + 1;
+    }
+}
+
+fn format_name_is(a: vector(u8)*, b: u8*): bool {
+    return format_equal(a.data, a.length, b);
+}
+
+fn format_alpha(c: u8): bool {
+    var lower = c >= 97;
+    var upper = c <= 122;
+    var letter = format_and(lower, upper);
+    lower = c >= 65;
+    upper = c <= 90;
+    var capital = format_and(lower, upper);
+    var underscore = c == 95;
+    letter = format_or(letter, capital);
+    letter = format_or(letter, underscore);
+    return letter;
+}
+
+fn format_escape(f: FormatEngine*, bytes: u8*, length: usize, quote: u8): void {
+    format_char(f, quote);
+    var start: usize = 0;
+    var i: usize = 0;
+    loop {
+        var condition1 = i == length;
+        if condition1 {
+            break;
+        }
+        var c = bytes[i];
+        var newline = c == 10;
+        var carriage = c == 13;
+        var tab = c == 9;
+        var slash = c == 92;
+        var delimiter = c == quote;
+        var escape = format_or(newline, carriage);
+        escape = format_or(escape, tab);
+        escape = format_or(escape, slash);
+        escape = format_or(escape, delimiter);
+        if escape {
+            var count = i - start;
+            format_write(f, &bytes[start], count);
+            format_char(f, 92);
+            if newline {
+                format_char(f, 110);
+            }
+            else {
+                if carriage {
+                    format_char(f, 114);
+                }
+                else {
+                    if tab {
+                        format_char(f, 116);
+                    }
+                    else {
+                        format_char(f, c);
+                    }
+                }
+            }
+            start = i + 1;
+        }
+        i = i + 1;
+    }
+    var count = length - start;
+    // Empty vector payloads may have a null data pointer.
+    var condition2 = count != 0;
+    if condition2 {
+        format_write(f, &bytes[start], count);
+    }
+    format_char(f, quote);
+}
+
+fn format_reserved(name: vector(u8)*): bool {
+    var length2 = name.length == 2;
+    if length2 {
+        var word_fn = format_name_is(name, "fn");
+        if word_fn {
+            return true;
+        }
+        var word_if = format_name_is(name, "if");
+        if word_if {
+            return true;
+        }
+        var word_as = format_name_is(name, "as");
+        if word_as {
+            return true;
+        }
+        return false;
+    }
+    var length3 = name.length == 3;
+    if length3 {
+        var word_var = format_name_is(name, "var");
+        if word_var {
+            return true;
+        }
+        return false;
+    }
+    var length4 = name.length == 4;
+    if length4 {
+        var word_else = format_name_is(name, "else");
+        if word_else {
+            return true;
+        }
+        var word_loop = format_name_is(name, "loop");
+        if word_loop {
+            return true;
+        }
+        var word_true = format_name_is(name, "true");
+        if word_true {
+            return true;
+        }
+        var word_null = format_name_is(name, "null");
+        if word_null {
+            return true;
+        }
+        var word_skip = format_name_is(name, "skip");
+        if word_skip {
+            return true;
+        }
+        var word_when = format_name_is(name, "when");
+        if word_when {
+            return true;
+        }
+        return false;
+    }
+    var length5 = name.length == 5;
+    if length5 {
+        var word_break = format_name_is(name, "break");
+        if word_break {
+            return true;
+        }
+        var word_false = format_name_is(name, "false");
+        if word_false {
+            return true;
+        }
+        var word_parse = format_name_is(name, "parse");
+        if word_parse {
+            return true;
+        }
+        var word_token = format_name_is(name, "token");
+        if word_token {
+            return true;
+        }
+        return false;
+    }
+    var length6 = name.length == 6;
+    if length6 {
+        var word_return = format_name_is(name, "return");
+        if word_return {
+            return true;
+        }
+        var word_struct = format_name_is(name, "struct");
+        if word_struct {
+            return true;
+        }
+        var word_extern = format_name_is(name, "extern");
+        if word_extern {
+            return true;
+        }
+        var word_export = format_name_is(name, "export");
+        if word_export {
+            return true;
+        }
+        return false;
+    }
+    var length7 = name.length == 7;
+    if length7 {
+        var word_replace = format_name_is(name, "replace");
+        if word_replace {
+            return true;
+        }
+        return false;
+    }
+    var length8 = name.length == 8;
+    if length8 {
+        var word_continue = format_name_is(name, "continue");
+        if word_continue {
+            return true;
+        }
+        var word_expected = format_name_is(name, "expected");
+        if word_expected {
+            return true;
+        }
+        return false;
+    }
+    return false;
+}
+
+fn format_identifier(f: FormatEngine*, name: vector(u8)*): void {
+    var plain = name.length != 0;
+    if plain {
+        plain = format_alpha(name.data[0]);
+    }
+    var i: usize = 0;
+    loop {
+        var condition13 = i == name.length;
+        if condition13 {
+            break;
+        }
+        var c = name.data[i];
+        var alpha = format_alpha(c);
+        var lower = c >= 48;
+        var upper = c <= 57;
+        var digit = format_and(lower, upper);
+        var valid = format_or(alpha, digit);
+        plain = format_and(plain, valid);
+        i = i + 1;
+    }
+    // Canonical reserved spellings, independent of editable lexer keywords.
+    if plain {
+        var reserved = format_reserved(name);
+        if reserved {
+            plain = false;
+        }
+    }
+    if plain {
+        format_bytes(f, name);
+    }
+    else {
+        format_escape(f, name.data, name.length, 96);
+    }
+}
+
+fn format_quote(f: FormatEngine*, value: vector(u8)*): void {
+    format_escape(f, value.data, value.length, 39);
+}
+
+fn format_unsigned(f: FormatEngine*, value: u64): void {
+    var digits: u8[20];
+    var at: usize = 20;
+    loop {
+        var digit = value % 10;
+        digit = digit + 48;
+        at = at - 1;
+        digits[at] = convert(u8, digit);
+        value = value / 10;
+        var condition35 = value == 0;
+        if condition35 {
+            break;
+        }
+    }
+    var count: usize = 20;
+    count = count - at;
+    format_write(f, &digits[at], count);
+}
+
+fn format_column(f: FormatEngine*): usize {
+    var count: usize = 0;
+    var at = f.result.text.length;
+    loop {
+        var condition37 = at == 0;
+        if condition37 {
+            return count;
+        }
+        at = at - 1;
+        var condition38 = f.result.text.data[at] == 10;
+        if condition38 {
+            return count;
+        }
+        count = count + 1;
+    }
+}
+
+export fn format_dispose(result: FormatResult*): void {
+    vector_dispose(u8, &result.text);
+    vector_dispose(FormatSpan, &result.spans);
+}
+
+export fn format_entity(result: FormatResult*, entity: void*, syntax: void*, foundation: void*, match: void*): void {
+    var f: FormatEngine;
+    f.result = result;
+    f.syntax_kind = syntax;
+    f.foundation_kind = foundation;
+    f.match_kind = match;
+    format_node(&f, entity);
+}
+
+fn format_or(a: bool, b: bool): bool {
+    if a {
+        return true;
+    }
+    return b;
+}
+
+fn format_and(a: bool, b: bool): bool {
+    if a {
+        return b;
+    }
+    return false;
+}
