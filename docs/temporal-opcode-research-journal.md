@@ -9372,3 +9372,20 @@ ZIP/IndexedDB round trips, legacy migration and all five native outputs
 (`node scripts/verify-deployment.mjs`, log
 `build/projects-deployment-local.log`). `git diff --check` passed. No unresolved
 failure remains before publication.
+
+Publication completed: source `79c9729` (project implementation `1da2831`) was
+pushed normally to `master` after a final `git pull --rebase origin master`.
+Static artifacts were committed as `41f35ca` and pushed normally to `gh-pages`.
+GitHub Pages run https://github.com/TrevorSundberg/tower/actions/runs/44405306250
+completed successfully. No upstream commits were overwritten.
+
+Live verification command, from `playground`:
+`node scripts/verify-deployment.mjs https://trevorsundberg.github.io/tower/`.
+All 23 fetched assets matched the tested local build by SHA-256. Desktop and
+mobile both passed multi-file compilation, whole-project ZIP import/export,
+IndexedDB reload persistence, built-in migration/editing, interpreter/Wasm
+agreement, five native builds/downloads, output highlighting and target defaults.
+No browser page errors were reported. Results: `build/projects-deployment-live.log`
+and `build/deployment-verification/report.json` (ignored local artifacts).
+The previous entry's statement that no deployment was performed applies only to
+the earlier implementation trial; this entry records the authorized publication.
