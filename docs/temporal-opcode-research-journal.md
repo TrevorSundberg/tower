@@ -7748,3 +7748,38 @@ Tower-owned vector storage; the native adapter is temporary. Do not delete the
 last working seed before validating its successor. The final endpoint remains
 pure Tower project-owned source and portable compiler binaries, not a permanent
 C++ bootstrap.
+
+## 2026-11-18 — Ordinary execution for constants; selectable determinism profiles
+
+User clarification: `5 + 5` during compilation means running Tower's own addition
+operation. Constant evaluation must not be a separate arithmetic mini-language or
+an independently implemented folding semantics. Optimizers may simplify ordinary
+execution when they preserve that execution's contract. Extend the same principle
+to ordinary user functions invoked during compilation.
+
+The user wants normal runtime execution to run as natively and efficiently as the
+platform allows; a strict cross-host execution mode should be explicit. For
+cross-compilation and compile-time computation, select an execution/semantic
+profile that fixes primitive behavior across hosts. A proposed profile could model
+PC x86-64-like little-endian primitives, executing directly where equivalent and
+wrapping, sanitizing or emulating differing operations elsewhere. Architecture
+names alone are insufficient: define integer widths and overflow, floating-point
+rounding/NaNs/contraction/subnormals, byte order, pointer/address observations,
+layouts, invalid accesses and effects. Do not accidentally inherit C++ undefined
+behavior, LLVM poison or the host's floating-point environment.
+
+Keep compiler host, output target description and execution semantics profile
+distinct, explicit inputs. Compile-time target queries use the selected output
+target, even when evaluation uses a portable strict execution profile. A program
+may declare required/supported execution profiles, similarly to supported target
+capabilities. Runtime native/relaxed behavior remains defined by its selected
+profile; native speed does not implicitly authorize unrelated fast-math changes.
+Include profile/version, target and tracked effects in dependency/cache identity.
+
+Optimized LLVM/native code is a valid future execution engine for strict evaluation
+IF all operations obey the chosen profile. The interpreter is a portable reference
+path, not the only allowed engine. Direct native instructions require an established
+equivalence; wrappers/emulation handle operations that differ. Differential tests
+must compare interpreter, optimized execution and hosts for both values and defined
+effects. These profiles and general compile-time function execution remain design
+direction; the current bounded type-function evaluator does not implement them.
