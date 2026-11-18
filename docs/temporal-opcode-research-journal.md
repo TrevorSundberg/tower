@@ -9141,3 +9141,23 @@ Validation so far: npm run build --prefix playground succeeded; all 25 tests in
 playground/tests/targets.test.mjs passed (build/target-default-fix-node.log).
 Full desktop/mobile regression tests and deployment verification follow.
 No changes to todo.txt.
+
+Correction validation: all 114 desktop/mobile browser tests passed in 2.5 minutes
+(build/target-default-fix-browser.log). The updated deployment verifier also passed
+locally, including 23 matching assets, both execution backends, five native
+downloads, ignored old v1/v2 state, single Windows/default-Wasm selection and
+strong-match-only markers (build/target-default-fix-local.log). Inspected the
+desktop-target-default.png screenshot: only Windows x64 (detected) is checked;
+no explanatory paragraph remains. Rebased source onto new upstream e58672e,
+preserving its compiler migration and journal entries; correction source is
+f59cd6c. Published UI-only artifacts as gh-pages 3acf0fe. Compiler/runtime
+artifacts remain unchanged from the preceding verified deployment.
+
+Correction deployment verified live: GitHub Pages run 44402478329 succeeded
+(https://github.com/TrevorSundberg/tower/actions/runs/44402478329). Ran
+node playground/scripts/verify-deployment.mjs https://trevorsundberg.github.io/tower/
+against the public site. All 23 asset hashes match. Desktop/mobile execution,
+native downloads and old-state override regression checks passed with zero page
+errors: Windows x64 alone with (detected), Android fallback Wasm alone without
+the marker, and no diagnostic paragraph. Live log: build/target-default-fix-live.log;
+report/screenshots: build/deployment-verification/.
