@@ -6530,3 +6530,28 @@ Long or very ambiguous failures use bounded fallback expectations. Local rule
 locations are labeled `this file` (the editor/CLI already supplies the current
 filename); imported baselines identify their module. Full multi-error recovery,
 deletion/replacement fixes and machine-applicable fix actions remain future work.
+
+### 2026-11-17 — Diagnostics deployment and final browser timings
+
+- Implementation pushed on master as `1824862`; Pages artifacts pushed as
+  `499e5fe`. GitHub Pages run `44211307058` completed successfully:
+  https://github.com/TrevorSundberg/tower/actions/runs/44211307058 .
+- `node playground/scripts/verify-deployment.mjs` passed against both the local
+  server and https://trevorsundberg.github.io/tower/ . All 20 published assets
+  match local SHA-256 digests, including the parser/interpreter and both rebuilt
+  LLVM reactors. Desktop/mobile checks include the missing-semicolon wording,
+  Foundation rule location, insertion caret at Ln 1, Col 10, backend agreement,
+  editable grammar, persistence, native downloads and equal columns. Online
+  artifacts/screenshots are in `build/deployment-verification/`; logs are
+  `build/diagnostics-{local,online}-deployment.log`.
+- `node scripts/profile-execution.mjs ../build/diagnostics-execution-profile.json`
+  measured desktop/mobile browser emulation on the local server after the final
+  build. Complete edits took 236–258 ms desktop and 233–250 ms mobile emulation,
+  including the intentional 200 ms quiet period. Highlight updates took 214–234
+  ms and 218–231 ms respectively. Warm file opens took 91–168/92–163 ms; complete
+  cold runs took 1,185/1,194 ms. These are DOM timings on this machine, not physical
+  mobile latency or a controlled before/after cold-start regression comparison.
+- Final source-format check passed all 16 bundled Tower files. Full tests:
+  143 Node/Wasm checks, 92 Playwright desktop/mobile checks, and 2 native sanitizer
+  suites. Other-thread changes to AGENTS.md, docs/foundation.md and earlier journal
+  notes were left unstaged; todo.txt was not modified or staged by this task.
