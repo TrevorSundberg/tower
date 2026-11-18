@@ -6987,3 +6987,18 @@ build/inference-runtime-profile.json and build/inference-profile.log.
 Publication and live verification follow. This is initializer-based inference,
 not a general bidirectional constraint solver, inferred function signatures or
 generic specialization. Those require their own semantic and diagnostic design.
+
+### 2026-11-17 - Initializer inference published and verified online
+
+Source `4415776` and Pages artifacts `6974c9d` were pushed. GitHub Pages run
+`44233871190` completed successfully:
+https://github.com/TrevorSundberg/tower/actions/runs/44233871190 .
+`node playground/scripts/verify-deployment.mjs https://trevorsundberg.github.io/tower/`
+passed all 22 asset hashes and desktop/mobile workflows. The new Inference
+document produces 42, true, 43, 42 in both runners; canonical instructions show
+explicit i32/bool/pointer types. Native build/download checks and saved-module
+behavior still pass. Logs/artifacts: build/inference-online.log,
+build/inference-pages.log and build/deployment-verification/.
+Refresh the published page and choose Inference. The Foundation inference task
+is marked complete. Unrelated AGENTS.md, Foundation/journal notes and todo.txt
+remain unstaged and preserved.
