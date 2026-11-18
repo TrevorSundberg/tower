@@ -6363,3 +6363,22 @@ Validation and reproduction:
   **10/10** relevant bubble, viewport, Unicode/EOF, saved-source and infinite-loop
   recovery checks passed (build/bubble-gap-tests.log). The final build was rebuilt
   and its 20 static deployment assets matched the local server by SHA-256.
+
+
+## 2026-11-17: verified debounce and error-bubble publication
+
+Pushed source commit `850156e` to master and published the tested static assets as
+gh-pages commit `186e3a7`. GitHub Pages build/deployment run `44207146030` completed
+successfully: https://github.com/TrevorSundberg/tower/actions/runs/44207146030 .
+
+Ran `node playground/scripts/verify-deployment.mjs https://trevorsundberg.github.io/tower/`.
+All 20 public assets matched the final local build by SHA-256. Real Chromium
+desktop and phone-emulation checks passed online: interpreter/Wasm agreement,
+module bindings, editable grammar and the connected error bubble, selected-file
+refresh persistence, current-run cached load labels, source restore, native
+compilation/downloads and equal result columns. No page errors were observed.
+The same verification passed against http://127.0.0.1:4173/ after the final 3px
+gap adjustment. Logs: build/playground-online-deployment.log and
+build/playground-final-local-deployment.log; report/screenshots under
+build/deployment-verification/. Earlier unrelated working documentation and
+todo.txt edits were left out of these commits.
