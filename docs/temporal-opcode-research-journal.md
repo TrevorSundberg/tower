@@ -7720,3 +7720,31 @@ semantic checking, formatting, interpreter, platform/driver/browser interfaces
 and backend adapters. Each continues using the same shared entity model and
 canonical Foundation semantics. This entry does not claim that full migration
 or the portable self-hosting binary distribution is complete.
+
+## 2026-11-18 — Deterministic runtime rationale and templates deployment
+
+The user clarified that deterministic execution is essential because the compiler
+will invoke ordinary Tower code when evaluating constants. This strengthens the
+combined compiler/runtime direction: constant evaluation is an execution stage of
+the same language, with shared operation semantics, not a second host-dependent
+evaluator. Identical code, explicit inputs, semantics version and selected target
+description must give identical defined results on Windows, macOS, Linux and Wasm.
+Target sizes/layouts come from that explicit target; file reads and other effects
+must be declared/tracked inputs. Relaxed runtime policies cannot silently affect
+constant evaluation. General ordinary-function constant evaluation and complete
+strict floating-point/effect policies remain work to implement and test; the
+initial type-function evaluator is deliberately bounded, not that entire facility.
+
+Published the templates milestone ea3d6bd as gh-pages commit 35826d9. GitHub Pages
+workflow 44354419779 succeeded. Ran `node playground/scripts/verify-deployment.mjs
+https://trevorsundberg.github.io/tower/`: all 23 deployed assets match the local
+build; desktop and mobile verify backend agreement, forward module bindings,
+editable grammar, persistence, native builds/downloads and equal columns. The
+Templates example is included. Log: build/generics-online.log.
+
+Continuing migration with parser component payloads (rule, reference, token string,
+range and match). These must use the existing generic entity/component store and
+Tower-owned vector storage; the native adapter is temporary. Do not delete the
+last working seed before validating its successor. The final endpoint remains
+pure Tower project-owned source and portable compiler binaries, not a permanent
+C++ bootstrap.

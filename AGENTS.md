@@ -53,6 +53,9 @@ Do NOT modify todo.txt
   must satisfy the operation's semantic profile, not hardware availability alone.
 - Compile-time execution MUST have identical defined behavior across hosts for
   identical program, explicit inputs, semantics version and target description.
+  Constant evaluation invokes ordinary Tower code under this same contract;
+  share runtime operation semantics rather than creating a host-dependent
+  constant evaluator. This is a primary reason for the deterministic runtime.
   Specify arithmetic, floating point, memory and effects; do not inherit host
   behavior accidentally. Target queries use explicit target data, not the host.
   Runtime platform-specific or relaxed behavior must be explicit, well-defined
