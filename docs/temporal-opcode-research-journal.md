@@ -8353,3 +8353,22 @@ passes the platform/reproducibility/dependency checks should the remaining nativ
 seed be replaced by checked-in portable Windows/macOS/Linux executables. Current
 development executables still rely on external native dependencies and are not
 those portable distributions. No new public binary representation was added.
+
+### LR migration deployment verified; next steering
+
+Committed/pushed the LR migration as `9a1f5cb`; published the tested static build
+as Pages commit `56e4c79`. GitHub Pages workflow `44377259487` succeeded:
+https://github.com/TrevorSundberg/tower/actions/runs/44377259487.
+`node playground/scripts/verify-deployment.mjs https://trevorsundberg.github.io/tower/`
+passed: all 23 deployed assets matched the tested local bytes, and desktop/mobile
+checks verified interpreter/LLVM agreement, forward bindings, editable grammar,
+persistence, native compilation/downloads and equal result columns. Log:
+`build/lr-online.log`; screenshots/report: `build/deployment-verification/`.
+
+New user steering while verification completed: simplify the Templates example,
+remove the incidental identity demonstration, and demonstrate a fixed-size
+container with type and constant-integer size arguments plus a short `stack(T)`
+with push/pop. Continue the compiler migration after that; the requested endpoint
+remains zero project-owned C++ (including bootstrap), not merely LR construction.
+The existing type constructor implementation currently rejects value parameters;
+implement that missing capability rather than hardcoding an example's size in C++.
