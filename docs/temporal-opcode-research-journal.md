@@ -10143,3 +10143,72 @@ SHA-256 check compared all 36 hosted assets to that commit's deployment manifest
 including the manifest itself, HTTP 200 responses and Wasm content types. All
 passed; the local report is `build/turn-workflow-deployment-verification.json`.
 No compiler/browser regression suite was rerun for this documentation-only change.
+
+### 2026-11-18 — Remaining project-owned C/C++ migration audit
+
+Status audit requested while the formatter/interpreter tasks finish on other
+machines. Fetched origin and inspected source/build registration rather than
+counting removed lines as completion. Local master started at fa3bc51;
+origin/master is f2c9542. A clean detached audit worktree pulled/rebased onto
+that head so the user's unrelated working notes and todo.txt remain intact.
+
+The formatter port is pushed at origin/port/canonical-formatter-tower c50dfeb
+(implementation e137895, registration a46cc6f). It is NOT merged into master:
+its merge base with current master is 235cdbe. Its journal records verified
+publication as Pages 9c52b59, including the Tower frontend formatter, with
+existing LLVM reactors retained. Those are the other worker's reported checks,
+not a fresh combined compiler validation here. No interpreter-port commit is
+visible in fetched branches; treat the user's report of final testing as pending
+integration, not locally verified completion. Neither branch was merged by
+this status audit.
+
+Assuming both assigned ports finish, remaining production work falls into:
+
+1. Replacement template checking and expansion in syntax.cpp: typed holes,
+   template token handling, capture substitution, expansion/provenance and
+   errors. Grammar production construction itself is already Tower.
+2. Grammar/session/parser coordination: revision ownership and caches,
+   incremental declaration installation, streams, diagnostics/repair selection,
+   highlighting, and Bedrock seed creation. LR/LALR analysis, table construction,
+   runtime decisions, tree assembly and DFA/regex machinery already have Tower
+   production implementations; the remaining parser.cpp is not evidence those
+   algorithms still need their first port.
+3. Semantic compilation in core.cpp and semantic queries in core-nodes.cpp:
+   scopes/module bindings, types/layout, operand and operation validation,
+   calls/control flow, template/type-constructor integration and diagnostics.
+   Foundation component storage is Tower; semantic checking is still native.
+4. Backend and host integration: our LLVM lowering, optimization/target/link
+   orchestration, native CLI and browser exports/serialization. LLVM/lld remain
+   third-party dependencies, but our llvm-engine.cpp/llvm-backend.cpp logic is
+   owned code and must move. The strict no-owned-C++ endpoint also requires a
+   callable external API boundary for any third-party C++-only interfaces.
+5. Runtime/adapters/tests and bootstrap retirement: runtime.c, allocator and
+   component lifecycle/registration bridges, native tests and references,
+   plus the owned bootstrap seeds. Many seeds already have Tower successors;
+   remove them after the Tower-built compiler can build itself without them.
+   Finish with validated portable Windows/macOS/Linux compiler binaries and a
+   clean-checkout build that needs no owned C/C++ sources.
+
+Recommended next bounded port: replacement template checking/expansion, keeping
+formatter and interpreter ownership separate. Semantic checking is the largest
+remaining language-level task and can be separately bounded around the shared
+Foundation entities and existing type/layout contract. Native seeds/adapters
+are not permanent exceptions. No reliable percentage or universal speedup is
+inferred from line counts; require behavioral, round-trip, deterministic build
+and measured performance checks for each port.
+
+Audit reproduction: git fetch origin; git log origin/master;
+git log origin/master..origin/port/canonical-formatter-tower;
+git diff origin/master...origin/port/canonical-formatter-tower --stat;
+inspect CMakeLists.txt and scaffolding/{syntax,parser,core,core-nodes,
+llvm-engine,driver,browser,tower}.cpp plus runtime.c. No compiler code changed;
+existing implementation tests were not rerun for this documentation audit.
+
+Audit publication check: requested a rerun of Pages run 44422938317, retaining
+current published assets rather than replacing the separately published formatter
+with this checkout's older frontend. GitHub still reports that rerun queued.
+The latest completed deployment 44423963639 is successful for 9c52b59 and the
+Pages build API reports that revision built. The read-only live hash check
+(build/verify-migration-audit-pages.mjs) verified the manifest and all 35 served
+assets against origin/gh-pages; report build/cpp-migration-audit-pages.json.
+No new combined compiler build or browser behavior test is claimed here.
