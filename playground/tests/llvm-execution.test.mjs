@@ -14,6 +14,7 @@ try { llvm = await loadLLVM(await read('build/browser-wasi-llvm/tower-llvm.wasm'
 catch (error) { if (error.code !== 'ENOENT') throw error; }
 
 const cases = [
+  ['more than 256 functions', Array.from({length:300},(_,i)=>`fn unit${i}(): i32 { return ${i}; }`).join('\n')+'\nprint(unit299()); print(unit0());', '299\n0\n'],
   ['quoted names preserve bindings', 'fn `add-one`(`odd name`: i32): i32 { var `var`: i32 = `odd name` + 1; return `var`; } var `x-y`: i32 = `add-one`(41); var p: i32* = &`x-y`; var equal: bool = p == p; print(equal); print(`x-y`);', 'true\n42\n'],
   ['escaped quoted names', 'var `back\\\\tick\\`line\\n`: i32 = 5; print(`back\\\\tick\\`line\\n`);', '5\n'],
   ['forward calls and recursion', (await read('scaffolding/examples/functions.tower')).toString(), '720\n721\n'],

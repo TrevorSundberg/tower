@@ -17,14 +17,14 @@ if(TOWER_NATIVE)
   target_compile_options(tower-native-compiler PRIVATE -fno-exceptions)
   add_executable(towerc-seed $<TARGET_OBJECTS:tower-native-compiler> scaffolding/bootstrap/utf8-seed.cpp scaffolding/bootstrap/bytes-seed.cpp scaffolding/bootstrap/nodes-seed.cpp scaffolding/bootstrap/parse-tree-seed.cpp scaffolding/bootstrap/generics-seed.cpp scaffolding/bootstrap/parser-nodes-seed.cpp)
   target_compile_features(towerc-seed PRIVATE cxx_std_20)
-  target_sources(towerc-seed PRIVATE scaffolding/bootstrap/lr-analysis-seed.cpp scaffolding/bootstrap/lexer-table-seed.cpp scaffolding/bootstrap/lex-pattern-seed.cpp)
+  target_sources(towerc-seed PRIVATE scaffolding/bootstrap/lr-analysis-seed.cpp scaffolding/bootstrap/lr-grammar-seed.cpp scaffolding/bootstrap/lexer-table-seed.cpp scaffolding/bootstrap/lex-pattern-seed.cpp)
   target_link_libraries(towerc-seed PRIVATE LLVM tower-compiler-memory)
   tower_compiler_utilities()
   # The seed builds the Tower specializer; this stage can then build generic
   # compiler components. Keep the dependency graph acyclic from a clean checkout.
   add_executable(towerc-stage1 $<TARGET_OBJECTS:tower-native-compiler> scaffolding/tower.cpp scaffolding/bootstrap/parser-nodes-seed.cpp)
   target_compile_features(towerc-stage1 PRIVATE cxx_std_20)
-  target_sources(towerc-stage1 PRIVATE scaffolding/bootstrap/lr-analysis-seed.cpp scaffolding/bootstrap/lexer-table-seed.cpp scaffolding/bootstrap/lex-pattern-seed.cpp)
+  target_sources(towerc-stage1 PRIVATE scaffolding/bootstrap/lr-analysis-seed.cpp scaffolding/bootstrap/lr-grammar-seed.cpp scaffolding/bootstrap/lexer-table-seed.cpp scaffolding/bootstrap/lex-pattern-seed.cpp)
   target_link_libraries(towerc-stage1 PRIVATE tower-compiler-entities tower-compiler-utilities tower-compiler-memory LLVM)
   tower_compiler_parser_nodes()
   add_executable(towerc $<TARGET_OBJECTS:tower-native-compiler> scaffolding/tower.cpp scaffolding/lex-pattern.cpp)
@@ -125,7 +125,7 @@ if(TOWER_PARSER_ONLY)
   tower_compiler_parser_nodes()
   target_compile_definitions(tower-compiler-memory PRIVATE TOWER_COMPILER_MEMORY_TESTS=1)
   add_executable(tower-parser-tests scaffolding/tests/main.cpp
-    scaffolding/tests/compiler-storage.cpp scaffolding/tests/entities.cpp scaffolding/tests/lexer-table.cpp scaffolding/tests/regex.cpp scaffolding/tests/lr-analysis.cpp
+    scaffolding/tests/compiler-storage.cpp scaffolding/tests/entities.cpp scaffolding/tests/lexer-table.cpp scaffolding/tests/regex.cpp scaffolding/tests/lr-analysis.cpp scaffolding/tests/lr-grammar.cpp
     scaffolding/core.cpp scaffolding/core-nodes.cpp scaffolding/core-machine.cpp scaffolding/core-tests.cpp
     scaffolding/tower.cpp scaffolding/tests/nodes.cpp scaffolding/parser.cpp scaffolding/parser-tree-tests.cpp
     scaffolding/syntax.cpp scaffolding/compiler-syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/bedrock.cpp scaffolding/format.cpp scaffolding/lex-pattern.cpp scaffolding/lex-pattern-common.cpp scaffolding/syntax-tests.cpp)
@@ -153,7 +153,7 @@ if(TOWER_PARSER_ONLY)
   target_compile_features(tower-regex-reference PRIVATE cxx_std_20)
   target_compile_definitions(tower-regex-reference PRIVATE lex_pattern_compile=reference_lex_pattern_compile)
   target_link_libraries(tower-parser-tests PRIVATE tower-regex-reference)
-  add_library(tower-lr-reference STATIC scaffolding/bootstrap/lr-analysis-seed.cpp)
+  add_library(tower-lr-reference STATIC scaffolding/bootstrap/lr-analysis-seed.cpp scaffolding/bootstrap/lr-grammar-seed.cpp)
   target_compile_features(tower-lr-reference PRIVATE cxx_std_20)
   foreach(name IN ITEMS analysis_create analysis_destroy analysis_compute analysis_failed analysis_nullable
       analysis_first_count analysis_first_data items_create items_destroy items_insert items_count items_data items_close items_goto
@@ -162,7 +162,10 @@ if(TOWER_PARSER_ONLY)
       states_lalr states_action_count states_actions runtime_create runtime_destroy runtime_conflict runtime_row_count
       runtime_action_count runtime_actions runtime_default runtime_action runtime_goto_count runtime_goto_data runtime_goto
       runtime_specialize runtime_sequence parser_create parser_destroy parser_step parser_commit parser_frame_count parser_frame
-      parser_frames parser_sequence_forest parser_consumed parser_shifted parser_work)
+      parser_frames parser_sequence_forest parser_consumed parser_shifted parser_work
+      grammar_create grammar_destroy grammar_rule_count grammar_rule_data grammar_rule_node grammar_generated
+      grammar_symbol_count grammar_symbol_data grammar_symbol_node grammar_capture grammar_name_count grammar_name grammar_name_order
+      grammar_missing_count grammar_missing_name grammar_resolve grammar_finish)
     target_compile_definitions(tower-lr-reference PRIVATE lr_${name}=reference_lr_${name})
   endforeach()
   target_link_libraries(tower-parser-tests PRIVATE tower-lr-reference)

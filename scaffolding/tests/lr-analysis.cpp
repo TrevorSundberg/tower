@@ -4,6 +4,7 @@
 #include <random>
 #include <vector>
 #include <algorithm>
+void lr_grammar_tests();
 extern "C" {
 LRAnalysis* reference_lr_analysis_create(const LRProduction*, size_t, const LRSymbol*, size_t, size_t);
 void reference_lr_analysis_destroy(LRAnalysis*);
@@ -309,6 +310,7 @@ void compare_propagation(std::mt19937& random) {
 }
 }
 void lr_analysis_tests() {
+  lr_grammar_tests();
   const auto baseline=tower_test_buffer_count();
   bool success=false;
   for(size_t i=0;i<1024 && !success;++i) {

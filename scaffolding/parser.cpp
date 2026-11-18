@@ -5,7 +5,7 @@
 #include "compiler-lr.hpp"
 #include <cstdlib>
 #include "parser.hpp"
-#include <unordered_map>
+#include <string_view>
 #include <string>
 #include <vector>
 #include <cassert>
@@ -40,12 +40,9 @@ static void parser_trace_write(const char* format, ...) {
 // not evaluate those arguments.
 #define parser_trace(...) do { if (parser_debug_trace) parser_trace_write(__VA_ARGS__); } while (false)
 
-// The tests come first so that we don't see the definition of any structs
-void parser_tests_internal();
+// The tests come first so that we do not see the definition of any structs.
 void parser_tree_tests();
 void parser_tests() {
-  parser_tests_internal();
-
   const size_t tower_memory_initial_count = tower_memory_get_allocated_count();
 
   {
@@ -58,7 +55,7 @@ void parser_tests() {
 
   // Test stream (ascii/unicode)
   {
-    Stream* stream = parser_stream_utf8_null_terminated_create("aé€🏰");
+    Stream* stream = parser_stream_utf8_null_terminated_create("aÃ©â‚¬ðŸ°");
     uint32_t id = 0;
     size_t start = 0;
     size_t length = 0;
@@ -69,17 +66,17 @@ void parser_tests() {
     assert(length == 1);
     assert(node == nullptr);
     node = parser_stream_read(stream, &id, &start, &length);
-    assert(id == U'é');
+    assert(id == U'Ã©');
     assert(start == 1);
     assert(length == 2);
     assert(node == nullptr);
     node = parser_stream_read(stream, &id, &start, &length);
-    assert(id == U'€');
+    assert(id == U'â‚¬');
     assert(start == 3);
     assert(length == 3);
     assert(node == nullptr);
     node = parser_stream_read(stream, &id, &start, &length);
-    assert(id == U'🏰');
+    assert(id == U'ðŸ°');
     assert(start == 6);
     assert(length == 4);
     assert(node == nullptr);
@@ -469,7 +466,7 @@ Stream* parser_stream_recognizer_create(Recognizer* recognizer) {
 struct GrammarRule;
 struct GrammarNonTerminal {
   size_t index = TOWER_INVALID_INDEX;
-  std::string name;
+  std::string_view name;
   // Rules that all share the same non-terminal (productions)
   // Since these pointers are internal to rules, they must be built after (and rules never resized)
   std::vector<GrammarRule*> rules;
@@ -503,21 +500,8 @@ struct GrammarTerminal {
   }
 };
 
-inline size_t hash_combine(size_t seed, size_t hash) {
-  return seed ^ (hash + 0x9e3779b9 + (seed << 6) + (seed >> 2));
-}
-
-template <>
-struct std::hash<GrammarTerminal> {
-  std::size_t operator()(const GrammarTerminal& key) const {
-    size_t hash = std::hash<uint32_t>()(key.start);
-    return hash_combine(hash, std::hash<uint32_t>()(key.end));
-  }
-};
-
 struct GrammarSymbol {
-  TowerNode* symbol_node = nullptr;
-  std::string capture;
+  std::string_view capture;
 
   // Set if this represents a non-terminal (a reference to other rules)
   // If this is set, the start/end are ignored
@@ -528,13 +512,13 @@ struct GrammarSymbol {
 
 struct GrammarRule {
   size_t index = (size_t)-1;
-  Rule* rule = nullptr;
   bool generated = false;
   GrammarNonTerminal* non_terminal = nullptr;
   std::vector<GrammarSymbol> symbols;
 };
 
 struct Grammar {
+  std::unique_ptr<LRGrammar, decltype(&lr_grammar_destroy)> view{nullptr, lr_grammar_destroy};
   // The first non-terminal is the starting non-terminal S'
   std::vector<GrammarNonTerminal> non_terminals;
   // The first rule is the starting rule S'
@@ -543,171 +527,54 @@ struct Grammar {
   void* userdata = nullptr;
   ParserTableIdToString to_string = nullptr;
   // Disposable numeric view of the entity-backed grammar, borrowed by Tower.
-  std::vector<LRProduction> lr_rules;
-  std::vector<LRSymbol> lr_symbols;
   std::vector<const GrammarSymbol*> lr_origins;
   std::unique_ptr<LRAnalysis, decltype(&lr_analysis_destroy)> analysis{nullptr, lr_analysis_destroy};
-  mutable bool analysis_failed = false;
 };
 
 bool parser_grammar_analyze(Grammar& grammar) {
-  for (const auto& rule : grammar.rules) {
-    grammar.lr_rules.push_back({rule.non_terminal->index, grammar.lr_symbols.size(), rule.symbols.size()});
-    for (const auto& symbol : rule.symbols) {
-      grammar.lr_symbols.push_back({symbol.non_terminal ? symbol.non_terminal->index : SIZE_MAX,
-        symbol.terminal.start, symbol.terminal.end});
-      grammar.lr_origins.push_back(&symbol);
-    }
-  }
-  grammar.analysis.reset(lr_analysis_create(grammar.lr_rules.data(), grammar.lr_rules.size(),
-    grammar.lr_symbols.data(), grammar.lr_symbols.size(), grammar.non_terminals.size()));
+  auto* view = grammar.view.get();
+  grammar.analysis.reset(lr_analysis_create(lr_grammar_rule_data(view), lr_grammar_rule_count(view),
+    lr_grammar_symbol_data(view), lr_grammar_symbol_count(view), lr_grammar_name_count(view)));
   if (!grammar.analysis) return false;
-  std::vector<const GrammarNonTerminal*> names;
-  for (const auto& nonterminal : grammar.non_terminals) names.push_back(&nonterminal);
-  std::sort(names.begin(), names.end(), [](auto* a, auto* b) { return a->name < b->name; });
-  for (size_t i = 0; i < names.size(); ++i) lr_analysis_order(grammar.analysis.get(), names[i]->index, i);
+  for (size_t i = 0; i < lr_grammar_name_count(view); ++i)
+    lr_analysis_order(grammar.analysis.get(), i, lr_grammar_name_order(view, i));
   return lr_analysis_compute(grammar.analysis.get());
 }
 
 std::string parser_grammar_create(Grammar& grammar, TowerNode* root, void* userdata, ParserTableResolveReference resolve) {
-  std::vector<Rule*> rules;
-  rules.reserve(tower_node_get_child_count(root));
-
-  // Walk all the rules we have
-  for (size_t p = 0;; ++p) {
-    TowerNode* rule_node = tower_node_get_child(root, p);
-    if (!rule_node) {
-      break;
-    }
-    
-    Rule* rule = (Rule*)tower_node_get_component_userdata(rule_node, parser_rule_get_type());
-    assert(rule);
-    
-    rules.push_back(rule);
+  grammar.view.reset(lr_grammar_create(root, parser_rule_get_type(), parser_reference_get_type(),
+    parser_string_get_type(), parser_range_get_type()));
+  auto* view = grammar.view.get();
+  if (!view) return "Unable to allocate grammar indexes";
+  for (size_t i = 0; i < lr_grammar_missing_count(view); ++i) {
+    const auto* name = lr_grammar_missing_name(view, i);
+    const auto id = resolve ? resolve(userdata, name) : PARSER_ID_EOF;
+    if (!lr_grammar_resolve(view, i, id)) return std::string("Unresolved grammar rule: ") + name;
   }
-
-  // WARNING: This is required as we MUST ensure that grammar.rules
-  // does not reallocate (we store direct pointers into the array)
-  // This is an overestimation / worst case every rule has a unique non terminal
-  std::unordered_map<std::string, GrammarNonTerminal*> non_terminals;
-  size_t rule_count_with_start = rules.size() + 1;
-  grammar.rules.reserve(rule_count_with_start);
-  non_terminals.reserve(rule_count_with_start);
-  grammar.non_terminals.reserve(rule_count_with_start);
-
-  // Reserve a spot for the starting rule at index 0 (has no associated Rule*)
-  GrammarRule& starting_rule = grammar.rules.emplace_back();
-  GrammarNonTerminal& starting_non_terminal = grammar.non_terminals.emplace_back();
-  starting_non_terminal.rules.push_back(&starting_rule);
-  starting_non_terminal.name = "S'";
-  starting_non_terminal.index = 0;
-  starting_rule.index = 0;
-  starting_rule.non_terminal = &starting_non_terminal;
-
-  // Now build our grammar rules and map from the sorted rules above
-  for (size_t i = 0; i < rules.size(); ++i) {
-    Rule* rule = rules[i];
-
-    size_t grammar_rule_index = grammar.rules.size();
-    GrammarRule& grammar_rule = grammar.rules.emplace_back();
-    grammar_rule.rule = rule;
-    grammar_rule.generated = parser_rule_get_generated(rule);
-    grammar_rule.index = grammar_rule_index;
-
-    GrammarNonTerminal*& non_terminal = non_terminals[parser_rule_get_name(rule)];
-    // If this is the first time we're seeing this name, create a new non-terminal for it and set the name
-    if (non_terminal == nullptr) {
-      size_t index = grammar.non_terminals.size();
-      non_terminal = &grammar.non_terminals.emplace_back();
-      non_terminal->name = parser_rule_get_name(rule);
-      non_terminal->index = index;
-    }
-    grammar_rule.non_terminal = non_terminal;
-    non_terminal->rules.push_back(&grammar_rule);
+  // Temporary borrowed presentation/tree-adapter views. Tower owns name binding,
+  // source order, numeric table inputs and the immutable name/capture snapshots.
+  grammar.non_terminals.resize(lr_grammar_name_count(view));
+  for (size_t i = 0; i < grammar.non_terminals.size(); ++i) {
+    auto& nonterminal = grammar.non_terminals[i];
+    nonterminal.index = i; nonterminal.name = lr_grammar_name(view, i);
   }
-
-  // As long as we have a non-terminal that isn't the starting rule
-  if (grammar.non_terminals.size() > 1) {
-    GrammarSymbol& symbol = starting_rule.symbols.emplace_back();
-    symbol.non_terminal = &grammar.non_terminals[1];
-  }
-
-  // Walk through the rules in sorted order (skipping the starting rule 0)
-  // Now we can map all rule names/references
-  for (size_t r = 1; r < grammar.rules.size(); ++r) {
-    GrammarRule& grammar_rule = grammar.rules[r];
-    TowerNode* rule_node = tower_component_get_owner(tower_component_from_userdata(grammar_rule.rule));
-    
-    // Assume we will have at least as many grammar symbols as we have children
-    // Note that strings often contain many grammar symbols packed in a single component
-    std::vector<GrammarSymbol>& symbols = grammar_rule.symbols;
-    symbols.reserve(tower_node_get_child_count(rule_node));
-
-    // Walk over all the grammar symbols
-    for (size_t g = 0;; ++g) {
-      TowerNode* symbol_node = tower_node_get_child(rule_node, g);
-      if (!symbol_node) {
-        break;
-      }
-
-      // TODO(trevor): Add the concept of component interfaces, and in this case we register a base type
-      // for grammar symbols (so that we can only have one, and fetching it is quick)
-      // kind of throws a wrench in has or add...
-
-      Reference* reference = (Reference*)tower_node_get_component_userdata(symbol_node, parser_reference_get_type());
-      if (reference) {
-        // First we look internally to see if have satisfied a name
-        auto it = non_terminals.find(parser_reference_get_name(reference));
-        if (it != non_terminals.end()) {
-          GrammarSymbol& symbol = symbols.emplace_back();
-          symbol.non_terminal = it->second;
-          symbol.symbol_node = symbol_node;
-          symbol.capture = parser_reference_get_capture(reference);
-        } else {
-          uint32_t id = PARSER_ID_EOF;
-          // Otherwise, this might be a reference to a terminal
-          if (resolve) {
-            id = resolve(userdata, parser_reference_get_name(reference));
-          }
-
-          if (id == PARSER_ID_EOF) {
-            return std::string("Unresolved grammar rule: ") + parser_reference_get_name(reference);
-          } else {
-            GrammarSymbol& symbol = symbols.emplace_back();
-            symbol.symbol_node = symbol_node;
-            symbol.capture = parser_reference_get_capture(reference);
-            symbol.terminal.start = id;
-            symbol.terminal.end = id;
-          }
-        }
-      }
-
-      String* string = (String*)tower_node_get_component_userdata(symbol_node, parser_string_get_type());
-      if (string) {
-        const size_t count = parser_string_get_length(string);
-        const uint32_t* ids = parser_string_get_data(string);
-        symbols.reserve(symbols.size() + count);
-        for (size_t i = 0; i < count; ++i) {
-          const uint32_t id = ids[i];
-          GrammarSymbol& symbol = symbols.emplace_back();
-          symbol.symbol_node = symbol_node;
-          symbol.terminal.start = id;
-          symbol.terminal.end = id;
-        }
-      }
-
-      Range* range = (Range*)tower_node_get_component_userdata(symbol_node, parser_range_get_type());
-      if (range) {
-        GrammarSymbol& symbol = symbols.emplace_back();
-        symbol.symbol_node = symbol_node;
-        if (parser_range_get_start(range) < parser_range_get_end(range)) {
-          symbol.terminal.start = parser_range_get_start(range);
-          symbol.terminal.end = parser_range_get_end(range);
-        } else {
-          symbol.terminal.start = parser_range_get_end(range);
-          symbol.terminal.end = parser_range_get_start(range);
-        }
-      }
+  grammar.rules.resize(lr_grammar_rule_count(view));
+  grammar.lr_origins.resize(lr_grammar_symbol_count(view));
+  const auto* rules = lr_grammar_rule_data(view);
+  const auto* symbols = lr_grammar_symbol_data(view);
+  for (size_t i = 0; i < grammar.rules.size(); ++i) {
+    auto& rule = grammar.rules[i]; const auto& input = rules[i];
+    rule.index = i; rule.generated = lr_grammar_generated(view, i);
+    rule.non_terminal = &grammar.non_terminals[input.owner];
+    rule.non_terminal->rules.push_back(&rule);
+    rule.symbols.resize(input.count);
+    for (size_t j = 0; j < input.count; ++j) {
+      auto& symbol = rule.symbols[j]; const auto position = input.begin + j;
+      const auto& source = symbols[position];
+      symbol.capture = lr_grammar_capture(view, position);
+      if (source.nonterminal != SIZE_MAX) symbol.non_terminal = &grammar.non_terminals[source.nonterminal];
+      symbol.terminal = {source.first, source.last};
+      grammar.lr_origins[position] = &symbol;
     }
   }
   return {};
@@ -803,7 +670,7 @@ std::string debug_str(const GrammarTerminal& terminal, const Grammar& grammar) {
 
 std::string debug_str(const GrammarSymbol& symbol, const Grammar& grammar) {
   if (symbol.non_terminal) {
-    return symbol.non_terminal->name;
+    return std::string(symbol.non_terminal->name);
   } else {
     return debug_str(symbol.terminal, grammar);
   }
@@ -1071,7 +938,7 @@ char* parser_table_non_terminal_id_to_string(void* userdata, uint32_t id) {
   assert(table->grammar.non_terminals.size() > 0);
   assert(table->grammar.rules.size() >= table->grammar.non_terminals.size());
   if (id >= table->grammar.non_terminals.size()) return nullptr;
-  return parser_copy_string(table->grammar.non_terminals[id].name);
+  return parser_copy_string(std::string(table->grammar.non_terminals[id].name));
 }
 
 Table* parser_table_create(
@@ -1109,8 +976,7 @@ Table* parser_table_create(
     message = parser_table_build_lr(*table, specialize);
     if (!message.empty()) return fail(message);
     grammar.analysis.reset();
-    std::vector<LRProduction>().swap(grammar.lr_rules);
-    std::vector<LRSymbol>().swap(grammar.lr_symbols);
+    lr_grammar_finish(grammar.view.get());
     std::vector<const GrammarSymbol*>().swap(grammar.lr_origins);
     parser_trace("%s\n", debug_str(*table).c_str());
 
@@ -1364,7 +1230,7 @@ static TowerNode* parser_reduction_value(Recognizer* recognizer, const GrammarRu
   Match* match = parser_match_create(node);
   parser_match_set_id(match, (uint32_t)rule.non_terminal->index);
   parser_match_set_rule_index(match, rule.index);
-  parser_match_set_label(match, rule.non_terminal->name.c_str());
+  parser_match_set_label(match, rule.non_terminal->name.data());
   parser_match_set_start(match, start);
   parser_match_set_length(match, end - start);
   if (!parse_forest_attach(recognizer->forest, node, children.first)) std::abort();
@@ -1412,7 +1278,7 @@ TowerNode* parser_recognizer_step(Recognizer* recognizer, bool* running) {
       LRFrame frame; lr_parser_sequence_forest(recognizer->control, &frame);
       ParseForest joined{frame.first, frame.last};
       const auto& capture = recognizer->table->grammar.rules[step.rule].symbols[step.pop].capture;
-      if (!parse_forest_join(recognizer->forest, &joined, nodes.first, nodes.last, capture.c_str())) std::abort();
+      if (!parse_forest_join(recognizer->forest, &joined, nodes.first, nodes.last, capture.data())) std::abort();
       nodes = joined;
     }
     if (!lr_parser_commit(recognizer->control, &step, nodes.first, nodes.last)) std::abort();
@@ -1431,7 +1297,7 @@ TowerNode* parser_recognizer_step(Recognizer* recognizer, bool* running) {
       for (size_t i = begin; i < count; ++i) {
         const auto& frame = frames[i];
         const auto& capture = rule.symbols[i - begin].capture;
-        if (!parse_forest_join(recognizer->forest, &children, frame.first, frame.last, capture.c_str())) std::abort();
+        if (!parse_forest_join(recognizer->forest, &children, frame.first, frame.last, capture.data())) std::abort();
       }
     }
     if (!rule.generated || rule.non_terminal->index == 1) {
@@ -1447,5 +1313,3 @@ TowerNode* parser_recognizer_step(Recognizer* recognizer, bool* running) {
   *running = true;
   return nullptr;
 }
-
-void parser_tests_internal() {}

@@ -532,7 +532,6 @@ struct Compiler {
     fn.external = external; fn.exported = label(n) == "CoreExport";
     if (core_aggregate(fn.type)) fail(n, "Struct returns require a pointer; by-value returns are not implemented");
     if (fn.name.empty() || functions.contains(fn.name) || templates.contains(fn.name) || type_functions.contains(fn.name)) { fail(n, "Missing or duplicate function '" + fn.name + "'"); return; }
-    if (program.functions.size() >= 256) { fail(n, "Foundation function limit is 256"); return; }
     fn.index = program.functions.size(); functions[fn.name] = n; program.functions.push_back(n);
     std::map<std::string, bool> names;
     size_t parameter_index = 0;

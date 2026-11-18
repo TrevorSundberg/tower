@@ -8509,3 +8509,62 @@ small 5.164 -> 4.768, inference 5.435 -> 5.108, replacements 18.040 -> 16.616,
 full p50/p95 results: build/profile-lr-{runtime,control}-{native,wasm}.* and matching
 build/lr-*-performance.json files. Source-length complexity and grammar conflicts
 are unchanged; these measurements do not imply every grammar becomes faster.
+
+## 2026-11-18 — Grammar entity indexing moved into Tower
+
+compiler/lr-grammar.tower now reads the shared Rule/Reference/String/Range entity
+components, groups productions by name, binds forward nonterminal references,
+expands literal sequences, normalizes ranges, snapshots capture/name text, and
+produces the disposable LR inputs. Names use hash lookup and a deterministic
+lexical heap sort; hash bucket placement does not determine semantic order.
+The augmented start label is not inserted into source-name bindings. Unresolved
+terminal names are returned in source order to the remaining host resolver callback.
+Declaration/update semantics and conflict handling are unchanged.
+
+parser.cpp now borrows display/tree views from this Tower-owned index, removing
+187 native lines and adding 51 adapter lines. Name/capture snapshots survive edits
+or release of the source entities; numeric construction inputs are released after
+the runtime table has copied what it needs. The independent C++ seed/reference in
+bootstrap/lr-grammar-seed.cpp is temporary migration debt, not a production fallback.
+These indexes are derived from grammar entities, not a separate grammar language.
+
+The first composed build failed with 'Foundation function limit is 256' while
+instantiating vector cleanup helpers. Inspection found this was an arbitrary
+prototype guard: function indexes already use size_t and calls bind to entities.
+Removed that guard (without changing parameter/type/expansion limits in this step)
+and added a 300-function regression that calls function 299 and function 0, checks
+Foundation round trips, and compares interpreter and LLVM results (299 then 0).
+This unblocks the growing Tower compiler; a private encoding width must not become
+a Foundation function-count limit. Initial failure: build/lr-grammar-initial.log.
+
+Validation: native optimized, Wasm parser/LLVM/cross reactors, Windows optimized
+parser suite; ASan/UBSan harness 4/4; Node 179/179; Playwright 102/102 desktop/mobile;
+37 canonical formatting/tree/rule round trips; 16 bootstrap comparisons with equal
+optimized LLVM and object bytes across Linux x64, Windows x64, macOS ARM64, Wasm.
+Added 150 randomized entity-grammar comparisons plus forward/duplicate/empty/Unicode
+names, the augmented-label collision, captures, mixed symbol components, reversed
+and maximal u32 ranges, unresolved tokens, retained snapshots and allocation failure
+at every allocation. Logs: build/lr-grammar-{native,wasm,llvm,windows,asan,node,
+browser,bootstrap,format-check}.log, using the established build/test scripts.
+
+Paired performance against f99abc3: native startup/load/compile/interpret medians
+(4 warmups, 24 alternating pairs, only parser.cpp reference object replaced):
+small 121.975 -> 113.337, 50 token declarations 492.198 -> 478.441, 25 parse
+extensions 242.219 -> 227.546 ms. Warm Wasm compile plus Foundation formatting
+(12 warmups, 40 alternating pairs): small 4.848 -> 4.780, inference 5.211 -> 5.027,
+replacements 17.191 -> 16.917, 500 declarations 13.624 -> 13.449 ms. Full methods
+and p95s are in build/profile-lr-grammar-{native,wasm}.* and matching JSON results.
+These are measured fixtures, not universal speedup guarantees.
+
+Follow-up on the preceding control stage: native medians versus c251eee were
+120.503 -> 112.585, 513.892 -> 512.256, and 240.014 -> 233.933 ms respectively.
+Its Pages deployment ac49e67, workflow 44383932298, succeeded; online verification
+matched all 23 assets and passed desktop/mobile checks (build/lr-control-online.log).
+
+Status clarified to the user: parser algorithm migration is well advanced; full
+C++ removal is still substantial work. Remaining project-owned code includes
+stream/diagnostic/tree adapters, incremental syntax and replacements, semantic
+components/type checking, formatting, interpretation, driver/backend/linking glue,
+and all native seeds. The endpoint is still pure Tower plus verified portable
+compiler binaries and third-party implementations. Adapters/seeds do count as our
+C++; current successful stages do not mean the full compiler is self-hosted.
