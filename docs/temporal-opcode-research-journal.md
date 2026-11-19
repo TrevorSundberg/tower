@@ -14771,3 +14771,81 @@ to fail parsing, while retaining exact canonical/idempotent checks for valid
 files, matching the distinction already made by upstream's format-tower script.
 The integrated Node suite passes 264/264, including both new language fixtures
 through optimized/no-opt LLVM reconstruction at both pointer widths.
+
+Final integrated validation (source 8ceabcc plus the project-menu assertion):
+264/264 Node tests; the 142-case browser run passed 140 and exposed an old
+project-menu count of ten rather than twelve after Match/Collections were added.
+Updated the count and explicitly require both examples; the full project suite
+passes 14/14 on desktop/mobile. No product change or relaxed execution assertion
+was needed. The remaining 140 cases, including new examples in all three output
+panes, passed in the full run. All five ASAN CTests pass; native Windows parser
+tests check 174 canonical files and reject two deliberately invalid fixtures,
+and all 156 Windows interpreter comparisons pass. Native LLVM coverage passes
+172 cache comparisons, eight module cases, 16 executable comparisons and backend
+API checks. All 52 local deployment asset hashes and desktop/mobile user flows
+pass. Full commands/logs are build/llvm-bc-language-{node,browser,projects-browser,
+asan-tests-final,windows-final,windows-interpreter,native-tests,deployment-local,
+format}.log. git pull --rebase after the integration commit found main current.
+
+The final WASI parser/formatter suite also passes (174 canonical files and two
+invalid fixtures rejected), followed by all 156 interpreter comparisons:
+build/llvm-bc-language-wasi-tests.log. No production source changed after these
+artifacts were built. The final named profiling reactor has byte-identical
+non-custom Wasm sections to the release reactor, checked again after rebuilding.
+
+Final release measurements, superseding earlier timings/hashes:
+[2026-11-19-llvm-bytecode-integrated.json](research/2026-11-19-llvm-bytecode-integrated.json)
+contains every sample, cache statistic, environment, artifact hash and aggregated
+profile. The earlier report remains as pre-integration experimental evidence.
+Same Ryzen AI MAX+ 395; Windows Node 21.7.3/V8 for Wasm-hosted interpreters and
+Linux x64/Docker LLVM 19 with Node 22.23.5 for native. Three warmups, 15 samples,
+alternating interpreter order, after all builds and tests stopped; native,
+Wasm-hosted and profiling runs were sequential. This is not a physical ARM,
+macOS, iPhone or console performance claim.
+
+| Workload | Graph ms | Raw cache ms | LLVM O2 cache ms | LLVM no-opt cache ms | Compiled Wasm ms |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| arithmetic | 4.7941 | 1.2584 | 1.0461 | 3.8281 | 0.2181 |
+| calls | 3.3880 | 0.7919 | 0.0064 | 2.0269 | 0.2687 |
+| memory | 6.0322 | 2.0698 | 1.6491 | 8.9593 | 0.1156 |
+| branch | 6.1875 | 1.5288 | 1.4068 | 10.5290 | 0.2863 |
+
+Arithmetic, memory and branch workloads show 3.66-4.58x graph-to-O2-cache speedup
+and 1.09-1.26x raw-cache-to-O2-cache speedup. O2 largely eliminates the calls
+workload, so its ratio is not dispatch throughput. Compiled Wasm remains faster
+on sustained work; those timings include fresh instantiation and host execution.
+No-opt intentionally retains lowering work and can be slower than the original
+graph runner. LLVM optimization is separate: 16.5-164.5 ms here (first workload
+includes warming); subsequent cache preparation is 0.27-1.41 ms. These are small
+programs, not a universal startup or large-program scaling guarantee.
+
+Native graph/O2-cache median execution milliseconds:
+arithmetic 1.880270/0.792797; calls 1.279440/0.025168; memory 2.834370/1.698320; branch 2.447350/0.985890.
+Native sustained speedups range from 1.67x to 2.48x in this environment. Do not
+combine native and Wasm-hosted ratios into one platform-independent guarantee.
+Optimized streams are 84-556 code bytes, 724-2,108 cache-capacity bytes and
+64-408 register-capacity bytes in these workloads, with zero wide instructions.
+The full working set also includes source/shared graph, guest memory, stacks and
+LLVM instances; these compact-cache counts are not total process memory.
+
+Named sampling again attributes graph work to scheduling (24.0%), cached node
+lookup (16.3%), operand readiness (12.3%) and task pushing (8.3%). Raw-cache
+sampling places 63.9% in dispatch, 14.1% in loads, 8.7% in calls and 5.9% in
+stores. After LLVM, 92.6% is dispatch and 4.9% scalar arithmetic on the same
+500,000-iteration call/XOR program. Existing graph lookup/call-buffer/memory
+optimizations remain; no extra graph speedup is inferred from this integration.
+Next performance work should target measured dispatch and remaining guest memory
+costs while retaining the ordinary Tower implementation and shared semantics.
+
+Reproduction: node playground/scripts/benchmark-interpreters.mjs
+build/llvm-bc-integrated-wasm.json; in the documented tower_build Docker mount,
+node scaffolding/tests/benchmark-interpreters.mjs
+/cache/fast-backend-native/towerc build/llvm-bc-integrated-native.json.
+For profiles use TOWER_PROFILE_REACTOR=build/llvm-bc-profile.wasm with
+node playground/scripts/profile-interpreters.mjs after relinking the same object
+without --strip-all. Sampling is 100 microseconds, eight independent runs.
+The first redirected Windows benchmark command caused PowerShell to classify
+console.error timing summaries as NativeCommandError despite producing complete
+JSON; reran without that redirect and explicitly propagated LASTEXITCODE (zero).
+The archived report uses the successful rerun, not a selectively faster sample.
+todo.txt still hashes to 96a9e58964d7f01e4a97819f259448db81ef5e40.
