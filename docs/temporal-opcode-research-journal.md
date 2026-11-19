@@ -13256,3 +13256,57 @@ or performance acceptance claim is made. These runs establish an explicit
 baseline for finishing native boundary removal and further profiling. The
 separate diagnostic probe measured before packing improved several invalid-input
 cases but also had neutral/slower cases; see frontend-owner-diagnostics-performance.json.
+
+### 2026-11-19 - Frontend migration integration gates and publication
+
+Source release b58c95a includes the Tower frontend construction/diagnostics/cache
+port and the shared character-parser path for token patterns (24ff56c, 16eb017),
+plus packed revision snapshots. Pulled/rebased main again in the clean audit
+worktree before pushing; no new upstream changes were pending. Preserved the
+unrelated AGENTS.md, foundation.md and journal edits; todo.txt was not modified
+by this work.
+
+Final validation after packing and host integration:
+
+- ASan/UBSan native CTest: 5/5 passed (45.36 s), as recorded above.
+- Node suite: 223/223 passed (34.29 s). The integrated host owner retired the
+  obsolete LLVM smoke test, explaining the earlier 224-test count.
+- The full wasm32 parser/host harness passes with live grammar edits, cache
+  behavior, replacement/source ownership, allocation-failure tests, 150 random
+  integer-symbol NFA comparisons and 105 canonical Tower formatting fixtures.
+  CMake names the output tower-parser-tests without a .wasm extension: the first
+  copy command incorrectly included the suffix. Corrected the copy and ran
+  scaffolding/tests/host-wasi.mjs using Windows Node. The compiler build itself
+  had succeeded; this was a test-artifact path error, not a parser failure.
+- The separate formatting script confirms all 105 files are canonical.
+- test-bootstrap.sh parser-nodes: byte-identical optimized LLVM and object
+  output on Linux x64, Wasm, Windows x64 and macOS ARM64; explicit/custom/missing
+  grammar-input checks also pass. The prior integrated checkpoint passed all
+  28 module/target comparisons. This final run rechecks the changed parser module;
+  it does not claim a complete standalone compiler self-build or macOS execution.
+- Local desktop/mobile verification passes all 36 asset hashes, interpreter/Wasm
+  agreement, forward bindings, live Bedrock changes, diagnostics, replacement
+  examples, project persistence, all native target downloads and column layout.
+  Executed its generated desktop-windows.exe: output 5,84,42 as expected.
+
+Publication contains only the three rebuilt reactors (plus LLVM compressed
+transport) and deployment metadata. Preserved all seven published target-support
+assets by SHA-256. Normalized comparisons found only CRLF/source-map line-ending
+differences in unchanged text assets; retained their previous bytes and recomputed
+the tested distribution manifest instead of publishing irrelevant text churn.
+The manifest records the source commit and prior release c29dc52. No editor/UI
+behavior or target support runtime implementation was changed in this step.
+
+Logs: build/frontend-owner-packed-{asan,node-tests,wasi-build,wasi-tests,format,
+bootstrap,local-verification}.log. The source and publication commits use normal
+pushes; no force push or unrelated working-note commit. The remaining Task 1
+scope and performance limitations recorded above still apply.
+
+Published gh-pages commit fbad6d4; GitHub reports the Pages build as built with
+no error. verify-deployment.mjs https://trevorsundberg.github.io/tower/ passes:
+all 36 hosted assets exactly match the final local distribution, and desktop plus
+mobile pass interpreter/Wasm agreement, grammar editing, persistence, native
+downloads and target-selection checks with no page errors. Hosted log:
+build/frontend-owner-hosted-verification.log; screenshots and report:
+build/deployment-verification/. This verifies the online playground, not the
+unfinished Tower-only compiler distribution.
