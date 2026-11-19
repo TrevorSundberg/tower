@@ -12568,3 +12568,16 @@ repeat the semantic machine's full integration tests or publish its new compiler
 artifacts. Its latest journal reports combined sanitizer/bootstrap checks passed
 and further integration/publication work underway. Production publication must
 not be rolled back or relabeled as a newly verified semantic build.
+
+Planning-turn final sync/verification: upstream advanced to 77a4d6b during the
+final pull, fixing the semantic WASI fixture path. Rebased the plan in the clean
+audit worktree; the only conflict was two journal append blocks. Retained the
+upstream block and the complete plan. Updated main to the rebased commit with
+reset --keep while only the unrelated journal additions were stashed, then
+restored them. Existing AGENTS/foundation/todo edits remained untouched.
+Requested a rebuild of the existing Pages publication; GitHub reports built at
+724ad05 with no error. verify-deployment.mjs passed all 36 asset hashes and both
+desktop/mobile behavior checks; evidence is build/four-migration-owners-deployment.log.
+This verifies the unchanged published compiler, not publication of the newly
+landed semantic artifacts. git diff --check passes for this journal-only plan.
+Task 1 remains unstarted until the user's next continue.
