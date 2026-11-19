@@ -14,6 +14,8 @@ void syntax_nodes_tests();
 void syntax_reader_tests();
 void syntax_validation_tests();
 extern "C" size_t syntax_emission_tests(const SyntaxEmissionInput*);
+extern "C" int32_t host_support_tests();
+extern "C" int32_t interpreter_storage_tests();
 void lr_analysis_tests();
 #include <cstdio>
 #include <cstring>
@@ -32,6 +34,7 @@ int main(int argc, char** argv) {
   _set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
 #endif
   const char* path = nullptr;
+  bool host_only = false;
   std::ifstream bedrock("bedrock.tower", std::ios::binary);
   if (!bedrock) { fprintf(stderr, "Cannot read bedrock.tower\n"); return 1; }
   std::ostringstream bedrock_text; bedrock_text << bedrock.rdbuf();
@@ -44,8 +47,9 @@ int main(int argc, char** argv) {
   if (!seed_error.empty()) { fprintf(stderr, "%s\n", seed_error.c_str()); return 1; }
   for (int i = 1; i < argc; ++i) {
     if (strcmp(argv[i], "--trace") == 0) parser_set_debug_trace(true);
+    else if (strcmp(argv[i], "--host-only") == 0) host_only = true;
     else if (strcmp(argv[i], "--parse") == 0 && i + 1 < argc) path = argv[++i];
-    else { fprintf(stderr, "Usage: tower-parser-tests [--trace] [--parse file.tower]\n"); return 1; }
+    else { fprintf(stderr, "Usage: tower-parser-tests [--trace] [--host-only] [--parse file.tower]\n"); return 1; }
   }
   if (path) {
     std::ifstream input(path, std::ios::binary);
@@ -65,6 +69,11 @@ int main(int argc, char** argv) {
     syntax_destroy(session);
     return failed ? 1 : 0;
   }
+  const auto host_result = host_support_tests();
+  if (host_result) { fprintf(stderr, "Tower host test failed: %d\n", host_result); return 1; }
+  const auto storage_result = interpreter_storage_tests();
+  if (storage_result) { fprintf(stderr, "Tower interpreter storage test failed: %d\n", storage_result); return 1; }
+  if (host_only) { puts("Tower host and interpreter storage tests passed."); return 0; }
   tower_tests();
   parser_tests();
   syntax_tests();

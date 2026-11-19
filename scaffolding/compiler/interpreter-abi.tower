@@ -12,6 +12,7 @@ struct IMState {
     frame_count: usize;
     task_count: usize;
     cached: bool;
+    memory: vector(u8);
 }
 
 // Host container operations and existing shared type queries only.
@@ -39,17 +40,11 @@ extern fn im_pointer_bytes(host: IMState*): usize;
 
 extern fn im_root(host: IMState*): void*;
 
-extern fn im_memory_size(host: IMState*): usize;
-
-extern fn im_memory(host: IMState*): u8*;
-
 extern fn im_base(host: IMState*): usize;
 
 extern fn im_frame_call(host: IMState*): void*;
 
 extern fn im_has_foreign(host: IMState*): bool;
-
-extern fn im_memory_resize(host: IMState*, count: usize): void;
 
 extern fn im_fail(host: IMState*, text: u8*, offset: usize): void;
 
@@ -151,6 +146,10 @@ export fn interpreter_state_offset(field: usize): usize {
     var selected_10 = field == 10;
     if selected_10 {
         address = bits(usize, &state.cached);
+    }
+    var selected_11 = field == 11;
+    if selected_11 {
+        address = bits(usize, &state.memory);
     }
     var offset = address - base;
     return offset;

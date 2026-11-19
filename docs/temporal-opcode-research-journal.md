@@ -10927,3 +10927,106 @@ published branch; it preserves the separately bundled backend provenance. An
 attempt to cancel the prior audit's older rerun reported it was already complete;
 the final Pages build API identifies the newer 4a5538e, not the older formatter
 deployment. No asset was rolled back and no new backend rebuild is claimed.
+
+### 2026-11-19 — Host/runtime ownership: first Tower integration checkpoint
+
+Task 4 began by pulling master from 42e2349 to 586078b, then running the
+repository-required `git pull --rebase` (already current). Work is isolated on
+`port/host-runtime-tower`. The user explicitly requested avoiding new C++:
+new policies and functional tests are Tower source; native changes are removal,
+temporary ABI/ownership views, seed selection and existing test entry points.
+No new C++ source file was added. todo.txt is untouched.
+
+Implemented compiler/host-memory.tower, host-driver.tower, host-text.tower and
+host-handles.tower. Production compiler allocation overflow/zero-size policy,
+failure injection and allocation observations execute in Tower. CLI option
+parsing operates on borrowed argv and caller-supplied link slots, preserving
+option order, repeated values, immediate help and existing error text. Browser
+response buffers, JSON quoting/unsigned encoding and parser/execution handle
+lookup/insertion/removal execute in Tower. The existing worker exports and
+transport schema are retained. The shared handle namespace skips zero and live
+handles on u32 wrap; destruction takes each payload once. Native SyntaxSession
+and CoreMachine payload destructors remain adapters pending their owners' APIs.
+
+Interpreter execution-space bytes now use Tower-owned storage with explicit
+growth, zeroing, shrink/regrow and disposal. Failed heap growth preserves the
+old bytes, size and heap cursor and returns null; failure to allocate the initial
+stack produces a diagnostic. This is execution-space containment, not raw
+foundation pointer bounds/lifetime safety. The frozen native interpreter now
+uses its existing separate reference declaration, allowing production to drop
+its seed-only private methods. Native moves transfer the Tower buffer exactly
+once. Its remaining maps, frame/task containers and foreign callbacks have not
+yet migrated at this checkpoint.
+
+The bootstrap graph remains honest and acyclic: towerc-seed selects the existing
+native allocation/CLI branches with TOWER_BOOTSTRAP_HOST; that seed builds the
+Tower host module; stage1 uses the Tower module and the frozen interpreter; the
+production hybrid compiler uses the Tower interpreter. Removed unused native
+allocation-test policy from the seed branch. This is not a complete Tower-written
+compiler, and none of these hybrid executables is being committed as the final
+portable bootstrap.
+
+Reproduction environment: Windows x64 PowerShell, Node 22.23.4, WSL Ubuntu as
+trevo, clang/LLVM 19, wasi-sdk-34.0-x86_64-linux in ~/.cache/tower/wasi-sdk.
+The initial native baseline is build/native/towerc-host-baseline (820,488 bytes).
+The exact 586078b browser baseline was independently rebuilt from detached
+build/host-baseline-source into ~/.cache/tower/host-baseline-wasi; an older local
+Wasm artifact was rejected as the comparison baseline because it preceded the
+pull. Baseline Wasm is copied to build/tower-host-baseline.wasm.
+
+Validation at this checkpoint:
+
+- `bash playground/scripts/build-native.sh`: passed (build/host-native.log).
+- ASan/UBSan build and CTest in ~/.cache/tower/core-asan: 5/5 passed, 21.86 s
+  (build/host-tests.log), including the new Tower host/storage tests and the
+  existing full-state native interpreter comparison.
+- `bash playground/scripts/test-bootstrap.sh`: passed 20 byte-identical object
+  and optimized-LLVM comparisons, including the host module, for Linux x64,
+  wasm32, Windows x64 COFF and macOS ARM64 Mach-O, plus explicit grammar-input
+  tests (build/host-bootstrap.log). These object comparisons are not native
+  Windows/macOS compiler execution or successive compiler self-builds.
+- WASI test executables built with TOWER_PARSER_ONLY, -fno-exceptions and an
+  8 MiB stack. `node scaffolding/tests/interpreter-wasi.mjs
+  build/host-parser-tests.wasm --host-only` passed; the same runner on
+  build/host-interpreter-tests.wasm passed 156 differential runs
+  (build/host-wasi-tests.log). The new test-host-runtime.sh registers this path
+  in internal.sh; CMake produces extensionless WASI test executables.
+- The first Node run passed 220 tests, failed the canonical-source formatting
+  check for newly written Tower, and skipped one platform test. Applied the
+  project's Tower formatter to the changed Tower files; native canonical-file
+  validation then passed. Final Node/browser/deployment validation remains due.
+
+Failed trials and fixes: foundation boolean operands cannot use bitwise &/|;
+rewrote those conditions with ordinary branches. The identifier `expected` is
+reserved in the active grammar and hex string escapes are unsupported; the
+Tower tests use an ordinary identifier and explicit UTF-8 bytes. Linking the
+host object into every utility test pulled allocator dependencies into the
+byte-buffer test's independent allocator; the host interface now follows the
+compiler-memory target instead. WASI exposed a pre-existing reference lambda's
+different SIZE_MAX/size_t return types; added only its explicit size_t return
+annotation in lr-analysis-seed.cpp, with no algorithm change. The full reference
+test build also needs -fno-exceptions; the new WASI test script supplies it.
+
+Outstanding integration dependencies are concrete. llvm-engine.cpp currently
+rejects exported runtime names (tower_allocate/reallocate/deallocate/print/trap)
+and rejects top-level state in library builds. Ordinary extern calls do not yet
+provide a way to distinguish the host realloc/free symbols from foundation
+built-ins, or invoke typed native callback pointers. Those contracts need the
+semantic/backend owners before the last runtime trampolines and lifecycle
+dispatch can disappear without adding new native implementation. Frontend
+sessions, semantic compilation results and LLVM/linker orchestration still use
+C++ interfaces; tasks 1–3 are not integrated in the fetched master. Remaining
+owned debt includes driver filesystem/process orchestration, browser schema
+traversal and foreign dispatch, tower.cpp guards/lifecycle, parser/formatter
+registration, runtime.c platform/startup code, main.cpp and native tests/seeds.
+
+Distribution is not ready: the baseline ELF dynamically requires libLLVM.so.19.1
+(128,370,024 bytes here) plus the system C/C++ runtimes, libffi, libedit, zlib,
+zstd, libxml2, libtinfo, libbsd and libmd. Its small executable alone is not a
+portable compiler package. The current driver also invokes clang to build
+runtime.c when emitting executables. A Mac runtime is unavailable here, and the
+documented Windows Visual Studio Build Tools path is absent. Native Linux and
+WASI checks do not establish Windows/macOS compiler self-hosting. Final packages
+still require explicit target architectures, source/tool/dependency provenance,
+licenses, hashes and measured complete sizes, followed by clean-checkout builds
+without a project C/C++ toolchain and successive self-build/native-run evidence.

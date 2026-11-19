@@ -7,6 +7,7 @@ bash playground/scripts/setup-wasi.sh
 bash playground/scripts/build-native.sh
 bash playground/scripts/test-native-core.sh
 bash playground/scripts/test-bootstrap.sh
+bash playground/scripts/test-host-runtime.sh
 bash playground/scripts/build-wasm.sh
 TOWER_BROWSER_CROSS=ON bash playground/scripts/build-llvm.sh
 bash playground/scripts/test-linking.sh

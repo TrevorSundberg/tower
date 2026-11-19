@@ -103,10 +103,10 @@ struct CoreMachineState {
   bool failed = false;
   size_t frame_count = 0, task_count = 0;
   bool cached = false; // current task may read suspended per-statement results
+  TowerByteBuffer memory_storage{}; // owned by interpreter-storage.tower
 };
 struct CoreMachine : CoreMachineState {
   CoreProgram program;
-  std::vector<uint8_t> memory;
   std::map<uint64_t, size_t> allocations, free_blocks;
   std::map<TowerNode*, uint64_t> strings;
   using Foreign = std::function<CoreValue(CoreMachine&, TowerNode*, const std::vector<CoreValue>&)>;
@@ -125,6 +125,13 @@ struct CoreMachine : CoreMachineState {
   std::map<TowerNode*, bool> sequenced;
   std::string error, output;
   explicit CoreMachine(CoreProgram source);
+  ~CoreMachine();
+  CoreMachine(CoreMachine&&) noexcept;
+  CoreMachine(const CoreMachine&) = delete;
+  CoreMachine& operator=(const CoreMachine&) = delete;
+  uint8_t* memory_data() { return memory_storage.data; }
+  const uint8_t* memory_data() const { return memory_storage.data; }
+  size_t memory_size() const { return memory_storage.length; }
   void step(size_t budget);
   void fail(const std::string&, size_t);
   uint8_t* bytes(uint64_t address, size_t count, size_t offset = 0);
@@ -133,14 +140,4 @@ struct CoreMachine : CoreMachineState {
   uint64_t allocate(size_t bytes);
   uint64_t reallocate(uint64_t address, size_t bytes);
   void deallocate(uint64_t address);
-private:
-  // Retained seed declarations; production algorithms are in interpreter.tower.
-  CoreValue read(TowerNode*, size_t);
-  CoreValue address(TowerNode*, size_t);
-  CoreValue evaluate(TowerNode*, size_t);
-  void store(TowerNode*, CoreValue, size_t, const CoreValue* = nullptr);
-  void enter(TowerNode*);
-  void returned(CoreValue = {});
-  void call(TowerNode*, size_t);
-  bool needs_evaluation(TowerNode*);
 };

@@ -7,11 +7,12 @@ out="$repo/build/bootstrap-check"
 mkdir -p "$out"
 # A production compiler already uses Tower-written utilities when it reads the
 # utility source again. Compare its output with the independent C++ seed.
-for utility in utf8 bytes entities parser-nodes; do
+for utility in utf8 bytes entities parser-nodes host; do
   source="$repo/scaffolding/compiler/utf8.tower"
   if [ "$utility" = bytes ]; then source="$repo/scaffolding/library/bytes.tower"; fi
   if [ "$utility" = entities ]; then source="$native/tower-compiler-entities.tower"; fi
   if [ "$utility" = parser-nodes ]; then source="$native/tower-compiler-parser-nodes.tower"; fi
+  if [ "$utility" = host ]; then source="$native/tower-compiler-host.tower"; fi
   for target in x86_64-pc-linux-gnu wasm32-unknown-unknown x86_64-pc-windows-msvc aarch64-apple-darwin; do
     for stage in seed tower; do
       compiler="$native/towerc"
@@ -24,6 +25,9 @@ for utility in utf8 bytes entities parser-nodes; do
       python3 - "$utility" "$out/symbols.txt" <<'PY'
 import pathlib, sys
 allowed = set() if sys.argv[1] == 'utf8' else {'tower_reallocate', 'tower_deallocate', 'memcpy', 'memmove', 'memset', 'bzero', 'stack_pointer', 'memory_base'}
+if sys.argv[1] == 'host': allowed |= {
+    'compiler_host_reallocate', 'compiler_host_free',
+    'bytes_reserve', 'bytes_push'}
 if sys.argv[1] == 'entities': allowed |= {
     'tower_allocate', 'tower_entity_finalize', 'compiler_node_label',
     'compiler_name_is', 'compiler_name_equal', 'compiler_node_copy_metadata',

@@ -1,0 +1,167 @@
+// CLI option policy over borrowed argv strings. No filesystem or host queries.
+// The caller owns links and provides argc pointer slots; all strings stay borrowed.
+struct HostDriverOptions {
+    source: u8*;
+    output: u8*;
+    target: u8*;
+    emit: u8*;
+    cc: u8*;
+    linker: u8*;
+    sysroot: u8*;
+    raw: u8*;
+    optimized: u8*;
+    bedrock: u8*;
+    foundation: u8*;
+    links: u8**;
+    link_count: usize;
+    optimize: bool;
+    interpret: bool;
+    library: bool;
+    timings: bool;
+    help: bool;
+    error: u8*;
+    argument: u8*;
+}
+
+fn host_argument_is(a: u8*, b: u8*): bool {
+    var i: usize = 0;
+    loop {
+        var different = a[i] != b[i];
+        if different {
+            return false;
+        }
+        var end = a[i] == 0;
+        if end {
+            return true;
+        }
+        i = i + 1;
+    }
+}
+
+export fn host_driver_parse(out: HostDriverOptions*, argc: usize, argv: u8**, links: u8**, target: u8*): void {
+    fill(out, 0, sizeof(HostDriverOptions));
+    out.source = "";
+    out.output = "";
+    out.target = target;
+    out.emit = "exe";
+    out.cc = "clang";
+    out.linker = "";
+    out.sysroot = "";
+    out.raw = "";
+    out.optimized = "";
+    out.bedrock = "";
+    out.foundation = "";
+    out.links = links;
+    out.optimize = true;
+    out.error = "";
+    out.argument = "";
+    var i: usize = 1;
+    loop {
+        var done = i >= argc;
+        if done {
+            return;
+        }
+        var arg = argv[i];
+        i = i + 1;
+        var match = host_argument_is(arg, "--help");
+        if match {
+            out.help = true;
+            return;
+        }
+        match = host_argument_is(arg, "--no-optimize");
+        if match {
+            out.optimize = false;
+            continue;
+        }
+        match = host_argument_is(arg, "--interpret");
+        if match {
+            out.interpret = true;
+            continue;
+        }
+        match = host_argument_is(arg, "--timings");
+        if match {
+            out.timings = true;
+            continue;
+        }
+        match = host_argument_is(arg, "--library");
+        if match {
+            out.library = true;
+            out.emit = "object";
+            continue;
+        }
+        var slot: u8** = null;
+        var link = host_argument_is(arg, "--link");
+        match = host_argument_is(arg, "-o");
+        if match {
+            slot = &out.output;
+        }
+        match = host_argument_is(arg, "--target");
+        if match {
+            slot = &out.target;
+        }
+        match = host_argument_is(arg, "--emit");
+        if match {
+            slot = &out.emit;
+        }
+        match = host_argument_is(arg, "--cc");
+        if match {
+            slot = &out.cc;
+        }
+        match = host_argument_is(arg, "--linker");
+        if match {
+            slot = &out.linker;
+        }
+        match = host_argument_is(arg, "--sysroot");
+        if match {
+            slot = &out.sysroot;
+        }
+        match = host_argument_is(arg, "--raw-ir");
+        if match {
+            slot = &out.raw;
+        }
+        match = host_argument_is(arg, "--optimized-ir");
+        if match {
+            slot = &out.optimized;
+        }
+        match = host_argument_is(arg, "--bedrock");
+        if match {
+            slot = &out.bedrock;
+        }
+        match = host_argument_is(arg, "--foundation");
+        if match {
+            slot = &out.foundation;
+        }
+        var value = slot != null;
+        if link {
+            value = true;
+        }
+        if value {
+            done = i == argc;
+            if done {
+                out.error = "Missing argument for ";
+                out.argument = arg;
+                return;
+            }
+            if link {
+                links[out.link_count] = argv[i];
+                out.link_count = out.link_count + 1;
+            } else {
+                *slot = argv[i];
+            }
+            i = i + 1;
+        } else {
+            var option = arg[0] == 45;
+            var supplied = out.source[0] != 0;
+            var unexpected = option;
+            if supplied {
+                unexpected = true;
+            }
+            if unexpected {
+                out.error = "Unexpected argument: ";
+                out.argument = arg;
+                return;
+            }
+            out.source = arg;
+        }
+    }
+}

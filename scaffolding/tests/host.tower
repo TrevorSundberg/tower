@@ -1,0 +1,421 @@
+// Compiled into the native/WASI test host. All assertions and trials are Tower.
+extern fn tower_test_buffer_fail_next(): void;
+
+fn host_test_bytes(buffer: ByteBuffer*, wanted: u8*, count: usize): bool {
+    var same = buffer.length == count;
+    if same {} else {
+        return false;
+    }
+    var i: usize = 0;
+    loop {
+        var done = i == count;
+        if done {
+            return true;
+        }
+        same = buffer.data[i] == wanted[i];
+        if same {} else {
+            return false;
+        }
+        i = i + 1;
+    }
+}
+
+fn host_test_memory(): i32 {
+    var state: HostMemoryObservation;
+    fill(&state, 0, sizeof(HostMemoryObservation));
+    var p = host_memory_resize(&state, null, 8, 2);
+    var ok = p != null;
+    if ok {} else {
+        return 101;
+    }
+    var bytes = bits(u8*, p);
+    bytes[0] = 93;
+    var maximum: usize = 0;
+    maximum = maximum - 1;
+    var failed = host_memory_resize(&state, p, maximum, 2);
+    ok = failed == null;
+    var count = state.calls == 1;
+    if count {} else {
+        ok = false;
+    }
+    if ok {} else {
+        return 102;
+    }
+    host_memory_fail_after(&state, 0);
+    failed = host_memory_resize(&state, p, 4096, 1);
+    ok = failed == null;
+    count = state.live == 1;
+    if count {} else {
+        ok = false;
+    }
+    count = bytes[0] == 93;
+    if count {} else {
+        ok = false;
+    }
+    if ok {} else {
+        return 103;
+    }
+    var next = host_memory_resize(&state, p, 4096, 1);
+    ok = next != null;
+    if ok {} else {
+        return 104;
+    }
+    p = next;
+    bytes = bits(u8*, p);
+    ok = bytes[0] == 93;
+    if ok {} else {
+        return 105;
+    }
+    host_memory_fail_after(&state, 0);
+    failed = host_memory_resize(&state, p, 0, 1);
+    ok = failed == null;
+    count = state.live == 1;
+    if count {} else {
+        ok = false;
+    }
+    count = bytes[0] == 93;
+    if count {} else {
+        ok = false;
+    }
+    if ok {} else {
+        return 106;
+    }
+    failed = host_memory_resize(&state, p, maximum, 0);
+    ok = failed == null;
+    count = state.live == 0;
+    if count {} else {
+        ok = false;
+    }
+    if ok {} else {
+        return 107;
+    }
+    host_memory_release(&state, null);
+    host_memory_fail_after(&state, 1);
+    p = host_memory_resize(&state, null, 1, 1);
+    failed = host_memory_resize(&state, null, 1, 1);
+    ok = p != null;
+    count = failed == null;
+    if count {} else {
+        ok = false;
+    }
+    if ok {} else {
+        return 108;
+    }
+    host_memory_release(&state, p);
+    host_memory_fail_after(&state, maximum);
+    p = host_memory_resize(&state, null, 1, 1);
+    ok = p != null;
+    if ok {} else {
+        return 109;
+    }
+    host_memory_release(&state, p);
+    ok = state.live == 0;
+    if ok {} else {
+        return 110;
+    }
+    return 0;
+}
+
+fn host_test_json(): i32 {
+    var out: ByteBuffer;
+    fill(&out, 0, sizeof(ByteBuffer));
+    var input: u8[7];
+    input[0] = 0;
+    input[1] = 10;
+    input[2] = 34;
+    input[3] = 92;
+    input[4] = 127;
+    input[5] = 195;
+    input[6] = 169;
+    var ok = host_json_quote(&out, &input[0], 7);
+    if ok {} else {
+        return 201;
+    }
+    var wanted: u8[21];
+    copy(&wanted[0], "\"\\u0000\\u000a\\\"\\\\", 17);
+    wanted[17] = 127;
+    wanted[18] = 195;
+    wanted[19] = 169;
+    wanted[20] = 34;
+    ok = host_test_bytes(&out, &wanted[0], 21);
+    if ok {} else {
+        return 202;
+    }
+    out.length = 0;
+    ok = host_json_unsigned(&out, 18446744073709551615);
+    if ok {} else {
+        return 203;
+    }
+    ok = host_test_bytes(&out, "18446744073709551615", 20);
+    if ok {} else {
+        return 204;
+    }
+    out.length = 0;
+    host_json_unsigned(&out, 0);
+    ok = host_test_bytes(&out, "0", 1);
+    if ok {} else {
+        return 205;
+    }
+    bytes_dispose(&out);
+    bytes_append(&out, "a\n", 2);
+    ok = host_json_quote(&out, out.data, 2);
+    if ok {} else {
+        return 206;
+    }
+    ok = host_test_bytes(&out, "a\n\"a\\u000a\"", 11);
+    if ok {} else {
+        return 207;
+    }
+    var maximum: usize = 0;
+    maximum = maximum - 1;
+    ok = host_json_quote(&out, null, maximum);
+    if ok {
+        return 208;
+    }
+    ok = host_test_bytes(&out, "a\n\"a\\u000a\"", 11);
+    if ok {} else {
+        return 209;
+    }
+    var old = out.data;
+    var capacity = out.capacity;
+    tower_test_buffer_fail_next();
+    ok = host_json_quote(&out, "0123456789012345678901234567890123456789012345678901234567890123", 64);
+    if ok {
+        return 210;
+    }
+    ok = out.data == old;
+    var same = out.capacity == capacity;
+    if same {} else {
+        ok = false;
+    }
+    same = host_test_bytes(&out, "a\n\"a\\u000a\"", 11);
+    if same {} else {
+        ok = false;
+    }
+    if ok {} else {
+        return 211;
+    }
+    ok = host_text_terminate(&out);
+    same = out.data[out.length] == 0;
+    if same {} else {
+        ok = false;
+    }
+    if ok {} else {
+        return 212;
+    }
+    bytes_dispose(&out);
+    return 0;
+}
+
+fn host_test_driver(): i32 {
+    var args: u8*[32];
+    var links: u8*[32];
+    var options: HostDriverOptions;
+    args[0] = "towerc";
+    host_driver_parse(&options, 1, &args[0], &links[0], "explicit-target");
+    var ok = host_argument_is(options.target, "explicit-target");
+    var same = host_argument_is(options.emit, "exe");
+    if same {} else {
+        ok = false;
+    }
+    if options.optimize {} else {
+        ok = false;
+    }
+    if ok {} else {
+        return 301;
+    }
+    args[1] = "source.tower";
+    args[2] = "--library";
+    args[3] = "--emit";
+    args[4] = "llvm";
+    args[5] = "--link";
+    args[6] = "first.a";
+    args[7] = "--link";
+    args[8] = "second.o";
+    args[9] = "--no-optimize";
+    args[10] = "--interpret";
+    args[11] = "--timings";
+    host_driver_parse(&options, 12, &args[0], &links[0], "target");
+    ok = host_argument_is(options.source, "source.tower");
+    same = host_argument_is(options.emit, "llvm");
+    if same {} else {
+        ok = false;
+    }
+    same = options.link_count == 2;
+    if same {} else {
+        ok = false;
+    }
+    same = host_argument_is(links[0], "first.a");
+    if same {} else {
+        ok = false;
+    }
+    same = host_argument_is(links[1], "second.o");
+    if same {} else {
+        ok = false;
+    }
+    same = options.optimize == false;
+    if same {} else {
+        ok = false;
+    }
+    if options.library {} else {
+        ok = false;
+    }
+    if options.interpret {} else {
+        ok = false;
+    }
+    if options.timings {} else {
+        ok = false;
+    }
+    if ok {} else {
+        return 302;
+    }
+    args[2] = "--emit";
+    args[3] = "llvm";
+    args[4] = "--library";
+    host_driver_parse(&options, 5, &args[0], &links[0], "target");
+    ok = host_argument_is(options.emit, "object");
+    if ok {} else {
+        return 303;
+    }
+    args[1] = "--target";
+    host_driver_parse(&options, 2, &args[0], &links[0], "target");
+    ok = host_argument_is(options.error, "Missing argument for ");
+    same = host_argument_is(options.argument, "--target");
+    if same {} else {
+        ok = false;
+    }
+    if ok {} else {
+        return 304;
+    }
+    args[2] = "--help";
+    host_driver_parse(&options, 3, &args[0], &links[0], "target");
+    ok = host_argument_is(options.target, "--help");
+    if ok {} else {
+        return 305;
+    }
+    args[1] = "--help";
+    args[2] = "--unknown";
+    host_driver_parse(&options, 3, &args[0], &links[0], "target");
+    if options.help {} else {
+        return 306;
+    }
+    args[1] = "one.tower";
+    args[2] = "two.tower";
+    host_driver_parse(&options, 3, &args[0], &links[0], "target");
+    ok = host_argument_is(options.error, "Unexpected argument: ");
+    same = host_argument_is(options.argument, "two.tower");
+    if same {} else {
+        ok = false;
+    }
+    if ok {} else {
+        return 307;
+    }
+    args[1] = "--unknown";
+    host_driver_parse(&options, 2, &args[0], &links[0], "target");
+    ok = host_argument_is(options.argument, "--unknown");
+    if ok {} else {
+        return 308;
+    }
+    return 0;
+}
+
+fn host_test_handles(): i32 {
+    var table: HostHandles;
+    fill(&table, 0, sizeof(HostHandles));
+    var payload: u8 = 42;
+    var pointer = bits(void*, &payload);
+    tower_test_buffer_fail_next();
+    var handle = host_handles_insert(&table, 0, pointer);
+    var ok = handle == 0;
+    if ok {} else {
+        return 401;
+    }
+    ok = table.count == 0;
+    if ok {} else {
+        return 402;
+    }
+    var first = host_handles_insert(&table, 0, pointer);
+    ok = first == 1;
+    if ok {} else {
+        return 403;
+    }
+    table.next = 4294967294;
+    var last = host_handles_insert(&table, 1, pointer);
+    ok = last == 4294967295;
+    if ok {} else {
+        return 404;
+    }
+    handle = host_handles_insert(&table, 1, pointer);
+    ok = handle == 2;
+    if ok {} else {
+        return 405;
+    }
+    var found = host_handles_get(&table, 1, first);
+    ok = found == null;
+    if ok {} else {
+        return 406;
+    }
+    found = host_handles_take(&table, 1, first);
+    ok = found == null;
+    if ok {} else {
+        return 407;
+    }
+    ok = host_handles_dispose(&table);
+    if ok {
+        return 408;
+    }
+    var count = host_handles_count(&table, 0);
+    ok = count == 1;
+    if ok {} else {
+        return 409;
+    }
+    count = host_handles_count(&table, 1);
+    ok = count == 2;
+    if ok {} else {
+        return 410;
+    }
+    found = host_handles_take(&table, 0, first);
+    ok = found == pointer;
+    if ok {} else {
+        return 411;
+    }
+    found = host_handles_take(&table, 0, first);
+    ok = found == null;
+    if ok {} else {
+        return 412;
+    }
+    found = host_handles_take(&table, 1, last);
+    ok = found == pointer;
+    if ok {} else {
+        return 413;
+    }
+    found = host_handles_take(&table, 1, handle);
+    ok = found == pointer;
+    if ok {} else {
+        return 414;
+    }
+    ok = host_handles_dispose(&table);
+    if ok {} else {
+        return 415;
+    }
+    return 0;
+}
+
+export fn host_support_tests(): i32 {
+    var result = host_test_memory();
+    var failed = result != 0;
+    if failed {
+        return result;
+    }
+    result = host_test_json();
+    failed = result != 0;
+    if failed {
+        return result;
+    }
+    result = host_test_driver();
+    failed = result != 0;
+    if failed {
+        return result;
+    }
+    return host_test_handles();
+}

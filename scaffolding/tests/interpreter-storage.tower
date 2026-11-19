@@ -1,0 +1,99 @@
+// Execution-space ownership and allocation-failure tests, run at both widths.
+extern fn tower_test_buffer_fail_next(): void;
+
+extern fn tower_test_buffer_count(): usize;
+
+export fn interpreter_storage_tests(): i32 {
+    var baseline = tower_test_buffer_count();
+    var state: IMState;
+    fill(&state, 0, sizeof(IMState));
+    var ok = im_memory_resize(&state, 128);
+    if ok {} else {
+        return 501;
+    }
+    var i: usize = 0;
+    loop {
+        var done = i == 128;
+        if done {
+            break;
+        }
+        ok = state.memory.data[i] == 0;
+        if ok {} else {
+            return 502;
+        }
+        state.memory.data[i] = 93;
+        i = i + 1;
+    }
+    var original = state.memory.data;
+    var capacity = state.memory.capacity;
+    var larger = capacity + 1;
+    tower_test_buffer_fail_next();
+    ok = im_memory_resize(&state, larger);
+    if ok {
+        return 503;
+    }
+    ok = state.memory.data == original;
+    if ok {} else {
+        return 504;
+    }
+    ok = state.memory.capacity == capacity;
+    if ok {} else {
+        return 505;
+    }
+    ok = state.memory.length == 128;
+    if ok {} else {
+        return 506;
+    }
+    ok = state.memory.data[127] == 93;
+    if ok {} else {
+        return 507;
+    }
+    ok = im_memory_resize(&state, 8);
+    if ok {} else {
+        return 508;
+    }
+    ok = im_memory_resize(&state, 16);
+    if ok {} else {
+        return 509;
+    }
+    ok = state.memory.data[7] == 93;
+    if ok {} else {
+        return 510;
+    }
+    i = 8;
+    loop {
+        var done = i == 16;
+        if done {
+            break;
+        }
+        ok = state.memory.data[i] == 0;
+        if ok {} else {
+            return 511;
+        }
+        i = i + 1;
+    }
+    ok = im_memory_resize(&state, larger);
+    if ok {} else {
+        return 512;
+    }
+    ok = state.memory.data[7] == 93;
+    if ok {} else {
+        return 513;
+    }
+    var end = larger - 1;
+    ok = state.memory.data[end] == 0;
+    if ok {} else {
+        return 514;
+    }
+    interpreter_storage_dispose(&state);
+    ok = state.memory.data == null;
+    if ok {} else {
+        return 515;
+    }
+    var live = tower_test_buffer_count();
+    ok = live == baseline;
+    if ok {} else {
+        return 516;
+    }
+    return 0;
+}

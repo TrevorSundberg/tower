@@ -1,4 +1,8 @@
 #include "core.hpp"
+#ifdef TOWER_INTERPRETER_SEED
+#include "bootstrap/interpreter-reference.hpp"
+#define CoreMachine NativeCoreMachine
+#endif
 #include "llvm-engine.hpp"
 #include <llvm/TargetParser/Host.h>
 #include <llvm/Support/Program.h>
@@ -10,6 +14,18 @@
 #include <chrono>
 
 namespace fs = std::filesystem;
+#ifndef TOWER_BOOTSTRAP_HOST
+// Borrowed ABI view of compiler/host-driver.tower, retired with this driver.
+struct HostDriverOptions {
+  const char *source, *output, *target, *emit, *cc, *linker, *sysroot, *raw,
+    *optimized, *bedrock, *foundation;
+  const char** links;
+  size_t link_count;
+  bool optimize, interpret, library, timings, help;
+  const char *error, *argument;
+};
+extern "C" void host_driver_parse(HostDriverOptions*, size_t, char**, const char**, const char*);
+#endif
 namespace {
 struct Timings {
   using Clock = std::chrono::steady_clock;
@@ -47,6 +63,7 @@ int main(int argc, char** argv) {
   Timings timings;
   std::string source, output, target = llvm::sys::getDefaultTargetTriple(), emit = "exe", cc = "clang", linker, sysroot, raw, optimized, bedrock_path, foundation_path;
   std::vector<std::string> inputs; bool optimize = true, interpret = false, library = false;
+#ifdef TOWER_BOOTSTRAP_HOST
   for (int i = 1; i < argc; ++i) {
     std::string arg = argv[i];
     if (arg == "--help") {
@@ -68,6 +85,25 @@ int main(int argc, char** argv) {
     } else if (arg.starts_with('-') || !source.empty()) { std::cerr << "Unexpected argument: " << arg << '\n'; return 1; }
     else source = arg;
   }
+#else
+  HostDriverOptions options{};
+  std::vector<const char*> links(argc);
+  host_driver_parse(&options, argc, argv, links.data(), target.c_str());
+  timings.enabled = options.timings;
+  if (*options.error) { std::cerr << options.error << options.argument << '\n'; return 1; }
+  if (options.help) {
+    std::cout << "towerc source.tower -o output [--target triple] [--emit object|llvm|llvm-optimized|exe]\n"
+      "  [--link object-or-library] [--cc clang] [--linker tool] [--sysroot path]\n"
+      "  [--raw-ir file] [--optimized-ir file] [--no-optimize] [--interpret] [--library] [--timings]\n"
+      "  [--bedrock file] [--foundation file]\n"; return 0;
+  }
+  source = options.source; output = options.output; target = options.target;
+  emit = options.emit; cc = options.cc; linker = options.linker; sysroot = options.sysroot;
+  raw = options.raw; optimized = options.optimized; bedrock_path = options.bedrock;
+  foundation_path = options.foundation; optimize = options.optimize;
+  interpret = options.interpret; library = options.library;
+  for (size_t i = 0; i < options.link_count; ++i) inputs.emplace_back(options.links[i]);
+#endif
   if (source.empty() || !fs::exists(source)) { std::cerr << "Supply a Tower source file; use --help for options\n"; return 1; }
   const fs::path root(TOWER_SOURCE_DIR);
   const auto bedrock_file = bedrock_path.empty() ? root / "scaffolding/bedrock.tower" : fs::path(bedrock_path);

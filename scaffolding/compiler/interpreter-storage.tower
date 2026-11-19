@@ -1,0 +1,27 @@
+// Owned execution-space bytes. Target addresses are offsets into this buffer;
+// this is host containment, not foundation object/lifetime safety metadata.
+export fn im_memory_size(m: IMState*): usize {
+    return m.memory.length;
+}
+
+export fn im_memory(m: IMState*): u8* {
+    return m.memory.data;
+}
+
+export fn im_memory_resize(m: IMState*, count: usize): bool {
+    var ok = vector_reserve(u8, &m.memory, count);
+    if ok {
+        var grow = count > m.memory.length;
+        if grow {
+            var start = m.memory.data + m.memory.length;
+            var extra = count - m.memory.length;
+            fill(start, 0, extra);
+        }
+        m.memory.length = count;
+    }
+    return ok;
+}
+
+export fn interpreter_storage_dispose(m: IMState*): void {
+    vector_dispose(u8, &m.memory);
+}

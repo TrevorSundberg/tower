@@ -10,6 +10,15 @@ CoreMachine::CoreMachine(CoreProgram source) : program(std::move(source)) {
   failed = done;
   interpreter_init(static_cast<CoreMachineState *>(this));
 }
+CoreMachine::~CoreMachine() { interpreter_storage_dispose(static_cast<CoreMachineState*>(this)); }
+CoreMachine::CoreMachine(CoreMachine&& other) noexcept
+    : CoreMachineState(other), program(std::move(other.program)),
+      allocations(std::move(other.allocations)), free_blocks(std::move(other.free_blocks)),
+      strings(std::move(other.strings)), foreign(std::move(other.foreign)),
+      frames(std::move(other.frames)), sequenced(std::move(other.sequenced)),
+      error(std::move(other.error)), output(std::move(other.output)) {
+  other.memory_storage = {};
+}
 void CoreMachine::fail(const std::string &text, size_t offset) {
   if (error.empty()) {
     error = text;
@@ -74,14 +83,6 @@ extern "C" void *im_root(void *host) {
   return static_cast<CoreMachine *>(static_cast<CoreMachineState *>(host))
       ->program.root;
 }
-extern "C" size_t im_memory_size(void *host) {
-  return static_cast<CoreMachine *>(static_cast<CoreMachineState *>(host))
-      ->memory.size();
-}
-extern "C" uint8_t *im_memory(void *host) {
-  return static_cast<CoreMachine *>(static_cast<CoreMachineState *>(host))
-      ->memory.data();
-}
 extern "C" size_t im_base(void *host) {
   return static_cast<CoreMachine *>(static_cast<CoreMachineState *>(host))
       ->frames.back()
@@ -95,10 +96,6 @@ extern "C" void *im_frame_call(void *host) {
 extern "C" bool im_has_foreign(void *host) {
   return bool(static_cast<CoreMachine *>(static_cast<CoreMachineState *>(host))
                   ->foreign);
-}
-extern "C" void im_memory_resize(void *host, size_t count) {
-  static_cast<CoreMachine *>(static_cast<CoreMachineState *>(host))
-      ->memory.resize(count);
 }
 extern "C" void im_fail(void *host, uint8_t *text, size_t offset) {
   static_cast<CoreMachine *>(static_cast<CoreMachineState *>(host))

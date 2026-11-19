@@ -34,8 +34,8 @@ static void compare(const CoreMachine &a, const NativeCoreMachine &b) {
   assert(a.error == b.error && a.error_offset == b.error_offset);
   assert(a.output == b.output && a.output_bytes == b.output_bytes &&
          a.output_truncated == b.output_truncated);
-  assert(a.memory.size() == b.memory.size());
-  assert(std::memcmp(a.memory.data(), b.memory.data(), a.memory.size()) == 0);
+  assert(a.memory_size() == b.memory.size());
+  assert(std::memcmp(a.memory_data(), b.memory.data(), a.memory_size()) == 0);
   assert(a.stack == b.stack && a.heap == b.heap);
   assert(a.allocations == b.allocations && a.free_blocks == b.free_blocks);
   assert(a.frames.size() == b.frames.size());
@@ -147,6 +147,7 @@ int main(int argc, char **argv) {
          offsetof(CoreMachineState, frame_count));
   assert(interpreter_state_offset(9) == offsetof(CoreMachineState, task_count));
   assert(interpreter_state_offset(10) == offsetof(CoreMachineState, cached));
+  assert(interpreter_state_offset(11) == offsetof(CoreMachineState, memory_storage));
   std::ifstream file("foundation.tower");
   assert(file);
   std::ostringstream grammar;

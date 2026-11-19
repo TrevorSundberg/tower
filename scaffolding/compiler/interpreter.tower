@@ -170,8 +170,11 @@ export fn interpreter_allocate(m: IMState*, count: usize): u64 {
         return 0;
     }
     var end = heap + count;
+    var grown = im_memory_resize(m, end);
+    if grown {} else {
+        return 0;
+    }
     m.heap = end;
-    im_memory_resize(m, end);
     at = convert(u64, heap);
     im_allocations_set(m, at, convert(u64, count));
     return at;
@@ -831,7 +834,12 @@ export fn interpreter_init(m: IMState*): void {
     if condition_108 {
         return;
     }
-    im_memory_resize(m, 4194304);
+    var allocated = im_memory_resize(m, 4194304);
+    if allocated {} else {
+        im_fail(m, "Cannot allocate interpreter memory", 0);
+        m.done = true;
+        return;
+    }
     var root = im_root(m);
     var n = im_node(root);
     var base = m.stack;
