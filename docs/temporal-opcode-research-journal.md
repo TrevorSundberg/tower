@@ -12159,3 +12159,16 @@ git ls-remote --heads origin lists only main and gh-pages; gh-pages is generated
 deployment output and must remain separate. The pending semantic port is not on
 the remote yet. Local historical branch pointers were not deleted. This cleanup
 supersedes the prior consolidation entry's decision to retain remote branches.
+
+Audit validation/publication: git diff --cached --check passed; the only tracked
+change is this journal. Requested a Pages rebuild via POST
+repos/TrevorSundberg/tower/pages/builds; GitHub reports built with no error at
+unchanged deployment commit 724ad05. No application artifact changed, so the
+existing tested publication is retained. Ran
+node playground/scripts/verify-deployment.mjs https://trevorsundberg.github.io/tower/:
+all 36 deployed assets match the local distribution; desktop and mobile backend
+agreement, grammar edits, project persistence, native build/download paths,
+target defaults and equal columns passed. Log:
+build/tower-only-audit-deployment.log. Compiler suites/performance benchmarks were
+not rerun for this documentation/remote-ref-only turn. Final remote inspection
+again showed only main and gh-pages. Unrelated working notes remain unstaged.
