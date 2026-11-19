@@ -1057,7 +1057,8 @@
     "sha256": {
       "baselineReactor": "904a1d37f670636c33015c03f457a3cd454a4df66140afe3acc8550cf1ecb9ea",
       "reactor": "7f5924df8ec563328b52048c33339955703b288500a904bed6f099fcc718fcc2",
-      "nativeCompiler": "58712d6501bd1194a186d46bfc575bd33bf5414258bcd3256c145a929f97f7cf"
+      "nativeCompiler": "58712d6501bd1194a186d46bfc575bd33bf5414258bcd3256c145a929f97f7cf",
+      "llvmReactor": "f03e12d9f67f074aee87f1431ae4461993fc5868c59f88c91367ba6c540e83a8"
     },
     "wasmHost": {
       "environment": {

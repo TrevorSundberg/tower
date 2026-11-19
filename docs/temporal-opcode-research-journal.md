@@ -13789,3 +13789,18 @@ These constant-input programs permit LLVM to simplify/remove guest work; the
 compiled-Wasm column compares complete resulting behavior, not equal instruction
 counts or isolated dispatch. Cold preparation, package validation and allocations
 remain separate costs. Publication/hosted verification results follow separately.
+
+Final publication reconciliation: the required pull also brought 503fa60, a
+documentation-only upstream follow-up. Retained its journal entry and verified
+that the resulting implementation tree is unchanged from the tested build;
+all 15 package/fast-runner tests pass after that rebase. A later Pages fetch found
+3507ba5, publishing a newer backend/name-mangler and native runtime packs. Its
+parser reactor is still byte-identical to fbad6d4. Preserved all of those newly
+published backend/support bytes and rebuilt only our intended frontend bundle.
+This final combination passes 238 Node tests, 130 desktop/mobile browser tests
+(2.8 minutes), and all 36 assets plus both desktop/mobile behavioral deployment
+checks. Evidence: `build/fast-retained-backend-{node,browser,local}.log`.
+The benchmark JSON now explicitly records the LLVM reactor hash used for its
+compiled-Wasm comparison; that column predates the retained 3507ba5 backend.
+Interpreter code and its measured reactor hash are unchanged. The release manifest
+will distinguish rebuilt assets from artifacts retained from 3507ba5.
