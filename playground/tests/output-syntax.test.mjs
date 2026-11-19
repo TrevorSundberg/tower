@@ -16,11 +16,8 @@ function tokens(syntax,text) {
   }
   return result;
 }
-test('foundation comments, quoted names, calls, types and operands retain their text',()=>{
-  const result=tokens('tower','/* comment\nstill comment */ var `my name`: i32 = alloc(42); // end');
-  for(const item of [['var','keyword'],['`my name`','variableName'],['i32','typeName'],['alloc','variableName.function'],['42','number']])
-    assert.ok(result.some(token=>token[0]===item[0]&&token[1]===item[1]),item.join(':'));
-  assert.ok(result.some(([text,tag])=>text.includes('still comment')&&tag==='comment'));
+test('Tower output cannot fall back to an independent JavaScript keyword list',()=>{
+  assert.throws(()=>outputParser('tower'), /shared compiler lexer/);
 });
 test('LLVM raw and optimized syntax includes SSA, metadata, labels and opcodes',()=>{
   const result=tokens('llvm','define i32 @main() {\nentry:\n %value = load i32, ptr @global, align 4 ; read\n ret i32 %value\n}');
@@ -39,10 +36,9 @@ for(const [syntax,text,opcode,register] of [
 });
 test('long and hostile display text remains literal and lexer always advances',()=>{
   const input='<img src=x onerror=alert(1)> '+ '"\\'.repeat(10000);
-  assert.equal(tokens('tower',input).map(([text])=>text).join(''),input);
+  assert.equal(tokens('llvm',input).map(([text])=>text).join(''),input);
 });
-test('native-width Tower types and prefixed x86 instructions are highlighted',()=>{
-  assert.ok(tokens('tower','var count: usize = 0;').some(([word,tag])=>word==='usize'&&tag==='typeName'));
+test('prefixed x86 instructions are highlighted',()=>{
   const result=tokens('x86','0x00001000  rep stosq');
   for(const instruction of ['rep','stosq']) assert.ok(result.some(([word,tag])=>word===instruction&&tag==='keyword'));
 });

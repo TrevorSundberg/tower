@@ -12,17 +12,11 @@ import { detectBrowserTarget, defaultTargetSelection } from './browser-target.mj
 import { OutputPane } from './output-pane.mjs';
 import {examples, filePath, newProject, projectStore, validateProject, projectSources} from './projects.mjs';
 import {exportProject, importProject} from './project-archive.mjs';
+import { towerCompletion } from './completion.mjs';
+import { paint, highlighting, towerDecorations } from './tower-highlights.mjs';
 
 const $ = id => document.getElementById(id);
-const paint = StateEffect.define(), selectSpan = StateEffect.define();
-const highlighting = StateField.define({
-  create: () => Decoration.none,
-  update(value, transaction) {
-    if (transaction.docChanged) value = value.map(transaction.changes);
-    for (const effect of transaction.effects) if (effect.is(paint)) value = effect.value;
-    return value;
-  }, provide: field => EditorView.decorations.from(field),
-});
+const selectSpan = StateEffect.define();
 const selectionMark = StateField.define({
   create: () => Decoration.none,
   update(value, transaction) {
@@ -505,16 +499,13 @@ function renderGrammar(snapshot) {
 }
 function render() {
   const snapshot = result.snapshot;
-  const decorations = snapshot.highlights.filter(token => token.end > token.start).map(token => {
-    const from = offsets[token.start], to = offsets[token.end];
-    return Decoration.mark({ class: `tw-${token.kind}`, attributes: { 'data-revision': String(token.revision) } }).range(from, to);
-  });
+  const decorations = towerDecorations(editor.state.doc.toString(), snapshot.highlights);
   const error = result.end?.status === 'error' ? result.end : executionError;
   const diagnostic = sourceDiagnostic(editor.state.doc, offsets, error, snapshot.highlights);
   const awaitingExecution = diagnosticPhase === 'execution' && result.end?.status === 'done' && $('auto-execute').checked &&
     (executedRevision !== documentRevision || isExecuting()) &&
     result.events.some(event => event.status === 'statement' && event.nodes.some(item => item.production !== null && item.label.startsWith('Core')));
-  const effects = [paint.of(Decoration.set(decorations, true))];
+  const effects = [paint.of(decorations)];
   if (!awaitingExecution) {
     effects.push(setDiagnostic.of(diagnostic));
     diagnosticPhase = diagnostic ? (result.end?.status === 'error' ? 'parse' : 'execution') : null;
@@ -840,6 +831,7 @@ async function start() {
     p.baseline = {...builtins};
   }
   editorExtensions = [
+    towerCompletion(() => ({foundation, bedrock, editingModule, files:editingModule ? [] : projectSources(project).filter(file => file.path !== activePath)})),
     lineNumbers(), highlightActiveLineGutter(), highlightActiveLine(), history(), highlighting, selectionMark, editorDiagnostics,
     EditorView.lineWrapping, EditorView.theme({ '&': { color: '#d4e0e2', backgroundColor: '#121a1e' } }, { dark: true }),
     EditorView.contentAttributes.of({ 'aria-label': 'Tower source', spellcheck: 'false', autocapitalize: 'off', autocorrect: 'off' }),

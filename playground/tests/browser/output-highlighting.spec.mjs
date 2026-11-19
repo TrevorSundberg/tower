@@ -17,6 +17,22 @@ test('real compilation highlights foundation, both LLVM forms and Wasm',async({p
   expect(errors).toEqual([]);
 });
 
+test('source and Tower output use identical classes and colors for foundation tokens', async ({page}) => {
+  await page.goto('/'); await expect(page.locator('#status')).toContainText('Complete');
+  await selectDocument(page, 'increment.tower');
+  await expect(page.locator('#execution-status')).toContainText('backends match');
+  for (const root of ['#editor','#core-instructions','#fast-disassembly']) {
+    await expect(page.locator(root+' .tw-identifier').filter({hasText:/^post_increment$/}).first()).toBeAttached();
+    await expect(page.locator(root+' .tw-identifier').filter({hasText:/^i32$/}).first()).toBeAttached();
+  }
+  const colors = await page.evaluate(() => ['#editor','#core-instructions','#fast-disassembly'].map(root => {
+    const identifier = [...document.querySelectorAll(root+' .tw-identifier')].find(el=>el.textContent==='i32');
+    const keyword = [...document.querySelectorAll(root+' .tw-keyword')].find(el=>el.textContent==='fn');
+    return [getComputedStyle(identifier).color,getComputedStyle(keyword).color];
+  }));
+  expect(colors[1]).toEqual(colors[0]); expect(colors[2]).toEqual(colors[0]);
+});
+
 test('multi-megabyte output virtualizes, stays read-only, and highlights after scrolling',async({page},info)=>{
   const bundle=await build({stdin:{contents:`import { CodeOutput } from './src/code-output.mjs'; window.output=new CodeOutput(document.getElementById('large'),'llvm');`,resolveDir:fileURLToPath(new URL('../../',import.meta.url))},bundle:true,format:'esm',write:false});
   await page.route('**/output-fixture.js',route=>route.fulfill({contentType:'text/javascript',body:bundle.outputFiles[0].text}));

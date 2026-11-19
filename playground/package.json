@@ -13,6 +13,7 @@
     "check:format": "node scripts/format-tower.mjs"
   },
   "dependencies": {
+    "@codemirror/autocomplete": "6.20.4",
     "@codemirror/commands": "6.10.0",
     "@codemirror/language": "6.13.1",
     "@codemirror/state": "6.5.2",

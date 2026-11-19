@@ -25,6 +25,15 @@ extern "C" size_t host_handles_count(HostHandles*, uint32_t);
 extern "C" void* host_handles_get(HostHandles*, uint32_t, uint32_t);
 extern "C" uint32_t host_handles_insert(HostHandles*, uint32_t, void*);
 extern "C" void* host_handles_take(HostHandles*, uint32_t, uint32_t);
+// Borrowed lexer spans and opaque Tower query; no browser-side symbol model.
+struct CompletionSpan { size_t start, end; bool opaque; };
+extern "C" void* completion_begin(const char*, size_t, size_t, const CompletionSpan*, size_t);
+extern "C" const char* completion_recovered(void*);
+extern "C" void completion_collect(void*, TowerNode*, bool);
+extern "C" void completion_symbols(void*);
+extern "C" void completion_offer(void*, const char*, const char*, const char*, uint32_t);
+extern "C" const char* completion_end(void*);
+extern "C" void completion_dispose(void*);
 
 namespace {
 // Ownership view only. Text storage, growth and encoding execute in Tower.
@@ -295,6 +304,59 @@ EXPORT("tw_self_test") int tw_self_test() {
 }
 EXPORT("tw_live_nodes") size_t tw_live_nodes() { return tower_node_get_allocated_count(); }
 EXPORT("tw_live_allocations") size_t tw_live_allocations() { return tower_memory_get_allocated_count(); }
+
+EXPORT("tw_complete") const char* tw_complete(const char* source, size_t bytes, size_t cursor,
+  uint32_t mode, const char* const* files, const size_t* lengths, size_t count) {
+  static BrowserText response;
+  if (!valid_source(source, bytes) || cursor > bytes || mode > 2 || count > 1024)
+    return "{\"error\":\"Invalid completion request\"}";
+  if (cursor < bytes && (uint8_t(source[cursor]) & 0xc0) == 0x80)
+    return "{\"error\":\"Completion cursor must be a UTF-8 boundary\"}";
+  size_t total = bytes;
+  for (size_t i = 0; i < count; ++i) {
+    if (lengths[i] > max_source - total || !valid_source(files[i], lengths[i]))
+      return "{\"error\":\"Invalid completion project source\"}";
+    total += lengths[i];
+  }
+  auto create = [mode](const char* text) {
+    return std::unique_ptr<SyntaxSession, decltype(&syntax_destroy)>(
+      mode == 2 ? syntax_create_bedrock(text) : mode == 1 ? syntax_create_foundation(text) : syntax_create(text), syntax_destroy);
+  };
+  auto consume = [](SyntaxSession* syntax, void* query = nullptr, bool external = false,
+                    std::vector<TowerNode*>* roots = nullptr) {
+    for (size_t i = 0; i < 1024; ++i) {
+      auto* root = syntax_next(syntax); if (!root) break;
+      if (query) { roots->push_back(root); completion_collect(query, root, external); }
+      else tower_node_release_ref(root);
+    }
+  };
+  const std::string text(source, bytes), prefix(source, cursor);
+  auto original = create(text.c_str()); consume(original.get());
+  std::vector<CompletionSpan> spans;
+  for (const auto& span : syntax_get_lexemes(original.get()))
+    spans.push_back({span.start, span.end, span.opaque});
+  auto* query = completion_begin(source, bytes, cursor, spans.data(), spans.size());
+  if (!query) return "{\"error\":\"Cannot allocate completion query\"}";
+  std::vector<TowerNode*> roots;
+  auto recovered = create(completion_recovered(query)); consume(recovered.get(), query, false, &roots);
+  for (size_t i = 0; i < count; ++i) {
+    const std::string file(files[i], lengths[i]); auto session = create(file.c_str());
+    consume(session.get(), query, true, &roots);
+  }
+  completion_symbols(query);
+  // Only declarations terminated before the caret contribute grammar names.
+  auto active = create(prefix.c_str()); consume(active.get());
+  const auto keywords = syntax_get_keywords(active.get());
+  const auto rules = syntax_get_rules(active.get());
+  const auto tokens = syntax_get_tokens(active.get());
+  for (const auto& word : keywords) completion_offer(query, word.c_str(), "keyword", "active grammar", 0);
+  for (const auto& rule : rules) completion_offer(query, rule.name.c_str(), "type", "grammar rule", 2);
+  for (const auto& token : tokens) if (!token.skip) completion_offer(query, token.name.c_str(), "type", "token rule", 2);
+  response = completion_end(query);
+  completion_dispose(query);
+  for (auto* root : roots) tower_node_release_ref(root);
+  return response.c_str();
+}
 
 extern "C" __attribute__((import_module("tower_host"), import_name("call"))) uint64_t tw_foreign_call(uint32_t handle, const char* request);
 void bind_foreign(uint32_t handle, CoreMachine& machine) {

@@ -1,0 +1,740 @@
+// Editor queries over the compiler's shared syntax entities. Recovery text is
+// scratch input to the ordinary parser, never a second AST or program format.
+// Candidate lists retain borrowed entity handles only for the duration of a query.
+struct CompletionSpan {
+    start: usize;
+    end: usize;
+    opaque: bool;
+}
+
+struct CompletionQuery {
+    source: u8*;
+    length: usize;
+    cursor: usize;
+    from: usize;
+    to: usize;
+    boundary: usize;
+    receiver: usize;
+    receiver_end: usize;
+    mode: u32;
+    hidden: bool;
+    recovered: vector(u8);
+    nodes: vector(void*);
+    external: vector(void*);
+    names: vector(u8*);
+    output: vector(u8);
+    count: usize;
+}
+
+extern fn host_json_quote(out: vector(u8)*, source: u8*, count: usize): bool;
+
+extern fn host_json_unsigned(out: vector(u8)*, value: u64): bool;
+
+extern fn host_text_terminate(out: vector(u8)*): bool;
+
+fn completion_word(byte: u8): bool {
+    var yes = byte >= 65;
+    if yes {
+        yes = byte <= 90;
+    }
+    if yes {
+        return true;
+    }
+    yes = byte >= 97;
+    if yes {
+        yes = byte <= 122;
+    }
+    if yes {
+        return true;
+    }
+    yes = byte >= 48;
+    if yes {
+        yes = byte <= 57;
+    }
+    if yes {
+        return true;
+    }
+    var underscore = byte == 95;
+    return underscore;
+}
+
+fn completion_slice(source: u8*, start: usize, end: usize, word: u8*): bool {
+    var size = end - start;
+    var same = size == sem_length(word);
+    if same {} else {
+        return false;
+    }
+    var i: usize = 0;
+    loop {
+        var done = i == size;
+        if done {
+            return true;
+        }
+        var at = start + i;
+        same = source[at] == word[i];
+        if same {} else {
+            return false;
+        }
+        i = i + 1;
+    }
+}
+
+fn completion_text(out: vector(u8)*, text: u8*): void {
+    sem_require(bytes_append(out, text, sem_length(text)));
+}
+
+// Offsets and lexer spans use UTF-8 bytes, including quoted identifiers.
+// mode 0: values/statements, 1: types, 2: grammar references, 3: fields.
+export fn completion_begin(source: u8*, length: usize, cursor: usize, spans: CompletionSpan*, count: usize): CompletionQuery* {
+    var q = alloc(CompletionQuery, 1);
+    var missing = q == null;
+    if missing {
+        return null;
+    }
+    fill(q, 0, sizeof(CompletionQuery));
+    q.source = source;
+    q.length = length;
+    q.cursor = cursor;
+    q.from = cursor;
+    q.to = cursor;
+    var before: usize = 0;
+    var before_end: usize = 0;
+    var previous: usize = 0;
+    var previous_end: usize = 0;
+    var i: usize = 0;
+    var grammar: bool = false;
+    loop {
+        var done = i == count;
+        if done {
+            break;
+        }
+        var s = &spans[i];
+        var inside = s.start < cursor;
+        if inside {
+            inside = cursor <= s.end;
+        }
+        if inside {
+            if s.opaque {
+                var whitespace = source[s.start] <= 32;
+                if whitespace {} else {
+                    q.hidden = true;
+                }
+            } else {
+                var word = completion_word(source[s.start]);
+                var quoted = source[s.start] == 96;
+                if quoted {
+                    word = true;
+                }
+                if word {
+                    q.from = s.start;
+                    q.to = s.end;
+                }
+            }
+        }
+        var past = s.start >= q.from;
+        if past {
+            break;
+        }
+        if s.opaque {} else {
+            var start = completion_slice(source, s.start, s.end, "parse");
+            var token_decl = completion_slice(source, s.start, s.end, "token");
+            var skip_decl = completion_slice(source, s.start, s.end, "skip");
+            if token_decl {
+                start = true;
+            }
+            if skip_decl {
+                start = true;
+            }
+            if start {
+                grammar = true;
+            }
+            var semi = completion_slice(source, s.start, s.end, ";");
+            var brace = completion_slice(source, s.start, s.end, "{");
+            var close = completion_slice(source, s.start, s.end, "}");
+            if semi {
+                grammar = false;
+                q.boundary = s.end;
+            }
+            if grammar {} else {
+                if brace {
+                    q.boundary = s.end;
+                }
+                if close {
+                    q.boundary = s.end;
+                }
+            }
+            previous = before;
+            previous_end = before_end;
+            before = s.start;
+            before_end = s.end;
+        }
+        i = i + 1;
+    }
+    if grammar {
+        q.mode = 2;
+    }
+    else {
+        var colon = completion_slice(source, before, before_end, ":");
+        if colon {
+            q.mode = 1;
+        }
+        var dot = completion_slice(source, before, before_end, ".");
+        if dot {
+            q.mode = 3;
+            q.receiver = previous;
+            q.receiver_end = previous_end;
+        }
+    }
+    // The normal lexer reports incomplete quotes/comments as invalid tokens.
+    // Suppress completion in those unfinished default-language regions too.
+    i = 0;
+    loop {
+        var done = i == count;
+        if done {
+            break;
+        }
+        var s = &spans[i];
+        done = s.start >= cursor;
+        if done {
+            break;
+        }
+        if s.opaque {} else {
+            var byte = source[s.start];
+            var quote = byte == 34;
+            var single = byte == 39;
+            if single {
+                quote = true;
+            }
+            if quote {
+                q.hidden = true;
+            }
+            var slash = byte == 47;
+            var next = s.start + 1;
+            if slash {
+                slash = next < length;
+            }
+            if slash {
+                slash = source[next] == 42;
+            }
+            if slash {
+                q.hidden = true;
+            }
+        }
+        i = i + 1;
+    }
+    sem_require(bytes_append(&q.recovered, source, length));
+    // Blank the unfinished statement without shifting source coordinates. The
+    // parser then gives us ordinary shared nodes for the enclosing function.
+    var end = length;
+    i = 0;
+    loop {
+        var done = i == count;
+        if done {
+            break;
+        }
+        var s = &spans[i];
+        var after = s.start >= cursor;
+        if after {
+            if s.opaque {} else {
+                var close = completion_slice(source, s.start, s.end, "}");
+                if close {
+                    end = s.start;
+                    break;
+                }
+                var semi = completion_slice(source, s.start, s.end, ";");
+                if semi {
+                    end = s.end;
+                    break;
+                }
+            }
+        }
+        i = i + 1;
+    }
+    i = q.boundary;
+    loop {
+        var done = i >= end;
+        if done {
+            break;
+        }
+        var newline = source[i] == 10;
+        if newline {} else {
+            q.recovered.data[i] = 32;
+        }
+        i = i + 1;
+    }
+    var depth: usize = 0;
+    i = 0;
+    loop {
+        var done = i == count;
+        if done {
+            break;
+        }
+        var s = &spans[i];
+        var kept = s.start < q.boundary;
+        var suffix = s.start >= end;
+        if suffix {
+            kept = true;
+        }
+        if s.opaque {
+            kept = false;
+        }
+        if kept {
+            var open = completion_slice(source, s.start, s.end, "{");
+            var close = completion_slice(source, s.start, s.end, "}");
+            if open {
+                depth = depth + 1;
+            }
+            var nested = depth != 0;
+            if nested {
+                if close {
+                    depth = depth - 1;
+                }
+            }
+        }
+        i = i + 1;
+    }
+    // Bounded recovery; deeply malformed input still gets grammar suggestions.
+    var bounded = depth < 256;
+    if bounded {
+        loop {
+            var done = depth == 0;
+            if done {
+                break;
+            }
+            sem_require(vector_push(u8, &q.recovered, 125));
+            depth = depth - 1;
+        }
+    }
+    sem_require(host_text_terminate(&q.recovered));
+    completion_text(&q.output, "{\"from\":");
+    sem_require(host_json_unsigned(&q.output, convert(u64, q.from)));
+    completion_text(&q.output, ",\"to\":");
+    sem_require(host_json_unsigned(&q.output, convert(u64, q.to)));
+    completion_text(&q.output, ",\"options\":[");
+    return q;
+}
+
+export fn completion_recovered(q: CompletionQuery*): u8* {
+    return q.recovered.data;
+}
+
+// Iterative traversal follows the entity's ordered children. The scratch stack
+// and candidate list contain handles to those nodes, not copied declarations.
+export fn completion_collect(q: CompletionQuery*, root: void*, external: bool): void {
+    var pending: vector(void*);
+    vector_init(void*, &pending);
+    sem_require(vector_push(void*, &pending, root));
+    var visited: usize = 0;
+    loop {
+        var done = pending.length == 0;
+        var limit = visited >= 50000;
+        if limit {
+            done = true;
+        }
+        if done {
+            break;
+        }
+        pending.length = pending.length - 1;
+        var node = pending.data[pending.length];
+        visited = visited + 1;
+        var named = sem_member(node, "name");
+        var declaration = sem_is(node, "CoreDeclare");
+        var parameter = sem_is(node, "CoreParameter");
+        var field = sem_is(node, "CoreField");
+        var function = sem_is(node, "CoreFunction");
+        var exported = sem_is(node, "CoreExport");
+        var foreign = sem_is(node, "CoreExternal");
+        var record = sem_is(node, "CoreStruct");
+        if parameter {
+            declaration = true;
+        }
+        if field {
+            declaration = true;
+        }
+        if function {
+            declaration = true;
+        }
+        if exported {
+            declaration = true;
+        }
+        if foreign {
+            declaration = true;
+        }
+        if record {
+            declaration = true;
+        }
+        if declaration {
+            var has_name = named != null;
+            if has_name {
+                if external {
+                    sem_require(vector_push(void*, &q.external, node));
+                }
+                else {
+                    sem_require(vector_push(void*, &q.nodes, node));
+                }
+            }
+        }
+        var children = sem_child_count(node);
+        loop {
+            done = children == 0;
+            if done {
+                break;
+            }
+            children = children - 1;
+            sem_require(vector_push(void*, &pending, sem_child(node, children)));
+        }
+    }
+    vector_dispose(void*, &pending);
+}
+
+fn completion_name(node: void*): u8* {
+    var name = sem_member(node, "name");
+    loop {
+        var single = sem_child_count(name) == 1;
+        if single {} else {
+            break;
+        }
+        name = sem_child(name, 0);
+    }
+    return sem_label(name);
+}
+
+fn completion_scope(node: void*): void* {
+    node = sem_parent(node);
+    loop {
+        var done = node == null;
+        if done {
+            return null;
+        }
+        var scope = sem_is(node, "CoreBlock");
+        var function = sem_is(node, "CoreFunction");
+        var exported = sem_is(node, "CoreExport");
+        var foreign = sem_is(node, "CoreExternal");
+        var record = sem_is(node, "CoreStruct");
+        if function {
+            scope = true;
+        }
+        if exported {
+            scope = true;
+        }
+        if foreign {
+            scope = true;
+        }
+        if record {
+            scope = true;
+        }
+        if scope {
+            return node;
+        }
+        node = sem_parent(node);
+    }
+}
+
+fn completion_visible(q: CompletionQuery*, node: void*, external: bool): bool {
+    var field = sem_is(node, "CoreField");
+    if field {
+        return false;
+    }
+    var scope = completion_scope(node);
+    var global = scope == null;
+    if global {
+        return true;
+    }
+    if external {
+        return false;
+    }
+    var match = sem_match(node);
+    var later = match.start >= q.from;
+    if later {
+        return false;
+    }
+    var enclosing = sem_match(scope);
+    var end = enclosing.start + enclosing.length;
+    var inside = enclosing.start < q.cursor;
+    if inside {
+        inside = q.cursor < end;
+    }
+    return inside;
+}
+
+fn completion_fold(byte: u8): u8 {
+    var upper = byte >= 65;
+    if upper {
+        upper = byte <= 90;
+    }
+    if upper {
+        byte = byte + 32;
+    }
+    return byte;
+}
+
+export fn completion_offer(q: CompletionQuery*, name: u8*, kind: u8*, detail: u8*, category: u32): void {
+    if q.hidden {
+        return;
+    }
+    var mode = q.mode;
+    var field = mode == 3;
+    if field {
+        var wrong = category != 3;
+        if wrong {
+            return;
+        }
+    }
+    var grammar = mode == 2;
+    if grammar {
+        var wrong = category != 2;
+        if wrong {
+            return;
+        }
+    }
+    var typed = mode == 1;
+    if typed {
+        var wrong = category != 1;
+        if wrong {
+            return;
+        }
+    }
+    var ordinary = mode == 0;
+    if ordinary {
+        var wrong = category == 2;
+        var member = category == 3;
+        if member {
+            wrong = true;
+        }
+        if wrong {
+            return;
+        }
+    }
+    var size = sem_length(name);
+    var empty = size == 0;
+    if empty {
+        return;
+    }
+    var prefix = q.cursor - q.from;
+    var short = size < prefix;
+    if short {
+        return;
+    }
+    var i: usize = 0;
+    loop {
+        var done = i == prefix;
+        if done {
+            break;
+        }
+        var at = q.from + i;
+        var same = completion_fold(name[i]) == completion_fold(q.source[at]);
+        if same {} else {
+            return;
+        }
+        i = i + 1;
+    }
+    i = 0;
+    loop {
+        var done = i == q.names.length;
+        if done {
+            break;
+        }
+        var duplicate = sem_equal(name, q.names.data[i]);
+        if duplicate {
+            return;
+        }
+        i = i + 1;
+    }
+    var limit = q.count >= 128;
+    if limit {
+        return;
+    }
+    sem_require(vector_push(u8*, &q.names, name));
+    var comma = q.count != 0;
+    if comma {
+        completion_text(&q.output, ",");
+    }
+    completion_text(&q.output, "{\"label\":");
+    sem_require(host_json_quote(&q.output, name, size));
+    completion_text(&q.output, ",\"type\":");
+    sem_require(host_json_quote(&q.output, kind, sem_length(kind)));
+    completion_text(&q.output, ",\"detail\":");
+    sem_require(host_json_quote(&q.output, detail, sem_length(detail)));
+    completion_text(&q.output, "}");
+    q.count = q.count + 1;
+}
+
+fn completion_type_name(node: void*): u8* {
+    var type = sem_member(node, "type");
+    loop {
+        var base = sem_member(type, "base");
+        var done = base == null;
+        if done {
+            break;
+        }
+        type = base;
+    }
+    return completion_name(type);
+}
+
+fn completion_emit_node(q: CompletionQuery*, node: void*, external: bool): void {
+    var visible = completion_visible(q, node, external);
+    if visible {} else {
+        return;
+    }
+    var name = completion_name(node);
+    var record = sem_is(node, "CoreStruct");
+    if record {
+        completion_offer(q, name, "type", "struct", 1);
+        return;
+    }
+    var function = sem_is(node, "CoreFunction");
+    var exported = sem_is(node, "CoreExport");
+    var foreign = sem_is(node, "CoreExternal");
+    if exported {
+        function = true;
+    }
+    if foreign {
+        function = true;
+    }
+    if function {
+        completion_offer(q, name, "function", completion_type_name(node), 0);
+    }
+    else {
+        completion_offer(q, name, "variable", completion_type_name(node), 0);
+    }
+}
+
+export fn completion_symbols(q: CompletionQuery*): void {
+    // Lexical locals precede module bindings (which may be declared after the
+    // caret). Reverse source order gives inner declarations shadowing priority.
+    var i = q.nodes.length;
+    var receiver_type: u8* = "";
+    loop {
+        var done = i == 0;
+        if done {
+            break;
+        }
+        i = i - 1;
+        var node = q.nodes.data[i];
+        var local = completion_scope(node) != null;
+        if local {
+            completion_emit_node(q, node, false);
+        }
+        var field = q.mode == 3;
+        var unset = receiver_type[0] == 0;
+        if unset {
+            if field {
+                if local {
+                    var visible = completion_visible(q, node, false);
+                    if visible {
+                        var name = completion_name(node);
+                        var matches = completion_slice(q.source, q.receiver, q.receiver_end, name);
+                        if matches {
+                            receiver_type = completion_type_name(node);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    i = q.nodes.length;
+    loop {
+        var done = i == 0;
+        if done {
+            break;
+        }
+        i = i - 1;
+        var node = q.nodes.data[i];
+        var global = completion_scope(node) == null;
+        if global {
+            completion_emit_node(q, node, false);
+            var unset = receiver_type[0] == 0;
+            if unset {
+                var same = completion_slice(q.source, q.receiver, q.receiver_end, completion_name(node));
+                if same {
+                    receiver_type = completion_type_name(node);
+                }
+            }
+        }
+    }
+    i = 0;
+    loop {
+        var done = i == q.external.length;
+        if done {
+            break;
+        }
+        var node = q.external.data[i];
+        completion_emit_node(q, node, true);
+        var unset = receiver_type[0] == 0;
+        if unset {
+            var visible = completion_visible(q, node, true);
+            if visible {
+                var same = completion_slice(q.source, q.receiver, q.receiver_end, completion_name(node));
+                if same {
+                    receiver_type = completion_type_name(node);
+                }
+            }
+        }
+        i = i + 1;
+    }
+    var fields = q.mode == 3;
+    if fields {
+        i = 0;
+        var total = q.nodes.length + q.external.length;
+        loop {
+            var done = i == total;
+            if done {
+                break;
+            }
+            var node: void* = null;
+            var local = i < q.nodes.length;
+            if local {
+                node = q.nodes.data[i];
+            }
+            else {
+                var at = i - q.nodes.length;
+                node = q.external.data[at];
+            }
+            var field = sem_is(node, "CoreField");
+            if field {
+                var scope = completion_scope(node);
+                var same = sem_equal(completion_name(scope), receiver_type);
+                if same {
+                    completion_offer(q, completion_name(node), "property", completion_type_name(node), 3);
+                }
+            }
+            i = i + 1;
+        }
+    }
+    i = 0;
+    loop {
+        var done = i == 9;
+        if done {
+            break;
+        }
+        var scalar = convert(u32, i);
+        completion_offer(q, semantic_scalar_name(scalar), "type", "foundation type", 1);
+        i = i + 1;
+    }
+    i = 0;
+    loop {
+        var builtin = semantic_builtin_at(i);
+        var done = builtin == 0;
+        if done {
+            break;
+        }
+        completion_offer(q, semantic_builtin_name(builtin), "function", "foundation operation", 0);
+        i = i + 1;
+    }
+}
+
+export fn completion_end(q: CompletionQuery*): u8* {
+    completion_text(&q.output, "]}");
+    sem_require(host_text_terminate(&q.output));
+    return q.output.data;
+}
+
+export fn completion_dispose(q: CompletionQuery*): void {
+    vector_dispose(u8, &q.recovered);
+    vector_dispose(void*, &q.nodes);
+    vector_dispose(void*, &q.external);
+    vector_dispose(u8*, &q.names);
+    vector_dispose(u8, &q.output);
+    free(q);
+}

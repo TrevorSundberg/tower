@@ -25,5 +25,5 @@ void syntax_scan_token(SyntaxScanInput*, SyntaxScanResult*);
 TowerNode* syntax_scan_read(SyntaxScanInput*, SyntaxScanResult*);
 bool syntax_scan_peek(SyntaxScanInput*, uint32_t*);
 void syntax_scan_dispose(SyntaxScanResult*);
-void syntax_scan_highlight(void*, size_t, size_t, size_t, const char*);
+void syntax_scan_highlight(void*, size_t, size_t, size_t, const char*, uint32_t, bool);
 }

@@ -558,8 +558,8 @@ std::shared_ptr<Version> compiled(SyntaxSession& session, const Definitions& def
 #ifdef TOWER_EXPANSION_SEED
 #include "bootstrap/syntax-scan-seed.inc"
 #else
-extern "C" void syntax_scan_highlight(void* host, size_t start, size_t end, size_t revision, const char* style) {
-  static_cast<std::vector<SyntaxHighlight>*>(host)->push_back({start, end, revision, style});
+extern "C" void syntax_scan_highlight(void* host, size_t start, size_t end, size_t revision, const char* style, uint32_t id, bool skipped) {
+  static_cast<std::vector<SyntaxHighlight>*>(host)->push_back({start, end, revision, style, skipped || id == MetaString, id});
 }
 SyntaxScanInput scan_input(const SyntaxSession& session, size_t pos, std::vector<SyntaxHighlight>* highlights,
     const ParserLookahead* expected = nullptr) {
@@ -1196,7 +1196,7 @@ TowerNode* syntax_next(SyntaxSession* session) {
   }
 }
 
-std::vector<SyntaxHighlight> syntax_get_highlights(SyntaxSession* session) {
+std::vector<SyntaxHighlight> syntax_get_lexemes(SyntaxSession* session) {
   auto result = session->highlights;
   size_t pos = session->cursor;
   // After an error, colour the suffix with the last committed grammar. This
@@ -1214,6 +1214,17 @@ std::vector<SyntaxHighlight> syntax_get_highlights(SyntaxSession* session) {
       if (!meta || (length == 1 && session->source[start] == ';') || pos == session->source.size()) break;
     } while (true);
   }
+  // Token overrides replace their existing ordered slot, while additions append.
+  // Resolve the private lexical id back to its shared declaration metadata;
+  // changing `as style` must never turn identifiers into strings or comments.
+  for (auto& span : result) if (span.token >= FirstToken && span.token - FirstToken < session->tokens.size())
+    span.opaque = span.opaque || semantic(session->tokens[span.token - FirstToken]).name == "GrammarPattern";
+  return result;
+}
+
+std::vector<SyntaxHighlight> syntax_get_highlights(SyntaxSession* session) {
+  auto result = syntax_get_lexemes(session);
+  std::erase_if(result, [](const auto& span) { return span.kind.empty(); });
   return result;
 }
 

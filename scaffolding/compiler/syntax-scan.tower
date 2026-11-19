@@ -28,19 +28,16 @@ struct SyntaxScanResult {
     message: vector(u8);
 }
 
-extern fn syntax_scan_highlight(host: void*, start: usize, end: usize, revision: usize, style: u8*): void;
+extern fn syntax_scan_highlight(host: void*, start: usize, end: usize, revision: usize, style: u8*, id: u32, skipped: bool): void;
 
 fn scan_choice(input: SyntaxScanInput*, choice: LexiconChoice*): void {
     lexicon_choose(input.lexicon, input.source, input.size, input.cursor, input.declaration, input.runtime, input.state, choice);
 }
 
-fn scan_highlight(input: SyntaxScanInput*, start: usize, style: u8*): void {
+fn scan_highlight(input: SyntaxScanInput*, start: usize, choice: LexiconChoice*): void {
     var styled = input.highlights != null;
     if styled {
-        styled = style[0] != 0;
-    }
-    if styled {
-        syntax_scan_highlight(input.highlights, start, input.cursor, input.revision, style);
+        syntax_scan_highlight(input.highlights, start, input.cursor, input.revision, choice.style, choice.id, choice.skipped);
     }
 }
 
@@ -74,7 +71,7 @@ export fn syntax_scan_skip(input: SyntaxScanInput*, result: SyntaxScanResult*): 
         }
         var start = input.cursor;
         input.cursor = input.cursor + choice.length;
-        scan_highlight(input, start, choice.style);
+        scan_highlight(input, start, &choice);
     }
 }
 
@@ -104,7 +101,7 @@ fn scan_after_skip(input: SyntaxScanInput*, result: SyntaxScanResult*): void {
     input.cursor = input.cursor + choice.length;
     result.length = choice.length;
     result.id = choice.id;
-    scan_highlight(input, result.start, choice.style);
+    scan_highlight(input, result.start, &choice);
 }
 
 export fn syntax_scan_token(input: SyntaxScanInput*, result: SyntaxScanResult*): void {

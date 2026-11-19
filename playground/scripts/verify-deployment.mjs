@@ -201,9 +201,24 @@ try {
       await(await download).saveAs(new URL(name+'-'+key+'.'+target.extension,output).pathname.replace(/^\/([A-Za-z]:)/,'$1'));
     }
     await page.screenshot({path:new URL(name+'-native-targets.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
+    await expect(page.locator('#core-instructions .tw-identifier').first()).toBeAttached();
+    await page.locator('#auto-execute').uncheck();
+    const editor = page.locator('#editor .cm-content');
+    await editor.focus(); await page.keyboard.press('ControlOrMeta+a');
+    await page.keyboard.insertText('pri'); await page.keyboard.press('Control+Space');
+    await expect(page.locator('.cm-tooltip-autocomplete [role=option]').filter({hasText:'print'})).toBeVisible();
+    await page.keyboard.press('Tab'); await expect(editor.locator('.cm-line')).toHaveText('print');
+    await page.keyboard.press('ControlOrMeta+a');
+    await page.keyboard.insertText('struct Point { x: i32; y: i32; } var point: Point; point.');
+    await page.keyboard.press('Control+Space');
+    await expect(page.locator('.cm-tooltip-autocomplete [role=option]')).toHaveCount(2);
+    await page.screenshot({path:new URL(name+'-completion.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
     assert.deepEqual(errors, []);
     report.browsers.push({name,output:'42\n',incrementOutput:'5\n6\n7\n7\n9\n',extraSemicolonDiagnostic:true,forwardModuleBindings:true,multiFileProject:true,projectArchive:true,migration:true,uniformExecutionUI:true,incrementalBedrock:true,emptyLiteralDiagnostic:true,restore:true,reload:true,nativeTargets:Object.entries(targets).filter(([key])=>key!=='wasm').map(([,target])=>target.label),equalColumns:true,errors});
     console.log(name + ': backends agree; forward module bindings, editable grammar, persistence, native builds/downloads and equal columns verified.');
+    report.browsers.at(-1).completion = true;
+    report.browsers.at(-1).sharedTowerHighlighting = true;
+    console.log(name + ': Tower/Wasm completion, Tab acceptance, struct fields and compiler-based output highlighting verified.');
     await context.close();
     const detectionContext = await browser.newContext(options);
     await detectionContext.addInitScript(({mobile})=>{

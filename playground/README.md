@@ -4,6 +4,27 @@ The real Tower node runtime, LALR parser, grammar bootstrap and lexer run in
 `tower.wasm`, compiled with **Clang / WASI SDK and `-fno-exceptions`**. CodeMirror 6
 provides the temporary desktop/mobile editor. The JavaScript UI receives parse
 trees, grammar snapshots, diagnostics and highlight spans from Tower.
+Autocomplete appears while typing; Ctrl+Space opens it explicitly, arrows select,
+Tab or Enter accepts, and Escape dismisses. Touch/click also accepts a suggestion.
+The completion engine is `scaffolding/compiler/completion.tower`, compiled into
+`tower.wasm`. It queries the same parse entities, named captures and ordered
+hierarchy as the compiler, including enclosing locals/parameters, module and
+project declarations, explicit struct fields, type names, built-ins and active
+grammar names. Temporary recovery reparses an unfinished statement through the
+ordinary parser; it does not introduce another AST or a JavaScript symbol table.
+The current recovery is deliberately bounded: earlier unrelated syntax errors,
+inferred receiver types, chained member access and generic specialization can
+limit suggestions. Completion is advisory, not a substitute for type checking.
+The native session/ABI adapter remains during bootstrap migration; query decisions,
+scope filtering, prefix matching and result construction execute in Tower.
+
+Completion runs in a separate worker, coalesces edits, rejects stale replies and
+has a ten-second termination limit. Browser positions are translated between
+UTF-16 and Tower's UTF-8 offsets. CodeMirror owns only popup/input behavior.
+Tower instruction and reconstructed Foundation panes use the same Tower lexer
+and decoration engine as the source editor, with the bundled canonical grammar
+for generated Foundation. They no longer maintain a separate JS keyword/type
+classifier; LLVM and machine disassembly retain their own display lexers.
 The immutable C++ seed initializes `bedrock.tower`; its result initializes
 `foundation.tower`, which initializes user source. Every file applies declarations
 incrementally to its own active grammar. Both modules are loaded at runtime.

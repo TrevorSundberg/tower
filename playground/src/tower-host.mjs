@@ -69,6 +69,25 @@ export async function loadTower(bytes, log = () => {}, bootstrap, foundation, be
     inspect: handle => JSON.parse(string(exports.tw_inspect(handle))),
     format: handle => JSON.parse(string(exports.tw_format(handle))),
     destroy: handle => exports.tw_destroy(handle),
+    complete(source, cursor, {editingModule = '', files = []} = {}) {
+      const allocated = [];
+      const allocate = size => { const p = exports.tw_alloc(size || 1); if (!p) throw new Error('Cannot allocate completion sources'); allocated.push(p); return p; };
+      try {
+        if (files.length > 1024) throw new Error('Completion project limit is 1,024 files');
+        const pointers = allocate(files.length * 4), lengths = allocate(files.length * 4);
+        let total = new TextEncoder().encode(source).length;
+        files.forEach((file, i) => {
+          const bytes = new TextEncoder().encode(file.text); total += bytes.length;
+          if (total > 8 * 1024 * 1024) throw new Error('Completion project limit is 8 MiB');
+          const p = allocate(bytes.length + 1);
+          new Uint8Array(exports.memory.buffer).set(bytes, p);
+          const view = new DataView(exports.memory.buffer);
+          view.setUint32(pointers + i * 4, p, true); view.setUint32(lengths + i * 4, bytes.length, true);
+        });
+        return withSource(source, (p, n) => JSON.parse(string(exports.tw_complete(p, n, cursor,
+          editingModule === 'bedrock' ? 2 : editingModule === 'foundation' ? 1 : 0, pointers, lengths, files.length))));
+      } finally { for (const p of allocated) exports.tw_free(p); }
+    },
     compile: (source, { pointerBytes = 4 } = {}) => withSource(source, (pointer, length) => exports.tw_exec_create_target(pointer, length, pointerBytes)),
     compileFiles(files, {pointerBytes = 4} = {}) {
       if (!files.length || files.length > 1024) throw new Error('Project needs 1–1,024 source files.');

@@ -48,11 +48,14 @@ size_t syntax_get_offset(SyntaxSession* session);
 struct SyntaxHighlight {
   size_t start, end, revision;
   std::string kind;
+  bool opaque = false; // lexical classification, independent of presentation style
+  uint32_t token = PARSER_ID_EOF; // disposable lexer index, never persisted
 };
 struct SyntaxRuleInfo { std::string name, definition; bool pending = false; };
 struct SyntaxTokenInfo { std::string name, pattern, kind; bool skip, contextual = false; };
 std::vector<SyntaxTokenInfo> syntax_get_tokens(SyntaxSession* session);
 std::vector<SyntaxHighlight> syntax_get_highlights(SyntaxSession* session);
+std::vector<SyntaxHighlight> syntax_get_lexemes(SyntaxSession* session);
 std::vector<SyntaxRuleInfo> syntax_get_rules(SyntaxSession* session);
 std::vector<std::string> syntax_get_keywords(SyntaxSession* session);
 extern "C" size_t syntax_get_error_offset(SyntaxSession* session);

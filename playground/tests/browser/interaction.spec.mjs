@@ -21,11 +21,13 @@ test('typing resets the quiet period and keeps errors until the replacement resu
  await edit(page,'print(42); // ');
  await page.keyboard.type('abcdef',{delay:100});
  await expect(page.locator('.tw-inline-error-message')).toContainText('Expected i32');
- expect(await page.evaluate(()=>window.__requests)).toHaveLength(0);
+ // Completion has its own shorter, independent query schedule. This contract
+ // concerns diagnostic parsing and execution, which still wait for quiet input.
+ expect(await page.evaluate(()=>window.__requests.filter(r=>r.method==='analyze'||r.backend))).toHaveLength(0);
  await expect(page.locator('#execution-output')).toHaveText('42\n');
  await expect(page.locator('#execution-status')).toContainText('backends match');
  await expect(page.locator('.tw-inline-error')).toHaveCount(0);
- const requests=await page.evaluate(()=>window.__requests);
+ const requests=await page.evaluate(()=>window.__requests.filter(r=>r.method==='analyze'||r.backend));
  expect(requests.filter(r=>r.method==='analyze')).toHaveLength(1);
  expect(requests.filter(r=>r.backend)).toHaveLength(3);
  expect(requests[0].afterInput).toBeGreaterThanOrEqual(190);

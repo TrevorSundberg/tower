@@ -13843,3 +13843,109 @@ persistence, native downloads and default target detection. Evidence:
 `build/fast-live-deployment.log` and `build/deployment-verification/`. The final
 publication-record commit changes only this journal; the tested/published code
 and manifest remain the 8a226ca source release and b8ae368 Pages deployment.
+
+## 2026-11-19 — Tower/Wasm completion and shared browser highlighting
+
+Request: make browser typing offer useful suggestions, keep the engine in Tower
+and on the shared entity/component hierarchy, and fix the source/instructions
+highlighting mismatch shown in the increment example.
+
+Implemented `compiler/completion.tower` in the existing semantic compiler object.
+The query follows the ordinary parse entities' ordered children, named captures,
+ParserMatch components and parent hierarchy. Its candidate lists contain borrowed
+entity handles; there is no independent JS symbol table or serialized completion
+IR. Built-in names and scalar spellings come from `semantic-definitions.tower`.
+The current implementation handles visible locals/parameters, module-wide forward
+functions/structs/variables, globals from other project files, explicit receiver
+struct fields, type positions, active grammar references and keywords. Locals
+shadow globals even when a module declaration occurs later in the source.
+
+Rejected a separate text-scanning symbol database: it would diverge from custom
+Tower grammar and the compiler's scopes. Instead, the shared lexer locates the
+completion range and unfinished statement; recovery blanks that statement without
+shifting existing coordinates, closes bounded missing braces, then invokes the
+ordinary parser. Thus recovered locals still come from shared parser entities.
+Recovery is disposable query input, never saved source or an executable program.
+It does not run user code. Earlier unrelated parse errors, inferred receiver
+types, member chains and generic specialization remain limitations; this is not
+full semantic type-directed completion. Future work should query available checked
+FoundationType/binding components and extend shared parser recovery, rather than
+add another type checker or symbol model.
+
+The small C++ browser/session adapter still orchestrates the current bootstrap
+parser and borrows grammar projections. Query decisions, recovery construction,
+entity traversal, scope filtering, prefix matching, deduplication and JSON
+construction run in Tower compiled to Wasm. Full removal of that native adapter
+belongs to the existing compiler migration. JS converts UTF-16/UTF-8 offsets and
+handles CodeMirror, workers, request coalescing and stale-result rejection. The
+popup opens on typing or Ctrl+Space; arrows navigate, Tab/Enter or click/touch
+accept, Escape dismisses, and normal Tab indentation works when no popup is open.
+Completion has an independent worker and 100 ms activation delay; analysis and
+execution retain their 200 ms trailing debounce. Workers terminate at ten seconds.
+
+Highlighting root cause: `output-syntax.mjs` maintained an independent Tower keyword
+list and classified names/types differently from the source lexer. Removed that
+Tower path. Source, canonical instructions and reconstructed Foundation now share
+`syntax_get_highlights` and one CodeMirror decoration engine. Generated Foundation
+uses the bundled canonical grammar; LLVM/machine displays retain their separate
+lexers. Highlight requests coalesce per output, cache only a bounded set of texts,
+and reject responses for replaced documents. The increment regression compares
+actual identifier/keyword classes and computed colors across all three Tower panes.
+
+Tooling now receives lexical classification separately from `as style`, including
+unstyled skip spans. String/comment suppression must not break when Identifier is
+styled as string/pattern or String is styled as identifier. The private token index
+is resolved back to shared declaration metadata for GrammarPattern; it is not a
+persisted semantic identity. Presentation snapshots still omit unstyled spans.
+
+Trials and corrections:
+- Initial pull was blocked by pre-existing local AGENTS/docs/todo edits. Stashed,
+  pulled main to 5f60020 and restored the work without conflicts. This change does
+  not edit or stage todo.txt or the unrelated local documentation changes.
+- First Tower compilation caught foundation syntax constraints: return operands
+  cannot directly contain a comparison, and `token`/`skip` cannot be local names.
+  Corrected those, then used the common formatter on the new module.
+- The grammar activation unit fixture initially used `|` as a caret marker and
+  selected the earlier `|=`; fixed the harness to take the final marker.
+- Browser tests exposed invalid Foundation edits being loaded as their own
+  baseline. Language queries now use the proper Bedrock/native baseline while
+  editing those modules. They never require an unfinished module to install.
+- CodeMirror's 75 ms default interaction guard could indent on Tab immediately
+  after a visible popup. Set its interactionDelay to zero for explicit acceptance.
+- A mobile test clicked an inline diagnostic instead of focusing the editor,
+  selecting the entire document on Ctrl+A. The fixture now focuses the textbox.
+- The full browser run passed 136/138; the two failures were the old debounce test
+  counting independent `complete` messages as analysis/execution. Narrowed that
+  assertion to its original scheduling contract; both corrected cases and the
+  delayed-response regression pass in the final targeted run.
+
+Validation on Windows with Node 21.7.3 and the existing WSL Clang/WASI SDK 34
+bootstrap (`/root/.cache/tower/native/towerc-stage1`):
+- `cmake --build build/browser-wasi --parallel 4` in WSL; rebuilt the parser reactor.
+- `npm test --prefix playground`: 246/246, including completion, grammar, execution,
+  canonical formatting/round trips and compiler component tests.
+- Final `node --test playground/tests/completion.test.mjs playground/tests/wasm.test.mjs`:
+  22/22 after the lexical classification refinements. Includes repeated-query
+  entity-count balance, UTF-8 boundaries, styles, scope/shadowing and project files.
+- `TOWER_BOOTSTRAP_COMPILER=/root/.cache/tower/native/towerc-stage1 bash
+  playground/scripts/test-native-core.sh`: 5/5 native ASan/UBSan tests.
+- Full browser suite: 136 passing with the two scheduling assertions corrected as
+  described above. Final completion/output/interaction rerun: 26/26 desktop/mobile,
+  including forced delayed replies, keyboard acceptance, undo and click selection.
+  Mobile emulation does not claim physical keyboard/IME device coverage.
+- Logs: build/autocomplete-tests.log, autocomplete-final-wasm.log,
+  autocomplete-native.log, autocomplete-native-final.log,
+  autocomplete-browser-all.log and autocomplete-browser-final.log.
+
+Release preparation retains b8ae368's published LLVM/cross backends and every
+runtime pack byte-for-byte, replacing stale local outputs only after backing them
+up in build/autocomplete-preserved-local. The full manifest includes the new
+language-worker bundle and license notice. Deployment verification now exercises
+real completion/Tab/fields and compiler-based output highlighting on both devices,
+in addition to the existing execution/export/grammar/persistence checks.
+
+Reference used for the browser adapter: CodeMirror's official
+[completion example](https://codemirror.net/examples/autocompletion/) and
+[reference manual](https://codemirror.net/docs/ref/#autocomplete). The implementation
+uses the installed/pinned @codemirror/autocomplete 6.20.4 API. Those APIs provide the
+popup and async request lifecycle, not Tower language definitions.

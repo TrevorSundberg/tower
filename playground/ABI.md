@@ -23,6 +23,7 @@ is `src/tower-host.mjs`, usable from both browser workers and Node tests.
 | `tw_last_error() -> pointer` | Borrowed, NUL-terminated UTF-8 create/reset diagnostic. Read before another create/reset. |
 | `tw_step(handle) -> pointer` | Parse/install exactly one construct and return a JSON snapshot. |
 | `tw_inspect(handle) -> pointer` | Return current grammar/highlights without advancing parsing or installing declarations. |
+| `tw_complete(source, byteLength, cursor, mode, filePointers, fileLengths, fileCount) -> pointer` | Completion query at a UTF-8 byte boundary. Mode is 0 for ordinary source, 1 for Foundation over Bedrock, 2 for Bedrock over the immutable seed. Other files contribute module declarations, not their locals. Returns borrowed `{from,to,options:[{label,type,detail}]}` or `{error}` JSON until the next completion call. Inputs share an 8 MiB limit; at most 1,024 additional files. |
 | `tw_destroy(handle)` | Release a session. An unknown/already destroyed handle is harmless. |
 | `tw_self_test() -> int` | Run the existing C++ suites; zero on success, invariant failure traps. |
 | `tw_live_nodes()`, `tw_live_allocations()` | Test counters for Tower-managed allocations (not all libc++ memory). |
@@ -32,6 +33,17 @@ Step/inspect results are borrowed UTF-8, NUL-terminated JSON. Copy a result
 Do not free borrowed results. Recreate typed-array views after any WASM call
 that might grow memory. A host must pass valid pointer/length pairs; exports
 are an application ABI, not a memory-safe boundary inside one WASM instance.
+
+Completion candidates are queried in Tower from shared syntax entities and
+semantic built-in definitions. The query owns disposable lists of borrowed node
+handles, never a second authoritative symbol graph. Unfinished statement recovery
+blanks a source range without shifting existing coordinates and closes at most
+255 open braces before using the ordinary parser. Synthetic recovery is query
+scratch, not saved source or executable output. Queries visit at most 50,000 nodes
+per parsed construct and return at most 128 unique suggestions. Each parser session
+is bounded to 1,024 constructs. Comments/strings suppress suggestions using lexical
+classification independently of their display style; unstyled skip spans remain
+available to tooling but are omitted from presentation snapshots.
 
 The `loadTower(bytes, log, foundationSource, undefined, bedrockSource)` adapter
 loads the modules after WASI initialization. Browser workers fetch both `.tower`

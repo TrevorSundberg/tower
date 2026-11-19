@@ -10,7 +10,7 @@ const dist = path.join(root, 'dist');
 // dist is generated output. Never publish stale optional backends/target packs.
 await rm(dist, { recursive: true, force: true });
 await mkdir(dist, { recursive: true });
-await build({ absWorkingDir: root, entryPoints: ['src/app.mjs', 'src/worker.mjs', 'src/execution-worker.mjs', 'src/target-worker.mjs'],
+await build({ absWorkingDir: root, entryPoints: ['src/app.mjs', 'src/worker.mjs', 'src/execution-worker.mjs', 'src/target-worker.mjs', 'src/language-worker.mjs'],
   outdir: dist, bundle: true, format: 'esm', target: 'es2022', minify: true,
   sourcemap: true, outExtension: { '.js': '.js' }, legalComments: 'linked' });
 for (const file of ['index.html', 'style.css']) await copyFile(path.join(root, file), path.join(dist, file));
@@ -57,7 +57,7 @@ for (const [name, file] of [
   ['cloudlibc', 'licenses/cloudlibc.txt'],
   ['musl-fts', 'licenses/musl-fts.txt'],
 ]) licenses += `\n${name}\n${await readFile(path.join(root, file), 'utf8')}\n`;
-for (const name of ['@codemirror/view', '@codemirror/state', '@codemirror/commands', '@codemirror/language', '@codemirror/streamparser',
+for (const name of ['@codemirror/view', '@codemirror/state', '@codemirror/commands', '@codemirror/autocomplete', '@codemirror/language', '@codemirror/streamparser',
   '@lezer/common', '@lezer/highlight', '@lezer/lr', '@marijn/find-cluster-break', 'crelt', 'style-mod', 'w3c-keyname']) {
   const dir = path.join(root, 'node_modules', name);
   for (const file of await readdir(dir)) if (/^license/i.test(file))

@@ -17,4 +17,5 @@ foreach(name IN ITEMS context definitions support types values statements lifecy
   string(APPEND source "\n${module}")
 endforeach()
 file(READ "${ROOT}/scaffolding/compiler/frontend-compilation.tower" frontend)
-file(WRITE "${OUTPUT}" "${source}\n${frontend}")
+file(READ "${ROOT}/scaffolding/compiler/completion.tower" completion)
+file(WRITE "${OUTPUT}" "${source}\n${frontend}\n${completion}")

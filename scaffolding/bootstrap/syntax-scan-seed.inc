@@ -4,7 +4,7 @@ std::string skip_meta(SyntaxSession& session, size_t& pos, std::vector<SyntaxHig
     LexiconChoice choice;
     lexicon_skip(session.version->lexicon, session.source.data(), session.source.size(), pos, &choice);
     if (!choice.length) break;
-    if (*choice.style) highlights.push_back({pos, pos + choice.length, session.revision, choice.style});
+    highlights.push_back({pos, pos + choice.length, session.revision, choice.style, true, choice.id});
     pos += choice.length;
   }
   return {};
@@ -45,7 +45,7 @@ std::string skip_source(SyntaxSession& session, size_t& pos, std::vector<SyntaxH
   while (pos < session.source.size() && !declaration_at(session, pos)) {
     auto choice = choose(session, pos);
     if (!choice.length || !choice.skipped) break;
-    if (*choice.style) highlights.push_back({pos, pos + choice.length, session.revision, choice.style});
+    highlights.push_back({pos, pos + choice.length, session.revision, choice.style, true, choice.id});
     pos += choice.length;
   }
   return {};
@@ -64,7 +64,7 @@ std::string scan(SyntaxSession& session, size_t& pos, std::vector<SyntaxHighligh
     choice.style = "invalid"; error = "No token rule matches source";
   }
   pos += choice.length; length = choice.length; id = choice.id;
-  if (*choice.style) highlights.push_back({start, pos, session.revision, choice.style});
+  highlights.push_back({start, pos, session.revision, choice.style, choice.skipped || choice.id == MetaString, choice.id});
   return error;
 }
 
