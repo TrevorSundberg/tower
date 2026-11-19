@@ -130,7 +130,9 @@ export class TowerWASI {
       if (!this.fd(fd).preopen) this.fail(E.BADF);
       if (length < 1) this.fail(E.INVAL); this.memory(result, 1)[0] = 46;
     },
-    fd_fdstat_set_flags: (fd, flags) => { const h = this.fd(fd); if (flags & ~1) this.fail(E.NOTSUP); h.flags = flags; },
+    // APPEND and NONBLOCK are supported: in-memory files/directories are always
+    // ready. wasi-libc's opendir requests NONBLOCK even for directory snapshots.
+    fd_fdstat_set_flags: (fd, flags) => { const h = this.fd(fd); if (flags & ~5) this.fail(E.NOTSUP); h.flags = flags; },
     fd_fdstat_get: (fd, result) => {
       const h = this.fd(fd); this.memory(result, 24).fill(0); const view = this.view(result, 24);
       view.setUint8(0, h.node.type); view.setUint16(2, h.flags ?? 0, true);
@@ -166,7 +168,7 @@ export class TowerWASI {
     },
     path_open: (fd, lookup, pointer, length, flags, rights, inherit, fdflags, result) => {
       this.view(result, 4); const path = this.path(fd, pointer, length); let node = this.files.get(path);
-      if (flags & ~15 || fdflags & ~1) this.fail(E.NOTSUP);
+      if (flags & ~15 || fdflags & ~5) this.fail(E.NOTSUP);
       if (node && flags & 1 && flags & 4) this.fail(E.EXIST);
       if (!node) {
         if (!(flags & 1)) this.fail(E.NOENT); if (flags & 2) this.fail(E.NOTDIR);

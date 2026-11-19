@@ -4,6 +4,7 @@
 #include "../compiler-syntax-emission.hpp"
 #include <cassert>
 void core_tests();
+extern "C" int host_runtime_tests();
 void formatter_tests();
 void compiler_storage_tests();
 void entity_store_tests();
@@ -26,6 +27,8 @@ void lr_analysis_tests();
 #endif
 
 int main(int argc, char** argv) {
+  const auto host_result = host_runtime_tests();
+  if (host_result) { fprintf(stderr, "Tower host test failed: %d\n", host_result); return 1; }
 #ifdef _MSC_VER
   _CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_FILE);
   _CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDERR);

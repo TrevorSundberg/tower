@@ -187,7 +187,7 @@ bool lr_states_lalr(LRStates* value,bool constructs) {
   size_t count=0;
   for(auto& s:value->states) { s->base=count; count+=s->items.values.size(); }
   std::unique_ptr<LRPropagation> graph(lr_propagation_create(count));
-  const auto index=[&](size_t state,const LRItem& item) {
+  const auto index=[&](size_t state,const LRItem& item) -> size_t {
     const auto& s=*value->states[state];
     LRItem key{item.rule,item.position,0,0};
     auto found=std::lower_bound(s.items.values.begin(),s.items.values.end(),key,[](const LRItem& a,const LRItem& b){return less(a,b);});
