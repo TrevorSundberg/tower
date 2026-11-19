@@ -30,11 +30,14 @@
     "targets/x86_64-unknown-linux-gnu-runtime.o": "8124486f2221d3d02fb6226fd2fc193db50982de9527ee619b2e7ea23ed6758a",
     "templates.tower": "f7d0bf1e3e7cbe703bad66bda6bafafd697ba9fef5d65ac9c6d22e8ebe653dfa",
     "tokens.tower": "6017af5b8505e680685610332d305054a9d4b9f599d083802f7cf057f657f950",
-    "tower-cross.wasm.gz": "ebb795c6f19ee2fc53126c9476b3bc05d1d22f11638fc26ddb986d367da0dd27",
-    "tower-llvm.wasm": "9257db5f17ed80f68e0b93400e4d281d40e7ea15d2d69b8402e6e57e939baf40",
-    "tower-llvm.wasm.gz": "59f250dca598714a273e068cde2459728ee0b65827eccac8398f0ae642293c81",
-    "tower.wasm": "37070668355f256ca38c75583f60fee68f5e3be760b84a1d32a416d5fc5b9c99",
+    "tower-cross.wasm.gz": "4e6a58de977ac745fa6017cc8cad2e2c512e035467c877f196516c1414d38939",
+    "tower-llvm.wasm": "f03e12d9f67f074aee87f1431ae4461993fc5868c59f88c91367ba6c540e83a8",
+    "tower-llvm.wasm.gz": "e3e09997e6e3305fa983715b7c39af2236c203dcf58f311176226fe83121d759",
+    "tower.wasm": "904a1d37f670636c33015c03f457a3cd454a4df66140afe3acc8550cf1ecb9ea",
     "worker.js": "b3ef82e078567118e210b996ed60731303e8a1550202f3207776c30bb00dcf03",
     "worker.js.map": "9b9bf4c1118d539263ef218a2a8a93dbb7f60d76d16fe4d5a487e0751bca1b45"
-  }
+  },
+  "sourceCommit": "b58c95aec0e930c1be7637496d17a45e67d4eeef",
+  "previousDeployment": "c29dc52e64298117f3faa7c753f7881090495499",
+  "scope": "Tower frontend construction, token-pattern parsing, diagnostics and revision cache; hybrid bootstrap migration remains incomplete"
 }
