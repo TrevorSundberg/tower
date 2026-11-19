@@ -15485,3 +15485,18 @@ adds library/work-graph.tower and removes no assets. No new C/C++ implementation
 was introduced; todo.txt remains blob 96a9e58964d7f01e4a97819f259448db81ef5e40.
 Real parallel phase execution and safe concurrent shared-node publication remain
 unfinished. The validated checkpoint must not be called a parallel compiler.
+
+Publication completed: main 5514007e39e04a53308e0f61f14e2b002d7ce557
+contains the checkpoint and integration fixes, and gh-pages
+4ef942bf74d6e4814983d45751afb3523183fbdc publishes the validated artifacts.
+The final pull was current. The first main push encountered a transient GitHub
+DNS lookup failure; an ordinary retry succeeded. No force push was used.
+GitHub Pages run 44634036099 completed successfully. The hosted verifier
+`node playground/scripts/verify-deployment.mjs https://trevorsundberg.github.io/tower/`
+exited zero: all 67 asset hashes match, and desktop/mobile execution, completion,
+imports, target downloads, persistence and workbench checks pass. Evidence:
+build/language-next/final-verify-live.log and the deployment-verification report.
+This final journal entry changes no deployed asset. The temporary prepared-Pages
+stash from the completion-latency synchronization is superseded by this verified
+publication; unrelated saved work is preserved. Actual parallel compiler workers
+and safe concurrent shared-node publication remain the next implementation work.
