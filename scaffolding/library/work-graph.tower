@@ -13,6 +13,22 @@ enum WorkError: u32 {
     None, Memory, Invalid
 }
 
+enum WorkAccessMode: u32 {
+    Read, Write, Structure
+}
+
+// Domain and component are caller-assigned identities, never host addresses in
+// transported tickets. Ranges are half-open row/byte ranges in that component.
+// Structure excludes every access in the same domain, including other types.
+struct WorkAccess {
+    domain: u64;
+    component: u64;
+    first: usize;
+    end: usize;
+    mode: WorkAccessMode;
+    next: usize;
+}
+
 struct WorkTask {
     subject: void*;
     query: u32;
@@ -25,6 +41,7 @@ struct WorkTask {
     remaining: usize;
     visit: u64;
     active: bool;
+    access: usize;
 }
 
 struct WorkEdge {
@@ -53,6 +70,8 @@ struct WorkGraph {
     ready: vector(usize);
     scratch: vector(usize);
     frames: vector(WorkFrame);
+    accesses: vector(WorkAccess);
+    executing: vector(usize);
     head: usize;
     running: usize;
     revision: u64;
@@ -77,6 +96,8 @@ fn work_dispose(g: WorkGraph*): void {
     vector_dispose(usize, &g.ready);
     vector_dispose(usize, &g.scratch);
     vector_dispose(WorkFrame, &g.frames);
+    vector_dispose(WorkAccess, &g.accesses);
+    vector_dispose(usize, &g.executing);
     fill(g, 0, sizeof(WorkGraph));
 }
 
@@ -308,6 +329,110 @@ fn work_enqueue(g: WorkGraph*, id: usize): bool {
     return true;
 }
 
+// Declare the complete access set before sealing. Empty sets mean entirely
+// private work, not permission to mutate a shared world. These leases protect
+// only declared accesses; the executor must also pin inputs and own scratch.
+fn work_access(g: WorkGraph*, id: usize, domain: u64, component: u64, first: usize, count: usize, mode: WorkAccessMode): bool {
+    if work_ok(g) {} else {
+        return false;
+    }
+    var task = work_task(g, id);
+    var valid = task != null;
+    if valid {
+        valid = task.state == WorkState.Building;
+    }
+    var end = first + count;
+    if valid {
+        valid = end > first;
+    }
+    if valid {
+        valid = mode == WorkAccessMode.Read;
+        if valid {} else {
+            valid = mode == WorkAccessMode.Write;
+        }
+        if valid {} else {
+            valid = mode == WorkAccessMode.Structure;
+        }
+    }
+    if valid {} else {
+        g.error = WorkError.Invalid;
+        return false;
+    }
+    var size = g.accesses.length + 1;
+    var overflow = size == 0;
+    if overflow {
+        g.error = WorkError.Memory;
+        return false;
+    }
+    if work_memory(g, vector_reserve(WorkAccess, &g.accesses, size)) {} else {
+        return false;
+    }
+    var access = &g.accesses.data[g.accesses.length];
+    access.domain = domain;
+    access.component = component;
+    access.first = first;
+    access.end = end;
+    access.mode = mode;
+    access.next = task.access;
+    task.access = size;
+    g.accesses.length = size;
+    return true;
+}
+
+fn work_access_conflict(a: WorkAccess*, b: WorkAccess*): bool {
+    var different = a.domain != b.domain;
+    if different {
+        return false;
+    }
+    var structural = a.mode == WorkAccessMode.Structure;
+    if structural {} else {
+        structural = b.mode == WorkAccessMode.Structure;
+    }
+    if structural {
+        return true;
+    }
+    different = a.component != b.component;
+    if different {
+        return false;
+    }
+    var readers = a.mode == WorkAccessMode.Read;
+    if readers {
+        readers = b.mode == WorkAccessMode.Read;
+    }
+    if readers {
+        return false;
+    }
+    var overlap = a.first < b.end;
+    if overlap {
+        overlap = b.first < a.end;
+    }
+    return overlap;
+}
+
+fn work_access_available(g: WorkGraph*, task: WorkTask*): bool {
+    var a = task.access;
+    while a != 0 {
+        var ai = a - 1;
+        var access = &g.accesses.data[ai];
+        var i: usize = 0;
+        while i < g.executing.length {
+            var other = work_task(g, g.executing.data[i]);
+            var b = other.access;
+            while b != 0 {
+                var bi = b - 1;
+                var held = &g.accesses.data[bi];
+                if work_access_conflict(access, held) {
+                    return false;
+                }
+                b = held.next;
+            }
+            i = i + 1;
+        }
+        a = access.next;
+    }
+    return true;
+}
+
 fn work_seal(g: WorkGraph*, id: usize): bool {
     if work_ok(g) {} else {
         return false;
@@ -398,12 +523,32 @@ fn work_take(g: WorkGraph*, output: WorkTicket*): bool {
     if missing {
         return false;
     }
-    while g.head < g.ready.length {
-        var id = g.ready.data[g.head];
-        g.head = g.head + 1;
+    var i = g.head;
+    while i < g.ready.length {
+        var at = i;
+        var id = g.ready.data[at];
+        i = i + 1;
+        var empty = id == 0;
+        if empty {
+            var leading = at == g.head;
+            if leading {
+                g.head = i;
+            }
+            continue;
+        }
         var task = work_task(g, id);
         var ready = task.state == WorkState.Ready;
         if ready {
+            if work_access_available(g, task) {} else {
+                continue;
+            }
+            var shared = task.access != 0;
+            if shared {
+                if work_memory(g, vector_push(usize, &g.executing, id)) {} else {
+                    return false;
+                }
+            }
+            g.ready.data[at] = 0;
             task.state = WorkState.Running;
             g.running = g.running + 1;
             output.task = id;
@@ -411,9 +556,13 @@ fn work_take(g: WorkGraph*, output: WorkTicket*): bool {
             output.profile = g.profile;
             return true;
         }
+        g.ready.data[at] = 0;
     }
-    g.ready.length = 0;
-    g.head = 0;
+    var exhausted = g.head == g.ready.length;
+    if exhausted {
+        g.ready.length = 0;
+        g.head = 0;
+    }
     return false;
 }
 
@@ -456,6 +605,10 @@ fn work_finish(g: WorkGraph*, ticket: WorkTicket*, success: bool): bool {
     if work_ok(g) {} else {
         return false;
     }
+    var absent = ticket == null;
+    if absent {
+        return false;
+    }
     var task = work_task(g, ticket.task);
     var valid = task != null;
     if valid {
@@ -471,6 +624,16 @@ fn work_finish(g: WorkGraph*, ticket: WorkTicket*, success: bool): bool {
         return false;
     }
     g.running = g.running - 1;
+    var i: usize = 0;
+    while i < g.executing.length {
+        var found = g.executing.data[i] == ticket.task;
+        if found {
+            g.executing.length = g.executing.length - 1;
+            g.executing.data[i] = g.executing.data[g.executing.length];
+            break;
+        }
+        i = i + 1;
+    }
     if success {} else {
         return work_fail(g, ticket.task);
     }
@@ -499,6 +662,7 @@ fn work_cancel(g: WorkGraph*): void {
     g.running = 0;
     g.ready.length = 0;
     g.head = 0;
+    g.executing.length = 0;
     var i: usize = 0;
     while i < g.tasks.length {
         var task = &g.tasks.data[i];

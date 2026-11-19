@@ -20,8 +20,26 @@ export async function loadLLVM(bytes, log = () => {}, bootstrap, foundation, bed
     return decoder.decode(memory.subarray(pointer, end));
   }
   return {
+    module,
     configureModules: modules.configure,
     dependencies: modules.dependencies,
+    // The coordinator and ticket validation are Tower code. This object owns
+    // only its host handle; artifacts stay in the transport until acceptance.
+    createWork(units, workers, revision, profile) {
+      const handle = e.compiler_work_create?.(units,workers,revision,profile);
+      if (!handle) throw new Error('Unable to create Tower compiler work coordinator');
+      let live = handle;
+      const requireLive = () => { if (!live) throw new Error('Compiler work is closed'); return live; };
+      return {
+        next:() => e.compiler_work_next(requireLive()),
+        accept:(unit,success) => !!e.compiler_work_accept(requireLive(),unit,revision,profile,success),
+        done:() => !!e.compiler_work_done(requireLive()),
+        failed:() => e.compiler_work_failed(requireLive()),
+        peak:() => e.compiler_work_peak(requireLive()),
+        cancel:() => { if (live) e.compiler_work_cancel(live); },
+        close:() => { if (live) e.compiler_work_close(live); live = 0; },
+      };
+    },
     // Link an explicit reactor recipe using Tower's own LLD service. The browser
     // supplies bytes and arguments; language/link policy remains in Tower.
     linkReactor(inputs, args) {

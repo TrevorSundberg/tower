@@ -32,6 +32,11 @@ struct SemanticScope {
 
 const EditorEnumMembers: u32 = 5;
 
+// Default resource policy for attached semantic payloads, not a language/node
+// index limit or a bound on the entire process heap. Callers may supply another
+// explicit budget through semantic_compile_budget.
+const SemanticComponentBudgetBytes: usize = 67108864;
+
 // Optional editor observation of ordinary resolution. The hole is identified by
 // source coordinates, never by a reserved identifier or an independent AST.
 struct SemanticEditor {
@@ -56,6 +61,7 @@ struct SemanticContext {
     program: SemanticProgram*;
     current: void*;
     count: usize;
+    node_limit: usize;
     loops: usize;
     value_depth: u32;
     type_depth: u32;

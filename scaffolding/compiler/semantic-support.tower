@@ -976,9 +976,9 @@ fn sem_node(c: SemanticContext*, n: void*, kind: u32): FoundationNode* {
     }
     if fresh {
         c.count = c.count + 1;
-        var step7 = c.count > 65536;
+        var step7 = c.count > c.node_limit;
         if step7 {
-            sem_fail(c, n, "Foundation node limit is 65,536");
+            sem_fail(c, n, "Foundation component memory budget exceeded");
         }
     }
     return result;

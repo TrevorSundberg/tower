@@ -61,7 +61,7 @@ function rebuildCompiler() {
       cancelCompilerBuild();
       ++compilerGeneration;
       selectCompiler(data.modules);
-      $('compiler-build-status').textContent = 'Compiler generation '+compilerGeneration+' active · import, interpreter and LLVM checks passed';
+      $('compiler-build-status').textContent = 'Compiler generation '+compilerGeneration+' active · '+data.stats.workers+' workers · import, interpreter and LLVM checks passed';
     }
   };
   worker.postMessage({id,files:project.files,compiler:compilerSelection()});

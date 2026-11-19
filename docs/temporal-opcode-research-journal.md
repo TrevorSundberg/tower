@@ -15790,3 +15790,140 @@ This publication record changes no deployed asset. todo.txt remains blob
 96a9e58964d7f01e4a97819f259448db81ef5e40. Namespace bindings/aliases and the
 remaining native-to-Tower migration stay future work; dotted paths and quoted
 relative imports are implemented and verified.
+
+## 2026-11-19: real compiler workers and component access contracts (plan)
+
+Pulled/rebased main through 6348c3c before work. Continue the complete language
+roadmap, prioritizing actual parallel compilation rather than treating the serial
+work graph as its completion. The first executor will compile the compiler's own
+Tower import units in isolated Wasm instances on real browser/Node worker threads.
+Tower owns the dependency graph, concurrency bound, tickets and result acceptance;
+JavaScript is worker/message/artifact transport. Inputs are immutable per build,
+each worker owns its entities, LLVM context, allocator and filesystem, and reactor
+link/publication order remains deterministic. Cancellation must terminate child
+workers and reject late results. Compare 1/2/4/8 workers and exact output bytes.
+
+Extend the shared Tower scheduler with declared component read/write ranges and
+structural exclusivity. These declarations describe access to existing entities,
+not a second semantic graph. Validate overlapping readers, disjoint writes,
+conflicts, stale completions and cancellation in Tower fixtures. This is a
+contract for future frozen-world kernels, not permission to race current entity
+reference counts or mutable type-instance indexes. Current stable sparse payloads
+and dense per-type pointer indexes are not packed SIMD columns. Native in-process
+workers, shared-node phase migration and measured vectorization remain separate
+required milestones; isolated compilation does not claim to complete them.
+
+Implemented the first real executor in `library/compiler-work.tower`, imported
+by the existing Tower backend reactor. It owns the work graph, concurrency bound,
+unit/join queries, revision/profile validation, cancellation and earliest failing
+unit ordinal. Browser/Node adapters transfer a compiled Wasm module plus immutable
+source snapshots into isolated worker instances and transfer owned object bytes
+back. They do not reimplement dependency resolution or language semantics. All
+objects settle before deterministic recipe-order publication/linking; a failed
+build publishes none. The browser defaults to at most two workers. The reusable
+host API accepts 1 through 8, or serial execution with the same Tower coordinator.
+No C/C++ source was added or edited. `cmake/TowerBackend.cmake` only connects the
+new Tower exports through the existing isolated backend integration fragment.
+
+The common `work-graph` now accepts component access declarations with explicit
+domain/type identities and half-open ranges. Read/read overlap and disjoint writes
+are admitted together; a structural lease excludes the entire domain. Conflicting
+ready tasks remain queued and stale completions cannot release a live lease.
+Scratch, entity lifetime and all structural publication remain executor duties.
+Access exclusion is not semantic ordering: dependencies must describe observable
+order. Private compiler instances need no shared component leases. Shared-node
+layout remains serial; no concurrent world mutation is enabled by this change.
+
+Research confirms the distinction we must preserve. Flecs' documented threaded
+systems divide query matches into slices, with stable assignment until a sync
+point ([Systems](https://www.flecs.dev/flecs/Systems.html#threading)). This does
+not make arbitrary structural changes safe. Burst's
+[loop vectorization guidance](https://docs.unity3d.com/Packages/com.unity.burst@1.8/manual/optimization-loop-vectorization.html)
+shows why aliasing and control flow need separate inspection from worker counts.
+The [HTML worker lifecycle](https://html.spec.whatwg.org/multipage/workers.html)
+provides the browser transport/termination contract; browser tests also inspect
+actual nested worker targets on cancellation. No GC, exception mechanism, managed
+runtime or external ECS implementation was added to Tower.
+
+The first expanded raw LLVM round-trip trials failed the old global 65,536-node
+limit (`parallel-fixtures.log` initially, subsequently overwritten by the passing
+rerun). Reduced typed reconstruction from the preceding checkpoint was intact;
+the larger scheduler library simply crossed that fixed count. Semantic checking
+now has `semantic_compile_budget(..., component_bytes)` and a named 64 MiB default
+for newly attached payload accounting in `sem_node`, derived from the real
+FoundationNode size. This is not a total-heap limit: existing nodes, parser state,
+generated/backend nodes and scratch have other ownership/resource contracts.
+Do not infer million-declaration support from this change. The existing entry
+point delegates to the explicit budget API; no native ABI layout was extended.
+Both pointer widths now pass raw/optimized Foundation reconstruction without
+disabling checks or applying optimization to the raw profile.
+
+Functional fixtures are Tower: `work-access` tests read/write/structural conflicts,
+disjoint domains/ranges, cancellation, stale tickets and overflow; `compiler-work`
+tests bounded dispatch, reverse completion, duplicate/wrong-profile receipts and
+source-order failure selection. `parallel-unit` is an exported dense integer
+kernel; `compiler-batch` checks zero length, a non-vector-width tail, guards and
+modular arithmetic. The first transport test incorrectly tried to compile the
+executable language fixtures as libraries; the compiler correctly rejected their
+top-level statements. Replaced that test input with the exported Tower kernel.
+The first batch fixture also used the grammar token `expected` as a local name;
+renaming it `wanted` fixed the parse error. No parser workaround was introduced.
+
+Validation so far:
+
+- Rebuilt native towerc/backend tests, WASI parser and both LLVM reactors using
+  the existing CMake caches and release options. Packaged the actual compiler
+  units/support with the established script. Native backend API checks pass.
+- `node --test playground/tests/*.test.mjs`: **303/303 pass** in 28 seconds
+  (`build/language-next/parallel-node-final.log`). This includes graph/fast
+  interpretation at both widths, canonical and raw/optimized LLVM reconstruction,
+  real worker overlap/object equality, cancellation/child exit/recovery and
+  deterministic diagnostic selection with no failed-build publication.
+- Native Linux x64 compilation/execution of work-access, compiler-work and
+  compiler-batch each prints zero, with raw and optimized IR retained under
+  `build/language-next`. The dense kernel has vector i32 IR and `paddd` on x64,
+  vector adds/`addv` on ARM64, and scalar baseline Wasm. No noalias, fast-math or
+  mandatory SIMD target feature was invented. This verifies an eligible loop,
+  not SIMD speedups of existing compiler phases.
+- `node playground/scripts/test-compiler-project.mjs`: generation one builds
+  with two real workers; its successor uses four. Both execute the edited semantic
+  diagnostic and pass import, typed completion, graph/fast, LLVM reconstruction,
+  bytecode cache, Wasm execution and native-object activation checks. All three
+  reactors are byte-identical across generations (`parallel-generations.log`).
+  Sizes: parser 872318, LLVM 51856503, cross 63413769 bytes. SHA-256 respectively:
+  `be1f5185a69fd85a392e20c50bf747ee2088e5ddffb89afbc093be24f1ed483c`,
+  `7d243ebb62faa400d39fa410c71115d730cbb2af29df2c62e503e515bfa42fa6`,
+  `d6d8dbc605415069466fea6a5c12e52bf604794b250f63c78b0bbe175d67e420`.
+- `node playground/scripts/benchmark-compiler-workers.mjs` compiles the ten
+  actual compiler units and checks every object hash across 0 (serial host),
+  1/2/4/8 worker threads. AMD Ryzen AI MAX+ 395, 32 logical CPUs, Node 22.23.4:
+  **63.87 / 63.37 / 36.38 / 34.11 / 32.35 seconds**, observed overlap
+  **1 / 1 / 2 / 4 / 8**. Peak sampled process RSS: approximately
+  **319 / 466 / 575 / 737 / 921 MiB**. These are one measured run per setting,
+  not statistical confidence intervals; the initial serial run overlapped the
+  end of the Node suite. One-worker versus two-worker runs show about 1.74x
+  throughput. Diminishing returns reflect coarse unit sizes and repeated isolated
+  compiler state. Keep the two-worker browser default. Raw timestamps and hashes:
+  `build/compiler-parallel/benchmark.json`.
+- Canonical formatting and the full local deployment verifier pass; all 68 asset
+  hashes and desktop/mobile behavior match (`parallel-verify-local.log`). Browser
+  successor/cancellation and hosted publication results follow after completion.
+
+The full language plan remains active. Next: explicit worlds/session ownership,
+native CLI transport without a new shim, frozen component inputs and worker-owned
+publication buffers, cached typed query batches, measured sparse/dense choices,
+then parallel phase migration. Namespaces/selective imports, expressions/exact
+overloads, deterministic comptime/eval, aggregate result/option/try and ownership,
+foreach/containers and reflection/property/constraint features remain open. This
+checkpoint must not be described as a fully parallel compiler or a finished
+language. `todo.txt` is unchanged.
+
+The first full browser successor run found a useful failure-latency regression:
+an invalid first unit kept admitting later compiler units, so the existing
+30-second diagnostic check expired while compiling the backends. Successful
+activation and desktop/mobile nested-worker cancellation had passed. Fixed the
+policy in Tower, not by extending the test timeout: source-order admission means
+every earlier ordinal is already admitted when a failure arrives. Stop admitting
+new work, settle existing tickets, then report the minimum failed ordinal. Added
+a Tower fixture for this transition and an adapter assertion that no third unit
+starts after either of the first two fails. Rebuild/revalidation follows.

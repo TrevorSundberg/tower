@@ -262,6 +262,33 @@ containers. Benchmark representative compiler workloads before migrating them.
   The shared Tower work graph now schedules compiler type layouts with iterative
   dependency discovery and cycle paths; it also supports demanded work, failure
   propagation, revision/profile tickets and cancellation. It is coordinator-owned;
-  concurrent entity mutation and native/browser worker executors remain unfinished.
+  concurrent entity mutation remains unfinished. The compiler-unit executor now
+  uses real browser/Node workers with isolated compiler worlds and the same Tower
+  dependency coordinator. Component read/write ranges and structural exclusivity
+  are available in that shared scheduler. Native CLI worker pools, frozen-world
+  phase publication, query/storage migration and measured SIMD remain open.
   Selective imports, full expressions, automatic moves, general foreach,
   comptime/eval, properties, interfaces and attributes are not implemented yet.
+
+## Next parallel/compiler milestones
+
+1. Keep isolated unit builds as a validated executor and reference. Move native
+   CLI unit dispatch onto the same Tower coordinator with platform worker APIs;
+   it must not depend on a new owned C/C++ callback shim. Function-address/call
+   contracts and portable interpreted execution need explicit Foundation support.
+2. Replace the singleton store/session boundary with explicit compiler worlds.
+   Audit node lifetimes, source references, per-type instance arrays, allocator
+   ownership, caches and linker temporary paths. Freeze inputs for a revision;
+   use worker-owned output components and deterministic coordinator publication.
+3. Migrate pure layout, body-analysis and lowering queries individually. Cache
+   matching entity/component tuples. Preserve stable sparse payloads where
+   address stability matters; introduce dense typed columns only for measured
+   hot loops, with stable entity identity and explicit migration/invalidation.
+4. Split dependency-ready query ranges into sufficiently large batches. Declare
+   read/write ranges, pin the world and preallocate outputs before dispatch.
+   Structural commands publish at a barrier. Prove alias contracts before LLVM
+   noalias/vectorization attributes; ordinary Foundation raw pointers may alias.
+5. Measure end-to-end and kernel speed, memory, determinism and cancellation at
+   1/2/4/8 workers. Inspect optimized IR/disassembly for actual SIMD. Threaded
+   dispatch, dense storage and vectorization are independent claims. Continue
+   the language milestones above on these same shared entities throughout.

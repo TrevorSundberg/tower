@@ -32,8 +32,17 @@ test('compiler sources, migration comments, cancellation and persistence are ava
   await page.screenshot({path:'../build/compiler-workbench/workbench-'+info.project.name+'.png'});
   await page.locator('#rebuild-compiler').click();
   await expect(page.locator('#cancel-compiler-build')).toBeEnabled();
+  await expect(page.locator('#compiler-build-status')).toContainText('Compiling',{timeout:30000});
+  // Cancelling the coordinator must also stop its nested compiler workers.
+  const cdp = await page.context().newCDPSession(page);
+  const {targetInfo} = await cdp.send('Target.getTargetInfo');
+  const buildWorkers = async () => (await cdp.send('Target.getTargets')).targetInfos.filter(target =>
+    target.browserContextId === targetInfo.browserContextId && target.type === 'worker' && target.url.endsWith('/compiler-build-worker.js')).length;
+  await expect.poll(buildWorkers).toBeGreaterThan(1);
   await page.locator('#cancel-compiler-build').click();
   await expect(page.locator('#compiler-build-status')).toHaveText('Compiler build cancelled');
+  await expect.poll(buildWorkers).toBe(0);
+  await cdp.detach();
   await expect(page.locator('#active-compiler')).toHaveText('Original compiler');
   await page.locator('#auto-rebuild-compiler').uncheck();
   const project = await savedProject(page);

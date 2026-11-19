@@ -118,7 +118,9 @@ function(tower_backend_integrate)
       # Browser compiler builds use the same Tower linker and explicit inputs.
       # Retire this host export list when Tower owns the complete reactor recipe.
       foreach(symbol IN ITEMS backend_link_create backend_link_close backend_link_add_input
-          backend_reactor_argument backend_reactor_link backend_reactor_bytes backend_reactor_size backend_reactor_error)
+          backend_reactor_argument backend_reactor_link backend_reactor_bytes backend_reactor_size backend_reactor_error
+          compiler_work_create compiler_work_close compiler_work_next compiler_work_accept compiler_work_done
+          compiler_work_failed compiler_work_peak compiler_work_cancel)
         target_link_options(${target} PRIVATE "-Wl,--export=${symbol}")
       endforeach()
     endif()

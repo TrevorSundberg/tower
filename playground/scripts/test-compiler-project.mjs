@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFile, writeFile, mkdir} from 'node:fs/promises';
 import {gunzipSync} from 'node:zlib';
+import {Worker} from 'node:worker_threads';
 import {loadLLVM} from '../src/llvm-host.mjs';
 import {loadTower} from '../src/tower-host.mjs';
 import {buildCompiler} from '../src/compiler-build.mjs';
@@ -19,6 +20,8 @@ for (let generation = 1; generation <= 2; ++generation) {
   const objects = new URL('build/compiler-workbench/objects-'+generation+'/',root);
   await mkdir(objects,{recursive:true});
   const result = await buildCompiler({compiler,recipe,files,
+    workers:generation === 1 ? 2 : 4,
+    createWorker:() => new Worker(new URL('./compiler-unit-node.mjs',import.meta.url)),
     onObject:(unit,bytes) => writeFile(new URL(unit.object,objects),bytes),
     support:async name => gunzipSync(await read('build/compiler-project/'+name)),
     progress:phase => console.log(generation,Math.round(performance.now()-started)+'ms',phase)});

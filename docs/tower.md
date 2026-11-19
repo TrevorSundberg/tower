@@ -129,9 +129,38 @@ thread safe. The current compiler uses the serial executor for type layout.
 Layout dependencies are discovered once, pointer fields do not demand pointee
 layout, and layout kernels consume completed dependency layouts. The former
 128-level layout recursion and 256-type/field caps are removed. Compilation
-node/storage budgets still apply. Native/browser worker executors, access-set
-conflict checking, incremental invalidation and the remaining pass migrations
-are ongoing work, not claims of the current implementation.
+node/storage budgets still apply. Semantic compilation now accepts an explicit
+component-payload byte budget through `semantic_compile_budget`; the default is
+64 MiB. This accounts newly attached payloads during semantic checking, not
+total process memory. Existing/generated nodes, syntax expansion, runtime storage
+and other resource budgets remain separate.
+
+`work_access` declares a task's complete component access set before sealing it:
+domain identity, component identity, half-open row/byte range, and nominal
+`WorkAccessMode.Read`, `Write` or `Structure`. Overlapping readers and disjoint
+writes can run together. A structural claim excludes all other accesses within
+that domain. Conflicting work stays queued until its lease is released. Claims
+do not infer semantic order: add dependency edges where write order matters.
+They also do not pin entities or intercept undeclared raw-pointer writes. The
+executor must preserve input lifetimes and own scratch, and the coordinator must
+remain the sole writer of scheduler state.
+
+`library/compiler-work` uses the same graph for compiler unit builds. Its Tower
+API bounds active work, accepts revision/profile tickets, joins prerequisites,
+selects failures in recipe order and cancels outstanding results. Browser
+compiler rebuilds use isolated compiler instances on up to two real workers.
+The host adapter can select 1/2/4/8 workers; Node worker threads exercise the same
+transport and Tower code. Objects publish in recipe order only after all units
+succeed; linking and candidate activation checks remain serial and atomic at
+the project boundary. Cancelling a browser build also terminates its children.
+After failure the coordinator stops admitting later units and settles already
+running work before selecting the earliest diagnostic in source order.
+
+This is parallel compilation of the compiler's import units. Layout/type/body
+phases inside each unit still run serially. Native CLI worker pools, concurrent
+phases over frozen shared entities, incremental invalidation, packed component
+columns and measured SIMD improvements remain required work. A sparse payload
+store with dense pointer indexes is not automatically vectorized storage.
 
 ## Validation fixtures
 

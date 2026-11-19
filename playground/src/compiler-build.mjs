@@ -1,26 +1,76 @@
 import {loadLLVM, executeWasm} from './llvm-host.mjs';
 import {loadTower, runToEnd} from './tower-host.mjs';
+import {compilerPool} from './compiler-pool.mjs';
+
+let nextRevision = 0n;
 
 // The recipe lists separate platform object units; each unit is compiled from
 // its Tower import closure. No JS import resolver or source concatenation.
 // The running compiler is generation N; these files describe generation N+1.
 // With library '.', `import tower;` reads the project's ordinary tower.tower,
 // which imports foundation.tower and bedrock.tower, not generation N+1's binary.
-export async function buildCompiler({compiler, recipe, files, support, progress = () => {}, onObject = () => {}}) {
+export async function compileUnits({compiler, recipe, files, workers = 1, createWorker, signal, progress = () => {}, onObject = () => {}}) {
+  if (!Number.isInteger(workers) || workers < 1 || workers > 8) throw new Error('Compiler workers must be between 1 and 8');
+  files = files.map(({path,text}) => ({path,text}));
+  recipe = {units:recipe.units.map(unit => ({...unit}))};
   const inputs = {}, sources = new Map(files.map(file => [file.path, file.text]));
   const grammar = Object.fromEntries(['bedrock','foundation','tower'].map(name => [name,sources.get(name+'.tower')]));
-  for (const unit of recipe.units) {
-    if (!sources.has(unit.entry)) throw new Error('Missing compiler entry: '+unit.entry);
-    progress('Compiling '+unit.entry);
-    compiler.configureModules({entry:unit.entry, files, builtins:grammar, library:'.'});
-    const result = compiler.compile(sources.get(unit.entry), {library:true, emit:'object'});
-    if (result.status === 'error') throw new Error((result.errorFile || unit.entry)+': '+result.error);
-    inputs[unit.object] = result.object;
-    await onObject(unit, result.object);
-    // Yield between synchronous compiler calls so progress is observable.
-    await new Promise(resolve => setTimeout(resolve, 0));
+  for (const unit of recipe.units) if (!sources.has(unit.entry)) throw new Error('Missing compiler entry: '+unit.entry);
+  if (new Set(recipe.units.map(unit => unit.object)).size !== recipe.units.length) throw new Error('Duplicate compiler object name');
+  const revision = ++nextRevision, profile = 1n; // Current wasm32 optimized object recipe.
+  const work = compiler.createWork(recipe.units.length,workers,revision,profile);
+  const results = [], timings = [];
+  let pool;
+  const abort = () => work.cancel();
+  signal?.addEventListener('abort',abort,{once:true});
+  try {
+    if (signal?.aborted) throw new Error('Compiler build cancelled');
+    if (createWorker) pool = await compilerPool({count:workers,createWorker,module:compiler.module,files,grammar,revision,profile,signal});
+    else if (workers !== 1) throw new Error('Parallel compilation requires a worker transport');
+    await Promise.all(Array.from({length:workers},async (_,lane) => {
+      for (;;) {
+        const id = work.next();
+        if (!id) return;
+        const unit = recipe.units[id-1];
+        progress('Compiling '+unit.entry+' ('+workers+' worker'+(workers===1?'':'s')+')');
+        let result;
+        if (pool) result = await pool.run(lane,id,unit.entry);
+        else {
+          compiler.configureModules({entry:unit.entry,files,builtins:grammar,library:'.'});
+          const start = performance.timeOrigin + performance.now();
+          const compiled = compiler.compile(sources.get(unit.entry),{library:true,emit:'object'});
+          result = {object:compiled.object,start,end:performance.timeOrigin+performance.now(),
+            error:compiled.status==='error' ? (compiled.errorFile || unit.entry)+': '+compiled.error : undefined};
+          await new Promise(resolve => setTimeout(resolve,0));
+        }
+        if (!work.accept(id,!result.error)) throw new Error('Stale or cancelled compiler result');
+        results[id-1] = result;
+        timings[id-1] = {entry:unit.entry,lane,start:result.start,end:result.end};
+      }
+    }));
+    if (!work.done()) throw new Error('Compiler work did not complete');
+    const failed = work.failed();
+    if (failed) throw new Error(results[failed-1].error);
+    for (let i = 0; i < recipe.units.length; ++i) {
+      if (signal?.aborted) throw new Error('Compiler build cancelled');
+      const unit = recipe.units[i];
+      inputs[unit.object] = results[i].object;
+      await onObject(unit,results[i].object);
+    }
+    return {inputs,stats:{workers,peak:work.peak(),timings}};
+  } finally {
+    signal?.removeEventListener('abort',abort);
+    work.cancel();
+    try { await pool?.close(); } finally { work.close(); }
   }
-  return linkCompiler({compiler, recipe, files, inputs, support, progress});
+}
+
+export async function buildCompiler(options) {
+  options = {...options,files:structuredClone(options.files),recipe:structuredClone(options.recipe)};
+  const {inputs,stats} = await compileUnits(options);
+  if (options.signal?.aborted) throw new Error('Compiler build cancelled');
+  const result = await linkCompiler({...options,inputs});
+  return {...result,stats};
 }
 
 export async function linkCompiler({compiler, recipe, files, inputs, support, progress = () => {}}) {

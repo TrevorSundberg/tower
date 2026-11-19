@@ -14,6 +14,7 @@ fn sem_context_init(c: SemanticContext*, program: SemanticProgram*): void {
     fill(c, 0, step1);
     c.program = program;
     c.current = program.root;
+    c.node_limit = SemanticComponentBudgetBytes() / sizeof(FoundationNode);
     var step2 = sem_table(c);
     c.functions = step2;
     var step3 = sem_table(c);
@@ -122,10 +123,11 @@ export fn semantic_initialize(program: SemanticProgram*, root: void*, width: u32
     }
 }
 
-export fn semantic_compile(program: SemanticProgram*, roots: void**, bases: usize*, count: usize, source: u8*): void {
+export fn semantic_compile_budget(program: SemanticProgram*, roots: void**, bases: usize*, count: usize, source: u8*, component_bytes: usize): void {
     var context: SemanticContext;
     var c: SemanticContext* = &context;
     sem_context_init(c, program);
+    c.node_limit = component_bytes / sizeof(FoundationNode);
     c.source = source;
     var step1 = generic_begin(program.root);
     c.generics = step1;
@@ -142,6 +144,10 @@ export fn semantic_compile(program: SemanticProgram*, roots: void**, bases: usiz
     }
     sem_run(c);
     sem_context_dispose(c);
+}
+
+export fn semantic_compile(program: SemanticProgram*, roots: void**, bases: usize*, count: usize, source: u8*): void {
+    semantic_compile_budget(program, roots, bases, count, source, SemanticComponentBudgetBytes());
 }
 
 export fn semantic_program_dispose(program: SemanticProgram*): void {
