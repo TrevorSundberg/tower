@@ -13735,3 +13735,57 @@ frontend migrations) and Pages c29dc52 (new LLVM/cross reactors). Integration wi
 preserve those sources and deployed backends, rebuild the affected parser reactor,
 and rerun checks; the measurements above describe the explicitly hashed pre-rebase
 artifacts rather than claiming to measure a subsequent combined build.
+
+Integrated validation and release preparation:
+
+- Rebased the implementation onto b58c95a, preserving both appended journal
+  histories, the host's resource/version/file services, and all frontend changes.
+  Merged the DriverOptions ABI with both `version` and `fast` fields. The newly
+  introduced output validator now accepts `bytecode`/`foundation`, with Tower
+  host-service regression checks for these kinds and `--interpret-fast`.
+- The four custom-grammar browser regressions pass after the fix. The complete
+  combined build then passes all 130 desktop/mobile browser tests, all 238 Node
+  tests, canonical formatting of 107 Tower files, Windows and WASI runtime/parser
+  tests and 156 interpreter differential fixtures on each host. Native ASan/UBSan
+  CTest passes 5/5 in 38.21 seconds. All 28 seed/production optimized-LLVM/object
+  comparisons pass again for Linux x64, wasm32, Windows x64 and macOS ARM64,
+  including explicit and missing grammar-input checks. Evidence is in the
+  `build/fast-integrated-*` logs; these logs are generated local artifacts.
+- Actual production CLI checks cover `--version`, edited Identifier grammar to
+  `.towerbc`, native package execution/reconstruction, and both pointer widths.
+  Added an early NUL rejection for source emission so `--emit bytecode` cannot
+  silently compile the prefix of a NUL-containing source. The CLI rejects the
+  malformed source with exit 1; valid custom-grammar output is exactly `42`.
+- Pages advanced to fbad6d4 during integration. Retained its LLVM/cross reactors
+  and every native support pack byte-for-byte. A local Windows runtime object
+  differed in only three COFF timestamp bytes (offsets 4, 5, 6); kept the deployed
+  object rather than publishing an unrelated timestamp change. The final release
+  changes the parser/interpreter reactor plus four bundled JS files and maps.
+  `tower.wasm` is 797,070 bytes. Both runs of local deployment verification pass
+  all 36 asset checks and desktop/mobile execution, `.towerbc` download/disassembly,
+  editable grammar, persistence, native downloads and default targets. The final
+  run after retaining that Windows object is `build/fast-release-local-deployment.log`.
+- `todo.txt` is unchanged: HEAD and working file both have Git blob
+  `96a9e58964d7f01e4a97819f259448db81ef5e40`.
+
+After every competing build/test finished, repeated timing and profiling on the
+combined build against the latest deployed graph runner (fbad6d4, reactor SHA-256
+`904a1d37f670636c33015c03f457a3cd454a4df66140afe3acc8550cf1ecb9ea`).
+The `integrated` member of the checked-in research JSON preserves raw samples,
+all artifact hashes and new profiles; earlier samples remain intact. Medians (ms):
+
+| Workload | Upstream graph | Improved graph | Fast | Compiled Wasm | Native graph | Native fast |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| arithmetic | 5.169 | 3.646 | 0.970 | 0.319 | 1.623 | 0.556 |
+| calls | 3.782 | 2.549 | 0.611 | 0.246 | 1.103 | 0.361 |
+| memory | 7.085 | 4.786 | 1.718 | 0.362 | 2.486 | 1.213 |
+| branch | 7.054 | 5.088 | 1.300 | 0.397 | 2.151 | 0.746 |
+
+The final graph reduction is 27.9-32.6%; fast improves on that graph by
+2.79-4.17x in the Wasm host and 2.05-3.06x natively. Cache capacities/code sizes
+are unchanged. The profiler again attributes graph overhead to task/node/map
+operations and fast overhead primarily to dispatch, calls and memory access.
+These constant-input programs permit LLVM to simplify/remove guest work; the
+compiled-Wasm column compares complete resulting behavior, not equal instruction
+counts or isolated dispatch. Cold preparation, package validation and allocations
+remain separate costs. Publication/hosted verification results follow separately.

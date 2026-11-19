@@ -163,6 +163,7 @@ int main(int argc, char** argv) {
     text = core_format(loaded->program).source;
     interpret = true; fast = true;
   }
+  if (text.find('\0') != std::string::npos) { std::cerr << "Source contains NUL bytes\n"; return 1; }
   if (emit == "bytecode" || emit == "foundation") {
     auto width = packaged_width ? packaged_width : tower_target_pointer_bytes(target, error);
     if (!error.empty()) { std::cerr << error << '\n'; return 1; }
