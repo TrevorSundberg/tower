@@ -11375,3 +11375,110 @@ The ending fetch also discovered task 1's port/frontend-tower at b50bfe0, a
 replacement-expansion milestone. It is not a completed frontend/session handoff;
 no completed task 2/3 handoff was integrated here. Do not infer that the final
 bootstrap dependencies were satisfied by publishing this host-policy milestone.
+
+## 2026-11-19: Integrated frontend/host validation and performance
+
+Frontend implementation `ef6be67` completed the template/scanner migration above.
+Before host integration it passed all 16 seed-versus-Tower optimized-IR and object
+comparisons (four utility groups across Linux x64, Wasm32, Windows x64 and macOS
+ARM64), explicit bootstrap-grammar checks, 128/128 desktop/mobile Playwright
+tests (3.6 minutes), and `verify-local.mjs` (36 served assets, desktop/mobile
+execution agreement, grammar edits, persistence, downloads and layout). Logs:
+`build/scan-{bootstrap,browser,local-deployment}.log`.
+
+Ran the paired benchmarks after builds/tests completed, with identical explicit
+Bedrock/Foundation inputs. Reference artifacts are from `586078b`, saved before
+frontend migration; these first results measure the `ef6be67` frontend artifacts,
+before rebuilding with the host branch. The JS host used by both Wasm instances
+was identical. Each comparison also requires exact program output/compiled
+Foundation agreement. No claim of statistically universal speedup is made.
+
+Wasm: 12 warmups, 40 alternating paired samples. Compile plus canonical Foundation
+output, median milliseconds, old -> Tower frontend:
+
+| Fixture | Old | Tower frontend |
+| --- | ---: | ---: |
+| 200 captured statements, duplicated | 17.670 | 17.633 |
+| 1,000 captured statements, duplicated | 48.105 | 42.539 |
+| Nested repeated captures | 22.406 | 21.361 |
+| 500 statement replacements | 21.935 | 19.432 |
+| 500 inferred-destination replacements | 32.971 | 30.543 |
+| Small program | 4.355 | 4.293 |
+| Inference example | 4.912 | 4.847 |
+| Increment/replacement example | 15.421 | 15.057 |
+| 500 declarations | 17.470 | 17.183 |
+| 50 grammar revisions | 506.367 | 509.950 |
+
+The last case was about 0.7% slower; small cases are near parity. Large capture
+and repeated-replacement cases improved about 5–12% in this run. All five focused
+replacement p95 values improved; general-suite tails were mixed. Scripts and raw
+samples: `playground/scripts/profile-replacement-port.mjs`,
+`profile-grammar-port.mjs`, `build/scan-{focused,general}-performance.{json,log}`.
+
+Native: four warmups, 30 alternating pairs of fresh CLI processes, explicit
+grammar paths. Median compile milliseconds (including interpreter preparation):
+small 10.238 -> 9.085; inference 8.958 -> 8.231; increment 16.726 -> 15.734;
+500 declarations 12.367 -> 11.477; 50 grammar revisions 402.114 -> 397.298.
+All five compile medians improved. Total/startup and raw process samples remain
+in `build/scan-native-performance.{json,log}`; command:
+`python3 playground/scripts/profile-grammar-port-native.py
+build/replacement-baseline/towerc /root/.cache/tower/native/towerc
+build/scan-native-performance.json` from WSL. CPU conditions vary on this shared
+machine; paired ordering reduces drift but does not eliminate noise.
+
+Integrated the separately published host track (`62b863e`, implementation
+`8fdb688`) in merge `35e5484`, preserving its Tower CLI/allocation policy and WASI
+directory support. Reconciled both changes to executable-specific driver/syntax
+compilation and preserved both Tower test registrations. The seed still uses its
+native host allocator/driver and frontend references; stage1 uses the Tower host
+but native frontend seed; production uses both Tower host and migrated frontend.
+No change to task 2/3 ownership or public node layout. Both journal histories were
+preserved, as were unrelated local notes and the exact bytes of `todo.txt`.
+
+Integration used the clean detached audit worktree. An ordinary `pull --rebase`
+attempt tried to flatten the merge and replay host commits, producing conflicts;
+aborted that temporary rebase and used `pull --rebase=merges origin master`.
+It retained `35e5484` exactly. No published history was rewritten or force-pushed.
+The source branch `port/frontend-tower` includes both checkpoints.
+
+Rebuilt native compiler and all three Wasm reactors after integration. Combined
+ASan/UBSan CTest passed 5/5 (21.64 seconds), Windows optimized parser/compiler
+checks passed, all 222 Node tests passed and all 63 Tower files passed canonical
+formatting checks. New host test modules explain the increase from 60 to 63 files.
+
+Also configured `/root/.cache/tower/frontend-wasi-tests` with WASI SDK 34's
+`share/cmake/wasi-sdk-p1.cmake`, `TOWER_PARSER_ONLY=ON`, Release and the current
+`towerc-stage1` host bootstrap. Built target `tower-parser-tests`, copied it to
+`build/frontend-host-tests.wasm`, and ran
+`node scaffolding/tests/host-wasi.mjs build/frontend-host-tests.wasm`. The complete
+parser/formatter/host test executable passed on Wasm32, including the new Tower
+template/scanner allocation-failure fixtures. The first copy command incorrectly
+assumed the CMake output had a `.wasm` suffix; its actual filename is
+`tower-parser-tests`. Corrected the copy path without changing the build.
+Logs: `build/frontend-host-{native,asan-build,asan-tests,wasm,llvm,node,format,
+windows,wasi-tests-build,wasi-tests}.log`.
+
+The combined build also passed all 128 desktop/mobile Playwright tests (3.4
+minutes) and `verify-local.mjs`: all 36 served assets matched the manifest;
+desktop/mobile passed execution agreement, editable grammar, project persistence,
+native builds/downloads, target selection and viewport checks with no page errors.
+Logs: `build/frontend-host-{browser,local-deployment}.log`.
+
+Publication audit: textual HTML/CSS/license differences from the previous Pages
+checkout were line endings (`git diff --ignore-space-at-eol` is empty for those
+files). Target runtime source is unchanged. Rebuilding its support packs with
+the established `build-targets.sh` and Ubuntu Clang 18.1.3 reproduced their tested
+bytes, except the Windows COFF timestamp (header bytes 4–7). Verified every other
+byte and retained the already-tested copy for publication. This records an
+existing nondeterministic host-tool timestamp; it is not claimed as deterministic
+Tower compilation and is a future host-build cleanup item. The runtime codegen
+differences from the older published packs are toolchain output, not missing
+source changes. Evidence: `build/frontend-targets-{before,after}.sha256`,
+`build/frontend-targets-{compiler,build}.log` and `build/check-runtime-rebuild.mjs`.
+
+Combined bootstrap validation completed successfully: 20 optimized-IR/object
+pairs, now five groups including the new host module, across the same four
+targets. The explicit alternate/missing Foundation input checks also passed.
+Evidence: `build/frontend-host-bootstrap.log`. The source/grammar/composed modules
+were held fixed during the full comparison; host/compiler relinking was complete
+before consumer tests began.
