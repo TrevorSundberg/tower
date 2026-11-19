@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
+#include <cstdio>
 
 #ifdef TOWER_BOOTSTRAP_HOST
 // Only the pre-Tower seed needs the native policy below. Production calls Tower.
@@ -50,3 +51,10 @@ extern "C" void* compiler_host_reallocate(void* pointer, size_t bytes) { return 
 extern "C" void compiler_host_deallocate(void* pointer) { std::free(pointer); }
 
 #endif
+
+// Shared by compiler-owned Tower modules (semantics and interpretation). Guest
+// program errors are diagnosed by those modules before reaching this boundary.
+extern "C" [[noreturn]] void tower_trap(const char* message, size_t offset) {
+  std::fprintf(stderr, "Tower compiler internal trap at %zu: %s\n", offset, message);
+  std::abort();
+}

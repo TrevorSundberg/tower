@@ -4,7 +4,6 @@
 #include "compiler-semantic.hpp"
 #include "compiler-syntax-reader.hpp"
 #include <cstring>
-#include <cstdio>
 #include <new>
 #include <utility>
 
@@ -103,11 +102,4 @@ void sem_decode_identifier(char* text) {
   const auto length = syntax_identifier_decode_in_place(text, std::strlen(text)); text[length] = 0;
 }
 void sem_require(bool ok) { if (!ok) std::abort(); }
-}
-
-// The semantic compiler is ordinary Tower code: a violated internal arithmetic
-// contract is a compiler bug, not a recoverable source diagnostic.
-extern "C" [[noreturn]] void tower_trap(const char* message, size_t offset) {
-  std::fprintf(stderr, "Tower compiler trap at %zu: %s\n", offset, message);
-  std::abort();
 }

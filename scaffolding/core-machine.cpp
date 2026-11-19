@@ -118,10 +118,3 @@ extern "C" size_t im_pointee_size(const CoreType *type) {
   return core_type_size(element);
 }
 
-// A trap here signals an invariant failure in compiler-owned Tower code. Guest
-// arithmetic errors are diagnosed in Tower before invoking these operations.
-extern "C" void tower_trap(const char *message, size_t offset) {
-  std::fprintf(stderr, "Tower interpreter internal trap at %zu: %s\n", offset,
-               message);
-  std::abort();
-}

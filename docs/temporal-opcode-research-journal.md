@@ -12322,3 +12322,79 @@ clarification), and repeated sanitizer CTest: 4/4 passed in 15.72 s. The final
 native compiler also executed `tests/semantics.tower` successfully with the expected
 64-bit layout output. Semantic work and CMake/bootstrap registration are committed
 separately; no remote publication is part of this task.
+
+## 2026-11-19 — Rebase and publication of the semantic port
+
+User requested pull/rebase/push and a clean checkout. Fetched origin and rebased
+both semantic commits onto `586078b`, which integrates the Tower interpreter,
+formatter and grammar ports. Retained both sides of the journal append conflict
+and combined the CMake/bootstrap source lists and dependency allowlists. The
+updated AGENTS.md requires deployment and verification as part of this workflow.
+
+Integration review found duplicate `tower_trap` definitions in the interpreter
+and semantic adapters. Consolidated this shared internal-invariant failure
+adapter in `compiler-memory.cpp`, without changing either execution algorithm.
+The separate interpreter test executable inherits production sources from the
+parser test target: excluded the unrelated `core-tests.cpp` entry point and linked
+its now-required Tower semantic module explicitly. Native seed/stage1 still use
+the frozen semantic, interpreter and formatter seeds; production targets link
+all three Tower ports. No CoreMachine layout or Foundation operation ID changed.
+
+Validation uses `TOWER_BUILD_JOBS=3 ./build.sh`, with complete output under ignored
+`build/semantic-sync/validation.log`. The initial tracked working tree was clean;
+`todo.txt` has a separately recorded checksum. A Git push dry run succeeded,
+confirming normal fast-forward access; no force push is needed. Build, deployment
+and actual push results are recorded below when complete.
+
+Publication check identified a real deployment conflict: `origin/gh-pages` at
+`1d828a2` publishes host/frontend integration source `0307d80` (and earlier
+`35e5484`, `8fdb688`), which is not contained in `origin/master` at `586078b`.
+The branch `origin/port/host-runtime-integration` holds that additional work.
+Replacing the site with this master-based build would remove already-published
+host/frontend changes. This sync does not merge those separately owned branches
+or roll their deployment back. Source synchronization and validation continue;
+publication of the semantic port is deferred until that source integration lands
+on master. The newer live deployment will be checked and preserved, and this
+specific deployment blocker reported rather than claiming a publication occurred.
+
+The first combined sanitizer run passed 4/5 and aborted in the parser/formatter
+suite. Reproduced with `ASAN_OPTIONS=handle_abort=1:fast_unwind_on_fatal=0`; the
+stack in `build/semantic-sync/abort.log` identifies `format_scalar_name` calling
+`core_type_name` -> `semantic_format_type` -> `sem_require` during the formatter's
+existing injected allocation-failure test. The original adapter's native scalar
+name query had not used the failure-injected Tower allocator. It now borrows
+`semantic_scalar_name` from the shared semantic definitions and leaves the
+fallible buffer copy to `bytes_assign_text`. Aggregate spelling and pointer stars
+remain in the Tower formatter, as before. No duplicate type registry or formatter
+algorithm was introduced. Restarted full validation after this integration fix.
+
+The adapter fix exposed a second, distinct fault-injection issue: the frozen
+reference formatter also calls the now-Tower semantic naming query. Its stack is
+in `abort-reference.log`; the failure occurred in `reference_tower_format`, not
+production formatting. The foundation-format fault-injection loop now temporarily
+disables the differential callback while exercising the same public production
+entry point, and compares every successful result's text and spans to a baseline
+already checked against the reference before injection. Ordinary differential
+checks remain enabled elsewhere. This keeps injected failures out of the oracle
+without skipping failure cleanup, output atomicity or successful-output checks.
+
+The corrected combined build passed sanitizer CTest **5/5** (35.07 s), all
+**20** bootstrap object/optimized-LLVM comparisons, and **224/224** Node tests
+with zero skips. Native executable/archive linking, memory/platform libraries,
+forward bindings, and Linux ARM64 execution under QEMU also passed. Windows PE
+linking passed; Windows execution remains skipped without Wine/WSL. Canonical
+formatting passed. Desktop/mobile browser and local deployment checks are the
+remaining running stages in `build/semantic-sync/validation-final.log`.
+The preserved live Pages manifest and all 35 served assets matched commit
+`1d828a2ccf76bfa7ca8200c69ce724d25599717e`; evidence is in `published-report.json`.
+
+Final combined validation completed successfully: **128/128** desktop/mobile
+Playwright checks passed in 4.1 minutes, followed by local deployment verification
+of all **36** assets, desktop/mobile execution and persistence, native downloads,
+and real Linux target defaults. The full `./build.sh` exited successfully; the
+complete evidence is `build/semantic-sync/validation-final.log`. Both the original
+semantic-port and this turn's `todo.txt` checksum checks pass. Recorded these
+results, then performed the required final pull/rebase before the normal source
+push. The newer live deployment is deliberately preserved for the branch-provenance
+reason above; local verification is not a claim that this semantic build was
+published to Pages.

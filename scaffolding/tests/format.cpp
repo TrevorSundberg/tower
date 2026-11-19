@@ -9,6 +9,7 @@
 
 extern "C" size_t tower_test_buffer_count();
 extern "C" void tower_test_buffer_fail_after(size_t);
+void tower_format_compare_reference(bool);
 
 namespace {
 std::string read(const std::filesystem::path& path) {
@@ -101,15 +102,25 @@ void formatter_tests() {
   // Allocation failures must release partial output and temporary layout indexes.
   {
     auto program = core_compile("fn f():i32 { return 42; } var x:i32=f();");
-    tower_format(program.root);
+    // Establish the differential oracle before injecting allocator failures.
+    const auto expected = tower_format(program.root);
     const auto buffers = tower_test_buffer_count();
+    tower_format_compare_reference(false);
     for (size_t fail = 0; fail < 32; ++fail) {
       tower_test_buffer_fail_after(fail);
       auto result = tower_format(program.root);
       tower_test_buffer_fail_after(SIZE_MAX);
       assert(result.error.empty() || (result.source.empty() && result.spans.empty()));
+      if (result.error.empty()) {
+        assert(result.source == expected.source && result.spans.size() == expected.spans.size());
+        for (size_t i = 0; i < result.spans.size(); ++i) {
+          const auto a = result.spans[i], b = expected.spans[i];
+          assert(a.begin == b.begin && a.end == b.end && a.source == b.source);
+        }
+      }
       assert(tower_test_buffer_count() == buffers);
     }
+    tower_format_compare_reference(true);
   }
   size_t files = 0;
   for (const auto& entry : std::filesystem::recursive_directory_iterator(std::filesystem::path(__FILE__).parent_path().parent_path())) {

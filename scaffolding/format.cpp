@@ -1,5 +1,7 @@
 // Transitional ABI only. Formatting policy and traversal live in compiler/format*.tower.
 #include "compiler-format.hpp"
+#include "compiler-semantic.hpp"
+#include <string_view>
 #include "core.hpp"
 #include "compiler-syntax-reader.hpp"
 #include "syntax-nodes.hpp"
@@ -7,6 +9,10 @@
 #ifdef TOWER_FORMAT_DIFFERENTIAL
 #include <cstdio>
 #include <cstdlib>
+// Fault-injection tests exercise the production boundary independently of the
+// reference oracle, whose shared semantic queries may allocate too.
+static bool compare_reference = true;
+void tower_format_compare_reference(bool enabled) { compare_reference = enabled; }
 TowerText reference_tower_format(TowerNode*);
 TowerText reference_tower_format_source(const std::vector<TowerNode*>&, std::string_view, const std::vector<TowerCommentSpan>&);
 static void compare(const TowerText& actual, const TowerText& expected) {
@@ -71,9 +77,10 @@ bool format_signed(const CoreType* t) { return core_signed(*t); }
 uint64_t format_mask(const CoreType* t) { return core_mask(*t); }
 uint64_t format_sign(const CoreType* t) { return uint64_t(1) << (core_width(*t) - 1); }
 bool format_scalar_name(const CoreType* t, TowerByteBuffer* output) {
-  // Query the shared type-name helper, not a formatter type registry.
-  auto base = *t; base.pointers = 0;
-  const auto name = core_type_name(base);
+  // Tower's formatter already handles aggregates and pointer stars. Borrow the
+  // shared scalar spelling so allocation failure remains a recoverable result,
+  // rather than entering the semantic compiler's allocating type-name helper.
+  const std::string_view name = semantic_scalar_name(unsigned(t->scalar));
   return bytes_assign_text(output, reinterpret_cast<const uint8_t*>(name.data()), name.size());
 }
 }
@@ -98,7 +105,7 @@ TowerText tower_format(TowerNode* node) {
   format_entity(&output, node, syntax_component_type(), nullptr, parser_match_get_type());
   auto result = take(output);
 #ifdef TOWER_FORMAT_DIFFERENTIAL
-  if (!output.failed) compare(result, reference_tower_format(node));
+  if (!output.failed && compare_reference) compare(result, reference_tower_format(node));
 #endif
   return result;
 }
@@ -110,7 +117,7 @@ TowerText tower_format_source(const std::vector<TowerNode*>& roots, std::string_
     comments.data(), comments.size(), syntax_component_type(), nullptr, parser_match_get_type());
   auto result = take(output);
 #ifdef TOWER_FORMAT_DIFFERENTIAL
-  if (!output.failed) compare(result, reference_tower_format_source(roots, source, comments));
+  if (!output.failed && compare_reference) compare(result, reference_tower_format_source(roots, source, comments));
 #endif
   return result;
 }
