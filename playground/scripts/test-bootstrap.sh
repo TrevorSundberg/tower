@@ -7,7 +7,12 @@ out="$repo/build/bootstrap-check"
 mkdir -p "$out"
 # A production compiler already uses Tower-written utilities when it reads the
 # utility source again. Compare its output with the independent C++ seed.
-for utility in utf8 bytes entities parser-nodes host interpreter semantics; do
+if [ "$#" -eq 0 ]; then set -- utf8 bytes entities parser-nodes host interpreter semantics; fi
+for utility in "$@"; do
+  case "$utility" in
+    utf8|bytes|entities|parser-nodes|host|interpreter|semantics) ;;
+    *) echo "Unknown bootstrap component: $utility" >&2; exit 1 ;;
+  esac
   source="$repo/scaffolding/compiler/utf8.tower"
   if [ "$utility" = bytes ]; then source="$repo/scaffolding/library/bytes.tower"; fi
   if [ "$utility" = entities ]; then source="$native/tower-compiler-entities.tower"; fi
@@ -34,7 +39,7 @@ if sys.argv[1] == 'interpreter': allowed |= {
     'semantic_alignment', 'semantic_mask', 'semantic_signed', 'semantic_size'}
 if sys.argv[1] == 'host': allowed |= {
     'compiler_host_reallocate', 'compiler_host_deallocate', 'tower_allocate',
-    'bytes_reserve', 'bytes_push', 'abort', 'tower_utf8_validate',
+    'bytes_reserve', 'bytes_push', 'bytes_append', 'bytes_dispose', 'abort', 'tower_utf8_validate',
     'fopen', 'fread', 'fwrite', 'ferror', 'feof', 'fclose'}
 if sys.argv[1] == 'entities': allowed |= {
     'compiler_entity_store', 'abort',

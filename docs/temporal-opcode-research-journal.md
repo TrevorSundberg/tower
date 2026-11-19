@@ -12928,3 +12928,15 @@ Tower-only compiler is available. Cross-produced module objects do not close tho
 gates. No hybrid bootstrap binary is committed. `docs/bootstrap-distribution.md`
 documents the concrete contracts, commands, recipe schema, limitations and next
 integration steps. Final bootstrap comparison/publication evidence follows.
+
+Bootstrap comparison follow-up: UTF-8, bytes, entities and parser-nodes passed
+optimized-LLVM and object-byte comparisons for all four target triples (16 cases).
+The host dependency audit then correctly stopped because the new file/resource
+services import existing `bytes_append`/`bytes_dispose`, which were missing from
+that test's allowlist. Added those two shared-library symbols; this is an explicit
+host dependency update, not a new runtime implementation. The bootstrap script
+now accepts validated component names as optional arguments, so the remaining
+host/interpreter/semantics cases can run without repeating the 16 unchanged passes.
+The default still tests all seven components. First commit attempt found no Git
+identity configured; used the existing repository identity `Codex <codex@openai.com>`
+via command-local flags, without changing the user's global Git configuration.
