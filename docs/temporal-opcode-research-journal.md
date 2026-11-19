@@ -15181,3 +15181,170 @@ The earlier full 154-case browser run finished with 151 passes and three failure
 Final serial timing runs after the other local suites completed: repeated uncached dot medians 41.8/41.1 ms, p95 51.0/49.6 ms (desktop/mobile); prepared varied-declaration medians 17.2/28.6 ms, p95 20.5/35.8 ms. All 20 prepared samples in each profile required zero worker requests after the dot. Popup DOM median was 7.1/14.1 ms; the later task after requestAnimationFrame gives the conservative paint boundary quoted above. Evidence: build/completion-latency-final-{immediate,prepared}.{json,log}. Browser refresh/display scheduling and uncached compiler work remain real costs; literal zero end-to-end latency is not claimed. Further improvement would require profiling/reducing ordinary query work, especially for large import closures, while preserving exact parser/type correctness.
 
 Implementation 0a57f19 is deployed as gh-pages a06321f0705ab0f525e3c7b3b25c5f4df1febdcb. GitHub Pages reports built with no error. The hosted verifier (node playground/scripts/verify-deployment.mjs https://trevorsundberg.github.io/tower/) exits zero: all 66 served assets match the tested local build and desktop/mobile checks pass, including deferred diagnostics, prepared dot completion and the retained compiler workbench. Evidence: build/completion-latency-live.log and build/deployment-verification/report.json. This publication record changes documentation only; the deployed runtime remains the verified build. Unrelated local changes are left uncommitted. todo.txt is byte-identical to the final synchronization backup (SHA256 17adf84b2ffb93041bf6ded80903674c77abd34b54b1d2261c77cd9a17f1f857). No force push or discarded work.
+## 2026-11-19 — Continue the full language roadmap; shared parallel compiler core
+
+After the first milestone, the user explicitly requested all remaining language
+work and asked that ECS/Burst-style processing underpin the entire compiler so
+large amounts of Tower can compile across threads. This is continuing work, not
+a claim that the first milestone completed the roadmap. main was pulled/rebased
+again and was current at 014fdbf.
+
+The plan now includes a cross-cutting compiler execution architecture: cached
+component queries, compact derived work/dependency indexes, immutable published
+revisions, explicit access sets, task-owned scratch/results, deterministic commits,
+and serial/native/browser executors. Result propagation remains ordinary typed
+branches/returns on shared entities. No GC or exceptions; no independent semantic
+IR and no new owned native implementation.
+
+Audit finding: library/entities.tower currently uses unsynchronized next_id,
+entity/component counts and reference counts, and mutable per-type instance arrays.
+Its comments explicitly invalidate query cursors on structural edits.
+compiler/host-entities.tower still receives a singleton compiler_entity_store()
+through the existing host boundary. These are real prerequisites for in-process
+parallel mutation, not already-thread-safe infrastructure. Stable component
+addresses and per-type queries do provide a starting point for cached batches.
+The plan requires storage/cache/allocator isolation and deterministic publication
+before enabling concurrent writers, plus scale/determinism/race/cancellation tests.
+
+Read primary references: https://www.flecs.dev/flecs/Queries.html and
+https://www.flecs.dev/flecs/Systems.html (the old Multithreading.html URL failed),
+and https://docs.unity3d.com/Packages/com.unity.burst@1.8/manual/index.html .
+Flecs documents cached queries and systems with access declarations; Burst compiles
+compatible code/jobs through LLVM. Tower will adopt applicable data-oriented
+principles in its own shared-node compiler, not claim Flecs/Burst integration.
+
+Next implementation work begins with nominal enum/type identity and result-value
+prerequisites while retaining this whole-compiler architecture. Full returned
+errors, demand resolution, parallel execution and the other requested language
+features remain active work.
+
+### Nominal enums and the first shared work-graph consumer
+
+Implemented nominal integer-backed enums on the original declaration/member
+entities. Foundation has an explicit-discriminant spelling; tower.tower adds
+omitted discriminants. The existing type representation retains its nominal
+record identity alongside the integer scalar representation, so LLVM/interpreter
+storage and external layout remain the selected target's integer layout without
+adding a second type registry or native ABI field. Named members are constants,
+not addressable locations. Exact enum equality is allowed; implicit integer or
+cross-enum conversions, arithmetic and enum indexing are rejected. Explicit
+integer conversion can produce unnamed values, so match still requires `_`.
+Forward discriminant expressions/flags/closed-enum exhaustiveness are unfinished.
+Canonical Foundation prints the nominal type and all explicit discriminants.
+Completion reads the same enum/member declarations and respects lexical shadowing.
+
+Added library/work-graph.tower entirely in Tower, using nominal WorkState and
+WorkError enums. Queries are deduplicated by exact subject/query/argument keys in
+an explicit revision/profile. Dense task/edge arrays and hash indexes are derived
+data over borrowed entities. Dependency and consumer links share one edge entry;
+duplicate reads do not allocate duplicate edges. Demand discovery, failed-input
+propagation and cycle-path detection are iterative. Ready tickets allow bounded
+batches; completion validates revision/profile/state, and cancellation rejects
+outstanding results. The coordinator exclusively mutates this index. Worker-owned
+payloads, access-conflict checks, real thread executors and incremental invalidation
+are not implemented by these functions. They do not make EntityStore thread safe.
+
+The semantic compiler now uses this common core for layout dependency discovery
+and execution. A layout kernel reads completed dependency layouts and writes its
+type size/alignment and field offsets; it does not recursively discover work.
+Pointer fields do not demand pointee layout. Completed queries are reused across
+the compilation. This removes the layout recursion limit and the prototype
+256-type/field caps, with hashed name lookup, growable indexed storage and the
+existing compilation node/storage budgets still in force. Other recursive type
+construction/inference limits are not silently removed. Layout errors now include
+the actual by-value cycle chain.
+
+Bootstrap trial: copied the verified enum-capable Tower-built native compiler to
+the ignored build/import-port/towerc staging path (saved its predecessor as
+build/language-next/towerc-before-enums). Compiler modules now use Tower enums and
+while directly; no new native seed/implementation was added. The staged compiler
+must receive explicit --bedrock/--foundation paths: its old adjacent share/tower
+directory otherwise selects an older grammar. CMake already passes those paths.
+
+Validation/debugging trials (Windows PowerShell, WSL native LLVM and WASI caches):
+
+- Nominal enum fixture passed graph/fast execution, 4/8-byte targets, canonical
+  Foundation serialization/reparse, native LLVM and browser LLVM. Negative Tower
+  fixtures cover mixed enums, implicit numbers, overflow, duplicate discriminants,
+  arithmetic, address-taking and indexing. Completion adapter: 9/9 tests.
+- First browser work-graph trial trapped because a 64-bit hash was converted to
+  32-bit usize before masking. Tower's checked numeric narrowing correctly exposed
+  this mistake; masking in u64 before conversion fixed it. Native 64-bit testing
+  alone would have missed the bug.
+- The Tower-generated deep-layout fixture initially encountered the old 256-type
+  cap before exercising recursion. After the indexed layout migration, a reversed
+  chain of 1,024 struct dependencies passed browser LLVM and both interpreter
+  pointer widths. The generator now also checks 512 field offsets/storage.
+  Its dynamic text uses the existing platform_write capability; print(pointer)
+  correctly prints an address, so that first generator attempt was rejected.
+- node --test playground/tests/*.test.mjs passed 253/253 before the final extra
+  failure/batch cases. Logs are build/language-next/all-tests.log. The focused
+  semantic transport suite passed 8/8 after the 32-bit hash fix, including the
+  work graph and generated layout tests (work-tests-2.log).
+- The Tower scheduler fixture exercises 1,024 keys, duplicate edges, unused work,
+  opposite completion order, exact closed cycles, wrong-profile/duplicate receipts,
+  failure propagation and cancellation. Additional wide fan-out/fan-in cases use
+  simulated batch widths 1/2/4/8; these are schedule tests, not measured threads.
+- A native scale trial found a serious edge-hash problem: mixing raw consumer XOR
+  dependency collapsed adjacent IDs into the same buckets. 64,000 queries took
+  about 2.12 s. Mixing each key field separately reduced this to about 0.02 s.
+  Follow-up /usr/bin/time trials: 16,000 queries <0.01 s/4,428 KiB peak RSS;
+  256,000 0.11 s/51,788 KiB; 1,024,000 0.53 s/202,572 KiB. Each builds a chain plus
+  repeated root dependencies, schedules it, checks completion count and disposes.
+  Compile scaffolding/tests/work-graph-scale.tower with towerc, then time its ELF;
+  generated count variants are under build/language-next. These measure the index
+  and serial executor, not million-declaration compiler throughput or thread scaling.
+- Alternating published/new browser compilers, 20 warmups then 100 samples each:
+  small compile median 0.1531/0.1533 ms; 500 declarations 10.9409/11.0571 ms;
+  200 pointer-recursive layouts 8.6188/8.9099 ms (about 0.1/1.1/3.4% overhead).
+  Both ran in the same process; absolute times include current environment noise.
+  build/language-next/benchmark.json records this preliminary comparison.
+
+No C/C++ implementation or todo.txt changes. The full language/parallel compiler
+roadmap remains active; enums and one scheduled compiler pass do not complete
+returned results, ownership, namespaces, staged execution or whole-compiler
+parallel scheduling. Final validation/publication results follow separately.
+
+### Cross-target runtime contracts exposed by the larger work fixture
+
+The full cross-target trial exposed two pre-existing gaps in the restricted target
+support packs. Windows large stack frames referenced __chkstk, absent from the
+small kernel32 import library. Disabling stack probes would violate guard-page
+behavior. LLVM's pinned X86TargetLowering::hasInlineStackProbe explicitly excludes
+Windows, so applying probe-stack="inline-asm" is not a valid fix there. Microsoft
+documents the existing OS export in kernelbase.dll:
+https://learn.microsoft.com/en-us/windows/win32/devnotes/-win32-__chkstk .
+LLVM attribute reference: https://llvm.org/docs/LangRef.html#function-attributes .
+
+Added a Tower COFF short-import/archive metadata writer and a lazy __chkstk import
+to the link plan. Upstream LLD supplies the import thunk; the OS supplies the stack
+probe with its required nonstandard register contract. This is metadata, not a
+Tower/C/C++ implementation pretending to be __chkstk. The lazy archive avoids
+adding the OS import when no probe is needed and follows user-supplied libraries.
+Format source: https://learn.microsoft.com/en-us/windows/win32/debug/pe-format .
+The existing package/build scripts and native wrappers were not changed.
+
+Darwin zero-fill lowering similarly referenced __bzero on x64 and bzero on ARM64,
+which the minimal libSystem description omitted. The Tower linker now generates
+a supplementary TAPI description for those existing libSystem exports, with
+architecture-specific symbol lists. A trial confirmed LLD merges it with the
+supplied SDK description. The first generated trial lacked a final newline and
+TAPI rejected its document terminator; the generated Tower string includes one.
+No implementation is hidden under third_party and no additional runtime library
+is introduced. Object-only consumers retain responsibility for their target ABI
+support libraries, as before.
+
+The work graph and enum browser-produced executables ran successfully on native
+Windows x64, WSL Linux x64 and QEMU Linux ARM64 after the Windows import fix.
+Desktop/mobile completion and struct browser tests passed 20/20. The focused
+semantic suite, now including a Tower large-frame fixture, passed 9/9. The final
+all-target repetition and publication checks are still being completed.
+
+The user reiterated that the endpoint must include real parallel compilation and
+migration of applicable compiler passes onto these shared nodes. A scheduling
+simulation, a library API, or this layout migration alone does not meet that
+endpoint. The phase interface still needs explicit access/ownership/publication
+contracts and actual native/browser executors; current singleton stores, mutable
+caches and fixed linker temporary filenames must be isolated before concurrent
+sessions can safely run. The last pushed main was 014fdbf and last deployed pages
+was a2b6c05 when the user asked for status; the current changes were still local.

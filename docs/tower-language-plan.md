@@ -17,6 +17,10 @@ surface metadata and provenance on those entities for tools and reflection.
 
 ## Dependency order and milestones
 
+The subsequent instruction is to complete this roadmap, not stop after the first
+milestone. The shared compiler infrastructure below is a cross-cutting requirement
+for all remaining stages, including parallel execution at large project sizes.
+
 1. **Structured control flow and collection basics.** Implement statement `match`
    with braced arms, a mandatory final `_` arm, literal alternatives and exactly
    one subject evaluation. Add braced `while`. Lower both to existing Foundation
@@ -95,6 +99,55 @@ surface metadata and provenance on those entities for tools and reflection.
    transitional foreign ABI. Remove superseded helpers when the successor works.
 
 ## Resolution and evaluation details
+
+### Shared data-oriented compiler core
+
+Use Flecs-style component queries and Burst-style compiled batches throughout
+parsing, binding, type/layout resolution, specialization, compile-time evaluation,
+optimization and emission. These are architectural influences, not dependencies
+on Unity, managed runtimes, C++ ECS implementations, or a second compiler IR.
+Result propagation is ordinary typed data/control flow on the same nodes; it does
+not require dispatching an ECS event for each error.
+
+Published inputs/components are immutable for an explicit revision. Tasks declare
+their read and write sets and own scratch allocations. Matching-node lists,
+reverse dependency edges and batches are derived indexes. Repeated passes should
+cache queries and traverse compact typed data where measurements justify it;
+avoid rediscovering the same component through per-node generic lookup in a hot
+loop. Preserve entity identity if storage is packed or split into hot/cold fields.
+Do not scatter the same authoritative metadata into per-backend copies.
+
+Separate parallel computation from structural publication. A worker produces
+owned changes for its task; commit them at deterministic boundaries and invalidate
+the relevant query caches. Disjoint existing payload ranges may admit direct
+writes once alias/read-write contracts prove isolation. Global structural edits,
+entity lifetime/refcounts, allocators and mutable caches must not be raced.
+Stable output/diagnostic order uses semantic source/task keys, never completion
+order or host addresses. Cancellation discards unpublished work and releases its
+owned storage. Externally visible effects retain their ordered execution contract.
+
+The current EntityStore uses ordinary counters/refcounts and mutable per-type
+instance arrays; query cursors are invalidated by structural changes. Its stable
+payload addresses and type index are useful starting points, not a thread-safety
+claim. The compiler also still has a singleton store boundary and mutable session
+caches. Audit/replace those boundaries before enabling concurrent in-process
+writers. Foundation atomics, memory ordering and platform worker contracts need
+Tower semantics/lowering and tests; adding a native shim is not an option.
+
+The executor must support serial interpretation, native worker pools and browser
+workers through one task/dependency contract. Browser workers may begin with
+isolated compilation contexts and canonical Foundation transport; shared Wasm
+memory requires an explicit compatible deployment profile. Compiling a dependency
+twice is not a cache strategy. Share immutable source/content identities and
+bounded versioned results; deduplicate demanded work. A local queue or a parallel
+map helper alone does not complete this infrastructure.
+
+Validate with generated large module/declaration workloads and incremental edits:
+throughput, peak memory, graph/index allocation, cache hit/miss reasons, work/span,
+and scaling at 1/2/4/8 workers. Compare canonical Foundation, artifact bytes,
+diagnostics, compile-time effects and cancellation cleanup across schedules.
+Remove prototype fixed limits only with scalable storage and diagnostic/resource
+budgets, not by changing a magic bound and claiming large-project support.
 
 A query key includes entity identity, query kind, explicit arguments, target and
 semantics profile. Record reads as edges; use unseen/evaluating/ready/failed states
@@ -189,6 +242,13 @@ containers. Benchmark representative compiler workloads before migrating them.
 - [Rust match reference](https://doc.rust-lang.org/reference/expressions/match-expr.html)
   informs the braced arm notation and first matching arm behavior. Tower's initial
   statement form is deliberately smaller than Rust pattern matching.
+- [Flecs queries](https://www.flecs.dev/flecs/Queries.html) and
+  [systems](https://www.flecs.dev/flecs/Systems.html) inform cached matching and
+  component access declarations. Their implementation is not being copied into
+  Tower's owned native boundary.
+- [Unity Burst](https://docs.unity3d.com/Packages/com.unity.burst@1.8/manual/index.html)
+  informs specializing/compiling compact work batches. Batch layout, parallel
+  scheduling and SIMD are distinct decisions and each needs measured evidence.
 
 ## Implementation ledger
 
@@ -197,6 +257,11 @@ containers. Benchmark representative compiler workloads before migrating them.
 - First slice implemented: structured literal match/while, generic stack/queue,
   vector pop and explicit ownership transfer. See [current syntax](tower.md).
   Backend/interpreter/round-trip and publication results are recorded in the journal.
-  Enums,
-  selective imports, full expressions, automatic moves, general foreach,
+  Nominal enums with explicit integer representation, automatic discriminants,
+  enum-member match patterns and canonical Foundation identity are implemented.
+  The shared Tower work graph now schedules compiler type layouts with iterative
+  dependency discovery and cycle paths; it also supports demanded work, failure
+  propagation, revision/profile tickets and cancellation. It is coordinator-owned;
+  concurrent entity mutation and native/browser worker executors remain unfinished.
+  Selective imports, full expressions, automatic moves, general foreach,
   comptime/eval, properties, interfaces and attributes are not implemented yet.

@@ -2,8 +2,29 @@
 
 Use `import tower;` for the language above Foundation. Compiler code can use the
 same layer. The [development plan](tower-language-plan.md) distinguishes the
-implemented features below from upcoming enums, expression syntax, compile-time
+implemented features below from upcoming expression syntax, compile-time
 execution, result types and ownership rules.
+
+## Enums
+
+```tower
+import tower;
+enum State: u32 { Idle, Busy = 4, Done }
+var state: State = State.Done;
+```
+
+An enum is a nominal type with an explicit built-in integer representation.
+Members start at zero or follow the previous discriminant. Explicit signed
+discriminants are supported; duplicate names/values and overflow are errors.
+Use `State.Idle` in values and match patterns. Equality requires the same enum
+type. Integer conversion is explicit; arithmetic/indexing requires conversion
+to an integer first. Members are values, not addressable variables.
+
+Foundation preserves the enum's identity, representation and members with explicit
+discriminants. Tower adds omitted discriminants above that spelling. Explicit
+conversion can produce an unnamed discriminant, so a final match fallback is
+still required. Forward discriminant expressions, flags and closed-enum
+exhaustiveness are not implemented. Editor completion offers enum types and members.
 
 ## Match and loops
 
@@ -25,11 +46,11 @@ while value < 4 {
 }
 ```
 
-`match` is currently a statement over integers or bool. Evaluate the subject
-exactly once, then execute one arm. Patterns are integer/boolean literals;
+`match` is currently a statement over integers, bool or enums. Evaluate the subject
+exactly once, then execute one arm. Patterns are integer/boolean literals or enum members;
 `|` groups alternatives. Duplicate and out-of-range patterns are errors.
 The final `_` arm is required, including for bool. Commas after braced arms are
-optional. There are no guards, bindings, ranges, enum patterns or match expressions
+optional. There are no guards, bindings, ranges or match expressions
 yet. Patterns cannot call named-value functions or arbitrary code.
 
 Every body requires braces and introduces a lexical scope. A match is not a loop:
@@ -92,6 +113,25 @@ by the current boolean collection API.
 
 The playground has **Match** and **Collections** examples. Imported library files
 appear in the builtin tree and can be opened or edited there.
+
+## Compiler work graph
+
+`library/work-graph` is the shared Tower dependency index for compiler execution.
+It deduplicates queries over borrowed shared entities, records dependencies and
+consumers, and yields ready tickets for an executor. Work states are nominal enums.
+Only demanded queries run; failed inputs block their consumers. Tickets include
+the explicit revision and target/semantics profile. Cancellation rejects outstanding
+results. Iterative cycle diagnostics return the actual closed dependency path.
+
+The coordinator owns this mutable index. Workers must own their scratch/results
+and publish through the coordinator; this API does not make the entity store
+thread safe. The current compiler uses the serial executor for type layout.
+Layout dependencies are discovered once, pointer fields do not demand pointee
+layout, and layout kernels consume completed dependency layouts. The former
+128-level layout recursion and 256-type/field caps are removed. Compilation
+node/storage budgets still apply. Native/browser worker executors, access-set
+conflict checking, incremental invalidation and the remaining pass migrations
+are ongoing work, not claims of the current implementation.
 
 ## Validation fixtures
 

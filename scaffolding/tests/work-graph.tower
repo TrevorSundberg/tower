@@ -1,0 +1,351 @@
+import tower;
+import '../library/work-graph';
+
+// Execute a wide fan-out/fan-in graph under different simulated worker counts.
+// Workers write disjoint result slots; the join reads only published results.
+fn work_graph_batches(width: usize): bool {
+    var g: WorkGraph;
+    work_init(&g, 1, 8);
+    var subjects: u8[258];
+    var results: usize[258];
+    var ids: usize[258];
+    var i: usize = 0;
+    while i < 258 {
+        ids[i] = work_request(&g, bits(void*, &subjects[i]), 1, convert(u64, i));
+        results[i] = 0;
+        i = i + 1;
+    }
+    i = 1;
+    while i < 257 {
+        if work_depend(&g, ids[i], ids[0]) {} else {
+            return false;
+        }
+        if work_depend(&g, ids[257], ids[i]) {} else {
+            return false;
+        }
+        i = i + 1;
+    }
+    i = 0;
+    while i < 258 {
+        if work_seal(&g, ids[i]) {} else {
+            return false;
+        }
+        i = i + 1;
+    }
+    if work_demand(&g, ids[257]) {} else {
+        return false;
+    }
+    var tickets: WorkTicket[8];
+    var count: usize = 0;
+    var completed: usize = 0;
+    loop {
+        count = 0;
+        while count < width {
+            if work_take(&g, &tickets[count]) {} else {
+                break;
+            }
+            count = count + 1;
+        }
+        var done = count == 0;
+        if done {
+            break;
+        }
+        while count != 0 {
+            count = count - 1;
+            var task = work_task(&g, tickets[count].task);
+            var index = convert(usize, task.argument);
+            var join = index == 257;
+            if join {
+                var sum: usize = 0;
+                i = 1;
+                while i < 257 {
+                    sum = sum + results[i];
+                    i = i + 1;
+                }
+                var correct = sum == 98688;
+                if correct {} else {
+                    return false;
+                }
+                results[index] = sum;
+            } else {
+                results[index] = index * 3;
+            }
+            if work_finish(&g, &tickets[count], true) {} else {
+                return false;
+            }
+            completed = completed + 1;
+        }
+    }
+    work_dispose(&g);
+    var correct = completed == 258;
+    if correct {
+        correct = results[257] == 98688;
+    }
+    return correct;
+}
+
+fn work_graph_tests(): i32 {
+    var g: WorkGraph;
+    work_init(&g, 10, 8);
+    var subjects: u8[1024];
+    var ids: usize[1024];
+    var i: usize = 0;
+    while i < 1024 {
+        ids[i] = work_request(&g, bits(void*, &subjects[i]), 1, 0);
+        var repeat = work_request(&g, bits(void*, &subjects[i]), 1, 0);
+        var same = repeat == ids[i];
+        if same {} else {
+            return 1;
+        }
+        i = i + 1;
+    }
+    // Diamond/long chain with repeated reads: each logical dependency exists
+    // once. The last, undemanded query must never execute.
+    i = 2;
+    while i < 1023 {
+        var previous = i - 1;
+        if work_depend(&g, ids[i], ids[previous]) {} else {
+            return 2;
+        }
+        if work_depend(&g, ids[i], ids[0]) {} else {
+            return 3;
+        }
+        if work_depend(&g, ids[i], ids[0]) {} else {
+            return 4;
+        }
+        i = i + 1;
+    }
+    var correct = g.edges.length == 2042;
+    if correct {} else {
+        return 5;
+    }
+    i = 0;
+    while i < 1024 {
+        if work_seal(&g, ids[i]) {} else {
+            return 6;
+        }
+        i = i + 1;
+    }
+    if work_demand(&g, ids[1022]) {} else {
+        return 7;
+    }
+    var tickets: WorkTicket[8];
+    var completed: usize = 0;
+    loop {
+        var count: usize = 0;
+        while count < 8 {
+            if work_take(&g, &tickets[count]) {} else {
+                break;
+            }
+            var task = work_task(&g, tickets[count].task);
+            var at = task.dependencies;
+            while at != 0 {
+                var index = at - 1;
+                var edge = &g.edges.data[index];
+                var input = work_task(&g, edge.dependency);
+                correct = input.state == WorkState.Succeeded;
+                if correct {} else {
+                    return 8;
+                }
+                at = edge.next_dependency;
+            }
+            count = count + 1;
+        }
+        var done = count == 0;
+        if done {
+            break;
+        }
+        // Simulate the opposite completion order from dispatch. No dependent
+        // may become runnable until every prerequisite has published success.
+        while count != 0 {
+            count = count - 1;
+            tickets[count].profile = 4;
+            if work_finish(&g, &tickets[count], true) {
+                return 9;
+            }
+            tickets[count].profile = 8;
+            if work_finish(&g, &tickets[count], true) {} else {
+                return 10;
+            }
+            if work_finish(&g, &tickets[count], true) {
+                return 11;
+            }
+            completed = completed + 1;
+        }
+    }
+    correct = completed == 1023;
+    if correct {} else {
+        return 12;
+    }
+    var unused = work_task(&g, ids[1023]);
+    correct = unused.state == WorkState.Waiting;
+    if correct {} else {
+        return 13;
+    }
+    if unused.demanded {
+        return 14;
+    }
+    // A new query can consume cached completed work without recomputing it.
+    var next = work_request(&g, bits(void*, &subjects[0]), 2, 0);
+    if work_depend(&g, next, ids[1022]) {} else {
+        return 15;
+    }
+    if work_seal(&g, next) {} else {
+        return 16;
+    }
+    if work_demand(&g, next) {} else {
+        return 17;
+    }
+    if work_take(&g, &tickets[0]) {} else {
+        return 18;
+    }
+    work_cancel(&g);
+    if work_finish(&g, &tickets[0], true) {
+        return 19;
+    }
+    work_dispose(&g);
+
+    // Actual cycle path, including a noncyclic prefix and repeatable queries.
+    work_init(&g, 11, 8);
+    i = 0;
+    while i < 1024 {
+        ids[i] = work_request(&g, bits(void*, &subjects[i]), 1, 0);
+        i = i + 1;
+    }
+    i = 0;
+    while i < 1023 {
+        var following = i + 1;
+        if work_depend(&g, ids[i], ids[following]) {} else {
+            return 20;
+        }
+        i = following;
+    }
+    if work_depend(&g, ids[1023], ids[1000]) {} else {
+        return 21;
+    }
+    i = 0;
+    while i < 1024 {
+        if work_seal(&g, ids[i]) {} else {
+            return 22;
+        }
+        i = i + 1;
+    }
+    if work_demand(&g, ids[0]) {} else {
+        return 23;
+    }
+    if work_take(&g, &tickets[0]) {
+        return 24;
+    }
+    var cycle: vector(usize);
+    vector_init(usize, &cycle);
+    if work_cycle(&g, ids[0], &cycle) {} else {
+        return 25;
+    }
+    correct = cycle.length == 25;
+    if correct {} else {
+        return 26;
+    }
+    correct = cycle.data[0] == ids[1000];
+    if correct {} else {
+        return 27;
+    }
+    correct = cycle.data[24] == ids[1000];
+    if correct {} else {
+        return 28;
+    }
+    if work_cycle(&g, ids[0], &cycle) {} else {
+        return 29;
+    }
+    vector_dispose(usize, &cycle);
+    work_dispose(&g);
+
+    // Failure blocks the dependent but independent demanded work still finishes.
+    work_init(&g, 12, 8);
+    var a = work_request(&g, bits(void*, &subjects[0]), 1, 0);
+    var b = work_request(&g, bits(void*, &subjects[1]), 1, 0);
+    var c = work_request(&g, bits(void*, &subjects[2]), 1, 0);
+    if work_depend(&g, b, a) {} else {
+        return 30;
+    }
+    if work_seal(&g, a) {} else {
+        return 31;
+    }
+    if work_seal(&g, b) {} else {
+        return 32;
+    }
+    if work_seal(&g, c) {} else {
+        return 33;
+    }
+    if work_demand(&g, b) {} else {
+        return 34;
+    }
+    if work_demand(&g, c) {} else {
+        return 35;
+    }
+    if work_take(&g, &tickets[0]) {} else {
+        return 36;
+    }
+    if work_take(&g, &tickets[1]) {} else {
+        return 37;
+    }
+    if work_finish(&g, &tickets[0], false) {} else {
+        return 38;
+    }
+    if work_finish(&g, &tickets[1], true) {} else {
+        return 39;
+    }
+    var task = work_task(&g, b);
+    correct = task.state == WorkState.Failed;
+    if correct {} else {
+        return 40;
+    }
+    if work_take(&g, &tickets[0]) {
+        return 41;
+    }
+    var late = work_request(&g, bits(void*, &subjects[3]), 1, 0);
+    var later = work_request(&g, bits(void*, &subjects[4]), 1, 0);
+    if work_depend(&g, late, a) {} else {
+        return 43;
+    }
+    if work_depend(&g, later, late) {} else {
+        return 44;
+    }
+    // A consumer may be sealed before its prerequisite. A known failed input
+    // must propagate through that already-sealed consumer too.
+    if work_seal(&g, later) {} else {
+        return 45;
+    }
+    if work_seal(&g, late) {} else {
+        return 46;
+    }
+    if work_demand(&g, later) {} else {
+        return 47;
+    }
+    task = work_task(&g, later);
+    correct = task.state == WorkState.Failed;
+    if correct {} else {
+        return 48;
+    }
+    if work_take(&g, &tickets[0]) {
+        return 49;
+    }
+    if work_ok(&g) {} else {
+        return 42;
+    }
+    work_dispose(&g);
+    if work_graph_batches(1) {} else {
+        return 50;
+    }
+    if work_graph_batches(2) {} else {
+        return 51;
+    }
+    if work_graph_batches(4) {} else {
+        return 52;
+    }
+    if work_graph_batches(8) {} else {
+        return 53;
+    }
+    return 0;
+}
+
+print(work_graph_tests());

@@ -42,6 +42,10 @@ fn sem_location(c: SemanticContext*, n: void*, depth: u32): void* {
     if step13 {
         return n;
     }
+    if sem_enum_operand(c, n) {
+        sem_fail(c, n, "An enum member is a value, not an addressable location");
+        return n;
+    }
     var step14 = sem_is(n, "CoreLocation");
     var step15 = step14 == false;
     var step16 = step15;
@@ -110,7 +114,7 @@ fn sem_location(c: SemanticContext*, n: void*, depth: u32): void* {
         }
         var step41 = semantic_aggregate(&value.type);
         if step41 {
-            sem_layout(c, value.type.record, 0);
+            sem_layout(c, value.type.record);
         }
         var step42 = semantic_size(&value.type);
         var step43 = step42 == 0;
@@ -136,6 +140,9 @@ fn sem_location(c: SemanticContext*, n: void*, depth: u32): void* {
         }
         var step49 = sem_get(value.right);
         var step50 = semantic_integer(&step49.type);
+        if semantic_enum(&step49.type) {
+            step50 = false;
+        }
         var step51 = step50 == false;
         if step51 {
             sem_fail(c, index, "An index must be an integer");
@@ -186,7 +193,7 @@ fn sem_location(c: SemanticContext*, n: void*, depth: u32): void* {
         sem_fail(c, n, "Field access requires a struct or a single pointer to a struct");
         return n;
     }
-    sem_layout(c, parent.record, 0);
+    sem_layout(c, parent.record);
     var step72 = sem_ok(c);
     var step73 = step72 == false;
     if step73 {
@@ -382,8 +389,10 @@ fn sem_operand_impl(c: SemanticContext*, n: void*, expected_type: FoundationType
             var step41 = sem_literal(c, n);
             var step42 = step41 == false;
             if step42 {
-                var step43 = sem_location(c, n, 0);
-                n = step43;
+                if sem_enum_operand(c, n) {} else {
+                    var step43 = sem_location(c, n, 0);
+                    n = step43;
+                }
             }
         }
     }
@@ -403,6 +412,17 @@ fn sem_operand_impl(c: SemanticContext*, n: void*, expected_type: FoundationType
     var text: u8* = step49;
     var step50 = sem_literal(c, n);
     if step50 {
+        var nominal = expected_type != null;
+        if nominal {
+            nominal = expected_type.pointers == 0;
+        }
+        if nominal {
+            nominal = semantic_enum(expected_type);
+        }
+        if nominal {
+            sem_fail(c, n, "Enum values require a named member or an explicit conversion");
+            return n;
+        }
         value.constant = true;
         var step51 = sem_equal(text, "true");
         var step52 = step51;
@@ -818,7 +838,7 @@ fn sem_builtin(c: SemanticContext*, n: void*, kind: u32, args: vector(void*)*): 
                 sem_set_type(&value.element, step40);
                 var step41 = semantic_aggregate(&value.element);
                 if step41 {
-                    sem_layout(c, value.element.record, 0);
+                    sem_layout(c, value.element.record);
                 }
                 sem_set_type(&value.type, size);
             } else {
@@ -834,7 +854,7 @@ fn sem_builtin(c: SemanticContext*, n: void*, kind: u32, args: vector(void*)*): 
                     sem_set_type(&value.element, step46);
                     var step47 = semantic_aggregate(&value.element);
                     if step47 {
-                        sem_layout(c, value.element.record, 0);
+                        sem_layout(c, value.element.record);
                     }
                     var step48 = semantic_size(&value.element);
                     var step49 = step48 == 0;
@@ -1242,6 +1262,20 @@ fn sem_expression(c: SemanticContext*, n: void*, expected_type: FoundationType*)
             }
             var step55 = sem_operand(c, left, input);
             value.left = step55;
+            var nominal = input.pointers == 0;
+            if nominal {
+                nominal = semantic_enum(input);
+            }
+            if nominal {
+                var equality = value.op == OEq();
+                var inequality = value.op == ONe();
+                if inequality {
+                    equality = true;
+                }
+                if equality {} else {
+                    sem_fail(c, n, "Enum operations require equality or an explicit integer conversion");
+                }
+            }
             var step56 = sem_ok(c);
             var step57 = step56 == false;
             if step57 {
@@ -1286,6 +1320,9 @@ fn sem_expression(c: SemanticContext*, n: void*, expected_type: FoundationType*)
             if pointer_offset {
                 var step70 = sem_get(value.right);
                 var step71 = semantic_integer(&step70.type);
+                if semantic_enum(&step70.type) {
+                    step71 = false;
+                }
                 var step72 = step71 == false;
                 if step72 {
                     sem_fail(c, n, "A pointer offset must be an integer");
@@ -1295,7 +1332,7 @@ fn sem_expression(c: SemanticContext*, n: void*, expected_type: FoundationType*)
                 element.pointers = element.pointers - 1;
                 var step74 = semantic_aggregate(element);
                 if step74 {
-                    sem_layout(c, element.record, 0);
+                    sem_layout(c, element.record);
                 }
                 var step75 = semantic_size(element);
                 var step76 = step75 == 0;

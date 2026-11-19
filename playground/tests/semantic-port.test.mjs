@@ -32,7 +32,7 @@ test('Tower semantic compiler preserves layouts, bindings, templates, and Founda
 
 // Behavioral checks live in Tower; this adapter runs the same fixtures through
 // the browser transports and checks their failure-code output and round trips.
-for(const [name,output] of [['language-control','42\n0\n'],['language-collections','0\n']]) {
+for(const [name,output] of [['language-control','42\n0\n'],['language-collections','0\n'],['language-enums','0\n'],['work-graph','0\n'],['backend-stack','0\n']]) {
  test(`Tower ${name} agrees across graph, fast, LLVM and Foundation text`,async()=>{
   const source=(await read(`scaffolding/tests/${name}.tower`)).toString();
   tower.configureModules({entry:`.tower/tests/${name}.tower`});
@@ -86,6 +86,10 @@ test('Tower semantic diagnostics agree between interpreter and LLVM entry points
   ['match-duplicate',/Duplicate match pattern/],['match-range',/Integer literal out of range for u8/],
   ['match-type',/An integer literal needs an integer type/],['match-scope',/Unknown local 'local'/],
   ['match-break',/CoreBreak requires an enclosing loop/],['while-type',/Expected bool, got i32/],
+  ['enum-mix',/Expected Left, got Right/],['enum-number',/Enum values require a named member/],
+  ['enum-overflow',/Enum discriminant overflow/],['enum-duplicate',/Duplicate enum discriminant/],
+  ['enum-operation',/Enum operations require equality/],
+  ['enum-address',/not an addressable location/],['enum-index',/index must be an integer/],
  ]){
   const text=(await read(`scaffolding/tests/semantic-invalid/${name}.tower`)).toString();
   let error,offset;
@@ -97,6 +101,31 @@ test('Tower semantic diagnostics agree between interpreter and LLVM entry points
   const result=llvm.compile(text);assert.equal(result.status,'error',name);
   assert.equal(result.error,error);assert.equal(result.errorOffset,offset);
  }
+});
+
+test('Tower-generated deep layout dependencies compile without recursive traversal',async()=>{
+ const generator=(await read('scaffolding/tests/layout-depth-source.tower')).toString();
+ tower.configureModules({entry:'.tower/tests/layout-depth-source.tower'});
+ const generated=tower.compile(generator);
+ let source;
+ try {
+  tower.useFast(generated);
+  let result;
+  do { result=tower.execute(generated,100000); } while(result.status==='executing');
+  assert.equal(result.status,'done',result.error);
+  source=result.output;
+ } finally { tower.destroyExecution(generated); }
+ for(const pointerBytes of [4,8]) {
+  const h=tower.compile(source,{pointerBytes});
+  try {
+   const result=tower.execute(h,100000);
+   assert.equal(result.status,'done',result.error);
+   assert.equal(result.output,'0\n');
+  } finally { tower.destroyExecution(h); }
+ }
+ const result=llvm.compile(source);
+ assert.equal(result.status,'compiled',result.error);
+ assert.equal((await executeWasm(result)).output,'0\n');
 });
 
 test('Tower control-flow parser rejects incomplete and unbraced bodies',async()=>{

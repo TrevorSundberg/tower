@@ -33,6 +33,14 @@ test('member completion follows typed declarations to shared struct fields', () 
   assert.deepEqual(labels('fn f(point: Point*): void { point.x| } struct Point { x: i32; y: i32; }'), ['x']);
   assert.deepEqual(labels('struct A { first: i32; } struct B { second: i32; } fn f(point: A*): void { point.| } var point: B;'), ['first']);
 });
+
+test('enum completion uses the shared type and member declarations', async () => {
+  const source = (await read('scaffolding/tests/language-enums.tower')).toString();
+  assert.deepEqual(labels(source+'\nState.|'), ['Idle','Busy','Done']);
+  assert.ok(labels(source+'\nvar state: St|').includes('State'));
+  assert.ok(!labels(source+'\n|').includes('Busy'));
+  assert.deepEqual(labels(source+'\nvar state: State = State.Idle; state.|'), []);
+});
 test('project declarations contribute globals without leaking locals', () => {
   const files = [{path:'lib/helper.tower',text:'import tower; fn helper(secret: i32): void {} struct Point { x: i32; } var shared: i32 = 1;'}];
   const names = labels('import tower; import "lib/helper"; |', {files});

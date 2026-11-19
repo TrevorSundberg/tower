@@ -1,0 +1,5 @@
+import tower;
+enum State: u32 {
+    Ready
+}
+var p = &State.Ready;

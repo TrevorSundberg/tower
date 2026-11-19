@@ -1,0 +1,8 @@
+import tower;
+enum Left: i32 {
+    Value
+}
+enum Right: i32 {
+    Value
+}
+var value: Left = Right.Value;

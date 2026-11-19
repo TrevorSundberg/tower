@@ -32,8 +32,7 @@ fn sem_context_init(c: SemanticContext*, program: SemanticProgram*): void {
     c.source_bases = step9;
     var step10 = sem_table(c);
     c.fields_done = step10;
-    var step11 = sem_table(c);
-    c.layout_state = step11;
+    work_init(&c.layout_work, 1, convert(u64, program.pointer_bytes));
     var step12 = sem_table(c);
     c.declaration_state = step12;
     var step13 = sem_scope(c, null);
@@ -54,6 +53,7 @@ fn sem_context_init(c: SemanticContext*, program: SemanticProgram*): void {
 }
 
 fn sem_context_dispose(c: SemanticContext*): void {
+    work_dispose(&c.layout_work);
     var i: usize = 0;
     loop {
         var step1 = i < c.lists.length;

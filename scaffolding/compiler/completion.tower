@@ -650,6 +650,9 @@ export fn completion_offer(q: CompletionQuery*, name: u8*, kind: u8*, detail: u8
                 if sem_equal(name, "struct") {
                     return;
                 }
+                if sem_equal(name, "enum") {
+                    return;
+                }
                 if sem_equal(name, "export") {
                     return;
                 }
@@ -703,6 +706,9 @@ export fn completion_offer(q: CompletionQuery*, name: u8*, kind: u8*, detail: u8
                 mode = 1;
             }
             var editor_condition17 = q.editor.kind == 3;
+            if q.editor.kind == EditorEnumMembers() {
+                editor_condition17 = true;
+            }
             if editor_condition17 {
                 mode = 3;
             }
@@ -840,6 +846,9 @@ fn completion_semantic_node(q: CompletionQuery*, node: void*, kind: u8*, categor
             if semantic_integer(&value.type) {} else {
                 return;
             }
+            if semantic_enum(&value.type) {
+                return;
+            }
         }
         if q.editor.has_expected {
             if semantic_type_equal(&value.type, &q.editor.type) {} else {
@@ -942,8 +951,15 @@ export fn completion_symbols(q: CompletionQuery*): void {
         return;
     }
     var editor_condition25 = q.editor.kind == 3;
+    var enum_members = q.editor.kind == EditorEnumMembers();
+    if enum_members {
+        editor_condition25 = true;
+    }
     if editor_condition25 {
         var editor_condition26 = q.editor.receiver.scalar != SStruct();
+        if enum_members {
+            editor_condition26 = semantic_enum(&q.editor.receiver) == false;
+        }
         if editor_condition26 {
             return;
         }

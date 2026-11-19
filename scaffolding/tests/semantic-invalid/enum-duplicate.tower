@@ -1,0 +1,4 @@
+import tower;
+enum State: u8 {
+    First = 0, Same = 0
+}

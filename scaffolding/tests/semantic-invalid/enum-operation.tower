@@ -1,0 +1,5 @@
+import tower;
+enum State: u32 {
+    Idle, Busy
+}
+var value = State.Idle + State.Busy;

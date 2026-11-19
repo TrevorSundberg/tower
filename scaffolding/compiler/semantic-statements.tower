@@ -447,6 +447,10 @@ fn sem_statement(c: SemanticContext*, n: void*, depth: u32): u32 {
     if sem_is(n, "TowerWhile") {
         return sem_control_while(c, n, depth);
     }
+    if sem_is(n, "CoreEnum") {
+        sem_fail(c, n, "Enum types must be declared at top level");
+        return FlowNext();
+    }
     var step4 = sem_label(n);
     var kind: u8* = step4;
     var step5 = sem_equal(kind, "CoreDeclare");
@@ -821,6 +825,9 @@ fn sem_run(c: SemanticContext*): void {
         if step18 {
             sem_type_header(c, n, "");
         }
+        if sem_is(n, "CoreEnum") {
+            sem_enum_header(c, n);
+        }
         i = i + 1;
     }
     i = 8;
@@ -841,6 +848,9 @@ fn sem_run(c: SemanticContext*): void {
         if step24 {
             sem_type_fields(c, n);
         }
+        if semantic_enum(&step23.type) {
+            sem_enum_fields(c, n);
+        }
         i = i + 1;
     }
     i = 8;
@@ -855,7 +865,7 @@ fn sem_run(c: SemanticContext*): void {
         if step28 {
             break;
         }
-        sem_layout(c, c.program.types.data[i], 0);
+        sem_layout(c, c.program.types.data[i]);
         i = i + 1;
     }
     i = 0;
@@ -952,6 +962,9 @@ fn sem_run(c: SemanticContext*): void {
         var step59 = step58;
         if step59 {
             var step60 = sem_is(n, "CoreStruct");
+            if sem_is(n, "CoreEnum") {
+                step60 = true;
+            }
             var step61 = step60 == false;
             step59 = step61;
         }
@@ -1044,7 +1057,7 @@ fn sem_run(c: SemanticContext*): void {
         if step89 {
             break;
         }
-        sem_layout(c, c.program.types.data[i], 0);
+        sem_layout(c, c.program.types.data[i]);
         i = i + 1;
     }
     var step90 = foundation_nodes_prepend(statements, c.generated.data, c.generated.length);

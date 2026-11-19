@@ -1,4 +1,6 @@
 import tower;
+import 'semantic-enums';
+import 'semantic-layout';
 
 // Semantic compiler over shared Foundation components.
 // Temporary indexes and scratch allocations are scoped to one compilation.
@@ -759,11 +761,8 @@ fn sem_type_header(c: SemanticContext*, n: void*, name: u8*): void {
         sem_fail(c, n, step22);
         return;
     }
-    var step23 = c.program.types.length >= 260;
-    if step23 {
-        sem_fail(c, n, "Foundation struct type limit is 256");
-        return;
-    }
+    // Names use the shared hash index; layouts use the iterative work graph.
+    // The compilation node/storage budgets apply instead of a 256-type cap.
     var step24 = sem_type_new(c, SStruct(), 0, n);
     sem_set_type(&t.type, step24);
     sem_put(c, c.types, name, n);
@@ -837,11 +836,6 @@ fn sem_type_fields(c: SemanticContext*, n: void*): void {
             sem_fail(c, field, "A field cannot have void type");
         }
         sem_push(&t.items, field);
-        var step30 = t.items.length > 256;
-        if step30 {
-            sem_fail(c, field, "Foundation field limit is 256");
-            return;
-        }
         i = i + 1;
     }
 }
@@ -854,106 +848,6 @@ fn sem_round(size: usize, alignment: usize): usize {
     return step4;
 }
 
-fn sem_layout(c: SemanticContext*, n: void*, depth: u32): void {
-    var step1 = sem_state(c, c.layout_state, n);
-    var state: SemanticEntry* = step1;
-    var step2 = sem_ok(c);
-    var step3 = step2 == false;
-    var step4 = step3;
-    var step5 = step4 == false;
-    if step5 {
-        var step6 = state.number == 2;
-        step4 = step6;
-    }
-    if step4 {
-        return;
-    }
-    var step7 = sem_get(n);
-    var t: FoundationNode* = step7;
-    var step8 = state.number == 1;
-    if step8 {
-        var step9 = sem_name(t);
-        var step10 = sem_cat(c, "Recursive by-value layout for '", step9);
-        var step11 = sem_cat(c, step10, "'; use a pointer");
-        sem_fail(c, n, step11);
-        return;
-    }
-    var step12 = depth > 128;
-    if step12 {
-        sem_fail(c, n, "Foundation type nesting limit is 128");
-        return;
-    }
-    state.number = 1;
-    t.size = 0;
-    var step13 = t.type.scalar == SArray();
-    if step13 {
-        var step14 = semantic_aggregate(&t.element);
-        if step14 {
-            var step15 = depth + 1;
-            sem_layout(c, t.element.record, step15);
-        }
-        var step16 = semantic_size(&t.element);
-        var size: usize = step16;
-        var limit: usize = 4194304;
-        var step17 = limit / t.length;
-        var step18 = size > step17;
-        if step18 {
-            sem_fail(c, n, "Array storage exceeds 4 MiB");
-        }
-        var step19 = size * t.length;
-        t.size = step19;
-        var step20 = semantic_alignment(&t.element);
-        t.alignment = step20;
-        state.number = 2;
-        return;
-    }
-    var i: usize = 0;
-    loop {
-        var step21 = i < t.items.length;
-        var step22 = step21 == false;
-        if step22 {
-            break;
-        }
-        var field: void* = t.items.data[i];
-        var step23 = sem_get(field);
-        var f: FoundationNode* = step23;
-        var step24 = semantic_aggregate(&f.type);
-        if step24 {
-            var step25 = depth + 1;
-            sem_layout(c, f.type.record, step25);
-        }
-        var step26 = sem_ok(c);
-        var step27 = step26 == false;
-        if step27 {
-            return;
-        }
-        var step28 = semantic_alignment(&f.type);
-        var alignment: usize = step28;
-        var step29 = alignment > t.alignment;
-        if step29 {
-            t.alignment = alignment;
-        }
-        var step30 = sem_round(t.size, alignment);
-        f.byte_offset = step30;
-        var step31 = semantic_size(&f.type);
-        var step32 = f.byte_offset + step31;
-        t.size = step32;
-        var step33 = t.size > 4194304;
-        if step33 {
-            sem_fail(c, field, "Foundation struct storage exceeds 4 MiB");
-            return;
-        }
-        i = i + 1;
-    }
-    var step34 = sem_round(t.size, t.alignment);
-    t.size = step34;
-    var step35 = t.size == 0;
-    if step35 {
-        t.size = 1;
-    }
-    state.number = 2;
-}
-
 fn sem_add_local(c: SemanticContext*, n: void*): void {
     var step1 = sem_get(n);
     var local: FoundationNode* = step1;
@@ -961,7 +855,7 @@ fn sem_add_local(c: SemanticContext*, n: void*): void {
     var function: FoundationNode* = step2;
     var step3 = semantic_aggregate(&local.type);
     if step3 {
-        sem_layout(c, local.type.record, 0);
+        sem_layout(c, local.type.record);
     }
     var step4 = semantic_alignment(&local.type);
     var alignment: usize = step4;

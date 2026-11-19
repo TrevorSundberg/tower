@@ -184,8 +184,18 @@ fn sem_control_match(c: SemanticContext*, n: void*, depth: u32): u32 {
             if done {
                 break;
             }
-            var pattern = sem_operand(c, choices.data[j], type);
+            var syntax = choices.data[j];
+            var single = sem_child_count(syntax) == 1;
+            if single {
+                syntax = sem_child(syntax, 0);
+            }
+            var pattern = sem_operand(c, syntax, type);
             if sem_ok(c) {} else {
+                return FlowNext();
+            }
+            var literal = sem_get(pattern);
+            if literal.constant {} else {
+                sem_fail(c, syntax, "Match patterns must be literals or enum members");
                 return FlowNext();
             }
             var k: usize = 0;

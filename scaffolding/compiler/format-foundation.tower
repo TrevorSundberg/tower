@@ -8,6 +8,8 @@ extern fn semantic_operator(op: u32): u8*;
 
 extern fn semantic_scalar_name(scalar: u32): u8*;
 
+extern fn semantic_enum(t: FoundationType*): bool;
+
 extern fn semantic_signed(t: FoundationType*): bool;
 
 extern fn semantic_mask(t: FoundationType*): u64;
@@ -187,6 +189,9 @@ fn format_array(t: FoundationType*): bool {
 
 fn format_record(t: FoundationType*): bool {
     var selected = t.scalar == SStruct();
+    if semantic_enum(t) {
+        selected = true;
+    }
     return selected;
 }
 
@@ -318,6 +323,18 @@ fn format_expression(f: FormatEngine*, entity: void*): void {
     var condition9 = format_is_Operand(n);
     if condition9 {
         if n.constant {
+            var nominal = n.type.pointers == 0;
+            if nominal {
+                nominal = semantic_enum(&n.type);
+            }
+            if nominal {
+                var member = format_foundation(f, n.binding);
+                var definition = format_foundation(f, n.type.record);
+                format_identifier(f, &definition.name);
+                format_text(f, ".");
+                format_identifier(f, &member.name);
+                return;
+            }
             var condition10 = n.type.pointers != 0;
             if condition10 {
                 format_text(f, "null");
@@ -563,6 +580,32 @@ fn format_statement_body(f: FormatEngine*, entity: void*): void {
     }
     var condition38 = format_is_Type(n);
     if condition38 {
+        if semantic_enum(&n.type) {
+            format_text(f, "enum ");
+            format_identifier(f, &n.name);
+            format_text(f, ": ");
+            format_type(f, &n.element);
+            format_text(f, " {\n");
+            f.result.depth = f.result.depth + 1;
+            var i: usize = 0;
+            loop {
+                var done = i == n.items.length;
+                if done {
+                    break;
+                }
+                var member = format_foundation(f, n.items.data[i]);
+                format_indent(f);
+                format_identifier(f, &member.name);
+                format_text(f, " = ");
+                format_number(f, member);
+                format_text(f, ",\n");
+                i = i + 1;
+            }
+            f.result.depth = f.result.depth - 1;
+            format_indent(f);
+            format_text(f, "}");
+            return;
+        }
         format_text(f, "struct ");
         format_identifier(f, &n.name);
         format_text(f, " {\n");

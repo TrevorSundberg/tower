@@ -1,4 +1,5 @@
 import tower;
+import 'coff-import';
 
 // Link plans are transport-independent argument lists for upstream LLD.
 // Native hosts execute the bundled upstream tool; WASI invokes its pinned ABI.
@@ -40,6 +41,8 @@ fn backend_link_argument(link: BackendLink*, prefix: u8*, value: u8*): void {
 }
 
 export fn backend_link_reset_plan(link: BackendLink*): void {
+    remove("tower-stack-probe.lib");
+    remove("tower-platform.tbd");
     var i: usize = 0;
     loop {
         var done = i == link.arguments.length;
@@ -399,6 +402,35 @@ export fn backend_link_plan(link: BackendLink*, triple: u8*, functions: void**, 
         i = i + 1;
     }
     vector_dispose(usize, &order);
+    if windows {
+        // LLVM's Windows x64 prologue calls the OS stack probe for large frames.
+        // Keep guard-page probing and its special ABI; never replace it with a
+        // normal Tower-call wrapper or disable probes to silence a link error.
+        var archive: vector(u8);
+        vector_init(u8, &archive);
+        ok = coff_import_archive(&archive, CoffMachineAmd64(), "__chkstk", "kernelbase.dll");
+        if ok {
+            ok = backend_write_file(link, "tower-stack-probe.lib", archive.data, archive.length);
+        } else {
+            backend_text(&link.error, "Unable to allocate Windows stack-probe import metadata");
+        }
+        vector_dispose(u8, &archive);
+        if ok {} else {
+            return false;
+        }
+        backend_link_argument(link, "", "tower-stack-probe.lib");
+    }
+    if mac {
+        // LLVM may lower zero-fill to Darwin's __bzero. Supplement the caller's
+        // SDK description with that existing libSystem symbol; no replacement
+        // implementation or additional runtime library is introduced.
+        var symbols: u8* = "--- !tapi-tbd\ntbd-version: 4\ntargets: [ x86_64-macos, arm64-macos ]\ninstall-name: '/usr/lib/libSystem.B.dylib'\ncurrent-version: 1\ncompatibility-version: 1\nexports:\n  - targets: [ x86_64-macos ]\n    symbols: [ ___bzero, _bzero ]\n  - targets: [ arm64-macos ]\n    symbols: [ _bzero ]\n...\n";
+        ok = backend_write_file(link, "tower-platform.tbd", symbols, backend_length(symbols));
+        if ok {} else {
+            return false;
+        }
+        backend_link_argument(link, "", "tower-platform.tbd");
+    }
     i = 1;
     loop {
         var done = i >= count;

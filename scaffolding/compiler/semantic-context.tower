@@ -1,4 +1,5 @@
 import tower;
+import '../library/work-graph';
 
 // Transitional native boundary uses these exact layouts. Semantic results live
 // on FoundationNode components; lists below are derived indexes, never an IR.
@@ -28,6 +29,8 @@ struct SemanticScope {
     parent: SemanticScope*;
     names: SemanticTable*;
 }
+
+const EditorEnumMembers: u32 = 5;
 
 // Optional editor observation of ordinary resolution. The hole is identified by
 // source coordinates, never by a reserved identifier or an independent AST.
@@ -67,7 +70,7 @@ struct SemanticContext {
     source_names: SemanticTable*;
     source_bases: SemanticTable*;
     fields_done: SemanticTable*;
-    layout_state: SemanticTable*;
+    layout_work: WorkGraph;
     declaration_state: SemanticTable*;
     control_names: SemanticTable*;
     scope: SemanticScope*;

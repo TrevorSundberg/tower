@@ -1,0 +1,6 @@
+import tower;
+enum Index: u32 {
+    First
+}
+var values: i32[2];
+print(values[Index.First]);

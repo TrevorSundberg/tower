@@ -33,6 +33,19 @@ export fn semantic_type_equal(a: FoundationType*, b: FoundationType*): bool {
     return true;
 }
 
+// Scalar representation plus nominal entity identity; pointers retain that
+// identity too. Built-in scalars have no record, aggregates have their own tags.
+export fn semantic_enum(t: FoundationType*): bool {
+    var nominal = t.record != null;
+    if nominal {
+        nominal = t.scalar != SStruct();
+    }
+    if nominal {
+        nominal = t.scalar != SArray();
+    }
+    return nominal;
+}
+
 export fn semantic_aggregate(t: FoundationType*): bool {
     var step1 = t.pointers == 0;
     var step2 = step1;
@@ -335,6 +348,9 @@ fn sem_type_name(c: SemanticContext*, t: FoundationType*): u8* {
         name = step8;
     } else {
         var step9 = t.scalar == SStruct();
+        if semantic_enum(t) {
+            step9 = true;
+        }
         if step9 {
             var step10 = sem_get(t.record);
             var step11 = sem_name(step10);

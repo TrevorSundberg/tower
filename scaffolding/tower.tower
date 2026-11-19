@@ -9,9 +9,11 @@ parse TowerExportedConstant = 'export' 'const' $name:Identifier ':' $type:CoreTy
     => replace { export fn $name(): $type { var result: $type = $value; return result; } };
 parse Statement |= TowerConstant | TowerExportedConstant;
 
+parse CoreEnumMember |= $name:Identifier;
+
 // Structured surface control flow. Tower semantic lowering attaches only existing
 // Foundation operations to these shared nodes; every body is a lexical block.
-parse TowerMatchLiteral = Number | '-' Number | 'true' | 'false';
+parse TowerMatchLiteral = Number | '-' Number | 'true' | 'false' | CoreLocation;
 parse TowerMatchPatterns = TowerMatchLiteral | TowerMatchPatterns '|' TowerMatchLiteral;
 parse TowerMatchArm = $patterns:TowerMatchPatterns '=>' $body:CoreBlock ','?;
 parse TowerMatchDefault = '_' '=>' $body:CoreBlock ','?;

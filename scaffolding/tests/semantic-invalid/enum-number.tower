@@ -1,0 +1,5 @@
+import tower;
+enum State: u32 {
+    Idle
+}
+var value: State = 0;

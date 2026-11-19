@@ -1,0 +1,87 @@
+import tower;
+
+enum State: u32 {
+    Idle, Busy = 4, Done
+}
+enum Signed: i32 {
+    Negative = -2, Next, Zero
+}
+enum Tiny: u8 {
+    First = 254, Last
+}
+
+fn identity(T: type, value: T): T {
+    return value;
+}
+
+fn describe(value: State): i32 {
+    match value {
+        State.Idle => {
+            return 10;
+        }
+        State.Busy | State.Done => {
+            return 20;
+        }
+        _ => {
+            return 30;
+        }
+    }
+}
+
+fn enum_tests(): i32 {
+    var state: State = State.Idle;
+    var good = state == State.Idle;
+    if good {} else {
+        return 1;
+    }
+    state = identity(State, State.Done);
+    good = state != State.Busy;
+    if good {} else {
+        return 2;
+    }
+    good = convert(u32, state) == 5;
+    if good {} else {
+        return 3;
+    }
+    good = describe(state) == 20;
+    if good {} else {
+        return 4;
+    }
+    var unknown = convert(State, 99);
+    good = describe(unknown) == 30;
+    if good {} else {
+        return 5;
+    }
+    good = convert(i32, Signed.Next) == -1;
+    if good {} else {
+        return 6;
+    }
+    good = convert(i32, Signed.Zero) == 0;
+    if good {} else {
+        return 7;
+    }
+    good = sizeof(Tiny) == 1;
+    if good {} else {
+        return 8;
+    }
+    good = convert(u8, Tiny.Last) == 255;
+    if good {} else {
+        return 9;
+    }
+    var pointer = &state;
+    *pointer = State.Busy;
+    good = state == State.Busy;
+    if good {} else {
+        return 10;
+    }
+    var values: State[2];
+    values[0] = State.Idle;
+    values[1] = State.Done;
+    good = values[1] == State.Done;
+    if good {} else {
+        return 11;
+    }
+    return 0;
+}
+
+print(enum_tests());
