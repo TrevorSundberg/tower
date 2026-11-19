@@ -11742,3 +11742,21 @@ contain the frontend/allocator checkpoint, but not this integration's additional
 host/interpreter storage ports. They are neither rolled back nor represented as
 newly rebuilt here. The final combined deployment receives another local/live
 verification; no force push or overwrite of unrelated published assets is used.
+
+Publication completed and verified. Source branch port/host-runtime-integration
+was pushed through 6ac1131 after a merge-preserving pull from master. Pages
+1d828a2 is a normal fast-forward from fbb591f; only tower.wasm and
+deployment-manifest.json changed. GitHub Actions run 44562179111 reports success
+for that exact Pages commit. All other published assets retain fbb591f's bytes.
+
+Both the final local combined deployment and the live command
+`node playground/scripts/verify-deployment.mjs https://trevorsundberg.github.io/tower/`
+exited zero. The live site serves all 36 expected asset hashes; desktop and
+mobile passed backend agreement, forward bindings, editable grammar, project
+persistence, native builds/downloads, layout and target-selection checks.
+Evidence: build/host-publication-local.log, build/host-integration-live.log and
+build/host-integration-live-report.json. The Windows browser host does not
+exercise the verifier's Linux-host-only detection case. The final journal-only
+commit changes no deployment artifact; the checkout and Pages worktree are
+clean, and todo.txt is unchanged. The outstanding portable/self-hosting gates
+above remain open; successful publication is not their completion.
