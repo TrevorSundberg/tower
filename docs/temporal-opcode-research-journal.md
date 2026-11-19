@@ -12440,3 +12440,131 @@ fixtures under `source/tests/`. Changed that test to resolve its sibling fixture
 from `__FILE__`, matching the existing mapped-source test convention. No production
 compiler behavior changed. Finish with targeted host-WASI validation and release
 asset/deployment checks rather than repeating the full browser matrix.
+
+### 2026-11-19 — Four remaining migration owners after semantic integration
+
+User requested the latest pull/rebase and four independently scoped prompts,
+reserving task 1 for this machine after a later "continue". No port implementation
+starts in this planning turn. The implementation tracks can proceed in parallel;
+the final compiler/bootstrap cutover inherently depends on integrating all tracks.
+Do not describe a package containing the current hybrid compiler as the endpoint.
+
+Pulled with --rebase=merges in the clean audit worktree, then fast-forwarded main
+from ca5df64 to 9e73773. Upstream includes 7a3d9ad/bff040a/0717c0d/9e73773: semantic
+binding, type/layout resolution, operations, statements and flow analysis now
+execute in compiler/semantic-*.tower. core.cpp is parser/semantic orchestration;
+core-nodes.cpp still contains shared-node/native ownership adapters. The new native
+semantic sources under bootstrap are seed/reference code, not the production
+semantic algorithm. This supersedes the preceding audit's pending-semantic status.
+
+Preserved unrelated notes by backing up AGENTS.md, foundation.md and the journal
+under build/task-boundary-preserve, stashing only the two documentation files
+touched upstream, fast-forwarding and popping successfully. No conflicts, no lost
+notes, no todo.txt writes, no new branch. Remote heads remain main and gh-pages.
+
+Common requirements to include in each workstream prompt: work directly on main,
+pull/rebase before work and before a normal push, preserve unrelated edits and
+never force push; obey AGENTS.md and do not edit todo.txt. Add no owned C/C++
+implementations, shims, tests or fallback seeds. Existing native edits are limited
+to deletion/minimal mechanical connection to Tower replacements, with no new
+native behavior or copied native implementations. Use Tower for new compiler/
+runtime behavior and functional tests. Retain the same authoritative entities,
+Foundation components/spellings and deterministic explicit-target contracts.
+Record changes, failures, reproducible validation, benchmarks and remaining
+dependencies in the journal. Measure against a saved pre-port compiler, fix
+regressions and seek demonstrated improvements rather than claiming speed by
+translation. Preserve other owners' interfaces until a coordinated additive
+replacement is available; no simultaneous rewrites of shared payloads/IDs.
+
+1. Frontend and compilation orchestration — this machine, on next continue.
+   Own syntax.cpp/.hpp, parser.cpp/.hpp, bedrock.cpp, compiler-syntax.cpp,
+   compiler-grammar.cpp, syntax-nodes.cpp/.hpp, parser-nodes.cpp, core.cpp and
+   the matching frontend headers/Tower modules. Complete grammar session/version/
+   cache ownership, declaration installation, parser streams/diagnostics/recovery,
+   highlighting/provenance, initial Bedrock entity construction and source-to-
+   semantic_compile orchestration. Reuse the existing Tower LR/DFA/scanner/
+   replacement/semantic implementations. Own parser-tree-tests.cpp, syntax-tests.cpp
+   and frontend lexer/regex/LR/syntax tests; move useful tests to Tower/fixtures.
+   Do not edit semantic algorithms, Foundation operation layouts, backend code,
+   core-nodes.cpp, runtime/platform code, CLI/browser hosts or packaging. Test live
+   grammar edits, conflicts, recovery, replacements/provenance, lifetime/failure
+   behavior, native/Wasm parity and cold/warm frontend throughput. Deliver a Tower
+   frontend API usable by the CLI/browser owner without a new native wrapper.
+
+2. Backend and third-party integration.
+   Own llvm-engine.cpp/.hpp, llvm-backend.cpp, llvm-wasi.cpp, new Tower backend
+   bindings/lowering/target/object/disassembly/link modules and backend-specific
+   tests, including retirement/replacement of the owned foreign C fixture. Port
+   all our LLVM/lld calling code while retaining upstream implementations. Use
+   upstream C APIs where adequate; solve C++-only lld/WASI interfaces without a
+   new owned C/C++ shim or relabeling our code as third-party. Bundled upstream
+   linker executables are an option for native packages, but do not by themselves
+   solve the browser path. Preserve raw/optimized LLVM, target legality, runtime
+   symbol semantics, imports/exports, diagnostics, disassembly and downloadable
+   artifacts. Own backend lowering for any agreed runtime/foreign primitive from
+   task 3; publish that contract early. Do not edit frontend, semantic algorithms,
+   entity/interpreter/runtime implementations, CLI/browser.cpp or package scripts.
+   Test interpreter/LLVM agreement, object/executable/linking behavior, native and
+   browser targets, and performance against the old backend integration. Provide
+   a Tower backend API usable independently of CLI/browser transport.
+
+3. Shared entity/semantic/interpreter integration and platform runtime.
+   Own tower.cpp/.hpp, core-nodes.cpp, core-machine.cpp, compiler-memory.cpp,
+   format.cpp, remaining byte/component/lifecycle/host ABI headers, host/*.tower
+   except driver-options.tower, runtime.c and matching Tower modules. Own the
+   residual semantic component accessors (sem_get/sem_attach/etc), CoreProgram/
+   CoreMachine lifecycle, formatting query adapters, allocation, component
+   finalizers and interpreter foreign dispatch. Port the platform allocator,
+   startup and I/O runtime rather than hiding runtime.c in an external directory.
+   Own narrow necessary Foundation/semantic foreign-binding additions, including
+   foundation.tower where unavoidable; leave existing semantic algorithms intact
+   and coordinate matching LLVM lowering with task 2. Prefer explicit Tower
+   contexts/initialization; add only required target/ABI primitives with compilable
+   spellings. Own entity/utility/interpreter/formatter/semantic native functional
+   tests and migrate them to Tower, preserving coverage and defined behavior.
+   Freeze shared payload layouts/IDs; coordinate unavoidable ABI changes instead
+   of editing frontend/backend files. Do not edit core.cpp, frontend registrations,
+   LLVM implementations, driver.cpp/browser.cpp, CLI options or packaging. Validate
+   32/64-bit layouts, lifecycle/allocation failure cleanup, raw-pointer contracts,
+   interpreter semantics and native/Wasm runtime behavior and performance.
+
+4. Compiler CLI/browser host, build system and portable bootstrap distribution.
+   Own driver.cpp, browser.cpp, main.cpp, host/driver-options.tower, the remaining
+   native test runner (tests/main.cpp), build.sh, root CMake and build/composition/
+   test/deployment/package scripts. Implement Tower CLI and browser transport over
+   the other owners' stable APIs: options/help/version, files/diagnostics,
+   compile/interpret/link flows, JSON/results, exports and foreign-host services.
+   Preserve the existing worker protocol, cancellation and stale-result behavior.
+   Replace runtime.c compilation by Clang with Tower-built target runtime inputs;
+   remove absolute source-checkout assumptions and installed-tool dependencies.
+   Start now on host code, build recipes, packaging and self-build automation;
+   do not wait idle for the other ports. Preserve existing reference builds until
+   replacements are verified. Other owners supply isolated build fragments/source
+   manifests and commands; integrate them without rewriting their algorithms.
+   Once tracks 1–3 land, build a complete Tower-only successor, then successive
+   whole-compiler self-builds and actual platform execution checks. Package and
+   commit supported Windows/Linux/macOS architecture binaries (plus browser/WASI
+   artifacts as appropriate), grammars and required third-party dependency closure,
+   licenses/hashes/provenance. Verify help/compile/link/run/self-build from a clean
+   checkout without a project C/C++ toolchain or hidden downloads. Measure total
+   package size, startup and compiler throughput; a small executable requiring an
+   unbundled system LLVM is not portable. Own final retirement of bootstrap/native
+   references/build rules and inventory remaining owned C/C++ research artifacts.
+   Do not claim completion from cross-produced objects, passing module comparisons
+   or a committed hybrid executable. Do not rewrite tracks 1–3 source areas.
+
+Shared-file protocol: task 4 owns broad CMake/build integration. Tasks 1–3 may
+add uniquely named build fragments/manifests and their own verification commands;
+if immediate root registration is essential, limit it to a small additive commit
+and reconcile with task 4. Everyone appends only their own journal entry and
+rebases normally. Match the same shared entity layouts and existing call contracts
+so implementation/testing can progress before final host cutover. Necessary new
+cross-track contracts must be explicit; "independent" does not mean silently
+duplicating the missing runtime or changing another owner's ABI.
+
+Validation scope: inspected the landed semantic source/build diffs and preserved
+the working notes. This turn changes documentation only and does not claim to
+repeat the semantic machine's full integration tests or publish its new compiler
+artifacts. Its latest journal reports combined sanitizer/bootstrap checks passed
+and further integration/publication work underway. Production publication must
+not be rolled back or relabeled as a newly verified semantic build.
