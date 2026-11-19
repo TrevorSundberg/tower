@@ -46,7 +46,7 @@ struct CoreNode {
   uint64_t bits = 0;
   bool constant = false, indirect = false, external = false, exported = false, global = false;
 };
-TowerNode* core_component_type();
+extern "C" TowerNode* core_component_type();
 CoreNode* core_get(TowerNode* node);
 CoreNode& core_node(TowerNode* node);
 CoreNode& core_attach(TowerNode* node, CoreKind kind);

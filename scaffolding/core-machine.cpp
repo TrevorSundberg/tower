@@ -54,24 +54,6 @@ void CoreMachine::deallocate(uint64_t at) {
   interpreter_deallocate(static_cast<CoreMachineState *>(this), at);
 }
 
-extern "C" CoreNode *im_node(void *node) {
-  return &core_node(static_cast<TowerNode *>(node));
-}
-extern "C" void *im_binding(void *node) {
-  return core_binding(static_cast<TowerNode *>(node));
-}
-extern "C" size_t im_type_size(const CoreType *type) {
-  return core_type_size(*type);
-}
-extern "C" size_t im_type_alignment(const CoreType *type) {
-  return core_type_alignment(*type);
-}
-extern "C" uint64_t im_type_mask(const CoreType *type) {
-  return core_mask(*type);
-}
-extern "C" bool im_type_signed(const CoreType *type) {
-  return core_signed(*type);
-}
 extern "C" size_t im_pointer_bytes(void *host) {
   return static_cast<CoreMachine *>(static_cast<CoreMachineState *>(host))
       ->program.pointer_bytes;
@@ -111,10 +93,3 @@ extern "C" uint64_t im_foreign(void *host, void *node, uint64_t *args,
   m.failed = !m.error.empty();
   return result;
 }
-
-extern "C" size_t im_pointee_size(const CoreType *type) {
-  auto element = *type;
-  --element.pointers;
-  return core_type_size(element);
-}
-

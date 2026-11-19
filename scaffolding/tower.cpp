@@ -1,5 +1,5 @@
 #include "compiler-entities.hpp"
-#include <atomic>
+#include "compiler-host.hpp"
 #include <cassert>
 #include <cstddef>
 #include <cstdlib>
@@ -26,67 +26,25 @@ size_t lifecycle(TowerComponentDestructor callback) {
   values.push_back(callback); return values.size() - 1;
 }
 }
-extern "C" void tower_entity_finalize(size_t kind, TowerComponent* component, void* data) {
+extern "C" void compiler_native_finalize(size_t kind, TowerComponent* component, void* data) {
   auto callback = finalizers().at(kind);
   if (callback) callback(component, data);
 }
-static std::atomic<size_t> tower_allocated_count = 0;
-// This will truncate to 4 bytes on 32 bit systems
-const size_t TOWER_MEMORY_GUARD = (size_t)0xDEADBEEFDEADBEEF;
-
+static CompilerNodeMemoryState node_memory{};
+#ifdef NDEBUG
+static constexpr bool node_diagnostics = false;
+#else
+static constexpr bool node_diagnostics = true;
+#endif
 void* tower_memory_allocate(size_t size) {
-  ++tower_allocated_count;
-#ifdef NDEBUG
-  return malloc(size);
-#else
-  // Round up to make sure the size is aligned
-  if (size % sizeof(size_t) != 0) {
-    size += sizeof(size_t) - (size % sizeof(size_t));
-  }
-
-  // One for a guard at the beginning, one for the size, and one for the guard at the end
-  size_t* mem = (size_t*)malloc(size + sizeof(size_t) * 3);
-  size_t end_guard_index = (size / sizeof(size_t)) + 2;
-  mem[0] = size;
-  mem[1] = TOWER_MEMORY_GUARD;
-  mem[end_guard_index] = TOWER_MEMORY_GUARD;
-
-  // Clear the memory to a pattern that simulates uninitialized memory
-  void* result = &mem[2];
-  memset(result, 0xDB, size);
-  return result;
-#endif
+  return compiler_node_allocate(&node_memory, size, node_diagnostics);
 }
-
 void tower_memory_free(void* memory) {
-  // If the allocation count was already 0, it will wrap around
-  auto new_count = --tower_allocated_count;
-  assert(new_count != (size_t)-1);
-
-#ifdef NDEBUG
-  free(memory);
-#else
-  // Back up to the start of the allocation
-  size_t* mem = ((size_t*)memory) - 2;
-
-  // Validate the first guard before checking size in case size has been corrupted
-  assert(mem[1] == TOWER_MEMORY_GUARD);
-
-  size_t size = mem[0];
-  size_t end_guard_index = (size / sizeof(size_t)) + 2;
-  assert(mem[end_guard_index] == TOWER_MEMORY_GUARD);
-
-  // Clear the guards and all memory so that we can possibly detect double free
-  memset(mem, 0xFE, size + sizeof(size_t) * 3);
-  free(mem);
-#endif
+  compiler_node_free(&node_memory, memory, node_diagnostics);
 }
-
 size_t tower_memory_get_allocated_count() {
-  return tower_allocated_count;
+  return node_memory.live_allocations;
 }
-
-
 extern "C" EntityStore* compiler_entity_store() { return store(); }
 TowerComponent* tower_component_create(TowerNode* owner, TowerNode* type, size_t size, TowerComponentDestructor destructor) {
   require(tower_component_register(type, size, destructor));

@@ -1,0 +1,17 @@
+// The highest lifecycle ID belongs to the shared Foundation payload. Native
+// callback IDs retain their existing values during the frontend transition.
+// Keep this object separate from allocation: utility-only clients need no graph.
+extern fn foundation_node_dispose(data: void*): void;
+
+extern fn compiler_native_finalize(kind: usize, component: void*, data: void*): void;
+
+export fn tower_entity_finalize(kind: usize, component: void*, data: void*): void {
+    var foundation: usize = 0;
+    foundation = foundation - 1;
+    var selected = kind == foundation;
+    if selected {
+        foundation_node_dispose(data);
+    } else {
+        compiler_native_finalize(kind, component, data);
+    }
+}

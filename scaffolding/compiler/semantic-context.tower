@@ -58,25 +58,127 @@ struct SemanticContext {
 }
 
 // Accessors only: adapters neither resolve nor validate semantic operations.
-extern fn sem_get(node: void*): FoundationNode*;
+extern fn core_component_type(): void*;
 
-extern fn sem_attach(node: void*, kind: u32): FoundationNode*;
+extern fn entity_component_get(node: void*, type: void*): void*;
 
-extern fn sem_create(parent: void*): void*;
+extern fn entity_component_data(component: void*): void*;
+
+extern fn entity_component_add(node: void*, type: void*): void*;
+
+extern fn entity_register(type: void*, size: usize, alignment: usize, lifecycle: usize): bool;
+
+extern fn tower_node_create(): void*;
+
+extern fn entity_attach(child: void*, parent: void*, name: u8*): bool;
+
+extern fn entity_release(node: void*): usize;
+
+extern fn entity_child_at(node: void*, index: usize): void*;
+
+extern fn entity_child_count(node: void*): usize;
+
+extern fn entity_parent(node: void*): void*;
+
+extern fn entity_member_index(node: void*, name: u8*): usize;
+
+extern fn foundation_node_init(value: FoundationNode*): void;
+
+extern fn syntax_identifier_decode_in_place(text: u8*, length: usize): usize;
+
+extern fn abort(): void;
+
+// The component identity is supplied explicitly for reusable compiler contexts.
+// Its payload and ownership are the existing entity model, with no copied graph.
+export fn semantic_component_get(node: void*, type: void*): FoundationNode* {
+    var absent = node == null;
+    if absent {
+        return null;
+    }
+    return bits(FoundationNode*, entity_component_data(entity_component_get(node, type)));
+}
+
+// Allocation failure leaves both the existing component and owner unchanged.
+export fn semantic_component_attach(node: void*, type: void*, kind: u32): FoundationNode* {
+    var value = semantic_component_get(node, type);
+    var present = value != null;
+    if present {
+        value.kind = kind;
+        return value;
+    }
+    var lifecycle: usize = 0;
+    lifecycle = lifecycle - 1;
+    var ok = entity_register(type, sizeof(FoundationNode), alignof(FoundationNode), lifecycle);
+    if ok {} else {
+        return null;
+    }
+    value = bits(FoundationNode*, entity_component_data(entity_component_add(node, type)));
+    present = value != null;
+    if present {
+        foundation_node_init(value);
+        value.kind = kind;
+    }
+    return value;
+}
+
+export fn sem_get(node: void*): FoundationNode* {
+    return semantic_component_get(node, core_component_type());
+}
+
+export fn sem_attach(node: void*, kind: u32): FoundationNode* {
+    var value = semantic_component_attach(node, core_component_type(), kind);
+    var present = value != null;
+    sem_require(present);
+    return value;
+}
+
+export fn sem_create(parent: void*): void* {
+    var node = tower_node_create();
+    sem_require(entity_attach(node, parent, null));
+    entity_release(node);
+    return node;
+}
 
 extern fn sem_match(node: void*): ParserMatchData*;
 
-extern fn sem_child(node: void*, index: usize): void*;
+export fn sem_child(node: void*, index: usize): void* {
+    var absent = node == null;
+    if absent {
+        return null;
+    }
+    return entity_child_at(node, index);
+}
 
-extern fn sem_child_count(node: void*): usize;
+export fn sem_child_count(node: void*): usize {
+    var absent = node == null;
+    if absent {
+        return 0;
+    }
+    return entity_child_count(node);
+}
 
-extern fn sem_parent(node: void*): void*;
+export fn sem_parent(node: void*): void* {
+    return entity_parent(node);
+}
 
-extern fn sem_member(node: void*, name: u8*): void*;
+export fn sem_member(node: void*, name: u8*): void* {
+    var absent = node == null;
+    if absent {
+        return null;
+    }
+    return entity_child_at(node, entity_member_index(node, name));
+}
 
-extern fn sem_decode_identifier(text: u8*): void;
+export fn sem_decode_identifier(text: u8*): void {
+    var length = syntax_identifier_decode_in_place(text, sem_length(text));
+    text[length] = 0;
+}
 
-extern fn sem_require(ok: bool): void;
+export fn sem_require(ok: bool): void {
+    if ok {} else {
+        abort();
+    }
+}
 
 extern fn generic_begin(root: void*): void*;
 

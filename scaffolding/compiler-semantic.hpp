@@ -10,6 +10,11 @@ struct SemanticProgram {
   size_t error_offset;
 };
 extern "C" {
+CoreNode* sem_get(TowerNode*);
+CoreNode* sem_attach(TowerNode*, unsigned);
+// Explicit component identity; allocation failure returns null without attaching.
+CoreNode* semantic_component_get(TowerNode*, TowerNode* type);
+CoreNode* semantic_component_attach(TowerNode*, TowerNode* type, unsigned kind);
 void semantic_initialize(SemanticProgram*, TowerNode*, unsigned);
 void semantic_compile(SemanticProgram*, TowerNode** roots, size_t* bases, size_t count, const char* source);
 void semantic_program_dispose(SemanticProgram*);

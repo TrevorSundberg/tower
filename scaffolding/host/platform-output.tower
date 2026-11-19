@@ -1,0 +1,137 @@
+// Formatting shared by platform print and trap paths. No host locale, sprintf,
+// allocation or implicit host pointer width enters the result.
+export fn runtime_format_value(output: u8*, capacity: usize, kind: u32, value: u64, pointer_bytes: u32): usize {
+    var buffer: u8[80];
+    var length: usize = 0;
+    var boolean = kind == 2;
+    if boolean {
+        var truth = value != 0;
+        if truth {
+            copy(&buffer[0], "true\n", 5);
+            length = 5;
+        } else {
+            copy(&buffer[0], "false\n", 6);
+            length = 6;
+        }
+    } else {
+        var pointer = kind == 3;
+        if pointer {
+            var valid = pointer_bytes == 4;
+            if valid {} else {
+                valid = pointer_bytes == 8;
+            }
+            if valid {} else {
+                return 0;
+            }
+            buffer[0] = 48;
+            buffer[1] = 120;
+            var digits = convert(usize, pointer_bytes) * 2;
+            length = digits + 2;
+            var at = length;
+            var hex = "0123456789abcdef";
+            loop {
+                var done = at == 2;
+                if done {
+                    break;
+                }
+                at = at - 1;
+                var index = value % 16;
+                buffer[at] = hex[index];
+                value = value / 16;
+            }
+        } else {
+            var narrow = kind == 0;
+            var negative = false;
+            if narrow {
+                value = value & 4294967295;
+                negative = value >= 2147483648;
+            } else {
+                var signed = kind == 6;
+                if signed {
+                    negative = value >= 9223372036854775808;
+                }
+            }
+            if negative {
+                buffer[0] = 45;
+                length = 1;
+                var zero: u64 = 0;
+                value = zero - value;
+                if narrow {
+                    value = value & 4294967295;
+                }
+            }
+            var digits: u8[24];
+            var count: usize = 0;
+            loop {
+                var digit = value % 10;
+                digit = digit + 48;
+                digits[count] = convert(u8, digit);
+                count = count + 1;
+                value = value / 10;
+                var done = value == 0;
+                if done {
+                    break;
+                }
+            }
+            loop {
+                var done = count == 0;
+                if done {
+                    break;
+                }
+                count = count - 1;
+                buffer[length] = digits[count];
+                length = length + 1;
+            }
+        }
+        buffer[length] = 10;
+        length = length + 1;
+    }
+    var enough = capacity >= length;
+    if enough {
+        copy(output, &buffer[0], length);
+        return length;
+    }
+    return 0;
+}
+
+extern fn platform_write(stream: u32, data: u8*, length: usize): i64;
+
+// Preserve short-write progress; an error/zero write cannot spin forever.
+export fn runtime_write_all(stream: u32, data: u8*, length: usize): bool {
+    var valid = stream == 1;
+    if valid {} else {
+        valid = stream == 2;
+    }
+    if valid {} else {
+        return false;
+    }
+    var at: usize = 0;
+    loop {
+        var done = at == length;
+        if done {
+            return true;
+        }
+        var remaining = length - at;
+        var written = platform_write(stream, &data[at], remaining);
+        var failed = written <= 0;
+        if failed {
+            return false;
+        }
+        var count = convert(u64, written);
+        var invalid = count > convert(u64, remaining);
+        if invalid {
+            return false;
+        }
+        at = at + convert(usize, count);
+    }
+}
+
+export fn runtime_print_value(kind: u32, value: u64, pointer_bytes: u32): bool {
+    var buffer: u8[80];
+    var length = runtime_format_value(&buffer[0], 80, kind, value, pointer_bytes);
+    var invalid = length == 0;
+    if invalid {
+        return false;
+    }
+    return runtime_write_all(1, &buffer[0], length);
+}

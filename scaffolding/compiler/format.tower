@@ -20,7 +20,7 @@ struct FormatEngine {
     match_kind: void*;
 }
 
-extern fn format_foundation_kind(): void*;
+extern fn core_component_type(): void*;
 
 fn format_syntax(f: FormatEngine*, entity: void*): SyntaxNode* {
     var component = entity_component_get(entity, f.syntax_kind);
@@ -30,7 +30,7 @@ fn format_syntax(f: FormatEngine*, entity: void*): SyntaxNode* {
 fn format_foundation(f: FormatEngine*, entity: void*): FoundationNode* {
     var absent = f.foundation_kind == null;
     if absent {
-        f.foundation_kind = format_foundation_kind();
+        f.foundation_kind = core_component_type();
     }
     var component = entity_component_get(entity, f.foundation_kind);
     return bits(FoundationNode*, entity_component_data(component));

@@ -1,0 +1,267 @@
+// Functional entity tests: all mutation, ownership and failure assertions execute
+// in Tower. The test composition reuses FoundationNode's authoritative layout.
+extern fn abort(): void;
+
+extern fn entity_store_create(): void*;
+
+extern fn entity_store_dispose(store: void*): bool;
+
+extern fn entity_store_count(store: void*): usize;
+
+extern fn entity_store_component_count(store: void*): usize;
+
+extern fn entity_create(store: void*): void*;
+
+extern fn entity_register(type: void*, bytes: usize, alignment: usize, lifecycle: usize): bool;
+
+extern fn entity_component_add(owner: void*, type: void*): void*;
+
+extern fn entity_component_get(owner: void*, type: void*): void*;
+
+extern fn entity_component_data(component: void*): void*;
+
+extern fn entity_component_from_data(data: void*): void*;
+
+extern fn entity_component_owner(component: void*): void*;
+
+extern fn entity_component_type(component: void*): void*;
+
+extern fn entity_component_count(owner: void*): usize;
+
+extern fn entity_component_remove(owner: void*, type: void*): bool;
+
+extern fn entity_query_count(type: void*): usize;
+
+extern fn entity_query_at(type: void*, index: usize): void*;
+
+extern fn entity_id(node: void*): usize;
+
+extern fn entity_release(node: void*): usize;
+
+extern fn entity_parent(node: void*): void*;
+
+extern fn entity_attach(child: void*, parent: void*, name: u8*): bool;
+
+extern fn entity_child_name(parent: void*, index: usize): u8*;
+
+extern fn entity_child_at(parent: void*, index: usize): void*;
+
+extern fn entity_replace_child(parent: void*, index: usize, node: void*): bool;
+
+extern fn entity_take_last_child(parent: void*): void*;
+
+extern fn semantic_component_attach(node: void*, type: void*, kind: u32): FoundationNode*;
+
+extern fn semantic_component_get(node: void*, type: void*): FoundationNode*;
+
+extern fn tower_test_buffer_count(): usize;
+
+extern fn tower_test_buffer_fail_next(): void;
+
+fn shared_check(ok: bool): void {
+    if ok {} else {
+        abort();
+    }
+}
+
+export fn shared_entity_tests(): void {
+    var baseline = tower_test_buffer_count();
+    var store = entity_store_create();
+    var type = entity_create(store);
+    shared_check(entity_register(type, 48, 128, 0));
+    shared_check(entity_register(type, 48, 128, 0));
+    var ok = entity_register(type, 49, 128, 0) == false;
+    shared_check(ok);
+    ok = entity_register(type, 48, 3, 0) == false;
+    shared_check(ok);
+    var other_store = entity_store_create();
+    var other = entity_create(other_store);
+    ok = entity_component_add(other, type) == null;
+    shared_check(ok);
+    ok = entity_attach(other, type, null) == false;
+    shared_check(ok);
+    ok = entity_store_dispose(store) == false;
+    shared_check(ok);
+    var nodes: void*[1000];
+    var addresses: void*[1000];
+    var i: usize = 0;
+    loop {
+        var done = i == 1000;
+        if done {
+            break;
+        }
+        var node = entity_create(store);
+        nodes[i] = node;
+        var component = entity_component_add(node, type);
+        var data = entity_component_data(component);
+        addresses[i] = data;
+        var remainder = bits(usize, data) % 128;
+        ok = remainder == 0;
+        shared_check(ok);
+        ok = entity_component_from_data(data) == component;
+        shared_check(ok);
+        ok = entity_component_add(node, type) == component;
+        shared_check(ok);
+        ok = entity_component_owner(component) == node;
+        shared_check(ok);
+        ok = entity_component_type(component) == type;
+        shared_check(ok);
+        var wanted = i + 1;
+        ok = entity_id(node) == wanted;
+        shared_check(ok);
+        var low = i % 256;
+        var byte = convert(u8, low);
+        fill(data, byte, 48);
+        i = i + 1;
+    }
+    ok = entity_query_count(type) == 1000;
+    shared_check(ok);
+    i = 0;
+    loop {
+        var done = i == 1000;
+        if done {
+            break;
+        }
+        var component = entity_component_get(nodes[i], type);
+        ok = entity_component_data(component) == addresses[i];
+        shared_check(ok);
+        var bytes = bits(u8*, addresses[i]);
+        var low = i % 256;
+        var byte = convert(u8, low);
+        var j: usize = 0;
+        loop {
+            done = j == 48;
+            if done {
+                break;
+            }
+            ok = bytes[j] == byte;
+            shared_check(ok);
+            j = j + 1;
+        }
+        ok = entity_component_owner(entity_query_at(type, i)) == nodes[i];
+        shared_check(ok);
+        i = i + 1;
+    }
+    i = 0;
+    loop {
+        var done = i == 1000;
+        if done {
+            break;
+        }
+        shared_check(entity_component_remove(nodes[i], type));
+        ok = entity_component_remove(nodes[i], type) == false;
+        shared_check(ok);
+        i = i + 2;
+    }
+    ok = entity_query_count(type) == 500;
+    shared_check(ok);
+    i = 0;
+    loop {
+        var done = i == 500;
+        if done {
+            break;
+        }
+        var component = entity_query_at(type, i);
+        var owner = entity_component_owner(component);
+        var remainder = entity_id(owner) % 2;
+        ok = remainder == 0;
+        shared_check(ok);
+        ok = entity_component_get(owner, type) == component;
+        shared_check(ok);
+        i = i + 1;
+    }
+    ok = entity_query_at(type, 500) == null;
+    shared_check(ok);
+    tower_test_buffer_fail_next();
+    ok = entity_component_add(nodes[0], type) == null;
+    shared_check(ok);
+    ok = entity_component_count(nodes[0]) == 0;
+    shared_check(ok);
+    ok = entity_query_count(type) == 500;
+    shared_check(ok);
+    var parent = entity_create(store);
+    shared_check(entity_attach(nodes[0], parent, "value"));
+    var borrowed = entity_child_name(parent, 0);
+    shared_check(entity_attach(nodes[0], parent, borrowed));
+    var name = entity_child_name(parent, 0);
+    ok = name[0] == 118;
+    shared_check(ok);
+    tower_test_buffer_fail_next();
+    ok = entity_attach(nodes[1], parent, "value") == false;
+    shared_check(ok);
+    ok = entity_child_at(parent, 0) == nodes[0];
+    shared_check(ok);
+    ok = entity_parent(nodes[1]) == null;
+    shared_check(ok);
+    shared_check(entity_attach(nodes[1], parent, "value"));
+    ok = entity_parent(nodes[0]) == null;
+    shared_check(ok);
+    shared_check(entity_replace_child(parent, 0, nodes[2]));
+    ok = entity_parent(nodes[1]) == null;
+    shared_check(ok);
+    ok = entity_parent(nodes[2]) == parent;
+    shared_check(ok);
+    name = entity_child_name(parent, 0);
+    ok = name[0] == 118;
+    shared_check(ok);
+    var transferred = entity_take_last_child(parent);
+    ok = transferred == nodes[2];
+    shared_check(ok);
+    ok = entity_parent(transferred) == null;
+    shared_check(ok);
+    entity_release(transferred);
+    entity_release(parent);
+    entity_release(type);
+    i = 0;
+    loop {
+        var done = i == 1000;
+        if done {
+            break;
+        }
+        entity_release(nodes[i]);
+        i = i + 1;
+    }
+    ok = entity_store_count(store) == 0;
+    shared_check(ok);
+    ok = entity_store_component_count(store) == 0;
+    shared_check(ok);
+
+    // Foundation payloads use the same store, explicit type identity and a
+    // Tower finalizer. Failure creates no component; reattachment preserves data.
+    type = entity_create(store);
+    var node = entity_create(store);
+    tower_test_buffer_fail_next();
+    ok = semantic_component_attach(node, type, 3) == null;
+    shared_check(ok);
+    ok = entity_component_count(node) == 0;
+    shared_check(ok);
+    var foundation = semantic_component_attach(node, type, 3);
+    ok = foundation != null;
+    shared_check(ok);
+    ok = foundation.type.pointer_bytes == 4;
+    shared_check(ok);
+    ok = foundation.alignment == 1;
+    shared_check(ok);
+    shared_check(vector_push(u8, &foundation.name, 97));
+    shared_check(vector_push(void*, &foundation.items, node));
+    shared_check(vector_push(void*, &foundation.locals, node));
+    shared_check(vector_push(void*, &foundation.parameters, node));
+    var same = semantic_component_attach(node, type, 19);
+    ok = same == foundation;
+    shared_check(ok);
+    ok = same.kind == 19;
+    shared_check(ok);
+    ok = same.name.data[0] == 97;
+    shared_check(ok);
+    ok = semantic_component_get(node, type) == same;
+    shared_check(ok);
+    entity_release(type);
+    entity_release(node);
+    ok = entity_store_count(store) == 0;
+    shared_check(ok);
+    shared_check(entity_store_dispose(store));
+    entity_release(other);
+    shared_check(entity_store_dispose(other_store));
+    ok = tower_test_buffer_count() == baseline;
+    shared_check(ok);
+}

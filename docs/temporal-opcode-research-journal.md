@@ -12604,3 +12604,166 @@ Evidence is in `build/semantic-sync/live-main.log` and
 `29ef082a909dc8d73c46a63f031e70cd1de6ee369570d4203655f26e4df2ed58`.
 `todo.txt` still matches its pre-task checksum. Preserved concurrent journal-only
 upstream work during final rebases; no source or deployment force push was used.
+
+### 2026-11-19 — Shared runtime cutover, explicit component API and raw arena runtime
+
+Task 3, working directly on main. This is an implemented, tested intermediate
+cutover, NOT completion of the requested removal of all native shared/runtime code.
+Started at main 4a1c7aa; the requested second pull fast-forwarded to 7973c39 (journal
+only). todo.txt is untouched. No new C/C++ implementation, functional test or seed
+was introduced. Native changes delete algorithms or connect existing entry points
+to Tower functions. A single additive include registers task 3's isolated
+cmake/TowerSharedRuntime.cmake; task 4 retains broad build ownership.
+
+Checkout recovery: the initial checkout was the obsolete port/host-runtime-tower
+branch, whose upstream no longer exists. Switching to main encountered a full C:
+drive and left partially written tracked files. The working tree had been verified
+clean before switching. Two attempts to remove ignored build intermediates were
+rejected by automatic approval and did not run. After disk space became available
+externally, restored the main tree/index (explicitly excluding todo.txt), switched
+to main and pulled successfully. No prior local edits were discarded.
+
+Implemented:
+
+- semantic_component_get/attach take an explicit shared component type identity,
+  preserve the existing FoundationNode layout and return null on attachment failure.
+  sem_get/attach/create/child/count/parent/member, identifier decoding and require
+  now execute in Tower. core_get/core_attach are existing mechanical native views;
+  sem_match and core_component_type remain frontend-registration dependencies.
+- Foundation component registration/finalization is Tower-owned. The compiler's
+  lifecycle dispatcher reserves usize maximum for this existing payload; old native
+  callback IDs remain unchanged. It dispatches Foundation destruction in Tower and
+  delegates other existing registrations to the renamed compiler_native_finalize.
+  This is a compiler lifecycle selector, not a Foundation operation/bytecode ID.
+- Removed formatter native kind/type/operator/builtin queries. Formatter predicates
+  operate on the same Foundation components; spelling, signedness and masks call
+  shared semantic definitions. Interpreter node/binding/type/pointee queries are
+  also Tower functions. No shared payload offsets or Foundation operation IDs changed.
+- Ported compiler debug allocation/guard accounting to host/memory.tower with explicit
+  CompilerNodeMemoryState. Overflow and failed allocations do not increment live
+  counts; null free is inert. Diagnostic guards remain optional compiler instrumentation,
+  separate from raw Foundation pointers. Contexts have one owner; callers requiring
+  concurrency need separate contexts. The old compiler singleton remains native.
+- Migrated the 1,000-entity growth/alignment/query/ownership/failure test body to
+  tests/shared-entities.tower, including direct Foundation attachment failure,
+  stable reattachment and dynamic-field finalization. Existing native callback and
+  compiled-program integration checks are retained pending their consuming APIs.
+- Added host/guest-memory.tower: explicit GuestHeap, 16-byte aligned first-fit raw
+  allocations, splitting, ordered free/coalescing, multiplication/rounding overflow,
+  preserved input on failed realloc, zero handling and explicit committed-range
+  extension. Header is the original four target words (16/32 bytes). No generations,
+  pointer bounds/lifetime handles or alternative entity model were introduced.
+- Added host/platform-output.tower: deterministic integer/bool/raw-pointer formatting
+  and progress-aware platform_write output. Too-small buffers remain untouched;
+  pointer width is explicit. These are reusable Tower runtime APIs, not yet the
+  reserved tower_allocate/tower_print entry points or platform startup replacements.
+
+Trials and root causes:
+
+1. Putting lifecycle dispatch in the allocation object made the UTF-8-only test
+   link require foundation_node_dispose/compiler_native_finalize. Split lifecycle
+   into its own entity-linked object. Utility-only linking now passes.
+2. A 64-bit diagnostic guard converted to usize passed native testing but trapped
+   on wasm32: Tower numeric conversion checks range, unlike a C++ narrowing cast.
+   Select the explicit 32-bit guard before converting. Actual Wasm tests pass.
+3. A guest allocator stress assertion found a free tail spanning the cursor:
+   first-fit could not combine the free block with unused arena space. Free now
+   reclaims a coalesced tail into the cursor, allowing a subsequent 120,000-byte
+   request. The test preserves this case and 10,000 deterministic allocation/free
+   trials with live-byte validation. This improves the port over runtime.c's old
+   full-list coalescing and stranded-tail behavior.
+4. Early new tests used a binary expression inside a call, the lexical keyword
+   expected as a variable, sizeof(variable), and narrowing convert(u8, index).
+   Corrected them to instruction-like locals, ordinary names, explicit types and
+   range reduction. No grammar/backend workaround was added.
+5. A concurrent browser build briefly executed towerc-stage1 while the native build
+   relinked it, producing Permission denied. Finished the native dependency, then
+   reran the browser build successfully. Future builds must sequence this dependency.
+6. New Tower sources initially failed the repository's canonical formatting check;
+   formatted only the owned changed/new Tower files with the existing engine.
+   The Wasm execution transport also required the existing declared platform_write
+   signature; supplied it explicitly in the test runner instead of allowing imports.
+
+Validation/environment (Windows x64 host, Docker tower_build with LLVM 19.1.1,
+WASI SDK 34/Clang 23.1.0, Node 22.23.5 in Docker and Node 21.7.3 on Windows):
+
+- TOWER_NATIVE_BUILD=/cache/shared-native bash playground/scripts/build-native.sh:
+  seed, stage1 and production compiler build. Saved the original main compiler as
+  build/shared-runtime-baseline-towerc before edits. A git archive of 7973c39 built
+  the exact main reactor baseline at /cache/shared-baseline-browser; the baseline
+  does not mistakenly compare against this machine's older host-port reactor.
+- With TOWER_BOOTSTRAP_COMPILER=/cache/shared-native/towerc-stage1 and
+  TOWER_CORE_TEST_BUILD=/cache/shared-asan, test-native-core.sh passes 5/5 CTests
+  (20.78 seconds after test migration). ASan/UBSan cover the native harness;
+  LLVM-emitted Tower instructions are not claimed to be sanitizer-instrumented.
+- test-host-runtime.sh with TOWER_HOST_WASI_TEST_BUILD=/cache/shared-wasi-tests
+  and WASI_SDK_PATH=/cache/wasi/wasi-sdk-34.0-x86_64-linux passes the full parser,
+  shared entity, allocator, semantic, formatter and 156-run interpreter differential
+  suite. This validates actual 32-bit layouts/execution, not merely object emission.
+- scaffolding/tests/run.ps1 -BootstrapCompiler build/shared-windows-bootstrap.cmd
+  builds COFF using the Docker stage1, links/runs on Windows via MSVC 19.44.35229.
+  Parser/host/shared tests pass. Separate Windows interpreter executable also passes
+  156 differential runs. Log: build/shared-windows-tests.log. This remains a hybrid
+  bootstrap; it is not a portable Tower-only compiler distribution.
+- node scaffolding/tests/run-guest-runtime.mjs /cache/shared-native/towerc passes
+  32/64-bit interpretation, Linux x64 native execution and LLVM/Wasm execution of
+  the same Tower allocation/output tests. Existing runtime.c supplies backing arena
+  allocation and platform_write during this isolated validation; this does not
+  claim native runtime retirement or new OS startup coverage.
+- npm test --prefix playground: 224/224 pass against the rebuilt interpreter reactor
+  and the available earlier LLVM/cross reactors. Browser execution worker behavior
+  is unchanged. Publication validation and final source rebase are recorded below.
+
+Measurements (observations, not speed guarantees):
+
+- Initial compiler/formatter runs overlapped other tests and had noisy samples;
+  retained as build/shared-*-benchmark.json but rejected for performance conclusions.
+  Idle reruns use the existing alternating benchmark scripts. Native compilation
+  medians (before -> after ms), 2 warmups/9 samples: structs at wasm32 10.0122 ->
+  10.0432, structs at x64 7.66672 -> 7.37569, semantic fixture at wasm32 7.67796 ->
+  7.81610, semantic fixture at x64 7.81818 -> 7.86619. Output agrees exactly.
+  The small increases (up to 1.8%) remain observations; no universal speedup claim.
+- Wasm formatter, 10 warmups/40 samples, exact source/span equality: ratios for
+  small source/foundation 0.977/0.959; declarations source/foundation 1.008/0.949;
+  comments source 0.993; strings source/foundation 0.841/0.998. Evidence:
+  build/shared-wasm-benchmark-idle.json and shared-native-benchmark-idle.json.
+- guest-runtime-benchmark.mjs runs identical Tower allocation workloads against
+  runtime.c alloc/free versus GuestHeap in one Wasm module. 64,000 allocations per
+  sample, 10 warmups/30 samples: median 1.900445 -> 0.778007 ms (ratio 0.409).
+  Checksum agrees. This is this workload/Node runtime, not a general allocator bound.
+  Reproduction: node scaffolding/tests/guest-runtime-benchmark.mjs COMPILER;
+  evidence: build/shared-guest-benchmark.json.
+
+Remaining handoff/dependency contract — removal is not complete:
+
+- Task 1's registrations and source/session orchestration still consume native
+  CoreProgram/std::vector/std::string and C++ component callbacks. sem_match,
+  core_component_type and the entity singleton cannot be removed without connecting
+  its Tower context/type identities. The explicit semantic_component_* API is ready
+  for those identities. semantic_initialize/compile/program_dispose continue to be
+  the existing Tower program API; replacing the native view needs the frontend handoff.
+- CoreMachine still has native program ownership, strings and std::function foreign
+  dispatch. A Tower host needs an explicit execution-context callback contract before
+  removing these consumers. No independent interpreter instruction/semantic model
+  was added to evade that dependency. Native callback registration/finalization and
+  byte/UTF-8/semantic/formatter/interpreter integration test migration remain open.
+- Task 2: llvm-engine.cpp currently rejects library top-level declarations and
+  external/exported tower_main/print/trap/allocate/reallocate/deallocate names. The
+  Foundation has direct named external calls only; no symbol alias/foreign function
+  pointer call, foreign data address, Wasm memory size/grow, syscall or native-entry
+  contract. These are concrete blockers to removing compiler_host_reallocate/free,
+  the process singleton and runtime.c startup/OS boundaries without forbidden C glue.
+  Reuse typed Call components and compilable Foundation spellings for any additions;
+  preserve operation IDs/layouts or agree an additive ABI explicitly. The runtime
+  entry implementation must suppress recursive builtin allocation when defining
+  those symbols. Foreign symbol aliasing must preserve logical bindings and the
+  physical symbol through canonical formatting. This is a requested contract, not
+  a claim that these primitives or matching LLVM lowering exist.
+- Task 4: GuestHeap's init/extend take a committed contiguous target address range;
+  publish an extension only after successful platform memory growth. The raw values
+  remain target pointers, never handles. runtime_format_value/write_all/print_value
+  are ready to be connected to platform startup and reserved runtime exports once
+  task 2 provides lowering. The current runtime.c remains authoritative for actual
+  OS startup and platform allocation; it was not deleted ahead of a working successor.
+  Full native removal, Tower-only self-hosting, complete test migration and macOS
+  execution are not delivered by this cutover. No speculative C fallback was added.

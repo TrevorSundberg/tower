@@ -1,83 +1,211 @@
 // Native bridges only query existing operation/type definitions.
-extern fn format_is_Program(n: FoundationNode*): bool;
+// Query the shared semantic definitions directly; no native formatting policy.
+extern fn semantic_builtin_name(kind: u32): u8*;
 
-extern fn format_is_Function(n: FoundationNode*): bool;
+extern fn semantic_operator(op: u32): u8*;
 
-extern fn format_is_Parameter(n: FoundationNode*): bool;
+extern fn semantic_scalar_name(scalar: u32): u8*;
 
-extern fn format_is_Declare(n: FoundationNode*): bool;
+extern fn semantic_signed(t: FoundationType*): bool;
 
-extern fn format_is_Assign(n: FoundationNode*): bool;
+extern fn semantic_mask(t: FoundationType*): u64;
 
-extern fn format_is_Operand(n: FoundationNode*): bool;
+fn format_is_Program(n: FoundationNode*): bool {
+    var selected = n.kind == 0;
+    return selected;
+}
 
-extern fn format_is_Binary(n: FoundationNode*): bool;
+fn format_is_Function(n: FoundationNode*): bool {
+    var selected = n.kind == 1;
+    return selected;
+}
 
-extern fn format_is_Address(n: FoundationNode*): bool;
+fn format_is_Parameter(n: FoundationNode*): bool {
+    var selected = n.kind == 2;
+    return selected;
+}
 
-extern fn format_is_Load(n: FoundationNode*): bool;
+fn format_is_Declare(n: FoundationNode*): bool {
+    var selected = n.kind == 3;
+    return selected;
+}
 
-extern fn format_is_Convert(n: FoundationNode*): bool;
+fn format_is_Assign(n: FoundationNode*): bool {
+    var selected = n.kind == 4;
+    return selected;
+}
 
-extern fn format_is_Bits(n: FoundationNode*): bool;
+fn format_is_Operand(n: FoundationNode*): bool {
+    var selected = n.kind == 5;
+    return selected;
+}
 
-extern fn format_is_Call(n: FoundationNode*): bool;
+fn format_is_Binary(n: FoundationNode*): bool {
+    var selected = n.kind == 6;
+    return selected;
+}
 
-extern fn format_is_Block(n: FoundationNode*): bool;
+fn format_is_Address(n: FoundationNode*): bool {
+    var selected = n.kind == 7;
+    return selected;
+}
 
-extern fn format_is_If(n: FoundationNode*): bool;
+fn format_is_Load(n: FoundationNode*): bool {
+    var selected = n.kind == 8;
+    return selected;
+}
 
-extern fn format_is_Loop(n: FoundationNode*): bool;
+fn format_is_Convert(n: FoundationNode*): bool {
+    var selected = n.kind == 9;
+    return selected;
+}
 
-extern fn format_is_Break(n: FoundationNode*): bool;
+fn format_is_Bits(n: FoundationNode*): bool {
+    var selected = n.kind == 10;
+    return selected;
+}
 
-extern fn format_is_Continue(n: FoundationNode*): bool;
+fn format_is_Call(n: FoundationNode*): bool {
+    var selected = n.kind == 11;
+    return selected;
+}
 
-extern fn format_is_Print(n: FoundationNode*): bool;
+fn format_is_Block(n: FoundationNode*): bool {
+    var selected = n.kind == 12;
+    return selected;
+}
 
-extern fn format_is_Return(n: FoundationNode*): bool;
+fn format_is_If(n: FoundationNode*): bool {
+    var selected = n.kind == 13;
+    return selected;
+}
 
-extern fn format_is_Type(n: FoundationNode*): bool;
+fn format_is_Loop(n: FoundationNode*): bool {
+    var selected = n.kind == 14;
+    return selected;
+}
 
-extern fn format_is_FieldDeclaration(n: FoundationNode*): bool;
+fn format_is_Break(n: FoundationNode*): bool {
+    var selected = n.kind == 15;
+    return selected;
+}
 
-extern fn format_is_Field(n: FoundationNode*): bool;
+fn format_is_Continue(n: FoundationNode*): bool {
+    var selected = n.kind == 16;
+    return selected;
+}
 
-extern fn format_is_Index(n: FoundationNode*): bool;
+fn format_is_Print(n: FoundationNode*): bool {
+    var selected = n.kind == 17;
+    return selected;
+}
 
-extern fn format_is_String(n: FoundationNode*): bool;
+fn format_is_Return(n: FoundationNode*): bool {
+    var selected = n.kind == 18;
+    return selected;
+}
 
-extern fn format_is_SizeOf(n: FoundationNode*): bool;
+fn format_is_Type(n: FoundationNode*): bool {
+    var selected = n.kind == 19;
+    return selected;
+}
 
-extern fn format_is_AlignOf(n: FoundationNode*): bool;
+fn format_is_FieldDeclaration(n: FoundationNode*): bool {
+    var selected = n.kind == 20;
+    return selected;
+}
 
-extern fn format_is_Allocate(n: FoundationNode*): bool;
+fn format_is_Field(n: FoundationNode*): bool {
+    var selected = n.kind == 21;
+    return selected;
+}
 
-extern fn format_is_Reallocate(n: FoundationNode*): bool;
+fn format_is_Index(n: FoundationNode*): bool {
+    var selected = n.kind == 22;
+    return selected;
+}
 
-extern fn format_is_Free(n: FoundationNode*): bool;
+fn format_is_String(n: FoundationNode*): bool {
+    var selected = n.kind == 23;
+    return selected;
+}
 
-extern fn format_is_Copy(n: FoundationNode*): bool;
+fn format_is_SizeOf(n: FoundationNode*): bool {
+    var selected = n.kind == 24;
+    return selected;
+}
 
-extern fn format_is_Fill(n: FoundationNode*): bool;
+fn format_is_AlignOf(n: FoundationNode*): bool {
+    var selected = n.kind == 25;
+    return selected;
+}
 
-extern fn format_builtin(n: FoundationNode*): u8*;
+fn format_is_Allocate(n: FoundationNode*): bool {
+    var selected = n.kind == 26;
+    return selected;
+}
 
-extern fn format_operator(n: FoundationNode*): u8*;
+fn format_is_Reallocate(n: FoundationNode*): bool {
+    var selected = n.kind == 27;
+    return selected;
+}
 
-extern fn format_scalar_name(t: FoundationType*, output: vector(u8)*): bool;
+fn format_is_Free(n: FoundationNode*): bool {
+    var selected = n.kind == 28;
+    return selected;
+}
 
-extern fn format_array(t: FoundationType*): bool;
+fn format_is_Copy(n: FoundationNode*): bool {
+    var selected = n.kind == 29;
+    return selected;
+}
 
-extern fn format_record(t: FoundationType*): bool;
+fn format_is_Fill(n: FoundationNode*): bool {
+    var selected = n.kind == 30;
+    return selected;
+}
 
-extern fn format_boolean(t: FoundationType*): bool;
+fn format_builtin(n: FoundationNode*): u8* {
+    return semantic_builtin_name(n.kind);
+}
 
-extern fn format_signed(t: FoundationType*): bool;
+fn format_operator(n: FoundationNode*): u8* {
+    return semantic_operator(n.op);
+}
 
-extern fn format_mask(t: FoundationType*): u64;
+fn format_scalar_name(t: FoundationType*, output: vector(u8)*): bool {
+    var name = semantic_scalar_name(t.scalar);
+    return bytes_assign_text(output, name, syntax_text_length(name));
+}
 
-extern fn format_sign(t: FoundationType*): u64;
+fn format_array(t: FoundationType*): bool {
+    var selected = t.scalar == 9;
+    return selected;
+}
+
+fn format_record(t: FoundationType*): bool {
+    var selected = t.scalar == 4;
+    return selected;
+}
+
+fn format_boolean(t: FoundationType*): bool {
+    var selected = t.scalar == 2;
+    return selected;
+}
+
+fn format_signed(t: FoundationType*): bool {
+    return semantic_signed(t);
+}
+
+fn format_mask(t: FoundationType*): u64 {
+    return semantic_mask(t);
+}
+
+fn format_sign(t: FoundationType*): u64 {
+    var sign = semantic_mask(t) / 2;
+    sign = sign + 1;
+    return sign;
+}
 
 fn format_type(f: FormatEngine*, t: FoundationType*): void {
     var condition1 = format_array(t);

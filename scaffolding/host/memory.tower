@@ -7,6 +7,107 @@ struct CompilerMemoryState {
     fail_after: usize;
 }
 
+// Optional compiler diagnostics only. Foundation guest pointers remain raw.
+// Contexts are single-owner; concurrent compiler sessions use separate contexts.
+struct CompilerNodeMemoryState {
+    live_allocations: usize;
+}
+
+extern fn abort(): void;
+
+fn compiler_memory_guard(): usize {
+    var guard: u64 = 16045690984833335023;
+    var narrow = sizeof(usize) == 4;
+    if narrow {
+        guard = 3735928559;
+    }
+    return convert(usize, guard);
+}
+
+export fn compiler_node_allocate(state: CompilerNodeMemoryState*, size: usize, diagnostic: bool): void* {
+    var bytes = size;
+    var word = sizeof(usize);
+    if diagnostic {
+        var maximum: usize = 0;
+        maximum = maximum - 1;
+        var overhead = word * 4;
+        overhead = overhead - 1;
+        var limit = maximum - overhead;
+        var overflow = size > limit;
+        if overflow {
+            return null;
+        }
+        var padding = word - 1;
+        bytes = size + padding;
+        bytes = bytes / word;
+        bytes = bytes * word;
+        var guards = word * 3;
+        bytes = bytes + guards;
+    }
+    // A successful zero-size request still owns a releasable allocation.
+    var empty = bytes == 0;
+    if empty {
+        bytes = 1;
+    }
+    var memory = compiler_host_reallocate(null, bytes);
+    var failed = memory == null;
+    if failed {
+        return null;
+    }
+    state.live_allocations = state.live_allocations + 1;
+    if diagnostic {
+        var header = bits(usize*, memory);
+        var overhead = word * 3;
+        var payload = bytes - overhead;
+        header[0] = payload;
+        header[1] = compiler_memory_guard();
+        var end = payload / word;
+        end = end + 2;
+        header[end] = compiler_memory_guard();
+        var data = &header[2];
+        fill(data, 219, payload);
+        return bits(void*, data);
+    }
+    return memory;
+}
+
+export fn compiler_node_free(state: CompilerNodeMemoryState*, pointer: void*, diagnostic: bool): void {
+    var absent = pointer == null;
+    if absent {
+        return;
+    }
+    var empty = state.live_allocations == 0;
+    if empty {
+        abort();
+        return;
+    }
+    var allocation = pointer;
+    if diagnostic {
+        var header = bits(usize*, pointer);
+        header = header - 2;
+        var guard = compiler_memory_guard();
+        var corrupted = header[1] != guard;
+        if corrupted {
+            abort();
+            return;
+        }
+        var bytes = header[0];
+        var end = bytes / sizeof(usize);
+        end = end + 2;
+        corrupted = header[end] != guard;
+        if corrupted {
+            abort();
+            return;
+        }
+        var overhead = sizeof(usize) * 3;
+        bytes = bytes + overhead;
+        fill(header, 254, bytes);
+        allocation = bits(void*, header);
+    }
+    state.live_allocations = state.live_allocations - 1;
+    compiler_host_deallocate(allocation);
+}
+
 extern fn compiler_host_reallocate(pointer: void*, bytes: usize): void*;
 
 extern fn compiler_host_deallocate(pointer: void*): void;

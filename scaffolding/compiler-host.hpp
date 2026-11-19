@@ -16,10 +16,15 @@ struct DriverOptions {
 struct CompilerMemoryState {
   size_t live_buffers, allocation_calls, fail_after;
 };
+struct CompilerNodeMemoryState {
+  size_t live_allocations;
+};
 extern "C" {
 bool driver_parse(DriverOptions*, size_t, const char* const*, const char*);
 const char* driver_help();
 void driver_dispose(DriverOptions*);
 void* compiler_memory_reallocate(CompilerMemoryState*, void*, size_t, size_t);
 void compiler_memory_deallocate(CompilerMemoryState*, void*);
+void* compiler_node_allocate(CompilerNodeMemoryState*, size_t, bool);
+void compiler_node_free(CompilerNodeMemoryState*, void*, bool);
 }

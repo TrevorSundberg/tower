@@ -7,12 +7,6 @@ struct InterpreterTask {
   uint64_t loop_resume;
   size_t phase, offset;
 };
-extern "C" CoreNode *im_node(void *node);
-extern "C" void *im_binding(void *node);
-extern "C" size_t im_type_size(const CoreType *type);
-extern "C" size_t im_type_alignment(const CoreType *type);
-extern "C" uint64_t im_type_mask(const CoreType *type);
-extern "C" bool im_type_signed(const CoreType *type);
 extern "C" size_t im_pointer_bytes(void *host);
 extern "C" void *im_root(void *host);
 extern "C" size_t im_memory_size(void *host);
@@ -46,7 +40,6 @@ extern "C" void interpreter_write(void *, uint64_t, uint64_t, const CoreType *,
 extern "C" uint64_t interpreter_allocate(void *, size_t);
 extern "C" uint64_t interpreter_reallocate(void *, uint64_t, size_t);
 extern "C" void interpreter_deallocate(void *, uint64_t);
-extern "C" size_t im_pointee_size(const CoreType *);
 
 extern "C" uint64_t im_allocations_get(void *host, uint64_t key, bool *found);
 extern "C" uint64_t im_strings_get(void *host, uint64_t key, bool *found);

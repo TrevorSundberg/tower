@@ -1,0 +1,226 @@
+// Raw-address arena allocator. Metadata describes free storage, never pointer
+// validity, ownership generations or object identity. The caller supplies a
+// contiguous committed address range and extends it after platform memory growth.
+// Compile for the guest target: usize, pointers and headers use that target.
+struct GuestBlock {
+    size: usize;
+    next: GuestBlock*;
+    reserved: usize[2];
+}
+
+struct GuestHeap {
+    available: GuestBlock*;
+    cursor: usize;
+    limit: usize;
+}
+
+export fn guest_heap_init(heap: GuestHeap*, begin: u8*, end: u8*): bool {
+    fill(heap, 0, sizeof(GuestHeap));
+    var first = bits(usize, begin);
+    var limit = bits(usize, end);
+    var invalid = first == 0;
+    if invalid {
+        return false;
+    }
+    var aligned = first + 15;
+    invalid = aligned < first;
+    if invalid {
+        return false;
+    }
+    aligned = aligned / 16;
+    aligned = aligned * 16;
+    invalid = aligned > limit;
+    if invalid {
+        return false;
+    }
+    heap.cursor = aligned;
+    heap.limit = limit;
+    return true;
+}
+
+// The platform must commit the entire extension before publishing its limit.
+// This call never moves existing allocations or frees a failed realloc's input.
+export fn guest_heap_extend(heap: GuestHeap*, end: u8*): bool {
+    var limit = bits(usize, end);
+    var invalid = limit < heap.limit;
+    if invalid {
+        return false;
+    }
+    heap.limit = limit;
+    return true;
+}
+
+export fn guest_heap_allocate(heap: GuestHeap*, count: usize, size: usize): void* {
+    var maximum: usize = 0;
+    maximum = maximum - 1;
+    var sized = size != 0;
+    if sized {
+        var limit = maximum / size;
+        var overflow = count > limit;
+        if overflow {
+            return null;
+        }
+    }
+    var bytes = count * size;
+    var limit = maximum - 15;
+    var overflow = bytes > limit;
+    if overflow {
+        return null;
+    }
+    bytes = bytes + 15;
+    bytes = bytes / 16;
+    bytes = bytes * 16;
+    var empty = bytes == 0;
+    if empty {
+        bytes = 16;
+    }
+    var header = sizeof(GuestBlock);
+    var link: GuestBlock** = &heap.available;
+    loop {
+        var block = *link;
+        var absent = block == null;
+        if absent {
+            break;
+        }
+        var enough = block.size >= bytes;
+        if enough {
+            var spare = block.size - bytes;
+            var minimum = header + 16;
+            var split = spare >= minimum;
+            if split {
+                var data = bits(u8*, block);
+                data = data + header;
+                data = data + bytes;
+                var remainder = bits(GuestBlock*, data);
+                remainder.size = spare - header;
+                remainder.next = block.next;
+                *link = remainder;
+                block.size = bytes;
+            } else {
+                *link = block.next;
+            }
+            var result = block + 1;
+            return bits(void*, result);
+        }
+        link = &block.next;
+    }
+    var remaining = heap.limit - heap.cursor;
+    var short_header = remaining < header;
+    if short_header {
+        return null;
+    }
+    remaining = remaining - header;
+    var short_data = remaining < bytes;
+    if short_data {
+        return null;
+    }
+    var block = bits(GuestBlock*, heap.cursor);
+    block.size = bytes;
+    heap.cursor = heap.cursor + header;
+    heap.cursor = heap.cursor + bytes;
+    var result = block + 1;
+    return bits(void*, result);
+}
+
+fn guest_heap_merge(block: GuestBlock*): void {
+    var next = block.next;
+    var present = next != null;
+    if present {
+        var data = block + 1;
+        var end = bits(u8*, data);
+        end = end + block.size;
+        var adjacent = end == bits(u8*, next);
+        if adjacent {
+            block.size = block.size + sizeof(GuestBlock);
+            block.size = block.size + next.size;
+            block.next = next.next;
+        }
+    }
+}
+
+export fn guest_heap_free(heap: GuestHeap*, pointer: void*): void {
+    var absent = pointer == null;
+    if absent {
+        return;
+    }
+    var block = bits(GuestBlock*, pointer);
+    block = block - 1;
+    var address = bits(usize, block);
+    var previous: GuestBlock* = null;
+    var link: GuestBlock** = &heap.available;
+    var previous_link: GuestBlock** = link;
+    loop {
+        var next = *link;
+        absent = next == null;
+        if absent {
+            break;
+        }
+        var follows = bits(usize, next) >= address;
+        if follows {
+            break;
+        }
+        previous = next;
+        previous_link = link;
+        link = &next.next;
+    }
+    block.next = *link;
+    *link = block;
+    guest_heap_merge(block);
+    var present = previous != null;
+    if present {
+        var data = previous + 1;
+        var previous_end = bits(u8*, data);
+        previous_end = previous_end + previous.size;
+        var adjacent = previous_end == bits(u8*, block);
+        guest_heap_merge(previous);
+        if adjacent {
+            block = previous;
+            link = previous_link;
+        }
+    }
+    // Reclaim a free tail into the unused arena. Otherwise a large allocation
+    // can fail despite one contiguous free span straddling the cursor.
+    var data = block + 1;
+    var end = bits(usize, data) + block.size;
+    var tail = end == heap.cursor;
+    if tail {
+        heap.cursor = bits(usize, block);
+        *link = block.next;
+    }
+}
+
+export fn guest_heap_reallocate(heap: GuestHeap*, pointer: void*, count: usize, size: usize): void* {
+    var maximum: usize = 0;
+    maximum = maximum - 1;
+    var sized = size != 0;
+    if sized {
+        var limit = maximum / size;
+        var overflow = count > limit;
+        if overflow {
+            return null;
+        }
+    }
+    var absent = pointer == null;
+    if absent {
+        return guest_heap_allocate(heap, count, size);
+    }
+    var bytes = count * size;
+    var empty = bytes == 0;
+    if empty {
+        guest_heap_free(heap, pointer);
+        return null;
+    }
+    var block = bits(GuestBlock*, pointer);
+    block = block - 1;
+    var enough = block.size >= bytes;
+    if enough {
+        return pointer;
+    }
+    var result = guest_heap_allocate(heap, count, size);
+    var ok = result != null;
+    if ok {
+        copy(result, pointer, block.size);
+        guest_heap_free(heap, pointer);
+    }
+    return result;
+}

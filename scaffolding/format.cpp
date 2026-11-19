@@ -35,56 +35,6 @@ std::string tower_identifier_value(std::string_view text) {
   return result;
 }
 
-extern "C" {
-TowerNode* format_foundation_kind() { return core_component_type(); }
-bool format_is_Program(const CoreNode* n) { return n->kind == CoreKind::Program; }
-bool format_is_Function(const CoreNode* n) { return n->kind == CoreKind::Function; }
-bool format_is_Parameter(const CoreNode* n) { return n->kind == CoreKind::Parameter; }
-bool format_is_Declare(const CoreNode* n) { return n->kind == CoreKind::Declare; }
-bool format_is_Assign(const CoreNode* n) { return n->kind == CoreKind::Assign; }
-bool format_is_Operand(const CoreNode* n) { return n->kind == CoreKind::Operand; }
-bool format_is_Binary(const CoreNode* n) { return n->kind == CoreKind::Binary; }
-bool format_is_Address(const CoreNode* n) { return n->kind == CoreKind::Address; }
-bool format_is_Load(const CoreNode* n) { return n->kind == CoreKind::Load; }
-bool format_is_Convert(const CoreNode* n) { return n->kind == CoreKind::Convert; }
-bool format_is_Bits(const CoreNode* n) { return n->kind == CoreKind::Bits; }
-bool format_is_Call(const CoreNode* n) { return n->kind == CoreKind::Call; }
-bool format_is_Block(const CoreNode* n) { return n->kind == CoreKind::Block; }
-bool format_is_If(const CoreNode* n) { return n->kind == CoreKind::If; }
-bool format_is_Loop(const CoreNode* n) { return n->kind == CoreKind::Loop; }
-bool format_is_Break(const CoreNode* n) { return n->kind == CoreKind::Break; }
-bool format_is_Continue(const CoreNode* n) { return n->kind == CoreKind::Continue; }
-bool format_is_Print(const CoreNode* n) { return n->kind == CoreKind::Print; }
-bool format_is_Return(const CoreNode* n) { return n->kind == CoreKind::Return; }
-bool format_is_Type(const CoreNode* n) { return n->kind == CoreKind::Type; }
-bool format_is_FieldDeclaration(const CoreNode* n) { return n->kind == CoreKind::FieldDeclaration; }
-bool format_is_Field(const CoreNode* n) { return n->kind == CoreKind::Field; }
-bool format_is_Index(const CoreNode* n) { return n->kind == CoreKind::Index; }
-bool format_is_String(const CoreNode* n) { return n->kind == CoreKind::String; }
-bool format_is_SizeOf(const CoreNode* n) { return n->kind == CoreKind::SizeOf; }
-bool format_is_AlignOf(const CoreNode* n) { return n->kind == CoreKind::AlignOf; }
-bool format_is_Allocate(const CoreNode* n) { return n->kind == CoreKind::Allocate; }
-bool format_is_Reallocate(const CoreNode* n) { return n->kind == CoreKind::Reallocate; }
-bool format_is_Free(const CoreNode* n) { return n->kind == CoreKind::Free; }
-bool format_is_Copy(const CoreNode* n) { return n->kind == CoreKind::Copy; }
-bool format_is_Fill(const CoreNode* n) { return n->kind == CoreKind::Fill; }
-const char* format_builtin(const CoreNode* n) { return core_builtin_name(n->kind); }
-const char* format_operator(const CoreNode* n) { return core_operator(n->op); }
-bool format_array(const CoreType* t) { return t->scalar == CoreScalar::Array; }
-bool format_record(const CoreType* t) { return t->scalar == CoreScalar::Struct; }
-bool format_boolean(const CoreType* t) { return t->scalar == CoreScalar::Bool; }
-bool format_signed(const CoreType* t) { return core_signed(*t); }
-uint64_t format_mask(const CoreType* t) { return core_mask(*t); }
-uint64_t format_sign(const CoreType* t) { return uint64_t(1) << (core_width(*t) - 1); }
-bool format_scalar_name(const CoreType* t, TowerByteBuffer* output) {
-  // Tower's formatter already handles aggregates and pointer stars. Borrow the
-  // shared scalar spelling so allocation failure remains a recoverable result,
-  // rather than entering the semantic compiler's allocating type-name helper.
-  const std::string_view name = semantic_scalar_name(unsigned(t->scalar));
-  return bytes_assign_text(output, reinterpret_cast<const uint8_t*>(name.data()), name.size());
-}
-}
-
 namespace {
 TowerText take(TowerFormatResult& output) {
   TowerText result;

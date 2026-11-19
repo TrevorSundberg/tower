@@ -6,6 +6,54 @@ extern fn tower_test_buffer_fail_next(): void;
 export fn host_runtime_tests(): i32 {
     var maximum: usize = 0;
     maximum = maximum - 1;
+    // Both diagnostic and ordinary compiler allocation are Tower algorithms.
+    var node_state: CompilerNodeMemoryState;
+    node_state.live_allocations = 0;
+    var rejected = compiler_node_allocate(&node_state, maximum, true);
+    var bad = rejected != null;
+    if bad {
+        return 701;
+    }
+    bad = node_state.live_allocations != 0;
+    if bad {
+        return 702;
+    }
+    var size: usize = 0;
+    loop {
+        var done = size == 65;
+        if done {
+            break;
+        }
+        var diagnostic = compiler_node_allocate(&node_state, size, true);
+        var ordinary = compiler_node_allocate(&node_state, size, false);
+        bad = diagnostic == null;
+        if bad {
+            return 703;
+        }
+        bad = ordinary == null;
+        if bad {
+            return 704;
+        }
+        bad = node_state.live_allocations != 2;
+        if bad {
+            return 705;
+        }
+        var remainder = bits(usize, diagnostic) % sizeof(usize);
+        bad = remainder != 0;
+        if bad {
+            return 706;
+        }
+        fill(diagnostic, 42, size);
+        copy(ordinary, diagnostic, size);
+        compiler_node_free(&node_state, diagnostic, true);
+        compiler_node_free(&node_state, ordinary, false);
+        compiler_node_free(&node_state, null, true);
+        bad = node_state.live_allocations != 0;
+        if bad {
+            return 707;
+        }
+        size = size + 1;
+    }
     var state: CompilerMemoryState;
     state.live_buffers = 0;
     state.allocation_calls = 0;

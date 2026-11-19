@@ -72,6 +72,7 @@ function(tower_compiler_utilities)
       target_sources(tower-compiler-utilities INTERFACE "${object}")
     endif()
   endforeach()
+  include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/TowerSharedRuntime.cmake")
 endfunction()
 
 # These components use the Tower-written specializer (vector(T)), so compile

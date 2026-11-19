@@ -1,0 +1,187 @@
+// Compose after host/guest-memory.tower and host/platform-output.tower.
+// Identical source executes under the interpreter and native/Wasm lowering.
+var runtime_check_index: usize = 0;
+
+fn runtime_check(ok: bool): void {
+    runtime_check_index = runtime_check_index + 1;
+    if ok {} else {
+        // A failed check is observable under every execution path.
+        print(runtime_check_index);
+        var zero: i32 = 0;
+        var fail = 1 / zero;
+        print(fail);
+    }
+}
+
+fn check_text(kind: u32, value: u64, width: u32, wanted: u8*, count: usize): void {
+    var output: u8[80];
+    fill(&output[0], 165, 80);
+    var length = runtime_format_value(&output[0], 80, kind, value, width);
+    var ok = length == count;
+    runtime_check(ok);
+    var i: usize = 0;
+    loop {
+        var done = i == count;
+        if done {
+            break;
+        }
+        ok = output[i] == wanted[i];
+        runtime_check(ok);
+        i = i + 1;
+    }
+    ok = output[count] == 165;
+    runtime_check(ok);
+    fill(&output[0], 165, 80);
+    var short_capacity = count - 1;
+    length = runtime_format_value(&output[0], short_capacity, kind, value, width);
+    ok = length == 0;
+    runtime_check(ok);
+    i = 0;
+    loop {
+        var done = i == 80;
+        if done {
+            break;
+        }
+        ok = output[i] == 165;
+        runtime_check(ok);
+        i = i + 1;
+    }
+}
+
+fn guest_runtime_tests(): void {
+    var memory = alloc(u8, 131088);
+    var heap: GuestHeap;
+    var begin = memory + 1;
+    var end = memory + 4096;
+    runtime_check(guest_heap_init(&heap, begin, end));
+    var start = heap.cursor;
+    var p = guest_heap_allocate(&heap, 32, 1);
+    var q = guest_heap_allocate(&heap, 32, 1);
+    var r = guest_heap_allocate(&heap, 32, 1);
+    var ok = p != null;
+    runtime_check(ok);
+    ok = q != null;
+    runtime_check(ok);
+    ok = r != null;
+    runtime_check(ok);
+    var remainder = bits(usize, p) % 16;
+    ok = remainder == 0;
+    runtime_check(ok);
+    fill(p, 77, 32);
+    var maximum: usize = 0;
+    maximum = maximum - 1;
+    var cursor = heap.cursor;
+    ok = guest_heap_allocate(&heap, maximum, 2) == null;
+    runtime_check(ok);
+    ok = guest_heap_allocate(&heap, maximum, 1) == null;
+    runtime_check(ok);
+    ok = guest_heap_reallocate(&heap, p, maximum, 2) == null;
+    runtime_check(ok);
+    ok = guest_heap_reallocate(&heap, p, 8192, 1) == null;
+    runtime_check(ok);
+    ok = heap.cursor == cursor;
+    runtime_check(ok);
+    var bytes = bits(u8*, p);
+    ok = bytes[31] == 77;
+    runtime_check(ok);
+    end = memory + 131088;
+    runtime_check(guest_heap_extend(&heap, end));
+    var resized = guest_heap_reallocate(&heap, p, 8192, 1);
+    ok = resized != null;
+    runtime_check(ok);
+    bytes = bits(u8*, resized);
+    ok = bytes[31] == 77;
+    runtime_check(ok);
+    guest_heap_free(&heap, r);
+    guest_heap_free(&heap, q);
+    guest_heap_free(&heap, resized);
+    // Adjacent frees coalesce on both sides and reuse the original first block.
+    p = guest_heap_allocate(&heap, 96, 1);
+    var address = bits(usize, p);
+    var wanted = start + sizeof(GuestBlock);
+    ok = address == wanted;
+    runtime_check(ok);
+    guest_heap_free(&heap, p);
+    var slots: void*[64];
+    var lengths: usize[64];
+    var patterns: u8[64];
+    var slot_bytes = sizeof(void*) * 64;
+    fill(&slots[0], 0, slot_bytes);
+    var random: u32 = 1900587981;
+    var trial: usize = 0;
+    loop {
+        var done = trial == 10000;
+        if done {
+            break;
+        }
+        random = random * 1664525;
+        random = random + 1013904223;
+        var selected = random / 65536;
+        selected = selected % 64;
+        var index = convert(usize, selected);
+        p = slots[index];
+        var occupied = p != null;
+        if occupied {
+            bytes = bits(u8*, p);
+            var i: usize = 0;
+            loop {
+                done = i == lengths[index];
+                if done {
+                    break;
+                }
+                ok = bytes[i] == patterns[index];
+                runtime_check(ok);
+                i = i + 1;
+            }
+            guest_heap_free(&heap, p);
+            slots[index] = null;
+        } else {
+            var count = random % 1024;
+            count = count + 1;
+            var size = convert(usize, count);
+            p = guest_heap_allocate(&heap, size, 1);
+            ok = p != null;
+            runtime_check(ok);
+            var pattern = random % 256;
+            var byte = convert(u8, pattern);
+            fill(p, byte, size);
+            slots[index] = p;
+            lengths[index] = size;
+            patterns[index] = byte;
+        }
+        trial = trial + 1;
+    }
+    var i: usize = 0;
+    loop {
+        var done = i == 64;
+        if done {
+            break;
+        }
+        guest_heap_free(&heap, slots[i]);
+        i = i + 1;
+    }
+    p = guest_heap_allocate(&heap, 0, 1);
+    ok = p != null;
+    runtime_check(ok);
+    ok = guest_heap_reallocate(&heap, p, 0, 1) == null;
+    runtime_check(ok);
+    ok = guest_heap_allocate(&heap, 120000, 1) != null;
+    runtime_check(ok);
+    free(memory);
+
+    check_text(0, 2147483648, 4, "-2147483648\n", 12);
+    check_text(0, 4294967295, 8, "-1\n", 3);
+    check_text(1, 4294967295, 4, "4294967295\n", 11);
+    check_text(6, 9223372036854775808, 8, "-9223372036854775808\n", 21);
+    check_text(7, 18446744073709551615, 8, "18446744073709551615\n", 21);
+    check_text(2, 0, 4, "false\n", 6);
+    check_text(2, 1, 8, "true\n", 5);
+    check_text(3, 48879, 4, "0x0000beef\n", 11);
+    check_text(3, 48879, 8, "0x000000000000beef\n", 19);
+    check_text(1, 0, 4, "0\n", 2);
+    ok = runtime_write_all(3, null, 0) == false;
+    runtime_check(ok);
+    runtime_check(runtime_write_all(1, "Tower guest runtime passed\n", 27));
+}
+
+guest_runtime_tests();

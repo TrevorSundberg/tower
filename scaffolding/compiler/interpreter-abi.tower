@@ -46,17 +46,44 @@ struct IMState {
 // Remaining host callbacks and existing shared type queries only.
 // FoundationNode and FoundationType are composed from foundation-nodes.tower.
 
-extern fn im_node(node: void*): FoundationNode*;
+extern fn sem_get(node: void*): FoundationNode*;
 
-extern fn im_binding(node: void*): void*;
+extern fn semantic_size(type: FoundationType*): usize;
 
-extern fn im_type_size(type: FoundationType*): usize;
+extern fn semantic_alignment(type: FoundationType*): usize;
 
-extern fn im_type_alignment(type: FoundationType*): usize;
+extern fn semantic_mask(type: FoundationType*): u64;
 
-extern fn im_type_mask(type: FoundationType*): u64;
+extern fn semantic_signed(type: FoundationType*): bool;
 
-extern fn im_type_signed(type: FoundationType*): bool;
+fn im_node(node: void*): FoundationNode* {
+    return sem_get(node);
+}
+
+fn im_binding(node: void*): void* {
+    var value = sem_get(node);
+    var bound = value.binding != null;
+    if bound {
+        return value.binding;
+    }
+    return node;
+}
+
+fn im_type_size(type: FoundationType*): usize {
+    return semantic_size(type);
+}
+
+fn im_type_alignment(type: FoundationType*): usize {
+    return semantic_alignment(type);
+}
+
+fn im_type_mask(type: FoundationType*): u64 {
+    return semantic_mask(type);
+}
+
+fn im_type_signed(type: FoundationType*): bool {
+    return semantic_signed(type);
+}
 
 extern fn im_pointer_bytes(host: IMState*): usize;
 
@@ -72,7 +99,14 @@ extern fn im_append(host: IMState*, text: u8*, count: usize): void;
 
 extern fn im_foreign(host: IMState*, node: void*, args: u64*, count: usize): u64;
 
-extern fn im_pointee_size(type: FoundationType*): usize;
+fn im_pointee_size(type: FoundationType*): usize {
+    var element: FoundationType;
+    element.scalar = type.scalar;
+    element.pointers = type.pointers - 1;
+    element.record = type.record;
+    element.pointer_bytes = type.pointer_bytes;
+    return semantic_size(&element);
+}
 
 // Verify the transitional C++ view under each actual compilation target.
 export fn interpreter_state_size(): usize {
