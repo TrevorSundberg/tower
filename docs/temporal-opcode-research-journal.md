@@ -15427,3 +15427,61 @@ retaining tests in the separate native build, then rebuilt/repackaged. This is a
 build-configuration correction, not a removed test or a packaging workaround.
 The failed trial is preserved in workbench-generations.log; successor and final
 publication results follow after validation of that corrected package.
+
+The next synchronization incorporated e6da242, preserving upstream's prepared
+completion queries and diagnostic grace period. One test command was mistakenly
+still reading fixtures during that rebase and observed a transient ENOENT for
+backend-import-constants.tower; that run is invalid evidence. Reran against the
+stable checkout: all 293 Node tests pass (release-node.log), all 38 selected
+desktop/mobile completion, diagnostic and struct cases pass (release-browser.log),
+and the release local verifier passes 67 asset hashes plus both browser profiles
+(release-verify-local.log). Subsequent pulls must wait for source-reading tests.
+
+A second successor trial compiled every Tower object but rejected the parser
+reactor's expected frontend_modules_tests export. The parser cache separately
+had TOWER_MODULE_TESTS=ON, whereas the packaged shared unit came from the LLVM
+release configuration with that option OFF. Corrected the parser release cache
+with `cmake -S . -B build/browser-wasi -DTOWER_MODULE_TESTS=OFF`, retaining the
+Tower fixture in the repository. Both browser caches now use release options.
+The candidate export check correctly prevented activation/publication of the
+inconsistent recipe; release-generations.log preserves this failed trial.
+
+After both configuration corrections, parser completion/import/semantic checks
+pass 41/41 (release-parser-tests.log). The regenerated recipe's source files and
+unit list compare exactly equal to the prior recipe. Resumed generation one's
+link step from its already compiled objects only after asserting those equalities;
+the edited semantic-values diagnostic uses the same text as the original trial.
+All candidate activation probes now pass, including expected exports, typed
+completion, imported graph/fast execution, both LLVM interpreter profiles, cache
+loading, Wasm execution and native object output. Generation one also executes
+the edited diagnostic. The resume adapter uses the existing buildCompiler and
+linkCompiler browser APIs; generation two recompiles every unit with that new
+compiler and checks identical reactor hashes. Its final result is recorded below.
+
+Alternating final parser comparison against published a06321f, 20 warmups and
+100 samples per case in the same Node process: small input median 0.1833/0.1827 ms;
+500 declarations 9.8631/9.8983 ms; 200 pointer-recursive record layouts
+7.9409/7.7675 ms (published/current). No material regression was observed in
+these samples. Package generation was also running, so absolute timings include
+environment noise; these are serial compile measurements, not thread scaling.
+Full measurements and baseline ID are in release-benchmark.json.
+
+Both corrected successor generations pass and produce identical SHA-256 values:
+parser e840256b1fa44cffbd1a47aa4b2e8405c5d9f565d0d17f96e7f0141286bcf8ec
+(871,437 bytes), LLVM
+20021c25c9ca71186841189dd1a121cc21e5d35180bd8cb229d84c33bac13246
+(51,849,687 bytes), cross
+2e9b68bdb164fe71e4cadb8f818c16f3bc44b873bff67f9fbaf4ad5511840902
+(63,406,957 bytes). The resumed first link/check took about 5.4 seconds; this
+excludes its previously completed compilation. The complete second generation
+took about 93.4 seconds. These are validation timings, not controlled benchmarks.
+Evidence: release-generations-resumed.log and release-generation{1,2}.json.
+
+Final local publication verification exits zero with all 67 asset hashes and
+desktop/mobile behavior passing (final-verify-local.log). Manifest SHA-256:
+bc6717ba053a58ce19fa949a8a3550babeb7d672c8f2acecdf8e205b71dc445f.
+The prepared Pages update preserves the upstream completion/workbench changes,
+adds library/work-graph.tower and removes no assets. No new C/C++ implementation
+was introduced; todo.txt remains blob 96a9e58964d7f01e4a97819f259448db81ef5e40.
+Real parallel phase execution and safe concurrent shared-node publication remain
+unfinished. The validated checkpoint must not be called a parallel compiler.
