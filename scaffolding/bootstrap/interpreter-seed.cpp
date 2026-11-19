@@ -1,6 +1,10 @@
 // Frozen execution algorithms from f034216. Bootstrap/reference migration debt.
 // Production execution is compiled from compiler/interpreter.tower.
-#include "../core.hpp"
+#ifdef CoreMachine
+#undef CoreMachine
+#endif
+#include "interpreter-reference.hpp"
+#define CoreMachine NativeCoreMachine
 #include <algorithm>
 #include <bit>
 #include <cstring>

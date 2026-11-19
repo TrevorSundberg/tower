@@ -1,0 +1,201 @@
+// Compiled into the native/WASI test host. All assertions and trials are Tower.
+fn host_test_bytes(buffer: ByteBuffer*, wanted: u8*, count: usize): bool {
+    var same = buffer.length == count;
+    if same {} else {
+        return false;
+    }
+    var i: usize = 0;
+    loop {
+        var done = i == count;
+        if done {
+            return true;
+        }
+        same = buffer.data[i] == wanted[i];
+        if same {} else {
+            return false;
+        }
+        i = i + 1;
+    }
+}
+
+fn host_test_json(): i32 {
+    var out: ByteBuffer;
+    fill(&out, 0, sizeof(ByteBuffer));
+    var input: u8[7];
+    input[0] = 0;
+    input[1] = 10;
+    input[2] = 34;
+    input[3] = 92;
+    input[4] = 127;
+    input[5] = 195;
+    input[6] = 169;
+    var ok = host_json_quote(&out, &input[0], 7);
+    if ok {} else {
+        return 201;
+    }
+    var wanted: u8[21];
+    copy(&wanted[0], "\"\\u0000\\u000a\\\"\\\\", 17);
+    wanted[17] = 127;
+    wanted[18] = 195;
+    wanted[19] = 169;
+    wanted[20] = 34;
+    ok = host_test_bytes(&out, &wanted[0], 21);
+    if ok {} else {
+        return 202;
+    }
+    out.length = 0;
+    ok = host_json_unsigned(&out, 18446744073709551615);
+    if ok {} else {
+        return 203;
+    }
+    ok = host_test_bytes(&out, "18446744073709551615", 20);
+    if ok {} else {
+        return 204;
+    }
+    out.length = 0;
+    host_json_unsigned(&out, 0);
+    ok = host_test_bytes(&out, "0", 1);
+    if ok {} else {
+        return 205;
+    }
+    bytes_dispose(&out);
+    bytes_append(&out, "a\n", 2);
+    ok = host_json_quote(&out, out.data, 2);
+    if ok {} else {
+        return 206;
+    }
+    ok = host_test_bytes(&out, "a\n\"a\\u000a\"", 11);
+    if ok {} else {
+        return 207;
+    }
+    var maximum: usize = 0;
+    maximum = maximum - 1;
+    ok = host_json_quote(&out, null, maximum);
+    if ok {
+        return 208;
+    }
+    ok = host_test_bytes(&out, "a\n\"a\\u000a\"", 11);
+    if ok {} else {
+        return 209;
+    }
+    var old = out.data;
+    var capacity = out.capacity;
+    tower_test_buffer_fail_next();
+    ok = host_json_quote(&out, "0123456789012345678901234567890123456789012345678901234567890123", 64);
+    if ok {
+        return 210;
+    }
+    ok = out.data == old;
+    var same = out.capacity == capacity;
+    if same {} else {
+        ok = false;
+    }
+    same = host_test_bytes(&out, "a\n\"a\\u000a\"", 11);
+    if same {} else {
+        ok = false;
+    }
+    if ok {} else {
+        return 211;
+    }
+    ok = host_text_terminate(&out);
+    same = out.data[out.length] == 0;
+    if same {} else {
+        ok = false;
+    }
+    if ok {} else {
+        return 212;
+    }
+    bytes_dispose(&out);
+    return 0;
+}
+
+fn host_test_handles(): i32 {
+    var table: HostHandles;
+    fill(&table, 0, sizeof(HostHandles));
+    var payload: u8 = 42;
+    var pointer = bits(void*, &payload);
+    tower_test_buffer_fail_next();
+    var handle = host_handles_insert(&table, 0, pointer);
+    var ok = handle == 0;
+    if ok {} else {
+        return 401;
+    }
+    ok = table.count == 0;
+    if ok {} else {
+        return 402;
+    }
+    var first = host_handles_insert(&table, 0, pointer);
+    ok = first == 1;
+    if ok {} else {
+        return 403;
+    }
+    table.next = 4294967294;
+    var last = host_handles_insert(&table, 1, pointer);
+    ok = last == 4294967295;
+    if ok {} else {
+        return 404;
+    }
+    handle = host_handles_insert(&table, 1, pointer);
+    ok = handle == 2;
+    if ok {} else {
+        return 405;
+    }
+    var found = host_handles_get(&table, 1, first);
+    ok = found == null;
+    if ok {} else {
+        return 406;
+    }
+    found = host_handles_take(&table, 1, first);
+    ok = found == null;
+    if ok {} else {
+        return 407;
+    }
+    ok = host_handles_dispose(&table);
+    if ok {
+        return 408;
+    }
+    var count = host_handles_count(&table, 0);
+    ok = count == 1;
+    if ok {} else {
+        return 409;
+    }
+    count = host_handles_count(&table, 1);
+    ok = count == 2;
+    if ok {} else {
+        return 410;
+    }
+    found = host_handles_take(&table, 0, first);
+    ok = found == pointer;
+    if ok {} else {
+        return 411;
+    }
+    found = host_handles_take(&table, 0, first);
+    ok = found == null;
+    if ok {} else {
+        return 412;
+    }
+    found = host_handles_take(&table, 1, last);
+    ok = found == pointer;
+    if ok {} else {
+        return 413;
+    }
+    found = host_handles_take(&table, 1, handle);
+    ok = found == pointer;
+    if ok {} else {
+        return 414;
+    }
+    ok = host_handles_dispose(&table);
+    if ok {} else {
+        return 415;
+    }
+    return 0;
+}
+
+export fn host_support_tests(): i32 {
+    var result = host_test_json();
+    var failed = result != 0;
+    if failed {
+        return result;
+    }
+    return host_test_handles();
+}

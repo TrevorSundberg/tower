@@ -1,0 +1,134 @@
+// Browser JSON is transport text, never a Tower program storage format.
+// ByteBuffer and bytes_* are supplied by the shared byte-buffer library.
+// Appends are atomic on failure, preserve UTF-8 bytes, and permit self-slices.
+export fn host_json_quote(out: ByteBuffer*, source: u8*, count: usize): bool {
+    var maximum: usize = 0;
+    maximum = maximum - 1;
+    var left = maximum - out.length;
+    var small = left < 2;
+    if small {
+        return false;
+    }
+    left = left - 2;
+    var limit = left / 6;
+    var overflow = count > limit;
+    if overflow {
+        return false;
+    }
+    var base = bits(usize, out.data);
+    var start = bits(usize, source);
+    var offset = start - base;
+    var inside = offset < out.capacity;
+    if inside {
+        var invalid = offset > out.length;
+        if invalid {
+            return false;
+        }
+        var remaining = out.length - offset;
+        invalid = count > remaining;
+        if invalid {
+            return false;
+        }
+    }
+    var needed = count * 6;
+    needed = needed + out.length;
+    needed = needed + 2;
+    var ok = bytes_reserve(out, needed);
+    if ok {} else {
+        return false;
+    }
+    if inside {
+        source = out.data + offset;
+    }
+    var at = out.length;
+    out.data[at] = 34;
+    at = at + 1;
+    var hex: u8* = "0123456789abcdef";
+    var i: usize = 0;
+    loop {
+        var done = i == count;
+        if done {
+            break;
+        }
+        var c = source[i];
+        var quote = c == 34;
+        var slash = c == 92;
+        var escaped = quote;
+        if slash {
+            escaped = true;
+        }
+        if escaped {
+            out.data[at] = 92;
+            at = at + 1;
+            out.data[at] = c;
+            at = at + 1;
+        } else {
+            var control = c < 32;
+            if control {
+                out.data[at] = 92;
+                at = at + 1;
+                out.data[at] = 117;
+                at = at + 1;
+                out.data[at] = 48;
+                at = at + 1;
+                out.data[at] = 48;
+                at = at + 1;
+                var high = c / 16;
+                var low = c % 16;
+                out.data[at] = hex[high];
+                at = at + 1;
+                out.data[at] = hex[low];
+                at = at + 1;
+            } else {
+                out.data[at] = c;
+                at = at + 1;
+            }
+        }
+        i = i + 1;
+    }
+    out.data[at] = 34;
+    out.length = at + 1;
+    return true;
+}
+
+export fn host_json_unsigned(out: ByteBuffer*, value: u64): bool {
+    var digits: u8[20];
+    var count: usize = 0;
+    loop {
+        var digit = value % 10;
+        digit = digit + 48;
+        digits[count] = convert(u8, digit);
+        count = count + 1;
+        value = value / 10;
+        var done = value == 0;
+        if done {
+            break;
+        }
+    }
+    var needed = out.length + count;
+    var overflow = needed < out.length;
+    if overflow {
+        return false;
+    }
+    var ok = bytes_reserve(out, needed);
+    if ok {
+        loop {
+            var done = count == 0;
+            if done {
+                break;
+            }
+            count = count - 1;
+            out.data[out.length] = digits[count];
+            out.length = out.length + 1;
+        }
+    }
+    return ok;
+}
+
+// NUL is a borrowed C ABI view and is excluded from the buffer length.
+export fn host_text_terminate(out: ByteBuffer*): bool {
+    var length = out.length;
+    var ok = bytes_push(out, 0);
+    out.length = length;
+    return ok;
+}

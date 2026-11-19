@@ -10928,234 +10928,6 @@ attempt to cancel the prior audit's older rerun reported it was already complete
 the final Pages build API identifies the newer 4a5538e, not the older formatter
 deployment. No asset was rolled back and no new backend rebuild is claimed.
 
-
-### 2026-11-19 — Replacement expansion and destination preparation move to Tower
-
-Task 1 continues from integrated master 586078b; the other three assigned tracks
-remain outside this change. Initial pull/rebase in the clean audit worktree was
-up to date. Unrelated AGENTS.md/foundation/journal/todo edits remain preserved.
-
-Production expansion now runs in compiler/syntax-expansion.tower, operating on
-the existing parse entities and ParserMatchData components. The implementation
-preserves postorder expansion, inferred destination handling, copy-on-reuse and
-move-on-final-use capture behavior, list order/empty captures, source spans,
-trace chains/splices and existing step/output/recursion bounds. Per-revision
-borrowed production/capture views replace repeated native map searches with a
-direct production-number index and typed-hole ordinals. The normal-node set is
-a disposable Tower hash set of entity IDs; it is not semantic graph storage.
-Copying a capture and marking its cloned descendants now share one traversal.
-All temporary work stacks, capture-use counts and failure cleanup are Tower.
-
-Production replacement preparation is in compiler/syntax-replacements.tower:
-Statement reachability, unit-rule parent discovery, nearest-distance candidate
-selection, ambiguity rejection, first-error preservation and bounded UTF-8
-diagnostic excerpts. Parent order/duplicate suppression preserve the previous
-sorted-name behavior. It reuses the rule-name binary search from revision
-validation. A no-replacement fast path avoids constructing the unused reachability
-and destination graph. Native input marshalling uses one flat alternative array
-instead of one temporary allocation per rule.
-
-The original algorithms were moved unchanged into bootstrap-only
-syntax-expansion-seed.inc and syntax-replacements-seed.inc. Native seed/stage1
-compile syntax.cpp with TOWER_EXPANSION_SEED; production native/Wasm builds call
-the Tower implementations. syntax.cpp is no longer in the object library shared
-by seed and production, so production does not link those old algorithms. The
-retained references are already-translated code awaiting bootstrap retirement,
-not new algorithms requiring another translation. Build registration is limited
-to additive source/test composition, the seed distinction and symbol allowlists.
-
-Remaining migration boundaries are explicit: native Version/Replacement storage,
-template grammar/table orchestration, typed-hole production construction and
-template production remapping remain in syntax.cpp at this checkpoint. The
-existing public SyntaxOrigin/SyntaxExpansion C++ facade still owns provenance
-storage through narrow callbacks; it contains no expansion-selection/control
-algorithm. Its retention is temporary, not an exception to the no-owned-C++ goal.
-The larger frontend/session/diagnostics/Bedrock task remains in progress.
-
-New functional tests are Tower source in tests/syntax-expansion.tower and
-tests/syntax-replacements.tower. The native runner only supplies the shared
-component/store context and reports the returned failure index. Session create,
-next, error and destroy declarations now have C linkage, allowing Tower fixtures
-to call the actual public session implementation without a new C++ test driver.
-The API still has the same values and ownership contract; host consumers rebuild
-against syntax.hpp. Test modules are composed only for TOWER_PARSER_ONLY.
-
-Expansion fixtures cover generated spans/history, duplicate and moved captures,
-repeated and empty captures, valid/invalid ancestor destinations, 256-deep trace
-limits, 4,096 replacement steps, the 65,536-node limit, and allocation failure
-sweeps through successful execution with balanced Tower buffer counts. Existing
-native/browser cases continue to check provenance and full-language behavior.
-Preparation source fixtures cover deferred/forward activation, multi-hop unit
-parents, nearest success, ambiguous equal-distance successes and invalid output
-categories/captures. The failure injection covers Tower allocation calls, not
-std::string/std::shared_ptr allocations retained in the facade. ASan/UBSan
-instrument native code; generated Tower instructions are not all instrumented.
-
-Trials and corrections:
-- A generated #endif initially shared a line with the namespace closing brace;
-  corrected the extraction boundary before linking.
-- Foundation returns accept operands, not arbitrary binary expressions, and a
-  typed pointer needs explicit conversion at a void* call boundary. Rewrote the
-  new helpers using normal Foundation operations; added no grammar special case.
-- The first whole-program run exposed missing explicit zero initialization of
-  the new work-state struct. Raw uninitialized storage is not guaranteed zero;
-  added fill and initialized the failed-instantiation result pointer to null.
-  The increment example then agreed with baseline: 5, 6, 7, 7, 9.
-- One new error test initially treated an appended byte buffer as NUL-terminated.
-  The result ABI carries a length, and native consumers already respect it.
-  Corrected the Tower test to compare the explicit lengths.
-
-Baseline artifacts from 586078b were saved before changes under
-build/replacement-baseline (native towerc and a freshly rebuilt same-toolchain
-Wasm frontend). Initial expansion-only checks passed Linux ASan/UBSan CTest 5/5,
-222 Node tests, and canonical formatting, including the new Tower tests. The
-preparation port was added afterwards and must receive its own final checks.
-
-An exploratory paired benchmark used profile-grammar-port-native.py and
-profile-grammar-port.mjs with these baseline artifacts; reports are
-build/replacement-performance-{native,wasm}.json. Native replacement compilation
-median was 19.617 -> 18.797 ms, but total/other fixture results were mixed and
-early native samples had visibly changing machine speed. Wasm replacement median
-was 16.086 -> 16.090 ms; grammar50 was 445.821 -> 443.563 ms, while declarations500
-was 11.285 -> 11.547 ms. This is not a general speedup claim. These expansion-only
-measurements predate the preparation fast path and are superseded by final
-frozen-source and replacement-specific measurements when those are complete.
-
-Reproduction uses WSL Orchestral-Revng/LLVM 19, WASI SDK 34 and the existing native
-and core-asan caches. Logs currently use build/replacement-{native,asan-build,
-asan-tests,wasm,node,format}.log. Build native first, then keep stage1 stable while
-building sanitizer and Wasm consumers. Do not modify the composed Tower source
-during the final seed/Tower four-target agreement comparisons.
-
-Checkpoint validation after preparation: native and both Wasm LLVM/cross reactors
-rebuilt; Linux ASan/UBSan CTest passed 5/5 (19.97 seconds); optimized Windows
-parser/compiler tests passed; 222 Node tests passed; all 56 Tower files passed
-canonical formatting. All 16 seed/Tower optimized-IR and object comparisons
-passed across Linux x64, Wasm32, Windows x64 and macOS ARM64, followed by explicit
-bootstrap grammar-path checks. New session-level preparation tests ran through
-the real parser, not mocked candidate outcomes. Logs retain the commands above,
-plus replacement-{llvm,windows,bootstrap}.log. Full browser/deployment checks
-are still required before publishing this checkpoint; no publication is claimed.
-
-Added profile-replacement-port.mjs to measure the affected operations rather than
-only general compiler fixtures. It uses 12 warmups and 40 alternating paired
-samples per case, checks exact canonical Foundation result agreement, and retains
-raw samples/p50/p95. With builds/tests finished, final checkpoint Wasm medians
-(ms, baseline -> Tower) were: capture200 17.228 -> 16.794; capture1000 41.163 ->
-38.042; nestedCapture 14.692 -> 14.106; statements500 20.484 -> 18.170;
-inferred500 25.798 -> 23.471. These represent approximately 3%, 8%, 4%, 11% and
-9% improvements for these workloads, not a universal guarantee. Reproduction:
-node playground/scripts/profile-replacement-port.mjs
-build/replacement-baseline/tower.wasm build/replacement-focused-performance.json.
-Report/log: replacement-focused-performance.{json,log} under build.
-
-Work is on port/frontend-tower so the other owners can continue independently.
-This validated checkpoint is not completion of the frontend task: typed-hole
-grammar construction, template remapping and the larger session/parser facade
-remain next. Later entries supersede the checkpoint results when those change.
-
-## 2026-11-19: Tower template construction, remapping and lexical session traversal
-
-Continued frontend track 1 after `b50bfe0`. This is another migration checkpoint,
-not completion of the frontend track or removal of all project-owned C++.
-
-Implemented:
-
-- `compiler/syntax-template.tower` builds typed capture-hole productions directly
-  on the existing Rule/Reference/String entities through the Tower emission
-  helpers. Scalar tokens use their ordinary generated wrapper; scalar nonterminals
-  and repeated/optional captures retain their category/cardinality contracts.
-- The same module walks parsed replacement trees iteratively, restores active
-  production identities, remaps generated capture labels and counts capture uses.
-  It uses the active Tower `LRGrammar` name hash index, replacing a native linear
-  name scan for every nonterminal. Sorted borrowed production/alias views remain
-  temporary indexes over the existing entities, not an independent grammar model.
-- `compiler/syntax-scan.tower` owns source skipping/token traversal, bounded
-  diagnostic lookahead, token entity construction, replacement capture recognition,
-  identifier decoding and capture lookup. Declaration boundaries and contextual
-  tokens still use the existing Tower lexer and parser lookahead. The native
-  adapter only borrows session fields, appends highlight records, updates counters
-  and passes errors/results to the existing parser-stream interface.
-- Replacement names use a borrowed sorted capture array and binary lookup instead
-  of a second native capture map. A token's label copies directly into its shared
-  Match component, avoiding the old temporary `std::string` substring. Template
-  scanning no longer skips the same leading trivia twice.
-- Preserved source-relative diagnostic offsets and absolute template-node spans,
-  quoted capture identifiers, comments, invalid Unicode-token extent, immutable
-  revision inputs, partial-output ownership and the ordinary EOF marker.
-
-The original construction/remapping and scanner code is retained verbatim in
-`bootstrap/syntax-template-seed.inc` and `bootstrap/syntax-scan-seed.inc` for the
-existing seed/stage1 build only. Production native/Wasm builds run the Tower
-implementations. These reference files are still project-owned C++ and must be
-deleted when the portable compiler-binary bootstrap replaces the seed. They are
-not a permanent bootstrap exception and their relocation is not counted as total
-C++ removal. Table/session/revision ownership, diagnostics presentation, native
-Bedrock construction, parser stream adapters and remaining frontend tests still
-need migration. The other three machines' semantic/backend/host boundaries remain
-unchanged.
-
-New functional tests are Tower source:
-
-- `tests/syntax-template.tower` checks scalar/token distinction, the `*`/`+`/`?`
-  capture compatibility matrix, rejected literal/unrelated-category helpers,
-  generated reference/terminal identities and every injected allocation failure
-  until successful construction. Partial grammar roots are disposed and tracked
-  allocations must balance on every trial.
-- `tests/syntax-scan.tower` checks token labels, spans, rule identity, EOF after a
-  token, the full four-byte extent of an unmatched Unicode scalar, and failure
-  cleanup at every injected token allocation.
-- Public-session replacement fixtures additionally exercise quoted capture names
-  and comments on both sides of a capture. Existing parser, replacement,
-  formatting, diagnostic and browser tests exercise production integration.
-
-Trials/corrections:
-
-1. Initial template construction/remapping passed the native increment example
-   (`5, 6, 7, 7, 9`) and ASan/UBSan CTest 5/5 before scanner work.
-2. The new scanner first used `token` as a local name; the current Bedrock reserves
-   it for declarations. Renamed the local rather than changing the grammar.
-3. The first scanner run used UINT32_MAX for EOF. The existing parser ABI defines
-   EOF as UINT32_MAX - 1. This produced the misleading template failure
-   "Unexpected end of input. Expected end of input." at a valid final boundary.
-   Corrected the marker throughout scanning and added the direct EOF test.
-4. Allocation injection exposed a null `entity_release` in scanner cleanup. The
-   raw entity API requires a real entity; it is not a null-tolerant smart pointer.
-   Guarded cleanup and the test harness's empty-result cleanup explicitly.
-   `addr2line -f -C` located the failure in `entity_release` called by
-   `syntax_scan_read`; the sanitizer environment's external symbolizer path was
-   invalid, so addresses were resolved separately. No API semantics changed.
-5. After these fixes, the native increment output again matched exactly and the
-   full ASan/UBSan CTest suite passed 5/5 (23.13 seconds on this run). Sanitizers
-   instrument the native harness; the generated Tower object is not wholly
-   ASan-instrumented. Allocation injection checks Tower-managed storage, not every
-   native standard-library allocation.
-
-Environment: Windows PowerShell checkout `C:\Sandbox\tower`, WSL
-`Orchestral-Revng`, native LLVM 19, WASI SDK 34. Native build cache
-`/root/.cache/tower/native`; parser sanitizer cache `/root/.cache/tower/core-asan`.
-The supplied host compiler is `/root/.cache/tower/native/towerc-stage1`. Rebuild
-that host before starting consumer builds; do not relink it during a consumer
-compilation. Both browser LLVM reactors were rebuilt with the new Tower modules.
-Logs: `build/scan-{native,asan-build,asan-tests,wasm,llvm}.log`.
-
-Further checks before integration: all 222 Node tests passed; the optimized
-Windows parser/compiler test executable passed; canonical formatting/reference
-checks cover all 60 Tower files. `build/scan-differential.mjs` compared the old
-`586078b` Wasm compiler saved before frontend migration with the current reactor:
-all example sources plus eight error/trivia/quoted-capture/EOF fixtures produced
-identical parser events, provenance, diagnostics and highlight snapshots. The
-comparison excludes work/timing counters because removing redundant lexer work
-intentionally changes those. Reports are `build/scan-{node,format,windows,
-differential}.log`. Cross-target and browser/deployment checks were still running
-when this implementation checkpoint was recorded; their completion is recorded
-separately rather than assumed.
-
-The final upstream fetch discovered `port/host-runtime-tower` at `62b863e` and
-Pages `1d4080c`. It contains the separate host track's published `8fdb688`
-allocation-policy/CLI/WASI milestone. Integrate that work before publishing this
-frontend to avoid rolling back its already-live worker/runtime changes. This is
-not a claim that the host track or portable-binary bootstrap is finished.
 ### 2026-11-19 — Host/runtime ownership: Tower CLI and compiler allocation policy
 
 The requested host/runtime/bootstrap workstream starts from integrated master
@@ -11555,3 +11327,615 @@ and seed references. Existing Tower LR/DFA/lexer algorithms are already shared;
 they should not be reimplemented. The separate semantic, backend and host tracks
 remain responsible for their assigned files. No completed Tower-only bootstrap or
 portable compiler-binary handoff is claimed by this publication.
+### 2026-11-19 — Host/runtime ownership: first Tower integration checkpoint
+
+Task 4 began by pulling master from 42e2349 to 586078b, then running the
+repository-required `git pull --rebase` (already current). Work is isolated on
+`port/host-runtime-tower`. The user explicitly requested avoiding new C++:
+new policies and functional tests are Tower source; native changes are removal,
+temporary ABI/ownership views, seed selection and existing test entry points.
+No new C++ source file was added. todo.txt is untouched.
+
+Implemented compiler/host-memory.tower, host-driver.tower, host-text.tower and
+host-handles.tower. Production compiler allocation overflow/zero-size policy,
+failure injection and allocation observations execute in Tower. CLI option
+parsing operates on borrowed argv and caller-supplied link slots, preserving
+option order, repeated values, immediate help and existing error text. Browser
+response buffers, JSON quoting/unsigned encoding and parser/execution handle
+lookup/insertion/removal execute in Tower. The existing worker exports and
+transport schema are retained. The shared handle namespace skips zero and live
+handles on u32 wrap; destruction takes each payload once. Native SyntaxSession
+and CoreMachine payload destructors remain adapters pending their owners' APIs.
+
+Interpreter execution-space bytes now use Tower-owned storage with explicit
+growth, zeroing, shrink/regrow and disposal. Failed heap growth preserves the
+old bytes, size and heap cursor and returns null; failure to allocate the initial
+stack produces a diagnostic. This is execution-space containment, not raw
+foundation pointer bounds/lifetime safety. The frozen native interpreter now
+uses its existing separate reference declaration, allowing production to drop
+its seed-only private methods. Native moves transfer the Tower buffer exactly
+once. Its remaining maps, frame/task containers and foreign callbacks have not
+yet migrated at this checkpoint.
+
+The bootstrap graph remains honest and acyclic: towerc-seed selects the existing
+native allocation/CLI branches with TOWER_BOOTSTRAP_HOST; that seed builds the
+Tower host module; stage1 uses the Tower module and the frozen interpreter; the
+production hybrid compiler uses the Tower interpreter. Removed unused native
+allocation-test policy from the seed branch. This is not a complete Tower-written
+compiler, and none of these hybrid executables is being committed as the final
+portable bootstrap.
+
+Reproduction environment: Windows x64 PowerShell, Node 22.23.4, WSL Ubuntu as
+trevo, clang/LLVM 19, wasi-sdk-34.0-x86_64-linux in ~/.cache/tower/wasi-sdk.
+The initial native baseline is build/native/towerc-host-baseline (820,488 bytes).
+The exact 586078b browser baseline was independently rebuilt from detached
+build/host-baseline-source into ~/.cache/tower/host-baseline-wasi; an older local
+Wasm artifact was rejected as the comparison baseline because it preceded the
+pull. Baseline Wasm is copied to build/tower-host-baseline.wasm.
+
+Validation at this checkpoint:
+
+- `bash playground/scripts/build-native.sh`: passed (build/host-native.log).
+- ASan/UBSan build and CTest in ~/.cache/tower/core-asan: 5/5 passed, 21.86 s
+  (build/host-tests.log), including the new Tower host/storage tests and the
+  existing full-state native interpreter comparison.
+- `bash playground/scripts/test-bootstrap.sh`: passed 20 byte-identical object
+  and optimized-LLVM comparisons, including the host module, for Linux x64,
+  wasm32, Windows x64 COFF and macOS ARM64 Mach-O, plus explicit grammar-input
+  tests (build/host-bootstrap.log). These object comparisons are not native
+  Windows/macOS compiler execution or successive compiler self-builds.
+- WASI test executables built with TOWER_PARSER_ONLY, -fno-exceptions and an
+  8 MiB stack. `node scaffolding/tests/interpreter-wasi.mjs
+  build/host-parser-tests.wasm --host-only` passed; the same runner on
+  build/host-interpreter-tests.wasm passed 156 differential runs
+  (build/host-wasi-tests.log). The new test-host-runtime.sh registers this path
+  in internal.sh; CMake produces extensionless WASI test executables.
+- The first Node run passed 220 tests, failed the canonical-source formatting
+  check for newly written Tower, and skipped one platform test. Applied the
+  project's Tower formatter to the changed Tower files; native canonical-file
+  validation then passed. Final Node/browser/deployment validation remains due.
+
+Failed trials and fixes: foundation boolean operands cannot use bitwise &/|;
+rewrote those conditions with ordinary branches. The identifier `expected` is
+reserved in the active grammar and hex string escapes are unsupported; the
+Tower tests use an ordinary identifier and explicit UTF-8 bytes. Linking the
+host object into every utility test pulled allocator dependencies into the
+byte-buffer test's independent allocator; the host interface now follows the
+compiler-memory target instead. WASI exposed a pre-existing reference lambda's
+different SIZE_MAX/size_t return types; added only its explicit size_t return
+annotation in lr-analysis-seed.cpp, with no algorithm change. The full reference
+test build also needs -fno-exceptions; the new WASI test script supplies it.
+
+Outstanding integration dependencies are concrete. llvm-engine.cpp currently
+rejects exported runtime names (tower_allocate/reallocate/deallocate/print/trap)
+and rejects top-level state in library builds. Ordinary extern calls do not yet
+provide a way to distinguish the host realloc/free symbols from foundation
+built-ins, or invoke typed native callback pointers. Those contracts need the
+semantic/backend owners before the last runtime trampolines and lifecycle
+dispatch can disappear without adding new native implementation. Frontend
+sessions, semantic compilation results and LLVM/linker orchestration still use
+C++ interfaces; tasks 1–3 are not integrated in the fetched master. Remaining
+owned debt includes driver filesystem/process orchestration, browser schema
+traversal and foreign dispatch, tower.cpp guards/lifecycle, parser/formatter
+registration, runtime.c platform/startup code, main.cpp and native tests/seeds.
+
+Distribution is not ready: the baseline ELF dynamically requires libLLVM.so.19.1
+(128,370,024 bytes here) plus the system C/C++ runtimes, libffi, libedit, zlib,
+zstd, libxml2, libtinfo, libbsd and libmd. Its small executable alone is not a
+portable compiler package. The current driver also invokes clang to build
+runtime.c when emitting executables. A Mac runtime is unavailable here, and the
+documented Windows Visual Studio Build Tools path is absent. Native Linux and
+WASI checks do not establish Windows/macOS compiler self-hosting. Final packages
+still require explicit target architectures, source/tool/dependency provenance,
+licenses, hashes and measured complete sizes, followed by clean-checkout builds
+without a project C/C++ toolchain and successive self-build/native-run evidence.
+
+### 2026-11-19 — Interpreter containers and direct Tower entity API
+
+Supersedes the previous checkpoint's native-container limitation: allocation and
+free-block maps, string/sequence indexes, per-frame value/address caches, frame
+storage and task stacks now live in interpreter-storage.tower. Removed 23 native
+container/query entry implementations. These are derived execution indexes over
+the existing foundation nodes, not a second semantic model or public encoding.
+Maps use sorted u64 entries and binary lower-bound lookup; insertion/erasure move
+the contiguous suffix. This replaces std::map allocation overhead but makes
+insertion linear in the suffix length; benchmark before claiming a speedup.
+Internal cache/container allocation failure retains the previous fatal host
+policy via libc abort; guest heap allocation keeps its explicit null result.
+
+CoreMachineState exposes only non-owning ABI views. Tower disposes all arrays;
+the remaining native move bridge transfers their pointers once. Added Tower
+trials for permuted insertions, updates, absent keys, zero and high-u64 keys,
+ordered neighbors, removal, frame-array growth, task LIFO order, cache clearing
+and complete disposal. The existing native reference assertions now read the
+new views; they still compare complete state at suspension boundaries.
+
+Plain tower_node_* and component query wrappers also moved to host-entities.tower,
+composed with the authoritative entities module. tower.hpp now declares C linkage:
+the C++ source signatures and entity layouts are unchanged, but native callers
+must rebuild rather than link old mangled names. Native singleton lifetime,
+callback registration/finalization and guarded allocation remain in tower.cpp.
+The singleton accessor is a temporary host boundary, not another entity store.
+
+Local native compiler builds passed (host-containers-native.log and
+host-entities-native.log). ASan/UBSan CTest after both migrations passed 5/5,
+18.57 seconds (build/host-final-tests.log). The container checkpoint also passed
+156 wasm32 differential runs plus Tower storage tests
+(build/host-containers-wasi-tests.log); the entity-integrated Wasm and test
+executables have built, with final execution/Node/browser checks still pending.
+
+An ending fetch discovered new work concurrently published under the same host
+branch name: origin/port/host-runtime-tower at 62b863e and the frontend milestone
+origin/port/frontend-tower at b50bfe0. The host branch independently ports CLI and
+allocation policy and fixes WASI NONBLOCK directory support. Reconcile this work,
+retain its tests and journal, and keep one host implementation before publication.
+The frontend milestone is replacement expansion, not the complete task-1 handoff;
+no completed semantic/backend port has appeared. Do not overwrite either branch
+or roll back its published worker fix. Final distribution gates remain open.
+
+Host reconciliation uses the previously published host/memory.tower and
+host/driver-options.tower as the single allocation/CLI implementation, retaining
+their more extensive Tower tests and full-source WASI runner. Removed the
+duplicate compiler/host-memory.tower and compiler/host-driver.tower introduced
+by the first checkpoint. Our JSON, handle, entity and interpreter-container ports
+remain. Preserved the published WASI NONBLOCK fix and its regression tests, plus
+reference exception policy and portable source-fixture paths. Fixed the CLI
+adapter to honor --timings even when parsing ends in help/error, matching the
+original seed's flag order. The unused duplicate C++ allocation seed file is
+removed; the already-existing compiler-memory.cpp seed branch supplies that
+transitional implementation. No additional native algorithm was introduced.
+Renamed this continuation to port/host-runtime-integration so publication does
+not overwrite the independently published port/host-runtime-tower branch.
+
+
+### 2026-11-19 — Replacement expansion and destination preparation move to Tower
+
+Task 1 continues from integrated master 586078b; the other three assigned tracks
+remain outside this change. Initial pull/rebase in the clean audit worktree was
+up to date. Unrelated AGENTS.md/foundation/journal/todo edits remain preserved.
+
+Production expansion now runs in compiler/syntax-expansion.tower, operating on
+the existing parse entities and ParserMatchData components. The implementation
+preserves postorder expansion, inferred destination handling, copy-on-reuse and
+move-on-final-use capture behavior, list order/empty captures, source spans,
+trace chains/splices and existing step/output/recursion bounds. Per-revision
+borrowed production/capture views replace repeated native map searches with a
+direct production-number index and typed-hole ordinals. The normal-node set is
+a disposable Tower hash set of entity IDs; it is not semantic graph storage.
+Copying a capture and marking its cloned descendants now share one traversal.
+All temporary work stacks, capture-use counts and failure cleanup are Tower.
+
+Production replacement preparation is in compiler/syntax-replacements.tower:
+Statement reachability, unit-rule parent discovery, nearest-distance candidate
+selection, ambiguity rejection, first-error preservation and bounded UTF-8
+diagnostic excerpts. Parent order/duplicate suppression preserve the previous
+sorted-name behavior. It reuses the rule-name binary search from revision
+validation. A no-replacement fast path avoids constructing the unused reachability
+and destination graph. Native input marshalling uses one flat alternative array
+instead of one temporary allocation per rule.
+
+The original algorithms were moved unchanged into bootstrap-only
+syntax-expansion-seed.inc and syntax-replacements-seed.inc. Native seed/stage1
+compile syntax.cpp with TOWER_EXPANSION_SEED; production native/Wasm builds call
+the Tower implementations. syntax.cpp is no longer in the object library shared
+by seed and production, so production does not link those old algorithms. The
+retained references are already-translated code awaiting bootstrap retirement,
+not new algorithms requiring another translation. Build registration is limited
+to additive source/test composition, the seed distinction and symbol allowlists.
+
+Remaining migration boundaries are explicit: native Version/Replacement storage,
+template grammar/table orchestration, typed-hole production construction and
+template production remapping remain in syntax.cpp at this checkpoint. The
+existing public SyntaxOrigin/SyntaxExpansion C++ facade still owns provenance
+storage through narrow callbacks; it contains no expansion-selection/control
+algorithm. Its retention is temporary, not an exception to the no-owned-C++ goal.
+The larger frontend/session/diagnostics/Bedrock task remains in progress.
+
+New functional tests are Tower source in tests/syntax-expansion.tower and
+tests/syntax-replacements.tower. The native runner only supplies the shared
+component/store context and reports the returned failure index. Session create,
+next, error and destroy declarations now have C linkage, allowing Tower fixtures
+to call the actual public session implementation without a new C++ test driver.
+The API still has the same values and ownership contract; host consumers rebuild
+against syntax.hpp. Test modules are composed only for TOWER_PARSER_ONLY.
+
+Expansion fixtures cover generated spans/history, duplicate and moved captures,
+repeated and empty captures, valid/invalid ancestor destinations, 256-deep trace
+limits, 4,096 replacement steps, the 65,536-node limit, and allocation failure
+sweeps through successful execution with balanced Tower buffer counts. Existing
+native/browser cases continue to check provenance and full-language behavior.
+Preparation source fixtures cover deferred/forward activation, multi-hop unit
+parents, nearest success, ambiguous equal-distance successes and invalid output
+categories/captures. The failure injection covers Tower allocation calls, not
+std::string/std::shared_ptr allocations retained in the facade. ASan/UBSan
+instrument native code; generated Tower instructions are not all instrumented.
+
+Trials and corrections:
+- A generated #endif initially shared a line with the namespace closing brace;
+  corrected the extraction boundary before linking.
+- Foundation returns accept operands, not arbitrary binary expressions, and a
+  typed pointer needs explicit conversion at a void* call boundary. Rewrote the
+  new helpers using normal Foundation operations; added no grammar special case.
+- The first whole-program run exposed missing explicit zero initialization of
+  the new work-state struct. Raw uninitialized storage is not guaranteed zero;
+  added fill and initialized the failed-instantiation result pointer to null.
+  The increment example then agreed with baseline: 5, 6, 7, 7, 9.
+- One new error test initially treated an appended byte buffer as NUL-terminated.
+  The result ABI carries a length, and native consumers already respect it.
+  Corrected the Tower test to compare the explicit lengths.
+
+Baseline artifacts from 586078b were saved before changes under
+build/replacement-baseline (native towerc and a freshly rebuilt same-toolchain
+Wasm frontend). Initial expansion-only checks passed Linux ASan/UBSan CTest 5/5,
+222 Node tests, and canonical formatting, including the new Tower tests. The
+preparation port was added afterwards and must receive its own final checks.
+
+An exploratory paired benchmark used profile-grammar-port-native.py and
+profile-grammar-port.mjs with these baseline artifacts; reports are
+build/replacement-performance-{native,wasm}.json. Native replacement compilation
+median was 19.617 -> 18.797 ms, but total/other fixture results were mixed and
+early native samples had visibly changing machine speed. Wasm replacement median
+was 16.086 -> 16.090 ms; grammar50 was 445.821 -> 443.563 ms, while declarations500
+was 11.285 -> 11.547 ms. This is not a general speedup claim. These expansion-only
+measurements predate the preparation fast path and are superseded by final
+frozen-source and replacement-specific measurements when those are complete.
+
+Reproduction uses WSL Orchestral-Revng/LLVM 19, WASI SDK 34 and the existing native
+and core-asan caches. Logs currently use build/replacement-{native,asan-build,
+asan-tests,wasm,node,format}.log. Build native first, then keep stage1 stable while
+building sanitizer and Wasm consumers. Do not modify the composed Tower source
+during the final seed/Tower four-target agreement comparisons.
+
+Checkpoint validation after preparation: native and both Wasm LLVM/cross reactors
+rebuilt; Linux ASan/UBSan CTest passed 5/5 (19.97 seconds); optimized Windows
+parser/compiler tests passed; 222 Node tests passed; all 56 Tower files passed
+canonical formatting. All 16 seed/Tower optimized-IR and object comparisons
+passed across Linux x64, Wasm32, Windows x64 and macOS ARM64, followed by explicit
+bootstrap grammar-path checks. New session-level preparation tests ran through
+the real parser, not mocked candidate outcomes. Logs retain the commands above,
+plus replacement-{llvm,windows,bootstrap}.log. Full browser/deployment checks
+are still required before publishing this checkpoint; no publication is claimed.
+
+Added profile-replacement-port.mjs to measure the affected operations rather than
+only general compiler fixtures. It uses 12 warmups and 40 alternating paired
+samples per case, checks exact canonical Foundation result agreement, and retains
+raw samples/p50/p95. With builds/tests finished, final checkpoint Wasm medians
+(ms, baseline -> Tower) were: capture200 17.228 -> 16.794; capture1000 41.163 ->
+38.042; nestedCapture 14.692 -> 14.106; statements500 20.484 -> 18.170;
+inferred500 25.798 -> 23.471. These represent approximately 3%, 8%, 4%, 11% and
+9% improvements for these workloads, not a universal guarantee. Reproduction:
+node playground/scripts/profile-replacement-port.mjs
+build/replacement-baseline/tower.wasm build/replacement-focused-performance.json.
+Report/log: replacement-focused-performance.{json,log} under build.
+
+Work is on port/frontend-tower so the other owners can continue independently.
+This validated checkpoint is not completion of the frontend task: typed-hole
+grammar construction, template remapping and the larger session/parser facade
+remain next. Later entries supersede the checkpoint results when those change.
+
+### 2026-11-19 — Shared integration of the frontend milestone
+
+Merged b50bfe0 without rewriting the frontend algorithms. Retained its separate
+seed/production syntax compilation, replacement/expansion modules and Tower
+tests. Enabled its reference-test entry points for the interpreter differential
+executable as well, since that executable links the same composed parser test
+object. Preserved the entire frontend and host journal histories above. The
+combined native compiler build is in build/host-integrated-native.log; final
+cross-module validation and publication results follow. This merge incorporates
+the available task-1 milestone, not a complete task-1/2/3 handoff.
+
+### 2026-11-19 — Host integration validation and release-size audit
+
+The combined implementation at 3a54b5e passed Linux ASan/UBSan CTest 5/5
+(34.84 seconds), the full wasm32-WASI parser/formatter suite (65 canonical
+Tower files), and 156 interpreter full-state comparisons. Logs are
+build/host-combined-{tests,wasi-build,wasi-tests}.log. Native sanitizer coverage
+does not imply that generated Tower instructions are all instrumented.
+The initial Node run passed 221 tests and skipped the optional native-generated
+Wasm fixture. After producing that fixture, the stripped module passed all 222
+Node tests, with no skips (build/host-stripped-node.log, 24.07 seconds).
+All 128 desktop/mobile Playwright tests passed in 3.4 minutes, including worker
+cancellation, editing during execution, stale results and foreign calls. Local
+deployment verification matched all 36 asset hashes and passed both viewport
+profiles. Those browser runs used the unstripped module; the executable-section
+comparison below and final stripped deployment verification cover the release.
+
+Native executable/object/archive linking, the memory and storage examples,
+the real LLVM C API, platform_write and forward bindings passed on Linux.
+Windows x64 PE fixtures also ran successfully, both through WSL interop and
+directly from PowerShell, with exact expected linking/memory output. These are
+guest-program runtime checks, not native Windows compiler/self-build evidence.
+The first linking attempt could not find wasm-ld-19. For this environment only,
+build/host-tools contains aliases to the WASI SDK 34 wasm-ld/lld-link binaries;
+build/host-linking-validation.sh puts that directory first in PATH. No system
+tool was replaced. Reproduction/log: build/host-combined-linking.log.
+
+Release and MinSizeRel browser builds now pass --strip-all to the Wasm linker.
+Debug and RelWithDebInfo builds retain their diagnostic sections. With the same
+source/toolchain, this reduces tower.wasm from 4,229,803 to 786,398 bytes (81.4%).
+The rebuilt stripped module's non-custom sections are byte-identical to the
+unstripped module, and its imports/exports are identical. Reproduction:
+node build/check-wasm-stripping.mjs; cmake --build build/browser-wasi.
+The stripped SHA-256 is
+fed980334aae318ef59dac6d97e91df331b1c92f7bd643004bf4e39190b86541.
+The unchanged-code baseline from 586078b was 4,270,661 unstripped bytes;
+do not attribute the debug-section reduction to the Tower algorithm ports.
+
+The Linux x86_64 hybrid development compiler is 804,184 bytes, versus 820,488
+for the saved 586078b baseline. llvm-strip-19 --strip-all on a copy produces
+686,080 bytes; that copy's --help executes successfully. Its SHA-256 is
+689408c4e72eeca8e00f92c6c2f73f8460ee3069efdd66495a96d521edfb9886;
+the unstripped current SHA-256 is
+31ed45ac0a8fa92aab4e6c4f9015077889b0bcf4b1b23992a5fdc5382661e295.
+These were built from 3a54b5e using the existing LLVM 19 native build and
+WASI SDK 34 browser configuration, on WSL Ubuntu. They remain C++/Tower hybrids.
+They are deliberately not committed as completed portable Tower compilers.
+
+The native executable's unique resolved dynamic dependencies total 137,937,800
+bytes, including 128,370,024 bytes for libLLVM.so.19.1. The audit records each
+resolved path, size and SHA-256 in build/host-artifact-sizes.json. Dependencies
+are LLVM, libstdc++, libm, libgcc_s, libc and its ELF loader, libffi, libedit,
+zlib, zstd, libxml2, libtinfo, libbsd and libmd. This is not a complete package
+size: grammar inputs and the still-required external compiler/linker tools and
+their dependencies are excluded. Final distribution must carry the matching
+LLVM Apache-2.0-with-exceptions notice and the actual bundled system-library
+licenses; the existing playground notices cover its published Wasm dependencies,
+not a hypothetical Linux bundle. Windows x64 and macOS ARM64 object generation
+does not establish Windows/macOS compiler runtime or license/package readiness.
+
+Extended test-bootstrap.sh from five to six modules so interpreter storage is
+also checked through successive compiler stages for Linux x64, wasm32, Windows
+x64 and macOS ARM64, including optimized-IR/object identity and an explicit
+undefined-symbol allowlist. Like parser-nodes, interpreter composition needs
+stage1 because the oldest seed rejects vector(...) with "Unknown type
+constructor 'vector'". The focused four-target interpreter run passed. This is
+module recompilation by hybrid compilers, not a full compiler self-build.
+
+Two integration workflow failures are recorded explicitly. Plain pull --rebase
+attempted to flatten the two integration merges and replay the overlapping host
+commit; aborted it without losing work and used pull --rebase=merges --ff-only
+origin master, which preserved both histories. Also, changing test-bootstrap.sh
+while its long-running shell loop was active invalidated the shell's later file
+offset: all original twenty object/IR comparisons passed, then shell parsing
+failed in the shifted tail. The final complete run uses the stable six-module
+script; no compiler comparison failed in that interrupted run. Final results,
+performance observations and publication evidence follow in the next entry.
+
+Remaining completion gates are unchanged: finish tasks 1–3 and the recorded
+native host/lifecycle/platform boundaries, retire seeds only after their real
+Tower replacements work, produce licensed architecture-specific portable
+compilers, and demonstrate clean-checkout successive self-builds without an
+installed project C/C++ toolchain on Windows, Linux and macOS. No macOS runtime
+is available in this session. The committed source and published browser module
+are an integration milestone, not completion of those gates.
+
+## 2026-11-19: Tower template construction, remapping and lexical session traversal
+
+Continued frontend track 1 after `b50bfe0`. This is another migration checkpoint,
+not completion of the frontend track or removal of all project-owned C++.
+
+Implemented:
+
+- `compiler/syntax-template.tower` builds typed capture-hole productions directly
+  on the existing Rule/Reference/String entities through the Tower emission
+  helpers. Scalar tokens use their ordinary generated wrapper; scalar nonterminals
+  and repeated/optional captures retain their category/cardinality contracts.
+- The same module walks parsed replacement trees iteratively, restores active
+  production identities, remaps generated capture labels and counts capture uses.
+  It uses the active Tower `LRGrammar` name hash index, replacing a native linear
+  name scan for every nonterminal. Sorted borrowed production/alias views remain
+  temporary indexes over the existing entities, not an independent grammar model.
+- `compiler/syntax-scan.tower` owns source skipping/token traversal, bounded
+  diagnostic lookahead, token entity construction, replacement capture recognition,
+  identifier decoding and capture lookup. Declaration boundaries and contextual
+  tokens still use the existing Tower lexer and parser lookahead. The native
+  adapter only borrows session fields, appends highlight records, updates counters
+  and passes errors/results to the existing parser-stream interface.
+- Replacement names use a borrowed sorted capture array and binary lookup instead
+  of a second native capture map. A token's label copies directly into its shared
+  Match component, avoiding the old temporary `std::string` substring. Template
+  scanning no longer skips the same leading trivia twice.
+- Preserved source-relative diagnostic offsets and absolute template-node spans,
+  quoted capture identifiers, comments, invalid Unicode-token extent, immutable
+  revision inputs, partial-output ownership and the ordinary EOF marker.
+
+The original construction/remapping and scanner code is retained verbatim in
+`bootstrap/syntax-template-seed.inc` and `bootstrap/syntax-scan-seed.inc` for the
+existing seed/stage1 build only. Production native/Wasm builds run the Tower
+implementations. These reference files are still project-owned C++ and must be
+deleted when the portable compiler-binary bootstrap replaces the seed. They are
+not a permanent bootstrap exception and their relocation is not counted as total
+C++ removal. Table/session/revision ownership, diagnostics presentation, native
+Bedrock construction, parser stream adapters and remaining frontend tests still
+need migration. The other three machines' semantic/backend/host boundaries remain
+unchanged.
+
+New functional tests are Tower source:
+
+- `tests/syntax-template.tower` checks scalar/token distinction, the `*`/`+`/`?`
+  capture compatibility matrix, rejected literal/unrelated-category helpers,
+  generated reference/terminal identities and every injected allocation failure
+  until successful construction. Partial grammar roots are disposed and tracked
+  allocations must balance on every trial.
+- `tests/syntax-scan.tower` checks token labels, spans, rule identity, EOF after a
+  token, the full four-byte extent of an unmatched Unicode scalar, and failure
+  cleanup at every injected token allocation.
+- Public-session replacement fixtures additionally exercise quoted capture names
+  and comments on both sides of a capture. Existing parser, replacement,
+  formatting, diagnostic and browser tests exercise production integration.
+
+Trials/corrections:
+
+1. Initial template construction/remapping passed the native increment example
+   (`5, 6, 7, 7, 9`) and ASan/UBSan CTest 5/5 before scanner work.
+2. The new scanner first used `token` as a local name; the current Bedrock reserves
+   it for declarations. Renamed the local rather than changing the grammar.
+3. The first scanner run used UINT32_MAX for EOF. The existing parser ABI defines
+   EOF as UINT32_MAX - 1. This produced the misleading template failure
+   "Unexpected end of input. Expected end of input." at a valid final boundary.
+   Corrected the marker throughout scanning and added the direct EOF test.
+4. Allocation injection exposed a null `entity_release` in scanner cleanup. The
+   raw entity API requires a real entity; it is not a null-tolerant smart pointer.
+   Guarded cleanup and the test harness's empty-result cleanup explicitly.
+   `addr2line -f -C` located the failure in `entity_release` called by
+   `syntax_scan_read`; the sanitizer environment's external symbolizer path was
+   invalid, so addresses were resolved separately. No API semantics changed.
+5. After these fixes, the native increment output again matched exactly and the
+   full ASan/UBSan CTest suite passed 5/5 (23.13 seconds on this run). Sanitizers
+   instrument the native harness; the generated Tower object is not wholly
+   ASan-instrumented. Allocation injection checks Tower-managed storage, not every
+   native standard-library allocation.
+
+Environment: Windows PowerShell checkout `C:\Sandbox\tower`, WSL
+`Orchestral-Revng`, native LLVM 19, WASI SDK 34. Native build cache
+`/root/.cache/tower/native`; parser sanitizer cache `/root/.cache/tower/core-asan`.
+The supplied host compiler is `/root/.cache/tower/native/towerc-stage1`. Rebuild
+that host before starting consumer builds; do not relink it during a consumer
+compilation. Both browser LLVM reactors were rebuilt with the new Tower modules.
+Logs: `build/scan-{native,asan-build,asan-tests,wasm,llvm}.log`.
+
+Further checks before integration: all 222 Node tests passed; the optimized
+Windows parser/compiler test executable passed; canonical formatting/reference
+checks cover all 60 Tower files. `build/scan-differential.mjs` compared the old
+`586078b` Wasm compiler saved before frontend migration with the current reactor:
+all example sources plus eight error/trivia/quoted-capture/EOF fixtures produced
+identical parser events, provenance, diagnostics and highlight snapshots. The
+comparison excludes work/timing counters because removing redundant lexer work
+intentionally changes those. Reports are `build/scan-{node,format,windows,
+differential}.log`. Cross-target and browser/deployment checks were still running
+when this implementation checkpoint was recorded; their completion is recorded
+separately rather than assumed.
+
+The final upstream fetch discovered `port/host-runtime-tower` at `62b863e` and
+Pages `1d4080c`. It contains the separate host track's published `8fdb688`
+allocation-policy/CLI/WASI milestone. Integrate that work before publishing this
+frontend to avoid rolling back its already-live worker/runtime changes. This is
+not a claim that the host track or portable-binary bootstrap is finished.
+
+
+### 2026-11-19 — Integrating the next available frontend checkpoint
+
+The final fetch discovered ef6be67/35e5484 after the prior combined tests.
+Integrated its Tower template construction/remapping and lexical traversal with
+their tests unchanged. Retained our reconciled host/seed CMake registration;
+the other branch's merge had the older duplicate host seed/driver registration.
+Preserved its append-only research entry above. No frontend algorithm was
+rewritten here. Stopped the ongoing bootstrap process before this source change;
+the prior checkpoint's measurements and tests above remain checkpoint evidence.
+Final combined checks and sizes must be regenerated for this merged source.
+
+### 2026-11-19 — Final frozen host/frontend integration checks
+
+Source revision 0307d80 incorporates frontend 35e5484 and host 62b863e alongside
+the additional Tower browser/JSON/entity/interpreter storage work. All final
+builds and checks below use that source, with the Release Wasm stripping option.
+No source or running test script changed during these runs.
+
+- Linux ASan/UBSan CTest: 5/5, 35.74 seconds.
+- Full wasm32-WASI parser/formatter suite: passed, including 69 canonical Tower
+  files and new frontend/host/storage fixtures. Interpreter differential: 156
+  full-state comparisons, including 32-bit and 64-bit guest address profiles.
+- Node: 222/222, no skips, 21.18 seconds.
+- Playwright: 128/128 desktop/mobile cases, 3.3 minutes, on the stripped module.
+- Local deployment verification: all 36 hashes match; both viewport profiles
+  pass backend agreement, forward bindings, editable grammar, persistence,
+  native builds/downloads, layout and target-selection checks.
+- Complete stable bootstrap script: 24/24 optimized-IR/object comparisons, six
+  modules times Linux x64, wasm32, Windows x64 and macOS ARM64. Explicit grammar
+  input and missing-grammar checks pass. Interpreter/parser composition uses
+  stage1 as described above; these remain hybrid compiler stages.
+- LLVM/interpreter comparison: 16 programs pass optimized and unoptimized.
+- Native object/archive/executable, memory/storage, LLVM C API, platform_write
+  and forward-binding checks pass. Windows x64 PE test programs execute and
+  produce expected output through WSL interop. No macOS runtime is present.
+
+Reproduction uses the existing build-native.sh, test-bootstrap.sh,
+tests/interpreter-llvm.py, test-linking.sh and test-windows-linking.sh commands;
+the documented local linker aliases are still required on this machine.
+WASI commands are host-wasi.mjs and interpreter-wasi.mjs against the generated
+test executables. Browser commands are npm test, test:browser and
+test:deployment under playground. Logs use build/host-latest-{native,tests,wasm,
+wasi-build,wasi-tests,node,bootstrap,llvm,linking,browser,local-deployment}.log.
+
+Final measured artifacts supersede the earlier size checkpoint:
+
+| Artifact | Bytes | SHA-256 |
+| --- | ---: | --- |
+| Linux x86_64 hybrid towerc | 808,224 | 744ce3480cbed12ac043dd5e0f358c6ed9807b3cb6c69189b6014c17172efe38 |
+| Same executable stripped | 690,296 | 73229aabc905857f560f6b0718dbd1d742afdf882734cf68bf3be1cf0570b2d3 |
+| wasm32-WASI browser module, stripped | 791,550 | fce323d2de50e08060f5a4b161c2b5d20c0220d91a8f5e087335d93cb47d97bf |
+
+The Linux dependency closure measured above is still 137,937,800 bytes, before
+grammar and external compiler/linker inputs. These numbers are reproducible
+development-artifact measurements, not an assertion that a complete portable
+compiler package exists. Only the browser module is prepared for publication;
+the published LLVM/cross modules, compressed artifacts, target packs and notices
+are retained byte-for-byte with their earlier provenance. The manifest names
+0307d80 and identifies tower.wasm as the only updated executable asset.
+
+The requested full migration remains open. Compiler/session/semantic/backend
+interfaces, typed native callbacks, exported runtime symbols and module-state
+initialization still block the recorded final host adapters and seeds. Native
+Windows compiler and macOS compiler execution, clean-checkout Tower-only builds,
+successive whole-compiler self-builds and licensed portable distributions are
+not validated or completed by these tests. Do not substitute object comparison
+or successful guest programs for those gates. todo.txt remains unchanged.
+
+Paired performance observations, after builds/tests completed, compare saved
+586078b artifacts with 0307d80. These include both frontend and host changes;
+they do not isolate one port. Native profiling used four warmups plus thirty
+alternating paired processes with identical explicit grammar inputs and exact
+stdout agreement. Browser profiling used twelve warmups plus forty alternating
+pairs, checking exact canonical Foundation output. Raw samples and p50/p95 are
+in build/host-latest-{native,wasm}-performance.json; reproduction uses the existing
+profile-grammar-port-native.py and profile-grammar-port.mjs scripts.
+
+| Fixture | Native process median ms, before -> after | Wasm compile/format median ms, before -> after |
+| --- | --- | --- |
+| small | 206.264 -> 190.586 | 6.527 -> 6.543 |
+| inference | 207.317 -> 191.265 | 7.297 -> 7.097 |
+| replacements | 222.574 -> 207.624 | 26.456 -> 26.327 |
+| declarations500 | 217.499 -> 201.261 | 18.860 -> 18.594 |
+| grammar50 | 731.250 -> 713.729 | 730.255 -> 727.494 |
+
+Most browser changes are small; grammar50 p95 increased from 799.611 to 820.292
+ms despite its slightly lower median. These are local observations, not a
+universal performance improvement. The sorted interpreter maps still have
+linear suffix movement on insertion/erasure.
+
+The existing interpreter-wasi.mjs --benchmark ran both interpreters in the same
+wasm32-WASI harness (one warmup plus seven measured pairs, full-state agreement).
+Median ms, Tower / C++ reference: scalar-loop 57.449 / 66.979; recursive-calls
+88.297 / 104.976; allocation 27.532 / 32.761; output 9.343 / 14.214. Here "native"
+in the runner's output means the C++ reference compiled to Wasm, not native OS
+execution. Log: build/host-latest-interpreter-performance.log.
+
+Publication reconciliation: a final gh-pages fetch discovered fbb591f, which
+publishes frontend 35e5484 and rebuilt LLVM/cross reactors/target packs. Advanced
+the isolated Pages worktree normally and retained *every* published asset from
+that deployment except tower.wasm. Restored earlier formatter/interpreter/host
+manifest history alongside the new frontend provenance, then appended this
+integration's source revision, previous deployment and single changed asset.
+This supersedes the earlier preparation against 1d4080c. The retained backends
+contain the frontend/allocator checkpoint, but not this integration's additional
+host/interpreter storage ports. They are neither rolled back nor represented as
+newly rebuilt here. The final combined deployment receives another local/live
+verification; no force push or overwrite of unrelated published assets is used.
+
+Publication completed and verified. Source branch port/host-runtime-integration
+was pushed through 6ac1131 after a merge-preserving pull from master. Pages
+1d828a2 is a normal fast-forward from fbb591f; only tower.wasm and
+deployment-manifest.json changed. GitHub Actions run 44562179111 reports success
+for that exact Pages commit. All other published assets retain fbb591f's bytes.
+
+Both the final local combined deployment and the live command
+`node playground/scripts/verify-deployment.mjs https://trevorsundberg.github.io/tower/`
+exited zero. The live site serves all 36 expected asset hashes; desktop and
+mobile passed backend agreement, forward bindings, editable grammar, project
+persistence, native builds/downloads, layout and target-selection checks.
+Evidence: build/host-publication-local.log, build/host-integration-live.log and
+build/host-integration-live-report.json. The Windows browser host does not
+exercise the verifier's Linux-host-only detection case. The final journal-only
+commit changes no deployment artifact; the checkout and Pages worktree are
+clean, and todo.txt is unchanged. The outstanding portable/self-hosting gates
+above remain open; successful publication is not their completion.

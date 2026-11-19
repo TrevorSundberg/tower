@@ -1,12 +1,12 @@
 # Differential reference is never linked into production execution.
 add_library(tower-interpreter-reference STATIC scaffolding/bootstrap/interpreter-seed.cpp)
 target_compile_features(tower-interpreter-reference PRIVATE cxx_std_20)
-target_compile_definitions(tower-interpreter-reference PRIVATE CoreMachine=NativeCoreMachine)
 get_target_property(interpreter_test_sources tower-parser-tests SOURCES)
 list(FILTER interpreter_test_sources EXCLUDE REGEX "scaffolding/tests/")
 list(APPEND interpreter_test_sources scaffolding/tests/nodes.cpp)
 add_executable(tower-interpreter-tests ${interpreter_test_sources} scaffolding/tests/interpreter.cpp)
 target_compile_features(tower-interpreter-tests PRIVATE cxx_std_20)
+target_compile_definitions(tower-interpreter-tests PRIVATE TOWER_EXPANSION_TESTS=1)
 target_link_libraries(tower-interpreter-tests PRIVATE tower-interpreter-reference tower-compiler-interpreter
   tower-compiler-parser-nodes tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
 if(MSVC)

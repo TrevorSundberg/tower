@@ -51,8 +51,10 @@ function(tower_compiler_utilities)
           -DENTITIES=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/library/entities.tower
           -DPARSER=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/parse-tree.tower
           -DGENERICS=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/generics.tower
+          -DHOST_ENTITIES=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/host-entities.tower
           -DOUTPUT=${input} -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ComposeTowerSources.cmake"
-        DEPENDS scaffolding/library/entities.tower scaffolding/compiler/parse-tree.tower scaffolding/compiler/generics.tower cmake/ComposeTowerSources.cmake
+        DEPENDS scaffolding/library/entities.tower scaffolding/compiler/parse-tree.tower scaffolding/compiler/generics.tower
+          scaffolding/compiler/host-entities.tower cmake/ComposeTowerSources.cmake
         VERBATIM)
     endif()
     add_custom_command(OUTPUT "${object}"

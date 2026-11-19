@@ -1,4 +1,8 @@
 #include "core.hpp"
+#ifdef TOWER_INTERPRETER_SEED
+#include "bootstrap/interpreter-reference.hpp"
+#define CoreMachine NativeCoreMachine
+#endif
 #include "llvm-engine.hpp"
 #include "compiler-host.hpp"
 #include <llvm/TargetParser/Host.h>
@@ -74,6 +78,7 @@ int main(int argc, char** argv) {
 #else
   DriverOptions options;
   const bool parsed = driver_parse(&options, size_t(argc), argv, target.c_str());
+  timings.enabled = options.timings;
   if (!parsed) {
     if (options.error == 1) std::cerr << "Missing argument for " << options.argument << '\n';
     else if (options.error == 2) std::cerr << "Unexpected argument: " << options.argument << '\n';

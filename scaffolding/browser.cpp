@@ -13,45 +13,65 @@
 
 #define EXPORT(name) extern "C" __attribute__((export_name(name)))
 
+extern "C" bool host_json_quote(TowerByteBuffer*, const char*, size_t);
+extern "C" bool host_json_unsigned(TowerByteBuffer*, uint64_t);
+extern "C" bool host_text_terminate(TowerByteBuffer*);
+struct HostHandles { void* slots; size_t count, capacity; uint32_t next; };
+extern "C" size_t host_handles_count(HostHandles*, uint32_t);
+extern "C" void* host_handles_get(HostHandles*, uint32_t, uint32_t);
+extern "C" uint32_t host_handles_insert(HostHandles*, uint32_t, void*);
+extern "C" void* host_handles_take(HostHandles*, uint32_t, uint32_t);
+
 namespace {
+// Ownership view only. Text storage, growth and encoding execute in Tower.
+struct BrowserText {
+  TowerByteBuffer buffer{};
+  BrowserText() = default;
+  BrowserText(std::string_view value) { *this = value; }
+  BrowserText(const BrowserText&) = delete;
+  BrowserText& operator=(const BrowserText&) = delete;
+  ~BrowserText() { bytes_dispose(&buffer); }
+  void clear() { buffer.length = 0; }
+  BrowserText& operator=(std::string_view text) {
+    if (!bytes_assign_text(&buffer, reinterpret_cast<const uint8_t*>(text.data()), text.size())) std::abort();
+    return *this;
+  }
+  BrowserText& operator+=(std::string_view text) {
+    if (!bytes_append(&buffer, reinterpret_cast<const uint8_t*>(text.data()), text.size())) std::abort();
+    return *this;
+  }
+  BrowserText& operator+=(char byte) { if (!bytes_push(&buffer, uint8_t(byte))) std::abort(); return *this; }
+  const char* c_str() { if (!host_text_terminate(&buffer)) std::abort(); return reinterpret_cast<const char*>(buffer.data); }
+};
 struct Session {
   SyntaxSession* syntax;
-  std::string response;
+  BrowserText response;
   ~Session() { syntax_destroy(syntax); }
 };
-std::map<uint32_t, std::unique_ptr<Session>> sessions;
-uint32_t next_handle = 1;
+HostHandles handles{};
 std::string last_error;
-std::map<uint32_t, std::unique_ptr<CoreMachine>> machines;
-std::string execution_response;
+BrowserText execution_response;
 
 constexpr size_t max_source = 8 * 1024 * 1024;
 
-void quote(std::string& out, const std::string& text) {
-  out += '"';
-  constexpr char hex[] = "0123456789abcdef";
-  for (unsigned char c : text) {
-    if (c == '"' || c == '\\') { out += '\\'; out += c; }
-    else if (c < 32) { out += "\\u00"; out += hex[c >> 4]; out += hex[c & 15]; }
-    else out += c;
-  }
-  out += '"';
+void quote(BrowserText& out, const std::string& text) {
+  if (!host_json_quote(&out.buffer, text.data(), text.size())) std::abort();
 }
-void number(std::string& out, size_t value) { out += std::to_string(value); }
-void field(std::string& out, const char* name, size_t value) {
+void number(BrowserText& out, uint64_t value) { if (!host_json_unsigned(&out.buffer, value)) std::abort(); }
+void field(BrowserText& out, const char* name, size_t value) {
   out += ','; quote(out, name); out += ':'; number(out, value);
 }
-void field(std::string& out, const char* name, const std::string& value) {
+void field(BrowserText& out, const char* name, const std::string& value) {
   out += ','; quote(out, name); out += ':'; quote(out, value);
 }
 Session* lookup(uint32_t handle) {
-  auto it = sessions.find(handle);
-  return it == sessions.end() ? nullptr : it->second.get();
+  return static_cast<Session*>(host_handles_get(&handles, 0, handle));
 }
+CoreMachine* execution(uint32_t handle) { return static_cast<CoreMachine*>(host_handles_get(&handles, 1, handle)); }
 Match* match(TowerNode* node) {
   return (Match*)tower_node_get_component_userdata(node, parser_match_get_type());
 }
-void grammar(std::string& out, SyntaxSession* syntax) {
+void grammar(BrowserText& out, SyntaxSession* syntax) {
   out += ",\"rules\":[";
   bool first = true;
   for (const auto& rule : syntax_get_rules(syntax)) {
@@ -75,7 +95,7 @@ void grammar(std::string& out, SyntaxSession* syntax) {
   }
   out += ']';
 }
-void status(std::string& out, SyntaxSession* syntax, const std::string& kind) {
+void status(BrowserText& out, SyntaxSession* syntax, const std::string& kind) {
   out = "{\"status\":"; quote(out, kind);
   field(out, "revision", syntax_get_revision(syntax));
   field(out, "offset", syntax_get_offset(syntax));
@@ -83,7 +103,7 @@ void status(std::string& out, SyntaxSession* syntax, const std::string& kind) {
   field(out, "errorOffset", syntax_get_error_offset(syntax));
   if (syntax_get_error_insertion(syntax)) field(out, "errorLength", size_t(0));
 }
-void tree(std::string& out, TowerNode* root) {
+void tree(BrowserText& out, TowerNode* root) {
   struct Item { TowerNode* node; size_t parent; const char* role; };
   std::vector<Item> pending{{root, TOWER_INVALID_INDEX, tower_node_get_parent_member_name(root)}};
   size_t index = 0;
@@ -159,36 +179,37 @@ EXPORT("tw_last_error") const char* tw_last_error() { return last_error.c_str();
 
 EXPORT("tw_create") uint32_t tw_create(const char* source, size_t bytes) {
   if (!valid_source(source, bytes)) return 0;
-  if (sessions.size() >= 32) { last_error = "Too many open parser sessions"; return 0; }
+  if (host_handles_count(&handles, 0) >= 32) { last_error = "Too many open parser sessions"; return 0; }
   std::string copy(source, bytes);
   auto session = std::make_unique<Session>();
   session->syntax = syntax_create(copy.c_str());
   if (*syntax_get_error(session->syntax)) { last_error = syntax_get_error(session->syntax); return 0; }
-  uint32_t handle = next_handle++;
-  if (!handle) handle = next_handle++;
-  sessions.emplace(handle, std::move(session));
+  uint32_t handle = host_handles_insert(&handles, 0, session.get());
+  if (!handle) { last_error = "Cannot allocate parser handle"; return 0; }
+  session.release();
   return handle;
 }
 
 EXPORT("tw_create_foundation") uint32_t tw_create_foundation(const char* source, size_t bytes) {
   if (!valid_source(source, bytes)) return 0;
-  if (sessions.size() >= 32) { last_error = "Too many open parser sessions"; return 0; }
+  if (host_handles_count(&handles, 0) >= 32) { last_error = "Too many open parser sessions"; return 0; }
   std::string copy(source, bytes);
   auto session = std::make_unique<Session>();
   session->syntax = syntax_create_foundation(copy.c_str());
-  uint32_t handle = next_handle++;
-  if (!handle) handle = next_handle++;
-  sessions.emplace(handle, std::move(session));
+  uint32_t handle = host_handles_insert(&handles, 0, session.get());
+  if (!handle) { last_error = "Cannot allocate parser handle"; return 0; }
+  session.release();
   return handle;
 }
 
 EXPORT("tw_create_bedrock") uint32_t tw_create_bedrock(const char* source, size_t bytes) {
   if (!valid_source(source, bytes)) return 0;
-  if (sessions.size() >= 32) { last_error = "Too many open parser sessions"; return 0; }
+  if (host_handles_count(&handles, 0) >= 32) { last_error = "Too many open parser sessions"; return 0; }
   std::string copy(source, bytes);
   auto session = std::make_unique<Session>(); session->syntax = syntax_create_bedrock(copy.c_str());
-  uint32_t handle = next_handle++; if (!handle) handle = next_handle++;
-  sessions.emplace(handle, std::move(session)); return handle;
+  uint32_t handle = host_handles_insert(&handles, 0, session.get());
+  if (!handle) { last_error = "Cannot allocate parser handle"; return 0; }
+  session.release(); return handle;
 }
 
 EXPORT("tw_format") const char* tw_format(uint32_t handle) {
@@ -222,7 +243,7 @@ EXPORT("tw_reset") int tw_reset(uint32_t handle, const char* source, size_t byte
   return 1;
 }
 
-EXPORT("tw_destroy") void tw_destroy(uint32_t handle) { sessions.erase(handle); }
+EXPORT("tw_destroy") void tw_destroy(uint32_t handle) { delete static_cast<Session*>(host_handles_take(&handles, 0, handle)); }
 
 // Returned strings are borrowed until the next step/inspect on this handle.
 EXPORT("tw_step") const char* tw_step(uint32_t handle) {
@@ -281,23 +302,23 @@ EXPORT("tw_live_allocations") size_t tw_live_allocations() { return tower_memory
 extern "C" __attribute__((import_module("tower_host"), import_name("call"))) uint64_t tw_foreign_call(uint32_t handle, const char* request);
 void bind_foreign(uint32_t handle, CoreMachine& machine) {
   machine.foreign = [handle](CoreMachine& machine, TowerNode* function, const std::vector<CoreValue>& args) {
-    auto& fn = core_node(function); std::string request = "{\"name\":"; quote(request, fn.name);
+    auto& fn = core_node(function); BrowserText request("{\"name\":"); quote(request, fn.name);
     field(request, "pointerBytes", machine.program.pointer_bytes);
     request += ",\"types\":[";
     for (size_t i = 0; i < fn.parameters.size(); ++i) { if (i) request += ','; quote(request, core_type_name(core_node(fn.parameters[i]).type)); }
     request += "],\"args\":[";
-    for (size_t i = 0; i < args.size(); ++i) { if (i) request += ','; quote(request, std::to_string(args[i].bits)); }
+    for (size_t i = 0; i < args.size(); ++i) { if (i) request += ','; request += '"'; number(request, args[i].bits); request += '"'; }
     request += "]}"; return CoreValue{tw_foreign_call(handle, request.c_str())};
   };
 }
-EXPORT("tw_exec_memory") uint8_t* tw_exec_memory(uint32_t handle) { auto it = machines.find(handle); return it == machines.end() ? nullptr : it->second->memory.data(); }
-EXPORT("tw_exec_memory_size") size_t tw_exec_memory_size(uint32_t handle) { auto it = machines.find(handle); return it == machines.end() ? 0 : it->second->memory.size(); }
-EXPORT("tw_exec_allocate") uint32_t tw_exec_allocate(uint32_t handle, uint32_t size) { auto it = machines.find(handle); return it == machines.end() ? 0 : uint32_t(it->second->allocate(size)); }
-EXPORT("tw_exec_deallocate") void tw_exec_deallocate(uint32_t handle, uint32_t pointer) { auto it = machines.find(handle); if (it != machines.end()) it->second->deallocate(pointer); }
-EXPORT("tw_exec_fail") void tw_exec_fail(uint32_t handle, const char* error, size_t length) { auto it = machines.find(handle); if (it != machines.end()) it->second->fail(std::string(error, length), 0); }
+EXPORT("tw_exec_memory") uint8_t* tw_exec_memory(uint32_t handle) { auto* m = execution(handle); return m ? m->memory_data() : nullptr; }
+EXPORT("tw_exec_memory_size") size_t tw_exec_memory_size(uint32_t handle) { auto* m = execution(handle); return m ? m->memory_size() : 0; }
+EXPORT("tw_exec_allocate") uint32_t tw_exec_allocate(uint32_t handle, uint32_t size) { auto* m = execution(handle); return m ? uint32_t(m->allocate(size)) : 0; }
+EXPORT("tw_exec_deallocate") void tw_exec_deallocate(uint32_t handle, uint32_t pointer) { if (auto* m = execution(handle)) m->deallocate(pointer); }
+EXPORT("tw_exec_fail") void tw_exec_fail(uint32_t handle, const char* error, size_t length) { if (auto* m = execution(handle)) m->fail(std::string(error, length), 0); }
 EXPORT("tw_exec_output") void tw_exec_output(uint32_t handle, const char* data, size_t length) {
-  auto it = machines.find(handle); if (it == machines.end()) return;
-  auto& machine = *it->second;
+  auto* found = execution(handle); if (!found) return;
+  auto& machine = *found;
   if (length > 65536 - machine.output_bytes) { machine.output_truncated = true; return; }
   machine.output.append(data, length); machine.output_bytes += length;
 }
@@ -305,20 +326,19 @@ EXPORT("tw_exec_output") void tw_exec_output(uint32_t handle, const char* data, 
 EXPORT("tw_exec_create_target") uint32_t tw_exec_create_target(const char* source, size_t bytes, unsigned pointer_bytes) {
   if (!valid_source(source, bytes)) return 0;
   if (pointer_bytes != 4 && pointer_bytes != 8) { last_error = "Unsupported target pointer width"; return 0; }
-  if (machines.size() >= 8) { last_error = "Too many execution sessions"; return 0; }
+  if (host_handles_count(&handles, 1) >= 8) { last_error = "Too many execution sessions"; return 0; }
   std::string copy(source, bytes);
   auto machine = std::make_unique<CoreMachine>(core_compile(copy.c_str(), pointer_bytes));
-  uint32_t handle = next_handle++;
-  if (!handle) handle = next_handle++;
-  bind_foreign(handle, *machine);
-  machines.emplace(handle, std::move(machine));
+  uint32_t handle = host_handles_insert(&handles, 1, machine.get());
+  if (!handle) { last_error = "Cannot allocate execution handle"; return 0; }
+  bind_foreign(handle, *machine); machine.release();
   return handle;
 }
 EXPORT("tw_exec_create") uint32_t tw_exec_create(const char* source, size_t bytes) { return tw_exec_create_target(source, bytes, 4); }
 // Temporary host ABI input list, not a program storage/interchange format.
 // Each item is ordinary UTF-8 Tower source; lengths are wasm32 byte lengths.
 EXPORT("tw_exec_create_files") uint32_t tw_exec_create_files(const char* const* sources, const uint32_t* lengths, uint32_t count, unsigned pointer_bytes) {
-  if (!sources || !lengths || !count || count > 1024 || (pointer_bytes != 4 && pointer_bytes != 8) || machines.size() >= 8) {
+  if (!sources || !lengths || !count || count > 1024 || (pointer_bytes != 4 && pointer_bytes != 8) || host_handles_count(&handles, 1) >= 8) {
     last_error = "Invalid project compilation request"; return 0;
   }
   std::vector<std::string> files; size_t total = 0;
@@ -329,38 +349,39 @@ EXPORT("tw_exec_create_files") uint32_t tw_exec_create_files(const char* const* 
     files.emplace_back(sources[i], lengths[i]);
   }
   auto machine = std::make_unique<CoreMachine>(core_compile_files(files, pointer_bytes));
-  uint32_t handle = next_handle++; if (!handle) handle = next_handle++;
-  bind_foreign(handle, *machine); machines.emplace(handle, std::move(machine)); return handle;
+  uint32_t handle = host_handles_insert(&handles, 1, machine.get());
+  if (!handle) { last_error = "Cannot allocate execution handle"; return 0; }
+  bind_foreign(handle, *machine); machine.release(); return handle;
 }
 EXPORT("tw_exec_step") const char* tw_exec_step(uint32_t handle, uint32_t budget) {
-  auto found = machines.find(handle);
-  if (found == machines.end()) return "{\"status\":\"error\",\"error\":\"Invalid execution handle\"}";
-  auto& machine = *found->second;
+  auto* found = execution(handle);
+  if (!found) return "{\"status\":\"error\",\"error\":\"Invalid execution handle\"}";
+  auto& machine = *found;
   machine.step(std::min(budget, uint32_t(100000)));
   auto& out = execution_response;
   out = "{\"status\":"; quote(out, !machine.error.empty() ? "error" : machine.done ? "done" : "executing");
   field(out, "error", machine.error); field(out, "errorOffset", machine.error_offset);
   out += ",\"outputBytes\":[";
   for (size_t i = 0; i < machine.output.size(); ++i) {
-    if (i) out += ','; out += std::to_string(static_cast<unsigned char>(machine.output[i]));
+    if (i) out += ','; number(out, static_cast<unsigned char>(machine.output[i]));
   }
   out += ']'; machine.output.clear();
-  out += ",\"steps\":" + std::to_string(machine.steps); 
+  out += ",\"steps\":"; number(out, machine.steps);
   out += machine.output_truncated ? ",\"outputTruncated\":true}" : ",\"outputTruncated\":false}";
   return out.c_str();
 }
 EXPORT("tw_exec_foundation") const char* tw_exec_foundation(uint32_t handle) {
-  auto found = machines.find(handle);
-  auto formatted = found == machines.end() ? CoreText{} : core_format(found->second->program);
+  auto* found = execution(handle);
+  auto formatted = found ? core_format(found->program) : CoreText{};
   auto& out = execution_response; out = "{\"source\":"; quote(out, formatted.source); out += ",\"spans\":[";
   for (size_t i = 0; i < formatted.spans.size(); ++i) {
     if (i) out += ','; const auto& span = formatted.spans[i];
     out += "{\"begin\":"; number(out, span.begin); field(out, "end", span.end); field(out, "source", span.source); out += '}';
   }
   out += "],\"types\":[";
-  if (found != machines.end() && found->second->program.error.empty()) {
+  if (found && found->program.error.empty()) {
     bool first = true;
-    for (auto* entity : found->second->program.types) {
+    for (auto* entity : found->program.types) {
       if (!first) out += ','; first = false; auto& type = core_node(entity);
       out += "{\"name\":"; quote(out, type.name);
       out += ",\"kind\":"; quote(out, type.type.scalar == CoreScalar::Array ? "array" : type.type.scalar == CoreScalar::Struct ? "struct" : type.type.scalar == CoreScalar::Void ? "void" : "scalar");
@@ -376,13 +397,13 @@ EXPORT("tw_exec_foundation") const char* tw_exec_foundation(uint32_t handle) {
   }
   out += "]}"; return out.c_str();
 }
-EXPORT("tw_exec_destroy") void tw_exec_destroy(uint32_t handle) { machines.erase(handle); }
+EXPORT("tw_exec_destroy") void tw_exec_destroy(uint32_t handle) { delete static_cast<CoreMachine*>(host_handles_take(&handles, 1, handle)); }
 EXPORT("tw_exec_create_foundation") uint32_t tw_exec_create_foundation(const char* source, size_t bytes) {
   if (!valid_source(source, bytes)) return 0;
-  if (machines.size() >= 8) { last_error = "Too many execution sessions"; return 0; }
+  if (host_handles_count(&handles, 1) >= 8) { last_error = "Too many execution sessions"; return 0; }
   std::string copy(source, bytes);
   auto machine = std::make_unique<CoreMachine>(core_compile_foundation(copy.c_str()));
-  uint32_t handle = next_handle++; if (!handle) handle = next_handle++;
-  bind_foreign(handle, *machine);
-  machines.emplace(handle, std::move(machine)); return handle;
+  uint32_t handle = host_handles_insert(&handles, 1, machine.get());
+  if (!handle) { last_error = "Cannot allocate execution handle"; return 0; }
+  bind_foreign(handle, *machine); machine.release(); return handle;
 }

@@ -1,3 +1,26 @@
+// Host allocation primitives for Tower code linked into the compiler itself.
+// Use the host's allocator (wasi-libc in browser reactors), not the guest runtime.
+#include <cstddef>
+#include <cstdint>
+#include <cstdlib>
+
+#ifdef TOWER_BOOTSTRAP_HOST
+// Only the pre-Tower seed needs the native policy below. Production calls Tower.
+extern "C" void* tower_reallocate(void* pointer, size_t count, size_t size) {
+  if (size && count > SIZE_MAX / size) return nullptr;
+  if (!count || !size) {
+    std::free(pointer);
+    return nullptr;
+  }
+  return std::realloc(pointer, count * size);
+}
+extern "C" void tower_deallocate(void* pointer) {
+  std::free(pointer);
+}
+extern "C" void* tower_allocate(size_t count, size_t size) {
+  return tower_reallocate(nullptr, count, size);
+}
+#else
 // Temporary foreign-call and reserved runtime-symbol bridges only. Allocation
 // policy and failure instrumentation live in host/memory.tower.
 #include "compiler-host.hpp"
@@ -25,3 +48,5 @@ extern "C" void* tower_allocate(size_t count, size_t size) {
 }
 extern "C" void* compiler_host_reallocate(void* pointer, size_t bytes) { return std::realloc(pointer, bytes); }
 extern "C" void compiler_host_deallocate(void* pointer) { std::free(pointer); }
+
+#endif

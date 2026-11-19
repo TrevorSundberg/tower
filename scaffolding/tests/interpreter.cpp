@@ -20,11 +20,20 @@ static void same_node(TowerNode *a, TowerNode *b) {
   auto &y = core_node(b);
   assert(x.kind == y.kind && x.start == y.start && x.name == y.name);
 }
+static TowerNode* cache_node(TowerNode* node) { return node; }
+static TowerNode* cache_node(uint64_t node) { return reinterpret_cast<TowerNode*>(uintptr_t(node)); }
+static uint64_t cache_bits(CoreValue value) { return value.bits; }
+static uint64_t cache_bits(uint64_t value) { return value; }
+static auto map_values(const CoreMachineArray<CoreMachineEntry>& entries) {
+  std::map<uint64_t, size_t> result;
+  for (const auto& entry : entries) result.emplace(entry.key, size_t(entry.value));
+  return result;
+}
 template <class Cache> static auto cache_values(const Cache &cache) {
   std::vector<std::tuple<int, size_t, size_t, uint64_t>> values;
   for (const auto &[node, value] : cache) {
-    const auto &n = core_node(node);
-    values.emplace_back(int(n.kind), n.start, n.end, value.bits);
+    const auto &n = core_node(cache_node(node));
+    values.emplace_back(int(n.kind), n.start, n.end, cache_bits(value));
   }
   std::sort(values.begin(), values.end());
   return values;
@@ -34,10 +43,10 @@ static void compare(const CoreMachine &a, const NativeCoreMachine &b) {
   assert(a.error == b.error && a.error_offset == b.error_offset);
   assert(a.output == b.output && a.output_bytes == b.output_bytes &&
          a.output_truncated == b.output_truncated);
-  assert(a.memory.size() == b.memory.size());
-  assert(std::memcmp(a.memory.data(), b.memory.data(), a.memory.size()) == 0);
+  assert(a.memory_size() == b.memory.size());
+  assert(std::memcmp(a.memory_data(), b.memory.data(), a.memory_size()) == 0);
   assert(a.stack == b.stack && a.heap == b.heap);
-  assert(a.allocations == b.allocations && a.free_blocks == b.free_blocks);
+  assert(map_values(a.allocations) == b.allocations && map_values(a.free_blocks) == b.free_blocks);
   assert(a.frames.size() == b.frames.size());
   for (size_t i = 0; i < a.frames.size(); ++i) {
     auto &x = a.frames[i];
@@ -147,6 +156,12 @@ int main(int argc, char **argv) {
          offsetof(CoreMachineState, frame_count));
   assert(interpreter_state_offset(9) == offsetof(CoreMachineState, task_count));
   assert(interpreter_state_offset(10) == offsetof(CoreMachineState, cached));
+  assert(interpreter_state_offset(11) == offsetof(CoreMachineState, memory_storage));
+  assert(interpreter_state_offset(12) == offsetof(CoreMachineState, allocations));
+  assert(interpreter_state_offset(13) == offsetof(CoreMachineState, free_blocks));
+  assert(interpreter_state_offset(14) == offsetof(CoreMachineState, strings));
+  assert(interpreter_state_offset(15) == offsetof(CoreMachineState, sequenced));
+  assert(interpreter_state_offset(16) == offsetof(CoreMachineState, frames));
   std::ifstream file("foundation.tower");
   assert(file);
   std::ostringstream grammar;

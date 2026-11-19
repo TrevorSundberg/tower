@@ -1,0 +1,149 @@
+// Browser ABI handles identify host sessions, never foundation pointer values.
+// Payload ownership transfers only after a successful insert/take. The table
+// does not call native destructors; hosts dispose the returned payload once.
+struct HostHandleSlot {
+    handle: u32;
+    kind: u32;
+    payload: void*;
+}
+
+struct HostHandles {
+    slots: HostHandleSlot*;
+    count: usize;
+    capacity: usize;
+    next: u32;
+}
+
+export fn host_handles_count(table: HostHandles*, kind: u32): usize {
+    var count: usize = 0;
+    var i: usize = 0;
+    loop {
+        var done = i == table.count;
+        if done {
+            return count;
+        }
+        var same = table.slots[i].kind == kind;
+        if same {
+            count = count + 1;
+        }
+        i = i + 1;
+    }
+}
+
+export fn host_handles_get(table: HostHandles*, kind: u32, handle: u32): void* {
+    var i: usize = 0;
+    loop {
+        var done = i == table.count;
+        if done {
+            return null;
+        }
+        var same = table.slots[i].handle == handle;
+        if same {
+            same = table.slots[i].kind == kind;
+            if same {
+                return table.slots[i].payload;
+            }
+            return null;
+        }
+        i = i + 1;
+    }
+}
+
+export fn host_handles_insert(table: HostHandles*, kind: u32, payload: void*): u32 {
+    var absent = payload == null;
+    if absent {
+        return 0;
+    }
+    var maximum: usize = 4294967295;
+    var full = table.count == maximum;
+    if full {
+        return 0;
+    }
+    full = table.count == table.capacity;
+    if full {
+        var capacity = table.capacity * 2;
+        var wrapped = capacity < table.capacity;
+        if wrapped {
+            return 0;
+        }
+        var initial = capacity == 0;
+        if initial {
+            capacity = 8;
+        }
+        var slots = realloc(HostHandleSlot, table.slots, capacity);
+        var failed = slots == null;
+        if failed {
+            return 0;
+        }
+        table.slots = slots;
+        table.capacity = capacity;
+    }
+    var handle = table.next;
+    loop {
+        handle = handle + 1;
+        var zero = handle == 0;
+        if zero {
+            continue;
+        }
+        var occupied = false;
+        var i: usize = 0;
+        loop {
+            var done = i == table.count;
+            if done {
+                break;
+            }
+            var same = table.slots[i].handle == handle;
+            if same {
+                occupied = true;
+                break;
+            }
+            i = i + 1;
+        }
+        if occupied {} else {
+            break;
+        }
+    }
+    var slot = &table.slots[table.count];
+    slot.handle = handle;
+    slot.kind = kind;
+    slot.payload = payload;
+    table.count = table.count + 1;
+    table.next = handle;
+    return handle;
+}
+
+export fn host_handles_take(table: HostHandles*, kind: u32, handle: u32): void* {
+    var i: usize = 0;
+    loop {
+        var done = i == table.count;
+        if done {
+            return null;
+        }
+        var same = table.slots[i].handle == handle;
+        if same {
+            same = table.slots[i].kind == kind;
+            if same {} else {
+                return null;
+            }
+            var result = table.slots[i].payload;
+            table.count = table.count - 1;
+            var last = &table.slots[table.count];
+            // No aggregate assignment is needed, and the slots own no payload.
+            table.slots[i].handle = last.handle;
+            table.slots[i].kind = last.kind;
+            table.slots[i].payload = last.payload;
+            return result;
+        }
+        i = i + 1;
+    }
+}
+
+// Call only once every payload has been taken and disposed by its owner.
+export fn host_handles_dispose(table: HostHandles*): bool {
+    var empty = table.count == 0;
+    if empty {
+        free(table.slots);
+        fill(table, 0, sizeof(HostHandles));
+    }
+    return empty;
+}

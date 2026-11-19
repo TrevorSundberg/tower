@@ -9,6 +9,19 @@ allocation failures are tested in Tower. `towerc-stage1` and `towerc` use the
 Tower host implementations; `towerc-seed` retains the original native policies
 solely to break the bootstrap cycle. None is yet a Tower-only compiler.
 
+`host.tower` checks JSON byte escaping, exact unsigned 64-bit serialization,
+buffer aliasing and typed browser handle ownership. `interpreter-storage.tower`
+checks execution-memory growth/failure, sorted maps, frame/task storage and
+disposal. Both run in the parser command, alongside the retained native
+reference comparisons. Their functional cases and storage implementations are
+Tower source.
+
+`bash playground/scripts/test-host-runtime.sh` builds and runs the complete
+WASI parser and interpreter differential commands. The bootstrap comparison
+script also compares six Tower modules across Linux x64, wasm32, Windows x64
+and macOS ARM64 object targets. These object comparisons are distinct from
+native execution and whole-compiler self-hosting.
+
 To run this complete command on Wasm32, configure `TOWER_PARSER_ONLY=ON` with
 the WASI SDK toolchain and a host `TOWER_BOOTSTRAP_COMPILER`, build
 `tower-parser-tests`, then run:

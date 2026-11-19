@@ -1,0 +1,303 @@
+// Owned execution-space bytes. Target addresses are offsets into this buffer;
+// this is host containment, not foundation object/lifetime safety metadata.
+export fn im_memory_size(m: IMState*): usize {
+    return m.memory.length;
+}
+
+export fn im_memory(m: IMState*): u8* {
+    return m.memory.data;
+}
+
+export fn im_memory_resize(m: IMState*, count: usize): bool {
+    var ok = vector_reserve(u8, &m.memory, count);
+    if ok {
+        var grow = count > m.memory.length;
+        if grow {
+            var start = m.memory.data + m.memory.length;
+            var extra = count - m.memory.length;
+            fill(start, 0, extra);
+        }
+        m.memory.length = count;
+    }
+    return ok;
+}
+
+export fn interpreter_storage_dispose(m: IMState*): void {
+    loop {
+        var empty = m.frames.length == 0;
+        if empty {
+            break;
+        }
+        im_frame_pop(m);
+    }
+    vector_dispose(IMFrame, &m.frames);
+    vector_dispose(IMEntry, &m.allocations);
+    vector_dispose(IMEntry, &m.free_blocks);
+    vector_dispose(IMEntry, &m.strings);
+    vector_dispose(IMEntry, &m.sequenced);
+    vector_dispose(u8, &m.memory);
+}
+
+// Internal container allocation failure retains the previous fatal host policy.
+// Guest allocation itself has a separate, recoverable null-result contract.
+extern fn abort(): void;
+
+fn im_storage_require(ok: bool): void {
+    if ok {} else {
+        abort();
+    }
+}
+
+// Sorted u64 maps: deterministic lower-bound lookup, with contiguous storage.
+// Values and keys are execution facts; the foundation nodes remain authoritative.
+fn im_map_lower(map: vector(IMEntry)*, key: u64): usize {
+    var begin: usize = 0;
+    var end = map.length;
+    loop {
+        var done = begin == end;
+        if done {
+            return begin;
+        }
+        var middle = end - begin;
+        middle = middle / 2;
+        middle = middle + begin;
+        var before = map.data[middle].key < key;
+        if before {
+            begin = middle + 1;
+        } else {
+            end = middle;
+        }
+    }
+}
+
+fn im_map_get(map: vector(IMEntry)*, key: u64, found: bool*): u64 {
+    var index = im_map_lower(map, key);
+    *found = false;
+    var end = index == map.length;
+    if end {
+        return 0;
+    }
+    var same = map.data[index].key == key;
+    if same {
+        *found = true;
+        return map.data[index].value;
+    }
+    return 0;
+}
+
+fn im_map_set(map: vector(IMEntry)*, key: u64, value: u64): void {
+    var index = im_map_lower(map, key);
+    var inside = index < map.length;
+    if inside {
+        var same = map.data[index].key == key;
+        if same {
+            map.data[index].value = value;
+            return;
+        }
+    }
+    var needed = map.length + 1;
+    var valid = needed != 0;
+    im_storage_require(valid);
+    im_storage_require(vector_reserve(IMEntry, map, needed));
+    var tail = map.length - index;
+    var bytes = tail * sizeof(IMEntry);
+    var next = index + 1;
+    copy(&map.data[next], &map.data[index], bytes);
+    map.data[index].key = key;
+    map.data[index].value = value;
+    map.length = needed;
+}
+
+fn im_map_take(map: vector(IMEntry)*, key: u64, found: bool*): u64 {
+    var index = im_map_lower(map, key);
+    *found = false;
+    var end = index == map.length;
+    if end {
+        return 0;
+    }
+    var same = map.data[index].key == key;
+    if same {} else {
+        return 0;
+    }
+    *found = true;
+    var result = map.data[index].value;
+    map.length = map.length - 1;
+    var tail = map.length - index;
+    var bytes = tail * sizeof(IMEntry);
+    var next = index + 1;
+    copy(&map.data[index], &map.data[next], bytes);
+    return result;
+}
+
+fn im_frame(m: IMState*): IMFrame* {
+    var index = m.frames.length - 1;
+    return &m.frames.data[index];
+}
+
+export fn im_base(m: IMState*): usize {
+    var frame = im_frame(m);
+    return frame.base;
+}
+
+export fn im_frame_call(m: IMState*): void* {
+    var frame = im_frame(m);
+    return frame.call;
+}
+
+export fn im_frame_push(m: IMState*, function: void*, base: usize, offset: usize, call: void*): void {
+    var needed = m.frames.length + 1;
+    im_storage_require(vector_reserve(IMFrame, &m.frames, needed));
+    var frame = &m.frames.data[m.frames.length];
+    fill(frame, 0, sizeof(IMFrame));
+    frame.function = function;
+    frame.base = base;
+    frame.call_offset = offset;
+    frame.call = call;
+    m.frames.length = needed;
+    m.frame_count = needed;
+    m.task_count = 0;
+}
+
+export fn im_frame_pop(m: IMState*): void {
+    var frame = im_frame(m);
+    vector_dispose(IMTask, &frame.tasks);
+    vector_dispose(IMEntry, &frame.values);
+    vector_dispose(IMEntry, &frame.addresses);
+    m.frames.length = m.frames.length - 1;
+    m.frame_count = m.frames.length;
+    m.task_count = 0;
+    var nonempty = m.frames.length != 0;
+    if nonempty {
+        frame = im_frame(m);
+        m.task_count = frame.tasks.length;
+    }
+}
+
+export fn im_task_push(m: IMState*, node: void*, loop_resume: bool, phase: usize, offset: usize): void {
+    var frame = im_frame(m);
+    var needed = frame.tasks.length + 1;
+    var valid = needed != 0;
+    im_storage_require(valid);
+    im_storage_require(vector_reserve(IMTask, &frame.tasks, needed));
+    var task = &frame.tasks.data[frame.tasks.length];
+    task.node = node;
+    task.loop_resume = convert(u64, loop_resume);
+    task.phase = phase;
+    task.offset = offset;
+    frame.tasks.length = needed;
+    m.task_count = needed;
+}
+
+export fn im_task_pop(m: IMState*, task: IMTask*): void {
+    var frame = im_frame(m);
+    frame.tasks.length = frame.tasks.length - 1;
+    copy(task, &frame.tasks.data[frame.tasks.length], sizeof(IMTask));
+    m.task_count = frame.tasks.length;
+}
+
+export fn im_cache_clear(m: IMState*): void {
+    var frame = im_frame(m);
+    frame.values.length = 0;
+    frame.addresses.length = 0;
+}
+
+export fn im_free_neighbor(m: IMState*, key: u64, previous: bool, count: u64*): u64 {
+    var map = &m.free_blocks;
+    var index = im_map_lower(map, key);
+    if previous {
+        var first = index == 0;
+        if first {
+            return 0;
+        }
+        index = index - 1;
+    }
+    var end = index == map.length;
+    if end {
+        return 0;
+    }
+    *count = map.data[index].value;
+    return map.data[index].key;
+}
+
+export fn im_free_neighbors(m: IMState*, key: u64, result: IMNeighbors*): void {
+    fill(result, 0, sizeof(IMNeighbors));
+    var map = &m.free_blocks;
+    var index = im_map_lower(map, key);
+    var inside = index < map.length;
+    if inside {
+        result.next = map.data[index].key;
+        result.next_count = map.data[index].value;
+    }
+    var has_previous = index != 0;
+    if has_previous {
+        index = index - 1;
+        result.previous = map.data[index].key;
+        result.previous_count = map.data[index].value;
+    }
+}
+
+export fn im_free_first(m: IMState*, count: u64*): u64 {
+    var empty = m.free_blocks.length == 0;
+    if empty {
+        return 0;
+    }
+    *count = m.free_blocks.data[0].value;
+    return m.free_blocks.data[0].key;
+}
+
+export fn im_free_blocks_erase(m: IMState*, key: u64): void {
+    var found: bool;
+    im_map_take(&m.free_blocks, key, &found);
+}
+
+export fn im_allocations_take(m: IMState*, key: u64, found: bool*): u64 {
+    return im_map_take(&m.allocations, key, found);
+}
+
+export fn im_allocations_get(m: IMState*, key: u64, found: bool*): u64 {
+    return im_map_get(&m.allocations, key, found);
+}
+
+export fn im_allocations_set(m: IMState*, key: u64, value: u64): void {
+    im_map_set(&m.allocations, key, value);
+}
+
+export fn im_free_blocks_set(m: IMState*, key: u64, value: u64): void {
+    im_map_set(&m.free_blocks, key, value);
+}
+
+export fn im_strings_get(m: IMState*, key: u64, found: bool*): u64 {
+    return im_map_get(&m.strings, key, found);
+}
+
+export fn im_strings_set(m: IMState*, key: u64, value: u64): void {
+    im_map_set(&m.strings, key, value);
+}
+
+export fn im_sequenced_get(m: IMState*, key: u64, found: bool*): u64 {
+    return im_map_get(&m.sequenced, key, found);
+}
+
+export fn im_sequenced_set(m: IMState*, key: u64, value: u64): void {
+    im_map_set(&m.sequenced, key, value);
+}
+
+export fn im_values_get(m: IMState*, key: u64, found: bool*): u64 {
+    var frame = im_frame(m);
+    return im_map_get(&frame.values, key, found);
+}
+
+export fn im_values_set(m: IMState*, key: u64, value: u64): void {
+    var frame = im_frame(m);
+    im_map_set(&frame.values, key, value);
+}
+
+export fn im_addresses_get(m: IMState*, key: u64, found: bool*): u64 {
+    var frame = im_frame(m);
+    return im_map_get(&frame.addresses, key, found);
+}
+
+export fn im_addresses_set(m: IMState*, key: u64, value: u64): void {
+    var frame = im_frame(m);
+    im_map_set(&frame.addresses, key, value);
+}

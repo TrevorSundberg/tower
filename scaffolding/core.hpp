@@ -93,8 +93,25 @@ inline constexpr size_t CORE_MAX_FRAMES = 128, CORE_STACK_BYTES = 4 * 1024 * 102
 
 // Execution values are scalar bits or a raw target byte address. No safety handle.
 struct CoreValue { uint64_t bits = 0; };
-// Scalar execution state is shared directly with Tower. Host containers below
-// remain transitional storage; they carry no second program representation.
+// Non-owning native ABI views. Tower owns their storage and all operations.
+template<class T> struct CoreMachineArray {
+  T* data = nullptr;
+  size_t length = 0, capacity = 0;
+  size_t size() const { return length; }
+  const T* begin() const { return data; }
+  const T* end() const { return data ? data + length : data; }
+  const T& operator[](size_t i) const { return data[i]; }
+};
+struct CoreMachineEntry { uint64_t key, value; };
+struct CoreMachineTask { TowerNode* node; uint64_t loop_resume; size_t phase, offset; };
+struct CoreMachineFrame {
+  TowerNode* function;
+  size_t base, call_offset;
+  TowerNode* call;
+  CoreMachineArray<CoreMachineTask> tasks;
+  CoreMachineArray<CoreMachineEntry> values, addresses;
+};
+// State and derived execution indexes are shared directly with Tower.
 struct CoreMachineState {
   size_t stack = 16, heap = CORE_STACK_BYTES;
   size_t error_offset = 0, output_bytes = 0;
@@ -103,28 +120,24 @@ struct CoreMachineState {
   bool failed = false;
   size_t frame_count = 0, task_count = 0;
   bool cached = false; // current task may read suspended per-statement results
+  TowerByteBuffer memory_storage{}; // owned by interpreter-storage.tower
+  CoreMachineArray<CoreMachineEntry> allocations, free_blocks, strings, sequenced;
+  CoreMachineArray<CoreMachineFrame> frames;
 };
 struct CoreMachine : CoreMachineState {
   CoreProgram program;
-  std::vector<uint8_t> memory;
-  std::map<uint64_t, size_t> allocations, free_blocks;
-  std::map<TowerNode*, uint64_t> strings;
   using Foreign = std::function<CoreValue(CoreMachine&, TowerNode*, const std::vector<CoreValue>&)>;
   Foreign foreign;
   enum class Phase { Statement, Resume, Value, Address, FinishValue, FinishAddress };
-  struct Task { TowerNode* node; bool loop_resume = false; Phase phase = Phase::Statement; size_t offset = 0; };
-  struct Frame {
-    TowerNode* function = nullptr;
-    size_t base = 0, call_offset = 0;
-    TowerNode* call = nullptr;
-    std::vector<Task> tasks;
-    // Per-statement evaluation results only; never authoritative program data.
-    std::map<TowerNode*, CoreValue> values, addresses;
-  };
-  std::vector<Frame> frames;
-  std::map<TowerNode*, bool> sequenced;
   std::string error, output;
   explicit CoreMachine(CoreProgram source);
+  ~CoreMachine();
+  CoreMachine(CoreMachine&&) noexcept;
+  CoreMachine(const CoreMachine&) = delete;
+  CoreMachine& operator=(const CoreMachine&) = delete;
+  uint8_t* memory_data() { return memory_storage.data; }
+  const uint8_t* memory_data() const { return memory_storage.data; }
+  size_t memory_size() const { return memory_storage.length; }
   void step(size_t budget);
   void fail(const std::string&, size_t);
   uint8_t* bytes(uint64_t address, size_t count, size_t offset = 0);
@@ -133,14 +146,4 @@ struct CoreMachine : CoreMachineState {
   uint64_t allocate(size_t bytes);
   uint64_t reallocate(uint64_t address, size_t bytes);
   void deallocate(uint64_t address);
-private:
-  // Retained seed declarations; production algorithms are in interpreter.tower.
-  CoreValue read(TowerNode*, size_t);
-  CoreValue address(TowerNode*, size_t);
-  CoreValue evaluate(TowerNode*, size_t);
-  void store(TowerNode*, CoreValue, size_t, const CoreValue* = nullptr);
-  void enter(TowerNode*);
-  void returned(CoreValue = {});
-  void call(TowerNode*, size_t);
-  bool needs_evaluation(TowerNode*);
 };
