@@ -1,4 +1,4 @@
-import {selectDocument, downloadedProject} from './project-helpers.mjs';
+import {selectDocument, downloadedProject, revealDiagnostics} from './project-helpers.mjs';
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 const base = "parse Variable = Identifier;\nparse Expression = Identifier | Number;\nparse Statement = Expression ';';\n";
@@ -10,6 +10,7 @@ async function setSource(page, text) {
   // which makes contenteditable.fill an unreliable way to replace its model.
   await editor.press('ControlOrMeta+a');
   await page.keyboard.insertText(text);
+  await revealDiagnostics(page);
 }
 
 test.beforeEach(async ({ page }) => {

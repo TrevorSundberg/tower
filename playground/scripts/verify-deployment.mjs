@@ -3,7 +3,7 @@ import {readFile, mkdir, writeFile} from 'node:fs/promises';
 import {newProject} from '../src/projects.mjs';
 import {exportProject} from '../src/project-archive.mjs';
 import {targets} from '../src/targets.mjs';
-import {selectDocument, savedProject, downloadedProject} from '../tests/browser/project-helpers.mjs';
+import {selectDocument, savedProject, downloadedProject, revealDiagnostics} from '../tests/browser/project-helpers.mjs';
 import {outputText} from '../tests/browser/output-text.mjs';
 import {createHash} from 'node:crypto';
 import {chromium, devices, expect} from '@playwright/test';
@@ -91,6 +91,7 @@ try {
     await page.locator('#editor').click({position:{x:80,y:20}});
     await page.getByRole('textbox',{name:'Tower source'}).press('ControlOrMeta+a');
     await page.keyboard.insertText(bedrock.replace('[A-Za-z_][A-Za-z0-9_]*', 'ffff[A-Za-z_][A-Za-z0-9_]*'));
+    await revealDiagnostics(page);
     await expect(page.locator('#status')).toContainText('Stopped');
     await page.locator('#editor-error').click();
     await expect(page.locator('.tw-inline-error-message')).toContainText('No token rule matches source');
@@ -111,12 +112,14 @@ try {
     await page.locator('#editor').click({position:{x:80,y:20}});
     await page.getByRole('textbox',{name:'Tower source'}).press('ControlOrMeta+a');
     await page.keyboard.insertText("parse Statement |= '';\n");
+    await revealDiagnostics(page);
     await expect(page.locator('.tw-inline-error-message')).toHaveText('Token literal is empty. Expected at least one character between the quotes.');
     await expect(page.locator('.tw-error-range')).toHaveText("''");
     await page.screenshot({path:new URL(name+'-empty-literal.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
     await page.locator('#editor').click({position:{x:80,y:20}});
     await page.getByRole('textbox',{name:'Tower source'}).press('ControlOrMeta+a');
     await page.keyboard.insertText('print(42)\nvar answer: i32;');
+    await revealDiagnostics(page);
     await expect(page.locator('.tw-inline-error-message')).toContainText("Missing ';' before 'var'.");
     await expect(page.locator('.tw-inline-error-message')).toContainText('foundation.tower, line');
     await expect(page.locator('.tw-inline-error-heading')).toHaveText('ErrorLn 1, Col 10');
@@ -128,6 +131,7 @@ try {
     await page.locator('#editor').click({position:{x:80,y:20}});
     await page.getByRole('textbox',{name:'Tower source'}).press('ControlOrMeta+a');
     await page.keyboard.insertText('var alias: i32*;;');
+    await revealDiagnostics(page);
     await expect(page.locator('.tw-inline-error-message')).toHaveText("Unexpected ';'. Expected a statement or grammar declaration.");
     await expect(page.locator('.tw-error-range')).toHaveText(';');
     await page.screenshot({path:new URL(name+'-extra-semicolon.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
@@ -232,6 +236,24 @@ try {
     await page.keyboard.press('Control+Space');
     await expect(contextualOptions).toHaveCount(1);
     await expect(contextualOptions).toContainText('valid');
+    await page.keyboard.press('Escape');await page.keyboard.press('ControlOrMeta+a');
+    // Selecting all reveals the preceding fixture's pending error. Start from
+    // valid source to distinguish a new hidden error from that retained one.
+    await page.keyboard.insertText('print(42);');
+    await expect(page.locator('#status')).toContainText('Complete');
+    await expect(page.locator('#editor-error')).toBeHidden();
+    await page.keyboard.press('ControlOrMeta+a');
+    await page.keyboard.insertText('print(42)');
+    await expect(page.locator('#status')).toContainText('Stopped');
+    await expect(page.locator('#editor-error')).toBeHidden();
+    await expect(page.locator('.tw-inline-error')).toHaveCount(0);
+    await page.keyboard.press('ArrowLeft');
+    await expect(page.locator('.tw-inline-error-message')).toContainText("Missing ';'");
+    await page.keyboard.press('ControlOrMeta+a');
+    await page.keyboard.insertText('struct Point { instant:i32; } var point:Point; point');
+    await page.keyboard.press('Escape');await page.waitForTimeout(200);
+    await page.keyboard.press('.');
+    await expect(page.locator('.cm-completionLabel')).toHaveText(['instant']);
     await page.locator('#project-kind').selectOption('tower:compiler');
     await expect(page.locator('#compiler-controls')).toBeVisible();
     await expect(page.locator('#status')).toContainText('Complete',{timeout:20000});
@@ -250,6 +272,8 @@ try {
     report.browsers.at(-1).contextualCompletion = true;
     report.browsers.at(-1).typedCompletion = true;
     report.browsers.at(-1).sharedTowerHighlighting = true;
+    report.browsers.at(-1).deferredDiagnostics = true;
+    report.browsers.at(-1).preparedDotCompletion = true;
     report.browsers.at(-1).compilerProject = true;
     console.log(name + ': Tower/Wasm parser/type completion, Tab acceptance, struct fields and compiler-based output highlighting verified.');
     await context.close();

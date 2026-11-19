@@ -21,7 +21,9 @@ async function receive({id, method, source, cursor, foundation, bedrock, editing
     }
     const {tower} = method === 'highlight' ? await getCanonicalTower() : await getTower(foundation, bedrock, builtins.tower);
     let result;
-    if (method === 'complete') {
+    if (method === 'warm') {
+      result = null;
+    } else if (method === 'complete') {
       tower.configureModules({entry:activePath, files, builtins:{...builtins,foundation,bedrock}, library});
       result = tower.complete(source, cursor, {editingModule});
       if (result.error) throw new Error(result.error);

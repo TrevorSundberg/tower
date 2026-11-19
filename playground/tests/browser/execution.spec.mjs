@@ -1,5 +1,5 @@
 import { outputText } from './output-text.mjs';
-import {selectDocument, savedSource} from './project-helpers.mjs';
+import {selectDocument, savedSource, revealDiagnostics} from './project-helpers.mjs';
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 const grammar = ''; // Executable documents inherit the shared foundation module.
@@ -9,6 +9,7 @@ async function setSource(page, text) {
   // document and its geometric center may be clipped on a short phone screen.
   await page.locator('#editor').click({ position: { x: 80, y: 20 } });
   await editor.press('ControlOrMeta+a'); await page.keyboard.insertText(text);
+  await revealDiagnostics(page);
 }
 test.beforeEach(async ({ page }) => {
   await page.goto('/'); await expect(page.locator('#status')).toContainText('Complete');
@@ -284,6 +285,11 @@ test('projects replace execution workers while edits reuse the new environment',
   await expect(page.locator('#execution-status')).toContainText('backends match');
   const nextWorkers = page.workers().filter(worker => worker.url().includes('execution-worker'));
   expect(nextWorkers.every(worker => !workers.includes(worker))).toBe(true);
+  // Focus now prewarms the independent completion compiler. Finish a language
+  // query before measuring execution-worker reuse, so its first load is excluded.
+  await setSource(page,'pri');await page.keyboard.press('Control+Space');
+  await expect(page.getByRole('option').filter({hasText:'print'})).toBeVisible();
+  await page.keyboard.press('Escape');
   requests.length = 0;
   for (const value of [42, 43]) {
     await setSource(page, `var value: i32 = ${value}; print(value);`);

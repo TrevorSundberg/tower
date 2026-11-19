@@ -1,5 +1,11 @@
 import {readFile} from 'node:fs/promises';
 import {importProject} from '../../src/project-archive.mjs';
+export async function revealDiagnostics(page) {
+  // Fixture installation is finished. Move the caret to request diagnostics
+  // without waiting for the user's ten-second typing grace period.
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('ArrowLeft'); await page.keyboard.press('ArrowRight');
+}
 export async function selectDocument(page, name) {
   // Project hydration continues after navigation's load event. An empty tree
   // during startup does not mean this file belongs to another example project.

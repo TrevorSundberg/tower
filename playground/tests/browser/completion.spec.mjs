@@ -97,3 +97,40 @@ test('late completion replies cannot replace suggestions for newer input', async
   await expect(page.locator('.cm-tooltip-autocomplete [role=option]').filter({hasText:'usize'})).toBeVisible();
   await expect(page.locator('.cm-tooltip-autocomplete [role=option]').filter({hasText:'print'})).toHaveCount(0);
 });
+
+test('dot uses an exact prepared compiler answer, including changed types and a Unicode prefix',async({page})=>{
+  await page.evaluate(()=>{
+    window.queries=[];window.prepared=[];
+    const post=Worker.prototype.postMessage;
+    Worker.prototype.postMessage=function(data,...args) {
+      if(data.method==='complete') {
+        window.queries.push(data.source);
+        const receive=event=>{
+          if(event.data.id!==data.id)return;
+          this.removeEventListener('message',receive);
+          window.prepared.push(data.source);
+        };
+        this.addEventListener('message',receive);
+      }
+      return post.call(this,data,...args);
+    };
+  });
+  for(const field of ['first','changed']) {
+    const text=`// 雪🚀\nstruct Point { ${field}:i32; } var point:Point; print(point);`;
+    await source(page,text);await page.keyboard.press('ArrowLeft');await page.keyboard.press('ArrowLeft');
+    const predicted=text.replace('print(point);','print(point.);');
+    await expect.poll(()=>page.evaluate(text=>window.prepared.includes(text),predicted)).toBe(true);
+    const before=await page.evaluate(()=>window.queries.length);
+    await page.keyboard.press('.');
+    await expect(page.locator('.cm-completionLabel')).toHaveText([field]);
+    expect(await page.evaluate(()=>window.queries.length)).toBe(before);
+  }
+});
+
+test('a slow first worker load does not let speculation discard the visible completion request',async({page})=>{
+  await page.route('**/language-worker.js',async route=>{
+    await new Promise(resolve=>setTimeout(resolve,400));await route.continue();
+  });
+  await source(page,'pri');await page.keyboard.press('Control+Space');
+  await expect(page.getByRole('option').filter({hasText:'print'})).toBeVisible();
+});

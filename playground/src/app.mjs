@@ -3,6 +3,7 @@ import { EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLi
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
 import { byteOffsets } from './offsets.mjs';
 import { editorDiagnostics, goToDiagnostic, setDiagnostic, sourceDiagnostic } from './diagnostics.mjs';
+import { DiagnosticDelay } from './diagnostic-delay.mjs';
 import { expandedCode } from './expanded-code.mjs';
 import { replacementLocations } from './replacement-locations.mjs';
 import { compareResults } from './comparison.mjs';
@@ -130,6 +131,11 @@ const selectedNativeKeys = () => nativeTargetKeys.filter(key => selectedTargets[
 let autoTimer = 0, documentRevision = 0, executedRevision = -1;
 const typingDebounceMs = 200;
 let diagnosticPhase = null;
+const diagnosticDelay = new DiagnosticDelay((channel, value) => {
+  if (channel === 'editor') publishDiagnostic(value?.error ?? null, value?.phase ?? null);
+  else { $(channel).textContent = value ?? ''; $(channel).hidden = value === null; }
+});
+const reportProblem = (channel, value) => diagnosticDelay.update(channel, value, documentRevision);
 let typingDeadline = 0, typingTimer = 0;
 let foundation = '', bundledFoundation = '', editingModule = '', bedrock = '', bundledBedrock = '', bundledTower = '', bundledBuiltins = {};
 let documentLoadId = 0;
@@ -193,7 +199,7 @@ function compileNative(id,text) {
   const fail = (message,key) => {
     runner.failure=message;
     for (const target of key ? [key] : keys.filter(key=>!runner.completed.has(key))) {
-      $(target+'-error').textContent=message; $(target+'-error').hidden=false;
+      reportProblem(target+'-error',message);
       setPhase(target,'Failed'); runner.completed.add(target);
     }
   };
@@ -247,7 +253,7 @@ function clearNative(key) {
   outputPanes.get(key+'-disassembly').clearDownload();
   delete llvmViews[key];
   showCode(key+'-disassembly','');
-  $(key+'-error').textContent=''; $(key+'-error').hidden=true;
+  reportProblem(key+'-error',null);
 }
 function clearWasm() {
   outputPanes.get('wasm-disassembly').clearDownload();
@@ -260,7 +266,7 @@ function clearCompiled() {
   for (const id of ['core-instructions', 'llvm-before', 'llvm-after']) showCode(id,'');
   runners = {}; showTimings();
   for (const backend of backendIds) {
-    $(outputId(backend)).textContent = ''; $(errorId(backend)).hidden = true;
+    $(outputId(backend)).textContent = ''; reportProblem(errorId(backend),null);
     setPhase(backend);
   }
   $('fast-limit').hidden = $('output-limit').hidden = $('llvm-output-limit').hidden = true;
@@ -300,10 +306,13 @@ function stopExecution(message) {
   if (message) $('execution-status').textContent = message;
 }
 function executionDiagnostic(error) {
+  reportProblem('editor', error ? {error,phase:'execution'} : null);
+}
+function publishDiagnostic(error, phase) {
   if (error?.errorFile && error.errorFile !== activePath) {
     showError(error.errorFile + ': ' + error.error); return;
   }
-  diagnosticPhase = error ? 'execution' : null;
+  diagnosticPhase = error ? phase : null;
   const diagnostic = sourceDiagnostic(editor.state.doc, byteOffsets(editor.state.doc.toString()), error, result?.snapshot?.highlights ?? []);
   editor.dispatch({ effects: setDiagnostic.of(diagnostic) });
   $('editor-error').hidden = !diagnostic;
@@ -352,7 +361,7 @@ function execute() {
     const fail = message => {
       if (backend === 'fast') { outputPanes.get('fast-disassembly').clearDownload(); showCode('fast-disassembly',''); }
       $(outputId(backend)).textContent='';
-      runner.failure = message; $(errorId(backend)).textContent = message; $(errorId(backend)).hidden = false;
+      runner.failure = message; reportProblem(errorId(backend),message);
       setPhase(backend,'Unavailable'); finish();
     };
     worker.onerror = event => { event.preventDefault(); if (id === executionId) fail(event.message || 'Execution worker stopped'); };
@@ -383,7 +392,7 @@ function execute() {
       const answer = data.result;
       if (!answer) return;
       if (!runner.displayStarted) {
-        $(outputId(backend)).textContent=''; $(errorId(backend)).hidden=true;
+        $(outputId(backend)).textContent=''; reportProblem(errorId(backend),null);
         runner.displayStarted=true;
       }
       if (answer.output) { runner.output += answer.output; $(outputId(backend)).append(document.createTextNode(answer.output)); }
@@ -395,7 +404,7 @@ function execute() {
         if (backend === 'fast' && !runner.formatted) { outputPanes.get('fast-disassembly').clearDownload(); showCode('fast-disassembly',''); }
         if (backend === selectedBackends()[0] && !runner.formatted) showCode('core-instructions','');
         if (backend === 'llvm' && !data.llvm && !runner.compiled) { clearWasm(); renderLLVM(); }
-        $(errorId(backend)).textContent = answer.error; $(errorId(backend)).hidden = false;
+        reportProblem(errorId(backend),answer.error);
         if (!executionError) { executionError = answer; executionDiagnostic(answer); }
       }
       finish();
@@ -432,6 +441,8 @@ function showError(message) {
   $('error-message').textContent = message;
 }
 function clearInspection() {
+  diagnosticDelay.reset(documentRevision);
+  diagnosticPhase = null;
   result = null;
   $('diagnostic').hidden = true;
   $('editor-error').hidden = true;
@@ -548,26 +559,11 @@ function render() {
   const snapshot = result.snapshot;
   const decorations = towerDecorations(editor.state.doc.toString(), snapshot.highlights);
   const error = result.end?.status === 'error' ? result.end : executionError;
-  const diagnostic = sourceDiagnostic(editor.state.doc, offsets, error, snapshot.highlights);
   const awaitingExecution = diagnosticPhase === 'execution' && result.end?.status === 'done' && $('auto-execute').checked &&
     (executedRevision !== documentRevision || isExecuting()) &&
     result.events.some(event => event.status === 'statement' && event.nodes.some(item => item.production !== null && item.label.startsWith('Core')));
-  const effects = [paint.of(decorations)];
-  if (!awaitingExecution) {
-    effects.push(setDiagnostic.of(diagnostic));
-    diagnosticPhase = diagnostic ? (result.end?.status === 'error' ? 'parse' : 'execution') : null;
-  }
-  editor.dispatch({effects});
-  if (!awaitingExecution) $('editor-error').hidden = !diagnostic;
-  if (!awaitingExecution && diagnostic) {
-    $('editor-error').textContent = `Error · Ln ${diagnostic.line}`;
-    $('editor-error').setAttribute('aria-label', `Go to error on line ${diagnostic.line}`);
-    $('editor-error').title = diagnostic.message;
-  }
-  if (!awaitingExecution) {
-    $('diagnostic').hidden = true;
-    if (error && !diagnostic) showError(error.error);
-  }
+  editor.dispatch({effects:paint.of(decorations)});
+  if (!awaitingExecution) reportProblem('editor', error ? {error,phase:result.end?.status === 'error' ? 'parse' : 'execution'} : null);
   renderTree(); renderGrammar(snapshot);
   const prefix = result.end?.status === 'error' ? 'Stopped' : result.end?.status === 'done' ? 'Complete' : 'Paused';
   $('status').textContent = `${prefix} · ${snapshot.revision} grammar revisions · ${result.ms.toFixed(1)} ms`;
@@ -634,11 +630,13 @@ async function persist() {
 }
 window.addEventListener('pagehide', () => { if (editor) persist(); stopExecution(); });
 document.addEventListener('visibilitychange', () => { if (document.hidden && editor) persist(); });
-function changed() {
+function changed(deferDiagnostics = editor.hasFocus) {
   ++saveSequence; // an older write must not mark these newer edits as saved
   typingDeadline = performance.now() + typingDebounceMs;
   clearTimeout(typingTimer); typingTimer=0; cancelAnimationFrame(frame); frame=0;
   ++documentRevision;
+  if (deferDiagnostics) diagnosticDelay.edit(documentRevision);
+  else diagnosticDelay.reset(documentRevision);
   const wasExecuting = isExecuting();
   stopExecution(wasExecuting ? 'Cancelled by edit' : 'Ready');
   executionError = null; captureDocument();
@@ -701,7 +699,7 @@ function selectFile(path, fresh = false) {
   const text = editingModule ? project.builtins[editingModule] : project.files.find(f => f.path === path).text;
   $('filename').textContent = editingModule ? editingModule + '.tower' : path;
   editor.setState(fileStates.get(path) ?? EditorState.create({doc:text, extensions:editorExtensions}));
-  stopExecution(); clearCompiled(); clearInspection(); renderFiles(); changed(); typingDeadline = 0; schedule();
+  stopExecution(); clearCompiled(); clearInspection(); renderFiles(); changed(false); typingDeadline = 0; schedule();
 }
 function selectProject(id) {
   const next = projects.find(p => p.id === id); if (!next || next === project) return;
@@ -778,7 +776,7 @@ onCompilerSelection(selection => {
   ++generation; dirty = true; executedRevision = -1; clearCompiled(); clearInspection(); controls(); schedule();
 });
 $('tokens').onchange = () => renderTree();
-$('execute').onclick = () => execute();
+$('execute').onclick = () => { diagnosticDelay.reveal(); execute(); };
 $('cancel-execution').onclick = () => { executedRevision = documentRevision; stopExecution('Cancelled'); };
 for(const [key,target] of Object.entries(targetChoices)) {
   const label=node('label'), input=node('input'), caption=node('span','',target.label);
@@ -939,9 +937,12 @@ async function start() {
     lineNumbers(), highlightActiveLineGutter(), highlightActiveLine(), history(), highlighting, selectionMark, editorDiagnostics,
     EditorView.lineWrapping, EditorView.theme({ '&': { color: '#d4e0e2', backgroundColor: '#121a1e' } }, { dark: true }),
     EditorView.contentAttributes.of({ 'aria-label': 'Tower source', spellcheck: 'false', autocapitalize: 'off', autocorrect: 'off' }),
-    keymap.of([{ key: 'Mod-Enter', run: () => { perform('analyze'); return true; } }, ...defaultKeymap, ...historyKeymap, indentWithTab]),
+    keymap.of([{ key: 'Mod-Enter', run: () => { diagnosticDelay.reveal(); perform('analyze'); return true; } }, ...defaultKeymap, ...historyKeymap, indentWithTab]),
+    EditorView.domEventHandlers({blur: () => { queueMicrotask(() => diagnosticDelay.reveal()); }}),
     EditorView.updateListener.of(update => {
       if (update.docChanged) changed();
+      else if (update.selectionSet && !update.startState.selection.eq(update.state.selection) && !update.view.composing)
+        queueMicrotask(() => diagnosticDelay.reveal());
       if (update.selectionSet || update.docChanged) {
         const position = update.state.selection.main.head, line = update.state.doc.lineAt(position);
         $('position').textContent = `Ln ${line.number}, Col ${position - line.from + 1}`;

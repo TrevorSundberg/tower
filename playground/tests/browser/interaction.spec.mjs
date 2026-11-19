@@ -1,5 +1,5 @@
 import { outputText } from './output-text.mjs';
-import {selectDocument, savedSource} from './project-helpers.mjs';
+import {selectDocument, savedSource, revealDiagnostics} from './project-helpers.mjs';
 import {test,expect} from '@playwright/test';
 async function edit(page,text){
  await page.locator('#editor').click({position:{x:80,y:20}});
@@ -9,7 +9,7 @@ async function edit(page,text){
 test.beforeEach(async({page})=>{await page.goto('/');await expect(page.locator('#status')).toContainText('Complete');});
 
 test('typing resets the quiet period and keeps errors until the replacement result',async({page})=>{
- await edit(page,'var value: i32 = true;');
+ await edit(page,'var value: i32 = true;'); await revealDiagnostics(page);
  await expect(page.locator('#execution-status')).toContainText('backends match');
  await expect(page.locator('.tw-inline-error-message')).toContainText('Expected i32');
  await page.evaluate(()=>{
@@ -34,7 +34,7 @@ test('typing resets the quiet period and keeps errors until the replacement resu
 });
 
 test('parse errors clear on successful analysis even while execution replies are held',async({page},info)=>{
- await edit(page,'print(42)\nvar answer: i32;');
+ await edit(page,'print(42)\nvar answer: i32;'); await revealDiagnostics(page);
  await expect(page.locator('.tw-inline-error-message')).toContainText("Missing ';' before 'var'.");
  await expect(page.locator('.tw-inline-error-heading')).toHaveText('ErrorLn 1, Col 10');
  await expect(page.locator('.tw-error-point')).toHaveCount(1);
@@ -51,7 +51,7 @@ test('parse errors clear on successful analysis even while execution replies are
 });
 
 test('old semantic errors clear after compilation while a new infinite loop is still running',async({page})=>{
- await edit(page,'var value: i32 = true;');
+ await edit(page,'var value: i32 = true;'); await revealDiagnostics(page);
  await expect(page.locator('.tw-inline-error-message')).toContainText('Expected i32');
  await edit(page,'loop { }');
  await expect.poll(()=>outputText(page,'core-instructions')).toContain('loop {');

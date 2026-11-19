@@ -1,4 +1,4 @@
-import {savedSource} from './project-helpers.mjs';
+import {savedSource, revealDiagnostics} from './project-helpers.mjs';
 import {test,expect} from '@playwright/test';
 
 test('error bubble connects to the marked text at both corners, across wide and wrapped tokens',async({page},info)=>{
@@ -19,7 +19,7 @@ test('error bubble connects to the marked text at both corners, across wide and 
     const source="parse Statement = Number ';';\n"+text;
     await page.locator('#editor').click({position:{x:80,y:20}});
     await page.getByRole('textbox',{name:'Tower source'}).press('ControlOrMeta+a');
-    await page.keyboard.insertText(source);
+    await page.keyboard.insertText(source); await revealDiagnostics(page);
     await expect(page.locator('#status')).toContainText('Stopped');
     await page.locator('#editor-error').click();
     await expect(page.locator('.has-bubble-outline')).toBeVisible();

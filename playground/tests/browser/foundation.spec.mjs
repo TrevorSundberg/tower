@@ -1,11 +1,12 @@
 import { outputText } from './output-text.mjs';
-import {selectDocument} from './project-helpers.mjs';
+import {selectDocument, revealDiagnostics} from './project-helpers.mjs';
 import { test, expect } from '@playwright/test';
 const withEmit = foundation => foundation + "\nparse Statement |= 'emit' $value:CoreOperand ';' => replace { print($value); };";
 async function setSource(page, text) {
   await page.locator('#editor').click({ position: { x: 80, y: 20 } });
   await page.getByRole('textbox', { name: 'Tower source' }).press('ControlOrMeta+a');
   await page.keyboard.insertText(text);
+  await revealDiagnostics(page);
 }
 test('editing the shared foundation changes parsing, highlights and both runners, and persists', async ({ page, request }, info) => {
   test.setTimeout(60000); // Several cold compiler loads plus a page reload.

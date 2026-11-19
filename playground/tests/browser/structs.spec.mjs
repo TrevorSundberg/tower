@@ -1,10 +1,11 @@
 import { outputText } from './output-text.mjs';
-import {selectDocument} from './project-helpers.mjs';
+import {selectDocument, revealDiagnostics} from './project-helpers.mjs';
 import { test, expect } from '@playwright/test';
 async function setSource(page, text) {
   await page.locator('#editor').click({ position: { x: 80, y: 20 } });
   await page.getByRole('textbox', { name: 'Tower source' }).press('ControlOrMeta+a');
   await page.keyboard.insertText(text);
+  await revealDiagnostics(page);
 }
 test('struct milestone executes automatically in both workers and round-trips visibly', async ({ page }, info) => {
   const errors = []; page.on('pageerror', error => errors.push(error.message));
