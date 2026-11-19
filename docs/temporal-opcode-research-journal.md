@@ -11939,3 +11939,38 @@ exercise the verifier's Linux-host-only detection case. The final journal-only
 commit changes no deployment artifact; the checkout and Pages worktree are
 clean, and todo.txt is unchanged. The outstanding portable/self-hosting gates
 above remain open; successful publication is not their completion.
+
+## 2026-11-19: Consolidate published source branches onto main
+
+User requested consolidation of all currently published source branches and a
+concise rule requiring future work directly on main. The remote default was
+`master` at `586078b`; no `main` branch existed. Created `main` from that shared
+base, rather than another feature branch, and integrated the published heads:
+
+- `port/frontend-tower` at `68b455b` (fast-forward, including the prior host port).
+- `port/host-runtime-integration` at `6d9f084` (merge, with both journal histories
+  retained). Its compiler, build and test files merge without conflicts and are
+  identical to that branch's already-published implementation; the only conflict
+  was appended journal records.
+- `port/host-runtime-tower` at `62b863e` and `port/interpreter-tower` at `0954b4e`
+  were already ancestors of those integrations.
+- `port/canonical-formatter-tower` at `c50dfeb` contained the original versions of
+  four commits already integrated through rebased equivalents. The formatter
+  implementation, reference implementation and tests match exactly between
+  `e137895` and `2095ca4`; its build registration was adapted in `6aecd72` to retain
+  the interpreter/emitter integrations. Journal commits `9d59053`/`c50dfeb` are
+  patch-equivalent to their existing rebased counterparts. Recorded the original
+  branch ancestry with a content-preserving merge rather than restoring an old
+  build snapshot or duplicating the formatter.
+
+`gh-pages` is a generated deployment branch and is not source to merge into main.
+Its latest head at inventory time was `1d828a2`; its assets must be preserved or
+replaced with a validated build, not copied into the compiler source tree.
+One further source handoff is expected later; this consolidation covers the
+branches published at this inventory, without waiting for unpublished work.
+
+Added one line to `AGENTS.md`: "Work directly on `main`; do not create or use
+feature branches." Existing local modifications to AGENTS, the foundation notes,
+the research journal and todo.txt are preserved separately; todo.txt is not edited.
+Integration is performed in the existing clean audit worktree on main so those
+local notes cannot be accidentally included in merge commits.

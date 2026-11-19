@@ -2,6 +2,7 @@ Do NOT modify todo.txt
 
 ## Turn workflow
 
+- Work directly on `main`; do not create or use feature branches.
 - At the beginning of every turn, run `git pull --rebase` before starting work so
   the checkout includes the latest upstream changes. Preserve any existing local
   work and resolve rebase conflicts without discarding it.
