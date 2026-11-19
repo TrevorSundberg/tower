@@ -293,13 +293,26 @@ fn module_path(path: u8*, result: vector(u8)*): bool {
     return true;
 }
 
+fn module_directory(path: u8*, result: vector(u8)*): void {
+    module_require(module_path(path, result));
+    // A configured relative root is a search directory, even though its
+    // canonical file-path prefix is empty. Empty input means no search root.
+    var specified = path[0] != 0;
+    if specified {
+        var root = result.length == 0;
+        if root {
+            module_require(node_text_set(result, "."));
+        }
+    }
+}
+
 export fn frontend_modules_configure(environment: ModuleEnvironment*, entry: u8*, library: u8*): void {
     module_require(module_path(entry, &environment.entry));
-    module_require(module_path(library, &environment.library));
+    module_directory(library, &environment.library);
 }
 
 export fn frontend_modules_fallback(environment: ModuleEnvironment*, directory: u8*): void {
-    module_require(module_path(directory, &environment.fallback));
+    module_directory(directory, &environment.fallback);
 }
 
 export fn frontend_modules_clear(environment: ModuleEnvironment*): void {

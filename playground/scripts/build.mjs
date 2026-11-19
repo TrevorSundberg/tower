@@ -10,7 +10,7 @@ const dist = path.join(root, 'dist');
 // dist is generated output. Never publish stale optional backends/target packs.
 await rm(dist, { recursive: true, force: true });
 await mkdir(dist, { recursive: true });
-await build({ absWorkingDir: root, entryPoints: ['src/app.mjs', 'src/worker.mjs', 'src/execution-worker.mjs', 'src/target-worker.mjs', 'src/language-worker.mjs'],
+await build({ absWorkingDir: root, entryPoints: ['src/app.mjs', 'src/worker.mjs', 'src/execution-worker.mjs', 'src/target-worker.mjs', 'src/language-worker.mjs', 'src/compiler-build-worker.mjs'],
   outdir: dist, bundle: true, format: 'esm', target: 'es2022', minify: true,
   sourcemap: true, outExtension: { '.js': '.js' }, legalComments: 'linked' });
 for (const file of ['index.html', 'style.css']) await copyFile(path.join(root, file), path.join(dist, file));
@@ -53,6 +53,21 @@ if (crossBytes) {
 await writeFile(path.join(dist, 'capabilities.json'), JSON.stringify({ llvm, cross }));
 if (process.env.TOWER_REQUIRE_BACKENDS === '1' && (!llvm || !cross))
   throw new Error('Full deployment requires both LLVM reactors and target support packs.');
+// Produced from the actual native build manifests, including each new Tower port.
+// Keep parser-only development builds usable; a publication requires the recipe.
+const compilerProject = path.join(root, '../build/compiler-project');
+let compilerRecipe;
+if (llvm && cross) {
+  try { compilerRecipe = JSON.parse(await readFile(path.join(compilerProject,'project.json'),'utf8')); }
+  catch (error) { if (error.code !== 'ENOENT') throw error; }
+}
+if (process.env.TOWER_REQUIRE_BACKENDS === '1' && !compilerRecipe)
+  throw new Error('Full deployment requires the compiler project. Run build-wasm.sh and build-llvm.sh with TOWER_BROWSER_CROSS=ON.');
+if (compilerRecipe) {
+  await mkdir(path.join(dist,'compiler'),{recursive:true});
+  for (const name of ['project.json', ...Object.values(compilerRecipe.reactors).flatMap(reactor => reactor.support)])
+    await copyFile(path.join(compilerProject,name),path.join(dist,'compiler',name));
+}
 let licenses = 'Tower playground: third-party notices\n\n';
 for (const [name, file] of [
   ['LLVM / LLD / compiler-rt (Apache 2.0 with LLVM exceptions)', '../third_party/llvm-project/llvm/LICENSE.TXT'],

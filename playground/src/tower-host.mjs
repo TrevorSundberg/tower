@@ -8,7 +8,7 @@ import { moduleInputs, moduleDiagnostic } from './module-inputs.mjs';
 export async function loadTower(bytes, log = () => {}, bootstrap, foundation, bedrock, { imports = {}, tower } = {}) {
   const available = {...platformImports((_stream, data, context) => context.output(data)),...imports};
   const wasi = new TowerWASI({ log });
-  const module = await WebAssembly.compile(bytes);
+  const module = bytes instanceof WebAssembly.Module ? bytes : await WebAssembly.compile(bytes);
   const instance = await WebAssembly.instantiate(module, { wasi_snapshot_preview1: wasi.wasiImport, tower_host: {
     call(handle, request) {
       try {

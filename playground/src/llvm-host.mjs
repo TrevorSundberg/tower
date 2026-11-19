@@ -7,7 +7,8 @@ import { moduleInputs, moduleDiagnostic } from './module-inputs.mjs';
 // LLVM and LLD run in their own WASM instance, with only an in-memory filesystem.
 export async function loadLLVM(bytes, log = () => {}, bootstrap, foundation, bedrock, {tower} = {}) {
   const wasi = new TowerWASI({ log });
-  const { instance } = await WebAssembly.instantiate(bytes, { wasi_snapshot_preview1: wasi.wasiImport });
+  const module = bytes instanceof WebAssembly.Module ? bytes : await WebAssembly.compile(bytes);
+  const instance = await WebAssembly.instantiate(module, { wasi_snapshot_preview1: wasi.wasiImport });
   wasi.initialize(instance);
   const modules = moduleInputs(instance.exports, {bedrock, foundation:foundation ?? bootstrap, tower});
   if (bedrock !== undefined) configureBedrock(instance.exports, bedrock);
@@ -21,6 +22,28 @@ export async function loadLLVM(bytes, log = () => {}, bootstrap, foundation, bed
   return {
     configureModules: modules.configure,
     dependencies: modules.dependencies,
+    // Link an explicit reactor recipe using Tower's own LLD service. The browser
+    // supplies bytes and arguments; language/link policy remains in Tower.
+    linkReactor(inputs, args) {
+      if (!e.backend_reactor_link) throw new Error('This compiler does not support reactor builds');
+      const link = e.backend_link_create();
+      if (!link) throw new Error('Unable to allocate reactor linker');
+      function withBytes(bytes, action) {
+        const p = e.malloc(bytes.length || 1);
+        if (!p) throw new Error('Unable to allocate reactor input');
+        try { new Uint8Array(e.memory.buffer).set(bytes, p); return action(p); }
+        finally { e.free(p); }
+      }
+      const text = value => new TextEncoder().encode(value + '\0');
+      try {
+        for (const [name, data] of Object.entries(inputs)) withBytes(text(name), n => withBytes(data, p => {
+          if (!e.backend_link_add_input(link, n, p, data.length)) throw new Error('Invalid reactor input: ' + name);
+        }));
+        for (const arg of args) withBytes(text(arg), p => e.backend_reactor_argument(link, p));
+        if (!e.backend_reactor_link(link)) throw new Error(string(e.backend_reactor_error(link)));
+        return new Uint8Array(e.memory.buffer, e.backend_reactor_bytes(link), e.backend_reactor_size(link)).slice();
+      } finally { e.backend_link_close(link); }
+    },
     compile(source, { inputs = {}, emit = 'wasm', library = false, optimize = true, target = 'wasm32-unknown-unknown' } = {}) {
       if (!['wasm', 'object', 'executable', 'foundation'].includes(emit)) throw new Error('Unknown output format: ' + emit);
       const triple = new TextEncoder().encode(target + '\0'), triplePointer = e.malloc(triple.length);

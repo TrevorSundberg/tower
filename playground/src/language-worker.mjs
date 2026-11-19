@@ -1,4 +1,4 @@
-import { getTower, getCanonicalTower } from './compiler-runtime.mjs';
+import { getTower, getCanonicalTower, useCompiler } from './compiler-runtime.mjs';
 import { runToEnd } from './tower-host.mjs';
 let queue = Promise.resolve();
 let baseline;
@@ -11,8 +11,9 @@ function baselines() {
   return baseline;
 }
 self.onmessage = ({data}) => { queue = queue.then(() => receive(data)); };
-async function receive({id, method, source, cursor, foundation, bedrock, editingModule, files=[], builtins={}, activePath='input.tower'}) {
+async function receive({id, method, source, cursor, foundation, bedrock, editingModule, files=[], builtins={}, activePath='input.tower', library='.tower', compiler}) {
   try {
+    useCompiler(compiler);
     if (['bedrock','foundation'].includes(editingModule)) {
       const [baseFoundation, baseBedrock] = await baselines();
       foundation = baseFoundation;
@@ -21,7 +22,7 @@ async function receive({id, method, source, cursor, foundation, bedrock, editing
     const {tower} = method === 'highlight' ? await getCanonicalTower() : await getTower(foundation, bedrock, builtins.tower);
     let result;
     if (method === 'complete') {
-      tower.configureModules({entry:activePath, files, builtins:{...builtins,foundation,bedrock}});
+      tower.configureModules({entry:activePath, files, builtins:{...builtins,foundation,bedrock}, library});
       result = tower.complete(source, cursor, {editingModule});
       if (result.error) throw new Error(result.error);
     } else {

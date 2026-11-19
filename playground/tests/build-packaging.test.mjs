@@ -26,6 +26,9 @@ test('deployment bundles remove stale backends, require complete packs and check
     await put('build/browser-wasi/tower.wasm');
     await put('build/browser-wasi-llvm/tower-llvm.wasm');
     await put('build/browser-wasi-llvm/tower-cross.wasm');
+    await put('build/compiler-project/project.json', JSON.stringify({reactors:{tower:{support:['support-tower-0.a.gz']}}}));
+    await put('build/compiler-project/support-tower-0.a.gz');
+    await put('build/compiler-project/obsolete-support.o.gz');
     for (const target of Object.values(targets)) if (target.pointerBytes !== 4)
       for (const name of [target.triple + '-runtime.o', ...target.inputs]) await put('build/targets/' + name);
     const build = (required = false) => spawnSync(process.execPath, [path.join(fixture, 'playground/scripts/build.mjs')], {
@@ -34,11 +37,17 @@ test('deployment bundles remove stale backends, require complete packs and check
     let result = build(true);
     assert.equal(result.status, 0, result.stderr);
     const dist = path.join(fixture, 'playground/dist');
+    assert.equal(await readFile(path.join(dist,'compiler/support-tower-0.a.gz'),'utf8'), 'fixture');
+    await assert.rejects(readFile(path.join(dist,'compiler/obsolete-support.o.gz')), {code:'ENOENT'});
     const manifest = JSON.parse(await readFile(path.join(dist, 'deployment-manifest.json')));
     const files = (await readdir(dist, {recursive:true, withFileTypes:true})).filter(entry => entry.isFile());
     assert.equal(Object.keys(manifest.assets).length, files.length - 1);
     for (const [name, hash] of Object.entries(manifest.assets))
       assert.equal(createHash('sha256').update(await readFile(path.join(dist, name))).digest('hex'), hash, name);
+    await rm(path.join(fixture, 'build/compiler-project'), {recursive:true});
+    result = build(true);
+    assert.notEqual(result.status, 0, 'full deployment must include the compiler project');
+    assert.match(result.stderr, /Full deployment requires the compiler project/);
     await rm(path.join(fixture, 'build/targets/kernel32.lib'));
     result = build();
     assert.notEqual(result.status, 0, 'present cross compiler requires all target inputs');
@@ -48,7 +57,7 @@ test('deployment bundles remove stale backends, require complete packs and check
     result = build();
     assert.equal(result.status, 0, result.stderr);
     assert.deepEqual(JSON.parse(await readFile(path.join(dist, 'capabilities.json'))), {llvm:false, cross:false});
-    for (const name of ['obsolete-worker.js', 'tower-llvm.wasm', 'tower-llvm.wasm.gz', 'tower-cross.wasm.gz', 'targets'])
+    for (const name of ['obsolete-worker.js', 'tower-llvm.wasm', 'tower-llvm.wasm.gz', 'tower-cross.wasm.gz', 'targets', 'compiler/project.json'])
       await assert.rejects(readFile(path.join(dist, name)), {code:'ENOENT'});
     result = build(true);
     assert.notEqual(result.status, 0, 'full deployment must reject parser-only builds');

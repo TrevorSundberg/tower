@@ -3,7 +3,7 @@
 export function moduleInputs(exports, initial = {}) {
   const allocate = exports.tw_alloc || exports.malloc, free = exports.tw_free || exports.free;
   const environment = exports.frontend_modules_create();
-  let state = {entry:'input.tower', files:[], builtins:initial};
+  let state = {entry:'input.tower', files:[], builtins:initial, library:'.tower'};
   function text(value, action) {
     const bytes = new TextEncoder().encode(value), pointer = allocate(bytes.length + 1);
     if (!pointer) throw new Error('Unable to allocate module input');
@@ -21,7 +21,7 @@ export function moduleInputs(exports, initial = {}) {
     for (const file of files) text(file.path, name => text(file.text, (source, length) => {
       if (!exports.frontend_modules_source(environment, name, source, length)) throw new Error('Invalid module input: ' + file.path);
     }));
-    text(state.entry, entry => text('.tower', library => exports.frontend_modules_configure(environment, entry, library)));
+    text(state.entry, entry => text(state.library, library => exports.frontend_modules_configure(environment, entry, library)));
   }
   configure();
   function string(pointer) {

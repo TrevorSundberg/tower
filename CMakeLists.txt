@@ -156,7 +156,7 @@ if(TOWER_BROWSER)
       target_compile_options(${name} PRIVATE -fno-exceptions -UNDEBUG)
       target_link_options(${name} PRIVATE -mexec-model=reactor
         -Wl,--export=malloc -Wl,--export=free
-        -Wl,-z,stack-size=8388608 -Wl,--initial-memory=33554432 -Wl,--max-memory=536870912)
+        -Wl,-z,stack-size=8388608 -Wl,--initial-memory=33554432 -Wl,--max-memory=2147483648)
       target_link_libraries(${name} PRIVATE LLVMCore LLVMWebAssemblyCodeGen LLVMWebAssemblyAsmParser LLVMWebAssemblyDisassembler LLVMMCDisassembler LLVMPasses lldWasm)
       set_target_properties(${name} PROPERTIES OUTPUT_NAME ${output} SUFFIX .wasm)
     endfunction()

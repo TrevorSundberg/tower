@@ -324,6 +324,11 @@ Expected parse and grammar errors use explicit return values. Internal invariant
 assertions and unrecoverable allocation failures can still stop an instance.
 The worker reports failures and the next analysis can create a fresh instance.
 
+These parser-only development builds omit the **Tower Compiler** workbench.
+For that project, build both LLVM reactors with `TOWER_BROWSER_CROSS=ON` after
+the parser, as described under **Editing Tower Compiler in the browser** below.
+Publication with `TOWER_REQUIRE_BACKENDS=1` requires its complete recipe and packs.
+
 ## Execute Tower's foundation
 
 Choose **Execution** in the example selector. **Auto execute** is on by default,
@@ -889,3 +894,57 @@ node IDs are lifetime identifiers, not stable identities across reparses.
 Dependencies: [CodeMirror](https://codemirror.net/), LLVM/LLD,
 [WASI SDK](https://github.com/WebAssembly/wasi-sdk). Bundled dependency licenses
 are in `dist/THIRD-PARTY-NOTICES.txt`; versions are pinned in `package-lock.json`.
+
+## Editing Tower Compiler in the browser
+
+The **Tower Compiler** project contains the compiler, interpreter, host and backend
+Tower sources plus the real build's import-unit manifests. Edit any file to
+schedule a rebuild, or choose **Rebuild compiler**. Compilation and linking run
+in a cancellable worker. Each unit compiles its transitive imports; files are
+never concatenated. Ordinary projects likewise compile their first Tower file's
+import closure, including an entry containing only imports, and recompile when
+an imported file changes.
+
+The build links fresh parser/interpreter, LLVM/Wasm and native-target reactors.
+It instantiates all candidates and checks imported execution in both interpreters,
+LLVM execution and native object emission before activating the generation.
+The next rebuild uses that generation. Failed, cancelled and superseded builds
+cannot replace the active compiler. **Reset compiler** restores the bundled
+compiler without deleting source edits. Reload also restores the original;
+compiler binaries are session state, while project source persists in IndexedDB
+and project ZIPs.
+
+This is a hybrid rebuild: the project-owned native adapters/runtime and upstream
+LLVM/LLD are supplied as prebuilt link support. It is not yet standalone Tower
+self-hosting. Large compiler builds download additional support on demand and
+may take substantially longer than an ordinary program. LLVM workers permit up
+to 2 GiB of linear memory for compiler linking; actual allocation grows as needed.
+
+When porting another C++ component, add its Tower imports to the owning
+`cmake/Compose*.cmake` manifest and remove the replaced native target sources
+once validated. `scripts/package-compiler-project.py` follows those actual build
+units, exposes new `.tower` files automatically, and excludes rebuilt Tower
+objects from the support packs. Existing files with browser edits are preserved
+when the bundled project updates; untouched files and new ports are refreshed.
+The comments in the project entry and unit manifests record this migration path.
+Standalone release recipes and retirement of all project-owned native support
+remain required; see `docs/bootstrap-distribution.md`.
+
+A full browser build now packages the workbench after the parser and LLVM builds:
+
+```sh
+TOWER_BOOTSTRAP_COMPILER=/path/to/import-capable/towerc bash playground/scripts/build-wasm.sh
+TOWER_BOOTSTRAP_COMPILER=/path/to/import-capable/towerc TOWER_BROWSER_CROSS=ON bash playground/scripts/build-llvm.sh
+npm run build --prefix playground
+node playground/scripts/test-compiler-project.mjs
+```
+
+The compiler-project check edits a semantic diagnostic and builds two successive
+complete sets of reactors using the browser host APIs, checking that the edit is
+executed by each successor. It is separate from the quick Node test suite.
+
+The pinned LLVM 20 LLD needs the guarded `prepare-lld-compat.py` backport to link
+WASI SDK 34 libc's `__wasm_first_page_end` reference. It uses LLVM's existing
+64 KiB page constant and only affects non-PIC links. The full build applies it
+to cached third-party source before rebuilding LLD. Review/remove it with an
+LLVM upgrade; the source checkout's submodule remains unchanged.

@@ -1,0 +1,42 @@
+import tower;
+
+// Host build service for compiler reactors. Inputs and arguments are explicit
+// capabilities supplied by the build recipe, never filesystem/tool searches.
+// Keep adding Tower modules to that recipe as native adapters are ported; remove
+// their prebuilt support objects only after successor/differential checks pass.
+export fn backend_reactor_argument(link: BackendLink*, argument: u8*): void {
+    backend_link_argument(link, "", argument);
+}
+
+export fn backend_reactor_link(link: BackendLink*): bool {
+    var i: usize = 0;
+    loop {
+        var done = i == link.inputs.length;
+        if done {
+            break;
+        }
+        var input = &link.inputs.data[i];
+        var ok = backend_write_file(link, input.name.data, input.bytes.data, input.bytes.length);
+        if ok {} else {
+            return false;
+        }
+        i = i + 1;
+    }
+    var valid = link.error.length == 0;
+    if valid {
+        return backend_link_wasi(link, "wasm32-unknown-unknown");
+    }
+    return false;
+}
+
+export fn backend_reactor_bytes(link: BackendLink*): u8* {
+    return link.output.data;
+}
+
+export fn backend_reactor_size(link: BackendLink*): usize {
+    return link.output.length;
+}
+
+export fn backend_reactor_error(link: BackendLink*): u8* {
+    return link.error.data;
+}

@@ -8,6 +8,14 @@ let towerReady, installedFoundation, installedBedrock;
 const compilers = new Map();
 const warmRuns = new Map();
 let canonicalSources;
+let selected = {revision:0};
+export function useCompiler(selection = {revision:0}) {
+  if (selected.revision === selection.revision) return false;
+  selected = selection;
+  towerReady = undefined; installedFoundation = installedBedrock = undefined;
+  compilers.clear(); warmRuns.clear();
+  return true;
+}
 function getCanonicalSources() {
   canonicalSources ??= Promise.all(['foundation','bedrock'].map(async name => {
     const response = await fetch('./'+name+'.tower');
@@ -27,7 +35,7 @@ export async function getTower(foundation, bedrock, towerSource) {
   const start = performance.now();
   const cached = !!towerReady && installedFoundation === foundation && installedBedrock === bedrock;
   if (!towerReady) {
-    towerReady = fetchBytes('./tower.wasm').then(bytes =>
+    towerReady = Promise.resolve(selected.tower ?? fetchBytes('./tower.wasm')).then(bytes =>
       loadTower(bytes, undefined, foundation, undefined, bedrock, {tower:towerSource}));
     installedFoundation = foundation; installedBedrock = bedrock;
   }
@@ -43,7 +51,7 @@ export async function getCompiler(url) {
   const start = performance.now();
   const cached = compilers.has(url);
   if (!compilers.has(url)) compilers.set(url, (async () => {
-    const [wasm, [canonical, seed]] = await Promise.all([fetchBytes(url), getCanonicalSources()]);
+    const [wasm, [canonical, seed]] = await Promise.all([selected[url.includes('cross') ? 'cross' : 'llvm'] ?? fetchBytes(url), getCanonicalSources()]);
     return loadLLVM(wasm, undefined, canonical, undefined, seed);
   })());
   const pending = compilers.get(url);

@@ -1,7 +1,11 @@
 // One active request and the latest pending request per consumer. Cancellation
 // rejects stale replies without repeatedly discarding a warm Wasm compiler.
+import {compilerSelection, onCompilerSelection} from './compiler-selection.mjs';
 export class LanguageService {
-  constructor() { this.id = 0; this.worker = null; this.active = null; this.queued = new Map(); }
+  constructor() {
+    this.id = 0; this.worker = null; this.active = null; this.queued = new Map();
+    onCompilerSelection(() => this.stop('Compiler changed'));
+  }
   request(key, payload) {
     this.queued.get(key)?.resolve(null);
     let task;
@@ -31,7 +35,7 @@ export class LanguageService {
     const task = this.queued.values().next().value;
     this.queued.delete(task.key); this.active = task;
     task.timer = setTimeout(() => this.stop('Language query exceeded 10 seconds'), 10000);
-    this.worker.postMessage({id:task.id, ...task.payload});
+    this.worker.postMessage({id:task.id, ...task.payload, compiler:compilerSelection()});
   }
   stop(message = 'Language query canceled') {
     this.worker?.terminate(); this.worker = null;
@@ -43,6 +47,7 @@ export class LanguageService {
 
 let highlighting;
 const cache = new Map();
+onCompilerSelection(() => cache.clear());
 export function highlightFoundation(source, consumer) {
   if (cache.has(source)) return cache.get(source);
   highlighting ??= new LanguageService();

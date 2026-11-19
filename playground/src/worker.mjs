@@ -1,4 +1,5 @@
 import { loadTower, runToEnd } from './tower-host.mjs';
+import {getTower, useCompiler} from './compiler-runtime.mjs';
 let tower, handle = 0, moduleHandle = 0, bedrockHandle = 0, installed, installedBedrock;
 const ready = (async () => {
   const [wasm, module, seed, language] = await Promise.all([fetch('./tower.wasm'), fetch('./foundation.tower'), fetch('./bedrock.tower'), fetch('./tower.tower')]);
@@ -6,11 +7,16 @@ const ready = (async () => {
   installed = await module.text(); installedBedrock = await seed.text();
   tower = await loadTower(await wasm.arrayBuffer(), undefined, installed, undefined, installedBedrock, {tower:await language.text()});
 })();
-self.onmessage = async ({ data: { id, source, foundation, bedrock, editingModule, files=[], builtins={}, activePath='input.tower', entry } }) => {
+self.onmessage = async ({ data: { id, source, foundation, bedrock, editingModule, files=[], builtins={}, activePath='input.tower', entry, compiler, library='.tower' } }) => {
   try {
     await ready;
     foundation ??= installed; bedrock ??= installedBedrock;
-    tower.configureModules({entry:activePath, files, builtins:{...builtins, bedrock, foundation}});
+    if (useCompiler(compiler)) {
+      tower = (await getTower(foundation, bedrock, builtins.tower)).tower;
+      handle = moduleHandle = bedrockHandle = 0;
+      installed = foundation; installedBedrock = bedrock;
+    }
+    tower.configureModules({entry:activePath, files, builtins:{...builtins, bedrock, foundation}, library});
     const start = performance.now();
     let current;
     if (editingModule === 'bedrock') {

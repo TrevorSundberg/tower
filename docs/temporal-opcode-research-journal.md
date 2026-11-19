@@ -14910,3 +14910,141 @@ The final native ASan/UBSan build passes all five CTest targets, including the p
 ### Cursor completion published and verified
 
 Implementation ede7d74 is pushed to main. Published the validated build as gh-pages f47840eb0551dba249b154efd562c411bc18f325; GitHub Pages reports it built successfully. The hosted verifier (node playground/scripts/verify-deployment.mjs https://trevorsundberg.github.io/tower/) exits zero: all 52 served assets match the tested local manifest, and desktop/mobile checks pass for the exact print(va popup (only value), expected argument types, Tab acceptance, inferred members, shared instruction/source highlighting, all execution paths, target artifacts and persistence. Evidence: build/context-live.log and build/deployment-verification/report.json, with context-completion screenshots. Post-sync completion checks also pass 22/22. No force push was used. This publication entry changes only documentation; deployed compiler/UI bytes remain those already verified. Unrelated local edits are preserved and todo.txt remains byte-identical to its pre-deployment backup.
+
+### 2026-11-19 — Browser compiler project and successor build work
+
+Readiness inspection confirmed that imports already compile a selected entry's
+transitive source closure; concatenating all project files would discard existing
+module semantics. Full standalone self-hosting remains incomplete: CMake still
+links project-owned C++ adapters/runtime alongside Tower units and upstream
+LLVM/LLD. `self-build-compiler.py` has no complete production recipe. The browser
+workbench explicitly retains this hybrid boundary while rebuilding the Tower
+implementation and planning native support retirement.
+
+The local build artifacts predated the latest imports commit. Host `towerc` also
+requires the Docker image's libLLVM.so.19.1. Recovered an import-capable bootstrap
+using the published cross reactor and a temporary Node CLI transport at
+`build/compiler-workbench/bootstrap.mjs` (not a new native seed or checked-in
+compiler). It registered source capabilities and invoked ordinary Tower imports
+and LLVM object emission. Docker's existing `tower_build` image rebuilt the
+native compiler, then the parser and both LLVM reactors with that compiler.
+Logs: `build/compiler-workbench/native.log`, `wasm.log`, `wasm2.log`. The image
+uses Node 22, LLVM 19 for its native host and WASI SDK 34 with the pinned LLVM 20
+source for browser reactors.
+
+Added a Tower host linking service in backend/reactor.tower, exposed by the
+reactor export list. It accepts explicit link inputs/arguments and uses the
+existing Tower LLD lifecycle. Source units and dependencies still compile through
+the common module environment; JS transports bytes and never resolves imports.
+The source workbench follows actual CMake import manifests. Its entry/unit
+comments explain how to add future Tower ports and remove their native objects.
+
+Packaging trial: wasm-ld rejects `-r` together with `--undefined`; the initial
+approach failed before publication. The packager instead computes archive-member
+symbol closure seeded by native and Tower objects, then includes only native and
+third-party objects in support. The first LLVM support object was 110,185,661
+bytes, exceeding the existing 64 MiB input cap. Support is now prelinked in
+bounded chunks. LLVM compiler workers allow 2 GiB linear memory to accommodate
+reactor linking; this is a ceiling, not an upfront allocation. Subsequent full
+successor and browser validation results will be recorded below.
+
+The first successor trial failed immediately on `import tower` from a nested
+build entry with library root `.`. Root cause: module_path canonicalizes `.` to an
+empty file-path prefix, and module_resolve interprets an empty search directory
+as disabled. Added module_directory to preserve an explicitly selected relative
+root while keeping empty input disabled, for both primary and fallback roots.
+The Node project regression now resolves grammar and sibling library modules
+from a nested entry. Rebuilt the parser/LLVM reactors with this Tower change
+(`root-search.log`); no JavaScript path-resolution workaround was added.
+
+Ordinary desktop/mobile project tests pass 16/16, including the new import-only
+entry and edited dependency case. Compiler UI tests pass 2/2 for inspection,
+source visibility, cancellation and persistence. Screenshot review caught a
+layout issue those functional checks did not catch: controls in the narrow
+project sidebar squeezed the file tree to zero height on mobile. Moved build
+controls to a wrapping row above the workspace and grouped compiler status/reset
+inside the main toolbar. Subsequent layout verification is required. The first
+Node suite passed 245/246; the remaining packaging test lacked the newly added
+upstream autocomplete dependency in this checkout. `npm ci --prefix playground`
+restored pinned dependencies, and the packaging test passes with compiler-pack
+fixtures and obsolete-pack exclusion. The source formatter round-trip check
+also passes after the module root fix.
+
+The first complete browser unit compilation reached linking after approximately
+193 seconds, then rejected `tower-support-0.o`: the existing linker reserves the
+`tower-` prefix. Renamed support inputs to `support-<reactor>-<chunk>.o`, retaining
+normal user-input restrictions. Link-only reproduction with known built objects
+also found that exported Wasm names are not always linker symbol names (three
+syntax exports use export_name aliases). The recipe now requests optional exports
+while preserving object export metadata; candidate ABI checks catch missing
+exports instead of inventing linker symbols.
+
+The same trial exposed a real toolchain version boundary: WASI SDK 34's libc
+references `__wasm_first_page_end`, absent from the pinned LLVM 20 LLD. Added an
+idempotent, guarded backport in `prepare-lld-compat.py`, applied only to the cached
+third-party source. It creates the optional data symbol with LLVM 20's own
+WasmPageSize (64 KiB), only for non-PIC links. No host layout guess or extra Tower
+native seed was introduced. Retire/review the patch on an LLVM upgrade. Rebuilt
+LLD/LLVM reactors and support closure; log `lld-compat.log`. `link-trial.mjs` is an
+ignored link-only reproducer; it is not claimed as source self-compilation.
+
+The first-page backport made all three links succeed, but candidate loading
+correctly failed because partial `wasm-ld -r` links dropped the native syntax
+functions' export-name aliases. Superseding the earlier prelink choice: support
+chunks are deterministic archives of original objects, included with
+`--whole-archive` after selecting the needed symbol closure. No Tower objects
+are hidden in those archives. The recipe records required exports and the
+browser checks every one before activation. Archive-based link-only validation
+now passes all three reactor checks (parser 841,192 bytes, LLVM 51,782,525 bytes,
+cross 63,339,796 bytes); see `link-trial.log`. These measurements use the host-built
+Tower objects and do not substitute for the fresh successor-generation test.
+The complete quick Node suite now passes 247/247 (`node-tests-final.log`).
+
+Fresh successor validation is now complete. Running
+`node playground/scripts/test-compiler-project.mjs` compiled every Tower unit
+twice, with generation two using generation one's LLVM reactor. Both successors
+retain an edited semantic diagnostic and pass imports, graph/fast interpretation,
+LLVM execution and native object emission. All three reactor hashes agree across
+generations: parser `b1166acb340c17632df99a3cb1bf8920ee9c2e54258097ec3286acf42471adba`,
+LLVM `8f8c0991720bdc2143e69ced162832000ee74b16e2ed1c1bda0a8580ecbc6ad5`,
+cross `6d40c59c8a3bbfac9d6b2878dbcb251cec90a0545d0059406b8eb3c838248141`.
+Sizes are respectively 840,070, 51,779,896 and 63,337,166 bytes. Under concurrent
+browser testing these trials took about 317 and 330 seconds; this is a correctness
+trial, not a standalone performance benchmark. Evidence: `generations-verified.log`
+and `generation{1,2}.json` under `build/compiler-workbench/`.
+
+The full Chromium matrix initially passed 133 cases, skipped the intentionally
+excluded mobile full successor build, and failed 12 cases. Removing the old
+single-file auto-run gate had incorrectly executed grammar-only examples; this
+also produced stale diagnostics and discarded prewarmed workers. The corrected
+gate allows import-only executable entries while retaining syntax-only handling.
+Two compiler test failures were test interaction errors: CodeMirror virtualizes
+the diagnostic text far below the viewport, and its large content rectangle is
+not a reliable mobile click target. The tests now check persisted source and click
+the visible editor. Neither fix bypasses actual edits or compiler execution.
+
+After those corrections, the targeted desktop/mobile matrix passes 15/15, with
+one deliberate mobile successor skip (`browser-regressions.log`); this covers
+every previously failing case plus import-only dependency edits. The Chromium
+successor test compiles edited sources, activates the new generation, observes
+its changed diagnostic in another project, rejects a subsequent missing-import
+build without losing the working generation, then restores original behavior
+with Reset while retaining source edits. It completed in about 3.5 minutes.
+The compiler file tree now has positive usable height on mobile and screenshots
+were visually reviewed. `npm run test:deployment --prefix playground` in Docker
+passes all 62 asset hashes and both browser profiles, including the workbench,
+native downloads, completion and project persistence (`verify-local.log`).
+
+Packaging preserves parser-only development builds without a compiler project;
+full publications require both reactors, the recipe and all referenced support
+packs. The packaging regression checks missing recipes and excludes obsolete
+support artifacts (`packaging-final.log`). Canonical Tower formatting and
+`git diff --check` pass. The upcoming publication must use the complete dist;
+live verification and remote commit IDs will be recorded after deployment.
+`todo.txt` remains untouched (Git blob 96a9e58964d7f01e4a97819f259448db81ef5e40).
+
+The delivered milestone is browser rebuilding of all current Tower compiler
+units against transitional native support, not pure-Tower standalone bootstrap.
+Further C++ ports must update their owning import manifests, remove the replaced
+native sources, and pass successor/differential checks before support retirement.
+The compiler project and each build unit contain these continuation comments.

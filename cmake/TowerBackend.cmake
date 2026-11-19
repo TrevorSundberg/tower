@@ -115,6 +115,12 @@ function(tower_backend_integrate)
       endif()
       target_link_options(${target} PRIVATE
         "-Wl,@${CMAKE_CURRENT_BINARY_DIR}/tower-backend-${wrap_flavor}-expanded.tower.wrap.rsp")
+      # Browser compiler builds use the same Tower linker and explicit inputs.
+      # Retire this host export list when Tower owns the complete reactor recipe.
+      foreach(symbol IN ITEMS backend_link_create backend_link_close backend_link_add_input
+          backend_reactor_argument backend_reactor_link backend_reactor_bytes backend_reactor_size backend_reactor_error)
+        target_link_options(${target} PRIVATE "-Wl,--export=${symbol}")
+      endforeach()
     endif()
   endforeach()
 endfunction()

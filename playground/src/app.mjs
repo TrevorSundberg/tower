@@ -12,6 +12,7 @@ import { detectBrowserTarget, defaultTargetSelection } from './browser-target.mj
 import { OutputPane } from './output-pane.mjs';
 import {examples, filePath, newProject, projectStore, validateProject, projectSources} from './projects.mjs';
 import {exportProject, importProject} from './project-archive.mjs';
+import {compilerSelection, selectCompiler, onCompilerSelection} from './compiler-selection.mjs';
 import { towerCompletion } from './completion.mjs';
 import { paint, highlighting, towerDecorations } from './tower-highlights.mjs';
 
@@ -25,6 +26,45 @@ const selectionMark = StateField.define({
     return value;
   }, provide: field => EditorView.decorations.from(field),
 });
+
+function cancelCompilerBuild(message) {
+  clearTimeout(compilerBuildTimer); compilerBuildTimer = null;
+  ++compilerBuildId;
+  compilerBuildWorker?.terminate(); compilerBuildWorker = null;
+  $('cancel-compiler-build').disabled = true;
+  if (message) $('compiler-build-status').textContent = message;
+}
+function scheduleCompilerBuild() {
+  if (!project?.compilerProject) return;
+  const snapshot = JSON.stringify(project.files);
+  if (snapshot === compilerBuildSnapshot) return;
+  cancelCompilerBuild('Compiler source changed');
+  if (!$('auto-rebuild-compiler').checked) return;
+  compilerBuildTimer = setTimeout(() => rebuildCompiler(), 1000);
+}
+function rebuildCompiler() {
+  if (!project?.compilerProject) return;
+  captureDocument(); cancelCompilerBuild(); stopExecution();
+  const id = compilerBuildId, owner = project;
+  compilerBuildSnapshot = JSON.stringify(project.files);
+  $('cancel-compiler-build').disabled = false;
+  $('compiler-build-status').textContent = 'Loading compiler build…';
+  const worker = compilerBuildWorker = new Worker(new URL('./compiler-build-worker.js',import.meta.url),{type:'module'});
+  const fail = message => { if (id !== compilerBuildId) return; cancelCompilerBuild('Build failed: '+message); };
+  worker.onerror = event => { event.preventDefault(); fail(event.message || 'Compiler build worker stopped'); };
+  worker.onmessage = ({data}) => {
+    if (id !== compilerBuildId || data.id !== id || project !== owner) return;
+    if (data.error) { fail(data.error); return; }
+    if (data.phase) $('compiler-build-status').textContent = data.phase;
+    if (data.modules) {
+      cancelCompilerBuild();
+      ++compilerGeneration;
+      selectCompiler(data.modules);
+      $('compiler-build-status').textContent = 'Compiler generation '+compilerGeneration+' active · import, interpreter and LLVM checks passed';
+    }
+  };
+  worker.postMessage({id,files:project.files,compiler:compilerSelection()});
+}
 
 class Engine {
   constructor() { this.id = 0; this.pending = null; this.worker = null; }
@@ -49,7 +89,7 @@ class Engine {
       const id = ++this.id;
       const timer = setTimeout(() => this.stop('Parsing exceeded 10 seconds. Simplify the grammar and try again.'), 10000);
       this.pending = { id, resolve, reject, timer };
-      this.worker.postMessage({ id, method, source, foundation, bedrock, editingModule, files:project.files, builtins:project.builtins, activePath, entry:projectSources(project)[0]?.path });
+      this.worker.postMessage({ compiler:compilerSelection(), library:project.library ?? '.tower', id, method, source, foundation, bedrock, editingModule, files:project.files, builtins:project.builtins, activePath, entry:projectSources(project)[0]?.path });
     });
   }
 }
@@ -94,7 +134,8 @@ let typingDeadline = 0, typingTimer = 0;
 let foundation = '', bundledFoundation = '', editingModule = '', bedrock = '', bundledBedrock = '', bundledTower = '', bundledBuiltins = {};
 let documentLoadId = 0;
 let editorExtensions, projects = [], project, storage, activePath = '', saveSequence = 0;
-const fileStates = new Map(), bundledExamples = new Map();
+const fileStates = new Map(), bundledExamples = new Map(), compilerSources = new Map();
+let compilerBuildWorker, compilerBuildTimer, compilerBuildId = 0, compilerBuildSnapshot = '', compilerGeneration = 0;
 const backendIds = ['interpreter', 'fast', 'llvm'];
 const selectedBackends = () => backendIds.filter(key => selectedTargets[key === 'llvm' ? 'wasm' : key]);
 const outputId = backend => backend === 'interpreter' ? 'execution-output' : backend === 'fast' ? 'fast-output' : 'llvm-output';
@@ -118,7 +159,7 @@ function warmSelectedTargets() {
       else performance.measure('tower-'+backend+'-warm',{start:started,end:performance.now()});
     };
     worker.addEventListener('message',warmed);
-    worker.postMessage({command:'warm',targetKeys:selectedNativeKeys()});
+    worker.postMessage({compiler:compilerSelection(), command:'warm',targetKeys:selectedNativeKeys()});
   }
 }
 function updateColumns() {
@@ -178,7 +219,7 @@ function compileNative(id,text) {
     }
     if(data.done)finish();
   };
-  worker.postMessage({id,source:text,foundation,bedrock,targetKeys:keys,inputs:linkInputs, files:editingModule ? undefined : projectSources(project), drive:project.files, builtins:project.builtins, entry:editingModule ? activePath : projectSources(project)[0]?.path,optimize:$('optimize').checked});
+  worker.postMessage({compiler:compilerSelection(), library:project.library ?? '.tower', id,source:text,foundation,bedrock,targetKeys:keys,inputs:linkInputs, files:editingModule ? undefined : projectSources(project), drive:project.files, builtins:project.builtins, entry:editingModule ? activePath : projectSources(project)[0]?.path,optimize:$('optimize').checked});
 }
 function showTimings() {
   const a = runners.interpreter?.timings ?? {}, b = runners.llvm?.timings ?? {};
@@ -227,9 +268,13 @@ function clearCompiled() {
 try { $('auto-execute').checked = localStorage.getItem('tower-auto-execute-v1') !== 'false'; } catch {}
 function scheduleAutoExecution() {
   clearTimeout(autoTimer); autoTimer = 0;
+  if (project?.compilerProject) return;
   if (!$('auto-execute').checked || dirty || executedRevision === documentRevision) return;
-  if (result?.end?.status !== 'done') { $('execution-status').textContent = 'Waiting for valid source'; return; }
-  if ((editingModule || projectSources(project).length === 1) && !result.events.some(event => event.status === 'statement' && event.nodes.some(item => item.production !== null && item.label.startsWith('Core')))) {
+  if (result?.end?.status !== 'done' && (editingModule || activePath === projectSources(project)[0]?.path)) { $('execution-status').textContent = 'Waiting for valid source'; return; }
+  const entry = projectSources(project)[0]?.path;
+  const importsProgram = !editingModule && (project.dependencies ?? []).some(path =>
+    ![entry, '.tower/bedrock.tower', '.tower/foundation.tower', '.tower/tower.tower'].includes(path));
+  if ((editingModule || activePath === entry) && !importsProgram && !result.events.some(event => event.status === 'statement' && event.nodes.some(item => item.production !== null && item.label.startsWith('Core')))) {
     clearCompiled(); $('execution-status').textContent = 'Syntax only'; return;
   }
   $('execution-status').textContent = 'Waiting…';
@@ -288,6 +333,7 @@ function updateComparison() {
   cancelState();
 }
 function execute() {
+  if (project?.compilerProject) { rebuildCompiler(); return; }
   stopExecution(); runners = {};
   executedRevision = documentRevision; executionError = null;
   $('execution-status').textContent = 'Executing…';
@@ -354,7 +400,7 @@ function execute() {
       }
       finish();
     };
-    worker.postMessage({ id, source: text, foundation, bedrock, backend, files:editingModule ? undefined : projectSources(project), drive:project.files, builtins:project.builtins, entry:editingModule ? activePath : projectSources(project)[0]?.path, pointerBytes:selectedTargets.wasm || !selectedNativeKeys().length ? 4 : 8, inputs:linkInputsForTarget(linkInputs,'wasm') ,optimize:$('optimize').checked});
+    worker.postMessage({compiler:compilerSelection(), library:project.library ?? '.tower',  id, source: text, foundation, bedrock, backend, files:editingModule ? undefined : projectSources(project), drive:project.files, builtins:project.builtins, entry:editingModule ? activePath : projectSources(project)[0]?.path, pointerBytes:selectedTargets.wasm || !selectedNativeKeys().length ? 4 : 8, inputs:linkInputsForTarget(linkInputs,'wasm') ,optimize:$('optimize').checked});
   }
   if(selectedNativeKeys().length) compileNative(id,text);
   updateComparison();
@@ -374,7 +420,7 @@ function controls() {
   $('auto-execute').disabled = !editor;
   $('execute').disabled = !editor || isExecuting();
   for (const id of ['open', 'save', 'new-project', 'new-file', 'project-kind']) $(id).disabled = !editor;
-  $('restore').disabled = !editor || !editingModule && !bundledExamples.has(activePath);
+  $('restore').disabled = !editor || !editingModule && !(project.compilerProject ? compilerSources : bundledExamples).has(activePath);
   // Keep the last result visible while typing, but do not use its old spans.
   for (const id of ['tree']) {
     $(id).inert = dirty;
@@ -601,6 +647,7 @@ function changed() {
   $('status').textContent = 'Updating...';
   $('project-storage').textContent = 'Unsaved changes';
   persist();
+  scheduleCompilerBuild();
   schedule();
 }
 function replaceSource(text) {
@@ -631,7 +678,7 @@ function renderFiles() {
     for (const part of parts.slice(0,-1)) {
       path = path ? path + '/' + part : part;
       if (!folders.has(path)) {
-        const folder = node('details', 'file-folder'); folder.dataset.path = path; folder.open = opened.get(path) ?? true;
+        const folder = node('details', 'file-folder'); folder.dataset.path = path; folder.open = opened.get(path) ?? (!project.compilerProject || activePath.startsWith(path + '/'));
         folder.append(node('summary', '', part)); parent.append(folder); folders.set(path, folder);
       }
       parent = folders.get(path);
@@ -641,7 +688,9 @@ function renderFiles() {
   for (const id of ['rename-file','delete-file','move-file-up']) $(id).disabled = !!editingModule;
   $('delete-file').disabled ||= project.files.length === 1;
   $('move-file-up').disabled ||= project.files[0].path === activePath;
-  $('restore').disabled = !editingModule && !bundledExamples.has(activePath);
+  $('restore').disabled = !editingModule && !(project.compilerProject ? compilerSources : bundledExamples).has(activePath);
+  $('compiler-controls').hidden = !project.compilerProject;
+  $('execute').textContent = project.compilerProject ? 'Rebuild compiler' : 'Execute';
 }
 function selectFile(path, fresh = false) {
   if (!fresh && path === activePath) return;
@@ -660,6 +709,7 @@ function selectProject(id) {
   ++documentLoadId; ++generation; engine.stop(); stopExecution();
   for (const worker of idleExecutionWorkers.values()) worker.terminate();
   idleExecutionWorkers.clear(); fileStates.clear();
+  cancelCompilerBuild();
   project = next; linkInputs = project.links; activePath = '';
   try { localStorage.setItem('tower-project-selected-v1', id); } catch {}
   updateLinkFiles(); selectFile(project.active, true);
@@ -709,6 +759,24 @@ for (const tab of ['tree', 'grammar']) {
     if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); const other = tab === 'tree' ? 'grammar' : 'tree'; showTab(other); $(other + '-tab').focus(); }
   };
 }
+$('rebuild-compiler').onclick = rebuildCompiler;
+$('cancel-compiler-build').onclick = () => cancelCompilerBuild('Compiler build cancelled');
+$('auto-rebuild-compiler').onchange = () => {
+  if (!$('auto-rebuild-compiler').checked) cancelCompilerBuild('Auto rebuild off');
+  else { compilerBuildSnapshot = ''; scheduleCompilerBuild(); }
+};
+$('reset-compiler').onclick = () => {
+  cancelCompilerBuild(); compilerGeneration = 0; selectCompiler();
+  $('compiler-build-status').textContent = 'Original compiler restored · source edits retained';
+};
+onCompilerSelection(selection => {
+  engine.stop(); stopExecution();
+  for (const worker of idleExecutionWorkers.values()) worker.terminate();
+  idleExecutionWorkers.clear();
+  $('active-compiler').textContent = selection.tower ? 'Compiler generation '+compilerGeneration : 'Original compiler';
+  $('reset-compiler').disabled = !selection.tower;
+  ++generation; dirty = true; executedRevision = -1; clearCompiled(); clearInspection(); controls(); schedule();
+});
 $('tokens').onchange = () => renderTree();
 $('execute').onclick = () => execute();
 $('cancel-execution').onclick = () => { executedRevision = documentRevision; stopExecution('Cancelled'); };
@@ -773,7 +841,7 @@ $('auto-execute').onchange = () => {
     else scheduleAutoExecution();
   } else stopExecution('Auto off');
 };
-$('restore').onclick = () => replaceSource(editingModule ? bundledBuiltins[editingModule] : bundledExamples.get(activePath));
+$('restore').onclick = () => replaceSource(editingModule ? bundledBuiltins[editingModule] : (project.compilerProject ? compilerSources : bundledExamples).get(activePath));
 $('open').onclick = () => $('file').click();
 $('file').onchange = async () => {
   const file = $('file').files[0]; if (!file) return;
@@ -821,6 +889,28 @@ async function start() {
     if (storage) try { await storage.save(initial); }
     catch (error) { $('project-storage').textContent = 'Not saved: ' + error.message; }
   }
+  const compilerResponse = await fetch('./compiler/project.json');
+  if (compilerResponse.ok) {
+    const recipe = await compilerResponse.json();
+    for (const file of recipe.files) compilerSources.set(file.path,file.text);
+    let compilerProject = projects.find(p => p.id === 'tower:compiler');
+    if (!compilerProject) {
+      compilerProject = newProject('Tower Compiler', builtins, recipe.files);
+      Object.assign(compilerProject,{id:'tower:compiler',compilerProject:true,library:'.'});
+      projects.push(compilerProject);
+    } else {
+      // Upgrade untouched files and add new ports without discarding local edits.
+      for (const file of recipe.files) {
+        const saved = compilerProject.files.find(f => f.path === file.path);
+        if (!saved) compilerProject.files.push(file);
+        else if (saved.text === compilerProject.sourceBaseline?.[file.path]) saved.text = file.text;
+      }
+    }
+    compilerProject.sourceBaseline = Object.fromEntries(compilerSources);
+    compilerBuildSnapshot = JSON.stringify(compilerProject.files);
+    if (storage) try { await storage.save(compilerProject); }
+    catch (error) { $('project-storage').textContent = 'Not saved: '+error.message; }
+  }
   // One-time migration leaves localStorage documents intact as backup.
   try {
     if (!localStorage.getItem('tower-project-migrated-v1')) {
@@ -845,7 +935,7 @@ async function start() {
     p.baseline = {...builtins};
   }
   editorExtensions = [
-    towerCompletion(() => ({foundation, bedrock, editingModule, files:project.files, builtins:project.builtins, activePath})),
+    towerCompletion(() => ({library:project.library ?? '.tower', foundation, bedrock, editingModule, files:project.files, builtins:project.builtins, activePath})),
     lineNumbers(), highlightActiveLineGutter(), highlightActiveLine(), history(), highlighting, selectionMark, editorDiagnostics,
     EditorView.lineWrapping, EditorView.theme({ '&': { color: '#d4e0e2', backgroundColor: '#121a1e' } }, { dark: true }),
     EditorView.contentAttributes.of({ 'aria-label': 'Tower source', spellcheck: 'false', autocapitalize: 'off', autocorrect: 'off' }),

@@ -1,11 +1,12 @@
 import { executeWasm } from './llvm-host.mjs';
 import { originalDiagnostic } from './foundation-source.mjs';
-import { getTower, getCanonicalTower, getCompiler, warmCompiler } from './compiler-runtime.mjs';
+import { getTower, getCanonicalTower, getCompiler, warmCompiler, useCompiler } from './compiler-runtime.mjs';
 import {projectDiagnostic} from './projects.mjs';
 
 // Completed workers retain compiler/grammar state. Active cancellation still
 // terminates the worker, including synchronous compilation or an infinite loop.
-async function receive({ data: { command, id, source, foundation, bedrock, backend, pointerBytes=4, inputs={}, files, drive=[], builtins={}, entry='input.tower', bytecode, optimize=true } }) {
+async function receive({ data: { command, id, source, foundation, bedrock, backend, pointerBytes=4, inputs={}, files, drive=[], builtins={}, entry='input.tower', bytecode, optimize=true, compiler, library='.tower' } }) {
+  useCompiler(compiler);
   if (command === 'warm') {
     try { await warmCompiler('./tower-llvm.wasm.gz'); postMessage({warm:true}); }
     catch (error) { postMessage({warm:true,error:error.message}); }
@@ -26,7 +27,7 @@ async function receive({ data: { command, id, source, foundation, bedrock, backe
     timings.load = frontend.loadMs; timings.loadCached = frontend.cached;
     let at = performance.now();
     tower.mountFiles(drive);
-    tower.configureModules({entry, files:drive, builtins:{...builtins,bedrock,foundation}});
+    tower.configureModules({entry, files:drive, builtins:{...builtins,bedrock,foundation}, library});
     handle = tower.compile(files?.[0]?.text ?? source,{pointerBytes});
     timings.tower = performance.now() - at;
     const checked = tower.execute(handle, 0);

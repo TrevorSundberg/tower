@@ -10,6 +10,8 @@ export function validateProject(project) {
   if (!project || project.version !== 1 || typeof project.name !== 'string' || !project.name.trim() || !Array.isArray(project.files) || !project.files.length)
     throw new Error('Invalid Tower project.');
   const paths = new Set();
+  if (project.library !== undefined && !['.', '.tower'].includes(project.library)) throw new Error('Invalid project library root.');
+  if (project.compilerProject !== undefined && typeof project.compilerProject !== 'boolean') throw new Error('Invalid compiler project flag.');
   for (const file of project.files) {
     filePath(file.path);
     if (typeof file.text !== 'string' || paths.has(file.path)) throw new Error('Invalid or duplicate file: ' + file.path);

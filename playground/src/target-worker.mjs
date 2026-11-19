@@ -1,11 +1,12 @@
-import { getTower, getCompiler, warmCompiler } from './compiler-runtime.mjs';
+import { getTower, getCompiler, warmCompiler, useCompiler } from './compiler-runtime.mjs';
 import { originalDiagnostic } from './foundation-source.mjs';
 import { targets, targetInputs, nativeTargetKeys, linkInputsForTarget } from './targets.mjs';
 import { fetchBytes as bytes } from './fetch-bytes.mjs';
 import {projectDiagnostic} from './projects.mjs';
 
 const runtimes = new Map();
-async function receive({data:{command,id,source,foundation,bedrock,targetKeys=[],inputs={},files,drive=[], builtins={}, entry='input.tower',optimize=true}}) {
+async function receive({data:{command,id,source,foundation,bedrock,targetKeys=[],inputs={},files,drive=[], builtins={}, entry='input.tower', optimize=true, compiler, library='.tower'}}) {
+  useCompiler(compiler);
   const keys = nativeTargetKeys.filter(key => targetKeys.includes(key));
   if (command === 'warm') {
     try {
@@ -25,7 +26,7 @@ async function receive({data:{command,id,source,foundation,bedrock,targetKeys=[]
     send({phase:'Loading…'});
     tower = (await getTower(foundation,bedrock,builtins.tower)).tower;
     tower.mountFiles(drive);
-    tower.configureModules({entry, files:drive, builtins:{...builtins,bedrock,foundation}});
+    tower.configureModules({entry, files:drive, builtins:{...builtins,bedrock,foundation}, library});
     handle = tower.compile(files?.[0]?.text ?? source,{pointerBytes:8});
     const checked = tower.execute(handle,0);
     if (checked.status === 'error') { const diagnostic = projectDiagnostic(checked,files); send({error:(diagnostic.errorFile ? diagnostic.errorFile + ': ' : '') + checked.error,diagnostic,done:true}); return; }

@@ -5,6 +5,7 @@ sdk="${WASI_SDK_PATH:-$HOME/.cache/tower/wasi-sdk/wasi-sdk-34.0-x86_64-linux}"
 bootstrap="$(bash "$repo/playground/scripts/build-bootstrap.sh")"
 revision="$(git -C "$repo/third_party/llvm-project" rev-parse HEAD)"
 source="${TOWER_LLVM_SOURCE_DIR:-$(bash "$repo/playground/scripts/cache-llvm-source.sh")}"
+python3 "$repo/playground/scripts/prepare-lld-compat.py" "$source"
 # Native tablegen must be built with the same LLVM source revision. Keep the
 # large intermediate builds on the Linux filesystem when called through WSL.
 host="${TOWER_LLVM_HOST_BUILD:-$HOME/.cache/tower/llvm-tablegen-$revision}"
@@ -62,4 +63,6 @@ cp "$cross/tower-llvm.wasm" "$repo/build/browser-wasi-llvm/tower-llvm.wasm"
 if [ "${TOWER_BROWSER_CROSS:-OFF}" = ON ]; then
   cp "$cross/tower-cross.wasm" "$repo/build/browser-wasi-llvm/tower-cross.wasm"
   "$sdk/bin/llvm-strip" "$repo/build/browser-wasi-llvm/tower-cross.wasm"
+  python3 "$repo/playground/scripts/package-compiler-project.py" \
+    --parser-build "$repo/build/browser-wasi" --llvm-build "$cross"
 fi

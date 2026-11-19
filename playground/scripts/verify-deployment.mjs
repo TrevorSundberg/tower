@@ -232,6 +232,17 @@ try {
     await page.keyboard.press('Control+Space');
     await expect(contextualOptions).toHaveCount(1);
     await expect(contextualOptions).toContainText('valid');
+    await page.locator('#project-kind').selectOption('tower:compiler');
+    await expect(page.locator('#compiler-controls')).toBeVisible();
+    await expect(page.locator('#status')).toContainText('Complete',{timeout:20000});
+    await expect(page.locator('#editor .cm-content')).toContainText('Continue adding ports');
+    assert.ok(await page.locator('#file-tree').evaluate(el=>el.clientHeight > 40));
+    await page.locator('#rebuild-compiler').click();
+    await expect(page.locator('#cancel-compiler-build')).toBeEnabled();
+    await page.locator('#cancel-compiler-build').click();
+    await expect(page.locator('#compiler-build-status')).toHaveText('Compiler build cancelled');
+    await expect(page.locator('#active-compiler')).toHaveText('Original compiler');
+    await page.screenshot({path:new URL(name+'-compiler-project.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
     assert.deepEqual(errors, []);
     report.browsers.push({name,output:'42\n',incrementOutput:'5\n6\n7\n7\n9\n',extraSemicolonDiagnostic:true,forwardModuleBindings:true,multiFileProject:true,projectArchive:true,migration:true,uniformExecutionUI:true,incrementalBedrock:true,emptyLiteralDiagnostic:true,restore:true,reload:true,nativeTargets:Object.entries(targets).filter(([key])=>key!=='wasm').map(([,target])=>target.label),equalColumns:true,errors});
     console.log(name + ': backends agree; forward module bindings, editable grammar, persistence, native builds/downloads and equal columns verified.');
@@ -239,6 +250,7 @@ try {
     report.browsers.at(-1).contextualCompletion = true;
     report.browsers.at(-1).typedCompletion = true;
     report.browsers.at(-1).sharedTowerHighlighting = true;
+    report.browsers.at(-1).compilerProject = true;
     console.log(name + ': Tower/Wasm parser/type completion, Tab acceptance, struct fields and compiler-based output highlighting verified.');
     await context.close();
     const detectionContext = await browser.newContext(options);

@@ -13,7 +13,7 @@ test.beforeEach(async({page}) => {
 });
 test('projects own folders, built-ins, undo, links and execution state',async({page},info) => {
   await expect(page.locator('#example-kind')).toHaveCount(0);
-  await expect(page.locator('#project-kind option')).toHaveCount(12);
+  await expect(page.locator('#project-kind option')).toHaveCount(13);
   await expect(page.locator('#project-kind option[value="example:match"]')).toHaveCount(1);
   await expect(page.locator('#project-kind option[value="example:collections"]')).toHaveCount(1);
   await expect(page.locator('.builtin-badge')).toHaveCount(2);
@@ -103,4 +103,20 @@ test('storage errors are visible and project download remains available',async({
   await expect(page.locator('#project-storage')).toContainText('Not saved');
   const pending = page.waitForEvent('download'); await page.locator('#save').click();
   expect((await downloadedProject(await pending)).files[0].text).toBe('print(99);');
+});
+
+test('import-only entry executes its closure and updates after a dependency edit',async({page}) => {
+  await prompt(page,'#new-project','Imports');
+  await edit(page,'import tower; import "lib/effects";');
+  await prompt(page,'#new-file','lib/effects.tower');
+  await edit(page,'import tower; print(41);');
+  await page.locator('#auto-execute').check();
+  await expect(page.locator('#execution-output')).toHaveText('41\n');
+  await expect(page.locator('#llvm-output')).toHaveText('41\n');
+  await edit(page,'import tower; print(42);');
+  await expect(page.locator('#execution-output')).toHaveText('42\n');
+  await expect(page.locator('#llvm-output')).toHaveText('42\n');
+  await page.locator('[data-path="main.tower"]').click();
+  await expect(page.locator('#execution-output')).toHaveText('42\n');
+  await expect(page.locator('#llvm-output')).toHaveText('42\n');
 });
