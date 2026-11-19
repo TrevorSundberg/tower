@@ -64,6 +64,25 @@ export async function linkCompiler({compiler, recipe, files, inputs, support, pr
   if (result.status === 'error') throw new Error('Candidate LLVM: '+result.error);
   const executed = await executeWasm(result);
   if (executed.status !== 'done' || executed.output !== '42\n') throw new Error('Candidate LLVM execution check failed');
+  // The fast runner also consumes Foundation reconstructed through LLVM. Check
+  // both profiles so a successor cannot silently drop that shared-node path.
+  tower.configureModules({entry:'optimized.tower',files:[],builtins:grammar});
+  for (const optimize of [true,false]) {
+    const lowered = llvm.compile(foundation,{emit:'foundation',optimize});
+    if (lowered.status === 'error') throw new Error('Candidate LLVM Foundation: '+lowered.error);
+    const optimized = tower.compile(lowered.foundation);
+    try {
+      tower.useFast(optimized);
+      let output = '', status;
+      for (let i = 0; i < 100; ++i) {
+        const run = tower.execute(optimized,10000); output += run.output; status = run.status;
+        if (status !== 'executing') break;
+      }
+      if (status !== 'done' || output !== '42\n') throw new Error('Candidate LLVM interpreter check failed');
+      const restored = tower.loadBytecode(tower.bytecode(optimized,{optimizationProfile:lowered.optimizationProfile}));
+      tower.destroyExecution(restored);
+    } finally { tower.destroyExecution(optimized); }
+  }
   const cross = await loadLLVM(modules.cross, undefined, grammar.foundation, undefined, grammar.bedrock, {tower:grammar.tower});
   const native = cross.compile(foundation,{emit:'object',target:'x86_64-unknown-linux-gnu'});
   if (native.status === 'error' || !native.object?.length) throw new Error('Candidate native target check failed: '+native.error);

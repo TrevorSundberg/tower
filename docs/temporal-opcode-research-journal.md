@@ -15048,3 +15048,49 @@ units against transitional native support, not pure-Tower standalone bootstrap.
 Further C++ ports must update their owning import manifests, remove the replaced
 native sources, and pass successor/differential checks before support retirement.
 The compiler project and each build unit contain these continuation comments.
+
+Final synchronization pulled upstream through ed96cf6: control-flow/collection
+language work and the LLVM-to-Foundation interpreter pipeline landed during the
+workbench implementation. Preserved all upstream source/journal entries and
+resolved worker/UI conflicts by retaining both optimization options and active
+compiler/library selection. The project list now includes both new examples and
+Tower Compiler (13 projects). This invalidates the earlier reactor hashes as
+release measurements; the earlier trials remain valid for their pre-rebase
+source only. Rebuilding native, parser and both LLVM reactors, then regenerating
+the recipe/support packs, is required for the integrated publication.
+
+Candidate validation now also reconstructs Foundation through LLVM with and
+without optimization, executes it with the fast interpreter and loads its cache
+using the returned profile. Review also found that the generic controls updater
+overrode the compiler file's Restore availability; it now consults compiler
+source baselines, and the browser test exercises restoring a saved compiler edit.
+
+Integrated validation completed after that rebase. Docker rebuilt the native
+compiler, parser reactor, LLVM/cross reactors and all compiler support packs
+(`rebase-native.log`, `rebase-wasm.log`, `rebase-llvm-compile.log`, `rebase-packs.log`
+under `build/compiler-workbench/`). The native control/collection fixtures pass;
+all 265 Node tests and canonical formatting pass. The full browser run recorded
+146 passes and one intentional mobile successor skip before its container exited
+with SIGTERM (143), leaving the last mobile language-example case unreported.
+Rerunning the mobile templates file passes both cases, covering the remaining
+case: 147 distinct browser cases now pass, one intentionally skipped. Evidence:
+`rebase-node.log`, `rebase-format.log`, `rebase-browser.log`,
+`rebase-browser-tail.log`. The desktop real-browser successor/edit/failure/reset
+test passed in that full run, including the latest optimized interpreter path.
+
+The integrated two-generation trial also passes with byte-identical reactor
+outputs and the edited diagnostic retained (`rebase-generations.log`). Parser
+854,791 bytes: `62c1b9f10edef54bc1e5814891b227d3d5e0ade9ce793cfa2b38d01d4ade37c7`;
+LLVM 51,829,880 bytes: `0ece7754f7db385720fe9ee852c89c0975495cc4ecb5bbece8b022fc20619a96`;
+cross 63,387,139 bytes: `ba3443a603fe4f9ea3dbc620701dfdaa862ff857c56ce0cfb15f8bf3db91bc1f`.
+Both LLVM interpreter profiles and cache loading pass in each generation.
+The concurrent-validation timings were approximately 344 and 381 seconds.
+Original trial JSON is preserved as `pre-rebase-generation{1,2}.json`; current
+`generation{1,2}.json` records this integrated trial.
+
+The final full dist passes all 66 asset hashes plus desktop/mobile deployment
+behavior (`rebase-verify-local.log`). Its manifest SHA-256 is
+`610da95b5ba06698d02c1600af90c8b2d094a3324ba7dbf2402c0ef51c893057`.
+Compared with upstream Pages 2c4e1cf it adds 14 assets and removes none, retaining
+both new language examples and their library files. Publication can therefore
+use the established additive whole-dist update without deleting upstream assets.

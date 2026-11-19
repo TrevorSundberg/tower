@@ -30,6 +30,10 @@ test('compiler sources, migration comments, cancellation and persistence are ava
   await page.reload();
   await expect(page.getByRole('textbox',{name:'Tower source'})).toContainText('saved browser edit');
   await expect(page.locator('#active-compiler')).toHaveText('Original compiler');
+  await page.locator('#auto-rebuild-compiler').uncheck();
+  await page.locator('#restore').click();
+  await expect(page.getByRole('textbox',{name:'Tower source'})).not.toContainText('saved browser edit');
+  await expect(page.getByRole('textbox',{name:'Tower source'})).toContainText('Continue adding ports');
 });
 
 test('browser rebuild activates edited compiler behavior and reset recovers the original',async({page},info) => {
