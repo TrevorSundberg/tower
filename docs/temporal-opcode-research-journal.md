@@ -10770,3 +10770,48 @@ It adds mandatory pull/rebase, deployment verification and push at turn end.
 Integrating it does not change the validated compiler, frontend or test inputs;
 follow the required final pull/rebase and publish the same validated artifacts.
 todo.txt remains byte-identical to the original starting commit.
+
+### Interpreter publication verified (2026-11-18)
+
+The required final `git pull --rebase origin master` also picked up the
+journal-only native migration audit 743a6a5. Replayed the interpreter and
+formatter commits, preserved both appended journal histories, and resolved
+build registration to the already validated combined snapshot c2e16bd.
+`git diff --exit-code c2e16bd HEAD -- .
+':(exclude)docs/temporal-opcode-research-journal.md'` passed: every compiler,
+frontend, test and build file is unchanged from the fully tested snapshot.
+This rebase supersedes the intermediate commit IDs recorded above.
+
+Pushed source branch port/interpreter-tower at
+279800d9e99366a53b914dba74d7205dfad5e62f with normal `git push --set-upstream
+origin port/interpreter-tower`. Rebased interpreter implementation, registration
+and initial validation commits are be85b93, cd869b0 and 32d9f2a. Master was not
+merged into or pushed. The source worktree was clean and `git diff --exit-code
+f034216 HEAD -- todo.txt` passed.
+
+Published Pages commit 4a5538eea412c8f06c1d12e9e6a2cb2f38ba852e with
+`git -C build/pages-interpreter push origin HEAD:gh-pages`, a normal fast-forward
+from 9c52b59. Only tower.wasm (4,270,533 bytes) and deployment-manifest.json
+changed. All other assets, including published LLVM/cross modules and target
+packs, were preserved byte-for-byte; their native bootstrap dependencies remain
+migration debt. The manifest records the validated source revision and retained
+backend provenance. The GitHub Pages builds API reports status built for the
+published commit, with no error.
+
+Live command `node playground/scripts/verify-deployment.mjs
+https://trevorsundberg.github.io/tower/` exited zero. All 36 served assets match
+the tested local distribution. Desktop and mobile passed backend agreement,
+forward module bindings, editable grammar, project/archive persistence, native
+builds/downloads, equal columns, target defaults and legacy-selection handling,
+with no browser page errors. The Linux-host-only browser detection check was
+not run on this Windows host. Evidence is build/latest-live-deployment.log and
+build/latest-live-deployment-report.json, alongside the separately saved local
+verification report and the complete build/test logs listed above.
+
+This final journal commit records the already verified publication; it changes
+no deployable source or artifact. The deployed manifest intentionally identifies
+279800d as the validated source snapshot rather than a later documentation-only
+revision. Native seeds/references and storage/query/callback adapters remain
+explicit migration debt. The earlier workload measurements still apply:
+native execution improved on all four fixtures, while allocation-heavy Wasm
+remained about 3% slower than its native-reference implementation.
