@@ -2,12 +2,12 @@
   "assets": {
     ".nojekyll": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "THIRD-PARTY-NOTICES.txt": "b73ab3b184609e3f59d790e7df56b0e9cd7304d6d3aacd6e107d50117a79b59a",
-    "app.js": "a342681dfdeac43fee137ecaa0da145f2b774df940c2a52fcecbdb804cd0bbd7",
-    "app.js.map": "22b0724487a098080dc21c79ec615ff602aa13614a2304d2b56940843bfe1af2",
+    "app.js": "1a019371d354be3476e1b30cf716c1286b7c3a6c97c670eeddeafb6cb2dae613",
+    "app.js.map": "75a1cc4bbc5de9cae5d8b072dcaec6e4a0b1db9ccb15dda7609ec2fd79f05ec7",
     "bedrock.tower": "6f9562491879c97a66c0d200c114c9ce138cb3f774be475711b3436f8dbe4e2f",
     "capabilities.json": "61386c8675f3e81e137e0bbfcbf1aa1882be89d57fb490effa7a10bc74bf483d",
-    "execution-worker.js": "43b544f884549a0c1759e542d16976a1520fe89c92abea03cff47dfeb358d844",
-    "execution-worker.js.map": "48499d5e0f4515ef0a612ae9b275fbee7aecb1c52e899f2dd44d00ff6cdbe3f6",
+    "execution-worker.js": "cbdb5be9f3fcbf100dd4ead5117ff92b7976d37f5320225fe8c1aecb0f92d4d9",
+    "execution-worker.js.map": "9f6dcc267fb9153ace7c6c33aa2643a8e6e9fc015cd9bc23a9ef0d72b55448d4",
     "execution.tower": "be3624088cf5f849d18a48245ee3795c62160e90ebfba80be44ca00b2cf0d9a7",
     "foreach.tower": "d33d7ffa6b58ab4ebd1725174c2c522528b9cd68eb16d64179d7eb8fc91391c6",
     "foundation.tower": "e8c2144f373f7cb80bde4b93c85a547a990430688ef9774d745b8ebb3ae3a4ed",
@@ -19,8 +19,8 @@
     "replacements.tower": "4754b5bcf39d44edfc6af855b75b64165780b1f394503cb2fc13968b7d5c9b9b",
     "structs.tower": "f120c7b1e1ae60853be07c37a43f79054c1b3aed16c838c6f09acc972fe8979f",
     "style.css": "cc6174e44ae16d6923801a3c8d93ea22b71116f5cb826cb3653cb10fc79bfc38",
-    "target-worker.js": "adb418ff9c228fbcceecc243076b9281f9cfef120db8865c30629c6bbcb87267",
-    "target-worker.js.map": "86e40ccfb0d462e26191053a88c358cead1d3f71653e3478cd3c93344c50d4e6",
+    "target-worker.js": "a492ee097e8266595d9dcedc564d517c428a3c7799125261e2ce47b9ef7471c7",
+    "target-worker.js.map": "bc4e4b4cf992b9c07cf29b77c53b77fd0e9e681e0e72839b7243e2f012896e4e",
     "targets/aarch64-unknown-linux-gnu-runtime.o": "0d6160f9b6b33e7549e5974f767bf3274aec75229c161e87fbb439b4549884b7",
     "targets/arm64-apple-macos11-runtime.o": "4f2d33a41bdb36669a1a0eda88f01999a30bc64adb158aaca02f2e568adbdc89",
     "targets/kernel32.lib": "759a9d3d5585d6b128b02a22c3a066cad51b515b847c16b8dc1d078bc2db4f07",
@@ -33,8 +33,59 @@
     "tower-cross.wasm.gz": "f9831ecce1a5c318507dd33250b0adf364429a6803db0e7f9ea1434d80eb3ce3",
     "tower-llvm.wasm": "f756b45c81e45eab310a9da5e43b1fc5fedd64a2d9121ab33e4404460fb84076",
     "tower-llvm.wasm.gz": "87e7d8b138610f23e6f21aa46b2ecd505a23c8fd49a197083e4a18366d3f6dd8",
-    "tower.wasm": "904a1d37f670636c33015c03f457a3cd454a4df66140afe3acc8550cf1ecb9ea",
-    "worker.js": "b3ef82e078567118e210b996ed60731303e8a1550202f3207776c30bb00dcf03",
-    "worker.js.map": "9b9bf4c1118d539263ef218a2a8a93dbb7f60d76d16fe4d5a487e0751bca1b45"
+    "tower.wasm": "7f5924df8ec563328b52048c33339955703b288500a904bed6f099fcc718fcc2",
+    "worker.js": "af29d43c60d79c048f1fada898438c8690faa981d241dc8d1d5c7943ec0bf436",
+    "worker.js.map": "8b4ff57f76025b8fcbbf510312163bd5e8337c997d43590d6a27072662e20c59"
+  },
+  "sourceCommit": "8a226ca1f1a171e2f5be0d17b197a72fc96c4f23",
+  "previousDeployment": "3507ba5f608a8359f11ea9a8d21e79f0218083a9",
+  "scope": "Portable Tower register interpreter, optimized graph interpreter, versioned .towerbc packages and default three-runner comparison. Existing upstream LLVM/cross backends and runtime packs retained.",
+  "provenance": {
+    "rebuilt": {
+      "sourceCommit": "8a226ca1f1a171e2f5be0d17b197a72fc96c4f23",
+      "assets": [
+        "app.js",
+        "app.js.map",
+        "execution-worker.js",
+        "execution-worker.js.map",
+        "target-worker.js",
+        "target-worker.js.map",
+        "tower.wasm",
+        "worker.js",
+        "worker.js.map"
+      ]
+    },
+    "retained": {
+      "deployment": "3507ba5f608a8359f11ea9a8d21e79f0218083a9",
+      "assets": [
+        ".nojekyll",
+        "THIRD-PARTY-NOTICES.txt",
+        "bedrock.tower",
+        "capabilities.json",
+        "execution.tower",
+        "foreach.tower",
+        "foundation.tower",
+        "functions.tower",
+        "increment.tower",
+        "index.html",
+        "inference.tower",
+        "memory.tower",
+        "replacements.tower",
+        "structs.tower",
+        "style.css",
+        "targets/aarch64-unknown-linux-gnu-runtime.o",
+        "targets/arm64-apple-macos11-runtime.o",
+        "targets/kernel32.lib",
+        "targets/libSystem.tbd",
+        "targets/x86_64-apple-macos11-runtime.o",
+        "targets/x86_64-pc-windows-msvc-runtime.o",
+        "targets/x86_64-unknown-linux-gnu-runtime.o",
+        "templates.tower",
+        "tokens.tower",
+        "tower-cross.wasm.gz",
+        "tower-llvm.wasm",
+        "tower-llvm.wasm.gz"
+      ]
+    }
   }
 }
