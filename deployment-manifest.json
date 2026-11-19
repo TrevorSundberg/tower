@@ -6,8 +6,8 @@
     "app.js.map": "22b0724487a098080dc21c79ec615ff602aa13614a2304d2b56940843bfe1af2",
     "bedrock.tower": "6f9562491879c97a66c0d200c114c9ce138cb3f774be475711b3436f8dbe4e2f",
     "capabilities.json": "61386c8675f3e81e137e0bbfcbf1aa1882be89d57fb490effa7a10bc74bf483d",
-    "execution-worker.js": "ce62da02b913084bbbd6d8ce8ae6a10846450e3faa8674fcd09a6d465e5bc1dc",
-    "execution-worker.js.map": "948b1d5029642d64f029c2aa0d7be5372aebcc109b369918d624e545f449833d",
+    "execution-worker.js": "43b544f884549a0c1759e542d16976a1520fe89c92abea03cff47dfeb358d844",
+    "execution-worker.js.map": "48499d5e0f4515ef0a612ae9b275fbee7aecb1c52e899f2dd44d00ff6cdbe3f6",
     "execution.tower": "be3624088cf5f849d18a48245ee3795c62160e90ebfba80be44ca00b2cf0d9a7",
     "foreach.tower": "d33d7ffa6b58ab4ebd1725174c2c522528b9cd68eb16d64179d7eb8fc91391c6",
     "foundation.tower": "e8c2144f373f7cb80bde4b93c85a547a990430688ef9774d745b8ebb3ae3a4ed",
@@ -19,8 +19,8 @@
     "replacements.tower": "4754b5bcf39d44edfc6af855b75b64165780b1f394503cb2fc13968b7d5c9b9b",
     "structs.tower": "f120c7b1e1ae60853be07c37a43f79054c1b3aed16c838c6f09acc972fe8979f",
     "style.css": "cc6174e44ae16d6923801a3c8d93ea22b71116f5cb826cb3653cb10fc79bfc38",
-    "target-worker.js": "5a4f1f3947003ff3d7e74dceebf6483f550e77ddd994da76e856f3eca7dc32c1",
-    "target-worker.js.map": "ba8fd66b52c1b14b3e03943473ab5c218cae1d6917345cbc452d3380f3f4fa2a",
+    "target-worker.js": "adb418ff9c228fbcceecc243076b9281f9cfef120db8865c30629c6bbcb87267",
+    "target-worker.js.map": "86e40ccfb0d462e26191053a88c358cead1d3f71653e3478cd3c93344c50d4e6",
     "targets/aarch64-unknown-linux-gnu-runtime.o": "f7f8253a67a5d7dd89ff2c0e56dce90687b7ec292a872b47716b431cc0a5ad29",
     "targets/arm64-apple-macos11-runtime.o": "d68f6dce222882fcc30108e9570cdfa9e17ae85a3ed71481ca832fb40db99596",
     "targets/kernel32.lib": "759a9d3d5585d6b128b02a22c3a066cad51b515b847c16b8dc1d078bc2db4f07",
@@ -33,9 +33,9 @@
     "tower-cross.wasm.gz": "0c69ecde70629053799305cbfa94938aaf77f7de4bb8f3f63edd70218a0641ae",
     "tower-llvm.wasm": "863aab364e96392da13a90b33a88aec102d902f0351fd3a2eba51b3ec2694ba5",
     "tower-llvm.wasm.gz": "7330405ebe8622bb4eae3be3f2c759d738ccf45d269ec208b1e51dc592e540f0",
-    "tower.wasm": "963e6e84bbd41a94f8eccaea65eac3f0ce289ba686fe50410e8ae74c424280e7",
-    "worker.js": "128651fe1b1e39d99b015ec5b82d9544b9a1e0544612d9c2b56a7675df4dd544",
-    "worker.js.map": "f90f41faeca5d9797ea9b08501dd18eeb6980fb8f6cdb96987f73c94295d338a"
+    "tower.wasm": "2a1dca64d821cd973766e194fa99a2c43f7e37729aa86c6a9e855908f72aef48",
+    "worker.js": "b3ef82e078567118e210b996ed60731303e8a1550202f3207776c30bb00dcf03",
+    "worker.js.map": "9b9bf4c1118d539263ef218a2a8a93dbb7f60d76d16fe4d5a487e0751bca1b45"
   },
   "formatter": {
     "sourceCommit": "9d5905332a70ac8990b8045c049da18675b3ff40",
@@ -52,5 +52,19 @@
       "tower.wasm"
     ],
     "retainedLLVM": "Existing published LLVM/cross reactors and target packs are retained byte-for-byte; no backend rebuild is claimed."
+  },
+  "hostRuntime": {
+    "sourceCommit": "8fdb688ff4c59a788ff159540b8e7f06a31a1c87",
+    "previousDeployment": "4a5538eea412c8f06c1d12e9e6a2cb2f38ba852e",
+    "updatedAssets": [
+      "execution-worker.js",
+      "execution-worker.js.map",
+      "target-worker.js",
+      "target-worker.js.map",
+      "tower.wasm",
+      "worker.js",
+      "worker.js.map"
+    ],
+    "retainedLLVM": "LLVM/cross reactors and target support packs retained byte-for-byte from the previous deployment; they do not include this host-memory port. No backend rebuild or Tower-only compiler is claimed."
   }
 }
