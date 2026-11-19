@@ -12581,3 +12581,13 @@ desktop/mobile behavior checks; evidence is build/four-migration-owners-deployme
 This verifies the unchanged published compiler, not publication of the newly
 landed semantic artifacts. git diff --check passes for this journal-only plan.
 Task 1 remains unstarted until the user's next continue.
+Targeted completion succeeded after the fixture correction: host-WASI parser,
+semantic and interpreter checks passed; all three production browser compilers
+built; semantic Node smoke tests passed **2/2**. Local deployment verification
+matched **36** assets and passed desktop/mobile backend agreement, forward
+bindings, editable grammar, persistence, native downloads and platform defaults.
+Evidence: `build/semantic-sync/release-main.log`. These checks use the combined
+main source at `77a4d6b`; the earlier **224/224** Node and **128/128** browser matrix
+results apply to the pre-consolidation tree, not this final tree. As requested,
+the full browser matrix was not repeated. Source was pushed immediately; release
+publication now uses the established whole-dist gh-pages process.
