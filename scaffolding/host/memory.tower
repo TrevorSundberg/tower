@@ -1,0 +1,66 @@
+// Compiler allocation policy, separate from guest raw-address allocation.
+// A null state selects production behavior; tests explicitly supply a state.
+// The borrowed native allocator is the platform libc (wasi-libc in reactors).
+struct CompilerMemoryState {
+    live_buffers: usize;
+    allocation_calls: usize;
+    fail_after: usize;
+}
+
+extern fn compiler_host_reallocate(pointer: void*, bytes: usize): void*;
+
+extern fn compiler_host_deallocate(pointer: void*): void;
+
+export fn compiler_memory_reallocate(state: CompilerMemoryState*, pointer: void*, count: usize, size: usize): void* {
+    var maximum: usize = 0;
+    maximum = maximum - 1;
+    var sized = size != 0;
+    if sized {
+        var limit = maximum / size;
+        var overflow = count > limit;
+        if overflow {
+            return null;
+        }
+    }
+    var instrumented = state != null;
+    if instrumented {
+        state.allocation_calls = state.allocation_calls + 1;
+        var armed = state.fail_after != maximum;
+        if armed {
+            var fail = state.fail_after == 0;
+            if fail {
+                state.fail_after = maximum;
+                return null;
+            }
+            state.fail_after = state.fail_after - 1;
+        }
+    }
+    var bytes = count * size;
+    var empty = bytes == 0;
+    if empty {
+        compiler_memory_deallocate(state, pointer);
+        return null;
+    }
+    var fresh = pointer == null;
+    var result = compiler_host_reallocate(pointer, bytes);
+    if instrumented {
+        if fresh {
+            var allocated = result != null;
+            if allocated {
+                state.live_buffers = state.live_buffers + 1;
+            }
+        }
+    }
+    return result;
+}
+
+export fn compiler_memory_deallocate(state: CompilerMemoryState*, pointer: void*): void {
+    var instrumented = state != null;
+    if instrumented {
+        var live = pointer != null;
+        if live {
+            state.live_buffers = state.live_buffers - 1;
+        }
+    }
+    compiler_host_deallocate(pointer);
+}

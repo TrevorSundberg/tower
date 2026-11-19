@@ -11156,3 +11156,222 @@ Pages `1d4080c`. It contains the separate host track's published `8fdb688`
 allocation-policy/CLI/WASI milestone. Integrate that work before publishing this
 frontend to avoid rolling back its already-live worker/runtime changes. This is
 not a claim that the host track or portable-binary bootstrap is finished.
+### 2026-11-19 — Host/runtime ownership: Tower CLI and compiler allocation policy
+
+The requested host/runtime/bootstrap workstream starts from integrated master
+586078b, pulled with `git pull --rebase` before any work. Created
+`port/host-runtime-tower`. No task 1–3 algorithms were rewritten and todo.txt
+was not modified. The user's follow-up explicitly asks to avoid new C++: new
+behavior and functional host tests are Tower; native changes are interface views,
+forwarding into Tower, isolation of already-existing bootstrap behavior, and one
+reference-test portability correction. This is an incremental host port, NOT
+completion of the requested self-hosting compiler/distribution.
+
+Implemented:
+
+- `scaffolding/host/driver-options.tower` owns CLI parsing, defaults, option
+  ordering, early help, borrowed argv text, repeated link inputs, diagnostics
+  classification and cleanup. Help text also lives in Tower. Stage1 and production
+  drivers call this implementation. The original CLI loop remains guarded by
+  TOWER_BOOTSTRAP_HOST only in towerc-seed; source loading, diagnostic output,
+  timing, filesystem/process calls and linker orchestration still live in the
+  native driver. No new C++ parser was written as an intermediate implementation.
+- `scaffolding/host/memory.tower` owns allocation-size overflow, zero-size release,
+  live-buffer/call accounting and one-shot/delayed allocation-failure injection.
+  Overflow does not consume an injection; injected failure precedes even zero-size
+  release, matching the previous host. Failure preserves the caller's allocation.
+  Null instrumentation state selects production behavior. Compiler allocator
+  forwarding and the host libc calls remain in compiler-memory.cpp. This does not
+  change guest raw-pointer semantics or claim new guest memory-safety guarantees.
+- The original allocator is preserved, with provenance, as
+  bootstrap/compiler-memory-seed.cpp and linked ONLY into towerc-seed. The seed
+  builds the Tower host object, so stage1 and later consumers can use it without
+  a cyclic build dependency. TowerHost.cmake/ComposeHost.cmake compose the sources;
+  browser builds omit the unused CLI implementation. The bootstrap comparison
+  script now covers the host object on four target triples.
+- `tests/host-runtime.tower` exercises defaults, all value options, missing values,
+  repeated options/link order, help ordering, option-looking values, failure and
+  double-disposal cleanup, count*size overflow, zero-size free, preserved bytes
+  after realloc/failure, failure reset/countdown, and production allocation.
+  The existing parser command merely calls the Tower test entry point. Functional
+  test logic was not added in C++.
+
+Boundary findings and integration fixes:
+
+1. llvm-engine.cpp currently rejects all library top-level statements, including
+   module variables, and reserves tower_allocate/reallocate/deallocate/print/trap
+   against source definitions. These are concrete blockers to directly replacing
+   the remaining entry-symbol/state adapters with Tower definitions under today's
+   backend contract. This work uses explicit state and a temporary C ABI instead
+   of changing task 3's backend or inventing a second runtime ABI. The libc symbol
+   names also overlap built-in alloc/free/realloc spellings; foreign binding and
+   runtime-definition contracts need coordination before removing those bridges.
+2. The first CLI compile failed at boolean bitwise OR: Tower requires integer
+   operands there. Replaced the two boolean combinations with ordinary Tower
+   conditionals; no language/semantic/compiler change was needed.
+3. A complete WASI parser test build exposed a pre-existing C++ reference lambda
+   returning SIZE_MAX (unsigned int) on one path and size_t (unsigned long) on
+   another, despite equal widths on wasm32. Added an explicit size_t return type
+   to that lambda in bootstrap/lr-analysis-seed.cpp. No LR algorithm changed.
+4. Several reference libraries were not compiled with the caller's exception
+   policy. The WASI linker failed on __cxa_allocate_exception/__cxa_throw. CMake
+   now consistently disables exceptions for these fixtures. Retained native
+   drivers also retain the original no-exceptions policy after their source was
+   separated from the shared compiler object target.
+5. The full formatter reference scans the Tower source tree through __FILE__.
+   The grammar-only interpreter WASI runner could not satisfy that filesystem
+   requirement. A trial with Linux Node 22's native node:wasi host terminated with
+   exit 139 partway through tests; no root cause is established and that host was
+   rejected, consistent with the earlier journal's Windows native-WASI crash.
+   `tests/host-wasi.mjs` instead mounts all checked-out Tower fixtures in the
+   existing portable TowerWASI host. CMake maps test __FILE__ prefixes to `source`.
+   An initial mapping to `.` yielded an empty parent path after filename
+   normalization; the explicit `source` mount avoids that ambiguity.
+6. Even after mounting fixtures, opendir failed. Instrumenting the actual WASI
+   call showed `path_open(..., "source", oflags=2, fdflags=4)` returning NOTSUP
+   (58). wasi-libc requests NONBLOCK for directory iteration. The in-memory host
+   now accepts APPEND and NONBLOCK (bits 1 and 4), preserves/reports these flags,
+   and continues rejecting unsupported synchronization flags. Its files and
+   directories are always ready. Added ABI regression coverage to the existing
+   JavaScript host test. Worker cancellation/protocol logic is unchanged.
+
+Environment and reproduction:
+
+This checkout is Windows x64 at C:/Sandbox/tower, unlike the other worker's WSL
+checkout described above. Only Docker Desktop's WSL distribution is installed.
+Started the installed Docker engine hidden and built the existing `docker/`
+image as tower_build. The image supplies Ubuntu 24.04, Clang/LLVM/LLD 19.1.1,
+CMake/Ninja, Python and Node 22. The existing setup-wasi.sh installed and verified
+WASI SDK 34.0 in /cache/wasi. Windows uses MSVC 19.44.35229 and Node 21.7.3.
+Container commands mount this checkout at /work and named volume tower_host_cache
+at /cache, with working directory /work. No installed project toolchain was
+removed or hidden: these remain transitional toolchain-based builds.
+
+Commands/results (logs are under ignored build/host-runtime-*):
+
+- `TOWER_NATIVE_BUILD=/cache/host-native bash playground/scripts/build-native.sh`
+  builds seed, stage1 and production. A separate detached worktree at 586078b
+  built /cache/host-baseline with the same tools for comparisons.
+- `TOWER_NATIVE_BUILD=/cache/host-native TOWER_CORE_TEST_BUILD=/cache/host-asan
+  bash playground/scripts/test-native-core.sh`: final ASan/UBSan CTest 5/5,
+  21.38 seconds. The native harness/host allocations are instrumented; this does
+  not claim LLVM-emitted Tower instructions received sanitizer instrumentation.
+- `scaffolding/tests/run.ps1 -BootstrapCompiler
+  C:/Sandbox/tower/build/host-runtime-windows-bootstrap.cmd`: actual Windows x64
+  parser/host tests pass. The ignored wrapper invokes the Linux stage1 in Docker
+  with paths translated to /work, producing COFF before the MSVC native link.
+  The resulting executable was run on Windows, not merely inspected/cross-linked.
+  Running tower-interpreter-tests.exe from scaffolding also passes 156 differential
+  runs. An initial invocation from the repository root failed because the test
+  expects bedrock.tower/foundation.tower in its working directory; the corrected
+  working directory matches CTest's existing configuration.
+- Configure /cache/host-wasi-tests with TOWER_PARSER_ONLY=ON,
+  TOWER_BOOTSTRAP_COMPILER=/cache/host-native/towerc-stage1 and the SDK's
+  share/cmake/wasi-sdk-p1.cmake; build tower-parser-tests. Then run
+  `node scaffolding/tests/host-wasi.mjs build/host-runtime-tests.wasm` on the copied
+  command. The complete suite passes, including Tower host tests and 55 canonical
+  Tower source fixtures. This tests real 32-bit state layouts and execution.
+- `bash playground/scripts/test-bootstrap.sh` with TOWER_NATIVE_BUILD set:
+  byte-identical optimized LLVM/object output from seed versus production for
+  utf8, bytes, entities, parser-nodes and host; 20 module/target comparisons.
+  Targets: x86_64-pc-linux-gnu, wasm32-unknown-unknown,
+  x86_64-pc-windows-msvc, aarch64-apple-darwin. These object comparisons are NOT
+  native macOS execution or successive whole-compiler self-builds.
+- `bash playground/scripts/test-linking.sh` with the native compiler/SDK paths:
+  native execution, separate object/archive linking, C callbacks, raw memory,
+  storage, LLVM C API, platform_write and forward bindings pass.
+- Final `npm test --prefix playground`: 222/222, including NONBLOCK assertions.
+  `npm run check:format --prefix playground` passes. An initial desktop/mobile
+  browser run passed 128/128; the final rebuilt-worker run and deployment checks
+  are recorded below rather than conflated with that earlier run.
+
+Measurements, not optimization guarantees:
+
+- Native comparison used alternating baseline/current processes, four warmups and
+  twenty measured samples per source, `--interpret`, with exact stdout agreement.
+  Final medians in milliseconds were memory.tower 90.550 -> 87.703,
+  functions.tower 90.094 -> 86.232, and the test-linking storage fixture
+  95.489 -> 92.652. Thirty CLI status/stdout/stderr cases also matched. Earlier
+  trials under concurrent builds varied (memory was 2.5% slower), so these are
+  local observations, not a general speedup claim.
+- `node scaffolding/tests/format-benchmark.mjs build/host-runtime-baseline.wasm`
+  compared the published 4a5538e reactor with this build, 10 warmups/40 samples.
+  Current/baseline p50 ratios: small source 1.028, small foundation 1.018,
+  declarations source 1.029, declarations foundation 1.027, comments source 1.022,
+  strings source 0.849, strings foundation 1.030. Most measured paths regress
+  about 2–3%; correctness is retained. Do not describe the allocator migration as
+  a universal performance improvement.
+- Browser reactor: 4,270,628 bytes, +95 from 4,270,533; SHA256
+  2a1dca64d821cd973766e194fa99a2c43f7e37729aa86c6a9e855908f72aef48.
+- Transitional Linux x64 compiler: 811,944 bytes; llvm-strip-19 reduces it to
+  689,832 bytes (baseline stripped: 689,640). Stripped SHA256
+  a4b559cdb4d167a6621a237c71cc940012ec8ebef581abe3556434a38056ee96.
+  These measurements exclude shared dependencies. ldd identifies libLLVM.so.19.1,
+  libstdc++, libc/libm/libgcc, and LLVM's transitive ffi/edit/z/zstd/xml2/tinfo/bsd/
+  icu/lzma/md dependencies. It is NOT a standalone portable compiler binary and
+  was deliberately not committed or relabeled as a Tower-written compiler.
+
+Outstanding ownership and bootstrap gates:
+
+The requested workstream remains incomplete. driver.cpp still handles OS I/O,
+process/link invocation and compilation orchestration. browser.cpp/main.cpp,
+runtime.c, tower.cpp, parser-nodes.cpp, CoreMachine containers/callbacks and the
+remaining format/core-machine adapters, lifecycle bridges and native test logic
+still need migration. compiler-memory.cpp is now a bridge, not removed. The
+original host allocator and CLI are still required by the native bootstrap cycle.
+
+Tasks 1–3 must supply their Tower frontend/session, semantic/type/program and
+backend/object/link interfaces before replacing the remaining hosts without
+writing another layer of new native glue. Coordinate the runtime export, foreign
+symbol/callback and explicit module-state initialization contracts with those
+owners; do not silently rewrite their algorithms or add host-dependent language
+semantics. Remaining host-container work should reuse Tower storage and the shared
+entities, not invent another program representation.
+
+No portable Windows/Linux/macOS compiler executables, whole-compiler Tower-only
+rebuild, successive whole-compiler self-builds or macOS execution validation are
+completed by this change. There is no macOS execution host here. Before packaging,
+require the completed ports plus removal of the owned native seeds/adapters and
+native functional test logic, a clean-checkout rebuild using only the committed
+Tower compiler and declared third-party inputs, repeated self-build comparisons,
+and real native execution for every advertised OS/architecture. The eventual
+manifest must include explicit triples, full dependency/license closure, source
+and builder provenance, hashes and actual installed/download sizes. The small ELF
+measurement above does not satisfy any of those distribution gates.
+
+Publication preparation preserves all already-published LLVM/cross reactors and
+runtime packs from gh-pages 4a5538e byte-for-byte, with their old provenance. They
+are not rebuilt by this work and do not acquire the host-memory port. Rebuilt
+worker bundles contain the NONBLOCK correction; the parser/interpreter reactor
+contains Tower allocation policy. Node's regenerated gzip bytes differed despite
+identical underlying backend modules, so the original published gzip artifacts
+were restored to avoid an unrelated recompression. Final source rebase, publication
+and live verification results follow below.
+
+Final local checks passed on the rebuilt worker bundle: 128/128 desktop/mobile
+Playwright tests (2.3 minutes), and verify-local.mjs verified all 36 served assets
+plus backend agreement, grammar edits, project persistence, native downloads,
+layout and target-selection behavior on desktop/mobile. Logs:
+build/host-runtime-browser-final.log and host-runtime-local-deployment.log.
+
+Publication verified: implementation commit 8fdb688 was committed, rebased against
+master (no new master changes), and pushed as port/host-runtime-tower. Pages commit
+1d4080c is a normal fast-forward of gh-pages from 4a5538e. Its manifest identifies
+8fdb688 and preserves the earlier formatter/interpreter/backend provenance. Only
+tower.wasm, the three worker bundles/maps and the manifest changed. The remote
+Pages API reports built at 1d4080c, with no error.
+
+Live command node playground/scripts/verify-deployment.mjs
+https://trevorsundberg.github.io/tower/ exited zero: all 36 served assets match the
+locally validated build; desktop and mobile passed backend agreement, forward
+bindings, editable grammar, persistence, native downloads, layout and target
+selection checks without page errors. Evidence: build/host-runtime-live-deployment.log
+and build/deployment-verification/report.json (copied to
+build/host-runtime-live-report.json). The Linux-host-only browser detection check
+was not run by the Windows browser host. The checkout is clean and todo.txt is
+unchanged. This journal-only follow-up does not change deployable artifacts.
+
+The ending fetch also discovered task 1's port/frontend-tower at b50bfe0, a
+replacement-expansion milestone. It is not a completed frontend/session handoff;
+no completed task 2/3 handoff was integrated here. Do not infer that the final
+bootstrap dependencies were satisfied by publishing this host-policy milestone.

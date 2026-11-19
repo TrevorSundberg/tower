@@ -1,5 +1,6 @@
 #include "core.hpp"
 #include "llvm-engine.hpp"
+#include "compiler-host.hpp"
 #include <llvm/TargetParser/Host.h>
 #include <llvm/Support/Program.h>
 #include <llvm/Support/FileSystem.h>
@@ -47,6 +48,8 @@ int main(int argc, char** argv) {
   Timings timings;
   std::string source, output, target = llvm::sys::getDefaultTargetTriple(), emit = "exe", cc = "clang", linker, sysroot, raw, optimized, bedrock_path, foundation_path;
   std::vector<std::string> inputs; bool optimize = true, interpret = false, library = false;
+#ifdef TOWER_BOOTSTRAP_HOST
+  // Retained only in towerc-seed until the Tower-only bootstrap is available.
   for (int i = 1; i < argc; ++i) {
     std::string arg = argv[i];
     if (arg == "--help") {
@@ -68,6 +71,29 @@ int main(int argc, char** argv) {
     } else if (arg.starts_with('-') || !source.empty()) { std::cerr << "Unexpected argument: " << arg << '\n'; return 1; }
     else source = arg;
   }
+#else
+  DriverOptions options;
+  const bool parsed = driver_parse(&options, size_t(argc), argv, target.c_str());
+  if (!parsed) {
+    if (options.error == 1) std::cerr << "Missing argument for " << options.argument << '\n';
+    else if (options.error == 2) std::cerr << "Unexpected argument: " << options.argument << '\n';
+    else std::cerr << "Unable to allocate command-line link inputs\n";
+    driver_dispose(&options);
+    return 1;
+  }
+  if (options.help) {
+    std::cout << driver_help();
+    driver_dispose(&options);
+    return 0;
+  }
+  source = options.source; output = options.output; target = options.target;
+  emit = options.emit; cc = options.cc; linker = options.linker; sysroot = options.sysroot;
+  raw = options.raw; optimized = options.optimized; bedrock_path = options.bedrock;
+  foundation_path = options.foundation; optimize = options.optimize; interpret = options.interpret;
+  library = options.library; timings.enabled = options.timings;
+  for (size_t i = 0; i < options.link_count; ++i) inputs.emplace_back(options.links[i]);
+  driver_dispose(&options);
+#endif
   if (source.empty() || !fs::exists(source)) { std::cerr << "Supply a Tower source file; use --help for options\n"; return 1; }
   const fs::path root(TOWER_SOURCE_DIR);
   const auto bedrock_file = bedrock_path.empty() ? root / "scaffolding/bedrock.tower" : fs::path(bedrock_path);
