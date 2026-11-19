@@ -1,7 +1,6 @@
 {
   "assets": {
     ".nojekyll": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    "THIRD-PARTY-NOTICES.txt": "73e93e47e7beb4f4edd8a4c2f0f4d802f74b114bbf8e79f8b13838bebd20be54",
     "app.js": "a342681dfdeac43fee137ecaa0da145f2b774df940c2a52fcecbdb804cd0bbd7",
     "app.js.map": "412a5eff6a94493eb6dfb2fbce8a9ac7d253b840466a933f660d99bd85e2f731",
     "bedrock.tower": "6f9562491879c97a66c0d200c114c9ce138cb3f774be475711b3436f8dbe4e2f",
@@ -29,11 +28,12 @@
     "targets/x86_64-pc-windows-msvc-runtime.o": "471e3233ea7d10326b13fa62de772d78b64f285cf75a16478a1c2c5ce3a3c735",
     "targets/x86_64-unknown-linux-gnu-runtime.o": "dd9017a54b2e683f35ed8289eebf6d13175beddd9020ddbdfba3c4933e5c847b",
     "templates.tower": "f7d0bf1e3e7cbe703bad66bda6bafafd697ba9fef5d65ac9c6d22e8ebe653dfa",
+    "THIRD-PARTY-NOTICES.txt": "73e93e47e7beb4f4edd8a4c2f0f4d802f74b114bbf8e79f8b13838bebd20be54",
     "tokens.tower": "6017af5b8505e680685610332d305054a9d4b9f599d083802f7cf057f657f950",
     "tower-cross.wasm.gz": "b75cf56d47c1f3127f0bfd19878de96258290a82e40f384d68ad1c1ec494131c",
     "tower-llvm.wasm": "cca5ae8beb20d97cac3b6f043a0cfc46ab2d8fdd35a51e076e6dc6849ce914d8",
     "tower-llvm.wasm.gz": "f5053be9e706f89d7ae828fc447b69290be276366f8f07cd209609324b08d903",
-    "tower.wasm": "3547a4b9bccc299e2f080a7dcf20eccf6282623045579c5126ddf67cf2bb7e66",
+    "tower.wasm": "fce323d2de50e08060f5a4b161c2b5d20c0220d91a8f5e087335d93cb47d97bf",
     "worker.js": "b3ef82e078567118e210b996ed60731303e8a1550202f3207776c30bb00dcf03",
     "worker.js.map": "26d39adaf83faf8bf25a2af23ae1fd0b3263076ace74abb6648254d319e1c7f5"
   },
@@ -51,5 +51,43 @@
       "tower-cross.wasm.gz"
     ],
     "status": "Replacement preparation/expansion, template construction/remapping and lexical traversal run in Tower. Native frontend adapters and bootstrap code remain; this is not a Tower-only compiler."
+  },
+  "formatter": {
+    "sourceCommit": "9d5905332a70ac8990b8045c049da18675b3ff40",
+    "previousDeployment": "bd3a8566b4b861b9e0c006f09b011900041111a1",
+    "updatedAssets": [
+      "tower.wasm"
+    ],
+    "retainedLLVM": "Existing published LLVM and cross-target reactors; not rebuilt by the formatter deployment."
+  },
+  "interpreter": {
+    "sourceCommit": "279800d9e99366a53b914dba74d7205dfad5e62f",
+    "previousDeployment": "9c52b593cead5018539aeb566e6a38066f5a37a7",
+    "updatedAssets": [
+      "tower.wasm"
+    ],
+    "retainedLLVM": "Existing published LLVM/cross reactors and target packs are retained byte-for-byte; no backend rebuild is claimed."
+  },
+  "hostRuntime": {
+    "sourceCommit": "8fdb688ff4c59a788ff159540b8e7f06a31a1c87",
+    "previousDeployment": "4a5538eea412c8f06c1d12e9e6a2cb2f38ba852e",
+    "updatedAssets": [
+      "execution-worker.js",
+      "execution-worker.js.map",
+      "target-worker.js",
+      "target-worker.js.map",
+      "tower.wasm",
+      "worker.js",
+      "worker.js.map"
+    ],
+    "retainedLLVM": "LLVM/cross reactors and target support packs retained byte-for-byte from the previous deployment; they do not include this host-memory port. No backend rebuild or Tower-only compiler is claimed."
+  },
+  "hostRuntimeIntegration": {
+    "sourceCommit": "0307d80f5c7a167e270561200bf75c0a14183e14",
+    "previousDeployment": "fbb591f297851bf2e2f779e5d97ca14531f5c78d",
+    "updatedAssets": [
+      "tower.wasm"
+    ],
+    "retainedLLVM": "Published assets retained byte-for-byte except tower.wasm. The LLVM/cross reactors include the prior frontend/allocator checkpoint but not this integration's additional interpreter storage and browser host ports. No new backend rebuild or Tower-only compiler is claimed."
   }
 }
