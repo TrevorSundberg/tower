@@ -34,16 +34,17 @@ test('Tower, Foundation and Bedrock work under ordinary renamed paths',async () 
 test('tower uses ordinary nearest-file lookup and invalidates cached resolutions after edits',async () => {
   const compiler = await host(), files = sources();
   const root = files.find(f=>f.path==='tower.tower');
-  root.text += '\nfn marker(): i32 { return 1; }';
-  const source = 'import tower; const Answer: i32 = 42; print(Answer()); print(marker());';
+  // Keep these modules declaration-only so they qualify for grammar caching.
+  root.text += "\nparse Statement |= 'marker' ';' => replace { print(1); };";
+  const source = 'import tower; const Answer: i32 = 42; print(Answer()); marker;';
   assert.equal(run(compiler,source,files).output,'42\n1\n');
-  const local = file('units/tower.tower',grammar.tower+'\nfn marker(): i32 { return 2; }');
+  const local = file('units/tower.tower',grammar.tower+"\nparse Statement |= 'marker' ';' => replace { print(2); };");
   files.push(local);
   const nearer = run(compiler,source,files);
   assert.equal(nearer.output,'42\n2\n',nearer.error);
   assert.ok(nearer.dependencies.includes(local.path));
   assert.ok(!nearer.dependencies.includes(root.path));
-  local.text = local.text.replace('return 2;','return 3;');
+  local.text = local.text.replace('print(2);','print(3);');
   assert.equal(run(compiler,source,files).output,'42\n3\n');
   // A broken nearer module must diagnose its own dependency, not fall back.
   local.text = 'import missing_grammar;';

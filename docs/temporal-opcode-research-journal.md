@@ -15577,3 +15577,23 @@ explanation, and its ordinary project tower.tower rather than a bundled duplicat
 The full dist contains 67 assets; manifest SHA-256 is
 `c809156f7806d23c81e81fdfafd30d4806a49430a350bf73c5061b7234f9b77d`.
 Local/hosted publication verification results follow below.
+
+The local deployment verifier exits zero for all 67 assets and both browser
+profiles (`imports-verify-local.log`). Source 6372e20 and Pages 43831b2 were pushed
+normally after the final pull and focused import checks. The hosted manifest
+matches the tested SHA-256 above. A final test review tightened the shadow/edit
+fixture to use only grammar declarations and a `marker;` replacement instead of
+an ordinary marker function: declaration-only modules qualify for the grammar
+cache, so this directly exercises cached grammar invalidation. Its three cases
+pass (`imports-grammar-cache.log`, 1.9 seconds). This test-only refinement changes
+no published asset.
+
+Hosted verification also exits zero: all 67 served assets match the tested build,
+and desktop/mobile execution, imports, completion, persistence, target downloads
+and the compiler workbench checks pass. Evidence:
+`build/compiler-workbench/imports-verify-live.log` and
+`build/deployment-verification/report.json` (the public Pages URL). Published
+implementation remains Pages 43831b2/source 6372e20; this final journal and test
+refinement does not alter deployment bytes. `todo.txt` remains blob
+96a9e58964d7f01e4a97819f259448db81ef5e40. Standalone bootstrap/runtime migration
+remains the documented next work, not a capability added by this turn.
