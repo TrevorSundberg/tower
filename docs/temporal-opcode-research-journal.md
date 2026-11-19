@@ -11644,3 +11644,101 @@ Preserved its append-only research entry above. No frontend algorithm was
 rewritten here. Stopped the ongoing bootstrap process before this source change;
 the prior checkpoint's measurements and tests above remain checkpoint evidence.
 Final combined checks and sizes must be regenerated for this merged source.
+
+### 2026-11-19 — Final frozen host/frontend integration checks
+
+Source revision 0307d80 incorporates frontend 35e5484 and host 62b863e alongside
+the additional Tower browser/JSON/entity/interpreter storage work. All final
+builds and checks below use that source, with the Release Wasm stripping option.
+No source or running test script changed during these runs.
+
+- Linux ASan/UBSan CTest: 5/5, 35.74 seconds.
+- Full wasm32-WASI parser/formatter suite: passed, including 69 canonical Tower
+  files and new frontend/host/storage fixtures. Interpreter differential: 156
+  full-state comparisons, including 32-bit and 64-bit guest address profiles.
+- Node: 222/222, no skips, 21.18 seconds.
+- Playwright: 128/128 desktop/mobile cases, 3.3 minutes, on the stripped module.
+- Local deployment verification: all 36 hashes match; both viewport profiles
+  pass backend agreement, forward bindings, editable grammar, persistence,
+  native builds/downloads, layout and target-selection checks.
+- Complete stable bootstrap script: 24/24 optimized-IR/object comparisons, six
+  modules times Linux x64, wasm32, Windows x64 and macOS ARM64. Explicit grammar
+  input and missing-grammar checks pass. Interpreter/parser composition uses
+  stage1 as described above; these remain hybrid compiler stages.
+- LLVM/interpreter comparison: 16 programs pass optimized and unoptimized.
+- Native object/archive/executable, memory/storage, LLVM C API, platform_write
+  and forward-binding checks pass. Windows x64 PE test programs execute and
+  produce expected output through WSL interop. No macOS runtime is present.
+
+Reproduction uses the existing build-native.sh, test-bootstrap.sh,
+tests/interpreter-llvm.py, test-linking.sh and test-windows-linking.sh commands;
+the documented local linker aliases are still required on this machine.
+WASI commands are host-wasi.mjs and interpreter-wasi.mjs against the generated
+test executables. Browser commands are npm test, test:browser and
+test:deployment under playground. Logs use build/host-latest-{native,tests,wasm,
+wasi-build,wasi-tests,node,bootstrap,llvm,linking,browser,local-deployment}.log.
+
+Final measured artifacts supersede the earlier size checkpoint:
+
+| Artifact | Bytes | SHA-256 |
+| --- | ---: | --- |
+| Linux x86_64 hybrid towerc | 808,224 | 744ce3480cbed12ac043dd5e0f358c6ed9807b3cb6c69189b6014c17172efe38 |
+| Same executable stripped | 690,296 | 73229aabc905857f560f6b0718dbd1d742afdf882734cf68bf3be1cf0570b2d3 |
+| wasm32-WASI browser module, stripped | 791,550 | fce323d2de50e08060f5a4b161c2b5d20c0220d91a8f5e087335d93cb47d97bf |
+
+The Linux dependency closure measured above is still 137,937,800 bytes, before
+grammar and external compiler/linker inputs. These numbers are reproducible
+development-artifact measurements, not an assertion that a complete portable
+compiler package exists. Only the browser module is prepared for publication;
+the published LLVM/cross modules, compressed artifacts, target packs and notices
+are retained byte-for-byte with their earlier provenance. The manifest names
+0307d80 and identifies tower.wasm as the only updated executable asset.
+
+The requested full migration remains open. Compiler/session/semantic/backend
+interfaces, typed native callbacks, exported runtime symbols and module-state
+initialization still block the recorded final host adapters and seeds. Native
+Windows compiler and macOS compiler execution, clean-checkout Tower-only builds,
+successive whole-compiler self-builds and licensed portable distributions are
+not validated or completed by these tests. Do not substitute object comparison
+or successful guest programs for those gates. todo.txt remains unchanged.
+
+Paired performance observations, after builds/tests completed, compare saved
+586078b artifacts with 0307d80. These include both frontend and host changes;
+they do not isolate one port. Native profiling used four warmups plus thirty
+alternating paired processes with identical explicit grammar inputs and exact
+stdout agreement. Browser profiling used twelve warmups plus forty alternating
+pairs, checking exact canonical Foundation output. Raw samples and p50/p95 are
+in build/host-latest-{native,wasm}-performance.json; reproduction uses the existing
+profile-grammar-port-native.py and profile-grammar-port.mjs scripts.
+
+| Fixture | Native process median ms, before -> after | Wasm compile/format median ms, before -> after |
+| --- | --- | --- |
+| small | 206.264 -> 190.586 | 6.527 -> 6.543 |
+| inference | 207.317 -> 191.265 | 7.297 -> 7.097 |
+| replacements | 222.574 -> 207.624 | 26.456 -> 26.327 |
+| declarations500 | 217.499 -> 201.261 | 18.860 -> 18.594 |
+| grammar50 | 731.250 -> 713.729 | 730.255 -> 727.494 |
+
+Most browser changes are small; grammar50 p95 increased from 799.611 to 820.292
+ms despite its slightly lower median. These are local observations, not a
+universal performance improvement. The sorted interpreter maps still have
+linear suffix movement on insertion/erasure.
+
+The existing interpreter-wasi.mjs --benchmark ran both interpreters in the same
+wasm32-WASI harness (one warmup plus seven measured pairs, full-state agreement).
+Median ms, Tower / C++ reference: scalar-loop 57.449 / 66.979; recursive-calls
+88.297 / 104.976; allocation 27.532 / 32.761; output 9.343 / 14.214. Here "native"
+in the runner's output means the C++ reference compiled to Wasm, not native OS
+execution. Log: build/host-latest-interpreter-performance.log.
+
+Publication reconciliation: a final gh-pages fetch discovered fbb591f, which
+publishes frontend 35e5484 and rebuilt LLVM/cross reactors/target packs. Advanced
+the isolated Pages worktree normally and retained *every* published asset from
+that deployment except tower.wasm. Restored earlier formatter/interpreter/host
+manifest history alongside the new frontend provenance, then appended this
+integration's source revision, previous deployment and single changed asset.
+This supersedes the earlier preparation against 1d4080c. The retained backends
+contain the frontend/allocator checkpoint, but not this integration's additional
+host/interpreter storage ports. They are neither rolled back nor represented as
+newly rebuilt here. The final combined deployment receives another local/live
+verification; no force push or overwrite of unrelated published assets is used.
