@@ -504,6 +504,24 @@ export fn format_summary(result: FormatResult*, entity: void*, syntax: void*, fo
         format_type(&f, &n.type);
         return;
     }
+    // A declared enum member has no access-site binding of its own. Its
+    // nominal type and declaration name still have a canonical spelling.
+    var member = format_is_Operand(n);
+    if member {
+        member = n.constant;
+    }
+    if member {
+        member = semantic_enum(&n.type);
+    }
+    if member {
+        member = n.name.length != 0;
+    }
+    if member {
+        format_type(&f, &n.type);
+        format_text(&f, ".");
+        format_identifier(&f, &n.name);
+        return;
+    }
     var named = format_is_Declare(n);
     if named {
         format_text(&f, "var ");

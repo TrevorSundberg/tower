@@ -26,6 +26,10 @@ export class LanguageService {
     return {promise, cancel: () => {
       task.resolve(null); task.canceled = true;
       if (this.queued.get(key) === task) this.queued.delete(key);
+      if (key === 'document' && this.active === task) {
+        clearTimeout(task.timer); clearTimeout(task.preemption);
+        this.worker.terminate(); this.worker = null; this.active = null; this.pump();
+      }
     }};
   }
   pump() {

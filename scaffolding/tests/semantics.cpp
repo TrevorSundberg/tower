@@ -83,7 +83,7 @@ void semantic_port_tests() {
         "var a: Mystery;", "var a: void;", "var a: i32; var a: i32;", "var a = b; var b = a;",
         "var a = a;", "var a = f(); fn f(): void {}", "fn f(): i32 {}", "break;", "continue;",
         "fn f(a: i32): void {} f(true);", "fn f(): void {} f(1);", "unknown();", "print();",
-        "struct A { a: A; }", "struct A { b: B; } struct B { a: A; }", "struct A { a: void; }",
+        "struct A { a: void; }",
         "var a: i32[0];", "var a: i32[1048577];", "var a: void[1];", "var a: i32[1048576][2];",
         "var a: u8 = 256;", "var a: u64 = -1;", "var a: i64 = 9223372036854775808;",
         "var a: i32 = true;", "var a: i32 = null;", "var a: bool = 1;",
@@ -102,6 +102,18 @@ void semantic_port_tests() {
         "fn bad(T: type): T { return true; } print(bad(i32));",
         "fn a(T: type, n: bool): type { return T; } var a: a(i32, true);"
     }) compare({source}, width, false);
+    // The iterative layout query reports the complete dependency cycle. The
+    // frozen recursive seed predates that diagnostic; assert both rejections
+    // and the exact new text/span instead of requiring the obsolete wording.
+    for (const auto& [source, cycle] : {
+        std::pair{"struct A { a: A; }", "A -> A"},
+        std::pair{"struct A { b: B; } struct B { a: A; }", "A -> B -> A"}}) {
+      auto actual = core_compile(source, width);
+      auto reference = reference_core_compile(source, width);
+      assert(reference.error.starts_with("Recursive by-value layout for '"));
+      assert(actual.error == std::string("Recursive by-value layout: ") + cycle + "; use a pointer");
+      assert(actual.error_offset == 0);
+    }
     compare({"fn fail(): i32 { return missing; }", "print(fail());"}, width, false);
   }
 }

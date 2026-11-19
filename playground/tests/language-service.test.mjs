@@ -40,3 +40,21 @@ test('a long document inspection yields its worker to foreground completion',asy
     assert.deepEqual(await completion.promise,{options:[]});
   } finally {service.stop();globalThis.Worker=previous;}
 });
+
+test('an invalidated document stops its synchronous work before the next snapshot',async()=>{
+  const previous=globalThis.Worker,workers=[];
+  globalThis.Worker=class {
+    constructor(){workers.push(this);}
+    postMessage(message){this.message=message;}
+    terminate(){this.terminated=true;}
+  };
+  const service=new LanguageService();
+  try {
+    const old=service.request('document',{method:'document',source:'old'});old.cancel();
+    assert.equal(await old.promise,null);assert.equal(workers[0].terminated,true);
+    const next=service.request('document',{method:'document',source:'new'});
+    assert.equal(workers[1].message.source,'new');
+    workers[1].onmessage({data:{id:workers[1].message.id,result:{entries:[]}}});
+    assert.deepEqual(await next.promise,{entries:[]});
+  } finally {service.stop();globalThis.Worker=previous;}
+});

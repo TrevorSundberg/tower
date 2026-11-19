@@ -43,6 +43,14 @@ test('imports contribute real bindings without leaking their source ranges',()=>
   assert.equal(hoverAt(entries,source.lastIndexOf('result')+2).type,'i32');
   assert.ok(entries.every(entry=>entry.to<=source.length));
 });
+
+test('enum member declarations and accesses use their nominal type and canonical spelling',()=>{
+  const source='enum State:u32 { Idle = 0, Busy = 4 } var state:State = State.Busy;';
+  const entries=inspect(source),member=hoverAt(entries,source.lastIndexOf('Busy')+1);
+  assert.equal(member.signature,'State.Busy');assert.equal(member.kind,'enum member');
+  assert.equal(member.type,'State');assert.equal(member.size,4);
+  assert.equal(hoverAt(entries,source.indexOf('Busy')+1).signature,'State.Busy');
+});
 test('hover layouts use the explicit target pointer width',()=>{
   const source='var pointer:i32*;';
   assert.equal(at(source,'pointer', {pointerBytes:4}).size,4);

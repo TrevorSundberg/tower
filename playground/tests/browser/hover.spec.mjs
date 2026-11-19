@@ -44,7 +44,7 @@ test.beforeEach(async({page})=>{
   await page.locator('#auto-execute').uncheck();
 });
 
-test('cached mouse hover shows checked types and ECS metadata without a worker round trip',async({page})=>{
+test('cached mouse hover shows checked types and ECS metadata without a worker round trip',async({page},info)=>{
   const text='var value = 42;\nprint(value);';await source(page,text);await ready(page,text);
   const count=await page.evaluate(()=>window.documentQueries.length);
   const position=await point(page,'value');await page.mouse.move(position.x,position.y);
@@ -54,6 +54,7 @@ test('cached mouse hover shows checked types and ECS metadata without a worker r
   await expect(tip).toContainText(/entity \d+.*components/);await expect(tip).toContainText('Resolves to entity');
   expect(await page.evaluate(()=>window.documentQueries.length)).toBe(count);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  await page.screenshot({path:'../build/hover-'+info.project.name+'.png'});
   await page.mouse.move(0,0);await expect(tip).toHaveCount(0);
 });
 

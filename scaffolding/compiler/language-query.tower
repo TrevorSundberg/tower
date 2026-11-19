@@ -90,6 +90,16 @@ fn language_kind(value: FoundationNode*): u8* {
     }
     var hover_condition10 = value.kind == KOperand();
     if hover_condition10 {
+        var member = value.constant;
+        if member {
+            member = value.type.pointers == 0;
+        }
+        if member {
+            member = semantic_enum(&value.type);
+        }
+        if member {
+            return "enum member";
+        }
         return "value";
     }
     var hover_condition11 = value.kind == KField();

@@ -70,6 +70,9 @@ export async function linkCompiler({compiler, recipe, files, inputs, support, pr
   const inspected = tower.inspectDocument('var value: i32 = 42; print(value);');
   if (!inspected.entries?.some(entry => entry.from === 27 && entry.signature === 'var value: i32' && entry.type === 'i32' && entry.binding))
     throw new Error('Candidate typed hover check failed');
+  const enumHover = tower.inspectDocument('enum State:u32 { Idle = 0, Busy = 4 } var state:State = State.Busy;');
+  if (!enumHover.entries?.some(entry => entry.signature === 'State.Busy' && entry.type === 'State'))
+    throw new Error('Candidate enum hover check failed');
   const llvm = await loadLLVM(modules.llvm, undefined, grammar.foundation, undefined, grammar.bedrock, {tower:grammar.tower});
   const result = llvm.compile(foundation);
   if (result.status === 'error') throw new Error('Candidate LLVM: '+result.error);
