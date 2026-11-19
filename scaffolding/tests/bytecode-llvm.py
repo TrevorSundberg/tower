@@ -71,3 +71,26 @@ for width, target in [(4, 'wasm32-unknown-unknown'), (8, 'wasm64-unknown-unknown
             assert repeated.returncode == 0 and package.read_bytes() == data, 'Nondeterministic package'
             runs += 1
 print(f'LLVM bytecode comparisons passed: {runs} (both widths, optimized/debug, graph/cache/load/round-trip/determinism)')
+
+# Reconstructed code uses its own module environment; original imported source
+# snapshots must still drive runtime diagnostics and dependency output.
+main = output / 'module-main.tower'
+dependency = output / 'module-helper.tower'
+main.write_text('import "module-helper"; print(answer());')
+for failing in [False, True]:
+    dependency.write_text('import foundation;\nfn answer(): i32 {\nvar zero = 0;\nvar result = 42 / zero;\nreturn result;\n}' if failing else
+                          'import foundation;\nfn answer(): i32 { return 42; }')
+    for width, target in [(4, 'wasm32-unknown-unknown'), (8, 'wasm64-unknown-unknown')]:
+        reference = run(main, '--target', target, '--interpret')
+        for optimize in [False, True]:
+            flags = [] if optimize else ['--no-optimize']
+            actual = run(main, '--target', target, '--interpret-fast', *flags)
+            assert (actual.returncode, actual.stdout, actual.stderr) == (reference.returncode, reference.stdout, reference.stderr), (actual, reference)
+            package = output / 'module.towerbc'
+            depfile = output / 'module.d'
+            encoded = run(main, '--target', target, '--emit', 'bytecode', '-o', package, '--depfile', depfile, *flags)
+            assert encoded.returncode == 0, encoded.stderr
+            assert 'module-helper.tower' in depfile.read_text(), depfile.read_text()
+            loaded = run(package)
+            assert (loaded.returncode, loaded.stdout) == (reference.returncode, reference.stdout), loaded
+print('LLVM bytecode module comparisons passed: 8 (imports, diagnostics, dependencies and package loads)')

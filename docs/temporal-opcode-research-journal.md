@@ -14646,3 +14646,101 @@ and over-aligned storage; extending that boundary requires differential tests.
 Explicit trap messages have a nonempty, readable NUL-terminated-string contract.
 Package disassembly preserves the numeric diagnostic payload, but a package
 cannot reconstruct original source text that was not stored in it.
+
+Post-validation integration with upstream (supersedes publication readiness above):
+The required final pull advanced upstream to c6815f5, bringing autocomplete/shared
+highlighting and the new Tower/import layer (04fa80b, 6da334b and their publication
+records). Rebased this implementation onto that main, preserving both sets of
+changes. Conflicts covered CMake composition, worker inputs/diagnostics, LLVM
+options, shared operation definitions and the append-only journal. CMake now
+imports the five new translator modules through the upstream module manifest;
+those files import Tower, and label/jump/trap IDs live in foundation-tags.tower.
+Workers retain project builtins, entry filenames and source maps while carrying
+the optimization option. No upstream feature or historical entry was removed.
+
+The upstream import-capable native bootstrap was an ignored artifact on another
+checkout and was not available here. Retrieved the exact already-published Tower
+reactors from gh-pages c69ffd5 into build/llvm-bc-upstream. An initial adapter used
+that Tower frontend to format imported programs and handed their canonical text
+to the frozen compiler; it hit the old compiler's 1,024-node limit on the expanded
+parser module. Rejected that bootstrap route. Instead, the published Tower LLVM
+and cross reactors compiled the module manifests to ordinary platform objects.
+The temporary Node wrapper only supplied explicit source files, options and
+output/dependency transport; import resolution, semantics, optimization and code
+generation ran in the existing published Tower compiler. No native import parser
+or new seed was introduced. Logs: llvm-bc-rebase-{native,browser}-build2.log.
+
+The resulting native compiler successfully ran tests/imports/main.tower through
+the new LLVM/cache path (41/42/true). Froze it at
+/cache/llvm-bc-module-bootstrap/towerc with its packaged resources, then rebuilt
+native plus all three browser reactors through that compiler using ordinary
+CMake import manifests and DEPFILE inputs. These native-built artifacts replace
+the temporary published-reactor bootstrap outputs. Logs: rebase-native-build3.log
+and rebase-browser-build3.log. Installed the upstream npm lockfile with npm ci.
+
+A semantic integration issue required separate CLI module environments for
+original input and reconstructed foundation. Preserve the original source
+snapshots for runtime diagnostics and dependency output, and compile generated
+foundation in the canonical module environment. Added eight native import/cache
+cases and a browser host test spanning both widths and optimization modes.
+They compare original imported effects, full diagnostics, transitive depfiles and
+package loading; all passed. The complete post-rebuild Node suite is 261/261.
+
+Broader native/WASI/Windows test builds exposed an upstream fixture conflict:
+syntax-replacements.tower still redeclared the old one-argument syntax_create,
+while frontend-modules.tower supplies the current two-argument API. Merely updating
+the prototype still duplicated the shared declaration. The fixture now imports
+that existing module and calls syntax_create(source, null). This is a test ABI
+repair; it does not add another declaration or change production semantics.
+Post-rebase validation, timing and publication results follow below. Earlier
+measurements and hashes remain reproducible pre-integration evidence, not a claim
+that they describe the newly rebuilt artifacts.
+
+Post-integration validation and test-reference boundaries:
+The full browser suite now passes 140/140 (desktop and mobile), including the
+upstream autocomplete, highlighting and import tests. Two highlighting assertions
+had assumed that post_increment would remain present in optimized output. O2
+inlines it; the checks now require the original name in source/core, and preserve
+compiler-derived type classes/colors in every generated view, including fast
+disassembly. The local deployment verifier checks all 48 assets and passes its
+desktop/mobile execution, downloads, persistence, completion and highlighting
+flows. Native differential coverage is 172 scalar/cache cases plus eight import
+cases; the existing 16 native LLVM execution comparisons and backend API pass.
+
+The frozen pre-port semantic reference has no module source maps. Importing Tower
+adds 6,291 bytes of dependency-source offsets to the semantics.tower fixture;
+semantic fields and graph edges otherwise agree. For that legacy oracle only,
+replace the fixture's leading import with equal-length spaces on both inputs,
+preserving exact snapshot, offset, execution and round-trip comparisons under the
+original Foundation baseline. Module source maps have separate current tests.
+The frozen formatter likewise drops import declarations. Its legacy fixtures
+still compare exact text and ordered span triples; the repository-wide scan now
+uses configured module filenames and canonical/idempotent formatting through the
+current shared engine. All 161 Tower files pass both that scan and check:format.
+
+Native fault injection then exposed a real module-integration regression:
+syntax_reset rebuilt its module graph before allocating the source snapshot.
+Failing the next allocation aborted in frontend_module_root instead of returning
+the established source-allocation diagnostic. A temporary SIGABRT/backtrace
+handler plus addr2line identified frontend_module_root -> syntax_reset ->
+compiler_storage_tests. Removed that instrumentation. The adapter now acquires
+the source snapshot first and rebuilds the owned module only on success; a later
+successful reset replaces the old graph even when the failed reset cleared its
+parser version. Configured filename changes still refresh snapshot provenance.
+The existing allocation-failure/recovery test now passes. This does not promise
+recoverable allocation failure throughout module construction, whose existing
+module_require boundary still aborts for other allocation failures.
+
+The independent native grammar-emission oracle also lacked ImportDeclaration in
+its document roots, declaration reachability and first-set roots. Added that
+public grammar root to all three places, retaining its independent algorithms
+and all tree/metadata/fault-injection comparisons. This explicitly updates the
+reference's feature boundary; it is not a claim that an untouched old emitter
+already understood imports.
+
+During diagnosis the Windows host disk reached zero free space, causing a
+separate host file-I/O error (530) and preventing a journal-helper write. Removed
+only this turn's ignored, reproducible build/llvm-bc-vendor.tar (1,041,807,360
+bytes); source, local changes and published artifacts were retained. Re-ran the
+affected checks with free space. Final validation and measurements below use
+reactors rebuilt after the parser-reset correction, not earlier binaries.

@@ -68,7 +68,7 @@ for (const [name, source, expected, failure] of cases) test(`LLVM matches interp
         tower.useFast(guest);
         let state, text='';
         do {state=tower.execute(guest,10000);text+=state.output;}while(state.status==='executing');
-        state=originalDiagnostic(state,formatted.spans);
+        state=originalDiagnostic(state,formatted.spans,formatted.sourceMap);
         for(const key of ['status','error','errorOffset','outputTruncated'])assert.equal(state[key],reference[key],`LLVM bytecode ${optimize} ${key}`);
         assert.equal(text,output,`LLVM bytecode ${optimize} output`);
         const packageBytes=tower.bytecode(guest,{optimizationProfile:optimized.optimizationProfile});
@@ -155,6 +155,29 @@ test('scalar idioms exercise LLVM intrinsic legalization with runtime inputs', {
     const result=llvm.compile(source,{emit:'foundation'});
     assert.equal(result.status,'compiled',name+': '+result.error);
     if(intrinsic)assert.ok(result.after.includes(intrinsic),name+' must exercise '+intrinsic);
+  }
+});
+
+test('LLVM bytecode preserves imported effects and original module diagnostics', {skip:!llvm},()=>{
+  for(const failing of [false,true])for(const width of [4,8])for(const optimize of [false,true]){
+    const source='import "helper"; print(answer());';
+    tower.configureModules({entry:'main.tower',files:[{path:'helper.tower',text:failing?
+      'import foundation;\nfn answer(): i32 {\nvar zero = 0;\nvar result = 42 / zero;\nreturn result;\n}':
+      'import foundation;\nfn answer(): i32 { return 42; }'}]});
+    const original=tower.compile(source,{pointerBytes:width});
+    try{
+      const formatted=tower.foundation(original);
+      const reference=tower.execute(original,100000);
+      const compiled=llvm.compile(formatted.source,{emit:'foundation',optimize,target:width===8?'wasm64-unknown-unknown':'wasm32-unknown-unknown'});
+      assert.equal(compiled.status,'compiled',compiled.error);
+      const guest=tower.compile(compiled.foundation,{pointerBytes:width});
+      try{
+        tower.useFast(guest);let result,output='';
+        do{result=tower.execute(guest,100000);output+=result.output;}while(result.status==='executing');
+        result=originalDiagnostic({...result,output},formatted.spans,formatted.sourceMap);
+        for(const key of ['status','output','error','errorOffset','errorFile'])assert.equal(result[key],reference[key],key);
+      }finally{tower.destroyExecution(guest);}
+    }finally{tower.destroyExecution(original);}
   }
 });
 

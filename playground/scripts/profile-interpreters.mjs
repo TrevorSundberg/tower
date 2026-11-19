@@ -1,8 +1,7 @@
 // Sampling is separate from timing: profiler overhead must not enter benchmarks.
 import {Session} from 'node:inspector';
 import {readFile,writeFile} from 'node:fs/promises';
-import {loadTower} from '../src/tower-host.mjs';
-import {loadLLVM} from '../src/llvm-host.mjs';
+import {loadTower, loadLLVM} from '../tests/compiler-fixtures.mjs';
 import assert from 'node:assert/strict';
 const root=new URL('../../',import.meta.url);
 const tower=await loadTower(await readFile(new URL(process.env.TOWER_PROFILE_REACTOR ?? 'build/browser-wasi/tower.wasm',root)),undefined,(await readFile(new URL('scaffolding/foundation.tower',root),'utf8')));

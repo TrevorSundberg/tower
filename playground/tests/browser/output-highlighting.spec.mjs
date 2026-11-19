@@ -9,7 +9,7 @@ test('real compilation highlights foundation, both LLVM forms and Wasm',async({p
   await page.goto('/');await expect(page.locator('#status')).toContainText('Complete');
   await selectDocument(page, 'functions.tower');
   await expect(page.locator('#execution-status')).toContainText('backends match');
-  for(const id of ['core-instructions','llvm-before','llvm-after','wasm-disassembly']) {
+  for(const id of ['core-instructions','fast-disassembly','llvm-before','llvm-after','wasm-disassembly']) {
     await page.locator('#'+id).scrollIntoViewIfNeeded();
     await expect(page.locator('#'+id+' .tw-keyword').first()).toBeVisible();
     expect((await outputText(page,id)).length).toBeGreaterThan(10);
@@ -22,11 +22,13 @@ test('source and Tower output use identical classes and colors for foundation to
   await selectDocument(page, 'increment.tower');
   await expect(page.locator('#execution-status')).toContainText('backends match');
   for (const root of ['#editor','#core-instructions','#fast-disassembly']) {
-    await expect(page.locator(root+' .tw-identifier').filter({hasText:/^post_increment$/}).first()).toBeAttached();
-    await expect(page.locator(root+' .tw-identifier').filter({hasText:/^i32$/}).first()).toBeAttached();
+    // O2 can inline post_increment and normalize internal scalar types. Both
+    // reconstructed and original type names still use the shared identifier style.
+    if(root!=='#fast-disassembly')await expect(page.locator(root+' .tw-identifier').filter({hasText:/^post_increment$/}).first()).toBeAttached();
+    await expect(page.locator(root+' .tw-identifier').filter({hasText:/^(i32|u32|i64|u64|u8|usize|bool|void)$/}).first()).toBeAttached();
   }
   const colors = await page.evaluate(() => ['#editor','#core-instructions','#fast-disassembly'].map(root => {
-    const identifier = [...document.querySelectorAll(root+' .tw-identifier')].find(el=>el.textContent==='i32');
+    const identifier = [...document.querySelectorAll(root+' .tw-identifier')].find(el=>/^(i32|u32|i64|u64|u8|usize|bool|void)$/.test(el.textContent));
     const keyword = [...document.querySelectorAll(root+' .tw-keyword')].find(el=>el.textContent==='fn');
     return [getComputedStyle(identifier).color,getComputedStyle(keyword).color];
   }));

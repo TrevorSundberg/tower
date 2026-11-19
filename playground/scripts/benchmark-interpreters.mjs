@@ -1,6 +1,5 @@
 import {readFile, writeFile} from 'node:fs/promises';
-import {loadTower} from '../src/tower-host.mjs';
-import {loadLLVM, executeWasm} from '../src/llvm-host.mjs';
+import {loadTower, loadLLVM, executeWasm} from '../tests/compiler-fixtures.mjs';
 import assert from 'node:assert/strict';
 import os from 'node:os';
 

@@ -154,11 +154,14 @@ void seed(Version& v, const Definitions& definitions) {
   auto* r = production(v, top); reference(r, "GrammarDeclaration");
   reference(production(v, top), "GrammarTokenDeclaration");
   reference(production(v, top), "GrammarSkipDeclaration");
+  // Keep the test oracle's public declaration roots in step with the module
+  // grammar; its independent emission/first-set algorithms remain unchanged.
+  reference(production(v, top), "ImportDeclaration");
   if (definitions.contains("Statement")) reference(production(v, top), "Statement");
   for (const auto& [name, alternatives] : definitions)
     for (size_t i = 0; i < alternatives.size(); ++i) emit(v, name, alternatives[i], i);
   std::set<std::string> visited;
-  std::vector<std::string> pending{"GrammarDeclaration", "GrammarTokenDeclaration", "GrammarSkipDeclaration"};
+  std::vector<std::string> pending{"GrammarDeclaration", "GrammarTokenDeclaration", "GrammarSkipDeclaration", "ImportDeclaration"};
   while (!pending.empty()) {
     auto name = std::move(pending.back()); pending.pop_back();
     if (!visited.insert(name).second || !definitions.contains(name)) continue;
@@ -187,7 +190,7 @@ void seed(Version& v, const Definitions& definitions) {
       if (empty && !nullable[name]) { nullable[name] = true; changed = true; }
     }
   } while (changed);
-  for (const auto* name : {"GrammarDeclaration", "GrammarTokenDeclaration", "GrammarSkipDeclaration"})
+  for (const auto* name : {"GrammarDeclaration", "GrammarTokenDeclaration", "GrammarSkipDeclaration", "ImportDeclaration"})
     v.declaration_starts.insert(first[name].begin(), first[name].end());
 }
 

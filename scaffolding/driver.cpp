@@ -142,6 +142,7 @@ int main(int argc, char** argv) {
   timings.mark("bootstrap");
   auto text = read(source);
   std::string runtime_source;
+  ModuleEnvironment* input_modules = nullptr;
   const auto report_error = [&](const std::string& error, size_t offset, const std::string* origin = nullptr) {
     const auto& diagnostic_source = origin ? *origin : text;
     size_t line = 1, column = 1;
@@ -154,7 +155,7 @@ int main(int argc, char** argv) {
 #else
     driver_source_position(diagnostic_source.data(), diagnostic_source.size(), offset, &line, &column);
 #endif
-    const auto* file = frontend_modules_location(syntax_modules, offset, &line, &column);
+    const auto* file = frontend_modules_location(origin && input_modules ? input_modules : syntax_modules, offset, &line, &column);
     std::cerr << (*file ? file : source.c_str()) << ':' << line << ':' << column << ": " << error << '\n';
   };
   unsigned packaged_width = 0;
@@ -189,6 +190,11 @@ int main(int argc, char** argv) {
     if (!error.empty()) { std::cerr << error << '\n'; return 1; }
     runtime_source = std::move(text);
     text = std::move(optimized_program.foundation);
+    // Generated foundation is a new compilation stage. Retain the original
+    // module snapshots for trap locations and dependency output.
+    input_modules = syntax_modules;
+    syntax_modules = frontend_modules_create();
+    frontend_modules_configure(syntax_modules, source.c_str(), root.string().c_str());
   }
   if (emit == "bytecode" || emit == "foundation") {
     auto width = packaged_width ? packaged_width : tower_target_pointer_bytes(target, error);
@@ -199,7 +205,7 @@ int main(int argc, char** argv) {
     if (fs::absolute(output).lexically_normal() == fs::absolute(source).lexically_normal()) {
       std::cerr << "Choose an output path different from the input\n"; return 1;
     }
-    if (!frontend_modules_depfile(syntax_modules, output.c_str(), depfile.c_str())) { std::cerr << "Cannot write dependency file: " << depfile << '\n'; return 1; }
+    if (!frontend_modules_depfile(input_modules ? input_modules : syntax_modules, output.c_str(), depfile.c_str())) { std::cerr << "Cannot write dependency file: " << depfile << '\n'; return 1; }
     if (emit == "foundation") {
       const auto foundation = core_format(program).source;
       return write(output, foundation.data(), foundation.size()) ? 0 : 1;
@@ -217,7 +223,7 @@ int main(int argc, char** argv) {
     auto width = packaged_width ? packaged_width : tower_target_pointer_bytes(target, error);
     if (!error.empty()) { std::cerr << error << '\n'; return 1; }
     CoreMachine machine(core_compile_foundation(text.c_str(), width));
-    if (!frontend_modules_depfile(syntax_modules, output.c_str(), depfile.c_str())) { std::cerr << "Cannot write dependency file: " << depfile << '\n'; return 1; }
+    if (!frontend_modules_depfile(input_modules ? input_modules : syntax_modules, output.c_str(), depfile.c_str())) { std::cerr << "Cannot write dependency file: " << depfile << '\n'; return 1; }
     timings.mark("compile");
 #ifndef TOWER_INTERPRETER_SEED
     if (fast) { machine.use_fast(); timings.mark("prepare"); }

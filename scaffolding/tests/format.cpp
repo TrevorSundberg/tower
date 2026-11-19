@@ -1,5 +1,6 @@
 #include "../core.hpp"
 #include "../compiler-format.hpp"
+#include "../compiler-frontend.hpp"
 #include <cassert>
 #include <algorithm>
 #include <cstdio>
@@ -41,8 +42,8 @@ void roundtrip(const std::string& input) {
 }
 
 void formatter_tests() {
-  // Every production call in this target also compares all ordered span triples
-  // and exact UTF-8 text with the independent pre-port C++ implementation.
+  // Legacy Foundation fixtures compare all ordered span triples and exact UTF-8
+  // text with the independent pre-port implementation, which predates imports.
   for (const auto& input : {
     "// before\nvar x:i32=1; // inline\n\n/* block */ fn f(a:i32*):i32{return *a;} // after\n",
     "parse Statement |= 'show' $x:CoreOperand ';' => replace { print($x); }; show 42;",
@@ -123,8 +124,16 @@ void formatter_tests() {
     tower_format_compare_reference(true);
   }
   size_t files = 0;
-  for (const auto& entry : std::filesystem::recursive_directory_iterator(std::filesystem::path(__FILE__).parent_path().parent_path())) {
+  const auto library = std::filesystem::path(__FILE__).parent_path().parent_path();
+  auto* previous_modules = syntax_modules;
+  syntax_modules = frontend_modules_create();
+  // Repository files use module constructs absent from the frozen reference.
+  // Still require exact canonical text and idempotence through the shared engine,
+  // with actual filenames so relative imports resolve against their own module.
+  tower_format_compare_reference(false);
+  for (const auto& entry : std::filesystem::recursive_directory_iterator(library)) {
     if (entry.path().extension() != ".tower") continue;
+    frontend_modules_configure(syntax_modules, entry.path().generic_string().c_str(), library.generic_string().c_str());
     const auto name = entry.path().filename().string();
     const int baseline = name == "bedrock.tower" ? 1 : name == "foundation.tower" ? 2 : 0;
     const auto input = read(entry.path());
@@ -133,5 +142,8 @@ void formatter_tests() {
     assert(source(formatted.source, baseline).source == formatted.source);
     ++files;
   }
-  printf("Formatter: exact reference text/spans, round trips, failure cleanup, %zu canonical files.\n", files);
+  tower_format_compare_reference(true);
+  frontend_modules_destroy(syntax_modules);
+  syntax_modules = previous_modules;
+  printf("Formatter: legacy reference text/spans, module round trips, failure cleanup, %zu canonical files.\n", files);
 }

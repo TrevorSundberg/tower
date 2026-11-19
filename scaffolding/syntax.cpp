@@ -943,12 +943,18 @@ SyntaxSession* syntax_create_bedrock(const char* source) {
 
 void syntax_reset(SyntaxSession* session, const char* source, FrontendModule* module) {
   if (module) session->module = module;
-  if (session->owns_module && session->version) {
-    frontend_module_destroy(session->module);
-    session->module = frontend_module_root(source, syntax_modules);
-  }
-  const bool source_ready = set_source(*session, source,
+  // Preserve the recoverable source-allocation boundary before module rebuilding.
+  // A failed reset clears version, but the next successful reset must still
+  // replace the old module graph rather than reuse its recorded declarations.
+  const bool replace_module = session->owns_module && session->source_info;
+  bool source_ready = set_source(*session, source,
     session->module ? frontend_module_name(session->module) : session->building_bedrock ? "bedrock.tower" : session->bootstrapping ? "foundation.tower" : "this file");
+  if (source_ready && replace_module) {
+    frontend_module_destroy(session->module);
+    session->module = frontend_module_root(session->source_info->text.c_str(), syntax_modules);
+    const auto* name = frontend_module_name(session->module);
+    if (session->source_info->name.view() != name) source_ready = set_source(*session, session->source, name);
+  }
   session->cursor = session->revision = session->error_offset = 0;
   session->error_insertion = false;
 #ifdef TOWER_EXPANSION_SEED
