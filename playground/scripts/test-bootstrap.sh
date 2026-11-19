@@ -38,8 +38,8 @@ if sys.argv[1] == 'interpreter': allowed |= {
     'im_pointer_bytes', 'im_root', 'sem_get',
     'semantic_alignment', 'semantic_mask', 'semantic_signed', 'semantic_size'}
 if sys.argv[1] == 'host': allowed |= {
-    'compiler_host_reallocate', 'compiler_host_deallocate', 'tower_allocate',
-    'bytes_reserve', 'bytes_push', 'bytes_append', 'bytes_dispose', 'abort', 'tower_utf8_validate',
+    'compiler_host_reallocate', 'compiler_host_deallocate', 'tower_allocate', 'abort',
+    'bytes_reserve', 'bytes_push', 'bytes_append', 'bytes_dispose', 'tower_utf8_validate',
     'fopen', 'fread', 'fwrite', 'ferror', 'feof', 'fclose'}
 if sys.argv[1] == 'entities': allowed |= {
     'compiler_entity_store', 'abort',
@@ -64,14 +64,14 @@ if sys.argv[1] == 'parser-nodes': allowed |= {
     'compiler_parse_match', 'parse_forest_leaf', 'parse_forest_join',
     'parse_forest_attach', 'parse_forest_take', 'bytes_assign_text', 'bytes_append'}
 if sys.argv[1] == 'parser-nodes': allowed |= {
-    'core_component_type', 'semantic_builtin_name', 'semantic_operator',
-    'semantic_scalar_name', 'semantic_signed', 'semantic_mask'}
+    'core_component_type', 'semantic_builtin_name', 'semantic_operator', 'semantic_scalar_name',
+    'semantic_signed', 'semantic_mask'}
 if sys.argv[1] == 'semantics': allowed |= {
-    'tower_allocate', 'tower_trap', 'sem_match', 'abort', 'core_component_type',
+    'tower_allocate', 'tower_trap', 'sem_match', 'core_component_type', 'abort',
     'entity_component_get', 'entity_component_data', 'entity_component_add', 'entity_register',
-    'entity_attach', 'entity_release', 'entity_child_at', 'entity_child_count', 'entity_parent',
-    'entity_member_index', 'tower_node_create', 'foundation_node_init', 'syntax_identifier_decode_in_place',
-    'generic_begin', 'generic_error', 'generic_register',
+    'tower_node_create', 'entity_attach', 'entity_release', 'entity_child_at',
+    'entity_child_count', 'entity_parent', 'entity_member_index', 'foundation_node_init',
+    'syntax_identifier_decode_in_place', 'generic_begin', 'generic_error', 'generic_register',
     'generic_parameter_count', 'generic_type_parameter', 'generic_instantiate',
     'generic_lookup', 'generic_type_result', 'generic_origin',
     'foundation_name_append', 'foundation_nodes_prepend'}

@@ -12940,3 +12940,22 @@ host/interpreter/semantics cases can run without repeating the 16 unchanged pass
 The default still tests all seven components. First commit attempt found no Git
 identity configured; used the existing repository identity `Codex <codex@openai.com>`
 via command-local flags, without changing the user's global Git configuration.
+
+Final synchronization correction: upstream advanced to `dfdf95b` (shared-runtime
+cutover) and gh-pages advanced to `79f8128` during the next pull. Rebased both host
+commits onto it, preserving the complete upstream journal and host allocation tests.
+The journal append was the only conflict. Stopped a validation container that had
+started before the rebase completed, then restarted validation on the combined
+source. The previously staged browser files are not published over the newer site.
+Task 3 now supplies `TowerSharedRuntime.cmake`, explicit semantic-component APIs,
+GuestHeap and output helpers; its recorded backend/lifecycle/startup blockers still
+prevent replacing runtime.c. This supersedes the earlier statement that no runtime
+fragment is available: a partial shared-runtime fragment is now integrated, but
+there is still no complete target runtime/startup successor.
+
+Reviewed the changed external symbol contracts and updated bootstrap audits to
+match: host diagnostic allocation imports abort; interpreter/formatter call shared
+Tower semantic queries instead of the retired native query bridges; semantic code
+uses explicit entity/component access and retained core-component registration.
+Removed the retired query symbols from allowlists rather than broadly accepting
+unknown dependencies. Repeat the affected comparisons against the combined tree.
