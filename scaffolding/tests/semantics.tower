@@ -1,0 +1,59 @@
+// Forward module bindings and effects retain source order.
+later = 0;
+var result = twice(later);
+var later: i32 = 21;
+print(result);
+print(twice(later));
+
+fn twice(value: i32): i32 {
+    var doubled = value + value;
+    return doubled;
+}
+
+// Layout is explicit for the selected pointer width.
+struct Record {
+    tag: u8;
+    pointer: i32*;
+    values: i32[3];
+}
+
+var record: Record;
+record.tag = 7;
+record.values[2] = 42;
+print(record.tag);
+print(record.values[2]);
+print(sizeof(Record));
+print(alignof(Record));
+
+// Type constructors preserve nominal instance identity and recursive pointers.
+fn box(T: type): type {
+    struct Box {
+        value: T;
+        next: Box*;
+    }
+    return Box;
+}
+
+fn identity(T: type, value: T): T {
+    return value;
+}
+
+var item: box(i32);
+item.value = identity(i32, 42);
+item.next = null;
+print(item.value);
+
+// Lexical scopes, early returns, loop control and signed literal bounds.
+fn choose(value: i32): i32 {
+    loop {
+        var positive = value > 0;
+        if positive {
+            return value;
+        }
+        break;
+    }
+    return -2147483648;
+}
+
+print(choose(3));
+print(choose(0));

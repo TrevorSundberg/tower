@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "syntax.hpp"
 #include "format.hpp"
 #include "foundation-values.hpp"
@@ -14,10 +14,7 @@ struct CoreType {
   unsigned pointers = 0;
   TowerNode* record = nullptr; // nominal struct identity; owned by the program
   unsigned pointer_bytes = 4; // explicit compilation target, never compiler-host sizeof
-  bool operator==(const CoreType& b) const {
-    return scalar == b.scalar && pointers == b.pointers && record == b.record &&
-      (!(pointers || scalar == CoreScalar::USize) || pointer_bytes == b.pointer_bytes);
-  }
+  bool operator==(const CoreType& b) const;
 };
 enum class CoreOp { Add, Sub, Mul, Div, Rem, And, Or, Xor, Eq, Ne, Lt, Le, Gt, Ge };
 enum class CoreKind {

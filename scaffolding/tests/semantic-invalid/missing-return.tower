@@ -1,0 +1,5 @@
+fn maybe(condition: bool): i32 {
+    if condition {
+        return 42;
+    }
+}

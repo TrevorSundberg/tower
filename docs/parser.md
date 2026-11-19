@@ -325,9 +325,10 @@ execute Tower code, resolve bindings or provide hygienic generated identifiers. 
 example introduces no fresh local names. General transformation handlers and
 shortcut composition remain later work.
 
-The small typed core in `scaffolding/core.cpp` now consumes expanded trees,
-resolves scoped locals, type-checks operations and lowers structured control flow
-to branches. `scaffolding/foundation.tower` supplies its grammar; `Core*` labels and named
+The semantic compiler in `scaffolding/compiler/semantic-*.tower` consumes expanded
+trees through the `scaffolding/core.cpp` loading adapter, resolves scoped locals,
+type-checks operations and validates structured control flow. The existing backends
+lower those shared nodes to execution or branches. `scaffolding/foundation.tower` supplies its grammar; `Core*` labels and named
 captures form the bootstrap semantic ABI. The playground's Execution example
 adds an `increment` replacement and executes the resulting foundation program.
 Functions, typed parameters, calls, returns and structs also use those shared

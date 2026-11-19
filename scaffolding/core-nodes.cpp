@@ -1,22 +1,24 @@
-﻿#include "core.hpp"
+#include "core.hpp"
 #include <cassert>
 #include "compiler-foundation.hpp"
+#include "compiler-semantic.hpp"
+#include "compiler-syntax-reader.hpp"
+#include <cstring>
+#include <cstdio>
 #include <new>
 #include <utility>
-#include <set>
 
 const std::vector<CoreBuiltin>& core_builtins() {
-  static const std::vector<CoreBuiltin> definitions{
-    {"print", CoreKind::Print, 1}, {"alloc", CoreKind::Allocate, 2}, {"realloc", CoreKind::Reallocate, 3},
-    {"free", CoreKind::Free, 1}, {"copy", CoreKind::Copy, 3}, {"fill", CoreKind::Fill, 3},
-    {"sizeof", CoreKind::SizeOf, 1}, {"alignof", CoreKind::AlignOf, 1},
-    {"convert", CoreKind::Convert, 2}, {"bits", CoreKind::Bits, 2}
-  };
+  static const auto definitions = [] {
+    std::vector<CoreBuiltin> result;
+    for (size_t i = 0; auto kind = semantic_builtin_at(i); ++i)
+      result.push_back({semantic_builtin_name(kind), CoreKind(kind), semantic_builtin_arity(kind)});
+    return result;
+  }();
   return definitions;
 }
 const char* core_builtin_name(CoreKind kind) {
-  for (const auto& definition : core_builtins()) if (definition.kind == kind) return definition.name;
-  return nullptr;
+  return semantic_builtin_name(unsigned(kind));
 }
 
 TowerNode* core_component_type() { static auto* type = tower_node_create(); return type; }
@@ -36,16 +38,14 @@ CoreNode& core_attach(TowerNode* n, CoreKind kind) {
 }
 TowerNode* core_binding(TowerNode* n) { return core_node(n).binding ? core_node(n).binding : n; }
 CoreProgram::CoreProgram(unsigned width) : pointer_bytes(width) {
-  root = tower_node_create(); auto& n = core_attach(root, CoreKind::Program);
-  n.type = {CoreScalar::Void}; functions.push_back(root);
-  for (auto kind : {CoreScalar::I32, CoreScalar::U32, CoreScalar::Bool, CoreScalar::Void,
-       CoreScalar::U8, CoreScalar::I64, CoreScalar::U64, CoreScalar::USize}) {
-    auto* entity = tower_node_create(); tower_node_attach(entity, root);
-    auto& t = core_attach(entity, CoreKind::Type); t.type = {kind, 0, nullptr, width}; t.name = core_type_name(t.type);
-    t.size = core_type_size(t.type); t.alignment = core_type_alignment(t.type);
-    types.push_back(entity); tower_node_release_ref(entity);
-  }
+  root = tower_node_create();
+  SemanticProgram view{};
+  semantic_initialize(&view, root, width);
+  functions.assign(view.functions.begin(), view.functions.end());
+  types.assign(view.types.begin(), view.types.end());
+  semantic_program_dispose(&view);
 }
+
 CoreProgram::~CoreProgram() { if (root) tower_node_release_ref(root); }
 CoreProgram::CoreProgram(CoreProgram&& other) noexcept : pointer_bytes(other.pointer_bytes), root(std::exchange(other.root, nullptr)),
   functions(std::move(other.functions)), types(std::move(other.types)), error(std::move(other.error)), error_offset(other.error_offset) {}
@@ -58,45 +58,56 @@ CoreProgram& CoreProgram::operator=(CoreProgram&& other) noexcept {
   }
   return *this;
 }
-std::string core_type_name(CoreType type) {
-  const char* names[] = {"i32", "u32", "bool", "void", "", "u8", "i64", "u64", "usize"};
-  std::string name;
-  if (type.scalar == CoreScalar::Array) { auto& a = core_node(type.record); name = core_type_name(a.element) + "[" + std::to_string(a.length) + "]"; }
-  else name = type.scalar == CoreScalar::Struct ? core_node(type.record).name : std::string(names[size_t(type.scalar)]);
-  return name + std::string(type.pointers, '*');
+bool CoreType::operator==(const CoreType& other) const { return semantic_type_equal(this, &other); }
+std::string core_type_name(CoreType t) {
+  TowerByteBuffer text{}; semantic_format_type(&t, &text);
+  std::string result(reinterpret_cast<const char*>(text.data), text.length);
+  bytes_dispose(&text); return result;
 }
-bool core_aggregate(CoreType t) { return !t.pointers && (t.scalar == CoreScalar::Struct || t.scalar == CoreScalar::Array); }
-size_t core_type_size(CoreType t) {
-  if (t.pointers || t.scalar == CoreScalar::USize) return t.pointer_bytes;
-  if (core_aggregate(t)) return core_node(t.record).size;
-  return t.scalar == CoreScalar::Void ? 0 : t.scalar == CoreScalar::Bool || t.scalar == CoreScalar::U8 ? 1 :
-    t.scalar == CoreScalar::I64 || t.scalar == CoreScalar::U64 ? 8 : 4;
-}
-size_t core_type_alignment(CoreType t) {
-  if (t.pointers || t.scalar == CoreScalar::USize) return t.pointer_bytes;
-  if (core_aggregate(t)) return core_node(t.record).alignment;
-  return std::max(size_t(1), core_type_size(t));
-}
-bool core_integer(CoreType t) { return !t.pointers && (t.scalar == CoreScalar::I32 || t.scalar == CoreScalar::U32 || t.scalar == CoreScalar::U8 || t.scalar == CoreScalar::I64 || t.scalar == CoreScalar::U64 || t.scalar == CoreScalar::USize); }
-bool core_signed(CoreType t) { return !t.pointers && (t.scalar == CoreScalar::I32 || t.scalar == CoreScalar::I64); }
-unsigned core_width(CoreType t) { return unsigned(core_type_size(t) * 8); }
-uint64_t core_mask(CoreType t) { unsigned width = core_width(t); return width == 64 ? UINT64_MAX : (uint64_t(1) << width) - 1; }
+bool core_aggregate(CoreType t) { return semantic_aggregate(&t); }
+size_t core_type_size(CoreType t) { return semantic_size(&t); }
+size_t core_type_alignment(CoreType t) { return semantic_alignment(&t); }
+bool core_integer(CoreType t) { return semantic_integer(&t); }
+bool core_signed(CoreType t) { return semantic_signed(&t); }
+unsigned core_width(CoreType t) { return semantic_width(&t); }
+uint64_t core_mask(CoreType t) { return semantic_mask(&t); }
 std::string core_number(uint64_t bits, CoreType t) {
-  bits &= core_mask(t);
-  if (core_signed(t) && (bits & (uint64_t(1) << (core_width(t) - 1))))
-    return "-" + std::to_string((uint64_t(0) - bits) & core_mask(t));
-  return std::to_string(bits);
+  TowerByteBuffer text{}; semantic_format_number(bits, &t, &text);
+  std::string result(reinterpret_cast<const char*>(text.data), text.length);
+  bytes_dispose(&text); return result;
 }
 std::string core_place_name(TowerNode* node) {
   auto& n = core_node(node);
   return n.kind == CoreKind::Field ? core_place_name(n.left) + "." + n.name :
     n.kind == CoreKind::Index ? core_place_name(n.left) + "[]" : core_node(core_binding(node)).name;
 }
-const char* core_operator(CoreOp op) {
-  constexpr const char* names[] = {"+","-","*","/","%","&","|","^","==","!=","<","<=",">",">="};
-  return names[size_t(op)];
-}
+const char* core_operator(CoreOp op) { return semantic_operator(unsigned(op)); }
 
 CoreText core_format(const CoreProgram& program) {
   return program.error.empty() ? tower_format(program.root) : CoreText{};
+}
+
+// Mechanical access to existing entities and payloads. No semantic decisions.
+extern "C" {
+CoreNode* sem_get(TowerNode* n) { return core_get(n); }
+CoreNode* sem_attach(TowerNode* n, unsigned kind) { return &core_attach(n, CoreKind(kind)); }
+TowerNode* sem_create(TowerNode* parent) {
+  auto* n = tower_node_create(); tower_node_attach(n, parent); tower_node_release_ref(n); return n;
+}
+void* sem_match(TowerNode* n) { return n ? tower_node_get_component_userdata(n, parser_match_get_type()) : nullptr; }
+TowerNode* sem_child(TowerNode* n, size_t i) { return n ? tower_node_get_child(n, i) : nullptr; }
+size_t sem_child_count(TowerNode* n) { return n ? tower_node_get_child_count(n) : 0; }
+TowerNode* sem_parent(TowerNode* n) { return tower_node_get_parent(n); }
+TowerNode* sem_member(TowerNode* n, const char* name) { return n ? tower_node_get_child_member(n, name) : nullptr; }
+void sem_decode_identifier(char* text) {
+  const auto length = syntax_identifier_decode_in_place(text, std::strlen(text)); text[length] = 0;
+}
+void sem_require(bool ok) { if (!ok) std::abort(); }
+}
+
+// The semantic compiler is ordinary Tower code: a violated internal arithmetic
+// contract is a compiler bug, not a recoverable source diagnostic.
+extern "C" [[noreturn]] void tower_trap(const char* message, size_t offset) {
+  std::fprintf(stderr, "Tower compiler trap at %zu: %s\n", offset, message);
+  std::abort();
 }

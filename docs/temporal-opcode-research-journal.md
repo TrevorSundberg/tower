@@ -12172,3 +12172,153 @@ target defaults and equal columns passed. Log:
 build/tower-only-audit-deployment.log. Compiler suites/performance benchmarks were
 not rerun for this documentation/remote-ref-only turn. Final remote inspection
 again showed only main and gh-pages. Unrelated working notes remain unstaged.
+## 2026-11-19 — Semantic compiler migration into Tower (implementation trial)
+
+Task source: `/home/deck/Share/prompt.txt`, requested for this compiler checkout.
+Starting revision: `235cdbee0811e665846cb176dbb05f8f5bd2c136`, initially clean.
+Saved the existing native compiler and browser reactor under ignored
+`build/semantic-port/{towerc-before,tower-before.wasm}` and recorded the unchanged
+`todo.txt` checksum there before editing. The native toolchain runs in the existing
+`tower_build` Docker image (LLVM 19); cached build trees are mounted at
+`/tmp/tower-home/.cache/tower`. Host Node is v21.7.3.
+
+The semantic port uses `FoundationNode`/`FoundationType` directly, retaining field
+layout and operation numbering. New `semantic-*.tower` modules own binding,
+inference, type constructors, template integration, layouts, operand/call checking,
+flow analysis, and diagnostics. Scratch hash tables index existing entities;
+resolved data remains on the existing components. Scratch strings/types/lists are
+compilation-owned and released together. Local lifetime indexes retain the former
+lexical name order even though lookup now uses a hash table. Type equality uses
+nominal record identity with the original explicit target-width rules.
+
+`core.cpp` retains parser session loading, grammar setup, ownership, and result
+marshalling. `core-nodes.cpp` retains component access and native query adapters;
+semantic queries delegate to Tower. No interpreter, formatter, LLVM, parser, or
+replacement algorithm changes are intended. CoreMachine declarations are untouched.
+For clean-checkout bootstrapping, the starting semantic code is isolated in
+`bootstrap/core-seed.cpp` and `bootstrap/core-nodes-seed.cpp`; production targets
+no longer use it. This is a transitional bootstrap/reference, not yet its retirement:
+removing the last seed requires a validated portable compiler distribution.
+
+The first translation was lowered into instruction-like Foundation source using
+an ignored, one-off development script, not a checked-in language or build
+requirement. Initial compile trials caught Bedrock's reserved `expected` token and
+Foundation's `fn` token used as local identifiers; renamed those identifiers.
+A second trial caught quoted type arguments to vector disposal; corrected them.
+The resulting Tower module compiled with the saved compiler. Linking exposed a
+new `tower_trap` runtime dependency from ordinary checked arithmetic/conversions;
+added the mechanical host trap adapter beside the other semantic boundary
+adapters. A trap here indicates an internal compiler contract violation, while
+source diagnostics remain ordinary semantic results.
+
+Build registration is kept separately in CMake. The semantic object reuses the
+existing Foundation and parser component declarations verbatim; implementations
+remain in the existing component object. This temporary composition avoids
+inventing imports or another semantic model. Native seed/stage1 remain acyclic;
+final native, Wasm and test targets link the Tower semantic object. Validation is
+in progress; the entries below record actual results and corrections.
+
+Initial differential validation passed sanitizer CTest 4/4, then the expanded
+native suite passed 4/4 in 20.06 s. The new suite compares every semantic field
+and edge (deterministic traversal IDs, for testing only), canonical Foundation,
+execution results, and exact error strings/offsets against the frozen pass for
+both 4-byte and 8-byte target pointers. The separate saved compiler is retained
+for independently checking type-query behavior and emitted artifacts.
+
+A new cross-backend fixture initially read a forward-bound global before its
+initializer. Interpreter output began with `0`, LLVM output with `42`. Repeating
+with `tower-llvm-before.wasm` gave the same `42`: this predates the port. The
+Foundation contract explicitly excludes uninitialized reads from portable
+results (`docs/foundation.md`, module binding and memory sections). Corrected the
+fixture to assign the forward-bound storage before reading it, retaining a later
+initializer to test source-order effects. No LLVM or interpreter change was made.
+The fixture now tests defined behavior rather than allocator contents.
+
+Bootstrap validation passed all **20/20** optimized-LLVM and object comparisons:
+UTF-8, byte buffers, entities, parser components, and semantic compiler, each for
+Linux x64, Wasm32, Windows x64 and macOS ARM64. Command:
+`bash playground/scripts/test-bootstrap.sh` in the same Docker environment;
+log `build/semantic-port/bootstrap.log`. This includes recompiling the semantic
+compiler with the Tower semantic pass and comparing to the native reference.
+Object agreement is not a claim of Windows/macOS execution.
+
+The first full Node run passed 220/221 tests; its sole failure was the new sources
+not yet matching canonical formatting. Applied the existing formatter to the 14
+new Tower module/fixture files and reran the formatting suite: 6/6 passed. The
+new interpreter/LLVM fixture tests passed 2/2 after the undefined-read correction.
+Final builds use the saved production `build/semantic-port/towerc-after` as
+`TOWER_BOOTSTRAP_COMPILER`, so Tower semantics itself compiles the modules linked
+into native tests, the portable Wasm reactor, and both LLVM reactors. Initial
+Docker commands accidentally created root-owned native cache outputs; restored
+that task cache to UID/GID 1000 and used `--user 1000:1000` thereafter. CMake is
+available inside the build image, not on the SteamOS host.
+
+Reproducible compiler benchmarks (startup/execution excluded) use:
+
+- `python3 playground/scripts/benchmark-semantics.py build/semantic-port/towerc-before /tmp/tower-home/.cache/tower/native/towerc`
+  inside the build image, with the checkout and cache mounts above. Native results
+  are in `build/semantic-port/native-comparison.json`: two warmups, nine alternating
+  samples, median compile phase from `--timings` for each compiler.
+- `node playground/scripts/benchmark-semantics.mjs build/semantic-port/tower-before.wasm build/browser-wasi/tower.wasm`
+  on the host. Results are in `build/semantic-port/wasm-comparison.json`: ten warmups,
+  31 alternating samples, median `tower.compile` wall time. A preliminary run
+  overlapped other checks and showed noisy tiering/scheduling effects; discarded
+  it and increased warmup/sampling for the isolated run recorded here.
+
+| Compiler / fixture / pointer bytes | Before ms | After ms | After/before |
+| --- | ---: | ---: | ---: |
+| Native structs / 4 | 17.882 | 19.093 | 1.068 |
+| Native structs / 8 | 15.794 | 16.363 | 1.036 |
+| Native semantics / 4 | 17.505 | 16.367 | 0.935 |
+| Native semantics / 8 | 16.111 | 15.701 | 0.975 |
+| Wasm structs / 4 | 7.437 | 7.600 | 1.022 |
+| Wasm structs / 8 | 7.406 | 7.479 | 1.010 |
+| Wasm semantics / 4 | 8.064 | 8.237 | 1.021 |
+| Wasm semantics / 8 | 8.050 | 8.169 | 1.015 |
+| Wasm vector / 4 | 9.237 | 9.349 | 1.012 |
+| Wasm vector / 8 | 6.614 | 6.588 | 0.996 |
+
+These are small local fixtures on a shared desktop, not an optimization guarantee
+or an exhaustive performance characterization. Each benchmark also compares the
+execution outputs. The native command's processes include fresh grammar startup,
+but that phase is excluded from the measured compile phase; Wasm reuses the
+loaded compiler with warmed grammar caches. Do not compare their absolute times
+as equivalent harnesses.
+
+Final validation on the formatted implementation:
+
+- Sanitizer CTest **4/4 passed**, 16.44 s (`asan-final.log`), including the expanded
+  semantic graph/diagnostic differential suite and corrected defined-behavior
+  forward-binding fixture.
+- Full Node suite **221/221 passed**, zero skips, 46.54 s (`node-final.log`), using
+  freshly rebuilt interpreter and LLVM Wasm reactors compiled by the Tower
+  semantic compiler. This includes canonical formatting and interpreter/LLVM
+  execution, invalid programs, forward bindings, layouts and templates.
+- Re-composed the final semantic source with `cmake/ComposeSemanticSources.cmake`
+  inside Docker and compiled it with both saved before/after native compilers.
+  Optimized LLVM and object bytes matched on all four targets again
+  (`fixed-point.log`, `final-*-{before,after}.{ll,o}`). The full 20-comparison
+  bootstrap suite and this final four-target fixed point are distinct checks.
+- `git diff --check` and the initial `todo.txt` SHA-256 check pass. Build outputs,
+  compiler snapshots, benchmark JSON and logs remain in ignored
+  `build/semantic-port/`; no binary Tower interchange format was introduced.
+
+Implemented production semantic algorithms have been removed from the active
+native core. Remaining native semantic sources are explicitly isolated bootstrap
+and reference implementations; retiring them is deferred until a portable
+compiler distribution can replace clean-build bootstrap. The host parser and
+query adapters, full interpreted compiler-host bindings, and other separately
+owned ports remain integration work, not completed claims of this migration.
+Native Windows/macOS execution was not performed. Next work should retire these
+adapters alongside the corresponding entity/parser host integration and measure
+larger compiler workloads before attempting semantic-pass performance tuning.
+
+Integration review kept the semantic object an explicit dependency of compiler
+and semantic-test targets, rather than making the parser component library depend
+on semantic adapters. This preserves the parser-only component boundary and avoids
+adding unresolved semantic host symbols to legacy consumers. Reconfigured native,
+Wasm and LLVM targets successfully (no binary relink was needed for the dependency
+clarification), and repeated sanitizer CTest: 4/4 passed in 15.72 s. The final
+native compiler also executed `tests/semantics.tower` successfully with the expected
+64-bit layout output. Semantic work and CMake/bootstrap registration are committed
+separately; no remote publication is part of this task.

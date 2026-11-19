@@ -1,0 +1,278 @@
+// Shared semantic spellings and arities, consumed through the existing native queries.
+// Numeric tags retain the CoreKind/CoreOp/CoreScalar ABI in core.hpp. They are
+// component tags, not a public instruction encoding; coordinate any renumbering.
+export fn semantic_scalar_name(scalar: u32): u8* {
+    var selected0 = scalar == 0;
+    if selected0 {
+        return "i32";
+    }
+    var selected1 = scalar == 1;
+    if selected1 {
+        return "u32";
+    }
+    var selected2 = scalar == 2;
+    if selected2 {
+        return "bool";
+    }
+    var selected3 = scalar == 3;
+    if selected3 {
+        return "void";
+    }
+    var selected4 = scalar == 4;
+    if selected4 {
+        return "";
+    }
+    var selected5 = scalar == 5;
+    if selected5 {
+        return "u8";
+    }
+    var selected6 = scalar == 6;
+    if selected6 {
+        return "i64";
+    }
+    var selected7 = scalar == 7;
+    if selected7 {
+        return "u64";
+    }
+    var selected8 = scalar == 8;
+    if selected8 {
+        return "usize";
+    }
+    return "";
+}
+
+export fn semantic_operator(op: u32): u8* {
+    var selected0 = op == 0;
+    if selected0 {
+        return "+";
+    }
+    var selected1 = op == 1;
+    if selected1 {
+        return "-";
+    }
+    var selected2 = op == 2;
+    if selected2 {
+        return "*";
+    }
+    var selected3 = op == 3;
+    if selected3 {
+        return "/";
+    }
+    var selected4 = op == 4;
+    if selected4 {
+        return "%";
+    }
+    var selected5 = op == 5;
+    if selected5 {
+        return "&";
+    }
+    var selected6 = op == 6;
+    if selected6 {
+        return "|";
+    }
+    var selected7 = op == 7;
+    if selected7 {
+        return "^";
+    }
+    var selected8 = op == 8;
+    if selected8 {
+        return "==";
+    }
+    var selected9 = op == 9;
+    if selected9 {
+        return "!=";
+    }
+    var selected10 = op == 10;
+    if selected10 {
+        return "<";
+    }
+    var selected11 = op == 11;
+    if selected11 {
+        return "<=";
+    }
+    var selected12 = op == 12;
+    if selected12 {
+        return ">";
+    }
+    var selected13 = op == 13;
+    if selected13 {
+        return ">=";
+    }
+    return "";
+}
+
+export fn semantic_builtin_name(kind: u32): u8* {
+    var selected17 = kind == 17;
+    if selected17 {
+        return "print";
+    }
+    var selected26 = kind == 26;
+    if selected26 {
+        return "alloc";
+    }
+    var selected27 = kind == 27;
+    if selected27 {
+        return "realloc";
+    }
+    var selected28 = kind == 28;
+    if selected28 {
+        return "free";
+    }
+    var selected29 = kind == 29;
+    if selected29 {
+        return "copy";
+    }
+    var selected30 = kind == 30;
+    if selected30 {
+        return "fill";
+    }
+    var selected24 = kind == 24;
+    if selected24 {
+        return "sizeof";
+    }
+    var selected25 = kind == 25;
+    if selected25 {
+        return "alignof";
+    }
+    var selected9 = kind == 9;
+    if selected9 {
+        return "convert";
+    }
+    var selected10 = kind == 10;
+    if selected10 {
+        return "bits";
+    }
+    return null;
+}
+
+export fn semantic_builtin_arity(kind: u32): usize {
+    var selected17 = kind == 17;
+    if selected17 {
+        return 1;
+    }
+    var selected26 = kind == 26;
+    if selected26 {
+        return 2;
+    }
+    var selected27 = kind == 27;
+    if selected27 {
+        return 3;
+    }
+    var selected28 = kind == 28;
+    if selected28 {
+        return 1;
+    }
+    var selected29 = kind == 29;
+    if selected29 {
+        return 3;
+    }
+    var selected30 = kind == 30;
+    if selected30 {
+        return 3;
+    }
+    var selected24 = kind == 24;
+    if selected24 {
+        return 1;
+    }
+    var selected25 = kind == 25;
+    if selected25 {
+        return 1;
+    }
+    var selected9 = kind == 9;
+    if selected9 {
+        return 2;
+    }
+    var selected10 = kind == 10;
+    if selected10 {
+        return 2;
+    }
+    return 0;
+}
+
+export fn semantic_builtin_kind(name: u8*): u32 {
+    var selectedprint = sem_equal(name, "print");
+    if selectedprint {
+        return 17;
+    }
+    var selectedalloc = sem_equal(name, "alloc");
+    if selectedalloc {
+        return 26;
+    }
+    var selectedrealloc = sem_equal(name, "realloc");
+    if selectedrealloc {
+        return 27;
+    }
+    var selectedfree = sem_equal(name, "free");
+    if selectedfree {
+        return 28;
+    }
+    var selectedcopy = sem_equal(name, "copy");
+    if selectedcopy {
+        return 29;
+    }
+    var selectedfill = sem_equal(name, "fill");
+    if selectedfill {
+        return 30;
+    }
+    var selectedsizeof = sem_equal(name, "sizeof");
+    if selectedsizeof {
+        return 24;
+    }
+    var selectedalignof = sem_equal(name, "alignof");
+    if selectedalignof {
+        return 25;
+    }
+    var selectedconvert = sem_equal(name, "convert");
+    if selectedconvert {
+        return 9;
+    }
+    var selectedbits = sem_equal(name, "bits");
+    if selectedbits {
+        return 10;
+    }
+    return 0;
+}
+
+export fn semantic_builtin_at(index: usize): u32 {
+    var selected0 = index == 0;
+    if selected0 {
+        return 17;
+    }
+    var selected1 = index == 1;
+    if selected1 {
+        return 26;
+    }
+    var selected2 = index == 2;
+    if selected2 {
+        return 27;
+    }
+    var selected3 = index == 3;
+    if selected3 {
+        return 28;
+    }
+    var selected4 = index == 4;
+    if selected4 {
+        return 29;
+    }
+    var selected5 = index == 5;
+    if selected5 {
+        return 30;
+    }
+    var selected6 = index == 6;
+    if selected6 {
+        return 24;
+    }
+    var selected7 = index == 7;
+    if selected7 {
+        return 25;
+    }
+    var selected8 = index == 8;
+    if selected8 {
+        return 9;
+    }
+    var selected9 = index == 9;
+    if selected9 {
+        return 10;
+    }
+    return 0;
+}

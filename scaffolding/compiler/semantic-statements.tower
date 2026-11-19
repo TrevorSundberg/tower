@@ -1,0 +1,922 @@
+// Semantic compiler over shared Foundation components.
+// Temporary indexes and scratch allocations are scoped to one compilation.
+
+fn sem_header(c: SemanticContext*, n: void*, name: u8*, definition: void*): void {
+    var step1 = sem_is(n, "CoreExternal");
+    var external: bool = step1;
+    var step2 = sem_shape(c, n, "name");
+    var step3 = step2 == false;
+    var step4 = step3;
+    var step5 = step4 == false;
+    if step5 {
+        var step6 = sem_shape(c, n, "type");
+        var step7 = step6 == false;
+        step4 = step7;
+    }
+    var step8 = step4 == false;
+    if step8 {
+        var step9 = external == false;
+        var step10 = step9;
+        if step10 {
+            var step11 = sem_shape(c, n, "body");
+            var step12 = step11 == false;
+            step10 = step12;
+        }
+        step4 = step10;
+    }
+    if step4 {
+        return;
+    }
+    var step13 = sem_node(c, n, 1);
+    var function_node: FoundationNode* = step13;
+    var step14 = name[0] == 0;
+    if step14 {
+        var step15 = sem_member(n, "name");
+        var step16 = sem_identifier(c, step15);
+        name = step16;
+    }
+    sem_set_name(function_node, name);
+    var step17 = sem_member(n, "type");
+    var step18 = sem_type(c, step17);
+    sem_set_type(&function_node.type, step18);
+    var step19 = semantic_builtin_kind(name);
+    var step20 = step19 != 0;
+    if step20 {
+        var step21 = sem_cat(c, "Function name '", name);
+        var step22 = sem_cat(c, step21, "' already names a foundation builtin");
+        sem_fail(c, n, step22);
+    }
+    function_node.external = external;
+    var step23 = sem_is(n, "CoreExport");
+    function_node.exported = step23;
+    var step24 = semantic_aggregate(&function_node.type);
+    if step24 {
+        sem_fail(c, n, "Struct returns require a pointer; by-value returns are not implemented");
+    }
+    var step25 = name[0] == 0;
+    var step26 = step25;
+    var step27 = step26 == false;
+    if step27 {
+        var step28 = sem_lookup_table(c.functions, name);
+        var step29 = step28 != null;
+        step26 = step29;
+    }
+    var step30 = step26 == false;
+    if step30 {
+        var step31 = sem_lookup_table(c.templates, name);
+        var step32 = step31 != null;
+        step26 = step32;
+    }
+    var step33 = step26 == false;
+    if step33 {
+        var step34 = sem_lookup_table(c.type_functions, name);
+        var step35 = step34 != null;
+        step26 = step35;
+    }
+    if step26 {
+        var step36 = sem_cat(c, "Missing or duplicate function '", name);
+        var step37 = sem_cat(c, step36, "'");
+        sem_fail(c, n, step37);
+        return;
+    }
+    function_node.index = c.program.functions.length;
+    sem_put(c, c.functions, name, n);
+    sem_push(&c.program.functions, n);
+    var step38 = sem_table(c);
+    var names: SemanticTable* = step38;
+    var step39 = sem_member(n, "params");
+    var step40 = sem_collect(c, step39, "CoreParameter");
+    var params: vector(void*)* = step40;
+    var i: usize = 0;
+    loop {
+        var step41 = i < params.length;
+        var step42 = step41 == false;
+        if step42 {
+            break;
+        }
+        var p: void* = params.data[i];
+        var index: usize = i;
+        i = i + 1;
+        var step43 = definition != null;
+        var step44 = step43;
+        if step44 {
+            var step45 = generic_type_parameter(c.generics, definition, index);
+            step44 = step45;
+        }
+        if step44 {
+            continue;
+        }
+        var step46 = sem_shape(c, p, "name");
+        var step47 = step46 == false;
+        var step48 = step47;
+        var step49 = step48 == false;
+        if step49 {
+            var step50 = sem_shape(c, p, "type");
+            var step51 = step50 == false;
+            step48 = step51;
+        }
+        if step48 {
+            return;
+        }
+        var step52 = sem_node(c, p, 2);
+        var param: FoundationNode* = step52;
+        var step53 = sem_member(p, "name");
+        var step54 = sem_identifier(c, step53);
+        var pname: u8* = step54;
+        sem_set_name(param, pname);
+        var step55 = sem_member(p, "type");
+        var step56 = sem_type(c, step55);
+        sem_set_type(&param.type, step56);
+        var step57 = param.type.pointers == 0;
+        var step58 = step57;
+        if step58 {
+            var step59 = param.type.scalar == 3;
+            step58 = step59;
+        }
+        var step60 = step58;
+        var step61 = step60 == false;
+        if step61 {
+            var step62 = pname[0] == 0;
+            step60 = step62;
+        }
+        var step63 = step60 == false;
+        if step63 {
+            var step64 = sem_put(c, names, pname, p);
+            var step65 = step64 == false;
+            step60 = step65;
+        }
+        if step60 {
+            sem_fail(c, p, "Invalid or duplicate function parameter");
+        }
+        var step66 = semantic_aggregate(&param.type);
+        if step66 {
+            sem_fail(c, p, "Struct parameters require a pointer; by-value arguments are not implemented");
+        }
+        var saved: void* = c.current;
+        c.current = n;
+        sem_add_local(c, p);
+        c.current = saved;
+        sem_push(&function_node.parameters, p);
+    }
+    var step67 = function_node.parameters.length > 64;
+    if step67 {
+        sem_fail(c, n, "Foundation parameter limit is 64");
+    }
+}
+
+fn sem_scope(c: SemanticContext*, parent: SemanticScope*): SemanticScope* {
+    var step1 = sizeof(SemanticScope);
+    var step2 = sem_allocate(c, step1);
+    var step3 = bits(SemanticScope*, step2);
+    var scope: SemanticScope* = step3;
+    scope.parent = parent;
+    var step4 = sem_table(c);
+    scope.names = step4;
+    return scope;
+}
+
+fn sem_text_less(a: u8*, b: u8*): bool {
+    var i: usize = 0;
+    loop {
+        var step1 = a[i] == b[i];
+        var step2 = step1;
+        if step2 {
+            var step3 = a[i] != 0;
+            step2 = step3;
+        }
+        var step4 = step2 == false;
+        if step4 {
+            break;
+        }
+        i = i + 1;
+    }
+    var step5 = a[i] < b[i];
+    return step5;
+}
+
+fn sem_scope_locals(scope: SemanticScope*, locals: vector(void*)*): void {
+    var i: usize = 0;
+    loop {
+        var step1 = i < scope.names.capacity;
+        var step2 = step1 == false;
+        if step2 {
+            break;
+        }
+        var entry: SemanticEntry* = scope.names.entries[i];
+        var step3 = entry != null;
+        var step4 = step3;
+        if step4 {
+            var step5 = entry.value != null;
+            step4 = step5;
+        }
+        if step4 {
+            sem_push(locals, entry.value);
+        }
+        i = i + 1;
+    }
+    i = 1;
+    loop {
+        var step6 = i < locals.length;
+        var step7 = step6 == false;
+        if step7 {
+            break;
+        }
+        var value: void* = locals.data[i];
+        var j: usize = i;
+        loop {
+            var step8 = j != 0;
+            var step9 = step8;
+            if step9 {
+                var step10 = sem_get(value);
+                var step11 = sem_name(step10);
+                var step12 = j - 1;
+                var step13 = sem_get(locals.data[step12]);
+                var step14 = sem_name(step13);
+                var step15 = sem_text_less(step11, step14);
+                step9 = step15;
+            }
+            var step16 = step9 == false;
+            if step16 {
+                break;
+            }
+            var step17 = j - 1;
+            locals.data[j] = locals.data[step17];
+            j = j - 1;
+        }
+        locals.data[j] = value;
+        i = i + 1;
+    }
+}
+
+fn sem_block(c: SemanticContext*, n: void*, depth: u32): u32 {
+    var step1 = n == null;
+    var step2 = step1;
+    var step3 = step2 == false;
+    if step3 {
+        var step4 = sem_is(n, "CoreBlock");
+        var step5 = step4 == false;
+        step2 = step5;
+    }
+    if step2 {
+        sem_fail(c, n, "Expected a CoreBlock tree");
+        return 1;
+    }
+    var step6 = sem_node(c, n, 12);
+    var value: FoundationNode* = step6;
+    var step7 = sem_scope(c, c.scope);
+    c.scope = step7;
+    var flow: u32 = 1;
+    var i: usize = 0;
+    loop {
+        var step8 = sem_child_count(n);
+        var step9 = i < step8;
+        var step10 = step9;
+        if step10 {
+            var step11 = sem_ok(c);
+            step10 = step11;
+        }
+        var step12 = step10 == false;
+        if step12 {
+            break;
+        }
+        var step13 = sem_child(n, i);
+        var at: void* = step13;
+        var step14 = sem_is(at, "Statement");
+        if step14 {
+            var step15 = sem_unwrap(at);
+            at = step15;
+            var step16 = depth + 1;
+            var step17 = sem_statement(c, at, step16);
+            var next: u32 = step17;
+            var step18 = sem_is(at, "CoreCallStatement");
+            if step18 {
+                var step19 = sem_member(at, "call");
+                at = step19;
+            }
+            sem_push(&value.items, at);
+            var step20 = flow & 1;
+            var step21 = step20 != 0;
+            if step21 {
+                var step22 = flow & 4294967294;
+                var step23 = step22 | next;
+                flow = step23;
+            }
+        } else {
+            var step24 = sem_is(at, "{");
+            var step25 = step24 == false;
+            var step26 = step25;
+            if step26 {
+                var step27 = sem_is(at, "}");
+                var step28 = step27 == false;
+                step26 = step28;
+            }
+            if step26 {
+                sem_fail(c, at, "Malformed CoreBlock tree");
+            }
+        }
+        i = i + 1;
+    }
+    sem_scope_locals(c.scope, &value.locals);
+    c.scope = c.scope.parent;
+    return flow;
+}
+
+fn sem_statement(c: SemanticContext*, n: void*, depth: u32): u32 {
+    var step1 = depth > 128;
+    if step1 {
+        sem_fail(c, n, "Foundation block nesting limit is 128");
+        return 1;
+    }
+    var step2 = sem_ok(c);
+    var step3 = step2 == false;
+    if step3 {
+        return 1;
+    }
+    var step4 = sem_label(n);
+    var kind: u8* = step4;
+    var step5 = sem_equal(kind, "CoreDeclare");
+    if step5 {
+        var step6 = sem_shape(c, n, "name");
+        var step7 = step6 == false;
+        if step7 {
+            return 1;
+        }
+        var step8 = sem_node(c, n, 3);
+        var value: FoundationNode* = step8;
+        var step9 = sem_member(n, "name");
+        var step10 = sem_identifier(c, step9);
+        var name: u8* = step10;
+        sem_set_name(value, name);
+        var step11 = name[0] == 0;
+        var step12 = step11;
+        var step13 = step12 == false;
+        if step13 {
+            var step14 = value.global == false;
+            var step15 = step14;
+            if step15 {
+                var step16 = sem_lookup_table(c.scope.names, name);
+                var step17 = step16 != null;
+                step15 = step17;
+            }
+            step12 = step15;
+        }
+        if step12 {
+            var step18 = sem_cat(c, "Missing or duplicate local '", name);
+            var step19 = sem_cat(c, step18, "'");
+            sem_fail(c, n, step19);
+            return 1;
+        }
+        var step20 = value.global == false;
+        if step20 {
+            sem_put(c, c.scope.names, name, n);
+        }
+        var step21 = sem_declaration_type(c, n);
+        var step22 = step21 == false;
+        if step22 {
+            return 1;
+        }
+        var step23 = value.global == false;
+        if step23 {
+            sem_add_local(c, n);
+        }
+        var step24 = sem_member(n, "value");
+        var initial: void* = step24;
+        var step25 = initial != null;
+        var step26 = step25;
+        if step26 {
+            var step27 = value.value == null;
+            step26 = step27;
+        }
+        if step26 {
+            var step28 = sem_expression(c, initial, &value.type);
+            value.value = step28;
+        }
+    } else {
+        var step29 = sem_equal(kind, "CoreAssign");
+        if step29 {
+            var step30 = sem_shape(c, n, "target");
+            var step31 = step30 == false;
+            var step32 = step31;
+            var step33 = step32 == false;
+            if step33 {
+                var step34 = sem_shape(c, n, "value");
+                var step35 = step34 == false;
+                step32 = step35;
+            }
+            var step36 = step32 == false;
+            if step36 {
+                var step37 = sem_member(n, "target");
+                var step38 = sem_shape(c, step37, "name");
+                var step39 = step38 == false;
+                step32 = step39;
+            }
+            if step32 {
+                return 1;
+            }
+            var step40 = sem_node(c, n, 4);
+            var value: FoundationNode* = step40;
+            var step41 = sem_member(n, "target");
+            var target: void* = step41;
+            var step42 = sem_member(target, "name");
+            var step43 = sem_location(c, step42, 0);
+            value.target = step43;
+            var step44 = sem_ok(c);
+            var step45 = step44 == false;
+            if step45 {
+                return 1;
+            }
+            var step46 = sem_get(value.target);
+            var step47 = sem_type_copy(c, &step46.type);
+            var expected_type: FoundationType* = step47;
+            var step48 = sem_child(target, 0);
+            var step49 = sem_tokens(c, step48);
+            var step50 = sem_equal(step49, "*");
+            if step50 {
+                var step51 = sem_node(c, target, 8);
+                var dest: FoundationNode* = step51;
+                dest.value = value.target;
+                var step52 = expected_type.pointers == 0;
+                if step52 {
+                    sem_fail(c, target, "Store requires a pointer");
+                } else {
+                    expected_type.pointers = expected_type.pointers - 1;
+                }
+                sem_set_type(&dest.type, expected_type);
+                value.target = target;
+            }
+            var step53 = semantic_aggregate(expected_type);
+            if step53 {
+                sem_fail(c, target, "Struct values require field access or a pointer; aggregate copies are not implemented");
+            }
+            var step54 = sem_member(n, "value");
+            var step55 = sem_expression(c, step54, expected_type);
+            value.value = step55;
+        } else {
+            var step56 = sem_equal(kind, "CoreCallStatement");
+            if step56 {
+                var step57 = sem_member(n, "call");
+                sem_call(c, step57);
+            } else {
+                var step58 = sem_equal(kind, "CoreReturn");
+                if step58 {
+                    var step59 = sem_node(c, n, 18);
+                    var value: FoundationNode* = step59;
+                    var step60 = sem_member(n, "value");
+                    var returned: void* = step60;
+                    var step61 = sem_tokens(c, returned);
+                    var step62 = sem_length(step61);
+                    var step63 = step62 != 0;
+                    var present: bool = step63;
+                    var step64 = sem_get(c.current);
+                    var function: FoundationNode* = step64;
+                    var step65 = function.type.pointers == 0;
+                    var step66 = step65;
+                    if step66 {
+                        var step67 = function.type.scalar == 3;
+                        step66 = step67;
+                    }
+                    if step66 {
+                        if present {
+                            sem_fail(c, n, "A void function cannot return a value");
+                        }
+                    } else {
+                        var step68 = present == false;
+                        if step68 {
+                            sem_fail(c, n, "A non-void function must return a value");
+                        } else {
+                            var step69 = sem_collect(c, returned, "CoreOperand");
+                            var operands: vector(void*)* = step69;
+                            var step70 = operands.length != 1;
+                            if step70 {
+                                sem_fail(c, n, "A return value must contain one Foundation operand");
+                            } else {
+                                var step71 = sem_operand(c, operands.data[0], &function.type);
+                                value.value = step71;
+                            }
+                        }
+                    }
+                    return 8;
+                } else {
+                    var step72 = sem_function_syntax(n);
+                    if step72 {
+                        sem_fail(c, n, "Functions must be declared at top level");
+                    } else {
+                        var step73 = sem_equal(kind, "CoreStruct");
+                        if step73 {
+                            sem_fail(c, n, "Struct types must be declared at top level");
+                        } else {
+                            var step74 = sem_equal(kind, "CoreBlock");
+                            if step74 {
+                                var step75 = sem_block(c, n, depth);
+                                return step75;
+                            } else {
+                                var step76 = sem_equal(kind, "CoreIf");
+                                if step76 {
+                                    var step77 = sem_shape(c, n, "condition");
+                                    var step78 = step77 == false;
+                                    var step79 = step78;
+                                    var step80 = step79 == false;
+                                    if step80 {
+                                        var step81 = sem_shape(c, n, "body");
+                                        var step82 = step81 == false;
+                                        step79 = step82;
+                                    }
+                                    if step79 {
+                                        return 1;
+                                    }
+                                    var step83 = sem_node(c, n, 13);
+                                    var value: FoundationNode* = step83;
+                                    var step84 = sem_member(n, "condition");
+                                    var step85 = sem_type_new(c, 2, 0, null);
+                                    var step86 = sem_operand(c, step84, step85);
+                                    value.value = step86;
+                                    var step87 = sem_member(n, "body");
+                                    value.body = step87;
+                                    var step88 = sem_block(c, value.body, depth);
+                                    var yes: u32 = step88;
+                                    var no: u32 = 1;
+                                    var step89 = sem_member(n, "otherwise");
+                                    value.otherwise = step89;
+                                    var step90 = value.otherwise != null;
+                                    if step90 {
+                                        var step91 = sem_block(c, value.otherwise, depth);
+                                        no = step91;
+                                    }
+                                    var step92 = sem_get(value.value);
+                                    var condition: FoundationNode* = step92;
+                                    var step93 = condition != null;
+                                    var step94 = step93;
+                                    if step94 {
+                                        step94 = condition.constant;
+                                    }
+                                    if step94 {
+                                        var step95 = condition.bits != 0;
+                                        if step95 {
+                                            return yes;
+                                        }
+                                        return no;
+                                    }
+                                    var step96 = yes | no;
+                                    return step96;
+                                } else {
+                                    var step97 = sem_equal(kind, "CoreLoop");
+                                    if step97 {
+                                        var step98 = sem_node(c, n, 14);
+                                        var value: FoundationNode* = step98;
+                                        var step99 = sem_member(n, "body");
+                                        value.body = step99;
+                                        c.loops = c.loops + 1;
+                                        var step100 = sem_block(c, value.body, depth);
+                                        var flow: u32 = step100;
+                                        c.loops = c.loops - 1;
+                                        var step101 = flow & 8;
+                                        var result: u32 = step101;
+                                        var step102 = flow & 2;
+                                        var step103 = step102 != 0;
+                                        if step103 {
+                                            var step104 = result | 1;
+                                            result = step104;
+                                        }
+                                        return result;
+                                    } else {
+                                        var step105 = sem_equal(kind, "CoreBreak");
+                                        var step106 = step105;
+                                        var step107 = step106 == false;
+                                        if step107 {
+                                            var step108 = sem_equal(kind, "CoreContinue");
+                                            step106 = step108;
+                                        }
+                                        if step106 {
+                                            var op: u32 = 16;
+                                            var result: u32 = 4;
+                                            var step109 = sem_equal(kind, "CoreBreak");
+                                            if step109 {
+                                                op = 15;
+                                                result = 2;
+                                            }
+                                            sem_node(c, n, op);
+                                            var step110 = c.loops == 0;
+                                            if step110 {
+                                                var step111 = sem_cat(c, kind, " requires an enclosing loop");
+                                                sem_fail(c, n, step111);
+                                            }
+                                            return result;
+                                        } else {
+                                            var step112 = sem_cat(c, "No execution semantics for '", kind);
+                                            var step113 = sem_cat(c, step112, "'; replace it with a foundation operation");
+                                            sem_fail(c, n, step113);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return 1;
+}
+
+fn sem_function_syntax(n: void*): bool {
+    var step1 = sem_is(n, "CoreFunction");
+    var step2 = step1;
+    var step3 = step2 == false;
+    if step3 {
+        var step4 = sem_is(n, "CoreExternal");
+        step2 = step4;
+    }
+    var step5 = step2 == false;
+    if step5 {
+        var step6 = sem_is(n, "CoreExport");
+        step2 = step6;
+    }
+    return step2;
+}
+
+fn sem_run(c: SemanticContext*): void {
+    var step1 = sem_get(c.program.root);
+    var statements: vector(void*)* = &step1.items;
+    var i: usize = 0;
+    loop {
+        var step2 = i < statements.length;
+        var step3 = step2 == false;
+        if step3 {
+            break;
+        }
+        var n: void* = statements.data[i];
+        var step4 = sem_member(n, "name");
+        var name: void* = step4;
+        var step5 = name != null;
+        if step5 {
+            var step6 = sem_identifier(c, name);
+            sem_put(c, c.source_names, step6, n);
+        }
+        var step7 = sem_ok(c);
+        var step8 = step7;
+        if step8 {
+            var step9 = sem_function_syntax(n);
+            step8 = step9;
+        }
+        if step8 {
+            sem_register_template(c, n);
+        }
+        i = i + 1;
+    }
+    i = 0;
+    var count: usize = 0;
+    loop {
+        var step10 = i < statements.length;
+        var step11 = step10 == false;
+        if step11 {
+            break;
+        }
+        var n: void* = statements.data[i];
+        var step12 = sem_has(&c.template_nodes, n);
+        var step13 = step12 == false;
+        if step13 {
+            statements.data[count] = n;
+            count = count + 1;
+        }
+        i = i + 1;
+    }
+    statements.length = count;
+    i = 0;
+    loop {
+        var step14 = i < statements.length;
+        var step15 = step14;
+        if step15 {
+            var step16 = sem_ok(c);
+            step15 = step16;
+        }
+        var step17 = step15 == false;
+        if step17 {
+            break;
+        }
+        var n: void* = statements.data[i];
+        var step18 = sem_is(n, "CoreStruct");
+        if step18 {
+            sem_type_header(c, n, "");
+        }
+        i = i + 1;
+    }
+    i = 8;
+    loop {
+        var step19 = i < c.program.types.length;
+        var step20 = step19;
+        if step20 {
+            var step21 = sem_ok(c);
+            step20 = step21;
+        }
+        var step22 = step20 == false;
+        if step22 {
+            break;
+        }
+        var n: void* = c.program.types.data[i];
+        var step23 = sem_get(n);
+        var step24 = step23.type.scalar == 4;
+        if step24 {
+            sem_type_fields(c, n);
+        }
+        i = i + 1;
+    }
+    i = 8;
+    loop {
+        var step25 = i < c.program.types.length;
+        var step26 = step25;
+        if step26 {
+            var step27 = sem_ok(c);
+            step26 = step27;
+        }
+        var step28 = step26 == false;
+        if step28 {
+            break;
+        }
+        sem_layout(c, c.program.types.data[i], 0);
+        i = i + 1;
+    }
+    i = 0;
+    loop {
+        var step29 = i < statements.length;
+        var step30 = step29;
+        if step30 {
+            var step31 = sem_ok(c);
+            step30 = step31;
+        }
+        var step32 = step30 == false;
+        if step32 {
+            break;
+        }
+        var n: void* = statements.data[i];
+        var step33 = sem_function_syntax(n);
+        if step33 {
+            sem_header(c, n, "", null);
+        }
+        i = i + 1;
+    }
+    i = 0;
+    loop {
+        var step34 = i < statements.length;
+        var step35 = step34;
+        if step35 {
+            var step36 = sem_ok(c);
+            step35 = step36;
+        }
+        var step37 = step35 == false;
+        if step37 {
+            break;
+        }
+        var n: void* = statements.data[i];
+        var step38 = sem_is(n, "CoreDeclare");
+        if step38 {
+            var step39 = sem_shape(c, n, "name");
+            var step40 = step39 == false;
+            if step40 {
+                break;
+            }
+            var step41 = sem_node(c, n, 3);
+            var value: FoundationNode* = step41;
+            value.global = true;
+            var step42 = sem_member(n, "name");
+            var step43 = sem_identifier(c, step42);
+            var name: u8* = step43;
+            sem_set_name(value, name);
+            var step44 = sem_put(c, c.globals, name, n);
+            var step45 = step44 == false;
+            if step45 {
+                var step46 = sem_cat(c, "Duplicate module variable '", name);
+                var step47 = sem_cat(c, step46, "'");
+                sem_fail(c, n, step47);
+                break;
+            }
+        }
+        i = i + 1;
+    }
+    i = 0;
+    loop {
+        var step48 = i < statements.length;
+        var step49 = step48;
+        if step49 {
+            var step50 = sem_ok(c);
+            step49 = step50;
+        }
+        var step51 = step49 == false;
+        if step51 {
+            break;
+        }
+        var n: void* = statements.data[i];
+        var step52 = sem_is(n, "CoreDeclare");
+        if step52 {
+            var step53 = sem_declaration_type(c, n);
+            var step54 = step53 == false;
+            if step54 {
+                break;
+            }
+            sem_add_local(c, n);
+        }
+        i = i + 1;
+    }
+    i = 0;
+    loop {
+        var step55 = i < statements.length;
+        var step56 = step55 == false;
+        if step56 {
+            break;
+        }
+        var n: void* = statements.data[i];
+        var step57 = sem_function_syntax(n);
+        var step58 = step57 == false;
+        var step59 = step58;
+        if step59 {
+            var step60 = sem_is(n, "CoreStruct");
+            var step61 = step60 == false;
+            step59 = step61;
+        }
+        if step59 {
+            sem_statement(c, n, 0);
+            var step62 = sem_is(n, "CoreCallStatement");
+            if step62 {
+                var step63 = sem_member(n, "call");
+                statements.data[i] = step63;
+            }
+        }
+        i = i + 1;
+    }
+    i = 1;
+    loop {
+        var step64 = i < c.program.functions.length;
+        var step65 = step64;
+        if step65 {
+            var step66 = sem_ok(c);
+            step65 = step66;
+        }
+        var step67 = step65 == false;
+        if step67 {
+            break;
+        }
+        var n: void* = c.program.functions.data[i];
+        var step68 = sem_get(n);
+        var function_node: FoundationNode* = step68;
+        c.current = n;
+        i = i + 1;
+        if function_node.external {
+            continue;
+        }
+        var step69 = sem_scope(c, null);
+        c.scope = step69;
+        c.loops = 0;
+        var j: usize = 0;
+        loop {
+            var step70 = j < function_node.parameters.length;
+            var step71 = step70 == false;
+            if step71 {
+                break;
+            }
+            var p: void* = function_node.parameters.data[j];
+            var step72 = sem_get(p);
+            var step73 = sem_name(step72);
+            sem_put(c, c.scope.names, step73, p);
+            j = j + 1;
+        }
+        var step74 = sem_member(n, "body");
+        function_node.body = step74;
+        var step75 = sem_block(c, function_node.body, 0);
+        var flow: u32 = step75;
+        var step76 = function_node.type.pointers != 0;
+        var step77 = step76;
+        var step78 = step77 == false;
+        if step78 {
+            var step79 = function_node.type.scalar != 3;
+            step77 = step79;
+        }
+        var step80 = step77;
+        if step80 {
+            var step81 = flow & 1;
+            var step82 = step81 != 0;
+            step80 = step82;
+        }
+        if step80 {
+            var step83 = sem_name(function_node);
+            var step84 = sem_cat(c, "Function '", step83);
+            var step85 = sem_cat(c, step84, "' can finish without returning a value");
+            sem_fail(c, n, step85);
+        }
+    }
+    i = 8;
+    loop {
+        var step86 = i < c.program.types.length;
+        var step87 = step86;
+        if step87 {
+            var step88 = sem_ok(c);
+            step87 = step88;
+        }
+        var step89 = step87 == false;
+        if step89 {
+            break;
+        }
+        sem_layout(c, c.program.types.data[i], 0);
+        i = i + 1;
+    }
+    var step90 = foundation_nodes_prepend(statements, c.generated.data, c.generated.length);
+    sem_require(step90);
+}

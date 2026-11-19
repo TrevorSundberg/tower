@@ -22,7 +22,9 @@ std::string structure(TowerNode* node) {
 }
 }
 
+void semantic_port_tests();
 void core_tests() {
+  semantic_port_tests();
   std::ifstream file("foundation.tower", std::ios::binary); assert(file);
   std::ostringstream text; text << file.rdbuf(); const auto grammar = text.str();
   core_set_foundation(grammar);

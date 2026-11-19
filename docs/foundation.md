@@ -442,10 +442,12 @@ combined compiler/runtime model, not its completion.
 discovery, instance lookup/publication, binding lookup, syntax cloning and the
 bounded type-function evaluator. It is compiled together with the existing
 Entity store and parser forest. Definitions, instances and origin information
-are components on those actual entities. C++ still supplies semantic checking,
-name/type resolution, target layouts and narrow access to its remaining payloads.
-The nongeneric bootstrap seed compiles this pass but cannot itself instantiate
-templates. No duplicate C++ specializer is maintained.
+are components on those actual entities. The `semantic-*.tower` modules now supply
+semantic checking, name/type resolution and target layouts; C++ retains parser
+loading and narrow component/query adapters.
+The nongeneric bootstrap seed compiles `generics.tower` but cannot itself
+instantiate templates. Stage1 can then build the semantic modules. No duplicate
+C++ specializer is maintained.
 
 Within a compilation/target, the same definition and semantic type arguments
 reuse the same instance. Distinct nominal types remain distinct. Recursive
@@ -730,4 +732,44 @@ ownership transfer into the same entities. Its temporary arena is a derived
 parsing work structure, not an authoritative alternative tree. Concatenation is
 O(1), and fragments are flattened once. CMake composes the two Tower sources in
 declaration order until module imports exist. LR table construction, recognizer
-control, semantic checking and formatting still have C++ implementations to port.
+control and formatting retain native integration. Semantic checking now runs in
+Tower; the native semantic implementation remains only as a bootstrap/reference.
+
+
+## Semantic compiler implementation
+
+`scaffolding/compiler/semantic-*.tower` implements the semantic pass over the
+existing expanded parser entities. `semantic-types.tower` resolves module and
+local bindings, inference, types, target layouts and type constructors;
+`semantic-values.tower` checks locations, operands, operations and calls;
+`semantic-statements.tower` handles function headers, lexical scopes, control
+flow and ordered module passes. `semantic-support.tower` supplies type queries,
+diagnostics and temporary indexes. Definitions, context and lifetime management
+live in the other three modules.
+
+Resolved results are the same `FoundationNode` and `FoundationType` components
+consumed by interpretation, formatting and LLVM. Node layouts, kind/operator IDs,
+public C++ queries, source ordering, diagnostic offsets and nominal type identity
+are preserved. Hash tables and temporary lists contain indexes into those entities;
+there is no additional authoritative tree or program format. Foundation source
+remains the interchange format. Temporary native adapters in `core.cpp`,
+`core-nodes.cpp` and `compiler-semantic.hpp` load parser sessions, expose components,
+and marshal the existing query interfaces.
+
+CMake compiles these ordinary Tower modules to the compiler host's target. No
+project-language generator is needed to build them. Imports remain future work;
+composition reuses the original component declarations verbatim. The frozen
+`bootstrap/core-seed.cpp` and `bootstrap/core-nodes-seed.cpp` are used only by the
+transitional seed/stage1 compiler and reference tests. Production native and Wasm
+compilers use the Tower implementation. Retiring those bootstrap sources still
+requires the portable compiler distribution; this change does not claim complete
+compiler self-hosting or a fully interpreted parser/host integration.
+
+The native semantic differential suite compares fields, bindings, layout, order,
+effects and lifetime indexes against the reference pass for both pointer widths.
+The Tower fixtures in `scaffolding/tests/semantics.tower` and `semantic-invalid/`
+exercise valid and invalid programs; browser tests compare interpretation, LLVM,
+and canonical Foundation round trips. `test-bootstrap.sh` compares optimized LLVM
+and object bytes for the semantic compiler itself across four targets. The
+`benchmark-semantics.py` and `.mjs` scripts accept saved before/after compilers and
+report native and Wasm compilation medians, excluding startup/execution time.

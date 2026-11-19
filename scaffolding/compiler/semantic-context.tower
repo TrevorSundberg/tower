@@ -1,0 +1,117 @@
+// Transitional native boundary uses these exact layouts. Semantic results live
+// on FoundationNode components; lists below are derived indexes, never an IR.
+struct SemanticProgram {
+    pointer_bytes: u32;
+    root: void*;
+    functions: vector(void*);
+    types: vector(void*);
+    error: vector(u8);
+    error_offset: usize;
+}
+
+struct SemanticEntry {
+    text: u8*;
+    entity: void*;
+    value: void*;
+    number: usize;
+}
+
+struct SemanticTable {
+    entries: SemanticEntry**;
+    capacity: usize;
+    count: usize;
+}
+
+struct SemanticScope {
+    parent: SemanticScope*;
+    names: SemanticTable*;
+}
+
+struct SemanticContext {
+    program: SemanticProgram*;
+    current: void*;
+    count: usize;
+    loops: usize;
+    value_depth: u32;
+    type_depth: u32;
+    generics: void*;
+    source: u8*;
+    functions: SemanticTable*;
+    types: SemanticTable*;
+    globals: SemanticTable*;
+    templates: SemanticTable*;
+    type_functions: SemanticTable*;
+    type_results: SemanticTable*;
+    source_names: SemanticTable*;
+    source_bases: SemanticTable*;
+    fields_done: SemanticTable*;
+    layout_state: SemanticTable*;
+    declaration_state: SemanticTable*;
+    scope: SemanticScope*;
+    type_arguments: vector(void*);
+    constant_arguments: vector(void*);
+    generated: vector(void*);
+    template_nodes: vector(void*);
+    inferring: vector(void*);
+    allocations: vector(void*);
+    lists: vector(void*);
+}
+
+// Accessors only: adapters neither resolve nor validate semantic operations.
+extern fn sem_get(node: void*): FoundationNode*;
+
+extern fn sem_attach(node: void*, kind: u32): FoundationNode*;
+
+extern fn sem_create(parent: void*): void*;
+
+extern fn sem_match(node: void*): ParserMatchData*;
+
+extern fn sem_child(node: void*, index: usize): void*;
+
+extern fn sem_child_count(node: void*): usize;
+
+extern fn sem_parent(node: void*): void*;
+
+extern fn sem_member(node: void*, name: u8*): void*;
+
+extern fn sem_decode_identifier(text: u8*): void;
+
+extern fn sem_require(ok: bool): void;
+
+extern fn generic_begin(root: void*): void*;
+
+extern fn generic_error(context: void*): u8*;
+
+extern fn generic_register(context: void*, definition: void*): u32;
+
+extern fn generic_parameter_count(context: void*, definition: void*): usize;
+
+extern fn generic_type_parameter(context: void*, definition: void*, index: usize): bool;
+
+extern fn generic_instantiate(context: void*, definition: void*, use: void*, arguments: void**, count: usize): void*;
+
+extern fn generic_lookup(context: void*, node: void*, name: void*): void*;
+
+extern fn generic_type_result(context: void*, instance: void*): void*;
+
+extern fn generic_origin(context: void*, node: void*): void*;
+
+fn sem_label(node: void*): u8* {
+    var match = sem_match(node);
+    var present = match != null;
+    if present {
+        present = match.label.data != null;
+        if present {
+            return match.label.data;
+        }
+    }
+    return "";
+}
+
+fn sem_is(node: void*, name: u8*): bool {
+    return sem_equal(sem_label(node), name);
+}
+
+extern fn foundation_name_append(value: vector(u8)*, byte: u8): bool;
+
+extern fn foundation_nodes_prepend(values: vector(void*)*, source: void**, count: usize): bool;

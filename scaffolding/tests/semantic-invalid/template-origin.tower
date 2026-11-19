@@ -1,0 +1,5 @@
+fn wrong(T: type): T {
+    return true;
+}
+
+print(wrong(i32));
