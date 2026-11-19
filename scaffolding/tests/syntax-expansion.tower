@@ -309,5 +309,10 @@ export fn syntax_expansion_tests(input: SyntaxExpansionInput*, context: void*): 
     if ok {} else {
         return 10;
     }
-    return syntax_replacement_source_tests();
+    var failure = syntax_replacement_source_tests();
+    ok = failure == 0;
+    if ok {} else {
+        return failure;
+    }
+    return syntax_scan_tests(context, input.match_kind);
 }

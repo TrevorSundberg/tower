@@ -11529,3 +11529,118 @@ compilers, and demonstrate clean-checkout successive self-builds without an
 installed project C/C++ toolchain on Windows, Linux and macOS. No macOS runtime
 is available in this session. The committed source and published browser module
 are an integration milestone, not completion of those gates.
+
+## 2026-11-19: Tower template construction, remapping and lexical session traversal
+
+Continued frontend track 1 after `b50bfe0`. This is another migration checkpoint,
+not completion of the frontend track or removal of all project-owned C++.
+
+Implemented:
+
+- `compiler/syntax-template.tower` builds typed capture-hole productions directly
+  on the existing Rule/Reference/String entities through the Tower emission
+  helpers. Scalar tokens use their ordinary generated wrapper; scalar nonterminals
+  and repeated/optional captures retain their category/cardinality contracts.
+- The same module walks parsed replacement trees iteratively, restores active
+  production identities, remaps generated capture labels and counts capture uses.
+  It uses the active Tower `LRGrammar` name hash index, replacing a native linear
+  name scan for every nonterminal. Sorted borrowed production/alias views remain
+  temporary indexes over the existing entities, not an independent grammar model.
+- `compiler/syntax-scan.tower` owns source skipping/token traversal, bounded
+  diagnostic lookahead, token entity construction, replacement capture recognition,
+  identifier decoding and capture lookup. Declaration boundaries and contextual
+  tokens still use the existing Tower lexer and parser lookahead. The native
+  adapter only borrows session fields, appends highlight records, updates counters
+  and passes errors/results to the existing parser-stream interface.
+- Replacement names use a borrowed sorted capture array and binary lookup instead
+  of a second native capture map. A token's label copies directly into its shared
+  Match component, avoiding the old temporary `std::string` substring. Template
+  scanning no longer skips the same leading trivia twice.
+- Preserved source-relative diagnostic offsets and absolute template-node spans,
+  quoted capture identifiers, comments, invalid Unicode-token extent, immutable
+  revision inputs, partial-output ownership and the ordinary EOF marker.
+
+The original construction/remapping and scanner code is retained verbatim in
+`bootstrap/syntax-template-seed.inc` and `bootstrap/syntax-scan-seed.inc` for the
+existing seed/stage1 build only. Production native/Wasm builds run the Tower
+implementations. These reference files are still project-owned C++ and must be
+deleted when the portable compiler-binary bootstrap replaces the seed. They are
+not a permanent bootstrap exception and their relocation is not counted as total
+C++ removal. Table/session/revision ownership, diagnostics presentation, native
+Bedrock construction, parser stream adapters and remaining frontend tests still
+need migration. The other three machines' semantic/backend/host boundaries remain
+unchanged.
+
+New functional tests are Tower source:
+
+- `tests/syntax-template.tower` checks scalar/token distinction, the `*`/`+`/`?`
+  capture compatibility matrix, rejected literal/unrelated-category helpers,
+  generated reference/terminal identities and every injected allocation failure
+  until successful construction. Partial grammar roots are disposed and tracked
+  allocations must balance on every trial.
+- `tests/syntax-scan.tower` checks token labels, spans, rule identity, EOF after a
+  token, the full four-byte extent of an unmatched Unicode scalar, and failure
+  cleanup at every injected token allocation.
+- Public-session replacement fixtures additionally exercise quoted capture names
+  and comments on both sides of a capture. Existing parser, replacement,
+  formatting, diagnostic and browser tests exercise production integration.
+
+Trials/corrections:
+
+1. Initial template construction/remapping passed the native increment example
+   (`5, 6, 7, 7, 9`) and ASan/UBSan CTest 5/5 before scanner work.
+2. The new scanner first used `token` as a local name; the current Bedrock reserves
+   it for declarations. Renamed the local rather than changing the grammar.
+3. The first scanner run used UINT32_MAX for EOF. The existing parser ABI defines
+   EOF as UINT32_MAX - 1. This produced the misleading template failure
+   "Unexpected end of input. Expected end of input." at a valid final boundary.
+   Corrected the marker throughout scanning and added the direct EOF test.
+4. Allocation injection exposed a null `entity_release` in scanner cleanup. The
+   raw entity API requires a real entity; it is not a null-tolerant smart pointer.
+   Guarded cleanup and the test harness's empty-result cleanup explicitly.
+   `addr2line -f -C` located the failure in `entity_release` called by
+   `syntax_scan_read`; the sanitizer environment's external symbolizer path was
+   invalid, so addresses were resolved separately. No API semantics changed.
+5. After these fixes, the native increment output again matched exactly and the
+   full ASan/UBSan CTest suite passed 5/5 (23.13 seconds on this run). Sanitizers
+   instrument the native harness; the generated Tower object is not wholly
+   ASan-instrumented. Allocation injection checks Tower-managed storage, not every
+   native standard-library allocation.
+
+Environment: Windows PowerShell checkout `C:\Sandbox\tower`, WSL
+`Orchestral-Revng`, native LLVM 19, WASI SDK 34. Native build cache
+`/root/.cache/tower/native`; parser sanitizer cache `/root/.cache/tower/core-asan`.
+The supplied host compiler is `/root/.cache/tower/native/towerc-stage1`. Rebuild
+that host before starting consumer builds; do not relink it during a consumer
+compilation. Both browser LLVM reactors were rebuilt with the new Tower modules.
+Logs: `build/scan-{native,asan-build,asan-tests,wasm,llvm}.log`.
+
+Further checks before integration: all 222 Node tests passed; the optimized
+Windows parser/compiler test executable passed; canonical formatting/reference
+checks cover all 60 Tower files. `build/scan-differential.mjs` compared the old
+`586078b` Wasm compiler saved before frontend migration with the current reactor:
+all example sources plus eight error/trivia/quoted-capture/EOF fixtures produced
+identical parser events, provenance, diagnostics and highlight snapshots. The
+comparison excludes work/timing counters because removing redundant lexer work
+intentionally changes those. Reports are `build/scan-{node,format,windows,
+differential}.log`. Cross-target and browser/deployment checks were still running
+when this implementation checkpoint was recorded; their completion is recorded
+separately rather than assumed.
+
+The final upstream fetch discovered `port/host-runtime-tower` at `62b863e` and
+Pages `1d4080c`. It contains the separate host track's published `8fdb688`
+allocation-policy/CLI/WASI milestone. Integrate that work before publishing this
+frontend to avoid rolling back its already-live worker/runtime changes. This is
+not a claim that the host track or portable-binary bootstrap is finished.
+
+
+### 2026-11-19 — Integrating the next available frontend checkpoint
+
+The final fetch discovered ef6be67/35e5484 after the prior combined tests.
+Integrated its Tower template construction/remapping and lexical traversal with
+their tests unchanged. Retained our reconciled host/seed CMake registration;
+the other branch's merge had the older duplicate host seed/driver registration.
+Preserved its append-only research entry above. No frontend algorithm was
+rewritten here. Stopped the ongoing bootstrap process before this source change;
+the prior checkpoint's measurements and tests above remain checkpoint evidence.
+Final combined checks and sizes must be regenerated for this merged source.

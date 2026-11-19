@@ -727,7 +727,7 @@ export fn syntax_emission_tests(context: SyntaxEmissionInput*): usize {
     loop {
         var done = trial == 400;
         if done {
-            return 0;
+            return template_test_holes(context);
         }
         emission_test_init(&f, context, false);
         f.random = state;

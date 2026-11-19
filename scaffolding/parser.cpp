@@ -758,6 +758,8 @@ struct Table {
 
 bool parser_table_uses_dfa(const Table* table) { return table && lr_runtime_sequence(table->runtime) != SIZE_MAX; }
 
+LRGrammar* parser_table_grammar(const Table* table) { return table ? table->grammar.view.get() : nullptr; }
+
 std::string debug_str_header(const State& state, const Table& table, const char* prefix = "state") {
   std::stringstream stream;
   size_t state_index = &state - table.states.data();
