@@ -12959,3 +12959,41 @@ Tower semantic queries instead of the retired native query bridges; semantic cod
 uses explicit entity/component access and retained core-component registration.
 Removed the retired query symbols from allowlists rather than broadly accepting
 unknown dependencies. Repeat the affected comparisons against the combined tree.
+
+Combined-tree validation completed against the shared runtime integration:
+
+- `build/distribution/integrated-validation.log` records native CTest **5/5**,
+  WASI host/parser and **156** interpreter differential runs, rebuilt parser and
+  both LLVM reactors, **223/223** Node tests, canonical formatting, and local
+  deployment **36/36** asset hashes plus desktop/mobile behavior. That chained
+  command subsequently stopped at the Windows host dependency audit described
+  next; do not interpret its exit code as a passing full pipeline.
+- The audit exposed `__chkstk` in the Windows host object: LLVM probes the file
+  reader's 16 KiB stack allocation. Confirmed with llvm-nm/llvm-objdump; evidence
+  is `build/distribution/windows-host-dependencies.log`. Added only the Windows
+  host-module allowance and documented the future compiler-rt/platform closure
+  requirement. No native helper or fallback implementation was added.
+- `./build.sh bash -c 'bash playground/scripts/test-bootstrap.sh host interpreter
+  semantics && bash playground/scripts/test-compiler-distribution.sh'` then
+  completed successfully (`build/distribution/integrated-bootstrap.log`): all
+  **12** module/target LLVM and object comparisons, explicit grammar overrides,
+  11 recipe-policy tests (including long-form/case-insensitive hidden library
+  search rejection), 16 relocated development CLI checks, and the explicitly
+  failed restricted-linking gate with its expected missing-Clang diagnostic.
+- Repeated all **4** affected parser module comparisons on the integrated tree
+  in a separate output directory to avoid racing the bootstrap script's symbol
+  scratch file. `./build.sh bash build/distribution/compare-integrated-parser.sh`
+  uses the same compiler flags and extracts the checked-in dependency audit;
+  `build/distribution/parser-comparison.log` records four successful target
+  comparisons. These are module comparisons, not whole-compiler self-build.
+- `./build.sh node scaffolding/tests/run-guest-runtime.mjs
+  /home/deck/tower/build/native/towerc` passed task 3's Tower guest runtime fixtures
+  under 32/64-bit interpretation and native/Wasm execution. Evidence:
+  `build/distribution/guest-runtime.log`.
+
+The integrated site's manifest SHA-256 is
+`72af34af033418be01c09f7b65c1f4e3b1d0155d7dcc1c4122fa3928ef9a9f43`.
+Before publication, a further upstream update (`6610461`) contains only journal
+validation and the equivalent shared-runtime dependency allowlist changes. Merge
+those with the host additions and retain the tested combined contracts; compiler
+sources and deployed assets do not change from this synchronization.

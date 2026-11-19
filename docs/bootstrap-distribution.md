@@ -79,6 +79,10 @@ satisfy the loader. Release verification needs clean OS images without LLVM,
 Clang or project development packages and with networking disabled. Record image,
 OS, architecture, commands, dependency inspection and hashes. Inspect the entire
 LLVM/linker closure, and declare the permitted OS runtime/ABI baseline explicitly.
+The host file reader's 16 KiB stack buffer produces a Windows `__chkstk`
+dependency under LLVM lowering; include the matching compiler-rt/platform
+implementation when packaging that target. The cross-object audit permits this
+symbol only for the Windows host module; it does not establish a linked runtime.
 
 ## Three-generation whole-compiler recipe
 
@@ -145,6 +149,16 @@ host fixtures alone cannot establish compiler correctness.
 | Backend | Tower LLVM lowering/emission/linker API, explicit target contracts and third-party closure. |
 | Runtime | Tower allocator/lifecycle/foreign services, raw memory semantics, platform startup and target runtimes replacing `runtime.c`. |
 | Host/distribution | Complete CLI/browser orchestration over those APIs, remaining serialization, Tower test runner, composition recipes, repeated full self-build, platform execution and packaged artifacts. |
+
+The shared-runtime cutover at `dfdf95b` supplies `TowerSharedRuntime.cmake`,
+explicit semantic-component queries, `host/guest-memory.tower` and
+`host/platform-output.tower`. Its build fragment is integrated. GuestHeap accepts
+an explicitly committed contiguous target address range; output helpers implement
+deterministic formatting and progress-aware writes. These are reusable pieces,
+not platform startup or reserved runtime exports. Backend support for reserved
+runtime symbol definitions, foreign symbol/data access, Wasm memory growth and
+native startup/syscalls is still needed before replacing `runtime.c`. Preserve
+the existing shared layouts and named-call semantics when supplying that contract.
 
 Generate the native artifact inventory:
 

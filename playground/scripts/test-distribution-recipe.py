@@ -69,9 +69,11 @@ class RecipeTests(unittest.TestCase):
             self.validate()
 
     def test_implicit_library_search_rejected(self):
-        self.recipe['link']['args'].append('-lLLVM')
-        with self.assertRaisesRegex(ValueError, 'host searches'):
-            self.validate()
+        for flag in ('-lLLVM', '--library=LLVM', '--library-path=lib', '/LIBPATH:lib', '/DEFAULTLIB:LLVM'):
+            with self.subTest(flag=flag):
+                self.recipe['link']['args'] = ['{object:host}', '-o', '{output}', flag]
+                with self.assertRaises(ValueError):
+                    self.validate()
 
     def test_traversal_rejected(self):
         self.recipe['files']['../outside.tower'] = self.recipe['files']['src/host.tower']

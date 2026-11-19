@@ -114,7 +114,7 @@ def validate(recipe, root):
         coff_flag = literal.startswith(("/out:", "/entry:", "/subsystem:", "/machine:", "/timestamp:", "/threads:", "/export:")) or literal in ("/nodefaultlib", "/dll", "/noentry")
         if "{" in literal or "}" in literal or (Path(literal).is_absolute() and not coff_flag):
             raise ValueError(f"Unresolved placeholder or absolute linker path: {arg}")
-        if literal.startswith(("@", "-L", "-l", "--sysroot", "-syslibroot", "/libpath:", "/defaultlib:")):
+        if literal.startswith(("@", "-L", "-l", "--library", "--sysroot", "-syslibroot")) or literal.lower().startswith(("/libpath:", "/defaultlib:")):
             raise ValueError(f"Link inputs must be explicit files, not host searches: {arg}")
     return files
 

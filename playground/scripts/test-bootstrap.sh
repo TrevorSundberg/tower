@@ -29,7 +29,7 @@ for utility in "$@"; do
         --bedrock "$repo/scaffolding/bedrock.tower" --foundation "$repo/scaffolding/foundation.tower" \
         --optimized-ir "$out/$utility-$target-$stage.ll" -o "$out/$utility-$target-$stage.o"
       "${LLVM_NM:-llvm-nm-19}" --undefined-only "$out/$utility-$target-$stage.o" > "$out/symbols.txt"
-      python3 - "$utility" "$out/symbols.txt" <<'PY'
+      python3 - "$utility" "$out/symbols.txt" "$target" <<'PY'
 import pathlib, sys
 allowed = set() if sys.argv[1] == 'utf8' else {'tower_reallocate', 'tower_deallocate', 'memcpy', 'memmove', 'memset', 'bzero', 'stack_pointer', 'memory_base'}
 if sys.argv[1] == 'interpreter': allowed |= {
@@ -41,6 +41,10 @@ if sys.argv[1] == 'host': allowed |= {
     'compiler_host_reallocate', 'compiler_host_deallocate', 'tower_allocate', 'abort',
     'bytes_reserve', 'bytes_push', 'bytes_append', 'bytes_dispose', 'tower_utf8_validate',
     'fopen', 'fread', 'fwrite', 'ferror', 'feof', 'fclose'}
+# LLVM's Windows lowering probes the file reader's 16 KiB stack buffer. This
+# compiler-rt/platform dependency must be bundled in a future Windows compiler;
+# permitting it here verifies module output, not a complete executable closure.
+if sys.argv[1] == 'host' and 'windows' in sys.argv[3]: allowed.add('chkstk')
 if sys.argv[1] == 'entities': allowed |= {
     'compiler_entity_store', 'abort',
     'tower_allocate', 'tower_entity_finalize', 'compiler_node_label',
