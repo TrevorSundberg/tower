@@ -13804,3 +13804,24 @@ The benchmark JSON now explicitly records the LLVM reactor hash used for its
 compiled-Wasm comparison; that column predates the retained 3507ba5 backend.
 Interpreter code and its measured reactor hash are unchanged. The release manifest
 will distinguish rebuilt assets from artifacts retained from 3507ba5.
+
+The final required pull brought the source of that backend release (3d1ae43 and
+165c113). Preserved its journal history and integrated it without interpreter
+source changes. Built `/cache/fast-backend-native` using the documented
+`CMAKE_PROJECT_scaffolding_INCLUDE=/work/cmake/TowerBackend.cmake`, external frozen
+`TOWER_BOOTSTRAP_COMPILER=/cache/shared-native/towerc-stage1`, native LLVM 19 and
+`TOWER_BACKEND_TESTS=ON`. An initial generic all-target build attempted the obsolete
+seed and failed on unbound `backend_*` functions. The documented scoped targets
+`towerc tower-backend-tests` succeed; no native backend was restored to mask this
+bootstrap migration boundary. Backend API checks pass; the resulting production
+CLI encodes edited-grammar source and both graph/package execution print `42`.
+Canonical formatting also passes on the newly merged backend sources.
+
+As an additional integration check, this new Tower-backend compiler rebuilt the
+complete composed interpreter module for x86_64-pc-linux-gnu and
+wasm32-unknown-unknown. Both object files compare byte-for-byte equal to the
+previously validated bootstrap-built objects. The published reactor and measured
+interpreter implementation therefore remain unchanged. Evidence:
+`build/fast-backend-native-target-build.log`, `fast-backend-native-tests.log`,
+`fast-backend-cli-tests.log`, and `fast-backend-module-agreement.log` (successful
+`cmp` is silent). Native build instructions now link the current backend recipe.

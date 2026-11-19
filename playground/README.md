@@ -39,6 +39,9 @@ and native CLI install the canonical grammar for packaging automatically.
 
 Native CLI examples (use the production compiler, not the bootstrap seed):
 
+The current native build recipe is documented in
+[Tower backend integration](../scaffolding/backend/README.md).
+
 ```sh
 towerc program.tower --interpret
 towerc program.tower --interpret-fast
