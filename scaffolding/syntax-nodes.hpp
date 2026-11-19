@@ -17,7 +17,7 @@ struct SyntaxComments {
   void emplace_back(std::string_view text) { if (!syntax_comments_push(this, text.data(), text.size())) std::abort(); }
 };
 
-enum class SyntaxKind { Document, Rule, Token, Skip, Alternative, Term, Template };
+enum class SyntaxKind { Document, Rule, Token, Skip, Alternative, Term, Template, Import };
 
 // Grammar meaning lives ON the declaration's actual parse nodes. items are
 // non-owning edges to descendants; a replacement reference owns a sibling
@@ -44,7 +44,7 @@ void syntax_node_replacement(SyntaxNode*, TowerNode*);
 void syntax_node_pattern(SyntaxNode*, const LexPattern*);
 int32_t syntax_nodes_equal(TowerNode*, TowerNode*, TowerNode* type, bool locations);
 }
-TowerNode* syntax_component_type();
+extern "C" TowerNode* syntax_component_type();
 SyntaxNode* syntax_get(TowerNode* node);
 SyntaxNode& syntax_node(TowerNode* node);
 SyntaxNode& syntax_attach(TowerNode* node, SyntaxKind kind);

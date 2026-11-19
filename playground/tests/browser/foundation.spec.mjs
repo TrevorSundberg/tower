@@ -16,7 +16,7 @@ test('editing the shared foundation changes parsing, highlights and both runners
   await expect(page.locator('#filename')).toHaveText('foundation.tower');
   await expect(page.locator('#rules')).toContainText('CoreFunction');
   await expect(page.locator('#execute')).toBeEnabled();
-  const edited = 'token Identifier = /[A-Za-z_][A-Za-z0-9_-]*/ as identifier;\n' + withEmit(foundation);
+  const edited = withEmit(foundation.replace('import bedrock;', 'import bedrock;\ntoken Identifier = /[A-Za-z_][A-Za-z0-9_-]*/ as identifier;'));
   await setSource(page, edited);
   await expect(page.locator('#status')).toContainText('Complete');
   await page.getByRole('tab', { name: 'Active grammar' }).click();

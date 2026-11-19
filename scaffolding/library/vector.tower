@@ -1,3 +1,5 @@
+import tower;
+
 // Raw, explicitly owned storage. Initialize/dispose once; growth invalidates
 // element pointers. Push currently accepts scalar/pointer elements, not copies
 // of aggregate values. Type construction and specialization use shared nodes.

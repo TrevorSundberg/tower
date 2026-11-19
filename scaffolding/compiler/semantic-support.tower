@@ -1,3 +1,5 @@
+import tower;
+
 // Semantic compiler over shared Foundation components.
 // Temporary indexes and scratch allocations are scoped to one compilation.
 
@@ -21,7 +23,7 @@ export fn semantic_type_equal(a: FoundationType*, b: FoundationType*): bool {
     var step8 = step7;
     var step9 = step8 == false;
     if step9 {
-        var step10 = a.scalar == 8;
+        var step10 = a.scalar == SUSize();
         step8 = step10;
     }
     if step8 {
@@ -35,11 +37,11 @@ export fn semantic_aggregate(t: FoundationType*): bool {
     var step1 = t.pointers == 0;
     var step2 = step1;
     if step2 {
-        var step3 = t.scalar == 4;
+        var step3 = t.scalar == SStruct();
         var step4 = step3;
         var step5 = step4 == false;
         if step5 {
-            var step6 = t.scalar == 9;
+            var step6 = t.scalar == SArray();
             step4 = step6;
         }
         step2 = step4;
@@ -51,31 +53,31 @@ export fn semantic_integer(t: FoundationType*): bool {
     var step1 = t.pointers == 0;
     var step2 = step1;
     if step2 {
-        var step3 = t.scalar == 0;
+        var step3 = t.scalar == SI32();
         var step4 = step3;
         var step5 = step4 == false;
         if step5 {
-            var step6 = t.scalar == 1;
+            var step6 = t.scalar == SU32();
             step4 = step6;
         }
         var step7 = step4 == false;
         if step7 {
-            var step8 = t.scalar == 5;
+            var step8 = t.scalar == SU8();
             step4 = step8;
         }
         var step9 = step4 == false;
         if step9 {
-            var step10 = t.scalar == 6;
+            var step10 = t.scalar == SI64();
             step4 = step10;
         }
         var step11 = step4 == false;
         if step11 {
-            var step12 = t.scalar == 7;
+            var step12 = t.scalar == SU64();
             step4 = step12;
         }
         var step13 = step4 == false;
         if step13 {
-            var step14 = t.scalar == 8;
+            var step14 = t.scalar == SUSize();
             step4 = step14;
         }
         step2 = step4;
@@ -87,11 +89,11 @@ export fn semantic_signed(t: FoundationType*): bool {
     var step1 = t.pointers == 0;
     var step2 = step1;
     if step2 {
-        var step3 = t.scalar == 0;
+        var step3 = t.scalar == SI32();
         var step4 = step3;
         var step5 = step4 == false;
         if step5 {
-            var step6 = t.scalar == 6;
+            var step6 = t.scalar == SI64();
             step4 = step6;
         }
         step2 = step4;
@@ -104,7 +106,7 @@ export fn semantic_size(t: FoundationType*): usize {
     var step2 = step1;
     var step3 = step2 == false;
     if step3 {
-        var step4 = t.scalar == 8;
+        var step4 = t.scalar == SUSize();
         step2 = step4;
     }
     if step2 {
@@ -116,25 +118,25 @@ export fn semantic_size(t: FoundationType*): usize {
         var step7 = sem_get(t.record);
         return step7.size;
     }
-    var step8 = t.scalar == 3;
+    var step8 = t.scalar == SVoid();
     if step8 {
         return 0;
     }
-    var step9 = t.scalar == 2;
+    var step9 = t.scalar == SBool();
     var step10 = step9;
     var step11 = step10 == false;
     if step11 {
-        var step12 = t.scalar == 5;
+        var step12 = t.scalar == SU8();
         step10 = step12;
     }
     if step10 {
         return 1;
     }
-    var step13 = t.scalar == 6;
+    var step13 = t.scalar == SI64();
     var step14 = step13;
     var step15 = step14 == false;
     if step15 {
-        var step16 = t.scalar == 7;
+        var step16 = t.scalar == SU64();
         step14 = step16;
     }
     if step14 {
@@ -148,7 +150,7 @@ export fn semantic_alignment(t: FoundationType*): usize {
     var step2 = step1;
     var step3 = step2 == false;
     if step3 {
-        var step4 = t.scalar == 8;
+        var step4 = t.scalar == SUSize();
         step2 = step4;
     }
     if step2 {
@@ -320,7 +322,7 @@ fn sem_set_type(out: FoundationType*, t: FoundationType*): void {
 
 fn sem_type_name(c: SemanticContext*, t: FoundationType*): u8* {
     var name: u8* = "";
-    var step1 = t.scalar == 9;
+    var step1 = t.scalar == SArray();
     if step1 {
         var step2 = sem_get(t.record);
         var a: FoundationNode* = step2;
@@ -332,7 +334,7 @@ fn sem_type_name(c: SemanticContext*, t: FoundationType*): u8* {
         var step8 = sem_cat(c, step7, "]");
         name = step8;
     } else {
-        var step9 = t.scalar == 4;
+        var step9 = t.scalar == SStruct();
         if step9 {
             var step10 = sem_get(t.record);
             var step11 = sem_name(step10);

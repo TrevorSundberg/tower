@@ -13962,3 +13962,201 @@ build/autocomplete-live-deployment.log and build/deployment-verification/report.
 (with desktop/mobile completion screenshots, visually inspected). Published URL:
 https://trevorsundberg.github.io/tower/. This publication-record update changes
 only the journal; the verified deployed assets remain those of 04fa80b/78675ab.
+
+
+## 2026-11-19 — Tower layer and explicit module imports (in progress)
+
+User expanded the backend task to add `tower.tower`, named values, proper imports
+throughout the compiler, and a web project tree showing only dependencies in use.
+The backend checkpoint is already on main (`3d1ae43`, publication journal
+`165c113`); its deployed gh-pages commit is `3507ba5`. This entry records the
+subsequent language work, which is not yet a completed/validated release.
+
+Implemented `const Name: Type = value;` and `export const` as Tower replacements
+for ordinary zero-argument functions, used as `Name()`. Evaluation is ordinary
+Tower execution, with no separate constant evaluator, implied memoization, or
+new Foundation opcode. Foundation now imports Bedrock; Tower imports Foundation.
+Import declarations are shared SyntaxNode entities and have formatter support.
+The loader, path normalization, graph ordering, diamond deduplication, cycle
+checks, grammar merging, source snapshots and dependency reporting are Tower
+code in `compiler/frontend-modules.tower`. Native syntax edits connect borrowed
+views of these shared declarations to the existing parser interface. Roots and
+imported ordinary syntax still feed the same semantic compiler and Foundation
+entities. Imports precede each file's own declarations/statements. Relative paths
+are resolved first, then the explicit builtin search directory, with `.tower`
+omitted in source. Legacy no-import entry texts retain the Foundation baseline.
+
+All compiler implementation modules now import Tower. Replaced every CMake
+Compose source concatenation with an import manifest; split shared Foundation,
+parser and byte-buffer type declarations into actual modules. Foundation tags
+are named Tower values instead of CMake-generated functions extracted from C++.
+Backend and semantic comparisons now use those names, and foreign ABI profile
+functions use the new constant spelling. Added a CLI `--depfile` emitted from
+actual source dependencies and connected CMake DEPFILE tracking.
+
+The import-aware compiler was first built using the existing frozen compiler,
+then used to rebuild the compiler through its new manifests. The intermediate
+Tower-built compiler is an ignored build artifact under `build/import-port`,
+not a new checked-in native seed. Native and both browser backend builds have
+succeeded. The four-file `tests/imports` fixture prints `41`, `42`, `true` under
+native interpretation, browser interpretation and browser LLVM. Its depfile
+contains seven unique modules, including Tower/Foundation/Bedrock. Browser host
+adapters now supply explicit virtual source inputs and expose the same dependency
+graph; the project tree consumes those names rather than a fixed builtin list.
+
+Initial regression run: 197/223 Node tests passed. Failures identified stale
+text-concatenation fixtures, expected extra import revisions, source-location
+naming changes, formatting, and a real offset bug: concatenated diagnostic
+coordinates included dependency text. Added per-compilation source maps (copied
+per browser execution handle) and native source-location queries. A further
+real issue was duplicate virtual source registration choosing the old builtin;
+registration now replaces a matching canonical name. These fixes and the new
+Tower graph/cache tests still require a fresh build and regression run.
+
+Importing declaration-only modules repeatedly was unnecessarily reparsing
+Bedrock/Foundation. Added a bounded Tower cache that retains their actual shared
+declaration entities and checks exact source bytes of the full dependency closure
+before reuse. Ordinary module trees are never reused because semantic enrichment
+belongs to a particular program. Cache performance and invalidation tests are
+pending; do not infer a measured speedup from this implementation alone.
+
+Commands/logs: native cache `/home/trevo/.cache/tower/backend-native`, browser
+backend cache `/home/trevo/.cache/tower/backend-wasi`, parser `build/browser-wasi`;
+all now use `-DTOWER_BOOTSTRAP_COMPILER=/mnt/c/Sandbox/tower/build/import-port/towerc`.
+`build/import-port/{initial-tests,tests,parser-build,backend-build}.log` retain
+trials. PowerShell sometimes reports stderr warnings as NativeCommandError even
+when Ninja links successfully; inspect final build state/exit status explicitly.
+Outstanding: finish cache/diagnostic validation, update remaining test/build source
+glue and source formatting, verify dynamic builtin editing/persistence, benchmark,
+then commit/rebase/validate/deploy/push according to the turn workflow.
+
+### 2026-11-19 — Import validation, cache regression and browser dependency closure
+
+The earlier in-progress results above are superseded by the following checks.
+All 223 Node tests now pass (`build/import-port/tests-release.log`). The Tower
+functional module check returns zero and covers diamond identity, sibling grammar
+isolation, source replacement, stale-cache rejection, cycles, missing/late imports,
+invalid UTF-8/NUL inputs, `..name` path normalization, resolution shadowing and
+explicit builtin selection. `tests/imports` remains the executable multi-file
+constant/diamond fixture. An initial override test used the reserved grammar word
+`token` as a bare import; corrected that fixture to `shared_rule`, without changing
+identifier/keyword rules to accommodate it.
+
+Cache auditing found that matching old dependency bytes alone was insufficient:
+a newly created nearer relative file changes resolution without changing any old
+source. Module components now also retain the actual import declaration entities,
+and cache validation re-resolves each edge before comparing source bytes. Explicit
+native builtin selections are tracked name-to-path bindings, with real source
+paths preserved for diagnostics and depfiles. A custom Bedrock/Foundation trial
+with `import tower`, `const Answer`, and an added `sayanswer` rule printed 42/43;
+its depfile named both selected files (`build/import-port/override/result.d`).
+
+Performance trial: Windows Node v22.23.4, WSL-built Wasm, baseline commit 165c113
+and its published reactor. The ignored baseline host adapter and old grammar texts
+were extracted with `git show`; no new seed was added. Compare the same program
+under baseline implicit Foundation versus current explicit `import tower`.
+Twelve warmups and forty alternating paired samples time compile plus canonical
+Foundation formatting; outputs and canonical source agree. The first implementation
+regressed warm medians to 10.31/14.12/10.53 ms (small/500 declarations/inference),
+roughly 3.91x/2.39x/3.77x baseline. Root cause: the declaration cache still rebuilt
+the root parser tables on every compilation. The Tower module environment now
+owns a reusable compilation session using the existing bounded parser-table cache;
+reset installs fresh program trees and semantics. Bootstrap changes discard this
+session. Final medians were 2.554 -> 0.162 ms, 5.750 -> 3.544 ms, and 2.730 ->
+0.338 ms respectively (`build/import-port/benchmark.mjs`, `benchmark.json`). These
+are warm compilation measurements, not cold-start or LLVM optimization timings.
+
+Native and both browser LLVM reactors rebuild through import manifests. CMake
+DEPFILE inputs now track the transitive closure; Foundation tags are no longer
+scraped from core.hpp. The distribution recipe likewise emits imports, and its
+11 schema checks pass. Standard build scripts require an explicitly supplied,
+validated import-capable Tower-built compiler and connect the existing isolated
+backend fragment. Old native seed targets are excluded from default builds.
+No import implementation or fallback was added to a native seed. Portable checked-in
+bootstrap releases remain a distribution dependency, not a completed deliverable.
+
+`TOWER_NATIVE_BUILD=/home/trevo/.cache/tower/backend-native bash
+playground/scripts/test-linking.sh` passes native executable, separate object/archive,
+raw/optimized IR production, interpreter/native memory/storage/platform agreement,
+foreign Tower fixture, real LLVM C API linking and native-to-Wasm emission. The
+first run lacked the host command `wasm-ld-19`; the test now explicitly uses the
+already configured WASI SDK's upstream wasm-ld. Backend API checks pass. Existing
+Node LLVM and cross-compilation checks cover browser output/linking; native macOS
+execution remains unavailable on this Windows/WSL host.
+
+Playground builds now ship a builtin catalog (Tower plus library modules) but the
+file tree displays only the actual imported closure. The first project Tower file
+is the entry; other files must be imported. Updated old implicit-concatenation test
+fixtures accordingly. ZIPs retain all project builtin edits, including nested
+library paths. Desktop Chrome and Pixel 7 smoke checks verified the visible closure
+changes 1 -> 3 -> 4 -> 3 while adding/removing imports, selecting/editing a library,
+viewing Tower, preserving edits, and matching interpreter/LLVM output 42. Logs:
+`build/import-port/browser-imports.log` and the ignored browser-imports.mjs driver.
+The existing project/Bedrock browser checks initially passed 22/24. The remaining
+two exposed a real recovery bug: a project dependency probe threw while Foundation
+was temporarily invalid and hid the selected editor's diagnostic. Catching that
+probe failure preserves the local diagnostic; both recovery checks now pass.
+
+`TOWER_REQUIRE_BACKENDS=1 npm run build` plus `verify-local.mjs` verified all 46
+assets and desktop/mobile execution, grammar editing, persistence, native artifacts,
+downloads and target defaults (`build/import-port/verify-local2.log`). Source
+formatting checks use explicit registered modules and confirm idempotence and tree
+preservation. Remaining release work: final post-rebase checks, publication and
+remote asset/UI verification. `todo.txt` remains untouched.
+
+Final follow-up checks: the full desktop/mobile browser matrix ran 128 cases;
+120 passed initially and the remaining eight passed after updating fixture setup
+and expectations for leading imports, extra import/tree nodes, and Foundation's
+absence from Bedrock-only projects (`browser-full.log`, `browser-fixtures.log`).
+The native compiler rebuilt its backend object byte-for-byte identically to the
+staged compiler's object (`rebuilt-backend.o`, checked with `cmp`). This validates
+that component rebuild; it is not a whole-compiler self-hosting claim.
+
+The native module search now checks the selected Foundation directory before the
+packaged resource directory. This lets compiler builds use the checkout's current
+Tower module while custom standalone grammar overrides still find packaged Tower.
+Explicit builtin selections keep precedence. Tower checks additionally cover
+fallback ordering, Windows drive normalization and UNC root boundaries; the
+module check still returns zero. No Windows filesystem behavior is inferred from
+the POSIX host: these path cases run as explicit Tower string inputs. The native
+import fixture again prints 41/42/true and backend API checks pass.
+
+### 2026-11-19 — Rebased imports with fast interpreter and completion
+
+The required end-of-turn pull advanced main from 165c113 to b2017d7, bringing the
+portable fast interpreter, its existing Foundation-backed package envelope, and
+Tower completion/highlighting. Resolved overlapping build manifests, host APIs,
+driver options and journal entries while preserving both changes. A merge-marker
+helper initially matched too much trailing text; syntax checks and diff-size review
+caught the truncated adapters. Restored complete three-way merges from the saved
+base/upstream/local commits before building or publishing. No upstream work was
+discarded. Historical journal entries remain intact.
+
+The newly arrived compiler modules also import Tower. Added their imports to the
+interpreter/semantic manifests. Completion now borrows imported declarations from
+the same live module graph through a Tower implementation; the browser transport
+registers project files rather than reparsing all unrelated files as external
+declarations. An explicit `import "library/vector"` query offers `vector_init`.
+Package/Foundation CLI output also writes tracked dependency files. Native fast
+interpretation and a package round trip of the import fixture both print 41/42/true.
+
+Rebuilt native towerc, backend checks, parser reactor and both LLVM reactors.
+Post-rebase Node suite: 246/246 passed (`tests-integrated.log`). Nine initial failures
+were upstream fixtures still prepending Foundation text; migrated their setup to
+imports/installed grammar. Formatter round-trip checks pass. The focused browser
+matrix passed 32/34 initially. Completion returned the correct `Identifier`
+candidate in the two failures, but full-source fixture replacement could leave a
+previous completion request active under mobile selection timing. The test helper
+now places the caret at document end and closes that fixture-generated request
+before testing its own query. All eight completion tests then passed, including
+mobile touch acceptance and stale-reply rejection (`browser-completion-settled.log`).
+No completion result assertions or timeouts were weakened.
+
+The final local deployment check verifies 48 assets, desktop/mobile grammar
+editing, graph/fast/LLVM execution, artifacts, persistence, target defaults,
+completion acceptance and shared output highlighting (`verify-rebase.log`).
+Dynamic import-tree checks still pass on both profiles. Repeated isolated warm
+compilation benchmark after the rebase: 2.530 -> 0.158 ms (small), 5.719 -> 3.555 ms
+(500 declarations), 2.691 -> 0.331 ms (inference). Same 12 warmups/40 alternating
+pairs and canonical-source/output comparison as above. The old published reactor
+is retained only as an ignored comparison artifact under build/import-port/baseline.

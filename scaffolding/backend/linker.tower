@@ -1,3 +1,5 @@
+import tower;
+
 // Link plans are transport-independent argument lists for upstream LLD.
 // Native hosts execute the bundled upstream tool; WASI invokes its pinned ABI.
 struct BackendLinkInput {

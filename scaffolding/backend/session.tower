@@ -1,3 +1,5 @@
+import tower;
+
 // Backend service over validated Foundation entities. Source parsing and worker/
 // CLI scheduling belong to callers. Results own their buffers until reset/close.
 struct BackendSession {

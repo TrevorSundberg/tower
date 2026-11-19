@@ -1,3 +1,5 @@
+import tower;
+
 // Shared release correctness fixture: source, interpreter and native execution.
 fn twice(value: i32): i32 {
     var result = value + value;

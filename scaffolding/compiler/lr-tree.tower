@@ -1,3 +1,5 @@
+import tower;
+
 // Assemble shifts/reductions into the shared entities. Forests are temporary
 // ownership/work indexes; generated productions flatten without another AST.
 struct ParserForestSpan {

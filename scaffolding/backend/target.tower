@@ -1,3 +1,5 @@
+import tower;
+
 // Target selection is explicit. Never derive program layout from the compiler host.
 export fn backend_open(triple: u8*): Backend* {
     var b = alloc(Backend, 1);

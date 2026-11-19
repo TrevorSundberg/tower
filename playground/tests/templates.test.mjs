@@ -1,8 +1,8 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {loadTower,runToEnd} from '../src/tower-host.mjs';
-import {loadLLVM,executeWasm} from '../src/llvm-host.mjs';
+import {loadTower,runToEnd} from './compiler-fixtures.mjs';
+import {loadLLVM,executeWasm} from './compiler-fixtures.mjs';
 const read=name=>readFile(new URL('../../'+name,import.meta.url));
 const foundation=(await read('scaffolding/foundation.tower')).toString();
 const tower=await loadTower(await read('build/browser-wasi/tower.wasm'),undefined,foundation);
@@ -90,7 +90,7 @@ var e: box(\`i32[2]\`); e.value.other = 8; print(e.value.other);`,'42\n3\n4\n7\n
  assert.ok(text.includes('struct `box(Left)`'));assert.ok(text.includes('struct `box(Right)`'));
 });
 test('the typed vector grows scalar and pointer storage with target layouts',async()=>{
- const vector=(await read('scaffolding/library/vector.tower')).toString();
+ const vector='import "library/vector";\n';
  await compare(vector+`
 var values: vector(i32); vector_init(i32, &values);
 var i: i32 = 0; loop { var done = i == 40; if done { break; } var ok = vector_push(i32, &values, i); if ok {} else { print(999); break; } i = i + 1; }

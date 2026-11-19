@@ -1,3 +1,5 @@
+import tower;
+
 // A revision's disposable lexical index. Patterns and text borrow its immutable
 // declaration entities; declarations remain the authoritative grammar nodes.
 struct LexiconToken {

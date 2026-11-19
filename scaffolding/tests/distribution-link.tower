@@ -1,3 +1,5 @@
+import tower;
+
 extern fn distribution_twice(value: i32): i32;
 
 var result = distribution_twice(21);

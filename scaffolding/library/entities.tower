@@ -1,3 +1,5 @@
+import tower;
+
 // Shared compiler entities. Raw pointers are valid only while their owner lives.
 // Components keep stable addresses; type indexes support component-wise queries.
 struct EntityStore {

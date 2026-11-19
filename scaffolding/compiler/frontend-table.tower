@@ -1,3 +1,5 @@
+import tower;
+
 // Table ownership shared by character and token readers. These are derived LR
 // indexes over ordinary grammar entities, not a second grammar representation.
 struct FrontendKinds {

@@ -1,3 +1,5 @@
+import tower;
+
 fn backend_lld_dispatch(triple: u8*, args: BackendLldArguments*, output: BackendLldStream*, error: BackendLldStream*): bool {
     var wasm = backend_prefix(triple, "wasm");
     if wasm {

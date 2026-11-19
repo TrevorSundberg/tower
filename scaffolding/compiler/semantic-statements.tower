@@ -1,3 +1,5 @@
+import tower;
+
 // Semantic compiler over shared Foundation components.
 // Temporary indexes and scratch allocations are scoped to one compilation.
 
@@ -130,7 +132,7 @@ fn sem_header(c: SemanticContext*, n: void*, name: u8*, definition: void*): void
         var step57 = param.type.pointers == 0;
         var step58 = step57;
         if step58 {
-            var step59 = param.type.scalar == 3;
+            var step59 = param.type.scalar == SVoid();
             step58 = step59;
         }
         var step60 = step58;
@@ -472,7 +474,7 @@ fn sem_statement(c: SemanticContext*, n: void*, depth: u32): u32 {
                     var step65 = function.type.pointers == 0;
                     var step66 = step65;
                     if step66 {
-                        var step67 = function.type.scalar == 3;
+                        var step67 = function.type.scalar == SVoid();
                         step66 = step67;
                     }
                     if step66 {
@@ -714,7 +716,7 @@ fn sem_run(c: SemanticContext*): void {
         }
         var n: void* = c.program.types.data[i];
         var step23 = sem_get(n);
-        var step24 = step23.type.scalar == 4;
+        var step24 = step23.type.scalar == SStruct();
         if step24 {
             sem_type_fields(c, n);
         }
@@ -886,7 +888,7 @@ fn sem_run(c: SemanticContext*): void {
         var step77 = step76;
         var step78 = step77 == false;
         if step78 {
-            var step79 = function_node.type.scalar != 3;
+            var step79 = function_node.type.scalar != SVoid();
             step77 = step79;
         }
         var step80 = step77;

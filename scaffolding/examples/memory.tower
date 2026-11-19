@@ -1,3 +1,5 @@
+import tower;
+
 // Raw buffers and views are ordinary structs. There are no implicit bounds checks.
 struct Bytes {
     data: u8*;

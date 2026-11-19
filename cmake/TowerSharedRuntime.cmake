@@ -6,8 +6,9 @@ add_custom_command(OUTPUT "${shared_lifecycle}"
   COMMAND "${bootstrap}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/host/entity-lifecycle.tower"
     --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
     --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
-    --library --target "${triple}" -o "${shared_lifecycle}"
-  DEPENDS ${bootstrap_dependency} scaffolding/host/entity-lifecycle.tower
+    --library --target "${triple}" -o "${shared_lifecycle}" --depfile "${shared_lifecycle}.d"
+  DEPFILE "${shared_lifecycle}.d"
+    DEPENDS ${bootstrap_dependency} scaffolding/host/entity-lifecycle.tower
     scaffolding/bedrock.tower scaffolding/foundation.tower VERBATIM)
 set_source_files_properties("${shared_lifecycle}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
 target_sources(tower-compiler-entities INTERFACE "${shared_lifecycle}")
@@ -24,7 +25,8 @@ if(TOWER_PARSER_ONLY)
     COMMAND "${bootstrap}" "${shared_tests}"
       --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
       --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
-      --library --target "${triple}" -o "${shared_tests_object}"
+      --library --target "${triple}" -o "${shared_tests_object}" --depfile "${shared_tests_object}.d"
+    DEPFILE "${shared_tests_object}.d"
     DEPENDS ${bootstrap_dependency} "${shared_tests}" scaffolding/bedrock.tower scaffolding/foundation.tower VERBATIM)
   set_source_files_properties("${shared_tests_object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
   target_sources(tower-compiler-entities INTERFACE "${shared_tests_object}")

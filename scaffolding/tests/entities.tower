@@ -1,3 +1,6 @@
+import '../library/entities';
+import tower;
+
 // Compose after entities.tower; the host supplies the optional lifecycle bridge.
 var world = entity_store_create();
 var type = entity_create(world);

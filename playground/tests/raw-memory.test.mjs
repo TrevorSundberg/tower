@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { loadTower } from '../src/tower-host.mjs';
-import { loadLLVM, executeWasm } from '../src/llvm-host.mjs';
+import { loadTower } from './compiler-fixtures.mjs';
+import { loadLLVM, executeWasm } from './compiler-fixtures.mjs';
 import { originalDiagnostic } from '../src/foundation-source.mjs';
 const read = p => readFile(new URL('../../' + p, import.meta.url));
 const grammar = (await read('scaffolding/foundation.tower')).toString();
@@ -13,7 +13,7 @@ const linkedOutput = '33\ntrue\ntrue\n42\n42\n18446744073709551615\n0\ntrue\n5\n
 let nativeWasm;
 try { nativeWasm = await read('build/linking/native-compiled.wasm'); } catch (error) { if (error.code !== 'ENOENT') throw error; }
 const cases = [
-  ['Tower storage library: byte strings, arenas and rehashing maps', (await read('scaffolding/library/bytes.tower')).toString() + '\n' + (await read('scaffolding/library/storage.tower')).toString() + '\n' + (await read('scaffolding/tests/storage.tower')).toString(), 'true\ntrue\n10\n84\ntrue\n0\ntrue\n16\ntrue\ntrue\n42\n200\ntrue\n597\n42\nfalse\n200\n'],
+  ['Tower storage library: byte strings, arenas and rehashing maps',  'import "library/bytes"; import "library/storage"; import "tests/storage";' , 'true\ntrue\n10\n84\ntrue\n0\ntrue\n16\ntrue\ntrue\n42\n200\ntrue\n597\n42\nfalse\n200\n'],
   ['growable buffer example', (await read('scaffolding/examples/memory.tower')).toString(), '5\n84\n42\n'],
   ['raw pointer integer round trip', 'var x: i32 = 42; var p: i32* = &x; var address: usize = bits(usize, p); var q: i32* = bits(i32*, address); *q = 7; print(x); var same: bool = p == q; print(same);', '7\ntrue\n'],
   ['null and void pointers', 'var p: void* = null; var x: i32 = 42; var q: i32* = &x; p = bits(void*, q); q = bits(i32*, p); var result: i32 = *q; print(result);', '42\n'],
@@ -47,7 +47,7 @@ for (const [name, source, expected] of cases) test('raw memory: ' + name, async 
     finally { tower.destroyExecution(round); }
     const compiled = llvm.compile(formatted.source); assert.equal(compiled.status, 'compiled', compiled.error);
     assert.doesNotMatch(compiled.before, /tower\.pointer|tower\.cell|\.initialized|\.generation|\.active/);
-    const actual = originalDiagnostic(await executeWasm(compiled), formatted.spans);
+    const actual = originalDiagnostic(await executeWasm(compiled), formatted.spans, formatted.sourceMap);
     assert.equal(actual.status, 'done', actual.error); assert.equal(actual.output, expected);
   } finally { tower.destroyExecution(handle); }
 });

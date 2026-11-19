@@ -14,7 +14,7 @@ test('deployment bundles remove stale backends, require complete packs and check
   try {
     for (const name of ['playground/scripts/build.mjs', 'playground/src', 'playground/index.html',
       'playground/style.css', 'playground/licenses', 'scaffolding/examples', 'scaffolding/bedrock.tower',
-      'scaffolding/foundation.tower', 'third_party/llvm-project/llvm/LICENSE.TXT', 'third_party/llvm-project/libcxx/LICENSE.TXT']) {
+      'scaffolding/foundation.tower', 'scaffolding/tower.tower', 'scaffolding/library', 'scaffolding/backend/foreign-grammar.tower', 'third_party/llvm-project/llvm/LICENSE.TXT', 'third_party/llvm-project/libcxx/LICENSE.TXT']) {
       await mkdir(path.dirname(path.join(fixture, name)), {recursive:true});
       await cp(path.join(repository, name), path.join(fixture, name), {recursive:true});
     }

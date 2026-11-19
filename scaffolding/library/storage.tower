@@ -1,3 +1,6 @@
+import 'bytes';
+import tower;
+
 // Concrete arena and map helpers; byte buffers live in bytes.tower.
 // Callers initialize these structs, check allocation results, and own disposal.
 // A byte arena with 16-byte allocation alignment. Reset invalidates its views.

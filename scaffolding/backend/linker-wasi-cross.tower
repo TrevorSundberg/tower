@@ -1,3 +1,5 @@
+import tower;
+
 extern fn `cpp_name(bool lld::elf::link(llvm::ArrayRef<char const*>, llvm::raw_ostream&, llvm::raw_ostream&, bool, bool))`(args: BackendLldArguments*, output: BackendLldStream*, error: BackendLldStream*, exit_early: bool, disable_output: bool): bool;
 
 extern fn `cpp_name(bool lld::coff::link(llvm::ArrayRef<char const*>, llvm::raw_ostream&, llvm::raw_ostream&, bool, bool))`(args: BackendLldArguments*, output: BackendLldStream*, error: BackendLldStream*, exit_early: bool, disable_output: bool): bool;

@@ -65,11 +65,8 @@ export async function importProject(blob) {
   if (!Array.isArray(metadata.order)) throw new Error('Missing project file order.');
   const files = metadata.order.map(path => { if (!entries.has(path)) throw new Error('Missing file: ' + path); return {path, text:decoder.decode(entries.get(path))}; });
   const links = Object.fromEntries([...entries].filter(([path]) => path.startsWith('.tower/links/')).map(([path, data]) => [path.slice(13), data]));
-  const builtins = Object.fromEntries(['bedrock','foundation'].map(name => {
-    const bytes = entries.get('.tower/' + name + '.tower');
-    if (!bytes) throw new Error('Missing built-in: ' + name);
-    return [name, decoder.decode(bytes)];
-  }));
-  if (entries.size !== 3 + files.length + Object.keys(links).length) throw new Error('ZIP contains files absent from its manifest.');
+  const builtins = Object.fromEntries([...entries].filter(([path]) => path.startsWith('.tower/') && path.endsWith('.tower'))
+    .map(([path, bytes]) => [path.slice(7, -6), decoder.decode(bytes)]));
+  if (entries.size !== 1 + Object.keys(builtins).length + files.length + Object.keys(links).length) throw new Error('ZIP contains files absent from its manifest.');
   return validateProject({...metadata, id:crypto.randomUUID(), files, links, builtins});
 }

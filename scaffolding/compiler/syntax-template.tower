@@ -1,3 +1,5 @@
+import tower;
+
 // Typed capture holes add ordinary generated productions to the template table.
 // Remapping restores active production identities on the same parse entities.
 struct SyntaxTemplateCapture {

@@ -1,3 +1,5 @@
+import tower;
+
 // Regex notation is parsed by the ordinary LR engine over Unicode scalar IDs.
 // These are the same Rule/Reference/String/Range components as other grammars.
 // Construction calls are temporary native ABI adapters, not a regex parser.

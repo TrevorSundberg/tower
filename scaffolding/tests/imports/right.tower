@@ -1,0 +1,6 @@
+import './shared';
+
+fn right_answer(): i32 {
+    var result = shared_answer() + 2;
+    return result;
+}

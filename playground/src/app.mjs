@@ -49,7 +49,7 @@ class Engine {
       const id = ++this.id;
       const timer = setTimeout(() => this.stop('Parsing exceeded 10 seconds. Simplify the grammar and try again.'), 10000);
       this.pending = { id, resolve, reject, timer };
-      this.worker.postMessage({ id, method, source, foundation, bedrock, editingModule });
+      this.worker.postMessage({ id, method, source, foundation, bedrock, editingModule, files:project.files, builtins:project.builtins, activePath, entry:projectSources(project)[0]?.path });
     });
   }
 }
@@ -91,7 +91,7 @@ let autoTimer = 0, documentRevision = 0, executedRevision = -1;
 const typingDebounceMs = 200;
 let diagnosticPhase = null;
 let typingDeadline = 0, typingTimer = 0;
-let foundation = '', bundledFoundation = '', editingModule = '', bedrock = '', bundledBedrock = '';
+let foundation = '', bundledFoundation = '', editingModule = '', bedrock = '', bundledBedrock = '', bundledTower = '', bundledBuiltins = {};
 let documentLoadId = 0;
 let editorExtensions, projects = [], project, storage, activePath = '', saveSequence = 0;
 const fileStates = new Map(), bundledExamples = new Map();
@@ -178,7 +178,7 @@ function compileNative(id,text) {
     }
     if(data.done)finish();
   };
-  worker.postMessage({id,source:text,foundation,bedrock,targetKeys:keys,inputs:linkInputs, files:editingModule ? undefined : projectSources(project), drive:project.files});
+  worker.postMessage({id,source:text,foundation,bedrock,targetKeys:keys,inputs:linkInputs, files:editingModule ? undefined : projectSources(project), drive:project.files, builtins:project.builtins, entry:editingModule ? activePath : projectSources(project)[0]?.path});
 }
 function showTimings() {
   const a = runners.interpreter?.timings ?? {}, b = runners.llvm?.timings ?? {};
@@ -353,7 +353,7 @@ function execute() {
       }
       finish();
     };
-    worker.postMessage({ id, source: text, foundation, bedrock, backend, files:editingModule ? undefined : projectSources(project), drive:project.files, pointerBytes:selectedTargets.wasm || !selectedNativeKeys().length ? 4 : 8, inputs:linkInputsForTarget(linkInputs,'wasm') });
+    worker.postMessage({ id, source: text, foundation, bedrock, backend, files:editingModule ? undefined : projectSources(project), drive:project.files, builtins:project.builtins, entry:editingModule ? activePath : projectSources(project)[0]?.path, pointerBytes:selectedTargets.wasm || !selectedNativeKeys().length ? 4 : 8, inputs:linkInputsForTarget(linkInputs,'wasm') });
   }
   if(selectedNativeKeys().length) compileNative(id,text);
   updateComparison();
@@ -539,6 +539,7 @@ async function perform(method) {
     const answer = await engine.request(method, source);
     if (ticket !== generation) return;
     result = answer; dirty = false;
+    project.dependencies = answer.dependencies ?? []; renderFiles();
     render(); scheduleAutoExecution();
   } catch (error) {
     if (ticket !== generation) return;
@@ -617,7 +618,10 @@ function renderFiles() {
     if (builtin) button.append(node('span', 'builtin-badge', 'built-in'));
     button.onclick = () => selectFile(path); parent.append(button);
   };
-  for (const name of ['bedrock','foundation']) add(tree, '.tower/' + name + '.tower', name + '.tower', true);
+  for (const path of project.dependencies ?? []) {
+    const name = path.startsWith('.tower/') ? path.slice(7, -6) : '';
+    if (Object.hasOwn(project.builtins, name)) add(tree, path, name + '.tower', true);
+  }
   const root = node('div', 'project-files'); tree.append(root);
   root.append(node('div', 'project-root', project.name));
   const folders = new Map([['', root]]);
@@ -642,7 +646,7 @@ function selectFile(path, fresh = false) {
   if (!fresh && path === activePath) return;
   if (!fresh && editor) { persist(); fileStates.set(activePath, editor.state); }
   activePath = project.active = path;
-  editingModule = path === '.tower/bedrock.tower' ? 'bedrock' : path === '.tower/foundation.tower' ? 'foundation' : '';
+  editingModule = path.startsWith('.tower/') ? path.slice(7, -6) : '';
   foundation = project.builtins.foundation; bedrock = project.builtins.bedrock;
   const text = editingModule ? project.builtins[editingModule] : project.files.find(f => f.path === path).text;
   $('filename').textContent = editingModule ? editingModule + '.tower' : path;
@@ -665,7 +669,7 @@ function projectAction(action) {
 $('project-kind').onchange = () => selectProject($('project-kind').value);
 $('new-project').onclick = () => projectAction(() => {
   const name = prompt('Project name', 'Untitled'); if (!name?.trim()) return;
-  const next = newProject(name.trim(), {bedrock:bundledBedrock, foundation:bundledFoundation});
+  const next = newProject(name.trim(), {...bundledBuiltins});
   projects.push(next); selectProject(next.id);
 });
 $('new-file').onclick = () => projectAction(() => {
@@ -763,7 +767,7 @@ $('auto-execute').onchange = () => {
     else scheduleAutoExecution();
   } else stopExecution('Auto off');
 };
-$('restore').onclick = () => replaceSource(editingModule === 'bedrock' ? bundledBedrock : editingModule === 'foundation' ? bundledFoundation : bundledExamples.get(activePath));
+$('restore').onclick = () => replaceSource(editingModule ? bundledBuiltins[editingModule] : bundledExamples.get(activePath));
 $('open').onclick = () => $('file').click();
 $('file').onchange = async () => {
   const file = $('file').files[0]; if (!file) return;
@@ -792,17 +796,19 @@ async function start() {
     for (const key of Object.keys(targetChoices)) $('target-'+key).checked=selectedTargets[key];
     updateColumns();
   }
-  const names = ['bedrock','foundation',...examples];
+  const builtinNames = await fetch('./builtins.json').then(response => response.json());
+  const names = [...builtinNames,...examples];
   const texts = await Promise.all(names.map(async name => {
     const response = await fetch('./' + name + '.tower');
     if (!response.ok) throw new Error('Unable to load ' + name);
     return response.text();
   }));
-  bundledBedrock = texts[0]; bundledFoundation = texts[1];
-  for (const [i, name] of examples.entries()) bundledExamples.set(name + '.tower', texts[i+2]);
+  bundledBuiltins = Object.fromEntries(builtinNames.map((name, i) => [name, texts[i]]));
+  bundledBedrock = bundledBuiltins.bedrock; bundledFoundation = bundledBuiltins.foundation; bundledTower = bundledBuiltins.tower;
+  for (const [i, name] of examples.entries()) bundledExamples.set(name + '.tower', texts[i+builtinNames.length]);
   try { storage = await projectStore(); projects = (await storage.list()).map(validateProject); }
   catch (error) { $('project-storage').textContent = 'Browser storage unavailable: ' + error.message; }
-  const builtins = {bedrock:bundledBedrock, foundation:bundledFoundation};
+  const builtins = {...bundledBuiltins};
   for (const name of examples) if (!projects.some(p => p.id === 'example:' + name)) {
     const initial = newProject(name === 'foreach' ? 'ForEach' : name[0].toUpperCase() + name.slice(1), builtins, [{path:name + '.tower', text:bundledExamples.get(name + '.tower')}]);
     initial.id = 'example:' + name; projects.push(initial);
@@ -828,10 +834,12 @@ async function start() {
   for (const p of projects) {
     p.builtins.bedrock = await selectFoundation(bundledBedrock, p.builtins.bedrock, p.baseline?.bedrock ?? null);
     p.builtins.foundation = await selectFoundation(bundledFoundation, p.builtins.foundation, p.baseline?.foundation ?? null, {bedrock:p.builtins.bedrock});
+    p.builtins.tower = await selectFoundation(bundledTower, p.builtins.tower ?? null, p.baseline?.tower ?? null);
+    for (const [name, text] of Object.entries(builtins)) p.builtins[name] = await selectFoundation(text, p.builtins[name] ?? null, p.baseline?.[name] ?? null);
     p.baseline = {...builtins};
   }
   editorExtensions = [
-    towerCompletion(() => ({foundation, bedrock, editingModule, files:editingModule ? [] : projectSources(project).filter(file => file.path !== activePath)})),
+    towerCompletion(() => ({foundation, bedrock, editingModule, files:project.files, builtins:project.builtins, activePath})),
     lineNumbers(), highlightActiveLineGutter(), highlightActiveLine(), history(), highlighting, selectionMark, editorDiagnostics,
     EditorView.lineWrapping, EditorView.theme({ '&': { color: '#d4e0e2', backgroundColor: '#121a1e' } }, { dark: true }),
     EditorView.contentAttributes.of({ 'aria-label': 'Tower source', spellcheck: 'false', autocapitalize: 'off', autocorrect: 'off' }),

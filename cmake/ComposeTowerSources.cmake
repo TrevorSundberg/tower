@@ -1,6 +1,5 @@
-# Temporary source composition until Tower imports exist. Preserve declaration order.
-file(READ "${ENTITIES}" entities)
-file(READ "${PARSER}" parser)
-file(READ "${GENERICS}" generics)
-file(READ "${HOST_ENTITIES}" host)
-file(WRITE "${OUTPUT}" "${entities}\n${parser}\n${generics}\n${host}")
+include("${CMAKE_CURRENT_LIST_DIR}/TowerModule.cmake")
+foreach(path IN ITEMS "${ENTITIES}" "${PARSER}" "${GENERICS}" "${HOST_ENTITIES}")
+  tower_import("${path}")
+endforeach()
+file(WRITE "${OUTPUT}" "${source}")

@@ -1,4 +1,7 @@
-// Concatenate after library/bytes.tower and library/storage.tower until imports exist.
+import '../library/storage';
+import tower;
+
+// Storage imports its byte-buffer dependency once.
 var bytes: ByteBuffer;
 var buffer: ByteBuffer* = &bytes;
 bytes_init(buffer);

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { loadTower, runToEnd } from '../src/tower-host.mjs';
+import { loadTower, runToEnd } from './compiler-fixtures.mjs';
 import { expandedCode } from '../src/expanded-code.mjs';
 import { replacementLocations } from '../src/replacement-locations.mjs';
 const tower = await loadTower(await readFile(new URL('../../build/browser-wasi/tower.wasm', import.meta.url)), undefined,

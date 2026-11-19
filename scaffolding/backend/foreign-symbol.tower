@@ -1,9 +1,11 @@
+import tower;
+
 export fn foreign_profile_for_target(triple: u8*): u32 {
     if backend_prefix(triple, "arm64ec") {
-        return 11;
+        return foreign_windows_arm64ec();
     }
     if backend_prefix(triple, "wasm") {
-        return 1;
+        return foreign_wasi();
     }
     var arm = backend_prefix(triple, "aarch64");
     if backend_prefix(triple, "arm64") {
@@ -15,30 +17,30 @@ export fn foreign_profile_for_target(triple: u8*): u32 {
     }
     if backend_contains(triple, "windows") {
         if backend_contains(triple, "gnu") {
-            return 7;
+            return foreign_mingw_x64();
         }
         if arm {
-            return 10;
+            return foreign_windows_arm64();
         }
         if x86 {
-            return 6;
+            return foreign_windows_x86();
         }
-        return 5;
+        return foreign_windows_x64();
     }
     if backend_contains(triple, "apple") {
         if arm {
-            return 4;
+            return foreign_macos_arm64();
         }
-        return 3;
+        return foreign_macos_x64();
     }
     if arm {
-        return 8;
+        return foreign_linux_arm64();
     }
     if x86 {
-        return 9;
+        return foreign_linux_x86();
     }
     if backend_prefix(triple, "x86_64") {
-        return 2;
+        return foreign_linux_x64();
     }
     return 0;
 }

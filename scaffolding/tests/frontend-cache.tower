@@ -1,3 +1,5 @@
+import tower;
+
 // Revision lifetime, eviction and failed insertions are tested in Tower. These
 // snapshots reference the same component-bearing nodes as ordinary declarations.
 fn frontend_test_cache_node(kinds: FrontendKinds*, id: usize): void* {

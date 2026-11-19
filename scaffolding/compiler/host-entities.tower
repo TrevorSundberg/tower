@@ -1,3 +1,5 @@
+import tower;
+
 // Existing host API over the same entity store. No copied nodes or components.
 // Only singleton lifetime and native callback dispatch remain host boundaries.
 extern fn compiler_entity_store(): EntityStore*;

@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {loadTower} from '../src/tower-host.mjs';
+import {loadTower} from './compiler-fixtures.mjs';
 import {newProject, validateProject, projectDiagnostic} from '../src/projects.mjs';
 import {exportProject, importProject} from '../src/project-archive.mjs';
 import {TowerWASI} from '../src/wasi-host.mjs';
@@ -14,24 +14,24 @@ function run(files) {
   finally { tower.destroyExecution(handle); }
 }
 test('project binds across files, preserves effect order and canonical round trips', () => {
-  const result = run([['main.tower','print(answer()); print(1);'],['lib/answer.tower','fn answer(): i32 { return 42; } print(2);']]);
-  assert.equal(result.status,'done',result.error); assert.equal(result.output,'42\n1\n2\n');
+  const result = run([['main.tower','import tower; import "lib/answer"; print(answer()); print(1);'],['lib/answer.tower','import tower; fn answer(): i32 { return 42; } print(2);']]);
+  assert.equal(result.status,'done',result.error); assert.equal(result.output,'2\n42\n1\n');
   const handle = tower.compile(result.foundation);
   try { assert.equal(tower.execute(handle,10000).output,result.output); } finally { tower.destroyExecution(handle); }
 });
-test('each project file starts from Foundation, with byte-correct diagnostics', () => {
-  const first = "// snow: 雪\nparse Statement |= 'show' $x:CoreOperand ';' => replace { print($x); }; show 1;";
-  const files = [{path:'a.tower',text:first},{path:'src/b.tower',text:'show 2;'}];
+test('imported project files have isolated grammars and byte-correct diagnostics', () => {
+  const first = "import tower; import 'src/b'; // snow: 雪\nparse Statement |= 'show' $x:CoreOperand ';' => replace { print($x); }; show 1;";
+  const files = [{path:'a.tower',text:first},{path:'src/b.tower',text:'import tower; show 2;'}];
   const result = projectDiagnostic(run(files.map(f=>[f.path,f.text])),files);
-  assert.equal(result.status,'error'); assert.equal(result.errorFile,'src/b.tower'); assert.ok(result.errorOffset < 8);
-  assert.equal(run([['a.tower',first],['b.tower','print(2);']]).output,'1\n2\n');
+  assert.equal(result.status,'error'); assert.equal(result.errorFile,'src/b.tower'); assert.ok(result.errorOffset < files[1].text.length);
+  assert.equal(run([['a.tower',first],['src/b.tower','import tower; print(2);']]).output,'2\n1\n');
 });
 test('cross-file semantic and specialized template diagnostics retain file coordinates', () => {
-  const files = [{path:'main.tower',text:'print(1);'}, {path:'bad.tower',text:'var broken: i32 = true;'}];
+  const files = [{path:'main.tower',text:'import tower; import bad; print(1);'}, {path:'bad.tower',text:'import tower; var broken: i32 = true;'}];
   const result = projectDiagnostic(run(files.map(f=>[f.path,f.text])),files);
   assert.equal(result.errorFile,'bad.tower'); assert.ok(result.errorOffset < files[1].text.length);
   assert.match(result.error,/Expected i32/);
-  const generic = run([['main.tower','print(identity(i32,42));'],['lib.tower','fn identity(T: type, value: T): T { return value; }']]);
+  const generic = run([['main.tower','import tower; import lib; print(identity(i32,42));'],['lib.tower','import tower; fn identity(T: type, value: T): T { return value; }']]);
   assert.equal(generic.output,'42\n',generic.error);
 });
 test('ZIP round trips large Unicode files, builtins, order and link bytes', async () => {

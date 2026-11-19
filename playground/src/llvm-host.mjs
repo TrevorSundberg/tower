@@ -2,14 +2,16 @@ import { TowerWASI } from './wasi-host.mjs';
 import { configureTower, configureFoundation, configureBedrock } from './bootstrap.mjs';
 import { foreignArgument, invokeForeign } from './foreign.mjs';
 import { platformImports } from './platform.mjs';
+import { moduleInputs, moduleDiagnostic } from './module-inputs.mjs';
 
 // LLVM and LLD run in their own WASM instance, with only an in-memory filesystem.
-export async function loadLLVM(bytes, log = () => {}, bootstrap, foundation, bedrock) {
+export async function loadLLVM(bytes, log = () => {}, bootstrap, foundation, bedrock, {tower} = {}) {
   const wasi = new TowerWASI({ log });
   const { instance } = await WebAssembly.instantiate(bytes, { wasi_snapshot_preview1: wasi.wasiImport });
   wasi.initialize(instance);
+  const modules = moduleInputs(instance.exports, {bedrock, foundation:foundation ?? bootstrap, tower});
   if (bedrock !== undefined) configureBedrock(instance.exports, bedrock);
-  configureTower(instance.exports, foundation ?? bootstrap);
+  configureTower(instance.exports, foundation ?? bootstrap, modules.environment);
   const e = instance.exports, decoder = new TextDecoder();
   function string(pointer) {
     const memory = new Uint8Array(e.memory.buffer), end = memory.indexOf(0, pointer);
@@ -17,6 +19,8 @@ export async function loadLLVM(bytes, log = () => {}, bootstrap, foundation, bed
     return decoder.decode(memory.subarray(pointer, end));
   }
   return {
+    configureModules: modules.configure,
+    dependencies: modules.dependencies,
     compile(source, { inputs = {}, emit = 'wasm', library = false, target = 'wasm32-unknown-unknown' } = {}) {
       if (!['wasm', 'object', 'executable'].includes(emit)) throw new Error('Unknown output format: ' + emit);
       const triple = new TextEncoder().encode(target + '\0'), triplePointer = e.malloc(triple.length);
@@ -42,7 +46,7 @@ export async function loadLLVM(bytes, log = () => {}, bootstrap, foundation, bed
       try {
         new Uint8Array(e.memory.buffer).set(text, pointer);
         const result = JSON.parse(string(e.tw_llvm_compile_options(pointer, text.length, (emit === 'object' ? 1 : 0) | (library ? 2 : 0))));
-        if (result.status === 'error') return result;
+        if (result.status === 'error') return moduleDiagnostic(result, modules.sourceMap());
         return { ...result, before: string(e.tw_llvm_before()), after: string(e.tw_llvm_after()), disassembly: e.tw_llvm_disassembly ? string(e.tw_llvm_disassembly()) : '',
           [result.format === 'object' ? 'object' : result.format === 'wasm' ? 'wasm' : 'binary']: new Uint8Array(e.memory.buffer, e.tw_llvm_bytes(), e.tw_llvm_size()).slice() };
       } finally { e.free(pointer); }

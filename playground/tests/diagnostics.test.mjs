@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {loadTower,runToEnd} from '../src/tower-host.mjs';
+import {loadTower,runToEnd} from './compiler-fixtures.mjs';
 const read=name=>readFile(new URL('../../'+name,import.meta.url));
 const foundation=(await read('scaffolding/foundation.tower')).toString();
 const tower=await loadTower(await read('build/browser-wasi/tower.wasm'),undefined,
@@ -44,7 +44,7 @@ test('user grammar literals, including keywords, participate without compiler an
  const source=grammar+'say 42\nsay 43 done';
  const result=error(source);
  assert.match(result.error,/Missing 'done' before 'say'/);
- assert.match(result.error,/Statement = 'say' Number 'done' \(this file, line 1,/);
+ assert.match(result.error,/Statement = 'say' Number 'done' \(input.tower, line 1,/);
  assert.equal(result.errorOffset,grammar.length+6);
  assert.equal(parse(grammar+'say 42 done\nsay 43 done').status,'done');
  const required="parse Statement = 'if' Identifier 'then' Identifier ';';\nif condition result;";
@@ -66,20 +66,20 @@ test('conflicts describe both choices, rule definitions and source locations',()
  assert.match(shift.error,/Grammar conflict \(shift\/reduce\) on 'x'/);
  assert.match(shift.error,/continue Statement = 'x' 'x'/);
  assert.match(shift.error,/finish Statement = 'x'/);
- assert.equal((shift.error.match(/this file, line 1, column/g)||[]).length,2);
+ assert.equal((shift.error.match(/input.tower, line 1, column/g)||[]).length,2);
  const reduce=error("parse A = Number;\nparse B = Number;\nparse Statement = A ';' | B ';';");
  assert.match(reduce.error,/reduce\/reduce/);
- assert.match(reduce.error,/A = Number \(this file, line 1,/);
- assert.match(reduce.error,/B = Number \(this file, line 2,/);
+ assert.match(reduce.error,/A = Number \(input.tower, line 1,/);
+ assert.match(reduce.error,/B = Number \(input.tower, line 2,/);
 });
 
 test('cached grammar diagnostics use current source locations after comments move rules',()=>{
  const rule="parse Statement = 'say' Number ';';\nsay 42";
  const handle=tower.create(rule);
  try{
-  assert.match(runToEnd(tower,handle).end.error,/this file, line 1,/);
+  assert.match(runToEnd(tower,handle).end.error,/input.tower, line 1,/);
   tower.reset(handle,'// moved\n\n'+rule);
-  assert.match(runToEnd(tower,handle).end.error,/this file, line 3,/);
+  assert.match(runToEnd(tower,handle).end.error,/input.tower, line 3,/);
   assert.ok(tower.inspect(handle).grammarCacheHits>0);
  }finally{tower.destroy(handle);}
 });

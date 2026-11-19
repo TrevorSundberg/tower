@@ -1,3 +1,5 @@
+import tower;
+
 // Character parsing, regex lowering and construction use the production Tower
 // modules. The legacy host supplies only the existing registered component kinds.
 fn frontend_test_table_failures(kinds: FrontendKinds*): usize {

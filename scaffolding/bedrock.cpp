@@ -47,7 +47,7 @@ void token(TowerNode* document, SyntaxKind kind, const char* name, const char* p
 // The immutable C++ seed starts bedrock.tower. These are ordinary entities
 // with grammar components; the same formatter serializes them to bedrock text.
 // Each session applies local overrides without mutating this shared baseline.
-TowerNode* syntax_native_bedrock() {
+extern "C" TowerNode* syntax_native_bedrock() {
   static TowerNodeRef document = [] {
     auto root = entity(SyntaxKind::Document); auto* doc = root.get();
     token(doc, SyntaxKind::Skip, "Whitespace", R"([ \t\r\n]+)");
@@ -94,7 +94,7 @@ TowerNode* syntax_native_bedrock() {
 }
 #else
 #include "compiler-frontend.hpp"
-TowerNode* syntax_native_bedrock() {
+extern "C" TowerNode* syntax_native_bedrock() {
   static TowerNodeRef document = [] {
     FrontendKinds kinds{parser_rule_get_type(), parser_reference_get_type(),
       parser_string_get_type(), parser_range_get_type(), parser_match_get_type(), syntax_component_type()};

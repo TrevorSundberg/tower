@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile,writeFile} from 'node:fs/promises';
-import {loadTower} from '../src/tower-host.mjs';
+import {loadTower} from './compiler-fixtures.mjs';
 const read=path=>readFile(new URL('../../'+path,import.meta.url));
 const tower=await loadTower(await read('build/browser-wasi/tower.wasm'),undefined,(await read('scaffolding/foundation.tower')).toString());
 const source='struct Pair { x: i32; y: i32; } fn sum(p: Pair*): i32 { var sum = p.x + p.y; return sum; } var pair: Pair; pair.x = 20; pair.y = 22; print(sum(&pair)); var text = "snow 雪"; print(text[5]); print(sizeof(usize));';
@@ -39,7 +39,7 @@ test('untrusted packages validate bounds, versions, checksums and actual code be
 
 test('canonical packages preserve checked handles across custom grammar installation',async()=>{
   const foundation=(await read('scaffolding/foundation.tower')).toString();
-  const customized='token Identifier = /[A-Za-z_][A-Za-z0-9_-]*/ as identifier;\n'+foundation;
+  const customized=foundation.replace('import bedrock;', 'import bedrock;\ntoken Identifier = /[A-Za-z_][A-Za-z0-9_-]*/ as identifier;');
   tower.configure(customized);
   const handle=tower.compile('var player-name: i32 = 42; print(player-name);');
   let loaded;

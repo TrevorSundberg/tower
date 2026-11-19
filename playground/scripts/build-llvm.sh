@@ -45,6 +45,7 @@ if [ ! -f "$host/build.ninja" ]; then
 fi
 cmake --build "$host" --target llvm-tblgen --parallel "${TOWER_BUILD_JOBS:-6}"
 cmake -S "$repo" -B "$cross" -G Ninja \
+  -DCMAKE_PROJECT_scaffolding_INCLUDE="$repo/cmake/TowerBackend.cmake" \
   -DCMAKE_TOOLCHAIN_FILE="$sdk/share/cmake/wasi-sdk-p1.cmake" \
   -DCMAKE_BUILD_TYPE=Release -DTOWER_BROWSER=ON -DTOWER_BROWSER_LLVM=ON \
   -DTOWER_BOOTSTRAP_COMPILER="$bootstrap" \

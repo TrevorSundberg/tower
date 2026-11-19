@@ -23,7 +23,8 @@ function(tower_compiler_host bootstrap dependency triple)
   add_custom_command(OUTPUT "${object}"
     COMMAND "${bootstrap}" "${input}" --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
       --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
-      --library --target "${triple}" -o "${object}"
+      --library --target "${triple}" -o "${object}" --depfile "${object}.d"
+    DEPFILE "${object}.d"
     DEPENDS ${dependency} "${input}" scaffolding/bedrock.tower scaffolding/foundation.tower VERBATIM)
   set_source_files_properties("${object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
   target_sources(tower-compiler-memory PRIVATE "${object}")

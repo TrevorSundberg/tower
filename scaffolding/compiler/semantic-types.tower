@@ -1,3 +1,5 @@
+import tower;
+
 // Semantic compiler over shared Foundation components.
 // Temporary indexes and scratch allocations are scoped to one compilation.
 
@@ -34,7 +36,7 @@ fn sem_type_entity(c: SemanticContext*, t: FoundationType*): void* {
     }
     var step9 = sem_create(c.program.root);
     var n: void* = step9;
-    var step10 = sem_attach(n, 19);
+    var step10 = sem_attach(n, KType());
     var value: FoundationNode* = step10;
     sem_set_type(&value.type, t);
     var step11 = sem_type_name(c, t);
@@ -170,7 +172,7 @@ fn sem_constant_argument(c: SemanticContext*, n: void*, expected_type: Foundatio
     }
     var step52 = sem_create(c.program.root);
     var result: void* = step52;
-    var step53 = sem_attach(result, 5);
+    var step53 = sem_attach(result, KOperand());
     var out: FoundationNode* = step53;
     out.constant = true;
     sem_set_type(&out.type, &constant.type);
@@ -250,7 +252,7 @@ fn sem_register_template(c: SemanticContext*, n: void*): void {
     var step4 = step3;
     var step5 = step4 == false;
     if step5 {
-        var step6 = kind == 0;
+        var step6 = kind == KProgram();
         step4 = step6;
     }
     if step4 {
@@ -292,7 +294,7 @@ fn sem_register_template(c: SemanticContext*, n: void*): void {
         i = i + 1;
     }
     var registry: SemanticTable* = c.templates;
-    var step22 = kind == 2;
+    var step22 = kind == KParameter();
     if step22 {
         registry = c.type_functions;
     }
@@ -579,7 +581,7 @@ fn sem_type_impl(c: SemanticContext*, n: void*): FoundationType* {
             var step43 = t.pointers == 0;
             var step44 = step43;
             if step44 {
-                var step45 = t.scalar == 3;
+                var step45 = t.scalar == SVoid();
                 step44 = step45;
             }
             if step44 {
@@ -601,7 +603,7 @@ fn sem_type_impl(c: SemanticContext*, n: void*): FoundationType* {
                 }
                 var step53 = sem_get(c.program.types.data[i]);
                 var a: FoundationNode* = step53;
-                var step54 = a.type.scalar == 9;
+                var step54 = a.type.scalar == SArray();
                 var step55 = step54;
                 if step55 {
                     var step56 = semantic_type_equal(&a.element, t);
@@ -619,7 +621,7 @@ fn sem_type_impl(c: SemanticContext*, n: void*): FoundationType* {
             }
             var step59 = sem_create(c.program.root);
             var entity: void* = step59;
-            var step60 = sem_attach(entity, 19);
+            var step60 = sem_attach(entity, KType());
             var a: FoundationNode* = step60;
             sem_set_name(a, name);
             sem_set_type(&a.element, t);
@@ -682,7 +684,7 @@ fn sem_type_impl(c: SemanticContext*, n: void*): FoundationType* {
     var step82 = bound != null;
     if step82 {
         var step83 = sem_get(bound);
-        var step84 = step83.kind != 19;
+        var step84 = step83.kind != KType();
         if step84 {
             sem_fail(c, n, "Expected a type, got a compile-time integer value");
         }
@@ -825,7 +827,7 @@ fn sem_type_fields(c: SemanticContext*, n: void*): void {
         var step27 = f.type.pointers == 0;
         var step28 = step27;
         if step28 {
-            var step29 = f.type.scalar == 3;
+            var step29 = f.type.scalar == SVoid();
             step28 = step29;
         }
         if step28 {
@@ -880,7 +882,7 @@ fn sem_layout(c: SemanticContext*, n: void*, depth: u32): void {
     }
     state.number = 1;
     t.size = 0;
-    var step13 = t.type.scalar == 9;
+    var step13 = t.type.scalar == SArray();
     if step13 {
         var step14 = semantic_aggregate(&t.element);
         if step14 {
@@ -1016,7 +1018,7 @@ fn sem_declaration_type(c: SemanticContext*, n: void*): bool {
     var value: FoundationNode* = step1;
     var step2 = sem_state(c, c.declaration_state, n);
     var state: SemanticEntry* = step2;
-    var step3 = value.kind != 3;
+    var step3 = value.kind != KDeclare();
     var step4 = step3;
     var step5 = step4 == false;
     if step5 {
@@ -1111,7 +1113,7 @@ fn sem_declaration_type(c: SemanticContext*, n: void*): bool {
     var step41 = value.type.pointers == 0;
     var step42 = step41;
     if step42 {
-        var step43 = value.type.scalar == 3;
+        var step43 = value.type.scalar == SVoid();
         step42 = step43;
     }
     if step42 {

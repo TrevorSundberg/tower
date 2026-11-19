@@ -1,3 +1,5 @@
+import tower;
+
 // POSIX and WASI use the explicit 64-bit off_t interfaces.
 extern fn fseeko(file: void*, offset: i64, origin: i32): i32;
 

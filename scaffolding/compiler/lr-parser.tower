@@ -1,3 +1,5 @@
+import tower;
+
 // LR and proven finite-sequence control over integer symbols. Frames borrow
 // forest handles; the shared entity forest retains ownership of syntax nodes.
 // A pull protocol keeps stream callbacks outside the deterministic control loop.

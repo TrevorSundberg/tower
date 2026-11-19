@@ -1,3 +1,5 @@
+import tower;
+
 // Validate replacements when their rules become reachable from Statement.
 // Nearest unit-rule ancestors provide inferred destinations; ordinary parsing
 // never searches or backtracks through these candidate destinations.

@@ -1,4 +1,4 @@
-function configureGrammar(exports, source, name, setter) {
+function configureGrammar(exports, source, name, setter, environment = 0) {
   if (typeof source !== 'string') throw new Error(`Load ${name.toLowerCase()}.tower before initializing Tower`);
   const bytes = new TextEncoder().encode(source);
   if (bytes.length > 65536) throw new Error(`${name} limit is 64 KiB`);
@@ -7,13 +7,13 @@ function configureGrammar(exports, source, name, setter) {
   if (!pointer) throw new Error(`Unable to allocate ${name.toLowerCase()} module`);
   try {
     new Uint8Array(exports.memory.buffer).set(bytes, pointer);
-    const error = exports[setter](pointer, bytes.length);
+    const error = exports[setter](pointer, bytes.length, environment);
     const memory = new Uint8Array(exports.memory.buffer);
     const message = new TextDecoder().decode(memory.subarray(error, memory.indexOf(0, error)));
     if (message) throw new Error(message);
   } finally { free(pointer); }
 }
-export const configureTower = (exports, source) => configureGrammar(exports, source, 'Foundation', 'tw_set_bootstrap');
+export const configureTower = (exports, source, environment) => configureGrammar(exports, source, 'Foundation', 'tw_set_bootstrap', environment);
 export const configureBedrock = (exports, source) => configureGrammar(exports, source, 'Bedrock', 'tw_set_bedrock');
 
 export function configureFoundation(exports, source) {

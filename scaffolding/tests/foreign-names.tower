@@ -1,3 +1,5 @@
+import tower;
+
 // Expected symbols come from the pinned LLVM/lld objects, the Itanium ABI,
 // and upstream clang/test/CodeGenCXX/mangle-ms.cpp. No native test definitions.
 extern fn puts(text: u8*): i32;

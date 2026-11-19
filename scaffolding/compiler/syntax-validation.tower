@@ -1,3 +1,5 @@
+import tower;
+
 // Disposable revision analysis over shared grammar entities. Only lookup and
 // dependency indexes live here; declarations remain the authoritative nodes.
 struct SyntaxRuleView {
@@ -716,6 +718,9 @@ export fn syntax_validate(rules: SyntaxRuleView*, count: usize, tokens: void**, 
     }
     if ok {
         ok = syntax_validation_root(&value, "GrammarSkipDeclaration");
+    }
+    if ok {
+        ok = syntax_validation_root(&value, "ImportDeclaration");
     }
     if ok {
         ok = syntax_validation_root(&value, "Statement");

@@ -1,3 +1,5 @@
+import tower;
+
 // Disposable FIRST/nullable and LR item indexes over the shared grammar entities.
 // Character and token streams use the same integer ranges and closure algorithm.
 struct LRProduction {

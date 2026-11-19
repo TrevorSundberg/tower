@@ -19,7 +19,7 @@ test.beforeEach(async ({ page }) => {
 
 test('whole-document tree selects roots, nested nodes and replacements', async ({ page }, info) => {
   const errors = []; page.on('pageerror', error => errors.push(error.message));
-  await expect(page.locator('.document-children > li')).toHaveCount(8);
+  await expect(page.locator('.document-children > li')).toHaveCount(9);
   await expect(page.locator('.document-root')).toHaveText('Document');
   await expect(page.locator('#timeline, #run, #step, #reset')).toHaveCount(0);
   const variable = page.locator('#tree button').filter({ hasText: '$Variable' }).first();
@@ -32,7 +32,7 @@ test('whole-document tree selects roots, nested nodes and replacements', async (
   await last.click();
   await expect(page.locator('.tw-selected')).toContainText('foreach');
   await selectDocument(page, 'replacements.tower');
-  await expect(page.locator('.document-children > li')).toHaveCount(19);
+  await expect(page.locator('.document-children > li')).toHaveCount(21);
   const root = i => page.locator('.document-children > li').nth(i).locator(':scope > details > summary');
   // Open lazy subtrees to expose previews at their actual replacement roots.
   const expand = async () => { for (let i = 0; i < 12; ++i) { await page.locator('#tree details').evaluateAll(items => items.forEach(item => item.open = true)); await page.waitForTimeout(10); } };
@@ -43,7 +43,7 @@ test('whole-document tree selects roots, nested nodes and replacements', async (
   await expect(page.locator('.expanded-code').nth(3)).toHaveText('item + 1');
   await expect(page.locator('.expanded-code').nth(6)).toHaveText('7 + 1');
   await expect(page.locator('.expanded-code').nth(7)).toHaveText('7 + 1');
-  const replacement = page.locator('.document-children > li').nth(17).locator('button.replacement').first();
+  const replacement = page.locator('.document-children > li').nth(19).locator('button.replacement').first();
   await replacement.click();
   await expect(page.locator('#node-info')).toContainText('definition bytes');
   await expect(page.locator('.tw-selected').first()).toContainText('foreach');
@@ -64,7 +64,7 @@ test('shared prefixes parse live and ambiguous boundaries show inline conflicts'
   const example = await (await request.get('/foreach.tower')).text();
   await setSource(page, example.replace('parse Statement |= ForEach;', "parse Statement |= ForEach | 'for';"));
   await expect(page.locator('#status')).toContainText('Complete');
-  await expect(page.locator('.document-children > li')).toHaveCount(8);
+  await expect(page.locator('.document-children > li')).toHaveCount(9);
   await expect(page.locator('.tw-inline-error')).toHaveCount(0);
   await expect(page.locator('#tree')).toContainText('ForEach');
   await expect(page.getByText('Define the syntax. Then use it.', { exact: true })).toHaveCount(0);
@@ -273,7 +273,7 @@ test('edits during a slow response coalesce and cannot display an obsolete parse
 
 test('editable token rules update parsing, highlighting and the grammar inspector', async ({ page, request }, info) => {
   await selectDocument(page, 'tokens.tower');
-  await expect(page.locator('#status')).toContainText('Complete · 10 grammar revisions');
+  await expect(page.locator('#status')).toContainText('Complete · 11 grammar revisions');
   await page.getByRole('textbox',{name:'Tower source'}).press('ControlOrMeta+End');
   await expect(page.locator('.tw-identifier').filter({ hasText: /^player-name$/ })).toHaveCount(1);
   await expect(page.locator('.tw-number').filter({ hasText: /^3\.14$/ })).toHaveCount(1);
@@ -291,8 +291,9 @@ test('editable token rules update parsing, highlighting and the grammar inspecto
   await expect(page.locator('#status')).toContainText('Complete');
   await page.screenshot({ path: `../build/playground-tokens-${info.project.name}.png`, fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
-  await selectDocument(page, 'foundation.tower');
+  await expect(page.locator('[data-path=".tower/foundation.tower"]')).toHaveCount(0);
+  await selectDocument(page, 'bedrock.tower');
   await expect(page.locator('#status')).toContainText('Complete');
-  await expect(page.locator('#filename')).toHaveText('foundation.tower');
-  await expect(page.locator('#rules')).toContainText('CoreFunction');
+  await expect(page.locator('#filename')).toHaveText('bedrock.tower');
+  await expect(page.locator('#rules')).toContainText('GrammarSequence');
 });

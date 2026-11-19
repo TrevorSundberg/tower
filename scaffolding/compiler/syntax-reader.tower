@@ -1,3 +1,5 @@
+import tower;
+
 // Interpret declaration parse trees on their existing shared entities.
 // Temporary native registration supplies component kinds; all reading is Tower.
 extern fn entity_component_add(node: void*, kind: void*): void*;

@@ -1,3 +1,5 @@
+import tower;
+
 // Structs and built-in types use the same type registry.
 struct Pair {
     first: i32;

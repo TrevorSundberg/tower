@@ -1,0 +1,11 @@
+import tower;
+
+import 'bytes-types';
+
+extern fn bytes_reserve(buffer: ByteBuffer*, needed: usize): bool;
+
+extern fn bytes_append(buffer: ByteBuffer*, source: u8*, count: usize): bool;
+
+extern fn bytes_push(buffer: ByteBuffer*, value: u8): bool;
+
+extern fn bytes_dispose(buffer: ByteBuffer*): void;

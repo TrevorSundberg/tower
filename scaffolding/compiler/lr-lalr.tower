@@ -1,3 +1,5 @@
+import tower;
+
 // Build LALR lookahead dependencies from LR(1) closures of LR(0) kernels.
 // Grammar order determines indices, never conflict priority or a shift bias.
 fn lr_lalr_index(value: LRStates*, state_index: usize, item: LRItem*): usize {

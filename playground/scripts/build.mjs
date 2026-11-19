@@ -16,11 +16,17 @@ await build({ absWorkingDir: root, entryPoints: ['src/app.mjs', 'src/worker.mjs'
 for (const file of ['index.html', 'style.css']) await copyFile(path.join(root, file), path.join(dist, file));
 await copyFile(path.join(root, '../build/browser-wasi/tower.wasm'), path.join(dist, 'tower.wasm'));
 await copyFile(path.join(root, '../scaffolding/examples/foreach.tower'), path.join(dist, 'foreach.tower'));
-await copyFile(path.join(root, '../scaffolding/foundation.tower'), path.join(dist, 'foundation.tower'));
-await copyFile(path.join(root, '../scaffolding/bedrock.tower'), path.join(dist, 'bedrock.tower'));
+const builtinModules = ['bedrock', 'foundation', 'tower', ...(await readdir(path.join(root, '../scaffolding/library')))
+  .filter(name => name.endsWith('.tower')).sort().map(name => 'library/' + name.slice(0, -6)), 'backend/foreign-grammar'];
+for (const name of builtinModules) {
+  const destination = path.join(dist, name + '.tower');
+  await mkdir(path.dirname(destination), {recursive:true});
+  await copyFile(path.join(root, '../scaffolding', name + '.tower'), destination);
+}
+await writeFile(path.join(dist, 'builtins.json'), JSON.stringify(builtinModules));
 await copyFile(path.join(root, '../scaffolding/examples/tokens.tower'), path.join(dist, 'tokens.tower'));
 await copyFile(path.join(root, '../scaffolding/examples/replacements.tower'), path.join(dist, 'replacements.tower'));
-// All examples import the single shared foundation module.
+// Examples declare their own Bedrock, Foundation or Tower dependency.
 for (const name of ['execution', 'increment', 'inference', 'templates', 'functions', 'structs', 'memory']) await writeFile(path.join(dist, name + '.tower'),
   await readFile(path.join(root, '../scaffolding/examples/' + name + '.tower'), 'utf8'));
 let llvm = false;

@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {loadTower,runToEnd} from '../src/tower-host.mjs';
+import {loadTower,runToEnd} from './compiler-fixtures.mjs';
 const read=p=>readFile(new URL('../../'+p,import.meta.url));
 const bedrock=(await read('scaffolding/bedrock.tower')).toString(), foundation=(await read('scaffolding/foundation.tower')).toString();
 const tower=await loadTower(await read('build/browser-wasi/tower.wasm'),undefined,foundation,undefined,bedrock);

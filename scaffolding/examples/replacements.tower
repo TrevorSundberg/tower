@@ -1,3 +1,7 @@
+import bedrock;
+
+token Number = /[0-9]+/ as number;
+
 // Core grammar: ordinary expressions, blocks, and a primitive loop form.
 parse Atom = Identifier | Number;
 parse Term = Atom;

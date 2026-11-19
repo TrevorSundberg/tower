@@ -1,6 +1,7 @@
 # Build actual Tower source for the compiler's target, using a host bootstrap.
 # Generated objects are ordinary platform artifacts, never Tower interchange files.
 set(TOWER_BOOTSTRAP_COMPILER "" CACHE FILEPATH "Host Tower compiler used to build Tower-written compiler code")
+option(TOWER_MODULE_TESTS "Include Tower module loader functional checks" OFF)
 set(TOWER_UTILITIES_TARGET "" CACHE STRING "Override the compiler utility object's target triple")
 function(tower_compiler_utilities)
   if(TARGET tower-compiler-utilities)
@@ -12,11 +13,8 @@ function(tower_compiler_utilities)
     endif()
     set(bootstrap "${TOWER_BOOTSTRAP_COMPILER}")
     set(bootstrap_dependency "${TOWER_BOOTSTRAP_COMPILER}")
-  elseif(TARGET towerc-seed)
-    set(bootstrap "$<TARGET_FILE:towerc-seed>")
-    set(bootstrap_dependency towerc-seed)
   else()
-    message(FATAL_ERROR "Set TOWER_BOOTSTRAP_COMPILER to a host towerc (playground/scripts/build-bootstrap.sh builds the transitional C++ seed).")
+    message(FATAL_ERROR "Set TOWER_BOOTSTRAP_COMPILER to an import-capable Tower-built host towerc; see docs/modules.md.")
   endif()
   if(TOWER_UTILITIES_TARGET)
     set(triple "${TOWER_UTILITIES_TARGET}")
@@ -61,8 +59,9 @@ function(tower_compiler_utilities)
       COMMAND "${bootstrap}" "${input}"
         --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
         --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
-        --library --target "${triple}" -o "${object}"
-      DEPENDS ${bootstrap_dependency} "${source}" "${input}"
+        --library --target "${triple}" -o "${object}" --depfile "${object}.d"
+      DEPFILE "${object}.d"
+    DEPENDS ${bootstrap_dependency} "${source}" "${input}"
         scaffolding/bedrock.tower scaffolding/foundation.tower
       COMMENT "Compiling Tower-written ${name} compiler code for ${triple}" VERBATIM)
     set_source_files_properties("${object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
@@ -75,8 +74,7 @@ function(tower_compiler_utilities)
   include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/TowerSharedRuntime.cmake")
 endfunction()
 
-# These components use the Tower-written specializer (vector(T)), so compile
-# them with stage1 or a supplied recent compiler, not the pre-template seed.
+# Compiler modules use explicit imports and the Tower-written specializer.
 function(tower_compiler_parser_nodes)
   include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/TowerFrontend.cmake")
   if(TARGET tower-compiler-parser-nodes)
@@ -85,11 +83,8 @@ function(tower_compiler_parser_nodes)
   if(TOWER_BOOTSTRAP_COMPILER)
     set(bootstrap "${TOWER_BOOTSTRAP_COMPILER}")
     set(dependency "${TOWER_BOOTSTRAP_COMPILER}")
-  elseif(TARGET towerc-stage1)
-    set(bootstrap "$<TARGET_FILE:towerc-stage1>")
-    set(dependency towerc-stage1)
   else()
-    message(FATAL_ERROR "Parser components require a template-capable host Tower compiler.")
+    message(FATAL_ERROR "Parser components require an import-capable Tower-built host compiler.")
   endif()
   get_property(triple GLOBAL PROPERTY TOWER_COMPILER_TRIPLE)
   set(input "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-parser-nodes.tower")
@@ -132,6 +127,7 @@ function(tower_compiler_parser_nodes)
       -DTEMPLATE_TESTS=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/syntax-template.tower
       -DSCAN_TESTS=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/syntax-scan.tower
       -DEXPANSION_TESTS=${expansion_tests}
+      -DMODULE_TESTS=${TOWER_MODULE_TESTS}
       -DREPLACEMENT_TESTS=${replacement_tests}
       -DFORMAT_DIR=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler
       -DOUTPUT=${input} -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ComposeParserNodes.cmake"
@@ -152,7 +148,8 @@ function(tower_compiler_parser_nodes)
     COMMAND "${bootstrap}" "${input}"
       --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
       --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
-      --library --target "${triple}" -o "${object}"
+      --library --target "${triple}" -o "${object}" --depfile "${object}.d"
+    DEPFILE "${object}.d"
     DEPENDS ${dependency} "${input}" scaffolding/bedrock.tower scaffolding/foundation.tower
     COMMENT "Compiling Tower-owned parser components for ${triple}" VERBATIM)
   set_source_files_properties("${object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
@@ -169,8 +166,7 @@ function(tower_compiler_semantics)
     set(bootstrap "${TOWER_BOOTSTRAP_COMPILER}")
     set(dependency "${TOWER_BOOTSTRAP_COMPILER}")
   else()
-    set(bootstrap "$<TARGET_FILE:towerc-stage1>")
-    set(dependency towerc-stage1)
+    message(FATAL_ERROR "Set TOWER_BOOTSTRAP_COMPILER to an import-capable Tower-built host compiler.")
   endif()
   get_property(triple GLOBAL PROPERTY TOWER_COMPILER_TRIPLE)
   set(input "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-semantics.tower")
@@ -186,7 +182,8 @@ function(tower_compiler_semantics)
   add_custom_command(OUTPUT "${object}"
     COMMAND "${bootstrap}" "${input}" --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
       --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
-      --library --target "${triple}" -o "${object}"
+      --library --target "${triple}" -o "${object}" --depfile "${object}.d"
+    DEPFILE "${object}.d"
     DEPENDS ${dependency} "${input}" scaffolding/bedrock.tower scaffolding/foundation.tower
     COMMENT "Compiling Tower semantic compiler for ${triple}" VERBATIM)
   set_source_files_properties("${object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)

@@ -1,10 +1,12 @@
+import tower;
+
 // Returns owned text/error views; release with foreign_name_close. The profile
 // describes the foreign compiler, never the host running this Tower function.
 fn foreign_profile(m: ForeignName*, profile: u32): void {
-    var foreign_condition3001 = profile == 11;
+    var foreign_condition3001 = profile == foreign_windows_arm64ec();
     if foreign_condition3001 {
-        foreign_profile(m, 10);
-        m.profile = 11;
+        foreign_profile(m, foreign_windows_arm64());
+        m.profile = foreign_windows_arm64ec();
         return;
     }
     m.profile = profile;
@@ -12,28 +14,28 @@ fn foreign_profile(m: ForeignName*, profile: u32): void {
     m.pointer_bytes = 8;
     m.long_bytes = 8;
     m.arch = 2;
-    var foreign_condition1 = profile == 1;
+    var foreign_condition1 = profile == foreign_wasi();
     if foreign_condition1 {
         m.pointer_bytes = 4;
         m.long_bytes = 4;
         m.arch = 0;
     }
-    var foreign_condition2 = profile == 3;
+    var foreign_condition2 = profile == foreign_macos_x64();
     if foreign_condition2 {
         m.object_format = 1;
     }
-    var foreign_condition3 = profile == 4;
+    var foreign_condition3 = profile == foreign_macos_arm64();
     if foreign_condition3 {
         m.object_format = 1;
         m.arch = 3;
     }
-    var foreign_condition4 = profile == 5;
+    var foreign_condition4 = profile == foreign_windows_x64();
     if foreign_condition4 {
         m.object_format = 2;
         m.long_bytes = 4;
         m.abi = 2;
     }
-    var foreign_condition5 = profile == 6;
+    var foreign_condition5 = profile == foreign_windows_x86();
     if foreign_condition5 {
         m.object_format = 2;
         m.long_bytes = 4;
@@ -41,22 +43,22 @@ fn foreign_profile(m: ForeignName*, profile: u32): void {
         m.arch = 1;
         m.abi = 2;
     }
-    var foreign_condition6 = profile == 7;
+    var foreign_condition6 = profile == foreign_mingw_x64();
     if foreign_condition6 {
         m.object_format = 2;
         m.long_bytes = 4;
     }
-    var foreign_condition7 = profile == 8;
+    var foreign_condition7 = profile == foreign_linux_arm64();
     if foreign_condition7 {
         m.arch = 3;
     }
-    var foreign_condition8 = profile == 9;
+    var foreign_condition8 = profile == foreign_linux_x86();
     if foreign_condition8 {
         m.pointer_bytes = 4;
         m.long_bytes = 4;
         m.arch = 1;
     }
-    var foreign_condition9 = profile == 10;
+    var foreign_condition9 = profile == foreign_windows_arm64();
     if foreign_condition9 {
         m.object_format = 2;
         m.long_bytes = 4;
@@ -67,7 +69,7 @@ fn foreign_profile(m: ForeignName*, profile: u32): void {
     if foreign_condition10 {
         foreign_fail(m, "Unknown foreign ABI profile");
     }
-    var foreign_condition11 = profile > 11;
+    var foreign_condition11 = profile > foreign_windows_arm64ec();
     if foreign_condition11 {
         foreign_fail(m, "Unknown foreign ABI profile");
     }
@@ -159,7 +161,7 @@ fn foreign_c(m: ForeignName*, object: bool): void {
         counted = false;
     }
     if object {
-        var foreign_condition3002 = m.profile == 11;
+        var foreign_condition3002 = m.profile == foreign_windows_arm64ec();
         if foreign_condition3002 {
             backend_text(&m.text, "#");
         }

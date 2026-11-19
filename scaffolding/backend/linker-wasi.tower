@@ -1,3 +1,5 @@
+import tower;
+
 // Pinned LLVM/lld 20 wasm32 C++ ABI. ArrayRef is passed indirectly; constructors
 // and destructors are upstream implementations. No owned native adapter.
 struct BackendLldArguments {

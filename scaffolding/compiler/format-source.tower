@@ -1,3 +1,5 @@
+import tower;
+
 // Temporary token positions/spacing flags derived from parser matches.
 // Comments come exclusively from the lexer; no second token grammar.
 // The checked sorted-input fast path replaces rescanning every comment for

@@ -1,3 +1,5 @@
+import tower;
+
 // Forward module bindings and effects retain source order.
 later = 0;
 var result = twice(later);

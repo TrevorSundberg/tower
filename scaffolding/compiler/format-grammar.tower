@@ -1,3 +1,5 @@
+import tower;
+
 // Grammar terms, alternatives and declarations retain shared entity identity.
 fn format_grammar_term(f: FormatEngine*, entity: void*): void {
     var term = format_syntax(f, entity);
@@ -123,6 +125,19 @@ fn format_grammar(f: FormatEngine*, entity: void*): void {
     format_comments(f, n);
     format_indent(f);
     var begin = f.result.text.length;
+    var imported = n.kind == 7;
+    if imported {
+        format_text(f, "import ");
+        if n.literal {
+            format_quote(f, &n.name);
+        }
+        else {
+            format_identifier(f, &n.name);
+        }
+        format_text(f, ";\n");
+        format_span(f, begin, n.start);
+        return;
+    }
     var condition13 = n.kind == 1;
     if condition13 {
         format_text(f, "parse ");

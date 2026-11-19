@@ -1,3 +1,5 @@
+import tower;
+
 // Host behavior is tested in Tower on native and wasm32 test hosts.
 extern fn remove(path: u8*): i32;
 

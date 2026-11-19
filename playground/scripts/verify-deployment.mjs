@@ -164,8 +164,8 @@ try {
       assert.ok(Number((await timing.textContent()).match(/([\d.]+) ms/)[1])<20);
     }
     const project = newProject('Deployment project', {bedrock,foundation}, [
-      {path:'main.tower',text:'print(answer());'},
-      {path:'lib/answer.tower',text:'fn answer(): i32 { return 42; }'},
+      {path:'main.tower',text:'import foundation; import "lib/answer"; print(answer());'},
+      {path:'lib/answer.tower',text:'import foundation; fn answer(): i32 { return 42; }'},
       {path:'assets/notes.txt',text:'Project archive verification'},
     ]);
     await page.locator('#file').setInputFiles({name:'deployment.zip',mimeType:'application/zip',buffer:Buffer.from(await exportProject(project).arrayBuffer())});

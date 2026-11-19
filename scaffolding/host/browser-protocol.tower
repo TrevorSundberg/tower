@@ -1,3 +1,5 @@
+import tower;
+
 // Browser transport policies. These consume borrowed values from the compiler;
 // JSON is not a second semantic model or a Tower interchange format.
 extern fn tower_utf8_validate(source: u8*, count: usize, reject_nul: u32): u32;

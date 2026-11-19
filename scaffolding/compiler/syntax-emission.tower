@@ -1,3 +1,5 @@
+import tower;
+
 // Lower shared grammar declarations into ordinary parser entities. These name
 // and provenance indexes are disposable; the input entities remain authoritative.
 extern fn entity_create_related(node: void*): void*;
@@ -767,6 +769,7 @@ fn emission_build(value: SyntaxEmission*): void {
         emission_root(value, root, "GrammarDeclaration");
         emission_root(value, root, "GrammarTokenDeclaration");
         emission_root(value, root, "GrammarSkipDeclaration");
+        emission_root(value, root, "ImportDeclaration");
         var statement = emission_cname(value, "Statement");
         if value.failed {
             return;
@@ -849,6 +852,7 @@ fn emission_reachable(value: SyntaxEmission*): void {
     emission_visit(value, emission_cname(value, "GrammarDeclaration"));
     emission_visit(value, emission_cname(value, "GrammarTokenDeclaration"));
     emission_visit(value, emission_cname(value, "GrammarSkipDeclaration"));
+    emission_visit(value, emission_cname(value, "ImportDeclaration"));
     var index: usize = 0;
     loop {
         var done = index == value.queue.length;
@@ -1031,6 +1035,7 @@ fn emission_declarations(value: SyntaxEmission*): void {
     emission_starts(value, "GrammarDeclaration");
     emission_starts(value, "GrammarTokenDeclaration");
     emission_starts(value, "GrammarSkipDeclaration");
+    emission_starts(value, "ImportDeclaration");
 }
 
 export fn syntax_emission_destroy(value: SyntaxEmission*): void {

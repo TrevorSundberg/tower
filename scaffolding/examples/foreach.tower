@@ -1,3 +1,5 @@
+import foundation;
+
 // These are grammar declarations executed by the native Tower seed.
 parse Variable = Identifier;
 parse Expression = Identifier | Number;

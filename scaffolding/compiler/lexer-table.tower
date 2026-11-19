@@ -1,3 +1,5 @@
+import tower;
+
 // Derived lexer tables only: token declarations remain on shared syntax entities.
 // Flat transition rows and maximal-prefix matching are owned and executed by Tower.
 struct LexerTable {

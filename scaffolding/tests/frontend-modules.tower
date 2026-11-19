@@ -1,0 +1,144 @@
+import tower;
+
+fn module_test_source(environment: ModuleEnvironment*, name: u8*, source: u8*): void {
+    module_require(frontend_modules_source(environment, name, source, syntax_text_length(source)));
+}
+
+fn module_test_parse(environment: ModuleEnvironment*, source: u8*, count: usize, succeeds: bool): bool {
+    var module = frontend_module_root(source, environment);
+    var session = syntax_create(source, module);
+    loop {
+        var node = syntax_next(session);
+        var done = node == null;
+        if done {
+            break;
+        }
+        entity_release(node);
+    }
+    var error = syntax_get_error(session);
+    var clean = error[0] == 0;
+    var ok = clean == succeeds;
+    if clean {
+        frontend_module_finish(module);
+        ok = frontend_module_count(module) == count;
+    }
+    syntax_destroy(session);
+    frontend_module_destroy(module);
+    return ok;
+}
+
+export fn frontend_modules_tests(): usize {
+    var environment = frontend_modules_create();
+    frontend_modules_configure(environment, "main.tower", "");
+    module_test_source(environment, "shared.tower", "parse Statement = 'shared';");
+    module_test_source(environment, "left.tower", "import shared; parse Statement = 'left'; left");
+    module_test_source(environment, "right.tower", "import shared; shared");
+    var result: usize = 0;
+    // Diamond identity and isolated overrides: right still parses 'shared'.
+    var ok = module_test_parse(environment, "import left; import './left'; import right; parse Statement = 'root'; root", 4, true);
+    if ok {} else {
+        result = 801;
+    }
+    // Only grammar-only dependencies can reuse their declaration entities.
+    ok = module_test_parse(environment, "import shared; shared", 2, true);
+    if ok {} else {
+        result = 802;
+    }
+    module_test_source(environment, "shared.tower", "parse Statement = 'changed';");
+    ok = module_test_parse(environment, "import shared; changed", 2, true);
+    if ok {} else {
+        result = 803;
+    }
+    ok = module_test_parse(environment, "import shared; shared", 0, false);
+    if ok {} else {
+        result = 804;
+    }
+    module_test_source(environment, "a.tower", "import b;");
+    module_test_source(environment, "b.tower", "import a;");
+    ok = module_test_parse(environment, "import a;", 0, false);
+    if ok {} else {
+        result = 805;
+    }
+    ok = module_test_parse(environment, "import missing;", 0, false);
+    if ok {} else {
+        result = 806;
+    }
+    ok = module_test_parse(environment, "parse Late = 'late'; import shared;", 0, false);
+    if ok {} else {
+        result = 807;
+    }
+    var invalid: u8[2];
+    invalid[0] = 192;
+    invalid[1] = 0;
+    ok = frontend_modules_source(environment, "invalid.tower", &invalid[0], 1);
+    if ok {
+        result = 808;
+    }
+    invalid[0] = 0;
+    ok = frontend_modules_source(environment, "invalid.tower", &invalid[0], 1);
+    if ok {
+        result = 809;
+    }
+    // Failed parses must not poison later parses, and '..name' is an ordinary segment.
+    ok = module_test_parse(environment, "import './..name/../shared'; changed", 2, true);
+    if ok {} else {
+        result = 810;
+    }
+    frontend_modules_configure(environment, "main.tower", "lib");
+    module_test_source(environment, "pkg/owner.tower", "import shared_rule;");
+    module_test_source(environment, "lib/shared_rule.tower", "parse Statement = 'original';");
+    ok = module_test_parse(environment, "import 'pkg/owner'; original", 3, true);
+    if ok {} else {
+        result = 811;
+    }
+    // A new relative file changes resolution even while the old source is unchanged.
+    module_test_source(environment, "pkg/shared_rule.tower", "parse Statement = 'shadow';");
+    ok = module_test_parse(environment, "import 'pkg/owner'; shadow", 3, true);
+    if ok {} else {
+        result = 812;
+    }
+    module_test_source(environment, "custom/selected.tower", "parse Statement = 'selected';");
+    frontend_modules_builtin(environment, "shared_rule", "custom/selected.tower");
+    ok = module_test_parse(environment, "import shared_rule; selected", 2, true);
+    if ok {} else {
+        result = 813;
+    }
+    frontend_modules_fallback(environment, "bundled");
+    module_test_source(environment, "bundled/extra.tower", "parse Statement = 'packaged';");
+    ok = module_test_parse(environment, "import extra; packaged", 2, true);
+    if ok {} else {
+        result = 814;
+    }
+    module_test_source(environment, "lib/extra.tower", "parse Statement = 'primary';");
+    ok = module_test_parse(environment, "import extra; primary", 2, true);
+    if ok {} else {
+        result = 815;
+    }
+    var path: vector(u8);
+    vector_init(u8, &path);
+    ok = module_path("c:/project/src/../main.tower", &path);
+    if ok {
+        ok = module_equal(path.data, "C:/project/main.tower");
+    }
+    if ok {} else {
+        result = 816;
+    }
+    ok = module_path("C:/../escape", &path);
+    if ok {
+        result = 817;
+    }
+    ok = module_path("//server/share/folder/../main.tower", &path);
+    if ok {
+        ok = module_equal(path.data, "//server/share/main.tower");
+    }
+    if ok {} else {
+        result = 818;
+    }
+    ok = module_path("//server/share/../escape", &path);
+    if ok {
+        result = 819;
+    }
+    vector_dispose(u8, &path);
+    frontend_modules_destroy(environment);
+    return result;
+}

@@ -9,10 +9,7 @@ const compiler = process.argv[2];
 if (!compiler) throw Error('Supply a native Tower compiler');
 const out = new URL('../../build/shared-runtime/', import.meta.url);
 await mkdir(out, {recursive:true});
-const modules = ['host/guest-memory.tower', 'host/platform-output.tower', 'tests/guest-runtime.tower'];
-const source = (await Promise.all(modules.map(path => readFile(new URL('../' + path, import.meta.url), 'utf8')))).join('\n');
-const input = fileURLToPath(new URL('tests.tower', out));
-await writeFile(input, source);
+const input = root + 'scaffolding/tests/guest-runtime.tower';
 const expected = 'Tower guest runtime passed\n';
 const common = [input, '--bedrock', root + 'scaffolding/bedrock.tower', '--foundation', root + 'scaffolding/foundation.tower'];
 for (const triple of ['wasm32-unknown-unknown', 'x86_64-pc-linux-gnu']) {

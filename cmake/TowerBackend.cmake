@@ -45,9 +45,10 @@ function(tower_backend_integrate)
   add_custom_command(OUTPUT "${foreign_tool}"
     COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${foreign_source}" --library --target "${foreign_host_triple}"
       --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
-      --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower" -o "${foreign_object}"
+      --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower" -o "${foreign_object}" --depfile "${foreign_object}.d"
     COMMAND "${TOWER_BACKEND_HOST_CC}" "${foreign_object}" -DTOWER_NO_MAIN
       "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/runtime.c" -o "${foreign_tool}"
+    DEPFILE "${foreign_object}.d"
     DEPENDS "${foreign_source}" "${TOWER_BOOTSTRAP_COMPILER}" scaffolding/runtime.c
     BYPRODUCTS "${foreign_object}" VERBATIM)
   foreach(flavor IN ITEMS native wasm)
@@ -63,14 +64,20 @@ function(tower_backend_integrate)
         -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ComposeBackend.cmake"
       DEPENDS ${backend_sources} scaffolding/library/vector.tower scaffolding/compiler/foundation-nodes.tower
         cmake/ComposeBackend.cmake scaffolding/tests/backend.tower scaffolding/tests/foreign-names.tower VERBATIM)
+    set(mangle_input "${input}")
+    if(TOWER_BROWSER_LLVM)
+      set(mangle_input "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/backend/wasi-support.tower")
+    endif()
     add_custom_command(OUTPUT "${expanded}"
-      COMMAND "${foreign_tool}" "${triple}" "${input}" "${expanded}"
-      DEPENDS "${foreign_tool}" "${input}" BYPRODUCTS "${expanded}.wrap.rsp" VERBATIM)
+      COMMAND "${foreign_tool}" "${triple}" "${mangle_input}" "${expanded}"
+      COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${input}" "${expanded}"
+      DEPENDS "${foreign_tool}" "${input}" "${mangle_input}" BYPRODUCTS "${expanded}.wrap.rsp" VERBATIM)
     add_custom_command(OUTPUT "${object}"
       COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${expanded}" --library --target "${triple}"
         --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
-        --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower" -o "${object}"
-      DEPENDS "${expanded}" "${TOWER_BOOTSTRAP_COMPILER}" scaffolding/bedrock.tower scaffolding/foundation.tower VERBATIM)
+        --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower" -o "${object}" --depfile "${object}.d"
+      DEPFILE "${object}.d"
+    DEPENDS "${expanded}" "${TOWER_BOOTSTRAP_COMPILER}" scaffolding/bedrock.tower scaffolding/foundation.tower VERBATIM)
     set_source_files_properties("${object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
     add_library(tower-backend-${flavor} INTERFACE)
     target_sources(tower-backend-${flavor} INTERFACE "${object}")
@@ -81,8 +88,9 @@ function(tower_backend_integrate)
       set(test_object "${CMAKE_CURRENT_BINARY_DIR}/tower-backend-test-main.o")
       add_custom_command(OUTPUT "${test_object}"
         COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/backend-main.tower"
-          --library --target "${triple}" -o "${test_object}"
-        DEPENDS scaffolding/tests/backend-main.tower "${TOWER_BOOTSTRAP_COMPILER}" VERBATIM)
+          --library --target "${triple}" -o "${test_object}" --depfile "${test_object}.d"
+        DEPFILE "${test_object}.d"
+    DEPENDS scaffolding/tests/backend-main.tower "${TOWER_BOOTSTRAP_COMPILER}" VERBATIM)
       set_source_files_properties("${test_object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
       get_target_property(test_sources towerc SOURCES)
       list(REMOVE_ITEM test_sources "$<TARGET_OBJECTS:tower-native-driver>")

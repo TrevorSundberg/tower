@@ -1,3 +1,5 @@
+import tower;
+
 // Compiler allocation policy, separate from guest raw-address allocation.
 // A null state selects production behavior; tests explicitly supply a state.
 // The borrowed native allocator is the platform libc (wasi-libc in reactors).

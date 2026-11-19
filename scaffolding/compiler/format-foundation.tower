@@ -1,3 +1,5 @@
+import tower;
+
 // Native bridges only query existing operation/type definitions.
 // Query the shared semantic definitions directly; no native formatting policy.
 extern fn semantic_builtin_name(kind: u32): u8*;
@@ -11,157 +13,157 @@ extern fn semantic_signed(t: FoundationType*): bool;
 extern fn semantic_mask(t: FoundationType*): u64;
 
 fn format_is_Program(n: FoundationNode*): bool {
-    var selected = n.kind == 0;
+    var selected = n.kind == KProgram();
     return selected;
 }
 
 fn format_is_Function(n: FoundationNode*): bool {
-    var selected = n.kind == 1;
+    var selected = n.kind == KFunction();
     return selected;
 }
 
 fn format_is_Parameter(n: FoundationNode*): bool {
-    var selected = n.kind == 2;
+    var selected = n.kind == KParameter();
     return selected;
 }
 
 fn format_is_Declare(n: FoundationNode*): bool {
-    var selected = n.kind == 3;
+    var selected = n.kind == KDeclare();
     return selected;
 }
 
 fn format_is_Assign(n: FoundationNode*): bool {
-    var selected = n.kind == 4;
+    var selected = n.kind == KAssign();
     return selected;
 }
 
 fn format_is_Operand(n: FoundationNode*): bool {
-    var selected = n.kind == 5;
+    var selected = n.kind == KOperand();
     return selected;
 }
 
 fn format_is_Binary(n: FoundationNode*): bool {
-    var selected = n.kind == 6;
+    var selected = n.kind == KBinary();
     return selected;
 }
 
 fn format_is_Address(n: FoundationNode*): bool {
-    var selected = n.kind == 7;
+    var selected = n.kind == KAddress();
     return selected;
 }
 
 fn format_is_Load(n: FoundationNode*): bool {
-    var selected = n.kind == 8;
+    var selected = n.kind == KLoad();
     return selected;
 }
 
 fn format_is_Convert(n: FoundationNode*): bool {
-    var selected = n.kind == 9;
+    var selected = n.kind == KConvert();
     return selected;
 }
 
 fn format_is_Bits(n: FoundationNode*): bool {
-    var selected = n.kind == 10;
+    var selected = n.kind == KBits();
     return selected;
 }
 
 fn format_is_Call(n: FoundationNode*): bool {
-    var selected = n.kind == 11;
+    var selected = n.kind == KCall();
     return selected;
 }
 
 fn format_is_Block(n: FoundationNode*): bool {
-    var selected = n.kind == 12;
+    var selected = n.kind == KBlock();
     return selected;
 }
 
 fn format_is_If(n: FoundationNode*): bool {
-    var selected = n.kind == 13;
+    var selected = n.kind == KIf();
     return selected;
 }
 
 fn format_is_Loop(n: FoundationNode*): bool {
-    var selected = n.kind == 14;
+    var selected = n.kind == KLoop();
     return selected;
 }
 
 fn format_is_Break(n: FoundationNode*): bool {
-    var selected = n.kind == 15;
+    var selected = n.kind == KBreak();
     return selected;
 }
 
 fn format_is_Continue(n: FoundationNode*): bool {
-    var selected = n.kind == 16;
+    var selected = n.kind == KContinue();
     return selected;
 }
 
 fn format_is_Print(n: FoundationNode*): bool {
-    var selected = n.kind == 17;
+    var selected = n.kind == KPrint();
     return selected;
 }
 
 fn format_is_Return(n: FoundationNode*): bool {
-    var selected = n.kind == 18;
+    var selected = n.kind == KReturn();
     return selected;
 }
 
 fn format_is_Type(n: FoundationNode*): bool {
-    var selected = n.kind == 19;
+    var selected = n.kind == KType();
     return selected;
 }
 
 fn format_is_FieldDeclaration(n: FoundationNode*): bool {
-    var selected = n.kind == 20;
+    var selected = n.kind == KFieldDeclaration();
     return selected;
 }
 
 fn format_is_Field(n: FoundationNode*): bool {
-    var selected = n.kind == 21;
+    var selected = n.kind == KField();
     return selected;
 }
 
 fn format_is_Index(n: FoundationNode*): bool {
-    var selected = n.kind == 22;
+    var selected = n.kind == KIndex();
     return selected;
 }
 
 fn format_is_String(n: FoundationNode*): bool {
-    var selected = n.kind == 23;
+    var selected = n.kind == KString();
     return selected;
 }
 
 fn format_is_SizeOf(n: FoundationNode*): bool {
-    var selected = n.kind == 24;
+    var selected = n.kind == KSizeOf();
     return selected;
 }
 
 fn format_is_AlignOf(n: FoundationNode*): bool {
-    var selected = n.kind == 25;
+    var selected = n.kind == KAlignOf();
     return selected;
 }
 
 fn format_is_Allocate(n: FoundationNode*): bool {
-    var selected = n.kind == 26;
+    var selected = n.kind == KAllocate();
     return selected;
 }
 
 fn format_is_Reallocate(n: FoundationNode*): bool {
-    var selected = n.kind == 27;
+    var selected = n.kind == KReallocate();
     return selected;
 }
 
 fn format_is_Free(n: FoundationNode*): bool {
-    var selected = n.kind == 28;
+    var selected = n.kind == KFree();
     return selected;
 }
 
 fn format_is_Copy(n: FoundationNode*): bool {
-    var selected = n.kind == 29;
+    var selected = n.kind == KCopy();
     return selected;
 }
 
 fn format_is_Fill(n: FoundationNode*): bool {
-    var selected = n.kind == 30;
+    var selected = n.kind == KFill();
     return selected;
 }
 
@@ -179,17 +181,17 @@ fn format_scalar_name(t: FoundationType*, output: vector(u8)*): bool {
 }
 
 fn format_array(t: FoundationType*): bool {
-    var selected = t.scalar == 9;
+    var selected = t.scalar == SArray();
     return selected;
 }
 
 fn format_record(t: FoundationType*): bool {
-    var selected = t.scalar == 4;
+    var selected = t.scalar == SStruct();
     return selected;
 }
 
 fn format_boolean(t: FoundationType*): bool {
-    var selected = t.scalar == 2;
+    var selected = t.scalar == SBool();
     return selected;
 }
 

@@ -1,3 +1,5 @@
+import tower;
+
 // The highest lifecycle ID belongs to the shared Foundation payload. Native
 // callback IDs retain their existing values during the frontend transition.
 // Keep this object separate from allocation: utility-only clients need no graph.

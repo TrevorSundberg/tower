@@ -1,3 +1,5 @@
+import tower;
+
 // Semantic compiler over shared Foundation components.
 // Temporary indexes and scratch allocations are scoped to one compilation.
 
@@ -97,7 +99,7 @@ fn sem_location(c: SemanticContext*, n: void*, depth: u32): void* {
             parent.pointers = parent.pointers - 1;
             sem_set_type(&value.type, parent);
         } else {
-            var step39 = parent.scalar == 9;
+            var step39 = parent.scalar == SArray();
             if step39 {
                 var step40 = sem_get(parent.record);
                 sem_set_type(&value.type, &step40.element);
@@ -167,7 +169,7 @@ fn sem_location(c: SemanticContext*, n: void*, depth: u32): void* {
     sem_set_name(value, step66);
     var step67 = parent.pointers == 1;
     value.indirect = step67;
-    var step68 = parent.scalar != 4;
+    var step68 = parent.scalar != SStruct();
     var step69 = step68;
     var step70 = step69 == false;
     if step70 {
@@ -287,7 +289,7 @@ fn sem_operand_impl(c: SemanticContext*, n: void*, expected_type: FoundationType
         var step22 = v.type.pointers == 0;
         var step23 = step22;
         if step23 {
-            var step24 = v.type.scalar == 3;
+            var step24 = v.type.scalar == SVoid();
             step23 = step24;
         }
         if step23 {
@@ -312,7 +314,7 @@ fn sem_operand_impl(c: SemanticContext*, n: void*, expected_type: FoundationType
             var address: bool = step31;
             var kind: u32 = 8;
             if address {
-                kind = 7;
+                kind = KAddress();
             }
             var step32 = sem_node(c, n, kind);
             var value: FoundationNode* = step32;
@@ -407,7 +409,7 @@ fn sem_operand_impl(c: SemanticContext*, n: void*, expected_type: FoundationType
                     step63 = step65;
                 }
                 if step63 {
-                    value.kind = 23;
+                    value.kind = KString();
                     var step66 = sem_type_new(c, 5, 1, null);
                     sem_set_type(&value.type, step66);
                     var i: usize = 1;
@@ -589,21 +591,21 @@ fn sem_builtin(c: SemanticContext*, n: void*, kind: u32, args: vector(void*)*): 
     var step12 = sem_type_new(c, 5, 0, null);
     var byte: FoundationType* = step12;
     byte.pointer_bytes = 4;
-    var step13 = kind == 17;
+    var step13 = kind == KPrint();
     if step13 {
         var step14 = sem_operand(c, args.data[0], null);
         value.value = step14;
     } else {
-        var step15 = kind == 28;
+        var step15 = kind == KFree();
         var step16 = step15;
         var step17 = step16 == false;
         if step17 {
-            var step18 = kind == 29;
+            var step18 = kind == KCopy();
             step16 = step18;
         }
         var step19 = step16 == false;
         if step19 {
-            var step20 = kind == 30;
+            var step20 = kind == KFill();
             step16 = step20;
         }
         if step16 {
@@ -619,12 +621,12 @@ fn sem_builtin(c: SemanticContext*, n: void*, kind: u32, args: vector(void*)*): 
             if step25 {
                 sem_fail(c, n, "Memory operations require a pointer");
             }
-            var step26 = kind != 28;
+            var step26 = kind != KFree();
             if step26 {
                 var step27 = sem_operand(c, args.data[2], size);
                 value.value = step27;
                 var expected_type: FoundationType* = null;
-                var step28 = kind == 30;
+                var step28 = kind == KFill();
                 if step28 {
                     expected_type = byte;
                 }
@@ -635,7 +637,7 @@ fn sem_builtin(c: SemanticContext*, n: void*, kind: u32, args: vector(void*)*): 
                 if step31 {
                     return n;
                 }
-                var step32 = kind == 29;
+                var step32 = kind == KCopy();
                 var step33 = step32;
                 if step33 {
                     var step34 = sem_get(value.right);
@@ -647,11 +649,11 @@ fn sem_builtin(c: SemanticContext*, n: void*, kind: u32, args: vector(void*)*): 
                 }
             }
         } else {
-            var step36 = kind == 24;
+            var step36 = kind == KSizeOf();
             var step37 = step36;
             var step38 = step37 == false;
             if step38 {
-                var step39 = kind == 25;
+                var step39 = kind == KAlignOf();
                 step37 = step39;
             }
             if step37 {
@@ -663,11 +665,11 @@ fn sem_builtin(c: SemanticContext*, n: void*, kind: u32, args: vector(void*)*): 
                 }
                 sem_set_type(&value.type, size);
             } else {
-                var step42 = kind == 26;
+                var step42 = kind == KAllocate();
                 var step43 = step42;
                 var step44 = step43 == false;
                 if step44 {
-                    var step45 = kind == 27;
+                    var step45 = kind == KReallocate();
                     step43 = step45;
                 }
                 if step43 {
@@ -688,17 +690,17 @@ fn sem_builtin(c: SemanticContext*, n: void*, kind: u32, args: vector(void*)*): 
                     var step50 = args.length - 1;
                     var step51 = sem_operand(c, args.data[step50], size);
                     value.right = step51;
-                    var step52 = kind == 27;
+                    var step52 = kind == KReallocate();
                     if step52 {
                         var step53 = sem_operand(c, args.data[1], &value.type);
                         value.left = step53;
                     }
                 } else {
-                    var step54 = kind == 9;
+                    var step54 = kind == KConvert();
                     var step55 = step54;
                     var step56 = step55 == false;
                     if step56 {
-                        var step57 = kind == 10;
+                        var step57 = kind == KBits();
                         step55 = step57;
                     }
                     if step55 {
@@ -720,7 +722,7 @@ fn sem_builtin(c: SemanticContext*, n: void*, kind: u32, args: vector(void*)*): 
                             var step66 = value.type.pointers == 0;
                             var step67 = step66;
                             if step67 {
-                                var step68 = value.type.scalar == 3;
+                                var step68 = value.type.scalar == SVoid();
                                 step67 = step68;
                             }
                             step64 = step67;
@@ -728,7 +730,7 @@ fn sem_builtin(c: SemanticContext*, n: void*, kind: u32, args: vector(void*)*): 
                         if step64 {
                             sem_fail(c, n, "Conversion requires scalar values");
                         }
-                        var step69 = kind == 9;
+                        var step69 = kind == KConvert();
                         var step70 = step69;
                         if step70 {
                             var step71 = value.type.pointers != 0;
@@ -743,7 +745,7 @@ fn sem_builtin(c: SemanticContext*, n: void*, kind: u32, args: vector(void*)*): 
                         if step70 {
                             sem_fail(c, n, "Pointer reinterpretation requires bits");
                         }
-                        var step75 = kind == 10;
+                        var step75 = kind == KBits();
                         var step76 = step75;
                         if step76 {
                             var step77 = semantic_width(&value.type);
@@ -1032,7 +1034,7 @@ fn sem_expression(c: SemanticContext*, n: void*, expected_type: FoundationType*)
             if step37 {
                 input = expected_type;
             }
-            var step38 = value.op >= 8;
+            var step38 = value.op >= OEq();
             var comparison: bool = step38;
             var step39 = sem_member(n, "left");
             var left: void* = step39;
@@ -1082,11 +1084,11 @@ fn sem_expression(c: SemanticContext*, n: void*, expected_type: FoundationType*)
             var step58 = input.pointers != 0;
             var step59 = step58;
             if step59 {
-                var step60 = value.op == 0;
+                var step60 = value.op == OAdd();
                 var step61 = step60;
                 var step62 = step61 == false;
                 if step62 {
-                    var step63 = value.op == 1;
+                    var step63 = value.op == OSub();
                     step61 = step63;
                 }
                 step59 = step61;
@@ -1139,11 +1141,11 @@ fn sem_expression(c: SemanticContext*, n: void*, expected_type: FoundationType*)
                 var step78 = step77 == false;
                 var step79 = step78;
                 if step79 {
-                    var step80 = value.op != 8;
+                    var step80 = value.op != OEq();
                     step79 = step80;
                 }
                 if step79 {
-                    var step81 = value.op != 9;
+                    var step81 = value.op != ONe();
                     step79 = step81;
                 }
                 if step79 {

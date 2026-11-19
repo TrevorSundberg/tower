@@ -1,3 +1,5 @@
+import tower;
+
 // Transitional native boundary uses these exact layouts. Semantic results live
 // on FoundationNode components; lists below are derived indexes, never an IR.
 struct SemanticProgram {

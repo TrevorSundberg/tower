@@ -1,3 +1,5 @@
+import tower;
+
 fn backend_verify(b: Backend*): bool {
     var message: u8* = null;
     // LLVMReturnStatusAction: malformed IR is a diagnostic, never process abort.

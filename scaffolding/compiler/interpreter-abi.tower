@@ -1,3 +1,5 @@
+import tower;
+
 // Execution storage only; entity keys refer to the existing foundation nodes.
 // Ordered map entries and task arrays are derived execution indexes, not IR.
 struct IMEntry {

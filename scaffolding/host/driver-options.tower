@@ -1,3 +1,5 @@
+import tower;
+
 // CLI parsing owns its link array and borrows argv/default-target strings.
 // Keep option ordering and early --help behavior of the original native driver.
 struct DriverOptions {
@@ -12,6 +14,7 @@ struct DriverOptions {
     optimized: u8*;
     bedrock: u8*;
     foundation: u8*;
+    depfile: u8*;
     links: u8**;
     link_count: usize;
     optimize: bool;
@@ -42,7 +45,7 @@ fn driver_equal(a: u8*, b: u8*): bool {
 }
 
 export fn driver_help(): u8* {
-    return "towerc source.tower -o output [--target triple] [--emit object|llvm|llvm-optimized|exe|bytecode|foundation]\n  [--link object-or-library] [--cc clang] [--linker tool] [--sysroot path]\n  [--raw-ir file] [--optimized-ir file] [--no-optimize] [--interpret|--interpret-fast] [--library] [--timings]\n  [--bedrock file] [--foundation file] [--help] [--version]\n";
+    return "towerc source.tower -o output [--target triple] [--emit object|llvm|llvm-optimized|exe|bytecode|foundation]\n  [--link object-or-library] [--cc clang] [--linker tool] [--sysroot path]\n  [--raw-ir file] [--optimized-ir file] [--no-optimize] [--interpret|--interpret-fast] [--library] [--timings]\n  [--bedrock file] [--foundation file] [--depfile file] [--help] [--version]\n";
 }
 
 export fn driver_version(): u8* {
@@ -67,6 +70,7 @@ export fn driver_parse(options: DriverOptions*, argc: usize, argv: u8**, target:
     options.optimized = "";
     options.bedrock = "";
     options.foundation = "";
+    options.depfile = "";
     options.links = null;
     options.link_count = 0;
     options.optimize = true;
@@ -147,6 +151,9 @@ export fn driver_parse(options: DriverOptions*, argc: usize, argv: u8**, target:
         }
         if driver_equal(arg, "--foundation") {
             slot = &options.foundation;
+        }
+        if driver_equal(arg, "--depfile") {
+            slot = &options.depfile;
         }
         var link = driver_equal(arg, "--link");
         var valued = slot != null;

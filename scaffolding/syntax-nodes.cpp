@@ -31,6 +31,6 @@ bool syntax_equal(TowerNode* a, TowerNode* b, bool locations) {
   return result != 0;
 }
 const char* syntax_kind_name(SyntaxKind kind) {
-  const char* names[] = {"document", "parse", "token", "skip", "alternative", "term", "template"};
+  const char* names[] = {"document", "parse", "token", "skip", "alternative", "term", "template", "import"};
   return names[static_cast<size_t>(kind)];
 }

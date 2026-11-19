@@ -1,3 +1,5 @@
+import tower;
+
 // Semantic compiler over shared Foundation components.
 // Temporary indexes and scratch allocations are scoped to one compilation.
 
@@ -87,25 +89,25 @@ export fn semantic_initialize(program: SemanticProgram*, root: void*, width: u32
     fill(program, 0, step1);
     program.pointer_bytes = width;
     program.root = root;
-    var step2 = sem_attach(root, 0);
+    var step2 = sem_attach(root, KProgram());
     var n: FoundationNode* = step2;
-    n.type.scalar = 3;
+    n.type.scalar = SVoid();
     sem_push(&program.functions, root);
     var scalar: u32 = 0;
     loop {
-        var step3 = scalar <= 8;
+        var step3 = scalar <= SUSize();
         var step4 = step3 == false;
         if step4 {
             break;
         }
-        var step5 = scalar == 4;
+        var step5 = scalar == SStruct();
         if step5 {
             scalar = scalar + 1;
             continue;
         }
         var step6 = sem_create(root);
         var entity: void* = step6;
-        var step7 = sem_attach(entity, 19);
+        var step7 = sem_attach(entity, KType());
         var t: FoundationNode* = step7;
         t.type.scalar = scalar;
         t.type.pointer_bytes = width;

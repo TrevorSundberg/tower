@@ -17,8 +17,9 @@ export function validateProject(project) {
   }
   for (const path of paths) for (let at = path.indexOf('/'); at >= 0; at = path.indexOf('/', at + 1))
     if (paths.has(path.slice(0, at))) throw new Error('A file conflicts with a folder: ' + path);
+  for (const [name, text] of Object.entries(project.builtins ?? {})) { filePath(name + '.tower'); if (typeof text !== 'string') throw new Error('Invalid builtin module: ' + name); }
   for (const key of ['bedrock', 'foundation']) if (typeof project.builtins?.[key] !== 'string') throw new Error('Missing built-in: ' + key);
-  if (!paths.has(project.active) && !['.tower/bedrock.tower', '.tower/foundation.tower'].includes(project.active)) project.active = project.files[0].path;
+  if (!paths.has(project.active) && !Object.keys(project.builtins).map(name => '.tower/' + name + '.tower').includes(project.active)) project.active = project.files[0].path;
   project.links ??= {};
   for (const [name, bytes] of Object.entries(project.links))
     if (!/^[a-zA-Z0-9._-]{1,128}$/.test(name) || name.startsWith('tower-') || !(bytes instanceof Uint8Array) || bytes.length > 64 * 1024 * 1024)
@@ -26,7 +27,7 @@ export function validateProject(project) {
   if (Object.keys(project.links).length > 60) throw new Error('At most 60 link inputs');
   return project;
 }
-export function newProject(name, builtins, files = [{path:'main.tower', text:'print(42);\n'}]) {
+export function newProject(name, builtins, files = [{path:'main.tower', text:'import tower;\n\nprint(42);\n'}]) {
   return validateProject({version:1, id:crypto.randomUUID(), name, files, active:files[0].path, builtins:{...builtins}, baseline:{...builtins}, links:{}});
 }
 export async function projectStore() {
@@ -46,11 +47,10 @@ export async function projectStore() {
   return {list:() => transaction('readonly', s => s.getAll()), save:p => transaction('readwrite', s => s.put(p))};
 }
 
-// Flattened byte coordinates are only a derived diagnostic index. Each source
-// is parsed independently by Tower; this is not source concatenation/imports.
-export function projectSources(project) { return project.files.filter(file => file.path.endsWith('.tower')); }
+// The first Tower file is the project entry. Tower resolves its import closure.
+export function projectSources(project) { return project.files.filter(file => file.path.endsWith('.tower')).slice(0, 1); }
 export function projectDiagnostic(result, files) {
-  if (result.status !== 'error' || !files?.length) return result;
+  if (result.status !== 'error' || result.errorFile || !files?.length) return result;
   let offset = result.errorOffset ?? 0;
   for (const [index, file] of files.entries()) {
     const length = new TextEncoder().encode(file.text).length;

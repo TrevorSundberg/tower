@@ -1,3 +1,6 @@
+import '../host/guest-memory';
+import tower;
+
 // Both paths execute the same Tower workload. A null heap selects the current
 // runtime.c allocator through alloc/free; the other selects the Tower allocator.
 fn benchmark_allocate(heap: GuestHeap*, count: usize): u8* {

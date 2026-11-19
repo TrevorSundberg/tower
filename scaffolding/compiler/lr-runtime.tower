@@ -1,3 +1,5 @@
+import tower;
+
 // Disposable runtime indexes. Grammar entities and their provenance remain the
 // source of truth; rows preserve conflicts instead of selecting an alternative.
 struct LRGoto {

@@ -1,3 +1,5 @@
+import tower;
+
 // Functional backend API checks, compiled as Tower and linked to the same
 // upstream LLVM and shared entity/semantic objects as the production compiler.
 fn backend_test_target(triple: u8*, width: u32): bool {

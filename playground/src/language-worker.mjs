@@ -11,17 +11,18 @@ function baselines() {
   return baseline;
 }
 self.onmessage = ({data}) => { queue = queue.then(() => receive(data)); };
-async function receive({id, method, source, cursor, foundation, bedrock, editingModule, files}) {
+async function receive({id, method, source, cursor, foundation, bedrock, editingModule, files=[], builtins={}, activePath='input.tower'}) {
   try {
-    if (editingModule) {
+    if (['bedrock','foundation'].includes(editingModule)) {
       const [baseFoundation, baseBedrock] = await baselines();
       foundation = baseFoundation;
       if (editingModule === 'bedrock') bedrock = baseBedrock;
     }
-    const {tower} = method === 'highlight' ? await getCanonicalTower() : await getTower(foundation, bedrock);
+    const {tower} = method === 'highlight' ? await getCanonicalTower() : await getTower(foundation, bedrock, builtins.tower);
     let result;
     if (method === 'complete') {
-      result = tower.complete(source, cursor, {editingModule, files});
+      tower.configureModules({entry:activePath, files, builtins:{...builtins,foundation,bedrock}});
+      result = tower.complete(source, cursor, {editingModule});
       if (result.error) throw new Error(result.error);
     } else {
       const handle = tower.create(source);

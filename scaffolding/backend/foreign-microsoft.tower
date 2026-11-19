@@ -1,3 +1,5 @@
+import tower;
+
 // Microsoft C++ ABI. Source of truth/reference: upstream Clang MicrosoftMangle.
 // Name backreferences and parameter backreferences have separate scopes.
 fn foreign_ms_builtin(type: ForeignType*): u8* {
@@ -443,7 +445,7 @@ fn foreign_microsoft(m: ForeignName*): void {
         foreign_ms_name(m, m.name);
     }
     if m.object_symbol {
-        var foreign_condition3021 = m.profile == 11;
+        var foreign_condition3021 = m.profile == foreign_windows_arm64ec();
         if foreign_condition3021 {
             backend_text(&m.text, "$$h");
         }

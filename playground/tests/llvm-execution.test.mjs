@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { loadTower } from '../src/tower-host.mjs';
-import { loadLLVM, executeWasm } from '../src/llvm-host.mjs';
+import { loadTower } from './compiler-fixtures.mjs';
+import { loadLLVM, executeWasm } from './compiler-fixtures.mjs';
 import { originalDiagnostic } from '../src/foundation-source.mjs';
 const read = path => readFile(new URL('../../' + path, import.meta.url));
 const grammar = (await read('scaffolding/foundation.tower')).toString();
@@ -42,7 +42,7 @@ const cases = [
   ['bounded output', 'var n: i32; var b: bool; n = 0; loop { print(123456789); n = n + 1; b = n == 7000; if b { break; } }', '123456789\n'.repeat(6553)],
 ];
 for (const [name, source, expected, failure] of cases) test(`LLVM matches interpreter: ${name}`, { skip: !llvm }, async () => {
-  const handle = tower.compile(grammar + '\n' + source);
+  const handle = tower.compile(source);
   try {
     let reference, output = '';
     for (let i = 0; i < 1000; ++i) {
@@ -50,7 +50,7 @@ for (const [name, source, expected, failure] of cases) test(`LLVM matches interp
       if (reference.status !== 'executing') break;
     }
     assert.notEqual(reference.status, 'executing');
-    const fastHandle = tower.compile(grammar + '\n' + source);
+    const fastHandle = tower.compile(source);
     try {
       tower.useFast(fastHandle);
       let fast, fastOutput = '';
@@ -69,7 +69,7 @@ for (const [name, source, expected, failure] of cases) test(`LLVM matches interp
     assert.match(compiled.disassembly, /end/);
     assert.doesNotMatch(compiled.disassembly, /\.byte/, 'every emitted Wasm instruction decodes');
     assert.doesNotMatch(compiled.after, /\balloca\b/, 'eligible ordinary local allocas are promoted');
-    const actual = originalDiagnostic(await executeWasm(compiled), formatted.spans);
+    const actual = originalDiagnostic(await executeWasm(compiled), formatted.spans, formatted.sourceMap);
     for (const key of ['status', 'error', 'errorOffset', 'outputTruncated']) assert.equal(actual[key], reference[key], key);
     assert.equal(actual.output, output); assert.equal(actual.output, expected);
     if (failure) assert.match(actual.error, failure); else assert.equal(actual.status, 'done');

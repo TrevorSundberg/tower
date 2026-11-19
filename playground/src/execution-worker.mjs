@@ -5,7 +5,7 @@ import {projectDiagnostic} from './projects.mjs';
 
 // Completed workers retain compiler/grammar state. Active cancellation still
 // terminates the worker, including synchronous compilation or an infinite loop.
-async function receive({ data: { command, id, source, foundation, bedrock, backend, pointerBytes=4, inputs={}, files, drive=[], bytecode } }) {
+async function receive({ data: { command, id, source, foundation, bedrock, backend, pointerBytes=4, inputs={}, files, drive=[], builtins={}, entry='input.tower', bytecode } }) {
   if (command === 'warm') {
     try { await warmCompiler('./tower-llvm.wasm.gz'); postMessage({warm:true}); }
     catch (error) { postMessage({warm:true,error:error.message}); }
@@ -16,7 +16,7 @@ async function receive({ data: { command, id, source, foundation, bedrock, backe
   const send = data => postMessage({ id, backend, ...data, ...(data.result ? {result:projectDiagnostic(data.result, files)} : {}) });
   try {
     send({ phase: 'Loading…' });
-    const frontend = await getTower(foundation, bedrock); tower = frontend.tower;
+    const frontend = await getTower(foundation, bedrock, builtins.tower); tower = frontend.tower;
     if (command === 'disassemble') {
       await getCanonicalTower();
       handle = tower.loadBytecode(bytecode);
@@ -26,7 +26,8 @@ async function receive({ data: { command, id, source, foundation, bedrock, backe
     timings.load = frontend.loadMs; timings.loadCached = frontend.cached;
     let at = performance.now();
     tower.mountFiles(drive);
-    handle = files ? tower.compileFiles(files,{pointerBytes}) : tower.compile(source,{pointerBytes});
+    tower.configureModules({entry, files:drive, builtins:{...builtins,bedrock,foundation}});
+    handle = tower.compile(files?.[0]?.text ?? source,{pointerBytes});
     timings.tower = performance.now() - at;
     const checked = tower.execute(handle, 0);
     if (checked.status === 'error') { send({ result: checked, timings }); return; }
@@ -71,7 +72,7 @@ async function receive({ data: { command, id, source, foundation, bedrock, backe
       const compiled = compiler.compile(formatted.source,{inputs});
       timings.llvm = performance.now() - at;
       Object.assign(timings, compiled.timings);
-      const diagnostic = result => originalDiagnostic(result, formatted.spans);
+      const diagnostic = result => originalDiagnostic(result, formatted.spans, formatted.sourceMap);
       if (compiled.status === 'error') { send({ result: diagnostic(compiled), timings }); return; }
       send({ llvm: { before: compiled.before, after: compiled.after, disassembly: compiled.disassembly, wasm: compiled.wasm }, timings });
       send({ phase: 'Executing…' });

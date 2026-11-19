@@ -3,8 +3,12 @@ import {selectDocument} from './project-helpers.mjs';
 
 async function source(page, text) {
   const editor = page.locator('#editor .cm-content');
-  await editor.focus(); await page.keyboard.press('ControlOrMeta+a');
+  await editor.click(); await editor.press('ControlOrMeta+a');
   await page.keyboard.insertText(text);
+  // Installing a fixture can itself start completion; each test triggers its
+  // own query after this replacement, with the caret at the document end.
+  await editor.press('ControlOrMeta+End');
+  await editor.press('Escape');
   return editor;
 }
 test.beforeEach(async ({page}) => {

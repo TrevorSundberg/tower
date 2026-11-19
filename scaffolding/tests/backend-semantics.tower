@@ -1,3 +1,5 @@
+import tower;
+
 // Expected stdout is in backend-semantics.expected.txt. Compile with and without
 // optimization and compare against the ordinary Tower interpreter.
 var effects: i32 = 0;

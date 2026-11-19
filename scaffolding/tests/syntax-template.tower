@@ -1,3 +1,5 @@
+import tower;
+
 // Typed holes preserve scalar/token distinctions and list cardinality. Exercise
 // every allocator failure while retaining the partial grammar's owning root.
 fn template_test_holes(context: SyntaxEmissionInput*): usize {

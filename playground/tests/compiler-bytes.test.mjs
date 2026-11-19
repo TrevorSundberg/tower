@@ -1,10 +1,10 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {loadTower,runToEnd} from '../src/tower-host.mjs';
-import {loadLLVM,executeWasm} from '../src/llvm-host.mjs';
+import {loadTower,runToEnd} from './compiler-fixtures.mjs';
+import {loadLLVM,executeWasm} from './compiler-fixtures.mjs';
 const read=name=>readFile(new URL('../../'+name,import.meta.url));
-const library=(await read('scaffolding/library/bytes.tower')).toString();
+const library='import "library/bytes";\n';
 const foundation=(await read('scaffolding/foundation.tower')).toString();
 const tower=await loadTower(await read('build/browser-wasi/tower.wasm'),undefined,foundation);
 const llvm=await loadLLVM(await read('build/browser-wasi-llvm/tower-llvm.wasm'),undefined,foundation);

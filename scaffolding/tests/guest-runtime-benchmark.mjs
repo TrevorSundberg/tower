@@ -7,9 +7,7 @@ import {performance} from 'node:perf_hooks';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const out = new URL('../../build/shared-runtime/', import.meta.url);
 await mkdir(out,{recursive:true});
-const input = fileURLToPath(new URL('benchmark.tower',out));
-await writeFile(input, await readFile(root+'scaffolding/host/guest-memory.tower','utf8')+'\n'+
-  await readFile(root+'scaffolding/tests/guest-runtime-benchmark.tower','utf8'));
+const input = root+'scaffolding/tests/guest-runtime-benchmark.tower';
 const wasm = fileURLToPath(new URL('benchmark.wasm',out));
 execFileSync(process.argv[2],[input,'--target','wasm32-unknown-unknown','-o',wasm,
   '--bedrock',root+'scaffolding/bedrock.tower','--foundation',root+'scaffolding/foundation.tower']);

@@ -1,6 +1,7 @@
 // A small C ABI shared by browser workers and other WebAssembly hosts.
 // JSON is a transport; compilation stays in the compiler, including its Tower utilities.
 #include "compiler-utf8.hpp"
+#include "compiler-frontend.hpp"
 #include "syntax.hpp"
 #include "core.hpp"
 #include "interpreter-abi.hpp"
@@ -30,7 +31,7 @@ struct CompletionSpan { size_t start, end; bool opaque; };
 extern "C" void* completion_begin(const char*, size_t, size_t, const CompletionSpan*, size_t);
 extern "C" const char* completion_recovered(void*);
 extern "C" void completion_collect(void*, TowerNode*, bool);
-extern "C" void completion_symbols(void*);
+extern "C" void completion_symbols(void*, ModuleEnvironment*);
 extern "C" void completion_offer(void*, const char*, const char*, const char*, uint32_t);
 extern "C" const char* completion_end(void*);
 extern "C" void completion_dispose(void*);
@@ -339,11 +340,7 @@ EXPORT("tw_complete") const char* tw_complete(const char* source, size_t bytes, 
   if (!query) return "{\"error\":\"Cannot allocate completion query\"}";
   std::vector<TowerNode*> roots;
   auto recovered = create(completion_recovered(query)); consume(recovered.get(), query, false, &roots);
-  for (size_t i = 0; i < count; ++i) {
-    const std::string file(files[i], lengths[i]); auto session = create(file.c_str());
-    consume(session.get(), query, true, &roots);
-  }
-  completion_symbols(query);
+  completion_symbols(query, mode ? nullptr : syntax_modules);
   // Only declarations terminated before the caret contribute grammar names.
   auto active = create(prefix.c_str()); consume(active.get());
   const auto keywords = syntax_get_keywords(active.get());

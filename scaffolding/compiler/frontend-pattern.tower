@@ -1,3 +1,5 @@
+import tower;
+
 // Token patterns use the same character grammar/table reader as Bedrock.
 // Errors use the shared text formatter and Unicode character positions.
 struct FrontendPatternCompiler {

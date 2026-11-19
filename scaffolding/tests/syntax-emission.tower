@@ -1,3 +1,5 @@
+import tower;
+
 // Native and Wasm compiler builds share the production module. Only the test
 // build appends these Tower fixtures; the old native emitter is the reference.
 extern fn reference_syntax_emit(input: SyntaxEmissionInput*): void*;

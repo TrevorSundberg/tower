@@ -1,3 +1,5 @@
+import tower;
+
 // Foreign ABI fixture implemented in Tower. Compile separately from linking.tower.
 export fn fixture_add(a: i32, b: i32): i32 {
     var result = a + b;

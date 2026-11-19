@@ -1,3 +1,5 @@
+import tower;
+
 // Tokens keep the existing parser EOF contract and shared-node ownership even
 // when any one of the node/payload/text allocations fails.
 fn syntax_scan_tests(context: void*, match_kind: void*): usize {

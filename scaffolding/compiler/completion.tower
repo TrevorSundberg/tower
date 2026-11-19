@@ -1,3 +1,5 @@
+import tower;
+
 // Editor queries over the compiler's shared syntax entities. Recovery text is
 // scratch input to the ordinary parser, never a second AST or program format.
 // Candidate lists retain borrowed entity handles only for the duration of a query.
@@ -600,7 +602,36 @@ fn completion_emit_node(q: CompletionQuery*, node: void*, external: bool): void 
     }
 }
 
-export fn completion_symbols(q: CompletionQuery*): void {
+extern fn frontend_modules_root(environment: void*): void*;
+
+export fn completion_symbols(q: CompletionQuery*, environment: void*): void {
+    var module = frontend_modules_root(environment);
+    var present = module != null;
+    if present {
+        var i: usize = 0;
+        var count = frontend_module_count(module);
+        loop {
+            var done = i == count;
+            if done {
+                break;
+            }
+            var dependency = frontend_module_at(module, i);
+            var imported = dependency != module;
+            if imported {
+                var n: usize = 0;
+                var roots = frontend_module_roots(dependency);
+                loop {
+                    done = n == roots;
+                    if done {
+                        break;
+                    }
+                    completion_collect(q, frontend_module_tree(dependency, n), true);
+                    n = n + 1;
+                }
+            }
+            i = i + 1;
+        }
+    }
     // Lexical locals precede module bindings (which may be declared after the
     // caret). Reverse source order gives inner declarations shadowing priority.
     var i = q.nodes.length;

@@ -1,3 +1,5 @@
+import tower;
+
 fn foreign_operator(m: ForeignName*, part: ForeignType*): void {
     var text: vector(u8);
     vector_init(u8, &text);

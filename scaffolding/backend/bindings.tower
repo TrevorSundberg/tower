@@ -1,3 +1,5 @@
+import tower;
+
 // Direct upstream LLVM C ABI. LLVMBool is i32, never Tower bool.
 // Opaque LLVM references are handles to the third-party implementation.
 extern fn LLVMContextCreate(): void*;

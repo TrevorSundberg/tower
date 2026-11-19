@@ -1,3 +1,5 @@
+import tower;
+
 // Foreign declaration descriptions are temporary mangler data, not Tower IR.
 // Their source spelling is the declaration supplied to cpp_name/c_name.
 struct ForeignType {
@@ -52,49 +54,27 @@ struct ForeignName {
 }
 
 // Profile constants are functions until Foundation supports enum values.
-export fn foreign_windows_arm64ec(): u32 {
-    return 11;
-}
+export const foreign_windows_arm64ec: u32 = 11;
 
-export fn foreign_wasi(): u32 {
-    return 1;
-}
+export const foreign_wasi: u32 = 1;
 
-export fn foreign_linux_x64(): u32 {
-    return 2;
-}
+export const foreign_linux_x64: u32 = 2;
 
-export fn foreign_macos_x64(): u32 {
-    return 3;
-}
+export const foreign_macos_x64: u32 = 3;
 
-export fn foreign_macos_arm64(): u32 {
-    return 4;
-}
+export const foreign_macos_arm64: u32 = 4;
 
-export fn foreign_windows_x64(): u32 {
-    return 5;
-}
+export const foreign_windows_x64: u32 = 5;
 
-export fn foreign_windows_x86(): u32 {
-    return 6;
-}
+export const foreign_windows_x86: u32 = 6;
 
-export fn foreign_mingw_x64(): u32 {
-    return 7;
-}
+export const foreign_mingw_x64: u32 = 7;
 
-export fn foreign_linux_arm64(): u32 {
-    return 8;
-}
+export const foreign_linux_arm64: u32 = 8;
 
-export fn foreign_linux_x86(): u32 {
-    return 9;
-}
+export const foreign_linux_x86: u32 = 9;
 
-export fn foreign_windows_arm64(): u32 {
-    return 10;
-}
+export const foreign_windows_arm64: u32 = 10;
 
 fn foreign_fail(m: ForeignName*, text: u8*): void {
     var first = m.error.length == 0;

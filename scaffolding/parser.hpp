@@ -139,7 +139,7 @@ TowerNode* parser_range_create_subtree(TowerNode* parent, uint32_t start_id, uin
 
 
 // Get the compiletime type of the Match component
-TowerNode* parser_match_get_type();
+extern "C" TowerNode* parser_match_get_type();
 
 // A Match describes a consumed terminal or a reduced non-terminal.
 // Match components will appear on the root of all nodes produced by a Recognizer (akin to a parse tree)

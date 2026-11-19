@@ -1,3 +1,5 @@
+import tower;
+
 // Increment syntax is defined here and expands into ordinary Tower calls.
 // These helpers increment i32 locations; postfix returns old, prefix returns new.
 fn post_increment(p: i32*): i32 {

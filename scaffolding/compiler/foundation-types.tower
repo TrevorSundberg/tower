@@ -1,0 +1,45 @@
+import 'foundation-tags';
+import '../library/vector';
+import tower;
+
+// Foundation semantics augment the same entities as syntax and grammar. These
+// owned fields are consumed by checking, formatting, interpretation and lowering.
+// Integer kind/op values are private component tags, never a public bytecode ABI.
+struct FoundationType {
+    scalar: u32;
+    pointers: u32;
+    record: void*;
+    pointer_bytes: u32;
+}
+
+struct FoundationNode {
+    kind: u32;
+    type: FoundationType;
+    op: u32;
+    name: vector(u8);
+    binding: void*;
+    left: void*;
+    right: void*;
+    value: void*;
+    target: void*;
+    body: void*;
+    otherwise: void*;
+    items: vector(void*);
+    locals: vector(void*);
+    parameters: vector(void*);
+    element: FoundationType;
+    size: usize;
+    alignment: usize;
+    length: usize;
+    byte_offset: usize;
+    frame_size: usize;
+    index: usize;
+    start: usize;
+    end: usize;
+    bits: u64;
+    constant: bool;
+    indirect: bool;
+    external: bool;
+    exported: bool;
+    global: bool;
+}

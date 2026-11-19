@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
-import { loadLLVM, executeWasm } from '../src/llvm-host.mjs';
+import { loadLLVM, executeWasm } from './compiler-fixtures.mjs';
 import { targets, targetInputs } from '../src/targets.mjs';
 const read = p => readFile(new URL('../../' + p, import.meta.url));
 let bytes;

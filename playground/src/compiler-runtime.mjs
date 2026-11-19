@@ -22,15 +22,17 @@ export async function getCanonicalTower() {
   const [foundation,bedrock] = await getCanonicalSources();
   return getTower(foundation,bedrock);
 }
-export async function getTower(foundation, bedrock) {
+export async function getTower(foundation, bedrock, towerSource) {
+  towerSource ??= await fetch('./tower.tower').then(response => response.text());
   const start = performance.now();
   const cached = !!towerReady && installedFoundation === foundation && installedBedrock === bedrock;
   if (!towerReady) {
     towerReady = fetchBytes('./tower.wasm').then(bytes =>
-      loadTower(bytes, undefined, foundation, undefined, bedrock));
+      loadTower(bytes, undefined, foundation, undefined, bedrock, {tower:towerSource}));
     installedFoundation = foundation; installedBedrock = bedrock;
   }
   const tower = await towerReady;
+  tower.configureModules({builtins:{bedrock, foundation, tower:towerSource}});
   if (installedBedrock !== bedrock) {
     tower.configureBedrock(bedrock); installedBedrock = bedrock; installedFoundation = null;
   }

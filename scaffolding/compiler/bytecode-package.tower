@@ -1,3 +1,5 @@
+import tower;
+
 // .towerbc v1: portable, versioned distribution envelope. Canonical Foundation
 // is the semantic authority; packed words/constants are a verified execution
 // cache. A loader rebuilds the graph and checks the cache before any execution.

@@ -27,6 +27,7 @@ class RecipeTests(unittest.TestCase):
                        'link': {'tool': 'tools/linker', 'args': ['{object:host}', '-o', '{output}']}}
         paths = [('share/tower/bedrock.tower', 'tower-source'),
                  ('share/tower/foundation.tower', 'tower-source'),
+                 ('share/tower/tower.tower', 'tower-source'),
                  ('src/host.tower', 'tower-source'), ('licenses/linker.txt', 'license'),
                  ('tools/linker', 'third-party')]
         paths += [(f'tests/distribution-{name}.tower', 'fixture') for name in ('program', 'library', 'link', 'invalid')]

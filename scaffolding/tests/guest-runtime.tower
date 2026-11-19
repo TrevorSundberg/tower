@@ -1,3 +1,7 @@
+import '../host/platform-output';
+import '../host/guest-memory';
+import tower;
+
 // Compose after host/guest-memory.tower and host/platform-output.tower.
 // Identical source executes under the interpreter and native/Wasm lowering.
 var runtime_check_index: usize = 0;

@@ -1,3 +1,5 @@
+import tower;
+
 // Canonical text and source mapping over the existing shared components.
 // Composed after their definitions; these buffers are output, not another IR.
 struct FormatSpan {

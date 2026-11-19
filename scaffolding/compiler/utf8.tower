@@ -1,3 +1,5 @@
+import tower;
+
 // Compiler UTF-8 utilities. Counts and capacities are bytes, never characters.
 // Decode one Unicode scalar; invalid/truncated input returns 0 and clears value.
 export fn tower_utf8_decode(data: u8*, size: usize, value: u32*): usize {

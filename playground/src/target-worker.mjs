@@ -5,7 +5,7 @@ import { fetchBytes as bytes } from './fetch-bytes.mjs';
 import {projectDiagnostic} from './projects.mjs';
 
 const runtimes = new Map();
-async function receive({data:{command,id,source,foundation,bedrock,targetKeys=[],inputs={},files,drive=[]}}) {
+async function receive({data:{command,id,source,foundation,bedrock,targetKeys=[],inputs={},files,drive=[], builtins={}, entry='input.tower'}}) {
   const keys = nativeTargetKeys.filter(key => targetKeys.includes(key));
   if (command === 'warm') {
     try {
@@ -23,9 +23,10 @@ async function receive({data:{command,id,source,foundation,bedrock,targetKeys=[]
   const send = data => postMessage({id,...data});
   try {
     send({phase:'Loading…'});
-    tower = (await getTower(foundation,bedrock)).tower;
+    tower = (await getTower(foundation,bedrock,builtins.tower)).tower;
     tower.mountFiles(drive);
-    handle = files ? tower.compileFiles(files,{pointerBytes:8}) : tower.compile(source,{pointerBytes:8});
+    tower.configureModules({entry, files:drive, builtins:{...builtins,bedrock,foundation}});
+    handle = tower.compile(files?.[0]?.text ?? source,{pointerBytes:8});
     const checked = tower.execute(handle,0);
     if (checked.status === 'error') { const diagnostic = projectDiagnostic(checked,files); send({error:(diagnostic.errorFile ? diagnostic.errorFile + ': ' : '') + checked.error,diagnostic,done:true}); return; }
     const formatted = tower.foundation(handle);
@@ -41,7 +42,7 @@ async function receive({data:{command,id,source,foundation,bedrock,targetKeys=[]
       const selected = linkInputsForTarget(inputs,key);
       for (const name of Object.keys(selected)) if (Object.hasOwn(runtime,name)) throw new Error('Link input conflicts with runtime: '+name);
       const result = compiler.compile(formatted.source,{target:target.triple,emit:'executable',inputs:{...runtime,...selected}});
-      if (result.status === 'error') { send({target:key,error:result.error,diagnostic:originalDiagnostic(result,formatted.spans)}); continue; }
+      if (result.status === 'error') { send({target:key,error:result.error,diagnostic:originalDiagnostic(result,formatted.spans,formatted.sourceMap)}); continue; }
       const output = result.binary;
       postMessage({id,target:key,bytes:output,before:result.before,after:result.after,disassembly:result.disassembly,ms:performance.now()-start,timings:result.timings},[output.buffer]);
     }

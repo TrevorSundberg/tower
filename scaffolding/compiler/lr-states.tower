@@ -1,3 +1,5 @@
+import tower;
+
 // LR(0) state construction and kernel interning. The same item operations handle
 // character ranges and token IDs; all records are disposable grammar indexes.
 struct LRTransition {

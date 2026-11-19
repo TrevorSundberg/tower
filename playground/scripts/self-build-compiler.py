@@ -69,7 +69,7 @@ def validate(recipe, root):
             licenses = item.get("licenses", [])
             if not licenses or any(files.get(license, {}).get("role") != "license" for license in licenses):
                 raise ValueError(f"Dependency license closure missing: {name}")
-    for grammar in ("share/tower/bedrock.tower", "share/tower/foundation.tower"):
+    for grammar in ("share/tower/bedrock.tower", "share/tower/foundation.tower", "share/tower/tower.tower"):
         if files.get(grammar, {}).get("role") != "tower-source":
             raise ValueError(f"Required grammar missing: {grammar}")
     for name in ("program", "library", "link", "invalid"):
@@ -167,7 +167,9 @@ def build(recipe_path, bootstrap, out):
             env["PATH"] = str(stage / "tools")
             for unit in recipe["units"]:
                 source = source_dir / (unit["name"] + ".tower")
-                source.write_bytes(b"\n".join((stage / path).read_bytes() for path in unit["sources"]) + b"\n")
+                source.write_text("import tower;\n" + "".join(
+                    "import " + json.dumps("../" + path.removesuffix(".tower"), ensure_ascii=False) + ";\n"
+                    for path in unit["sources"]), encoding="utf-8")
                 object_path = stage / outputs[unit["name"]]
                 object_path.parent.mkdir(parents=True, exist_ok=True)
                 run([previous, source, "--library", "--target", recipe["target"],

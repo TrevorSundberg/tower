@@ -16,7 +16,7 @@ CoreProgram compile(const std::vector<std::string>& sources, unsigned width) {
   SemanticProgram view{}; view.root = program.root; view.pointer_bytes = width;
   for (auto* n : program.functions) view.functions.push_back(n);
   for (auto* n : program.types) view.types.push_back(n);
-  frontend_compile_sources(&view, files.data(), files.size());
+  frontend_compile_sources(&view, files.data(), files.size(), syntax_modules);
   program.functions.assign(view.functions.begin(), view.functions.end());
   program.types.assign(view.types.begin(), view.types.end());
   if (view.error.length) program.error.assign(reinterpret_cast<const char*>(view.error.data), view.error.length);

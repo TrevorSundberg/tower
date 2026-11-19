@@ -1,3 +1,5 @@
+import tower;
+
 fn foreign_array(m: ForeignName*, base: ForeignType*): ForeignType* {
     var foreign_condition3003 = foreign_take(m, "[") == false;
     if foreign_condition3003 {

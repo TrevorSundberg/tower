@@ -28,8 +28,10 @@ The current loading boundary is C++ seed -> bedrock.tower -> foundation.tower ->
 source. The seed initializes Bedrock's reader. Each completed declaration updates
 the active reader for subsequent input, including within Bedrock, without mutating
 the immutable seed. Its resulting rules initialize Foundation and later source.
-The host supplies this order today. Future imports should have foundation import
-bedrock and user files import foundation.
+Foundation now explicitly imports Bedrock; Tower imports Foundation, and compiler
+and user modules can import Tower. The seed still initializes declaration reading.
+See [modules and named values](modules.md) for import order, grammar isolation,
+dependency tracking and the compatibility baseline for files without imports.
 
 Bedrock is a public vocabulary, without a reserved `__` prefix. Foundation inherits
 its shared Whitespace, comment, Identifier and String definitions by reference,
@@ -557,9 +559,8 @@ The [storage library](../scaffolding/library/storage.tower) provides a resettabl
 arena and growing u32-to-i32 map; those are not yet used inside the compiler.
 These are ordinary Tower functions, not new native collection operations.
 Callers initialize/dispose containers and check allocation results.
-Reallocation invalidates old views; arena reset invalidates its views. Imports
-are not implemented: concatenate the library with a client or link exported
-functions from a separately compiled object with matching declarations.
+Reallocation invalidates old views; arena reset invalidates its views. Import the library with `import "library/storage";`, or link exported functions
+from a separately compiled object with matching declarations. See [modules](modules.md).
 
 Extern/export signatures support scalars, raw pointers and void returns under
 the selected C ABI. Structs/arrays pass by pointer. C++ classes, variadics, indirect
@@ -730,8 +731,7 @@ Tower implementation must replace that bridge as those payloads move over.
 forest concatenation, lazy capture application, generated-node flattening and
 ownership transfer into the same entities. Its temporary arena is a derived
 parsing work structure, not an authoritative alternative tree. Concatenation is
-O(1), and fragments are flattened once. CMake composes the two Tower sources in
-declaration order until module imports exist. LR table construction, recognizer
+O(1), and fragments are flattened once. CMake now generates an import manifest for these Tower modules. LR table construction, recognizer
 control and formatting retain native integration. Semantic checking now runs in
 Tower; the native semantic implementation remains only as a bootstrap/reference.
 

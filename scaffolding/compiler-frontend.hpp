@@ -7,6 +7,7 @@ struct FrontendKinds {
 };
 extern "C" TowerNode* frontend_bedrock_create(FrontendKinds*);
 extern "C" size_t frontend_bedrock_tests(FrontendKinds*);
+extern "C" size_t frontend_modules_tests();
 
 struct FrontendPatternCompiler;
 struct TowerFormatResult;
@@ -19,7 +20,35 @@ LexPattern* frontend_pattern_read(FrontendPatternCompiler*, const char*, size_t,
 
 struct FrontendSource { const char* data; size_t length; };
 struct SemanticProgram;
-extern "C" void frontend_compile_sources(SemanticProgram*, const FrontendSource*, size_t);
+struct ModuleEnvironment;
+extern ModuleEnvironment* syntax_modules;
+extern "C" void frontend_compile_sources(SemanticProgram*, const FrontendSource*, size_t, ModuleEnvironment*);
+
+struct FrontendModule;
+struct SyntaxSource;
+struct ModuleGrammar {
+  struct { struct SyntaxRuleView* data; size_t length, capacity; } rules;
+  struct { TowerNode** data; size_t length, capacity; } tokens;
+};
+extern "C" {
+ModuleEnvironment* frontend_modules_create();
+void frontend_modules_destroy(ModuleEnvironment*);
+void frontend_modules_configure(ModuleEnvironment*, const char*, const char*);
+void frontend_modules_clear(ModuleEnvironment*);
+void frontend_modules_fallback(ModuleEnvironment*, const char*);
+void frontend_modules_reset_compilation(ModuleEnvironment*);
+void frontend_modules_builtin(ModuleEnvironment*, const char*, const char*);
+bool frontend_modules_source(ModuleEnvironment*, const char*, const char*, size_t);
+bool frontend_modules_depfile(ModuleEnvironment*, const char*, const char*);
+const char* frontend_modules_location(ModuleEnvironment*, size_t, size_t*, size_t*);
+FrontendModule* frontend_module_root(const char*, ModuleEnvironment*);
+void frontend_module_destroy(FrontendModule*);
+const char* frontend_module_name(FrontendModule*);
+const char* frontend_module_error(FrontendModule*);
+ModuleGrammar* frontend_module_grammar(FrontendModule*);
+bool frontend_module_import(FrontendModule*, TowerNode*, const SyntaxSource*);
+void frontend_module_record(FrontendModule*, TowerNode*, bool);
+}
 
 struct SyntaxRuleView;
 struct FrontendRevision;

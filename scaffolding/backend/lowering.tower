@@ -1,3 +1,5 @@
+import tower;
+
 fn backend_type(b: Backend*, t: FoundationType*): void* {
     var pointer = t.pointers != 0;
     if pointer {
@@ -7,7 +9,7 @@ fn backend_type(b: Backend*, t: FoundationType*): void* {
     if aggregate {
         return LLVMArrayType2(b.i8, convert(u64, semantic_size(t)));
     }
-    var empty = t.scalar == 3;
+    var empty = t.scalar == SVoid();
     if empty {
         return LLVMVoidTypeInContext(b.context);
     }
@@ -28,8 +30,8 @@ fn backend_constant(b: Backend*, t: FoundationType*, value: u64): void* {
 
 fn backend_narrow(t: FoundationType*): bool {
     var scalar = t.pointers == 0;
-    var byte = t.scalar == 5;
-    var boolean = t.scalar == 2;
+    var byte = t.scalar == SU8();
+    var boolean = t.scalar == SBool();
     if boolean {
         byte = true;
     }
@@ -85,16 +87,16 @@ fn backend_attribute(b: Backend*, function: void*, key: u8*, value: u8*): void {
     LLVMAddAttributeAtIndex(function, 4294967295, attribute);
 }
 
-fn backend_runtime(b: Backend*, name: u8*, result: void*, types: void**, count: u32, import: u8*): void* {
+fn backend_runtime(b: Backend*, name: u8*, result: void*, types: void**, count: u32, import_name: u8*): void* {
     var type = LLVMFunctionType(result, types, count, 0);
     var function = LLVMAddFunction(b.module, name, type);
-    var named = import != null;
+    var named = import_name != null;
     if named {
         named = b.wasm;
     }
     if named {
         backend_attribute(b, function, "wasm-import-module", "tower");
-        backend_attribute(b, function, "wasm-import-name", import);
+        backend_attribute(b, function, "wasm-import-name", import_name);
     }
     return function;
 }
@@ -153,12 +155,12 @@ fn backend_gep(b: Backend*, base: void*, offset: void*): void* {
 
 fn backend_address(b: Backend*, entity: void*): void* {
     var n = sem_get(entity);
-    var load = n.kind == 8;
+    var load = n.kind == KLoad();
     if load {
         return backend_read(b, n.value);
     }
-    var field = n.kind == 21;
-    var index = n.kind == 22;
+    var field = n.kind == KField();
+    var index = n.kind == KIndex();
     var place = field;
     if index {
         place = true;
@@ -209,11 +211,11 @@ fn backend_address(b: Backend*, entity: void*): void* {
 
 fn backend_read(b: Backend*, entity: void*): void* {
     var n = sem_get(entity);
-    var address = n.kind == 7;
+    var address = n.kind == KAddress();
     if address {
         return backend_address(b, n.value);
     }
-    var string = n.kind == 23;
+    var string = n.kind == KString();
     if string {
         var value = backend_find(&b.strings, entity);
         var absent = value == null;
@@ -227,9 +229,9 @@ fn backend_read(b: Backend*, entity: void*): void* {
         }
         return value;
     }
-    var ordinary = n.kind == 5;
-    var field = n.kind == 21;
-    var index = n.kind == 22;
+    var ordinary = n.kind == KOperand();
+    var field = n.kind == KField();
+    var index = n.kind == KIndex();
     if field {
         ordinary = true;
     }
@@ -292,7 +294,7 @@ fn backend_call(b: Backend*, n: FoundationNode*): void* {
 }
 
 fn backend_conversion(b: Backend*, n: FoundationNode*, from: FoundationType*, value: void*): void* {
-    var boolean = n.type.scalar == 2;
+    var boolean = n.type.scalar == SBool();
     if boolean {
         var nonzero = LLVMBuildICmp(b.builder, 33, value, LLVMConstNull(LLVMTypeOf(value)), "");
         return LLVMBuildZExt(b.builder, nonzero, b.i8, "");
@@ -333,46 +335,46 @@ fn backend_conversion(b: Backend*, n: FoundationNode*, from: FoundationType*, va
 
 fn backend_expression(b: Backend*, entity: void*): void* {
     var n = sem_get(entity);
-    var ordinary = n.kind == 5;
-    var match = n.kind == 23;
+    var ordinary = n.kind == KOperand();
+    var match = n.kind == KString();
     if match {
         ordinary = true;
     }
-    match = n.kind == 21;
+    match = n.kind == KField();
     if match {
         ordinary = true;
     }
-    match = n.kind == 22;
+    match = n.kind == KIndex();
     if match {
         ordinary = true;
     }
-    match = n.kind == 7;
+    match = n.kind == KAddress();
     if match {
         ordinary = true;
     }
     if ordinary {
         return backend_read(b, entity);
     }
-    match = n.kind == 11;
+    match = n.kind == KCall();
     if match {
         return backend_call(b, n);
     }
-    match = n.kind == 24;
+    match = n.kind == KSizeOf();
     if match {
         return backend_size_value(b, semantic_size(&n.element));
     }
-    match = n.kind == 25;
+    match = n.kind == KAlignOf();
     if match {
         return backend_size_value(b, semantic_alignment(&n.element));
     }
-    match = n.kind == 26;
+    match = n.kind == KAllocate();
     if match {
         var args: void*[2];
         args[0] = backend_read(b, n.right);
         args[1] = backend_size_value(b, semantic_size(&n.element));
         return backend_call_values(b, b.allocate_fn, &args[0], 2);
     }
-    match = n.kind == 27;
+    match = n.kind == KReallocate();
     if match {
         var args: void*[3];
         args[0] = backend_read(b, n.left);
@@ -381,12 +383,12 @@ fn backend_expression(b: Backend*, entity: void*): void* {
         return backend_call_values(b, b.reallocate_fn, &args[0], 3);
     }
     var left = n.value;
-    match = n.kind == 6;
+    match = n.kind == KBinary();
     if match {
         left = n.left;
     }
     var a = backend_expression(b, left);
-    match = n.kind == 8;
+    match = n.kind == KLoad();
     if match {
         var value = LLVMBuildLoad2(b.builder, backend_type(b, &n.type), a, "");
         LLVMSetAlignment(value, 1);
@@ -394,7 +396,7 @@ fn backend_expression(b: Backend*, entity: void*): void* {
     }
     var source = sem_get(left);
     var from = &source.type;
-    match = n.kind == 10;
+    match = n.kind == KBits();
     if match {
         var pointer = n.type.pointers != 0;
         var source_pointer = from.pointers != 0;
@@ -413,13 +415,13 @@ fn backend_expression(b: Backend*, entity: void*): void* {
         }
         return a;
     }
-    match = n.kind == 9;
+    match = n.kind == KConvert();
     if match {
         return backend_conversion(b, n, from, a);
     }
     var right = backend_expression(b, n.right);
     var pointer = from.pointers != 0;
-    var arithmetic = n.op <= 1;
+    var arithmetic = n.op <= OSub();
     if arithmetic {
         arithmetic = pointer;
     }
@@ -430,38 +432,38 @@ fn backend_expression(b: Backend*, entity: void*): void* {
         var r = sem_get(n.right);
         var delta = LLVMBuildIntCast2(b.builder, right, b.size_type, backend_signed(&r.type), "");
         delta = LLVMBuildMul(b.builder, delta, backend_size_value(b, semantic_size(&element)), "");
-        var subtract = n.op == 1;
+        var subtract = n.op == OSub();
         if subtract {
             delta = LLVMBuildNeg(b.builder, delta, "");
         }
         return backend_gep(b, a, delta);
     }
-    match = n.op == 0;
+    match = n.op == OAdd();
     if match {
         return LLVMBuildAdd(b.builder, a, right, "");
     }
-    match = n.op == 1;
+    match = n.op == OSub();
     if match {
         return LLVMBuildSub(b.builder, a, right, "");
     }
-    match = n.op == 2;
+    match = n.op == OMul();
     if match {
         return LLVMBuildMul(b.builder, a, right, "");
     }
-    match = n.op == 5;
+    match = n.op == OAnd();
     if match {
         return LLVMBuildAnd(b.builder, a, right, "");
     }
-    match = n.op == 6;
+    match = n.op == OOr();
     if match {
         return LLVMBuildOr(b.builder, a, right, "");
     }
-    match = n.op == 7;
+    match = n.op == OXor();
     if match {
         return LLVMBuildXor(b.builder, a, right, "");
     }
-    var division = n.op == 3;
-    var remainder = n.op == 4;
+    var division = n.op == ODiv();
+    var remainder = n.op == ORem();
     match = division;
     if remainder {
         match = true;
@@ -502,32 +504,32 @@ fn backend_expression(b: Backend*, entity: void*): void* {
         return LLVMBuildURem(b.builder, a, right, "");
     }
     var predicate: u32 = 32;
-    match = n.op == 9;
+    match = n.op == ONe();
     if match {
         predicate = 33;
     }
-    match = n.op == 10;
+    match = n.op == OLt();
     if match {
         predicate = 36;
         if signed {
             predicate = 40;
         }
     }
-    match = n.op == 11;
+    match = n.op == OLe();
     if match {
         predicate = 37;
         if signed {
             predicate = 41;
         }
     }
-    match = n.op == 12;
+    match = n.op == OGt();
     if match {
         predicate = 34;
         if signed {
             predicate = 38;
         }
     }
-    match = n.op == 13;
+    match = n.op == OGe();
     if match {
         predicate = 35;
         if signed {
@@ -582,20 +584,20 @@ fn backend_branch(b: Backend*, block: void*): void {
 fn backend_statement(b: Backend*, entity: void*): void {
     var n = sem_get(entity);
     b.source_offset = n.start;
-    var match = n.kind == 1;
-    var type = n.kind == 19;
+    var match = n.kind == KFunction();
+    var type = n.kind == KType();
     if type {
         match = true;
     }
     if match {
         return;
     }
-    match = n.kind == 12;
+    match = n.kind == KBlock();
     if match {
         backend_block(b, entity);
         return;
     }
-    match = n.kind == 3;
+    match = n.kind == KDeclare();
     if match {
         var initialized = n.value != null;
         if initialized {
@@ -603,19 +605,19 @@ fn backend_statement(b: Backend*, entity: void*): void {
         }
         return;
     }
-    match = n.kind == 4;
+    match = n.kind == KAssign();
     if match {
         backend_assign(b, n.target, n.value);
         return;
     }
-    match = n.kind == 28;
+    match = n.kind == KFree();
     if match {
         var argument = backend_read(b, n.left);
         backend_call_values(b, b.deallocate_fn, &argument, 1);
         return;
     }
-    var move = n.kind == 29;
-    var fill = n.kind == 30;
+    var move = n.kind == KCopy();
+    var fill = n.kind == KFill();
     match = move;
     if fill {
         match = true;
@@ -632,7 +634,7 @@ fn backend_statement(b: Backend*, entity: void*): void {
         }
         return;
     }
-    match = n.kind == 18;
+    match = n.kind == KReturn();
     if match {
         var present = n.value != null;
         if present {
@@ -643,7 +645,7 @@ fn backend_statement(b: Backend*, entity: void*): void {
         }
         return;
     }
-    match = n.kind == 17;
+    match = n.kind == KPrint();
     if match {
         var source = sem_get(n.value);
         var value = backend_read(b, n.value);
@@ -663,7 +665,7 @@ fn backend_statement(b: Backend*, entity: void*): void {
         backend_call_values(b, b.print_fn, &args[0], 3);
         return;
     }
-    match = n.kind == 13;
+    match = n.kind == KIf();
     if match {
         var condition = backend_read(b, n.value);
         var yes = LLVMAppendBasicBlockInContext(b.context, b.current, "if.body");
@@ -683,7 +685,7 @@ fn backend_statement(b: Backend*, entity: void*): void {
         LLVMPositionBuilderAtEnd(b.builder, after);
         return;
     }
-    match = n.kind == 14;
+    match = n.kind == KLoop();
     if match {
         var head = LLVMAppendBasicBlockInContext(b.context, b.current, "loop");
         var after = LLVMAppendBasicBlockInContext(b.context, b.current, "loop.end");
@@ -705,8 +707,8 @@ fn backend_statement(b: Backend*, entity: void*): void {
         LLVMPositionBuilderAtEnd(b.builder, after);
         return;
     }
-    var exit = n.kind == 15;
-    var again = n.kind == 16;
+    var exit = n.kind == KBreak();
+    var again = n.kind == KContinue();
     match = exit;
     if again {
         match = true;
@@ -766,8 +768,8 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
                 break;
             }
             var n = sem_get(program.items.data[i]);
-            var allowed = n.kind == 1;
-            var type = n.kind == 19;
+            var allowed = n.kind == KFunction();
+            var type = n.kind == KType();
             if type {
                 allowed = true;
             }
@@ -947,7 +949,7 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
         backend_block(b, body);
         var open = backend_terminated(b) == false;
         if open {
-            var empty = n.type.scalar == 3;
+            var empty = n.type.scalar == SVoid();
             var scalar = n.type.pointers == 0;
             if empty {
                 empty = scalar;

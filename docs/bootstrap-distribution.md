@@ -112,7 +112,7 @@ objects/executables are platform artifacts.
 | `files` | Object keyed by package-relative path; items have `sha256`, `role`, optional `executable`. |
 | `files.*.role` | `tower-source`, `fixture`, `third-party`, or `license`. Project implementations and fixtures must be `.tower`. |
 | Third-party items | Also require `origin`, `version`, and `licenses` naming declared license files. Include LLVM, linker and dependent libraries. |
-| `units` | Ordered `{name, sources, output?}` entries; declared Tower sources concatenate in order with newline boundaries. Default output: `objects/NAME.o`. |
+| `units` | Ordered `{name, sources, output?}` entries; declared Tower sources become ordered imports in a generated manifest (each source declares its own dependencies). Default output: `objects/NAME.o`. |
 | Runtime unit output | Use `share/tower/NAME.o` to retain the built target runtime in the candidate. |
 | `compiler_units` | Names of units linked into the compiler; other units must be packaged target runtimes. |
 | `link` | `{tool, args}`; tool is a declared third-party executable such as LLD. |

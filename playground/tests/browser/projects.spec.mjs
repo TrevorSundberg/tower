@@ -16,9 +16,9 @@ test('projects own folders, built-ins, undo, links and execution state',async({p
   await expect(page.locator('#project-kind option')).toHaveCount(10);
   await expect(page.locator('.builtin-badge')).toHaveCount(2);
   await prompt(page,'#new-project','Ocean');
-  await edit(page,'print(answer());');
+  await edit(page,'import tower; import "src/math"; print(answer());');
   await prompt(page,'#new-file','src/math.tower');
-  await edit(page,'fn answer(): i32 { return 42; }');
+  await edit(page,'import tower; fn answer(): i32 { return 42; }');
   await page.locator('#execute').click();
   await expect(page.locator('#execution-output')).toHaveText('42\n');
   await expect(page.locator('#llvm-output')).toHaveText('42\n');
@@ -63,8 +63,8 @@ test('switching projects cancels an infinite loop and discards stale output',asy
 });
 test('errors in another project file are named without marking the active source',async({page}) => {
   await prompt(page,'#new-project','Errors');
-  await prompt(page,'#new-file','lib/bad.tower'); await edit(page,'var bad: i32 = true;');
-  await page.locator('[data-path="main.tower"]').click(); await page.locator('#execute').click();
+  await prompt(page,'#new-file','lib/bad.tower'); await edit(page,'import tower; var bad: i32 = true;');
+  await page.locator('[data-path="main.tower"]').click(); await edit(page,'import tower; import "lib/bad"; print(42);'); await page.locator('#execute').click();
   await expect(page.locator('#error-message')).toContainText('lib/bad.tower');
   await expect(page.locator('.tw-inline-error')).toHaveCount(0);
 });
@@ -73,7 +73,7 @@ test('file moves, rename and delete persist, and invalid paths keep the project 
   await edit(page,'print(1);');
   await prompt(page,'#new-file','src/second.tower'); await edit(page,'print(2);');
   await page.locator('#move-file-up').click();
-  await page.locator('#execute').click(); await expect(page.locator('#execution-output')).toHaveText('2\n1\n');
+  await page.locator('#execute').click(); await expect(page.locator('#execution-output')).toHaveText('2\n');
   await prompt(page,'#rename-file','lib/second.tower');
   await expect(page.locator('#filename')).toHaveText('lib/second.tower');
   await prompt(page,'#new-file','../escape.tower');

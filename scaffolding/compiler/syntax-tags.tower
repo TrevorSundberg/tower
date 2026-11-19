@@ -1,0 +1,11 @@
+import tower;
+
+// Shared SyntaxNode tags; the native view retains this exact ABI during migration.
+const SyntaxDocument: u32 = 0;
+const SyntaxRule: u32 = 1;
+const SyntaxToken: u32 = 2;
+const SyntaxSkip: u32 = 3;
+const SyntaxAlternative: u32 = 4;
+const SyntaxTerm: u32 = 5;
+const SyntaxTemplate: u32 = 6;
+const SyntaxImport: u32 = 7;

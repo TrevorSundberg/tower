@@ -6,7 +6,7 @@
 // driver itself can consume the frontend and backend's Tower APIs.
 struct DriverOptions {
   const char *source, *output, *target, *emit, *cc, *linker, *sysroot;
-  const char *raw, *optimized, *bedrock, *foundation;
+  const char *raw, *optimized, *bedrock, *foundation, *depfile;
   const char **links;
   size_t link_count;
   bool optimize, interpret, library, timings, help, version, fast;

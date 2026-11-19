@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { loadTower, runToEnd } from '../src/tower-host.mjs';
+import { loadTower, runToEnd } from './compiler-fixtures.mjs';
 import { byteOffsets } from '../src/offsets.mjs';
 import { configureTower } from '../src/bootstrap.mjs';
 const bytes = await readFile(new URL('../../build/browser-wasi/tower.wasm', import.meta.url));
@@ -19,11 +19,11 @@ function analyze(source) {
 test('all native node, parser and syntax tests also pass in WASM without exceptions', () => {
   assert.equal(tower.exports.tw_self_test(), 0);
 });
-test('real example crosses six grammar revisions and retains named nested captures', () => {
+test('real example crosses seven grammar revisions and retains named nested captures', () => {
   const { events, end, snapshot } = analyze(example);
-  assert.equal(end.status, 'done'); assert.equal(end.revision, 6);
-  assert.deepEqual(events.map(e => e.revision), [1,2,3,4,5,5,6,6]);
-  const first = events[5].nodes;
+  assert.equal(end.status, 'done'); assert.equal(end.revision, 7);
+  assert.deepEqual(events.map(e => e.revision), [1,2,3,4,5,6,6,7,7]);
+  const first = events[6].nodes;
   assert.equal(first.filter(n => n.role === 'Variable').length, 2);
   assert.equal(first.filter(n => n.role === 'Statement').length, 2);
   assert.deepEqual(snapshot.keywords, [...new Set([...analyze('').snapshot.keywords, 'foreach', 'in'])].sort());
@@ -35,8 +35,8 @@ test('construct lookahead continues shared prefixes, preserves boundaries and re
     const source = example.replace('parse Statement |= ForEach;', `parse Statement |= ${alternatives};`);
     const { events, end } = analyze(source);
     assert.equal(end.status, 'done', end.error);
-    assert.equal(events.length, 8);
-    assert.equal(events[5].nodes.filter(node => node.label === 'ForEach').length, 2);
+    assert.equal(events.length, 9);
+    assert.equal(events[6].nodes.filter(node => node.label === 'ForEach').length, 2);
   }
   const prefix = base + loop + "parse Statement |= 'for';";
   const source = prefix + 'for /* boundary */ item;for\n' +
@@ -169,7 +169,7 @@ test('edits reuse compiled grammars while matching fresh parsing, including chan
     tower.reset(handle, example.replace('item;', 'another;'));
     const edited = parse();
     assert.equal(edited.snapshot.grammarBuilds, 0);
-    assert.equal(edited.snapshot.grammarCacheHits, 7);
+    assert.equal(edited.snapshot.grammarCacheHits, 8);
     assert.deepEqual(normalize(edited), normalize(analyze(example.replace('item;', 'another;'))));
     for (const input of [
       base + 'for;' + loop + 'for(x in xs){}', // Cached future keywords must not activate early.
@@ -206,7 +206,7 @@ test('Tower token declarations redefine all three default terminals and introduc
   const source = await readFile(new URL('../../scaffolding/examples/tokens.tower', import.meta.url), 'utf8');
   const { events, end, snapshot } = analyze(source);
   assert.equal(end.status, 'done', end.error);
-  assert.equal(end.revision, 10); assert.equal(events.length, 17);
+  assert.equal(end.revision, 11); assert.equal(events.length, 18);
   const bytes = new TextEncoder().encode(source), decode = t => new TextDecoder().decode(bytes.slice(t.start, t.end));
   for (const [text, kind] of [['player-name', 'identifier'], ['café', 'identifier'], ['3.14', 'number'],
     ['`hello from Tower`', 'string'], ['0xff', 'number'], ['@player', 'identifier'], ['@score', 'identifier']])

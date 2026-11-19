@@ -1,3 +1,5 @@
+import tower;
+
 // Explicitly linked upstream targets; no compiler-host target inference.
 
 extern fn LLVMInitializeWebAssemblyTargetInfo(): void;

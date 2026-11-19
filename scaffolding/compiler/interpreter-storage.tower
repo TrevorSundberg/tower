@@ -1,3 +1,5 @@
+import tower;
+
 // Owned execution-space bytes. Target addresses are offsets into this buffer;
 // this is host containment, not foundation object/lifetime safety metadata.
 export fn im_memory_size(m: IMState*): usize {

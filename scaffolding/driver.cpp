@@ -5,6 +5,7 @@
 #endif
 #include "llvm-engine.hpp"
 #include "compiler-host.hpp"
+#include "compiler-frontend.hpp"
 #include <llvm/TargetParser/Host.h>
 #include <llvm/Support/Program.h>
 #include <llvm/Support/FileSystem.h>
@@ -61,7 +62,7 @@ struct Temporary {
 }
 int main(int argc, char** argv) {
   Timings timings;
-  std::string source, output, target = llvm::sys::getDefaultTargetTriple(), emit = "exe", cc = "clang", linker, sysroot, raw, optimized, bedrock_path, foundation_path, resources;
+  std::string source, output, target = llvm::sys::getDefaultTargetTriple(), emit = "exe", cc = "clang", linker, sysroot, raw, optimized, bedrock_path, foundation_path, resources, depfile;
   std::vector<std::string> inputs; bool optimize = true, interpret = false, library = false, fast = false;
 #ifdef TOWER_BOOTSTRAP_HOST
   // Retained only in towerc-seed until the Tower-only bootstrap is available.
@@ -113,6 +114,7 @@ int main(int argc, char** argv) {
   foundation_path = options.foundation; optimize = options.optimize; interpret = options.interpret;
   fast = options.fast;
   library = options.library; timings.enabled = options.timings;
+  depfile = options.depfile;
   for (size_t i = 0; i < options.link_count; ++i) inputs.emplace_back(options.links[i]);
   driver_dispose(&options);
   if (!driver_output_valid(emit.c_str())) { std::cerr << "Unknown output kind: " << emit << '\n'; return 1; }
@@ -125,10 +127,15 @@ int main(int argc, char** argv) {
 #endif
   const auto bedrock_file = bedrock_path.empty() ? root / "bedrock.tower" : fs::path(bedrock_path);
   const auto foundation_file = foundation_path.empty() ? root / "foundation.tower" : fs::path(foundation_path);
+  syntax_modules = frontend_modules_create();
+  frontend_modules_configure(syntax_modules, source.c_str(), foundation_file.parent_path().string().c_str());
+  frontend_modules_fallback(syntax_modules, root.string().c_str());
   for (const auto& module : {bedrock_file, foundation_file}) {
     std::ifstream input(module, std::ios::binary);
     if (!input) { std::cerr << "Cannot read grammar module: " << module.string() << '\n'; return 1; }
   }
+  if (!bedrock_path.empty()) frontend_modules_builtin(syntax_modules, "bedrock", bedrock_file.string().c_str());
+  if (!foundation_path.empty()) frontend_modules_builtin(syntax_modules, "foundation", foundation_file.string().c_str());
   auto error = syntax_set_bedrock(read(bedrock_file).c_str());
   if (error.empty()) error = syntax_set_bootstrap(read(foundation_file).c_str());
   if (!error.empty()) { std::cerr << error << '\n'; return 1; }
@@ -145,7 +152,8 @@ int main(int argc, char** argv) {
 #else
     driver_source_position(text.data(), text.size(), offset, &line, &column);
 #endif
-    std::cerr << source << ':' << line << ':' << column << ": " << error << '\n';
+    const auto* file = frontend_modules_location(syntax_modules, offset, &line, &column);
+    std::cerr << (*file ? file : source.c_str()) << ':' << line << ':' << column << ": " << error << '\n';
   };
   unsigned packaged_width = 0;
 #ifndef TOWER_INTERPRETER_SEED
@@ -173,6 +181,7 @@ int main(int argc, char** argv) {
     if (fs::absolute(output).lexically_normal() == fs::absolute(source).lexically_normal()) {
       std::cerr << "Choose an output path different from the input\n"; return 1;
     }
+    if (!frontend_modules_depfile(syntax_modules, output.c_str(), depfile.c_str())) { std::cerr << "Cannot write dependency file: " << depfile << '\n'; return 1; }
     if (emit == "foundation") {
       const auto foundation = core_format(program).source;
       return write(output, foundation.data(), foundation.size()) ? 0 : 1;
@@ -190,6 +199,7 @@ int main(int argc, char** argv) {
     auto width = packaged_width ? packaged_width : tower_target_pointer_bytes(target, error);
     if (!error.empty()) { std::cerr << error << '\n'; return 1; }
     CoreMachine machine(core_compile_foundation(text.c_str(), width));
+    if (!frontend_modules_depfile(syntax_modules, output.c_str(), depfile.c_str())) { std::cerr << "Cannot write dependency file: " << depfile << '\n'; return 1; }
     timings.mark("compile");
 #ifndef TOWER_INTERPRETER_SEED
     if (fast) { machine.use_fast(); timings.mark("prepare"); }
@@ -212,6 +222,7 @@ int main(int argc, char** argv) {
     if (!machine.error.empty()) { report_error(machine.error, machine.error_offset); return 1; } return 0;
   }
   auto object = tower_emit_object(text.c_str(), target, optimize, library);
+  if (!frontend_modules_depfile(syntax_modules, output.c_str(), depfile.c_str())) { std::cerr << "Cannot write dependency file: " << depfile << '\n'; return 1; }
   timings.mark("compile");
   if (timings.enabled) timings.values.insert(object.timings.begin(), object.timings.end());
   if (!object.error.empty()) { report_error(object.error, object.error_offset); return 1; }

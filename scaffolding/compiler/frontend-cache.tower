@@ -1,3 +1,5 @@
+import tower;
+
 // Immutable revision snapshots retain shared grammar entities. Cache slots are
 // disposable host handles; no parser semantics or source is encoded in them.
 struct FrontendRevision {

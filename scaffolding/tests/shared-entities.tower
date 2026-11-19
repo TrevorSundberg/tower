@@ -1,3 +1,5 @@
+import tower;
+
 // Functional entity tests: all mutation, ownership and failure assertions execute
 // in Tower. The test composition reuses FoundationNode's authoritative layout.
 extern fn abort(): void;

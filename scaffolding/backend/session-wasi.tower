@@ -1,3 +1,5 @@
+import tower;
+
 extern fn __wasi_clock_time_get(clock: u32, precision: u64, time: u64*): u32;
 
 fn backend_session_clock(): u64 {

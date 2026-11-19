@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { loadTower } from '../src/tower-host.mjs';
-import { loadLLVM, executeWasm } from '../src/llvm-host.mjs';
+import { loadTower } from './compiler-fixtures.mjs';
+import { loadLLVM, executeWasm } from './compiler-fixtures.mjs';
 import { originalDiagnostic } from '../src/foundation-source.mjs';
 const read = path => readFile(new URL('../../' + path, import.meta.url));
 const foundation = (await read('scaffolding/foundation.tower')).toString();
@@ -38,7 +38,7 @@ for (const [name, source, output, failure] of cases) test(`structs round trip an
     if (llvm) {
       const compiled = llvm.compile(formatted.source);
       assert.equal(compiled.status, 'compiled', compiled.error);
-      const actual = originalDiagnostic(await executeWasm(compiled), formatted.spans);
+      const actual = originalDiagnostic(await executeWasm(compiled), formatted.spans, formatted.sourceMap);
       for (const key of ['status', 'error', 'errorOffset', 'output', 'outputTruncated']) assert.equal(actual[key], result[key], key);
     }
   } finally { tower.destroyExecution(handle); }

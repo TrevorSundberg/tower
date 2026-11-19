@@ -1,3 +1,5 @@
+import tower;
+
 // Browser ABI handles identify host sessions, never foundation pointer values.
 // Payload ownership transfers only after a successful insert/take. The table
 // does not call native destructors; hosts dispose the returned payload once.

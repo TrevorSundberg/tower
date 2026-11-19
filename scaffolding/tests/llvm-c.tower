@@ -1,3 +1,5 @@
+import tower;
+
 // Direct calls into the real LLVM C API; no Tower-side adapter is needed here.
 extern fn LLVMContextCreate(): void*;
 

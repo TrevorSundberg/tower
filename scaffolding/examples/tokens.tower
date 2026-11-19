@@ -1,3 +1,5 @@
+import bedrock;
+
 // These are ordinary Tower declarations, editable while you type.
 // Add hyphens and non-ASCII Unicode characters to identifiers.
 token Identifier = /[A-Za-z_\u{80}-\u{10ffff}][A-Za-z_0-9\u{80}-\u{10ffff}-]*/ as identifier;

@@ -1,3 +1,5 @@
+import tower;
+
 // LLVM 20 revision 1e57ee22, wasm32-wasip1, WASI SDK 34/libc++ ABI.
 // These are the lowered upstream ABI signatures, including explicit sret.
 // They do not define Tower pointer semantics or request executable memory.

@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {loadTower} from '../src/tower-host.mjs';
+import {loadTower} from './compiler-fixtures.mjs';
 const read = name => readFile(new URL('../../'+name, import.meta.url));
 const foundation = (await read('scaffolding/foundation.tower')).toString();
 const bedrock = (await read('scaffolding/bedrock.tower')).toString();
@@ -34,8 +34,8 @@ test('member completion follows typed declarations to shared struct fields', () 
   assert.deepEqual(labels('struct A { first: i32; } struct B { second: i32; } fn f(point: A*): void { point.| } var point: B;'), ['first']);
 });
 test('project declarations contribute globals without leaking locals', () => {
-  const files = [{text:'fn helper(secret: i32): void {} struct Point { x: i32; } var shared: i32 = 1;'}];
-  const names = labels('|', {files});
+  const files = [{path:'lib/helper.tower',text:'import tower; fn helper(secret: i32): void {} struct Point { x: i32; } var shared: i32 = 1;'}];
+  const names = labels('import tower; import "lib/helper"; |', {files});
   for (const name of ['helper','Point','shared']) assert.ok(names.includes(name), name);
   assert.ok(!names.includes('secret'));
 });

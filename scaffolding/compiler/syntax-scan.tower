@@ -1,3 +1,5 @@
+import tower;
+
 // Session token traversal uses the same data-driven lexer for declarations,
 // ordinary code, diagnostic lookahead and typed replacement captures.
 struct SyntaxScanInput {

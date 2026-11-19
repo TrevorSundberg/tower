@@ -1,3 +1,5 @@
+import tower;
+
 // Build-time Foundation-to-Foundation expansion for bootstrap compilers which
 // predate foreign-symbol lowering. Implementation and CLI are both Tower.
 extern fn fopen(path: u8*, mode: u8*): void*;

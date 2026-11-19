@@ -2,9 +2,10 @@ import { TowerWASI } from './wasi-host.mjs';
 import { configureTower, configureFoundation, configureBedrock } from './bootstrap.mjs';
 import { foreignArgument, invokeForeign } from './foreign.mjs';
 import { platformImports } from './platform.mjs';
+import { moduleInputs, moduleDiagnostic } from './module-inputs.mjs';
 
 /** The only module which knows about Wasm pointers and the C ABI. */
-export async function loadTower(bytes, log = () => {}, bootstrap, foundation, bedrock, { imports = {} } = {}) {
+export async function loadTower(bytes, log = () => {}, bootstrap, foundation, bedrock, { imports = {}, tower } = {}) {
   const available = {...platformImports((_stream, data, context) => context.output(data)),...imports};
   const wasi = new TowerWASI({ log });
   const module = await WebAssembly.compile(bytes);
@@ -31,12 +32,15 @@ export async function loadTower(bytes, log = () => {}, bootstrap, foundation, be
   } });
   wasi.initialize(instance);
   const exports = instance.exports;
+  const modules = moduleInputs(exports, {bedrock, foundation:foundation ?? bootstrap, tower});
   if (exports.tw_abi_version() !== 3) throw new Error('Unsupported Tower browser ABI');
   if (bedrock !== undefined) configureBedrock(exports, bedrock);
-  configureTower(exports, bootstrap);
+  configureTower(exports, bootstrap, modules.environment);
   if (foundation !== undefined) configureFoundation(exports, foundation);
   const decoder = new TextDecoder('utf-8', { fatal: true });
   const outputDecoders = new Map();
+  const sourceMaps = new Map();
+  function remember(handle) { sourceMaps.set(handle, modules.sourceMap()); return handle; }
   function string(pointer) {
     const memory = new Uint8Array(exports.memory.buffer);
     const end = memory.indexOf(0, pointer);
@@ -57,9 +61,11 @@ export async function loadTower(bytes, log = () => {}, bootstrap, foundation, be
   }
   return {
     exports,
+    configureModules: modules.configure,
+    dependencies: modules.dependencies,
     mountFiles: files => wasi.mountFiles(files),
-    configure: source => configureTower(exports, source),
-    configureBedrock: source => configureBedrock(exports, source),
+    configure: source => { modules.configure({builtins:{foundation:source}}); configureTower(exports, source, modules.environment); },
+    configureBedrock: source => { modules.configure({builtins:{bedrock:source}}); configureBedrock(exports, source); },
     bedrockSeed: () => string(exports.tw_bedrock_seed()),
     createBedrock: source => withSource(source, (pointer, length) => exports.tw_create_bedrock(pointer, length)),
     createFoundation: source => withSource(source, (pointer, length) => exports.tw_create_foundation(pointer, length)),
@@ -69,44 +75,16 @@ export async function loadTower(bytes, log = () => {}, bootstrap, foundation, be
     inspect: handle => JSON.parse(string(exports.tw_inspect(handle))),
     format: handle => JSON.parse(string(exports.tw_format(handle))),
     destroy: handle => exports.tw_destroy(handle),
-    complete(source, cursor, {editingModule = '', files = []} = {}) {
-      const allocated = [];
-      const allocate = size => { const p = exports.tw_alloc(size || 1); if (!p) throw new Error('Cannot allocate completion sources'); allocated.push(p); return p; };
-      try {
-        if (files.length > 1024) throw new Error('Completion project limit is 1,024 files');
-        const pointers = allocate(files.length * 4), lengths = allocate(files.length * 4);
-        let total = new TextEncoder().encode(source).length;
-        files.forEach((file, i) => {
-          const bytes = new TextEncoder().encode(file.text); total += bytes.length;
-          if (total > 8 * 1024 * 1024) throw new Error('Completion project limit is 8 MiB');
-          const p = allocate(bytes.length + 1);
-          new Uint8Array(exports.memory.buffer).set(bytes, p);
-          const view = new DataView(exports.memory.buffer);
-          view.setUint32(pointers + i * 4, p, true); view.setUint32(lengths + i * 4, bytes.length, true);
-        });
-        return withSource(source, (p, n) => JSON.parse(string(exports.tw_complete(p, n, cursor,
-          editingModule === 'bedrock' ? 2 : editingModule === 'foundation' ? 1 : 0, pointers, lengths, files.length))));
-      } finally { for (const p of allocated) exports.tw_free(p); }
+    complete(source, cursor, {editingModule = '', files, entry} = {}) {
+      if (files || entry) modules.configure({...(files ? {files} : {}), ...(entry ? {entry} : {})});
+      return withSource(source, (p, n) => JSON.parse(string(exports.tw_complete(p, n, cursor,
+        editingModule === 'bedrock' ? 2 : editingModule === 'foundation' ? 1 : 0, 0, 0, 0))));
     },
-    compile: (source, { pointerBytes = 4 } = {}) => withSource(source, (pointer, length) => exports.tw_exec_create_target(pointer, length, pointerBytes)),
+    compile: (source, { pointerBytes = 4 } = {}) => remember(withSource(source, (pointer, length) => exports.tw_exec_create_target(pointer, length, pointerBytes))),
     compileFiles(files, {pointerBytes = 4} = {}) {
-      if (!files.length || files.length > 1024) throw new Error('Project needs 1–1,024 source files.');
-      const allocated = [];
-      const allocate = size => { const p = exports.tw_alloc(size || 1); if (!p) throw new Error('Unable to allocate project sources'); allocated.push(p); return p; };
-      try {
-        const pointers = allocate(files.length * 4), lengths = allocate(files.length * 4); let total = 0;
-        files.forEach((file, i) => {
-          const bytes = new TextEncoder().encode(file.text); total += bytes.length;
-          if (total > 8 * 1024 * 1024) throw new Error('Project compilation limit is 8 MiB');
-          const p = allocate(bytes.length + 1);
-          new Uint8Array(exports.memory.buffer).set(bytes, p);
-          const view = new DataView(exports.memory.buffer);
-          view.setUint32(pointers + i * 4, p, true); view.setUint32(lengths + i * 4, bytes.length, true);
-        });
-        const handle = exports.tw_exec_create_files(pointers, lengths, files.length, pointerBytes);
-        if (!handle) throw new Error(string(exports.tw_last_error()));
-        return handle;
-      } finally { for (const p of allocated) exports.tw_free(p); }
+      if (!files.length || files.length > 1024) throw new Error('Project needs 1?1,024 source files.');
+      modules.configure({entry:files[0].path, files});
+      return remember(withSource(files[0].text, (pointer, length) => exports.tw_exec_create_target(pointer, length, pointerBytes)));
     },
     execute(handle, budget = 10000) {
       const result=JSON.parse(string(exports.tw_exec_step(handle,budget)));
@@ -115,7 +93,7 @@ export async function loadTower(bytes, log = () => {}, bootstrap, foundation, be
       result.output=outputDecoder.decode(new Uint8Array(result.outputBytes??[]),{stream:result.status==='executing'});
       delete result.outputBytes;
       if(result.status!=='executing')outputDecoders.delete(handle);
-      return result;
+      return moduleDiagnostic(result, sourceMaps.get(handle));
     },
     useFast(handle) {
       if (!exports.tw_exec_fast(handle)) throw new Error('Select the fast interpreter before executing a program');
@@ -137,9 +115,9 @@ export async function loadTower(bytes, log = () => {}, bootstrap, foundation, be
         return handle;
       } finally { exports.tw_free(pointer); }
     },
-    compileFoundation: source => withSource(source, (pointer, length) => exports.tw_exec_create_foundation(pointer, length)),
-    foundation: handle => JSON.parse(string(exports.tw_exec_foundation(handle))),
-    destroyExecution: handle => {outputDecoders.delete(handle);exports.tw_exec_destroy(handle);},
+    compileFoundation: source => remember(withSource(source, (pointer, length) => exports.tw_exec_create_foundation(pointer, length))),
+    foundation: handle => ({...JSON.parse(string(exports.tw_exec_foundation(handle))), sourceMap:sourceMaps.get(handle)}),
+    destroyExecution: handle => {sourceMaps.delete(handle);outputDecoders.delete(handle);exports.tw_exec_destroy(handle);},
   };
 }
 

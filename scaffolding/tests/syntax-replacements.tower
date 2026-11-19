@@ -1,3 +1,5 @@
+import tower;
+
 // Exercise preparation through the public session API. These same cases will
 // keep running when session ownership itself moves into Tower.
 extern fn syntax_create(source: u8*): void*;

@@ -24,6 +24,8 @@
 #include <vector>
 #include <unordered_set>
 
+ModuleEnvironment* syntax_modules = nullptr;
+
 namespace {
 bool diagnostic_peek(void*, size_t&, const ParserLookahead&, uint32_t&);
 constexpr uint32_t MetaName = 0x110000, MetaString = MetaName + 1, FirstHole = 0x300000;
@@ -385,6 +387,8 @@ std::string read_declaration(TowerNode* node, const SyntaxSource* source, Syntax
 }
 
 struct SyntaxSession {
+  FrontendModule* module = nullptr;
+  bool owns_module = false;
   std::string_view source; // Borrowed from source_info, retained by source nodes.
   SyntaxSourceRef source_info;
   size_t cursor = 0;
@@ -405,7 +409,7 @@ struct SyntaxSession {
 #else
   FrontendCache cache{};
   std::array<std::shared_ptr<Version>, SYNTAX_MAX_CACHED_GRAMMARS> versions;
-  ~SyntaxSession() { frontend_cache_dispose(&cache); }
+  ~SyntaxSession() { frontend_cache_dispose(&cache); if (owns_module) frontend_module_destroy(module); }
 #endif
   SyntaxExpansionStats expansion_stats;
   std::string error;
@@ -889,12 +893,26 @@ size_t syntax_expansion_test_entry() {
   FrontendKinds kinds{parser_rule_get_type(), parser_reference_get_type(), parser_string_get_type(),
     parser_range_get_type(), parser_match_get_type(), syntax_component_type()};
   if (auto status = frontend_bedrock_tests(&kinds)) return status;
+  if (auto status = frontend_modules_tests()) return status;
   return syntax_expansion_tests(&input, syntax_native_bedrock());
 }
 #endif
 
-SyntaxSession* syntax_create(const char* source) {
+SyntaxSession* syntax_create(const char* source, FrontendModule* module) {
   auto session = std::make_unique<SyntaxSession>();
+  session->module = module ? module : frontend_module_root(source, syntax_modules);
+  session->owns_module = !module;
+  if (const auto* grammar = module ? frontend_module_grammar(module) : nullptr) {
+    for (size_t i = 0; i < grammar->rules.length; ++i) {
+      const auto& rule = grammar->rules.data[i];
+      auto& alternatives = session->baseline_definitions[std::string(rule.name, rule.name_length)];
+      for (size_t j = 0; j < rule.count; ++j) alternatives.emplace_back(rule.alternatives[j]);
+    }
+    for (size_t i = 0; i < grammar->tokens.length; ++i) session->baseline.emplace_back(grammar->tokens.data[i]);
+    session->bedrock = native_bedrock();
+    syntax_reset(session.get(), source);
+    return session.release();
+  }
   if (!bootstrap) { session->error = "Load foundation.tower before creating a syntax session"; return session.release(); }
   session->baseline = *bootstrap;
   session->baseline_definitions = *foundation_definitions;
@@ -923,9 +941,14 @@ SyntaxSession* syntax_create_bedrock(const char* source) {
   return session.release();
 }
 
-void syntax_reset(SyntaxSession* session, const char* source) {
+void syntax_reset(SyntaxSession* session, const char* source, FrontendModule* module) {
+  if (module) session->module = module;
+  if (session->owns_module && session->version) {
+    frontend_module_destroy(session->module);
+    session->module = frontend_module_root(source, syntax_modules);
+  }
   const bool source_ready = set_source(*session, source,
-    session->building_bedrock ? "bedrock.tower" : session->bootstrapping ? "foundation.tower" : "this file");
+    session->module ? frontend_module_name(session->module) : session->building_bedrock ? "bedrock.tower" : session->bootstrapping ? "foundation.tower" : "this file");
   session->cursor = session->revision = session->error_offset = 0;
   session->error_insertion = false;
 #ifdef TOWER_EXPANSION_SEED
@@ -1114,6 +1137,23 @@ TowerNode* syntax_next(SyntaxSession* session) {
     } // No recognizer or lookahead survives the grammar swap.
     TowerNode* construct = child(root.get(), 0);
     const std::string construct_kind = parser_match_get_label(match(construct));
+    if (construct_kind == "ImportDeclaration") {
+      if (!session->module) { session->module = frontend_module_root(session->source_info->text.c_str(), syntax_modules); session->owns_module = true; }
+      if (!frontend_module_import(session->module, construct, session->source_info.get())) return fail(frontend_module_error(session->module));
+      const auto* grammar = frontend_module_grammar(session->module);
+      session->definitions.clear(); session->tokens.clear();
+      for (size_t i = 0; i < grammar->rules.length; ++i) {
+        const auto& rule = grammar->rules.data[i];
+        auto& alternatives = session->definitions[std::string(rule.name, rule.name_length)];
+        for (size_t j = 0; j < rule.count; ++j) alternatives.emplace_back(rule.alternatives[j]);
+      }
+      for (size_t i = 0; i < grammar->tokens.length; ++i) session->tokens.emplace_back(grammar->tokens.data[i]);
+      std::string error;
+      auto version = compiled(*session, session->definitions, session->tokens, error);
+      if (!version) return fail(error);
+      session->version = std::move(version);
+      ++session->revision;
+    }
     if (construct_kind == "GrammarTokenDeclaration" || construct_kind == "GrammarSkipDeclaration") {
       session->error_offset = construct_start;
       auto error = read_declaration(construct, session->source_info.get(),
@@ -1192,6 +1232,7 @@ TowerNode* syntax_next(SyntaxSession* session) {
       }
       session->comment_cursor = session->cursor;
     }
+    if (session->module && !session->formatting) frontend_module_record(session->module, root.get(), session->declaration);
     return root.release();
   }
 }
@@ -1243,6 +1284,7 @@ std::string syntax_set_bedrock(const char* source) {
   std::unique_ptr<SyntaxSession> session(syntax_create_bedrock(source));
   while (auto* root = syntax_next(session.get())) tower_node_release_ref(root);
   if (!session->error.empty()) return session->error;
+  frontend_modules_reset_compilation(syntax_modules);
   installed_bedrock = collected_bedrock(*session);
   installed = source;
   // Foundation must be reloaded under the new bedrock. Existing syntax sessions
@@ -1260,6 +1302,7 @@ std::string syntax_set_bootstrap(const char* source) {
   if (session->tokens.empty()) return "Bootstrap must define at least one token or skip rule";
   // Baselines reference the same semantic declaration entities. Existing
   // sessions retain their baseline; a new module affects only new sessions.
+  frontend_modules_reset_compilation(syntax_modules);
   bootstrap = std::make_shared<const TokenDefinitions>(session->tokens);
   foundation_definitions = std::make_shared<const Definitions>(session->definitions);
   installed = source;
@@ -1278,7 +1321,8 @@ extern "C" __attribute__((export_name("tw_bedrock_seed"))) const char* syntax_wa
   static const auto source = tower_format(syntax_native_bedrock()).source;
   return source.c_str();
 }
-extern "C" __attribute__((export_name("tw_set_bootstrap"))) const char* syntax_wasm_bootstrap(const char* source, size_t bytes) {
+extern "C" __attribute__((export_name("tw_set_bootstrap"))) const char* syntax_wasm_bootstrap(const char* source, size_t bytes, ModuleEnvironment* environment) {
+  if (environment) syntax_modules = environment;
   static std::string error;
   if (!source || bytes > 65536 || std::string(source, bytes).find('\0') != std::string::npos)
     error = "Bootstrap must be at most 64 KiB without NUL bytes";

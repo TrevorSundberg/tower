@@ -1,3 +1,5 @@
+import tower;
+
 // Compiler transformations over the shared entity store. C++ only exposes
 // existing payload access until those components are also defined in Tower.
 extern fn compiler_node_label(node: Entity*, label: u8*): bool;
