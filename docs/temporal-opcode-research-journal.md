@@ -11482,3 +11482,76 @@ targets. The explicit alternate/missing Foundation input checks also passed.
 Evidence: `build/frontend-host-bootstrap.log`. The source/grammar/composed modules
 were held fixed during the full comparison; host/compiler relinking was complete
 before consumer tests began.
+
+## 2026-11-19: Published frontend checkpoint and final performance checks
+
+Source is pushed on `port/frontend-tower`: frontend implementations `b50bfe0`
+and `ef6be67`, integrated with the published host track in `35e5484`, with
+validation notes in `0a446ec`. Pages commit `fbb591f` normally fast-forwards
+`1d4080c`; the manifest identifies source `35e5484` and all three newly rebuilt
+reactors. It explicitly states that native adapters/bootstrap code remain. The
+previous host track's worker changes are included. The Pages API reports built
+at `fbb591f297851bf2e2f779e5d97ca14531f5c78d` with no build error.
+
+A publication whitespace check initially classified generated CRLF text as
+trailing whitespace. The HTML/CSS/license content matched apart from line endings;
+rechecked with Git's `core.whitespace=cr-at-eol`, preserving the exact tested
+artifact bytes and manifest hashes. No source or third-party license content was
+edited to satisfy that generated-output check.
+
+Repeated the paired performance runs against the actual combined artifacts after
+all compilation/tests and the Pages Git push completed. Methods, warmup/sample
+counts and equality checks are unchanged. These results supersede applying the
+pre-integration performance numbers directly to the final combined build.
+
+- Compared with pre-migration `586078b`, all five native compile medians improve:
+  small 8.544 -> 7.856 ms; inference 8.641 -> 8.068; increment 17.700 -> 16.809;
+  500 declarations 14.084 -> 13.297; 50 grammar revisions 395.152 -> 391.389.
+  Reports: `build/frontend-host-native-performance.{json,log}`.
+- Combined Wasm versus that same pre-host baseline is mixed. Focused replacement
+  medians: 200 captured statements 16.355 -> 16.200 ms; 1,000 captured statements
+  42.062 -> 39.832; nested captures 14.395 -> 14.317; 500 replacements
+  20.841 -> 20.138; 500 inferred replacements 24.928 -> 24.007. Small/inference/
+  increment/500-declaration medians were approximately 1–3% slower, while 50
+  grammar revisions improved 511.268 -> 506.626. Tails were mixed. Do not describe
+  the combined migration as faster for every workload. Reports:
+  `build/frontend-host-{focused,general}-performance.{json,log}`.
+- To distinguish frontend changes from the host allocator change, extracted the
+  exact previous Pages `1d4080c:tower.wasm` (host source `8fdb688`, pre-frontend)
+  into `build/replacement-baseline/host-8fdb688.wasm`. Both comparison instances now
+  contain the same host policy. Focused medians improve 16.786 -> 16.212,
+  42.013 -> 39.026, 14.747 -> 14.276, 21.681 -> 19.701 and 33.913 -> 32.105 ms;
+  all five p95 values improve too. The focused gains are about 3–9%. General small
+  and declaration cases remain near parity; the inference example was
+  5.099 -> 5.213 ms, so isolating the frontend does not prove a universal speedup
+  either. Full samples: `build/frontend-isolated-{focused,general}-performance.
+  {json,log}`. Do not compare unrelated runs' absolute timings as if CPU conditions
+  were fixed.
+
+The isolated 50-grammar case completed at 473.473 -> 453.431 ms median, but its
+p95 increased 544.266 -> 562.303 ms. This reinforces the distinction between
+observed medians and any universal latency guarantee.
+
+Live verification completed successfully with
+`node playground/scripts/verify-deployment.mjs https://trevorsundberg.github.io/tower/`.
+All 36 remote assets exactly match the tested local manifest/build. Desktop and
+mobile passed backend agreement, forward module bindings, editable grammar,
+project persistence, native builds/downloads, layout and default-target checks,
+with no page errors. Reports/screenshots: `build/frontend-host-live-deployment.log`,
+`build/frontend-host-live-report.json`, `build/deployment-verification/`. The
+Windows-host browser run does not claim execution of the Linux-host-only browser
+default-detection branch. Publication is verified, not merely a successful push.
+
+Final preservation checks confirm the original working copies of `AGENTS.md`,
+`docs/foundation.md` and `todo.txt` still match their pre-integration SHA-256 hashes.
+The 1,045 unrelated journal additions also remain unstaged; only this task's
+journal entries were committed. No pending stash or rebase remains. This final
+journal-only record changes no deployed compiler/UI artifact.
+
+This remains an incremental frontend migration. Next native ownership to remove:
+Bedrock entity construction, revision/cache/session coordination, table/stream
+adapters and diagnostic presentation, followed by retained frontend native tests
+and seed references. Existing Tower LR/DFA/lexer algorithms are already shared;
+they should not be reimplemented. The separate semantic, backend and host tracks
+remain responsible for their assigned files. No completed Tower-only bootstrap or
+portable compiler-binary handoff is claimed by this publication.
