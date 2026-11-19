@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <cstdlib>
 
+#ifdef TOWER_EXPANSION_SEED
 namespace {
 TowerNodeRef entity(SyntaxKind kind) {
   auto node = TowerNodeRef::adopt(tower_node_create()); syntax_attach(node.get(), kind); return node;
@@ -91,3 +92,16 @@ TowerNode* syntax_native_bedrock() {
   }();
   return document.get();
 }
+#else
+#include "compiler-frontend.hpp"
+TowerNode* syntax_native_bedrock() {
+  static TowerNodeRef document = [] {
+    FrontendKinds kinds{parser_rule_get_type(), parser_reference_get_type(),
+      parser_string_get_type(), parser_range_get_type(), parser_match_get_type(), syntax_component_type()};
+    auto result = TowerNodeRef::adopt(frontend_bedrock_create(&kinds));
+    if (!result) std::abort();
+    return result;
+  }();
+  return document.get();
+}
+#endif

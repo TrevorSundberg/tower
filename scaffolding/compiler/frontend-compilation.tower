@@ -1,0 +1,148 @@
+// Source/module orchestration over the same semantic program and parse entities.
+// Composed with the semantic declarations; no copied Foundation operation model.
+extern fn syntax_create(source: u8*): void*;
+
+extern fn syntax_destroy(session: void*): void;
+
+extern fn syntax_next(session: void*): void*;
+
+extern fn syntax_get_error(session: void*): u8*;
+
+extern fn syntax_get_revision(session: void*): usize;
+
+extern fn syntax_get_error_offset(session: void*): usize;
+
+extern fn entity_attach(child: void*, parent: void*, name: u8*): bool;
+
+extern fn entity_release(entity: void*): usize;
+
+extern fn bytes_append(target: vector(u8)*, data: u8*, count: usize): bool;
+
+struct FrontendSource {
+    data: u8*;
+    length: usize;
+}
+
+fn frontend_source_length(source: u8*): usize {
+    var length: usize = 0;
+    loop {
+        var done = source[length] == 0;
+        if done {
+            return length;
+        }
+        length = length + 1;
+    }
+}
+
+fn frontend_compile_error(program: SemanticProgram*, message: u8*): void {
+    var length = frontend_source_length(message);
+    sem_require(bytes_append(&program.error, message, length));
+}
+
+export fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendSource*, count: usize): void {
+    var source: vector(u8);
+    var roots: vector(void*);
+    var bases: vector(usize);
+    fill(&source, 0, sizeof(vector(u8)));
+    fill(&roots, 0, sizeof(vector(void*)));
+    fill(&bases, 0, sizeof(vector(usize)));
+    var index: usize = 0;
+    var ok: bool = true;
+    loop {
+        var done = index == count;
+        if done {
+            break;
+        }
+        ok = bytes_append(&source, sources[index].data, sources[index].length);
+        if ok {
+            ok = vector_push(u8, &source, 10);
+        }
+        if ok {} else {
+            break;
+        }
+        index = index + 1;
+    }
+    if ok {
+        ok = vector_push(u8, &source, 0);
+    }
+    if ok {} else {
+        frontend_compile_error(program, "Unable to allocate module source");
+    }
+    index = 0;
+    var base: usize = 0;
+    var seen: usize = 0;
+    loop {
+        var done = index == count;
+        if done {
+            break;
+        }
+        if ok {} else {
+            break;
+        }
+        var file = sources[index].data;
+        var session = syntax_create(file);
+        loop {
+            var revision = syntax_get_revision(session);
+            var root = syntax_next(session);
+            var finished = root == null;
+            if finished {
+                break;
+            }
+            var ordinary = revision == syntax_get_revision(session);
+            if ordinary {
+                var node = sem_child(root, 0);
+                var statement = sem_is(node, "Statement");
+                if statement {
+                    statement = sem_child_count(node) == 1;
+                    if statement {
+                        node = sem_child(node, 0);
+                    }
+                }
+                ok = entity_attach(root, program.root, "");
+                if ok {
+                    var target = sem_get(program.root);
+                    ok = vector_push(void*, &target.items, node);
+                }
+                if ok {
+                    ok = vector_push(void*, &roots, root);
+                }
+                if ok {
+                    ok = vector_push(usize, &bases, base);
+                }
+            }
+            entity_release(root);
+            if ok {} else {
+                frontend_compile_error(program, "Unable to allocate module roots");
+                break;
+            }
+            seen = seen + 1;
+            var limited = seen > 1024;
+            if limited {
+                frontend_compile_error(program, "Foundation source limit is 1,024 top-level nodes");
+                break;
+            }
+        }
+        var clean = program.error.length == 0;
+        if clean {
+            var error = syntax_get_error(session);
+            var failed = error[0] != 0;
+            if failed {
+                frontend_compile_error(program, error);
+                program.error_offset = syntax_get_error_offset(session);
+                program.error_offset = base + program.error_offset;
+            }
+        }
+        syntax_destroy(session);
+        var length = sources[index].length;
+        base = base + length;
+        base = base + 1;
+        ok = program.error.length == 0;
+        index = index + 1;
+    }
+    if ok {
+        semantic_compile(program, roots.data, bases.data, roots.length, source.data);
+    }
+    vector_dispose(u8, &source);
+    vector_dispose(void*, &roots);
+    vector_dispose(usize, &bases);
+}

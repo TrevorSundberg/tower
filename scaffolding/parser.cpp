@@ -1095,6 +1095,7 @@ const char* parser_recognizer_get_error(Recognizer* recognizer) {
   return recognizer->error.c_str();
 }
 
+#ifdef TOWER_EXPANSION_SEED
 ParserDiagnostic parser_recognizer_diagnostic(Recognizer* r, ParserDiagnosticRead read, void* source) {
   ParserDiagnostic result{r->read_start, lr_parser_consumed(r->control)};
   result.at_start = !lr_parser_shifted(r->control);
@@ -1174,6 +1175,43 @@ ParserDiagnostic parser_recognizer_diagnostic(Recognizer* r, ParserDiagnosticRea
   result.complete = result.complete && budget.complete;
   return result;
 }
+#else
+#include "compiler-frontend.hpp"
+ParserDiagnostic parser_recognizer_diagnostic(Recognizer* r, ParserDiagnosticRead read, void* source) {
+  ParserDiagnostic result{r->read_start, lr_parser_consumed(r->control)};
+  result.at_start = !lr_parser_shifted(r->control);
+  std::unique_ptr<FrontendDiagnostic, decltype(&frontend_diagnostic_destroy)> diagnostic(
+    frontend_diagnostic_create(r->control, r->prefix,
+      read != nullptr, !r->lookahead_error.empty(), r->read_id, r->read_start), frontend_diagnostic_destroy);
+  if (!diagnostic) { result.complete = false; return result; }
+  while (auto request = frontend_diagnostic_next(diagnostic.get())) {
+    const auto state = frontend_diagnostic_state(diagnostic.get());
+    if (request == 1) {
+      std::vector<FrontendContextPosition> positions;
+      for (const auto& item : r->table->states[state].diagnostic_items) {
+        const auto* symbol = parser_table_get_grammar_symbol_or_null(r->table->grammar, item);
+        const bool terminal = symbol && !symbol->non_terminal;
+        positions.push_back({item.rule_index, item.symbol_index,
+          terminal ? symbol->terminal.start : 0, terminal ? symbol->terminal.end : 0, terminal});
+      }
+      frontend_diagnostic_contexts(diagnostic.get(), positions.data(), positions.size());
+    } else {
+      auto position = frontend_diagnostic_position(diagnostic.get());
+      uint32_t id = PARSER_ID_EOF;
+      const bool valid = read(source, position, {r->table->runtime, state}, id);
+      frontend_diagnostic_feed(diagnostic.get(), valid, position, id);
+    }
+  }
+  for (size_t i = 0; i < frontend_diagnostic_count(diagnostic.get()); ++i) {
+    const auto* value = frontend_diagnostic_expected(diagnostic.get(), i);
+    ParserExpectation expected{value->id, value->id == PARSER_ID_EOF ? "end of input" : debug_str(value->id, r->table->grammar), value->insertion, value->completes};
+    for (size_t j = 0; j < value->contexts.length; ++j) expected.contexts.push_back(value->contexts.data[j]);
+    result.expected.push_back(std::move(expected));
+  }
+  result.complete = frontend_diagnostic_complete(diagnostic.get());
+  return result;
+}
+#endif
 
 static void parser_unexpected(Recognizer* recognizer) {
   recognizer->error = recognizer->lookahead_error.empty() ?

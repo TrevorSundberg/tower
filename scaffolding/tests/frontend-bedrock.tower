@@ -1,0 +1,192 @@
+// Character parsing, regex lowering and construction use the production Tower
+// modules. The legacy host supplies only the existing registered component kinds.
+fn frontend_test_table_failures(kinds: FrontendKinds*): usize {
+    var root = compiler_grammar_root();
+    var rule = compiler_grammar_rule(root, "Root", false);
+    compiler_grammar_literal(rule, "ab");
+    var budget: usize = 0;
+    var result: usize = 0;
+    loop {
+        var exhausted = budget == 256;
+        if exhausted {
+            result = 710;
+            break;
+        }
+        var buffers = tower_test_buffer_count();
+        var table: FrontendTable;
+        tower_test_buffer_fail_after(budget);
+        var ok = frontend_table_init(&table, root, kinds);
+        if ok {
+            var status = frontend_table_finish(&table, false, true);
+            ok = status == 0;
+        }
+        tower_test_buffer_fail_after(lr_none());
+        frontend_table_dispose(&table);
+        var leaked = tower_test_buffer_count() != buffers;
+        if leaked {
+            result = 711;
+            break;
+        }
+        if ok {
+            break;
+        }
+        budget = budget + 1;
+    }
+    entity_release(root);
+    return result;
+}
+
+fn frontend_test_diagnostics(kinds: FrontendKinds*): usize {
+    var root = compiler_grammar_root();
+    var rule = compiler_grammar_rule(root, "Root", false);
+    compiler_grammar_literal(rule, "ab");
+    var table: FrontendTable;
+    var ok = frontend_table_init(&table, root, kinds);
+    if ok {
+        ok = frontend_table_finish(&table, false, false) == 0;
+    }
+    entity_release(root);
+    if ok {} else {
+        frontend_table_dispose(&table);
+        return 720;
+    }
+    var parser = lr_parser_create(table.runtime, false, false);
+    var step: LRStep;
+    ok = lr_parser_step(parser, true, 97, false, 0, 1, &step) == 1;
+    if ok {
+        ok = lr_parser_commit(parser, &step, lr_none(), lr_none());
+    }
+    var result: usize = 0;
+    var budget: usize = 0;
+    loop {
+        if ok {} else {
+            result = 721;
+            break;
+        }
+        var limit = budget == 64;
+        if limit {
+            result = 722;
+            break;
+        }
+        var buffers = tower_test_buffer_count();
+        tower_test_buffer_fail_after(budget);
+        var d = frontend_diagnostic_create(parser, false, false, false, 4294967294, 1);
+        var present = d != null;
+        var complete: bool = false;
+        if present {
+            loop {
+                var request = frontend_diagnostic_next(d);
+                var done = request == 0;
+                if done {
+                    break;
+                }
+                var context: FrontendContextPosition;
+                context.production = 1;
+                context.term = 1;
+                context.first = 98;
+                context.last = 98;
+                context.terminal = true;
+                frontend_diagnostic_contexts(d, &context, 1);
+            }
+            complete = frontend_diagnostic_complete(d);
+            if complete {
+                ok = frontend_diagnostic_count(d) == 1;
+                if ok {
+                    var option = frontend_diagnostic_expected(d, 0);
+                    ok = option.id == 98;
+                    if option.insertion {} else {
+                        ok = false;
+                    }
+                    var context = option.contexts.length == 1;
+                    if context {} else {
+                        ok = false;
+                    }
+                }
+            }
+        }
+        tower_test_buffer_fail_after(lr_none());
+        frontend_diagnostic_destroy(d);
+        var leaked = tower_test_buffer_count() != buffers;
+        if leaked {
+            result = 723;
+            break;
+        }
+        if complete {
+            if ok {} else {
+                result = 724;
+            }
+            break;
+        }
+        budget = budget + 1;
+    }
+    lr_parser_destroy(parser);
+    frontend_table_dispose(&table);
+    return result;
+}
+
+export fn frontend_bedrock_tests(kinds: FrontendKinds*): usize {
+    var result = frontend_cache_tests(kinds);
+    var failed = result != 0;
+    if failed {
+        return result;
+    }
+    result = frontend_test_table_failures(kinds);
+    failed = result != 0;
+    if failed {
+        return result;
+    }
+    result = frontend_test_diagnostics(kinds);
+    failed = result != 0;
+    if failed {
+        return result;
+    }
+    var buffers = tower_test_buffer_count();
+    var table: FrontendTable;
+    var ok = frontend_pattern_table(&table, kinds);
+    if ok {
+        var pattern = frontend_pattern_compile(&table, kinds, "α[0-9]+");
+        ok = pattern != null;
+        if ok {
+            var text: u8* = "α123!";
+            var length = syntax_text_length(text);
+            ok = lex_table_match(pattern.table, text, length, 0) == 5;
+            syntax_pattern_release(pattern);
+        }
+        var invalid = frontend_pattern_compile(&table, kinds, "(");
+        var accepted = invalid != null;
+        if accepted {
+            syntax_pattern_release(invalid);
+            ok = false;
+        }
+        var invalid_utf8: u8[2];
+        invalid_utf8[0] = 255;
+        invalid_utf8[1] = 0;
+        invalid = frontend_pattern_compile(&table, kinds, &invalid_utf8[0]);
+        accepted = invalid != null;
+        if accepted {
+            syntax_pattern_release(invalid);
+            ok = false;
+        }
+    }
+    frontend_table_dispose(&table);
+    var changed = tower_test_buffer_count() != buffers;
+    if changed {
+        return 712;
+    }
+    if ok {} else {
+        return 713;
+    }
+    var document = frontend_bedrock_create(kinds);
+    ok = document != null;
+    if ok {
+        entity_release(document);
+    }
+    changed = tower_test_buffer_count() != buffers;
+    if changed {
+        return 714;
+    }
+    if ok {
+        return 0;
+    }
+    return 715;
+}

@@ -78,6 +78,7 @@ endfunction()
 # These components use the Tower-written specializer (vector(T)), so compile
 # them with stage1 or a supplied recent compiler, not the pre-template seed.
 function(tower_compiler_parser_nodes)
+  include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/TowerFrontend.cmake")
   if(TARGET tower-compiler-parser-nodes)
     return()
   endif()
@@ -141,6 +142,8 @@ function(tower_compiler_parser_nodes)
     DEPENDS scaffolding/compiler/syntax-expansion.tower ${expansion_tests}
     DEPENDS scaffolding/compiler/syntax-replacements.tower ${replacement_tests}
     DEPENDS scaffolding/compiler/syntax-template.tower
+    DEPENDS ${TOWER_FRONTEND_SOURCES} cmake/TowerFrontend.cmake
+    DEPENDS scaffolding/tests/frontend-bedrock.tower scaffolding/tests/frontend-cache.tower
     DEPENDS scaffolding/compiler/syntax-scan.tower
     DEPENDS scaffolding/tests/syntax-template.tower
     DEPENDS scaffolding/tests/syntax-scan.tower
@@ -172,7 +175,7 @@ function(tower_compiler_semantics)
   get_property(triple GLOBAL PROPERTY TOWER_COMPILER_TRIPLE)
   set(input "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-semantics.tower")
   set(object "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-semantics.o")
-  set(sources scaffolding/library/vector.tower scaffolding/compiler/foundation-nodes.tower scaffolding/compiler/parser-nodes.tower)
+  set(sources scaffolding/library/vector.tower scaffolding/compiler/foundation-nodes.tower scaffolding/compiler/parser-nodes.tower scaffolding/compiler/frontend-compilation.tower)
   foreach(name IN ITEMS context definitions support types values statements lifecycle)
     list(APPEND sources scaffolding/compiler/semantic-${name}.tower)
   endforeach()

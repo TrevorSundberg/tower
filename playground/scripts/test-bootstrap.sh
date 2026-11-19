@@ -51,6 +51,7 @@ if sys.argv[1] == 'entities': allowed |= {
     'compiler_name_is', 'compiler_name_equal', 'compiler_node_copy_metadata',
     'compiler_generic_type', 'compiler_component_add'}
 if sys.argv[1] == 'parser-nodes': allowed |= {
+    'parse_forest_create', 'parse_forest_destroy', 'tower_utf8_validate',
     'syntax_scan_highlight',
     'syntax_replacement_begin', 'syntax_replacement_capture', 'syntax_replacement_attempt',
     'syntax_replacement_diagnostic', 'syntax_replacement_offset',
@@ -71,6 +72,8 @@ if sys.argv[1] == 'parser-nodes': allowed |= {
     'core_component_type', 'semantic_builtin_name', 'semantic_operator', 'semantic_scalar_name',
     'semantic_signed', 'semantic_mask'}
 if sys.argv[1] == 'semantics': allowed |= {
+    'syntax_create', 'syntax_destroy', 'syntax_next', 'syntax_get_error',
+    'syntax_get_revision', 'syntax_get_error_offset', 'bytes_append',
     'tower_allocate', 'tower_trap', 'sem_match', 'core_component_type', 'abort',
     'entity_component_get', 'entity_component_data', 'entity_component_add', 'entity_register',
     'tower_node_create', 'entity_attach', 'entity_release', 'entity_child_at',

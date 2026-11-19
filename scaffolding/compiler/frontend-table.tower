@@ -1,0 +1,244 @@
+// Table ownership shared by character and token readers. These are derived LR
+// indexes over ordinary grammar entities, not a second grammar representation.
+struct FrontendKinds {
+    rule: void*;
+    reference: void*;
+    string: void*;
+    range: void*;
+    match: void*;
+    syntax: void*;
+}
+
+struct FrontendTable {
+    grammar: LRGrammar*;
+    runtime: LRRuntime*;
+}
+
+export fn frontend_table_dispose(table: FrontendTable*): void {
+    lr_runtime_destroy(table.runtime);
+    lr_grammar_destroy(table.grammar);
+    fill(table, 0, sizeof(FrontendTable));
+}
+
+// Grammar names must be resolved before this step. Both ordinary grammars and
+// character grammars use the same analysis, conflict check and specialization.
+export fn frontend_table_finish(table: FrontendTable*, constructs: bool, specialize: bool): u32 {
+    var grammar = table.grammar;
+    var unresolved: usize = 0;
+    loop {
+        var done = unresolved == grammar.unresolved.length;
+        if done {
+            break;
+        }
+        var symbol = grammar.unresolved.data[unresolved].symbol;
+        var missing = grammar.symbols.data[symbol].first == 4294967294;
+        if missing {
+            return 3;
+        }
+        unresolved = unresolved + 1;
+    }
+    var analysis = lr_analysis_create(grammar.rules.data, grammar.rules.length,
+    grammar.symbols.data, grammar.symbols.length, grammar.names.length);
+    var missing = analysis == null;
+    if missing {
+        return 1;
+    }
+    var index: usize = 0;
+    loop {
+        var done = index == grammar.names.length;
+        if done {
+            break;
+        }
+        lr_analysis_order(analysis, index, grammar.names.data[index].order);
+        index = index + 1;
+    }
+    var states: LRStates* = null;
+    var ok = lr_analysis_compute(analysis);
+    if ok {
+        states = lr_states_create(analysis);
+        ok = states != null;
+    }
+    if ok {
+        ok = lr_states_lalr(states, constructs);
+    }
+    if ok {
+        table.runtime = lr_runtime_create(states);
+        ok = table.runtime != null;
+    }
+    var status: u32 = 1;
+    if ok {
+        var conflict: LRConflict;
+        var ambiguous = lr_runtime_conflict(table.runtime, &conflict);
+        if ambiguous {
+            status = 2;
+        } else {
+            if specialize {
+                lr_runtime_specialize(table.runtime, states);
+            }
+            lr_grammar_finish(grammar);
+            status = 0;
+        }
+    }
+    lr_states_destroy(states);
+    lr_analysis_destroy(analysis);
+    return status;
+}
+
+export fn frontend_table_init(table: FrontendTable*, root: void*, kinds: FrontendKinds*): bool {
+    fill(table, 0, sizeof(FrontendTable));
+    var absent = root == null;
+    if absent {
+        return false;
+    }
+    var empty = entity_child_count(root) == 0;
+    if empty {
+        return false;
+    }
+    table.grammar = lr_grammar_create(root, kinds.rule, kinds.reference, kinds.string, kinds.range);
+    var ok = table.grammar != null;
+    return ok;
+}
+
+extern fn parse_forest_create(): void*;
+
+extern fn parse_forest_destroy(forest: void*): void;
+
+extern fn tower_utf8_validate(source: u8*, length: usize, reject_nul: u32): u32;
+
+struct FrontendCharacters {
+    source: u8*;
+    length: usize;
+    cursor: usize;
+    offset: usize;
+    error: u32;
+}
+
+// The reader owns only its forest and LR stack. Input and table are borrowed;
+// acceptance transfers one ordinary parse-tree reference to the caller.
+export fn frontend_read_characters(table: FrontendTable*, kinds: FrontendKinds*, input: FrontendCharacters*): void* {
+    var parser = lr_parser_create(table.runtime, false, true);
+    var forest = parse_forest_create();
+    var ok = parser != null;
+    var present = forest != null;
+    if present {} else {
+        ok = false;
+    }
+    var root: void* = null;
+    input.error = 1;
+    var ready: bool = false;
+    var id: u32 = 4294967294;
+    var start: usize = 0;
+    var length: usize = 0;
+    loop {
+        if ok {} else {
+            break;
+        }
+        var step: LRStep;
+        var action = lr_parser_step(parser, ready, id, false, start, length, &step);
+        var read = action == 0;
+        if read {
+            start = input.cursor;
+            length = 0;
+            id = 4294967294;
+            var remaining = start < input.length;
+            if remaining {
+                var count = input.length - start;
+                length = tower_utf8_decode(&input.source[start], count, &id);
+                var invalid = length == 0;
+                if invalid {
+                    input.error = 3;
+                    break;
+                }
+                input.cursor = start + length;
+            }
+            ready = true;
+            continue;
+        }
+        var accept = action == 3;
+        if accept {
+            root = lr_tree_accept(parser, forest);
+            input.error = 0;
+            break;
+        }
+        var shift = action == 1;
+        var sequence = action == 6;
+        if sequence {
+            shift = true;
+        }
+        if shift {
+            var input_node: void* = null;
+            var status = lr_tree_shift(parser, forest, table.grammar, kinds.match, &step, &input_node, "");
+            ok = status == 1;
+            ready = false;
+            continue;
+        }
+        var reduce = action == 2;
+        sequence = action == 7;
+        if sequence {
+            reduce = true;
+        }
+        if reduce {
+            ok = lr_tree_reduce(parser, forest, table.grammar, &step, &root);
+            var complete = root != null;
+            if complete {
+                input.error = 0;
+                break;
+            }
+            continue;
+        }
+        input.error = 2;
+        break;
+    }
+    input.offset = start;
+    if present {
+        parse_forest_destroy(forest);
+    }
+    lr_parser_destroy(parser);
+    return root;
+}
+
+export fn frontend_pattern_table(table: FrontendTable*, kinds: FrontendKinds*): bool {
+    var root = regex_grammar_create();
+    var ok = frontend_table_init(table, root, kinds);
+    if ok {
+        var status = frontend_table_finish(table, false, true);
+        ok = status == 0;
+    }
+    entity_release(root);
+    return ok;
+}
+
+export fn frontend_pattern_compile(table: FrontendTable*, kinds: FrontendKinds*, text: u8*): SyntaxPattern* {
+    var input: FrontendCharacters;
+    fill(&input, 0, sizeof(FrontendCharacters));
+    input.source = text;
+    input.length = syntax_text_length(text);
+    var too_long = input.length > 4096;
+    if too_long {
+        return null;
+    }
+    var status = tower_utf8_validate(text, input.length, 0);
+    var valid = status != 0;
+    if valid {} else {
+        return null;
+    }
+    var root = frontend_read_characters(table, kinds, &input);
+    var absent = root == null;
+    if absent {
+        return null;
+    }
+    var pattern = syntax_pattern_create(root);
+    entity_release(root);
+    absent = pattern == null;
+    if absent {
+        return null;
+    }
+    var offset: usize = 0;
+    var error = regex_compile_tree(pattern.grammar, text, kinds.match, pattern.table, &offset);
+    var failed = error != null;
+    if failed {
+        syntax_pattern_release(pattern);
+        return null;
+    }
+    return pattern;
+}

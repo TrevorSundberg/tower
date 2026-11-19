@@ -13020,3 +13020,99 @@ native downloads/builds, layout and platform defaults passed. Evidence:
 No force push was used. `todo.txt` retains its starting SHA-256. Source push follows
 this evidence commit; the complete Tower-only portable release gates remain open
 as documented above, and no unverified bootstrap binaries were committed.
+
+## 2026-11-19 - Task 1: Tower frontend ownership, diagnostics and revision cache
+
+Continued the assigned frontend work on main after the requested second pull/rebase
+through 7973c39. This is a production migration checkpoint, not completion of Task
+1 or a Tower-only compiler. The other runtime owner's dfdf95b/6610461 subsequently
+arrived during validation; integrated results are recorded separately below.
+
+Implemented in compiler/frontend-*.tower on the existing shared components:
+
+- Bedrock's initial grammar is now constructed by Tower. Its character-pattern
+  table, UTF-8 input traversal, LR tree/forest ownership and regex lowering use
+  the existing Tower LR/DFA modules. No host regex library or binary grammar was
+  introduced. The constructor recreates the ordinary public Bedrock entities;
+  the existing editable Bedrock loading path still applies source declarations
+  incrementally. This does not yet replace ordinary session table orchestration.
+- Bounded diagnostic probing now runs in Tower, borrowing LR frames and retained
+  item positions. It preserves the 64-candidate, 128-step/probe, 8,192-work and
+  three-token lookahead bounds, prefix completion/reset and consumed-prefix
+  context filtering. Native code supplies contextual input and converts display
+  values for existing API consumers; no repair policy was added to the adapter.
+  Runtime action rows are already sorted, so the Tower path avoids the previous
+  candidate-vector allocation/sort.
+- The 64-entry grammar cache owns immutable reference-retaining revision snapshots,
+  structural key comparisons, recency/eviction, hit/build counters, formatting
+  forks and token-pattern reuse in Tower. Names, ordered alternatives, token
+  properties and replacement-template coordinates retain their previous meaning.
+  Allocation failure while storing leaves prior entries untouched and simply
+  skips caching. Native shared_ptr table handles remain temporary ABI consumers.
+- Source/module iteration, grammar-declaration filtering, root attachment,
+  concatenated-source offsets, parse errors and semantic compilation handoff now
+  run in frontend-compilation.tower composed with the authoritative semantic
+  modules. core.cpp marshals borrowed source spans and the existing program view.
+  The existing 1,024 top-level-node limit is unchanged.
+
+No new owned C/C++ algorithm, test implementation or copied seed was added. The
+original Bedrock, diagnostic and cache bodies are gated in their original files
+for the existing seed/stage1 dependency; production uses Tower. Native additions
+are ABI declarations/conversions and ownership wiring. Removing the retained seed
+requires the separately assigned compiler executable/bootstrap cutover.
+cmake/TowerFrontend.cmake isolates new frontend source registration; parser.cpp
+and bedrock.cpp are compiled per native executable so the seed-only macro does
+not leak through a common object library. New executable tests are Tower source.
+
+Trials and corrections:
+
+- An initial CMake fragment include used CMAKE_CURRENT_LIST_DIR at its caller;
+  corrected to CMAKE_CURRENT_FUNCTION_LIST_DIR for the source-registration call.
+- Initial constructor trials exposed reserved identifiers (`token`, `expected`)
+  and the actual u32 UTF-8 validation ABI; corrected the Tower declarations/names.
+- The first sanitizer diagnostic run faulted in frontend_diagnostic_contexts:
+  lr_grammar_finish frees temporary rule/symbol arrays before parsing begins.
+  addr2line on the recorded native offsets located the read. The corrected API
+  reads retained LRRuntime rules and borrows terminal bounds from retained table
+  item metadata. It does not retain freed arrays or add a second grammar model.
+- The first formatting assertion correctly rejected the new unformatted sources;
+  formatted only the newly owned files, leaving unrelated work untouched.
+- Cache wiring initially inferred unique_ptr from build(); restored the explicit
+  shared_ptr ownership conversion required by the legacy API. Flattened borrowed
+  alternative pointers into one native ABI buffer instead of allocating a buffer
+  for each rule on every lookup. No cast of TowerNodeRef storage was used.
+
+Validation before integration of the newer runtime work:
+
+- `cmake --build /root/.cache/tower/native --parallel 3`, followed by towerc
+  scaffolding/examples/increment.tower --interpret: exactly 5,6,7,7,9.
+- ASan/UBSan CTest, `/root/.cache/tower/core-asan`: 5/5 passed, 59.86 seconds
+  while other builds ran. These sanitizers instrument the native boundaries;
+  generated Tower objects are not claimed to have native sanitizer instrumentation.
+- Optimized Windows host: `scaffolding/tests/run.ps1 -Optimize -BootstrapCompiler
+  C:\Sandbox\tower\build\parser-tests\host-bootstrap.cmd` passed parser, live
+  grammar/cache, semantic differential, formatter/reference and ownership checks;
+  90 canonical source files matched the formatter. A direct cmake invocation was
+  unavailable on the ordinary PowerShell PATH; the established script selects
+  the Visual Studio environment successfully.
+- New Tower tests exercise Unicode patterns, malformed patterns/UTF-8, table
+  allocation failures, diagnostic allocation failures/context/insertion, cache
+  eviction and immutable fork lifetimes, and failed cache inserts. Buffer counts
+  return to baseline after cleanup. Existing parser tests cover grammar identity,
+  replacement coordinates, prefix boundaries, forward references and diagnostics.
+- Full native/Wasm/bootstrap differential, browser publication and paired timing
+  results follow after integrating upstream; no speedup claim is made yet.
+
+Reproduction logs in the ignored build directory: frontend-owner-build.log,
+frontend-owner-asan-build.log, frontend-owner-asan.log, frontend-owner-windows.log,
+frontend-owner-browser-build.log and frontend-owner-bootstrap.log. Baseline CLI
+and published Wasm artifacts were saved in build/frontend-owner-baseline before
+editing; benchmarks use identical explicit Bedrock/Foundation inputs.
+
+Remaining frontend ownership: declaration installation and session lifecycle,
+Version's emission/presentation indexes, stream/recognizer adapters, highlighting
+and origin/provenance storage, component-kind context and native test retirement.
+The new APIs reuse shared syntax/semantic entities; they are not a separate IR.
+Task 3's explicit semantic component APIs can replace the remaining singleton
+kind handoff when the full Tower frontend context is connected. No speculative
+native fallback or new external runtime dependency was introduced.

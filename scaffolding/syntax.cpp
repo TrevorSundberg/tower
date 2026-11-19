@@ -6,6 +6,7 @@
 #include "compiler-syntax-replacements.hpp"
 #include "compiler-syntax-template.hpp"
 #include "compiler-syntax-scan.hpp"
+#include "compiler-frontend.hpp"
 #include "compiler-entities.hpp"
 #include "compiler-generics.hpp"
 #include "compiler-syntax-lexer.hpp"
@@ -13,6 +14,7 @@
 #include "syntax-nodes.hpp"
 #include "format.hpp"
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <cstring>
 #include <map>
@@ -39,6 +41,7 @@ struct PendingRule { std::string dependency; size_t offset = TOWER_INVALID_INDEX
 using PendingRules = std::map<std::string, PendingRule>;
 SyntaxNode& semantic(const TowerNodeRef& node) { return syntax_node(node.get()); }
 SyntaxNode& semantic(TowerNode* node) { return syntax_node(node); }
+#ifdef TOWER_EXPANSION_SEED
 bool same(const std::vector<TowerNodeRef>& a, const std::vector<TowerNodeRef>& b) {
   if (a.size() != b.size()) return false;
   for (size_t i = 0; i < a.size(); ++i) if (!syntax_equal(a[i].get(), b[i].get(), true)) return false;
@@ -53,6 +56,7 @@ bool same(const Definitions& a, const Definitions& b) {
   }
   return true;
 }
+#endif
 std::shared_ptr<const TokenDefinitions> bootstrap;
 std::shared_ptr<const Definitions> foundation_definitions;
 struct Bedrock {
@@ -394,9 +398,15 @@ struct SyntaxSession {
   size_t comment_cursor = 0;
   std::shared_ptr<const Bedrock> bedrock;
   std::shared_ptr<Version> version;
+#ifdef TOWER_EXPANSION_SEED
   struct CachedVersion { Definitions definitions; TokenDefinitions tokens; std::shared_ptr<Version> version; };
   std::vector<CachedVersion> cache;
   size_t builds = 0, hits = 0;
+#else
+  FrontendCache cache{};
+  std::array<std::shared_ptr<Version>, SYNTAX_MAX_CACHED_GRAMMARS> versions;
+  ~SyntaxSession() { frontend_cache_dispose(&cache); }
+#endif
   SyntaxExpansionStats expansion_stats;
   std::string error;
   size_t error_offset = 0;
@@ -501,6 +511,7 @@ std::string syntax_diagnostic(SyntaxSession& session, Recognizer* recognizer, bo
 }
 
 std::shared_ptr<Version> compiled(SyntaxSession& session, const Definitions& definitions, const TokenDefinitions& tokens, std::string& error) {
+#ifdef TOWER_EXPANSION_SEED
   // The complete structural grammar is the key, including literals, captures,
   // alternatives and repetition. Source positions and the numeric revision are
   // deliberately absent. Only successful immutable tables enter this cache.
@@ -519,6 +530,29 @@ std::shared_ptr<Version> compiled(SyntaxSession& session, const Definitions& def
     if (session.cache.size() > SYNTAX_MAX_CACHED_GRAMMARS) session.cache.erase(session.cache.begin());
   }
   return version;
+#else
+  std::vector<TowerNode*> alternatives;
+  std::vector<SyntaxRuleView> rules;
+  std::vector<TowerNode*> token_nodes;
+  size_t alternative_count = 0;
+  for (const auto& [name, sequences] : definitions) alternative_count += sequences.size();
+  alternatives.reserve(alternative_count); rules.reserve(definitions.size());
+  for (const auto& [name, sequences] : definitions) {
+    const auto begin = alternatives.size();
+    for (const auto& sequence : sequences) alternatives.push_back(sequence.get());
+    rules.push_back({name.data(), name.size(), alternatives.data() + begin, sequences.size()});
+  }
+  for (const auto& token : tokens) token_nodes.push_back(token.get());
+  const auto slot = frontend_cache_find(&session.cache, rules.data(), rules.size(),
+    token_nodes.data(), token_nodes.size(), syntax_component_type());
+  if (slot != TOWER_INVALID_INDEX) { error.clear(); return session.versions[slot]; }
+  std::shared_ptr<Version> version = build(definitions, tokens, session.bedrock, error, &session.error_offset);
+  if (version) {
+    const auto stored = frontend_cache_store(&session.cache, rules.data(), rules.size(), token_nodes.data(), token_nodes.size());
+    if (stored != TOWER_INVALID_INDEX) session.versions[stored] = version;
+  }
+  return version;
+#endif
 }
 
 #ifdef TOWER_EXPANSION_SEED
@@ -852,6 +886,9 @@ extern "C" size_t syntax_expansion_tests(const SyntaxExpansionInput*, TowerNode*
 size_t syntax_expansion_test_entry() {
   ExpansionHost host;
   SyntaxExpansionInput input{nullptr, 0, parser_match_get_type(), &host};
+  FrontendKinds kinds{parser_rule_get_type(), parser_reference_get_type(), parser_string_get_type(),
+    parser_range_get_type(), parser_match_get_type(), syntax_component_type()};
+  if (auto status = frontend_bedrock_tests(&kinds)) return status;
   return syntax_expansion_tests(&input, syntax_native_bedrock());
 }
 #endif
@@ -891,7 +928,11 @@ void syntax_reset(SyntaxSession* session, const char* source) {
     session->building_bedrock ? "bedrock.tower" : session->bootstrapping ? "foundation.tower" : "this file");
   session->cursor = session->revision = session->error_offset = 0;
   session->error_insertion = false;
+#ifdef TOWER_EXPANSION_SEED
   session->builds = session->hits = 0;
+#else
+  session->cache.builds = session->cache.hits = 0;
+#endif
   session->expansion_stats = {};
   session->finalized = false; session->declarations_only = true; session->comment_cursor = 0;
   session->error.clear(); session->highlights.clear(); session->definitions = session->baseline_definitions;
@@ -902,7 +943,11 @@ void syntax_reset(SyntaxSession* session, const char* source) {
   session->version = compiled(*session, session->definitions, session->tokens, session->error);
 }
 SyntaxCacheStats syntax_get_cache_stats(SyntaxSession* session) {
+#ifdef TOWER_EXPANSION_SEED
   return {session->builds, session->hits, session->cache.size()};
+#else
+  return {session->cache.builds, session->cache.hits, session->cache.entries.length};
+#endif
 }
 
 void syntax_destroy(SyntaxSession* session) { delete session; }
@@ -937,7 +982,12 @@ TowerText syntax_format(SyntaxSession* session) {
   SyntaxSession copy;
   copy.baseline = session->baseline; copy.baseline_definitions = session->baseline_definitions;
   copy.bedrock = session->bedrock; copy.bootstrapping = session->bootstrapping;
-  copy.building_bedrock = session->building_bedrock; copy.cache = session->cache;
+  copy.building_bedrock = session->building_bedrock;
+#ifdef TOWER_EXPANSION_SEED
+  copy.cache = session->cache;
+#else
+  if (frontend_cache_copy(&copy.cache, &session->cache)) copy.versions = session->versions;
+#endif
   copy.formatting = true; syntax_reset(&copy, session->source.data());
   std::vector<TowerNodeRef> owned; std::vector<TowerNode*> roots;
   while (auto* root = syntax_next(&copy)) { owned.push_back(TowerNodeRef::adopt(root)); roots.push_back(root); }
@@ -950,7 +1000,12 @@ TowerText syntax_format(SyntaxSession* session) {
   SyntaxSession verify;
   verify.baseline = copy.baseline; verify.baseline_definitions = copy.baseline_definitions;
   verify.bedrock = copy.bedrock; verify.bootstrapping = copy.bootstrapping;
-  verify.building_bedrock = copy.building_bedrock; verify.formatting = true; verify.cache = copy.cache;
+  verify.building_bedrock = copy.building_bedrock; verify.formatting = true;
+#ifdef TOWER_EXPANSION_SEED
+  verify.cache = copy.cache;
+#else
+  if (frontend_cache_copy(&verify.cache, &copy.cache)) verify.versions = copy.versions;
+#endif
   syntax_reset(&verify, result.source.c_str());
   size_t index = 0; bool same = true;
   while (auto* raw = syntax_next(&verify)) {
@@ -1066,8 +1121,12 @@ TowerNode* syntax_next(SyntaxSession* session) {
       if (!error.empty()) return fail(error);
       auto& token = syntax_node(construct);
       if (session->definitions.contains(token.name)) return fail("Name already defines a parse rule: " + token.name);
+#ifdef TOWER_EXPANSION_SEED
       for (const auto& entry : session->cache) for (const auto& old : entry.tokens)
         if (semantic(old).text == token.text) syntax_node_pattern(&token, semantic(old).compiled);
+#else
+      frontend_cache_pattern(&session->cache, construct, syntax_component_type());
+#endif
       if (!token.compiled) { auto pattern = lex_pattern_compile(token.text, error); syntax_node_pattern(&token, pattern.get()); }
       if (!token.compiled) return fail(error);
       auto candidate = session->tokens;

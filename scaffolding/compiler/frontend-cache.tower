@@ -1,0 +1,305 @@
+// Immutable revision snapshots retain shared grammar entities. Cache slots are
+// disposable host handles; no parser semantics or source is encoded in them.
+struct FrontendCachedRule {
+    name: vector(u8);
+    alternatives: vector(void*);
+}
+
+struct FrontendRevision {
+    references: usize;
+    slot: usize;
+    rules: vector(FrontendCachedRule);
+    tokens: vector(void*);
+}
+
+struct FrontendCache {
+    entries: vector(FrontendRevision*);
+    builds: usize;
+    hits: usize;
+}
+
+fn frontend_revision_release(revision: FrontendRevision*): void {
+    var missing = revision == null;
+    if missing {
+        return;
+    }
+    revision.references = revision.references - 1;
+    var retained = revision.references != 0;
+    if retained {
+        return;
+    }
+    var i: usize = 0;
+    loop {
+        var done = i == revision.rules.length;
+        if done {
+            break;
+        }
+        var rule = &revision.rules.data[i];
+        var j: usize = 0;
+        loop {
+            done = j == rule.alternatives.length;
+            if done {
+                break;
+            }
+            entity_release(rule.alternatives.data[j]);
+            j = j + 1;
+        }
+        vector_dispose(u8, &rule.name);
+        vector_dispose(void*, &rule.alternatives);
+        i = i + 1;
+    }
+    i = 0;
+    loop {
+        var done = i == revision.tokens.length;
+        if done {
+            break;
+        }
+        entity_release(revision.tokens.data[i]);
+        i = i + 1;
+    }
+    vector_dispose(FrontendCachedRule, &revision.rules);
+    vector_dispose(void*, &revision.tokens);
+    free(revision);
+}
+
+fn frontend_revision_nodes(target: vector(void*)*, nodes: void**, count: usize): bool {
+    var ok = vector_reserve(void*, target, count);
+    if ok {} else {
+        return false;
+    }
+    var i: usize = 0;
+    loop {
+        var done = i == count;
+        if done {
+            return true;
+        }
+        entity_retain(nodes[i]);
+        target.data[i] = nodes[i];
+        target.length = target.length + 1;
+        i = i + 1;
+    }
+}
+
+fn frontend_revision_create(rules: SyntaxRuleView*, count: usize, tokens: void**, token_count: usize): FrontendRevision* {
+    var revision = alloc(FrontendRevision, 1);
+    var missing = revision == null;
+    if missing {
+        return null;
+    }
+    fill(revision, 0, sizeof(FrontendRevision));
+    revision.references = 1;
+    var ok = vector_reserve(FrontendCachedRule, &revision.rules, count);
+    var i: usize = 0;
+    loop {
+        if ok {} else {
+            break;
+        }
+        var done = i == count;
+        if done {
+            break;
+        }
+        var target = &revision.rules.data[i];
+        fill(target, 0, sizeof(FrontendCachedRule));
+        revision.rules.length = revision.rules.length + 1;
+        ok = bytes_append(&target.name, rules[i].name, rules[i].name_length);
+        if ok {
+            ok = frontend_revision_nodes(&target.alternatives, rules[i].alternatives, rules[i].count);
+        }
+        i = i + 1;
+    }
+    if ok {
+        ok = frontend_revision_nodes(&revision.tokens, tokens, token_count);
+    }
+    if ok {
+        return revision;
+    }
+    frontend_revision_release(revision);
+    return null;
+}
+
+fn frontend_revision_same(revision: FrontendRevision*, rules: SyntaxRuleView*, count: usize,
+tokens: void**, token_count: usize, kind: void*): bool {
+    var different = revision.rules.length != count;
+    if different {
+        return false;
+    }
+    different = revision.tokens.length != token_count;
+    if different {
+        return false;
+    }
+    var i: usize = 0;
+    loop {
+        var done = i == count;
+        if done {
+            break;
+        }
+        var previous = &revision.rules.data[i];
+        var next = &rules[i];
+        var order = syntax_bytes_compare(previous.name.data, previous.name.length, next.name, next.name_length);
+        different = order != 0;
+        if different {
+            return false;
+        }
+        different = previous.alternatives.length != next.count;
+        if different {
+            return false;
+        }
+        var j: usize = 0;
+        loop {
+            done = j == next.count;
+            if done {
+                break;
+            }
+            var same = syntax_nodes_equal(previous.alternatives.data[j], next.alternatives[j], kind, true);
+            different = same != 1;
+            if different {
+                return false;
+            }
+            j = j + 1;
+        }
+        i = i + 1;
+    }
+    i = 0;
+    loop {
+        var done = i == token_count;
+        if done {
+            return true;
+        }
+        var same = syntax_nodes_equal(revision.tokens.data[i], tokens[i], kind, true);
+        different = same != 1;
+        if different {
+            return false;
+        }
+        i = i + 1;
+    }
+}
+
+export fn frontend_cache_dispose(cache: FrontendCache*): void {
+    var i: usize = 0;
+    loop {
+        var done = i == cache.entries.length;
+        if done {
+            break;
+        }
+        frontend_revision_release(cache.entries.data[i]);
+        i = i + 1;
+    }
+    vector_dispose(FrontendRevision*, &cache.entries);
+    cache.builds = 0;
+    cache.hits = 0;
+}
+
+// Destination must be empty. Formatting forks share immutable snapshots but
+// keep independent recency, counters and compiled-table handle ownership.
+export fn frontend_cache_copy(target: FrontendCache*, source: FrontendCache*): bool {
+    var count = source.entries.length;
+    var ok = vector_reserve(FrontendRevision*, &target.entries, count);
+    if ok {} else {
+        return false;
+    }
+    var i: usize = 0;
+    loop {
+        var done = i == count;
+        if done {
+            break;
+        }
+        var revision = source.entries.data[i];
+        revision.references = revision.references + 1;
+        target.entries.data[i] = revision;
+        i = i + 1;
+    }
+    target.entries.length = count;
+    target.builds = source.builds;
+    target.hits = source.hits;
+    return true;
+}
+
+fn frontend_cache_touch(cache: FrontendCache*, index: usize): void {
+    var entry = cache.entries.data[index];
+    var last = cache.entries.length - 1;
+    loop {
+        var done = index == last;
+        if done {
+            break;
+        }
+        var next = index + 1;
+        cache.entries.data[index] = cache.entries.data[next];
+        index = next;
+    }
+    cache.entries.data[last] = entry;
+}
+
+export fn frontend_cache_find(cache: FrontendCache*, rules: SyntaxRuleView*, count: usize,
+tokens: void**, token_count: usize, kind: void*): usize {
+    var i: usize = 0;
+    loop {
+        var done = i == cache.entries.length;
+        if done {
+            cache.builds = cache.builds + 1;
+            return lr_none();
+        }
+        var revision = cache.entries.data[i];
+        var same = frontend_revision_same(revision, rules, count, tokens, token_count, kind);
+        if same {
+            frontend_cache_touch(cache, i);
+            cache.hits = cache.hits + 1;
+            return revision.slot;
+        }
+        i = i + 1;
+    }
+}
+
+// Store only after successful table construction. Allocation failure leaves
+// every previous entry and slot unchanged; caching is optional for correctness.
+export fn frontend_cache_store(cache: FrontendCache*, rules: SyntaxRuleView*, count: usize,
+tokens: void**, token_count: usize): usize {
+    var revision = frontend_revision_create(rules, count, tokens, token_count);
+    var missing = revision == null;
+    if missing {
+        return lr_none();
+    }
+    var full = cache.entries.length == 64;
+    if full {
+        revision.slot = cache.entries.data[0].slot;
+        frontend_revision_release(cache.entries.data[0]);
+        cache.entries.data[0] = revision;
+        frontend_cache_touch(cache, 0);
+    } else {
+        revision.slot = cache.entries.length;
+        var ok = vector_push(FrontendRevision*, &cache.entries, revision);
+        if ok {} else {
+            frontend_revision_release(revision);
+            return lr_none();
+        }
+    }
+    return revision.slot;
+}
+
+export fn frontend_cache_pattern(cache: FrontendCache*, entity: void*, kind: void*): void {
+    var component = entity_component_get(entity, kind);
+    var node = bits(SyntaxNode*, entity_component_data(component));
+    var i = cache.entries.length;
+    loop {
+        var done = i == 0;
+        if done {
+            return;
+        }
+        i = i - 1;
+        var revision = cache.entries.data[i];
+        var j: usize = 0;
+        loop {
+            done = j == revision.tokens.length;
+            if done {
+                break;
+            }
+            component = entity_component_get(revision.tokens.data[j], kind);
+            var previous = bits(SyntaxNode*, entity_component_data(component));
+            var same = syntax_text_equal(&node.text, &previous.text);
+            if same {
+                syntax_node_pattern(node, previous.compiled);
+                return;
+            }
+            j = j + 1;
+        }
+    }
+}

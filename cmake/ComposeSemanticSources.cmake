@@ -16,4 +16,5 @@ foreach(name IN ITEMS context definitions support types values statements lifecy
   file(READ "${ROOT}/scaffolding/compiler/semantic-${name}.tower" module)
   string(APPEND source "\n${module}")
 endforeach()
-file(WRITE "${OUTPUT}" "${source}")
+file(READ "${ROOT}/scaffolding/compiler/frontend-compilation.tower" frontend)
+file(WRITE "${OUTPUT}" "${source}\n${frontend}")

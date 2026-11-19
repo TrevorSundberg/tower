@@ -40,7 +40,7 @@ SyntaxCacheStats syntax_get_cache_stats(SyntaxSession* session);
 // Earlier trees remain valid across grammar changes and session destruction.
 extern "C" TowerNode* syntax_next(SyntaxSession* session);
 extern "C" const char* syntax_get_error(SyntaxSession* session);
-size_t syntax_get_revision(SyntaxSession* session);
+extern "C" size_t syntax_get_revision(SyntaxSession* session);
 size_t syntax_get_offset(SyntaxSession* session);
 
 // Tooling uses the same lexer as parsing. Offsets are UTF-8 bytes; revision is
@@ -55,7 +55,7 @@ std::vector<SyntaxTokenInfo> syntax_get_tokens(SyntaxSession* session);
 std::vector<SyntaxHighlight> syntax_get_highlights(SyntaxSession* session);
 std::vector<SyntaxRuleInfo> syntax_get_rules(SyntaxSession* session);
 std::vector<std::string> syntax_get_keywords(SyntaxSession* session);
-size_t syntax_get_error_offset(SyntaxSession* session);
+extern "C" size_t syntax_get_error_offset(SyntaxSession* session);
 bool syntax_get_error_insertion(SyntaxSession* session);
 
 // Copied source coordinates and shared expansion history survive the session.
