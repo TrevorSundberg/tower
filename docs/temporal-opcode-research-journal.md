@@ -11974,3 +11974,51 @@ feature branches." Existing local modifications to AGENTS, the foundation notes,
 the research journal and todo.txt are preserved separately; todo.txt is not edited.
 Integration is performed in the existing clean audit worktree on main so those
 local notes cannot be accidentally included in merge commits.
+
+## 2026-11-19: Main consolidation validation and publication
+
+`main` was pushed at `abd7071`, made GitHub's default branch, and checked out in
+the primary workspace tracking `origin/main`. `origin/HEAD` now points to main.
+All six inventoried source heads (master plus five port branches listed above)
+pass `git merge-base --is-ancestor <ref> main`. Historical branch refs remain;
+future work belongs directly on main. The anticipated later handoff was not yet
+published at the final remote inventory and is not claimed as integrated.
+
+The compiler/build/test sources are identical to host integration `6d9f084`;
+the consolidation adds merge ancestry, the concise AGENTS rule and journal
+records. Existing unstaged notes in AGENTS, foundation documentation and the
+journal remain separate; todo.txt was not edited or staged by this work.
+
+Fresh validation on the integrated source:
+
+- WSL native Release build: `cmake --build /root/.cache/tower/native --parallel 3`;
+  the increment example interpreted as `5, 6, 7, 7, 9`.
+- ASan/UBSan rebuild in `/root/.cache/tower/core-asan`, then `ctest --test-dir
+  /root/.cache/tower/core-asan --output-on-failure`: all 5 tests passed (30.04 s).
+- Windows: `scaffolding/tests/run.ps1 -Optimize -BootstrapCompiler
+  C:\Sandbox\tower\build\parser-tests\host-bootstrap.cmd` passed, including parser,
+  live syntax, formatter and random automata comparisons.
+- `npm run check:format --prefix playground`: all 69 canonical Tower files passed.
+- Rebuilt `build-wasm.sh` and `build-llvm.sh` under WSL with
+  `TOWER_BOOTSTRAP_COMPILER=/root/.cache/tower/native/towerc-stage1`,
+  `TOWER_BUILD_JOBS=2` and `TOWER_BROWSER_CROSS=ON` for the LLVM build. All three
+  optimized/stripped reactors now include the consolidated implementation.
+- `node --test playground/tests/*.test.mjs`: 222/222 passed (26.19 s).
+- Full static build with `TOWER_REQUIRE_BACKENDS=1`, then Playwright: 128/128
+  desktop/mobile tests passed (2.9 min). `verify-local.mjs` also passed all 36
+  asset comparisons and both browser profiles, including native downloads.
+
+The rebuilt frontend is byte-identical to the previously published stripped
+frontend. Both LLVM reactors changed to include the additional host/interpreter
+storage integration, replacing the older published backend checkpoint. Target
+support packs were retained unchanged. Deployment `724ad05` identifies source
+`abd7071` in its manifest and retains earlier publication metadata as history.
+GitHub Pages reported this deployment built successfully. The live command
+`node playground/scripts/verify-deployment.mjs https://trevorsundberg.github.io/tower/`
+passed: all 36 served assets match the tested local build, with desktop/mobile
+execution agreement, grammar editing, persistence, native downloads and layout
+checks. The report is copied to `build/main-consolidation-live-report.json`.
+
+Validation logs use `build/main-consolidation-*`. This integration turn did not
+rerun the full bootstrap cross-target differential suite or performance profiles;
+no new performance guarantee or completion of C++ removal is claimed.
