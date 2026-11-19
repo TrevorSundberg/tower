@@ -409,6 +409,19 @@ EXPORT("tw_exec_create_files") uint32_t tw_exec_create_files(const char* const* 
 EXPORT("tw_exec_fast") int tw_exec_fast(uint32_t handle) {
   auto* m = execution(handle); return m && m->use_fast();
 }
+
+EXPORT("tw_exec_c") const char* tw_exec_c(uint32_t handle, unsigned flags) {
+  auto* machine = execution(handle);
+  if (!machine) { last_error = "Invalid execution handle"; return nullptr; }
+  auto output = core_c_source(machine->program, !(flags & 1));
+  if (!output.error.empty()) { last_error = output.error; return nullptr; }
+  execution_response = output.source;
+  return execution_response.c_str();
+}
+
+EXPORT("tw_exec_strip_comments") void tw_exec_strip_comments(uint32_t handle) {
+  if (auto* machine = execution(handle)) core_strip_comments(machine->program);
+}
 static std::vector<uint8_t> bytecode_response;
 EXPORT("tw_exec_bytecode_options") size_t tw_exec_bytecode_options(uint32_t handle, unsigned profile) {
   bytecode_response.clear();

@@ -1,11 +1,11 @@
-import { getTower, getCompiler, warmCompiler, useCompiler } from './compiler-runtime.mjs';
+import { getTower, getCanonicalTower, getCompiler, warmCompiler, useCompiler } from './compiler-runtime.mjs';
 import { originalDiagnostic } from './foundation-source.mjs';
 import { targets, targetInputs, nativeTargetKeys, linkInputsForTarget } from './targets.mjs';
 import { fetchBytes as bytes } from './fetch-bytes.mjs';
 import {projectDiagnostic} from './projects.mjs';
 
 const runtimes = new Map();
-async function receive({data:{command,id,source,foundation,bedrock,targetKeys=[],inputs={},files,drive=[], builtins={}, entry='input.tower', optimize=true, compiler, library='.tower'}}) {
+async function receive({data:{command,id,source,foundation,bedrock,targetKeys=[],inputs={},files,drive=[], builtins={}, entry='input.tower', optimize=true, comments=true, compiler, library='.tower'}}) {
   useCompiler(compiler);
   const keys = nativeTargetKeys.filter(key => targetKeys.includes(key));
   if (command === 'warm') {
@@ -30,8 +30,30 @@ async function receive({data:{command,id,source,foundation,bedrock,targetKeys=[]
     handle = tower.compile(files?.[0]?.text ?? source,{pointerBytes:8});
     const checked = tower.execute(handle,0);
     if (checked.status === 'error') { const diagnostic = projectDiagnostic(checked,files); send({error:(diagnostic.errorFile ? diagnostic.errorFile + ': ' : '') + checked.error,diagnostic,done:true}); return; }
+    if (!comments) tower.stripComments(handle);
     const formatted = tower.foundation(handle);
     send({foundation:formatted.source});
+    if (targetKeys.includes('c')) {
+      try {
+        const start=performance.now();
+        send({target:'c',phase:optimize?'Optimizing C…':'Emitting C…'});
+        let result={};
+        if (optimize) {
+          const {compiler}=await getCompiler('./tower-llvm.wasm.gz');
+          result=compiler.compile(formatted.source,{emit:'foundation',target:'wasm64-unknown-unknown',optimize});
+          if (result.status==='error') throw new Error(result.error);
+          await getCanonicalTower();
+          tower.destroyExecution(handle);
+          handle=tower.compile(result.foundation,{pointerBytes:8});
+          const checked=tower.execute(handle,0);
+          if (checked.status==='error') throw new Error(checked.error);
+        }
+        const source=tower.cSource(handle,{comments});
+        const output=new TextEncoder().encode(source);
+        postMessage({id,target:'c',bytes:output,disassembly:source,before:result.before,after:result.after,ms:performance.now()-start},[output.buffer]);
+      } catch(error) { send({target:'c',error:error.message}); }
+    }
+    if (!keys.length) { send({done:true}); return; }
     const {compiler} = await getCompiler('./tower-cross.wasm.gz');
     for (const key of keys) {
       const target = targets[key]; send({target:key,phase:'Compiling…'});

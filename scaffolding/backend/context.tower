@@ -1,5 +1,7 @@
 import tower;
 
+extern fn semantic_collect_comments(source: void*, destination: void*): void;
+
 // The only semantic inputs are existing Foundation entities. LLVM references,
 // local slots and entity/value associations below are disposable lowering caches.
 extern fn sem_get(node: void*): FoundationNode*;

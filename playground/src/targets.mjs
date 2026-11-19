@@ -14,7 +14,8 @@ export const interpreterTargets = {
   interpreter: {label:'Graph interpreter', description:'Execute the shared foundation graph'},
   fast: {label:'Fast interpreter', description:'Execute a compact register cache'},
 };
-export const targetChoices = {...interpreterTargets, ...targets};
+export const sourceTargets = {c:{label:'C source', description:'Portable C source (64-bit little endian profile)', syntax:'c', extension:'c'}};
+export const targetChoices = {...interpreterTargets, ...targets, ...sourceTargets};
 // Keep native choices from the individual-profile picker. Every browser session
 // starts with both interpreters and Wasm enabled for differential execution.
 export const targetSelectionKey = 'tower-build-targets-v3';

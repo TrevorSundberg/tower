@@ -15,7 +15,8 @@ test('fresh Mac hints select its platform plus Wasm and preserve subsequent nati
   await expect(page.locator('#target-label-mac-arm')).toContainText('macOS ARM64 (detected)');
   await expect(page.locator('#target-default')).toHaveCount(0);
   await expect(page.locator('#target-options')).toContainText('arm64-apple-macos11');
-  await expect(page.locator('#target-options input')).toHaveCount(8);
+  await expect(page.locator('#target-options input')).toHaveCount(9);
+  await expect(page.locator('#target-c')).not.toBeChecked();
   await page.locator('#target-mac-arm').uncheck(); await page.locator('#target-linux').check();
   await page.locator('#target-wasm').uncheck();
   await page.reload(); await expect(page.locator('#status')).toContainText('Complete');

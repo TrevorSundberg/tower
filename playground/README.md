@@ -35,6 +35,12 @@ the implementations of grammar installation and foundation operations.
 
 Live playground: **https://trevorsundberg.github.io/tower/**.
 
+The optional **C source** target emits downloadable, syntax-highlighted C after
+LLVM optimized, followed by Bytecode disassembly. Targets also contains shared
+O0/O2 optimization and comment-preservation controls. See
+[C output and portability](../docs/c-backend.md) for CLI commands, semantics,
+compiler coverage and the explicit target profile.
+
 The target picker enables **Graph interpreter**, **Fast interpreter** and
 **WebAssembly** by default, plus the detected supported native profile. Both
 interpreters are written in Tower. The graph runner executes shared foundation

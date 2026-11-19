@@ -1,0 +1,47 @@
+import {test,expect} from '@playwright/test';
+import {readFile} from 'node:fs/promises';
+import {outputText} from './output-text.mjs';
+
+test('C is optional, ordered, highlighted, downloadable and obeys shared options',async({page})=>{
+  test.setTimeout(120000);
+  await page.addInitScript(()=>{
+    if(sessionStorage.getItem('c-test-initialized')) return;
+    sessionStorage.setItem('c-test-initialized','1');
+    localStorage.setItem('tower-build-targets-v3',JSON.stringify({wasm:true}));
+    localStorage.setItem('tower-playground-source-v1','// a carried comment\nfn answer():i32 { return 42; } print(answer());');
+  });
+  await page.goto('/');
+  await expect(page.locator('#execution-status')).toContainText('backends match');
+  await expect(page.locator('#c-column')).toBeHidden();
+  await page.locator('#build-targets summary').click();
+  await expect(page.locator('#target-c')).not.toBeChecked();
+  await page.locator('#optimize').uncheck();
+  await page.locator('#target-c').check();
+  await expect(page.locator('#c-download')).toHaveAttribute('href',/^blob:/,{timeout:60000});
+  await expect.poll(()=>outputText(page,'c-disassembly')).toContain('a carried comment');
+  await expect.poll(()=>outputText(page,'core-instructions')).toContain('a carried comment');
+  const order=await page.locator('.execution-column').evaluateAll(nodes=>nodes.map(node=>node.id));
+  expect(order.indexOf('c-column')).toBe(order.indexOf('llvm-optimized-column')+1);
+  expect(order.indexOf('fast-disassembly-column')).toBe(order.indexOf('c-column')+1);
+  await expect(page.locator('#c-disassembly .tw-keyword').first()).toBeVisible();
+  const download=page.waitForEvent('download');
+  await page.locator('#c-download').click();
+  const artifact=await download;
+  expect(artifact.suggestedFilename()).toMatch(/-c\.c$/);
+  const raw=await readFile(await artifact.path(),'utf8');
+  expect(raw).toContain('int main(void)');
+  await page.locator('#build-targets summary').click();
+  await page.locator('#optimize').check();
+  await expect.poll(()=>outputText(page,'c-disassembly')).not.toBe(raw);
+  await expect(page.locator('#execution-status')).toContainText('backends match');
+  await expect.poll(()=>outputText(page,'c-disassembly')).toContain('a carried comment');
+  await page.locator('#preserve-comments').uncheck();
+  await expect.poll(()=>outputText(page,'c-disassembly')).not.toContain('a carried comment');
+  await expect.poll(()=>outputText(page,'core-instructions')).not.toContain('a carried comment');
+  await expect.poll(()=>outputText(page,'fast-disassembly')).not.toContain('a carried comment');
+  await expect(page.locator('#c-download')).toHaveAttribute('href',/^blob:/);
+  await page.reload();
+  await page.locator('#build-targets summary').click();
+  await expect(page.locator('#target-c')).toBeChecked();
+  await expect(page.locator('#preserve-comments')).not.toBeChecked();
+});

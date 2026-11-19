@@ -37,6 +37,13 @@ struct Formatter {
   size_t depth = 0;
   void text(const std::string& s) { result.source += s; }
   void indent() { text(std::string(depth * 4, ' ')); }
+  void foundation_comments(const CoreNode& n) {
+    bool line = true;
+    for (char byte : std::string(n.comments)) {
+      if (line) indent();
+      result.source += byte; line = byte == '\n';
+    }
+  }
   void newline(bool blank = false) {
     while (!result.source.empty() && (result.source.back() == ' ' || result.source.back() == '\t')) result.source.pop_back();
     if (result.source.empty()) return;
@@ -123,11 +130,13 @@ struct Formatter {
   void node(TowerNode* entity) {
     if (syntax_get(entity)) grammar(entity);
     else if (core_node(entity).kind == CoreKind::Program) {
-      bool previous = false;
+      foundation_comments(core_node(entity));
+      bool previous = false, first = true;
       for (auto* item : core_node(entity).items) {
         auto kind = core_node(item).kind;
         bool declaration = kind == CoreKind::Function || kind == CoreKind::Type;
-        separate(previous, declaration); node(item); previous = declaration;
+        if (!first) separate(previous, declaration);
+        first = false; node(item); previous = declaration;
       }
     } else statement(entity);
   }
@@ -180,7 +189,7 @@ struct Formatter {
     --depth; indent(); text("}");
   }
   void statement(TowerNode* node) {
-    auto& n = core_node(node); indent(); size_t begin = result.source.size();
+      auto& n = core_node(node); foundation_comments(n); indent(); size_t begin = result.source.size();
     switch (n.kind) {
       case CoreKind::Declare:
         text("var " + identifier(n.name) + ": "); type(n.type);

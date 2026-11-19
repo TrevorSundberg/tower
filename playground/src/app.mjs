@@ -8,7 +8,7 @@ import { expandedCode } from './expanded-code.mjs';
 import { replacementLocations } from './replacement-locations.mjs';
 import { compareResults } from './comparison.mjs';
 import { selectFoundation } from './foundation-storage.mjs';
-import { targets, targetChoices, nativeTargetKeys, emptySelection, savedTargetSelection, targetSelectionKey, linkInputsForTarget } from './targets.mjs';
+import { targets, sourceTargets, targetChoices, nativeTargetKeys, emptySelection, savedTargetSelection, targetSelectionKey, linkInputsForTarget } from './targets.mjs';
 import { detectBrowserTarget, defaultTargetSelection } from './browser-target.mjs';
 import { OutputPane } from './output-pane.mjs';
 import {examples, filePath, newProject, projectStore, validateProject, projectSources} from './projects.mjs';
@@ -115,10 +115,11 @@ function addPane(config, runner) {
 addPane({title:'Tower instructions', output:'core-instructions', label:'Canonical foundation source', syntax:'tower'});
 addPane({id:'interpreter-column', title:'Graph interpreter', output:'execution-output', label:'Graph interpreter output', phase:'interpreter-phase', error:'execution-error', limit:'output-limit'}, 'interpreter');
 addPane({id:'fast-column', title:'Fast interpreter', output:'fast-output', label:'Fast interpreter output', phase:'fast-phase', error:'fast-error', limit:'fast-limit'}, 'fast');
-addPane({id:'fast-disassembly-column', title:'Bytecode disassembly', description:'Compilable foundation reconstructed from the validated .towerbc package', output:'fast-disassembly', label:'Bytecode disassembly as foundation', syntax:'tower', downloads:{id:'fast-downloads', link:'fast-download', size:'fast-size'}});
 addPane({id:'wasm-column', title:'Wasm Execution', output:'llvm-output', label:'LLVM output', phase:'llvm-phase', error:'llvm-error', limit:'llvm-output-limit'}, 'llvm');
 addPane({id:'llvm-raw-column', title:'LLVM raw', output:'llvm-before', syntax:'llvm'});
 addPane({id:'llvm-optimized-column', title:'LLVM optimized', output:'llvm-after', syntax:'llvm'});
+addPane({id:'c-column', title:'C source', description:'Portable C, 64-bit little endian target', output:'c-disassembly', syntax:'c', phase:'c-phase', error:'c-error', downloads:{id:'c-downloads',link:'c-download'}}, 'c');
+addPane({id:'fast-disassembly-column', title:'Bytecode disassembly', description:'Compilable foundation reconstructed from the validated .towerbc package', output:'fast-disassembly', label:'Bytecode disassembly as foundation', syntax:'tower', downloads:{id:'fast-downloads', link:'fast-download', size:'fast-size'}});
 addPane({id:'wasm-disassembly-column', title:'WebAssembly disassembly', output:'wasm-disassembly', label:'Wasm disassembly', syntax:'wasm', downloads:{id:'wasm-downloads', link:'llvm-download', size:'llvm-status'}});
 for (const key of nativeTargetKeys) {
   const target = targets[key];
@@ -128,6 +129,7 @@ function showCode(id, text) { outputPanes.get(id).code.setText(text); }
 function setPhase(backend, text = '') { runnerPanes.get(backend).setPhase(text); }
 function downloadName(key, extension) { return $('filename').textContent.replace(/\.tower$/, '')+'-'+key+'.'+extension; }
 const selectedNativeKeys = () => nativeTargetKeys.filter(key => selectedTargets[key]);
+const buildKeys = () => [...selectedNativeKeys(), ...(selectedTargets.c ? ['c'] : [])];
 let autoTimer = 0, documentRevision = 0, executedRevision = -1;
 const typingDebounceMs = 200;
 let diagnosticPhase = null;
@@ -169,7 +171,8 @@ function warmSelectedTargets() {
   }
 }
 function updateColumns() {
-  const any = selectedTargets.fast || selectedTargets.wasm || selectedNativeKeys().length > 0;
+  const any = selectedTargets.fast || selectedTargets.wasm || buildKeys().length > 0;
+  $('c-column').hidden = !selectedTargets.c;
   $('interpreter-column').hidden = !selectedTargets.interpreter;
   $('fast-column').hidden = !selectedTargets.fast;
   $('fast-disassembly-column').hidden = !selectedTargets.fast;
@@ -190,7 +193,7 @@ function renderLLVM() {
     showCode(id,keys.map(key => (keys.length > 1 ? '; '+targetChoices[key].label+'\n' : '')+llvmViews[key][field]).join('\n\n'));
 }
 function compileNative(id,text) {
-  const keys = selectedNativeKeys();
+  const keys = buildKeys();
   const worker = idleExecutionWorkers.get('native') ?? new Worker(new URL('./target-worker.js',import.meta.url),{type:'module'});
   idleExecutionWorkers.delete('native');
   const runner = runners.native = {worker,keys,timings:{},failure:null,completed:new Set()};
@@ -216,16 +219,16 @@ function compileNative(id,text) {
     if(data.error || data.bytes || data.done) beginDisplay();
     if(data.error) fail(data.error,data.target);
     if(data.bytes) {
-      const target=targets[data.target];
-      showLLVM(data.target,data.before,data.after);
+      const target=targets[data.target] ?? sourceTargets[data.target];
+      if (data.before !== undefined) showLLVM(data.target,data.before,data.after);
       showCode(data.target+'-disassembly',data.disassembly);
-      outputPanes.get(data.target+'-disassembly').setDownload(data.bytes, {label:target.label, filename:downloadName(data.target,target.extension)});
+      outputPanes.get(data.target+'-disassembly').setDownload(data.bytes, {label:data.target==='c'?'Download C':target.label, filename:downloadName(data.target,target.extension), type:data.target==='c'?'text/x-c':'application/octet-stream'});
       setPhase(data.target); runner.completed.add(data.target);
       runner.timings[target.label]=data.ms; showTimings();
     }
     if(data.done)finish();
   };
-  worker.postMessage({compiler:compilerSelection(), library:project.library ?? '.tower', id,source:text,foundation,bedrock,targetKeys:keys,inputs:linkInputs, files:editingModule ? undefined : projectSources(project), drive:project.files, builtins:project.builtins, entry:editingModule ? activePath : projectSources(project)[0]?.path,optimize:$('optimize').checked});
+  worker.postMessage({compiler:compilerSelection(), library:project.library ?? '.tower', id,source:text,foundation,bedrock,targetKeys:keys,inputs:linkInputs, files:editingModule ? undefined : projectSources(project), drive:project.files, builtins:project.builtins, entry:editingModule ? activePath : projectSources(project)[0]?.path,optimize:$('optimize').checked,comments:$('preserve-comments').checked});
 }
 function showTimings() {
   const a = runners.interpreter?.timings ?? {}, b = runners.llvm?.timings ?? {};
@@ -261,7 +264,7 @@ function clearWasm() {
 }
 function clearCompiled() {
   outputPanes.get('fast-disassembly').clearDownload(); showCode('fast-disassembly','');
-  for(const key of nativeTargetKeys) { clearNative(key); setPhase(key); }
+  for(const key of [...nativeTargetKeys,'c']) { clearNative(key); setPhase(key); }
   clearWasm(); llvmViews={}; $('steps').textContent = '';
   for (const id of ['core-instructions', 'llvm-before', 'llvm-after']) showCode(id,'');
   runners = {}; showTimings();
@@ -409,9 +412,9 @@ function execute() {
       }
       finish();
     };
-    worker.postMessage({compiler:compilerSelection(), library:project.library ?? '.tower',  id, source: text, foundation, bedrock, backend, files:editingModule ? undefined : projectSources(project), drive:project.files, builtins:project.builtins, entry:editingModule ? activePath : projectSources(project)[0]?.path, pointerBytes:selectedTargets.wasm || !selectedNativeKeys().length ? 4 : 8, inputs:linkInputsForTarget(linkInputs,'wasm') ,optimize:$('optimize').checked});
+    worker.postMessage({compiler:compilerSelection(), library:project.library ?? '.tower',  id, source: text, foundation, bedrock, backend, files:editingModule ? undefined : projectSources(project), drive:project.files, builtins:project.builtins, entry:editingModule ? activePath : projectSources(project)[0]?.path, pointerBytes:selectedTargets.wasm || !selectedNativeKeys().length ? 4 : 8, inputs:linkInputsForTarget(linkInputs,'wasm') ,optimize:$('optimize').checked,comments:$('preserve-comments').checked});
   }
-  if(selectedNativeKeys().length) compileNative(id,text);
+  if(buildKeys().length) compileNative(id,text);
   updateComparison();
 }
 function node(tag, className, text) {
@@ -806,6 +809,11 @@ try { $('optimize').checked = localStorage.getItem('tower-optimize-v1') !== 'fal
 $('optimize').onchange = () => {
   try { localStorage.setItem('tower-optimize-v1',String($('optimize').checked)); } catch {}
   stopExecution('Optimization changed'); clearCompiled(); executedRevision=-1; scheduleAutoExecution();
+};
+try { $('preserve-comments').checked = localStorage.getItem('tower-comments-v1') !== 'false'; } catch {}
+$('preserve-comments').onchange = () => {
+  try { localStorage.setItem('tower-comments-v1',String($('preserve-comments').checked)); } catch {}
+  stopExecution('Comments changed'); clearCompiled(); executedRevision=-1; scheduleAutoExecution();
 };
 $('link-files').onclick = () => $('link-input').click();
 function updateLinkFiles() {

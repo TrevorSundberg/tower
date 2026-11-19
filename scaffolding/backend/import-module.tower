@@ -123,6 +123,7 @@ export fn backend_import_foundation(b: Backend*, root: void*): bool {
     c.block = root;
     c.declarations = root;
     var program = sem_attach(root, 0);
+    semantic_collect_comments(b.source_root, root);
     program.type.scalar = 3;
     program.type.pointer_bytes = b.pointer_bytes;
     var original_root = sem_get(b.source_root);

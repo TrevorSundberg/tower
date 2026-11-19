@@ -63,7 +63,7 @@ struct Temporary {
 int main(int argc, char** argv) {
   Timings timings;
   std::string source, output, target = llvm::sys::getDefaultTargetTriple(), emit = "exe", cc = "clang", linker, sysroot, raw, optimized, bedrock_path, foundation_path, resources, depfile;
-  std::vector<std::string> inputs; bool optimize = true, interpret = false, library = false, fast = false;
+  std::vector<std::string> inputs; bool optimize = true, interpret = false, library = false, fast = false, comments = true;
 #ifdef TOWER_BOOTSTRAP_HOST
   // Retained only in towerc-seed until the Tower-only bootstrap is available.
   for (int i = 1; i < argc; ++i) {
@@ -113,6 +113,7 @@ int main(int argc, char** argv) {
   raw = options.raw; optimized = options.optimized; bedrock_path = options.bedrock;
   foundation_path = options.foundation; optimize = options.optimize; interpret = options.interpret;
   fast = options.fast;
+  comments = options.comments;
   library = options.library; timings.enabled = options.timings;
   depfile = options.depfile;
   for (size_t i = 0; i < options.link_count; ++i) inputs.emplace_back(options.links[i]);
@@ -177,7 +178,7 @@ int main(int argc, char** argv) {
     interpret = true; fast = true;
   }
   if (text.find('\0') != std::string::npos) { std::cerr << "Source contains NUL bytes\n"; return 1; }
-  if (!packaged_width && (emit == "bytecode" || (interpret && fast))) {
+  if (!packaged_width && (emit == "bytecode" || (interpret && fast) || (emit == "c" && optimize))) {
     auto width = tower_target_pointer_bytes(target, error);
     if (!error.empty()) { std::cerr << error << '\n'; return 1; }
     auto optimized_program = tower_optimize_foundation(text.c_str(), width, optimize);
@@ -196,12 +197,13 @@ int main(int argc, char** argv) {
     syntax_modules = frontend_modules_create();
     frontend_modules_configure(syntax_modules, source.c_str(), root.string().c_str());
   }
-  if (emit == "bytecode" || emit == "foundation") {
+  if (emit == "bytecode" || emit == "foundation" || emit == "c") {
     auto width = packaged_width ? packaged_width : tower_target_pointer_bytes(target, error);
     if (!error.empty()) { std::cerr << error << '\n'; return 1; }
     auto program = core_compile_foundation(text.c_str(), width);
     if (!program.error.empty()) { report_error(program.error, program.error_offset); return 1; }
-    if (output.empty()) output = fs::path(source).replace_extension(emit == "bytecode" ? ".towerbc" : ".disassembled.tower").string();
+    if (!comments) core_strip_comments(program);
+    if (output.empty()) output = fs::path(source).replace_extension(emit == "bytecode" ? ".towerbc" : emit == "c" ? ".c" : ".disassembled.tower").string();
     if (fs::absolute(output).lexically_normal() == fs::absolute(source).lexically_normal()) {
       std::cerr << "Choose an output path different from the input\n"; return 1;
     }
@@ -209,6 +211,11 @@ int main(int argc, char** argv) {
     if (emit == "foundation") {
       const auto foundation = core_format(program).source;
       return write(output, foundation.data(), foundation.size()) ? 0 : 1;
+    }
+    if (emit == "c") {
+      auto emitted = core_c_source(program);
+      if (!emitted.error.empty()) { std::cerr << emitted.error << '\n'; return 1; }
+      return write(output, emitted.source.data(), emitted.source.size()) ? 0 : 1;
     }
     error = install_canonical_grammar();
     if (!error.empty()) { std::cerr << error << '\n'; return 1; }

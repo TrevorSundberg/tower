@@ -5,7 +5,7 @@ import {projectDiagnostic} from './projects.mjs';
 
 // Completed workers retain compiler/grammar state. Active cancellation still
 // terminates the worker, including synchronous compilation or an infinite loop.
-async function receive({ data: { command, id, source, foundation, bedrock, backend, pointerBytes=4, inputs={}, files, drive=[], builtins={}, entry='input.tower', bytecode, optimize=true, compiler, library='.tower' } }) {
+async function receive({ data: { command, id, source, foundation, bedrock, backend, pointerBytes=4, inputs={}, files, drive=[], builtins={}, entry='input.tower', bytecode, optimize=true, comments=true, compiler, library='.tower' } }) {
   useCompiler(compiler);
   if (command === 'warm') {
     try { await warmCompiler('./tower-llvm.wasm.gz'); postMessage({warm:true}); }
@@ -33,6 +33,7 @@ async function receive({ data: { command, id, source, foundation, bedrock, backe
     const checked = tower.execute(handle, 0);
     if (checked.status === 'error') { send({ result: checked, timings }); return; }
     at = performance.now();
+    if (!comments) tower.stripComments(handle);
     const formatted = tower.foundation(handle);
     timings.instructions = performance.now() - at;
     send({ foundation: formatted.source, timings });

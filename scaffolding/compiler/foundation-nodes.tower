@@ -18,6 +18,7 @@ export fn foundation_node_dispose(value: FoundationNode*): void {
     vector_dispose(void*, &value.items);
     vector_dispose(void*, &value.locals);
     vector_dispose(void*, &value.parameters);
+    vector_dispose(u8, &value.comments);
 }
 
 export fn foundation_nodes_push(values: vector(void*)*, node: void*): bool {

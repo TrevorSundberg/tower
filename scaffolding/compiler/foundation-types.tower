@@ -42,4 +42,5 @@ struct FoundationNode {
     external: bool;
     exported: bool;
     global: bool;
+    comments: vector(u8); // Lexer-derived source metadata, never an operation.
 }

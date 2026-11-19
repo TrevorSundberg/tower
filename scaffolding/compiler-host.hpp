@@ -12,6 +12,7 @@ struct DriverOptions {
   bool optimize, interpret, library, timings, help, version, fast;
   uint32_t error;
   const char *argument;
+  bool comments;
 };
 struct CompilerMemoryState {
   size_t live_buffers, allocation_calls, fail_after;

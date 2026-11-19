@@ -23,7 +23,9 @@ export function outputParser(syntax) {
         return 'comment';
       }
       if (stream.eatSpace()) return null;
-      if (stream.match('//') || stream.match(';')) { stream.skipToEnd(); return 'comment'; }
+      if (stream.match('//') || syntax !== 'c' && stream.match(';')) { stream.skipToEnd(); return 'comment'; }
+      if (syntax === 'c' && stream.match('/*')) { state.comment=true; return 'comment'; }
+      if (syntax === 'c' && stream.match(/^\s*#\s*\w+/)) return 'meta';
       if (stream.match(/^(?:"(?:[^"\\]|\\.)*"?|'(?:[^'\\]|\\.)*'?)/)) return 'string';
       if (assembly && stream.sol() && stream.match(/^0x[\da-f]+\s+/i)) { state.instruction = true; return 'number'; }
       if (assembly && stream.match(/^[.$\w][.$\w<>\[\] -]*:/)) return 'labelName';
@@ -42,7 +44,11 @@ export function outputParser(syntax) {
           if (/^(?:byte|word|dword|qword|ptr)$/i.test(word)) return 'typeName';
           return word.startsWith('.') ? 'meta' : null;
         }
-        if (llvmKeywords.has(word)) return 'keyword';
+        if (syntax === 'c') {
+          if (/^(?:if|else|for|while|do|break|continue|return|goto|switch|case|default|sizeof|typedef|extern|static|inline|const|volatile)$/.test(word)) return 'keyword';
+          if (/^(?:void|char|short|int|long|signed|unsigned|struct|union|enum|size_t|u?int(?:ptr|8|16|32|64)_t)$/.test(word)) return 'typeName';
+          if (/^(?:NULL|TC_\w+|UINT\w+|INT\w+)$/.test(word)) return 'meta';
+        } else if (llvmKeywords.has(word)) return 'keyword';
         if (/^(?:[iu]\d+|[iu]size|bool|void|ptr|float|double|half|type)$/.test(word)) return 'typeName';
         if (stream.match(/^\s*:/, false)) return 'labelName';
         if (stream.match(/^\s*\(/, false)) return 'variableName.function';

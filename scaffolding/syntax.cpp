@@ -1298,6 +1298,13 @@ std::vector<SyntaxHighlight> syntax_get_highlights(SyntaxSession* session) {
   return result;
 }
 
+extern "C" void frontend_module_comment(FrontendModule*, size_t, size_t);
+extern "C" void syntax_capture_comments(SyntaxSession* session, FrontendModule* module) {
+  for (const auto& token : session->highlights)
+    if (token.kind == "comment")
+      frontend_module_comment(module, token.start, token.end);
+}
+
 std::vector<SyntaxTokenInfo> syntax_get_tokens(SyntaxSession* session) {
   std::vector<SyntaxTokenInfo> result;
   for (const auto& entity : session->tokens) {

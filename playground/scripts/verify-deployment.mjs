@@ -31,7 +31,7 @@ console.log(`All ${assets.length} deployed assets match the local build.`);
 const foundation = await readFile(new URL('../dist/foundation.tower', import.meta.url), 'utf8');
 const bedrock = await readFile(new URL('../dist/bedrock.tower', import.meta.url), 'utf8');
 const legacy = await readFile(new URL('../tests/fixtures/foundation-legacy.tower', import.meta.url), 'utf8');
-const program = 'fn answer(): i32 { return state.value; }\nvar state: Later;\nstate.value = add(20, 22);\nvar result: i32 = answer();\nprint(result);\nstruct Later { value: i32; }\nfn add(a: i32, b: i32): i32 { var sum: i32 = a + b; return sum; }';
+const program = '// deployment C comment\nfn answer(): i32 { return state.value; }\nvar state: Later;\nstate.value = add(20, 22);\nvar result: i32 = answer();\nprint(result);\nstruct Later { value: i32; }\nfn add(a: i32, b: i32): i32 { var sum: i32 = a + b; return sum; }';
 const browser = await chromium.launch();
 try {
   for (const [name, options] of [
@@ -56,6 +56,31 @@ try {
     await expect(page.locator('#llvm-output')).toHaveText('42\n');
     await expect(page.locator('#fast-output')).toHaveText('42\n');
     await expect.poll(()=>outputText(page,'core-instructions')).toContain('fn answer');
+    await page.locator('#build-targets summary').click();
+    await expect(page.locator('#target-c')).not.toBeChecked();
+    await page.locator('#optimize').uncheck();
+    await page.locator('#target-c').check();
+    await expect(page.locator('#c-download')).toHaveAttribute('href',/^blob:/,{timeout:60000});
+    await expect.poll(()=>outputText(page,'c-disassembly')).toContain('deployment C comment');
+    await expect(page.locator('#c-disassembly .tw-keyword').first()).toBeVisible();
+    const paneOrder=await page.locator('.execution-column').evaluateAll(nodes=>nodes.map(node=>node.id));
+    assert.equal(paneOrder.indexOf('c-column'),paneOrder.indexOf('llvm-optimized-column')+1);
+    assert.equal(paneOrder.indexOf('fast-disassembly-column'),paneOrder.indexOf('c-column')+1);
+    const cDownload=page.waitForEvent('download'); await page.locator('#c-download').click();
+    const cArtifact=await cDownload, rawC=await readFile(await cArtifact.path(),'utf8');
+    assert.match(rawC,/int main\(void\)/);
+    assert.match(cArtifact.suggestedFilename(),/\.c$/);
+    await page.screenshot({path:new URL(name+'-c-source.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
+    await page.locator('#build-targets summary').click();
+    await page.locator('#optimize').check();
+    await expect.poll(()=>outputText(page,'c-disassembly'),{timeout:60000}).not.toBe(rawC);
+    await page.locator('#preserve-comments').uncheck();
+    await expect.poll(()=>outputText(page,'c-disassembly')).not.toContain('deployment C comment');
+    await expect.poll(()=>outputText(page,'core-instructions')).not.toContain('deployment C comment');
+    await page.locator('#preserve-comments').check();
+    await page.locator('#target-c').uncheck();
+    await page.locator('#build-targets summary').click();
+    await expect(page.locator('#execution-status')).toHaveText('Finished · backends match',{timeout:60000});
     await expect.poll(()=>outputText(page,'fast-disassembly')).toContain('label(');
     const bytecodeDownload = page.waitForEvent('download'); await page.locator('#fast-download').click();
     const bytecodeArtifact = await bytecodeDownload;
@@ -282,6 +307,8 @@ try {
     report.browsers.at(-1).deferredDiagnostics = true;
     report.browsers.at(-1).preparedDotCompletion = true;
     report.browsers.at(-1).compilerProject = true;
+
+    report.browsers.at(-1).cSource = {optional:true,order:true,download:true,highlighting:true,optimization:true,commentStripping:true};
     console.log(name + ': Tower/Wasm parser/type completion, Tab acceptance, struct fields and compiler-based output highlighting verified.');
     await context.close();
     const detectionContext = await browser.newContext(options);

@@ -17,6 +17,10 @@ extern fn syntax_reset(session: void*, source: u8*, module: FrontendModule*): vo
 
 extern fn syntax_next(session: void*): void*;
 
+extern fn syntax_capture_comments(session: void*, module: FrontendModule*): void;
+
+extern fn semantic_source_comment(root: void*, source: u8*, first: usize, last: usize, base: usize, length: usize): void;
+
 extern fn syntax_get_error(session: void*): u8*;
 
 extern fn syntax_get_error_offset(session: void*): usize;
@@ -104,6 +108,7 @@ struct FrontendModule {
     state: u32;
     body: bool;
     explicit: bool;
+    comments: vector(usize); // paired lexer byte spans, captured before session reset
 }
 
 fn module_require(ok: bool): void {
@@ -863,6 +868,7 @@ fn module_load(parent: FrontendModule*, name: u8*): FrontendModule* {
                         module_fail(result, "", error);
                         frontend_module_diagnostic(result, syntax_get_error_offset(session));
                     }
+                    syntax_capture_comments(session, result);
                     syntax_destroy(session);
                     parent.graph.depth = parent.graph.depth - 1;
                     result.state = ModuleLoaded();
@@ -1040,6 +1046,24 @@ export fn frontend_module_finish(module: FrontendModule*): void {
     module_require(vector_push(FrontendModule*, &module.graph.order, module));
 }
 
+export fn frontend_module_comment(module: FrontendModule*, first: usize, last: usize): void {
+    module_require(vector_push(usize, &module.comments, first));
+    module_require(vector_push(usize, &module.comments, last));
+}
+
+export fn frontend_module_attach_comments(module: FrontendModule*, root: void*, base: usize): void {
+    var i: usize = 0;
+    loop {
+        var done = i == module.comments.length;
+        if done {
+            break;
+        }
+        var last = i + 1;
+        semantic_source_comment(root, module.source.text.data, module.comments.data[i], module.comments.data[last], base, module.source.text.length);
+        i = i + 2;
+    }
+}
+
 export fn frontend_module_count(module: FrontendModule*): usize {
     return module.graph.order.length;
 }
@@ -1110,6 +1134,7 @@ export fn frontend_module_destroy(module: FrontendModule*): void {
         vector_dispose(void*, &current.grammar.tokens);
         vector_dispose(void*, &current.declarations);
         vector_dispose(void*, &current.roots);
+        vector_dispose(usize, &current.comments);
         vector_dispose(FrontendModule*, &current.dependencies);
         syntax_source_release(current.source);
         entity_release(current.entity);

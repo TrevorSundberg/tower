@@ -1,0 +1,170 @@
+import tower;
+
+// Comments are optional metadata on the same Foundation entities. The lexer
+// supplies spans; neither this attachment path nor either emitter tokenizes source.
+fn source_comment_target(entity: void*, begin: usize, end: usize, limit: usize, best: void*): void* {
+    var n = sem_get(entity);
+    var c_step1 = n == null;
+    if c_step1 {
+        return best;
+    }
+    var c_step2 = n.start >= end;
+    if c_step2 {
+        var c_step3 = n.start < limit;
+        if c_step3 {
+            var use = best == null;
+            if use {}
+            else {
+                var previous = sem_get(best);
+                use = n.start < previous.start;
+            }
+            if use {
+                best = entity;
+            }
+        }
+    }
+    var c_step4 = n.kind == KFunction();
+    if c_step4 {
+        return source_comment_target(n.body, begin, end, limit, best);
+    }
+    var c_step5 = n.kind == KIf();
+    if c_step5 {
+        best = source_comment_target(n.body, begin, end, limit, best);
+        return source_comment_target(n.otherwise, begin, end, limit, best);
+    }
+    var c_step6 = n.kind == KLoop();
+    if c_step6 {
+        return source_comment_target(n.body, begin, end, limit, best);
+    }
+    var list = n.kind == KProgram();
+    var c_step7 = n.kind == KBlock();
+    if c_step7 {
+        list = true;
+    }
+    if list {
+        var i: usize = 0;
+        loop {
+            var c_step8 = i == n.items.length;
+            if c_step8 {
+                break;
+            }
+            best = source_comment_target(n.items.data[i], begin, end, limit, best);
+            i = i + 1;
+        }
+    }
+    return best;
+}
+
+export fn semantic_source_comment(root: void*, source: u8*, first: usize, last: usize, base: usize, length: usize): void {
+    var c_step9 = first + base;
+    var c_step10 = last + base;
+    var c_step11 = base + length;
+    var target = source_comment_target(root, c_step9, c_step10, c_step11, null);
+    var c_step12 = target == null;
+    if c_step12 {
+        target = root;
+    }
+    var n = sem_get(target);
+    // Normalize imported/custom lexer spellings into compilable Foundation trivia.
+    var c_step13 = last > first;
+    if c_step13 {
+        var count = last - first;
+        var c_step14 = count >= 2;
+        if c_step14 {
+            var c_step15 = source[first] == 47;
+            if c_step15 {
+                var second = first + 1;
+                var c_step16 = source[second] == 47;
+                if c_step16 {
+                    first = first + 2;
+                }
+                else {
+                    var c_step17 = source[second] == 42;
+                    if c_step17 {
+                        first = first + 2;
+                        last = last - 2;
+                    }
+                }
+            }
+        }
+    }
+    sem_require(bytes_append(&n.comments, "/*", 2));
+    loop {
+        var c_step18 = first >= last;
+        if c_step18 {
+            break;
+        }
+        var c = source[first];
+        sem_require(vector_push(u8, &n.comments, c));
+        var next = first + 1;
+        var c_step19 = c == 42;
+        if c_step19 {
+            var c_step20 = next < last;
+            if c_step20 {
+                var c_step21 = source[next] == 47;
+                if c_step21 {
+                    sem_require(vector_push(u8, &n.comments, 32));
+                }
+            }
+        }
+        first = next;
+    }
+    sem_require(bytes_append(&n.comments, "*/\n", 3));
+}
+
+fn source_comments_walk(entity: void*, target: vector(u8)*, strip: bool): void {
+    var n = sem_get(entity);
+    var c_step22 = n == null;
+    if c_step22 {
+        return;
+    }
+    if strip {
+        n.comments.length = 0;
+    }
+    else {
+        sem_require(bytes_append(target, n.comments.data, n.comments.length));
+    }
+    var c_step23 = n.kind == KFunction();
+    if c_step23 {
+        source_comments_walk(n.body, target, strip);
+        return;
+    }
+    var c_step24 = n.kind == KIf();
+    if c_step24 {
+        source_comments_walk(n.body, target, strip);
+        source_comments_walk(n.otherwise, target, strip);
+        return;
+    }
+    var c_step25 = n.kind == KLoop();
+    if c_step25 {
+        source_comments_walk(n.body, target, strip);
+        return;
+    }
+    var list = n.kind == KProgram();
+    var c_step26 = n.kind == KBlock();
+    if c_step26 {
+        list = true;
+    }
+    if list {
+        var i: usize = 0;
+        loop {
+            var c_step27 = i == n.items.length;
+            if c_step27 {
+                break;
+            }
+            source_comments_walk(n.items.data[i], target, strip);
+            i = i + 1;
+        }
+    }
+}
+
+export fn semantic_strip_comments(root: void*): void {
+    source_comments_walk(root, null, true);
+}
+
+// Optimization can remove/reorder statements. Retain their comments at module
+// scope, without inventing an instruction association or an original source span.
+export fn semantic_collect_comments(source: void*, destination: void*): void {
+    var n = sem_get(destination);
+    source_comments_walk(source, &n.comments, false);
+}

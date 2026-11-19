@@ -51,7 +51,10 @@ void compare(const std::vector<std::string>& files, unsigned width, bool valid) 
   if (!valid) return;
   assert(snapshot(actual) == snapshot(reference));
   auto canonical = core_format(actual).source;
-  assert(canonical == core_format(reference).source);
+  // The frozen semantic reference predates lexer comment attachment. Compare
+  // executable Foundation after stripping metadata, then round-trip the full text.
+  core_strip_comments(actual);
+  assert(core_format(actual).source == core_format(reference).source);
   auto round = core_compile_foundation(canonical.c_str(), width);
   assert(round.error.empty() && core_format(round).source == canonical);
   CoreMachine a(std::move(actual)), b(std::move(reference)), r(std::move(round));

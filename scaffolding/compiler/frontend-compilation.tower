@@ -57,6 +57,10 @@ extern fn frontend_module_position(module: void*, base: usize): void;
 
 extern fn frontend_module_diagnostic(module: void*, offset: usize): void;
 
+extern fn syntax_capture_comments(session: void*, module: void*): void;
+
+extern fn frontend_module_attach_comments(module: void*, root: void*, base: usize): void;
+
 export fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendSource*, count: usize, environment: void*): void {
     var source: vector(u8);
     var roots: vector(void*);
@@ -93,6 +97,7 @@ export fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendS
         if failed {
             break;
         }
+        syntax_capture_comments(session, module);
         frontend_module_finish(module);
         var dependency: usize = 0;
         var dependencies = frontend_module_count(module);
@@ -139,6 +144,39 @@ export fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendS
     var ok = program.error.length == 0;
     if ok {
         semantic_compile(program, roots.data, bases.data, roots.length, source.data);
+    }
+    var c_step1 = program.error.length == 0;
+    if c_step1 {
+        var base: usize = 0;
+        var m: usize = 0;
+        loop {
+            var c_step2 = m == modules.length;
+            if c_step2 {
+                break;
+            }
+            var module = modules.data[m];
+            var count = frontend_module_count(module);
+            var d: usize = 0;
+            loop {
+                var c_step3 = d == count;
+                if c_step3 {
+                    break;
+                }
+                var current = frontend_module_at(module, d);
+                var ordinary = frontend_module_roots(current) != 0;
+                var entry = current == module;
+                if entry {
+                    ordinary = true;
+                }
+                if ordinary {
+                    frontend_module_attach_comments(current, program.root, base);
+                }
+                base = base + frontend_module_size(current);
+                base = base + 1;
+                d = d + 1;
+            }
+            m = m + 1;
+        }
     }
     index = 0;
     loop {

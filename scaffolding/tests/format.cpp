@@ -146,6 +146,7 @@ void formatter_tests() {
       continue;
     }
     auto formatted = source(input, baseline);
+    if (formatted.source != input) fprintf(stderr, "Noncanonical Tower source: %s\n", entry.path().generic_string().c_str());
     assert(formatted.source == input);
     assert(source(formatted.source, baseline).source == formatted.source);
     ++files;

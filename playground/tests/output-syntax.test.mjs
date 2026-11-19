@@ -38,6 +38,13 @@ test('long and hostile display text remains literal and lexer always advances',(
   const input='<img src=x onerror=alert(1)> '+ '"\\'.repeat(10000);
   assert.equal(tokens('llvm',input).map(([text])=>text).join(''),input);
 });
+
+test('C highlights types, preprocessing, comments and statements after semicolons',()=>{
+  const result=tokens('c','#include <stdint.h>\n/* first\nsecond */ uint32_t value = 42; return value;');
+  for(const item of [['#include','meta'],['uint32_t','typeName'],['return','keyword'],['42','number']])
+    assert.ok(result.some(token=>token[0]===item[0]&&token[1]===item[1]),item.join(':'));
+  assert.ok(result.some(([text,tag])=>text.includes('second')&&tag==='comment'));
+});
 test('prefixed x86 instructions are highlighted',()=>{
   const result=tokens('x86','0x00001000  rep stosq');
   for(const instruction of ['rep','stosq']) assert.ok(result.some(([word,tag])=>word===instruction&&tag==='keyword'));

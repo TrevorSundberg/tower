@@ -126,6 +126,12 @@ export async function loadTower(bytes, log = () => {}, bootstrap, foundation, be
     },
     compileFoundation: source => remember(withSource(source, (pointer, length) => exports.tw_exec_create_foundation(pointer, length))),
     foundation: handle => ({...JSON.parse(string(exports.tw_exec_foundation(handle))), sourceMap:sourceMaps.get(handle)}),
+    cSource(handle, {comments=true}={}) {
+      const pointer = exports.tw_exec_c(handle, comments ? 0 : 1);
+      if (!pointer) throw new Error(string(exports.tw_last_error()));
+      return string(pointer);
+    },
+    stripComments: handle => exports.tw_exec_strip_comments(handle),
     destroyExecution: handle => {sourceMaps.delete(handle);outputDecoders.delete(handle);exports.tw_exec_destroy(handle);},
   };
 }

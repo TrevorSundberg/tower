@@ -46,6 +46,7 @@ struct CoreNode {
   size_t index = 0, start = 0, end = 0;
   uint64_t bits = 0;
   bool constant = false, indirect = false, external = false, exported = false, global = false;
+  CoreName comments;
 };
 extern "C" TowerNode* core_component_type();
 CoreNode* core_get(TowerNode* node);
@@ -87,6 +88,8 @@ const char* core_operator(CoreOp op);
 using CoreSourceSpan = TowerSourceSpan;
 using CoreText = TowerText;
 CoreText core_format(const CoreProgram& program);
+CoreText core_c_source(const CoreProgram& program, bool comments = true);
+void core_strip_comments(CoreProgram& program);
 inline constexpr size_t CORE_MAX_FRAMES = 128, CORE_STACK_BYTES = 4 * 1024 * 1024;
 
 // Execution values are scalar bits or a raw target byte address. No safety handle.
