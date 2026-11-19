@@ -46,6 +46,7 @@ fn bi_function(c: BackendImport*, function: void*): void {
     c.block = n.body;
     c.declarations = bi_node(c, 12, 3);
     c.blocks.length = 0;
+    c.literals.length = 0;
     var block = LLVMGetFirstBasicBlock(function);
     loop {
         var done = block == null;
@@ -88,11 +89,13 @@ fn bi_function(c: BackendImport*, function: void*): void {
             if failed {
                 return;
             }
+            var locals = sem_get(c.declarations);
+            var first_local = locals.items.length;
             var result = bi_instruction(c, instruction, block);
             var valued = result != null;
             if valued {
                 var destination = backend_find(&c.values, instruction);
-                bi_assign(c, bi_ref(c, destination), result);
+                bi_result(c, destination, result, first_local);
             }
             instruction = LLVMGetNextInstruction(instruction);
         }
@@ -276,6 +279,7 @@ export fn backend_import_foundation(b: Backend*, root: void*): bool {
         function = LLVMGetNextFunction(function);
     }
     vector_dispose(BackendAssociation, &c.values);
+    vector_dispose(BackendAssociation, &c.literals);
     vector_dispose(BackendAssociation, &c.blocks);
     var valid = b.error.length == 0;
     return valid;

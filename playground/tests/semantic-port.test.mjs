@@ -32,7 +32,7 @@ test('Tower semantic compiler preserves layouts, bindings, templates, and Founda
 
 // Behavioral checks live in Tower; this adapter runs the same fixtures through
 // the browser transports and checks their failure-code output and round trips.
-for(const [name,output] of [['language-control','42\n0\n'],['language-collections','0\n'],['language-enums','0\n'],['work-graph','0\n'],['backend-stack','0\n']]) {
+for(const [name,output] of [['language-control','42\n0\n'],['language-collections','0\n'],['language-enums','0\n'],['work-graph','0\n'],['backend-stack','0\n'],['backend-import-constants','0\n']]) {
  test(`Tower ${name} agrees across graph, fast, LLVM and Foundation text`,async()=>{
   const source=(await read(`scaffolding/tests/${name}.tower`)).toString();
   tower.configureModules({entry:`.tower/tests/${name}.tower`});

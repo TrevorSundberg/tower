@@ -706,7 +706,8 @@ export fn completion_offer(q: CompletionQuery*, name: u8*, kind: u8*, detail: u8
                 mode = 1;
             }
             var editor_condition17 = q.editor.kind == 3;
-            if q.editor.kind == EditorEnumMembers() {
+            var enum_members = q.editor.kind == EditorEnumMembers();
+            if enum_members {
                 editor_condition17 = true;
             }
             if editor_condition17 {

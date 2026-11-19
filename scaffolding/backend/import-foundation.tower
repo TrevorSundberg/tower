@@ -8,6 +8,7 @@ struct BackendImport {
     block: void*;
     declarations: void*;
     values: vector(BackendAssociation);
+    literals: vector(BackendAssociation);
     blocks: vector(BackendAssociation);
     serial: u64;
 }
@@ -99,6 +100,22 @@ fn bi_const(c: BackendImport*, scalar: u32, value: u64): void* {
     return entity;
 }
 
+// An LLVM constant needs a typed Foundation binding: a bare literal loses its
+// source width in bits/convert and in comparisons during text reconstruction.
+// Initialize each distinct literal once in the function's declaration prefix,
+// so every branch can reuse it without depending on which branch executes first.
+fn bi_literal(c: BackendImport*, key: void*, scalar: u32, bits: u64): void* {
+    var local = backend_find(&c.literals, key);
+    var missing = local == null;
+    if missing {
+        local = bi_decl(c, scalar);
+        var declaration = sem_get(local);
+        declaration.value = bi_const(c, scalar, bits);
+        backend_require(c.backend, backend_associate(&c.literals, key, local));
+    }
+    return bi_ref(c, local);
+}
+
 fn bi_ref(c: BackendImport*, binding: void*): void* {
     var b = sem_get(binding);
     var entity = bi_node(c, 5, b.type.scalar);
@@ -131,6 +148,56 @@ fn bi_temp(c: BackendImport*, expression: void*): void* {
     copy(&d.type, &n.type, sizeof(FoundationType));
     bi_assign(c, bi_ref(c, local), expression);
     return bi_ref(c, local);
+}
+
+// Each LLVM instruction already has a destination local for forward references.
+// Use it for the final temporary produced while importing this instruction,
+// instead of emitting a second declaration, assignment and read of the result.
+// Only the freshly created, final assignment qualifies; branch results, shared
+// literals and existing bindings retain their ordinary copy.
+fn bi_result(c: BackendImport*, destination: void*, value: void*, first_local: usize): void {
+    var result = sem_get(value);
+    var declarations = sem_get(c.declarations);
+    var block = sem_get(c.block);
+    var candidate = result.kind == KOperand();
+    if result.constant {
+        candidate = false;
+    }
+    var fresh = declarations.items.length > first_local;
+    if fresh {} else {
+        candidate = false;
+    }
+    var empty = block.items.length == 0;
+    if empty {
+        candidate = false;
+    }
+    if candidate {
+        var last_local = declarations.items.length - 1;
+        var local = declarations.items.data[last_local];
+        var matches = result.binding == local;
+        if matches {
+            var last_statement = block.items.length - 1;
+            var assignment = sem_get(block.items.data[last_statement]);
+            matches = assignment.kind == KAssign();
+            if matches {
+                var target = sem_get(assignment.target);
+                matches = target.kind == KOperand();
+                if matches {
+                    matches = target.binding == local;
+                }
+                var original = sem_get(destination);
+                if matches {
+                    matches = semantic_type_equal(&original.type, &result.type);
+                }
+                if matches {
+                    assignment.target = bi_ref(c, destination);
+                    declarations.items.length = last_local;
+                    return;
+                }
+            }
+        }
+    }
+    bi_assign(c, bi_ref(c, destination), value);
 }
 
 fn bi_cast(c: BackendImport*, value: void*, scalar: u32, reinterpret: bool): void* {
@@ -230,7 +297,8 @@ fn bi_address(c: BackendImport*, object: void*): void* {
     copy(&n.type, &v.type, sizeof(FoundationType));
     n.type.pointers = n.type.pointers + 1;
     n.value = object;
-    return bi_cast(c, bi_temp(c, entity), 10, true);
+    // The address of this fixed storage is already a Foundation operand.
+    return bi_cast(c, entity, 10, true);
 }
 
 fn bi_storage(c: BackendImport*, bytes: u64, alignment: u32, global: bool): void* {

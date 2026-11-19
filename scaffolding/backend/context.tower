@@ -14,6 +14,8 @@ extern fn semantic_signed(type: FoundationType*): bool;
 
 extern fn semantic_aggregate(type: FoundationType*): bool;
 
+extern fn semantic_type_equal(a: FoundationType*, b: FoundationType*): bool;
+
 struct BackendAssociation {
     entity: void*;
     value: void*;

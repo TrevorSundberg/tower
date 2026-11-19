@@ -191,12 +191,12 @@ fn bi_value(c: BackendImport*, value: void*): void* {
         zero = true;
     }
     if zero {
-        return bi_temp(c, bi_const(c, scalar, 0));
+        return bi_literal(c, value, scalar, 0);
     }
     var kind = LLVMGetValueKind(value);
     var integer = kind == 18;
     if integer {
-        return bi_temp(c, bi_const(c, scalar, LLVMConstIntGetZExtValue(value)));
+        return bi_literal(c, value, scalar, LLVMConstIntGetZExtValue(value));
     }
     var expression = kind == 10;
     if expression {

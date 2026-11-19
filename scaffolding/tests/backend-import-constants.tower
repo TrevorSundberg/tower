@@ -1,0 +1,65 @@
+import tower;
+
+// LLVM's untyped integer constants must regain their width in Foundation text.
+// Repeated uses in different blocks/functions cannot share a branch-local value.
+fn choose(flag: bool): u64 {
+    var value: u64 = 0;
+    if flag {
+        value = 18446744073709551615;
+    } else {
+        value = 9223372036854775808;
+    }
+    return value;
+}
+
+fn repeat(flag: bool): u64 {
+    var value: u64 = 9223372036854775808;
+    if flag {
+        value = 18446744073709551615;
+    }
+    return value;
+}
+
+fn check(): i32 {
+    var a = choose(false);
+    var b = repeat(false);
+    var wrong = a != b;
+    if wrong {
+        return 1;
+    }
+    var sign = bits(i64, a);
+    wrong = sign != -9223372036854775808;
+    if wrong {
+        return 2;
+    }
+    a = choose(true);
+    b = repeat(true);
+    wrong = a != b;
+    if wrong {
+        return 3;
+    }
+    sign = bits(i64, b);
+    wrong = sign != -1;
+    if wrong {
+        return 4;
+    }
+    var count: u32 = 0;
+    var small: u8 = 255;
+    while count < 4 {
+        small = small + 255;
+        count = count + 1;
+    }
+    wrong = small != 251;
+    if wrong {
+        return 5;
+    }
+    var pointer: u8* = null;
+    var address = bits(usize, pointer);
+    wrong = address != 0;
+    if wrong {
+        return 6;
+    }
+    return 0;
+}
+
+print(check());

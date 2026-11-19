@@ -15348,3 +15348,52 @@ contracts and actual native/browser executors; current singleton stores, mutable
 caches and fixed linker temporary filenames must be isolated before concurrent
 sessions can safely run. The last pushed main was 014fdbf and last deployed pages
 was a2b6c05 when the user asked for status; the current changes were still local.
+
+### Rebase integration and LLVM reconstruction size (2026-11-19)
+
+Rebased the language/work-graph checkpoint onto upstream 676b00a, retaining its
+LLVM-to-Foundation interpreter pipeline and live semantic completion changes.
+The checkpoint became local commit 04d176e. A subsequent pull with autostash
+reported main current and restored all local fixes. At the user's latest status
+question, none of this checkpoint had been pushed; remote main was 676b00a.
+Actual native/browser parallel compiler execution is still not implemented. The
+work-graph batch tests simulate completion schedules, and the layout dispatcher
+runs serially. Those must not be described as parallel compilation or scaling.
+
+Merged enum completion into the upstream semantic observer rather than restoring
+the obsolete syntax-only lookup. Corrected an invalid direct binary `if` condition
+to a named bool under the Foundation condition grammar. The updated completion
+suite passed 23/23 (build/language-next/rebase-completion.log).
+
+The new upstream interpreter pipeline exposed a size regression: the work-graph
+fixture compiled and executed directly, but raw LLVM reconstruction exceeded the
+65,536 Foundation-node budget at both pointer widths. Optimized reconstruction
+already passed. The initial attempt to emit LLVM constants as bare operands was
+rejected: bits/convert infer their source operand type independently, so literal
+widths were lost during canonical text reparsing. This produced out-of-range i32
+and unequal-width bits diagnostics. Restored typed bindings; the failed trial is
+recorded in build/language-next/import-semantic.log.
+
+Implemented reconstruction reductions entirely in Tower, without changing the
+resource limit or enabling LLVM passes in the raw profile:
+
+- Reuse one typed, initialized local per distinct LLVM constant within a function.
+  Its initializer precedes the function's blocks, so a use in a later branch does
+  not depend on another branch executing. Clear the derived association index at
+  each function boundary; retain no new semantic authority outside shared nodes.
+- Address-of fixed storage is already a Foundation operand, so it needs no extra
+  local before its pointer conversion.
+- Every LLVM instruction already owns a result local for forward references.
+  Reuse it for the final newly generated temporary when its type matches exactly
+  and the final statement assigns that temporary. Do not coalesce existing values,
+  shared literals, branch results or different types. This preserves evaluation
+  order while removing a redundant declaration/copy from reconstructed text.
+
+Added backend-import-constants.tower for typed integer boundaries, repeated
+constants across branches/functions, modular u8 arithmetic and null-pointer bits.
+The existing JS adapter only invokes Tower fixtures through the supported browser
+transports. After the reductions, all 10 semantic transport tests passed, covering
+graph/fast execution, canonical text, both pointer widths and raw/optimized LLVM
+reconstruction (build/language-next/import-semantic-5.log). Native backend API
+checks also passed before the final coalescing change; final validation and actual
+publication results are recorded below when available.
