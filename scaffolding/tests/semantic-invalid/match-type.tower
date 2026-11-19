@@ -1,0 +1,6 @@
+import tower;
+// Expected: Expected bool, got i32 (or integer literal needs an integer type)
+match true {
+    1 => {}
+    _ => {}
+}

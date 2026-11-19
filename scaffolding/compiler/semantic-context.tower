@@ -49,6 +49,7 @@ struct SemanticContext {
     fields_done: SemanticTable*;
     layout_state: SemanticTable*;
     declaration_state: SemanticTable*;
+    control_names: SemanticTable*;
     scope: SemanticScope*;
     type_arguments: vector(void*);
     constant_arguments: vector(void*);
@@ -201,12 +202,12 @@ extern fn generic_type_result(context: void*, instance: void*): void*;
 extern fn generic_origin(context: void*, node: void*): void*;
 
 fn sem_label(node: void*): u8* {
-    var match = sem_match(node);
-    var present = match != null;
+    var `match` = sem_match(node);
+    var present = `match` != null;
     if present {
-        present = match.label.data != null;
+        present = `match`.label.data != null;
         if present {
-            return match.label.data;
+            return `match`.label.data;
         }
     }
     return "";

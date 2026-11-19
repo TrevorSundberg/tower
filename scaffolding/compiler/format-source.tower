@@ -91,19 +91,19 @@ fn format_symbolic(source: u8*, start: usize, end: usize): bool {
 }
 
 fn format_operator_leaf(f: FormatEngine*, entity: void*, source: u8*): bool {
-    var match = format_match(f, entity);
-    var condition5 = match == null;
+    var `match` = format_match(f, entity);
+    var condition5 = `match` == null;
     if condition5 {
         return false;
     }
     var invalid: usize = 0;
     invalid = invalid - 1;
-    var condition6 = match.rule != invalid;
+    var condition6 = `match`.rule != invalid;
     if condition6 {
         return false;
     }
-    var end = match.start + match.length;
-    return format_symbolic(source, match.start, end);
+    var end = `match`.start + `match`.length;
+    return format_symbolic(source, `match`.start, end);
 }
 
 fn format_token_push(f: FormatEngine*, tokens: vector(FormatToken)*, start: usize, end: usize,
@@ -128,63 +128,63 @@ comment: bool, pointer: bool, unary: bool, call: bool): void {
 
 fn format_tokens(f: FormatEngine*, entity: void*, source: u8*, tokens: vector(FormatToken)*,
 pointer: bool, unary: bool, call: bool): void {
-    var match = format_match(f, entity);
-    var condition7 = match == null;
+    var `match` = format_match(f, entity);
+    var condition7 = `match` == null;
     if condition7 {
         return;
     }
-    var condition8 = format_name_is(&match.label, "CoreType");
+    var condition8 = format_name_is(&`match`.label, "CoreType");
     if condition8 {
         pointer = true;
     }
-    var condition9 = format_name_is(&match.label, "CorePointerArgument");
+    var condition9 = format_name_is(&`match`.label, "CorePointerArgument");
     if condition9 {
         pointer = true;
     }
-    var condition10 = format_name_is(&match.label, "CoreAddress");
+    var condition10 = format_name_is(&`match`.label, "CoreAddress");
     if condition10 {
         unary = true;
     }
-    var condition11 = format_name_is(&match.label, "CoreLoad");
+    var condition11 = format_name_is(&`match`.label, "CoreLoad");
     if condition11 {
         unary = true;
     }
-    var condition12 = format_name_is(&match.label, "CoreTarget");
+    var condition12 = format_name_is(&`match`.label, "CoreTarget");
     if condition12 {
         unary = true;
     }
-    var condition13 = format_name_is(&match.label, "CoreOperand");
+    var condition13 = format_name_is(&`match`.label, "CoreOperand");
     if condition13 {
         unary = true;
     }
-    var condition14 = format_name_is(&match.label, "CoreCall");
+    var condition14 = format_name_is(&`match`.label, "CoreCall");
     if condition14 {
         call = true;
     }
-    var condition15 = format_name_is(&match.label, "CoreFunction");
+    var condition15 = format_name_is(&`match`.label, "CoreFunction");
     if condition15 {
         call = true;
     }
-    var condition16 = format_name_is(&match.label, "CoreExternal");
+    var condition16 = format_name_is(&`match`.label, "CoreExternal");
     if condition16 {
         call = true;
     }
-    var condition17 = format_name_is(&match.label, "CoreExport");
+    var condition17 = format_name_is(&`match`.label, "CoreExport");
     if condition17 {
         call = true;
     }
-    var condition18 = format_name_is(&match.label, "CoreType");
+    var condition18 = format_name_is(&`match`.label, "CoreType");
     if condition18 {
         call = true;
     }
     var invalid: usize = 0;
     invalid = invalid - 1;
-    var condition19 = match.rule == invalid;
+    var condition19 = `match`.rule == invalid;
     if condition19 {
-        var end = match.start + match.length;
-        var condition20 = end > match.start;
+        var end = `match`.start + `match`.length;
+        var condition20 = end > `match`.start;
         if condition20 {
-            format_token_push(f, tokens, match.start, end, false, pointer, unary, call);
+            format_token_push(f, tokens, `match`.start, end, false, pointer, unary, call);
         }
         return;
     }
@@ -221,24 +221,24 @@ pointer: bool, unary: bool, call: bool): void {
 }
 
 fn format_source_declaration(f: FormatEngine*, entity: void*): bool {
-    var match = format_match(f, entity);
-    var condition25 = match == null;
+    var `match` = format_match(f, entity);
+    var condition25 = `match` == null;
     if condition25 {
         return false;
     }
-    var condition26 = format_name_is(&match.label, "CoreFunction");
+    var condition26 = format_name_is(&`match`.label, "CoreFunction");
     if condition26 {
         return true;
     }
-    var condition27 = format_name_is(&match.label, "CoreExternal");
+    var condition27 = format_name_is(&`match`.label, "CoreExternal");
     if condition27 {
         return true;
     }
-    var condition28 = format_name_is(&match.label, "CoreExport");
+    var condition28 = format_name_is(&`match`.label, "CoreExport");
     if condition28 {
         return true;
     }
-    var condition29 = format_name_is(&match.label, "CoreStruct");
+    var condition29 = format_name_is(&`match`.label, "CoreStruct");
     if condition29 {
         return true;
     }
@@ -587,9 +587,9 @@ comments: FormatComment*, comment_count: usize, syntax: void*, foundation: void*
             break;
         }
         var root = roots[i];
-        var match = format_match(f, root);
-        var end = match.start + match.length;
-        var first = match.start;
+        var `match` = format_match(f, root);
+        var end = `match`.start + `match`.length;
+        var first = `match`.start;
         var j: usize = 0;
         if ordered {
             j = format_comment_bound(comments, comment_count, previous_end);

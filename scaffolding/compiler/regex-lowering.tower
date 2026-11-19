@@ -65,8 +65,8 @@ fn regex_named(context: RegexLowering*, node: void*, name: u8*): bool {
     if missing {
         return false;
     }
-    var match = regex_match(context, node);
-    var label = node_text_get(&match.label);
+    var `match` = regex_match(context, node);
+    var label = node_text_get(&`match`.label);
     var i: usize = 0;
     loop {
         var different = label[i] != name[i];
@@ -193,13 +193,13 @@ fn regex_range(context: RegexLowering*, index: i32, first: u32, last: u32): void
 }
 
 fn regex_scalar(context: RegexLowering*, node: void*): u32 {
-    var match = regex_match(context, node);
-    context.cursor = match.start;
-    var text = context.source + match.start;
+    var `match` = regex_match(context, node);
+    context.cursor = `match`.start;
+    var text = context.source + `match`.start;
     var escaped = text[0] == 92;
     if escaped {} else {
         var result: u32;
-        tower_utf8_decode(text, match.length, &result);
+        tower_utf8_decode(text, `match`.length, &result);
         return result;
     }
     var escape = text[1];
@@ -223,7 +223,7 @@ fn regex_scalar(context: RegexLowering*, node: void*): u32 {
         }
     }
     var first: usize = 2;
-    var end = match.length;
+    var end = `match`.length;
     if unicode {
         first = 3;
         end = end - 1;
@@ -399,8 +399,8 @@ fn regex_lower(context: RegexLowering*, root: void*, output: RegexFragment*): vo
         var node = visit.node;
         var depth = visit.depth;
         var finish = visit.finish;
-        var match = regex_match(context, node);
-        context.cursor = match.start;
+        var `match` = regex_match(context, node);
+        context.cursor = `match`.start;
         var deep = depth > 64;
         if deep {
             regex_fail(context, "Token pattern nesting exceeds 64");

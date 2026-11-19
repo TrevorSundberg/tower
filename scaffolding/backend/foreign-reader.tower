@@ -264,11 +264,11 @@ fn foreign_peek(m: ForeignName*): u8* {
 }
 
 fn foreign_take(m: ForeignName*, text: u8*): bool {
-    var match = backend_equal(foreign_peek(m), text);
-    if match {
+    var `match` = backend_equal(foreign_peek(m), text);
+    if `match` {
         m.at = m.at + 1;
     }
-    return match;
+    return `match`;
 }
 
 fn foreign_expect(m: ForeignName*, text: u8*): void {

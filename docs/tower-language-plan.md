@@ -1,0 +1,202 @@
+# Tower language development
+
+Status: staged design, 2026-11-19. Only the implementation ledger below describes
+shipped behavior. The rest is a plan, not accepted source syntax yet.
+
+## Architectural contract
+
+Bedrock describes grammars. Foundation describes executable operations and their
+types. Tower supplies the language people use, including compiler authors. New
+implementation and functional tests are Tower source; browser transport may use
+JavaScript. No new native seed or native implementation is part of this plan.
+
+Parsing, binding, types, generated code, reflection and execution enrich the same
+entities. Lowering must produce compilable Foundation with equivalent bindings,
+effect order, scope and lifetime. A second semantic AST/IR is not needed. Retain
+surface metadata and provenance on those entities for tools and reflection.
+
+## Dependency order and milestones
+
+1. **Structured control flow and collection basics.** Implement statement `match`
+   with braced arms, a mandatory final `_` arm, literal alternatives and exactly
+   one subject evaluation. Add braced `while`. Lower both to existing Foundation
+   blocks, locals, comparisons, ifs and loops. Add explicit vector pop/transfer
+   operations and generic stack/queue libraries with failure-preserving APIs.
+   Exercise ordinary type templates, both interpreters, raw/optimized LLVM and
+   canonical Foundation round trips. This is the first implementation slice.
+2. **Bindings and dependency queries.** Make a file's canonical module identity
+   its namespace. Add `import "path" as alias;` and selective imports (proposed
+   `import {Name, Other as Local} from "path";`). Bare filenames alone are not
+   identities: two directories may contain the same basename. The API supplies
+   identities and display names. Separate source visibility from foreign-symbol
+   `export`; preserve explicit runtime initialization order. Track declaration,
+   type, layout, body, specialization and evaluation dependencies separately.
+   Unused declarations need not instantiate or execute, but syntax/grammar reads
+   and ordered module effects remain dependencies. Migrate the currently flat
+   compiler imports together, with collision and diamond tests.
+3. **Nominal enums and exact resolution.** `enum State: u32 { Idle, Busy = 4 }`
+   should create a distinct reflected type, named members and a specified integer
+   representation. `State.Idle` is a value. Reject implicit integer/enum and
+   cross-enum conversions. Check discriminant overflow/duplicates, forward member
+   dependencies and cycles. Decide separately whether aliases/flags are allowed.
+   Preserve enum identity and member metadata in Foundation text; do not ship
+   integer aliases or collections of getter functions disguised as nominal enums.
+   Add finite-enum exhaustiveness and duplicate/unreachable match diagnostics.
+4. **Expressions and exact overloads.** Install a C#-like precedence table in
+   Tower, using explicit layered grammar rules initially. Numeric precedence
+   annotations can later generate those same rules, with grammar metadata and
+   formatter round trips; they must not silently choose between LR conflicts.
+   Lower nested expressions into Foundation temporaries in left-to-right effect
+   order. Resolve operators/calls by exact argument types, diagnose ambiguity,
+   and require explicit conversions. No overload ranking or implicit promotions.
+5. **Deterministic staged execution.** `comptime` requests ordinary graph
+   interpreter execution after demanded dependencies resolve. It is a stage,
+   not a separate expression evaluator. Give the evaluator explicit semantics,
+   target/layout, capabilities, resource limits, dependency recorder and virtual
+   inputs. A file read records canonical identity, existence and bytes (including
+   failed lookup dependencies); changing byte five invalidates its consumers.
+   Reject untracked clock/random/network/process/foreign effects in strict mode.
+   Materialize results as Foundation values with relocation-aware owned storage;
+   a host address cannot become a constant. Current `const Name()` remains an
+   ordinary function until this replacement is complete and migration is tested.
+6. **Ownership, initialization and iterator protocol.** Specify move/borrow/drop
+   before implicit container transfers. Owning values should transfer ownership;
+   copying requires an explicit clone. Moved-from state, self-move, replacement,
+   aliasing and early-exit cleanup need defined behavior. No garbage collector.
+   Define one typed iterator protocol (begin/next/borrowed element), then implement
+   `foreach` using it for arrays, spans, vectors, queues and maps. Evaluate the
+   source once; specify invalidation and mutation rules. Add a common initializer
+   protocol, struct field completeness/duplicate checks, and allocation plus
+   placement initialization syntax with explicit failure/drop behavior.
+   Add ordinary tagged `result(T, E)` and `option(T)` values once aggregate
+   construction, return and ownership rules work; these are the error/absence
+   contracts for containers, file access and compiler APIs.
+7. **Properties, constraints and reflection.** Keep free functions and explicit
+   receiver parameters, e.g. `get_length(this: Vector*)`. A property groups those
+   functions as metadata; sugar supplies the receiver once. If dot calls are
+   added, `value.f(x)` means `f(&value, x)` only when an exact viable receiver
+   binding exists. Static constraints describe required signatures/operations on
+   type values. Optional runtime interfaces are explicit borrowed object + table
+   pairs, with no class hierarchy, GC, or hidden object header. Reflection queries
+   shared type/field/function/property/attribute entities. Emit only requested
+   runtime descriptors; determinism and stable identity cannot use host addresses.
+8. **Code evaluation and attributes.** `eval` consumes text, an explicit grammar,
+   scope/module environment, target and capabilities through the compiler API.
+   Runtime evaluation uses the portable interpreter; compile-time evaluation
+   uses the same pipeline/stage contract. Generated source becomes a tracked
+   input with useful provenance. Attributes such as `[Attribute(arguments)]` are
+   typed compile-time values attached to the following declaration, not another
+   use of provisional grammar `as style` metadata. Attribute evaluation also
+   participates in dependency queries and cycle diagnostics.
+9. **Adopt throughout the compiler.** Migrate one subsystem at a time, using the
+   same Tower imports, containers, enums and expressions as applications. Keep
+   before/after behavior, canonical text, deterministic outputs and performance
+   measurements. Replace foundational numeric tags only after preserving their
+   transitional foreign ABI. Remove superseded helpers when the successor works.
+
+## Resolution and evaluation details
+
+A query key includes entity identity, query kind, explicit arguments, target and
+semantics profile. Record reads as edges; use unseen/evaluating/ready/failed states
+and report the actual cycle chain. Separate type identity from layout: pointers
+to recursively declared types may resolve without demanding their pointee's
+layout; by-value layout cycles fail. Type aliases and compile-time calls cannot
+silently break cycles by inventing placeholder results. Invalidation propagates
+to consumers, and results publish only after their dependencies finish.
+
+Compilation stages preserve effect order. Demand-driven pure resolution is not
+permission to reorder or discard module initialization, capability reads, or
+observable compile-time effects. Keep tracked source imports in the project tree;
+later declaration-level use tracking may reduce reflection/emission without
+hiding source dependencies that were actually read.
+
+## Operators, pointers and syntax decisions
+
+Proposed order, strongest first: postfix call/index/member; unary; multiplicative;
+additive; shifts; relational; equality; bitwise AND/XOR/OR; short-circuit AND/OR;
+conditional; assignment. Binary arithmetic groups left; unary, conditional and
+assignment group right. Assignment may remain statement-only initially. No comma
+operator is planned. Braces are mandatory for all control-flow bodies and create
+lexical scopes (already true in Foundation).
+
+Associativity describes grouping, not permission to reorder evaluation.
+Commutativity/algebraic reassociation are separate, proved optimization properties,
+subject to overflow, floating-point and effects contracts. Overloading an operator
+must not change its precedence. Short-circuit operators need control-flow lowering,
+not an ordinary eager two-argument function.
+
+Use only `.` for field/property access. Repeated pointer dereference can be
+unambiguous for a typed member path, but it does not establish non-nullness,
+lifetime, alignment or permission to mutate. Do not automatically take addresses
+of arbitrary rvalues or silently dereference assignment/call operands: those
+choices change aliasing and can create dangling references. Implement automatic
+receiver borrowing only after place/lifetime rules exist. Explicit Foundation
+address/load operations remain available. No `->` is necessary.
+
+## Errors are values; no exceptions and no GC
+
+The user's follow-up makes both constraints absolute: Tower introduces neither
+garbage collection nor exception throwing/unwinding. Recoverable failures use
+ordinary return values. A runtime trap diagnoses an execution failure; it is not
+a catchable language exception or a replacement for a result-returning API.
+
+Propose one first-party type constructor, `result(T, E)`, with success and error
+variants, and `option(T)` for absence. The concrete value owns only its active
+payload, has explicit target layout and a Foundation spelling, and supports exact
+type checking and reflection. Do not depend on niche packing for semantics; that
+can be a representation optimization once ABI contracts permit it. Small error
+enums/records carry data without requiring allocation or exception machinery.
+
+Start with ordinary constructors and exhaustive match. Proposed later sugar
+`var file = try open(path);` checks the returned tag, yields the success payload,
+or returns the error through the enclosing function's compatible result type.
+It lowers to normal branches and returns. No implicit conversion of error types,
+hidden throw path, or implicit runtime handler stack. Explicit conversion functions
+can adapt errors. Early return runs the same specified drops as an explicit return;
+do not implement sugar before that rule is sound. This is propagation, not handling.
+Callers may instead match to recover, add context, or choose a fallback.
+
+Initially require explicit error handling/propagation; a deliberately discarded
+result must be explicit. Keep the surface small: one result representation,
+match, and one propagation spelling. No special template/overload framework is
+required to make errors work. The current scalar/pointer container APIs return
+bool and leave output parameters unchanged on failure; those remain usable until
+aggregate returns and tagged payload ownership support this design.
+
+## Validation gates
+
+Every feature needs positive and diagnostic Tower fixtures, scoped-name and
+effect-order cases, Foundation serialization/reparse, graph/fast interpreter
+agreement and raw/optimized LLVM agreement. Exercise both pointer widths and
+browser/native builds where available. Test invalidation, cancellation and
+determinism for compile-time work; failure preservation and ownership for
+containers. Benchmark representative compiler workloads before migrating them.
+
+## Research and existing findings
+
+- The journal's 2026-11-16 replacement work explicitly lacks binding hygiene:
+  text replacement with fixed temporary names cannot safely implement match or
+  foreach. Generate bound Foundation entities and collision-free serialized
+  local names instead.
+- The 2026-11-17 operand-composition work already defines left-to-right effects,
+  resumable graph evaluation and assignment-address capture. Preserve it.
+- The 2026-11-18 template work supports concrete type/integer specialization,
+  not arbitrary staged execution. The 2026-11-19 imports still flatten bindings;
+  import caching is not declaration-level incremental resolution.
+- [C# operator specification](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/language-specification/expressions#1242-operator-precedence-and-associativity)
+  informs the familiar grouping table. Tower's effect and integer contracts remain
+  its own.
+- [Rust match reference](https://doc.rust-lang.org/reference/expressions/match-expr.html)
+  informs the braced arm notation and first matching arm behavior. Tower's initial
+  statement form is deliberately smaller than Rust pattern matching.
+
+## Implementation ledger
+
+- Before this work: Tower named-value functions, Foundation lexical block scopes,
+  explicit module dependency loading and first-party type specialization exist.
+- First slice implemented: structured literal match/while, generic stack/queue,
+  vector pop and explicit ownership transfer. See [current syntax](tower.md).
+  Backend/interpreter/round-trip and publication results are recorded in the journal.
+  Enums,
+  selective imports, full expressions, automatic moves, general foreach,
+  comptime/eval, properties, interfaces and attributes are not implemented yet.

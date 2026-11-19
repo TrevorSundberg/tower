@@ -5,6 +5,9 @@ and defines executable foundation syntax, and `tower.tower` imports Foundation
 and adds language conveniences. Compiler, runtime, backend and user code can all
 import Tower. The foreign C/C++ declaration grammar remains in
 `backend/foreign-grammar.tower`; it is not part of Foundation.
+Tower also supplies [match/while and generic collection libraries](tower.md).
+The [language plan](tower-language-plan.md) records the staged work beyond these
+features, including file namespaces, nominal enums and returned errors.
 
 ```tower
 import tower;

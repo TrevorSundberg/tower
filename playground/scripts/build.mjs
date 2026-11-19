@@ -27,7 +27,7 @@ await writeFile(path.join(dist, 'builtins.json'), JSON.stringify(builtinModules)
 await copyFile(path.join(root, '../scaffolding/examples/tokens.tower'), path.join(dist, 'tokens.tower'));
 await copyFile(path.join(root, '../scaffolding/examples/replacements.tower'), path.join(dist, 'replacements.tower'));
 // Examples declare their own Bedrock, Foundation or Tower dependency.
-for (const name of ['execution', 'increment', 'inference', 'templates', 'functions', 'structs', 'memory']) await writeFile(path.join(dist, name + '.tower'),
+for (const name of ['execution', 'increment', 'inference', 'templates', 'match', 'collections', 'functions', 'structs', 'memory']) await writeFile(path.join(dist, name + '.tower'),
   await readFile(path.join(root, '../scaffolding/examples/' + name + '.tower'), 'utf8'));
 let llvm = false;
 try {

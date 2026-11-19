@@ -26,6 +26,10 @@ fn vector_reserve(T: type, value: vector(T)*, needed: usize): bool {
     var maximum: usize = 0;
     maximum = maximum - 1;
     var size = sizeof(T);
+    var empty_type = size == 0;
+    if empty_type {
+        return false;
+    }
     var limit = maximum / size;
     var impossible = needed > limit;
     if impossible {
@@ -75,4 +79,36 @@ fn vector_push(T: type, value: vector(T)*, element: T): bool {
 fn vector_dispose(T: type, value: vector(T)*): void {
     free(value.data);
     vector_init(T, value);
+}
+
+// Empty/null-output failure preserves both storage and the output value.
+// Output must be valid T storage outside the remaining live elements.
+fn vector_pop(T: type, value: vector(T)*, output: T*): bool {
+    var empty = value.length == 0;
+    if empty {
+        return false;
+    }
+    var missing = output == null;
+    if missing {
+        return false;
+    }
+    var last = value.length - 1;
+    *output = value.data[last];
+    value.length = last;
+    return true;
+}
+
+// Both values must be initialized independent owners (or the same owner).
+// Transfer replaces/disposes destination storage and empties the source.
+// Scalar/pointer elements have no implicit destruction or deep ownership here.
+fn vector_move(T: type, destination: vector(T)*, source: vector(T)*): void {
+    var same = destination == source;
+    if same {
+        return;
+    }
+    vector_dispose(T, destination);
+    destination.data = source.data;
+    destination.length = source.length;
+    destination.capacity = source.capacity;
+    vector_init(T, source);
 }

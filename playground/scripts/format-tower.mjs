@@ -16,7 +16,8 @@ async function towerFiles(folder){
 }
 const files=await towerFiles('scaffolding');
 const inputs=await Promise.all(files.map(async path=>({path,text:await read(path)})));
-tower.configureModules({files:inputs});
+tower.configureModules({files:[...inputs,...inputs.filter(file=>file.path.startsWith('scaffolding/library/'))
+ .map(file=>({...file,path:file.path.replace('scaffolding/','.tower/')}))]});
 function format(file,source){
  tower.configureModules({entry:file});
  const handle=file.endsWith('/bedrock.tower')?tower.createBedrock(source):file.endsWith('/foundation.tower')?tower.createFoundation(source):tower.create(source);
@@ -24,6 +25,8 @@ function format(file,source){
  finally{tower.destroy(handle);}
 }
 for(const file of files){
+ // Negative parser fixtures intentionally have no complete source parse tree.
+ if(file.startsWith('scaffolding/tests/syntax-invalid/'))continue;
  const source=await read(file),first=format(file,source),second=format(file,first.source);
  assert.equal(second.source,first.source,file+': formatting must be idempotent');
  assert.deepEqual(second.snapshot.rules,first.snapshot.rules,file+': formatting must preserve grammar rules');

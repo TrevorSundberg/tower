@@ -328,24 +328,24 @@ fn backend_session_report(s: BackendSession*, functions: void**, count: usize): 
             backend_text(out, ",");
         }
         var name: u8* = "parse";
-        var match = i == 1;
-        if match {
+        var `match` = i == 1;
+        if `match` {
             name = "before";
         }
-        match = i == 2;
-        if match {
+        `match` = i == 2;
+        if `match` {
             name = "after";
         }
-        match = i == 3;
-        if match {
+        `match` = i == 3;
+        if `match` {
             name = "emit";
         }
-        match = i == 4;
-        if match {
+        `match` = i == 4;
+        if `match` {
             name = "link";
         }
-        match = i == 5;
-        if match {
+        `match` = i == 5;
+        if `match` {
             name = "disassembly";
         }
         backend_json_text(out, name);

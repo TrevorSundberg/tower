@@ -1,4 +1,5 @@
 import tower;
+import 'semantic-control';
 
 // Semantic compiler over shared Foundation components.
 // Temporary indexes and scratch allocations are scoped to one compilation.
@@ -333,6 +334,12 @@ fn sem_statement(c: SemanticContext*, n: void*, depth: u32): u32 {
     var step3 = step2 == false;
     if step3 {
         return 1;
+    }
+    if sem_is(n, "TowerMatch") {
+        return sem_control_match(c, n, depth);
+    }
+    if sem_is(n, "TowerWhile") {
+        return sem_control_while(c, n, depth);
     }
     var step4 = sem_label(n);
     var kind: u8* = step4;

@@ -1,0 +1,8 @@
+import tower;
+// Expected: CoreBreak requires an enclosing loop
+match 1 {
+    1 => {
+        break;
+    }
+    _ => {}
+}

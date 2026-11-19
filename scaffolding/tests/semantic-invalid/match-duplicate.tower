@@ -1,0 +1,7 @@
+import tower;
+// Expected: Duplicate match pattern
+match 1 {
+    1 | 2 => {}
+    2 => {}
+    _ => {}
+}

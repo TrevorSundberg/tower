@@ -1,0 +1,6 @@
+import tower;
+// Expected: Expected bool, got i32
+var value = 1;
+while value {
+    break;
+}

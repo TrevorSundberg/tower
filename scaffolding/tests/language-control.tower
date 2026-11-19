@@ -1,0 +1,171 @@
+import tower;
+
+var calls = 0;
+
+fn next(): i32 {
+    calls = calls + 1;
+    return calls;
+}
+
+fn classify(value: i32): i32 {
+    match value {
+        -1 => {
+            return 10;
+        }
+        0 | 1 => {
+            return 20;
+        },
+        2 => {
+            return 30;
+        }
+        _ => {
+            return 40;
+        }
+    }
+}
+
+fn always_returns(): i32 {
+    while true {
+        return 42;
+    }
+}
+
+fn control_tests(): i32 {
+    match next() {
+        0 => {
+            return 1;
+        }
+        1 | 2 => {
+            var calls = 100;
+            var good = calls == 100;
+            if good {} else {
+                return 2;
+            }
+        }
+        _ => {
+            return 3;
+        }
+    }
+    var good = calls == 1;
+    if good {} else {
+        return 4;
+    }
+    good = always_returns() == 42;
+    if good {} else {
+        return 22;
+    }
+    good = classify(-1) == 10;
+    if good {} else {
+        return 5;
+    }
+    good = classify(0) == 20;
+    if good {} else {
+        return 6;
+    }
+    good = classify(2) == 30;
+    if good {} else {
+        return 7;
+    }
+    good = classify(99) == 40;
+    if good {} else {
+        return 8;
+    }
+
+    // Subject snapshot: assignments in an arm do not select a later arm.
+    var value = 1;
+    match value {
+        1 => {
+            value = 2;
+        }
+        2 => {
+            return 9;
+        }
+        _ => {
+            return 10;
+        }
+    }
+    good = value == 2;
+    if good {} else {
+        return 11;
+    }
+
+    var sum = 0;
+    var index = 0;
+    while index < 8 {
+        index = index + 1;
+        match index {
+            1 | 3 => {
+                continue;
+            }
+            5 => {
+                break;
+            }
+            _ => {
+                sum = sum + index;
+            }
+        }
+    }
+    good = sum == 6;
+    if good {} else {
+        return 12;
+    }
+    good = index == 5;
+    if good {} else {
+        return 13;
+    }
+
+    calls = 0;
+    while next() < 4 {
+        continue;
+    }
+    good = calls == 4;
+    if good {} else {
+        return 14;
+    }
+    while false {
+        return 15;
+    }
+    match true {
+        false => {
+            return 16;
+        }
+        true => {
+            match 42 {
+                42 => {}
+                _ => {
+                    return 17;
+                }
+            }
+        }
+        _ => {
+            return 18;
+        }
+    }
+    var wide: u64 = 18446744073709551615;
+    match wide {
+        18446744073709551615 => {}
+        _ => {
+            return 19;
+        }
+    }
+    match next() + next() {
+        11 => {}
+        _ => {
+            return 20;
+        }
+    }
+    good = calls == 6;
+    if good {} else {
+        return 21;
+    }
+    // Quoted generated-looking names remain ordinary user bindings.
+    var `control value 0` = 42;
+    match 0 {
+        _ => {
+            print(`control value 0`);
+        }
+    }
+    return 0;
+}
+
+print(control_tests());

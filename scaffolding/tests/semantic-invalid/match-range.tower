@@ -1,0 +1,7 @@
+import tower;
+// Expected: Integer literal out of range for u8
+var value: u8 = 1;
+match value {
+    256 => {}
+    _ => {}
+}

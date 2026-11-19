@@ -336,8 +336,8 @@ export fn completion_collect(q: CompletionQuery*, root: void*, external: bool): 
         if done {
             break;
         }
-        pending.length = pending.length - 1;
-        var node = pending.data[pending.length];
+        var node: void* = null;
+        sem_require(vector_pop(void*, &pending, &node));
         visited = visited + 1;
         var named = sem_member(node, "name");
         var declaration = sem_is(node, "CoreDeclare");
@@ -445,8 +445,8 @@ fn completion_visible(q: CompletionQuery*, node: void*, external: bool): bool {
     if external {
         return false;
     }
-    var match = sem_match(node);
-    var later = match.start >= q.from;
+    var `match` = sem_match(node);
+    var later = `match`.start >= q.from;
     if later {
         return false;
     }

@@ -7,7 +7,7 @@ struct FrontendKinds {
     reference: void*;
     string: void*;
     range: void*;
-    match: void*;
+    `match`: void*;
     syntax: void*;
 }
 
@@ -169,7 +169,7 @@ export fn frontend_read_characters(table: FrontendTable*, kinds: FrontendKinds*,
         }
         if shift {
             var input_node: void* = null;
-            var status = lr_tree_shift(parser, forest, table.grammar, kinds.match, &step, &input_node, "");
+            var status = lr_tree_shift(parser, forest, table.grammar, kinds.`match`, &step, &input_node, "");
             ok = status == 1;
             ready = false;
             continue;
@@ -236,7 +236,7 @@ export fn frontend_pattern_compile(table: FrontendTable*, kinds: FrontendKinds*,
         return null;
     }
     var offset: usize = 0;
-    var error = regex_compile_tree(pattern.grammar, text, kinds.match, pattern.table, &offset);
+    var error = regex_compile_tree(pattern.grammar, text, kinds.`match`, pattern.table, &offset);
     var failed = error != null;
     if failed {
         syntax_pattern_release(pattern);

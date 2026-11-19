@@ -16,3 +16,19 @@ test('Templates run in both workers and show concrete shared foundation output',
  await page.screenshot({path:`../build/templates-${info.project.name}.png`});
  expect(errors).toEqual([]);
 });
+
+test('Tower match and collection examples execute and expose imported libraries',async({page})=>{
+ await page.goto('/');
+ for(const [name,output] of [['match','10\n20\n20\n30\n'],['collections','30\n20\n10\n10\n20\n30\n']]) {
+  await selectDocument(page,name+'.tower');
+  await expect(page.locator('#filename')).toHaveText(name+'.tower');
+  for(const pane of ['execution-output','fast-output','llvm-output'])
+   await expect(page.locator('#'+pane)).toHaveText(output,{timeout:25000});
+  await expect(page.locator('#execution-status')).toHaveText('Finished · backends match');
+ }
+ await expect(page.locator('#file-tree button[data-path=".tower/library/queue.tower"]')).toBeVisible();
+ await selectDocument(page,'library/queue.tower');
+ await expect(page.locator('.cm-content')).toContainText('fn queue(T: type): type');
+ await selectDocument(page,'match.tower');
+ await expect(page.locator('#file-tree button[data-path=".tower/library/queue.tower"]')).toHaveCount(0);
+});

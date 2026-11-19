@@ -433,12 +433,12 @@ export fn format_dispose(result: FormatResult*): void {
     vector_dispose(FormatSpan, &result.spans);
 }
 
-export fn format_entity(result: FormatResult*, entity: void*, syntax: void*, foundation: void*, match: void*): void {
+export fn format_entity(result: FormatResult*, entity: void*, syntax: void*, foundation: void*, `match`: void*): void {
     var f: FormatEngine;
     f.result = result;
     f.syntax_kind = syntax;
     f.foundation_kind = foundation;
-    f.match_kind = match;
+    f.match_kind = `match`;
     format_node(&f, entity);
 }
 

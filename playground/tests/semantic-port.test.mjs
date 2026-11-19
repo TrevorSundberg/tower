@@ -30,11 +30,49 @@ test('Tower semantic compiler preserves layouts, bindings, templates, and Founda
  }
 });
 
+// Behavioral checks live in Tower; this adapter runs the same fixtures through
+// the browser transports and checks their failure-code output and round trips.
+for(const [name,output] of [['language-control','42\n0\n'],['language-collections','0\n']]) {
+ test(`Tower ${name} agrees across graph, fast, LLVM and Foundation text`,async()=>{
+  const source=(await read(`scaffolding/tests/${name}.tower`)).toString();
+  tower.configureModules({entry:`.tower/tests/${name}.tower`});
+  llvm.configureModules({entry:`.tower/tests/${name}.tower`});
+  let canonical;
+  for(const pointerBytes of [4,8]) for(const fast of [false,true]) {
+   const h=tower.compile(source,{pointerBytes});
+   try {
+    if(fast)tower.useFast(h);
+    let result;
+    do { result=tower.execute(h,100000); } while(result.status==='executing');
+    assert.equal(result.status,'done',result.error);
+    assert.equal(result.output,output);
+    canonical=tower.foundation(h).source;
+   } finally { tower.destroyExecution(h); }
+   const h2=tower.compile(canonical,{pointerBytes});
+   try {
+    let result;
+    do { result=tower.execute(h2,100000); } while(result.status==='executing');
+    assert.equal(result.status,'done',result.error);
+    assert.equal(result.output,output);
+    assert.equal(tower.foundation(h2).source,canonical);
+   } finally { tower.destroyExecution(h2); }
+  }
+  for(const text of [source,canonical]) {
+   const compiled=llvm.compile(text);
+   assert.equal(compiled.status,'compiled',compiled.error);
+   assert.equal((await executeWasm(compiled)).output,output);
+  }
+ });
+}
+
 test('Tower semantic diagnostics agree between interpreter and LLVM entry points',async()=>{
  for(const [name,message] of [
   ['inference-cycle',/initializer dependency cycle/],['layout-cycle',/Recursive by-value layout/],
   ['argument-type',/Expected i32, got bool/],['literal-range',/Integer literal out of range for u8/],
   ['template-origin',/Instantiated by wrong\(i32\)/],['missing-return',/without returning a value/],
+  ['match-duplicate',/Duplicate match pattern/],['match-range',/Integer literal out of range for u8/],
+  ['match-type',/An integer literal needs an integer type/],['match-scope',/Unknown local 'local'/],
+  ['match-break',/CoreBreak requires an enclosing loop/],['while-type',/Expected bool, got i32/],
  ]){
   const text=(await read(`scaffolding/tests/semantic-invalid/${name}.tower`)).toString();
   let error,offset;
@@ -45,5 +83,15 @@ test('Tower semantic diagnostics agree between interpreter and LLVM entry points
   }
   const result=llvm.compile(text);assert.equal(result.status,'error',name);
   assert.equal(result.error,error);assert.equal(result.errorOffset,offset);
+ }
+});
+
+test('Tower control-flow parser rejects incomplete and unbraced bodies',async()=>{
+ for(const name of ['match-default','while-braces']) {
+  const text=(await read(`scaffolding/tests/syntax-invalid/${name}.tower`)).toString();
+  const h=tower.compile(text);
+  try { assert.equal(tower.execute(h).status,'error',name); }
+  finally { tower.destroyExecution(h); }
+  assert.equal(llvm.compile(text).status,'error',name);
  }
 });

@@ -26,8 +26,8 @@ export fn node_payload_size(kind: u32): usize {
 
 export fn node_payload_init(kind: u32, data: void*): void {
     fill(data, 0, node_payload_size(kind));
-    var match = kind == 4;
-    if match {
+    var `match` = kind == 4;
+    if `match` {
         var value = bits(ParserMatchData*, data);
         value.id = 4294967294;
         value.rule = 0;
@@ -57,8 +57,8 @@ export fn node_payload_dispose(kind: u32, data: void*): void {
     }
     selected = kind == 4;
     if selected {
-        var match = bits(ParserMatchData*, data);
-        vector_dispose(u8, &match.label);
+        var `match` = bits(ParserMatchData*, data);
+        vector_dispose(u8, &`match`.label);
     }
 }
 

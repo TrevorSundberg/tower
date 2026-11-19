@@ -115,7 +115,7 @@ error: FormatResult*): SyntaxPattern* {
         return null;
     }
     var offset: usize = 0;
-    var message = regex_compile_tree(pattern.grammar, source, compiler.kinds.match, pattern.table, &offset);
+    var message = regex_compile_tree(pattern.grammar, source, compiler.kinds.`match`, pattern.table, &offset);
     var failed = message != null;
     if failed {
         format_text(&formatter, message);

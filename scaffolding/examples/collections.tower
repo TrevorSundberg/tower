@@ -1,0 +1,30 @@
+import tower;
+import 'library/stack';
+import 'library/queue';
+
+var lifo: stack(i32);
+var fifo: queue(i32);
+stack_init(i32, &lifo);
+queue_init(i32, &fifo);
+var value = 10;
+while value <= 30 {
+    var stored = stack_push(i32, &lifo, value);
+    if stored {} else {
+        print("Stack allocation failed");
+    }
+    stored = queue_push(i32, &fifo, value);
+    if stored {} else {
+        print("Queue allocation failed");
+    }
+    value = value + 10;
+}
+
+// Empty pop returns false and leaves the output unchanged.
+while stack_pop(i32, &lifo, &value) {
+    print(value);
+}
+while queue_pop(i32, &fifo, &value) {
+    print(value);
+}
+stack_dispose(i32, &lifo);
+queue_dispose(i32, &fifo);

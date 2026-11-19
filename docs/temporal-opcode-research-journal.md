@@ -14179,3 +14179,134 @@ highlighting. Evidence: `build/import-port/verify-live.log` and
 `build/deployment-verification/report.json`. `todo.txt` still hashes to
 96a9e58964d7f01e4a97819f259448db81ef5e40. This publication record changes only the
 journal; deployed compiler and UI bytes remain those of 6da334b/c69ffd5.
+
+## 2026-11-19 — Tower language roadmap before implementation
+
+Read AGENTS.md and pulled/rebased main (already current at c6815f5). The requested
+language direction is recorded in docs/tower-language-plan.md before code work:
+file-identity namespaces and selective imports; dependency-query resolution;
+nominal enums; match; C#-like expression grouping and exact overloads; deterministic
+graph-interpreter staging with capability/file dependencies; move/borrow/drop,
+universal iterators and containers; properties/constraints/reflection; eval and
+typed attributes. New implementation and functional tests will be Tower only.
+
+The first bounded slice is match/while control flow and generic collection
+basics. Existing replacements lack hygiene, so match must lower to bound shared
+Foundation entities rather than textual temporaries. Nominal enums are sequenced
+after a serializable type-identity contract; integer aliases will not be sold as
+enums. Automatic dereference is a member-access convenience, not memory safety;
+automatic address-taking must wait for place/borrow rules. Associativity controls
+parse grouping and is separate from algebraic reassociation/commutativity.
+
+Sources reviewed: the journal's replacement/hygiene, operand effect-order,
+template and import entries; semantic-{context,types,values,statements}.tower;
+the existing generic vector. C# specification and Rust match reference URLs are
+in the plan. This supersedes no existing arithmetic, effect or Foundation storage
+contract. No enums/comptime/general expression implementation is claimed by the
+plan. todo.txt remains untouched.
+
+### Error-model steering during the first language slice
+
+The user requires Rust-style returned errors with very little syntax and then
+made both exclusions absolute: no GC and no exceptions. Added a dedicated design
+section to docs/tower-language-plan.md: ordinary tagged result(T, E)/option(T),
+exhaustive match, and eventual `try` propagation as branches/returns. Exact error
+types, active-payload ownership, aggregate return and early-return cleanup must
+exist before sugar. No throw/catch/unwind or GC runtime is being introduced.
+Current vector/stack/queue APIs use boolean results plus preserved output
+parameters. Result types and propagation are planned, not claimed implemented.
+
+### First language slice: implementation and validation
+
+Implemented TowerMatch/TowerWhile grammar in scaffolding/tower.tower and lowering
+in compiler/semantic-control.tower. Foundation syntax and its operation ABI remain
+unchanged. The same surface entities acquire Foundation components; generated
+locals/blocks/comparisons/branches are ordinary shared entities, bound directly.
+Match supports integer/bool literals, alternatives, a required final wildcard,
+duplicate/range diagnostics, one subject evaluation, scopes and outer-loop
+break/continue. While requires a bool condition and braces. All paths serialize
+to compilable Foundation; lowering accounts for its existing nesting limit.
+These are statement forms, not general expressions or full pattern matching.
+
+Collection implementation is Tower: vector_pop/vector_move, stack(T) as a vector
+policy, and queue(T) as a growing FIFO ring. Empty/null-output/oversized-reserve
+failure preserves state/output; successful moves replace initialized destination
+storage and reset the source, including self-move handling. Scalar/pointer element
+support is explicit; no automatic aggregate copy/drop or pointee destruction.
+The compiler completion traversal now uses vector_pop. The playground includes
+Match and Collections examples, and imports expose/remove the actual stack,
+vector and queue files in the builtin tree. JavaScript edits are existing web
+transport/test/formatter adapters; all language algorithms and behavioral fixture
+assertions are Tower. No C/C++ source or build recipe changed.
+
+Trials and corrections:
+- New keyword `match` collided with existing compiler/backend local names. Quoted
+  those identifiers mechanically, preserving their decoded names and interfaces.
+- The first hygiene scan looked for Identifier nodes, but parser token leaves
+  store their spelling. Replaced it with a one-time terminal traversal, including
+  quoted/free uses. Generated names are deterministic and checked against that
+  derived spelling index; bindings remain entity references, not name guesses.
+- A while-true return initially hid the literal behind a local, so reparsing its
+  canonical Foundation would lose definite-return knowledge. Literal conditions
+  now remain visible; added always_returns() to the Tower fixture and tested the
+  canonical result. Other conditions use a local evaluated per loop iteration.
+- Added lowered-depth accounting rather than accepting matches whose emitted
+  nested branches exceed Foundation's limit. No arbitrary limit was removed.
+- Existing `expected` and `token` grammar keywords caught two new local names;
+  changed them to descriptive ordinary identifiers. Compiler/bootstrap errors
+  were resolved in Tower, with no new seed behavior.
+- Source formatting lacked builtin-library inputs for examples importing
+  library/stack. The existing JS formatter adapter now supplies those explicit
+  sources. Deliberately invalid parser fixtures have a dedicated syntax-invalid
+  directory excluded from formatting. Semantic-negative fixtures still format.
+- Initial differential diagnostic expectations used 'Unknown variable' instead
+  of the existing 'Unknown local', and used a literal when testing numeric-to-bool
+  rejection. Corrected the expected wording and tested a typed numeric variable.
+  The final full test run is clean; no diagnostic or execution assertion was
+  weakened. An ad-hoc Bash trial failed on PowerShell-piped line endings before
+  executing its loop; reran the native matrix in PowerShell with checked exits.
+- PowerShell Add-Content initially encoded the new journal's em dash in the
+  Windows code page. Reencoded only this turn's appended tail as UTF-8 and
+  validated the full document; earlier journal bytes were preserved.
+
+Environment/commands and observed results (Windows + WSL, LLVM 19 native,
+WASI SDK 34 and the existing pinned LLVM 20 browser build):
+- cmake --build /home/trevo/.cache/tower/backend-native --target towerc -j4;
+  cmake --build build/browser-wasi --target tower-browser -j4;
+  cmake --build /home/trevo/.cache/tower/backend-wasi --target
+  tower-browser-llvm tower-browser-cross -j6 all succeed. The existing staged
+  import-capable Tower compiler builds the new compiler without native additions.
+- node --test playground/tests/*.test.mjs: **249/249 pass**, including functional
+  Tower control/collection assertions under graph/fast interpretation at 4/8-byte
+  pointer layouts, canonical reparse/idempotence, browser LLVM execution, and
+  matching interpreter/LLVM diagnostics. Logs: build/language/tests-release.log.
+- Native Tower fixtures print 42/0 and 0. Graph, fast, --no-optimize executable,
+  optimized executable and Foundation reparse outputs match. Raw and optimized
+  IR plus canonical source and execution outputs are under build/language/.
+- Browser cross compiler emits each fixture twice for Wasm, Windows x64, Linux
+  x64/ARM64 and macOS x64/ARM64: all 12 artifact pairs are byte-identical.
+  Executed Wasm, Windows x64, Linux x64 and Linux ARM64 via qemu-aarch64; outputs
+  agree. macOS artifacts were emitted/linked, not executed on this host.
+- npm run test:browser -- --grep 'Tower match|Templates run|completion':
+  **12/12 desktop/mobile checks pass**, including all three execution panes and
+  imported library visibility/removal. build/language/browser-tests.log.
+- Source formatter idempotence and parse-tree preservation pass. Full static site
+  built with TOWER_REQUIRE_BACKENDS=1. Local deployment checks cover 52 assets
+  and desktop/mobile behavior; publication/online verification recorded below.
+
+Warm compilation benchmark against the previous published c69ffd5 reactor
+(source c6815f5), using the corresponding old Tower grammar: Node 22.23.4,
+20 warmups then 60 alternating pairs, compilation plus Foundation formatting.
+Median ms before -> after: small 0.1121 -> 0.1134; 500 declarations 4.5465 ->
+4.5777; inference 0.2680 -> 0.2755. These are approximately 1%, 1%, and 3%
+differences, not evidence of a material warm regression. Report includes p95 at
+build/language/benchmark.json. This does not measure cold startup or claim an
+optimization guarantee for generated match branches.
+
+Limits/dependencies remain explicit in docs/tower.md and the plan: nominal enums,
+scoped imports, full dependency queries, precedence/overloads, result/option,
+comptime/eval, general foreach/hash maps, aggregate ownership and reflection are
+future milestones. Actual allocation-exhaustion injection was not performed;
+tests exercise allocation growth and arithmetic failure preservation. No GC or
+exceptions are added. todo.txt still hashes to
+96a9e58964d7f01e4a97819f259448db81ef5e40.

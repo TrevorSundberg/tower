@@ -1,0 +1,22 @@
+import tower;
+
+// One subject evaluation, one selected arm, and a scope for every body.
+fn description(value: i32): i32 {
+    match value {
+        0 => {
+            return 10;
+        }
+        1 | 2 => {
+            return 20;
+        }
+        _ => {
+            return 30;
+        }
+    }
+}
+
+var value = 0;
+while value < 4 {
+    print(description(value));
+    value = value + 1;
+}
