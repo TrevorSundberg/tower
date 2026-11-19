@@ -11125,3 +11125,25 @@ Playwright tests (2.3 minutes), and verify-local.mjs verified all 36 served asse
 plus backend agreement, grammar edits, project persistence, native downloads,
 layout and target-selection behavior on desktop/mobile. Logs:
 build/host-runtime-browser-final.log and host-runtime-local-deployment.log.
+
+Publication verified: implementation commit 8fdb688 was committed, rebased against
+master (no new master changes), and pushed as port/host-runtime-tower. Pages commit
+1d4080c is a normal fast-forward of gh-pages from 4a5538e. Its manifest identifies
+8fdb688 and preserves the earlier formatter/interpreter/backend provenance. Only
+tower.wasm, the three worker bundles/maps and the manifest changed. The remote
+Pages API reports built at 1d4080c, with no error.
+
+Live command node playground/scripts/verify-deployment.mjs
+https://trevorsundberg.github.io/tower/ exited zero: all 36 served assets match the
+locally validated build; desktop and mobile passed backend agreement, forward
+bindings, editable grammar, persistence, native downloads, layout and target
+selection checks without page errors. Evidence: build/host-runtime-live-deployment.log
+and build/deployment-verification/report.json (copied to
+build/host-runtime-live-report.json). The Linux-host-only browser detection check
+was not run by the Windows browser host. The checkout is clean and todo.txt is
+unchanged. This journal-only follow-up does not change deployable artifacts.
+
+The ending fetch also discovered task 1's port/frontend-tower at b50bfe0, a
+replacement-expansion milestone. It is not a completed frontend/session handoff;
+no completed task 2/3 handoff was integrated here. Do not infer that the final
+bootstrap dependencies were satisfied by publishing this host-policy milestone.
