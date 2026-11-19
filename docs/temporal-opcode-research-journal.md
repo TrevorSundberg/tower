@@ -10815,3 +10815,115 @@ revision. Native seeds/references and storage/query/callback adapters remain
 explicit migration debt. The earlier workload measurements still apply:
 native execution improved on all four fixtures, while allocation-heavy Wasm
 remained about 3% slower than its native-reference implementation.
+
+
+### 2026-11-18 — Integrate both ports and divide remaining work into four owners
+
+User requested pull/rebase/push, a fresh status check and four independent tasks,
+with this machine reserving task 1 and stopping until the user says continue.
+No new migration implementation is started during this planning turn.
+
+Pulled/rebased in the clean audit worktree to preserve unrelated local edits.
+The newly fetched port/interpreter-tower at 0954b4e contains both the interpreter
+and formatter ports, already rebased over master 743a6a5 and the grammar port.
+Fast-forwarded to that combined snapshot; did not replay the older formatter
+branch a second time. Its deployable/compiler files are identical to validated
+279800d (the difference is journal-only). Restored local notes after syncing the
+main checkout; todo.txt and docs/foundation.md were hash-checked unchanged, and
+all 1,045 unrelated journal additions plus the 12-line AGENTS.md change remain
+unstaged. This supersedes the previous audit's pending-port status.
+
+Parallel ownership plan (implementation work can proceed concurrently; final
+bootstrap removal has an integration dependency and cannot honestly be called
+independent of the completed compiler):
+
+1. Frontend — this machine. Port replacement template checking/expansion first,
+   then grammar revision/session ownership, incremental declaration installation,
+   stream orchestration, parser diagnostics/recovery, highlighting and Bedrock
+   seed construction. Own syntax.cpp/.hpp, parser.cpp/.hpp, bedrock.cpp,
+   syntax-nodes.cpp/.hpp, compiler-syntax.cpp and the corresponding frontend
+   Tower modules/tests. Preserve the existing shared entity/component, source
+   provenance and grammar-update contracts. LR/DFA/regex algorithms already run
+   in Tower; do not recreate them. No semantic compiler, backend, host-driver or
+   interpreter/formatter implementation changes in this task.
+
+2. Semantic compiler/type system — external task. Own core.cpp, core-nodes.cpp,
+   the semantic declarations in core.hpp/foundation-values.hpp and corresponding
+   Foundation components and new semantic Tower modules/tests. Port module/local
+   binding, type/layout resolution, operands/operations/calls/control-flow checks,
+   template/type-constructor integration and diagnostics. Keep current shared
+   node layouts/operation IDs and query contracts stable while other owners use
+   them; coordinate a necessary ABI change explicitly instead of silently changing
+   it. Do not redesign the language or take the formatter/interpreter algorithm,
+   frontend, backend or driver work. Use compiler-owned entities directly, not
+   another semantic IR. CoreMachine declarations belong to task 4.
+
+3. LLVM/backend integration — external task. Own llvm-engine.cpp/.hpp,
+   llvm-backend.cpp, llvm-wasi.cpp and corresponding Tower backend modules/tests.
+   Port our node-to-LLVM lowering, verification/pass selection, target/object
+   emission, disassembly and browser-native linker orchestration. Preserve
+   existing target/ABI/semantic contracts and share the same Foundation entities.
+   LLVM/lld implementations remain third-party; owned glue is still migration
+   debt. Prefer upstream C APIs or proper Tower foreign bindings for C++-only
+   entry points rather than a permanent custom native shim. Task 4 owns driver,
+   browser exports, guest runtime and package/build wiring. Preserve old entry
+   contracts until its new hosts can consume the Tower backend API.
+
+4. Host/runtime/bootstrap integration — external task. Own driver.cpp,
+   browser.cpp, main.cpp, runtime.c, compiler-memory.cpp, tower.cpp, parser-nodes.cpp,
+   residual registration/storage/callback bridges (including core-machine.cpp,
+   format.cpp and the CoreMachine declarations in core.hpp), shared utility
+   modules and native utility/interpreter/formatter test migration. Move host
+   memory/containers, component lifecycle, foreign-call dispatch, compiler CLI,
+   browser ABI/serialization and platform runtime into Tower. Preserve the browser
+   worker protocol and cancellation behavior. Own final root CMake/build-script/
+   test-runner integration and compiler binary packaging. Other owners may make
+   the minimal additive registration changes needed to build/test their branch;
+   keep those in separate commits with scoped source lists/module fragments/test
+   entry points. Do not broadly refactor shared build files in those tasks. This
+   avoids making their validation wait for this integrator. Do not rewrite task
+   1/2/3 algorithms. This task starts against their current interfaces.
+
+   Prepare committed portable Tower bootstrap executables for Windows/Linux/macOS
+   with explicit architecture, version, hash, dependency/license and build
+   provenance records. Use the checked-in compiler to build its successor from
+   Tower sources without an installed project C++ compiler. After the other ports
+   land, validate successive self-builds, run platform-native smoke tests where
+   available, and remove all owned native seeds/references/adapters/test logic.
+   Cross-linking alone is not evidence an executable runs on that platform.
+   Report and minimize actual binary size/startup; retained third-party backend
+   requirements must be explicit, not hidden downloads. Do not relabel a native
+   seed executable as a completed Tower-written compiler.
+
+Common requirements: obey AGENTS.md; do not modify todo.txt; work on separate
+branches from the integrated master; use existing shared entities and compilable
+Foundation text; preserve deterministic explicit-target execution and raw pointer
+contracts; write new functional tests in Tower. Preserve temporary reference
+comparisons only until their replacements are validated, then retire them.
+Benchmark the affected native/Wasm paths against the starting snapshot; report
+regressions and limitations honestly, retaining correctness. Keep each journal
+append, source list, test and ABI handoff independently reviewable. Shared core.hpp
+changes must stay within the semantic versus CoreMachine sections above.
+
+Local integration validation and publication results follow below. No fresh
+universal performance claim is made for these unchanged port implementations.
+
+Local integration checks passed: the Linux native compiler rebuilt from the
+combined source; ASan/UBSan CTest passed 5/5 (18.28 seconds); 16 native LLVM
+comparisons passed against the Tower interpreter, with and without optimization.
+Logs: build/parallel-ports-native.log, parallel-ports-asan-build.log,
+parallel-ports-asan-tests.log and parallel-ports-llvm.log. Commands were
+build-native.sh, cmake --build /root/.cache/tower/core-asan --parallel 3,
+ctest --test-dir /root/.cache/tower/core-asan --output-on-failure, and python3
+scaffolding/tests/interpreter-llvm.py /root/.cache/tower/native/towerc
+build/parallel-ports-llvm from WSL Orchestral-Revng. These are new local checks;
+the other worker's full browser/WASI/Node results remain attributed to its entry.
+
+Pages already contains this combined frontend at 4a5538e. Requested a rebuild
+of the current Pages branch through POST /repos/TrevorSundberg/tower/pages/builds;
+the subsequent API check reports built, commit 4a5538e, no error. The live hash
+check verified its deployment manifest plus all 35 served assets against the
+published branch; it preserves the separately bundled backend provenance. An
+attempt to cancel the prior audit's older rerun reported it was already complete;
+the final Pages build API identifies the newer 4a5538e, not the older formatter
+deployment. No asset was rolled back and no new backend rebuild is claimed.
