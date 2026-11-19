@@ -13825,3 +13825,21 @@ interpreter implementation therefore remain unchanged. Evidence:
 `build/fast-backend-native-target-build.log`, `fast-backend-native-tests.log`,
 `fast-backend-cli-tests.log`, and `fast-backend-module-agreement.log` (successful
 `cmp` is silent). Native build instructions now link the current backend recipe.
+
+Publication completed: implementation/source release 8a226ca was committed,
+pulled/rebased and pushed normally. Pages commit b8ae368 is a fast-forward of
+3507ba5. Its manifest records nine rebuilt assets (reactor plus JS/maps) and 27
+retained assets, including the latest LLVM/cross modules and all runtime packs.
+The 797,070-byte interpreter reactor has SHA-256
+`7f5924df8ec563328b52048c33339955703b288500a904bed6f099fcc718fcc2`.
+Transient GitHub DNS failures interrupted the first deployment push and the first
+source push; ordinary retries succeeded without force or lost upstream work.
+
+GitHub Pages reports `built` at b8ae368 with no error. Hosted verification against
+https://trevorsundberg.github.io/tower/ passed all 36 exact asset hashes and both
+desktop/mobile behavioral suites: three-runner agreement, `.towerbc v1` download
+and reconstructed Foundation, editable grammar, forward bindings, project
+persistence, native downloads and default target detection. Evidence:
+`build/fast-live-deployment.log` and `build/deployment-verification/`. The final
+publication-record commit changes only this journal; the tested/published code
+and manifest remain the 8a226ca source release and b8ae368 Pages deployment.
