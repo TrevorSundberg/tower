@@ -12,10 +12,6 @@ extern fn syntax_get_revision(session: void*): usize;
 
 extern fn syntax_get_error_offset(session: void*): usize;
 
-extern fn entity_attach(child: void*, parent: void*, name: u8*): bool;
-
-extern fn entity_release(entity: void*): usize;
-
 extern fn bytes_append(target: vector(u8)*, data: u8*, count: usize): bool;
 
 struct FrontendSource {

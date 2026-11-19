@@ -13116,3 +13116,61 @@ The new APIs reuse shared syntax/semantic entities; they are not a separate IR.
 Task 3's explicit semantic component APIs can replace the remaining singleton
 kind handoff when the full Tower frontend context is connected. No speculative
 native fallback or new external runtime dependency was introduced.
+
+## 2026-11-19 - Unified Tower token-pattern reader and runtime integration
+
+Rebased the frontend work onto the other runtime owner's dfdf95b/6610461. Kept
+both journal entries and combined the bootstrap import allowlists, preserving
+the runtime owner's removal of obsolete formatter/interpreter callbacks. The
+frontend composition now inherits entity_attach/entity_release declarations
+from semantic-context.tower instead of redeclaring them. The rebase used the
+existing clean audit checkout because unrelated local notes remain uncommitted;
+only the journal was temporarily preserved/restored in main. No todo edits were
+staged or authored, and unrelated local files remain outside these commits.
+
+Also migrated the remaining lex-pattern.cpp character-reader orchestration and
+pattern diagnostics into frontend-pattern.tower. Production pattern compilation
+uses frontend_read_characters and the existing regex grammar/LR/DFA lowering,
+with an explicit source length, UTF-8 validation and the same 4,096-byte limit.
+It borrows source bytes instead of allocating a separate native UTF-8 stream.
+Diagnostics use the shared formatter for quoting/numbers and report Unicode
+character positions; a Tower test verifies alpha followed by a stray closing
+parenthesis reports character 2, alongside successful Unicode matching and
+cleanup. The native file is now only its existing string/ownership ABI bridge;
+the already-existing bootstrap/lex-pattern-seed.cpp is unchanged. The initial
+Bedrock constructor and public pattern compiler currently own separate derived
+pattern tables; a future explicit frontend context can share that initialization.
+
+Integrated validation completed so far:
+
+- Native Release compiler rebuilt and increment again produces 5,6,7,7,9.
+- ASan/UBSan CTest: 5/5 passed, 46.39 seconds with concurrent build activity.
+- Optimized Windows parser/compiler suite passes; the Windows interpreter CTest
+  also passes (4.15 seconds). Formatting/reference checks cover 97 canonical files.
+- All three browser reactors rebuilt from the integrated sources. Node suite:
+  224/224 passed, 42.21 seconds. Grammar edits, cache reuse, forward references,
+  replacement diagnostics, semantic checks, canonical formatting, native exports
+  and interpreter/LLVM agreement remain covered by the existing tests.
+- Full parser/host and interpreter differential harnesses execute on wasm32.
+  test-host-runtime.sh built both targets successfully but its final invocation
+  failed because this WSL distribution has no `node` command. Copied the two
+  generated Wasm artifacts into build/ and ran the existing host-wasi.mjs and
+  interpreter-wasi.mjs runners using Windows Node. Both passed, including new
+  Tower frontend allocation-failure tests. Interpreter differential: 156 runs.
+- Browser-produced Windows executables print 5,84,42,8,41,42 and the linked library
+  prints 42. test-browser-exports.sh also passes Linux x64 and qemu ARM64 execution.
+  This is not native macOS execution.
+- The pre-integration checkpoint completed all 28 byte-identical optimized-LLVM
+  and object comparisons (seven compiler modules by four targets). The final
+  integrated comparison, browser UI checks, profiling and publication follow.
+
+Logs: build/frontend-owner-final-{asan,windows,bootstrap,browser-build,wasi}.log,
+frontend-owner-windows-interpreter.log, frontend-owner-wasi-execution.log,
+frontend-owner-node-tests.log, frontend-owner-exports-linux.log and
+frontend-owner-format.log. The deployment checkout was fast-forwarded to the
+other machine's 79f8128 release. Its seven target-support assets were hash-checked
+and preserved for the next publication instead of regenerating unrelated objects
+or overwriting them with older local copies.
+
+This advances Task 1; it does not complete native session/version/presentation
+ownership or the portable bootstrap executable cutover described above.

@@ -124,9 +124,56 @@ fn frontend_test_diagnostics(kinds: FrontendKinds*): usize {
     return result;
 }
 
+fn frontend_test_pattern_reader(kinds: FrontendKinds*): usize {
+    var buffers = tower_test_buffer_count();
+    var compiler = frontend_pattern_create(kinds);
+    var ok = compiler != null;
+    var error: FormatResult;
+    fill(&error, 0, sizeof(FormatResult));
+    if ok {
+        var source: u8* = "α[0-9]+";
+        var pattern = frontend_pattern_read(compiler, source, syntax_text_length(source), &error);
+        ok = pattern != null;
+        if ok {
+            ok = error.text.length == 0;
+            var sample: u8* = "α123!";
+            var matched = lex_table_match(pattern.table, sample, syntax_text_length(sample), 0) == 5;
+            if matched {} else {
+                ok = false;
+            }
+            syntax_pattern_release(pattern);
+        }
+    }
+    format_dispose(&error);
+    if ok {
+        var source: u8* = "α)";
+        var pattern = frontend_pattern_read(compiler, source, syntax_text_length(source), &error);
+        ok = pattern == null;
+        syntax_pattern_release(pattern);
+        if ok {
+            ok = format_name_is(&error.text, "Unexpected ')'. In token pattern at character 2");
+        }
+    }
+    format_dispose(&error);
+    frontend_pattern_destroy(compiler);
+    var leaked = tower_test_buffer_count() != buffers;
+    if leaked {
+        return 716;
+    }
+    if ok {
+        return 0;
+    }
+    return 717;
+}
+
 export fn frontend_bedrock_tests(kinds: FrontendKinds*): usize {
     var result = frontend_cache_tests(kinds);
     var failed = result != 0;
+    if failed {
+        return result;
+    }
+    result = frontend_test_pattern_reader(kinds);
+    failed = result != 0;
     if failed {
         return result;
     }

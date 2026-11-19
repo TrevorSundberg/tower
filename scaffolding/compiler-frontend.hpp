@@ -8,6 +8,15 @@ struct FrontendKinds {
 extern "C" TowerNode* frontend_bedrock_create(FrontendKinds*);
 extern "C" size_t frontend_bedrock_tests(FrontendKinds*);
 
+struct FrontendPatternCompiler;
+struct TowerFormatResult;
+struct LexPattern;
+extern "C" {
+FrontendPatternCompiler* frontend_pattern_create(const FrontendKinds*);
+void frontend_pattern_destroy(FrontendPatternCompiler*);
+LexPattern* frontend_pattern_read(FrontendPatternCompiler*, const char*, size_t, TowerFormatResult*);
+}
+
 struct FrontendSource { const char* data; size_t length; };
 struct SemanticProgram;
 extern "C" void frontend_compile_sources(SemanticProgram*, const FrontendSource*, size_t);
