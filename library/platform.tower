@@ -1,0 +1,6 @@
+import tower;
+
+// Shared synchronous host ABI. 1 = stdout, 2 = stderr.
+// Returns bytes written, or -1 for an unsupported stream / I/O failure.
+// The implementation borrows data only for this call; length is in bytes.
+extern fn platform_write(stream: u32, data: u8*, length: usize): i64;

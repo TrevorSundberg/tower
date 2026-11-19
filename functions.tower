@@ -1,3 +1,5 @@
+import tower;
+
 // Functions, arguments and returns are part of Tower's foundation.
 // Edit their grammar in the shared foundation.tower module.
 var answer: i32;

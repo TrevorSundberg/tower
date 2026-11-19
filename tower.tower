@@ -1,0 +1,10 @@
+import foundation;
+
+// Named values are ordinary zero-argument Tower functions. Calling Name()
+// evaluates the initializer under the same execution contract as any function.
+// They do not imply memoization or a separate constant-expression evaluator.
+parse TowerConstant = 'const' $name:Identifier ':' $type:CoreType '=' $value:CoreValue ';'
+    => replace { fn $name(): $type { var result: $type = $value; return result; } };
+parse TowerExportedConstant = 'export' 'const' $name:Identifier ':' $type:CoreType '=' $value:CoreValue ';'
+    => replace { export fn $name(): $type { var result: $type = $value; return result; } };
+parse Statement |= TowerConstant | TowerExportedConstant;

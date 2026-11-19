@@ -1,0 +1,78 @@
+import tower;
+
+// Raw, explicitly owned storage. Initialize/dispose once; growth invalidates
+// element pointers. Push currently accepts scalar/pointer elements, not copies
+// of aggregate values. Type construction and specialization use shared nodes.
+fn vector(T: type): type {
+    struct Result {
+        data: T*;
+        length: usize;
+        capacity: usize;
+    }
+    return Result;
+}
+
+fn vector_init(T: type, value: vector(T)*): void {
+    value.data = null;
+    value.length = 0;
+    value.capacity = 0;
+}
+
+fn vector_reserve(T: type, value: vector(T)*, needed: usize): bool {
+    var enough = needed <= value.capacity;
+    if enough {
+        return true;
+    }
+    var maximum: usize = 0;
+    maximum = maximum - 1;
+    var size = sizeof(T);
+    var limit = maximum / size;
+    var impossible = needed > limit;
+    if impossible {
+        return false;
+    }
+    var capacity = value.capacity * 2;
+    var wrapped = capacity < value.capacity;
+    if wrapped {
+        capacity = needed;
+    }
+    var small = capacity < 8;
+    if small {
+        capacity = 8;
+    }
+    small = capacity < needed;
+    if small {
+        capacity = needed;
+    }
+    var large = capacity > limit;
+    if large {
+        capacity = needed;
+    }
+    var next = realloc(T, value.data, capacity);
+    var failed = next == null;
+    if failed {
+        return false;
+    }
+    value.data = next;
+    value.capacity = capacity;
+    return true;
+}
+
+fn vector_push(T: type, value: vector(T)*, element: T): bool {
+    var needed = value.length + 1;
+    var overflow = needed == 0;
+    if overflow {
+        return false;
+    }
+    var ok = vector_reserve(T, value, needed);
+    if ok {
+        value.data[value.length] = element;
+        value.length = needed;
+    }
+    return ok;
+}
+
+fn vector_dispose(T: type, value: vector(T)*): void {
+    free(value.data);
+    vector_init(T, value);
+}

@@ -1,3 +1,5 @@
+import tower;
+
 // Uses the shared foundation.tower module.
 // This syntax has no native execution handler: it expands into CoreAssign.
 parse Statement |= 'increment' $name:Identifier ';'
