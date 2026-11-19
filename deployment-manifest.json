@@ -33,8 +33,15 @@
     "tower-cross.wasm.gz": "8cc03619e467b0f2a470c35db0a314902b5a30b41f8c3e69086e760f09ffe819",
     "tower-llvm.wasm": "7d45e146d383771ee6221ae5aa5ba9d7fb9d4a6710a7b726ad095cfda0207b76",
     "tower-llvm.wasm.gz": "74757673066dabbc7969b4a10580a68f30fd17c618466ff2e6be231c100fa8e1",
-    "tower.wasm": "e0179084faf38dca5a45f23b024084161495844a9705f9a891a9252935923756",
+    "tower.wasm": "0aeb6dda968bb18e07611f8c58beda239483642a6462e6e8c36813d73e4c21f3",
     "worker.js": "b3ef82e078567118e210b996ed60731303e8a1550202f3207776c30bb00dcf03",
     "worker.js.map": "9b9bf4c1118d539263ef218a2a8a93dbb7f60d76d16fe4d5a487e0751bca1b45"
+  },
+  "provenance": {
+    "tower.wasm": {
+      "sourceCommit": "dfdf95ba9bd398ba16d7514b4f299bb5e816566c",
+      "previousDeployment": "35becfd0e786a8f2200e6c23cb95475a920230cd",
+      "scope": "Shared runtime/query cutover in the parser/interpreter reactor. Other assets retain their previous deployment bytes."
+    }
   }
 }
