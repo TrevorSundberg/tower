@@ -353,5 +353,14 @@ try {
       console.log('Real Linux browser: Wasm and ' + targets[key].label + ' selected by default.');
     } finally { await context.close(); }
   }
+} catch (error) {
+  const failures=[];
+  for (const context of browser.contexts()) for (const page of context.pages()) {
+    failures.push({url:page.url(),status:await page.locator('#execution-status').textContent().catch(()=>null),
+      errors:await page.locator('.runner-error').allTextContents(),
+      diagnostic:await page.locator('#error-message').textContent().catch(()=>null)});
+  }
+  await writeFile(new URL('failure.json',output),JSON.stringify(failures,null,2)+'\n');
+  throw error;
 } finally { await browser.close(); }
 await writeFile(new URL('report.json',output),JSON.stringify(report,null,2)+'\n');

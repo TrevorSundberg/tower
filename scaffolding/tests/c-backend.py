@@ -22,6 +22,8 @@ def run(args, success=True):
 
 
 cases = {}
+for name in ['language-enums', 'backend-import-constants']:
+    cases[name] = (pathlib.Path('scaffolding/tests') / (name + '.tower')).read_text()
 for name in ['execution', 'functions', 'structs', 'memory', 'inference', 'templates', 'control', 'collections']:
     file = pathlib.Path('scaffolding/examples') / (name + '.tower')
     if file.exists():

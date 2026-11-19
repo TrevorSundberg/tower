@@ -2,69 +2,131 @@ import tower;
 
 // Comments are optional metadata on the same Foundation entities. The lexer
 // supplies spans; neither this attachment path nor either emitter tokenizes source.
-fn source_comment_target(entity: void*, begin: usize, end: usize, limit: usize, best: void*): void* {
+fn source_comment_targets(entity: void*, base: usize, limit: usize, targets: vector(void*)*): void {
     var n = sem_get(entity);
-    var c_step1 = n == null;
-    if c_step1 {
-        return best;
+    var absent = n == null;
+    if absent {
+        return;
     }
-    var c_step2 = n.start >= end;
-    if c_step2 {
-        var c_step3 = n.start < limit;
-        if c_step3 {
-            var use = best == null;
-            if use {}
-            else {
-                var previous = sem_get(best);
-                use = n.start < previous.start;
-            }
-            if use {
-                best = entity;
-            }
-        }
+    var inside = n.start >= base;
+    if inside {
+        inside = n.start < limit;
     }
-    var c_step4 = n.kind == KFunction();
-    if c_step4 {
-        return source_comment_target(n.body, begin, end, limit, best);
+    if inside {
+        sem_require(vector_push(void*, targets, entity));
     }
-    var c_step5 = n.kind == KIf();
-    if c_step5 {
-        best = source_comment_target(n.body, begin, end, limit, best);
-        return source_comment_target(n.otherwise, begin, end, limit, best);
+    var function = n.kind == KFunction();
+    var looping = n.kind == KLoop();
+    if looping {
+        function = true;
     }
-    var c_step6 = n.kind == KLoop();
-    if c_step6 {
-        return source_comment_target(n.body, begin, end, limit, best);
+    if function {
+        source_comment_targets(n.body, base, limit, targets);
+        return;
+    }
+    var conditional = n.kind == KIf();
+    if conditional {
+        source_comment_targets(n.body, base, limit, targets);
+        source_comment_targets(n.otherwise, base, limit, targets);
+        return;
     }
     var list = n.kind == KProgram();
-    var c_step7 = n.kind == KBlock();
-    if c_step7 {
+    var block = n.kind == KBlock();
+    if block {
         list = true;
     }
     if list {
         var i: usize = 0;
         loop {
-            var c_step8 = i == n.items.length;
-            if c_step8 {
+            var done = i == n.items.length;
+            if done {
                 break;
             }
-            best = source_comment_target(n.items.data[i], begin, end, limit, best);
+            source_comment_targets(n.items.data[i], base, limit, targets);
             i = i + 1;
         }
     }
-    return best;
 }
 
-export fn semantic_source_comment(root: void*, source: u8*, first: usize, last: usize, base: usize, length: usize): void {
-    var c_step9 = first + base;
-    var c_step10 = last + base;
-    var c_step11 = base + length;
-    var target = source_comment_target(root, c_step9, c_step10, c_step11, null);
-    var c_step12 = target == null;
-    if c_step12 {
-        target = root;
+// Stable bottom-up merge sort preserves the original traversal's first match
+// when generated nodes share a source position. This index is discarded below.
+fn source_comment_sort(targets: vector(void*)*): void {
+    var scratch: vector(void*);
+    vector_init(void*, &scratch);
+    var i: usize = 0;
+    loop {
+        var done = i == targets.length;
+        if done {
+            break;
+        }
+        sem_require(vector_push(void*, &scratch, targets.data[i]));
+        i = i + 1;
     }
-    var n = sem_get(target);
+    var width: usize = 1;
+    loop {
+        var done = width >= targets.length;
+        if done {
+            break;
+        }
+        var begin: usize = 0;
+        loop {
+            done = begin >= targets.length;
+            if done {
+                break;
+            }
+            var middle = begin + width;
+            var end = middle + width;
+            var past = middle > targets.length;
+            if past {
+                middle = targets.length;
+            }
+            past = end > targets.length;
+            if past {
+                end = targets.length;
+            }
+            var left = begin;
+            var right = middle;
+            var at = begin;
+            loop {
+                done = at == end;
+                if done {
+                    break;
+                }
+                var take_left = right == end;
+                var available = left < middle;
+                if available {
+                    if take_left {} else {
+                        var a = sem_get(targets.data[left]);
+                        var b = sem_get(targets.data[right]);
+                        take_left = a.start <= b.start;
+                    }
+                } else {
+                    take_left = false;
+                }
+                if take_left {
+                    scratch.data[at] = targets.data[left];
+                    left = left + 1;
+                }
+                else {
+                    scratch.data[at] = targets.data[right];
+                    right = right + 1;
+                }
+                at = at + 1;
+            }
+            begin = end;
+        }
+        var swap = targets.data;
+        targets.data = scratch.data;
+        scratch.data = swap;
+        var capacity = targets.capacity;
+        targets.capacity = scratch.capacity;
+        scratch.capacity = capacity;
+        width = width * 2;
+    }
+    vector_dispose(void*, &scratch);
+}
+
+fn source_comment_append(n: FoundationNode*, source: u8*, first: usize, last: usize): void {
     // Normalize imported/custom lexer spellings into compilable Foundation trivia.
     var c_step13 = last > first;
     if c_step13 {
@@ -110,6 +172,53 @@ export fn semantic_source_comment(root: void*, source: u8*, first: usize, last: 
         first = next;
     }
     sem_require(bytes_append(&n.comments, "*/\n", 3));
+}
+
+export fn semantic_source_comments(root: void*, source: u8*, spans: usize*, count: usize, base: usize, length: usize): void {
+    var empty = count == 0;
+    if empty {
+        return;
+    }
+    var targets: vector(void*);
+    vector_init(void*, &targets);
+    var limit = base + length;
+    source_comment_targets(root, base, limit, &targets);
+    source_comment_sort(&targets);
+    var i: usize = 0;
+    loop {
+        var done = i == count;
+        if done {
+            break;
+        }
+        var next = i + 1;
+        var boundary = base + spans[next];
+        var left: usize = 0;
+        var right = targets.length;
+        loop {
+            done = left == right;
+            if done {
+                break;
+            }
+            var middle = right - left;
+            middle = middle / 2;
+            middle = middle + left;
+            var node = sem_get(targets.data[middle]);
+            var before = node.start < boundary;
+            if before {
+                left = middle + 1;
+            } else {
+                right = middle;
+            }
+        }
+        var target = root;
+        var found = left < targets.length;
+        if found {
+            target = targets.data[left];
+        }
+        source_comment_append(sem_get(target), source, spans[i], spans[next]);
+        i = i + 2;
+    }
+    vector_dispose(void*, &targets);
 }
 
 fn source_comments_walk(entity: void*, target: vector(u8)*, strip: bool): void {

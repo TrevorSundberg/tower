@@ -324,6 +324,7 @@ test('LLVM loading can be cancelled without obsolete results replacing a new run
   await page.locator('#auto-execute').uncheck();
   await page.locator('#build-targets summary').click();
   await page.locator('#target-wasm').uncheck();
+  await page.locator('#build-targets summary').click();
   await setSource(page, grammar + '\nprint(12);');
   let release; const gate = new Promise(resolve => { release = resolve; });
   await page.route('**/tower-llvm.wasm.gz', async route => { await gate; await route.continue().catch(() => {}); });

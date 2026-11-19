@@ -63,3 +63,15 @@ test('C ABI signatures retain signed parameters and return types',()=>{
     assert.match(text,/int64_t signed64\(int64_t v\d+\)/);
   }finally{tower.destroyExecution(h);}
 });
+
+test('bulk comment indexing keeps declaration associations and canonical order',()=>{
+  const source=Array.from({length:128},(_,i)=>`// note_${i}\nfn f${i}():i32 { return ${i}; }`).join('\n')+'\nprint(f127());';
+  const h=tower.compile(source,{pointerBytes:8});
+  try {
+    const canonical=tower.foundation(h).source;
+    for(let i=0;i<128;i++) assert.match(canonical,new RegExp(`/\\* note_${i}\\*/\\nfn f${i}\\(`));
+    const round=tower.compile(canonical,{pointerBytes:8});
+    try { assert.equal(tower.foundation(round).source,canonical); } finally { tower.destroyExecution(round); }
+    assert.equal((tower.cSource(h).match(/note_\d+/g)??[]).length,128);
+  }finally{tower.destroyExecution(h);}
+});

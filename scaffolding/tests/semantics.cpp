@@ -47,6 +47,7 @@ void compare(const std::vector<std::string>& files, unsigned width, bool valid) 
     for (const auto& file : files) std::cerr << file << '\n';
   }
   assert(actual.error == reference.error && actual.error_offset == reference.error_offset);
+  assert(reference.error.empty() == valid);
   // Error trees are intentionally incomplete; they are not public results.
   if (!valid) return;
   assert(snapshot(actual) == snapshot(reference));

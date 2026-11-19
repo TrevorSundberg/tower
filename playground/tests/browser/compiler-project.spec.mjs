@@ -1,5 +1,6 @@
 import {test, expect} from '@playwright/test';
 import {savedProject} from './project-helpers.mjs';
+import {outputText} from './output-text.mjs';
 async function edit(page,text) {
   const editor = page.getByRole('textbox',{name:'Tower source'});
   await page.locator('#editor').click({position:{x:80,y:20}});
@@ -78,6 +79,17 @@ test('browser rebuild activates edited compiler behavior and reset recovers the 
   await page.locator('#auto-execute').uncheck();
   await edit(page,'var value:i32 = 42; print(value);');await hoverValue(page);
   await expect(page.locator('.tw-hover-signature')).toHaveText('var value: i32');
+  await edit(page,'// rebuilt C note\nprint(42);');
+  await page.locator('#build-targets summary').click();
+  await page.locator('#target-c').check();
+  await page.locator('#build-targets summary').click();
+  await page.locator('#execute').click();
+  await expect(page.locator('#c-download')).toHaveAttribute('href',/^blob:/,{timeout:60000});
+  await expect.poll(()=>outputText(page,'c-disassembly')).toContain('rebuilt C note');
+  await expect(page.locator('#execution-status')).toContainText('backends match');
+  await page.locator('#build-targets summary').click();
+  await page.locator('#target-c').uncheck();
+  await page.locator('#build-targets summary').click();
   await edit(page,'var value: i32 = null;'); await page.locator('#execute').click();
   await expect(page.locator('#execution-error')).toContainText('Workbench says: null requires a pointer type');
   await page.locator('#project-kind').selectOption('tower:compiler');

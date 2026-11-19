@@ -164,10 +164,8 @@ export fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendS
                 }
                 var current = frontend_module_at(module, d);
                 var ordinary = frontend_module_roots(current) != 0;
-                var entry = current == module;
-                if entry {
-                    ordinary = true;
-                }
+                // Grammar-only files keep trivia on their grammar/source nodes.
+                // Do not substitute that source for executable Foundation output.
                 if ordinary {
                     frontend_module_attach_comments(current, program.root, base);
                 }

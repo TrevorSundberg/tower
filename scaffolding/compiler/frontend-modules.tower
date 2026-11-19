@@ -19,7 +19,7 @@ extern fn syntax_next(session: void*): void*;
 
 extern fn syntax_capture_comments(session: void*, module: FrontendModule*): void;
 
-extern fn semantic_source_comment(root: void*, source: u8*, first: usize, last: usize, base: usize, length: usize): void;
+extern fn semantic_source_comments(root: void*, source: u8*, spans: usize*, count: usize, base: usize, length: usize): void;
 
 extern fn syntax_get_error(session: void*): u8*;
 
@@ -1052,16 +1052,7 @@ export fn frontend_module_comment(module: FrontendModule*, first: usize, last: u
 }
 
 export fn frontend_module_attach_comments(module: FrontendModule*, root: void*, base: usize): void {
-    var i: usize = 0;
-    loop {
-        var done = i == module.comments.length;
-        if done {
-            break;
-        }
-        var last = i + 1;
-        semantic_source_comment(root, module.source.text.data, module.comments.data[i], module.comments.data[last], base, module.source.text.length);
-        i = i + 2;
-    }
+    semantic_source_comments(root, module.source.text.data, module.comments.data, module.comments.length, base, module.source.text.length);
 }
 
 export fn frontend_module_count(module: FrontendModule*): usize {

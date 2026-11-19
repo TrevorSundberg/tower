@@ -92,16 +92,23 @@ export async function linkCompiler({compiler, recipe, files, inputs, support, pr
   // Instantiate every candidate before publishing any of them. A failed build
   // leaves the previous generation active; reset never depends on candidate code.
   const tower = await loadTower(modules.tower, undefined, grammar.foundation, undefined, grammar.bedrock, {tower:grammar.tower});
-  const fixture = 'import tower; import helpers.answer; import "helpers/answer"; print(answer());';
+  const fixture = '// candidate C metadata\nimport tower; import helpers.answer; import "helpers/answer"; print(answer());';
   const probeFiles = [{path:'probe.tower',text:fixture}, {path:'helpers/answer.tower',text:'import tower; fn answer(): i32 { return 42; }'}];
   tower.configureModules({entry:'probe.tower',files:probeFiles,builtins:grammar});
   const parse = tower.create(fixture);
   try { const {end} = runToEnd(tower,parse); if (end.status !== 'done') throw new Error('Candidate parser: '+end.error); }
   finally { tower.destroy(parse); }
   const handle = tower.compile(fixture);
+  const checkC = handle => {
+    const output = tower.cSource(handle);
+    if (!output.includes('int main(void)') || !output.includes('candidate C metadata') ||
+        tower.cSource(handle,{comments:false}).includes('candidate C metadata'))
+      throw new Error('Candidate C output/comment check failed');
+  };
   let foundation;
   try {
     foundation = tower.foundation(handle).source;
+    checkC(handle);
     for (const fast of [false,true]) {
       const run = fast ? tower.compile(fixture) : handle;
       try {
@@ -139,6 +146,7 @@ export async function linkCompiler({compiler, recipe, files, inputs, support, pr
     if (lowered.status === 'error') throw new Error('Candidate LLVM Foundation: '+lowered.error);
     const optimized = tower.compile(lowered.foundation);
     try {
+      checkC(optimized);
       tower.useFast(optimized);
       let output = '', status;
       for (let i = 0; i < 100; ++i) {
