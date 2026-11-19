@@ -56,6 +56,19 @@ for(const [name,output] of [['language-control','42\n0\n'],['language-collection
     assert.equal(result.output,output);
     assert.equal(tower.foundation(h2).source,canonical);
    } finally { tower.destroyExecution(h2); }
+   if(fast) for(const optimize of [false,true]) {
+    const rebuilt=llvm.compile(canonical,{emit:'foundation',optimize,
+     target:pointerBytes===8?'wasm64-unknown-unknown':'wasm32-unknown-unknown'});
+    assert.equal(rebuilt.status,'compiled',rebuilt.error);
+    const optimized=tower.compile(rebuilt.foundation,{pointerBytes});
+    try {
+     tower.useFast(optimized);
+     let result, text='';
+     do { result=tower.execute(optimized,100000);text+=result.output; } while(result.status==='executing');
+     assert.equal(result.status,'done',result.error);
+     assert.equal(text,output);
+    } finally { tower.destroyExecution(optimized); }
+   }
   }
   for(const text of [source,canonical]) {
    const compiled=llvm.compile(text);

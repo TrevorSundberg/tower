@@ -123,7 +123,7 @@ void formatter_tests() {
     }
     tower_format_compare_reference(true);
   }
-  size_t files = 0;
+  size_t files = 0, invalid_files = 0;
   const auto library = std::filesystem::path(__FILE__).parent_path().parent_path();
   auto* previous_modules = syntax_modules;
   syntax_modules = frontend_modules_create();
@@ -137,6 +137,14 @@ void formatter_tests() {
     const auto name = entry.path().filename().string();
     const int baseline = name == "bedrock.tower" ? 1 : name == "foundation.tower" ? 2 : 0;
     const auto input = read(entry.path());
+    if (entry.path().parent_path().filename() == "syntax-invalid") {
+      auto* session = syntax_create(input.c_str());
+      while (auto* root = syntax_next(session)) tower_node_release_ref(root);
+      assert(*syntax_get_error(session));
+      syntax_destroy(session);
+      ++invalid_files;
+      continue;
+    }
     auto formatted = source(input, baseline);
     assert(formatted.source == input);
     assert(source(formatted.source, baseline).source == formatted.source);
@@ -145,5 +153,5 @@ void formatter_tests() {
   tower_format_compare_reference(true);
   frontend_modules_destroy(syntax_modules);
   syntax_modules = previous_modules;
-  printf("Formatter: legacy reference text/spans, module round trips, failure cleanup, %zu canonical files.\n", files);
+  printf("Formatter: legacy reference text/spans, module round trips, failure cleanup, %zu canonical files, %zu invalid fixtures rejected.\n", files, invalid_files);
 }

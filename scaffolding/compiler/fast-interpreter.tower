@@ -878,8 +878,8 @@ export fn fast_interpreter_create(m: IMState*): FMState* {
             var end = j == f.labels.length;
             var available = end == false;
             im_storage_require(available);
-            var match = f.labels.data[j].key == f.jumps.data[i].key;
-            if match {
+            var matches = f.labels.data[j].key == f.jumps.data[i].key;
+            if matches {
                 fm_patch(f, convert(usize, f.jumps.data[i].value), 2, convert(usize, f.labels.data[j].value));
                 break;
             }

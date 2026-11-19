@@ -14744,3 +14744,30 @@ only this turn's ignored, reproducible build/llvm-bc-vendor.tar (1,041,807,360
 bytes); source, local changes and published artifacts were retained. Re-ran the
 affected checks with free space. Final validation and measurements below use
 reactors rebuilt after the parser-reset correction, not earlier binaries.
+
+That integration completed successfully: 261 Node tests, 140 browser cases,
+five ASAN CTests, Windows and WASI parser suites, 156 interpreter comparisons
+on both Windows and WASI, 172 LLVM/cache comparisons plus eight module cases,
+16 native LLVM execution comparisons, backend API and 48-asset local publication
+verification. Logs use build/llvm-bc-verified-* and rebase-asan-tests-final.log.
+Before publishing, the next required pull advanced main to 014fdbf (4ae9076 adds
+Tower while/match, collection modules and language planning; a2b6c05 is its
+published artifact revision). Preserved all 38 upstream files and journal
+entries. The lowering conflict combines label/jump/trap handling with upstream's
+quoted match identifier. Three new local variables in our importer/cache compiler
+were renamed to matches because the Tower layer now owns the match token. The
+first rebuild caught the remaining cache-local spelling; the corrected rebuild
+uses the same module-capable Tower bootstrap, with no additional seed.
+
+Extended the upstream control/collection behavioral fixtures through the LLVM
+round trip and fast execution at both pointer widths, optimized and no-opt.
+Their original graph/raw-cache/Foundation/Wasm checks remain. The release must
+retain the new Match/Collections examples, imported stack/queue libraries and
+all 52 published assets. The final figures below supersede both earlier builds.
+
+The updated native formatter scan initially attempted to format the two new
+deliberately incomplete syntax-invalid fixtures. It now requires those fixtures
+to fail parsing, while retaining exact canonical/idempotent checks for valid
+files, matching the distinction already made by upstream's format-tower script.
+The integrated Node suite passes 264/264, including both new language fixtures
+through optimized/no-opt LLVM reconstruction at both pointer widths.

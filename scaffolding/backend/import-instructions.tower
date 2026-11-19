@@ -20,8 +20,8 @@ fn bi_edge(c: BackendImport*, from: void*, to: void*): void {
             if done {
                 break;
             }
-            var match = LLVMGetIncomingBlock(instruction, i) == from;
-            if match {
+            var matches = LLVMGetIncomingBlock(instruction, i) == from;
+            if matches {
                 var value = bi_value(c, LLVMGetIncomingValue(instruction, i));
                 var snapshot = bi_decl(c, bi_scalar(c, LLVMTypeOf(instruction)));
                 bi_assign(c, bi_ref(c, snapshot), value);
