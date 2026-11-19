@@ -7,18 +7,19 @@ out="$repo/build/bootstrap-check"
 mkdir -p "$out"
 # A production compiler already uses Tower-written utilities when it reads the
 # utility source again. Compare its output with the independent C++ seed.
-for utility in utf8 bytes entities parser-nodes host interpreter; do
+for utility in utf8 bytes entities parser-nodes host interpreter semantics; do
   source="$repo/scaffolding/compiler/utf8.tower"
   if [ "$utility" = bytes ]; then source="$repo/scaffolding/library/bytes.tower"; fi
   if [ "$utility" = entities ]; then source="$native/tower-compiler-entities.tower"; fi
   if [ "$utility" = parser-nodes ]; then source="$native/tower-compiler-parser-nodes.tower"; fi
   if [ "$utility" = host ]; then source="$native/tower-compiler-host.tower"; fi
   if [ "$utility" = interpreter ]; then source="$native/tower-compiler-interpreter.tower"; fi
+  if [ "$utility" = semantics ]; then source="$native/tower-compiler-semantics.tower"; fi
   for target in x86_64-pc-linux-gnu wasm32-unknown-unknown x86_64-pc-windows-msvc aarch64-apple-darwin; do
     for stage in seed tower; do
       compiler="$native/towerc"
       if [ "$stage" = seed ]; then compiler="$native/towerc-seed"; fi
-      if { [ "$utility" = parser-nodes ] || [ "$utility" = interpreter ]; } && [ "$stage" = seed ]; then compiler="$native/towerc-stage1"; fi
+      if { [ "$utility" = parser-nodes ] || [ "$utility" = interpreter ] || [ "$utility" = semantics ]; } && [ "$stage" = seed ]; then compiler="$native/towerc-stage1"; fi
       "$compiler" "$source" --library --target "$target" \
         --bedrock "$repo/scaffolding/bedrock.tower" --foundation "$repo/scaffolding/foundation.tower" \
         --optimized-ir "$out/$utility-$target-$stage.ll" -o "$out/$utility-$target-$stage.o"
@@ -62,6 +63,13 @@ if sys.argv[1] == 'parser-nodes': allowed |= {
 if sys.argv[1] == 'parser-nodes': allowed |= {
     'format_is_' + kind for kind in
     'Program Function Parameter Declare Assign Operand Binary Address Load Convert Bits Call Block If Loop Break Continue Print Return Type FieldDeclaration Field Index String SizeOf AlignOf Allocate Reallocate Free Copy Fill'.split()}
+if sys.argv[1] == 'semantics': allowed |= {
+    'tower_allocate', 'tower_trap', 'sem_get', 'sem_attach', 'sem_create', 'sem_match',
+    'sem_child', 'sem_child_count', 'sem_parent', 'sem_member', 'sem_decode_identifier',
+    'sem_require', 'generic_begin', 'generic_error', 'generic_register',
+    'generic_parameter_count', 'generic_type_parameter', 'generic_instantiate',
+    'generic_lookup', 'generic_type_result', 'generic_origin',
+    'foundation_name_append', 'foundation_nodes_prepend'}
 symbols = {line.split()[-1].lstrip('_') for line in pathlib.Path(sys.argv[2]).read_text().splitlines() if line.strip()}
 assert symbols <= allowed, f'Unexpected runtime dependencies: {symbols - allowed}'
 PY

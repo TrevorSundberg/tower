@@ -152,6 +152,40 @@ function(tower_compiler_parser_nodes)
     DEPENDS ${dependency} "${input}" scaffolding/bedrock.tower scaffolding/foundation.tower
     COMMENT "Compiling Tower-owned parser components for ${triple}" VERBATIM)
   set_source_files_properties("${object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
+  tower_compiler_semantics()
   add_library(tower-compiler-parser-nodes INTERFACE)
   target_sources(tower-compiler-parser-nodes INTERFACE "${object}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/parser-nodes.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler-grammar.cpp")
+endfunction()
+
+function(tower_compiler_semantics)
+  if(TARGET tower-compiler-semantics)
+    return()
+  endif()
+  if(TOWER_BOOTSTRAP_COMPILER)
+    set(bootstrap "${TOWER_BOOTSTRAP_COMPILER}")
+    set(dependency "${TOWER_BOOTSTRAP_COMPILER}")
+  else()
+    set(bootstrap "$<TARGET_FILE:towerc-stage1>")
+    set(dependency towerc-stage1)
+  endif()
+  get_property(triple GLOBAL PROPERTY TOWER_COMPILER_TRIPLE)
+  set(input "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-semantics.tower")
+  set(object "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-semantics.o")
+  set(sources scaffolding/library/vector.tower scaffolding/compiler/foundation-nodes.tower scaffolding/compiler/parser-nodes.tower)
+  foreach(name IN ITEMS context definitions support types values statements lifecycle)
+    list(APPEND sources scaffolding/compiler/semantic-${name}.tower)
+  endforeach()
+  add_custom_command(OUTPUT "${input}"
+    COMMAND "${CMAKE_COMMAND}" -DROOT=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT=${input}
+      -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ComposeSemanticSources.cmake"
+    DEPENDS ${sources} cmake/ComposeSemanticSources.cmake VERBATIM)
+  add_custom_command(OUTPUT "${object}"
+    COMMAND "${bootstrap}" "${input}" --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
+      --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
+      --library --target "${triple}" -o "${object}"
+    DEPENDS ${dependency} "${input}" scaffolding/bedrock.tower scaffolding/foundation.tower
+    COMMENT "Compiling Tower semantic compiler for ${triple}" VERBATIM)
+  set_source_files_properties("${object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
+  add_library(tower-compiler-semantics INTERFACE)
+  target_sources(tower-compiler-semantics INTERFACE "${object}")
 endfunction()
