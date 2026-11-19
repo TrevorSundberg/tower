@@ -11030,3 +11030,46 @@ WASI checks do not establish Windows/macOS compiler self-hosting. Final packages
 still require explicit target architectures, source/tool/dependency provenance,
 licenses, hashes and measured complete sizes, followed by clean-checkout builds
 without a project C/C++ toolchain and successive self-build/native-run evidence.
+
+### 2026-11-19 — Interpreter containers and direct Tower entity API
+
+Supersedes the previous checkpoint's native-container limitation: allocation and
+free-block maps, string/sequence indexes, per-frame value/address caches, frame
+storage and task stacks now live in interpreter-storage.tower. Removed 23 native
+container/query entry implementations. These are derived execution indexes over
+the existing foundation nodes, not a second semantic model or public encoding.
+Maps use sorted u64 entries and binary lower-bound lookup; insertion/erasure move
+the contiguous suffix. This replaces std::map allocation overhead but makes
+insertion linear in the suffix length; benchmark before claiming a speedup.
+Internal cache/container allocation failure retains the previous fatal host
+policy via libc abort; guest heap allocation keeps its explicit null result.
+
+CoreMachineState exposes only non-owning ABI views. Tower disposes all arrays;
+the remaining native move bridge transfers their pointers once. Added Tower
+trials for permuted insertions, updates, absent keys, zero and high-u64 keys,
+ordered neighbors, removal, frame-array growth, task LIFO order, cache clearing
+and complete disposal. The existing native reference assertions now read the
+new views; they still compare complete state at suspension boundaries.
+
+Plain tower_node_* and component query wrappers also moved to host-entities.tower,
+composed with the authoritative entities module. tower.hpp now declares C linkage:
+the C++ source signatures and entity layouts are unchanged, but native callers
+must rebuild rather than link old mangled names. Native singleton lifetime,
+callback registration/finalization and guarded allocation remain in tower.cpp.
+The singleton accessor is a temporary host boundary, not another entity store.
+
+Local native compiler builds passed (host-containers-native.log and
+host-entities-native.log). ASan/UBSan CTest after both migrations passed 5/5,
+18.57 seconds (build/host-final-tests.log). The container checkpoint also passed
+156 wasm32 differential runs plus Tower storage tests
+(build/host-containers-wasi-tests.log); the entity-integrated Wasm and test
+executables have built, with final execution/Node/browser checks still pending.
+
+An ending fetch discovered new work concurrently published under the same host
+branch name: origin/port/host-runtime-tower at 62b863e and the frontend milestone
+origin/port/frontend-tower at b50bfe0. The host branch independently ports CLI and
+allocation policy and fixes WASI NONBLOCK directory support. Reconcile this work,
+retain its tests and journal, and keep one host implementation before publication.
+The frontend milestone is replacement expansion, not the complete task-1 handoff;
+no completed semantic/backend port has appeared. Do not overwrite either branch
+or roll back its published worker fix. Final distribution gates remain open.

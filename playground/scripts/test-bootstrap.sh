@@ -29,6 +29,7 @@ if sys.argv[1] == 'host': allowed |= {
     'compiler_host_reallocate', 'compiler_host_free',
     'bytes_reserve', 'bytes_push'}
 if sys.argv[1] == 'entities': allowed |= {
+    'compiler_entity_store', 'abort',
     'tower_allocate', 'tower_entity_finalize', 'compiler_node_label',
     'compiler_name_is', 'compiler_name_equal', 'compiler_node_copy_metadata',
     'compiler_generic_type', 'compiler_component_add'}

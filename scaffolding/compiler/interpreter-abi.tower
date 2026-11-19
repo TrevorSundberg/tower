@@ -1,5 +1,28 @@
-// Same scalar execution state as CoreMachineState; public CoreMachine fields
-// remain available during foreign callbacks and at every suspension boundary.
+// Execution storage only; entity keys refer to the existing foundation nodes.
+// Ordered map entries and task arrays are derived execution indexes, not IR.
+struct IMEntry {
+    key: u64;
+    value: u64;
+}
+
+struct IMTask {
+    node: void*;
+    loop_resume: u64;
+    phase: usize;
+    offset: usize;
+}
+
+struct IMFrame {
+    function: void*;
+    base: usize;
+    call_offset: usize;
+    call: void*;
+    tasks: vector(IMTask);
+    values: vector(IMEntry);
+    addresses: vector(IMEntry);
+}
+
+// Shared directly with the transitional native view; Tower owns all arrays.
 struct IMState {
     stack: usize;
     heap: usize;
@@ -13,16 +36,15 @@ struct IMState {
     task_count: usize;
     cached: bool;
     memory: vector(u8);
+    allocations: vector(IMEntry);
+    free_blocks: vector(IMEntry);
+    strings: vector(IMEntry);
+    sequenced: vector(IMEntry);
+    frames: vector(IMFrame);
 }
 
-// Host container operations and existing shared type queries only.
+// Remaining host callbacks and existing shared type queries only.
 // FoundationNode and FoundationType are composed from foundation-nodes.tower.
-struct IMTask {
-    node: void*;
-    loop_resume: u64;
-    phase: usize;
-    offset: usize;
-}
 
 extern fn im_node(node: void*): FoundationNode*;
 
@@ -40,10 +62,6 @@ extern fn im_pointer_bytes(host: IMState*): usize;
 
 extern fn im_root(host: IMState*): void*;
 
-extern fn im_base(host: IMState*): usize;
-
-extern fn im_frame_call(host: IMState*): void*;
-
 extern fn im_has_foreign(host: IMState*): bool;
 
 extern fn im_fail(host: IMState*, text: u8*, offset: usize): void;
@@ -52,47 +70,9 @@ extern fn im_missing_foreign(host: IMState*, node: void*, offset: usize): void;
 
 extern fn im_append(host: IMState*, text: u8*, count: usize): void;
 
-extern fn im_frame_push(host: IMState*, function: void*, base: usize, offset: usize, call: void*): void;
-
-extern fn im_frame_pop(host: IMState*): void;
-
-extern fn im_task_push(host: IMState*, node: void*, loop_resume: bool, phase: usize, offset: usize): void;
-
-extern fn im_task_pop(host: IMState*, task: IMTask*): void;
-
-extern fn im_cache_clear(host: IMState*): void;
-
-extern fn im_free_neighbor(host: IMState*, key: u64, previous: bool, count: u64*): u64;
-
 extern fn im_foreign(host: IMState*, node: void*, args: u64*, count: usize): u64;
 
 extern fn im_pointee_size(type: FoundationType*): usize;
-
-extern fn im_allocations_get(host: IMState*, key: u64, found: bool*): u64;
-
-extern fn im_strings_get(host: IMState*, key: u64, found: bool*): u64;
-
-extern fn im_sequenced_get(host: IMState*, key: u64, found: bool*): u64;
-
-extern fn im_values_get(host: IMState*, key: u64, found: bool*): u64;
-
-extern fn im_addresses_get(host: IMState*, key: u64, found: bool*): u64;
-
-extern fn im_allocations_set(host: IMState*, key: u64, value: u64): void;
-
-extern fn im_free_blocks_set(host: IMState*, key: u64, value: u64): void;
-
-extern fn im_strings_set(host: IMState*, key: u64, value: u64): void;
-
-extern fn im_sequenced_set(host: IMState*, key: u64, value: u64): void;
-
-extern fn im_values_set(host: IMState*, key: u64, value: u64): void;
-
-extern fn im_addresses_set(host: IMState*, key: u64, value: u64): void;
-
-extern fn im_free_blocks_erase(host: IMState*, key: u64): void;
-
-extern fn im_allocations_take(host: IMState*, key: u64, found: bool*): u64;
 
 // Verify the transitional C++ view under each actual compilation target.
 export fn interpreter_state_size(): usize {
@@ -151,6 +131,26 @@ export fn interpreter_state_offset(field: usize): usize {
     if selected_11 {
         address = bits(usize, &state.memory);
     }
+    var selected_12 = field == 12;
+    if selected_12 {
+        address = bits(usize, &state.allocations);
+    }
+    var selected_13 = field == 13;
+    if selected_13 {
+        address = bits(usize, &state.free_blocks);
+    }
+    var selected_14 = field == 14;
+    if selected_14 {
+        address = bits(usize, &state.strings);
+    }
+    var selected_15 = field == 15;
+    if selected_15 {
+        address = bits(usize, &state.sequenced);
+    }
+    var selected_16 = field == 16;
+    if selected_16 {
+        address = bits(usize, &state.frames);
+    }
     var offset = address - base;
     return offset;
 }
@@ -161,7 +161,3 @@ struct IMNeighbors {
     previous: u64;
     previous_count: u64;
 }
-
-extern fn im_free_neighbors(host: IMState*, key: u64, neighbors: IMNeighbors*): void;
-
-extern fn im_free_first(host: IMState*, count: u64*): u64;

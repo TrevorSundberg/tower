@@ -7,6 +7,8 @@ struct TowerComponent;
 
 const size_t TOWER_INVALID_INDEX = (size_t)-1;
 
+// Source-compatible C linkage lets Tower implement this API directly.
+extern "C" {
 // Run a suite of tests over tower nodes and components
 void tower_tests();
 
@@ -155,4 +157,6 @@ void* tower_component_get_userdata(TowerComponent* component);
 
 // From a pointer to a component's userdata section, get the original TowerComponent
 TowerComponent* tower_component_from_userdata(void* userdata);
+
+}
 

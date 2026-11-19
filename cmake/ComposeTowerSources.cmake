@@ -2,4 +2,5 @@
 file(READ "${ENTITIES}" entities)
 file(READ "${PARSER}" parser)
 file(READ "${GENERICS}" generics)
-file(WRITE "${OUTPUT}" "${entities}\n${parser}\n${generics}")
+file(READ "${HOST_ENTITIES}" host)
+file(WRITE "${OUTPUT}" "${entities}\n${parser}\n${generics}\n${host}")
