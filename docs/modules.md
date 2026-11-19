@@ -7,7 +7,7 @@ import Tower. The foreign C/C++ declaration grammar remains in
 `backend/foreign-grammar.tower`; it is not part of Foundation.
 Tower also supplies [match/while and generic collection libraries](tower.md).
 The [language plan](tower-language-plan.md) records the staged work beyond these
-features, including file namespaces, nominal enums and returned errors.
+features, including file namespaces and returned errors.
 
 ## Why the compiler imports Tower
 

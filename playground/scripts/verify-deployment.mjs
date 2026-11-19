@@ -71,6 +71,7 @@ try {
     await page.screenshot({path:new URL(name+'-execution.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
     await expect(page.locator('#example-kind')).toHaveCount(0);
     await expect(page.locator('.builtin-badge')).toHaveCount(2);
+    await expect(page.locator('.builtin-badge')).toHaveText(['library','library']);
     await selectDocument(page, 'foundation.tower');
     await expect(page.locator('#status')).toContainText('Complete');
     await expect(page.locator('#execution-panel')).toBeVisible();
@@ -258,6 +259,9 @@ try {
     await expect(page.locator('#compiler-controls')).toBeVisible();
     await expect(page.locator('#status')).toContainText('Complete',{timeout:20000});
     await expect(page.locator('#editor .cm-content')).toContainText('Continue adding ports');
+    await expect(page.locator('#editor .cm-content')).toContainText('import tower resolves the project file tower.tower');
+    await expect(page.locator('button[data-path="tower.tower"]')).toBeVisible();
+    await expect(page.locator('button[data-path=".tower/tower.tower"]')).toHaveCount(0);
     assert.ok(await page.locator('#file-tree').evaluate(el=>el.clientHeight > 40));
     await page.locator('#rebuild-compiler').click();
     await expect(page.locator('#cancel-compiler-build')).toBeEnabled();

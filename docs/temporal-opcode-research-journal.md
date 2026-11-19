@@ -15554,3 +15554,26 @@ by check:format) was a blank line between adjacent new/existing comment groups
 in tower.tower. The canonical formatter merges that gap. Removed it before
 integration; this was formatting only, not an import failure. Initial logs are
 `build/compiler-workbench/imports-{node,format,packaging}.log`.
+
+Integrated upstream through a6ca870; resolved the append-only journal conflict by
+preserving both entries. The current published compiler source matches this
+checkout except our tower.tower comments. Restored 22 compiler/target/support
+inputs from gh-pages 4ef942b, checking each stored asset against its deployment
+manifest before use (the cross reactor is decompressed from its verified asset).
+Kept the release's exact linker recipe and native packs, updating only the two
+comment-bearing recipe files to match the updated packager. The initial local
+packaging trial used the older native object cache and is not the published pack.
+No native source or compiler executable changed in this task. The rebuilt gzip
+files differ in their wrapper bytes on Linux but decompress to byte-identical
+published reactors.
+
+Integrated checks pass: all 296 Node/Wasm tests, canonical formatting, and all
+18 desktop/mobile project/workbench UI checks. Logs are
+`build/compiler-workbench/imports-integrated-{node,format}.log` and
+`imports-browser.log`. The long two-generation rebuild was not repeated for source
+comments and a badge change; upstream's validated compiler and support are retained.
+The deployment verifier now also checks the library label, the workbench's import
+explanation, and its ordinary project tower.tower rather than a bundled duplicate.
+The full dist contains 67 assets; manifest SHA-256 is
+`c809156f7806d23c81e81fdfafd30d4806a49430a350bf73c5061b7234f9b77d`.
+Local/hosted publication verification results follow below.
