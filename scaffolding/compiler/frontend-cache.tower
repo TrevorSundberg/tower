@@ -1,14 +1,11 @@
 // Immutable revision snapshots retain shared grammar entities. Cache slots are
 // disposable host handles; no parser semantics or source is encoded in them.
-struct FrontendCachedRule {
-    name: vector(u8);
-    alternatives: vector(void*);
-}
-
 struct FrontendRevision {
     references: usize;
     slot: usize;
-    rules: vector(FrontendCachedRule);
+    rules: vector(SyntaxRuleView);
+    names: vector(u8);
+    alternatives: vector(void*);
     tokens: vector(void*);
 }
 
@@ -30,22 +27,11 @@ fn frontend_revision_release(revision: FrontendRevision*): void {
     }
     var i: usize = 0;
     loop {
-        var done = i == revision.rules.length;
+        var done = i == revision.alternatives.length;
         if done {
             break;
         }
-        var rule = &revision.rules.data[i];
-        var j: usize = 0;
-        loop {
-            done = j == rule.alternatives.length;
-            if done {
-                break;
-            }
-            entity_release(rule.alternatives.data[j]);
-            j = j + 1;
-        }
-        vector_dispose(u8, &rule.name);
-        vector_dispose(void*, &rule.alternatives);
+        entity_release(revision.alternatives.data[i]);
         i = i + 1;
     }
     i = 0;
@@ -57,13 +43,20 @@ fn frontend_revision_release(revision: FrontendRevision*): void {
         entity_release(revision.tokens.data[i]);
         i = i + 1;
     }
-    vector_dispose(FrontendCachedRule, &revision.rules);
+    vector_dispose(SyntaxRuleView, &revision.rules);
+    vector_dispose(u8, &revision.names);
+    vector_dispose(void*, &revision.alternatives);
     vector_dispose(void*, &revision.tokens);
     free(revision);
 }
 
 fn frontend_revision_nodes(target: vector(void*)*, nodes: void**, count: usize): bool {
-    var ok = vector_reserve(void*, target, count);
+    var needed = target.length + count;
+    var overflow = needed < target.length;
+    if overflow {
+        return false;
+    }
+    var ok = vector_reserve(void*, target, needed);
     if ok {} else {
         return false;
     }
@@ -74,7 +67,7 @@ fn frontend_revision_nodes(target: vector(void*)*, nodes: void**, count: usize):
             return true;
         }
         entity_retain(nodes[i]);
-        target.data[i] = nodes[i];
+        target.data[target.length] = nodes[i];
         target.length = target.length + 1;
         i = i + 1;
     }
@@ -88,8 +81,47 @@ fn frontend_revision_create(rules: SyntaxRuleView*, count: usize, tokens: void**
     }
     fill(revision, 0, sizeof(FrontendRevision));
     revision.references = 1;
-    var ok = vector_reserve(FrontendCachedRule, &revision.rules, count);
+    // One names buffer and one retained-alternative buffer for the revision.
+    // Rule views borrow these stable allocations; nothing grows after linking.
+    var names: usize = 0;
+    var alternatives: usize = 0;
+    var ok: bool = true;
     var i: usize = 0;
+    loop {
+        var done = i == count;
+        if done {
+            break;
+        }
+        var next = names + rules[i].name_length;
+        var overflow = next < names;
+        var full = next == lr_none();
+        if full {
+            overflow = true;
+        }
+        if overflow {
+            ok = false;
+            break;
+        }
+        names = next + 1;
+        next = alternatives + rules[i].count;
+        overflow = next < alternatives;
+        if overflow {
+            ok = false;
+            break;
+        }
+        alternatives = next;
+        i = i + 1;
+    }
+    if ok {
+        ok = vector_reserve(SyntaxRuleView, &revision.rules, count);
+    }
+    if ok {
+        ok = vector_reserve(u8, &revision.names, names);
+    }
+    if ok {
+        ok = vector_reserve(void*, &revision.alternatives, alternatives);
+    }
+    i = 0;
     loop {
         if ok {} else {
             break;
@@ -99,12 +131,22 @@ fn frontend_revision_create(rules: SyntaxRuleView*, count: usize, tokens: void**
             break;
         }
         var target = &revision.rules.data[i];
-        fill(target, 0, sizeof(FrontendCachedRule));
-        revision.rules.length = revision.rules.length + 1;
-        ok = bytes_append(&target.name, rules[i].name, rules[i].name_length);
-        if ok {
-            ok = frontend_revision_nodes(&target.alternatives, rules[i].alternatives, rules[i].count);
+        target.name = &revision.names.data[revision.names.length];
+        target.name_length = rules[i].name_length;
+        target.count = rules[i].count;
+        target.alternatives = null;
+        var populated = target.count != 0;
+        if populated {
+            target.alternatives = &revision.alternatives.data[revision.alternatives.length];
         }
+        ok = bytes_append(&revision.names, rules[i].name, rules[i].name_length);
+        if ok {
+            ok = vector_push(u8, &revision.names, 0);
+        }
+        if ok {
+            ok = frontend_revision_nodes(&revision.alternatives, rules[i].alternatives, rules[i].count);
+        }
+        revision.rules.length = revision.rules.length + 1;
         i = i + 1;
     }
     if ok {
@@ -135,12 +177,12 @@ tokens: void**, token_count: usize, kind: void*): bool {
         }
         var previous = &revision.rules.data[i];
         var next = &rules[i];
-        var order = syntax_bytes_compare(previous.name.data, previous.name.length, next.name, next.name_length);
+        var order = syntax_bytes_compare(previous.name, previous.name_length, next.name, next.name_length);
         different = order != 0;
         if different {
             return false;
         }
-        different = previous.alternatives.length != next.count;
+        different = previous.count != next.count;
         if different {
             return false;
         }
@@ -150,7 +192,7 @@ tokens: void**, token_count: usize, kind: void*): bool {
             if done {
                 break;
             }
-            var same = syntax_nodes_equal(previous.alternatives.data[j], next.alternatives[j], kind, true);
+            var same = syntax_nodes_equal(previous.alternatives[j], next.alternatives[j], kind, true);
             different = same != 1;
             if different {
                 return false;

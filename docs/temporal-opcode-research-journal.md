@@ -13174,3 +13174,85 @@ or overwriting them with older local copies.
 
 This advances Task 1; it does not complete native session/version/presentation
 ownership or the portable bootstrap executable cutover described above.
+
+### 2026-11-19 - Packed frontend revision snapshots and integrated measurements
+
+Integrated the shared-runtime and host/distribution owners' main commits through
+f6c8dbb with --rebase=merges, preserving unrelated working notes. The existing
+frontend commits are now 24ff56c and 16eb017. The latest audit-worktree pull is
+already up to date. No feature branch, force push, todo.txt edit or new native
+algorithm was introduced.
+
+The first paired Wasm measurements showed small regressions on several fixtures.
+The new Tower cache allocated a name and alternative vector for every rule in
+every immutable revision. Changed FrontendRevision to precompute sizes and reserve
+one names buffer, one retained-alternative buffer, the rule views and the tokens.
+Views point into the stable revision allocations; the grammar entities remain
+authoritative and retained. Added arithmetic overflow guards for summed storage.
+Failure cleanup releases exactly the initialized references, and a failed cache
+insertion still cannot evict a valid entry. This reduces snapshot allocation work;
+it is not a claim of universally faster compilation.
+
+Rejected reversing cache lookup to most-recent-first without workload evidence:
+whole-file resets revisit revisions in source order, for which oldest-first can
+already find the next entry immediately. Existing bounded LRU behavior is retained.
+
+Validation after packing: native compiler rebuilt; ASan/UBSan CTest passed 5/5 in
+45.36 seconds; parser, LLVM-Wasm and cross-compilation reactors rebuilt. Native
+instrumentation checks native boundaries, not the generated Tower object itself.
+Existing Tower tests exercise allocation failures, eviction, shared forks and
+cleanup; parser suites cover multi-rule cache identity and changed templates.
+
+The host integration also passed its four host-module seed/Tower optimized-IR
+and object comparisons, six unchanged native module object comparisons, 11 build
+recipe checks and 16 relocated development-CLI checks. The restricted PATH test
+correctly fails linking without Clang. This remains a hybrid development compiler,
+not a portable Tower-only bootstrap distribution.
+
+Performance method: Wasm uses 12 warmups and 40 alternating paired samples of
+compile plus canonical Foundation formatting, asserting identical results. Native
+uses 4 warmups and 30 alternating independent CLI processes with identical grammar
+inputs and output assertions. --interpret's compile phase includes source reading
+and machine setup, so it is not a pure parser timer. No builds/tests ran alongside
+these profiling processes. Baselines precede other owners' integrated changes too;
+these comparisons assess the integrated result, not one isolated frontend patch.
+
+Corrected an experiment confound: the first native baseline executable lived on
+the Windows mount, while the current executable lived on WSL ext4. Repeated with
+both executables under /root/.cache/tower/frontend-performance, then with the
+source and grammar inputs there too. Moving inputs off the Windows mount removes
+most of the apparent 6-9 ms compile-phase regression. Do not attribute the original
+whole-process improvement to frontend code. Both locations and all reports are
+retained; the mounted-input difference remains a host-I/O performance observation,
+not an established frontend root cause.
+
+Reproduce the Wasm comparison with playground/scripts/profile-grammar-port.mjs.
+Use playground/scripts/profile-grammar-port-native.py with both executable paths
+on the same filesystem. The ignored build/profile-frontend-local-inputs.py reuses
+that exact benchmark and only relocates its generated fixtures and grammar paths
+to ext4. Reports/logs: frontend-owner-packed-wasm-performance,
+frontend-owner-native-same-filesystem and frontend-owner-native-local-inputs under
+build/. The earlier packed-native and cache-native reports retain the filesystem
+confound and are not evidence of a compiler speedup. Final figures and publication
+validation follow below.
+
+Task 1 is still incomplete: declaration installation/session lifecycle, Version
+ownership and presentation indexes, streams/recognizer adapters, provenance and
+highlight storage, component-kind context and native frontend test retirement
+remain. The portable whole-compiler self-build and C++ deletion gates remain open.
+
+Measured medians (ms), old baseline -> integrated packed frontend:
+
+| Fixture | Wasm compile + format | Native compile/setup, ext4 inputs | Native whole process |
+| --- | --- | --- | --- |
+| small | 5.43 -> 5.696 | 6.438 -> 6.515 | 110.372 -> 110.288 |
+| inference | 6.812 -> 6.669 | 6.673 -> 6.952 | 114.48 -> 116.546 |
+| replacements | 21.995 -> 21.644 | 16.755 -> 17.341 | 129.224 -> 129.79 |
+| declarations500 | 16.987 -> 17.134 | 11.788 -> 12.227 | 125.556 -> 126.887 |
+| grammar50 | 703.126 -> 708.648 | 476.863 -> 484.159 | 601.459 -> 608.087 |
+
+The timings are mixed, with small regressions remaining. No universal speedup
+or performance acceptance claim is made. These runs establish an explicit
+baseline for finishing native boundary removal and further profiling. The
+separate diagnostic probe measured before packing improved several invalid-input
+cases but also had neutral/slower cases; see frontend-owner-diagnostics-performance.json.
