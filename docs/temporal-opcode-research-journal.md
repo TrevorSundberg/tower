@@ -12022,3 +12022,140 @@ checks. The report is copied to `build/main-consolidation-live-report.json`.
 Validation logs use `build/main-consolidation-*`. This integration turn did not
 rerun the full bootstrap cross-target differential suite or performance profiles;
 no new performance guarantee or completion of C++ removal is claimed.
+
+### 2026-11-19 — Audit the consolidated compiler and remove merged remote branches
+
+User asked what remains for a compiler written entirely in Tower, excluding
+third-party implementations, with committed portable CLI/bootstrap executables.
+The semantic compiler/type-system port is still being developed on another
+machine; its completion is not assumed. The user also requested checking remote
+branches for integration and deletion. This entry records an audit and branch
+cleanup, not another compiler implementation milestone.
+
+Baseline: main/origin/main 99fddf7. Pulled with --rebase=merges in the clean
+build/cpp-migration-audit-20261118 worktree before inspection (already current),
+preserving unrelated dirty AGENTS.md, foundation documentation, journal and
+todo.txt. No command in this turn edits or stages todo.txt. Inspected tracked
+sources, CMake inputs, Tower module composition, bootstrap differential script,
+and the earlier workstream/host handoff entries against the actual merged code.
+
+Implemented Tower modules already cover entity/component storage, byte/text
+utilities, generics specialization, regex/DFA construction, LR analysis/state/
+LALR/runtime/control, parser payloads/tree construction, grammar readers and
+validation/emission, replacement preparation/expansion, template construction,
+token scanning, canonical formatting and interpreter execution/storage. Host
+allocation policies, browser handle/text helpers and CLI option parsing/help
+also run in Tower. These are production implementations; do not redo them just
+because their native references still exist under scaffolding/bootstrap.
+
+Remaining owned native implementation, beyond the pending semantic port:
+
+1. Frontend session/control integration: syntax.cpp still owns Definitions,
+   Version and SyntaxSession containers, active/pending rule publication,
+   grammar cache lifetime, declaration sequencing, provenance/highlight adapter
+   state and user-facing diagnostic selection. parser.cpp still supplies stream
+   and recognizer hosts, grammar/table adaptation, conflict presentation and
+   repair probing around the Tower LR implementation. bedrock.cpp constructs
+   the initial shared grammar entities. compiler-syntax.cpp, syntax-nodes.cpp,
+   parser-nodes.cpp and related headers retain registration/access bridges.
+   Port these using the existing shared entities, not another authoritative IR.
+   The initial Bedrock baseline remains necessary; its constructor can be Tower
+   code compiled into the bootstrap binary, so it need not remain C++.
+2. Owned backend integration: llvm-engine.cpp still implements Foundation-node
+   lowering, verification, pass configuration, target/object emission and
+   disassembly. llvm-backend.cpp owns browser linking/results; llvm-wasi.cpp
+   supplies owned C++ WASI support overrides. There is no completed Tower backend
+   implementation in this merged snapshot. LLVM/lld being third party does not
+   exempt our code calling them. Prefer their C interfaces where sufficient;
+   resolve C++-only linker/WASI entry points explicitly (native packages can
+   bundle an upstream linker executable). Browser support needs its own viable
+   binding path; moving our shim under third_party would not finish the port.
+3. Host/runtime and residual bridges: driver.cpp still owns filesystem/process
+   orchestration and executable linking; browser.cpp owns schema traversal,
+   exported session/execution APIs and foreign dispatch. core-machine.cpp,
+   tower.cpp, compiler-memory.cpp and format.cpp retain native ownership,
+   lifecycle/callback, initialization and host adapters. runtime.c is our own
+   guest allocator/startup/platform implementation and must also move. main.cpp
+   contains the older native smoke/test entry point. Use explicit Tower host
+   contexts and platform interfaces, preserving the browser worker contract.
+4. Native tests, bootstrap and build/distribution: functional/reference tests
+   remain in C++ and production CMake source lists still compile several of
+   them. Translate useful tests to Tower/fixtures before dropping the native
+   references. The bootstrap seed can only be removed after a successor can
+   build the whole compiler. Historical owned C/C++ research sources also exist
+   under docs/research; they are not a production build blocker but need an
+   explicit migration/retirement decision for a literal no-owned-C/C++ checkout.
+
+Concrete enabling contracts still missing in this snapshot:
+
+- llvm-engine.cpp rejects exports/externs using tower_allocate/reallocate/
+  deallocate/print/trap/main and rejects library top-level executable statements.
+  Provide a defined runtime-definition path and explicit initialization entry
+  points/state ownership; arbitrary hidden global initialization is not required.
+- Semantic builtin lookup prevents directly naming some host functions such as
+  realloc/free. Foreign symbol aliases/bindings must distinguish them from Tower
+  foundation operations without another native trampoline.
+- Native component finalizers, stream callbacks and interpreter foreign dispatch
+  still use native callback contracts. Supply typed indirect/foreign calls where
+  required, or move internal dispatch to explicit Tower contexts; opaque pointer
+  casts alone do not define a callable ABI. Coordinate these requirements with
+  the semantic owner rather than overlapping that port.
+- Platform startup, I/O and necessary low-level target operations must have
+  Tower foundation spellings and explicit ABI/target semantics. Keep deterministic
+  compile-time behavior and the same shared entities throughout.
+
+Recommended immediate next work here: complete the frontend session/stream/
+diagnostic and Bedrock ownership port, while the other machine completes semantic
+analysis. Backend and host integration can proceed against stable shared-node
+interfaces in parallel. Measure parser/compile latency, allocations and output
+against the existing implementation; translation alone proves no speedup.
+
+Completion gates for the portable bootstrap (proposed, not yet passed):
+
+- Compose/link a complete Tower-written compiler, with external backend libraries
+  and platform imports only. No owned C/C++ compilation or source-path dependency.
+  Keep a real compiler CLI, --help, version/target reporting, interpreter mode,
+  diagnostics and object/executable output. driver-options.tower already supplies
+  --help; adding another help parser is unnecessary.
+- Replace driver.cpp's Clang compilation of runtime.c with Tower-built runtime
+  objects and explicit target packs. Package Bedrock/Foundation and all required
+  backend/linker/runtime dependencies or embed their appropriate artifacts;
+  do not depend on the original absolute TOWER_SOURCE_DIR or developer toolchain.
+- From a clean checkout, committed compiler B0 builds the entire compiler B1
+  from Tower source; B1 builds B2; B2 builds B3. Compare the successive builds
+  under pinned target/tool/semantics inputs, accounting explicitly for container
+  timestamps/build IDs, and run differential/round-trip/determinism and performance
+  checks. Existing test-bootstrap.sh compares six component modules across four
+  targets, not successive whole-compiler self-builds.
+- Build and actually execute each supported Windows/Linux/macOS architecture's
+  CLI: --help, diagnostics, compile, link, run and self-build. Cross-produced PE/
+  ELF/Mach-O files alone do not establish this. Also validate the browser/WASI
+  compiler path; no native platform is a substitute for that test.
+- Commit the verified bootstrap distributions with hashes, source/build provenance,
+  licenses, supported OS/architecture and dependency records. An update command
+  should use the checked-in compiler to produce its successor without installing
+  a project C/C++ compiler. External libraries may be pinned prebuilt dependencies;
+  rebuilding those upstream libraries separately is not Tower self-hosting.
+- Only then remove owned native seeds, adapters, tests and C/C++ build rules.
+  A checked-in hybrid executable could be a temporary development bootstrap but
+  does not meet the requested Tower-written end state.
+
+Read-only smoke evidence: ran the available WSL Orchestral-Revng compiler at
+/root/.cache/tower/native/towerc --help successfully. stat reports 792,520 bytes
+for this local development executable; ldd shows libLLVM.so.19.1, libstdc++, libc
+and further shared dependencies. This is not a standalone portable package and
+was not rebuilt during this audit. An initial combined WSL stat invocation lost
+its quoted format argument; rerunning stat and ldd as separate wsl --exec calls
+returned the measurements above. No new performance claim is made. No compiler
+executables are currently tracked as the requested portable bootstrap set.
+
+Remote cleanup: fetched/pruned and tested each source head with
+git merge-base --is-ancestor origin/<branch> origin/main. All six old source
+branches were already included. Deleted master, port/canonical-formatter-tower,
+port/frontend-tower, port/host-runtime-integration, port/host-runtime-tower and
+port/interpreter-tower with one normal atomic git push --delete. No rebase or
+force push was necessary and no source commits were discarded. Subsequent
+git ls-remote --heads origin lists only main and gh-pages; gh-pages is generated
+deployment output and must remain separate. The pending semantic port is not on
+the remote yet. Local historical branch pointers were not deleted. This cleanup
+supersedes the prior consolidation entry's decision to retain remote branches.
