@@ -34,6 +34,14 @@ if sys.argv[1] == 'entities': allowed |= {
     'compiler_name_is', 'compiler_name_equal', 'compiler_node_copy_metadata',
     'compiler_generic_type', 'compiler_component_add'}
 if sys.argv[1] == 'parser-nodes': allowed |= {
+    'syntax_replacement_begin', 'syntax_replacement_capture', 'syntax_replacement_attempt',
+    'syntax_replacement_diagnostic', 'syntax_replacement_offset',
+    'syntax_replacement_select', 'syntax_replacement_commit'}
+if sys.argv[1] == 'parser-nodes': allowed |= {
+    'entity_id', 'entity_replace_child', 'entity_take_last_child', 'entity_child_name',
+    'syntax_expansion_history', 'syntax_expansion_previous', 'syntax_expansion_trace',
+    'syntax_expansion_origin', 'syntax_expansion_copy_origin'}
+if sys.argv[1] == 'parser-nodes': allowed |= {
     'tower_utf8_decode', 'tower_allocate', 'compiler_grammar_root',
     'compiler_grammar_rule', 'compiler_grammar_reference',
     'compiler_grammar_literal', 'compiler_grammar_range',

@@ -2,6 +2,9 @@
 #include "compiler-syntax-reader.hpp"
 #include "compiler-syntax-validation.hpp"
 #include "compiler-syntax-emission.hpp"
+#include "compiler-syntax-expansion.hpp"
+#include "compiler-syntax-replacements.hpp"
+#include "compiler-entities.hpp"
 #include "compiler-generics.hpp"
 #include "compiler-syntax-lexer.hpp"
 #include "lex-pattern.hpp"
@@ -75,8 +78,14 @@ TowerNode* origin_type = tower_node_create();
 SyntaxOrigin* origin(TowerNode* node) {
   auto* existing = (SyntaxOrigin*)tower_node_get_component_userdata(node, origin_type);
   if (existing) return existing;
-  auto* component = tower_component_create(node, origin_type, sizeof(SyntaxOrigin),
-    [](TowerComponent*, void* data) { ((SyntaxOrigin*)data)->~SyntaxOrigin(); });
+  const auto dispose = +[](TowerComponent*, void* data) { ((SyntaxOrigin*)data)->~SyntaxOrigin(); };
+#ifdef TOWER_EXPANSION_SEED
+  auto* component = tower_component_create(node, origin_type, sizeof(SyntaxOrigin), dispose);
+#else
+  if (!tower_component_register(origin_type, sizeof(SyntaxOrigin), dispose)) return nullptr;
+  auto* component = entity_component_add(node, origin_type);
+  if (!component) return nullptr;
+#endif
   return new (tower_component_get_userdata(component)) SyntaxOrigin();
 }
 
@@ -111,6 +120,11 @@ struct Version {
   std::map<std::string, size_t> named_indices;
   std::map<std::string, Term> repetitions;
   std::map<size_t, Replacement> replacements;
+#ifndef TOWER_EXPANSION_SEED
+  std::vector<std::vector<SyntaxExpansionCapture>> expansion_captures;
+  std::vector<SyntaxExpansionRule> expansion_rules;
+  std::vector<const SyntaxExpansionRule*> expansion_index;
+#endif
   size_t replacement_error_offset = TOWER_INVALID_INDEX;
   ~Version() { lexicon_destroy(lexicon); parser_table_destroy(table); }
 };
@@ -736,294 +750,171 @@ bool compile_template(Version& version, const Definitions& defs, const Sequence&
   return true;
 }
 
-std::string replacement_excerpt(std::string_view source) {
-  size_t first = 0, last = source.size();
-  while (first < last && space(source[first])) ++first;
-  while (last > first && space(source[last - 1])) --last;
-  if (first == last) return "<empty>";
-  // Keep diagnostics bounded without splitting a UTF-8 character. Preserve
-  // whitespace inside strings/comments rather than pretending to reformat code.
-  size_t end = std::min(last, first + 160);
-  while (end < last && (static_cast<unsigned char>(source[end]) & 0xc0) == 0x80) --end;
-  std::string result = "\"";
-  for (size_t i = first; i < end; ++i) {
-    switch (source[i]) {
-      case '\n': result += "\\n"; break;
-      case '\r': result += "\\r"; break;
-      case '\t': result += "\\t"; break;
-      case '\\': result += "\\\\"; break;
-      case '"': result += "\\\""; break;
-      default: result += source[i]; break;
-    }
-  }
-  if (end < last) result += "...";
-  return result + "\"";
-}
+#ifdef TOWER_EXPANSION_SEED
+#include "bootstrap/syntax-replacements-seed.inc"
+#else
+struct ReplacementPlanHost {
+  Version& version;
+  const Definitions& definitions;
+  Replacement current;
+  TowerNodeRef sequence;
+  Node selected = owned(nullptr);
+  std::string selected_category, diagnostic;
+  std::map<std::string, size_t> selected_uses;
+};
 
 bool prepare_replacements(Version& version, const Definitions& defs, std::string& message) {
-  // Unattached helper rules cannot yet determine their destination. Validate
-  // their templates atomically when a Statement path makes them usable.
-  std::set<std::string> reachable;
-  std::vector<std::string> pending;
-  if (defs.contains("Statement")) pending.push_back("Statement");
-  while (!pending.empty()) {
-    auto name = pending.back(); pending.pop_back();
-    if (!reachable.insert(name).second) continue;
-    auto found = defs.find(name);
-    if (found != defs.end()) for (const auto& seq : found->second)
-      for (auto* entity : semantic(seq).items) {
-        const auto& term = syntax_node(entity);
-        if (!term.literal) pending.push_back(term.text);
-      }
+  ReplacementPlanHost host{version, defs};
+  std::vector<TowerNode*> alternatives;
+  std::vector<SyntaxRuleView> rules;
+  size_t count = 0;
+  for (const auto& [name, sequences] : defs) count += sequences.size();
+  alternatives.reserve(count); rules.reserve(defs.size());
+  for (const auto& [name, sequences] : defs) {
+    const auto start = alternatives.size();
+    for (const auto& sequence : sequences) alternatives.push_back(sequence.get());
+    rules.push_back({name.c_str(), name.size(), alternatives.data() + start, sequences.size()});
   }
-  std::map<std::string, std::set<std::string>> parents;
-  for (const auto& [name, alternatives] : defs) if (reachable.contains(name))
-    for (const auto& seq : alternatives) if (semantic(seq).items.size() == 1) {
-      const auto& term = syntax_node(semantic(seq).items[0]);
-      if (!term.literal && !term.repetition) parents[term.text].insert(name);
+  SyntaxReplacementPlan plan{rules.data(), rules.size(), syntax_component_type(), &host, {}, TOWER_INVALID_INDEX};
+  const bool ok = syntax_replacements_prepare(&plan);
+  if (!ok) {
+    version.replacement_error_offset = plan.offset;
+    message = plan.error.length ? std::string(reinterpret_cast<const char*>(plan.error.data), plan.error.length)
+      : "Unable to allocate replacement preparation storage";
+  }
+  syntax_replacements_dispose(&plan);
+  if (!ok) return false;
+  version.expansion_captures.resize(version.replacements.size());
+  version.expansion_rules.reserve(version.replacements.size());
+  if (!version.replacements.empty()) version.expansion_index.resize(version.replacements.rbegin()->first + 1);
+  for (const auto& [index, replacement] : version.replacements) {
+    auto& captures = version.expansion_captures[version.expansion_rules.size()];
+    for (const auto& [name, source] : replacement.captures) {
+      auto used = replacement.uses.find(name);
+      captures.push_back({name.c_str(), used == replacement.uses.end() ? 0 : used->second,
+        semantic(source).repetition != 0});
     }
-  for (const auto& [name, alternatives] : defs) {
-    for (size_t i = 0; i < alternatives.size(); ++i) {
-      const auto& seq = alternatives[i];
-      if (!semantic(seq).replacement || !reachable.contains(name)) continue;
-      const auto& body = semantic(semantic(seq).replacement);
-      Replacement replacement;
-      replacement.rule = name; replacement.start = body.start;
-      replacement.end = body.end;
-      for (auto* entity : semantic(seq).items) {
-        const auto& term = syntax_node(entity);
-        if (!term.capture.empty()) replacement.captures[term.capture] = TowerNodeRef(entity);
-      }
-      // Prefer the declared rule. A named helper can acquire a destination from
-      // its nearest unit-rule parent. This happens only when compiling grammar;
-      // source recognition remains deterministic LR with no backtracking.
-      std::set<std::string> ancestors;
-      pending = {name};
-      bool ready = false;
-      bool grammar_failed = false;
-      std::vector<std::string> destinations;
-      std::string original_error;
-      size_t original_offset = replacement.start;
-      while (!pending.empty()) {
-        auto level = std::move(pending); pending.clear();
-        Node selected = owned(nullptr);
-        std::string selected_category;
-        std::map<std::string, size_t> selected_uses;
-        for (const auto& category : level) {
-          if (!ancestors.insert(category).second) continue;
-          destinations.push_back(category);
-          replacement.category = category;
-          std::string error;
-          bool grammar_error = false;
-          if (compile_template(version, defs, seq, replacement, error, grammar_error)) {
-            if (selected) {
-              message = "Ambiguous replacement destination for " + name + "; attach the handler to its destination rule";
-              version.replacement_error_offset = replacement.start; return false;
-            }
-            selected = std::move(replacement.tree); selected_category = category; selected_uses = replacement.uses;
-          } else if (original_error.empty()) { original_error = error; original_offset = replacement.error_offset; }
-          grammar_failed |= grammar_error;
-          for (const auto& parent : parents[category]) pending.push_back(parent);
-        }
-        if (selected) {
-          replacement.tree = std::move(selected); replacement.category = selected_category; replacement.uses = std::move(selected_uses);
-          ready = true; break;
-        }
-      }
-      if (!ready) {
-        message = "Replacement for " + name + " must produce ";
-        if (destinations.size() == 1) message += "a valid " + destinations.front();
-        else {
-          message += "one of these syntax categories: ";
-          for (size_t j = 0; j < destinations.size(); ++j) {
-            if (j) message += ", ";
-            message += destinations[j];
-          }
-        }
-        message += ". ";
-        const auto excerpt = replacement_excerpt(body.text);
-        if (grammar_failed) message += "Could not validate " + excerpt + ".";
-        else if (destinations.size() == 1) message += excerpt + " is not a valid " + destinations.front() + ".";
-        else message += excerpt + " is not valid in any of these categories.";
-        message += "\n" + original_error;
-        version.replacement_error_offset = original_offset;
-        return false;
-      }
-      version.replacements.emplace(version.indices.at({name, i}), std::move(replacement));
-    }
+    version.expansion_rules.push_back({replacement.tree.get(), replacement.rule.c_str(),
+      replacement.category.c_str(), replacement.start, replacement.end, captures.data(), captures.size()});
+    version.expansion_index[index] = &version.expansion_rules.back();
   }
   return true;
 }
+#endif
 
-Node copy_match(TowerNode* source) {
-  auto result = owned(tower_node_create());
-  auto* from = match(source); auto* to = parser_match_create(result.get());
-  parser_match_set_id(to, parser_match_get_id(from));
-  parser_match_set_rule_index(to, parser_match_get_rule_index(from));
-  parser_match_set_start(to, parser_match_get_start(from));
-  parser_match_set_length(to, parser_match_get_length(from));
-  parser_match_set_label(to, parser_match_get_label(from));
-  if (auto* previous = syntax_get_origin(source)) *origin(result.get()) = *previous;
-  return result;
-}
-
-struct Expander {
-  SyntaxSession& session;
-  std::unordered_set<size_t> normal;
-  static constexpr size_t max_steps = 4096, max_nodes = 65536, max_trace = 256;
-
-  bool count_node(bool copied) {
-    auto& stats = session.expansion_stats;
-    if (stats.generated_nodes + stats.copied_nodes >= max_nodes) {
-      session.error = "Replacement output limit exceeded (65536 nodes)"; return false;
-    }
-    if (copied) ++stats.copied_nodes; else ++stats.generated_nodes;
-    return true;
-  }
-  Node copy_tree(TowerNode* source) {
-    auto& stats = session.expansion_stats;
-    size_t copied = 0;
-    auto result = owned(compiler_clone_tree(source, max_nodes - stats.generated_nodes - stats.copied_nodes, &copied));
-    stats.copied_nodes += copied;
-    if (!result) { session.error = "Replacement output limit exceeded (65536 nodes) or could not allocate its work stack"; return result; }
-    // The copied tree is already expanded. This host-only derived set can be
-    // retired when the rest of the expander migrates; ownership/copying is Tower.
-    std::vector<TowerNode*> pending{result.get()};
-    while (!pending.empty()) {
-      auto* at = pending.back(); pending.pop_back(); normal.insert(tower_node_get_id(at));
-      for (size_t i = 0; i < tower_node_get_child_count(at); ++i) pending.push_back(child(at, i));
-    }
-    return result;
-  }
-  Node instantiate(const Replacement& replacement, TowerNode* invocation, TowerNode* captured_from) {
-    auto* span = match(invocation);
-    auto trace = std::make_shared<SyntaxExpansion>();
-    trace->rule = replacement.rule;
-    trace->start = parser_match_get_start(span);
-    trace->end = trace->start + parser_match_get_length(span);
-    trace->definition_start = replacement.start; trace->definition_end = replacement.end;
-    if (auto* previous = syntax_get_origin(invocation)) trace->previous = previous->expansion;
-    size_t depth = 0;
-    for (auto previous = trace->previous; previous; previous = previous->previous)
-      if (++depth >= max_trace) { session.error = "Replacement recursion limit exceeded (256 expansions in one chain)"; return owned(nullptr); }
-    std::map<std::string, TowerNode*> captures;
-    for (const auto& [name, type] : replacement.captures) {
-      auto* capture = tower_node_get_child_member(captured_from, name.c_str());
-      if (!capture) { session.error = "Missing replacement capture: $" + name; return owned(nullptr); }
-      captures[name] = capture;
-    }
-    auto remaining = replacement.uses;
-    auto container = owned(tower_node_create());
-    struct Work { TowerNode* source; TowerNode* parent; std::string role; };
-    std::vector<Work> pending{{replacement.tree.get(), container.get(), {}}};
-    while (!pending.empty()) {
-      auto work = std::move(pending.back()); pending.pop_back();
-      auto* m = match(work.source);
-      std::string label = parser_match_get_label(m);
-      if (parser_match_get_id(m) >= FirstHole && label.starts_with("$")) {
-        const std::string name = label.substr(1);
-        Node value = owned(nullptr);
-        if (--remaining.at(name)) value = copy_tree(captures.at(name));
-        else { tower_node_add_ref(captures.at(name)); value = owned(captures.at(name)); tower_node_detach(value.get()); }
-        if (!value) return owned(nullptr);
-        auto attach_capture = [&](TowerNode* capture, const std::string& role) {
-          // Captured leaves keep their source spans and own expansion history.
-          // Record the splice at its root, sharing the invocation trace.
-          if (!syntax_get_origin(capture)) {
-            auto* o = origin(capture); o->generated = false; o->expansion = trace;
-            o->template_start = parser_match_get_start(m);
-            o->template_end = o->template_start + parser_match_get_length(m);
-          } else origin(capture)->splices.push_back(trace);
-          tower_node_attach_member(capture, work.parent, role.empty() ? nullptr : role.c_str());
-        };
-        if (semantic(replacement.captures.at(name)).repetition) {
-          std::vector<Node> items;
-          while (auto* item = tower_node_take_last_child(value.get())) items.push_back(owned(item));
-          if (!work.role.empty() && items.size() > 1) { session.error = "List capture requires a repeated destination"; return owned(nullptr); }
-          for (auto it = items.rbegin(); it != items.rend(); ++it) attach_capture(it->get(), work.role);
-        } else attach_capture(value.get(), work.role);
-        continue;
-      }
-      if (!count_node(false)) return owned(nullptr);
-      auto made = copy_match(work.source);
-      auto* made_match = match(made.get());
-      parser_match_set_start(made_match, trace->start);
-      parser_match_set_length(made_match, trace->end - trace->start);
-      auto* o = origin(made.get()); o->generated = true; o->expansion = trace;
-      o->template_start = parser_match_get_start(m); o->template_end = o->template_start + parser_match_get_length(m);
-      tower_node_attach_member(made.get(), work.parent, work.role.empty() ? nullptr : work.role.c_str());
-      for (size_t i = tower_node_get_child_count(work.source); i > 0; --i) {
-        auto* role = tower_node_get_child_member_name(work.source, i - 1);
-        pending.push_back({child(work.source, i - 1), made.get(), role ? role : ""});
-      }
-    }
-    if (tower_node_get_child_count(container.get()) != 1) { session.error = "Replacement must produce one root"; return owned(nullptr); }
-    return owned(tower_node_take_last_child(container.get()));
-  }
-  std::pair<const Replacement*, TowerNode*> applicable(TowerNode* root) {
-    std::string category = parser_match_get_label(match(root));
-    auto* candidate = root;
-    for (;;) {
-      auto found = session.version->replacements.find(parser_match_get_rule_index(match(candidate)));
-      if (found != session.version->replacements.end() && found->second.category == category)
-        return {&found->second, candidate};
-      if (tower_node_get_child_count(candidate) != 1) return {nullptr, nullptr};
-      auto* next = child(candidate, 0);
-      if (parser_match_get_rule_index(match(next)) == TOWER_INVALID_INDEX) return {nullptr, nullptr};
-      candidate = next;
-    }
-  }
-  bool run(Node& root) {
-    struct Frame { TowerNode* node; size_t next; size_t index; };
-    std::vector<Frame> stack{{root.get(), 0, 0}};
-    while (!stack.empty()) {
-      auto& frame = stack.back();
-      if (normal.contains(tower_node_get_id(frame.node))) { stack.pop_back(); continue; }
-      if (frame.next < tower_node_get_child_count(frame.node)) {
-        size_t i = frame.next++;
-        stack.push_back({child(frame.node, i), 0, i}); continue;
-      }
-      auto [replacement, captures] = applicable(frame.node);
-      if (!replacement) {
-        auto deferred = session.version->replacements.find(parser_match_get_rule_index(match(frame.node)));
-        if (deferred != session.version->replacements.end()) {
-          bool destination = false;
-          for (size_t i = stack.size() - 1; i > 0; --i) {
-            auto* parent = stack[i - 1].node;
-            if (tower_node_get_child_count(parent) != 1) break;
-            if (deferred->second.category == parser_match_get_label(match(parent))) { destination = true; break; }
-          }
-          if (!destination) {
-            session.error_offset = parser_match_get_start(match(frame.node));
-            session.error = "Replacement for " + deferred->second.rule + " requires a " + deferred->second.category + " destination";
-            return false;
-          }
-        }
-        normal.insert(tower_node_get_id(frame.node)); stack.pop_back(); continue;
-      }
-      session.error_offset = parser_match_get_start(match(frame.node));
-      if (session.expansion_stats.replacements++ >= max_steps) {
-        session.error = "Replacement step limit exceeded (4096)"; return false;
-      }
-      auto expanded = instantiate(*replacement, frame.node, captures);
-      if (!expanded) { session.error += " while replacing " + replacement->rule; return false; }
-      auto* next = expanded.get();
-      if (stack.size() == 1) root = std::move(expanded);
-      else tower_node_replace_child(stack[stack.size() - 2].node, frame.index, expanded.get());
-      frame.node = next; frame.next = 0;
-    }
-    return true;
-  }
+#ifdef TOWER_EXPANSION_SEED
+#include "bootstrap/syntax-expansion-seed.inc"
+#else
+struct ExpansionHost {
+  std::vector<std::shared_ptr<const SyntaxExpansion>> traces;
 };
+
+bool expand(SyntaxSession& session, Node& root) {
+  ExpansionHost host;
+  SyntaxExpansionInput input{session.version->expansion_index.data(),
+    session.version->expansion_index.size(), parser_match_get_type(), &host};
+  SyntaxExpansionResult result{root.release(), session.expansion_stats.replacements,
+    session.expansion_stats.generated_nodes, session.expansion_stats.copied_nodes,
+    session.error_offset, {}};
+  const bool ok = syntax_expand(&input, &result);
+  root = owned(result.root);
+  session.expansion_stats = {result.replacements, result.generated_nodes, result.copied_nodes};
+  session.error_offset = result.error_offset;
+  if (!ok) session.error = result.error.data
+    ? std::string(reinterpret_cast<const char*>(result.error.data), result.error.length)
+    : "Unable to allocate replacement expansion storage";
+  syntax_expansion_result_dispose(&result);
+  return ok;
+}
+#endif
 }
 
 const SyntaxOrigin* syntax_get_origin(TowerNode* node) {
   return (const SyntaxOrigin*)tower_node_get_component_userdata(node, origin_type);
 }
 void syntax_copy_origin(TowerNode* source, TowerNode* destination) {
-  if (auto* previous = syntax_get_origin(source)) *origin(destination) = *previous;
+  if (auto* previous = syntax_get_origin(source)) {
+    auto* copy = origin(destination); if (!copy) std::abort(); *copy = *previous;
+  }
 }
+#ifndef TOWER_EXPANSION_SEED
+extern "C" void syntax_replacement_begin(void* context, const char* name, TowerNode* sequence, size_t start, size_t end) {
+  auto& host = *static_cast<ReplacementPlanHost*>(context);
+  host.current = Replacement{}; host.current.rule = name;
+  host.current.start = start; host.current.end = end;
+  host.sequence = TowerNodeRef(sequence); host.selected = owned(nullptr); host.selected_uses.clear();
+}
+extern "C" void syntax_replacement_capture(void* context, const char* name, TowerNode* source) {
+  static_cast<ReplacementPlanHost*>(context)->current.captures[name] = TowerNodeRef(source);
+}
+extern "C" unsigned syntax_replacement_attempt(void* context, const char* category) {
+  auto& host = *static_cast<ReplacementPlanHost*>(context);
+  host.current.category = category; host.diagnostic.clear();
+  bool grammar_error = false;
+  const bool ok = compile_template(host.version, host.definitions, host.sequence, host.current, host.diagnostic, grammar_error);
+  return ok ? 1 : grammar_error ? 2 : 0;
+}
+extern "C" const char* syntax_replacement_diagnostic(void* context) {
+  return static_cast<ReplacementPlanHost*>(context)->diagnostic.c_str();
+}
+extern "C" size_t syntax_replacement_offset(void* context) {
+  return static_cast<ReplacementPlanHost*>(context)->current.error_offset;
+}
+extern "C" void syntax_replacement_select(void* context) {
+  auto& host = *static_cast<ReplacementPlanHost*>(context);
+  host.selected = std::move(host.current.tree); host.selected_category = host.current.category;
+  host.selected_uses = std::move(host.current.uses);
+}
+extern "C" void syntax_replacement_commit(void* context, size_t alternative) {
+  auto& host = *static_cast<ReplacementPlanHost*>(context);
+  host.current.tree = std::move(host.selected); host.current.category = std::move(host.selected_category);
+  host.current.uses = std::move(host.selected_uses);
+  auto index = host.version.indices.at({host.current.rule, alternative});
+  host.version.replacements.emplace(index, std::move(host.current));
+}
+extern "C" const void* syntax_expansion_history(TowerNode* node) {
+  auto* previous = syntax_get_origin(node); return previous ? previous->expansion.get() : nullptr;
+}
+extern "C" const void* syntax_expansion_previous(const void* trace) {
+  return static_cast<const SyntaxExpansion*>(trace)->previous.get();
+}
+extern "C" size_t syntax_expansion_trace(void* context, const SyntaxExpansionRule* rule, TowerNode* invocation) {
+  auto& host = *static_cast<ExpansionHost*>(context);
+  auto trace = std::make_shared<SyntaxExpansion>();
+  trace->rule = rule->rule;
+  auto* span = match(invocation);
+  trace->start = parser_match_get_start(span); trace->end = trace->start + parser_match_get_length(span);
+  trace->definition_start = rule->start; trace->definition_end = rule->end;
+  if (auto* previous = syntax_get_origin(invocation)) trace->previous = previous->expansion;
+  host.traces.push_back(std::move(trace)); return host.traces.size() - 1;
+}
+extern "C" bool syntax_expansion_copy_origin(TowerNode* source, TowerNode* destination) {
+  auto* previous = syntax_get_origin(source); if (!previous) return true;
+  auto* copy = origin(destination); if (!copy) return false; *copy = *previous; return true;
+}
+extern "C" bool syntax_expansion_origin(void* context, size_t trace_index, TowerNode* node, TowerNode* source, bool generated) {
+  auto& trace = static_cast<ExpansionHost*>(context)->traces.at(trace_index);
+  const bool splice = !generated && syntax_get_origin(node);
+  auto* value = origin(node); if (!value) return false;
+  if (splice) value->splices.push_back(trace);
+  else {
+    value->generated = generated; value->expansion = trace;
+    auto* span = match(source); value->template_start = parser_match_get_start(span);
+    value->template_end = value->template_start + parser_match_get_length(span);
+  }
+  return true;
+}
+#endif
 SyntaxExpansionStats syntax_get_expansion_stats(SyntaxSession* session) { return session->expansion_stats; }
+
+#ifdef TOWER_EXPANSION_TESTS
+extern "C" size_t syntax_expansion_tests(const SyntaxExpansionInput*, TowerNode*);
+size_t syntax_expansion_test_entry() {
+  ExpansionHost host;
+  SyntaxExpansionInput input{nullptr, 0, parser_match_get_type(), &host};
+  return syntax_expansion_tests(&input, syntax_native_bedrock());
+}
+#endif
 
 SyntaxSession* syntax_create(const char* source) {
   auto session = std::make_unique<SyntaxSession>();
@@ -1293,8 +1184,12 @@ TowerNode* syntax_next(SyntaxSession* session) {
     } else {
       session->declarations_only = false;
       if (!session->formatting && !session->version->replacements.empty()) {
+#ifdef TOWER_EXPANSION_SEED
         Expander expander{*session};
         if (!expander.run(root)) return nullptr;
+#else
+        if (!expand(*session, root)) return nullptr;
+#endif
       }
       session->comment_cursor = session->cursor;
     }

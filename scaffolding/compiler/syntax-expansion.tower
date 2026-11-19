@@ -1,0 +1,671 @@
+// Replacement execution over shared parse entities. Rule slots and visitation
+// sets are disposable indexes; capture holes refer to the compiled template tree.
+extern fn entity_id(node: void*): usize;
+
+extern fn entity_replace_child(parent: void*, index: usize, replacement: void*): bool;
+
+extern fn entity_take_last_child(parent: void*): void*;
+
+extern fn entity_child_name(parent: void*, index: usize): u8*;
+
+struct SyntaxExpansionCapture {
+    name: u8*;
+    uses: usize;
+    repeated: bool;
+}
+
+struct SyntaxExpansionRule {
+    tree: void*;
+    rule: u8*;
+    category: u8*;
+    start: usize;
+    end: usize;
+    captures: SyntaxExpansionCapture*;
+    count: usize;
+}
+
+struct SyntaxExpansionInput {
+    rules: SyntaxExpansionRule**;
+    count: usize;
+    match_kind: void*;
+    host: void*;
+}
+
+struct SyntaxExpansionResult {
+    root: void*;
+    replacements: usize;
+    generated_nodes: usize;
+    copied_nodes: usize;
+    error_offset: usize;
+    error: vector(u8);
+}
+
+// Only provenance storage still crosses the native facade. Selection, traversal,
+// recursion/output limits and copying decisions all live in this module.
+extern fn syntax_expansion_history(node: void*): void*;
+
+extern fn syntax_expansion_previous(trace: void*): void*;
+
+extern fn syntax_expansion_trace(host: void*, rule: SyntaxExpansionRule*, invocation: void*): usize;
+
+extern fn syntax_expansion_origin(host: void*, trace: usize, node: void*, template: void*, generated: bool): bool;
+
+extern fn syntax_expansion_copy_origin(source: void*, destination: void*): bool;
+
+struct ExpansionFrame {
+    node: void*;
+    next: usize;
+    index: usize;
+}
+
+struct ExpansionWork {
+    source: void*;
+    parent: void*;
+    role: u8*;
+}
+
+struct ExpansionCapture {
+    node: void*;
+    remaining: usize;
+}
+
+struct ExpansionState {
+    input: SyntaxExpansionInput*;
+    result: SyntaxExpansionResult*;
+    normal: vector(usize);
+    normal_count: usize;
+    frames: vector(ExpansionFrame);
+    work: vector(ExpansionWork);
+    clones: vector(ExpansionWork);
+    captures: vector(ExpansionCapture);
+    items: vector(void*);
+}
+
+fn expansion_match(state: ExpansionState*, node: void*): ParserMatchData* {
+    return lr_tree_match(node, state.input.match_kind);
+}
+
+fn expansion_error(state: ExpansionState*, text: u8*): bool {
+    node_text_set(&state.result.error, text);
+    return false;
+}
+
+fn expansion_append(state: ExpansionState*, text: u8*): void {
+    var length = syntax_text_length(text);
+    bytes_append(&state.result.error, text, length);
+}
+
+fn expansion_memory(state: ExpansionState*): bool {
+    return expansion_error(state, "Unable to allocate replacement expansion storage");
+}
+
+fn expansion_same(left: u8*, right: u8*): bool {
+    var left_length = syntax_text_length(left);
+    var right_length = syntax_text_length(right);
+    var order = syntax_bytes_compare(left, left_length, right, right_length);
+    var same = order == 0;
+    return same;
+}
+
+fn expansion_slot(key: usize, capacity: usize): usize {
+    var hash = key * 2654435761;
+    var upper = hash / 65536;
+    hash = hash ^ upper;
+    var mask = capacity - 1;
+    hash = hash & mask;
+    return hash;
+}
+
+fn expansion_normal(state: ExpansionState*, node: void*): bool {
+    var empty = state.normal.length == 0;
+    if empty {
+        return false;
+    }
+    var key = entity_id(node) + 1;
+    var slot = expansion_slot(key, state.normal.length);
+    var mask = state.normal.length - 1;
+    loop {
+        var current = state.normal.data[slot];
+        var found = current == key;
+        if found {
+            return true;
+        }
+        empty = current == 0;
+        if empty {
+            return false;
+        }
+        slot = slot + 1;
+        slot = slot & mask;
+    }
+}
+
+fn expansion_mark(state: ExpansionState*, node: void*): bool {
+    var present = expansion_normal(state, node);
+    if present {
+        return true;
+    }
+    var needed = state.normal_count + 1;
+    needed = needed * 2;
+    var grow = needed >= state.normal.length;
+    if grow {
+        var capacity = state.normal.length * 2;
+        var small = capacity < 32;
+        if small {
+            capacity = 32;
+        }
+        var next = alloc(usize, capacity);
+        var failed = next == null;
+        if failed {
+            return expansion_memory(state);
+        }
+        var size = capacity * sizeof(usize);
+        fill(next, 0, size);
+        var index: usize = 0;
+        var mask = capacity - 1;
+        loop {
+            var done = index == state.normal.length;
+            if done {
+                break;
+            }
+            var key = state.normal.data[index];
+            var occupied = key != 0;
+            if occupied {
+                var slot = expansion_slot(key, capacity);
+                loop {
+                    var empty = next[slot] == 0;
+                    if empty {
+                        break;
+                    }
+                    slot = slot + 1;
+                    slot = slot & mask;
+                }
+                next[slot] = key;
+            }
+            index = index + 1;
+        }
+        free(state.normal.data);
+        state.normal.data = next;
+        state.normal.length = capacity;
+        state.normal.capacity = capacity;
+    }
+    var key = entity_id(node) + 1;
+    var slot = expansion_slot(key, state.normal.length);
+    var mask = state.normal.length - 1;
+    loop {
+        var empty = state.normal.data[slot] == 0;
+        if empty {
+            state.normal.data[slot] = key;
+            state.normal_count = state.normal_count + 1;
+            return true;
+        }
+        slot = slot + 1;
+        slot = slot & mask;
+    }
+}
+
+fn expansion_push_frame(state: ExpansionState*, node: void*, index: usize): bool {
+    var count = state.frames.length;
+    var needed = count + 1;
+    var ok = vector_reserve(ExpansionFrame, &state.frames, needed);
+    if ok {
+        state.frames.data[count].node = node;
+        state.frames.data[count].next = 0;
+        state.frames.data[count].index = index;
+        state.frames.length = needed;
+        return true;
+    }
+    return expansion_memory(state);
+}
+
+fn expansion_push_work(state: ExpansionState*, work: vector(ExpansionWork)*, source: void*, parent: void*, role: u8*): bool {
+    var count = work.length;
+    var needed = count + 1;
+    var ok = vector_reserve(ExpansionWork, work, needed);
+    if ok {
+        work.data[count].source = source;
+        work.data[count].parent = parent;
+        work.data[count].role = role;
+        work.length = needed;
+        return true;
+    }
+    return expansion_memory(state);
+}
+
+fn expansion_children(state: ExpansionState*, work: vector(ExpansionWork)*, source: void*, parent: void*): bool {
+    var index = entity_child_count(source);
+    loop {
+        var done = index == 0;
+        if done {
+            return true;
+        }
+        index = index - 1;
+        var child = entity_child_at(source, index);
+        var role = entity_child_name(source, index);
+        var ok = expansion_push_work(state, work, child, parent, role);
+        if ok {} else {
+            return false;
+        }
+    }
+}
+
+fn expansion_copy_node(state: ExpansionState*, source: void*, copied: bool): void* {
+    var count = state.result.generated_nodes + state.result.copied_nodes;
+    var limit = count >= 65536;
+    if limit {
+        expansion_error(state, "Replacement output limit exceeded (65536 nodes)");
+        return null;
+    }
+    var node = entity_create_related(source);
+    var ok = node != null;
+    if ok {
+        var component = entity_component_add(node, state.input.match_kind);
+        var data = bits(ParserMatchData*, entity_component_data(component));
+        ok = data != null;
+        if ok {
+            node_payload_init(4, bits(void*, data));
+            var from = expansion_match(state, source);
+            data.id = from.id;
+            data.rule = from.rule;
+            data.start = from.start;
+            data.length = from.length;
+            ok = node_match_set_label(data, node_text_get(&from.label));
+            if ok {
+                ok = syntax_expansion_copy_origin(source, node);
+            }
+        }
+        if ok {
+            if copied {
+                state.result.copied_nodes = state.result.copied_nodes + 1;
+            } else {
+                state.result.generated_nodes = state.result.generated_nodes + 1;
+            }
+            return node;
+        }
+        entity_release(node);
+    }
+    expansion_memory(state);
+    return null;
+}
+
+// Cloning and marking are one traversal, replacing the former clone plus a
+// second walk to register every cloned descendant as already expanded.
+fn expansion_copy_tree(state: ExpansionState*, source: void*): void* {
+    var root = expansion_copy_node(state, source, true);
+    var missing = root == null;
+    if missing {
+        return null;
+    }
+    state.clones.length = 0;
+    var ok = expansion_mark(state, root);
+    if ok {
+        ok = expansion_children(state, &state.clones, source, root);
+    }
+    loop {
+        if ok {} else {
+            entity_release(root);
+            return null;
+        }
+        var empty = state.clones.length == 0;
+        if empty {
+            return root;
+        }
+        state.clones.length = state.clones.length - 1;
+        var work: ExpansionWork;
+        copy(&work, &state.clones.data[state.clones.length], sizeof(ExpansionWork));
+        var node = expansion_copy_node(state, work.source, true);
+        ok = node != null;
+        if ok {
+            ok = expansion_mark(state, node);
+            if ok {
+                ok = entity_attach(node, work.parent, work.role);
+                if ok {} else {
+                    expansion_memory(state);
+                }
+            }
+            if ok {
+                ok = expansion_children(state, &state.clones, work.source, node);
+            }
+            entity_release(node);
+        }
+    }
+}
+
+fn expansion_splice(state: ExpansionState*, trace: usize, node: void*, work: ExpansionWork*): bool {
+    var ok = syntax_expansion_origin(state.input.host, trace, node, work.source, false);
+    if ok {
+        ok = entity_attach(node, work.parent, work.role);
+    }
+    if ok {
+        return true;
+    }
+    return expansion_memory(state);
+}
+
+fn expansion_hole(state: ExpansionState*, rule: SyntaxExpansionRule*, trace: usize, work: ExpansionWork*): bool {
+    var data = expansion_match(state, work.source);
+    var index = data.id - 3145728;
+    var invalid = convert(usize, index) >= rule.count;
+    if invalid {
+        return expansion_error(state, "Invalid replacement capture index");
+    }
+    var capture = &state.captures.data[index];
+    var unused = capture.remaining == 0;
+    if unused {
+        return expansion_error(state, "Invalid replacement capture use count");
+    }
+    capture.remaining = capture.remaining - 1;
+    var repeated = capture.remaining != 0;
+    var value: void*;
+    if repeated {
+        value = expansion_copy_tree(state, capture.node);
+    } else {
+        value = capture.node;
+        entity_retain(value);
+        entity_attach(value, null, null);
+    }
+    var missing = value == null;
+    if missing {
+        return false;
+    }
+    var ok = true;
+    if rule.captures[index].repeated {
+        var count = entity_child_count(value);
+        var named = work.role != null;
+        if named {
+            named = *work.role != 0;
+        }
+        var many = count > 1;
+        if named {
+            if many {
+                entity_release(value);
+                return expansion_error(state, "List capture requires a repeated destination");
+            }
+        }
+        state.items.length = 0;
+        ok = vector_reserve(void*, &state.items, count);
+        if ok {
+            loop {
+                var empty = count == 0;
+                if empty {
+                    break;
+                }
+                var item = entity_take_last_child(value);
+                state.items.data[state.items.length] = item;
+                state.items.length = state.items.length + 1;
+                count = count - 1;
+            }
+            loop {
+                var empty = state.items.length == 0;
+                if empty {
+                    break;
+                }
+                state.items.length = state.items.length - 1;
+                var item = state.items.data[state.items.length];
+                if ok {
+                    ok = expansion_splice(state, trace, item, work);
+                }
+                entity_release(item);
+            }
+        } else {
+            expansion_memory(state);
+        }
+    } else {
+        ok = expansion_splice(state, trace, value, work);
+    }
+    entity_release(value);
+    return ok;
+}
+
+fn expansion_instantiate(state: ExpansionState*, rule: SyntaxExpansionRule*, invocation: void*, captured: void*): void* {
+    var previous = syntax_expansion_history(invocation);
+    var depth: usize = 0;
+    loop {
+        var done = previous == null;
+        if done {
+            break;
+        }
+        depth = depth + 1;
+        var limit = depth >= 256;
+        if limit {
+            expansion_error(state, "Replacement recursion limit exceeded (256 expansions in one chain)");
+            return null;
+        }
+        previous = syntax_expansion_previous(previous);
+    }
+    var ok = vector_reserve(ExpansionCapture, &state.captures, rule.count);
+    if ok {} else {
+        expansion_memory(state);
+        return null;
+    }
+    var index: usize = 0;
+    loop {
+        var done = index == rule.count;
+        if done {
+            break;
+        }
+        var member = entity_member_index(captured, rule.captures[index].name);
+        var node = entity_child_at(captured, member);
+        var missing = node == null;
+        if missing {
+            expansion_error(state, "Missing replacement capture: $");
+            expansion_append(state, rule.captures[index].name);
+            return null;
+        }
+        state.captures.data[index].node = node;
+        state.captures.data[index].remaining = rule.captures[index].uses;
+        index = index + 1;
+    }
+    var trace = syntax_expansion_trace(state.input.host, rule, invocation);
+    var container = entity_create_related(invocation);
+    var missing = container == null;
+    if missing {
+        expansion_memory(state);
+        return null;
+    }
+    state.work.length = 0;
+    ok = expansion_push_work(state, &state.work, rule.tree, container, null);
+    var span = expansion_match(state, invocation);
+    loop {
+        if ok {} else {
+            entity_release(container);
+            return null;
+        }
+        var empty = state.work.length == 0;
+        if empty {
+            break;
+        }
+        state.work.length = state.work.length - 1;
+        var work: ExpansionWork;
+        copy(&work, &state.work.data[state.work.length], sizeof(ExpansionWork));
+        var data = expansion_match(state, work.source);
+        var hole = data.id >= 3145728;
+        if hole {
+            hole = data.label.length != 0;
+            if hole {
+                hole = data.label.data[0] == 36;
+            }
+        }
+        if hole {
+            ok = expansion_hole(state, rule, trace, &work);
+            continue;
+        }
+        var node = expansion_copy_node(state, work.source, false);
+        ok = node != null;
+        if ok {
+            var made = expansion_match(state, node);
+            made.start = span.start;
+            made.length = span.length;
+            ok = syntax_expansion_origin(state.input.host, trace, node, work.source, true);
+            if ok {
+                ok = entity_attach(node, work.parent, work.role);
+            }
+            if ok {
+                ok = expansion_children(state, &state.work, work.source, node);
+            } else {
+                expansion_memory(state);
+            }
+            entity_release(node);
+        }
+    }
+    var count = entity_child_count(container);
+    var single = count == 1;
+    var result: void* = null;
+    if single {
+        result = entity_take_last_child(container);
+    } else {
+        expansion_error(state, "Replacement must produce one root");
+    }
+    entity_release(container);
+    return result;
+}
+
+fn expansion_rule(state: ExpansionState*, node: void*): SyntaxExpansionRule* {
+    var data = expansion_match(state, node);
+    var valid = data.rule < state.input.count;
+    if valid {
+        return state.input.rules[data.rule];
+    }
+    return null;
+}
+
+fn expansion_run(state: ExpansionState*): bool {
+    var ok = expansion_push_frame(state, state.result.root, 0);
+    loop {
+        if ok {} else {
+            return false;
+        }
+        var empty = state.frames.length == 0;
+        if empty {
+            return true;
+        }
+        var top = state.frames.length - 1;
+        var frame = &state.frames.data[top];
+        var done = expansion_normal(state, frame.node);
+        if done {
+            state.frames.length = top;
+            continue;
+        }
+        var count = entity_child_count(frame.node);
+        var children = frame.next < count;
+        if children {
+            var index = frame.next;
+            frame.next = index + 1;
+            var node = entity_child_at(frame.node, index);
+            ok = expansion_push_frame(state, node, index);
+            continue;
+        }
+        var root = expansion_match(state, frame.node);
+        var category = node_text_get(&root.label);
+        var candidate = frame.node;
+        var rule: SyntaxExpansionRule*;
+        loop {
+            rule = expansion_rule(state, candidate);
+            var found = rule != null;
+            if found {
+                found = expansion_same(rule.category, category);
+                if found {
+                    break;
+                }
+            }
+            rule = null;
+            var count = entity_child_count(candidate);
+            var single = count == 1;
+            if single {} else {
+                break;
+            }
+            var next = entity_child_at(candidate, 0);
+            var data = expansion_match(state, next);
+            var leaf = data.rule == lr_none();
+            if leaf {
+                break;
+            }
+            candidate = next;
+        }
+        var missing = rule == null;
+        if missing {
+            var deferred = expansion_rule(state, frame.node);
+            var found = deferred != null;
+            if found {
+                var destination = false;
+                var index = top;
+                loop {
+                    var end = index == 0;
+                    if end {
+                        break;
+                    }
+                    index = index - 1;
+                    var parent = state.frames.data[index].node;
+                    var count = entity_child_count(parent);
+                    var single = count == 1;
+                    if single {} else {
+                        break;
+                    }
+                    var data = expansion_match(state, parent);
+                    destination = expansion_same(deferred.category, node_text_get(&data.label));
+                    if destination {
+                        break;
+                    }
+                }
+                if destination {} else {
+                    state.result.error_offset = root.start;
+                    expansion_error(state, "Replacement for ");
+                    expansion_append(state, deferred.rule);
+                    expansion_append(state, " requires a ");
+                    expansion_append(state, deferred.category);
+                    expansion_append(state, " destination");
+                    return false;
+                }
+            }
+            ok = expansion_mark(state, frame.node);
+            state.frames.length = top;
+            continue;
+        }
+        state.result.error_offset = root.start;
+        var limit = state.result.replacements >= 4096;
+        state.result.replacements = state.result.replacements + 1;
+        if limit {
+            return expansion_error(state, "Replacement step limit exceeded (4096)");
+        }
+        var expanded = expansion_instantiate(state, rule, frame.node, candidate);
+        var failed = expanded == null;
+        if failed {
+            expansion_append(state, " while replacing ");
+            expansion_append(state, rule.rule);
+            return false;
+        }
+        var first = top == 0;
+        if first {
+            entity_release(state.result.root);
+            state.result.root = expanded;
+        } else {
+            var previous = top - 1;
+            var parent = state.frames.data[previous].node;
+            ok = entity_replace_child(parent, frame.index, expanded);
+            entity_release(expanded);
+            if ok {} else {
+                return expansion_error(state, "Unable to replace syntax child");
+            }
+        }
+        frame.node = expanded;
+        frame.next = 0;
+    }
+}
+
+export fn syntax_expand(input: SyntaxExpansionInput*, result: SyntaxExpansionResult*): bool {
+    var state: ExpansionState;
+    fill(&state, 0, sizeof(ExpansionState));
+    state.input = input;
+    state.result = result;
+    var ok = expansion_run(&state);
+    vector_dispose(usize, &state.normal);
+    vector_dispose(ExpansionFrame, &state.frames);
+    vector_dispose(ExpansionWork, &state.work);
+    vector_dispose(ExpansionWork, &state.clones);
+    vector_dispose(ExpansionCapture, &state.captures);
+    vector_dispose(void*, &state.items);
+    return ok;
+}
+
+export fn syntax_expansion_result_dispose(result: SyntaxExpansionResult*): void {
+    vector_dispose(u8, &result.error);
+}

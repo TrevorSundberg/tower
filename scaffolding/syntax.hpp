@@ -27,8 +27,8 @@ SyntaxSession* syntax_create_foundation(const char* source);
 
 // Native bootstrap for Tower's in-source `parse` declarations. Owns a copy of
 // the source and a grammar revision. Declarations activate after their semicolon.
-SyntaxSession* syntax_create(const char* source);
-void syntax_destroy(SyntaxSession* session);
+extern "C" SyntaxSession* syntax_create(const char* source);
+extern "C" void syntax_destroy(SyntaxSession* session);
 // Restart from grammar revision zero, retaining a bounded cache of compiled
 // grammars. Source, errors, highlights and parse progress are always reset.
 void syntax_reset(SyntaxSession* session, const char* source);
@@ -38,8 +38,8 @@ SyntaxCacheStats syntax_get_cache_stats(SyntaxSession* session);
 // Parse/install one declaration or parse one Statement, transferring one root
 // reference to the caller. Null means EOF or error; inspect syntax_get_error.
 // Earlier trees remain valid across grammar changes and session destruction.
-TowerNode* syntax_next(SyntaxSession* session);
-const char* syntax_get_error(SyntaxSession* session);
+extern "C" TowerNode* syntax_next(SyntaxSession* session);
+extern "C" const char* syntax_get_error(SyntaxSession* session);
 size_t syntax_get_revision(SyntaxSession* session);
 size_t syntax_get_offset(SyntaxSession* session);
 
