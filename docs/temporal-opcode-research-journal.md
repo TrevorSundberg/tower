@@ -13949,3 +13949,16 @@ Reference used for the browser adapter: CodeMirror's official
 [reference manual](https://codemirror.net/docs/ref/#autocomplete). The implementation
 uses the installed/pinned @codemirror/autocomplete 6.20.4 API. Those APIs provide the
 popup and async request lifecycle, not Tower language definitions.
+
+Publication verified: implementation commit 04fa80b was committed, pulled/rebased
+and pushed on main. Pages commit 78675ab is a normal fast-forward of b8ae368;
+GitHub reports it built without errors. Both local and hosted verification pass
+all 38 exact asset hashes and desktop/mobile behavior, including the new
+completion/Tab/field checks. The final native sanitizer rerun also passes 5/5.
+The 812,924-byte parser reactor has SHA-256
+b1c459f186944877f57b45834f3c24172344e13fd871ccb44df1cc1ad098805a.
+Evidence: build/autocomplete-local-deployment.log,
+build/autocomplete-live-deployment.log and build/deployment-verification/report.json
+(with desktop/mobile completion screenshots, visually inspected). Published URL:
+https://trevorsundberg.github.io/tower/. This publication-record update changes
+only the journal; the verified deployed assets remain those of 04fa80b/78675ab.
