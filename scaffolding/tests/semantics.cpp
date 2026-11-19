@@ -2,6 +2,7 @@
 #include "../compiler-semantic.hpp"
 #include <cassert>
 #include <fstream>
+#include <filesystem>
 #include <sstream>
 #include <unordered_map>
 
@@ -55,7 +56,7 @@ void compare(const std::vector<std::string>& files, unsigned width, bool valid) 
 }
 void semantic_port_tests() {
   for (unsigned width : {4u, 8u}) {
-    std::ifstream file("tests/semantics.tower"); assert(file);
+    std::ifstream file(std::filesystem::path(__FILE__).parent_path() / "semantics.tower"); assert(file);
     std::string source{std::istreambuf_iterator<char>(file), {}};
     compare({source}, width, true);
     compare({"b = 0; var a = b; fn f(): i32 { return a; }", "var b: i32 = 42; print(f());"}, width, true);

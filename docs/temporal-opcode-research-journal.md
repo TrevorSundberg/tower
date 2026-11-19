@@ -12429,3 +12429,14 @@ its unused browser export under that flag; the seed and production export remain
 unchanged. This is test isolation, not a change to semantic behavior. Continuing
 from the sanitizer and host-WASI stages; the already-passing bootstrap comparisons
 need no repetition for a reference-library-only compile flag.
+
+The user requested faster completion and an immediate source push. Rebased over
+two new journal-only upstream commits (`ca5df64`), preserving both journal tails,
+and pushed all semantic work to main at `9e73773`; checkout and tracking state
+were clean/equal. The sanitizer rerun passed **5/5** after export isolation.
+Host-WASI then reached semantic tests and exposed a fixture-path assumption:
+`tests/semantics.tower` assumes native CTest's working directory, while WASI mounts
+fixtures under `source/tests/`. Changed that test to resolve its sibling fixture
+from `__FILE__`, matching the existing mapped-source test convention. No production
+compiler behavior changed. Finish with targeted host-WASI validation and release
+asset/deployment checks rather than repeating the full browser matrix.
