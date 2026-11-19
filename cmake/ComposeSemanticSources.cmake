@@ -6,4 +6,5 @@ foreach(name IN ITEMS context definitions support types values statements lifecy
 endforeach()
 tower_import("${ROOT}/scaffolding/compiler/frontend-compilation.tower")
 tower_import("${ROOT}/scaffolding/compiler/completion.tower")
+tower_import("${ROOT}/scaffolding/compiler/language-query.tower")
 file(WRITE "${OUTPUT}" "${source}")

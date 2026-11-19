@@ -447,6 +447,83 @@ fn format_block(f: FormatEngine*, entity: void*): void {
     format_text(f, "}");
 }
 
+fn format_function_header(f: FormatEngine*, n: FoundationNode*): void {
+    if n.external {
+        format_text(f, "extern ");
+    } else {
+        if n.exported {
+            format_text(f, "export ");
+        }
+    }
+    format_text(f, "fn ");
+    format_identifier(f, &n.name);
+    format_text(f, "(");
+    var i: usize = 0;
+    loop {
+        var hover_condition1 = i == n.parameters.length;
+        if hover_condition1 {
+            break;
+        }
+        var hover_condition2 = i != 0;
+        if hover_condition2 {
+            format_text(f, ", ");
+        }
+        var p = format_foundation(f, n.parameters.data[i]);
+        format_identifier(f, &p.name);
+        format_text(f, ": ");
+        format_type(f, &p.type);
+        i = i + 1;
+    }
+    format_text(f, "): ");
+    format_type(f, &n.type);
+}
+
+// A display fragment, not an alternative program serializer. All identifiers,
+// types and function signatures use the canonical formatter's own rules.
+export fn format_summary(result: FormatResult*, entity: void*, syntax: void*, foundation: void*, `match`: void*): void {
+    var f: FormatEngine;
+    f.result = result;
+    f.syntax_kind = syntax;
+    f.foundation_kind = foundation;
+    f.match_kind = `match`;
+    var hover_condition3 = format_syntax(&f, entity) != null;
+    if hover_condition3 {
+        format_grammar(&f, entity);
+        return;
+    }
+    var n = format_foundation(&f, entity);
+    var hover_condition4 = n == null;
+    if hover_condition4 {
+        return;
+    }
+    if format_is_Function(n) {
+        format_function_header(&f, n);
+        return;
+    }
+    if format_is_Type(n) {
+        format_type(&f, &n.type);
+        return;
+    }
+    var named = format_is_Declare(n);
+    if named {
+        format_text(&f, "var ");
+    }
+    if format_is_Parameter(n) {
+        named = true;
+    }
+    var hover_condition5 = n.kind == KFieldDeclaration();
+    if hover_condition5 {
+        named = true;
+    }
+    if named {
+        format_identifier(&f, &n.name);
+        format_text(&f, ": ");
+        format_type(&f, &n.type);
+        return;
+    }
+    format_expression(&f, entity);
+}
+
 fn format_statement_body(f: FormatEngine*, entity: void*): void {
     var n = format_foundation(f, entity);
     var label = n.kind == 31;
@@ -540,35 +617,7 @@ fn format_statement_body(f: FormatEngine*, entity: void*): void {
     }
     var condition35 = format_is_Function(n);
     if condition35 {
-        if n.external {
-            format_text(f, "extern ");
-        }
-        else {
-            if n.exported {
-                format_text(f, "export ");
-            }
-        }
-        format_text(f, "fn ");
-        format_identifier(f, &n.name);
-        format_text(f, "(");
-        var i: usize = 0;
-        loop {
-            var condition36 = i == n.parameters.length;
-            if condition36 {
-                break;
-            }
-            var condition37 = i != 0;
-            if condition37 {
-                format_text(f, ", ");
-            }
-            var p = format_foundation(f, n.parameters.data[i]);
-            format_identifier(f, &p.name);
-            format_text(f, ": ");
-            format_type(f, &p.type);
-            i = i + 1;
-        }
-        format_text(f, "): ");
-        format_type(f, &n.type);
+        format_function_header(f, n);
         if n.external {
             format_text(f, ";");
         }

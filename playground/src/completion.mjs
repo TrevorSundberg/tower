@@ -4,17 +4,14 @@ import { Prec } from '@codemirror/state';
 import { byteOffsets } from './offsets.mjs';
 import { LanguageService } from './language-service.mjs';
 import { CompletionQueries } from './completion-queries.mjs';
-import { compilerSelection } from './compiler-selection.mjs';
+import { languagePayload } from './language-queries.mjs';
+import { towerHover } from './hover.mjs';
 
 export function towerCompletion(configuration) {
   const service = new LanguageService();
   const queries = new CompletionQueries(service);
-  const encoder = new TextEncoder();
   function payload(source, position) {
-    const config=configuration();
-    return {...config, compilerRevision:compilerSelection().revision, method:'complete', source, cursor:encoder.encode(source.slice(0,position)).length,
-      builtins:{...config.builtins},
-      files:config.files?.filter(file=>file.path.endsWith('.tower')).map(file=>({path:file.path,text:file.path===config.activePath?source:file.text}))};
+    return languagePayload(configuration,source,'complete',position);
   }
   const warm = () => service.request('warm', {method:'warm', ...configuration()}).promise.catch(() => {});
   const prediction=ViewPlugin.fromClass(class {
@@ -38,7 +35,7 @@ export function towerCompletion(configuration) {
     }
     destroy() { clearTimeout(this.timer); queries.clear(); service.stop(); }
   });
-  return [prediction,
+  return [prediction,towerHover(service,configuration),
     autocompletion({activateOnTyping:true, activateOnTypingDelay:0, interactionDelay:0, override:[async context => {
     const source = context.state.doc.toString();
     if (!context.explicit && !/[\w.`]$/.test(source.slice(0, context.pos))) return null;

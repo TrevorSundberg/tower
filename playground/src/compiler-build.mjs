@@ -67,6 +67,9 @@ export async function linkCompiler({compiler, recipe, files, inputs, support, pr
   const completion = tower.complete(partial,new TextEncoder().encode(partial).length);
   if (completion.error || completion.options?.length !== 1 || completion.options[0].label !== 'valid')
     throw new Error('Candidate typed completion check failed');
+  const inspected = tower.inspectDocument('var value: i32 = 42; print(value);');
+  if (!inspected.entries?.some(entry => entry.from === 27 && entry.signature === 'var value: i32' && entry.type === 'i32' && entry.binding))
+    throw new Error('Candidate typed hover check failed');
   const llvm = await loadLLVM(modules.llvm, undefined, grammar.foundation, undefined, grammar.bedrock, {tower:grammar.tower});
   const result = llvm.compile(foundation);
   if (result.status === 'error') throw new Error('Candidate LLVM: '+result.error);

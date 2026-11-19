@@ -1,20 +1,8 @@
+import 'format-types';
 import tower;
 
 // Canonical text and source mapping over the existing shared components.
 // Composed after their definitions; these buffers are output, not another IR.
-struct FormatSpan {
-    begin: usize;
-    end: usize;
-    source: usize;
-}
-
-struct FormatResult {
-    text: vector(u8);
-    spans: vector(FormatSpan);
-    depth: usize;
-    failed: bool;
-}
-
 struct FormatEngine {
     result: FormatResult*;
     syntax_kind: void*;

@@ -16,6 +16,8 @@ struct CompletionQuery {
     editor: SemanticEditor;
     semantic: bool;
     analyzed: bool;
+    inspection: bool;
+    truncated: bool;
     input: vector(u8);
     roots: vector(void*);
     bases: vector(usize);
@@ -78,6 +80,7 @@ fn completion_parse(q: CompletionQuery*, source: u8*, mode: u32, future: bool): 
     loop {
         var editor_condition1 = count == 1024;
         if editor_condition1 {
+            q.truncated = true;
             break;
         }
         var revision = syntax_get_revision(session);
@@ -97,6 +100,13 @@ fn completion_parse(q: CompletionQuery*, source: u8*, mode: u32, future: bool): 
         if keep {
             sem_push(&entries, root);
         } else {
+            if q.inspection {
+                // Keep grammar entities for inspection without adding them to
+                // the executable statement list consumed by ordinary checking.
+                sem_require(entity_attach(root, q.program.root, ""));
+                sem_push(&q.roots, root);
+                sem_require(vector_push(usize, &q.bases, base));
+            }
             entity_release(root);
         }
         count = count + 1;

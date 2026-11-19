@@ -5,6 +5,16 @@ async function edit(page,text) {
   await page.locator('#editor').click({position:{x:80,y:20}});
   await editor.press('ControlOrMeta+a'); await page.keyboard.insertText(text);
 }
+async function hoverValue(page) {
+  const position=await page.getByRole('textbox',{name:'Tower source'}).evaluate(editor=>{
+    const walker=document.createTreeWalker(editor,NodeFilter.SHOW_TEXT);let node;
+    while(walker.nextNode())if(walker.currentNode.textContent.includes('value'))node=walker.currentNode;
+    const at=node.textContent.lastIndexOf('value'),range=document.createRange();
+    range.setStart(node,at);range.setEnd(node,at+5);const box=range.getBoundingClientRect();
+    return {x:box.x+box.width/2,y:box.y+box.height/2};
+  });
+  await page.mouse.move(position.x,position.y);
+}
 test('compiler sources, migration comments, cancellation and persistence are available',async({page},info) => {
   await page.goto('/'); await expect(page.locator('#status')).toContainText('Complete');
   await page.locator('#project-kind').selectOption('tower:compiler');
@@ -57,6 +67,8 @@ test('browser rebuild activates edited compiler behavior and reset recovers the 
   await expect(page.locator('#active-compiler')).toHaveText('Compiler generation 1');
   await page.locator('#project-kind').selectOption('example:execution');
   await page.locator('#auto-execute').uncheck();
+  await edit(page,'var value:i32 = 42; print(value);');await hoverValue(page);
+  await expect(page.locator('.tw-hover-signature')).toHaveText('var value: i32');
   await edit(page,'var value: i32 = null;'); await page.locator('#execute').click();
   await expect(page.locator('#execution-error')).toContainText('Workbench says: null requires a pointer type');
   await page.locator('#project-kind').selectOption('tower:compiler');
@@ -75,5 +87,7 @@ test('browser rebuild activates edited compiler behavior and reset recovers the 
   await page.locator('#execute').click();
   await expect(page.locator('#execution-error')).toContainText('null requires a pointer type');
   await expect(page.locator('#execution-error')).not.toContainText('Workbench says');
+  await edit(page,'var value:bool = true; print(value);');await hoverValue(page);
+  await expect(page.locator('.tw-hover-signature')).toHaveText('var value: bool');
   expect(errors).toEqual([]);
 });

@@ -80,6 +80,15 @@ export async function loadTower(bytes, log = () => {}, bootstrap, foundation, be
       return withSource(source, (p, n) => JSON.parse(string(exports.tw_complete(p, n, cursor,
         editingModule === 'bedrock' ? 2 : editingModule === 'foundation' ? 1 : 0, 0, 0, 0))));
     },
+    inspectDocument(source,{editingModule='',files,entry,pointerBytes=4}={}) {
+      if(files || entry)modules.configure({...(files?{files}:{}),...(entry?{entry}:{})});
+      return withSource(source,(pointer,length)=>{
+        const query=exports.language_document(pointer,length,editingModule==='bedrock'?2:editingModule==='foundation'?1:0,pointerBytes);
+        if(!query)throw new Error('Invalid or unallocatable language query');
+        try{return JSON.parse(string(exports.language_document_result(query)));}
+        finally{exports.completion_dispose(query);}
+      });
+    },
     compile: (source, { pointerBytes = 4 } = {}) => remember(withSource(source, (pointer, length) => exports.tw_exec_create_target(pointer, length, pointerBytes))),
     compileFiles(files, {pointerBytes = 4} = {}) {
       if (!files.length || files.length > 1024) throw new Error('Project needs 1?1,024 source files.');

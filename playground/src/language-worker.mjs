@@ -11,7 +11,7 @@ function baselines() {
   return baseline;
 }
 self.onmessage = ({data}) => { queue = queue.then(() => receive(data)); };
-async function receive({id, method, source, cursor, foundation, bedrock, editingModule, files=[], builtins={}, activePath='input.tower', library='.tower', compiler}) {
+async function receive({id, method, source, cursor, foundation, bedrock, editingModule, files=[], builtins={}, activePath='input.tower', library='.tower', compiler, pointerBytes=4}) {
   try {
     useCompiler(compiler);
     if (['bedrock','foundation'].includes(editingModule)) {
@@ -23,9 +23,9 @@ async function receive({id, method, source, cursor, foundation, bedrock, editing
     let result;
     if (method === 'warm') {
       result = null;
-    } else if (method === 'complete') {
+    } else if (method === 'complete' || method === 'document') {
       tower.configureModules({entry:activePath, files, builtins:{...builtins,foundation,bedrock}, library});
-      result = tower.complete(source, cursor, {editingModule});
+      result = method === 'complete' ? tower.complete(source, cursor, {editingModule}) : tower.inspectDocument(source,{editingModule,pointerBytes});
       if (result.error) throw new Error(result.error);
     } else {
       const handle = tower.create(source);

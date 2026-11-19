@@ -933,7 +933,8 @@ async function start() {
     p.baseline = {...builtins};
   }
   editorExtensions = [
-    towerCompletion(() => ({library:project.library ?? '.tower', foundation, bedrock, editingModule, files:project.files, builtins:project.builtins, activePath})),
+    towerCompletion(() => ({library:project.library ?? '.tower', foundation, bedrock, editingModule, files:project.files, builtins:project.builtins, activePath,
+      pointerBytes:selectedTargets.wasm || !selectedNativeKeys().length ? 4 : 8})),
     lineNumbers(), highlightActiveLineGutter(), highlightActiveLine(), history(), highlighting, selectionMark, editorDiagnostics,
     EditorView.lineWrapping, EditorView.theme({ '&': { color: '#d4e0e2', backgroundColor: '#121a1e' } }, { dark: true }),
     EditorView.contentAttributes.of({ 'aria-label': 'Tower source', spellcheck: 'false', autocapitalize: 'off', autocorrect: 'off' }),
