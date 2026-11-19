@@ -13527,3 +13527,19 @@ baselines, with API tests enabled. The default CLI/browser transport, portable
 bootstrap packaging, native process launching and runtime-object migration are
 still their respective owners' integration dependencies. Deployment verification
 and commit identifiers are recorded in the following publication entry.
+
+Backend publication checkpoint: rebased onto b58c95a, preserving all incoming
+frontend and host/distribution changes and both journal entries. Rebuilt native,
+parser, LLVM and cross modules against that main. Post-rebase validation is
+223/223 Node tests (upstream retired one obsolete smoke test), backend API/name
+checks in both reactors, 16 interpreter/LLVM cases and all 24 exact artifact
+comparisons. Source commit: 99630fc. Published the complete dist directory in
+gh-pages commit 3507ba5. The first push encountered a transient DNS resolution
+failure; the retry succeeded normally, without force. verify-deployment.mjs
+confirmed all 36 hosted assets against the local manifest and passed desktop
+and mobile execution, grammar editing, persistence, target/default and download
+checks (build/backend-port/verify-live.log). Manifest SHA-256:
+2a14214d59b121b7df26f540726b4c1cb9e2f91ac7bf09c839751fba00d879b3.
+The user subsequently expanded the task to a higher Tower language module,
+named values, real imports throughout the compiler and dynamic project builtin
+visibility. Those changes are subsequent work, not part of this publication.
