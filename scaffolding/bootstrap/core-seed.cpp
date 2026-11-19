@@ -696,7 +696,7 @@ CoreProgram core_compile_foundation(const char* source, unsigned pointer_bytes) 
   if (!foundation_grammar.empty()) { CoreProgram p; p.error = foundation_grammar; return p; }
   return compile({source}, pointer_bytes);
 }
-#if defined(__wasm__)
+#if defined(__wasm__) && !defined(TOWER_SEMANTIC_REFERENCE)
 extern "C" __attribute__((export_name("tw_set_foundation"))) int tw_set_foundation(const char* source, size_t length) {
   if (!source || length > 131072) return 0; core_set_foundation(std::string(source, length)); return 1;
 }

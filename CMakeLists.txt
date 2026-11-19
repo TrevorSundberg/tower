@@ -190,7 +190,7 @@ if(TOWER_PARSER_ONLY)
   target_sources(tower-parser-tests PRIVATE scaffolding/tests/semantics.cpp)
   add_library(tower-semantic-reference STATIC scaffolding/bootstrap/core-seed.cpp)
   target_compile_features(tower-semantic-reference PRIVATE cxx_std_20)
-  target_compile_definitions(tower-semantic-reference PRIVATE
+  target_compile_definitions(tower-semantic-reference PRIVATE TOWER_SEMANTIC_REFERENCE=1
     core_compile=reference_core_compile core_compile_files=reference_core_compile_files
     core_compile_foundation=reference_core_compile_foundation core_set_foundation=reference_core_set_foundation)
   target_link_libraries(tower-parser-tests PRIVATE tower-semantic-reference)

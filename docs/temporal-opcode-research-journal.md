@@ -12398,3 +12398,34 @@ results, then performed the required final pull/rebase before the normal source
 push. The newer live deployment is deliberately preserved for the branch-provenance
 reason above; local verification is not a claim that this semantic build was
 published to Pages.
+
+### 2026-11-19 — Rebase onto consolidated main
+
+The final synchronization discovered a concurrent remote consolidation: `master`
+and the integration branches were removed, the default branch became `main`, and
+`99fddf7` includes the previously published host/frontend work. This supersedes
+the deployment blocker recorded above. Renamed the local branch to `main`, set
+its upstream to `origin/main`, and rebased all three semantic-port commits onto
+that consolidated source without recreating obsolete branches or force pushing.
+
+Resolved build-registration conflicts by retaining the upstream native-driver,
+host-runtime and frontend registrations alongside explicit semantic-module links.
+Bootstrap comparison now covers host, interpreter and semantics together. Kept
+the Tower host allocation policy and removed only the interpreter's duplicate
+native trap hook; the shared hook remains in compiler-memory.cpp. Preserved the
+upstream CoreMachine storage declarations and host containers. No semantic,
+parser, replacement, interpreter or LLVM algorithm changes were required by this
+rebase. Re-running the complete pipeline with `TOWER_BUILD_JOBS=3 ./build.sh`;
+combined-main evidence is in `build/semantic-sync/validation-main.log`. Publication
+will use this integrated source after validation, followed by hosted verification.
+
+Combined-main sanitizer tests passed **5/5**, followed by all **28** bootstrap
+object/optimized-IR comparisons (seven modules, four targets). The newly integrated
+host-WASI test build then exposed a reference-only duplicate `tw_set_foundation`
+export: both core.cpp and frozen core-seed.cpp were linked into the same WASI
+test executable. Native testing could not reveal it because the export is guarded
+by `__wasm__`. Added `TOWER_SEMANTIC_REFERENCE` to the reference library and omitted
+its unused browser export under that flag; the seed and production export remain
+unchanged. This is test isolation, not a change to semantic behavior. Continuing
+from the sanitizer and host-WASI stages; the already-passing bootstrap comparisons
+need no repetition for a reference-library-only compile flag.
