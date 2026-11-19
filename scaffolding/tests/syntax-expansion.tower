@@ -1,0 +1,313 @@
+// Test fixtures use the production Tower expander and shared entities directly.
+struct ExpansionFixture {
+    input: SyntaxExpansionInput;
+    result: SyntaxExpansionResult;
+    rule: SyntaxExpansionRule;
+    capture: SyntaxExpansionCapture;
+    slots: SyntaxExpansionRule*[4];
+    context: void*;
+}
+
+fn expansion_test_error(f: ExpansionFixture*, text: u8*): bool {
+    var length = syntax_text_length(text);
+    var order = syntax_bytes_compare(f.result.error.data, f.result.error.length, text, length);
+    var same = order == 0;
+    return same;
+}
+
+fn expansion_test_node(f: ExpansionFixture*, label: u8*, rule: usize, id: u32, start: usize, length: usize): void* {
+    var node = entity_create_related(f.context);
+    var component = entity_component_add(node, f.input.match_kind);
+    var data = bits(ParserMatchData*, entity_component_data(component));
+    node_payload_init(4, bits(void*, data));
+    data.rule = rule;
+    data.id = id;
+    data.start = start;
+    data.length = length;
+    node_match_set_label(data, label);
+    return node;
+}
+
+fn expansion_test_child(f: ExpansionFixture*, parent: void*, role: u8*, label: u8*, rule: usize, id: u32): void* {
+    var node = expansion_test_node(f, label, rule, id, 18, 5);
+    entity_attach(node, parent, role);
+    entity_release(node);
+    return node;
+}
+
+fn expansion_test_init(f: ExpansionFixture*, input: SyntaxExpansionInput*, context: void*, uses: usize, repeated: bool): void {
+    fill(f, 0, sizeof(ExpansionFixture));
+    copy(&f.input, input, sizeof(SyntaxExpansionInput));
+    f.context = context;
+    f.input.rules = &f.slots[0];
+    f.input.count = 4;
+    f.slots[1] = &f.rule;
+    f.rule.rule = "Test";
+    f.rule.category = "Statement";
+    f.rule.start = 50;
+    f.rule.end = 70;
+    f.rule.tree = expansion_test_node(f, "Statement", 0, 0, 50, 20);
+    f.result.root = expansion_test_node(f, "Statement", 1, 0, 12, 11);
+    var has_capture = uses != 0;
+    if has_capture {
+        f.rule.captures = &f.capture;
+        f.rule.count = 1;
+        f.capture.name = "value";
+        f.capture.uses = uses;
+        f.capture.repeated = repeated;
+        var capture = expansion_test_child(f, f.result.root, "value", "Expression", 0, 0);
+        expansion_test_child(f, capture, null, "x", lr_none(), 7);
+        var i: usize = 0;
+        loop {
+            var done = i == uses;
+            if done {
+                break;
+            }
+            expansion_test_child(f, f.rule.tree, null, "$value", lr_none(), 3145728);
+            i = i + 1;
+        }
+    } else {
+        expansion_test_child(f, f.rule.tree, null, "42", lr_none(), 7);
+    }
+}
+
+fn expansion_test_dispose(f: ExpansionFixture*): void {
+    entity_release(f.result.root);
+    entity_release(f.rule.tree);
+    syntax_expansion_result_dispose(&f.result);
+}
+
+fn expansion_test_basic(input: SyntaxExpansionInput*, context: void*): bool {
+    var f: ExpansionFixture;
+    expansion_test_init(&f, input, context, 0, false);
+    var ok = syntax_expand(&f.input, &f.result);
+    if ok {
+        ok = f.result.replacements == 1;
+    }
+    if ok {
+        ok = f.result.generated_nodes == 2;
+    }
+    if ok {
+        var leaf = entity_child_at(f.result.root, 0);
+        var data = lr_tree_match(leaf, input.match_kind);
+        ok = expansion_same(node_text_get(&data.label), "42");
+        if ok {
+            ok = data.start == 12;
+        }
+        if ok {
+            ok = data.length == 11;
+        }
+        if ok {
+            var trace = syntax_expansion_history(leaf);
+            ok = trace != null;
+            if ok {
+                ok = syntax_expansion_previous(trace) == null;
+            }
+        }
+    }
+    expansion_test_dispose(&f);
+    return ok;
+}
+
+fn expansion_test_captures(input: SyntaxExpansionInput*, context: void*, repeated: bool, empty: bool): bool {
+    var f: ExpansionFixture;
+    expansion_test_init(&f, input, context, 2, repeated);
+    var original = entity_child_at(f.result.root, 0);
+    var original_id = entity_id(original);
+    if repeated {
+        var leaf = entity_child_at(original, 0);
+        original_id = entity_id(leaf);
+        if empty {
+            entity_release(entity_take_last_child(original));
+        }
+    }
+    var ok = syntax_expand(&f.input, &f.result);
+    if ok {
+        var count = entity_child_count(f.result.root);
+        if empty {
+            ok = count == 0;
+        } else {
+            ok = count == 2;
+            if ok {
+                var first = entity_child_at(f.result.root, 0);
+                var last = entity_child_at(f.result.root, 1);
+                ok = entity_id(first) != original_id;
+                if ok {
+                    ok = entity_id(last) == original_id;
+                }
+                if ok {
+                    var a = lr_tree_match(first, input.match_kind);
+                    var b = lr_tree_match(last, input.match_kind);
+                    ok = a.start == b.start;
+                    if ok {
+                        ok = a.start == 18;
+                    }
+                }
+            }
+        }
+    }
+    expansion_test_dispose(&f);
+    return ok;
+}
+
+fn expansion_test_destination(input: SyntaxExpansionInput*, context: void*, valid: bool): bool {
+    var f: ExpansionFixture;
+    expansion_test_init(&f, input, context, 0, false);
+    var root_data = lr_tree_match(f.result.root, input.match_kind);
+    root_data.rule = 0;
+    var helper = expansion_test_child(&f, f.result.root, null, "Helper", 1, 0);
+    expansion_test_child(&f, helper, null, "old", lr_none(), 7);
+    if valid {} else {
+        expansion_test_child(&f, f.result.root, null, "extra", lr_none(), 8);
+    }
+    var ran = syntax_expand(&f.input, &f.result);
+    var ok = ran == valid;
+    if ok {
+        if valid {
+            ok = f.result.replacements == 1;
+        } else {
+            ok = expansion_test_error(&f, "Replacement for Test requires a Statement destination");
+        }
+    }
+    expansion_test_dispose(&f);
+    return ok;
+}
+
+fn expansion_test_recursion(input: SyntaxExpansionInput*, context: void*): bool {
+    var f: ExpansionFixture;
+    expansion_test_init(&f, input, context, 0, false);
+    var template = lr_tree_match(f.rule.tree, input.match_kind);
+    template.rule = 1;
+    var ran = syntax_expand(&f.input, &f.result);
+    var ok = ran == false;
+    if ok {
+        ok = f.result.replacements == 257;
+    }
+    if ok {
+        ok = expansion_test_error(&f, "Replacement recursion limit exceeded (256 expansions in one chain) while replacing Test");
+    }
+    expansion_test_dispose(&f);
+    return ok;
+}
+
+fn expansion_test_steps(input: SyntaxExpansionInput*, context: void*): bool {
+    var f: ExpansionFixture;
+    expansion_test_init(&f, input, context, 0, false);
+    var root = lr_tree_match(f.result.root, input.match_kind);
+    root.rule = 0;
+    node_match_set_label(root, "Module");
+    var index: usize = 0;
+    loop {
+        var done = index == 4097;
+        if done {
+            break;
+        }
+        expansion_test_child(&f, f.result.root, null, "Statement", 1, 0);
+        index = index + 1;
+    }
+    var ran = syntax_expand(&f.input, &f.result);
+    var ok = ran == false;
+    if ok {
+        ok = f.result.replacements == 4097;
+    }
+    if ok {
+        ok = expansion_test_error(&f, "Replacement step limit exceeded (4096)");
+    }
+    expansion_test_dispose(&f);
+    return ok;
+}
+
+fn expansion_test_nodes(input: SyntaxExpansionInput*, context: void*): bool {
+    var f: ExpansionFixture;
+    expansion_test_init(&f, input, context, 3, false);
+    var capture = entity_child_at(f.result.root, 0);
+    var index: usize = 1;
+    loop {
+        var done = index == 33000;
+        if done {
+            break;
+        }
+        expansion_test_child(&f, capture, null, "x", lr_none(), 7);
+        index = index + 1;
+    }
+    var ran = syntax_expand(&f.input, &f.result);
+    var ok = ran == false;
+    if ok {
+        var count = f.result.generated_nodes + f.result.copied_nodes;
+        ok = count == 65536;
+    }
+    if ok {
+        ok = expansion_test_error(&f, "Replacement output limit exceeded (65536 nodes) while replacing Test");
+    }
+    expansion_test_dispose(&f);
+    return ok;
+}
+
+fn expansion_test_failures(input: SyntaxExpansionInput*, context: void*): bool {
+    var budget: usize = 0;
+    loop {
+        var end = budget == 256;
+        if end {
+            return false;
+        }
+        var buffers = tower_test_buffer_count();
+        var f: ExpansionFixture;
+        expansion_test_init(&f, input, context, 2, true);
+        tower_test_buffer_fail_after(budget);
+        var ran = syntax_expand(&f.input, &f.result);
+        tower_test_buffer_fail_after(lr_none());
+        expansion_test_dispose(&f);
+        var balanced = tower_test_buffer_count() == buffers;
+        if balanced {} else {
+            return false;
+        }
+        if ran {
+            return true;
+        }
+        budget = budget + 1;
+    }
+}
+
+export fn syntax_expansion_tests(input: SyntaxExpansionInput*, context: void*): usize {
+    var ok = expansion_test_basic(input, context);
+    if ok {} else {
+        return 1;
+    }
+    ok = expansion_test_captures(input, context, false, false);
+    if ok {} else {
+        return 2;
+    }
+    ok = expansion_test_captures(input, context, true, false);
+    if ok {} else {
+        return 3;
+    }
+    ok = expansion_test_captures(input, context, true, true);
+    if ok {} else {
+        return 4;
+    }
+    ok = expansion_test_destination(input, context, true);
+    if ok {} else {
+        return 5;
+    }
+    ok = expansion_test_destination(input, context, false);
+    if ok {} else {
+        return 6;
+    }
+    ok = expansion_test_recursion(input, context);
+    if ok {} else {
+        return 7;
+    }
+    ok = expansion_test_steps(input, context);
+    if ok {} else {
+        return 8;
+    }
+    ok = expansion_test_nodes(input, context);
+    if ok {} else {
+        return 9;
+    }
+    ok = expansion_test_failures(input, context);
+    if ok {} else {
+        return 10;
+    }
+    return syntax_replacement_source_tests();
+}

@@ -13,6 +13,7 @@ void syntax_lexer_tests();
 void syntax_nodes_tests();
 void syntax_reader_tests();
 void syntax_validation_tests();
+size_t syntax_expansion_test_entry();
 extern "C" size_t syntax_emission_tests(const SyntaxEmissionInput*);
 void lr_analysis_tests();
 #include <cstdio>
@@ -84,6 +85,9 @@ int main(int argc, char** argv) {
   auto emission_failure = syntax_emission_tests(&emission);
   if (emission_failure) fprintf(stderr, "Tower grammar emission test failed: %zu\n", emission_failure);
   assert(!emission_failure);
+  auto expansion_failure = syntax_expansion_test_entry();
+  if (expansion_failure) fprintf(stderr, "Tower replacement expansion test failed: %zu\n", expansion_failure);
+  assert(!expansion_failure);
   lr_analysis_tests();
   entity_store_tests();
   puts("Tower and parser tests passed.");

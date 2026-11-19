@@ -65,9 +65,9 @@ fn syntax_bytes_compare(left: u8*, left_length: usize, right: u8*, right_length:
     }
 }
 
-fn syntax_validation_find(value: SyntaxValidation*, name: u8*, length: usize): usize {
+fn syntax_rule_find(rules: SyntaxRuleView*, count: usize, name: u8*, length: usize): usize {
     var low: usize = 0;
-    var high = value.count;
+    var high = count;
     loop {
         var done = low == high;
         if done {
@@ -76,7 +76,7 @@ fn syntax_validation_find(value: SyntaxValidation*, name: u8*, length: usize): u
         var middle = high - low;
         middle = middle / 2;
         middle = middle + low;
-        var rule = &value.rules[middle];
+        var rule = &rules[middle];
         var order = syntax_bytes_compare(name, length, rule.name, rule.name_length);
         var same = order == 0;
         if same {
@@ -89,6 +89,10 @@ fn syntax_validation_find(value: SyntaxValidation*, name: u8*, length: usize): u
             low = middle + 1;
         }
     }
+}
+
+fn syntax_validation_find(value: SyntaxValidation*, name: u8*, length: usize): usize {
+    return syntax_rule_find(value.rules, value.count, name, length);
 }
 
 fn syntax_validation_token(value: SyntaxValidation*, text: u8*, length: usize, skipped: bool): bool {

@@ -89,8 +89,12 @@ function(tower_compiler_parser_nodes)
   set(input "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-parser-nodes.tower")
   set(object "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-parser-nodes.o")
   set(emission_tests "")
+  set(expansion_tests "")
+  set(replacement_tests "")
   if(TOWER_PARSER_ONLY)
     set(emission_tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/syntax-emission.tower")
+    set(expansion_tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/syntax-expansion.tower")
+    set(replacement_tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/syntax-replacements.tower")
   endif()
   add_custom_command(OUTPUT "${input}"
     COMMAND "${CMAKE_COMMAND}"
@@ -114,13 +118,19 @@ function(tower_compiler_parser_nodes)
       -DREADER=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/syntax-reader.tower
       -DVALIDATION=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/syntax-validation.tower
       -DEMISSION=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/syntax-emission.tower
+      -DEXPANSION=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/syntax-expansion.tower
+      -DREPLACEMENTS=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/syntax-replacements.tower
       -DEMISSION_TESTS=${emission_tests}
+      -DEXPANSION_TESTS=${expansion_tests}
+      -DREPLACEMENT_TESTS=${replacement_tests}
       -DFORMAT_DIR=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler
       -DOUTPUT=${input} -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ComposeParserNodes.cmake"
     DEPENDS scaffolding/library/vector.tower scaffolding/compiler/parser-nodes.tower scaffolding/compiler/lexer-table.tower scaffolding/compiler/regex-grammar.tower scaffolding/compiler/automaton.tower scaffolding/compiler/regex-lowering.tower scaffolding/compiler/lr-analysis.tower scaffolding/compiler/lr-states.tower scaffolding/compiler/lr-lalr.tower scaffolding/compiler/lr-runtime.tower scaffolding/compiler/lr-parser.tower scaffolding/compiler/lr-grammar.tower scaffolding/compiler/lr-tree.tower scaffolding/compiler/foundation-nodes.tower scaffolding/compiler/syntax-lexer.tower scaffolding/compiler/syntax-source.tower cmake/ComposeParserNodes.cmake
     DEPENDS scaffolding/compiler/syntax-nodes.tower scaffolding/compiler/syntax-reader.tower scaffolding/compiler/syntax-validation.tower
     DEPENDS scaffolding/compiler/format.tower scaffolding/compiler/format-foundation.tower scaffolding/compiler/format-grammar.tower scaffolding/compiler/format-source.tower
     DEPENDS scaffolding/compiler/syntax-emission.tower ${emission_tests}
+    DEPENDS scaffolding/compiler/syntax-expansion.tower ${expansion_tests}
+    DEPENDS scaffolding/compiler/syntax-replacements.tower ${replacement_tests}
     VERBATIM)
   add_custom_command(OUTPUT "${object}"
     COMMAND "${bootstrap}" "${input}"
