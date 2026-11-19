@@ -11444,3 +11444,88 @@ object. Preserved the entire frontend and host journal histories above. The
 combined native compiler build is in build/host-integrated-native.log; final
 cross-module validation and publication results follow. This merge incorporates
 the available task-1 milestone, not a complete task-1/2/3 handoff.
+
+### 2026-11-19 — Host integration validation and release-size audit
+
+The combined implementation at 3a54b5e passed Linux ASan/UBSan CTest 5/5
+(34.84 seconds), the full wasm32-WASI parser/formatter suite (65 canonical
+Tower files), and 156 interpreter full-state comparisons. Logs are
+build/host-combined-{tests,wasi-build,wasi-tests}.log. Native sanitizer coverage
+does not imply that generated Tower instructions are all instrumented.
+The initial Node run passed 221 tests and skipped the optional native-generated
+Wasm fixture. After producing that fixture, the stripped module passed all 222
+Node tests, with no skips (build/host-stripped-node.log, 24.07 seconds).
+All 128 desktop/mobile Playwright tests passed in 3.4 minutes, including worker
+cancellation, editing during execution, stale results and foreign calls. Local
+deployment verification matched all 36 asset hashes and passed both viewport
+profiles. Those browser runs used the unstripped module; the executable-section
+comparison below and final stripped deployment verification cover the release.
+
+Native executable/object/archive linking, the memory and storage examples,
+the real LLVM C API, platform_write and forward bindings passed on Linux.
+Windows x64 PE fixtures also ran successfully, both through WSL interop and
+directly from PowerShell, with exact expected linking/memory output. These are
+guest-program runtime checks, not native Windows compiler/self-build evidence.
+The first linking attempt could not find wasm-ld-19. For this environment only,
+build/host-tools contains aliases to the WASI SDK 34 wasm-ld/lld-link binaries;
+build/host-linking-validation.sh puts that directory first in PATH. No system
+tool was replaced. Reproduction/log: build/host-combined-linking.log.
+
+Release and MinSizeRel browser builds now pass --strip-all to the Wasm linker.
+Debug and RelWithDebInfo builds retain their diagnostic sections. With the same
+source/toolchain, this reduces tower.wasm from 4,229,803 to 786,398 bytes (81.4%).
+The rebuilt stripped module's non-custom sections are byte-identical to the
+unstripped module, and its imports/exports are identical. Reproduction:
+node build/check-wasm-stripping.mjs; cmake --build build/browser-wasi.
+The stripped SHA-256 is
+fed980334aae318ef59dac6d97e91df331b1c92f7bd643004bf4e39190b86541.
+The unchanged-code baseline from 586078b was 4,270,661 unstripped bytes;
+do not attribute the debug-section reduction to the Tower algorithm ports.
+
+The Linux x86_64 hybrid development compiler is 804,184 bytes, versus 820,488
+for the saved 586078b baseline. llvm-strip-19 --strip-all on a copy produces
+686,080 bytes; that copy's --help executes successfully. Its SHA-256 is
+689408c4e72eeca8e00f92c6c2f73f8460ee3069efdd66495a96d521edfb9886;
+the unstripped current SHA-256 is
+31ed45ac0a8fa92aab4e6c4f9015077889b0bcf4b1b23992a5fdc5382661e295.
+These were built from 3a54b5e using the existing LLVM 19 native build and
+WASI SDK 34 browser configuration, on WSL Ubuntu. They remain C++/Tower hybrids.
+They are deliberately not committed as completed portable Tower compilers.
+
+The native executable's unique resolved dynamic dependencies total 137,937,800
+bytes, including 128,370,024 bytes for libLLVM.so.19.1. The audit records each
+resolved path, size and SHA-256 in build/host-artifact-sizes.json. Dependencies
+are LLVM, libstdc++, libm, libgcc_s, libc and its ELF loader, libffi, libedit,
+zlib, zstd, libxml2, libtinfo, libbsd and libmd. This is not a complete package
+size: grammar inputs and the still-required external compiler/linker tools and
+their dependencies are excluded. Final distribution must carry the matching
+LLVM Apache-2.0-with-exceptions notice and the actual bundled system-library
+licenses; the existing playground notices cover its published Wasm dependencies,
+not a hypothetical Linux bundle. Windows x64 and macOS ARM64 object generation
+does not establish Windows/macOS compiler runtime or license/package readiness.
+
+Extended test-bootstrap.sh from five to six modules so interpreter storage is
+also checked through successive compiler stages for Linux x64, wasm32, Windows
+x64 and macOS ARM64, including optimized-IR/object identity and an explicit
+undefined-symbol allowlist. Like parser-nodes, interpreter composition needs
+stage1 because the oldest seed rejects vector(...) with "Unknown type
+constructor 'vector'". The focused four-target interpreter run passed. This is
+module recompilation by hybrid compilers, not a full compiler self-build.
+
+Two integration workflow failures are recorded explicitly. Plain pull --rebase
+attempted to flatten the two integration merges and replay the overlapping host
+commit; aborted it without losing work and used pull --rebase=merges --ff-only
+origin master, which preserved both histories. Also, changing test-bootstrap.sh
+while its long-running shell loop was active invalidated the shell's later file
+offset: all original twenty object/IR comparisons passed, then shell parsing
+failed in the shifted tail. The final complete run uses the stable six-module
+script; no compiler comparison failed in that interrupted run. Final results,
+performance observations and publication evidence follow in the next entry.
+
+Remaining completion gates are unchanged: finish tasks 1–3 and the recorded
+native host/lifecycle/platform boundaries, retire seeds only after their real
+Tower replacements work, produce licensed architecture-specific portable
+compilers, and demonstrate clean-checkout successive self-builds without an
+installed project C/C++ toolchain on Windows, Linux and macOS. No macOS runtime
+is available in this session. The committed source and published browser module
+are an integration milestone, not completion of those gates.

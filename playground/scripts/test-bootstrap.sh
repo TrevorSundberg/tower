@@ -7,17 +7,18 @@ out="$repo/build/bootstrap-check"
 mkdir -p "$out"
 # A production compiler already uses Tower-written utilities when it reads the
 # utility source again. Compare its output with the independent C++ seed.
-for utility in utf8 bytes entities parser-nodes host; do
+for utility in utf8 bytes entities parser-nodes host interpreter; do
   source="$repo/scaffolding/compiler/utf8.tower"
   if [ "$utility" = bytes ]; then source="$repo/scaffolding/library/bytes.tower"; fi
   if [ "$utility" = entities ]; then source="$native/tower-compiler-entities.tower"; fi
   if [ "$utility" = parser-nodes ]; then source="$native/tower-compiler-parser-nodes.tower"; fi
   if [ "$utility" = host ]; then source="$native/tower-compiler-host.tower"; fi
+  if [ "$utility" = interpreter ]; then source="$native/tower-compiler-interpreter.tower"; fi
   for target in x86_64-pc-linux-gnu wasm32-unknown-unknown x86_64-pc-windows-msvc aarch64-apple-darwin; do
     for stage in seed tower; do
       compiler="$native/towerc"
       if [ "$stage" = seed ]; then compiler="$native/towerc-seed"; fi
-      if [ "$utility" = parser-nodes ] && [ "$stage" = seed ]; then compiler="$native/towerc-stage1"; fi
+      if { [ "$utility" = parser-nodes ] || [ "$utility" = interpreter ]; } && [ "$stage" = seed ]; then compiler="$native/towerc-stage1"; fi
       "$compiler" "$source" --library --target "$target" \
         --bedrock "$repo/scaffolding/bedrock.tower" --foundation "$repo/scaffolding/foundation.tower" \
         --optimized-ir "$out/$utility-$target-$stage.ll" -o "$out/$utility-$target-$stage.o"
@@ -25,6 +26,11 @@ for utility in utf8 bytes entities parser-nodes host; do
       python3 - "$utility" "$out/symbols.txt" <<'PY'
 import pathlib, sys
 allowed = set() if sys.argv[1] == 'utf8' else {'tower_reallocate', 'tower_deallocate', 'memcpy', 'memmove', 'memset', 'bzero', 'stack_pointer', 'memory_base'}
+if sys.argv[1] == 'interpreter': allowed |= {
+    'abort', 'tower_allocate', 'tower_trap',
+    'im_append', 'im_fail', 'im_foreign', 'im_has_foreign', 'im_missing_foreign',
+    'im_node', 'im_pointee_size', 'im_pointer_bytes', 'im_root',
+    'im_type_alignment', 'im_type_mask', 'im_type_signed', 'im_type_size'}
 if sys.argv[1] == 'host': allowed |= {
     'compiler_host_reallocate', 'compiler_host_deallocate', 'tower_allocate',
     'bytes_reserve', 'bytes_push'}

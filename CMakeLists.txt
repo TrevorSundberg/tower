@@ -86,6 +86,8 @@ if(TOWER_BROWSER)
   target_link_libraries(tower-browser PRIVATE tower-compiler-interpreter tower-compiler-parser-nodes tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
   target_compile_options(tower-browser PRIVATE -fno-exceptions -UNDEBUG)
   target_link_options(tower-browser PRIVATE -mexec-model=reactor
+    $<$<CONFIG:Release>:-Wl,--strip-all>
+    $<$<CONFIG:MinSizeRel>:-Wl,--strip-all>
     -Wl,-z,stack-size=2097152 -Wl,--initial-memory=8388608 -Wl,--max-memory=268435456)
   set_target_properties(tower-browser PROPERTIES OUTPUT_NAME tower SUFFIX .wasm)
   if(TOWER_BROWSER_LLVM)
