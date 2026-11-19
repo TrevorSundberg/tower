@@ -98,6 +98,26 @@ export async function loadTower(bytes, log = () => {}, bootstrap, foundation, be
       if(result.status!=='executing')outputDecoders.delete(handle);
       return result;
     },
+    useFast(handle) {
+      if (!exports.tw_exec_fast(handle)) throw new Error('Select the fast interpreter before executing a program');
+    },
+    fastStats: handle => JSON.parse(string(exports.tw_exec_fast_stats(handle))),
+    bytecode(handle) {
+      const size = exports.tw_exec_bytecode(handle);
+      if (!size) throw new Error(string(exports.tw_last_error()));
+      return new Uint8Array(exports.memory.buffer, exports.tw_exec_bytecode_data(), size).slice();
+    },
+    loadBytecode(bytes) {
+      if (!(bytes instanceof Uint8Array) || bytes.length > 256 * 1024 * 1024) throw new Error('Invalid .towerbc input');
+      const pointer = exports.tw_alloc(bytes.length || 1);
+      if (!pointer) throw new Error('Cannot allocate .towerbc input');
+      try {
+        new Uint8Array(exports.memory.buffer).set(bytes, pointer);
+        const handle = exports.tw_exec_load_bytecode(pointer, bytes.length);
+        if (!handle) throw new Error(string(exports.tw_last_error()));
+        return handle;
+      } finally { exports.tw_free(pointer); }
+    },
     compileFoundation: source => withSource(source, (pointer, length) => exports.tw_exec_create_foundation(pointer, length)),
     foundation: handle => JSON.parse(string(exports.tw_exec_foundation(handle))),
     destroyExecution: handle => {outputDecoders.delete(handle);exports.tw_exec_destroy(handle);},

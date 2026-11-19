@@ -15,11 +15,11 @@ test('target selection controls compilation and equal columns without stopping t
  await expect(page.locator('#wasm-disassembly-column #llvm-download')).toBeVisible();
  await expect(page.locator('.output-phase:visible')).toHaveCount(0);
  await expect(page.locator('.target-phase')).toHaveCount(0);
- await expect(page.locator('.execution-column:visible > .output-body')).toHaveCount(6);
- await expect(page.locator('.target-downloads:visible')).toHaveCount(1);
+ await expect(page.locator('.execution-column:visible > .output-body')).toHaveCount(8);
+ await expect(page.locator('.target-downloads:visible')).toHaveCount(2);
  await expect.poll(()=>outputText(page,'wasm-disassembly')).toContain('tower_main');
  await expect.poll(()=>outputText(page,'wasm-disassembly')).toContain('i32.const');
- await expect(page.locator('#interpreter-column h2')).toContainText('Interpreter Execution');
+ await expect(page.locator('#interpreter-column h2')).toContainText('Graph interpreter');
  await expect(page.locator('#wasm-column h2')).toContainText('Wasm Execution');
  const event=page.waitForEvent('download');await page.locator('#llvm-download').click();
  expect(WebAssembly.validate(await readFile(await(await event).path()))).toBe(true);
@@ -29,11 +29,11 @@ test('target selection controls compilation and equal columns without stopping t
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth&&document.documentElement.scrollHeight<=innerHeight)).toBe(true);
  await choose(page,'wasm',false);
  await expect(page.locator('#execution-output')).toHaveText('5\n84\n42\n');
- await expect(page.locator('.execution-column:visible')).toHaveCount(2);
+ await expect(page.locator('.execution-column:visible')).toHaveCount(4);
  await expect(page.locator('#llvm-raw-column')).toBeHidden();await expect(page.locator('#wasm-column')).toBeHidden();
  await expect(page.locator('#wasm-disassembly-column')).toBeHidden();await expect(page.locator('#llvm-download')).toBeHidden();
  const requests=[];page.on('request',r=>requests.push(r.url()));
- await page.locator('#execute').click();await expect(page.locator('#execution-status')).toHaveText('Finished');
+ await page.locator('#execute').click();await expect(page.locator('#execution-status')).toHaveText('Finished \u00b7 backends match');
  expect(requests.some(url=>url.includes('tower-llvm')||url.includes('tower-cross'))).toBe(false);
 });
 test('native targets compile automatically, display disassembly and download platform files',async({page},info)=>{

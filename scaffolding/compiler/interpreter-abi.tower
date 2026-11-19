@@ -41,6 +41,7 @@ struct IMState {
     strings: vector(IMEntry);
     sequenced: vector(IMEntry);
     frames: vector(IMFrame);
+    node_cache: vector(IMEntry);
 }
 
 // Remaining host callbacks and existing shared type queries only.
@@ -58,6 +59,33 @@ extern fn semantic_signed(type: FoundationType*): bool;
 
 fn im_node(node: void*): FoundationNode* {
     return sem_get(node);
+}
+
+// Direct-mapped memoization of component lookup, scoped to an immutable checked
+// program. Collisions are checked with the full entity key, never trusted hashes.
+fn im_cached_node(m: IMState*, node: void*): FoundationNode* {
+    var key = convert(u64, bits(usize, node));
+    var hash = key / 16;
+    var high = key / 4096;
+    hash = hash ^ high;
+    hash = hash & 255;
+    var index = convert(usize, hash);
+    var empty = m.node_cache.length == 0;
+    if empty {
+        im_storage_require(vector_reserve(IMEntry, &m.node_cache, 256));
+        var bytes = sizeof(IMEntry) * 256;
+        fill(m.node_cache.data, 0, bytes);
+        m.node_cache.length = 256;
+    }
+    var entry = &m.node_cache.data[index];
+    var same = entry.key == key;
+    if same {
+        return bits(FoundationNode*, convert(usize, entry.value));
+    }
+    var value = sem_get(node);
+    entry.key = key;
+    entry.value = convert(u64, bits(usize, value));
+    return value;
 }
 
 fn im_binding(node: void*): void* {
@@ -184,6 +212,10 @@ export fn interpreter_state_offset(field: usize): usize {
     var selected_16 = field == 16;
     if selected_16 {
         address = bits(usize, &state.frames);
+    }
+    var selected_17 = field == 17;
+    if selected_17 {
+        address = bits(usize, &state.node_cache);
     }
     var offset = address - base;
     return offset;

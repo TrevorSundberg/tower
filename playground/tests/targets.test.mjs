@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { inferBrowserTarget, detectBrowserTarget, defaultTargetSelection } from '../src/browser-target.mjs';
-import { targets, savedTargetSelection, targetSelectionKey, targetInputs, linkInputsForTarget } from '../src/targets.mjs';
+import { targets, targetChoices, savedTargetSelection, targetSelectionKey, targetInputs, linkInputsForTarget } from '../src/targets.mjs';
 
 const cases = [
   ['unknown', {}, {}, 'windows'],
@@ -28,7 +28,7 @@ const cases = [
 for (const [name,nav,hints,key] of cases) test('browser target: '+name, () => {
   const result=inferBrowserTarget(nav,hints);
   assert.equal(result.key,key);
-  assert.equal(Object.values(defaultTargetSelection(result)).filter(Boolean).length,key === 'wasm' ? 1 : 2);
+  assert.equal(Object.values(defaultTargetSelection(result)).filter(Boolean).length,key === 'wasm' ? 3 : 4);
   assert.equal(defaultTargetSelection(result).wasm,true);
   assert.equal(defaultTargetSelection(result)[key],true);
 });
@@ -46,9 +46,9 @@ test('client hints improve independently inferred architecture', async () => {
 const storage = values => ({getItem:key=>values[key]??null});
 test('saved native selections persist with Wasm enabled while pre-fix selections are ignored', () => {
   const current=savedTargetSelection(storage({[targetSelectionKey]:'{"wasm":false,"linux-arm":true,"x86":true,"unknown":true}'}));
-  assert.deepEqual(Object.keys(current),Object.keys(targets)); assert.equal(current['linux-arm'],true); assert.equal(current.linux,false);
+  assert.deepEqual(Object.keys(current),Object.keys(targetChoices)); assert.equal(current['linux-arm'],true); assert.equal(current.linux,false);
   assert.equal(current.wasm,true);
-  assert.deepEqual(Object.entries(savedTargetSelection(storage({[targetSelectionKey]:'{"wasm":false}'}))).filter(([,enabled])=>enabled),[['wasm',true]]);
+  assert.deepEqual(Object.entries(savedTargetSelection(storage({[targetSelectionKey]:'{"wasm":false}'}))).filter(([,enabled])=>enabled),[['interpreter',true],['fast',true],['wasm',true]]);
   assert.equal(savedTargetSelection(storage({'tower-build-targets-v1':'{"wasm":true,"x86":true,"arm":true}'})),null);
   assert.equal(savedTargetSelection(storage({'tower-build-targets-v2':JSON.stringify(Object.fromEntries(Object.keys(targets).map(key=>[key,true])))})),null);
   assert.equal(savedTargetSelection(storage({[targetSelectionKey]:'broken'})),null);

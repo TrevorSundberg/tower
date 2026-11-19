@@ -23,14 +23,20 @@ export fn im_memory_resize(m: IMState*, count: usize): bool {
 }
 
 export fn interpreter_storage_dispose(m: IMState*): void {
+    var i: usize = 0;
     loop {
-        var empty = m.frames.length == 0;
-        if empty {
+        var end = i == m.frames.capacity;
+        if end {
             break;
         }
-        im_frame_pop(m);
+        var frame = &m.frames.data[i];
+        vector_dispose(IMTask, &frame.tasks);
+        vector_dispose(IMEntry, &frame.values);
+        vector_dispose(IMEntry, &frame.addresses);
+        i = i + 1;
     }
     vector_dispose(IMFrame, &m.frames);
+    vector_dispose(IMEntry, &m.node_cache);
     vector_dispose(IMEntry, &m.allocations);
     vector_dispose(IMEntry, &m.free_blocks);
     vector_dispose(IMEntry, &m.strings);
@@ -146,9 +152,15 @@ export fn im_frame_call(m: IMState*): void* {
 
 export fn im_frame_push(m: IMState*, function: void*, base: usize, offset: usize, call: void*): void {
     var needed = m.frames.length + 1;
+    var previous = m.frames.capacity;
     im_storage_require(vector_reserve(IMFrame, &m.frames, needed));
+    var grown = m.frames.capacity > previous;
+    if grown {
+        var extra = m.frames.capacity - previous;
+        extra = extra * sizeof(IMFrame);
+        fill(&m.frames.data[previous], 0, extra);
+    }
     var frame = &m.frames.data[m.frames.length];
-    fill(frame, 0, sizeof(IMFrame));
     frame.function = function;
     frame.base = base;
     frame.call_offset = offset;
@@ -160,9 +172,11 @@ export fn im_frame_push(m: IMState*, function: void*, base: usize, offset: usize
 
 export fn im_frame_pop(m: IMState*): void {
     var frame = im_frame(m);
-    vector_dispose(IMTask, &frame.tasks);
-    vector_dispose(IMEntry, &frame.values);
-    vector_dispose(IMEntry, &frame.addresses);
+    // Reuse a depth's contiguous scheduling buffers across calls. No allocations
+    // in steady-state recursion/calls once each depth has reached its high water.
+    frame.tasks.length = 0;
+    frame.values.length = 0;
+    frame.addresses.length = 0;
     m.frames.length = m.frames.length - 1;
     m.frame_count = m.frames.length;
     m.task_count = 0;

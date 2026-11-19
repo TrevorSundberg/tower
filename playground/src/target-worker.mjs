@@ -29,6 +29,7 @@ async function receive({data:{command,id,source,foundation,bedrock,targetKeys=[]
     const checked = tower.execute(handle,0);
     if (checked.status === 'error') { const diagnostic = projectDiagnostic(checked,files); send({error:(diagnostic.errorFile ? diagnostic.errorFile + ': ' : '') + checked.error,diagnostic,done:true}); return; }
     const formatted = tower.foundation(handle);
+    send({foundation:formatted.source});
     const {compiler} = await getCompiler('./tower-cross.wasm.gz');
     for (const key of keys) {
       const target = targets[key]; send({target:key,phase:'Compiling…'});

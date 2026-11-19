@@ -15,8 +15,9 @@ function(tower_compiler_interpreter)
   add_custom_command(OUTPUT "${input}"
     COMMAND "${CMAKE_COMMAND}" -DROOT=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT=${input} -DTESTS=${TOWER_PARSER_ONLY}
       -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ComposeInterpreter.cmake"
-    DEPENDS scaffolding/compiler/interpreter.tower scaffolding/compiler/interpreter-abi.tower
+    DEPENDS scaffolding/compiler/interpreter.tower scaffolding/compiler/interpreter-abi.tower scaffolding/compiler/fast-interpreter.tower
       scaffolding/compiler/interpreter-storage.tower scaffolding/tests/interpreter-storage.tower
+      scaffolding/compiler/bytecode-package.tower
       scaffolding/library/vector.tower scaffolding/compiler/foundation-nodes.tower
       scaffolding/core.hpp cmake/ComposeInterpreter.cmake VERBATIM)
   add_custom_command(OUTPUT "${object}"

@@ -27,7 +27,7 @@ test('typing resets the quiet period and keeps errors until the replacement resu
  await expect(page.locator('.tw-inline-error')).toHaveCount(0);
  const requests=await page.evaluate(()=>window.__requests);
  expect(requests.filter(r=>r.method==='analyze')).toHaveLength(1);
- expect(requests.filter(r=>r.backend)).toHaveLength(2);
+ expect(requests.filter(r=>r.backend)).toHaveLength(3);
  expect(requests[0].afterInput).toBeGreaterThanOrEqual(190);
 });
 
@@ -101,7 +101,7 @@ test('timings follow pipeline order and label current-run cached loads; controls
  // can both round to 0.0 ms; do not require different display strings.
  expect(first).toContain('(cached)');
  const labels=await page.locator('#timings span').evaluateAll(items=>items.map(item=>item.dataset.label));
- expect(labels).toEqual(['Tower load','Tower compile','Instructions','Interpreter run','LLVM load','LLVM parse','LLVM raw','LLVM optimize','LLVM emit','Link','LLVM disassembly','LLVM compile total','LLVM run']);
+ expect(labels).toEqual(['Tower load','Tower compile','Instructions','Graph run','Fast prepare','Bytecode package','Fast run','LLVM load','LLVM parse','LLVM raw','LLVM optimize','LLVM emit','Link','LLVM disassembly','LLVM compile total','LLVM run']);
  const gaps=await page.locator('.execution-controls,.file-controls,.export-controls').evaluateAll(items=>items.map(item=>getComputedStyle(item).columnGap));
  expect(gaps).toEqual(['8px','8px','8px']);
  await page.screenshot({path:`../build/timings-controls-${info.project.name}.png`});

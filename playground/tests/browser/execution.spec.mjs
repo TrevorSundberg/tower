@@ -277,7 +277,7 @@ test('projects replace execution workers while edits reuse the new environment',
   await selectDocument(page, 'functions.tower');
   await expect(page.locator('#execution-status')).toContainText('backends match');
   const workers = page.workers().filter(worker => worker.url().includes('execution-worker'));
-  expect(workers).toHaveLength(2);
+  expect(workers).toHaveLength(3);
   const requests = []; page.on('request', request => requests.push(request.url()));
   await selectDocument(page, 'memory.tower');
   await expect(page.locator('#execution-output')).toHaveText('5\n84\n42\n');

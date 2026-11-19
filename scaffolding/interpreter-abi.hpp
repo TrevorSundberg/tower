@@ -32,6 +32,17 @@ extern "C" uint64_t im_foreign(void *host, void *node, uint64_t *args,
                                size_t count);
 extern "C" void interpreter_init(void *);
 extern "C" void interpreter_step(void *, size_t);
+extern "C" void* fast_interpreter_create(void*);
+extern "C" void fast_interpreter_step(void*, void*, size_t);
+extern "C" void fast_interpreter_dispose(void*);
+extern "C" size_t fast_interpreter_stat(void*, size_t);
+extern "C" uint32_t bytecode_validate(const uint8_t*, size_t);
+extern "C" const char* bytecode_error(uint32_t);
+extern "C" size_t bytecode_source_size(const uint8_t*);
+extern "C" size_t bytecode_pointer_bytes(const uint8_t*);
+extern "C" uint8_t* bytecode_encode(void*, const char*, size_t, size_t, size_t*);
+extern "C" void bytecode_free(uint8_t*);
+extern "C" bool bytecode_matches(void*, const uint8_t*);
 extern "C" uint8_t *interpreter_bytes(void *, uint64_t, size_t, size_t);
 extern "C" uint64_t interpreter_load(void *, uint64_t, const CoreType *,
                                      size_t);

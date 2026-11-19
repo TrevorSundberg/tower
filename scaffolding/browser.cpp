@@ -3,6 +3,7 @@
 #include "compiler-utf8.hpp"
 #include "syntax.hpp"
 #include "core.hpp"
+#include "interpreter-abi.hpp"
 #include <algorithm>
 #include <cstdlib>
 #include <cstring>
@@ -348,6 +349,38 @@ EXPORT("tw_exec_create_files") uint32_t tw_exec_create_files(const char* const* 
   uint32_t handle = host_handles_insert(&handles, 1, machine.get());
   if (!handle) { last_error = "Cannot allocate execution handle"; return 0; }
   bind_foreign(handle, *machine); machine.release(); return handle;
+}
+EXPORT("tw_exec_fast") int tw_exec_fast(uint32_t handle) {
+  auto* m = execution(handle); return m && m->use_fast();
+}
+static std::vector<uint8_t> bytecode_response;
+EXPORT("tw_exec_bytecode") size_t tw_exec_bytecode(uint32_t handle) {
+  bytecode_response.clear();
+  auto* m = execution(handle);
+  if (!m || !m->program.error.empty()) { last_error = "Cannot package an invalid program"; return 0; }
+  bytecode_response = core_encode_bytecode(m->program, last_error);
+  return bytecode_response.size();
+}
+EXPORT("tw_exec_bytecode_data") const uint8_t* tw_exec_bytecode_data() { return bytecode_response.data(); }
+EXPORT("tw_exec_load_bytecode") uint32_t tw_exec_load_bytecode(const uint8_t* data, size_t size) {
+  if (host_handles_count(&handles, 1) >= 8) { last_error = "Too many execution sessions"; return 0; }
+  auto machine = core_load_bytecode(data, size, last_error);
+  if (!machine) return 0;
+  uint32_t handle = host_handles_insert(&handles, 1, machine.get());
+  if (!handle) { last_error = "Cannot allocate execution handle"; return 0; }
+  bind_foreign(handle, *machine); machine.release(); return handle;
+}
+EXPORT("tw_exec_fast_stats") const char* tw_exec_fast_stats(uint32_t handle) {
+  auto* m = execution(handle);
+  if (!m || !m->fast) return "{}";
+  auto& out = execution_response;
+  out = "{";
+  const char* names[] = {"codeBytes", "instructions", "wideInstructions", "registerCapacityBytes", "cacheCapacityBytes"};
+  for (size_t i = 0; i < 5; ++i) {
+    if (i) out += ',';
+    quote(out, names[i]); out += ':'; number(out, fast_interpreter_stat(m->fast, i));
+  }
+  out += '}'; return out.c_str();
 }
 EXPORT("tw_exec_step") const char* tw_exec_step(uint32_t handle, uint32_t budget) {
   auto* found = execution(handle);

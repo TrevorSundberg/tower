@@ -54,6 +54,14 @@ try {
     await expect(page.locator('#execution-status')).toHaveText('Finished \u00b7 backends match',{timeout:60000});
     await expect(page.locator('#execution-output')).toHaveText('42\n');
     await expect(page.locator('#llvm-output')).toHaveText('42\n');
+    await expect(page.locator('#fast-output')).toHaveText('42\n');
+    await expect.poll(()=>outputText(page,'fast-disassembly')).toContain('fn answer');
+    const bytecodeDownload = page.waitForEvent('download'); await page.locator('#fast-download').click();
+    const bytecodeArtifact = await bytecodeDownload;
+    assert.match(bytecodeArtifact.suggestedFilename(), /\.towerbc$/);
+    const bytecodeBytes = await readFile(await bytecodeArtifact.path());
+    assert.equal(bytecodeBytes.subarray(0,7).toString(),'TOWERBC');
+    assert.equal(bytecodeBytes.readUInt32LE(8),1);
     await expect.poll(()=>outputText(page,'llvm-before')).toContain('define');
     await expect.poll(()=>outputText(page,'llvm-after')).toContain('define');
     await page.screenshot({path:new URL(name+'-execution.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
@@ -210,7 +218,7 @@ try {
     await expect(detectionPage.locator('#status')).toContainText('Complete');
     await detectionPage.locator('#build-targets summary').click();
     const detectedKey=name==='mobile'?'wasm':'windows';
-    await expect(detectionPage.locator('#target-options input:checked')).toHaveCount(detectedKey==='wasm'?1:2);
+    await expect(detectionPage.locator('#target-options input:checked')).toHaveCount(detectedKey==='wasm'?3:4);
     await expect(detectionPage.locator('#target-wasm')).toBeChecked();
     await expect(detectionPage.locator('#wasm-column')).toBeVisible();
     await expect(detectionPage.locator('#target-'+detectedKey)).toBeChecked();
@@ -219,7 +227,7 @@ try {
     else await expect(detectionPage.locator('#target-label-windows')).toContainText('Windows x64 (detected)');
     await detectionPage.screenshot({path:new URL(name+'-target-default.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
     assert.deepEqual(errors,[]);
-    report.browsers.at(-1).defaultTargets=[...new Set(['wasm',detectedKey])];
+    report.browsers.at(-1).defaultTargets=[...new Set(['interpreter','fast','wasm',detectedKey])];
     report.browsers.at(-1).legacySelectionsIgnored=true;
     await detectionContext.close();
     console.log(name+': legacy selections ignored; Wasm plus detected target defaults and detection marker verified.');
@@ -232,7 +240,7 @@ try {
       await page.goto(base.href);
       await expect(page.locator('#status')).toContainText('Complete');
       const key = process.arch === 'arm64' ? 'linux-arm' : 'linux';
-      await expect(page.locator('#target-options input:checked')).toHaveCount(2);
+      await expect(page.locator('#target-options input:checked')).toHaveCount(4);
       await expect(page.locator('#target-wasm')).toBeChecked();
       await expect(page.locator('#target-'+key)).toBeChecked();
       report.host = {platform:process.platform, architecture:process.arch, defaultTargets:['wasm',key]};

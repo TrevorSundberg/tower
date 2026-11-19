@@ -1,11 +1,11 @@
 import { executeWasm } from './llvm-host.mjs';
 import { originalDiagnostic } from './foundation-source.mjs';
-import { getTower, getCompiler, warmCompiler } from './compiler-runtime.mjs';
+import { getTower, getCanonicalTower, getCompiler, warmCompiler } from './compiler-runtime.mjs';
 import {projectDiagnostic} from './projects.mjs';
 
 // Completed workers retain compiler/grammar state. Active cancellation still
 // terminates the worker, including synchronous compilation or an infinite loop.
-async function receive({ data: { command, id, source, foundation, bedrock, backend, pointerBytes=4, inputs={}, files, drive=[] } }) {
+async function receive({ data: { command, id, source, foundation, bedrock, backend, pointerBytes=4, inputs={}, files, drive=[], bytecode } }) {
   if (command === 'warm') {
     try { await warmCompiler('./tower-llvm.wasm.gz'); postMessage({warm:true}); }
     catch (error) { postMessage({warm:true,error:error.message}); }
@@ -17,6 +17,12 @@ async function receive({ data: { command, id, source, foundation, bedrock, backe
   try {
     send({ phase: 'Loading…' });
     const frontend = await getTower(foundation, bedrock); tower = frontend.tower;
+    if (command === 'disassemble') {
+      await getCanonicalTower();
+      handle = tower.loadBytecode(bytecode);
+      send({disassembly:tower.foundation(handle).source, pointerBytes:new DataView(bytecode.buffer,bytecode.byteOffset).getUint32(20,true)});
+      return;
+    }
     timings.load = frontend.loadMs; timings.loadCached = frontend.cached;
     let at = performance.now();
     tower.mountFiles(drive);
@@ -28,7 +34,19 @@ async function receive({ data: { command, id, source, foundation, bedrock, backe
     const formatted = tower.foundation(handle);
     timings.instructions = performance.now() - at;
     send({ foundation: formatted.source, timings });
-    if (backend === 'interpreter') {
+    if (backend === 'interpreter' || backend === 'fast') {
+      if (backend === 'fast') {
+        const start = performance.now(); tower.useFast(handle);
+        timings.prepare = performance.now() - start;
+        const packageStart = performance.now();
+        await getCanonicalTower();
+        const bytecode = tower.bytecode(handle), loaded = tower.loadBytecode(bytecode);
+        try {
+          const disassembly = tower.foundation(loaded).source;
+          timings.package = performance.now() - packageStart;
+          send({bytecode,disassembly,cache:tower.fastStats(handle),timings});
+        } finally { tower.destroyExecution(loaded); }
+      }
       send({ phase: 'Executing…' });
       const execution = performance.now();
       let pending = '', lastUpdate = execution;
@@ -37,7 +55,7 @@ async function receive({ data: { command, id, source, foundation, bedrock, backe
         const now = performance.now();
         if (result.status !== 'executing' || now - lastUpdate >= 50) {
           timings.execute = now - execution;
-          send({ result: { ...result, output: pending }, timings }); pending = ''; lastUpdate = now;
+          send({ result: { ...result, output: pending }, timings, ...(backend === 'fast' ? {cache:tower.fastStats(handle)} : {}) }); pending = ''; lastUpdate = now;
         }
         if (result.status !== 'executing') break;
         await new Promise(resolve => setTimeout(resolve, 0));

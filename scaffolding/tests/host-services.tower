@@ -126,6 +126,29 @@ export fn host_services_tests(): i32 {
         return 513;
     }
     driver_dispose(&options);
+    args[1] = "--interpret-fast";
+    ok = driver_parse(&options, 2, &args[0], "target");
+    if ok {} else {
+        return 521;
+    }
+    if options.fast {} else {
+        return 522;
+    }
+    if options.interpret {} else {
+        return 523;
+    }
+    if options.version {
+        return 524;
+    }
+    driver_dispose(&options);
+    ok = driver_output_valid("bytecode");
+    if ok {} else {
+        return 525;
+    }
+    ok = driver_output_valid("foundation");
+    if ok {} else {
+        return 526;
+    }
     var error = host_source_error("a", 8388609);
     ok = driver_equal(error, "Compilation source limit is 8 MiB");
     if ok {} else {

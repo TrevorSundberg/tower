@@ -50,6 +50,14 @@ for (const [name, source, expected, failure] of cases) test(`LLVM matches interp
       if (reference.status !== 'executing') break;
     }
     assert.notEqual(reference.status, 'executing');
+    const fastHandle = tower.compile(grammar + '\n' + source);
+    try {
+      tower.useFast(fastHandle);
+      let fast, fastOutput = '';
+      do { fast = tower.execute(fastHandle, 10000); fastOutput += fast.output; } while (fast.status === 'executing');
+      for (const key of ['status','error','errorOffset','outputTruncated']) assert.equal(fast[key], reference[key], 'fast '+key);
+      assert.equal(fastOutput, output, 'fast output');
+    } finally { tower.destroyExecution(fastHandle); }
     const formatted = tower.foundation(handle);
     const roundtrip = tower.compileFoundation(formatted.source);
     try { assert.equal(tower.foundation(roundtrip).source, formatted.source); }

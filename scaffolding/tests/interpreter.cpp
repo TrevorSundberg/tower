@@ -162,6 +162,7 @@ int main(int argc, char **argv) {
   assert(interpreter_state_offset(14) == offsetof(CoreMachineState, strings));
   assert(interpreter_state_offset(15) == offsetof(CoreMachineState, sequenced));
   assert(interpreter_state_offset(16) == offsetof(CoreMachineState, frames));
+  assert(interpreter_state_offset(17) == offsetof(CoreMachineState, node_cache));
   std::ifstream file("foundation.tower");
   assert(file);
   std::ostringstream grammar;
@@ -260,6 +261,19 @@ int main(int argc, char **argv) {
             assert(tower.output_truncated);
         } else {
           assert(tower.done);
+          CoreMachine compact(core_compile(source, width));
+          foreign(compact, width);
+          assert(compact.use_fast());
+          compact.step(0);
+          assert(compact.steps == 0);
+          for (size_t i = 0; i < 1000000 && !compact.done; i += budget) compact.step(budget);
+          assert(compact.done);
+          assert(compact.output == tower.output);
+          assert(compact.error == tower.error);
+          assert(compact.error_offset == tower.error_offset);
+          assert(compact.output_truncated == tower.output_truncated);
+          assert(compact.memory_size() == tower.memory_size());
+          assert(std::equal(compact.memory_data(), compact.memory_data() + compact.memory_size(), tower.memory_data()));
         }
         tower.step(0);
         native.step(0);
@@ -267,6 +281,20 @@ int main(int argc, char **argv) {
         ++runs;
       }
   // Allocation ordering, splitting/coalescing, zero-size and failed realloc.
+  for (unsigned width : {4u, 8u}) {
+    CoreMachine source(core_compile("var p = alloc(i32, 2); p[0] = 42; print(p[0]); print(sizeof(usize)); free(p);", width));
+    std::string error;
+    const auto bytes = core_encode_bytecode(source.program, error);
+    assert(error.empty() && bytes.size() >= 56);
+    auto decoded = core_load_bytecode(bytes.data(), bytes.size(), error);
+    assert(decoded && error.empty() && decoded->program.pointer_bytes == width);
+    assert(core_encode_bytecode(decoded->program, error) == bytes);
+    source.step(10000); decoded->step(10000);
+    assert(source.done && decoded->done && source.output == decoded->output);
+    auto corrupted = bytes; corrupted.back() ^= 1;
+    assert(!core_load_bytecode(corrupted.data(), corrupted.size(), error));
+    assert(error.find("checksum") != std::string::npos);
+  }
   CoreMachine tower(core_compile(""));
   NativeCoreMachine native(core_compile(""));
   std::vector<uint64_t> blocks;

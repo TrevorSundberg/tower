@@ -7,7 +7,7 @@ import { expandedCode } from './expanded-code.mjs';
 import { replacementLocations } from './replacement-locations.mjs';
 import { compareResults } from './comparison.mjs';
 import { selectFoundation } from './foundation-storage.mjs';
-import { targets, nativeTargetKeys, emptySelection, savedTargetSelection, targetSelectionKey, linkInputsForTarget } from './targets.mjs';
+import { targets, targetChoices, nativeTargetKeys, emptySelection, savedTargetSelection, targetSelectionKey, linkInputsForTarget } from './targets.mjs';
 import { detectBrowserTarget, defaultTargetSelection } from './browser-target.mjs';
 import { OutputPane } from './output-pane.mjs';
 import {examples, filePath, newProject, projectStore, validateProject, projectSources} from './projects.mjs';
@@ -65,7 +65,7 @@ let frame = 0, queued = null, dirty = true, busy = false;
 let executionId = 0, executionError = null, runners = {};
 const idleExecutionWorkers = new Map();
 let linkInputs = {}, llvmViews = {};
-let selectedTargets = { ...emptySelection(), wasm: true }, savedSelection = null, targetsChanged = false;
+let selectedTargets = { ...emptySelection(), wasm: true, interpreter: true, fast: true }, savedSelection = null, targetsChanged = false;
 try { savedSelection = savedTargetSelection(localStorage); } catch {}
 if (savedSelection) selectedTargets = savedSelection;
 const browserTarget = detectBrowserTarget(navigator);
@@ -78,7 +78,9 @@ function addPane(config, runner) {
   return pane;
 }
 addPane({title:'Tower instructions', output:'core-instructions', label:'Canonical foundation source', syntax:'tower'});
-addPane({id:'interpreter-column', title:'Interpreter Execution', output:'execution-output', label:'Interpreter output', phase:'interpreter-phase', error:'execution-error', limit:'output-limit'}, 'interpreter');
+addPane({id:'interpreter-column', title:'Graph interpreter', output:'execution-output', label:'Graph interpreter output', phase:'interpreter-phase', error:'execution-error', limit:'output-limit'}, 'interpreter');
+addPane({id:'fast-column', title:'Fast interpreter', output:'fast-output', label:'Fast interpreter output', phase:'fast-phase', error:'fast-error', limit:'fast-limit'}, 'fast');
+addPane({id:'fast-disassembly-column', title:'Bytecode disassembly', description:'Compilable foundation reconstructed from the validated .towerbc package', output:'fast-disassembly', label:'Bytecode disassembly as foundation', syntax:'tower', downloads:{id:'fast-downloads', link:'fast-download', size:'fast-size'}});
 addPane({id:'wasm-column', title:'Wasm Execution', output:'llvm-output', label:'LLVM output', phase:'llvm-phase', error:'llvm-error', limit:'llvm-output-limit'}, 'llvm');
 addPane({id:'llvm-raw-column', title:'LLVM raw', output:'llvm-before', syntax:'llvm'});
 addPane({id:'llvm-optimized-column', title:'LLVM optimized', output:'llvm-after', syntax:'llvm'});
@@ -99,9 +101,10 @@ let foundation = '', bundledFoundation = '', editingModule = '', bedrock = '', b
 let documentLoadId = 0;
 let editorExtensions, projects = [], project, storage, activePath = '', saveSequence = 0;
 const fileStates = new Map(), bundledExamples = new Map();
-const backendIds = ['interpreter', 'llvm'];
-const outputId = backend => backend === 'interpreter' ? 'execution-output' : 'llvm-output';
-const errorId = backend => backend === 'interpreter' ? 'execution-error' : 'llvm-error';
+const backendIds = ['interpreter', 'fast', 'llvm'];
+const selectedBackends = () => backendIds.filter(key => selectedTargets[key === 'llvm' ? 'wasm' : key]);
+const outputId = backend => backend === 'interpreter' ? 'execution-output' : backend === 'fast' ? 'fast-output' : 'llvm-output';
+const errorId = backend => backend === 'interpreter' ? 'execution-error' : backend === 'fast' ? 'fast-error' : 'llvm-error';
 function isExecuting() { return Object.values(runners).some(runner => runner.worker); }
 function cancelState() { $('cancel-execution').disabled = !isExecuting(); }
 function warmSelectedTargets() {
@@ -125,12 +128,15 @@ function warmSelectedTargets() {
   }
 }
 function updateColumns() {
-  const any = Object.values(selectedTargets).some(Boolean);
+  const any = selectedTargets.wasm || selectedNativeKeys().length > 0;
+  $('interpreter-column').hidden = !selectedTargets.interpreter;
+  $('fast-column').hidden = !selectedTargets.fast;
+  $('fast-disassembly-column').hidden = !selectedTargets.fast;
   $('llvm-raw-column').hidden = $('llvm-optimized-column').hidden = !any;
   $('wasm-column').hidden = !selectedTargets.wasm;
   $('wasm-disassembly-column').hidden = !selectedTargets.wasm;
   for (const key of nativeTargetKeys) $(key+'-column').hidden = !selectedTargets[key];
-  const count = 2 + (any ? 2 : 0) + Object.values(selectedTargets).filter(Boolean).length + (selectedTargets.wasm ? 1 : 0);
+  const count = 1 + (any ? 2 : 0) + Object.values(selectedTargets).filter(Boolean).length + (selectedTargets.wasm ? 1 : 0) + (selectedTargets.fast ? 1 : 0);
   document.querySelector('.execution-body').style.setProperty('--columns',count);
 }
 function showLLVM(key,before,after) {
@@ -164,6 +170,7 @@ function compileNative(id,text) {
   worker.onerror = event => { event.preventDefault(); if(id!==executionId)return; beginDisplay(); fail(event.message); finish(); };
   worker.onmessage = ({data}) => {
     if(id!==executionId || data.id!==id)return;
+    if (data.foundation !== undefined && !selectedBackends().length) showCode('core-instructions',data.foundation);
     if(data.phase && !data.done) for (const key of data.target ? [data.target] : keys) setPhase(key,data.phase);
     if(data.error || data.bytes || data.done) beginDisplay();
     if(data.error) fail(data.error,data.target);
@@ -182,7 +189,7 @@ function compileNative(id,text) {
 function showTimings() {
   const a = runners.interpreter?.timings ?? {}, b = runners.llvm?.timings ?? {};
   const values = [['Tower load', a.load, a.loadCached], ['Tower compile', a.tower], ['Instructions', a.instructions],
-    ['Interpreter run', a.execute], ['LLVM load', b.llvmLoad, b.llvmLoadCached], ['LLVM parse', b.parse],
+    ['Graph run', a.execute], ['Fast prepare', runners.fast?.timings?.prepare], ['Bytecode package', runners.fast?.timings?.package], ['Fast run', runners.fast?.timings?.execute], ['LLVM load', b.llvmLoad, b.llvmLoadCached], ['LLVM parse', b.parse],
     ['LLVM raw', b.before], ['LLVM optimize', b.after], ['LLVM emit', b.emit], ['Link', b.link],
     ['LLVM disassembly', b.disassembly], ['LLVM compile total', b.llvm], ['LLVM run', b.execute]];
   for(const [label,ms] of Object.entries(runners.native?.timings??{})) values.push([label+' compile',ms]);
@@ -212,6 +219,7 @@ function clearWasm() {
   showCode('wasm-disassembly',''); delete llvmViews.wasm;
 }
 function clearCompiled() {
+  outputPanes.get('fast-disassembly').clearDownload(); showCode('fast-disassembly','');
   for(const key of nativeTargetKeys) { clearNative(key); setPhase(key); }
   clearWasm(); llvmViews={}; $('steps').textContent = '';
   for (const id of ['core-instructions', 'llvm-before', 'llvm-after']) showCode(id,'');
@@ -220,7 +228,7 @@ function clearCompiled() {
     $(outputId(backend)).textContent = ''; $(errorId(backend)).hidden = true;
     setPhase(backend);
   }
-  $('output-limit').hidden = $('llvm-output-limit').hidden = true;
+  $('fast-limit').hidden = $('output-limit').hidden = $('llvm-output-limit').hidden = true;
 }
 try { $('auto-execute').checked = localStorage.getItem('tower-auto-execute-v1') !== 'false'; } catch {}
 function scheduleAutoExecution() {
@@ -269,14 +277,16 @@ function executionDiagnostic(error) {
   }
 }
 function updateComparison() {
-  const a = runners.interpreter, b = runners.llvm;
-  const differences = selectedTargets.wasm ? compareResults(a?.result, b?.result) : null;
+  const active = selectedBackends().map(key => runners[key]);
+  const complete = active.every(runner => runner?.result);
+  const a = active[0];
+  const differences = complete && a ? active.slice(1).flatMap(runner => compareResults(a.result, runner.result)) : null;
   const nativeRunning = runners.native?.worker;
-  if (a?.failure || b?.failure) $('execution-status').textContent = isExecuting() ? 'Comparison unavailable · running…' : 'Comparison unavailable';
+  if (active.some(runner => runner?.failure)) $('execution-status').textContent = isExecuting() ? 'Comparison unavailable · running…' : 'Comparison unavailable';
   else if (differences) {
-    $('execution-status').textContent = differences.length ? `Backend mismatch · ${differences.join(', ')}` :
-      a.result.status === 'error' ? 'Failed · backends match' : a.result.outputTruncated ? 'Finished · captured results match (output limited)' : 'Finished · backends match';
-  } else $('execution-status').textContent = !selectedTargets.wasm && a?.result ? (a.result.status==='error'?'Failed':'Finished') : 'Executing…';
+    $('execution-status').textContent = differences.length ? 'Backend mismatch · ' + [...new Set(differences)].join(', ') :
+      (a.result.status === 'error' ? 'Failed' : 'Finished') + (active.length > 1 ? a.result.outputTruncated ? ' · captured results match (output limited)' : ' · backends match' : '');
+  } else $('execution-status').textContent = active.length ? 'Executing…' : nativeRunning ? 'Compiling…' : 'No execution targets selected';
   if(nativeRunning) $('execution-status').textContent += ' · compiling targets…';
   else if(runners.native?.failure) $('execution-status').textContent += ' · target build failed';
   $('execute').disabled = isExecuting();
@@ -289,7 +299,7 @@ function execute() {
   $('execution-status').textContent = 'Executing…';
   $('execute').disabled = true; $('cancel-execution').disabled = false;
   const id = executionId, text = editor.state.doc.toString();
-  for (const backend of selectedTargets.wasm ? backendIds : ['interpreter']) {
+  for (const backend of selectedBackends()) {
     const worker = idleExecutionWorkers.get(backend) ?? new Worker(new URL('./execution-worker.js', import.meta.url), { type: 'module' });
     idleExecutionWorkers.delete(backend);
     const runner = runners[backend] = { worker, output: '', timings: {} };
@@ -300,6 +310,7 @@ function execute() {
       runner.worker = null; showTimings(); updateComparison();
     };
     const fail = message => {
+      if (backend === 'fast') { outputPanes.get('fast-disassembly').clearDownload(); showCode('fast-disassembly',''); }
       $(outputId(backend)).textContent='';
       runner.failure = message; $(errorId(backend)).textContent = message; $(errorId(backend)).hidden = false;
       setPhase(backend,'Unavailable'); finish();
@@ -315,7 +326,12 @@ function execute() {
         // longer applies, even if this new program executes indefinitely.
         if (!executionError && diagnosticPhase === 'execution') executionDiagnostic(null);
         runner.formatted=true;
-        if (backend === 'interpreter') showCode('core-instructions',data.foundation);
+        if (backend === selectedBackends()[0]) showCode('core-instructions',data.foundation);
+      }
+      if (data.bytecode) {
+        showCode('fast-disassembly',data.disassembly);
+        outputPanes.get('fast-disassembly').setDownload(data.bytecode,{label:'.towerbc v1',filename:downloadName('fast','towerbc')});
+        $('fast-size').title = `${data.cache.codeBytes} bytes of packed code; ${data.cache.cacheCapacityBytes} bytes of cache storage. Package also includes canonical foundation for validation and reconstruction.`;
       }
       if (data.llvm) {
         runner.compiled=true;
@@ -330,12 +346,13 @@ function execute() {
         runner.displayStarted=true;
       }
       if (answer.output) { runner.output += answer.output; $(outputId(backend)).append(document.createTextNode(answer.output)); }
-      $(backend === 'interpreter' ? 'output-limit' : 'llvm-output-limit').hidden = !answer.outputTruncated;
+      $(backend === 'interpreter' ? 'output-limit' : backend === 'fast' ? 'fast-limit' : 'llvm-output-limit').hidden = !answer.outputTruncated;
       if (answer.status === 'executing') return;
       runner.result = { ...answer, output: runner.output };
       setPhase(backend,answer.status === 'error' ? 'Failed' : '');
       if (answer.status === 'error') {
-        if (backend === 'interpreter' && !runner.formatted) showCode('core-instructions','');
+        if (backend === 'fast' && !runner.formatted) { outputPanes.get('fast-disassembly').clearDownload(); showCode('fast-disassembly',''); }
+        if (backend === selectedBackends()[0] && !runner.formatted) showCode('core-instructions','');
         if (backend === 'llvm' && !data.llvm && !runner.compiled) { clearWasm(); renderLLVM(); }
         $(errorId(backend)).textContent = answer.error; $(errorId(backend)).hidden = false;
         if (!executionError) { executionError = answer; executionDiagnostic(answer); }
@@ -345,6 +362,7 @@ function execute() {
     worker.postMessage({ id, source: text, foundation, bedrock, backend, files:editingModule ? undefined : projectSources(project), drive:project.files, pointerBytes:selectedTargets.wasm || !selectedNativeKeys().length ? 4 : 8, inputs:linkInputsForTarget(linkInputs,'wasm') });
   }
   if(selectedNativeKeys().length) compileNative(id,text);
+  updateComparison();
 }
 function node(tag, className, text) {
   const value = document.createElement(tag);
@@ -698,19 +716,20 @@ for (const tab of ['tree', 'grammar']) {
 $('tokens').onchange = () => renderTree();
 $('execute').onclick = () => execute();
 $('cancel-execution').onclick = () => { executedRevision = documentRevision; stopExecution('Cancelled'); };
-for(const [key,target] of Object.entries(targets)) {
+for(const [key,target] of Object.entries(targetChoices)) {
   const label=node('label'), input=node('input'), caption=node('span','',target.label);
   caption.id='target-label-'+key;
   input.type='checkbox'; input.id='target-'+key; input.checked=!!selectedTargets[key];
-  if(key!=='wasm') caption.append(node('small','',target.triple));
+  if(target.description) caption.append(node('small','',target.description));
+  else if(key!=='wasm') caption.append(node('small','',target.triple));
   else caption.append(node('small','','32-bit · browser module'));
   label.append(input,caption); $('target-options').append(label);
   input.onchange=()=>{
     targetsChanged=true;
     selectedTargets[key]=input.checked;
     if (!selectedTargets[key]) {
-      const backend = key === 'wasm' ? 'llvm' : 'native';
-      if (backend==='llvm' || !selectedNativeKeys().length) {
+      const backend = key === 'wasm' ? 'llvm' : nativeTargetKeys.includes(key) ? 'native' : key;
+      if (backend!=='native' || !selectedNativeKeys().length) {
         idleExecutionWorkers.get(backend)?.terminate(); idleExecutionWorkers.delete(backend);
       }
     }
@@ -779,7 +798,7 @@ async function start() {
   if (detection.strongMatch) $('target-label-'+detection.key).firstChild.appendData(' (detected)');
   if (!savedSelection && !targetsChanged) {
     selectedTargets=defaultTargetSelection(detection);
-    for (const key of Object.keys(targets)) $('target-'+key).checked=selectedTargets[key];
+    for (const key of Object.keys(targetChoices)) $('target-'+key).checked=selectedTargets[key];
     updateColumns();
   }
   const names = ['bedrock','foundation',...examples];

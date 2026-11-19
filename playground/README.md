@@ -14,6 +14,65 @@ the implementations of grammar installation and foundation operations.
 
 Live playground: **https://trevorsundberg.github.io/tower/**.
 
+The target picker enables **Graph interpreter**, **Fast interpreter** and
+**WebAssembly** by default, plus the detected supported native profile. Both
+interpreters are written in Tower. The graph runner executes shared foundation
+nodes; the fast runner uses a compact register cache derived from those nodes.
+Their separate output panes compare observable results with Wasm automatically.
+Any runner can be disabled independently. Steps count each runner's own work and
+are not comparable instruction counts. Execution stays in cancellable workers.
+
+**Bytecode disassembly** reconstructs compilable foundation from a validated
+`.towerbc` download. Version 1 contains canonical foundation, packed instructions
+and constants, with container/semantics/cache versions, explicit pointer layout,
+optimization profile and checksum. It preserves foundation as the semantic
+authority: loading rebuilds/checks the graph and verifies that the cache matches
+before execution. This adds preparation time and source bytes; it is not a
+standalone unverified instruction ABI or a zero-copy loader. The current profile
+does not optimize guest semantics, so reconstruction matches canonical foundation.
+Future optimizing profiles must package the transformed foundation graph.
+The existing **Open** button imports project ZIPs; `.towerbc` loading is available
+through the native CLI and `loadTower().loadBytecode(bytes)` host API.
+Configure that host API with the bundled Bedrock/Foundation when encoding or
+loading packages; editor grammar overrides apply to input source. The playground
+and native CLI install the canonical grammar for packaging automatically.
+
+Native CLI examples (use the production compiler, not the bootstrap seed):
+
+```sh
+towerc program.tower --interpret
+towerc program.tower --interpret-fast
+towerc program.tower --target wasm32-unknown-unknown --emit bytecode -o program.towerbc
+towerc program.towerbc --interpret-fast
+towerc program.towerbc --emit foundation -o reconstructed.tower
+```
+
+The file's target layout controls interpretation even on a different host. The
+cache uses one 32-bit opcode/three-byte-operand word for common instructions,
+two words for branches, and a five-word escape for wider operands. Register and
+code size do not acquire an 8-bit language limit. Constants, reusable register
+frames and cold metadata use contiguous arrays. Immutable arrays are trimmed
+after preparation; dynamic call buffers retain capacity for reuse. Shared scalar,
+conversion, printing and memory helpers keep both runners' semantics aligned.
+The graph runner also caches checked component lookups and reuses call buffers.
+
+Reproduce comparisons with `node scripts/benchmark-interpreters.mjs report.json`
+from this directory, optionally setting `TOWER_BENCH_BASELINE` to an earlier
+reactor path relative to the repository root. It alternates runners, validates
+output, and separates compilation/preparation from execution. Wasm measurements
+include module compilation/instantiation and execution, so they are end-to-end
+host measurements, not isolated instruction throughput. Native comparison:
+`node scaffolding/tests/benchmark-interpreters.mjs /path/to/towerc report.json`
+from the repository root. `node scripts/profile-interpreters.mjs` writes separate
+CPU profiles under `build/`; `TOWER_PROFILE_REACTOR` can select an unstripped
+reactor for function names. See the research journal for measured results and
+platform coverage; portability does not imply a measured speed guarantee on
+every phone, console or CPU.
+
+LLVM currently optimizes the Tower implementation of both interpreters. Applying
+LLVM guest optimizations and translating the result back into this cache would
+need an additional verified lowering/reconstruction path; it is not implemented.
+
 From this directory:
 
 ```powershell
@@ -99,7 +158,7 @@ is installed. Failed declarations leave the previous grammar intact.
 
 Choose the **Tokens** project to explore lexical rules. Select the pinned
 **Bedrock** or **Foundation** file to edit the declaration or ordinary grammar.
-Their changes apply to the current project and both execution backends.
+Their changes apply to the current project and all execution backends.
 See [token syntax and precedence](TOKENS.md).
 
 Foundation inherits Bedrock's actual grammar/token entities. Whitespace, line and
@@ -340,15 +399,16 @@ The toolbar combines the brand and file controls. The page fits the
 viewport on desktop and mobile; editor, tree, output and instruction panes scroll
 internally when needed. On phones the equal-width result columns scroll horizontally.
 Steps and separate compilation/execution timings sit at the bottom. Interpreter
-Execution and Wasm Execution have separate output columns. Wasm disassembly decodes
+Execution, Fast interpreter and Wasm Execution have separate output columns. Wasm disassembly decodes
 the actual linked binary using LLVM, including linked runtime functions; its addresses
 are file offsets. Its download footer shares the native disassembly-column layout.
 
 The compilation path is expanded Tower nodes enriched with typed foundation
 components -> interpreter or LLVM -> linked executable WASM. Across isolated WASM
 modules, the program is shared as canonical foundation text and resolved with the
-same foundation grammar, node schema and verifier. No binary Tower program format
-or separate debug instruction language remains. It lowers ordinary locals to entry allocas, runs
+same foundation grammar, node schema and verifier. The `.towerbc` envelope pairs
+this text with a verified, versioned execution cache; it introduces no separate
+semantic IR. LLVM lowers ordinary locals to entry allocas, runs
 SROA/mem2reg plus O2, verifies the LLVM IR, emits an object and links it with LLD.
 Address-taken locals remain ordinary allocas; typed raw pointers lower to LLVM ptr.
 No language exceptions or user phi nodes.

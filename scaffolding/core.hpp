@@ -7,6 +7,7 @@
 #include <vector>
 #include <functional>
 #include <map>
+#include <memory>
 
 enum class CoreScalar { I32, U32, Bool, Void, Struct, U8, I64, U64, USize, Array };
 struct CoreType {
@@ -120,8 +121,10 @@ struct CoreMachineState {
   TowerByteBuffer memory_storage{}; // owned by interpreter-storage.tower
   CoreMachineArray<CoreMachineEntry> allocations, free_blocks, strings, sequenced;
   CoreMachineArray<CoreMachineFrame> frames;
+  CoreMachineArray<CoreMachineEntry> node_cache;
 };
 struct CoreMachine : CoreMachineState {
+  void* fast = nullptr; // Tower-owned private execution cache, never serialized
   CoreProgram program;
   using Foreign = std::function<CoreValue(CoreMachine&, TowerNode*, const std::vector<CoreValue>&)>;
   Foreign foreign;
@@ -136,6 +139,7 @@ struct CoreMachine : CoreMachineState {
   const uint8_t* memory_data() const { return memory_storage.data; }
   size_t memory_size() const { return memory_storage.length; }
   void step(size_t budget);
+  bool use_fast();
   void fail(const std::string&, size_t);
   uint8_t* bytes(uint64_t address, size_t count, size_t offset = 0);
   CoreValue load(uint64_t address, CoreType, size_t offset = 0);
@@ -144,3 +148,5 @@ struct CoreMachine : CoreMachineState {
   uint64_t reallocate(uint64_t address, size_t bytes);
   void deallocate(uint64_t address);
 };
+std::unique_ptr<CoreMachine> core_load_bytecode(const uint8_t*, size_t, std::string& error);
+std::vector<uint8_t> core_encode_bytecode(const CoreProgram&, std::string& error);

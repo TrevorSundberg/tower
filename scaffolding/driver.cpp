@@ -62,7 +62,7 @@ struct Temporary {
 int main(int argc, char** argv) {
   Timings timings;
   std::string source, output, target = llvm::sys::getDefaultTargetTriple(), emit = "exe", cc = "clang", linker, sysroot, raw, optimized, bedrock_path, foundation_path, resources;
-  std::vector<std::string> inputs; bool optimize = true, interpret = false, library = false;
+  std::vector<std::string> inputs; bool optimize = true, interpret = false, library = false, fast = false;
 #ifdef TOWER_BOOTSTRAP_HOST
   // Retained only in towerc-seed until the Tower-only bootstrap is available.
   for (int i = 1; i < argc; ++i) {
@@ -111,6 +111,7 @@ int main(int argc, char** argv) {
   emit = options.emit; cc = options.cc; linker = options.linker; sysroot = options.sysroot;
   raw = options.raw; optimized = options.optimized; bedrock_path = options.bedrock;
   foundation_path = options.foundation; optimize = options.optimize; interpret = options.interpret;
+  fast = options.fast;
   library = options.library; timings.enabled = options.timings;
   for (size_t i = 0; i < options.link_count; ++i) inputs.emplace_back(options.links[i]);
   driver_dispose(&options);
@@ -146,13 +147,54 @@ int main(int argc, char** argv) {
 #endif
     std::cerr << source << ':' << line << ':' << column << ": " << error << '\n';
   };
+  unsigned packaged_width = 0;
+#ifndef TOWER_INTERPRETER_SEED
+  const auto install_canonical_grammar = [&]() {
+    auto failure = syntax_set_bedrock(read(root / "bedrock.tower").c_str());
+    if (failure.empty()) failure = syntax_set_bootstrap(read(root / "foundation.tower").c_str());
+    return failure;
+  };
+  if (fs::path(source).extension() == ".towerbc") {
+    error = install_canonical_grammar();
+    if (!error.empty()) { std::cerr << error << '\n'; return 1; }
+    auto loaded = core_load_bytecode(reinterpret_cast<const uint8_t*>(text.data()), text.size(), error);
+    if (!loaded) { std::cerr << error << '\n'; return 1; }
+    packaged_width = loaded->program.pointer_bytes;
+    text = core_format(loaded->program).source;
+    interpret = true; fast = true;
+  }
+  if (emit == "bytecode" || emit == "foundation") {
+    auto width = packaged_width ? packaged_width : tower_target_pointer_bytes(target, error);
+    if (!error.empty()) { std::cerr << error << '\n'; return 1; }
+    auto program = core_compile_foundation(text.c_str(), width);
+    if (!program.error.empty()) { report_error(program.error, program.error_offset); return 1; }
+    if (output.empty()) output = fs::path(source).replace_extension(emit == "bytecode" ? ".towerbc" : ".disassembled.tower").string();
+    if (fs::absolute(output).lexically_normal() == fs::absolute(source).lexically_normal()) {
+      std::cerr << "Choose an output path different from the input\n"; return 1;
+    }
+    if (emit == "foundation") {
+      const auto foundation = core_format(program).source;
+      return write(output, foundation.data(), foundation.size()) ? 0 : 1;
+    }
+    error = install_canonical_grammar();
+    if (!error.empty()) { std::cerr << error << '\n'; return 1; }
+    const auto bytes = core_encode_bytecode(program, error);
+    if (bytes.empty()) { std::cerr << error << '\n'; return 1; }
+    return write(output, reinterpret_cast<const char*>(bytes.data()), bytes.size()) ? 0 : 1;
+  }
+#endif
   if (text.find('\0') != std::string::npos) { std::cerr << "Source contains NUL bytes\n"; return 1; }
   bool wasm = target.starts_with("wasm"), windows = target.find("windows") != std::string::npos;
   if (interpret) {
-    auto width = tower_target_pointer_bytes(target, error);
+    auto width = packaged_width ? packaged_width : tower_target_pointer_bytes(target, error);
     if (!error.empty()) { std::cerr << error << '\n'; return 1; }
     CoreMachine machine(core_compile_foundation(text.c_str(), width));
     timings.mark("compile");
+#ifndef TOWER_INTERPRETER_SEED
+    if (fast) { machine.use_fast(); timings.mark("prepare"); }
+#else
+    if (fast) { std::cerr << "Fast interpreter requires the production Tower runner\n"; return 1; }
+#endif
     machine.foreign = [](CoreMachine& machine, TowerNode* function, const std::vector<CoreValue>& args) -> CoreValue {
       const auto& fn = core_node(function);
       if (fn.name != "platform_write" || args.size() != 3) { machine.fail("No native interpreter binding for '" + fn.name + "'", 0); return {}; }

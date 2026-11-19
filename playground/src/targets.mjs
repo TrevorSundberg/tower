@@ -10,17 +10,22 @@ export const targets = {
 };
 
 export const nativeTargetKeys = Object.keys(targets).filter(key => key !== 'wasm');
+export const interpreterTargets = {
+  interpreter: {label:'Graph interpreter', description:'Execute the shared foundation graph'},
+  fast: {label:'Fast interpreter', description:'Execute a compact register cache'},
+};
+export const targetChoices = {...interpreterTargets, ...targets};
 // Keep native choices from the individual-profile picker. Every browser session
-// starts with Wasm enabled so its execution can be compared with the interpreter.
+// starts with both interpreters and Wasm enabled for differential execution.
 export const targetSelectionKey = 'tower-build-targets-v3';
-export const emptySelection = () => Object.fromEntries(Object.keys(targets).map(key => [key, false]));
+export const emptySelection = () => Object.fromEntries(Object.keys(targetChoices).map(key => [key, false]));
 
 export function savedTargetSelection(storage) {
   try {
     const current = JSON.parse(storage.getItem(targetSelectionKey));
     if (current && typeof current === 'object' && !Array.isArray(current) &&
         Object.keys(targets).some(key => typeof current[key] === 'boolean'))
-      return Object.fromEntries(Object.keys(targets).map(key => [key, key === 'wasm' || current[key] === true]));
+      return Object.fromEntries(Object.keys(targetChoices).map(key => [key, key === 'wasm' || key in interpreterTargets || current[key] === true]));
   } catch { /* Storage may be unavailable or corrupt. Use detection. */ }
   return null;
 }

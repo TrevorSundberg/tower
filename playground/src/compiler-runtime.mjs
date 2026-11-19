@@ -7,6 +7,21 @@ import { fetchBytes } from './fetch-bytes.mjs';
 let towerReady, installedFoundation, installedBedrock;
 const compilers = new Map();
 const warmRuns = new Map();
+let canonicalSources;
+function getCanonicalSources() {
+  canonicalSources ??= Promise.all(['foundation','bedrock'].map(async name => {
+    const response = await fetch('./'+name+'.tower');
+    if (!response.ok) throw new Error(name+'.tower is unavailable');
+    return response.text();
+  }));
+  return canonicalSources;
+}
+// Canonical packages use the bundled grammar, regardless of editor overrides.
+// Existing execution handles retain their checked nodes across grammar changes.
+export async function getCanonicalTower() {
+  const [foundation,bedrock] = await getCanonicalSources();
+  return getTower(foundation,bedrock);
+}
 export async function getTower(foundation, bedrock) {
   const start = performance.now();
   const cached = !!towerReady && installedFoundation === foundation && installedBedrock === bedrock;
@@ -26,9 +41,8 @@ export async function getCompiler(url) {
   const start = performance.now();
   const cached = compilers.has(url);
   if (!compilers.has(url)) compilers.set(url, (async () => {
-    const [wasm, canonical, seed] = await Promise.all([fetchBytes(url), fetch('./foundation.tower'), fetch('./bedrock.tower')]);
-    if (!canonical.ok || !seed.ok) throw new Error('bedrock.tower or foundation.tower is unavailable');
-    return loadLLVM(wasm, undefined, await canonical.text(), undefined, await seed.text());
+    const [wasm, [canonical, seed]] = await Promise.all([fetchBytes(url), getCanonicalSources()]);
+    return loadLLVM(wasm, undefined, canonical, undefined, seed);
   })());
   const pending = compilers.get(url);
   try {

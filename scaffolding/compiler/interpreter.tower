@@ -59,7 +59,10 @@ fn im_power(n: usize): u64 {
 }
 
 fn im_sign(value: u64, type: FoundationType*): i64 {
-    var mask = im_type_mask(type);
+    return im_sign_mask(value, im_type_mask(type));
+}
+
+fn im_sign_mask(value: u64, mask: u64): i64 {
     var high = mask / 2;
     high = high + 1;
     var sign = value & high;
@@ -90,44 +93,83 @@ export fn interpreter_bytes(m: IMState*, address: u64, count: usize, offset: usi
 }
 
 export fn interpreter_load(m: IMState*, address: u64, type: FoundationType*, offset: usize): u64 {
-    var size = im_type_size(type);
+    return im_load_size(m, address, im_type_size(type), offset);
+}
+
+// Explicit little-endian byte semantics, including unaligned guest addresses.
+// Fixed-width paths let LLVM combine loads without inheriting host endianness.
+fn im_load_size(m: IMState*, address: u64, size: usize, offset: usize): u64 {
     var p = interpreter_bytes(m, address, size, offset);
-    var result: u64 = 0;
-    var condition_5 = p != null;
-    if condition_5 {
-        var factor: u64 = 1;
-        var i: usize = 0;
-        loop {
-            var condition_6 = i == size;
-            if condition_6 {
-                break;
-            }
-            var byte = convert(u64, p[i]);
-            byte = byte * factor;
-            result = result | byte;
-            factor = factor * 256;
-            i = i + 1;
-        }
+    var missing = p == null;
+    if missing {
+        return 0;
     }
+    var byte = size == 1;
+    if byte {
+        return convert(u64, p[0]);
+    }
+    var lo = convert(u64, p[0]);
+    var lo_1 = convert(u64, p[1]);
+    lo_1 = lo_1 * 256;
+    lo = lo | lo_1;
+    var lo_2 = convert(u64, p[2]);
+    lo_2 = lo_2 * 65536;
+    lo = lo | lo_2;
+    var lo_3 = convert(u64, p[3]);
+    lo_3 = lo_3 * 16777216;
+    lo = lo | lo_3;
+    var word = size == 4;
+    if word {
+        return lo;
+    }
+    var hi = convert(u64, p[4]);
+    var hi_1 = convert(u64, p[5]);
+    hi_1 = hi_1 * 256;
+    hi = hi | hi_1;
+    var hi_2 = convert(u64, p[6]);
+    hi_2 = hi_2 * 65536;
+    hi = hi | hi_2;
+    var hi_3 = convert(u64, p[7]);
+    hi_3 = hi_3 * 16777216;
+    hi = hi | hi_3;
+    hi = hi * 4294967296;
+    var result = lo | hi;
     return result;
 }
 
 export fn interpreter_write(m: IMState*, address: u64, value: u64, type: FoundationType*, offset: usize): void {
-    var size = im_type_size(type);
+    im_write_size(m, address, value, im_type_size(type), offset);
+}
+
+fn im_write_size(m: IMState*, address: u64, value: u64, size: usize, offset: usize): void {
     var p = interpreter_bytes(m, address, size, offset);
-    var condition_7 = p != null;
-    if condition_7 {
-        var i: usize = 0;
-        loop {
-            var condition_8 = i == size;
-            if condition_8 {
-                break;
-            }
-            p[i] = im_byte(value);
-            value = value / 256;
-            i = i + 1;
-        }
+    var missing = p == null;
+    if missing {
+        return;
     }
+    p[0] = im_byte(value);
+    var byte = size == 1;
+    if byte {
+        return;
+    }
+    value = value / 256;
+    p[1] = im_byte(value);
+    value = value / 256;
+    p[2] = im_byte(value);
+    value = value / 256;
+    p[3] = im_byte(value);
+    var word = size == 4;
+    if word {
+        return;
+    }
+    value = value / 256;
+    p[4] = im_byte(value);
+    value = value / 256;
+    p[5] = im_byte(value);
+    value = value / 256;
+    p[6] = im_byte(value);
+    value = value / 256;
+    p[7] = im_byte(value);
 }
 
 export fn interpreter_allocate(m: IMState*, count: usize): u64 {
@@ -263,7 +305,7 @@ fn im_read(m: IMState*, node: void*, offset: usize): u64 {
             return cached;
         }
     }
-    return im_read_uncached(m, node, im_node(node), offset);
+    return im_read_uncached(m, node, im_cached_node(m, node), offset);
 }
 
 fn im_read_uncached(m: IMState*, node: void*, n: FoundationNode*, offset: usize): u64 {
@@ -329,7 +371,7 @@ fn im_address(m: IMState*, node: void*, offset: usize): u64 {
             return cached;
         }
     }
-    return im_address_uncached(m, node, im_node(node), offset);
+    return im_address_uncached(m, node, im_cached_node(m, node), offset);
 }
 
 fn im_address_component(m: IMState*, node: void*, n: FoundationNode*, offset: usize): u64 {
@@ -367,7 +409,7 @@ fn im_address_uncached(m: IMState*, node: void*, n: FoundationNode*, offset: usi
         }
         else {
             var index = im_read(m, n.right, offset);
-            var right = im_node(n.right);
+            var right = im_cached_node(m, n.right);
             var condition_39 = im_type_signed(&right.type);
             if condition_39 {
                 index = bits(u64, im_sign(index, &right.type));
@@ -384,7 +426,7 @@ fn im_address_uncached(m: IMState*, node: void*, n: FoundationNode*, offset: usi
     var binding = n;
     var bound = n.binding != null;
     if bound {
-        binding = im_node(n.binding);
+        binding = im_cached_node(m, n.binding);
     }
     var base: u64 = 16;
     var condition_41 = binding.global == false;
@@ -404,7 +446,7 @@ fn im_evaluate(m: IMState*, node: void*, offset: usize): u64 {
             return cached;
         }
     }
-    var n = im_node(node);
+    var n = im_cached_node(m, node);
     return im_evaluate_uncached(m, node, n, offset);
 }
 
@@ -488,48 +530,8 @@ fn im_evaluate_uncached(m: IMState*, node: void*, n: FoundationNode*, offset: us
     }
     var condition_56 = n.kind == KConvert();
     if condition_56 {
-        var input = im_node(n.value);
-        var condition_57 = n.type.scalar == SBool();
-        if condition_57 {
-            var nonzero = a != 0;
-            result = convert(u64, nonzero);
-        }
-        else {
-            var mask = im_type_mask(&input.type);
-            var high = mask / 2;
-            high = high + 1;
-            var sign = a & high;
-            var negative = sign != 0;
-            negative = im_and(negative, im_type_signed(&input.type));
-            var magnitude = a;
-            var condition_58 = negative;
-            if condition_58 {
-                magnitude = 0 - a;
-                magnitude = magnitude & mask;
-            }
-            var limit = im_type_mask(&n.type);
-            var condition_59 = im_type_signed(&n.type);
-            if condition_59 {
-                limit = limit / 2;
-                var condition_60 = negative;
-                if condition_60 {
-                    limit = limit + 1;
-                }
-            }
-            var invalid = im_type_signed(&n.type) == false;
-            invalid = im_and(invalid, negative);
-            test = magnitude > limit;
-            invalid = im_or(invalid, test);
-            var condition_61 = invalid;
-            if condition_61 {
-                im_fail(m, "Numeric conversion out of range; use bits for bit reinterpretation", offset);
-            }
-            result = magnitude;
-            var condition_62 = negative;
-            if condition_62 {
-                result = 0 - magnitude;
-            }
-        }
+        var input = im_cached_node(m, n.value);
+        result = im_convert_value(m, a, &input.type, &n.type, offset);
     } else {
         var condition_63 = n.kind == KBinary();
         if condition_63 {
@@ -540,42 +542,99 @@ fn im_evaluate_uncached(m: IMState*, node: void*, n: FoundationNode*, offset: us
     return returned_175;
 }
 
+fn im_convert_value(m: IMState*, a: u64, input: FoundationType*, type: FoundationType*, offset: usize): u64 {
+    var boolean = type.scalar == SBool();
+    if boolean {
+        var nonzero = a != 0;
+        return convert(u64, nonzero);
+    }
+    var result = a;
+    var mask = im_type_mask(input);
+    var high = mask / 2;
+    high = high + 1;
+    var sign = a & high;
+    var negative = sign != 0;
+    negative = im_and(negative, im_type_signed(input));
+    var magnitude = a;
+    var condition_58 = negative;
+    if condition_58 {
+        magnitude = 0 - a;
+        magnitude = magnitude & mask;
+    }
+    var limit = im_type_mask(type);
+    var condition_59 = im_type_signed(type);
+    if condition_59 {
+        limit = limit / 2;
+        var condition_60 = negative;
+        if condition_60 {
+            limit = limit + 1;
+        }
+    }
+    var invalid = im_type_signed(type) == false;
+    invalid = im_and(invalid, negative);
+    var test = magnitude > limit;
+    invalid = im_or(invalid, test);
+    var condition_61 = invalid;
+    if condition_61 {
+        im_fail(m, "Numeric conversion out of range; use bits for bit reinterpretation", offset);
+    }
+    result = magnitude;
+    var condition_62 = negative;
+    if condition_62 {
+        result = 0 - magnitude;
+    }
+    return result;
+}
+
 fn im_binary(m: IMState*, n: FoundationNode*, x: u64, offset: usize): u64 {
     var y = im_evaluate(m, n.right, offset);
-    var input = im_node(n.left);
-    var type = &input.type;
-    var arithmetic = n.op == OAdd();
-    var test = n.op == OSub();
+    var input = im_cached_node(m, n.left);
+    var right_type = &input.type;
+    var pointer = input.type.pointers != 0;
+    if pointer {
+        var right = im_cached_node(m, n.right);
+        right_type = &right.type;
+    }
+    return im_binary_values(m, n.op, x, y, &input.type, right_type, offset);
+}
+
+fn im_binary_values(m: IMState*, op: u32, x: u64, y: u64, type: FoundationType*, right_type: FoundationType*, offset: usize): u64 {
+    var arithmetic = op == OAdd();
+    var test = op == OSub();
     arithmetic = im_or(arithmetic, test);
     var condition_64 = type.pointers != 0;
     if condition_64 {
         var condition_65 = arithmetic;
         if condition_65 {
-            var right = im_node(n.right);
-            var condition_66 = im_type_signed(&right.type);
+            var condition_66 = im_type_signed(right_type);
             if condition_66 {
-                y = bits(u64, im_sign(y, &right.type));
+                y = bits(u64, im_sign(y, right_type));
             }
             y = y * convert(u64, im_pointee_size(type));
         }
     }
-    var condition_67 = n.op == OAdd();
+    return im_binary_scalar(m, op, x, y, im_type_mask(type), im_type_signed(type), offset);
+}
+
+// Shared scalar semantics for graph evaluation and compact instruction dispatch.
+fn im_binary_scalar(m: IMState*, op: u32, x: u64, y: u64, mask: u64, signed: bool, offset: usize): u64 {
+    var condition_67 = op == OAdd();
     if condition_67 {
         var returned_176 = x + y;
         return returned_176;
     }
-    var condition_68 = n.op == OSub();
+    var condition_68 = op == OSub();
     if condition_68 {
         var returned_177 = x - y;
         return returned_177;
     }
-    var condition_69 = n.op == OMul();
+    var condition_69 = op == OMul();
     if condition_69 {
         var returned_178 = x * y;
         return returned_178;
     }
-    var division = n.op == ODiv();
-    test = n.op == ORem();
+    var division = op == ODiv();
+    var test = op == ORem();
     division = im_or(division, test);
     var condition_70 = division;
     if condition_70 {
@@ -584,9 +643,8 @@ fn im_binary(m: IMState*, n: FoundationNode*, x: u64, offset: usize): u64 {
             im_fail(m, "Division by zero", offset);
             return x;
         }
-        var condition_72 = im_type_signed(type);
+        var condition_72 = signed;
         if condition_72 {
-            var mask = im_type_mask(type);
             var high = mask / 2;
             high = high + 1;
             var condition_73 = x == high;
@@ -597,10 +655,10 @@ fn im_binary(m: IMState*, n: FoundationNode*, x: u64, offset: usize): u64 {
                     return x;
                 }
             }
-            var sx = im_sign(x, type);
-            var sy = im_sign(y, type);
+            var sx = im_sign_mask(x, mask);
+            var sy = im_sign_mask(y, mask);
             var signed_result: i64 = 0;
-            var condition_75 = n.op == ODiv();
+            var condition_75 = op == ODiv();
             if condition_75 {
                 signed_result = sx / sy;
             } else {
@@ -608,7 +666,7 @@ fn im_binary(m: IMState*, n: FoundationNode*, x: u64, offset: usize): u64 {
             }
             return bits(u64, signed_result);
         }
-        var condition_76 = n.op == ODiv();
+        var condition_76 = op == ODiv();
         if condition_76 {
             var returned_179 = x / y;
             return returned_179;
@@ -616,64 +674,64 @@ fn im_binary(m: IMState*, n: FoundationNode*, x: u64, offset: usize): u64 {
         var returned_180 = x % y;
         return returned_180;
     }
-    var condition_77 = n.op == OAnd();
+    var condition_77 = op == OAnd();
     if condition_77 {
         var returned_181 = x & y;
         return returned_181;
     }
-    var condition_78 = n.op == OOr();
+    var condition_78 = op == OOr();
     if condition_78 {
         var returned_182 = x | y;
         return returned_182;
     }
-    var condition_79 = n.op == OXor();
+    var condition_79 = op == OXor();
     if condition_79 {
         var returned_183 = x ^ y;
         return returned_183;
     }
     var result = false;
-    var condition_80 = n.op == OEq();
+    var condition_80 = op == OEq();
     if condition_80 {
         result = x == y;
     }
-    var condition_81 = n.op == ONe();
+    var condition_81 = op == ONe();
     if condition_81 {
         result = x != y;
     }
-    var condition_82 = im_type_signed(type);
+    var condition_82 = signed;
     if condition_82 {
-        var sx = im_sign(x, type);
-        var sy = im_sign(y, type);
-        var condition_83 = n.op == OLt();
+        var sx = im_sign_mask(x, mask);
+        var sy = im_sign_mask(y, mask);
+        var condition_83 = op == OLt();
         if condition_83 {
             result = sx < sy;
         }
-        var condition_84 = n.op == OLe();
+        var condition_84 = op == OLe();
         if condition_84 {
             result = sx <= sy;
         }
-        var condition_85 = n.op == OGt();
+        var condition_85 = op == OGt();
         if condition_85 {
             result = sx > sy;
         }
-        var condition_86 = n.op == OGe();
+        var condition_86 = op == OGe();
         if condition_86 {
             result = sx >= sy;
         }
     } else {
-        var condition_87 = n.op == OLt();
+        var condition_87 = op == OLt();
         if condition_87 {
             result = x < y;
         }
-        var condition_88 = n.op == OLe();
+        var condition_88 = op == OLe();
         if condition_88 {
             result = x <= y;
         }
-        var condition_89 = n.op == OGt();
+        var condition_89 = op == OGt();
         if condition_89 {
             result = x > y;
         }
-        var condition_90 = n.op == OGe();
+        var condition_90 = op == OGe();
         if condition_90 {
             result = x >= y;
         }
@@ -687,7 +745,7 @@ fn im_store(m: IMState*, target: void*, value: u64, offset: usize): void {
         return;
     }
     var at = im_address(m, target, offset);
-    var n = im_node(target);
+    var n = im_cached_node(m, target);
     var condition_92 = im_ok(m);
     if condition_92 {
         interpreter_write(m, at, value, &n.type, offset);
@@ -695,7 +753,7 @@ fn im_store(m: IMState*, target: void*, value: u64, offset: usize): void {
 }
 
 fn im_enter(m: IMState*, node: void*): void {
-    var n = im_node(node);
+    var n = im_cached_node(m, node);
     var i = n.items.length;
     loop {
         var condition_93 = i == 0;
@@ -704,7 +762,7 @@ fn im_enter(m: IMState*, node: void*): void {
         }
         i = i - 1;
         var child = n.items.data[i];
-        var c = im_node(child);
+        var c = im_cached_node(m, child);
         var omitted = c.kind == KFunction();
         var test = c.kind == KType();
         omitted = im_or(omitted, test);
@@ -732,9 +790,14 @@ fn im_returned(m: IMState*, value: u64): void {
 }
 
 fn im_call(m: IMState*, node: void*, offset: usize): void {
-    var n = im_node(node);
-    var function = im_node(n.binding);
-    var args = alloc(u64, n.items.length);
+    var n = im_cached_node(m, node);
+    var function = im_cached_node(m, n.binding);
+    var small_args: u64[16];
+    var args = &small_args[0];
+    var heap_args = n.items.length > 16;
+    if heap_args {
+        args = alloc(u64, n.items.length);
+    }
     var i: usize = 0;
     loop {
         var condition_98 = i == n.items.length;
@@ -746,7 +809,9 @@ fn im_call(m: IMState*, node: void*, offset: usize): void {
     }
     var condition_99 = im_ok(m) == false;
     if condition_99 {
-        free(args);
+        if heap_args {
+            free(args);
+        }
         return;
     }
     var condition_100 = function.external;
@@ -754,7 +819,9 @@ fn im_call(m: IMState*, node: void*, offset: usize): void {
         var condition_101 = im_has_foreign(m) == false;
         if condition_101 {
             im_missing_foreign(m, n.binding, offset);
-            free(args);
+            if heap_args {
+                free(args);
+            }
             return;
         }
         var result = im_foreign(m, n.binding, args, n.items.length);
@@ -762,7 +829,9 @@ fn im_call(m: IMState*, node: void*, offset: usize): void {
         if condition_102 {
             im_values_set(m, im_key(node), result);
         }
-        free(args);
+        if heap_args {
+            free(args);
+        }
         return;
     }
     var size = im_align(function.frame_size);
@@ -775,7 +844,9 @@ fn im_call(m: IMState*, node: void*, offset: usize): void {
     var condition_103 = exhausted;
     if condition_103 {
         im_fail(m, "Tower call stack limit exceeded", offset);
-        free(args);
+        if heap_args {
+            free(args);
+        }
         return;
     }
     var end = base + size;
@@ -786,12 +857,14 @@ fn im_call(m: IMState*, node: void*, offset: usize): void {
         if condition_104 {
             break;
         }
-        var parameter = im_node(function.parameters.data[i]);
+        var parameter = im_cached_node(m, function.parameters.data[i]);
         var at = base + parameter.byte_offset;
         interpreter_write(m, convert(u64, at), args[i], &parameter.type, offset);
         i = i + 1;
     }
-    free(args);
+    if heap_args {
+        free(args);
+    }
     im_frame_push(m, n.binding, base, offset, node);
     im_enter(m, function.body);
 }
@@ -808,7 +881,7 @@ fn im_needs(m: IMState*, node: void*): bool {
         var returned_184 = cached != 0;
         return returned_184;
     }
-    var n = im_node(node);
+    var n = im_cached_node(m, node);
     var result = n.kind == KCall();
     var test = n.kind == KAllocate();
     result = im_or(result, test);
@@ -841,7 +914,7 @@ export fn interpreter_init(m: IMState*): void {
         return;
     }
     var root = im_root(m);
-    var n = im_node(root);
+    var n = im_cached_node(m, root);
     var base = m.stack;
     var size = im_align(n.frame_size);
     var end = base + size;
@@ -863,10 +936,14 @@ fn im_print(m: IMState*, node: void*, offset: usize): void {
     if condition_110 {
         return;
     }
-    var n = im_node(node);
+    var n = im_cached_node(m, node);
+    im_print_value(m, value, &n.type);
+}
+
+fn im_print_value(m: IMState*, value: u64, type: FoundationType*): void {
     var text: u8[80];
     var length: usize = 0;
-    var condition_111 = n.type.pointers != 0;
+    var condition_111 = type.pointers != 0;
     if condition_111 {
         text[0] = 48;
         text[1] = 120;
@@ -886,7 +963,7 @@ fn im_print(m: IMState*, node: void*, offset: usize): void {
             length = length + 1;
         }
     } else {
-        var condition_113 = n.type.scalar == SBool();
+        var condition_113 = type.scalar == SBool();
         if condition_113 {
             var condition_114 = value != 0;
             if condition_114 {
@@ -897,9 +974,9 @@ fn im_print(m: IMState*, node: void*, offset: usize): void {
                 length = 5;
             }
         } else {
-            var mask = im_type_mask(&n.type);
+            var mask = im_type_mask(type);
             value = value & mask;
-            var condition_115 = im_type_signed(&n.type);
+            var condition_115 = im_type_signed(type);
             if condition_115 {
                 var high = mask / 2;
                 high = high + 1;
@@ -979,7 +1056,7 @@ export fn interpreter_step(m: IMState*, budget: usize): void {
         // Ordinary statements clear both caches before evaluation. Only suspended
         // expression tasks can observe cached values or captured addresses.
         m.cached = task.phase != 0;
-        var n = im_node(task.node);
+        var n = im_cached_node(m, task.node);
         var offset = task.offset;
         var condition_125 = task.phase == 0;
         if condition_125 {
@@ -1184,28 +1261,9 @@ fn im_statement(m: IMState*, task: IMTask*, n: FoundationNode*): void {
         var dest = im_read(m, n.left, n.start);
         var source = im_read(m, n.right, n.start);
         var size = im_read(m, n.value, n.start);
-        var limit = convert(u64, im_host_max());
-        var condition_156 = size > limit;
-        if condition_156 {
-            im_fail(m, "Memory operation exceeds interpreter address space", n.start);
-            return;
-        }
-        var count = convert(usize, size);
-        var p = interpreter_bytes(m, dest, count, n.start);
-        var q: u8* = null;
-        var condition_157 = n.kind == KCopy();
-        if condition_157 {
-            q = interpreter_bytes(m, source, count, n.start);
-        }
-        var condition_158 = im_ok(m);
-        if condition_158 {
-            var condition_159 = q != null;
-            if condition_159 {
-                copy(p, q, count);
-            } else {
-                fill(p, im_byte(source), count);
-            }
-        }
+        var fm_condition_0 = n.kind == KCopy();
+
+        im_copy_values(m, dest, source, size, fm_condition_0, n.start);
         return;
     }
     var condition_160 = n.kind == KCall();
@@ -1287,4 +1345,29 @@ fn im_statement(m: IMState*, task: IMTask*, n: FoundationNode*): void {
         return;
     }
     im_fail(m, "Invalid foundation statement", n.start);
+}
+
+fn im_copy_values(m: IMState*, dest: u64, source: u64, size: u64, copying: bool, offset: usize): void {
+    var limit = convert(u64, im_host_max());
+    var condition_156 = size > limit;
+    if condition_156 {
+        im_fail(m, "Memory operation exceeds interpreter address space", offset);
+        return;
+    }
+    var count = convert(usize, size);
+    var p = interpreter_bytes(m, dest, count, offset);
+    var q: u8* = null;
+    var condition_157 = copying;
+    if condition_157 {
+        q = interpreter_bytes(m, source, count, offset);
+    }
+    var condition_158 = im_ok(m);
+    if condition_158 {
+        var condition_159 = q != null;
+        if condition_159 {
+            copy(p, q, count);
+        } else {
+            fill(p, im_byte(source), count);
+        }
+    }
 }

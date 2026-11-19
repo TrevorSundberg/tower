@@ -7,7 +7,7 @@ test('fresh Mac hints select its platform plus Wasm and preserve subsequent nati
     Object.defineProperty(navigator,'userAgentData',{value:{platform:'macOS',getHighEntropyValues:async()=>({architecture:'arm',bitness:'64'})}});
   });
   await page.goto('/'); await expect(page.locator('#status')).toContainText('Complete');
-  await expect(page.locator('#target-options input:checked')).toHaveCount(2);
+  await expect(page.locator('#target-options input:checked')).toHaveCount(4);
   await expect(page.locator('#target-mac-arm')).toBeChecked();
   await expect(page.locator('#target-wasm')).toBeChecked();
   await expect(page.locator('#wasm-column')).toBeVisible();
@@ -15,7 +15,7 @@ test('fresh Mac hints select its platform plus Wasm and preserve subsequent nati
   await expect(page.locator('#target-label-mac-arm')).toContainText('macOS ARM64 (detected)');
   await expect(page.locator('#target-default')).toHaveCount(0);
   await expect(page.locator('#target-options')).toContainText('arm64-apple-macos11');
-  await expect(page.locator('#target-options input')).toHaveCount(6);
+  await expect(page.locator('#target-options input')).toHaveCount(8);
   await page.locator('#target-mac-arm').uncheck(); await page.locator('#target-linux').check();
   await page.locator('#target-wasm').uncheck();
   await page.reload(); await expect(page.locator('#status')).toContainText('Complete');
@@ -34,10 +34,10 @@ test('unknown browser falls back to Windows x64 and unavailable mobile ABI uses 
   await page.goto('/'); await expect(page.locator('#status')).toContainText('Complete');
   await expect(page.locator('#target-windows')).toBeChecked();
   await expect(page.locator('#target-wasm')).toBeChecked();
-  await expect(page.locator('#target-options input:checked')).toHaveCount(2);
+  await expect(page.locator('#target-options input:checked')).toHaveCount(4);
   await expect(page.locator('#target-options')).not.toContainText('(detected)');
   await page.goto('/?mobile'); await expect(page.locator('#status')).toContainText('Complete');
-  await expect(page.locator('#target-options input:checked')).toHaveCount(1);
+  await expect(page.locator('#target-options input:checked')).toHaveCount(3);
   await expect(page.locator('#target-wasm')).toBeChecked();
   await expect(page.locator('#target-options')).not.toContainText('(detected)');
 });
@@ -49,13 +49,13 @@ test('pre-update saved selections cannot override Windows plus Wasm defaults',as
     localStorage.setItem('tower-build-targets-v2',JSON.stringify({wasm:true,windows:true,linux:true,'linux-arm':true,mac:true,'mac-arm':true}));
   });
   await page.goto('/');await expect(page.locator('#status')).toContainText('Complete');
-  await expect(page.locator('#target-options input:checked')).toHaveCount(2);
+  await expect(page.locator('#target-options input:checked')).toHaveCount(4);
   await expect(page.locator('#target-wasm')).toBeChecked();
   await expect(page.locator('#target-windows')).toBeChecked();
   await expect(page.locator('#target-label-windows')).toContainText('Windows x64 (detected)');
   await expect(page.locator('#target-default')).toHaveCount(0);
   await page.reload();await expect(page.locator('#status')).toContainText('Complete');
-  await expect(page.locator('#target-options input:checked')).toHaveCount(2);
+  await expect(page.locator('#target-options input:checked')).toHaveCount(4);
   await expect(page.locator('#target-wasm')).toBeChecked();
   await expect(page.locator('#target-windows')).toBeChecked();
 });
@@ -69,7 +69,7 @@ test('a single selected native profile fetches no sibling platform runtimes',asy
   const requests=[];page.on('request',r=>requests.push(r.url()));
   await page.goto('/');
   await expect(page.locator('#linux-downloads a')).toHaveCount(1,{timeout:45000});
-  await expect(page.locator('.execution-column:visible:not(#wasm-disassembly-column)').filter({has:page.locator('[id$="-downloads"]')})).toHaveCount(1);
+  await expect(page.locator('.execution-column:visible:not(#wasm-disassembly-column):not(#fast-disassembly-column)').filter({has:page.locator('[id$="-downloads"]')})).toHaveCount(1);
   await expect(page.locator('#linux-column h2')).toHaveText('Linux x64 disassembly');
   expect(requests.filter(url=>url.includes('/targets/')).map(url=>url.split('/').pop())).toEqual(['x86_64-unknown-linux-gnu-runtime.o']);
   expect(page.workers().filter(worker=>worker.url().includes('target-worker'))).toHaveLength(1);

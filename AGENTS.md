@@ -22,8 +22,13 @@ Do NOT modify todo.txt
   correspondence with foundation constructs and serialize to compilable
   foundation source. Every public Tower operation needs a foundation spelling;
   a pretty debug dump alone does not satisfy this. Foundation text is the only
-  Tower program interchange/storage format; do not create a binary graph or
-  public bytecode format. Platform object/executable output is a separate concern.
+  Tower program semantic interchange/storage format; do not create an independent
+  binary graph or public instruction ABI. The explicitly requested `.towerbc`
+  distribution envelope may contain canonical foundation plus a versioned compact
+  execution cache. Validate versions, target/semantic profile and section bounds,
+  reconstruct/check the foundation graph, and verify the cache before execution.
+  Its foundation reconstruction must remain compilable and reversible. Platform
+  object/executable output is a separate concern.
 - Use the same node/entity/component model for syntax, foundation semantics and
   the nodes consumed by interpreter/LLVM lowering. Share operation definitions,
   validation and formatting rules. A compact private instruction encoding is

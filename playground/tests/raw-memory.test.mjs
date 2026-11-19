@@ -36,6 +36,12 @@ for (const [name, source, expected] of cases) test('raw memory: ' + name, async 
   try {
     const reference = tower.execute(handle, 100000);
     assert.equal(reference.status, 'done', reference.error); assert.equal(reference.output, expected);
+    const fastHandle = tower.compile(source);
+    try {
+      tower.useFast(fastHandle);
+      const fast = tower.execute(fastHandle,100000);
+      assert.equal(fast.status,'done',fast.error); assert.equal(fast.output,expected);
+    } finally { tower.destroyExecution(fastHandle); }
     const formatted = tower.foundation(handle), round = tower.compileFoundation(formatted.source);
     try { assert.equal(tower.foundation(round).source, formatted.source); assert.deepEqual(tower.foundation(round).types, formatted.types); }
     finally { tower.destroyExecution(round); }

@@ -13543,3 +13543,195 @@ checks (build/backend-port/verify-live.log). Manifest SHA-256:
 The user subsequently expanded the task to a higher Tower language module,
 named values, real imports throughout the compiler and dynamic project builtin
 visibility. Those changes are subsequent work, not part of this publication.
+## 2026-11-19: portable fast interpreter, graph profiling, versioned packages
+
+The existing interpreter is a graph interpreter: its Tower task stack evaluates
+the checked Foundation entities/components, with entity-keyed value/address maps.
+The user requested a second, substantially faster portable interpreter, optimization
+of this graph runner, three-way comparison with compiled Wasm, default-enabled UI
+targets and, subsequently, versioned `.towerbc` distribution and reconstruction.
+That last explicit request supersedes the previous blanket prohibition on binary
+distribution containers. AGENTS.md now permits a narrowly defined envelope with
+canonical Foundation plus a verified private execution cache. Foundation remains
+the authoritative semantic representation; the cache is not an independent IR,
+type system, reflection format or public instruction ABI.
+
+Research and choices:
+
+- Lua 5.4's [instruction definitions](https://www.lua.org/source/5.4/lopcodes.h.html)
+  illustrate fixed 32-bit instructions and small operand fields with extensions.
+  Tower uses an 8-bit operation plus three 8-bit fields in the common case, two
+  words for branches and a five-word escape carrying full u32 operands. Explicit
+  wide-register/constant/function tests prevent small fields becoming language
+  limits. This is a derived cache of Tower operations, not Lua compatibility.
+- LLVM's [calling convention contracts](https://llvm.org/docs/LangRef.html#calling-conventions)
+  explain why pinning an EAX return register or relying on a particular C tail-call
+  ABI is not a portable Foundation technique. The runner is ordinary Tower code;
+  LLVM chooses registers and dispatch lowering. No guest JIT, executable-memory
+  allocation, inline assembly or target-specific trampoline was introduced.
+- The [new pass manager](https://llvm.org/docs/NewPassManager.html) optimizes LLVM
+  IR. It does not optimize arbitrary bytecode and reconstruct Foundation for us.
+  An LLVM-to-cache path would require a verified reconstruction/backend respecting
+  types, effects, layouts and strict arithmetic, as implied by the work in
+  [writing an LLVM backend](https://llvm.org/docs/WritingAnLLVMBackend.html).
+  Today LLVM optimizes the implementation of both interpreters. Guest optimization
+  profile 0 preserves the checked Foundation operations; no LLVM guest round trip
+  or claim of globally optimal bytecode is implemented.
+
+Implementation:
+
+- `scaffolding/compiler/fast-interpreter.tower` compiles checked nodes into packed
+  u32 words, a u64 constant pool and compact out-of-stream function/type/source
+  indexes. The hot loop decodes words and accesses contiguous registers. It does
+  not walk the graph for ordinary arithmetic, branches, calls or memory access.
+  Cold type/string/foreign-call references still belong to the owning program;
+  that graph remains alive. The instruction stream contains no compiler metadata
+  or graph pointers. Registers reset at statement boundaries; calls reuse frame
+  and register capacity. Immutable arrays are trimmed after compilation, and the
+  unused graph task/frame/lookup buffers are released when selecting fast mode.
+- Both runners share scalar arithmetic, conversion, printing and raw byte-memory
+  helpers. Explicit little-endian 1/4/8-byte helpers replace byte-at-a-time loops
+  without inheriting host endianness. Graph execution additionally gets a bounded
+  256-slot, full-key-checked node lookup cache (4 KiB on a 64-bit host), reusable
+  call task/value/address buffers, and stack storage for up to 16 call arguments.
+  Larger argument lists still work. Guest allocations and capacity growth can
+  allocate; this is not a claim of universally allocation-free interpretation.
+- `CoreMachine` selects the Tower runner through a thin host adapter. The native
+  production CLI accepts `--interpret-fast`, `--emit bytecode` and `--emit foundation`.
+  `.towerbc` input validates and uses its declared pointer layout even when the
+  compiler host has a different pointer width. The bootstrap seed does not gain
+  a second native interpreter implementation.
+- The playground defaults to Graph interpreter, Fast interpreter and WebAssembly,
+  plus the detected supported native target. Each can be independently toggled.
+  Three separate workers compare outputs/errors, with independent cancellation,
+  source editing/restarting and stale-result rejection. Step counts describe each
+  runner's internal work and are deliberately not compared for equality.
+  Bytecode disassembly displays compilable Foundation loaded from the actual
+  downloadable package. A native-only selection still receives Foundation output.
+  The Open button continues to import project ZIPs; the CLI and JS host API load
+  `.towerbc` files. No new browser file-import flow was added.
+
+Container v1 is defined in `scaffolding/compiler/bytecode-package.tower`, entirely
+in Foundation. Its 56-byte header and payload are little endian:
+
+| Offset | Bytes | Meaning |
+| --- | --- | --- |
+| 0 | 8 | `TOWERBC` followed by NUL |
+| 8 / 12 / 16 | 4 each | Container / semantics / execution-cache versions, all 1 |
+| 20 | 4 | Explicit target pointer width, 4 or 8 bytes |
+| 24 | 4 | Optimization profile, currently 0 |
+| 28 / 32 / 36 | 4 each | UTF-8 source byte count / instruction word count / constant count |
+| 40 / 44 | 4 each | Total file length / reserved flags (zero) |
+| 48 | 8 | FNV-1a-64 checksum, treating these eight bytes as zero |
+| 56 onward | variable | Canonical UTF-8 Foundation, then u32 words, then u64 constants |
+
+The loader checks versions, counts, exact bounds, checksum and target profile;
+source is capped at 8 MiB and the envelope at 256 MiB. It rebuilds/checks the
+Foundation graph and compares every derived instruction/constant before execution.
+FNV detects corruption; it is not authentication. Tests modify an instruction and
+recompute a valid checksum: cache comparison still rejects the file. Reconstruction
+and re-encoding are byte-for-byte deterministic. A package produced in the Wasm
+host ran in the Linux native host, reconstructed, and re-encoded identically for
+the 32-bit target; both target widths have source/package round-trip coverage.
+This v1 design intentionally pays parsing/reconstruction cost and stores source
+bytes; it is not a minimal standalone bytecode loader. Future optimizing profiles
+must carry the transformed compilable Foundation so disassembly remains semantic.
+
+Profiling, trials and corrections:
+
+- Initial authoring used expressions beyond the instruction-like Foundation and
+  aggregate `vector_push`; parser/type errors exposed this. Expanded intermediates
+  and used a shared typed reserve/copy helper, then ran the canonical formatter.
+- Full differential tests found a foreign callback's supplied error offset being
+  replaced by a fast instruction offset. Preserve explicit foreign offsets; resolve
+  source runs lazily on interpreter traps. This also removes source-table scans
+  from successful calls and loads/stores.
+- The first Node `--prof` trial had only 121 ticks and stripped Wasm function names;
+  it was unsuitable for attribution. Relinked the same optimized browser object
+  files without `--strip-all` and used Node inspector at 100 microseconds, with
+  eight executions of 500,000 calls. Final sampled hot functions: graph
+  `interpreter_step`, `im_needs`, task pushes, checked node lookups and map reads;
+  fast `fast_interpreter_step`, calls and scalar loads/stores. These samples guided
+  the changes; they are not instrumented instruction counts or cache-miss counters.
+- `llvm-objdump-19 -d` and optimized LLVM inspection of the composed interpreter
+  for x86_64 Linux and AArch64 Linux show switch lowering, ordinary branch dispatch,
+  masks/shifts (`ubfx` on ARM) and fixed-width loads. This verifies generated code
+  shape, not native ARM throughput. Scripts/outputs: `build/fast-x64.ll/.asm` and
+  `build/fast-arm64.ll/.asm`; regenerate with production towerc, `--library`, the
+  explicit target and `--optimized-ir`, then llvm-objdump. These artifacts are local.
+- Early timings overlapped compiler/test builds and are not the final evidence.
+  The final idle measurements use three warmups and 15 samples, alternate runner
+  order, validate outputs, and separate compile/prepare from execution. Raw samples,
+  CPU/Node versions, artifact hashes, capacities and aggregated profiles are checked
+  in at `docs/research/2026-11-19-interpreters.json`.
+
+Final median execution times (ms), AMD Ryzen AI MAX+ 395, Windows Node 21.7.3 Wasm
+host; native measurements use Linux x64 in Docker, Node 22.23.5, LLVM/Clang 19:
+
+| Workload | Previous graph | Improved graph | Fast | Compiled Wasm | Native graph | Native fast |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| arithmetic | 5.178 | 3.601 | 0.962 | 0.367 | 1.498 | 0.566 |
+| calls | 3.723 | 2.630 | 0.607 | 0.244 | 1.054 | 0.365 |
+| memory | 7.155 | 4.887 | 1.683 | 0.276 | 2.310 | 1.270 |
+| branch | 7.096 | 4.996 | 1.285 | 0.350 | 2.169 | 0.800 |
+
+Graph execution decreases 29-32%; fast is 2.90-4.33x the improved graph in the Wasm
+host and 1.82-2.89x in native Linux. Compiled Wasm remains faster for all four.
+Wasm execution timing includes module compilation/instantiation and invocation;
+LLVM guest compilation is separately recorded. It is not an isolated Wasm CPU
+throughput measurement. Baseline is the previously deployed graph reactor, SHA-256
+`0aeb6dda968bb18e07611f8c58beda239483642a6462e6e8c36813d73e4c21f3`, from the
+preceding runtime release (same runtime at starting main 6610461).
+Packed code is 156/196/236/216 bytes; measured cache capacities after running are
+516/856/636/608 bytes respectively. These exclude the retained Foundation graph,
+host adapters and shared 4 MiB guest arena. Packaging source increases file size.
+The runner is compact and contiguous, not a zero-memory-overhead claim.
+
+Reproduce from the repository root (after the documented production/browser builds):
+
+```text
+TOWER_BENCH_BASELINE=build/fast-baseline.wasm node playground/scripts/benchmark-interpreters.mjs report.json
+node scaffolding/tests/benchmark-interpreters.mjs /path/to/towerc native-report.json
+TOWER_PROFILE_REACTOR=build/fast-profile.wasm node playground/scripts/profile-interpreters.mjs
+npm test --prefix playground
+npm run check:format --prefix playground
+npm run test:browser --prefix playground
+npm run test:deployment --prefix playground
+TOWER_NATIVE_BUILD=/cache/shared-native bash playground/scripts/test-bootstrap.sh
+```
+
+The environment assignments above use shell notation; in PowerShell set `$env:NAME`
+first. Native build/test caches live in Docker volume `tower_host_cache`; source is
+mounted at `/work`. Browser WASI SDK is 34, wasm32 p1. ASan/UBSan instruments the
+native host/harness, not the separately LLVM-emitted Tower instructions.
+
+Validation so far includes 238 Node tests, 156 graph/reference fixtures with added
+fast observations, both pointer widths, traps/effects/recursion/aliasing/strings,
+budgets 1/7/100000, repeated disposal and cancellation, allocation counters, and
+wide constants/functions/registers (including more than 256 simultaneously live
+temporaries through nested calls). Fast output-limit and malformed-package tests
+pass. Native ASan CTest passes 5/5 (22.42 seconds). Browser tests required updating
+old two-runner/default-checkbox assumptions; one expected Unicode separator was
+accidentally converted by a PowerShell-to-Node pipeline and corrected using an
+explicit escape. Those failures were expectation/encoding issues, not ignored.
+Full final browser, native Windows/WASI, bootstrap and publication results follow
+when their final runs complete. No native ARM/macOS/iPhone/console performance was
+measured; cross-target deterministic object tests do not substitute for it.
+
+Final integration findings before rebase: the full 130-case browser run passed
+126 and exposed four failures (two scenarios on desktop/mobile). Packaging tried
+to parse canonical quoted identifiers under an edited Identifier token. This was
+a real package-host grammar bug, unlike the earlier two-runner expectations.
+The worker now installs bundled Bedrock/Foundation through the shared compiler
+loader before package reconstruction; live checked handles retain their nodes.
+The CLI does the same before encoding or loading an envelope. A Node regression
+using `player-name` and its canonical quoted spelling passes, including execution
+of both the original handle and loaded package after grammar replacement.
+The four browser failures are being rerun. All 28 bootstrap comparisons passed;
+final Windows and WASI tests passed, including 156 differential fixtures each.
+
+A final remote fetch found newer main commits through b58c95a (host service and
+frontend migrations) and Pages c29dc52 (new LLVM/cross reactors). Integration will
+preserve those sources and deployed backends, rebuild the affected parser reactor,
+and rerun checks; the measurements above describe the explicitly hashed pre-rebase
+artifacts rather than claiming to measure a subsequent combined build.

@@ -9,7 +9,7 @@ struct DriverOptions {
   const char *raw, *optimized, *bedrock, *foundation;
   const char **links;
   size_t link_count;
-  bool optimize, interpret, library, timings, help, version;
+  bool optimize, interpret, library, timings, help, version, fast;
   uint32_t error;
   const char *argument;
 };
