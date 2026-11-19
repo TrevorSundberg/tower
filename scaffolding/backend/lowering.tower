@@ -299,8 +299,9 @@ fn backend_conversion(b: Backend*, n: FoundationNode*, from: FoundationType*, va
         var nonzero = LLVMBuildICmp(b.builder, 33, value, LLVMConstNull(LLVMTypeOf(value)), "");
         return LLVMBuildZExt(b.builder, nonzero, b.i8, "");
     }
-    var i128 = LLVMIntTypeInContext(b.context, 128);
-    var wide = LLVMBuildIntCast2(b.builder, value, i128, backend_signed(from), "");
+    // The foundation integer domain is at most 64 bits. Compare in that
+    // domain with explicit signedness; no synthetic i128 VM type is needed.
+    var wide = LLVMBuildIntCast2(b.builder, value, b.i64, backend_signed(from), "");
     var width = semantic_width(&n.type);
     var signed = semantic_signed(&n.type);
     var magnitude: u64 = 1;
@@ -317,18 +318,24 @@ fn backend_conversion(b: Backend*, n: FoundationNode*, from: FoundationType*, va
         magnitude = magnitude * 2;
         bits = bits + 1;
     }
-    var words: u64[2];
-    words[0] = magnitude - 1;
-    words[1] = 0;
-    var maximum = LLVMConstIntOfArbitraryPrecision(i128, 2, &words[0]);
-    words[0] = 0;
+    var maximum_bits = magnitude - 1;
+    var minimum_bits: u64 = 0;
     if signed {
-        words[0] = words[0] - magnitude;
-        words[1] = 18446744073709551615;
+        minimum_bits = minimum_bits - magnitude;
     }
-    var minimum = LLVMConstIntOfArbitraryPrecision(i128, 2, &words[0]);
-    var low = LLVMBuildICmp(b.builder, 39, wide, minimum, "");
-    var high = LLVMBuildICmp(b.builder, 41, wide, maximum, "");
+    var truth = LLVMConstInt(LLVMIntTypeInContext(b.context, 1), 1, 0);
+    var low = truth;
+    var from_signed = semantic_signed(from);
+    if from_signed {
+        low = LLVMBuildICmp(b.builder, 39, wide, LLVMConstInt(b.i64, minimum_bits, 0), "");
+    }
+    var predicate: u32 = 37;
+    if signed {
+        if from_signed {
+            predicate = 41;
+        }
+    }
+    var high = LLVMBuildICmp(b.builder, predicate, wide, LLVMConstInt(b.i64, maximum_bits, 0), "");
     backend_guard(b, LLVMBuildAnd(b.builder, low, high, ""), "Numeric conversion out of range; use bits for bit reinterpretation");
     return LLVMBuildIntCast2(b.builder, value, backend_type(b, &n.type), backend_signed(from), "");
 }
@@ -562,14 +569,18 @@ fn backend_block(b: Backend*, entity: void*): void {
     var i: usize = 0;
     loop {
         var done = i == n.items.length;
-        var terminated = backend_terminated(b);
-        if terminated {
-            done = true;
-        }
         if done {
             return;
         }
-        backend_statement(b, n.items.data[i]);
+        var item = sem_get(n.items.data[i]);
+        var active = backend_terminated(b) == false;
+        var label = item.kind == 31;
+        if label {
+            active = true;
+        }
+        if active {
+            backend_statement(b, n.items.data[i]);
+        }
         i = i + 1;
     }
 }
@@ -584,6 +595,27 @@ fn backend_branch(b: Backend*, block: void*): void {
 fn backend_statement(b: Backend*, entity: void*): void {
     var n = sem_get(entity);
     b.source_offset = n.start;
+    var label = n.kind == 31;
+    if label {
+        var block = backend_find(&b.labels, entity);
+        backend_branch(b, block);
+        LLVMPositionBuilderAtEnd(b.builder, block);
+        return;
+    }
+    var jump = n.kind == 32;
+    if jump {
+        LLVMBuildBr(b.builder, backend_find(&b.labels, n.binding));
+        return;
+    }
+    var trapping = n.kind == 33;
+    if trapping {
+        var args: void*[2];
+        args[0] = backend_read(b, n.left);
+        args[1] = LLVMBuildIntCast2(b.builder, backend_read(b, n.right), b.size_type, 0, "");
+        backend_call_values(b, b.trap_fn, &args[0], 2);
+        LLVMBuildUnreachable(b.builder);
+        return;
+    }
     var `match` = n.kind == KFunction();
     var type = n.kind == KType();
     if type {
@@ -750,6 +782,7 @@ fn backend_reserved(name: u8*): bool {
 }
 
 export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usize, pointer_bytes: u32, library: bool): bool {
+    b.source_root = root;
     var failed = b.error.length != 0;
     if failed {
         return false;
@@ -893,6 +926,7 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
         }
         backend_require(b, vector_push(u8*, &b.symbols, name.data));
         backend_require(b, vector_push(void*, &b.functions, function));
+        backend_require(b, vector_push(void*, &b.source_functions, functions[i]));
         i = i + 1;
     }
     i = 0;
@@ -914,6 +948,7 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
         b.current = function;
         b.locals.length = 0;
         b.loops.length = 0;
+        b.labels.length = 0;
         var entry = LLVMAppendBasicBlockInContext(b.context, function, "entry");
         LLVMPositionBuilderAtEnd(b.builder, entry);
         var j: usize = 0;
@@ -945,6 +980,22 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
         var top = i == 0;
         if top {
             body = root;
+        }
+        var block_node = sem_get(body);
+        j = 0;
+        loop {
+            done = j == block_node.items.length;
+            if done {
+                break;
+            }
+            var item = block_node.items.data[j];
+            var label = sem_get(item);
+            var is_label = label.kind == 31;
+            if is_label {
+                var block = LLVMAppendBasicBlockInContext(b.context, function, backend_name(label));
+                backend_require(b, backend_associate(&b.labels, item, block));
+            }
+            j = j + 1;
         }
         backend_block(b, body);
         var open = backend_terminated(b) == false;

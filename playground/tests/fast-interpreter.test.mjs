@@ -73,3 +73,38 @@ test('cancellation slices, cache lifetime, invalid programs and output limits',(
   assert.equal(tower.exports.tw_live_allocations(),allocations);
   agree('print(99); var a: Unknown;');
 });
+
+test('foundation CFG labels, forward edges and parallel-copy loops round trip',()=>{
+  const source=`fn exchange(n: u32): u32 {
+    var a: u32 = 1; var b: u32 = 2; var temporary: u32;
+    label(head);
+    var done = n == 0;
+    if done { jump(exit); }
+    temporary = a; a = b; b = temporary; n = n - 1;
+    jump(head);
+    label(exit);
+    return a;
+  }
+  print(exchange(9)); print(exchange(10));`;
+  for(const width of [4,8]) for(const budget of [1,7,100000]) {
+    assert.equal(agree(source,width,budget).output,'2\n1\n');
+    const h=tower.compile(source,{pointerBytes:width});
+    try { const text=tower.foundation(h);assert.ok(!text.error);assert.equal(agree(text.source,width,budget).output,'2\n1\n'); }
+    finally {tower.destroyExecution(h);}
+  }
+});
+
+test('CFG validation and explicit traps use the shared semantic path',()=>{
+  for(const [source,pattern] of [
+    ['fn f(): void { label(a); jump(a); label(a); }',/Duplicate/],
+    ['fn f(): void { jump(missing); }',/Unknown function label/],
+    ['fn f(): void { if true { label(a); } }',/direct statements/],
+    ['fn f(): void { label(a); print(1); label(b); }',/must end/],
+    ['fn f(): i32 { label(a); }',/return/],
+    ['fn f(): void { label(42); }',/identifier/],
+  ]) {assert.match(run(source,false).error,pattern);agree(source);}
+  for(const width of [4,8]) {
+    const result=agree('trap("explicit failure", 17);',width,1);
+    assert.equal(result.error,'explicit failure');assert.equal(result.errorOffset,17);
+  }
+});

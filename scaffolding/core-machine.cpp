@@ -55,7 +55,7 @@ std::unique_ptr<CoreMachine> core_load_bytecode(const uint8_t* data, size_t size
   return machine;
 }
 
-std::vector<uint8_t> core_encode_bytecode(const CoreProgram& program, std::string& error) {
+std::vector<uint8_t> core_encode_bytecode(const CoreProgram& program, std::string& error, unsigned profile) {
   // The checked input graph can originate in an edited grammar. The host must
   // install bundled Foundation before reconstructing its canonical spelling.
   error.clear();
@@ -67,7 +67,7 @@ std::vector<uint8_t> core_encode_bytecode(const CoreProgram& program, std::strin
   if (!canonical.error.empty()) { error = canonical.error; return {}; }
   canonical.use_fast();
   size_t size = 0;
-  auto* data = bytecode_encode(canonical.fast, text.data(), text.size(), program.pointer_bytes, &size);
+  auto* data = bytecode_encode(canonical.fast, text.data(), text.size(), program.pointer_bytes, profile, &size);
   if (!data) { error = "Cannot allocate .towerbc package"; return {}; }
   std::vector<uint8_t> bytes(data, data + size);
   bytecode_free(data);

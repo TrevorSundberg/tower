@@ -122,7 +122,7 @@ function warmSelectedTargets() {
   }
 }
 function updateColumns() {
-  const any = selectedTargets.wasm || selectedNativeKeys().length > 0;
+  const any = selectedTargets.fast || selectedTargets.wasm || selectedNativeKeys().length > 0;
   $('interpreter-column').hidden = !selectedTargets.interpreter;
   $('fast-column').hidden = !selectedTargets.fast;
   $('fast-disassembly-column').hidden = !selectedTargets.fast;
@@ -138,9 +138,9 @@ function showLLVM(key,before,after) {
   renderLLVM();
 }
 function renderLLVM() {
-  const keys = Object.keys(targets).filter(key=>llvmViews[key]);
+  const keys = Object.keys(targetChoices).filter(key=>llvmViews[key]);
   for (const [field,id] of [['before','llvm-before'],['after','llvm-after']])
-    showCode(id,keys.map(key => (keys.length > 1 ? '; '+targets[key].label+'\n' : '')+llvmViews[key][field]).join('\n\n'));
+    showCode(id,keys.map(key => (keys.length > 1 ? '; '+targetChoices[key].label+'\n' : '')+llvmViews[key][field]).join('\n\n'));
 }
 function compileNative(id,text) {
   const keys = selectedNativeKeys();
@@ -178,12 +178,12 @@ function compileNative(id,text) {
     }
     if(data.done)finish();
   };
-  worker.postMessage({id,source:text,foundation,bedrock,targetKeys:keys,inputs:linkInputs, files:editingModule ? undefined : projectSources(project), drive:project.files, builtins:project.builtins, entry:editingModule ? activePath : projectSources(project)[0]?.path});
+  worker.postMessage({id,source:text,foundation,bedrock,targetKeys:keys,inputs:linkInputs, files:editingModule ? undefined : projectSources(project), drive:project.files, builtins:project.builtins, entry:editingModule ? activePath : projectSources(project)[0]?.path,optimize:$('optimize').checked});
 }
 function showTimings() {
   const a = runners.interpreter?.timings ?? {}, b = runners.llvm?.timings ?? {};
   const values = [['Tower load', a.load, a.loadCached], ['Tower compile', a.tower], ['Instructions', a.instructions],
-    ['Graph run', a.execute], ['Fast prepare', runners.fast?.timings?.prepare], ['Bytecode package', runners.fast?.timings?.package], ['Fast run', runners.fast?.timings?.execute], ['LLVM load', b.llvmLoad, b.llvmLoadCached], ['LLVM parse', b.parse],
+    ['Graph run', a.execute], ['Fast LLVM', runners.fast?.timings?.optimize], ['Fast prepare', runners.fast?.timings?.prepare], ['Bytecode package', runners.fast?.timings?.package], ['Fast run', runners.fast?.timings?.execute], ['LLVM load', b.llvmLoad, b.llvmLoadCached], ['LLVM parse', b.parse],
     ['LLVM raw', b.before], ['LLVM optimize', b.after], ['LLVM emit', b.emit], ['Link', b.link],
     ['LLVM disassembly', b.disassembly], ['LLVM compile total', b.llvm], ['LLVM run', b.execute]];
   for(const [label,ms] of Object.entries(runners.native?.timings??{})) values.push([label+' compile',ms]);
@@ -327,6 +327,7 @@ function execute() {
         outputPanes.get('fast-disassembly').setDownload(data.bytecode,{label:'.towerbc v1',filename:downloadName('fast','towerbc')});
         $('fast-size').title = `${data.cache.codeBytes} bytes of packed code; ${data.cache.cacheCapacityBytes} bytes of cache storage. Package also includes canonical foundation for validation and reconstruction.`;
       }
+      if(data.fastLLVM) showLLVM('fast',data.fastLLVM.before,data.fastLLVM.after);
       if (data.llvm) {
         runner.compiled=true;
         showLLVM('wasm',data.llvm.before,data.llvm.after);
@@ -353,7 +354,7 @@ function execute() {
       }
       finish();
     };
-    worker.postMessage({ id, source: text, foundation, bedrock, backend, files:editingModule ? undefined : projectSources(project), drive:project.files, builtins:project.builtins, entry:editingModule ? activePath : projectSources(project)[0]?.path, pointerBytes:selectedTargets.wasm || !selectedNativeKeys().length ? 4 : 8, inputs:linkInputsForTarget(linkInputs,'wasm') });
+    worker.postMessage({ id, source: text, foundation, bedrock, backend, files:editingModule ? undefined : projectSources(project), drive:project.files, builtins:project.builtins, entry:editingModule ? activePath : projectSources(project)[0]?.path, pointerBytes:selectedTargets.wasm || !selectedNativeKeys().length ? 4 : 8, inputs:linkInputsForTarget(linkInputs,'wasm') ,optimize:$('optimize').checked});
   }
   if(selectedNativeKeys().length) compileNative(id,text);
   updateComparison();
@@ -735,6 +736,11 @@ for(const [key,target] of Object.entries(targetChoices)) {
 updateColumns();
 document.addEventListener('click',event=>{if(!$('build-targets').contains(event.target))$('build-targets').open=false;});
 $('build-targets').addEventListener('keydown',event=>{if(event.key==='Escape')$('build-targets').open=false;});
+try { $('optimize').checked = localStorage.getItem('tower-optimize-v1') !== 'false'; } catch {}
+$('optimize').onchange = () => {
+  try { localStorage.setItem('tower-optimize-v1',String($('optimize').checked)); } catch {}
+  stopExecution('Optimization changed'); clearCompiled(); executedRevision=-1; scheduleAutoExecution();
+};
 $('link-files').onclick = () => $('link-input').click();
 function updateLinkFiles() {
   if (project) { project.links = linkInputs; persist(); }

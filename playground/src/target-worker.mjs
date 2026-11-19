@@ -5,7 +5,7 @@ import { fetchBytes as bytes } from './fetch-bytes.mjs';
 import {projectDiagnostic} from './projects.mjs';
 
 const runtimes = new Map();
-async function receive({data:{command,id,source,foundation,bedrock,targetKeys=[],inputs={},files,drive=[], builtins={}, entry='input.tower'}}) {
+async function receive({data:{command,id,source,foundation,bedrock,targetKeys=[],inputs={},files,drive=[], builtins={}, entry='input.tower',optimize=true}}) {
   const keys = nativeTargetKeys.filter(key => targetKeys.includes(key));
   if (command === 'warm') {
     try {
@@ -41,7 +41,7 @@ async function receive({data:{command,id,source,foundation,bedrock,targetKeys=[]
       // filename scopes an uploaded object to that target; plain files go to all.
       const selected = linkInputsForTarget(inputs,key);
       for (const name of Object.keys(selected)) if (Object.hasOwn(runtime,name)) throw new Error('Link input conflicts with runtime: '+name);
-      const result = compiler.compile(formatted.source,{target:target.triple,emit:'executable',inputs:{...runtime,...selected}});
+      const result = compiler.compile(formatted.source,{target:target.triple,emit:'executable',optimize,inputs:{...runtime,...selected}});
       if (result.status === 'error') { send({target:key,error:result.error,diagnostic:originalDiagnostic(result,formatted.spans,formatted.sourceMap)}); continue; }
       const output = result.binary;
       postMessage({id,target:key,bytes:output,before:result.before,after:result.after,disassembly:result.disassembly,ms:performance.now()-start,timings:result.timings},[output.buffer]);

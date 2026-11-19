@@ -55,13 +55,17 @@ try {
     await expect(page.locator('#execution-output')).toHaveText('42\n');
     await expect(page.locator('#llvm-output')).toHaveText('42\n');
     await expect(page.locator('#fast-output')).toHaveText('42\n');
-    await expect.poll(()=>outputText(page,'fast-disassembly')).toContain('fn answer');
+    await expect.poll(()=>outputText(page,'core-instructions')).toContain('fn answer');
+    await expect.poll(()=>outputText(page,'fast-disassembly')).toContain('label(');
     const bytecodeDownload = page.waitForEvent('download'); await page.locator('#fast-download').click();
     const bytecodeArtifact = await bytecodeDownload;
     assert.match(bytecodeArtifact.suggestedFilename(), /\.towerbc$/);
     const bytecodeBytes = await readFile(await bytecodeArtifact.path());
     assert.equal(bytecodeBytes.subarray(0,7).toString(),'TOWERBC');
     assert.equal(bytecodeBytes.readUInt32LE(8),1);
+    assert.equal(bytecodeBytes.readUInt32LE(12),2);
+    assert.equal(bytecodeBytes.readUInt32LE(16),2);
+    assert.equal(bytecodeBytes.readUInt32LE(24),1);
     await expect.poll(()=>outputText(page,'llvm-before')).toContain('define');
     await expect.poll(()=>outputText(page,'llvm-after')).toContain('define');
     await page.screenshot({path:new URL(name+'-execution.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});

@@ -1,0 +1,303 @@
+import tower;
+
+fn bi_initializer(c: BackendImport*, address: void*, initializer: void*, type: void*): void {
+    var kind = LLVMGetTypeKind(type);
+    var aggregate = kind == 10;
+    var array = kind == 11;
+    if array {
+        aggregate = true;
+    }
+    if aggregate {
+        var count: u64 = 0;
+        if array {
+            count = LLVMGetArrayLength2(type);
+        }
+        else {
+            count = convert(u64, LLVMCountStructElementTypes(type));
+        }
+        var i: u64 = 0;
+        loop {
+            var done = i == count;
+            if done {
+                break;
+            }
+            var element: void* = null;
+            var offset: u64 = 0;
+            if array {
+                element = LLVMGetElementType(type);
+                offset = LLVMABISizeOfType(c.backend.layout, element) * i;
+            } else {
+                element = LLVMStructGetTypeAtIndex(type, convert(u32, i));
+                offset = LLVMOffsetOfElement(c.backend.layout, type, convert(u32, i));
+            }
+            var child = LLVMGetAggregateElement(initializer, convert(u32, i));
+            var pointer = bi_offset(c, address, bi_const(c, 8, offset));
+            bi_initializer(c, pointer, child, element);
+            i = i + 1;
+        }
+        return;
+    }
+    bi_memory_store(c, address, bi_value(c, initializer), type);
+}
+
+fn bi_function(c: BackendImport*, function: void*): void {
+    c.function = backend_find(&c.values, function);
+    var n = sem_get(c.function);
+    c.block = n.body;
+    c.declarations = bi_node(c, 12, 3);
+    c.blocks.length = 0;
+    var block = LLVMGetFirstBasicBlock(function);
+    loop {
+        var done = block == null;
+        if done {
+            break;
+        }
+        var label = bi_node(c, 31, 3);
+        bi_name(c, label, "block");
+        backend_require(c.backend, backend_associate(&c.blocks, block, label));
+        var instruction = LLVMGetFirstInstruction(block);
+        loop {
+            done = instruction == null;
+            if done {
+                break;
+            }
+            var type = LLVMTypeOf(instruction);
+            var valued = LLVMGetTypeKind(type) != 0;
+            if valued {
+                var local = bi_decl(c, bi_scalar(c, type));
+                backend_require(c.backend, backend_associate(&c.values, instruction, local));
+            }
+            instruction = LLVMGetNextInstruction(instruction);
+        }
+        block = LLVMGetNextBasicBlock(block);
+    }
+    block = LLVMGetFirstBasicBlock(function);
+    loop {
+        var done = block == null;
+        if done {
+            break;
+        }
+        bi_append(c, c.block, backend_find(&c.blocks, block));
+        var instruction = LLVMGetFirstInstruction(block);
+        loop {
+            done = instruction == null;
+            if done {
+                break;
+            }
+            var failed = c.backend.error.length != 0;
+            if failed {
+                return;
+            }
+            var result = bi_instruction(c, instruction, block);
+            var valued = result != null;
+            if valued {
+                var destination = backend_find(&c.values, instruction);
+                bi_assign(c, bi_ref(c, destination), result);
+            }
+            instruction = LLVMGetNextInstruction(instruction);
+        }
+        block = LLVMGetNextBasicBlock(block);
+    }
+    var declarations = sem_get(c.declarations);
+    var body = sem_get(n.body);
+    var i: usize = 0;
+    loop {
+        var done = i == body.items.length;
+        if done {
+            break;
+        }
+        backend_require(c.backend, vector_push(void*, &declarations.items, body.items.data[i]));
+        i = i + 1;
+    }
+    n.body = c.declarations;
+}
+
+export fn backend_import_foundation(b: Backend*, root: void*): bool {
+    var c: BackendImport;
+    fill(&c, 0, sizeof(BackendImport));
+    c.backend = b;
+    c.root = root;
+    c.block = root;
+    c.declarations = root;
+    var program = sem_attach(root, 0);
+    program.type.scalar = 3;
+    program.type.pointer_bytes = b.pointer_bytes;
+    var original_root = sem_get(b.source_root);
+    var original_index: usize = 0;
+    loop {
+        var done = original_index == original_root.items.length;
+        if done {
+            break;
+        }
+        var entity = original_root.items.data[original_index];
+        var n = sem_get(entity);
+        var record = n.kind == 19;
+        if record {
+            bi_append(&c, root, entity);
+        }
+        original_index = original_index + 1;
+    }
+    var function = LLVMGetFirstFunction(b.module);
+    loop {
+        var done = function == null;
+        if done {
+            break;
+        }
+        var length: usize = 0;
+        var name = LLVMGetValueName2(function, &length);
+        var builtin = backend_prefix(name, "llvm.");
+        var runtime = backend_reserved(name);
+        var main = backend_equal(name, "tower_main");
+        if main {
+            runtime = false;
+        }
+        if runtime {
+            builtin = true;
+        }
+        if builtin {} else {
+            var type = LLVMGetReturnType(LLVMGlobalGetValueType(function));
+            var entity = bi_node(&c, 1, bi_scalar(&c, type));
+            var n = sem_get(entity);
+            n.external = LLVMIsDeclaration(function) != 0;
+            bi_name(&c, entity, "function");
+            var signature: FoundationNode* = null;
+            var i: usize = 0;
+            loop {
+                done = i == b.symbols.length;
+                if done {
+                    break;
+                }
+                var match = backend_equal(name, b.symbols.data[i]);
+                if match {
+                    var original = sem_get(b.source_functions.data[i]);
+                    var public = original.external;
+                    if original.exported {
+                        public = true;
+                    }
+                    if public {
+                        signature = original;
+                        copy(&n.type, &original.type, sizeof(FoundationType));
+                    }
+                    var named = original.name.length != 0;
+                    if named {
+                        n.name.length = 0;
+                        backend_text(&n.name, backend_name(original));
+                        n.exported = original.exported;
+                    }
+                    break;
+                }
+                i = i + 1;
+            }
+            n.body = bi_node(&c, 12, 3);
+            var count = LLVMCountParams(function);
+            var parameter: u32 = 0;
+            loop {
+                done = parameter == count;
+                if done {
+                    break;
+                }
+                var value = LLVMGetParam(function, parameter);
+                var p = bi_node(&c, 2, bi_scalar(&c, LLVMTypeOf(value)));
+                var public = signature != null;
+                if public {
+                    var original_parameter = sem_get(signature.parameters.data[convert(usize, parameter)]);
+                    var parameter_node = sem_get(p);
+                    copy(&parameter_node.type, &original_parameter.type, sizeof(FoundationType));
+                }
+                bi_name(&c, p, "argument");
+                backend_require(b, vector_push(void*, &n.parameters, p));
+                backend_require(b, backend_associate(&c.values, value, p));
+                parameter = parameter + 1;
+            }
+            bi_append(&c, root, entity);
+            backend_require(b, backend_associate(&c.values, function, entity));
+        }
+        function = LLVMGetNextFunction(function);
+    }
+    var global = LLVMGetFirstGlobal(b.module);
+    loop {
+        var done = global == null;
+        if done {
+            break;
+        }
+        var type = LLVMGlobalGetValueType(global);
+        var storage = bi_storage(&c, LLVMABISizeOfType(b.layout, type), LLVMABIAlignmentOfType(b.layout, type), true);
+        var node = sem_get(storage);
+        node.global = true;
+        backend_require(b, backend_associate(&c.values, global, storage));
+        global = LLVMGetNextGlobal(global);
+    }
+    // Initialization temporaries belong to a short-lived function frame. Keeping
+    // each generated byte-store temporary at module scope inflates global memory
+    // and can exceed the frontend's top-level declaration budget in debug mode.
+    var startup = bi_node(&c, 1, 3);
+    bi_name(&c, startup, "initialize");
+    var startup_node = sem_get(startup);
+    startup_node.body = bi_node(&c, 12, 3);
+    bi_append(&c, root, startup);
+    c.block = startup_node.body;
+    c.declarations = c.block;
+    global = LLVMGetFirstGlobal(b.module);
+    loop {
+        var done = global == null;
+        if done {
+            break;
+        }
+        var initializer = LLVMGetInitializer(global);
+        var missing = initializer == null;
+        if missing {
+            backend_fail(b, "Unresolved LLVM global in foundation return path");
+        }
+        else {
+            bi_initializer(&c, bi_value(&c, global), initializer, LLVMGlobalGetValueType(global));
+        }
+        global = LLVMGetNextGlobal(global);
+    }
+    var entry = backend_find(&c.values, LLVMGetNamedFunction(b.module, "tower_main"));
+    var call = bi_node(&c, 11, 3);
+    var invocation = sem_get(call);
+    invocation.binding = entry;
+    bi_append(&c, c.block, call);
+    bi_append(&c, c.block, bi_node(&c, 18, 3));
+    var start_call = bi_node(&c, 11, 3);
+    var start_invocation = sem_get(start_call);
+    start_invocation.binding = startup;
+    bi_append(&c, root, start_call);
+    function = LLVMGetFirstFunction(b.module);
+    loop {
+        var done = function == null;
+        if done {
+            break;
+        }
+        var defined = LLVMIsDeclaration(function) == 0;
+        if defined {
+            bi_function(&c, function);
+        }
+        function = LLVMGetNextFunction(function);
+    }
+    vector_dispose(BackendAssociation, &c.values);
+    vector_dispose(BackendAssociation, &c.blocks);
+    var valid = b.error.length == 0;
+    return valid;
+}
+
+export fn backend_optimize_interpreter(b: Backend*, optimize: bool): bool {
+    if optimize {
+        var options = LLVMCreatePassBuilderOptions();
+        LLVMPassBuilderOptionsSetVerifyEach(options, 1);
+        LLVMPassBuilderOptionsSetLoopVectorization(options, 0);
+        LLVMPassBuilderOptionsSetSLPVectorization(options, 0);
+        // A scalar portable profile. These are upstream passes, not Tower
+        // peepholes. lower-switch makes target-independent CFG import explicit.
+        var error = LLVMRunPasses(b.module, "function(sroa,mem2reg),default<O2>,function(lower-switch)", null, options);
+        LLVMDisposePassBuilderOptions(options);
+        var failed = error != null;
+        if failed {
+            var message = LLVMGetErrorMessage(error);
+            backend_fail(b, message);
+            LLVMDisposeErrorMessage(message);
+            return false;
+        }
+    }
+    return backend_optimize(b, false);
+}

@@ -86,11 +86,11 @@ export fn bytecode_validate(data: u8*, length: usize): u32 {
     if version {
         return 3;
     }
-    version = bc_read(data, 12, 4) != 1;
+    version = bc_read(data, 12, 4) != 2;
     if version {
         return 4;
     }
-    version = bc_read(data, 16, 4) != 1;
+    version = bc_read(data, 16, 4) != 2;
     if version {
         return 5;
     }
@@ -101,7 +101,7 @@ export fn bytecode_validate(data: u8*, length: usize): u32 {
     if invalid {
         return 6;
     }
-    invalid = bc_read(data, 24, 4) != 0;
+    invalid = bc_read(data, 24, 4) > 2;
     if invalid {
         return 7;
     }
@@ -181,7 +181,11 @@ export fn bytecode_pointer_bytes(data: u8*): usize {
     return convert(usize, bc_read(data, 20, 4));
 }
 
-export fn bytecode_encode(f: FMState*, source: u8*, source_size: usize, width: usize, length: usize*): u8* {
+export fn bytecode_encode(f: FMState*, source: u8*, source_size: usize, width: usize, profile: u32, length: usize*): u8* {
+    var invalid_profile = profile > 2;
+    if invalid_profile {
+        return null;
+    }
     var words = f.words.length * 4;
     var constants = f.constants.length * 8;
     var total = source_size + words;
@@ -203,9 +207,10 @@ export fn bytecode_encode(f: FMState*, source: u8*, source_size: usize, width: u
     fill(data, 0, 56);
     copy(data, "TOWERBC", 8);
     bc_write(data, 8, 1, 4);
-    bc_write(data, 12, 1, 4);
-    bc_write(data, 16, 1, 4);
+    bc_write(data, 12, 2, 4);
+    bc_write(data, 16, 2, 4);
     bc_write(data, 20, convert(u64, width), 4);
+    bc_write(data, 24, convert(u64, profile), 4);
     bc_write(data, 28, convert(u64, source_size), 4);
     bc_write(data, 32, convert(u64, f.words.length), 4);
     bc_write(data, 36, convert(u64, f.constants.length), 4);

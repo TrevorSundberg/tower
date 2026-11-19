@@ -51,6 +51,7 @@ struct SemanticContext {
     declaration_state: SemanticTable*;
     control_names: SemanticTable*;
     scope: SemanticScope*;
+    labels: SemanticTable*;
     type_arguments: vector(void*);
     constant_arguments: vector(void*);
     generated: vector(void*);

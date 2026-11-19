@@ -1080,6 +1080,8 @@ export fn interpreter_step(m: IMState*, budget: usize): void {
                 test = n.kind == KIf();
                 unary = im_or(unary, test);
                 var memory = n.kind == KCopy();
+                var trapping = n.kind == KTrap();
+                memory = im_or(memory, trapping);
                 test = n.kind == KFill();
                 memory = im_or(memory, test);
                 var condition_128 = assign;
@@ -1346,7 +1348,71 @@ fn im_statement(m: IMState*, task: IMTask*, n: FoundationNode*): void {
         im_print(m, n.value, n.start);
         return;
     }
+    var trapping = n.kind == KTrap();
+    if trapping {
+        var message = im_read(m, n.left, n.start);
+        var offset = im_read(m, n.right, n.start);
+        im_raise(m, message, offset);
+        return;
+    }
+    var label = n.kind == KLabel();
+    if label {
+        return;
+    }
+    var explicit_jump = n.kind == KJump();
+    if explicit_jump {
+        var discard: IMTask;
+        loop {
+            var empty = m.task_count == 0;
+            if empty {
+                break;
+            }
+            im_task_pop(m, &discard);
+        }
+        var destination = im_cached_node(m, n.binding);
+        var body = im_cached_node(m, destination.body);
+        var i = body.items.length;
+        var begin = destination.index + 1;
+        loop {
+            var end = i == begin;
+            if end {
+                break;
+            }
+            i = i - 1;
+            im_task_push(m, body.items.data[i], false, 0, 0);
+        }
+        return;
+    }
     im_fail(m, "Invalid foundation statement", n.start);
+}
+
+fn im_raise(m: IMState*, message: u64, offset: u64): void {
+    var at = convert(usize, offset);
+    var bytes = interpreter_bytes(m, message, 1, at);
+    var failed = bytes == null;
+    if failed {
+        return;
+    }
+    var empty_message = bytes[0] == 0;
+    if empty_message {
+        im_fail(m, "Tower trap", at);
+        return;
+    }
+    var available = im_memory_size(m) - convert(usize, message);
+    var i: usize = 0;
+    loop {
+        var end = i == available;
+        if end {
+            im_fail(m, "Unterminated trap message", at);
+            return;
+        }
+        end = bytes[i] == 0;
+        if end {
+            im_fail(m, bytes, at);
+            return;
+        }
+        i = i + 1;
+    }
 }
 
 fn im_copy_values(m: IMState*, dest: u64, source: u64, size: u64, copying: bool, offset: usize): void {

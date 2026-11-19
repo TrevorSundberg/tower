@@ -5,7 +5,7 @@ import {projectDiagnostic} from './projects.mjs';
 
 // Completed workers retain compiler/grammar state. Active cancellation still
 // terminates the worker, including synchronous compilation or an infinite loop.
-async function receive({ data: { command, id, source, foundation, bedrock, backend, pointerBytes=4, inputs={}, files, drive=[], builtins={}, entry='input.tower', bytecode } }) {
+async function receive({ data: { command, id, source, foundation, bedrock, backend, pointerBytes=4, inputs={}, files, drive=[], builtins={}, entry='input.tower', bytecode, optimize=true } }) {
   if (command === 'warm') {
     try { await warmCompiler('./tower-llvm.wasm.gz'); postMessage({warm:true}); }
     catch (error) { postMessage({warm:true,error:error.message}); }
@@ -37,11 +37,24 @@ async function receive({ data: { command, id, source, foundation, bedrock, backe
     send({ foundation: formatted.source, timings });
     if (backend === 'interpreter' || backend === 'fast') {
       if (backend === 'fast') {
+        send({phase:optimize?'Optimizing with LLVM…':'Lowering through LLVM…'});
+        const llvmCompiler = await getCompiler('./tower-llvm.wasm.gz');
+        const optimizationStart = performance.now();
+        const compiled = llvmCompiler.compiler.compile(formatted.source,{emit:'foundation',optimize,target:pointerBytes===8?'wasm64-unknown-unknown':'wasm32-unknown-unknown'});
+        timings.optimize = performance.now() - optimizationStart;
+        timings.llvmLoad = llvmCompiler.loadMs; timings.llvmLoadCached = llvmCompiler.cached;
+        if(compiled.status==='error'){send({result:originalDiagnostic(compiled,formatted.spans,formatted.sourceMap),timings});return;}
+        await getCanonicalTower();
+        tower.destroyExecution(handle);
+        handle = tower.compile(compiled.foundation,{pointerBytes});
+        const checked = tower.execute(handle,0);
+        if(checked.status==='error'){send({result:checked,timings});return;}
+        send({optimizedFoundation:compiled.foundation,optimizationProfile:compiled.optimizationProfile,fastLLVM:{before:compiled.before,after:compiled.after},timings});
         const start = performance.now(); tower.useFast(handle);
         timings.prepare = performance.now() - start;
         const packageStart = performance.now();
         await getCanonicalTower();
-        const bytecode = tower.bytecode(handle), loaded = tower.loadBytecode(bytecode);
+        const bytecode = tower.bytecode(handle,{optimizationProfile:compiled.optimizationProfile}), loaded = tower.loadBytecode(bytecode);
         try {
           const disassembly = tower.foundation(loaded).source;
           timings.package = performance.now() - packageStart;
@@ -56,7 +69,8 @@ async function receive({ data: { command, id, source, foundation, bedrock, backe
         const now = performance.now();
         if (result.status !== 'executing' || now - lastUpdate >= 50) {
           timings.execute = now - execution;
-          send({ result: { ...result, output: pending }, timings, ...(backend === 'fast' ? {cache:tower.fastStats(handle)} : {}) }); pending = ''; lastUpdate = now;
+          const located=backend==='fast'?originalDiagnostic(result,formatted.spans,formatted.sourceMap):result;
+          send({ result: { ...located, output: pending }, timings, ...(backend === 'fast' ? {cache:tower.fastStats(handle)} : {}) }); pending = ''; lastUpdate = now;
         }
         if (result.status !== 'executing') break;
         await new Promise(resolve => setTimeout(resolve, 0));
@@ -69,7 +83,7 @@ async function receive({ data: { command, id, source, foundation, bedrock, backe
       timings.llvmLoad = loaded.loadMs; timings.llvmLoadCached = loaded.cached;
       send({ phase: 'Compiling LLVM…' });
       at = performance.now();
-      const compiled = compiler.compile(formatted.source,{inputs});
+      const compiled = compiler.compile(formatted.source,{inputs,optimize});
       timings.llvm = performance.now() - at;
       Object.assign(timings, compiled.timings);
       const diagnostic = result => originalDiagnostic(result, formatted.spans, formatted.sourceMap);

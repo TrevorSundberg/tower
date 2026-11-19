@@ -21,7 +21,7 @@ enum class CoreOp { Add, Sub, Mul, Div, Rem, And, Or, Xor, Eq, Ne, Lt, Le, Gt, G
 enum class CoreKind {
   Program, Function, Parameter, Declare, Assign, Operand, Binary, Address, Load,
   Convert, Bits, Call, Block, If, Loop, Break, Continue, Print, Return, Type, FieldDeclaration, Field,
-  Index, String, SizeOf, AlignOf, Allocate, Reallocate, Free, Copy, Fill
+  Index, String, SizeOf, AlignOf, Allocate, Reallocate, Free, Copy, Fill, Label, Jump, Trap
 };
 struct CoreBuiltin { const char* name; CoreKind kind; size_t arguments; };
 const std::vector<CoreBuiltin>& core_builtins();
@@ -149,4 +149,4 @@ struct CoreMachine : CoreMachineState {
   void deallocate(uint64_t address);
 };
 std::unique_ptr<CoreMachine> core_load_bytecode(const uint8_t*, size_t, std::string& error);
-std::vector<uint8_t> core_encode_bytecode(const CoreProgram&, std::string& error);
+std::vector<uint8_t> core_encode_bytecode(const CoreProgram&, std::string& error, unsigned optimization_profile = 0);

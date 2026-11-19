@@ -1,6 +1,6 @@
 include("${CMAKE_CURRENT_LIST_DIR}/TowerModule.cmake")
 tower_import("${ROOT}/scaffolding/compiler/foundation-types.tower")
-foreach(name IN ITEMS text foreign-reader foreign-declarators foreign-operators foreign-itanium foreign-microsoft foreign-api foreign-symbol bindings context target lowering pipeline disassembly linker)
+foreach(name IN ITEMS text foreign-reader foreign-declarators foreign-operators foreign-itanium foreign-microsoft foreign-api foreign-symbol bindings context target lowering pipeline import-bindings import-foundation import-values import-instructions import-module disassembly linker)
   tower_import("${ROOT}/scaffolding/backend/${name}.tower")
 endforeach()
 if(HOST_TRIPLE MATCHES "windows")

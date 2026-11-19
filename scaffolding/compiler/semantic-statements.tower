@@ -251,6 +251,69 @@ fn sem_scope_locals(scope: SemanticScope*, locals: vector(void*)*): void {
     }
 }
 
+fn sem_control_call(c: SemanticContext*, statement: void*, name: u8*): void* {
+    if sem_is(statement, "CoreCallStatement") {
+        var call = sem_member(statement, "call");
+        var identifier = sem_member(call, "name");
+        var spelling = sem_identifier(c, identifier);
+        if sem_equal(spelling, name) {
+            return call;
+        }
+    }
+    return null;
+}
+
+fn sem_label_name(c: SemanticContext*, call: void*): u8* {
+    var arguments = sem_collect(c, sem_member(call, "args"), "CoreCallArgument");
+    var one = arguments.length == 1;
+    if one {
+        var argument = arguments.data[0];
+        var names = sem_collect(c, argument, "CoreLocation");
+        one = names.length == 1;
+        if one {
+            var whole = sem_tokens(c, argument);
+            var identifier = sem_member(names.data[0], "name");
+            var name = sem_tokens(c, identifier);
+            if sem_equal(whole, name) {
+                return sem_identifier(c, identifier);
+            }
+        }
+    }
+    sem_fail(c, call, "label/jump require one label identifier");
+    return "";
+}
+
+fn sem_labels(c: SemanticContext*, body: void*): void {
+    c.labels = sem_table(c);
+    var index: usize = 0;
+    var i: usize = 0;
+    loop {
+        var done = i == sem_child_count(body);
+        if done {
+            return;
+        }
+        var item = sem_child(body, i);
+        if sem_is(item, "Statement") {
+            item = sem_unwrap(item);
+            var call = sem_control_call(c, item, "label");
+            var present = call != null;
+            if present {
+                var label = sem_node(c, call, 31);
+                var name = sem_label_name(c, call);
+                sem_set_name(label, name);
+                label.body = body;
+                label.index = index;
+                var unique = sem_put(c, c.labels, name, call);
+                if unique {} else {
+                    sem_fail(c, item, "Duplicate function label");
+                }
+            }
+            index = index + 1;
+        }
+        i = i + 1;
+    }
+}
+
 fn sem_block(c: SemanticContext*, n: void*, depth: u32): u32 {
     var step1 = n == null;
     var step2 = step1;
@@ -269,6 +332,7 @@ fn sem_block(c: SemanticContext*, n: void*, depth: u32): u32 {
     var step7 = sem_scope(c, c.scope);
     c.scope = step7;
     var flow: u32 = 1;
+    var labeled = false;
     var i: usize = 0;
     loop {
         var step8 = sem_child_count(n);
@@ -288,6 +352,19 @@ fn sem_block(c: SemanticContext*, n: void*, depth: u32): u32 {
         if step14 {
             var step15 = sem_unwrap(at);
             at = step15;
+            var label_call = sem_control_call(c, at, "label");
+            var explicit_label = label_call != null;
+            if explicit_label {
+                var falls = flow & 1;
+                if labeled {
+                    var open = falls != 0;
+                    if open {
+                        sem_fail(c, at, "A labeled block must end with jump or return before the next label");
+                    }
+                }
+                labeled = true;
+                flow = 1;
+            }
             var step16 = depth + 1;
             var step17 = sem_statement(c, at, step16);
             var next: u32 = step17;
@@ -325,6 +402,35 @@ fn sem_block(c: SemanticContext*, n: void*, depth: u32): u32 {
 }
 
 fn sem_statement(c: SemanticContext*, n: void*, depth: u32): u32 {
+    var label_call = sem_control_call(c, n, "label");
+    var explicit_label = label_call != null;
+    if explicit_label {
+        var direct = depth == 1;
+        var found = sem_get(label_call) != null;
+        if direct {
+            if found {
+                return 1;
+            }
+        }
+        sem_fail(c, n, "Labels must be direct statements in a function body");
+        return 1;
+    }
+    var jump_call = sem_control_call(c, n, "jump");
+    var explicit_jump = jump_call != null;
+    if explicit_jump {
+        var value = sem_node(c, jump_call, 32);
+        var name = sem_label_name(c, jump_call);
+        sem_set_name(value, name);
+        var labels = c.labels != null;
+        if labels {
+            value.binding = sem_lookup_table(c.labels, name);
+        }
+        var missing = value.binding == null;
+        if missing {
+            sem_fail(c, n, "Unknown function label");
+        }
+        return 0;
+    }
     var step1 = depth > 128;
     if step1 {
         sem_fail(c, n, "Foundation block nesting limit is 128");
@@ -465,6 +571,14 @@ fn sem_statement(c: SemanticContext*, n: void*, depth: u32): u32 {
             if step56 {
                 var step57 = sem_member(n, "call");
                 sem_call(c, step57);
+                var call_node = sem_get(step57);
+                var has_node = call_node != null;
+                if has_node {
+                    var trapping = call_node.kind == 33;
+                    if trapping {
+                        return 0;
+                    }
+                }
             } else {
                 var step58 = sem_equal(kind, "CoreReturn");
                 if step58 {
@@ -889,6 +1003,7 @@ fn sem_run(c: SemanticContext*): void {
         }
         var step74 = sem_member(n, "body");
         function_node.body = step74;
+        sem_labels(c, function_node.body);
         var step75 = sem_block(c, function_node.body, 0);
         var flow: u32 = step75;
         var step76 = function_node.type.pointers != 0;

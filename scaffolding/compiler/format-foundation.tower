@@ -261,6 +261,12 @@ fn format_expression(f: FormatEngine*, entity: void*): void {
     if condition5 {
         format_text(f, builtin);
         format_text(f, "(");
+        var trapping = n.kind == 33;
+        if trapping {
+            format_expression(f, n.left);
+            format_text(f, ", ");
+            format_expression(f, n.right);
+        }
         var condition6 = format_is_Print(n);
         if condition6 {
             format_expression(f, n.value);
@@ -426,6 +432,19 @@ fn format_block(f: FormatEngine*, entity: void*): void {
 
 fn format_statement_body(f: FormatEngine*, entity: void*): void {
     var n = format_foundation(f, entity);
+    var label = n.kind == 31;
+    var jump = n.kind == 32;
+    var control = format_or(label, jump);
+    if control {
+        if label {
+            format_text(f, "label(");
+        } else {
+            format_text(f, "jump(");
+        }
+        format_identifier(f, &n.name);
+        format_text(f, ");");
+        return;
+    }
     var condition24 = format_is_Declare(n);
     if condition24 {
         format_text(f, "var ");

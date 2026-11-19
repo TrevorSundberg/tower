@@ -357,7 +357,9 @@ test('LLVM warms on a syntax-only document and the first program reuses that wor
   await setSource(page, 'print(42);');
   await expect(page.locator('#execution-status')).toContainText('backends match');
   expect(page.workers()).toContain(warmed);
-  expect(requests.filter(url=>url.includes('tower-llvm.wasm'))).toEqual([]);
+  // The Wasm worker is reused; the independent fast runner loads its LLVM
+  // instance for the first time when there is an executable program.
+  expect(requests.filter(url=>url.includes('tower-llvm.wasm'))).toHaveLength(1);
   await expect(page.locator('#timings [data-label="LLVM load"]')).toContainText('(cached)');
 });
 

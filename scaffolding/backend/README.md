@@ -1,10 +1,41 @@
 # Tower backend API
 
 The implementation consumes the existing validated Foundation entities through
-`sem_get`. It does not parse source, clone semantic nodes, or define another
+`sem_get`. It does not parse source or define another
 semantic representation. LLVM/lld remain upstream dependencies. The native
 `llvm-engine.cpp` and `llvm-backend.cpp` files only connect the existing frontend
 and transport interfaces to these Tower functions. `llvm-wasi.cpp` has no code.
+
+## Interpreter program optimization
+
+Fast source execution and `.towerbc` generation use the standard path:
+foundation graph → LLVM → upstream scalar passes → foundation graph → private
+execution cache. `backend_optimize_interpreter` uses explicit 32/64-bit VM
+layout and `function(sroa,mem2reg),default<O2>,function(lower-switch)`, with
+verification and loop/SLP vectorization disabled. The pass manager receives no
+host target machine. `--no-optimize` and the web
+optimization control disable passes while retaining exactly the same bridge.
+
+`backend_import_foundation(backend, output_root)` creates ordinary entities with
+the shared FoundationNode components. The caller formats and validates them
+with the existing compiler. LLVM phi edges use simultaneous copies; arbitrary
+blocks use function-local `label(name)` and `jump(name)` calls. `trap(u8*, u32)`
+preserves explicit runtime diagnostics. Scalar min/max, absolute value,
+saturating add/subtract and memory intrinsics have Foundation legalizations.
+Global initialization uses temporary function storage. Public function signatures
+retain their original Foundation types. Unsupported LLVM types, intrinsics,
+atomic/volatile operations and dynamic allocas are diagnosed. This is not a
+general importer for arbitrary externally supplied LLVM modules.
+
+Original graph execution stays available as the reference/debug path. The
+internal foundation/cache encoder also remains necessary for portable package
+loading and differential checks. Loading `.towerbc` needs no LLVM or executable
+memory. Foundation text is authoritative; the loader rebuilds and verifies the
+private cache before execution. Container revision 1 now uses semantic/cache
+revisions 2; optimization profile 0 denotes an internal reference cache, 1 the
+scalar LLVM profile, and 2 LLVM lowering/reconstruction without passes. Unknown
+versions/profiles are rejected. Earlier semantic/cache revision 1 packages must
+be regenerated from their foundation source.
 
 ## Object generation
 

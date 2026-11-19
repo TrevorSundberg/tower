@@ -104,6 +104,18 @@ export fn semantic_operator(op: u32): u8* {
 }
 
 export fn semantic_builtin_name(kind: u32): u8* {
+    var label = kind == 31;
+    if label {
+        return "label";
+    }
+    var jump = kind == 32;
+    if jump {
+        return "jump";
+    }
+    var trap = kind == 33;
+    if trap {
+        return "trap";
+    }
     var selected17 = kind == KPrint();
     if selected17 {
         return "print";
@@ -148,6 +160,18 @@ export fn semantic_builtin_name(kind: u32): u8* {
 }
 
 export fn semantic_builtin_arity(kind: u32): usize {
+    var label = kind == 31;
+    if label {
+        return 1;
+    }
+    var jump = kind == 32;
+    if jump {
+        return 1;
+    }
+    var trap = kind == 33;
+    if trap {
+        return 2;
+    }
     var selected17 = kind == KPrint();
     if selected17 {
         return 1;
@@ -192,6 +216,15 @@ export fn semantic_builtin_arity(kind: u32): usize {
 }
 
 export fn semantic_builtin_kind(name: u8*): u32 {
+    if sem_equal(name, "label") {
+        return 31;
+    }
+    if sem_equal(name, "jump") {
+        return 32;
+    }
+    if sem_equal(name, "trap") {
+        return 33;
+    }
     var selectedprint = sem_equal(name, "print");
     if selectedprint {
         return 17;
@@ -236,6 +269,18 @@ export fn semantic_builtin_kind(name: u8*): u32 {
 }
 
 export fn semantic_builtin_at(index: usize): u32 {
+    var label = index == 10;
+    if label {
+        return 31;
+    }
+    var jump = index == 11;
+    if jump {
+        return 32;
+    }
+    var trap = index == 12;
+    if trap {
+        return 33;
+    }
     var selected0 = index == 0;
     if selected0 {
         return 17;

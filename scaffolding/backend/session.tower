@@ -11,6 +11,7 @@ struct BackendSession {
     runtime: u8*;
     runtime_size: usize;
     object_only: bool;
+    optimization_enabled: bool;
     times: u64[6];
 }
 
@@ -368,7 +369,14 @@ fn backend_session_report(s: BackendSession*, functions: void**, count: usize): 
     }
     backend_text(out, "},\"bytes\":");
     backend_decimal(out, convert(u64, backend_session_size(s)));
-    backend_text(out, ",\"passes\":\"sroa, mem2reg, instcombine, simplifycfg, O2\"}");
+    backend_text(out, ",\"passes\":");
+    if s.optimization_enabled {
+        backend_json_text(out, "sroa, mem2reg, instcombine, simplifycfg, O2");
+    }
+    else {
+        backend_json_text(out, "disabled");
+    }
+    backend_text(out, "}");
 }
 
 export fn backend_session_compile(s: BackendSession*, root: void*, functions: void**, count: usize, width: u32, flags: u32): u8* {
@@ -383,7 +391,10 @@ export fn backend_session_compile(s: BackendSession*, root: void*, functions: vo
     s.times[1] = next - started;
     started = next;
     if ok {
-        ok = backend_optimize(s.backend, true);
+        var no_optimization = flags & 8;
+        var optimize = no_optimization == 0;
+        s.optimization_enabled = optimize;
+        ok = backend_optimize(s.backend, optimize);
     }
     next = backend_session_clock();
     s.times[2] = next - started;
@@ -419,5 +430,32 @@ export fn backend_session_compile(s: BackendSession*, root: void*, functions: vo
     next = backend_session_clock();
     s.times[5] = next - started;
     backend_session_report(s, functions, count);
+    return s.response.data;
+}
+
+export fn backend_session_import(s: BackendSession*, root: void*, functions: void**, count: usize, width: u32, optimize: bool, output: void*): bool {
+    var ok = backend_lower(s.backend, root, functions, count, width, false);
+    if ok {
+        ok = backend_optimize_interpreter(s.backend, optimize);
+    }
+    if ok {
+        ok = backend_import_foundation(s.backend, output);
+    }
+    if ok {} else {
+        backend_session_failure(s, backend_error(s.backend), s.backend.error_offset);
+    }
+    return ok;
+}
+
+export fn backend_session_import_report(s: BackendSession*, optimize: bool): u8* {
+    s.response.length = 0;
+    backend_text(&s.response, "{\"status\":\"compiled\",\"format\":\"foundation\",\"optimizationProfile\":");
+    if optimize {
+        backend_text(&s.response, "1");
+    }
+    else {
+        backend_text(&s.response, "2");
+    }
+    backend_text(&s.response, "}");
     return s.response.data;
 }

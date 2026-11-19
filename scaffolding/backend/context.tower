@@ -40,10 +40,13 @@ struct Backend {
     pointer_type: void*;
     functions: vector(void*);
     symbols: vector(u8*);
+    source_functions: vector(void*);
+    source_root: void*;
     locals: vector(void*);
     globals: vector(BackendAssociation);
     strings: vector(BackendAssociation);
     loops: vector(BackendLoop);
+    labels: vector(BackendAssociation);
     current: void*;
     print_fn: void*;
     trap_fn: void*;
@@ -195,10 +198,12 @@ export fn backend_close(b: Backend*): void {
     }
     vector_dispose(u8*, &b.symbols);
     vector_dispose(void*, &b.functions);
+    vector_dispose(void*, &b.source_functions);
     vector_dispose(void*, &b.locals);
     vector_dispose(BackendAssociation, &b.globals);
     vector_dispose(BackendAssociation, &b.strings);
     vector_dispose(BackendLoop, &b.loops);
+    vector_dispose(BackendAssociation, &b.labels);
     vector_dispose(u8, &b.error);
     free(b);
 }

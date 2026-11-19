@@ -1,0 +1,62 @@
+[
+  [
+    "absolute i32",
+    "extern fn platform_write(fd: u32, p: u8*, count: usize): i64; var seed = platform_write(1, \"\", 0); export fn operation(a: i32, b: i32): i32 { var negative = a < 0; if negative { var result = 0 - a; return result; } return a; } var zero = convert(i32, seed); var value0: i32 = -7; value0 = value0 + zero; print(operation(value0, 0)); var value1: i32 = -2147483648; value1 = value1 + zero; print(operation(value1, 0)); var value2: i32 = 8; value2 = value2 + zero; print(operation(value2, 0));",
+    "7\n-2147483648\n8\n",
+    "llvm.abs."
+  ],
+  [
+    "unsigned saturating add i32",
+    "extern fn platform_write(fd: u32, p: u8*, count: usize): i64; var seed = platform_write(1, \"\", 0); export fn operation(a: u32, b: u32): u32 { var r = a + b; var overflow = r < a; if overflow { return 4294967295; } return r; } var zero = convert(u32, seed); var value0: u32 = 4294967295; value0 = value0 + zero; print(operation(value0, 1)); var value1: u32 = 4; value1 = value1 + zero; print(operation(value1, 5));",
+    "4294967295\n9\n",
+    "llvm.uadd.sat."
+  ],
+  [
+    "unsigned saturating subtract i32",
+    "extern fn platform_write(fd: u32, p: u8*, count: usize): i64; var seed = platform_write(1, \"\", 0); export fn operation(a: u32, b: u32): u32 { var overflow = a < b; if overflow { return 0; } var r = a - b; return r; } var zero = convert(u32, seed); var value0: u32 = 0; value0 = value0 + zero; print(operation(value0, 1)); var value1: u32 = 4294967295; value1 = value1 + zero; print(operation(value1, 5));",
+    "0\n4294967290\n",
+    "llvm.usub.sat."
+  ],
+  [
+    "signed saturating add i32",
+    "extern fn platform_write(fd: u32, p: u8*, count: usize): i64; var seed = platform_write(1, \"\", 0); export fn operation(a: i32, b: i32): i32 { var wide_a = convert(i64,a); var wide_b = convert(i64,b); var r = wide_a + wide_b; var high = r > 2147483647; if high { r = 2147483647; } var low = r < -2147483648; if low { r = -2147483648; } return convert(i32,r); } var zero = convert(i32, seed); var value0: i32 = 2147483647; value0 = value0 + zero; print(operation(value0, 1)); var value1: i32 = -2147483648; value1 = value1 + zero; print(operation(value1, -1)); var value2: i32 = -4; value2 = value2 + zero; print(operation(value2, 7));",
+    "2147483647\n-2147483648\n3\n",
+    "llvm.sadd.sat."
+  ],
+  [
+    "signed saturating subtract i32",
+    "extern fn platform_write(fd: u32, p: u8*, count: usize): i64; var seed = platform_write(1, \"\", 0); export fn operation(a: i32, b: i32): i32 { var wide_a = convert(i64,a); var wide_b = convert(i64,b); var r = wide_a - wide_b; var high = r > 2147483647; if high { r = 2147483647; } var low = r < -2147483648; if low { r = -2147483648; } return convert(i32,r); } var zero = convert(i32, seed); var value0: i32 = 2147483647; value0 = value0 + zero; print(operation(value0, -1)); var value1: i32 = -2147483648; value1 = value1 + zero; print(operation(value1, 1)); var value2: i32 = -4; value2 = value2 + zero; print(operation(value2, 7));",
+    "2147483647\n-2147483648\n-11\n",
+    "llvm.ssub.sat."
+  ],
+  [
+    "absolute i64",
+    "extern fn platform_write(fd: u32, p: u8*, count: usize): i64; var seed = platform_write(1, \"\", 0); export fn operation(a: i64, b: i64): i64 { var negative = a < 0; if negative { var result = 0 - a; return result; } return a; } var zero = convert(i64, seed); var value0: i64 = -7; value0 = value0 + zero; print(operation(value0, 0)); var value1: i64 = -9223372036854775808; value1 = value1 + zero; print(operation(value1, 0)); var value2: i64 = 8; value2 = value2 + zero; print(operation(value2, 0));",
+    "7\n-9223372036854775808\n8\n",
+    "llvm.abs."
+  ],
+  [
+    "unsigned saturating add i64",
+    "extern fn platform_write(fd: u32, p: u8*, count: usize): i64; var seed = platform_write(1, \"\", 0); export fn operation(a: u64, b: u64): u64 { var r = a + b; var overflow = r < a; if overflow { return 18446744073709551615; } return r; } var zero = convert(u64, seed); var value0: u64 = 18446744073709551615; value0 = value0 + zero; print(operation(value0, 1)); var value1: u64 = 4; value1 = value1 + zero; print(operation(value1, 5));",
+    "18446744073709551615\n9\n",
+    "llvm.uadd.sat."
+  ],
+  [
+    "unsigned saturating subtract i64",
+    "extern fn platform_write(fd: u32, p: u8*, count: usize): i64; var seed = platform_write(1, \"\", 0); export fn operation(a: u64, b: u64): u64 { var overflow = a < b; if overflow { return 0; } var r = a - b; return r; } var zero = convert(u64, seed); var value0: u64 = 0; value0 = value0 + zero; print(operation(value0, 1)); var value1: u64 = 18446744073709551615; value1 = value1 + zero; print(operation(value1, 5));",
+    "0\n18446744073709551610\n",
+    "llvm.usub.sat."
+  ],
+  [
+    "signed saturating add i64",
+    "extern fn platform_write(fd: u32, p: u8*, count: usize): i64; var seed = platform_write(1, \"\", 0); export fn operation(a: i64, b: i64): i64 { var r = a + b; var x = a ^ r; var y = b ^ r; x = x & y; var overflow = x < 0; if overflow { var negative = a < 0; if negative { return -9223372036854775808; } return 9223372036854775807; } return r; } var zero = convert(i64, seed); var value0: i64 = 9223372036854775807; value0 = value0 + zero; print(operation(value0, 1)); var value1: i64 = -9223372036854775808; value1 = value1 + zero; print(operation(value1, -1)); var value2: i64 = -4; value2 = value2 + zero; print(operation(value2, 7));",
+    "9223372036854775807\n-9223372036854775808\n3\n",
+    null
+  ],
+  [
+    "signed saturating subtract i64",
+    "extern fn platform_write(fd: u32, p: u8*, count: usize): i64; var seed = platform_write(1, \"\", 0); export fn operation(a: i64, b: i64): i64 { var r = a - b; var x = a ^ r; var y = a ^ b; x = x & y; var overflow = x < 0; if overflow { var negative = a < 0; if negative { return -9223372036854775808; } return 9223372036854775807; } return r; } var zero = convert(i64, seed); var value0: i64 = 9223372036854775807; value0 = value0 + zero; print(operation(value0, -1)); var value1: i64 = -9223372036854775808; value1 = value1 + zero; print(operation(value1, 1)); var value2: i64 = -4; value2 = value2 + zero; print(operation(value2, 7));",
+    "9223372036854775807\n-9223372036854775808\n-11\n",
+    null
+  ]
+]

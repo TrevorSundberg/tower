@@ -12,6 +12,8 @@ size_t backend_error_offset(void*);
 unsigned backend_pointer_bytes(void*);
 bool backend_lower(void*, TowerNode*, TowerNode**, size_t, unsigned, bool);
 bool backend_optimize(void*, bool);
+bool backend_optimize_interpreter(void*, bool);
+bool backend_import_foundation(void*, TowerNode*);
 bool backend_emit(void*);
 const char* backend_raw(void*);
 const char* backend_optimized(void*);
@@ -21,6 +23,29 @@ const char* backend_function_name(void*, size_t);
 void* backend_disassemble(const uint8_t*, size_t, const char*);
 const char* backend_disassembly_text(void*);
 void backend_disassembly_close(void*);
+}
+
+TowerObject tower_optimize_foundation(const char* source, unsigned width, bool optimize) {
+  TowerObject result;
+  result.pointer_bytes = width;
+  auto* backend = backend_open(width == 4 ? "wasm32-unknown-unknown" : "wasm64-unknown-unknown");
+  if (!backend) { result.error = "Unable to allocate backend storage"; return result; }
+  auto program = core_compile_foundation(source, width);
+  result.error = program.error; result.error_offset = program.error_offset;
+  if (result.error.empty()) result.error = backend_error(backend);
+  if (result.error.empty() && backend_lower(backend, program.root, program.functions.data(), program.functions.size(), width, false)
+      && backend_optimize_interpreter(backend, optimize)) {
+    result.raw = backend_raw(backend); result.optimized = backend_optimized(backend);
+    CoreProgram imported(width);
+    if (backend_import_foundation(backend, imported.root)) {
+      auto text = core_format(imported);
+      result.error = text.error; result.foundation = std::move(text.source);
+    }
+  }
+  if (result.error.empty()) result.error = backend_error(backend);
+  if (!result.error.empty()) result.error_offset = backend_error_offset(backend);
+  backend_close(backend);
+  return result;
 }
 
 unsigned tower_target_pointer_bytes(const std::string& triple, std::string& error) {

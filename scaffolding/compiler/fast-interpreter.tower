@@ -13,11 +13,13 @@ struct FMFunction {
     parameters: usize;
     parameter_count: usize;
     external: bool;
+    pinned: usize;
 }
 
 struct FMParameter {
     offset: usize;
     size: usize;
+    register_slot: usize;
 }
 
 struct FMConversion {
@@ -49,6 +51,11 @@ struct FMState {
     sources: vector(FMSource);
     registers: vector(u64);
     frames: vector(FMFrame);
+    labels: vector(IMEntry);
+    jumps: vector(IMEntry);
+    locals: vector(IMEntry);
+    escaped: vector(u64);
+    pinned: usize;
     next_register: usize;
     max_register: usize;
     pc: usize;
@@ -275,11 +282,178 @@ fn fm_function(f: FMState*, node: void*): usize {
         var value: FMParameter;
         value.offset = param.byte_offset;
         value.size = im_type_size(&param.type);
+        value.register_slot = 0;
         fm_push(FMParameter, &f.parameters, &value);
         i = i + 1;
     }
     fm_push(FMFunction, &f.functions, &function);
     return index;
+}
+
+fn fm_local(f: FMState*, node: void*): usize {
+    var n = im_node(node);
+    var bound = n.binding != null;
+    if bound {
+        node = n.binding;
+    }
+    var key = im_key(node);
+    var i: usize = 0;
+    loop {
+        var done = i == f.locals.length;
+        if done {
+            return 0;
+        }
+        var found = f.locals.data[i].key == key;
+        if found {
+            return convert(usize, f.locals.data[i].value);
+        }
+        i = i + 1;
+    }
+}
+
+fn fm_collect_addresses(f: FMState*, node: void*): void {
+    var absent = node == null;
+    if absent {
+        return;
+    }
+    var n = im_node(node);
+    var address = n.kind == KAddress();
+    if address {
+        var place = n.value;
+        loop {
+            var target = im_node(place);
+            var compound = target.kind == KField();
+            var indexed = target.kind == KIndex();
+            compound = im_or(compound, indexed);
+            if compound {
+                // Addressing through a pointer does not expose the local that
+                // holds the pointer. Direct aggregate fields do expose storage.
+                if target.indirect {
+                    break;
+                }
+                place = target.left;
+                continue;
+            }
+            var bound = target.binding != null;
+            if bound {
+                place = target.binding;
+            }
+            im_storage_require(vector_push(u64, &f.escaped, im_key(place)));
+            break;
+        }
+    }
+    var leaf = n.kind == KLabel();
+    if leaf {
+        return;
+    }
+    leaf = n.kind == KJump();
+    if leaf {
+        return;
+    }
+    leaf = n.kind == KFunction();
+    if leaf {
+        return;
+    }
+    leaf = n.kind == KType();
+    if leaf {
+        return;
+    }
+    fm_collect_addresses(f, n.value);
+    fm_collect_addresses(f, n.target);
+    fm_collect_addresses(f, n.left);
+    fm_collect_addresses(f, n.right);
+    fm_collect_addresses(f, n.body);
+    fm_collect_addresses(f, n.otherwise);
+    var i: usize = 0;
+    loop {
+        var done = i == n.items.length;
+        if done {
+            return;
+        }
+        fm_collect_addresses(f, n.items.data[i]);
+        i = i + 1;
+    }
+}
+
+fn fm_pin_locals(f: FMState*, index: usize, body: void*): void {
+    // Register placement for scalar CFG functions. This is code generation,
+    // not an optimizer: no operation, effect or control-flow edge is removed.
+    // Address-bearing locals retain the ordinary target-memory layout.
+    var block = im_node(body);
+    var labeled = false;
+    var i: usize = 0;
+    loop {
+        var done = i == block.items.length;
+        if done {
+            break;
+        }
+        var n = im_node(block.items.data[i]);
+        var label = n.kind == KLabel();
+        if label {
+            labeled = true;
+        }
+        i = i + 1;
+    }
+    var omit = labeled == false;
+    if omit {
+        return;
+    }
+    f.escaped.length = 0;
+    fm_collect_addresses(f, body);
+    var node = im_node(f.functions.data[index].node);
+    var all_registers = true;
+    i = 0;
+    loop {
+        var done = i == node.locals.length;
+        if done {
+            break;
+        }
+        var local = im_node(node.locals.data[i]);
+        var memory = local.global;
+        var aggregate = local.type.scalar == 4;
+        var array = local.type.scalar == 9;
+        aggregate = im_or(aggregate, array);
+        var value = local.type.pointers == 0;
+        aggregate = im_and(aggregate, value);
+        memory = im_or(memory, aggregate);
+        var entry: IMEntry;
+        entry.key = im_key(node.locals.data[i]);
+        var j: usize = 0;
+        loop {
+            done = j == f.escaped.length;
+            if done {
+                break;
+            }
+            var escaped = f.escaped.data[j] == entry.key;
+            memory = im_or(memory, escaped);
+            j = j + 1;
+        }
+        if memory {
+            all_registers = false;
+        }
+        else {
+            var register = fm_register(f);
+            register = register + 1;
+            entry.value = convert(u64, register);
+            fm_push(IMEntry, &f.locals, &entry);
+        }
+        i = i + 1;
+    }
+    f.pinned = f.next_register;
+    f.functions.data[index].pinned = f.pinned;
+    if all_registers {
+        f.functions.data[index].frame_size = 0;
+    }
+    i = 0;
+    loop {
+        var done = i == node.parameters.length;
+        if done {
+            break;
+        }
+        var parameter = f.functions.data[index].parameters + i;
+        f.parameters.data[parameter].register_slot = fm_local(f, node.parameters.data[i]);
+        i = i + 1;
+    }
 }
 
 fn fm_address(f: FMState*, node: void*): usize {
@@ -310,18 +484,24 @@ fn fm_address(f: FMState*, node: void*): usize {
             var right = im_node(n.right);
             var signed = im_type_signed(&right.type);
             if signed {
+                var copied = fm_register(f);
+                fm_emit(f, 1, copied, delta, 0);
+                delta = copied;
                 fm_emit(f, 21, delta, fm_tag(&right.type), 0);
             }
             var size = fm_constant(f, convert(u64, im_type_size(&n.type)));
-            fm_emit(f, 77, delta, delta, size);
+            var scaled = fm_register(f);
+            fm_emit(f, 77, scaled, delta, size);
+            delta = scaled;
         }
         var op: usize = 65;
         var wide = n.type.pointer_bytes == 8;
         if wide {
             op = 67;
         }
-        fm_emit(f, op, base, base, delta);
-        return base;
+        var result = fm_register(f);
+        fm_emit(f, op, result, base, delta);
+        return result;
     }
     var binding = n;
     var bound = n.binding != null;
@@ -371,6 +551,12 @@ fn fm_value(f: FMState*, node: void*): usize {
     }
     var operand = n.kind == KOperand();
     if operand {
+        var slot = fm_local(f, node);
+        var in_register = slot != 0;
+        if in_register {
+            slot = slot - 1;
+            return slot;
+        }
         var binding = n;
         var bound = n.binding != null;
         if bound {
@@ -392,8 +578,9 @@ fn fm_value(f: FMState*, node: void*): usize {
 
     place = im_or(place, fm_condition_13);
     if place {
-        var result = fm_address(f, node);
-        fm_emit(f, 4, result, result, im_type_size(&n.type));
+        var address = fm_address(f, node);
+        var result = fm_register(f);
+        fm_emit(f, 4, result, address, im_type_size(&n.type));
         return result;
     }
     var call = n.kind == KCall();
@@ -430,13 +617,15 @@ fn fm_value(f: FMState*, node: void*): usize {
     if allocation {
         var pointer = fm_value(f, n.left);
         var count = fm_value(f, n.right);
+        var result = fm_register(f);
+        fm_emit(f, 1, result, pointer, 0);
         var op: usize = 8;
         var reallocating = n.kind == KReallocate();
         if reallocating {
             op = 9;
         }
-        fm_emit(f, op, pointer, count, im_type_size(&n.element));
-        return pointer;
+        fm_emit(f, op, result, count, im_type_size(&n.element));
+        return result;
     }
     var binary = n.kind == KBinary();
     if binary {
@@ -450,6 +639,9 @@ fn fm_value(f: FMState*, node: void*): usize {
         var arithmetic = im_or(fm_condition_16, fm_condition_17);
         pointer = im_and(pointer, arithmetic);
         if pointer {
+            var scaled = fm_register(f);
+            fm_emit(f, 1, scaled, right, 0);
+            right = scaled;
             var right_node = im_node(n.right);
             var signed = im_type_signed(&right_node.type);
             if signed {
@@ -461,8 +653,9 @@ fn fm_value(f: FMState*, node: void*): usize {
         var op = convert(usize, n.op) * 5;
         op = op + 64;
         op = op + fm_tag(&input.type);
-        fm_emit(f, op, left, left, right);
-        return left;
+        var result = fm_register(f);
+        fm_emit(f, op, result, left, right);
+        return result;
     }
     var value = fm_value(f, n.value);
     var converting = n.kind == KConvert();
@@ -473,7 +666,9 @@ fn fm_value(f: FMState*, node: void*): usize {
         descriptor.to = &n.type;
         var index = f.conversions.length;
         fm_push(FMConversion, &f.conversions, &descriptor);
-        fm_emit(f, 7, value, value, index);
+        var result = fm_register(f);
+        fm_emit(f, 7, result, value, index);
+        return result;
     }
     // Bits preserves exactly the same width by the foundation verifier.
     return value;
@@ -482,7 +677,31 @@ fn fm_value(f: FMState*, node: void*): usize {
 fn fm_statement(f: FMState*, node: void*, breaks: vector(usize)*, continue_pc: usize): void {
     var n = im_node(node);
     f.current_offset = n.start;
-    f.next_register = 0;
+    f.next_register = f.pinned;
+    var label = n.kind == KLabel();
+    if label {
+        var entry: IMEntry;
+        entry.key = im_key(node);
+        entry.value = convert(u64, f.words.length);
+        fm_push(IMEntry, &f.labels, &entry);
+        return;
+    }
+    var jump_label = n.kind == KJump();
+    if jump_label {
+        var entry: IMEntry;
+        entry.key = im_key(n.binding);
+        var at = fm_emit(f, 13, 0, 0, 0);
+        entry.value = convert(u64, at);
+        fm_push(IMEntry, &f.jumps, &entry);
+        return;
+    }
+    var trapping = n.kind == KTrap();
+    if trapping {
+        var message = fm_value(f, n.left);
+        var offset = fm_value(f, n.right);
+        fm_emit(f, 22, message, offset, 0);
+        return;
+    }
     var fm_condition_18 = n.kind == KBlock();
     var fm_condition_19 = n.kind == KProgram();
 
@@ -516,6 +735,14 @@ fn fm_statement(f: FMState*, node: void*, breaks: vector(usize)*, continue_pc: u
             var target = n.target;
             if declaration {
                 target = node;
+            }
+            var slot = fm_local(f, target);
+            var in_register = slot != 0;
+            if in_register {
+                var value = fm_value(f, n.value);
+                slot = slot - 1;
+                fm_emit(f, 1, slot, value, 0);
+                return;
             }
             var dest = fm_address(f, target);
             var value = fm_value(f, n.value);
@@ -623,6 +850,8 @@ export fn fast_interpreter_create(m: IMState*): FMState* {
         f.functions.data[i].entry = f.words.length;
         f.max_register = 1;
         f.next_register = 0;
+        f.pinned = 0;
+        f.locals.length = 0;
         var external = n.external;
         if external {} else {
             var body = n.body;
@@ -630,13 +859,38 @@ export fn fast_interpreter_create(m: IMState*): FMState* {
             if root {
                 body = node;
             }
+            fm_pin_locals(f, i, body);
             fm_statement(f, body, null, 0);
-            f.next_register = 0;
+            f.next_register = f.pinned;
             fm_emit(f, 16, fm_constant(f, 0), 0, 0);
         }
         f.functions.data[i].registers = f.max_register;
         i = i + 1;
     }
+    i = 0;
+    loop {
+        var done = i == f.jumps.length;
+        if done {
+            break;
+        }
+        var j: usize = 0;
+        loop {
+            var end = j == f.labels.length;
+            var available = end == false;
+            im_storage_require(available);
+            var match = f.labels.data[j].key == f.jumps.data[i].key;
+            if match {
+                fm_patch(f, convert(usize, f.jumps.data[i].value), 2, convert(usize, f.labels.data[j].value));
+                break;
+            }
+            j = j + 1;
+        }
+        i = i + 1;
+    }
+    vector_dispose(IMEntry, &f.labels);
+    vector_dispose(IMEntry, &f.jumps);
+    vector_dispose(IMEntry, &f.locals);
+    vector_dispose(u64, &f.escaped);
     f.base = 16;
     f.register_count = f.functions.data[0].registers;
     im_storage_require(vector_reserve(u64, &f.registers, f.register_count));
@@ -662,6 +916,10 @@ export fn fast_interpreter_create(m: IMState*): FMState* {
 }
 
 export fn fast_interpreter_dispose(f: FMState*): void {
+    vector_dispose(u64, &f.escaped);
+    vector_dispose(IMEntry, &f.labels);
+    vector_dispose(IMEntry, &f.jumps);
+    vector_dispose(IMEntry, &f.locals);
     vector_dispose(u32, &f.words);
     vector_dispose(u64, &f.constants);
     vector_dispose(FMFunction, &f.functions);
@@ -784,6 +1042,13 @@ export fn fast_interpreter_step(m: IMState*, f: FMState*, budget: usize): void {
         var r = &f.registers.data[f.register_base];
         count = count + 1;
         m.steps = m.steps + 1;
+        var trapping = op == 22;
+        if trapping {
+            f.preserve_error_offset = true;
+            im_raise(m, r[a], r[b]);
+            m.done = true;
+            continue;
+        }
         var binary = op >= 64;
         if binary {
             r[a] = fm_binary(m, op, r[b], r[c]);
@@ -1010,6 +1275,8 @@ fn fm_call(m: IMState*, f: FMState*, dest: usize, index: usize, first: usize, of
     f.register_base = register_base;
     f.base = m.stack;
     m.stack = m.stack + function.frame_size;
+    var pinned_bytes = function.pinned * 8;
+    fill(&f.registers.data[register_base], 0, pinned_bytes);
     var i: usize = 0;
     loop {
         var end = i == function.parameter_count;
@@ -1020,7 +1287,14 @@ fn fm_call(m: IMState*, f: FMState*, dest: usize, index: usize, first: usize, of
         var parameter = &f.parameters.data[param_index];
         var address = f.base + parameter.offset;
         var arg = arg_index + i;
-        im_write_size(m, convert(u64, address), f.registers.data[arg], parameter.size, offset);
+        var pinned = parameter.register_slot != 0;
+        if pinned {
+            var destination = register_base + parameter.register_slot;
+            destination = destination - 1;
+            f.registers.data[destination] = f.registers.data[arg];
+        } else {
+            im_write_size(m, convert(u64, address), f.registers.data[arg], parameter.size, offset);
+        }
         i = i + 1;
     }
     f.pc = function.entry;

@@ -99,8 +99,8 @@ export async function loadTower(bytes, log = () => {}, bootstrap, foundation, be
       if (!exports.tw_exec_fast(handle)) throw new Error('Select the fast interpreter before executing a program');
     },
     fastStats: handle => JSON.parse(string(exports.tw_exec_fast_stats(handle))),
-    bytecode(handle) {
-      const size = exports.tw_exec_bytecode(handle);
+    bytecode(handle, {optimizationProfile=0}={}) {
+      const size = exports.tw_exec_bytecode_options(handle,optimizationProfile);
       if (!size) throw new Error(string(exports.tw_last_error()));
       return new Uint8Array(exports.memory.buffer, exports.tw_exec_bytecode_data(), size).slice();
     },

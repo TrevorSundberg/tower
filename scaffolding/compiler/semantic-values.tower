@@ -568,6 +568,16 @@ fn sem_operand_impl(c: SemanticContext*, n: void*, expected_type: FoundationType
 }
 
 fn sem_builtin(c: SemanticContext*, n: void*, kind: u32, args: vector(void*)*): void* {
+    var label = kind == 31;
+    var jump = kind == 32;
+    if label {
+        sem_fail(c, n, "label is only valid as a function-body statement");
+        return n;
+    }
+    if jump {
+        sem_fail(c, n, "jump is only valid as a function-body statement");
+        return n;
+    }
     var step1 = sem_node(c, n, kind);
     var value: FoundationNode* = step1;
     var step2 = sem_type_new(c, 3, 0, null);
@@ -587,6 +597,12 @@ fn sem_builtin(c: SemanticContext*, n: void*, kind: u32, args: vector(void*)*): 
         return n;
     }
     var step11 = sem_type_new(c, 8, 0, null);
+    var trapping = kind == 33;
+    if trapping {
+        value.left = sem_operand(c, args.data[0], sem_type_new(c, 5, 1, null));
+        value.right = sem_operand(c, args.data[1], sem_type_new(c, 1, 0, null));
+        return n;
+    }
     var size: FoundationType* = step11;
     var step12 = sem_type_new(c, 5, 0, null);
     var byte: FoundationType* = step12;

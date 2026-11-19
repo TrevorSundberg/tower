@@ -21,8 +21,8 @@ export async function loadLLVM(bytes, log = () => {}, bootstrap, foundation, bed
   return {
     configureModules: modules.configure,
     dependencies: modules.dependencies,
-    compile(source, { inputs = {}, emit = 'wasm', library = false, target = 'wasm32-unknown-unknown' } = {}) {
-      if (!['wasm', 'object', 'executable'].includes(emit)) throw new Error('Unknown output format: ' + emit);
+    compile(source, { inputs = {}, emit = 'wasm', library = false, optimize = true, target = 'wasm32-unknown-unknown' } = {}) {
+      if (!['wasm', 'object', 'executable', 'foundation'].includes(emit)) throw new Error('Unknown output format: ' + emit);
       const triple = new TextEncoder().encode(target + '\0'), triplePointer = e.malloc(triple.length);
       if (!triplePointer) throw new Error('Unable to allocate target name');
       try {
@@ -45,8 +45,9 @@ export async function loadLLVM(bytes, log = () => {}, bootstrap, foundation, bed
       if (!pointer) throw new Error('Unable to allocate foundation source memory');
       try {
         new Uint8Array(e.memory.buffer).set(text, pointer);
-        const result = JSON.parse(string(e.tw_llvm_compile_options(pointer, text.length, (emit === 'object' ? 1 : 0) | (library ? 2 : 0))));
+        const result = JSON.parse(string(e.tw_llvm_compile_options(pointer, text.length, (emit === 'object' ? 1 : 0) | (library ? 2 : 0) | (emit === 'foundation' ? 4 : 0) | (optimize ? 0 : 8))));
         if (result.status === 'error') return moduleDiagnostic(result, modules.sourceMap());
+        if (emit === 'foundation') return {...result, foundation:string(e.tw_llvm_foundation()), before:string(e.tw_llvm_before()), after:string(e.tw_llvm_after())};
         return { ...result, before: string(e.tw_llvm_before()), after: string(e.tw_llvm_after()), disassembly: e.tw_llvm_disassembly ? string(e.tw_llvm_disassembly()) : '',
           [result.format === 'object' ? 'object' : result.format === 'wasm' ? 'wasm' : 'binary']: new Uint8Array(e.memory.buffer, e.tw_llvm_bytes(), e.tw_llvm_size()).slice() };
       } finally { e.free(pointer); }

@@ -14,6 +14,7 @@ try { llvm = await loadLLVM(await read('build/browser-wasi-llvm/tower-llvm.wasm'
 catch (error) { if (error.code !== 'ENOENT') throw error; }
 
 const cases = [
+  ...JSON.parse((await read('scaffolding/tests/llvm-scalar-idioms.json')).toString()).map(([name,source,expected])=>[name,source,expected]),
   ['more than 256 functions', Array.from({length:300},(_,i)=>`fn unit${i}(): i32 { return ${i}; }`).join('\n')+'\nprint(unit299()); print(unit0());', '299\n0\n'],
   ['quoted names preserve bindings', 'fn `add-one`(`odd name`: i32): i32 { var `var`: i32 = `odd name` + 1; return `var`; } var `x-y`: i32 = `add-one`(41); var p: i32* = &`x-y`; var equal: bool = p == p; print(equal); print(`x-y`);', 'true\n42\n'],
   ['escaped quoted names', 'var `back\\\\tick\\`line\\n`: i32 = 5; print(`back\\\\tick\\`line\\n`);', '5\n'],
@@ -59,6 +60,21 @@ for (const [name, source, expected, failure] of cases) test(`LLVM matches interp
       assert.equal(fastOutput, output, 'fast output');
     } finally { tower.destroyExecution(fastHandle); }
     const formatted = tower.foundation(handle);
+    for(const optimize of [false,true]) {
+      const optimized=llvm.compile(formatted.source,{emit:'foundation',optimize});
+      assert.equal(optimized.status,'compiled',optimized.error);
+      const guest=tower.compile(optimized.foundation);
+      try {
+        tower.useFast(guest);
+        let state, text='';
+        do {state=tower.execute(guest,10000);text+=state.output;}while(state.status==='executing');
+        state=originalDiagnostic(state,formatted.spans);
+        for(const key of ['status','error','errorOffset','outputTruncated'])assert.equal(state[key],reference[key],`LLVM bytecode ${optimize} ${key}`);
+        assert.equal(text,output,`LLVM bytecode ${optimize} output`);
+        const packageBytes=tower.bytecode(guest,{optimizationProfile:optimized.optimizationProfile});
+        assert.equal(new DataView(packageBytes.buffer).getUint32(24,true),optimize?1:2);
+      } finally {tower.destroyExecution(guest);}
+    }
     const roundtrip = tower.compileFoundation(formatted.source);
     try { assert.equal(tower.foundation(roundtrip).source, formatted.source); }
     finally { tower.destroyExecution(roundtrip); }
@@ -132,4 +148,41 @@ test('LLVM checks canonical foundation source before running passes', { skip: !l
     'fn f(): i32 {}', 'var a: i32; a = true;', '\0', 'i32 a;', 'fn f() -> void {}', 'fn f(): void {} call f();'])
     assert.equal(llvm.compile(source).status, 'error', source);
   assert.equal(llvm.compile('').status, 'compiled', 'empty programs are valid');
+});
+
+test('scalar idioms exercise LLVM intrinsic legalization with runtime inputs', {skip:!llvm},async()=>{
+  for(const [name,source,,intrinsic] of JSON.parse((await read('scaffolding/tests/llvm-scalar-idioms.json')).toString())){
+    const result=llvm.compile(source,{emit:'foundation'});
+    assert.equal(result.status,'compiled',name+': '+result.error);
+    if(intrinsic)assert.ok(result.after.includes(intrinsic),name+' must exercise '+intrinsic);
+  }
+});
+
+test('LLVM bytecode preserves host signatures, nominal pointer types and public names', {skip:!llvm},async()=>{
+  const source=`struct Pair { value: i32; }
+    extern fn host_check(a: i32, b: i64, count: usize, flag: bool, p: Pair*): i32;
+    export fn tower_user(flag: bool): bool { return flag; }
+    fn function0(): i32 { return -9; }
+    var pair: Pair; pair.value = -7;
+    print(host_check(function0(), -5000000000, 4, tower_user(true), &pair));`;
+  for(const width of [4,8])for(const optimize of [false,true]){
+    let called=0;
+    const host=await loadTower(await read('build/browser-wasi/tower.wasm'),undefined,grammar,undefined,undefined,{imports:{
+      host_check(context,a,b,count,flag,p){
+        assert.equal(a,-9);assert.equal(b,-5000000000n);
+        assert.equal(count,width===8?4n:4);assert.equal(flag,1);
+        assert.equal(new DataView(context.memory().buffer,context.memory().byteOffset+Number(p)).getInt32(0,true),-7);
+        called++;return -42;
+      }
+    }});
+    const result=llvm.compile(source,{emit:'foundation',optimize,target:width===8?'wasm64-unknown-unknown':'wasm32-unknown-unknown'});
+    assert.equal(result.status,'compiled',result.error);
+    assert.match(result.foundation,/extern fn host_check\([^;]+i32/);
+    const handle=host.compile(result.foundation,{pointerBytes:width});
+    try{
+      host.useFast(handle);let state,output='';
+      do{state=host.execute(handle,10000);output+=state.output;}while(state.status==='executing');
+      assert.equal(state.status,'done',state.error);assert.equal(output,'-42\n');assert.equal(called,1);
+    }finally{host.destroyExecution(handle);}
+  }
 });

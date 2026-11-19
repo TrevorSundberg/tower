@@ -5,7 +5,7 @@
 #include <map>
 
 struct TowerObject {
-  std::string error, raw, optimized;
+  std::string error, raw, optimized, foundation;
   size_t error_offset = 0;
   unsigned pointer_bytes = 4;
   std::vector<uint8_t> bytes;
@@ -16,5 +16,6 @@ struct TowerObject {
 // Legacy native transport view. backend/*.tower owns implementation and result
 // lifetimes; see backend/README.md for the transport-independent Tower API.
 TowerObject tower_emit_object(const char* source, const std::string& triple, bool optimize = true, bool library = false);
+TowerObject tower_optimize_foundation(const char* source, unsigned pointer_bytes, bool optimize = true);
 unsigned tower_target_pointer_bytes(const std::string& triple, std::string& error);
 std::string tower_disassemble(const std::vector<uint8_t>& bytes, const std::string& triple);

@@ -14341,3 +14341,308 @@ docs/tower.md and docs/tower-language-plan.md. The error-model follow-up is
 recorded there as no-GC/no-exception result-value design, not implemented `try`
 syntax. Source and publication worktrees were clean after the implementation
 push; this entry records the completed deployment. todo.txt remains unchanged.
+
+## 2026-11-19: LLVM optimization becomes the standard bytecode pipeline
+
+User clarification and authorization: optimize the guest Tower program through
+LLVM, then translate optimized LLVM IR back to Tower bytecode. Compiling the
+interpreter implementation with LLVM is not the requested optimization. Make
+`Tower graph -> LLVM IR -> LLVM optimization -> Tower foundation -> .towerbc`
+the standard compilation path. Optimization is enabled by default; debug/no-opt
+mode goes through the same pipeline with optimization disabled. Preserve the
+original unoptimized foundation graph view and graph runner for debugging and
+differential comparison. Do not introduce a separate home-grown optimizer or a
+normal public graph-to-bytecode bypass. The final foundation-to-cache encoder
+remains necessary internally and lets the portable loader run without LLVM.
+
+Long-term direction reaffirmed: translate/absorb LLVM into Tower and unify its
+applicable operations/optimizations on the shared foundation entity/component
+model. The current external LLVM bridge is incremental scaffolding toward that
+single environment, not a new authoritative IR or independent bytecode language.
+The user explicitly prefers relying on LLVM's optimizations now rather than
+writing competing optimizers. The bridge itself still needs correctness checks;
+LLVM verification alone cannot prove the return translation is correct.
+
+Current inspection: `backend_optimize` already invokes the upstream pass manager
+on the live LLVM module and verifies each pass. The missing implementation is
+LLVM-IR inspection and reconstruction of compilable Tower foundation operations.
+There is currently no LLVM instruction/block visitor in the backend bindings.
+The intended bridge consumes optimized IR directly before native code emission,
+retains an explicit VM layout/semantic profile, and lowers SSA merges, control
+flow, memory operations and supported intrinsics to shared foundation constructs.
+It must reject unsupported constructs explicitly instead of silently shipping
+unoptimized output under an optimized label. LLVM may produce unstructured CFGs;
+needed control-flow spellings must exist in Foundation and use the same checker,
+formatter, graph interpreter, cache compiler and LLVM lowering.
+
+Reference documentation: [LLVM transformation passes](https://llvm.org/docs/Passes.html)
+and [LLVM backend structure](https://llvm.org/docs/WritingAnLLVMBackend.html).
+This entry records the agreed design and work now starting, not a claim that the
+LLVM-to-Tower return path is implemented or validated yet.
+
+Implementation trial (in progress, superseding the missing-visitor observation):
+the return translator is now Tower code in backend/import-{bindings,foundation,
+values,instructions,module}.tower. It visits LLVM's C API, attaches existing
+FoundationNode components to ordinary entities, and uses the shared formatter
+and semantic compiler. Phi edges take all incoming snapshots before assigning
+destinations. Generated locals precede labels; all reconstructed expressions
+remain instruction-like. Runtime calls map to ordinary foundation calls.
+Pointers use the selected 4/8-byte target layout, and integer memory accesses
+retain their actual LLVM byte width, including narrow legalized integers.
+
+Added foundation calls `label(name)`, `jump(name)` and `trap(message, offset)`.
+Labels are function-local direct statements, forward jumps are resolved during
+checking, and intermediate labeled blocks must terminate. These are shared
+operations supported by checking, formatting, both interpreters and LLVM
+lowering. An initial keyword spelling (`label name`) was rejected after it
+broke existing fields named `label` in compiler source. Ordinary call spelling
+avoids a new reserved lexical keyword. A subsequent label-name bug came from
+trying to find token names as parser-rule labels; resolution now uses the
+CoreLocation's captured Identifier instead.
+
+Native smoke tests already execute the sum(100) loop as 4950 through optimized
+and debug LLVM return paths. The selected initial portable scalar pass profile
+is upstream `function(sroa,mem2reg,early-cse,sccp,simplifycfg,dce,lower-switch)`,
+with verification and vectorization disabled; it is not the native backend's
+full O2 pipeline. No custom constant folding, inlining or peephole optimizer was
+added. Unsupported LLVM operations must produce a diagnostic. Future expansion
+of the pass profile requires corresponding legality and differential tests.
+The first pass spelling `lowerswitch` failed on LLVM 19; the registered spelling
+is `lower-switch`. Eligible scalar labeled functions without address operations
+place locals/parameters in VM registers and need no guest stack-frame bytes.
+This is target register placement, not a substitute for LLVM optimization.
+
+Differential testing found and fixed reconstruction issues in allocation
+element types, boolean bitwise legalization, large literal typing and LLVM
+truncation. Foundation `convert` checks numeric range, whereas LLVM truncation
+discards high bits: the bridge must mask first. Large LLVM constants need typed
+locals when passed to calls/conversions because bare Tower literals otherwise
+receive the language's default integer type. An explicit trap initially set
+failure without setting the fast runner's completion flag, causing a CLI loop
+to spin; the explicit-trap path now completes execution as well.
+
+The CLI source fast-run and bytecode producers now call the bridge by default;
+`--no-optimize` takes the same lowering/import path with passes disabled. The
+worker integration and an enabled-by-default "Optimize with LLVM" control are
+being wired through the same API. The direct foundation/cache encoder remains
+internal for loading, round-trip checks and reference comparisons. Container
+version stays 1; semantics/cache revisions advance to 2 for the added operations
+and register placement. Header profile is 0 for an internal reference cache,
+1 for the LLVM scalar profile, 2 for the same bridge with passes disabled.
+
+Reproduction environment: Windows checkout, Docker `tower_build`, native LLVM
+19, frozen bootstrap `/cache/shared-native/towerc-stage1`, native build
+`/cache/fast-backend-native`. Focused command:
+`python3 scaffolding/tests/bytecode-llvm.py /cache/fast-backend-native/towerc
+build/llvm-bc-tests`. This checks optimized/debug, both pointer widths, original
+graph vs imported fast execution, package loading, disassembled graph execution
+and deterministic re-encoding. Full validation and performance results are still
+pending; successful smoke cases are not a claim that the suite has passed.
+Browser LLVM/lld 20 is being built from pinned 1e57ee22 with WASI SDK 34 in
+`/cache/llvm-bc-browser`, using the TowerBackend CMake integration. Linux Git
+status over the Windows vendor checkout stalled, so after Windows Git confirmed
+the vendor checkout was clean, a Windows `git archive` snapshot was extracted
+to `/cache/llvm-source`; no upstream source was edited.
+
+Implementation results and superseding optimization decision:
+
+- The standard producer path is now graph -> LLVM -> scalar O2 -> shared
+  foundation entities -> canonical foundation -> private execution cache. The
+  initial small pass list above was a trial, not the final configuration. The
+  final pipeline is `function(sroa,mem2reg),default<O2>,function(lower-switch)`,
+  with verification after each pass, loop/SLP vectorization disabled and no
+  native target machine supplied to these portable interpreter passes. The VM
+  still has an explicit wasm32/wasm64 data layout. Debug uses this same bridge
+  with optimization passes disabled. LLVM performs the semantic optimizations;
+  Tower performs representation/legalization and register placement.
+- The CLI and browser fast target use that path by default. The playground's
+  "Optimize with LLVM" checkbox persists its state and controls both cache and
+  compiled targets. The original graph display/runner remains available. The
+  two LLVM panes also remain visible for a fast-only selection. Downloaded
+  `.towerbc` contains the reconstructed, compilable foundation, with container
+  version 1, semantics/cache revisions 2 and profile 1 (O2) or 2 (no passes).
+  Internal profile 0 is retained for the reference encoder and loader checks;
+  it is not an exposed source-compilation bypass. The final encoder cannot be
+  removed: the loader reconstructs and verifies the execution cache without LLVM.
+- The importer preserves external/exported function types (signedness, bool,
+  usize width and nominal struct pointers) from their original foundation
+  entities. Normalizing public signatures to LLVM's unsigned bit representation
+  initially changed host marshalling, including JS Number versus BigInt. That
+  was incorrect. A follow-up boolean case exposed invalid `bits(bool, ...)`;
+  booleans now use their numeric conversion contract. Internal temporary types
+  remain legal scalar representations. Exact reserved runtime names replace a
+  prefix filter that incorrectly discarded a user export called `tower_user`.
+- Foundation labels/jumps represent arbitrary LLVM CFGs; phi copies snapshot
+  incoming values before any destination changes. These are ordinary shared
+  operations with compilable spellings, not an independent bytecode semantic
+  model. Narrow integer memory accesses use their exact byte extent. Integer
+  truncation masks before checked Foundation conversion. Signed comparisons,
+  GEP indices, globals, static stack storage, memory intrinsics and allocation
+  product overflow retain explicit target width and bit semantics.
+- Existing checked numeric conversion lowering used synthetic i128 comparisons.
+  It now checks the <=64-bit Foundation domain directly using appropriate signed
+  or unsigned bounds. Boundary fixtures cover i64/u64, i32/u32, u8, bool and
+  usize under both pointer widths, including failing conversions. CLI runtime
+  trap coordinates are resolved against the original input rather than the
+  generated foundation text; multi-line trap tests compare the full diagnostic.
+  Imported/generated instructions still do not claim fabricated source spans.
+
+Performance experiments and root causes (exploratory timings are not final
+cross-trial speedup claims): the first LLVM return path was often slower than
+both the raw cache and graph runner. The conservative first register-placement
+rule excluded an entire function if any address occurred. This kept LLVM SSA
+locals in guest memory, defeating the intended compact register execution.
+Placement now checks each local: scalar locals/parameters remain in VM registers
+unless that local's address escapes; addressed/aggregate storage keeps its
+original layout. Read-only operands use their persistent register directly;
+operations produce a fresh result rather than clobbering that operand. Pure
+register functions need zero guest stack-frame bytes. Build-time lookup indexes
+are released after cache construction; they are not stored in the opcode stream.
+
+The small-pass trial still left large amounts of guest work and made memory and
+branch workloads slower. Scalar O2 improved arithmetic, calls and branches, but
+memory remained slow. Inspection found a constant LLVM shift being expanded
+into six runtime exponentiation branches. Constant shifts now lower directly to
+multiply/divide by the known power of two. GEP sign extension is needed only
+when the index is narrower than the pointer; same-width modular arithmetic no
+longer takes the expensive widening path. These are lowering choices, not a
+second optimizer. The final measured workloads use no wide instructions.
+
+An additional valid absolute-value program exposed an O2 legality gap:
+InstCombine produced `llvm.abs.i32`, which the importer diagnosed as unsupported.
+The translator now legalizes absolute value and unsigned/signed saturating
+add/subtract using Foundation scalar operations. The new 32/64-bit fixtures
+obtain a zero from an opaque platform call and derive arguments from it, so
+LLVM cannot fold the tested runtime operations to constants. Tests also inspect
+optimized IR to establish whether the intended intrinsic was actually exercised.
+Other unsupported IR is diagnosed explicitly; there is no silent raw-cache
+fallback that would mislabel a program as optimized.
+
+Verification/debugging notes: a native differential run launched while the linker
+was replacing its compiler executable failed with PermissionError. That trial
+is invalid and was repeated after the build finished. Canonical-format checks
+also caught unformatted in-progress Tower edits; all edited Tower files were
+formatted with the shared engine before final validation. The original browser
+run passed 122/130: four expectations failed in both viewport configurations.
+They assumed original function names survived O2, LLVM panes disappeared with
+Wasm disabled, only one worker would load LLVM, and the timing list had no fast
+LLVM phase. The updated assertions check the original graph separately, check
+optimized compilable foundation and profile-tagged downloads, and preserve the
+Wasm worker reuse check. A test interaction also needed to reopen the Targets
+popover after an outside download click. Focused corrected cases pass.
+
+Benchmark harness correction: Wasm's final update callback contains only the
+latest streamed output chunk; comparing that to the whole reference loses
+output on runs lasting more than 50 ms. Benchmarks now compare the complete
+`executeWasm` result. The initial profile's arithmetic sum was eliminated by O2
+and yielded a single useful sample. The profiling workload now XORs each
+accumulated sum so there is sustained runtime work. Profiling is separate from
+benchmark timing. Final samples, complete validation and publication are recorded
+below when finished.
+
+Reference checks on 2026-11-19 used upstream documentation for
+[transformation passes](https://llvm.org/docs/Passes.html),
+[phi edge semantics](https://llvm.org/docs/LangRef.html#phi-instruction), and
+[loop/SLP vectorization](https://llvm.org/docs/Vectorizers.html). Disabling the two
+vectorizers is an explicit scalar legality choice, not a claim that arbitrary
+LLVM IR is accepted or that O2 produces globally optimal interpreter code.
+
+Final legality tests also exposed excessive generated module scope in debug mode:
+bytewise global initializers had placed every temporary at module scope,
+exceeding the frontend's 1,024 top-level construct budget for a small source
+program with several conversion diagnostics. Initialization now runs in a
+generated ordinary function; its temporaries occupy a temporary function frame,
+while actual globals retain their module identity and initialization order. This
+also avoids permanently reserving guest global memory for initializer scratch.
+The public frontend limit was not raised to conceal generated-code growth.
+
+The first opaque-input test used an incorrect platform_write prototype (usize
+return instead of the documented i64) and therefore failed compiled Wasm host
+marshalling. Correcting the fixture to the library's u32/u8*/usize -> i64
+contract resolved that harness failure. The signed bitwise overflow idiom was
+not recognized as a saturation intrinsic by this LLVM profile. For i32, the
+fixture now uses widened arithmetic and range clamping, following upstream
+llvm/test/Transforms/InstCombine/sadd_sat.ll; assertions confirm sadd/ssub.sat
+are produced. The i64 signed bitwise cases remain differential checks without
+a false claim of intrinsic recognition. All 37 focused LLVM execution tests
+then passed, including both optimized and debug reconstruction.
+
+Final validation before publication:
+
+- `python3 scaffolding/tests/bytecode-llvm.py /cache/fast-backend-native/towerc build/llvm-bc-final-tests`: **172** comparisons passed (43 sources x two pointer widths x optimized/debug), each including original graph execution, imported cache execution, package load, disassembled graph execution and deterministic regeneration. The final source set includes the corrected runtime-input scalar idioms. Full source-file diagnostics, not just error messages, agree for the trap cases.
+- `python3 scaffolding/tests/interpreter-llvm.py`: **16** compiled native optimized/unoptimized comparisons passed. The Tower backend API harness passed after the final importer rebuild.
+- `npm test --prefix playground`: **252/252**, no skips. `npm run test:browser --prefix playground`: **130/130**, desktop and mobile Chromium, after the final artifact build. Includes cancellation, stale-result rejection, editable grammars, all targets, independent runners, optimized/debug cache downloads and persistence.
+- Windows native parser/formatter suite passed; **147** Tower sources are canonical. Windows interpreter differential **156** passed. WASI interpreter differential **156** passed. ASAN/UBSAN host/adapter build: **5/5** CTest passed. Generated Tower object code itself is not sanitizer-instrumented. The last importer-only additions were checked by the rebuilt native/browser LLVM suites above; they do not change those interpreter/host objects.
+- `npm run check:format --prefix playground` and `git diff --check` passed. `npm run test:deployment --prefix playground` verified all **36** local deployment asset hashes plus both browser configurations, three-runner agreement, current cache revisions/profile, project persistence, native downloads and platform defaults.
+
+Final measurements are archived with all samples, cache statistics, environment,
+artifact hashes and named profile summaries in
+[2026-11-19-llvm-bytecode.json](research/2026-11-19-llvm-bytecode.json).
+The timing runs were sequential after builds and browser tests stopped, on AMD
+Ryzen AI MAX+ 395. Each workload uses three warmups and 15 measured samples;
+interpreter order alternates. Windows Node 21.7.3/V8 executes the Wasm-hosted
+interpreters; native Linux x64 uses LLVM 19 in Docker with Node 22.23.5 driving
+the CLI. Do not compare these two environments as a controlled host comparison.
+
+| Workload | Graph ms | Raw cache ms | LLVM O2 cache ms | LLVM debug cache ms | Compiled Wasm ms |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Arithmetic | 4.2805 | 1.1257 | 0.9204 | 3.4244 | 0.2136 |
+| Calls | 2.9689 | 0.7070 | 0.0146 | 1.6988 | 0.2257 |
+| Memory | 5.6455 | 2.0062 | 1.7692 | 8.4236 | 0.2476 |
+| Branches | 7.3604 | 2.2472 | 2.0324 | 12.0464 | 0.2896 |
+
+Excluding the calls workload that O2 largely eliminates, the optimized cache is
+**3.19�4.65x** faster than the graph runner and **1.11�1.22x** faster than the raw
+cache in this Wasm-hosted sample. The calls result measures eliminated guest
+work, not 203x better dispatch. Compiled Wasm remains faster on the three
+sustained-work workloads; its measured path includes fresh instantiation and
+host execution, so these are not steady-state inner-loop timings. Debug is
+intentionally the same LLVM bridge without simplification and can be slower
+than the original graph. An interpreter is not claimed to outperform native
+compiled execution generally.
+
+Native CLI execution graph/O2-cache medians (ms): arithmetic **1.51341/0.45749**,
+calls **1.07698/0.020008**, memory **2.32484/1.28000**, branches
+**2.07802/0.692675**. The three sustained-work cases improve **1.82�3.31x**.
+LLVM guest compilation is an upfront cost: Wasm-hosted compilation/import took
+approximately **21�170 ms** in these one-off measurements (the first case also
+warms the compiler); subsequent foundation compile/cache preparation medians
+were **3.36�4.85 ms**. These are separate from execution. Optimized code occupied
+**84�556 bytes**, cache capacity **724�2,108 bytes**, and register capacity
+**64�408 bytes**, with **zero wide instructions** in these fixtures. Those are
+hot-cache metrics, not total package or process memory. Canonical foundation,
+validation graphs, guest memory, compiler reactors and worker copies still cost
+memory. The format is not advertised as a zero-overhead public VM product.
+
+Reproduction: `node playground/scripts/benchmark-interpreters.mjs build/llvm-bc-measured-wasm.json`;
+inside the existing Docker mount, `node scaffolding/tests/benchmark-interpreters.mjs /cache/fast-backend-native/towerc build/llvm-bc-measured-native.json`.
+Profiling uses `node playground/scripts/profile-interpreters.mjs`, eight runs of
+a 500,000-iteration call/XOR workload, 100 us sampling. For names, relink the
+`ninja -C /cache/llvm-bc-browser -t commands tower.wasm` final link command with
+`-Wl,--strip-all` removed and a distinct output, and set
+`TOWER_PROFILE_REACTOR=build/llvm-bc-profile.wasm`. We checked every non-custom
+Wasm section against the deployed reactor: byte-identical. Profile recordings
+are `build/{graph,fast,llvm-fast}-interpreter.cpuprofile`; the checked-in report
+contains aggregated summaries.
+
+The graph profile remains dominated by interpreter scheduling, operand readiness,
+component-cache lookup and task pushing. Raw cache sampling shifts to dispatch,
+loads/stores and calls. LLVM cache sampling puts **94.4%** of sampled hits in
+`fast_interpreter_step`, with the remaining material guest work in scalar
+arithmetic; call and local-load/store overhead nearly disappears on this
+workload. The earlier graph lookup/call-buffer/memory improvements remain in
+place; this turn extends graph semantics for reconstructed CFGs and profiles
+both paths again. No additional graph speedup is claimed from this measurement.
+
+Inspection of `llvm-objdump-19 --disassemble-symbols=fast_interpreter_step --no-show-raw-insn /cache/fast-backend-native/tower-compiler-interpreter.o`
+shows one packed 32-bit instruction load and byte/shift extraction on x64;
+the Wasm object uses unsigned shifts/masks and br_table dispatch. LLVM chooses
+these machine details when compiling the Tower interpreter. No handwritten
+x86/ARM instructions, C-return-register ABI tricks, guest JIT or executable
+memory allocation were introduced. Physical ARM, macOS, iPhone and console
+performance remains unmeasured. The explicit scalar legality boundary still
+rejects unsupported intrinsics/types, atomic/volatile memory, dynamic allocas
+and over-aligned storage; extending that boundary requires differential tests.
+Explicit trap messages have a nonempty, readable NUL-terminated-string contract.
+Package disassembly preserves the numeric diagnostic payload, but a package
+cannot reconstruct original source text that was not stored in it.

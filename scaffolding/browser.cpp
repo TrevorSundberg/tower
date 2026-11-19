@@ -413,13 +413,14 @@ EXPORT("tw_exec_fast") int tw_exec_fast(uint32_t handle) {
   auto* m = execution(handle); return m && m->use_fast();
 }
 static std::vector<uint8_t> bytecode_response;
-EXPORT("tw_exec_bytecode") size_t tw_exec_bytecode(uint32_t handle) {
+EXPORT("tw_exec_bytecode_options") size_t tw_exec_bytecode_options(uint32_t handle, unsigned profile) {
   bytecode_response.clear();
   auto* m = execution(handle);
   if (!m || !m->program.error.empty()) { last_error = "Cannot package an invalid program"; return 0; }
-  bytecode_response = core_encode_bytecode(m->program, last_error);
+  bytecode_response = core_encode_bytecode(m->program, last_error, profile);
   return bytecode_response.size();
 }
+EXPORT("tw_exec_bytecode") size_t tw_exec_bytecode(uint32_t handle) { return tw_exec_bytecode_options(handle, 0); }
 EXPORT("tw_exec_bytecode_data") const uint8_t* tw_exec_bytecode_data() { return bytecode_response.data(); }
 EXPORT("tw_exec_load_bytecode") uint32_t tw_exec_load_bytecode(const uint8_t* data, size_t size) {
   if (host_handles_count(&handles, 1) >= 8) { last_error = "Too many execution sessions"; return 0; }

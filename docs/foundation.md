@@ -69,6 +69,27 @@ A shared built-in definition table supplies operation names and arities to
 validation and formatting. Their arguments remain simple operands/type spellings,
 without general nested expressions or an expression-precedence grammar.
 
+LLVM reconstruction also uses the ordinary foundation calls `label(name)`,
+`jump(name)` and `trap(message, offset)`. Labels occupy a function-local label
+namespace and must be direct statements in that function's body. Forward jumps
+are allowed; a jump leaves any nested blocks and continues immediately after
+the named label. Intermediate labeled blocks must end in a jump, return or trap
+before the next label. Usual lexical name/type checking still applies; jumping
+past a local initializer does not initialize it. Generated code declares its
+locals before the first label and uses assignments on CFG edges for SSA merges.
+`trap` accepts a nonempty NUL-terminated `u8*` message and a `u32` diagnostic offset and
+terminates execution. These operations format back to compilable foundation and
+are shared by both interpreters and LLVM lowering.
+
+The fast interpreter's standard producer lowers the program through LLVM,
+applies the documented scalar pass profile, reconstructs this same foundation
+graph, then builds a compact private register cache. Optimization is enabled by
+default. Debug mode disables passes but follows the same lowering/reconstruction
+path. The original graph interpreter and graph view remain available. See
+[the backend API](../scaffolding/backend/README.md) for the pass profile, supported
+return translation and `.towerbc` envelope versions. Foundation text remains the
+authoritative stored program; the envelope's cache is verified derived data.
+
 Module functions, types and top-level variables bind across the file. Initializers
 and other effects run in source order; forward lookup does not initialize storage.
 Top-level variables have module storage accessible to functions, while function

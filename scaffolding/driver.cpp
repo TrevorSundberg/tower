@@ -141,21 +141,24 @@ int main(int argc, char** argv) {
   if (!error.empty()) { std::cerr << error << '\n'; return 1; }
   timings.mark("bootstrap");
   auto text = read(source);
-  const auto report_error = [&](const std::string& error, size_t offset) {
+  std::string runtime_source;
+  const auto report_error = [&](const std::string& error, size_t offset, const std::string* origin = nullptr) {
+    const auto& diagnostic_source = origin ? *origin : text;
     size_t line = 1, column = 1;
 #ifdef TOWER_BOOTSTRAP_HOST
-    for (size_t i = 0; i < offset && i < text.size(); ++i) {
-      auto c = static_cast<unsigned char>(text[i]);
+    for (size_t i = 0; i < offset && i < diagnostic_source.size(); ++i) {
+      auto c = static_cast<unsigned char>(diagnostic_source[i]);
       if (c == '\n') { ++line; column = 1; }
       else if ((c & 0xc0) != 0x80) ++column;
     }
 #else
-    driver_source_position(text.data(), text.size(), offset, &line, &column);
+    driver_source_position(diagnostic_source.data(), diagnostic_source.size(), offset, &line, &column);
 #endif
     const auto* file = frontend_modules_location(syntax_modules, offset, &line, &column);
     std::cerr << (*file ? file : source.c_str()) << ':' << line << ':' << column << ": " << error << '\n';
   };
   unsigned packaged_width = 0;
+  unsigned packaged_profile = 0;
 #ifndef TOWER_INTERPRETER_SEED
   const auto install_canonical_grammar = [&]() {
     auto failure = syntax_set_bedrock(read(root / "bedrock.tower").c_str());
@@ -168,10 +171,25 @@ int main(int argc, char** argv) {
     auto loaded = core_load_bytecode(reinterpret_cast<const uint8_t*>(text.data()), text.size(), error);
     if (!loaded) { std::cerr << error << '\n'; return 1; }
     packaged_width = loaded->program.pointer_bytes;
+    packaged_profile = static_cast<unsigned char>(text[24]);
     text = core_format(loaded->program).source;
     interpret = true; fast = true;
   }
   if (text.find('\0') != std::string::npos) { std::cerr << "Source contains NUL bytes\n"; return 1; }
+  if (!packaged_width && (emit == "bytecode" || (interpret && fast))) {
+    auto width = tower_target_pointer_bytes(target, error);
+    if (!error.empty()) { std::cerr << error << '\n'; return 1; }
+    auto optimized_program = tower_optimize_foundation(text.c_str(), width, optimize);
+    if (!optimized_program.error.empty()) { report_error(optimized_program.error, optimized_program.error_offset); return 1; }
+    if ((!raw.empty() && !write(raw, optimized_program.raw.data(), optimized_program.raw.size())) ||
+        (!optimized.empty() && !write(optimized, optimized_program.optimized.data(), optimized_program.optimized.size()))) {
+      std::cerr << "Cannot write LLVM output\n"; return 1;
+    }
+    error = install_canonical_grammar();
+    if (!error.empty()) { std::cerr << error << '\n'; return 1; }
+    runtime_source = std::move(text);
+    text = std::move(optimized_program.foundation);
+  }
   if (emit == "bytecode" || emit == "foundation") {
     auto width = packaged_width ? packaged_width : tower_target_pointer_bytes(target, error);
     if (!error.empty()) { std::cerr << error << '\n'; return 1; }
@@ -188,7 +206,7 @@ int main(int argc, char** argv) {
     }
     error = install_canonical_grammar();
     if (!error.empty()) { std::cerr << error << '\n'; return 1; }
-    const auto bytes = core_encode_bytecode(program, error);
+    const auto bytes = core_encode_bytecode(program, error, packaged_width ? packaged_profile : optimize ? 1 : 2);
     if (bytes.empty()) { std::cerr << error << '\n'; return 1; }
     return write(output, reinterpret_cast<const char*>(bytes.data()), bytes.size()) ? 0 : 1;
   }
@@ -219,7 +237,7 @@ int main(int argc, char** argv) {
     };
     while (!machine.done) { machine.step(10000); std::cout << machine.output; machine.output.clear(); }
     timings.mark("execute");
-    if (!machine.error.empty()) { report_error(machine.error, machine.error_offset); return 1; } return 0;
+    if (!machine.error.empty()) { report_error(machine.error, machine.error_offset, runtime_source.empty() ? nullptr : &runtime_source); return 1; } return 0;
   }
   auto object = tower_emit_object(text.c_str(), target, optimize, library);
   if (!frontend_modules_depfile(syntax_modules, output.c_str(), depfile.c_str())) { std::cerr << "Cannot write dependency file: " << depfile << '\n'; return 1; }

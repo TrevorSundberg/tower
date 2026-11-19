@@ -12,7 +12,7 @@ for(const width of [4,8])test('.towerbc v1 round trip, target layout and determi
   try{
     const bytes=tower.bytecode(input), view=new DataView(bytes.buffer);
     assert.equal(new TextDecoder().decode(bytes.subarray(0,7)),'TOWERBC');
-    assert.equal(view.getUint32(8,true),1);assert.equal(view.getUint32(12,true),1);assert.equal(view.getUint32(16,true),1);
+    assert.equal(view.getUint32(8,true),1);assert.equal(view.getUint32(12,true),2);assert.equal(view.getUint32(16,true),2);
     assert.equal(view.getUint32(20,true),width);
     loaded=tower.loadBytecode(bytes);
     const disassembly=tower.foundation(loaded).source;
@@ -26,7 +26,7 @@ for(const width of [4,8])test('.towerbc v1 round trip, target layout and determi
 test('untrusted packages validate bounds, versions, checksums and actual code before executing',()=>{
   const handle=tower.compile('print(42);'), bytes=tower.bytecode(handle);tower.destroyExecution(handle);
   for(const size of [0,7,55,bytes.length-1])assert.throws(()=>tower.loadBytecode(bytes.slice(0,size)),/length/);
-  for(const [offset,value,pattern] of [[0,0,/magic/],[8,2,/container version/],[12,2,/semantics version/],[16,2,/cache version/],[20,16,/target layout/],[24,1,/profile/],[28,0xffffffff,/bounds/],[32,0xffffffff,/bounds/],[36,0xffffffff,/bounds/],[40,1,/bounds/],[44,1,/flags/]]){
+  for(const [offset,value,pattern] of [[0,0,/magic/],[8,2,/container version/],[12,1,/semantics version/],[16,1,/cache version/],[20,16,/target layout/],[24,3,/profile/],[28,0xffffffff,/bounds/],[32,0xffffffff,/bounds/],[36,0xffffffff,/bounds/],[40,1,/bounds/],[44,1,/flags/]]){
     const bad=bytes.slice();new DataView(bad.buffer).setUint32(offset,value,true);assert.throws(()=>tower.loadBytecode(bad),pattern);
   }
   const bad=bytes.slice();bad[bad.length-1]^=1;

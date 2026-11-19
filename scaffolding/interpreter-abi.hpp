@@ -40,7 +40,7 @@ extern "C" uint32_t bytecode_validate(const uint8_t*, size_t);
 extern "C" const char* bytecode_error(uint32_t);
 extern "C" size_t bytecode_source_size(const uint8_t*);
 extern "C" size_t bytecode_pointer_bytes(const uint8_t*);
-extern "C" uint8_t* bytecode_encode(void*, const char*, size_t, size_t, size_t*);
+extern "C" uint8_t* bytecode_encode(void*, const char*, size_t, size_t, uint32_t, size_t*);
 extern "C" void bytecode_free(uint8_t*);
 extern "C" bool bytecode_matches(void*, const uint8_t*);
 extern "C" uint8_t *interpreter_bytes(void *, uint64_t, size_t, size_t);
