@@ -3,6 +3,7 @@ import {selectDocument} from './project-helpers.mjs';
 
 async function source(page, text) {
   const editor = page.locator('#editor .cm-content');
+  await editor.press('Escape');
   await editor.click(); await editor.press('ControlOrMeta+a');
   await page.keyboard.insertText(text);
   // Installing a fixture can itself start completion; each test triggers its
@@ -41,6 +42,12 @@ test('locals, types and members complete on unfinished code, including a touch s
   await source(page, 'var count: '); await page.keyboard.type('u');
   await expect(page.getByRole('option').filter({hasText:'usize'})).toBeVisible();
   await expect(page.getByRole('option').filter({hasText:'print'})).toHaveCount(0);
+  await source(page, 'fn demo(local: i32): void { { { { ');
+  await page.keyboard.type('loc');
+  await expect(page.getByRole('option').filter({hasText:'local'})).toBeVisible();
+  await source(page, 'fn demo(value: ');
+  await page.keyboard.type('i');
+  await expect(page.getByRole('option').filter({hasText:'i32'})).toBeVisible();
 });
 test('comments suppress completion and switching documents rejects old results', async ({page}) => {
   await source(page, '// '); await page.keyboard.type('pri');
@@ -54,6 +61,29 @@ test('comments suppress completion and switching documents rejects old results',
   await expect(page.getByRole('listbox')).toHaveCount(0);
   await source(page, 'parse Example = Id'); await page.keyboard.press('Control+Space');
   await expect(page.getByRole('option').filter({hasText:'Identifier'})).toBeVisible();
+});
+
+test('call suggestions follow parser state and the resolved parameter type', async ({page}) => {
+  await source(page, 'var value: i32 = 1; print(');
+  await page.keyboard.type('va');
+  const options = page.locator('.cm-tooltip-autocomplete [role=option]');
+  await expect(options).toHaveCount(1);
+  await expect(options).toContainText('value');
+  await expect(options).not.toContainText('active grammar');
+  await source(page, 'var value: i32 = 1; var valid: bool = true; fn check(flag: bool): void {} check(');
+  await page.keyboard.type('va');
+  await expect(options).toHaveCount(1);
+  await expect(options).toContainText('valid');
+  await page.keyboard.press('Tab');
+  await expect(page.locator('#editor .cm-content')).toContainText('check(valid');
+});
+
+test('member suggestions use inferred types and field-path resolution', async ({page}) => {
+  await source(page, 'struct Inner { count: i32; ready: bool; } struct Outer { inner: Inner; } var outer: Outer; var pointer = &outer; var flag: bool = pointer.inner');
+  await page.keyboard.type('.');
+  const options = page.locator('.cm-tooltip-autocomplete [role=option]');
+  await expect(options).toHaveCount(1);
+  await expect(options).toContainText('ready');
 });
 
 test('late completion replies cannot replace suggestions for newer input', async ({page}) => {

@@ -105,7 +105,7 @@ fn sem_constant_argument(c: SemanticContext*, n: void*, expected_type: Foundatio
             sem_fail(c, n, "Expected a compile-time integer argument (an integer literal or a bound template value)");
             return null;
         }
-        var step26 = sem_type_new(c, 8, 0, null);
+        var step26 = sem_type_new(c, SUSize(), 0, null);
         var size: FoundationType* = step26;
         var step27 = expected_type != null;
         if step27 {
@@ -322,7 +322,7 @@ fn sem_type_call(c: SemanticContext*, n: void*): FoundationType* {
     var name: u8* = step2;
     var step3 = sem_lookup_table(c.type_functions, name);
     var definition: void* = step3;
-    var step4 = sem_type_new(c, 0, 0, null);
+    var step4 = sem_type_new(c, SI32(), 0, null);
     var invalid: FoundationType* = step4;
     var step5 = definition == null;
     if step5 {
@@ -470,6 +470,9 @@ fn sem_type_call(c: SemanticContext*, n: void*): FoundationType* {
 }
 
 fn sem_type(c: SemanticContext*, n: void*): FoundationType* {
+    if sem_editor_capture(c, n, 2, null) {
+        return sem_type_new(c, SI32(), 0, null);
+    }
     c.type_depth = c.type_depth + 1;
     var step1 = sem_type_impl(c, n);
     var result: FoundationType* = step1;
@@ -478,7 +481,7 @@ fn sem_type(c: SemanticContext*, n: void*): FoundationType* {
 }
 
 fn sem_type_impl(c: SemanticContext*, n: void*): FoundationType* {
-    var step1 = sem_type_new(c, 0, 0, null);
+    var step1 = sem_type_new(c, SI32(), 0, null);
     var invalid: FoundationType* = step1;
     var step2 = c.type_depth > 128;
     if step2 {
@@ -627,7 +630,7 @@ fn sem_type_impl(c: SemanticContext*, n: void*): FoundationType* {
             sem_set_type(&a.element, t);
             var step61 = convert(usize, length);
             a.length = step61;
-            var step62 = sem_type_new(c, 9, 0, entity);
+            var step62 = sem_type_new(c, SArray(), 0, entity);
             sem_set_type(&a.type, step62);
             sem_push(&c.program.types, entity);
             return &a.type;
@@ -761,7 +764,7 @@ fn sem_type_header(c: SemanticContext*, n: void*, name: u8*): void {
         sem_fail(c, n, "Foundation struct type limit is 256");
         return;
     }
-    var step24 = sem_type_new(c, 4, 0, n);
+    var step24 = sem_type_new(c, SStruct(), 0, n);
     sem_set_type(&t.type, step24);
     sem_put(c, c.types, name, n);
     sem_push(&c.program.types, n);
@@ -976,6 +979,9 @@ fn sem_add_local(c: SemanticContext*, n: void*): void {
 }
 
 fn sem_lookup(c: SemanticContext*, n: void*): void* {
+    if sem_editor_capture(c, n, 1, null) {
+        return null;
+    }
     var step1 = sem_identifier(c, n);
     var name: u8* = step1;
     var scope: SemanticScope* = c.scope;

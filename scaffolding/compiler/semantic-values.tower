@@ -119,9 +119,12 @@ fn sem_location(c: SemanticContext*, n: void*, depth: u32): void* {
             return n;
         }
         var expected_type: FoundationType* = null;
+        if sem_editor_contains(c, index) {
+            c.editor.require_integer = true;
+        }
         var step44 = sem_literal(c, index);
         if step44 {
-            var step45 = sem_type_new(c, 8, 0, null);
+            var step45 = sem_type_new(c, SUSize(), 0, null);
             expected_type = step45;
         }
         var step46 = sem_operand(c, index, expected_type);
@@ -165,6 +168,9 @@ fn sem_location(c: SemanticContext*, n: void*, depth: u32): void* {
     var step64 = sem_get(value.left);
     var parent: FoundationType* = &step64.type;
     var step65 = sem_member(n, "field");
+    if sem_editor_capture(c, step65, 3, parent) {
+        return n;
+    }
     var step66 = sem_identifier(c, step65);
     sem_set_name(value, step66);
     var step67 = parent.pointers == 1;
@@ -225,6 +231,13 @@ fn sem_location(c: SemanticContext*, n: void*, depth: u32): void* {
 }
 
 fn sem_operand(c: SemanticContext*, n: void*, expected_type: FoundationType*): void* {
+    if sem_editor_contains(c, n) {
+        c.editor.value_required = true;
+        c.editor.has_expected = expected_type != null;
+        if c.editor.has_expected {
+            sem_set_type(&c.editor.type, expected_type);
+        }
+    }
     var step1 = n == null;
     if step1 {
         sem_fail(c, n, "Missing operand");
@@ -265,6 +278,19 @@ fn sem_operand_impl(c: SemanticContext*, n: void*, expected_type: FoundationType
         n = step10;
     }
     var step11 = sem_is(n, "CoreCall");
+    if sem_editor_contains(c, n) {
+        if c.editor.has_expected {
+            if sem_is(n, "CoreAddress") {
+                var pointer = c.editor.type.pointers != 0;
+                if pointer {
+                    c.editor.type.pointers = c.editor.type.pointers - 1;
+                }
+            }
+            if sem_is(n, "CoreLoad") {
+                c.editor.type.pointers = c.editor.type.pointers + 1;
+            }
+        }
+    }
     if step11 {
         var step12 = sem_get(n);
         var step13 = step12 == null;
@@ -324,7 +350,14 @@ fn sem_operand_impl(c: SemanticContext*, n: void*, expected_type: FoundationType
                 value.value = step34;
             } else {
                 var step35 = sem_member(n, "name");
-                var step36 = sem_operand(c, step35, null);
+                var load_expected: FoundationType* = null;
+                if sem_editor_contains(c, step35) {
+                    c.editor.require_pointer = true;
+                    if c.editor.has_expected {
+                        load_expected = &c.editor.type;
+                    }
+                }
+                var step36 = sem_operand(c, step35, load_expected);
                 value.value = step36;
             }
             var step37 = sem_ok(c);
@@ -379,7 +412,7 @@ fn sem_operand_impl(c: SemanticContext*, n: void*, expected_type: FoundationType
             step52 = step54;
         }
         if step52 {
-            var step55 = sem_type_new(c, 2, 0, null);
+            var step55 = sem_type_new(c, SBool(), 0, null);
             sem_set_type(&value.type, step55);
             value.type.pointer_bytes = 4;
             var step56 = sem_equal(text, "true");
@@ -392,7 +425,7 @@ fn sem_operand_impl(c: SemanticContext*, n: void*, expected_type: FoundationType
                 if step59 {
                     sem_set_type(&value.type, expected_type);
                 } else {
-                    var step60 = sem_type_new(c, 3, 1, null);
+                    var step60 = sem_type_new(c, SVoid(), 1, null);
                     sem_set_type(&value.type, step60);
                 }
                 value.bits = 0;
@@ -410,7 +443,7 @@ fn sem_operand_impl(c: SemanticContext*, n: void*, expected_type: FoundationType
                 }
                 if step63 {
                     value.kind = KString();
-                    var step66 = sem_type_new(c, 5, 1, null);
+                    var step66 = sem_type_new(c, SU8(), 1, null);
                     sem_set_type(&value.type, step66);
                     var i: usize = 1;
                     var step67 = sem_length(text);
@@ -457,7 +490,7 @@ fn sem_operand_impl(c: SemanticContext*, n: void*, expected_type: FoundationType
                     if step79 {
                         sem_set_type(&value.type, expected_type);
                     } else {
-                        var step80 = sem_type_new(c, 0, 0, null);
+                        var step80 = sem_type_new(c, SI32(), 0, null);
                         sem_set_type(&value.type, step80);
                         value.type.pointer_bytes = 4;
                     }
@@ -580,9 +613,117 @@ fn sem_builtin(c: SemanticContext*, n: void*, kind: u32, args: vector(void*)*): 
     }
     var step1 = sem_node(c, n, kind);
     var value: FoundationNode* = step1;
-    var step2 = sem_type_new(c, 3, 0, null);
+    var step2 = sem_type_new(c, SVoid(), 0, null);
     sem_set_type(&value.type, step2);
     value.type.pointer_bytes = 4;
+    // Observe the argument at the editor hole even when later arguments have
+    // not been written. Resolution still uses the ordinary type/value helpers.
+    if sem_editor_contains(c, n) {
+        var index: usize = 0;
+        loop {
+            var done = index == args.length;
+            if done {
+                break;
+            }
+            var argument = args.data[index];
+            if sem_editor_contains(c, argument) {
+                var type_argument = kind == KSizeOf();
+                var editor_guard_1 = kind == KAlignOf();
+                if editor_guard_1 {
+                    type_argument = true;
+                }
+                var editor_guard_2 = kind == KAllocate();
+                if editor_guard_2 {
+                    type_argument = true;
+                }
+                var editor_guard_3 = kind == KReallocate();
+                if editor_guard_3 {
+                    type_argument = true;
+                }
+                var editor_guard_4 = kind == KConvert();
+                if editor_guard_4 {
+                    type_argument = true;
+                }
+                var editor_guard_5 = kind == KBits();
+                if editor_guard_5 {
+                    type_argument = true;
+                }
+                var editor_guard_6 = index != 0;
+                if editor_guard_6 {
+                    type_argument = false;
+                }
+                if type_argument {
+                    sem_type(c, argument);
+                } else {
+                    var expected_type: FoundationType* = null;
+                    var last = semantic_builtin_arity(kind);
+                    last = last - 1;
+                    var size_argument = kind == KAllocate();
+                    var editor_guard_7 = kind == KReallocate();
+                    if editor_guard_7 {
+                        size_argument = true;
+                    }
+                    var editor_guard_8 = kind == KCopy();
+                    if editor_guard_8 {
+                        size_argument = true;
+                    }
+                    var editor_guard_9 = kind == KFill();
+                    if editor_guard_9 {
+                        size_argument = true;
+                    }
+                    var editor_guard_10 = index != last;
+                    if editor_guard_10 {
+                        size_argument = false;
+                    }
+                    if size_argument {
+                        expected_type = sem_type_new(c, SUSize(), 0, null);
+                    }
+                    var editor_guard_11 = kind == KFree();
+                    if editor_guard_11 {
+                        c.editor.require_pointer = true;
+                    }
+                    var editor_guard_12 = kind == KCopy();
+                    if editor_guard_12 {
+                        var editor_guard_13 = index < 2;
+                        if editor_guard_13 {
+                            c.editor.require_pointer = true;
+                        }
+                    }
+                    var editor_guard_14 = kind == KFill();
+                    if editor_guard_14 {
+                        var editor_guard_15 = index == 0;
+                        if editor_guard_15 {
+                            c.editor.require_pointer = true;
+                        }
+                        var editor_guard_16 = index == 1;
+                        if editor_guard_16 {
+                            expected_type = sem_type_new(c, SU8(), 0, null);
+                        }
+                    }
+                    var editor_guard_17 = kind == KReallocate();
+                    if editor_guard_17 {
+                        var editor_guard_18 = index == 1;
+                        if editor_guard_18 {
+                            expected_type = sem_type(c, args.data[0]);
+                            expected_type.pointers = expected_type.pointers + 1;
+                        }
+                    }
+                    var trapping_argument = kind == KTrap();
+                    if trapping_argument {
+                        var message = index == 0;
+                        if message {
+                            expected_type = sem_type_new(c, SU8(), 1, null);
+                        } else {
+                            expected_type = sem_type_new(c, SU32(), 0, null);
+                        }
+                    }
+                    sem_operand(c, argument, expected_type);
+                }
+                return n;
+            }
+            index = index + 1;
+        }
+    }
     var step3 = semantic_builtin_arity(kind);
     var count: usize = step3;
     var step4 = args.length != count;
@@ -596,15 +737,15 @@ fn sem_builtin(c: SemanticContext*, n: void*, kind: u32, args: vector(void*)*): 
         sem_fail(c, n, step10);
         return n;
     }
-    var step11 = sem_type_new(c, 8, 0, null);
-    var trapping = kind == 33;
+    var step11 = sem_type_new(c, SUSize(), 0, null);
+    var trapping = kind == KTrap();
     if trapping {
-        value.left = sem_operand(c, args.data[0], sem_type_new(c, 5, 1, null));
-        value.right = sem_operand(c, args.data[1], sem_type_new(c, 1, 0, null));
+        value.left = sem_operand(c, args.data[0], sem_type_new(c, SU8(), 1, null));
+        value.right = sem_operand(c, args.data[1], sem_type_new(c, SU32(), 0, null));
         return n;
     }
     var size: FoundationType* = step11;
-    var step12 = sem_type_new(c, 5, 0, null);
+    var step12 = sem_type_new(c, SU8(), 0, null);
     var byte: FoundationType* = step12;
     byte.pointer_bytes = 4;
     var step13 = kind == KPrint();
@@ -806,6 +947,10 @@ fn sem_builtin(c: SemanticContext*, n: void*, kind: u32, args: vector(void*)*): 
 }
 
 fn sem_call(c: SemanticContext*, n: void*): void* {
+    if sem_editor_capture(c, sem_member(n, "name"), 4, null) {
+        sem_node(c, n, KCall());
+        return n;
+    }
     var step1 = sem_shape(c, n, "name");
     var step2 = step1 == false;
     if step2 {
@@ -898,7 +1043,7 @@ fn sem_call(c: SemanticContext*, n: void*): void* {
             }
             sem_push(&c.generated, instance);
         }
-        var step42 = sem_node(c, n, 11);
+        var step42 = sem_node(c, n, KCall());
         var value: FoundationNode* = step42;
         var step43 = sem_get(instance);
         var callee: FoundationNode* = step43;
@@ -918,7 +1063,7 @@ fn sem_call(c: SemanticContext*, n: void*): void* {
         }
         return n;
     }
-    var step48 = sem_node(c, n, 11);
+    var step48 = sem_node(c, n, KCall());
     var value: FoundationNode* = step48;
     var step49 = sem_lookup_table(c.functions, name);
     value.binding = step49;
@@ -933,6 +1078,11 @@ fn sem_call(c: SemanticContext*, n: void*): void* {
     var callee: FoundationNode* = step53;
     sem_set_type(&value.type, &callee.type);
     var step54 = args.length != callee.parameters.length;
+    // A completion snapshot may end before later arguments have been written.
+    // Resolve every present argument using the real signature nonetheless.
+    if sem_editor_contains(c, n) {
+        step54 = args.length > callee.parameters.length;
+    }
     if step54 {
         var step55 = sem_cat(c, "Wrong argument count for '", name);
         var step56 = sem_cat(c, step55, "'");
@@ -1043,7 +1193,7 @@ fn sem_expression(c: SemanticContext*, n: void*, expected_type: FoundationType*)
             if step35 {
                 sem_fail(c, n, "Unknown foundation binary operation");
             }
-            var step36 = sem_type_new(c, 0, 0, null);
+            var step36 = sem_type_new(c, SI32(), 0, null);
             var input: FoundationType* = step36;
             input.pointer_bytes = 4;
             var step37 = expected_type != null;
@@ -1115,7 +1265,7 @@ fn sem_expression(c: SemanticContext*, n: void*, expected_type: FoundationType*)
                 right_type = null;
                 var step64 = sem_literal(c, right);
                 if step64 {
-                    var step65 = sem_type_new(c, 8, 0, null);
+                    var step65 = sem_type_new(c, SUSize(), 0, null);
                     right_type = step65;
                 }
             }
@@ -1127,7 +1277,7 @@ fn sem_expression(c: SemanticContext*, n: void*, expected_type: FoundationType*)
                 return n;
             }
             if comparison {
-                var step69 = sem_type_new(c, 2, 0, null);
+                var step69 = sem_type_new(c, SBool(), 0, null);
                 sem_set_type(&value.type, step69);
                 value.type.pointer_bytes = 4;
             } else {

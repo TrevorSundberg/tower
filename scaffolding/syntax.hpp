@@ -59,6 +59,13 @@ std::vector<SyntaxHighlight> syntax_get_highlights(SyntaxSession* session);
 std::vector<SyntaxHighlight> syntax_get_lexemes(SyntaxSession* session);
 std::vector<SyntaxRuleInfo> syntax_get_rules(SyntaxSession* session);
 std::vector<std::string> syntax_get_keywords(SyntaxSession* session);
+extern "C" void syntax_completion_enable(SyntaxSession*);
+extern "C" FrontendModule* syntax_completion_module(SyntaxSession*);
+extern "C" bool syntax_completion_accepts(SyntaxSession*, const char*, bool);
+extern "C" bool syntax_completion_callable(SyntaxSession*);
+extern "C" bool syntax_completion_identifier(SyntaxSession*, const char*);
+extern "C" const char* syntax_completion_close(SyntaxSession*, const char*);
+extern "C" SyntaxSession* syntax_completion_create(const char*, unsigned);
 extern "C" size_t syntax_get_error_offset(SyntaxSession* session);
 bool syntax_get_error_insertion(SyntaxSession* session);
 

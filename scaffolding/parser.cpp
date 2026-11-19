@@ -987,6 +987,8 @@ void parser_table_destroy(Table* table) {
 }
 
 struct Recognizer {
+  bool capture_completion = false;
+  LRCompletion* completion = nullptr;
   LRParser* control = nullptr;
   ParseForestStore* forest = nullptr;
   Stream* stream = nullptr;       // Borrowed; caller keeps both dependencies alive.
@@ -1017,7 +1019,20 @@ void parser_recognizer_read_id(Recognizer* recognizer) {
     recognizer->read_length = 0;
   }
   recognizer->lookahead_error = parser_stream_get_error(recognizer->stream);
+  if (recognizer->capture_completion && recognizer->read_id == PARSER_ID_EOF && recognizer->lookahead_error.empty()) {
+    lr_completion_destroy(recognizer->completion);
+    recognizer->completion = lr_completion_create(recognizer->control);
+  }
   recognizer->has_lookahead = true;
+}
+
+void parser_recognizer_capture_completion(Recognizer* r) { r->capture_completion = true; }
+LRCompletion* parser_recognizer_take_completion(Recognizer* r) {
+  auto* result = r->completion; r->completion = nullptr; return result;
+}
+LRCompletion* parser_table_completion(Table* table) {
+  auto* parser = lr_parser_create(table->runtime, true, false);
+  auto* result = lr_completion_create(parser); lr_parser_destroy(parser); return result;
 }
 
 static Recognizer* parser_recognizer_create_mode(Table* table, Stream* stream, bool prefix) {
@@ -1083,6 +1098,7 @@ static void parser_return_lookahead(Recognizer* recognizer) {
 }
 
 void parser_recognizer_destroy(Recognizer* recognizer) {
+  if (recognizer) lr_completion_destroy(recognizer->completion);
   if (!recognizer) return;
   parse_forest_destroy(recognizer->forest);
   lr_parser_destroy(recognizer->control);

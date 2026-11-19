@@ -29,9 +29,9 @@ extern "C" void* host_handles_take(HostHandles*, uint32_t, uint32_t);
 // Borrowed lexer spans and opaque Tower query; no browser-side symbol model.
 struct CompletionSpan { size_t start, end; bool opaque; };
 extern "C" void* completion_begin(const char*, size_t, size_t, const CompletionSpan*, size_t);
-extern "C" const char* completion_recovered(void*);
-extern "C" void completion_collect(void*, TowerNode*, bool);
-extern "C" void completion_symbols(void*, ModuleEnvironment*);
+extern "C" size_t completion_from(void*);
+extern "C" void completion_analyze(void*, SyntaxSession*, uint32_t, const char* const*, const size_t*, size_t);
+extern "C" void completion_symbols(void*);
 extern "C" void completion_offer(void*, const char*, const char*, const char*, uint32_t);
 extern "C" const char* completion_end(void*);
 extern "C" void completion_dispose(void*);
@@ -323,26 +323,24 @@ EXPORT("tw_complete") const char* tw_complete(const char* source, size_t bytes, 
     return std::unique_ptr<SyntaxSession, decltype(&syntax_destroy)>(
       mode == 2 ? syntax_create_bedrock(text) : mode == 1 ? syntax_create_foundation(text) : syntax_create(text), syntax_destroy);
   };
-  auto consume = [](SyntaxSession* syntax, void* query = nullptr, bool external = false,
-                    std::vector<TowerNode*>* roots = nullptr) {
+  auto consume = [](SyntaxSession* syntax) {
     for (size_t i = 0; i < 1024; ++i) {
       auto* root = syntax_next(syntax); if (!root) break;
-      if (query) { roots->push_back(root); completion_collect(query, root, external); }
-      else tower_node_release_ref(root);
+      tower_node_release_ref(root);
     }
   };
-  const std::string text(source, bytes), prefix(source, cursor);
+  const std::string text(source, bytes);
   auto original = create(text.c_str()); consume(original.get());
   std::vector<CompletionSpan> spans;
   for (const auto& span : syntax_get_lexemes(original.get()))
     spans.push_back({span.start, span.end, span.opaque});
   auto* query = completion_begin(source, bytes, cursor, spans.data(), spans.size());
   if (!query) return "{\"error\":\"Cannot allocate completion query\"}";
-  std::vector<TowerNode*> roots;
-  auto recovered = create(completion_recovered(query)); consume(recovered.get(), query, false, &roots);
-  completion_symbols(query, mode ? nullptr : syntax_modules);
   // Only declarations terminated before the caret contribute grammar names.
-  auto active = create(prefix.c_str()); consume(active.get());
+  const std::string before(source, completion_from(query));
+  auto active = create(before.c_str()); syntax_completion_enable(active.get()); consume(active.get());
+  completion_analyze(query, active.get(), mode, files, lengths, count);
+  completion_symbols(query);
   const auto keywords = syntax_get_keywords(active.get());
   const auto rules = syntax_get_rules(active.get());
   const auto tokens = syntax_get_tokens(active.get());
@@ -351,7 +349,6 @@ EXPORT("tw_complete") const char* tw_complete(const char* source, size_t bytes, 
   for (const auto& token : tokens) if (!token.skip) completion_offer(query, token.name.c_str(), "type", "token rule", 2);
   response = completion_end(query);
   completion_dispose(query);
-  for (auto* root : roots) tower_node_release_ref(root);
   return response.c_str();
 }
 

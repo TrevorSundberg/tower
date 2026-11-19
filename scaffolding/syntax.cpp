@@ -7,6 +7,7 @@
 #include "compiler-syntax-template.hpp"
 #include "compiler-syntax-scan.hpp"
 #include "compiler-frontend.hpp"
+#include "compiler-lr.hpp"
 #include "compiler-entities.hpp"
 #include "compiler-generics.hpp"
 #include "compiler-syntax-lexer.hpp"
@@ -396,6 +397,10 @@ struct SyntaxSession {
   Definitions definitions, baseline_definitions;
   TokenDefinitions tokens, baseline;
   Recognizer* recognizer = nullptr; // borrowed only while reading this stream
+  bool completing = false;
+  std::unique_ptr<LRCompletion, decltype(&lr_completion_destroy)> completion{nullptr, lr_completion_destroy};
+  std::shared_ptr<Version> completion_version;
+  std::string completion_suffix;
   bool bootstrapping = false, declaration = false;
   bool building_bedrock = false, finalized = false, declarations_only = true;
   bool formatting = false;
@@ -1092,6 +1097,10 @@ TowerNode* syntax_next(SyntaxSession* session) {
     return nullptr;
   }
   if (session->cursor == session->source.size()) {
+    if (session->completing) {
+      session->completion.reset(parser_table_completion(session->version->table));
+      session->completion_version = session->version;
+    }
     if (!session->finalized) {
       preserve_comments(*session, semantic(session->document), session->cursor);
       if (!session->version->pending.empty())
@@ -1129,10 +1138,17 @@ TowerNode* syntax_next(SyntaxSession* session) {
       std::unique_ptr<Recognizer, decltype(&parser_recognizer_destroy)> recognizer(
         parser_recognizer_create_prefix(session->version->table, stream.get()), parser_recognizer_destroy);
       session->recognizer = recognizer.get();
+      if (session->completing) parser_recognizer_capture_completion(recognizer.get());
       bool running = true;
       while (running) root = owned(parser_recognizer_step(recognizer.get(), &running));
       session->recognizer = nullptr;
-      if (!root) return fail(syntax_diagnostic(*session, recognizer.get()));
+      if (!root) {
+        if (session->completing) {
+          session->completion.reset(parser_recognizer_take_completion(recognizer.get()));
+          session->completion_version = session->version;
+        }
+        return fail(syntax_diagnostic(*session, recognizer.get()));
+      }
       // The recognizer may have inspected one following token. Keep only the
       // committed span; the next construct gets its own declaration/lexer mode.
       auto* span = match(root.get());
@@ -1337,6 +1353,74 @@ extern "C" __attribute__((export_name("tw_set_bootstrap"))) const char* syntax_w
 }
 #endif
 
+extern "C" SyntaxSession* syntax_completion_create(const char* source, unsigned mode) {
+  return mode == 2 ? syntax_create_bedrock(source) : mode == 1 ? syntax_create_foundation(source) : syntax_create(source);
+}
+extern "C" void syntax_completion_enable(SyntaxSession* session) { session->completing = true; }
+extern "C" FrontendModule* syntax_completion_module(SyntaxSession* session) { return session->module; }
+static uint32_t completion_token(SyntaxSession* session, const char* text) {
+  if (!session->completion) return PARSER_ID_EOF;
+#ifdef TOWER_EXPANSION_SEED
+  return PARSER_ID_EOF; // The seed has no editor host; the Tower scanner replaces it.
+#else
+  ParserLookahead context{lr_completion_runtime(session->completion.get()), lr_completion_state(session->completion.get())};
+  auto input = scan_input(*session, 0, nullptr, &context);
+  input.source = text; input.size = std::strlen(text);
+  SyntaxScanResult result{};
+  syntax_scan_token(&input, &result);
+  const bool complete = !result.error && result.start == 0 && result.length == input.size;
+  const auto id = complete ? result.id : PARSER_ID_EOF;
+  syntax_scan_dispose(&result);
+  return id;
+#endif
+}
+extern "C" bool syntax_completion_identifier(SyntaxSession* session, const char* text) {
+  return completion_token(session, text) == MetaName && lr_completion_accepts(session->completion.get(), MetaName);
+}
+extern "C" bool syntax_completion_accepts(SyntaxSession* session, const char* text, bool literal) {
+  if (!session->completion) return false;
+  uint32_t id = PARSER_ID_EOF;
+  if (literal) {
+    auto found = session->completion_version->literals.find(text);
+    if (found == session->completion_version->literals.end()) return false;
+    id = found->second;
+  } else id = completion_token(session, text);
+  return lr_completion_accepts(session->completion.get(), id);
+}
+extern "C" bool syntax_completion_callable(SyntaxSession* session) {
+  if (!session->completion) return false;
+  auto found = session->completion_version->literals.find("(");
+  return found != session->completion_version->literals.end() &&
+    lr_completion_follows(session->completion.get(), MetaName, found->second);
+}
+extern "C" const char* syntax_completion_close(SyntaxSession* session, const char* type_name) {
+  if (!session->completion) return nullptr;
+  std::vector<std::string> words;
+  std::vector<uint32_t> ids;
+  const auto& version = *session->completion_version;
+  // Prioritize terminators. The search itself is Tower LR simulation; these
+  // spellings are merely concrete lexer inputs for its scratch parse snapshot.
+  const auto add = [&](const std::string& text, uint32_t id) { words.push_back(text); ids.push_back(id); };
+  for (const char* text : {";", ")", "]", "}", "{", "=", "false", "true", "null"}) {
+    auto found = version.literals.find(text);
+    if (found != version.literals.end()) add(found->first, found->second);
+  }
+  for (const auto& [text, id] : version.literals) {
+    if (text == "(" || text == "[" || text == "." || text == ",") continue;
+    if (std::find(words.begin(), words.end(), text) == words.end()) add(text, id);
+  }
+  for (size_t i = 0; i < version.tokens.size(); ++i)
+    if (semantic(version.tokens[i]).name == "Number") add("0", token_id("Number", i));
+  // A supplied foundation type can complete an unwritten signature tail.
+  // Its spelling comes from the shared Tower semantic definitions.
+  add(type_name, MetaName);
+  std::array<size_t, 24> path;
+  auto size = lr_completion_suffix(session->completion.get(), ids.data(), ids.size(), path.data(), path.size());
+  if (size == TOWER_INVALID_INDEX) return nullptr;
+  session->completion_suffix.clear();
+  for (size_t i = 0; i < size; ++i) { session->completion_suffix += ' '; session->completion_suffix += words[path[i]]; }
+  return session->completion_suffix.c_str();
+}
 std::vector<std::string> syntax_get_keywords(SyntaxSession* session) {
   std::vector<std::string> result;
   if (session->version) for (const auto& [literal, id] : session->version->literals)

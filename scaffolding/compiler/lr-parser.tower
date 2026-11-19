@@ -514,3 +514,296 @@ export fn lr_probe_step(value: LRProbe*, id: u32, before: usize*): u32 {
     value.budget.complete = false;
     return 0;
 }
+
+// Editor lookahead snapshots are derived indexes over the live LR stack. They
+// never run semantic actions or alter the recognizer. Every query is bounded.
+struct LRCompletion {
+    budget: LRProbeBudget;
+    original: LRProbe*;
+}
+
+struct LRCompletionPath {
+    probe: LRProbe*;
+    parent: usize;
+    choice: usize;
+    depth: usize;
+}
+
+export fn lr_completion_create(parser: LRParser*): LRCompletion* {
+    var c = alloc(LRCompletion, 1);
+    var editor_condition1 = c == null;
+    if editor_condition1 {
+        return null;
+    }
+    fill(c, 0, sizeof(LRCompletion));
+    c.budget.complete = true;
+    c.original = lr_probe_create(parser, &c.budget);
+    var failed = c.original == null;
+    if failed {
+        free(c);
+        return null;
+    }
+    return c;
+}
+
+export fn lr_completion_destroy(c: LRCompletion*): void {
+    var editor_condition2 = c == null;
+    if editor_condition2 {
+        return;
+    }
+    lr_probe_destroy(c.original);
+    free(c);
+}
+
+export fn lr_completion_runtime(c: LRCompletion*): LRRuntime* {
+    return c.original.runtime;
+}
+
+export fn lr_completion_state(c: LRCompletion*): usize {
+    var top = c.original.frames.length - 1;
+    return c.original.frames.data[top].state;
+}
+
+export fn lr_completion_accepts(c: LRCompletion*, id: u32): bool {
+    var editor_condition3 = c == null;
+    if editor_condition3 {
+        return false;
+    }
+    var editor_condition4 = c.original == null;
+    if editor_condition4 {
+        return false;
+    }
+    c.budget.remaining = 8192;
+    c.budget.complete = true;
+    var probe = lr_probe_clone(c.original);
+    var editor_condition5 = probe == null;
+    if editor_condition5 {
+        return false;
+    }
+    var before: usize;
+    var result = lr_probe_step(probe, id, &before);
+    lr_probe_destroy(probe);
+    var editor_result20 = result == 1;
+    return editor_result20;
+}
+
+export fn lr_completion_follows(c: LRCompletion*, first: u32, second: u32): bool {
+    var editor_guard_1 = c == null;
+    if editor_guard_1 {
+        return false;
+    }
+    var editor_guard_2 = c.original == null;
+    if editor_guard_2 {
+        return false;
+    }
+    c.budget.remaining = 8192;
+    c.budget.complete = true;
+    var probe = lr_probe_clone(c.original);
+    var editor_guard_3 = probe == null;
+    if editor_guard_3 {
+        return false;
+    }
+    var before: usize;
+    var result = lr_probe_step(probe, first, &before);
+    var editor_guard_4 = result == 1;
+    if editor_guard_4 {
+        result = lr_probe_step(probe, second, &before);
+    }
+    lr_probe_destroy(probe);
+    var editor_value_5 = result == 1;
+    return editor_value_5;
+}
+
+// Try a terminating continuation first. Every transition is checked against
+// the full LR stack; this avoids spending the search budget on new statements
+// while several enclosing blocks still need to close.
+fn lr_completion_terminators(c: LRCompletion*, ids: u32*, count: usize, result: usize*, capacity: usize): usize {
+    var current = lr_probe_clone(c.original);
+    var missing = current == null;
+    if missing {
+        return lr_none();
+    }
+    var length: usize = 0;
+    var answer = lr_none();
+    loop {
+        var exhausted = c.budget.remaining == 0;
+        if exhausted {
+            break;
+        }
+        var eof: u32 = 0;
+        eof = eof - 2;
+        var before: usize;
+        var trial = lr_probe_clone(current);
+        missing = trial == null;
+        if missing {
+            break;
+        }
+        var status = lr_probe_step(trial, eof, &before);
+        lr_probe_destroy(trial);
+        var complete = status == 2;
+        if complete {
+            answer = length;
+            break;
+        }
+        var full = length == capacity;
+        if full {
+            break;
+        }
+        var found: bool = false;
+        var i: usize = 0;
+        loop {
+            var done = i == count;
+            if done {
+                break;
+            }
+            trial = lr_probe_clone(current);
+            missing = trial == null;
+            if missing {
+                break;
+            }
+            status = lr_probe_step(trial, ids[i], &before);
+            var shifted = status == 1;
+            if shifted {
+                lr_probe_destroy(current);
+                current = trial;
+                result[length] = i;
+                length = length + 1;
+                found = true;
+                break;
+            }
+            lr_probe_destroy(trial);
+            i = i + 1;
+        }
+        var failed = found == false;
+        if failed {
+            break;
+        }
+    }
+    lr_probe_destroy(current);
+    return answer;
+}
+
+// If closure preference fails, breadth-first search supplies a continuation.
+// Token spellings come from the active grammar/lexer; output is scratch source.
+export fn lr_completion_suffix(c: LRCompletion*, ids: u32*, count: usize, result: usize*, capacity: usize): usize {
+    var editor_condition6 = c == null;
+    if editor_condition6 {
+        return lr_none();
+    }
+    var editor_condition7 = c.original == null;
+    if editor_condition7 {
+        return lr_none();
+    }
+    c.budget.remaining = 65536;
+    c.budget.complete = true;
+    var terminated = lr_completion_terminators(c, ids, count, result, capacity);
+    var complete = terminated != lr_none();
+    if complete {
+        return terminated;
+    }
+    var paths: vector(LRCompletionPath);
+    vector_init(LRCompletionPath, &paths);
+    var first: LRCompletionPath;
+    fill(&first, 0, sizeof(LRCompletionPath));
+    first.probe = lr_probe_clone(c.original);
+    var editor_condition8 = first.probe == null;
+    if editor_condition8 {
+        return lr_none();
+    }
+    var added = lr_append(LRCompletionPath, &paths, &first);
+    var failed = added == false;
+    if failed {
+        lr_probe_destroy(first.probe);
+        return lr_none();
+    }
+    var at: usize = 0;
+    var length = lr_none();
+    loop {
+        var editor_condition9 = at == paths.length;
+        if editor_condition9 {
+            break;
+        }
+        var editor_condition10 = c.budget.remaining == 0;
+        if editor_condition10 {
+            break;
+        }
+        var path = &paths.data[at];
+        var original = path.probe;
+        var depth = path.depth;
+        var probe = lr_probe_clone(original);
+        var editor_condition11 = probe == null;
+        if editor_condition11 {
+            break;
+        }
+        var before: usize;
+        var eof: u32 = 0;
+        eof = eof - 2;
+        var status = lr_probe_step(probe, eof, &before);
+        lr_probe_destroy(probe);
+        var editor_condition12 = status == 2;
+        if editor_condition12 {
+            length = depth;
+            var index = length;
+            var parent = at;
+            loop {
+                var editor_condition13 = index == 0;
+                if editor_condition13 {
+                    break;
+                }
+                index = index - 1;
+                result[index] = paths.data[parent].choice;
+                parent = paths.data[parent].parent;
+            }
+            break;
+        }
+        var editor_condition14 = depth < capacity;
+        if editor_condition14 {
+            var i: usize = 0;
+            loop {
+                var editor_condition15 = i == count;
+                if editor_condition15 {
+                    break;
+                }
+                var editor_condition16 = paths.length >= 512;
+                if editor_condition16 {
+                    break;
+                }
+                probe = lr_probe_clone(original);
+                var editor_condition17 = probe == null;
+                if editor_condition17 {
+                    break;
+                }
+                status = lr_probe_step(probe, ids[i], &before);
+                var editor_condition18 = status == 1;
+                if editor_condition18 {
+                    var next: LRCompletionPath;
+                    next.probe = probe;
+                    next.parent = at;
+                    next.choice = i;
+                    next.depth = depth + 1;
+                    added = lr_append(LRCompletionPath, &paths, &next);
+                    failed = added == false;
+                    if failed {
+                        lr_probe_destroy(probe);
+                        break;
+                    }
+                } else {
+                    lr_probe_destroy(probe);
+                }
+                i = i + 1;
+            }
+        }
+        at = at + 1;
+    }
+    at = 0;
+    loop {
+        var editor_condition19 = at == paths.length;
+        if editor_condition19 {
+            break;
+        }
+        lr_probe_destroy(paths.data[at].probe);
+        at = at + 1;
+    }
+    vector_dispose(LRCompletionPath, &paths);
+    return length;
+}

@@ -982,6 +982,12 @@ fn sem_run(c: SemanticContext*): void {
         var function_node: FoundationNode* = step68;
         c.current = n;
         i = i + 1;
+        var editor_condition1 = c.editor != null;
+        if editor_condition1 {
+            if sem_editor_contains(c, n) {} else {
+                continue;
+            }
+        }
         if function_node.external {
             continue;
         }

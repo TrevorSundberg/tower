@@ -13,6 +13,10 @@ struct Table;
 struct Recognizer;
 
 inline constexpr uint32_t PARSER_ID_EOF = (uint32_t)-2;
+struct LRCompletion;
+void parser_recognizer_capture_completion(struct Recognizer*);
+LRCompletion* parser_recognizer_take_completion(struct Recognizer*);
+LRCompletion* parser_table_completion(struct Table*);
 
 // Enable verbose table-building and recognizer traces (off by default).
 void parser_set_debug_trace(bool enabled);
