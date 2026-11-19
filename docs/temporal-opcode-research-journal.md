@@ -15397,3 +15397,33 @@ graph/fast execution, canonical text, both pointer widths and raw/optimized LLVM
 reconstruction (build/language-next/import-semantic-5.log). Native backend API
 checks also passed before the final coalescing change; final validation and actual
 publication results are recorded below when available.
+
+Final synchronization advanced upstream again, to 8d87106 (the browser compiler
+workbench). Retained every upstream journal entry and the complete workbench;
+the checkpoint/fix commits rebased to 292f931/0ba6e30. Rebuilt native, parser and
+both LLVM reactors, applied the workbench's existing upstream-LLD compatibility
+preparation, and regenerated its recipe/support packages from the actual objects.
+No packaging or native implementation source was changed in this work.
+
+The integrated quick suite passed 285/285, native backend API checks passed,
+canonical formatting passed, and the desktop/mobile completion/struct selection
+passed 24/24. Four Tower fixtures (enums, work graph, large stack and imported
+constants) each emitted byte-identical repeated executables on all six supported
+profiles with raw IR, optimized IR and disassembly present. Their output was 0
+in browser Wasm, Windows x64, WSL Linux x64 and QEMU Linux ARM64. Darwin output was
+linked, not executed on this host. Native graph work-graph execution and fast
+imported-constant execution also returned 0. Logs are workbench-{node,targets,
+browser,format}.log under build/language-next. Local deployment verification
+matched 67 assets and passed desktop/mobile behavior before the configuration
+correction described next.
+
+The first successor-build trial failed after compiling the parser/semantic units:
+the cached WASI CMake configuration still enabled TOWER_BACKEND_TESTS, causing
+its generated backend units to import tests/foreign-names.tower. The normal
+workbench source package intentionally contains compiler/host/backend/library
+sources, not fixtures. Configured the WASI release build with
+`cmake -S . -B /home/trevo/.cache/tower/backend-wasi -DTOWER_BACKEND_TESTS=OFF`,
+retaining tests in the separate native build, then rebuilt/repackaged. This is a
+build-configuration correction, not a removed test or a packaging workaround.
+The failed trial is preserved in workbench-generations.log; successor and final
+publication results follow after validation of that corrected package.
