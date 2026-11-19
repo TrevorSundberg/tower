@@ -1,105 +1,40 @@
 {
   "assets": {
     ".nojekyll": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    "THIRD-PARTY-NOTICES.txt": "73e93e47e7beb4f4edd8a4c2f0f4d802f74b114bbf8e79f8b13838bebd20be54",
+    "THIRD-PARTY-NOTICES.txt": "b73ab3b184609e3f59d790e7df56b0e9cd7304d6d3aacd6e107d50117a79b59a",
     "app.js": "a342681dfdeac43fee137ecaa0da145f2b774df940c2a52fcecbdb804cd0bbd7",
-    "app.js.map": "412a5eff6a94493eb6dfb2fbce8a9ac7d253b840466a933f660d99bd85e2f731",
+    "app.js.map": "22b0724487a098080dc21c79ec615ff602aa13614a2304d2b56940843bfe1af2",
     "bedrock.tower": "6f9562491879c97a66c0d200c114c9ce138cb3f774be475711b3436f8dbe4e2f",
     "capabilities.json": "61386c8675f3e81e137e0bbfcbf1aa1882be89d57fb490effa7a10bc74bf483d",
     "execution-worker.js": "43b544f884549a0c1759e542d16976a1520fe89c92abea03cff47dfeb358d844",
-    "execution-worker.js.map": "283eb177131391355bf358fe1030b6106b5b1b71832dbad31f29a91bffdc2452",
+    "execution-worker.js.map": "48499d5e0f4515ef0a612ae9b275fbee7aecb1c52e899f2dd44d00ff6cdbe3f6",
     "execution.tower": "be3624088cf5f849d18a48245ee3795c62160e90ebfba80be44ca00b2cf0d9a7",
     "foreach.tower": "d33d7ffa6b58ab4ebd1725174c2c522528b9cd68eb16d64179d7eb8fc91391c6",
     "foundation.tower": "e8c2144f373f7cb80bde4b93c85a547a990430688ef9774d745b8ebb3ae3a4ed",
     "functions.tower": "eb7ce27064c6417df62d2a98e5487555eed32ba056ac7e75790145485eb2bbc6",
     "increment.tower": "fb773947fd1c9b9bfe19e346d51f8c3177aafa8a9c01c93a0f25e2f5a64b4a91",
-    "index.html": "126fdd6219ce764ad0dd92277b02b9a51521cbdd4f0b23401fba3fa1df9b6be0",
+    "index.html": "86b4f0aa22d59483c3b559ad155edfb8fd26f26f3b9fb8748daa35206717b18e",
     "inference.tower": "0b190205dad8a7f91daf496f8e6fd53622ae3459e84b8f0b14b4de6ade52676b",
     "memory.tower": "1a97dcd16b9de20581007c7ead7943f51f1244fd1feac26293fad06771db2da0",
     "replacements.tower": "4754b5bcf39d44edfc6af855b75b64165780b1f394503cb2fc13968b7d5c9b9b",
     "structs.tower": "f120c7b1e1ae60853be07c37a43f79054c1b3aed16c838c6f09acc972fe8979f",
-    "style.css": "9c57678117c6fe64a20eeeece7ffb54433c2f4647c165f3720166e122ad4fe3a",
+    "style.css": "cc6174e44ae16d6923801a3c8d93ea22b71116f5cb826cb3653cb10fc79bfc38",
     "target-worker.js": "adb418ff9c228fbcceecc243076b9281f9cfef120db8865c30629c6bbcb87267",
-    "target-worker.js.map": "14d51f1f19c8b3f35432e86d162c871a1c35db0d0e8461f2a46f315e283e5771",
-    "targets/aarch64-unknown-linux-gnu-runtime.o": "0d6160f9b6b33e7549e5974f767bf3274aec75229c161e87fbb439b4549884b7",
-    "targets/arm64-apple-macos11-runtime.o": "4f2d33a41bdb36669a1a0eda88f01999a30bc64adb158aaca02f2e568adbdc89",
+    "target-worker.js.map": "86e40ccfb0d462e26191053a88c358cead1d3f71653e3478cd3c93344c50d4e6",
+    "targets/aarch64-unknown-linux-gnu-runtime.o": "f7f8253a67a5d7dd89ff2c0e56dce90687b7ec292a872b47716b431cc0a5ad29",
+    "targets/arm64-apple-macos11-runtime.o": "d68f6dce222882fcc30108e9570cdfa9e17ae85a3ed71481ca832fb40db99596",
     "targets/kernel32.lib": "759a9d3d5585d6b128b02a22c3a066cad51b515b847c16b8dc1d078bc2db4f07",
     "targets/libSystem.tbd": "b38b11a1f50135d58f17a5436e255bd7a70ac68ef7380c5abab28612612c2009",
-    "targets/x86_64-apple-macos11-runtime.o": "6a7b29947a7952b7894a288523ff5acb11a7d389388812c5d8db37f5dba6612b",
-    "targets/x86_64-pc-windows-msvc-runtime.o": "471e3233ea7d10326b13fa62de772d78b64f285cf75a16478a1c2c5ce3a3c735",
-    "targets/x86_64-unknown-linux-gnu-runtime.o": "dd9017a54b2e683f35ed8289eebf6d13175beddd9020ddbdfba3c4933e5c847b",
+    "targets/x86_64-apple-macos11-runtime.o": "bc8f1723505fcdc45db643d6c82b93dcf9ccc41bf1a39a88b39148831b6bd862",
+    "targets/x86_64-pc-windows-msvc-runtime.o": "03a419ba88813f57926c9195162189726ea851c1e796456fc8cb2eba6217ba4c",
+    "targets/x86_64-unknown-linux-gnu-runtime.o": "8124486f2221d3d02fb6226fd2fc193db50982de9527ee619b2e7ea23ed6758a",
     "templates.tower": "f7d0bf1e3e7cbe703bad66bda6bafafd697ba9fef5d65ac9c6d22e8ebe653dfa",
     "tokens.tower": "6017af5b8505e680685610332d305054a9d4b9f599d083802f7cf057f657f950",
-    "tower-cross.wasm.gz": "e00bd900d9119a122a72a12858e5e1a927a73c7d8885c4aa971fb58b042a8003",
-    "tower-llvm.wasm": "92673d133d678ffbb8cdfa524c3a444d6aba6a3c547bbe6b9412348f018cf5d6",
-    "tower-llvm.wasm.gz": "8030134cd45024374463501d024f685932729c06a7843f27f820be300b871873",
-    "tower.wasm": "fce323d2de50e08060f5a4b161c2b5d20c0220d91a8f5e087335d93cb47d97bf",
+    "tower-cross.wasm.gz": "8cc03619e467b0f2a470c35db0a314902b5a30b41f8c3e69086e760f09ffe819",
+    "tower-llvm.wasm": "7d45e146d383771ee6221ae5aa5ba9d7fb9d4a6710a7b726ad095cfda0207b76",
+    "tower-llvm.wasm.gz": "74757673066dabbc7969b4a10580a68f30fd17c618466ff2e6be231c100fa8e1",
+    "tower.wasm": "e0179084faf38dca5a45f23b024084161495844a9705f9a891a9252935923756",
     "worker.js": "b3ef82e078567118e210b996ed60731303e8a1550202f3207776c30bb00dcf03",
-    "worker.js.map": "26d39adaf83faf8bf25a2af23ae1fd0b3263076ace74abb6648254d319e1c7f5"
-  },
-  "mainConsolidation": {
-    "sourceCommit": "abd707121fd1289b6e34256b20331e316fcde797",
-    "previousDeployment": "1d828a2ccf76bfa7ca8200c69ce724d25599717e",
-    "rebuiltReactors": [
-      "tower.wasm",
-      "tower-llvm.wasm",
-      "tower-cross.wasm.gz"
-    ],
-    "status": "Frontend, formatter, interpreter and host integration branches consolidated on main. All three browser compiler reactors rebuilt from this source. Native bootstrap/adapters remain; this is not yet a Tower-only compiler."
-  },
-  "previousDeploymentMetadata": {
-    "frontendMigration": {
-      "sourceCommit": "35e5484ff344c898c1383ac2eb786f575a507bff",
-      "previousDeployment": "1d4080c4a9c35734ff7c045d7cd09e5c6121a794",
-      "frontendCommits": [
-        "b50bfe04ef78b312b4ee917410586d8cd45e04a4",
-        "ef6be67"
-      ],
-      "integratedHostCommit": "62b863ea39e47dd17157afb98e35f61630d98403",
-      "rebuiltReactors": [
-        "tower.wasm",
-        "tower-llvm.wasm",
-        "tower-cross.wasm.gz"
-      ],
-      "status": "Replacement preparation/expansion, template construction/remapping and lexical traversal run in Tower. Native frontend adapters and bootstrap code remain; this is not a Tower-only compiler."
-    },
-    "formatter": {
-      "sourceCommit": "9d5905332a70ac8990b8045c049da18675b3ff40",
-      "previousDeployment": "bd3a8566b4b861b9e0c006f09b011900041111a1",
-      "updatedAssets": [
-        "tower.wasm"
-      ],
-      "retainedLLVM": "Existing published LLVM and cross-target reactors; not rebuilt by the formatter deployment."
-    },
-    "interpreter": {
-      "sourceCommit": "279800d9e99366a53b914dba74d7205dfad5e62f",
-      "previousDeployment": "9c52b593cead5018539aeb566e6a38066f5a37a7",
-      "updatedAssets": [
-        "tower.wasm"
-      ],
-      "retainedLLVM": "Existing published LLVM/cross reactors and target packs are retained byte-for-byte; no backend rebuild is claimed."
-    },
-    "hostRuntime": {
-      "sourceCommit": "8fdb688ff4c59a788ff159540b8e7f06a31a1c87",
-      "previousDeployment": "4a5538eea412c8f06c1d12e9e6a2cb2f38ba852e",
-      "updatedAssets": [
-        "execution-worker.js",
-        "execution-worker.js.map",
-        "target-worker.js",
-        "target-worker.js.map",
-        "tower.wasm",
-        "worker.js",
-        "worker.js.map"
-      ],
-      "retainedLLVM": "LLVM/cross reactors and target support packs retained byte-for-byte from the previous deployment; they do not include this host-memory port. No backend rebuild or Tower-only compiler is claimed."
-    },
-    "hostRuntimeIntegration": {
-      "sourceCommit": "0307d80f5c7a167e270561200bf75c0a14183e14",
-      "previousDeployment": "fbb591f297851bf2e2f779e5d97ca14531f5c78d",
-      "updatedAssets": [
-        "tower.wasm"
-      ],
-      "retainedLLVM": "Published assets retained byte-for-byte except tower.wasm. The LLVM/cross reactors include the prior frontend/allocator checkpoint but not this integration's additional interpreter storage and browser host ports. No new backend rebuild or Tower-only compiler is claimed."
-    }
+    "worker.js.map": "9b9bf4c1118d539263ef218a2a8a93dbb7f60d76d16fe4d5a487e0751bca1b45"
   }
 }
