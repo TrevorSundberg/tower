@@ -14849,3 +14849,24 @@ console.error timing summaries as NativeCommandError despite producing complete
 JSON; reran without that redirect and explicitly propagated LASTEXITCODE (zero).
 The archived report uses the successful rerun, not a selectively faster sample.
 todo.txt still hashes to 96a9e58964d7f01e4a97819f259448db81ef5e40.
+
+Published and verified:
+Implementation/validation source e5ef1e623612db6b371236789c6a661471dc4e51 is pushed
+to main. The final pull was current. Published the tested 52-asset build as
+gh-pages 2c4e1cf665f7a7a31010db81457c27414eb3200e, based on upstream a2b6c05.
+The manifest records 15 rebuilt assets and 37 hash-verified retained assets,
+including all target runtime packs, library modules and new language examples.
+All three Tower/LLVM/cross reactors were rebuilt. Additive replacement copies
+preserved the existing publication tree; no force push or discarded work.
+The first Pages push failed GitHub DNS resolution; an ordinary retry succeeded.
+
+GitHub Pages workflow 44620264883 completed successfully:
+https://github.com/TrevorSundberg/tower/actions/runs/44620264883 .
+node playground/scripts/verify-deployment.mjs https://trevorsundberg.github.io/tower/
+exited zero. All 52 hosted assets exactly match the tested local build, including
+the deployment manifest; desktop and mobile checks passed for backend agreement,
+editable grammar, persistence, executable/cache downloads, target defaults,
+completion/Tab acceptance and shared compiler highlighting. Evidence:
+build/llvm-bc-live-deployment.log and build/deployment-verification/report.json.
+This publication record changes the journal only; deployed compiler/UI bytes
+remain the verified e5ef1e6/2c4e1cf build.
