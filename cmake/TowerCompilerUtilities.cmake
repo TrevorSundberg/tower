@@ -35,29 +35,11 @@ function(tower_compiler_utilities)
       OUTPUT_VARIABLE triple OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND_ERROR_IS_FATAL ANY)
   endif()
   add_library(tower-compiler-memory STATIC scaffolding/compiler-memory.cpp)
+  include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/TowerHost.cmake")
+  tower_compiler_host("${bootstrap}" "${bootstrap_dependency}" "${triple}")
   set_property(GLOBAL PROPERTY TOWER_COMPILER_TRIPLE "${triple}")
   add_library(tower-compiler-utilities INTERFACE)
   add_library(tower-compiler-entities INTERFACE)
-  set(host_input "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-host.tower")
-  set(host_object "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-host.o")
-  add_custom_command(OUTPUT "${host_input}"
-    COMMAND "${CMAKE_COMMAND}" -DROOT=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT=${host_input}
-      -DTESTS=${TOWER_PARSER_ONLY} -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ComposeHost.cmake"
-    DEPENDS cmake/ComposeHost.cmake scaffolding/library/bytes.tower
-      scaffolding/compiler/host-memory.tower scaffolding/compiler/host-text.tower
-      scaffolding/compiler/host-driver.tower scaffolding/compiler/host-handles.tower
-      scaffolding/tests/host.tower VERBATIM)
-  add_custom_command(OUTPUT "${host_object}"
-    COMMAND "${bootstrap}" "${host_input}"
-      --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
-      --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
-      --library --target "${triple}" -o "${host_object}"
-    DEPENDS ${bootstrap_dependency} "${host_input}" scaffolding/bedrock.tower scaffolding/foundation.tower
-    COMMENT "Compiling Tower host policies for ${triple}" VERBATIM)
-  set_source_files_properties("${host_object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
-  add_library(tower-compiler-host INTERFACE)
-  target_sources(tower-compiler-host INTERFACE "${host_object}")
-  target_link_libraries(tower-compiler-memory PUBLIC tower-compiler-host)
   foreach(source IN ITEMS scaffolding/compiler/utf8.tower scaffolding/library/bytes.tower scaffolding/library/entities.tower)
     get_filename_component(name "${source}" NAME_WE)
     set(object "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-${name}.o")

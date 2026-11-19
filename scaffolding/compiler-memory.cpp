@@ -21,27 +21,32 @@ extern "C" void* tower_allocate(size_t count, size_t size) {
   return tower_reallocate(nullptr, count, size);
 }
 #else
-// Temporary ABI adapters: Tower's backend currently reserves tower_* runtime
-// symbols and cannot bind the C allocator's realloc/free names directly.
-struct HostMemoryObservation { size_t live, calls, remaining; bool failing; };
-extern "C" void* host_memory_resize(HostMemoryObservation*, void*, size_t, size_t);
-extern "C" void host_memory_release(HostMemoryObservation*, void*);
-extern "C" void host_memory_fail_after(HostMemoryObservation*, size_t);
-extern "C" void* compiler_host_reallocate(void* pointer, size_t bytes) { return std::realloc(pointer, bytes); }
-extern "C" void compiler_host_free(void* pointer) { std::free(pointer); }
+// Temporary foreign-call and reserved runtime-symbol bridges only. Allocation
+// policy and failure instrumentation live in host/memory.tower.
+#include "compiler-host.hpp"
+#include <cstdlib>
+
 #ifdef TOWER_COMPILER_MEMORY_TESTS
-static HostMemoryObservation observation{};
-static auto* const memory_observation = &observation;
-extern "C" size_t tower_test_buffer_count() { return observation.live; }
-extern "C" size_t tower_test_buffer_allocations() { return observation.calls; }
-extern "C" void tower_test_buffer_fail_next() { host_memory_fail_after(&observation, 0); }
-extern "C" void tower_test_buffer_fail_after(size_t count) { host_memory_fail_after(&observation, count); }
+static CompilerMemoryState instrumentation{0, 0, SIZE_MAX};
+static auto* state = &instrumentation;
+extern "C" size_t tower_test_buffer_count() { return state->live_buffers; }
+extern "C" size_t tower_test_buffer_allocations() { return state->allocation_calls; }
+extern "C" void tower_test_buffer_fail_next() { state->fail_after = 0; }
+extern "C" void tower_test_buffer_fail_after(size_t count) { state->fail_after = count; }
 #else
-static HostMemoryObservation* const memory_observation = nullptr;
+static CompilerMemoryState* state = nullptr;
 #endif
+
 extern "C" void* tower_reallocate(void* pointer, size_t count, size_t size) {
-  return host_memory_resize(memory_observation, pointer, count, size);
+  return compiler_memory_reallocate(state, pointer, count, size);
 }
-extern "C" void tower_deallocate(void* pointer) { host_memory_release(memory_observation, pointer); }
-extern "C" void* tower_allocate(size_t count, size_t size) { return tower_reallocate(nullptr, count, size); }
+extern "C" void tower_deallocate(void* pointer) {
+  compiler_memory_deallocate(state, pointer);
+}
+extern "C" void* tower_allocate(size_t count, size_t size) {
+  return compiler_memory_reallocate(state, nullptr, count, size);
+}
+extern "C" void* compiler_host_reallocate(void* pointer, size_t bytes) { return std::realloc(pointer, bytes); }
+extern "C" void compiler_host_deallocate(void* pointer) { std::free(pointer); }
+
 #endif

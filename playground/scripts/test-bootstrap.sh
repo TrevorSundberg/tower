@@ -26,7 +26,7 @@ for utility in utf8 bytes entities parser-nodes host; do
 import pathlib, sys
 allowed = set() if sys.argv[1] == 'utf8' else {'tower_reallocate', 'tower_deallocate', 'memcpy', 'memmove', 'memset', 'bzero', 'stack_pointer', 'memory_base'}
 if sys.argv[1] == 'host': allowed |= {
-    'compiler_host_reallocate', 'compiler_host_free',
+    'compiler_host_reallocate', 'compiler_host_deallocate', 'tower_allocate',
     'bytes_reserve', 'bytes_push'}
 if sys.argv[1] == 'entities': allowed |= {
     'compiler_entity_store', 'abort',

@@ -37,6 +37,14 @@ test('Tower WASI directory ABI, rename, unlink and path confinement', () => {
   assert.equal(h.api.path_filestat_get(3, 0, ...h.text('work/output'), 300), 0);
   assert.equal(h.view().getUint8(316), 4); assert.equal(h.view().getBigUint64(332, true), 4n);
   const dir = h.open('work', 2);
+  assert.equal(h.api.path_open(3, 1, ...h.text('work'), 2, 0n, 0n, 4, 16), 0, 'wasi-libc opendir uses NONBLOCK');
+  const nonblocking = h.view().getUint32(16, true);
+  assert.equal(h.api.fd_fdstat_get(nonblocking, 300), 0);
+  assert.equal(h.view().getUint16(302, true), 4);
+  assert.equal(h.api.fd_fdstat_set_flags(nonblocking, 5), 0);
+  assert.equal(h.api.fd_fdstat_set_flags(nonblocking, 2), 58, 'unsupported synchronization flag');
+  assert.equal(h.api.path_open(3, 0, ...h.text('work'), 2, 0n, 0n, 2, 16), 58);
+  assert.equal(h.api.fd_close(nonblocking), 0);
   assert.equal(h.api.fd_readdir(dir, 300, 100, 0n, 16), 0);
   assert.equal(h.view().getBigUint64(300, true), 1n); assert.equal(h.view().getUint32(316, true), 6);
   assert.equal(new TextDecoder().decode(h.bytes().subarray(324, 330)), 'output');

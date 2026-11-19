@@ -12,5 +12,5 @@ cmake -S "$repo" -B "$build" -G Ninja \
   -DTOWER_PARSER_ONLY=ON -DTOWER_BOOTSTRAP_COMPILER="$bootstrap"
 cmake --build "$build" --target tower-parser-tests tower-interpreter-tests \
   --parallel "${TOWER_BUILD_JOBS:-4}"
-node "$repo/scaffolding/tests/interpreter-wasi.mjs" "$build/tower-parser-tests" --host-only
+node "$repo/scaffolding/tests/host-wasi.mjs" "$build/tower-parser-tests"
 node "$repo/scaffolding/tests/interpreter-wasi.mjs" "$build/tower-interpreter-tests"

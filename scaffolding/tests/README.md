@@ -3,6 +3,24 @@
 The same runtime/parser now also runs in the [static WASM playground](../../playground/README.md).
 Native and WASM parser builds use explicit error returns with C++ exceptions disabled.
 
+The parser command also runs `host-runtime.tower`: CLI ordering, borrowed argument
+lifetimes, link-array cleanup, allocation overflow, zero-size release and injected
+allocation failures are tested in Tower. `towerc-stage1` and `towerc` use the
+Tower host implementations; `towerc-seed` retains the original native policies
+solely to break the bootstrap cycle. None is yet a Tower-only compiler.
+
+To run this complete command on Wasm32, configure `TOWER_PARSER_ONLY=ON` with
+the WASI SDK toolchain and a host `TOWER_BOOTSTRAP_COMPILER`, build
+`tower-parser-tests`, then run:
+
+```text
+node scaffolding/tests/host-wasi.mjs path/to/tower-parser-tests
+```
+
+This runner mounts the checked-out Tower fixtures in the same portable WASI host
+used by the playground. CMake makes the formatter fixture's source paths relative
+to that mount; the test does not require the original build machine's filesystem.
+
 Run the native tree/parser checks without building LLVM or the WASI runtime:
 
 ```powershell

@@ -57,6 +57,9 @@ if(TOWER_NATIVE)
   target_compile_features(towerc PRIVATE cxx_std_20)
   target_link_libraries(towerc PRIVATE tower-compiler-parser-nodes tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
   target_link_libraries(towerc PRIVATE LLVM tower-compiler-interpreter)
+  foreach(host IN ITEMS towerc-seed towerc-stage1 towerc)
+    target_compile_options(${host} PRIVATE -fno-exceptions)
+  endforeach()
   return()
 endif()
 
@@ -161,6 +164,9 @@ if(TOWER_PARSER_ONLY)
     scaffolding/tower.cpp scaffolding/tests/nodes.cpp scaffolding/parser.cpp scaffolding/parser-tree-tests.cpp
     scaffolding/syntax.cpp scaffolding/compiler-syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/bedrock.cpp scaffolding/format.cpp scaffolding/lex-pattern.cpp scaffolding/lex-pattern-common.cpp scaffolding/syntax-tests.cpp)
   target_compile_features(tower-parser-tests PRIVATE cxx_std_20)
+  if(CMAKE_CXX_COMPILER_TARGET MATCHES "^wasm")
+    target_compile_options(tower-parser-tests PRIVATE "-ffile-prefix-map=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding=source")
+  endif()
   tower_format_reference(tower-parser-tests)
   target_sources(tower-parser-tests PRIVATE scaffolding/tests/format.cpp)
   target_link_libraries(tower-parser-tests PRIVATE tower-compiler-interpreter tower-compiler-parser-nodes tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
@@ -261,6 +267,16 @@ if(TOWER_PARSER_ONLY)
   set_tests_properties(tower-parser-tests tower-foreach-example PROPERTIES
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
   include(cmake/TowerInterpreterTests.cmake)
+  foreach(reference IN ITEMS tower-lexer-reference tower-syntax-lexer-reference
+      tower-syntax-reader-reference tower-syntax-validation-reference
+      tower-syntax-emission-reference tower-regex-reference tower-lr-reference
+      tower-utf8-reference tower-bytes-reference)
+    if(MSVC)
+      target_compile_definitions(${reference} PRIVATE _HAS_EXCEPTIONS=0)
+    else()
+      target_compile_options(${reference} PRIVATE -fno-exceptions)
+    endif()
+  endforeach()
   return()
 endif()
 

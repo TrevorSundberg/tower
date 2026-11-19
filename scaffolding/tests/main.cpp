@@ -4,6 +4,7 @@
 #include "../compiler-syntax-emission.hpp"
 #include <cassert>
 void core_tests();
+extern "C" int host_runtime_tests();
 void formatter_tests();
 void compiler_storage_tests();
 void entity_store_tests();
@@ -28,6 +29,8 @@ void lr_analysis_tests();
 #endif
 
 int main(int argc, char** argv) {
+  const auto host_result = host_runtime_tests();
+  if (host_result) { fprintf(stderr, "Tower host test failed: %d\n", host_result); return 1; }
 #ifdef _MSC_VER
   _CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_FILE);
   _CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDERR);
@@ -69,8 +72,8 @@ int main(int argc, char** argv) {
     syntax_destroy(session);
     return failed ? 1 : 0;
   }
-  const auto host_result = host_support_tests();
-  if (host_result) { fprintf(stderr, "Tower host test failed: %d\n", host_result); return 1; }
+  const auto transport_result = host_support_tests();
+  if (transport_result) { fprintf(stderr, "Tower transport test failed: %d\n", transport_result); return 1; }
   const auto storage_result = interpreter_storage_tests();
   if (storage_result) { fprintf(stderr, "Tower interpreter storage test failed: %d\n", storage_result); return 1; }
   if (host_only) { puts("Tower host and interpreter storage tests passed."); return 0; }

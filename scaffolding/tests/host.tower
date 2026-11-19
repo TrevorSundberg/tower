@@ -1,6 +1,4 @@
 // Compiled into the native/WASI test host. All assertions and trials are Tower.
-extern fn tower_test_buffer_fail_next(): void;
-
 fn host_test_bytes(buffer: ByteBuffer*, wanted: u8*, count: usize): bool {
     var same = buffer.length == count;
     if same {} else {
@@ -18,102 +16,6 @@ fn host_test_bytes(buffer: ByteBuffer*, wanted: u8*, count: usize): bool {
         }
         i = i + 1;
     }
-}
-
-fn host_test_memory(): i32 {
-    var state: HostMemoryObservation;
-    fill(&state, 0, sizeof(HostMemoryObservation));
-    var p = host_memory_resize(&state, null, 8, 2);
-    var ok = p != null;
-    if ok {} else {
-        return 101;
-    }
-    var bytes = bits(u8*, p);
-    bytes[0] = 93;
-    var maximum: usize = 0;
-    maximum = maximum - 1;
-    var failed = host_memory_resize(&state, p, maximum, 2);
-    ok = failed == null;
-    var count = state.calls == 1;
-    if count {} else {
-        ok = false;
-    }
-    if ok {} else {
-        return 102;
-    }
-    host_memory_fail_after(&state, 0);
-    failed = host_memory_resize(&state, p, 4096, 1);
-    ok = failed == null;
-    count = state.live == 1;
-    if count {} else {
-        ok = false;
-    }
-    count = bytes[0] == 93;
-    if count {} else {
-        ok = false;
-    }
-    if ok {} else {
-        return 103;
-    }
-    var next = host_memory_resize(&state, p, 4096, 1);
-    ok = next != null;
-    if ok {} else {
-        return 104;
-    }
-    p = next;
-    bytes = bits(u8*, p);
-    ok = bytes[0] == 93;
-    if ok {} else {
-        return 105;
-    }
-    host_memory_fail_after(&state, 0);
-    failed = host_memory_resize(&state, p, 0, 1);
-    ok = failed == null;
-    count = state.live == 1;
-    if count {} else {
-        ok = false;
-    }
-    count = bytes[0] == 93;
-    if count {} else {
-        ok = false;
-    }
-    if ok {} else {
-        return 106;
-    }
-    failed = host_memory_resize(&state, p, maximum, 0);
-    ok = failed == null;
-    count = state.live == 0;
-    if count {} else {
-        ok = false;
-    }
-    if ok {} else {
-        return 107;
-    }
-    host_memory_release(&state, null);
-    host_memory_fail_after(&state, 1);
-    p = host_memory_resize(&state, null, 1, 1);
-    failed = host_memory_resize(&state, null, 1, 1);
-    ok = p != null;
-    count = failed == null;
-    if count {} else {
-        ok = false;
-    }
-    if ok {} else {
-        return 108;
-    }
-    host_memory_release(&state, p);
-    host_memory_fail_after(&state, maximum);
-    p = host_memory_resize(&state, null, 1, 1);
-    ok = p != null;
-    if ok {} else {
-        return 109;
-    }
-    host_memory_release(&state, p);
-    ok = state.live == 0;
-    if ok {} else {
-        return 110;
-    }
-    return 0;
 }
 
 fn host_test_json(): i32 {
@@ -207,118 +109,6 @@ fn host_test_json(): i32 {
     return 0;
 }
 
-fn host_test_driver(): i32 {
-    var args: u8*[32];
-    var links: u8*[32];
-    var options: HostDriverOptions;
-    args[0] = "towerc";
-    host_driver_parse(&options, 1, &args[0], &links[0], "explicit-target");
-    var ok = host_argument_is(options.target, "explicit-target");
-    var same = host_argument_is(options.emit, "exe");
-    if same {} else {
-        ok = false;
-    }
-    if options.optimize {} else {
-        ok = false;
-    }
-    if ok {} else {
-        return 301;
-    }
-    args[1] = "source.tower";
-    args[2] = "--library";
-    args[3] = "--emit";
-    args[4] = "llvm";
-    args[5] = "--link";
-    args[6] = "first.a";
-    args[7] = "--link";
-    args[8] = "second.o";
-    args[9] = "--no-optimize";
-    args[10] = "--interpret";
-    args[11] = "--timings";
-    host_driver_parse(&options, 12, &args[0], &links[0], "target");
-    ok = host_argument_is(options.source, "source.tower");
-    same = host_argument_is(options.emit, "llvm");
-    if same {} else {
-        ok = false;
-    }
-    same = options.link_count == 2;
-    if same {} else {
-        ok = false;
-    }
-    same = host_argument_is(links[0], "first.a");
-    if same {} else {
-        ok = false;
-    }
-    same = host_argument_is(links[1], "second.o");
-    if same {} else {
-        ok = false;
-    }
-    same = options.optimize == false;
-    if same {} else {
-        ok = false;
-    }
-    if options.library {} else {
-        ok = false;
-    }
-    if options.interpret {} else {
-        ok = false;
-    }
-    if options.timings {} else {
-        ok = false;
-    }
-    if ok {} else {
-        return 302;
-    }
-    args[2] = "--emit";
-    args[3] = "llvm";
-    args[4] = "--library";
-    host_driver_parse(&options, 5, &args[0], &links[0], "target");
-    ok = host_argument_is(options.emit, "object");
-    if ok {} else {
-        return 303;
-    }
-    args[1] = "--target";
-    host_driver_parse(&options, 2, &args[0], &links[0], "target");
-    ok = host_argument_is(options.error, "Missing argument for ");
-    same = host_argument_is(options.argument, "--target");
-    if same {} else {
-        ok = false;
-    }
-    if ok {} else {
-        return 304;
-    }
-    args[2] = "--help";
-    host_driver_parse(&options, 3, &args[0], &links[0], "target");
-    ok = host_argument_is(options.target, "--help");
-    if ok {} else {
-        return 305;
-    }
-    args[1] = "--help";
-    args[2] = "--unknown";
-    host_driver_parse(&options, 3, &args[0], &links[0], "target");
-    if options.help {} else {
-        return 306;
-    }
-    args[1] = "one.tower";
-    args[2] = "two.tower";
-    host_driver_parse(&options, 3, &args[0], &links[0], "target");
-    ok = host_argument_is(options.error, "Unexpected argument: ");
-    same = host_argument_is(options.argument, "two.tower");
-    if same {} else {
-        ok = false;
-    }
-    if ok {} else {
-        return 307;
-    }
-    args[1] = "--unknown";
-    host_driver_parse(&options, 2, &args[0], &links[0], "target");
-    ok = host_argument_is(options.argument, "--unknown");
-    if ok {} else {
-        return 308;
-    }
-    return 0;
-}
-
 fn host_test_handles(): i32 {
     var table: HostHandles;
     fill(&table, 0, sizeof(HostHandles));
@@ -402,18 +192,8 @@ fn host_test_handles(): i32 {
 }
 
 export fn host_support_tests(): i32 {
-    var result = host_test_memory();
+    var result = host_test_json();
     var failed = result != 0;
-    if failed {
-        return result;
-    }
-    result = host_test_json();
-    failed = result != 0;
-    if failed {
-        return result;
-    }
-    result = host_test_driver();
-    failed = result != 0;
     if failed {
         return result;
     }
