@@ -120,7 +120,11 @@ function(tower_compiler_parser_nodes)
       -DEMISSION=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/syntax-emission.tower
       -DEXPANSION=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/syntax-expansion.tower
       -DREPLACEMENTS=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/syntax-replacements.tower
+      -DTEMPLATE=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/syntax-template.tower
+      -DSCAN=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/syntax-scan.tower
       -DEMISSION_TESTS=${emission_tests}
+      -DTEMPLATE_TESTS=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/syntax-template.tower
+      -DSCAN_TESTS=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/syntax-scan.tower
       -DEXPANSION_TESTS=${expansion_tests}
       -DREPLACEMENT_TESTS=${replacement_tests}
       -DFORMAT_DIR=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler
@@ -131,6 +135,10 @@ function(tower_compiler_parser_nodes)
     DEPENDS scaffolding/compiler/syntax-emission.tower ${emission_tests}
     DEPENDS scaffolding/compiler/syntax-expansion.tower ${expansion_tests}
     DEPENDS scaffolding/compiler/syntax-replacements.tower ${replacement_tests}
+    DEPENDS scaffolding/compiler/syntax-template.tower
+    DEPENDS scaffolding/compiler/syntax-scan.tower
+    DEPENDS scaffolding/tests/syntax-template.tower
+    DEPENDS scaffolding/tests/syntax-scan.tower
     VERBATIM)
   add_custom_command(OUTPUT "${object}"
     COMMAND "${bootstrap}" "${input}"

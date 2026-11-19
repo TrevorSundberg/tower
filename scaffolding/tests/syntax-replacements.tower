@@ -73,5 +73,13 @@ fn syntax_replacement_source_tests(): usize {
     if ok {} else {
         return 108;
     }
+    ok = replacement_test_source("parse Expression = Identifier | Number;parse Statement = Expression ';';parse Expression |= 'echo' $`spaced name`:Identifier => replace { $`spaced name` };echo value;", 4, "");
+    if ok {} else {
+        return 109;
+    }
+    ok = replacement_test_source("parse Expression = Identifier | Number;parse Statement = Expression ';';parse Expression |= 'echo' $x:Identifier => replace { /* before */ $x /* after */ };echo value;", 4, "");
+    if ok {} else {
+        return 110;
+    }
     return 0;
 }

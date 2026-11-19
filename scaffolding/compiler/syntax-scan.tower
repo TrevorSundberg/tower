@@ -1,0 +1,264 @@
+// Session token traversal uses the same data-driven lexer for declarations,
+// ordinary code, diagnostic lookahead and typed replacement captures.
+struct SyntaxScanInput {
+    lexicon: SyntaxLexicon*;
+    source: u8*;
+    size: usize;
+    cursor: usize;
+    revision: usize;
+    declaration: bool;
+    bootstrapping: bool;
+    runtime: LRRuntime*;
+    state: usize;
+    highlights: void*;
+    context: void*;
+    match_kind: void*;
+    replacement: bool;
+    captures: SyntaxTemplateCapture*;
+    count: usize;
+    base: usize;
+}
+
+struct SyntaxScanResult {
+    id: u32;
+    start: usize;
+    length: usize;
+    checks: usize;
+    error: u8*;
+    message: vector(u8);
+}
+
+extern fn syntax_scan_highlight(host: void*, start: usize, end: usize, revision: usize, style: u8*): void;
+
+fn scan_choice(input: SyntaxScanInput*, choice: LexiconChoice*): void {
+    lexicon_choose(input.lexicon, input.source, input.size, input.cursor, input.declaration, input.runtime, input.state, choice);
+}
+
+fn scan_highlight(input: SyntaxScanInput*, start: usize, style: u8*): void {
+    var styled = input.highlights != null;
+    if styled {
+        styled = style[0] != 0;
+    }
+    if styled {
+        syntax_scan_highlight(input.highlights, start, input.cursor, input.revision, style);
+    }
+}
+
+export fn syntax_scan_skip(input: SyntaxScanInput*, result: SyntaxScanResult*): void {
+    var meta = input.bootstrapping;
+    if meta {} else {
+        meta = input.declaration;
+    }
+    loop {
+        var done = input.cursor == input.size;
+        if done {
+            break;
+        }
+        var choice: LexiconChoice;
+        if meta {
+            lexicon_skip(input.lexicon, input.source, input.size, input.cursor, &choice);
+        } else {
+            var declaration = lexicon_declaration(input.lexicon, input.source, input.size, input.cursor);
+            if declaration {
+                break;
+            }
+            scan_choice(input, &choice);
+            result.checks = result.checks + choice.checks;
+            if choice.skipped {} else {
+                break;
+            }
+        }
+        done = choice.length == 0;
+        if done {
+            break;
+        }
+        var start = input.cursor;
+        input.cursor = input.cursor + choice.length;
+        scan_highlight(input, start, choice.style);
+    }
+}
+
+fn scan_after_skip(input: SyntaxScanInput*, result: SyntaxScanResult*): void {
+    result.id = 4294967294;
+    result.start = input.cursor;
+    result.length = 0;
+    var done = input.cursor == input.size;
+    if done {
+        return;
+    }
+    var choice: LexiconChoice;
+    scan_choice(input, &choice);
+    result.checks = result.checks + choice.checks;
+    var invalid = choice.length == 0;
+    if invalid {
+        var codepoint: u32;
+        var remaining = input.size - input.cursor;
+        choice.length = tower_utf8_decode(&input.source[input.cursor], remaining, &codepoint);
+        var empty = choice.length == 0;
+        if empty {
+            choice.length = 1;
+        }
+        choice.style = "invalid";
+        result.error = "No token rule matches source";
+    }
+    input.cursor = input.cursor + choice.length;
+    result.length = choice.length;
+    result.id = choice.id;
+    scan_highlight(input, result.start, choice.style);
+}
+
+export fn syntax_scan_token(input: SyntaxScanInput*, result: SyntaxScanResult*): void {
+    syntax_scan_skip(input, result);
+    scan_after_skip(input, result);
+}
+
+export fn syntax_scan_peek(input: SyntaxScanInput*, id: u32*): bool {
+    var count: usize = 0;
+    loop {
+        var exhausted = count == 32;
+        if exhausted {
+            return false;
+        }
+        var done = input.cursor == input.size;
+        if done {
+            *id = 4294967294;
+            return true;
+        }
+        var choice: LexiconChoice;
+        scan_choice(input, &choice);
+        var invalid = choice.length == 0;
+        if invalid {
+            return false;
+        }
+        input.cursor = input.cursor + choice.length;
+        if choice.skipped {} else {
+            *id = choice.id;
+            return true;
+        }
+        count = count + 1;
+    }
+}
+
+fn scan_capture(input: SyntaxScanInput*, name: u8*): usize {
+    var low: usize = 0;
+    var high = input.count;
+    loop {
+        var done = low == high;
+        if done {
+            return lr_none();
+        }
+        var middle = high - low;
+        middle = middle / 2;
+        middle = middle + low;
+        var order = template_text_order(input.captures[middle].name, name);
+        var same = order == 0;
+        if same {
+            return middle;
+        }
+        var less = order < 0;
+        if less {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
+    }
+}
+
+fn scan_unknown(result: SyntaxScanResult*, name: vector(u8)*): void {
+    var ok = node_text_set(&result.message, "Unknown replacement capture: $");
+    if ok {
+        // Include the NUL in the append; keep text length separate as usual.
+        var bytes = name.length + 1;
+        ok = bytes_append(&result.message, name.data, bytes);
+        if ok {
+            result.message.length = result.message.length - 1;
+            result.error = result.message.data;
+        }
+    }
+    if ok {} else {
+        result.error = "Unable to allocate replacement capture diagnostic";
+    }
+}
+
+export fn syntax_scan_read(input: SyntaxScanInput*, result: SyntaxScanResult*): void* {
+    syntax_scan_skip(input, result);
+    result.start = input.cursor;
+    result.id = 4294967294;
+    var hole = input.replacement;
+    if hole {
+        hole = input.cursor < input.size;
+    }
+    if hole {
+        hole = input.source[input.cursor] == 36;
+    }
+    var name: vector(u8);
+    vector_init(u8, &name);
+    var ok: bool = true;
+    if hole {
+        input.cursor = input.cursor + 1;
+        var start = input.cursor;
+        var length = lexicon_identifier(input.lexicon, input.source, input.size, start);
+        input.cursor = input.cursor + length;
+        ok = syntax_identifier_decode(&input.source[start], length, &name);
+        if ok {
+            var ordinal = scan_capture(input, name.data);
+            var missing = ordinal == lr_none();
+            if missing {
+                scan_unknown(result, &name);
+            } else {
+                ordinal = ordinal & 4294967295;
+                result.id = convert(u32, ordinal);
+                result.id = result.id + 3145728;
+                result.length = input.cursor - result.start;
+            }
+        }
+    } else {
+        scan_after_skip(input, result);
+    }
+    var node: void* = null;
+    var present = result.id != 4294967294;
+    if present {
+        present = result.error == null;
+    }
+    if present {
+        node = entity_create_related(input.context);
+        ok = node != null;
+        if ok {
+            var component = entity_component_add(node, input.match_kind);
+            ok = component != null;
+            if ok {
+                var data = bits(ParserMatchData*, entity_component_data(component));
+                node_payload_init(4, bits(void*, data));
+                data.id = result.id;
+                data.start = result.start + input.base;
+                data.length = result.length;
+                if hole {
+                    ok = node_text_set(&data.label, "$");
+                    if ok {
+                        var bytes = name.length + 1;
+                        ok = bytes_append(&data.label, name.data, bytes);
+                        if ok {
+                            data.label.length = data.label.length - 1;
+                        }
+                    }
+                } else {
+                    ok = bytes_assign_text(&data.label, &input.source[result.start], result.length);
+                }
+            }
+        }
+    }
+    vector_dispose(u8, &name);
+    if ok {} else {
+        var allocated = node != null;
+        if allocated {
+            entity_release(node);
+        }
+        node = null;
+        result.error = "Unable to allocate source token";
+    }
+    return node;
+}
+
+export fn syntax_scan_dispose(result: SyntaxScanResult*): void {
+    vector_dispose(u8, &result.message);
+}

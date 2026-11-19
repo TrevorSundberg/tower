@@ -4,6 +4,8 @@
 #include "compiler-syntax-emission.hpp"
 #include "compiler-syntax-expansion.hpp"
 #include "compiler-syntax-replacements.hpp"
+#include "compiler-syntax-template.hpp"
+#include "compiler-syntax-scan.hpp"
 #include "compiler-entities.hpp"
 #include "compiler-generics.hpp"
 #include "compiler-syntax-lexer.hpp"
@@ -519,143 +521,80 @@ std::shared_ptr<Version> compiled(SyntaxSession& session, const Definitions& def
   return version;
 }
 
-std::string skip_meta(SyntaxSession& session, size_t& pos, std::vector<SyntaxHighlight>& highlights) {
-  while (pos < session.source.size()) {
-    LexiconChoice choice;
-    lexicon_skip(session.version->lexicon, session.source.data(), session.source.size(), pos, &choice);
-    if (!choice.length) break;
-    if (*choice.style) highlights.push_back({pos, pos + choice.length, session.revision, choice.style});
-    pos += choice.length;
-  }
-  return {};
+#ifdef TOWER_EXPANSION_SEED
+#include "bootstrap/syntax-scan-seed.inc"
+#else
+extern "C" void syntax_scan_highlight(void* host, size_t start, size_t end, size_t revision, const char* style) {
+  static_cast<std::vector<SyntaxHighlight>*>(host)->push_back({start, end, revision, style});
 }
-
-LexiconChoice choose(const SyntaxSession& session, size_t pos, const ParserLookahead* expected = nullptr) {
+SyntaxScanInput scan_input(const SyntaxSession& session, size_t pos, std::vector<SyntaxHighlight>* highlights,
+    const ParserLookahead* expected = nullptr) {
   const auto context = expected ? *expected : parser_recognizer_lookahead(session.recognizer);
-  LexiconChoice choice;
-  lexicon_choose(session.version->lexicon, session.source.data(), session.source.size(), pos,
-    session.declaration, context.runtime, context.state, &choice);
-  if (!expected) parser_recognizer_account_lookahead(session.recognizer, choice.checks);
-  return choice;
+  SyntaxScanInput input{};
+  input.lexicon = session.version->lexicon; input.source = session.source.data(); input.size = session.source.size();
+  input.cursor = pos; input.revision = session.revision;
+  input.declaration = session.declaration; input.bootstrapping = session.bootstrapping;
+  input.runtime = context.runtime; input.state = context.state; input.highlights = highlights;
+  input.context = session.version->rules.get(); input.match_kind = parser_match_get_type();
+  return input;
 }
 bool diagnostic_peek(void* context, size_t& pos, const ParserLookahead& expected, uint32_t& id) {
-  const auto& session = *static_cast<SyntaxSession*>(context);
-  // The same lexer and candidate's parser state determine contextual tokens.
-  // Only a local cursor changes; no highlights, declarations or trees are made.
-  // Cap skipped tokens as well as parser actions on this error-only path.
-  for (size_t count = 0; count < 32; ++count) {
-    if (pos == session.source.size()) { id = PARSER_ID_EOF; return true; }
-    auto choice = choose(session, pos, &expected);
-    if (!choice.length) return false;
-    pos += choice.length;
-    if (!choice.skipped) { id = choice.id; return true; }
-  }
-  return false;
+  auto input = scan_input(*static_cast<SyntaxSession*>(context), pos, nullptr, &expected);
+  const bool ok = syntax_scan_peek(&input, &id);
+  pos = input.cursor;
+  return ok;
 }
-
-size_t capture_name_length(const SyntaxSession& session, size_t pos) {
-  return lexicon_identifier(session.version->lexicon, session.source.data(), session.source.size(), pos);
-}
-
 bool declaration_at(const SyntaxSession& session, size_t pos) {
   return lexicon_declaration(session.version->lexicon, session.source.data(), session.source.size(), pos);
 }
 std::string skip_source(SyntaxSession& session, size_t& pos, std::vector<SyntaxHighlight>& highlights) {
-  if (session.bootstrapping || session.declaration) return skip_meta(session, pos, highlights);
-  while (pos < session.source.size() && !declaration_at(session, pos)) {
-    auto choice = choose(session, pos);
-    if (!choice.length || !choice.skipped) break;
-    if (*choice.style) highlights.push_back({pos, pos + choice.length, session.revision, choice.style});
-    pos += choice.length;
-  }
+  auto input = scan_input(session, pos, &highlights);
+  SyntaxScanResult result{};
+  syntax_scan_skip(&input, &result);
+  pos = input.cursor; parser_recognizer_account_lookahead(session.recognizer, result.checks);
   return {};
 }
 std::string scan(SyntaxSession& session, size_t& pos, std::vector<SyntaxHighlight>& highlights,
     uint32_t& id, size_t& start, size_t& length) {
-  id = PARSER_ID_EOF; length = 0; start = pos;
-  std::string error = skip_source(session, pos, highlights);
-  if (!error.empty()) { start = highlights.back().start; return error; }
-  start = pos;
-  if (pos == session.source.size()) return {};
-  auto choice = choose(session, pos);
-  if (!choice.length) {
-    uint32_t value; choice.length = lex_codepoint(session.source, pos, value);
-    if (!choice.length) choice.length = 1;
-    choice.style = "invalid"; error = "No token rule matches source";
-  }
-  pos += choice.length; length = choice.length; id = choice.id;
-  if (*choice.style) highlights.push_back({start, pos, session.revision, choice.style});
-  return error;
+  auto input = scan_input(session, pos, &highlights);
+  SyntaxScanResult result{};
+  syntax_scan_token(&input, &result);
+  pos = input.cursor; id = result.id; start = result.start; length = result.length;
+  parser_recognizer_account_lookahead(session.recognizer, result.checks);
+  return result.error ? result.error : "";
 }
-
-TowerNode* lex(Stream* stream, void* userdata, uint32_t* id, size_t* start, size_t* length) {
-  auto& session = **(SyntaxSession**)userdata;
-  std::string error = scan(session, session.cursor, session.highlights, *id, *start, *length);
-  session.error_offset = *start;
-  if (!error.empty()) {
-    parser_stream_set_error(stream, error.c_str());
-    *id = PARSER_ID_EOF;
-    return nullptr;
-  }
-  if (*id == PARSER_ID_EOF) return nullptr;
-  auto* node = tower_node_create();
-  auto* m = parser_match_create(node);
-  parser_match_set_id(m, *id);
-  parser_match_set_start(m, *start);
-  parser_match_set_length(m, *length);
-  std::string label(session.source.substr(*start, *length));
-  parser_match_set_label(m, label.c_str());
+TowerNode* read_scan(Stream* stream, SyntaxSession& session, SyntaxScanInput& input,
+    uint32_t* id, size_t* start, size_t* length) {
+  SyntaxScanResult result{};
+  auto* node = syntax_scan_read(&input, &result);
+  session.cursor = input.cursor; session.error_offset = result.start;
+  parser_recognizer_account_lookahead(session.recognizer, result.checks);
+  *id = result.id; *start = result.start + input.base; *length = result.length;
+  if (result.error) { parser_stream_set_error(stream, result.error); *id = PARSER_ID_EOF; }
+  syntax_scan_dispose(&result);
   return node;
 }
-
+TowerNode* lex(Stream* stream, void* userdata, uint32_t* id, size_t* start, size_t* length) {
+  auto& session = **static_cast<SyntaxSession**>(userdata);
+  auto input = scan_input(session, session.cursor, &session.highlights);
+  return read_scan(stream, session, input, id, start, length);
+}
 struct TemplateInput {
   SyntaxSession session;
-  std::map<std::string, uint32_t> holes;
-  size_t base = 0;
+  const SyntaxTemplateCapture* captures = nullptr;
+  size_t count = 0, base = 0;
 };
-
 TowerNode* template_lex(Stream* stream, void* userdata, uint32_t* id, size_t* start, size_t* length) {
-  auto& input = **(TemplateInput**)userdata;
-  auto& s = input.session;
-  skip_source(s, s.cursor, s.highlights);
-  *start = s.cursor; *length = 0;
-  s.error_offset = *start;
-  TowerNode* result = nullptr;
-  if (s.cursor < s.source.size() && s.source[s.cursor] == '$') {
-    ++s.cursor;
-    size_t begin = s.cursor;
-    s.cursor += capture_name_length(s, s.cursor);
-    std::string name = tower_identifier_value(s.source.substr(begin, s.cursor - begin));
-    auto found = input.holes.find(name);
-    if (found == input.holes.end()) {
-      parser_stream_set_error(stream, ("Unknown replacement capture: $" + name).c_str());
-      *id = PARSER_ID_EOF; return nullptr;
-    }
-    *id = found->second; *length = s.cursor - *start;
-    result = tower_node_create();
-    auto* m = parser_match_create(result);
-    parser_match_set_id(m, *id);
-    parser_match_set_label(m, ("$" + name).c_str());
-  } else {
-    auto* pointer = &s;
-    result = lex(stream, &pointer, id, start, length);
-  }
-  *start += input.base;
-  if (result) {
-    parser_match_set_start(match(result), *start);
-    parser_match_set_length(match(result), *length);
-  }
-  return result;
+  auto& host = **static_cast<TemplateInput**>(userdata);
+  auto input = scan_input(host.session, host.session.cursor, &host.session.highlights);
+  input.replacement = true; input.captures = host.captures; input.count = host.count; input.base = host.base;
+  return read_scan(stream, host.session, input, id, start, length);
 }
+#endif
 
-void hole_production(Version& version, const std::string& category, uint32_t id, bool append = false) {
-  auto* rule = production(version, category, true);
-  if (append) reference(rule, category);
-  auto node = owned(tower_node_create());
-  tower_node_attach(node.get(), rule);
-  parser_string_set_id(parser_string_create(node.get()), 0, id);
-}
-
+#ifdef TOWER_EXPANSION_SEED
+#include "bootstrap/syntax-template-seed.inc"
+#else
 bool compile_template(Version& version, const Definitions& defs, const Sequence& seq,
     Replacement& replacement, std::string& error, bool& grammar_error) {
   grammar_error = false;
@@ -679,23 +618,29 @@ bool compile_template(Version& version, const Definitions& defs, const Sequence&
   input.session.definitions = defs;
   input.session.bedrock = version.bedrock;
   input.session.version = grammar;
+  std::vector<SyntaxTemplateCapture> captures;
+  std::vector<SyntaxEmissionHelper> repetitions;
   for (const auto& [name, entity] : replacement.captures) {
+    const auto id = FirstHole + static_cast<uint32_t>(captures.size());
+    grammar->names[id] = "$" + name;
     const auto& term = semantic(entity);
-    uint32_t id = FirstHole + (uint32_t)input.holes.size();
-    input.holes[name] = id; grammar->names[id] = "$" + name;
-    if (!term.repetition) {
-      hole_production(*grammar, resolve_token(version.tokens, term.text) == PARSER_ID_EOF
-        ? term.text : grammar->template_tokens.at(term.text), id);
-    } else {
-      for (const auto& [helper, target_entity] : grammar->repetitions) {
-        const auto& target = semantic(target_entity);
-        bool compatible = target.repetition == '*' || target.repetition == term.repetition;
-        if (!target.literal && target.text == term.text && compatible) {
-          if (target.repetition != '*') hole_production(*grammar, helper, id);
-          if (target.repetition != '?') hole_production(*grammar, helper, id, true);
-        }
-      }
-    }
+    const auto wrapper = grammar->template_tokens.find(term.text);
+    captures.push_back({name.c_str(), entity.get(), wrapper == grammar->template_tokens.end() ? nullptr : wrapper->second.c_str()});
+  }
+  for (const auto& [name, entity] : grammar->repetitions) repetitions.push_back({name.c_str(), entity.get(), false});
+  input.captures = captures.data(); input.count = captures.size();
+  SyntaxTemplateGrammar holes{};
+  holes.emission.root = grammar->rules.get(); holes.emission.syntax_kind = syntax_component_type();
+  holes.emission.rule_kind = parser_rule_get_type(); holes.emission.reference_kind = parser_reference_get_type();
+  holes.emission.string_kind = parser_string_get_type();
+  holes.captures = captures.data(); holes.count = captures.size();
+  holes.repetitions = repetitions.data(); holes.repetition_count = repetitions.size();
+  const auto first_added = tower_node_get_child_count(grammar->rules.get());
+  if (!syntax_template_holes(&holes)) { error = "Unable to allocate replacement hole productions"; return false; }
+  for (size_t i = first_added; i < tower_node_get_child_count(grammar->rules.get()); ++i) {
+    auto* node = child(grammar->rules.get(), i);
+    auto* rule = static_cast<Rule*>(tower_node_get_component_userdata(node, parser_rule_get_type()));
+    grammar->named_indices.try_emplace(parser_rule_get_name(rule), i + 1);
   }
   char* diagnostic = nullptr;
   grammar->table = parser_table_create(grammar->rules.get(), grammar.get(), resolve, token_name, &diagnostic,
@@ -725,30 +670,25 @@ bool compile_template(Version& version, const Definitions& defs, const Sequence&
   auto* body = child(root.get(), 0);
   if (!body) { error = "Replacement must produce one syntax tree"; return false; }
   tower_node_add_ref(body); tower_node_detach(body); replacement.tree = owned(body);
-  // Template tables have extra productions. Remap user productions back to the
-  // active grammar so subsequent expansion uses the correct alternative.
-  std::vector<TowerNode*> pending{body};
-  while (!pending.empty()) {
-    auto* node = pending.back(); pending.pop_back();
-    auto* m = match(node);
-    if (parser_match_get_id(m) >= FirstHole && parser_match_get_id(m) < FirstHole + input.holes.size()) {
-      ++replacement.uses[std::string(parser_match_get_label(m)).substr(1)];
-    } else if (parser_match_get_rule_index(m) != TOWER_INVALID_INDEX) {
-      auto key = grammar->productions.find(parser_match_get_rule_index(m));
-      std::string label = parser_match_get_label(m);
-      if (auto source = grammar->capture_sources.find(label); source != grammar->capture_sources.end())
-        label = version.capture_names.at(source->second);
-      auto helper = version.named_indices.find(label);
-      parser_match_set_rule_index(m, key != grammar->productions.end() ? version.indices.at(key->second)
-        : helper != version.named_indices.end() ? helper->second : TOWER_INVALID_INDEX);
-      parser_match_set_label(m, label.c_str());
-      uint32_t id = parser_table_non_terminal_resolve_reference(version.table, label.c_str());
-      parser_match_set_id(m, id);
-    }
-    for (size_t i = 0; i < tower_node_get_child_count(node); ++i) pending.push_back(child(node, i));
-  }
+  std::vector<SyntaxEmissionProduction> source, destination;
+  std::vector<SyntaxTemplateAlias> aliases;
+  std::vector<SyntaxTemplateName> names;
+  std::vector<size_t> uses(captures.size());
+  source.reserve(grammar->productions.size()); destination.reserve(version.indices.size());
+  aliases.reserve(grammar->capture_sources.size()); names.reserve(version.named_indices.size());
+  for (const auto& [index, key] : grammar->productions) source.push_back({key.first.c_str(), key.second, index});
+  for (const auto& [key, index] : version.indices) destination.push_back({key.first.c_str(), key.second, index});
+  for (const auto& [name, entity] : grammar->capture_sources)
+    aliases.push_back({name.c_str(), version.capture_names.at(entity).c_str()});
+  for (const auto& [name, index] : version.named_indices) names.push_back({name.c_str(), index});
+  SyntaxTemplateRemap remap{body, parser_match_get_type(), source.data(), source.size(),
+    destination.data(), destination.size(), aliases.data(), aliases.size(), names.data(), names.size(),
+    parser_table_grammar(version.table), uses.data(), uses.size()};
+  if (!syntax_template_remap(&remap)) { error = "Unable to allocate replacement template mapping"; return false; }
+  for (size_t i = 0; i < captures.size(); ++i) if (uses[i]) replacement.uses[captures[i].name] = uses[i];
   return true;
 }
+#endif
 
 #ifdef TOWER_EXPANSION_SEED
 #include "bootstrap/syntax-replacements-seed.inc"

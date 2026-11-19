@@ -29,6 +29,7 @@ if sys.argv[1] == 'entities': allowed |= {
     'compiler_name_is', 'compiler_name_equal', 'compiler_node_copy_metadata',
     'compiler_generic_type', 'compiler_component_add'}
 if sys.argv[1] == 'parser-nodes': allowed |= {
+    'syntax_scan_highlight',
     'syntax_replacement_begin', 'syntax_replacement_capture', 'syntax_replacement_attempt',
     'syntax_replacement_diagnostic', 'syntax_replacement_offset',
     'syntax_replacement_select', 'syntax_replacement_commit'}
