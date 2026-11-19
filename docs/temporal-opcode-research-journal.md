@@ -14160,3 +14160,22 @@ compilation benchmark after the rebase: 2.530 -> 0.158 ms (small), 5.719 -> 3.55
 (500 declarations), 2.691 -> 0.331 ms (inference). Same 12 warmups/40 alternating
 pairs and canonical-source/output comparison as above. The old published reactor
 is retained only as an ignored comparison artifact under build/import-port/baseline.
+
+### 2026-11-19 — Verified import-layer publication
+
+Code commit 6da334b is pushed to main after rebasing on b2017d7. Published the
+complete tested build as gh-pages c69ffd5, preserving the upstream fast interpreter
+and completion assets. The initial recursive cleanup command was rejected by the
+tool approval policy; comparing manifests showed no obsolete assets, so publication
+used additive/replacement copies without deleting anything. A transient GitHub DNS
+failure required retrying the push. Both remote refs were checked with ls-remote;
+no force push was used.
+
+`node playground/scripts/verify-deployment.mjs https://trevorsundberg.github.io/tower/`
+completed successfully: all 48 hosted assets match the local manifest, with desktop
+and mobile checks for execution agreement, editable grammar, persistence, artifact
+downloads, target defaults, completion/Tab acceptance and compiler-based output
+highlighting. Evidence: `build/import-port/verify-live.log` and
+`build/deployment-verification/report.json`. `todo.txt` still hashes to
+96a9e58964d7f01e4a97819f259448db81ef5e40. This publication record changes only the
+journal; deployed compiler and UI bytes remain those of 6da334b/c69ffd5.
