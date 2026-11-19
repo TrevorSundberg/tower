@@ -15133,3 +15133,23 @@ The final manifest SHA-256 is
 `44bf2024d0c824302a7b9fdb229a510df924ccb2705ed7b0ecb172db9d43d70b`.
 No further source/runtime changes are needed for publication. The hybrid boundary
 and native-support retirement work remain as described above.
+
+Publication completed. Source 6529959a663416257b299d5718a096a865be5fd9 was
+committed, pulled/rebased (current), validated with 31 focused completion/project/
+packaging tests, and pushed to main. Published the complete tested dist as
+gh-pages 956b9c84586f28a8ade27b946fc9178e5cf1fa44, based on f47840e.
+The existing detached Pages worktree was advanced to upstream and updated
+additively; no force push or discarded upstream assets. The larger native support
+upload took several minutes and completed normally. Both remote refs were checked
+with `git ls-remote`.
+
+`node playground/scripts/verify-deployment.mjs https://trevorsundberg.github.io/tower/`
+exited zero in the documented Docker environment. All 66 hosted assets exactly
+match the final local manifest, and desktop/mobile behavior passes for execution
+agreement, imports, grammar editing, project persistence, target downloads,
+contextual/typed completion and the Tower Compiler workbench/cancellation UI.
+Evidence: `build/compiler-workbench/verify-live.log` and
+`build/deployment-verification/report.json`. The real Linux browser also verifies
+its default target selection. This final journal-only commit changes no deployed
+asset; the published implementation and manifest remain those of 6529959/956b9c8.
+`todo.txt` remains blob 96a9e58964d7f01e4a97819f259448db81ef5e40.
