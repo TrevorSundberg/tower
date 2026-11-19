@@ -15,10 +15,18 @@
     <div class="toolbar">
       <div class="file-controls"><button id="new-project" class="quiet">New project</button><button id="open" class="quiet" title="Open a whole project ZIP">Open</button><button id="save" class="quiet" title="Download all project files as ZIP">Save</button><input id="file" type="file" accept=".zip,application/zip" hidden></div>
       <div class="export-controls"><button id="link-files" class="quiet" title="Add object files or static libraries">Link files</button><input id="link-input" type="file" accept=".o,.obj,.a,.lib,.tbd,.bc" multiple hidden></div>
+      <div class="compiler-runtime-controls"><span id="active-compiler">Original compiler</span><button id="reset-compiler" class="quiet" disabled>Reset compiler</button></div>
     </div>
     <span id="runtime" class="runtime"><span class="dot"></span><span id="runtime-text">Loading WASM</span></span>
   </header>
   <main>
+    <div id="compiler-controls" class="panel" hidden>
+      <button id="rebuild-compiler">Rebuild compiler</button>
+      <button id="cancel-compiler-build" class="quiet" disabled>Cancel build</button>
+      <label><input id="auto-rebuild-compiler" type="checkbox" checked> Auto rebuild on edits</label>
+      <p id="compiler-build-status" role="status">Original compiler · edit source or rebuild</p>
+      <details><summary>Build details</summary><p>Builds Tower sources with prebuilt native support. New generations are checked before use. Reload restores the original compiler.</p></details>
+    </div>
     <div class="workspace">
       <aside class="project-panel panel" aria-label="Project files">
         <div class="panel-heading"><label for="project-kind">Project</label><select id="project-kind" aria-label="Project"></select></div>

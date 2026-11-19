@@ -123,3 +123,12 @@ main{display:flex;flex-direction:column;flex:1;min-height:0;min-width:0;gap:6px;
 
 .cm-tooltip-autocomplete{background:#17262b!important;border:1px solid #48656c!important;color:#d4e0e2;max-width:min(440px,90vw)}
 .cm-tooltip-autocomplete ul li{padding:4px 8px!important}.cm-tooltip-autocomplete ul li[aria-selected]{background:#294c47!important;color:#fff!important}.cm-completionDetail{color:#9cb3ba;font-style:normal!important}
+
+.compiler-runtime-controls { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+#compiler-controls { flex: none; display: flex; align-items: center; gap: 6px 12px; padding: 6px 9px; flex-wrap: wrap; font-size: 1rem; }
+#compiler-controls label { white-space: nowrap; }
+#compiler-controls p { overflow-wrap: anywhere; }
+#compiler-controls details p { max-width: 45rem; padding: 6px 0; }
+#compiler-build-status { color: var(--accent); }
+#active-compiler { font-size: 1rem; }
+@media(max-width:680px) { .compiler-runtime-controls { justify-content: flex-end; } #compiler-controls { gap: 4px 8px; } #compiler-build-status { flex-basis: 100%; } }
