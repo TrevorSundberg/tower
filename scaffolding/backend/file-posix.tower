@@ -1,0 +1,12 @@
+// POSIX and WASI use the explicit 64-bit off_t interfaces.
+extern fn fseeko(file: void*, offset: i64, origin: i32): i32;
+
+extern fn ftello(file: void*): i64;
+
+fn backend_file_seek(file: void*, offset: i64, origin: i32): i32 {
+    return fseeko(file, offset, origin);
+}
+
+fn backend_file_position(file: void*): i64 {
+    return ftello(file);
+}

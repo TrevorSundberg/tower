@@ -1,0 +1,1122 @@
+// Foreign declaration descriptions are temporary mangler data, not Tower IR.
+// Their source spelling is the declaration supplied to cpp_name/c_name.
+struct ForeignType {
+    kind: u32;
+    cv: u32;
+    tag: u32;
+    name: u8*;
+    base: ForeignType*;
+    scope: ForeignType*;
+    args: vector(ForeignType*);
+    count: u64;
+    convention: u32;
+    ref: u32;
+    variadic: bool;
+    nothrow: bool;
+    template_id: bool;
+    operator_name: bool;
+}
+
+struct ForeignAlias {
+    name: u8*;
+    type: ForeignType*;
+}
+
+struct ForeignName {
+    text: vector(u8);
+    error: vector(u8);
+    error_offset: usize;
+    tokens: vector(u8*);
+    offsets: vector(usize);
+    at: usize;
+    memory: vector(void*);
+    types: vector(ForeignType*);
+    aliases: vector(ForeignAlias);
+    substitutions: vector(u8*);
+    ms_names: vector(u8*);
+    profile: u32;
+    object_symbol: bool;
+    abi: u32;
+    pointer_bytes: u32;
+    long_bytes: u32;
+    object_format: u32;
+    arch: u32;
+    member: u32;
+    access: u32;
+    special: u32;
+    convention: u32;
+    function: ForeignType*;
+    name: ForeignType*;
+    depth: u32;
+    abi_tags: vector(u8*);
+}
+
+// Profile constants are functions until Foundation supports enum values.
+export fn foreign_windows_arm64ec(): u32 {
+    return 11;
+}
+
+export fn foreign_wasi(): u32 {
+    return 1;
+}
+
+export fn foreign_linux_x64(): u32 {
+    return 2;
+}
+
+export fn foreign_macos_x64(): u32 {
+    return 3;
+}
+
+export fn foreign_macos_arm64(): u32 {
+    return 4;
+}
+
+export fn foreign_windows_x64(): u32 {
+    return 5;
+}
+
+export fn foreign_windows_x86(): u32 {
+    return 6;
+}
+
+export fn foreign_mingw_x64(): u32 {
+    return 7;
+}
+
+export fn foreign_linux_arm64(): u32 {
+    return 8;
+}
+
+export fn foreign_linux_x86(): u32 {
+    return 9;
+}
+
+export fn foreign_windows_arm64(): u32 {
+    return 10;
+}
+
+fn foreign_fail(m: ForeignName*, text: u8*): void {
+    var first = m.error.length == 0;
+    if first {
+        backend_text(&m.error, text);
+        var valid = m.at < m.offsets.length;
+        if valid {
+            m.error_offset = m.offsets.data[m.at];
+        }
+    }
+}
+
+fn foreign_require(m: ForeignName*, ok: bool): void {
+    var failed = ok == false;
+    if failed {
+        foreign_fail(m, "Unable to allocate foreign declaration storage");
+    }
+}
+
+fn foreign_copy(m: ForeignName*, source: u8*, count: usize): u8* {
+    var size = count + 1;
+    var text = alloc(u8, size);
+    var present = text != null;
+    foreign_require(m, present);
+    if present {
+        copy(text, source, count);
+        text[count] = 0;
+        foreign_require(m, vector_push(void*, &m.memory, bits(void*, text)));
+        return text;
+    }
+    return "";
+}
+
+fn foreign_node(m: ForeignName*, kind: u32): ForeignType* {
+    var type = alloc(ForeignType, 1);
+    var present = type != null;
+    foreign_require(m, present);
+    if present {
+        fill(type, 0, sizeof(ForeignType));
+        type.kind = kind;
+        type.name = "";
+        foreign_require(m, vector_push(ForeignType*, &m.types, type));
+    }
+    return type;
+}
+
+fn foreign_clone(m: ForeignName*, type: ForeignType*): ForeignType* {
+    var result = foreign_node(m, type.kind);
+    copy(result, type, sizeof(ForeignType));
+    vector_init(ForeignType*, &result.args);
+    var i: usize = 0;
+    loop {
+        var done = i == type.args.length;
+        if done {
+            break;
+        }
+        foreign_require(m, vector_push(ForeignType*, &result.args, type.args.data[i]));
+        i = i + 1;
+    }
+    return result;
+}
+
+fn foreign_word(byte: u8): bool {
+    var ok = byte >= 65;
+    if ok {
+        ok = byte <= 90;
+    }
+    if ok {
+        return true;
+    }
+    ok = byte >= 97;
+    if ok {
+        ok = byte <= 122;
+    }
+    if ok {
+        return true;
+    }
+    var foreign_result187 = byte == 95;
+    return foreign_result187;
+}
+
+fn foreign_digit(byte: u8): bool {
+    var ok = byte >= 48;
+    if ok {
+        ok = byte <= 57;
+    }
+    return ok;
+}
+
+fn foreign_lex(m: ForeignName*, source: u8*): void {
+    var length = backend_length(source);
+    var large = length > 16384;
+    if large {
+        foreign_fail(m, "Foreign declaration exceeds 16384 bytes");
+        return;
+    }
+    var i: usize = 0;
+    loop {
+        var done = i == length;
+        if done {
+            break;
+        }
+        var byte = source[i];
+        var space = byte <= 32;
+        if space {
+            i = i + 1;
+            continue;
+        }
+        var separator = byte == 58;
+        if separator {
+            var next = i + 1;
+            var single = source[next] != 58;
+            if single {
+                i = i + 1;
+                continue;
+            }
+        }
+        var start = i;
+        i = i + 1;
+        var word = foreign_word(byte);
+        if word {
+            loop {
+                var more = foreign_word(source[i]);
+                var foreign_condition141 = more == false;
+                if foreign_condition141 {
+                    more = foreign_digit(source[i]);
+                }
+                var foreign_condition142 = more == false;
+                if foreign_condition142 {
+                    break;
+                }
+                i = i + 1;
+            }
+        } else {
+            var digit = foreign_digit(byte);
+            if digit {
+                loop {
+                    var more = foreign_digit(source[i]);
+                    var foreign_condition143 = more == false;
+                    if foreign_condition143 {
+                        break;
+                    }
+                    i = i + 1;
+                }
+            } else {
+                var colon = byte == 58;
+                if colon {
+                    var foreign_condition144 = source[i] == 58;
+                    if foreign_condition144 {
+                        i = i + 1;
+                    }
+                }
+                var amp = byte == 38;
+                if amp {
+                    var foreign_condition145 = source[i] == 38;
+                    if foreign_condition145 {
+                        i = i + 1;
+                    }
+                }
+                var dot = byte == 46;
+                if dot {
+                    var foreign_condition146 = source[i] == 46;
+                    if foreign_condition146 {
+                        i = i + 1;
+                        var foreign_condition147 = source[i] == 46;
+                        if foreign_condition147 {
+                            i = i + 1;
+                        }
+                    }
+                }
+            }
+        }
+        var count = i - start;
+        foreign_require(m, vector_push(u8*, &m.tokens, foreign_copy(m, &source[start], count)));
+        foreign_require(m, vector_push(usize, &m.offsets, start));
+    }
+    foreign_require(m, vector_push(u8*, &m.tokens, ""));
+    foreign_require(m, vector_push(usize, &m.offsets, length));
+}
+
+fn foreign_peek(m: ForeignName*): u8* {
+    var valid = m.at < m.tokens.length;
+    if valid {
+        return m.tokens.data[m.at];
+    }
+    return "";
+}
+
+fn foreign_take(m: ForeignName*, text: u8*): bool {
+    var match = backend_equal(foreign_peek(m), text);
+    if match {
+        m.at = m.at + 1;
+    }
+    return match;
+}
+
+fn foreign_expect(m: ForeignName*, text: u8*): void {
+    var ok = foreign_take(m, text);
+    var foreign_condition148 = ok == false;
+    if foreign_condition148 {
+        foreign_fail(m, "Expected wordtext in foreign declaration: ");
+        backend_text(&m.error, text);
+    }
+}
+
+fn foreign_integer(m: ForeignName*): u64 {
+    var text = foreign_peek(m);
+    var value: u64 = 0;
+    var i: usize = 0;
+    loop {
+        var foreign_condition149 = text[i] == 0;
+        if foreign_condition149 {
+            break;
+        }
+        var foreign_condition150 = foreign_digit(text[i]) == false;
+        if foreign_condition150 {
+            foreign_fail(m, "Expected an unsigned integer literal");
+            return 0;
+        }
+        var part = convert(u64, text[i]);
+        part = part - 48;
+        var maximum: u64 = 18446744073709551615;
+        var limit = maximum - part;
+        limit = limit / 10;
+        var overflow = value > limit;
+        if overflow {
+            foreign_fail(m, "Foreign integer literal exceeds 64 bits");
+            return 0;
+        }
+        value = value * 10;
+        value = value + part;
+        i = i + 1;
+    }
+    var foreign_condition152 = i == 0;
+    if foreign_condition152 {
+        foreign_fail(m, "Expected an integer literal");
+    }
+    m.at = m.at + 1;
+    return value;
+}
+
+fn foreign_qualifiers(m: ForeignName*): u32 {
+    var result: u32 = 0;
+    loop {
+        if foreign_take(m, "const") {
+            result = result | 1;
+            continue;
+        }
+        if foreign_take(m, "volatile") {
+            result = result | 2;
+            continue;
+        }
+        if foreign_take(m, "restrict") {
+            result = result | 4;
+            continue;
+        }
+        if foreign_take(m, "__restrict") {
+            result = result | 4;
+            continue;
+        }
+        break;
+    }
+    return result;
+}
+
+fn foreign_cc(m: ForeignName*): u32 {
+    if foreign_take(m, "__cdecl") {
+        return 1;
+    }
+    if foreign_take(m, "__stdcall") {
+        return 2;
+    }
+    if foreign_take(m, "__fastcall") {
+        return 3;
+    }
+    if foreign_take(m, "__vectorcall") {
+        return 4;
+    }
+    if foreign_take(m, "__thiscall") {
+        return 5;
+    }
+    return 0;
+}
+
+fn foreign_builtin(m: ForeignName*): ForeignType* {
+    var start = m.at;
+    var sign: u32 = 0;
+    if foreign_take(m, "unsigned") {
+        sign = 1;
+    }
+    if foreign_take(m, "signed") {
+        sign = 2;
+    }
+    var code: u8* = "";
+    if foreign_take(m, "void") {
+        code = "v";
+    }
+    else {
+        if foreign_take(m, "bool") {
+            code = "b";
+        }
+        else {
+            if foreign_take(m, "char") {
+                code = "c";
+                var foreign_condition153 = sign == 1;
+                if foreign_condition153 {
+                    code = "h";
+                }
+                var foreign_condition154 = sign == 2;
+                if foreign_condition154 {
+                    code = "a";
+                }
+                sign = 0;
+            } else {
+                if foreign_take(m, "short") {
+                    foreign_take(m, "int");
+                    code = "s";
+                } else {
+                    if foreign_take(m, "long") {
+                        code = "l";
+                        if foreign_take(m, "long") {
+                            code = "x";
+                        }
+                        else {
+                            if foreign_take(m, "double") {
+                                code = "e";
+                            }
+                        }
+                        foreign_take(m, "int");
+                    } else {
+                        if foreign_take(m, "int") {
+                            code = "i";
+                        }
+                        else {
+                            if foreign_take(m, "float") {
+                                code = "f";
+                            }
+                            else {
+                                if foreign_take(m, "double") {
+                                    code = "d";
+                                }
+                                else {
+                                    if foreign_take(m, "wchar_t") {
+                                        code = "w";
+                                    }
+                                    else {
+                                        if foreign_take(m, "char8_t") {
+                                            code = "Du";
+                                        }
+                                        else {
+                                            if foreign_take(m, "char16_t") {
+                                                code = "Ds";
+                                            }
+                                            else {
+                                                if foreign_take(m, "char32_t") {
+                                                    code = "Di";
+                                                }
+                                                else {
+                                                    if foreign_take(m, "__int64") {
+                                                        code = "x";
+                                                    }
+                                                    else {
+                                                        if foreign_take(m, "__int128") {
+                                                            code = "n";
+                                                        }
+                                                        else {
+                                                            if foreign_take(m, "nullptr_t") {
+                                                                code = "Dn";
+                                                            }
+                                                            else {
+                                                                var foreign_condition155 = sign != 0;
+                                                                if foreign_condition155 {
+                                                                    code = "i";
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    var foreign_condition156 = code[0] == 0;
+    if foreign_condition156 {
+        m.at = start;
+        return null;
+    }
+    var foreign_condition157 = sign == 1;
+    if foreign_condition157 {
+        if backend_equal(code, "i") {
+            code = "j";
+        }
+        else {
+            if backend_equal(code, "s") {
+                code = "t";
+            }
+            else {
+                if backend_equal(code, "l") {
+                    code = "m";
+                }
+                else {
+                    if backend_equal(code, "x") {
+                        code = "y";
+                    }
+                    else {
+                        if backend_equal(code, "n") {
+                            code = "o";
+                        }
+                        else {
+                            foreign_fail(m, "Invalid unsigned type");
+                        }
+                    }
+                }
+            }
+        }
+    }
+    var type = foreign_node(m, 1);
+    type.name = code;
+    return type;
+}
+
+fn foreign_name_parts(m: ForeignName*): ForeignType* {
+    foreign_take(m, "::");
+    var scope: ForeignType* = null;
+    loop {
+        var word = foreign_peek(m);
+        var foreign_condition158 = foreign_word(word[0]) == false;
+        if foreign_condition158 {
+            foreign_fail(m, "Expected a qualified foreign name");
+            return foreign_node(m, 2);
+        }
+        var part = foreign_node(m, 2);
+        part.name = word;
+        part.scope = scope;
+        m.at = m.at + 1;
+        if backend_equal(word, "operator") {
+            foreign_operator(m, part);
+        }
+        if foreign_take(m, "<") {
+            part.template_id = true;
+            var foreign_condition159 = foreign_take(m, ">") == false;
+            if foreign_condition159 {
+                loop {
+                    var argument: ForeignType* = null;
+                    var wordtext = foreign_peek(m);
+                    var literal = foreign_digit(wordtext[0]);
+                    if backend_equal(wordtext, "-") {
+                        literal = true;
+                    }
+                    if literal {
+                        argument = foreign_node(m, 9);
+                        if foreign_take(m, "-") {
+                            argument.ref = 1;
+                        }
+                        argument.count = foreign_integer(m);
+                        argument.base = foreign_node(m, 1);
+                        argument.base.name = "i";
+                        var wide = argument.count > 2147483647;
+                        if wide {
+                            argument.base.name = "x";
+                            var foreign_condition3010 = m.long_bytes == 8;
+                            if foreign_condition3010 {
+                                argument.base.name = "l";
+                            }
+                            var huge = argument.count > 9223372036854775807;
+                            if huge {
+                                foreign_fail(m, "Use value(unsigned type, n) for this template literal");
+                            }
+                        }
+                    } else {
+                        var boolean = backend_equal(wordtext, "true");
+                        if backend_equal(wordtext, "false") {
+                            boolean = true;
+                        }
+                        if boolean {
+                            argument = foreign_node(m, 9);
+                            argument.base = foreign_node(m, 1);
+                            argument.base.name = "b";
+                            if backend_equal(wordtext, "true") {
+                                argument.count = 1;
+                            }
+                            m.at = m.at + 1;
+                        } else {
+                            argument = foreign_type(m);
+                        }
+                    }
+                    foreign_require(m, vector_push(ForeignType*, &part.args, argument));
+                    var foreign_condition160 = foreign_take(m, ",") == false;
+                    if foreign_condition160 {
+                        break;
+                    }
+                    var foreign_condition161 = m.error.length != 0;
+                    if foreign_condition161 {
+                        break;
+                    }
+                }
+                foreign_expect(m, ">");
+            }
+        }
+        scope = part;
+        var foreign_condition162 = foreign_take(m, "::") == false;
+        if foreign_condition162 {
+            break;
+        }
+        if backend_equal(foreign_peek(m), "*") {
+            break;
+        }
+        var foreign_condition163 = m.error.length != 0;
+        if foreign_condition163 {
+            break;
+        }
+    }
+    return scope;
+}
+
+fn foreign_simple_name(out: vector(u8)*, type: ForeignType*): void {
+    var foreign_condition164 = type.scope != null;
+    if foreign_condition164 {
+        foreign_simple_name(out, type.scope);
+        backend_text(out, "::");
+    }
+    backend_text(out, type.name);
+}
+
+fn foreign_alias(m: ForeignName*, type: ForeignType*): ForeignType* {
+    if type.template_id {
+        return type;
+    }
+    var name: vector(u8);
+    vector_init(u8, &name);
+    foreign_simple_name(&name, type);
+    var i: usize = 0;
+    var result = type;
+    loop {
+        var foreign_condition165 = i == m.aliases.length;
+        if foreign_condition165 {
+            break;
+        }
+        if backend_equal(name.data, m.aliases.data[i].name) {
+            result = m.aliases.data[i].type;
+            break;
+        }
+        i = i + 1;
+    }
+    vector_dispose(u8, &name);
+    return result;
+}
+
+fn foreign_add_alias(m: ForeignName*, name: u8*, type: ForeignType*): void {
+    var index = m.aliases.length;
+    var needed = index + 1;
+    var ok = vector_reserve(ForeignAlias, &m.aliases, needed);
+    foreign_require(m, ok);
+    if ok {
+        m.aliases.data[index].name = name;
+        m.aliases.data[index].type = type;
+        m.aliases.length = needed;
+    }
+}
+
+fn foreign_type(m: ForeignName*): ForeignType* {
+    m.depth = m.depth + 1;
+    var foreign_condition166 = m.depth > 64;
+    if foreign_condition166 {
+        foreign_fail(m, "Foreign type nesting exceeds 64");
+        m.depth = m.depth - 1;
+        var fallback = foreign_node(m, 1);
+        fallback.name = "v";
+        return fallback;
+    }
+    if foreign_take(m, "param") {
+        foreign_expect(m, "(");
+        var parameter = foreign_node(m, 10);
+        parameter.count = foreign_integer(m);
+        foreign_expect(m, ")");
+        m.depth = m.depth - 1;
+        return parameter;
+    }
+    if foreign_take(m, "value") {
+        foreign_expect(m, "(");
+        var literal = foreign_node(m, 9);
+        literal.base = foreign_type(m);
+        foreign_expect(m, ",");
+        if foreign_take(m, "-") {
+            literal.ref = 1;
+        }
+        literal.count = foreign_integer(m);
+        foreign_expect(m, ")");
+        m.depth = m.depth - 1;
+        return literal;
+    }
+    var cv = foreign_qualifiers(m);
+    var tag: u32 = 0;
+    if foreign_take(m, "struct") {
+        tag = 1;
+    }
+    if foreign_take(m, "class") {
+        tag = 2;
+    }
+    if foreign_take(m, "union") {
+        tag = 3;
+    }
+    if foreign_take(m, "enum") {
+        tag = 4;
+    }
+    var type = foreign_builtin(m);
+    var foreign_condition167 = type == null;
+    if foreign_condition167 {
+        type = foreign_name_parts(m);
+        type = foreign_alias(m, type);
+        var foreign_condition168 = tag != 0;
+        if foreign_condition168 {
+            type = foreign_clone(m, type);
+            type.tag = tag;
+        }
+    }
+    cv = cv | foreign_qualifiers(m);
+    var foreign_condition169 = cv != 0;
+    if foreign_condition169 {
+        type = foreign_clone(m, type);
+        type.cv = type.cv | cv;
+    }
+    var owner = foreign_member_owner(m);
+    var foreign_condition3022 = owner != null;
+    if foreign_condition3022 {
+        foreign_expect(m, "*");
+        var member_type = foreign_node(m, 8);
+        member_type.base = type;
+        member_type.scope = owner;
+        member_type.cv = foreign_qualifiers(m);
+        type = member_type;
+    }
+    loop {
+        var kind: u32 = 0;
+        if foreign_take(m, "*") {
+            kind = 3;
+        }
+        else {
+            if foreign_take(m, "&") {
+                kind = 4;
+            }
+            else {
+                if foreign_take(m, "&&") {
+                    kind = 5;
+                }
+            }
+        }
+        var foreign_condition170 = kind == 0;
+        if foreign_condition170 {
+            break;
+        }
+        var next = foreign_node(m, kind);
+        next.base = type;
+        next.cv = foreign_qualifiers(m);
+        type = next;
+    }
+    type = foreign_array(m, type);
+    m.depth = m.depth - 1;
+    return type;
+}
+
+fn foreign_suffix(m: ForeignName*, type: ForeignType*): void {
+    type.cv = foreign_qualifiers(m);
+    if foreign_take(m, "&") {
+        type.ref = 1;
+    }
+    if foreign_take(m, "&&") {
+        type.ref = 2;
+    }
+    if foreign_take(m, "noexcept") {
+        type.nothrow = true;
+        if foreign_take(m, "(") {
+            if foreign_take(m, "false") {
+                type.nothrow = false;
+            }
+            else {
+                foreign_expect(m, "true");
+            }
+            foreign_expect(m, ")");
+        }
+    }
+    if foreign_take(m, "throw") {
+        foreign_expect(m, "(");
+        if foreign_take(m, ")") {
+            type.nothrow = true;
+        }
+        else {
+            // Dynamic exception specifications do not affect an ordinary name.
+            loop {
+                foreign_type(m);
+                var foreign_condition2021 = foreign_take(m, ",") == false;
+                if foreign_condition2021 {
+                    break;
+                }
+                var foreign_condition2022 = m.error.length != 0;
+                if foreign_condition2022 {
+                    break;
+                }
+            }
+            foreign_expect(m, ")");
+        }
+    }
+}
+
+fn foreign_parameters(m: ForeignName*, function: ForeignType*): void {
+    m.depth = m.depth + 1;
+    var foreign_condition3023 = m.depth > 64;
+    if foreign_condition3023 {
+        foreign_fail(m, "Foreign function nesting exceeds 64");
+        m.depth = m.depth - 1;
+        return;
+    }
+    foreign_expect(m, "(");
+    if foreign_take(m, ")") {
+        m.depth = m.depth - 1;
+        return;
+    }
+    loop {
+        if foreign_take(m, "...") {
+            function.variadic = true;
+            break;
+        }
+        var type = foreign_type(m);
+        // Parenthesized pointer/reference function declarator: int (*name)(int).
+        if foreign_take(m, "(") {
+            var cc = foreign_cc(m);
+            var owner = foreign_member_owner(m);
+            var kind: u32 = 3;
+            if foreign_take(m, "&") {
+                kind = 4;
+            }
+            else {
+                if foreign_take(m, "&&") {
+                    kind = 5;
+                }
+                else {
+                    foreign_expect(m, "*");
+                }
+            }
+            var cv = foreign_qualifiers(m);
+            var wordtext = foreign_peek(m);
+            if foreign_word(wordtext[0]) {
+                m.at = m.at + 1;
+            }
+            foreign_expect(m, ")");
+            var callable = type;
+            if backend_equal(foreign_peek(m), "[") {
+                callable = foreign_array(m, type);
+            }
+            else {
+                callable = foreign_node(m, 7);
+                callable.base = type;
+                callable.convention = cc;
+                foreign_parameters(m, callable);
+                foreign_suffix(m, callable);
+            }
+            var foreign_condition3024 = owner != null;
+            if foreign_condition3024 {
+                kind = 8;
+            }
+            type = foreign_node(m, kind);
+            type.base = callable;
+            type.cv = cv;
+            type.scope = owner;
+        } else {
+            var wordtext = foreign_peek(m);
+            if foreign_word(wordtext[0]) {
+                m.at = m.at + 1;
+            }
+            type = foreign_array(m, type);
+            var foreign_condition3025 = type.kind == 6;
+            if foreign_condition3025 {
+                var decayed = foreign_node(m, 3);
+                decayed.base = type.base;
+                var foreign_condition3026 = m.abi == 2;
+                if foreign_condition3026 {
+                    decayed.cv = 1;
+                }
+                type = decayed;
+            }
+        }
+        // Top-level parameter CV qualifiers are absent from the function type.
+        var foreign_condition172 = m.abi == 1;
+        if foreign_condition172 {
+            var foreign_condition173 = type.cv != 0;
+            if foreign_condition173 {
+                type = foreign_clone(m, type);
+                type.cv = 0;
+            }
+        }
+        var void_parameter = type.kind == 1;
+        if void_parameter {
+            void_parameter = backend_equal(type.name, "v");
+        }
+        if void_parameter {
+            var allowed = function.args.length == 0;
+            if allowed {
+                allowed = backend_equal(foreign_peek(m), ")");
+            }
+            var foreign_condition174 = allowed == false;
+            if foreign_condition174 {
+                foreign_fail(m, "void must be the only parameter");
+            }
+        } else {
+            foreign_require(m, vector_push(ForeignType*, &function.args, type));
+        }
+        var foreign_condition175 = foreign_take(m, ",") == false;
+        if foreign_condition175 {
+            break;
+        }
+        var foreign_condition176 = m.error.length != 0;
+        if foreign_condition176 {
+            break;
+        }
+    }
+    foreign_expect(m, ")");
+    m.depth = m.depth - 1;
+}
+
+fn foreign_declaration(m: ForeignName*): void {
+    // Metadata stays inside the single cpp_name(...): using T = ...; struct X;
+    loop {
+        if foreign_take(m, "using") {
+            var name_type = foreign_name_parts(m);
+            var name: vector(u8);
+            vector_init(u8, &name);
+            foreign_simple_name(&name, name_type);
+            foreign_expect(m, "=");
+            var type = foreign_type(m);
+            foreign_add_alias(m, foreign_copy(m, name.data, name.length), type);
+            vector_dispose(u8, &name);
+            foreign_expect(m, ";");
+            continue;
+        }
+        if foreign_take(m, "typedef") {
+            var type = foreign_type(m);
+            var name = foreign_peek(m);
+            m.at = m.at + 1;
+            foreign_add_alias(m, name, type);
+            foreign_expect(m, ";");
+            continue;
+        }
+        var start = m.at;
+        var tag: u32 = 0;
+        if foreign_take(m, "struct") {
+            tag = 1;
+        }
+        if foreign_take(m, "class") {
+            tag = 2;
+        }
+        if foreign_take(m, "union") {
+            tag = 3;
+        }
+        if foreign_take(m, "enum") {
+            tag = 4;
+        }
+        var foreign_condition177 = tag != 0;
+        if foreign_condition177 {
+            var type = foreign_name_parts(m);
+            if foreign_take(m, ";") {
+                type.tag = tag;
+                var name: vector(u8);
+                vector_init(u8, &name);
+                foreign_simple_name(&name, type);
+                foreign_add_alias(m, foreign_copy(m, name.data, name.length), type);
+                vector_dispose(u8, &name);
+                continue;
+            }
+            m.at = start;
+        }
+        break;
+    }
+    loop {
+        var foreign_condition2023 = foreign_take(m, "abi_tag") == false;
+        if foreign_condition2023 {
+            break;
+        }
+        foreign_expect(m, "(");
+        var tag_name = foreign_peek(m);
+        m.at = m.at + 1;
+        foreign_require(m, vector_push(u8*, &m.abi_tags, tag_name));
+        foreign_expect(m, ")");
+    }
+    m.access = 2;
+    loop {
+        if foreign_take(m, "public") {
+            loop {
+                var foreign_condition2024 = foreign_take(m, "abi_tag") == false;
+                if foreign_condition2024 {
+                    break;
+                }
+                foreign_expect(m, "(");
+                var tag_name = foreign_peek(m);
+                m.at = m.at + 1;
+                foreign_require(m, vector_push(u8*, &m.abi_tags, tag_name));
+                foreign_expect(m, ")");
+            }
+            m.access = 2;
+            continue;
+        }
+        if foreign_take(m, "protected") {
+            m.access = 1;
+            continue;
+        }
+        if foreign_take(m, "private") {
+            m.access = 0;
+            continue;
+        }
+        if foreign_take(m, "static") {
+            m.member = 2;
+            continue;
+        }
+        if foreign_take(m, "method") {
+            m.member = 1;
+            continue;
+        }
+        if foreign_take(m, "virtual") {
+            m.member = 3;
+            continue;
+        }
+        break;
+    }
+    // Explicit ABI variants remove constructor/destructor ambiguity.
+    if foreign_take(m, "ctor") {
+        m.special = 1;
+    }
+    if foreign_take(m, "dtor") {
+        m.special = 4;
+    }
+    var foreign_condition178 = m.special != 0;
+    if foreign_condition178 {
+        m.member = 1;
+        foreign_expect(m, "(");
+        if foreign_take(m, "base") {
+            m.special = m.special + 1;
+        }
+        else {
+            if foreign_take(m, "deleting") {
+                m.special = 6;
+            }
+            else {
+                foreign_expect(m, "complete");
+            }
+        }
+        foreign_expect(m, ")");
+    }
+    var function = foreign_node(m, 7);
+    m.function = function;
+    var foreign_condition179 = m.special == 0;
+    if foreign_condition179 {
+        function.base = foreign_type(m);
+    }
+    else {
+        function.base = foreign_node(m, 1);
+        function.base.name = "v";
+    }
+    function.convention = foreign_cc(m);
+    m.name = foreign_name_parts(m);
+    var foreign_condition180 = m.special != 0;
+    if foreign_condition180 {
+        var part = foreign_node(m, 2);
+        part.scope = m.name;
+        part.name = m.name.name;
+        m.name = part;
+    }
+    foreign_parameters(m, function);
+    foreign_suffix(m, function);
+    var foreign_condition181 = function.cv != 0;
+    if foreign_condition181 {
+        var foreign_condition182 = m.member == 0;
+        if foreign_condition182 {
+            m.member = 1;
+        }
+    }
+    foreign_take(m, ";");
+    var trailing = foreign_peek(m);
+    var foreign_condition183 = trailing[0] != 0;
+    if foreign_condition183 {
+        foreign_fail(m, "Unsupported or trailing foreign declaration syntax");
+    }
+}
+
+export fn foreign_name_close(m: ForeignName*): void {
+    var foreign_condition184 = m == null;
+    if foreign_condition184 {
+        return;
+    }
+    var i: usize = 0;
+    loop {
+        var foreign_condition185 = i == m.types.length;
+        if foreign_condition185 {
+            break;
+        }
+        vector_dispose(ForeignType*, &m.types.data[i].args);
+        free(m.types.data[i]);
+        i = i + 1;
+    }
+    i = 0;
+    loop {
+        var foreign_condition186 = i == m.memory.length;
+        if foreign_condition186 {
+            break;
+        }
+        free(m.memory.data[i]);
+        i = i + 1;
+    }
+    vector_dispose(u8, &m.text);
+    vector_dispose(u8, &m.error);
+    vector_dispose(u8*, &m.tokens);
+    vector_dispose(usize, &m.offsets);
+    vector_dispose(void*, &m.memory);
+    vector_dispose(ForeignType*, &m.types);
+    vector_dispose(ForeignAlias, &m.aliases);
+    vector_dispose(u8*, &m.substitutions);
+    vector_dispose(u8*, &m.ms_names);
+    vector_dispose(u8*, &m.abi_tags);
+    free(m);
+}

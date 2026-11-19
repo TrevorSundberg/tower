@@ -1,0 +1,54 @@
+// Pinned LLVM/lld 20 wasm32 C++ ABI. ArrayRef is passed indirectly; constructors
+// and destructors are upstream implementations. No owned native adapter.
+struct BackendLldArguments {
+    data: u8**;
+    count: usize;
+}
+
+struct BackendLldStream {
+    opaque: u64[8];
+}
+
+extern fn `cpp_name(ctor(base) llvm::raw_fd_ostream(int, bool, bool, llvm::raw_ostream::OStreamKind))`(self: BackendLldStream*, fd: i32, close: bool, unbuffered: bool, kind: u32): void*;
+
+extern fn `cpp_name(dtor(base) llvm::raw_fd_ostream())`(self: BackendLldStream*): void*;
+
+extern fn `cpp_name(bool lld::wasm::link(llvm::ArrayRef<char const*>, llvm::raw_ostream&, llvm::raw_ostream&, bool, bool))`(args: BackendLldArguments*, output: BackendLldStream*, error: BackendLldStream*, exit_early: bool, disable_output: bool): bool;
+
+extern fn `cpp_name(static void lld::CommonLinkerContext::destroy())`(): void;
+
+extern fn `cpp_name(llvm::raw_ostream& llvm::nulls())`(): BackendLldStream*;
+
+export fn backend_link_wasi(link: BackendLink*, triple: u8*): bool {
+    var error_file = fopen("tower-link.stderr", "wb");
+    var failed = error_file == null;
+    if failed {
+        backend_text(&link.error, "Cannot open linker diagnostics");
+        return false;
+    }
+    var error: BackendLldStream;
+    `cpp_name(ctor(base) llvm::raw_fd_ostream(int, bool, bool, llvm::raw_ostream::OStreamKind))`(&error, fileno(error_file), false, true, 0);
+    var args: BackendLldArguments;
+    args.data = link.arguments.data;
+    args.count = link.arguments.length;
+    var linked = backend_lld_dispatch(triple, &args, `cpp_name(llvm::raw_ostream& llvm::nulls())`(), &error);
+    // Destroy LLD before stream storage. Repeated requests have no shared linker
+    // state; unrecoverable errors terminate the disposable worker instance.
+    `cpp_name(static void lld::CommonLinkerContext::destroy())`();
+    `cpp_name(dtor(base) llvm::raw_fd_ostream())`(&error);
+    fclose(error_file);
+    failed = linked == false;
+    if failed {
+        backend_text(&link.error, "Link failed: ");
+        var diagnostics: vector(u8);
+        vector_init(u8, &diagnostics);
+        backend_read_file(&diagnostics, "tower-link.stderr");
+        backend_text_append(&link.error, diagnostics.data, diagnostics.length);
+        vector_dispose(u8, &diagnostics);
+    }
+    remove("tower-link.stderr");
+    if linked {
+        linked = backend_link_read_output(link);
+    }
+    return linked;
+}

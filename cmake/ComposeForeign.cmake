@@ -1,0 +1,6 @@
+file(READ "${ROOT}/scaffolding/library/vector.tower" source)
+foreach(name IN ITEMS text foreign-reader foreign-declarators foreign-operators foreign-itanium foreign-microsoft foreign-api foreign-symbol foreign-tool)
+  file(READ "${ROOT}/scaffolding/backend/${name}.tower" module)
+  string(APPEND source "\n${module}")
+endforeach()
+file(WRITE "${OUTPUT}" "${source}")

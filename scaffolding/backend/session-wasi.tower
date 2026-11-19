@@ -1,0 +1,8 @@
+extern fn __wasi_clock_time_get(clock: u32, precision: u64, time: u64*): u32;
+
+fn backend_session_clock(): u64 {
+    var now: u64 = 0;
+    // Monotonic time measures execution only; it never affects generated code.
+    __wasi_clock_time_get(1, 1000, &now);
+    return now;
+}

@@ -1,0 +1,442 @@
+fn foreign_operator(m: ForeignName*, part: ForeignType*): void {
+    var text: vector(u8);
+    vector_init(u8, &text);
+    var first = foreign_peek(m);
+    m.at = m.at + 1;
+    backend_text(&text, first);
+    if backend_equal(first, "(") {
+        foreign_expect(m, ")");
+        backend_text(&text, ")");
+    }
+    else {
+        if backend_equal(first, "[") {
+            foreign_expect(m, "]");
+            backend_text(&text, "]");
+        }
+        else {
+            var allocate = backend_equal(first, "new");
+            if backend_equal(first, "delete") {
+                allocate = true;
+            }
+            if allocate {
+                if foreign_take(m, "[") {
+                    foreign_expect(m, "]");
+                    backend_text(&text, "[]");
+                }
+            } else {
+                var second = foreign_peek(m);
+                var more = backend_equal(second, "=");
+                if backend_equal(first, second) {
+                    if backend_equal(first, "+") {
+                        more = true;
+                    }
+                    if backend_equal(first, "-") {
+                        more = true;
+                    }
+                    if backend_equal(first, "<") {
+                        more = true;
+                    }
+                    if backend_equal(first, ">") {
+                        more = true;
+                    }
+                    if backend_equal(first, "|") {
+                        more = true;
+                    }
+                }
+                if backend_equal(first, "-") {
+                    if backend_equal(second, ">") {
+                        more = true;
+                    }
+                }
+                if more {
+                    backend_text(&text, second);
+                    m.at = m.at + 1;
+                }
+                if backend_equal(text.data, "<<") {
+                    if foreign_take(m, "=") {
+                        backend_text(&text, "=");
+                    }
+                }
+                if backend_equal(text.data, ">>") {
+                    if foreign_take(m, "=") {
+                        backend_text(&text, "=");
+                    }
+                }
+                if backend_equal(text.data, "<=") {
+                    if foreign_take(m, ">") {
+                        backend_text(&text, ">");
+                    }
+                }
+                if backend_equal(text.data, "->") {
+                    if foreign_take(m, "*") {
+                        backend_text(&text, "*");
+                    }
+                }
+            }
+        }
+    }
+    part.name = foreign_copy(m, text.data, text.length);
+    part.operator_name = true;
+    vector_dispose(u8, &text);
+}
+
+fn foreign_operator_code(m: ForeignName*, name: u8*, microsoft: bool): u8* {
+    var itanium: u8* = "";
+    var ms: u8* = "";
+    if backend_equal(name, "new") {
+        itanium = "nw";
+        ms = "?2";
+    }
+    if backend_equal(name, "new[]") {
+        itanium = "na";
+        ms = "?_U";
+    }
+    if backend_equal(name, "delete") {
+        itanium = "dl";
+        ms = "?3";
+    }
+    if backend_equal(name, "delete[]") {
+        itanium = "da";
+        ms = "?_V";
+    }
+    if backend_equal(name, "+") {
+        itanium = "pl";
+        ms = "?H";
+    }
+    if backend_equal(name, "-") {
+        itanium = "mi";
+        ms = "?G";
+    }
+    if backend_equal(name, "*") {
+        itanium = "ml";
+        ms = "?D";
+    }
+    if backend_equal(name, "/") {
+        itanium = "dv";
+        ms = "?K";
+    }
+    if backend_equal(name, "%") {
+        itanium = "rm";
+        ms = "?L";
+    }
+    if backend_equal(name, "&") {
+        itanium = "an";
+        ms = "?I";
+    }
+    if backend_equal(name, "|") {
+        itanium = "or";
+        ms = "?U";
+    }
+    if backend_equal(name, "^") {
+        itanium = "eo";
+        ms = "?T";
+    }
+    if backend_equal(name, "~") {
+        itanium = "co";
+        ms = "?S";
+    }
+    if backend_equal(name, "!") {
+        itanium = "nt";
+        ms = "?7";
+    }
+    if backend_equal(name, "=") {
+        itanium = "aS";
+        ms = "?4";
+    }
+    if backend_equal(name, "<") {
+        itanium = "lt";
+        ms = "?M";
+    }
+    if backend_equal(name, ">") {
+        itanium = "gt";
+        ms = "?O";
+    }
+    if backend_equal(name, "+=") {
+        itanium = "pL";
+        ms = "?Y";
+    }
+    if backend_equal(name, "-=") {
+        itanium = "mI";
+        ms = "?Z";
+    }
+    if backend_equal(name, "*=") {
+        itanium = "mL";
+        ms = "?X";
+    }
+    if backend_equal(name, "/=") {
+        itanium = "dV";
+        ms = "?_0";
+    }
+    if backend_equal(name, "%=") {
+        itanium = "rM";
+        ms = "?_1";
+    }
+    if backend_equal(name, "&=") {
+        itanium = "aN";
+        ms = "?_4";
+    }
+    if backend_equal(name, "|=") {
+        itanium = "oR";
+        ms = "?_5";
+    }
+    if backend_equal(name, "^=") {
+        itanium = "eO";
+        ms = "?_6";
+    }
+    if backend_equal(name, "<<") {
+        itanium = "ls";
+        ms = "?6";
+    }
+    if backend_equal(name, ">>") {
+        itanium = "rs";
+        ms = "?5";
+    }
+    if backend_equal(name, "<<=") {
+        itanium = "lS";
+        ms = "?_3";
+    }
+    if backend_equal(name, ">>=") {
+        itanium = "rS";
+        ms = "?_2";
+    }
+    if backend_equal(name, "==") {
+        itanium = "eq";
+        ms = "?8";
+    }
+    if backend_equal(name, "!=") {
+        itanium = "ne";
+        ms = "?9";
+    }
+    if backend_equal(name, "<=") {
+        itanium = "le";
+        ms = "?N";
+    }
+    if backend_equal(name, ">=") {
+        itanium = "ge";
+        ms = "?P";
+    }
+    if backend_equal(name, "<=>") {
+        itanium = "ss";
+        ms = "?__M";
+    }
+    if backend_equal(name, "&&") {
+        itanium = "aa";
+        ms = "?V";
+    }
+    if backend_equal(name, "||") {
+        itanium = "oo";
+        ms = "?W";
+    }
+    if backend_equal(name, "++") {
+        itanium = "pp";
+        ms = "?E";
+    }
+    if backend_equal(name, "--") {
+        itanium = "mm";
+        ms = "?F";
+    }
+    if backend_equal(name, ",") {
+        itanium = "cm";
+        ms = "?Q";
+    }
+    if backend_equal(name, "->*") {
+        itanium = "pm";
+        ms = "?J";
+    }
+    if backend_equal(name, "->") {
+        itanium = "pt";
+        ms = "?C";
+    }
+    if backend_equal(name, "()") {
+        itanium = "cl";
+        ms = "?R";
+    }
+    if backend_equal(name, "[]") {
+        itanium = "ix";
+        ms = "?A";
+    }
+    if backend_equal(name, "co_await") {
+        itanium = "aw";
+        ms = "?__L";
+    }
+    var foreign_condition2004 = itanium[0] == 0;
+    if foreign_condition2004 {
+        foreign_fail(m, "Unsupported foreign operator");
+    }
+    var arity = m.function.args.length;
+    var foreign_condition2005 = m.member != 0;
+    if foreign_condition2005 {
+        var foreign_condition2006 = m.member != 2;
+        if foreign_condition2006 {
+            arity = arity + 1;
+        }
+    }
+    var foreign_condition2007 = arity == 1;
+    if foreign_condition2007 {
+        if backend_equal(name, "+") {
+            itanium = "ps";
+        }
+        if backend_equal(name, "-") {
+            itanium = "ng";
+        }
+        if backend_equal(name, "*") {
+            itanium = "de";
+        }
+        if backend_equal(name, "&") {
+            itanium = "ad";
+        }
+    }
+    if microsoft {
+        return ms;
+    }
+    return itanium;
+}
+
+fn foreign_it_standard(type: ForeignType*): u8* {
+    var foreign_condition2008 = type == null;
+    if foreign_condition2008 {
+        return "";
+    }
+    var foreign_condition2009 = foreign_std(type.scope) == false;
+    if foreign_condition2009 {
+        return "";
+    }
+    var foreign_condition2010 = type.args.length < 2;
+    if foreign_condition2010 {
+        return "";
+    }
+    var character = type.args.data[0];
+    var foreign_condition2011 = character.kind != 1;
+    if foreign_condition2011 {
+        return "";
+    }
+    var foreign_condition2012 = backend_equal(character.name, "c") == false;
+    if foreign_condition2012 {
+        return "";
+    }
+    var foreign_condition2013 = character.cv != 0;
+    if foreign_condition2013 {
+        return "";
+    }
+    var traits = type.args.data[1];
+    var foreign_condition2014 = foreign_std(traits.scope) == false;
+    if foreign_condition2014 {
+        return "";
+    }
+    var foreign_condition2015 = backend_equal(traits.name, "char_traits") == false;
+    if foreign_condition2015 {
+        return "";
+    }
+    var foreign_condition2016 = traits.args.length != 1;
+    if foreign_condition2016 {
+        return "";
+    }
+    var foreign_condition2017 = backend_equal(traits.args.data[0].name, "c") == false;
+    if foreign_condition2017 {
+        return "";
+    }
+    var foreign_condition2018 = type.args.length == 2;
+    if foreign_condition2018 {
+        if backend_equal(type.name, "basic_istream") {
+            return "Si";
+        }
+        if backend_equal(type.name, "basic_ostream") {
+            return "So";
+        }
+        if backend_equal(type.name, "basic_iostream") {
+            return "Sd";
+        }
+    }
+    var foreign_condition2019 = type.args.length == 3;
+    if foreign_condition2019 {
+        if backend_equal(type.name, "basic_string") {
+            var allocator = type.args.data[2];
+            if foreign_std(allocator.scope) {
+                if backend_equal(allocator.name, "allocator") {
+                    var foreign_condition2020 = allocator.args.length == 1;
+                    if foreign_condition2020 {
+                        if foreign_plain_char(allocator.args.data[0]) {
+                            return "Ss";
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return "";
+}
+
+fn foreign_plain_char(type: ForeignType*): bool {
+    var foreign_condition3001 = type.kind != 1;
+    if foreign_condition3001 {
+        return false;
+    }
+    var foreign_condition3002 = type.cv != 0;
+    if foreign_condition3002 {
+        return false;
+    }
+    return backend_equal(type.name, "c");
+}
+
+fn foreign_tag_less(a: u8*, b: u8*): bool {
+    var i: usize = 0;
+    loop {
+        var foreign_condition3003 = a[i] != b[i];
+        if foreign_condition3003 {
+            var less = a[i] < b[i];
+            return less;
+        }
+        var foreign_condition3004 = a[i] == 0;
+        if foreign_condition3004 {
+            return false;
+        }
+        i = i + 1;
+    }
+}
+
+fn foreign_sort_tags(m: ForeignName*): void {
+    var i: usize = 1;
+    loop {
+        var foreign_condition3005 = i >= m.abi_tags.length;
+        if foreign_condition3005 {
+            break;
+        }
+        var j = i;
+        loop {
+            var foreign_condition3006 = j == 0;
+            if foreign_condition3006 {
+                break;
+            }
+            var previous = j - 1;
+            var foreign_condition3007 = foreign_tag_less(m.abi_tags.data[j], m.abi_tags.data[previous]) == false;
+            if foreign_condition3007 {
+                break;
+            }
+            var temporary = m.abi_tags.data[j];
+            m.abi_tags.data[j] = m.abi_tags.data[previous];
+            m.abi_tags.data[previous] = temporary;
+            j = previous;
+        }
+        i = i + 1;
+    }
+    var count: usize = 0;
+    i = 0;
+    loop {
+        var foreign_condition3008 = i == m.abi_tags.length;
+        if foreign_condition3008 {
+            break;
+        }
+        var distinct = true;
+        var foreign_condition3009 = count != 0;
+        if foreign_condition3009 {
+            var previous = count - 1;
+            distinct = backend_equal(m.abi_tags.data[previous], m.abi_tags.data[i]) == false;
+        }
+        if distinct {
+            m.abi_tags.data[count] = m.abi_tags.data[i];
+            count = count + 1;
+        }
+        i = i + 1;
+    }
+    m.abi_tags.length = count;
+}

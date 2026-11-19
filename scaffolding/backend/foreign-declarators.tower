@@ -1,0 +1,131 @@
+fn foreign_array(m: ForeignName*, base: ForeignType*): ForeignType* {
+    var foreign_condition3003 = foreign_take(m, "[") == false;
+    if foreign_condition3003 {
+        return base;
+    }
+    var type = foreign_node(m, 6);
+    var foreign_condition3004 = foreign_take(m, "]") == false;
+    if foreign_condition3004 {
+        type.count = foreign_integer(m);
+        foreign_expect(m, "]");
+    }
+    m.depth = m.depth + 1;
+    var foreign_condition3005 = m.depth > 64;
+    if foreign_condition3005 {
+        foreign_fail(m, "Foreign declarator nesting exceeds 64");
+        type.base = base;
+    }
+    else {
+        type.base = foreign_array(m, base);
+    }
+    m.depth = m.depth - 1;
+    return type;
+}
+
+fn foreign_member_owner(m: ForeignName*): ForeignType* {
+    var i = m.at;
+    loop {
+        var foreign_condition3006 = i >= m.tokens.length;
+        if foreign_condition3006 {
+            return null;
+        }
+        var word = m.tokens.data[i];
+        var foreign_condition3007 = foreign_word(word[0]) == false;
+        if foreign_condition3007 {
+            return null;
+        }
+        i = i + 1;
+        var foreign_condition3008 = i >= m.tokens.length;
+        if foreign_condition3008 {
+            return null;
+        }
+        var foreign_condition3009 = backend_equal(m.tokens.data[i], "::") == false;
+        if foreign_condition3009 {
+            return null;
+        }
+        i = i + 1;
+        var foreign_condition3010 = i >= m.tokens.length;
+        if foreign_condition3010 {
+            return null;
+        }
+        if backend_equal(m.tokens.data[i], "*") {
+            break;
+        }
+    }
+    return foreign_name_parts(m);
+}
+
+fn foreign_ms_array(m: ForeignName*, type: ForeignType*): void {
+    backend_text(&m.text, "Y");
+    var rank: usize = 0;
+    var base = type;
+    loop {
+        var foreign_condition3011 = base.kind != 6;
+        if foreign_condition3011 {
+            break;
+        }
+        rank = rank + 1;
+        base = base.base;
+    }
+    foreign_ms_number(m, convert(u64, rank));
+    var dimension = type;
+    loop {
+        var foreign_condition3012 = dimension.kind != 6;
+        if foreign_condition3012 {
+            break;
+        }
+        foreign_ms_number(m, dimension.count);
+        dimension = dimension.base;
+    }
+    var foreign_condition3013 = base.cv != 0;
+    if foreign_condition3013 {
+        backend_text(&m.text, "$$C");
+        foreign_ms_cv(m, base.cv);
+    }
+    foreign_ms_type(m, base, false);
+}
+
+fn foreign_ms_member(m: ForeignName*, type: ForeignType*): void {
+    var cv = type.cv & 3;
+    cv = cv + 80;
+    var byte = convert(u8, cv);
+    backend_text_append(&m.text, &byte, 1);
+    var foreign_condition3014 = type.base.kind == 7;
+    if foreign_condition3014 {
+        backend_text(&m.text, "8");
+        foreign_ms_name(m, type.scope);
+        var foreign_condition3015 = m.pointer_bytes == 8;
+        if foreign_condition3015 {
+            backend_text(&m.text, "E");
+        }
+        var foreign_condition3016 = type.base.ref == 1;
+        if foreign_condition3016 {
+            backend_text(&m.text, "G");
+        }
+        var foreign_condition3017 = type.base.ref == 2;
+        if foreign_condition3017 {
+            backend_text(&m.text, "H");
+        }
+        foreign_ms_cv(m, type.base.cv);
+        foreign_ms_cc(m, type.base.convention, true);
+        foreign_ms_type(m, type.base.base, true);
+        foreign_ms_parameters(m, type.base);
+        if type.base.nothrow {
+            backend_text(&m.text, "_E");
+        }
+        else {
+            backend_text(&m.text, "Z");
+        }
+    } else {
+        var foreign_condition3018 = m.pointer_bytes == 8;
+        if foreign_condition3018 {
+            backend_text(&m.text, "E");
+        }
+        cv = type.base.cv & 3;
+        cv = cv + 81;
+        byte = convert(u8, cv);
+        backend_text_append(&m.text, &byte, 1);
+        foreign_ms_name(m, type.scope);
+        foreign_ms_type(m, type.base, false);
+    }
+}

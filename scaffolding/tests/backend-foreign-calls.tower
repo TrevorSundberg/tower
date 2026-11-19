@@ -1,0 +1,7 @@
+extern fn `cpp_name(int foreign_fixture::increment(int value))`(value: i32): i32;
+
+extern fn `c_name(int foreign_twice(int value))`(value: i32): i32;
+
+var answer = `cpp_name(int foreign_fixture::increment(int value))`(20);
+answer = `c_name(int foreign_twice(int value))`(answer);
+print(answer);

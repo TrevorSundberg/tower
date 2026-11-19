@@ -13,7 +13,8 @@ struct TowerObject {
   std::map<std::string, std::vector<std::string>> signatures;
   std::map<std::string, double> timings;
 };
-// Both native and browser drivers lower the same nodes through this implementation.
+// Legacy native transport view. backend/*.tower owns implementation and result
+// lifetimes; see backend/README.md for the transport-independent Tower API.
 TowerObject tower_emit_object(const char* source, const std::string& triple, bool optimize = true, bool library = false);
 unsigned tower_target_pointer_bytes(const std::string& triple, std::string& error);
 std::string tower_disassemble(const std::vector<uint8_t>& bytes, const std::string& triple);

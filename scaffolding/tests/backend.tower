@@ -1,0 +1,143 @@
+// Functional backend API checks, compiled as Tower and linked to the same
+// upstream LLVM and shared entity/semantic objects as the production compiler.
+fn backend_test_target(triple: u8*, width: u32): bool {
+    var b = backend_open(triple);
+    var absent = b == null;
+    if absent {
+        return false;
+    }
+    var ok = b.error.length == 0;
+    if ok {
+        ok = b.pointer_bytes == width;
+    }
+    backend_close(b);
+    return ok;
+}
+
+export fn backend_tests(): i32 {
+    var foreign_failures = foreign_tests();
+    var foreign_failed = foreign_failures != 0;
+    if foreign_failed {
+        return 90;
+    }
+    var ok = backend_test_target("wasm32-unknown-unknown", 4);
+    var failed = ok == false;
+    if failed {
+        return 1;
+    }
+    var b = backend_open("not-a-real-target");
+    ok = b.error.length != 0;
+    backend_close(b);
+    failed = ok == false;
+    if failed {
+        return 2;
+    }
+    b = backend_open("wasm32-unknown-unknown");
+    var type = LLVMFunctionType(b.i32, null, 0, 0);
+    var function = LLVMAddFunction(b.module, "answer", type);
+    var block = LLVMAppendBasicBlockInContext(b.context, function, "entry");
+    LLVMPositionBuilderAtEnd(b.builder, block);
+    LLVMBuildRet(b.builder, LLVMConstInt(b.i32, 42, 0));
+    ok = backend_verify(b);
+    if ok {
+        ok = backend_optimize(b, false);
+    }
+    if ok {
+        ok = backend_contains(b.optimized, "ret i32 42");
+    }
+    if ok {
+        ok = backend_emit(b);
+    }
+    if ok {
+        var decoder = backend_disassemble(backend_bytes(b), backend_size(b), "wasm32-unknown-unknown");
+        ok = decoder.failed == false;
+        if ok {
+            ok = backend_contains(backend_disassembly_text(decoder), "i32.const");
+        }
+        backend_disassembly_close(decoder);
+    }
+    backend_close(b);
+    failed = ok == false;
+    if failed {
+        return 3;
+    }
+    b = backend_open("wasm32-unknown-unknown");
+    type = LLVMFunctionType(b.i32, null, 0, 0);
+    function = LLVMAddFunction(b.module, "bad", type);
+    block = LLVMAppendBasicBlockInContext(b.context, function, "entry");
+    LLVMPositionBuilderAtEnd(b.builder, block);
+    LLVMBuildRetVoid(b.builder);
+    ok = backend_verify(b) == false;
+    if ok {
+        ok = b.error.length != 0;
+    }
+    backend_close(b);
+    failed = ok == false;
+    if failed {
+        return 4;
+    }
+    // A truncated code-section size must fail with a bounded read.
+    var malformed: u8[10];
+    fill(&malformed[0], 0, 10);
+    malformed[1] = 97;
+    malformed[2] = 115;
+    malformed[3] = 109;
+    malformed[4] = 1;
+    malformed[8] = 10;
+    malformed[9] = 128;
+    var decoder = backend_disassemble(&malformed[0], 10, "wasm32-unknown-unknown");
+    ok = decoder.failed;
+    backend_disassembly_close(decoder);
+    failed = ok == false;
+    if failed {
+        return 5;
+    }
+    var link = backend_link_create();
+    ok = backend_link_add_input(link, "../escape.o", &malformed[0], 10) == false;
+    if ok {
+        ok = backend_link_add_input(link, "tower-input.o", &malformed[0], 10) == false;
+    }
+    if ok {
+        ok = backend_link_add_input(link, "library.o", &malformed[0], 10);
+    }
+    if ok {
+        ok = link.inputs.length == 1;
+    }
+    if ok {
+        ok = backend_link_add_input(link, "library.o", &malformed[0], 4);
+    }
+    if ok {
+        ok = link.inputs.length == 1;
+    }
+    if ok {
+        ok = link.inputs.data[0].bytes.length == 4;
+    }
+    backend_link_close(link);
+    failed = ok == false;
+    if failed {
+        return 6;
+    }
+    b = backend_open("x86_64-unknown-linux-gnu");
+    var native = b.error.length == 0;
+    if native {
+        type = LLVMFunctionType(b.i32, null, 0, 0);
+        function = LLVMAddFunction(b.module, "custom_section", type);
+        LLVMSetSection(function, ".tower.code");
+        block = LLVMAppendBasicBlockInContext(b.context, function, "entry");
+        LLVMPositionBuilderAtEnd(b.builder, block);
+        LLVMBuildRet(b.builder, LLVMConstInt(b.i32, 7, 0));
+        ok = backend_emit(b);
+        if ok {
+            decoder = backend_disassemble(backend_bytes(b), backend_size(b), "x86_64-unknown-linux-gnu");
+            ok = backend_contains(backend_disassembly_text(decoder), ".tower.code:");
+            backend_disassembly_close(decoder);
+        }
+    }
+    backend_close(b);
+    failed = ok == false;
+    if failed {
+        return 7;
+    }
+    puts("Tower backend API checks passed");
+    return 0;
+}

@@ -1,0 +1,7 @@
+fn backend_lld_dispatch(triple: u8*, args: BackendLldArguments*, output: BackendLldStream*, error: BackendLldStream*): bool {
+    var wasm = backend_prefix(triple, "wasm");
+    if wasm {
+        return `cpp_name(bool lld::wasm::link(llvm::ArrayRef<char const*>, llvm::raw_ostream&, llvm::raw_ostream&, bool, bool))`(args, output, error, false, false);
+    }
+    return false;
+}

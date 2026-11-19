@@ -1,0 +1,973 @@
+fn backend_type(b: Backend*, t: FoundationType*): void* {
+    var pointer = t.pointers != 0;
+    if pointer {
+        return b.pointer_type;
+    }
+    var aggregate = semantic_aggregate(t);
+    if aggregate {
+        return LLVMArrayType2(b.i8, convert(u64, semantic_size(t)));
+    }
+    var empty = t.scalar == 3;
+    if empty {
+        return LLVMVoidTypeInContext(b.context);
+    }
+    return LLVMIntTypeInContext(b.context, semantic_width(t));
+}
+
+fn backend_size_value(b: Backend*, value: usize): void* {
+    return LLVMConstInt(b.size_type, convert(u64, value), 0);
+}
+
+fn backend_constant(b: Backend*, t: FoundationType*, value: u64): void* {
+    var pointer = t.pointers != 0;
+    if pointer {
+        return LLVMConstNull(b.pointer_type);
+    }
+    return LLVMConstInt(backend_type(b, t), value, 0);
+}
+
+fn backend_narrow(t: FoundationType*): bool {
+    var scalar = t.pointers == 0;
+    var byte = t.scalar == 5;
+    var boolean = t.scalar == 2;
+    if boolean {
+        byte = true;
+    }
+    var result = scalar;
+    if result {
+        result = byte;
+    }
+    return result;
+}
+
+fn backend_zext_attribute(b: Backend*, value: void*, index: u32, call: bool): void {
+    var kind = LLVMGetEnumAttributeKindForName("zeroext", 7);
+    var attribute = LLVMCreateEnumAttribute(b.context, kind, 0);
+    if call {
+        LLVMAddCallSiteAttribute(value, index, attribute);
+    }
+    else {
+        LLVMAddAttributeAtIndex(value, index, attribute);
+    }
+}
+
+fn backend_abi(b: Backend*, value: void*, n: FoundationNode*, call: bool): void {
+    var public = n.external;
+    if n.exported {
+        public = true;
+    }
+    if public {
+        var narrow = backend_narrow(&n.type);
+        if narrow {
+            backend_zext_attribute(b, value, 0, call);
+        }
+        var i: usize = 0;
+        loop {
+            var done = i == n.parameters.length;
+            if done {
+                break;
+            }
+            var parameter = sem_get(n.parameters.data[i]);
+            narrow = backend_narrow(&parameter.type);
+            if narrow {
+                var index = convert(u32, i) + 1;
+                backend_zext_attribute(b, value, index, call);
+            }
+            i = i + 1;
+        }
+    }
+}
+
+fn backend_attribute(b: Backend*, function: void*, key: u8*, value: u8*): void {
+    var key_length = convert(u32, backend_length(key));
+    var value_length = convert(u32, backend_length(value));
+    var attribute = LLVMCreateStringAttribute(b.context, key, key_length, value, value_length);
+    LLVMAddAttributeAtIndex(function, 4294967295, attribute);
+}
+
+fn backend_runtime(b: Backend*, name: u8*, result: void*, types: void**, count: u32, import: u8*): void* {
+    var type = LLVMFunctionType(result, types, count, 0);
+    var function = LLVMAddFunction(b.module, name, type);
+    var named = import != null;
+    if named {
+        named = b.wasm;
+    }
+    if named {
+        backend_attribute(b, function, "wasm-import-module", "tower");
+        backend_attribute(b, function, "wasm-import-name", import);
+    }
+    return function;
+}
+
+fn backend_runtime_declarations(b: Backend*): void {
+    var types: void*[3];
+    types[0] = b.i32;
+    types[1] = b.i64;
+    types[2] = b.i32;
+    var empty = LLVMVoidTypeInContext(b.context);
+    b.print_fn = backend_runtime(b, "tower_print", empty, &types[0], 3, "print");
+    types[0] = b.pointer_type;
+    types[1] = b.size_type;
+    b.trap_fn = backend_runtime(b, "tower_trap", empty, &types[0], 2, "trap");
+    types[0] = b.size_type;
+    types[1] = b.size_type;
+    b.allocate_fn = backend_runtime(b, "tower_allocate", b.pointer_type, &types[0], 2, null);
+    types[0] = b.pointer_type;
+    types[1] = b.size_type;
+    types[2] = b.size_type;
+    b.reallocate_fn = backend_runtime(b, "tower_reallocate", b.pointer_type, &types[0], 3, null);
+    b.deallocate_fn = backend_runtime(b, "tower_deallocate", empty, &types[0], 1, null);
+}
+
+fn backend_call_values(b: Backend*, function: void*, args: void**, count: u32): void* {
+    var call = LLVMBuildCall2(b.builder, LLVMGlobalGetValueType(function), function, args, count, "");
+    LLVMSetInstructionCallConv(call, LLVMGetFunctionCallConv(function));
+    return call;
+}
+
+fn backend_guard(b: Backend*, valid: void*, message: u8*): void {
+    var ok = LLVMAppendBasicBlockInContext(b.context, b.current, "valid");
+    var bad = LLVMAppendBasicBlockInContext(b.context, b.current, "error");
+    LLVMBuildCondBr(b.builder, valid, ok, bad);
+    LLVMPositionBuilderAtEnd(b.builder, bad);
+    var args: void*[2];
+    args[0] = LLVMBuildGlobalStringPtr(b.builder, message, "");
+    args[1] = backend_size_value(b, b.source_offset);
+    backend_call_values(b, b.trap_fn, &args[0], 2);
+    LLVMBuildUnreachable(b.builder);
+    LLVMPositionBuilderAtEnd(b.builder, ok);
+}
+
+fn backend_signed(t: FoundationType*): i32 {
+    var signed = semantic_signed(t);
+    if signed {
+        return 1;
+    }
+    return 0;
+}
+
+fn backend_gep(b: Backend*, base: void*, offset: void*): void* {
+    // Raw pointers deliberately have no inbounds promise.
+    return LLVMBuildGEP2(b.builder, b.i8, base, &offset, 1, "");
+}
+
+fn backend_address(b: Backend*, entity: void*): void* {
+    var n = sem_get(entity);
+    var load = n.kind == 8;
+    if load {
+        return backend_read(b, n.value);
+    }
+    var field = n.kind == 21;
+    var index = n.kind == 22;
+    var place = field;
+    if index {
+        place = true;
+    }
+    if place {
+        var base: void* = null;
+        if n.indirect {
+            base = backend_read(b, n.left);
+        }
+        else {
+            base = backend_address(b, n.left);
+        }
+        var offset = backend_size_value(b, n.byte_offset);
+        if index {
+            var right = sem_get(n.right);
+            var value = backend_read(b, n.right);
+            value = LLVMBuildIntCast2(b.builder, value, b.size_type, backend_signed(&right.type), "");
+            offset = LLVMBuildMul(b.builder, value, backend_size_value(b, semantic_size(&n.type)), "");
+        }
+        return backend_gep(b, base, offset);
+    }
+    var binding = n.binding;
+    var absent = binding == null;
+    if absent {
+        binding = entity;
+    }
+    var definition = sem_get(binding);
+    if definition.global {
+        var global = backend_find(&b.globals, binding);
+        absent = global == null;
+        if absent {
+            var name: vector(u8);
+            vector_init(u8, &name);
+            backend_text(&name, "tower.global.");
+            backend_text(&name, backend_name(definition));
+            var type = backend_type(b, &definition.type);
+            global = LLVMAddGlobal(b.module, type, name.data);
+            LLVMSetLinkage(global, 8);
+            LLVMSetInitializer(global, LLVMGetUndef(type));
+            LLVMSetAlignment(global, convert(u32, semantic_alignment(&definition.type)));
+            backend_require(b, backend_associate(&b.globals, binding, global));
+            vector_dispose(u8, &name);
+        }
+        return global;
+    }
+    return b.locals.data[definition.index];
+}
+
+fn backend_read(b: Backend*, entity: void*): void* {
+    var n = sem_get(entity);
+    var address = n.kind == 7;
+    if address {
+        return backend_address(b, n.value);
+    }
+    var string = n.kind == 23;
+    if string {
+        var value = backend_find(&b.strings, entity);
+        var absent = value == null;
+        if absent {
+            var data = LLVMConstStringInContext(b.context, backend_name(n), convert(u32, n.name.length), 0);
+            value = LLVMAddGlobal(b.module, LLVMTypeOf(data), "tower.string");
+            LLVMSetLinkage(value, 9);
+            LLVMSetInitializer(value, data);
+            LLVMSetAlignment(value, 1);
+            backend_require(b, backend_associate(&b.strings, entity, value));
+        }
+        return value;
+    }
+    var ordinary = n.kind == 5;
+    var field = n.kind == 21;
+    var index = n.kind == 22;
+    if field {
+        ordinary = true;
+    }
+    if index {
+        ordinary = true;
+    }
+    if ordinary {
+        if n.constant {
+            return backend_constant(b, &n.type, n.bits);
+        }
+        var value = LLVMBuildLoad2(b.builder, backend_type(b, &n.type), backend_address(b, entity), "");
+        LLVMSetAlignment(value, 1);
+        return value;
+    }
+    return backend_expression(b, entity);
+}
+
+fn backend_call(b: Backend*, n: FoundationNode*): void* {
+    var args: vector(void*);
+    vector_init(void*, &args);
+    var i: usize = 0;
+    loop {
+        var done = i == n.items.length;
+        if done {
+            break;
+        }
+        // Read each argument once, in source order.
+        var value = backend_read(b, n.items.data[i]);
+        backend_require(b, vector_push(void*, &args, value));
+        i = i + 1;
+    }
+    var definition = sem_get(n.binding);
+    var function = b.functions.data[definition.index];
+    var result = backend_call_values(b, function, args.data, convert(u32, args.length));
+    backend_abi(b, result, definition, true);
+    var attributed = definition.external;
+    if definition.exported {
+        attributed = true;
+    }
+    if attributed {
+        attributed = b.wasm;
+    }
+    if attributed {
+        var count = LLVMGetAttributeCountAtIndex(function, 4294967295);
+        var attributes = alloc(void*, convert(usize, count));
+        LLVMGetAttributesAtIndex(function, 4294967295, attributes);
+        var attribute: u32 = 0;
+        loop {
+            var done = attribute == count;
+            if done {
+                break;
+            }
+            LLVMAddCallSiteAttribute(result, 4294967295, attributes[attribute]);
+            attribute = attribute + 1;
+        }
+        free(attributes);
+    }
+    vector_dispose(void*, &args);
+    return result;
+}
+
+fn backend_conversion(b: Backend*, n: FoundationNode*, from: FoundationType*, value: void*): void* {
+    var boolean = n.type.scalar == 2;
+    if boolean {
+        var nonzero = LLVMBuildICmp(b.builder, 33, value, LLVMConstNull(LLVMTypeOf(value)), "");
+        return LLVMBuildZExt(b.builder, nonzero, b.i8, "");
+    }
+    var i128 = LLVMIntTypeInContext(b.context, 128);
+    var wide = LLVMBuildIntCast2(b.builder, value, i128, backend_signed(from), "");
+    var width = semantic_width(&n.type);
+    var signed = semantic_signed(&n.type);
+    var magnitude: u64 = 1;
+    var bits: u32 = 0;
+    var limit = width;
+    if signed {
+        limit = limit - 1;
+    }
+    loop {
+        var done = bits == limit;
+        if done {
+            break;
+        }
+        magnitude = magnitude * 2;
+        bits = bits + 1;
+    }
+    var words: u64[2];
+    words[0] = magnitude - 1;
+    words[1] = 0;
+    var maximum = LLVMConstIntOfArbitraryPrecision(i128, 2, &words[0]);
+    words[0] = 0;
+    if signed {
+        words[0] = words[0] - magnitude;
+        words[1] = 18446744073709551615;
+    }
+    var minimum = LLVMConstIntOfArbitraryPrecision(i128, 2, &words[0]);
+    var low = LLVMBuildICmp(b.builder, 39, wide, minimum, "");
+    var high = LLVMBuildICmp(b.builder, 41, wide, maximum, "");
+    backend_guard(b, LLVMBuildAnd(b.builder, low, high, ""), "Numeric conversion out of range; use bits for bit reinterpretation");
+    return LLVMBuildIntCast2(b.builder, value, backend_type(b, &n.type), backend_signed(from), "");
+}
+
+fn backend_expression(b: Backend*, entity: void*): void* {
+    var n = sem_get(entity);
+    var ordinary = n.kind == 5;
+    var match = n.kind == 23;
+    if match {
+        ordinary = true;
+    }
+    match = n.kind == 21;
+    if match {
+        ordinary = true;
+    }
+    match = n.kind == 22;
+    if match {
+        ordinary = true;
+    }
+    match = n.kind == 7;
+    if match {
+        ordinary = true;
+    }
+    if ordinary {
+        return backend_read(b, entity);
+    }
+    match = n.kind == 11;
+    if match {
+        return backend_call(b, n);
+    }
+    match = n.kind == 24;
+    if match {
+        return backend_size_value(b, semantic_size(&n.element));
+    }
+    match = n.kind == 25;
+    if match {
+        return backend_size_value(b, semantic_alignment(&n.element));
+    }
+    match = n.kind == 26;
+    if match {
+        var args: void*[2];
+        args[0] = backend_read(b, n.right);
+        args[1] = backend_size_value(b, semantic_size(&n.element));
+        return backend_call_values(b, b.allocate_fn, &args[0], 2);
+    }
+    match = n.kind == 27;
+    if match {
+        var args: void*[3];
+        args[0] = backend_read(b, n.left);
+        args[1] = backend_read(b, n.right);
+        args[2] = backend_size_value(b, semantic_size(&n.element));
+        return backend_call_values(b, b.reallocate_fn, &args[0], 3);
+    }
+    var left = n.value;
+    match = n.kind == 6;
+    if match {
+        left = n.left;
+    }
+    var a = backend_expression(b, left);
+    match = n.kind == 8;
+    if match {
+        var value = LLVMBuildLoad2(b.builder, backend_type(b, &n.type), a, "");
+        LLVMSetAlignment(value, 1);
+        return value;
+    }
+    var source = sem_get(left);
+    var from = &source.type;
+    match = n.kind == 10;
+    if match {
+        var pointer = n.type.pointers != 0;
+        var source_pointer = from.pointers != 0;
+        var both = pointer;
+        if both {
+            both = source_pointer;
+        }
+        if both {
+            return a;
+        }
+        if pointer {
+            return LLVMBuildIntToPtr(b.builder, a, b.pointer_type, "");
+        }
+        if source_pointer {
+            return LLVMBuildPtrToInt(b.builder, a, backend_type(b, &n.type), "");
+        }
+        return a;
+    }
+    match = n.kind == 9;
+    if match {
+        return backend_conversion(b, n, from, a);
+    }
+    var right = backend_expression(b, n.right);
+    var pointer = from.pointers != 0;
+    var arithmetic = n.op <= 1;
+    if arithmetic {
+        arithmetic = pointer;
+    }
+    if arithmetic {
+        var element: FoundationType;
+        copy(&element, from, sizeof(FoundationType));
+        element.pointers = element.pointers - 1;
+        var r = sem_get(n.right);
+        var delta = LLVMBuildIntCast2(b.builder, right, b.size_type, backend_signed(&r.type), "");
+        delta = LLVMBuildMul(b.builder, delta, backend_size_value(b, semantic_size(&element)), "");
+        var subtract = n.op == 1;
+        if subtract {
+            delta = LLVMBuildNeg(b.builder, delta, "");
+        }
+        return backend_gep(b, a, delta);
+    }
+    match = n.op == 0;
+    if match {
+        return LLVMBuildAdd(b.builder, a, right, "");
+    }
+    match = n.op == 1;
+    if match {
+        return LLVMBuildSub(b.builder, a, right, "");
+    }
+    match = n.op == 2;
+    if match {
+        return LLVMBuildMul(b.builder, a, right, "");
+    }
+    match = n.op == 5;
+    if match {
+        return LLVMBuildAnd(b.builder, a, right, "");
+    }
+    match = n.op == 6;
+    if match {
+        return LLVMBuildOr(b.builder, a, right, "");
+    }
+    match = n.op == 7;
+    if match {
+        return LLVMBuildXor(b.builder, a, right, "");
+    }
+    var division = n.op == 3;
+    var remainder = n.op == 4;
+    match = division;
+    if remainder {
+        match = true;
+    }
+    var signed = semantic_signed(from);
+    if match {
+        var nonzero = LLVMBuildICmp(b.builder, 33, right, LLVMConstNull(LLVMTypeOf(right)), "");
+        backend_guard(b, nonzero, "Division by zero");
+        if signed {
+            var width = semantic_width(from);
+            var limit = width - 1;
+            var minimum: u64 = 1;
+            var i: u32 = 0;
+            loop {
+                var done = i == limit;
+                if done {
+                    break;
+                }
+                minimum = minimum * 2;
+                i = i + 1;
+            }
+            var min = LLVMConstInt(LLVMTypeOf(a), minimum, 0);
+            var neg = LLVMConstInt(LLVMTypeOf(a), 18446744073709551615, 0);
+            var first = LLVMBuildICmp(b.builder, 32, a, min, "");
+            var second = LLVMBuildICmp(b.builder, 32, right, neg, "");
+            var overflow = LLVMBuildAnd(b.builder, first, second, "");
+            backend_guard(b, LLVMBuildNot(b.builder, overflow, ""), "Signed division overflow");
+        }
+        if division {
+            if signed {
+                return LLVMBuildSDiv(b.builder, a, right, "");
+            }
+            return LLVMBuildUDiv(b.builder, a, right, "");
+        }
+        if signed {
+            return LLVMBuildSRem(b.builder, a, right, "");
+        }
+        return LLVMBuildURem(b.builder, a, right, "");
+    }
+    var predicate: u32 = 32;
+    match = n.op == 9;
+    if match {
+        predicate = 33;
+    }
+    match = n.op == 10;
+    if match {
+        predicate = 36;
+        if signed {
+            predicate = 40;
+        }
+    }
+    match = n.op == 11;
+    if match {
+        predicate = 37;
+        if signed {
+            predicate = 41;
+        }
+    }
+    match = n.op == 12;
+    if match {
+        predicate = 34;
+        if signed {
+            predicate = 38;
+        }
+    }
+    match = n.op == 13;
+    if match {
+        predicate = 35;
+        if signed {
+            predicate = 39;
+        }
+    }
+    var compare = LLVMBuildICmp(b.builder, predicate, a, right, "");
+    return LLVMBuildZExt(b.builder, compare, b.i8, "");
+}
+
+fn backend_store(b: Backend*, destination: void*, value: void*): void {
+    var store = LLVMBuildStore(b.builder, value, destination);
+    LLVMSetAlignment(store, 1);
+}
+
+fn backend_assign(b: Backend*, target: void*, value: void*): void {
+    // Capture the destination before any RHS side effects.
+    var destination = backend_address(b, target);
+    var result = backend_expression(b, value);
+    backend_store(b, destination, result);
+}
+
+fn backend_terminated(b: Backend*): bool {
+    var result = LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(b.builder)) != null;
+    return result;
+}
+
+fn backend_block(b: Backend*, entity: void*): void {
+    var n = sem_get(entity);
+    var i: usize = 0;
+    loop {
+        var done = i == n.items.length;
+        var terminated = backend_terminated(b);
+        if terminated {
+            done = true;
+        }
+        if done {
+            return;
+        }
+        backend_statement(b, n.items.data[i]);
+        i = i + 1;
+    }
+}
+
+fn backend_branch(b: Backend*, block: void*): void {
+    var open = backend_terminated(b) == false;
+    if open {
+        LLVMBuildBr(b.builder, block);
+    }
+}
+
+fn backend_statement(b: Backend*, entity: void*): void {
+    var n = sem_get(entity);
+    b.source_offset = n.start;
+    var match = n.kind == 1;
+    var type = n.kind == 19;
+    if type {
+        match = true;
+    }
+    if match {
+        return;
+    }
+    match = n.kind == 12;
+    if match {
+        backend_block(b, entity);
+        return;
+    }
+    match = n.kind == 3;
+    if match {
+        var initialized = n.value != null;
+        if initialized {
+            backend_assign(b, entity, n.value);
+        }
+        return;
+    }
+    match = n.kind == 4;
+    if match {
+        backend_assign(b, n.target, n.value);
+        return;
+    }
+    match = n.kind == 28;
+    if match {
+        var argument = backend_read(b, n.left);
+        backend_call_values(b, b.deallocate_fn, &argument, 1);
+        return;
+    }
+    var move = n.kind == 29;
+    var fill = n.kind == 30;
+    match = move;
+    if fill {
+        match = true;
+    }
+    if match {
+        var destination = backend_read(b, n.left);
+        var source = backend_read(b, n.right);
+        var count = backend_read(b, n.value);
+        if move {
+            LLVMBuildMemMove(b.builder, destination, 1, source, 1, count);
+        }
+        else {
+            LLVMBuildMemSet(b.builder, destination, source, count, 1);
+        }
+        return;
+    }
+    match = n.kind == 18;
+    if match {
+        var present = n.value != null;
+        if present {
+            LLVMBuildRet(b.builder, backend_read(b, n.value));
+        }
+        else {
+            LLVMBuildRetVoid(b.builder);
+        }
+        return;
+    }
+    match = n.kind == 17;
+    if match {
+        var source = sem_get(n.value);
+        var value = backend_read(b, n.value);
+        var tag = source.type.scalar;
+        var pointer = source.type.pointers != 0;
+        if pointer {
+            value = LLVMBuildPtrToInt(b.builder, value, b.i64, "");
+            tag = 3;
+        }
+        else {
+            value = LLVMBuildIntCast2(b.builder, value, b.i64, 0, "");
+        }
+        var args: void*[3];
+        args[0] = LLVMConstInt(b.i32, convert(u64, tag), 0);
+        args[1] = value;
+        args[2] = LLVMConstInt(b.i32, convert(u64, b.pointer_bytes), 0);
+        backend_call_values(b, b.print_fn, &args[0], 3);
+        return;
+    }
+    match = n.kind == 13;
+    if match {
+        var condition = backend_read(b, n.value);
+        var yes = LLVMAppendBasicBlockInContext(b.context, b.current, "if.body");
+        var no = LLVMAppendBasicBlockInContext(b.context, b.current, "if.else");
+        var after = LLVMAppendBasicBlockInContext(b.context, b.current, "if.end");
+        condition = LLVMBuildICmp(b.builder, 33, condition, LLVMConstNull(b.i8), "");
+        LLVMBuildCondBr(b.builder, condition, yes, no);
+        LLVMPositionBuilderAtEnd(b.builder, yes);
+        backend_block(b, n.body);
+        backend_branch(b, after);
+        LLVMPositionBuilderAtEnd(b.builder, no);
+        var other = n.otherwise != null;
+        if other {
+            backend_block(b, n.otherwise);
+        }
+        backend_branch(b, after);
+        LLVMPositionBuilderAtEnd(b.builder, after);
+        return;
+    }
+    match = n.kind == 14;
+    if match {
+        var head = LLVMAppendBasicBlockInContext(b.context, b.current, "loop");
+        var after = LLVMAppendBasicBlockInContext(b.context, b.current, "loop.end");
+        LLVMBuildBr(b.builder, head);
+        LLVMPositionBuilderAtEnd(b.builder, head);
+        var needed = b.loops.length + 1;
+        var ok = vector_reserve(BackendLoop, &b.loops, needed);
+        backend_require(b, ok);
+        var failed = ok == false;
+        if failed {
+            return;
+        }
+        b.loops.data[b.loops.length].head = head;
+        b.loops.data[b.loops.length].after = after;
+        b.loops.length = needed;
+        backend_block(b, n.body);
+        backend_branch(b, head);
+        b.loops.length = b.loops.length - 1;
+        LLVMPositionBuilderAtEnd(b.builder, after);
+        return;
+    }
+    var exit = n.kind == 15;
+    var again = n.kind == 16;
+    match = exit;
+    if again {
+        match = true;
+    }
+    if match {
+        var index = b.loops.length - 1;
+        var destination = b.loops.data[index].head;
+        if exit {
+            destination = b.loops.data[index].after;
+        }
+        LLVMBuildBr(b.builder, destination);
+        return;
+    }
+    backend_expression(b, entity);
+}
+
+fn backend_reserved(name: u8*): bool {
+    var found = backend_equal(name, "tower_main");
+    if found {
+        return true;
+    }
+    found = backend_equal(name, "tower_print");
+    if found {
+        return true;
+    }
+    found = backend_equal(name, "tower_trap");
+    if found {
+        return true;
+    }
+    found = backend_equal(name, "tower_allocate");
+    if found {
+        return true;
+    }
+    found = backend_equal(name, "tower_reallocate");
+    if found {
+        return true;
+    }
+    return backend_equal(name, "tower_deallocate");
+}
+
+export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usize, pointer_bytes: u32, library: bool): bool {
+    var failed = b.error.length != 0;
+    if failed {
+        return false;
+    }
+    var mismatch = pointer_bytes != b.pointer_bytes;
+    if mismatch {
+        backend_fail(b, "Foundation target layout does not match LLVM target");
+        return false;
+    }
+    if library {
+        var program = sem_get(root);
+        var i: usize = 0;
+        loop {
+            var done = i == program.items.length;
+            if done {
+                break;
+            }
+            var n = sem_get(program.items.data[i]);
+            var allowed = n.kind == 1;
+            var type = n.kind == 19;
+            if type {
+                allowed = true;
+            }
+            failed = allowed == false;
+            if failed {
+                b.source_offset = n.start;
+                backend_fail(b, "Library source cannot contain top-level executable statements");
+                return false;
+            }
+            i = i + 1;
+        }
+    }
+    backend_runtime_declarations(b);
+    var i: usize = 0;
+    loop {
+        var done = i == count;
+        if done {
+            break;
+        }
+        var n = sem_get(functions[i]);
+        var entry = i == 0;
+        var omit = entry;
+        if omit {
+            omit = library;
+        }
+        if omit {
+            backend_require(b, vector_push(void*, &b.functions, null));
+            backend_require(b, vector_push(u8*, &b.symbols, null));
+            i = i + 1;
+            continue;
+        }
+        var public = n.external;
+        if n.exported {
+            public = true;
+        }
+        if public {
+            var reserved = backend_reserved(backend_name(n));
+            if reserved {
+                b.source_offset = n.start;
+                backend_fail(b, "Function symbol conflicts with Tower runtime: ");
+                backend_text(&b.error, backend_name(n));
+                return false;
+            }
+        }
+        var args: vector(void*);
+        vector_init(void*, &args);
+        var j: usize = 0;
+        loop {
+            done = j == n.parameters.length;
+            if done {
+                break;
+            }
+            var p = sem_get(n.parameters.data[j]);
+            backend_require(b, vector_push(void*, &args, backend_type(b, &p.type)));
+            j = j + 1;
+        }
+        var type = LLVMFunctionType(backend_type(b, &n.type), args.data, convert(u32, args.length), 0);
+        vector_dispose(void*, &args);
+        var name: vector(u8);
+        vector_init(u8, &name);
+        var convention: u32 = 0;
+        if entry {
+            backend_text(&name, "tower_main");
+        }
+        else {
+            var private = public == false;
+            if private {
+                backend_text(&name, "tower.fn.");
+            }
+            if public {
+                var spelling = foreign_symbol(b.foreign_profile, backend_name(n));
+                convention = foreign_llvm_convention(spelling);
+                var error = foreign_name_error(spelling);
+                var failed_name = error[0] != 0;
+                if failed_name {
+                    b.source_offset = n.start;
+                    backend_fail(b, error);
+                    foreign_name_close(spelling);
+                    vector_dispose(u8, &name);
+                    return false;
+                }
+                backend_text(&name, foreign_name_text(spelling));
+                foreign_name_close(spelling);
+            } else {
+                backend_text(&name, backend_name(n));
+            }
+        }
+        if public {
+            var reserved = backend_reserved(name.data);
+            var duplicate = LLVMGetNamedFunction(b.module, name.data) != null;
+            if duplicate {
+                reserved = true;
+            }
+            if reserved {
+                b.source_offset = n.start;
+                backend_fail(b, "Duplicate or reserved foreign symbol: ");
+                backend_text(&b.error, name.data);
+                vector_dispose(u8, &name);
+                return false;
+            }
+        }
+        var function = LLVMAddFunction(b.module, name.data, type);
+        LLVMSetFunctionCallConv(function, convention);
+        var internal = public == false;
+        var nonentry = entry == false;
+        if internal {
+            internal = nonentry;
+        }
+        if internal {
+            LLVMSetLinkage(function, 8);
+        }
+        backend_abi(b, function, n, false);
+        if b.wasm {
+            if n.external {
+                backend_attribute(b, function, "wasm-import-module", "env");
+                backend_attribute(b, function, "wasm-import-name", name.data);
+            }
+            if n.exported {
+                backend_attribute(b, function, "wasm-export-name", name.data);
+            }
+        }
+        backend_require(b, vector_push(u8*, &b.symbols, name.data));
+        backend_require(b, vector_push(void*, &b.functions, function));
+        i = i + 1;
+    }
+    i = 0;
+    loop {
+        var done = i == count;
+        if done {
+            break;
+        }
+        var n = sem_get(functions[i]);
+        var function = b.functions.data[i];
+        var omit = function == null;
+        if n.external {
+            omit = true;
+        }
+        if omit {
+            i = i + 1;
+            continue;
+        }
+        b.current = function;
+        b.locals.length = 0;
+        b.loops.length = 0;
+        var entry = LLVMAppendBasicBlockInContext(b.context, function, "entry");
+        LLVMPositionBuilderAtEnd(b.builder, entry);
+        var j: usize = 0;
+        loop {
+            done = j == n.locals.length;
+            if done {
+                break;
+            }
+            var local = sem_get(n.locals.data[j]);
+            var slot: void* = null;
+            var nonglobal = local.global == false;
+            if nonglobal {
+                slot = LLVMBuildAlloca(b.builder, backend_type(b, &local.type), backend_name(local));
+                LLVMSetAlignment(slot, convert(u32, semantic_alignment(&local.type)));
+            }
+            backend_require(b, vector_push(void*, &b.locals, slot));
+            j = j + 1;
+        }
+        j = 0;
+        loop {
+            done = j == n.parameters.length;
+            if done {
+                break;
+            }
+            backend_store(b, backend_address(b, n.parameters.data[j]), LLVMGetParam(function, convert(u32, j)));
+            j = j + 1;
+        }
+        var body = n.body;
+        var top = i == 0;
+        if top {
+            body = root;
+        }
+        backend_block(b, body);
+        var open = backend_terminated(b) == false;
+        if open {
+            var empty = n.type.scalar == 3;
+            var scalar = n.type.pointers == 0;
+            if empty {
+                empty = scalar;
+            }
+            if empty {
+                LLVMBuildRetVoid(b.builder);
+            }
+            else {
+                LLVMBuildUnreachable(b.builder);
+            }
+        }
+        i = i + 1;
+    }
+    failed = b.error.length != 0;
+    if failed {
+        return false;
+    }
+    var valid = backend_verify(b);
+    if valid {
+        b.raw = LLVMPrintModuleToString(b.module);
+    }
+    return valid;
+}

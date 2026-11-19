@@ -1,0 +1,456 @@
+// Link plans are transport-independent argument lists for upstream LLD.
+// Native hosts execute the bundled upstream tool; WASI invokes its pinned ABI.
+struct BackendLinkInput {
+    name: vector(u8);
+    bytes: vector(u8);
+}
+
+struct BackendLink {
+    arguments: vector(u8*);
+    inputs: vector(BackendLinkInput);
+    error: vector(u8);
+    output: vector(u8);
+}
+
+extern fn fopen(path: u8*, mode: u8*): void*;
+
+extern fn fclose(file: void*): i32;
+
+extern fn fread(bytes: u8*, size: usize, count: usize, file: void*): usize;
+
+extern fn fwrite(bytes: u8*, size: usize, count: usize, file: void*): usize;
+
+extern fn fileno(file: void*): i32;
+
+extern fn remove(path: u8*): i32;
+
+fn backend_link_argument(link: BackendLink*, prefix: u8*, value: u8*): void {
+    var text: vector(u8);
+    vector_init(u8, &text);
+    backend_text(&text, prefix);
+    backend_text(&text, value);
+    var ok = vector_push(u8*, &link.arguments, text.data);
+    var failed = ok == false;
+    if failed {
+        vector_dispose(u8, &text);
+        backend_text(&link.error, "Unable to allocate linker arguments");
+    }
+}
+
+export fn backend_link_reset_plan(link: BackendLink*): void {
+    var i: usize = 0;
+    loop {
+        var done = i == link.arguments.length;
+        if done {
+            break;
+        }
+        free(link.arguments.data[i]);
+        i = i + 1;
+    }
+    link.arguments.length = 0;
+    link.error.length = 0;
+    link.output.length = 0;
+}
+
+export fn backend_link_clear_inputs(link: BackendLink*): void {
+    var i: usize = 0;
+    loop {
+        var done = i == link.inputs.length;
+        if done {
+            break;
+        }
+        var input = &link.inputs.data[i];
+        remove(input.name.data);
+        vector_dispose(u8, &input.name);
+        vector_dispose(u8, &input.bytes);
+        i = i + 1;
+    }
+    link.inputs.length = 0;
+}
+
+export fn backend_link_close(link: BackendLink*): void {
+    var absent = link == null;
+    if absent {
+        return;
+    }
+    backend_link_reset_plan(link);
+    backend_link_clear_inputs(link);
+    vector_dispose(u8*, &link.arguments);
+    vector_dispose(BackendLinkInput, &link.inputs);
+    vector_dispose(u8, &link.error);
+    vector_dispose(u8, &link.output);
+    free(link);
+}
+
+fn backend_filename(name: u8*): bool {
+    var length = backend_length(name);
+    var invalid = length == 0;
+    if invalid {
+        return false;
+    }
+    invalid = length > 128;
+    if invalid {
+        return false;
+    }
+    var i: usize = 0;
+    loop {
+        var end = i == length;
+        if end {
+            return true;
+        }
+        var byte = name[i];
+        var valid = byte >= 97;
+        if valid {
+            valid = byte <= 122;
+        }
+        var upper = byte >= 65;
+        if upper {
+            upper = byte <= 90;
+        }
+        if upper {
+            valid = true;
+        }
+        var number = byte >= 48;
+        if number {
+            number = byte <= 57;
+        }
+        if number {
+            valid = true;
+        }
+        var punctuation = byte == 46;
+        if punctuation {
+            valid = true;
+        }
+        punctuation = byte == 95;
+        if punctuation {
+            valid = true;
+        }
+        punctuation = byte == 45;
+        if punctuation {
+            valid = true;
+        }
+        invalid = valid == false;
+        if invalid {
+            return false;
+        }
+        i = i + 1;
+    }
+}
+
+export fn backend_link_add_input(link: BackendLink*, name: u8*, data: u8*, length: usize): bool {
+    var invalid = name == null;
+    if invalid {
+        return false;
+    }
+    invalid = data == null;
+    if invalid {
+        return false;
+    }
+    invalid = length > 67108864;
+    if invalid {
+        return false;
+    }
+    invalid = link.inputs.length >= 64;
+    if invalid {
+        return false;
+    }
+    invalid = backend_filename(name) == false;
+    if invalid {
+        return false;
+    }
+    invalid = backend_prefix(name, "tower-");
+    if invalid {
+        return false;
+    }
+    var i: usize = 0;
+    var found: BackendLinkInput* = null;
+    loop {
+        var end = i == link.inputs.length;
+        if end {
+            break;
+        }
+        var same = backend_equal(link.inputs.data[i].name.data, name);
+        if same {
+            found = &link.inputs.data[i];
+            break;
+        }
+        i = i + 1;
+    }
+    var absent = found == null;
+    if absent {
+        var needed = link.inputs.length + 1;
+        var ok = vector_reserve(BackendLinkInput, &link.inputs, needed);
+        invalid = ok == false;
+        if invalid {
+            return false;
+        }
+        found = &link.inputs.data[link.inputs.length];
+        fill(found, 0, sizeof(BackendLinkInput));
+        backend_text(&found.name, name);
+        link.inputs.length = needed;
+    }
+    found.bytes.length = 0;
+    backend_text_append(&found.bytes, data, length);
+    var complete = found.bytes.length == length;
+    return complete;
+}
+
+fn backend_write_file(link: BackendLink*, path: u8*, data: u8*, length: usize): bool {
+    var file = fopen(path, "wb");
+    var absent = file == null;
+    if absent {
+        backend_text(&link.error, "Cannot open linker input: ");
+        backend_text(&link.error, path);
+        return false;
+    }
+    var written = fwrite(data, 1, length, file);
+    var status = fclose(file);
+    var ok = written == length;
+    if ok {
+        ok = status == 0;
+    }
+    var failed = ok == false;
+    if failed {
+        backend_text(&link.error, "Cannot write linker input: ");
+        backend_text(&link.error, path);
+    }
+    return ok;
+}
+
+fn backend_read_file(output: vector(u8)*, path: u8*): bool {
+    var file = fopen(path, "rb");
+    var absent = file == null;
+    if absent {
+        return false;
+    }
+    var status = backend_file_seek(file, 0, 2);
+    var length = backend_file_position(file);
+    var invalid = length < 0;
+    var failed = status != 0;
+    if failed {
+        invalid = true;
+    }
+    if invalid {
+        fclose(file);
+        return false;
+    }
+    backend_file_seek(file, 0, 0);
+    var count = convert(usize, length);
+    var needed = count + 1;
+    var ok = vector_reserve(u8, output, needed);
+    if ok {
+        var read = fread(output.data, 1, count, file);
+        ok = read == count;
+        if ok {
+            output.length = count;
+            output.data[count] = 0;
+        }
+    }
+    fclose(file);
+    return ok;
+}
+
+export fn backend_link_plan(link: BackendLink*, triple: u8*, functions: void**, count: usize, object: u8*, object_size: usize, runtime: u8*, runtime_size: usize): bool {
+    backend_link_reset_plan(link);
+    // A failed invocation cannot expose output left by a prior request.
+    remove("tower-output.bin");
+    var ok = backend_write_file(link, "tower-input.o", object, object_size);
+    var failed = ok == false;
+    if failed {
+        return false;
+    }
+    var wasm = backend_prefix(triple, "wasm");
+    var windows = backend_contains(triple, "windows");
+    var mac = backend_contains(triple, "apple");
+    if wasm {
+        ok = backend_write_file(link, "tower-runtime.o", runtime, runtime_size);
+        failed = ok == false;
+        if failed {
+            return false;
+        }
+        var allowed: vector(u8);
+        vector_init(u8, &allowed);
+        backend_text(&allowed, "tower_print\ntower_trap\n");
+        var i: usize = 1;
+        loop {
+            var done = i >= count;
+            if done {
+                break;
+            }
+            var n = sem_get(functions[i]);
+            if n.external {
+                var spelling = foreign_symbol(foreign_profile_for_target(triple), backend_name(n));
+                backend_text(&allowed, foreign_name_text(spelling));
+                foreign_name_close(spelling);
+                backend_text(&allowed, "\n");
+            }
+            i = i + 1;
+        }
+        ok = backend_write_file(link, "tower-allowed.txt", allowed.data, allowed.length);
+        vector_dispose(u8, &allowed);
+        failed = ok == false;
+        if failed {
+            return false;
+        }
+        backend_link_argument(link, "", "wasm-ld");
+        backend_link_argument(link, "", "--no-entry");
+        backend_link_argument(link, "", "--export=tower_main");
+        backend_link_argument(link, "", "--export-memory");
+        backend_link_argument(link, "", "--allow-undefined-file=tower-allowed.txt");
+        backend_link_argument(link, "", "--threads=1");
+        backend_link_argument(link, "", "--stack-first");
+        backend_link_argument(link, "", "-z");
+        backend_link_argument(link, "", "stack-size=4194304");
+        backend_link_argument(link, "", "--initial-memory=8388608");
+        backend_link_argument(link, "", "--max-memory=268435456");
+        backend_link_argument(link, "", "tower-input.o");
+        backend_link_argument(link, "", "tower-runtime.o");
+    } else {
+        if windows {
+            backend_link_argument(link, "", "lld-link");
+            backend_link_argument(link, "", "/entry:mainCRTStartup");
+            backend_link_argument(link, "", "/subsystem:console");
+            backend_link_argument(link, "", "/machine:x64");
+            backend_link_argument(link, "", "/timestamp:0");
+            backend_link_argument(link, "", "/threads:1");
+            backend_link_argument(link, "", "/out:tower-output.bin");
+        } else {
+            if mac {
+                backend_link_argument(link, "", "ld64.lld");
+                backend_link_argument(link, "", "-arch");
+                var x86 = backend_prefix(triple, "x86_64");
+                if x86 {
+                    backend_link_argument(link, "", "x86_64");
+                }
+                else {
+                    backend_link_argument(link, "", "arm64");
+                }
+                backend_link_argument(link, "", "-platform_version");
+                backend_link_argument(link, "", "macos");
+                backend_link_argument(link, "", "11.0");
+                backend_link_argument(link, "", "11.0");
+                backend_link_argument(link, "", "-e");
+                backend_link_argument(link, "", "_main");
+            } else {
+                backend_link_argument(link, "", "ld.lld");
+                backend_link_argument(link, "", "--threads=1");
+                backend_link_argument(link, "", "-static");
+                backend_link_argument(link, "", "--build-id=none");
+                backend_link_argument(link, "", "-e");
+                backend_link_argument(link, "", "_start");
+            }
+        }
+        backend_link_argument(link, "", "tower-input.o");
+    }
+    // Preserve deterministic lexical input order, matching the former map.
+    var order: vector(usize);
+    vector_init(usize, &order);
+    var i: usize = 0;
+    loop {
+        var done = i == link.inputs.length;
+        if done {
+            break;
+        }
+        vector_push(usize, &order, i);
+        var j = i;
+        loop {
+            done = j == 0;
+            if done {
+                break;
+            }
+            var previous = j - 1;
+            var a = order.data[previous];
+            var b = order.data[j];
+            var left = link.inputs.data[a].name.data;
+            var right = link.inputs.data[b].name.data;
+            var k: usize = 0;
+            loop {
+                var different = left[k] != right[k];
+                var end = left[k] == 0;
+                if end {
+                    different = true;
+                }
+                if different {
+                    break;
+                }
+                k = k + 1;
+            }
+            var sorted = left[k] <= right[k];
+            if sorted {
+                break;
+            }
+            order.data[previous] = b;
+            order.data[j] = a;
+            j = previous;
+        }
+        i = i + 1;
+    }
+    i = 0;
+    loop {
+        var done = i == order.length;
+        if done {
+            break;
+        }
+        var input = &link.inputs.data[order.data[i]];
+        ok = backend_write_file(link, input.name.data, input.bytes.data, input.bytes.length);
+        backend_link_argument(link, "", input.name.data);
+        i = i + 1;
+    }
+    vector_dispose(usize, &order);
+    i = 1;
+    loop {
+        var done = i >= count;
+        if done {
+            break;
+        }
+        var n = sem_get(functions[i]);
+        if n.exported {
+            var spelling = foreign_symbol(foreign_profile_for_target(triple), backend_name(n));
+            if wasm {
+                backend_link_argument(link, "--export=", foreign_name_text(spelling));
+            }
+            if windows {
+                backend_link_argument(link, "/export:", foreign_name_text(spelling));
+            }
+            foreign_name_close(spelling);
+        }
+        i = i + 1;
+    }
+    if wasm {
+        backend_link_argument(link, "", "--export=tower_allocate");
+        backend_link_argument(link, "", "--export=tower_deallocate");
+    }
+    var nonwindows = windows == false;
+    if nonwindows {
+        backend_link_argument(link, "", "-o");
+        backend_link_argument(link, "", "tower-output.bin");
+    }
+    ok = link.error.length == 0;
+    return ok;
+}
+
+export fn backend_link_arguments(link: BackendLink*): u8** {
+    return link.arguments.data;
+}
+
+export fn backend_link_argument_count(link: BackendLink*): usize {
+    return link.arguments.length;
+}
+
+export fn backend_link_read_output(link: BackendLink*): bool {
+    var ok = backend_read_file(&link.output, "tower-output.bin");
+    var failed = ok == false;
+    if failed {
+        backend_text(&link.error, "Cannot read linked executable");
+    }
+    return ok;
+}
+
+export fn backend_link_create(): BackendLink* {
+    var link = alloc(BackendLink, 1);
+    var present = link != null;
+    if present {
+        fill(link, 0, sizeof(BackendLink));
+    }
+    return link;
+}

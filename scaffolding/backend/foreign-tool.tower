@@ -1,0 +1,253 @@
+// Build-time Foundation-to-Foundation expansion for bootstrap compilers which
+// predate foreign-symbol lowering. Implementation and CLI are both Tower.
+extern fn fopen(path: u8*, mode: u8*): void*;
+
+extern fn fclose(file: void*): i32;
+
+extern fn fread(bytes: u8*, size: usize, count: usize, file: void*): usize;
+
+extern fn fwrite(bytes: u8*, size: usize, count: usize, file: void*): usize;
+
+extern fn ferror(file: void*): i32;
+
+extern fn puts(text: u8*): i32;
+
+fn foreign_expand_source(profile: u32, source: u8*, length: usize, out: vector(u8)*, wraps: vector(u8)*): bool {
+    var i: usize = 0;
+    loop {
+        var foreign_condition1007 = i == length;
+        if foreign_condition1007 {
+            break;
+        }
+        var byte = source[i];
+        // Preserve strings/comments verbatim, including backticks inside them.
+        var quoted = byte == 34;
+        var foreign_condition1008 = byte == 39;
+        if foreign_condition1008 {
+            quoted = true;
+        }
+        if quoted {
+            var start = i;
+            i = i + 1;
+            loop {
+                var foreign_condition1009 = i == length;
+                if foreign_condition1009 {
+                    break;
+                }
+                var next = source[i];
+                i = i + 1;
+                var foreign_condition1010 = next == byte;
+                if foreign_condition1010 {
+                    break;
+                }
+                var foreign_condition1011 = next == 92;
+                if foreign_condition1011 {
+                    var foreign_condition1012 = i < length;
+                    if foreign_condition1012 {
+                        i = i + 1;
+                    }
+                }
+            }
+            var count = i - start;
+            backend_text_append(out, &source[start], count);
+            continue;
+        }
+        var foreign_condition1013 = byte == 47;
+        if foreign_condition1013 {
+            var next = i + 1;
+            var foreign_condition1014 = next < length;
+            if foreign_condition1014 {
+                var line = source[next] == 47;
+                var block = source[next] == 42;
+                var comment = line;
+                if block {
+                    comment = true;
+                }
+                if comment {
+                    var start = i;
+                    i = i + 2;
+                    loop {
+                        var foreign_condition1015 = i == length;
+                        if foreign_condition1015 {
+                            break;
+                        }
+                        if line {
+                            var foreign_condition1016 = source[i] == 10;
+                            if foreign_condition1016 {
+                                break;
+                            }
+                        }
+                        if block {
+                            var foreign_condition1017 = source[i] == 42;
+                            if foreign_condition1017 {
+                                next = i + 1;
+                                var foreign_condition1018 = next < length;
+                                if foreign_condition1018 {
+                                    var foreign_condition1019 = source[next] == 47;
+                                    if foreign_condition1019 {
+                                        i = i + 2;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        i = i + 1;
+                    }
+                    var count = i - start;
+                    backend_text_append(out, &source[start], count);
+                    continue;
+                }
+            }
+        }
+        var foreign_condition1020 = byte == 96;
+        if foreign_condition1020 {
+            var start = i;
+            i = i + 1;
+            var begin = i;
+            loop {
+                var foreign_condition1021 = i == length;
+                if foreign_condition1021 {
+                    puts("Unterminated quoted Foundation name");
+                    return false;
+                }
+                var foreign_condition1022 = source[i] == 96;
+                if foreign_condition1022 {
+                    break;
+                }
+                var foreign_condition1023 = source[i] == 92;
+                if foreign_condition1023 {
+                    i = i + 1;
+                }
+                var foreign_condition1024 = i == length;
+                if foreign_condition1024 {
+                    return false;
+                }
+                i = i + 1;
+            }
+            source[i] = 0;
+            var name = &source[begin];
+            var macro = backend_prefix(name, "cpp_name(");
+            if backend_prefix(name, "c_name(") {
+                macro = true;
+            }
+            if macro {
+                var result = foreign_symbol(profile, name);
+                var error = foreign_name_error(result);
+                var foreign_condition1025 = error[0] != 0;
+                if foreign_condition1025 {
+                    puts(name);
+                    puts(error);
+                    foreign_name_close(result);
+                    return false;
+                }
+                backend_text(out, "`");
+                var symbol = foreign_name_text(result);
+                backend_text(out, symbol);
+                if backend_prefix(symbol, "__wrap_") {
+                    backend_text(wraps, "--wrap=");
+                    backend_text(wraps, &symbol[7]);
+                    backend_text(wraps, "\n");
+                }
+                backend_text(out, "`");
+                foreign_name_close(result);
+            } else {
+                source[i] = 96;
+                var count = i - start;
+                count = count + 1;
+                backend_text_append(out, &source[start], count);
+            }
+            source[i] = 96;
+            i = i + 1;
+            continue;
+        }
+        backend_text_append(out, &source[i], 1);
+        i = i + 1;
+    }
+    return true;
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    var foreign_condition1026 = argc != 4;
+    if foreign_condition1026 {
+        puts("tower-foreign target-triple input.tower output.tower");
+        return 2;
+    }
+    var profile = foreign_profile_for_target(argv[1]);
+    var foreign_condition1027 = profile == 0;
+    if foreign_condition1027 {
+        puts("Unsupported foreign target profile");
+        return 2;
+    }
+    var input = fopen(argv[2], "rb");
+    var foreign_condition1028 = input == null;
+    if foreign_condition1028 {
+        puts("Cannot open foreign source");
+        return 1;
+    }
+    var source: vector(u8);
+    vector_init(u8, &source);
+    var buffer: u8[4096];
+    loop {
+        var count = fread(&buffer[0], 1, 4096, input);
+        var foreign_condition1029 = count == 0;
+        if foreign_condition1029 {
+            break;
+        }
+        backend_text_append(&source, &buffer[0], count);
+    }
+    var failed = ferror(input) != 0;
+    fclose(input);
+    if failed {
+        vector_dispose(u8, &source);
+        return 1;
+    }
+    var expanded: vector(u8);
+    vector_init(u8, &expanded);
+    var wraps: vector(u8);
+    vector_init(u8, &wraps);
+    var ok = foreign_expand_source(profile, source.data, source.length, &expanded, &wraps);
+    if ok {
+        var output = fopen(argv[3], "wb");
+        var foreign_condition1030 = output == null;
+        if foreign_condition1030 {
+            ok = false;
+        }
+        else {
+            var written = fwrite(expanded.data, 1, expanded.length, output);
+            ok = written == expanded.length;
+            var status = fclose(output);
+            var foreign_condition1031 = status != 0;
+            if foreign_condition1031 {
+                ok = false;
+            }
+        }
+    }
+    if ok {
+        var path: vector(u8);
+        vector_init(u8, &path);
+        backend_text(&path, argv[3]);
+        backend_text(&path, ".wrap.rsp");
+        var output = fopen(path.data, "wb");
+        var foreign_condition3001 = output == null;
+        if foreign_condition3001 {
+            ok = false;
+        }
+        else {
+            var written = fwrite(wraps.data, 1, wraps.length, output);
+            ok = written == wraps.length;
+            var status = fclose(output);
+            var foreign_condition3002 = status != 0;
+            if foreign_condition3002 {
+                ok = false;
+            }
+        }
+        vector_dispose(u8, &path);
+    }
+    vector_dispose(u8, &wraps);
+    vector_dispose(u8, &source);
+    vector_dispose(u8, &expanded);
+    if ok {
+        return 0;
+    }
+    return 1;
+}

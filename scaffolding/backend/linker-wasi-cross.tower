@@ -1,0 +1,21 @@
+extern fn `cpp_name(bool lld::elf::link(llvm::ArrayRef<char const*>, llvm::raw_ostream&, llvm::raw_ostream&, bool, bool))`(args: BackendLldArguments*, output: BackendLldStream*, error: BackendLldStream*, exit_early: bool, disable_output: bool): bool;
+
+extern fn `cpp_name(bool lld::coff::link(llvm::ArrayRef<char const*>, llvm::raw_ostream&, llvm::raw_ostream&, bool, bool))`(args: BackendLldArguments*, output: BackendLldStream*, error: BackendLldStream*, exit_early: bool, disable_output: bool): bool;
+
+extern fn `cpp_name(bool lld::macho::link(llvm::ArrayRef<char const*>, llvm::raw_ostream&, llvm::raw_ostream&, bool, bool))`(args: BackendLldArguments*, output: BackendLldStream*, error: BackendLldStream*, exit_early: bool, disable_output: bool): bool;
+
+fn backend_lld_dispatch(triple: u8*, args: BackendLldArguments*, output: BackendLldStream*, error: BackendLldStream*): bool {
+    var wasm = backend_prefix(triple, "wasm");
+    if wasm {
+        return `cpp_name(bool lld::wasm::link(llvm::ArrayRef<char const*>, llvm::raw_ostream&, llvm::raw_ostream&, bool, bool))`(args, output, error, false, false);
+    }
+    var windows = backend_contains(triple, "windows");
+    if windows {
+        return `cpp_name(bool lld::coff::link(llvm::ArrayRef<char const*>, llvm::raw_ostream&, llvm::raw_ostream&, bool, bool))`(args, output, error, false, false);
+    }
+    var mac = backend_contains(triple, "apple");
+    if mac {
+        return `cpp_name(bool lld::macho::link(llvm::ArrayRef<char const*>, llvm::raw_ostream&, llvm::raw_ostream&, bool, bool))`(args, output, error, false, false);
+    }
+    return `cpp_name(bool lld::elf::link(llvm::ArrayRef<char const*>, llvm::raw_ostream&, llvm::raw_ostream&, bool, bool))`(args, output, error, false, false);
+}

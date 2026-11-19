@@ -1,0 +1,57 @@
+fn backend_verify(b: Backend*): bool {
+    var message: u8* = null;
+    // LLVMReturnStatusAction: malformed IR is a diagnostic, never process abort.
+    var status = LLVMVerifyModule(b.module, 2, &message);
+    var failed = status != 0;
+    if failed {
+        backend_fail(b, message);
+    }
+    LLVMDisposeMessage(message);
+    var result = status == 0;
+    return result;
+}
+
+export fn backend_optimize(b: Backend*, optimize: bool): bool {
+    var failed = b.error.length != 0;
+    if failed {
+        return false;
+    }
+    if optimize {
+        var options = LLVMCreatePassBuilderOptions();
+        LLVMPassBuilderOptionsSetVerifyEach(options, 1);
+        var error = LLVMRunPasses(b.module, "function(sroa,mem2reg,instcombine<no-verify-fixpoint>,simplifycfg),default<O2>", b.machine, options);
+        LLVMDisposePassBuilderOptions(options);
+        failed = error != null;
+        if failed {
+            var message = LLVMGetErrorMessage(error);
+            backend_fail(b, message);
+            LLVMDisposeErrorMessage(message);
+            return false;
+        }
+    }
+    var valid = backend_verify(b);
+    if valid {
+        b.optimized = LLVMPrintModuleToString(b.module);
+    }
+    return valid;
+}
+
+export fn backend_emit(b: Backend*): bool {
+    var failed = b.error.length != 0;
+    if failed {
+        return false;
+    }
+    var message: u8* = null;
+    // LLVMObjectFile, not assembly or an interchange encoding.
+    var status = LLVMTargetMachineEmitToMemoryBuffer(b.machine, b.module, 1, &message, &b.object);
+    failed = status != 0;
+    if failed {
+        backend_fail(b, message);
+    }
+    var present = message != null;
+    if present {
+        LLVMDisposeMessage(message);
+    }
+    var result = status == 0;
+    return result;
+}

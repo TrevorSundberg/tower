@@ -1,0 +1,331 @@
+// Expected symbols come from the pinned LLVM/lld objects, the Itanium ABI,
+// and upstream clang/test/CodeGenCXX/mangle-ms.cpp. No native test definitions.
+extern fn puts(text: u8*): i32;
+
+fn foreign_test(profile: u32, declaration: u8*, cpp: bool, object: bool, wanted: u8*): bool {
+    var result = foreign_mangle(profile, declaration, cpp, object);
+    var ok = backend_equal(foreign_name_text(result), wanted);
+    if ok {
+        ok = backend_equal(foreign_name_error(result), "");
+    }
+    var failed = ok == false;
+    if failed {
+        puts(declaration);
+        puts(foreign_name_error(result));
+        puts(foreign_name_text(result));
+        puts(wanted);
+    }
+    foreign_name_close(result);
+    return ok;
+}
+
+export fn foreign_tests(): i32 {
+    var failures: i32 = 0;
+    var ok = foreign_test(1, "void foo(int value)", true, false, "_Z3fooi");
+    var failed1 = ok == false;
+    if failed1 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(1, "void foo(int const value)", true, false, "_Z3fooi");
+    var failed2 = ok == false;
+    if failed2 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(1, "void foo(int const* first, int const* second)", true, false, "_Z3fooPKiS0_");
+    var failed3 = ok == false;
+    if failed3 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(1, "bool lld::wasm::link(llvm::ArrayRef<char const*> args, llvm::raw_ostream& out, llvm::raw_ostream& err, bool, bool)", true, false, "_ZN3lld4wasm4linkEN4llvm8ArrayRefIPKcEERNS1_11raw_ostreamES7_bb");
+    var failed4 = ok == false;
+    if failed4 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(1, "ctor(base) llvm::raw_fd_ostream(int, bool, bool, llvm::raw_ostream::OStreamKind)", true, false, "_ZN4llvm14raw_fd_ostreamC2EibbNS_11raw_ostream11OStreamKindE");
+    var failed5 = ok == false;
+    if failed5 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(1, "dtor(base) llvm::raw_fd_ostream()", true, false, "_ZN4llvm14raw_fd_ostreamD2Ev");
+    var failed6 = ok == false;
+    if failed6 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(1, "static void lld::CommonLinkerContext::destroy()", true, false, "_ZN3lld19CommonLinkerContext7destroyEv");
+    var failed7 = ok == false;
+    if failed7 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(1, "llvm::raw_ostream& llvm::nulls()", true, false, "_ZN4llvm5nullsEv");
+    var failed8 = ok == false;
+    if failed8 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(1, "using size_t = unsigned long; static llvm::Expected<llvm::FileOutputBuffer> llvm::FileOutputBuffer::create(llvm::StringRef, size_t, unsigned int)", true, false, "_ZN4llvm16FileOutputBuffer6createENS_9StringRefEmj");
+    var failed9 = ok == false;
+    if failed9 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(1, "using size_t = unsigned long; static llvm::sys::MemoryBlock llvm::sys::Memory::allocateMappedMemory(size_t, llvm::sys::MemoryBlock const*, unsigned int, std::__2::error_code&)", true, false, "_ZN4llvm3sys6Memory20allocateMappedMemoryEmPKNS0_11MemoryBlockEjRNSt3__210error_codeE");
+    var failed10 = ok == false;
+    if failed10 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(1, "static std::__2::error_code llvm::sys::Memory::releaseMappedMemory(llvm::sys::MemoryBlock&)", true, false, "_ZN4llvm3sys6Memory19releaseMappedMemoryERNS0_11MemoryBlockE");
+    var failed11 = ok == false;
+    if failed11 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(1, "std::__2::error_category const& std::__2::generic_category() noexcept", true, false, "_ZNSt3__216generic_categoryEv");
+    var failed12 = ok == false;
+    if failed12 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(1, "void foo(void (*callback)(int) noexcept)", true, false, "_Z3fooPDoFviE");
+    var failed13 = ok == false;
+    if failed13 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(1, "method int A::get() const & noexcept", true, false, "_ZNKR1A3getEv");
+    var failed14 = ok == false;
+    if failed14 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(1, "void foo(Buffer<int, 12>)", true, false, "_Z3foo6BufferIiLi12EE");
+    var failed15 = ok == false;
+    if failed15 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(3, "void foo(int)", true, true, "__Z3fooi");
+    var failed16 = ok == false;
+    if failed16 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(5, "int a(char)", true, false, "?a@@YAHD@Z");
+    var failed17 = ok == false;
+    if failed17 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(6, "int _c(void)", true, false, "?_c@@YAHXZ");
+    var failed18 = ok == false;
+    if failed18 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(5, "ctor(complete) foo()", true, false, "??0foo@@QEAA@XZ");
+    var failed19 = ok == false;
+    if failed19 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(6, "ctor(complete) foo(int)", true, false, "??0foo@@QAE@H@Z");
+    var failed20 = ok == false;
+    if failed20 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(6, "ctor(complete) foo(char*)", true, false, "??0foo@@QAE@PAD@Z");
+    var failed21 = ok == false;
+    if failed21 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(5, "dtor(base) foo()", true, false, "??1foo@@QEAA@XZ");
+    var failed22 = ok == false;
+    if failed22 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(5, "class foo bar()", true, false, "?bar@@YA?AVfoo@@XZ");
+    var failed23 = ok == false;
+    if failed23 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(5, "class foo; static foo* foo::static_method()", true, false, "?static_method@foo@@SAPEAV1@XZ");
+    var failed24 = ok == false;
+    if failed24 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(6, "bool __fastcall beta(long long, wchar_t)", true, false, "?beta@@YI_N_J_W@Z");
+    var failed25 = ok == false;
+    if failed25 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(5, "bool __fastcall beta(long long, wchar_t)", true, false, "?beta@@YA_N_J_W@Z");
+    var failed26 = ok == false;
+    if failed26 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(6, "void __stdcall alpha(float, double) throw()", true, false, "?alpha@@YGXMN@Z");
+    var failed27 = ok == false;
+    if failed27 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(5, "void gamma(class foo, struct bar, union baz, enum quux)", true, false, "?gamma@@YAXVfoo@@Ubar@@Tbaz@@W4quux@@@Z");
+    var failed28 = ok == false;
+    if failed28 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(6, "void delta(int* const a, const long&)", true, false, "?delta@@YAXQAHABJ@Z");
+    var failed29 = ok == false;
+    if failed29 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(5, "void delta(int* const a, const long&)", true, false, "?delta@@YAXQEAHAEBJ@Z");
+    var failed30 = ok == false;
+    if failed30 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(6, "void zeta(int (*callback)(int, int))", true, false, "?zeta@@YAXP6AHHH@Z@Z");
+    var failed31 = ok == false;
+    if failed31 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(1, "int foo(void* bar)", false, false, "foo");
+    var failed32 = ok == false;
+    if failed32 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(3, "int foo(void* bar)", false, true, "_foo");
+    var failed33 = ok == false;
+    if failed33 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(6, "int __stdcall foo(void*, double)", false, true, "_foo@12");
+    var failed34 = ok == false;
+    if failed34 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(6, "int __fastcall foo(void*, double)", false, true, "@foo@12");
+    var failed35 = ok == false;
+    if failed35 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(5, "int __stdcall foo(void*, double)", false, true, "foo");
+    var failed36 = ok == false;
+    if failed36 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(1, "using std::ostream = std::basic_ostream<char, std::char_traits<char>>; void foo(std::ostream*)", true, false, "_Z3fooPSo");
+    var failed100 = ok == false;
+    if failed100 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(1, "using std::string = std::basic_string<char, std::char_traits<char>, std::allocator<char>>; void foo(std::string, std::string)", true, false, "_Z3fooSsSs");
+    var failed101 = ok == false;
+    if failed101 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(1, "abi_tag(cxx11) std::__cxx11::basic_string<char> foo()", true, false, "_Z3fooB5cxx11v");
+    var failed102 = ok == false;
+    if failed102 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(1, "method int A::operator+(int)", true, false, "_ZN1AplEi");
+    var failed103 = ok == false;
+    if failed103 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(1, "method int A::operator-()", true, false, "_ZN1AngEv");
+    var failed104 = ok == false;
+    if failed104 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(5, "method int foo::operator+(int)", true, false, "??Hfoo@@QEAAHH@Z");
+    var failed105 = ok == false;
+    if failed105 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(6, "method int foo::operator+(int)", true, false, "??Hfoo@@QAEHH@Z");
+    var failed106 = ok == false;
+    if failed106 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(1, "void foo<int>(param(0))", true, false, "_Z3fooIiEvT_");
+    var failed107 = ok == false;
+    if failed107 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(1, "void foo(Buffer<int, value(unsigned int, 12)>)", true, false, "_Z3foo6BufferIiLj12EE");
+    var failed108 = ok == false;
+    if failed108 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(6, "bool __fastcall beta(long long, wchar_t) throw(signed char, unsigned char)", true, false, "?beta@@YI_N_J_W@Z");
+    var failed109 = ok == false;
+    if failed109 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(5, "void foo(int (*callback)(int) noexcept)", true, false, "?foo@@YAXP6AHH@_E@Z");
+    var failed110 = ok == false;
+    if failed110 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(6, "void epsilon(int a[][10][20])", true, false, "?epsilon@@YAXQAY19BE@H@Z");
+    var failed120 = ok == false;
+    if failed120 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(5, "void epsilon(int a[][10][20])", true, false, "?epsilon@@YAXQEAY19BE@H@Z");
+    var failed121 = ok == false;
+    if failed121 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(1, "void foo(int (&a)[10])", true, false, "_Z3fooRA10_i");
+    var failed122 = ok == false;
+    if failed122 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(1, "void foo(int A::*)", true, false, "_Z3fooM1Ai");
+    var failed123 = ok == false;
+    if failed123 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(5, "void foo(int A::*)", true, false, "?foo@@YAXPEQA@@H@Z");
+    var failed124 = ok == false;
+    if failed124 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(1, "void foo(void (A::*)() const)", true, false, "_Z3fooM1AKFvvE");
+    var failed125 = ok == false;
+    if failed125 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(5, "void foo(void (A::*)() const)", true, false, "?foo@@YAXP8A@@EBAXXZ@Z");
+    var failed126 = ok == false;
+    if failed126 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(1, "void foo(Buffer<value(unsigned long long, 18446744073709551615)>)", true, false, "_Z3foo6BufferILy18446744073709551615EE");
+    var failed140 = ok == false;
+    if failed140 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(11, "int a(char)", true, true, "?a@@$$hYAHD@Z");
+    var failed141 = ok == false;
+    if failed141 {
+        failures = failures + 1;
+    }
+    ok = foreign_test(11, "int foo(void*)", false, true, "#foo");
+    var failed142 = ok == false;
+    if failed142 {
+        failures = failures + 1;
+    }
+    var invalid = foreign_symbol(1, "cpp_name(");
+    var message = foreign_name_error(invalid);
+    var empty = message[0] == 0;
+    if empty {
+        failures = failures + 1;
+    }
+    foreign_name_close(invalid);
+    invalid = cpp_name(5, "void foo(MissingClassMetadata)");
+    message = foreign_name_error(invalid);
+    empty = message[0] == 0;
+    if empty {
+        failures = failures + 1;
+    }
+    foreign_name_close(invalid);
+    invalid = cpp_name(1, "void foo() unexpected");
+    message = foreign_name_error(invalid);
+    empty = message[0] == 0;
+    if empty {
+        failures = failures + 1;
+    }
+    foreign_name_close(invalid);
+    return failures;
+}

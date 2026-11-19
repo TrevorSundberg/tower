@@ -13310,3 +13310,220 @@ downloads and target-selection checks with no page errors. Hosted log:
 build/frontend-owner-hosted-verification.log; screenshots and report:
 build/deployment-verification/. This verifies the online playground, not the
 unfinished Tower-only compiler distribution.
+### 2026-11-19 — Backend migration: Tower LLVM C API and pinned WASI ABI
+
+Backend owner began from main at 4a1c7aa, then pulled/rebased again on request to
+7973c39. Initial checkout was the removed port/host-runtime-integration branch;
+the initial pull fetched main but could not find that branch upstream. Switched
+the clean checkout to tracking main and pulled successfully. No todo.txt changes.
+Saved build/native/towerc as build/backend-port/towerc-baseline before changes.
+
+Implemented backend/{bindings,context,target,lowering,pipeline,disassembly}.tower
+against the upstream LLVM C API and the existing FoundationNode components,
+sem_get and semantic_{size,alignment,width,signed,aggregate} contracts. No new
+semantic graph or interchange representation. Lowering preserves local allocas,
+raw non-inbounds GEPs, alignment-one accesses, ordered evaluation, explicit
+integer traps/conversion guards, narrow external/export zero-extension attributes,
+Wasm imports/exports and runtime symbol checks. Verification uses return-status
+mode before/after the same VerifyEach/O2 pipeline. Object bytes and LLVM-owned
+text/buffers have explicit result lifetimes. Native llvm-engine.cpp is now only
+frontend/transport connection and timing/result copying.
+
+First verified result: the recursive-functions example has byte-identical raw
+LLVM, optimized LLVM and native object output against the saved compiler.
+`python3 scaffolding/tests/interpreter-llvm.py
+/home/trevo/.cache/tower/backend-native/towerc build/backend-port/agreement`
+passed all 16 optimized/unoptimized native execution comparisons. The standalone
+Tower backend API test runner passed target rejection, successful emission,
+verifier diagnostics (without abort), truncated Wasm decoding and input validation.
+The replacement foreign-fixture.tower compiled and linked with linking.tower;
+its native output matches the existing ten-line fixture contract. Further target,
+browser, determinism and benchmark results remain pending below, not implied here.
+
+Native build uses an isolated cmake/TowerBackend.cmake fragment via
+CMAKE_PROJECT_scaffolding_INCLUDE, TOWER_NATIVE=ON,
+TOWER_BOOTSTRAP_COMPILER=$PWD/build/backend-port/towerc-baseline,
+LLVM_DIR=/usr/lib/llvm-19/lib/cmake/llvm and TOWER_BACKEND_TESTS=ON.
+CMake output is /home/trevo/.cache/tower/backend-native. Logs and comparison
+artifacts are in build/backend-port. WSL provides LLVM 19's shared library,
+Clang 21, CMake/Ninja; Docker Desktop was unavailable (Linux engine pipe missing).
+The frozen compiler binary is a local validation input, not a new native seed or
+portable distribution. Task 4 must integrate the fragment with its bootstrap
+binary/source closure; the removed native lowering cannot bootstrap itself.
+
+Browser work uses the pinned upstream LLVM revision 1e57ee22 (LLVM/lld 20) and
+WASI SDK 34. The existing cache had no native llvm-tblgen binary/configuration.
+Configured/built the upstream table generator, then began the WASI LLVM/lld build
+at /home/trevo/.cache/tower/backend-wasi with -j12. No upstream implementation
+was edited or relabeled as project code. Inspected upstream Support/Memory.cpp,
+raw_ostream.cpp and the existing backend call sites with the SDK's LLVM emission
+and -fdump-record-layouts; saved signatures/layouts under build/backend-port.
+
+The C++-only WASI interfaces are bound directly from Tower using the pinned
+wasm32 ABI: ArrayRef/StringRef are indirect, raw_fd_ostream is 64 bytes/alignment
+8, MemoryBlock is 12 bytes/alignment 4, libc++ error_code is 8 bytes/alignment 4,
+and aggregate results use an explicit initial sret pointer. The upstream stream
+constructors/destructors and four LLD drivers remain third-party implementations.
+Tower owns argument construction, diagnostics-file capture, context destruction,
+result reads and failure/reset policy. These are target-specific foreign ABI
+bindings, not a new Foundation operation or a claim of portable C++ ABI layout.
+
+Rejected rebuilding the old FileOutputBuffer subclass/vtable in native code.
+Upstream FileOutputBuffer already falls back to InMemoryBuffer when mmap fails;
+Tower supplies data-only allocation/release through link-time --wrap of the two
+WASI unsupported-operation stubs. It rejects executable-memory flags, zeroes the
+allocated data and retains upstream file writing. Three existing crash-recovery
+hooks moved to Tower; unrecoverable failures still terminate the worker. This
+solution is implemented but browser link/execution validation is pending.
+
+Contracts for task 3: preserve FoundationNode/CoreKind/CoreOp/scalar IDs and
+sem_get plus semantic type/layout exports. Existing tower_print, tower_trap,
+tower_allocate/reallocate/deallocate contracts and narrow foreign parameter/
+return attributes are unchanged. No new Foundation primitives are currently
+required. Task 3 retains runtime-object ownership; the backend receives that
+object as bytes. Task 1 retains source-to-Foundation orchestration. Task 4 can use
+backend_open/lower/optimize/emit/close directly on its validated entity list,
+backend_link_plan plus a bundled upstream executable on native hosts, or the
+Tower session/linker API in WASI. Existing C++ source parsing/worker exports are
+mechanical connections awaiting those owners' host/frontend APIs.
+
+Primary references: checked-in upstream llvm-c/{Core,Target,TargetMachine,Object,
+Disassembler,Transforms/PassBuilder}.h, lld/include/lld/Common/Driver.h, and
+llvm/lib/Support/{FileOutputBuffer,Memory,raw_ostream}.cpp. Public reference pages:
+https://llvm.org/doxygen/group__LLVMCTarget.html,
+https://llvm.org/doxygen/group__LLVMCCoreNewPM.html,
+https://lld.llvm.org/WebAssembly.html. Local pinned headers govern signatures;
+current online documentation alone is not an ABI pin.
+
+### 2026-11-19 — Backend cutover validation and Tower foreign-name declarations
+
+Supersedes the pending browser-validation statements above. Pulled/rebased again
+on the user's request, incorporating task 3's dfdf95b/6610461 shared runtime
+cutover. The stash restoration overlapped only the appended journal; preserved
+both entries. A subsequent pull reported current main. Work remains directly on
+main. No foundation.tower, todo.txt, frontend, interpreter, platform, driver,
+browser transport implementation or broad packaging changes were made.
+
+Completed Tower lowering, verification/pass configuration, raw/optimized text,
+object emission, native/Wasm disassembly, linker planning/WASI invocation and
+backend result/session ownership. Native llvm-engine.cpp and llvm-backend.cpp
+only connect existing frontend/transport interfaces. llvm-wasi.cpp contains no
+implementation. Disassembly reads executable-section flags from ELF, COFF/PE
+and Mach-O headers because llvm-c Object has no isText query; a custom-named
+.tower.code section is tested. File seeking uses explicit POSIX off_t64 or
+Windows _fseeki64/_ftelli64 profiles. Native target initialization is generated
+from the installed LLVM target configuration, preserving its configured targets.
+
+WASI linking works without a new native shim. The initial upstream mmap fallback
+was functional but unnecessarily tried temporary-file/mapping paths. Added a
+third Tower --wrap binding for upstream FileOutputBuffer::create to select its
+F_no_mmap path; replaced an unused linker-stdout file with upstream llvm::nulls.
+These changes remove avoidable filesystem work. Native packages can consume the
+same backend_link_plan with an upstream linker executable. Task 4 still owns the
+CLI/process/package connection and registration of cmake/TowerBackend.cmake with
+its validated bootstrap distribution. The old no-bootstrap native seed recipe
+cannot rebuild removed backend implementations; no replacement native seed was
+introduced. Task 3's shared contracts were consumed unchanged and revalidated
+through its landed main. No new foreign-operation or Foundation opcode is needed.
+
+User then requested implementation of a C/C++ declaration mangler entirely in
+Tower. Added foreign-reader/declarators/operators/itanium/microsoft/api/symbol
+modules and a Tower build-host expander. This is our ABI naming implementation;
+Clang/libclang are not called. LLVM/lld stream/driver/crash/memory bindings now
+contain cpp_name declarations. Their three linker wrap flags are generated from
+the same declarations into a response file, not independently hand-mangled in
+CMake. The explicit lowered Tower signatures and validated WASI layouts remain
+necessary: a correct name does not classify aggregate returns/arguments or infer
+object layout. Public API and grammar are documented in backend/FOREIGN.md.
+
+The API selects 11 explicit profiles spanning Itanium/Microsoft, ELF/Mach-O/COFF,
+wasm32/x86/x64/arm64/ARM64EC. Naming includes substitutions/backreferences, CV and
+reference qualifiers, ordinary operators, explicit constructor/destructor
+variants, type templates, integer template values, arrays, function/member
+pointers, calling conventions, ABI tags and noexcept function types. Typedefs and
+record-kind annotations can live inside one expression. LLVM-name versus final
+object-name spelling is explicit, avoiding double decoration. The data model is
+selected by profile; integer template values use u64 even inside wasm32, verified
+with 18446744073709551615. All temporary declaration descriptions are private
+derived data, not a second Tower semantic graph or interchange format.
+
+A trial unquoted grammar retained whitespace inside word tokens to feed the
+shared name reader. Parsing/linking worked, but the formatter correctly rejected
+its unstable token boundaries. Rejected that design. The optional grammar now
+uses a single colon between adjacent C++ words (int:foo(void*:bar)); :: remains
+scope qualification. It rejects adjacent unseparated words rather than silently
+joining type names. Quoted Foundation identifiers and the callable API accept
+ordinary C++ spacing. This lives only in backend/foreign-grammar.tower. The
+Foundation file's blob remains 8ab0d36043d1c725a6327c66e7be2121bb78efd5. Canonical
+Foundation text retains the declaration identifier; lowering derives the target
+symbol. All added sources pass the existing shared formatter and round-trip
+checks. No parser/semantic/format implementation was changed.
+
+Coverage is deliberately explicit rather than a claim of a complete C++ frontend:
+dependent expressions, deduction, constexpr evaluation, lambdas/local entities,
+modules, vendor vector/address-space types and vtable/thunk synthesis are not
+implemented. The caller must provide concrete types and missing class/typedef/ABI
+tag information. Full C++ header interpretation is not implied. The source
+references are Itanium ABI 5.1 (https://itanium-cxx-abi.github.io/cxx-abi/abi.html),
+Microsoft decoration (https://learn.microsoft.com/en-us/cpp/build/reference/decorated-names?view=msvc-170),
+libstdc++ dual ABI (https://gcc.gnu.org/onlinedocs/libstdc++/manual/using_dual_abi.html),
+and pinned upstream clang/lib/AST/{Itanium,Microsoft}Mangle.cpp,
+llvm/lib/IR/Mangler.cpp and clang/test/CodeGenCXX/mangle-ms.cpp. No new C/C++ test
+input was introduced; functional fixtures and all name assertions are Tower.
+
+Debugging findings: wasm32 call-site attributes must match declaration attributes;
+restoring these recovered exact baseline raw/optimized/object equality. Removed a
+mistaken LLVMBuildZExtOrTrunc declaration and used the real LLVMBuildIntCast2 API.
+Backend import/export names must outlive optimizer-deleted LLVM declarations;
+result names now have owned storage independent of LLVM value lifetimes. Added
+reserved/duplicate resolved-symbol diagnostics and propagated calling conventions
+to declarations and calls. A formatting-only final-suite failure after the last
+ownership edit was corrected, then the full suite was rerun successfully.
+
+Final validation (logs/artifacts under build/backend-port):
+- native backend API runner and backend_tests in both LLVM and cross WASI modules
+  pass, including verifier failures, malformed Wasm LEBs, custom code sections,
+  link-input validation, 57 foreign-symbol goldens and three foreign-name errors.
+- Composed the same mangler/tests as ordinary Tower and ran towerc --interpret:
+  printed 0 failures (mangler-interpreted.log). No guest JIT/native mangler.
+- npm test --prefix playground: 224/224, zero skipped (full-tests-final.log).
+- interpreter-llvm.py: 16/16 optimized/unoptimized comparisons
+  (agreement-final.log), plus backend-semantics expected-output agreement.
+- compare.py: all 24 fixture/target cases have identical raw LLVM, optimized LLVM
+  and object bytes versus the frozen original integration (comparison-final.log).
+- test-linking.sh and test-windows-linking.sh pass with the replacement Tower
+  foreign fixture: archives, callbacks, platform storage, real LLVM C API, native
+  and Wasm objects, and actual Windows PE execution (linking-final/windows-final).
+- Browser cross compilation/linking covers all six supported target profiles.
+  Both quoted and compact foreign declarations link to separately compiled Tower
+  exports. Browser-created Wasm, Linux x64, Linux ARM64 (qemu-aarch64), and Windows
+  executables run; foreign fixtures print 42 (foreign-browser-final.log).
+  Existing test-browser-exports.sh also passes both Linux architectures and the
+  browser-produced Windows executable matches expected output. Installed upstream
+  qemu-user after the initial ARM64 run reported a skip; that skip is superseded.
+  macOS x64/arm64 outputs are emitted/linked/determinism checked, not executed here.
+- Rebuilt composed native and wasm32 backend objects with the Tower-backed native
+  compiler; cmp agrees with the frozen compiler's objects byte-for-byte. These
+  are module self-rebuild checks, not whole-compiler portable bootstrap completion.
+
+Final benchmarks use a fixed source input, one browser warmup, seven alternating
+baseline/new samples, and medians (browser-benchmark-final.log and JSON). Browser
+wall ms baseline -> Tower: memory 14.346 -> 14.470; functions 11.077 -> 10.991;
+semantic fixture 12.216 -> 11.658; fixed backend library 958.039 -> 901.513.
+Lowering ms: .395 -> .434, .264 -> .250, .486 -> .461, 9.820 -> 9.791. Small-case
+linker phases retain about .05-.09 ms overhead after the filesystem fixes; this
+is recorded, not hidden as a universal speedup. Corrected the Tower link timer
+to begin after input-file/argument preparation, matching the original boundary.
+Native five-sample object medians: memory lowering .300 -> .261 ms, O2 4.078 ->
+3.949, emission 2.437 -> 2.473; functions lowering .211 -> .188, O2 3.100 -> 3.116,
+emission 1.550 -> 1.633. Whole-process totals 84.378 -> 75.331 and 79.002 -> 72.486
+also include the newly landed runtime/frontend work; do not attribute all of that
+change to this backend. Phase noise and small emission/link overhead remain.
+
+Validation used WSL LLVM 19/Clang 21, pinned upstream LLVM/lld 20, WASI SDK 34,
+Node 22.23.4 and the existing target runtime packs. At this point the stripped
+LLVM/cross reactors are approximately 51.84/63.40 MB, versus 51.78/63.34 MB saved
+baselines, with API tests enabled. The default CLI/browser transport, portable
+bootstrap packaging, native process launching and runtime-object migration are
+still their respective owners' integration dependencies. Deployment verification
+and commit identifiers are recorded in the following publication entry.

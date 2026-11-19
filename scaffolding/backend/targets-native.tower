@@ -1,0 +1,49 @@
+// Explicitly linked upstream targets; no compiler-host target inference.
+
+extern fn LLVMInitializeWebAssemblyTargetInfo(): void;
+
+extern fn LLVMInitializeWebAssemblyTarget(): void;
+
+extern fn LLVMInitializeWebAssemblyTargetMC(): void;
+
+extern fn LLVMInitializeWebAssemblyAsmPrinter(): void;
+
+extern fn LLVMInitializeWebAssemblyDisassembler(): void;
+
+extern fn LLVMInitializeX86TargetInfo(): void;
+
+extern fn LLVMInitializeX86Target(): void;
+
+extern fn LLVMInitializeX86TargetMC(): void;
+
+extern fn LLVMInitializeX86AsmPrinter(): void;
+
+extern fn LLVMInitializeX86Disassembler(): void;
+
+extern fn LLVMInitializeAArch64TargetInfo(): void;
+
+extern fn LLVMInitializeAArch64Target(): void;
+
+extern fn LLVMInitializeAArch64TargetMC(): void;
+
+extern fn LLVMInitializeAArch64AsmPrinter(): void;
+
+extern fn LLVMInitializeAArch64Disassembler(): void;
+
+fn backend_initialize_targets(): void {
+    LLVMInitializeWebAssemblyTargetInfo();
+    LLVMInitializeWebAssemblyTarget();
+    LLVMInitializeWebAssemblyTargetMC();
+    LLVMInitializeWebAssemblyAsmPrinter();
+    LLVMInitializeWebAssemblyDisassembler();
+    LLVMInitializeX86TargetInfo();
+    LLVMInitializeX86Target();
+    LLVMInitializeX86TargetMC();
+    LLVMInitializeX86AsmPrinter();
+    LLVMInitializeX86Disassembler();
+    LLVMInitializeAArch64TargetInfo();
+    LLVMInitializeAArch64Target();
+    LLVMInitializeAArch64TargetMC();
+    LLVMInitializeAArch64AsmPrinter();
+    LLVMInitializeAArch64Disassembler();
+}

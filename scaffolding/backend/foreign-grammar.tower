@@ -1,0 +1,15 @@
+// Optional surface syntax. A single colon separates adjacent C++ words, so
+// the shared name reader and formatter preserve their lexical boundaries:
+// cpp_name(int:foo(void*:bar)). The API and quoted Foundation name accept spaces.
+token ForeignWord = /[A-Za-z_][A-Za-z0-9_]*|[0-9]+/ when expected as identifier;
+parse ForeignGroup = '(' ForeignPieces ')';
+parse ForeignPunctuation = ':' | '::' | '*' | '&' | '&&' | '<' | '>' | ',' | ';' | '=' | '[' | ']' | '~'
+                          | '...' | '-' | '+' | '/' | '%' | '^' | '!' | '|' | '.';
+// Adjacent words need a separator so they cannot silently become another type.
+parse ForeignPieces = | ForeignPunctuation ForeignPieces | ForeignGroup ForeignPieces
+                     | ForeignWord ForeignAfterWord;
+parse ForeignAfterWord = | ForeignPunctuation ForeignPieces | ForeignGroup ForeignPieces;
+parse ForeignName = 'cpp_name' '(' ForeignPieces ')' | 'c_name' '(' ForeignPieces ')';
+parse CoreExternal |= 'extern' 'fn' $name:ForeignName '(' $params:CoreParameters? ')' ':' $type:CoreType ';';
+parse CoreExport |= 'export' 'fn' $name:ForeignName '(' $params:CoreParameters? ')' ':' $type:CoreType $body:CoreBlock;
+parse CoreCall |= $name:ForeignName '(' $args:CoreArguments? ')';

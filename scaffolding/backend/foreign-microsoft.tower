@@ -1,0 +1,510 @@
+// Microsoft C++ ABI. Source of truth/reference: upstream Clang MicrosoftMangle.
+// Name backreferences and parameter backreferences have separate scopes.
+fn foreign_ms_builtin(type: ForeignType*): u8* {
+    var code = type.name;
+    if backend_equal(code, "v") {
+        return "X";
+    }
+    if backend_equal(code, "a") {
+        return "C";
+    }
+    if backend_equal(code, "c") {
+        return "D";
+    }
+    if backend_equal(code, "h") {
+        return "E";
+    }
+    if backend_equal(code, "s") {
+        return "F";
+    }
+    if backend_equal(code, "t") {
+        return "G";
+    }
+    if backend_equal(code, "i") {
+        return "H";
+    }
+    if backend_equal(code, "j") {
+        return "I";
+    }
+    if backend_equal(code, "l") {
+        return "J";
+    }
+    if backend_equal(code, "m") {
+        return "K";
+    }
+    if backend_equal(code, "f") {
+        return "M";
+    }
+    if backend_equal(code, "d") {
+        return "N";
+    }
+    if backend_equal(code, "e") {
+        return "O";
+    }
+    if backend_equal(code, "x") {
+        return "_J";
+    }
+    if backend_equal(code, "y") {
+        return "_K";
+    }
+    if backend_equal(code, "n") {
+        return "_L";
+    }
+    if backend_equal(code, "o") {
+        return "_M";
+    }
+    if backend_equal(code, "b") {
+        return "_N";
+    }
+    if backend_equal(code, "Du") {
+        return "_Q";
+    }
+    if backend_equal(code, "Ds") {
+        return "_S";
+    }
+    if backend_equal(code, "Di") {
+        return "_U";
+    }
+    if backend_equal(code, "w") {
+        return "_W";
+    }
+    if backend_equal(code, "Dn") {
+        return "$$T";
+    }
+    return "";
+}
+
+fn foreign_ms_number(m: ForeignName*, value: u64): void {
+    var foreign_condition84 = value == 0;
+    if foreign_condition84 {
+        backend_text(&m.text, "A@");
+        return;
+    }
+    var foreign_condition85 = value <= 10;
+    if foreign_condition85 {
+        var digit = value - 1;
+        foreign_number64(&m.text, digit, 10);
+        return;
+    }
+    var digits: u8[32];
+    var count: usize = 0;
+    loop {
+        var part = value % 16;
+        part = part + 65;
+        digits[count] = convert(u8, part);
+        count = count + 1;
+        value = value / 16;
+        var foreign_condition86 = value == 0;
+        if foreign_condition86 {
+            break;
+        }
+    }
+    loop {
+        var foreign_condition87 = count == 0;
+        if foreign_condition87 {
+            break;
+        }
+        count = count - 1;
+        backend_text_append(&m.text, &digits[count], 1);
+    }
+    backend_text(&m.text, "@");
+}
+
+fn foreign_ms_cv(m: ForeignName*, cv: u32): void {
+    var value = cv & 3;
+    value = value + 65;
+    var byte = convert(u8, value);
+    backend_text_append(&m.text, &byte, 1);
+}
+
+fn foreign_ms_identifier(m: ForeignName*, name: u8*): void {
+    var i: usize = 0;
+    loop {
+        var foreign_condition88 = i == m.ms_names.length;
+        if foreign_condition88 {
+            break;
+        }
+        if backend_equal(m.ms_names.data[i], name) {
+            foreign_number(&m.text, i, 10);
+            return;
+        }
+        i = i + 1;
+    }
+    backend_text(&m.text, name);
+    backend_text(&m.text, "@");
+    var foreign_condition89 = m.ms_names.length < 10;
+    if foreign_condition89 {
+        foreign_require(m, vector_push(u8*, &m.ms_names, name));
+    }
+}
+
+fn foreign_ms_component(m: ForeignName*, type: ForeignType*): void {
+    if type.operator_name {
+        backend_text(&m.text, foreign_operator_code(m, type.name, true));
+        return;
+    }
+    var foreign_condition90 = type.template_id == false;
+    if foreign_condition90 {
+        foreign_ms_identifier(m, type.name);
+        return;
+    }
+    // A template-id is entered as one name into the outer backreference table.
+    var outer: vector(u8*);
+    copy(&outer, &m.ms_names, sizeof(vector(u8*)));
+    vector_init(u8*, &m.ms_names);
+    var start = m.text.length;
+    backend_text(&m.text, "?$");
+    foreign_ms_identifier(m, type.name);
+    var i: usize = 0;
+    loop {
+        var foreign_condition91 = i == type.args.length;
+        if foreign_condition91 {
+            break;
+        }
+        var argument = type.args.data[i];
+        var foreign_condition92 = argument.kind == 9;
+        if foreign_condition92 {
+            backend_text(&m.text, "$0");
+            var foreign_condition93 = argument.ref != 0;
+            if foreign_condition93 {
+                backend_text(&m.text, "?");
+            }
+            foreign_ms_number(m, argument.count);
+        } else {
+            foreign_ms_type(m, argument, false);
+        }
+        i = i + 1;
+    }
+    var count = m.text.length - start;
+    var encoded = foreign_copy(m, &m.text.data[start], count);
+    m.text.length = start;
+    m.text.data[start] = 0;
+    vector_dispose(u8*, &m.ms_names);
+    copy(&m.ms_names, &outer, sizeof(vector(u8*)));
+    foreign_ms_identifier(m, encoded);
+}
+
+fn foreign_ms_name(m: ForeignName*, type: ForeignType*): void {
+    var part = type;
+    loop {
+        var foreign_condition94 = part == null;
+        if foreign_condition94 {
+            break;
+        }
+        foreign_ms_component(m, part);
+        part = part.scope;
+    }
+    backend_text(&m.text, "@");
+}
+
+fn foreign_ms_cc(m: ForeignName*, cc: u32, member: bool): void {
+    var foreign_condition95 = cc == 0;
+    if foreign_condition95 {
+        cc = 1;
+        var foreign_condition96 = m.arch == 1;
+        if foreign_condition96 {
+            if member {
+                cc = 5;
+            }
+        }
+    }
+    var foreign_condition97 = m.arch != 1;
+    if foreign_condition97 {
+        var foreign_condition98 = cc != 4;
+        if foreign_condition98 {
+            cc = 1;
+        }
+    }
+    var foreign_condition99 = cc == 1;
+    if foreign_condition99 {
+        backend_text(&m.text, "A");
+    }
+    var foreign_condition100 = cc == 2;
+    if foreign_condition100 {
+        backend_text(&m.text, "G");
+    }
+    var foreign_condition101 = cc == 3;
+    if foreign_condition101 {
+        backend_text(&m.text, "I");
+    }
+    var foreign_condition102 = cc == 4;
+    if foreign_condition102 {
+        backend_text(&m.text, "Q");
+    }
+    var foreign_condition103 = cc == 5;
+    if foreign_condition103 {
+        backend_text(&m.text, "E");
+    }
+}
+
+fn foreign_ms_parameters(m: ForeignName*, function: ForeignType*): void {
+    var saved: vector(u8*);
+    copy(&saved, &m.substitutions, sizeof(vector(u8*)));
+    vector_init(u8*, &m.substitutions);
+    var foreign_condition104 = function.args.length == 0;
+    if foreign_condition104 {
+        var foreign_condition105 = function.variadic == false;
+        if foreign_condition105 {
+            backend_text(&m.text, "X");
+        }
+    }
+    var i: usize = 0;
+    loop {
+        var foreign_condition106 = i == function.args.length;
+        if foreign_condition106 {
+            break;
+        }
+        var type = function.args.data[i];
+        var key: vector(u8);
+        vector_init(u8, &key);
+        foreign_key(&key, type);
+        var j: usize = 0;
+        var found = false;
+        loop {
+            var foreign_condition107 = j == m.substitutions.length;
+            if foreign_condition107 {
+                break;
+            }
+            if backend_equal(key.data, m.substitutions.data[j]) {
+                foreign_number(&m.text, j, 10);
+                found = true;
+                break;
+            }
+            j = j + 1;
+        }
+        var foreign_condition108 = found == false;
+        if foreign_condition108 {
+            var start = m.text.length;
+            foreign_ms_type(m, type, false);
+            var length = m.text.length - start;
+            var foreign_condition109 = length > 1;
+            if foreign_condition109 {
+                var foreign_condition110 = m.substitutions.length < 10;
+                if foreign_condition110 {
+                    foreign_require(m, vector_push(u8*, &m.substitutions, foreign_copy(m, key.data, key.length)));
+                }
+            }
+        }
+        vector_dispose(u8, &key);
+        i = i + 1;
+    }
+    if function.variadic {
+        backend_text(&m.text, "Z");
+    }
+    else {
+        var foreign_condition111 = function.args.length != 0;
+        if foreign_condition111 {
+            backend_text(&m.text, "@");
+        }
+    }
+    vector_dispose(u8*, &m.substitutions);
+    copy(&m.substitutions, &saved, sizeof(vector(u8*)));
+}
+
+fn foreign_ms_type(m: ForeignName*, type: ForeignType*, result: bool): void {
+    var foreign_condition3019 = type.kind == 6;
+    if foreign_condition3019 {
+        foreign_ms_array(m, type);
+        return;
+    }
+    var foreign_condition3020 = type.kind == 8;
+    if foreign_condition3020 {
+        foreign_ms_member(m, type);
+        return;
+    }
+    var foreign_condition112 = type.kind == 1;
+    if foreign_condition112 {
+        var code = foreign_ms_builtin(type);
+        var foreign_condition113 = code[0] == 0;
+        if foreign_condition113 {
+            foreign_fail(m, "Unsupported Microsoft builtin type");
+        }
+        backend_text(&m.text, code);
+        return;
+    }
+    var foreign_condition114 = type.kind == 2;
+    if foreign_condition114 {
+        if result {
+            backend_text(&m.text, "?");
+            foreign_ms_cv(m, type.cv);
+        }
+        var foreign_condition115 = type.tag == 0;
+        if foreign_condition115 {
+            foreign_fail(m, "Microsoft named types require struct/class/union/enum metadata");
+            return;
+        }
+        var foreign_condition116 = type.tag == 1;
+        if foreign_condition116 {
+            backend_text(&m.text, "U");
+        }
+        var foreign_condition117 = type.tag == 2;
+        if foreign_condition117 {
+            backend_text(&m.text, "V");
+        }
+        var foreign_condition118 = type.tag == 3;
+        if foreign_condition118 {
+            backend_text(&m.text, "T");
+        }
+        var foreign_condition119 = type.tag == 4;
+        if foreign_condition119 {
+            backend_text(&m.text, "W4");
+        }
+        foreign_ms_name(m, type);
+        return;
+    }
+    var foreign_condition120 = type.kind == 3;
+    if foreign_condition120 {
+        var byte = type.cv & 3;
+        byte = byte + 80;
+        var value = convert(u8, byte);
+        backend_text_append(&m.text, &value, 1);
+    } else {
+        var foreign_condition121 = type.kind == 4;
+        if foreign_condition121 {
+            backend_text(&m.text, "A");
+        }
+        else {
+            var foreign_condition122 = type.kind == 5;
+            if foreign_condition122 {
+                backend_text(&m.text, "$$Q");
+            }
+            else {
+                var foreign_condition123 = type.kind == 7;
+                if foreign_condition123 {
+                    backend_text(&m.text, "$$A6");
+                    foreign_ms_cc(m, type.convention, false);
+                    foreign_ms_type(m, type.base, true);
+                    foreign_ms_parameters(m, type);
+                    if type.nothrow {
+                        backend_text(&m.text, "_E");
+                    }
+                    else {
+                        backend_text(&m.text, "Z");
+                    }
+                    return;
+                } else {
+                    foreign_fail(m, "Unsupported Microsoft foreign declarator");
+                    return;
+                }
+            }
+        }
+    }
+    var foreign_condition124 = type.base.kind == 7;
+    if foreign_condition124 {
+        backend_text(&m.text, "6");
+        foreign_ms_cc(m, type.base.convention, false);
+        foreign_ms_type(m, type.base.base, true);
+        foreign_ms_parameters(m, type.base);
+        if type.base.nothrow {
+            backend_text(&m.text, "_E");
+        }
+        else {
+            backend_text(&m.text, "Z");
+        }
+    } else {
+        var foreign_condition125 = m.pointer_bytes == 8;
+        if foreign_condition125 {
+            backend_text(&m.text, "E");
+        }
+        var restricted = type.cv & 4;
+        var foreign_condition126 = restricted != 0;
+        if foreign_condition126 {
+            backend_text(&m.text, "I");
+        }
+        foreign_ms_cv(m, type.base.cv);
+        foreign_ms_type(m, type.base, false);
+    }
+}
+
+fn foreign_microsoft(m: ForeignName*): void {
+    backend_text(&m.text, "?");
+    var foreign_condition127 = m.special != 0;
+    if foreign_condition127 {
+        var foreign_condition128 = m.special <= 2;
+        if foreign_condition128 {
+            backend_text(&m.text, "?0");
+        }
+        else {
+            var foreign_condition129 = m.special == 4;
+            if foreign_condition129 {
+                foreign_fail(m, "Microsoft complete destructor requires virtual-base metadata; use dtor(base)");
+                return;
+            }
+            var foreign_condition130 = m.special == 6;
+            if foreign_condition130 {
+                backend_text(&m.text, "?_G");
+            }
+            else {
+                backend_text(&m.text, "?1");
+            }
+        }
+        foreign_ms_name(m, m.name.scope);
+    } else {
+        foreign_ms_name(m, m.name);
+    }
+    if m.object_symbol {
+        var foreign_condition3021 = m.profile == 11;
+        if foreign_condition3021 {
+            backend_text(&m.text, "$$h");
+        }
+    }
+    var instance = m.member == 1;
+    var foreign_condition131 = m.member == 3;
+    if foreign_condition131 {
+        instance = true;
+    }
+    var foreign_condition132 = m.member == 0;
+    if foreign_condition132 {
+        backend_text(&m.text, "Y");
+    }
+    else {
+        var code = m.access * 8;
+        code = code + 65;
+        var foreign_condition133 = m.member == 2;
+        if foreign_condition133 {
+            code = code + 2;
+        }
+        var foreign_condition134 = m.member == 3;
+        if foreign_condition134 {
+            code = code + 4;
+        }
+        var byte = convert(u8, code);
+        backend_text_append(&m.text, &byte, 1);
+    }
+    if instance {
+        var foreign_condition135 = m.pointer_bytes == 8;
+        if foreign_condition135 {
+            backend_text(&m.text, "E");
+        }
+        var foreign_condition136 = m.function.ref == 1;
+        if foreign_condition136 {
+            backend_text(&m.text, "G");
+        }
+        var foreign_condition137 = m.function.ref == 2;
+        if foreign_condition137 {
+            backend_text(&m.text, "H");
+        }
+        foreign_ms_cv(m, m.function.cv);
+    }
+    foreign_ms_cc(m, m.function.convention, instance);
+    var foreign_condition138 = m.special == 6;
+    if foreign_condition138 {
+        var foreign_condition139 = m.pointer_bytes == 8;
+        if foreign_condition139 {
+            backend_text(&m.text, "PEAXI@Z");
+        }
+        else {
+            backend_text(&m.text, "PAXI@Z");
+        }
+        return;
+    }
+    var foreign_condition140 = m.special != 0;
+    if foreign_condition140 {
+        backend_text(&m.text, "@");
+    }
+    else {
+        foreign_ms_type(m, m.function.base, true);
+    }
+    foreign_ms_parameters(m, m.function);
+    backend_text(&m.text, "Z");
+}

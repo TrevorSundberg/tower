@@ -1,0 +1,79 @@
+// Foreign ABI fixture implemented in Tower. Compile separately from linking.tower.
+export fn fixture_add(a: i32, b: i32): i32 {
+    var result = a + b;
+    return result;
+}
+
+export fn fixture_sum(values: i32*, count: usize): i32 {
+    var sum: i32 = 0;
+    var i: usize = 0;
+    loop {
+        var done = i == count;
+        if done {
+            return sum;
+        }
+        sum = sum + values[i];
+        i = i + 1;
+    }
+}
+
+export fn fixture_write(values: i32*, count: usize): void {
+    var i: usize = 0;
+    loop {
+        var done = i == count;
+        if done {
+            return;
+        }
+        var value = convert(i32, i);
+        values[i] = value + 10;
+        i = i + 1;
+    }
+}
+
+export fn fixture_identity(value: i32*): i32* {
+    return value;
+}
+
+export fn fixture_wide(value: u64): u64 {
+    var result = value + 1;
+    return result;
+}
+
+export fn fixture_byte(value: u8): u8 {
+    var result = value + 1;
+    return result;
+}
+
+export fn fixture_bool(value: bool): bool {
+    var result = value == false;
+    return result;
+}
+
+export fn fixture_length(text: u8*): usize {
+    var n: usize = 0;
+    loop {
+        var done = text[n] == 0;
+        if done {
+            return n;
+        }
+        n = n + 1;
+    }
+}
+
+struct PointerBox {
+    tag: u8;
+    data: i32*;
+    count: usize;
+}
+
+export fn fixture_box(box: PointerBox*): usize {
+    var value = convert(i32, box.tag);
+    box.data[1] = value + 40;
+    return sizeof(PointerBox);
+}
+
+extern fn tower_twice(value: i32): i32;
+
+export fn fixture_callback(value: i32): i32 {
+    return tower_twice(value);
+}

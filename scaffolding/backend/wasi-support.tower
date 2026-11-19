@@ -1,0 +1,76 @@
+// LLVM 20 revision 1e57ee22, wasm32-wasip1, WASI SDK 34/libc++ ABI.
+// These are the lowered upstream ABI signatures, including explicit sret.
+// They do not define Tower pointer semantics or request executable memory.
+struct BackendWasiError {
+    value: i32;
+    category: void*;
+}
+
+struct BackendWasiMemory {
+    address: void*;
+    size: usize;
+    flags: u32;
+}
+
+extern fn `cpp_name(std::__2::error_category const& std::__2::generic_category() noexcept)`(): void*;
+
+extern fn _Exit(status: i32): void;
+
+extern fn `cpp_name(__real; static llvm::Expected<llvm::FileOutputBuffer> llvm::FileOutputBuffer::create(llvm::StringRef, unsigned long, unsigned int))`(result: void*, path: void*, size: usize, flags: u32): void;
+
+// Select the upstream no-mmap implementation before it creates a temporary file
+// and tries the unsupported WASI mapping. The result and StringRef stay opaque.
+export fn `cpp_name(__wrap; static llvm::Expected<llvm::FileOutputBuffer> llvm::FileOutputBuffer::create(llvm::StringRef, unsigned long, unsigned int))`(result: void*, path: void*, size: usize, flags: u32): void {
+    var memory_flags = flags | 2;
+    `cpp_name(__real; static llvm::Expected<llvm::FileOutputBuffer> llvm::FileOutputBuffer::create(llvm::StringRef, unsigned long, unsigned int))`(result, path, size, memory_flags);
+}
+
+export fn `cpp_name(static llvm::CrashRecoveryContext* llvm::CrashRecoveryContext::GetCurrent())`(): void* {
+    return null;
+}
+
+export fn `cpp_name(static bool llvm::CrashRecoveryContext::throwIfCrash(int))`(status: i32): bool {
+    return false;
+}
+
+export fn `cpp_name(method void llvm::CrashRecoveryContext::HandleExit(int))`(self: void*, status: i32): void {
+    _Exit(status);
+}
+
+// Upstream FileOutputBuffer already falls back to its InMemoryBuffer when
+// file mapping fails. Supply its data-only allocation, replacing the WASI
+// unsupported-operation stub through --wrap, without a C++ subclass/vtable.
+export fn `cpp_name(__wrap; static llvm::sys::MemoryBlock llvm::sys::Memory::allocateMappedMemory(unsigned long, llvm::sys::MemoryBlock const*, unsigned int, std::__2::error_code&))`(out: BackendWasiMemory*, size: usize, near: BackendWasiMemory*, flags: u32, error: BackendWasiError*): void {
+    fill(out, 0, sizeof(BackendWasiMemory));
+    error.value = 0;
+    error.category = `cpp_name(std::__2::error_category const& std::__2::generic_category() noexcept)`();
+    var forbidden = flags != 50331648;
+    var nearby = near != null;
+    if nearby {
+        forbidden = true;
+    }
+    if forbidden {
+        error.value = 28;
+        return;
+    }
+    var empty = size == 0;
+    if empty {
+        return;
+    }
+    out.address = bits(void*, alloc(u8, size));
+    var failed = out.address == null;
+    if failed {
+        error.value = 48;
+        return;
+    }
+    fill(out.address, 0, size);
+    out.size = size;
+    out.flags = flags;
+}
+
+export fn `cpp_name(__wrap; static std::__2::error_code llvm::sys::Memory::releaseMappedMemory(llvm::sys::MemoryBlock&))`(out: BackendWasiError*, memory: BackendWasiMemory*): void {
+    free(memory.address);
+    fill(memory, 0, sizeof(BackendWasiMemory));
+    out.value = 0;
+    out.category = `cpp_name(std::__2::error_category const& std::__2::generic_category() noexcept)`();
+}

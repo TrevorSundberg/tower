@@ -1,0 +1,213 @@
+// The only semantic inputs are existing Foundation entities. LLVM references,
+// local slots and entity/value associations below are disposable lowering caches.
+extern fn sem_get(node: void*): FoundationNode*;
+
+extern fn semantic_size(type: FoundationType*): usize;
+
+extern fn semantic_alignment(type: FoundationType*): usize;
+
+extern fn semantic_width(type: FoundationType*): u32;
+
+extern fn semantic_signed(type: FoundationType*): bool;
+
+extern fn semantic_aggregate(type: FoundationType*): bool;
+
+struct BackendAssociation {
+    entity: void*;
+    value: void*;
+}
+
+struct BackendLoop {
+    head: void*;
+    after: void*;
+}
+
+struct Backend {
+    context: void*;
+    module: void*;
+    builder: void*;
+    machine: void*;
+    layout: void*;
+    pointer_bytes: u32;
+    wasm: bool;
+    foreign_profile: u32;
+    i8: void*;
+    i32: void*;
+    i64: void*;
+    size_type: void*;
+    pointer_type: void*;
+    functions: vector(void*);
+    symbols: vector(u8*);
+    locals: vector(void*);
+    globals: vector(BackendAssociation);
+    strings: vector(BackendAssociation);
+    loops: vector(BackendLoop);
+    current: void*;
+    print_fn: void*;
+    trap_fn: void*;
+    allocate_fn: void*;
+    reallocate_fn: void*;
+    deallocate_fn: void*;
+    source_offset: usize;
+    error_offset: usize;
+    error: vector(u8);
+    raw: u8*;
+    optimized: u8*;
+    object: void*;
+}
+
+fn backend_fail(b: Backend*, text: u8*): void {
+    var first = b.error.length == 0;
+    if first {
+        backend_text(&b.error, text);
+        b.error_offset = b.source_offset;
+    }
+}
+
+fn backend_require(b: Backend*, ok: bool): void {
+    var failed = ok == false;
+    if failed {
+        backend_fail(b, "Unable to allocate backend storage");
+    }
+}
+
+fn backend_name(n: FoundationNode*): u8* {
+    var absent = n.name.data == null;
+    if absent {
+        return "";
+    }
+    return n.name.data;
+}
+
+fn backend_associate(values: vector(BackendAssociation)*, entity: void*, value: void*): bool {
+    var needed = values.length + 1;
+    var ok = vector_reserve(BackendAssociation, values, needed);
+    if ok {
+        values.data[values.length].entity = entity;
+        values.data[values.length].value = value;
+        values.length = needed;
+    }
+    return ok;
+}
+
+fn backend_find(values: vector(BackendAssociation)*, entity: void*): void* {
+    var i: usize = 0;
+    loop {
+        var done = i == values.length;
+        if done {
+            return null;
+        }
+        var found = values.data[i].entity == entity;
+        if found {
+            return values.data[i].value;
+        }
+        i = i + 1;
+    }
+}
+
+export fn backend_error(b: Backend*): u8* {
+    var empty = b.error.data == null;
+    if empty {
+        return "";
+    }
+    return b.error.data;
+}
+
+export fn backend_error_offset(b: Backend*): usize {
+    return b.error_offset;
+}
+
+export fn backend_pointer_bytes(b: Backend*): u32 {
+    return b.pointer_bytes;
+}
+
+export fn backend_raw(b: Backend*): u8* {
+    return b.raw;
+}
+
+export fn backend_optimized(b: Backend*): u8* {
+    return b.optimized;
+}
+
+export fn backend_bytes(b: Backend*): u8* {
+    var present = b.object != null;
+    if present {
+        return LLVMGetBufferStart(b.object);
+    }
+    return null;
+}
+
+export fn backend_size(b: Backend*): usize {
+    var present = b.object != null;
+    if present {
+        return LLVMGetBufferSize(b.object);
+    }
+    return 0;
+}
+
+export fn backend_close(b: Backend*): void {
+    var present = b == null;
+    if present {
+        return;
+    }
+    present = b.object != null;
+    if present {
+        LLVMDisposeMemoryBuffer(b.object);
+    }
+    present = b.raw != null;
+    if present {
+        LLVMDisposeMessage(b.raw);
+    }
+    present = b.optimized != null;
+    if present {
+        LLVMDisposeMessage(b.optimized);
+    }
+    present = b.builder != null;
+    if present {
+        LLVMDisposeBuilder(b.builder);
+    }
+    present = b.module != null;
+    if present {
+        LLVMDisposeModule(b.module);
+    }
+    present = b.layout != null;
+    if present {
+        LLVMDisposeTargetData(b.layout);
+    }
+    present = b.machine != null;
+    if present {
+        LLVMDisposeTargetMachine(b.machine);
+    }
+    present = b.context != null;
+    if present {
+        LLVMContextDispose(b.context);
+    }
+    var i: usize = 0;
+    loop {
+        var done = i == b.symbols.length;
+        if done {
+            break;
+        }
+        free(b.symbols.data[i]);
+        i = i + 1;
+    }
+    vector_dispose(u8*, &b.symbols);
+    vector_dispose(void*, &b.functions);
+    vector_dispose(void*, &b.locals);
+    vector_dispose(BackendAssociation, &b.globals);
+    vector_dispose(BackendAssociation, &b.strings);
+    vector_dispose(BackendLoop, &b.loops);
+    vector_dispose(u8, &b.error);
+    free(b);
+}
+
+export fn backend_function_name(b: Backend*, index: usize): u8* {
+    // O2 may erase unused LLVM declarations. Keep result names independently
+    // of LLVM value lifetimes, while Foundation entities retain source spelling.
+    var name = b.symbols.data[index];
+    var empty = name == null;
+    if empty {
+        return "";
+    }
+    return name;
+}

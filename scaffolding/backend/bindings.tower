@@ -1,0 +1,233 @@
+// Direct upstream LLVM C ABI. LLVMBool is i32, never Tower bool.
+// Opaque LLVM references are handles to the third-party implementation.
+extern fn LLVMContextCreate(): void*;
+
+extern fn LLVMContextDispose(context: void*): void;
+
+extern fn LLVMModuleCreateWithNameInContext(name: u8*, context: void*): void*;
+
+extern fn LLVMDisposeModule(module: void*): void;
+
+extern fn LLVMCreateBuilderInContext(context: void*): void*;
+
+extern fn LLVMDisposeBuilder(builder: void*): void;
+
+extern fn LLVMIntTypeInContext(context: void*, bits: u32): void*;
+
+extern fn LLVMPointerTypeInContext(context: void*, space: u32): void*;
+
+extern fn LLVMVoidTypeInContext(context: void*): void*;
+
+extern fn LLVMArrayType2(type: void*, count: u64): void*;
+
+extern fn LLVMFunctionType(result: void*, params: void**, count: u32, variadic: i32): void*;
+
+extern fn LLVMTypeOf(value: void*): void*;
+
+extern fn LLVMGlobalGetValueType(value: void*): void*;
+
+extern fn LLVMAddFunction(module: void*, name: u8*, type: void*): void*;
+
+extern fn LLVMSetLinkage(value: void*, linkage: u32): void;
+
+extern fn LLVMSetSection(value: void*, section: u8*): void;
+
+extern fn LLVMAddGlobal(module: void*, type: void*, name: u8*): void*;
+
+extern fn LLVMSetInitializer(global: void*, value: void*): void;
+
+extern fn LLVMSetAlignment(value: void*, alignment: u32): void;
+
+extern fn LLVMGetUndef(type: void*): void*;
+
+extern fn LLVMConstInt(type: void*, value: u64, signed: i32): void*;
+
+extern fn LLVMConstNull(type: void*): void*;
+
+extern fn LLVMConstIntOfArbitraryPrecision(type: void*, count: u32, words: u64*): void*;
+
+extern fn LLVMConstStringInContext(context: void*, text: u8*, length: u32, no_null: i32): void*;
+
+extern fn LLVMGetEnumAttributeKindForName(name: u8*, length: usize): u32;
+
+extern fn LLVMCreateEnumAttribute(context: void*, kind: u32, value: u64): void*;
+
+extern fn LLVMCreateStringAttribute(context: void*, key: u8*, key_length: u32, value: u8*, value_length: u32): void*;
+
+extern fn LLVMAddAttributeAtIndex(function: void*, index: u32, attribute: void*): void;
+
+extern fn LLVMAddCallSiteAttribute(call: void*, index: u32, attribute: void*): void;
+
+extern fn LLVMGetAttributeCountAtIndex(function: void*, index: u32): u32;
+
+extern fn LLVMGetAttributesAtIndex(function: void*, index: u32, attributes: void**): void;
+
+extern fn LLVMGetParam(function: void*, index: u32): void*;
+
+extern fn LLVMAppendBasicBlockInContext(context: void*, function: void*, name: u8*): void*;
+
+extern fn LLVMPositionBuilderAtEnd(builder: void*, block: void*): void;
+
+extern fn LLVMGetInsertBlock(builder: void*): void*;
+
+extern fn LLVMGetBasicBlockTerminator(block: void*): void*;
+
+extern fn LLVMBuildCondBr(builder: void*, value: void*, yes: void*, no: void*): void*;
+
+extern fn LLVMBuildBr(builder: void*, block: void*): void*;
+
+extern fn LLVMBuildUnreachable(builder: void*): void*;
+
+extern fn LLVMBuildRet(builder: void*, value: void*): void*;
+
+extern fn LLVMBuildRetVoid(builder: void*): void*;
+
+extern fn LLVMBuildAlloca(builder: void*, type: void*, name: u8*): void*;
+
+extern fn LLVMBuildLoad2(builder: void*, type: void*, address: void*, name: u8*): void*;
+
+extern fn LLVMBuildStore(builder: void*, value: void*, address: void*): void*;
+
+extern fn LLVMBuildGEP2(builder: void*, type: void*, address: void*, indices: void**, count: u32, name: u8*): void*;
+
+extern fn LLVMBuildCall2(builder: void*, type: void*, function: void*, args: void**, count: u32, name: u8*): void*;
+
+extern fn LLVMBuildGlobalStringPtr(builder: void*, value: u8*, name: u8*): void*;
+
+extern fn LLVMBuildIntCast2(builder: void*, value: void*, type: void*, signed: i32, name: u8*): void*;
+
+extern fn LLVMBuildICmp(builder: void*, predicate: u32, left: void*, right: void*, name: u8*): void*;
+
+extern fn LLVMBuildMemMove(builder: void*, dest: void*, dest_alignment: u32, source: void*, source_alignment: u32, count: void*): void*;
+
+extern fn LLVMBuildMemSet(builder: void*, dest: void*, byte: void*, count: void*, alignment: u32): void*;
+
+extern fn LLVMGetTargetFromTriple(triple: u8*, target: void**, error: u8**): i32;
+
+extern fn LLVMCreateTargetMachine(target: void*, triple: u8*, cpu: u8*, features: u8*, level: u32, reloc: u32, model: u32): void*;
+
+extern fn LLVMDisposeTargetMachine(machine: void*): void;
+
+extern fn LLVMCreateTargetDataLayout(machine: void*): void*;
+
+extern fn LLVMDisposeTargetData(layout: void*): void;
+
+extern fn LLVMPointerSize(layout: void*): u32;
+
+extern fn LLVMByteOrder(layout: void*): u32;
+
+extern fn LLVMABIAlignmentOfType(layout: void*, type: void*): u32;
+
+extern fn LLVMSetTarget(module: void*, triple: u8*): void;
+
+extern fn LLVMSetModuleDataLayout(module: void*, layout: void*): void;
+
+extern fn LLVMVerifyModule(module: void*, action: u32, message: u8**): i32;
+
+extern fn LLVMPrintModuleToString(module: void*): u8*;
+
+extern fn LLVMDisposeMessage(message: u8*): void;
+
+extern fn LLVMCreatePassBuilderOptions(): void*;
+
+extern fn LLVMDisposePassBuilderOptions(options: void*): void;
+
+extern fn LLVMPassBuilderOptionsSetVerifyEach(options: void*, enabled: i32): void;
+
+extern fn LLVMRunPasses(module: void*, passes: u8*, machine: void*, options: void*): void*;
+
+extern fn LLVMGetErrorMessage(error: void*): u8*;
+
+extern fn LLVMDisposeErrorMessage(message: u8*): void;
+
+extern fn LLVMTargetMachineEmitToMemoryBuffer(machine: void*, module: void*, type: u32, error: u8**, buffer: void**): i32;
+
+extern fn LLVMGetBufferStart(buffer: void*): u8*;
+
+extern fn LLVMGetBufferSize(buffer: void*): usize;
+
+extern fn LLVMDisposeMemoryBuffer(buffer: void*): void;
+
+extern fn LLVMCreateMemoryBufferWithMemoryRangeCopy(bytes: u8*, count: usize, name: u8*): void*;
+
+extern fn LLVMCreateBinary(buffer: void*, context: void*, error: u8**): void*;
+
+extern fn LLVMDisposeBinary(binary: void*): void;
+
+extern fn LLVMBinaryGetType(binary: void*): u32;
+
+extern fn LLVMObjectFileCopySectionIterator(binary: void*): void*;
+
+extern fn LLVMObjectFileIsSectionIteratorAtEnd(binary: void*, iterator: void*): i32;
+
+extern fn LLVMDisposeSectionIterator(iterator: void*): void;
+
+extern fn LLVMMoveToNextSection(iterator: void*): void;
+
+extern fn LLVMGetSectionName(iterator: void*): u8*;
+
+extern fn LLVMGetSectionSize(iterator: void*): u64;
+
+extern fn LLVMGetSectionContents(iterator: void*): u8*;
+
+extern fn LLVMGetSectionAddress(iterator: void*): u64;
+
+extern fn LLVMObjectFileCopySymbolIterator(binary: void*): void*;
+
+extern fn LLVMObjectFileIsSymbolIteratorAtEnd(binary: void*, iterator: void*): i32;
+
+extern fn LLVMDisposeSymbolIterator(iterator: void*): void;
+
+extern fn LLVMMoveToNextSymbol(iterator: void*): void;
+
+extern fn LLVMGetSymbolName(iterator: void*): u8*;
+
+extern fn LLVMGetSymbolAddress(iterator: void*): u64;
+
+extern fn LLVMCreateDisasm(triple: u8*, info: void*, tag_type: i32, op_info: void*, symbol_lookup: void*): void*;
+
+extern fn LLVMSetDisasmOptions(decoder: void*, options: u64): i32;
+
+extern fn LLVMDisasmInstruction(decoder: void*, bytes: u8*, count: u64, pc: u64, output: u8*, output_size: usize): usize;
+
+extern fn LLVMDisasmDispose(decoder: void*): void;
+
+extern fn LLVMBuildAdd(builder: void*, left: void*, right: void*, name: u8*): void*;
+
+extern fn LLVMBuildSub(builder: void*, left: void*, right: void*, name: u8*): void*;
+
+extern fn LLVMBuildMul(builder: void*, left: void*, right: void*, name: u8*): void*;
+
+extern fn LLVMBuildAnd(builder: void*, left: void*, right: void*, name: u8*): void*;
+
+extern fn LLVMBuildOr(builder: void*, left: void*, right: void*, name: u8*): void*;
+
+extern fn LLVMBuildXor(builder: void*, left: void*, right: void*, name: u8*): void*;
+
+extern fn LLVMBuildSDiv(builder: void*, left: void*, right: void*, name: u8*): void*;
+
+extern fn LLVMBuildUDiv(builder: void*, left: void*, right: void*, name: u8*): void*;
+
+extern fn LLVMBuildSRem(builder: void*, left: void*, right: void*, name: u8*): void*;
+
+extern fn LLVMBuildURem(builder: void*, left: void*, right: void*, name: u8*): void*;
+
+extern fn LLVMBuildZExt(builder: void*, value: void*, type: void*, name: u8*): void*;
+
+extern fn LLVMBuildIntToPtr(builder: void*, value: void*, type: void*, name: u8*): void*;
+
+extern fn LLVMBuildPtrToInt(builder: void*, value: void*, type: void*, name: u8*): void*;
+
+extern fn LLVMBuildNeg(builder: void*, value: void*, name: u8*): void*;
+
+extern fn LLVMBuildNot(builder: void*, value: void*, name: u8*): void*;
+
+extern fn LLVMGetValueName2(value: void*, length: usize*): u8*;
+
+extern fn LLVMSetFunctionCallConv(function: void*, convention: u32): void;
+
+extern fn LLVMGetFunctionCallConv(function: void*): u32;
+
+extern fn LLVMSetInstructionCallConv(call: void*, convention: u32): void;
+
+extern fn LLVMGetNamedFunction(module: void*, name: u8*): void*;

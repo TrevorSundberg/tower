@@ -1,0 +1,68 @@
+// Target selection is explicit. Never derive program layout from the compiler host.
+export fn backend_open(triple: u8*): Backend* {
+    var b = alloc(Backend, 1);
+    var failed = b == null;
+    if failed {
+        return null;
+    }
+    fill(b, 0, sizeof(Backend));
+    backend_initialize_targets();
+    b.wasm = backend_prefix(triple, "wasm");
+    b.foreign_profile = foreign_profile_for_target(triple);
+    var target: void* = null;
+    var error: u8* = null;
+    var status = LLVMGetTargetFromTriple(triple, &target, &error);
+    failed = status != 0;
+    if failed {
+        backend_fail(b, error);
+        LLVMDisposeMessage(error);
+        return b;
+    }
+    // LLVMCodeGenLevelDefault, LLVMRelocPIC, LLVMCodeModelDefault.
+    b.machine = LLVMCreateTargetMachine(target, triple, "generic", "", 2, 2, 0);
+    failed = b.machine == null;
+    if failed {
+        backend_fail(b, "Unable to create LLVM target");
+        return b;
+    }
+    b.context = LLVMContextCreate();
+    b.layout = LLVMCreateTargetDataLayout(b.machine);
+    b.pointer_bytes = LLVMPointerSize(b.layout);
+    b.i8 = LLVMIntTypeInContext(b.context, 8);
+    b.i32 = LLVMIntTypeInContext(b.context, 32);
+    b.i64 = LLVMIntTypeInContext(b.context, 64);
+    b.pointer_type = LLVMPointerTypeInContext(b.context, 0);
+    var width = b.pointer_bytes * 8;
+    b.size_type = LLVMIntTypeInContext(b.context, width);
+    var valid = LLVMByteOrder(b.layout) == 1;
+    var width_ok = b.pointer_bytes == 4;
+    var wide = b.pointer_bytes == 8;
+    if wide {
+        width_ok = true;
+    }
+    if valid {
+        valid = width_ok;
+    }
+    var alignment = LLVMABIAlignmentOfType(b.layout, b.pointer_type) == b.pointer_bytes;
+    if valid {
+        valid = alignment;
+    }
+    alignment = LLVMABIAlignmentOfType(b.layout, b.i64) == 8;
+    if valid {
+        valid = alignment;
+    }
+    alignment = LLVMABIAlignmentOfType(b.layout, b.i32) == 4;
+    if valid {
+        valid = alignment;
+    }
+    failed = valid == false;
+    if failed {
+        backend_fail(b, "Unsupported target memory layout");
+        return b;
+    }
+    b.module = LLVMModuleCreateWithNameInContext("Tower", b.context);
+    LLVMSetTarget(b.module, triple);
+    LLVMSetModuleDataLayout(b.module, b.layout);
+    b.builder = LLVMCreateBuilderInContext(b.context);
+    return b;
+}

@@ -1,0 +1,58 @@
+// Expected stdout is in backend-semantics.expected.txt. Compile with and without
+// optimization and compare against the ordinary Tower interpreter.
+var effects: i32 = 0;
+
+fn next(): i32 {
+    effects = effects + 1;
+    return effects;
+}
+
+fn combine(a: i32, b: i32): i32 {
+    var tens = a * 10;
+    var result = tens + b;
+    return result;
+}
+
+print(combine(next(), next()));
+print(effects);
+var slots: i32[3];
+
+fn destination(): usize {
+    effects = effects + 1;
+    return 0;
+}
+
+slots[destination()] = next();
+print(slots[0]);
+print(effects);
+var minimum: i64 = -9223372036854775808;
+var maximum: u64 = 18446744073709551615;
+print(convert(i64, minimum));
+print(convert(u64, maximum));
+var sign: i32 = -1;
+print(bits(u32, sign));
+print(convert(bool, maximum));
+var wrap: u8 = 255;
+wrap = wrap + 1;
+print(wrap);
+var quotient: i32 = -17;
+quotient = quotient / 3;
+print(quotient);
+var remainder: i32 = -17;
+remainder = remainder % 3;
+print(remainder);
+var storage = alloc(u8, 4);
+storage[0] = 1;
+storage[1] = 2;
+storage[2] = 3;
+storage[3] = 4;
+var shifted = storage + 1;
+copy(shifted, storage, 3);
+print(storage[1]);
+print(storage[3]);
+free(storage);
+var text = "A B";
+text[1] = 0;
+print(text[0]);
+print(text[1]);
+print(text[2]);

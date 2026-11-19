@@ -1,0 +1,870 @@
+// Object inspection is separate from semantics. Bytes here are platform output.
+struct BackendLabel {
+    address: u64;
+    name: vector(u8);
+    priority: u32;
+}
+
+struct BackendDecoder {
+    llvm: void*;
+    text: vector(u8);
+    data: u8*;
+    length: usize;
+    offset: usize;
+    end: usize;
+    failed: bool;
+    labels: vector(BackendLabel);
+    instruction_labels: bool;
+}
+
+fn backend_label_index(d: BackendDecoder*, address: u64): usize {
+    var first: usize = 0;
+    var last = d.labels.length;
+    loop {
+        var done = first == last;
+        if done {
+            return first;
+        }
+        var distance = last - first;
+        distance = distance / 2;
+        var middle = first + distance;
+        var smaller = d.labels.data[middle].address < address;
+        if smaller {
+            first = middle + 1;
+        }
+        else {
+            last = middle;
+        }
+    }
+}
+
+fn backend_label_add(d: BackendDecoder*, address: u64, name: u8*, length: usize, priority: u32): void {
+    var empty = length == 0;
+    if empty {
+        return;
+    }
+    var index = backend_label_index(d, address);
+    var found = index < d.labels.length;
+    if found {
+        found = d.labels.data[index].address == address;
+    }
+    if found {
+        var better = d.labels.data[index].priority > priority;
+        if better {
+            return;
+        }
+        d.labels.data[index].name.length = 0;
+    } else {
+        var needed = d.labels.length + 1;
+        var ok = vector_reserve(BackendLabel, &d.labels, needed);
+        var failed = ok == false;
+        if failed {
+            d.failed = true;
+            return;
+        }
+        var remaining = d.labels.length - index;
+        var count = remaining * sizeof(BackendLabel);
+        var next = index + 1;
+        copy(&d.labels.data[next], &d.labels.data[index], count);
+        fill(&d.labels.data[index], 0, sizeof(BackendLabel));
+        d.labels.data[index].address = address;
+        d.labels.length = needed;
+    }
+    backend_text_append(&d.labels.data[index].name, name, length);
+    d.labels.data[index].priority = priority;
+}
+
+fn backend_label_name(d: BackendDecoder*, address: u64): u8* {
+    var index = backend_label_index(d, address);
+    var found = index < d.labels.length;
+    if found {
+        found = d.labels.data[index].address == address;
+    }
+    if found {
+        return d.labels.data[index].name.data;
+    }
+    return null;
+}
+
+// The C object API omits SectionRef::isText. Read the standardized platform
+// section flags, preserving executable sections with arbitrary user names.
+fn backend_object_integer(d: BackendDecoder*, offset: u64, width: u64, little: bool): u64 {
+    var length = convert(u64, d.length);
+    var invalid = offset > length;
+    if invalid {
+        d.failed = true;
+        return 0;
+    }
+    var remaining = length - offset;
+    invalid = width > remaining;
+    if invalid {
+        d.failed = true;
+        return 0;
+    }
+    var value: u64 = 0;
+    var factor: u64 = 1;
+    var i: u64 = 0;
+    loop {
+        var done = i == width;
+        if done {
+            return value;
+        }
+        var index = i;
+        var big = little == false;
+        if big {
+            index = width - i;
+            index = index - 1;
+        }
+        index = offset + index;
+        var byte = convert(u64, d.data[convert(usize, index)]);
+        var part = byte * factor;
+        value = value + part;
+        factor = factor * 256;
+        i = i + 1;
+    }
+}
+
+fn backend_section_text(d: BackendDecoder*, kind: u32, index: u64): bool {
+    var elf = kind >= 6;
+    if elf {
+        elf = kind <= 9;
+    }
+    if elf {
+        var wide = kind >= 8;
+        var parity = kind % 2;
+        var little = parity == 0;
+        var table: u64 = 0;
+        var stride: u64 = 0;
+        var width: u64 = 4;
+        if wide {
+            table = backend_object_integer(d, 40, 8, little);
+            stride = backend_object_integer(d, 58, 2, little);
+            width = 8;
+        } else {
+            table = backend_object_integer(d, 32, 4, little);
+            stride = backend_object_integer(d, 46, 2, little);
+        }
+        var offset = index * stride;
+        offset = offset + table;
+        offset = offset + 8;
+        var flags = backend_object_integer(d, offset, width, little);
+        flags = flags & 4;
+        var text = flags != 0;
+        return text;
+    }
+    var coff = kind == 5;
+    if coff {
+        var header: u64 = 0;
+        var magic = backend_object_integer(d, 0, 2, true);
+        var pe = magic == 23117;
+        if pe {
+            header = backend_object_integer(d, 60, 4, true);
+            header = header + 4;
+        }
+        var optional_offset = header + 16;
+        var optional = backend_object_integer(d, optional_offset, 2, true);
+        var table = header + 20;
+        table = table + optional;
+        var big_object = magic == 0;
+        if big_object {
+            var signature = backend_object_integer(d, 2, 2, true);
+            big_object = signature == 65535;
+            if big_object {
+                table = 56;
+            }
+        }
+        var offset = index * 40;
+        offset = offset + table;
+        offset = offset + 36;
+        var flags = backend_object_integer(d, offset, 4, true);
+        flags = flags & 32;
+        var text = flags != 0;
+        return text;
+    }
+    var wide = kind >= 12;
+    var parity = kind % 2;
+    var little = parity == 0;
+    var commands = backend_object_integer(d, 16, 4, little);
+    var cursor: u64 = 28;
+    var segment: u64 = 1;
+    var header: u64 = 56;
+    var stride: u64 = 68;
+    var flags_offset: u64 = 56;
+    if wide {
+        cursor = 32;
+        segment = 25;
+        header = 72;
+        stride = 80;
+        flags_offset = 64;
+    }
+    var command: u64 = 0;
+    loop {
+        var done = command == commands;
+        if d.failed {
+            done = true;
+        }
+        if done {
+            return false;
+        }
+        var tag = backend_object_integer(d, cursor, 4, little);
+        var offset = cursor + 4;
+        var bytes = backend_object_integer(d, offset, 4, little);
+        var selected = tag == segment;
+        if selected {
+            offset = cursor + header;
+            offset = offset - 8;
+            var count = backend_object_integer(d, offset, 4, little);
+            selected = index < count;
+            if selected {
+                offset = index * stride;
+                offset = offset + cursor;
+                offset = offset + header;
+                offset = offset + flags_offset;
+                var flags = backend_object_integer(d, offset, 4, little);
+                flags = flags & 2147483648;
+                var text = flags != 0;
+                return text;
+            }
+            index = index - count;
+        }
+        cursor = cursor + bytes;
+        command = command + 1;
+    }
+}
+
+fn backend_hex(out: vector(u8)*, value: u64, digits: usize): void {
+    var buffer: u8[18];
+    var i = digits;
+    var alphabet: u8* = "0123456789abcdef";
+    loop {
+        var done = i == 0;
+        if done {
+            break;
+        }
+        var remainder = value % 16;
+        var digit = convert(usize, remainder);
+        buffer[i] = alphabet[digit];
+        value = value / 16;
+        i = i - 1;
+    }
+    backend_text(out, "0x");
+    backend_text_append(out, &buffer[1], digits);
+}
+
+fn backend_decimal(out: vector(u8)*, value: u64): void {
+    var buffer: u8[20];
+    var i: usize = 20;
+    loop {
+        i = i - 1;
+        var remainder = value % 10;
+        var digit = convert(u8, remainder);
+        buffer[i] = digit + 48;
+        value = value / 10;
+        var done = value == 0;
+        if done {
+            break;
+        }
+    }
+    var length = 20 - i;
+    backend_text_append(out, &buffer[i], length);
+}
+
+fn backend_instructions(d: BackendDecoder*, data: u8*, length: usize, base: u64): void {
+    var offset: usize = 0;
+    loop {
+        var done = offset == length;
+        var full = d.text.length >= 2097152;
+        if full {
+            done = true;
+        }
+        if done {
+            return;
+        }
+        var line: u8[1024];
+        var address = base + convert(u64, offset);
+        if d.instruction_labels {
+            var label = backend_label_name(d, address);
+            var named = label != null;
+            if named {
+                backend_text(&d.text, label);
+                backend_text(&d.text, ":\n");
+            }
+        }
+        var remaining = length - offset;
+        var count = LLVMDisasmInstruction(d.llvm, &data[offset], convert(u64, remaining), address, &line[0], 1024);
+        backend_hex(&d.text, address, 8);
+        backend_text(&d.text, "  ");
+        var decoded = count != 0;
+        if decoded {
+            backend_text(&d.text, &line[0]);
+        }
+        else {
+            backend_text(&d.text, ".byte ");
+            backend_hex(&d.text, convert(u64, data[offset]), 2);
+            count = 1;
+        }
+        backend_text(&d.text, "\n");
+        offset = offset + count;
+    }
+}
+
+fn backend_wasm_byte(d: BackendDecoder*): u8 {
+    var done = d.offset >= d.end;
+    if done {
+        d.failed = true;
+        return 0;
+    }
+    var value = d.data[d.offset];
+    d.offset = d.offset + 1;
+    return value;
+}
+
+fn backend_wasm_u32(d: BackendDecoder*): usize {
+    var value: u64 = 0;
+    var factor: u64 = 1;
+    var i: usize = 0;
+    loop {
+        var byte = backend_wasm_byte(d);
+        var low = byte & 127;
+        var part = convert(u64, low) * factor;
+        value = value + part;
+        var overflow = value > 4294967295;
+        if overflow {
+            d.failed = true;
+            return 0;
+        }
+        var last = byte < 128;
+        if last {
+            return convert(usize, value);
+        }
+        i = i + 1;
+        var too_long = i == 5;
+        if too_long {
+            d.failed = true;
+            return 0;
+        }
+        factor = factor * 128;
+    }
+}
+
+fn backend_wasm_skip(d: BackendDecoder*, count: usize): void {
+    var remaining = d.end - d.offset;
+    var invalid = count > remaining;
+    if invalid {
+        d.failed = true;
+        d.offset = d.end;
+        return;
+    }
+    d.offset = d.offset + count;
+}
+
+fn backend_wasm_string(d: BackendDecoder*): void {
+    var count = backend_wasm_u32(d);
+    backend_wasm_skip(d, count);
+}
+
+fn backend_wasm_label(d: BackendDecoder*, index: usize, priority: u32): void {
+    var count = backend_wasm_u32(d);
+    var begin = d.offset;
+    backend_wasm_skip(d, count);
+    var valid = d.failed == false;
+    if valid {
+        backend_label_add(d, convert(u64, index), &d.data[begin], count, priority);
+    }
+}
+
+fn backend_wasm_labels(d: BackendDecoder*): void {
+    d.offset = 8;
+    loop {
+        var done = d.offset >= d.length;
+        if d.failed {
+            done = true;
+        }
+        if done {
+            return;
+        }
+        d.end = d.length;
+        var section = backend_wasm_byte(d);
+        var length = backend_wasm_u32(d);
+        var remaining = d.end - d.offset;
+        var invalid = length > remaining;
+        if invalid {
+            d.failed = true;
+            return;
+        }
+        d.end = d.offset + length;
+        var section_end = d.end;
+        var exports = section == 7;
+        if exports {
+            var count = backend_wasm_u32(d);
+            var i: usize = 0;
+            loop {
+                done = i == count;
+                if d.failed {
+                    done = true;
+                }
+                if done {
+                    break;
+                }
+                var size = backend_wasm_u32(d);
+                var name = d.offset;
+                backend_wasm_skip(d, size);
+                var kind = backend_wasm_byte(d);
+                var index = backend_wasm_u32(d);
+                var function = kind == 0;
+                if function {
+                    var valid = d.failed == false;
+                    if valid {
+                        backend_label_add(d, convert(u64, index), &d.data[name], size, 2);
+                    }
+                }
+                i = i + 1;
+            }
+        }
+        var custom = section == 0;
+        if custom {
+            var size = backend_wasm_u32(d);
+            var begin = d.offset;
+            backend_wasm_skip(d, size);
+            if d.failed {
+                return;
+            }
+            var name_section = size == 4;
+            if name_section {
+                name_section = backend_prefix(&d.data[begin], "name");
+            }
+            var linking = size == 7;
+            if linking {
+                linking = backend_prefix(&d.data[begin], "linking");
+            }
+            if linking {
+                backend_wasm_u32(d);
+            }
+            var known = name_section;
+            if linking {
+                known = true;
+            }
+            if known {
+                loop {
+                    done = d.offset == section_end;
+                    if d.failed {
+                        done = true;
+                    }
+                    if done {
+                        break;
+                    }
+                    d.end = section_end;
+                    var subsection = backend_wasm_byte(d);
+                    var bytes = backend_wasm_u32(d);
+                    remaining = d.end - d.offset;
+                    invalid = bytes > remaining;
+                    if invalid {
+                        d.failed = true;
+                        return;
+                    }
+                    d.end = d.offset + bytes;
+                    var names = subsection == 1;
+                    if names {
+                        names = name_section;
+                    }
+                    if names {
+                        var count = backend_wasm_u32(d);
+                        var i: usize = 0;
+                        loop {
+                            done = i == count;
+                            if d.failed {
+                                done = true;
+                            }
+                            if done {
+                                break;
+                            }
+                            var index = backend_wasm_u32(d);
+                            backend_wasm_label(d, index, 3);
+                            i = i + 1;
+                        }
+                    }
+                    var symbols = subsection == 8;
+                    if symbols {
+                        symbols = linking;
+                    }
+                    if symbols {
+                        var count = backend_wasm_u32(d);
+                        var i: usize = 0;
+                        loop {
+                            done = i == count;
+                            if d.failed {
+                                done = true;
+                            }
+                            if done {
+                                break;
+                            }
+                            var kind = backend_wasm_byte(d);
+                            var flags = backend_wasm_u32(d);
+                            var undefined_flag = flags & 16;
+                            var defined = undefined_flag == 0;
+                            var explicit_flag = flags & 64;
+                            var named = explicit_flag != 0;
+                            if defined {
+                                named = true;
+                            }
+                            var data = kind == 1;
+                            var section_symbol = kind == 3;
+                            if data {
+                                backend_wasm_string(d);
+                                if defined {
+                                    backend_wasm_u32(d);
+                                    backend_wasm_u32(d);
+                                    backend_wasm_u32(d);
+                                }
+                            } else {
+                                var index = backend_wasm_u32(d);
+                                var nonsection = section_symbol == false;
+                                if nonsection {
+                                    if named {
+                                        var function = kind == 0;
+                                        if function {
+                                            backend_wasm_label(d, index, 1);
+                                        }
+                                        else {
+                                            backend_wasm_string(d);
+                                        }
+                                    }
+                                }
+                            }
+                            i = i + 1;
+                        }
+                    }
+                    d.offset = d.end;
+                }
+            }
+        }
+        d.offset = section_end;
+    }
+}
+
+fn backend_wasm_limits(d: BackendDecoder*): void {
+    var flags = backend_wasm_u32(d);
+    backend_wasm_u32(d);
+    var maximum = flags & 1;
+    var bounded = maximum != 0;
+    if bounded {
+        backend_wasm_u32(d);
+    }
+    var unsupported = flags > 3;
+    if unsupported {
+        d.failed = true;
+    }
+}
+
+fn backend_wasm_disassembly(d: BackendDecoder*): void {
+    var short = d.length < 8;
+    if short {
+        d.failed = true;
+        return;
+    }
+    var header: u8[8];
+    fill(&header[0], 0, 8);
+    header[1] = 97;
+    header[2] = 115;
+    header[3] = 109;
+    header[4] = 1;
+    var h: usize = 0;
+    loop {
+        var done = h == 8;
+        if done {
+            break;
+        }
+        var mismatch = d.data[h] != header[h];
+        if mismatch {
+            d.failed = true;
+            return;
+        }
+        h = h + 1;
+    }
+    backend_wasm_labels(d);
+    if d.failed {
+        return;
+    }
+    d.offset = 8;
+    var imports: usize = 0;
+    backend_text(&d.text, "; Wasm instructions; addresses are file offsets.\n");
+    loop {
+        var done = d.offset == d.length;
+        if d.failed {
+            done = true;
+        }
+        if done {
+            return;
+        }
+        d.end = d.length;
+        var section = backend_wasm_byte(d);
+        var length = backend_wasm_u32(d);
+        var remaining = d.end - d.offset;
+        var invalid = length > remaining;
+        if invalid {
+            d.failed = true;
+            return;
+        }
+        d.end = d.offset + length;
+        var import_section = section == 2;
+        if import_section {
+            var count = backend_wasm_u32(d);
+            var i: usize = 0;
+            loop {
+                done = i == count;
+                if d.failed {
+                    done = true;
+                }
+                if done {
+                    break;
+                }
+                backend_wasm_string(d);
+                backend_wasm_string(d);
+                var kind = backend_wasm_byte(d);
+                var function = kind == 0;
+                if function {
+                    imports = imports + 1;
+                    backend_wasm_u32(d);
+                }
+                var table = kind == 1;
+                if table {
+                    backend_wasm_byte(d);
+                    backend_wasm_limits(d);
+                }
+                var memory = kind == 2;
+                if memory {
+                    backend_wasm_limits(d);
+                }
+                var global = kind == 3;
+                if global {
+                    backend_wasm_skip(d, 2);
+                }
+                var tag = kind == 4;
+                if tag {
+                    backend_wasm_byte(d);
+                    backend_wasm_u32(d);
+                }
+                invalid = kind > 4;
+                if invalid {
+                    d.failed = true;
+                }
+                i = i + 1;
+            }
+        }
+        var code = section == 10;
+        if code {
+            var section_end = d.end;
+            var count = backend_wasm_u32(d);
+            var i: usize = 0;
+            loop {
+                done = i == count;
+                if d.failed {
+                    done = true;
+                }
+                var full = d.text.length >= 2097152;
+                if full {
+                    done = true;
+                }
+                if done {
+                    break;
+                }
+                d.end = section_end;
+                var size = backend_wasm_u32(d);
+                remaining = d.end - d.offset;
+                invalid = size > remaining;
+                if invalid {
+                    d.failed = true;
+                    return;
+                }
+                d.end = d.offset + size;
+                var locals = backend_wasm_u32(d);
+                var j: usize = 0;
+                loop {
+                    done = j == locals;
+                    if d.failed {
+                        done = true;
+                    }
+                    if done {
+                        break;
+                    }
+                    backend_wasm_u32(d);
+                    backend_wasm_byte(d);
+                    j = j + 1;
+                }
+                if d.failed {
+                    return;
+                }
+                backend_text(&d.text, "\nfunc[");
+                var index = imports + i;
+                backend_decimal(&d.text, convert(u64, index));
+                backend_text(&d.text, "]");
+                var name = backend_label_name(d, convert(u64, index));
+                var named = name != null;
+                if named {
+                    backend_text(&d.text, " <");
+                    backend_text(&d.text, name);
+                    backend_text(&d.text, ">");
+                }
+                backend_text(&d.text, ":\n");
+                var bytes = d.end - d.offset;
+                backend_instructions(d, &d.data[d.offset], bytes, convert(u64, d.offset));
+                d.offset = d.end;
+                i = i + 1;
+            }
+            d.end = section_end;
+        }
+        d.offset = d.end;
+    }
+}
+
+export fn backend_disassemble(data: u8*, length: usize, triple: u8*): BackendDecoder* {
+    var d = alloc(BackendDecoder, 1);
+    var absent = d == null;
+    if absent {
+        return null;
+    }
+    fill(d, 0, sizeof(BackendDecoder));
+    d.data = data;
+    d.length = length;
+    d.end = length;
+    backend_initialize_targets();
+    d.llvm = LLVMCreateDisasm(triple, null, 0, null, null);
+    absent = d.llvm == null;
+    if absent {
+        backend_text(&d.text, "Disassembler unavailable for ");
+        backend_text(&d.text, triple);
+        return d;
+    }
+    var options: u64 = 2;
+    var x86 = backend_prefix(triple, "x86");
+    if x86 {
+        options = options | 4;
+    }
+    LLVMSetDisasmOptions(d.llvm, options);
+    var wasm = backend_prefix(triple, "wasm");
+    if wasm {
+        backend_wasm_disassembly(d);
+    }
+    else {
+        var buffer = LLVMCreateMemoryBufferWithMemoryRangeCopy(data, length, "Tower");
+        var error: u8* = null;
+        var binary = LLVMCreateBinary(buffer, null, &error);
+        absent = binary == null;
+        if absent {
+            backend_text(&d.text, error);
+            LLVMDisposeMessage(error);
+        }
+        else {
+            var kind = LLVMBinaryGetType(binary);
+            var supported = kind >= 5;
+            if supported {
+                supported = kind <= 13;
+            }
+            var unsupported = supported == false;
+            if unsupported {
+                backend_text(&d.text, "Disassembly requires a platform object or executable");
+                LLVMDisposeBinary(binary);
+                LLVMDisposeMemoryBuffer(buffer);
+                LLVMDisasmDispose(d.llvm);
+                d.llvm = null;
+                return d;
+            }
+            d.instruction_labels = true;
+            var symbol = LLVMObjectFileCopySymbolIterator(binary);
+            loop {
+                var done = symbol == null;
+                if done {
+                    break;
+                }
+                done = LLVMObjectFileIsSymbolIteratorAtEnd(binary, symbol) != 0;
+                if done {
+                    break;
+                }
+                var name = LLVMGetSymbolName(symbol);
+                backend_label_add(d, LLVMGetSymbolAddress(symbol), name, backend_length(name), 1);
+                LLVMMoveToNextSymbol(symbol);
+            }
+            var present = symbol != null;
+            if present {
+                LLVMDisposeSymbolIterator(symbol);
+            }
+            var section = LLVMObjectFileCopySectionIterator(binary);
+            var section_index: u64 = 0;
+            loop {
+                var done = section == null;
+                if done {
+                    break;
+                }
+                done = LLVMObjectFileIsSectionIteratorAtEnd(binary, section) != 0;
+                var full = d.text.length >= 2097152;
+                if full {
+                    done = true;
+                }
+                if done {
+                    break;
+                }
+                var name = LLVMGetSectionName(section);
+                var text = backend_section_text(d, kind, section_index);
+                if text {
+                    backend_text(&d.text, "\n");
+                    backend_text(&d.text, name);
+                    backend_text(&d.text, ":\n");
+                    var contents = LLVMGetSectionContents(section);
+                    var size = convert(usize, LLVMGetSectionSize(section));
+                    backend_instructions(d, contents, size, LLVMGetSectionAddress(section));
+                }
+                LLVMMoveToNextSection(section);
+                section_index = section_index + 1;
+            }
+            absent = section == null;
+            present = absent == false;
+            if present {
+                LLVMDisposeSectionIterator(section);
+            }
+            LLVMDisposeBinary(binary);
+        }
+        LLVMDisposeMemoryBuffer(buffer);
+    }
+    if d.failed {
+        if wasm {
+            backend_text(&d.text, "Invalid WebAssembly code section\n");
+        }
+        else {
+            backend_text(&d.text, "Invalid platform object section metadata\n");
+        }
+    }
+    var full = d.text.length >= 2097152;
+    if full {
+        backend_text(&d.text, "Disassembly display limited to 2 MiB.\n");
+    }
+    LLVMDisasmDispose(d.llvm);
+    d.llvm = null;
+    return d;
+}
+
+export fn backend_disassembly_text(d: BackendDecoder*): u8* {
+    var empty = d.text.data == null;
+    if empty {
+        return "";
+    }
+    return d.text.data;
+}
+
+export fn backend_disassembly_close(d: BackendDecoder*): void {
+    var absent = d == null;
+    if absent {
+        return;
+    }
+    vector_dispose(u8, &d.text);
+    var i: usize = 0;
+    loop {
+        var done = i == d.labels.length;
+        if done {
+            break;
+        }
+        vector_dispose(u8, &d.labels.data[i].name);
+        i = i + 1;
+    }
+    vector_dispose(BackendLabel, &d.labels);
+    free(d);
+}

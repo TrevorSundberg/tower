@@ -1,0 +1,19 @@
+// Explicitly linked upstream targets; no compiler-host target inference.
+
+extern fn LLVMInitializeWebAssemblyTargetInfo(): void;
+
+extern fn LLVMInitializeWebAssemblyTarget(): void;
+
+extern fn LLVMInitializeWebAssemblyTargetMC(): void;
+
+extern fn LLVMInitializeWebAssemblyAsmPrinter(): void;
+
+extern fn LLVMInitializeWebAssemblyDisassembler(): void;
+
+fn backend_initialize_targets(): void {
+    LLVMInitializeWebAssemblyTargetInfo();
+    LLVMInitializeWebAssemblyTarget();
+    LLVMInitializeWebAssemblyTargetMC();
+    LLVMInitializeWebAssemblyAsmPrinter();
+    LLVMInitializeWebAssemblyDisassembler();
+}

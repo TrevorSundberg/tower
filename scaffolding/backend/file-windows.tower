@@ -1,0 +1,12 @@
+// UCRT's explicit 64-bit interfaces avoid assuming Windows long is pointer-sized.
+extern fn _fseeki64(file: void*, offset: i64, origin: i32): i32;
+
+extern fn _ftelli64(file: void*): i64;
+
+fn backend_file_seek(file: void*, offset: i64, origin: i32): i32 {
+    return _fseeki64(file, offset, origin);
+}
+
+fn backend_file_position(file: void*): i64 {
+    return _ftelli64(file);
+}
