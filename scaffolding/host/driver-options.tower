@@ -19,6 +19,7 @@ struct DriverOptions {
     library: bool;
     timings: bool;
     help: bool;
+    version: bool;
     error: u32;
     argument: u8*;
 }
@@ -40,7 +41,11 @@ fn driver_equal(a: u8*, b: u8*): bool {
 }
 
 export fn driver_help(): u8* {
-    return "towerc source.tower -o output [--target triple] [--emit object|llvm|llvm-optimized|exe]\n  [--link object-or-library] [--cc clang] [--linker tool] [--sysroot path]\n  [--raw-ir file] [--optimized-ir file] [--no-optimize] [--interpret] [--library] [--timings]\n  [--bedrock file] [--foundation file]\n";
+    return "towerc source.tower -o output [--target triple] [--emit object|llvm|llvm-optimized|exe]\n  [--link object-or-library] [--cc clang] [--linker tool] [--sysroot path]\n  [--raw-ir file] [--optimized-ir file] [--no-optimize] [--interpret] [--library] [--timings]\n  [--bedrock file] [--foundation file] [--help] [--version]\n";
+}
+
+export fn driver_version(): u8* {
+    return "Tower development (hybrid bootstrap; not a portable release)\n";
 }
 
 export fn driver_dispose(options: DriverOptions*): void {
@@ -68,6 +73,7 @@ export fn driver_parse(options: DriverOptions*, argc: usize, argv: u8**, target:
     options.library = false;
     options.timings = false;
     options.help = false;
+    options.version = false;
     options.error = 0;
     options.argument = "";
     var index: usize = 1;
@@ -80,6 +86,10 @@ export fn driver_parse(options: DriverOptions*, argc: usize, argv: u8**, target:
         index = index + 1;
         if driver_equal(arg, "--help") {
             options.help = true;
+            return true;
+        }
+        if driver_equal(arg, "--version") {
+            options.version = true;
             return true;
         }
         if driver_equal(arg, "--no-optimize") {

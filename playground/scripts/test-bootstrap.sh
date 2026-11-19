@@ -34,7 +34,8 @@ if sys.argv[1] == 'interpreter': allowed |= {
     'semantic_alignment', 'semantic_mask', 'semantic_signed', 'semantic_size'}
 if sys.argv[1] == 'host': allowed |= {
     'compiler_host_reallocate', 'compiler_host_deallocate', 'tower_allocate',
-    'bytes_reserve', 'bytes_push', 'abort'}
+    'bytes_reserve', 'bytes_push', 'abort', 'tower_utf8_validate',
+    'fopen', 'fread', 'fwrite', 'ferror', 'feof', 'fclose'}
 if sys.argv[1] == 'entities': allowed |= {
     'compiler_entity_store', 'abort',
     'tower_allocate', 'tower_entity_finalize', 'compiler_node_label',

@@ -14,20 +14,25 @@ endfunction()
 option(TOWER_NATIVE "Build Tower's native compiler/linker driver against an installed LLVM" OFF)
 if(TOWER_NATIVE)
   find_package(LLVM REQUIRED CONFIG)
+  # Relocatable resources accompany all transitional compiler stages. Runtime C
+  # remains explicitly transitional until task 3 supplies its Tower replacement.
+  file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/share/tower")
+  foreach(resource IN ITEMS bedrock.tower foundation.tower runtime.c)
+    configure_file("scaffolding/${resource}" "share/tower/${resource}" COPYONLY)
+  endforeach()
   add_library(tower-native-compiler OBJECT scaffolding/llvm-engine.cpp
     scaffolding/tests/nodes.cpp scaffolding/parser.cpp scaffolding/parser-tree-tests.cpp
     scaffolding/compiler-syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/bedrock.cpp
     scaffolding/lex-pattern-common.cpp scaffolding/syntax-tests.cpp)
   target_include_directories(tower-native-compiler PRIVATE ${LLVM_INCLUDE_DIRS})
   target_compile_features(tower-native-compiler PRIVATE cxx_std_20)
-  target_compile_definitions(tower-native-compiler PRIVATE TOWER_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
   target_compile_options(tower-native-compiler PRIVATE -fno-exceptions)
   add_executable(towerc-seed scaffolding/driver.cpp scaffolding/compiler-memory.cpp scaffolding/bootstrap/interpreter-seed.cpp $<TARGET_OBJECTS:tower-native-compiler> scaffolding/bootstrap/utf8-seed.cpp scaffolding/bootstrap/bytes-seed.cpp scaffolding/bootstrap/nodes-seed.cpp scaffolding/bootstrap/parse-tree-seed.cpp scaffolding/bootstrap/generics-seed.cpp scaffolding/bootstrap/parser-nodes-seed.cpp)
   target_sources(towerc-seed PRIVATE scaffolding/bootstrap/core-seed.cpp scaffolding/bootstrap/core-nodes-seed.cpp)
   target_compile_features(towerc-seed PRIVATE cxx_std_20)
   target_sources(towerc-seed PRIVATE scaffolding/syntax.cpp)
   target_compile_definitions(towerc-seed PRIVATE TOWER_EXPANSION_SEED=1)
-  target_compile_definitions(towerc-seed PRIVATE TOWER_BOOTSTRAP_HOST=1 TOWER_INTERPRETER_SEED=1 TOWER_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+  target_compile_definitions(towerc-seed PRIVATE TOWER_BOOTSTRAP_HOST=1 TOWER_INTERPRETER_SEED=1)
   target_include_directories(towerc-seed PRIVATE ${LLVM_INCLUDE_DIRS})
   target_sources(towerc-seed PRIVATE scaffolding/bootstrap/format-seed.cpp)
   target_sources(towerc-seed PRIVATE scaffolding/bootstrap/foundation-nodes-seed.cpp)
@@ -41,14 +46,13 @@ if(TOWER_NATIVE)
   add_library(tower-native-driver OBJECT scaffolding/driver.cpp)
   target_compile_features(tower-native-driver PRIVATE cxx_std_20)
   target_compile_options(tower-native-driver PRIVATE -fno-exceptions)
-  target_compile_definitions(tower-native-driver PRIVATE TOWER_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
   target_include_directories(tower-native-driver PRIVATE ${LLVM_INCLUDE_DIRS})
   add_executable(towerc-stage1 scaffolding/driver.cpp scaffolding/bootstrap/interpreter-seed.cpp $<TARGET_OBJECTS:tower-native-compiler> scaffolding/tower.cpp scaffolding/bootstrap/parser-nodes-seed.cpp)
   target_sources(towerc-stage1 PRIVATE scaffolding/bootstrap/core-seed.cpp scaffolding/bootstrap/core-nodes-seed.cpp)
   target_compile_features(towerc-stage1 PRIVATE cxx_std_20)
   target_sources(towerc-stage1 PRIVATE scaffolding/syntax.cpp)
   target_compile_definitions(towerc-stage1 PRIVATE TOWER_EXPANSION_SEED=1)
-  target_compile_definitions(towerc-stage1 PRIVATE TOWER_INTERPRETER_SEED=1 TOWER_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+  target_compile_definitions(towerc-stage1 PRIVATE TOWER_INTERPRETER_SEED=1)
   target_include_directories(towerc-stage1 PRIVATE ${LLVM_INCLUDE_DIRS})
   target_sources(towerc-stage1 PRIVATE scaffolding/bootstrap/format-seed.cpp)
   target_sources(towerc-stage1 PRIVATE scaffolding/bootstrap/foundation-nodes-seed.cpp)
@@ -88,6 +92,7 @@ if(TOWER_BROWSER)
   target_link_libraries(tower-browser PRIVATE tower-compiler-interpreter tower-compiler-parser-nodes tower-compiler-semantics tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
   target_compile_options(tower-browser PRIVATE -fno-exceptions -UNDEBUG)
   target_link_options(tower-browser PRIVATE -mexec-model=reactor
+    -Wl,--export=tw_abi_version -Wl,--export=tw_alloc -Wl,--export=tw_free
     $<$<CONFIG:Release>:-Wl,--strip-all>
     $<$<CONFIG:MinSizeRel>:-Wl,--strip-all>
     -Wl,-z,stack-size=2097152 -Wl,--initial-memory=8388608 -Wl,--max-memory=268435456)
@@ -125,7 +130,7 @@ if(TOWER_BROWSER)
     set(CMAKE_SYSTEM_NAME Wasi)
     add_subdirectory(${TOWER_LLVM_SOURCE_DIR}/llvm third_party/llvm-project/llvm)
     set(CMAKE_SYSTEM_NAME "${tower_sdk_system_name}")
-    set(tower_llvm_sources scaffolding/main.cpp
+    set(tower_llvm_sources
       scaffolding/llvm-backend.cpp scaffolding/llvm-engine.cpp scaffolding/llvm-wasi.cpp scaffolding/core.cpp scaffolding/core-nodes.cpp
       scaffolding/tower.cpp scaffolding/tests/nodes.cpp scaffolding/parser.cpp scaffolding/parser-tree-tests.cpp
       scaffolding/syntax.cpp scaffolding/compiler-syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/bedrock.cpp scaffolding/format.cpp scaffolding/lex-pattern.cpp scaffolding/lex-pattern-common.cpp scaffolding/syntax-tests.cpp)
@@ -297,75 +302,4 @@ if(TOWER_PARSER_ONLY)
   return()
 endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fstack-protector-all -fno-optimize-sibling-calls -fno-omit-frame-pointer")
-set(  CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -fstack-protector-all -fno-optimize-sibling-calls -fno-omit-frame-pointer")
-
-string(REPLACE "-Wl,--import-memory" "" CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}")
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--initial-memory=134217728")
-
-include_directories(third_party/llvm-project/wasi-include)
-
-set(CMAKE_CROSSCOMPILING ON CACHE INTERNAL "")
-set(LLVM_LINK_LLVM_DYLIB OFF CACHE INTERNAL "")
-set(CAN_BUILD_LLVM_DYLIB OFF CACHE INTERNAL "")
-set(LLVM_BUILD_LLVM_DYLIB_VIS OFF CACHE INTERNAL "")
-set(LLVM_BUILD_LLVM_DYLIB OFF CACHE INTERNAL "")
-set(LLVM_DYLIB_EXPORT_INLINES OFF CACHE INTERNAL "")
-set(ARG_DISABLE_LLVM_LINK_LLVM_DYLIB ON CACHE INTERNAL "")
-set(LLVM_TARGET_ARCH "wasm32" CACHE INTERNAL "")
-set(LLVM_HOST_TRIPLE "wasm32-wasi-thread" CACHE INTERNAL "")
-set(LLVM_TARGETS_TO_BUILD "WebAssembly" CACHE INTERNAL "")
-set(LLVM_ENABLE_PIC OFF CACHE INTERNAL "")
-set(CMAKE_SYSTEM_NAME "Wasi" CACHE INTERNAL "")
-set(LLVM_NATIVE_TOOL_DIR "/src/third_party/llvm-project/llvm/build/bin" CACHE PATH "")
-set(LLVM_USE_HOST_TOOLS ON CACHE INTERNAL "")
-set(LLVM_BUILD_STATIC ON CACHE INTERNAL "")
-set(LLVM_ENABLE_PLUGINS OFF CACHE INTERNAL "")
-set(LLVM_INCLUDE_TOOLS OFF CACHE INTERNAL "")
-set(LLVM_BUILD_TOOLS OFF CACHE INTERNAL "")
-set(LLVM_INCLUDE_UTILS OFF CACHE INTERNAL "")
-set(LLVM_BUILD_UTILS OFF CACHE INTERNAL "")
-set(LLVM_INCLUDE_EXAMPLES OFF CACHE INTERNAL "")
-set(LLVM_BUILD_TESTS OFF CACHE INTERNAL "")
-set(LLVM_INCLUDE_TESTS OFF CACHE INTERNAL "")
-set(LLVM_BUILD_BENCHMARKS OFF CACHE INTERNAL "")
-set(LLVM_INCLUDE_BENCHMARKS OFF CACHE INTERNAL "")
-add_subdirectory(third_party/llvm-project/llvm)
-
-add_executable(scaffolding
-  scaffolding/main.cpp
-  scaffolding/tower.cpp
-  scaffolding/parser.cpp
-  scaffolding/parser-tree-tests.cpp
-  scaffolding/syntax.cpp scaffolding/compiler-syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/bedrock.cpp scaffolding/format.cpp
-  scaffolding/lex-pattern.cpp scaffolding/lex-pattern-common.cpp
-  scaffolding/syntax-tests.cpp)
-tower_compiler_utilities()
-tower_compiler_parser_nodes()
-target_link_libraries(scaffolding PRIVATE tower-compiler-parser-nodes tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
-
-target_compile_features(scaffolding PRIVATE cxx_std_20)
-target_compile_options(scaffolding PRIVATE -fno-exceptions)
-
-# Disable gtest requirement
-#option(BUILD_TESTS "" OFF)
-#option(BUILD_TOOLS "" OFF)
-#option(BUILD_STATIC_LIB "" ON)
-#add_subdirectory(third_party/binaryen)
-#target_include_directories(scaffolding PRIVATE third_party/binaryen/src)
-#target_link_libraries(scaffolding PRIVATE binaryen)
-
-target_include_directories(scaffolding PRIVATE third_party/llvm-project/llvm/include build/third_party/llvm-project/llvm/include)
-target_link_libraries(scaffolding PRIVATE
-  LLVMSupport
-  LLVMCore
-  LLVMMCJIT
-  LLVMBitWriter
-  LLVMWebAssemblyInfo
-  LLVMWebAssemblyCodeGen
-  LLVMWebAssemblyDesc
-  LLVMWebAssemblyAsmParser
-  LLVMWebAssemblyDisassembler
-)
-
-target_link_options(scaffolding PRIVATE -mexec-model=reactor -Wl,--export=malloc -Wl,--export=free)
+message(FATAL_ERROR "Select TOWER_NATIVE, TOWER_BROWSER or TOWER_PARSER_ONLY. The obsolete constant-return LLVM scaffolding target has been retired.")

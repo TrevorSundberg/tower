@@ -1,0 +1,99 @@
+// Host policies consume explicit inputs. Locating the running executable is an
+// OS service supplied by the caller; argv[0] alone is not a resolved filename.
+// Resource text uses the shared buffer and has a borrowed terminating NUL.
+export fn driver_resource_root(out: ByteBuffer*, executable: u8*): bool {
+    var i: usize = 0;
+    var boundary: usize = 0;
+    loop {
+        var c = executable[i];
+        var end = c == 0;
+        if end {
+            break;
+        }
+        i = i + 1;
+        var separator = c == 47;
+        var windows = c == 92;
+        if windows {
+            separator = true;
+        }
+        if separator {
+            boundary = i;
+        }
+    }
+    var missing = boundary == 0;
+    if missing {
+        return false;
+    }
+    out.length = 0;
+    var ok = bytes_append(out, executable, boundary);
+    if ok {
+        ok = bytes_append(out, "share/tower", 11);
+    }
+    if ok {
+        ok = host_text_terminate(out);
+    }
+    return ok;
+}
+
+// Diagnostic columns count UTF-8 scalars, retaining the original driver's
+// policy for offsets inside a scalar, CRLF and offsets beyond the input.
+export fn driver_source_position(source: u8*, count: usize, offset: usize, line: usize*, column: usize*): void {
+    *line = 1;
+    *column = 1;
+    var past = offset > count;
+    if past {
+        offset = count;
+    }
+    var i: usize = 0;
+    loop {
+        var done = i == offset;
+        if done {
+            return;
+        }
+        var c = source[i];
+        var newline = c == 10;
+        if newline {
+            *line = *line + 1;
+            *column = 1;
+        } else {
+            var prefix = c & 192;
+            var first = prefix != 128;
+            if first {
+                *column = *column + 1;
+            }
+        }
+        i = i + 1;
+    }
+}
+
+export fn driver_output_name(emit: u8*, wasm: bool, windows: bool): u8* {
+    if driver_equal(emit, "object") {
+        return "tower.o";
+    }
+    if driver_equal(emit, "llvm") {
+        return "tower.ll";
+    }
+    if driver_equal(emit, "llvm-optimized") {
+        return "tower.ll";
+    }
+    if wasm {
+        return "tower.wasm";
+    }
+    if windows {
+        return "tower.exe";
+    }
+    return "tower.out";
+}
+
+export fn driver_output_valid(emit: u8*): bool {
+    if driver_equal(emit, "object") {
+        return true;
+    }
+    if driver_equal(emit, "llvm") {
+        return true;
+    }
+    if driver_equal(emit, "llvm-optimized") {
+        return true;
+    }
+    return driver_equal(emit, "exe");
+}

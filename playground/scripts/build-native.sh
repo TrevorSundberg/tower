@@ -10,3 +10,6 @@ mkdir -p "$repo/build/native"
 cp "$native/towerc" "$repo/build/native/towerc"
 cp "$native/towerc-seed" "$repo/build/native/towerc-seed"
 cp "$native/towerc-stage1" "$repo/build/native/towerc-stage1"
+mkdir -p "$repo/build/native/share/tower"
+cp "$native/share/tower/bedrock.tower" "$native/share/tower/foundation.tower" \
+  "$native/share/tower/runtime.c" "$repo/build/native/share/tower/"

@@ -1,0 +1,2 @@
+// é: diagnostics must retain the file and line through UTF-8 text.
+var value: i32 = true;

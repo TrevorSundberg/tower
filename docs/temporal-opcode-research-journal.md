@@ -12805,3 +12805,126 @@ build/shared-bootstrap-check-final.log. These are module determinism comparisons
 not successive Tower-only whole-compiler self-builds or native macOS execution.
 The follow-up changes only this journal and the dependency allowlist; deployed
 production code remains dfdf95b and its verified 79f8128 Pages release.
+## 2026-11-19 — Distribution host migration and explicit release gates
+
+Request: execute `/home/deck/Share/prompt.txt` (Tower CLI/browser hosts and portable
+bootstrap distribution), starting at `7973c39` on main. Initial `git pull --rebase`
+was current and the worktree was clean. `todo.txt` is not edited; starting SHA-256
+is `e9fc1667b87506c1cc2c5ddbbfe41886b7f1c01f34b27b0f6425a0bfc3e26e34`.
+The prompt prohibits new C/C++ implementations/tests/seeds and assigns frontend,
+backend and runtime implementations to other owners. This turn implements new
+host policies/tests in Tower; native changes bind those functions or remove
+obsolete code. Build/release orchestration remains shell/Python/CMake.
+
+Inspected current contracts in `core.hpp`, `syntax.hpp`, `llvm-engine.hpp`,
+`compiler-host.hpp`, the Tower semantic lifecycle, `cmake/TowerHost.cmake`,
+`TowerCompilerUtilities.cmake`, target-pack scripts and the established Pages
+procedure in `playground/README.md`. The semantic compiler has landed, but
+`SyntaxSession`, `CoreProgram`/`CoreMachine` lifecycle and LLVM emission/linking
+still have C++ interfaces. `runtime.c` is still the only supplied target runtime.
+No Tower frontend/backend/runtime build fragments providing complete successors
+exist in this checkout. Creating fresh native wrappers or duplicating those
+owners' implementations would violate the prompt, so full host cutover and
+whole-compiler self-build remain dependent integration work, not completed work.
+
+Implemented:
+
+- CLI version/help/options, resource-directory construction, UTF-8 diagnostic
+  positions and output-kind policy execute in Tower. The production driver
+  rejects invalid output kinds before compiling. Version text explicitly labels
+  this a hybrid development bootstrap; it is not a release version claim.
+- Tower file services handle binary reads/writes through opaque libc services.
+  Read failure preserves the previous buffer and closes files, including injected
+  allocation failure. Empty files get a terminating NUL view excluded from length.
+  Writes detect partial/no-progress and close failures. Tests cover a 17,000-byte
+  file spanning read chunks, embedded NUL/high bytes, failed reads and empty files.
+- Every native stage now loads resources beside the actual executable, using an
+  existing LLVM OS service to locate it and Tower to construct the resource path.
+  CMake stages `share/tower/{bedrock.tower,foundation.tower,runtime.c}` and the native
+  copy script preserves them. Explicit grammar overrides remain. Removed all
+  `TOWER_SOURCE_DIR` compile definitions; runtime C remains visibly transitional.
+- Browser source validation, ABI version/allocation/free exports and execution
+  status/error/raw-output/step JSON now execute in Tower. Existing shared byte
+  buffers/JSON helpers and worker protocol are retained. The native adapter still
+  supplies lifecycle and other serialization pending the owners' APIs. No separate
+  semantic graph or program format was introduced.
+- Retired `scaffolding/main.cpp`, the standalone constant-return LLVM experiment,
+  its JS smoke test, and the obsolete default CMake configuration with a hardcoded
+  `/src/...` path. Real Tower LLVM compile/link/execute tests replace its role.
+  Active native seeds/references are retained pending validated successors.
+- Added relocatable CLI validation, Tower distribution fixtures, source/native
+  artifact inventory, and recipe-driven three-generation build/candidate tooling.
+  The recipe requires hashed Tower sources, third-party origin/version/license
+  closure, explicit bundled linker inputs and actual matching OS/architecture.
+  It builds all units three times, runs each resulting compiler's strict host
+  checks, compares generation 2/3 object/executable bytes, and only then stages a
+  candidate with source, runtimes, dependencies, licenses, recipe, hashes and sizes.
+  These orchestration paths are implemented, but no complete compiler recipe is
+  available and no full successor build has run. The script's 11 schema/rejection
+  tests pass; they are build-policy tests, not a substitute for Tower correctness.
+  Native functional fixtures for new host behavior are Tower.
+
+Trials and findings (Linux x86_64, established `tower_build` Ubuntu 24.04 image,
+LLVM 19 / WASI SDK 34; Docker image ID
+`4be584fb42a6cefb921b8f8bd686f61ef6e7e721eee2393b2ab1dfce16a7f4f6`):
+
+1. `./build.sh bash playground/scripts/build-native.sh` built the migrated host.
+   The first native/WASI test composition failed parsing a new test's `\0` string
+   escape: Foundation does not accept it. Replaced it with an explicit zero byte.
+   ABI inspection also corrected the UTF-8 validator import to its existing u32
+   return contract, followed by an explicit nonzero test. No foundation changes.
+2. `./build.sh bash -c 'bash playground/scripts/build-native.sh && bash
+   playground/scripts/test-native-core.sh && bash playground/scripts/test-host-runtime.sh'`
+   passed native ASan/UBSan CTest **5/5**, the full WASI host/parser suite and
+   **156** interpreter differential runs. Log: `build/distribution/host-validation.log`.
+   Generated Tower objects retain the project's existing lack of native sanitizer
+   instrumentation; the host harness itself is instrumented.
+3. `./build.sh bash playground/scripts/test-compiler-distribution.sh` moves the
+   executable/resources to a fresh directory with spaces and uses an unrelated
+   cwd. With development tools, help/version, option errors, UTF-8 source
+   diagnostics, interpretation, three deterministic object emissions, Tower
+   library linking, executable emission and repeated execution pass. With the
+   tool search limited to the package, checks pass through object/library emission
+   and linking fails specifically with `Cannot find tool: clang`. The harness
+   verifies this expected transitional failure; the restricted verification report
+   remains failed, not relabeled passed. Logs/reports: `build/distribution/relocation.log`
+   and `relocated-{development,restricted}/`. This is not clean-OS release proof.
+4. One relocated development sample measured help startup 87.0 ms, three object
+   compilations 185.3/213.6/208.6 ms, compile-to-executable 378.7 ms, and executable
+   startup/execution 1.62/1.44/1.58 ms. These are tiny-fixture wall times, include
+   process startup, and are not broad compiler throughput claims. Object SHA-256:
+   `a9e30317a9c1d9194e725cb3df9f5339460c962bb228b8822ba847b22143d4cf`.
+5. `ldd build/native/towerc` inside the toolchain container finds 17 resolved
+   library/loader files totaling **171,620,624 bytes**. LLVM alone is **128,938,904
+   bytes**, while this measured compiler is **773,440 bytes**. Counts dereference
+   symlinks (the LLVM link itself is only 38 bytes). This excludes Clang/LLD,
+   licenses, sources and target support, so is a lower bound, not package size.
+   Records: `build/distribution/{dependencies,dependency-sizes}.log`. The unbundled
+   LLVM, C++ runtime, compression/XML/ICU/edit/ffi libraries confirm that the small
+   compiler executable is not portable.
+6. `inventory-native.py --build /tmp/tower-home/.cache/tower/native --output
+   build/distribution/native-inventory.json` found 106 still-present tracked
+   project native artifacts: 47 frontend/runtime adapters/headers, 26 bootstrap
+   references, 21 native test artifacts, 4 backend artifacts, 3 host artifacts,
+   runtime.c, and 4 research artifacts. Ninja's target inputs include 41 project
+   C/C++ source paths including bootstrap dependencies. Each group has an explicit
+   retirement/translation owner; research examples are not production successors.
+7. Rebuilt the parser and both LLVM browser reactors with `build-wasm.sh` and
+   `TOWER_BROWSER_CROSS=ON build-llvm.sh`; bundled using `TOWER_REQUIRE_BACKENDS=1
+   npm run build --prefix playground`. `npm test --prefix playground` passed
+   **223/223** (the retired constant-return test accounts for the reduction from
+   224). Canonical formatting passed. `npm run test:deployment --prefix playground`
+   matched **36/36** assets and passed desktop/mobile backend agreement, forward
+   bindings, editable grammar, persistence, native builds/downloads and target
+   defaults. Log: `build/distribution/browser-validation.log`.
+
+Full release gates remain open: complete Tower lifecycle/frontend/backend/runtime
+and host integration; repeated whole-compiler rebuild and deterministic results;
+clean-OS dependency closure; actual Windows/Linux/macOS compiler execution for
+supported architectures; reviewed hashes/provenance/licenses and committed
+verified bootstrap binaries; retirement of remaining native seeds/adapters/tests.
+This host is Linux x64; no Windows/macOS compiler execution environment or complete
+Tower-only compiler is available. Cross-produced module objects do not close those
+gates. No hybrid bootstrap binary is committed. `docs/bootstrap-distribution.md`
+documents the concrete contracts, commands, recipe schema, limitations and next
+integration steps. Final bootstrap comparison/publication evidence follows.

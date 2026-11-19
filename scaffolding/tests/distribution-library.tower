@@ -1,0 +1,4 @@
+export fn distribution_twice(value: i32): i32 {
+    var result = value + value;
+    return result;
+}

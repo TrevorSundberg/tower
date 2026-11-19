@@ -438,5 +438,5 @@ export fn host_runtime_tests(): i32 {
     if check_61 {
         return 67;
     }
-    return 0;
+    return host_services_tests();
 }

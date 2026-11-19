@@ -16,6 +16,9 @@
 extern "C" bool host_json_quote(TowerByteBuffer*, const char*, size_t);
 extern "C" bool host_json_unsigned(TowerByteBuffer*, uint64_t);
 extern "C" bool host_text_terminate(TowerByteBuffer*);
+extern "C" const char* host_source_error(const char*, size_t);
+extern "C" bool host_execution_json(TowerByteBuffer*, const char*, size_t, size_t,
+  bool, const char*, size_t, uint64_t, bool);
 struct HostHandles { void* slots; size_t count, capacity; uint32_t next; };
 extern "C" size_t host_handles_count(HostHandles*, uint32_t);
 extern "C" void* host_handles_get(HostHandles*, uint32_t, uint32_t);
@@ -163,18 +166,11 @@ void tree(BrowserText& out, TowerNode* root) {
   out += ']';
 }
 bool valid_source(const char* source, size_t bytes) {
-  last_error.clear();
-  if (bytes > max_source) { last_error = "Compilation source limit is 8 MiB"; return false; }
-  if (!source || !tower_utf8_validate(reinterpret_cast<const uint8_t*>(source), bytes, 1)) {
-    last_error = "Source must be valid UTF-8 without NUL bytes"; return false;
-  }
-  return true;
+  last_error = host_source_error(source, bytes);
+  return last_error.empty();
 }
 }
 
-EXPORT("tw_abi_version") uint32_t tw_abi_version() { return 3; }
-EXPORT("tw_alloc") void* tw_alloc(size_t bytes) { return malloc(bytes); }
-EXPORT("tw_free") void tw_free(void* pointer) { free(pointer); }
 EXPORT("tw_last_error") const char* tw_last_error() { return last_error.c_str(); }
 
 EXPORT("tw_create") uint32_t tw_create(const char* source, size_t bytes) {
@@ -359,15 +355,9 @@ EXPORT("tw_exec_step") const char* tw_exec_step(uint32_t handle, uint32_t budget
   auto& machine = *found;
   machine.step(std::min(budget, uint32_t(100000)));
   auto& out = execution_response;
-  out = "{\"status\":"; quote(out, !machine.error.empty() ? "error" : machine.done ? "done" : "executing");
-  field(out, "error", machine.error); field(out, "errorOffset", machine.error_offset);
-  out += ",\"outputBytes\":[";
-  for (size_t i = 0; i < machine.output.size(); ++i) {
-    if (i) out += ','; number(out, static_cast<unsigned char>(machine.output[i]));
-  }
-  out += ']'; machine.output.clear();
-  out += ",\"steps\":"; number(out, machine.steps);
-  out += machine.output_truncated ? ",\"outputTruncated\":true}" : ",\"outputTruncated\":false}";
+  if (!host_execution_json(&out.buffer, machine.error.data(), machine.error.size(), machine.error_offset,
+      machine.done, machine.output.data(), machine.output.size(), machine.steps, machine.output_truncated)) std::abort();
+  machine.output.clear();
   return out.c_str();
 }
 EXPORT("tw_exec_foundation") const char* tw_exec_foundation(uint32_t handle) {

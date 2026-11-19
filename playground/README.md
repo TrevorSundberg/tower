@@ -609,6 +609,11 @@ commands pass `--bedrock file --foundation file` explicitly so an external compi
 uses this checkout's grammar modules. These driver options are also available
 for normal builds; they are host loading controls, not language imports. The native
 build produces `build/native/towerc`, `towerc-seed` and `towerc-stage1`.
+Move the adjacent `build/native/share/tower` resource directory with these
+executables. Grammar/runtime lookup is relative to the running compiler, with
+explicit grammar flags still supported. `--version` identifies the current
+hybrid development bootstrap. See [bootstrap distribution](../docs/bootstrap-distribution.md)
+for Tower host policies, relocation checks, self-build recipes and release gates.
 The eventual distribution will include self-contained bootstrap Tower compiler
 binaries for Windows/macOS/Linux in the repository; those binaries are not shipped
 yet. General module imports and the rest of the compiler migration remain future work.

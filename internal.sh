@@ -5,6 +5,7 @@ repo="$(cd "$(dirname "$0")" && pwd)"
 cd "$repo"
 bash playground/scripts/setup-wasi.sh
 bash playground/scripts/build-native.sh
+bash playground/scripts/test-compiler-distribution.sh
 bash playground/scripts/test-native-core.sh
 bash playground/scripts/test-bootstrap.sh
 bash playground/scripts/test-host-runtime.sh

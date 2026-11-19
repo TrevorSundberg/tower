@@ -1,0 +1,180 @@
+// Host behavior is tested in Tower on native and wasm32 test hosts.
+extern fn remove(path: u8*): i32;
+
+fn host_file_tests(): i32 {
+    var out: ByteBuffer;
+    fill(&out, 0, sizeof(ByteBuffer));
+    var bytes: u8[17000];
+    fill(&bytes[0], 255, 17000);
+    bytes[1] = 0;
+    bytes[16999] = 42;
+    var ok = driver_write_file("host-io-test.bin", &bytes[0], 17000);
+    if ok {} else {
+        return 530;
+    }
+    ok = driver_read_file("host-io-test.bin", &out);
+    if ok {} else {
+        return 531;
+    }
+    ok = host_test_bytes(&out, &bytes[0], 17000);
+    if ok {} else {
+        return 532;
+    }
+    var pointer = out.data;
+    tower_test_buffer_fail_next();
+    ok = driver_read_file("host-io-test.bin", &out);
+    if ok {
+        return 533;
+    }
+    ok = pointer == out.data;
+    if ok {} else {
+        return 534;
+    }
+    ok = host_test_bytes(&out, &bytes[0], 17000);
+    if ok {} else {
+        return 535;
+    }
+    remove("host-io-test.bin");
+    ok = driver_read_file("host-io-test.bin", &out);
+    if ok {
+        return 536;
+    }
+    ok = driver_write_file("host-io-test.bin", null, 0);
+    if ok {} else {
+        return 537;
+    }
+    ok = driver_read_file("host-io-test.bin", &out);
+    if ok {} else {
+        return 538;
+    }
+    ok = out.length == 0;
+    if ok {} else {
+        return 539;
+    }
+    ok = out.data[0] == 0;
+    if ok {} else {
+        return 540;
+    }
+    remove("host-io-test.bin");
+    bytes_dispose(&out);
+    return 0;
+}
+
+export fn host_services_tests(): i32 {
+    var out: ByteBuffer;
+    fill(&out, 0, sizeof(ByteBuffer));
+    var ok = driver_resource_root(&out, "/opt/Tower compiler/towerc");
+    if ok {} else {
+        return 501;
+    }
+    ok = driver_equal(out.data, "/opt/Tower compiler/share/tower");
+    if ok {} else {
+        return 502;
+    }
+    ok = driver_resource_root(&out, "C:\\Tower compiler\\towerc.exe");
+    if ok {} else {
+        return 503;
+    }
+    ok = driver_equal(out.data, "C:\\Tower compiler\\share/tower");
+    if ok {} else {
+        return 504;
+    }
+    ok = driver_resource_root(&out, "towerc");
+    if ok {
+        return 505;
+    }
+    var line: usize = 0;
+    var column: usize = 0;
+    driver_source_position("aé\r\nz", 6, 5, &line, &column);
+    ok = line == 2;
+    if ok {} else {
+        return 506;
+    }
+    ok = column == 1;
+    if ok {} else {
+        return 507;
+    }
+    driver_source_position("aé\r\nz", 6, 999, &line, &column);
+    ok = column == 2;
+    if ok {} else {
+        return 508;
+    }
+    driver_source_position("aé\r\nz", 6, 3, &line, &column);
+    ok = column == 3;
+    if ok {} else {
+        return 509;
+    }
+    ok = driver_output_valid("llvm-bad");
+    if ok {
+        return 510;
+    }
+    var name = driver_output_name("llvm-optimized", false, false);
+    ok = driver_equal(name, "tower.ll");
+    if ok {} else {
+        return 511;
+    }
+    var args: u8*[3];
+    args[0] = "towerc";
+    args[1] = "--version";
+    args[2] = "--invalid";
+    var options: DriverOptions;
+    ok = driver_parse(&options, 3, &args[0], "target");
+    if ok {} else {
+        return 512;
+    }
+    if options.version {} else {
+        return 513;
+    }
+    driver_dispose(&options);
+    var error = host_source_error("a", 8388609);
+    ok = driver_equal(error, "Compilation source limit is 8 MiB");
+    if ok {} else {
+        return 514;
+    }
+    error = host_source_error("", 0);
+    ok = error[0] == 0;
+    if ok {} else {
+        return 515;
+    }
+    error = host_source_error(null, 0);
+    ok = error[0] != 0;
+    if ok {} else {
+        return 516;
+    }
+    var nul: u8 = 0;
+    error = host_source_error(&nul, 1);
+    ok = error[0] != 0;
+    if ok {} else {
+        return 517;
+    }
+    var data: u8[3];
+    data[0] = 0;
+    data[1] = 128;
+    data[2] = 255;
+    ok = host_execution_json(&out, "\"", 1, 7, true, &data[0], 3, 18446744073709551615, true);
+    if ok {} else {
+        return 518;
+    }
+    host_text_terminate(&out);
+    ok = driver_equal(out.data, "{\"status\":\"error\",\"error\":\"\\\"\",\"errorOffset\":7,\"outputBytes\":[0,128,255],\"steps\":18446744073709551615,\"outputTruncated\":true}");
+    if ok {} else {
+        return 519;
+    }
+    ok = host_execution_json(&out, "", 0, 0, false, null, 0, 0, false);
+    if ok {} else {
+        return 520;
+    }
+    host_text_terminate(&out);
+    ok = driver_equal(out.data, "{\"status\":\"executing\",\"error\":\"\",\"errorOffset\":0,\"outputBytes\":[],\"steps\":0,\"outputTruncated\":false}");
+    if ok {} else {
+        return 521;
+    }
+    bytes_dispose(&out);
+    tower_test_buffer_fail_next();
+    ok = host_execution_json(&out, "", 0, 0, true, null, 0, 0, false);
+    if ok {
+        return 522;
+    }
+    bytes_dispose(&out);
+    return host_file_tests();
+}

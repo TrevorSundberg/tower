@@ -14,6 +14,9 @@ function(tower_compiler_host bootstrap dependency triple)
     COMMAND "${CMAKE_COMMAND}" -DROOT=${CMAKE_CURRENT_SOURCE_DIR} -DDRIVER=${driver} -DTESTS=${tests} -DOUTPUT=${input}
       -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ComposeHost.cmake"
     DEPENDS scaffolding/host/memory.tower scaffolding/host/driver-options.tower
+      scaffolding/host/driver-services.tower scaffolding/tests/host-services.tower
+      scaffolding/host/driver-files.tower
+      scaffolding/host/browser-protocol.tower
       scaffolding/library/bytes.tower scaffolding/compiler/host-text.tower
       scaffolding/compiler/host-handles.tower scaffolding/tests/host.tower
       ${tests} cmake/ComposeHost.cmake VERBATIM)

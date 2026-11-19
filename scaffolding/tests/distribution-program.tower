@@ -1,0 +1,11 @@
+// Shared release correctness fixture: source, interpreter and native execution.
+fn twice(value: i32): i32 {
+    var result = value + value;
+    return result;
+}
+
+var memory = alloc(i32, 2);
+memory[0] = 21;
+memory[1] = twice(memory[0]);
+print(memory[1]);
+free(memory);
