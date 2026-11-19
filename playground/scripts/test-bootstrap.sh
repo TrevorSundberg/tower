@@ -30,11 +30,11 @@ allowed = set() if sys.argv[1] == 'utf8' else {'tower_reallocate', 'tower_deallo
 if sys.argv[1] == 'interpreter': allowed |= {
     'abort', 'tower_allocate', 'tower_trap',
     'im_append', 'im_fail', 'im_foreign', 'im_has_foreign', 'im_missing_foreign',
-    'im_node', 'im_pointee_size', 'im_pointer_bytes', 'im_root',
-    'im_type_alignment', 'im_type_mask', 'im_type_signed', 'im_type_size'}
+    'im_pointer_bytes', 'im_root', 'sem_get',
+    'semantic_alignment', 'semantic_mask', 'semantic_signed', 'semantic_size'}
 if sys.argv[1] == 'host': allowed |= {
     'compiler_host_reallocate', 'compiler_host_deallocate', 'tower_allocate',
-    'bytes_reserve', 'bytes_push'}
+    'bytes_reserve', 'bytes_push', 'abort'}
 if sys.argv[1] == 'entities': allowed |= {
     'compiler_entity_store', 'abort',
     'tower_allocate', 'tower_entity_finalize', 'compiler_node_label',
@@ -58,15 +58,14 @@ if sys.argv[1] == 'parser-nodes': allowed |= {
     'compiler_parse_match', 'parse_forest_leaf', 'parse_forest_join',
     'parse_forest_attach', 'parse_forest_take', 'bytes_assign_text', 'bytes_append'}
 if sys.argv[1] == 'parser-nodes': allowed |= {
-    'format_foundation_kind', 'format_builtin', 'format_operator', 'format_scalar_name',
-    'format_array', 'format_record', 'format_boolean', 'format_signed', 'format_mask', 'format_sign'}
-if sys.argv[1] == 'parser-nodes': allowed |= {
-    'format_is_' + kind for kind in
-    'Program Function Parameter Declare Assign Operand Binary Address Load Convert Bits Call Block If Loop Break Continue Print Return Type FieldDeclaration Field Index String SizeOf AlignOf Allocate Reallocate Free Copy Fill'.split()}
+    'core_component_type', 'semantic_builtin_name', 'semantic_operator',
+    'semantic_scalar_name', 'semantic_signed', 'semantic_mask'}
 if sys.argv[1] == 'semantics': allowed |= {
-    'tower_allocate', 'tower_trap', 'sem_get', 'sem_attach', 'sem_create', 'sem_match',
-    'sem_child', 'sem_child_count', 'sem_parent', 'sem_member', 'sem_decode_identifier',
-    'sem_require', 'generic_begin', 'generic_error', 'generic_register',
+    'tower_allocate', 'tower_trap', 'sem_match', 'abort', 'core_component_type',
+    'entity_component_get', 'entity_component_data', 'entity_component_add', 'entity_register',
+    'entity_attach', 'entity_release', 'entity_child_at', 'entity_child_count', 'entity_parent',
+    'entity_member_index', 'tower_node_create', 'foundation_node_init', 'syntax_identifier_decode_in_place',
+    'generic_begin', 'generic_error', 'generic_register',
     'generic_parameter_count', 'generic_type_parameter', 'generic_instantiate',
     'generic_lookup', 'generic_type_result', 'generic_origin',
     'foundation_name_append', 'foundation_nodes_prepend'}

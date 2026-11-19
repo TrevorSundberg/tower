@@ -12767,3 +12767,41 @@ Remaining handoff/dependency contract — removal is not complete:
   OS startup and platform allocation; it was not deleted ahead of a working successor.
   Full native removal, Tower-only self-hosting, complete test migration and macOS
   execution are not delivered by this cutover. No speculative C fallback was added.
+
+Publication and final validation follow-up:
+
+Implementation dfdf95b was committed, pulled/rebased (no newer main changes) and
+pushed normally. Pages commit 79f8128 is a fast-forward of 35becfd and changes only
+tower.wasm and its manifest/provenance. The rebuilt reactor is 778,795 bytes,
+SHA-256 0aeb6dda968bb18e07611f8c58beda239483642a6462e6e8c36813d73e4c21f3.
+Every earlier LLVM/cross reactor, runtime pack and worker asset remains byte-identical
+and retains its earlier release scope. This is not publication of a completed
+runtime.c replacement. Transient GitHub DNS failures initially blocked pushes;
+normal pull/rebase/push retries succeeded, without a force push.
+
+GitHub Pages reports built at 79f8128, no error. Both local and hosted executions
+of verify-deployment.mjs passed all 36 asset hashes and desktop/mobile behavior:
+backend agreement, forward bindings, editable grammar, persistence, native downloads
+and platform defaults. Logs: build/shared-local-deployment.log and
+build/shared-live-deployment.log. Post-rebase sanitizer CTest also passed 5/5
+(21.01 seconds). Actual Windows execution of the new guest allocator/output tests
+passed after cross-linking tests.tower with --target x86_64-pc-windows-msvc and the
+existing build/targets/kernel32.lib; ran build/shared-runtime/windows-tests.exe
+on Windows and observed exactly "Tower guest runtime passed". This supplements,
+rather than replaces, the Windows compiler/host and interpreter tests above.
+
+The final bootstrap determinism script exposed an obsolete dependency allowlist:
+it allowed format_is_*/im_type_* native callbacks but rejected their new shared
+semantic imports. Updated only those imported-symbol expectations (and the new
+host abort dependency), removing the retired callback names from the allowed set.
+No build recipe, package behavior or native test implementation changed. The first
+run stopped at this check; results from the corrected complete run follow below.
+
+Corrected bootstrap verification completed successfully: all 28 optimized-LLVM and
+object comparisons agree byte-for-byte across utf8, bytes, entities, parser-nodes,
+host, interpreter and semantics for Linux x64, wasm32, Windows x64 and macOS arm64.
+The explicit custom-grammar and missing-grammar checks also pass. Evidence:
+build/shared-bootstrap-check-final.log. These are module determinism comparisons,
+not successive Tower-only whole-compiler self-builds or native macOS execution.
+The follow-up changes only this journal and the dependency allowlist; deployed
+production code remains dfdf95b and its verified 79f8128 Pages release.
