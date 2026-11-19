@@ -105,9 +105,10 @@ npm run serve
 
 Open **http://127.0.0.1:4173/**. The server only serves static files; parsing runs
 in a browser worker. The top-left project browser lists the bundled examples as
-starter projects, with Bedrock and Foundation pinned above the project's folders
-and marked **built-in**. Those modules remain editable, with overrides isolated
-per project. **New project** starts with `main.tower`; **New file** accepts paths
+starter projects, with imported bundled modules above the project's folders
+and marked **library**. These are ordinary source files, including `tower.tower`;
+`import tower;` does not import the compiler binary. Those modules remain editable,
+with edits isolated per project. **New project** starts with `main.tower`; **New file** accepts paths
 such as `src/math.tower`. Rename, Delete and Earlier manage files and their
 compilation order. Each file has its own undo history while the project is open.
 
@@ -128,12 +129,14 @@ the original keys remain untouched as backup. Recognized older Foundation defaul
 upgrade, while custom edits remain. **Restore** replaces the selected built-in or
 bundled example file; editor undo can recover the previous text.
 
-All `.tower` project files compile together in their explicit project order.
-Each file independently starts from Foundation: local grammar declarations do not
-leak into other files. Functions, types and module variables bind across this
-initial project compilation unit; initialization/effects retain file/statement
-order. This is a host compilation file list, **not yet a Tower import/module
-system**. Non-`.tower` text files remain project assets. The inspector analyzes the
+The first `.tower` file is the entry; compilation follows its explicit imports.
+Other source files are available to import and are not silently appended.
+Dependencies run once in dependency-first import order, with functions, types and
+module variables binding across the resulting program. Each file imports its own
+grammar; local declarations do not leak into siblings. Files without imports
+retain the installed Foundation baseline for compatibility. See
+[module resolution and compiler bootstrapping](../docs/modules.md).
+Non-`.tower` text files remain project assets. The inspector analyzes the
 selected file; Execute compiles the project, except when inspecting a built-in,
 which retains its ordinary standalone execution controls. Cross-file failures
 identify their path instead of marking the wrong editor buffer.
@@ -213,8 +216,9 @@ and downstream modules. Required semantic capture names remain part of
 the current native handler contract. Grammar errors install atomically; existing
 sessions pin their original module versions. Bedrock declaration-rule replacement
 handlers are not implemented; ordinary source replacements remain supported.
-The host currently performs this load order. Future imports should express
-foundation importing bedrock and user modules importing foundation.
+Explicit imports now express this load order: Foundation imports Bedrock, Tower
+imports Foundation, and user/compiler files import the grammar they need. Hosts
+still install a compatibility baseline for source without imports.
 
 Choose **Replacements** to try `=> replace { ... }` in the real
 WASM compiler. The example expands `increment`, an `add_one` chain, nested

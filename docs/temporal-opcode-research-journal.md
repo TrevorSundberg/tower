@@ -15500,3 +15500,57 @@ This final journal entry changes no deployed asset. The temporary prepared-Pages
 stash from the completion-latency synchronization is superseded by this verified
 publication; unrelated saved work is preserved. Actual parallel compiler workers
 and safe concurrent shared-node publication remain the next implementation work.
+
+## 2026-11-19 - Ordinary Tower imports and compiler bootstrapping
+
+The user questioned whether `import tower;` is special and requested ordinary
+file imports while continuing the standalone compiler work. Inspection of
+`compiler/frontend-modules.tower:module_resolve`, `module-inputs.mjs` and
+`compiler-build.mjs` finds no reserved `tower` name or compiler-binary import.
+It resolves a source file using the same relative/library/fallback search as
+other imports. The compiler project uses library `.` and contains its own
+`tower.tower`, `foundation.tower` and `bedrock.tower`. The executing compiler
+generation reads these files to build its successor; the successor is not needed
+to interpret its own source imports before it exists.
+
+The apparent special status came partly from the playground's "built-in" badge
+and stale README paragraphs still describing host-concatenated projects and
+future imports. Changed the badge to "library", corrected those paragraphs,
+documented the actual source chain and remaining bootstrap work in docs/modules.md,
+and added comments to tower.tower, the source transport, compiler builder and
+generated compiler-project entry. The persisted `builtins` property remains a
+compatible source-file collection, not a name-resolution privilege. No language
+semantics or binary ABI were changed.
+
+Added tests using the real Wasm host without the fixture wrapper's extra module
+inputs. All three pass against the existing compiler: rename Tower/Foundation/
+Bedrock to language/core/declarations and execute a const declaration; add, edit,
+break and remove a nearer tower.tower after a cached import; reject a missing
+tower file despite an installed bundled copy outside the configured library root;
+reject a self-import cycle. Bare and quoted imports use the same lookup, actual
+dependency paths are checked, and broken local files do not silently fall back.
+Command: `node --test playground/tests/module-resolution.test.mjs` (Node v21.7.3,
+Linux; 3/3, 1.6 seconds). Browser assertions cover the library badge and compiler
+project's ordinary root tower.tower plus the new explanatory comments.
+
+The remaining special mechanisms are explicit native --bedrock/--foundation
+path overrides, the immutable declaration seed, compatibility baseline loading
+for import-free source, and prebuilt native runtime/adapters/LLVM support. The
+documented next steps are Tower ports with ordinary dependencies, validated
+retirement of the native seed, explicit entry dependencies replacing host grammar
+setup, and previous-generation bootstrap binaries. These are plans, not newly
+implemented capabilities. The resolver already implements ordinary Tower imports;
+no second resolver or forced source rewrite was introduced.
+
+An upstream publication appeared during verification: gh-pages 4ef942b contains
+new enum/layout/compiler work beyond the initially pulled main e6da242. Its source
+main 5514007 is now available. Final synchronization must preserve those changes
+and published compiler/support artifacts; the initial local binaries match the
+previous publication and must not overwrite the newer release. Validation and
+publication results after integration follow below.
+
+Initial broad validation passed 289/290 Node tests; the sole failure (also caught
+by check:format) was a blank line between adjacent new/existing comment groups
+in tower.tower. The canonical formatter merges that gap. Removed it before
+integration; this was formatting only, not an import failure. Initial logs are
+`build/compiler-workbench/imports-{node,format,packaging}.log`.

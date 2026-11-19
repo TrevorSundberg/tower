@@ -1,5 +1,7 @@
 // Transport for Tower's module environment. Resolution and dependency discovery
 // execute in Tower; this adapter supplies explicit project source capabilities.
+// `builtins` is the saved project's library-file collection, not a resolver
+// privilege: .tower/tower.tower follows the same lookup as any supplied file.
 export function moduleInputs(exports, initial = {}) {
   const allocate = exports.tw_alloc || exports.malloc, free = exports.tw_free || exports.free;
   const environment = exports.frontend_modules_create();

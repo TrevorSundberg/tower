@@ -3,6 +3,9 @@ import {loadTower, runToEnd} from './tower-host.mjs';
 
 // The recipe lists separate platform object units; each unit is compiled from
 // its Tower import closure. No JS import resolver or source concatenation.
+// The running compiler is generation N; these files describe generation N+1.
+// With library '.', `import tower;` reads the project's ordinary tower.tower,
+// which imports foundation.tower and bedrock.tower, not generation N+1's binary.
 export async function buildCompiler({compiler, recipe, files, support, progress = () => {}, onObject = () => {}}) {
   const inputs = {}, sources = new Map(files.map(file => [file.path, file.text]));
   const grammar = Object.fromEntries(['bedrock','foundation','tower'].map(name => [name,sources.get(name+'.tower')]));

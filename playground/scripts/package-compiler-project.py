@@ -175,6 +175,9 @@ def package(builds, destination):
         print(name, support_size, 'support bytes;', len(names), 'Tower units')
     entry = 'units/compiler-parser-nodes.tower'
     files[entry] = ('// Tower Compiler: editable compiler, interpreter, host and LLVM backend source.\n'
+                    '// import tower resolves the project file tower.tower, not the compiler binary.\n'
+                    '// Its ordinary imports load foundation.tower and then bedrock.tower.\n'
+                    '// The running compiler builds the next compiler generation from these files.\n'
                     '// Rebuild compiler compiles each import unit and links fresh Wasm reactors.\n'
                     '// New compiler generations are tested before use; Reset compiler recovers the original.\n'
                     '// Transitional native support still supplies adapters/runtime and upstream LLVM/LLD.\n'

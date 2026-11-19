@@ -9,6 +9,48 @@ Tower also supplies [match/while and generic collection libraries](tower.md).
 The [language plan](tower-language-plan.md) records the staged work beyond these
 features, including file namespaces, nominal enums and returned errors.
 
+## Why the compiler imports Tower
+
+`import tower;` is an ordinary file import, equivalent to `import "tower";`.
+The name is not reserved and does not refer to `tower.wasm`, a compiler service,
+or the entire compiler project. It resolves `tower.tower` using the same search
+rules as every other module. That file defines surface syntax such as `const`,
+`match` and `while`. Its dependency chain is:
+
+```text
+compiler source -> tower.tower -> foundation.tower -> bedrock.tower
+```
+
+The Tower Compiler playground project includes all three as ordinary editable
+files and sets its library directory to the project root. Nested compiler files
+therefore find that project's `tower.tower`. Other playground projects normally
+find the bundled copy in `.tower/`; the **library** badge describes where the
+source came from, not special import semantics. A nearer file shadows it, a
+missing file is an import error, and renaming the files and updating their
+imports works. Imported grammar edits invalidate dependent parses normally.
+
+There is no circular build: the **already running compiler** reads these source
+files and emits the **next compiler**. After that successor passes validation,
+it can compile the following generation. Importing a language's syntax while
+implementing its compiler is an ordinary dependency on source definitions.
+
+Some bootstrap machinery still is special. The immutable declaration seed reads
+the first grammar declarations and imports. Hosts install a compatibility
+Foundation baseline for files without imports, and native `--bedrock` and
+`--foundation` explicitly override module paths. Native runtime/adapters and
+LLVM/LLD also remain in the compiler's link support. None of these make `tower`
+a special import or make the compiler fully standalone today.
+
+Continue toward standalone builds by porting the remaining project-owned native
+code into imported Tower modules, replacing the native declaration seed after a
+validated Tower successor exists, and moving host-selected grammar setup into
+explicit entry dependencies. Keep bootstrap executables as the previous compiler
+generation, not as magic modules. Each step must retain source dependency tracking,
+round trips and successive-generation checks. These are remaining migration
+steps; ordinary `import tower;` resolution is already implemented.
+
+## Import rules
+
 ```tower
 import tower;
 import "library/vector";
@@ -80,8 +122,8 @@ enum declarations. `--bedrock` and `--foundation` still select builtin overrides
 
 The first Tower file is the project entry. Other files are available to imports;
 they are not silently appended. Moving a file to the top changes the entry.
-The builtin tree displays the project's actual dependency closure and refreshes
-after edits. Imported builtin modules, including Tower and library modules, can
+The library tree displays the project's actual dependency closure and refreshes
+after edits. Imported bundled modules, including Tower and library modules, can
 be selected, viewed, edited, restored and saved with the project. Unused bundled
 modules are available to import but absent from the tree. Legacy projects without
 imports show their implicit Bedrock/Foundation dependencies.

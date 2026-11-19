@@ -11,6 +11,9 @@ test('compiler sources, migration comments, cancellation and persistence are ava
   await expect(page.locator('#compiler-controls')).toBeVisible();
   await expect(page.locator('#filename')).toHaveText('units/compiler-parser-nodes.tower');
   await expect(page.getByRole('textbox',{name:'Tower source'})).toContainText('Continue adding ports');
+  await expect(page.getByRole('textbox',{name:'Tower source'})).toContainText('import tower resolves the project file tower.tower');
+  await expect(page.locator('button[data-path="tower.tower"]')).toBeVisible();
+  await expect(page.locator('button[data-path=".tower/tower.tower"]')).toHaveCount(0);
   await expect(page.locator('#file-tree')).toContainText('frontend-modules.tower');
   await expect(page.locator('#status')).toContainText('Complete',{timeout:20000});
   expect(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth)).toBe(true);

@@ -17,6 +17,7 @@ test('projects own folders, built-ins, undo, links and execution state',async({p
   await expect(page.locator('#project-kind option[value="example:match"]')).toHaveCount(1);
   await expect(page.locator('#project-kind option[value="example:collections"]')).toHaveCount(1);
   await expect(page.locator('.builtin-badge')).toHaveCount(2);
+  await expect(page.locator('.builtin-badge')).toHaveText(['library','library']);
   await prompt(page,'#new-project','Ocean');
   await edit(page,'import tower; import "src/math"; print(answer());');
   await prompt(page,'#new-file','src/math.tower');

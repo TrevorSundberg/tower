@@ -661,7 +661,7 @@ function renderFiles() {
   const add = (parent, path, label, builtin = false) => {
     const button = node('button', 'file-entry', label); button.dataset.path = path;
     button.setAttribute('aria-current', String(path === activePath)); button.title = path;
-    if (builtin) button.append(node('span', 'builtin-badge', 'built-in'));
+    if (builtin) button.append(node('span', 'builtin-badge', 'library'));
     button.onclick = () => selectFile(path); parent.append(button);
   };
   for (const path of project.dependencies ?? []) {
