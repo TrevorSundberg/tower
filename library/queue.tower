@@ -1,0 +1,149 @@
+import tower;
+
+// Explicitly owned ring buffer. Push/pop currently support scalar/pointer T.
+// Growth preserves FIFO order, and invalidates all borrowed element pointers.
+// Initialize once, dispose once. Direct field mutation must preserve invariants.
+fn queue(T: type): type {
+    struct Result {
+        data: T*;
+        length: usize;
+        capacity: usize;
+        head: usize;
+    }
+    return Result;
+}
+
+fn queue_init(T: type, value: queue(T)*): void {
+    value.data = null;
+    value.length = 0;
+    value.capacity = 0;
+    value.head = 0;
+}
+
+fn queue_reserve(T: type, value: queue(T)*, needed: usize): bool {
+    var enough = needed <= value.capacity;
+    if enough {
+        return true;
+    }
+    var size = sizeof(T);
+    var empty_type = size == 0;
+    if empty_type {
+        return false;
+    }
+    var maximum: usize = 0;
+    maximum = maximum - 1;
+    var limit = maximum / size;
+    var impossible = needed > limit;
+    if impossible {
+        return false;
+    }
+    var capacity = value.capacity * 2;
+    var wrapped = capacity < value.capacity;
+    if wrapped {
+        capacity = needed;
+    }
+    var small = capacity < 8;
+    if small {
+        capacity = 8;
+    }
+    small = capacity < needed;
+    if small {
+        capacity = needed;
+    }
+    var large = capacity > limit;
+    if large {
+        capacity = needed;
+    }
+    var next = alloc(T, capacity);
+    var failed = next == null;
+    if failed {
+        return false;
+    }
+    var i: usize = 0;
+    var at = value.head;
+    loop {
+        var done = i == value.length;
+        if done {
+            break;
+        }
+        next[i] = value.data[at];
+        at = at + 1;
+        var end = at == value.capacity;
+        if end {
+            at = 0;
+        }
+        i = i + 1;
+    }
+    free(value.data);
+    value.data = next;
+    value.capacity = capacity;
+    value.head = 0;
+    return true;
+}
+
+fn queue_push(T: type, value: queue(T)*, element: T): bool {
+    var needed = value.length + 1;
+    var overflow = needed == 0;
+    if overflow {
+        return false;
+    }
+    var ok = queue_reserve(T, value, needed);
+    if ok {} else {
+        return false;
+    }
+    // Avoid head + length overflowing even for a maximum-width capacity.
+    var remaining = value.capacity - value.head;
+    var at: usize = 0;
+    var wraps = value.length >= remaining;
+    if wraps {
+        at = value.length - remaining;
+    } else {
+        at = value.head + value.length;
+    }
+    value.data[at] = element;
+    value.length = needed;
+    return true;
+}
+
+// Output must be valid T storage outside remaining live elements. Failure
+// (empty queue or null output) changes neither the queue nor the output.
+fn queue_pop(T: type, value: queue(T)*, output: T*): bool {
+    var empty = value.length == 0;
+    if empty {
+        return false;
+    }
+    var missing = output == null;
+    if missing {
+        return false;
+    }
+    *output = value.data[value.head];
+    value.head = value.head + 1;
+    value.length = value.length - 1;
+    empty = value.length == 0;
+    var end = value.head == value.capacity;
+    if empty {
+        end = true;
+    }
+    if end {
+        value.head = 0;
+    }
+    return true;
+}
+
+fn queue_dispose(T: type, value: queue(T)*): void {
+    free(value.data);
+    queue_init(T, value);
+}
+
+fn queue_move(T: type, destination: queue(T)*, source: queue(T)*): void {
+    var same = destination == source;
+    if same {
+        return;
+    }
+    queue_dispose(T, destination);
+    destination.data = source.data;
+    destination.length = source.length;
+    destination.capacity = source.capacity;
+    destination.head = source.head;
+    queue_init(T, source);
+}
