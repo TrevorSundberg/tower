@@ -12591,3 +12591,16 @@ main source at `77a4d6b`; the earlier **224/224** Node and **128/128** browser m
 results apply to the pre-consolidation tree, not this final tree. As requested,
 the full browser matrix was not repeated. Source was pushed immediately; release
 publication now uses the established whole-dist gh-pages process.
+
+Publication completed: gh-pages `35becfd` contains the complete tested dist from
+source `77a4d6b` (later main commits only append journal evidence/planning).
+GitHub Pages run `44578572288` completed successfully. The established hosted
+verifier exited zero: **36/36** assets match the tested local build, desktop and
+mobile backends agree, forward bindings, editable grammar, persistence, native
+builds/downloads and target defaults pass. Command: `./build.sh node
+playground/scripts/verify-deployment.mjs https://trevorsundberg.github.io/tower/`.
+Evidence is in `build/semantic-sync/live-main.log` and
+`build/deployment-verification/report.json`. Manifest SHA-256:
+`29ef082a909dc8d73c46a63f031e70cd1de6ee369570d4203655f26e4df2ed58`.
+`todo.txt` still matches its pre-task checksum. Preserved concurrent journal-only
+upstream work during final rebases; no source or deployment force push was used.
