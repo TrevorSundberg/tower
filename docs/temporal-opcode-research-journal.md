@@ -14310,3 +14310,34 @@ future milestones. Actual allocation-exhaustion injection was not performed;
 tests exercise allocation growth and arithmetic failure preservation. No GC or
 exceptions are added. todo.txt still hashes to
 96a9e58964d7f01e4a97819f259448db81ef5e40.
+
+### Tower language milestone published and verified
+
+Implementation/source commit 4ae9076 is on main. Required post-commit
+git pull --rebase found main current; the focused five-test semantic adapter
+suite passed again (build/language/post-rebase.log). The first source/Pages push
+attempts hit transient github.com DNS failures. Ordinary retries succeeded;
+there was no force push, skipped check or discarded work.
+
+Pages artifact commit a2b6c057c50c77503c22673f363971b3721dfa48 was published through
+the existing gh-pages worktree using the validated manifest (add/replace only;
+no removed assets). Workflow 44617169681 succeeded:
+https://github.com/TrevorSundberg/tower/actions/runs/44617169681 .
+
+node playground/scripts/verify-deployment.mjs
+https://trevorsundberg.github.io/tower/ exited zero: all **52 hosted assets** match
+the tested local build. Desktop/mobile execution, grammar edits, persistence,
+downloads, target selection, completion and shared highlighting pass. Additional
+live Desktop Chrome/Pixel 7 checks run Match and Collections through graph, fast
+and LLVM execution, open the imported queue source, and verify its removal when
+switching to a project that does not import it. Logs:
+build/language/verify-live.log and live-examples-final.log. The first ad-hoc live
+example command had its middle-dot expected string changed to '?' by PowerShell
+stdin encoding; rerunning with the exact Unicode escape passed, without product
+changes or relaxed assertions.
+
+The published feature set and the deferred roadmap remain distinguished in
+docs/tower.md and docs/tower-language-plan.md. The error-model follow-up is
+recorded there as no-GC/no-exception result-value design, not implemented `try`
+syntax. Source and publication worktrees were clean after the implementation
+push; this entry records the completed deployment. todo.txt remains unchanged.
