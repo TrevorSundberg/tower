@@ -59,6 +59,11 @@ export async function linkCompiler({compiler, recipe, files, inputs, support, pr
       } finally { if (fast) tower.destroyExecution(run); }
     }
   } finally { tower.destroyExecution(handle); }
+  tower.configureModules({entry:'completion.tower',files:[],builtins:grammar});
+  const partial = 'var value: i32 = 1; var valid: bool = true; fn check(flag: bool): void {} check(va';
+  const completion = tower.complete(partial,new TextEncoder().encode(partial).length);
+  if (completion.error || completion.options?.length !== 1 || completion.options[0].label !== 'valid')
+    throw new Error('Candidate typed completion check failed');
   const llvm = await loadLLVM(modules.llvm, undefined, grammar.foundation, undefined, grammar.bedrock, {tower:grammar.tower});
   const result = llvm.compile(foundation);
   if (result.status === 'error') throw new Error('Candidate LLVM: '+result.error);

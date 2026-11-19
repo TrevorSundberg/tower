@@ -15094,3 +15094,42 @@ behavior (`rebase-verify-local.log`). Its manifest SHA-256 is
 Compared with upstream Pages 2c4e1cf it adds 14 assets and removes none, retaining
 both new language examples and their library files. Publication can therefore
 use the established additive whole-dist update without deleting upstream assets.
+
+A second final pull advanced upstream to 676b00a, including the live-LR/shared-type
+completion implementation. Preserved its completion tests and publication record;
+the deployment verifier now runs both the new contextual/typed completion checks
+and the compiler-project checks. The previous integrated hashes above are again
+pre-publication evidence for their source revision, not the eventual release.
+Rebuilding affected parser/LLVM reactors with the existing validated native
+bootstrap, then regenerating support from those exact objects. Candidate activation
+now also checks that a bool parameter offers `valid` and excludes the i32 `value`.
+This guards the new completion path in both freshly rebuilt generations.
+
+Latest completion integration validation is complete. The rebuilt parser/LLVM/
+cross artifacts and regenerated native packs pass 279 Node tests and canonical
+formatting (`completion-{wasm,llvm,packs,node,format}.log`). The focused Chromium
+matrix passes 35 cases, with the intentional mobile full-successor skip; it covers
+completion, project/import behavior, language examples and real compiler
+activation/failure/reset (`completion-browser.log`). Local publication verification
+passes all 66 assets and desktop/mobile contextual/typed completion and workbench
+checks (`completion-verify-local.log`). These runs supplement the earlier complete
+browser matrix after the LLVM/language integration.
+
+Both latest successor generations pass all checks, including typed completion,
+LLVM interpreter profiles, edited diagnostic behavior and identical SHA-256
+outputs (`completion-generations.log`, `generation{1,2}.json`). Parser 860,163 bytes:
+`4fc037d9eb4596914906b6b0573b215ed0c6e8e4380bef0815948a06d99d11f3`;
+LLVM 51,835,181 bytes:
+`2c27ba409c37fc754b36362da4acfca8e507cf710a8f2c542d47f167c67bcc29`;
+cross 63,392,448 bytes:
+`e61629bde897b2daedcec3612a45ffe45c2d1b182d55b94b3f0df5ca9ecf65c7`.
+Generation two completed its assertions and wrote its results in 213 seconds;
+the command wrapper subsequently reported SIGTERM (143), after the final success
+message and both result files were written. This is recorded separately from the
+successful assertions rather than claiming a zero process status. Earlier
+integrated JSON remains in `pre-completion-generation{1,2}.json`.
+
+The final manifest SHA-256 is
+`44bf2024d0c824302a7b9fdb229a510df924ccb2705ed7b0ecb172db9d43d70b`.
+No further source/runtime changes are needed for publication. The hybrid boundary
+and native-support retirement work remain as described above.
