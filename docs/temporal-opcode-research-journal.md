@@ -12997,3 +12997,26 @@ Before publication, a further upstream update (`6610461`) contains only journal
 validation and the equivalent shared-runtime dependency allowlist changes. Merge
 those with the host additions and retain the tested combined contracts; compiler
 sources and deployed assets do not change from this synchronization.
+
+Publication and final verification: resolved the last synchronization's journal
+append and overlapping dependency-audit edits, preserving both authors' entries.
+The final audit script is byte-identical to the tested integrated snapshot;
+comparing the pre-sync and post-sync trees shows only the additional upstream
+journal evidence. No compiler rebuild was needed for that documentation-only
+sync. Recipe-policy checks, diff checks and all 36 local asset hashes passed again.
+
+Published the complete rebuilt dist as gh-pages `c29dc52`, based on `79f8128`,
+from source `ec1db40` (the final evidence commit changes only this journal).
+The previous manifest's parser-only provenance was superseded by rebuilding all
+three compiler reactors from the combined source; the old publication remains in
+Git history. GitHub Pages reports this deployment built without errors. The
+established hosted command, `./build.sh node playground/scripts/verify-deployment.mjs
+https://trevorsundberg.github.io/tower/`, exited zero: **36/36** exact asset hashes,
+desktop/mobile backend agreement, forward bindings, editable grammar, persistence,
+native downloads/builds, layout and platform defaults passed. Evidence:
+`build/distribution/live-verification.log` and
+`build/deployment-verification/report.json`. Manifest SHA-256 remains
+`72af34af033418be01c09f7b65c1f4e3b1d0155d7dcc1c4122fa3928ef9a9f43`.
+No force push was used. `todo.txt` retains its starting SHA-256. Source push follows
+this evidence commit; the complete Tower-only portable release gates remain open
+as documented above, and no unverified bootstrap binaries were committed.
