@@ -17101,3 +17101,23 @@ e9b170a0932d8ccf618aa1f62411ef5cbf82b8039f860fbd505e5b9da54f6bae;
 new LLVM reactor c1cd7289728ddd142150fd850eb80a7ff7fff2f779ee6f27a405f9cc4c2dfada;
 recipe f3bbf836a6850e60cf837b1ff706fe5778de955b2b2bc91e71936e2dc3bdc0c3.
 The previous ownership benchmark was saved separately before running this one.
+
+Final integration passes: two successor builds with two/four workers preserve
+edited compiler behavior and produce identical hashes: parser
+90c19977c31e7f864680970a5d19c1fba9060a46f88d8eb2f3d18ef1de81d020,
+LLVM ca057a9ea52045db0d130e5fb48b92f7aea23d679dd7c908e472804789d0f3cd,
+cross 531dc0109254f8adb8d35859b563c15cedfbefb1cace0aeda0feb2095aa656e4.
+Build wall times 79.43/61.54 seconds overlap other validation and are not scaling
+measurements. All 47 desktop/mobile browser cases pass with the one existing
+mobile successor-build skip (2.7 minutes). Local verification matches 69 assets
+and passes both profiles. Evidence: world-final-{generations,browser,local}.log
+and world-final-local-report.json under build/language-next. Final distribution
+manifest SHA-256: 0dc0afd1d141123e027c550f229c387b3f0e64d4a944002fa77a404418b4b1d3.
+
+Next native retirement dependencies: move syntax provenance payloads/registry
+and the remaining generic name/metadata bridge, then session/grammar version
+ownership and default-only semantic accessors. World API availability alone does
+not allow a native SyntaxSession to compile against an arbitrary world yet.
+Keep CLI/browser transports and portable bootstrap retirement as explicit release
+gates, and preserve the already working isolated unit executor while migrating
+within-unit phases over pinned inputs.
