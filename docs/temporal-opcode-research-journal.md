@@ -23541,3 +23541,66 @@ Preserved all coordinator/defer publication journal entries during the append
 conflict resolution. The clean actual successor compiled the complete generated
 parser unit to an x86_64 object byte-identical to the bootstrap-built object
 (cmp exit 0). Final diff whitespace check passes and todo.txt is untouched.
+
+## 2026-11-20 - Import migration follow-up with the published bootstrap
+
+Pulled/rebased from 943f73b to 479962b, including the checked-in operator/import
+bootstrap and its validating default installer. Preserved the existing unrelated
+AGENTS/foundation/journal edits and todo.txt. This supersedes the previous import
+turn's missing-bootstrap blocker; no private TOWER_BOOTSTRAP_COMPILER is needed.
+
+The first fresh WSL native build selected /usr/bin/clang (18) while using LLVM 19.
+It rejected the emitted `trunc nuw nsw` IR in runtime-trap.ll. The Docker image
+already selects LLVM 19 through PATH, but direct builds did not. build-native.sh
+now obtains the compiler directory from the selected llvm-config, uses those
+explicit Clang C/C++ paths, and places that directory first for runtime-tool
+discovery. With that selection the fresh 60-target native build passed. Logs:
+build/import-followup/native-clean.log and native-clean-fixed.log; build directory
+/root/.cache/tower/import_audit_clean_479962b_clang19. Both trials unset
+TOWER_BOOTSTRAP_COMPILER and used the repository pin.
+
+The remaining old syntax-invalid directory check in native formatter tests is
+now syntax_invalid. Auditing outside scaffolding also found the legacy playground
+fixture foundation-legacy.tower: renamed it foundation_legacy.tower and updated
+the storage/browser/deployment consumers. Its legacy grammar contents are retained.
+The filename audit now includes these fixtures: 346 owned Tower files in total,
+including the 345 scaffolding files. Six naming/storage tests pass.
+
+Native filesystem import tests pass, including exact quoted filenames, case,
+leading-parent traversal, anchored lookup and symlink aliases. The rebuilt Windows
+path-check fixture executes on Windows and returns zero. Native operators and
+null_operators match their expected graph/fast outputs (normalizing checkout CRLF
+for comparison). The parser/interpreter operator/precedence selection passes ten
+tests, with its two LLVM cases deliberately deferred until the current reactor
+build. All five target packs link; Linux x64, actual Windows x64 and Linux ARM64
+under QEMU execute the target fixture successfully. macOS is link-checked only.
+
+Formatting uses the production native syntax_format API, including its parsed
+source equivalence guard. The temporary C++ harness in build/import-followup links
+the ordinary native compiler objects; it does not implement another formatter or
+strip imports. Sixteen independent processes partition source files and verify
+idempotence before writing canonical results. Negative syntax_invalid fixtures
+remain intentionally invalid. The broad Node run will omit its duplicate whole
+repository formatting sweep after this native sweep passes; its other formatting
+tests remain enabled. An earlier mixed-artifact import test selection was stopped
+before completion because its LLVM reactor still predated the expression grammar;
+it is not claimed as a passing complete suite.
+
+Integration checkpoint before the next upstream pull: the native shared formatter
+completed all 343 valid scaffolding files with equivalence/idempotence checks. A
+second fresh default-bootstrap native build passed all 60 targets in
+/root/.cache/tower/import_followup_final. Final parser, LLVM/Wasm and cross reactors
+build and package successfully. Both successive browser compiler generations pass,
+including changed semantic behavior and identical generation hashes (successors.log).
+The full Node run exposed void-returning completion omissions and a five-second
+cancellation-test guard expiring before the deliberately earlier compiler error.
+Its test-name filter also did not suppress the duplicate formatter sweep on the
+installed Node 21 runner; that run was stopped for upstream integration and is not
+reported as a complete suite pass. The local deployment check verified all 70
+asset hashes, then hit its obsolete post_increment helper-call expectation.
+
+Fetched new upstream commits through 8577783, including the Tower CLI retirement,
+lexical revision ownership and updated publication expectations. Those require
+another clean successor build after rebase. The current turn's old AGENTS wording
+that imports remain future work is also corrected to describe the implemented
+Bedrock/Foundation/Tower module chain and the no-import compatibility baseline.

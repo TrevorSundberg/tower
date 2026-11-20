@@ -30,7 +30,7 @@ for (const name of assets) {
 console.log(`All ${assets.length} deployed assets match the local build.`);
 const foundation = await readFile(new URL('../dist/foundation.tower', import.meta.url), 'utf8');
 const bedrock = await readFile(new URL('../dist/bedrock.tower', import.meta.url), 'utf8');
-const legacy = await readFile(new URL('../tests/fixtures/foundation-legacy.tower', import.meta.url), 'utf8');
+const legacy = await readFile(new URL('../tests/fixtures/foundation_legacy.tower', import.meta.url), 'utf8');
 const program = '// deployment C comment\nfn answer(): i32 { return state.value; }\nvar state: Later;\nstate.value = add(20, 22);\nvar result: i32 = answer();\nprint(result);\nstruct Later { value: i32; }\nfn add(a: i32, b: i32): i32 { var sum: i32 = a + b; return sum; }';
 const browser = await chromium.launch();
 try {

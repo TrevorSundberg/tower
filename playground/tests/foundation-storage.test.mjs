@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { selectFoundation } from '../src/foundation-storage.mjs';
 import { readFile } from 'node:fs/promises';
-const legacy = await readFile(new URL('./fixtures/foundation-legacy.tower', import.meta.url), 'utf8');
+const legacy = await readFile(new URL('./fixtures/foundation_legacy.tower', import.meta.url), 'utf8');
 const foundation = await readFile(new URL('../../scaffolding/foundation.tower', import.meta.url), 'utf8');
 const bedrock = await readFile(new URL('../../scaffolding/bedrock.tower', import.meta.url), 'utf8');
 

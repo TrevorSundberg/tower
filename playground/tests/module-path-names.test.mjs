@@ -5,11 +5,11 @@ import path from 'node:path';
 import {refreshCompilerSources} from '../src/projects.mjs';
 
 const root=new URL('../../scaffolding/',import.meta.url);
-async function sources(folder='') {
+async function sources(folder='',base=root) {
   const files=[];
-  for(const entry of await readdir(new URL(folder,root),{withFileTypes:true})) {
+  for(const entry of await readdir(new URL(folder,base),{withFileTypes:true})) {
     const name=folder+entry.name;
-    if(entry.isDirectory())files.push(...await sources(name+'/'));
+    if(entry.isDirectory())files.push(...await sources(name+'/',base));
     else if(name.endsWith('.tower'))files.push(name);
   }
   return files;
@@ -17,9 +17,12 @@ async function sources(folder='') {
 
 test('every owned Tower source path has an ordinary dotted import spelling',async()=>{
   const files=await sources();
+  const fixtures=await sources('',new URL('./fixtures/',import.meta.url));
   const available=new Set(files);
-  for(const file of files) {
+  for(const file of [...files,...fixtures.map(file=>'playground/tests/fixtures/'+file)]) {
     for(const part of file.slice(0,-6).split('/'))assert.match(part,/^[A-Za-z_][A-Za-z_0-9]*$/,file);
+  }
+  for(const file of files) {
     if(!file.startsWith('tests/')) {
       const source=await readFile(new URL(file,root),'utf8');
       assert.doesNotMatch(source,/^import\s+['"]/m,file+': production imports use dotted names');

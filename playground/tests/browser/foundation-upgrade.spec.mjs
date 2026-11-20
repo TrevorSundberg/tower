@@ -2,7 +2,7 @@ import {outputText} from './output-text.mjs';
 import {selectDocument, savedProject, downloadedProject} from './project-helpers.mjs';
 import {test, expect} from '@playwright/test';
 import {readFile} from 'node:fs/promises';
-const legacy = await readFile(new URL('../fixtures/foundation-legacy.tower', import.meta.url), 'utf8');
+const legacy = await readFile(new URL('../fixtures/foundation_legacy.tower', import.meta.url), 'utf8');
 
 test('the screenshot-era saved Foundation upgrades in the editor, persists and executes', async ({page,request}, info) => {
   const foundation = await (await request.get('/foundation.tower')).text();

@@ -183,10 +183,11 @@ Do NOT modify todo.txt
 - Every file starts from a grammar baseline and applies declarations incrementally
   after their terminating boundary, including Bedrock. The immutable C++ seed is
   Bedrock's initial baseline; local overrides affect all following declarations
-  and tokens without mutating that seed. Foundation starts from Bedrock and user
-  source starts from Foundation. Use the same update path for all files. Future
-  imports should express foundation importing bedrock and user modules importing
-  foundation; the current host load order is not yet a general import system.
+  and tokens without mutating that seed. Use the same update path for all files.
+  Explicit modules start from the declaration seed and import the grammar they
+  need: Foundation imports Bedrock, Tower imports Foundation, and user modules
+  import these ordinary files. The host-installed Foundation baseline remains a
+  compatibility path for files without imports, separate from module resolution.
 - Bedrock rules are public, reusable definitions, not an internal `__` namespace.
   Foundation inherits shared token/skip/grammar entities from bedrock instead of
   redeclaring identical rules. Use descriptive names such as GrammarAssignment
