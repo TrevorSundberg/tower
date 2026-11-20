@@ -18112,3 +18112,46 @@ braces, signature deduplication and location spelling on both device profiles.
 After the generic fallback correction, all 42 focused hover, grammar diagnostic
 and Unicode-location tests pass. Final browser/self-build results follow in the
 publication verification entry.
+
+Publication race: pushed c1c71f0 and 3f2cab4 normally, but while the Pages candidate
+45cf6c1 was being rebased, another publication 0c21d32 arrived with IDE-service and
+source-location changes. Did not overwrite it or choose one side's binary assets.
+Waited for its corresponding source; 708681d then arrived on main and was pulled
+normally (it already includes both migration commits). Rebuild the combined main,
+rerun integration checks, and resolve the Pages rebase using those combined tested
+assets. The two migration commits are pushed; hosted publication of them remains
+pending. Preserve the new IDE service API and UI changes. Reports for this final
+integration use parser-integrated-*; the existing migration-only benchmarks remain
+valid for their stated revision. The additional upstream native declaration makes
+the combined production inventory 6,050 lines across 52 files.
+
+Combined 708681d validation passes native backend API and ASAN/UBSAN parser tests
+(222.44 seconds while other validation runs were active), all 357 Node/Wasm tests,
+and both successor generations. Successor hashes are identical for 2/4 workers:
+tower b4e59c710d55831ca642c79c74a176dff6918ebb1f7c3bd6da016f76adf653c7 (985025 bytes);
+llvm 0cf7d2af31072e15349231ac130af98660cbf9b21c0ae83689de803d369023fc (51971116 bytes);
+cross 4760f2d80c88d4f909f0edfd4a29959b1554ce2bb5babb288d6e7277a6bf0f2b (63528387 bytes).
+Local verification passes all 69 assets and both device profiles; saved as
+parser-integrated-local-report.json. Combined manifest SHA-256:
+02edb30e5d5fd0dd711aca360ca555cba443d1b6c10385391e14e8c1350d6b1b.
+Resolved the Pages rebase with these combined assets as local candidate 7e6c182,
+parented on the concurrent 0c21d32 publication. No force push or side-discarding
+binary resolution was used. Browser/benchmark/hosted final results follow below.
+The user's explicit request to continue beyond this turn is now an active ongoing
+migration goal; do not mark the endpoint complete while owned native code remains.
+
+Final combined browser run passes 133 checks with the one intentional mobile
+successor-build skip, including changed Bedrock, interaction and playground cases.
+After all other checks stopped, six warmups and 16 alternating benchmark pairs
+against the published IDE build 0c21d32 produce identical objects. Median ms
+before -> after: templates 5.63695 -> 5.71585 (+1.40%, within observed variation),
+depth-1024 layouts 17.56435 -> 17.6272, compiler-host 169.86135 -> 166.52775.
+No material time regression is observed for these workloads relative to that
+published integration. Saved baseline hash:
+eb35c7214c2106d7c16dc0a9ca666f0e934ed89cbabd8c17edbb5f01777ca718; current reactor:
+2304b867e1d325449e218fe717a0d299dcdabc05d110ca2e7f43f53d6d9d3da9. Evidence is in
+parser-integrated-browser.log and parser-integrated-benchmark.json/.log. Both main
+migration commits are already pushed; this journal records the integrated result
+before publishing the rebased Pages candidate. Native syntax sessions/registries,
+parser diagnostics/callbacks, host/runtime transport and bootstrap distribution
+remain; the ongoing pure-Tower migration goal is still active.
