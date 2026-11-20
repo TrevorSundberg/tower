@@ -5,6 +5,7 @@ import '../compiler/format-types';
 import '../compiler/component-kinds';
 import '../compiler/parser-types';
 import 'frontend-format';
+import 'frontend-table-owner';
 
 // Separate test unit: call the actual production exports, without embedding a
 // second copy of the grammar reader or depending on the native default world.
@@ -441,6 +442,7 @@ export fn frontend_world_tests(): void {
     frontend_format_empty();
     frontend_constructor_tests();
     frontend_format_tests();
+    frontend_table_owner_tests();
     frontend_world_lifetime_tests();
     frontend_world_failure_tests();
 }

@@ -1,27 +1,8 @@
 import tower;
+import 'frontend-diagnostic-types';
 
 // Error-only bounded lookahead correction. This pull protocol borrows numeric
 // LR frames; it never copies parse trees or rewinds the real source stream.
-struct FrontendRulePosition {
-    production: usize;
-    term: usize;
-}
-
-struct FrontendContextPosition {
-    production: usize;
-    term: usize;
-    first: u32;
-    last: u32;
-    terminal: bool;
-}
-
-struct FrontendExpectation {
-    id: u32;
-    insertion: bool;
-    completes: bool;
-    contexts: vector(FrontendRulePosition);
-}
-
 struct FrontendDiagnostic {
     runtime: LRRuntime*;
     budget: LRProbeBudget;

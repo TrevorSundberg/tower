@@ -16,3 +16,9 @@ struct CompilerGrammarCache {
     bedrock: void*;
     patterns: void*;
 }
+
+struct GrammarBuilder {
+    kinds: FrontendKinds*;
+    root: void*;
+    failed: bool;
+}

@@ -19,18 +19,9 @@ export fn frontend_table_dispose(table: FrontendTable*): void {
 // character grammars use the same analysis, conflict check and specialization.
 export fn frontend_table_finish(table: FrontendTable*, constructs: bool, specialize: bool): u32 {
     var grammar = table.grammar;
-    var unresolved: usize = 0;
-    loop {
-        var done = unresolved == grammar.unresolved.length;
-        if done {
-            break;
-        }
-        var symbol = grammar.unresolved.data[unresolved].symbol;
-        var missing = grammar.symbols.data[symbol].first == 4294967294;
-        if missing {
-            return 3;
-        }
-        unresolved = unresolved + 1;
+    var unresolved = lr_grammar_pending(grammar) != lr_none();
+    if unresolved {
+        return 3;
     }
     var analysis = lr_analysis_create(grammar.rules.data, grammar.rules.length,
     grammar.symbols.data, grammar.symbols.length, grammar.names.length);

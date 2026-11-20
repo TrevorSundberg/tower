@@ -1,0 +1,27 @@
+import tower;
+import '../library/vector';
+import 'frontend-diagnostic-types';
+
+enum ParserReadMode: u32 {
+    WholeInput, Constructs
+}
+
+struct ParserHostState {
+    origin: usize;
+    kernels: usize;
+    contexts: vector(FrontendContextPosition);
+}
+
+// One owner of the existing LR indexes. Callback addresses remain opaque;
+// the transitional host invokes them through its existing interfaces.
+struct ParserHostTable {
+    grammar: void*;
+    runtime: void*;
+    states: vector(ParserHostState);
+    userdata: void*;
+    to_string: void*;
+    describe_rule: void*;
+    mode: u32;
+    error: u8*;
+    built: bool;
+}

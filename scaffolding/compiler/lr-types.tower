@@ -1,0 +1,44 @@
+import tower;
+
+// Shared disposable LR index records, never a separate semantic graph.
+struct LRProduction {
+    owner: usize;
+    begin: usize;
+    count: usize;
+}
+
+struct LRSymbol {
+    nonterminal: usize;
+    first: u32;
+    last: u32;
+}
+
+struct LRItem {
+    rule: usize;
+    position: usize;
+    first: u32;
+    last: u32;
+}
+
+struct LRTransition {
+    symbol: usize;
+    state: usize;
+}
+
+struct LRAction {
+    first: u32;
+    last: u32;
+    rule: usize;
+    state: usize;
+}
+
+struct LRGoto {
+    nonterminal: usize;
+    state: usize;
+}
+
+struct LRConflict {
+    state: usize;
+    left: LRAction;
+    right: LRAction;
+}

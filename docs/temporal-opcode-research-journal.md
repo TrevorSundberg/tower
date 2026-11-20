@@ -18649,3 +18649,98 @@ f45fe4537041167ef6d78c2a0e81d560eb1e97ed80880b0c1304bd5d7a064918.
 Evidence: build/roku-integrated-hosted.log and build/roku-integrated-hosted-report.json.
 Both main and gh-pages were pushed normally. todo.txt remains unchanged; only
 the physical Roku conformance/performance check awaits a device.
+## 2026-11-20: Parser-table ownership migration plan
+
+Started from a clean main c17992d after git pull --rebase. The preceding goal
+turn made verified progress: edeae15 and its journal are pushed; publication
+alone awaits the newer Roku source. Continue independent migration work rather
+than treating that publication dependency as a blocker for the full goal.
+
+Move Table allocation/lifetime, LR analysis/build orchestration and ordered
+diagnostic-position storage into Tower. Remove the native GrammarRule/Symbol/
+NonTerminal copies and use the existing LRGrammar production/symbol/name indexes
+directly. Keep graph entities authoritative and these indexes disposable. Extract
+the existing small LR/diagnostic record layouts into shared Tower type modules;
+use a separate compiler-parser-table unit to avoid the parser aggregate's fixed
+bootstrap node limit. Functional fixtures stay Tower-only.
+
+Preserve the existing host callback calls and their timing. The remaining native
+debug/conflict text code will mechanically consume Tower-owned indexes in this
+step; its formatting/request-resume port follows. No new native algorithm, shim,
+test or fallback is permitted. Validate snapshots after source graph release,
+kernel-first diagnostic order, whole-input/prefix modes, specialization,
+unresolved/conflicting grammars, allocation failure and cleanup, plus the existing
+native/browser diagnostic and compiler self-build checks.
+
+Implementation progress: pulled and rebased to 47dbce1, including the upstream
+Roku backend and ECS language dispatch. A temporary preservation stash was
+restored in full; the append-only journal conflict retained both records. The
+two earlier user-work stashes remain untouched. This resolves the preceding
+publication dependency; publish a combined rebuilt package, never the stale
+parser-format assets over the newer Roku deployment.
+
+Tower now owns ParserHostTable, analysis/state/runtime construction, immutable
+numeric grammar indexes and kernel-first diagnostic contexts. Native parser.cpp
+borrows these records instead of constructing GrammarRule/GrammarSymbol/
+GrammarNonTerminal copies. Host callback invocation and text composition are
+still native; their algorithms were only mechanically connected to the new
+fields. A separate TowerParserTable.cmake unit keeps the existing bootstrap
+aggregate within its node limit. Shared LR and diagnostic layouts were moved,
+not duplicated. New functional fixtures call the real production grammar builder
+through exported Tower functions.
+
+Lifetime finding: lr_grammar_finish formerly freed numeric productions/symbols
+because native duplicate records survived. Added lr_grammar_detach to clear
+construction-only entity addresses while retaining the numeric records needed
+by diagnostics. Compact existing readers still call finish, which also releases
+those arrays. The table snapshot test destroys its source world before querying
+names/captures and then confirms owned returned text outlives table destruction.
+
+Trials: the first compiler build rejected a nested sizeof arithmetic expression
+in fill's arguments under the bootstrap grammar; explicit local operands fixed
+it. Review caught null capture arguments in the new test builder calls; empty
+strings match the production builder's contract. A trace-enabled whole native
+test invocation hit the pre-existing sequence fast-path counter assertions
+(tracing deliberately disables that optimization), so it is not a valid trace
+comparison. A debugger fixture invocation also failed because optimized symbols
+were unavailable. Instead the existing --trace --parse examples/functions.tower
+path successfully captured 8,066,500 bytes from the old sanitizer executable
+before relinking; compare that with the new executable after the build. No new
+native fixture or test implementation was introduced. Backend API tests already
+pass; full validation and measurements follow.
+
+Validation so far (WSL Linux, WASI SDK 34.0, existing import-port bootstrap;
+logs under build/language-next/parser-table-*): native towerc/backend API tests
+pass. The new test failure reporter initially referenced tower_print, which this
+parser-only test executable does not link. Replaced that reporter with direct
+Tower extern calls to libc puts/fflush/exit; no native helper was added. Isolated
+frontend_world_tests then returned normally, including the new lifetime,
+kernel-order, conflict/mode and tracked-buffer allocation-failure sweep.
+
+Native ASAN/UBSAN tower-parser-tests passed in 375.11 seconds while other builds
+and browser checks were running (not a performance measurement). The existing
+--trace --parse examples/functions.tower comparison is byte-identical across
+8,066,500 bytes before/after migration. Canonical source formatter/round-trip
+checks pass. All 359 Node/Wasm tests pass, as do all eleven Roku groups (including
+its pinned numeric/differential cases). These remain simulator results, not a
+physical Roku validation claim.
+
+Packaged compiler support contains ten common Tower units, including the new
+parser table owner. Two successive compiler generations using two then four
+workers produce identical reactor bytes and preserve the deliberately edited
+semantic diagnostic. Generation sizes and SHA-256 values:
+- parser: 1,058,133 / 96948fcb84f8b186f25583532c58222de6e897d9b495f96717959299f318ec73
+- LLVM: 52,047,725 / f97fd5eaa21a97d5247e660a82f414d3847da1930f5be4aceecaa80a398dfb38
+- cross: 63,604,999 / d9452df7f5f547a5962ccbef9b903a0e03dd1c28a82e5fb3c077f6641e00ac05
+Reports are parser-table-generation{1,2}.json. Local deployment verification
+passes all 69 assets and desktop/mobile flows, including simultaneous C/Roku
+layouts, downloads, interpreter/LLVM agreement and live language services.
+
+Native production inventory is now 5,711 lines across 52 files in scaffolding
+(excluding bootstrap, tests and *-tests.*); this slice removes 203 net lines.
+This count does not mean all remaining native files are necessary production
+implementations, nor that the project is native-free. The next removal target
+is parser debug/conflict formatting and its callback request/resume handling,
+followed by syntax.cpp session/version ownership. Keep the shared formatter and
+LR/entity records; do not introduce a second grammar or semantic IR. Final
+browser checks, quiet-machine benchmark, rebase and publication follow.

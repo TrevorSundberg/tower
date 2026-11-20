@@ -3,7 +3,7 @@
 #include "compiler-lr.hpp"
 struct Table;
 // Borrowed immutable grammar index; valid until the table is destroyed.
-LRGrammar* parser_table_grammar(const Table*);
+extern "C" LRGrammar* parser_table_grammar(const Table*);
 
 struct SyntaxTemplateCapture { const char* name; TowerNode* source; const char* wrapper; };
 struct SyntaxTemplateGrammar {

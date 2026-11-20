@@ -1,19 +1,8 @@
 import tower;
+import 'lr-types';
 
 // LR(0) state construction and kernel interning. The same item operations handle
 // character ranges and token IDs; all records are disposable grammar indexes.
-struct LRTransition {
-    symbol: usize;
-    state: usize;
-}
-
-struct LRAction {
-    first: u32;
-    last: u32;
-    rule: usize;
-    state: usize;
-}
-
 struct LRState {
     items: LRItems*;
     symbols: vector(usize);
@@ -32,7 +21,7 @@ struct LRStates {
     buckets: vector(usize);
 }
 
-fn lr_kernel(analysis: LRAnalysis*, item: LRItem*): bool {
+export fn lr_kernel(analysis: LRAnalysis*, item: LRItem*): bool {
     var shifted = item.position != 0;
     if shifted {
         return true;

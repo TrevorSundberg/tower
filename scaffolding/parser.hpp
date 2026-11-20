@@ -269,7 +269,7 @@ typedef uint32_t (*ParserTableResolveReference)(void* userdata, const char* name
 // Looks up rule id's from a table by name (see ParserTableResolveReference)
 // The userdata parameter passed here MUST be a Table*
 // This is most commonly used by a parser that wants to resolve the names of token rules
-uint32_t parser_table_non_terminal_resolve_reference(void* userdata, const char* name);
+extern "C" uint32_t parser_table_non_terminal_resolve_reference(void* userdata, const char* name);
 
 // Virtual stringify for ids for the table
 // This is primarily used for debugging and is optional
@@ -284,7 +284,7 @@ extern "C" char* parser_table_utf8_id_to_string(void* userdata, uint32_t id);
 // Looks a non-terminal from a table by id/index (see ParserTableIdToString)
 // The userdata parameter passed here MUST be a Table*
 // This is most commonly used by a parser that wants to resolve the names of token rules
-char* parser_table_non_terminal_id_to_string(void* userdata, uint32_t id);
+extern "C" char* parser_table_non_terminal_id_to_string(void* userdata, uint32_t id);
 
 // Create a parser for the given BNF parse rules specified by a component tree
 // Note that the parser does not hold on to the tree, and changes no reference counts
@@ -324,13 +324,13 @@ Table* parser_table_create(
 
 // Derived execution choice only. parser_table_create(..., specialize=false)
 // forces the ordinary LR reference path; currently only fixed terminal roots specialize.
-bool parser_table_uses_dfa(const Table* table);
+extern "C" bool parser_table_uses_dfa(const Table* table);
 
 // Creation returns null for unresolved rules or conflicting actions. If error is
 // supplied it receives an allocated diagnostic (free with tower_memory_free).
 
 // Destructs the parser table and frees it's memory
-void parser_table_destroy(Table* table);
+extern "C" void parser_table_destroy(Table* table);
 
 
 // The table and the stream must be kept alive for the duration of the Recognizer

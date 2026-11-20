@@ -1,0 +1,273 @@
+import tower;
+import '../compiler/lr-api';
+import '../compiler/parser-table-types';
+
+extern fn grammar_builder_init(builder: GrammarBuilder*, kinds: FrontendKinds*): void;
+
+extern fn grammar_builder_finish(builder: GrammarBuilder*): void*;
+
+extern fn grammar_builder_rule(builder: GrammarBuilder*, name: u8*, generated: bool): void*;
+
+extern fn grammar_builder_reference(builder: GrammarBuilder*, parent: void*, name: u8*, capture: u8*): void;
+
+extern fn grammar_builder_literal(builder: GrammarBuilder*, parent: void*, text: u8*): void;
+
+extern fn parser_table_open(root: void*, kinds: FrontendKinds*, userdata: void*, to_string: void*, describe: void*, mode: u32): ParserHostTable*;
+
+extern fn parser_table_open_host(root: void*, userdata: void*, to_string: void*, describe: void*, mode: u32): ParserHostTable*;
+
+extern fn parser_table_build(table: ParserHostTable*, specialize: bool): bool;
+
+extern fn parser_table_destroy(table: ParserHostTable*): void;
+
+extern fn parser_table_uses_dfa(table: ParserHostTable*): bool;
+
+extern fn parser_table_grammar(table: ParserHostTable*): void*;
+
+extern fn parser_table_rule_next(table: ParserHostTable*, owner: usize, begin: usize): usize;
+
+extern fn parser_table_non_terminal_resolve_reference(userdata: void*, name: u8*): u32;
+
+extern fn parser_table_non_terminal_id_to_string(userdata: void*, id: u32): u8*;
+
+extern fn fflush(stream: void*): i32;
+
+extern fn puts(text: u8*): i32;
+
+extern fn exit(code: i32): void;
+
+enum TableOwnerFixture: u32 {
+    Sequence, Closure, EmptyClosure, Missing, Ambiguous
+}
+
+fn table_owner_check(ok: bool, code: i32): void {
+    if ok {} else {
+        puts("Parser table ownership check failed");
+        fflush(null);
+        exit(code);
+    }
+}
+
+fn table_owner_grammar(kinds: FrontendKinds*, shape: TableOwnerFixture): void* {
+    var builder: GrammarBuilder;
+    grammar_builder_init(&builder, kinds);
+    var rule = grammar_builder_rule(&builder, "Root", false);
+    match shape {
+        TableOwnerFixture.Sequence => {
+            grammar_builder_literal(&builder, rule, "ab");
+        }
+        TableOwnerFixture.Closure => {
+            grammar_builder_reference(&builder, rule, "Term", "value");
+            rule = grammar_builder_rule(&builder, "Term", false);
+            grammar_builder_literal(&builder, rule, "x");
+        }
+        TableOwnerFixture.EmptyClosure => {
+            grammar_builder_reference(&builder, rule, "Maybe", "value");
+            grammar_builder_literal(&builder, rule, "x");
+            grammar_builder_rule(&builder, "Maybe", false);
+        }
+        TableOwnerFixture.Missing => {
+            grammar_builder_reference(&builder, rule, "Missing", "");
+        }
+        TableOwnerFixture.Ambiguous => {
+            grammar_builder_reference(&builder, rule, "A", "");
+            rule = grammar_builder_rule(&builder, "Root", false);
+            grammar_builder_reference(&builder, rule, "B", "");
+            rule = grammar_builder_rule(&builder, "A", false);
+            grammar_builder_literal(&builder, rule, "x");
+            rule = grammar_builder_rule(&builder, "B", false);
+            grammar_builder_literal(&builder, rule, "x");
+        }
+        _ => {
+            table_owner_check(false, 1);
+        }
+    }
+    var root = grammar_builder_finish(&builder);
+    var present = root != null;
+    table_owner_check(present, 2);
+    return root;
+}
+
+fn table_owner_snapshot_tests(): void {
+    var baseline = tower_test_buffer_count();
+    var allocations = tower_memory_get_allocated_count();
+    var world = compiler_world_create();
+    var kinds: FrontendKinds;
+    frontend_world_check(frontend_world_test_kinds(world, &kinds));
+    var root = table_owner_grammar(&kinds, TableOwnerFixture.Closure);
+    var table = parser_table_open(root, &kinds, root, null, null, 0);
+    var ok = table != null;
+    table_owner_check(ok, 3);
+    table_owner_check(parser_table_build(table, false), 4);
+    ok = table.userdata == root;
+    table_owner_check(ok, 5);
+    var state = &table.states.data[0];
+    ok = state.kernels == 1;
+    table_owner_check(ok, 6);
+    ok = state.contexts.length == 3;
+    table_owner_check(ok, 7);
+    ok = state.contexts.data[0].production == 0;
+    table_owner_check(ok, 8);
+    ok = state.contexts.data[1].production == 1;
+    table_owner_check(ok, 9);
+    ok = state.contexts.data[2].production == 2;
+    table_owner_check(ok, 10);
+    table_owner_check(state.contexts.data[2].terminal, 11);
+    ok = state.contexts.data[2].first == 120;
+    table_owner_check(ok, 12);
+    var grammar = parser_table_grammar(table);
+    ok = lr_grammar_rule_count(grammar) == 3;
+    table_owner_check(ok, 13);
+    ok = lr_grammar_symbol_count(grammar) == 3;
+    table_owner_check(ok, 14);
+    var index: usize = 0;
+    while index < 3 {
+        ok = lr_grammar_rule_node(grammar, index) == null;
+        table_owner_check(ok, 15);
+        ok = lr_grammar_symbol_node(grammar, index) == null;
+        table_owner_check(ok, 16);
+        index = index + 1;
+    }
+    frontend_format_text(lr_grammar_capture(grammar, 1), "value");
+    entity_release(root);
+    table_owner_check(compiler_world_dispose(world), 17);
+    frontend_format_text(lr_grammar_name(grammar, 1), "Root");
+    var runtime = table.runtime;
+    table_owner_check(parser_table_build(table, true), 18);
+    ok = table.runtime == runtime;
+    table_owner_check(ok, 19);
+    ok = parser_table_uses_dfa(table) == false;
+    table_owner_check(ok, 20);
+    ok = parser_table_rule_next(table, 1, 0) == 1;
+    table_owner_check(ok, 21);
+    ok = parser_table_rule_next(table, 1, 2) == frontend_world_unlimited();
+    table_owner_check(ok, 22);
+    var data = bits(void*, table);
+    ok = parser_table_non_terminal_resolve_reference(data, "Term") == 2;
+    table_owner_check(ok, 23);
+    ok = parser_table_non_terminal_resolve_reference(data, "Missing") == 4294967294;
+    table_owner_check(ok, 24);
+    var text = parser_table_non_terminal_id_to_string(data, 1);
+    ok = parser_table_non_terminal_id_to_string(data, 3) == null;
+    table_owner_check(ok, 25);
+    parser_table_destroy(table);
+    frontend_format_text(text, "Root");
+    tower_memory_free(bits(void*, text));
+    ok = tower_memory_get_allocated_count() == allocations;
+    table_owner_check(ok, 26);
+    ok = tower_test_buffer_count() == baseline;
+    table_owner_check(ok, 27);
+}
+
+fn table_owner_modes_tests(): void {
+    var baseline = tower_test_buffer_count();
+    var world = compiler_world_create();
+    var kinds: FrontendKinds;
+    frontend_world_check(frontend_world_test_kinds(world, &kinds));
+    var root = table_owner_grammar(&kinds, TableOwnerFixture.Sequence);
+    var mode: u32 = 0;
+    while mode < 2 {
+        var table = parser_table_open(root, &kinds, null, null, null, mode);
+        table_owner_check(parser_table_build(table, true), 30);
+        table_owner_check(parser_table_uses_dfa(table), 31);
+        var conflict: LRConflict;
+        var ok = lr_runtime_conflict(table.runtime, &conflict) == false;
+        table_owner_check(ok, 32);
+        parser_table_destroy(table);
+        mode = mode + 1;
+    }
+    entity_release(root);
+    root = table_owner_grammar(&kinds, TableOwnerFixture.EmptyClosure);
+    var table = parser_table_open(root, &kinds, null, null, null, 0);
+    table_owner_check(parser_table_build(table, false), 33);
+    var state = &table.states.data[0];
+    var ok = state.kernels == 2;
+    table_owner_check(ok, 34);
+    ok = state.contexts.length == 3;
+    table_owner_check(ok, 35);
+    ok = state.contexts.data[0].production == 0;
+    table_owner_check(ok, 36);
+    ok = state.contexts.data[1].production == 2;
+    table_owner_check(ok, 37);
+    ok = state.contexts.data[2].production == 1;
+    table_owner_check(ok, 38);
+    parser_table_destroy(table);
+    entity_release(root);
+    root = table_owner_grammar(&kinds, TableOwnerFixture.Missing);
+    table = parser_table_open(root, &kinds, null, null, null, 0);
+    ok = parser_table_build(table, true) == false;
+    table_owner_check(ok, 39);
+    frontend_format_text(table.error, "Unresolved grammar rule");
+    var missing = lr_grammar_pending(table.grammar);
+    frontend_format_text(lr_grammar_missing_name(table.grammar, missing), "Missing");
+    table_owner_check(lr_grammar_resolve(table.grammar, missing, 123), 40);
+    table_owner_check(parser_table_build(table, true), 41);
+    parser_table_destroy(table);
+    entity_release(root);
+    root = table_owner_grammar(&kinds, TableOwnerFixture.Ambiguous);
+    table = parser_table_open(root, &kinds, null, null, null, 0);
+    table_owner_check(parser_table_build(table, true), 42);
+    var conflict: LRConflict;
+    table_owner_check(lr_runtime_conflict(table.runtime, &conflict), 43);
+    ok = conflict.left.rule != frontend_world_unlimited();
+    table_owner_check(ok, 44);
+    ok = conflict.right.rule != frontend_world_unlimited();
+    table_owner_check(ok, 45);
+    ok = parser_table_uses_dfa(table) == false;
+    table_owner_check(ok, 46);
+    parser_table_destroy(table);
+    entity_release(root);
+    table_owner_check(compiler_world_dispose(world), 47);
+    ok = tower_test_buffer_count() == baseline;
+    table_owner_check(ok, 48);
+}
+
+fn table_owner_failure_tests(): void {
+    var baseline = tower_test_buffer_count();
+    var allocations = tower_memory_get_allocated_count();
+    var world = compiler_world_create();
+    var kinds: FrontendKinds;
+    frontend_world_check(frontend_world_test_kinds(world, &kinds));
+    var root = table_owner_grammar(&kinds, TableOwnerFixture.Sequence);
+    var buffers = tower_test_buffer_count();
+    var count = tower_test_buffer_allocations();
+    var table = parser_table_open(root, &kinds, null, null, null, 0);
+    table_owner_check(parser_table_build(table, true), 50);
+    count = tower_test_buffer_allocations() - count;
+    parser_table_destroy(table);
+    var budget: usize = 0;
+    while budget < count {
+        tower_test_buffer_fail_after(budget);
+        table = parser_table_open(root, &kinds, null, null, null, 0);
+        var present = table != null;
+        if present {
+            parser_table_build(table, true);
+        }
+        tower_test_buffer_fail_after(frontend_world_unlimited());
+        if present {
+            var retry = table.grammar != null;
+            if retry {
+                table_owner_check(parser_table_build(table, true), 51);
+                var conflict: LRConflict;
+                var ok = lr_runtime_conflict(table.runtime, &conflict) == false;
+                table_owner_check(ok, 52);
+            }
+        }
+        parser_table_destroy(table);
+        var ok = tower_test_buffer_count() == buffers;
+        table_owner_check(ok, 53);
+        budget = budget + 1;
+    }
+    entity_release(root);
+    table_owner_check(compiler_world_dispose(world), 54);
+    var ok = tower_test_buffer_count() == baseline;
+    table_owner_check(ok, 55);
+    ok = tower_memory_get_allocated_count() == allocations;
+    table_owner_check(ok, 56);
+}
+
+fn frontend_table_owner_tests(): void {
+    table_owner_snapshot_tests();
+    table_owner_modes_tests();
+    table_owner_failure_tests();
+}

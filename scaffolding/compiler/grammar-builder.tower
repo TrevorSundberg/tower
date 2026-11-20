@@ -4,20 +4,14 @@ import 'component-kinds';
 
 // Fallible construction on the caller's registered kinds. The root owns every
 // attached node; a failure is sticky and finish discards the partial document.
-struct GrammarBuilder {
-    kinds: FrontendKinds*;
-    root: void*;
-    failed: bool;
-}
-
-fn grammar_builder_init(builder: GrammarBuilder*, kinds: FrontendKinds*): void {
+export fn grammar_builder_init(builder: GrammarBuilder*, kinds: FrontendKinds*): void {
     fill(builder, 0, sizeof(GrammarBuilder));
     builder.kinds = kinds;
     builder.root = entity_create_related(kinds.rule);
     builder.failed = builder.root == null;
 }
 
-fn grammar_builder_finish(builder: GrammarBuilder*): void* {
+export fn grammar_builder_finish(builder: GrammarBuilder*): void* {
     var root = builder.root;
     builder.root = null;
     if builder.failed {
@@ -57,7 +51,7 @@ fn grammar_builder_child(builder: GrammarBuilder*, parent: void*, type: void*, k
     return node;
 }
 
-fn grammar_builder_rule(builder: GrammarBuilder*, name: u8*, generated: bool): void* {
+export fn grammar_builder_rule(builder: GrammarBuilder*, name: u8*, generated: bool): void* {
     var node = grammar_builder_child(builder, builder.root, builder.kinds.rule, CompilerParserRule());
     if builder.failed {
         return null;
@@ -68,7 +62,7 @@ fn grammar_builder_rule(builder: GrammarBuilder*, name: u8*, generated: bool): v
     return node;
 }
 
-fn grammar_builder_reference(builder: GrammarBuilder*, parent: void*, name: u8*, capture: u8*): void {
+export fn grammar_builder_reference(builder: GrammarBuilder*, parent: void*, name: u8*, capture: u8*): void {
     var node = grammar_builder_child(builder, parent, builder.kinds.reference, CompilerParserReference());
     if builder.failed {
         return;
@@ -81,7 +75,7 @@ fn grammar_builder_reference(builder: GrammarBuilder*, parent: void*, name: u8*,
     builder.failed = ok == false;
 }
 
-fn grammar_builder_literal(builder: GrammarBuilder*, parent: void*, text: u8*): void {
+export fn grammar_builder_literal(builder: GrammarBuilder*, parent: void*, text: u8*): void {
     var node = grammar_builder_child(builder, parent, builder.kinds.string, CompilerParserString());
     if builder.failed {
         return;
@@ -90,7 +84,7 @@ fn grammar_builder_literal(builder: GrammarBuilder*, parent: void*, text: u8*): 
     builder.failed = node_string_append(data, text, syntax_text_length(text)) == false;
 }
 
-fn grammar_builder_range(builder: GrammarBuilder*, parent: void*, first: u32, last: u32): void {
+export fn grammar_builder_range(builder: GrammarBuilder*, parent: void*, first: u32, last: u32): void {
     var node = grammar_builder_child(builder, parent, builder.kinds.range, CompilerParserRange());
     if builder.failed {
         return;

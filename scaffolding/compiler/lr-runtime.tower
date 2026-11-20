@@ -1,18 +1,8 @@
 import tower;
+import 'lr-types';
 
 // Disposable runtime indexes. Grammar entities and their provenance remain the
 // source of truth; rows preserve conflicts instead of selecting an alternative.
-struct LRGoto {
-    nonterminal: usize;
-    state: usize;
-}
-
-struct LRConflict {
-    state: usize;
-    left: LRAction;
-    right: LRAction;
-}
-
 struct LRRow {
     actions: vector(LRAction);
     direct: vector(usize);

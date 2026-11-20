@@ -1,0 +1,77 @@
+import tower;
+import 'lr-types';
+
+// Opaque owning handles and borrowed records for separate Tower compiler units.
+extern fn lr_grammar_create(root: void*, rule: void*, reference: void*, string: void*, range: void*): void*;
+
+extern fn lr_grammar_destroy(grammar: void*): void;
+
+extern fn lr_grammar_rule_count(grammar: void*): usize;
+
+extern fn lr_grammar_rule_data(grammar: void*): LRProduction*;
+
+extern fn lr_grammar_rule_node(grammar: void*, index: usize): void*;
+
+extern fn lr_grammar_symbol_count(grammar: void*): usize;
+
+extern fn lr_grammar_symbol_data(grammar: void*): LRSymbol*;
+
+extern fn lr_grammar_symbol_node(grammar: void*, index: usize): void*;
+
+extern fn lr_grammar_capture(grammar: void*, index: usize): u8*;
+
+extern fn lr_grammar_name_count(grammar: void*): usize;
+
+extern fn lr_grammar_name(grammar: void*, index: usize): u8*;
+
+extern fn lr_grammar_name_order(grammar: void*, index: usize): usize;
+
+extern fn lr_grammar_missing_count(grammar: void*): usize;
+
+extern fn lr_grammar_missing_name(grammar: void*, index: usize): u8*;
+
+extern fn lr_grammar_resolve(grammar: void*, index: usize, id: u32): bool;
+
+extern fn lr_grammar_finish(grammar: void*): void;
+
+extern fn lr_grammar_detach(grammar: void*): void;
+
+extern fn lr_grammar_pending(grammar: void*): usize;
+
+extern fn lr_analysis_create(rules: LRProduction*, rule_count: usize, symbols: LRSymbol*, symbol_count: usize, names: usize): void*;
+
+extern fn lr_analysis_destroy(analysis: void*): void;
+
+extern fn lr_analysis_order(analysis: void*, index: usize, order: usize): void;
+
+extern fn lr_analysis_compute(analysis: void*): bool;
+
+extern fn lr_states_create(analysis: void*): void*;
+
+extern fn lr_states_destroy(states: void*): void;
+
+extern fn lr_states_lalr(states: void*, constructs: bool): bool;
+
+extern fn lr_states_count(states: void*): usize;
+
+extern fn lr_states_origin(states: void*, index: usize): usize;
+
+extern fn lr_states_items(states: void*, index: usize): void*;
+
+extern fn lr_items_count(items: void*): usize;
+
+extern fn lr_items_data(items: void*): LRItem*;
+
+extern fn lr_kernel(analysis: void*, item: LRItem*): bool;
+
+extern fn lr_runtime_create(states: void*): void*;
+
+extern fn lr_runtime_destroy(runtime: void*): void;
+
+extern fn lr_runtime_conflict(runtime: void*, conflict: LRConflict*): bool;
+
+extern fn lr_runtime_specialize(runtime: void*, states: void*): void;
+
+extern fn lr_runtime_row_count(runtime: void*): usize;
+
+extern fn lr_runtime_sequence(runtime: void*): usize;
