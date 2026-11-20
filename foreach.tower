@@ -1,11 +1,10 @@
 import foundation;
 
-// These are grammar declarations executed by the native Tower seed.
+// Define the pieces used by the loop below.
 parse Variable = Identifier;
 parse Expression = Identifier | Number;
 parse Statement = Expression ';';
 
-// This feature is defined here, not in the C++ parser.
 parse ForEach = 'for' '(' $Variable 'in' $Expression ')' '{' $Statement* '}';
 parse Statement |= ForEach;
 
@@ -16,6 +15,6 @@ for (item in items) {
     }
 }
 
-// A later declaration changes syntax again, in the same source stream.
+// Change the spelling from 'for' to 'foreach' for the code below.
 parse ForEach = 'foreach' '(' $Variable 'in' $Expression ')' '{' $Statement* '}';
 foreach (entry in entries) {}
