@@ -1,0 +1,257 @@
+import tower;
+import 'format-types';
+import 'format-api';
+import 'format-parser';
+import 'parser-markers';
+import 'format-diagnostic-types';
+
+const SyntaxDiagnosticTokenLimit: usize = 48;
+const SyntaxDiagnosticChoiceLimit: usize = 6;
+
+fn format_diagnostic_actual(f: FormatEngine*, input: SyntaxDiagnosticInput*): void {
+    var eof = input.offset >= input.size;
+    if eof { format_text(f, "end of input"); return; }
+    var remaining = input.size - input.offset;
+    var long = remaining > SyntaxDiagnosticTokenLimit();
+    if long { remaining = SyntaxDiagnosticTokenLimit(); }
+    var end = input.offset + remaining;
+    var shorter = input.cursor < end;
+    if shorter { end = input.cursor; }
+    while end > input.offset {
+        var within = end < input.size;
+        if within {} else { break; }
+        var prefix = input.source[end] & 192;
+        var continuation = prefix == 128;
+        if continuation {} else { break; }
+        end = end - 1;
+    }
+    format_char(f, 39);
+    var i = input.offset;
+    while i < end {
+        var byte = input.source[i];
+        var escaped: u8* = null;
+        var newline = byte == 10;
+        if newline { escaped = "\\n"; }
+        var carriage = byte == 13;
+        if carriage { escaped = "\\r"; }
+        var tab = byte == 9;
+        if tab { escaped = "\\t"; }
+        var special = escaped != null;
+        if special { format_text(f, escaped); } else {
+            var escape = byte == 92;
+            var quote = byte == 39;
+            if quote { escape = true; }
+            if escape { format_char(f, 92); }
+            format_char(f, byte);
+        }
+        i = i + 1;
+    }
+    var truncated = end < input.cursor;
+    if truncated { format_text(f, "..."); }
+    format_char(f, 39);
+}
+
+fn format_diagnostic_literal(input: SyntaxDiagnosticInput*, id: u32): bool {
+    var i: usize = 0;
+    while i < input.literal_count {
+        var found = input.literals[i] == id;
+        if found { return true; }
+        i = i + 1;
+    }
+    return false;
+}
+
+fn format_diagnostic_break(input: SyntaxDiagnosticInput*): bool {
+    var begin = input.insertion_offset;
+    var end = input.offset;
+    var outside = end > input.size;
+    if outside { end = input.size; }
+    while begin < end {
+        var byte = input.source[begin];
+        var newline = byte == 10;
+        if newline { return true; }
+        var carriage = byte == 13;
+        if carriage { return true; }
+        begin = begin + 1;
+    }
+    return false;
+}
+
+fn format_diagnostic_same_name(left: u8*, right: u8*): bool {
+    var i: usize = 0;
+    loop {
+        var different = left[i] != right[i];
+        if different { return false; }
+        var end = left[i] == 0;
+        if end { return true; }
+        i = i + 1;
+    }
+}
+
+// Input rows are sorted by production index. No map/set allocations or global
+// caches on this error path, and no heuristic selection among different rules.
+fn format_diagnostic_production(input: SyntaxDiagnosticInput*, index: usize): SyntaxDiagnosticProduction* {
+    var low: usize = 0;
+    var high = input.production_count;
+    while low < high {
+        var middle = high - low;
+        middle = middle / 2;
+        middle = middle + low;
+        var row = &input.productions[middle];
+        var found = row.index == index;
+        if found { return row; }
+        var before = row.index < index;
+        if before { low = middle + 1; }
+        else { high = middle; }
+    }
+    return null;
+}
+
+fn format_diagnostic_context(input: SyntaxDiagnosticInput*, output: SyntaxDiagnosticText*, repair: usize): void {
+    var name: u8* = null;
+    var i: usize = 0;
+    while i < input.count {
+        var include = repair == ParserNoIndex();
+        var selected = repair == i;
+        if selected { include = true; }
+        if include {
+            var option = &input.options[i];
+            var j: usize = 0;
+            while j < option.count {
+                var index = option.contexts[j].production;
+                var row = format_diagnostic_production(input, index);
+                var found = row != null;
+                if found {
+                    var first = name == null;
+                    if first {
+                        name = row.name;
+                        output.production = index;
+                    } else {
+                        var same = format_diagnostic_same_name(name, row.name);
+                        if same {} else {
+                            output.production = ParserNoIndex();
+                            output.multiple = false;
+                            return;
+                        }
+                        var another = index != output.production;
+                        if another { output.multiple = true; }
+                    }
+                }
+                j = j + 1;
+            }
+        }
+        i = i + 1;
+    }
+}
+
+export fn format_syntax_diagnostic(input: SyntaxDiagnosticInput*, output: SyntaxDiagnosticText*): void {
+    output.production = ParserNoIndex();
+    output.multiple = false;
+    output.insertion = false;
+    var f: FormatEngine;
+    fill(&f, 0, sizeof(FormatEngine));
+    f.result = &output.result;
+    var empty = input.count == 0;
+    if empty { format_text(&f, input.original); return; }
+    var repair = ParserNoIndex();
+    var boundary = ParserNoIndex();
+    var repairs: usize = 0;
+    var boundaries: usize = 0;
+    var i: usize = 0;
+    while i < input.count {
+        var option = &input.options[i];
+        var eligible = option.insertion;
+        if eligible { eligible = format_diagnostic_literal(input, option.id); }
+        if eligible {
+            repairs = repairs + 1;
+            repair = i;
+            if option.completes {
+                boundaries = boundaries + 1;
+                boundary = i;
+            }
+        }
+        i = i + 1;
+    }
+    var suggested: bool = false;
+    var ambiguous = repairs != 1;
+    if ambiguous {
+        repair = ParserNoIndex();
+        var unique = boundaries == 1;
+        if unique {
+            var line_break = format_diagnostic_break(input);
+            if line_break {
+                repair = boundary;
+                suggested = true;
+            }
+        }
+    }
+    if input.repairs {} else { repair = ParserNoIndex(); }
+    if input.complete {} else { repair = ParserNoIndex(); }
+    var repaired = repair != ParserNoIndex();
+    if repaired {
+        if suggested { format_text(&f, "Possible missing "); }
+        else { format_text(&f, "Missing "); }
+        format_text(&f, input.options[repair].label);
+        format_text(&f, " before ");
+        format_diagnostic_actual(&f, input);
+        format_char(&f, 46);
+        output.insertion = true;
+    } else {
+        var prefix: u8* = "Unexpected ";
+        var unexpected: bool = true;
+        i = 0;
+        while prefix[i] != 0 {
+            var different = input.original[i] != prefix[i];
+            if different { unexpected = false; break; }
+            i = i + 1;
+        }
+        if unexpected {
+            format_text(&f, prefix);
+            format_diagnostic_actual(&f, input);
+        } else { format_text(&f, input.original); }
+        format_char(&f, 46);
+        var boundary_start = input.repairs;
+        if boundary_start { boundary_start = input.at_start; }
+        if boundary_start {
+            if input.statements { format_text(&f, " Expected a statement or grammar declaration."); }
+            else { format_text(&f, " Expected a grammar declaration."); }
+            return;
+        }
+        if input.complete { format_text(&f, " Expected "); }
+        else { format_text(&f, " Expected a valid continuation such as "); }
+        var count = input.count;
+        var limited = count > SyntaxDiagnosticChoiceLimit();
+        if limited { count = SyntaxDiagnosticChoiceLimit(); }
+        i = 0;
+        while i < count {
+            var separator = i != 0;
+            if separator {
+                var next = i + 1;
+                var last = next == input.count;
+                if last { format_text(&f, " or "); }
+                else { format_text(&f, ", "); }
+            }
+            format_text(&f, input.options[i].label);
+            i = i + 1;
+        }
+        if limited {
+            format_text(&f, ", among other valid continuations");
+        }
+        format_char(&f, 46);
+    }
+    format_diagnostic_context(input, output, repair);
+}
+
+export fn syntax_diagnostic_text_finish(output: SyntaxDiagnosticText*, description: u8*): u8* {
+    var f: FormatEngine;
+    fill(&f, 0, sizeof(FormatEngine));
+    f.result = &output.result;
+    var present = description != null;
+    if present { present = *description != 0; }
+    if present {
+        format_text(&f, "\nIn rule ");
+        format_text(&f, description);
+        format_char(&f, 46);
+    }
+    return format_parser_host_text(&output.result);
+}

@@ -19783,3 +19783,43 @@ The full live deployment verifier also passes both browser profiles, including
 backend agreement, native downloads, persistence, completion and highlighting;
 its report is copied to build/template-error-live-report.json. The source and
 publication changes are committed on main; unrelated local work remains unstaged.
+Syntax diagnostic and tree-verification port (2026-11-20): continue on main after
+pulling/rebasing 894f903. Browser transport and runtime/allocator work are assigned
+to separate user-dispatched agents; this slice stays in parser/syntax formatting.
+Move production previews, source-location text, repetition/capture provenance,
+missing-token hint selection, expected-list rendering and unique-rule provenance
+into Tower's existing FormatEngine. Native syntax.cpp now only supplies borrowed
+revision/diagnostic views and copies the Tower result across its existing ABI.
+No new C/C++ algorithms, fixtures, wrappers or fallback implementation.
+
+format_same_tree replaces recursive native formatting verification with an
+iterative Tower traversal. It queries the existing syntax and parser-match ECS
+components and delegates grammar identity to syntax_nodes_equal. There is no
+second AST or grammar model. Explicit component kinds and borrowed source ranges
+keep inputs world-specific; work lists and output buffers are invocation-local.
+Production context lookup uses sorted derived rows and binary search; detecting
+one rule/multiple alternatives needs no temporary set/map allocations. Allocation
+failure rejects an unverified formatting change. These are read-phase boundaries,
+not a claim that shared entity-query caches or revision/session ownership are
+already safe for within-unit parallel mutation. Unit compilation remains the
+verified parallel path; pinning/world ownership still precedes phase scheduling.
+
+Focused Tower tests cover exact previews, UTF-8 boundary truncation, source
+locations, generated-node provenance, 2048-deep parse trees, different leaf text,
+invalid/clamped ranges, grammar-component precedence, duplicate/unknown/ambiguous
+production contexts, definite versus suggested repairs, exhausted probes, statement
+boundaries, template contexts, bounded expectation lists and failure cleanup.
+The focused frontend suite passes in 0.03 seconds; no sanitizer or repository
+source-format sweep was run. The intermediate parser reactor passes all ten
+existing diagnostic tests (0.374 s). Full final-slice diagnostics and publication
+checks follow below.
+
+Fast build trials exposed ordinary bootstrap constraints: constants currently
+use their generated zero-argument accessors, aggregate local assignment is not
+implemented, comparison expressions in if conditions need a named boolean, and
+bytes_append uses the existing explicit vector-compatible extern ABI. Corrected
+only the new Tower code; did not grow Foundation or add native compiler workarounds.
+Reuse the validated scoped bootstrap and existing parser-format compilation unit.
+Logs: build/language-next/syntax-{preview,diagnostic}-{native,tests}.log. Saved
+syntax-preview-baseline-llvm.wasm before rebuilding the backend reactors for the
+controlled compiler-throughput comparison.

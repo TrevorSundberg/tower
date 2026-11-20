@@ -1,0 +1,39 @@
+import tower;
+import 'format-types';
+import 'frontend-diagnostic-types';
+
+// Borrowed presentation views of the existing LR diagnostic and revision
+// indexes. Entities remain authoritative; this call does not mutate either.
+struct SyntaxDiagnosticOption {
+    id: u32;
+    label: u8*;
+    insertion: bool;
+    completes: bool;
+    contexts: FrontendRulePosition*;
+    count: usize;
+}
+struct SyntaxDiagnosticProduction { index: usize; name: u8*; }
+struct SyntaxDiagnosticInput {
+    source: u8*;
+    size: usize;
+    cursor: usize;
+    offset: usize;
+    insertion_offset: usize;
+    original: u8*;
+    options: SyntaxDiagnosticOption*;
+    count: usize;
+    literals: u32*;
+    literal_count: usize;
+    productions: SyntaxDiagnosticProduction*;
+    production_count: usize;
+    repairs: bool;
+    complete: bool;
+    at_start: bool;
+    statements: bool;
+}
+struct SyntaxDiagnosticText {
+    result: FormatResult;
+    production: usize;
+    multiple: bool;
+    insertion: bool;
+}

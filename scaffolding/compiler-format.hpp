@@ -12,11 +12,30 @@
 // must not initialize the foundation registry as an observable side effect).
 struct TowerFormatSpans { TowerSourceSpan* data; size_t length, capacity; };
 struct TowerFormatResult { TowerByteBuffer text; TowerFormatSpans spans; size_t depth; bool failed; };
+struct ParserRulePosition;
+struct SyntaxDiagnosticOption {
+  uint32_t id; const char* label; bool insertion, completes;
+  const ParserRulePosition* contexts; size_t count;
+};
+struct SyntaxDiagnosticProduction { size_t index; const char* name; };
+struct SyntaxDiagnosticInput {
+  const char* source; size_t size, cursor, offset, insertion_offset;
+  const char* original; const SyntaxDiagnosticOption* options; size_t count;
+  const uint32_t* literals; size_t literal_count;
+  const SyntaxDiagnosticProduction* productions; size_t production_count;
+  bool repairs, complete, at_start, statements;
+};
+struct SyntaxDiagnosticText { TowerFormatResult result; size_t production; bool multiple, insertion; };
 extern "C" {
 void format_entity(TowerFormatResult*, TowerNode*, TowerNode* syntax, TowerNode* foundation, TowerNode* match);
 void format_source(TowerFormatResult*, TowerNode**, size_t, const char*, size_t,
   const TowerCommentSpan*, size_t, TowerNode* syntax, TowerNode* foundation, TowerNode* match);
 void format_dispose(TowerFormatResult*);
+char* syntax_description_text(TowerNode*, const char*, bool, TowerNode*, TowerNode*);
+char* syntax_origin_text(TowerNode*, const char*, TowerNode*, TowerNode*);
+bool format_same_tree(TowerNode*, TowerNode*, const char*, size_t, const char*, size_t, TowerNode*, TowerNode*);
+void format_syntax_diagnostic(const SyntaxDiagnosticInput*, SyntaxDiagnosticText*);
+char* syntax_diagnostic_text_finish(SyntaxDiagnosticText*, const char*);
 }
 
 struct Table;

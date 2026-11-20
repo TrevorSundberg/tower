@@ -1,0 +1,140 @@
+import tower;
+import '../compiler/format-types';
+import '../compiler/format-diagnostic-types';
+import '../compiler/frontend-diagnostic-types';
+import '../compiler/parser-markers';
+import 'frontend-world';
+import 'frontend-format';
+
+extern fn format_syntax_diagnostic(input: SyntaxDiagnosticInput*, output: SyntaxDiagnosticText*): void;
+extern fn syntax_diagnostic_text_finish(output: SyntaxDiagnosticText*, description: u8*): u8*;
+
+fn diagnostic_text_check(input: SyntaxDiagnosticInput*, wanted: u8*, inserted: bool,
+production: usize, multiple: bool): void {
+    var output: SyntaxDiagnosticText;
+    fill(&output, 0, sizeof(SyntaxDiagnosticText));
+    format_syntax_diagnostic(input, &output);
+    frontend_world_check(frontend_world_error_is(&output.result, wanted));
+    var ok = output.result.failed == false;
+    frontend_world_check(ok);
+    ok = output.insertion == inserted;
+    frontend_world_check(ok);
+    ok = output.production == production;
+    frontend_world_check(ok);
+    ok = output.multiple == multiple;
+    frontend_world_check(ok);
+    format_dispose(&output.result);
+}
+
+fn frontend_diagnostic_text_tests(): void {
+    var buffers = tower_test_buffer_count();
+    var input: SyntaxDiagnosticInput;
+    fill(&input, 0, sizeof(SyntaxDiagnosticInput));
+    input.source = "a\nb";
+    input.size = 3;
+    input.cursor = 3;
+    input.offset = 2;
+    input.insertion_offset = 1;
+    input.original = "Unexpected native token";
+    input.repairs = true;
+    input.complete = true;
+    input.statements = true;
+    var options: SyntaxDiagnosticOption[7];
+    fill(&options, 0, sizeof(SyntaxDiagnosticOption[7]));
+    input.options = &options[0];
+    var i: usize = 0;
+    while i < 7 {
+        options[i].id = convert(u32, i);
+        options[i].label = "'x'";
+        i = i + 1;
+    }
+    var literals: u32[2];
+    literals[0] = 0;
+    literals[1] = 1;
+    input.literals = &literals[0];
+    input.literal_count = 2;
+    var productions: SyntaxDiagnosticProduction[3];
+    productions[0].index = 3;
+    productions[0].name = "Rule";
+    productions[1].index = 4;
+    productions[1].name = "Rule";
+    productions[2].index = 5;
+    productions[2].name = "Other";
+    input.productions = &productions[0];
+    input.production_count = 3;
+    var contexts: FrontendRulePosition[3];
+    fill(&contexts, 0, sizeof(FrontendRulePosition[3]));
+    contexts[0].production = 3;
+    contexts[1].production = 3;
+    contexts[2].production = 999;
+    options[0].contexts = &contexts[0];
+    options[0].count = 3;
+    options[0].insertion = true;
+    options[0].completes = true;
+    input.count = 1;
+    diagnostic_text_check(&input, "Missing 'x' before 'b'.", true, 3, false);
+    contexts[1].production = 4;
+    diagnostic_text_check(&input, "Missing 'x' before 'b'.", true, 3, true);
+    contexts[1].production = 5;
+    diagnostic_text_check(&input, "Missing 'x' before 'b'.", true, ParserNoIndex(), false);
+    contexts[1].production = 3;
+    options[1].insertion = true;
+    input.count = 2;
+    diagnostic_text_check(&input, "Possible missing 'x' before 'b'.", true, 3, false);
+    input.source = "a b";
+    diagnostic_text_check(&input, "Unexpected 'b'. Expected 'x' or 'x'.", false, 3, false);
+    input.source = "a\nb";
+    input.complete = false;
+    diagnostic_text_check(&input, "Unexpected 'b'. Expected a valid continuation such as 'x' or 'x'.", false, 3, false);
+    input.at_start = true;
+    diagnostic_text_check(&input, "Unexpected 'b'. Expected a statement or grammar declaration.", false, ParserNoIndex(), false);
+    input.statements = false;
+    diagnostic_text_check(&input, "Unexpected 'b'. Expected a grammar declaration.", false, ParserNoIndex(), false);
+    input.repairs = false;
+    diagnostic_text_check(&input, "Unexpected 'b'. Expected a valid continuation such as 'x' or 'x'.", false, 3, false);
+    input.complete = true;
+    input.count = 7;
+    diagnostic_text_check(&input, "Unexpected 'b'. Expected 'x', 'x', 'x', 'x', 'x', 'x', among other valid continuations.", false, 3, false);
+    input.count = 0;
+    diagnostic_text_check(&input, "Unexpected native token", false, ParserNoIndex(), false);
+    input.count = 1;
+    input.original = "Other failure";
+    diagnostic_text_check(&input, "Other failure. Expected 'x'.", false, 3, false);
+    input.original = "Unexpected token";
+    input.offset = 3;
+    diagnostic_text_check(&input, "Unexpected end of input. Expected 'x'.", false, 3, false);
+    input.source = "\n\r\t\\'";
+    input.size = 5;
+    input.cursor = 5;
+    input.offset = 0;
+    diagnostic_text_check(&input, "Unexpected '\\n\\r\\t\\\\\\''. Expected 'x'.", false, 3, false);
+    // Each allocation failure keeps the borrowed input intact and releases all
+    // result storage. No allocator-backed sets/maps are needed for provenance.
+    var output: SyntaxDiagnosticText;
+    fill(&output, 0, sizeof(SyntaxDiagnosticText));
+    var allocations = tower_test_buffer_allocations();
+    format_syntax_diagnostic(&input, &output);
+    allocations = tower_test_buffer_allocations() - allocations;
+    format_dispose(&output.result);
+    var budget: usize = 0;
+    while budget < allocations {
+        fill(&output, 0, sizeof(SyntaxDiagnosticText));
+        tower_test_buffer_fail_after(budget);
+        format_syntax_diagnostic(&input, &output);
+        tower_test_buffer_fail_after(frontend_world_unlimited());
+        frontend_world_check(output.result.failed);
+        format_dispose(&output.result);
+        var ok = tower_test_buffer_count() == buffers;
+        frontend_world_check(ok);
+        budget = budget + 1;
+    }
+    input.count = 0;
+    input.original = "Error";
+    fill(&output, 0, sizeof(SyntaxDiagnosticText));
+    format_syntax_diagnostic(&input, &output);
+    var text = syntax_diagnostic_text_finish(&output, "Rule = 'x' (input.tower:1:1)");
+    frontend_format_text(text, "Error\nIn rule Rule = 'x' (input.tower:1:1).");
+    tower_memory_free(bits(void*, text));
+    var ok = tower_test_buffer_count() == buffers;
+    frontend_world_check(ok);
+}

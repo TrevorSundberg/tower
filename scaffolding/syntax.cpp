@@ -14,6 +14,7 @@
 #include "lex-pattern.hpp"
 #include "syntax-nodes.hpp"
 #include "format.hpp"
+#include "compiler-format.hpp"
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -137,30 +138,15 @@ char* copy_string(const std::string& text) {
   return result;
 }
 
-std::string source_location(const SyntaxNode& node) {
-  if (!node.source || node.start == TOWER_INVALID_INDEX) return "native seed";
-  size_t line, column; syntax_source_location(node.source, node.start, &line, &column);
-  return node.source->name + ":" + std::to_string(line) + ":" + std::to_string(column);
-}
 std::string describe_production(const Version& version, const Definitions& definitions, size_t index, bool name_only = false) {
   auto found = version.productions.find(index);
   if (found == version.productions.end()) return {};
   const auto& [name, alternative] = found->second;
   auto rule = definitions.find(name);
   if (rule == definitions.end() || alternative >= rule->second.size()) return {};
-  if (name_only) return name + " (" + source_location(semantic(rule->second.front())) + ")";
-  const auto& sequence = semantic(rule->second[alternative]);
-  std::string spelling;
-  for (auto* term : sequence.items) {
-    if (!spelling.empty()) spelling += ' ';
-    spelling += tower_format(term).source;
-    if (spelling.size() > 120) {
-      size_t end = 120;
-      while ((static_cast<unsigned char>(spelling[end]) & 0xc0) == 0x80) --end;
-      spelling.resize(end); spelling += " ..."; break;
-    }
-  }
-  return name + " = " + (spelling.empty() ? "<empty>" : spelling) + " (" + source_location(sequence) + ")";
+  auto* text = syntax_description_text(rule->second[name_only ? 0 : alternative].get(), name.c_str(), name_only,
+    syntax_component_type(), parser_match_get_type());
+  std::string result(text); tower_memory_free(text); return result;
 }
 std::string describe_rule(void* context, size_t index) {
   const auto& v = *static_cast<Version*>(context);
@@ -171,10 +157,14 @@ std::string describe_rule(void* context, size_t index) {
   if (!node) return "start of input";
   auto* rule = static_cast<Rule*>(tower_node_get_component_userdata(node, parser_rule_get_type()));
   std::string name = parser_rule_get_name(rule);
-  for (const auto& [key, entity] : v.repetitions) if (key == name)
-    return "repetition " + tower_format(entity.get()).source + " (" + source_location(semantic(entity)) + ")";
-  for (const auto& [key, entity] : v.capture_sources) if (key == name)
-    return "capture " + tower_format(entity).source + " (" + source_location(syntax_node(entity)) + ")";
+  for (const auto& [key, entity] : v.repetitions) if (key == name) {
+    auto* text = syntax_origin_text(entity.get(), "repetition ", syntax_component_type(), parser_match_get_type());
+    std::string result(text); tower_memory_free(text); return result;
+  }
+  for (const auto& [key, entity] : v.capture_sources) if (key == name) {
+    auto* text = syntax_origin_text(entity, "capture ", syntax_component_type(), parser_match_get_type());
+    std::string result(text); tower_memory_free(text); return result;
+  }
   return "start of a statement or grammar declaration";
 }
 
@@ -420,89 +410,25 @@ bool set_source(SyntaxSession& session, std::string_view text, const char* name)
 }
 std::string syntax_diagnostic(SyntaxSession& session, Recognizer* recognizer, bool repairs = true) {
   const auto diagnostic = parser_recognizer_diagnostic(recognizer, repairs ? diagnostic_peek : nullptr, &session);
-  if (diagnostic.expected.empty()) return parser_recognizer_get_error(recognizer);
   auto definitions = session.bedrock->definitions;
   for (const auto& [name, alternatives] : session.definitions) definitions[name] = alternatives;
-  const auto& expected = diagnostic.expected;
-  std::string actual = "end of input";
-  if (diagnostic.offset < session.source.size()) {
-    size_t end = std::min(session.cursor, diagnostic.offset + 48);
-    while (end < session.source.size() && (static_cast<unsigned char>(session.source[end]) & 0xc0) == 0x80) --end;
-    actual = "'";
-    for (size_t i = diagnostic.offset; i < end; ++i) {
-      const char c = session.source[i];
-      if (c == '\n') actual += "\\n";
-      else if (c == '\r') actual += "\\r";
-      else if (c == '\t') actual += "\\t";
-      else { if (c == '\\' || c == '\'') actual += '\\'; actual += c; }
-    }
-    if (end < session.cursor) actual += "...";
-    actual += "'";
-  }
-  const ParserExpectation* repair = nullptr; size_t repair_count = 0;
-  const ParserExpectation* boundary = nullptr; size_t boundary_count = 0;
-  for (const auto& option : expected) {
-    // Try every expected grammar literal, including user-defined keywords.
-    // Token patterns have no unique spelling: never invent names or values.
-    auto literal = std::find_if(session.version->literals.begin(), session.version->literals.end(),
-      [&](const auto& value) { return value.second == option.id; });
-    if (option.insertion && literal != session.version->literals.end()) {
-      ++repair_count; repair = &option;
-      if (option.completes) { ++boundary_count; boundary = &option; }
-    }
-  }
-  bool suggested = false;
-  if (repair_count != 1) {
-    repair = nullptr;
-    // A line break can suggest a new construct when multiple insertions are
-    // valid. Prefer a unique grammar-completing choice, but label it as a hint:
-    // continuing the expression on the next line may also be intentional.
-    const auto gap = session.source.substr(std::min(diagnostic.insertion_offset, session.source.size()),
-      diagnostic.offset >= diagnostic.insertion_offset ? diagnostic.offset - diagnostic.insertion_offset : 0);
-    if (boundary_count == 1 && gap.find_first_of("\r\n") != std::string::npos) { repair = boundary; suggested = true; }
-  }
-  if (!repairs || !diagnostic.complete) repair = nullptr;
-  std::string message;
-  if (repair) {
-    message = std::string(suggested ? "Possible missing " : "Missing ") + repair->label + " before " + actual + ".";
-    session.error_offset = diagnostic.insertion_offset;
-    session.error_insertion = true;
-  } else {
-    const std::string original = parser_recognizer_get_error(recognizer);
-    message = original.starts_with("Unexpected ") ? "Unexpected " + actual + "." : original + ".";
-    // A new top-level parse has not entered any statement. Listing arbitrary
-    // leaf rules here (e.g. CoreCall) falsely suggests that the user began one.
-    // Template parsers have a different root and keep their checked expectations.
-    if (repairs && diagnostic.at_start) {
-      message += definitions.contains("Statement") ? " Expected a statement or grammar declaration." : " Expected a grammar declaration.";
-      return message;
-    }
-    message += diagnostic.complete ? " Expected " : " Expected a valid continuation such as ";
-    for (size_t i = 0; i < std::min(expected.size(), size_t(6)); ++i) {
-      if (i) message += i + 1 == expected.size() ? " or " : ", ";
-      message += expected[i].label;
-    }
-    if (expected.size() > 6) message += ", among other valid continuations";
-    message += ".";
-  }
-  std::set<size_t> seen;
-  std::map<std::string, std::vector<size_t>> contexts;
-  for (const auto& option : expected) {
-    if (repair && &option != repair) continue;
-    for (const auto& position : option.contexts) {
-      if (!seen.insert(position.production).second) continue;
-      auto found = session.version->productions.find(position.production);
-      if (found != session.version->productions.end()) contexts[found->second.first].push_back(position.production);
-    }
-  }
-  // A unique active rule is useful provenance. Multiple possible rules are not
-  // proof that any particular one was intended; don't pick arbitrary examples.
-  if (contexts.size() == 1) {
-    const auto& alternatives = contexts.begin()->second;
-    auto description = describe_production(*session.version, definitions, alternatives.front(), alternatives.size() > 1);
-    if (!description.empty()) message += "\nIn rule " + description + ".";
-  }
-  return message;
+  std::vector<SyntaxDiagnosticOption> options;
+  for (const auto& option : diagnostic.expected)
+    options.push_back({option.id, option.label.c_str(), option.insertion, option.completes, option.contexts.data(), option.contexts.size()});
+  std::vector<uint32_t> literals;
+  for (const auto& [text, id] : session.version->literals) literals.push_back(id);
+  std::vector<SyntaxDiagnosticProduction> productions;
+  for (const auto& [index, key] : session.version->productions) productions.push_back({index, key.first.c_str()});
+  const SyntaxDiagnosticInput input{session.source.data(), session.source.size(), session.cursor,
+    diagnostic.offset, diagnostic.insertion_offset, parser_recognizer_get_error(recognizer),
+    options.data(), options.size(), literals.data(), literals.size(), productions.data(), productions.size(),
+    repairs, diagnostic.complete, diagnostic.at_start, definitions.contains("Statement")};
+  SyntaxDiagnosticText output{};
+  format_syntax_diagnostic(&input, &output);
+  if (output.insertion) { session.error_offset = diagnostic.insertion_offset; session.error_insertion = true; }
+  const auto description = describe_production(*session.version, definitions, output.production, output.multiple);
+  auto* text = syntax_diagnostic_text_finish(&output, description.c_str());
+  std::string result(text); tower_memory_free(text); return result;
 }
 
 std::shared_ptr<Version> compiled(SyntaxSession& session, const Definitions& definitions, const TokenDefinitions& tokens, std::string& error) {
@@ -931,21 +857,6 @@ size_t syntax_get_offset(SyntaxSession* session) { return session->cursor; }
 size_t syntax_get_error_offset(SyntaxSession* session) { return session->error_offset; }
 bool syntax_get_error_insertion(SyntaxSession* session) { return session->error_insertion; }
 TowerNode* syntax_document(SyntaxSession* session) { return session->document.get(); }
-namespace {
-bool same_formatted_tree(TowerNode* a, TowerNode* b, std::string_view source_a, std::string_view source_b) {
-  if (syntax_get(a) || syntax_get(b)) return syntax_get(a) && syntax_get(b) && syntax_equal(a, b);
-  auto* x = match(a); auto* y = match(b);
-  if (!x || !y || std::string_view(parser_match_get_label(x)) != parser_match_get_label(y) ||
-      parser_match_get_rule_index(x) != parser_match_get_rule_index(y) ||
-      tower_node_get_child_count(a) != tower_node_get_child_count(b)) return false;
-  if (parser_match_get_rule_index(x) == TOWER_INVALID_INDEX &&
-      source_a.substr(parser_match_get_start(x), parser_match_get_length(x)) !=
-      source_b.substr(parser_match_get_start(y), parser_match_get_length(y))) return false;
-  for (size_t i = 0; i < tower_node_get_child_count(a); ++i)
-    if (!same_formatted_tree(tower_node_get_child(a, i), tower_node_get_child(b, i), source_a, source_b)) return false;
-  return true;
-}
-}
 bool syntax_can_format(SyntaxSession* session) {
   return session->error.empty() && session->finalized;
 }
@@ -984,7 +895,8 @@ TowerText syntax_format(SyntaxSession* session) {
   size_t index = 0; bool same = true;
   while (auto* raw = syntax_next(&verify)) {
     auto node = TowerNodeRef::adopt(raw);
-    same &= index < roots.size() && same_formatted_tree(roots[index], raw, copy.source, verify.source); ++index;
+    same &= index < roots.size() && format_same_tree(roots[index], raw, copy.source.data(), copy.source.size(),
+      verify.source.data(), verify.source.size(), syntax_component_type(), parser_match_get_type()); ++index;
   }
   if (!same || index != roots.size() || !verify.error.empty())
     return {{}, {}, "Formatting would change the parsed source under this grammar; source was left unchanged"};
