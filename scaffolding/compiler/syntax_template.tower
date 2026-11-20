@@ -6,6 +6,7 @@ import lr_tree;
 import parser_nodes;
 import regex_lowering;
 import syntax_emission;
+import syntax_emission_lexical;
 import syntax_reader;
 import syntax_validation;
 import .library.vector;
@@ -70,6 +71,10 @@ fn template_hole(value: SyntaxEmission*, category: u8*, id: u32, append: bool): 
 }
 
 export fn syntax_template_holes(input: SyntaxTemplateGrammar*): bool {
+    return syntax_template_holes_revision(input, null);
+}
+
+export fn syntax_template_holes_revision(input: SyntaxTemplateGrammar*, revision: SyntaxEmission*): bool {
     var value = alloc(SyntaxEmission, 1);
     var missing = value == null;
     if missing {
@@ -87,6 +92,11 @@ export fn syntax_template_holes(input: SyntaxTemplateGrammar*): bool {
             break;
         }
         var capture = &input.captures[index];
+        var retained = revision != null;
+        if retained {
+            var named = emission_display_hole(revision, capture.name);
+            if named {} else { value.failed = true; break; }
+        }
         var term = emission_node(value, capture.source);
         var ordinal = index & 4294967295;
         var id = convert(u32, ordinal);

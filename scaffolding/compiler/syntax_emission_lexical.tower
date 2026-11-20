@@ -1,0 +1,366 @@
+import tower;
+import .library.vector;
+import syntax_emission;
+import syntax_emission_types;
+import syntax_types;
+import syntax_reader;
+import syntax_validation;
+import syntax_lexer;
+import parser_nodes;
+import lr_analysis;
+import lr_grammar;
+import lr_parser;
+import format_types;
+import format_api;
+
+// Revision-owned derived views. Source entities remain authoritative and pinned.
+// Construction is exclusive; published queries never insert or change refs.
+struct SyntaxEmissionLexical {
+    literals: vector(SyntaxEmissionLiteral);
+    ids: vector(u32);
+    by_id: vector(SyntaxEmissionEntry*);
+    reserved: vector(u8*);
+    keywords: vector(u8*);
+    starts: vector(SyntaxEmissionEntry*);
+    tokens: vector(LexiconToken);
+    token_names: vector(u8*);
+    holes: vector(vector(u8));
+    identifier: u8*;
+    string: u8*;
+    number: u32;
+    keyword_starts: bool;
+}
+
+fn emission_entry_before(left: SyntaxEmissionEntry*, right: SyntaxEmissionEntry*, numeric: bool): bool {
+    if numeric {
+        var different = left.literal != right.literal;
+        if different { var less = left.literal < right.literal; return less; }
+        var earlier = left.ordinal < right.ordinal;
+        return earlier;
+    }
+    var order = syntax_bytes_compare(left.text.data, left.text.length, right.text.data, right.text.length);
+    var less = order < 0;
+    return less;
+}
+
+fn emission_entry_sift(rows: SyntaxEmissionEntry**, size: usize, root: usize, numeric: bool): void {
+    var parents = size / 2;
+    while root < parents {
+        var child = root * 2;
+        child = child + 1;
+        var right = child + 1;
+        var present = right < size;
+        if present {
+            if emission_entry_before(rows[child], rows[right], numeric) { child = right; }
+        }
+        if emission_entry_before(rows[root], rows[child], numeric) {} else { return; }
+        var saved = rows[root]; rows[root] = rows[child]; rows[child] = saved;
+        root = child;
+    }
+}
+
+fn emission_entry_sort(rows: SyntaxEmissionEntry**, size: usize, numeric: bool): void {
+    var start = size / 2;
+    while start != 0 {
+        start = start - 1;
+        emission_entry_sift(rows, size, start, numeric);
+    }
+    while size > 1 {
+        size = size - 1;
+        var saved = rows[0]; rows[0] = rows[size]; rows[size] = saved;
+        emission_entry_sift(rows, size, 0, numeric);
+    }
+}
+
+fn emission_lexical_rows(value: SyntaxEmission*, ordered: SyntaxEmissionEntry**): bool {
+    var out = &value.lexical;
+    out.keyword_starts = true;
+    var index: usize = 0;
+    while index < value.names.length {
+        var entry = ordered[index];
+        var ok = true;
+        if entry.used { ok = vector_push(u8*, &out.reserved, entry.text.data); }
+        var word = lexicon_word(entry.text.data, entry.text.length);
+        if entry.start {
+            if ok { ok = vector_push(SyntaxEmissionEntry*, &out.starts, entry); }
+            if word {} else { out.keyword_starts = false; }
+        }
+        var literal = entry.literal != convert(u32, SyntaxTokenId.End);
+        if literal {
+            var row: SyntaxEmissionLiteral;
+            row.text = entry.text.data; row.length = entry.text.length; row.id = entry.literal;
+            if ok { ok = lr_append(SyntaxEmissionLiteral, &out.literals, &row); }
+            if ok { ok = vector_push(u32, &out.ids, entry.literal); }
+            if ok { ok = vector_push(SyntaxEmissionEntry*, &out.by_id, entry); }
+            if word { if ok { ok = vector_push(u8*, &out.keywords, entry.text.data); } }
+        }
+        if ok {} else { return false; }
+        index = index + 1;
+    }
+    emission_entry_sort(out.by_id.data, out.by_id.length, true);
+    return true;
+}
+
+fn emission_lexical_tokens(value: SyntaxEmission*): bool {
+    var out = &value.lexical;
+    out.identifier = "declaration name";
+    out.string = "quoted grammar literal";
+    out.number = convert(u32, SyntaxTokenId.End);
+    var index: usize = 0;
+    while index < value.input.token_count {
+        var source = emission_node(value, value.input.tokens[index]);
+        var entry = emission_find_text(value, source.name.data, source.name.length);
+        var row: LexiconToken;
+        fill(&row, 0, sizeof(LexiconToken));
+        var compiled = source.compiled != null;
+        if compiled { row.table = source.compiled.table; }
+        var ordinal = index & 4294967295;
+        row.id = convert(u32, ordinal);
+        row.id = row.id + convert(u32, SyntaxTokenId.Token);
+        row.identifier = lr_name_equal(entry.text.data, "Identifier");
+        if row.identifier { row.id = convert(u32, SyntaxTokenId.Name); }
+        var string = lr_name_equal(entry.text.data, "String");
+        if string { row.id = convert(u32, SyntaxTokenId.String); }
+        // Completion historically offers the concrete Number spelling even
+        // when that token declaration is skipped in the active lexer.
+        if lr_name_equal(entry.text.data, "Number") { out.number = row.id; }
+        row.style = node_text_get(&source.style);
+        row.skipped = source.kind == convert(u32, SyntaxKind.Skip);
+        row.contextual = source.contextual;
+        var name: u8* = null;
+        if row.skipped {} else {
+            name = entry.text.data;
+            if row.identifier { out.identifier = name; }
+            if string { out.string = name; }
+        }
+        var ok = lr_append(LexiconToken, &out.tokens, &row);
+        if ok { ok = vector_push(u8*, &out.token_names, name); }
+        if ok {} else { return false; }
+        index = index + 1;
+    }
+    return true;
+}
+
+fn emission_index_lexical(value: SyntaxEmission*): bool {
+    var ordered: vector(SyntaxEmissionEntry*);
+    vector_init(SyntaxEmissionEntry*, &ordered);
+    var ok = vector_reserve(SyntaxEmissionEntry*, &ordered, value.names.length);
+    if ok {
+        var bytes = value.names.length * sizeof(SyntaxEmissionEntry*);
+        copy(ordered.data, value.names.data, bytes);
+        emission_entry_sort(ordered.data, value.names.length, false);
+        ok = emission_lexical_rows(value, ordered.data);
+    }
+    vector_dispose(SyntaxEmissionEntry*, &ordered);
+    if ok { ok = emission_lexical_tokens(value); }
+    return ok;
+}
+
+fn emission_dispose_lexical(value: SyntaxEmissionLexical*): void {
+    var index: usize = 0;
+    while index < value.holes.length {
+        vector_dispose(u8, &value.holes.data[index]); index = index + 1;
+    }
+    vector_dispose(vector(u8), &value.holes);
+    vector_dispose(SyntaxEmissionLiteral, &value.literals);
+    vector_dispose(u32, &value.ids);
+    vector_dispose(SyntaxEmissionEntry*, &value.by_id);
+    vector_dispose(u8*, &value.reserved);
+    vector_dispose(u8*, &value.keywords);
+    vector_dispose(SyntaxEmissionEntry*, &value.starts);
+    vector_dispose(LexiconToken, &value.tokens);
+    vector_dispose(u8*, &value.token_names);
+}
+
+export fn syntax_emission_literal(value: SyntaxEmission*, text: u8*): u32 {
+    var entry = emission_find_entry(value, text);
+    var missing = entry == null;
+    if missing { return convert(u32, SyntaxTokenId.End); }
+    return entry.literal;
+}
+
+export fn syntax_emission_terminal(value: SyntaxEmission*, text: u8*): u32 {
+    var entry = emission_find_entry(value, text);
+    var missing = entry == null;
+    if missing { return convert(u32, SyntaxTokenId.End); }
+    return entry.terminal;
+}
+
+export fn syntax_emission_literal_count(value: SyntaxEmission*): usize { return value.lexical.literals.length; }
+export fn syntax_emission_literals(value: SyntaxEmission*): SyntaxEmissionLiteral* { return value.lexical.literals.data; }
+export fn syntax_emission_literal_ids(value: SyntaxEmission*): u32* { return value.lexical.ids.data; }
+export fn syntax_emission_keyword_count(value: SyntaxEmission*): usize { return value.lexical.keywords.length; }
+export fn syntax_emission_keywords(value: SyntaxEmission*): u8** { return value.lexical.keywords.data; }
+export fn syntax_emission_keyword_starts(value: SyntaxEmission*): bool { return value.lexical.keyword_starts; }
+
+export fn syntax_emission_lexicon(value: SyntaxEmission*): SyntaxLexicon* {
+    var result = lexicon_create();
+    var missing = result == null;
+    if missing { return null; }
+    var index: usize = 0;
+    var ok = true;
+    while index < value.lexical.tokens.length {
+        var row = &value.lexical.tokens.data[index];
+        missing = row.table == null;
+        if missing { ok = false; break; }
+        ok = lr_append(LexiconToken, &result.tokens, row);
+        if ok {} else { break; }
+        index = index + 1;
+    }
+    index = 0;
+    while index < value.lexical.literals.length {
+        if ok {} else { break; }
+        var row = &value.lexical.literals.data[index];
+        var entry = emission_find_entry(value, row.text);
+        ok = lexicon_literal(result, row.text, row.length, row.id, entry.declaration);
+        index = index + 1;
+    }
+    index = 0;
+    while index < value.lexical.starts.length {
+        if ok {} else { break; }
+        var row = value.lexical.starts.data[index];
+        ok = lexicon_start(result, row.text.data, row.text.length);
+        index = index + 1;
+    }
+    if ok { return result; }
+    lexicon_destroy(result);
+    return null;
+}
+
+// Only exclusive template construction may add display holes. The owner is
+// discarded on failure, before any parser table/readers are published.
+fn emission_display_hole(value: SyntaxEmission*, name: u8*): bool {
+    var text: vector(u8);
+    vector_init(u8, &text);
+    var ok = node_text_set(&text, name);
+    if ok { ok = lr_append(vector(u8), &value.lexical.holes, &text); }
+    if ok {} else { vector_dispose(u8, &text); }
+    return ok;
+}
+
+fn emission_literal_name(value: SyntaxEmission*, id: u32): u8* {
+    var rows = &value.lexical.by_id;
+    var low: usize = 0;
+    var high = rows.length;
+    // Upper bound retains the old last-emitted-name behavior for duplicate IDs.
+    while low < high {
+        var middle = high - low; middle = middle / 2; middle = middle + low;
+        var before = rows.data[middle].literal <= id;
+        if before { low = middle + 1; } else { high = middle; }
+    }
+    var empty = low == 0;
+    if empty { return null; }
+    low = low - 1;
+    var same = rows.data[low].literal == id;
+    if same { return rows.data[low].text.data; }
+    return null;
+}
+
+export fn syntax_emission_token_text(value: SyntaxEmission*, id: u32): u8* {
+    var prefix: u8* = "";
+    var suffix: u8* = "";
+    var text: u8* = null;
+    var hole = id - convert(u32, SyntaxTokenId.Hole);
+    var present = convert(usize, hole) < value.lexical.holes.length;
+    if present {
+        text = value.lexical.holes.data[hole].data;
+        prefix = "$";
+    } else {
+        text = emission_literal_name(value, id);
+        present = text != null;
+        if present { prefix = "'"; suffix = "'"; } else {
+            var identifier = id == convert(u32, SyntaxTokenId.Name);
+            var string = id == convert(u32, SyntaxTokenId.String);
+            if identifier { text = value.lexical.identifier; } else {
+                if string { text = value.lexical.string; } else {
+                    var ordinal = id - convert(u32, SyntaxTokenId.Token);
+                    present = convert(usize, ordinal) < value.lexical.token_names.length;
+                    if present { text = value.lexical.token_names.data[ordinal]; }
+                }
+            }
+        }
+    }
+    var missing = text == null;
+    if missing { return null; }
+    return format_parser_label_text(text, syntax_text_length(text), prefix, suffix);
+}
+
+fn emission_suffix_priority(text: u8*, priorities: u8**, count: usize): bool {
+    var index: usize = 0;
+    while index < count {
+        if lr_name_equal(text, priorities[index]) { return true; }
+        index = index + 1;
+    }
+    return false;
+}
+
+fn emission_suffix_candidates(value: SyntaxEmission*, words: vector(u8*)*, ids: vector(u32)*): bool {
+    var priorities: u8*[9];
+    priorities[0] = ";"; priorities[1] = ")"; priorities[2] = "]";
+    priorities[3] = "}"; priorities[4] = "{"; priorities[5] = "=";
+    priorities[6] = "false"; priorities[7] = "true"; priorities[8] = "null";
+    var count = sizeof(u8*[9]) / sizeof(u8*);
+    var index: usize = 0;
+    var ok = true;
+    while index < count {
+        var id = syntax_emission_literal(value, priorities[index]);
+        var found = id != convert(u32, SyntaxTokenId.End);
+        if found {
+            ok = vector_push(u8*, words, priorities[index]);
+            if ok { ok = vector_push(u32, ids, id); }
+            if ok {} else { return false; }
+        }
+        index = index + 1;
+    }
+    index = 0;
+    while index < value.lexical.literals.length {
+        var row = &value.lexical.literals.data[index];
+        var excluded = emission_suffix_priority(row.text, &priorities[0], count);
+        if lr_name_equal(row.text, "(") { excluded = true; }
+        if lr_name_equal(row.text, "[") { excluded = true; }
+        if lr_name_equal(row.text, ".") { excluded = true; }
+        if lr_name_equal(row.text, ",") { excluded = true; }
+        if excluded {} else {
+            ok = vector_push(u8*, words, row.text);
+            if ok { ok = vector_push(u32, ids, row.id); }
+            if ok {} else { return false; }
+        }
+        index = index + 1;
+    }
+    var number = value.lexical.number;
+    var present = number != convert(u32, SyntaxTokenId.End);
+    if present {
+        ok = vector_push(u8*, words, "0");
+        if ok { ok = vector_push(u32, ids, number); }
+    }
+    return ok;
+}
+
+export fn syntax_emission_completion_close(value: SyntaxEmission*, completion: LRCompletion*, type_name: u8*): u8* {
+    var words: vector(u8*); vector_init(u8*, &words);
+    var ids: vector(u32); vector_init(u32, &ids);
+    var ok = emission_suffix_candidates(value, &words, &ids);
+    if ok { ok = vector_push(u8*, &words, type_name); }
+    if ok { ok = vector_push(u32, &ids, convert(u32, SyntaxTokenId.Name)); }
+    var result: FormatResult; fill(&result, 0, sizeof(FormatResult));
+    var format: FormatEngine; fill(&format, 0, sizeof(FormatEngine)); format.result = &result;
+    if ok {
+        // Preserve the established bounded LR suffix-search policy.
+        var path: usize[24];
+        var capacity = sizeof(usize[24]) / sizeof(usize);
+        var size = lr_completion_suffix(completion, ids.data, ids.length, &path[0], capacity);
+        ok = size != lr_none();
+        if ok {
+            var index: usize = 0;
+            while index < size {
+                format_text(&format, " "); format_text(&format, words.data[path[index]]);
+                index = index + 1;
+            }
+            ok = result.failed == false;
+        }
+    }
+    vector_dispose(u8*, &words); vector_dispose(u32, &ids);
+    if ok { return format_parser_host_text(&result); }
+    format_dispose(&result);
+    return null;
+}

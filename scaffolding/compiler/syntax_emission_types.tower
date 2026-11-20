@@ -1,6 +1,11 @@
 import tower;
 import syntax_view;
 
+enum SyntaxTokenId: u32 {
+    Name = 1114112, String = 1114113, Token = 1179648,
+    Literal = 2097152, Hole = 3145728, End = 4294967294
+}
+
 // Derived grammar-emission views; names belong to the retained emission result.
 struct SyntaxEmissionLiteral {
     text: u8*;

@@ -11,6 +11,7 @@ import frontend_syntax_preview;
 
 extern fn syntax_emit(input: SyntaxEmissionInput*): void*;
 
+extern fn syntax_emit_inherit(input: SyntaxEmissionInput*, parent: void*): void*;
 extern fn syntax_emission_destroy(value: void*): void;
 
 extern fn syntax_emission_production_count(value: void*): usize;
@@ -31,6 +32,14 @@ extern fn syntax_emission_find_helper(value: void*, name: u8*): SyntaxEmissionHe
 extern fn syntax_emission_capture_name(value: void*, source: void*): u8*;
 extern fn syntax_emission_repetitions(value: void*): SyntaxEmissionHelper*;
 extern fn syntax_emission_repetition_count(value: void*): usize;
+extern fn syntax_emission_literal(value: void*, name: u8*): u32;
+extern fn syntax_emission_terminal(value: void*, name: u8*): u32;
+extern fn syntax_emission_literal_count(value: void*): usize;
+extern fn syntax_emission_literals(value: void*): SyntaxEmissionLiteral*;
+extern fn syntax_emission_literal_ids(value: void*): u32*;
+extern fn syntax_emission_keyword_count(value: void*): usize;
+extern fn syntax_emission_keywords(value: void*): u8**;
+extern fn syntax_emission_token_text(value: void*, id: u32): u8*;
 
 fn frontend_emission_before(left: u8*, right: u8*): bool {
     var index: usize = 0;
@@ -113,12 +122,15 @@ fn frontend_emission_tests(): void {
     input.tokens = &tokens[0];
     input.token_count = 2;
     input.category = "A";
-    var literal: SyntaxEmissionLiteral;
-    literal.text = "x";
-    literal.length = 1;
-    literal.id = 2097152;
-    input.literals = &literal;
-    input.literal_count = 1;
+    // Deliberately unsorted and sparse IDs, including a duplicate display ID.
+    var literals: SyntaxEmissionLiteral[5];
+    literals[0].text = "x"; literals[0].length = 1; literals[0].id = 2097152;
+    literals[1].text = "z"; literals[1].length = 1; literals[1].id = 2097152;
+    literals[2].text = "true"; literals[2].length = 4; literals[2].id = 999000;
+    literals[3].text = ";"; literals[3].length = 1; literals[3].id = 2097159;
+    literals[4].text = "("; literals[4].length = 1; literals[4].id = 2097160;
+    input.literals = &literals[0];
+    input.literal_count = 5;
     input.syntax_kind = kinds.syntax;
     input.rule_kind = kinds.rule;
     input.reference_kind = kinds.reference;
@@ -160,9 +172,18 @@ fn frontend_emission_tests(): void {
     frontend_world_check(ok);
     // Warm entity/query capacity before counting an emission's temporary work.
     var second_root = input.root;
+    // Inheritance consumes the parent's frozen views, with no native map copies.
+    input.literals = null; input.literal_count = 0;
+    input.root = entity_create(store);
+    var inherited_root = input.root;
+    var inherited = syntax_emit_inherit(&input, revision);
+    ok = inherited != null;
+    frontend_world_check(ok);
+    ok = syntax_emission_rule_index(inherited, helper.name) == frontend_world_unlimited();
+    frontend_world_check(ok);
     input.root = entity_create(store);
     var probe_allocations = tower_test_buffer_allocations();
-    var probe = syntax_emit(&input);
+    var probe = syntax_emit_inherit(&input, revision);
     probe_allocations = tower_test_buffer_allocations() - probe_allocations;
     ok = probe != null;
     frontend_world_check(ok);
@@ -174,7 +195,7 @@ fn frontend_emission_tests(): void {
         input.root = entity_create(store);
         var actual = tower_test_buffer_allocations();
         tower_test_buffer_fail_after(budget);
-        probe = syntax_emit(&input);
+        probe = syntax_emit_inherit(&input, revision);
         actual = tower_test_buffer_allocations() - actual;
         tower_test_buffer_fail_after(frontend_world_unlimited());
         // Retained component-index capacity can remove allocations on retry.
@@ -201,10 +222,50 @@ fn frontend_emission_tests(): void {
     var rule_bytes = sizeof(SyntaxRuleView) * 2;
     fill(&rules, 0, rule_bytes);
     fill(&names, 0, 4);
+    fill(&literals, 0, sizeof(SyntaxEmissionLiteral[5]));
+    var literal_rows = syntax_emission_literals(revision);
+    var literal_ids = syntax_emission_literal_ids(revision);
+    ok = syntax_emission_literal_count(revision) == 5;
+    frontend_world_check(ok);
+    frontend_format_text(literal_rows[0].text, "(");
+    frontend_format_text(literal_rows[1].text, ";");
+    frontend_format_text(literal_rows[2].text, "true");
+    frontend_format_text(literal_rows[3].text, "x");
+    frontend_format_text(literal_rows[4].text, "z");
+    ok = syntax_emission_keyword_count(revision) == 3;
+    frontend_world_check(ok);
+    var keywords = syntax_emission_keywords(revision);
+    frontend_format_text(keywords[0], "true");
+    frontend_format_text(keywords[1], "x");
+    frontend_format_text(keywords[2], "z");
+    var display = syntax_emission_token_text(revision, 2097152);
+    frontend_format_text(display, "'z'"); tower_memory_free(bits(void*, display));
+    display = syntax_emission_token_text(revision, 1114112);
+    frontend_format_text(display, "Identifier"); tower_memory_free(bits(void*, display));
+    display = syntax_emission_token_text(revision, 1114113);
+    frontend_format_text(display, "quoted grammar literal"); tower_memory_free(bits(void*, display));
+    ok = syntax_emission_token_text(revision, 1179649) == null;
+    frontend_world_check(ok);
+    ok = syntax_emission_token_text(revision, 999001) == null;
+    frontend_world_check(ok);
     var allocations = tower_test_buffer_allocations();
     var references = entity_references(term_entity);
     var repeat: usize = 0;
     while repeat < 64 {
+        i = 0;
+        while i < 5 {
+            ok = syntax_emission_literal(revision, literal_rows[i].text) == literal_ids[i];
+            frontend_world_check(ok);
+            ok = syntax_emission_literal(inherited, literal_rows[i].text) == literal_ids[i];
+            frontend_world_check(ok);
+            i = i + 1;
+        }
+        ok = syntax_emission_terminal(revision, "Identifier") == 1114112;
+        frontend_world_check(ok);
+        ok = syntax_emission_terminal(revision, "Whitespace") == 4294967294;
+        frontend_world_check(ok);
+        ok = syntax_emission_literal(revision, "Missing") == 4294967294;
+        frontend_world_check(ok);
         i = 0;
         while i < 3 {
             ok = syntax_emission_find_index(revision, rows[i].index) == &rows[i];
@@ -281,6 +342,12 @@ fn frontend_emission_tests(): void {
     var b = rows[2].index;
     syntax_emission_destroy(revision);
     entity_release(first_root);
+    ok = syntax_emission_literal(inherited, "true") == 999000;
+    frontend_world_check(ok);
+    display = syntax_emission_token_text(inherited, 2097152);
+    frontend_format_text(display, "'z'"); tower_memory_free(bits(void*, display));
+    syntax_emission_destroy(inherited);
+    entity_release(inherited_root);
     ok = syntax_emission_find_name(second, "B", 0) == b;
     frontend_world_check(ok);
     ok = syntax_emission_rule_index(second, "B") == b;

@@ -20,3 +20,7 @@ extern fn format_repeat(f: FormatEngine*, byte: u8, count: usize): void;
 extern fn format_unsigned(f: FormatEngine*, value: u64): void;
 
 extern fn format_dispose(result: FormatResult*): void;
+
+extern fn format_parser_host_text(result: FormatResult*): u8*;
+
+extern fn format_parser_label_text(text: u8*, length: usize, prefix: u8*, suffix: u8*): u8*;

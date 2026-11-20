@@ -21,7 +21,6 @@
 #include <cstring>
 #include <map>
 #include <memory>
-#include <set>
 #include <string>
 #include <vector>
 #include <unordered_set>
@@ -30,7 +29,7 @@ ModuleEnvironment* syntax_modules = nullptr;
 
 namespace {
 extern "C" bool syntax_parser_diagnostic_read(void*, size_t*, const ParserLookahead*, uint32_t*);
-constexpr uint32_t MetaName = 0x110000, MetaString = MetaName + 1, FirstHole = 0x300000;
+constexpr uint32_t MetaName = 0x110000, MetaString = MetaName + 1;
 constexpr uint32_t FirstToken = 0x120000;
 
 using Node = std::unique_ptr<TowerNode, decltype(&tower_node_release_ref)>;
@@ -84,14 +83,9 @@ struct Version {
   Table* table = nullptr;
   SyntaxLexicon* lexicon = nullptr;
   std::unique_ptr<SyntaxEmission, decltype(&syntax_emission_destroy)> emission{nullptr, syntax_emission_destroy};
-  std::map<std::string, uint32_t> literals;
-  std::map<uint32_t, std::string> names;
   TokenDefinitions tokens;
   PendingRules pending;
   std::shared_ptr<const Bedrock> bedrock;
-  std::set<std::string> used_names;
-  std::map<std::string, uint32_t> declaration_literals;
-  std::set<std::string> declaration_starts;
   std::map<size_t, Replacement> replacements;
   std::vector<std::vector<SyntaxExpansionCapture>> expansion_captures;
   std::vector<SyntaxExpansionRule> expansion_rules;
@@ -99,12 +93,6 @@ struct Version {
   size_t replacement_error_offset = TOWER_INVALID_INDEX;
   ~Version() { lexicon_destroy(lexicon); parser_table_destroy(table); }
 };
-
-bool letter(char c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'; }
-bool digit(char c) { return c >= '0' && c <= '9'; }
-bool word(const std::string& s) {
-  return !s.empty() && letter(s[0]) && std::all_of(s.begin(), s.end(), [](char c) { return letter(c) || digit(c); });
-}
 
 char* copy_string(const std::string& text) {
   auto* result = (char*)tower_memory_allocate(text.size() + 1);
@@ -135,48 +123,26 @@ extern "C" char* syntax_parser_describe(void* context, size_t index) {
   return copy_string("start of a statement or grammar declaration");
 }
 
-uint32_t token_id(const std::string& name, size_t index) {
-  if (name == "Identifier") return MetaName;
-  if (name == "String") return MetaString;
-  return FirstToken + (uint32_t)index;
-}
 bool build_lexicon(Version& version) {
   assert(!version.lexicon);
-  version.lexicon = lexicon_create();
-  if (!version.lexicon) return false;
-  for (size_t i = 0; i < version.tokens.size(); ++i) {
-    const auto& token = semantic(version.tokens[i]);
-    if (!lexicon_token(version.lexicon, token.compiled->table, token_id(token.name, i), token.style.c_str(),
-        token.kind == SyntaxKind::Skip, token.contextual, token.name == "Identifier")) return false;
-  }
-  for (const auto& [literal, id] : version.literals)
-    if (!lexicon_literal(version.lexicon, literal.c_str(), literal.size(), id, version.declaration_literals.contains(literal))) return false;
-  for (const auto& text : version.declaration_starts)
-    if (!lexicon_start(version.lexicon, text.c_str(), text.size())) return false;
-  return true;
-}
-uint32_t resolve_token(const TokenDefinitions& tokens, const std::string& name) {
-  for (size_t i = 0; i < tokens.size(); ++i)
-    if (semantic(tokens[i]).kind != SyntaxKind::Skip && semantic(tokens[i]).name == name) return token_id(name, i);
-  return PARSER_ID_EOF;
+  version.lexicon = syntax_emission_lexicon(version.emission.get());
+  return version.lexicon != nullptr;
 }
 extern "C" uint32_t syntax_parser_resolve(void* context, const char* name) {
-  return resolve_token(((Version*)context)->tokens, name);
+  return syntax_emission_terminal(((Version*)context)->emission.get(), name);
 }
 
 extern "C" char* syntax_parser_token_name(void* context, uint32_t id) {
   auto& version = *(Version*)context;
-  auto found = version.names.find(id);
-  return found == version.names.end() ? nullptr : copy_string(found->second);
+  return syntax_emission_token_text(version.emission.get(), id);
 }
 
-// Borrowed ABI views and native presentation indexes around Tower emission.
-bool seed(Version& version, const Definitions& definitions, const char* category = nullptr) {
+// Borrowed source views; Tower owns the derived revision indexes.
+bool seed(Version& version, const Definitions& definitions, const char* category = nullptr, const SyntaxEmission* parent = nullptr) {
   std::vector<std::vector<TowerNode*>> alternatives;
   std::vector<SyntaxRuleView> rules;
   std::vector<TowerNode*> tokens;
   std::vector<const char*> reserved;
-  std::vector<SyntaxEmissionLiteral> literals;
   alternatives.reserve(definitions.size()); rules.reserve(definitions.size());
   for (const auto& [name, sequences] : definitions) {
     auto& list = alternatives.emplace_back();
@@ -184,24 +150,14 @@ bool seed(Version& version, const Definitions& definitions, const char* category
     rules.push_back({name.data(), name.size(), list.data(), list.size()});
   }
   for (const auto& token : version.tokens) tokens.push_back(token.get());
-  for (const auto& name : version.used_names) reserved.push_back(name.c_str());
-  for (const auto& [text, id] : version.literals) literals.push_back({text.data(), text.size(), id});
+  for (const auto& [name, dependency] : version.pending) reserved.push_back(name.c_str());
   SyntaxEmissionInput input{rules.data(), rules.size(), tokens.data(), tokens.size(),
-    reserved.data(), reserved.size(), literals.data(), literals.size(), category,
+    reserved.data(), reserved.size(), nullptr, 0, category,
     version.rules.get(), syntax_component_type(), parser_rule_get_type(), parser_reference_get_type(),
     parser_string_get_type(), parser_range_get_type()};
   auto& emitted = version.emission;
-  emitted.reset(syntax_emit(&input));
-  if (!emitted) return false;
-  for (size_t i = 0; i < syntax_emission_name_count(emitted.get()); ++i) {
-    SyntaxEmissionName entry{}; syntax_emission_name(emitted.get(), i, &entry);
-    std::string name(entry.text, entry.length);
-    if (entry.used) version.used_names.insert(name);
-    if (entry.literal != PARSER_ID_EOF) { version.literals[name] = entry.literal; version.names[entry.literal] = "'" + name + "'"; }
-    if (entry.declaration) version.declaration_literals[name] = entry.literal;
-    if (entry.start) version.declaration_starts.insert(name);
-  }
-  return true;
+  emitted.reset(syntax_emit_inherit(&input, parent));
+  return emitted != nullptr;
 }
 
 std::string pending_message(const PendingRules& pending, std::string name, size_t* error_offset) {
@@ -259,12 +215,6 @@ std::unique_ptr<Version> build(const Definitions& defs, const TokenDefinitions& 
   v->pending = std::move(pending);
   v->tokens = std::move(effective_tokens);
   v->bedrock = std::move(bedrock);
-  v->names = {{MetaName, "declaration name"}, {MetaString, "quoted grammar literal"}};
-  for (const auto& token : v->tokens) {
-    const auto& value = semantic(token);
-    if (value.kind != SyntaxKind::Skip) v->names[resolve_token(v->tokens, value.name)] = value.name;
-  }
-  for (const auto& [name, dependency] : v->pending) v->used_names.insert(name);
   if (!seed(*v, definitions)) { message = "Unable to allocate grammar construction"; return nullptr; }
   char* error = nullptr;
   v->table = parser_table_create(v->rules.get(), v.get(), ParserPresentation::Syntax, &error, ParserTableMode::Constructs);
@@ -311,7 +261,7 @@ struct SyntaxSession {
   bool completing = false;
   std::unique_ptr<LRCompletion, decltype(&lr_completion_destroy)> completion{nullptr, lr_completion_destroy};
   std::shared_ptr<Version> completion_version;
-  std::string completion_suffix;
+  std::unique_ptr<char, decltype(&tower_memory_free)> completion_suffix{nullptr, tower_memory_free};
   bool bootstrapping = false, declaration = false;
   bool building_bedrock = false, finalized = false, declarations_only = true;
   bool formatting = false;
@@ -342,11 +292,10 @@ std::string syntax_diagnostic(SyntaxSession& session, Recognizer* recognizer, bo
     parser_recognizer_diagnostic(recognizer, repairs ? ParserDiagnosticReader::Syntax : ParserDiagnosticReader::None, &session), parser_diagnostic_destroy);
   auto definitions = session.bedrock->definitions;
   for (const auto& [name, alternatives] : session.definitions) definitions[name] = alternatives;
-  std::vector<uint32_t> literals;
-  for (const auto& [text, id] : session.version->literals) literals.push_back(id);
   const SyntaxDiagnosticInput input{session.source.data(), session.source.size(), session.cursor,
     diagnostic->offset, diagnostic->insertion_offset, parser_recognizer_get_error(recognizer),
-    diagnostic->options.data, diagnostic->options.length, literals.data(), literals.size(),
+    diagnostic->options.data, diagnostic->options.length,
+    syntax_emission_literal_ids(session.version->emission.get()), syntax_emission_literal_count(session.version->emission.get()),
     syntax_emission_productions(session.version->emission.get()), syntax_emission_production_count(session.version->emission.get()),
     repairs, diagnostic->complete, diagnostic->at_start, definitions.contains("Statement")};
   SyntaxDiagnosticText output{};
@@ -458,9 +407,7 @@ bool compile_template(Version& version, const Definitions& defs, const Sequence&
   grammar->definitions = defs;
   grammar->tokens = version.tokens;
   grammar->bedrock = version.bedrock;
-  grammar->used_names = version.used_names;
-  grammar->literals = version.literals; grammar->names = version.names;
-  if (!seed(*grammar, defs, replacement.category.c_str())) {
+  if (!seed(*grammar, defs, replacement.category.c_str(), version.emission.get())) {
     error = "Unable to allocate replacement grammar"; return false;
   }
   TemplateInput input;
@@ -474,8 +421,6 @@ bool compile_template(Version& version, const Definitions& defs, const Sequence&
   input.session.version = grammar;
   std::vector<SyntaxTemplateCapture> captures;
   for (const auto& [name, entity] : replacement.captures) {
-    const auto id = FirstHole + static_cast<uint32_t>(captures.size());
-    grammar->names[id] = "$" + name;
     const auto& term = semantic(entity);
     captures.push_back({name.c_str(), entity.get(), syntax_emission_wrapper(grammar->emission.get(), term.text.c_str())});
   }
@@ -487,7 +432,7 @@ bool compile_template(Version& version, const Definitions& defs, const Sequence&
   holes.captures = captures.data(); holes.count = captures.size();
   holes.repetitions = syntax_emission_repetitions(grammar->emission.get());
   holes.repetition_count = syntax_emission_repetition_count(grammar->emission.get());
-  if (!syntax_template_holes(&holes)) { error = "Unable to allocate replacement hole productions"; return false; }
+  if (!syntax_template_holes_revision(&holes, grammar->emission.get())) { error = "Unable to allocate replacement hole productions"; return false; }
   char* diagnostic = nullptr;
   grammar->table = parser_table_create(grammar->rules.get(), grammar.get(), ParserPresentation::Syntax, &diagnostic,
     ParserTableMode::WholeInput);
@@ -818,8 +763,8 @@ TowerNode* syntax_next(SyntaxSession* session) {
         session->error = validate_bedrock(*module, session->error_offset);
         if (session->error.empty()) {
           auto version = build({}, {}, module, session->error, &session->error_offset);
-          if (version) for (const auto& keyword : version->declaration_starts)
-            if (!word(keyword)) session->error = "Bedrock declarations must begin with literal keywords";
+          if (version && !syntax_emission_keyword_starts(version->emission.get()))
+            session->error = "Bedrock declarations must begin with literal keywords";
         }
       }
       session->finalized = true;
@@ -1147,50 +1092,26 @@ extern "C" bool syntax_completion_accepts(SyntaxSession* session, const char* te
   if (!session->completion) return false;
   uint32_t id = PARSER_ID_EOF;
   if (literal) {
-    auto found = session->completion_version->literals.find(text);
-    if (found == session->completion_version->literals.end()) return false;
-    id = found->second;
+    id = syntax_emission_literal(session->completion_version->emission.get(), text);
+    if (id == PARSER_ID_EOF) return false;
   } else id = completion_token(session, text);
   return lr_completion_accepts(session->completion.get(), id);
 }
 extern "C" bool syntax_completion_callable(SyntaxSession* session) {
   if (!session->completion) return false;
-  auto found = session->completion_version->literals.find("(");
-  return found != session->completion_version->literals.end() &&
-    lr_completion_follows(session->completion.get(), MetaName, found->second);
+  auto id = syntax_emission_literal(session->completion_version->emission.get(), "(");
+  return id != PARSER_ID_EOF && lr_completion_follows(session->completion.get(), MetaName, id);
 }
 extern "C" const char* syntax_completion_close(SyntaxSession* session, const char* type_name) {
   if (!session->completion) return nullptr;
-  std::vector<std::string> words;
-  std::vector<uint32_t> ids;
-  const auto& version = *session->completion_version;
-  // Prioritize terminators. The search itself is Tower LR simulation; these
-  // spellings are merely concrete lexer inputs for its scratch parse snapshot.
-  const auto add = [&](const std::string& text, uint32_t id) { words.push_back(text); ids.push_back(id); };
-  for (const char* text : {";", ")", "]", "}", "{", "=", "false", "true", "null"}) {
-    auto found = version.literals.find(text);
-    if (found != version.literals.end()) add(found->first, found->second);
-  }
-  for (const auto& [text, id] : version.literals) {
-    if (text == "(" || text == "[" || text == "." || text == ",") continue;
-    if (std::find(words.begin(), words.end(), text) == words.end()) add(text, id);
-  }
-  for (size_t i = 0; i < version.tokens.size(); ++i)
-    if (semantic(version.tokens[i]).name == "Number") add("0", token_id("Number", i));
-  // A supplied foundation type can complete an unwritten signature tail.
-  // Its spelling comes from the shared Tower semantic definitions.
-  add(type_name, MetaName);
-  std::array<size_t, 24> path;
-  auto size = lr_completion_suffix(session->completion.get(), ids.data(), ids.size(), path.data(), path.size());
-  if (size == TOWER_INVALID_INDEX) return nullptr;
-  session->completion_suffix.clear();
-  for (size_t i = 0; i < size; ++i) { session->completion_suffix += ' '; session->completion_suffix += words[path[i]]; }
-  return session->completion_suffix.c_str();
+  session->completion_suffix.reset(syntax_emission_completion_close(
+    session->completion_version->emission.get(), session->completion.get(), type_name));
+  return session->completion_suffix.get();
 }
 std::vector<std::string> syntax_get_keywords(SyntaxSession* session) {
   std::vector<std::string> result;
-  if (session->version) for (const auto& [literal, id] : session->version->literals)
-    if (word(literal)) result.push_back(literal);
+  if (session->version) for (size_t i = 0; i < syntax_emission_keyword_count(session->version->emission.get()); ++i)
+    result.emplace_back(syntax_emission_keywords(session->version->emission.get())[i]);
   return result;
 }
 

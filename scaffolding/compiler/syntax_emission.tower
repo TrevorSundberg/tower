@@ -1,5 +1,6 @@
 import syntax_view;
 import syntax_emission_types;
+import syntax_emission_lexical;
 import tower;
 import lr_analysis;
 import lr_grammar;
@@ -26,6 +27,7 @@ struct SyntaxEmissionEntry {
     rule: usize;
     production: usize;
     provenance: usize;
+    ordinal: usize;
     literal: u32;
     terminal: u32;
     excluded: SyntaxNode*;
@@ -42,6 +44,7 @@ struct SyntaxEmissionState {
 
 struct SyntaxEmission {
     input: SyntaxEmissionInput*;
+    lexical: SyntaxEmissionLexical;
     names: vector(SyntaxEmissionEntry*);
     buckets: vector(usize);
     productions: vector(SyntaxEmissionProduction);
@@ -165,6 +168,7 @@ fn emission_name(value: SyntaxEmission*, text: u8*, length: usize): usize {
         return lr_none();
     }
     index = value.names.length - 1;
+    entry.ordinal = index;
     entry.hash = hash;
     entry.next = value.buckets.data[bucket];
     entry.wrapper = lr_none();
@@ -191,10 +195,13 @@ fn emission_cname(value: SyntaxEmission*, text: u8*): usize {
 // Read an already-published name index without inserting, allocating or touching
 // entity/refcount state. Generated names share the same revision-owned storage.
 fn emission_find_entry(value: SyntaxEmission*, text: u8*): SyntaxEmissionEntry* {
+    return emission_find_text(value, text, syntax_text_length(text));
+}
+
+fn emission_find_text(value: SyntaxEmission*, text: u8*, length: usize): SyntaxEmissionEntry* {
     var size = value.buckets.length;
     var empty = size == 0;
     if empty { return null; }
-    var length = syntax_text_length(text);
     var hash = emission_hash(text, length);
     var bucket = hash % size;
     var index = value.buckets.data[bucket];
@@ -666,9 +673,19 @@ fn emission_sequence(value: SyntaxEmission*, name: usize, entity: void*, alterna
     }
 }
 
-fn emission_initialize(value: SyntaxEmission*): void {
+fn emission_initialize(value: SyntaxEmission*, parent: SyntaxEmission*): void {
     var input = value.input;
     var index: usize = 0;
+    var inherited = parent != null;
+    if inherited {
+        while index < parent.lexical.reserved.length {
+            var name = emission_cname(value, parent.lexical.reserved.data[index]);
+            if value.failed { return; }
+            value.names.data[name].used = true;
+            index = index + 1;
+        }
+    }
+    index = 0;
     loop {
         var done = index == input.reserved_count;
         if done {
@@ -714,17 +731,28 @@ fn emission_initialize(value: SyntaxEmission*): void {
             var ordinal = index & 4294967295;
             var id = convert(u32, ordinal);
             id = id + 1179648;
-            var identifier = lr_name_equal(node_text_get(&terminal.name), "Identifier");
+            var identifier = lr_name_equal(entry.text.data, "Identifier");
             if identifier {
                 id = 1114112;
             }
-            var string = lr_name_equal(node_text_get(&terminal.name), "String");
+            var string = lr_name_equal(entry.text.data, "String");
             if string {
                 id = 1114113;
             }
             entry.terminal = id;
         }
         index++;
+    }
+    index = 0;
+    if inherited {
+        while index < parent.lexical.literals.length {
+            var literal = &parent.lexical.literals.data[index];
+            var name = emission_name(value, literal.text, literal.length);
+            if value.failed { return; }
+            value.names.data[name].literal = literal.id;
+            value.literal_count = value.literal_count + 1;
+            index = index + 1;
+        }
     }
     index = 0;
     loop {
@@ -796,8 +824,8 @@ fn emission_root(value: SyntaxEmission*, name: usize, target: u8*): void {
     emission_reference(value, rule, reference, "");
 }
 
-fn emission_build(value: SyntaxEmission*): void {
-    emission_initialize(value);
+fn emission_build(value: SyntaxEmission*, parent: SyntaxEmission*): void {
+    emission_initialize(value, parent);
     var templating = value.input.category != null;
     if templating {
         var root = emission_helper(value, "template");
@@ -1204,10 +1232,16 @@ export fn syntax_emission_destroy(value: SyntaxEmission*): void {
     vector_dispose(SyntaxEmissionHelper, &value.repetitions);
     vector_dispose(usize, &value.capture_buckets);
     vector_dispose(usize, &value.capture_next);
+    emission_dispose_lexical(&value.lexical);
     free(value);
 }
 
 export fn syntax_emit(input: SyntaxEmissionInput*): SyntaxEmission* {
+    return syntax_emit_inherit(input, null);
+}
+
+// The parent and temporary input views are only borrowed during construction.
+export fn syntax_emit_inherit(input: SyntaxEmissionInput*, parent: SyntaxEmission*): SyntaxEmission* {
     var value = alloc(SyntaxEmission, 1);
     var missing = value == null;
     if missing {
@@ -1215,7 +1249,7 @@ export fn syntax_emit(input: SyntaxEmissionInput*): SyntaxEmission* {
     }
     fill(value, 0, sizeof(SyntaxEmission));
     value.input = input;
-    emission_build(value);
+    emission_build(value, parent);
     var ordinary = input.category == null;
     if !value.failed {
         if ordinary {
@@ -1224,6 +1258,7 @@ export fn syntax_emit(input: SyntaxEmissionInput*): SyntaxEmission* {
     }
     if value.failed {} else {
         var indexed = emission_index_helpers(value);
+        if indexed { indexed = emission_index_lexical(value); }
         if indexed {} else { value.failed = true; }
     }
     if value.failed {

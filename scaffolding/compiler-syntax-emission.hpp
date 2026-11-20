@@ -2,6 +2,8 @@
 #include "compiler-syntax-validation.hpp"
 
 struct SyntaxEmission;
+struct SyntaxLexicon;
+struct LRCompletion;
 struct SyntaxEmissionLiteral { const char* text; size_t length; uint32_t id; };
 // Borrowed revision views. root must be empty; component types must already be
 // registered. A non-null category selects replacement-template construction.
@@ -28,6 +30,7 @@ extern "C" {
 // On failure returns null, frees temporary indexes, and leaves only partial
 // output children owned by root. Discard that root; input entities are unchanged.
 SyntaxEmission* syntax_emit(const SyntaxEmissionInput*);
+SyntaxEmission* syntax_emit_inherit(const SyntaxEmissionInput*, const SyntaxEmission*);
 void syntax_emission_destroy(SyntaxEmission*);
 size_t syntax_emission_name_count(const SyntaxEmission*);
 void syntax_emission_name(const SyntaxEmission*, size_t, SyntaxEmissionName*);
@@ -46,4 +49,16 @@ size_t syntax_emission_repetition_count(const SyntaxEmission*);
 const SyntaxEmissionHelper* syntax_emission_repetitions(const SyntaxEmission*);
 size_t syntax_emission_helper_count(const SyntaxEmission*);
 void syntax_emission_helper(const SyntaxEmission*, size_t, SyntaxEmissionHelper*);
+uint32_t syntax_emission_literal(const SyntaxEmission*, const char*);
+uint32_t syntax_emission_terminal(const SyntaxEmission*, const char*);
+size_t syntax_emission_literal_count(const SyntaxEmission*);
+const SyntaxEmissionLiteral* syntax_emission_literals(const SyntaxEmission*);
+const uint32_t* syntax_emission_literal_ids(const SyntaxEmission*);
+size_t syntax_emission_keyword_count(const SyntaxEmission*);
+const char* const* syntax_emission_keywords(const SyntaxEmission*);
+bool syntax_emission_keyword_starts(const SyntaxEmission*);
+SyntaxLexicon* syntax_emission_lexicon(const SyntaxEmission*);
+// Owned host strings, released with tower_memory_free.
+char* syntax_emission_token_text(const SyntaxEmission*, uint32_t);
+char* syntax_emission_completion_close(const SyntaxEmission*, LRCompletion*, const char*);
 }

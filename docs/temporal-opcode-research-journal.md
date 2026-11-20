@@ -22122,3 +22122,75 @@ clean-pinned-build.log, ported-final-tests.log and ported-lazy-tests.log.
 The CLI/runtime source retirement is complete. Publication needs the compiler
 project parsing deadline issue resolved, then the existing local/hosted verifier
 rerun; remaining native syntax/browser transports belong to separate migrations.
+### 2026-11-20 — Retire native revision lexical and display indexes
+
+Pulled main at turn start; 52b0e28 is current and the worktree is clean. The
+independent CLI/runtime agent is still working; this slice stays in syntax
+revision ownership. Plan: replace the five remaining native literal/name/reserved/
+declaration maps with Tower-owned ordered views and immutable lookups. Preserve
+literal numeric identities, declaration/token precedence, generated-name collision
+avoidance, diagnostics, keyword order and completion suffix priority. Move suffix
+candidate assembly into Tower as well, retaining the existing LR simulation.
+Keep shared grammar entities authoritative and source owners pinned. The lexical
+index and mutable construction scratch are derived data, not another graph.
+
+Implementation choice after the audit: copy inherited names into the child's
+existing Tower interner during construction, then discard the parent dependency.
+This removes all native materialization/copies and allows independent destruction
+without introducing refcount changes in read phases. A borrowed parent overlay
+remains an optimization proposal, not a requirement for this ownership port.
+Template hole display names are populated during exclusive hole construction,
+before parser-table publication. Read-only lookups afterward allocate nothing;
+formatted host-return strings and completion suffix requests own separate output.
+
+Saved current integrated LLVM reactor as build/language-next/lexical-baseline-llvm.wasm.
+Reuse the already configured native/WASI caches; no upstream LLVM rebuild. Verify
+Tower production fixtures, failure cleanup, lifetime/order contracts, native CLI,
+browser diagnostics/completion/replacements, 2/4-worker successors and paired
+object-equal benchmarks. Package/deploy once for the coherent batch. Sanitizer and
+repository formatter sweeps remain deferred, and todo.txt remains untouched.
+
+Implementation replaces all five native maps, native token-ID/display setup,
+literal/keyword enumeration, lexer population and suffix candidate assembly with
+syntax-emission-lexical.tower. Construction freezes lexicographic views and an
+ID-sorted display index; duplicate IDs preserve last-emitted display behavior.
+Sparse IDs, skipped-token gaps, reserved inherited helpers and independent child
+destruction are covered in the production Tower fixture. All implementation and
+functional additions are Tower; native edits remove ownership/algorithms and
+connect those APIs. The completion request still owns its mutable LR probe; this
+does not claim sharing one completion request across workers is safe.
+
+Initial import trial pulled the formatter implementation's opaque LR API into
+the concrete parser unit and failed foreign-symbol type compatibility. Exported
+the existing Tower formatter host-string transfer through format-api instead;
+no duplicate formatter or native shim. A pointer-to-pointer typo for compiled
+lexer tables and one missing direct lr-grammar import were caught at compilation.
+The first failure-injection run then segfaulted in emission_lexical_tokens.
+GDB showed a null interner lookup before Identifier comparison. Root cause:
+source token names are length-delimited buffers; the fixture intentionally uses
+bytes_append and does not promise a NUL terminator. Lookup now accepts explicit
+length, and special-token comparisons use owned terminated interner text. This
+also corrects the pre-existing initialization comparison's same assumption.
+Inherited-construction failure sweeps, sparse/duplicate IDs, lexical keyword
+ordering, repeated allocation-free lookups and parent-before-child destruction
+now pass, as do native CLI tests. Wasm and publication checks follow.
+
+Pre-rebase validation: native tests 2/2; 111 diagnostic/completion/replacement/
+hover/module tests plus 18 Bedrock/source-location/Foundation-storage tests pass.
+Two 2/4-worker successor generations are identical (870293 / 52096409 / 63653772
+bytes). Timing initially showed templates +1.84%, layout +1.51%, compiler-host
+-0.38%. A 20-warmup/64-pair run narrowed these to +1.55%, +0.34%, -0.50%.
+The token display path allocated a temporary formatter buffer before its final
+host-owned label; a Tower formatter helper now writes that already-spelled label
+with one final allocation, like the existing scalar label path. Native tests
+still pass. The subsequent 64-pair medians are templates 4.624 -> 4.672 ms
+(+1.04%), layout 16.340 -> 16.366 ms (+0.16%), compiler-host 134.287 -> 134.062 ms
+(-0.17%), all with identical program objects. Do not claim every case improved:
+the small template increase remains measured. Reports preserve initial, warmed
+and final trials as lexical-benchmark{,-warm,-final}.json. Final browser/package
+verification of the formatter optimization is still pending at this checkpoint.
+
+Current slice removes 79 net C++ implementation lines and adds 16 ABI declaration
+lines. Before integrating the user's newly announced compound-expression work:
+production 1,944 C++ + 192 C + 1,980 headers = 4,116; all owned native categories
+11,369. Checkpointing before the requested pull/rebase and rereading AGENTS.md.
