@@ -16819,3 +16819,38 @@ build/domain-live-report.json. The final published commit is
 recorded above. This completes the new-domain deployment; the earlier API-token
 and browser-launch blockers no longer apply. `todo.txt` remains Git blob
 96a9e58964d7f01e4a97819f259448db81ef5e40.
+
+## 2026-11-19 — Grammar hover published and verified over HTTPS
+
+Published the tested hover assets as gh-pages 9c25540 and pushed the source and
+validation commits through main 27e59fd. During publication, a concurrent domain
+cutover created CNAME commit 9f2bf23 with 9c25540 as its parent. Preserved that
+configuration. The initial HTTPS probe failed SEC_E_WRONG_PRINCIPAL while Pages
+had no certificate; all 68 application assets already matched over HTTP. GitHub
+then reported authorization_created followed by approved for tower-lang.org and
+www.tower-lang.org, with HTTPS enforcement enabled. This supersedes the previous
+entry's pre-cutover hosting state; no pending certificate blocker remains.
+
+The domain follow-up commits through gh-pages 65d0238 change only CNAME and the
+manifest relative to 9f2bf23. Rebuilding the UI package with the prepared CNAME
+produces the exact same published manifest, SHA-256
+70e1349adf9dca05e4c6baa8b903fdf63f2fe433d26d607902d167ff047c822f.
+The compiler/runtime assets retain the validated grammar-hover implementation.
+
+`node playground/scripts/verify-deployment.mjs https://tower-lang.org/` exits zero:
+all 69 served asset hashes match and both desktop/mobile profiles pass backend
+agreement, forward module bindings, editable grammar, persistence, native exports,
+completion, output highlighting and target defaults. Ten additional live Playwright
+hover cases pass across both profiles: cached typed hover, per-part grammar hover,
+five-pixel tolerance, dwell-based retargeting and attached documentation. Evidence:
+build/grammar-hover-live-https.log, grammar-hover-live-browser.log and the live
+deployment-verification report. Pages reports built and HTTPS enforced.
+
+The real-mouse benchmark on the identical local runtime bundle uses 20 documents
+per profile and observes tooltip insertion plus a task after requestAnimationFrame.
+Median insertion is 0.5 ms on desktop/mobile; median paint boundary is 2.3 ms, with
+p95 5.2 ms desktop and 5.6 ms mobile. Every hover uses the prepared document query,
+with zero hover-time worker requests. This is a browser scheduling measurement,
+not a promise of zero physical display latency. Evidence: build/grammar-hover-
+performance.json and .log. Existing local edits remain preserved; todo.txt still
+matches SHA-256 41167ea6c171d41aa333ee35e307b9f1d0f20a22e8832e8f4fb7de2a216efab7.
