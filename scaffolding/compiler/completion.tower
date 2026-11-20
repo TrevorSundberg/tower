@@ -17,6 +17,9 @@ struct CompletionQuery {
     semantic: bool;
     analyzed: bool;
     inspection: bool;
+    inspection_session: void*;
+    comment_modules: vector(void*);
+    comment_bases: vector(usize);
     truncated: bool;
     input: vector(u8);
     roots: vector(void*);
@@ -130,6 +133,10 @@ fn completion_parse(q: CompletionQuery*, source: u8*, mode: u32, future: bool): 
                 var imported = dependency != module;
                 if imported {
                     var dependency_base = q.input.length;
+                    if q.inspection {
+                        sem_push(&q.comment_modules, dependency);
+                        sem_require(vector_push(usize, &q.comment_bases, dependency_base));
+                    }
                     var data = frontend_module_source(dependency);
                     var bytes = frontend_module_size(dependency);
                     sem_require(bytes_append(&q.input, data, bytes));
@@ -160,7 +167,20 @@ fn completion_parse(q: CompletionQuery*, source: u8*, mode: u32, future: bool): 
         i = i + 1;
     }
     vector_dispose(void*, &entries);
-    syntax_destroy(session);
+    if q.inspection {
+        // Keep the normal module/lexer metadata alive until semantic checking
+        // has attached Foundation components for the shared comment pass.
+        q.inspection_session = session;
+        var module = syntax_completion_module(session);
+        var present = module != null;
+        if present {
+            syntax_capture_comments(session, module);
+            sem_push(&q.comment_modules, module);
+            sem_require(vector_push(usize, &q.comment_bases, base));
+        }
+    } else {
+        syntax_destroy(session);
+    }
     return clean;
 }
 
@@ -1153,6 +1173,12 @@ export fn completion_dispose(q: CompletionQuery*): void {
         semantic_program_dispose(&q.program);
         entity_release(q.program.root);
     }
+    var retained = q.inspection_session != null;
+    if retained {
+        syntax_destroy(q.inspection_session);
+    }
+    vector_dispose(void*, &q.comment_modules);
+    vector_dispose(usize, &q.comment_bases);
     vector_dispose(u8, &q.input);
     vector_dispose(void*, &q.roots);
     vector_dispose(usize, &q.bases);

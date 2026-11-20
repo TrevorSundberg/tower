@@ -40,18 +40,19 @@ test.beforeEach(async({page})=>{
       return post.call(this,data,...rest);
     };
   });
-  await page.goto('/');await expect(page.locator('#status')).toContainText('Complete');
+  await page.goto(process.env.TOWER_HOVER_TEST_URL || '/');await expect(page.locator('#status')).toContainText('Complete');
   await page.locator('#auto-execute').uncheck();
 });
 
-test('cached mouse hover shows checked types and ECS metadata without a worker round trip',async({page},info)=>{
+test('cached mouse hover shows resolved types and declaration locations without debug metadata or a worker round trip',async({page},info)=>{
   const text='var value = 42;\nprint(value);';await source(page,text);await ready(page,text);
   const count=await page.evaluate(()=>window.documentQueries.length);
   const position=await point(page,'value');await page.mouse.move(position.x,position.y);
   const tip=page.locator('.tw-language-hover');await expect(tip).toBeVisible();
   await expect(tip.locator('code')).toHaveText('var value: i32');
   await expect(tip).toContainText('global variable');await expect(tip).toContainText('4 bytes');
-  await expect(tip).toContainText(/entity \d+.*components/);await expect(tip).toContainText('Resolves to entity');
+  await expect(tip).toContainText('Type: i32');await expect(tip).toContainText('Declared at line 1, column 1');
+  await expect(tip).not.toContainText(/entity|components|Syntax|CoreLocation/);
   expect(await page.evaluate(()=>window.documentQueries.length)).toBe(count);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   await page.screenshot({path:'../build/hover-'+info.project.name+'.png'});
@@ -140,7 +141,7 @@ test('preview follows the mouse and becomes opaque after dwelling on a moving sy
   expect(await panel.boundingBox()).toEqual(pinned);
 });
 
-test('a pinned panel allows interaction and a 25 percent dismissal margin',async({page})=>{
+test('a pinned panel allows interaction and exactly a five pixel dismissal margin',async({page})=>{
   const text='\n\n\n\nvar stickySymbol:i32 = 42;\nprint(stickySymbol);';
   await source(page,text);await ready(page,text);
   const position=await point(page,'stickySymbol'),panel=page.locator('.tw-hover-panel');
@@ -152,8 +153,58 @@ test('a pinned panel allows interaction and a 25 percent dismissal margin',async
   })).toBe(true);
   await panel.locator('.tw-hover-signature').dblclick();await expect(panel).toBeVisible();
   expect(await page.evaluate(()=>getSelection().toString().length)).toBeGreaterThan(0);
-  await page.mouse.move(box.x+box.width/2,box.y+box.height*1.2);await expect(panel).toBeVisible();
-  await page.mouse.move(box.x+box.width/2,box.y+box.height*1.3);await expect(panel).toHaveCount(0);
+  // Keep this boundary probe away from the original token, which also holds
+  // the tooltip independently of the panel's margin on narrow screens.
+  await page.mouse.move(box.x+box.width-8,box.y+box.height+4);await expect(panel).toBeVisible();
+  await page.mouse.move(box.x+box.width-8,box.y+box.height+6);await expect(panel).toHaveCount(0);
+});
+
+test('another symbol inside the margin dims the border and replaces the pinned tooltip after continuous dwell',async({page},info)=>{
+  const text='\n\n\n\nvar original:i32 = 1;\nvar target:i32 = 2;\nvar third:i32 = 3;\noriginal = target + third;';
+  await source(page,text);await ready(page,text);
+  await page.clock.install({time:new Date('2030-01-01T00:00:00Z')});
+  await page.clock.pauseAt(new Date('2030-01-01T00:01:00Z'));
+  const original=await point(page,'original'),target=await point(page,'target'),third=await point(page,'third');
+  const panel=page.locator('.tw-hover-panel');
+  await page.mouse.move(original.x,original.y+5);await page.clock.runFor(800);
+  await expect(panel).toHaveClass(/tw-hover-pinned/);
+  const box=await panel.boundingBox(),y=box.y+box.height+3;
+  expect(Math.abs(y-target.y)).toBeLessThan(8);
+  await page.mouse.move(target.x-3,y);await page.clock.runFor(400);
+  await expect(panel).toHaveClass(/tw-hover-pending/);
+  await expect(panel).toHaveCSS('border-top-color','rgb(47, 66, 72)');
+  await expect(panel.locator('code')).toHaveText('var original: i32');
+  await page.screenshot({path:`../build/hover-switch-pending-${info.project.name}.png`});
+  // Another prospective symbol restarts the timer; returning to the panel cancels it.
+  await page.mouse.move(third.x,y);await page.clock.runFor(400);
+  await expect(panel.locator('code')).toHaveText('var original: i32');
+  await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.clock.runFor(800);
+  await expect(panel).not.toHaveClass(/tw-hover-pending/);
+  await expect(panel).toHaveCSS('border-top-color','rgb(72, 101, 108)');
+  await page.mouse.move(target.x-3,y);await page.clock.runFor(400);
+  await page.mouse.move(target.x+3,y);await page.clock.runFor(399);
+  await expect(panel.locator('code')).toHaveText('var original: i32');
+  await page.clock.runFor(1);
+  await expect(panel.locator('code')).toHaveText('var target: i32');
+  await expect(panel).toHaveClass(/tw-hover-pinned/);await expect(panel).not.toHaveClass(/tw-hover-pending/);
+  await expect(panel).toHaveCSS('opacity','1');
+});
+
+test('hover shows attached documentation and typed signatures, suppressing name-only syntax',async({page})=>{
+  const text='// Doubles the input. <b>This is plain text.</b>\nfn twice(value:i32):i32 { var result = value + value; return result; }\nprint(twice(21));';
+  await source(page,text);await ready(page,text);
+  const position=await point(page,'twice'),tip=page.locator('.tw-language-hover');
+  await page.mouse.move(position.x,position.y);
+  await expect(tip.locator('code')).toHaveText('fn twice(value: i32): i32');
+  await expect(tip).toContainText('Returns: i32');
+  await expect(tip).toContainText('Doubles the input. <b>This is plain text.</b>');
+  await expect(tip.locator('b')).toHaveCount(0);
+  await expect(tip).not.toContainText(/entity|components|Syntax/);
+  await page.keyboard.press('Escape');
+  const keyword=await point(page,'return');await page.mouse.move(keyword.x,keyword.y);
+  await expect(tip).toHaveCount(0);
+  const broken='var unknown = missing;';await source(page,broken);await ready(page,broken);
+  const missing=await point(page,'missing');await page.mouse.move(missing.x,missing.y);await expect(tip).toHaveCount(0);
 });
 
 test('changing symbols restarts dwell and blank space or Escape dismisses the preview',async({page})=>{

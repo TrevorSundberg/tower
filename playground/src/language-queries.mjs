@@ -13,11 +13,17 @@ export function languagePayload(configuration,source,method,position=0) {
 
 export function hoverIndex(source,result) {
   const offsets=byteOffsets(source);
-  const entries=(result?.entries??[]).map(entry=>({...entry,from:offsets[entry.from],to:offsets[entry.to]}))
+  const entries=(result?.entries??[]).map(entry=>({...entry,from:offsets[entry.from],to:offsets[entry.to],declarationFrom:offsets[entry.declaration]}))
     .filter(entry=>Number.isInteger(entry.from)&&Number.isInteger(entry.to)&&entry.from<entry.to)
     .sort((a,b)=>a.from-b.from || b.to-a.to);
   let end=0;
   return entries.map(entry=>{end=Math.max(end,entry.to);return {...entry,maxEnd:end};});
+}
+
+// Presentation eligibility only; types, documentation and signatures are all
+// supplied by Tower. Raw token/entity inspection belongs in the tree inspector.
+export function hasHoverDetails(entry,source) {
+  return !!(entry.type || entry.documentation || entry.kind==='grammar' && entry.signature?.trim()!==source.trim());
 }
 
 // Interval lookup only. Tower already selected the bound entity, type,

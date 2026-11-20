@@ -1,24 +1,32 @@
 import {StateEffect,StateField} from '@codemirror/state';
 import {ViewPlugin,showTooltip,repositionTooltips,closeHoverTooltips} from '@codemirror/view';
-import {DocumentQueries,languagePayload,hoverAt} from './language-queries.mjs';
+import {DocumentQueries,languagePayload,hoverAt,hasHoverDetails} from './language-queries.mjs';
 import {compilerSelection,onCompilerSelection} from './compiler-selection.mjs';
 
-const dwellTime=800,holdMargin=.25;
-const contains=(rect,point,margin=0)=>point.x>=rect.left-rect.width*margin && point.x<=rect.right+rect.width*margin &&
-  point.y>=rect.top-rect.height*margin && point.y<=rect.bottom+rect.height*margin;
+const dwellTime=800,holdMargin=5;
+const contains=(rect,point,margin=0)=>point.x>=rect.left-margin && point.x<=rect.right+margin &&
+  point.y>=rect.top-margin && point.y<=rect.bottom+margin;
 
-function tooltipContent(entry) {
+function tooltipContent(entry,doc) {
     const dom=document.createElement('div');dom.className='tw-language-hover';
-    dom.setAttribute('role','tooltip');dom.dataset.entity=entry.entity;
-    const signature=document.createElement('code');signature.className='tw-hover-signature';signature.textContent=entry.signature;
-    dom.append(signature);
+    dom.setAttribute('role','tooltip');
+    if(entry.signature?.trim()!==doc.sliceString(entry.from,entry.to).trim()) {
+      const signature=document.createElement('code');signature.className='tw-hover-signature';signature.textContent=entry.signature;
+      dom.append(signature);
+    }
     const line=text=>{const row=document.createElement('div');row.textContent=text;dom.append(row);};
-    line(entry.type?`${entry.kind} · ${entry.kind==='function'?'returns ':''}${entry.type}`:entry.kind);
-    if(entry.size!==undefined)line(`${entry.kind==='function'?'Result: ':''}${entry.size} bytes · alignment ${entry.alignment}${entry.offset===undefined?'':` · field offset ${entry.offset}`}`);
-    const details=document.createElement('div');details.className='tw-hover-node';
-    details.textContent=`${entry.syntax || 'Syntax node'} · entity ${entry.entity} · ${entry.components} components`;
-    details.title='Entity identifiers describe this query snapshot.';dom.append(details);
-    if(entry.binding!==undefined && entry.binding!==entry.entity)line(`Resolves to entity ${entry.binding}`);
+    if(entry.kind && entry.kind!=='syntax')line(entry.kind);
+    const functionType=entry.kind?.startsWith('function');
+    if(entry.type)line(`${functionType?'Returns':'Type'}: ${entry.type}`);
+    if(entry.size!==undefined && entry.type!=='void')line(`${functionType?'Result: ':''}${entry.size} bytes · alignment ${entry.alignment}${entry.offset===undefined?'':` · field offset ${entry.offset}`}`);
+    if(Number.isInteger(entry.declarationFrom) && entry.declarationFrom<=doc.length) {
+      const location=doc.lineAt(entry.declarationFrom);
+      line(`Declared at line ${location.number}, column ${entry.declarationFrom-location.from+1}`);
+    }
+    if(entry.documentation) {
+      const documentation=document.createElement('div');documentation.className='tw-hover-documentation';
+      documentation.textContent=entry.documentation;dom.append(documentation);
+    }
     return dom;
 }
 
@@ -74,9 +82,15 @@ export function towerHover(service,configuration) {
     update(update) {
       if(update.docChanged){currentDoc=null;value=null;documents.clear();this.schedule();}
       if(update.docChanged || update.selectionSet || update.startState.field(hoverState) && !update.state.field(hoverState)){this.reset();}
-      else if(update.geometryChanged && this.current)this.current.rects=null;
+      else if(update.geometryChanged) {
+        if(this.current)this.current.rects=null;
+        if(this.retarget)this.retarget.rects=null;
+      }
     }
-    reset() {clearTimeout(this.dwell);this.current=null;this.pending=null;}
+    cancelSwitch() {
+      clearTimeout(this.switchTimer);this.retarget=null;this.current?.dom?.classList.remove('tw-hover-pending');
+    }
+    reset() {clearTimeout(this.dwell);this.cancelSwitch();this.current=null;this.pending=null;}
     hide() {
       this.reset();
       if(this.view.state.field(hoverState))this.view.dispatch({effects:setHover.of(null)});
@@ -95,7 +109,10 @@ export function towerHover(service,configuration) {
       if(event.buttons && !this.current?.locked){this.hide();return;}
       const hover=this.current;
       if(hover?.locked) {
-        if(hover.dom && (hover.dom.contains(event.target) || contains(hover.dom.getBoundingClientRect(),this.pointer,holdMargin)) || this.overSymbol(hover,this.pointer))return;
+        if(hover.dom?.contains(event.target)){this.cancelSwitch();return;}
+        if(hover.dom && contains(hover.dom.getBoundingClientRect(),this.pointer,holdMargin) || this.overSymbol(hover,this.pointer)) {
+          this.considerSwitch(event.target);return;
+        }
         this.hide();
       }
       if(!this.view.contentDOM.contains(event.target)){this.hide();return;}
@@ -103,6 +120,22 @@ export function towerHover(service,configuration) {
         hover.anchor={...this.pointer};repositionTooltips(this.view);return;
       }
       this.inspect();
+    }
+    considerSwitch(target) {
+      if(!this.view.contentDOM.contains(target)){this.cancelSwitch();return;}
+      if(this.retarget && this.overSymbol(this.retarget,this.pointer)) {
+        this.retarget.anchor={...this.pointer};return;
+      }
+      this.cancelSwitch();
+      const entries=query(this.view),next=entries?.then?null:this.hit(entries);
+      if(!next || next.entry===this.current.entry)return;
+      const previous=this.current;
+      this.retarget=next;previous.dom.classList.add('tw-hover-pending');
+      this.switchTimer=setTimeout(()=>{
+        if(this.current!==previous || this.retarget!==next || !this.overSymbol(next,this.pointer))return;
+        if(!this.view.contentDOM.contains(this.document.elementFromPoint(this.pointer.x,this.pointer.y))){this.cancelSwitch();return;}
+        this.show(next,true);
+      },dwellTime);
     }
     inspect() {
       const doc=this.view.state.doc,revision=compilerSelection().revision,width=configuration().pointerBytes??4;
@@ -117,35 +150,44 @@ export function towerHover(service,configuration) {
         if(this.view.contentDOM.contains(target))this.render(entries);
       });
     }
-    render(entries) {
+    hit(entries) {
       const point=this.pointer,pos=this.view.posAtCoords(point);
-      if(!entries || pos===null){this.hide();return;}
+      if(!entries || pos===null)return null;
       // Hit-test the actual token rectangles, not the nearest caret in blank
       // space. The compiler still owns all symbol/type/range information.
       for(const side of [1,-1]) {
         const entry=hoverAt(entries,pos,side);
-        if(!entry)continue;
+        if(!entry || !hasHoverDetails(entry,this.view.state.doc.sliceString(entry.from,entry.to)))continue;
         const rects=this.rects(entry);
         if(!rects.some(rect=>contains(rect,point)))continue;
-        if(this.current?.entry===entry) {
-          this.current.anchor={...point};repositionTooltips(this.view);return;
-        }
+        return {entry,rects,anchor:{...point}};
+      }
+      return null;
+    }
+    render(entries) {
+      const next=this.hit(entries);
+      if(!next){this.hide();return;}
+      if(this.current?.entry===next.entry) {
+        this.current.anchor=next.anchor;repositionTooltips(this.view);return;
+      }
+      this.show(next,false);
+    }
+    show(next,locked) {
         this.reset();
-        const hover=this.current={entry,rects,anchor:{...point},locked:false,dom:null};
+        const {entry}=next,hover=this.current={...next,locked,dom:null};
         const description={pos:entry.from,end:entry.to,above:true,clip:false,create:()=>{
           const dom=hover.dom=this.document.createElement('div');
-          dom.className='tw-hover-panel tw-hover-preview';dom.append(tooltipContent(entry));
+          dom.className=`tw-hover-panel ${locked?'tw-hover-pinned':'tw-hover-preview'}`;
+          dom.append(tooltipContent(entry,this.view.state.doc));
           return {dom,getCoords:()=>({left:hover.anchor.x,right:hover.anchor.x,top:hover.anchor.y-12,bottom:hover.anchor.y+18})};
         }};
         this.view.dispatch({effects:setHover.of(description)});
+        if(locked)return;
         // Dwell belongs to this source occurrence, not the last mouse event.
         this.dwell=setTimeout(()=>{
           if(this.current!==hover || !this.overSymbol(hover,this.pointer))return;
           hover.locked=true;hover.dom.classList.replace('tw-hover-preview','tw-hover-pinned');
         },dwellTime);
-        return;
-      }
-      this.hide();
     }
     destroy() {
       this.destroyed=true;this.reset();clearTimeout(this.timer);this.unsubscribe();

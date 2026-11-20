@@ -18,12 +18,15 @@ extern fn format_dispose(result: FormatResult*): void;
 
 extern fn host_source_error(source: u8*, count: usize): u8*;
 
+extern fn generic_definition(context: void*, node: void*): void*;
+
 struct LanguageCandidate {
     node: void*;
     subject: void*;
     from: usize;
     to: usize;
     grammar: bool;
+    specialization: bool;
 }
 
 fn language_quote(q: CompletionQuery*, text: u8*, size: usize): void {
@@ -54,6 +57,77 @@ fn language_number(q: CompletionQuery*, key: u8*, value: usize): void {
     completion_text(&q.output, key);
     completion_text(&q.output, "\":");
     sem_require(host_json_unsigned(&q.output, convert(u64, value)));
+}
+
+fn language_documentation(q: CompletionQuery*, value: FoundationNode*): void {
+    // Consume the same attached metadata as Foundation/C formatting. Its
+    // normalized block delimiters are presentation trivia, not documentation.
+    var text: vector(u8);
+    vector_init(u8, &text);
+    var i: usize = 0;
+    loop {
+        var done = i >= value.comments.length;
+        if done {
+            break;
+        }
+        i = i + 2;
+        var first = i;
+        loop {
+            var next = i + 1;
+            done = next >= value.comments.length;
+            if done {
+                break;
+            }
+            var end = value.comments.data[i] == 42;
+            if end {
+                end = value.comments.data[next] == 47;
+            }
+            if end {
+                break;
+            }
+            i = next;
+        }
+        var last = i;
+        loop {
+            var spaces = first < last;
+            if spaces {
+                spaces = value.comments.data[first] == 32;
+            }
+            if spaces {
+                first = first + 1;
+            } else {
+                break;
+            }
+        }
+        loop {
+            var spaces = first < last;
+            if spaces {
+                var before = last - 1;
+                spaces = value.comments.data[before] == 32;
+            }
+            if spaces {
+                last = last - 1;
+            } else {
+                break;
+            }
+        }
+        var content = last > first;
+        if content {
+            var newline = text.length != 0;
+            if newline {
+                sem_require(vector_push(u8, &text, 10));
+            }
+            var count = last - first;
+            sem_require(bytes_append(&text, &value.comments.data[first], count));
+        }
+        i = i + 3;
+    }
+    var present = text.length != 0;
+    if present {
+        completion_text(&q.output, ",\"documentation\":");
+        sem_require(host_json_quote(&q.output, text.data, text.length));
+    }
+    vector_dispose(u8, &text);
 }
 
 fn language_kind(value: FoundationNode*): u8* {
@@ -132,7 +206,33 @@ fn language_candidate(q: CompletionQuery*, node: void*, candidate: LanguageCandi
     var grammar = entity_component_get(node, syntax_component_type()) != null;
     var value = sem_get(node);
     var usable = grammar;
+    var specialization = false;
     if checked {
+        var generic = value == null;
+        if generic {
+            generic = sem_is(node, "CoreFunction");
+        }
+        if generic {
+            // A generic declaration has no single concrete type. Show a real
+            // checked instantiation when available, explicitly labelled as such.
+            var i: usize = 0;
+            loop {
+                var done = i == q.program.functions.length;
+                if done {
+                    break;
+                }
+                var function = q.program.functions.data[i];
+                var definition = generic_definition(q.context.generics, function);
+                var same = definition == node;
+                if same {
+                    subject = function;
+                    value = sem_get(function);
+                    specialization = true;
+                    break;
+                }
+                i = i + 1;
+            }
+        }
         if sem_is(node, "CoreType") {
             var type = sem_type(&q.context, node);
             if sem_ok(&q.context) {
@@ -213,6 +313,7 @@ fn language_candidate(q: CompletionQuery*, node: void*, candidate: LanguageCandi
         candidate.from = span.start;
         candidate.to = span.start + span.length;
         candidate.grammar = grammar;
+        candidate.specialization = specialization;
     }
 }
 
@@ -272,6 +373,9 @@ fn language_leaf(q: CompletionQuery*, leaf: void*, candidate: LanguageCandidate*
         if candidate.grammar {
             kind = "grammar";
         }
+        if candidate.specialization {
+            kind = "function specialization";
+        }
     }
     language_string(q, "kind", kind);
     var syntax = sem_label(node);
@@ -293,6 +397,7 @@ fn language_leaf(q: CompletionQuery*, leaf: void*, candidate: LanguageCandidate*
     }
     var hover_condition36 = value != null;
     if hover_condition36 {
+        language_documentation(q, value);
         language_string(q, "type", sem_type_name(&q.context, &value.type));
         language_number(q, "binding", entity_id(subject));
         language_number(q, "size", semantic_size(&value.type));
@@ -405,6 +510,21 @@ export fn language_document(source: u8*, length: usize, mode: u32, pointer_bytes
     if checked {
         sem_run(c);
         checked = sem_ok(c);
+    }
+    if checked {
+        i = 0;
+        loop {
+            var done = i == q.comment_modules.length;
+            if done {
+                break;
+            }
+            var module = q.comment_modules.data[i];
+            var ordinary = frontend_module_roots(module) != 0;
+            if ordinary {
+                frontend_module_attach_comments(module, q.program.root, q.comment_bases.data[i]);
+            }
+            i = i + 1;
+        }
     }
     q.program.error.length = 0;
     q.output.length = 0;

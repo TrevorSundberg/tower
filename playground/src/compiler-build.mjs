@@ -127,8 +127,11 @@ export async function linkCompiler({compiler, recipe, files, inputs, support, pr
   const completion = tower.complete(partial,new TextEncoder().encode(partial).length);
   if (completion.error || completion.options?.length !== 1 || completion.options[0].label !== 'valid')
     throw new Error('Candidate typed completion check failed');
-  const inspected = tower.inspectDocument('var value: i32 = 42; print(value);');
-  if (!inspected.entries?.some(entry => entry.from === 27 && entry.signature === 'var value: i32' && entry.type === 'i32' && entry.binding))
+  const hoverSource = '// Documented value.\nvar value: i32 = 42; print(value);';
+  const inspected = tower.inspectDocument(hoverSource);
+  if (!inspected.entries.some(entry => entry.type === 'i32' && entry.documentation === 'Documented value.'))
+    throw new Error('Candidate attached hover documentation check failed');
+  if (!inspected.entries?.some(entry => entry.from === hoverSource.lastIndexOf('value') && entry.signature === 'var value: i32' && entry.type === 'i32' && entry.binding))
     throw new Error('Candidate typed hover check failed');
   const enumHover = tower.inspectDocument('enum State:u32 { Idle = 0, Busy = 4 } var state:State = State.Busy;');
   if (!enumHover.entries?.some(entry => entry.signature === 'State.Busy' && entry.type === 'State'))

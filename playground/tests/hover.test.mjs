@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {loadTower} from './compiler-fixtures.mjs';
-import {DocumentQueries,hoverAt,hoverIndex} from '../src/language-queries.mjs';
+import {DocumentQueries,hoverAt,hoverIndex,hasHoverDetails} from '../src/language-queries.mjs';
 const read=name=>readFile(new URL('../../'+name,import.meta.url));
 const tower=await loadTower(await read('build/browser-wasi/tower.wasm'),undefined,
   (await read('scaffolding/foundation.tower')).toString(),undefined,(await read('scaffolding/bedrock.tower')).toString());
@@ -93,10 +93,35 @@ test('grammar files expose syntax/entity metadata under their own baseline',()=>
   }
 });
 test('document queries release their temporary shared entities after repeated inspection',()=>{
-  const source='struct Point { x:i32; } var p:Point; print(p.x);';inspect(source);
+  const source='// Point documentation\nstruct Point { x:i32; }\n// Instance documentation\nvar p:Point; print(p.x);';inspect(source);
   const nodes=tower.exports.tw_live_nodes(),allocations=tower.exports.tw_live_allocations();
   for(let i=0;i<30;i++)inspect(source);
   assert.equal(tower.exports.tw_live_nodes(),nodes);assert.equal(tower.exports.tw_live_allocations(),allocations);
+});
+
+test('hover documentation shares attached comments for local and imported bindings',()=>{
+  const source='// Adds a value.\n// Keeps the original.\nfn increment(value:i32):i32 { var result = value + 1; return result; }\nprint(increment(41));';
+  assert.equal(at(source,'increment(41').documentation,'Adds a value.\nKeeps the original.');
+  assert.equal(hoverAt(inspect(source),source.indexOf('increment')+1).documentation,'Adds a value.\nKeeps the original.');
+  const imported='import tower; import "helper"; print(answer());';
+  const options={files:[{path:'helper.tower',text:'import tower;\n// The imported answer.\nfn answer():i32 { return 42; }'}]};
+  assert.equal(at(imported,'answer()',options).documentation,'The imported answer.');
+});
+
+test('the templates example exposes push documentation at the declaration and resolved calls',async()=>{
+  const source=(await read('scaffolding/examples/templates.tower')).toString();
+  const entries=inspect(source),declaration=hoverAt(entries,source.indexOf('push(')+1),call=hoverAt(entries,source.lastIndexOf('push(')+1);
+  for(const entry of [declaration,call])assert.match(entry.documentation??'',/This small example assumes there is space to push and a value to pop/);
+  assert.match(call.signature,/i32/);
+});
+
+test('presentation hides bare syntax tokens and converts declaration offsets after Unicode',()=>{
+  const source='// 雪🚀\nvar value = 42;\nprint(value);';
+  const entry=at(source,'value);');assert.equal(entry.declarationFrom,source.indexOf('var value'));
+  assert.equal(entry.documentation,'雪🚀');
+  assert.equal(hasHoverDetails(entry,'value'),true);
+  for(const text of ['var',';','unknown'])assert.equal(hasHoverDetails({kind:'syntax',signature:text},text),false);
+  assert.equal(hasHoverDetails({kind:'type',signature:'i32',type:'i32'},'i32'),true);
 });
 test('the presentation index selects the smallest containing range and respects token edges',()=>{
   const entries=hoverIndex('abcdef',{entries:[{from:0,to:6,signature:'outer'},{from:2,to:4,signature:'inner'}]});
