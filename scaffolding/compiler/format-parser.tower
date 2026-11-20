@@ -3,6 +3,7 @@ import 'format-types';
 import '../library/vector';
 import 'format-api';
 import 'parser-types';
+import 'format-parser-table';
 
 // Diagnostic views use the shared formatter and graph. They are not program
 // serialization; format_entity remains the canonical foundation spelling.

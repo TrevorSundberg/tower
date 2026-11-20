@@ -1,0 +1,11 @@
+import tower;
+
+// Shared parser protocol markers; ordinary scalar IDs occupy the other values.
+const ParserStreamEnd: u32 = 4294967294;
+const ParserLookahead: u32 = 4294967293;
+
+fn ParserNoIndex(): usize {
+    var index: usize = 0;
+    index = index - 1;
+    return index;
+}

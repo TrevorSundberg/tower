@@ -75,3 +75,11 @@ extern fn lr_runtime_specialize(runtime: void*, states: void*): void;
 extern fn lr_runtime_row_count(runtime: void*): usize;
 
 extern fn lr_runtime_sequence(runtime: void*): usize;
+
+extern fn lr_runtime_actions(runtime: void*, state: usize): LRAction*;
+
+extern fn lr_runtime_action_count(runtime: void*, state: usize): usize;
+
+extern fn lr_runtime_goto_data(runtime: void*, state: usize): LRGoto*;
+
+extern fn lr_runtime_goto_count(runtime: void*, state: usize): usize;

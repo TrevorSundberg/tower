@@ -9,9 +9,8 @@
 #include "parser.hpp"
 #include <string_view>
 #include <string>
-#include <span>
 #include <cassert>
-#include <sstream>
+#include "compiler-format.hpp"
 #include <memory>
 #include <cstdio>
 #include <cstring>
@@ -21,7 +20,6 @@
 // more than this many ids to represent all tokens / characters. We also put unicode code-points
 // within the uint32_t and it makes no sense for it to expand to anything greater in size
 // We don't use -1 just to ensure it never gets mixed with TOWER_INVALID_INDEX
-const uint32_t PARSER_ID_LOOKAHEAD = (uint32_t)-3;
 
 static bool parser_debug_trace = false;
 
@@ -243,219 +241,37 @@ struct Table {
   bool built;
 };
 
+// Existing callback transport; traversal, fallback and text composition are Tower.
+std::string debug_str(ParserFormatKind kind, const Table& table, size_t first = 0, size_t second = 0) {
+  std::unique_ptr<ParserFormat, decltype(&parser_format_destroy)> request(
+    parser_format_create(&table, kind, first, second, table.to_string != nullptr, table.describe_rule != nullptr),
+    parser_format_destroy);
+  if (!request) std::abort();
+  for (auto need = parser_format_next(request.get()); need != ParserFormatNeed::Done;
+       need = parser_format_next(request.get())) {
+    const auto index = parser_format_index(request.get());
+    if (need == ParserFormatNeed::Name) {
+      char* text = table.to_string(table.userdata, uint32_t(index));
+      parser_format_reply(request.get(), text, text ? strlen(text) : 0);
+      if (text) tower_memory_free(text);
+    } else {
+      const auto text = table.describe_rule(table.userdata, index);
+      parser_format_reply(request.get(), text.data(), text.size());
+    }
+  }
+  const auto* output = parser_format_result(request.get());
+  if (output->failed) std::abort();
+  std::string text;
+  if (output->text.length) text.assign(reinterpret_cast<const char*>(output->text.data), output->text.length);
+  return text;
+}
+
 std::string parser_grammar_create(Table& table, ParserTableResolveReference resolve) {
   auto* view = table.grammar;
   for (size_t i = 0; i < lr_grammar_missing_count(view); ++i) {
     const auto* name = lr_grammar_missing_name(view, i);
     const auto id = resolve ? resolve(table.userdata, name) : PARSER_ID_EOF;
-    if (!lr_grammar_resolve(view, i, id)) return std::string("Unresolved grammar rule: ") + name;
-  }
-  return {};
-}
-
-void debug_append_id(uint32_t id, std::stringstream& stream, const Table& grammar) {
-  switch (id) {
-    case PARSER_ID_EOF:
-    stream << '$';
-    return;
-    case PARSER_ID_LOOKAHEAD:
-    stream << '#';
-    return;
-  }
-
-  char* str = nullptr;
-  if (grammar.to_string) {
-    str = grammar.to_string(grammar.userdata, id);
-  }
-
-  if (str) {
-    stream << str;
-    tower_memory_free((void*)str);
-  } else {
-    stream << id;
-  }
-};
-
-std::string debug_str(uint32_t id, const Table& grammar) {
-  std::stringstream stream;
-  debug_append_id(id, stream, grammar);
-  return stream.str();
-}
-
-std::string debug_str(const SymbolRange& terminal, const Table& grammar) {
-  std::stringstream stream;
-  if (terminal.first == terminal.last) {
-    debug_append_id(terminal.first, stream, grammar);
-  } else {
-    stream << '[';
-    debug_append_id(terminal.first, stream, grammar);
-    stream << '-';
-    debug_append_id(terminal.last, stream, grammar);
-    stream << ']';
-  }
-  return stream.str();
-}
-
-std::string debug_str(const LRSymbol& symbol, const Table& grammar) {
-  if (symbol.nonterminal != SIZE_MAX) {
-    return lr_grammar_name(grammar.grammar, symbol.nonterminal);
-  } else {
-    return debug_str(SymbolRange{symbol.first, symbol.last}, grammar);
-  }
-}
-
-std::string debug_str(const ParserRulePosition& item, const Table& grammar) {
-  std::stringstream stream;
-
-  const auto& grammar_rule = lr_grammar_rule_data(grammar.grammar)[item.production];
-  stream << lr_grammar_name(grammar.grammar, grammar_rule.owner) << " =";
-
-  for (size_t g = 0; g <= grammar_rule.count; ++g) {
-    stream << ' ';
-    if (g == item.term) {
-      stream << "•";
-    }
-
-    if (g == grammar_rule.count) {
-      break;
-    }
-
-    const auto& symbol = lr_grammar_symbol_data(grammar.grammar)[grammar_rule.begin + g];
-    stream << debug_str(symbol, grammar);
-  }
-
-  return stream.str();
-}
-
-std::string debug_rule(size_t index, const Table& grammar) {
-  ParserRulePosition lr0_print_item{index, TOWER_INVALID_INDEX};
-  return debug_str(lr0_print_item, grammar);
-}
-
-std::string debug_nonterminal(size_t index, const Table& grammar) {
-  std::stringstream stream;
-  stream << "non_terminal(" << index << ", " << lr_grammar_name(grammar.grammar, index) << ")\n";
-  for (auto rule = parser_table_rule_next(&grammar, index, 0); rule != SIZE_MAX;
-       rule = parser_table_rule_next(&grammar, index, rule + 1)) {
-    stream << "  " << debug_rule(rule, grammar) << "\n";
-  }
-  return stream.str();
-}
-
-std::string debug_grammar(const Table& grammar) {
-  std::stringstream stream;
-  for (size_t rule = 0; rule < lr_grammar_rule_count(grammar.grammar); ++rule) {
-    stream << debug_rule(rule, grammar) << "\n";
-  }
-  for (size_t name = 0; name < lr_grammar_name_count(grammar.grammar); ++name) {
-    stream << debug_nonterminal(name, grammar);
-  }
-  return stream.str();
-}
-
-struct StateEdge {
-  const State* shift_state = nullptr;
-  const LRProduction* reduce_rule = nullptr;
-  operator bool() const { return shift_state || reduce_rule; }
-};
-
-std::string debug_str_header(const State& state, const Table& table, const char* prefix = "state") {
-  std::stringstream stream;
-  size_t state_index = &state - table.states.data;
-  stream << prefix << "(" << state_index;
-  if (state.origin != SIZE_MAX) {
-    stream << ", " << debug_str(lr_grammar_symbol_data(table.grammar)[state.origin], table);
-  }
-  stream << ")";
-  return stream.str();
-}
-
-// Only call this on edges/states that have been compacted within the table.
-std::string debug_str(const StateEdge& edge, const Table& table) {
-  std::stringstream stream;
-  if (edge.reduce_rule) {
-    ParserRulePosition reduce{
-      size_t(edge.reduce_rule - lr_grammar_rule_data(table.grammar)),
-      edge.reduce_rule->count
-    };
-    stream << "reduce(" << reduce.production << ", " << debug_str(reduce, table) << ")";
-  } else {
-    assert(edge.shift_state);
-    assert(!edge.reduce_rule);
-    stream << debug_str_header(*edge.shift_state, table, "shift");
-  }
-  return stream.str();
-}
-
-static StateEdge parser_state_edge(const Table& table, const LRAction& action) {
-  return {action.state == SIZE_MAX ? nullptr : &table.states.data[action.state],
-    action.rule == SIZE_MAX ? nullptr : &lr_grammar_rule_data(table.grammar)[action.rule]};
-}
-
-std::string debug_str(const State& state, const Table& table) {
-  std::stringstream stream;
-  stream << debug_str_header(state, table) << ":\n";
-  const auto index = size_t(&state - table.states.data);
-  const auto* actions = lr_runtime_actions(table.runtime, index);
-  for (size_t i = 0; i < lr_runtime_action_count(table.runtime, index); ++i) {
-    const auto& action = actions[i];
-    stream << "  edge(" << debug_str(SymbolRange{action.first, action.last}, table)
-      << ", " << debug_str(parser_state_edge(table, action), table) << ")\n";
-  }
-  const auto* gotos = lr_runtime_goto_data(table.runtime, index);
-  for (size_t i = 0; i < lr_runtime_goto_count(table.runtime, index); ++i)
-    stream << "  goto(" << lr_grammar_name(table.grammar, gotos[i].nonterminal)
-      << ", " << debug_str_header(table.states.data[gotos[i].state], table) << ")\n";
-  return stream.str();
-}
-
-std::string debug_str(const Table& table) {
-  std::stringstream stream;
-
-  stream << "~~~~~~~~~~\n";
-  for (const auto& state : std::span(table.states.data, table.states.length)) {
-    stream << debug_str(state, table) << "\n";
-  }
-
-  stream << "..........\n";
-  return stream.str();
-}
-
-std::string parser_table_build_lr(Table& table, bool specialize) {
-  if (!parser_table_build(&table, specialize)) return table.error;
-  LRConflict conflict;
-  if (lr_runtime_conflict(table.runtime, &conflict)) {
-    const bool left_reduce = conflict.left.rule != SIZE_MAX, right_reduce = conflict.right.rule != SIZE_MAX;
-    const char* kind = left_reduce && right_reduce ? "reduce/reduce" :
-      left_reduce || right_reduce ? "shift/reduce" : "shift/shift";
-    const auto describe = [&](const LRAction& action) {
-      const auto rule_text = [&](size_t index) {
-        if (table.describe_rule) {
-          auto text = table.describe_rule(table.userdata, index);
-          if (!text.empty()) return text;
-        }
-        return debug_rule(index, table);
-      };
-      if (action.rule != SIZE_MAX) return "finish " + rule_text(action.rule);
-      const SymbolRange terminal{action.first, action.last};
-      std::string text = "continue "; size_t count = 0;
-      const auto& state = table.states.data[conflict.state];
-      for (bool kernel : {true, false}) {
-        for (const auto& item : std::span(state.contexts.data, state.contexts.length)) {
-          if ((size_t(&item - state.contexts.data) < state.kernels) != kernel) continue;
-          if (!item.terminal || item.last < terminal.first || terminal.last < item.first) continue;
-          if (count++) text += " or ";
-          text += rule_text(item.production);
-          if (count == 3) break;
-        }
-        if (count) break;
-      }
-      return text;
-    };
-    return "Grammar conflict (" + std::string(kind) + ") on "
-      + debug_str(SymbolRange{conflict.right.first, conflict.right.last}, table)
-      + ": the parser could " + describe(conflict.left) + ", or " + describe(conflict.right)
-      + ". Make these alternatives distinct; their order does not resolve the conflict.";
+    if (!lr_grammar_resolve(view, i, id)) return debug_str(ParserFormatKind::Missing, table, i);
   }
   return {};
 }
@@ -489,11 +305,12 @@ Table* parser_table_create(
     if (table->error) return fail(table->error);
     std::string message = parser_grammar_create(*table, resolve);
     if (!message.empty()) return fail(message);
-    parser_trace("%s\n", debug_grammar(*table).c_str());
+    parser_trace("%s\n", debug_str(ParserFormatKind::Grammar, *table).c_str());
 
-    message = parser_table_build_lr(*table, specialize);
+    if (!parser_table_build(table, specialize)) return fail(table->error);
+    message = debug_str(ParserFormatKind::Conflict, *table);
     if (!message.empty()) return fail(message);
-    parser_trace("%s\n", debug_str(*table).c_str());
+    parser_trace("%s\n", debug_str(ParserFormatKind::Tables, *table).c_str());
 
     return table;
   }
@@ -570,7 +387,7 @@ ParserDiagnostic parser_recognizer_diagnostic(Recognizer* r, ParserDiagnosticRea
   }
   for (size_t i = 0; i < frontend_diagnostic_count(diagnostic.get()); ++i) {
     const auto* value = frontend_diagnostic_expected(diagnostic.get(), i);
-    ParserExpectation expected{value->id, value->id == PARSER_ID_EOF ? "end of input" : debug_str(value->id, *r->table), value->insertion, value->completes};
+    ParserExpectation expected{value->id, debug_str(ParserFormatKind::Expected, *r->table, value->id), value->insertion, value->completes};
     for (size_t j = 0; j < value->contexts.length; ++j) expected.contexts.push_back(value->contexts.data[j]);
     result.expected.push_back(std::move(expected));
   }
@@ -581,8 +398,7 @@ ParserDiagnostic parser_recognizer_diagnostic(Recognizer* r, ParserDiagnosticRea
 
 static void parser_unexpected(Recognizer* recognizer) {
   recognizer->error = recognizer->lookahead_error.empty() ?
-    "Unexpected " + (recognizer->read_id == PARSER_ID_EOF ? std::string("end of input") : debug_str(recognizer->read_id, *recognizer->table))
-    + "." : std::string(recognizer->lookahead_error.view());
+    debug_str(ParserFormatKind::Unexpected, *recognizer->table, recognizer->read_id) : std::string(recognizer->lookahead_error.view());
   recognizer->complete = true;
 }
 
@@ -606,13 +422,12 @@ TowerNode* parser_recognizer_step(Recognizer* recognizer, bool* running) {
   if (kind == LR_INVALID || kind == LR_NEED_INPUT) std::abort();
   const bool shift = kind == LR_SHIFT || kind == LR_SEQUENCE_SHIFT;
   if (parser_debug_trace) {
-    StateEdge edge{shift ? &recognizer->table->states.data[step.next] : nullptr,
-      shift ? nullptr : &lr_grammar_rule_data(recognizer->table->grammar)[step.rule]};
-    parser_trace("STEP: %s at byte %zu\n", debug_str(edge, *recognizer->table).c_str(), recognizer->read_start);
+    parser_trace("STEP: %s at byte %zu\n", debug_str(ParserFormatKind::Edge, *recognizer->table,
+      shift ? SIZE_MAX : step.rule, shift ? step.next : SIZE_MAX).c_str(), recognizer->read_start);
   }
   if (shift) {
     void* input = recognizer->read_node_or_null;
-    const auto label = lr_tree_needs_label(input, parser_match_get_type()) ? debug_str(step.id, *recognizer->table) : std::string{};
+    const auto label = lr_tree_needs_label(input, parser_match_get_type()) ? debug_str(ParserFormatKind::Scalar, *recognizer->table, step.id) : std::string{};
     const auto status = lr_tree_shift(recognizer->control, recognizer->forest, recognizer->table->grammar,
       parser_match_get_type(), &step, &input, label.c_str());
     recognizer->read_node_or_null = static_cast<TowerNode*>(input);

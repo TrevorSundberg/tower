@@ -5,6 +5,7 @@ import 'lr-api';
 import 'lr-types';
 import 'frontend-diagnostic-types';
 import '../library/vector';
+import 'parser-markers';
 
 extern fn entity_child_count(root: void*): usize;
 
@@ -298,7 +299,7 @@ export fn parser_table_non_terminal_resolve_reference(userdata: void*, name: u8*
         }
         index = index + 1;
     }
-    return 4294967294;
+    return ParserStreamEnd();
 }
 
 export fn parser_table_non_terminal_id_to_string(userdata: void*, id: u32): u8* {

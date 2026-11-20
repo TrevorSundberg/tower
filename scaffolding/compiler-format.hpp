@@ -18,3 +18,19 @@ void format_source(TowerFormatResult*, TowerNode**, size_t, const char*, size_t,
   const TowerCommentSpan*, size_t, TowerNode* syntax, TowerNode* foundation, TowerNode* match);
 void format_dispose(TowerFormatResult*);
 }
+
+struct Table;
+struct ParserFormat;
+enum class ParserFormatKind : uint32_t {
+  Scalar, Range, Item, Rule, Grammar, State, Tables, Edge, Conflict,
+  Expected, Unexpected, Missing
+};
+enum class ParserFormatNeed : uint32_t { Done, Name, Description };
+extern "C" {
+ParserFormat* parser_format_create(const Table*, ParserFormatKind, size_t, size_t, bool, bool);
+void parser_format_destroy(ParserFormat*);
+ParserFormatNeed parser_format_next(ParserFormat*);
+size_t parser_format_index(const ParserFormat*);
+void parser_format_reply(ParserFormat*, const char*, size_t);
+const TowerFormatResult* parser_format_result(const ParserFormat*);
+}

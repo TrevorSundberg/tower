@@ -19471,3 +19471,67 @@ The final incoming commit only appended journal evidence. No older artifact
 bundle overwrote the newer publication. Module scopes/import aliases are
 implemented, integrated, pushed and verified live; remaining work is the future
 module and standalone migration milestones recorded above.
+## 2026-11-20: Parser text formatting port
+
+Began from clean main 5234e36 after git pull --rebase (already current). The
+previous goal turn made verified progress: the Tower table owner is committed,
+pushed, deployed and verified. Continue the full native-removal goal. Implement
+the formatter/request-resume plan recorded above, reusing the existing isolated
+parser-format unit. Capture the current native trace before editing. New code
+and functional fixtures are Tower; native edits are deletion and mechanical
+connections to the Tower formatter and existing callback interfaces.
+
+Implementation: format-parser-table.tower now owns scalar/range, item/rule,
+grammar/name, state/action/goto, unexpected-input and conflict text. Its private
+formatter frames are traversal state over borrowed LR indexes, not grammar
+entities or an execution/serialization format. Work is request-owned; callbacks
+are requested in output order and no pointer into growable frame storage escapes.
+The C++ debug_str adapter only invokes existing callbacks, submits byte replies
+and copies the shared FormatResult to its existing transport type. Removed
+stringstream composition, StateEdge and native conflict-selection/printing.
+Named parser markers now live in a shared Tower module. No Foundation grammar or
+operation semantics changed; canonical Foundation serialization remains separate.
+
+Initial builds found unsupported else-if syntax (use nested braced ifs), the
+required second alloc argument, and reserved identifier expected in a test helper.
+Corrected these in Tower. Reviewed the callback release path to retain the old
+non-null guard; do not turn a null fallback reply into a node-allocation free.
+The native backend API checks pass. New frontend-parser-text.tower fixtures
+compile against the actual production exports and pass through isolated
+frontend_world_tests. They cover exact complete table/grammar output, start and
+empty productions, markers, decimal fallback, callback order/copy/null/empty
+behavior, cancellation, invalid protocol/indices and allocation-failure cleanup.
+Real ambiguous grammars verify reduce/reduce, shift/reduce, the three-alternative
+cap and preference for kernel contexts over closure contexts. Added an explicit
+length/embedded-NUL reply case for the final full run.
+
+Captured existing `tower-parser-tests --trace --parse examples/functions.tower`
+before editing and compared with the rebuilt ASAN executable: 8,066,500 bytes
+are identical (SHA-256 8d8744061d03bde6acde5e6131e94d1002a33dc29b6441dc60f4af48fb5966f5).
+Evidence: parser-text-trace-{baseline,current}.log and parser-text-isolated.log.
+The canonical formatter --write run completed; final checks use the formatted
+sources. Native sanitizer, browser builds, differential tests and benchmarking
+follow. Baseline LLVM reactor is copied from the just-published table-ownership
+build, hash 27207bcadd3af9157ee1a4f945f7385ac8e2b1fca506124e124bf53ee4099b19.
+
+Pre-integration validation: final formatted native backend API tests pass, and
+both WASI build trees report no further work before packaging. The formatter's
+explicit-length embedded-NUL fixture is included in the full parser test build.
+All 359 Node/Wasm checks pass (77.49 s). Two browser compiler generations using
+2 and 4 workers pass and produce identical outputs; saved reports are
+parser-text-generation{1,2}-before-integration.json. Local deployment verification
+passes all 69 assets and desktop/mobile flows, including C/Roku downloads.
+
+Removing C++ stream formatting also trims linked dependencies: the parser Wasm
+reactor shrinks from 1,058,760 to 862,046 bytes (18.6%). The parser's packaged
+native support shrinks from 5,479,876 to 1,841,148 uncompressed bytes. This is an
+artifact-size result, not yet a compile-time speed claim. The production-path
+native source/header inventory is 5,542 lines across 52 files, 169 net fewer
+than the preceding slice; bootstrap/reference and native test files are excluded.
+
+Fetched upstream 67e5ca8/e835bd4 while validation ran: a Tower language-component
+change improves hover descriptions and includes updated tests/docs. Integrate it
+before publishing, then rebuild its affected unit and compiler package and run
+the relevant combined checks. Do not replace that published update with the
+older candidate. Current full parser/browser tests and benchmark are still
+pending at this entry.

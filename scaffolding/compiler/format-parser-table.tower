@@ -1,0 +1,551 @@
+import tower;
+import 'format-api';
+import 'format-parser-table-types';
+import 'lr-api';
+
+extern fn parser_table_rule_next(table: ParserHostTable*, owner: usize, begin: usize): usize;
+
+const ParserConflictAlternatives: usize = 3;
+
+fn parser_format_push(request: ParserFormat*, kind: ParserFormatTask, a: usize, b: usize, c: usize, text: u8*): void {
+    if request.result.failed {
+        return;
+    }
+    var size = request.frames.length + 1;
+    var ok = size != 0;
+    if ok {
+        ok = vector_reserve(ParserFormatFrame, &request.frames, size);
+    }
+    if ok {
+        var frame = &request.frames.data[request.frames.length];
+        frame.kind = kind;
+        frame.a = a;
+        frame.b = b;
+        frame.c = c;
+        frame.text = text;
+        request.frames.length = size;
+    } else {
+        request.result.failed = true;
+    }
+}
+
+fn parser_format_text_later(request: ParserFormat*, text: u8*): void {
+    parser_format_push(request, ParserFormatTask.Text, 0, 0, 0, text);
+}
+
+fn parser_format_item_later(request: ParserFormat*, rule: usize, dot: usize): void {
+    parser_format_push(request, ParserFormatTask.Item, rule, dot, 0, null);
+}
+
+fn parser_format_state_valid(request: ParserFormat*, index: usize): bool {
+    var ok = request.table != null;
+    if ok {
+        ok = index < request.table.states.length;
+    }
+    if ok {} else {
+        request.result.failed = true;
+    }
+    return ok;
+}
+
+fn parser_format_rule_valid(request: ParserFormat*, index: usize): bool {
+    var ok = request.table != null;
+    if ok {
+        ok = index < lr_grammar_rule_count(request.table.grammar);
+    }
+    if ok {} else {
+        request.result.failed = true;
+    }
+    return ok;
+}
+
+// Frames are popped before execution; a paused callback never retains a pointer
+// into the growable frame storage. Iterators schedule one child at a time.
+fn parser_format_frame(request: ParserFormat*, frame: ParserFormatFrame*): void {
+    var f: FormatEngine;
+    fill(&f, 0, sizeof(FormatEngine));
+    f.result = &request.result;
+    var table = request.table;
+    match frame.kind {
+        ParserFormatTask.Text => {
+            format_text(&f, frame.text);
+        }
+        ParserFormatTask.Scalar => {
+            var id = convert(u32, frame.a);
+            var end = id == ParserStreamEnd();
+            var lookahead = id == ParserLookahead();
+            if end {
+                format_text(&f, "$");
+            }
+            else {
+                if lookahead {
+                    format_text(&f, "#");
+                }
+                else {
+                    if request.names {
+                        request.need = ParserFormatNeed.Name;
+                        request.index = frame.a;
+                    } else {
+                        format_unsigned(&f, convert(u64, id));
+                    }
+                }
+            }
+        }
+        ParserFormatTask.Range => {
+            var range = frame.a != frame.b;
+            if range {
+                format_text(&f, "[");
+                parser_format_text_later(request, "]");
+                parser_format_push(request, ParserFormatTask.Scalar, frame.b, 0, 0, null);
+                parser_format_text_later(request, "-");
+            }
+            parser_format_push(request, ParserFormatTask.Scalar, frame.a, 0, 0, null);
+        }
+        ParserFormatTask.Symbol => {
+            var valid = frame.a < lr_grammar_symbol_count(table.grammar);
+            if valid {} else {
+                request.result.failed = true;
+                return;
+            }
+            var symbols = lr_grammar_symbol_data(table.grammar);
+            var symbol = &symbols[frame.a];
+            var terminal = symbol.nonterminal == ParserNoIndex();
+            if terminal {
+                parser_format_push(request, ParserFormatTask.Range, convert(usize, symbol.first), convert(usize, symbol.last), 0, null);
+            } else {
+                format_text(&f, lr_grammar_name(table.grammar, symbol.nonterminal));
+            }
+        }
+        ParserFormatTask.Item => {
+            var valid = parser_format_rule_valid(request, frame.a);
+            if valid {} else {
+                return;
+            }
+            var rules = lr_grammar_rule_data(table.grammar);
+            var rule = &rules[frame.a];
+            format_text(&f, lr_grammar_name(table.grammar, rule.owner));
+            format_text(&f, " =");
+            parser_format_push(request, ParserFormatTask.ItemTail, frame.a, 0, frame.b, null);
+        }
+        ParserFormatTask.ItemTail => {
+            var rules = lr_grammar_rule_data(table.grammar);
+            var rule = &rules[frame.a];
+            format_text(&f, " ");
+            var dot = frame.b == frame.c;
+            if dot {
+                format_text(&f, "•");
+            }
+            var inside = frame.b < rule.count;
+            if inside {
+                var next = frame.b + 1;
+                var symbol = rule.begin + frame.b;
+                parser_format_push(request, ParserFormatTask.ItemTail, frame.a, next, frame.c, null);
+                parser_format_push(request, ParserFormatTask.Symbol, symbol, 0, 0, null);
+            }
+        }
+        ParserFormatTask.Rules => {
+            var inside = frame.a < lr_grammar_rule_count(table.grammar);
+            if inside {
+                var next = frame.a + 1;
+                parser_format_push(request, ParserFormatTask.Rules, next, 0, 0, null);
+                parser_format_text_later(request, "\n");
+                parser_format_item_later(request, frame.a, ParserNoIndex());
+            }
+        }
+        ParserFormatTask.Names => {
+            var inside = frame.a < lr_grammar_name_count(table.grammar);
+            if inside {
+                format_text(&f, "non_terminal(");
+                format_unsigned(&f, convert(u64, frame.a));
+                format_text(&f, ", ");
+                format_text(&f, lr_grammar_name(table.grammar, frame.a));
+                format_text(&f, ")\n");
+                var next = frame.a + 1;
+                parser_format_push(request, ParserFormatTask.Names, next, 0, 0, null);
+                parser_format_push(request, ParserFormatTask.NamedRules, frame.a, 0, 0, null);
+            }
+        }
+        ParserFormatTask.NamedRules => {
+            var rule = parser_table_rule_next(table, frame.a, frame.b);
+            var present = rule != ParserNoIndex();
+            if present {
+                format_text(&f, "  ");
+                var next = rule + 1;
+                parser_format_push(request, ParserFormatTask.NamedRules, frame.a, next, 0, null);
+                parser_format_text_later(request, "\n");
+                parser_format_item_later(request, rule, ParserNoIndex());
+            }
+        }
+        ParserFormatTask.Header => {
+            var valid = parser_format_state_valid(request, frame.a);
+            if valid {} else {
+                return;
+            }
+            format_text(&f, frame.text);
+            format_text(&f, "(");
+            format_unsigned(&f, convert(u64, frame.a));
+            parser_format_text_later(request, ")");
+            var origin = table.states.data[frame.a].origin;
+            var present = origin != ParserNoIndex();
+            if present {
+                format_text(&f, ", ");
+                parser_format_push(request, ParserFormatTask.Symbol, origin, 0, 0, null);
+            }
+        }
+        ParserFormatTask.State => {
+            var valid = parser_format_state_valid(request, frame.a);
+            if valid {} else {
+                return;
+            }
+            parser_format_push(request, ParserFormatTask.Gotos, frame.a, 0, 0, null);
+            parser_format_push(request, ParserFormatTask.Actions, frame.a, 0, 0, null);
+            parser_format_text_later(request, ":\n");
+            parser_format_push(request, ParserFormatTask.Header, frame.a, 0, 0, "state");
+        }
+        ParserFormatTask.States => {
+            var inside = frame.a < table.states.length;
+            if inside {
+                var next = frame.a + 1;
+                parser_format_push(request, ParserFormatTask.States, next, 0, 0, null);
+                parser_format_text_later(request, "\n");
+                parser_format_push(request, ParserFormatTask.State, frame.a, 0, 0, null);
+            }
+        }
+        ParserFormatTask.Actions => {
+            var inside = frame.b < lr_runtime_action_count(table.runtime, frame.a);
+            if inside {
+                var actions = lr_runtime_actions(table.runtime, frame.a);
+                var action = &actions[frame.b];
+                format_text(&f, "  edge(");
+                var next = frame.b + 1;
+                parser_format_push(request, ParserFormatTask.Actions, frame.a, next, 0, null);
+                parser_format_text_later(request, ")\n");
+                parser_format_push(request, ParserFormatTask.Edge, action.rule, action.state, 0, null);
+                parser_format_text_later(request, ", ");
+                parser_format_push(request, ParserFormatTask.Range, convert(usize, action.first), convert(usize, action.last), 0, null);
+            }
+        }
+        ParserFormatTask.Gotos => {
+            var inside = frame.b < lr_runtime_goto_count(table.runtime, frame.a);
+            if inside {
+                var gotos = lr_runtime_goto_data(table.runtime, frame.a);
+                var entry = &gotos[frame.b];
+                format_text(&f, "  goto(");
+                format_text(&f, lr_grammar_name(table.grammar, entry.nonterminal));
+                format_text(&f, ", ");
+                var next = frame.b + 1;
+                parser_format_push(request, ParserFormatTask.Gotos, frame.a, next, 0, null);
+                parser_format_text_later(request, ")\n");
+                parser_format_push(request, ParserFormatTask.Header, entry.state, 0, 0, "state");
+            }
+        }
+        ParserFormatTask.Edge => {
+            var reduce = frame.a != ParserNoIndex();
+            if reduce {
+                var valid = parser_format_rule_valid(request, frame.a);
+                if valid {} else {
+                    return;
+                }
+                var rules = lr_grammar_rule_data(table.grammar);
+                var count = rules[frame.a].count;
+                format_text(&f, "reduce(");
+                format_unsigned(&f, convert(u64, frame.a));
+                format_text(&f, ", ");
+                parser_format_text_later(request, ")");
+                parser_format_item_later(request, frame.a, count);
+            } else {
+                parser_format_push(request, ParserFormatTask.Header, frame.b, 0, 0, "shift");
+            }
+        }
+        ParserFormatTask.Describe => {
+            if request.descriptions {
+                request.need = ParserFormatNeed.Description;
+                request.index = frame.a;
+            } else {
+                parser_format_item_later(request, frame.a, ParserNoIndex());
+            }
+        }
+        ParserFormatTask.Conflict => {
+            var failed = table.error != null;
+            if failed {
+                format_text(&f, table.error);
+                return;
+            }
+            var conflict: LRConflict;
+            var ambiguous = lr_runtime_conflict(table.runtime, &conflict);
+            if ambiguous {} else {
+                return;
+            }
+            var left = conflict.left.rule != ParserNoIndex();
+            var right = conflict.right.rule != ParserNoIndex();
+            format_text(&f, "Grammar conflict (");
+            if left {
+                if right {
+                    format_text(&f, "reduce/reduce");
+                }
+                else {
+                    format_text(&f, "shift/reduce");
+                }
+            } else {
+                if right {
+                    format_text(&f, "shift/reduce");
+                }
+                else {
+                    format_text(&f, "shift/shift");
+                }
+            }
+            format_text(&f, ") on ");
+            parser_format_text_later(request, ". Make these alternatives distinct; their order does not resolve the conflict.");
+            parser_format_push(request, ParserFormatTask.Alternative, 1, 0, 0, null);
+            parser_format_text_later(request, ", or ");
+            parser_format_push(request, ParserFormatTask.Alternative, 0, 0, 0, null);
+            parser_format_text_later(request, ": the parser could ");
+            parser_format_push(request, ParserFormatTask.Range, convert(usize, conflict.right.first), convert(usize, conflict.right.last), 0, null);
+        }
+        ParserFormatTask.Alternative => {
+            var conflict: LRConflict;
+            lr_runtime_conflict(table.runtime, &conflict);
+            var action = &conflict.left;
+            var right = frame.a != 0;
+            if right {
+                action = &conflict.right;
+            }
+            var reduce = action.rule != ParserNoIndex();
+            if reduce {
+                format_text(&f, "finish ");
+                parser_format_push(request, ParserFormatTask.Describe, action.rule, 0, 0, null);
+            } else {
+                format_text(&f, "continue ");
+                parser_format_push(request, ParserFormatTask.Continue, frame.a, 0, 0, null);
+            }
+        }
+        ParserFormatTask.Continue => {
+            var conflict: LRConflict;
+            lr_runtime_conflict(table.runtime, &conflict);
+            var action = &conflict.left;
+            var right = frame.a != 0;
+            if right {
+                action = &conflict.right;
+            }
+            var state = &table.states.data[conflict.state];
+            var index = frame.b;
+            while index < state.contexts.length {
+                var closure = index == state.kernels;
+                if closure {
+                    var found = frame.c != 0;
+                    if found {
+                        return;
+                    }
+                }
+                var item = &state.contexts.data[index];
+                var selected = item.terminal;
+                var outside = item.last < action.first;
+                if outside {
+                    selected = false;
+                }
+                outside = action.last < item.first;
+                if outside {
+                    selected = false;
+                }
+                index = index + 1;
+                if selected {
+                    var separator = frame.c != 0;
+                    if separator {
+                        format_text(&f, " or ");
+                    }
+                    var count = frame.c + 1;
+                    var more = count < ParserConflictAlternatives();
+                    if more {
+                        parser_format_push(request, ParserFormatTask.Continue, frame.a, index, count, null);
+                    }
+                    parser_format_push(request, ParserFormatTask.Describe, item.production, 0, 0, null);
+                    return;
+                }
+            }
+        }
+        ParserFormatTask.Expected => {
+            var end = frame.a == convert(usize, ParserStreamEnd());
+            if end {
+                format_text(&f, "end of input");
+            }
+            else {
+                parser_format_push(request, ParserFormatTask.Scalar, frame.a, 0, 0, null);
+            }
+        }
+        ParserFormatTask.Unexpected => {
+            format_text(&f, "Unexpected ");
+            parser_format_text_later(request, ".");
+            parser_format_push(request, ParserFormatTask.Expected, frame.a, 0, 0, null);
+        }
+        ParserFormatTask.Missing => {
+            var valid = frame.a < lr_grammar_missing_count(table.grammar);
+            if valid {
+                format_text(&f, "Unresolved grammar rule: ");
+                format_text(&f, lr_grammar_missing_name(table.grammar, frame.a));
+            } else {
+                request.result.failed = true;
+            }
+        }
+        _ => {
+            request.result.failed = true;
+        }
+    }
+}
+
+export fn parser_format_destroy(request: ParserFormat*): void {
+    var absent = request == null;
+    if absent {
+        return;
+    }
+    format_dispose(&request.result);
+    vector_dispose(ParserFormatFrame, &request.frames);
+    free(request);
+}
+
+// No callback is invoked here. The caller pins the table and answers requests
+// until Done; destroy also supports cancellation while a request is pending.
+export fn parser_format_create(table: ParserHostTable*, kind: ParserFormatKind, first: usize, second: usize, names: bool, descriptions: bool): ParserFormat* {
+    var request = alloc(ParserFormat, 1);
+    var absent = request == null;
+    if absent {
+        return null;
+    }
+    fill(request, 0, sizeof(ParserFormat));
+    request.table = table;
+    request.names = names;
+    request.descriptions = descriptions;
+    match kind {
+        ParserFormatKind.Scalar => {
+            parser_format_push(request, ParserFormatTask.Scalar, first, 0, 0, null);
+        }
+        ParserFormatKind.Range => {
+            parser_format_push(request, ParserFormatTask.Range, first, second, 0, null);
+        }
+        ParserFormatKind.Expected => {
+            parser_format_push(request, ParserFormatTask.Expected, first, 0, 0, null);
+        }
+        ParserFormatKind.Unexpected => {
+            parser_format_push(request, ParserFormatTask.Unexpected, first, 0, 0, null);
+        }
+        _ => {
+            absent = table == null;
+            if absent {
+                request.result.failed = true;
+                return request;
+            }
+            absent = table.grammar == null;
+            if absent {
+                request.result.failed = true;
+                return request;
+            }
+            match kind {
+                ParserFormatKind.Item => {
+                    parser_format_item_later(request, first, second);
+                }
+                ParserFormatKind.Rule => {
+                    parser_format_item_later(request, first, ParserNoIndex());
+                }
+                ParserFormatKind.Grammar => {
+                    parser_format_push(request, ParserFormatTask.Names, 0, 0, 0, null);
+                    parser_format_push(request, ParserFormatTask.Rules, 0, 0, 0, null);
+                }
+                ParserFormatKind.State => {
+                    parser_format_push(request, ParserFormatTask.State, first, 0, 0, null);
+                }
+                ParserFormatKind.Tables => {
+                    parser_format_text_later(request, "..........\n");
+                    parser_format_push(request, ParserFormatTask.States, 0, 0, 0, null);
+                    parser_format_text_later(request, "~~~~~~~~~~\n");
+                }
+                ParserFormatKind.Edge => {
+                    parser_format_push(request, ParserFormatTask.Edge, first, second, 0, null);
+                }
+                ParserFormatKind.Conflict => {
+                    parser_format_push(request, ParserFormatTask.Conflict, 0, 0, 0, null);
+                }
+                ParserFormatKind.Missing => {
+                    parser_format_push(request, ParserFormatTask.Missing, first, 0, 0, null);
+                }
+                _ => {
+                    request.result.failed = true;
+                }
+            }
+        }
+    }
+    return request;
+}
+
+export fn parser_format_next(request: ParserFormat*): ParserFormatNeed {
+    if request.result.failed {
+        return ParserFormatNeed.Done;
+    }
+    var pending = request.need != ParserFormatNeed.Done;
+    if pending {
+        return request.need;
+    }
+    while request.frames.length != 0 {
+        request.frames.length = request.frames.length - 1;
+        var frame: ParserFormatFrame;
+        copy(&frame, &request.frames.data[request.frames.length], sizeof(ParserFormatFrame));
+        parser_format_frame(request, &frame);
+        if request.result.failed {
+            return ParserFormatNeed.Done;
+        }
+        pending = request.need != ParserFormatNeed.Done;
+        if pending {
+            return request.need;
+        }
+    }
+    return ParserFormatNeed.Done;
+}
+
+export fn parser_format_index(request: ParserFormat*): usize {
+    return request.index;
+}
+
+// Text is copied, never retained. A null name requests numeric fallback; an
+// empty description requests the grammar production. Embedded bytes survive.
+export fn parser_format_reply(request: ParserFormat*, text: u8*, length: usize): void {
+    var need = request.need;
+    request.need = ParserFormatNeed.Done;
+    if request.result.failed {
+        return;
+    }
+    var absent = text == null;
+    if absent {
+        var invalid = length != 0;
+        if invalid {
+            request.result.failed = true;
+            return;
+        }
+    }
+    var f: FormatEngine;
+    fill(&f, 0, sizeof(FormatEngine));
+    f.result = &request.result;
+    match need {
+        ParserFormatNeed.Name => {
+            if absent {
+                format_unsigned(&f, convert(u64, request.index));
+            }
+            else {
+                format_write(&f, text, length);
+            }
+        }
+        ParserFormatNeed.Description => {
+            var empty = length == 0;
+            if empty {
+                parser_format_item_later(request, request.index, ParserNoIndex());
+            }
+            else {
+                format_write(&f, text, length);
+            }
+        }
+        _ => {
+            request.result.failed = true;
+        }
+    }
+}
+
+export fn parser_format_result(request: ParserFormat*): FormatResult* {
+    return &request.result;
+}
