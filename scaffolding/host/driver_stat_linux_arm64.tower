@@ -1,0 +1,3 @@
+import tower;
+// Linux AArch64 asm-generic struct stat: st_mode is the u32 at offset 16.
+export fn driver_stat_mode(data: u8*): u32 { return *bits(u32*, data + 16); }

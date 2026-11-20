@@ -3,16 +3,16 @@
 The compiler is still a **hybrid development bootstrap**. A hash-pinned Linux x64
 development package is checked in under `bootstrap/` and selected automatically by
 the standard Docker build; no portable compiler release is checked in. Its semantic compiler and LLVM backend algorithms are
-Tower code, while frontend/session lifecycle, native transports, runtime startup
-and bootstrap distribution still need migration and integration. The tooling
+Tower code, while frontend/session lifecycle, remaining browser transports
+and portable bootstrap distribution still need migration and integration. The tooling
 below keeps those release gates explicit; a module comparison does not establish
 complete compiler self-hosting.
 
 The retirement inventory and reproducible validation are recorded in the ongoing
 project journal. Counts include blank lines and comments and exclude third-party
 dependencies; they are a source inventory, not a completion percentage.
-Syntax sessions, parser bridges, the CLI entry point, raw platform operations
-and bootstrap/distribution remain meaningful retirement work. The native browser
+Syntax sessions, remaining native transports and portable bootstrap/distribution
+remain meaningful retirement work. The native browser
 entry point has been removed in favor of Tower IDE services.
 Tower now owns generic registry lifetime, module compilation-session leasing and
 CompilerWorld stores with parser/syntax/Foundation/provenance type registries.
@@ -37,6 +37,24 @@ and output-kind/default-name policy. `driver_files.tower` owns binary file
 reads/writes through opaque libc file services. Failed reads close the file and
 preserve the previous buffer, including allocation failures. Writes report
 write/close failure; a partial output is not a successful artifact.
+
+`driver_entry.tower`, `driver_request.tower`, `driver_compile.tower` and
+`driver_execution.tower` now own the complete CLI path: grammar setup, pinned
+input/module lifetimes, compilation, optimization, both interpreters, canonical
+Foundation and bytecode reconstruction, output files, dependency files and linking.
+`scaffolding/driver.cpp` is retired. The production native CLI no longer links
+`core.cpp`, `core-nodes.cpp`, `core-machine.cpp` or `llvm-engine.cpp`; other
+consumers and reference tests still use those adapters.
+
+The remaining native syntax baseline is connected by ordinary foreign calls.
+The Tower-written private artifact builder binds its module slot and installs
+the selected C++ string return ABI, including `sret` on declarations and calls.
+Supported profiles are Linux libstdc++ C++11, native Darwin libc++ (including
+its alternate string layout), and release MSVC x64/ARM64. Darwin configuration
+reads the selected compiler's libc++ macro. These profiles must match the native
+syntax library; they are not portable C++ object layouts. Syntax baseline mutation
+still requires serialized use. Each CLI request restores the borrowed module slot
+and releases its own execution/cache/buffer storage on every normal exit.
 
 `ide_protocol.tower` exports `tw_abi_version`, `tw_alloc` and `tw_free`,
 validates IDE source, and serializes execution status/error/output/steps.
@@ -199,7 +217,7 @@ in target LLVM output, verifies the module, and produces ordinary target objects
 This private artifact step does not change canonical Foundation storage or allow
 reserved-symbol definitions in ordinary user programs. Browser compiler packages
 retain these generated ABI objects as prebuilt support while rebuilding their
-Tower host policies. Native compiler-result transport, complete syntax-session
+Tower host policies. Browser compiler-result transport, complete syntax-session
 ownership and an editable runtime-object build stage still need retirement.
 
 Generate the native artifact inventory:
@@ -218,8 +236,9 @@ before retirement; references stay until their comparisons can be preserved.
 
 Candidate execution profiles: Linux x64/ARM64 (`x86_64-unknown-linux-gnu`,
 `aarch64-unknown-linux-gnu`), Windows x64 (`x86_64-pc-windows-msvc`), macOS
-x64/ARM64 (`x86_64-apple-macos11`, `arm64-apple-macos11`). These are verification
-targets, not a claim of available binaries. Windows ARM64 is not yet included.
+x64/ARM64 (`x86_64-apple-macos11`, `arm64-apple-macos11`). Windows ARM64 also has
+a cross-compiled CLI and guest runtime profile. These are verification targets,
+not a claim of available portable compiler binaries.
 Browser/WASI retains its separate worker deployment/verification process.
 
 The operator migration additionally requires a bootstrap compiler supporting

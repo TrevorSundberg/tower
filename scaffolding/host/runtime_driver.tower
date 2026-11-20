@@ -1,0 +1,84 @@
+import tower;
+import runtime_platform;
+
+extern fn LLVMCreateTypeAttribute(context: void*, kind: u32, type: void*): void*;
+extern fn LLVMAddCallSiteAttribute(call: void*, index: u32, attribute: void*): void;
+extern fn LLVMGetFirstUse(value: void*): void*;
+extern fn LLVMGetNextUse(use: void*): void*;
+extern fn LLVMGetUser(use: void*): void*;
+extern fn LLVMIsACallInst(value: void*): void*;
+extern fn LLVMGetCalledValue(call: void*): void*;
+extern fn LLVMSetValueName2(value: void*, name: u8*, length: usize): void;
+extern fn strstr(text: u8*, part: u8*): u8*;
+
+fn runtime_driver_name(module: void*, source: u8*, target: u8*): void* {
+    var value = LLVMGetNamedFunction(module, source);
+    if value == null || LLVMIsDeclaration(value) == 0 || LLVMGetNamedFunction(module, target) != null {
+        puts("Invalid or conflicting driver foreign binding"); puts(source); return null;
+    }
+    LLVMSetValueName2(value, target, strlen(target));
+    return value;
+}
+
+fn runtime_driver_string(context: void*, module: void*, source: u8*, target: u8*, words: u64): bool {
+    var pointer = LLVMPointerTypeInContext(context, 0);
+    var parameters: void*[2]; parameters[0] = pointer; parameters[1] = pointer;
+    var signature = LLVMFunctionType(LLVMVoidTypeInContext(context), &parameters[0], 2, 0);
+    if runtime_platform_declaration(module, source, signature) == null { return false; }
+    var function = runtime_driver_name(module, source, target);
+    if function == null { return false; }
+    var attribute = LLVMCreateTypeAttribute(context, LLVMGetEnumAttributeKindForName("sret", 4),
+        LLVMArrayType2(LLVMInt64TypeInContext(context), words));
+    LLVMAddAttributeAtIndex(function, 1, attribute);
+    // AArch64 passes this hidden result in x8. Attributes must be present at
+    // both declaration and calls; an ordinary first pointer would use x0.
+    var use = LLVMGetFirstUse(function);
+    while use != null {
+        var call = LLVMGetUser(use);
+        if LLVMIsACallInst(call) == null || LLVMGetCalledValue(call) != function {
+            puts("Driver string result requires a direct call"); return false;
+        }
+        LLVMAddCallSiteAttribute(call, 1, attribute);
+        use = LLVMGetNextUse(use);
+    }
+    return true;
+}
+
+export fn runtime_driver(context: void*, module: void*, profile: u8*): bool {
+    var target = LLVMGetTarget(module);
+    if LLVMPointerSize(LLVMGetModuleDataLayout(module)) != 8 {
+        puts("Driver syntax ABI requires an explicit 64-bit profile"); return false;
+    }
+    var bedrock: u8* = null; var foundation: u8* = null;
+    var slot_name: u8* = "syntax_modules";
+    var delete_name: u8* = "_ZdlPv";
+    var stat_name: u8* = "stat";
+    var words: u64 = 4;
+    if strcmp(profile, "libstdcxx") == 0 && strstr(target, "linux") != null {
+        bedrock = "_Z18syntax_set_bedrockB5cxx11PKc";
+        foundation = "_Z20syntax_set_bootstrapB5cxx11PKc";
+    }
+    if (strcmp(profile, "libcxx") == 0 || strcmp(profile, "libcxx_alternate") == 0)
+        && (strstr(target, "apple") != null || strstr(target, "darwin") != null) {
+        bedrock = "_Z18syntax_set_bedrockPKc";
+        foundation = "_Z20syntax_set_bootstrapPKc";
+        words = 3;
+        if strstr(target, "x86_64") == target { stat_name = "stat$INODE64"; }
+    }
+    if strcmp(profile, "msvc") == 0 && strstr(target, "windows-msvc") != null {
+        bedrock = "?syntax_set_bedrock@@YA?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@PEBD@Z";
+        foundation = "?syntax_set_bootstrap@@YA?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@PEBD@Z";
+        slot_name = "?syntax_modules@@3PEAUModuleEnvironment@@EA";
+        delete_name = "??3@YAXPEAX@Z";
+        stat_name = null;
+    }
+    if bedrock == null { puts("Unsupported driver syntax ABI or target/profile mismatch"); return false; }
+    if stat_name != null && runtime_driver_name(module, "driver_stat", stat_name) == null { return false; }
+    var pointer = LLVMPointerTypeInContext(context, 0);
+    var slot = runtime_platform_declaration(module, "driver_syntax_slot", LLVMFunctionType(pointer, null, 0, 0));
+    if slot == null || LLVMGetNamedGlobal(module, slot_name) != null { return false; }
+    runtime_platform_return(context, slot, LLVMAddGlobal(module, pointer, slot_name));
+    if runtime_driver_name(module, "driver_syntax_delete", delete_name) == null { return false; }
+    return runtime_driver_string(context, module, "driver_syntax_bedrock", bedrock, words)
+        && runtime_driver_string(context, module, "driver_syntax_foundation", foundation, words);
+}

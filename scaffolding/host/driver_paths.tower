@@ -1,0 +1,75 @@
+import tower;
+import driver_support;
+import driver_platform;
+import .library.vector;
+import .library.bytes_types;
+import .library.bytes_interface;
+
+extern fn driver_platform_absolute(path: u8*, out: ByteBuffer*): bool;
+extern fn driver_platform_regular(path: u8*): bool;
+
+fn driver_extension(path: u8*): usize {
+    var begin: usize = 0;
+    var dot = strlen(path);
+    var i: usize = 0;
+    while path[i] != 0 {
+        if driver_platform_separator(path[i]) { begin = i + 1; dot = strlen(path); }
+        else { if path[i] == 46 && i != begin { dot = i; } }
+        ++i;
+    }
+    // std::filesystem treats the names '.' and '..' as having no extension.
+    if driver_same(path + begin, "..") { return i; }
+    return dot;
+}
+
+// Lexical output protection deliberately does not resolve symlinks or hard links.
+// The platform supplies an absolute spelling; dot segments are normalized here.
+fn driver_path_normalize(path: u8*, out: ByteBuffer*): bool {
+    var parts: vector(usize);
+    vector_init(usize, &parts);
+    var i: usize = 0;
+    var ok = true;
+    var protected_parts: usize = 0;
+    if path[0] != 0 && path[1] == 58 {
+        ok = bytes_append(out, path, 2);
+        i = 2;
+    } else {
+        if path[0] == 92 && path[1] == 92 {
+            ok = bytes_push(out, 47);
+            protected_parts = 2;
+        }
+    }
+    ok &&= bytes_push(out, 47);
+    while ok && path[i] != 0 {
+        if driver_platform_separator(path[i]) { ++i; continue; }
+        var start = i;
+        while path[i] != 0 && !driver_platform_separator(path[i]) { ++i; }
+        var count = i - start;
+        if count == 1 && path[start] == 46 { continue; }
+        if count == 2 && path[start] == 46 && path[start + 1] == 46 {
+            if parts.length > protected_parts { out.length = parts.data[--parts.length]; }
+            continue;
+        }
+        ok = vector_push(usize, &parts, out.length);
+        if out.length != 0 && out.data[out.length - 1] != 47 { ok &&= bytes_push(out, 47); }
+        ok &&= bytes_append(out, path + start, count);
+    }
+    vector_dispose(usize, &parts);
+    return ok && host_text_terminate(out);
+}
+
+fn driver_output_safe(source: u8*, output: u8*): bool {
+    var input_path: ByteBuffer; var output_path: ByteBuffer;
+    var input_normal: ByteBuffer; var output_normal: ByteBuffer;
+    fill(&input_path, 0, sizeof(ByteBuffer)); fill(&output_path, 0, sizeof(ByteBuffer));
+    fill(&input_normal, 0, sizeof(ByteBuffer)); fill(&output_normal, 0, sizeof(ByteBuffer));
+    var ok = driver_platform_absolute(source, &input_path) && driver_platform_absolute(output, &output_path);
+    ok &&= driver_path_normalize(input_path.data, &input_normal) && driver_path_normalize(output_path.data, &output_normal);
+    if ok && driver_same(input_normal.data, output_normal.data) {
+        driver_error("Choose an output path different from the input", "");
+        ok = false;
+    } else { if !ok { driver_error("Cannot resolve output path", ""); } }
+    bytes_dispose(&input_path); bytes_dispose(&output_path);
+    bytes_dispose(&input_normal); bytes_dispose(&output_normal);
+    return ok;
+}

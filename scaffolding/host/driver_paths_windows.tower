@@ -1,0 +1,18 @@
+import tower;
+import driver_support;
+import driver_windows;
+import .library.bytes_types;
+import .library.bytes_interface;
+extern fn GetFullPathNameA(path: u8*, capacity: u32, output: u8*, last: u8**): u32;
+export fn driver_platform_absolute(path: u8*, out: ByteBuffer*): bool {
+    var capacity = GetFullPathNameA(path, 0, null, null);
+    if capacity == 0 || !bytes_reserve(out, convert(usize, capacity)) { return false; }
+    var length = GetFullPathNameA(path, capacity, out.data, null);
+    if length == 0 || length >= capacity { return false; }
+    out.length = convert(usize, length);
+    return true;
+}
+export fn driver_platform_regular(path: u8*): bool {
+    var attributes = GetFileAttributesA(path);
+    return attributes != ~convert(u32, 0) && (attributes & 16) == 0;
+}

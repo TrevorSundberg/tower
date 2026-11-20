@@ -1,0 +1,62 @@
+import tower;
+import .library.bytes_types;
+import .compiler.semantic_program_types;
+import .compiler.foundation_types;
+import .compiler.interpreter_types;
+import .compiler.format_types;
+
+// Borrowed views of the existing compiler services, with request-owned results.
+extern fn bytes_assign_text(out: ByteBuffer*, text: u8*, length: usize): bool;
+extern fn tower_node_create(): void*;
+extern fn entity_release(node: void*): usize;
+extern fn syntax_component_type(): void*;
+extern fn parser_match_get_type(): void*;
+extern fn semantic_initialize(program: SemanticProgram*, root: void*, width: u32): void;
+extern fn semantic_program_dispose(program: SemanticProgram*): void;
+extern fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendSource*, count: usize, environment: void*): void;
+extern fn frontend_modules_depfile(environment: void*, output: u8*, path: u8*): bool;
+extern fn sem_get(node: void*): FoundationNode*;
+extern fn semantic_strip_comments(root: void*): void;
+extern fn format_entity(out: FormatResult*, root: void*, syntax: void*, foundation: void*, match_kind: void*): void;
+extern fn format_dispose(out: FormatResult*): void;
+extern fn c_emit(out: ByteBuffer*, error: ByteBuffer*, root: void*, width: u32, comments: bool): void;
+extern fn roku_emit(out: ByteBuffer*, error: ByteBuffer*, root: void*, width: u32, comments: bool): void;
+extern fn interpreter_init(machine: IMState*): void;
+extern fn interpreter_storage_dispose(machine: IMState*): void;
+extern fn interpreter_step(machine: IMState*, budget: usize): void;
+extern fn interpreter_bytes(machine: IMState*, address: u64, count: usize, offset: usize): u8*;
+extern fn fast_interpreter_create(machine: IMState*): void*;
+extern fn fast_interpreter_dispose(fast: void*): void;
+extern fn fast_interpreter_step(machine: IMState*, fast: void*, budget: usize): void;
+extern fn bytecode_validate(data: u8*, size: usize): u32;
+extern fn bytecode_error(code: u32): u8*;
+extern fn bytecode_source_size(data: u8*): usize;
+extern fn bytecode_pointer_bytes(data: u8*): usize;
+extern fn bytecode_encode(fast: void*, source: u8*, size: usize, width: usize, profile: u32, length: usize*): u8*;
+extern fn bytecode_matches(fast: void*, data: u8*): bool;
+extern fn bytecode_free(data: u8*): void;
+extern fn backend_open(target: u8*): void*;
+extern fn backend_close(backend: void*): void;
+extern fn backend_error(backend: void*): u8*;
+extern fn backend_error_offset(backend: void*): usize;
+extern fn backend_pointer_bytes(backend: void*): u32;
+extern fn backend_lower(backend: void*, root: void*, functions: void**, count: usize, width: u32, library: bool): bool;
+extern fn backend_optimize(backend: void*, optimize: bool): bool;
+extern fn backend_optimize_interpreter(backend: void*, optimize: bool): bool;
+extern fn backend_import_foundation(backend: void*, root: void*): bool;
+extern fn backend_emit(backend: void*): bool;
+extern fn backend_raw(backend: void*): u8*;
+extern fn backend_optimized(backend: void*): u8*;
+extern fn backend_bytes(backend: void*): u8*;
+extern fn backend_size(backend: void*): usize;
+extern fn backend_function_name(backend: void*, index: usize): u8*;
+
+// Private target-artifact bindings to the remaining native syntax baseline.
+// The builder supplies the selected C++ string ABI and sret attributes.
+extern fn driver_syntax_slot(): void**;
+extern fn driver_syntax_bedrock(result: usize*, source: u8*): void;
+extern fn driver_syntax_foundation(result: usize*, source: u8*): void;
+extern fn driver_syntax_delete(data: u8*): void;
+extern fn driver_syntax_data(value: usize*): u8*;
+extern fn driver_syntax_heap(value: usize*): bool;
+extern fn driver_syntax_storage(value: usize*): u8*;

@@ -7,6 +7,7 @@ import .host.driver_link;
 import .host.driver_platform;
 import .host.driver_windows_arguments;
 import driver_platform_api;
+import driver_compilation;
 
 extern fn strstr(text: u8*, part: u8*): u8*;
 
@@ -410,6 +411,7 @@ fn driver_test_cli(compiler: u8*): void {
     driver_arguments_dispose(&args);
     driver_test_outputs(compiler, source);
     driver_test_errors(compiler, source);
+    driver_test_compilation(compiler);
     driver_test_cli_platform(compiler);
 }
 

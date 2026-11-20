@@ -1,0 +1,5 @@
+import tower;
+// Linux libstdc++ C++11 ABI: data, length, and 16 bytes of inline storage.
+export fn driver_syntax_data(value: usize*): u8* { return bits(u8*, value[0]); }
+export fn driver_syntax_heap(value: usize*): bool { return bits(u8*, value[0]) != bits(u8*, value + 2); }
+export fn driver_syntax_storage(value: usize*): u8* { return bits(u8*, value[0]); }

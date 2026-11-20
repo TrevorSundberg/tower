@@ -5,6 +5,7 @@ import driver_timing;
 import driver_platform;
 import driver_support;
 import driver_request;
+import driver_compile;
 import .library.bytes_types;
 import .library.bytes_interface;
 
@@ -15,11 +16,10 @@ extern fn LLVMDisposeMessage(message: u8*): void;
 extern fn driver_dispose(options: DriverOptions*): void;
 
 extern fn driver_resource_root(out: ByteBuffer*, executable: u8*): bool;
-extern fn driver_compile(options: DriverOptions*, resources: u8*, timing: DriverTiming*, request: DriverRequest*): i32;
 
 // One invocation owns argv-derived options and all host buffers until compilation
 // returns. No process-global request state is introduced by the entry point.
-// The remaining compiler adapter is synchronous; it may only borrow these views.
+// Compiler services are synchronous and may only borrow these pinned views.
 fn driver_entry_compile(options: DriverOptions*, timing: DriverTiming*): i32 {
     var executable: ByteBuffer;
     var resources: ByteBuffer;

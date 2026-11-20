@@ -1,5 +1,4 @@
-# Isolated native CLI integration. Tower owns host policies and platform calls;
-# driver.cpp only connects the retained compiler/interpreter interfaces.
+# Tower CLI integration, including the explicit remaining syntax-library ABI.
 option(TOWER_DRIVER_TESTS "Build Tower CLI policy and process tests" OFF)
 if(TOWER_DRIVER_TESTS)
   enable_testing()
@@ -15,11 +14,28 @@ function(tower_driver_integrate)
   endif()
   set(platform posix)
   set(profile linux)
+  set(syntax_abi libstdcxx)
+  set(stat_profile linux_x64)
+  if(triple MATCHES "^(aarch64|arm64)-")
+    set(stat_profile linux_arm64)
+  endif()
   if(triple MATCHES "windows")
     set(platform windows)
     set(profile windows_arguments)
+    set(syntax_abi msvc)
   elseif(triple MATCHES "darwin|apple")
     set(profile macos)
+    set(stat_profile macos)
+    set(syntax_abi libcxx)
+    # Read the actual native standard-library configuration. No generated
+    # implementation or ABI guessing from the machine running CMake.
+    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/driver_abi_input.txt" "")
+    execute_process(COMMAND "${CMAKE_CXX_COMPILER}" -dM -E -x c++ -include string
+      "${CMAKE_CURRENT_BINARY_DIR}/driver_abi_input.txt"
+      OUTPUT_VARIABLE cxx_macros COMMAND_ERROR_IS_FATAL ANY)
+    if(cxx_macros MATCHES "#define _LIBCPP_ABI_ALTERNATE_STRING_LAYOUT")
+      set(syntax_abi libcxx_alternate)
+    endif()
   endif()
   set(input "${CMAKE_CURRENT_BINARY_DIR}/tower_driver.tower")
   set(object "${CMAKE_CURRENT_BINARY_DIR}/tower-driver.o")
@@ -30,14 +46,30 @@ function(tower_driver_integrate)
     string(APPEND source "import ${path};\n")
   endforeach()
   set_property(GLOBAL PROPERTY TOWER_DRIVER_SOURCE "${source}")
-  file(GENERATE OUTPUT "${input}" CONTENT "${source}import host.driver_entry;\n")
+  set(production_source "${source}import host.driver_paths_${platform};\nimport host.driver_syntax_${syntax_abi};\n")
+  if(syntax_abi STREQUAL "msvc")
+    set(vector_alignment false)
+    if(triple MATCHES "^x86_64-")
+      set(vector_alignment true)
+    endif()
+    set(driver_abi_declaration "export fn driver_syntax_vector_alignment(): bool { return ${vector_alignment}; }\n")
+  endif()
+  if(platform STREQUAL "posix")
+    string(APPEND production_source "import host.driver_stat_${stat_profile};\n")
+  endif()
+  file(GENERATE OUTPUT "${input}" CONTENT "${production_source}import host.driver_entry;\n${driver_abi_declaration}")
+  get_property(runtime_bind GLOBAL PROPERTY TOWER_RUNTIME_BIND)
+  set(ir "${CMAKE_CURRENT_BINARY_DIR}/tower-driver-unbound.ll")
+  set(bound "${CMAKE_CURRENT_BINARY_DIR}/tower-driver.ll")
   add_custom_command(OUTPUT "${object}"
     COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${input}" --library --target "${triple}"
       --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
       --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
-      -o "${object}" --depfile "${object}.d"
+      --emit llvm-optimized -o "${ir}" --depfile "${object}.d"
+    COMMAND "${runtime_bind}" "${ir}" "${bound}" --driver "${syntax_abi}"
+    COMMAND "${CMAKE_C_COMPILER}" --target=${triple} -O2 -c "${bound}" -o "${object}"
     DEPFILE "${object}.d"
-    DEPENDS "${input}" ${sources} "${TOWER_BOOTSTRAP_COMPILER}" VERBATIM)
+    DEPENDS "${input}" ${sources} "${TOWER_BOOTSTRAP_COMPILER}" "${runtime_bind}" tower-runtime-bind VERBATIM)
   set_source_files_properties("${object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
   target_sources(towerc PRIVATE "${object}")
   if(TOWER_DRIVER_TESTS)

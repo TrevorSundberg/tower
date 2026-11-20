@@ -83,6 +83,10 @@ export fn driver_clock(): u64 {
 }
 
 export fn driver_platform_write(fd: i32, data: u8*, length: usize): void {
+    driver_platform_write_result(fd, data, length);
+}
+
+export fn driver_platform_write_result(fd: i32, data: u8*, length: usize): bool {
     while length != 0 {
         var amount: usize = 65536;
         var small = length < amount;
@@ -92,12 +96,13 @@ export fn driver_platform_write(fd: i32, data: u8*, length: usize): void {
         var written = _write(fd, data, convert(u32, amount));
         var failed = written <= 0;
         if failed {
-            return;
+            return false;
         }
         var done = convert(usize, written);
         data = data + done;
         length = length - done;
     }
+    return true;
 }
 
 export fn driver_platform_remove(path: u8*): void {

@@ -21992,3 +21992,80 @@ suite. The ongoing audit and inference followups remain preserved separately.
 Final recovery validation: the default pinned bootstrap completed all 60 targets
 of the fresh successor build. The relocated archive also passed native module-path
 checks, including parent imports, exact filenames, case rejection and symlinks.
+
+
+## 2026-11-20 — Retire the native CLI orchestration after bootstrap recovery
+
+Pulled 479962b after the user's bootstrap-fix notification. The first Windows
+Git pull hit a transient github.com DNS failure; the immediate retry succeeded.
+Installed the checked-in a5435617 development archive into the isolated
+cli-runtime-bootstrap cache. A local 92-target build then succeeded, including
+all eight existing focused tests. This supersedes this task's earlier missing
+bootstrap blocker. No source-spelling bridge, native seed or second compiler
+was needed. The primary live checkout remained untouched.
+
+Moved the last 161 lines of driver.cpp into Tower and deleted the file. Together
+with the prior runtime.c and compiler-memory.cpp retirement and earlier driver
+slices, this task has removed 587 native source lines (395 C++, 192 C). Production
+towerc also stops linking core.cpp, core-nodes.cpp, core-machine.cpp and
+llvm-engine.cpp; these files remain for existing browser/reference consumers.
+Compiler checking, parser algorithms, LLVM lowering and interpreter algorithms
+are unchanged. The new driver directly calls their existing Tower APIs and uses
+the same Foundation nodes, formatter, bytecode validator and execution cache.
+
+DriverExecution owns the interpreter prefix, semantic program, cache and output/
+error buffers. DriverCompilation owns backend and generated-source/output buffers.
+DriverRequest still pins original input/module snapshots, owns the generated
+stage's environment and restores the borrowed syntax-module slot before teardown.
+This is synchronous ownership, not a claim that process-global syntax baselines
+support concurrent mutation. Both graph and fast execution preserve platform_write
+binding, output order and failures. Canonical package reconstruction checks the
+Foundation graph against its cache before execution. Package header/profile/
+version/bounds checks continue to use the existing validator.
+
+The last syntax baseline functions return native std::string. Rather than add a
+C++ wrapper, the existing Tower runtime artifact tool binds the two foreign calls,
+operator delete and syntax_modules, and sets LLVM sret on declarations AND direct
+calls. AArch64's hidden return pointer uses x8; an ordinary first pointer would
+incorrectly use x0. Explicit profiles describe libstdc++ C++11, libc++ normal/
+alternate layouts and release MSVC. Native Darwin builds inspect the selected
+compiler's libc++ configuration. MSVC x64 large string buffers recover the original
+allocation pointer before delete; ARM64 does not use that x86 vector-alignment
+policy. The existing Tower foreign-name tool independently reproduced the MSVC
+string return and delete names (build/cli-runtime/driver-names.py).
+
+New POSIX regular-file checks use stat without opening the input, preserving
+permission behavior. Explicit Linux x64/AArch64 and Darwin mode offsets are used;
+Darwin x64 selects stat$INODE64. Output protection normalizes absolute lexical
+paths without following symlink/hard-link identity. Windows path effects use
+GetFullPathNameA and existing attribute services. ABI references:
+https://github.com/apple-oss-distributions/xnu/blob/main/bsd/sys/stat.h and
+https://github.com/apple-oss-distributions/xnu/blob/main/bsd/sys/cdefs.h;
+MSVC allocation policy https://github.com/microsoft/STL/blob/main/stl/inc/xmemory.
+These are host interfaces, not Foundation pointer metadata or a public IR.
+
+Build trials corrected imports placed after declarations, unsupported else-if
+spelling, explicit void-pointer casts and missing direct type/interface imports.
+Removing the production C++ interpreter adapter also exposed a test-only link
+that unnecessarily pulled the interpreter; removed that dependency from the
+request-lifetime test and retained adapters only for consumers that use them.
+No C/C++ implementation or functional tests were added.
+
+Environment remains WSL Ubuntu, Clang 21.1.8, LLVM C API 19 and WASI SDK 34.
+Commands/logs are isolated under build/cli-runtime and
+/home/trevo/.cache/tower/cli-runtime-{native,wasi,bootstrap}. Reproduction:
+python3 build/cli-runtime/recovered-build.py;
+python3 build/cli-runtime/ported-wasi-build.py;
+ctest --test-dir /home/trevo/.cache/tower/cli-runtime-native --output-on-failure.
+The native suite passed 8/8 after the port, including the new Tower CLI cases for
+ordered foreign output, missing foreign bindings in both engines, normalized
+source overwrite protection, corrupt package rejection and owned long syntax
+errors. Subsequent final checks, benchmark and publication are recorded below.
+
+All three browser reactors rebuilt, using read-only upstream LLVM/LLD archives.
+The complete Tower CLI also cross-compiles to Linux ARM64, Windows x64/ARM64 and
+macOS x64/ARM64 (driver-cross.py). Only Linux x64 compiler execution is verified;
+these object builds do not claim Windows/macOS compiler execution. Earlier guest
+runtime execution on Windows x64 and qemu ARM64 remains distinct from host CLI
+execution. Source pin a5435617 is still a hybrid development bootstrap; this CLI
+retirement does not establish a portable, completely Tower-only compiler release.
