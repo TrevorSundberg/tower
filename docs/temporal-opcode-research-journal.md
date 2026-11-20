@@ -20052,3 +20052,24 @@ append-only journal histories were preserved during the sole rebase conflict.
 The published semantic fixes are now available from main, so rebuild and validate
 the combined browser/native artifacts before publication. The allocator code and
 backend-runtime blockers are unchanged.
+
+Combined-source validation after rebase to 81bad0a: all four focused native CTests
+pass in 9.55 s (allocator, Wasm growth, frontend, driver); the rebuilt frontend
+includes the incoming syntax diagnostic/preview fixtures. All 65 focused browser
+memory/compiler-project/hover checks pass in 5.59 s. Both successive browser
+compiler generations pass edited-diagnostic behavior and identical output hashes:
+886,553 / 52,073,990 / 63,631,356 bytes (parser / LLVM / cross). Logs use integrated-*
+and successors.log. macOS x64 host allocation object compilation also passes,
+completing the supported native-layout compile matrix. Windows/macOS/ARM execution
+remains unverified here. The Tower host forwarding exports are simple tail calls
+on x64; nm confirms their old C++ definitions are absent from production objects.
+
+The established build-native.sh deployed the combined native executable and
+resources to build/native; its SHA-256 is
+3a9234c46f3963821007d448805de88a1e01eaaa44d155757ae2efbaae780bf6.
+The deployed compiler passes the existing 32/64-bit interpreter, native and Wasm
+guest-runtime/output checks. Publication manifests preserve the prior native CLI
+record and describe the remaining native runtime paths explicitly. Local/hosted
+publication verification results follow. Git lacked a local author identity;
+commit commands use the same identity as the repository's preceding commits,
+without changing global Git configuration.
