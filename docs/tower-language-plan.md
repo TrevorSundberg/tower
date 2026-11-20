@@ -450,7 +450,7 @@ Current migration audit (after the isolated compiler-worker milestone):
 
 | Area | Authoritative/shared data and present storage | Concurrency work still required |
 | --- | --- | --- |
-| Entities | Stable per-component payload allocations; dense per-type pointer indexes; owner component lists | Explicit world lifetime, pinned query views, structural publication and non-racing reference ownership |
+| Entities | Stable per-component payload allocations; dense per-type pointer indexes; owner component lists; pinned structural views | Explicit compiler-world ownership, structural publication and non-racing reference ownership |
 | Syntax/grammar | Shared entity components; parser tables and session stacks are derived | Isolate mutable session/cache state; preserve incremental grammar and source/effect order |
 | Semantics/layout | FoundationNode components; derived hash tables and layout work graph | Pure query inputs, declared accesses, owned result buffers, deterministic component commit |
 | Interpreter/staging | Shared Foundation plus a private verified execution cache | Explicit deterministic effects/inputs and invalidation; no metadata in the cache stream |

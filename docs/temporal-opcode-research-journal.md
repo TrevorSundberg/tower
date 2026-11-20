@@ -16284,3 +16284,62 @@ registration flag, using header padding instead of adding a second padded field;
 the deferred link still needs one pointer per entity. The baseline comparison
 will record actual reflected header sizes at both pointer widths. This is an
 internal Tower storage layout; native clients only borrow opaque entity pointers.
+
+The integrated build passes all 339 Node/Wasm tests (world-final-node.log,
+43.31 seconds) and the native backend API checks. Both entity-views.tower and
+backend-popcount.tower print zero through native graph interpretation, raw fast
+interpretation and optimized fast interpretation. Use the rebuilt
+/home/trevo/.cache/tower/backend-native/towerc with explicit --bedrock
+scaffolding/bedrock.tower and --foundation scaffolding/foundation.tower, then
+--interpret, --interpret-fast --no-optimize or --interpret-fast respectively;
+the explicit grammar paths avoid stale installed bootstrap files.
+
+Added playground/scripts/benchmark-compiler-worlds.mjs as a host/measurement
+adapter; its stress-source generator and compiler implementations are Tower.
+Run `node playground/scripts/benchmark-compiler-worlds.mjs 8f49aa3` after building
+and packaging the release reactors. It rebuilds both compared compilers with the
+same builder and native support archives, checks candidate activation, generates
+a 1,024-level/512-field layout workload in Tower, and checks identical emitted
+object bytes for both workloads. The baseline substitutes only the pre-change
+entities, semantic-layout and import-instructions sources into the current
+recipe; this isolates this implementation change, not unrelated historical
+compiler/toolchain differences. Both builds start fresh; no object-cache reuse.
+
+Controlled result on Node v22.23.4 / AMD RYZEN AI MAX+ 395, two warmups and ten
+alternating measured pairs: layout median 47.105 ms baseline versus 47.804 ms
+current (+1.49%); compiler-host unit 459.520 versus 455.935 ms (-0.78%). Samples
+overlap substantially, so neither delta establishes a speedup or a significant
+regression. These are serial compile measurements, not parallel-phase or SIMD
+claims. Reflected Entity sizes are 68 -> 72 bytes for 32-bit pointers and
+136 -> 144 for 64-bit pointers; EntityStore sizes are 12 -> 24 and 24 -> 48.
+Thus each entity adds one pointer, with the queued flag using existing padding.
+Full samples, hashes and environment are in build/language-next/world-benchmark.json;
+progress is in world-controlled-benchmark.log. Builder SHA-256:
+2ac0b13d338b284c2e39e3ff62d488f2e7bb1484b19831ab48395aa242858758.
+
+Earlier measurement attempts are not used as performance evidence. The first
+compared a WASI-built baseline against a native-bootstrap-built current compiler,
+confounding toolchains. Its result remains in world-benchmark-bootstrap-comparison.json.
+Old source also lacks the three view exports, so its comparison recipe removes
+only those new export assertions/linker arguments; current activation remains
+unchanged. The first same-builder trial rebuilt both candidates successfully but
+failed to initialize the workload generator's Foundation. Passing the explicit
+Foundation argument fixed that harness error; the final fresh-build run above
+passes. The failed attempt remains in world-benchmark-generator-failure.log.
+
+Final service checks pass on the integrated source: 27 browser cases and one
+intentional mobile successor skip (world-final-browser.log, 2.8 minutes), including
+edited compiler activation/reset, C output, hover documentation and stale source
+reply rejection. The local deployment verifier passes all 68 asset hashes and
+desktop/mobile execution, imports, persistence, completion and native downloads
+(world-final-local.log; saved report world-local-report.json). Tested manifest
+SHA-256: 64f02bc254edfbc31cdc164e208992c2fa30bf4bd0226ba8b5f4c04d6c8d0e26.
+
+Two successive compiler generations pass with two then four real unit workers,
+including edited semantic diagnostics, C/comments, hover/documentation, imports
+and target probes (world-final-generations.log). All three reactor hashes match
+between generations: tower 6fd971bb31a4a4a02e52387229114eb8a755617c8915499b5aa52c343d4bfe18;
+llvm b6a92e02356d808aae4691ddecbf3913f92f8192fea2874528fb0a3e6b06747e;
+cross e8b4f2826b2b964e57f8304cb575991f667d3f7e6ee9eefc01b518ab94f743e3.
+Wall times 107.210 and 83.035 seconds overlap browser validation and are not
+isolated speedup measurements. Main synchronization and publication follow.
