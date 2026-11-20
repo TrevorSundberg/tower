@@ -20237,3 +20237,36 @@ parser.cpp 446, driver.cpp 339. These are remaining lines, not a completion
 percentage or a claim that each line represents equivalent migration effort.
 Report: build/language-next/native-lines-current.json. Temporary build snapshots
 and third-party sources are excluded.
+
+Publication completed: normal gh-pages push produced 60d94537344a33a33c07f3f68f27e7d8541f9219;
+Pages workflow 44800119651 succeeded. Manifest SHA-256 is
+d9553467c0e0545d7def06700be5416f328e4f350f0bf878f70d5433ffcd5bf2.
+All 69 hosted assets match the tested local package. The first hosted browser
+pass reached the expected interpreter and LLVM Templates output, but failed the
+remaining status assertion's default five-second wait. Aligned that one bounded
+wait with its neighboring 60-second backend waits; retained the same correctness
+assertion. The complete second hosted pass succeeds on desktop and mobile,
+including all native downloads, backend agreement, completion, persistence and
+editable grammar. Reports: syntax-diagnostic-live-report.json, live-deployment.log,
+live-first.log, live-first-failure.json and pages-workflow.log. The wait change is
+verification transport only; no compiler workaround or weakened assertion.
+
+While publishing, both dispatched owners landed on main: 4885b97/8426c78 moves
+allocator bindings and Wasm growth glue to Tower; 284c641/4d1ce12 replaces and
+deletes browser.cpp with the Tower IDE service. Rebased the journal/verifier
+commit onto their combined source, retaining both histories. Native towerc and
+tower-frontend-tests rebuild successfully; focused frontend passes in 0.05 s
+(syntax-diagnostic-owners-{native,tests}.log). Their preceding entries record the
+combined 198 Node checks, four native checks, successor determinism and local
+70-asset package verification. Their combined IDE/runtime publication is separate
+from this verified 69-asset syntax release; do not overwrite their newer package
+with this older deployment artifact set.
+
+Superseding inventory after both ports (91e6d45): production 4996 native lines in
+51 files = 2825 C++ implementation + 192 C runtime + 1979 header/ABI lines.
+Bootstrap/reference 4546, tests 4116 and research/examples 774 are unchanged.
+Total remaining tracked project-owned native lines: 14432. Excludes third_party,
+generated build snapshots and untracked files; includes comments/blank lines.
+Report: build/language-next/native-lines-integrated.json. The next syntax-owned
+boundary also needs to replace the new IDE service's temporary WASI libc++ views
+with Tower-native inspection/session views while preserving its public tw_* ABI.
