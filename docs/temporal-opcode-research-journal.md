@@ -18607,3 +18607,31 @@ return 301 to https://tower-lang.org/. Evidence: generic-hover-live-deployment.l
 generic-hover-live-browser.log and generic-hover-live-report.json. Source and
 validation commits are pushed on main; only this final publication record remains
 to sync. No token-specific query fallback was restored during integration.
+
+Final synchronization integrated two concurrent migrations: edeae15's Tower
+parser diagnostic formatter and 9744908's ECS language inspection dispatch.
+Preserved all journal additions during the rebases, merged the independent
+CMake additions, and pushed the combined sources normally through 47dbce1.
+The earlier ee00eb4 publication stayed live while rebuilding this combination.
+Rebuilt native towerc, parser, LLVM and cross reactors with the same Docker/SDK
+paths; packaged the now-nine-unit compiler recipe and rebuilt dist. Rebuilt
+again after the second pull so no stale pre-dispatch object was retained.
+
+Combined validation passes 359/359 Node/Wasm tests (106.6 seconds), all eleven
+Roku groups (153.6 seconds), both native CLI emission modes, and two successive
+browser compiler generations. Generation two sizes are 1,061,663 / 52,050,408 /
+63,607,667 bytes for parser/LLVM/cross, with identical hashes across generations.
+ASAN/UBSAN CTest passes 5/5 in 311.86 seconds (parser 303.31 seconds under concurrent
+browser/test load). Local publication verification passes all 69 asset hashes
+and desktop/mobile flows again. Evidence: build/roku-integrated-{node,tests,cli,
+generations,asan,local}.log; build/roku-integrated-package.log records the recipe.
+
+Focused browser integration covers Roku, C, compiler replacement, completion,
+hover, parser views and delayed diagnostics: initially 85 passed, one existing
+skip and two viewport failures in the inherited documentation-hover assertion.
+Its string containment matcher normalized '\nfunction\n' and matched the word
+inside the newly supported "Calls this function" description. Changed the test
+to reject an exact standalone 'function' label; no UI/semantic change was needed.
+Both viewport reruns pass (build/roku-integrated-hover-recheck.log), yielding
+87 passed / one skipped for this integration selection. Recreated both manual
+device ZIPs from the newly tested output. Physical Roku testing remains pending.
