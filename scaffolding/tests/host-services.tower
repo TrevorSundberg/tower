@@ -5,6 +5,7 @@ import '../compiler/host-text';
 import '../host/browser-protocol';
 import '../host/driver-files';
 import '../host/driver-options';
+import '../host/driver-types';
 import '../host/driver-services';
 import '../library/bytes-interface';
 import '../library/bytes-types';

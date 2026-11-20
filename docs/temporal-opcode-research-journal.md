@@ -19396,3 +19396,23 @@ entities, definition scopes and the invalid-cycle cache regression. Continue
 porting native compiler pieces as ordinary modules with explicit defining-file
 or foreign-interface imports, retaining successive-generation validation and
 compilable Foundation output. todo.txt was not changed by this work.
+
+The final synchronization picked up native-only CLI work through 9e6ff1c.
+Preserved its complete journal entry while rebasing the validation record. This
+supersedes the earlier expectation that only a journal write remained. The new
+CLI builds with the scoped native bootstrap, and its standalone Tower CTest
+suite passes (10.81 seconds). Relocating DriverOptions exposed two additional
+missing defining-file imports in the existing host-runtime/host-services tests;
+added driver-types directly to both. The first aggregate test compilation named
+host-services as the remaining unknown type; compilation succeeds after both
+imports. Canonical formatting passes for every changed/new driver source and
+both existing host tests. No host policy or compiler semantics were added here.
+
+The production browser units and their ABI are unchanged by the native-only
+port. Retain the verified runtime/support artifacts and refresh the editable
+compiler recipe with all new native Tower sources through the established
+packager. Validate two successor generations from that recipe before publishing
+it. Native build/test, targeted formatting and packaging logs use driver-*
+under build/module-scopes. The earlier full sanitizer and portable-suite results
+apply to the module-scope/compiler implementation; the subsequent native CLI
+integration is validated separately as described here.
