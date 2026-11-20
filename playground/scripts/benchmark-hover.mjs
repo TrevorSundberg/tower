@@ -38,7 +38,8 @@ try {
         window.hoverPaint=new Promise((resolve,reject)=>{
           const timeout=setTimeout(()=>reject(Error('Hover did not render')),5000),target=document.querySelector('#editor');
           const count=window.documentQueries.length;let start;
-          target.addEventListener('mousemove',()=>{start=performance.now();},{once:true,capture:true});
+          // Start before the document-level hover listener handles the event.
+          window.addEventListener('mousemove',()=>{start=performance.now();},{once:true,capture:true});
           const observer=new MutationObserver(()=>{
             const tip=document.querySelector('.tw-language-hover');if(start===undefined||!tip)return;
             const dom=performance.now();observer.disconnect();clearTimeout(timeout);

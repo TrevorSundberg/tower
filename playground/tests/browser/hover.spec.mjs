@@ -111,3 +111,75 @@ test('a slow background inspection yields the worker when typing needs completio
   await expect(page.getByRole('option').filter({hasText:'print'})).toBeVisible();
   expect(await page.evaluate(()=>window.retiredWorkers)).toBeGreaterThan(retired);
 });
+
+test('preview follows the mouse and becomes opaque after dwelling on a moving symbol',async({page},info)=>{
+  const text='\n\n\n\nvar movingSymbol:i32 = 42;\nprint(movingSymbol);';
+  await source(page,text);await ready(page,text);
+  await page.clock.install({time:new Date('2030-01-01T00:00:00Z')});
+  await page.clock.pauseAt(new Date('2030-01-01T00:01:00Z'));
+  const position=await point(page,'movingSymbol'),panel=page.locator('.tw-hover-panel');
+  await page.mouse.move(position.x-10,position.y);await page.clock.runFor(32);
+  await expect(panel).toHaveClass(/tw-hover-preview/);
+  await expect(panel).toHaveCSS('pointer-events','none');await expect(panel).toHaveCSS('opacity','0.76');
+  await page.screenshot({path:`../build/hover-dwell-preview-${info.project.name}.png`});
+  const first=await panel.boundingBox();
+  expect(await panel.evaluate(dom=>{
+    const box=dom.getBoundingClientRect();return dom.contains(document.elementFromPoint(box.x+box.width/2,box.y+box.height/2));
+  })).toBe(false);
+  await page.clock.runFor(368);
+  await page.mouse.move(position.x+10,position.y);await page.clock.runFor(32);
+  const moved=await panel.boundingBox();
+  // Horizontal viewport clamping can keep a wide mobile tooltip at the edge.
+  if(first.x+first.width<await page.evaluate(()=>innerWidth-25))expect(moved.x).toBeGreaterThan(first.x);
+  await page.clock.runFor(367);await expect(panel).toHaveClass(/tw-hover-preview/);
+  await page.clock.runFor(1);await expect(panel).toHaveClass(/tw-hover-pinned/);
+  await expect(panel).toHaveCSS('opacity','1');await expect(panel).toHaveCSS('pointer-events','auto');
+  await page.screenshot({path:`../build/hover-dwell-pinned-${info.project.name}.png`});
+  const pinned=await panel.boundingBox();
+  await page.mouse.move(position.x-8,position.y);await page.clock.runFor(32);
+  expect(await panel.boundingBox()).toEqual(pinned);
+});
+
+test('a pinned panel allows interaction and a 25 percent dismissal margin',async({page})=>{
+  const text='\n\n\n\nvar stickySymbol:i32 = 42;\nprint(stickySymbol);';
+  await source(page,text);await ready(page,text);
+  const position=await point(page,'stickySymbol'),panel=page.locator('.tw-hover-panel');
+  await page.mouse.move(position.x,position.y);await expect(panel).toHaveClass(/tw-hover-pinned/);
+  const box=await panel.boundingBox();
+  await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await expect(panel).toBeVisible();
+  expect(await panel.evaluate(dom=>{
+    const box=dom.getBoundingClientRect();return dom.contains(document.elementFromPoint(box.x+box.width/2,box.y+box.height/2));
+  })).toBe(true);
+  await panel.locator('.tw-hover-signature').dblclick();await expect(panel).toBeVisible();
+  expect(await page.evaluate(()=>getSelection().toString().length)).toBeGreaterThan(0);
+  await page.mouse.move(box.x+box.width/2,box.y+box.height*1.2);await expect(panel).toBeVisible();
+  await page.mouse.move(box.x+box.width/2,box.y+box.height*1.3);await expect(panel).toHaveCount(0);
+});
+
+test('changing symbols restarts dwell and blank space or Escape dismisses the preview',async({page})=>{
+  const text='var first:i32 = 1;\nvar second:bool = true;\nprint(first);\nprint(second);';
+  await source(page,text);await ready(page,text);
+  await page.clock.install({time:new Date('2030-01-01T00:00:00Z')});
+  await page.clock.pauseAt(new Date('2030-01-01T00:01:00Z'));
+  const first=await point(page,'first'),second=await point(page,'second'),panel=page.locator('.tw-hover-panel');
+  await page.mouse.move(first.x,first.y);await page.clock.runFor(600);
+  await page.mouse.move(second.x,second.y);await page.clock.runFor(200);
+  await expect(panel).toHaveClass(/tw-hover-preview/);
+  await expect(panel.locator('code')).toHaveText('var second: bool');
+  await page.clock.runFor(599);await expect(panel).toHaveClass(/tw-hover-preview/);
+  await page.clock.runFor(1);await expect(panel).toHaveClass(/tw-hover-pinned/);
+  await page.keyboard.press('Escape');await expect(panel).toHaveCount(0);
+  await page.mouse.move(first.x,first.y);await page.clock.runFor(32);await expect(panel).toBeVisible();
+  const editor=await page.locator('#editor .cm-content').boundingBox();
+  await page.mouse.move(editor.x+editor.width-2,first.y);await expect(panel).toHaveCount(0);
+});
+
+test('scrolling or editing closes a pinned panel and discards its dwell timer',async({page})=>{
+  const text='var pinned:i32 = 1;\nprint(pinned);';await source(page,text);await ready(page,text);
+  const position=await point(page,'pinned'),panel=page.locator('.tw-hover-panel');
+  await page.mouse.move(position.x,position.y);await expect(panel).toHaveClass(/tw-hover-pinned/);
+  await page.locator('#editor .cm-scroller').dispatchEvent('scroll');await expect(panel).toHaveCount(0);
+  await page.mouse.move(position.x+1,position.y);await expect(panel).toHaveClass(/tw-hover-preview/);
+  await page.keyboard.press('ArrowLeft');await expect(panel).toHaveCount(0);
+  await page.waitForTimeout(850);await expect(panel).toHaveCount(0);
+});
