@@ -23,7 +23,10 @@ export function outputParser(syntax) {
         return 'comment';
       }
       if (stream.eatSpace()) return null;
-      if (stream.match('//') || syntax !== 'c' && stream.match(';')) { stream.skipToEnd(); return 'comment'; }
+      if (syntax === 'brightscript' && stream.match(/^'|^rem\b/i)) { stream.skipToEnd(); return 'comment'; }
+      if (syntax === 'brightscript' && stream.match(/^"(?:[^"]|"")*"/)) return 'string';
+      if (syntax === 'brightscript' && stream.match(/^&h[\da-f]+&?|^\d+&/i)) return 'number';
+      if (stream.match('//') || !['c','brightscript'].includes(syntax) && stream.match(';')) { stream.skipToEnd(); return 'comment'; }
       if (syntax === 'c' && stream.match('/*')) { state.comment=true; return 'comment'; }
       if (syntax === 'c' && stream.match(/^\s*#\s*\w+/)) return 'meta';
       if (stream.match(/^(?:"(?:[^"\\]|\\.)*"?|'(?:[^'\\]|\\.)*'?)/)) return 'string';
@@ -44,7 +47,11 @@ export function outputParser(syntax) {
           if (/^(?:byte|word|dword|qword|ptr)$/i.test(word)) return 'typeName';
           return word.startsWith('.') ? 'meta' : null;
         }
-        if (syntax === 'c') {
+        if (syntax === 'brightscript') {
+          if (/^(?:function|sub|end|if|then|else|for|to|step|each|in|while|exit|return|goto|and|or|not|mod|as|throw|try|catch|print)$/i.test(word)) return 'keyword';
+          if (/^(?:integer|longinteger|string|boolean|dynamic|object|float|double|void)$/i.test(word)) return 'typeName';
+          if (/^(?:true|false|invalid)$/i.test(word)) return 'meta';
+        } else if (syntax === 'c') {
           if (/^(?:if|else|for|while|do|break|continue|return|goto|switch|case|default|sizeof|typedef|extern|static|inline|const|volatile)$/.test(word)) return 'keyword';
           if (/^(?:void|char|short|int|long|signed|unsigned|struct|union|enum|size_t|u?int(?:ptr|8|16|32|64)_t)$/.test(word)) return 'typeName';
           if (/^(?:NULL|TC_\w+|UINT\w+|INT\w+)$/.test(word)) return 'meta';

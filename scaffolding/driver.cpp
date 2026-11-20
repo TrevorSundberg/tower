@@ -120,6 +120,14 @@ int main(int argc, char** argv) {
   driver_dispose(&options);
   if (!driver_output_valid(emit.c_str())) { std::cerr << "Unknown output kind: " << emit << '\n'; return 1; }
 #endif
+  if (target == "roku") {
+    if (emit != "exe" && emit != "brightscript") { std::cerr << "Roku target emits BrightScript source; use --emit brightscript\n"; return 1; }
+    emit = "brightscript";
+  }
+  if (emit == "brightscript") {
+    if (library || interpret || !inputs.empty()) { std::cerr << "Roku source requires a complete program without native link inputs or interpreter flags\n"; return 1; }
+    target = "wasm32-unknown-unknown"; // Explicit VM layout, not a Roku native LLVM triple.
+  }
   if (source.empty() || !fs::exists(source)) { std::cerr << "Supply a Tower source file; use --help for options\n"; return 1; }
 #ifdef TOWER_BOOTSTRAP_HOST
   const fs::path root = fs::path(llvm::sys::fs::getMainExecutable(argv[0], reinterpret_cast<void*>(&main))).parent_path() / "share/tower";
@@ -178,7 +186,7 @@ int main(int argc, char** argv) {
     interpret = true; fast = true;
   }
   if (text.find('\0') != std::string::npos) { std::cerr << "Source contains NUL bytes\n"; return 1; }
-  if (!packaged_width && (emit == "bytecode" || (interpret && fast) || (emit == "c" && optimize))) {
+  if (!packaged_width && (emit == "bytecode" || emit == "brightscript" || (interpret && fast) || (emit == "c" && optimize))) {
     auto width = tower_target_pointer_bytes(target, error);
     if (!error.empty()) { std::cerr << error << '\n'; return 1; }
     auto optimized_program = tower_optimize_foundation(text.c_str(), width, optimize);
@@ -197,13 +205,13 @@ int main(int argc, char** argv) {
     syntax_modules = frontend_modules_create();
     frontend_modules_configure(syntax_modules, source.c_str(), root.string().c_str());
   }
-  if (emit == "bytecode" || emit == "foundation" || emit == "c") {
+  if (emit == "bytecode" || emit == "foundation" || emit == "c" || emit == "brightscript") {
     auto width = packaged_width ? packaged_width : tower_target_pointer_bytes(target, error);
     if (!error.empty()) { std::cerr << error << '\n'; return 1; }
     auto program = core_compile_foundation(text.c_str(), width);
     if (!program.error.empty()) { report_error(program.error, program.error_offset); return 1; }
     if (!comments) core_strip_comments(program);
-    if (output.empty()) output = fs::path(source).replace_extension(emit == "bytecode" ? ".towerbc" : emit == "c" ? ".c" : ".disassembled.tower").string();
+    if (output.empty()) output = fs::path(source).replace_extension(emit == "bytecode" ? ".towerbc" : emit == "c" ? ".c" : emit == "brightscript" ? ".brs" : ".disassembled.tower").string();
     if (fs::absolute(output).lexically_normal() == fs::absolute(source).lexically_normal()) {
       std::cerr << "Choose an output path different from the input\n"; return 1;
     }
@@ -212,8 +220,8 @@ int main(int argc, char** argv) {
       const auto foundation = core_format(program).source;
       return write(output, foundation.data(), foundation.size()) ? 0 : 1;
     }
-    if (emit == "c") {
-      auto emitted = core_c_source(program);
+    if (emit == "c" || emit == "brightscript") {
+      auto emitted = emit == "c" ? core_c_source(program) : core_roku_source(program);
       if (!emitted.error.empty()) { std::cerr << emitted.error << '\n'; return 1; }
       return write(output, emitted.source.data(), emitted.source.size()) ? 0 : 1;
     }

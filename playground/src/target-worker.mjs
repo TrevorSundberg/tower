@@ -1,6 +1,6 @@
 import { getTower, getCanonicalTower, getCompiler, warmCompiler, useCompiler } from './compiler-runtime.mjs';
 import { originalDiagnostic } from './foundation-source.mjs';
-import { targets, targetInputs, nativeTargetKeys, linkInputsForTarget } from './targets.mjs';
+import { targets, sourceTargets, targetInputs, nativeTargetKeys, linkInputsForTarget } from './targets.mjs';
 import { fetchBytes as bytes } from './fetch-bytes.mjs';
 import {projectDiagnostic} from './projects.mjs';
 
@@ -27,31 +27,43 @@ async function receive({data:{command,id,source,foundation,bedrock,targetKeys=[]
     tower = (await getTower(foundation,bedrock,builtins.tower)).tower;
     tower.mountFiles(drive);
     tower.configureModules({entry, files:drive, builtins:{...builtins,bedrock,foundation}, library});
-    handle = tower.compile(files?.[0]?.text ?? source,{pointerBytes:8});
+    handle = tower.compile(files?.[0]?.text ?? source,{pointerBytes:keys.length || targetKeys.includes('c') ? 8 : 4});
     const checked = tower.execute(handle,0);
     if (checked.status === 'error') { const diagnostic = projectDiagnostic(checked,files); send({error:(diagnostic.errorFile ? diagnostic.errorFile + ': ' : '') + checked.error,diagnostic,done:true}); return; }
     if (!comments) tower.stripComments(handle);
     const formatted = tower.foundation(handle);
     send({foundation:formatted.source});
-    if (targetKeys.includes('c')) {
+    for (const key of Object.keys(sourceTargets).filter(key=>targetKeys.includes(key))) {
+      let generated;
       try {
         const start=performance.now();
-        send({target:'c',phase:optimize?'Optimizing C…':'Emitting C…'});
+        const target=sourceTargets[key];
+        send({target:key,phase:optimize?'Optimizing…':'Emitting…'});
+        // Compile each profile before layout queries or LLVM lowering. The Roku
+        // graph is 32-bit even when C/native output is selected alongside it.
+        await getTower(foundation,bedrock,builtins.tower);
+        tower.configureModules({entry, files:drive, builtins:{...builtins,bedrock,foundation}, library});
+        generated=tower.compile(files?.[0]?.text ?? source,{pointerBytes:target.pointerBytes});
+        const initial=tower.execute(generated,0);
+        if(initial.status==='error') throw new Error(initial.error);
+        if(!comments) tower.stripComments(generated);
+        const canonical=tower.foundation(generated).source;
         let result={};
-        if (optimize) {
+        if (optimize || key==='roku') {
           const {compiler}=await getCompiler('./tower-llvm.wasm.gz');
-          result=compiler.compile(formatted.source,{emit:'foundation',target:'wasm64-unknown-unknown',optimize});
+          result=compiler.compile(canonical,{emit:'foundation',target:target.pointerBytes===4?'wasm32-unknown-unknown':'wasm64-unknown-unknown',optimize});
           if (result.status==='error') throw new Error(result.error);
           await getCanonicalTower();
-          tower.destroyExecution(handle);
-          handle=tower.compile(result.foundation,{pointerBytes:8});
-          const checked=tower.execute(handle,0);
+          tower.destroyExecution(generated); generated=undefined;
+          generated=tower.compile(result.foundation,{pointerBytes:target.pointerBytes});
+          const checked=tower.execute(generated,0);
           if (checked.status==='error') throw new Error(checked.error);
         }
-        const source=tower.cSource(handle,{comments});
-        const output=new TextEncoder().encode(source);
-        postMessage({id,target:'c',bytes:output,disassembly:source,before:result.before,after:result.after,ms:performance.now()-start},[output.buffer]);
-      } catch(error) { send({target:'c',error:error.message}); }
+        const emitted=key==='roku'?tower.rokuSource(generated,{comments}):tower.cSource(generated,{comments});
+        const output=new TextEncoder().encode(emitted);
+        postMessage({id,target:key,bytes:output,disassembly:emitted,before:result.before,after:result.after,ms:performance.now()-start},[output.buffer]);
+      } catch(error) { send({target:key,error:error.message}); }
+      finally { if(generated) tower.destroyExecution(generated); }
     }
     if (!keys.length) { send({done:true}); return; }
     const {compiler} = await getCompiler('./tower-cross.wasm.gz');

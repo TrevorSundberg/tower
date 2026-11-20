@@ -14,5 +14,6 @@ import 'semantic-lifecycle';
 import 'frontend-compilation';
 import 'source-comments';
 import 'c-emitter';
+import 'roku-emitter';
 import 'completion';
 import 'language-query';

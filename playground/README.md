@@ -41,6 +41,11 @@ O0/O2 optimization and comment-preservation controls. See
 [C output and portability](../docs/c-backend.md) for CLI commands, semantics,
 compiler coverage and the explicit target profile.
 
+The optional **Roku BrightScript** target downloads a self-contained `.brs` file
+after the same LLVM-to-foundation optimization bridge used by the fast
+interpreter. See [Roku output and testing](../docs/roku-backend.md) for the 32-bit
+profile, exact integer tests, CLI commands and later physical-device validation.
+
 The target picker enables **Graph interpreter**, **Fast interpreter** and
 **WebAssembly** by default, plus the detected supported native profile. Both
 interpreters are written in Tower. The graph runner executes shared foundation

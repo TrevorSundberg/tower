@@ -22,7 +22,8 @@ test('C is optional, ordered, highlighted, downloadable and obeys shared options
   await expect.poll(()=>outputText(page,'core-instructions')).toContain('a carried comment');
   const order=await page.locator('.execution-column').evaluateAll(nodes=>nodes.map(node=>node.id));
   expect(order.indexOf('c-column')).toBe(order.indexOf('llvm-optimized-column')+1);
-  expect(order.indexOf('fast-disassembly-column')).toBe(order.indexOf('c-column')+1);
+  expect(order.indexOf('roku-column')).toBe(order.indexOf('c-column')+1);
+  expect(order.indexOf('fast-disassembly-column')).toBe(order.indexOf('roku-column')+1);
   await expect(page.locator('#c-disassembly .tw-keyword').first()).toBeVisible();
   const download=page.waitForEvent('download');
   await page.locator('#c-download').click();

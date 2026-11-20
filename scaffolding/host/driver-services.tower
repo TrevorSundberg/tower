@@ -88,6 +88,9 @@ export fn driver_output_name(emit: u8*, wasm: bool, windows: bool): u8* {
 }
 
 export fn driver_output_valid(emit: u8*): bool {
+    if driver_equal(emit, "brightscript") {
+        return true;
+    }
     if driver_equal(emit, "c") {
         return true;
     }

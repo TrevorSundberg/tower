@@ -18398,3 +18398,160 @@ median ms increment 57.745 -> 57.244, templates 23.274 -> 22.149, 200 functions
 or a claim of zero elapsed time. Raw samples are in generic-hover-benchmark.json;
 the benchmark ran before starting the final LLVM build. Browser/deployment and
 successor-build results are recorded below when complete.
+
+## 2026-11-20 - Roku BrightScript from optimized foundation
+
+Request: pull the user's wasm2brs project, add a Roku source/download target,
+reuse the LLVM-to-foundation bridge used by the fast interpreter, and validate
+integer behavior as far as possible before a physical Roku is available.
+
+Started with `git pull --rebase` on main: a17e7ac -> 708681d. The initial fetch
+spent several minutes fetching dependencies before its fast-forward completed.
+No existing tracked edits were present; todo.txt is excluded from this work.
+Cloned `https://github.com/MotleyCoderDev/wasm2brs.git` with depth 1 into ignored
+build/wasm2brs, revision 671b23b8c4833beed88b31267b91af0f13593a50. Initialized only
+its testsuite submodule, pinned 075fda7a3b5a21d29fff1b3ff120c4e0984f2a21. Read
+README.md, runtime.brs, test/index.ts and its build/test setup. The original
+runner discovers/sideloads a real device; it cannot establish a hardware result
+here. No device discovery or sideload was attempted. The numerical fixtures are
+Apache 2.0; retained their license with the unmodified i32/i64 WAST files. The
+new Tower runtime is independently implemented, not a bundled wasm2brs runtime.
+
+Architecture: Tower-written roku-emitter.tower consumes checked FoundationNode
+entities after the existing scalar LLVM optimization/reconstruction path. O0
+still uses this bridge with passes disabled. The emitter shares the C emitter's
+disposable entity/owner index and text helpers, without reading its generated C
+or the private fast instruction cache. CLI --target roku / --emit brightscript
+and browser Roku BrightScript selection emit a self-contained source file.
+Each source target resolves its own layout before optimization; Roku uses four
+byte little-endian addresses, C retains its eight-byte browser profile. Existing
+worker cancellation/revision checks govern the new output and download lifetime.
+No new Foundation operation, semantic graph, or program interchange is introduced.
+
+Runtime design: exact LongInteger bit patterns, 16-bit limb arithmetic,
+unsigned restoring division, signed overflow/zero traps, bool/range conversions,
+byte-address memory, per-call frames, reusable/coalesced allocations, raw
+load/store, overlap-safe copy, fill, recursion and ordinary calls. Argument and
+temporary arrays avoid BrightScript's small variable and argument tables. The
+complete-program entry is TowerRun; native foreign calls are diagnosed except
+for the explicit platform_write text adapter. Conservative diagnostics enforce
+240 labels / 200 conditionals per function and 1.9 MB / 60,000 lines per source.
+These limits follow wasm2brs's device observations; they are not new Tower
+language limits. Auto splitting and a general BrightScript import/export ABI are
+future work. Default memory resource limit is 64 MiB. VM range containment is
+separate from the raw Foundation pointer contract; no checked object handles or
+lifetime generations are stored in pointers.
+
+Primary references consulted 2026-11-20:
+- https://github.com/MotleyCoderDev/wasm2brs (pinned revision above).
+- https://developer.roku.com/dev/docs/expressions-variables-types documents
+  bitwise logic, unsigned right shifts, floating division and numeric promotion.
+- https://github.com/lvcabral/brs-engine/blob/master/docs/run-as-cli.md and its
+  package declarations document simulator execution; not a hardware emulator.
+
+Significant trials and corrections (Windows host, Docker tower-c-validation,
+WASI SDK 34, LLVM 19 native and pinned browser LLVM, Node 21.7.3 initially):
+1. Native generation built with the existing /cache/performance-bootstrap/towerc
+   and /cache/c-native. The first source-lowering utility trial split quoted
+   import names; corrected those names. Bool bitwise AND is not a Foundation
+   integer operation; replaced two index predicates with ordinary conditions.
+2. Installed pinned brs-node 2.7.1 / BrighterScript 0.73.8 as test dependencies.
+   Node 21 cannot run the simulator (Iterator.values().map unavailable); use
+   Node 22.23.5 via `npm exec --yes --package=node@22 -- node ...` locally.
+   The CLI also probes a removed Windows wmic command. Switched tests to its
+   createPayloadFromFileMap/executeFile API, with captured streams and no device
+   network discovery; this removes that CLI-specific nuisance entirely.
+3. A direct LongInteger `1& << 32` trial failed with Invalid Bitwise Shift;
+   `1& << 31` produced a signed 32-bit value. Native wide shifts cannot be an
+   assumption. A first replacement using full-width integer division also
+   rounded a masked 63-bit maximum in the simulator. Rejected that approach.
+   Final helpers extract only masked 16-bit limbs with exactly representable
+   Double scaling by powers of two, then rebuild using bounded LongInteger
+   multiplication/bitwise OR. General arithmetic never converts a complete
+   64-bit pattern to Float/Double. Small-divisor division operates on bounded
+   chunks; full unsigned division uses exact restoring steps.
+4. The byte-array trial loaded zero after writing a computed LongInteger byte;
+   assigning an explicit Integer byte% before the store fixed it. Runtime
+   stores/fills now make the byte conversion explicit. Probe files/logs remain
+   under build/roku-{probe,smoke,debug}*. The first bool print used storage width
+   8 and printed 1; emitter now identifies bool semantically and sends width 1
+   to conversion/printing helpers, while actual storage remains one byte.
+5. The first browser rebuild used an old bootstrap that did not accept --depfile.
+   Reconfigured /cache/fast-browser with the validated performance bootstrap.
+   New native/browser parser and both LLVM reactors build successfully. Their
+   source/metadata packaging and final validation are recorded below.
+
+Initial verification: all six emitter test groups pass (67.8 s), covering O0/O2
+backend-semantics, functions, structs, memory, collections and match against the
+Tower reference; recursion, forty arguments, unsigned values, phi-copy loops,
+UTF-8 platform_write, comments, deterministic emission, width rejection and
+runtime trap unwinding. The separate numeric run passes 374 i32 + 384 i64 WAST
+assertions (20 traps total), covering 31/32 operation names, and 384 deterministic
+BigInt arithmetic/bitwise differential cases (8.5 s). These are numerical
+expectations only, not the entire Wasm validation suite. BrighterScript validates
+all executed source. Reproduce with `npm run test:roku --prefix playground`
+under Node 22+, after building the parser/LLVM reactors. A late signature check
+now rejects malformed platform_write declarations; final tests follow rebuild.
+
+The emitter tests prepare build/roku-device/source/, manifest and expected.txt.
+`python3 playground/scripts/package-roku.py build/roku-device/source/program.brs
+build/roku-conformance.zip` packages the manual sideload fixture (run via Docker
+here because Windows's python alias has no interpreter). No physical device
+result or Roku performance claim is made. Next physical check: record device/OS,
+sideload ZIP, capture port 8085 output and compare the marker-delimited fixture,
+then execute the integer corpus on that device. docs/roku-backend.md describes
+usage, explicit limits and this outstanding validation.
+
+Final implementation validation (same environment, Node 22.23.5 for the Roku
+simulator): native production towerc emits both O0 and O2 .brs programs and
+retains --raw-ir/--optimized-ir stages. BrighterScript validates those outputs;
+brs-node output agrees with the shared backend-semantics expected result.
+The final ten-group Roku suite passes in 85.5 seconds. A separately added LLVM
+scalar-idiom group passes in 45.5 seconds, covering every existing
+llvm-scalar-idioms.json case plus the high-bit/full-width backend-popcount
+fixture with its iteration count bounded to eight for simulator execution.
+Together these eleven groups include the 758 pinned numeric cases and 384
+seeded differential cases. Logs: build/roku-final-tests.log,
+build/roku-idioms.log and build/roku-cli-tests.log.
+
+Rebuilt native towerc and the parser/LLVM/cross browser reactors, then packaged
+the compiler recipe with
+`python3 /work/playground/scripts/package-compiler-project.py --parser-build
+/cache/fast-browser --llvm-build /cache/llvm-bc-browser` inside
+tower-c-validation. The WASI SDK is /cache/wasi/wasi-sdk-34.0-x86_64-linux;
+strip copied LLVM reactors with its llvm-strip. Packaging printed harmless
+archive-member no-symbol warnings on stderr; fresh project.json and all three
+support archives were produced. `TOWER_REQUIRE_BACKENDS=1 npm run build --prefix
+playground` packages the resulting reactors. Two successive browser-built
+compiler generations pass, including candidate Roku emission/comment checks;
+second generation sizes are 1,064,143 / 52,049,634 / 63,606,887 bytes for
+parser/LLVM/cross. Log: build/roku-generations.log.
+
+The main Node/Wasm suite passes 357/357 (86.5 seconds). Parser-only native
+ASAN/UBSAN CTest passes 5/5 (233.5 seconds, including the parser's 221.6-second
+concurrent-load run); logs are build/roku-node-tests.log and
+build/roku-asan-tests.log. `node playground/scripts/verify-local.mjs` verifies
+all 69 deployment assets and desktop/mobile flows, including simultaneous C
+and Roku layout profiles, BrightScript source download, comments/highlighting
+and disabled controls. This is local publication validation, not a Roku
+hardware result. The manual sideload packages are build/roku-conformance.zip
+(8,640 bytes) and build/roku-integers.zip (14,242 bytes). The device model/OS,
+actual BrightScript limits and performance remain unmeasured until hardware
+is available. The emitter/runtime use no wasm2brs runtime code.
+
+Browser regression result: the full 204-case desktop/mobile run initially had
+199 passes, one existing skip, and four assertion failures. Both viewport
+variants expected nine target options instead of ten, and the new Roku test
+looked for an href on a download element that is correctly removed when the
+target is disabled. Updated those expectations and additionally checked that
+fetching the old blob URL fails after disabling Roku. Both affected spec files
+then pass all ten tests (11.3 seconds); no product change was needed. The
+combined result is 203 passed / one skipped. Logs:
+build/roku-browser-tests.log and build/roku-browser-recheck.log.
+`node playground/scripts/format-tower.mjs` passes the complete source
+round-trip/idempotence check, and git diff --check is clean. todo.txt's blob
+remains 96a9e58964d7f01e4a97819f259448db81ef5e40, identical to HEAD.
+
+Publication rebase fetched 804a806, which adds only three journal records.
+Resolved the append-only journal conflict by preserving every upstream record
+and this Roku entry; all executable/test sources remain the validated versions.

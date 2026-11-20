@@ -14,7 +14,10 @@ export const interpreterTargets = {
   interpreter: {label:'Graph interpreter', description:'Execute the shared foundation graph'},
   fast: {label:'Fast interpreter', description:'Execute a compact register cache'},
 };
-export const sourceTargets = {c:{label:'C source', description:'Portable C source (64-bit little endian profile)', syntax:'c', extension:'c'}};
+export const sourceTargets = {
+  c:{label:'C source', description:'Portable C source (64-bit little endian profile)', syntax:'c', extension:'c', pointerBytes:8, mime:'text/x-c'},
+  roku:{label:'Roku BrightScript', description:'BrightScript source (32-bit profile; device testing pending)', syntax:'brightscript', extension:'brs', pointerBytes:4, mime:'text/plain'},
+};
 export const targetChoices = {...interpreterTargets, ...targets, ...sourceTargets};
 // Keep native choices from the individual-profile picker. Every browser session
 // starts with both interpreters and Wasm enabled for differential execution.

@@ -132,6 +132,11 @@ export async function loadTower(bytes, log = () => {}, bootstrap, foundation, be
       return string(pointer);
     },
     stripComments: handle => exports.tw_exec_strip_comments(handle),
+    rokuSource(handle, {comments=true}={}) {
+      const pointer = exports.tw_exec_roku(handle, comments ? 0 : 1);
+      if (!pointer) throw new Error(string(exports.tw_last_error()));
+      return string(pointer);
+    },
     destroyExecution: handle => {sourceMaps.delete(handle);outputDecoders.delete(handle);exports.tw_exec_destroy(handle);},
   };
 }

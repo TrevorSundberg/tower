@@ -120,6 +120,7 @@ addPane({id:'wasm-column', title:'Wasm Execution', output:'llvm-output', label:'
 addPane({id:'llvm-raw-column', title:'LLVM raw', output:'llvm-before', syntax:'llvm'});
 addPane({id:'llvm-optimized-column', title:'LLVM optimized', output:'llvm-after', syntax:'llvm'});
 addPane({id:'c-column', title:'C source', description:'Portable C, 64-bit little endian target', output:'c-disassembly', syntax:'c', phase:'c-phase', error:'c-error', downloads:{id:'c-downloads',link:'c-download'}}, 'c');
+addPane({id:'roku-column', title:'Roku BrightScript', description:'32-bit profile; physical-device testing pending', output:'roku-disassembly', syntax:'brightscript', phase:'roku-phase', error:'roku-error', downloads:{id:'roku-downloads',link:'roku-download'}}, 'roku');
 addPane({id:'fast-disassembly-column', title:'Bytecode disassembly', description:'Compilable foundation reconstructed from the validated .towerbc package', output:'fast-disassembly', label:'Bytecode disassembly as foundation', syntax:'tower', downloads:{id:'fast-downloads', link:'fast-download', size:'fast-size'}});
 addPane({id:'wasm-disassembly-column', title:'WebAssembly disassembly', output:'wasm-disassembly', label:'Wasm disassembly', syntax:'wasm', downloads:{id:'wasm-downloads', link:'llvm-download', size:'llvm-status'}});
 for (const key of nativeTargetKeys) {
@@ -130,7 +131,7 @@ function showCode(id, text) { outputPanes.get(id).code.setText(text); }
 function setPhase(backend, text = '') { runnerPanes.get(backend).setPhase(text); }
 function downloadName(key, extension) { return $('filename').textContent.replace(/\.tower$/, '')+'-'+key+'.'+extension; }
 const selectedNativeKeys = () => nativeTargetKeys.filter(key => selectedTargets[key]);
-const buildKeys = () => [...selectedNativeKeys(), ...(selectedTargets.c ? ['c'] : [])];
+const buildKeys = () => [...selectedNativeKeys(), ...Object.keys(sourceTargets).filter(key=>selectedTargets[key])];
 let autoTimer = 0, documentRevision = 0, executedRevision = -1;
 const typingDebounceMs = 200;
 let diagnosticPhase = null;
@@ -174,6 +175,7 @@ function warmSelectedTargets() {
 function updateColumns() {
   const any = selectedTargets.fast || selectedTargets.wasm || buildKeys().length > 0;
   $('c-column').hidden = !selectedTargets.c;
+  $('roku-column').hidden = !selectedTargets.roku;
   $('interpreter-column').hidden = !selectedTargets.interpreter;
   $('fast-column').hidden = !selectedTargets.fast;
   $('fast-disassembly-column').hidden = !selectedTargets.fast;
@@ -223,7 +225,7 @@ function compileNative(id,text) {
       const target=targets[data.target] ?? sourceTargets[data.target];
       if (data.before !== undefined) showLLVM(data.target,data.before,data.after);
       showCode(data.target+'-disassembly',data.disassembly);
-      outputPanes.get(data.target+'-disassembly').setDownload(data.bytes, {label:data.target==='c'?'Download C':target.label, filename:downloadName(data.target,target.extension), type:data.target==='c'?'text/x-c':'application/octet-stream'});
+      outputPanes.get(data.target+'-disassembly').setDownload(data.bytes, {label:data.target==='c'?'Download C':data.target==='roku'?'Download BrightScript':target.label, filename:downloadName(data.target,target.extension), type:target.mime??'application/octet-stream'});
       setPhase(data.target); runner.completed.add(data.target);
       runner.timings[target.label]=data.ms; showTimings();
     }
@@ -265,7 +267,7 @@ function clearWasm() {
 }
 function clearCompiled() {
   outputPanes.get('fast-disassembly').clearDownload(); showCode('fast-disassembly','');
-  for(const key of [...nativeTargetKeys,'c']) { clearNative(key); setPhase(key); }
+  for(const key of [...nativeTargetKeys,...Object.keys(sourceTargets)]) { clearNative(key); setPhase(key); }
   clearWasm(); llvmViews={}; $('steps').textContent = '';
   for (const id of ['core-instructions', 'llvm-before', 'llvm-after']) showCode(id,'');
   runners = {}; showTimings();

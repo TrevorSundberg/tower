@@ -89,6 +89,7 @@ using CoreSourceSpan = TowerSourceSpan;
 using CoreText = TowerText;
 CoreText core_format(const CoreProgram& program);
 CoreText core_c_source(const CoreProgram& program, bool comments = true);
+CoreText core_roku_source(const CoreProgram& program, bool comments = true);
 void core_strip_comments(CoreProgram& program);
 inline constexpr size_t CORE_MAX_FRAMES = 128, CORE_STACK_BYTES = 4 * 1024 * 1024;
 

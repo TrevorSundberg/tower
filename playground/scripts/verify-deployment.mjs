@@ -65,7 +65,8 @@ try {
     await expect(page.locator('#c-disassembly .tw-keyword').first()).toBeVisible();
     const paneOrder=await page.locator('.execution-column').evaluateAll(nodes=>nodes.map(node=>node.id));
     assert.equal(paneOrder.indexOf('c-column'),paneOrder.indexOf('llvm-optimized-column')+1);
-    assert.equal(paneOrder.indexOf('fast-disassembly-column'),paneOrder.indexOf('c-column')+1);
+    assert.equal(paneOrder.indexOf('roku-column'),paneOrder.indexOf('c-column')+1);
+    assert.equal(paneOrder.indexOf('fast-disassembly-column'),paneOrder.indexOf('roku-column')+1);
     const cDownload=page.waitForEvent('download'); await page.locator('#c-download').click();
     const cArtifact=await cDownload, rawC=await readFile(await cArtifact.path(),'utf8');
     assert.match(rawC,/int main\(void\)/);
@@ -85,6 +86,13 @@ try {
     const optimizedC=await page.locator('#c-download').evaluate(link=>fetch(link.href).then(response=>response.text()));
     assert.equal(optimizedC,await outputText(page,'c-disassembly'));
     await writeFile(new URL(name+'-c-optimized.c',output),optimizedC);
+    await page.locator('#target-roku').check();
+    await expect(page.locator('#roku-download')).toHaveAttribute('href',/^blob:/,{timeout:60000});
+    const rokuSource=await page.locator('#roku-download').evaluate(link=>fetch(link.href).then(response=>response.text()));
+    assert.match(rokuSource,/function TowerRun\(/);
+    assert.match(rokuSource,/deployment C comment/);
+    assert.match(rokuSource,/32-bit byte addresses/);
+    await writeFile(new URL(name+'-roku.brs',output),rokuSource);
     await page.locator('#preserve-comments').uncheck();
     await expect.poll(async()=>{
       const source=await outputText(page,'c-disassembly');
@@ -92,9 +100,14 @@ try {
     },{timeout:60000}).toBe(true);
     await expect(page.locator('#c-download')).toHaveAttribute('href',/^blob:/,{timeout:60000});
     assert.ok(!(await outputText(page,'c-disassembly')).includes('deployment C comment'));
+    await expect.poll(async()=>{
+      const source=await outputText(page,'roku-disassembly');
+      return source.includes('function TowerRun(') && !source.includes('deployment C comment');
+    },{timeout:60000}).toBe(true);
     await expect.poll(()=>outputText(page,'core-instructions')).not.toContain('deployment C comment');
     await page.locator('#preserve-comments').check();
     await page.locator('#target-c').uncheck();
+    await page.locator('#target-roku').uncheck();
     await page.locator('#build-targets summary').click();
     await expect(page.locator('#execution-status')).toHaveText('Finished · backends match',{timeout:60000});
     await expect.poll(()=>outputText(page,'fast-disassembly')).toContain('label(');

@@ -109,6 +109,10 @@ export async function linkCompiler({compiler, recipe, files, inputs, support, pr
   try {
     foundation = tower.foundation(handle).source;
     checkC(handle);
+    const roku = tower.rokuSource(handle);
+    if (!roku.includes('function TowerRun(') || !roku.includes('candidate C metadata') ||
+        tower.rokuSource(handle,{comments:false}).includes('candidate C metadata'))
+      throw new Error('Candidate Roku output/comment check failed');
     for (const fast of [false,true]) {
       const run = fast ? tower.compile(fixture) : handle;
       try {

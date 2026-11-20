@@ -1,0 +1,953 @@
+import tower;
+import 'c-emitter';
+import 'roku-runtime';
+
+// Reuse the source emitters' disposable entity/owner index and text writer.
+// Foundation nodes remain authoritative; no bytecode or alternate IR is read.
+struct RokuEmitter {
+    common: CEmitter;
+    loop_id: usize;
+    labels: usize;
+    conditions: usize;
+}
+
+fn re_text(r: RokuEmitter*, text: u8*): void {
+    ce_text(&r.common, text);
+}
+
+fn re_number(r: RokuEmitter*, n: usize): void {
+    ce_number(&r.common, convert(u64, n));
+}
+
+fn re_fail(r: RokuEmitter*, message: u8*): void {
+    ce_fail(&r.common, message);
+}
+
+fn re_id(r: RokuEmitter*, entity: void*): usize {
+    return ce_id(&r.common, entity);
+}
+
+fn re_temp(r: RokuEmitter*, entity: void*): void {
+    re_text(r, "t[");
+    re_number(r, re_id(r, entity));
+    re_text(r, "]");
+}
+
+fn re_slot(r: RokuEmitter*, entity: void*): void {
+    var n = sem_get(entity);
+    if n.global {
+        re_text(r, "s.g[");
+    }
+    else {
+        re_text(r, "v[");
+    }
+    re_number(r, re_id(r, entity));
+    re_text(r, "]");
+}
+
+fn re_width(r: RokuEmitter*, t: FoundationType*): void {
+    var boolean = t.scalar == SBool();
+    var pointer = t.pointers != 0;
+    if pointer {
+        boolean = false;
+    }
+    if boolean {
+        re_text(r, "1");
+        return;
+    }
+    re_number(r, convert(usize, semantic_width(t)));
+}
+
+fn re_signed(r: RokuEmitter*, t: FoundationType*): void {
+    if semantic_signed(t) {
+        re_text(r, "true");
+    }
+    else {
+        re_text(r, "false");
+    }
+}
+
+fn re_hex(r: RokuEmitter*, bits: u64): void {
+    var digits: u8[16];
+    var at: usize = 16;
+    var alphabet = "0123456789abcdef";
+    loop {
+        at = at - 1;
+        var c_step1 = bits % 16;
+        var digit = convert(usize, c_step1);
+        digits[at] = alphabet[digit];
+        bits = bits / 16;
+        var c_step2 = at == 0;
+        if c_step2 {
+            break;
+        }
+    }
+    re_text(r, "&h");
+    sem_require(bytes_append(r.common.text, &digits[0], 16));
+    re_text(r, "&");
+}
+
+fn re_comments(r: RokuEmitter*, n: FoundationNode*): void {
+    if r.common.comments {}
+    else {
+        return;
+    }
+    var c_step3 = n.comments.length == 0;
+    if c_step3 {
+        return;
+    }
+    re_text(r, "' ");
+    var i: usize = 0;
+    loop {
+        var c_step4 = i == n.comments.length;
+        if c_step4 {
+            break;
+        }
+        var b = n.comments.data[i];
+        // Every physical line is a comment, including CR-only metadata.
+        var c_step5 = b == 13;
+        if c_step5 {
+            b = 10;
+        }
+        sem_require(vector_push(u8, r.common.text, b));
+        var c_step6 = b == 10;
+        if c_step6 {
+            re_text(r, "' ");
+        }
+        i = i + 1;
+    }
+    re_text(r, "\n");
+}
+
+fn re_prepare_address(r: RokuEmitter*, entity: void*): void {
+    var n = sem_get(entity);
+    var c_step7 = n.kind == KLoad();
+    if c_step7 {
+        re_prepare(r, n.value);
+        return;
+    }
+    var place = n.kind == KField();
+    var c_step8 = n.kind == KIndex();
+    if c_step8 {
+        place = true;
+    }
+    if place {
+        if n.indirect {
+            re_prepare(r, n.left);
+        }
+        else {
+            re_prepare_address(r, n.left);
+        }
+        var c_step9 = n.kind == KIndex();
+        if c_step9 {
+            re_prepare(r, n.right);
+        }
+    }
+}
+
+fn re_address(r: RokuEmitter*, entity: void*): void {
+    var n = sem_get(entity);
+    var c_step10 = n.kind == KLoad();
+    if c_step10 {
+        re_temp(r, n.value);
+        return;
+    }
+    var place = n.kind == KField();
+    var c_step11 = n.kind == KIndex();
+    if c_step11 {
+        place = true;
+    }
+    if place {
+        re_text(r, "tr_offset(");
+        if n.indirect {
+            re_temp(r, n.left);
+        }
+        else {
+            re_address(r, n.left);
+        }
+        re_text(r, ", ");
+        var c_step12 = n.kind == KIndex();
+        if c_step12 {
+            re_temp(r, n.right);
+            re_text(r, ", ");
+            re_number(r, semantic_size(&n.type));
+        }
+        else {
+            re_number(r, n.byte_offset);
+            re_text(r, ", 1");
+        }
+        re_text(r, ")");
+        return;
+    }
+    var binding = n.binding;
+    var c_step13 = binding == null;
+    if c_step13 {
+        binding = entity;
+    }
+    re_slot(r, binding);
+}
+
+fn re_function(r: RokuEmitter*, entity: void*): void {
+    var n = sem_get(entity);
+    if n.external {
+        if sem_equal(sem_name(n), "platform_write") {
+            var valid = n.parameters.length == 3;
+            if valid {
+                var stream = sem_get(n.parameters.data[0]);
+                var data = sem_get(n.parameters.data[1]);
+                var length = sem_get(n.parameters.data[2]);
+                var wrong = stream.type.scalar != SU32();
+                if wrong {
+                    valid = false;
+                }
+                wrong = stream.type.pointers != 0;
+                if wrong {
+                    valid = false;
+                }
+                wrong = data.type.scalar != SU8();
+                if wrong {
+                    valid = false;
+                }
+                wrong = data.type.pointers != 1;
+                if wrong {
+                    valid = false;
+                }
+                wrong = length.type.scalar != SUSize();
+                if wrong {
+                    valid = false;
+                }
+                wrong = length.type.pointers != 0;
+                if wrong {
+                    valid = false;
+                }
+                wrong = n.type.scalar != SI64();
+                if wrong {
+                    valid = false;
+                }
+                wrong = n.type.pointers != 0;
+                if wrong {
+                    valid = false;
+                }
+            }
+            if valid {} else {
+                re_fail(r, "Roku platform_write requires (u32, u8*, usize): i64");
+            }
+            re_text(r, "tr_write");
+            return;
+        }
+        re_fail(r, "Roku target supports only the platform_write foreign function; provide a Tower implementation");
+    }
+    re_text(r, "tr_fn_");
+    re_number(r, re_id(r, entity));
+}
+
+fn re_expression(r: RokuEmitter*, entity: void*): void {
+    var n = sem_get(entity);
+    var c_step14 = n.kind == KOperand();
+    if c_step14 {
+        if n.constant {
+            var c_step15 = n.bits & semantic_mask(&n.type);
+            re_hex(r, c_step15);
+        }
+        else {
+            re_text(r, "tr_load(s, ");
+            re_slot(r, n.binding);
+            re_text(r, ", ");
+            re_number(r, semantic_size(&n.type));
+            re_text(r, ")");
+        }
+        return;
+    }
+    var c_step16 = n.kind == KString();
+    if c_step16 {
+        re_text(r, "s.g[");
+        re_number(r, re_id(r, entity));
+        re_text(r, "]");
+        return;
+    }
+    var c_step17 = n.kind == KAddress();
+    if c_step17 {
+        re_address(r, n.value);
+        return;
+    }
+    var load = n.kind == KLoad();
+    var c_step18 = n.kind == KField();
+    if c_step18 {
+        load = true;
+    }
+    var c_step19 = n.kind == KIndex();
+    if c_step19 {
+        load = true;
+    }
+    if load {
+        re_text(r, "tr_load(s, ");
+        re_address(r, entity);
+        re_text(r, ", ");
+        re_number(r, semantic_size(&n.type));
+        re_text(r, ")");
+        return;
+    }
+    var c_step20 = n.kind == KCall();
+    if c_step20 {
+        re_function(r, n.binding);
+        re_text(r, "(s, [");
+        var i: usize = 0;
+        loop {
+            var c_step21 = i == n.items.length;
+            if c_step21 {
+                break;
+            }
+            var c_step22 = i != 0;
+            if c_step22 {
+                re_text(r, ", ");
+            }
+            re_temp(r, n.items.data[i]);
+            i = i + 1;
+        }
+        re_text(r, "])");
+        return;
+    }
+    var c_step23 = n.kind == KSizeOf();
+    if c_step23 {
+        re_number(r, semantic_size(&n.element));
+        re_text(r, "&");
+        return;
+    }
+    var c_step24 = n.kind == KAlignOf();
+    if c_step24 {
+        re_number(r, semantic_alignment(&n.element));
+        re_text(r, "&");
+        return;
+    }
+    var c_step25 = n.kind == KAllocate();
+    if c_step25 {
+        re_text(r, "tr_alloc(s, tr_count(");
+        re_temp(r, n.right);
+        re_text(r, ", ");
+        re_number(r, semantic_size(&n.element));
+        re_text(r, "))");
+        return;
+    }
+    var c_step26 = n.kind == KReallocate();
+    if c_step26 {
+        re_text(r, "tr_realloc(s, ");
+        re_temp(r, n.left);
+        re_text(r, ", tr_count(");
+        re_temp(r, n.right);
+        re_text(r, ", ");
+        re_number(r, semantic_size(&n.element));
+        re_text(r, "))");
+        return;
+    }
+    var conversion = n.kind == KConvert();
+    var c_step27 = n.kind == KBits();
+    if c_step27 {
+        conversion = true;
+    }
+    if conversion {
+        var from = sem_get(n.value);
+        re_text(r, "tr_convert(");
+        re_temp(r, n.value);
+        re_text(r, ", ");
+        re_width(r, &from.type);
+        re_text(r, ", ");
+        re_signed(r, &from.type);
+        re_text(r, ", ");
+        re_width(r, &n.type);
+        re_text(r, ", ");
+        re_signed(r, &n.type);
+        re_text(r, ", ");
+        var c_step28 = n.kind == KConvert();
+        if c_step28 {
+            re_text(r, "true");
+        }
+        else {
+            re_text(r, "false");
+        }
+        re_text(r, ")");
+        return;
+    }
+    var c_step29 = n.kind == KBinary();
+    if c_step29 {
+        var from = sem_get(n.left);
+        var pointer_math = from.type.pointers != 0;
+        var c_step30 = n.op > OSub();
+        if c_step30 {
+            pointer_math = false;
+        }
+        if pointer_math {
+            var element: FoundationType;
+            copy(&element, &from.type, sizeof(FoundationType));
+            element.pointers = element.pointers - 1;
+            re_text(r, "tr_offset(");
+            re_temp(r, n.left);
+            re_text(r, ", ");
+            var c_step31 = n.op == OSub();
+            if c_step31 {
+                re_text(r, "tr_neg(");
+            }
+            re_temp(r, n.right);
+            var c_step32 = n.op == OSub();
+            if c_step32 {
+                re_text(r, ")");
+            }
+            re_text(r, ", ");
+            re_number(r, semantic_size(&element));
+            re_text(r, ")");
+            return;
+        }
+        // The emitter selects a helper from the shared operation definition.
+        // There is no serialized instruction dispatch table or public opcode ABI.
+        var c_step33 = n.op == OAdd();
+        if c_step33 {
+            re_text(r, "tr_add(");
+        }
+        var c_step34 = n.op == OSub();
+        if c_step34 {
+            re_text(r, "tr_sub(");
+        }
+        var c_step35 = n.op == OMul();
+        if c_step35 {
+            re_text(r, "tr_mul(");
+        }
+        var c_step36 = n.op == ODiv();
+        if c_step36 {
+            re_text(r, "tr_div(");
+        }
+        var c_step37 = n.op == ORem();
+        if c_step37 {
+            re_text(r, "tr_rem(");
+        }
+        var c_step38 = n.op == OAnd();
+        if c_step38 {
+            re_text(r, "tr_and(");
+        }
+        var c_step39 = n.op == OOr();
+        if c_step39 {
+            re_text(r, "tr_or(");
+        }
+        var c_step40 = n.op == OXor();
+        if c_step40 {
+            re_text(r, "tr_xor(");
+        }
+        var c_step41 = n.op >= OEq();
+        if c_step41 {
+            re_text(r, "tr_bool(tr_compare(");
+        }
+        re_temp(r, n.left);
+        re_text(r, ", ");
+        re_temp(r, n.right);
+        re_text(r, ", ");
+        re_width(r, &from.type);
+        re_text(r, ", ");
+        re_signed(r, &from.type);
+        re_text(r, ")");
+        var c_step42 = n.op >= OEq();
+        if c_step42 {
+            var c_step43 = n.op == OEq();
+            if c_step43 {
+                re_text(r, " = 0)");
+            }
+            var c_step44 = n.op == ONe();
+            if c_step44 {
+                re_text(r, " <> 0)");
+            }
+            var c_step45 = n.op == OLt();
+            if c_step45 {
+                re_text(r, " < 0)");
+            }
+            var c_step46 = n.op == OLe();
+            if c_step46 {
+                re_text(r, " <= 0)");
+            }
+            var c_step47 = n.op == OGt();
+            if c_step47 {
+                re_text(r, " > 0)");
+            }
+            var c_step48 = n.op == OGe();
+            if c_step48 {
+                re_text(r, " >= 0)");
+            }
+        }
+        return;
+    }
+    re_fail(r, "Unsupported Foundation value in Roku emitter");
+}
+
+fn re_prepare(r: RokuEmitter*, entity: void*): void {
+    var c_step49 = entity == null;
+    if c_step49 {
+        return;
+    }
+    var n = sem_get(entity);
+    var c_step50 = n.kind == KAddress();
+    if c_step50 {
+        re_prepare_address(r, n.value);
+    }
+    else {
+        var place = n.kind == KField();
+        var c_step51 = n.kind == KIndex();
+        if c_step51 {
+            place = true;
+        }
+        var c_step52 = n.kind == KLoad();
+        if c_step52 {
+            place = true;
+        }
+        if place {
+            re_prepare_address(r, entity);
+        }
+        else {
+            re_prepare(r, n.left);
+            re_prepare(r, n.right);
+            re_prepare(r, n.value);
+            var i: usize = 0;
+            loop {
+                var c_step53 = i == n.items.length;
+                if c_step53 {
+                    break;
+                }
+                re_prepare(r, n.items.data[i]);
+                i = i + 1;
+            }
+        }
+    }
+    re_text(r, "    ");
+    if ce_value_kind(n) {
+        re_temp(r, entity);
+        re_text(r, " = ");
+    }
+    re_expression(r, entity);
+    re_text(r, "\n");
+}
+
+fn re_store(r: RokuEmitter*, target: void*, value: void*): void {
+    var n = sem_get(target);
+    re_text(r, "    tr_store(s, ");
+    re_address(r, target);
+    re_text(r, ", ");
+    re_temp(r, value);
+    re_text(r, ", ");
+    re_number(r, semantic_size(&n.type));
+    re_text(r, ")\n");
+}
+
+fn re_statement(r: RokuEmitter*, entity: void*): void {
+    var c_step54 = entity == null;
+    if c_step54 {
+        return;
+    }
+    var n = sem_get(entity);
+    var c_step55 = n.kind == KFunction();
+    if c_step55 {
+        return;
+    }
+    re_comments(r, n);
+    var c_step56 = n.kind == KType();
+    if c_step56 {
+        return;
+    }
+    var list = n.kind == KProgram();
+    var c_step57 = n.kind == KBlock();
+    if c_step57 {
+        list = true;
+    }
+    if list {
+        var i: usize = 0;
+        loop {
+            var c_step58 = i == n.items.length;
+            if c_step58 {
+                break;
+            }
+            re_statement(r, n.items.data[i]);
+            i = i + 1;
+        }
+        return;
+    }
+    var c_step59 = n.kind == KDeclare();
+    if c_step59 {
+        var c_step60 = n.value != null;
+        if c_step60 {
+            re_prepare(r, n.value);
+            re_store(r, entity, n.value);
+        }
+        else {
+            re_text(r, "    tr_fill(s, ");
+            re_slot(r, entity);
+            re_text(r, ", 0, ");
+            re_number(r, semantic_size(&n.type));
+            re_text(r, ")\n");
+        }
+        return;
+    }
+    var c_step61 = n.kind == KAssign();
+    if c_step61 {
+        re_prepare_address(r, n.target);
+        re_prepare(r, n.value);
+        re_store(r, n.target, n.value);
+        return;
+    }
+    var c_step62 = n.kind == KIf();
+    if c_step62 {
+        r.conditions = r.conditions + 1;
+        re_prepare(r, n.value);
+        re_text(r, "    if ");
+        re_temp(r, n.value);
+        re_text(r, " <> 0 then\n");
+        re_statement(r, n.body);
+        var c_step63 = n.otherwise != null;
+        if c_step63 {
+            re_text(r, "    else\n");
+            re_statement(r, n.otherwise);
+        }
+        re_text(r, "    end if\n");
+        return;
+    }
+    var c_step64 = n.kind == KLoop();
+    if c_step64 {
+        var parent = r.loop_id;
+        r.loop_id = re_id(r, entity);
+        r.labels = r.labels + 2;
+        re_text(r, "tr_loop_");
+        re_number(r, r.loop_id);
+        re_text(r, ":\n");
+        re_statement(r, n.body);
+        re_text(r, "    goto tr_loop_");
+        re_number(r, r.loop_id);
+        re_text(r, "\ntr_break_");
+        re_number(r, r.loop_id);
+        re_text(r, ":\n");
+        r.loop_id = parent;
+        return;
+    }
+    var c_step65 = n.kind == KBreak();
+    if c_step65 {
+        re_text(r, "    goto tr_break_");
+        re_number(r, r.loop_id);
+        re_text(r, "\n");
+        return;
+    }
+    var c_step66 = n.kind == KContinue();
+    if c_step66 {
+        re_text(r, "    goto tr_loop_");
+        re_number(r, r.loop_id);
+        re_text(r, "\n");
+        return;
+    }
+    var c_step67 = n.kind == KReturn();
+    if c_step67 {
+        re_prepare(r, n.value);
+        re_text(r, "    tr_free(s, frame)\n    return ");
+        var c_step68 = n.value != null;
+        if c_step68 {
+            re_temp(r, n.value);
+        }
+        else {
+            re_text(r, "invalid");
+        }
+        re_text(r, "\n");
+        return;
+    }
+    var c_step69 = n.kind == KLabel();
+    if c_step69 {
+        r.labels = r.labels + 1;
+        re_text(r, "tr_label_");
+        re_number(r, re_id(r, entity));
+        re_text(r, ":\n");
+        return;
+    }
+    var c_step70 = n.kind == KJump();
+    if c_step70 {
+        re_text(r, "    goto tr_label_");
+        re_number(r, re_id(r, n.binding));
+        re_text(r, "\n");
+        return;
+    }
+    var c_step71 = n.kind == KPrint();
+    if c_step71 {
+        re_prepare(r, n.value);
+        var value = sem_get(n.value);
+        re_text(r, "    tr_print(s, ");
+        re_temp(r, n.value);
+        re_text(r, ", ");
+        re_width(r, &value.type);
+        re_text(r, ", ");
+        re_signed(r, &value.type);
+        re_text(r, ", ");
+        var c_step72 = value.type.pointers != 0;
+        if c_step72 {
+            re_text(r, "true");
+        }
+        else {
+            re_text(r, "false");
+        }
+        re_text(r, ")\n");
+        return;
+    }
+    var c_step73 = n.kind == KFree();
+    if c_step73 {
+        re_prepare(r, n.left);
+        re_text(r, "    tr_free(s, ");
+        re_temp(r, n.left);
+        re_text(r, ")\n");
+        return;
+    }
+    var memory = n.kind == KCopy();
+    var c_step74 = n.kind == KFill();
+    if c_step74 {
+        memory = true;
+    }
+    if memory {
+        re_prepare(r, n.left);
+        re_prepare(r, n.right);
+        re_prepare(r, n.value);
+        var c_step75 = n.kind == KCopy();
+        if c_step75 {
+            re_text(r, "    tr_copy(s, ");
+        }
+        else {
+            re_text(r, "    tr_fill(s, ");
+        }
+        re_temp(r, n.left);
+        re_text(r, ", ");
+        re_temp(r, n.right);
+        re_text(r, ", ");
+        re_temp(r, n.value);
+        re_text(r, ")\n");
+        return;
+    }
+    var c_step76 = n.kind == KTrap();
+    if c_step76 {
+        re_prepare(r, n.left);
+        re_prepare(r, n.right);
+        re_text(r, "    tr_trap(tr_string(s, ");
+        re_temp(r, n.left);
+        re_text(r, ", ");
+        re_temp(r, n.right);
+        re_text(r, "))\n");
+        return;
+    }
+    var c_step77 = n.kind == KCall();
+    if c_step77 {
+        re_prepare(r, entity);
+        return;
+    }
+    re_fail(r, "Unsupported Foundation statement in Roku emitter");
+}
+
+fn re_storage(r: RokuEmitter*, entity: void*, owner: void*, globals: bool): bool {
+    var n = sem_get(entity);
+    var variable = n.kind == KDeclare();
+    var c_step78 = n.kind == KParameter();
+    if c_step78 {
+        variable = true;
+    }
+    if globals {
+        if variable {
+            return n.global;
+        }
+        return false;
+    }
+    if n.global {
+        return false;
+    }
+    var id = re_id(r, entity);
+    var same = r.common.owners.data[id] == owner;
+    if variable {
+        return same;
+    }
+    return false;
+}
+
+fn re_body(r: RokuEmitter*, entity: void*, program: bool): void {
+    r.labels = 0;
+    r.conditions = 0;
+    var i: usize = 0;
+    var size: usize = 0;
+    loop {
+        var c_step81 = i == r.common.nodes.length;
+        if c_step81 {
+            break;
+        }
+        var item = r.common.nodes.data[i];
+        var n = sem_get(item);
+        if re_storage(r, item, entity, false) {
+            var c_step82 = size + semantic_size(&n.type);
+            size = c_step82 + 7;
+            var c_step83 = size / 8;
+            size = c_step83 * 8;
+        }
+        i = i + 1;
+    }
+    re_text(r, "    t = []\n    v = []\n    frame = tr_alloc(s, ");
+    re_number(r, size);
+    re_text(r, ")\n");
+    i = 0;
+    size = 0;
+    loop {
+        var c_step84 = i == r.common.nodes.length;
+        if c_step84 {
+            break;
+        }
+        var item = r.common.nodes.data[i];
+        var n = sem_get(item);
+        if re_storage(r, item, entity, false) {
+            re_text(r, "    ");
+            re_slot(r, item);
+            re_text(r, " = frame + ");
+            re_number(r, size);
+            re_text(r, "&\n");
+            var c_step85 = size + semantic_size(&n.type);
+            size = c_step85 + 7;
+            var c_step86 = size / 8;
+            size = c_step86 * 8;
+        }
+        i = i + 1;
+    }
+    var n = sem_get(entity);
+    i = 0;
+    loop {
+        var c_step87 = i == n.parameters.length;
+        if c_step87 {
+            break;
+        }
+        var item = n.parameters.data[i];
+        var param = sem_get(item);
+        re_text(r, "    tr_store(s, ");
+        re_slot(r, item);
+        re_text(r, ", args[");
+        re_number(r, i);
+        re_text(r, "], ");
+        re_number(r, semantic_size(&param.type));
+        re_text(r, ")\n");
+        i = i + 1;
+    }
+    if program {
+        re_statement(r, entity);
+    }
+    else {
+        re_statement(r, n.body);
+    }
+    re_text(r, "    tr_free(s, frame)\n    return invalid\nend function\n\n");
+    // Conservative limits from wasm2brs device findings. Arrays avoid local and
+    // parameter limits; diagnose large control flow instead of emitting bad BRS.
+    var c_step88 = r.labels > 240;
+    if c_step88 {
+        re_fail(r, "Roku function exceeds the 240-label profile limit; split the function or enable optimization");
+    }
+    var c_step89 = r.conditions > 200;
+    if c_step89 {
+        re_fail(r, "Roku function exceeds the 200-conditional profile limit; split the function or enable optimization");
+    }
+}
+
+export fn roku_emit(text: vector(u8)*, error: vector(u8)*, root: void*, pointer_bytes: u32, comments: bool): void {
+    var r: RokuEmitter;
+    fill(&r, 0, sizeof(RokuEmitter));
+    r.common.text = text;
+    r.common.error = error;
+    r.common.comments = comments;
+    var c_step90 = pointer_bytes != 4;
+    if c_step90 {
+        re_fail(&r, "Roku source requires the explicit 32-bit little endian profile");
+        return;
+    }
+    ce_collect(&r.common, root, root);
+    re_text(&r, "' Tower Roku profile 1: 32-bit byte addresses, exact integer arithmetic.\n' Generated platform source; canonical Foundation remains the program format.\n' Call TowerRun() from Main or a SceneGraph Task. Physical-device validation pending.\n\n");
+    re_runtime(&r);
+    re_text(&r, "function TowerRun(output = invalid as dynamic, memoryLimit = 67108864 as integer) as object\n    s = tr_state(output, memoryLimit)\n");
+    var i: usize = 0;
+    loop {
+        var c_step91 = i == r.common.nodes.length;
+        if c_step91 {
+            break;
+        }
+        var item = r.common.nodes.data[i];
+        var n = sem_get(item);
+        if re_storage(&r, item, root, true) {
+            re_text(&r, "    ");
+            re_slot(&r, item);
+            re_text(&r, " = tr_alloc(s, ");
+            re_number(&r, semantic_size(&n.type));
+            re_text(&r, ")\n");
+        }
+        var c_step92 = n.kind == KString();
+        if c_step92 {
+            re_text(&r, "    s.g[");
+            re_number(&r, i);
+            re_text(&r, "] = tr_alloc(s, ");
+            var c_step93 = n.name.length + 1;
+            re_number(&r, c_step93);
+            re_text(&r, ")\n");
+            var at: usize = 0;
+            loop {
+                var c_step94 = at == n.name.length;
+                if c_step94 {
+                    break;
+                }
+                re_text(&r, "    tr_store(s, s.g[");
+                re_number(&r, i);
+                re_text(&r, "] + ");
+                re_number(&r, at);
+                re_text(&r, ", ");
+                re_number(&r, convert(usize, n.name.data[at]));
+                re_text(&r, ", 1)\n");
+                at = at + 1;
+            }
+        }
+        i = i + 1;
+    }
+    re_text(&r, "    tr_entry(s, [])\n    return s\nend function\n\n");
+    i = 0;
+    loop {
+        var c_step95 = i == r.common.nodes.length;
+        if c_step95 {
+            break;
+        }
+        var item = r.common.nodes.data[i];
+        var n = sem_get(item);
+        var c_step96 = n.kind == KFunction();
+        if c_step96 {
+            if n.external {}
+            else {
+                re_comments(&r, n);
+                re_text(&r, "function ");
+                re_function(&r, item);
+                re_text(&r, "(s as object, args as object) as dynamic\n");
+                re_body(&r, item, false);
+            }
+        }
+        i = i + 1;
+    }
+    re_text(&r, "function tr_entry(s as object, args as object) as dynamic\n");
+    re_body(&r, root, true);
+    var c_step97 = text.length > 1900000;
+    if c_step97 {
+        re_fail(&r, "Roku source exceeds the single-file profile limit (1.9 MB); split the program");
+    }
+    var lines: usize = 0;
+    i = 0;
+    loop {
+        var c_step98 = i == text.length;
+        if c_step98 {
+            break;
+        }
+        var c_step99 = text.data[i] == 10;
+        if c_step99 {
+            lines = lines + 1;
+        }
+        i = i + 1;
+    }
+    var c_step100 = lines > 60000;
+    if c_step100 {
+        re_fail(&r, "Roku source exceeds the 60000-line profile limit; split the program");
+    }
+    vector_dispose(void*, &r.common.nodes);
+    vector_dispose(void*, &r.common.owners);
+    vector_dispose(bool, &r.common.active);
+    vector_dispose(bool, &r.common.returning);
+    var c_step101 = error.length != 0;
+    if c_step101 {
+        text.length = 0;
+    }
+}

@@ -5,6 +5,7 @@
 #include "compiler-host.hpp"
 
 extern "C" void c_emit(TowerByteBuffer*, TowerByteBuffer*, TowerNode*, unsigned, bool);
+extern "C" void roku_emit(TowerByteBuffer*, TowerByteBuffer*, TowerNode*, unsigned, bool);
 extern "C" void semantic_strip_comments(TowerNode*);
 
 CoreText core_c_source(const CoreProgram& program, bool comments) {
@@ -17,6 +18,16 @@ CoreText core_c_source(const CoreProgram& program, bool comments) {
   return result;
 }
 void core_strip_comments(CoreProgram& program) { semantic_strip_comments(program.root); }
+
+CoreText core_roku_source(const CoreProgram& program, bool comments) {
+  CoreText result;
+  TowerByteBuffer source{}, error{};
+  roku_emit(&source, &error, program.root, program.pointer_bytes, comments);
+  if (source.length) result.source.assign(reinterpret_cast<const char*>(source.data), source.length);
+  if (error.length) result.error.assign(reinterpret_cast<const char*>(error.data), error.length);
+  bytes_dispose(&source); bytes_dispose(&error);
+  return result;
+}
 
 namespace {
 std::string foundation_grammar;
