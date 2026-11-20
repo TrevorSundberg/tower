@@ -3,6 +3,7 @@ import 'host-services';
 import '../host/driver-options';
 import '../host/driver-types';
 import '../host/memory';
+import '../host/memory-types';
 
 // Functional host tests execute Tower implementations on the test host target.
 extern fn tower_test_buffer_count(): usize;

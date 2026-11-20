@@ -1,4 +1,5 @@
 import tower;
+import 'runtime-platform';
 
 // Private build tool: connect Tower implementations to reserved runtime symbols
 // in emitted target LLVM output. This is object production, not Tower storage.
@@ -18,24 +19,28 @@ extern fn LLVMSetValueName2(value: void*, name: u8*, length: usize): void;
 extern fn LLVMRemoveStringAttributeAtIndex(function: void*, index: u32, name: u8*, length: u32): void;
 extern fn LLVMVerifyModule(module: void*, action: u32, error: u8**): i32;
 extern fn LLVMPrintModuleToFile(module: void*, path: u8*, error: u8**): i32;
+extern fn LLVMGetFirstFunction(module: void*): void*;
+extern fn LLVMGetNextFunction(function: void*): void*;
 extern fn puts(message: u8*): i32;
 extern fn strlen(message: u8*): usize;
+extern fn strcmp(left: u8*, right: u8*): i32;
 
 const RuntimeReturnVerificationStatus: u32 = 2;
 
-fn runtime_bind_function(module: void*, source: u8*, destination: u8*): bool {
+fn runtime_bind_function(module: void*, source: u8*, destination: u8*, external: bool): bool {
     var function = LLVMGetNamedFunction(module, source);
     var missing = function == null;
     if missing { puts("Missing runtime implementation"); puts(source); return false; }
     var declaration = LLVMIsDeclaration(function) != 0;
-    if declaration { puts("Runtime implementation must be defined"); return false; }
+    var correct = declaration == external;
+    if !correct { puts("Runtime implementation must be defined (or explicitly bound with --declare)"); return false; }
     var previous = LLVMGetNamedFunction(module, destination);
     var present = previous != null;
     if present {
         declaration = LLVMIsDeclaration(previous) != 0;
-        if declaration {} else { puts("Runtime destination is already defined"); return false; }
+        if !declaration { puts("Runtime destination is already defined"); return false; }
         var same = LLVMGlobalGetValueType(previous) == LLVMGlobalGetValueType(function);
-        if same {} else { puts("Runtime ABI type mismatch"); return false; }
+        if !same { puts("Runtime ABI type mismatch"); return false; }
         LLVMReplaceAllUsesWith(previous, function);
         LLVMDeleteFunction(previous);
     }
@@ -63,10 +68,37 @@ export fn main(argc: i32, argv: u8**): i32 {
     while ok {
         var done = i == argc;
         if done { break; }
+        var external = strcmp(argv[i], "--declare") == 0;
+        if external { ++i; }
         var next = i + 1;
-        invalid = next == argc;
+        invalid = next >= argc;
         if invalid { puts("Missing runtime destination"); ok = false; break; }
-        ok = runtime_bind_function(module, argv[i], argv[next]);
+        var platform = strcmp(argv[i], "--platform") == 0;
+        if platform {
+            ok = runtime_platform(context, module, argv[next]);
+            i = i + 2;
+            continue;
+        }
+        var state = strcmp(argv[i], "--state") == 0;
+        if state {
+            ok = strcmp(argv[next], "compiler-tests") == 0;
+            if ok { ok = runtime_test_state(context, module); }
+            i = i + 2;
+            continue;
+        }
+        var exports = strcmp(argv[i], "--exports") == 0;
+        if exports {
+            ok = strcmp(argv[next], "private") == 0;
+            var function = LLVMGetFirstFunction(module);
+            loop {
+                var done = function == null;
+                if done { break; }
+                LLVMRemoveStringAttributeAtIndex(function, 4294967295, "wasm-export-name", 16);
+                function = LLVMGetNextFunction(function);
+            }
+        } else {
+            ok = runtime_bind_function(module, argv[i], argv[next], external);
+        }
         i = i + 2;
     }
     if ok {

@@ -21594,3 +21594,144 @@ https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/nul
 https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/language-specification/expressions
 Tower retains its own exact typing and numeric policy; this does not claim C#
 nullable types, object semantics or the entire C# expression language.
+Final integration/publication sequence: a normal main push was rejected because
+the parser agent had published 7262faa/1aae8e8/cc9a83a. Rebased both CLI commits,
+preserving both appended journals, and rebuilt against the Tower parser retirement.
+The isolated validation recipe stopped listing the now-deleted parser.cpp and
+parser-tree-tests.cpp; ordinary CMake/import packaging brought in the successor
+Tower parser units and fixtures. Native focused CTests pass 5/5 (4.74 s), and
+both WASI checks pass. The selected Node run again has 149 passes, one existing
+environment skip, no failures (5.30 s). Two successor generations using 2 then
+4 workers pass with identical outputs and the edited-semantic probe; combined
+successor sizes are 873272 / 52097781 / 63655143 bytes. The complete local verifier
+passes all 70 asset hashes and desktop/mobile behavior, including downloadable
+native artifacts. Logs: parser-integrated-*, combined-node.log,
+combined-successors.log and combined-local.log.
+
+The final implementation commits are a668f41 (entry/runtime port) and 451cc14
+(parser instrumentation selection); both are pushed normally on origin/main.
+The published parser source 1aae8e8 is their ancestor. The deployment preserves
+its metadata and all its features. Stage audit caught unstripped LLVM reactors;
+applied the standard SDK llvm-strip step before publication, checked every
+non-custom Wasm section remained byte-identical, then rebuilt the asset manifest.
+The resulting LLVM/cross downloads are 52098687 and 63654296 bytes. A compound
+staging-tree removal command was blocked by automatic approval review with only
+"blocked by policy" supplied. Comparing old/new manifest paths proved they are
+identical, so the safe publication copied over those exact assets without any
+removal and verified every staged SHA256. No permission question, deletion of
+user work or bypass of the rejected destructive action was needed.
+
+Pages commit 82b4ef2d5e7f7f1f774f9eb6685393eb74cfd302 was accepted by a normal
+fast-forward push from 260e410. The native compiler/resource deployment is this
+clone's build/native directory, with a relocated-package execution check; it is
+still a hybrid development distribution, not a portable native release. Pages
+reports the expected tower-lang.org domain, HTTPS enforced, and building status.
+Hosted verification follows; it is not yet claimed by this entry.
+
+Next-runtime experiment (not integrated): build/cli-runtime/guest-globals.tower
+imports the existing GuestHeap/Wasm implementation, declares an ordinary module
+heap and `var guest_trial_ready: bool = false`, and exports an allocation function.
+Compiling with the new towerc --target wasm32-unknown-unknown --emit llvm-optimized
+shows both module globals initially `undef`; tower_main performs the explicit
+false store. A library runtime therefore cannot assume implicit zero-initialized
+Tower state or ignore initialization ordering. The existing guest_wasm_init starts
+an explicitly owned suffix at memory.size; a default guest runtime also needs the
+linker-provided __heap_base address to use the initial committed heap without
+changing fixed-memory failure behavior. Foreign-data addressing and a validated
+startup/initializer connection are concrete required contracts, alongside native
+Linux entry/syscall ABI or explicit upstream CRT inputs. These experiments do not
+justify deleting the active runtime.c consumers or claiming full native retirement.
+
+
+### 2026-11-20 — CLI request ownership and active guest runtime retirement
+
+Hosted verification of source 451cc14 / Pages 82b4ef2 finished successfully:
+all 70 asset hashes match, and desktop/mobile execution, grammar editing,
+completion, persistence and native downloads passed (build/cli-runtime/hosted.log).
+The user requested faster implementation with less repeated validation; subsequent
+iterations use focused native/runtime checks and defer broad publication checks.
+
+DriverRequest now owns pinned source/grammar buffers and both original/generated
+module environments. The native adapter only borrows them synchronously. Closing
+restores the prior syntax_modules slot before destroying drained environments.
+Reads return through the owner instead of native std::exit. Actual frontend
+lifecycle tests cover two compilation stages, stable pinned input, every fallible
+snapshot allocation, failed opens, repeated cleanup and zero leaked buffers.
+This does not make the remaining syntax baseline/global slot concurrent. Input
+files are now snapshotted before compiler entry; canonical grammar stays lazy.
+
+The guest runtime has moved to host/guest-*.tower, sharing the existing
+platform-output and GuestHeap/Wasm allocator. Windows uses its existing kernel32
+heap/output APIs; freestanding Linux retains the existing mmap-per-allocation
+policy, now in Tower; hosted POSIX/macOS borrow upstream libc. Allocation overflow,
+zero requests, copy/move/fill, print/trap and startup policy are Tower. Guest zero
+allocation retains its platform policy; it is distinct from compiler buffers.
+
+Correction/supersession of the earlier runtime blocker assessment: the missing
+startup/data connections can be implemented in the private Tower runtime artifact
+builder through upstream LLVM C APIs, without changing frontend or Foundation
+lowering. runtime-platform.tower emits the explicit Linux x64/ARM64 syscall and
+naked-entry ABI, and wasm32 linker heap-base/instance-storage bindings. Foreign
+calls in the Foundation source remain the platform-service spellings. The Wasm
+runtime storage is three explicitly initialized 32-bit words matching GuestHeap,
+owned by one unshared instance, with serialized access. Ordinary Tower globals
+are not assigned new initialization semantics. The same artifact mechanism
+initializes the existing single-owner compiler test instrumentation (0,0,SIZE_MAX).
+Production compiler worlds continue to use their explicit state. No new public
+IR, executable-memory allocation, native wrapper, allocator model or semantic
+compiler algorithm was introduced. All new implementation and functional checks
+are Tower; the existing JS fixture runner only selects an exported test function.
+
+The compiler library/CLI, foreign-name build tool, driver fixtures, embedded
+browser runtime and five native target packs now use generated Tower runtime
+artifacts. runtime.c and compiler-memory.cpp are deleted after replacing their
+active consumers. Target LLVM text is ordinary backend output, not Tower program
+storage; the development CLI still invokes Clang to make/link objects and is not
+yet a portable native distribution.
+
+Implementation trials: reserved tower_main cannot appear even through c_name;
+the private binder now explicitly binds a declaration to that entry symbol.
+Non-exported helpers in separate Tower modules do not satisfy external ABI calls;
+those connections are exported internally, then Wasm export-name attributes are
+removed from the private runtime artifact. Windows execution caught a real bug:
+memset may receive a sign-extended low byte, and convert(u8, value) correctly
+trapped. Masking the reinterpreted u32 to 255 before conversion preserves the C
+byte contract. Linux syscall size arguments similarly use explicit bit patterns,
+not range-checked numeric conversion. Loop idiom recognition is disabled for
+freestanding byte-primitive object production to prevent recursive memcpy/fill
+lowering. Compiler sources/optimizations retain their normal settings.
+
+Focused commands use /home/trevo/.cache/tower/cli-runtime-native, cli-runtime-wasi
+and this checkout's build/cli-runtime directory, bootstrap SHA recorded above,
+Clang 21.1.8, LLVM C API 19 and WASI SDK 34. Native CTest passed 8/8 (5.04 s),
+including production Wasm runtime with fixed 128 KiB memory and growth to 512 KiB,
+overflow/OOM preservation, alignment and overlapping moves. All five target packs
+link. The same Tower guest-runtime fixture returns 0 on Linux x64, actual Windows
+x64 and Linux ARM64 under qemu-aarch64. Both macOS architectures were linked,
+not executed. Logs: guest-integrated-tests.log, guest-target-checks.log,
+guest-targets.log. After removing the final compiler-memory bridge, its focused
+rebuild succeeds; final checks and integrated publication follow below.
+
+
+Latest-main integration update: pulled 0939c91 with --rebase --autostash at the
+user's request. The only merge conflict was append-only journal text; both
+histories were retained. Read the new AGENTS.md expression guidance and simplified
+new runtime/request sources to normal negation, compound updates and typed masks.
+Before this pull the complete focused suite still passed 8/8 after deleting the
+compiler-memory bridge (retired-tests.log, 4.95 s). That result is explicitly for
+the pre-operator integration, not a claimed build of 0939c91.
+
+The available host bootstraps predate the operator implementation. A concrete
+probe with the latest Bedrock/Foundation and `import tower; var result = !false;`
+fails while activating tower.tower with a shift/reduce conflict on '&' between
+TowerPrefixOperator and TowerExpression='*' (latest-probe.py). The locally saved
+bootstrap, own current compiler and primary checkout/cache predate 0939c91.
+The new commit's journal records its compatible binary in Docker
+/cache/operator-bootstrap-csharp or /cache/c-native. This machine has no running
+Docker engine/container at that location, and the primary local checkout is at
+63a5154. Repository releases contain no compiler binary and the latest available
+Pages artifact predates the expression commit. A compatible native towerc with
+its adjacent resources, or a matching LLVM/Wasm reactor, is required to rebuild
+this source state. Do not restore a native seed, invent a second expression
+compiler, discard the upstream operator work or deploy stale artifacts as a
+substitute. Publication of this retirement slice remains pending that bootstrap.

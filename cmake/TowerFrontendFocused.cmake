@@ -12,7 +12,8 @@ add_custom_command(OUTPUT "${frontend_test_object}"
   DEPENDS scaffolding/tests/frontend-main.tower "${TOWER_BOOTSTRAP_COMPILER}"
   VERBATIM)
 set_source_files_properties("${frontend_test_object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
-add_executable(tower-frontend-tests ${test_sources} "${frontend_test_object}" scaffolding/compiler-memory.cpp)
+get_property(runtime_instrumented GLOBAL PROPERTY TOWER_RUNTIME_INSTRUMENTED_OBJECT)
+add_executable(tower-frontend-tests ${test_sources} "${frontend_test_object}" "${runtime_instrumented}")
 target_compile_features(tower-frontend-tests PRIVATE cxx_std_20)
 target_compile_options(tower-frontend-tests PRIVATE -fno-exceptions)
 target_compile_definitions(tower-frontend-tests PRIVATE TOWER_COMPILER_MEMORY_TESTS=1)

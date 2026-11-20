@@ -1,0 +1,13 @@
+import tower;
+extern fn guest_program_main(): void;
+extern fn guest_exit(status: i32): void;
+
+export fn guest_runtime_start(): void {
+    guest_program_main();
+    guest_exit(0);
+}
+
+export fn guest_runtime_main(): i32 {
+    guest_program_main();
+    return 0;
+}

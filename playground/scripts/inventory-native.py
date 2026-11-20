@@ -29,8 +29,6 @@ for name in tracked:
         group = 'host: integrate Tower lifecycle/backend interfaces then retire adapter'
     elif '/llvm-' in name:
         group = 'backend owner: Tower lowering and linker interface required'
-    elif name == 'scaffolding/runtime.c':
-        group = 'runtime owner: Tower target runtimes and startup required'
     else:
         group = 'frontend/runtime owners: shared-node native adapters and interfaces'
     groups.setdefault(group, []).append(name)

@@ -69,13 +69,41 @@ fn driver_link_compile_arguments(link: DriverLink*, args: DriverArguments*): voi
     driver_argument(args, "", "-ffreestanding");
     driver_argument(args, "", "-fno-builtin");
     driver_argument(args, "", "-c");
-    driver_argument(args, link.root, "/runtime.c");
+    driver_argument(args, link.root, driver_runtime_resource(link.target));
     driver_argument(args, "", "-o");
     driver_argument(args, "", link.runtime.data);
     var has_sysroot = link.sysroot[0] != 0;
     if has_sysroot {
         driver_argument(args, "--sysroot=", link.sysroot);
     }
+    driver_argument(args, "", "-mllvm");
+    driver_argument(args, "", "-disable-loop-idiom-all");
+    driver_argument(args, "", "-Wno-override-module");
+}
+
+extern fn strstr(text: u8*, part: u8*): u8*;
+
+fn driver_runtime_resource(target: u8*): u8* {
+    var wasm = strstr(target, "wasm32") == target;
+    if wasm { return "/runtime-wasm32.ll"; }
+    var arm = strstr(target, "aarch64") == target;
+    if arm {} else { arm = strstr(target, "arm64") == target; }
+    var x64 = strstr(target, "x86_64") == target;
+    var supported = arm;
+    if x64 { supported = true; }
+    if supported {} else { return null; }
+    var windows = strstr(target, "windows") != null;
+    if windows {
+        if arm { return "/runtime-windows-arm64.ll"; }
+        return "/runtime-windows-x64.ll";
+    }
+    var macos = strstr(target, "apple") != null;
+    if macos {
+        if arm { return "/runtime-macos-arm64.ll"; }
+        return "/runtime-macos-x64.ll";
+    }
+    if arm { return "/runtime-host-linux-arm64.ll"; }
+    return "/runtime-host-linux-x64.ll";
 }
 
 fn driver_link_arguments(link: DriverLink*, args: DriverArguments*): void {
@@ -143,6 +171,12 @@ fn driver_link_arguments(link: DriverLink*, args: DriverArguments*): void {
 }
 
 fn driver_link_execute(link: DriverLink*, data: u8*, length: usize): i32 {
+    var runtime = driver_runtime_resource(link.target);
+    var unsupported = runtime == null;
+    if unsupported {
+        driver_error("No bundled executable runtime profile for target: ", link.target);
+        return 1;
+    }
     var ok = link.ok;
     ok &&= link.exports.ok;
     ok &&= link.inputs.ok;

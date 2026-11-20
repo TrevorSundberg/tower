@@ -1,0 +1,10 @@
+import tower;
+extern fn `c_name(void* malloc(size_t))`(bytes: usize): void*;
+extern fn `c_name(void* realloc(void*, size_t))`(pointer: void*, bytes: usize): void*;
+extern fn `c_name(void free(void*))`(pointer: void*): void;
+
+// Upstream libc on hosted targets; the retained platform allocator on Wasm and
+// freestanding Linux. No second allocator or hidden object model is introduced.
+export fn guest_host_allocate(bytes: usize): void* { return `c_name(void* malloc(size_t))`(bytes); }
+export fn guest_host_reallocate(pointer: void*, bytes: usize): void* { return `c_name(void* realloc(void*, size_t))`(pointer, bytes); }
+export fn guest_host_free(pointer: void*): void { `c_name(void free(void*))`(pointer); }

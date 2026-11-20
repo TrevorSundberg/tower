@@ -1,21 +1,10 @@
 import tower;
 import 'memory-libc';
+import 'memory-types';
 
 // Compiler allocation policy, separate from guest raw-address allocation.
 // A null state selects production behavior; tests explicitly supply a state.
 // The borrowed native allocator is the platform libc (wasi-libc in reactors).
-struct CompilerMemoryState {
-    live_buffers: usize;
-    allocation_calls: usize;
-    fail_after: usize;
-}
-
-// Optional compiler diagnostics only. Foundation guest pointers remain raw.
-// Contexts are single-owner; concurrent compiler sessions use separate contexts.
-struct CompilerNodeMemoryState {
-    live_allocations: usize;
-}
-
 extern fn abort(): void;
 
 fn compiler_memory_guard(): usize {

@@ -14,3 +14,7 @@ extern fn driver_platform_run(argv: u8**): i32;
 
 // Resolved running executable, independent of cwd, PATH and argv[0].
 extern fn driver_platform_executable(out: ByteBuffer*): bool;
+
+extern fn driver_platform_exists(path: u8*): bool;
+
+extern fn driver_platform_separator(byte: u8): bool;

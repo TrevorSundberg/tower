@@ -2,6 +2,7 @@
 # and its existing native test-state storage; all functional checks are Tower.
 option(TOWER_ALLOCATOR_TESTS "Build focused Tower allocator ABI tests" OFF)
 if(TOWER_ALLOCATOR_TESTS)
+  include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/TowerGuestRuntimeTests.cmake")
   set(allocator_test_object "${CMAKE_CURRENT_BINARY_DIR}/tower-allocator-tests.o")
   set(allocator_policy_object "${CMAKE_CURRENT_BINARY_DIR}/tower-allocator-policy.o")
   foreach(unit IN ITEMS test policy)
@@ -23,10 +24,10 @@ if(TOWER_ALLOCATOR_TESTS)
     set_source_files_properties("${object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
   endforeach()
   get_property(runtime_trap GLOBAL PROPERTY TOWER_RUNTIME_TRAP_OBJECT)
-  add_executable(tower-allocator-tests scaffolding/compiler-memory.cpp
+  get_property(runtime_instrumented GLOBAL PROPERTY TOWER_RUNTIME_INSTRUMENTED_OBJECT)
+  add_executable(tower-allocator-tests "${runtime_instrumented}"
     "${allocator_test_object}" "${allocator_policy_object}" "${runtime_trap}")
-  target_compile_features(tower-allocator-tests PRIVATE cxx_std_20)
-  target_compile_definitions(tower-allocator-tests PRIVATE TOWER_COMPILER_MEMORY_TESTS=1)
+  set_target_properties(tower-allocator-tests PROPERTIES LINKER_LANGUAGE C)
   # This fragment is included inside tower_compiler_host. Enable discovery in
   # directory scope too, including browser-only configurations.
   cmake_language(DEFER CALL enable_testing)

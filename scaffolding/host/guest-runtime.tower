@@ -1,0 +1,35 @@
+import tower;
+
+extern fn guest_host_allocate(bytes: usize): void*;
+extern fn guest_host_reallocate(pointer: void*, bytes: usize): void*;
+extern fn guest_host_free(pointer: void*): void;
+
+// Guest raw-address allocation preserves the platform allocator's zero-size
+// policy. Unlike compiler buffer allocation, alloc(T, 0) need not return null.
+fn guest_runtime_product(count: usize, size: usize): bool {
+    var maximum: usize = 0;
+    --maximum;
+    var sized = size != 0;
+    if sized {
+        var limit = maximum / size;
+        var overflow = count > limit;
+        if overflow { return false; }
+    }
+    return true;
+}
+
+export fn guest_runtime_allocate(count: usize, size: usize): void* {
+    if !(guest_runtime_product(count, size)) { return null; }
+    var bytes = count * size;
+    return guest_host_allocate(bytes);
+}
+
+export fn guest_runtime_reallocate(pointer: void*, count: usize, size: usize): void* {
+    if !(guest_runtime_product(count, size)) { return null; }
+    var bytes = count * size;
+    return guest_host_reallocate(pointer, bytes);
+}
+
+export fn guest_runtime_deallocate(pointer: void*): void {
+    guest_host_free(pointer);
+}

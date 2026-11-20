@@ -11,8 +11,8 @@ cp "$repo/build/native/towerc" "$stage/towerc"
 cp -R "$repo/build/native/share" "$stage/share"
 python3 "$repo/playground/scripts/verify-compiler.py" "$stage/towerc" \
   --output "$out/relocated-development" --allow-development-tools
-# The same compiler currently requires Clang to compile runtime.c. Keep this
-# failed release gate visible until the supplied Tower runtime is integrated.
+# The development compiler still requires Clang to compile the Tower-generated
+# target LLVM artifact. Keep this portable-release dependency gate visible.
 if python3 "$repo/playground/scripts/verify-compiler.py" "$stage/towerc" \
     --output "$out/relocated-restricted"; then
   echo 'Restricted-path checks now pass; retire the transitional expected failure after auditing dependency closure.' >&2

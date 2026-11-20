@@ -14,10 +14,9 @@ endfunction()
 option(TOWER_NATIVE "Build Tower's native compiler/linker driver against an installed LLVM" OFF)
 if(TOWER_NATIVE)
   find_package(LLVM REQUIRED CONFIG)
-  # Relocatable resources accompany all transitional compiler stages. Runtime C
-  # remains explicitly transitional until task 3 supplies its Tower replacement.
+  # Relocatable resources include the generated Tower runtime target artifacts.
   file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/share/tower")
-  foreach(resource IN ITEMS bedrock.tower foundation.tower tower.tower runtime.c)
+  foreach(resource IN ITEMS bedrock.tower foundation.tower tower.tower)
     configure_file("scaffolding/${resource}" "share/tower/${resource}" COPYONLY)
   endforeach()
   file(GLOB builtin_modules CONFIGURE_DEPENDS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding"
@@ -114,12 +113,13 @@ if(TOWER_BROWSER)
       scaffolding/tower.cpp scaffolding/tests/nodes.cpp
       scaffolding/syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/format.cpp scaffolding/lex-pattern.cpp scaffolding/lex-pattern-common.cpp scaffolding/syntax-tests.cpp)
     get_filename_component(tower_sdk_bin "${CMAKE_C_COMPILER}" DIRECTORY)
+    tower_guest_runtime(wasm32 wasm32-unknown-unknown wasm OFF)
+    get_property(guest_runtime GLOBAL PROPERTY TOWER_GUEST_wasm32_OBJECT)
     add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/tower-runtime.inc"
-      COMMAND "${CMAKE_C_COMPILER}" --target=wasm32-unknown-unknown -O2 -ffreestanding -fno-builtin
-        -c "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/runtime.c" -o "${CMAKE_CURRENT_BINARY_DIR}/tower-runtime.o"
+      COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${guest_runtime}" "${CMAKE_CURRENT_BINARY_DIR}/tower-runtime.o"
       COMMAND python3 "${CMAKE_CURRENT_SOURCE_DIR}/playground/scripts/embed-object.py"
         "${CMAKE_CURRENT_BINARY_DIR}/tower-runtime.o" "${CMAKE_CURRENT_BINARY_DIR}/tower-runtime.inc"
-      DEPENDS scaffolding/runtime.c playground/scripts/embed-object.py)
+      DEPENDS "${guest_runtime}" playground/scripts/embed-object.py)
     function(tower_llvm_reactor name output)
       add_executable(${name} ${tower_llvm_sources} "${CMAKE_CURRENT_BINARY_DIR}/tower-runtime.inc")
       target_include_directories(${name} PRIVATE ${TOWER_LLVM_SOURCE_DIR}/lld/include

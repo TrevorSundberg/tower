@@ -4,6 +4,7 @@ import 'driver-prepare';
 import 'driver-timing';
 import 'driver-platform';
 import 'driver-support';
+import 'driver-request';
 import '../library/bytes-types';
 import '../library/bytes-interface';
 
@@ -11,7 +12,7 @@ extern fn LLVMGetDefaultTargetTriple(): u8*;
 extern fn LLVMDisposeMessage(message: u8*): void;
 extern fn driver_dispose(options: DriverOptions*): void;
 extern fn driver_resource_root(out: ByteBuffer*, executable: u8*): bool;
-extern fn driver_compile(options: DriverOptions*, resources: u8*, timing: DriverTiming*): i32;
+extern fn driver_compile(options: DriverOptions*, resources: u8*, timing: DriverTiming*, request: DriverRequest*): i32;
 
 // One invocation owns argv-derived options and all host buffers until compilation
 // returns. No process-global request state is introduced by the entry point.
@@ -27,7 +28,13 @@ fn driver_entry_compile(options: DriverOptions*, timing: DriverTiming*): i32 {
     }
     var result: i32 = 1;
     if located {
-        result = driver_compile(options, resources.data, timing);
+        var request: DriverRequest;
+        if driver_request_open(&request, options, resources.data) {
+            result = driver_compile(options, resources.data, timing, &request);
+        } else {
+            driver_error("", driver_request_error(&request));
+        }
+        driver_request_close(&request);
     } else {
         driver_error("Cannot locate compiler resources", "");
     }

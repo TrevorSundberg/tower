@@ -1,0 +1,5 @@
+import tower;
+export fn guest_linux_write_number(): i64 { return 1; }
+export fn guest_linux_exit_number(): i64 { return 60; }
+export fn guest_linux_map_number(): i64 { return 9; }
+export fn guest_linux_unmap_number(): i64 { return 11; }

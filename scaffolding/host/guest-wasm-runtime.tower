@@ -1,0 +1,40 @@
+import tower;
+import 'guest-memory';
+import 'guest-wasm';
+
+// Private wasm32 runtime ABI supplied by the Tower runtime artifact builder.
+// One unshared instance owns the whole heap suffix; access must be serialized.
+extern fn guest_wasm_context(): GuestHeap*;
+extern fn guest_wasm_heap_base(): u8*;
+
+fn guest_wasm_runtime_heap(): GuestHeap* {
+    var heap = guest_wasm_context();
+    var fresh = heap.cursor == 0;
+    if fresh {
+        var layout = sizeof(GuestHeap) == 12;
+        if !layout { return null; }
+        var limit = bits(u8*, guest_wasm_limit(guest_wasm_pages()));
+        if !(guest_heap_init(heap, guest_wasm_heap_base(), limit)) { return null; }
+    }
+    return heap;
+}
+
+export fn guest_host_allocate(bytes: usize): void* {
+    var heap = guest_wasm_runtime_heap();
+    var missing = heap == null;
+    if missing { return null; }
+    return guest_wasm_allocate(heap, bytes, 1);
+}
+
+export fn guest_host_reallocate(pointer: void*, bytes: usize): void* {
+    var heap = guest_wasm_runtime_heap();
+    var missing = heap == null;
+    if missing { return null; }
+    return guest_wasm_reallocate(heap, pointer, bytes, 1);
+}
+
+export fn guest_host_free(pointer: void*): void {
+    var absent = pointer == null;
+    if absent { return; }
+    guest_heap_free(guest_wasm_context(), pointer);
+}

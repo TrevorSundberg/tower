@@ -23,6 +23,16 @@ extern fn mkstemp(path: u8*): i32;
 
 extern fn unlink(path: u8*): i32;
 
+export fn driver_platform_exists(path: u8*): bool {
+    var exists = access(path, 0) == 0;
+    return exists;
+}
+
+export fn driver_platform_separator(byte: u8): bool {
+    var separator = byte == 47;
+    return separator;
+}
+
 fn driver_error_code(): i32 {
     var slot = driver_errno();
     return *slot;

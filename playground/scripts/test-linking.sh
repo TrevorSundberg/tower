@@ -15,7 +15,7 @@ printf '33\ntrue\ntrue\n42\n42\n18446744073709551615\n0\ntrue\n5\n42\n' > "$out/
 diff -u "$out/expected.txt" "$out/native.txt"
 "$compiler" "$repo/scaffolding/tests/linking.tower" --target wasm32-unknown-unknown --linker "$sdk/bin/wasm-ld" --link "$out/wasm-fixture.a" -o "$out/native-compiled.wasm"
 "$compiler" "$repo/scaffolding/tests/linking.tower" --emit object -o "$out/tower.o"
-clang "$out/tower.o" "$out/native-fixture.a" "$repo/scaffolding/runtime.c" -o "$out/separate-link"
+clang "$out/tower.o" "$out/native-fixture.a" "$(dirname "$compiler")/share/tower/runtime-host-linux-x64.ll" -o "$out/separate-link"
 "$out/separate-link" > "$out/separate.txt"
 diff -u "$out/expected.txt" "$out/separate.txt"
 "$compiler" "$repo/scaffolding/examples/memory.tower" -o "$out/native-memory"

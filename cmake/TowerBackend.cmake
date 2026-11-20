@@ -38,6 +38,12 @@ function(tower_backend_integrate)
   set(foreign_source "${CMAKE_CURRENT_BINARY_DIR}/tower-foreign.tower")
   set(foreign_object "${CMAKE_CURRENT_BINARY_DIR}/tower-foreign.o")
   set(foreign_tool "${CMAKE_CURRENT_BINARY_DIR}/tower-foreign${CMAKE_HOST_EXECUTABLE_SUFFIX}")
+  set(foreign_runtime_profile posix)
+  if(foreign_host_triple MATCHES "windows")
+    set(foreign_runtime_profile windows)
+  endif()
+  tower_guest_runtime(host-library "${foreign_host_triple}" "${foreign_runtime_profile}" OFF)
+  get_property(foreign_runtime GLOBAL PROPERTY TOWER_GUEST_host-library_OBJECT)
   add_custom_command(OUTPUT "${foreign_source}"
     COMMAND "${CMAKE_COMMAND}" -DROOT=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT=${foreign_source}
       -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ComposeForeign.cmake"
@@ -46,10 +52,9 @@ function(tower_backend_integrate)
     COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${foreign_source}" --library --target "${foreign_host_triple}"
       --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
       --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower" -o "${foreign_object}" --depfile "${foreign_object}.d"
-    COMMAND "${TOWER_BACKEND_HOST_CC}" "${foreign_object}" -DTOWER_NO_MAIN
-      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/runtime.c" -o "${foreign_tool}"
+    COMMAND "${TOWER_BACKEND_HOST_CC}" "${foreign_object}" "${foreign_runtime}" -o "${foreign_tool}"
     DEPFILE "${foreign_object}.d"
-    DEPENDS "${foreign_source}" "${TOWER_BOOTSTRAP_COMPILER}" scaffolding/runtime.c
+    DEPENDS "${foreign_source}" "${TOWER_BOOTSTRAP_COMPILER}" "${foreign_runtime}"
     BYPRODUCTS "${foreign_object}" VERBATIM)
   foreach(flavor IN ITEMS native wasm)
     set(input "${CMAKE_CURRENT_BINARY_DIR}/tower-backend-${flavor}.tower")

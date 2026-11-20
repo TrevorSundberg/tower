@@ -63,7 +63,7 @@ fn driver_test_policies(): void {
     driver_check_text(out.data, "Tower timings (ms): {\"after\":0.000009,\"compile\":1.000001,\"total\":1234.567890}\n");
     bytes_dispose(&out);
 
-    var link = driver_link_open("target", "cc path", "", "/sdk path", "output path", "/resource path", false, false, null, false);
+    var link = driver_link_open("x86_64-unknown-linux-gnu", "cc path", "", "/sdk path", "output path", "/resource path", false, false, null, false);
     var check1 = link != null;
     driver_check(check1, "link allocation");
     var check15 = link == null;
@@ -82,7 +82,7 @@ fn driver_test_policies(): void {
     driver_arguments_init(&args);
     driver_link_compile_arguments(link, &args);
     driver_check_argument(&args, 0, "cc path");
-    driver_check_argument(&args, 6, "/resource path/runtime.c");
+    driver_check_argument(&args, 6, "/resource path/runtime-host-linux-x64.ll");
     driver_check_argument(&args, 9, "--sysroot=/sdk path");
     driver_arguments_dispose(&args);
     driver_arguments_init(&args);
@@ -137,7 +137,7 @@ fn driver_test_process(self: u8*): void {
     driver_check(check4, "nonzero tool exit becomes one");
     driver_arguments_dispose(&args);
 
-    var link = driver_link_open("target", "tower-deliberately-missing-tool-239482", "", "", "out", "resources", false, false, null, false);
+    var link = driver_link_open("x86_64-unknown-linux-gnu", "tower-deliberately-missing-tool-239482", "", "", "out", "resources", false, false, null, false);
     var check5 = link != null;
     driver_check(check5, "failure link allocation");
     var check16 = link == null;

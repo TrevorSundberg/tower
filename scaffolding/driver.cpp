@@ -2,7 +2,6 @@
 #include "llvm-engine.hpp"
 #include "compiler-host.hpp"
 #include "compiler-frontend.hpp"
-#include <fstream>
 #include <iostream>
 #include <filesystem>
 
@@ -19,6 +18,11 @@ void driver_link_import(void*, const char*);
 void driver_link_export(void*, const char*);
 void driver_link_input(void*, const char*);
 int driver_link_run(void*, const uint8_t*, size_t);
+void driver_request_bind(void*, ModuleEnvironment**);
+void driver_request_stage(void*);
+const TowerByteBuffer* driver_request_text(void*, size_t);
+bool driver_request_canonical(void*);
+const char* driver_request_error(void*);
 }
 namespace {
 struct Timings {
@@ -26,46 +30,27 @@ struct Timings {
   bool enabled;
   void mark(const char* name) { driver_timing_mark(state, enabled, name); }
 };
-std::string read(const fs::path& path) {
-  TowerByteBuffer buffer{};
-  if (!driver_read_file(path.string().c_str(), &buffer)) { driver_error("Cannot read file: ", path.string().c_str()); std::exit(1); }
-  std::string result(reinterpret_cast<const char*>(buffer.data), buffer.length);
-  bytes_dispose(&buffer);
-  return result;
-}
 bool write(const fs::path& path, const char* bytes, size_t count) { return driver_write_file(path.string().c_str(), bytes, count); }
 }
 // The Tower entry owns options, resource text and timings throughout this call.
 // This adapter still connects the retained C++ compiler result/interpreter APIs.
-extern "C" int driver_compile(const DriverOptions* prepared, const char* resource_root, void* timing_state) {
+extern "C" int driver_compile(const DriverOptions* prepared, const char* resource_root, void* timing_state, void* request) {
   const auto& options = *prepared;
   Timings timings{timing_state, options.timings};
   std::string source = options.source, output = options.output, target = options.target;
   std::string emit = options.emit, cc = options.cc, linker = options.linker, sysroot = options.sysroot;
-  std::string raw = options.raw, optimized = options.optimized, bedrock_path = options.bedrock;
-  std::string foundation_path = options.foundation, resources = resource_root, depfile = options.depfile;
+  std::string raw = options.raw, optimized = options.optimized, resources = resource_root, depfile = options.depfile;
   bool optimize = options.optimize, interpret = options.interpret, library = options.library;
   bool fast = options.fast, comments = options.comments;
   std::vector<std::string> inputs;
   for (size_t i = 0; i < options.link_count; ++i) inputs.emplace_back(options.links[i]);
-  if (source.empty() || !fs::exists(source)) { std::cerr << "Supply a Tower source file; use --help for options\n"; return 1; }
-  const fs::path root(resources);
-  const auto bedrock_file = bedrock_path.empty() ? root / "bedrock.tower" : fs::path(bedrock_path);
-  const auto foundation_file = foundation_path.empty() ? root / "foundation.tower" : fs::path(foundation_path);
-  syntax_modules = frontend_modules_create();
-  frontend_modules_configure(syntax_modules, source.c_str(), foundation_file.parent_path().string().c_str());
-  frontend_modules_fallback(syntax_modules, root.string().c_str());
-  for (const auto& module : {bedrock_file, foundation_file}) {
-    std::ifstream input(module, std::ios::binary);
-    if (!input) { std::cerr << "Cannot read grammar module: " << module.string() << '\n'; return 1; }
-  }
-  if (!bedrock_path.empty()) frontend_modules_builtin(syntax_modules, "bedrock", bedrock_file.string().c_str());
-  if (!foundation_path.empty()) frontend_modules_builtin(syntax_modules, "foundation", foundation_file.string().c_str());
-  auto error = syntax_set_bedrock(read(bedrock_file).c_str());
-  if (error.empty()) error = syntax_set_bootstrap(read(foundation_file).c_str());
+  driver_request_bind(request, &syntax_modules);
+  auto error = syntax_set_bedrock(reinterpret_cast<const char*>(driver_request_text(request, 0)->data));
+  if (error.empty()) error = syntax_set_bootstrap(reinterpret_cast<const char*>(driver_request_text(request, 1)->data));
   if (!error.empty()) { std::cerr << error << '\n'; return 1; }
   timings.mark("bootstrap");
-  auto text = read(source);
+  const auto* input = driver_request_text(request, 2);
+  std::string text(reinterpret_cast<const char*>(input->data), input->length);
   std::string runtime_source;
   ModuleEnvironment* input_modules = nullptr;
   const auto report_error = [&](const std::string& error, size_t offset, const std::string* origin = nullptr) {
@@ -75,8 +60,9 @@ extern "C" int driver_compile(const DriverOptions* prepared, const char* resourc
   unsigned packaged_width = 0;
   unsigned packaged_profile = 0;
   const auto install_canonical_grammar = [&]() {
-    auto failure = syntax_set_bedrock(read(root / "bedrock.tower").c_str());
-    if (failure.empty()) failure = syntax_set_bootstrap(read(root / "foundation.tower").c_str());
+    if (!driver_request_canonical(request)) return std::string(driver_request_error(request));
+    auto failure = syntax_set_bedrock(reinterpret_cast<const char*>(driver_request_text(request, 3)->data));
+    if (failure.empty()) failure = syntax_set_bootstrap(reinterpret_cast<const char*>(driver_request_text(request, 4)->data));
     return failure;
   };
   if (fs::path(source).extension() == ".towerbc") {
@@ -103,8 +89,7 @@ extern "C" int driver_compile(const DriverOptions* prepared, const char* resourc
     // Generated foundation is a new compilation stage. Retain the original
     // module snapshots for trap locations and dependency output.
     input_modules = syntax_modules;
-    syntax_modules = frontend_modules_create();
-    frontend_modules_configure(syntax_modules, source.c_str(), root.string().c_str());
+    driver_request_stage(request);
   }
   if (emit == "bytecode" || emit == "foundation" || emit == "c" || emit == "brightscript") {
     auto width = packaged_width ? packaged_width : tower_target_pointer_bytes(target, error);

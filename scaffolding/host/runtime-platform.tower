@@ -1,0 +1,169 @@
+import tower;
+
+// Private runtime artifact production through upstream LLVM C APIs. These are
+// explicit platform ABI implementations of ordinary foreign calls, not new
+// Foundation operations or an alternate program representation. No JIT is used.
+extern fn LLVMGetTarget(module: void*): u8*;
+extern fn LLVMGetNamedFunction(module: void*, name: u8*): void*;
+extern fn LLVMIsDeclaration(value: void*): i32;
+extern fn LLVMGlobalGetValueType(value: void*): void*;
+extern fn LLVMInt8TypeInContext(context: void*): void*;
+extern fn LLVMInt32TypeInContext(context: void*): void*;
+extern fn LLVMInt64TypeInContext(context: void*): void*;
+extern fn LLVMVoidTypeInContext(context: void*): void*;
+extern fn LLVMPointerTypeInContext(context: void*, space: u32): void*;
+extern fn LLVMArrayType2(element: void*, count: u64): void*;
+extern fn LLVMConstArray2(element: void*, values: void**, count: u64): void*;
+extern fn LLVMConstAllOnes(type: void*): void*;
+extern fn LLVMGetModuleDataLayout(module: void*): void*;
+extern fn LLVMPointerSize(layout: void*): u32;
+extern fn LLVMFunctionType(result: void*, arguments: void**, count: u32, variadic: i32): void*;
+extern fn LLVMAddFunction(module: void*, name: u8*, type: void*): void*;
+extern fn LLVMGetNamedGlobal(module: void*, name: u8*): void*;
+extern fn LLVMAddGlobal(module: void*, type: void*, name: u8*): void*;
+extern fn LLVMSetInitializer(global: void*, value: void*): void;
+extern fn LLVMConstNull(type: void*): void*;
+extern fn LLVMSetLinkage(global: void*, linkage: u32): void;
+extern fn LLVMSetAlignment(global: void*, alignment: u32): void;
+extern fn LLVMCreateBuilderInContext(context: void*): void*;
+extern fn LLVMDisposeBuilder(builder: void*): void;
+extern fn LLVMAppendBasicBlockInContext(context: void*, function: void*, name: u8*): void*;
+extern fn LLVMPositionBuilderAtEnd(builder: void*, block: void*): void;
+extern fn LLVMBuildRet(builder: void*, value: void*): void*;
+extern fn LLVMBuildUnreachable(builder: void*): void*;
+extern fn LLVMBuildCall2(builder: void*, type: void*, function: void*, arguments: void**, count: u32, name: u8*): void*;
+extern fn LLVMGetParam(function: void*, index: u32): void*;
+extern fn LLVMGetInlineAsm(type: void*, assembly: u8*, bytes: usize, constraints: u8*, length: usize, effects: i32, align_stack: i32, dialect: u32, throws: i32): void*;
+extern fn LLVMGetEnumAttributeKindForName(name: u8*, length: usize): u32;
+extern fn LLVMCreateEnumAttribute(context: void*, kind: u32, value: u64): void*;
+extern fn LLVMAddAttributeAtIndex(function: void*, index: u32, attribute: void*): void;
+extern fn strcmp(left: u8*, right: u8*): i32;
+extern fn strlen(text: u8*): usize;
+extern fn puts(text: u8*): i32;
+
+const RuntimePrivateLinkage: u32 = 9;
+const RuntimeFunctionAttributes: u32 = 4294967295;
+
+fn runtime_platform_declaration(module: void*, name: u8*, type: void*): void* {
+    var function = LLVMGetNamedFunction(module, name);
+    var missing = function == null;
+    if missing { puts("Missing runtime platform declaration"); puts(name); return null; }
+    var valid = LLVMIsDeclaration(function) != 0;
+    if valid { valid = LLVMGlobalGetValueType(function) == type; }
+    if !valid { puts("Runtime platform declaration has an incompatible ABI"); puts(name); return null; }
+    return function;
+}
+
+fn runtime_platform_return(context: void*, function: void*, value: void*): void {
+    var builder = LLVMCreateBuilderInContext(context);
+    var block = LLVMAppendBasicBlockInContext(context, function, "entry");
+    LLVMPositionBuilderAtEnd(builder, block);
+    LLVMBuildRet(builder, value);
+    LLVMDisposeBuilder(builder);
+}
+
+fn runtime_platform_wasm(context: void*, module: void*): bool {
+    var pointer = LLVMPointerTypeInContext(context, 0);
+    var signature = LLVMFunctionType(pointer, null, 0, 0);
+    var state = runtime_platform_declaration(module, "guest_wasm_context", signature);
+    var heap = runtime_platform_declaration(module, "guest_wasm_heap_base", signature);
+    var missing = state == null;
+    if !missing { missing = heap == null; }
+    if missing { return false; }
+    var existing = LLVMGetNamedGlobal(module, "__heap_base");
+    var collision = existing != null;
+    if collision { puts("Unexpected pre-existing heap-base binding"); return false; }
+    var base = LLVMAddGlobal(module, LLVMInt8TypeInContext(context), "__heap_base");
+    // wasm32 GuestHeap is exactly three 32-bit words: available, cursor, limit.
+    // Each unshared Wasm instance owns its zero-initialized runtime storage;
+    // ordinary Tower globals retain their existing initialization semantics.
+    var layout = LLVMArrayType2(LLVMInt32TypeInContext(context), 3);
+    var storage = LLVMAddGlobal(module, layout, "tower.runtime.wasm.heap");
+    LLVMSetLinkage(storage, RuntimePrivateLinkage());
+    LLVMSetAlignment(storage, 4);
+    LLVMSetInitializer(storage, LLVMConstNull(layout));
+    runtime_platform_return(context, state, storage);
+    runtime_platform_return(context, heap, base);
+    return true;
+}
+
+export fn runtime_test_state(context: void*, module: void*): bool {
+    var width = LLVMPointerSize(LLVMGetModuleDataLayout(module));
+    var integer = LLVMInt32TypeInContext(context);
+    var wide = width == 8;
+    if wide { integer = LLVMInt64TypeInContext(context); }
+    else { var valid = width == 4; if !valid { puts("Unsupported runtime test-state layout"); return false; } }
+    var signature = LLVMFunctionType(LLVMPointerTypeInContext(context, 0), null, 0, 0);
+    var function = runtime_platform_declaration(module, "compiler_test_state", signature);
+    var missing = function == null;
+    if missing { return false; }
+    var values: void*[3];
+    values[0] = LLVMConstNull(integer);
+    values[1] = values[0];
+    values[2] = LLVMConstAllOnes(integer);
+    var global = LLVMAddGlobal(module, LLVMArrayType2(integer, 3), "tower.runtime.compiler.test");
+    LLVMSetLinkage(global, RuntimePrivateLinkage());
+    LLVMSetAlignment(global, width);
+    LLVMSetInitializer(global, LLVMConstArray2(integer, &values[0], 3));
+    runtime_platform_return(context, function, global);
+    return true;
+}
+
+fn runtime_platform_linux(context: void*, module: void*, arm: bool): bool {
+    var integer = LLVMInt64TypeInContext(context);
+    var parameters: void*[7];
+    var i: u32 = 0;
+    while i < 7 { parameters[i] = integer; ++i; }
+    var signature = LLVMFunctionType(integer, &parameters[0], 7, 0);
+    var function = runtime_platform_declaration(module, "system_call", signature);
+    var missing = function == null;
+    if missing { return false; }
+    var assembly = "syscall";
+    var constraints = "={ax},{ax},{di},{si},{dx},{r10},{r8},{r9},~{rcx},~{r11},~{memory},~{dirflag},~{fpsr},~{flags}";
+    if arm { assembly = "svc 0"; constraints = "={x0},{x8},{x0},{x1},{x2},{x3},{x4},{x5},~{memory}"; }
+    var instruction = LLVMGetInlineAsm(signature, assembly, strlen(assembly), constraints, strlen(constraints), 1, 0, 0, 0);
+    var arguments: void*[7];
+    i = 0;
+    while i < 7 { arguments[i] = LLVMGetParam(function, i); ++i; }
+    var builder = LLVMCreateBuilderInContext(context);
+    LLVMPositionBuilderAtEnd(builder, LLVMAppendBasicBlockInContext(context, function, "entry"));
+    var result = LLVMBuildCall2(builder, signature, instruction, &arguments[0], 7, "result");
+    LLVMBuildRet(builder, result);
+    var existing = LLVMGetNamedFunction(module, "_start");
+    var collision = existing != null;
+    if collision { LLVMDisposeBuilder(builder); puts("Runtime entry is already defined"); return false; }
+    signature = LLVMFunctionType(LLVMVoidTypeInContext(context), null, 0, 0);
+    function = LLVMAddFunction(module, "_start", signature);
+    var kind = LLVMGetEnumAttributeKindForName("naked", 5);
+    LLVMAddAttributeAtIndex(function, RuntimeFunctionAttributes(), LLVMCreateEnumAttribute(context, kind, 0));
+    LLVMPositionBuilderAtEnd(builder, LLVMAppendBasicBlockInContext(context, function, "entry"));
+    assembly = "xor %rbp, %rbp\n\tand $$-16, %rsp\n\tcall tower_start";
+    constraints = "~{dirflag},~{fpsr},~{flags}";
+    if arm { assembly = "bl tower_start"; constraints = ""; }
+    instruction = LLVMGetInlineAsm(signature, assembly, strlen(assembly), constraints, strlen(constraints), 1, 0, 0, 0);
+    LLVMBuildCall2(builder, signature, instruction, null, 0, "");
+    LLVMBuildUnreachable(builder);
+    LLVMDisposeBuilder(builder);
+    return true;
+}
+
+export fn runtime_platform(context: void*, module: void*, profile: u8*): bool {
+    var target = LLVMGetTarget(module);
+    var wasm = strcmp(profile, "wasm32") == 0;
+    if wasm {
+        var valid = strcmp(target, "wasm32-unknown-unknown") == 0;
+        if valid { return runtime_platform_wasm(context, module); }
+    }
+    var x64 = strcmp(profile, "linux-x64") == 0;
+    if x64 {
+        var valid = strcmp(target, "x86_64-unknown-linux-gnu") == 0;
+        if valid { return runtime_platform_linux(context, module, false); }
+    }
+    var arm = strcmp(profile, "linux-arm64") == 0;
+    if arm {
+        var valid = strcmp(target, "aarch64-unknown-linux-gnu") == 0;
+        if valid { return runtime_platform_linux(context, module, true); }
+    }
+    puts("Unsupported runtime platform or target/profile mismatch");
+    return false;
+}

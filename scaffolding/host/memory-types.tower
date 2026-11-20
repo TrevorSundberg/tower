@@ -1,0 +1,12 @@
+import tower;
+
+// Optional, explicitly owned compiler instrumentation. Guest pointers remain raw.
+struct CompilerMemoryState {
+    live_buffers: usize;
+    allocation_calls: usize;
+    fail_after: usize;
+}
+
+struct CompilerNodeMemoryState {
+    live_allocations: usize;
+}

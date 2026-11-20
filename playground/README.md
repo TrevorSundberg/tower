@@ -621,7 +621,7 @@ build/native/towerc source.tower --target wasm32-unknown-unknown --link library.
 
 `--emit object|llvm|llvm-optimized|exe`, `--target`, `--link`, `--cc`, `--linker`
 and `--sysroot` control emission/tool selection. `--interpret` uses the portable
-interpreter. The current native driver locates Bedrock, Foundation and runtime.c
+interpreter. The current native driver locates Bedrock, Foundation and generated runtime target artifacts
 in its build-time source checkout; it is not yet an installed relocatable SDK.
 The browser includes already-built runtime packs; the native driver compiles its
 runtime with Clang and invokes the selected linker/compiler driver. Windows linking

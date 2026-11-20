@@ -1,0 +1,17 @@
+import tower;
+extern fn write(stream: i32, bytes: u8*, count: usize): usize;
+extern fn exit(status: i32): void;
+
+export fn platform_write(stream: u32, bytes: u8*, count: usize): i64 {
+    var valid = stream == 1;
+    if !valid { valid = stream == 2; }
+    if !valid { return -1; }
+    var result = write(convert(i32, stream), bytes, count);
+    var maximum: usize = 0;
+    --maximum;
+    var failed = result == maximum;
+    if failed { return -1; }
+    return convert(i64, result);
+}
+
+export fn guest_exit(status: i32): void { exit(status); }

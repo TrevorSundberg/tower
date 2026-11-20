@@ -1,5 +1,6 @@
 # Reserved runtime-symbol connections are emitted by a Tower tool using upstream
 # LLVM C APIs. Keep this target artifact separate from canonical Tower source.
+include("${CMAKE_CURRENT_LIST_DIR}/TowerGuestRuntime.cmake")
 function(tower_runtime_tools)
   if(TARGET tower-runtime-bind)
     return()
@@ -42,11 +43,19 @@ function(tower_runtime_object name input triple)
 endfunction()
 
 function(tower_compiler_runtime triple)
+  if(TOWER_PARSER_ONLY OR TOWER_ALLOCATOR_TESTS OR TOWER_BACKEND_TESTS OR TOWER_DRIVER_TESTS)
+    tower_runtime_object(runtime-instrumented "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/host/memory-instrumented.tower" "${triple}"
+      compiler_runtime_allocate tower_allocate compiler_runtime_reallocate tower_reallocate
+      compiler_runtime_deallocate tower_deallocate --state compiler-tests)
+    set_property(GLOBAL PROPERTY TOWER_RUNTIME_INSTRUMENTED_OBJECT "${runtime-instrumented_OBJECT}")
+  endif()
   if(NOT TOWER_PARSER_ONLY)
     tower_runtime_object(runtime-allocate "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/host/memory-runtime.tower" "${triple}"
       compiler_runtime_allocate tower_allocate compiler_runtime_reallocate tower_reallocate
       compiler_runtime_deallocate tower_deallocate)
     target_sources(tower-compiler-memory PRIVATE "${runtime-allocate_OBJECT}")
+  else()
+    target_sources(tower-compiler-memory PRIVATE "${runtime-instrumented_OBJECT}")
   endif()
   set(platform posix)
   if(triple MATCHES "windows")

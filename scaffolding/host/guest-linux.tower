@@ -1,0 +1,76 @@
+import tower;
+
+// The remaining native connection is the architecture's syscall instruction.
+// The Tower runtime owns selection, arguments, output policy and exit status.
+extern fn system_call(number: i64, a: i64, b: i64, c: i64, d: i64, e: i64, f: i64): i64;
+extern fn guest_linux_write_number(): i64;
+extern fn guest_linux_exit_number(): i64;
+extern fn guest_linux_map_number(): i64;
+extern fn guest_linux_unmap_number(): i64;
+
+const GuestLinuxReadWrite: i64 = 3;
+const GuestLinuxPrivateAnonymous: i64 = 34;
+const GuestLinuxHeaderBytes: usize = 16;
+
+// Existing freestanding mmap-per-allocation policy, now expressed in Tower.
+// The prefix is allocator metadata, not a checked Foundation pointer handle.
+export fn guest_host_allocate(bytes: usize): void* {
+    var maximum: usize = 0;
+    --maximum;
+    var limit = maximum - GuestLinuxHeaderBytes();
+    var overflow = bytes > limit;
+    if overflow { return null; }
+    var total = bytes + GuestLinuxHeaderBytes();
+    var result = system_call(guest_linux_map_number(), 0, bits(i64, total), GuestLinuxReadWrite(), GuestLinuxPrivateAnonymous(), -1, 0);
+    var address = bits(u64, result);
+    var failed = address >= 18446744073709547521;
+    if failed { return null; }
+    var header = bits(usize*, result);
+    header[0] = total;
+    var data = bits(u8*, header);
+    data = data + GuestLinuxHeaderBytes();
+    return bits(void*, data);
+}
+
+export fn guest_host_free(pointer: void*): void {
+    var absent = pointer == null;
+    if absent { return; }
+    var base = bits(u8*, pointer);
+    base = base - GuestLinuxHeaderBytes();
+    var header = bits(usize*, base);
+    system_call(guest_linux_unmap_number(), bits(i64, base), bits(i64, header[0]), 0, 0, 0, 0);
+}
+
+export fn guest_host_reallocate(pointer: void*, bytes: usize): void* {
+    var absent = pointer == null;
+    if absent { return guest_host_allocate(bytes); }
+    var empty = bytes == 0;
+    if empty { guest_host_free(pointer); return null; }
+    var base = bits(u8*, pointer);
+    base = base - GuestLinuxHeaderBytes();
+    var header = bits(usize*, base);
+    var old = header[0] - GuestLinuxHeaderBytes();
+    var result = guest_host_allocate(bytes);
+    var allocated = result != null;
+    if allocated {
+        var smaller = bytes < old;
+        if smaller { old = bytes; }
+        copy(result, pointer, old);
+        guest_host_free(pointer);
+    }
+    return result;
+}
+
+export fn platform_write(stream: u32, bytes: u8*, count: usize): i64 {
+    var valid = stream == 1;
+    if !valid { valid = stream == 2; }
+    if !valid { return -1; }
+    var result = system_call(guest_linux_write_number(), convert(i64, stream), bits(i64, bytes), bits(i64, count), 0, 0, 0);
+    var failed = result < 0;
+    if failed { return -1; }
+    return result;
+}
+
+export fn guest_exit(status: i32): void {
+    system_call(guest_linux_exit_number(), convert(i64, status), 0, 0, 0, 0, 0);
+}
