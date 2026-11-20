@@ -1330,6 +1330,21 @@ extern "C" TowerNode* syntax_inspection_reference(SyntaxSession* session, const 
   }
   return nullptr;
 }
+extern "C" TowerNode* syntax_inspection_match(SyntaxSession* session, TowerNode* node) {
+  if (!session->version) return nullptr;
+  auto* span = match(node);
+  if (!span) return nullptr;
+  const auto& version = *session->version;
+  const std::string name = parser_match_get_label(span);
+  auto production = version.productions.find(parser_match_get_rule_index(span));
+  if (production != version.productions.end() && production->second.first == name) {
+    const auto& [rule, alternative] = production->second;
+    auto found = version.definitions.find(rule);
+    if (found != version.definitions.end() && alternative < found->second.size())
+      return found->second[alternative].get();
+  }
+  return nullptr;
+}
 static const Replacement* inspection_replacement(SyntaxSession* session, TowerNode* body) {
   if (!session->version) return nullptr;
   const auto& version = *session->version;

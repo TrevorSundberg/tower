@@ -28,6 +28,9 @@ struct LanguageCandidate {
     grammar: bool;
     specialization: bool;
     template: LanguageGrammar*;
+    matched: LanguageGrammar*;
+    capture: void*;
+    capture_node: void*;
 }
 
 fn language_quote(q: CompletionQuery*, text: u8*, size: usize): void {
@@ -390,9 +393,17 @@ fn language_leaf(q: CompletionQuery*, leaf: void*, candidate: LanguageCandidate*
         language_grammar_details(q, leaf, node);
     } else {
         var template_details = candidate.template != null;
+        var matched = candidate.matched != null;
+        if matched {
+            template_details = true;
+        }
         if template_details {} else {
             language_string(q, "kind", kind);
         }
+    }
+    var matched_details = candidate.matched != null;
+    if matched_details {
+        language_match_details(q, candidate);
     }
     var grammar_condition1 = candidate.template != null;
     if grammar_condition1 {
@@ -454,6 +465,9 @@ fn language_walk(q: CompletionQuery*, node: void*, inherited: LanguageCandidate*
     var current: LanguageCandidate;
     copy(&current, inherited, sizeof(LanguageCandidate));
     language_candidate(q, node, &current, checked);
+    if checked {} else {
+        language_match_candidate(q, node, &current);
+    }
     var count = sem_child_count(node);
     var syntax = language_syntax(node);
     var grammar_condition2 = syntax != null;
@@ -533,6 +547,7 @@ export fn language_document(source: u8*, length: usize, mode: u32, pointer_bytes
     var c = &q.context;
     sem_context_init(c, &q.program);
     q.analyzed = true;
+    language_grammar_index(q);
     c.source = q.input.data;
     c.generics = generic_begin(root);
     var i: usize = 0;

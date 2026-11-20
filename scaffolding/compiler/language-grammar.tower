@@ -11,7 +11,12 @@ struct LanguageGrammar {
     targets: vector(void*);
     total: usize;
     category: vector(u8);
+    matched: bool;
 }
+
+extern fn syntax_inspection_match(session: void*, node: void*): void*;
+
+extern fn tower_node_get_parent_member_name(node: void*): u8*;
 
 extern fn syntax_inspection_reference(session: void*, text: u8*, length: usize, index: usize, count: usize*): void*;
 
@@ -39,6 +44,147 @@ fn language_grammar_keep(entry: LanguageGrammar*, node: void*): void {
     }
     entity_retain(node);
     sem_push(&entry.targets, node);
+}
+
+// Snapshot the actual production before the next declaration swaps its table.
+// These are references to shared grammar entities, not a second syntax model.
+fn language_match_snapshot(q: CompletionQuery*, node: void*, session: void*, depth: usize): void {
+    var exhausted = depth == 256;
+    var full = q.grammar.length >= 100000;
+    if full {
+        exhausted = true;
+    }
+    if exhausted {
+        q.truncated = true;
+        return;
+    }
+    var target = syntax_inspection_match(session, node);
+    var present = target != null;
+    if present {
+        var entry: LanguageGrammar;
+        fill(&entry, 0, sizeof(LanguageGrammar));
+        entry.node = node;
+        entry.matched = true;
+        entry.total = 1;
+        language_grammar_keep(&entry, target);
+        var needed = q.grammar.length + 1;
+        sem_require(vector_reserve(LanguageGrammar, &q.grammar, needed));
+        copy(&q.grammar.data[q.grammar.length], &entry, sizeof(LanguageGrammar));
+        q.grammar.length = needed;
+    }
+    var i: usize = 0;
+    var count = sem_child_count(node);
+    loop {
+        var done = i == count;
+        if done {
+            break;
+        }
+        var next = depth + 1;
+        language_match_snapshot(q, sem_child(node, i), session, next);
+        i = i + 1;
+    }
+}
+
+fn language_grammar_index(q: CompletionQuery*): void {
+    q.grammar_index = sem_table(&q.context);
+    var i: usize = 0;
+    loop {
+        var done = i == q.grammar.length;
+        if done {
+            break;
+        }
+        var entry = &q.grammar.data[i];
+        var indexed = sem_state(&q.context, q.grammar_index, entry.node);
+        indexed.value = bits(void*, entry);
+        i = i + 1;
+    }
+}
+
+fn language_match_candidate(q: CompletionQuery*, node: void*, candidate: LanguageCandidate*): void {
+    // The LR assembler flattens generated capture/repetition rules into named
+    // relationships. Follow those actual ECS edges back to the source term.
+    var parent = language_grammar_find(q, sem_parent(node));
+    var named = parent != null;
+    if named {
+        named = parent.matched;
+    }
+    if named {
+        var name = tower_node_get_parent_member_name(node);
+        var alternative = language_syntax(parent.targets.data[0]);
+        var i: usize = 0;
+        loop {
+            var done = i == alternative.items.length;
+            if done {
+                break;
+            }
+            var term = alternative.items.data[i];
+            var syntax = language_syntax(term);
+            var captured = syntax.capture.length != 0;
+            if captured {
+                captured = name != null;
+            }
+            if captured {
+                captured = sem_equal(syntax.capture.data, name);
+            }
+            if captured {
+                candidate.capture = term;
+                candidate.capture_node = node;
+                break;
+            }
+            i = i + 1;
+        }
+    }
+    var entry = language_grammar_find(q, node);
+    var present = entry != null;
+    if present {
+        present = entry.matched;
+    }
+    if present {} else {
+        return;
+    }
+    candidate.matched = entry;
+    var captured = candidate.capture != null;
+    if captured {
+        var a = sem_match(candidate.capture_node);
+        var b = sem_match(node);
+        var same = a.start == b.start;
+        if same {
+            same = a.length == b.length;
+        }
+        if same {} else {
+            candidate.capture = null;
+        }
+    }
+}
+
+fn language_match_details(q: CompletionQuery*, candidate: LanguageCandidate*): void {
+    var entry = candidate.matched;
+    var present = entry != null;
+    if present {} else {
+        return;
+    }
+    var kind: u8* = "matched syntax";
+    language_string(q, "matchedRule", sem_label(entry.node));
+    language_string(q, "description", "Parsed by this rule at this source location; no resolved runtime type is available.");
+    language_grammar_targets(q, entry, false);
+    var documentation = entry.targets.data[0];
+    var captured = candidate.capture != null;
+    if captured {
+        var binding = candidate.capture;
+        var syntax = language_syntax(binding);
+        kind = "captured syntax";
+        language_string(q, "capture", syntax.capture.data);
+        language_string(q, "category", syntax.text.data);
+        var owner = language_ancestor(binding, "GrammarDeclaration");
+        var declared = owner != null;
+        if declared {
+            var declaration = language_syntax(owner);
+            language_string(q, "capturedBy", declaration.name.data);
+        }
+        documentation = binding;
+    }
+    language_string(q, "kind", kind);
+    language_grammar_docs(q, documentation);
 }
 
 fn language_snapshot(q: CompletionQuery*, node: void*, session: void*, depth: usize): void {
@@ -168,6 +314,15 @@ fn language_grammar_dispose(q: CompletionQuery*): void {
 }
 
 fn language_grammar_find(q: CompletionQuery*, node: void*): LanguageGrammar* {
+    var indexed = q.grammar_index != null;
+    if indexed {
+        var found = sem_find(q.grammar_index, null, node);
+        var present = found != null;
+        if present {
+            return bits(LanguageGrammar*, found.value);
+        }
+        return null;
+    }
     var i: usize = 0;
     loop {
         var grammar_condition16 = i == q.grammar.length;
@@ -356,7 +511,7 @@ fn language_grammar_targets(q: CompletionQuery*, entry: LanguageGrammar*, docume
         format_grammar_preview(&preview, entry.targets.data[i], syntax_component_type());
         var grammar_condition43 = i != 0;
         if grammar_condition43 {
-            completion_text(&text, "\n| ");
+            completion_text(&text, " | ");
         }
         var grammar_condition44 = preview.text.length == 0;
         if grammar_condition44 {
@@ -370,7 +525,7 @@ fn language_grammar_targets(q: CompletionQuery*, entry: LanguageGrammar*, docume
     }
     var grammar_condition45 = entry.total > entry.targets.length;
     if grammar_condition45 {
-        completion_text(&text, "\n...");
+        completion_text(&text, " | ...");
     }
     completion_text(&q.output, ",\"definition\":");
     language_quote(q, text.data, text.length);
@@ -385,6 +540,16 @@ fn language_grammar_details(q: CompletionQuery*, leaf: void*, node: void*): void
     var syntax = language_syntax(node);
     var grammar_condition46 = syntax == null;
     if grammar_condition46 {
+        return;
+    }
+    var imported = language_ancestor(node, "ImportDeclaration");
+    var is_import = imported != null;
+    if is_import {
+        var module = language_syntax(imported);
+        language_string(q, "kind", "module import");
+        language_string(q, "module", module.name.data);
+        language_string(q, "description", "Makes this module's exported definitions available in this file.");
+        language_grammar_docs(q, imported);
         return;
     }
     var kind: u8* = "grammar declaration";
@@ -502,13 +667,6 @@ fn language_grammar_details(q: CompletionQuery*, leaf: void*, node: void*): void
     if grammar_condition57 {
         kind = "replacement template";
         description = "Parsed using the destination grammar when this rule becomes reachable; capture types are checked after substitution.";
-    }
-    var imported = language_ancestor(node, "ImportDeclaration");
-    var grammar_condition58 = imported != null;
-    if grammar_condition58 {
-        kind = "module import";
-        description = "Resolves this module path and imports its exported definitions.";
-        reference = false;
     }
     language_string(q, "kind", kind);
     language_string(q, "description", description);

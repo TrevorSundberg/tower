@@ -138,6 +138,12 @@ export async function linkCompiler({compiler, recipe, files, inputs, support, pr
       !grammarHover.entries.some(entry => entry.kind === 'address of') ||
       !grammarHover.entries.some(entry => entry.replacementCategory === 'CoreCall' && entry.signature === 'fn identity(p: i32*): i32'))
     throw new Error('Candidate grammar tree hover check failed');
+  const syntaxSource="import foundation; parse Variable = Identifier; parse Expression = Identifier | Number; parse Statement = Expression ';'; parse ForEach = 'for' '(' $Variable 'in' $Expression ')' '{' $Statement* '}'; parse Statement |= ForEach; for (item in items) { item; }";
+  const syntaxHover=tower.inspectDocument(syntaxSource),loop=syntaxSource.indexOf('for (item');
+  if (!syntaxHover.entries?.some(entry=>entry.from===loop && entry.matchedRule==='ForEach') ||
+      !syntaxHover.entries.some(entry=>entry.from>loop && entry.capture==='Variable' && entry.capturedBy==='ForEach') ||
+      !syntaxHover.entries.some(entry=>entry.module==='foundation' && entry.category===undefined))
+    throw new Error('Candidate custom syntax hover check failed');
   const enumHover = tower.inspectDocument('enum State:u32 { Idle = 0, Busy = 4 } var state:State = State.Busy;');
   if (!enumHover.entries?.some(entry => entry.signature === 'State.Busy' && entry.type === 'State'))
     throw new Error('Candidate enum hover check failed');

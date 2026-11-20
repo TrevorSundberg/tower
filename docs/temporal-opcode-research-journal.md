@@ -17250,3 +17250,60 @@ build/language-next/provenance-hosted.log, provenance-hosted-report.json and
 provenance-pages-workflow.log. This final documentation update changes no deployed
 artifact. todo.txt retains blob 96a9e58964d7f01e4a97819f259448db81ef5e40, and both
 pre-existing stashes remain intact.
+
+## 2026-11-20: Inspect matched custom syntax and simplify grammar hovers
+
+The follow-up screenshots exposed two presentation errors and a coverage gap:
+import path terms emitted `category` before being reclassified as module imports;
+alternative previews inserted hard newlines and a redundant active-alternative
+count; ordinary custom-rule matches had neither grammar-declaration components
+nor checked Foundation values, so the hover eligibility filter hid every token
+of `examples/foreach.tower`'s nested loop. Prior full Bedrock/Foundation and
+replacement-tree tests did not exercise this syntax-only body path.
+
+Tower document queries now retain the actual source alternative for each ordinary
+matched production while its parser version is current. A narrow read-only native
+bridge maps the match's production index and label through the existing derived
+Version index to its shared source entity. Tower owns retention, traversal,
+classification, documentation, canonical previews, and JSON emission. Generated
+capture/repetition productions are flattened by `lr-tree.tower`; capture identity
+therefore follows the actual named ECS child relationships to the source terms,
+not guessed token spelling or generated rule names. The query builds a disposable
+entity-keyed SemanticTable index after parsing instead of repeatedly scanning its
+snapshot vector. Source alternatives remain correct across later `=` overrides.
+
+When ordinary semantic checking is unavailable, source tokens now explain the
+matched rule, selected production, named capture/owner, source location, and
+attached comments. These are grammar facts, not invented runtime types; existing
+successfully checked programs keep their typed binding hovers. Syntax-only
+examples and erroneous programs explicitly report that no resolved runtime type
+is available. Import hovers expose the module name and import role before the
+grammar-term path can emit a category. Alternative previews share the existing
+formatter and use ` | ` with natural wrapping. The frontend removes the active
+alternative count and avoids repeating identical matched-rule/category fields.
+The existing preview opacity, dwell, five-pixel tolerance, retargeting, and cached
+mouse path are unchanged.
+
+Added regression coverage for every token of the exact nested foreach example,
+later redefinition, named terminal captures, imported rules selecting Number versus
+Identifier, import categorization, memory reclamation, and desktop/mobile rendered
+hover content without hover-time worker requests. Compiler successor activation
+now also probes syntax-only captures and module import metadata. Initial build
+trials caught Tower's unsupported by-value struct call and required explicit
+pointer conversion; corrected the scratch vector append to the project's existing
+reserve/copy pattern. The first mobile browser trial hovered an offscreen line
+after inserting the full example; scrolling each target line into view fixed the
+test, and both device profiles passed the exact example.
+
+Environment: Windows PowerShell, WSL Orchestral-Revng, WASI SDK 34, main at
+`d8d856c` before this change. Rebuilt parser and LLVM/cross reactors through
+`build/context-bootstrap.sh` and the established `build-wasm.sh` / `build-llvm.sh`
+scripts (`TOWER_BROWSER_CROSS=ON`), then rebuilt the full static distribution with
+`TOWER_REQUIRE_BACKENDS=1`. Logs are ignored `build/hover-followup-*.log`.
+
+Validation before synchronization: `npm test --prefix playground` passed 352/352;
+`npm run check:format --prefix playground` passed; Playwright hover, completion,
+C-source, output-highlighting, and diagnostic-delay suites passed 58/58 across
+desktop/mobile. The 28 focused query tests include all earlier typed/grammar/
+replacement coverage and the new syntax-only cases. Final self-hosting,
+performance, and publication verification are recorded in the follow-up entry.

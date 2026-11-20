@@ -17,11 +17,12 @@ function tooltipContent(entry,doc) {
     const line=text=>{const row=document.createElement('div');row.textContent=text;dom.append(row);};
     if(entry.kind && entry.kind!=='syntax')line(entry.kind);
     if(entry.description)line(entry.description);
-    if(entry.capture)line(`Capture: $${entry.capture}`);
-    if(entry.category)line(`Grammar category: ${entry.category}`);
+    if(entry.capture)line(`Capture: $${entry.capture}${entry.capturedBy?` in ${entry.capturedBy}`:''}`);
+    if(entry.module)line(`Module: ${entry.module}`);
+    if(entry.matchedRule)line(`Matched rule: ${entry.matchedRule}`);
+    if(entry.category && entry.category!==entry.matchedRule)line(`Grammar category: ${entry.category}`);
     if(entry.replacementCategory)line(`Replacement produces: ${entry.replacementCategory}`);
     if(entry.replacementAlternatives>1)line(`Shared by ${entry.replacementAlternatives} alternatives; syntax preview uses the first compiled alternative.`);
-    if(entry.alternatives!==undefined)line(`${entry.alternatives} active ${entry.alternatives===1?'alternative':'alternatives'}`);
     if(entry.definition) {
       const definition=document.createElement('code');definition.className='tw-hover-definition';
       definition.textContent=entry.definition;dom.append(definition);

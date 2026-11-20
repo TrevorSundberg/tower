@@ -144,7 +144,7 @@ test('grammar reference snapshots preserve overrides, append order, pending rule
   const entries=inspect(source),get=needle=>hoverAt(entries,source.indexOf(needle)+needle.length-2);
   assert.equal(get('Before = Item;').definition,"'first'");assert.equal(get('Before = Item;').documentation,'First');
   assert.equal(get('Middle = Item;').definition,"'second'");assert.equal(get('Middle = Item;').documentation,'Second');
-  assert.equal(get('After = Item;').definition,"'second'\n| 'third'");assert.equal(get('After = Item;').alternatives,2);
+  assert.equal(get('After = Item;').definition,"'second' | 'third'");assert.equal(get('After = Item;').alternatives,2);
   const pending=get('Pending = Future;');assert.match(pending.resolution,/Not resolved at this declaration/);
   assert.equal(pending.definition,undefined);
 });
@@ -174,6 +174,54 @@ test('whole Bedrock and Foundation trees have meaningful grammar entries and val
       assert.notEqual(entry.kind,'grammar');assert.notEqual(entry.kind,'syntax');
     }
   }
+});
+
+test('imports describe modules without mislabelling path segments as grammar categories',()=>{
+  const source='import foundation;';
+  for(const entry of inspect(source)) {
+    assert.equal(entry.kind,'module import');assert.equal(entry.module,'foundation');
+    assert.equal(entry.category,undefined);assert.equal(entry.alternatives,undefined);
+  }
+});
+
+test('syntax-only foreach bodies inspect actual matched rules and captures across later overrides',async()=>{
+  const source=(await read('scaffolding/examples/foreach.tower')).toString();
+  const entries=inspect(source,{entry:'foreach.tower'});
+  const body=source.indexOf('for (item'),end=source.indexOf('// A later');
+  const tokens=entries.filter(entry=>entry.from>=body&&entry.to<end);
+  assert.ok(tokens.length>=20);
+  for(const entry of tokens) {
+    assert.ok(entry.description,source.slice(entry.from,entry.to));
+    assert.ok(entry.definition,source.slice(entry.from,entry.to));
+    assert.equal(entry.type,undefined);
+    assert.equal(hasHoverDetails(entry,source.slice(entry.from,entry.to)),true);
+  }
+  const get=needle=>hoverAt(entries,source.indexOf(needle,body)+1);
+  const loop=get('for (item');assert.equal(loop.matchedRule,'ForEach');
+  assert.match(loop.definition,/^'for'/);assert.match(loop.documentation,/feature is defined here/);
+  assert.equal(loop.definedIn,'foreach.tower');
+  for(const [needle,capture] of [['item in','Variable'],['items)','Expression'],['child in','Variable'],['children)','Expression']]) {
+    const entry=get(needle);assert.equal(entry.kind,'captured syntax');
+    assert.equal(entry.capture,capture);assert.equal(entry.category,capture);
+    assert.equal(entry.capturedBy,'ForEach');assert.equal(entry.definition,'Identifier');
+  }
+  const later=get('foreach (entry');assert.match(later.definition,/^'foreach'/);
+  assert.notEqual(later.definition,loop.definition);
+  const nodes=tower.exports.tw_live_nodes(),allocations=tower.exports.tw_live_allocations();
+  for(let i=0;i<15;i++)inspect(source,{entry:'foreach.tower'});
+  assert.equal(tower.exports.tw_live_nodes(),nodes);assert.equal(tower.exports.tw_live_allocations(),allocations);
+});
+
+test('custom syntax follows named terminal captures and the actual selected alternative in imported rules',()=>{
+  const grammar="import foundation; parse Value = Number | Identifier; // Bind a syntactic name and value.\nparse Statement = 'bind' $name:Identifier '=' $value:Value ';';";
+  const source='import "grammar"; bind result = 42; bind other = result;';
+  const entries=inspect(source,{files:[{path:'grammar.tower',text:grammar}]}),get=needle=>hoverAt(entries,source.indexOf(needle)+1);
+  const name=get('result =');assert.equal(name.capture,'name');assert.equal(name.category,'Identifier');
+  assert.equal(name.capturedBy,'Statement');assert.equal(name.type,undefined);
+  assert.match(name.documentation,/Bind a syntactic name/);
+  const number=get('42;');assert.equal(number.capture,'value');assert.equal(number.matchedRule,'Value');
+  assert.equal(number.definition,'Number');assert.equal(number.definedIn,'grammar.tower');
+  const identifier=get('result;');assert.equal(identifier.definition,'Identifier');assert.equal(identifier.type,undefined);
 });
 
 test('shared replacements show every possible capture category rather than claiming the first applies to all',()=>{

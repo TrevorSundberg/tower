@@ -63,6 +63,7 @@ extern "C" void syntax_completion_enable(SyntaxSession*);
 extern "C" FrontendModule* syntax_completion_module(SyntaxSession*);
 // Borrowed shared entities from the active grammar; callers retain as needed.
 extern "C" TowerNode* syntax_inspection_reference(SyntaxSession*, const char*, size_t, size_t, size_t*);
+extern "C" TowerNode* syntax_inspection_match(SyntaxSession*, TowerNode*);
 extern "C" TowerNode* syntax_inspection_template(SyntaxSession*, TowerNode*, const char**, size_t*);
 extern "C" TowerNode* syntax_inspection_capture(SyntaxSession*, TowerNode*, size_t);
 extern "C" bool syntax_completion_accepts(SyntaxSession*, const char*, bool);

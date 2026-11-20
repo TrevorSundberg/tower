@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {readFile} from 'node:fs/promises';
 
 async function source(page,text) {
   const editor=page.getByRole('textbox',{name:'Tower source'});
@@ -92,6 +93,39 @@ test('member hover uses the resolved field and comments have no tooltip',async({
   await expect(tip).toContainText('field offset 4');
   position=await point(page,'comment');await page.mouse.move(position.x,position.y);
   await expect(tip).toHaveCount(0);
+});
+
+test('foreach imports, compact alternatives and syntax-only loop tokens have useful cached hovers',async({page},info)=>{
+  const text=await readFile(new URL('../../../scaffolding/examples/foreach.tower',import.meta.url),'utf8');
+  await source(page,text);await ready(page,text);
+  const count=await page.evaluate(()=>window.documentQueries.length),tip=page.locator('.tw-language-hover');
+  for(const [token,last,expected] of [
+    ['foundation',false,'Module: foundation'],['Expression',false,'Identifier | Number'],
+    ['for',false,'Matched rule: ForEach'],['item',false,'Capture: $Variable'],
+    ['items',true,'Capture: $Expression'],['child',false,'Capture: $Variable'],
+    ['children',true,'Capture: $Expression'],
+  ]) {
+    await page.mouse.move(0,0);
+    const lineText=token==='foundation'?'import foundation':token==='Expression'?'parse Expression':
+      token==='child'||token==='children'?'for (child in children)':'for (item in items)';
+    await page.locator('#editor .cm-line').filter({hasText:lineText}).scrollIntoViewIfNeeded();
+    // Select source-use tokens without matching a grammar literal or a substring.
+    const position=token==='for'||token==='item'||token==='child'
+      ?await page.locator('#editor .cm-line').filter({hasText:token==='for'?'for (item in items)':`for (${token} in`}).evaluate((line,token)=>{
+        const walker=document.createTreeWalker(line,NodeFilter.SHOW_TEXT);
+        while(walker.nextNode()) {const node=walker.currentNode,at=node.textContent.indexOf(token);if(at<0)continue;
+          const range=document.createRange();range.setStart(node,at);range.setEnd(node,at+token.length);
+          const box=range.getBoundingClientRect();return {x:box.x+box.width/2,y:box.y+box.height/2};}
+        throw Error('Token not rendered: '+token);
+      },token):await point(page,token,last);
+    await page.mouse.move(position.x,position.y);await expect(tip,`Hovering ${token}`).toBeVisible();
+    await expect(tip).toContainText(expected);
+    await expect(tip).not.toContainText(/active alternative|entity|components/);
+    if(token==='foundation')await expect(tip).not.toContainText('Grammar category');
+    if(token==='Expression')await expect(tip.locator('.tw-hover-definition')).toHaveText('Identifier | Number');
+    if(token==='items')await page.screenshot({path:`../build/foreach-hover-${info.project.name}.png`});
+  }
+  expect(await page.evaluate(()=>window.documentQueries.length)).toBe(count);
 });
 
 test('editing dismisses hover and the next snapshot contains the new type',async({page})=>{
@@ -229,7 +263,8 @@ test('hover shows attached documentation and typed signatures, suppressing name-
   const keyword=await point(page,'return');await page.mouse.move(keyword.x,keyword.y);
   await expect(tip).toHaveCount(0);
   const broken='var unknown = missing;';await source(page,broken);await ready(page,broken);
-  const missing=await point(page,'missing');await page.mouse.move(missing.x,missing.y);await expect(tip).toHaveCount(0);
+  const missing=await point(page,'missing');await page.mouse.move(missing.x,missing.y);
+  await expect(tip).toContainText('no resolved runtime type');await expect(tip).not.toContainText('Type:');
 });
 
 test('changing symbols restarts dwell and blank space or Escape dismisses the preview',async({page})=>{

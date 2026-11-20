@@ -20,6 +20,7 @@ struct CompletionQuery {
     inspection: bool;
     inspection_session: void*;
     grammar: vector(LanguageGrammar);
+    grammar_index: SemanticTable*;
     comment_modules: vector(void*);
     comment_bases: vector(usize);
     truncated: bool;
@@ -103,6 +104,9 @@ fn completion_parse(q: CompletionQuery*, source: u8*, mode: u32, future: bool): 
             }
         }
         if keep {
+            if q.inspection {
+                language_match_snapshot(q, root, session, 0);
+            }
             sem_push(&entries, root);
         } else {
             if q.inspection {
