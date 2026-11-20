@@ -59,7 +59,7 @@ struct EntityComponent {
     type_index: usize;
 }
 
-// Transitional host bridge for existing native payload destructors; zero means none.
+// Transitional host bridge for existing C++ payload destructors; zero means none.
 // A Tower client can supply its own ordinary Tower dispatch function instead.
 extern fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void;
 
