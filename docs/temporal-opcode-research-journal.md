@@ -20826,3 +20826,68 @@ Published manifest SHA-256:
 The remaining changes are journal records only. Retain the verified publication
 as a no-op deployment, verify its manifest again after the final pull, and push
 the records without rebuilding or replacing the identical source deployment.
+Integrated named-index release: after rebasing onto type-use query commit 0b48236,
+native/frontend checks pass (0.03 s), all 111 selected Node checks pass (7.36 s),
+and the fully integrated compiler recipe produces identical 2-worker/4-worker
+successors (889846/52085061/63642429 bytes). The complete local verifier passes
+all 70 assets and both desktop/mobile flows. Logs/reports use
+syntax-named-index-rebased-*, syntax-named-index-local.log and
+syntax-named-index-local-report.json. Source 0e4bd41 was pushed normally.
+
+The preceding b35dd45 live verification completed with all hashes and both
+browser profiles passing (syntax-revision-live.log and live-report.json).
+Upstream subsequently published 7d872f5 with shared type-use queries. The next
+candidate includes its source and preserves all extra manifest metadata; ancestry
+was checked before copying assets. Four unchanged gzip payloads reuse 29715765
+bytes of previous compressed data. Normal publication is gh-pages 1828ff9; Pages
+workflow 44811411449 succeeded. One pull failed DNS resolution; Windows DNS
+resolved github.com to 172.139.64.112 and a command-local http.curloptResolve
+retry succeeded, retaining TLS hostname checking. No permanent Git settings or
+force push. Final hosted verification is running before marking this complete.
+
+Follow-on ownership audit (proposal, not additional implementation): batch the
+remaining template-token, capture-source/inverse and repetition indexes in the
+same retained emission owner. Preserve generated-name order, first-production
+selection and the existing last-write behavior for duplicate source-to-capture
+bindings. Their source entities remain authoritative and must stay pinned.
+Avoid another release for each tiny map removal; build the complete related
+slice once, then run focused tests, successor/determinism checks and publication.
+
+Concurrency boundary confirmed in library/entities.tower and compiler/world.tower:
+entity_view_query borrows a dense array of component pointers with stable payload
+addresses. It is not packed archetype/SoA payload storage or a SIMD guarantee.
+The coordinator opens/closes views and changes refcounts; structural mutation
+rejects pinned stores. Workers must borrow prepared views and finish before the
+coordinator reclaims them. CompilerWorld type creation is lazy, so required kinds
+must be resolved before entering a read phase. FrontendCache lookup changes LRU
+order/counters, copying changes snapshot references, and pattern reuse updates a
+component: these remain coordinator operations. The new emission lookups avoid
+all those mutations. Do not describe the current within-unit compiler as fully
+parallel; current verified parallelism is independent compiler units/worlds.
+
+Remaining original backend-owned boundary: llvm-backend.cpp still owns a legacy
+singleton worker handle and source/imported-Foundation strings around the Tower
+BackendSession API; llvm-engine.cpp is the native transport adapter used by the
+CLI. An eventual worker port can reuse the existing ECS transport-state pattern
+in host/ide-state.tower and Tower compiler services, but must first preserve the
+embedded runtime-object contract and teardown behavior. Keep that work separate
+from agent 2's driver/runtime edits and agent 1's parser ABI work. No backend
+semantic algorithm needs to be reimplemented for these adapters.
+
+Publication complete (2026-11-20): gh-pages 1828ff9a750d00b43e262cdd87e0f14ff4bc9261
+is live at https://tower-lang.org/. Final hosted verification passes all 70 exact
+assets and both isolated desktop/mobile flows: backend agreement, editable
+grammar, completion, highlighting, persistence, native builds and downloads.
+Manifest SHA-256: 890314fd96784fb24c2967bf7c41307f9d699dda09ef97f6edb546c522f30b4d.
+Evidence: syntax-named-index-live.log and syntax-named-index-live-report.json.
+Source implementation 0e4bd41 is already pushed. The final fetch brought only
+upstream journal entries 289046e/7ecd752; retain them without rebuilding unchanged
+compiler code. The latest published payload is still 1828ff9.
+
+Final physical inventory (including comments/blank lines, excluding third_party):
+production 4866 lines/51 files = 2688 C++ + 192 C + 1986 headers/ABI; bootstrap/
+reference 2996/14, native tests 4116/20, research/examples 774/4; total 12752.
+Report: build/language-next/native-lines-named-index.json. todo.txt retains blob
+96a9e58964d7f01e4a97819f259448db81ef5e40; both pre-existing stashes are preserved.
+Agent 2's independent checkout/window remains separate from this implementation
+and publication. No new native implementation, sanitizer sweep or formatter sweep.
