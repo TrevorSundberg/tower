@@ -22498,3 +22498,30 @@ operators, isolated compiler workers and all cross targets. These checks retain
 interpreter/LLVM output agreement and native linking; they do not supersede the
 two known upstream completion failures documented in the lexical slice.
 Paired benchmarks and successive browser compiler generations follow.
+
+The first paired benchmark (two warmups, twelve alternating pairs per fixture)
+kept all emitted objects identical. Median wall times changed by +0.75% functions,
++2.70% collections and +1.13% templates. The paired collections median was +1.03%,
+with all twelve current samples slower. Browser successor work overlapped these
+measurements, so this is a regression signal rather than an isolated causal
+measurement. Report: pending-benchmark.json. Inspection found that successful
+ready revisions unnecessarily allocated an empty owner. Changed creation to
+return explicit success plus an out-owner: null is the allocation-free empty
+result, distinct from failure. The native caller only connects this existing
+ownership contract. Tower tests require empty and all-ready input to succeed
+with allocation budget zero. Rebuilding the final candidate and repeating the
+collections comparison without concurrent compiler/test work follows.
+
+Next ownership design, audited but not implemented here: module imports already
+assemble ModuleGrammar in frontend_modules.tower, while syntax.cpp copies those
+views into its Definitions map and repeatedly rebuilds vectors for validation,
+emission, cache lookup and replacement planning. Reuse that shared rule-view
+contract for a Tower declaration owner with transactional replace/extend and
+sorted frozen reads, retaining source alternatives. Preserve declaration order,
+name shadowing, token order and failure rollback; `|=` must reject an undefined
+local target at the same boundary. Avoid another authoritative grammar store.
+Then move installed Bedrock/Foundation baselines and SyntaxSession leases into
+explicit CompilerWorld/ModuleEnvironment ownership. Current frontend_cache_find
+mutates LRU/hit state, so it remains a coordinator operation; pinned read-only
+revisions are the worker input. Only after that ownership boundary is explicit
+should within-unit phases be distributed. Existing unit workers remain isolated.

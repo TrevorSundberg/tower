@@ -21,8 +21,9 @@ bool syntax_validate(const SyntaxRuleView*, size_t count, TowerNode* const* toke
   size_t* offset, TowerNode** pending);
 // Frozen Tower-owned pending views retain their shared source alternatives.
 // Returned names/messages are borrowed until destruction; queries do not mutate.
-SyntaxPendingRevision* syntax_pending_create(const SyntaxRuleView*, size_t,
-  TowerNode* const* waiting, TowerNode* syntax_type);
+// Success with no pending rules sets out to null without allocating.
+bool syntax_pending_create(const SyntaxRuleView*, size_t,
+  TowerNode* const* waiting, TowerNode* syntax_type, SyntaxPendingRevision** out);
 void syntax_pending_destroy(SyntaxPendingRevision*);
 size_t syntax_pending_count(const SyntaxPendingRevision*);
 const char* syntax_pending_name(const SyntaxPendingRevision*, size_t);

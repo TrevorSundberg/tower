@@ -69,25 +69,27 @@ fn syntax_pending_format(value: SyntaxPendingRevision*, kind: void*): bool {
 
 // rules are sorted by name; waiting contains the validator's source-term views.
 // Copy only pending rules and retain their alternatives through FrontendRevision.
-export fn syntax_pending_create(rules: SyntaxRuleView*, count: usize, waiting: void**, kind: void*): SyntaxPendingRevision* {
+// An empty successful revision is null: the common ready path allocates nothing.
+export fn syntax_pending_create(rules: SyntaxRuleView*, count: usize, waiting: void**, kind: void*, out: SyntaxPendingRevision**): bool {
+    *out = null;
     var total: usize = 0;
     var index: usize = 0;
     while index < count {
         if waiting[index] is not null { ++total; }
         ++index;
     }
-    if total > ~convert(usize, 0) / sizeof(SyntaxRuleView) { return null; }
+    if total == 0 { return true; }
+    if total > ~convert(usize, 0) / sizeof(SyntaxRuleView) { return false; }
     var value = alloc(SyntaxPendingRevision, 1);
-    if value is null { return null; }
+    if value is null { return false; }
     fill(value, 0, sizeof(SyntaxPendingRevision));
     value.offset = lr_none();
-    if total == 0 { return value; }
     var selected = alloc(SyntaxRuleView, total);
     value.terms = alloc(void*, total);
     if selected is null || value.terms is null {
         free(selected);
         syntax_pending_destroy(value);
-        return null;
+        return false;
     }
     index = 0;
     while index < count {
@@ -102,9 +104,10 @@ export fn syntax_pending_create(rules: SyntaxRuleView*, count: usize, waiting: v
     free(selected);
     if value.owner is null || !syntax_pending_format(value, kind) {
         syntax_pending_destroy(value);
-        return null;
+        return false;
     }
-    return value;
+    *out = value;
+    return true;
 }
 
 export fn syntax_pending_count(value: SyntaxPendingRevision*): usize {

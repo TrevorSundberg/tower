@@ -177,8 +177,10 @@ std::string validate(Definitions& defs, const TokenDefinitions& tokens, size_t* 
   std::string message = ok ? "" : error.length ? std::string(reinterpret_cast<const char*>(error.data), error.length)
     : "Unable to allocate grammar validation";
   bytes_dispose(&error);
-  if (ok) pending.reset(syntax_pending_create(rules.data(), rules.size(), waiting.data(), syntax_component_type()));
-  if (ok && !pending) return "Unable to allocate grammar validation";
+  SyntaxPendingRevision* revision = nullptr;
+  if (ok && !syntax_pending_create(rules.data(), rules.size(), waiting.data(), syntax_component_type(), &revision))
+    return "Unable to allocate grammar validation";
+  pending.reset(revision);
   // Only the executable revision excludes pending rules. Source entities survive.
   if (ok) for (size_t i = 0; i < syntax_pending_count(pending.get()); ++i)
     defs.erase(syntax_pending_name(pending.get(), i));

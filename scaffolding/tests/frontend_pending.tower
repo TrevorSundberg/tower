@@ -8,7 +8,7 @@ import frontend_world;
 import frontend_format;
 import frontend_syntax_preview;
 
-extern fn syntax_pending_create(rules: SyntaxRuleView*, count: usize, waiting: void**, kind: void*): void*;
+extern fn syntax_pending_create(rules: SyntaxRuleView*, count: usize, waiting: void**, kind: void*, out: void**): bool;
 extern fn syntax_pending_destroy(value: void*): void;
 extern fn syntax_pending_count(value: void*): usize;
 extern fn syntax_pending_name(value: void*, index: usize): u8*;
@@ -50,7 +50,8 @@ fn frontend_pending_tests(): void {
     }
     var references = entity_references(alternatives[0]);
     var allocations = tower_test_buffer_allocations();
-    var revision = syntax_pending_create(&rules[0], 3, &waiting[0], kinds.syntax);
+    var revision: void* = null;
+    frontend_world_check(syntax_pending_create(&rules[0], 3, &waiting[0], kinds.syntax, &revision));
     var construction = tower_test_buffer_allocations() - allocations;
     frontend_world_check(revision is not null);
     frontend_world_check(entity_references(alternatives[0]) == references + 1);
@@ -82,14 +83,15 @@ fn frontend_pending_tests(): void {
     index = 0;
     while index < construction {
         tower_test_buffer_fail_after(index);
-        revision = syntax_pending_create(&rules[0], 3, &waiting[0], kinds.syntax);
+        var created = syntax_pending_create(&rules[0], 3, &waiting[0], kinds.syntax, &revision);
         tower_test_buffer_fail_after(frontend_world_unlimited());
+        frontend_world_check(!created);
         frontend_world_check(revision is null);
         frontend_world_check(tower_test_buffer_count() == buffers);
         frontend_world_check(entity_references(alternatives[0]) == references);
         ++index;
     }
-    revision = syntax_pending_create(&rules[0], 3, &waiting[0], kinds.syntax);
+    frontend_world_check(syntax_pending_create(&rules[0], 3, &waiting[0], kinds.syntax, &revision));
     frontend_world_check(revision is not null);
     fill(&names, 88, 3);
     entity_release(source);
@@ -98,8 +100,15 @@ fn frontend_pending_tests(): void {
     frontend_format_text(syntax_pending_message(revision, null),
         "Unresolved grammar reference at end of module: A -> B -> missing (undefined rule 'missing')");
     syntax_pending_destroy(revision);
-    revision = syntax_pending_create(null, 0, null, kinds.syntax);
-    frontend_world_check(revision is not null);
+    // Empty input succeeds even when every allocation is forbidden.
+    tower_test_buffer_fail_after(0);
+    var empty = syntax_pending_create(null, 0, null, kinds.syntax, &revision);
+    waiting[0] = null;
+    waiting[1] = null;
+    empty &&= syntax_pending_create(&rules[0], 3, &waiting[0], kinds.syntax, &revision);
+    tower_test_buffer_fail_after(frontend_world_unlimited());
+    frontend_world_check(empty);
+    frontend_world_check(revision is null);
     frontend_world_check(syntax_pending_count(revision) == 0);
     frontend_world_check(syntax_pending_name(revision, 0) is null);
     frontend_world_check(!syntax_pending_contains(revision, "A"));
