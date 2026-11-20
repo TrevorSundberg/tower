@@ -17838,3 +17838,29 @@ Reviewed the pinned mobile screenshot with the closer bubble. Reproduction logs
 are build/hover-grace-{wasm,llvm,ui,tests,format,browser-final}.log; the failed first
 geometry trial is hover-grace-browser.log. Combined deployment manifest SHA-256:
 3f7b07c11836119066394a4a89a8c80532c376a90a3a346cf477964425819130.
+
+## 2026-11-20: Integrated hover release verification
+
+The final pre-publication rebase included compiler performance work 251e6db and
+validation records through 011a9f4. Rebuilt all three reactors and compiler support
+again, retaining both that work and the new hover behavior. The final bundle
+supersedes the preceding local manifest; its SHA-256 is
+f305c8cccdc26037897bb65e0ad20a8a93b54098e227912d0649c246553e84eb.
+After this integration, all 50 hover/template/C-source/project Node checks passed,
+as did 10 focused desktop/mobile browser checks for the geometry, exact margin,
+symbol switching and compact capture/import details. The earlier complete run
+passed 352 Node tests and 48 hover/completion browser checks before this last
+performance integration. Logs use build/hover-grace-integrated-*.
+
+Published gh-pages efcaa3f74a374978a714d358ffaa29c02522d4f4 at tower-lang.org;
+GitHub Pages reports built. All 69 hosted assets match the tested local bundle.
+The complete deployment verifier passed desktop/mobile backend agreement,
+native build/download, persistence, completion, highlighting and target-default
+checks. Twelve focused hover checks also passed on the live site, including the
+two-pixel clearance above/below, exact five-pixel margin, delayed symbol switch,
+captures and attached comments. A separate rendered-text probe verified both
+plain-language grammar assignment descriptions. Evidence is in
+build/hover-grace-live-{deployment,browser,wording}.log and the deployment report.
+The first main push encountered the newer documentation-only a17e7ac; rebased and
+pushed the combined source without changing the tested deployment. Unrelated
+local edits were preserved, and todo.txt matched its pre-sync SHA-256 throughout.
