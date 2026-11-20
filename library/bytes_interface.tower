@@ -1,6 +1,6 @@
 import tower;
 
-import 'bytes-types';
+import bytes_types;
 
 extern fn bytes_reserve(buffer: ByteBuffer*, needed: usize): bool;
 

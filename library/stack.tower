@@ -1,4 +1,4 @@
-import 'vector';
+import vector;
 import tower;
 
 // A stack is a vector policy, sharing its storage and allocation contract.

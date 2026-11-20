@@ -1,7 +1,7 @@
 import tower;
 
-// Increment syntax is defined here and expands into ordinary Tower calls.
-// These helpers increment i32 locations; postfix returns old, prefix returns new.
+// tower.tower supplies typed prefix/postfix ++ and -- for integer and pointer
+// locations. These ordinary helpers show the equivalent i32 operations.
 fn post_increment(p: i32*): i32 {
     var old: i32 = *p;
     *p = old + 1;
@@ -10,17 +10,10 @@ fn post_increment(p: i32*): i32 {
 
 fn pre_increment(p: i32*): i32 {
     var next: i32 = *p;
-    next = next + 1;
+    next++;
     *p = next;
     return next;
 }
-
-// CoreLocation matches variables, fields and indexed elements.
-// Extending CoreCall covers both standalone statements and assigned results.
-parse CoreCall |= $target:CoreLocation '++'
-    => replace { post_increment(&$target) };
-parse CoreCall |= '++' $target:CoreLocation
-    => replace { pre_increment(&$target) };
 
 var value: i32 = 5;
 var before: i32 = value++;

@@ -9,11 +9,11 @@ queue_init(i32, &fifo);
 var value = 10;
 while value <= 30 {
     var stored = stack_push(i32, &lifo, value);
-    if stored {} else {
+    if !stored {
         print("Stack allocation failed");
     }
     stored = queue_push(i32, &fifo, value);
-    if stored {} else {
+    if !stored {
         print("Queue allocation failed");
     }
     value = value + 10;

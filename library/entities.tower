@@ -75,9 +75,7 @@ export fn entity_store_create(): EntityStore* {
 // The store is borrowed by its entities and cannot be disposed while any live.
 export fn entity_store_dispose(store: EntityStore*): bool {
     var occupied = store.entity_count != 0;
-    if occupied {} else {
-        occupied = store.views != 0;
-    }
+    occupied ||= store.views != 0;
     if occupied {
         return false;
     }
@@ -105,12 +103,12 @@ export fn entity_create(store: EntityStore*): Entity* {
     entity.id = store.next_id;
     entity.references = 1;
     store.next_id = next;
-    store.entity_count = store.entity_count + 1;
+    store.entity_count++;
     return entity;
 }
 
 export fn entity_retain(entity: Entity*): usize {
-    entity.references = entity.references + 1;
+    entity.references++;
     return entity.references;
 }
 
@@ -121,18 +119,16 @@ export fn entity_create_related(entity: Entity*): Entity* {
 
 // Ownership must be acyclic. Query cursors are invalidated by structural edits.
 export fn entity_release(entity: Entity*): usize {
-    entity.references = entity.references - 1;
+    entity.references--;
     var remaining = entity.references;
     var alive = remaining != 0;
     if alive {
         return remaining;
     }
     var pinned = entity.store.views != 0;
-    if pinned {} else {
-        pinned = entity.queued;
-    }
+    pinned ||= entity.queued;
     if pinned {
-        if entity.queued {} else {
+        if !entity.queued {
             entity.deferred = entity.store.deferred;
             entity.store.deferred = entity;
             entity.queued = true;
@@ -145,7 +141,7 @@ export fn entity_release(entity: Entity*): usize {
 
 fn entity_reclaim(entity: Entity*): void {
     var store = entity.store;
-    store.reclaiming = store.reclaiming + 1;
+    store.reclaiming++;
     var i: usize = 0;
     loop {
         var done = i == entity.child_count;
@@ -156,7 +152,7 @@ fn entity_reclaim(entity: Entity*): void {
         child.parent = null;
         free(entity.children[i].name);
         entity_release(child);
-        i = i + 1;
+        i++;
     }
     i = 0;
     loop {
@@ -165,14 +161,14 @@ fn entity_reclaim(entity: Entity*): void {
             break;
         }
         entity_component_dispose(entity.components[i]);
-        i = i + 1;
+        i++;
     }
     free(entity.children);
     free(entity.components);
     free(entity.instances);
-    store.entity_count = store.entity_count - 1;
+    store.entity_count--;
     free(entity);
-    store.reclaiming = store.reclaiming - 1;
+    store.reclaiming--;
 }
 
 // Opening a view is an owning operation on the store's lifetime. The anchor
@@ -206,7 +202,7 @@ export fn entity_view_open(anchor: Entity*): EntityView* {
 export fn entity_view_close(view: EntityView*): void {
     var store = view.store;
     free(view);
-    store.views = store.views - 1;
+    store.views--;
     var pinned = store.views != 0;
     if pinned {
         return;
@@ -263,12 +259,8 @@ export fn entity_register(type: Entity*, size: usize, alignment: usize, lifecycl
     }
     if type.registered {
         var same = type.data_size == size;
-        if same {
-            same = type.data_alignment == alignment;
-        }
-        if same {
-            same = type.lifecycle == lifecycle;
-        }
+        same &&= type.data_alignment == alignment;
+        same &&= type.lifecycle == lifecycle;
         return same;
     }
     var pinned = type.store.views != 0;
@@ -294,7 +286,7 @@ export fn entity_component_get(owner: Entity*, type: Entity*): EntityComponent* 
         if found {
             return component;
         }
-        i = i + 1;
+        i++;
     }
 }
 
@@ -337,15 +329,13 @@ export fn entity_component_add(owner: Entity*, type: Entity*): EntityComponent* 
     if wrong_store {
         return null;
     }
-    var unregistered = type.registered == false;
+    var unregistered = !type.registered;
     if unregistered {
         return null;
     }
     var ok = entity_reserve_components(&owner.components, &owner.component_capacity, owner.component_count);
-    if ok {
-        ok = entity_reserve_components(&type.instances, &type.instance_capacity, type.instance_count);
-    }
-    var reserve_failed = ok == false;
+    ok &&= entity_reserve_components(&type.instances, &type.instance_capacity, type.instance_count);
+    var reserve_failed = !ok;
     if reserve_failed {
         return null;
     }
@@ -385,7 +375,7 @@ export fn entity_component_add(owner: Entity*, type: Entity*): EntityComponent* 
     address = address * alignment;
     var data = bits(u8*, address);
     var back = bits(EntityComponent**, data);
-    back = back - 1;
+    back--;
     *back = component;
     component.owner = owner;
     component.type = type;
@@ -393,18 +383,18 @@ export fn entity_component_add(owner: Entity*, type: Entity*): EntityComponent* 
     component.data = data;
     component.type_index = type.instance_count;
     owner.components[owner.component_count] = component;
-    owner.component_count = owner.component_count + 1;
+    owner.component_count++;
     type.instances[type.instance_count] = component;
-    type.instance_count = type.instance_count + 1;
+    type.instance_count++;
     entity_retain(type);
     var store = owner.store;
-    store.component_count = store.component_count + 1;
+    store.component_count++;
     return component;
 }
 
 fn entity_component_dispose(component: EntityComponent*): void {
     var type = component.type;
-    type.instance_count = type.instance_count - 1;
+    type.instance_count--;
     var last = type.instances[type.instance_count];
     type.instances[component.type_index] = last;
     last.type_index = component.type_index;
@@ -413,7 +403,7 @@ fn entity_component_dispose(component: EntityComponent*): void {
         tower_entity_finalize(type.lifecycle, component, component.data);
     }
     var store = type.store;
-    store.component_count = store.component_count - 1;
+    store.component_count--;
     free(component.allocation);
     entity_release(type);
 }
@@ -432,7 +422,7 @@ export fn entity_component_remove(owner: Entity*, type: Entity*): bool {
         var component = owner.components[i];
         var found = component.type == type;
         if found {
-            owner.component_count = owner.component_count - 1;
+            owner.component_count--;
             var following = i + 1;
             var count = owner.component_count - i;
             var bytes = count * sizeof(EntityComponent*);
@@ -440,7 +430,7 @@ export fn entity_component_remove(owner: Entity*, type: Entity*): bool {
             entity_component_dispose(component);
             return true;
         }
-        i = i + 1;
+        i++;
     }
 }
 
@@ -458,7 +448,7 @@ export fn entity_component_from_data(data: u8*): EntityComponent* {
         return null;
     }
     var back = bits(EntityComponent**, data);
-    back = back - 1;
+    back--;
     return *back;
 }
 
@@ -494,7 +484,7 @@ fn entity_name_equal(left: u8*, right: u8*): bool {
         if end {
             return true;
         }
-        i = i + 1;
+        i++;
     }
 }
 
@@ -504,14 +494,14 @@ export fn entity_child_index(parent: Entity*, child: Entity*): usize {
         var done = i == parent.child_count;
         if done {
             var invalid: usize = 0;
-            invalid = invalid - 1;
+            invalid--;
             return invalid;
         }
         var found = parent.children[i].entity == child;
         if found {
             return i;
         }
-        i = i + 1;
+        i++;
     }
 }
 
@@ -521,14 +511,14 @@ export fn entity_member_index(parent: Entity*, name: u8*): usize {
         var done = i == parent.child_count;
         if done {
             var invalid: usize = 0;
-            invalid = invalid - 1;
+            invalid--;
             return invalid;
         }
         var found = entity_name_equal(parent.children[i].name, name);
         if found {
             return i;
         }
-        i = i + 1;
+        i++;
     }
 }
 
@@ -536,7 +526,7 @@ fn entity_unlink(child: Entity*): void {
     var parent = child.parent;
     var index = entity_child_index(parent, child);
     free(parent.children[index].name);
-    parent.child_count = parent.child_count - 1;
+    parent.child_count--;
     var following = index + 1;
     var count = parent.child_count - index;
     var bytes = count * sizeof(EntityChild);
@@ -582,9 +572,7 @@ export fn entity_attach(child: Entity*, parent: Entity*, name: u8*): bool {
             parent.child_capacity = capacity;
         }
         var has_name = name != null;
-        if has_name {
-            has_name = *name != 0;
-        }
+        has_name &&= *name != 0;
         if has_name {
             var length: usize = 0;
             loop {
@@ -592,9 +580,9 @@ export fn entity_attach(child: Entity*, parent: Entity*, name: u8*): bool {
                 if end {
                     break;
                 }
-                length = length + 1;
+                length++;
             }
-            length = length + 1;
+            length++;
             named = alloc(u8, length);
             var failed = named == null;
             if failed {
@@ -625,7 +613,7 @@ export fn entity_attach(child: Entity*, parent: Entity*, name: u8*): bool {
         }
         parent.children[parent.child_count].entity = child;
         parent.children[parent.child_count].name = named;
-        parent.child_count = parent.child_count + 1;
+        parent.child_count++;
         child.parent = parent;
     } else {
         if attached {
@@ -674,7 +662,7 @@ export fn entity_take_last_child(parent: Entity*): Entity* {
     if empty {
         return null;
     }
-    parent.child_count = parent.child_count - 1;
+    parent.child_count--;
     var child = parent.children[parent.child_count].entity;
     free(parent.children[parent.child_count].name);
     child.parent = null;

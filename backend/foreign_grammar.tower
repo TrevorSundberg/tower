@@ -1,5 +1,5 @@
 import tower;
-import 'foreign-reader';
+import foreign_reader;
 
 // Optional surface syntax. A single colon separates adjacent words, so
 // the shared name reader and formatter preserve their lexical boundaries:

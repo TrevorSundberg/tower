@@ -1,4 +1,4 @@
-import 'bytes';
+import bytes;
 import tower;
 
 // Concrete arena and map helpers; byte buffers live in bytes.tower.
@@ -80,12 +80,12 @@ fn map_index(key: u32, capacity: usize): usize {
 fn map_insert(map: IntMap*, key: u32, value: i32): void {
     var index: usize = map_index(key, map.capacity);
     loop {
-        var vacant: bool = map.slots[index].occupied == false;
+        var vacant: bool = !map.slots[index].occupied;
         if vacant {
             map.slots[index].key = key;
             map.slots[index].value = value;
             map.slots[index].occupied = true;
-            map.count = map.count + 1;
+            map.count++;
             return;
         }
         var same: bool = map.slots[index].key == key;
@@ -93,7 +93,7 @@ fn map_insert(map: IntMap*, key: u32, value: i32): void {
             map.slots[index].value = value;
             return;
         }
-        index = index + 1;
+        index++;
         index = index % map.capacity;
     }
 }
@@ -133,7 +133,7 @@ export fn map_set(map: IntMap*, key: u32, value: i32): bool {
             if old[i].occupied {
                 map_insert(map, old[i].key, old[i].value);
             }
-            i = i + 1;
+            i++;
         }
         free(old);
     }
@@ -148,7 +148,7 @@ export fn map_get(map: IntMap*, key: u32, result: i32*): bool {
     }
     var index: usize = map_index(key, map.capacity);
     loop {
-        var vacant: bool = map.slots[index].occupied == false;
+        var vacant: bool = !map.slots[index].occupied;
         if vacant {
             return false;
         }
@@ -157,7 +157,7 @@ export fn map_get(map: IntMap*, key: u32, result: i32*): bool {
             *result = map.slots[index].value;
             return true;
         }
-        index = index + 1;
+        index++;
         index = index % map.capacity;
     }
 }

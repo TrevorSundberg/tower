@@ -18,5 +18,5 @@ fn description(value: i32): i32 {
 var value = 0;
 while value < 4 {
     print(description(value));
-    value = value + 1;
+    value++;
 }

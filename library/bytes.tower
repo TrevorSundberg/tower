@@ -1,6 +1,6 @@
 import tower;
 
-import 'bytes-types';
+import bytes_types;
 
 export fn bytes_init(buffer: ByteBuffer*): void {
     buffer.data = null;

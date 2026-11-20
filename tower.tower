@@ -24,3 +24,62 @@ parse TowerMatchDefault = '_' '=>' $body:CoreBlock ','?;
 parse TowerMatch = 'match' $value:CoreValue '{' $arms:TowerMatchArm* $fallback:TowerMatchDefault '}';
 parse TowerWhile = 'while' $condition:CoreValue $body:CoreBlock;
 parse Statement |= TowerMatch | TowerWhile;
+
+// Higher-level expression grammar; Foundation itself keeps its small operands.
+parse Statement = ';';
+parse TowerExpression = CoreLocation | CoreCall | Number | String | 'true' | 'false' | 'null'
+                       | '(' $value:TowerComma ')';
+parse TowerPostfixOperator = '++' | '--' @ 150 left;
+parse TowerExpression |= $left:TowerExpression TowerPostfixOperator @ 150 left;
+parse TowerPrefixOperator = '+' | '-' | '!' | '~' | '&' | '++' | '--' | 'not' | 'compl' | 'bitand' @ 140 right;
+parse TowerExpression |= TowerPrefixOperator $right:TowerExpression | '*' $right:TowerExpression @ 140 right;
+parse TowerExpression |= '*' @ 140 right;
+parse TowerExpression |= $left:TowerExpression '*' @ 130 left;
+parse TowerProductOperator = '/' | '%' @ 130 left;
+parse TowerExpression |= $left:TowerExpression '*' $right:TowerExpression
+                        | $left:TowerExpression TowerProductOperator $right:TowerExpression @ 130 left;
+parse TowerAdditiveOperator = '+' | '-' @ 120 left;
+parse TowerExpression |= $left:TowerExpression TowerAdditiveOperator $right:TowerExpression @ 120 left;
+parse TowerShiftOperator = '<<' | '>>' | '>>>' @ 110 left;
+parse TowerExpression |= $left:TowerExpression TowerShiftOperator $right:TowerExpression @ 110 left;
+parse TowerExpression |= $left:TowerExpression '<=>' $right:TowerExpression @ 100 left;
+parse TowerRelationalOperator = '<' | '<=' | '>' | '>=' @ 90 left;
+parse TowerExpression |= $left:TowerExpression TowerRelationalOperator $right:TowerExpression @ 90 left;
+parse TowerExpression |= $left:TowerExpression 'is' 'null' @ 90 left => replace { $left == null };
+parse TowerExpression |= $left:TowerExpression 'is' 'not' 'null' @ 90 left => replace { $left != null };
+parse TowerEqualityOperator = '==' | '!=' | 'not_eq' @ 80 left;
+parse TowerExpression |= $left:TowerExpression TowerEqualityOperator $right:TowerExpression @ 80 left;
+parse TowerBitAndOperator = '&' | 'bitand' @ 70 left;
+parse TowerExpression |= $left:TowerExpression TowerBitAndOperator $right:TowerExpression @ 70 left;
+parse TowerBitXorOperator = '^' | 'xor' @ 60 left;
+parse TowerExpression |= $left:TowerExpression TowerBitXorOperator $right:TowerExpression @ 60 left;
+parse TowerBitOrOperator = '|' | 'bitor' @ 50 left;
+parse TowerExpression |= $left:TowerExpression TowerBitOrOperator $right:TowerExpression @ 50 left;
+parse TowerAndOperator = '&&' | 'and' @ 40 left;
+parse TowerExpression |= $left:TowerExpression TowerAndOperator $right:TowerExpression @ 40 left;
+parse TowerOrOperator = '||' | 'or' @ 30 left;
+parse TowerExpression |= $left:TowerExpression TowerOrOperator $right:TowerExpression @ 30 left;
+parse TowerExpression |= $left:TowerExpression '??' $right:TowerExpression @ 20 right;
+parse TowerExpression |= $condition:TowerExpression '?' $body:TowerComma ':' $otherwise:TowerExpression @ 10 right;
+parse TowerAssignmentOperator = '=' | '+=' | '-=' | '*=' | '/=' | '%=' | '<<=' | '>>=' | '>>>=' | '&=' | '^=' | '|='
+                       | '&&=' | '||=' | '??='
+                       | 'and_eq' | 'xor_eq' | 'or_eq' @ 10 right;
+parse TowerExpression |= $left:TowerExpression TowerAssignmentOperator $right:TowerExpression @ 10 right;
+parse TowerComma = TowerExpression | $left:TowerComma ',' $right:TowerExpression;
+parse TowerNullAccess = $base:TowerExpression '?.' $field:Identifier
+                     | $base:TowerExpression '?[' $index:TowerExpression ']' @ 150 left;
+parse TowerNullAccess |= $base:TowerNullAccess '.' $field:Identifier
+                      | $base:TowerNullAccess '[' $index:TowerExpression ']' @ 150 left;
+parse TowerExpression |= TowerNullAccess;
+parse CoreLocation |= '(' $base:TowerComma ')' '.' $field:Identifier
+                    | '(' $base:TowerComma ')' '[' $index:TowerExpression ']'
+                    | $base:CoreCall '.' $field:Identifier
+                    | $base:CoreCall '[' $index:TowerExpression ']';
+// Disable the Foundation binary alternative before activating nested operands.
+parse CoreValue = CoreOperand;
+parse CoreCallArgument = TowerExpression;
+parse CoreOperand = TowerExpression;
+parse TowerExpressionStatement = $value:TowerComma ';';
+parse Statement = CoreDeclare | CoreBlock | CoreIf | CoreLoop | CoreBreak | CoreContinue
+                  | CoreFunction | CoreReturn | CoreStruct | CoreEnum | CoreExternal | CoreExport
+                  | TowerConstant | TowerExportedConstant | TowerMatch | TowerWhile | TowerExpressionStatement;

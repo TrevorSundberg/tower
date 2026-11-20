@@ -19,11 +19,11 @@ fn stack(T: type): type {
 // This small example assumes there is space to push and a value to pop.
 fn push(T: type, values: stack(T)*, value: T): void {
     values.storage.data[values.count] = value;
-    values.count = values.count + 1;
+    values.count++;
 }
 
 fn pop(T: type, values: stack(T)*): T {
-    values.count = values.count - 1;
+    values.count--;
     return values.storage.data[values.count];
 }
 
