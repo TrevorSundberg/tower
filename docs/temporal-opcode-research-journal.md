@@ -14361,6 +14361,17 @@ lexical-current-benchmark.json. This is a small improvement on these samples,
 not a general speed guarantee. Both compilers still spend most of these short
 CLI runs rebuilding/parsing imported grammar, a separate optimization candidate.
 
+After correcting those snapshots, desktop verification reached the compiler
+project and exposed a real transport limit: its full import closure exceeded the
+browser Engine's hard 10-second parse deadline. failure.json records "Parsing
+exceeded 10 seconds"; this was not an execution mismatch or a bootstrap failure.
+Compiler projects now have a bounded 60-second cold-parse budget, using the same
+worker termination/stale-result handling. Ordinary project budgets are unchanged.
+Aligned the existing browser checks' wait budget and two stale partially renamed
+compiler-entry paths. This unblocks large source inspection; it is not a parsing
+speed improvement. Repeated imported-grammar construction remains measured work
+for the world/revision caching and parallel-phase followups.
+
 ### Tower language milestone published and verified
 
 Implementation/source commit 4ae9076 is on main. Required post-commit

@@ -89,7 +89,10 @@ class Engine {
     }
     return new Promise((resolve, reject) => {
       const id = ++this.id;
-      const timer = setTimeout(() => this.stop('Parsing exceeded 10 seconds. Simplify the grammar and try again.'), 10000);
+      // Compiler entries import the implementation's full source closure.
+      // Keep their cold parse bounded and cancellable while allowing that work.
+      const timeout = project.compilerProject ? 60000 : 10000;
+      const timer = setTimeout(() => this.stop(`Parsing exceeded ${timeout / 1000} seconds. Simplify the grammar and try again.`), timeout);
       this.pending = { id, resolve, reject, timer };
       this.worker.postMessage({ compiler:compilerSelection(), library:project.library ?? '.tower', id, method, source, foundation, bedrock, editingModule, files:project.files, builtins:project.builtins, activePath, entry:projectSources(project)[0]?.path });
     });
