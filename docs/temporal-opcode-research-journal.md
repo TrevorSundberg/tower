@@ -20991,3 +20991,58 @@ closure for package-compiler-project.py. The established packager includes the
 new parser-integration unit and the Tower parser fixture source, rather than
 hiding its object in native support. Initial packaging reports 12 parser units
 and 11 each for the LLVM/cross reactors. Final rebuild/validation follows below.
+
+Parser retirement integration checkpoint: committed the port and rebased onto
+7ecd752, preserving both appended journal histories. The initial unrestricted
+pull spent several minutes receiving large Pages history; stopped only that
+owned fetch and completed `git -c http.version=HTTP/1.1 pull --rebase --no-tags
+https://github.com/TrevorSundberg/tower main`. Syntax linkage merged mechanically
+with the owner's retained template-name indexes. Latest Pages 1828ff9 records
+source 0e4bd41, now included in our ancestry. All final artifacts must be rebuilt
+after this integration; earlier 75 parser and 144 backend/hover tests passed
+before the rebase and are not evidence for the combined source. A depth-one Pages
+fetch downloaded the current commit but could not fast-forward the old tracking
+ref across its shallow boundary. Checked out the fetched hash in the existing
+clean, detached deployment worktree; no force push is involved.
+
+Focused formatting checked changed Tower files for statement-tree preservation
+and idempotence. Reverted unrelated IDE formatting and kept only its two parser
+linkage edits. No whole-repository formatter or sanitizer sweep was run.
+
+The unpinned benchmark had roughly 3x per-process timing differences between CPU
+placements, making its +18.65% smallest-case aggregate misleading. Repeated
+seven alternating baseline/current process pairs pinned to CPU 6 with no compiler
+builds or tests running (`docker exec tower-parser-retirement taskset -c 6
+build/parser-retirement/{baseline-native,native}/tower-parser-benchmark`). Each
+size has 77 measured samples after warmup. Before upstream integration, median
+256/512/1024/2048-token parse times changed from 287201/568481/1203090/2238056 ns
+to 274151/542362/1147292/2123250 ns: -4.54/-4.59/-4.64/-5.13%. Tracked allocation
+calls remain exactly 1056/2082/4132/8230; retained buffer counts after root release
+are equal and stable between requests. Evidence: benchmark-pinned.json and
+{baseline,current}-pinned-*.csv. This measures one Linux x64 list grammar and
+Tower's instrumented buffer allocator, not every host allocation or workload.
+The saved bf906b5 baseline isolates this parser port before the upstream query
+and template-index changes; do not attribute combined-release differences solely
+to parser orchestration. The reporting script initially shadowed Python round;
+recomputed its report from saved CSV without rerunning measurements.
+
+Rebased-source validation passes: native tower-frontend-tests (including parser
+constructor/diagnostic failure sweeps), 75 parser/diagnostic/completion/Bedrock/
+replacement Node tests (14.46 s), and 146 LLVM/raw-memory/foundation-storage/
+template/module-scope/hover/worker/packaging Node tests (24.80 s). Existing
+scaffolding/examples/structs.tower produces identical 42/22/7 output through the
+native interpreter and an LLVM-built Linux executable. Logs: rebased-build.log,
+node-rebased-focused.log, node-rebased-integration.log, native-agreement.log.
+The native inventory confirms neither retired source appears in the towerc link
+inputs. Retired files remove 446 + 633 = 1079 native lines; all native source/header
+changes together reduce 1108 lines. Other native changes only reconnect existing
+syntax services and replace return/container declarations with Tower-owned views.
+
+Deployed the native compiler through the established build-native.sh using
+TOWER_NATIVE_BUILD=/home/deck/tower/build/parser-retirement/native, the saved
+TOWER_BOOTSTRAP_COMPILER and TOWER_BUILD_JOBS=2 inside tower-parser-retirement.
+The deployed build/native/towerc SHA-256 is
+d251a600bc450452ac48b60b105e891a6e519e0365609dadf5a158a3eb835cd4.
+No other build cache was configured. Container inventory initially rejected the
+checkout's different UID; reran with command-local GIT_CONFIG_COUNT=1,
+GIT_CONFIG_KEY_0=safe.directory, GIT_CONFIG_VALUE_0=/home/deck/tower.
