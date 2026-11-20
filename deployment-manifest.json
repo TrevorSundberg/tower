@@ -70,12 +70,12 @@
     "worker.js": "1efc5e578f49028a5c94deb2a828f29491b1b5ea7e9238958be47ca3af115ec9",
     "worker.js.map": "0a268a2c98e18c3d8f14c12302436d34f89b375acb3dce8ef203a7b1ff517634"
   },
-  "sourceCommit": "e439d15fe5fa5b0e8ffdf2588e2dbf0a2a6e390c",
+  "sourceCommit": "47dbce15ddedbc24919a0b26d3dec4697cd1195c",
   "previousDeployment": "f457f0fb3194d3120fc9b9013d7e5e3af713a545",
   "scope": "Roku BrightScript source target from LLVM-optimized foundation, exact integer runtime and downloads, integrated with Tower parser formatting and ECS language inspection. Updated nine-unit compiler recipe and all three reactors; verified existing target runtime packs retained.",
   "provenance": {
     "rebuilt": {
-      "sourceCommit": "e439d15fe5fa5b0e8ffdf2588e2dbf0a2a6e390c",
+      "sourceCommit": "47dbce15ddedbc24919a0b26d3dec4697cd1195c",
       "assets": [
         "THIRD-PARTY-NOTICES.txt",
         "app.js.map",
@@ -153,5 +153,6 @@
         "worker.js"
       ]
     }
-  }
+  },
+  "buildNote": "Artifacts were built and validated at this combined implementation revision. Subsequent source commits contain journal records and browser-test corrections only."
 }
