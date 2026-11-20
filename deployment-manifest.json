@@ -11,18 +11,18 @@
     "capabilities.json": "61386c8675f3e81e137e0bbfcbf1aa1882be89d57fb490effa7a10bc74bf483d",
     "collections.tower": "f6e2bceb516d9ff9f073aa5504827db60f55d113a2389e9a0e2c17a25d26aef7",
     "compiler/imports-tower-18.txt.gz": "76cbfb102617244559e18489b218e92cee8b70360363b1382f7f269e7fb39f6c",
-    "compiler/project.json": "fc7ffdc6666f575728e24a78460cb4782d709f77b1d7608ea7268120e9e6c57f",
-    "compiler/support-cross-0.a.gz": "82914d551a3070d3b500da889e4a8b841fd2d90364a1e3b50d190bfae51f0f32",
+    "compiler/project.json": "0a06309b351919a539a463ae7ff52420edfa670d662ad776003dd8d98c12b68e",
+    "compiler/support-cross-0.a.gz": "a728bb9867d2d0deb8206450d6f00144a14446336bd6704724dacaf2eade0417",
     "compiler/support-cross-1.a.gz": "cd480e2b353954cdc0f9c668e67a80ba4a97024590c3442e1e5ec35cdfe54a6f",
     "compiler/support-cross-2.a.gz": "91ec61ad60fadc6957d58ab66eeb2e5bc3afa78de2b7a1b5ff66b463dec55f14",
     "compiler/support-cross-3.a.gz": "26e618f059378996ac915655cfc5a77fd0be7f200054e241b565efc0827c6951",
     "compiler/support-cross-4.a.gz": "c0f1e7713545fe880ee4635d98b08c06a03de71401e0365f6811b85b06ce9ecd",
-    "compiler/support-llvm-0.a.gz": "fd427a2a6e46a4e368867bdf8be7a4b0e72a44a1ad83d820187c8f732ab3a032",
+    "compiler/support-llvm-0.a.gz": "7b8867c0a4755ab18704e23a6a8751c68b6441c4e1fc61f3e7bfa9f4a5ef53f8",
     "compiler/support-llvm-1.a.gz": "b05f71f75e2c2e628a769fc65b8fb72aae264df8e4c580e3d5553699b3534f0d",
     "compiler/support-llvm-2.a.gz": "c8a504fbd3257de46c41d020029e2a5f4c30dd55f59e18378094cf8a350464f8",
     "compiler/support-llvm-3.a.gz": "fa00dc0476f9759cdb5a6b01c0eefaf5da8f4ccc65496261ee708c4dbc716203",
     "compiler/support-llvm-4.a.gz": "4d07641d74c7325003f1994c3100a50ce5b4afb38431880be24f87acee810a36",
-    "compiler/support-tower-0.a.gz": "1dff902631885ea10644617f1f486828d950e219c49e32933b2b608c9573fe30",
+    "compiler/support-tower-0.a.gz": "4de57b36993095503d89875c62840da8f4793492333370a1d358089273a62bd0",
     "compiler-build-worker.js": "4428538b9f5ccdfd50ad65cee0935d9be0d4e07d81ca3dc630e38f1f915527f8",
     "compiler-build-worker.js.map": "7c0ecb7ff07c8149a2899474441c2569264807aef8cbac115ef63fe60b679d5d",
     "execution-worker.js": "9af8b0b47b05052c2e92a04578aa0e3823062a1376bbd2a669fba15a35b962cf",
@@ -63,11 +63,11 @@
     "targets/x86_64-unknown-linux-gnu-runtime.o": "9e34ac2807976ac30c1e5c2e754445ceaaa77a7901e4ddc111ca0fcedeebd222",
     "templates.tower": "2045b87e45eda35945fea88cf70b904d8f695c93e36eea08aa0a14b4354682dc",
     "tokens.tower": "594b7d7efd13e3568819e6830e4fda1651f102ee9f2a633339d092f2c4721774",
-    "tower-cross.wasm.gz": "14b5eb1a2db9b235eacfd2267178a61ca2257ee7849bc3cd9b8bd6d873529c2f",
-    "tower-llvm.wasm": "0cd7269db857957128d3b02ba188bcc4747c1a38d44de11c8d57a07105b48a7a",
-    "tower-llvm.wasm.gz": "ec3c862e9904d89d6e6ce12b3a16293a46e16633408292522e65e561d12a0a6e",
+    "tower-cross.wasm.gz": "d966626306a08b5c03e7110fbacc591787be8b9bfbecf7ea5409c8c4ba3e7880",
+    "tower-llvm.wasm": "d609f1fb44cc1def24ade9cb8c2882fccc86445bbab32ce0d3de7374006c109f",
+    "tower-llvm.wasm.gz": "190248cc1a4f217d2d0fa88a3af4c74a0c32463df5f44e15ca9d44cce9cebca0",
     "tower.tower": "757320e1cff64c1a1cd6624955df4b6a90103275ef7b11063a1a871bc0b24c94",
-    "tower.wasm": "b844e03ff9dac270a4516bee435d90d3d5a4a64380c4d89f3970213f05ddf892",
+    "tower.wasm": "80721576aae9124a55b44df5376052ca28c5bd8b32d370383c1415aa261cd157",
     "worker.js": "b005b3da8e968b7af2cbb8745f5beb10128b8d8f70efaaf2430bb3db81204bc9",
     "worker.js.map": "615f86beb4b34bfea2f7d7fbdac935edf572fbc5c96372e1b2c5291b72d28625"
   },
@@ -99,7 +99,7 @@
     "nativeBuildSource": "ac6c13b11464cd2d9b2d237c19722628bbd516ac",
     "nativeExecutableSha256": "59a6c8a5cb375cd4f4c4d99587c2ac2f1bca9390c7d7e48c2caf4840a4c0a86c",
     "validation": "Native allocator/runtime ABI and real fixed/growing Wasm memory tests; target packs rebuilt from Tower.",
-    "remaining": "Runtime and compiler memory implementation are Tower. Native syntax-session ownership and remaining browser transports are separate retirement work.",
+    "remaining": "Guest runtime and compiler-memory native implementations were subsequently retired at aa2bc73. Native bootstrap and syntax/session integration remain tracked in the project journal.",
     "portableNativeRelease": false
   },
   "parserIntegration": {
@@ -114,12 +114,8 @@
     "remaining": "SyntaxSession source scanning, presentation and grammar revision ownership remain existing syntax services. Compiler/runtime retirement is separate.",
     "portableNativeRelease": false
   },
-  "sourceCommit": "def4e6b3a0f8779b63765f6bb575c91fe88a6032",
-  "previousDeployment": "446076e62a8d3bc7c2df13da7c4cbc6471abc047",
-  "scope": "Cancellable parsing without a wall-clock deadline, memoized LR closure expansion, Tower CLI/runtime retirement and integrated lexical revision ownership",
-  "buildNote": "Native compiler rebuilt through the published bootstrap pin; all three browser reactors rebuilt from integrated main in this isolated checkout. Immutable LLVM/LLD archives and unchanged Tower target runtimes reused. driver.cpp, runtime.c and compiler-memory.cpp are retired.",
   "validationNotes": [
-    "Two imported-name completion tests fail identically in unmodified upstream 479962b and this port.",
+    "Two imported-name completion tests fail identically in unmodified upstream 479962b and the earlier lexical port; these remain known limitations.",
     "macOS artifacts are linked and inspected; execution on macOS remains unverified."
   ],
   "parsing": {
@@ -136,5 +132,9 @@
       "resetMs": 8952.06
     },
     "validation": "22 grammar/operator/import checks and desktop/mobile 11.5-second parsing, cancellation and superseding-edit regression."
-  }
+  },
+  "sourceCommit": "60dfb513ae2bc86e88dc749518e2ce888ccb0e9d",
+  "previousDeployment": "98b13928a548da0f4f4033bc1449478b9b87bb1b",
+  "scope": "Tower-owned pending grammar revisions and dependency diagnostics, integrated with faster LR closure and cancellable parsing",
+  "buildNote": "All three reactors rebuilt from integrated main using the published a5435617 development bootstrap. Fresh native build, frontend ownership/OOM tests, CLI and 41 focused browser/backend checks pass. Ready revisions allocate nothing; frozen queries do not mutate shared entities. Within-unit phases remain serial. Preserves the removal of parser deadlines and explicit cancellation."
 }
