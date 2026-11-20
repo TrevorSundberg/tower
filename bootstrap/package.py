@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parent.parent
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--compiler', type=Path, required=True)
 parser.add_argument('--predecessor', type=Path, required=True)
+parser.add_argument('--build-command', required=True)
 args = parser.parse_args()
 compiler = args.compiler.resolve()
 sha = lambda data: hashlib.sha256(data).hexdigest()
@@ -42,11 +43,19 @@ manifest = {
     'source_identity': 'Exact source_files hashes include the working changes accompanying this bootstrap update.',
     'source_files': inputs,
     'build': {'compiler': 'Clang 19.1.1', 'llvm': '19.1.1', 'configuration': 'Release',
-              'command': 'cmake --build /cache/c-native --target towerc -j 8',
+              'command': args.build_command,
               'predecessor_sha256': sha(args.predecessor.read_bytes())},
     'dynamic_dependencies': subprocess.check_output(['ldd', str(compiler)], text=True).splitlines(),
     'files': {name: {'sha256': sha(data), 'size': len(data)} for name, data in sorted(files.items())},
 }
+patch = subprocess.check_output(['git', 'diff', '--binary', 'HEAD', '--',
+                                 'scaffolding', 'cmake', 'CMakeLists.txt'], cwd=ROOT)
+patch_path = ROOT / 'bootstrap/source-changes.patch'
+if patch:
+    patch_path.write_bytes(patch)
+    manifest['source_patch'] = {'path': patch_path.name, 'sha256': sha(patch)}
+elif patch_path.exists():
+    patch_path.unlink()
 # Addresses and local loader paths are observations, not a distributable library closure.
 (ROOT / 'bootstrap/development.json').write_text(json.dumps(manifest, indent=2, sort_keys=True)+'\n')
 print(f'Packaged {len(packed)} bytes, sha256 {sha(packed)}')

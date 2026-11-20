@@ -27,3 +27,7 @@ and the source input hashes used to produce it. Validate a relocated installatio
 the operator fixtures, and a clean successor build before updating this pin.
 Never migrate compiler source to unsupported syntax before the replacement
 bootstrap is committed and the default clean build path has passed.
+
+The current pin supports both the expression operators and identifier module
+paths, leading parent dots, and exact quoted filenames. Revalidate the final
+rebased source with the default bootstrap before publishing an updated pin.

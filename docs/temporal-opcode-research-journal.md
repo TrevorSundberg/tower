@@ -21948,3 +21948,47 @@ host overhead without replacing the formatting engine or stripping imports.
 The final canonical/idempotence checks remain required. Large import closures are
 still repeatedly parsed by formatting/completion; no global cross-source grammar
 cache or performance guarantee is introduced here.
+
+## 2026-11-20 - Published development bootstrap recovery
+
+The expression migration was pushed without publishing its required predecessor
+compiler. A compiler kept in /cache was not a usable bootstrap for other checkouts.
+Added a checked-in Linux x64 development archive, complete adjacent share/tower
+resources, archive/member hashes, source provenance and a validating installer.
+The standard build now installs this pin automatically without a private
+TOWER_BOOTSTRAP_COMPILER override. The normal Docker wrapper selects linux/amd64;
+its Ubuntu 24.04 image supplies LLVM 19 and the compiler's dynamic dependencies.
+This hybrid development artifact is not a standalone portable compiler release.
+AGENTS.md now prohibits source migrations whose required bootstrap is unavailable.
+
+Initial archive a4853aba passed a fresh 40-target native successor build and the
+null-operator smoke test. The final pull brought in aa2bc73's runtime retirement
+and 943f73b's renamed modules/import semantics. A new clean build correctly failed
+with Cannot read imported module: host.guest_runtime. The first recovery commit
+2b510b6 was pushed at the user's urgent request to make the verified operator
+predecessor available; it did not yet build these newly merged module imports.
+
+Built a transition compiler from an isolated source snapshot, expressing its
+imports using the predecessor's quoted absolute extensionless syntax, including
+CMake-generated imports. The module implementation itself was the new Tower code;
+no native module resolver or compiler implementation was added. Restored the
+original current grammar/library resources beside that transition executable,
+then used it to build the unmodified final main sources as a second generation.
+Both 60-target native builds passed. The new archive a5435617 contains that second
+compiler and its complete resources. Its manifest records exact source hashes
+against 2b510b6 and the actual predecessor/build command. No source patch is needed
+for this pin; the packaging tool now records a patch only when source changes exist.
+
+Reproduction logs: build/operator-import-stage1.log, operator-import-stage2.log,
+operator-published-clean.log and operator-recovery-checks.log. The last build uses
+`env -u TOWER_BOOTSTRAP_COMPILER TOWER_NATIVE_BUILD=/cache/operator-published-clean
+TOWER_BUILD_JOBS=8 bash playground/scripts/build-native.sh` against a fresh build
+directory. A separate cache installation checks relocation and compares both
+operators/null_operators fixture outputs in graph and fast interpreter modes.
+Those four fixture checks passed. This recovery publishes the native development
+bootstrap; it does not claim a new browser deployment or a passing broad operator
+suite. The ongoing audit and inference followups remain preserved separately.
+
+Final recovery validation: the default pinned bootstrap completed all 60 targets
+of the fresh successor build. The relocated archive also passed native module-path
+checks, including parent imports, exact filenames, case rejection and symlinks.

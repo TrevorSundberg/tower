@@ -20,6 +20,8 @@ Do NOT modify todo.txt
   agent's local cache does not satisfy this requirement. Test a clean build with
   no private bootstrap environment variable before pushing a migration. Clearly
   distinguish a platform-specific development bootstrap from a portable release.
+  Repeat that clean successor build after rebasing onto source changes; a bootstrap
+  validated before a rebase may not support newly merged import or syntax changes.
 
 ## Module names and imports
 
