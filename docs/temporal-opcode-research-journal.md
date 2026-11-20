@@ -21046,3 +21046,31 @@ d251a600bc450452ac48b60b105e891a6e519e0365609dadf5a158a3eb835cd4.
 No other build cache was configured. Container inventory initially rejected the
 checkout's different UID; reran with command-local GIT_CONFIG_COUNT=1,
 GIT_CONFIG_KEY_0=safe.directory, GIT_CONFIG_VALUE_0=/home/deck/tower.
+
+Final recipe validation: package-compiler-project.py --parser-build
+build/parser-retirement/wasm --llvm-build build/parser-retirement/backends
+--output build/parser-retirement/compiler-project produces 12 parser and 11
+LLVM/cross Tower units. All 198 source files exactly match the checkout;
+units/*.tower are generated manifests rather than checked-in source files.
+Both successor generations pass using the established test-compiler-project.mjs
+with only its output directory relocated under build/parser-retirement/successors.
+They compile the edited semantic diagnostic and generate byte-identical reactors
+with 2 then 4 workers: tower 871096, LLVM 52095749, cross 63653112 bytes.
+SHA-256 values respectively: 1daa42a24b3f9e8ed073f33775652819a22ae39d78273026bc392d22c065aa7b,
+303b0f705b61e4f10bd02633d5eca016df3f400e6b9263202f7122fb5b707a8d,
+07cb62cf7c1d2a25d4f4d1a348b9f5545f019fc80ec4d30d539e7d1811858832.
+Timings 26.82 s and 22.19 s are validation durations, not throughput comparisons.
+Final pull integrated journal-only 6ad1fa8, preserving both append histories;
+source bytes are unchanged from the combined build.
+
+The full local deployment verifier passes all 70 exact asset hashes and both
+desktop/mobile flows, including backend agreement, forward/module bindings,
+editable grammar, completion/Tab acceptance, deferred diagnostics, persistence,
+native/C downloads, output highlighting and detected default targets. Build:
+TOWER_REQUIRE_BACKENDS=1 node playground/scripts/build.mjs. Verification:
+node playground/scripts/verify-local.mjs. Evidence: local-verification.log and
+local-report.json under build/parser-retirement. Candidate manifest preserves
+previous IDE/runtime metadata, records integrated source 1aae8e8 and previous
+publication 1828ff9, and lists the parser retirement and native binary hash.
+Normal source/Pages pushes and hosted verification follow; no publication success
+is inferred from these local checks.
