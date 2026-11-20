@@ -45,3 +45,39 @@ test('C is optional, ordered, highlighted, downloadable and obeys shared options
   await expect(page.locator('#target-c')).toBeChecked();
   await expect(page.locator('#preserve-comments')).not.toBeChecked();
 });
+
+test('increment comments survive C downloads and remain visible when scrolled into view',async({page})=>{
+  test.setTimeout(120000);
+  await page.addInitScript(()=>{
+    localStorage.setItem('tower-build-targets-v3',JSON.stringify({wasm:true,c:true}));
+    localStorage.setItem('tower-optimize-v1','false');
+    localStorage.setItem('tower-comments-v1','true');
+  });
+  await page.goto('/');
+  await page.locator('#project-kind').selectOption('example:increment');
+  const note='5: the old value, then 6: the updated variable.';
+  let previousC='';
+  for(const optimize of [false,true]) {
+    await page.locator('#build-targets summary').click();
+    await page.locator('#optimize').setChecked(optimize);
+    await page.locator('#build-targets summary').click();
+    if(optimize) await expect.poll(()=>outputText(page,'c-disassembly'),{timeout:60000}).not.toBe(previousC);
+    await expect.poll(()=>outputText(page,'c-disassembly'),{timeout:60000}).toContain(note);
+    await expect(page.locator('#c-download')).toHaveAttribute('href',/^blob:/);
+    const download=page.waitForEvent('download');
+    await page.locator('#c-download').click();
+    const c=await readFile(await (await download).path(),'utf8');
+    previousC=c;
+    expect(c).toBe(await outputText(page,'c-disassembly'));
+    expect(c).toContain(note);
+    expect(c).toContain('7: the new value, then 7: the updated variable.');
+    await page.locator('#c-disassembly .cm-content').evaluate((element,note)=>{
+      const view=element.cmView.rootView.view;
+      view.dispatch({selection:{anchor:view.state.doc.toString().indexOf(note)},scrollIntoView:true});
+    },note);
+    const line=page.locator('#c-disassembly .cm-line').filter({hasText:note});
+    await line.scrollIntoViewIfNeeded();
+    await expect(line).toBeInViewport();
+    await expect.poll(async()=>(await line.locator('.tw-comment').allTextContents()).join('')).toContain(note);
+  }
+});

@@ -75,12 +75,15 @@ try {
     await page.locator('#build-targets summary').click();
     await page.locator('#optimize').check();
     await expect.poll(()=>outputText(page,'c-disassembly'),{timeout:60000}).not.toBe(rawC);
-    await expect(page.locator('#c-download')).toHaveAttribute('href',/^blob:/);
+    await expect.poll(()=>outputText(page,'c-disassembly'),{timeout:60000}).toContain('deployment C comment');
+    await expect(page.locator('#c-download')).toHaveAttribute('href',/^blob:/,{timeout:60000});
     const optimizedC=await page.locator('#c-download').evaluate(link=>fetch(link.href).then(response=>response.text()));
     assert.equal(optimizedC,await outputText(page,'c-disassembly'));
     await writeFile(new URL(name+'-c-optimized.c',output),optimizedC);
     await page.locator('#preserve-comments').uncheck();
     await expect.poll(()=>outputText(page,'c-disassembly')).not.toContain('deployment C comment');
+    await expect(page.locator('#c-download')).toHaveAttribute('href',/^blob:/,{timeout:60000});
+    assert.ok(!(await outputText(page,'c-disassembly')).includes('deployment C comment'));
     await expect.poll(()=>outputText(page,'core-instructions')).not.toContain('deployment C comment');
     await page.locator('#preserve-comments').check();
     await page.locator('#target-c').uncheck();

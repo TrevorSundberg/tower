@@ -50,6 +50,34 @@ test('LLVM optimization carries comments through compilable foundation and C',as
   }finally{tower.destroyExecution(h);}
 });
 
+test('increment replacements preserve every example comment in raw and optimized C',async()=>{
+  const source=(await read('scaffolding/examples/increment.tower')).toString();
+  const notes=[...source.matchAll(/^\/\/ (.+)$/gm)].map(match=>match[1].trim());
+  assert.ok(notes.includes('5: the old value, then 6: the updated variable.'));
+  const h=tower.compile(source,{pointerBytes:8});
+  const llvm=await loadLLVM(await read('build/browser-wasi-llvm/tower-llvm.wasm'),undefined,foundation);
+  try {
+    const canonical=tower.foundation(h).source;
+    for(const note of notes) assert.ok(canonical.includes(note),note);
+    for(const optimize of [false,true]) {
+      let generated=h;
+      if(optimize) {
+        const result=llvm.compile(canonical,{emit:'foundation',optimize,target:'wasm64-unknown-unknown'});
+        assert.equal(result.status,'compiled',result.error);
+        generated=tower.compile(result.foundation,{pointerBytes:8});
+      }
+      try {
+        const c=tower.cSource(generated),stripped=tower.cSource(generated,{comments:false});
+        for(const note of notes) {
+          assert.ok(c.includes(note),note);
+          assert.ok(!stripped.includes(note),note);
+        }
+        if(!optimize) assert.ok(c.indexOf('5: the old value')>c.indexOf('int main(void)'));
+      } finally { if(generated!==h) tower.destroyExecution(generated); }
+    }
+  } finally { tower.destroyExecution(h); }
+});
+
 test('foreign C++ names diagnose instead of producing invalid C',()=>{
   const h=tower.compile('extern fn `cpp_name(void space::function())`():void; `cpp_name(void space::function())`();',{pointerBytes:8});
   try{assert.throws(()=>tower.cSource(h),/plain C identifier/);}finally{tower.destroyExecution(h);}

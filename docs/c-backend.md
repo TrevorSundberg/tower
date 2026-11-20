@@ -21,6 +21,13 @@ move trailing/embedded comments before the next statement, or to module scope.
 C output neutralizes comment preprocessing sequences rather than allowing them
 to change the generated program. Strings are emitted as exact byte escapes.
 
+Source comments use C89-style `/* ... */` spelling. In unoptimized C, program
+comments follow the generated runtime helpers; for example, `increment.tower`'s
+"5: the old value" comment appears inside `main` near the print calls. The viewer
+renders only the visible portion of large outputs, so browser Find may miss text
+farther down. Download the C file to search its full contents. Comment preservation
+is a separate setting from optimization and must remain enabled in either mode.
+
 ```sh
 towerc program.tower --emit c --no-optimize -o program.c
 towerc program.tower --emit c --strip-comments -o optimized.c
