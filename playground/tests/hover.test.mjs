@@ -218,6 +218,15 @@ test('template field queries preserve imported declaration ownership and target 
   assert.equal(field.kind,'field');assert.equal(field.type,'usize');assert.equal(field.size,8);
   assert.equal(field.declarationFile,'helper.tower');assert.equal(field.documentation,'Number of stored entries.');
 });
+
+test('template pointer stores use their element type and do not treat arrays as pointers',()=>{
+  const source='fn demo(T:type,p:i32*,q:T*,items:i32[4]):void { *p = 1; *q = *q; var item = *p; var invalid = *items; }';
+  const entries=inspect(source),get=(text,offset=0)=>hoverAt(entries,source.indexOf(text)+offset);
+  assert.equal(get('*p =').type,'i32');assert.equal(get('*p =',3).type,'i32');
+  assert.equal(get('*q =').type,'T');assert.equal(get('*q =',3).type,'T');
+  assert.equal(get('*p;').type,'i32');assert.equal(get('item =').type,'i32');
+  assert.equal(get('*items;').type,undefined);
+});
 test('members, pointer receivers, nominal types and layouts come from checked fields',()=>{
   const source='struct Point { first:i32; ready:bool; } var p:Point; var pointer = &p; pointer.ready = true; print(pointer.ready);';
   const field=at(source,'ready);');assert.equal(field.signature,'ready: bool');assert.equal(field.kind,'field');

@@ -425,10 +425,17 @@ fn generic_element(a: GenericAnalysis*, info: GenericInfo*, source: GenericInfo*
     }
     var view = generic_view(a, source.annotation, source.bindings);
     generic_normalize(a, view, depth);
+    var indexing = info.kind == GenericInfoKind.Index;
     if sem_is(view.annotation, "CoreType") {
         var base = sem_member(view.annotation, "base");
         var inspection_condition36 = base != null;
         if inspection_condition36 {
+            var array = sem_member(view.annotation, "count") != null;
+            if array {
+                if indexing {} else {
+                    return;
+                }
+            }
             info.annotation = base;
             info.bindings = view.bindings;
             generic_resolve_view(a, info, depth);
@@ -445,6 +452,9 @@ fn generic_element(a: GenericAnalysis*, info: GenericInfo*, source: GenericInfo*
     if inspection_condition38 {
         type.pointers = type.pointers - 1;
     } else {
+        if indexing {} else {
+            return;
+        }
         var inspection_condition39 = type.scalar != SArray();
         if inspection_condition39 {
             return;
@@ -636,7 +646,14 @@ fn generic_value_walk(a: GenericAnalysis*, node: void*, depth: usize): void {
         }
     }
     if sem_is(node, "CoreTarget") {
-        generic_info_bind(a, node, sem_member(node, "name"));
+        var name = sem_member(node, "name");
+        var direct = sem_child_count(node) == 1;
+        if direct {
+            generic_info_bind(a, node, name);
+        } else {
+            info = generic_info_add(a, node, node, GenericInfoKind.Assignment);
+            generic_element(a, info, generic_info(name, a.component), next);
+        }
     }
     if sem_is(node, "CoreAssign") {
         info = generic_info_add(a, node, node, GenericInfoKind.Assignment);

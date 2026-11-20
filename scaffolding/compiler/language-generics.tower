@@ -94,7 +94,7 @@ fn language_generic_description(info: GenericInfo*): u8* {
     if inspection_condition9 {
         var inspection_condition10 = info.resolved == null;
         if inspection_condition10 {
-            return "The operation needs known operand types before it can be checked.";
+            return "A valid result type has not been established for this expression.";
         }
         return "Uses the two operands to compute a new value.";
     }

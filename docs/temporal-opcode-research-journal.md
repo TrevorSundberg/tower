@@ -20460,3 +20460,52 @@ the required backend rebuild and browser/live verification follow below.
 
 Unrelated local AGENTS.md, foundation docs, journal and todo.txt work is preserved
 outside this commit. No edits to todo.txt were made.
+
+## 2026-11-20 — Template body inspection integration and deployment
+
+Rebased the template-path work onto ac6c13b, retaining the incoming Tower-owned
+IDE session/execution service, allocator bindings, Wasm growth glue, and syntax
+diagnostic/provenance formatter changes. The implementation commit is 3e606d1.
+Only the append-only journal conflicted; both histories were preserved and the
+autostash restored the unrelated working changes. The published 60d9453 compiler
+then bootstrapped the integrated parser, LLVM and cross-target builds under WASI
+SDK 34. Packaging includes eleven Tower units for the parser reactor and ten
+each for LLVM and cross-target reactors. The native CLI metadata in the previous
+deployment manifest is retained.
+
+Post-rebase validation: 69/69 hover/template/module-scope Node/Wasm tests pass
+(10.87 s), including comparisons producing bool and inferred locals. The full
+desktop/mobile hover suite passes 42/42 checks (59.7 s). The new browser case
+selects the actual Templates project, inspects the pop body with and without an
+unrelated missing() error, and checks count:usize, subtraction:usize, data:T[4]
+and indexed element:T without any hover-time document-worker request. Inspected
+the desktop field/operator and mobile operator screenshots; the specific field
+or expression information replaces the enclosing fn pop tooltip.
+
+The full local deployment verifier passes all 70 asset hashes and both browser
+profiles: backend agreement, forward module bindings, editable grammar,
+persistence, native builds/downloads, completion, Tab acceptance, struct fields,
+output highlighting and target defaults. The packaged compiler builds two
+byte-identical successor generations, including an edited-semantic-behavior
+check. Logs use build/template-path-final-{wasm,llvm,tests}.log,
+build/template-path-{ui,browser,generations,local-deployment}.log, and the copied
+report is build/template-path-local-report.json. Publication/live results follow.
+
+The first integrated publication, 7d63df1, built successfully on GitHub Pages.
+All 70 live asset hashes match, and the full deployment verifier passes on both
+browser profiles. The focused live hover suite passes 12/12 (30.3 s), including
+the exact pop field/operator case and unrelated-error variant. Manifest SHA-256:
+eb692d2cc3618b3c865228b3ad2d5e20fa6bab1b421ec1c01e8051f285c8fb61.
+The initial live report is build/template-path-first-live-report.json.
+
+A final review caught a related boundary before handing the work back: the new
+CoreTarget propagation copied p's pointer type for a store through *p. Added a
+regression, verified it fails, and changed indirect targets to use the same
+element projection as loads. Only index operations may project an array element;
+dereferencing an array no longer claims a pointed-to type. Unresolved binary
+presentation now says no valid result type has been established, covering both
+unknown and invalid operands without incorrectly implying missing input types.
+The parser rebuild and all 70 service tests pass (9.92 s), including concrete
+and symbolic stores, loads, inferred locals and invalid array dereferences.
+Canonical formatting passes. This correction is included in the final package
+and publication described below; logs use build/template-path-pointer-*.
