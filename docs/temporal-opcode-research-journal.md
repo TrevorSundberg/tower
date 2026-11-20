@@ -19094,3 +19094,24 @@ browser compiler generations pass with identical hashes and edited behavior;
 reactor sizes are 1,072,244 / 52,065,638 / 63,622,770 bytes. Browser project,
 compiler replacement, grammar editing, mobile controls and deployment checks
 are rerunning against this ten-unit package.
+
+A further publication sync rebased onto 4ece094, preserving the newer novice
+hover explanations. Only the journal conflicted; both entries were retained.
+Paused the two native/portable test containers during checkout to prevent reads
+of a transient rebase tree, then resumed them. The parser/table implementations
+and their test fixtures did not change in this sync. Rebuilt native/parser and
+LLVM/cross reactors for the new hover presenter; its canonical formatting check
+passes, all 51 scope/hover Node tests pass (23.75 seconds), and the native
+multi-backend alias probe passes again. The sanitizer binary was built before
+this presentation-only change; its exhaustive parser/formatting checks continue.
+
+The combined-table browser run passed 36 cases, with the existing mobile full
+successor skip. Its one failure timed out at the initial 10-second wait for
+execution while concurrent builds were active, before any menu interaction.
+The unchanged mobile runner test passes alone (11.7 seconds); no timeout or
+assertion was relaxed. Both desktop/mobile alias and dependency-edit cases pass.
+All 11 Roku checks pass again with isolated Node 22 (210.54 seconds under load).
+Local deployment verification passes all 69 asset checks and desktop/mobile/
+Linux target-default flows. These timings are validation observations, not
+performance benchmarks. Final packaging, hosted verification and completion of
+the extended native/portable suites remain pending.
