@@ -1,6 +1,7 @@
 {
   "assets": {
     ".nojekyll": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "CNAME": "98b2dc87ce088779cec3fd8c72bab57b6a45b4c1df747ded3a55d4205fecc34c",
     "THIRD-PARTY-NOTICES.txt": "1c6197eaf512d968375abb6287ee9cb64e1bdbdc084dc7829be44e5bed32ab21",
     "app.js": "f8c41e0213a99567590dfee0c12ba745fc29f0da054b0477b8aa6b2c7a8ab1c6",
     "app.js.map": "74783d1239e30f2995cfbe433e6a8de3dee7f1d2bd5491f2a246f40dc7a46648",
