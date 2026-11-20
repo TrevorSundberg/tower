@@ -20270,3 +20270,34 @@ generated build snapshots and untracked files; includes comments/blank lines.
 Report: build/language-next/native-lines-integrated.json. The next syntax-owned
 boundary also needs to replace the new IDE service's temporary WASI libc++ views
 with Tower-native inspection/session views while preserving its public tw_* ABI.
+
+Release packaging correction: the direct incremental LLVM build copies initially
+retained debug symbols. Applied the established build-llvm.sh llvm-strip step to
+the release copies, rebuilt playground/dist with TOWER_REQUIRE_BACKENDS=1, and
+reran node playground/scripts/verify-local.mjs. All 70 assets and both desktop/
+mobile flows pass (build/ide-release-local.log). Release LLVM/cross sizes are
+52074793 / 63630404 bytes. The support recipe still uses the validated object
+inputs; stripping changes the deployed reactor sections, not compiler behavior.
+
+Source 4d1ce12 was pushed normally after an up-to-date pull/rebase. During the
+first Pages upload, upstream advanced from 4d3d19f to 60d9453. Cancelled that
+unacknowledged upload, fetched and inspected the new deployment. Its source
+81bad0a is an ancestor of this tested main; its syntax diagnostic/tree verification
+and native CLI metadata remain preserved. Prepared the stripped release as a
+normal child of 60d9453. The abandoned local candidate 39949ce was not published;
+no force push or replacement of newer source was used. Four additional isolated
+desktop/mobile template-hover/error-state tests pass (4.5 seconds), recorded in
+build/ide-integrated-template-browser.log.
+
+Publication candidate 4274271 is based on 60d9453. Its first 49.73 MiB push
+disconnected with "remote end hung up unexpectedly"; ls-remote confirmed that
+gh-pages had not advanced. Retrying with command-local http.version=HTTP/1.1 and
+http.postBuffer=104857600, with output retained in build/ide-publication-push.log.
+These transport settings do not change repository configuration or source. The
+upload remains the only unfinished validation/publication step at this point.
+
+The buffered retry was reset by the connection change (curl 55); the remote
+still points at 60d9453. The user supplied a faster connection and requested a
+fresh retry. Restarted the same normal push. New main commits 91e6d45/ac6c13b
+only add journal evidence and extend the hosted completion wait to 60 seconds;
+they do not change compiler or deployed application source.
