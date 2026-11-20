@@ -195,6 +195,7 @@ try {
     await expect(page.locator('#execution-output')).toHaveText('5\n6\n7\n7\n9\n');
     await expect(page.locator('#llvm-output')).toHaveText('5\n6\n7\n7\n9\n');
     await expect.poll(()=>outputText(page,'core-instructions')).toContain(' = &value;');
+    await expect.poll(()=>outputText(page,'core-instructions')).toContain(' + 1;');
     await expect.poll(()=>outputText(page,'llvm-after')).not.toContain('post_increment');
     await expect(page.locator('.tw-inline-error')).toHaveCount(0);
     await page.screenshot({path:new URL(name+'-increment.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
@@ -202,9 +203,9 @@ try {
     await expect(page.locator('#execution-status')).toContainText('backends match',{timeout:60000});
     await expect(page.locator('#execution-output')).toHaveText('42\ntrue\n43\n42\n');
     await expect(page.locator('#llvm-output')).toHaveText('42\ntrue\n43\n42\n');
-    await expect.poll(()=>outputText(page,'core-instructions')).toMatch(/var answer: i32 = /);
+    await expect.poll(()=>outputText(page,'core-instructions')).toContain('var answer: i32 = ');
     await expect.poll(()=>outputText(page,'core-instructions')).toContain(' = add_one(41);');
-    await expect.poll(()=>outputText(page,'core-instructions')).toMatch(/var pointer: i32\* = /);
+    await expect.poll(()=>outputText(page,'core-instructions')).toContain('var pointer: i32* = ');
     await expect.poll(()=>outputText(page,'core-instructions')).toContain(' = &answer;');
     await page.screenshot({path:new URL(name+'-inference.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
     await selectDocument(page, 'templates.tower');

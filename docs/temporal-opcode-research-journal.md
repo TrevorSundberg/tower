@@ -14335,6 +14335,32 @@ current-main failures, not a passing completion suite or an attribution to this
 port. Reference build/probe logs are lexical-current-reference{,-completion}.log.
 Remaining tests, native paired timings and deployment verification continue.
 
+The local publication verifier checked all 70 asset hashes and matching increment
+execution outputs, then failed a stale pre-operator text expectation:
+post_increment(&value). The example now uses the shared operator lowering, which
+spells Foundation loads/add/store instead of that helper call. Updated the existing
+browser/verifier expectations mechanically to the new Foundation spelling; retained
+the exact output and optimized-IR assertions. Inference likewise materializes
+the call/address before its named local, so its assertions now check the typed
+declaration and the same call/address separately. No compiler behavior was changed
+to satisfy those obsolete output snapshots.
+
+The next verifier pass reached the renamed-import fixture: it now imports lib.answer
+twice with different aliases, so both lib path segments are identifiers. Corrected
+the old one-token expectation to two. The full Node selection finishes with
+149 passes and the same two independently reproduced upstream completion failures
+(151 total, 575.10 s). The colliding-name Foundation/raw/optimized LLVM round-trip
+case also passes independently (6.29 s).
+
+Current-expression native benchmark: two warmups and 12 alternating process pairs
+per fixture, exact program-object equality throughout. Median process times:
+functions 1972.448 -> 1939.798 ms; collections 2691.713 -> 2661.832 ms; templates
+1999.386 -> 1932.181 ms. The baseline is the published a5435617 bootstrap and the
+candidate is the clean integrated compiler; report and all samples are in
+lexical-current-benchmark.json. This is a small improvement on these samples,
+not a general speed guarantee. Both compilers still spend most of these short
+CLI runs rebuilding/parsing imported grammar, a separate optimization candidate.
+
 ### Tower language milestone published and verified
 
 Implementation/source commit 4ae9076 is on main. Required post-commit

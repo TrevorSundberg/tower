@@ -82,7 +82,7 @@ test('extra semicolons have concise context and increment demonstrates both retu
   await expect(page.locator('#execution-output')).toHaveText('5\n6\n7\n7\n9\n');
   await expect(page.locator('#llvm-output')).toHaveText('5\n6\n7\n7\n9\n');
   await expect(page.locator('.tw-inline-error')).toHaveCount(0);
-  await expect.poll(()=>outputText(page,'core-instructions')).toContain('post_increment(&value)');
+  await expect.poll(()=>outputText(page,'core-instructions')).toContain(' + 1;');
   await expect.poll(()=>outputText(page,'llvm-after')).not.toContain('post_increment');
   await expect(page.locator('#tree')).toContainText('post_increment');
   await page.screenshot({path:`../build/increment-${info.project.name}.png`});
