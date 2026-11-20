@@ -32,9 +32,9 @@ export fn compiler_node_allocate(state: CompilerNodeMemoryState*, size: usize, d
     var word = sizeof(usize);
     if diagnostic {
         var maximum: usize = 0;
-        maximum = maximum - 1;
+        maximum--;
         var overhead = word * 4;
-        overhead = overhead - 1;
+        overhead--;
         var limit = maximum - overhead;
         var overflow = size > limit;
         if overflow {
@@ -57,7 +57,7 @@ export fn compiler_node_allocate(state: CompilerNodeMemoryState*, size: usize, d
     if failed {
         return null;
     }
-    state.live_allocations = state.live_allocations + 1;
+    state.live_allocations++;
     if diagnostic {
         var header = bits(usize*, memory);
         var overhead = word * 3;
@@ -107,7 +107,7 @@ export fn compiler_node_free(state: CompilerNodeMemoryState*, pointer: void*, di
         fill(header, 254, bytes);
         allocation = bits(void*, header);
     }
-    state.live_allocations = state.live_allocations - 1;
+    state.live_allocations--;
     compiler_host_deallocate(allocation);
 }
 
@@ -121,7 +121,7 @@ export fn compiler_host_deallocate(pointer: void*): void {
 
 export fn compiler_memory_reallocate(state: CompilerMemoryState*, pointer: void*, count: usize, size: usize): void* {
     var maximum: usize = 0;
-    maximum = maximum - 1;
+    maximum--;
     var sized = size != 0;
     if sized {
         var limit = maximum / size;
@@ -132,7 +132,7 @@ export fn compiler_memory_reallocate(state: CompilerMemoryState*, pointer: void*
     }
     var instrumented = state != null;
     if instrumented {
-        state.allocation_calls = state.allocation_calls + 1;
+        state.allocation_calls++;
         var armed = state.fail_after != maximum;
         if armed {
             var fail = state.fail_after == 0;
@@ -140,7 +140,7 @@ export fn compiler_memory_reallocate(state: CompilerMemoryState*, pointer: void*
                 state.fail_after = maximum;
                 return null;
             }
-            state.fail_after = state.fail_after - 1;
+            state.fail_after--;
         }
     }
     var bytes = count * size;
@@ -155,7 +155,7 @@ export fn compiler_memory_reallocate(state: CompilerMemoryState*, pointer: void*
         if fresh {
             var allocated = result != null;
             if allocated {
-                state.live_buffers = state.live_buffers + 1;
+                state.live_buffers++;
             }
         }
     }
@@ -167,7 +167,7 @@ export fn compiler_memory_deallocate(state: CompilerMemoryState*, pointer: void*
     if instrumented {
         var live = pointer != null;
         if live {
-            state.live_buffers = state.live_buffers - 1;
+            state.live_buffers--;
         }
     }
     compiler_host_deallocate(pointer);

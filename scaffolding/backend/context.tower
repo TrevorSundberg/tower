@@ -79,7 +79,7 @@ fn backend_fail(b: Backend*, text: u8*): void {
 }
 
 fn backend_require(b: Backend*, ok: bool): void {
-    var failed = ok == false;
+    var failed = !ok;
     if failed {
         backend_fail(b, "Unable to allocate backend storage");
     }
@@ -115,7 +115,7 @@ fn backend_find(values: vector(BackendAssociation)*, entity: void*): void* {
         if found {
             return values.data[i].value;
         }
-        i = i + 1;
+        i++;
     }
 }
 
@@ -203,7 +203,7 @@ export fn backend_close(b: Backend*): void {
             break;
         }
         free(b.symbols.data[i]);
-        i = i + 1;
+        i++;
     }
     vector_dispose(u8*, &b.symbols);
     vector_dispose(void*, &b.functions);

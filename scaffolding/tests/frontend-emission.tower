@@ -50,7 +50,7 @@ fn frontend_emission_tests(): void {
         alternatives[i] = frontend_format_child(store, source, null);
         var data = preview_syntax(world, alternatives[i]);
         data.kind = convert(u32, SyntaxKind.Alternative);
-        i = i + 1;
+        i++;
     }
     var term_entity = frontend_format_child(store, alternatives[0], null);
     var term = preview_syntax(world, term_entity);
@@ -187,7 +187,7 @@ fn frontend_emission_tests(): void {
         entity_release(input.root);
         ok = tower_test_buffer_count() == buffers;
         frontend_world_check(ok);
-        budget = budget + 1;
+        budget++;
     }
     // None of these temporary arrays are retained by either revision.
     var rule_bytes = sizeof(SyntaxRuleView) * 2;
@@ -203,7 +203,7 @@ fn frontend_emission_tests(): void {
             frontend_world_check(ok);
             ok = syntax_emission_find_name(revision, rows[i].name, rows[i].alternative) == rows[i].index;
             frontend_world_check(ok);
-            i = i + 1;
+            i++;
         }
         ok = syntax_emission_find_name(revision, "A", 0) == rows[0].index;
         frontend_world_check(ok);
@@ -250,7 +250,7 @@ fn frontend_emission_tests(): void {
         frontend_world_check(ok);
         ok = syntax_emission_find_index(revision, frontend_world_unlimited()) == null;
         frontend_world_check(ok);
-        repeat = repeat + 1;
+        repeat++;
     }
     // Repetition helpers occupy indices between source alternatives.
     var gap = rows[0].index + 1;

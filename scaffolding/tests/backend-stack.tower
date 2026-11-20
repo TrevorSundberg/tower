@@ -8,7 +8,7 @@ fn stack_fill(data: u8*, count: usize): u32 {
     var i: usize = 0;
     while i < count {
         data[i] = 7;
-        i = i + 1;
+        i++;
     }
     var last = count - 1;
     return convert(u32, data[last]);

@@ -31,7 +31,7 @@ fn frontend_revision_release(revision: FrontendRevision*): void {
     if missing {
         return;
     }
-    revision.references = revision.references - 1;
+    revision.references--;
     var retained = revision.references != 0;
     if retained {
         return;
@@ -43,7 +43,7 @@ fn frontend_revision_release(revision: FrontendRevision*): void {
             break;
         }
         entity_release(revision.alternatives.data[i]);
-        i = i + 1;
+        i++;
     }
     i = 0;
     loop {
@@ -52,7 +52,7 @@ fn frontend_revision_release(revision: FrontendRevision*): void {
             break;
         }
         entity_release(revision.tokens.data[i]);
-        i = i + 1;
+        i++;
     }
     vector_dispose(SyntaxRuleView, &revision.rules);
     vector_dispose(u8, &revision.names);
@@ -68,7 +68,7 @@ fn frontend_revision_nodes(target: vector(void*)*, nodes: void**, count: usize):
         return false;
     }
     var ok = vector_reserve(void*, target, needed);
-    if ok {} else {
+    if !ok {
         return false;
     }
     var i: usize = 0;
@@ -79,8 +79,8 @@ fn frontend_revision_nodes(target: vector(void*)*, nodes: void**, count: usize):
         }
         entity_retain(nodes[i]);
         target.data[target.length] = nodes[i];
-        target.length = target.length + 1;
-        i = i + 1;
+        target.length++;
+        i++;
     }
 }
 
@@ -121,20 +121,14 @@ fn frontend_revision_create(rules: SyntaxRuleView*, count: usize, tokens: void**
             break;
         }
         alternatives = next;
-        i = i + 1;
+        i++;
     }
-    if ok {
-        ok = vector_reserve(SyntaxRuleView, &revision.rules, count);
-    }
-    if ok {
-        ok = vector_reserve(u8, &revision.names, names);
-    }
-    if ok {
-        ok = vector_reserve(void*, &revision.alternatives, alternatives);
-    }
+    ok &&= vector_reserve(SyntaxRuleView, &revision.rules, count);
+    ok &&= vector_reserve(u8, &revision.names, names);
+    ok &&= vector_reserve(void*, &revision.alternatives, alternatives);
     i = 0;
     loop {
-        if ok {} else {
+        if !ok {
             break;
         }
         var done = i == count;
@@ -151,18 +145,12 @@ fn frontend_revision_create(rules: SyntaxRuleView*, count: usize, tokens: void**
             target.alternatives = &revision.alternatives.data[revision.alternatives.length];
         }
         ok = bytes_append(&revision.names, rules[i].name, rules[i].name_length);
-        if ok {
-            ok = vector_push(u8, &revision.names, 0);
-        }
-        if ok {
-            ok = frontend_revision_nodes(&revision.alternatives, rules[i].alternatives, rules[i].count);
-        }
-        revision.rules.length = revision.rules.length + 1;
-        i = i + 1;
+        ok &&= vector_push(u8, &revision.names, 0);
+        ok &&= frontend_revision_nodes(&revision.alternatives, rules[i].alternatives, rules[i].count);
+        revision.rules.length++;
+        i++;
     }
-    if ok {
-        ok = frontend_revision_nodes(&revision.tokens, tokens, token_count);
-    }
+    ok &&= frontend_revision_nodes(&revision.tokens, tokens, token_count);
     if ok {
         return revision;
     }
@@ -208,9 +196,9 @@ tokens: void**, token_count: usize, kind: void*): bool {
             if different {
                 return false;
             }
-            j = j + 1;
+            j++;
         }
-        i = i + 1;
+        i++;
     }
     i = 0;
     loop {
@@ -223,7 +211,7 @@ tokens: void**, token_count: usize, kind: void*): bool {
         if different {
             return false;
         }
-        i = i + 1;
+        i++;
     }
 }
 
@@ -235,7 +223,7 @@ export fn frontend_cache_dispose(cache: FrontendCache*): void {
             break;
         }
         frontend_revision_release(cache.entries.data[i]);
-        i = i + 1;
+        i++;
     }
     vector_dispose(FrontendRevision*, &cache.entries);
     cache.builds = 0;
@@ -247,7 +235,7 @@ export fn frontend_cache_dispose(cache: FrontendCache*): void {
 export fn frontend_cache_copy(target: FrontendCache*, source: FrontendCache*): bool {
     var count = source.entries.length;
     var ok = vector_reserve(FrontendRevision*, &target.entries, count);
-    if ok {} else {
+    if !ok {
         return false;
     }
     var i: usize = 0;
@@ -257,9 +245,9 @@ export fn frontend_cache_copy(target: FrontendCache*, source: FrontendCache*): b
             break;
         }
         var revision = source.entries.data[i];
-        revision.references = revision.references + 1;
+        revision.references++;
         target.entries.data[i] = revision;
-        i = i + 1;
+        i++;
     }
     target.entries.length = count;
     target.builds = source.builds;
@@ -288,17 +276,17 @@ tokens: void**, token_count: usize, kind: void*): usize {
     loop {
         var done = i == cache.entries.length;
         if done {
-            cache.builds = cache.builds + 1;
+            cache.builds++;
             return lr_none();
         }
         var revision = cache.entries.data[i];
         var same = frontend_revision_same(revision, rules, count, tokens, token_count, kind);
         if same {
             frontend_cache_touch(cache, i);
-            cache.hits = cache.hits + 1;
+            cache.hits++;
             return revision.slot;
         }
-        i = i + 1;
+        i++;
     }
 }
 
@@ -320,7 +308,7 @@ tokens: void**, token_count: usize): usize {
     } else {
         revision.slot = cache.entries.length;
         var ok = vector_push(FrontendRevision*, &cache.entries, revision);
-        if ok {} else {
+        if !ok {
             frontend_revision_release(revision);
             return lr_none();
         }
@@ -337,7 +325,7 @@ export fn frontend_cache_pattern(cache: FrontendCache*, entity: void*, kind: voi
         if done {
             return;
         }
-        i = i - 1;
+        i--;
         var revision = cache.entries.data[i];
         var j: usize = 0;
         loop {
@@ -352,7 +340,7 @@ export fn frontend_cache_pattern(cache: FrontendCache*, entity: void*, kind: voi
                 syntax_node_pattern(node, previous.compiled);
                 return;
             }
-            j = j + 1;
+            j++;
         }
     }
 }

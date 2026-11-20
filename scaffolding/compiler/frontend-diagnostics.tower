@@ -48,7 +48,7 @@ export fn frontend_diagnostic_destroy(d: FrontendDiagnostic*): void {
             break;
         }
         vector_dispose(FrontendRulePosition, &d.options.data[i].contexts);
-        i = i + 1;
+        i++;
     }
     vector_dispose(FrontendExpectation, &d.options);
     free(d);
@@ -107,7 +107,7 @@ reader: bool, bad_input: bool, lookahead: u32, offset: usize): FrontendDiagnosti
             break;
         }
         d.candidates[i] = actions[i].first;
-        i = i + 1;
+        i++;
     }
     return d;
 }
@@ -122,7 +122,7 @@ fn frontend_diagnostic_consume(d: FrontendDiagnostic*, id: u32): u32 {
     var status = lr_probe_step(d.continuation, id, &before);
     var boundary = d.prefix;
     var ordinary = id != 4294967294;
-    if ordinary {} else {
+    if !ordinary {
         boundary = false;
     }
     if boundary {
@@ -156,7 +156,7 @@ export fn frontend_diagnostic_contexts(d: FrontendDiagnostic*, items: FrontendCo
         var active = item.term != 0;
         var last = frame_count - 1;
         var within = item.term < last;
-        if within {} else {
+        if !within {
             active = false;
         }
         if active {
@@ -172,22 +172,22 @@ export fn frontend_diagnostic_contexts(d: FrontendDiagnostic*, items: FrontendCo
                     consumed = true;
                     break;
                 }
-                position = position + 1;
+                position++;
             }
             var rule = &d.runtime.rules.data[item.production];
             active = consumed;
             within = item.term < rule.count;
-            if within {} else {
+            if !within {
                 active = false;
             }
             if active {
                 active = item.terminal;
                 within = d.current.id >= item.first;
-                if within {} else {
+                if !within {
                     active = false;
                 }
                 within = d.current.id <= item.last;
-                if within {} else {
+                if !within {
                     active = false;
                 }
                 if active {
@@ -195,7 +195,7 @@ export fn frontend_diagnostic_contexts(d: FrontendDiagnostic*, items: FrontendCo
                     context.production = item.production;
                     context.term = item.term;
                     var ok = lr_append(FrontendRulePosition, &d.current.contexts, &context);
-                    if ok {} else {
+                    if !ok {
                         d.complete = false;
                         d.done = true;
                         return;
@@ -203,14 +203,14 @@ export fn frontend_diagnostic_contexts(d: FrontendDiagnostic*, items: FrontendCo
                 }
             }
         }
-        i = i + 1;
+        i++;
     }
     d.phase = 2;
 }
 
 export fn frontend_diagnostic_feed(d: FrontendDiagnostic*, valid: bool, position: usize, id: u32): void {
     d.position = position;
-    if valid {} else {
+    if !valid {
         d.current.insertion = false;
         d.complete = false;
         d.phase = 4;
@@ -218,7 +218,7 @@ export fn frontend_diagnostic_feed(d: FrontendDiagnostic*, valid: bool, position
     }
     var status = frontend_diagnostic_consume(d, id);
     d.current.insertion = status != 0;
-    d.ahead = d.ahead + 1;
+    d.ahead++;
     var eof = id == 4294967294;
     if eof {
         d.phase = 4;
@@ -247,7 +247,7 @@ export fn frontend_diagnostic_next(d: FrontendDiagnostic*): u32 {
                 return 0;
             }
             d.current.id = d.candidates[d.index];
-            d.index = d.index + 1;
+            d.index++;
             d.state = lr_none();
             d.accepted = lr_probe_step(d.stack, d.current.id, &d.state);
             var rejected = d.accepted == 0;
@@ -272,10 +272,10 @@ export fn frontend_diagnostic_next(d: FrontendDiagnostic*): u32 {
             d.phase = 4;
             var can_insert = d.accepted == 1;
             var ordinary = d.current.id != 4294967294;
-            if ordinary {} else {
+            if !ordinary {
                 can_insert = false;
             }
-            if d.reader {} else {
+            if !d.reader {
                 if d.bad_input {
                     can_insert = false;
                 }
@@ -298,13 +298,13 @@ export fn frontend_diagnostic_next(d: FrontendDiagnostic*): u32 {
         var reading = d.phase == 3;
         if reading {
             var more = d.ahead < 3;
-            if d.current.insertion {} else {
+            if !d.current.insertion {
                 more = false;
             }
             if more {
                 var frames = lr_probe_frames(d.continuation);
                 var last = lr_probe_count(d.continuation);
-                last = last - 1;
+                last--;
                 d.state = frames[last].state;
                 return 2;
             }
@@ -313,7 +313,7 @@ export fn frontend_diagnostic_next(d: FrontendDiagnostic*): u32 {
         var finish = d.phase == 4;
         if finish {
             var boundary = d.current.insertion;
-            if d.prefix {} else {
+            if !d.prefix {
                 boundary = false;
             }
             if boundary {
@@ -327,7 +327,7 @@ export fn frontend_diagnostic_next(d: FrontendDiagnostic*): u32 {
                 lr_probe_destroy(end);
             }
             var ok = lr_append(FrontendExpectation, &d.options, &d.current);
-            if ok {} else {
+            if !ok {
                 d.complete = false;
                 d.done = true;
                 return 0;

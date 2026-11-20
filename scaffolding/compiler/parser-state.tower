@@ -108,9 +108,7 @@ export fn parser_request_create(runtime: LRRuntime*, context: void*, stream: Par
     request.forest = parse_forest_create();
     request.control = lr_parser_create(runtime, prefix, specialize);
     missing = request.forest == null;
-    if missing {} else {
-        missing = request.control == null;
-    }
+    missing ||= request.control == null;
     if missing {
         parser_recognizer_destroy(request);
         return null;
@@ -136,14 +134,12 @@ export fn parser_recognizer_get_error(opaque: void*): u8* {
 export fn parser_recognizer_read_id(request: ParserRequest*): void {
     var empty = request.read_node_or_null == null;
     parser_state_require(empty);
-    request.work.reads = request.work.reads + 1;
+    request.work.reads++;
     request.read_node_or_null = parser_stream_read(request.stream, &request.read_id, &request.read_start, &request.read_length);
     var end = request.read_id == ParserStreamEnd();
     if end {
         var gap = request.read_start == convert(usize, ParserStreamEnd());
-        if gap {} else {
-            gap = request.read_start == lr_none();
-        }
+        gap ||= request.read_start == lr_none();
         if gap {
             request.read_start = lr_parser_consumed(request.control);
         }
@@ -151,12 +147,8 @@ export fn parser_recognizer_read_id(request: ParserRequest*): void {
     }
     parser_state_assign(&request.lookahead_error, parser_stream_get_error(request.stream));
     var capture = request.capture_completion;
-    if capture {
-        capture = end;
-    }
-    if capture {
-        capture = request.lookahead_error.length == 0;
-    }
+    capture &&= end;
+    capture &&= request.lookahead_error.length == 0;
     if capture {
         lr_completion_destroy(request.completion);
         request.completion = lr_completion_create(request.control);
@@ -165,7 +157,7 @@ export fn parser_recognizer_read_id(request: ParserRequest*): void {
 }
 
 export fn parser_return_lookahead(request: ParserRequest*): void {
-    if request.has_lookahead {} else {
+    if !request.has_lookahead {
         return;
     }
     parser_stream_return(request.stream, &request.read_node_or_null, request.read_id, request.read_start, request.read_length, &request.lookahead_error);

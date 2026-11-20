@@ -28,7 +28,7 @@ fn parser_utf8_end(text: u8*): u8* {
         if done {
             return end;
         }
-        end = end + 1;
+        end++;
     }
 }
 

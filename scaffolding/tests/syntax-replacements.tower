@@ -15,7 +15,7 @@ fn replacement_test_source(source: u8*, count: usize, prefix: u8*): bool {
         if done {
             break;
         }
-        parsed = parsed + 1;
+        parsed++;
         entity_release(node);
     }
     var ok = parsed == count;
@@ -40,43 +40,43 @@ fn replacement_test_source(source: u8*, count: usize, prefix: u8*): bool {
 
 fn syntax_replacement_source_tests(): usize {
     var ok = replacement_test_source("parse Expression = Identifier | Number;parse Statement = Expression ';';parse Alias = 'named' => replace { 9 };parse Expression |= Alias;named;", 5, "");
-    if ok {} else {
+    if !ok {
         return 101;
     }
     ok = replacement_test_source("parse Expression = Identifier | Number;parse Statement = Expression ';';parse A = 'named' => replace { 9 };parse B = A;parse Expression |= B;named;", 6, "");
-    if ok {} else {
+    if !ok {
         return 102;
     }
     ok = replacement_test_source("parse A = 'named' => replace { 9 };parse B = Number | A;parse C = Number | A;parse Statement = 'b' B ';' | 'c' C ';';", 3, "Ambiguous replacement destination for A; attach the handler to its destination rule");
-    if ok {} else {
+    if !ok {
         return 103;
     }
     ok = replacement_test_source("parse A = 'named' => replace { 9 };parse B = Number | A;parse C = B;parse Statement = C ';';named;", 5, "");
-    if ok {} else {
+    if !ok {
         return 104;
     }
     ok = replacement_test_source("parse Expression = Identifier | Number;parse Statement = Expression ';';parse Expression |= 'n' => replace { 10 };n;", 4, "");
-    if ok {} else {
+    if !ok {
         return 105;
     }
     ok = replacement_test_source("parse Expression = Identifier | Number;parse Statement = Expression ';';parse Statement |= 'broken' ';' => replace { 99 };", 2, "Replacement for Statement must produce a valid Statement. \"99\" is not a valid Statement.");
-    if ok {} else {
+    if !ok {
         return 106;
     }
     ok = replacement_test_source("parse Expression = Identifier | Number;parse Statement = Expression ';';parse Alias = 'named' => replace { 9; };parse Expression |= Alias;", 3, "Replacement for Alias must produce one of these syntax categories: Alias, Expression.");
-    if ok {} else {
+    if !ok {
         return 107;
     }
     ok = replacement_test_source("parse Expression = Identifier | Number;parse Statement = Expression ';';parse Expression |= 'bad' => replace { $Missing };", 2, "Replacement for Expression must produce a valid Expression.");
-    if ok {} else {
+    if !ok {
         return 108;
     }
     ok = replacement_test_source("parse Expression = Identifier | Number;parse Statement = Expression ';';parse Expression |= 'echo' $`spaced name`:Identifier => replace { $`spaced name` };echo value;", 4, "");
-    if ok {} else {
+    if !ok {
         return 109;
     }
     ok = replacement_test_source("parse Expression = Identifier | Number;parse Statement = Expression ';';parse Expression |= 'echo' $x:Identifier => replace { /* before */ $x /* after */ };echo value;", 4, "");
-    if ok {} else {
+    if !ok {
         return 110;
     }
     return 0;

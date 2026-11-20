@@ -50,7 +50,7 @@ export fn frontend_table_finish(table: FrontendTable*, constructs: bool, special
             break;
         }
         lr_analysis_order(analysis, index, grammar.names.data[index].order);
-        index = index + 1;
+        index++;
     }
     var states: LRStates* = null;
     var ok = lr_analysis_compute(analysis);
@@ -58,9 +58,7 @@ export fn frontend_table_finish(table: FrontendTable*, constructs: bool, special
         states = lr_states_create(analysis);
         ok = states != null;
     }
-    if ok {
-        ok = lr_states_lalr(states, constructs);
-    }
+    ok &&= lr_states_lalr(states, constructs);
     if ok {
         table.runtime = lr_runtime_create(states);
         ok = table.runtime != null;
@@ -120,7 +118,7 @@ export fn frontend_read_characters(table: FrontendTable*, kinds: FrontendKinds*,
     var forest = parse_forest_create();
     var ok = parser != null;
     var present = forest != null;
-    if present {} else {
+    if !present {
         ok = false;
     }
     var root: void* = null;
@@ -130,7 +128,7 @@ export fn frontend_read_characters(table: FrontendTable*, kinds: FrontendKinds*,
     var start: usize = 0;
     var length: usize = 0;
     loop {
-        if ok {} else {
+        if !ok {
             break;
         }
         var step: LRStep;
@@ -222,7 +220,7 @@ export fn frontend_pattern_compile(table: FrontendTable*, kinds: FrontendKinds*,
     }
     var status = tower_utf8_validate(text, input.length, 0);
     var valid = status != 0;
-    if valid {} else {
+    if !valid {
         return null;
     }
     var root = frontend_read_characters(table, kinds, &input);

@@ -85,17 +85,11 @@ export fn driver_platform_temporary(out: ByteBuffer*): bool {
     var ok = driver_text(out, directory);
     var nonempty_directory = directory[0] != 0;
     if nonempty_directory {
-        if ok {
-            ok = driver_text(out, "/");
-        }
+        ok &&= driver_text(out, "/");
     }
-    if ok {
-        ok = driver_text(out, "tower-XXXXXX");
-    }
-    if ok {
-        ok = host_text_terminate(out);
-    }
-    if ok {} else {
+    ok &&= driver_text(out, "tower-XXXXXX");
+    ok &&= host_text_terminate(out);
+    if !ok {
         out.length = 0;
         return false;
     }
@@ -121,15 +115,11 @@ fn driver_find_tool(out: ByteBuffer*, name: u8*): bool {
         var separator = name[i] == 47;
         if separator {
             var ok = driver_text(out, name);
-            if ok {
-                ok = host_text_terminate(out);
-            }
-            if ok {
-                ok = access(out.data, 1) == 0;
-            }
+            ok &&= host_text_terminate(out);
+            ok &&= access(out.data, 1) == 0;
             return ok;
         }
-        i = i + 1;
+        i++;
     }
     var path = getenv("PATH");
     var missing = path == null;
@@ -152,17 +142,11 @@ fn driver_find_tool(out: ByteBuffer*, name: u8*): bool {
             var ok = bytes_append(out, segment, count);
             var nonempty = count != 0;
             if nonempty {
-                if ok {
-                    ok = driver_text(out, "/");
-                }
+                ok &&= driver_text(out, "/");
             }
-            if ok {
-                ok = driver_text(out, name);
-            }
-            if ok {
-                ok = host_text_terminate(out);
-            }
-            if ok {} else {
+            ok &&= driver_text(out, name);
+            ok &&= host_text_terminate(out);
+            if !ok {
                 return false;
             }
             var executable = access(out.data, 1) == 0;
@@ -174,7 +158,7 @@ fn driver_find_tool(out: ByteBuffer*, name: u8*): bool {
             }
             begin = i + 1;
         }
-        i = i + 1;
+        i++;
     }
     return false;
 }

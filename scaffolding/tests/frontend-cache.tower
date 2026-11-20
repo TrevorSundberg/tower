@@ -46,11 +46,11 @@ fn frontend_cache_tests(kinds: FrontendKinds*): usize {
         var slot = frontend_cache_store(&cache, null, 0, &node, 1);
         entity_release(node);
         var correct = slot == i;
-        if correct {} else {
+        if !correct {
             ok = false;
             break;
         }
-        i = i + 1;
+        i++;
     }
     if ok {
         var node = frontend_test_cache_node(kinds, 0);
@@ -67,9 +67,7 @@ fn frontend_cache_tests(kinds: FrontendKinds*): usize {
         ok = frontend_cache_find(&cache, null, 0, &node, 1, kinds.syntax) == lr_none();
         entity_release(node);
     }
-    if ok {
-        ok = frontend_cache_copy(&fork, &cache);
-    }
+    ok &&= frontend_cache_copy(&fork, &cache);
     frontend_cache_dispose(&cache);
     if ok {
         var node = frontend_test_cache_node(kinds, 0);
@@ -77,7 +75,7 @@ fn frontend_cache_tests(kinds: FrontendKinds*): usize {
         entity_release(node);
     }
     frontend_cache_dispose(&fork);
-    if ok {} else {
+    if !ok {
         return 730;
     }
     var leaked = tower_test_buffer_count() != buffers;
@@ -111,23 +109,21 @@ fn frontend_cache_tests(kinds: FrontendKinds*): usize {
         } else {
             ok = cache.entries.length == 1;
         }
-        if ok {
-            ok = frontend_cache_find(&cache, null, 0, &node, 1, kinds.syntax) == first;
-        }
+        ok &&= frontend_cache_find(&cache, null, 0, &node, 1, kinds.syntax) == first;
         frontend_cache_dispose(&cache);
         leaked = tower_test_buffer_count() != buffers;
         if leaked {
             result = 733;
             break;
         }
-        if ok {} else {
+        if !ok {
             result = 734;
             break;
         }
         if stored {
             break;
         }
-        budget = budget + 1;
+        budget++;
     }
     entity_release(node);
     return result;

@@ -47,22 +47,14 @@ export fn backend_open(triple: u8*): Backend* {
     if wide {
         width_ok = true;
     }
-    if valid {
-        valid = width_ok;
-    }
+    valid &&= width_ok;
     var alignment = LLVMABIAlignmentOfType(b.layout, b.pointer_type) == b.pointer_bytes;
-    if valid {
-        valid = alignment;
-    }
+    valid &&= alignment;
     alignment = LLVMABIAlignmentOfType(b.layout, b.i64) == 8;
-    if valid {
-        valid = alignment;
-    }
+    valid &&= alignment;
     alignment = LLVMABIAlignmentOfType(b.layout, b.i32) == 4;
-    if valid {
-        valid = alignment;
-    }
-    failed = valid == false;
+    valid &&= alignment;
+    failed = !valid;
     if failed {
         backend_fail(b, "Unsupported target memory layout");
         return b;

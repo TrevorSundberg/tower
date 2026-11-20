@@ -8,7 +8,7 @@ fn foreign_operator(m: ForeignName*, part: ForeignType*): void {
     var text: vector(u8);
     vector_init(u8, &text);
     var first = foreign_peek(m);
-    m.at = m.at + 1;
+    m.at++;
     backend_text(&text, first);
     if backend_equal(first, "(") {
         foreign_expect(m, ")");
@@ -56,7 +56,7 @@ fn foreign_operator(m: ForeignName*, part: ForeignType*): void {
                 }
                 if more {
                     backend_text(&text, second);
-                    m.at = m.at + 1;
+                    m.at++;
                 }
                 if backend_equal(text.data, "<<") {
                     if foreign_take(m, "=") {
@@ -274,7 +274,7 @@ fn foreign_operator_code(m: ForeignName*, name: u8*, microsoft: bool): u8* {
     if foreign_condition2005 {
         var foreign_condition2006 = m.member != 2;
         if foreign_condition2006 {
-            arity = arity + 1;
+            arity++;
         }
     }
     var foreign_condition2007 = arity == 1;
@@ -396,7 +396,7 @@ fn foreign_tag_less(a: u8*, b: u8*): bool {
         if foreign_condition3004 {
             return false;
         }
-        i = i + 1;
+        i++;
     }
 }
 
@@ -413,7 +413,7 @@ fn foreign_sort_tags(m: ForeignName*): void {
             if foreign_condition3006 {
                 break;
             }
-            var previous = j - 1;
+            var previous = j -1;
             var foreign_condition3007 = foreign_tag_less(m.abi_tags.data[j], m.abi_tags.data[previous]) == false;
             if foreign_condition3007 {
                 break;
@@ -423,7 +423,7 @@ fn foreign_sort_tags(m: ForeignName*): void {
             m.abi_tags.data[previous] = temporary;
             j = previous;
         }
-        i = i + 1;
+        i++;
     }
     var count: usize = 0;
     i = 0;
@@ -435,14 +435,14 @@ fn foreign_sort_tags(m: ForeignName*): void {
         var distinct = true;
         var foreign_condition3009 = count != 0;
         if foreign_condition3009 {
-            var previous = count - 1;
+            var previous = count -1;
             distinct = backend_equal(m.abi_tags.data[previous], m.abi_tags.data[i]) == false;
         }
         if distinct {
             m.abi_tags.data[count] = m.abi_tags.data[i];
-            count = count + 1;
+            count++;
         }
-        i = i + 1;
+        i++;
     }
     m.abi_tags.length = count;
 }

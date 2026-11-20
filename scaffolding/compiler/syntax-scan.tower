@@ -56,9 +56,7 @@ fn scan_highlight(input: SyntaxScanInput*, start: usize, choice: LexiconChoice*)
 
 export fn syntax_scan_skip(input: SyntaxScanInput*, result: SyntaxScanResult*): void {
     var meta = input.bootstrapping;
-    if meta {} else {
-        meta = input.declaration;
-    }
+    meta ||= input.declaration;
     loop {
         var done = input.cursor == input.size;
         if done {
@@ -74,7 +72,7 @@ export fn syntax_scan_skip(input: SyntaxScanInput*, result: SyntaxScanResult*): 
             }
             scan_choice(input, &choice);
             result.checks = result.checks + choice.checks;
-            if choice.skipped {} else {
+            if !choice.skipped {
                 break;
             }
         }
@@ -141,11 +139,11 @@ export fn syntax_scan_peek(input: SyntaxScanInput*, id: u32*): bool {
             return false;
         }
         input.cursor = input.cursor + choice.length;
-        if choice.skipped {} else {
+        if !choice.skipped {
             *id = choice.id;
             return true;
         }
-        count = count + 1;
+        count++;
     }
 }
 
@@ -181,11 +179,11 @@ fn scan_unknown(result: SyntaxScanResult*, name: vector(u8)*): void {
         var bytes = name.length + 1;
         ok = bytes_append(&result.message, name.data, bytes);
         if ok {
-            result.message.length = result.message.length - 1;
+            result.message.length--;
             result.error = result.message.data;
         }
     }
-    if ok {} else {
+    if !ok {
         result.error = "Unable to allocate replacement capture diagnostic";
     }
 }
@@ -195,17 +193,13 @@ export fn syntax_scan_read(input: SyntaxScanInput*, result: SyntaxScanResult*): 
     result.start = input.cursor;
     result.id = 4294967294;
     var hole = input.replacement;
-    if hole {
-        hole = input.cursor < input.size;
-    }
-    if hole {
-        hole = input.source[input.cursor] == 36;
-    }
+    hole &&= input.cursor < input.size;
+    hole &&= input.source[input.cursor] == 36;
     var name: vector(u8);
     vector_init(u8, &name);
     var ok: bool = true;
     if hole {
-        input.cursor = input.cursor + 1;
+        input.cursor++;
         var start = input.cursor;
         var length = lexicon_identifier(input.lexicon, input.source, input.size, start);
         input.cursor = input.cursor + length;
@@ -227,9 +221,7 @@ export fn syntax_scan_read(input: SyntaxScanInput*, result: SyntaxScanResult*): 
     }
     var node: void* = null;
     var present = result.id != 4294967294;
-    if present {
-        present = result.error == null;
-    }
+    present &&= result.error == null;
     if present {
         node = entity_create_related(input.context);
         ok = node != null;
@@ -248,7 +240,7 @@ export fn syntax_scan_read(input: SyntaxScanInput*, result: SyntaxScanResult*): 
                         var bytes = name.length + 1;
                         ok = bytes_append(&data.label, name.data, bytes);
                         if ok {
-                            data.label.length = data.label.length - 1;
+                            data.label.length--;
                         }
                     }
                 } else {
@@ -258,7 +250,7 @@ export fn syntax_scan_read(input: SyntaxScanInput*, result: SyntaxScanResult*): 
         }
     }
     vector_dispose(u8, &name);
-    if ok {} else {
+    if !ok {
         var allocated = node != null;
         if allocated {
             entity_release(node);

@@ -21,7 +21,7 @@ fn format_comments_ordered(comments: FormatComment*, count: usize): bool {
         if backwards {
             return false;
         }
-        i = i + 1;
+        i++;
     }
 }
 
@@ -63,13 +63,11 @@ struct FormatComment {
 }
 
 fn format_symbolic(source: u8*, start: usize, end: usize): bool {
-    var condition1 = start == end;
-    if condition1 {
+    if start == end {
         return false;
     }
     loop {
-        var condition2 = start == end;
-        if condition2 {
+        if start == end {
             return true;
         }
         var c = source[start];
@@ -77,34 +75,36 @@ fn format_symbolic(source: u8*, start: usize, end: usize): bool {
         var i: usize = 0;
         var found = false;
         loop {
-            var condition3 = symbols[i] == 0;
-            if condition3 {
+            if symbols[i] == 0 {
                 break;
             }
-            var condition4 = symbols[i] == c;
-            if condition4 {
+            if symbols[i] == c {
                 found = true;
                 break;
             }
-            i = i + 1;
+            i++;
         }
-        if found {} else {
+        if !found {
             return false;
         }
-        start = start + 1;
+        start++;
     }
 }
 
 fn format_operator_leaf(f: FormatEngine*, entity: void*, source: u8*): bool {
+    // Grouped operator alternatives are transparent single-child rules.
+    var depth: usize = 0;
+    while entity_child_count(entity) == 1 && depth < 128 {
+        entity = entity_child_at(entity, 0);
+        depth++;
+    }
     var `match` = format_match(f, entity);
-    var condition5 = `match` == null;
-    if condition5 {
+    if `match` == null {
         return false;
     }
     var invalid: usize = 0;
-    invalid = invalid - 1;
-    var condition6 = `match`.rule != invalid;
-    if condition6 {
+    invalid--;
+    if `match`.rule != invalid {
         return false;
     }
     var end = `match`.start + `match`.length;
@@ -134,61 +134,47 @@ comment: bool, pointer: bool, unary: bool, call: bool): void {
 fn format_tokens(f: FormatEngine*, entity: void*, source: u8*, tokens: vector(FormatToken)*,
 pointer: bool, unary: bool, call: bool): void {
     var `match` = format_match(f, entity);
-    var condition7 = `match` == null;
-    if condition7 {
+    if `match` == null {
         return;
     }
-    var condition8 = format_name_is(&`match`.label, "CoreType");
-    if condition8 {
+    if format_name_is(&`match`.label, "CoreType") {
         pointer = true;
     }
-    var condition9 = format_name_is(&`match`.label, "CorePointerArgument");
-    if condition9 {
+    if format_name_is(&`match`.label, "CorePointerArgument") {
         pointer = true;
     }
-    var condition10 = format_name_is(&`match`.label, "CoreAddress");
-    if condition10 {
+    if format_name_is(&`match`.label, "CoreAddress") {
         unary = true;
     }
-    var condition11 = format_name_is(&`match`.label, "CoreLoad");
-    if condition11 {
+    if format_name_is(&`match`.label, "CoreLoad") {
         unary = true;
     }
-    var condition12 = format_name_is(&`match`.label, "CoreTarget");
-    if condition12 {
+    if format_name_is(&`match`.label, "CoreTarget") {
         unary = true;
     }
-    var condition13 = format_name_is(&`match`.label, "CoreOperand");
-    if condition13 {
+    if format_name_is(&`match`.label, "CoreOperand") {
         unary = true;
     }
-    var condition14 = format_name_is(&`match`.label, "CoreCall");
-    if condition14 {
+    if format_name_is(&`match`.label, "CoreCall") {
         call = true;
     }
-    var condition15 = format_name_is(&`match`.label, "CoreFunction");
-    if condition15 {
+    if format_name_is(&`match`.label, "CoreFunction") {
         call = true;
     }
-    var condition16 = format_name_is(&`match`.label, "CoreExternal");
-    if condition16 {
+    if format_name_is(&`match`.label, "CoreExternal") {
         call = true;
     }
-    var condition17 = format_name_is(&`match`.label, "CoreExport");
-    if condition17 {
+    if format_name_is(&`match`.label, "CoreExport") {
         call = true;
     }
-    var condition18 = format_name_is(&`match`.label, "CoreType");
-    if condition18 {
+    if format_name_is(&`match`.label, "CoreType") {
         call = true;
     }
     var invalid: usize = 0;
-    invalid = invalid - 1;
-    var condition19 = `match`.rule == invalid;
-    if condition19 {
+    invalid--;
+    if `match`.rule == invalid {
         var end = `match`.start + `match`.length;
-        var condition20 = end > `match`.start;
-        if condition20 {
+        if end > `match`.start {
             format_token_push(f, tokens, `match`.start, end, false, pointer, unary, call);
         }
         return;
@@ -197,22 +183,18 @@ pointer: bool, unary: bool, call: bool): void {
     var children = entity_child_count(entity);
     var i: usize = 0;
     loop {
-        var condition21 = i == children;
-        if condition21 {
+        if i == children {
             break;
         }
         format_tokens(f, entity_child_at(entity, i), source, tokens, pointer, unary, call);
-        i = i + 1;
+        i++;
     }
-    var condition22 = children == 2;
-    if condition22 {
+    if children == 2 {
         var minimum = begin + 1;
-        var condition23 = tokens.length > minimum;
-        if condition23 {
+        if tokens.length > minimum {
             var first = format_operator_leaf(f, entity_child_at(entity, 0), source);
             var last = format_operator_leaf(f, entity_child_at(entity, 1), source);
-            var condition24 = first != last;
-            if condition24 {
+            if first != last {
                 if first {
                     tokens.data[begin].prefix = true;
                 }
@@ -227,29 +209,23 @@ pointer: bool, unary: bool, call: bool): void {
 
 fn format_source_declaration(f: FormatEngine*, entity: void*): bool {
     var `match` = format_match(f, entity);
-    var condition25 = `match` == null;
-    if condition25 {
+    if `match` == null {
         return false;
     }
-    var condition26 = format_name_is(&`match`.label, "CoreFunction");
-    if condition26 {
+    if format_name_is(&`match`.label, "CoreFunction") {
         return true;
     }
-    var condition27 = format_name_is(&`match`.label, "CoreExternal");
-    if condition27 {
+    if format_name_is(&`match`.label, "CoreExternal") {
         return true;
     }
-    var condition28 = format_name_is(&`match`.label, "CoreExport");
-    if condition28 {
+    if format_name_is(&`match`.label, "CoreExport") {
         return true;
     }
-    var condition29 = format_name_is(&`match`.label, "CoreStruct");
-    if condition29 {
+    if format_name_is(&`match`.label, "CoreStruct") {
         return true;
     }
     var children = entity_child_count(entity);
-    var condition30 = children == 1;
-    if condition30 {
+    if children == 1 {
         return format_source_declaration(f, entity_child_at(entity, 0));
     }
     return false;
@@ -265,21 +241,17 @@ fn format_token_swap(a: FormatToken*, b: FormatToken*): void {
 fn format_sift(tokens: vector(FormatToken)*, root: usize, end: usize): void {
     loop {
         var child = root * 2;
-        child = child + 1;
-        var condition31 = child >= end;
-        if condition31 {
+        child++;
+        if child >= end {
             return;
         }
         var next = child + 1;
-        var condition32 = next < end;
-        if condition32 {
-            var condition33 = tokens.data[child].start < tokens.data[next].start;
-            if condition33 {
+        if next < end {
+            if tokens.data[child].start < tokens.data[next].start {
                 child = next;
             }
         }
-        var condition34 = tokens.data[root].start >= tokens.data[child].start;
-        if condition34 {
+        if tokens.data[root].start >= tokens.data[child].start {
             return;
         }
         format_token_swap(&tokens.data[root], &tokens.data[child]);
@@ -300,24 +272,22 @@ fn format_sort(tokens: vector(FormatToken)*): void {
         if unordered {
             break;
         }
-        next = next + 1;
+        next++;
     }
     var at = tokens.length / 2;
     loop {
-        var condition35 = at == 0;
-        if condition35 {
+        if at == 0 {
             break;
         }
-        at = at - 1;
+        at--;
         format_sift(tokens, at, tokens.length);
     }
     var end = tokens.length;
     loop {
-        var condition36 = end <= 1;
-        if condition36 {
+        if end <= 1 {
             break;
         }
-        end = end - 1;
+        end--;
         format_token_swap(&tokens.data[0], &tokens.data[end]);
         format_sift(tokens, 0, end);
     }
@@ -326,15 +296,13 @@ fn format_sort(tokens: vector(FormatToken)*): void {
 fn format_lines(source: u8*, start: usize, end: usize): usize {
     var count: usize = 0;
     loop {
-        var condition37 = start >= end;
-        if condition37 {
+        if start >= end {
             return count;
         }
-        var condition38 = source[start] == 10;
-        if condition38 {
-            count = count + 1;
+        if source[start] == 10 {
+            count++;
         }
-        start = start + 1;
+        start++;
     }
 }
 
@@ -353,8 +321,7 @@ comments: FormatComment*, comment_count: usize, ordered: bool): void {
         i = format_comment_bound(comments, comment_count, from);
     }
     loop {
-        var condition39 = i == comment_count;
-        if condition39 {
+        if i == comment_count {
             break;
         }
         var comment = &comments[i];
@@ -370,7 +337,7 @@ comments: FormatComment*, comment_count: usize, ordered: bool): void {
         if include {
             format_token_push(f, &tokens, comment.start, comment.end, true, false, false, false);
         }
-        i = i + 1;
+        i++;
     }
     format_sort(&tokens);
     var previous: FormatToken;
@@ -379,18 +346,16 @@ comments: FormatComment*, comment_count: usize, ordered: bool): void {
     var parentheses: usize = 0;
     i = 0;
     loop {
-        var condition40 = i == tokens.length;
-        if condition40 {
+        if i == tokens.length {
             break;
         }
         var entry = &tokens.data[i];
         var lines = format_lines(source, previous_end, entry.start);
         var close = format_token_is(source, entry, "}");
-        if entry.comment {} else {
+        if !entry.comment {
             if close {
-                var condition41 = f.result.depth != 0;
-                if condition41 {
-                    f.result.depth = f.result.depth - 1;
+                if f.result.depth != 0 {
+                    f.result.depth--;
                 }
             }
         }
@@ -400,15 +365,13 @@ comments: FormatComment*, comment_count: usize, ordered: bool): void {
         var break_line = false;
         var last_present = previous.end != previous.start;
         if last_present {
-            if close_empty {} else {
+            if !close_empty {
                 var semicolon = format_token_is(source, &previous, ";");
-                var condition42 = parentheses != 0;
-                if condition42 {
+                if parentheses != 0 {
                     semicolon = false;
                 }
                 if entry.comment {
-                    var condition43 = lines == 0;
-                    if condition43 {
+                    if lines == 0 {
                         semicolon = false;
                     }
                 }
@@ -417,16 +380,13 @@ comments: FormatComment*, comment_count: usize, ordered: bool): void {
                 if condition44 {
                     after_close = false;
                 }
-                var condition45 = format_token_is(source, entry, "else");
-                if condition45 {
+                if format_token_is(source, entry, "else") {
                     after_close = false;
                 }
-                var condition46 = format_token_is(source, entry, ",");
-                if condition46 {
+                if format_token_is(source, entry, ",") {
                     after_close = false;
                 }
-                var condition47 = format_token_is(source, entry, ")");
-                if condition47 {
+                if format_token_is(source, entry, ")") {
                     after_close = false;
                 }
                 break_line = format_or(previous.comment, semicolon);
@@ -445,7 +405,7 @@ comments: FormatComment*, comment_count: usize, ordered: bool): void {
             format_newline(f, blank);
         }
         var line_start = f.result.text.length == 0;
-        if line_start {} else {
+        if !line_start {
             var last = f.result.text.length - 1;
             line_start = f.result.text.data[last] == 10;
         }
@@ -453,56 +413,45 @@ comments: FormatComment*, comment_count: usize, ordered: bool): void {
             format_indent(f);
         }
         else {
-            if close_empty {} else {
+            if !close_empty {
                 var tight = false;
                 var condition48 = format_token_is(source, entry, ";");
                 if condition48 {
                     tight = true;
                 }
-                var condition49 = format_token_is(source, entry, ",");
-                if condition49 {
+                if format_token_is(source, entry, ",") {
                     tight = true;
                 }
-                var condition50 = format_token_is(source, entry, ")");
-                if condition50 {
+                if format_token_is(source, entry, ")") {
                     tight = true;
                 }
-                var condition51 = format_token_is(source, entry, "]");
-                if condition51 {
+                if format_token_is(source, entry, "]") {
                     tight = true;
                 }
-                var condition52 = format_token_is(source, entry, ".");
-                if condition52 {
+                if format_token_is(source, entry, ".") {
                     tight = true;
                 }
-                var condition53 = format_token_is(source, entry, ":");
-                if condition53 {
+                if format_token_is(source, entry, ":") {
                     tight = true;
                 }
-                var condition54 = format_token_is(source, entry, "[");
-                if condition54 {
+                if format_token_is(source, entry, "[") {
                     tight = true;
                 }
-                var condition55 = format_token_is(source, &previous, "(");
-                if condition55 {
+                if format_token_is(source, &previous, "(") {
                     tight = true;
                 }
-                var condition56 = format_token_is(source, &previous, "[");
-                if condition56 {
+                if format_token_is(source, &previous, "[") {
                     tight = true;
                 }
-                var condition57 = format_token_is(source, &previous, ".");
-                if condition57 {
+                if format_token_is(source, &previous, ".") {
                     tight = true;
                 }
-                var condition58 = format_token_is(source, entry, "(");
-                if condition58 {
+                if format_token_is(source, entry, "(") {
                     var empty_gap = previous_end == entry.start;
                     var call = format_or(entry.call, empty_gap);
                     tight = format_or(tight, call);
                 }
-                var condition59 = format_token_is(source, entry, "*");
-                if condition59 {
+                if format_token_is(source, entry, "*") {
                     tight = format_or(tight, entry.pointer);
                 }
                 var affix = format_or(previous.prefix, entry.postfix);
@@ -513,21 +462,18 @@ comments: FormatComment*, comment_count: usize, ordered: bool): void {
                     var left = format_symbolic(source, previous.start, previous.end);
                     var right = format_symbolic(source, entry.start, entry.end);
                     var adjacent = format_and(left, right);
-                    if adjacent {} else {
+                    if !adjacent {
                         tight = true;
                     }
                 }
                 var unary = false;
-                var condition60 = format_token_is(source, &previous, "*");
-                if condition60 {
+                if format_token_is(source, &previous, "*") {
                     unary = true;
                 }
-                var condition61 = format_token_is(source, &previous, "&");
-                if condition61 {
+                if format_token_is(source, &previous, "&") {
                     unary = true;
                 }
-                var condition62 = format_token_is(source, &previous, "-");
-                if condition62 {
+                if format_token_is(source, &previous, "-") {
                     unary = true;
                 }
                 unary = format_and(unary, previous.unary);
@@ -538,7 +484,7 @@ comments: FormatComment*, comment_count: usize, ordered: bool): void {
                 if entry.comment {
                     tight = false;
                 }
-                if tight {} else {
+                if !tight {
                     format_text(f, " ");
                 }
             }
@@ -547,26 +493,23 @@ comments: FormatComment*, comment_count: usize, ordered: bool): void {
         var length = entry.end - entry.start;
         format_write(f, &source[entry.start], length);
         format_span(f, begin, entry.start);
-        if entry.comment {} else {
+        if !entry.comment {
             var opening = format_token_is(source, entry, "{");
             if opening {
-                f.result.depth = f.result.depth + 1;
+                f.result.depth++;
             }
-            var condition63 = format_token_is(source, entry, "(");
-            if condition63 {
-                parentheses = parentheses + 1;
+            if format_token_is(source, entry, "(") {
+                parentheses++;
             }
-            var condition64 = format_token_is(source, entry, ")");
-            if condition64 {
-                var condition65 = parentheses != 0;
-                if condition65 {
-                    parentheses = parentheses - 1;
+            if format_token_is(source, entry, ")") {
+                if parentheses != 0 {
+                    parentheses--;
                 }
             }
         }
         copy(&previous, entry, sizeof(FormatToken));
         previous_end = entry.end;
-        i = i + 1;
+        i++;
     }
     format_newline(f, false);
     vector_dispose(FormatToken, &tokens);
@@ -588,8 +531,7 @@ comments: FormatComment*, comment_count: usize, syntax: void*, foundation: void*
     var ordered = format_comments_ordered(comments, comment_count);
     var i: usize = 0;
     loop {
-        var condition66 = i == count;
-        if condition66 {
+        if i == count {
             break;
         }
         var root = roots[i];
@@ -601,8 +543,7 @@ comments: FormatComment*, comment_count: usize, syntax: void*, foundation: void*
             j = format_comment_bound(comments, comment_count, previous_end);
         }
         loop {
-            var condition67 = j == comment_count;
-            if condition67 {
+            if j == comment_count {
                 break;
             }
             var comment = &comments[j];
@@ -618,7 +559,7 @@ comments: FormatComment*, comment_count: usize, syntax: void*, foundation: void*
             if include {
                 first = comment.start;
             }
-            j = j + 1;
+            j++;
         }
         var declaration = format_source_declaration(f, root);
         var separate = format_or(previous_declaration, declaration);
@@ -626,27 +567,23 @@ comments: FormatComment*, comment_count: usize, syntax: void*, foundation: void*
             format_newline(f, true);
         }
         var lines = format_lines(source, previous_end, first);
-        var condition68 = lines > 1;
-        if condition68 {
+        if lines > 1 {
             format_newline(f, true);
         }
         var grammar = root;
         loop {
             var syntax_node = format_syntax(f, grammar);
-            var condition69 = syntax_node != null;
-            if condition69 {
+            if syntax_node != null {
                 break;
             }
             var children = entity_child_count(grammar);
-            var condition70 = children != 1;
-            if condition70 {
+            if children != 1 {
                 break;
             }
             grammar = entity_child_at(grammar, 0);
         }
         var syntax_node = format_syntax(f, grammar);
-        var condition71 = syntax_node != null;
-        if condition71 {
+        if syntax_node != null {
             format_grammar(f, grammar);
         }
         else {
@@ -654,21 +591,19 @@ comments: FormatComment*, comment_count: usize, syntax: void*, foundation: void*
         }
         previous_end = end;
         previous_declaration = declaration;
-        i = i + 1;
+        i++;
     }
     i = 0;
     loop {
-        var condition72 = i == comment_count;
-        if condition72 {
+        if i == comment_count {
             break;
         }
         var comment = &comments[i];
-        var condition73 = comment.start >= previous_end;
-        if condition73 {
+        if comment.start >= previous_end {
             var count = comment.end - comment.start;
             format_write(f, &source[comment.start], count);
             format_newline(f, false);
         }
-        i = i + 1;
+        i++;
     }
 }

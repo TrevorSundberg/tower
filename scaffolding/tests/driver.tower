@@ -17,7 +17,7 @@ extern fn fclose(file: void*): i32;
 extern fn exit(code: i32): void;
 
 fn driver_check(ok: bool, message: u8*): void {
-    if ok {} else {
+    if !ok {
         driver_error("Driver test failed: ", message);
         exit(1);
     }
@@ -197,16 +197,12 @@ fn driver_test_capture(args: DriverArguments*): i32 {
     var output = fopen("driver stdout.txt", "wb");
     var error = fopen("driver stderr.txt", "wb");
     var ok = output != null;
-    if ok {
-        ok = error != null;
-    }
+    ok &&= error != null;
     driver_check(ok, "capture files");
     var saved_output = driver_test_dup(1);
     var saved_error = driver_test_dup(2);
     ok = saved_output >= 0;
-    if ok {
-        ok = saved_error >= 0;
-    }
+    ok &&= saved_error >= 0;
     driver_check(ok, "saved output descriptors");
     driver_test_dup2(driver_test_file(output), 1);
     driver_test_dup2(driver_test_file(error), 2);

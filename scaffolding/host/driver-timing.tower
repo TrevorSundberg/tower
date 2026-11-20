@@ -72,12 +72,12 @@ export fn driver_timing_value(timing: DriverTiming*, name: u8*, nanoseconds: u64
             timing.present[i] = true;
             return;
         }
-        i = i + 1;
+        i++;
     }
 }
 
 export fn driver_timing_mark(timing: DriverTiming*, enabled: bool, name: u8*): void {
-    if enabled {} else {
+    if !enabled {
         return;
     }
     var missing = timing == null;
@@ -102,41 +102,27 @@ fn driver_timing_render(out: ByteBuffer*, timing: DriverTiming*): bool {
     var i: usize = 0;
     while i < 11 {
         if timing.present[i] {
-            if first {} else {
-                if ok {
-                    ok = driver_text(out, ",");
-                }
+            if !first {
+                ok &&= driver_text(out, ",");
             }
             first = false;
-            if ok {
-                ok = driver_text(out, "\"");
-            }
-            if ok {
-                ok = driver_text(out, driver_timing_name(i));
-            }
-            if ok {
-                ok = driver_text(out, "\":");
-            }
+            ok &&= driver_text(out, "\"");
+            ok &&= driver_text(out, driver_timing_name(i));
+            ok &&= driver_text(out, "\":");
             var whole = timing.values[i] / 1000000;
             var fraction = timing.values[i] % 1000000;
-            if ok {
-                ok = host_json_unsigned(out, whole);
-            }
-            if ok {
-                ok = driver_text(out, ".");
-            }
+            ok &&= host_json_unsigned(out, whole);
+            ok &&= driver_text(out, ".");
             var divisor: u64 = 100000;
             while divisor != 0 {
                 var digit = fraction / divisor;
                 digit = digit + 48;
-                if ok {
-                    ok = bytes_push(out, convert(u8, digit));
-                }
+                ok &&= bytes_push(out, convert(u8, digit));
                 fraction = fraction % divisor;
                 divisor = divisor / 10;
             }
         }
-        i = i + 1;
+        i++;
     }
     if ok {
         ok = driver_text(out, "}\n");

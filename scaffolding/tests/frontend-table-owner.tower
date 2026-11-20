@@ -45,7 +45,7 @@ enum TableOwnerFixture: u32 {
 }
 
 fn table_owner_check(ok: bool, code: i32): void {
-    if ok {} else {
+    if !ok {
         puts("Parser table ownership check failed");
         fflush(null);
         exit(code);
@@ -130,7 +130,7 @@ fn table_owner_snapshot_tests(): void {
         table_owner_check(ok, 15);
         ok = lr_grammar_symbol_node(grammar, index) == null;
         table_owner_check(ok, 16);
-        index = index + 1;
+        index++;
     }
     frontend_format_text(lr_grammar_capture(grammar, 1), "value");
     entity_release(root);
@@ -178,7 +178,7 @@ fn table_owner_modes_tests(): void {
         var ok = lr_runtime_conflict(table.runtime, &conflict) == false;
         table_owner_check(ok, 32);
         parser_table_destroy(table);
-        mode = mode + 1;
+        mode++;
     }
     entity_release(root);
     root = table_owner_grammar(&kinds, TableOwnerFixture.EmptyClosure);
@@ -260,7 +260,7 @@ fn table_owner_failure_tests(): void {
         parser_table_destroy(table);
         var ok = tower_test_buffer_count() == buffers;
         table_owner_check(ok, 53);
-        budget = budget + 1;
+        budget++;
     }
     entity_release(root);
     table_owner_check(compiler_world_dispose(world), 54);

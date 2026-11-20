@@ -14,7 +14,7 @@ fn driver_windows_quote(out: ByteBuffer*, argument: u8*): bool {
         var c = argument[i];
         match c {
             92 => {
-                slashes = slashes + 1;
+                slashes++;
             }
             _ => {
                 var count = slashes;
@@ -27,10 +27,8 @@ fn driver_windows_quote(out: ByteBuffer*, argument: u8*): bool {
                     count = count * 2;
                 }
                 while count != 0 {
-                    if ok {
-                        ok = bytes_push(out, 92);
-                    }
-                    count = count - 1;
+                    ok &&= bytes_push(out, 92);
+                    count--;
                 }
                 slashes = 0;
                 if end {
@@ -38,22 +36,14 @@ fn driver_windows_quote(out: ByteBuffer*, argument: u8*): bool {
                 }
                 var quote = c == 34;
                 if quote {
-                    if ok {
-                        ok = bytes_push(out, 92);
-                    }
+                    ok &&= bytes_push(out, 92);
                 }
-                if ok {
-                    ok = bytes_push(out, c);
-                }
+                ok &&= bytes_push(out, c);
             }
         }
-        i = i + 1;
+        i++;
     }
-    if ok {
-        ok = bytes_push(out, 34);
-    }
-    if ok {
-        ok = host_text_terminate(out);
-    }
+    ok &&= bytes_push(out, 34);
+    ok &&= host_text_terminate(out);
     return ok;
 }

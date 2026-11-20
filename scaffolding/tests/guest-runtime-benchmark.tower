@@ -44,7 +44,7 @@ export fn guest_runtime_benchmark(use_tower: bool, rounds: usize): u64 {
                 break;
             }
             var size = i * 17;
-            size = size + 1;
+            size++;
             var pointer = benchmark_allocate(heap, size);
             var failed = pointer == null;
             if failed {
@@ -52,7 +52,7 @@ export fn guest_runtime_benchmark(use_tower: bool, rounds: usize): u64 {
             }
             pointers[i] = pointer;
             pointer[0] = convert(u8, i);
-            i = i + 1;
+            i++;
         }
         // Odd/even release order exercises address-ordered insertion/coalescing.
         var parity: usize = 0;
@@ -72,9 +72,9 @@ export fn guest_runtime_benchmark(use_tower: bool, rounds: usize): u64 {
                 benchmark_free(heap, pointer);
                 i = i + 2;
             }
-            parity = parity + 1;
+            parity++;
         }
-        round = round + 1;
+        round++;
     }
     free(backing);
     return sum;

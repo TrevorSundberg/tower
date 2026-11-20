@@ -43,6 +43,8 @@ struct SyntaxNode {
     start: usize;
     end: usize;
     compiled: SyntaxPattern*;
+    precedence: u32;
+    associativity: u32;
 }
 
 // Provenance is metadata on shared entities, retained independently of sessions.

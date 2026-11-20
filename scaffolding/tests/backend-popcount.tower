@@ -11,8 +11,8 @@ fn population_mask(T: type, value: u64): T {
     var left = sizeof(T) * 8;
     while left != 0 {
         maximum = maximum * 2;
-        maximum = maximum + 1;
-        left = left - 1;
+        maximum++;
+        left--;
     }
     var masked = value & maximum;
     return convert(T, masked);
@@ -37,7 +37,7 @@ fn population(T: type, value: T): T {
     var divisor: T = 1;
     while shift != 0 {
         divisor = divisor * 2;
-        shift = shift - 1;
+        shift--;
     }
     var count = value / divisor;
     return count;
@@ -47,7 +47,7 @@ fn verify(T: type, value: T, wanted: T): void {
     var actual = population(T, value);
     var wrong = actual != wanted;
     if wrong {
-        failures = failures + 1;
+        failures++;
     }
 }
 
@@ -69,7 +69,7 @@ while i < 256 {
     var wide = convert(u64, i) * 72340172838076673;
     var wide_count = convert(u64, wanted) * 8;
     verify(u64, wide, wide_count);
-    i = i + 1;
+    i++;
 }
 verify(u32, 4294967295, 32);
 verify(u32, 2147483648, 1);

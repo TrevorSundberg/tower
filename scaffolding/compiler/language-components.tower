@@ -13,6 +13,7 @@ import 'syntax-types';
 import 'semantic-generic-info';
 import 'language-generics';
 import 'inspection-policy';
+import 'semantic-expressions';
 
 extern fn entity_component_at(node: void*, index: usize): void*;
 
@@ -22,9 +23,7 @@ extern fn entity_component_type(component: void*): void*;
 fn language_function_description(value: FoundationNode*): u8* {
     var inputs = value.parameters.length != 0;
     var no_result = value.type.scalar == SVoid();
-    if no_result {
-        no_result = value.type.pointers == 0;
-    }
+    no_result &&= value.type.pointers == 0;
     if inputs {
         if no_result {
             return "Reusable code you run by calling its name. Parameters are the named inputs you supply; void means it finishes without returning a value.";
@@ -87,9 +86,7 @@ fn language_foundation_present(node: void*, candidate: LanguageCandidate*): void
         candidate.subject = value.target;
         var target = sem_get(value.target);
         var resolved = target != null;
-        if resolved {
-            resolved = target.binding != null;
-        }
+        resolved &&= target.binding != null;
         if resolved {
             candidate.subject = target.binding;
         }
@@ -100,9 +97,7 @@ fn language_foundation_present(node: void*, candidate: LanguageCandidate*): void
         candidate.description = "A pointer holds a memory address. This reads the value stored at that address.";
         var owner = sem_get(sem_parent(node));
         var destination = owner != null;
-        if destination {
-            destination = owner.target == node;
-        }
+        destination &&= owner.target == node;
         if destination {
             candidate.description = "A pointer holds a memory address. This changes the value at that address, not the address held by the pointer.";
         }
@@ -127,9 +122,7 @@ fn language_foundation_present(node: void*, candidate: LanguageCandidate*): void
             }
             var owner = sem_get(ancestor);
             var function = owner != null;
-            if function {
-                function = owner.kind == KFunction();
-            }
+            function &&= owner.kind == KFunction();
             if function {
                 candidate.subject = ancestor;
                 candidate.structural = false;
@@ -145,12 +138,8 @@ fn language_foundation_present(node: void*, candidate: LanguageCandidate*): void
         var parent = sem_parent(node);
         var owner = sem_get(parent);
         var body = owner != null;
-        if body {
-            body = owner.kind == KFunction();
-        }
-        if body {
-            body = owner.body == node;
-        }
+        body &&= owner.kind == KFunction();
+        body &&= owner.body == node;
         if body {
             candidate.subject = parent;
             candidate.structural = false;
@@ -273,6 +262,15 @@ fn language_kind(value: FoundationNode*): u8* {
     if hover_condition3 {
         return "syntax";
     }
+    if value.kind == SurfaceSelect() { return "conditional expression"; }
+    if value.kind == SurfaceAnd() || value.kind == SurfaceOr() { return "logical expression"; }
+    if value.kind == SurfaceAssign() { return "assignment"; }
+    if value.kind == SurfaceModify() { return "increment or decrement"; }
+    if value.kind == SurfaceComma() { return "comma expression"; }
+    if value.kind == SurfaceShift() { return "shift"; }
+    if value.kind == SurfaceCompare() { return "three-way comparison"; }
+    if value.kind == SurfaceCoalesce() { return "null coalescing"; }
+    if sem_surface_optional(value) { return "null-conditional access"; }
     var hover_condition4 = value.kind == KFunction();
     if hover_condition4 {
         return "function";
@@ -303,12 +301,8 @@ fn language_kind(value: FoundationNode*): u8* {
     var hover_condition10 = value.kind == KOperand();
     if hover_condition10 {
         var member = value.constant;
-        if member {
-            member = value.type.pointers == 0;
-        }
-        if member {
-            member = semantic_enum(&value.type);
-        }
+        member &&= value.type.pointers == 0;
+        member &&= semantic_enum(&value.type);
         if member {
             return "enum member";
         }

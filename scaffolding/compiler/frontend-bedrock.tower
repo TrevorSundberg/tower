@@ -32,7 +32,7 @@ fn frontend_bedrock_entity(b: FrontendBedrock*, kind: u32, parent: void*): void*
     }
     var node = entity_create_related(b.kinds.syntax);
     var ok = node != null;
-    if ok {} else {
+    if !ok {
         b.failed = true;
         return null;
     }
@@ -47,12 +47,10 @@ fn frontend_bedrock_entity(b: FrontendBedrock*, kind: u32, parent: void*): void*
             var owner = frontend_syntax(parent, b.kinds.syntax);
             var needed = owner.items.length + 1;
             ok = vector_reserve(void*, &owner.items, needed);
-            if ok {
-                ok = entity_attach(node, parent, "");
-            }
+            ok &&= entity_attach(node, parent, "");
             if ok {
                 owner.items.data[owner.items.length] = node;
-                owner.items.length = owner.items.length + 1;
+                owner.items.length++;
                 entity_release(node);
             }
         }
@@ -72,7 +70,7 @@ fn frontend_bedrock_rule(b: FrontendBedrock*, name: u8*): void {
     }
     var value = frontend_syntax(b.rule, b.kinds.syntax);
     var ok = node_text_set(&value.name, name);
-    b.failed = ok == false;
+    b.failed = !ok;
 }
 
 fn frontend_bedrock_alternative(b: FrontendBedrock*): void {
@@ -87,10 +85,8 @@ fn frontend_bedrock_term(b: FrontendBedrock*, parent: void*, text: u8*, capture:
     var value = frontend_syntax(node, b.kinds.syntax);
     value.literal = literal;
     var ok = node_text_set(&value.text, text);
-    if ok {
-        ok = node_text_set(&value.capture, capture);
-    }
-    b.failed = ok == false;
+    ok &&= node_text_set(&value.capture, capture);
+    b.failed = !ok;
     return node;
 }
 
@@ -102,17 +98,13 @@ fn frontend_bedrock_token(b: FrontendBedrock*, kind: u32, name: u8*, text: u8*, 
     var value = frontend_syntax(node, b.kinds.syntax);
     value.contextual = contextual;
     var ok = node_text_set(&value.name, name);
-    if ok {
-        ok = node_text_set(&value.text, text);
-    }
-    if ok {
-        ok = node_text_set(&value.style, style);
-    }
+    ok &&= node_text_set(&value.text, text);
+    ok &&= node_text_set(&value.style, style);
     if ok {
         value.compiled = frontend_pattern_compile(&b.patterns, b.kinds, text);
         ok = value.compiled != null;
     }
-    b.failed = ok == false;
+    b.failed = !ok;
 }
 
 fn frontend_bedrock_comment(b: FrontendBedrock*, text: u8*): void {
@@ -122,7 +114,7 @@ fn frontend_bedrock_comment(b: FrontendBedrock*, text: u8*): void {
     var document = frontend_syntax(b.document, b.kinds.syntax);
     var first = frontend_syntax(document.items.data[0], b.kinds.syntax);
     var ok = syntax_comments_push(&first.comments, text, syntax_text_length(text));
-    b.failed = ok == false;
+    b.failed = !ok;
 }
 
 // Fixed seed definitions follow. They are ordinary constructors, not a native
@@ -133,7 +125,7 @@ export fn frontend_bedrock_create(kinds: FrontendKinds*): void* {
     fill(&b, 0, sizeof(FrontendBedrock));
     b.kinds = kinds;
     var ready = frontend_pattern_table(&b.patterns, kinds);
-    b.failed = ready == false;
+    b.failed = !ready;
     b.document = frontend_bedrock_entity(&b, 0, null);
     frontend_bedrock_token(&b, 3, "Whitespace", "[ \\t\\r\\n]+", "", false);
     frontend_bedrock_token(&b, 3, "LineComment", "\\/\\/[^\\r\\n]*", "comment", false);
@@ -172,7 +164,7 @@ export fn frontend_bedrock_create(kinds: FrontendKinds*): void* {
     frontend_bedrock_term(&b, b.alternative, "GrammarTemplate", "", false);
     frontend_bedrock_alternative(&b);
     var exclusion = frontend_bedrock_term(&b, b.alternative, "", "", false);
-    if b.failed {} else {
+    if !b.failed {
         var term = frontend_syntax(exclusion, kinds.syntax);
         term.terminal_set = true;
     }

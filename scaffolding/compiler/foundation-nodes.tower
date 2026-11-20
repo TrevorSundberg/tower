@@ -107,7 +107,7 @@ export fn foundation_name_append(value: vector(u8)*, byte: u8): bool {
     var ok = vector_reserve(u8, value, needed);
     if ok {
         value.data[value.length] = byte;
-        value.length = value.length + 1;
+        value.length++;
         value.data[value.length] = 0;
     }
     return ok;

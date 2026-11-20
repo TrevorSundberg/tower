@@ -86,8 +86,10 @@ test('quoted capture names use shared Identifier decoding and survive template f
   assert.ok(use.events.at(-1).nodes.some(node => node.label === '42'));
 });
 
-test('bedrock is the common formatter output of the native grammar entities and round trips', () => {
-  assert.equal(bedrock, tower.bedrockSeed());
+test('bedrock extends the immutable native seed and round trips through the common formatter', () => {
+  const seed = tower.bedrockSeed();
+  assert.ok(bedrock.startsWith(seed));
+  assert.doesNotMatch(seed, /GrammarPrecedence/);
   const first = inspect(bedrock, 'bedrock');
   assert.equal(first.end.status, 'done', first.end.error);
   assert.equal(first.formatted.source, bedrock);
@@ -135,8 +137,19 @@ test('formatting retains declaration order, replace versus extend, holes and com
 });
 
 test('bedrock keyword edits affect following declarations, foundation and source without mutating the seed', () => {
-  const edited = bedrock.replace("'parse'", "'rule'").replace("'token'", "'lex'").replace("'skip'", "'ignore'")
-    .replace(/^parse (?!GrammarDeclaration\b)/gm, 'rule ');
+  const seed = tower.bedrockSeed();
+  let declarationSeen = false, tokenSeen = false, skipSeen = false;
+  const edited = bedrock.replaceAll("'parse'", "'rule'").replaceAll("'token'", "'lex'").replaceAll("'skip'", "'ignore'")
+    .split('\n').map(line => {
+      let result = line;
+      if (declarationSeen) result = result.replace(/^parse /, 'rule ');
+      if (tokenSeen) result = result.replace(/^token /, 'lex ');
+      if (skipSeen) result = result.replace(/^skip /, 'ignore ');
+      if (line.startsWith('parse GrammarDeclaration ')) declarationSeen = true;
+      if (line.startsWith('parse GrammarTokenDeclaration ')) tokenSeen = true;
+      if (line.startsWith('parse GrammarSkipDeclaration ')) skipSeen = true;
+      return result;
+    }).join('\n');
   const pinned = tower.create('print(7);');
   try {
     tower.configureBedrock(edited);
@@ -153,7 +166,7 @@ test('bedrock keyword edits affect following declarations, foundation and source
     tower.reset(pinned, "parse Extra = Number;print(7);");
     assert.equal(runToEnd(tower, pinned).end.status, 'done');
     assert.notEqual(inspect(edited.replace(/^parse /gm, 'rule '), 'bedrock').end.status, 'done');
-    assert.equal(tower.bedrockSeed(), bedrock);
+    assert.equal(tower.bedrockSeed(), seed);
   } finally { tower.destroy(pinned); restore(); }
 });
 

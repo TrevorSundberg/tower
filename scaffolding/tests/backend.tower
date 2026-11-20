@@ -17,9 +17,7 @@ fn backend_test_target(triple: u8*, width: u32): bool {
         return false;
     }
     var ok = b.error.length == 0;
-    if ok {
-        ok = b.pointer_bytes == width;
-    }
+    ok &&= b.pointer_bytes == width;
     backend_close(b);
     return ok;
 }
@@ -31,14 +29,14 @@ export fn backend_tests(): i32 {
         return 90;
     }
     var ok = backend_test_target("wasm32-unknown-unknown", 4);
-    var failed = ok == false;
+    var failed = !ok;
     if failed {
         return 1;
     }
     var b = backend_open("not-a-real-target");
     ok = b.error.length != 0;
     backend_close(b);
-    failed = ok == false;
+    failed = !ok;
     if failed {
         return 2;
     }
@@ -49,25 +47,17 @@ export fn backend_tests(): i32 {
     LLVMPositionBuilderAtEnd(b.builder, block);
     LLVMBuildRet(b.builder, LLVMConstInt(b.i32, 42, 0));
     ok = backend_verify(b);
-    if ok {
-        ok = backend_optimize(b, false);
-    }
-    if ok {
-        ok = backend_contains(b.optimized, "ret i32 42");
-    }
-    if ok {
-        ok = backend_emit(b);
-    }
+    ok &&= backend_optimize(b, false);
+    ok &&= backend_contains(b.optimized, "ret i32 42");
+    ok &&= backend_emit(b);
     if ok {
         var decoder = backend_disassemble(backend_bytes(b), backend_size(b), "wasm32-unknown-unknown");
-        ok = decoder.failed == false;
-        if ok {
-            ok = backend_contains(backend_disassembly_text(decoder), "i32.const");
-        }
+        ok = !decoder.failed;
+        ok &&= backend_contains(backend_disassembly_text(decoder), "i32.const");
         backend_disassembly_close(decoder);
     }
     backend_close(b);
-    failed = ok == false;
+    failed = !ok;
     if failed {
         return 3;
     }
@@ -78,11 +68,9 @@ export fn backend_tests(): i32 {
     LLVMPositionBuilderAtEnd(b.builder, block);
     LLVMBuildRetVoid(b.builder);
     ok = backend_verify(b) == false;
-    if ok {
-        ok = b.error.length != 0;
-    }
+    ok &&= b.error.length != 0;
     backend_close(b);
-    failed = ok == false;
+    failed = !ok;
     if failed {
         return 4;
     }
@@ -98,32 +86,20 @@ export fn backend_tests(): i32 {
     var decoder = backend_disassemble(&malformed[0], 10, "wasm32-unknown-unknown");
     ok = decoder.failed;
     backend_disassembly_close(decoder);
-    failed = ok == false;
+    failed = !ok;
     if failed {
         return 5;
     }
     var link = backend_link_create();
     ok = backend_link_add_input(link, "../escape.o", &malformed[0], 10) == false;
-    if ok {
-        ok = backend_link_add_input(link, "tower-input.o", &malformed[0], 10) == false;
-    }
-    if ok {
-        ok = backend_link_add_input(link, "library.o", &malformed[0], 10);
-    }
-    if ok {
-        ok = link.inputs.length == 1;
-    }
-    if ok {
-        ok = backend_link_add_input(link, "library.o", &malformed[0], 4);
-    }
-    if ok {
-        ok = link.inputs.length == 1;
-    }
-    if ok {
-        ok = link.inputs.data[0].bytes.length == 4;
-    }
+    ok &&= backend_link_add_input(link, "tower-input.o", &malformed[0], 10) == false;
+    ok &&= backend_link_add_input(link, "library.o", &malformed[0], 10);
+    ok &&= link.inputs.length == 1;
+    ok &&= backend_link_add_input(link, "library.o", &malformed[0], 4);
+    ok &&= link.inputs.length == 1;
+    ok &&= link.inputs.data[0].bytes.length == 4;
     backend_link_close(link);
-    failed = ok == false;
+    failed = !ok;
     if failed {
         return 6;
     }
@@ -144,7 +120,7 @@ export fn backend_tests(): i32 {
         }
     }
     backend_close(b);
-    failed = ok == false;
+    failed = !ok;
     if failed {
         return 7;
     }

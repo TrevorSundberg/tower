@@ -13,6 +13,42 @@ Do NOT modify todo.txt
   pull, rebase, deployment or push is blocked, report the specific blocker;
   never claim an unfinished step succeeded or force-push to bypass it.
 
+## Writing Tower code
+
+- In files that import `tower`, prefer its normal expression syntax: nested
+  calls, parentheses, arithmetic/comparison/bitwise operators, `!`/`~`, `&&`/`||`,
+  `?:`, and prefix/postfix `++`/`--`. Use clear expressions instead of generated
+  single-use temporaries or empty `if ok {} else { ... }` success branches.
+  Keep named intermediates when they explain a concept or make effects clearer.
+- Prefer compound assignments for updates to the same place, including `&&=`,
+  `||=`, and `??=`. They share the underlying binary operator semantics and
+  capture the destination exactly once. Logical/null compounds evaluate their
+  right side only when needed; preserve that behavior when simplifying code.
+- Use `??` for lazy pointer fallbacks and `?.`/`?[]` for guarded access. Pointer
+  results can remain null; scalar guarded results currently require a `??`
+  fallback. Do not pretend an absent scalar is zero or invent nullable scalar
+  storage. `is null`/`is not null` are available; `.` handles struct pointers,
+  and Tower has no `->` operator. `>>>`/`>>>=` perform logical right shift.
+- Use named constants for operation tags, flags and sentinels. Prefer a typed
+  complement such as `~convert(u64, 0)` when expressing an all-ones mask. Do not
+  replace meaningful numeric data or stable external ABI values blindly.
+- Operators retain Tower's exact typing, left-to-right evaluation, wrapping
+  arithmetic and explicit conversions. Shift counts are masked by width minus
+  one; `>>` extends signed values and `>>>` zero-fills. Signed-minimum literals
+  must keep their exact magnitude until range checking; never overflow a signed
+  host intermediate or add interpreter-only arithmetic behavior.
+- Keep this syntax in `tower.tower` and its shared-node checking/lowering above
+  Foundation. Numeric grammar annotations (`@ N left/right/nonassoc`, including
+  `L>R`/`R<L`) resolve eligible conflicts during table construction; ordinary
+  recursive precedence rules remain supported. Associativity does not authorize
+  commuting/reordering effects. Foundation and Bedrock stay small.
+- When adding an operator, reuse the common operation classification, type
+  rules and compound-assignment lowering. Grammar may list separate `op=`
+  tokens; avoid duplicating each operator's semantics for its assignment form.
+  Validate sequencing, aliasing, lazy effects, canonical Foundation round trips,
+  both interpreters and LLVM/Wasm. Audit eligible existing Tower code too, while
+  preserving Foundation-only examples and intentionally invalid test fixtures.
+
 ## Compiler direction
 
 - Call Tower's built-in primitives and bootstrap grammar its **foundation**.

@@ -83,12 +83,11 @@ var raw: usize = bits(usize, &value); var exists: bool = raw != 0; print(exists)
 });
 test('increment and nested calls retain static errors before execution',()=>{
  for(const [source,message] of [
-  ['var n: u32 = 5; n++;',/Expected i32\*, got u32\*/],
-  ['var n: bool = false; ++n;',/Expected i32\*, got bool\*/],
+  ['var n: bool = false; ++n;',/integer operands/],
   ['print(post_increment(5));',/integer type|Expected i32\*/],
   ['var x: i32 = 1; print(print(x));',/void call cannot be used as a value/],
   ['post_increment(&missing);',/Unknown local/],
-  ['5++;',/Unexpected/],
+  ['5++;',/addressable location/],
   ['fn identity(x: i32): i32 { return x; } print('+ 'identity('.repeat(140)+'1'+')'.repeat(140)+');',/expression nesting limit/],
  ]){const h=tower.compile(definitions+'\nprint(99);'+source);try{const result=tower.execute(h);assert.equal(result.status,'error');assert.equal(result.steps,0);assert.equal(result.output,'');assert.match(result.error,message);}finally{tower.destroyExecution(h);}}
 });

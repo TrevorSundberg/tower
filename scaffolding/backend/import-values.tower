@@ -13,7 +13,7 @@ fn bi_pow2(width: u32): u64 {
             return result;
         }
         result = result * 2;
-        i = i + 1;
+        i++;
     }
 }
 
@@ -52,10 +52,10 @@ fn bi_memory_load(c: BackendImport*, address: void*, type: void*): void* {
             }
             var at = bi_offset(c, address, bi_const(c, 8, convert(u64, i)));
             var byte = bi_cast(c, bi_load(c, at, 5), 7, false);
-            var shift = i * 8;
+            var shift = i *8;
             byte = bi_binary(c, 2, byte, bi_const(c, 7, bi_pow2(shift)), 7);
             result = bi_binary(c, 6, result, byte, 7);
-            i = i + 1;
+            i++;
         }
         return bi_mask(c, result, type);
     }
@@ -79,7 +79,7 @@ fn bi_memory_store(c: BackendImport*, address: void*, value: void*, type: void*)
             var at = bi_offset(c, address, bi_const(c, 8, convert(u64, i)));
             bi_store(c, at, byte);
             value = bi_binary(c, 3, value, bi_const(c, 7, 256), 7);
-            i = i + 1;
+            i++;
         }
     }
     bi_store(c, address, value);
@@ -112,7 +112,7 @@ fn bi_mask(c: BackendImport*, value: void*, type: void*): void* {
         if ordinary {
             return value;
         }
-        var mask = bi_pow2(width) - 1;
+        var mask = bi_pow2(width) -1;
         return bi_binary(c, 5, value, bi_const(c, scalar, mask), scalar);
     }
     return value;
@@ -122,8 +122,8 @@ fn bi_signed(c: BackendImport*, value: void*, type: void*): void* {
     var width = LLVMGetIntTypeWidth(type);
     value = bi_cast(c, value, 7, false);
     var full = width == 64;
-    if full {} else {
-        var sign_width = width - 1;
+    if !full {
+        var sign_width = width -1;
         var sign = bi_const(c, 7, bi_pow2(sign_width));
         value = bi_binary(c, 7, value, sign, 7);
         value = bi_binary(c, 1, value, sign, 7);
@@ -153,12 +153,12 @@ fn bi_gep(c: BackendImport*, instruction: void*): void* {
             bytes = bi_const(c, 8, LLVMOffsetOfElement(c.backend.layout, type, field));
             type = LLVMStructGetTypeAtIndex(type, field);
         } else {
-            if first {} else {
+            if !first {
                 type = LLVMGetElementType(type);
             }
             var stride = LLVMABISizeOfType(c.backend.layout, type);
             var index_width = LLVMGetIntTypeWidth(LLVMTypeOf(index));
-            var pointer_width = c.backend.pointer_bytes * 8;
+            var pointer_width = c.backend.pointer_bytes *8;
             var wider_pointer = pointer_width > index_width;
             bytes = bi_value(c, index);
             if wider_pointer {
@@ -169,7 +169,7 @@ fn bi_gep(c: BackendImport*, instruction: void*): void* {
             bytes = bi_binary(c, 2, bytes, bi_const(c, 8, stride), 8);
         }
         value = bi_offset(c, value, bytes);
-        i = i + 1;
+        i++;
     }
 }
 
@@ -310,9 +310,9 @@ fn bi_shift(c: BackendImport*, op: u32, a: void*, b: void*, type: void*, shift: 
         if logical {
             return bi_binary(c, 3, a, factor, scalar);
         }
-        var sign_width = width - 1;
+        var sign_width = width -1;
         var negative = bi_binary(c, 13, a, bi_const(c, scalar, bi_pow2(sign_width)), 2);
-        var mask_bits = bi_pow2(width) - 1;
+        var mask_bits = bi_pow2(width) -1;
         var mask = bi_const(c, scalar, mask_bits);
         var inverted = bi_binary(c, 7, a, mask, scalar);
         inverted = bi_binary(c, 3, inverted, factor, scalar);
@@ -341,7 +341,7 @@ fn bi_shift(c: BackendImport*, op: u32, a: void*, b: void*, type: void*, shift: 
         var product = bi_binary(c, 2, bi_ref(c, power), factor, 7);
         bi_assign(c, bi_ref(c, power), product);
         c.block = outer;
-        i = i + 1;
+        i++;
     }
     var left = op == 20;
     if left {
@@ -349,10 +349,10 @@ fn bi_shift(c: BackendImport*, op: u32, a: void*, b: void*, type: void*, shift: 
     }
     var arithmetic = op == 22;
     if arithmetic {
-        var sign_width = width - 1;
+        var sign_width = width -1;
         var sign = bi_pow2(sign_width);
         var negative = bi_binary(c, 13, a, bi_const(c, 7, sign), 2);
-        var mask = bi_pow2(width) - 1;
+        var mask = bi_pow2(width) -1;
         var inverted = bi_binary(c, 7, a, bi_const(c, 7, mask), 7);
         inverted = bi_binary(c, 3, inverted, bi_ref(c, power), 7);
         inverted = bi_binary(c, 7, inverted, bi_const(c, 7, mask), 7);

@@ -127,7 +127,7 @@ fn fm_emit(f: FMState*, op: usize, a: usize, b: usize, c: usize): usize {
         source.offset = f.current_offset;
         fm_push(FMSource, &f.sources, &source);
     }
-    f.instructions = f.instructions + 1;
+    f.instructions++;
     // Branch target extensions are one full word; common branch registers still
     // fit in the header. Patching never changes instruction boundaries.
     var jump = op == 13;
@@ -161,7 +161,7 @@ fn fm_emit(f: FMState*, op: usize, a: usize, b: usize, c: usize): usize {
 
     wide = im_or(wide, fm_condition_4);
     if wide {
-        f.wide_instructions = f.wide_instructions + 1;
+        f.wide_instructions++;
         fm_word(f, 255);
         fm_word(f, op);
         fm_word(f, a);
@@ -200,7 +200,7 @@ fn fm_constant(f: FMState*, value: u64): usize {
         if same {
             break;
         }
-        index = index + 1;
+        index++;
     }
     var append = index == f.constants.length;
     if append {
@@ -232,7 +232,7 @@ fn fm_type(f: FMState*, type: FoundationType*): usize {
         if same {
             return index;
         }
-        index = index + 1;
+        index++;
     }
     im_storage_require(vector_push(FoundationType*, &f.types, type));
     return index;
@@ -269,7 +269,7 @@ fn fm_function(f: FMState*, node: void*): usize {
         if same {
             return index;
         }
-        index = index + 1;
+        index++;
     }
     var n = im_node(node);
     var function: FMFunction;
@@ -291,7 +291,7 @@ fn fm_function(f: FMState*, node: void*): usize {
         value.size = im_type_size(&param.type);
         value.register_slot = 0;
         fm_push(FMParameter, &f.parameters, &value);
-        i = i + 1;
+        i++;
     }
     fm_push(FMFunction, &f.functions, &function);
     return index;
@@ -314,7 +314,7 @@ fn fm_local(f: FMState*, node: void*): usize {
         if found {
             return convert(usize, f.locals.data[i].value);
         }
-        i = i + 1;
+        i++;
     }
 }
 
@@ -378,7 +378,7 @@ fn fm_collect_addresses(f: FMState*, node: void*): void {
             return;
         }
         fm_collect_addresses(f, n.items.data[i]);
-        i = i + 1;
+        i++;
     }
 }
 
@@ -399,9 +399,9 @@ fn fm_pin_locals(f: FMState*, index: usize, body: void*): void {
         if label {
             labeled = true;
         }
-        i = i + 1;
+        i++;
     }
-    var omit = labeled == false;
+    var omit = !labeled;
     if omit {
         return;
     }
@@ -433,18 +433,18 @@ fn fm_pin_locals(f: FMState*, index: usize, body: void*): void {
             }
             var escaped = f.escaped.data[j] == entry.key;
             memory = im_or(memory, escaped);
-            j = j + 1;
+            j++;
         }
         if memory {
             all_registers = false;
         }
         else {
             var register = fm_register(f);
-            register = register + 1;
+            register++;
             entry.value = convert(u64, register);
             fm_push(IMEntry, &f.locals, &entry);
         }
-        i = i + 1;
+        i++;
     }
     f.pinned = f.next_register;
     f.functions.data[index].pinned = f.pinned;
@@ -459,7 +459,7 @@ fn fm_pin_locals(f: FMState*, index: usize, body: void*): void {
         }
         var parameter = f.functions.data[index].parameters + i;
         f.parameters.data[parameter].register_slot = fm_local(f, node.parameters.data[i]);
-        i = i + 1;
+        i++;
     }
 }
 
@@ -561,7 +561,7 @@ fn fm_value(f: FMState*, node: void*): usize {
         var slot = fm_local(f, node);
         var in_register = slot != 0;
         if in_register {
-            slot = slot - 1;
+            slot--;
             return slot;
         }
         var binding = n;
@@ -601,7 +601,7 @@ fn fm_value(f: FMState*, node: void*): usize {
                 break;
             }
             fm_register(f);
-            i = i + 1;
+            i++;
         }
         i = 0;
         loop {
@@ -612,7 +612,7 @@ fn fm_value(f: FMState*, node: void*): usize {
             var arg = fm_value(f, n.items.data[i]);
             var dest = first + i;
             fm_emit(f, 1, dest, arg, 0);
-            i = i + 1;
+            i++;
         }
         fm_emit(f, 15, result, fm_function(f, n.binding), first);
         return result;
@@ -721,7 +721,7 @@ fn fm_statement(f: FMState*, node: void*, breaks: vector(usize)*, continue_pc: u
                 break;
             }
             fm_statement(f, n.items.data[i], breaks, continue_pc);
-            i = i + 1;
+            i++;
         }
         return;
     }
@@ -747,7 +747,7 @@ fn fm_statement(f: FMState*, node: void*, breaks: vector(usize)*, continue_pc: u
             var in_register = slot != 0;
             if in_register {
                 var value = fm_value(f, n.value);
-                slot = slot - 1;
+                slot--;
                 fm_emit(f, 1, slot, value, 0);
                 return;
             }
@@ -786,7 +786,7 @@ fn fm_statement(f: FMState*, node: void*, breaks: vector(usize)*, continue_pc: u
                 break;
             }
             fm_patch(f, local_breaks.data[i], 2, f.words.length);
-            i = i + 1;
+            i++;
         }
         vector_dispose(usize, &local_breaks);
         return;
@@ -860,7 +860,7 @@ export fn fast_interpreter_create(m: IMState*): FMState* {
         f.pinned = 0;
         f.locals.length = 0;
         var external = n.external;
-        if external {} else {
+        if !external {
             var body = n.body;
             var root = i == 0;
             if root {
@@ -872,7 +872,7 @@ export fn fast_interpreter_create(m: IMState*): FMState* {
             fm_emit(f, 16, fm_constant(f, 0), 0, 0);
         }
         f.functions.data[i].registers = f.max_register;
-        i = i + 1;
+        i++;
     }
     i = 0;
     loop {
@@ -883,16 +883,16 @@ export fn fast_interpreter_create(m: IMState*): FMState* {
         var j: usize = 0;
         loop {
             var end = j == f.labels.length;
-            var available = end == false;
+            var available = !end;
             im_storage_require(available);
             var matches = f.labels.data[j].key == f.jumps.data[i].key;
             if matches {
                 fm_patch(f, convert(usize, f.jumps.data[i].value), 2, convert(usize, f.labels.data[j].value));
                 break;
             }
-            j = j + 1;
+            j++;
         }
-        i = i + 1;
+        i++;
     }
     vector_dispose(IMEntry, &f.labels);
     vector_dispose(IMEntry, &f.jumps);
@@ -962,7 +962,7 @@ fn fm_offset(f: FMState*, pc: usize): usize {
     if empty {
         return 0;
     }
-    begin = begin - 1;
+    begin--;
     return f.sources.data[begin].offset;
 }
 
@@ -1011,7 +1011,7 @@ export fn fast_interpreter_step(m: IMState*, f: FMState*, budget: usize): void {
         }
         var pc = f.pc;
         var word = f.words.data[pc];
-        f.pc = pc + 1;
+        f.pc++;
         var fm_condition_28 = word & 255;
 
         var op = convert(usize, fm_condition_28);
@@ -1027,11 +1027,11 @@ export fn fast_interpreter_step(m: IMState*, f: FMState*, budget: usize): void {
         if wide {
             var at = pc + 1;
             op = convert(usize, f.words.data[at]);
-            at = at + 1;
+            at++;
             a = convert(usize, f.words.data[at]);
-            at = at + 1;
+            at++;
             b = convert(usize, f.words.data[at]);
-            at = at + 1;
+            at++;
             c = convert(usize, f.words.data[at]);
             f.pc = at + 1;
         } else {
@@ -1039,16 +1039,16 @@ export fn fast_interpreter_step(m: IMState*, f: FMState*, budget: usize): void {
             var branch = op == 14;
             if jump {
                 a = convert(usize, f.words.data[f.pc]);
-                f.pc = f.pc + 1;
+                f.pc++;
             }
             if branch {
                 b = convert(usize, f.words.data[f.pc]);
-                f.pc = f.pc + 1;
+                f.pc++;
             }
         }
         var r = &f.registers.data[f.register_base];
-        count = count + 1;
-        m.steps = m.steps + 1;
+        count++;
+        m.steps++;
         var trapping = op == 22;
         if trapping {
             f.preserve_error_offset = true;
@@ -1171,7 +1171,7 @@ export fn fast_interpreter_step(m: IMState*, f: FMState*, budget: usize): void {
                                                                         m.done = true;
                                                                     }
                                                                     else {
-                                                                        f.frames.length = f.frames.length - 1;
+                                                                        f.frames.length--;
                                                                         var frame = &f.frames.data[f.frames.length];
                                                                         f.pc = frame.pc;
                                                                         f.base = frame.base;
@@ -1231,7 +1231,7 @@ export fn fast_interpreter_step(m: IMState*, f: FMState*, budget: usize): void {
             }
         }
         if m.failed {
-            var locate = f.preserve_error_offset == false;
+            var locate = !f.preserve_error_offset;
             if locate {
                 m.error_offset = fm_offset(f, pc);
             }
@@ -1297,12 +1297,12 @@ fn fm_call(m: IMState*, f: FMState*, dest: usize, index: usize, first: usize, of
         var pinned = parameter.register_slot != 0;
         if pinned {
             var destination = register_base + parameter.register_slot;
-            destination = destination - 1;
+            destination--;
             f.registers.data[destination] = f.registers.data[arg];
         } else {
             im_write_size(m, convert(u64, address), f.registers.data[arg], parameter.size, offset);
         }
-        i = i + 1;
+        i++;
     }
     f.pc = function.entry;
 }

@@ -49,7 +49,7 @@ name_only: bool, syntax: void*, kind: void*): void {
     var absent = node == null;
     if absent { result.failed = true; return; }
     format_text(&f, name);
-    if name_only {} else {
+    if !name_only {
         format_text(&f, " = ");
         var begin = result.text.length;
         var part: FormatResult;
@@ -72,14 +72,14 @@ name_only: bool, syntax: void*, kind: void*): void {
                 while end > begin {
                     var prefix = result.text.data[end] & 192;
                     var continuation = prefix == 128;
-                    if continuation {} else { break; }
-                    end = end - 1;
+                    if !continuation { break; }
+                    end--;
                 }
                 result.text.length = end;
                 format_text(&f, " ...");
                 break;
             }
-            i = i + 1;
+            i++;
         }
         format_dispose(&part);
         var empty = result.text.length == begin;
@@ -123,12 +123,12 @@ struct FormatTreePair { left: void*; right: void*; }
 
 fn format_preview_bytes(left: u8*, left_size: usize, right: u8*, right_size: usize): bool {
     var same = left_size == right_size;
-    if same {} else { return false; }
+    if !same { return false; }
     var i: usize = 0;
     while i < left_size {
         same = left[i] == right[i];
-        if same {} else { return false; }
-        i = i + 1;
+        if !same { return false; }
+        i++;
     }
     return true;
 }
@@ -153,12 +153,10 @@ source_b: u8*, size_b: usize, syntax: void*, kind: void*, pending: vector(Format
     absent = y == null;
     if absent { return false; }
     var same = x.rule == y.rule;
-    if same {
-        same = format_preview_bytes(x.label.data, x.label.length, y.label.data, y.label.length);
-    }
+    same &&= format_preview_bytes(x.label.data, x.label.length, y.label.data, y.label.length);
     var count = entity_child_count(a);
-    if same { same = count == entity_child_count(b); }
-    if same {} else { return false; }
+    same &&= count == entity_child_count(b);
+    if !same { return false; }
     var leaf = x.rule == ParserNoIndex();
     if leaf {
         var invalid = x.start > size_a;
@@ -172,20 +170,20 @@ source_b: u8*, size_b: usize, syntax: void*, kind: void*, pending: vector(Format
         shorter = y.length < length_b;
         if shorter { length_b = y.length; }
         same = format_preview_bytes(&source_a[x.start], length_a, &source_b[y.start], length_b);
-        if same {} else { return false; }
+        if !same { return false; }
     }
     var needed = pending.length + count;
     var overflow = needed < pending.length;
     if overflow { return false; }
     var ok = vector_reserve(FormatTreePair, pending, needed);
-    if ok {} else { return false; }
+    if !ok { return false; }
     // Reverse push preserves source order while avoiding host recursion.
     while count != 0 {
-        count = count - 1;
+        count--;
         var next = &pending.data[pending.length];
         next.left = entity_child_at(a, count);
         next.right = entity_child_at(b, count);
-        pending.length = pending.length + 1;
+        pending.length++;
     }
     return true;
 }
@@ -203,7 +201,7 @@ source_b: u8*, size_b: usize, syntax: void*, kind: void*): bool {
     while same {
         var done = pending.length == 0;
         if done { break; }
-        pending.length = pending.length - 1;
+        pending.length--;
         pair.left = pending.data[pending.length].left;
         pair.right = pending.data[pending.length].right;
         same = format_preview_pair(&pair, source_a, size_a, source_b, size_b, syntax, kind, &pending);

@@ -42,16 +42,12 @@ struct LexiconChoice {
 
 fn lexicon_letter(byte: u8): bool {
     var valid = byte >= 97;
-    if valid {
-        valid = byte <= 122;
-    }
+    valid &&= byte <= 122;
     if valid {
         return true;
     }
     valid = byte >= 65;
-    if valid {
-        valid = byte <= 90;
-    }
+    valid &&= byte <= 90;
     if valid {
         return true;
     }
@@ -65,7 +61,7 @@ fn lexicon_word(text: u8*, length: usize): bool {
         return false;
     }
     var valid = lexicon_letter(text[0]);
-    if valid {} else {
+    if !valid {
         return false;
     }
     var index: usize = 1;
@@ -76,16 +72,14 @@ fn lexicon_word(text: u8*, length: usize): bool {
         }
         var byte = text[index];
         valid = lexicon_letter(byte);
-        if valid {} else {
+        if !valid {
             valid = byte >= 48;
-            if valid {
-                valid = byte <= 57;
-            }
-            if valid {} else {
+            valid &&= byte <= 57;
+            if !valid {
                 return false;
             }
         }
-        index = index + 1;
+        index++;
     }
 }
 
@@ -110,7 +104,7 @@ fn lexicon_prefix(source: u8*, length: usize, start: usize, text: u8*, count: us
         if different {
             return false;
         }
-        index = index + 1;
+        index++;
     }
 }
 
@@ -178,7 +172,7 @@ fn lexicon_accepts(runtime: LRRuntime*, state: usize, id: u32, choice: LexiconCh
     if invalid {
         return false;
     }
-    choice.checks = choice.checks + 1;
+    choice.checks++;
     var action: LRAction;
     return lr_runtime_action(runtime, state, id, &action);
 }
@@ -201,15 +195,13 @@ export fn lexicon_choose(value: SyntaxLexicon*, source: u8*, length: usize, star
         if eligible {
             var count = lex_table_match(entry.table, source, length, start);
             var selected = count > choice.length;
-            if selected {} else {
+            if !selected {
                 var tie = count != 0;
-                if tie {
-                    tie = count == choice.length;
-                }
+                tie &&= count == choice.length;
                 if tie {
                     if entry.contextual {
                         selected = lexicon_accepts(runtime, state, choice.id, choice);
-                        selected = selected == false;
+                        selected = !selected;
                     }
                 }
             }
@@ -220,7 +212,7 @@ export fn lexicon_choose(value: SyntaxLexicon*, source: u8*, length: usize, star
                 choice.skipped = entry.skipped;
             }
         }
-        index = index + 1;
+        index++;
     }
     index = 0;
     loop {
@@ -229,18 +221,14 @@ export fn lexicon_choose(value: SyntaxLexicon*, source: u8*, length: usize, star
             break;
         }
         var literal = &value.literals.data[index];
-        var eligible = declaration == false;
+        var eligible = !declaration;
         if literal.declaration {
             eligible = true;
         }
-        if eligible {} else {
-            eligible = lexicon_accepts(runtime, state, literal.id, choice);
-        }
+        eligible ||= lexicon_accepts(runtime, state, literal.id, choice);
         if eligible {
             eligible = literal.length >= choice.length;
-            if eligible {
-                eligible = lexicon_prefix(source, length, start, literal.text, literal.length);
-            }
+            eligible &&= lexicon_prefix(source, length, start, literal.text, literal.length);
             if eligible {
                 choice.length = literal.length;
                 choice.id = literal.id;
@@ -251,7 +239,7 @@ export fn lexicon_choose(value: SyntaxLexicon*, source: u8*, length: usize, star
                 choice.skipped = false;
             }
         }
-        index = index + 1;
+        index++;
     }
 }
 
@@ -274,7 +262,7 @@ export fn lexicon_skip(value: SyntaxLexicon*, source: u8*, length: usize, start:
                 choice.skipped = true;
             }
         }
-        index = index + 1;
+        index++;
     }
 }
 
@@ -289,7 +277,7 @@ export fn lexicon_identifier(value: SyntaxLexicon*, source: u8*, length: usize, 
         if entry.identifier {
             return lex_table_match(entry.table, source, length, start);
         }
-        index = index + 1;
+        index++;
     }
 }
 
@@ -310,7 +298,7 @@ export fn lexicon_declaration(value: SyntaxLexicon*, source: u8*, length: usize,
                     return true;
                 }
                 var entry = &value.tokens.data[position];
-                var eligible = entry.skipped == false;
+                var eligible = !entry.skipped;
                 if entry.contextual {
                     eligible = false;
                 }
@@ -321,9 +309,9 @@ export fn lexicon_declaration(value: SyntaxLexicon*, source: u8*, length: usize,
                         break;
                     }
                 }
-                position = position + 1;
+                position++;
             }
         }
-        index = index + 1;
+        index++;
     }
 }

@@ -4,7 +4,7 @@
 
 // Private, disposable LR analysis indexes. Grammar entities remain authoritative.
 // All indices use the current grammar's production/symbol order.
-struct LRProduction { size_t owner, begin, count; };
+struct LRProduction { size_t owner, begin, count; uint32_t precedence = 0, associativity = 0; };
 struct LRSymbol { size_t nonterminal; uint32_t first, last; };
 struct LRItem { size_t rule, position; uint32_t first, last; };
 struct SymbolRange { uint32_t first, last; };

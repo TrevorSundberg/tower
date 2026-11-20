@@ -13,7 +13,7 @@ extern fn driver_output_valid(emit: u8*): bool;
 // CLI-only composition of the existing parser. 0 continues, 1 is failure,
 // 2 is an already-reported successful --help/--version early exit.
 export fn driver_prepare(options: DriverOptions*, argc: usize, argv: u8**, target: u8*): i32 {
-    if driver_parse(options, argc, argv, target) {} else {
+    if !driver_parse(options, argc, argv, target) {
         match options.error {
             1 => {
                 driver_error("Missing argument for ", options.argument);
@@ -35,16 +35,14 @@ export fn driver_prepare(options: DriverOptions*, argc: usize, argv: u8**, targe
         driver_message(1, driver_help(), "", false);
         return 2;
     }
-    if driver_output_valid(options.emit) {} else {
+    if !driver_output_valid(options.emit) {
         driver_error("Unknown output kind: ", options.emit);
         return 1;
     }
     if driver_same(options.target, "roku") {
         var valid = driver_same(options.emit, "exe");
-        if valid {} else {
-            valid = driver_same(options.emit, "brightscript");
-        }
-        if valid {} else {
+        valid ||= driver_same(options.emit, "brightscript");
+        if !valid {
             driver_error("Roku target emits BrightScript source; use --emit brightscript", "");
             return 1;
         }

@@ -38,7 +38,7 @@ export fn interpreter_storage_dispose(m: IMState*): void {
         vector_dispose(IMTask, &frame.tasks);
         vector_dispose(IMEntry, &frame.values);
         vector_dispose(IMEntry, &frame.addresses);
-        i = i + 1;
+        i++;
     }
     vector_dispose(IMFrame, &m.frames);
     vector_dispose(IMEntry, &m.node_cache);
@@ -54,7 +54,7 @@ export fn interpreter_storage_dispose(m: IMState*): void {
 extern fn abort(): void;
 
 fn im_storage_require(ok: bool): void {
-    if ok {} else {
+    if !ok {
         abort();
     }
 }
@@ -127,12 +127,12 @@ fn im_map_take(map: vector(IMEntry)*, key: u64, found: bool*): u64 {
         return 0;
     }
     var same = map.data[index].key == key;
-    if same {} else {
+    if !same {
         return 0;
     }
     *found = true;
     var result = map.data[index].value;
-    map.length = map.length - 1;
+    map.length--;
     var tail = map.length - index;
     var bytes = tail * sizeof(IMEntry);
     var next = index + 1;
@@ -182,7 +182,7 @@ export fn im_frame_pop(m: IMState*): void {
     frame.tasks.length = 0;
     frame.values.length = 0;
     frame.addresses.length = 0;
-    m.frames.length = m.frames.length - 1;
+    m.frames.length--;
     m.frame_count = m.frames.length;
     m.task_count = 0;
     var nonempty = m.frames.length != 0;
@@ -209,7 +209,7 @@ export fn im_task_push(m: IMState*, node: void*, loop_resume: bool, phase: usize
 
 export fn im_task_pop(m: IMState*, task: IMTask*): void {
     var frame = im_frame(m);
-    frame.tasks.length = frame.tasks.length - 1;
+    frame.tasks.length--;
     copy(task, &frame.tasks.data[frame.tasks.length], sizeof(IMTask));
     m.task_count = frame.tasks.length;
 }
@@ -228,7 +228,7 @@ export fn im_free_neighbor(m: IMState*, key: u64, previous: bool, count: u64*): 
         if first {
             return 0;
         }
-        index = index - 1;
+        index--;
     }
     var end = index == map.length;
     if end {
@@ -249,7 +249,7 @@ export fn im_free_neighbors(m: IMState*, key: u64, result: IMNeighbors*): void {
     }
     var has_previous = index != 0;
     if has_previous {
-        index = index - 1;
+        index--;
         result.previous = map.data[index].key;
         result.previous_count = map.data[index].value;
     }

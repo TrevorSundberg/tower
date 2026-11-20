@@ -52,11 +52,11 @@ loop {
     var value: i32 = convert(i32, key);
     value = value * 3;
     ok = map_set(index, key, value);
-    if ok {} else {
+    if !ok {
         print(false);
         break;
     }
-    key = key + 1;
+    key++;
 }
 print(map.count);
 var answer: i32 = -1;

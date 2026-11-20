@@ -100,15 +100,15 @@ fn lr_parser_sequence_step(value: LRParser*, ready: bool, id: u32, error: bool, 
         }
     }
     if needs_input {
-        if ready {} else {
+        if !ready {
             return 0;
         }
     }
-    value.work.actions = value.work.actions + 1;
+    value.work.actions++;
     result.rule = runtime.sequence_rule;
     if complete {
         if needs_input {
-            var trailing = id != 4294967294;
+            var trailing = id != LRTokenEnd();
             if trailing {
                 return 4;
             }
@@ -125,7 +125,7 @@ fn lr_parser_sequence_step(value: LRParser*, ready: bool, id: u32, error: bool, 
         return 4;
     }
     var accepted = symbol_sequence_accepts(runtime.sequence, position, id);
-    if accepted {} else {
+    if !accepted {
         return 4;
     }
     var next = position + 1;
@@ -145,44 +145,44 @@ fn lr_parser_decide(value: LRParser*, ready: bool, id: u32, error: bool, result:
     action.state = lr_none();
     var use_default = false;
     if value.prefix {
-        if ready {} else {
+        if !ready {
             action.rule = lr_runtime_default(value.runtime, state);
             use_default = action.rule != lr_none();
         }
     }
     var found = use_default;
     if use_default {
-        value.work.actions = value.work.actions + 1;
+        value.work.actions++;
     } else {
-        if ready {} else {
-            if value.finishing {} else {
+        if !ready {
+            if !value.finishing {
                 return 0;
             }
         }
         if value.finishing {
-            id = 4294967294;
+            id = LRTokenEnd();
             error = false;
         }
-        if error {} else {
-            value.work.actions = value.work.actions + 1;
+        if !error {
+            value.work.actions++;
             found = lr_runtime_action(value.runtime, state, id, &action);
         }
-        if found {} else {
+        if !found {
             if value.prefix {
                 if value.shifted {
-                    if value.finishing {} else {
-                        value.work.actions = value.work.actions + 1;
-                        found = lr_runtime_action(value.runtime, state, 4294967294, &action);
+                    if !value.finishing {
+                        value.work.actions++;
+                        found = lr_runtime_action(value.runtime, state, LRTokenEnd(), &action);
                         if found {
                             value.finishing = true;
-                            id = 4294967294;
+                            id = LRTokenEnd();
                         }
                     }
                 }
             }
         }
     }
-    if found {} else {
+    if !found {
         return 4;
     }
     result.id = id;
@@ -195,7 +195,7 @@ fn lr_parser_decide(value: LRParser*, ready: bool, id: u32, error: bool, result:
     var accept = action.rule == 0;
     if accept {
         if value.prefix {
-            if value.shifted {} else {
+            if !value.shifted {
                 return 5;
             }
         }
@@ -207,7 +207,7 @@ fn lr_parser_decide(value: LRParser*, ready: bool, id: u32, error: bool, result:
         return 8;
     }
     result.pop = rule.count;
-    if ready {} else {
+    if !ready {
         result.start = value.consumed;
     }
     if value.finishing {
@@ -231,7 +231,7 @@ fn lr_parser_decide(value: LRParser*, ready: bool, id: u32, error: bool, result:
             if larger {
                 result.end = end;
             }
-            index = index + 1;
+            index++;
         }
     }
     var previous = begin - 1;
@@ -260,7 +260,7 @@ export fn lr_parser_commit(value: LRParser*, step: LRStep*, first: usize, last: 
         var evidence = step.end != step.start;
         var byte = convert(u8, evidence);
         var ok = vector_push(u8, &value.evidence, byte);
-        if ok {} else {
+        if !ok {
             return false;
         }
         var initial = value.evidence.length == 1;
@@ -275,13 +275,13 @@ export fn lr_parser_commit(value: LRParser*, step: LRStep*, first: usize, last: 
         value.sequence_last = last;
         value.consumed = step.end;
         value.shifted = true;
-        value.work.shifts = value.work.shifts + 1;
+        value.work.shifts++;
         return true;
     }
     var length = value.stack.length - step.pop;
     var count = length + 1;
     var ok = vector_reserve(LRFrame, &value.stack, count);
-    if ok {} else {
+    if !ok {
         return false;
     }
     var frame = &value.stack.data[length];
@@ -295,9 +295,9 @@ export fn lr_parser_commit(value: LRParser*, step: LRStep*, first: usize, last: 
     if shift {
         value.consumed = step.end;
         value.shifted = true;
-        value.work.shifts = value.work.shifts + 1;
+        value.work.shifts++;
     } else {
-        value.work.reductions = value.work.reductions + 1;
+        value.work.reductions++;
         value.work.popped = value.work.popped + step.pop;
         value.sequence = false;
     }
@@ -416,7 +416,7 @@ export fn lr_probe_create(parser: LRParser*, budget: LRProbeBudget*): LRProbe* {
         lr_parser_frame(parser, index, &frame);
         value.frames.data[index].state = frame.state;
         value.frames.data[index].consumed = frame.length != 0;
-        index = index + 1;
+        index++;
     }
 }
 
@@ -463,12 +463,12 @@ export fn lr_probe_step(value: LRProbe*, id: u32, before: usize*): u32 {
         if exhausted {
             break;
         }
-        value.budget.remaining = value.budget.remaining - 1;
+        value.budget.remaining--;
         var top = value.frames.length - 1;
         var state = value.frames.data[top].state;
         var action: LRAction;
         var found = lr_runtime_action(value.runtime, state, id, &action);
-        if found {} else {
+        if !found {
             return 0;
         }
         var frame: LRProbeFrame;
@@ -502,7 +502,7 @@ export fn lr_probe_step(value: LRProbe*, id: u32, before: usize*): u32 {
             if value.frames.data[index].consumed {
                 frame.consumed = true;
             }
-            index = index + 1;
+            index++;
         }
         value.frames.length = begin;
         var previous = begin - 1;
@@ -512,10 +512,10 @@ export fn lr_probe_step(value: LRProbe*, id: u32, before: usize*): u32 {
             return 0;
         }
         var ok = lr_append(LRProbeFrame, &value.frames, &frame);
-        if ok {} else {
+        if !ok {
             break;
         }
-        steps = steps + 1;
+        steps++;
     }
     value.budget.complete = false;
     return 0;
@@ -673,14 +673,14 @@ fn lr_completion_terminators(c: LRCompletion*, ids: u32*, count: usize, result: 
                 lr_probe_destroy(current);
                 current = trial;
                 result[length] = i;
-                length = length + 1;
+                length++;
                 found = true;
                 break;
             }
             lr_probe_destroy(trial);
-            i = i + 1;
+            i++;
         }
-        var failed = found == false;
+        var failed = !found;
         if failed {
             break;
         }
@@ -717,7 +717,7 @@ export fn lr_completion_suffix(c: LRCompletion*, ids: u32*, count: usize, result
         return lr_none();
     }
     var added = lr_append(LRCompletionPath, &paths, &first);
-    var failed = added == false;
+    var failed = !added;
     if failed {
         lr_probe_destroy(first.probe);
         return lr_none();
@@ -756,7 +756,7 @@ export fn lr_completion_suffix(c: LRCompletion*, ids: u32*, count: usize, result
                 if editor_condition13 {
                     break;
                 }
-                index = index - 1;
+                index--;
                 result[index] = paths.data[parent].choice;
                 parent = paths.data[parent].parent;
             }
@@ -786,9 +786,9 @@ export fn lr_completion_suffix(c: LRCompletion*, ids: u32*, count: usize, result
                     next.probe = probe;
                     next.parent = at;
                     next.choice = i;
-                    next.depth = depth + 1;
+                    next.depth++;
                     added = lr_append(LRCompletionPath, &paths, &next);
-                    failed = added == false;
+                    failed = !added;
                     if failed {
                         lr_probe_destroy(probe);
                         break;
@@ -796,10 +796,10 @@ export fn lr_completion_suffix(c: LRCompletion*, ids: u32*, count: usize, result
                 } else {
                     lr_probe_destroy(probe);
                 }
-                i = i + 1;
+                i++;
             }
         }
-        at = at + 1;
+        at++;
     }
     at = 0;
     loop {
@@ -808,7 +808,7 @@ export fn lr_completion_suffix(c: LRCompletion*, ids: u32*, count: usize, result
             break;
         }
         lr_probe_destroy(paths.data[at].probe);
-        at = at + 1;
+        at++;
     }
     vector_dispose(LRCompletionPath, &paths);
     return length;

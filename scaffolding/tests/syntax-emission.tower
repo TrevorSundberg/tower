@@ -75,10 +75,10 @@ fn emission_test_init(f: EmissionFixture*, context: SyntaxEmissionInput*, bedroc
             } else {
                 ok = vector_push(void*, &f.tokens, node);
             }
-            if ok {} else {
+            if !ok {
                 f.failed = true;
             }
-            index = index + 1;
+            index++;
         }
     }
 }
@@ -99,7 +99,7 @@ fn emission_test_new(f: EmissionFixture*, parent: void*, kind: u32): void* {
     data.kind = kind;
     var ok = entity_attach(node, parent, null);
     entity_release(node);
-    if ok {} else {
+    if !ok {
         f.failed = true;
     }
     return node;
@@ -122,9 +122,9 @@ fn emission_test_rule(f: EmissionFixture*, name: u8*): void* {
             f.definitions.data[index] = node;
             break;
         }
-        index = index + 1;
+        index++;
     }
-    if ok {} else {
+    if !ok {
         f.failed = true;
     }
     return node;
@@ -134,7 +134,7 @@ fn emission_test_sequence(f: EmissionFixture*, rule: void*): void* {
     var node = emission_test_new(f, rule, 4);
     var data = emission_test_node(f, rule);
     var ok = vector_push(void*, &data.items, node);
-    if ok {} else {
+    if !ok {
         f.failed = true;
     }
     return node;
@@ -144,16 +144,12 @@ fn emission_test_term(f: EmissionFixture*, parent: void*, text: u8*, literal: bo
     var node = emission_test_new(f, parent, 5);
     var data = emission_test_node(f, node);
     var ok = node_text_set(&data.text, text);
-    if ok {
-        ok = node_text_set(&data.capture, capture);
-    }
+    ok &&= node_text_set(&data.capture, capture);
     data.literal = literal;
     data.repetition = repetition;
     var owner = emission_test_node(f, parent);
-    if ok {
-        ok = vector_push(void*, &owner.items, node);
-    }
-    if ok {} else {
+    ok &&= vector_push(void*, &owner.items, node);
+    if !ok {
         f.failed = true;
     }
     return node;
@@ -168,17 +164,15 @@ fn emission_test_token(f: EmissionFixture*, name: u8*, skipped: bool, contextual
     var data = emission_test_node(f, node);
     var ok = node_text_set(&data.name, name);
     data.contextual = contextual;
-    if ok {
-        ok = vector_push(void*, &f.tokens, node);
-    }
-    if ok {} else {
+    ok &&= vector_push(void*, &f.tokens, node);
+    if !ok {
         f.failed = true;
     }
 }
 
 fn emission_test_reserve(f: EmissionFixture*, name: u8*): void {
     var ok = vector_push(u8*, &f.reserved, name);
-    if ok {} else {
+    if !ok {
         f.failed = true;
     }
 }
@@ -198,7 +192,7 @@ fn emission_test_input(f: EmissionFixture*): void {
         rule.alternatives = data.items.data;
         rule.count = data.items.length;
         var ok = lr_append(SyntaxRuleView, &f.rules, &rule);
-        if ok {} else {
+        if !ok {
             f.failed = true;
             return;
         }
@@ -219,7 +213,7 @@ fn emission_test_input(f: EmissionFixture*): void {
             position = previous;
         }
         copy(&f.rules.data[position], &rule, sizeof(SyntaxRuleView));
-        index = index + 1;
+        index++;
     }
     f.input.rules = f.rules.data;
     f.input.count = f.rules.length;
@@ -240,7 +234,7 @@ fn emission_test_text(left: vector(u8)*, right: vector(u8)*): bool {
 fn emission_test_tree(f: EmissionFixture*, a: void*, b: void*): bool {
     var count = entity_child_count(a);
     var same = count == entity_child_count(b);
-    if same {} else {
+    if !same {
         return false;
     }
     var index: usize = 0;
@@ -254,14 +248,10 @@ fn emission_test_tree(f: EmissionFixture*, a: void*, b: void*): bool {
         var ar = bits(ParserRuleData*, lr_grammar_payload(left, f.input.rule_kind));
         var br = bits(ParserRuleData*, lr_grammar_payload(right, f.input.rule_kind));
         same = emission_test_text(&ar.name, &br.name);
-        if same {
-            same = ar.generated == br.generated;
-        }
+        same &&= ar.generated == br.generated;
         var children = entity_child_count(left);
-        if same {
-            same = children == entity_child_count(right);
-        }
-        if same {} else {
+        same &&= children == entity_child_count(right);
+        if !same {
             return false;
         }
         var child: usize = 0;
@@ -282,21 +272,15 @@ fn emission_test_tree(f: EmissionFixture*, a: void*, b: void*): bool {
             var string = xs != null;
             if reference {
                 same = yr != null;
-                if same {
-                    same = emission_test_text(&xr.name, &yr.name);
-                }
-                if same {
-                    same = emission_test_text(&xr.capture, &yr.capture);
-                }
+                same &&= emission_test_text(&xr.name, &yr.name);
+                same &&= emission_test_text(&xr.capture, &yr.capture);
             } else {
                 if string {
                     same = ys != null;
-                    if same {
-                        same = xs.ids.length == ys.ids.length;
-                    }
+                    same &&= xs.ids.length == ys.ids.length;
                     var at: usize = 0;
                     loop {
-                        if same {} else {
+                        if !same {
                             break;
                         }
                         var done = at == xs.ids.length;
@@ -304,27 +288,21 @@ fn emission_test_tree(f: EmissionFixture*, a: void*, b: void*): bool {
                             break;
                         }
                         same = xs.ids.data[at] == ys.ids.data[at];
-                        at = at + 1;
+                        at++;
                     }
                 } else {
                     same = xt != null;
-                    if same {
-                        same = yt != null;
-                    }
-                    if same {
-                        same = xt.start == yt.start;
-                    }
-                    if same {
-                        same = xt.end == yt.end;
-                    }
+                    same &&= yt != null;
+                    same &&= xt.start == yt.start;
+                    same &&= xt.end == yt.end;
                 }
             }
-            if same {} else {
+            if !same {
                 return false;
             }
-            child = child + 1;
+            child++;
         }
-        index = index + 1;
+        index++;
     }
 }
 
@@ -367,42 +345,32 @@ fn emission_test_metadata(actual: SyntaxEmission*, reference: void*): bool {
                 var same = order == 0;
                 if same {
                     same = a.literal == b.literal;
-                    if same {
-                        same = a.used == b.used;
-                    }
-                    if same {
-                        same = a.start == b.start;
-                    }
-                    if same {
-                        same = a.declaration == b.declaration;
-                    }
+                    same &&= a.used == b.used;
+                    same &&= a.start == b.start;
+                    same &&= a.declaration == b.declaration;
                     var other = b.wrapper != null;
-                    if same {
-                        same = wrapper == other;
-                    }
+                    same &&= wrapper == other;
                     if wrapper {
-                        if same {
-                            same = lr_name_equal(a.wrapper, b.wrapper);
-                        }
+                        same &&= lr_name_equal(a.wrapper, b.wrapper);
                     }
-                    if same {} else {
+                    if !same {
                         return false;
                     }
-                    found = found + 1;
+                    found++;
                     break;
                 }
-                at = at + 1;
+                at++;
             }
         }
-        index = index + 1;
+        index++;
     }
     var same = found == expected_count;
-    if same {} else {
+    if !same {
         return false;
     }
     count = syntax_emission_production_count(actual);
     same = count == reference_syntax_emission_production_count(reference);
-    if same {} else {
+    if !same {
         return false;
     }
     index = 0;
@@ -416,20 +384,16 @@ fn emission_test_metadata(actual: SyntaxEmission*, reference: void*): bool {
         syntax_emission_production(actual, index, &a);
         reference_syntax_emission_production(reference, index, &b);
         same = lr_name_equal(a.name, b.name);
-        if same {
-            same = a.index == b.index;
-        }
-        if same {
-            same = a.alternative == b.alternative;
-        }
-        if same {} else {
+        same &&= a.index == b.index;
+        same &&= a.alternative == b.alternative;
+        if !same {
             return false;
         }
-        index = index + 1;
+        index++;
     }
     count = syntax_emission_helper_count(actual);
     same = count == reference_syntax_emission_helper_count(reference);
-    if same {} else {
+    if !same {
         return false;
     }
     index = 0;
@@ -451,17 +415,15 @@ fn emission_test_metadata(actual: SyntaxEmission*, reference: void*): bool {
             same = lr_name_equal(a.name, b.name);
             if same {
                 same = a.source == b.source;
-                if same {
-                    same = a.capture == b.capture;
-                }
-                if same {} else {
+                same &&= a.capture == b.capture;
+                if !same {
                     return false;
                 }
                 break;
             }
-            at = at + 1;
+            at++;
         }
-        index = index + 1;
+        index++;
     }
 }
 
@@ -478,15 +440,9 @@ fn emission_test_compare(f: EmissionFixture*, category: u8*): bool {
     f.input.root = b;
     var reference = reference_syntax_emit(&f.input);
     var ok = actual != null;
-    if ok {
-        ok = reference != null;
-    }
-    if ok {
-        ok = emission_test_tree(f, a, b);
-    }
-    if ok {
-        ok = emission_test_metadata(actual, reference);
-    }
+    ok &&= reference != null;
+    ok &&= emission_test_tree(f, a, b);
+    ok &&= emission_test_metadata(actual, reference);
     syntax_emission_destroy(actual);
     reference_syntax_emission_destroy(reference);
     entity_release(a);
@@ -496,7 +452,7 @@ fn emission_test_compare(f: EmissionFixture*, category: u8*): bool {
 
 fn emission_test_both(f: EmissionFixture*): bool {
     var ok = emission_test_compare(f, null);
-    if ok {} else {
+    if !ok {
         return false;
     }
     // Snapshot enclosing-revision IDs and used names for the template parser.
@@ -523,12 +479,10 @@ fn emission_test_both(f: EmissionFixture*): bool {
         if entry.used {
             emission_test_reserve(f, entry.text);
         }
-        index = index + 1;
+        index++;
     }
     var root = f.input.root;
-    if ok {
-        ok = emission_test_compare(f, "Statement");
-    }
+    ok &&= emission_test_compare(f, "Statement");
     f.literals.length = 0;
     f.reserved.length = 0;
     syntax_emission_destroy(ordinary);
@@ -538,7 +492,7 @@ fn emission_test_both(f: EmissionFixture*): bool {
 
 fn emission_test_failures(f: EmissionFixture*, category: u8*): bool {
     var ok = emission_test_compare(f, category);
-    if ok {} else {
+    if !ok {
         return false;
     }
     var failure: usize = 0;
@@ -562,7 +516,7 @@ fn emission_test_failures(f: EmissionFixture*, category: u8*): bool {
         if success {
             return true;
         }
-        failure = failure + 1;
+        failure++;
     }
 }
 
@@ -614,17 +568,15 @@ export fn syntax_emission_tests(context: SyntaxEmissionInput*): usize {
     var f: EmissionFixture;
     emission_test_init(&f, context, false);
     var ok = emission_test_both(&f);
-    if ok {
-        ok = emission_test_failures(&f, null);
-    }
+    ok &&= emission_test_failures(&f, null);
     emission_test_dispose(&f);
-    if ok {} else {
+    if !ok {
         return 1;
     }
     emission_test_init(&f, context, true);
     ok = emission_test_both(&f);
     emission_test_dispose(&f);
-    if ok {} else {
+    if !ok {
         return 2;
     }
     emission_test_init(&f, context, true);
@@ -647,7 +599,7 @@ export fn syntax_emission_tests(context: SyntaxEmissionInput*): usize {
     emission_test_term(&f, sequence, ";", true, 0, "");
     ok = emission_test_both(&f);
     emission_test_dispose(&f);
-    if ok {} else {
+    if !ok {
         return 3;
     }
     emission_test_init(&f, context, false);
@@ -670,14 +622,10 @@ export fn syntax_emission_tests(context: SyntaxEmissionInput*): usize {
     emission_test_excluded(&f, sequence, 0, "");
     emission_test_term(&f, sequence, ";", true, 0, "");
     ok = emission_test_both(&f);
-    if ok {
-        ok = emission_test_failures(&f, null);
-    }
-    if ok {
-        ok = emission_test_failures(&f, "Statement");
-    }
+    ok &&= emission_test_failures(&f, null);
+    ok &&= emission_test_failures(&f, "Statement");
     emission_test_dispose(&f);
-    if ok {} else {
+    if !ok {
         return 4;
     }
     emission_test_init(&f, context, false);
@@ -687,14 +635,10 @@ export fn syntax_emission_tests(context: SyntaxEmissionInput*): usize {
     emission_test_term(&f, sequence, "Identifier", false, 43, "items");
     emission_test_excluded(&f, sequence, 63, "");
     ok = emission_test_both(&f);
-    if ok {
-        ok = emission_test_failures(&f, null);
-    }
-    if ok {
-        ok = emission_test_failures(&f, "Statement");
-    }
+    ok &&= emission_test_failures(&f, null);
+    ok &&= emission_test_failures(&f, "Statement");
     emission_test_dispose(&f);
-    if ok {} else {
+    if !ok {
         return 5;
     }
     emission_test_init(&f, context, false);
@@ -732,11 +676,11 @@ export fn syntax_emission_tests(context: SyntaxEmissionInput*): usize {
             owner = second;
         }
         emission_test_term(&f, owner, &text[0], true, 0, "");
-        item = item + 1;
+        item++;
     }
     ok = emission_test_both(&f);
     emission_test_dispose(&f);
-    if ok {} else {
+    if !ok {
         return 6;
     }
     var trial: usize = 0;
@@ -757,7 +701,7 @@ export fn syntax_emission_tests(context: SyntaxEmissionInput*): usize {
         emission_test_one(&f, "GrammarTokenDeclaration", "token", true);
         emission_test_one(&f, "GrammarSkipDeclaration", "skip", true);
         var count = emission_test_random(&f, 10);
-        count = count + 1;
+        count++;
         var r: u32 = 0;
         loop {
             var done = r == count;
@@ -772,7 +716,7 @@ export fn syntax_emission_tests(context: SyntaxEmissionInput*): usize {
             name[2] = 0;
             rule = emission_test_rule(&f, &name[0]);
             var alternatives = emission_test_random(&f, 3);
-            alternatives = alternatives + 1;
+            alternatives++;
             var a: u32 = 0;
             loop {
                 var done = a == alternatives;
@@ -817,20 +761,20 @@ export fn syntax_emission_tests(context: SyntaxEmissionInput*): usize {
                         }
                         emission_test_term(&f, sequence, text, literal, repeat, &capture[0]);
                     }
-                    t = t + 1;
+                    t++;
                 }
-                a = a + 1;
+                a++;
             }
-            r = r + 1;
+            r++;
         }
         emission_test_one(&f, "Statement", "R0", false);
         ok = emission_test_both(&f);
         state = f.random;
         emission_test_dispose(&f);
-        if ok {} else {
+        if !ok {
             var failure = trial + 100;
             return failure;
         }
-        trial = trial + 1;
+        trial++;
     }
 }

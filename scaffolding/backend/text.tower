@@ -10,7 +10,7 @@ fn backend_length(text: u8*): usize {
             if done {
                 return count;
             }
-            count = count + 1;
+            count++;
         }
     }
     return count;
@@ -27,7 +27,7 @@ fn backend_equal(a: u8*, b: u8*): bool {
         if end {
             return true;
         }
-        i = i + 1;
+        i++;
     }
 }
 
@@ -42,7 +42,7 @@ fn backend_prefix(a: u8*, b: u8*): bool {
         if different {
             return false;
         }
-        i = i + 1;
+        i++;
     }
 }
 
@@ -72,6 +72,6 @@ fn backend_contains(text: u8*, part: u8*): bool {
         if found {
             return true;
         }
-        i = i + 1;
+        i++;
     }
 }

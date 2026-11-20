@@ -31,7 +31,7 @@ fn queue_reserve(T: type, value: queue(T)*, needed: usize): bool {
         return false;
     }
     var maximum: usize = 0;
-    maximum = maximum - 1;
+    maximum--;
     var limit = maximum / size;
     var impossible = needed > limit;
     if impossible {
@@ -67,12 +67,12 @@ fn queue_reserve(T: type, value: queue(T)*, needed: usize): bool {
             break;
         }
         next[i] = value.data[at];
-        at = at + 1;
+        at++;
         var end = at == value.capacity;
         if end {
             at = 0;
         }
-        i = i + 1;
+        i++;
     }
     free(value.data);
     value.data = next;
@@ -88,7 +88,7 @@ fn queue_push(T: type, value: queue(T)*, element: T): bool {
         return false;
     }
     var ok = queue_reserve(T, value, needed);
-    if ok {} else {
+    if !ok {
         return false;
     }
     // Avoid head + length overflowing even for a maximum-width capacity.
@@ -117,8 +117,8 @@ fn queue_pop(T: type, value: queue(T)*, output: T*): bool {
         return false;
     }
     *output = value.data[value.head];
-    value.head = value.head + 1;
-    value.length = value.length - 1;
+    value.head++;
+    value.length--;
     empty = value.length == 0;
     var end = value.head == value.capacity;
     if empty {

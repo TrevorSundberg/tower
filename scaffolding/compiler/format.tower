@@ -34,7 +34,7 @@ export fn format_match(f: FormatEngine*, entity: void*): ParserMatchData* {
 
 export fn format_write(f: FormatEngine*, bytes: u8*, count: usize): void {
     var ok = bytes_append(&f.result.text, bytes, count);
-    if ok {} else {
+    if !ok {
         f.result.failed = true;
     }
 }
@@ -80,8 +80,7 @@ fn format_indent(f: FormatEngine*): void {
 fn format_newline(f: FormatEngine*, blank: bool): void {
     var text = &f.result.text;
     loop {
-        var condition2 = text.length == 0;
-        if condition2 {
+        if text.length == 0 {
             return;
         }
         var at = text.length - 1;
@@ -89,7 +88,7 @@ fn format_newline(f: FormatEngine*, blank: bool): void {
         var space = c == 32;
         var tab = c == 9;
         var trim = format_or(space, tab);
-        if trim {} else {
+        if !trim {
             break;
         }
         text.length = at;
@@ -101,24 +100,21 @@ fn format_newline(f: FormatEngine*, blank: bool): void {
     var count: usize = 0;
     var at = text.length;
     loop {
-        var condition3 = at == 0;
-        if condition3 {
+        if at == 0 {
             break;
         }
-        at = at - 1;
-        var condition4 = text.data[at] != 10;
-        if condition4 {
+        at--;
+        if text.data[at] != 10 {
             break;
         }
-        count = count + 1;
+        count++;
     }
     loop {
-        var condition5 = count >= wanted;
-        if condition5 {
+        if count >= wanted {
             break;
         }
         format_char(f, 10);
-        count = count + 1;
+        count++;
     }
 }
 
@@ -140,20 +136,17 @@ fn format_span(f: FormatEngine*, begin: usize, source: usize): void {
 fn format_equal(a: u8*, length: usize, b: u8*): bool {
     var i: usize = 0;
     loop {
-        var condition6 = i == length;
-        if condition6 {
+        if i == length {
             var result = b[i] == 0;
             return result;
         }
-        var condition7 = b[i] == 0;
-        if condition7 {
+        if b[i] == 0 {
             return false;
         }
-        var condition8 = a[i] != b[i];
-        if condition8 {
+        if a[i] != b[i] {
             return false;
         }
-        i = i + 1;
+        i++;
     }
 }
 
@@ -179,8 +172,7 @@ fn format_escape(f: FormatEngine*, bytes: u8*, length: usize, quote: u8): void {
     var start: usize = 0;
     var i: usize = 0;
     loop {
-        var condition1 = i == length;
-        if condition1 {
+        if i == length {
             break;
         }
         var c = bytes[i];
@@ -215,12 +207,11 @@ fn format_escape(f: FormatEngine*, bytes: u8*, length: usize, quote: u8): void {
             }
             start = i + 1;
         }
-        i = i + 1;
+        i++;
     }
     var count = length - start;
     // Empty vector payloads may have a null data pointer.
-    var condition2 = count != 0;
-    if condition2 {
+    if count != 0 {
         format_write(f, &bytes[start], count);
     }
     format_char(f, quote);
@@ -344,13 +335,10 @@ fn format_reserved(name: vector(u8)*): bool {
 
 fn format_identifier(f: FormatEngine*, name: vector(u8)*): void {
     var plain = name.length != 0;
-    if plain {
-        plain = format_alpha(name.data[0]);
-    }
+    plain &&= format_alpha(name.data[0]);
     var i: usize = 0;
     loop {
-        var condition13 = i == name.length;
-        if condition13 {
+        if i == name.length {
             break;
         }
         var c = name.data[i];
@@ -360,7 +348,7 @@ fn format_identifier(f: FormatEngine*, name: vector(u8)*): void {
         var digit = format_and(lower, upper);
         var valid = format_or(alpha, digit);
         plain = format_and(plain, valid);
-        i = i + 1;
+        i++;
     }
     // Canonical reserved spellings, independent of editable lexer keywords.
     if plain {
@@ -387,11 +375,10 @@ export fn format_unsigned(f: FormatEngine*, value: u64): void {
     loop {
         var digit = value % 10;
         digit = digit + 48;
-        at = at - 1;
+        at--;
         digits[at] = convert(u8, digit);
         value = value / 10;
-        var condition35 = value == 0;
-        if condition35 {
+        if value == 0 {
             break;
         }
     }
@@ -404,16 +391,14 @@ fn format_column(f: FormatEngine*): usize {
     var count: usize = 0;
     var at = f.result.text.length;
     loop {
-        var condition37 = at == 0;
-        if condition37 {
+        if at == 0 {
             return count;
         }
-        at = at - 1;
-        var condition38 = f.result.text.data[at] == 10;
-        if condition38 {
+        at--;
+        if f.result.text.data[at] == 10 {
             return count;
         }
-        count = count + 1;
+        count++;
     }
 }
 

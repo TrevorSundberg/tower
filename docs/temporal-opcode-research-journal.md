@@ -21456,3 +21456,141 @@ push is needed: the verified parser retirement remains in the newest deployment.
 Existing low-level native LR/reference differential harnesses remain separate
 coverage; the retired production bridge and component/tree integration fixtures
 are the two files explicitly named in this task.
+## 2026-11-20 — Tower surface operators and numeric grammar annotations (in progress)
+
+Request: implement C-style precedence/operators in tower.tower (no arrow), retain
+ordinary recursive grammar chaining and associativity, use shared ECS semantics,
+and audit Tower-importing code for simplifications and hardcoded constants.
+Started with git pull --rebase on main: 5b77c88 -> bf906b5, clean checkout.
+Foundation remains unchanged. Bedrock adds only general optional production
+metadata: `@ <positive u32> left|right|nonassoc`, with `L>R` / `R<L` aliases.
+Annotations live on SyntaxNode alternatives and parser-rule entities; LR records
+are disposable derived data. The formatter and structural equality include them.
+Only explicitly annotated shift/reduce pairs are resolved. Unannotated conflicts
+and reduce/reduce conflicts retain diagnostics. Nonassoc removes the conflicting
+terminal action. Associativity does not authorize algebraic reassociation.
+
+The first spelling used literal left/right keywords and broke existing capture
+names ($left) because literals become lexical keywords. Replaced the direction
+with a contextual token and chose @ for the annotation delimiter. Mixed literal
+L>R is also outside the existing literal category policy; a contextual token
+preserves the requested compact aliases without changing that policy.
+
+Surface operators augment the existing entities during checking, then normalize
+into Foundation locals, calls, binary operations, addresses, loads/stores, loops
+and branches before backend consumption. Temporary surface classifications have
+no execution-cache encoding. Calls/operands retain left-to-right value capture;
+assignment addresses and compound-assignment old values are captured before RHS
+effects. Short-circuit and conditional RHS work stays inside selected branches.
+Prefix/postfix ++/-- cover integer/pointer places, including indexed places.
+Shifts currently expand portably into Foundation arithmetic: count modulo width,
+wrapping left shifts and sign-extending signed right shifts. This explicit Tower
+policy avoids inheriting host/C undefined behavior for excessive/negative counts.
+Three-way comparison produces i32 -1/0/1. Existing convert/bits/sizeof/alignof and
+alloc/free remain ordinary calls; no C++ object model, exceptions or arrow is added.
+
+Trials: a graph-only smoke passed arithmetic, !, ~, increments and shifts. A
+larger trace covering short-circuit effects, ternaries, chained assignment,
+indexed updates, pointer loads, shifts and signed minimums matches graph execution,
+fast execution of reconstructed Foundation, and native LLVM executable output.
+A round-trip trial exposed generated &*pointer, which Foundation cannot spell;
+address-of-load and indirect assignment now reuse the already captured pointer.
+A return trial exposed its optional capture wrapper; restored the existing outer
+CoreOperand collection before checking its nested surface expression.
+
+Cold construction initially took ~22.55 s (native --timings). Grouping operators
+at each binding power reduced the same trial to ~4.52 s; factoring prefix/postfix
+and product operators reduced it to ~2.14 s. These are exploratory, unpaired
+measurements, not a published performance guarantee. A per-build memo of LALR
+closure/goto sets by dotted production has been added; its validation is pending.
+No semantic data or grammar reflection moves into the runtime parser tables.
+
+Environment: Windows PowerShell, Docker container tower-c-validation, /work bind
+mount, /cache volume, LLVM 19. WSL's only distro is docker-desktop and has no bash;
+use docker exec instead. Native cache /cache/c-native; browser /work/build/browser-wasi.
+Old browser bootstrap /cache/performance-bootstrap rejected a now-valid import
+cycle; switched to the saved current compiler. Saved /cache/operator-bootstrap/towerc
+before activating the new tower.tower grammar. Native successor compilation with
+that compiler is underway. The project source remains on main. todo.txt untouched.
+
+The first repository audit examined 282 tracked files directly importing tower;
+182 changed: 925 empty-success branches, 423 boolean comparisons, 1,388 unit
+updates, 1,214 immediately forwarded single-use generated temporaries, and 23
+numeric Foundation kind/type tags. It skips strings/comments and deliberately
+invalid parser fixtures, and does not move calls across another operand or target.
+Report and reproducible script: ignored build/operator-audit.json and
+build/audit-operators.mjs. More validation, diagnostics, formatting/IDE checks,
+round trips, bootstrap comparisons, deployment and publication remain outstanding.
+
+Primary reference for grouping and the applicable C++ operator additions:
+https://eel.is/c++draft/expr ; signed shift contract comparison:
+https://eel.is/c++draft/expr.shift ; alternative operator spellings:
+https://eel.is/c++draft/lex.digraph . Tower keeps exact typing, explicit conversions,
+and its own defined sequencing/numeric policy rather than importing C/C++ UB.
+
+Follow-up: the user wants precedence/associativity to become attributes possibly,
+after researching how much Bedrock should support a general attribute facility.
+This is a future design proposal, not an implemented attribute system. The current
+`@ level direction` reader and `as style` remain narrow provisional metadata.
+Research extensible attributes on the same shared nodes, declaration activation,
+canonical formatting, validation and cache identity before choosing syntax or
+expanding Bedrock's scope. Foundation and the immutable native Bedrock seed remain
+unchanged by this operator work; only the public Bedrock declaration grammar gains
+the generic optional metadata reader.
+
+Signed literal clarification: Number still excludes a sign. Typing reads an exact
+u64 magnitude and admits the extra negative signed magnitude before producing the
+typed bits, for both i32 and i64 minima. General unary minus lowers to ordinary
+Foundation subtraction. No host-specific constant evaluator or new execution ABI
+is needed. This is separate from the future compile-time dependency-graph staging
+work, which must invoke the same defined runtime operations.
+
+Added C#-inspired `??`, `??=`, `?.`, `?[]`, `is null`, `is not null`, `>>>` and
+`>>>=`, plus Tower's requested `&&=` and `||=`. Compound forms share the binary
+operator classification and assignment lowering. Their destinations are evaluated
+once, and logical/null RHS work stays inside the selected branch. Guarded scalar
+access currently requires a consuming `??`; first-class nullable scalar storage
+is not implemented. Guarded pointer results can remain nullable pointers. Nested
+fields/indexing preserve this guard and skip index effects on missing receivers.
+Separate canonical projection nodes avoid a cycle when rewriting guarded source
+nodes to their results. Foundation reconstruction also caught `(*p).field` and
+dereferenced-array places: normalize these to Foundation's indirect field/index
+spellings before formatting.
+
+Second audit: 539 guarded boolean updates across 91 files were initially changed
+to `&&=`/`||=`. Compilation caught two branches with an additional `else`; restored
+those original branches, leaving 537 simplifications. The earlier audit also
+caught three incorrect negations after array subscripts, corrected before builds.
+Named the LLVM function-attribute index and replaced sign-mask/all-ones literals
+with typed complements. AGENTS.md now guides operator use, lazy compounds, exact
+types, precedence, Foundation boundaries and effect-preserving audits.
+
+LALR construction now memoizes closure/goto by dotted production for one build and
+uses shifted kernels directly during propagation instead of closing them again.
+An exploratory native trace improved from roughly 3 s to 0.74 s before the null
+operators were added; concurrent builds and intervening changes mean this is not
+a paired benchmark or a general guarantee. Module graphs reuse one idle import
+reader between siblings; active recursive readers remain separate. Existing
+grammar structural keys, metadata and provenance still govern table reuse.
+The import/scope suite passed 32 tests. A bootstrap-copy trial failed because a
+bare copied towerc lacked adjacent share/tower resources; use a complete compiler
+directory (here /cache/operator-bootstrap-csharp), not the executable alone.
+
+Checkpoint validation: native compiler and browser parser rebuilt successfully;
+`node --test playground/tests/operators.test.mjs playground/tests/precedence.test.mjs
+playground/tests/bedrock.test.mjs` passes all 25 tests. Both operator fixtures match
+graph/fast execution for 32/64-bit pointer profiles, canonical Foundation rebuilds
+and LLVM/Wasm. Numeric annotations, ordinary layered grammars, both associativities,
+nonassoc, captures/replacements and invalid conflicts are covered. A previous
+native parser suite stopped at repository formatting, not an operator execution
+failure; full formatting, broader validation and publication are still pending.
+An apparent retained-node regression was normal grammar-cache warmup following an
+obsolete assertion failure; corrected the assertion without clearing valid caches.
+Repaired one CP1252 dash in this appended journal entry to preserve UTF-8.
+
+C# primary references used for the added syntax and lazy behavior:
+https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/null-coalescing-operator
+https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/null-conditional-operators
+https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/language-specification/expressions
+Tower retains its own exact typing and numeric policy; this does not claim C#
+nullable types, object semantics or the entire C# expression language.

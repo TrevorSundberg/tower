@@ -46,13 +46,9 @@ export fn driver_clock(): u64 {
     var value: i64 = 0;
     var frequency: i64 = 0;
     var ok = QueryPerformanceCounter(&value) != 0;
-    if ok {
-        ok = QueryPerformanceFrequency(&frequency) != 0;
-    }
-    if ok {
-        ok = frequency > 0;
-    }
-    if ok {} else {
+    ok &&= QueryPerformanceFrequency(&frequency) != 0;
+    ok &&= frequency > 0;
+    if !ok {
         return 0;
     }
     var ticks = convert(u64, value);
@@ -92,15 +88,9 @@ export fn driver_platform_temporary(out: ByteBuffer*): bool {
     var directory: u8[261];
     var length = GetTempPathA(261, &directory[0]);
     var ok = length != 0;
-    if ok {
-        ok = length < 261;
-    }
-    if ok {
-        ok = bytes_reserve(out, 261);
-    }
-    if ok {
-        ok = GetTempFileNameA(&directory[0], "twr", 0, out.data) != 0;
-    }
+    ok &&= length < 261;
+    ok &&= bytes_reserve(out, 261);
+    ok &&= GetTempFileNameA(&directory[0], "twr", 0, out.data) != 0;
     if ok {
         out.length = strlen(out.data);
     }
@@ -118,18 +108,14 @@ export fn driver_platform_run(argv: u8**): i32 {
         var text: ByteBuffer;
         fill(&text, 0, sizeof(ByteBuffer));
         quoted.ok = driver_windows_quote(&text, argv[i]);
-        if quoted.ok {
-            quoted.ok = vector_push(u8*, &quoted.values, text.data);
-        }
-        if quoted.ok {} else {
+        quoted.ok &&= vector_push(u8*, &quoted.values, text.data);
+        if !quoted.ok {
             bytes_dispose(&text);
             break;
         }
-        i = i + 1;
+        i++;
     }
-    if quoted.ok {
-        quoted.ok = vector_push(u8*, &quoted.values, null);
-    }
+    quoted.ok &&= vector_push(u8*, &quoted.values, null);
     var result: i32 = 1;
     if quoted.ok {
         var code = _spawnvp(0, argv[0], quoted.values.data);

@@ -19,7 +19,7 @@ fn append(buffer: Bytes*, value: u8): void {
         buffer.capacity = capacity;
     }
     buffer.data[buffer.length] = value;
-    buffer.length = buffer.length + 1;
+    buffer.length++;
 }
 
 var buffer: Bytes;
@@ -35,7 +35,7 @@ loop {
         break;
     }
     append(ref, text[i]);
-    i = i + 1;
+    i++;
 }
 print(buffer.length);
 print(buffer.data[0]);

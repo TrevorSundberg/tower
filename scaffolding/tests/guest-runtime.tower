@@ -7,8 +7,8 @@ import tower;
 var runtime_check_index: usize = 0;
 
 fn runtime_check(ok: bool): void {
-    runtime_check_index = runtime_check_index + 1;
-    if ok {} else {
+    runtime_check_index++;
+    if !ok {
         // A failed check is observable under every execution path.
         print(runtime_check_index);
         var zero: i32 = 0;
@@ -31,7 +31,7 @@ fn check_text(kind: u32, value: u64, width: u32, wanted: u8*, count: usize): voi
         }
         ok = output[i] == wanted[i];
         runtime_check(ok);
-        i = i + 1;
+        i++;
     }
     ok = output[count] == 165;
     runtime_check(ok);
@@ -48,7 +48,7 @@ fn check_text(kind: u32, value: u64, width: u32, wanted: u8*, count: usize): voi
         }
         ok = output[i] == 165;
         runtime_check(ok);
-        i = i + 1;
+        i++;
     }
 }
 
@@ -73,7 +73,7 @@ fn guest_runtime_tests(): void {
     runtime_check(ok);
     fill(p, 77, 32);
     var maximum: usize = 0;
-    maximum = maximum - 1;
+    maximum--;
     var cursor = heap.cursor;
     ok = guest_heap_allocate(&heap, maximum, 2) == null;
     runtime_check(ok);
@@ -135,13 +135,13 @@ fn guest_runtime_tests(): void {
                 }
                 ok = bytes[i] == patterns[index];
                 runtime_check(ok);
-                i = i + 1;
+                i++;
             }
             guest_heap_free(&heap, p);
             slots[index] = null;
         } else {
             var count = random % 1024;
-            count = count + 1;
+            count++;
             var size = convert(usize, count);
             p = guest_heap_allocate(&heap, size, 1);
             ok = p != null;
@@ -153,7 +153,7 @@ fn guest_runtime_tests(): void {
             lengths[index] = size;
             patterns[index] = byte;
         }
-        trial = trial + 1;
+        trial++;
     }
     var i: usize = 0;
     loop {
@@ -162,7 +162,7 @@ fn guest_runtime_tests(): void {
             break;
         }
         guest_heap_free(&heap, slots[i]);
-        i = i + 1;
+        i++;
     }
     p = guest_heap_allocate(&heap, 0, 1);
     ok = p != null;

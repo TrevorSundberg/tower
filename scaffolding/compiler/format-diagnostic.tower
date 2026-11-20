@@ -20,11 +20,11 @@ fn format_diagnostic_actual(f: FormatEngine*, input: SyntaxDiagnosticInput*): vo
     if shorter { end = input.cursor; }
     while end > input.offset {
         var within = end < input.size;
-        if within {} else { break; }
+        if !within { break; }
         var prefix = input.source[end] & 192;
         var continuation = prefix == 128;
-        if continuation {} else { break; }
-        end = end - 1;
+        if !continuation { break; }
+        end--;
     }
     format_char(f, 39);
     var i = input.offset;
@@ -45,7 +45,7 @@ fn format_diagnostic_actual(f: FormatEngine*, input: SyntaxDiagnosticInput*): vo
             if escape { format_char(f, 92); }
             format_char(f, byte);
         }
-        i = i + 1;
+        i++;
     }
     var truncated = end < input.cursor;
     if truncated { format_text(f, "..."); }
@@ -57,7 +57,7 @@ fn format_diagnostic_literal(input: SyntaxDiagnosticInput*, id: u32): bool {
     while i < input.literal_count {
         var found = input.literals[i] == id;
         if found { return true; }
-        i = i + 1;
+        i++;
     }
     return false;
 }
@@ -73,7 +73,7 @@ fn format_diagnostic_break(input: SyntaxDiagnosticInput*): bool {
         if newline { return true; }
         var carriage = byte == 13;
         if carriage { return true; }
-        begin = begin + 1;
+        begin++;
     }
     return false;
 }
@@ -85,7 +85,7 @@ fn format_diagnostic_same_name(left: u8*, right: u8*): bool {
         if different { return false; }
         var end = left[i] == 0;
         if end { return true; }
-        i = i + 1;
+        i++;
     }
 }
 
@@ -129,7 +129,7 @@ fn format_diagnostic_context(input: SyntaxDiagnosticInput*, output: SyntaxDiagno
                         output.production = index;
                     } else {
                         var same = format_diagnostic_same_name(name, row.name);
-                        if same {} else {
+                        if !same {
                             output.production = ParserNoIndex();
                             output.multiple = false;
                             return;
@@ -138,10 +138,10 @@ fn format_diagnostic_context(input: SyntaxDiagnosticInput*, output: SyntaxDiagno
                         if another { output.multiple = true; }
                     }
                 }
-                j = j + 1;
+                j++;
             }
         }
-        i = i + 1;
+        i++;
     }
 }
 
@@ -162,16 +162,16 @@ export fn format_syntax_diagnostic(input: SyntaxDiagnosticInput*, output: Syntax
     while i < input.count {
         var option = &input.options[i];
         var eligible = option.insertion;
-        if eligible { eligible = format_diagnostic_literal(input, option.id); }
+        eligible &&= format_diagnostic_literal(input, option.id);
         if eligible {
-            repairs = repairs + 1;
+            repairs++;
             repair = i;
             if option.completes {
-                boundaries = boundaries + 1;
+                boundaries++;
                 boundary = i;
             }
         }
-        i = i + 1;
+        i++;
     }
     var suggested: bool = false;
     var ambiguous = repairs != 1;
@@ -186,8 +186,8 @@ export fn format_syntax_diagnostic(input: SyntaxDiagnosticInput*, output: Syntax
             }
         }
     }
-    if input.repairs {} else { repair = ParserNoIndex(); }
-    if input.complete {} else { repair = ParserNoIndex(); }
+    if !input.repairs { repair = ParserNoIndex(); }
+    if !input.complete { repair = ParserNoIndex(); }
     var repaired = repair != ParserNoIndex();
     if repaired {
         if suggested { format_text(&f, "Possible missing "); }
@@ -204,7 +204,7 @@ export fn format_syntax_diagnostic(input: SyntaxDiagnosticInput*, output: Syntax
         while prefix[i] != 0 {
             var different = input.original[i] != prefix[i];
             if different { unexpected = false; break; }
-            i = i + 1;
+            i++;
         }
         if unexpected {
             format_text(&f, prefix);
@@ -212,7 +212,7 @@ export fn format_syntax_diagnostic(input: SyntaxDiagnosticInput*, output: Syntax
         } else { format_text(&f, input.original); }
         format_char(&f, 46);
         var boundary_start = input.repairs;
-        if boundary_start { boundary_start = input.at_start; }
+        boundary_start &&= input.at_start;
         if boundary_start {
             if input.statements { format_text(&f, " Expected a statement or grammar declaration."); }
             else { format_text(&f, " Expected a grammar declaration."); }
@@ -233,7 +233,7 @@ export fn format_syntax_diagnostic(input: SyntaxDiagnosticInput*, output: Syntax
                 else { format_text(&f, ", "); }
             }
             format_text(&f, input.options[i].label);
-            i = i + 1;
+            i++;
         }
         if limited {
             format_text(&f, ", among other valid continuations");
@@ -248,7 +248,7 @@ export fn syntax_diagnostic_text_finish(output: SyntaxDiagnosticText*, descripti
     fill(&f, 0, sizeof(FormatEngine));
     f.result = &output.result;
     var present = description != null;
-    if present { present = *description != 0; }
+    present &&= *description != 0;
     if present {
         format_text(&f, "\nIn rule ");
         format_text(&f, description);

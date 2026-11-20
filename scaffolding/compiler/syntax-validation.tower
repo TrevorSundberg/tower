@@ -63,7 +63,7 @@ fn syntax_bytes_compare(left: u8*, left_length: usize, right: u8*, right_length:
         if greater {
             return 1;
         }
-        index = index + 1;
+        index++;
     }
 }
 
@@ -116,14 +116,12 @@ fn syntax_validation_token(value: SyntaxValidation*, text: u8*, length: usize, s
                 return true;
             }
         }
-        index = index + 1;
+        index++;
     }
 }
 
 fn syntax_validation_append(value: SyntaxValidation*, text: u8*, length: usize): void {
-    if value.allocated {
-        value.allocated = bytes_append(value.error, text, length);
-    }
+    value.allocated &&= bytes_append(value.error, text, length);
 }
 
 fn syntax_validation_text(value: SyntaxValidation*, text: u8*): void {
@@ -153,7 +151,7 @@ fn syntax_validation_captures(value: SyntaxValidation*, count: usize): bool {
         value.allocated = false;
         return false;
     }
-    size = size + 1;
+    size++;
     value.allocated = vector_reserve(SyntaxNode*, &value.captures, size);
     if value.allocated {
         value.captures.length = size;
@@ -178,7 +176,7 @@ fn syntax_validation_capture(value: SyntaxValidation*, term: SyntaxNode*): bool 
         var byte = convert(usize, term.capture.data[index]);
         hash = hash ^ byte;
         hash = hash * 16777619;
-        index = index + 1;
+        index++;
     }
     var size = value.captures.length;
     var unavailable = size == 0;
@@ -198,7 +196,7 @@ fn syntax_validation_capture(value: SyntaxValidation*, term: SyntaxNode*): bool 
         if same {
             return syntax_validation_error(value, "Duplicate capture: ", term.capture.data, term.capture.length);
         }
-        slot = slot + 1;
+        slot++;
         var wrap = slot == value.captures.length;
         if wrap {
             slot = 0;
@@ -226,7 +224,7 @@ fn syntax_validation_terms(value: SyntaxValidation*): bool {
             }
             var sequence = syntax_validation_node(value, rule.alternatives[alternative]);
             var ok = syntax_validation_captures(value, sequence.items.length);
-            if ok {} else {
+            if !ok {
                 return false;
             }
             var item: usize = 0;
@@ -250,14 +248,14 @@ fn syntax_validation_terms(value: SyntaxValidation*): bool {
                     }
                 }
                 ok = syntax_validation_capture(value, term);
-                if ok {} else {
+                if !ok {
                     return false;
                 }
-                item = item + 1;
+                item++;
             }
-            alternative = alternative + 1;
+            alternative++;
         }
-        index = index + 1;
+        index++;
     }
 }
 
@@ -275,7 +273,7 @@ fn syntax_validation_has_capture(value: SyntaxValidation*, sequence: SyntaxNode*
         if found {
             return true;
         }
-        index = index + 1;
+        index++;
     }
 }
 
@@ -310,7 +308,7 @@ fn syntax_validation_declaration(value: SyntaxValidation*, name: u8*, empty: boo
             return true;
         }
         var sequence = syntax_validation_node(value, rule.alternatives[alternative]);
-        alternative = alternative + 1;
+        alternative++;
         if empty {
             var vacant = sequence.items.length == 0;
             if vacant {
@@ -324,37 +322,25 @@ fn syntax_validation_declaration(value: SyntaxValidation*, name: u8*, empty: boo
         }
         present = second != null;
         if present {
-            if ok {
-                ok = syntax_validation_required(value, sequence, name, second);
-            }
+            ok &&= syntax_validation_required(value, sequence, name, second);
         }
         present = third != null;
         if present {
-            if ok {
-                ok = syntax_validation_required(value, sequence, name, third);
-            }
+            ok &&= syntax_validation_required(value, sequence, name, third);
         }
         present = fourth != null;
         if present {
-            if ok {
-                ok = syntax_validation_required(value, sequence, name, fourth);
-            }
+            ok &&= syntax_validation_required(value, sequence, name, fourth);
         }
-        if ok {} else {
+        if !ok {
             return false;
         }
         if atom {
             ok = syntax_validation_has_capture(value, sequence, "literal");
-            if ok {} else {
-                ok = syntax_validation_has_capture(value, sequence, "reference");
-            }
-            if ok {} else {
-                ok = syntax_validation_has_capture(value, sequence, "capture");
-            }
-            if ok {} else {
-                ok = syntax_validation_has_capture(value, sequence, "set");
-            }
-            if ok {} else {
+            ok ||= syntax_validation_has_capture(value, sequence, "reference");
+            ok ||= syntax_validation_has_capture(value, sequence, "capture");
+            ok ||= syntax_validation_has_capture(value, sequence, "set");
+            if !ok {
                 syntax_validation_text(value, "GrammarAtom must capture a literal, reference or capture name");
                 return false;
             }
@@ -368,7 +354,7 @@ fn syntax_validation_imports(value: SyntaxValidation*): bool {
     var present = index != lr_none();
     if present {
         var ok = syntax_validation_declaration(value, "ImportDeclaration", false, "name", null, null, null, false);
-        if ok {} else {
+        if !ok {
             return false;
         }
         var rule = &value.rules[index];
@@ -385,15 +371,15 @@ fn syntax_validation_imports(value: SyntaxValidation*): bool {
                         aliased = true;
                     }
                 }
-                item = item + 1;
+                item++;
             }
             if aliased {
                 ok = syntax_validation_required(value, sequence, "ImportDeclaration", "alias");
-                if ok {} else {
+                if !ok {
                     return false;
                 }
             }
-            alternative = alternative + 1;
+            alternative++;
         }
     }
     index = syntax_validation_find(value, "ImportPath", 10);
@@ -402,7 +388,7 @@ fn syntax_validation_imports(value: SyntaxValidation*): bool {
         return true;
     }
     var ok = syntax_validation_declaration(value, "ImportPath", false, "segment", null, null, null, false);
-    if ok {} else {
+    if !ok {
         return false;
     }
     var rule = &value.rules[index];
@@ -420,59 +406,35 @@ fn syntax_validation_imports(value: SyntaxValidation*): bool {
                 break;
             }
             var term = syntax_validation_node(value, sequence.items.data[item]);
-            var recursive = term.literal == false;
-            if recursive {
-                recursive = syntax_bytes_compare(term.text.data, term.text.length, "ImportPath", 10) == 0;
-            }
+            var recursive = !term.literal;
+            recursive &&= syntax_bytes_compare(term.text.data, term.text.length, "ImportPath", 10) == 0;
             if recursive {
                 ok = syntax_bytes_compare(term.capture.data, term.capture.length, "previous", 8) == 0;
-                if ok {} else {
+                if !ok {
                     syntax_validation_location(value, term);
                     syntax_validation_text(value, "Recursive ImportPath must preserve capture 'previous'");
                     return false;
                 }
             }
-            item = item + 1;
+            item++;
         }
-        alternative = alternative + 1;
+        alternative++;
     }
 }
 
 fn syntax_validation_declarations(value: SyntaxValidation*): bool {
     var ok = syntax_validation_declaration(value, "GrammarAlternatives", false, "sequence", null, null, null, false);
-    if ok {
-        ok = syntax_validation_declaration(value, "GrammarAssignment", false, null, null, null, null, false);
-    }
-    if ok {
-        ok = syntax_validation_declaration(value, "GrammarAtom", false, null, null, null, null, true);
-    }
-    if ok {
-        ok = syntax_validation_declaration(value, "GrammarDeclaration", false, "name", "op", "alternatives", "replacement", false);
-    }
-    if ok {
-        ok = syntax_validation_declaration(value, "GrammarReplacement", true, "body", null, null, null, false);
-    }
-    if ok {
-        ok = syntax_validation_declaration(value, "GrammarSequence", true, "previous", "term", null, null, false);
-    }
-    if ok {
-        ok = syntax_validation_declaration(value, "GrammarSkipDeclaration", false, "name", "pattern", "style", null, false);
-    }
-    if ok {
-        ok = syntax_validation_declaration(value, "GrammarStyle", true, "kind", null, null, null, false);
-    }
-    if ok {
-        ok = syntax_validation_declaration(value, "GrammarSuffix", false, null, null, null, null, false);
-    }
-    if ok {
-        ok = syntax_validation_declaration(value, "GrammarTerm", false, "atom", "suffix", null, null, false);
-    }
-    if ok {
-        ok = syntax_validation_declaration(value, "GrammarTokenDeclaration", false, "name", "pattern", "style", null, false);
-    }
-    if ok {
-        ok = syntax_validation_imports(value);
-    }
+    ok &&= syntax_validation_declaration(value, "GrammarAssignment", false, null, null, null, null, false);
+    ok &&= syntax_validation_declaration(value, "GrammarAtom", false, null, null, null, null, true);
+    ok &&= syntax_validation_declaration(value, "GrammarDeclaration", false, "name", "op", "alternatives", "replacement", false);
+    ok &&= syntax_validation_declaration(value, "GrammarReplacement", true, "body", null, null, null, false);
+    ok &&= syntax_validation_declaration(value, "GrammarSequence", true, "previous", "term", null, null, false);
+    ok &&= syntax_validation_declaration(value, "GrammarSkipDeclaration", false, "name", "pattern", "style", null, false);
+    ok &&= syntax_validation_declaration(value, "GrammarStyle", true, "kind", null, null, null, false);
+    ok &&= syntax_validation_declaration(value, "GrammarSuffix", false, null, null, null, null, false);
+    ok &&= syntax_validation_declaration(value, "GrammarTerm", false, "atom", "suffix", null, null, false);
+    ok &&= syntax_validation_declaration(value, "GrammarTokenDeclaration", false, "name", "pattern", "style", null, false);
+    ok &&= syntax_validation_imports(value);
     return ok;
 }
 
@@ -510,7 +472,7 @@ fn syntax_validation_dependencies(value: SyntaxValidation*): bool {
                 }
                 var entity = sequence.items.data[item];
                 var term = syntax_validation_node(value, entity);
-                item = item + 1;
+                item++;
                 if term.literal {
                     continue;
                 }
@@ -531,13 +493,13 @@ fn syntax_validation_dependencies(value: SyntaxValidation*): bool {
                     edge.term = entity;
                     value.allocated = lr_append(SyntaxDependent, &value.states.data[target].dependents, &edge);
                 }
-                if value.allocated {} else {
+                if !value.allocated {
                     return false;
                 }
             }
-            alternative = alternative + 1;
+            alternative++;
         }
-        index = index + 1;
+        index++;
     }
     index = 0;
     loop {
@@ -554,12 +516,12 @@ fn syntax_validation_dependencies(value: SyntaxValidation*): bool {
                 break;
             }
             var ok = syntax_validation_wait(value, edges.data[edge].owner, edges.data[edge].term);
-            if ok {} else {
+            if !ok {
                 return false;
             }
-            edge = edge + 1;
+            edge++;
         }
-        index = index + 1;
+        index++;
     }
 }
 
@@ -614,7 +576,7 @@ fn syntax_validation_properties(value: SyntaxValidation*): void {
                 break;
             }
             var owner = index;
-            index = index + 1;
+            index++;
             var waiting = value.pending[owner] != null;
             if waiting {
                 continue;
@@ -637,7 +599,7 @@ fn syntax_validation_properties(value: SyntaxValidation*): void {
                         break;
                     }
                     var term = syntax_validation_node(value, sequence.items.data[item]);
-                    item = item + 1;
+                    item++;
                     var optional = syntax_validation_optional(term);
                     if optional {
                         continue;
@@ -660,31 +622,31 @@ fn syntax_validation_properties(value: SyntaxValidation*): void {
                     } else {
                         produces = syntax_validation_token(value, term.text.data, term.text.length, false);
                     }
-                    if empty {} else {
+                    if !empty {
                         nullable = false;
                     }
-                    if produces {} else {
+                    if !produces {
                         productive = false;
                     }
                 }
                 if nullable {
-                    var fresh = state.nullable == false;
+                    var fresh = !state.nullable;
                     if fresh {
                         state.nullable = true;
                         changed = true;
                     }
                 }
                 if productive {
-                    var fresh = state.productive == false;
+                    var fresh = !state.productive;
                     if fresh {
                         state.productive = true;
                         changed = true;
                     }
                 }
-                alternative = alternative + 1;
+                alternative++;
             }
         }
-        if changed {} else {
+        if !changed {
             return;
         }
     }
@@ -706,14 +668,14 @@ fn syntax_validation_productive(value: SyntaxValidation*): bool {
             return true;
         }
         var owner = index;
-        index = index + 1;
+        index++;
         var waiting = value.pending[owner] != null;
         if waiting {
             continue;
         }
         var rule = &value.rules[owner];
         var productive = value.states.data[owner].productive;
-        if productive {} else {
+        if !productive {
             return syntax_validation_error(value, "Unproductive grammar rule: ", rule.name, rule.name_length);
         }
         var alternative: usize = 0;
@@ -730,7 +692,7 @@ fn syntax_validation_productive(value: SyntaxValidation*): bool {
                     break;
                 }
                 var term = syntax_validation_node(value, sequence.items.data[item]);
-                item = item + 1;
+                item++;
                 if term.literal {
                     continue;
                 }
@@ -749,7 +711,7 @@ fn syntax_validation_productive(value: SyntaxValidation*): bool {
                     }
                 }
             }
-            alternative = alternative + 1;
+            alternative++;
         }
     }
 }
@@ -773,7 +735,7 @@ export fn syntax_validate(rules: SyntaxRuleView*, count: usize, tokens: void**, 
             break;
         }
         pending[index] = null;
-        index = index + 1;
+        index++;
     }
     value.allocated = vector_reserve(SyntaxRuleState, &value.states, count);
     var ok = value.allocated;
@@ -783,27 +745,13 @@ export fn syntax_validate(rules: SyntaxRuleView*, count: usize, tokens: void**, 
         value.states.length = count;
         ok = syntax_validation_terms(&value);
     }
-    if ok {
-        ok = syntax_validation_declarations(&value);
-    }
-    if ok {
-        ok = syntax_validation_dependencies(&value);
-    }
-    if ok {
-        ok = syntax_validation_root(&value, "GrammarDeclaration");
-    }
-    if ok {
-        ok = syntax_validation_root(&value, "GrammarTokenDeclaration");
-    }
-    if ok {
-        ok = syntax_validation_root(&value, "GrammarSkipDeclaration");
-    }
-    if ok {
-        ok = syntax_validation_root(&value, "ImportDeclaration");
-    }
-    if ok {
-        ok = syntax_validation_root(&value, "Statement");
-    }
+    ok &&= syntax_validation_declarations(&value);
+    ok &&= syntax_validation_dependencies(&value);
+    ok &&= syntax_validation_root(&value, "GrammarDeclaration");
+    ok &&= syntax_validation_root(&value, "GrammarTokenDeclaration");
+    ok &&= syntax_validation_root(&value, "GrammarSkipDeclaration");
+    ok &&= syntax_validation_root(&value, "ImportDeclaration");
+    ok &&= syntax_validation_root(&value, "Statement");
     if ok {
         syntax_validation_properties(&value);
         ok = syntax_validation_productive(&value);
@@ -815,12 +763,12 @@ export fn syntax_validate(rules: SyntaxRuleView*, count: usize, tokens: void**, 
             break;
         }
         vector_dispose(SyntaxDependent, &value.states.data[index].dependents);
-        index = index + 1;
+        index++;
     }
     vector_dispose(SyntaxRuleState, &value.states);
     vector_dispose(usize, &value.queue);
     vector_dispose(SyntaxNode*, &value.captures);
-    if value.allocated {} else {
+    if !value.allocated {
         vector_dispose(u8, error);
         index = 0;
         loop {
@@ -829,7 +777,7 @@ export fn syntax_validate(rules: SyntaxRuleView*, count: usize, tokens: void**, 
                 break;
             }
             pending[index] = null;
-            index = index + 1;
+            index++;
         }
         return false;
     }

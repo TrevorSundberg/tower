@@ -20,7 +20,7 @@ extern fn parser_format_reply(request: ParserFormat*, text: u8*, length: usize):
 extern fn parser_format_result(request: ParserFormat*): FormatResult*;
 
 fn parser_text_equal(result: FormatResult*, wanted: u8*): void {
-    var ok = result.failed == false;
+    var ok = !result.failed;
     table_owner_check(ok, 101);
     var index: usize = 0;
     while index < result.text.length {
@@ -28,7 +28,7 @@ fn parser_text_equal(result: FormatResult*, wanted: u8*): void {
         table_owner_check(ok, 102);
         ok = result.text.data[index] == wanted[index];
         table_owner_check(ok, 103);
-        index = index + 1;
+        index++;
     }
     ok = wanted[index] == 0;
     table_owner_check(ok, 104);
@@ -144,7 +144,7 @@ fn parser_text_table_tests(): void {
     var count = tower_test_buffer_allocations();
     request = parser_format_create(table, ParserFormatKind.Tables, 0, 0, false, false);
     parser_format_next(request);
-    var ok = request.result.failed == false;
+    var ok = !request.result.failed;
     table_owner_check(ok, 123);
     count = tower_test_buffer_allocations() - count;
     parser_format_destroy(request);
@@ -162,7 +162,7 @@ fn parser_text_table_tests(): void {
         parser_format_destroy(request);
         ok = tower_test_buffer_count() == buffers;
         table_owner_check(ok, 126);
-        budget = budget + 1;
+        budget++;
     }
     parser_table_destroy(table);
     ok = tower_test_buffer_count() == baseline;
@@ -266,7 +266,7 @@ fn parser_text_shift_tests(kernels: bool): void {
         }
         var description = need == ParserFormatNeed.Description;
         table_owner_check(description, 146);
-        count = count + 1;
+        count++;
         parser_format_reply(request, "choice", 6);
     }
     var ok: bool;

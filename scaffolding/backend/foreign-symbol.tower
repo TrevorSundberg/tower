@@ -68,8 +68,8 @@ export fn foreign_symbol(profile: u32, name: u8*): ForeignName* {
         if short_name {
             return foreign_mangle(profile, "", cpp, false);
         }
-        var end = length - 1;
-        var count = end - start;
+        var end = length -1;
+        var count = end -start;
         var source = alloc(u8, length);
         var foreign_condition1001 = source == null;
         if foreign_condition1001 {

@@ -101,6 +101,7 @@ struct SemanticContext {
     // allocations/lists; no caller receives a pointer into either scratch buffer.
     scan: stack(void*);
     token_text: vector(u8);
+    surface_expressions: bool;
 }
 
 fn sem_editor_contains(c: SemanticContext*, n: void*): bool {
@@ -132,7 +133,7 @@ fn sem_editor_contains(c: SemanticContext*, n: void*): bool {
 }
 
 fn sem_editor_capture(c: SemanticContext*, n: void*, kind: u32, receiver: FoundationType*): bool {
-    if sem_editor_contains(c, n) {} else {
+    if !sem_editor_contains(c, n) {
         return false;
     }
     var span = sem_match(n);
@@ -160,7 +161,7 @@ fn sem_editor_capture(c: SemanticContext*, n: void*, kind: u32, receiver: Founda
             break;
         }
         if sem_is(parent, "CoreBlock") {
-            c.editor.blocks = c.editor.blocks + 1;
+            c.editor.blocks++;
         }
         parent = sem_parent(parent);
     }
@@ -222,9 +223,9 @@ export fn semantic_component_attach(node: void*, type: void*, kind: u32): Founda
         return value;
     }
     var lifecycle: usize = 0;
-    lifecycle = lifecycle - 1;
+    lifecycle--;
     var ok = entity_register(type, sizeof(FoundationNode), alignof(FoundationNode), lifecycle);
-    if ok {} else {
+    if !ok {
         return null;
     }
     value = bits(FoundationNode*, entity_component_data(entity_component_add(node, type)));
@@ -290,7 +291,7 @@ export fn sem_decode_identifier(text: u8*): void {
 }
 
 export fn sem_require(ok: bool): void {
-    if ok {} else {
+    if !ok {
         abort();
     }
 }

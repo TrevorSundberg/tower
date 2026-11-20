@@ -12,7 +12,7 @@ export fn syntax_source_size(): usize {
 export fn syntax_source_retain(source: SyntaxSource*): void {
     var present = source != null;
     if present {
-        source.references = source.references + 1;
+        source.references++;
     }
 }
 
@@ -21,7 +21,7 @@ export fn syntax_source_release(source: SyntaxSource*): void {
     if missing {
         return;
     }
-    source.references = source.references - 1;
+    source.references--;
     var unused = source.references == 0;
     if unused {
         vector_dispose(u8, &source.name);
@@ -44,9 +44,7 @@ export fn syntax_source_create(name: u8*, text: u8*, length: usize): SyntaxSourc
     fill(source, 0, sizeof(SyntaxSource));
     source.references = 1;
     var ok = node_text_set(&source.name, name);
-    if ok {
-        ok = vector_reserve(u8, &source.text, needed);
-    }
+    ok &&= vector_reserve(u8, &source.text, needed);
     if ok {
         var nonempty = length != 0;
         if nonempty {
@@ -87,6 +85,6 @@ export fn syntax_source_location(source: SyntaxSource*, offset: usize, line: usi
                 *column = *column + 1;
             }
         }
-        index = index + 1;
+        index++;
     }
 }

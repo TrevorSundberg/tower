@@ -4,8 +4,8 @@ import '../library/entities';
 var failures: u32 = 0;
 
 fn check(ok: bool): void {
-    if ok {} else {
-        failures = failures + 1;
+    if !ok {
+        failures++;
     }
 }
 
@@ -81,7 +81,7 @@ fn views(): void {
     var view_check21 = entity_view_query(view, type, 2, 0, &query) == false;
     check(view_check21);
     var maximum: usize = 0;
-    maximum = maximum - 1;
+    maximum--;
     var view_check22 = entity_view_query(view, type, 0, maximum, &query) == false;
     check(view_check22);
 
@@ -123,7 +123,7 @@ fn batches(): void {
         var component = entity_component_add(owners[i], type);
         var data = bits(u32*, entity_component_data(component));
         *data = convert(u32, i);
-        i = i + 1;
+        i++;
     }
     var view = entity_view_open(type);
     var query: EntityQuery;
@@ -149,7 +149,7 @@ fn batches(): void {
         while j < query.length {
             var data = bits(u32*, entity_component_data(query.data[j]));
             sum = sum + *data;
-            j = j + 1;
+            j++;
         }
         i = i + count;
     }
@@ -170,7 +170,7 @@ fn batches(): void {
     i = 1;
     while i < 37 {
         entity_release(owners[i]);
-        i = i + 1;
+        i++;
     }
     entity_view_close(view);
     var view_check37 = entity_store_count(world) == 2;

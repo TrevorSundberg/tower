@@ -16,7 +16,7 @@ production: usize, multiple: bool): void {
     fill(&output, 0, sizeof(SyntaxDiagnosticText));
     format_syntax_diagnostic(input, &output);
     frontend_world_check(frontend_world_error_is(&output.result, wanted));
-    var ok = output.result.failed == false;
+    var ok = !output.result.failed;
     frontend_world_check(ok);
     ok = output.insertion == inserted;
     frontend_world_check(ok);
@@ -47,7 +47,7 @@ fn frontend_diagnostic_text_tests(): void {
     while i < 7 {
         options[i].id = convert(u32, i);
         options[i].label = "'x'";
-        i = i + 1;
+        i++;
     }
     var literals: u32[2];
     literals[0] = 0;
@@ -127,7 +127,7 @@ fn frontend_diagnostic_text_tests(): void {
         format_dispose(&output.result);
         var ok = tower_test_buffer_count() == buffers;
         frontend_world_check(ok);
-        budget = budget + 1;
+        budget++;
     }
     input.count = 0;
     input.original = "Error";

@@ -66,7 +66,7 @@ extern fn tower_test_buffer_count(): usize;
 extern fn tower_test_buffer_fail_next(): void;
 
 fn shared_check(ok: bool): void {
-    if ok {} else {
+    if !ok {
         abort();
     }
 }
@@ -122,7 +122,7 @@ export fn shared_entity_tests(): void {
         var low = i % 256;
         var byte = convert(u8, low);
         fill(data, byte, 48);
-        i = i + 1;
+        i++;
     }
     ok = entity_query_count(type) == 1000;
     shared_check(ok);
@@ -146,11 +146,11 @@ export fn shared_entity_tests(): void {
             }
             ok = bytes[j] == byte;
             shared_check(ok);
-            j = j + 1;
+            j++;
         }
         ok = entity_component_owner(entity_query_at(type, i)) == nodes[i];
         shared_check(ok);
-        i = i + 1;
+        i++;
     }
     i = 0;
     loop {
@@ -178,7 +178,7 @@ export fn shared_entity_tests(): void {
         shared_check(ok);
         ok = entity_component_get(owner, type) == component;
         shared_check(ok);
-        i = i + 1;
+        i++;
     }
     ok = entity_query_at(type, 500) == null;
     shared_check(ok);
@@ -229,7 +229,7 @@ export fn shared_entity_tests(): void {
             break;
         }
         entity_release(nodes[i]);
-        i = i + 1;
+        i++;
     }
     ok = entity_store_count(store) == 0;
     shared_check(ok);
@@ -412,7 +412,7 @@ fn shared_provenance_tests(): void {
         shared_check(ok);
         shared_check(syntax_origin_mark(world, trace, invocation, invocation, true));
         syntax_trace_release(trace);
-        index = index + 1;
+        index++;
     }
     var type = compiler_world_type(world, CompilerSyntaxExpansion());
     ok = entity_query_count(type) == 10000;
@@ -561,7 +561,7 @@ export fn shared_world_tests(): void {
             shared_check(ok);
             ok = entity_component_owner(entity_query_at(type, 0)) == node;
             shared_check(ok);
-            kind = kind + 1;
+            kind++;
         }
         var rule = bits(ParserRuleData*, compiler_world_get(first, node, CompilerParserRule()));
         shared_check(vector_push(u8, &rule.name, 65));
@@ -574,7 +574,7 @@ export fn shared_world_tests(): void {
         ok = parsed.id == 4294967294;
         shared_check(ok);
         var missing: usize = 0;
-        missing = missing - 1;
+        missing--;
         ok = parsed.rule == missing;
         shared_check(ok);
         shared_check(vector_push(u8, &parsed.label, 69));
@@ -627,7 +627,7 @@ export fn shared_world_tests(): void {
         shared_check(compiler_world_dispose(second));
         ok = tower_test_buffer_count() == baseline;
         shared_check(ok);
-        iteration = iteration + 1;
+        iteration++;
     }
     var empty = compiler_world_create();
     var type = compiler_world_type(empty, CompilerParserRule());

@@ -33,6 +33,7 @@ struct SyntaxNode {
   SyntaxComments comments;
   size_t start = TOWER_INVALID_INDEX, end = TOWER_INVALID_INDEX;
   const LexPattern* compiled = nullptr; // derived lexer cache only
+  uint32_t precedence = 0, associativity = 0;
 };
 extern "C" {
 size_t syntax_node_size();

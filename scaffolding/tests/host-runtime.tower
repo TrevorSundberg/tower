@@ -11,7 +11,7 @@ extern fn tower_test_buffer_fail_next(): void;
 
 export fn host_runtime_tests(): i32 {
     var maximum: usize = 0;
-    maximum = maximum - 1;
+    maximum--;
     // Both diagnostic and ordinary compiler allocation are Tower algorithms.
     var node_state: CompilerNodeMemoryState;
     node_state.live_allocations = 0;
@@ -58,7 +58,7 @@ export fn host_runtime_tests(): i32 {
         if bad {
             return 707;
         }
-        size = size + 1;
+        size++;
     }
     var state: CompilerMemoryState;
     state.live_buffers = 0;
@@ -189,7 +189,7 @@ export fn host_runtime_tests(): i32 {
     argv[0] = "towerc";
     var args = &argv[0];
     var ok = driver_parse(&options, 1, args, "host-target");
-    var check_25 = ok == false;
+    var check_25 = !ok;
     if check_25 {
         return 25;
     }
@@ -205,7 +205,7 @@ export fn host_runtime_tests(): i32 {
     if check_28 {
         return 28;
     }
-    var check_29 = options.optimize == false;
+    var check_29 = !options.optimize;
     if check_29 {
         return 29;
     }
@@ -242,7 +242,7 @@ export fn host_runtime_tests(): i32 {
     argv[30] = "--foundation";
     argv[31] = "foundation path";
     ok = driver_parse(&options, 32, args, "host");
-    var check_30 = ok == false;
+    var check_30 = !ok;
     if check_30 {
         return 30;
     }
@@ -262,7 +262,7 @@ export fn host_runtime_tests(): i32 {
     if check_34 {
         return 34;
     }
-    var check_35 = options.library == false;
+    var check_35 = !options.library;
     if check_35 {
         return 35;
     }
@@ -273,11 +273,11 @@ export fn host_runtime_tests(): i32 {
     if options.optimize {
         return 37;
     }
-    var check_37 = options.interpret == false;
+    var check_37 = !options.interpret;
     if check_37 {
         return 38;
     }
-    var check_38 = options.timings == false;
+    var check_38 = !options.timings;
     if check_38 {
         return 39;
     }
@@ -351,16 +351,16 @@ export fn host_runtime_tests(): i32 {
             return 51;
         }
         driver_dispose(&options);
-        index = index + 1;
+        index++;
     }
     argv[1] = "--help";
     argv[2] = "--invalid";
     ok = driver_parse(&options, 3, args, "host");
-    var check_51 = ok == false;
+    var check_51 = !ok;
     if check_51 {
         return 52;
     }
-    var check_52 = options.help == false;
+    var check_52 = !options.help;
     if check_52 {
         return 53;
     }
@@ -391,7 +391,7 @@ export fn host_runtime_tests(): i32 {
     argv[2] = "exe";
     argv[3] = "--library";
     ok = driver_parse(&options, 4, args, "host");
-    var check_55 = ok == false;
+    var check_55 = !ok;
     if check_55 {
         return 58;
     }
@@ -404,7 +404,7 @@ export fn host_runtime_tests(): i32 {
     argv[1] = "-o";
     argv[2] = "--help";
     ok = driver_parse(&options, 3, args, "host");
-    var check_57 = ok == false;
+    var check_57 = !ok;
     if check_57 {
         return 60;
     }

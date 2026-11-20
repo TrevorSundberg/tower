@@ -47,12 +47,14 @@ for all remaining stages, including parallel execution at large project sizes.
    Preserve enum identity and member metadata in Foundation text; do not ship
    integer aliases or collections of getter functions disguised as nominal enums.
    Add finite-enum exhaustiveness and duplicate/unreachable match diagnostics.
-4. **Expressions and exact overloads.** Install a C#-like precedence table in
-   Tower, using explicit layered grammar rules initially. Numeric precedence
-   annotations can later generate those same rules, with grammar metadata and
-   formatter round trips; they must not silently choose between LR conflicts.
-   Lower nested expressions into Foundation temporaries in left-to-right effect
-   order. Resolve operators/calls by exact argument types, diagnose ambiguity,
+4. **Expressions and exact overloads.** Tower now installs C/C++-style grouping
+   through explicit numeric precedence on its shared grammar entities. This
+   supersedes the initial layered-first proposal: eligible shift/reduce choices
+   are made during table construction, without generated precedence tiers or
+   a second runtime expression parser. Ordinary layered rules still work.
+   Nested expressions lower into Foundation temporaries in left-to-right effect
+   order, with branches for short circuit and conditional evaluation. Future
+   overloads must resolve operators/calls by exact argument types, diagnose ambiguity,
    and require explicit conversions. No overload ranking or implicit promotions.
 5. **Deterministic staged execution.** `comptime` requests ordinary graph
    interpreter execution after demanded dependencies resolve. It is a stage,

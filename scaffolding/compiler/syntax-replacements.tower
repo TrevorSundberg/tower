@@ -62,9 +62,7 @@ fn replacement_find(state: ReplacementPlanState*, name: u8*, length: usize): usi
 }
 
 fn replacement_append(state: ReplacementPlanState*, source: u8*, length: usize): void {
-    if state.allocated {
-        state.allocated = bytes_append(&state.plan.error, source, length);
-    }
+    state.allocated &&= bytes_append(&state.plan.error, source, length);
 }
 
 fn replacement_text(state: ReplacementPlanState*, text: u8*): void {
@@ -83,14 +81,14 @@ fn replacement_reachable(state: ReplacementPlanState*): bool {
         replacement_queue(state, first);
     }
     loop {
-        if state.allocated {} else {
+        if !state.allocated {
             return false;
         }
         var empty = state.pending.length == 0;
         if empty {
             return true;
         }
-        state.pending.length = state.pending.length - 1;
+        state.pending.length--;
         var index = state.pending.data[state.pending.length];
         var visited = state.rules.data[index].reachable;
         if visited {
@@ -112,19 +110,19 @@ fn replacement_reachable(state: ReplacementPlanState*): bool {
                     break;
                 }
                 var term = replacement_node(state, sequence.items.data[item]);
-                if term.literal {} else {
+                if !term.literal {
                     var target = replacement_find(state, term.text.data, term.text.length);
                     present = target != lr_none();
                     if present {
                         var ok = replacement_queue(state, target);
-                        if ok {} else {
+                        if !ok {
                             return false;
                         }
                     }
                 }
-                item = item + 1;
+                item++;
             }
-            alternative = alternative + 1;
+            alternative++;
         }
     }
 }
@@ -148,10 +146,8 @@ fn replacement_parents(state: ReplacementPlanState*): bool {
                 var eligible = sequence.items.length == 1;
                 if eligible {
                     var term = replacement_node(state, sequence.items.data[0]);
-                    eligible = term.literal == false;
-                    if eligible {
-                        eligible = term.repetition == 0;
-                    }
+                    eligible = !term.literal;
+                    eligible &&= term.repetition == 0;
                     if eligible {
                         var target = replacement_find(state, term.text.data, term.text.length);
                         var found = target != lr_none();
@@ -163,19 +159,19 @@ fn replacement_parents(state: ReplacementPlanState*): bool {
                                 var last = count - 1;
                                 duplicate = parents.data[last] == index;
                             }
-                            if duplicate {} else {
+                            if !duplicate {
                                 state.allocated = vector_push(usize, parents, index);
-                                if state.allocated {} else {
+                                if !state.allocated {
                                     return false;
                                 }
                             }
                         }
                     }
                 }
-                alternative = alternative + 1;
+                alternative++;
             }
         }
-        index = index + 1;
+        index++;
     }
 }
 
@@ -205,10 +201,10 @@ fn replacement_excerpt(state: ReplacementPlanState*, source: vector(u8)*): void 
             break;
         }
         var blank = replacement_space(source.data[first]);
-        if blank {} else {
+        if !blank {
             break;
         }
-        first = first + 1;
+        first++;
     }
     loop {
         var done = first == last;
@@ -217,7 +213,7 @@ fn replacement_excerpt(state: ReplacementPlanState*, source: vector(u8)*): void 
         }
         var index = last - 1;
         var blank = replacement_space(source.data[index]);
-        if blank {} else {
+        if !blank {
             break;
         }
         last = index;
@@ -239,10 +235,10 @@ fn replacement_excerpt(state: ReplacementPlanState*, source: vector(u8)*): void 
         }
         var byte = source.data[end] & 192;
         var continuation = byte == 128;
-        if continuation {} else {
+        if !continuation {
             break;
         }
-        end = end - 1;
+        end--;
     }
     replacement_text(state, "\"");
     var index = first;
@@ -278,7 +274,7 @@ fn replacement_excerpt(state: ReplacementPlanState*, source: vector(u8)*): void 
                 }
             }
         }
-        index = index + 1;
+        index++;
     }
     var truncated = end < last;
     if truncated {
@@ -310,7 +306,7 @@ fn replacement_invalid(state: ReplacementPlanState*, name: u8*, body: SyntaxNode
             }
             var target = state.tried.data[index];
             replacement_text(state, state.plan.rules[target].name);
-            index = index + 1;
+            index++;
         }
     }
     replacement_text(state, ". ");
@@ -352,18 +348,18 @@ fn replacement_prepare_one(state: ReplacementPlanState*, index: usize, alternati
         if captured {
             syntax_replacement_capture(state.plan.host, node_text_get(&term.capture), entity);
         }
-        item = item + 1;
+        item++;
     }
     state.pending.length = 0;
     state.tried.length = 0;
     state.original.length = 0;
     state.plan.offset = body.start;
-    state.epoch = state.epoch + 1;
+    state.epoch++;
     var grammar_failed = false;
     var ok = replacement_queue(state, index);
     var cursor: usize = 0;
     loop {
-        if ok {} else {
+        if !ok {
             return false;
         }
         var done = cursor == state.pending.length;
@@ -379,14 +375,14 @@ fn replacement_prepare_one(state: ReplacementPlanState*, index: usize, alternati
                 break;
             }
             var category = state.pending.data[cursor];
-            cursor = cursor + 1;
+            cursor++;
             var visited = state.rules.data[category].visited == state.epoch;
             if visited {
                 continue;
             }
             state.rules.data[category].visited = state.epoch;
             state.allocated = vector_push(usize, &state.tried, category);
-            if state.allocated {} else {
+            if !state.allocated {
                 return false;
             }
             var status = syntax_replacement_attempt(state.plan.host, state.plan.rules[category].name);
@@ -405,7 +401,7 @@ fn replacement_prepare_one(state: ReplacementPlanState*, index: usize, alternati
                 var first_error = state.original.length == 0;
                 if first_error {
                     state.allocated = node_text_set(&state.original, syntax_replacement_diagnostic(state.plan.host));
-                    if state.allocated {} else {
+                    if !state.allocated {
                         return false;
                     }
                     state.plan.offset = syntax_replacement_offset(state.plan.host);
@@ -423,10 +419,10 @@ fn replacement_prepare_one(state: ReplacementPlanState*, index: usize, alternati
                     break;
                 }
                 ok = replacement_queue(state, parents.data[parent]);
-                if ok {} else {
+                if !ok {
                     return false;
                 }
-                parent = parent + 1;
+                parent++;
             }
         }
         if selected {
@@ -456,28 +452,26 @@ fn replacement_prepare_all(state: ReplacementPlanState*): bool {
             if any {
                 break;
             }
-            alternative = alternative + 1;
+            alternative++;
         }
         if any {
             break;
         }
-        scan = scan + 1;
+        scan++;
     }
-    if any {} else {
+    if !any {
         return true;
     }
     state.allocated = vector_reserve(ReplacementRuleState, &state.rules, state.plan.count);
-    if state.allocated {} else {
+    if !state.allocated {
         return false;
     }
     var bytes = state.plan.count * sizeof(ReplacementRuleState);
     fill(state.rules.data, 0, bytes);
     state.rules.length = state.plan.count;
     var ok = replacement_reachable(state);
-    if ok {
-        ok = replacement_parents(state);
-    }
-    if ok {} else {
+    ok &&= replacement_parents(state);
+    if !ok {
         return false;
     }
     var index: usize = 0;
@@ -498,14 +492,14 @@ fn replacement_prepare_all(state: ReplacementPlanState*): bool {
                 var replacement = sequence.replacement != null;
                 if replacement {
                     ok = replacement_prepare_one(state, index, alternative);
-                    if ok {} else {
+                    if !ok {
                         return false;
                     }
                 }
-                alternative = alternative + 1;
+                alternative++;
             }
         }
-        index = index + 1;
+        index++;
     }
 }
 
@@ -522,13 +516,13 @@ export fn syntax_replacements_prepare(plan: SyntaxReplacementPlan*): bool {
             break;
         }
         vector_dispose(usize, &state.rules.data[index].parents);
-        index = index + 1;
+        index++;
     }
     vector_dispose(ReplacementRuleState, &state.rules);
     vector_dispose(usize, &state.pending);
     vector_dispose(usize, &state.tried);
     vector_dispose(u8, &state.original);
-    if state.allocated {} else {
+    if !state.allocated {
         vector_dispose(u8, &plan.error);
     }
     return ok;

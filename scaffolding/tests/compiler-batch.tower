@@ -8,14 +8,12 @@ fn compiler_batch_tests(): u32 {
     while i < 19 {
         var value = convert(u32, i) + 4294967277;
         values[i] = value;
-        i = i + 1;
+        i++;
     }
     parallel_transform(&values[1], 17);
     var guards = values[0] == 4294967277;
-    if guards {
-        guards = values[18] == 4294967295;
-    }
-    if guards {} else {
+    guards &&= values[18] == 4294967295;
+    if !guards {
         return 1;
     }
     i = 1;
@@ -24,19 +22,19 @@ fn compiler_batch_tests(): u32 {
         var wanted = original * 3;
         wanted = wanted + 7;
         var same = values[i] == wanted;
-        if same {} else {
+        if !same {
             return 2;
         }
         sum = sum + wanted;
-        i = i + 1;
+        i++;
     }
     var same = parallel_checksum(&values[1], 17) == sum;
-    if same {} else {
+    if !same {
         return 3;
     }
     parallel_transform(&values[0], 0);
     same = parallel_checksum(&values[0], 0) == 0;
-    if same {} else {
+    if !same {
         return 4;
     }
     return 0;

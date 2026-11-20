@@ -58,7 +58,7 @@ fn frontend_test_table_failures(kinds: FrontendKinds*): usize {
         if ok {
             break;
         }
-        budget = budget + 1;
+        budget++;
     }
     entity_release(root);
     return result;
@@ -68,24 +68,20 @@ fn frontend_test_diagnostics(kinds: FrontendKinds*): usize {
     var root = frontend_test_root(kinds);
     var table: FrontendTable;
     var ok = frontend_table_init(&table, root, kinds);
-    if ok {
-        ok = frontend_table_finish(&table, false, false) == 0;
-    }
+    ok &&= frontend_table_finish(&table, false, false) == 0;
     entity_release(root);
-    if ok {} else {
+    if !ok {
         frontend_table_dispose(&table);
         return 720;
     }
     var parser = lr_parser_create(table.runtime, false, false);
     var step: LRStep;
     ok = lr_parser_step(parser, true, 97, false, 0, 1, &step) == 1;
-    if ok {
-        ok = lr_parser_commit(parser, &step, lr_none(), lr_none());
-    }
+    ok &&= lr_parser_commit(parser, &step, lr_none(), lr_none());
     var result: usize = 0;
     var budget: usize = 0;
     loop {
-        if ok {} else {
+        if !ok {
             result = 721;
             break;
         }
@@ -120,11 +116,11 @@ fn frontend_test_diagnostics(kinds: FrontendKinds*): usize {
                 if ok {
                     var option = frontend_diagnostic_expected(d, 0);
                     ok = option.id == 98;
-                    if option.insertion {} else {
+                    if !option.insertion {
                         ok = false;
                     }
                     var context = option.contexts.length == 1;
-                    if context {} else {
+                    if !context {
                         ok = false;
                     }
                 }
@@ -138,12 +134,12 @@ fn frontend_test_diagnostics(kinds: FrontendKinds*): usize {
             break;
         }
         if complete {
-            if ok {} else {
+            if !ok {
                 result = 724;
             }
             break;
         }
-        budget = budget + 1;
+        budget++;
     }
     lr_parser_destroy(parser);
     frontend_table_dispose(&table);
@@ -164,7 +160,7 @@ fn frontend_test_pattern_reader(kinds: FrontendKinds*): usize {
             ok = error.text.length == 0;
             var sample: u8* = "α123!";
             var matched = lex_table_match(pattern.table, sample, syntax_text_length(sample), 0) == 5;
-            if matched {} else {
+            if !matched {
                 ok = false;
             }
             syntax_pattern_release(pattern);
@@ -176,9 +172,7 @@ fn frontend_test_pattern_reader(kinds: FrontendKinds*): usize {
         var pattern = frontend_pattern_read(compiler, source, syntax_text_length(source), &error);
         ok = pattern == null;
         syntax_pattern_release(pattern);
-        if ok {
-            ok = format_name_is(&error.text, "Unexpected ')'. In token pattern at character 2");
-        }
+        ok &&= format_name_is(&error.text, "Unexpected ')'. In token pattern at character 2");
     }
     format_dispose(&error);
     frontend_pattern_destroy(compiler);
@@ -252,7 +246,7 @@ export fn frontend_bedrock_tests(kinds: FrontendKinds*): usize {
     if changed {
         return 712;
     }
-    if ok {} else {
+    if !ok {
         return 713;
     }
     var document = frontend_bedrock_create(kinds);

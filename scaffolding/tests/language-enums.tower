@@ -31,54 +31,54 @@ fn describe(value: State): i32 {
 fn enum_tests(): i32 {
     var state: State = State.Idle;
     var good = state == State.Idle;
-    if good {} else {
+    if !good {
         return 1;
     }
     state = identity(State, State.Done);
     good = state != State.Busy;
-    if good {} else {
+    if !good {
         return 2;
     }
     good = convert(u32, state) == 5;
-    if good {} else {
+    if !good {
         return 3;
     }
     good = describe(state) == 20;
-    if good {} else {
+    if !good {
         return 4;
     }
     var unknown = convert(State, 99);
     good = describe(unknown) == 30;
-    if good {} else {
+    if !good {
         return 5;
     }
     good = convert(i32, Signed.Next) == -1;
-    if good {} else {
+    if !good {
         return 6;
     }
     good = convert(i32, Signed.Zero) == 0;
-    if good {} else {
+    if !good {
         return 7;
     }
     good = sizeof(Tiny) == 1;
-    if good {} else {
+    if !good {
         return 8;
     }
     good = convert(u8, Tiny.Last) == 255;
-    if good {} else {
+    if !good {
         return 9;
     }
     var pointer = &state;
     *pointer = State.Busy;
     good = state == State.Busy;
-    if good {} else {
+    if !good {
         return 10;
     }
     var values: State[2];
     values[0] = State.Idle;
     values[1] = State.Done;
     good = values[1] == State.Done;
-    if good {} else {
+    if !good {
         return 11;
     }
     return 0;

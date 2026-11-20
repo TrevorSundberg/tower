@@ -50,7 +50,7 @@ fn grammar_builder_child(builder: GrammarBuilder*, parent: void*, type: void*, k
     node_payload_init(kind, data);
     var attached = entity_attach(node, parent, null);
     entity_release(node);
-    if attached {} else {
+    if !attached {
         builder.failed = true;
         return null;
     }
@@ -75,10 +75,8 @@ export fn grammar_builder_reference(builder: GrammarBuilder*, parent: void*, nam
     }
     var data = bits(ParserReferenceData*, entity_component_data(entity_component_get(node, builder.kinds.reference)));
     var ok = node_reference_set_name(data, name);
-    if ok {
-        ok = node_reference_set_capture(data, capture);
-    }
-    builder.failed = ok == false;
+    ok &&= node_reference_set_capture(data, capture);
+    builder.failed = !ok;
 }
 
 export fn grammar_builder_literal(builder: GrammarBuilder*, parent: void*, text: u8*): void {

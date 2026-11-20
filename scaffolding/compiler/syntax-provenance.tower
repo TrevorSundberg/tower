@@ -58,7 +58,7 @@ export fn syntax_origin_dispose(origin: SyntaxOrigin*): void {
     var index: usize = 0;
     while index < origin.splices.length {
         syntax_trace_release(origin.splices.data[index]);
-        index = index + 1;
+        index++;
     }
     vector_dispose(SyntaxExpansion*, &origin.splices);
 }
@@ -86,10 +86,10 @@ export fn syntax_trace_create(world: CompilerWorld*, invocation: Entity*, rule: 
     }
     var length: usize = 0;
     while rule[length] != 0 {
-        length = length + 1;
+        length++;
     }
     var copied = bytes_assign_text(&trace.rule, rule, length);
-    if copied {} else {
+    if !copied {
         entity_release(owner);
         return null;
     }
@@ -129,7 +129,7 @@ export fn syntax_origin_copy(world: CompilerWorld*, source: Entity*, destination
     var pending: vector(SyntaxExpansion*);
     vector_init(SyntaxExpansion*, &pending);
     var ok = vector_reserve(SyntaxExpansion*, &pending, prior.splices.length);
-    if ok {} else {
+    if !ok {
         return false;
     }
     var target = bits(SyntaxOrigin*, compiler_world_component(world, destination, CompilerSyntaxOrigin()));
@@ -143,7 +143,7 @@ export fn syntax_origin_copy(world: CompilerWorld*, source: Entity*, destination
         var trace = prior.splices.data[index];
         syntax_trace_retain(trace);
         pending.data[index] = trace;
-        index = index + 1;
+        index++;
     }
     pending.length = prior.splices.length;
     syntax_trace_retain(prior.expansion);
@@ -167,10 +167,8 @@ export fn syntax_origin_mark(world: CompilerWorld*, trace: SyntaxExpansion*, nod
         return false;
     }
     var existing = syntax_origin_get(world, node);
-    var splice = generated == false;
-    if splice {
-        splice = existing != null;
-    }
+    var splice = !generated;
+    splice &&= existing != null;
     if splice {
         var ok = vector_push(SyntaxExpansion*, &existing.splices, trace);
         if ok {

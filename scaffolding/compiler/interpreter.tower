@@ -6,7 +6,7 @@ import 'interpreter-abi';
 import 'interpreter-storage';
 
 fn im_ok(m: IMState*): bool {
-    var ok = m.failed == false;
+    var ok = !m.failed;
     return ok;
 }
 
@@ -26,7 +26,7 @@ fn im_and(a: bool, b: bool): bool {
 
 fn im_host_max(): usize {
     var result: usize = 0;
-    result = result - 1;
+    result--;
     return result;
 }
 
@@ -56,12 +56,11 @@ fn im_align(n: usize): usize {
 fn im_power(n: usize): u64 {
     var result: u64 = 1;
     loop {
-        var condition_1 = n == 0;
-        if condition_1 {
+        if n == 0 {
             return result;
         }
         result = result * 2;
-        n = n - 1;
+        n--;
     }
 }
 
@@ -71,26 +70,22 @@ fn im_sign(value: u64, type: FoundationType*): i64 {
 
 fn im_sign_mask(value: u64, mask: u64): i64 {
     var high = mask / 2;
-    high = high + 1;
+    high++;
     var sign = value & high;
-    var condition_2 = sign != 0;
-    if condition_2 {
-        var extension = mask ^ 18446744073709551615;
-        value = value | extension;
+    if sign != 0 {
+        value |= ~mask;
     }
     return bits(i64, value);
 }
 
 export fn interpreter_bytes(m: IMState*, address: u64, count: usize, offset: usize): u8* {
     var size = convert(u64, im_memory_size(m));
-    var condition_3 = address > size;
-    if condition_3 {
+    if address > size {
         im_fail(m, "Address outside interpreter memory", offset);
         return null;
     }
     var remaining = size - address;
-    var condition_4 = convert(u64, count) > remaining;
-    if condition_4 {
+    if convert(u64, count) > remaining {
         im_fail(m, "Address outside interpreter memory", offset);
         return null;
     }
@@ -180,27 +175,22 @@ fn im_write_size(m: IMState*, address: u64, value: u64, size: usize, offset: usi
 }
 
 export fn interpreter_allocate(m: IMState*, count: usize): u64 {
-    var condition_9 = count > 268435456;
-    if condition_9 {
+    if count > 268435456 {
         return 0;
     }
-    var condition_10 = count == 0;
-    if condition_10 {
+    if count == 0 {
         count = 1;
     }
     count = im_align(count);
     var available: u64 = 0;
     var at = im_free_first(m, &available);
     loop {
-        var condition_11 = at == 0;
-        if condition_11 {
+        if at == 0 {
             break;
         }
-        var condition_12 = available >= convert(u64, count);
-        if condition_12 {
+        if available >= convert(u64, count) {
             im_free_blocks_erase(m, at);
-            var condition_13 = available > convert(u64, count);
-            if condition_13 {
+            if available > convert(u64, count) {
                 var tail = at + convert(u64, count);
                 var rest = available - convert(u64, count);
                 im_free_blocks_set(m, tail, rest);
@@ -214,13 +204,12 @@ export fn interpreter_allocate(m: IMState*, count: usize): u64 {
     var heap = m.heap;
     var remaining: usize = 268435456;
     remaining = remaining - heap;
-    var condition_14 = count > remaining;
-    if condition_14 {
+    if count > remaining {
         return 0;
     }
     var end = heap + count;
     var grown = im_memory_resize(m, end);
-    if grown {} else {
+    if !grown {
         return 0;
     }
     m.heap = end;
@@ -230,14 +219,12 @@ export fn interpreter_allocate(m: IMState*, count: usize): u64 {
 }
 
 export fn interpreter_deallocate(m: IMState*, at: u64): void {
-    var condition_15 = at == 0;
-    if condition_15 {
+    if at == 0 {
         return;
     }
     var found = false;
     var count = im_allocations_take(m, at, &found);
-    var condition_16 = found == false;
-    if condition_16 {
+    if !found {
         im_fail(m, "Invalid allocation passed to free", 0);
         return;
     }
@@ -246,21 +233,17 @@ export fn interpreter_deallocate(m: IMState*, at: u64): void {
     var available = neighbors.next_count;
     var next = neighbors.next;
     var end = at + count;
-    var condition_17 = next != 0;
-    if condition_17 {
-        var condition_18 = end == next;
-        if condition_18 {
+    if next != 0 {
+        if end == next {
             count = count + available;
             im_free_blocks_erase(m, next);
         }
     }
     var prev = neighbors.previous;
     available = neighbors.previous_count;
-    var condition_19 = prev != 0;
-    if condition_19 {
+    if prev != 0 {
         end = prev + available;
-        var condition_20 = end == at;
-        if condition_20 {
+        if end == at {
             at = prev;
             count = count + available;
             im_free_blocks_erase(m, prev);
@@ -270,29 +253,24 @@ export fn interpreter_deallocate(m: IMState*, at: u64): void {
 }
 
 export fn interpreter_reallocate(m: IMState*, at: u64, count: usize): u64 {
-    var condition_21 = at == 0;
-    if condition_21 {
+    if at == 0 {
         return interpreter_allocate(m, count);
     }
-    var condition_22 = count == 0;
-    if condition_22 {
+    if count == 0 {
         interpreter_deallocate(m, at);
         return 0;
     }
     var found = false;
     var previous = im_allocations_get(m, at, &found);
-    var condition_23 = found == false;
-    if condition_23 {
+    if !found {
         im_fail(m, "Invalid allocation passed to realloc", 0);
         return 0;
     }
-    var condition_24 = convert(u64, count) <= previous;
-    if condition_24 {
+    if convert(u64, count) <= previous {
         return at;
     }
     var result = interpreter_allocate(m, count);
-    var condition_25 = result == 0;
-    if condition_25 {
+    if result == 0 {
         return 0;
     }
     var memory = im_memory(m);
@@ -318,8 +296,7 @@ fn im_read(m: IMState*, node: void*, offset: usize): u64 {
 fn im_read_uncached(m: IMState*, node: void*, n: FoundationNode*, offset: usize): u64 {
     var found = false;
     var cached: u64 = 0;
-    var condition_27 = n.kind == KAddress();
-    if condition_27 {
+    if n.kind == KAddress() {
         return im_address(m, n.value, offset);
     }
     var direct = n.kind == KOperand();
@@ -329,21 +306,17 @@ fn im_read_uncached(m: IMState*, node: void*, n: FoundationNode*, offset: usize)
     direct = im_or(direct, test);
     test = n.kind == KIndex();
     direct = im_or(direct, test);
-    var condition_28 = direct == false;
-    if condition_28 {
+    if !direct {
         return im_evaluate(m, node, offset);
     }
-    var condition_29 = n.kind == KString();
-    if condition_29 {
+    if n.kind == KString() {
         cached = im_strings_get(m, im_key(node), &found);
-        var condition_30 = found;
-        if condition_30 {
+        if found {
             return cached;
         }
         var count = n.name.length + 1;
         var at = interpreter_allocate(m, count);
-        var condition_31 = at == 0;
-        if condition_31 {
+        if at == 0 {
             im_fail(m, "String allocation failed", offset);
             return 0;
         }
@@ -358,13 +331,11 @@ fn im_read_uncached(m: IMState*, node: void*, n: FoundationNode*, offset: usize)
         im_strings_set(m, im_key(node), at);
         return at;
     }
-    var condition_32 = n.constant;
-    if condition_32 {
+    if n.constant {
         return n.bits;
     }
     var address = im_address_component(m, node, n, offset);
-    var condition_33 = im_ok(m);
-    if condition_33 {
+    if im_ok(m) {
         return interpreter_load(m, address, &n.type, offset);
     }
     return 0;
@@ -394,38 +365,32 @@ fn im_address_component(m: IMState*, node: void*, n: FoundationNode*, offset: us
 }
 
 fn im_address_uncached(m: IMState*, node: void*, n: FoundationNode*, offset: usize): u64 {
-    var condition_35 = n.kind == KLoad();
-    if condition_35 {
+    if n.kind == KLoad() {
         return im_read(m, n.value, offset);
     }
     var place = n.kind == KField();
     var test = n.kind == KIndex();
     place = im_or(place, test);
-    var condition_36 = place;
-    if condition_36 {
+    if place {
         var pointer: u64 = 0;
-        var condition_37 = n.indirect;
-        if condition_37 {
+        if n.indirect {
             pointer = im_read(m, n.left, offset);
         } else {
             pointer = im_address(m, n.left, offset);
         }
-        var condition_38 = n.kind == KField();
-        if condition_38 {
+        if n.kind == KField() {
             pointer = pointer + convert(u64, n.byte_offset);
         }
         else {
             var index = im_read(m, n.right, offset);
             var right = im_cached_node(m, n.right);
-            var condition_39 = im_type_signed(&right.type);
-            if condition_39 {
+            if im_type_signed(&right.type) {
                 index = bits(u64, im_sign(index, &right.type));
             }
             var delta = index * convert(u64, im_type_size(&n.type));
             pointer = pointer + delta;
         }
-        var condition_40 = im_pointer_bytes(m) == 4;
-        if condition_40 {
+        if im_pointer_bytes(m) == 4 {
             pointer = pointer & 4294967295;
         }
         return pointer;
@@ -436,8 +401,7 @@ fn im_address_uncached(m: IMState*, node: void*, n: FoundationNode*, offset: usi
         binding = im_cached_node(m, n.binding);
     }
     var base: u64 = 16;
-    var condition_41 = binding.global == false;
-    if condition_41 {
+    if !binding.global {
         base = convert(u64, im_base(m));
     }
     var returned_174 = base + convert(u64, binding.byte_offset);
@@ -458,8 +422,7 @@ fn im_evaluate(m: IMState*, node: void*, offset: usize): u64 {
 }
 
 fn im_evaluate_uncached(m: IMState*, node: void*, n: FoundationNode*, offset: usize): u64 {
-    var condition_43 = n.kind == KCall();
-    if condition_43 {
+    if n.kind == KCall() {
         im_fail(m, "Missing suspended call result", offset);
         return 0;
     }
@@ -472,76 +435,62 @@ fn im_evaluate_uncached(m: IMState*, node: void*, n: FoundationNode*, offset: us
     direct = im_or(direct, test);
     test = n.kind == KAddress();
     direct = im_or(direct, test);
-    var condition_44 = direct;
-    if condition_44 {
+    if direct {
         return im_read_uncached(m, node, n, offset);
     }
-    var condition_45 = n.kind == KSizeOf();
-    if condition_45 {
+    if n.kind == KSizeOf() {
         return convert(u64, im_type_size(&n.element));
     }
-    var condition_46 = n.kind == KAlignOf();
-    if condition_46 {
+    if n.kind == KAlignOf() {
         return convert(u64, im_type_alignment(&n.element));
     }
     var allocation = n.kind == KAllocate();
     test = n.kind == KReallocate();
     allocation = im_or(allocation, test);
-    var condition_47 = allocation;
-    if condition_47 {
+    if allocation {
         var p: u64 = 0;
-        var condition_48 = n.left != null;
-        if condition_48 {
+        if n.left != null {
             p = im_read(m, n.left, offset);
         }
         var count = im_read(m, n.right, offset);
         var size = convert(u64, im_type_size(&n.element));
         var limit: u64 = 18446744073709551615;
-        var condition_49 = im_pointer_bytes(m) == 4;
-        if condition_49 {
+        if im_pointer_bytes(m) == 4 {
             limit = 4294967295;
         }
         limit = limit / size;
-        var condition_50 = count > limit;
-        if condition_50 {
+        if count > limit {
             return 0;
         }
         var host_limit = im_host_max();
         limit = convert(u64, host_limit);
         limit = limit / size;
-        var condition_51 = count > limit;
-        if condition_51 {
+        if count > limit {
             return 0;
         }
         count = count * size;
-        var condition_52 = n.kind == KAllocate();
-        if condition_52 {
+        if n.kind == KAllocate() {
             return interpreter_allocate(m, convert(usize, count));
         }
         return interpreter_reallocate(m, p, convert(usize, count));
     }
     var input_node = n.value;
-    var condition_53 = n.kind == KBinary();
-    if condition_53 {
+    if n.kind == KBinary() {
         input_node = n.left;
     }
     var a = im_evaluate(m, input_node, offset);
     var result = a;
-    var condition_54 = im_ok(m) == false;
-    if condition_54 {
+    if im_ok(m) == false {
         return result;
     }
-    var condition_55 = n.kind == KLoad();
-    if condition_55 {
+    if n.kind == KLoad() {
         return interpreter_load(m, a, &n.type, offset);
     }
-    var condition_56 = n.kind == KConvert();
-    if condition_56 {
+    if n.kind == KConvert() {
         var input = im_cached_node(m, n.value);
         result = im_convert_value(m, a, &input.type, &n.type, offset);
     } else {
-        var condition_63 = n.kind == KBinary();
-        if condition_63 {
+        if n.kind == KBinary() {
             result = im_binary(m, n, a, offset);
         }
     }
@@ -558,36 +507,31 @@ fn im_convert_value(m: IMState*, a: u64, input: FoundationType*, type: Foundatio
     var result = a;
     var mask = im_type_mask(input);
     var high = mask / 2;
-    high = high + 1;
+    high++;
     var sign = a & high;
     var negative = sign != 0;
     negative = im_and(negative, im_type_signed(input));
     var magnitude = a;
-    var condition_58 = negative;
-    if condition_58 {
+    if negative {
         magnitude = 0 - a;
         magnitude = magnitude & mask;
     }
     var limit = im_type_mask(type);
-    var condition_59 = im_type_signed(type);
-    if condition_59 {
+    if im_type_signed(type) {
         limit = limit / 2;
-        var condition_60 = negative;
-        if condition_60 {
-            limit = limit + 1;
+        if negative {
+            limit++;
         }
     }
     var invalid = im_type_signed(type) == false;
     invalid = im_and(invalid, negative);
     var test = magnitude > limit;
     invalid = im_or(invalid, test);
-    var condition_61 = invalid;
-    if condition_61 {
+    if invalid {
         im_fail(m, "Numeric conversion out of range; use bits for bit reinterpretation", offset);
     }
     result = magnitude;
-    var condition_62 = negative;
-    if condition_62 {
+    if negative {
         result = 0 - magnitude;
     }
     return result;
@@ -609,12 +553,9 @@ fn im_binary_values(m: IMState*, op: u32, x: u64, y: u64, type: FoundationType*,
     var arithmetic = op == OAdd();
     var test = op == OSub();
     arithmetic = im_or(arithmetic, test);
-    var condition_64 = type.pointers != 0;
-    if condition_64 {
-        var condition_65 = arithmetic;
-        if condition_65 {
-            var condition_66 = im_type_signed(right_type);
-            if condition_66 {
+    if type.pointers != 0 {
+        if arithmetic {
+            if im_type_signed(right_type) {
                 y = bits(u64, im_sign(y, right_type));
             }
             y = y * convert(u64, im_pointee_size(type));
@@ -625,39 +566,31 @@ fn im_binary_values(m: IMState*, op: u32, x: u64, y: u64, type: FoundationType*,
 
 // Shared scalar semantics for graph evaluation and compact instruction dispatch.
 fn im_binary_scalar(m: IMState*, op: u32, x: u64, y: u64, mask: u64, signed: bool, offset: usize): u64 {
-    var condition_67 = op == OAdd();
-    if condition_67 {
+    if op == OAdd() {
         var returned_176 = x + y;
         return returned_176;
     }
-    var condition_68 = op == OSub();
-    if condition_68 {
+    if op == OSub() {
         var returned_177 = x - y;
         return returned_177;
     }
-    var condition_69 = op == OMul();
-    if condition_69 {
+    if op == OMul() {
         var returned_178 = x * y;
         return returned_178;
     }
     var division = op == ODiv();
     var test = op == ORem();
     division = im_or(division, test);
-    var condition_70 = division;
-    if condition_70 {
-        var condition_71 = y == 0;
-        if condition_71 {
+    if division {
+        if y == 0 {
             im_fail(m, "Division by zero", offset);
             return x;
         }
-        var condition_72 = signed;
-        if condition_72 {
+        if signed {
             var high = mask / 2;
-            high = high + 1;
-            var condition_73 = x == high;
-            if condition_73 {
-                var condition_74 = y == mask;
-                if condition_74 {
+            high++;
+            if x == high {
+                if y == mask {
                     im_fail(m, "Signed division overflow", offset);
                     return x;
                 }
@@ -665,81 +598,65 @@ fn im_binary_scalar(m: IMState*, op: u32, x: u64, y: u64, mask: u64, signed: boo
             var sx = im_sign_mask(x, mask);
             var sy = im_sign_mask(y, mask);
             var signed_result: i64 = 0;
-            var condition_75 = op == ODiv();
-            if condition_75 {
+            if op == ODiv() {
                 signed_result = sx / sy;
             } else {
                 signed_result = sx % sy;
             }
             return bits(u64, signed_result);
         }
-        var condition_76 = op == ODiv();
-        if condition_76 {
+        if op == ODiv() {
             var returned_179 = x / y;
             return returned_179;
         }
         var returned_180 = x % y;
         return returned_180;
     }
-    var condition_77 = op == OAnd();
-    if condition_77 {
+    if op == OAnd() {
         var returned_181 = x & y;
         return returned_181;
     }
-    var condition_78 = op == OOr();
-    if condition_78 {
+    if op == OOr() {
         var returned_182 = x | y;
         return returned_182;
     }
-    var condition_79 = op == OXor();
-    if condition_79 {
+    if op == OXor() {
         var returned_183 = x ^ y;
         return returned_183;
     }
     var result = false;
-    var condition_80 = op == OEq();
-    if condition_80 {
+    if op == OEq() {
         result = x == y;
     }
-    var condition_81 = op == ONe();
-    if condition_81 {
+    if op == ONe() {
         result = x != y;
     }
-    var condition_82 = signed;
-    if condition_82 {
+    if signed {
         var sx = im_sign_mask(x, mask);
         var sy = im_sign_mask(y, mask);
-        var condition_83 = op == OLt();
-        if condition_83 {
+        if op == OLt() {
             result = sx < sy;
         }
-        var condition_84 = op == OLe();
-        if condition_84 {
+        if op == OLe() {
             result = sx <= sy;
         }
-        var condition_85 = op == OGt();
-        if condition_85 {
+        if op == OGt() {
             result = sx > sy;
         }
-        var condition_86 = op == OGe();
-        if condition_86 {
+        if op == OGe() {
             result = sx >= sy;
         }
     } else {
-        var condition_87 = op == OLt();
-        if condition_87 {
+        if op == OLt() {
             result = x < y;
         }
-        var condition_88 = op == OLe();
-        if condition_88 {
+        if op == OLe() {
             result = x <= y;
         }
-        var condition_89 = op == OGt();
-        if condition_89 {
+        if op == OGt() {
             result = x > y;
         }
-        var condition_90 = op == OGe();
-        if condition_90 {
+        if op == OGe() {
             result = x >= y;
         }
     }
@@ -747,14 +664,12 @@ fn im_binary_scalar(m: IMState*, op: u32, x: u64, y: u64, mask: u64, signed: boo
 }
 
 fn im_store(m: IMState*, target: void*, value: u64, offset: usize): void {
-    var condition_91 = im_ok(m) == false;
-    if condition_91 {
+    if im_ok(m) == false {
         return;
     }
     var at = im_address(m, target, offset);
     var n = im_cached_node(m, target);
-    var condition_92 = im_ok(m);
-    if condition_92 {
+    if im_ok(m) {
         interpreter_write(m, at, value, &n.type, offset);
     }
 }
@@ -763,18 +678,16 @@ fn im_enter(m: IMState*, node: void*): void {
     var n = im_cached_node(m, node);
     var i = n.items.length;
     loop {
-        var condition_93 = i == 0;
-        if condition_93 {
+        if i == 0 {
             break;
         }
-        i = i - 1;
+        i--;
         var child = n.items.data[i];
         var c = im_cached_node(m, child);
         var omitted = c.kind == KFunction();
         var test = c.kind == KType();
         omitted = im_or(omitted, test);
-        var condition_94 = omitted == false;
-        if condition_94 {
+        if !omitted {
             im_task_push(m, child, false, 0, 0);
         }
     }
@@ -784,12 +697,9 @@ fn im_returned(m: IMState*, value: u64): void {
     var call = im_frame_call(m);
     m.stack = im_base(m);
     im_frame_pop(m);
-    var condition_95 = m.frame_count != 0;
-    if condition_95 {
-        var condition_96 = call != null;
-        if condition_96 {
-            var condition_97 = im_ok(m);
-            if condition_97 {
+    if m.frame_count != 0 {
+        if call != null {
+            if im_ok(m) {
                 im_values_set(m, im_key(call), value);
             }
         }
@@ -807,24 +717,20 @@ fn im_call(m: IMState*, node: void*, offset: usize): void {
     }
     var i: usize = 0;
     loop {
-        var condition_98 = i == n.items.length;
-        if condition_98 {
+        if i == n.items.length {
             break;
         }
         args[i] = im_read(m, n.items.data[i], offset);
-        i = i + 1;
+        i++;
     }
-    var condition_99 = im_ok(m) == false;
-    if condition_99 {
+    if im_ok(m) == false {
         if heap_args {
             free(args);
         }
         return;
     }
-    var condition_100 = function.external;
-    if condition_100 {
-        var condition_101 = im_has_foreign(m) == false;
-        if condition_101 {
+    if function.external {
+        if im_has_foreign(m) == false {
             im_missing_foreign(m, n.binding, offset);
             if heap_args {
                 free(args);
@@ -832,8 +738,7 @@ fn im_call(m: IMState*, node: void*, offset: usize): void {
             return;
         }
         var result = im_foreign(m, n.binding, args, n.items.length);
-        var condition_102 = im_ok(m);
-        if condition_102 {
+        if im_ok(m) {
             im_values_set(m, im_key(node), result);
         }
         if heap_args {
@@ -848,8 +753,7 @@ fn im_call(m: IMState*, node: void*, offset: usize): void {
     var exhausted = m.frame_count >= 128;
     var test = size > remaining;
     exhausted = im_or(exhausted, test);
-    var condition_103 = exhausted;
-    if condition_103 {
+    if exhausted {
         im_fail(m, "Tower call stack limit exceeded", offset);
         if heap_args {
             free(args);
@@ -860,14 +764,13 @@ fn im_call(m: IMState*, node: void*, offset: usize): void {
     m.stack = end;
     i = 0;
     loop {
-        var condition_104 = i == n.items.length;
-        if condition_104 {
+        if i == n.items.length {
             break;
         }
         var parameter = im_cached_node(m, function.parameters.data[i]);
         var at = base + parameter.byte_offset;
         interpreter_write(m, convert(u64, at), args[i], &parameter.type, offset);
-        i = i + 1;
+        i++;
     }
     if heap_args {
         free(args);
@@ -877,14 +780,12 @@ fn im_call(m: IMState*, node: void*, offset: usize): void {
 }
 
 fn im_needs(m: IMState*, node: void*): bool {
-    var condition_105 = node == null;
-    if condition_105 {
+    if node == null {
         return false;
     }
     var found = false;
     var cached = im_sequenced_get(m, im_key(node), &found);
-    var condition_106 = found;
-    if condition_106 {
+    if found {
         var returned_184 = cached != 0;
         return returned_184;
     }
@@ -903,19 +804,17 @@ fn im_needs(m: IMState*, node: void*): bool {
 }
 
 fn im_queue(m: IMState*, node: void*, phase: usize, offset: usize): void {
-    var condition_107 = node != null;
-    if condition_107 {
+    if node != null {
         im_task_push(m, node, false, phase, offset);
     }
 }
 
 export fn interpreter_init(m: IMState*): void {
-    var condition_108 = m.done;
-    if condition_108 {
+    if m.done {
         return;
     }
     var allocated = im_memory_resize(m, 4194304);
-    if allocated {} else {
+    if !allocated {
         im_fail(m, "Cannot allocate interpreter memory", 0);
         m.done = true;
         return;
@@ -926,8 +825,7 @@ export fn interpreter_init(m: IMState*): void {
     var size = im_align(n.frame_size);
     var end = base + size;
     m.stack = end;
-    var condition_109 = end > 4194304;
-    if condition_109 {
+    if end > 4194304 {
         im_fail(m, "Tower interpreter stack exhausted", 0);
         m.done = true;
         return;
@@ -939,8 +837,7 @@ export fn interpreter_init(m: IMState*): void {
 // Output formatting is execution behavior; only appending bytes crosses the ABI.
 fn im_print(m: IMState*, node: void*, offset: usize): void {
     var value = im_read(m, node, offset);
-    var condition_110 = im_ok(m) == false;
-    if condition_110 {
+    if im_ok(m) == false {
         return;
     }
     var n = im_cached_node(m, node);
@@ -950,30 +847,26 @@ fn im_print(m: IMState*, node: void*, offset: usize): void {
 fn im_print_value(m: IMState*, value: u64, type: FoundationType*): void {
     var text: u8[80];
     var length: usize = 0;
-    var condition_111 = type.pointers != 0;
-    if condition_111 {
+    if type.pointers != 0 {
         text[0] = 48;
         text[1] = 120;
         length = 2;
         var digits = im_pointer_bytes(m) * 2;
         var hex = "0123456789abcdef";
         loop {
-            var condition_112 = digits == 0;
-            if condition_112 {
+            if digits == 0 {
                 break;
             }
-            digits = digits - 1;
+            digits--;
             var exponent = digits * 4;
             var digit = value / im_power(exponent);
             digit = digit & 15;
             text[length] = hex[convert(usize, digit)];
-            length = length + 1;
+            length++;
         }
     } else {
-        var condition_113 = type.scalar == SBool();
-        if condition_113 {
-            var condition_114 = value != 0;
-            if condition_114 {
+        if type.scalar == SBool() {
+            if value != 0 {
                 copy(&text[0], "true", 4);
                 length = 4;
             } else {
@@ -983,13 +876,11 @@ fn im_print_value(m: IMState*, value: u64, type: FoundationType*): void {
         } else {
             var mask = im_type_mask(type);
             value = value & mask;
-            var condition_115 = im_type_signed(type);
-            if condition_115 {
+            if im_type_signed(type) {
                 var high = mask / 2;
-                high = high + 1;
+                high++;
                 var sign = value & high;
-                var condition_116 = sign != 0;
-                if condition_116 {
+                if sign != 0 {
                     text[0] = 45;
                     length = 1;
                     value = 0 - value;
@@ -1002,29 +893,26 @@ fn im_print_value(m: IMState*, value: u64, type: FoundationType*): void {
                 var digit = value % 10;
                 digit = digit + 48;
                 reversed[count] = im_byte(digit);
-                count = count + 1;
+                count++;
                 value = value / 10;
-                var condition_117 = value == 0;
-                if condition_117 {
+                if value == 0 {
                     break;
                 }
             }
             loop {
-                var condition_118 = count == 0;
-                if condition_118 {
+                if count == 0 {
                     break;
                 }
-                count = count - 1;
+                count--;
                 text[length] = reversed[count];
-                length = length + 1;
+                length++;
             }
         }
     }
     text[length] = 10;
-    length = length + 1;
+    length++;
     var total = m.output_bytes + length;
-    var condition_119 = total <= 65536;
-    if condition_119 {
+    if total <= 65536 {
         im_append(m, &text[0], length);
     } else {
         m.output_truncated = true;
@@ -1032,29 +920,24 @@ fn im_print_value(m: IMState*, value: u64, type: FoundationType*): void {
 }
 
 export fn interpreter_step(m: IMState*, budget: usize): void {
-    var condition_120 = m.done;
-    if condition_120 {
+    if m.done {
         return;
     }
     var count: usize = 0;
     loop {
-        var condition_121 = count == budget;
-        if condition_121 {
+        if count == budget {
             break;
         }
-        var condition_122 = m.frame_count == 0;
-        if condition_122 {
+        if m.frame_count == 0 {
             break;
         }
-        var condition_123 = im_ok(m) == false;
-        if condition_123 {
+        if im_ok(m) == false {
             break;
         }
-        count = count + 1;
+        count++;
         var steps = m.steps + 1;
         m.steps = steps;
-        var condition_124 = m.task_count == 0;
-        if condition_124 {
+        if m.task_count == 0 {
             im_returned(m, 0);
             continue;
         }
@@ -1065,15 +948,12 @@ export fn interpreter_step(m: IMState*, budget: usize): void {
         m.cached = task.phase != 0;
         var n = im_cached_node(m, task.node);
         var offset = task.offset;
-        var condition_125 = task.phase == 0;
-        if condition_125 {
+        if task.phase == 0 {
             offset = n.start;
         }
-        var condition_126 = task.phase == 0;
-        if condition_126 {
+        if task.phase == 0 {
             im_cache_clear(m);
-            var condition_127 = im_needs(m, task.node);
-            if condition_127 {
+            if im_needs(m, task.node) {
                 var resume = task.loop_resume != 0;
                 im_task_push(m, task.node, resume, 1, n.start);
                 var assign = n.kind == KDeclare();
@@ -1089,28 +969,23 @@ export fn interpreter_step(m: IMState*, budget: usize): void {
                 memory = im_or(memory, trapping);
                 test = n.kind == KFill();
                 memory = im_or(memory, test);
-                var condition_128 = assign;
-                if condition_128 {
+                if assign {
                     im_queue(m, n.value, 2, offset);
                     var target = n.target;
-                    var condition_129 = n.kind == KDeclare();
-                    if condition_129 {
+                    if n.kind == KDeclare() {
                         target = task.node;
                     }
                     im_queue(m, target, 3, offset);
                 } else {
-                    var condition_130 = unary;
-                    if condition_130 {
+                    if unary {
                         im_queue(m, n.value, 2, offset);
                     }
                     else {
-                        var condition_131 = n.kind == KFree();
-                        if condition_131 {
+                        if n.kind == KFree() {
                             im_queue(m, n.left, 2, offset);
                         }
                         else {
-                            var condition_132 = memory;
-                            if condition_132 {
+                            if memory {
                                 im_queue(m, n.value, 2, offset);
                                 im_queue(m, n.right, 2, offset);
                                 im_queue(m, n.left, 2, offset);
@@ -1124,44 +999,36 @@ export fn interpreter_step(m: IMState*, budget: usize): void {
                 continue;
             }
         } else {
-            var condition_133 = task.phase == 2;
-            if condition_133 {
+            if task.phase == 2 {
                 var found = false;
                 im_values_get(m, im_key(task.node), &found);
-                var condition_134 = found;
-                if condition_134 {
+                if found {
                     continue;
                 }
                 im_queue(m, task.node, 4, offset);
-                var condition_135 = n.kind == KCall();
-                if condition_135 {
+                if n.kind == KCall() {
                     var i = n.items.length;
                     loop {
-                        var condition_136 = i == 0;
-                        if condition_136 {
+                        if i == 0 {
                             break;
                         }
-                        i = i - 1;
+                        i--;
                         im_queue(m, n.items.data[i], 2, offset);
                     }
                 } else {
-                    var condition_137 = n.kind == KAddress();
-                    if condition_137 {
+                    if n.kind == KAddress() {
                         im_queue(m, n.value, 3, offset);
                     }
                     else {
                         var place = n.kind == KField();
                         var test = n.kind == KIndex();
                         place = im_or(place, test);
-                        var condition_138 = n.kind == KOperand();
-                        if condition_138 {
-                            var condition_139 = n.constant == false;
-                            if condition_139 {
+                        if n.kind == KOperand() {
+                            if !n.constant {
                                 place = true;
                             }
                         }
-                        var condition_140 = place;
-                        if condition_140 {
+                        if place {
                             im_queue(m, task.node, 3, offset);
                         }
                         else {
@@ -1173,32 +1040,26 @@ export fn interpreter_step(m: IMState*, budget: usize): void {
                 }
                 continue;
             } else {
-                var condition_141 = task.phase == 3;
-                if condition_141 {
+                if task.phase == 3 {
                     var found = false;
                     im_addresses_get(m, im_key(task.node), &found);
-                    var condition_142 = found;
-                    if condition_142 {
+                    if found {
                         continue;
                     }
                     im_queue(m, task.node, 5, offset);
-                    var condition_143 = n.kind == KLoad();
-                    if condition_143 {
+                    if n.kind == KLoad() {
                         im_queue(m, n.value, 2, offset);
                     }
                     else {
                         var place = n.kind == KField();
                         var test = n.kind == KIndex();
                         place = im_or(place, test);
-                        var condition_144 = place;
-                        if condition_144 {
-                            var condition_145 = n.kind == KIndex();
-                            if condition_145 {
+                        if place {
+                            if n.kind == KIndex() {
                                 im_queue(m, n.right, 2, offset);
                             }
                             var phase: usize = 3;
-                            var condition_146 = n.indirect;
-                            if condition_146 {
+                            if n.indirect {
                                 phase = 2;
                             }
                             im_queue(m, n.left, phase, offset);
@@ -1206,16 +1067,13 @@ export fn interpreter_step(m: IMState*, budget: usize): void {
                     }
                     continue;
                 } else {
-                    var condition_147 = task.phase == 5;
-                    if condition_147 {
+                    if task.phase == 5 {
                         var address = im_address(m, task.node, task.offset);
                         im_addresses_set(m, im_key(task.node), address);
                         continue;
                     } else {
-                        var condition_148 = task.phase == 4;
-                        if condition_148 {
-                            var condition_149 = n.kind == KCall();
-                            if condition_149 {
+                        if task.phase == 4 {
+                            if n.kind == KCall() {
                                 im_call(m, task.node, task.offset);
                             }
                             else {
@@ -1239,34 +1097,28 @@ export fn interpreter_step(m: IMState*, budget: usize): void {
 }
 
 fn im_statement(m: IMState*, task: IMTask*, n: FoundationNode*): void {
-    var condition_150 = n.kind == KBlock();
-    if condition_150 {
+    if n.kind == KBlock() {
         im_enter(m, task.node);
         return;
     }
-    var condition_151 = n.kind == KDeclare();
-    if condition_151 {
-        var condition_152 = n.value != null;
-        if condition_152 {
+    if n.kind == KDeclare() {
+        if n.value != null {
             im_store(m, task.node, im_evaluate(m, n.value, n.start), n.start);
         }
         return;
     }
-    var condition_153 = n.kind == KAssign();
-    if condition_153 {
+    if n.kind == KAssign() {
         im_store(m, n.target, im_evaluate(m, n.value, n.start), n.start);
         return;
     }
-    var condition_154 = n.kind == KFree();
-    if condition_154 {
+    if n.kind == KFree() {
         interpreter_deallocate(m, im_read(m, n.left, n.start));
         return;
     }
     var memory = n.kind == KCopy();
     var test = n.kind == KFill();
     memory = im_or(memory, test);
-    var condition_155 = memory;
-    if condition_155 {
+    if memory {
         var dest = im_read(m, n.left, n.start);
         var source = im_read(m, n.right, n.start);
         var size = im_read(m, n.value, n.start);
@@ -1275,8 +1127,7 @@ fn im_statement(m: IMState*, task: IMTask*, n: FoundationNode*): void {
         im_copy_values(m, dest, source, size, fm_condition_0, n.start);
         return;
     }
-    var condition_160 = n.kind == KCall();
-    if condition_160 {
+    if n.kind == KCall() {
         return;
     }
     var expression = n.kind == KAllocate();
@@ -1290,37 +1141,30 @@ fn im_statement(m: IMState*, task: IMTask*, n: FoundationNode*): void {
     expression = im_or(expression, test);
     test = n.kind == KBits();
     expression = im_or(expression, test);
-    var condition_161 = expression;
-    if condition_161 {
+    if expression {
         im_evaluate(m, task.node, n.start);
         return;
     }
-    var condition_162 = n.kind == KReturn();
-    if condition_162 {
+    if n.kind == KReturn() {
         var result: u64 = 0;
-        var condition_163 = n.value != null;
-        if condition_163 {
+        if n.value != null {
             result = im_read(m, n.value, n.start);
         }
         im_returned(m, result);
         return;
     }
-    var condition_164 = n.kind == KIf();
-    if condition_164 {
+    if n.kind == KIf() {
         var condition = im_read(m, n.value, n.start);
-        var condition_165 = condition != 0;
-        if condition_165 {
+        if condition != 0 {
             im_enter(m, n.body);
         } else {
-            var condition_166 = n.otherwise != null;
-            if condition_166 {
+            if n.otherwise != null {
                 im_enter(m, n.otherwise);
             }
         }
         return;
     }
-    var condition_167 = n.kind == KLoop();
-    if condition_167 {
+    if n.kind == KLoop() {
         im_task_push(m, task.node, true, 0, 0);
         im_enter(m, n.body);
         return;
@@ -1328,19 +1172,15 @@ fn im_statement(m: IMState*, task: IMTask*, n: FoundationNode*): void {
     var jump = n.kind == KBreak();
     test = n.kind == KContinue();
     jump = im_or(jump, test);
-    var condition_168 = jump;
-    if condition_168 {
+    if jump {
         loop {
-            var condition_169 = m.task_count == 0;
-            if condition_169 {
+            if m.task_count == 0 {
                 break;
             }
             var at: IMTask;
             im_task_pop(m, &at);
-            var condition_170 = at.loop_resume != 0;
-            if condition_170 {
-                var condition_171 = n.kind == KContinue();
-                if condition_171 {
+            if at.loop_resume != 0 {
+                if n.kind == KContinue() {
                     im_task_push(m, at.node, true, at.phase, at.offset);
                 }
                 break;
@@ -1348,8 +1188,7 @@ fn im_statement(m: IMState*, task: IMTask*, n: FoundationNode*): void {
         }
         return;
     }
-    var condition_172 = n.kind == KPrint();
-    if condition_172 {
+    if n.kind == KPrint() {
         im_print(m, n.value, n.start);
         return;
     }
@@ -1383,7 +1222,7 @@ fn im_statement(m: IMState*, task: IMTask*, n: FoundationNode*): void {
             if end {
                 break;
             }
-            i = i - 1;
+            i--;
             im_task_push(m, body.items.data[i], false, 0, 0);
         }
         return;
@@ -1416,28 +1255,24 @@ fn im_raise(m: IMState*, message: u64, offset: u64): void {
             im_fail(m, bytes, at);
             return;
         }
-        i = i + 1;
+        i++;
     }
 }
 
 fn im_copy_values(m: IMState*, dest: u64, source: u64, size: u64, copying: bool, offset: usize): void {
     var limit = convert(u64, im_host_max());
-    var condition_156 = size > limit;
-    if condition_156 {
+    if size > limit {
         im_fail(m, "Memory operation exceeds interpreter address space", offset);
         return;
     }
     var count = convert(usize, size);
     var p = interpreter_bytes(m, dest, count, offset);
     var q: u8* = null;
-    var condition_157 = copying;
-    if condition_157 {
+    if copying {
         q = interpreter_bytes(m, source, count, offset);
     }
-    var condition_158 = im_ok(m);
-    if condition_158 {
-        var condition_159 = q != null;
-        if condition_159 {
+    if im_ok(m) {
+        if q != null {
             copy(p, q, count);
         } else {
             fill(p, im_byte(source), count);

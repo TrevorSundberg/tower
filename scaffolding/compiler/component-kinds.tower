@@ -14,7 +14,7 @@ const CompilerComponentCount: u32 = 9;
 
 fn compiler_foundation_lifecycle(): usize {
     var last: usize = 0;
-    last = last - 1;
+    last--;
     return last;
 }
 

@@ -59,7 +59,7 @@ fn backend_json(out: vector(u8)*, text: u8*, length: usize): void {
                 backend_text_append(out, &text[i], 1);
             }
         }
-        i = i + 1;
+        i++;
     }
     backend_text(out, "\"");
 }
@@ -164,7 +164,7 @@ export fn backend_session_begin(s: BackendSession*, source: u8*, length: usize):
             backend_session_failure(s, "Foundation source cannot contain NUL bytes", 0);
             return 0;
         }
-        i = i + 1;
+        i++;
     }
     s.times[0] = backend_session_clock();
     s.backend = backend_open(s.target.data);
@@ -244,14 +244,14 @@ fn backend_session_names(b: Backend*, out: vector(u8)*, functions: void**, count
             selected = n.external;
         }
         if selected {
-            var comma = first == false;
+            var comma = !first;
             if comma {
                 backend_text(out, ",");
             }
             backend_json_text(out, backend_function_name(b, i));
             first = false;
         }
-        i = i + 1;
+        i++;
     }
     backend_text(out, "]");
 }
@@ -292,7 +292,7 @@ fn backend_session_report(s: BackendSession*, functions: void**, count: usize): 
         }
         var n = sem_get(functions[i]);
         if n.external {
-            var comma = first == false;
+            var comma = !first;
             if comma {
                 backend_text(out, ",");
             }
@@ -315,11 +315,11 @@ fn backend_session_report(s: BackendSession*, functions: void**, count: usize): 
                 semantic_format_type(&parameter.type, &name);
                 backend_json(out, name.data, name.length);
                 vector_dispose(u8, &name);
-                j = j + 1;
+                j++;
             }
             backend_text(out, "]");
         }
-        i = i + 1;
+        i++;
     }
     backend_text(out, "},\"timings\":{");
     i = 0;
@@ -329,11 +329,9 @@ fn backend_session_report(s: BackendSession*, functions: void**, count: usize): 
             break;
         }
         var unlinked = i == 4;
+        unlinked &&= s.object_only;
         if unlinked {
-            unlinked = s.object_only;
-        }
-        if unlinked {
-            i = i + 1;
+            i++;
             continue;
         }
         var comma = i != 0;
@@ -377,7 +375,7 @@ fn backend_session_report(s: BackendSession*, functions: void**, count: usize): 
             backend_text(out, "0");
         }
         backend_decimal(out, fraction);
-        i = i + 1;
+        i++;
     }
     backend_text(out, "},\"bytes\":");
     backend_decimal(out, convert(u64, backend_session_size(s)));
@@ -394,16 +392,16 @@ fn backend_session_report(s: BackendSession*, functions: void**, count: usize): 
 export fn backend_session_compile(s: BackendSession*, root: void*, functions: void**, count: usize, width: u32, flags: u32): u8* {
     var started = backend_session_clock();
     s.times[0] = started - s.times[0];
-    var object_flags = flags & 3;
+    var object_flags = flags &3;
     s.object_only = object_flags != 0;
-    var library_flag = flags & 2;
+    var library_flag = flags &2;
     var library = library_flag != 0;
     var ok = backend_lower(s.backend, root, functions, count, width, library);
     var next = backend_session_clock();
     s.times[1] = next - started;
     started = next;
     if ok {
-        var no_optimization = flags & 8;
+        var no_optimization = flags &8;
         var optimize = no_optimization == 0;
         s.optimization_enabled = optimize;
         ok = backend_optimize(s.backend, optimize);
@@ -411,26 +409,22 @@ export fn backend_session_compile(s: BackendSession*, root: void*, functions: vo
     next = backend_session_clock();
     s.times[2] = next - started;
     started = next;
-    if ok {
-        ok = backend_emit(s.backend);
-    }
+    ok &&= backend_emit(s.backend);
     next = backend_session_clock();
     s.times[3] = next - started;
     started = next;
-    var failed = ok == false;
+    var failed = !ok;
     if failed {
         return backend_session_failure(s, backend_error(s.backend), s.backend.error_offset);
     }
-    var executable = s.object_only == false;
+    var executable = !s.object_only;
     if executable {
         ok = backend_link_plan(s.linker, s.target.data, functions, count, backend_bytes(s.backend), backend_size(s.backend), s.runtime, s.runtime_size);
         // Match the existing measurement boundary: argument/file preparation
         // precedes the upstream linker invocation. Wall time includes both.
         started = backend_session_clock();
-        if ok {
-            ok = backend_link_wasi(s.linker, s.target.data);
-        }
-        failed = ok == false;
+        ok &&= backend_link_wasi(s.linker, s.target.data);
+        failed = !ok;
         if failed {
             return backend_session_failure(s, s.linker.error.data, 0);
         }
@@ -447,13 +441,9 @@ export fn backend_session_compile(s: BackendSession*, root: void*, functions: vo
 
 export fn backend_session_import(s: BackendSession*, root: void*, functions: void**, count: usize, width: u32, optimize: bool, output: void*): bool {
     var ok = backend_lower(s.backend, root, functions, count, width, false);
-    if ok {
-        ok = backend_optimize_interpreter(s.backend, optimize);
-    }
-    if ok {
-        ok = backend_import_foundation(s.backend, output);
-    }
-    if ok {} else {
+    ok &&= backend_optimize_interpreter(s.backend, optimize);
+    ok &&= backend_import_foundation(s.backend, output);
+    if !ok {
         backend_session_failure(s, backend_error(s.backend), s.backend.error_offset);
     }
     return ok;

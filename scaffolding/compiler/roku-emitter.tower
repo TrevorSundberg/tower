@@ -79,13 +79,12 @@ fn re_hex(r: RokuEmitter*, bits: u64): void {
     var at: usize = 16;
     var alphabet = "0123456789abcdef";
     loop {
-        at = at - 1;
+        at--;
         var c_step1 = bits % 16;
         var digit = convert(usize, c_step1);
         digits[at] = alphabet[digit];
         bits = bits / 16;
-        var c_step2 = at == 0;
-        if c_step2 {
+        if at == 0 {
             break;
         }
     }
@@ -95,47 +94,40 @@ fn re_hex(r: RokuEmitter*, bits: u64): void {
 }
 
 fn re_comments(r: RokuEmitter*, n: FoundationNode*): void {
-    if r.common.comments {}
-    else {
+    if !r.common.comments {
         return;
     }
-    var c_step3 = n.comments.length == 0;
-    if c_step3 {
+    if n.comments.length == 0 {
         return;
     }
     re_text(r, "' ");
     var i: usize = 0;
     loop {
-        var c_step4 = i == n.comments.length;
-        if c_step4 {
+        if i == n.comments.length {
             break;
         }
         var b = n.comments.data[i];
         // Every physical line is a comment, including CR-only metadata.
-        var c_step5 = b == 13;
-        if c_step5 {
+        if b == 13 {
             b = 10;
         }
         sem_require(vector_push(u8, r.common.text, b));
-        var c_step6 = b == 10;
-        if c_step6 {
+        if b == 10 {
             re_text(r, "' ");
         }
-        i = i + 1;
+        i++;
     }
     re_text(r, "\n");
 }
 
 fn re_prepare_address(r: RokuEmitter*, entity: void*): void {
     var n = sem_get(entity);
-    var c_step7 = n.kind == KLoad();
-    if c_step7 {
+    if n.kind == KLoad() {
         re_prepare(r, n.value);
         return;
     }
     var place = n.kind == KField();
-    var c_step8 = n.kind == KIndex();
-    if c_step8 {
+    if n.kind == KIndex() {
         place = true;
     }
     if place {
@@ -145,8 +137,7 @@ fn re_prepare_address(r: RokuEmitter*, entity: void*): void {
         else {
             re_prepare_address(r, n.left);
         }
-        var c_step9 = n.kind == KIndex();
-        if c_step9 {
+        if n.kind == KIndex() {
             re_prepare(r, n.right);
         }
     }
@@ -154,14 +145,12 @@ fn re_prepare_address(r: RokuEmitter*, entity: void*): void {
 
 fn re_address(r: RokuEmitter*, entity: void*): void {
     var n = sem_get(entity);
-    var c_step10 = n.kind == KLoad();
-    if c_step10 {
+    if n.kind == KLoad() {
         re_temp(r, n.value);
         return;
     }
     var place = n.kind == KField();
-    var c_step11 = n.kind == KIndex();
-    if c_step11 {
+    if n.kind == KIndex() {
         place = true;
     }
     if place {
@@ -173,8 +162,7 @@ fn re_address(r: RokuEmitter*, entity: void*): void {
             re_address(r, n.left);
         }
         re_text(r, ", ");
-        var c_step12 = n.kind == KIndex();
-        if c_step12 {
+        if n.kind == KIndex() {
             re_temp(r, n.right);
             re_text(r, ", ");
             re_number(r, semantic_size(&n.type));
@@ -187,8 +175,7 @@ fn re_address(r: RokuEmitter*, entity: void*): void {
         return;
     }
     var binding = n.binding;
-    var c_step13 = binding == null;
-    if c_step13 {
+    if binding == null {
         binding = entity;
     }
     re_slot(r, binding);
@@ -236,7 +223,7 @@ fn re_function(r: RokuEmitter*, entity: void*): void {
                     valid = false;
                 }
             }
-            if valid {} else {
+            if !valid {
                 re_fail(r, "Roku platform_write requires (u32, u8*, usize): i64");
             }
             re_text(r, "tr_write");
@@ -250,8 +237,7 @@ fn re_function(r: RokuEmitter*, entity: void*): void {
 
 fn re_expression(r: RokuEmitter*, entity: void*): void {
     var n = sem_get(entity);
-    var c_step14 = n.kind == KOperand();
-    if c_step14 {
+    if n.kind == KOperand() {
         if n.constant {
             var c_step15 = n.bits & semantic_mask(&n.type);
             re_hex(r, c_step15);
@@ -265,25 +251,21 @@ fn re_expression(r: RokuEmitter*, entity: void*): void {
         }
         return;
     }
-    var c_step16 = n.kind == KString();
-    if c_step16 {
+    if n.kind == KString() {
         re_text(r, "s.g[");
         re_number(r, re_id(r, entity));
         re_text(r, "]");
         return;
     }
-    var c_step17 = n.kind == KAddress();
-    if c_step17 {
+    if n.kind == KAddress() {
         re_address(r, n.value);
         return;
     }
     var load = n.kind == KLoad();
-    var c_step18 = n.kind == KField();
-    if c_step18 {
+    if n.kind == KField() {
         load = true;
     }
-    var c_step19 = n.kind == KIndex();
-    if c_step19 {
+    if n.kind == KIndex() {
         load = true;
     }
     if load {
@@ -294,40 +276,34 @@ fn re_expression(r: RokuEmitter*, entity: void*): void {
         re_text(r, ")");
         return;
     }
-    var c_step20 = n.kind == KCall();
-    if c_step20 {
+    if n.kind == KCall() {
         re_function(r, n.binding);
         re_text(r, "(s, [");
         var i: usize = 0;
         loop {
-            var c_step21 = i == n.items.length;
-            if c_step21 {
+            if i == n.items.length {
                 break;
             }
-            var c_step22 = i != 0;
-            if c_step22 {
+            if i != 0 {
                 re_text(r, ", ");
             }
             re_temp(r, n.items.data[i]);
-            i = i + 1;
+            i++;
         }
         re_text(r, "])");
         return;
     }
-    var c_step23 = n.kind == KSizeOf();
-    if c_step23 {
+    if n.kind == KSizeOf() {
         re_number(r, semantic_size(&n.element));
         re_text(r, "&");
         return;
     }
-    var c_step24 = n.kind == KAlignOf();
-    if c_step24 {
+    if n.kind == KAlignOf() {
         re_number(r, semantic_alignment(&n.element));
         re_text(r, "&");
         return;
     }
-    var c_step25 = n.kind == KAllocate();
-    if c_step25 {
+    if n.kind == KAllocate() {
         re_text(r, "tr_alloc(s, tr_count(");
         re_temp(r, n.right);
         re_text(r, ", ");
@@ -335,8 +311,7 @@ fn re_expression(r: RokuEmitter*, entity: void*): void {
         re_text(r, "))");
         return;
     }
-    var c_step26 = n.kind == KReallocate();
-    if c_step26 {
+    if n.kind == KReallocate() {
         re_text(r, "tr_realloc(s, ");
         re_temp(r, n.left);
         re_text(r, ", tr_count(");
@@ -347,8 +322,7 @@ fn re_expression(r: RokuEmitter*, entity: void*): void {
         return;
     }
     var conversion = n.kind == KConvert();
-    var c_step27 = n.kind == KBits();
-    if c_step27 {
+    if n.kind == KBits() {
         conversion = true;
     }
     if conversion {
@@ -364,8 +338,7 @@ fn re_expression(r: RokuEmitter*, entity: void*): void {
         re_text(r, ", ");
         re_signed(r, &n.type);
         re_text(r, ", ");
-        var c_step28 = n.kind == KConvert();
-        if c_step28 {
+        if n.kind == KConvert() {
             re_text(r, "true");
         }
         else {
@@ -374,28 +347,24 @@ fn re_expression(r: RokuEmitter*, entity: void*): void {
         re_text(r, ")");
         return;
     }
-    var c_step29 = n.kind == KBinary();
-    if c_step29 {
+    if n.kind == KBinary() {
         var from = sem_get(n.left);
         var pointer_math = from.type.pointers != 0;
-        var c_step30 = n.op > OSub();
-        if c_step30 {
+        if n.op > OSub() {
             pointer_math = false;
         }
         if pointer_math {
             var element: FoundationType;
             copy(&element, &from.type, sizeof(FoundationType));
-            element.pointers = element.pointers - 1;
+            element.pointers--;
             re_text(r, "tr_offset(");
             re_temp(r, n.left);
             re_text(r, ", ");
-            var c_step31 = n.op == OSub();
-            if c_step31 {
+            if n.op == OSub() {
                 re_text(r, "tr_neg(");
             }
             re_temp(r, n.right);
-            var c_step32 = n.op == OSub();
-            if c_step32 {
+            if n.op == OSub() {
                 re_text(r, ")");
             }
             re_text(r, ", ");
@@ -405,40 +374,31 @@ fn re_expression(r: RokuEmitter*, entity: void*): void {
         }
         // The emitter selects a helper from the shared operation definition.
         // There is no serialized instruction dispatch table or public opcode ABI.
-        var c_step33 = n.op == OAdd();
-        if c_step33 {
+        if n.op == OAdd() {
             re_text(r, "tr_add(");
         }
-        var c_step34 = n.op == OSub();
-        if c_step34 {
+        if n.op == OSub() {
             re_text(r, "tr_sub(");
         }
-        var c_step35 = n.op == OMul();
-        if c_step35 {
+        if n.op == OMul() {
             re_text(r, "tr_mul(");
         }
-        var c_step36 = n.op == ODiv();
-        if c_step36 {
+        if n.op == ODiv() {
             re_text(r, "tr_div(");
         }
-        var c_step37 = n.op == ORem();
-        if c_step37 {
+        if n.op == ORem() {
             re_text(r, "tr_rem(");
         }
-        var c_step38 = n.op == OAnd();
-        if c_step38 {
+        if n.op == OAnd() {
             re_text(r, "tr_and(");
         }
-        var c_step39 = n.op == OOr();
-        if c_step39 {
+        if n.op == OOr() {
             re_text(r, "tr_or(");
         }
-        var c_step40 = n.op == OXor();
-        if c_step40 {
+        if n.op == OXor() {
             re_text(r, "tr_xor(");
         }
-        var c_step41 = n.op >= OEq();
-        if c_step41 {
+        if n.op >= OEq() {
             re_text(r, "tr_bool(tr_compare(");
         }
         re_temp(r, n.left);
@@ -449,30 +409,23 @@ fn re_expression(r: RokuEmitter*, entity: void*): void {
         re_text(r, ", ");
         re_signed(r, &from.type);
         re_text(r, ")");
-        var c_step42 = n.op >= OEq();
-        if c_step42 {
-            var c_step43 = n.op == OEq();
-            if c_step43 {
+        if n.op >= OEq() {
+            if n.op == OEq() {
                 re_text(r, " = 0)");
             }
-            var c_step44 = n.op == ONe();
-            if c_step44 {
+            if n.op == ONe() {
                 re_text(r, " <> 0)");
             }
-            var c_step45 = n.op == OLt();
-            if c_step45 {
+            if n.op == OLt() {
                 re_text(r, " < 0)");
             }
-            var c_step46 = n.op == OLe();
-            if c_step46 {
+            if n.op == OLe() {
                 re_text(r, " <= 0)");
             }
-            var c_step47 = n.op == OGt();
-            if c_step47 {
+            if n.op == OGt() {
                 re_text(r, " > 0)");
             }
-            var c_step48 = n.op == OGe();
-            if c_step48 {
+            if n.op == OGe() {
                 re_text(r, " >= 0)");
             }
         }
@@ -482,23 +435,19 @@ fn re_expression(r: RokuEmitter*, entity: void*): void {
 }
 
 fn re_prepare(r: RokuEmitter*, entity: void*): void {
-    var c_step49 = entity == null;
-    if c_step49 {
+    if entity == null {
         return;
     }
     var n = sem_get(entity);
-    var c_step50 = n.kind == KAddress();
-    if c_step50 {
+    if n.kind == KAddress() {
         re_prepare_address(r, n.value);
     }
     else {
         var place = n.kind == KField();
-        var c_step51 = n.kind == KIndex();
-        if c_step51 {
+        if n.kind == KIndex() {
             place = true;
         }
-        var c_step52 = n.kind == KLoad();
-        if c_step52 {
+        if n.kind == KLoad() {
             place = true;
         }
         if place {
@@ -510,12 +459,11 @@ fn re_prepare(r: RokuEmitter*, entity: void*): void {
             re_prepare(r, n.value);
             var i: usize = 0;
             loop {
-                var c_step53 = i == n.items.length;
-                if c_step53 {
+                if i == n.items.length {
                     break;
                 }
                 re_prepare(r, n.items.data[i]);
-                i = i + 1;
+                i++;
             }
         }
     }
@@ -540,41 +488,34 @@ fn re_store(r: RokuEmitter*, target: void*, value: void*): void {
 }
 
 fn re_statement(r: RokuEmitter*, entity: void*): void {
-    var c_step54 = entity == null;
-    if c_step54 {
+    if entity == null {
         return;
     }
     var n = sem_get(entity);
-    var c_step55 = n.kind == KFunction();
-    if c_step55 {
+    if n.kind == KFunction() {
         return;
     }
     re_comments(r, n);
-    var c_step56 = n.kind == KType();
-    if c_step56 {
+    if n.kind == KType() {
         return;
     }
     var list = n.kind == KProgram();
-    var c_step57 = n.kind == KBlock();
-    if c_step57 {
+    if n.kind == KBlock() {
         list = true;
     }
     if list {
         var i: usize = 0;
         loop {
-            var c_step58 = i == n.items.length;
-            if c_step58 {
+            if i == n.items.length {
                 break;
             }
             re_statement(r, n.items.data[i]);
-            i = i + 1;
+            i++;
         }
         return;
     }
-    var c_step59 = n.kind == KDeclare();
-    if c_step59 {
-        var c_step60 = n.value != null;
-        if c_step60 {
+    if n.kind == KDeclare() {
+        if n.value != null {
             re_prepare(r, n.value);
             re_store(r, entity, n.value);
         }
@@ -587,31 +528,27 @@ fn re_statement(r: RokuEmitter*, entity: void*): void {
         }
         return;
     }
-    var c_step61 = n.kind == KAssign();
-    if c_step61 {
+    if n.kind == KAssign() {
         re_prepare_address(r, n.target);
         re_prepare(r, n.value);
         re_store(r, n.target, n.value);
         return;
     }
-    var c_step62 = n.kind == KIf();
-    if c_step62 {
-        r.conditions = r.conditions + 1;
+    if n.kind == KIf() {
+        r.conditions++;
         re_prepare(r, n.value);
         re_text(r, "    if ");
         re_temp(r, n.value);
         re_text(r, " <> 0 then\n");
         re_statement(r, n.body);
-        var c_step63 = n.otherwise != null;
-        if c_step63 {
+        if n.otherwise != null {
             re_text(r, "    else\n");
             re_statement(r, n.otherwise);
         }
         re_text(r, "    end if\n");
         return;
     }
-    var c_step64 = n.kind == KLoop();
-    if c_step64 {
+    if n.kind == KLoop() {
         var parent = r.loop_id;
         r.loop_id = re_id(r, entity);
         r.labels = r.labels + 2;
@@ -627,26 +564,22 @@ fn re_statement(r: RokuEmitter*, entity: void*): void {
         r.loop_id = parent;
         return;
     }
-    var c_step65 = n.kind == KBreak();
-    if c_step65 {
+    if n.kind == KBreak() {
         re_text(r, "    goto tr_break_");
         re_number(r, r.loop_id);
         re_text(r, "\n");
         return;
     }
-    var c_step66 = n.kind == KContinue();
-    if c_step66 {
+    if n.kind == KContinue() {
         re_text(r, "    goto tr_loop_");
         re_number(r, r.loop_id);
         re_text(r, "\n");
         return;
     }
-    var c_step67 = n.kind == KReturn();
-    if c_step67 {
+    if n.kind == KReturn() {
         re_prepare(r, n.value);
         re_text(r, "    tr_free(s, frame)\n    return ");
-        var c_step68 = n.value != null;
-        if c_step68 {
+        if n.value != null {
             re_temp(r, n.value);
         }
         else {
@@ -655,23 +588,20 @@ fn re_statement(r: RokuEmitter*, entity: void*): void {
         re_text(r, "\n");
         return;
     }
-    var c_step69 = n.kind == KLabel();
-    if c_step69 {
-        r.labels = r.labels + 1;
+    if n.kind == KLabel() {
+        r.labels++;
         re_text(r, "tr_label_");
         re_number(r, re_id(r, entity));
         re_text(r, ":\n");
         return;
     }
-    var c_step70 = n.kind == KJump();
-    if c_step70 {
+    if n.kind == KJump() {
         re_text(r, "    goto tr_label_");
         re_number(r, re_id(r, n.binding));
         re_text(r, "\n");
         return;
     }
-    var c_step71 = n.kind == KPrint();
-    if c_step71 {
+    if n.kind == KPrint() {
         re_prepare(r, n.value);
         var value = sem_get(n.value);
         re_text(r, "    tr_print(s, ");
@@ -681,8 +611,7 @@ fn re_statement(r: RokuEmitter*, entity: void*): void {
         re_text(r, ", ");
         re_signed(r, &value.type);
         re_text(r, ", ");
-        var c_step72 = value.type.pointers != 0;
-        if c_step72 {
+        if value.type.pointers != 0 {
             re_text(r, "true");
         }
         else {
@@ -691,8 +620,7 @@ fn re_statement(r: RokuEmitter*, entity: void*): void {
         re_text(r, ")\n");
         return;
     }
-    var c_step73 = n.kind == KFree();
-    if c_step73 {
+    if n.kind == KFree() {
         re_prepare(r, n.left);
         re_text(r, "    tr_free(s, ");
         re_temp(r, n.left);
@@ -700,16 +628,14 @@ fn re_statement(r: RokuEmitter*, entity: void*): void {
         return;
     }
     var memory = n.kind == KCopy();
-    var c_step74 = n.kind == KFill();
-    if c_step74 {
+    if n.kind == KFill() {
         memory = true;
     }
     if memory {
         re_prepare(r, n.left);
         re_prepare(r, n.right);
         re_prepare(r, n.value);
-        var c_step75 = n.kind == KCopy();
-        if c_step75 {
+        if n.kind == KCopy() {
             re_text(r, "    tr_copy(s, ");
         }
         else {
@@ -723,8 +649,7 @@ fn re_statement(r: RokuEmitter*, entity: void*): void {
         re_text(r, ")\n");
         return;
     }
-    var c_step76 = n.kind == KTrap();
-    if c_step76 {
+    if n.kind == KTrap() {
         re_prepare(r, n.left);
         re_prepare(r, n.right);
         re_text(r, "    tr_trap(tr_string(s, ");
@@ -734,8 +659,7 @@ fn re_statement(r: RokuEmitter*, entity: void*): void {
         re_text(r, "))\n");
         return;
     }
-    var c_step77 = n.kind == KCall();
-    if c_step77 {
+    if n.kind == KCall() {
         re_prepare(r, entity);
         return;
     }
@@ -745,8 +669,7 @@ fn re_statement(r: RokuEmitter*, entity: void*): void {
 fn re_storage(r: RokuEmitter*, entity: void*, owner: void*, globals: bool): bool {
     var n = sem_get(entity);
     var variable = n.kind == KDeclare();
-    var c_step78 = n.kind == KParameter();
-    if c_step78 {
+    if n.kind == KParameter() {
         variable = true;
     }
     if globals {
@@ -772,8 +695,7 @@ fn re_body(r: RokuEmitter*, entity: void*, program: bool): void {
     var i: usize = 0;
     var size: usize = 0;
     loop {
-        var c_step81 = i == r.common.nodes.length;
-        if c_step81 {
+        if i == r.common.nodes.length {
             break;
         }
         var item = r.common.nodes.data[i];
@@ -784,7 +706,7 @@ fn re_body(r: RokuEmitter*, entity: void*, program: bool): void {
             var c_step83 = size / 8;
             size = c_step83 * 8;
         }
-        i = i + 1;
+        i++;
     }
     re_text(r, "    t = []\n    v = []\n    frame = tr_alloc(s, ");
     re_number(r, size);
@@ -792,8 +714,7 @@ fn re_body(r: RokuEmitter*, entity: void*, program: bool): void {
     i = 0;
     size = 0;
     loop {
-        var c_step84 = i == r.common.nodes.length;
-        if c_step84 {
+        if i == r.common.nodes.length {
             break;
         }
         var item = r.common.nodes.data[i];
@@ -809,13 +730,12 @@ fn re_body(r: RokuEmitter*, entity: void*, program: bool): void {
             var c_step86 = size / 8;
             size = c_step86 * 8;
         }
-        i = i + 1;
+        i++;
     }
     var n = sem_get(entity);
     i = 0;
     loop {
-        var c_step87 = i == n.parameters.length;
-        if c_step87 {
+        if i == n.parameters.length {
             break;
         }
         var item = n.parameters.data[i];
@@ -827,7 +747,7 @@ fn re_body(r: RokuEmitter*, entity: void*, program: bool): void {
         re_text(r, "], ");
         re_number(r, semantic_size(&param.type));
         re_text(r, ")\n");
-        i = i + 1;
+        i++;
     }
     if program {
         re_statement(r, entity);
@@ -838,12 +758,10 @@ fn re_body(r: RokuEmitter*, entity: void*, program: bool): void {
     re_text(r, "    tr_free(s, frame)\n    return invalid\nend function\n\n");
     // Conservative limits from wasm2brs device findings. Arrays avoid local and
     // parameter limits; diagnose large control flow instead of emitting bad BRS.
-    var c_step88 = r.labels > 240;
-    if c_step88 {
+    if r.labels > 240 {
         re_fail(r, "Roku function exceeds the 240-label profile limit; split the function or enable optimization");
     }
-    var c_step89 = r.conditions > 200;
-    if c_step89 {
+    if r.conditions > 200 {
         re_fail(r, "Roku function exceeds the 200-conditional profile limit; split the function or enable optimization");
     }
 }
@@ -854,8 +772,7 @@ export fn roku_emit(text: vector(u8)*, error: vector(u8)*, root: void*, pointer_
     r.common.text = text;
     r.common.error = error;
     r.common.comments = comments;
-    var c_step90 = pointer_bytes != 4;
-    if c_step90 {
+    if pointer_bytes != 4 {
         re_fail(&r, "Roku source requires the explicit 32-bit little endian profile");
         return;
     }
@@ -865,8 +782,7 @@ export fn roku_emit(text: vector(u8)*, error: vector(u8)*, root: void*, pointer_
     re_text(&r, "function TowerRun(output = invalid as dynamic, memoryLimit = 67108864 as integer) as object\n    s = tr_state(output, memoryLimit)\n");
     var i: usize = 0;
     loop {
-        var c_step91 = i == r.common.nodes.length;
-        if c_step91 {
+        if i == r.common.nodes.length {
             break;
         }
         var item = r.common.nodes.data[i];
@@ -878,8 +794,7 @@ export fn roku_emit(text: vector(u8)*, error: vector(u8)*, root: void*, pointer_
             re_number(&r, semantic_size(&n.type));
             re_text(&r, ")\n");
         }
-        var c_step92 = n.kind == KString();
-        if c_step92 {
+        if n.kind == KString() {
             re_text(&r, "    s.g[");
             re_number(&r, i);
             re_text(&r, "] = tr_alloc(s, ");
@@ -888,8 +803,7 @@ export fn roku_emit(text: vector(u8)*, error: vector(u8)*, root: void*, pointer_
             re_text(&r, ")\n");
             var at: usize = 0;
             loop {
-                var c_step94 = at == n.name.length;
-                if c_step94 {
+                if at == n.name.length {
                     break;
                 }
                 re_text(&r, "    tr_store(s, s.g[");
@@ -899,24 +813,21 @@ export fn roku_emit(text: vector(u8)*, error: vector(u8)*, root: void*, pointer_
                 re_text(&r, ", ");
                 re_number(&r, convert(usize, n.name.data[at]));
                 re_text(&r, ", 1)\n");
-                at = at + 1;
+                at++;
             }
         }
-        i = i + 1;
+        i++;
     }
     re_text(&r, "    tr_entry(s, [])\n    return s\nend function\n\n");
     i = 0;
     loop {
-        var c_step95 = i == r.common.nodes.length;
-        if c_step95 {
+        if i == r.common.nodes.length {
             break;
         }
         var item = r.common.nodes.data[i];
         var n = sem_get(item);
-        var c_step96 = n.kind == KFunction();
-        if c_step96 {
-            if n.external {}
-            else {
+        if n.kind == KFunction() {
+            if !n.external {
                 re_comments(&r, n);
                 re_text(&r, "function ");
                 re_function(&r, item);
@@ -924,37 +835,32 @@ export fn roku_emit(text: vector(u8)*, error: vector(u8)*, root: void*, pointer_
                 re_body(&r, item, false);
             }
         }
-        i = i + 1;
+        i++;
     }
     re_text(&r, "function tr_entry(s as object, args as object) as dynamic\n");
     re_body(&r, root, true);
-    var c_step97 = text.length > 1900000;
-    if c_step97 {
+    if text.length > 1900000 {
         re_fail(&r, "Roku source exceeds the single-file profile limit (1.9 MB); split the program");
     }
     var lines: usize = 0;
     i = 0;
     loop {
-        var c_step98 = i == text.length;
-        if c_step98 {
+        if i == text.length {
             break;
         }
-        var c_step99 = text.data[i] == 10;
-        if c_step99 {
-            lines = lines + 1;
+        if text.data[i] == 10 {
+            lines++;
         }
-        i = i + 1;
+        i++;
     }
-    var c_step100 = lines > 60000;
-    if c_step100 {
+    if lines > 60000 {
         re_fail(&r, "Roku source exceeds the 60000-line profile limit; split the program");
     }
     vector_dispose(void*, &r.common.nodes);
     vector_dispose(void*, &r.common.owners);
     vector_dispose(bool, &r.common.active);
     vector_dispose(bool, &r.common.returning);
-    var c_step101 = error.length != 0;
-    if c_step101 {
+    if error.length != 0 {
         text.length = 0;
     }
 }

@@ -1,10 +1,17 @@
 import tower;
 
+// Transitional parser token sentinels shared by table construction and runtime.
+// These are table indexes, not Foundation program instructions.
+const LRTokenEnd: u32 = 4294967294;
+const LRTokenPropagation: u32 = 4294967293;
+
 // Shared disposable LR index records, never a separate semantic graph.
 struct LRProduction {
     owner: usize;
     begin: usize;
     count: usize;
+    precedence: u32;
+    associativity: u32;
 }
 
 struct LRSymbol {

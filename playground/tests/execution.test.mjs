@@ -16,9 +16,10 @@ test('expanded trees lower to typed operations and execute the actual example', 
   const result = run(example);
   assert.equal(result.status, 'done', result.error);
   assert.equal(result.output, '15\n16\n');
-  assert.match(result.source, /count = count \+ 1;/);
+  assert.match(result.source, /\+ 1;/);
   assert.doesNotMatch(result.source, /increment/);
-  assert.match(result.source, /\*alias = total \+ 1;/);
+  assert.match(result.source, / = alias;/);
+  assert.equal(run(result.source).output, result.output, 'lowered Foundation preserves updates and aliasing');
   const alternate = grammar + "\nparse Statement |= 'say' $value:CoreOperand ';' => replace { print($value); };";
   assert.equal(run('say 7;', 10000, alternate).output, '7\n', 'syntax is defined by the Tower grammar');
 });

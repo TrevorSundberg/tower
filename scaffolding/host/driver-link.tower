@@ -50,12 +50,8 @@ export fn driver_link_open(target: u8*, cc: u8*, linker: u8*, sysroot: u8*, outp
 }
 
 export fn driver_link_import(link: DriverLink*, name: u8*): void {
-    if link.ok {
-        link.ok = driver_text(&link.imports, name);
-    }
-    if link.ok {
-        link.ok = driver_text(&link.imports, "\n");
-    }
+    link.ok &&= driver_text(&link.imports, name);
+    link.ok &&= driver_text(&link.imports, "\n");
 }
 
 export fn driver_link_export(link: DriverLink*, name: u8*): void {
@@ -127,7 +123,7 @@ fn driver_link_arguments(link: DriverLink*, args: DriverArguments*): void {
         var i: usize = 0;
         while i < link.exports.values.length {
             driver_argument(args, prefix, link.exports.values.data[i]);
-            i = i + 1;
+            i++;
         }
     } else {
         var has_sysroot = link.sysroot[0] != 0;
@@ -138,9 +134,9 @@ fn driver_link_arguments(link: DriverLink*, args: DriverArguments*): void {
     var i: usize = 0;
     while i < link.inputs.values.length {
         driver_argument(args, "", link.inputs.values.data[i]);
-        i = i + 1;
+        i++;
     }
-    if link.windows {} else {
+    if !link.windows {
         driver_argument(args, "", "-o");
         driver_argument(args, "", link.output);
     }
@@ -148,26 +144,22 @@ fn driver_link_arguments(link: DriverLink*, args: DriverArguments*): void {
 
 fn driver_link_execute(link: DriverLink*, data: u8*, length: usize): i32 {
     var ok = link.ok;
-    if ok {
-        ok = link.exports.ok;
-    }
-    if ok {
-        ok = link.inputs.ok;
-    }
-    if ok {} else {
+    ok &&= link.exports.ok;
+    ok &&= link.inputs.ok;
+    if !ok {
         driver_error("Unable to allocate link arguments", "");
         return 1;
     }
-    if driver_platform_temporary(&link.program) {} else {
+    if !driver_platform_temporary(&link.program) {
         return 1;
     }
-    if driver_platform_temporary(&link.runtime) {} else {
+    if !driver_platform_temporary(&link.runtime) {
         return 1;
     }
-    if driver_platform_temporary(&link.allowed) {} else {
+    if !driver_platform_temporary(&link.allowed) {
         return 1;
     }
-    if driver_write_file(link.program.data, data, length) {} else {
+    if !driver_write_file(link.program.data, data, length) {
         return 1;
     }
     var compile: DriverArguments;
@@ -181,7 +173,7 @@ fn driver_link_execute(link: DriverLink*, data: u8*, length: usize): i32 {
     }
     driver_timing_mark(link.timing, link.timings, "runtimeCompile");
     if link.wasm {
-        if driver_write_file(link.allowed.data, link.imports.data, link.imports.length) {} else {
+        if !driver_write_file(link.allowed.data, link.imports.data, link.imports.length) {
             driver_error("Cannot write linker import list", "");
             return 1;
         }
@@ -236,7 +228,7 @@ export fn driver_write_ir(raw_path: u8*, raw: u8*, raw_count: usize, optimized_p
             ok = driver_write_file(optimized_path, optimized, optimized_count);
         }
     }
-    if ok {} else {
+    if !ok {
         driver_error("Cannot write LLVM output", "");
     }
     return ok;

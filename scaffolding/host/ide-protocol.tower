@@ -42,7 +42,7 @@ fn host_protocol_text(out: ByteBuffer*, text: u8*): bool {
         if done {
             break;
         }
-        count = count + 1;
+        count++;
     }
     return bytes_append(out, text, count);
 }
@@ -60,32 +60,22 @@ export fn host_execution_json(out: ByteBuffer*, error: u8*, error_count: usize, 
         status = "error";
     }
     var ok = host_protocol_text(out, "{\"status\":\"");
-    if ok {
-        ok = host_protocol_text(out, status);
-    }
-    if ok {
-        ok = host_protocol_text(out, "\",\"error\":");
-    }
-    if ok {
-        ok = host_json_quote(out, error, error_count);
-    }
-    if ok {
-        ok = host_protocol_text(out, ",\"errorOffset\":");
-    }
+    ok &&= host_protocol_text(out, status);
+    ok &&= host_protocol_text(out, "\",\"error\":");
+    ok &&= host_json_quote(out, error, error_count);
+    ok &&= host_protocol_text(out, ",\"errorOffset\":");
     if ok {
         var wide = convert(u64, offset);
         ok = host_json_unsigned(out, wide);
     }
-    if ok {
-        ok = host_protocol_text(out, ",\"outputBytes\":[");
-    }
+    ok &&= host_protocol_text(out, ",\"outputBytes\":[");
     var i: usize = 0;
     loop {
         var end = i == output_count;
         if end {
             break;
         }
-        if ok {} else {
+        if !ok {
             break;
         }
         var comma = i != 0;
@@ -96,14 +86,10 @@ export fn host_execution_json(out: ByteBuffer*, error: u8*, error_count: usize, 
             var byte = convert(u64, output[i]);
             ok = host_json_unsigned(out, byte);
         }
-        i = i + 1;
+        i++;
     }
-    if ok {
-        ok = host_protocol_text(out, "],\"steps\":");
-    }
-    if ok {
-        ok = host_json_unsigned(out, steps);
-    }
+    ok &&= host_protocol_text(out, "],\"steps\":");
+    ok &&= host_json_unsigned(out, steps);
     if ok {
         if truncated {
             ok = host_protocol_text(out, ",\"outputTruncated\":true}");

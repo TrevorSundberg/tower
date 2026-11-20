@@ -21,7 +21,7 @@ fn foreign_number64(out: vector(u8)*, value: u64, radix: u64): void {
             byte = digit + 55;
         }
         digits[count] = convert(u8, byte);
-        count = count + 1;
+        count++;
         value = value / radix;
         var foreign_condition40 = value == 0;
         if foreign_condition40 {
@@ -33,7 +33,7 @@ fn foreign_number64(out: vector(u8)*, value: u64, radix: u64): void {
         if foreign_condition41 {
             break;
         }
-        count = count - 1;
+        count--;
         backend_text_append(out, &digits[count], 1);
     }
 }
@@ -71,7 +71,7 @@ fn foreign_key(out: vector(u8)*, type: ForeignType*): void {
             break;
         }
         foreign_key(out, type.args.data[i]);
-        i = i + 1;
+        i++;
     }
     backend_text(out, "}");
 }
@@ -87,12 +87,12 @@ fn foreign_substitute(m: ForeignName*, type: ForeignType*, insert: bool): bool {
             break;
         }
         if backend_equal(key.data, m.substitutions.data[i]) {
-            var foreign_condition45 = insert == false;
+            var foreign_condition45 = !insert;
             if foreign_condition45 {
                 backend_text(&m.text, "S");
                 var foreign_condition46 = i != 0;
                 if foreign_condition46 {
-                    var n = i - 1;
+                    var n = i -1;
                     foreign_number(&m.text, n, 36);
                 }
                 backend_text(&m.text, "_");
@@ -100,7 +100,7 @@ fn foreign_substitute(m: ForeignName*, type: ForeignType*, insert: bool): bool {
             vector_dispose(u8, &key);
             return true;
         }
-        i = i + 1;
+        i++;
     }
     if insert {
         foreign_require(m, vector_push(u8*, &m.substitutions, foreign_copy(m, key.data, key.length)));
@@ -126,7 +126,7 @@ fn foreign_it_special(type: ForeignType*): u8* {
         return "St";
     }
     if foreign_std(type.scope) {
-        var foreign_condition49 = type.template_id == false;
+        var foreign_condition49 = !type.template_id;
         if foreign_condition49 {
             if backend_equal(type.name, "allocator") {
                 return "Sa";
@@ -140,7 +140,7 @@ fn foreign_it_special(type: ForeignType*): u8* {
 }
 
 fn foreign_it_qualifiers(m: ForeignName*, cv: u32): void {
-    var flag = cv & 4;
+    var flag = cv &4;
     var foreign_condition50 = flag != 0;
     if foreign_condition50 {
         backend_text(&m.text, "r");
@@ -166,7 +166,7 @@ fn foreign_it_arguments(m: ForeignName*, type: ForeignType*): void {
             break;
         }
         foreign_it_type(m, type.args.data[i]);
-        i = i + 1;
+        i++;
     }
     backend_text(&m.text, "E");
 }
@@ -187,7 +187,7 @@ fn foreign_it_component(m: ForeignName*, type: ForeignType*): void {
         }
         else {
             var used = foreign_substitute(m, prefix, false);
-            var foreign_condition55 = used == false;
+            var foreign_condition55 = !used;
             if foreign_condition55 {
                 foreign_number(&m.text, backend_length(type.name), 10);
                 backend_text(&m.text, type.name);
@@ -282,7 +282,7 @@ fn foreign_it_name(m: ForeignName*, type: ForeignType*, function: bool): void {
             backend_text(&m.text, "B");
             foreign_number(&m.text, backend_length(m.abi_tags.data[i]), 10);
             backend_text(&m.text, m.abi_tags.data[i]);
-            i = i + 1;
+            i++;
         }
     }
     if nested {
@@ -293,7 +293,7 @@ fn foreign_it_name(m: ForeignName*, type: ForeignType*, function: bool): void {
 fn foreign_it_parameters(m: ForeignName*, type: ForeignType*): void {
     var foreign_condition66 = type.args.length == 0;
     if foreign_condition66 {
-        var foreign_condition67 = type.variadic == false;
+        var foreign_condition67 = !type.variadic;
         if foreign_condition67 {
             backend_text(&m.text, "v");
         }
@@ -305,7 +305,7 @@ fn foreign_it_parameters(m: ForeignName*, type: ForeignType*): void {
             break;
         }
         foreign_it_type(m, type.args.data[i]);
-        i = i + 1;
+        i++;
     }
     if type.variadic {
         backend_text(&m.text, "z");
@@ -323,9 +323,7 @@ fn foreign_it_type(m: ForeignName*, type: ForeignType*): void {
         }
     }
     var builtin = type.kind == 1;
-    if builtin {
-        builtin = type.cv == 0;
-    }
+    builtin &&= type.cv == 0;
     if builtin {
         backend_text(&m.text, type.name);
         return;
@@ -411,7 +409,7 @@ fn foreign_it_type(m: ForeignName*, type: ForeignType*): void {
                                         backend_text(&m.text, "T");
                                         var foreign_condition82 = type.count != 0;
                                         if foreign_condition82 {
-                                            var index = type.count - 1;
+                                            var index = type.count -1;
                                             foreign_number64(&m.text, index, 10);
                                         }
                                         backend_text(&m.text, "_");

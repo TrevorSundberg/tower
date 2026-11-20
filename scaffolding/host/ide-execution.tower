@@ -60,33 +60,33 @@ fn ide_execution_fast(session: IdeExecution*): bool {
     var ready = session.fast != null; return ready;
 }
 export fn tw_exec_create_target(source: u8*, bytes: usize, width: u32): u32 {
-    if ide_valid(source, bytes) {} else { return 0; }
+    if !ide_valid(source, bytes) { return 0; }
     var valid = width == 4; var wide = width == 8; if wide { valid = true; }
-    if valid {} else { ide_error("Unsupported target pointer width"); return 0; }
-    if ide_execution_capacity() {} else { return 0; }
+    if !valid { ide_error("Unsupported target pointer width"); return 0; }
+    if !ide_execution_capacity() { return 0; }
     return ide_execution_publish(ide_execution_text(source, bytes, width, false));
 }
 export fn tw_exec_create(source: u8*, bytes: usize): u32 { return tw_exec_create_target(source, bytes, 4); }
 export fn tw_exec_create_foundation(source: u8*, bytes: usize): u32 {
-    if ide_valid(source, bytes) {} else { return 0; } if ide_execution_capacity() {} else { return 0; }
+    if !ide_valid(source, bytes) { return 0; } if !ide_execution_capacity() { return 0; }
     return ide_execution_publish(ide_execution_text(source, bytes, 4, true));
 }
 export fn tw_exec_create_files(sources: u8**, lengths: u32*, count: u32, width: u32): u32 {
     var valid = sources != null; var bad = lengths == null; if bad { valid = false; }
     bad = count == 0; if bad { valid = false; } bad = count > 1024; if bad { valid = false; }
-    var allowed = width == 4; var wide = width == 8; if wide { allowed = true; } if allowed {} else { valid = false; }
+    var allowed = width == 4; var wide = width == 8; if wide { allowed = true; } if !allowed { valid = false; }
     var state = ide_state(); bad = host_handles_count(&state.handles, 1) >= 8; if bad { valid = false; }
-    if valid {} else { ide_error("Invalid project compilation request"); return 0; }
+    if !valid { ide_error("Invalid project compilation request"); return 0; }
     var total: usize = 0; var i: usize = 0;
     while i < convert(usize, count) {
-        if ide_valid(sources[i], convert(usize, lengths[i])) {} else { return 0; }
+        if !ide_valid(sources[i], convert(usize, lengths[i])) { return 0; }
         total = total + convert(usize, lengths[i]); bad = total > 8388608;
-        if bad { ide_error("Project compilation limit is 8 MiB"); return 0; } i = i + 1;
+        if bad { ide_error("Project compilation limit is 8 MiB"); return 0; } i++;
     }
     var inputs = alloc(FrontendSource, convert(usize, count)); var ok = inputs != null; ide_require(ok); i = 0;
-    while i < convert(usize, count) { inputs[i].data = ide_copy(sources[i], convert(usize, lengths[i])); inputs[i].length = convert(usize, lengths[i]); i = i + 1; }
+    while i < convert(usize, count) { inputs[i].data = ide_copy(sources[i], convert(usize, lengths[i])); inputs[i].length = convert(usize, lengths[i]); i++; }
     var session = ide_execution_compile(inputs, convert(usize, count), width, false); i = 0;
-    while i < convert(usize, count) { free(inputs[i].data); i = i + 1; } free(inputs);
+    while i < convert(usize, count) { free(inputs[i].data); i++; } free(inputs);
     return ide_execution_publish(session);
 }
 export fn tw_exec_destroy(handle: u32): void {
@@ -130,7 +130,7 @@ export fn tw_exec_fast_stats(handle: u32): u8* {
     var state = ide_state(); var out = &state.execution; ide_assign(out, "{");
     var names: u8*[5]; names[0] = "codeBytes"; names[1] = "instructions"; names[2] = "wideInstructions"; names[3] = "registerCapacityBytes"; names[4] = "cacheCapacityBytes";
     var i: usize = 0;
-    while i < 5 { ide_comma(out, i); ide_quote(out, names[i]); ide_text(out, ":"); ide_number(out, fast_interpreter_stat(session.fast, i)); i = i + 1; }
+    while i < 5 { ide_comma(out, i); ide_quote(out, names[i]); ide_text(out, ":"); ide_number(out, fast_interpreter_stat(session.fast, i)); i++; }
     ide_text(out, "}"); return ide_result(out);
 }
 export fn tw_set_foundation(source: u8*, bytes: usize): i32 {
@@ -166,10 +166,10 @@ export fn im_foreign(machine: IMState*, node: void*, args: u64*, count: usize): 
     var type: ByteBuffer; fill(&type, 0, sizeof(ByteBuffer)); var i: usize = 0;
     while i < function.parameters.length {
         var parameter = sem_get(function.parameters.data[i]); semantic_format_type(&parameter.type, bits(vector(u8)*, &type));
-        ide_comma(&request, i); ide_quote_bytes(&request, type.data, type.length); i = i + 1;
+        ide_comma(&request, i); ide_quote_bytes(&request, type.data, type.length); i++;
     }
     bytes_dispose(&type); ide_text(&request, "],\"args\":["); i = 0;
-    while i < count { ide_comma(&request, i); ide_text(&request, "\""); ide_require(host_json_unsigned(&request, args[i])); ide_text(&request, "\""); i = i + 1; }
+    while i < count { ide_comma(&request, i); ide_text(&request, "\""); ide_require(host_json_unsigned(&request, args[i])); ide_text(&request, "\""); i++; }
     ide_text(&request, "]}"); var result = tw_foreign_call(session.handle, ide_result(&request)); bytes_dispose(&request);
     machine.failed = session.error.length != 0; return result;
 }

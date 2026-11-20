@@ -64,7 +64,7 @@ fn template_hole(value: SyntaxEmission*, category: u8*, id: u32, append: bool): 
     if append {
         emission_reference(value, rule, name, "");
     }
-    if value.failed {} else {
+    if !value.failed {
         emission_string(value, rule, id);
     }
 }
@@ -109,9 +109,7 @@ export fn syntax_template_holes(input: SyntaxTemplateGrammar*): bool {
                 var entry = &input.repetitions[helper];
                 var target = emission_node(value, entry.source);
                 var compatible = target.repetition == 42;
-                if compatible {} else {
-                    compatible = target.repetition == term.repetition;
-                }
+                compatible ||= target.repetition == term.repetition;
                 if target.literal {
                     compatible = false;
                 }
@@ -132,12 +130,12 @@ export fn syntax_template_holes(input: SyntaxTemplateGrammar*): bool {
                 if value.failed {
                     break;
                 }
-                helper = helper + 1;
+                helper++;
             }
         }
-        index = index + 1;
+        index++;
     }
-    var ok = value.failed == false;
+    var ok = !value.failed;
     syntax_emission_destroy(value);
     return ok;
 }
@@ -261,9 +259,7 @@ fn template_remap_node(input: SyntaxTemplateRemap*, node: void*, revision: Synta
     var data = lr_tree_match(node, input.match_kind);
     var ordinal = data.id - 3145728;
     var hole = data.id >= 3145728;
-    if hole {
-        hole = convert(usize, ordinal) < input.count;
-    }
+    hole &&= convert(usize, ordinal) < input.count;
     if hole {
         input.uses[ordinal] = input.uses[ordinal] + 1;
         return true;
@@ -327,17 +323,17 @@ export fn syntax_template_remap_revisions(input: SyntaxTemplateRemap*, source: S
     fill(input.uses, 0, bytes);
     var ok = vector_push(void*, &pending, input.root);
     loop {
-        if ok {} else {
+        if !ok {
             break;
         }
         var empty = pending.length == 0;
         if empty {
             break;
         }
-        pending.length = pending.length - 1;
+        pending.length--;
         var node = pending.data[pending.length];
         ok = template_remap_node(input, node, source, destination);
-        if ok {} else {
+        if !ok {
             break;
         }
         var index: usize = 0;
@@ -348,10 +344,10 @@ export fn syntax_template_remap_revisions(input: SyntaxTemplateRemap*, source: S
                 break;
             }
             ok = vector_push(void*, &pending, entity_child_at(node, index));
-            if ok {} else {
+            if !ok {
                 break;
             }
-            index = index + 1;
+            index++;
         }
     }
     vector_dispose(void*, &pending);

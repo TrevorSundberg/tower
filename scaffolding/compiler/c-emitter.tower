@@ -33,12 +33,11 @@ fn ce_number(c: CEmitter*, number: u64): void {
     var digits: u8[20];
     var at: usize = 20;
     loop {
-        at = at - 1;
+        at--;
         var c_step1 = number % 10;
         digits[at] = convert(u8, c_step1) + 48;
         number = number / 10;
-        var c_step2 = number == 0;
-        if c_step2 {
+        if number == 0 {
             break;
         }
     }
@@ -47,8 +46,7 @@ fn ce_number(c: CEmitter*, number: u64): void {
 }
 
 fn ce_fail(c: CEmitter*, message: u8*): void {
-    var c_step4 = c.error.length == 0;
-    if c_step4 {
+    if c.error.length == 0 {
         sem_require(bytes_append(c.error, message, frontend_source_length(message)));
     }
 }
@@ -56,27 +54,24 @@ fn ce_fail(c: CEmitter*, message: u8*): void {
 fn ce_indent(c: CEmitter*): void {
     var i: usize = 0;
     loop {
-        var c_step5 = i == c.depth;
-        if c_step5 {
+        if i == c.depth {
             break;
         }
         ce_text(c, "    ");
-        i = i + 1;
+        i++;
     }
 }
 
 fn ce_id(c: CEmitter*, node: void*): usize {
     var i: usize = 0;
     loop {
-        var c_step6 = i == c.nodes.length;
-        if c_step6 {
+        if i == c.nodes.length {
             return i;
         }
-        var c_step7 = c.nodes.data[i] == node;
-        if c_step7 {
+        if c.nodes.data[i] == node {
             return i;
         }
-        i = i + 1;
+        i++;
     }
 }
 
@@ -103,7 +98,7 @@ fn ce_reserved(name: vector(u8)*): bool {
             if stop {
                 break;
             }
-            at = at + 1;
+            at++;
         }
         var length = at - start;
         var equal = length == name.length;
@@ -120,7 +115,7 @@ fn ce_reserved(name: vector(u8)*): bool {
                     equal = false;
                     break;
                 }
-                i = i + 1;
+                i++;
             }
         }
         if equal {
@@ -128,7 +123,7 @@ fn ce_reserved(name: vector(u8)*): bool {
         }
         var space = words[at] == 32;
         if space {
-            at = at + 1;
+            at++;
         }
     }
     var enough = name.length >= 3;
@@ -161,9 +156,7 @@ fn ce_reserved(name: vector(u8)*): bool {
         }
         if first {
             var digit = name.data[1] >= 48;
-            if digit {
-                digit = name.data[1] <= 57;
-            }
+            digit &&= name.data[1] <= 57;
             if digit {
                 return true;
             }
@@ -189,46 +182,35 @@ fn ce_function_name(c: CEmitter*, entity: void*): void {
             ce_fail(c, "C target external name conflicts with a reserved word or generated support symbol; use a C ABI wrapper");
         }
         var i: usize = 0;
-        var c_step8 = n.name.length == 0;
-        if c_step8 {
+        if n.name.length == 0 {
             ce_fail(c, "C target requires a nonempty foreign symbol");
         }
         loop {
-            var c_step9 = i == n.name.length;
-            if c_step9 {
+            if i == n.name.length {
                 break;
             }
             var b = n.name.data[i];
             var valid = b >= 65;
-            if valid {
-                valid = b <= 90;
-            }
-            var c_step10 = b >= 97;
-            if c_step10 {
-                var c_step11 = b <= 122;
-                if c_step11 {
+            valid &&= b <= 90;
+            if b >= 97 {
+                if b <= 122 {
                     valid = true;
                 }
             }
-            var c_step12 = b == 95;
-            if c_step12 {
+            if b == 95 {
                 valid = true;
             }
-            var c_step13 = i != 0;
-            if c_step13 {
-                var c_step14 = b >= 48;
-                if c_step14 {
-                    var c_step15 = b <= 57;
-                    if c_step15 {
+            if i != 0 {
+                if b >= 48 {
+                    if b <= 57 {
                         valid = true;
                     }
                 }
             }
-            if valid {}
-            else {
+            if !valid {
                 ce_fail(c, "C target needs a plain C identifier for extern/export; namespace or member declarations require a C ABI wrapper");
             }
-            i = i + 1;
+            i++;
         }
         // Preserve the explicit link name. C keywords/reserved names are rejected
         // below instead of silently changing an external ABI.
@@ -242,26 +224,19 @@ fn ce_function_name(c: CEmitter*, entity: void*): void {
     ce_text(c, "_");
     var i: usize = 0;
     loop {
-        var c_step16 = i == n.name.length;
-        if c_step16 {
+        if i == n.name.length {
             break;
         }
         var b = n.name.data[i];
         var valid = b >= 65;
-        if valid {
-            valid = b <= 90;
-        }
-        var c_step17 = b >= 97;
-        if c_step17 {
-            var c_step18 = b <= 122;
-            if c_step18 {
+        valid &&= b <= 90;
+        if b >= 97 {
+            if b <= 122 {
                 valid = true;
             }
         }
-        var c_step19 = b >= 48;
-        if c_step19 {
-            var c_step20 = b <= 57;
-            if c_step20 {
+        if b >= 48 {
+            if b <= 57 {
                 valid = true;
             }
         }
@@ -271,53 +246,44 @@ fn ce_function_name(c: CEmitter*, entity: void*): void {
         else {
             ce_text(c, "_");
         }
-        i = i + 1;
+        i++;
     }
 }
 
 fn ce_type(c: CEmitter*, t: FoundationType*): void {
-    var c_step21 = t.pointers != 0;
-    if c_step21 {
+    if t.pointers != 0 {
         ce_text(c, "unsigned char *");
         return;
     }
-    var c_step22 = t.scalar == SVoid();
-    if c_step22 {
+    if t.scalar == SVoid() {
         ce_text(c, "void");
         return;
     }
-    var c_step23 = t.scalar == SBool();
-    if c_step23 {
+    if t.scalar == SBool() {
         ce_text(c, "uint8_t");
         return;
     }
-    var c_step24 = t.scalar == SU8();
-    if c_step24 {
+    if t.scalar == SU8() {
         ce_text(c, "uint8_t");
         return;
     }
-    var c_step25 = t.scalar == SI32();
-    if c_step25 {
+    if t.scalar == SI32() {
         ce_text(c, "uint32_t");
         return;
     }
-    var c_step26 = t.scalar == SU32();
-    if c_step26 {
+    if t.scalar == SU32() {
         ce_text(c, "uint32_t");
         return;
     }
-    var c_step27 = t.scalar == SUSize();
-    if c_step27 {
+    if t.scalar == SUSize() {
         ce_text(c, "uintptr_t");
         return;
     }
-    var c_step28 = t.scalar == SI64();
-    if c_step28 {
+    if t.scalar == SI64() {
         ce_text(c, "uint64_t");
         return;
     }
-    var c_step29 = t.scalar == SU64();
-    if c_step29 {
+    if t.scalar == SU64() {
         ce_text(c, "uint64_t");
         return;
     }
@@ -337,8 +303,7 @@ fn ce_abi_type(c: CEmitter*, t: FoundationType*): void {
 }
 
 fn ce_suffix(c: CEmitter*, t: FoundationType*): void {
-    var c_step30 = t.pointers != 0;
-    if c_step30 {
+    if t.pointers != 0 {
         ce_text(c, "ptr");
         return;
     }
@@ -353,83 +318,63 @@ fn ce_value_kind(n: FoundationNode*): bool {
     if semantic_aggregate(&n.type) {
         return false;
     }
-    var c_step31 = n.kind == KOperand();
-    if c_step31 {
+    if n.kind == KOperand() {
         return true;
     }
-    var c_step32 = n.kind == KBinary();
-    if c_step32 {
+    if n.kind == KBinary() {
         return true;
     }
-    var c_step33 = n.kind == KAddress();
-    if c_step33 {
+    if n.kind == KAddress() {
         return true;
     }
-    var c_step34 = n.kind == KLoad();
-    if c_step34 {
+    if n.kind == KLoad() {
         return true;
     }
-    var c_step35 = n.kind == KConvert();
-    if c_step35 {
+    if n.kind == KConvert() {
         return true;
     }
-    var c_step36 = n.kind == KBits();
-    if c_step36 {
+    if n.kind == KBits() {
         return true;
     }
-    var c_step37 = n.kind == KCall();
-    if c_step37 {
-        var c_step38 = n.type.pointers != 0;
-        if c_step38 {
+    if n.kind == KCall() {
+        if n.type.pointers != 0 {
             return true;
         }
-        var c_step39 = n.type.scalar != SVoid();
-        return c_step39;
+        return n.type.scalar != SVoid();
     }
-    var c_step40 = n.kind == KField();
-    if c_step40 {
+    if n.kind == KField() {
         return true;
     }
-    var c_step41 = n.kind == KIndex();
-    if c_step41 {
+    if n.kind == KIndex() {
         return true;
     }
-    var c_step42 = n.kind == KString();
-    if c_step42 {
+    if n.kind == KString() {
         return true;
     }
-    var c_step43 = n.kind == KSizeOf();
-    if c_step43 {
+    if n.kind == KSizeOf() {
         return true;
     }
-    var c_step44 = n.kind == KAlignOf();
-    if c_step44 {
+    if n.kind == KAlignOf() {
         return true;
     }
-    var c_step45 = n.kind == KAllocate();
-    if c_step45 {
+    if n.kind == KAllocate() {
         return true;
     }
-    var c_step46 = n.kind == KReallocate();
-    return c_step46;
+    return n.kind == KReallocate();
 }
 
 fn ce_collect(c: CEmitter*, entity: void*, owner: void*): void {
-    var c_step47 = entity == null;
-    if c_step47 {
+    if entity == null {
         return;
     }
-    var c_step48 = ce_id(c, entity) < c.nodes.length;
-    if c_step48 {
+    if ce_id(c, entity) < c.nodes.length {
         return;
     }
     var n = sem_get(entity);
-    var c_step49 = n == null;
-    if c_step49 {
+    if n == null {
         return;
     }
-    var c_step50 = n.kind == KFunction();
-    if c_step50 {
+    if n.kind == KFunction() {
         owner = entity;
     }
     sem_require(vector_push(void*, &c.nodes, entity));
@@ -437,12 +382,10 @@ fn ce_collect(c: CEmitter*, entity: void*, owner: void*): void {
     sem_require(vector_push(bool, &c.active, false));
     sem_require(vector_push(bool, &c.returning, true));
     // Labels point back to their block. Types contain recursive nominal edges.
-    var c_step51 = n.kind == KLabel();
-    if c_step51 {
+    if n.kind == KLabel() {
         return;
     }
-    var c_step52 = n.kind == KType();
-    if c_step52 {
+    if n.kind == KType() {
         return;
     }
     ce_collect(c, n.left, owner);
@@ -453,33 +396,29 @@ fn ce_collect(c: CEmitter*, entity: void*, owner: void*): void {
     ce_collect(c, n.otherwise, owner);
     var i: usize = 0;
     loop {
-        var c_step53 = i == n.parameters.length;
-        if c_step53 {
+        if i == n.parameters.length {
             break;
         }
         ce_collect(c, n.parameters.data[i], owner);
-        i = i + 1;
+        i++;
     }
     i = 0;
     loop {
-        var c_step54 = i == n.items.length;
-        if c_step54 {
+        if i == n.items.length {
             break;
         }
         ce_collect(c, n.items.data[i], owner);
-        i = i + 1;
+        i++;
     }
 }
 
 fn ce_comments(c: CEmitter*, n: FoundationNode*): void {
-    if c.comments {}
-    else {
+    if !c.comments {
         return;
     }
     var i: usize = 0;
     loop {
-        var c_step55 = i == n.comments.length;
-        if c_step55 {
+        if i == n.comments.length {
             break;
         }
         var b = n.comments.data[i];
@@ -491,11 +430,10 @@ fn ce_comments(c: CEmitter*, n: FoundationNode*): void {
             sem_require(vector_push(u8, c.text, b));
         }
         // Prevent preprocessing trigraphs and backslash/newline splicing in C.
-        var c_step56 = b == 63;
-        if c_step56 {
+        if b == 63 {
             ce_text(c, " ");
         }
-        i = i + 1;
+        i++;
     }
 }
 
@@ -513,7 +451,7 @@ fn ce_quote(c: CEmitter*, text: vector(u8)*): void {
             }
             ce_number(c, convert(u64, text.data[at]));
             ce_text(c, ", ");
-            at = at + 1;
+            at++;
             var column = at % 16;
             var newline = column == 0;
             if newline {
@@ -526,8 +464,7 @@ fn ce_quote(c: CEmitter*, text: vector(u8)*): void {
     ce_text(c, "\"");
     var i: usize = 0;
     loop {
-        var c_step58 = i == text.length;
-        if c_step58 {
+        if i == text.length {
             break;
         }
         // Fixed-width octal escapes avoid source encoding, trigraphs and hex
@@ -541,21 +478,19 @@ fn ce_quote(c: CEmitter*, text: vector(u8)*): void {
         ce_number(c, convert(u64, c_step61));
         var c_step62 = b % 8;
         ce_number(c, convert(u64, c_step62));
-        i = i + 1;
+        i++;
     }
     ce_text(c, "\"");
 }
 
 fn ce_prepare_address(c: CEmitter*, entity: void*): void {
     var n = sem_get(entity);
-    var c_step63 = n.kind == KLoad();
-    if c_step63 {
+    if n.kind == KLoad() {
         ce_prepare(c, n.value);
         return;
     }
     var place = n.kind == KField();
-    var c_step64 = n.kind == KIndex();
-    if c_step64 {
+    if n.kind == KIndex() {
         place = true;
     }
     if place {
@@ -565,8 +500,7 @@ fn ce_prepare_address(c: CEmitter*, entity: void*): void {
         else {
             ce_prepare_address(c, n.left);
         }
-        var c_step65 = n.kind == KIndex();
-        if c_step65 {
+        if n.kind == KIndex() {
             ce_prepare(c, n.right);
         }
     }
@@ -588,14 +522,12 @@ fn ce_signed_value(c: CEmitter*, entity: void*): void {
 
 fn ce_address(c: CEmitter*, entity: void*): void {
     var n = sem_get(entity);
-    var c_step66 = n.kind == KLoad();
-    if c_step66 {
+    if n.kind == KLoad() {
         ce_temp(c, n.value);
         return;
     }
     var place = n.kind == KField();
-    var c_step67 = n.kind == KIndex();
-    if c_step67 {
+    if n.kind == KIndex() {
         place = true;
     }
     if place {
@@ -607,8 +539,7 @@ fn ce_address(c: CEmitter*, entity: void*): void {
             ce_address(c, n.left);
         }
         ce_text(c, ", ");
-        var c_step68 = n.kind == KIndex();
-        if c_step68 {
+        if n.kind == KIndex() {
             ce_text(c, "(uintptr_t)(");
             ce_signed_value(c, n.right);
             ce_text(c, ") * ");
@@ -621,8 +552,7 @@ fn ce_address(c: CEmitter*, entity: void*): void {
         return;
     }
     var binding = n.binding;
-    var c_step69 = binding == null;
-    if c_step69 {
+    if binding == null {
         binding = entity;
     }
     ce_text(c, "(unsigned char *)&");
@@ -631,8 +561,7 @@ fn ce_address(c: CEmitter*, entity: void*): void {
 
 fn ce_bit_value(c: CEmitter*, entity: void*, signed_extend: bool): void {
     var n = sem_get(entity);
-    var c_step70 = n.type.pointers != 0;
-    if c_step70 {
+    if n.type.pointers != 0 {
         ce_text(c, "(uintptr_t)");
     }
     if signed_extend {
@@ -645,11 +574,9 @@ fn ce_bit_value(c: CEmitter*, entity: void*, signed_extend: bool): void {
 
 fn ce_expression(c: CEmitter*, entity: void*): void {
     var n = sem_get(entity);
-    var c_step71 = n.kind == KOperand();
-    if c_step71 {
+    if n.kind == KOperand() {
         if n.constant {
-            var c_step72 = n.type.pointers != 0;
-            if c_step72 {
+            if n.type.pointers != 0 {
                 ce_text(c, "NULL");
             }
             else {
@@ -664,23 +591,19 @@ fn ce_expression(c: CEmitter*, entity: void*): void {
         }
         return;
     }
-    var c_step74 = n.kind == KString();
-    if c_step74 {
+    if n.kind == KString() {
         ce_name(c, entity, "tc_string_");
         return;
     }
-    var c_step75 = n.kind == KAddress();
-    if c_step75 {
+    if n.kind == KAddress() {
         ce_address(c, n.value);
         return;
     }
     var load = n.kind == KLoad();
-    var c_step76 = n.kind == KField();
-    if c_step76 {
+    if n.kind == KField() {
         load = true;
     }
-    var c_step77 = n.kind == KIndex();
-    if c_step77 {
+    if n.kind == KIndex() {
         load = true;
     }
     if load {
@@ -691,38 +614,32 @@ fn ce_expression(c: CEmitter*, entity: void*): void {
         ce_text(c, ")");
         return;
     }
-    var c_step78 = n.kind == KCall();
-    if c_step78 {
+    if n.kind == KCall() {
         ce_function_name(c, n.binding);
         ce_text(c, "(");
         var i: usize = 0;
         loop {
-            var c_step79 = i == n.items.length;
-            if c_step79 {
+            if i == n.items.length {
                 break;
             }
-            var c_step80 = i != 0;
-            if c_step80 {
+            if i != 0 {
                 ce_text(c, ", ");
             }
             ce_signed_value(c, n.items.data[i]);
-            i = i + 1;
+            i++;
         }
         ce_text(c, ")");
         return;
     }
-    var c_step81 = n.kind == KSizeOf();
-    if c_step81 {
+    if n.kind == KSizeOf() {
         ce_number(c, convert(u64, semantic_size(&n.element)));
         return;
     }
-    var c_step82 = n.kind == KAlignOf();
-    if c_step82 {
+    if n.kind == KAlignOf() {
         ce_number(c, convert(u64, semantic_alignment(&n.element)));
         return;
     }
-    var c_step83 = n.kind == KAllocate();
-    if c_step83 {
+    if n.kind == KAllocate() {
         ce_text(c, "tc_alloc(");
         ce_temp(c, n.right);
         ce_text(c, ", ");
@@ -730,8 +647,7 @@ fn ce_expression(c: CEmitter*, entity: void*): void {
         ce_text(c, ")");
         return;
     }
-    var c_step84 = n.kind == KReallocate();
-    if c_step84 {
+    if n.kind == KReallocate() {
         ce_text(c, "tc_realloc(");
         ce_temp(c, n.left);
         ce_text(c, ", ");
@@ -741,22 +657,18 @@ fn ce_expression(c: CEmitter*, entity: void*): void {
         ce_text(c, ")");
         return;
     }
-    var c_step85 = n.kind == KBits();
-    if c_step85 {
+    if n.kind == KBits() {
         ce_text(c, "(");
         ce_type(c, &n.type);
         ce_text(c, ")");
-        var c_step86 = n.type.pointers != 0;
-        if c_step86 {
+        if n.type.pointers != 0 {
             ce_text(c, "(uintptr_t)");
         }
         ce_bit_value(c, n.value, true);
         return;
     }
-    var c_step87 = n.kind == KConvert();
-    if c_step87 {
-        var c_step88 = n.type.scalar == SBool();
-        if c_step88 {
+    if n.kind == KConvert() {
+        if n.type.scalar == SBool() {
             ce_text(c, "(");
             ce_temp(c, n.value);
             ce_text(c, " != 0)");
@@ -778,25 +690,21 @@ fn ce_expression(c: CEmitter*, entity: void*): void {
         ce_text(c, ")");
         return;
     }
-    var c_step89 = n.kind == KBinary();
-    if c_step89 {
+    if n.kind == KBinary() {
         var from = sem_get(n.left);
-        var c_step90 = from.type.pointers != 0;
-        if c_step90 {
+        if from.type.pointers != 0 {
             var arithmetic = n.op == OAdd();
-            var c_step91 = n.op == OSub();
-            if c_step91 {
+            if n.op == OSub() {
                 arithmetic = true;
             }
             if arithmetic {
                 var element: FoundationType;
                 copy(&element, &from.type, sizeof(FoundationType));
-                element.pointers = element.pointers - 1;
+                element.pointers--;
                 ce_text(c, "tc_offset(");
                 ce_temp(c, n.left);
                 ce_text(c, ", ");
-                var c_step92 = n.op == OSub();
-                if c_step92 {
+                if n.op == OSub() {
                     ce_text(c, "(uintptr_t)0 - ");
                 }
                 ce_text(c, "(uintptr_t)(");
@@ -816,8 +724,7 @@ fn ce_expression(c: CEmitter*, entity: void*): void {
             return;
         }
         var division = n.op == ODiv();
-        var c_step93 = n.op == ORem();
-        if c_step93 {
+        if n.op == ORem() {
             division = true;
         }
         if division {
@@ -835,8 +742,7 @@ fn ce_expression(c: CEmitter*, entity: void*): void {
             ce_text(c, ")");
             return;
         }
-        var c_step95 = n.op >= OEq();
-        if c_step95 {
+        if n.op >= OEq() {
             ce_text(c, "(");
             ce_signed_value(c, n.left);
             ce_text(c, " ");
@@ -861,23 +767,19 @@ fn ce_expression(c: CEmitter*, entity: void*): void {
 }
 
 fn ce_prepare(c: CEmitter*, entity: void*): void {
-    var c_step96 = entity == null;
-    if c_step96 {
+    if entity == null {
         return;
     }
     var n = sem_get(entity);
-    var c_step97 = n.kind == KAddress();
-    if c_step97 {
+    if n.kind == KAddress() {
         ce_prepare_address(c, n.value);
     }
     else {
         var place = n.kind == KField();
-        var c_step98 = n.kind == KIndex();
-        if c_step98 {
+        if n.kind == KIndex() {
             place = true;
         }
-        var c_step99 = n.kind == KLoad();
-        if c_step99 {
+        if n.kind == KLoad() {
             place = true;
         }
         if place {
@@ -889,12 +791,11 @@ fn ce_prepare(c: CEmitter*, entity: void*): void {
             ce_prepare(c, n.value);
             var i: usize = 0;
             loop {
-                var c_step100 = i == n.items.length;
-                if c_step100 {
+                if i == n.items.length {
                     break;
                 }
                 ce_prepare(c, n.items.data[i]);
-                i = i + 1;
+                i++;
             }
         }
     }
@@ -926,31 +827,26 @@ fn ce_store(c: CEmitter*, target: void*, value: void*): void {
 }
 
 fn ce_statement(c: CEmitter*, entity: void*): void {
-    var c_step101 = entity == null;
-    if c_step101 {
+    if entity == null {
         return;
     }
     var n = sem_get(entity);
-    var c_step102 = n.kind == KFunction();
-    if c_step102 {
+    if n.kind == KFunction() {
         return;
     }
-    var c_step103 = n.kind == KType();
-    if c_step103 {
+    if n.kind == KType() {
         ce_comments(c, n);
         return;
     }
     ce_comments(c, n);
     var list = n.kind == KProgram();
-    var c_step104 = n.kind == KBlock();
-    if c_step104 {
+    if n.kind == KBlock() {
         list = true;
     }
     if list {
         var i: usize = 0;
         loop {
-            var c_step105 = i == n.items.length;
-            if c_step105 {
+            if i == n.items.length {
                 break;
             }
             var child = n.items.data[i];
@@ -960,14 +856,12 @@ fn ce_statement(c: CEmitter*, entity: void*): void {
             } else {
                 ce_notes(c, child);
             }
-            i = i + 1;
+            i++;
         }
         return;
     }
-    var c_step106 = n.kind == KDeclare();
-    if c_step106 {
-        var c_step107 = n.value != null;
-        if c_step107 {
+    if n.kind == KDeclare() {
+        if n.value != null {
             ce_prepare(c, n.value);
             ce_store(c, entity, n.value);
         }
@@ -981,15 +875,13 @@ fn ce_statement(c: CEmitter*, entity: void*): void {
         }
         return;
     }
-    var c_step108 = n.kind == KAssign();
-    if c_step108 {
+    if n.kind == KAssign() {
         ce_prepare_address(c, n.target);
         ce_prepare(c, n.value);
         ce_store(c, n.target, n.value);
         return;
     }
-    var c_step109 = n.kind == KIf();
-    if c_step109 {
+    if n.kind == KIf() {
         var condition = sem_get(n.value);
         if condition.constant {
             var yes = condition.bits != 0;
@@ -1007,61 +899,54 @@ fn ce_statement(c: CEmitter*, entity: void*): void {
         ce_text(c, "if (");
         ce_temp(c, n.value);
         ce_text(c, ") {\n");
-        c.depth = c.depth + 1;
+        c.depth++;
         ce_statement(c, n.body);
-        c.depth = c.depth - 1;
+        c.depth--;
         ce_indent(c);
         ce_text(c, "}");
-        var c_step110 = n.otherwise != null;
-        if c_step110 {
+        if n.otherwise != null {
             ce_text(c, " else {\n");
-            c.depth = c.depth + 1;
+            c.depth++;
             ce_statement(c, n.otherwise);
-            c.depth = c.depth - 1;
+            c.depth--;
             ce_indent(c);
             ce_text(c, "}");
         }
         ce_text(c, "\n");
         return;
     }
-    var c_step111 = n.kind == KLoop();
-    if c_step111 {
+    if n.kind == KLoop() {
         ce_indent(c);
         ce_text(c, "for (;;) {\n");
-        c.depth = c.depth + 1;
+        c.depth++;
         ce_statement(c, n.body);
-        c.depth = c.depth - 1;
+        c.depth--;
         ce_indent(c);
         ce_text(c, "}\n");
         return;
     }
-    var c_step112 = n.kind == KBreak();
-    if c_step112 {
+    if n.kind == KBreak() {
         ce_indent(c);
         ce_text(c, "break;\n");
         return;
     }
-    var c_step113 = n.kind == KContinue();
-    if c_step113 {
+    if n.kind == KContinue() {
         ce_indent(c);
         ce_text(c, "continue;\n");
         return;
     }
-    var c_step114 = n.kind == KReturn();
-    if c_step114 {
+    if n.kind == KReturn() {
         ce_prepare(c, n.value);
         ce_indent(c);
         ce_text(c, "return");
-        var c_step115 = n.value != null;
-        if c_step115 {
+        if n.value != null {
             ce_text(c, " ");
             ce_signed_value(c, n.value);
         }
         ce_text(c, ";\n");
         return;
     }
-    var c_step116 = n.kind == KLabel();
-    if c_step116 {
+    if n.kind == KLabel() {
         var unused = ce_label_used(c, entity) == false;
         if unused {
             return;
@@ -1071,28 +956,24 @@ fn ce_statement(c: CEmitter*, entity: void*): void {
         ce_text(c, ":;\n");
         return;
     }
-    var c_step117 = n.kind == KJump();
-    if c_step117 {
+    if n.kind == KJump() {
         ce_indent(c);
         ce_text(c, "goto ");
         ce_name(c, n.binding, "label_");
         ce_text(c, ";\n");
         return;
     }
-    var c_step118 = n.kind == KPrint();
-    if c_step118 {
+    if n.kind == KPrint() {
         ce_prepare(c, n.value);
         var value = sem_get(n.value);
         ce_indent(c);
-        var c_step119 = value.type.pointers != 0;
-        if c_step119 {
+        if value.type.pointers != 0 {
             ce_text(c, "tc_print_pointer((uintptr_t)");
             ce_temp(c, n.value);
             ce_text(c, ");\n");
             return;
         }
-        var c_step120 = value.type.scalar == SBool();
-        if c_step120 {
+        if value.type.scalar == SBool() {
             ce_text(c, "puts(");
             ce_temp(c, n.value);
             ce_text(c, " ? \"true\" : \"false\");\n");
@@ -1109,8 +990,7 @@ fn ce_statement(c: CEmitter*, entity: void*): void {
         ce_text(c, ");\n");
         return;
     }
-    var c_step121 = n.kind == KFree();
-    if c_step121 {
+    if n.kind == KFree() {
         ce_prepare(c, n.left);
         ce_indent(c);
         ce_text(c, "free(");
@@ -1119,8 +999,7 @@ fn ce_statement(c: CEmitter*, entity: void*): void {
         return;
     }
     var memory = n.kind == KCopy();
-    var c_step122 = n.kind == KFill();
-    if c_step122 {
+    if n.kind == KFill() {
         memory = true;
     }
     if memory {
@@ -1131,8 +1010,7 @@ fn ce_statement(c: CEmitter*, entity: void*): void {
         ce_text(c, "if (");
         ce_temp(c, n.value);
         ce_text(c, ") ");
-        var c_step123 = n.kind == KCopy();
-        if c_step123 {
+        if n.kind == KCopy() {
             ce_text(c, "memmove(");
         }
         else {
@@ -1146,8 +1024,7 @@ fn ce_statement(c: CEmitter*, entity: void*): void {
         ce_text(c, ");\n");
         return;
     }
-    var c_step124 = n.kind == KTrap();
-    if c_step124 {
+    if n.kind == KTrap() {
         ce_prepare(c, n.left);
         ce_prepare(c, n.right);
         ce_indent(c);
@@ -1156,8 +1033,7 @@ fn ce_statement(c: CEmitter*, entity: void*): void {
         ce_text(c, ");\n");
         return;
     }
-    var c_step125 = n.kind == KCall();
-    if c_step125 {
+    if n.kind == KCall() {
         ce_prepare(c, entity);
         return;
     }
@@ -1170,8 +1046,7 @@ fn ce_declaration(c: CEmitter*, entity: void*, variable: bool): void {
     if semantic_aggregate(&n.type) {
         ce_text(c, "union { uint64_t alignment; unsigned char bytes[");
         var size = semantic_size(&n.type);
-        var c_step126 = size == 0;
-        if c_step126 {
+        if size == 0 {
             size = 1;
         }
         ce_number(c, convert(u64, size));
@@ -1201,25 +1076,22 @@ fn ce_signature(c: CEmitter*, entity: void*): void {
     ce_text(c, " ");
     ce_function_name(c, entity);
     ce_text(c, "(");
-    var c_step127 = n.parameters.length == 0;
-    if c_step127 {
+    if n.parameters.length == 0 {
         ce_text(c, "void");
     }
     var i: usize = 0;
     loop {
-        var c_step128 = i == n.parameters.length;
-        if c_step128 {
+        if i == n.parameters.length {
             break;
         }
-        var c_step129 = i != 0;
-        if c_step129 {
+        if i != 0 {
             ce_text(c, ", ");
         }
         var parameter = sem_get(n.parameters.data[i]);
         ce_abi_type(c, &parameter.type);
         ce_text(c, " ");
         ce_name(c, n.parameters.data[i], "v");
-        i = i + 1;
+        i++;
     }
     ce_text(c, ")");
 }
@@ -1229,12 +1101,10 @@ fn ce_body(c: CEmitter*, entity: void*, program: bool): void {
     c.depth = 1;
     var i: usize = 0;
     loop {
-        var c_step130 = i == c.nodes.length;
-        if c_step130 {
+        if i == c.nodes.length {
             break;
         }
-        var c_step131 = c.owners.data[i] == entity;
-        if c_step131 {
+        if c.owners.data[i] == entity {
             var item = c.nodes.data[i];
             var n = sem_get(item);
             var local = n.kind == KDeclare();
@@ -1248,21 +1118,18 @@ fn ce_body(c: CEmitter*, entity: void*, program: bool): void {
                 ce_declaration(c, item, false);
             }
         }
-        i = i + 1;
+        i++;
     }
     i = 0;
     loop {
-        var c_step132 = i == c.nodes.length;
-        if c_step132 {
+        if i == c.nodes.length {
             break;
         }
-        var c_step133 = c.owners.data[i] == entity;
-        if c_step133 {
+        if c.owners.data[i] == entity {
             var item = c.nodes.data[i];
             var n = sem_get(item);
             var variable = n.kind == KDeclare();
-            var c_step134 = n.kind == KParameter();
-            if c_step134 {
+            if n.kind == KParameter() {
                 variable = true;
             }
             var temp = ce_value_kind(n);
@@ -1286,7 +1153,7 @@ fn ce_body(c: CEmitter*, entity: void*, program: bool): void {
                 ce_text(c, ";\n");
             }
         }
-        i = i + 1;
+        i++;
     }
     if program {
         ce_text(c, "    tc_environment();\n");
@@ -1325,34 +1192,27 @@ export fn c_emit(text: vector(u8)*, error: vector(u8)*, root: void*, pointer_byt
     ce_text(&c, ") ? 1 : -1];\n\n");
     var i: usize = 0;
     loop {
-        var c_step137 = i == c.nodes.length;
-        if c_step137 {
+        if i == c.nodes.length {
             break;
         }
         var entity = c.nodes.data[i];
         var n = sem_get(entity);
-        var c_step138 = n.kind == KString();
-        if c_step138 {
+        if n.kind == KString() {
             ce_text(&c, "static unsigned char ");
             ce_name(&c, entity, "tc_string_");
             ce_text(&c, "[] = ");
             ce_quote(&c, &n.name);
             ce_text(&c, ";\n");
         }
-        var c_step139 = n.kind == KDeclare();
-        if c_step139 {
+        if n.kind == KDeclare() {
             if n.global {
                 ce_declaration(&c, entity, true);
             }
         }
-        var c_step140 = n.kind == KFunction();
-        if c_step140 {
+        if n.kind == KFunction() {
             var platform = n.external;
-            if platform {
-                platform = sem_equal(sem_name(n), "platform_write");
-            }
-            if platform {}
-            else {
+            platform &&= sem_equal(sem_name(n), "platform_write");
+            if !platform {
                 ce_signature(&c, entity);
                 ce_text(&c, ";\n");
             }
@@ -1360,28 +1220,25 @@ export fn c_emit(text: vector(u8)*, error: vector(u8)*, root: void*, pointer_byt
                 ce_comments(&c, n);
             }
         }
-        i = i + 1;
+        i++;
     }
     ce_text(&c, "\n");
     i = 0;
     loop {
-        var c_step141 = i == c.nodes.length;
-        if c_step141 {
+        if i == c.nodes.length {
             break;
         }
         var entity = c.nodes.data[i];
         var n = sem_get(entity);
-        var c_step142 = n.kind == KFunction();
-        if c_step142 {
-            if n.external {}
-            else {
+        if n.kind == KFunction() {
+            if !n.external {
                 ce_comments(&c, n);
                 ce_signature(&c, entity);
                 ce_text(&c, "\n{\n");
                 ce_body(&c, entity, false);
             }
         }
-        i = i + 1;
+        i++;
     }
     ce_text(&c, "int main(void)\n{\n");
     ce_body(&c, root, true);
@@ -1390,8 +1247,7 @@ export fn c_emit(text: vector(u8)*, error: vector(u8)*, root: void*, pointer_byt
     vector_dispose(void*, &c.owners);
     vector_dispose(bool, &c.active);
     vector_dispose(bool, &c.returning);
-    var c_step143 = error.length != 0;
-    if c_step143 {
+    if error.length != 0 {
         text.length = 0;
     }
 }

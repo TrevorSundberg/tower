@@ -201,6 +201,49 @@ Choose the **Tokens** project to explore lexical rules. Select the pinned
 Their changes apply to the current project and all execution backends.
 See [token syntax and precedence](TOKENS.md).
 
+`import tower;` enables nested expressions above Foundation. From tightest to
+loosest, Tower provides calls/fields/indexing and postfix `++ --`; prefix
+`++ -- + - ! ~ & *`; `* / %`; `+ -`; `<< >>`; `<=>`; `< <= > >=`;
+`== !=`; bitwise `&`, `^`, `|`; `&&`; `||`; conditional `?:` and assignments
+`= += -= *= /= %= <<= >>= &= ^= |=`; and comma sequencing. Assignment and
+conditional chains associate right; ordinary binary chains associate left.
+Comma expressions need parentheses in call arguments and initializers. The
+conditional middle operand accepts commas. C++ alternative spellings `not`,
+`compl`, `bitand`, `bitor`, `xor`, `and`, `or`, `not_eq`, `and_eq`, `xor_eq`,
+and `or_eq` are accepted. There is no `->`; `.` already supports struct pointers.
+
+Tower retains exact types and explicit conversions: logical operands are bool,
+arithmetic/bitwise operands are integers, and pointer offsets are explicit
+integer counts. No C integer promotions or C++ object/lifetime operators are
+introduced. Existing `convert`, `bits`, `sizeof`, `alignof`, allocation and free
+remain ordinary calls. Integer `<=>` produces an `i32` value of -1, 0 or 1.
+Shift counts are masked by width minus one; left shifts wrap and signed right
+shifts extend the sign. These are Tower contracts, including negative/large
+counts, rather than C/C++ undefined behavior.
+
+Operands evaluate left to right. Short-circuit and conditional branches evaluate
+only the chosen side. An update captures its destination once before evaluating
+the right operand; compound updates also read its previous value first. Postfix
+updates return the old value and prefix updates return the new one. Shared ECS
+nodes lower to existing Foundation locals, operations, loads/stores and branches;
+the resulting text recompiles without importing Tower. Shifts currently expand
+to portable Foundation loops, with no claim of single-instruction lowering.
+
+The number token excludes a sign. Negated decimal literals retain an exact `u64`
+magnitude until signed range checking, admitting `-2147483648` and
+`-9223372036854775808` without an overflowing positive intermediate. Their final
+typed bit patterns are identical in the interpreters, Wasm and native LLVM.
+General unary negation uses Foundation subtraction. This does not introduce a
+separate compile-time arithmetic evaluator or change the staged execution plan.
+
+Null pointers support lazy `??` and `??=`, guarded member/index access `?.` and
+`?[]`, and `is null` / `is not null`. Guarded chains skip subsequent field/index
+work when the receiver is missing. A guarded scalar result must currently be
+consumed with `??`; nullable scalar variables are not implemented. Pointer results
+can remain nullable pointers. `>>>` shifts right with zero fill, and `>>>=` is its
+compound form. Tower also supplies `&&=` and `||=`: they evaluate the destination
+once and evaluate/store the RHS only when the logical operation needs it.
+
 Foundation inherits Bedrock's actual grammar/token entities. Whitespace, line and
 block comments, Identifier and String are defined only in Bedrock; Foundation adds
 Number and executable syntax. Changing a shared Bedrock pattern affects both

@@ -3,7 +3,7 @@ import tower;
 var calls = 0;
 
 fn next(): i32 {
-    calls = calls + 1;
+    calls++;
     return calls;
 }
 
@@ -38,7 +38,7 @@ fn control_tests(): i32 {
         1 | 2 => {
             var calls = 100;
             var good = calls == 100;
-            if good {} else {
+            if !good {
                 return 2;
             }
         }
@@ -47,27 +47,27 @@ fn control_tests(): i32 {
         }
     }
     var good = calls == 1;
-    if good {} else {
+    if !good {
         return 4;
     }
     good = always_returns() == 42;
-    if good {} else {
+    if !good {
         return 22;
     }
     good = classify(-1) == 10;
-    if good {} else {
+    if !good {
         return 5;
     }
     good = classify(0) == 20;
-    if good {} else {
+    if !good {
         return 6;
     }
     good = classify(2) == 30;
-    if good {} else {
+    if !good {
         return 7;
     }
     good = classify(99) == 40;
-    if good {} else {
+    if !good {
         return 8;
     }
 
@@ -85,14 +85,14 @@ fn control_tests(): i32 {
         }
     }
     good = value == 2;
-    if good {} else {
+    if !good {
         return 11;
     }
 
     var sum = 0;
     var index = 0;
     while index < 8 {
-        index = index + 1;
+        index++;
         match index {
             1 | 3 => {
                 continue;
@@ -106,11 +106,11 @@ fn control_tests(): i32 {
         }
     }
     good = sum == 6;
-    if good {} else {
+    if !good {
         return 12;
     }
     good = index == 5;
-    if good {} else {
+    if !good {
         return 13;
     }
 
@@ -119,7 +119,7 @@ fn control_tests(): i32 {
         continue;
     }
     good = calls == 4;
-    if good {} else {
+    if !good {
         return 14;
     }
     while false {
@@ -155,7 +155,7 @@ fn control_tests(): i32 {
         }
     }
     good = calls == 6;
-    if good {} else {
+    if !good {
         return 21;
     }
     // Quoted generated-looking names remain ordinary user bindings.

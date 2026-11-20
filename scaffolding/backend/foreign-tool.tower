@@ -35,14 +35,14 @@ fn foreign_expand_source(profile: u32, source: u8*, length: usize, out: vector(u
         }
         if quoted {
             var start = i;
-            i = i + 1;
+            i++;
             loop {
                 var foreign_condition1009 = i == length;
                 if foreign_condition1009 {
                     break;
                 }
                 var next = source[i];
-                i = i + 1;
+                i++;
                 var foreign_condition1010 = next == byte;
                 if foreign_condition1010 {
                     break;
@@ -51,11 +51,11 @@ fn foreign_expand_source(profile: u32, source: u8*, length: usize, out: vector(u
                 if foreign_condition1011 {
                     var foreign_condition1012 = i < length;
                     if foreign_condition1012 {
-                        i = i + 1;
+                        i++;
                     }
                 }
             }
-            var count = i - start;
+            var count = i -start;
             backend_text_append(out, &source[start], count);
             continue;
         }
@@ -98,9 +98,9 @@ fn foreign_expand_source(profile: u32, source: u8*, length: usize, out: vector(u
                                 }
                             }
                         }
-                        i = i + 1;
+                        i++;
                     }
-                    var count = i - start;
+                    var count = i -start;
                     backend_text_append(out, &source[start], count);
                     continue;
                 }
@@ -109,7 +109,7 @@ fn foreign_expand_source(profile: u32, source: u8*, length: usize, out: vector(u
         var foreign_condition1020 = byte == 96;
         if foreign_condition1020 {
             var start = i;
-            i = i + 1;
+            i++;
             var begin = i;
             loop {
                 var foreign_condition1021 = i == length;
@@ -123,13 +123,13 @@ fn foreign_expand_source(profile: u32, source: u8*, length: usize, out: vector(u
                 }
                 var foreign_condition1023 = source[i] == 92;
                 if foreign_condition1023 {
-                    i = i + 1;
+                    i++;
                 }
                 var foreign_condition1024 = i == length;
                 if foreign_condition1024 {
                     return false;
                 }
-                i = i + 1;
+                i++;
             }
             source[i] = 0;
             var name = &source[begin];
@@ -159,16 +159,16 @@ fn foreign_expand_source(profile: u32, source: u8*, length: usize, out: vector(u
                 foreign_name_close(result);
             } else {
                 source[i] = 96;
-                var count = i - start;
-                count = count + 1;
+                var count = i -start;
+                count++;
                 backend_text_append(out, &source[start], count);
             }
             source[i] = 96;
-            i = i + 1;
+            i++;
             continue;
         }
         backend_text_append(out, &source[i], 1);
-        i = i + 1;
+        i++;
     }
     return true;
 }

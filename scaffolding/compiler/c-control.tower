@@ -63,7 +63,7 @@ fn ce_reach(c: CEmitter*, entity: void*): void {
                 ce_reach(c, child);
                 falls = ce_falls(c, child);
             }
-            i = i + 1;
+            i++;
         }
     }
 }
@@ -83,9 +83,9 @@ fn ce_reach_pass(c: CEmitter*, root: void*): void {
             if function {
                 ce_reach(c, n.body);
             }
-            i = i + 1;
+            i++;
         }
-        var done = c.changed == false;
+        var done = !c.changed;
         if done {
             break;
         }
@@ -104,7 +104,7 @@ fn ce_reachable(c: CEmitter*, root: void*): void {
                 break;
             }
             c.active.data[i] = false;
-            i = i + 1;
+            i++;
         }
         ce_reach_pass(c, root);
         var changed = false;
@@ -138,7 +138,7 @@ fn ce_reachable(c: CEmitter*, root: void*): void {
                             }
                         }
                     }
-                    j = j + 1;
+                    j++;
                 }
                 var refined = c.returning.data[i] != returns;
                 if refined {
@@ -146,9 +146,9 @@ fn ce_reachable(c: CEmitter*, root: void*): void {
                     changed = true;
                 }
             }
-            i = i + 1;
+            i++;
         }
-        if changed {} else {
+        if !changed {
             break;
         }
     }
@@ -187,7 +187,7 @@ fn ce_notes(c: CEmitter*, entity: void*): void {
                 break;
             }
             ce_notes(c, n.items.data[i]);
-            i = i + 1;
+            i++;
         }
     }
 }
@@ -203,16 +203,14 @@ fn ce_label_used(c: CEmitter*, entity: void*): bool {
         }
         var n = sem_get(c.nodes.data[i]);
         var jump = n.kind == KJump();
-        if jump {
-            jump = c.active.data[i];
-        }
+        jump &&= c.active.data[i];
         if jump {
             var selected = n.binding == entity;
             if selected {
                 return true;
             }
         }
-        i = i + 1;
+        i++;
     }
 }
 
@@ -253,7 +251,7 @@ fn ce_breaks(c: CEmitter*, entity: void*): bool {
             if ce_breaks(c, n.items.data[i]) {
                 return true;
             }
-            i = i + 1;
+            i++;
         }
     }
     return false;
@@ -330,10 +328,8 @@ fn ce_falls(c: CEmitter*, entity: void*): bool {
                     falls = true;
                 }
             }
-            if falls {
-                falls = ce_falls(c, child);
-            }
-            i = i + 1;
+            falls &&= ce_falls(c, child);
+            i++;
         }
     }
     return true;

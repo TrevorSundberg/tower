@@ -35,18 +35,10 @@ fn syntax_scan_tests(context: void*, match_kind: void*): usize {
         if ran {
             var data = lr_tree_match(node, match_kind);
             ok = data.id == 7;
-            if ok {
-                ok = data.rule == lr_none();
-            }
-            if ok {
-                ok = data.start == 0;
-            }
-            if ok {
-                ok = data.length == 5;
-            }
-            if ok {
-                ok = lr_name_equal(node_text_get(&data.label), "alpha");
-            }
+            ok &&= data.rule == lr_none();
+            ok &&= data.start == 0;
+            ok &&= data.length == 5;
+            ok &&= lr_name_equal(node_text_get(&data.label), "alpha");
         } else {
             ok = result.error != null;
         }
@@ -57,18 +49,10 @@ fn syntax_scan_tests(context: void*, match_kind: void*): usize {
         if ran {
             fill(&result, 0, sizeof(SyntaxScanResult));
             node = syntax_scan_read(&input, &result);
-            if ok {
-                ok = node == null;
-            }
-            if ok {
-                ok = result.id == 4294967294;
-            }
-            if ok {
-                ok = result.error == null;
-            }
-            if ok {
-                ok = result.start == 5;
-            }
+            ok &&= node == null;
+            ok &&= result.id == 4294967294;
+            ok &&= result.error == null;
+            ok &&= result.start == 5;
             var allocated = node != null;
             if allocated {
                 entity_release(node);
@@ -79,18 +63,10 @@ fn syntax_scan_tests(context: void*, match_kind: void*): usize {
             input.cursor = 0;
             fill(&result, 0, sizeof(SyntaxScanResult));
             node = syntax_scan_read(&input, &result);
-            if ok {
-                ok = node == null;
-            }
-            if ok {
-                ok = result.length == 4;
-            }
-            if ok {
-                ok = input.cursor == 4;
-            }
-            if ok {
-                ok = lr_name_equal(result.error, "No token rule matches source");
-            }
+            ok &&= node == null;
+            ok &&= result.length == 4;
+            ok &&= input.cursor == 4;
+            ok &&= lr_name_equal(result.error, "No token rule matches source");
             allocated = node != null;
             if allocated {
                 entity_release(node);
@@ -99,15 +75,15 @@ fn syntax_scan_tests(context: void*, match_kind: void*): usize {
         }
         lexicon_destroy(input.lexicon);
         var balanced = tower_test_buffer_count() == buffers;
-        if balanced {} else {
+        if !balanced {
             return 602;
         }
-        if ok {} else {
+        if !ok {
             return 603;
         }
         if ran {
             return 0;
         }
-        budget = budget + 1;
+        budget++;
     }
 }

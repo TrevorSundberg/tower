@@ -7,6 +7,8 @@ import tower;
 struct ParserRuleData {
     name: vector(u8);
     generated: bool;
+    precedence: u32;
+    associativity: u32;
 }
 
 struct ParserReferenceData {

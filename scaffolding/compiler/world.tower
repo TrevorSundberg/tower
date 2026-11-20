@@ -117,12 +117,12 @@ export fn compiler_world_type(world: CompilerWorld*, kind: u32): Entity* {
         return null;
     }
     var registered = entity_register(type, size, alignment, lifecycle);
-    if registered {} else {
+    if !registered {
         entity_release(type);
         return null;
     }
     world.types[kind] = type;
-    world.registered = world.registered + 1;
+    world.registered++;
     return type;
 }
 
@@ -229,7 +229,7 @@ export fn compiler_world_dispose(world: CompilerWorld*): bool {
                 return false;
             }
         }
-        index = index + 1;
+        index++;
     }
     index = 0;
     while index < CompilerComponentCount() {
@@ -238,7 +238,7 @@ export fn compiler_world_dispose(world: CompilerWorld*): bool {
         if present {
             entity_release(type);
         }
-        index = index + 1;
+        index++;
     }
     var disposed = entity_store_dispose(world.store);
     free(world);

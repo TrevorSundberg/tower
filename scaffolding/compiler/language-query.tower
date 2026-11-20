@@ -65,7 +65,7 @@ fn language_quote(q: CompletionQuery*, text: u8*, size: usize): void {
             if hover_condition2 {
                 break;
             }
-            size = size - 1;
+            size--;
         }
     }
     sem_require(host_json_quote(&q.output, text, size));
@@ -105,9 +105,7 @@ fn language_documentation(q: CompletionQuery*, value: FoundationNode*): void {
                 break;
             }
             var end = value.comments.data[i] == 42;
-            if end {
-                end = value.comments.data[next] == 47;
-            }
+            end &&= value.comments.data[next] == 47;
             if end {
                 break;
             }
@@ -116,11 +114,9 @@ fn language_documentation(q: CompletionQuery*, value: FoundationNode*): void {
         var last = i;
         loop {
             var spaces = first < last;
+            spaces &&= value.comments.data[first] == 32;
             if spaces {
-                spaces = value.comments.data[first] == 32;
-            }
-            if spaces {
-                first = first + 1;
+                first++;
             } else {
                 break;
             }
@@ -132,7 +128,7 @@ fn language_documentation(q: CompletionQuery*, value: FoundationNode*): void {
                 spaces = value.comments.data[before] == 32;
             }
             if spaces {
-                last = last - 1;
+                last--;
             } else {
                 break;
             }
@@ -180,7 +176,7 @@ fn language_declaration_location(q: CompletionQuery*, subject: void*): void {
             language_number(q, "declarationColumn", column);
             return;
         }
-        i = i + 1;
+        i++;
     }
 }
 
@@ -219,7 +215,7 @@ fn language_candidate(q: CompletionQuery*, node: void*, candidate: LanguageCandi
             priority = rank;
             copy(candidate, &presented, sizeof(LanguageCandidate));
         }
-        i = i + 1;
+        i++;
     }
 }
 
@@ -239,12 +235,8 @@ fn language_leaf(q: CompletionQuery*, leaf: void*, candidate: LanguageCandidate*
         return;
     }
     var selected = candidate.subject != null;
-    if selected {
-        selected = span.start >= candidate.from;
-    }
-    if selected {
-        selected = end <= candidate.to;
-    }
+    selected &&= span.start >= candidate.from;
+    selected &&= end <= candidate.to;
     var subject = leaf;
     var node = leaf;
     var formatted: FormatResult;
@@ -265,7 +257,11 @@ fn language_leaf(q: CompletionQuery*, leaf: void*, candidate: LanguageCandidate*
                 if candidate.grammar {
                     format_grammar_preview(&formatted, subject, syntax_component_type());
                 } else {
-                    format_summary(&formatted, subject, syntax_component_type(), core_component_type(), parser_match_get_type());
+                    if sem_is(subject, "TowerExpression") || sem_is(subject, "TowerComma") || sem_is(subject, "TowerNullAccess") {
+                        format_dependent_summary(&formatted, subject, parser_match_get_type());
+                    } else {
+                        format_summary(&formatted, subject, syntax_component_type(), core_component_type(), parser_match_get_type());
+                    }
                 }
             }
         }
@@ -303,9 +299,7 @@ fn language_leaf(q: CompletionQuery*, leaf: void*, candidate: LanguageCandidate*
         }
     }
     var grammar_details = selected;
-    if grammar_details {
-        grammar_details = candidate.grammar;
-    }
+    grammar_details &&= candidate.grammar;
     if grammar_details {
         language_grammar_details(q, leaf, node);
     } else {
@@ -317,7 +311,7 @@ fn language_leaf(q: CompletionQuery*, leaf: void*, candidate: LanguageCandidate*
         if matched {
             template_details = true;
         }
-        if template_details {} else {
+        if !template_details {
             language_string(q, "kind", kind);
         }
     }
@@ -377,7 +371,7 @@ fn language_leaf(q: CompletionQuery*, leaf: void*, candidate: LanguageCandidate*
         language_declaration_location(q, subject);
     }
     completion_text(&q.output, "}");
-    q.count = q.count + 1;
+    q.count++;
 }
 
 fn language_walk(q: CompletionQuery*, node: void*, inherited: LanguageCandidate*, checked: bool, depth: usize, budget: usize*): void {
@@ -406,9 +400,7 @@ fn language_walk(q: CompletionQuery*, node: void*, inherited: LanguageCandidate*
         if grammar_condition3 {
             var template = language_grammar_find(q, node);
             var grammar_condition4 = template != null;
-            if grammar_condition4 {
-                grammar_condition4 = template.targets.length != 0;
-            }
+            grammar_condition4 &&= template.targets.length != 0;
             if grammar_condition4 {
                 language_leaf(q, sem_child(node, 0), &current);
                 language_template_walk(q, template.targets.data[0], template, null, checked, depth, budget);
@@ -431,7 +423,7 @@ fn language_walk(q: CompletionQuery*, node: void*, inherited: LanguageCandidate*
         }
         var child_depth = depth + 1;
         language_walk(q, sem_child(node, i), &current, checked, child_depth, budget);
-        i = i + 1;
+        i++;
     }
 }
 
@@ -448,7 +440,7 @@ export fn language_document(source: u8*, length: usize, mode: u32, pointer_bytes
     if wide {
         valid_width = true;
     }
-    if valid_width {} else {
+    if !valid_width {
         return null;
     }
     var hover_condition44 = length > InspectionSourceByteLimit();
@@ -489,7 +481,7 @@ export fn language_document(source: u8*, length: usize, mode: u32, pointer_bytes
         }
         var entry = sem_state(c, c.source_bases, q.roots.data[i]);
         entry.number = q.bases.data[i];
-        i = i + 1;
+        i++;
     }
     var checked = mode == 0;
     if checked {
@@ -514,7 +506,7 @@ export fn language_document(source: u8*, length: usize, mode: u32, pointer_bytes
             if ordinary {
                 frontend_module_attach_comments(module, q.program.root, q.comment_bases.data[i]);
             }
-            i = i + 1;
+            i++;
         }
     }
     q.program.error.length = 0;
@@ -534,7 +526,7 @@ export fn language_document(source: u8*, length: usize, mode: u32, pointer_bytes
         if hover_condition49 {
             language_walk(q, q.roots.data[i], &empty, checked, 0, &budget);
         }
-        i = i + 1;
+        i++;
     }
     completion_text(&q.output, "],\"complete\":");
     if q.truncated {

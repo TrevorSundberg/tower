@@ -4,8 +4,8 @@ import '../library/work-graph';
 var failures: u32 = 0;
 
 fn check(ok: bool): void {
-    if ok {} else {
-        failures = failures + 1;
+    if !ok {
+        failures++;
     }
 }
 
@@ -72,7 +72,7 @@ fn access_tests(): void {
     work_init(&g, 1, 1);
     var id = work_request(&g, null, 1, 1);
     var maximum: usize = 0;
-    maximum = maximum - 1;
+    maximum--;
     blocked = work_access(&g, id, 1, 1, maximum, 1, WorkAccessMode.Write) == false;
     check(blocked);
     work_dispose(&g);

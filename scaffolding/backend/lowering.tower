@@ -10,6 +10,9 @@ import '../compiler/foundation-tags';
 import '../compiler/foundation-types';
 import '../library/vector';
 
+// LLVMAttributeFunctionIndex in the C API (the unsigned all-ones sentinel).
+const BackendFunctionAttributeIndex: u32 = ~convert(u32, 0);
+
 fn backend_type(b: Backend*, t: FoundationType*): void* {
     var pointer = t.pointers != 0;
     if pointer {
@@ -46,9 +49,7 @@ fn backend_narrow(t: FoundationType*): bool {
         byte = true;
     }
     var result = scalar;
-    if result {
-        result = byte;
-    }
+    result &&= byte;
     return result;
 }
 
@@ -85,7 +86,7 @@ fn backend_abi(b: Backend*, value: void*, n: FoundationNode*, call: bool): void 
                 var index = convert(u32, i) + 1;
                 backend_zext_attribute(b, value, index, call);
             }
-            i = i + 1;
+            i++;
         }
     }
 }
@@ -94,16 +95,14 @@ fn backend_attribute(b: Backend*, function: void*, key: u8*, value: u8*): void {
     var key_length = convert(u32, backend_length(key));
     var value_length = convert(u32, backend_length(value));
     var attribute = LLVMCreateStringAttribute(b.context, key, key_length, value, value_length);
-    LLVMAddAttributeAtIndex(function, 4294967295, attribute);
+    LLVMAddAttributeAtIndex(function, BackendFunctionAttributeIndex(), attribute);
 }
 
 fn backend_runtime(b: Backend*, name: u8*, result: void*, types: void**, count: u32, import_name: u8*): void* {
     var type = LLVMFunctionType(result, types, count, 0);
     var function = LLVMAddFunction(b.module, name, type);
     var named = import_name != null;
-    if named {
-        named = b.wasm;
-    }
+    named &&= b.wasm;
     if named {
         backend_attribute(b, function, "wasm-import-module", "tower");
         backend_attribute(b, function, "wasm-import-name", import_name);
@@ -271,7 +270,7 @@ fn backend_call(b: Backend*, n: FoundationNode*): void* {
         // Read each argument once, in source order.
         var value = backend_read(b, n.items.data[i]);
         backend_require(b, vector_push(void*, &args, value));
-        i = i + 1;
+        i++;
     }
     var definition = sem_get(n.binding);
     var function = b.functions.data[definition.index];
@@ -281,21 +280,19 @@ fn backend_call(b: Backend*, n: FoundationNode*): void* {
     if definition.exported {
         attributed = true;
     }
+    attributed &&= b.wasm;
     if attributed {
-        attributed = b.wasm;
-    }
-    if attributed {
-        var count = LLVMGetAttributeCountAtIndex(function, 4294967295);
+        var count = LLVMGetAttributeCountAtIndex(function, BackendFunctionAttributeIndex());
         var attributes = alloc(void*, convert(usize, count));
-        LLVMGetAttributesAtIndex(function, 4294967295, attributes);
+        LLVMGetAttributesAtIndex(function, BackendFunctionAttributeIndex(), attributes);
         var attribute: u32 = 0;
         loop {
             var done = attribute == count;
             if done {
                 break;
             }
-            LLVMAddCallSiteAttribute(result, 4294967295, attributes[attribute]);
-            attribute = attribute + 1;
+            LLVMAddCallSiteAttribute(result, BackendFunctionAttributeIndex(), attributes[attribute]);
+            attribute++;
         }
         free(attributes);
     }
@@ -318,7 +315,7 @@ fn backend_conversion(b: Backend*, n: FoundationNode*, from: FoundationType*, va
     var bits: u32 = 0;
     var limit = width;
     if signed {
-        limit = limit - 1;
+        limit--;
     }
     loop {
         var done = bits == limit;
@@ -326,9 +323,9 @@ fn backend_conversion(b: Backend*, n: FoundationNode*, from: FoundationType*, va
             break;
         }
         magnitude = magnitude * 2;
-        bits = bits + 1;
+        bits++;
     }
-    var maximum_bits = magnitude - 1;
+    var maximum_bits = magnitude -1;
     var minimum_bits: u64 = 0;
     if signed {
         minimum_bits = minimum_bits - magnitude;
@@ -418,9 +415,7 @@ fn backend_expression(b: Backend*, entity: void*): void* {
         var pointer = n.type.pointers != 0;
         var source_pointer = from.pointers != 0;
         var both = pointer;
-        if both {
-            both = source_pointer;
-        }
+        both &&= source_pointer;
         if both {
             return a;
         }
@@ -439,13 +434,11 @@ fn backend_expression(b: Backend*, entity: void*): void* {
     var right = backend_expression(b, n.right);
     var pointer = from.pointers != 0;
     var arithmetic = n.op <= OSub();
-    if arithmetic {
-        arithmetic = pointer;
-    }
+    arithmetic &&= pointer;
     if arithmetic {
         var element: FoundationType;
         copy(&element, from, sizeof(FoundationType));
-        element.pointers = element.pointers - 1;
+        element.pointers--;
         var r = sem_get(n.right);
         var delta = LLVMBuildIntCast2(b.builder, right, b.size_type, backend_signed(&r.type), "");
         delta = LLVMBuildMul(b.builder, delta, backend_size_value(b, semantic_size(&element)), "");
@@ -491,7 +484,7 @@ fn backend_expression(b: Backend*, entity: void*): void* {
         backend_guard(b, nonzero, "Division by zero");
         if signed {
             var width = semantic_width(from);
-            var limit = width - 1;
+            var limit = width -1;
             var minimum: u64 = 1;
             var i: u32 = 0;
             loop {
@@ -500,10 +493,10 @@ fn backend_expression(b: Backend*, entity: void*): void* {
                     break;
                 }
                 minimum = minimum * 2;
-                i = i + 1;
+                i++;
             }
             var min = LLVMConstInt(LLVMTypeOf(a), minimum, 0);
-            var neg = LLVMConstInt(LLVMTypeOf(a), 18446744073709551615, 0);
+            var neg = LLVMConstInt(LLVMTypeOf(a), ~convert(u64, 0), 0);
             var first = LLVMBuildICmp(b.builder, 32, a, min, "");
             var second = LLVMBuildICmp(b.builder, 32, right, neg, "");
             var overflow = LLVMBuildAnd(b.builder, first, second, "");
@@ -591,7 +584,7 @@ fn backend_block(b: Backend*, entity: void*): void {
         if active {
             backend_statement(b, n.items.data[i]);
         }
-        i = i + 1;
+        i++;
     }
 }
 
@@ -736,7 +729,7 @@ fn backend_statement(b: Backend*, entity: void*): void {
         var needed = b.loops.length + 1;
         var ok = vector_reserve(BackendLoop, &b.loops, needed);
         backend_require(b, ok);
-        var failed = ok == false;
+        var failed = !ok;
         if failed {
             return;
         }
@@ -745,7 +738,7 @@ fn backend_statement(b: Backend*, entity: void*): void {
         b.loops.length = needed;
         backend_block(b, n.body);
         backend_branch(b, head);
-        b.loops.length = b.loops.length - 1;
+        b.loops.length--;
         LLVMPositionBuilderAtEnd(b.builder, after);
         return;
     }
@@ -756,7 +749,7 @@ fn backend_statement(b: Backend*, entity: void*): void {
         `match` = true;
     }
     if `match` {
-        var index = b.loops.length - 1;
+        var index = b.loops.length -1;
         var destination = b.loops.data[index].head;
         if exit {
             destination = b.loops.data[index].after;
@@ -816,13 +809,13 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
             if type {
                 allowed = true;
             }
-            failed = allowed == false;
+            failed = !allowed;
             if failed {
                 b.source_offset = n.start;
                 backend_fail(b, "Library source cannot contain top-level executable statements");
                 return false;
             }
-            i = i + 1;
+            i++;
         }
     }
     backend_runtime_declarations(b);
@@ -835,13 +828,11 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
         var n = sem_get(functions[i]);
         var entry = i == 0;
         var omit = entry;
-        if omit {
-            omit = library;
-        }
+        omit &&= library;
         if omit {
             backend_require(b, vector_push(void*, &b.functions, null));
             backend_require(b, vector_push(u8*, &b.symbols, null));
-            i = i + 1;
+            i++;
             continue;
         }
         var public = n.external;
@@ -867,7 +858,7 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
             }
             var p = sem_get(n.parameters.data[j]);
             backend_require(b, vector_push(void*, &args, backend_type(b, &p.type)));
-            j = j + 1;
+            j++;
         }
         var type = LLVMFunctionType(backend_type(b, &n.type), args.data, convert(u32, args.length), 0);
         vector_dispose(void*, &args);
@@ -878,7 +869,7 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
             backend_text(&name, "tower_main");
         }
         else {
-            var private = public == false;
+            var private = !public;
             if private {
                 backend_text(&name, "tower.fn.");
             }
@@ -916,11 +907,9 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
         }
         var function = LLVMAddFunction(b.module, name.data, type);
         LLVMSetFunctionCallConv(function, convention);
-        var internal = public == false;
-        var nonentry = entry == false;
-        if internal {
-            internal = nonentry;
-        }
+        var internal = !public;
+        var nonentry = !entry;
+        internal &&= nonentry;
         if internal {
             LLVMSetLinkage(function, 8);
         }
@@ -937,7 +926,7 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
         backend_require(b, vector_push(u8*, &b.symbols, name.data));
         backend_require(b, vector_push(void*, &b.functions, function));
         backend_require(b, vector_push(void*, &b.source_functions, functions[i]));
-        i = i + 1;
+        i++;
     }
     i = 0;
     loop {
@@ -952,7 +941,7 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
             omit = true;
         }
         if omit {
-            i = i + 1;
+            i++;
             continue;
         }
         b.current = function;
@@ -969,13 +958,13 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
             }
             var local = sem_get(n.locals.data[j]);
             var slot: void* = null;
-            var nonglobal = local.global == false;
+            var nonglobal = !local.global;
             if nonglobal {
                 slot = LLVMBuildAlloca(b.builder, backend_type(b, &local.type), backend_name(local));
                 LLVMSetAlignment(slot, convert(u32, semantic_alignment(&local.type)));
             }
             backend_require(b, vector_push(void*, &b.locals, slot));
-            j = j + 1;
+            j++;
         }
         j = 0;
         loop {
@@ -984,7 +973,7 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
                 break;
             }
             backend_store(b, backend_address(b, n.parameters.data[j]), LLVMGetParam(function, convert(u32, j)));
-            j = j + 1;
+            j++;
         }
         var body = n.body;
         var top = i == 0;
@@ -1005,16 +994,14 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
                 var block = LLVMAppendBasicBlockInContext(b.context, function, backend_name(label));
                 backend_require(b, backend_associate(&b.labels, item, block));
             }
-            j = j + 1;
+            j++;
         }
         backend_block(b, body);
         var open = backend_terminated(b) == false;
         if open {
             var empty = n.type.scalar == SVoid();
             var scalar = n.type.pointers == 0;
-            if empty {
-                empty = scalar;
-            }
+            empty &&= scalar;
             if empty {
                 LLVMBuildRetVoid(b.builder);
             }
@@ -1022,7 +1009,7 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
                 LLVMBuildUnreachable(b.builder);
             }
         }
-        i = i + 1;
+        i++;
     }
     failed = b.error.length != 0;
     if failed {

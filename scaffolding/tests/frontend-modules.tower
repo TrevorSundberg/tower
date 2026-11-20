@@ -40,35 +40,35 @@ export fn frontend_modules_tests(): usize {
     var result: usize = 0;
     // Diamond identity and isolated overrides: right still parses 'shared'.
     var ok = module_test_parse(environment, "import left; import './left'; import right; parse Statement = 'root'; root", 4, true);
-    if ok {} else {
+    if !ok {
         result = 801;
     }
     // Only grammar-only dependencies can reuse their declaration entities.
     ok = module_test_parse(environment, "import shared; shared", 2, true);
-    if ok {} else {
+    if !ok {
         result = 802;
     }
     module_test_source(environment, "shared.tower", "parse Statement = 'changed';");
     ok = module_test_parse(environment, "import shared; changed", 2, true);
-    if ok {} else {
+    if !ok {
         result = 803;
     }
     ok = module_test_parse(environment, "import shared; shared", 0, false);
-    if ok {} else {
+    if !ok {
         result = 804;
     }
     module_test_source(environment, "a.tower", "import b;");
     module_test_source(environment, "b.tower", "import a;");
     ok = module_test_parse(environment, "import a;", 0, false);
-    if ok {} else {
+    if !ok {
         result = 805;
     }
     ok = module_test_parse(environment, "import missing;", 0, false);
-    if ok {} else {
+    if !ok {
         result = 806;
     }
     ok = module_test_parse(environment, "parse Late = 'late'; import shared;", 0, false);
-    if ok {} else {
+    if !ok {
         result = 807;
     }
     var invalid: u8[2];
@@ -85,46 +85,44 @@ export fn frontend_modules_tests(): usize {
     }
     // Failed parses must not poison later parses, and '..name' is an ordinary segment.
     ok = module_test_parse(environment, "import './..name/../shared'; changed", 2, true);
-    if ok {} else {
+    if !ok {
         result = 810;
     }
     frontend_modules_configure(environment, "main.tower", "lib");
     module_test_source(environment, "pkg/owner.tower", "import shared_rule;");
     module_test_source(environment, "lib/shared_rule.tower", "parse Statement = 'original';");
     ok = module_test_parse(environment, "import 'pkg/owner'; original", 3, true);
-    if ok {} else {
+    if !ok {
         result = 811;
     }
     // A new relative file changes resolution even while the old source is unchanged.
     module_test_source(environment, "pkg/shared_rule.tower", "parse Statement = 'shadow';");
     ok = module_test_parse(environment, "import 'pkg/owner'; shadow", 3, true);
-    if ok {} else {
+    if !ok {
         result = 812;
     }
     module_test_source(environment, "custom/selected.tower", "parse Statement = 'selected';");
     frontend_modules_builtin(environment, "shared_rule", "custom/selected.tower");
     ok = module_test_parse(environment, "import shared_rule; selected", 2, true);
-    if ok {} else {
+    if !ok {
         result = 813;
     }
     frontend_modules_fallback(environment, "bundled");
     module_test_source(environment, "bundled/extra.tower", "parse Statement = 'packaged';");
     ok = module_test_parse(environment, "import extra; packaged", 2, true);
-    if ok {} else {
+    if !ok {
         result = 814;
     }
     module_test_source(environment, "lib/extra.tower", "parse Statement = 'primary';");
     ok = module_test_parse(environment, "import extra; primary", 2, true);
-    if ok {} else {
+    if !ok {
         result = 815;
     }
     var path: vector(u8);
     vector_init(u8, &path);
     ok = module_path("c:/project/src/../main.tower", &path);
-    if ok {
-        ok = module_equal(path.data, "C:/project/main.tower");
-    }
-    if ok {} else {
+    ok &&= module_equal(path.data, "C:/project/main.tower");
+    if !ok {
         result = 816;
     }
     ok = module_path("C:/../escape", &path);
@@ -132,10 +130,8 @@ export fn frontend_modules_tests(): usize {
         result = 817;
     }
     ok = module_path("//server/share/folder/../main.tower", &path);
-    if ok {
-        ok = module_equal(path.data, "//server/share/main.tower");
-    }
-    if ok {} else {
+    ok &&= module_equal(path.data, "//server/share/main.tower");
+    if !ok {
         result = 818;
     }
     ok = module_path("//server/share/../escape", &path);
@@ -161,7 +157,7 @@ fn module_session_step(session: void*): bool {
 }
 
 fn module_session_check(ok: bool, code: usize, result: usize*): void {
-    if ok {} else {
+    if !ok {
         var first = *result == 0;
         if first {
             *result = code;

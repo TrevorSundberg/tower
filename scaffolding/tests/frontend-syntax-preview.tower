@@ -69,11 +69,11 @@ fn preview_description_tests(): void {
     var i: usize = 0;
     while i < 118 {
         frontend_world_check(vector_push(u8, &term.text, 97));
-        i = i + 1;
+        i++;
     }
     frontend_world_check(bytes_append(&term.text, "é", 2));
     format_syntax_description(&result, root, "Utf8", false, syntax, kind);
-    var ok = result.failed == false;
+    var ok = !result.failed;
     frontend_world_check(ok);
     // Prefix 7 + quote 1 + 118 ASCII + suffix; the entire é is excluded.
     var suffix: u8* = " ... (unicode.tower:2:1)";
@@ -82,7 +82,7 @@ fn preview_description_tests(): void {
         var at = i + 126;
         ok = result.text.data[at] == suffix[i];
         frontend_world_check(ok);
-        i = i + 1;
+        i++;
     }
     var expected_length = i + 126;
     ok = result.text.length == expected_length;
@@ -103,7 +103,7 @@ fn preview_description_tests(): void {
         format_dispose(&result);
         ok = tower_test_buffer_count() == buffers;
         frontend_world_check(ok);
-        budget = budget + 1;
+        budget++;
     }
     entity_release(root);
     frontend_world_check(compiler_world_dispose(world));
@@ -133,7 +133,7 @@ fn preview_tree_tests(): void {
         y = preview_match(world, right);
         x.rule = 1;
         y.rule = 1;
-        depth = depth + 1;
+        depth++;
     }
     x.rule = ParserNoIndex();
     y.rule = ParserNoIndex();
@@ -164,11 +164,11 @@ fn preview_tree_tests(): void {
         tower_test_buffer_fail_after(budget);
         var same = format_same_tree(a, b, " é", 3, "   é", 5, syntax, kind);
         tower_test_buffer_fail_after(frontend_world_unlimited());
-        ok = same == false;
+        ok = !same;
         frontend_world_check(ok);
         ok = tower_test_buffer_count() == buffers;
         frontend_world_check(ok);
-        budget = budget + 1;
+        budget++;
     }
     // Grammar components take precedence over parser-match metadata and reuse
     // the existing structural comparison. Source coordinates are metadata.

@@ -30,3 +30,10 @@ parse ImportPath = $previous:ImportPath '.' $segment:Identifier | $segment:Ident
 parse ImportDeclaration = 'import' $name:ImportPath ';' | 'import' $name:String ';'
                          | 'import' $name:ImportPath 'as' $alias:Identifier ';'
                          | 'import' $name:String 'as' $alias:Identifier ';';
+
+// Optional production binding power. Larger numbers bind more tightly.
+// Ordinary recursive/chained grammars need no annotation.
+token GrammarPrecedenceNumber = /[0-9]+/ when expected as number;
+token GrammarAssociativity = /left|right|nonassoc|L>R|R<L/ when expected as keyword;
+parse GrammarPrecedence = | '@' $level:GrammarPrecedenceNumber $direction:GrammarAssociativity;
+parse GrammarDeclaration = 'parse' $name:Identifier $op:GrammarAssignment $alternatives:GrammarAlternatives $precedence:GrammarPrecedence $replacement:GrammarReplacement ';';

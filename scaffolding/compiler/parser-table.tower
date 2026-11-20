@@ -27,7 +27,7 @@ extern fn parser_match_get_type(): void*;
 
 fn parser_table_none(): usize {
     var result: usize = 0;
-    result = result - 1;
+    result--;
     return result;
 }
 
@@ -37,7 +37,7 @@ fn parser_table_clear_runtime(table: ParserHostTable*): void {
     var index: usize = 0;
     while index < table.states.length {
         vector_dispose(FrontendContextPosition, &table.states.data[index].contexts);
-        index = index + 1;
+        index++;
     }
     vector_dispose(ParserHostState, &table.states);
     table.built = false;
@@ -67,9 +67,7 @@ export fn parser_table_open(root: void*, kinds: FrontendKinds*, userdata: void*,
     table.match_kind = kinds.`match`;
     table.mode = mode;
     var empty = root == null;
-    if empty {} else {
-        empty = entity_child_count(root) == 0;
-    }
+    empty ||= entity_child_count(root) == 0;
     if empty {
         table.error = "Empty grammar";
         return table;
@@ -87,9 +85,7 @@ export fn parser_table_open_host(root: void*, userdata: void*, presentation: Par
     var kinds: FrontendKinds;
     fill(&kinds, 0, sizeof(FrontendKinds));
     var present = root != null;
-    if present {
-        present = entity_child_count(root) != 0;
-    }
+    present &&= entity_child_count(root) != 0;
     if present {
         kinds.rule = parser_rule_get_type();
         kinds.reference = parser_reference_get_type();
@@ -103,7 +99,7 @@ export fn parser_table_open_host(root: void*, userdata: void*, presentation: Par
 fn parser_table_contexts(table: ParserHostTable*, analysis: void*, states: void*): bool {
     var count = lr_states_count(states);
     var ok = vector_reserve(ParserHostState, &table.states, count);
-    if ok {} else {
+    if !ok {
         return false;
     }
     var state_size = sizeof(ParserHostState);
@@ -120,7 +116,7 @@ fn parser_table_contexts(table: ParserHostTable*, analysis: void*, states: void*
         var values = lr_items_data(items);
         var size = lr_items_count(items);
         ok = vector_reserve(FrontendContextPosition, &state.contexts, size);
-        if ok {} else {
+        if !ok {
             return false;
         }
         var kernel: bool = true;
@@ -145,9 +141,9 @@ fn parser_table_contexts(table: ParserHostTable*, analysis: void*, states: void*
                             context.last = symbol.last;
                         }
                     }
-                    state.contexts.length = state.contexts.length + 1;
+                    state.contexts.length++;
                 }
-                position = position + 1;
+                position++;
             }
             if kernel {
                 state.kernels = state.contexts.length;
@@ -156,7 +152,7 @@ fn parser_table_contexts(table: ParserHostTable*, analysis: void*, states: void*
                 break;
             }
         }
-        index = index + 1;
+        index++;
     }
     return true;
 }
@@ -191,7 +187,7 @@ export fn parser_table_build(table: ParserHostTable*, specialize: bool): bool {
     var index: usize = 0;
     while index < names {
         lr_analysis_order(analysis, index, lr_grammar_name_order(grammar, index));
-        index = index + 1;
+        index++;
     }
     var ok = lr_analysis_compute(analysis);
     var states: void* = null;
@@ -206,9 +202,7 @@ export fn parser_table_build(table: ParserHostTable*, specialize: bool): bool {
     } else {
         table.error = "Unable to allocate LR grammar analysis";
     }
-    if ok {
-        ok = parser_table_contexts(table, analysis, states);
-    }
+    ok &&= parser_table_contexts(table, analysis, states);
     if ok {
         table.error = "Unable to allocate LR runtime tables";
         table.runtime = lr_runtime_create(states);
@@ -217,7 +211,7 @@ export fn parser_table_build(table: ParserHostTable*, specialize: bool): bool {
     if ok {
         var conflict: LRConflict;
         var ambiguous = lr_runtime_conflict(table.runtime, &conflict);
-        if ambiguous {} else {
+        if !ambiguous {
             if specialize {
                 lr_runtime_specialize(table.runtime, states);
             }
@@ -228,7 +222,7 @@ export fn parser_table_build(table: ParserHostTable*, specialize: bool): bool {
     }
     lr_states_destroy(states);
     lr_analysis_destroy(analysis);
-    if ok {} else {
+    if !ok {
         parser_table_clear_runtime(table);
     }
     return ok;
@@ -266,17 +260,15 @@ export fn parser_table_rule_next(table: ParserHostTable*, owner: usize, begin: u
         if same {
             return index;
         }
-        index = index + 1;
+        index++;
     }
     return parser_table_none();
 }
 
 fn parser_table_require(table: ParserHostTable*): void {
     var valid = table != null;
-    if valid {
-        valid = table.built;
-    }
-    if valid {} else {
+    valid &&= table.built;
+    if !valid {
         abort();
     }
 }
@@ -298,9 +290,9 @@ export fn parser_table_non_terminal_resolve_reference(userdata: void*, name: u8*
             if end {
                 return convert(u32, index);
             }
-            position = position + 1;
+            position++;
         }
-        index = index + 1;
+        index++;
     }
     return ParserStreamEnd();
 }
@@ -316,7 +308,7 @@ export fn parser_table_non_terminal_id_to_string(userdata: void*, id: u32): u8* 
     var source = lr_grammar_name(table.grammar, index);
     var length: usize = 0;
     while source[length] != 0 {
-        length = length + 1;
+        length++;
     }
     var size = length + 1;
     var text = bits(u8*, tower_memory_allocate(size));

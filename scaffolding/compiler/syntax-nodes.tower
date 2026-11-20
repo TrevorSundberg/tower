@@ -17,7 +17,7 @@ export fn syntax_pattern_size(): usize {
 export fn syntax_pattern_retain(value: SyntaxPattern*): void {
     var present = value != null;
     if present {
-        value.references = value.references + 1;
+        value.references++;
     }
 }
 
@@ -26,7 +26,7 @@ export fn syntax_pattern_release(value: SyntaxPattern*): void {
     if missing {
         return;
     }
-    value.references = value.references - 1;
+    value.references--;
     var unused = value.references == 0;
     if unused {
         lex_table_destroy(value.table);
@@ -67,7 +67,7 @@ export fn syntax_node_size(): usize {
 export fn syntax_node_init(value: SyntaxNode*): void {
     fill(value, 0, sizeof(SyntaxNode));
     value.start = 0;
-    value.start = value.start - 1;
+    value.start--;
     value.end = value.start;
 }
 
@@ -145,7 +145,7 @@ export fn syntax_node_dispose(value: SyntaxNode*): void {
             break;
         }
         vector_dispose(u8, &value.comments.data[index]);
-        index = index + 1;
+        index++;
     }
     vector_dispose(vector(u8), &value.comments);
     syntax_node_source(value, null);
@@ -168,7 +168,7 @@ fn syntax_text_equal(left: vector(u8)*, right: vector(u8)*): bool {
         if different {
             return false;
         }
-        index = index + 1;
+        index++;
     }
 }
 
@@ -204,7 +204,7 @@ export fn syntax_nodes_equal(left: void*, right: void*, kind: void*, locations: 
     var ok = syntax_comparison_push(&pending, left, right);
     var result: i32 = 1;
     loop {
-        var failed = ok == false;
+        var failed = !ok;
         if failed {
             result = -1;
             break;
@@ -213,7 +213,7 @@ export fn syntax_nodes_equal(left: void*, right: void*, kind: void*, locations: 
         if done {
             break;
         }
-        pending.length = pending.length - 1;
+        pending.length--;
         left = pending.data[pending.length].left;
         right = pending.data[pending.length].right;
         var same = left == right;
@@ -245,48 +245,26 @@ export fn syntax_nodes_equal(left: void*, right: void*, kind: void*, locations: 
             break;
         }
         same = x.kind == y.kind;
-        if same {
-            same = syntax_text_equal(&x.name, &y.name);
-        }
-        if same {
-            same = syntax_text_equal(&x.text, &y.text);
-        }
-        if same {
-            same = syntax_text_equal(&x.capture, &y.capture);
-        }
-        if same {
-            same = syntax_text_equal(&x.style, &y.style);
-        }
-        if same {
-            same = x.literal == y.literal;
-        }
-        if same {
-            same = x.append == y.append;
-        }
-        if same {
-            same = x.contextual == y.contextual;
-        }
-        if same {
-            same = x.terminal_set == y.terminal_set;
-        }
-        if same {
-            same = x.repetition == y.repetition;
-        }
-        if same {
-            same = x.items.length == y.items.length;
-        }
+        same &&= x.precedence == y.precedence;
+        same &&= x.associativity == y.associativity;
+        same &&= syntax_text_equal(&x.name, &y.name);
+        same &&= syntax_text_equal(&x.text, &y.text);
+        same &&= syntax_text_equal(&x.capture, &y.capture);
+        same &&= syntax_text_equal(&x.style, &y.style);
+        same &&= x.literal == y.literal;
+        same &&= x.append == y.append;
+        same &&= x.contextual == y.contextual;
+        same &&= x.terminal_set == y.terminal_set;
+        same &&= x.repetition == y.repetition;
+        same &&= x.items.length == y.items.length;
         if locations {
             var template_node = x.kind == 6;
             if template_node {
-                if same {
-                    same = x.start == y.start;
-                }
-                if same {
-                    same = x.end == y.end;
-                }
+                same &&= x.start == y.start;
+                same &&= x.end == y.end;
             }
         }
-        var different = same == false;
+        var different = !same;
         if different {
             result = 0;
             break;
@@ -298,15 +276,13 @@ export fn syntax_nodes_equal(left: void*, right: void*, kind: void*, locations: 
                 break;
             }
             ok = syntax_comparison_push(&pending, x.items.data[index], y.items.data[index]);
-            var failed_item = ok == false;
+            var failed_item = !ok;
             if failed_item {
                 break;
             }
-            index = index + 1;
+            index++;
         }
-        if ok {
-            ok = syntax_comparison_push(&pending, x.replacement, y.replacement);
-        }
+        ok &&= syntax_comparison_push(&pending, x.replacement, y.replacement);
     }
     vector_dispose(SyntaxComparison, &pending);
     return result;

@@ -26,13 +26,11 @@ fn sem_control_name(c: SemanticContext*): u8* {
             if done {
                 break;
             }
-            pending.length = pending.length - 1;
+            pending.length--;
             var node = pending.data[pending.length];
             var terminal = sem_match(node);
             var leaf = terminal != null;
-            if leaf {
-                leaf = terminal.rule == sem_maximum();
-            }
+            leaf &&= terminal.rule == sem_maximum();
             if leaf {
                 // Token leaves store their spelling, not the label Identifier.
                 // Including other terminals is conservative and also supports
@@ -49,7 +47,7 @@ fn sem_control_name(c: SemanticContext*): u8* {
                         break;
                     }
                     sem_push(pending, sem_child(node, i));
-                    i = i + 1;
+                    i++;
                 }
             }
         }
@@ -58,11 +56,11 @@ fn sem_control_name(c: SemanticContext*): u8* {
     loop {
         var name = sem_cat(c, "control value ", sem_decimal(c, convert(u64, index)));
         var exists = sem_lookup_table(c.control_names, name) != null;
-        if exists {} else {
+        if !exists {
             sem_put(c, c.control_names, name, c.program.root);
             return name;
         }
-        index = index + 1;
+        index++;
     }
 }
 
@@ -99,7 +97,10 @@ fn sem_control_local(c: SemanticContext*, block: void*, initial: void*): void* {
     value.value = initial;
     sem_add_local(c, entity);
     var owner = sem_get(block);
-    sem_push(&owner.locals, entity);
+    var same = block == c.current;
+    if !same { sem_push(&owner.locals, entity); }
+    var global = block == c.program.root;
+    if global { value.global = true; }
     sem_push(&owner.items, entity);
     return entity;
 }
@@ -128,7 +129,7 @@ fn sem_control_equal(c: SemanticContext*, block: void*, subject: void*, pattern:
 
 fn sem_control_match(c: SemanticContext*, n: void*, depth: u32): u32 {
     var initial = sem_expression(c, sem_member(n, "value"), null);
-    if sem_ok(c) {} else {
+    if !sem_ok(c) {
         return FlowNext();
     }
     var initializer = sem_get(initial);
@@ -139,7 +140,7 @@ fn sem_control_match(c: SemanticContext*, n: void*, depth: u32): u32 {
     if boolean {
         eligible = scalar;
     }
-    if eligible {} else {
+    if !eligible {
         sem_fail(c, n, "match requires an integer or bool subject");
         return FlowNext();
     }
@@ -157,7 +158,7 @@ fn sem_control_match(c: SemanticContext*, n: void*, depth: u32): u32 {
         return FlowNext();
     }
     var fallback = sem_member(n, "fallback");
-    if sem_shape(c, fallback, "body") {} else {
+    if !sem_shape(c, fallback, "body") {
         return FlowNext();
     }
     sem_node(c, n, KBlock());
@@ -196,11 +197,11 @@ fn sem_control_match(c: SemanticContext*, n: void*, depth: u32): u32 {
                 syntax = sem_child(syntax, 0);
             }
             var pattern = sem_operand(c, syntax, type);
-            if sem_ok(c) {} else {
+            if !sem_ok(c) {
                 return FlowNext();
             }
             var literal = sem_get(pattern);
-            if literal.constant {} else {
+            if !literal.constant {
                 sem_fail(c, syntax, "Match patterns must be literals or enum members");
                 return FlowNext();
             }
@@ -217,7 +218,7 @@ fn sem_control_match(c: SemanticContext*, n: void*, depth: u32): u32 {
                     sem_fail(c, choices.data[j], "Duplicate match pattern");
                     return FlowNext();
                 }
-                k = k + 1;
+                k++;
             }
             sem_push(patterns, pattern);
             condition = sem_control_equal(c, block, subject, pattern);
@@ -231,25 +232,25 @@ fn sem_control_match(c: SemanticContext*, n: void*, depth: u32): u32 {
                 sem_push(&hit_node.items, store);
                 sem_control_branch(c, block, condition, hit);
             }
-            j = j + 1;
+            j++;
         }
         if multiple {
             condition = sem_control_read(c, block, selected);
         }
         var body = sem_member(arm, "body");
         var arm_depth = depth + convert(u32, i);
-        arm_depth = arm_depth + 1;
+        arm_depth++;
         var next = sem_block(c, body, arm_depth);
         flow = flow | next;
-        if sem_ok(c) {} else {
+        if !sem_ok(c) {
             return FlowNext();
         }
         block = sem_control_branch(c, block, condition, body);
-        i = i + 1;
+        i++;
     }
     var body = sem_member(fallback, "body");
     var fallback_depth = depth + convert(u32, arms.length);
-    fallback_depth = fallback_depth + 1;
+    fallback_depth++;
     var next = sem_block(c, body, fallback_depth);
     flow = flow | next;
     var tail = sem_get(block);
@@ -259,7 +260,7 @@ fn sem_control_match(c: SemanticContext*, n: void*, depth: u32): u32 {
 
 fn sem_control_while(c: SemanticContext*, n: void*, depth: u32): u32 {
     var condition = sem_expression(c, sem_member(n, "condition"), sem_type_new(c, SBool(), 0, null));
-    if sem_ok(c) {} else {
+    if !sem_ok(c) {
         return FlowNext();
     }
     var value = sem_node(c, n, KLoop());
@@ -269,15 +270,15 @@ fn sem_control_while(c: SemanticContext*, n: void*, depth: u32): u32 {
     var guard = condition;
     // Keep literal conditions visible to Foundation's definite-return analysis.
     // Nonliteral values need a local so a binary condition has a legal spelling.
-    if known.constant {} else {
+    if !known.constant {
         var local = sem_control_local(c, block, condition);
         guard = sem_control_read(c, block, local);
     }
     var body = sem_member(n, "body");
-    c.loops = c.loops + 1;
+    c.loops++;
     var body_depth = depth + 1;
     var flow = sem_block(c, body, body_depth);
-    c.loops = c.loops - 1;
+    c.loops--;
     var otherwise = sem_control_branch(c, block, guard, body);
     var stop = sem_control_node(c, otherwise, KBreak());
     var failure = sem_get(otherwise);

@@ -89,7 +89,7 @@ export fn guest_wasm_reallocate(heap: GuestHeap*, pointer: void*, count: usize, 
         return null;
     }
     var block = bits(GuestBlock*, pointer);
-    block = block - 1;
+    block--;
     var enough = block.size >= bytes;
     if enough {
         return pointer;

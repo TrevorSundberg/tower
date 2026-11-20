@@ -79,37 +79,27 @@ fn template_test_holes(context: SyntaxEmissionInput*): usize {
                 if done {
                     break;
                 }
-                if ok {} else {
+                if !ok {
                     break;
                 }
                 var node = entity_child_at(input.emission.root, index);
                 var data = bits(ParserRuleData*, lr_grammar_payload(node, context.rule_kind));
                 ok = lr_name_equal(node_text_get(&data.name), names[index]);
-                if ok {
-                    ok = data.generated;
-                }
+                ok &&= data.generated;
                 var count: usize = 1;
                 var recursive = index == 2;
-                if recursive {} else {
-                    recursive = index == 4;
-                }
-                if recursive {} else {
-                    recursive = index == 5;
-                }
+                recursive ||= index == 4;
+                recursive ||= index == 5;
                 if recursive {
                     count = 2;
                 }
-                if ok {
-                    ok = entity_child_count(node) == count;
-                }
+                ok &&= entity_child_count(node) == count;
                 if ok {
                     var last = count - 1;
                     var terminal = entity_child_at(node, last);
                     var text = bits(ParserStringData*, lr_grammar_payload(terminal, context.string_kind));
                     ok = text.ids.length == 1;
-                    if ok {
-                        ok = text.ids.data[0] == ids[index];
-                    }
+                    ok &&= text.ids.data[0] == ids[index];
                 }
                 if ok {
                     if recursive {
@@ -118,21 +108,21 @@ fn template_test_holes(context: SyntaxEmissionInput*): usize {
                         ok = lr_name_equal(node_text_get(&ref.name), names[index]);
                     }
                 }
-                index = index + 1;
+                index++;
             }
         }
         entity_release(input.emission.root);
         emission_test_dispose(&f);
         var balanced = tower_test_buffer_count() == buffers;
-        if balanced {} else {
+        if !balanced {
             return 502;
         }
-        if ok {} else {
+        if !ok {
             return 503;
         }
         if ran {
             return 0;
         }
-        budget = budget + 1;
+        budget++;
     }
 }

@@ -154,8 +154,7 @@ export fn tower_node_get_child_member(parent: Entity*, name: u8*): Entity* {
 export fn tower_node_get_parent_member_name(child: Entity*): u8* {
     var parent = entity_parent(child);
     var absent = parent == null;
-    var condition11 = absent;
-    if condition11 {
+    if absent {
         return null;
     }
     var index = entity_child_index(parent, child);
@@ -169,10 +168,9 @@ export fn tower_node_get_child_member_name(parent: Entity*, index: usize): u8* {
 export fn tower_node_get_parent_child_index(child: Entity*): usize {
     var parent = entity_parent(child);
     var absent = parent == null;
-    var condition12 = absent;
-    if condition12 {
+    if absent {
         var invalid: usize = 0;
-        invalid = invalid - 1;
+        invalid--;
         return invalid;
     }
     return entity_child_index(parent, child);

@@ -16,7 +16,7 @@ export fn driver_resource_root(out: ByteBuffer*, executable: u8*): bool {
         if end {
             break;
         }
-        i = i + 1;
+        i++;
         var separator = c == 47;
         var windows = c == 92;
         if windows {
@@ -32,12 +32,8 @@ export fn driver_resource_root(out: ByteBuffer*, executable: u8*): bool {
     }
     out.length = 0;
     var ok = bytes_append(out, executable, boundary);
-    if ok {
-        ok = bytes_append(out, "share/tower", 11);
-    }
-    if ok {
-        ok = host_text_terminate(out);
-    }
+    ok &&= bytes_append(out, "share/tower", 11);
+    ok &&= host_text_terminate(out);
     return ok;
 }
 
@@ -68,7 +64,7 @@ export fn driver_source_position(source: u8*, count: usize, offset: usize, line:
                 *column = *column + 1;
             }
         }
-        i = i + 1;
+        i++;
     }
 }
 

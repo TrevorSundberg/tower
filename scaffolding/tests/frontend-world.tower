@@ -178,7 +178,7 @@ fn frontend_world_test_kinds(world: void*, kinds: FrontendKinds*): bool {
 
 fn frontend_world_unlimited(): usize {
     var value: usize = 0;
-    value = value - 1;
+    value--;
     return value;
 }
 
@@ -189,7 +189,7 @@ fn frontend_world_error_is(result: FormatResult*, text: u8*): bool {
         if different {
             return false;
         }
-        index = index + 1;
+        index++;
     }
     var end = text[index] == 0;
     return end;
@@ -210,7 +210,7 @@ extern fn entity_view_close(view: void*): void;
 extern fn tower_test_buffer_allocations(): usize;
 
 fn frontend_world_check(ok: bool): void {
-    if ok {} else {
+    if !ok {
         abort();
     }
 }
@@ -226,7 +226,7 @@ fn frontend_world_text_equal(left: FormatResult*, right: FormatResult*): bool {
         if different {
             return false;
         }
-        index = index + 1;
+        index++;
     }
     return true;
 }
@@ -261,9 +261,9 @@ fn frontend_world_lifetime_tests(): void {
     fill(&alternate, 0, sizeof(FormatResult));
     format_entity(&original, document, kinds.syntax, null, kinds.`match`);
     format_entity(&alternate, other_document, other.syntax, null, other.`match`);
-    ok = original.failed == false;
+    ok = !original.failed;
     frontend_world_check(ok);
-    ok = alternate.failed == false;
+    ok = !alternate.failed;
     frontend_world_check(ok);
     frontend_world_check(frontend_world_text_equal(&original, &alternate));
     format_dispose(&alternate);
@@ -364,7 +364,7 @@ fn frontend_world_failure_tests(): void {
         frontend_world_check(ok);
         ok = tower_test_buffer_count() == buffers;
         frontend_world_check(ok);
-        budget = budget + 1;
+        budget++;
     }
     // Exercise failures across the cached reader and Bedrock build, followed by
     // successful retry. Partial registry publication must never survive failure.
@@ -434,7 +434,7 @@ fn frontend_world_failure_tests(): void {
         format_dispose(&error);
         ok = tower_test_buffer_count() == buffers;
         frontend_world_check(ok);
-        budget = budget + 1;
+        budget++;
     }
     frontend_world_check(frontend_world_clear(world));
     frontend_world_check(compiler_world_dispose(world));

@@ -119,7 +119,7 @@ export fn lex_table_append(table: LexerTable*, transitions: i32*, count: usize, 
         return false;
     }
     var ok = vector_reserve(i32, &table.transitions, end);
-    if ok {} else {
+    if !ok {
         return false;
     }
     ok = vector_reserve(u8, &table.accepting, rows);
@@ -166,7 +166,7 @@ export fn lex_table_step(table: LexerTable*, state: usize, symbol: u32): i32 {
         else {
             first = middle + 1;
             count = count - half;
-            count = count - 1;
+            count--;
         }
     }
     var column = first - 1;

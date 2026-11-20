@@ -112,6 +112,9 @@ struct ModuleGraph {
     error: vector(u8);
     depth: usize;
     cycles: bool;
+    // One idle import reader, scoped to this graph. Recursive imports keep
+    // their active readers; siblings reuse only completed grammar tables.
+    import_session: void*;
 }
 
 struct FrontendModule {
@@ -132,7 +135,7 @@ struct FrontendModule {
 }
 
 fn module_require(ok: bool): void {
-    if ok {} else {
+    if !ok {
         abort();
     }
 }
@@ -141,14 +144,14 @@ fn module_equal(a: u8*, b: u8*): bool {
     var i: usize = 0;
     loop {
         var same = a[i] == b[i];
-        if same {} else {
+        if !same {
             return false;
         }
         var done = a[i] == 0;
         if done {
             return true;
         }
-        i = i + 1;
+        i++;
     }
 }
 
@@ -169,16 +172,12 @@ fn module_path(path: u8*, result: vector(u8)*): bool {
     var i: usize = 0;
     var protected_parts: usize = 0;
     var absolute = path[0] == 47;
-    if absolute {} else {
-        absolute = path[0] == 92;
-    }
+    absolute ||= path[0] == 92;
     if absolute {
         module_require(vector_push(u8, result, 47));
         i = 1;
         var network = path[1] == 47;
-        if network {} else {
-            network = path[1] == 92;
-        }
+        network ||= path[1] == 92;
         if network {
             module_require(vector_push(u8, result, 47));
             i = 2;
@@ -186,31 +185,23 @@ fn module_path(path: u8*, result: vector(u8)*): bool {
         }
     }
     var drive = path[0] != 0;
-    if drive {
-        drive = path[1] == 58;
-    }
+    drive &&= path[1] == 58;
     if drive {
         var rooted = path[2] == 47;
-        if rooted {} else {
-            rooted = path[2] == 92;
-        }
-        if rooted {} else {
+        rooted ||= path[2] == 92;
+        if !rooted {
             vector_dispose(usize, &parts);
             return false;
         }
         var letter = path[0];
         var lower = letter >= 97;
-        if lower {
-            lower = letter <= 122;
-        }
+        lower &&= letter <= 122;
         if lower {
             letter = letter - 32;
         }
         var valid = letter >= 65;
-        if valid {
-            valid = letter <= 90;
-        }
-        if valid {} else {
+        valid &&= letter <= 90;
+        if !valid {
             vector_dispose(usize, &parts);
             return false;
         }
@@ -226,11 +217,9 @@ fn module_path(path: u8*, result: vector(u8)*): bool {
             break;
         }
         var separator = byte == 47;
-        if separator {} else {
-            separator = byte == 92;
-        }
+        separator ||= byte == 92;
         if separator {
-            i = i + 1;
+            i++;
             continue;
         }
         var start = i;
@@ -241,26 +230,20 @@ fn module_path(path: u8*, result: vector(u8)*): bool {
                 break;
             }
             separator = byte == 47;
-            if separator {} else {
-                separator = byte == 92;
-            }
+            separator ||= byte == 92;
             if separator {
                 break;
             }
-            i = i + 1;
+            i++;
         }
         var length = i - start;
         var dot = length == 1;
-        if dot {
-            dot = path[start] == 46;
-        }
+        dot &&= path[start] == 46;
         if dot {
             continue;
         }
         var parent = length == 2;
-        if parent {
-            parent = path[start] == 46;
-        }
+        parent &&= path[start] == 46;
         if parent {
             var next = start + 1;
             parent = path[next] == 46;
@@ -273,18 +256,16 @@ fn module_path(path: u8*, result: vector(u8)*): bool {
                 var check = offset;
                 var slash = result.data[check] == 47;
                 if slash {
-                    check = check + 1;
+                    check++;
                 }
                 var previous_length = result.length - check;
                 var previous_parent = previous_length == 2;
+                previous_parent &&= result.data[check] == 46;
                 if previous_parent {
+                    check++;
                     previous_parent = result.data[check] == 46;
                 }
-                if previous_parent {
-                    check = check + 1;
-                    previous_parent = result.data[check] == 46;
-                }
-                can_pop = previous_parent == false;
+                can_pop = !previous_parent;
                 if can_pop {
                     result.length = offset;
                     parts.length = last;
@@ -301,7 +282,7 @@ fn module_path(path: u8*, result: vector(u8)*): bool {
         if nonempty {
             var last = result.length - 1;
             var slash = result.data[last] == 47;
-            if slash {} else {
+            if !slash {
                 module_require(vector_push(u8, result, 47));
             }
         }
@@ -310,11 +291,11 @@ fn module_path(path: u8*, result: vector(u8)*): bool {
     }
     var complete = parts.length >= protected_parts;
     vector_dispose(usize, &parts);
-    if complete {} else {
+    if !complete {
         return false;
     }
     module_require(vector_push(u8, result, 0));
-    result.length = result.length - 1;
+    result.length--;
     return true;
 }
 
@@ -349,25 +330,21 @@ export fn frontend_modules_clear(environment: ModuleEnvironment*): void {
         }
         vector_dispose(u8, &environment.inputs.data[i].name);
         vector_dispose(u8, &environment.inputs.data[i].text);
-        i = i + 1;
+        i++;
     }
     environment.inputs.length = 0;
 }
 
 export fn frontend_modules_source(environment: ModuleEnvironment*, name: u8*, text: u8*, length: usize): bool {
     var valid = length <= ModuleMaximumSourceBytes();
-    if valid {
-        valid = tower_utf8_validate(text, length, 1) != 0;
-    }
-    if valid {} else {
+    valid &&= tower_utf8_validate(text, length, 1) != 0;
+    if !valid {
         return false;
     }
     var input: ModuleInput;
     fill(&input, 0, sizeof(ModuleInput));
     var ok = module_path(name, &input.name);
-    if ok {
-        ok = bytes_assign_text(&input.text, text, length);
-    }
+    ok &&= bytes_assign_text(&input.text, text, length);
     if ok {
         var i: usize = 0;
         loop {
@@ -383,7 +360,7 @@ export fn frontend_modules_source(environment: ModuleEnvironment*, name: u8*, te
                 copy(previous, &input, sizeof(ModuleInput));
                 return true;
             }
-            i = i + 1;
+            i++;
         }
     }
     if ok {
@@ -394,7 +371,7 @@ export fn frontend_modules_source(environment: ModuleEnvironment*, name: u8*, te
             environment.inputs.length = count;
         }
     }
-    if ok {} else {
+    if !ok {
         vector_dispose(u8, &input.name);
         vector_dispose(u8, &input.text);
     }
@@ -414,7 +391,7 @@ fn module_read(environment: ModuleEnvironment*, path: u8*, text: vector(u8)*): u
             module_require(bytes_assign_text(text, input.text.data, input.text.length));
             return ModuleReady();
         }
-        i = i + 1;
+        i++;
     }
     var file = fopen(path, "rb");
     var missing = file == null;
@@ -447,11 +424,11 @@ fn module_read(environment: ModuleEnvironment*, path: u8*, text: vector(u8)*): u
     var ready = status == ModuleReady();
     if ready {
         var valid = tower_utf8_validate(text.data, text.length, 1) != 0;
-        if valid {} else {
+        if !valid {
             return ModuleInvalidSource();
         }
         module_require(vector_push(u8, text, 0));
-        text.length = text.length - 1;
+        text.length--;
     }
     return status;
 }
@@ -465,7 +442,7 @@ fn module_fail(module: FrontendModule*, message: u8*, detail: u8*): void {
         module_require(bytes_append(error, message, syntax_text_length(message)));
         module_require(bytes_append(error, detail, syntax_text_length(detail)));
         module_require(vector_push(u8, error, 0));
-        error.length = error.length - 1;
+        error.length--;
     }
 }
 
@@ -566,7 +543,7 @@ fn module_grammar_clear(grammar: ModuleGrammar*): void {
             break;
         }
         free(grammar.rules.data[i].alternatives);
-        i = i + 1;
+        i++;
     }
     grammar.rules.length = 0;
     grammar.tokens.length = 0;
@@ -586,7 +563,7 @@ fn module_grammar_add(grammar: ModuleGrammar*, entity: void*): void {
             if same {
                 break;
             }
-            i = i + 1;
+            i++;
         }
         var fresh = i == grammar.rules.length;
         if fresh {
@@ -615,7 +592,7 @@ fn module_grammar_add(grammar: ModuleGrammar*, entity: void*): void {
                 break;
             }
             alternatives[i] = target.alternatives[i];
-            i = i + 1;
+            i++;
         }
         i = 0;
         loop {
@@ -625,17 +602,15 @@ fn module_grammar_add(grammar: ModuleGrammar*, entity: void*): void {
             }
             var slot = before + i;
             alternatives[slot] = value.items.data[i];
-            i = i + 1;
+            i++;
         }
         free(target.alternatives);
         target.alternatives = alternatives;
         target.count = count;
     } else {
         var lexical = value.kind == SyntaxToken();
-        if lexical {} else {
-            lexical = value.kind == SyntaxSkip();
-        }
-        if lexical {} else {
+        lexical ||= value.kind == SyntaxSkip();
+        if !lexical {
             return;
         }
         loop {
@@ -649,7 +624,7 @@ fn module_grammar_add(grammar: ModuleGrammar*, entity: void*): void {
                 grammar.tokens.data[i] = entity;
                 return;
             }
-            i = i + 1;
+            i++;
         }
         module_require(vector_push(void*, &grammar.tokens, entity));
     }
@@ -666,7 +641,7 @@ fn module_grammar_visit(module: FrontendModule*, grammar: ModuleGrammar*, seen: 
         if duplicate {
             return;
         }
-        i = i + 1;
+        i++;
     }
     module_require(vector_push(FrontendModule*, seen, module));
     i = 0;
@@ -676,7 +651,7 @@ fn module_grammar_visit(module: FrontendModule*, grammar: ModuleGrammar*, seen: 
             break;
         }
         module_grammar_visit(module.dependencies.data[i], grammar, seen);
-        i = i + 1;
+        i++;
     }
     i = 0;
     loop {
@@ -685,12 +660,12 @@ fn module_grammar_visit(module: FrontendModule*, grammar: ModuleGrammar*, seen: 
             break;
         }
         module_grammar_add(grammar, module.declarations.data[i]);
-        i = i + 1;
+        i++;
     }
 }
 
 export fn frontend_module_grammar(module: FrontendModule*): ModuleGrammar* {
-    if module.explicit {} else {
+    if !module.explicit {
         return null;
     }
     module_grammar_clear(&module.grammar);
@@ -702,7 +677,7 @@ export fn frontend_module_grammar(module: FrontendModule*): ModuleGrammar* {
             break;
         }
         module_grammar_add(&module.grammar, seed.items.data[i]);
-        i = i + 1;
+        i++;
     }
     var seen: vector(FrontendModule*);
     vector_init(FrontendModule*, &seen);
@@ -715,16 +690,14 @@ fn module_candidate(base: u8*, name: u8*, result: vector(u8)*): bool {
     var path: vector(u8);
     vector_init(u8, &path);
     var absolute = name[0] == 47;
-    if absolute {} else {
-        absolute = name[0] == 92;
-    }
-    if absolute {} else {
+    absolute ||= name[0] == 92;
+    if !absolute {
         var nonempty = name[0] != 0;
         if nonempty {
             absolute = name[1] == 58;
         }
     }
-    if absolute {} else {
+    if !absolute {
         module_require(node_text_set(&path, base));
     }
     module_require(bytes_append(&path, name, syntax_text_length(name)));
@@ -754,7 +727,7 @@ fn module_alias(environment: ModuleEnvironment*, name: u8*, path: vector(u8)*): 
         if done {
             return false;
         }
-        i = i - 1;
+        i--;
         var alias = &environment.aliases.data[i];
         var same = module_equal(name, alias.name.data);
         if same {
@@ -807,7 +780,7 @@ fn module_resolve(parent: FrontendModule*, name: u8*, path: vector(u8)*, text: v
             break;
         }
         var missing = status == ModuleMissing();
-        if missing {} else {
+        if !missing {
             break;
         }
         var done = search == 2;
@@ -819,7 +792,7 @@ fn module_resolve(parent: FrontendModule*, name: u8*, path: vector(u8)*, text: v
         if last {
             directory = module_text(&parent.graph.environment.fallback);
         }
-        search = search + 1;
+        search++;
         var empty = directory[0] == 0;
         if empty {
             continue;
@@ -828,7 +801,7 @@ fn module_resolve(parent: FrontendModule*, name: u8*, path: vector(u8)*, text: v
         module_require(node_text_set(&base, directory));
         module_require(bytes_append(&base, "/", 1));
         module_require(vector_push(u8, &base, 0));
-        base.length = base.length - 1;
+        base.length--;
         ok = module_candidate(base.data, name, path);
         if ok {
             status = module_read(parent.graph.environment, path.data, text);
@@ -859,7 +832,7 @@ fn module_load(parent: FrontendModule*, name: u8*): FrontendModule* {
                 result = old;
                 break;
             }
-            i = i + 1;
+            i++;
         }
         var found = result != null;
         if found {
@@ -887,8 +860,11 @@ fn module_load(parent: FrontendModule*, name: u8*): FrontendModule* {
                 else {
                     result = module_new(parent.graph, path.data, text.data);
                     result.explicit = true;
-                    parent.graph.depth = parent.graph.depth + 1;
-                    var session = syntax_create(result.source.text.data, result);
+                    parent.graph.depth++;
+                    var session = parent.graph.import_session;
+                    parent.graph.import_session = null;
+                    if session == null { session = syntax_create(result.source.text.data, result); }
+                    else { syntax_reset(session, result.source.text.data, result); }
                     loop {
                         var root = syntax_next(session);
                         var done = root == null;
@@ -904,8 +880,9 @@ fn module_load(parent: FrontendModule*, name: u8*): FrontendModule* {
                         frontend_module_diagnostic(result, syntax_get_error_offset(session));
                     }
                     syntax_capture_comments(session, result);
-                    syntax_destroy(session);
-                    parent.graph.depth = parent.graph.depth - 1;
+                    if parent.graph.import_session != null { syntax_destroy(parent.graph.import_session); }
+                    parent.graph.import_session = session;
+                    parent.graph.depth--;
                     result.state = ModuleLoaded();
                     module_require(vector_push(FrontendModule*, &parent.graph.order, result));
                     module_validate_cycles(result.graph);
@@ -946,9 +923,7 @@ fn module_import_name(reader: SyntaxReader*, node: void*, value: SyntaxNode*): b
     }
     var first = reader.source.text.data[span.start];
     var quoted = first == 34;
-    if quoted {} else {
-        quoted = first == 39;
-    }
+    quoted ||= first == 39;
     var ok: bool = true;
     if quoted {
         value.literal = true;
@@ -976,13 +951,9 @@ fn module_import_name(reader: SyntaxReader*, node: void*, value: SyntaxNode*): b
                     return false;
                 }
                 ok = syntax_reader_name(reader, segment, &part.text);
-                if ok {
-                    ok = part.text.length != 0;
-                }
-                if ok {
-                    ok = vector_push(void*, &value.items, segment);
-                }
-                if ok {} else {
+                ok &&= part.text.length != 0;
+                ok &&= vector_push(void*, &value.items, segment);
+                if !ok {
                     return false;
                 }
                 node = syntax_reader_member(node, "previous");
@@ -1000,10 +971,10 @@ fn module_import_name(reader: SyntaxReader*, node: void*, value: SyntaxNode*): b
                 }
                 var part = frontend_syntax(value.items.data[i], reader.syntax_kind);
                 module_require(bytes_append(&value.name, part.text.data, part.text.length));
-                i = i + 1;
+                i++;
             }
             module_require(foundation_name_append(&value.name, 0));
-            value.name.length = value.name.length - 1;
+            value.name.length--;
         }
     }
     if ok {
@@ -1018,7 +989,7 @@ fn module_import_name(reader: SyntaxReader*, node: void*, value: SyntaxNode*): b
             if windows_separator {
                 value.name.data[i] = 47;
             }
-            i = i + 1;
+            i++;
         }
     }
     return ok;
@@ -1028,17 +999,13 @@ fn module_read_import(reader: SyntaxReader*, node: void*): bool {
     var value = syntax_reader_attach(reader, node, SyntaxImport());
     var name = syntax_reader_required(reader, node, "name");
     var ok = reader.error == null;
-    if ok {
-        ok = module_import_name(reader, name, value);
-    }
+    ok &&= module_import_name(reader, name, value);
     var alias = syntax_reader_member(node, "alias");
     var aliased = alias != null;
     if aliased {
         var part = syntax_reader_attach(reader, alias, SyntaxTerm());
         ok = part != null;
-        if ok {
-            ok = syntax_reader_name(reader, alias, &value.capture);
-        }
+        ok &&= syntax_reader_name(reader, alias, &value.capture);
         if ok {
             ok = value.capture.length != 0;
             module_require(node_text_set(&part.text, value.capture.data));
@@ -1060,7 +1027,7 @@ export fn frontend_module_import(module: FrontendModule*, node: void*, source: S
         module_fail(module, "Imports must precede this file's declarations and statements", "");
         return false;
     }
-    if ok {} else {
+    if !ok {
         module_fail(module, "Invalid import declaration", "");
         return false;
     }
@@ -1073,7 +1040,7 @@ export fn frontend_module_import(module: FrontendModule*, node: void*, source: S
                 module_fail(module, "Duplicate import alias: ", value.capture.data);
                 return false;
             }
-            index = index + 1;
+            index++;
         }
     }
     var dependency = module_load(module, value.name.data);
@@ -1126,7 +1093,7 @@ fn module_reaches(start: FrontendModule*, target: FrontendModule*): bool {
     module_require(vector_push(FrontendModule*, &pending, start));
     var found = false;
     while pending.length != 0 {
-        pending.length = pending.length - 1;
+        pending.length--;
         var current = pending.data[pending.length];
         var duplicate = false;
         var i: usize = 0;
@@ -1135,7 +1102,7 @@ fn module_reaches(start: FrontendModule*, target: FrontendModule*): bool {
             if same {
                 duplicate = true;
             }
-            i = i + 1;
+            i++;
         }
         if duplicate {
             continue;
@@ -1150,7 +1117,7 @@ fn module_reaches(start: FrontendModule*, target: FrontendModule*): bool {
                 break;
             }
             module_require(vector_push(FrontendModule*, &pending, dependency));
-            i = i + 1;
+            i++;
         }
         if found {
             break;
@@ -1162,7 +1129,7 @@ fn module_reaches(start: FrontendModule*, target: FrontendModule*): bool {
 }
 
 fn module_validate_cycles(graph: ModuleGraph*): void {
-    if graph.cycles {} else {
+    if !graph.cycles {
         return;
     }
     var i: usize = 0;
@@ -1173,9 +1140,7 @@ fn module_validate_cycles(graph: ModuleGraph*): void {
             var cyclic = module_reaches(current, current);
             if cyclic {
                 var invalid = current.declarations.length != 0;
-                if invalid {} else {
-                    invalid = current.roots.length == 0;
-                }
+                invalid ||= current.roots.length == 0;
                 var n: usize = 0;
                 while n < current.roots.length {
                     var node = entity_child_at(current.roots.data[n], 0);
@@ -1189,22 +1154,14 @@ fn module_validate_cycles(graph: ModuleGraph*): void {
                         span = syntax_reader_span(&reader, node);
                     }
                     var declaration = module_equal(span.label.data, "CoreFunction");
-                    if declaration {} else {
-                        declaration = module_equal(span.label.data, "CoreExternal");
-                    }
-                    if declaration {} else {
-                        declaration = module_equal(span.label.data, "CoreExport");
-                    }
-                    if declaration {} else {
-                        declaration = module_equal(span.label.data, "CoreStruct");
-                    }
-                    if declaration {} else {
-                        declaration = module_equal(span.label.data, "CoreEnum");
-                    }
-                    if declaration {} else {
+                    declaration ||= module_equal(span.label.data, "CoreExternal");
+                    declaration ||= module_equal(span.label.data, "CoreExport");
+                    declaration ||= module_equal(span.label.data, "CoreStruct");
+                    declaration ||= module_equal(span.label.data, "CoreEnum");
+                    if !declaration {
                         invalid = true;
                     }
-                    n = n + 1;
+                    n++;
                 }
                 if invalid {
                     module_fail(current, "Import cycle requires declarations only (no grammar updates or initialization effects): ", current.source.name.data);
@@ -1212,7 +1169,7 @@ fn module_validate_cycles(graph: ModuleGraph*): void {
                 }
             }
         }
-        i = i + 1;
+        i++;
     }
 }
 
@@ -1276,6 +1233,10 @@ export fn frontend_module_tree(module: FrontendModule*, index: usize): void* {
 
 export fn frontend_module_destroy(module: FrontendModule*): void {
     var graph = module.graph;
+    if graph.import_session != null {
+        syntax_destroy(graph.import_session);
+        graph.import_session = null;
+    }
     var active = graph.environment.active == module;
     if active {
         graph.environment.active = null;
@@ -1295,7 +1256,7 @@ export fn frontend_module_destroy(module: FrontendModule*): void {
                 break;
             }
             entity_release(current.declarations.data[n]);
-            n = n + 1;
+            n++;
         }
         n = 0;
         loop {
@@ -1304,7 +1265,7 @@ export fn frontend_module_destroy(module: FrontendModule*): void {
                 break;
             }
             entity_release(current.roots.data[n]);
-            n = n + 1;
+            n++;
         }
         n = 0;
         loop {
@@ -1313,7 +1274,7 @@ export fn frontend_module_destroy(module: FrontendModule*): void {
                 break;
             }
             entity_release(current.imports.data[n]);
-            n = n + 1;
+            n++;
         }
         vector_dispose(void*, &current.imports);
         module_grammar_clear(&current.grammar);
@@ -1325,7 +1286,7 @@ export fn frontend_module_destroy(module: FrontendModule*): void {
         vector_dispose(FrontendModule*, &current.dependencies);
         syntax_source_release(current.source);
         entity_release(current.entity);
-        i = i + 1;
+        i++;
     }
     vector_dispose(void*, &graph.entities);
     vector_dispose(FrontendModule*, &graph.order);
@@ -1335,7 +1296,7 @@ export fn frontend_module_destroy(module: FrontendModule*): void {
         entity_release(graph.kind);
     }
     if graph.tracked {
-        graph.environment.active_graphs = graph.environment.active_graphs - 1;
+        graph.environment.active_graphs--;
     }
     if graph.owns_environment {
         frontend_modules_destroy(graph.environment);
@@ -1399,9 +1360,7 @@ fn module_session_release(module: FrontendModule*): void {
     module.compilation_session = null;
     var environment = module.graph.environment;
     var reusable = module.session_generation == environment.session_generation;
-    if reusable {
-        reusable = environment.compilation_session == null;
-    }
+    reusable &&= environment.compilation_session == null;
     if reusable {
         environment.compilation_session = session;
     } else {
@@ -1431,7 +1390,7 @@ export fn frontend_modules_destroy(environment: ModuleEnvironment*): void {
             break;
         }
         frontend_module_destroy(environment.cache.data[i]);
-        i = i + 1;
+        i++;
     }
     vector_dispose(FrontendModule*, &environment.cache);
     frontend_modules_clear(environment);
@@ -1445,7 +1404,7 @@ export fn frontend_modules_destroy(environment: ModuleEnvironment*): void {
         }
         vector_dispose(u8, &environment.aliases.data[i].name);
         vector_dispose(u8, &environment.aliases.data[i].path);
-        i = i + 1;
+        i++;
     }
     vector_dispose(ModuleAlias, &environment.aliases);
     vector_dispose(u8, &environment.entry);
@@ -1468,7 +1427,7 @@ fn module_cacheable(module: FrontendModule*): bool {
         return false;
     }
     var ready = module.state == ModuleLoaded();
-    if ready {} else {
+    if !ready {
         return false;
     }
     var ordinary = module.roots.length != 0;
@@ -1482,10 +1441,10 @@ fn module_cacheable(module: FrontendModule*): bool {
             return true;
         }
         var ok = module_cacheable(module.dependencies.data[i]);
-        if ok {} else {
+        if !ok {
             return false;
         }
-        i = i + 1;
+        i++;
     }
 }
 
@@ -1494,11 +1453,9 @@ fn module_cache_valid(environment: ModuleEnvironment*, module: FrontendModule*):
     vector_init(u8, &text);
     var status = module_read(environment, module.source.name.data, &text);
     var ok = status == ModuleReady();
-    if ok {
-        ok = module_equal(text.data, module.source.text.data);
-    }
+    ok &&= module_equal(text.data, module.source.text.data);
     vector_dispose(u8, &text);
-    if ok {} else {
+    if !ok {
         return false;
     }
     var i: usize = 0;
@@ -1513,18 +1470,14 @@ fn module_cache_valid(environment: ModuleEnvironment*, module: FrontendModule*):
         var declaration = frontend_syntax(module.imports.data[i], syntax_component_type());
         status = module_resolve(module, declaration.name.data, &path, &text);
         ok = status == ModuleReady();
-        if ok {
-            ok = module_equal(path.data, module.dependencies.data[i].source.name.data);
-        }
+        ok &&= module_equal(path.data, module.dependencies.data[i].source.name.data);
         vector_dispose(u8, &path);
         vector_dispose(u8, &text);
-        if ok {
-            ok = module_cache_valid(environment, module.dependencies.data[i]);
-        }
-        if ok {} else {
+        ok &&= module_cache_valid(environment, module.dependencies.data[i]);
+        if !ok {
             return false;
         }
-        i = i + 1;
+        i++;
     }
 }
 
@@ -1537,16 +1490,12 @@ fn module_cached(environment: ModuleEnvironment*, path: u8*, text: u8*): Fronten
         }
         var candidate = environment.cache.data[i];
         var same = module_equal(candidate.source.name.data, path);
-        if same {
-            same = module_equal(candidate.source.text.data, text);
-        }
-        if same {
-            same = module_cache_valid(environment, candidate);
-        }
+        same &&= module_equal(candidate.source.text.data, text);
+        same &&= module_cache_valid(environment, candidate);
         if same {
             return candidate;
         }
-        i = i + 1;
+        i++;
     }
 }
 
@@ -1567,7 +1516,7 @@ fn module_clone(graph: ModuleGraph*, source: FrontendModule*): FrontendModule* {
             }
             return old;
         }
-        i = i + 1;
+        i++;
     }
     var result = module_new(graph, source.source.name.data, source.source.text.data);
     result.explicit = true;
@@ -1583,7 +1532,7 @@ fn module_clone(graph: ModuleGraph*, source: FrontendModule*): FrontendModule* {
             return null;
         }
         module_require(vector_push(FrontendModule*, &result.dependencies, dependency));
-        i = i + 1;
+        i++;
     }
     i = 0;
     loop {
@@ -1594,7 +1543,7 @@ fn module_clone(graph: ModuleGraph*, source: FrontendModule*): FrontendModule* {
         var declaration = source.declarations.data[i];
         entity_retain(declaration);
         module_require(vector_push(void*, &result.declarations, declaration));
-        i = i + 1;
+        i++;
     }
     i = 0;
     loop {
@@ -1615,7 +1564,7 @@ fn module_clone(graph: ModuleGraph*, source: FrontendModule*): FrontendModule* {
         reader.syntax_kind = syntax_component_type();
         module_require(module_read_import(&reader, declaration));
         module_require(vector_push(void*, &result.imports, declaration));
-        i = i + 1;
+        i++;
     }
     result.body = true;
     result.state = ModuleLoaded();
@@ -1625,7 +1574,7 @@ fn module_clone(graph: ModuleGraph*, source: FrontendModule*): FrontendModule* {
 
 fn module_cache_store(module: FrontendModule*): void {
     var eligible = module_cacheable(module);
-    if eligible {} else {
+    if !eligible {
         return;
     }
     var environment = module.graph.environment;
@@ -1646,9 +1595,9 @@ fn module_cache_store(module: FrontendModule*): void {
             }
             var previous = i - 1;
             environment.cache.data[previous] = environment.cache.data[i];
-            i = i + 1;
+            i++;
         }
-        environment.cache.length = environment.cache.length - 1;
+        environment.cache.length--;
     }
     module_require(vector_push(FrontendModule*, &environment.cache, snapshot));
 }
@@ -1661,7 +1610,7 @@ export fn frontend_modules_used_clear(environment: ModuleEnvironment*): void {
             break;
         }
         free(environment.used.data[i]);
-        i = i + 1;
+        i++;
     }
     environment.used.length = 0;
 }
@@ -1686,7 +1635,7 @@ export fn frontend_modules_sources_clear(environment: ModuleEnvironment*): void 
             break;
         }
         syntax_source_release(environment.sources.data[i]);
-        i = i + 1;
+        i++;
     }
     environment.sources.length = 0;
     environment.bases.length = 0;
@@ -1758,15 +1707,13 @@ export fn frontend_modules_location(environment: ModuleEnvironment*, offset: usi
             var base = environment.bases.data[i];
             var end = base + candidate.text.length;
             var selected = offset >= base;
-            if selected {
-                selected = offset <= end;
-            }
+            selected &&= offset <= end;
             if selected {
                 source = candidate;
                 offset = offset - base;
                 break;
             }
-            i = i + 1;
+            i++;
         }
     }
     found = source != null;
@@ -1786,15 +1733,9 @@ fn module_make_path(text: vector(u8)*, path: u8*): void {
             return;
         }
         var escape = byte == 32;
-        if escape {} else {
-            escape = byte == 35;
-        }
-        if escape {} else {
-            escape = byte == 58;
-        }
-        if escape {} else {
-            escape = byte == 92;
-        }
+        escape ||= byte == 35;
+        escape ||= byte == 58;
+        escape ||= byte == 92;
         if escape {
             module_require(vector_push(u8, text, 92));
         }
@@ -1803,7 +1744,7 @@ fn module_make_path(text: vector(u8)*, path: u8*): void {
             module_require(vector_push(u8, text, 36));
         }
         module_require(vector_push(u8, text, byte));
-        i = i + 1;
+        i++;
     }
 }
 
@@ -1824,7 +1765,7 @@ export fn frontend_modules_depfile(environment: ModuleEnvironment*, output: u8*,
         }
         module_require(bytes_append(&text, " ", 1));
         module_make_path(&text, environment.used.data[i]);
-        i = i + 1;
+        i++;
     }
     module_require(bytes_append(&text, "\n", 1));
     var file = fopen(path, "wb");
@@ -1833,7 +1774,7 @@ export fn frontend_modules_depfile(environment: ModuleEnvironment*, output: u8*,
         var written = fwrite(text.data, 1, text.length, file);
         ok = written == text.length;
         var closed = fclose(file) == 0;
-        if closed {} else {
+        if !closed {
             ok = false;
         }
     }

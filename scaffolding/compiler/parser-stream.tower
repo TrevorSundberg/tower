@@ -36,7 +36,7 @@ extern fn tower_memory_allocate(bytes: usize): void*;
 extern fn tower_memory_free(memory: void*): void;
 
 fn parser_state_require(ok: bool): void {
-    if ok {} else {
+    if !ok {
         abort();
     }
 }
@@ -60,7 +60,7 @@ fn parser_state_clear(value: vector(u8)*): void {
 fn parser_state_assign(value: vector(u8)*, text: u8*): void {
     var length: usize = 0;
     while text[length] != 0 {
-        length = length + 1;
+        length++;
     }
     var empty = length == 0;
     if empty {
@@ -145,14 +145,14 @@ export fn parser_stream_utf8_create(begin: u8*, end: u8*): ParserStream* {
     fill(data, 0, sizeof(ParserUtf8Stream));
     var length = bits(usize, end) - bits(usize, begin);
     var ok = bytes_assign_text(&data.source, begin, length);
-    data.allocation_failed = ok == false;
+    data.allocation_failed = !ok;
     return stream;
 }
 
 export fn parser_stream_utf8_null_terminated_create(text: u8*): ParserStream* {
     var length: usize = 0;
     while text[length] != 0 {
-        length = length + 1;
+        length++;
     }
     var end = text + length;
     return parser_stream_utf8_create(text, end);
@@ -225,7 +225,7 @@ export fn parser_stream_poll(stream: ParserStream*, id: u32*, start: usize*, len
         return true;
     }
     var data = bits(ParserRecognizerStream*, parser_stream_get_userdata(stream));
-    var running = data.complete == false;
+    var running = !data.complete;
     while running {
         *node = parser_recognizer_step(bits(ParserRequest*, data.recognizer), &running);
         var ready = *node != null;
@@ -233,7 +233,7 @@ export fn parser_stream_poll(stream: ParserStream*, id: u32*, start: usize*, len
             break;
         }
     }
-    data.complete = running == false;
+    data.complete = !running;
     parser_stream_set_error(stream, parser_recognizer_get_error(data.recognizer));
     var ready = *node != null;
     if ready {
@@ -250,7 +250,7 @@ export fn parser_stream_poll(stream: ParserStream*, id: u32*, start: usize*, len
 
 // Consume the recognizer's lookahead and error storage, without allocating.
 export fn parser_stream_return(stream: ParserStream*, node: void**, id: u32, start: usize, length: usize, error: vector(u8)*): void {
-    var empty = stream.buffered == false;
+    var empty = !stream.buffered;
     parser_state_require(empty);
     stream.buffered = true;
     stream.buffered_node = *node;

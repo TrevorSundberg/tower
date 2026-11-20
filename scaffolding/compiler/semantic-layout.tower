@@ -62,7 +62,7 @@ fn sem_layout_compute(c: SemanticContext*, n: void*): void {
             return;
         }
         t.size = value.byte_offset + bytes;
-        i = i + 1;
+        i++;
     }
     t.size = sem_round(t.size, t.alignment);
     var empty = t.size == 0;
@@ -81,7 +81,7 @@ fn sem_layout_dependency(c: SemanticContext*, consumer: usize, type: FoundationT
 }
 
 fn sem_layout(c: SemanticContext*, n: void*): void {
-    if sem_ok(c) {} else {
+    if !sem_ok(c) {
         return;
     }
     var g = &c.layout_work;
@@ -106,17 +106,17 @@ fn sem_layout(c: SemanticContext*, n: void*): void {
         if array_type {
             sem_layout_dependency(c, id, &type.element);
         } else {
-            if semantic_enum(&type.type) {} else {
+            if !semantic_enum(&type.type) {
                 var j: usize = 0;
                 while j < type.items.length {
                     var field = sem_get(type.items.data[j]);
                     sem_layout_dependency(c, id, &field.type);
-                    j = j + 1;
+                    j++;
                 }
             }
         }
         sem_require(work_seal(g, id));
-        i = i + 1;
+        i++;
     }
     sem_require(work_demand(g, root));
     // The coordinator owns this view until all admitted kernels have joined.
@@ -131,7 +131,7 @@ fn sem_layout(c: SemanticContext*, n: void*): void {
         sem_layout_compute(c, task.subject);
         var success = sem_ok(c);
         sem_require(work_finish(g, &ticket, success));
-        if success {} else {
+        if !success {
             entity_view_close(view);
             return;
         }
@@ -157,7 +157,7 @@ fn sem_layout(c: SemanticContext*, n: void*): void {
                 chain = sem_cat(c, chain, " -> ");
             }
             chain = sem_cat(c, chain, sem_name(value));
-            i = i + 1;
+            i++;
         }
     }
     vector_dispose(usize, &cycle);

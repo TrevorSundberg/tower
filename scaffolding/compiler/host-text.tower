@@ -7,7 +7,7 @@ import '../library/bytes-types';
 // Appends are atomic on failure, preserve UTF-8 bytes, and permit self-slices.
 export fn host_json_quote(out: ByteBuffer*, source: u8*, count: usize): bool {
     var maximum: usize = 0;
-    maximum = maximum - 1;
+    maximum--;
     var left = maximum - out.length;
     var small = left < 2;
     if small {
@@ -38,7 +38,7 @@ export fn host_json_quote(out: ByteBuffer*, source: u8*, count: usize): bool {
     needed = needed + out.length;
     needed = needed + 2;
     var ok = bytes_reserve(out, needed);
-    if ok {} else {
+    if !ok {
         return false;
     }
     if inside {
@@ -46,7 +46,7 @@ export fn host_json_quote(out: ByteBuffer*, source: u8*, count: usize): bool {
     }
     var at = out.length;
     out.data[at] = 34;
-    at = at + 1;
+    at++;
     var hex: u8* = "0123456789abcdef";
     var i: usize = 0;
     loop {
@@ -63,32 +63,32 @@ export fn host_json_quote(out: ByteBuffer*, source: u8*, count: usize): bool {
         }
         if escaped {
             out.data[at] = 92;
-            at = at + 1;
+            at++;
             out.data[at] = c;
-            at = at + 1;
+            at++;
         } else {
             var control = c < 32;
             if control {
                 out.data[at] = 92;
-                at = at + 1;
+                at++;
                 out.data[at] = 117;
-                at = at + 1;
+                at++;
                 out.data[at] = 48;
-                at = at + 1;
+                at++;
                 out.data[at] = 48;
-                at = at + 1;
+                at++;
                 var high = c / 16;
                 var low = c % 16;
                 out.data[at] = hex[high];
-                at = at + 1;
+                at++;
                 out.data[at] = hex[low];
-                at = at + 1;
+                at++;
             } else {
                 out.data[at] = c;
-                at = at + 1;
+                at++;
             }
         }
-        i = i + 1;
+        i++;
     }
     out.data[at] = 34;
     out.length = at + 1;
@@ -102,7 +102,7 @@ export fn host_json_unsigned(out: ByteBuffer*, value: u64): bool {
         var digit = value % 10;
         digit = digit + 48;
         digits[count] = convert(u8, digit);
-        count = count + 1;
+        count++;
         value = value / 10;
         var done = value == 0;
         if done {
@@ -121,9 +121,9 @@ export fn host_json_unsigned(out: ByteBuffer*, value: u64): bool {
             if done {
                 break;
             }
-            count = count - 1;
+            count--;
             out.data[out.length] = digits[count];
-            out.length = out.length + 1;
+            out.length++;
         }
     }
     return ok;

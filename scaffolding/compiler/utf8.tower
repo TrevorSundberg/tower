@@ -61,7 +61,7 @@ export fn tower_utf8_decode(data: u8*, size: usize, value: u32*): usize {
         var payload = byte & 63;
         scalar = scalar * 64;
         scalar = scalar | payload;
-        index = index + 1;
+        index++;
     }
     var overlong = scalar < minimum;
     if overlong {
@@ -131,7 +131,7 @@ export fn tower_utf8_encode(scalar: u32, output: u8*, capacity: usize): usize {
         byte = byte | 128;
         output[index] = convert(u8, byte);
         remaining = remaining / 64;
-        index = index - 1;
+        index--;
     }
     var first = prefix | remaining;
     first = first & 255;
@@ -158,7 +158,7 @@ export fn tower_utf8_validate(data: u8*, size: usize, reject_nul: u32): u32 {
         }
         var ascii = byte < 128;
         if ascii {
-            index = index + 1;
+            index++;
         } else {
             var start = data + index;
             var remaining = size - index;

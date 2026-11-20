@@ -1,0 +1,82 @@
+import tower;
+
+var effects: i32 = 0;
+var number: i32 = 42;
+fn fallback(): i32* { effects++; return &number; }
+fn index(): i32 { effects++; return 0; }
+fn yes(): bool { effects++; return true; }
+fn no(): bool { effects++; return false; }
+var pointer: i32* = null;
+print(*(pointer ?? fallback()));
+print(effects);
+pointer ??= fallback();
+pointer ??= fallback();
+print(*pointer);
+print(effects);
+print(*(pointer ?? fallback()));
+print(effects);
+var absent: i32* = null;
+print(*(absent ?? absent ?? pointer));
+print(pointer is not null);
+print(absent is null);
+var yes_value = true;
+var no_value = false;
+yes_value ||= no();
+no_value &&= yes();
+print(effects);
+yes_value &&= no();
+no_value ||= yes();
+print(yes_value);
+print(no_value);
+print(effects);
+var flags: bool[2];
+flags[0] = false;
+var at = 0;
+flags[at++] ||= yes();
+print(at);
+print(flags[0]);
+print(effects);
+struct Inner { count: i32; }
+struct Record { nested: Inner; next: Record*; data: i32*; }
+var record: Record;
+record.nested.count = 7;
+record.next = null;
+record.data = pointer;
+var receiver: Record* = null;
+print(receiver?.nested.count ?? 99);
+print(receiver?.data?[index()] ?? 98);
+print(effects);
+receiver = &record;
+print(receiver?.nested.count ?? 99);
+print(receiver?.data?[index()] ?? 98);
+print(effects);
+print(receiver?.next?.nested.count ?? 97);
+var nullable_pointer = receiver?.next;
+print(nullable_pointer == null);
+receiver.next = receiver;
+print(receiver?.next?.nested.count ?? 96);
+print(absent?[index()] ?? 95);
+print(effects);
+print(pointer?[index()] ?? 94);
+print(effects);
+var negative: i32 = -1;
+print(negative >>> 1);
+negative >>>= 31;
+print(negative);
+var wide: i64 = -9223372036854775808;
+print(wide >>> 63);
+wide >>>= 1;
+print(wide);
+var pointers: i32*[1];
+pointers[0] = null;
+at = 0;
+pointers[at++] ??= fallback();
+print(at);
+print(*pointers[0]);
+print(effects);
+fn pointer_slot(): i32** { effects++; return &pointer; }
+*pointer_slot() ??= fallback();
+print(effects);
+fn get_receiver(): Record* { effects++; return receiver; }
+print(get_receiver()?.nested.count ?? 100);
+print(effects);

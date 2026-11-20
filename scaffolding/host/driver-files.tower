@@ -33,7 +33,7 @@ export fn driver_read_file(path: u8*, out: ByteBuffer*): bool {
     loop {
         var count = fread(&chunk[0], 1, 16384, file);
         ok = bytes_append(&next, &chunk[0], count);
-        if ok {} else {
+        if !ok {
             break;
         }
         var failed = ferror(file) != 0;
@@ -52,12 +52,10 @@ export fn driver_read_file(path: u8*, out: ByteBuffer*): bool {
         }
     }
     var closed = fclose(file) == 0;
-    if closed {} else {
+    if !closed {
         ok = false;
     }
-    if ok {
-        ok = host_text_terminate(&next);
-    }
+    ok &&= host_text_terminate(&next);
     if ok {
         bytes_dispose(out);
         out.data = next.data;
@@ -99,7 +97,7 @@ export fn driver_write_file(path: u8*, data: u8*, count: usize): bool {
         ok = false;
     }
     var closed = fclose(file) == 0;
-    if closed {} else {
+    if !closed {
         ok = false;
     }
     return ok;

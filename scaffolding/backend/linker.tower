@@ -40,7 +40,7 @@ fn backend_link_argument(link: BackendLink*, prefix: u8*, value: u8*): void {
     backend_text(&text, prefix);
     backend_text(&text, value);
     var ok = vector_push(u8*, &link.arguments, text.data);
-    var failed = ok == false;
+    var failed = !ok;
     if failed {
         vector_dispose(u8, &text);
         backend_text(&link.error, "Unable to allocate linker arguments");
@@ -57,7 +57,7 @@ export fn backend_link_reset_plan(link: BackendLink*): void {
             break;
         }
         free(link.arguments.data[i]);
-        i = i + 1;
+        i++;
     }
     link.arguments.length = 0;
     link.error.length = 0;
@@ -75,7 +75,7 @@ export fn backend_link_clear_inputs(link: BackendLink*): void {
         remove(input.name.data);
         vector_dispose(u8, &input.name);
         vector_dispose(u8, &input.bytes);
-        i = i + 1;
+        i++;
     }
     link.inputs.length = 0;
 }
@@ -112,20 +112,14 @@ fn backend_filename(name: u8*): bool {
         }
         var byte = name[i];
         var valid = byte >= 97;
-        if valid {
-            valid = byte <= 122;
-        }
+        valid &&= byte <= 122;
         var upper = byte >= 65;
-        if upper {
-            upper = byte <= 90;
-        }
+        upper &&= byte <= 90;
         if upper {
             valid = true;
         }
         var number = byte >= 48;
-        if number {
-            number = byte <= 57;
-        }
+        number &&= byte <= 57;
         if number {
             valid = true;
         }
@@ -141,11 +135,11 @@ fn backend_filename(name: u8*): bool {
         if punctuation {
             valid = true;
         }
-        invalid = valid == false;
+        invalid = !valid;
         if invalid {
             return false;
         }
-        i = i + 1;
+        i++;
     }
 }
 
@@ -186,13 +180,13 @@ export fn backend_link_add_input(link: BackendLink*, name: u8*, data: u8*, lengt
             found = &link.inputs.data[i];
             break;
         }
-        i = i + 1;
+        i++;
     }
     var absent = found == null;
     if absent {
         var needed = link.inputs.length + 1;
         var ok = vector_reserve(BackendLinkInput, &link.inputs, needed);
-        invalid = ok == false;
+        invalid = !ok;
         if invalid {
             return false;
         }
@@ -218,10 +212,8 @@ fn backend_write_file(link: BackendLink*, path: u8*, data: u8*, length: usize): 
     var written = fwrite(data, 1, length, file);
     var status = fclose(file);
     var ok = written == length;
-    if ok {
-        ok = status == 0;
-    }
-    var failed = ok == false;
+    ok &&= status == 0;
+    var failed = !ok;
     if failed {
         backend_text(&link.error, "Cannot write linker input: ");
         backend_text(&link.error, path);
@@ -267,7 +259,7 @@ export fn backend_link_plan(link: BackendLink*, triple: u8*, functions: void**, 
     // A failed invocation cannot expose output left by a prior request.
     remove("tower-output.bin");
     var ok = backend_write_file(link, "tower-input.o", object, object_size);
-    var failed = ok == false;
+    var failed = !ok;
     if failed {
         return false;
     }
@@ -276,7 +268,7 @@ export fn backend_link_plan(link: BackendLink*, triple: u8*, functions: void**, 
     var mac = backend_contains(triple, "apple");
     if wasm {
         ok = backend_write_file(link, "tower-runtime.o", runtime, runtime_size);
-        failed = ok == false;
+        failed = !ok;
         if failed {
             return false;
         }
@@ -296,11 +288,11 @@ export fn backend_link_plan(link: BackendLink*, triple: u8*, functions: void**, 
                 foreign_name_close(spelling);
                 backend_text(&allowed, "\n");
             }
-            i = i + 1;
+            i++;
         }
         ok = backend_write_file(link, "tower-allowed.txt", allowed.data, allowed.length);
         vector_dispose(u8, &allowed);
-        failed = ok == false;
+        failed = !ok;
         if failed {
             return false;
         }
@@ -370,7 +362,7 @@ export fn backend_link_plan(link: BackendLink*, triple: u8*, functions: void**, 
             if done {
                 break;
             }
-            var previous = j - 1;
+            var previous = j -1;
             var a = order.data[previous];
             var b = order.data[j];
             var left = link.inputs.data[a].name.data;
@@ -385,7 +377,7 @@ export fn backend_link_plan(link: BackendLink*, triple: u8*, functions: void**, 
                 if different {
                     break;
                 }
-                k = k + 1;
+                k++;
             }
             var sorted = left[k] <= right[k];
             if sorted {
@@ -395,7 +387,7 @@ export fn backend_link_plan(link: BackendLink*, triple: u8*, functions: void**, 
             order.data[j] = a;
             j = previous;
         }
-        i = i + 1;
+        i++;
     }
     i = 0;
     loop {
@@ -406,7 +398,7 @@ export fn backend_link_plan(link: BackendLink*, triple: u8*, functions: void**, 
         var input = &link.inputs.data[order.data[i]];
         ok = backend_write_file(link, input.name.data, input.bytes.data, input.bytes.length);
         backend_link_argument(link, "", input.name.data);
-        i = i + 1;
+        i++;
     }
     vector_dispose(usize, &order);
     if windows {
@@ -416,13 +408,11 @@ export fn backend_link_plan(link: BackendLink*, triple: u8*, functions: void**, 
         var archive: vector(u8);
         vector_init(u8, &archive);
         ok = coff_import_archive(&archive, CoffMachineAmd64(), "__chkstk", "kernelbase.dll");
-        if ok {
-            ok = backend_write_file(link, "tower-stack-probe.lib", archive.data, archive.length);
-        } else {
+        if ok { ok = backend_write_file(link, "tower-stack-probe.lib", archive.data, archive.length); } else {
             backend_text(&link.error, "Unable to allocate Windows stack-probe import metadata");
         }
         vector_dispose(u8, &archive);
-        if ok {} else {
+        if !ok {
             return false;
         }
         backend_link_argument(link, "", "tower-stack-probe.lib");
@@ -433,7 +423,7 @@ export fn backend_link_plan(link: BackendLink*, triple: u8*, functions: void**, 
         // implementation or additional runtime library is introduced.
         var symbols: u8* = "--- !tapi-tbd\ntbd-version: 4\ntargets: [ x86_64-macos, arm64-macos ]\ninstall-name: '/usr/lib/libSystem.B.dylib'\ncurrent-version: 1\ncompatibility-version: 1\nexports:\n  - targets: [ x86_64-macos ]\n    symbols: [ ___bzero, _bzero ]\n  - targets: [ arm64-macos ]\n    symbols: [ _bzero ]\n...\n";
         ok = backend_write_file(link, "tower-platform.tbd", symbols, backend_length(symbols));
-        if ok {} else {
+        if !ok {
             return false;
         }
         backend_link_argument(link, "", "tower-platform.tbd");
@@ -455,13 +445,13 @@ export fn backend_link_plan(link: BackendLink*, triple: u8*, functions: void**, 
             }
             foreign_name_close(spelling);
         }
-        i = i + 1;
+        i++;
     }
     if wasm {
         backend_link_argument(link, "", "--export=tower_allocate");
         backend_link_argument(link, "", "--export=tower_deallocate");
     }
-    var nonwindows = windows == false;
+    var nonwindows = !windows;
     if nonwindows {
         backend_link_argument(link, "", "-o");
         backend_link_argument(link, "", "tower-output.bin");
@@ -480,7 +470,7 @@ export fn backend_link_argument_count(link: BackendLink*): usize {
 
 export fn backend_link_read_output(link: BackendLink*): bool {
     var ok = backend_read_file(&link.output, "tower-output.bin");
-    var failed = ok == false;
+    var failed = !ok;
     if failed {
         backend_text(&link.error, "Cannot read linked executable");
     }

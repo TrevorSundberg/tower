@@ -24,7 +24,7 @@ fn factorial(n: i32): i32 {
 fn increment(value: i32*): void {
     var next: i32;
     next = *value;
-    next = next + 1;
+    next++;
     *value = next;
     return;
 }

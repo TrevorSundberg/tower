@@ -32,7 +32,7 @@ struct ParseForestStore {
 
 fn parse_missing(): usize {
     var none: usize = 0;
-    none = none - 1;
+    none--;
     return none;
 }
 
@@ -57,7 +57,7 @@ export fn parse_forest_destroy(forest: ParseForestStore*): void {
         if owned {
             entity_release(entity);
         }
-        i = i + 1;
+        i++;
     }
     free(forest.children);
     free(forest.pending);
@@ -92,7 +92,7 @@ export fn parse_forest_leaf(forest: ParseForestStore*, entity: Entity*, result: 
     var ok = parse_forest_reserve(forest);
     if ok {
         var index = forest.count;
-        forest.count = forest.count + 1;
+        forest.count++;
         forest.children[index].entity = entity;
         forest.children[index].capture = null;
         forest.children[index].first = parse_missing();
@@ -111,17 +111,15 @@ export fn parse_forest_join(forest: ParseForestStore*, result: ParseForest*, fir
         return true;
     }
     var captured = capture != null;
-    if captured {
-        captured = *capture != 0;
-    }
+    captured &&= *capture != 0;
     if captured {
         var ok = parse_forest_reserve(forest);
-        var failed = ok == false;
+        var failed = !ok;
         if failed {
             return false;
         }
         var index = forest.count;
-        forest.count = forest.count + 1;
+        forest.count++;
         forest.children[index].entity = null;
         forest.children[index].capture = capture;
         forest.children[index].first = first;
@@ -165,7 +163,7 @@ fn parse_forest_visit(forest: ParseForestStore*, index: usize, capture: u8*): bo
     }
     forest.pending[forest.pending_count].index = index;
     forest.pending[forest.pending_count].capture = capture;
-    forest.pending_count = forest.pending_count + 1;
+    forest.pending_count++;
     return true;
 }
 
@@ -174,7 +172,7 @@ export fn parse_forest_attach(forest: ParseForestStore*, parent: Entity*, first:
     forest.pending_count = 0;
     var ok = parse_forest_visit(forest, first, null);
     loop {
-        var failed = ok == false;
+        var failed = !ok;
         if failed {
             return false;
         }
@@ -182,13 +180,13 @@ export fn parse_forest_attach(forest: ParseForestStore*, parent: Entity*, first:
         if done {
             return true;
         }
-        forest.pending_count = forest.pending_count - 1;
+        forest.pending_count--;
         var index = forest.pending[forest.pending_count].index;
         var capture = forest.pending[forest.pending_count].capture;
         var child = &forest.children[index];
-        forest.visits = forest.visits + 1;
+        forest.visits++;
         ok = parse_forest_visit(forest, child.next, capture);
-        failed = ok == false;
+        failed = !ok;
         if failed {
             return false;
         }

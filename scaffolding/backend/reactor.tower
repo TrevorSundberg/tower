@@ -20,10 +20,10 @@ export fn backend_reactor_link(link: BackendLink*): bool {
         }
         var input = &link.inputs.data[i];
         var ok = backend_write_file(link, input.name.data, input.bytes.data, input.bytes.length);
-        if ok {} else {
+        if !ok {
             return false;
         }
-        i = i + 1;
+        i++;
     }
     var valid = link.error.length == 0;
     if valid {

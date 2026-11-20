@@ -60,7 +60,7 @@ fn frontend_pattern_position(source: u8*, length: usize, offset: usize): usize {
             width = 1;
         }
         at = at + width;
-        character = character + 1;
+        character++;
     }
 }
 
@@ -75,7 +75,7 @@ error: FormatResult*): SyntaxPattern* {
         return null;
     }
     var valid = tower_utf8_validate(source, length, 0) != 0;
-    if valid {} else {
+    if !valid {
         format_text(&formatter, "Invalid UTF-8 in token pattern");
         return null;
     }

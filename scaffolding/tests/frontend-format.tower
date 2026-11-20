@@ -35,7 +35,7 @@ fn frontend_format_text(actual: u8*, wanted: u8*): void {
         if done {
             return;
         }
-        index = index + 1;
+        index++;
     }
 }
 
@@ -176,7 +176,7 @@ fn frontend_format_trees(): void {
         format_dispose(&result);
         var ok = tower_test_buffer_count() == buffers;
         frontend_world_check(ok);
-        budget = budget + 1;
+        budget++;
     }
     fill(&result, 0, sizeof(FormatResult));
     format_parser_tree(&result, root, kind);
@@ -209,12 +209,12 @@ fn frontend_format_deep(): void {
     var depth: usize = 0;
     while depth < 1024 {
         node = frontend_format_child(store, node, null);
-        depth = depth + 1;
+        depth++;
     }
     var result: FormatResult;
     fill(&result, 0, sizeof(FormatResult));
     format_parser_tree(&result, root, kind);
-    var ok = result.failed == false;
+    var ok = !result.failed;
     frontend_world_check(ok);
     // Verify every byte and indentation level, including the final leaf.
     var at: usize = 0;
@@ -225,18 +225,18 @@ fn frontend_format_deep(): void {
         while index < spaces {
             ok = result.text.data[at] == 32;
             frontend_world_check(ok);
-            at = at + 1;
-            index = index + 1;
+            at++;
+            index++;
         }
         var wanted: u8* = "node\n";
         index = 0;
         while index < 5 {
             ok = result.text.data[at] == wanted[index];
             frontend_world_check(ok);
-            at = at + 1;
-            index = index + 1;
+            at++;
+            index++;
         }
-        depth = depth + 1;
+        depth++;
     }
     ok = at == result.text.length;
     frontend_world_check(ok);
@@ -246,10 +246,10 @@ fn frontend_format_deep(): void {
     var index: usize = 0;
     while index < 128 {
         frontend_format_child(store, root, null);
-        index = index + 1;
+        index++;
     }
     format_parser_tree(&result, root, kind);
-    ok = result.failed == false;
+    ok = !result.failed;
     frontend_world_check(ok);
     ok = result.text.length == 901;
     frontend_world_check(ok);

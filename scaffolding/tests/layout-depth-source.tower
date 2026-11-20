@@ -8,7 +8,7 @@ fn layout_text(out: vector(u8)*, text: u8*): void {
     var length: usize = 0;
     while text[length] != 0 {
         vector_push(u8, out, text[length]);
-        length = length + 1;
+        length++;
     }
 }
 
@@ -19,7 +19,7 @@ fn layout_number(out: vector(u8)*, number: usize): void {
         var digit = number % 10;
         digit = digit + 48;
         digits[count] = convert(u8, digit);
-        count = count + 1;
+        count++;
         number = number / 10;
         var done = number == 0;
         if done {
@@ -27,7 +27,7 @@ fn layout_number(out: vector(u8)*, number: usize): void {
         }
     }
     while count != 0 {
-        count = count - 1;
+        count--;
         vector_push(u8, out, digits[count]);
     }
 }
@@ -53,7 +53,7 @@ fn layout_source(): void {
         layout_text(&out, "field");
         layout_number(&out, i);
         layout_text(&out, ": i32;\n");
-        i = i + 1;
+        i++;
     }
     layout_text(&out, "}\nfn check(): i32 { var correct = sizeof(Level1024) == 4; if correct {} else { return 1; } correct = sizeof(Wide) == 2048; if correct {} else { return 2; } var wide: Wide; wide.field511 = 42; var result = wide.field511 - 42; return result; }\nprint(check());\n");
     platform_write(1, out.data, out.length);

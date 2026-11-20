@@ -14,12 +14,12 @@ fn sem_enum_header(c: SemanticContext*, n: void*): void {
     if semantic_enum(representation) {
         valid = false;
     }
-    if valid {} else {
+    if !valid {
         sem_fail(c, n, "An enum representation must be a built-in integer type");
         return;
     }
     sem_type_header(c, n, "");
-    if sem_ok(c) {} else {
+    if !sem_ok(c) {
         return;
     }
     var value = sem_get(n);
@@ -48,7 +48,7 @@ fn sem_enum_fields(c: SemanticContext*, n: void*): void {
     var overflow = false;
     var i: usize = 0;
     loop {
-        if sem_ok(c) {} else {
+        if !sem_ok(c) {
             return;
         }
         var done = i == members.length;
@@ -61,7 +61,7 @@ fn sem_enum_fields(c: SemanticContext*, n: void*): void {
         var explicit = initial != null;
         if explicit {
             var literal = sem_operand(c, initial, &type.element);
-            if sem_ok(c) {} else {
+            if !sem_ok(c) {
                 return;
             }
             var constant = sem_get(literal);
@@ -72,12 +72,12 @@ fn sem_enum_fields(c: SemanticContext*, n: void*): void {
                 return;
             }
         }
-        if sem_put(c, names, name, member) {} else {
+        if !sem_put(c, names, name, member) {
             sem_fail(c, member, sem_cat(c, "Duplicate enum member '", sem_cat(c, name, "'")));
             return;
         }
         var key = sem_decimal(c, next);
-        if sem_put(c, values, key, member) {} else {
+        if !sem_put(c, values, key, member) {
             sem_fail(c, member, "Duplicate enum discriminant");
             return;
         }
@@ -88,9 +88,9 @@ fn sem_enum_fields(c: SemanticContext*, n: void*): void {
         value.bits = next;
         sem_push(&type.items, member);
         overflow = next == maximum;
-        next = next + 1;
+        next++;
         next = next & mask;
-        i = i + 1;
+        i++;
     }
 }
 
@@ -100,10 +100,8 @@ fn sem_enum_operand(c: SemanticContext*, n: void*): bool {
     var base = sem_member(n, "base");
     var field = sem_member(n, "field");
     var possible = base != null;
-    if possible {
-        possible = field != null;
-    }
-    if possible {} else {
+    possible &&= field != null;
+    if !possible {
         return false;
     }
     var identifier = sem_name_node(base);
@@ -112,11 +110,11 @@ fn sem_enum_operand(c: SemanticContext*, n: void*): bool {
     // lexical scopes; only a matching enum type needs the shadowing check.
     var definition = sem_resolve(c, c.types, base, name);
     var found = definition != null;
-    if found {} else {
+    if !found {
         return false;
     }
     var type = sem_get(definition);
-    if semantic_enum(&type.type) {} else {
+    if !semantic_enum(&type.type) {
         return false;
     }
     var scope = c.scope;

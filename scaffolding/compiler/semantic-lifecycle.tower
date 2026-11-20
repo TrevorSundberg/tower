@@ -6,6 +6,7 @@ import 'semantic-context';
 import 'semantic-definitions';
 import 'semantic-statements';
 import 'semantic-support';
+import 'semantic-expression-lowering';
 import '../library/stack';
 import '../library/vector';
 import '../library/work-graph';
@@ -52,15 +53,14 @@ fn sem_context_init(c: SemanticContext*, program: SemanticProgram*): void {
     var i: usize = 0;
     loop {
         var step14 = i < program.types.length;
-        var step15 = step14 == false;
-        if step15 {
+        if !step14 {
             break;
         }
         var n: void* = program.types.data[i];
         var step16 = sem_get(n);
         var step17 = sem_name(step16);
         sem_put(c, c.types, step17, n);
-        i = i + 1;
+        i++;
     }
 }
 
@@ -71,13 +71,12 @@ fn sem_context_dispose(c: SemanticContext*): void {
     var i: usize = 0;
     loop {
         var step1 = i < c.lists.length;
-        var step2 = step1 == false;
-        if step2 {
+        if !step1 {
             break;
         }
         var step3 = bits(vector(void*)*, c.lists.data[i]);
         vector_dispose(void*, step3);
-        i = i + 1;
+        i++;
     }
     vector_dispose(void*, &c.lists);
     vector_dispose(void*, &c.type_arguments);
@@ -88,12 +87,11 @@ fn sem_context_dispose(c: SemanticContext*): void {
     i = 0;
     loop {
         var step4 = i < c.allocations.length;
-        var step5 = step4 == false;
-        if step5 {
+        if !step4 {
             break;
         }
         free(c.allocations.data[i]);
-        i = i + 1;
+        i++;
     }
     vector_dispose(void*, &c.allocations);
 }
@@ -103,26 +101,21 @@ export fn semantic_initialize(program: SemanticProgram*, root: void*, width: u32
     fill(program, 0, step1);
     program.pointer_bytes = width;
     program.root = root;
-    var step2 = sem_attach(root, KProgram());
-    var n: FoundationNode* = step2;
+    var n: FoundationNode* = sem_attach(root, KProgram());
     n.type.scalar = SVoid();
     sem_push(&program.functions, root);
     var scalar: u32 = 0;
     loop {
         var step3 = scalar <= SUSize();
-        var step4 = step3 == false;
-        if step4 {
+        if !step3 {
             break;
         }
-        var step5 = scalar == SStruct();
-        if step5 {
-            scalar = scalar + 1;
+        if scalar == SStruct() {
+            scalar++;
             continue;
         }
-        var step6 = sem_create(root);
-        var entity: void* = step6;
-        var step7 = sem_attach(entity, KType());
-        var t: FoundationNode* = step7;
+        var entity: void* = sem_create(root);
+        var t: FoundationNode* = sem_attach(entity, KType());
         t.type.scalar = scalar;
         t.type.pointer_bytes = width;
         var step8 = semantic_scalar_name(scalar);
@@ -132,7 +125,7 @@ export fn semantic_initialize(program: SemanticProgram*, root: void*, width: u32
         var step10 = semantic_alignment(&t.type);
         t.alignment = step10;
         sem_push(&program.types, entity);
-        scalar = scalar + 1;
+        scalar++;
     }
 }
 
@@ -147,15 +140,15 @@ export fn semantic_compile_budget(program: SemanticProgram*, roots: void**, base
     var i: usize = 0;
     loop {
         var step2 = i < count;
-        var step3 = step2 == false;
-        if step3 {
+        if !step2 {
             break;
         }
         var step4 = sem_state(c, c.source_bases, roots[i]);
         step4.number = bases[i];
-        i = i + 1;
+        i++;
     }
     sem_run(c);
+    sem_lower_expressions(c);
     sem_context_dispose(c);
 }
 
@@ -177,10 +170,8 @@ export fn semantic_format_type(t: FoundationType*, output: vector(u8)*): void {
     var step2 = sizeof(SemanticProgram);
     fill(&program, 0, step2);
     context.program = &program;
-    var step3 = sem_type_name(&context, t);
-    var text: u8* = step3;
-    var step4 = sem_length(text);
-    var count: usize = step4;
+    var text: u8* = sem_type_name(&context, t);
+    var count: usize = sem_length(text);
     var step5 = count + 1;
     var step6 = vector_reserve(u8, output, step5);
     sem_require(step6);
@@ -194,10 +185,8 @@ export fn semantic_format_number(value: u64, t: FoundationType*, output: vector(
     var context: SemanticContext;
     var step1 = sizeof(SemanticContext);
     fill(&context, 0, step1);
-    var step2 = sem_number(&context, value, t);
-    var text: u8* = step2;
-    var step3 = sem_length(text);
-    var count: usize = step3;
+    var text: u8* = sem_number(&context, value, t);
+    var count: usize = sem_length(text);
     var step4 = count + 1;
     var step5 = vector_reserve(u8, output, step4);
     sem_require(step5);

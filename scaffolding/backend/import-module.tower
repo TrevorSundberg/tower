@@ -44,7 +44,7 @@ fn bi_initializer(c: BackendImport*, address: void*, initializer: void*, type: v
             var child = LLVMGetAggregateElement(initializer, convert(u32, i));
             var pointer = bi_offset(c, address, bi_const(c, 8, offset));
             bi_initializer(c, pointer, child, element);
-            i = i + 1;
+            i++;
         }
         return;
     }
@@ -121,7 +121,7 @@ fn bi_function(c: BackendImport*, function: void*): void {
             break;
         }
         backend_require(c.backend, vector_push(void*, &declarations.items, body.items.data[i]));
-        i = i + 1;
+        i++;
     }
     n.body = c.declarations;
 }
@@ -150,7 +150,7 @@ export fn backend_import_foundation(b: Backend*, root: void*): bool {
         if record {
             bi_append(&c, root, entity);
         }
-        original_index = original_index + 1;
+        original_index++;
     }
     var function = LLVMGetFirstFunction(b.module);
     loop {
@@ -169,7 +169,7 @@ export fn backend_import_foundation(b: Backend*, root: void*): bool {
         if runtime {
             builtin = true;
         }
-        if builtin {} else {
+        if !builtin {
             var type = LLVMGetReturnType(LLVMGlobalGetValueType(function));
             var entity = bi_node(&c, 1, bi_scalar(&c, type));
             var n = sem_get(entity);
@@ -201,7 +201,7 @@ export fn backend_import_foundation(b: Backend*, root: void*): bool {
                     }
                     break;
                 }
-                i = i + 1;
+                i++;
             }
             n.body = bi_node(&c, 12, 3);
             var count = LLVMCountParams(function);
@@ -222,7 +222,7 @@ export fn backend_import_foundation(b: Backend*, root: void*): bool {
                 bi_name(&c, p, "argument");
                 backend_require(b, vector_push(void*, &n.parameters, p));
                 backend_require(b, backend_associate(&c.values, value, p));
-                parameter = parameter + 1;
+                parameter++;
             }
             bi_append(&c, root, entity);
             backend_require(b, backend_associate(&c.values, function, entity));

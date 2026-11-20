@@ -126,6 +126,33 @@ Identifier binding. The default identifier rule does **not** require `@`.
 Likewise, changing String changes the delimiters accepted for later grammar
 literals, and changing Whitespace or comment patterns affects following trivia.
 
-The pattern engine, parser-table builder and bootstrap reader still run in
-C++/WASM. General Tower parser functions and a fully self-hosted compiler remain
-later steps. The language's ordinary token definitions are now Tower data.
+## Numeric production precedence
+
+Bedrock accepts an optional numeric annotation after a declaration's alternatives
+and before its replacement. It applies to every alternative in that declaration:
+
+```tower
+parse Expression = Number | '(' Expression ')';
+parse Expression |= $left:Expression '+' $right:Expression @ 10 left;
+parse Expression |= $left:Expression '*' $right:Expression @ 20 L>R;
+parse Expression |= $left:Expression '=' $right:Expression @ 5 R<L;
+```
+
+Larger positive `u32` levels bind more tightly. `left`/`L>R` reduce equal-level
+chains from the left; `right`/`R<L` associate from the right. `nonassoc` rejects
+equal-level chains unless parentheses separate them. These describe grouping,
+not permission to reorder operands or exploit mathematical commutativity.
+
+Annotations are semantic components on grammar declarations and alternatives.
+Canonical formatting preserves their levels and normalizes directional aliases.
+They resolve only exact-token shift/reduce pairs whose participating productions
+have compatible explicit metadata. Missing/inconsistent annotations and
+reduce/reduce conflicts remain errors. Terminal ranges do not gain an implicit
+priority. Grammar order never supplies a precedence fallback.
+
+This is a table-construction shortcut: the ordinary LR parser executes the
+resulting rows, with no runtime operator dispatch or extra semantic tree.
+Traditional recursive `Expression`/`Term`/`Factor` rules still work unchanged.
+The parser implementation remains shared by native and Wasm builds; current
+Tower-written table construction memoizes dotted-production closures and avoids
+repeating destination closures during LALR propagation.

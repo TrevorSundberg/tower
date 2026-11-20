@@ -51,7 +51,7 @@ fn lr_name_hash(text: u8*): usize {
         var byte = convert(usize, text[index]);
         hash = hash ^ byte;
         hash = hash * 16777619;
-        index = index + 1;
+        index++;
     }
 }
 
@@ -66,7 +66,7 @@ fn lr_name_equal(left: u8*, right: u8*): bool {
         if end {
             return true;
         }
-        index = index + 1;
+        index++;
     }
 }
 
@@ -109,10 +109,8 @@ fn lr_grammar_name_add(value: LRGrammar*, name: u8*, index: usize*): bool {
     }
     fill(entry, 0, sizeof(LRGrammarName));
     var ok = node_text_set(&entry.text, name);
-    if ok {
-        ok = vector_push(LRGrammarName*, &value.names, entry);
-    }
-    if ok {} else {
+    ok &&= vector_push(LRGrammarName*, &value.names, entry);
+    if !ok {
         vector_dispose(u8, &entry.text);
         free(entry);
         return false;
@@ -150,7 +148,7 @@ fn lr_grammar_name_less(value: LRGrammar*, a: usize, b: usize): bool {
             var less = a < b;
             return less;
         }
-        index = index + 1;
+        index++;
     }
 }
 
@@ -158,7 +156,7 @@ fn lr_grammar_name_sift(value: LRGrammar*, order: usize*, count: usize, start: u
     var root = start;
     loop {
         var child = root * 2;
-        child = child + 1;
+        child++;
         var end = child >= count;
         if end {
             return;
@@ -172,7 +170,7 @@ fn lr_grammar_name_sift(value: LRGrammar*, order: usize*, count: usize, start: u
             }
         }
         var less = lr_grammar_name_less(value, order[root], order[child]);
-        if less {} else {
+        if !less {
             return;
         }
         var swap = order[root];
@@ -196,7 +194,7 @@ fn lr_grammar_order(value: LRGrammar*): bool {
             break;
         }
         order[index] = index;
-        index = index + 1;
+        index++;
     }
     var start = count / 2;
     loop {
@@ -204,7 +202,7 @@ fn lr_grammar_order(value: LRGrammar*): bool {
         if end {
             break;
         }
-        start = start - 1;
+        start--;
         lr_grammar_name_sift(value, order, count, start);
     }
     var remaining = count;
@@ -213,7 +211,7 @@ fn lr_grammar_order(value: LRGrammar*): bool {
         if end {
             break;
         }
-        remaining = remaining - 1;
+        remaining--;
         var swap = order[0];
         order[0] = order[remaining];
         order[remaining] = swap;
@@ -227,7 +225,7 @@ fn lr_grammar_order(value: LRGrammar*): bool {
         }
         var original = order[index];
         value.names.data[original].order = index;
-        index = index + 1;
+        index++;
     }
     free(order);
     return true;
@@ -247,7 +245,7 @@ export fn lr_grammar_destroy(value: LRGrammar*): void {
         var name = value.names.data[index];
         vector_dispose(u8, &name.text);
         free(name);
-        index = index + 1;
+        index++;
     }
     index = 0;
     loop {
@@ -256,7 +254,7 @@ export fn lr_grammar_destroy(value: LRGrammar*): void {
             break;
         }
         vector_dispose(u8, &value.symbol_metadata.data[index].capture);
-        index = index + 1;
+        index++;
     }
     vector_dispose(LRGrammarName*, &value.names);
     vector_dispose(usize, &value.buckets);
@@ -282,10 +280,8 @@ fn lr_grammar_add_symbol(value: LRGrammar*, symbol: LRSymbol*, node: void*, capt
     if named {
         ok = node_text_set(&metadata.capture, capture);
     }
-    if ok {
-        ok = lr_append(LRGrammarSymbol, &value.symbol_metadata, &metadata);
-    }
-    if ok {} else {
+    ok &&= lr_append(LRGrammarSymbol, &value.symbol_metadata, &metadata);
+    if !ok {
         vector_dispose(u8, &metadata.capture);
         return false;
     }
@@ -295,9 +291,9 @@ fn lr_grammar_add_symbol(value: LRGrammar*, symbol: LRSymbol*, node: void*, capt
 fn lr_grammar_rules(value: LRGrammar*, root: void*, kind: void*): bool {
     var count = entity_child_count(root);
     var size = count * 2;
-    size = size + 1;
+    size++;
     var ok = vector_reserve(usize, &value.buckets, size);
-    if ok {} else {
+    if !ok {
         return false;
     }
     value.buckets.length = size;
@@ -305,7 +301,7 @@ fn lr_grammar_rules(value: LRGrammar*, root: void*, kind: void*): bool {
     fill(value.buckets.data, 255, bytes);
     var index: usize;
     ok = lr_grammar_name_add(value, "S'", &index);
-    if ok {} else {
+    if !ok {
         return false;
     }
     var rule: LRProduction;
@@ -313,10 +309,8 @@ fn lr_grammar_rules(value: LRGrammar*, root: void*, kind: void*): bool {
     var metadata: LRGrammarRule;
     fill(&metadata, 0, sizeof(LRGrammarRule));
     ok = lr_append(LRProduction, &value.rules, &rule);
-    if ok {
-        ok = lr_append(LRGrammarRule, &value.rule_metadata, &metadata);
-    }
-    if ok {} else {
+    ok &&= lr_append(LRGrammarRule, &value.rule_metadata, &metadata);
+    if !ok {
         return false;
     }
     index = 0;
@@ -333,29 +327,27 @@ fn lr_grammar_rules(value: LRGrammar*, root: void*, kind: void*): bool {
             return false;
         }
         metadata.generated = source.generated;
+        rule.precedence = source.precedence;
+        rule.associativity = source.associativity;
         ok = lr_grammar_name_add(value, node_rule_name(source), &rule.owner);
-        if ok {
-            ok = lr_append(LRProduction, &value.rules, &rule);
-        }
-        if ok {
-            ok = lr_append(LRGrammarRule, &value.rule_metadata, &metadata);
-        }
-        if ok {} else {
+        ok &&= lr_append(LRProduction, &value.rules, &rule);
+        ok &&= lr_append(LRGrammarRule, &value.rule_metadata, &metadata);
+        if !ok {
             return false;
         }
-        index = index + 1;
+        index++;
     }
 }
 
 fn lr_grammar_symbols(value: LRGrammar*, reference_kind: void*, string_kind: void*, range_kind: void*): bool {
     var symbol: LRSymbol;
-    symbol.first = 4294967294;
-    symbol.last = 4294967294;
+    symbol.first = LRTokenEnd();
+    symbol.last = LRTokenEnd();
     symbol.nonterminal = 1;
     var present = value.names.length > 1;
     if present {
         var ok = lr_grammar_add_symbol(value, &symbol, null, "");
-        if ok {} else {
+        if !ok {
             return false;
         }
         value.rules.data[0].count = 1;
@@ -384,21 +376,21 @@ fn lr_grammar_symbols(value: LRGrammar*, reference_kind: void*, string_kind: voi
                 var name = node_reference_name(reference);
                 var hash = lr_name_hash(name);
                 symbol.nonterminal = lr_grammar_lookup(value, name, hash);
-                symbol.first = 4294967294;
-                symbol.last = 4294967294;
+                symbol.first = LRTokenEnd();
+                symbol.last = LRTokenEnd();
                 var unresolved = symbol.nonterminal == lr_none();
                 if unresolved {
                     var pending: LRUnresolved;
                     pending.name = name;
                     pending.symbol = value.symbols.length;
                     var ok = lr_append(LRUnresolved, &value.unresolved, &pending);
-                    if ok {} else {
+                    if !ok {
                         return false;
                     }
                 }
                 var capture = node_reference_capture(reference);
                 var ok = lr_grammar_add_symbol(value, &symbol, node, capture);
-                if ok {} else {
+                if !ok {
                     return false;
                 }
             }
@@ -416,10 +408,10 @@ fn lr_grammar_symbols(value: LRGrammar*, reference_kind: void*, string_kind: voi
                     symbol.first = string.ids.data[position];
                     symbol.last = symbol.first;
                     var ok = lr_grammar_add_symbol(value, &symbol, node, "");
-                    if ok {} else {
+                    if !ok {
                         return false;
                     }
-                    position = position + 1;
+                    position++;
                 }
             }
             data = lr_grammar_payload(node, range_kind);
@@ -435,14 +427,14 @@ fn lr_grammar_symbols(value: LRGrammar*, reference_kind: void*, string_kind: voi
                     symbol.last = range.start;
                 }
                 var ok = lr_grammar_add_symbol(value, &symbol, node, "");
-                if ok {} else {
+                if !ok {
                     return false;
                 }
             }
-            index = index + 1;
+            index++;
         }
         rule.count = value.symbols.length - rule.begin;
-        rule_index = rule_index + 1;
+        rule_index++;
     }
 }
 
@@ -454,9 +446,7 @@ export fn lr_grammar_create(root: void*, rule_kind: void*, reference_kind: void*
     }
     fill(value, 0, sizeof(LRGrammar));
     var ok = lr_grammar_rules(value, root, rule_kind);
-    if ok {
-        ok = lr_grammar_symbols(value, reference_kind, string_kind, range_kind);
-    }
+    ok &&= lr_grammar_symbols(value, reference_kind, string_kind, range_kind);
     if ok {
         // Name lookup is finished. Runtime tables only need the ordered names.
         vector_dispose(usize, &value.buckets);
@@ -523,7 +513,7 @@ export fn lr_grammar_resolve(value: LRGrammar*, index: usize, id: u32): bool {
     if invalid {
         return false;
     }
-    invalid = id == 4294967294;
+    invalid = id == LRTokenEnd();
     if invalid {
         return false;
     }
@@ -538,11 +528,11 @@ export fn lr_grammar_pending(value: LRGrammar*): usize {
     var index: usize = 0;
     while index < value.unresolved.length {
         var symbol = value.unresolved.data[index].symbol;
-        var missing = value.symbols.data[symbol].first == 4294967294;
+        var missing = value.symbols.data[symbol].first == LRTokenEnd();
         if missing {
             return index;
         }
-        index = index + 1;
+        index++;
     }
     return lr_none();
 }
@@ -558,7 +548,7 @@ export fn lr_grammar_detach(value: LRGrammar*): void {
             break;
         }
         value.rule_metadata.data[index].node = null;
-        index = index + 1;
+        index++;
     }
     index = 0;
     loop {
@@ -567,7 +557,7 @@ export fn lr_grammar_detach(value: LRGrammar*): void {
             break;
         }
         value.symbol_metadata.data[index].node = null;
-        index = index + 1;
+        index++;
     }
 }
 

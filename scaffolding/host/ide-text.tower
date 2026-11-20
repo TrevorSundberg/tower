@@ -4,12 +4,12 @@ import 'ide-types';
 import '../library/bytes-types';
 import '../library/bytes-interface';
 
-fn ide_require(ok: bool): void { if ok {} else { abort(); } }
+fn ide_require(ok: bool): void { if !ok { abort(); } }
 fn ide_length(text: u8*): usize {
     var n: usize = 0;
     var missing = text == null;
     if missing { return 0; }
-    loop { var done = text[n] == 0; if done { return n; } n = n + 1; }
+    loop { var done = text[n] == 0; if done { return n; } n++; }
 }
 fn ide_text(out: ByteBuffer*, text: u8*): void { ide_require(bytes_append(out, text, ide_length(text))); }
 fn ide_assign(out: ByteBuffer*, text: u8*): void { ide_require(bytes_assign_text(out, text, ide_length(text))); }
@@ -26,6 +26,6 @@ fn ide_copy(data: u8*, length: usize): u8* {
     var result = alloc(u8, size); var ok = result != null; ide_require(ok);
     copy(result, data, length); result[length] = 0; return result;
 }
-fn ide_missing(): usize { var value: usize = 0; value = value - 1; return value; }
+fn ide_missing(): usize { var value: usize = 0; value--; return value; }
 fn ide_comma(out: ByteBuffer*, index: usize): void { var comma = index != 0; if comma { ide_text(out, ","); } }
 fn ide_index(out: ByteBuffer*, index: usize): void { var missing = index == ide_missing(); if missing { ide_text(out, "null"); } else { ide_number(out, index); } }

@@ -203,7 +203,8 @@ test('type function uses retain distinct concrete field layouts alongside the sy
 });
 
 test('template member paths and operators have their own resolved or symbolic types',async()=>{
-  const example=(await read('scaffolding/examples/templates.tower')).toString();
+  // Retain an explicit subtraction/assignment probe alongside the abbreviated example.
+  const example=(await read('scaffolding/examples/templates.tower')).toString().replace('values.count--;', 'values.count = values.count - 1;');
   for(const source of [example,example+'\nmissing();']) {
   const entries=inspect(source,{entry:'templates.tower'});
   const start=source.indexOf('fn pop('),get=(text,offset=0)=>hoverAt(entries,source.indexOf(text,start)+offset);
@@ -333,7 +334,7 @@ test('grammar files expose syntax/entity metadata under their own baseline',()=>
 });
 
 test('increment grammar hovers distinguish rule references, capture binding, literals and parsed replacement nodes',async()=>{
-  const source=(await read('scaffolding/examples/increment.tower')).toString(),entries=inspect(source);
+  const source=(await read('scaffolding/tests/increment-rules.tower')).toString(),entries=inspect(source);
   const get=(needle,offset=1)=>hoverAt(entries,source.indexOf(needle)+offset);
   const capture=get('$target:CoreLocation');
   assert.equal(capture.kind,'capture binding');assert.equal(capture.capture,'target');

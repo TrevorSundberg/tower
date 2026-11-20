@@ -89,7 +89,7 @@ fn language_match_snapshot(q: CompletionQuery*, node: void*, session: void*, dep
         }
         var next = depth + 1;
         language_match_snapshot(q, sem_child(node, i), session, next);
-        i = i + 1;
+        i++;
     }
 }
 
@@ -104,7 +104,7 @@ fn language_grammar_index(q: CompletionQuery*): void {
         var entry = &q.grammar.data[i];
         var indexed = sem_state(&q.context, q.grammar_index, entry.node);
         indexed.value = bits(void*, entry);
-        i = i + 1;
+        i++;
     }
 }
 
@@ -113,9 +113,7 @@ fn language_match_candidate(q: CompletionQuery*, node: void*, candidate: Languag
     // relationships. Follow those actual ECS edges back to the source term.
     var parent = language_grammar_find(q, sem_parent(node));
     var named = parent != null;
-    if named {
-        named = parent.matched;
-    }
+    named &&= parent.matched;
     if named {
         var name = tower_node_get_parent_member_name(node);
         var alternative = language_syntax(parent.targets.data[0]);
@@ -128,26 +126,20 @@ fn language_match_candidate(q: CompletionQuery*, node: void*, candidate: Languag
             var term = alternative.items.data[i];
             var syntax = language_syntax(term);
             var captured = syntax.capture.length != 0;
-            if captured {
-                captured = name != null;
-            }
-            if captured {
-                captured = sem_equal(syntax.capture.data, name);
-            }
+            captured &&= name != null;
+            captured &&= sem_equal(syntax.capture.data, name);
             if captured {
                 candidate.capture = term;
                 candidate.capture_node = node;
                 break;
             }
-            i = i + 1;
+            i++;
         }
     }
     var entry = language_grammar_find(q, node);
     var present = entry != null;
-    if present {
-        present = entry.matched;
-    }
-    if present {} else {
+    present &&= entry.matched;
+    if !present {
         return;
     }
     candidate.matched = entry;
@@ -156,10 +148,8 @@ fn language_match_candidate(q: CompletionQuery*, node: void*, candidate: Languag
         var a = sem_match(candidate.capture_node);
         var b = sem_match(node);
         var same = a.start == b.start;
-        if same {
-            same = a.length == b.length;
-        }
-        if same {} else {
+        same &&= a.length == b.length;
+        if !same {
             candidate.capture = null;
         }
     }
@@ -168,7 +158,7 @@ fn language_match_candidate(q: CompletionQuery*, node: void*, candidate: Languag
 fn language_match_details(q: CompletionQuery*, candidate: LanguageCandidate*): void {
     var entry = candidate.matched;
     var present = entry != null;
-    if present {} else {
+    if !present {
         return;
     }
     var kind: u8* = "matched syntax";
@@ -217,7 +207,7 @@ fn language_snapshot(q: CompletionQuery*, node: void*, session: void*, depth: us
         var grammar_condition6 = syntax.kind == SyntaxTerm();
         if grammar_condition6 {
             text = &syntax.text;
-            reference = syntax.literal == false;
+            reference = !syntax.literal;
             if syntax.terminal_set {
                 reference = false;
             }
@@ -235,7 +225,7 @@ fn language_snapshot(q: CompletionQuery*, node: void*, session: void*, depth: us
                     break;
                 }
                 language_grammar_keep(&entry, target);
-                i = i + 1;
+                i++;
             }
         }
         var grammar_condition12 = entry.targets.length != 0;
@@ -259,7 +249,7 @@ fn language_snapshot(q: CompletionQuery*, node: void*, session: void*, depth: us
         }
         var next = depth + 1;
         language_snapshot(q, sem_child(node, i), session, next);
-        i = i + 1;
+        i++;
     }
 }
 
@@ -289,11 +279,11 @@ fn language_templates_refresh(q: CompletionQuery*, session: void*): void {
                         break;
                     }
                     language_grammar_keep(entry, syntax_inspection_capture(session, entry.node, j));
-                    j = j + 1;
+                    j++;
                 }
             }
         }
-        i = i + 1;
+        i++;
     }
 }
 
@@ -312,11 +302,11 @@ fn language_grammar_dispose(q: CompletionQuery*): void {
                 break;
             }
             entity_release(entry.targets.data[j]);
-            j = j + 1;
+            j++;
         }
         vector_dispose(void*, &entry.targets);
         vector_dispose(u8, &entry.category);
-        i = i + 1;
+        i++;
     }
     vector_dispose(LanguageGrammar, &q.grammar);
 }
@@ -342,7 +332,7 @@ fn language_grammar_find(q: CompletionQuery*, node: void*): LanguageGrammar* {
         if grammar_condition17 {
             return entry;
         }
-        i = i + 1;
+        i++;
     }
     return null;
 }
@@ -391,7 +381,7 @@ fn language_ancestor(node: void*, label: u8*): void* {
             return node;
         }
         node = sem_parent(node);
-        depth = depth + 1;
+        depth++;
     }
     return null;
 }
@@ -447,7 +437,7 @@ fn language_grammar_docs(q: CompletionQuery*, node: void*): void {
                         if grammar_condition34 {
                             break;
                         }
-                        first = first + 1;
+                        first++;
                     }
                     var grammar_condition35 = i != 0;
                     if grammar_condition35 {
@@ -455,7 +445,7 @@ fn language_grammar_docs(q: CompletionQuery*, node: void*): void {
                     }
                     var length = last - first;
                     sem_require(bytes_append(&text, &comment.data[first], length));
-                    i = i + 1;
+                    i++;
                 }
                 completion_text(&q.output, ",\"documentation\":");
                 language_quote(q, text.data, text.length);
@@ -464,7 +454,7 @@ fn language_grammar_docs(q: CompletionQuery*, node: void*): void {
             }
         }
         node = sem_parent(node);
-        depth = depth + 1;
+        depth++;
     }
 }
 
@@ -516,7 +506,7 @@ fn language_grammar_targets(q: CompletionQuery*, entry: LanguageGrammar*, docume
             sem_require(bytes_append(&text, preview.text.data, preview.text.length));
         }
         format_dispose(&preview);
-        i = i + 1;
+        i++;
     }
     var grammar_condition45 = entry.total > entry.targets.length;
     if grammar_condition45 {
@@ -590,7 +580,7 @@ fn language_grammar_details(q: CompletionQuery*, leaf: void*, node: void*): void
         var atom = sem_member(node, "atom");
         var grammar_condition50 = syntax.capture.length != 0;
         if grammar_condition50 {
-            if language_member_at(leaf, atom, "reference") {} else {
+            if !language_member_at(leaf, atom, "reference") {
                 kind = "capture binding";
                 description = "Binds the matched syntax subtree for use in this alternative's replacement. Its category is grammar, not a runtime type.";
                 language_string(q, "capture", syntax.capture.data);
@@ -672,7 +662,7 @@ fn language_grammar_details(q: CompletionQuery*, leaf: void*, node: void*): void
             language_string(q, "resolution", "Not resolved at this declaration; forward grammar dependencies may be resolved before activation.");
         }
         else {
-            var referenced_docs = docs == false;
+            var referenced_docs = !docs;
             language_grammar_targets(q, entry, referenced_docs);
         }
     }
@@ -692,7 +682,7 @@ fn language_template_capture(leaf: void*, template: LanguageGrammar*): void* {
         return null;
     }
     var index = convert(usize, span.id) - 3145728;
-    index = index + 1;
+    index++;
     var grammar_condition62 = index >= template.targets.length;
     if grammar_condition62 {
         return null;
@@ -720,9 +710,7 @@ fn language_capture_categories(q: CompletionQuery*, declaration: SyntaxNode*, ca
                 }
                 var term = language_syntax(alternative.items.data[j]);
                 var same = term.capture.length != 0;
-                if same {
-                    same = sem_equal(term.capture.data, capture.capture.data);
-                }
+                same &&= sem_equal(term.capture.data, capture.capture.data);
                 if same {
                     var known = false;
                     var k: usize = 0;
@@ -734,15 +722,15 @@ fn language_capture_categories(q: CompletionQuery*, declaration: SyntaxNode*, ca
                         if sem_equal(categories.data[k], term.text.data) {
                             known = true;
                         }
-                        k = k + 1;
+                        k++;
                     }
-                    if known {} else {
+                    if !known {
                         sem_require(vector_push(u8*, &categories, term.text.data));
                     }
                 }
-                j = j + 1;
+                j++;
             }
-            i = i + 1;
+            i++;
         }
     }
     var grammar_condition5 = categories.length == 0;
@@ -762,7 +750,7 @@ fn language_capture_categories(q: CompletionQuery*, declaration: SyntaxNode*, ca
             completion_text(&text, " | ");
         }
         completion_text(&text, categories.data[i]);
-        i = i + 1;
+        i++;
     }
     completion_text(&q.output, ",\"category\":");
     language_quote(q, text.data, text.length);
@@ -909,9 +897,7 @@ fn language_template_details(q: CompletionQuery*, leaf: void*, candidate: Langua
     language_string(q, "replacementCategory", template.category.data);
     var declaration = language_syntax(language_ancestor(template.node, "GrammarDeclaration"));
     var shared = declaration != null;
-    if shared {
-        shared = declaration.items.length > 1;
-    }
+    shared &&= declaration.items.length > 1;
     if shared {
         language_number(q, "replacementAlternatives", declaration.items.length);
     }
@@ -1003,6 +989,6 @@ fn language_template_walk(q: CompletionQuery*, node: void*, template: LanguageGr
         }
         var next = depth + 1;
         language_template_walk(q, sem_child(node, i), template, selected, checked, next, budget);
-        i = i + 1;
+        i++;
     }
 }

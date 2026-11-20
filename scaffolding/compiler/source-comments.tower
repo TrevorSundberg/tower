@@ -14,9 +14,7 @@ fn source_comment_targets(entity: void*, base: usize, limit: usize, targets: vec
         return;
     }
     var inside = n.start >= base;
-    if inside {
-        inside = n.start < limit;
-    }
+    inside &&= n.start < limit;
     if inside {
         sem_require(vector_push(void*, targets, entity));
     }
@@ -48,7 +46,7 @@ fn source_comment_targets(entity: void*, base: usize, limit: usize, targets: vec
                 break;
             }
             source_comment_targets(n.items.data[i], base, limit, targets);
-            i = i + 1;
+            i++;
         }
     }
 }
@@ -65,7 +63,7 @@ fn source_comment_sort(targets: vector(void*)*): void {
             break;
         }
         sem_require(vector_push(void*, &scratch, targets.data[i]));
-        i = i + 1;
+        i++;
     }
     var width: usize = 1;
     loop {
@@ -100,7 +98,7 @@ fn source_comment_sort(targets: vector(void*)*): void {
                 var take_left = right == end;
                 var available = left < middle;
                 if available {
-                    if take_left {} else {
+                    if !take_left {
                         var a = sem_get(targets.data[left]);
                         var b = sem_get(targets.data[right]);
                         take_left = a.start <= b.start;
@@ -110,13 +108,13 @@ fn source_comment_sort(targets: vector(void*)*): void {
                 }
                 if take_left {
                     scratch.data[at] = targets.data[left];
-                    left = left + 1;
+                    left++;
                 }
                 else {
                     scratch.data[at] = targets.data[right];
-                    right = right + 1;
+                    right++;
                 }
-                at = at + 1;
+                at++;
             }
             begin = end;
         }
@@ -133,21 +131,16 @@ fn source_comment_sort(targets: vector(void*)*): void {
 
 fn source_comment_append(n: FoundationNode*, source: u8*, first: usize, last: usize): void {
     // Normalize imported/custom lexer spellings into compilable Foundation trivia.
-    var c_step13 = last > first;
-    if c_step13 {
+    if last > first {
         var count = last - first;
-        var c_step14 = count >= 2;
-        if c_step14 {
-            var c_step15 = source[first] == 47;
-            if c_step15 {
+        if count >= 2 {
+            if source[first] == 47 {
                 var second = first + 1;
-                var c_step16 = source[second] == 47;
-                if c_step16 {
+                if source[second] == 47 {
                     first = first + 2;
                 }
                 else {
-                    var c_step17 = source[second] == 42;
-                    if c_step17 {
+                    if source[second] == 42 {
                         first = first + 2;
                         last = last - 2;
                     }
@@ -157,19 +150,15 @@ fn source_comment_append(n: FoundationNode*, source: u8*, first: usize, last: us
     }
     sem_require(bytes_append(&n.comments, "/*", 2));
     loop {
-        var c_step18 = first >= last;
-        if c_step18 {
+        if first >= last {
             break;
         }
         var c = source[first];
         sem_require(vector_push(u8, &n.comments, c));
         var next = first + 1;
-        var c_step19 = c == 42;
-        if c_step19 {
-            var c_step20 = next < last;
-            if c_step20 {
-                var c_step21 = source[next] == 47;
-                if c_step21 {
+        if c == 42 {
+            if next < last {
+                if source[next] == 47 {
                     sem_require(vector_push(u8, &n.comments, 32));
                 }
             }
@@ -228,8 +217,7 @@ export fn semantic_source_comments(root: void*, source: u8*, spans: usize*, coun
 
 fn source_comments_walk(entity: void*, target: vector(u8)*, strip: bool): void {
     var n = sem_get(entity);
-    var c_step22 = n == null;
-    if c_step22 {
+    if n == null {
         return;
     }
     if strip {
@@ -238,36 +226,31 @@ fn source_comments_walk(entity: void*, target: vector(u8)*, strip: bool): void {
     else {
         sem_require(bytes_append(target, n.comments.data, n.comments.length));
     }
-    var c_step23 = n.kind == KFunction();
-    if c_step23 {
+    if n.kind == KFunction() {
         source_comments_walk(n.body, target, strip);
         return;
     }
-    var c_step24 = n.kind == KIf();
-    if c_step24 {
+    if n.kind == KIf() {
         source_comments_walk(n.body, target, strip);
         source_comments_walk(n.otherwise, target, strip);
         return;
     }
-    var c_step25 = n.kind == KLoop();
-    if c_step25 {
+    if n.kind == KLoop() {
         source_comments_walk(n.body, target, strip);
         return;
     }
     var list = n.kind == KProgram();
-    var c_step26 = n.kind == KBlock();
-    if c_step26 {
+    if n.kind == KBlock() {
         list = true;
     }
     if list {
         var i: usize = 0;
         loop {
-            var c_step27 = i == n.items.length;
-            if c_step27 {
+            if i == n.items.length {
                 break;
             }
             source_comments_walk(n.items.data[i], target, strip);
-            i = i + 1;
+            i++;
         }
     }
 }

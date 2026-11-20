@@ -6,6 +6,7 @@ import 'regex-lowering';
 import 'syntax-lexer';
 import 'syntax-nodes';
 import 'syntax-types';
+import 'syntax-validation';
 import '../library/vector';
 
 // Interpret declaration parse trees on their existing shared entities.
@@ -58,7 +59,7 @@ fn syntax_text_length(text: u8*): usize {
         if done {
             return length;
         }
-        length = length + 1;
+        length++;
     }
 }
 
@@ -68,9 +69,7 @@ fn syntax_reader_finish(reader: SyntaxReader*, error: vector(u8)*): bool {
         return true;
     }
     var ok = node_text_set(error, reader.error);
-    if ok {
-        ok = bytes_append(error, reader.detail, reader.detail_length);
-    }
+    ok &&= bytes_append(error, reader.detail, reader.detail_length);
     var suffix = reader.suffix != null;
     if suffix {
         if ok {
@@ -81,10 +80,10 @@ fn syntax_reader_finish(reader: SyntaxReader*, error: vector(u8)*): bool {
     if ok {
         ok = foundation_name_append(error, 0);
         if ok {
-            error.length = error.length - 1;
+            error.length--;
         }
     }
-    if ok {} else {
+    if !ok {
         vector_dispose(u8, error);
     }
     return false;
@@ -118,7 +117,7 @@ fn syntax_reader_span(reader: SyntaxReader*, node: void*): ParserMatchData* {
         return null;
     }
     var outside = span.start > reader.source.text.length;
-    if outside {} else {
+    if !outside {
         var remaining = reader.source.text.length - span.start;
         outside = span.length > remaining;
     }
@@ -160,7 +159,7 @@ fn syntax_reader_attach(reader: SyntaxReader*, node: void*, kind: u32): SyntaxNo
 // the destination after the shared byte-buffer copy, including overlapping input.
 export fn syntax_identifier_decode(text: u8*, length: usize, result: vector(u8)*): bool {
     var ok = bytes_assign_text(result, text, length);
-    if ok {} else {
+    if !ok {
         return false;
     }
     result.length = syntax_identifier_decode_in_place(result.data, length);
@@ -171,14 +170,10 @@ export fn syntax_identifier_decode(text: u8*, length: usize, result: vector(u8)*
 // own storage rather than allocating a second string solely to decode a name.
 export fn syntax_identifier_decode_in_place(text: u8*, length: usize): usize {
     var quoted = length >= 2;
-    if quoted {
-        quoted = text[0] == 96;
-    }
+    quoted &&= text[0] == 96;
     var end = length - 1;
-    if quoted {
-        quoted = text[end] == 96;
-    }
-    if quoted {} else {
+    quoted &&= text[end] == 96;
+    if !quoted {
         return length;
     }
     var read: usize = 1;
@@ -189,14 +184,12 @@ export fn syntax_identifier_decode_in_place(text: u8*, length: usize): usize {
             break;
         }
         var byte = text[read];
-        read = read + 1;
+        read++;
         var escape = byte == 92;
-        if escape {
-            escape = read < end;
-        }
+        escape &&= read < end;
         if escape {
             byte = text[read];
-            read = read + 1;
+            read++;
             var selected = byte == 110;
             if selected {
                 byte = 10;
@@ -213,7 +206,7 @@ export fn syntax_identifier_decode_in_place(text: u8*, length: usize): usize {
             }
         }
         text[write] = byte;
-        write = write + 1;
+        write++;
     }
     text[write] = 0;
     return write;
@@ -245,42 +238,28 @@ export fn syntax_literal_check(text: u8*, length: usize): u32 {
         }
         var byte = text[index];
         var invalid = byte == 0;
-        if invalid {} else {
-            invalid = byte == 32;
-        }
-        if invalid {} else {
-            invalid = byte == 10;
-        }
-        if invalid {} else {
-            invalid = byte == 13;
-        }
-        if invalid {} else {
-            invalid = byte == 9;
-        }
-        if invalid {} else {
-            invalid = byte == 34;
-        }
-        if invalid {} else {
-            invalid = byte == 39;
-        }
+        invalid ||= byte == 32;
+        invalid ||= byte == 10;
+        invalid ||= byte == 13;
+        invalid ||= byte == 9;
+        invalid ||= byte == 34;
+        invalid ||= byte == 39;
         if invalid {
             return 2;
         }
         var alpha = lexicon_letter(byte);
-        if alpha {} else {
+        if !alpha {
             alpha = byte >= 48;
-            if alpha {
-                alpha = byte <= 57;
-            }
+            alpha &&= byte <= 57;
         }
         if alpha {
             letters = true;
         }
-        index = index + 1;
+        index++;
     }
     if letters {
         var word = lexicon_word(text, length);
-        if word {} else {
+        if !word {
             return 2;
         }
     }
@@ -289,9 +268,7 @@ export fn syntax_literal_check(text: u8*, length: usize): u32 {
         comment = text[0] == 47;
         if comment {
             comment = text[1] == 47;
-            if comment {} else {
-                comment = text[1] == 42;
-            }
+            comment ||= text[1] == 42;
         }
     }
     if comment {
@@ -326,22 +303,20 @@ fn syntax_reader_quoted(reader: SyntaxReader*, node: void*, result: vector(u8)*)
         return syntax_reader_fail(reader, "Unterminated quoted literal");
     }
     var quote = reader.source.text.data[cursor];
-    cursor = cursor + 1;
+    cursor++;
     loop {
         var done = cursor == end;
         if done {
             return syntax_reader_fail(reader, "Unterminated quoted literal");
         }
         var byte = reader.source.text.data[cursor];
-        cursor = cursor + 1;
+        cursor++;
         var closes = byte == quote;
         if closes {
             return true;
         }
         var newline = byte == 10;
-        if newline {} else {
-            newline = byte == 13;
-        }
+        newline ||= byte == 13;
         if newline {
             return syntax_reader_fail(reader, "Newline in quoted literal");
         }
@@ -352,7 +327,7 @@ fn syntax_reader_quoted(reader: SyntaxReader*, node: void*, result: vector(u8)*)
                 return syntax_reader_fail(reader, "Unterminated quoted literal");
             }
             byte = reader.source.text.data[cursor];
-            cursor = cursor + 1;
+            cursor++;
             var selected = byte == 110;
             if selected {
                 byte = 10;
@@ -366,13 +341,9 @@ fn syntax_reader_quoted(reader: SyntaxReader*, node: void*, result: vector(u8)*)
                         byte = 9;
                     } else {
                         selected = byte == 92;
-                        if selected {} else {
-                            selected = byte == 39;
-                        }
-                        if selected {} else {
-                            selected = byte == 34;
-                        }
-                        if selected {} else {
+                        selected ||= byte == 39;
+                        selected ||= byte == 34;
+                        if !selected {
                             return syntax_reader_fail(reader, "Unsupported literal escape");
                         }
                     }
@@ -380,7 +351,7 @@ fn syntax_reader_quoted(reader: SyntaxReader*, node: void*, result: vector(u8)*)
             }
         }
         var ok = foundation_name_append(result, byte);
-        if ok {} else {
+        if !ok {
             return syntax_reader_ok(reader, false);
         }
     }
@@ -394,11 +365,11 @@ fn syntax_reader_reverse(items: vector(void*)*): void {
         if done {
             return;
         }
-        right = right - 1;
+        right--;
         var saved = items.data[left];
         items.data[left] = items.data[right];
         items.data[right] = saved;
-        left = left + 1;
+        left++;
     }
 }
 
@@ -443,14 +414,12 @@ fn syntax_reader_term(reader: SyntaxReader*, node: void*): bool {
             }
             value.literal = true;
             var ok = syntax_reader_quoted(reader, item, &value.text);
-            if ok {
-                ok = syntax_reader_literal(reader, &value.text);
-            }
+            ok &&= syntax_reader_literal(reader, &value.text);
             if ok {
                 ok = vector_push(void*, &term.items, item);
                 ok = syntax_reader_ok(reader, ok);
             }
-            if ok {} else {
+            if !ok {
                 return false;
             }
             exclusions = syntax_reader_member(exclusions, "previous");
@@ -461,26 +430,24 @@ fn syntax_reader_term(reader: SyntaxReader*, node: void*): bool {
         if present {
             term.literal = true;
             var ok = syntax_reader_quoted(reader, literal, &term.text);
-            if ok {} else {
+            if !ok {
                 return false;
             }
         } else {
             present = reference != null;
-            if present {} else {
+            if !present {
                 reference = capture;
             }
             present = reference != null;
-            if present {} else {
+            if !present {
                 return syntax_reader_fail(reader, "Malformed bedrock atom: expected literal, reference or capture");
             }
             var ok = syntax_reader_name(reader, reference, &term.text);
             present = capture != null;
             if present {
-                if ok {
-                    ok = syntax_reader_name(reader, capture, &term.capture);
-                }
+                ok &&= syntax_reader_name(reader, capture, &term.capture);
             }
-            if ok {} else {
+            if !ok {
                 return false;
             }
         }
@@ -496,12 +463,8 @@ fn syntax_reader_term(reader: SyntaxReader*, node: void*): bool {
         var valid = repetition.length == 1;
         if valid {
             valid = text[0] == 42;
-            if valid {} else {
-                valid = text[0] == 43;
-            }
-            if valid {} else {
-                valid = text[0] == 63;
-            }
+            valid ||= text[0] == 43;
+            valid ||= text[0] == 63;
         }
         if valid {
             term.repetition = text[0];
@@ -535,7 +498,7 @@ fn syntax_reader_sequence(reader: SyntaxReader*, node: void*): bool {
             ok = vector_push(void*, &sequence.items, term);
             ok = syntax_reader_ok(reader, ok);
         }
-        if ok {} else {
+        if !ok {
             return false;
         }
         node = previous;
@@ -559,7 +522,7 @@ fn syntax_reader_rule(reader: SyntaxReader*, node: void*): bool {
         return false;
     }
     var ok = syntax_reader_name(reader, name, &rule.name);
-    if ok {} else {
+    if !ok {
         return false;
     }
     var empty = rule.name.length == 0;
@@ -573,21 +536,52 @@ fn syntax_reader_rule(reader: SyntaxReader*, node: void*): bool {
     }
     var text = reader.source.text.data + op.start;
     var valid = op.length == 1;
-    if valid {
-        valid = text[0] == 61;
-    }
-    if valid {} else {
+    valid &&= text[0] == 61;
+    if !valid {
         valid = op.length == 2;
-        if valid {
-            valid = text[0] == 124;
-        }
-        if valid {
-            valid = text[1] == 61;
-        }
+        valid &&= text[0] == 124;
+        valid &&= text[1] == 61;
         rule.append = valid;
     }
-    if valid {} else {
+    if !valid {
         return syntax_reader_detail(reader, "Unknown grammar assignment: ", text, op.length, "");
+    }
+    var annotation = syntax_reader_member(node, "precedence");
+    var level = syntax_reader_member(annotation, "level");
+    var annotated = level != null;
+    if annotated {
+        var span = syntax_reader_span(reader, level);
+        if span == null { return false; }
+        var cursor: usize = 0;
+        loop {
+            var done = cursor == span.length;
+            if done { break; }
+            var offset = span.start + cursor;
+            var digit = convert(u32, reader.source.text.data[offset]);
+            digit = digit - 48;
+            if digit > 9 { return syntax_reader_fail(reader, "Grammar precedence requires decimal digits"); }
+            var overflow = rule.precedence > 429496729;
+            if !overflow {
+                var edge = rule.precedence == 429496729;
+                if edge { overflow = digit > 5; }
+            }
+            if overflow { return syntax_reader_fail(reader, "Grammar precedence exceeds u32"); }
+            rule.precedence = rule.precedence * 10;
+            rule.precedence = rule.precedence + digit;
+            cursor++;
+        }
+        var zero = rule.precedence == 0;
+        if zero { return syntax_reader_fail(reader, "Grammar precedence must be positive"); }
+        var direction = syntax_reader_member(annotation, "direction");
+        span = syntax_reader_span(reader, direction);
+        if span == null { return false; }
+        var spelling = reader.source.text.data + span.start;
+        if syntax_bytes_compare(spelling, span.length, "left", 4) == 0 { rule.associativity = 1; }
+        if syntax_bytes_compare(spelling, span.length, "L>R", 3) == 0 { rule.associativity = 1; }
+        if syntax_bytes_compare(spelling, span.length, "right", 5) == 0 { rule.associativity = 2; }
+        if syntax_bytes_compare(spelling, span.length, "R<L", 3) == 0 { rule.associativity = 2; }
+        if syntax_bytes_compare(spelling, span.length, "nonassoc", 8) == 0 { rule.associativity = 3; }
+        if rule.associativity == 0 { return syntax_reader_fail(reader, "Unknown grammar associativity"); }
     }
     loop {
         var done = alternatives == null;
@@ -601,10 +595,16 @@ fn syntax_reader_rule(reader: SyntaxReader*, node: void*): bool {
         }
         ok = syntax_reader_sequence(reader, sequence);
         if ok {
+            var component = entity_component_get(sequence, reader.syntax_kind);
+            var data = bits(SyntaxNode*, entity_component_data(component));
+            data.precedence = rule.precedence;
+            data.associativity = rule.associativity;
+        }
+        if ok {
             ok = vector_push(void*, &rule.items, sequence);
             ok = syntax_reader_ok(reader, ok);
         }
-        if ok {} else {
+        if !ok {
             return false;
         }
         alternatives = syntax_reader_member(alternatives, "previous");
@@ -632,7 +632,7 @@ fn syntax_reader_rule(reader: SyntaxReader*, node: void*): bool {
         value.end = value.start + length;
         text = reader.source.text.data + value.start;
         ok = bytes_assign_text(&value.text, text, length);
-        if ok {} else {
+        if !ok {
             return syntax_reader_ok(reader, false);
         }
         syntax_node_replacement(rule, body);
@@ -645,7 +645,7 @@ fn syntax_reader_rule(reader: SyntaxReader*, node: void*): bool {
             var component = entity_component_get(rule.items.data[index], reader.syntax_kind);
             var alternative = bits(SyntaxNode*, entity_component_data(component));
             syntax_node_replacement(alternative, body);
-            index = index + 1;
+            index++;
         }
     }
     return true;
@@ -679,7 +679,7 @@ fn syntax_reader_token(reader: SyntaxReader*, node: void*, skipped: bool): bool 
         return false;
     }
     var ok = syntax_reader_name(reader, name, &value.name);
-    if ok {} else {
+    if !ok {
         return false;
     }
     var empty = value.name.length == 0;
@@ -691,12 +691,12 @@ fn syntax_reader_token(reader: SyntaxReader*, node: void*, skipped: bool): bool 
     if present {
         ok = syntax_reader_name(reader, label, &value.style);
     } else {
-        if skipped {} else {
+        if !skipped {
             ok = node_text_set(&value.style, "identifier");
             ok = syntax_reader_ok(reader, ok);
         }
     }
-    if ok {} else {
+    if !ok {
         return false;
     }
     var span = syntax_reader_span(reader, pattern);
@@ -712,7 +712,7 @@ fn syntax_reader_token(reader: SyntaxReader*, node: void*, skipped: bool): bool 
     var length = span.length - 2;
     var text = reader.source.text.data + start;
     ok = bytes_assign_text(&value.text, text, length);
-    if ok {} else {
+    if !ok {
         return syntax_reader_ok(reader, false);
     }
     var mode = syntax_reader_member(node, "mode");

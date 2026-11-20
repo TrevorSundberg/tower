@@ -18,9 +18,7 @@ fn parser_format_push(request: ParserFormat*, kind: ParserFormatTask, a: usize, 
     }
     var size = request.frames.length + 1;
     var ok = size != 0;
-    if ok {
-        ok = vector_reserve(ParserFormatFrame, &request.frames, size);
-    }
+    ok &&= vector_reserve(ParserFormatFrame, &request.frames, size);
     if ok {
         var frame = &request.frames.data[request.frames.length];
         frame.kind = kind;
@@ -44,10 +42,8 @@ fn parser_format_item_later(request: ParserFormat*, rule: usize, dot: usize): vo
 
 fn parser_format_state_valid(request: ParserFormat*, index: usize): bool {
     var ok = request.table != null;
-    if ok {
-        ok = index < request.table.states.length;
-    }
-    if ok {} else {
+    ok &&= index < request.table.states.length;
+    if !ok {
         request.result.failed = true;
     }
     return ok;
@@ -55,10 +51,8 @@ fn parser_format_state_valid(request: ParserFormat*, index: usize): bool {
 
 fn parser_format_rule_valid(request: ParserFormat*, index: usize): bool {
     var ok = request.table != null;
-    if ok {
-        ok = index < lr_grammar_rule_count(request.table.grammar);
-    }
-    if ok {} else {
+    ok &&= index < lr_grammar_rule_count(request.table.grammar);
+    if !ok {
         request.result.failed = true;
     }
     return ok;
@@ -108,7 +102,7 @@ fn parser_format_frame(request: ParserFormat*, frame: ParserFormatFrame*): void 
         }
         ParserFormatTask.Symbol => {
             var valid = frame.a < lr_grammar_symbol_count(table.grammar);
-            if valid {} else {
+            if !valid {
                 request.result.failed = true;
                 return;
             }
@@ -123,7 +117,7 @@ fn parser_format_frame(request: ParserFormat*, frame: ParserFormatFrame*): void 
         }
         ParserFormatTask.Item => {
             var valid = parser_format_rule_valid(request, frame.a);
-            if valid {} else {
+            if !valid {
                 return;
             }
             var rules = lr_grammar_rule_data(table.grammar);
@@ -183,7 +177,7 @@ fn parser_format_frame(request: ParserFormat*, frame: ParserFormatFrame*): void 
         }
         ParserFormatTask.Header => {
             var valid = parser_format_state_valid(request, frame.a);
-            if valid {} else {
+            if !valid {
                 return;
             }
             format_text(&f, frame.text);
@@ -199,7 +193,7 @@ fn parser_format_frame(request: ParserFormat*, frame: ParserFormatFrame*): void 
         }
         ParserFormatTask.State => {
             var valid = parser_format_state_valid(request, frame.a);
-            if valid {} else {
+            if !valid {
                 return;
             }
             parser_format_push(request, ParserFormatTask.Gotos, frame.a, 0, 0, null);
@@ -248,7 +242,7 @@ fn parser_format_frame(request: ParserFormat*, frame: ParserFormatFrame*): void 
             var reduce = frame.a != ParserNoIndex();
             if reduce {
                 var valid = parser_format_rule_valid(request, frame.a);
-                if valid {} else {
+                if !valid {
                     return;
                 }
                 var rules = lr_grammar_rule_data(table.grammar);
@@ -278,7 +272,7 @@ fn parser_format_frame(request: ParserFormat*, frame: ParserFormatFrame*): void 
             }
             var conflict: LRConflict;
             var ambiguous = lr_runtime_conflict(table.runtime, &conflict);
-            if ambiguous {} else {
+            if !ambiguous {
                 return;
             }
             var left = conflict.left.rule != ParserNoIndex();
@@ -352,7 +346,7 @@ fn parser_format_frame(request: ParserFormat*, frame: ParserFormatFrame*): void 
                 if outside {
                     selected = false;
                 }
-                index = index + 1;
+                index++;
                 if selected {
                     var separator = frame.c != 0;
                     if separator {
@@ -489,7 +483,7 @@ export fn parser_format_next(request: ParserFormat*): ParserFormatNeed {
         return request.need;
     }
     while request.frames.length != 0 {
-        request.frames.length = request.frames.length - 1;
+        request.frames.length--;
         var frame: ParserFormatFrame;
         copy(&frame, &request.frames.data[request.frames.length], sizeof(ParserFormatFrame));
         parser_format_frame(request, &frame);

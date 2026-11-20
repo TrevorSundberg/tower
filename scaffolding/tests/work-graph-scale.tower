@@ -24,32 +24,32 @@ fn work_scale(count: usize): i32 {
         if first {
             root = id;
         } else {
-            if work_depend(&g, id, previous) {} else {
+            if !work_depend(&g, id, previous) {
                 return 3;
             }
-            if work_depend(&g, id, root) {} else {
+            if !work_depend(&g, id, root) {
                 return 4;
             }
-            if work_depend(&g, id, root) {} else {
+            if !work_depend(&g, id, root) {
                 return 5;
             }
         }
-        if work_seal(&g, id) {} else {
+        if !work_seal(&g, id) {
             return 6;
         }
         previous = id;
-        i = i + 1;
+        i++;
     }
-    if work_demand(&g, previous) {} else {
+    if !work_demand(&g, previous) {
         return 7;
     }
     var ticket: WorkTicket;
     var completed: usize = 0;
     while work_take(&g, &ticket) {
-        if work_finish(&g, &ticket, true) {} else {
+        if !work_finish(&g, &ticket, true) {
             return 8;
         }
-        completed = completed + 1;
+        completed++;
     }
     var correct = completed == count;
     work_dispose(&g);

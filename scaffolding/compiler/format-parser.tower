@@ -33,7 +33,7 @@ extern fn abort(): void;
 
 fn format_parser_no_rule(): usize {
     var invalid: usize = 0;
-    invalid = invalid - 1;
+    invalid--;
     return invalid;
 }
 
@@ -75,14 +75,14 @@ export fn format_parser_tree(result: FormatResult*, root: void*, kind: void*): v
     var pending: vector(FormatTreeEntry);
     vector_init(FormatTreeEntry, &pending);
     var ok = format_tree_push(&pending, root, 0, member);
-    if ok {} else {
+    if !ok {
         result.failed = true;
     }
     while pending.length != 0 {
         if result.failed {
             break;
         }
-        pending.length = pending.length - 1;
+        pending.length--;
         var entry = &pending.data[pending.length];
         var node = entry.node;
         var depth = entry.depth;
@@ -95,9 +95,7 @@ export fn format_parser_tree(result: FormatResult*, root: void*, kind: void*): v
         }
         format_repeat(&f, 32, indent);
         var named = member != null;
-        if named {
-            named = *member != 0;
-        }
+        named &&= *member != 0;
         if named {
             format_text(&f, member);
             format_text(&f, ": ");
@@ -134,9 +132,9 @@ export fn format_parser_tree(result: FormatResult*, root: void*, kind: void*): v
         var count = entity_child_count(node);
         var next_depth = depth + 1;
         while count != 0 {
-            count = count - 1;
+            count--;
             ok = format_tree_push(&pending, entity_child_at(node, count), next_depth, entity_child_name(node, count));
-            if ok {} else {
+            if !ok {
                 result.failed = true;
                 break;
             }
@@ -253,7 +251,7 @@ export fn parser_table_utf8_id_to_string(userdata: void*, id: u32): u8* {
     result.text.data = &scratch[0];
     result.text.capacity = 6;
     var valid = format_parser_scalar(&result, id);
-    if valid {} else {
+    if !valid {
         return null;
     }
     var size = result.text.length + 1;

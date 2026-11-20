@@ -67,7 +67,7 @@ export fn automaton_destroy(value: Automaton*): void {
             break;
         }
         vector_dispose(SymbolRange, &value.states[i].ranges);
-        i = i + 1;
+        i++;
     }
     free(value.states);
     free(value);
@@ -128,7 +128,7 @@ fn automaton_sift(values: u32*, size: usize, start: usize): void {
     var root = start;
     loop {
         var child = root * 2;
-        child = child + 1;
+        child++;
         var done = child >= size;
         if done {
             return;
@@ -159,7 +159,7 @@ fn automaton_sort(values: u32*, size: usize): void {
         if done {
             break;
         }
-        start = start - 1;
+        start--;
         automaton_sift(values, size, start);
     }
     var end = size;
@@ -168,7 +168,7 @@ fn automaton_sort(values: u32*, size: usize): void {
         if done {
             return;
         }
-        end = end - 1;
+        end--;
         var saved = values[0];
         values[0] = values[end];
         values[end] = saved;
@@ -195,7 +195,7 @@ fn automaton_closure(value: Automaton*, work: AutomatonWork*, count: usize, resu
         if done {
             return any;
         }
-        count = count - 1;
+        count--;
         var index = work.pending[count];
         var absent = index < 0;
         if absent {
@@ -210,9 +210,9 @@ fn automaton_closure(value: Automaton*, work: AutomatonWork*, count: usize, resu
         var split = state.kind == 1;
         if split {
             work.pending[count] = state.out;
-            count = count + 1;
+            count++;
             work.pending[count] = state.other;
-            count = count + 1;
+            count++;
         } else {
             var word = index / 64;
             var bit = index % 64;
@@ -234,7 +234,7 @@ fn automaton_intern(value: Automaton*, work: AutomatonWork*, subset: AutomatonSu
         }
         hash = hash ^ subset.bits[i];
         hash = hash * 16777619;
-        i = i + 1;
+        i++;
     }
     var bucket = hash % 2039;
     var found = work.buckets[bucket];
@@ -255,7 +255,7 @@ fn automaton_intern(value: Automaton*, work: AutomatonWork*, subset: AutomatonSu
                 same = false;
                 break;
             }
-            i = i + 1;
+            i++;
         }
         if same {
             return found;
@@ -276,12 +276,12 @@ fn automaton_intern(value: Automaton*, work: AutomatonWork*, subset: AutomatonSu
         return -1;
     }
     var ok = vector_reserve(AutomatonSubset, &work.subsets, count);
-    if ok {} else {
+    if !ok {
         value.error = 2;
         return -1;
     }
     ok = vector_push(i32, &work.links, work.buckets[bucket]);
-    if ok {} else {
+    if !ok {
         value.error = 2;
         return -1;
     }
@@ -306,7 +306,7 @@ fn automaton_build(value: Automaton*, start: i32, accepting: usize, table: Lexer
         }
         work.masks[i] = mask;
         mask = mask * 2;
-        i = i + 1;
+        i++;
     }
     var bucket_bytes = sizeof(i32) * 2039;
     fill(&work.buckets, 255, bucket_bytes);
@@ -319,10 +319,10 @@ fn automaton_build(value: Automaton*, start: i32, accepting: usize, table: Lexer
         }
         var ranges = value.states[i].ranges.length * 2;
         count = count + ranges;
-        i = i + 1;
+        i++;
     }
     var ok = vector_reserve(u32, &work.alphabet, count);
-    if ok {} else {
+    if !ok {
         return 2;
     }
     work.alphabet.data[0] = 0;
@@ -342,12 +342,12 @@ fn automaton_build(value: Automaton*, start: i32, accepting: usize, table: Lexer
                 break;
             }
             work.alphabet.data[count] = state.ranges.data[j].first;
-            count = count + 1;
+            count++;
             work.alphabet.data[count] = state.ranges.data[j].last + 1;
-            count = count + 1;
-            j = j + 1;
+            count++;
+            j++;
         }
-        i = i + 1;
+        i++;
     }
     automaton_sort(work.alphabet.data, count);
     work.alphabet.length = 1;
@@ -361,12 +361,12 @@ fn automaton_build(value: Automaton*, start: i32, accepting: usize, table: Lexer
         var different = work.alphabet.data[i] != work.alphabet.data[previous];
         if different {
             work.alphabet.data[work.alphabet.length] = work.alphabet.data[i];
-            work.alphabet.length = work.alphabet.length + 1;
+            work.alphabet.length++;
         }
-        i = i + 1;
+        i++;
     }
     ok = lex_table_set_alphabet(table, work.alphabet.data, work.alphabet.length);
-    if ok {} else {
+    if !ok {
         return 2;
     }
     work.seeds[0] = start;
@@ -385,7 +385,7 @@ fn automaton_build(value: Automaton*, start: i32, accepting: usize, table: Lexer
     }
     var columns = work.alphabet.length - 1;
     ok = vector_reserve(i32, &work.row, columns);
-    if ok {} else {
+    if !ok {
         return 2;
     }
     var row: usize = 0;
@@ -429,16 +429,16 @@ fn automaton_build(value: Automaton*, start: i32, accepting: usize, table: Lexer
                                     break;
                                 }
                             }
-                            j = j + 1;
+                            j++;
                         }
                         var matches = inside != state.negated;
                         if matches {
                             work.seeds[seeds] = state.out;
-                            seeds = seeds + 1;
+                            seeds++;
                         }
                     }
                 }
-                i = i + 1;
+                i++;
             }
             var subset: AutomatonSubset;
             var nonempty = automaton_closure(value, work, seeds, &subset);
@@ -451,13 +451,13 @@ fn automaton_build(value: Automaton*, start: i32, accepting: usize, table: Lexer
                 }
             }
             work.row.data[column] = next;
-            column = column + 1;
+            column++;
         }
         ok = lex_table_append(table, work.row.data, columns, accepted);
-        if ok {} else {
+        if !ok {
             return 2;
         }
-        row = row + 1;
+        row++;
     }
 }
 

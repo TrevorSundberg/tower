@@ -32,7 +32,7 @@ export fn node_payload_init(kind: u32, data: void*): void {
         var value = bits(ParserMatchData*, data);
         value.id = 4294967294;
         value.rule = 0;
-        value.rule = value.rule - 1;
+        value.rule--;
     }
 }
 
@@ -78,7 +78,7 @@ fn node_text_set(text: vector(u8)*, source: u8*): bool {
         if done {
             break;
         }
-        count = count + 1;
+        count++;
     }
     var bytes = count + 1;
     var ok = vector_reserve(u8, text, bytes);
@@ -139,7 +139,7 @@ export fn node_string_resize(value: ParserStringData*, length: usize): bool {
                 break;
             }
             value.ids.data[i] = 4294967294;
-            i = i + 1;
+            i++;
         }
         value.ids.length = length;
     }
@@ -155,7 +155,7 @@ export fn node_string_set(value: ParserStringData*, index: usize, id: u32): bool
             return false;
         }
         var ok = node_string_resize(value, length);
-        if ok {} else {
+        if !ok {
             return false;
         }
     }
@@ -170,7 +170,7 @@ export fn node_string_append(value: ParserStringData*, source: u8*, count: usize
         return false;
     }
     var ok = vector_reserve(u32, &value.ids, end);
-    if ok {} else {
+    if !ok {
         return false;
     }
     var offset: usize = 0;
@@ -184,7 +184,7 @@ export fn node_string_append(value: ParserStringData*, source: u8*, count: usize
             break;
         }
         value.ids.data[value.ids.length] = id;
-        value.ids.length = value.ids.length + 1;
+        value.ids.length++;
         offset = offset + bytes;
     }
     return true;

@@ -219,6 +219,16 @@ x64/ARM64 (`x86_64-apple-macos11`, `arm64-apple-macos11`). These are verificatio
 targets, not a claim of available binaries. Windows ARM64 is not yet included.
 Browser/WASI retains its separate worker deployment/verification process.
 
+The operator migration additionally requires a bootstrap compiler supporting
+numeric grammar annotations and Tower expression normalization. Rebuilding the
+audited compiler sources with an older scope-only compiler is no longer sufficient.
+Foundation's instruction-like grammar is unchanged; Bedrock adds only generic
+production metadata. Keep an operator-capable compiler available while building
+its successor, and validate the successor against Foundation reconstruction and
+the parser/interpreter differential suites before replacing that bootstrap.
+Preserve its adjacent `share/tower` grammar resources when copying a bootstrap;
+a bare executable copy cannot locate its Bedrock/Foundation/Tower inputs.
+
 At this milestone Linux x64 host behavior is tested, while a complete Tower-only
 compiler and its self-build are unavailable. Windows/macOS compiler execution
 has not been performed. No hybrid executable is committed as a portable

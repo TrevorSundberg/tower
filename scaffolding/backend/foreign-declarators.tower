@@ -14,7 +14,7 @@ fn foreign_array(m: ForeignName*, base: ForeignType*): ForeignType* {
         type.count = foreign_integer(m);
         foreign_expect(m, "]");
     }
-    m.depth = m.depth + 1;
+    m.depth++;
     var foreign_condition3005 = m.depth > 64;
     if foreign_condition3005 {
         foreign_fail(m, "Foreign declarator nesting exceeds 64");
@@ -23,7 +23,7 @@ fn foreign_array(m: ForeignName*, base: ForeignType*): ForeignType* {
     else {
         type.base = foreign_array(m, base);
     }
-    m.depth = m.depth - 1;
+    m.depth--;
     return type;
 }
 
@@ -39,7 +39,7 @@ fn foreign_member_owner(m: ForeignName*): ForeignType* {
         if foreign_condition3007 {
             return null;
         }
-        i = i + 1;
+        i++;
         var foreign_condition3008 = i >= m.tokens.length;
         if foreign_condition3008 {
             return null;
@@ -48,7 +48,7 @@ fn foreign_member_owner(m: ForeignName*): ForeignType* {
         if foreign_condition3009 {
             return null;
         }
-        i = i + 1;
+        i++;
         var foreign_condition3010 = i >= m.tokens.length;
         if foreign_condition3010 {
             return null;
@@ -69,7 +69,7 @@ fn foreign_ms_array(m: ForeignName*, type: ForeignType*): void {
         if foreign_condition3011 {
             break;
         }
-        rank = rank + 1;
+        rank++;
         base = base.base;
     }
     foreign_ms_number(m, convert(u64, rank));
@@ -91,7 +91,7 @@ fn foreign_ms_array(m: ForeignName*, type: ForeignType*): void {
 }
 
 fn foreign_ms_member(m: ForeignName*, type: ForeignType*): void {
-    var cv = type.cv & 3;
+    var cv = type.cv &3;
     cv = cv + 80;
     var byte = convert(u8, cv);
     backend_text_append(&m.text, &byte, 1);

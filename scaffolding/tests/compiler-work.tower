@@ -4,8 +4,8 @@ import '../library/compiler-work';
 var failures: u32 = 0;
 
 fn check(ok: bool): void {
-    if ok {} else {
-        failures = failures + 1;
+    if !ok {
+        failures++;
     }
 }
 
@@ -13,7 +13,7 @@ fn compiler_work_tests(): void {
     var work = compiler_work_create(4, 2, 42, 17);
     var valid = work != null;
     check(valid);
-    if valid {} else {
+    if !valid {
         return;
     }
     var a = compiler_work_next(work);

@@ -7,7 +7,7 @@ export fn parallel_transform(values: u32*, count: usize): void {
     while i < count {
         var scaled = values[i] * 3;
         values[i] = scaled + 7;
-        i = i + 1;
+        i++;
     }
 }
 
@@ -16,7 +16,7 @@ export fn parallel_checksum(values: u32*, count: usize): u32 {
     var i: usize = 0;
     while i < count {
         sum = sum + values[i];
-        i = i + 1;
+        i++;
     }
     return sum;
 }

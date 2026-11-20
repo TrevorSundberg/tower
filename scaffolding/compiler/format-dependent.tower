@@ -41,10 +41,10 @@ fn format_dependent_tokens(f: FormatEngine*, entity: void*, text: vector(u8)*, d
     var generic_check5 = span != null;
     if generic_check5 {
         var terminal: usize = 0;
-        terminal = terminal - 1;
+        terminal--;
         var generic_check6 = span.rule == terminal;
         if generic_check6 {
-            if bytes_append(text, span.label.data, span.label.length) {} else {
+            if !bytes_append(text, span.label.data, span.label.length) {
                 f.result.failed = true;
             }
             return;
@@ -53,7 +53,7 @@ fn format_dependent_tokens(f: FormatEngine*, entity: void*, text: vector(u8)*, d
     var i: usize = 0;
     while i < entity_child_count(entity) {
         format_dependent_tokens(f, entity_child_at(entity, i), text, next);
-        i = i + 1;
+        i++;
     }
 }
 
@@ -89,7 +89,7 @@ fn format_dependent_list(f: FormatEngine*, entity: void*, label: u8*, separator:
     var i: usize = 0;
     while i < entity_child_count(entity) {
         format_dependent_list(f, entity_child_at(entity, i), label, separator, count, next);
-        i = i + 1;
+        i++;
     }
 }
 
@@ -204,6 +204,27 @@ fn format_dependent(f: FormatEngine*, entity: void*, depth: usize): void {
         }
         return;
     }
+    if format_dependent_is(f, entity, "TowerExpression") || format_dependent_is(f, entity, "TowerComma") {
+        var left = format_dependent_member(entity, "left");
+        var right = format_dependent_member(entity, "right");
+        if left != null && right != null {
+            format_dependent(f, left, next);
+            format_text(f, " ");
+            format_dependent(f, entity_child_at(entity, 1), next);
+            format_text(f, " ");
+            format_dependent(f, right, next);
+            return;
+        }
+        var condition = format_dependent_member(entity, "condition");
+        if condition != null {
+            format_dependent(f, condition, next);
+            format_text(f, " ? ");
+            format_dependent(f, format_dependent_member(entity, "body"), next);
+            format_text(f, " : ");
+            format_dependent(f, format_dependent_member(entity, "otherwise"), next);
+            return;
+        }
+    }
     if format_dependent_is(f, entity, "CoreBinary") {
         format_dependent(f, format_dependent_member(entity, "left"), next);
         format_text(f, " ");
@@ -227,7 +248,7 @@ fn format_dependent(f: FormatEngine*, entity: void*, depth: usize): void {
     var generic_check18 = span != null;
     if generic_check18 {
         var terminal: usize = 0;
-        terminal = terminal - 1;
+        terminal--;
         var generic_check19 = span.rule == terminal;
         if generic_check19 {
             format_bytes(f, &span.label);
@@ -237,7 +258,7 @@ fn format_dependent(f: FormatEngine*, entity: void*, depth: usize): void {
     var i: usize = 0;
     while i < entity_child_count(entity) {
         format_dependent(f, entity_child_at(entity, i), next);
-        i = i + 1;
+        i++;
     }
 }
 

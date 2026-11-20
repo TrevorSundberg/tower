@@ -35,88 +35,46 @@ fn parser_test_streams(): usize {
     var length: usize = 0;
     parser_stream_read(stream, &id, &start, &length);
     var ok = id == 97;
-    if ok {
-        ok = start == 0;
-    }
-    if ok {
-        ok = length == 1;
-    }
+    ok &&= start == 0;
+    ok &&= length == 1;
     parser_stream_read(stream, &id, &start, &length);
-    if ok {
-        ok = id == 233;
-    }
-    if ok {
-        ok = start == 1;
-    }
-    if ok {
-        ok = length == 2;
-    }
+    ok &&= id == 233;
+    ok &&= start == 1;
+    ok &&= length == 2;
     parser_stream_read(stream, &id, &start, &length);
-    if ok {
-        ok = id == 127984;
-    }
-    if ok {
-        ok = start == 3;
-    }
-    if ok {
-        ok = length == 4;
-    }
+    ok &&= id == 127984;
+    ok &&= start == 3;
+    ok &&= length == 4;
     parser_stream_read(stream, &id, &start, &length);
-    if ok {
-        ok = id == ParserStreamEnd();
-    }
-    if ok {
-        ok = start == convert(usize, ParserStreamEnd());
-    }
-    if ok {
-        ok = length == 0;
-    }
+    ok &&= id == ParserStreamEnd();
+    ok &&= start == convert(usize, ParserStreamEnd());
+    ok &&= length == 0;
     parser_stream_read(stream, &id, &start, &length);
-    if ok {
-        ok = id == ParserStreamEnd();
-    }
+    ok &&= id == ParserStreamEnd();
     var data = parser_stream_get_userdata(stream);
-    if ok {
-        ok = parser_stream_from_userdata(data) == stream;
-    }
+    ok &&= parser_stream_from_userdata(data) == stream;
     parser_stream_destroy(stream);
-    if ok {
-        ok = parser_stream_from_userdata(null) == null;
-    }
-    if ok {
-        ok = parser_stream_get_userdata(null) == null;
-    }
+    ok &&= parser_stream_from_userdata(null) == null;
+    ok &&= parser_stream_get_userdata(null) == null;
     var maximum = lr_none();
-    if ok {
-        ok = parser_stream_create(maximum, ParserInputService.Empty) == null;
-    }
+    ok &&= parser_stream_create(maximum, ParserInputService.Empty) == null;
     // Preserve the legacy recoverable source-copy allocation boundary.
     tower_test_buffer_fail_after(0);
     stream = parser_stream_utf8_null_terminated_create("source");
     tower_test_buffer_fail_after(lr_none());
     parser_stream_read(stream, &id, &start, &length);
-    if ok {
-        ok = id == ParserStreamEnd();
-    }
-    if ok {
-        ok = format_name_is(&stream.error, "Unable to allocate UTF-8 stream source");
-    }
+    ok &&= id == ParserStreamEnd();
+    ok &&= format_name_is(&stream.error, "Unable to allocate UTF-8 stream source");
     parser_stream_destroy(stream);
     // Invalid/truncated input remains stable EOF, matching the existing decoder.
     bytes[0] = 240;
     end = begin + 1;
     stream = parser_stream_utf8_create(begin, end);
     parser_stream_read(stream, &id, &start, &length);
-    if ok {
-        ok = id == ParserStreamEnd();
-    }
-    if ok {
-        ok = length == 0;
-    }
+    ok &&= id == ParserStreamEnd();
+    ok &&= length == 0;
     parser_stream_destroy(stream);
-    if ok {
-        ok = tower_test_buffer_count() == before;
-    }
+    ok &&= tower_test_buffer_count() == before;
     if ok {
         return 0;
     }
@@ -135,97 +93,51 @@ fn parser_test_request(table: FrontendTable*, kinds: FrontendKinds*): usize {
     // Distinct requests share only immutable runtime tables. A failed input must
     // not consume or change the successful request's stream/control/forest.
     var action = parser_request_next(a, &step);
-    if ok {
-        ok = action == 1;
-    }
-    if ok {
-        ok = step.id == 97;
-    }
-    if ok {
-        ok = step.start == 0;
-    }
+    ok &&= action == 1;
+    ok &&= step.id == 97;
+    ok &&= step.start == 0;
     var status = lr_tree_shift(a.control, a.forest, table.grammar, kinds.`match`, &step, &a.read_node_or_null, "a");
-    if ok {
-        ok = status == 1;
-    }
+    ok &&= status == 1;
     a.has_lookahead = false;
     action = parser_request_next(b, &step);
-    if ok {
-        ok = action == 4;
-    }
-    if ok {
-        ok = b.read_id == 120;
-    }
+    ok &&= action == 4;
+    ok &&= b.read_id == 120;
     parser_recognizer_destroy(b);
     parser_stream_destroy(second);
     action = parser_request_next(a, &step);
-    if ok {
-        ok = action == 1;
-    }
-    if ok {
-        ok = step.id == 98;
-    }
-    if ok {
-        ok = step.start == 1;
-    }
+    ok &&= action == 1;
+    ok &&= step.id == 98;
+    ok &&= step.start == 1;
     status = lr_tree_shift(a.control, a.forest, table.grammar, kinds.`match`, &step, &a.read_node_or_null, "b");
-    if ok {
-        ok = status == 1;
-    }
+    ok &&= status == 1;
     a.has_lookahead = false;
     action = parser_request_next(a, &step);
-    if ok {
-        ok = action == 2;
-    }
-    if ok {
-        ok = a.read_start == 2;
-    }
+    ok &&= action == 2;
+    ok &&= a.read_start == 2;
     var root: void* = null;
     var reduced = lr_tree_reduce(a.control, a.forest, table.grammar, &step, &root);
-    if ok {
-        ok = reduced;
-    }
+    ok &&= reduced;
     action = parser_request_next(a, &step);
-    if ok {
-        ok = action == 3;
-    }
+    ok &&= action == 3;
     root = lr_tree_accept(a.control, a.forest);
     var span = lr_tree_match(root, kinds.`match`);
-    if ok {
-        ok = span.start == 0;
-    }
-    if ok {
-        ok = span.length == 2;
-    }
+    ok &&= span.start == 0;
+    ok &&= span.length == 2;
     var work: ParserRequestWork;
     parser_request_work(a, &work);
-    if ok {
-        ok = work.reads == 3;
-    }
-    if ok {
-        ok = work.shifts == 2;
-    }
+    ok &&= work.reads == 3;
+    ok &&= work.shifts == 2;
     var completion = parser_recognizer_take_completion(a);
-    if ok {
-        ok = completion != null;
-    }
-    if ok {
-        ok = parser_recognizer_take_completion(a) == null;
-    }
+    ok &&= completion != null;
+    ok &&= parser_recognizer_take_completion(a) == null;
     parser_recognizer_destroy(a);
     parser_stream_destroy(first);
     // Accepted entities and transferred completion state outlive the request.
-    if ok {
-        ok = span.length == 2;
-    }
-    if ok {
-        ok = lr_completion_runtime(completion) == table.runtime;
-    }
+    ok &&= span.length == 2;
+    ok &&= lr_completion_runtime(completion) == table.runtime;
     lr_completion_destroy(completion);
     entity_release(root);
-    if ok {
-        ok = tower_test_buffer_count() == baseline;
-    }
+    ok &&= tower_test_buffer_count() == baseline;
     if ok {
         return 0;
     }
@@ -247,32 +159,18 @@ fn parser_test_buffered(table: FrontendTable*, kinds: FrontendKinds*): usize {
     var borrowed = node;
     parser_stream_return(stream, &node, 97, 17, 3, &error);
     var ok = node == null;
-    if ok {
-        ok = error.data == null;
-    }
+    ok &&= error.data == null;
     parser_recognizer_read_id(request);
-    if ok {
-        ok = request.read_node_or_null == borrowed;
-    }
-    if ok {
-        ok = request.read_start == 17;
-    }
-    if ok {
-        ok = format_name_is(&request.lookahead_error, "injected stream error");
-    }
+    ok &&= request.read_node_or_null == borrowed;
+    ok &&= request.read_start == 17;
+    ok &&= format_name_is(&request.lookahead_error, "injected stream error");
     parser_return_lookahead(request);
-    if ok {
-        ok = request.read_node_or_null == null;
-    }
-    if ok {
-        ok = request.has_lookahead == false;
-    }
+    ok &&= request.read_node_or_null == null;
+    ok &&= !request.has_lookahead;
     parser_recognizer_destroy(request);
     // Destroying unread lookahead releases the node and copied diagnostic.
     parser_stream_destroy(stream);
-    if ok {
-        ok = tower_test_buffer_count() == baseline;
-    }
+    ok &&= tower_test_buffer_count() == baseline;
     if ok {
         return 0;
     }
@@ -289,15 +187,13 @@ fn parser_state_tests(kinds: FrontendKinds*): usize {
     var root = frontend_test_root(kinds);
     var table: FrontendTable;
     var ok = frontend_table_init(&table, root, kinds);
-    if ok {
-        ok = frontend_table_finish(&table, false, false) == 0;
-    }
-    if ok {} else {
+    ok &&= frontend_table_finish(&table, false, false) == 0;
+    if !ok {
         abort();
     }
     result = parser_test_request(&table, kinds);
     failed = result != 0;
-    if failed {} else {
+    if !failed {
         result = parser_test_buffered(&table, kinds);
     }
     var stream = parser_stream_utf8_null_terminated_create("ab");
@@ -319,7 +215,7 @@ fn parser_state_tests(kinds: FrontendKinds*): usize {
         if succeeded {
             break;
         }
-        budget = budget + 1;
+        budget++;
         var limit = budget == 32;
         if limit {
             result = 804;

@@ -90,7 +90,7 @@ fn foreign_ms_number(m: ForeignName*, value: u64): void {
     }
     var foreign_condition85 = value <= 10;
     if foreign_condition85 {
-        var digit = value - 1;
+        var digit = value -1;
         foreign_number64(&m.text, digit, 10);
         return;
     }
@@ -100,7 +100,7 @@ fn foreign_ms_number(m: ForeignName*, value: u64): void {
         var part = value % 16;
         part = part + 65;
         digits[count] = convert(u8, part);
-        count = count + 1;
+        count++;
         value = value / 16;
         var foreign_condition86 = value == 0;
         if foreign_condition86 {
@@ -112,14 +112,14 @@ fn foreign_ms_number(m: ForeignName*, value: u64): void {
         if foreign_condition87 {
             break;
         }
-        count = count - 1;
+        count--;
         backend_text_append(&m.text, &digits[count], 1);
     }
     backend_text(&m.text, "@");
 }
 
 fn foreign_ms_cv(m: ForeignName*, cv: u32): void {
-    var value = cv & 3;
+    var value = cv &3;
     value = value + 65;
     var byte = convert(u8, value);
     backend_text_append(&m.text, &byte, 1);
@@ -136,7 +136,7 @@ fn foreign_ms_identifier(m: ForeignName*, name: u8*): void {
             foreign_number(&m.text, i, 10);
             return;
         }
-        i = i + 1;
+        i++;
     }
     backend_text(&m.text, name);
     backend_text(&m.text, "@");
@@ -151,7 +151,7 @@ fn foreign_ms_component(m: ForeignName*, type: ForeignType*): void {
         backend_text(&m.text, foreign_operator_code(m, type.name, true));
         return;
     }
-    var foreign_condition90 = type.template_id == false;
+    var foreign_condition90 = !type.template_id;
     if foreign_condition90 {
         foreign_ms_identifier(m, type.name);
         return;
@@ -181,9 +181,9 @@ fn foreign_ms_component(m: ForeignName*, type: ForeignType*): void {
         } else {
             foreign_ms_type(m, argument, false);
         }
-        i = i + 1;
+        i++;
     }
-    var count = m.text.length - start;
+    var count = m.text.length -start;
     var encoded = foreign_copy(m, &m.text.data[start], count);
     m.text.length = start;
     m.text.data[start] = 0;
@@ -251,7 +251,7 @@ fn foreign_ms_parameters(m: ForeignName*, function: ForeignType*): void {
     vector_init(u8*, &m.substitutions);
     var foreign_condition104 = function.args.length == 0;
     if foreign_condition104 {
-        var foreign_condition105 = function.variadic == false;
+        var foreign_condition105 = !function.variadic;
         if foreign_condition105 {
             backend_text(&m.text, "X");
         }
@@ -278,13 +278,13 @@ fn foreign_ms_parameters(m: ForeignName*, function: ForeignType*): void {
                 found = true;
                 break;
             }
-            j = j + 1;
+            j++;
         }
-        var foreign_condition108 = found == false;
+        var foreign_condition108 = !found;
         if foreign_condition108 {
             var start = m.text.length;
             foreign_ms_type(m, type, false);
-            var length = m.text.length - start;
+            var length = m.text.length -start;
             var foreign_condition109 = length > 1;
             if foreign_condition109 {
                 var foreign_condition110 = m.substitutions.length < 10;
@@ -294,7 +294,7 @@ fn foreign_ms_parameters(m: ForeignName*, function: ForeignType*): void {
             }
         }
         vector_dispose(u8, &key);
-        i = i + 1;
+        i++;
     }
     if function.variadic {
         backend_text(&m.text, "Z");
@@ -362,7 +362,7 @@ fn foreign_ms_type(m: ForeignName*, type: ForeignType*, result: bool): void {
     }
     var foreign_condition120 = type.kind == 3;
     if foreign_condition120 {
-        var byte = type.cv & 3;
+        var byte = type.cv &3;
         byte = byte + 80;
         var value = convert(u8, byte);
         backend_text_append(&m.text, &value, 1);
@@ -414,7 +414,7 @@ fn foreign_ms_type(m: ForeignName*, type: ForeignType*, result: bool): void {
         if foreign_condition125 {
             backend_text(&m.text, "E");
         }
-        var restricted = type.cv & 4;
+        var restricted = type.cv &4;
         var foreign_condition126 = restricted != 0;
         if foreign_condition126 {
             backend_text(&m.text, "I");
@@ -466,7 +466,7 @@ fn foreign_microsoft(m: ForeignName*): void {
         backend_text(&m.text, "Y");
     }
     else {
-        var code = m.access * 8;
+        var code = m.access *8;
         code = code + 65;
         var foreign_condition133 = m.member == 2;
         if foreign_condition133 {

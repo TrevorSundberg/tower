@@ -156,11 +156,11 @@ fn foreign_c(m: ForeignName*, object: bool): void {
             counted = true;
         }
     }
-    var foreign_condition21 = decorate == false;
+    var foreign_condition21 = !decorate;
     if foreign_condition21 {
         counted = false;
     }
-    var ir_name = object == false;
+    var ir_name = !object;
     if ir_name {
         counted = false;
     }
@@ -204,7 +204,7 @@ fn foreign_c(m: ForeignName*, object: bool): void {
                 break;
             }
             count = count + foreign_argument_bytes(m, m.function.args.data[i]);
-            i = i + 1;
+            i++;
         }
         foreign_number(&m.text, count, 10);
     }

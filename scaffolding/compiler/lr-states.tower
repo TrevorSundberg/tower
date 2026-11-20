@@ -52,7 +52,7 @@ fn lr_state_hash(analysis: LRAnalysis*, items: LRItems*): usize {
             hash = hash ^ item.position;
             hash = hash * 16777619;
         }
-        index = index + 1;
+        index++;
     }
 }
 
@@ -69,7 +69,7 @@ fn lr_state_equal(analysis: LRAnalysis*, a: LRItems*, b: LRItems*): bool {
             if kernel {
                 break;
             }
-            left = left + 1;
+            left++;
         }
         loop {
             var end = right == b.values.length;
@@ -80,7 +80,7 @@ fn lr_state_equal(analysis: LRAnalysis*, a: LRItems*, b: LRItems*): bool {
             if kernel {
                 break;
             }
-            right = right + 1;
+            right++;
         }
         var end = left == a.values.length;
         if end {
@@ -99,8 +99,8 @@ fn lr_state_equal(analysis: LRAnalysis*, a: LRItems*, b: LRItems*): bool {
         if different {
             return false;
         }
-        left = left + 1;
-        right = right + 1;
+        left++;
+        right++;
     }
 }
 
@@ -147,13 +147,13 @@ fn lr_state_symbol(analysis: LRAnalysis*, state: LRState*, symbol: usize): bool 
     var present = low < state.symbols.length;
     if present {
         var different = lr_symbol_less(analysis, symbol, state.symbols.data[low]);
-        if different {} else {
+        if !different {
             return true;
         }
     }
     var count = state.symbols.length + 1;
     var ok = vector_reserve(usize, &state.symbols, count);
-    if ok {} else {
+    if !ok {
         return false;
     }
     var moved = state.symbols.length - low;
@@ -185,7 +185,7 @@ export fn lr_states_destroy(value: LRStates*): void {
             break;
         }
         lr_state_destroy(value.states.data[index]);
-        index = index + 1;
+        index++;
     }
     vector_dispose(LRState*, &value.states);
     vector_dispose(usize, &value.pending);
@@ -202,7 +202,7 @@ fn lr_states_rehash(value: LRStates*): bool {
     needed = value.buckets.length * 2;
     needed = needed + 17;
     var ok = vector_reserve(usize, &value.buckets, needed);
-    if ok {} else {
+    if !ok {
         return false;
     }
     value.buckets.length = needed;
@@ -213,7 +213,7 @@ fn lr_states_rehash(value: LRStates*): bool {
             break;
         }
         value.buckets.data[index] = lr_none();
-        index = index + 1;
+        index++;
     }
     index = 0;
     loop {
@@ -225,14 +225,14 @@ fn lr_states_rehash(value: LRStates*): bool {
         var bucket = state.hash % needed;
         state.next = value.buckets.data[bucket];
         value.buckets.data[bucket] = index;
-        index = index + 1;
+        index++;
     }
 }
 
 // Takes ownership of items on every path, including an existing kernel match.
 fn lr_states_intern(value: LRStates*, items: LRItems*, origin: usize): usize {
     var ok = lr_states_rehash(value);
-    if ok {} else {
+    if !ok {
         lr_items_destroy(items);
         return lr_none();
     }
@@ -274,10 +274,8 @@ fn lr_states_intern(value: LRStates*, items: LRItems*, origin: usize): usize {
     state.next = value.buckets.data[bucket];
     index = value.states.length;
     ok = vector_push(usize, &value.pending, index);
-    if ok {
-        ok = vector_push(LRState*, &value.states, state);
-    }
-    if ok {} else {
+    ok &&= vector_push(LRState*, &value.states, state);
+    if !ok {
         lr_state_destroy(state);
         return lr_none();
     }
@@ -302,10 +300,8 @@ export fn lr_states_create(analysis: LRAnalysis*): LRStates* {
     var seed: LRItem;
     fill(&seed, 0, sizeof(LRItem));
     var ok = lr_items_insert(items, &seed);
-    if ok {
-        ok = lr_items_close(analysis, items, false);
-    }
-    if ok {} else {
+    ok &&= lr_items_close(analysis, items, false);
+    if !ok {
         lr_items_destroy(items);
         lr_states_destroy(value);
         return null;
@@ -321,7 +317,7 @@ export fn lr_states_create(analysis: LRAnalysis*): LRStates* {
         if done {
             return value;
         }
-        value.pending.length = value.pending.length - 1;
+        value.pending.length--;
         var index = value.pending.data[value.pending.length];
         var state = value.states.data[index];
         // Kernel items precede closure items, as in the ordinary LR builder.
@@ -347,15 +343,15 @@ export fn lr_states_create(analysis: LRAnalysis*): LRStates* {
                     if present {
                         var symbol = rule.begin + item.position;
                         ok = lr_state_symbol(analysis, state, symbol);
-                        if ok {} else {
+                        if !ok {
                             lr_states_destroy(value);
                             return null;
                         }
                     }
                 }
-                position = position + 1;
+                position++;
             }
-            pass = pass + 1;
+            pass++;
         }
         var position: usize = 0;
         loop {
@@ -371,7 +367,7 @@ export fn lr_states_create(analysis: LRAnalysis*): LRStates* {
                 return null;
             }
             ok = lr_items_goto(analysis, state.items, &analysis.symbols[symbol], next, false);
-            if ok {} else {
+            if !ok {
                 lr_items_destroy(next);
                 lr_states_destroy(value);
                 return null;
@@ -385,11 +381,11 @@ export fn lr_states_create(analysis: LRAnalysis*): LRStates* {
                 return null;
             }
             ok = lr_append(LRTransition, &state.edges, &edge);
-            if ok {} else {
+            if !ok {
                 lr_states_destroy(value);
                 return null;
             }
-            position = position + 1;
+            position++;
         }
     }
 }

@@ -176,10 +176,10 @@ fn language_generic_space(text: u8*, first: usize, last: usize): bool {
         if generic_check21 {
             space = true;
         }
-        if space {} else {
+        if !space {
             return false;
         }
-        first = first + 1;
+        first++;
     }
     return true;
 }
@@ -210,7 +210,7 @@ fn language_generic_documentation(q: CompletionQuery*, declaration: void*): void
                 var last = comments[after];
                 var generic_check24 = last <= end;
                 if generic_check24 {
-                    if language_generic_space(source, last, end) {} else {
+                    if !language_generic_space(source, last, end) {
                         break;
                     }
                     end = comments[before];
@@ -246,7 +246,7 @@ fn language_generic_documentation(q: CompletionQuery*, declaration: void*): void
             }
             return;
         }
-        m = m + 1;
+        m++;
     }
 }
 
@@ -271,7 +271,7 @@ fn language_generic_format(q: CompletionQuery*, info: GenericInfo*, formatted: F
     if inspection_condition14 {
         var inspection_condition15 = info.resolved != null;
         if inspection_condition15 {
-            var append = signature == false;
+            var append = !signature;
             if signature {
                 append = info.kind == GenericInfoKind.Variable;
                 if append {
@@ -298,10 +298,8 @@ fn language_generic_details(q: CompletionQuery*, info: GenericInfo*): void {
         var formatted: FormatResult;
         fill(&formatted, 0, sizeof(FormatResult));
         language_generic_format(q, info, &formatted, false);
-        var formatted_ok = formatted.failed == false;
-        if formatted_ok {
-            formatted_ok = formatted.text.length != 0;
-        }
+        var formatted_ok = !formatted.failed;
+        formatted_ok &&= formatted.text.length != 0;
         if formatted_ok {
             completion_text(&q.output, ",\"type\":");
             language_quote(q, formatted.text.data, formatted.text.length);

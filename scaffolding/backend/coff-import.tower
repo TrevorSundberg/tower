@@ -17,12 +17,12 @@ fn coff_unsigned(data: u8*, number: u32, count: usize, big: bool): void {
         var at = i;
         if big {
             at = count - i;
-            at = at - 1;
+            at--;
         }
-        var byte = number & 255;
+        var byte = number &255;
         data[at] = convert(u8, byte);
         number = number / 256;
-        i = i + 1;
+        i++;
     }
 }
 
@@ -40,7 +40,7 @@ fn coff_archive_header(data: u8*, name: u8*, name_size: usize, size: usize): voi
         var digit = size % 10;
         digit = digit + 48;
         digits[count] = convert(u8, digit);
-        count = count + 1;
+        count++;
         size = size / 10;
         var done = size == 0;
         if done {
@@ -49,9 +49,9 @@ fn coff_archive_header(data: u8*, name: u8*, name_size: usize, size: usize): voi
     }
     var i: usize = 48;
     while count != 0 {
-        count = count - 1;
+        count--;
         data[i] = digits[count];
-        i = i + 1;
+        i++;
     }
     data[58] = 96;
     data[59] = 10;
@@ -60,7 +60,7 @@ fn coff_archive_header(data: u8*, name: u8*, name_size: usize, size: usize): voi
 fn coff_name_length(name: u8*): usize {
     var i: usize = 0;
     while name[i] != 0 {
-        i = i + 1;
+        i++;
     }
     return i;
 }
@@ -69,24 +69,16 @@ fn coff_import_archive(out: vector(u8)*, machine: u32, symbol: u8*, dll: u8*): b
     var symbol_size = coff_name_length(symbol) + 1;
     var dll_size = coff_name_length(dll) + 1;
     var valid = symbol_size > 1;
-    if valid {
-        valid = symbol_size <= 65536;
-    }
-    if valid {
-        valid = dll_size > 1;
-    }
-    if valid {
-        valid = dll_size <= 65536;
-    }
-    if valid {
-        valid = machine <= 65535;
-    }
-    if valid {} else {
+    valid &&= symbol_size <= 65536;
+    valid &&= dll_size > 1;
+    valid &&= dll_size <= 65536;
+    valid &&= machine <= 65535;
+    if !valid {
         return false;
     }
     // Big-endian symbol count and member offset, then the NUL-terminated name.
     var linker_size = 8 + symbol_size;
-    var padding = linker_size & 1;
+    var padding = linker_size &1;
     var member = CoffArchiveMagicBytes() + CoffArchiveHeaderBytes();
     member = member + linker_size;
     member = member + padding;
@@ -96,7 +88,7 @@ fn coff_import_archive(out: vector(u8)*, machine: u32, symbol: u8*, dll: u8*): b
     total = total + object_size;
     padding = object_size & 1;
     total = total + padding;
-    if vector_reserve(u8, out, total) {} else {
+    if !vector_reserve(u8, out, total) {
         return false;
     }
     out.length = total;
@@ -108,7 +100,7 @@ fn coff_import_archive(out: vector(u8)*, machine: u32, symbol: u8*, dll: u8*): b
     coff_unsigned(data, 1, 4, true);
     coff_unsigned(&data[4], convert(u32, member), 4, true);
     copy(&data[8], symbol, symbol_size);
-    var odd = linker_size & 1;
+    var odd = linker_size &1;
     var padded = odd != 0;
     if padded {
         data[linker_size] = 10;
@@ -127,7 +119,7 @@ fn coff_import_archive(out: vector(u8)*, machine: u32, symbol: u8*, dll: u8*): b
     copy(&data[symbol_size], dll, dll_size);
     padded = padding != 0;
     if padded {
-        var last = total - 1;
+        var last = total -1;
         out.data[last] = 10;
     }
     return true;

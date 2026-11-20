@@ -43,7 +43,7 @@ export fn backend_link_wasi(link: BackendLink*, triple: u8*): bool {
     `cpp_name(static void lld::CommonLinkerContext::destroy())`();
     `cpp_name(dtor(base) llvm::raw_fd_ostream())`(&error);
     fclose(error_file);
-    failed = linked == false;
+    failed = !linked;
     if failed {
         backend_text(&link.error, "Link failed: ");
         var diagnostics: vector(u8);
@@ -53,8 +53,6 @@ export fn backend_link_wasi(link: BackendLink*, triple: u8*): bool {
         vector_dispose(u8, &diagnostics);
     }
     remove("tower-link.stderr");
-    if linked {
-        linked = backend_link_read_output(link);
-    }
+    linked &&= backend_link_read_output(link);
     return linked;
 }

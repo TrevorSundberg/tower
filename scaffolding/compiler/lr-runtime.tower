@@ -6,7 +6,7 @@ import 'lr-states';
 import '../library/vector';
 
 // Disposable runtime indexes. Grammar entities and their provenance remain the
-// source of truth; rows preserve conflicts instead of selecting an alternative.
+// source of truth; explicit precedence resolves eligible conflicts at build time.
 struct LRRow {
     actions: vector(LRAction);
     direct: vector(usize);
@@ -71,13 +71,13 @@ fn lr_action_insert(values: vector(LRAction)*, value: LRAction*): bool {
     var present = low < values.length;
     if present {
         var different = lr_action_less(value, &values.data[low]);
-        if different {} else {
+        if !different {
             return true;
         }
     }
     var count = values.length + 1;
     var ok = vector_reserve(LRAction, values, count);
-    if ok {} else {
+    if !ok {
         return false;
     }
     var moved = values.length - low;
@@ -107,7 +107,7 @@ export fn lr_runtime_destroy(value: LRRuntime*): void {
             break;
         }
         vector_dispose(LRGoto, &value.states.data[index].gotos);
-        index = index + 1;
+        index++;
     }
     index = 0;
     loop {
@@ -116,7 +116,7 @@ export fn lr_runtime_destroy(value: LRRuntime*): void {
             break;
         }
         lr_row_destroy(value.rows.data[index]);
-        index = index + 1;
+        index++;
     }
     vector_dispose(LRRuntimeState, &value.states);
     vector_dispose(LRRow*, &value.rows);
@@ -126,7 +126,89 @@ export fn lr_runtime_destroy(value: LRRuntime*): void {
     free(value);
 }
 
-fn lr_row_normalize(row: LRRow*, conflict: LRConflict*, state: usize): void {
+// Only explicit, compatible production annotations resolve a shift/reduce pair.
+// Decisions are made once during table construction; the parser has no operator
+// dispatch or extra runtime tree. Unannotated and reduce/reduce conflicts remain.
+fn lr_precedence_choice(source: LRStates*, state: usize, a: LRAction*, b: LRAction*): u32 {
+    var exact = a.first == a.last;
+    exact &&= b.first == b.last;
+    exact &&= a.first == b.first;
+    if !exact { return 0; }
+    var a_shift = a.state != lr_none();
+    var b_shift = b.state != lr_none();
+    var same = a_shift == b_shift;
+    if same { return 0; }
+    var reduction = a;
+    if a_shift { reduction = b; }
+    var rule = &source.analysis.rules[reduction.rule];
+    var annotated = rule.precedence != 0;
+    if !annotated { return 0; }
+    var power: u32 = 0;
+    var direction: u32 = 0;
+    var items = source.states.data[state].items;
+    var index: usize = 0;
+    loop {
+        var done = index == items.values.length;
+        if done { break; }
+        var item = &items.values.data[index];
+        index++;
+        var candidate = &source.analysis.rules[item.rule];
+        var eligible = item.position < candidate.count;
+        if !eligible { continue; }
+        var position = candidate.begin + item.position;
+        var symbol = &source.analysis.symbols[position];
+        eligible = symbol.nonterminal == lr_none();
+        eligible &&= symbol.first == a.first;
+        eligible &&= symbol.last == a.last;
+        if !eligible { continue; }
+        var missing = candidate.precedence == 0;
+        if missing { return 0; }
+        var present = power != 0;
+        if present {
+            var incompatible = power != candidate.precedence;
+            incompatible ||= direction != candidate.associativity;
+            if incompatible { return 0; }
+        }
+        power = candidate.precedence;
+        direction = candidate.associativity;
+    }
+    var missing = power == 0;
+    if missing { return 0; }
+    var reduce = rule.precedence > power;
+    var equal = rule.precedence == power;
+    if equal {
+        var incompatible = rule.associativity != direction;
+        if incompatible { return 0; }
+        var nonassoc = direction == 3;
+        if nonassoc { return 3; }
+        reduce = direction == 1;
+    }
+    var choose_a = reduce != a_shift;
+    if choose_a { return 1; }
+    return 2;
+}
+
+fn lr_row_normalize(row: LRRow*, conflict: LRConflict*, state: usize, source: LRStates*): void {
+    // Precedence never hides a reduce/reduce conflict behind a chosen shift.
+    // Validate pairs before merging ranges or dropping a non-associative action.
+    var first: usize = 0;
+    while first < row.actions.length {
+        var a = &row.actions.data[first];
+        var second = first + 1;
+        while second < row.actions.length {
+            var b = &row.actions.data[second];
+            if b.first > a.last { break; }
+            var same_kind = (a.state == lr_none()) == (b.state == lr_none());
+            if same_kind && (a.state != b.state || a.rule != b.rule) {
+                conflict.state = state;
+                copy(&conflict.left, a, sizeof(LRAction));
+                copy(&conflict.right, b, sizeof(LRAction));
+                return;
+            }
+            second++;
+        }
+        first++;
+    }
     var read: usize = 0;
     var count: usize = 0;
     loop {
@@ -141,13 +223,11 @@ fn lr_row_normalize(row: LRRow*, conflict: LRConflict*, state: usize): void {
             var previous = count - 1;
             var last = &row.actions.data[previous];
             var same = last.rule == action.rule;
-            if same {
-                same = last.state == action.state;
-            }
+            same &&= last.state == action.state;
             if same {
                 var first = convert(u64, action.first);
                 var limit = convert(u64, last.last);
-                limit = limit + 1;
+                limit++;
                 merged = first <= limit;
                 if merged {
                     var larger = action.last > last.last;
@@ -156,9 +236,19 @@ fn lr_row_normalize(row: LRRow*, conflict: LRConflict*, state: usize): void {
                     }
                 }
             }
-            if merged {} else {
+            if !merged {
                 var overlap = action.first <= last.last;
                 if overlap {
+                    var choice = lr_precedence_choice(source, state, last, action);
+                    var resolved = choice != 0;
+                    if resolved {
+                        var second = choice == 2;
+                        if second { copy(last, action, sizeof(LRAction)); }
+                        var reject = choice == 3;
+                        if reject { count--; }
+                        read++;
+                        continue;
+                    }
                     conflict.state = state;
                     copy(&conflict.left, last, sizeof(LRAction));
                     copy(&conflict.right, action, sizeof(LRAction));
@@ -166,21 +256,19 @@ fn lr_row_normalize(row: LRRow*, conflict: LRConflict*, state: usize): void {
                 }
             }
         }
-        if merged {} else {
+        if !merged {
             copy(&row.actions.data[count], action, sizeof(LRAction));
-            count = count + 1;
+            count++;
         }
-        read = read + 1;
+        read++;
     }
     row.actions.length = count;
 }
 
 fn lr_row_equal(a: LRRow*, b: LRRow*): bool {
     var same = a.hash == b.hash;
-    if same {
-        same = a.actions.length == b.actions.length;
-    }
-    if same {} else {
+    same &&= a.actions.length == b.actions.length;
+    if !same {
         return false;
     }
     var index: usize = 0;
@@ -199,7 +287,7 @@ fn lr_row_equal(a: LRRow*, b: LRRow*): bool {
         if different {
             return false;
         }
-        index = index + 1;
+        index++;
     }
 }
 
@@ -222,7 +310,7 @@ fn lr_row_hash(row: LRRow*): usize {
         hash = hash * 16777619;
         hash = hash ^ action.state;
         hash = hash * 16777619;
-        index = index + 1;
+        index++;
     }
 }
 
@@ -240,13 +328,13 @@ fn lr_row_index(row: LRRow*): bool {
         var action = &row.actions.data[index];
         var single = action.first == action.last;
         if single {
-            singles = singles + 1;
-            var eof = action.first == 4294967294;
+            singles++;
+            var eof = action.first == LRTokenEnd();
             if eof {
                 row.reduction = action.rule;
             }
         }
-        index = index + 1;
+        index++;
     }
     var needed = singles * 2;
     var size: usize = 1;
@@ -258,7 +346,7 @@ fn lr_row_index(row: LRRow*): bool {
         size = size * 2;
     }
     var ok = vector_reserve(usize, &row.direct, size);
-    if ok {} else {
+    if !ok {
         return false;
     }
     row.direct.length = size;
@@ -286,12 +374,12 @@ fn lr_row_index(row: LRRow*): bool {
                 if empty {
                     break;
                 }
-                bucket = bucket + 1;
+                bucket++;
                 bucket = bucket & mask;
             }
             row.direct.data[bucket] = index;
         }
-        index = index + 1;
+        index++;
     }
 }
 
@@ -305,13 +393,13 @@ fn lr_runtime_gotos(state: LRRuntimeState*, input: LRState*, analysis: LRAnalysi
         var edge = &input.edges.data[index];
         var symbol = &analysis.symbols[edge.symbol];
         var terminal = symbol.nonterminal == lr_none();
-        if terminal {} else {
+        if !terminal {
             var entry: LRGoto;
             entry.nonterminal = symbol.nonterminal;
             entry.state = edge.state;
             var position = state.gotos.length;
             var ok = lr_append(LRGoto, &state.gotos, &entry);
-            if ok {} else {
+            if !ok {
                 return false;
             }
             loop {
@@ -329,14 +417,14 @@ fn lr_runtime_gotos(state: LRRuntimeState*, input: LRState*, analysis: LRAnalysi
             }
             copy(&state.gotos.data[position], &entry, sizeof(LRGoto));
         }
-        index = index + 1;
+        index++;
     }
 }
 
 fn lr_runtime_build(value: LRRuntime*, source: LRStates*, buckets: vector(usize)*): bool {
     var rule_count = source.analysis.rule_count;
     var ok = vector_reserve(LRProduction, &value.rules, rule_count);
-    if ok {} else {
+    if !ok {
         return false;
     }
     var rule_bytes = rule_count * sizeof(LRProduction);
@@ -344,16 +432,16 @@ fn lr_runtime_build(value: LRRuntime*, source: LRStates*, buckets: vector(usize)
     value.rules.length = rule_count;
     var count = source.states.length;
     ok = vector_reserve(LRRuntimeState, &value.states, count);
-    if ok {} else {
+    if !ok {
         return false;
     }
     var bytes = count * sizeof(LRRuntimeState);
     fill(value.states.data, 0, bytes);
     value.states.length = count;
     var bucket_count = count * 2;
-    bucket_count = bucket_count + 1;
+    bucket_count++;
     ok = vector_reserve(usize, buckets, bucket_count);
-    if ok {} else {
+    if !ok {
         return false;
     }
     buckets.length = bucket_count;
@@ -379,13 +467,13 @@ fn lr_runtime_build(value: LRRuntime*, source: LRStates*, buckets: vector(usize)
                 break;
             }
             ok = lr_action_insert(&row.actions, &input.actions.data[position]);
-            if ok {} else {
+            if !ok {
                 lr_row_destroy(row);
                 return false;
             }
-            position = position + 1;
+            position++;
         }
-        lr_row_normalize(row, &value.conflict, index);
+        lr_row_normalize(row, &value.conflict, index, source);
         var conflict = value.conflict.state != lr_none();
         if conflict {
             lr_row_destroy(row);
@@ -414,12 +502,10 @@ fn lr_runtime_build(value: LRRuntime*, source: LRStates*, buckets: vector(usize)
             }
             existing = other.next;
         }
-        if shared {} else {
+        if !shared {
             ok = lr_row_index(row);
-            if ok {
-                ok = vector_push(LRRow*, &value.rows, row);
-            }
-            if ok {} else {
+            ok &&= vector_push(LRRow*, &value.rows, row);
+            if !ok {
                 lr_row_destroy(row);
                 return false;
             }
@@ -429,10 +515,10 @@ fn lr_runtime_build(value: LRRuntime*, source: LRStates*, buckets: vector(usize)
         var state = &value.states.data[index];
         state.row = row;
         ok = lr_runtime_gotos(state, input, source.analysis);
-        if ok {} else {
+        if !ok {
             return false;
         }
-        index = index + 1;
+        index++;
     }
 }
 
@@ -533,7 +619,7 @@ export fn lr_runtime_action(value: LRRuntime*, state: usize, id: u32, result: LR
             copy(result, action, sizeof(LRAction));
             return true;
         }
-        bucket = bucket + 1;
+        bucket++;
         bucket = bucket & mask;
     }
     var low: usize = 0;
@@ -583,7 +669,7 @@ export fn lr_runtime_specialize(value: LRRuntime*, source: LRStates*): void {
             }
             root = index;
         }
-        index = index + 1;
+        index++;
     }
     var missing = root == lr_none();
     if missing {
@@ -610,15 +696,15 @@ export fn lr_runtime_specialize(value: LRRuntime*, source: LRStates*): void {
         if invalid {
             return;
         }
-        invalid = symbol.last >= 4294967293;
+        invalid = symbol.last >= LRTokenPropagation();
         if invalid {
             return;
         }
-        index = index + 1;
+        index++;
     }
     var count = rule.count + 1;
     var ok = vector_reserve(usize, &value.sequence_states, count);
-    if ok {} else {
+    if !ok {
         return;
     }
     var sequence = symbol_sequence_create(rule.count);
@@ -637,10 +723,8 @@ export fn lr_runtime_specialize(value: LRRuntime*, source: LRStates*): void {
         var symbol = &source.analysis.symbols[position];
         var action: LRAction;
         ok = lr_runtime_action(value, value.sequence_states.data[index], symbol.first, &action);
-        if ok {
-            ok = action.state != lr_none();
-        }
-        if ok {} else {
+        ok &&= action.state != lr_none();
+        if !ok {
             symbol_sequence_destroy(sequence);
             return;
         }

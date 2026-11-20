@@ -39,9 +39,9 @@ fn generic_parameters(context: GenericContext*, template: GenericTemplate*, node
         var type = compiler_name_is(annotation, "type");
         template.parameters[template.count] = node;
         template.type_parameters[template.count] = type;
-        template.count = template.count + 1;
+        template.count++;
         if type {
-            template.type_count = template.type_count + 1;
+            template.type_count++;
         }
         return;
     }
@@ -55,7 +55,7 @@ fn generic_parameters(context: GenericContext*, template: GenericTemplate*, node
         var child = entity_child_at(node, i);
         var next = depth + 1;
         generic_parameters(context, template, child, next);
-        i = i + 1;
+        i++;
     }
 }
 
@@ -183,15 +183,15 @@ fn compiler_clone_branch(source: Entity*, remaining: usize*, context: GenericCon
         *remaining = *remaining - 1;
         var attached = entity_attach(copy, frame.destination, role);
         entity_release(copy);
-        failed = attached == false;
+        failed = !attached;
         if failed {
             break;
         }
-        frame.next = frame.next + 1;
+        frame.next++;
         frames[length].source = child;
         frames[length].destination = copy;
         frames[length].next = 0;
-        length = length + 1;
+        length++;
     }
     free(frames);
     if failed {
@@ -226,9 +226,7 @@ export fn generic_instantiate(context: GenericContext*, definition: Entity*, use
         var same = current.definition == definition;
         // Only compare arguments for this definition; stop at the first
         // mismatch. Other templates may have a different argument count.
-        if same {
-            same = current.count == count;
-        }
+        same &&= current.count == count;
         if same {
             var i: usize = 0;
             while i < count {
@@ -237,7 +235,7 @@ export fn generic_instantiate(context: GenericContext*, definition: Entity*, use
                     same = false;
                     break;
                 }
-                i = i + 1;
+                i++;
             }
         }
         if same {
@@ -270,10 +268,10 @@ export fn generic_instantiate(context: GenericContext*, definition: Entity*, use
     var i: usize = 0;
     while i < count {
         instance.arguments[i] = arguments[i];
-        i = i + 1;
+        i++;
     }
     var attached = entity_attach(node, context.root, null);
-    if attached {} else {
+    if !attached {
         entity_release(node);
         context.error = "Unable to attach template instance";
         return null;
@@ -281,7 +279,7 @@ export fn generic_instantiate(context: GenericContext*, definition: Entity*, use
     // Publish before semantic resolution, so recursive references reuse this node.
     instance.next = context.first;
     context.first = instance;
-    context.count = context.count + 1;
+    context.count++;
     entity_release(node);
     return node;
 }
@@ -325,9 +323,9 @@ export fn generic_lookup(context: GenericContext*, node: Entity*, name: Entity*)
                     if same {
                         return instance.arguments[argument];
                     }
-                    argument = argument + 1;
+                    argument++;
                 }
-                i = i + 1;
+                i++;
             }
         }
         node = entity_parent(node);
@@ -375,7 +373,7 @@ export fn generic_type_result(context: GenericContext*, instance: Entity*): Enti
                 }
             }
         }
-        i = i + 1;
+        i++;
     }
     var missing = returned == null;
     if missing {

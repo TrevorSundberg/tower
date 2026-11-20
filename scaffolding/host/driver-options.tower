@@ -15,7 +15,7 @@ fn driver_equal(a: u8*, b: u8*): bool {
         if end {
             return true;
         }
-        index = index + 1;
+        index++;
     }
     return false;
 }
@@ -66,7 +66,7 @@ export fn driver_parse(options: DriverOptions*, argc: usize, argv: u8**, target:
             return true;
         }
         var arg = argv[index];
-        index = index + 1;
+        index++;
         if driver_equal(arg, "--help") {
             options.help = true;
             return true;
@@ -149,7 +149,7 @@ export fn driver_parse(options: DriverOptions*, argc: usize, argv: u8**, target:
                 return false;
             }
             var value = argv[index];
-            index = index + 1;
+            index++;
             if link {
                 var unallocated = options.links == null;
                 if unallocated {
@@ -164,7 +164,7 @@ export fn driver_parse(options: DriverOptions*, argc: usize, argv: u8**, target:
                     }
                 }
                 options.links[options.link_count] = value;
-                options.link_count = options.link_count + 1;
+                options.link_count++;
             } else {
                 *slot = value;
             }

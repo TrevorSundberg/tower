@@ -6,7 +6,7 @@ const ParserLookahead: u32 = 4294967293;
 
 fn ParserNoIndex(): usize {
     var index: usize = 0;
-    index = index - 1;
+    index--;
     return index;
 }
 

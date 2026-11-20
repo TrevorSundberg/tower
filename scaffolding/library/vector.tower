@@ -24,7 +24,7 @@ fn vector_reserve(T: type, value: vector(T)*, needed: usize): bool {
         return true;
     }
     var maximum: usize = 0;
-    maximum = maximum - 1;
+    maximum--;
     var size = sizeof(T);
     var empty_type = size == 0;
     if empty_type {

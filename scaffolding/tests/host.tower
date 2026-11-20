@@ -9,7 +9,7 @@ import '../library/bytes-types';
 // Compiled into the native/WASI test host. All assertions and trials are Tower.
 fn host_test_bytes(buffer: ByteBuffer*, wanted: u8*, count: usize): bool {
     var same = buffer.length == count;
-    if same {} else {
+    if !same {
         return false;
     }
     var i: usize = 0;
@@ -19,10 +19,10 @@ fn host_test_bytes(buffer: ByteBuffer*, wanted: u8*, count: usize): bool {
             return true;
         }
         same = buffer.data[i] == wanted[i];
-        if same {} else {
+        if !same {
             return false;
         }
-        i = i + 1;
+        i++;
     }
 }
 
@@ -38,7 +38,7 @@ fn host_test_json(): i32 {
     input[5] = 195;
     input[6] = 169;
     var ok = host_json_quote(&out, &input[0], 7);
-    if ok {} else {
+    if !ok {
         return 201;
     }
     var wanted: u8[21];
@@ -48,42 +48,42 @@ fn host_test_json(): i32 {
     wanted[19] = 169;
     wanted[20] = 34;
     ok = host_test_bytes(&out, &wanted[0], 21);
-    if ok {} else {
+    if !ok {
         return 202;
     }
     out.length = 0;
     ok = host_json_unsigned(&out, 18446744073709551615);
-    if ok {} else {
+    if !ok {
         return 203;
     }
     ok = host_test_bytes(&out, "18446744073709551615", 20);
-    if ok {} else {
+    if !ok {
         return 204;
     }
     out.length = 0;
     host_json_unsigned(&out, 0);
     ok = host_test_bytes(&out, "0", 1);
-    if ok {} else {
+    if !ok {
         return 205;
     }
     bytes_dispose(&out);
     bytes_append(&out, "a\n", 2);
     ok = host_json_quote(&out, out.data, 2);
-    if ok {} else {
+    if !ok {
         return 206;
     }
     ok = host_test_bytes(&out, "a\n\"a\\u000a\"", 11);
-    if ok {} else {
+    if !ok {
         return 207;
     }
     var maximum: usize = 0;
-    maximum = maximum - 1;
+    maximum--;
     ok = host_json_quote(&out, null, maximum);
     if ok {
         return 208;
     }
     ok = host_test_bytes(&out, "a\n\"a\\u000a\"", 11);
-    if ok {} else {
+    if !ok {
         return 209;
     }
     var old = out.data;
@@ -95,22 +95,22 @@ fn host_test_json(): i32 {
     }
     ok = out.data == old;
     var same = out.capacity == capacity;
-    if same {} else {
+    if !same {
         ok = false;
     }
     same = host_test_bytes(&out, "a\n\"a\\u000a\"", 11);
-    if same {} else {
+    if !same {
         ok = false;
     }
-    if ok {} else {
+    if !ok {
         return 211;
     }
     ok = host_text_terminate(&out);
     same = out.data[out.length] == 0;
-    if same {} else {
+    if !same {
         ok = false;
     }
-    if ok {} else {
+    if !ok {
         return 212;
     }
     bytes_dispose(&out);
@@ -125,37 +125,37 @@ fn host_test_handles(): i32 {
     tower_test_buffer_fail_next();
     var handle = host_handles_insert(&table, 0, pointer);
     var ok = handle == 0;
-    if ok {} else {
+    if !ok {
         return 401;
     }
     ok = table.count == 0;
-    if ok {} else {
+    if !ok {
         return 402;
     }
     var first = host_handles_insert(&table, 0, pointer);
     ok = first == 1;
-    if ok {} else {
+    if !ok {
         return 403;
     }
     table.next = 4294967294;
     var last = host_handles_insert(&table, 1, pointer);
     ok = last == 4294967295;
-    if ok {} else {
+    if !ok {
         return 404;
     }
     handle = host_handles_insert(&table, 1, pointer);
     ok = handle == 2;
-    if ok {} else {
+    if !ok {
         return 405;
     }
     var found = host_handles_get(&table, 1, first);
     ok = found == null;
-    if ok {} else {
+    if !ok {
         return 406;
     }
     found = host_handles_take(&table, 1, first);
     ok = found == null;
-    if ok {} else {
+    if !ok {
         return 407;
     }
     ok = host_handles_dispose(&table);
@@ -164,36 +164,36 @@ fn host_test_handles(): i32 {
     }
     var count = host_handles_count(&table, 0);
     ok = count == 1;
-    if ok {} else {
+    if !ok {
         return 409;
     }
     count = host_handles_count(&table, 1);
     ok = count == 2;
-    if ok {} else {
+    if !ok {
         return 410;
     }
     found = host_handles_take(&table, 0, first);
     ok = found == pointer;
-    if ok {} else {
+    if !ok {
         return 411;
     }
     found = host_handles_take(&table, 0, first);
     ok = found == null;
-    if ok {} else {
+    if !ok {
         return 412;
     }
     found = host_handles_take(&table, 1, last);
     ok = found == pointer;
-    if ok {} else {
+    if !ok {
         return 413;
     }
     found = host_handles_take(&table, 1, handle);
     ok = found == pointer;
-    if ok {} else {
+    if !ok {
         return 414;
     }
     ok = host_handles_dispose(&table);
-    if ok {} else {
+    if !ok {
         return 415;
     }
     return 0;

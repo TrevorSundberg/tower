@@ -15,9 +15,9 @@ export fn host_handles_count(table: HostHandles*, kind: u32): usize {
         }
         var same = table.slots[i].kind == kind;
         if same {
-            count = count + 1;
+            count++;
         }
-        i = i + 1;
+        i++;
     }
 }
 
@@ -36,7 +36,7 @@ export fn host_handles_get(table: HostHandles*, kind: u32, handle: u32): void* {
             }
             return null;
         }
-        i = i + 1;
+        i++;
     }
 }
 
@@ -71,7 +71,7 @@ export fn host_handles_insert(table: HostHandles*, kind: u32, payload: void*): u
     }
     var handle = table.next;
     loop {
-        handle = handle + 1;
+        handle++;
         var zero = handle == 0;
         if zero {
             continue;
@@ -88,9 +88,9 @@ export fn host_handles_insert(table: HostHandles*, kind: u32, payload: void*): u
                 occupied = true;
                 break;
             }
-            i = i + 1;
+            i++;
         }
-        if occupied {} else {
+        if !occupied {
             break;
         }
     }
@@ -98,7 +98,7 @@ export fn host_handles_insert(table: HostHandles*, kind: u32, payload: void*): u
     slot.handle = handle;
     slot.kind = kind;
     slot.payload = payload;
-    table.count = table.count + 1;
+    table.count++;
     table.next = handle;
     return handle;
 }
@@ -113,11 +113,11 @@ export fn host_handles_take(table: HostHandles*, kind: u32, handle: u32): void* 
         var same = table.slots[i].handle == handle;
         if same {
             same = table.slots[i].kind == kind;
-            if same {} else {
+            if !same {
                 return null;
             }
             var result = table.slots[i].payload;
-            table.count = table.count - 1;
+            table.count--;
             var last = &table.slots[table.count];
             // No aggregate assignment is needed, and the slots own no payload.
             table.slots[i].handle = last.handle;
@@ -125,7 +125,7 @@ export fn host_handles_take(table: HostHandles*, kind: u32, handle: u32): void* 
             table.slots[i].payload = last.payload;
             return result;
         }
-        i = i + 1;
+        i++;
     }
 }
 
