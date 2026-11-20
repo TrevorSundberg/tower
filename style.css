@@ -123,6 +123,7 @@ main{display:flex;flex-direction:column;flex:1;min-height:0;min-width:0;gap:6px;
 
 .cm-tooltip-autocomplete{background:#17262b!important;border:1px solid #48656c!important;color:#d4e0e2;max-width:min(440px,90vw)}
 .cm-tooltip:has(.tw-language-hover){background:#17262b!important;border:1px solid #48656c!important;color:#d4e0e2;box-shadow:0 4px 16px #0005;max-width:min(520px,90vw)}
+.tw-hover-preview{opacity:.76;pointer-events:none!important}.tw-hover-pinned{opacity:1;pointer-events:auto}
 .tw-language-hover{padding:9px 12px;max-height:240px;overflow:auto;font:12px/1.5 ui-monospace,monospace;overflow-wrap:anywhere}
 .tw-hover-signature{display:block;color:#7ce9da;white-space:pre-wrap;margin-bottom:5px;font-weight:600}.tw-hover-node{border-top:1px solid #354950;margin-top:6px;padding-top:5px;color:#9cb3ba}
 .cm-tooltip-autocomplete ul li{padding:4px 8px!important}.cm-tooltip-autocomplete ul li[aria-selected]{background:#294c47!important;color:#fff!important}.cm-completionDetail{color:#9cb3ba;font-style:normal!important}
