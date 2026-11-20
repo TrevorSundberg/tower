@@ -21351,3 +21351,33 @@ still hashes to 96a9e58964d7f01e4a97819f259448db81ef5e40; existing stashes and
 the independent CLI/runtime checkout were preserved. Only this checkout's
 build caches were reconfigured. Final journal-only commit uses the same verified
 release; no source/artifact change requires rebuilding it.
+## 2026-11-20 — Parser bridge retirement published and verified
+
+Normal main push published cc9a83a; the implementation commit is 7262faa.
+Normal Pages push advanced 1828ff9 to 260e4107097f4754200c4ae628d61cbfb42fc20d.
+Checked ancestry against the previous manifest's source before publication and
+preserved all newer grammar-index/type-query work and manifest metadata. No
+force push and no todo.txt edits. GitHub Pages workflow 44814086962 completed
+successfully; its build endpoint reports this exact commit built. The published
+manifest SHA-256 is 3c733fe9ff3a51eb6ebf7ff2be880f28d628b6510dfde29288eb85baa7fb2792.
+
+`node playground/scripts/verify-deployment.mjs https://tower-lang.org/` passes:
+all 70 live assets match the tested local bytes, and the complete desktop/mobile
+flows pass backend agreement, forward/module bindings, editable grammar,
+completion and Tab acceptance, deferred diagnostics, persistence, project
+archives, native/C downloads, output highlighting and detected target defaults.
+Evidence: build/parser-retirement/live-verification.log, live-report.json,
+pages-status.json and pages-workflow.json. This completion entry is journal-only;
+retain the verified deployment as a no-op after the final pull and verify its
+manifest again before pushing this record.
+
+Remaining interface boundaries are deliberate: SyntaxSession owns syntax input,
+token names, production descriptions and grammar revision lifetimes; the parser
+invokes those existing named services. Generic input producers use the Tower
+poll/feed API. Completed tables and worlds must remain pinned until requests
+and borrowed completion runtimes finish. Entity materialization needs exclusive
+store ownership; parallel compiler units use isolated worlds, not shared mutable
+syntax sessions. No claim of whole-compiler/native-runtime retirement or arbitrary
+shared-world parallel parsing. Sanitizer and whole-repository formatting sweeps
+remain temporarily skipped. Parser orchestration and its native fixture files
+are actually retired from every build and the published compiler recipe.
