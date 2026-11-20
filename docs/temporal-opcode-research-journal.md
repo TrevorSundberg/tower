@@ -18155,3 +18155,59 @@ migration commits are already pushed; this journal records the integrated result
 before publishing the rebased Pages candidate. Native syntax sessions/registries,
 parser diagnostics/callbacks, host/runtime transport and bootstrap distribution
 remain; the ongoing pure-Tower migration goal is still active.
+
+## 2026-11-20: Compiler-services library release verification
+
+The final pre-integration hover/completion run passed all 50 desktop/mobile checks,
+including the updated return assertion and the new token coverage. Reviewed the
+function tooltip screenshot: signature, Result layout, file:line:column and
+attached documentation remain, without the duplicate function/return-type rows.
+Two successive compiler-project generations (2 and 4 workers) passed edited
+semantic behavior and produced identical module bytes. Evidence:
+build/ide-services-browser-final.log, build/ide-services-successors.log and
+build/ide-function-hover-{desktop,mobile}.png.
+
+The first main push raced newer migrations c1c71f0 and 3f2cab4. Rebased the service
+changes onto both, preserving their grammar worlds, Tower constructors and UTF-8
+adapters. Only the append-only journal needed manual conflict resolution. All
+42 focused query/diagnostic/location checks pass on the combined reactor; source
+commit 708681d was then pushed. Rebuilt parser and LLVM/cross reactors and support
+archives from the combined source before final publication. An unrelated external
+todo.txt edit arrived during stash restoration; kept the newer text without
+editing it or replacing it with the earlier backup. Other unrelated working edits
+were also retained.
+
+Combined validation also passed ten desktop/mobile browser checks and two further
+successive compiler-project generations with identical bytes. The final bundle's
+manifest SHA-256 is
+dbe6451576fe0b607ccf63b8a487e1405f22f647f0400db22e5378532081bce0.
+Reports use ide-services-integrated-browser.log and
+ide-services-integrated-successors.log; generation hashes are copied to
+ide-services-integrated-generation{1,2}.json. Published gh-pages
+80a7aeec2a2d8451a53a0913ca3ea2ee3e9a3973 at tower-lang.org; Pages reports built.
+All 69 hosted assets match this bundle, and all ten focused live desktop/mobile
+hover checks pass. The initial live deployment run was interrupted after asset
+verification, so the complete verifier was restarted in
+build/ide-services-live-deployment-final.log.
+
+The restarted deployment verifier completed successfully on desktop and mobile:
+backends agree; grammar editing, module bindings, persistence, native downloads,
+completion, output highlighting, source-error locations and target defaults all
+pass. Copied its report to build/ide-services-live-report.json. The final hosted
+tooltip checks are in build/ide-services-live-browser.log (10/10 passing).
+
+Final publication sync: the concurrent parser migration publication ea255504
+superseded 80a7aeec with its independently built combined 708681d assets. Preserved
+that publication. Its JavaScript workers and app are byte-identical; the compiler
+reactors/support bundles and source maps reflect that build. The latest Pages
+status is built. Verified the hosted manifest against gh-pages HEAD and all 68
+served assets against its hashes (the .nojekyll hosting marker is not served).
+Manifest SHA-256 is now
+02edb30e5d5fd0dd711aca360ca555cba443d1b6c10385391e14e8c1350d6b1b.
+All ten focused live desktop/mobile hover checks pass again on this final
+publication, including keyword/operator/braces, signatures, imported declarations,
+grammar tokens and attached comments. Evidence: ide-services-current-assets.json
+and ide-services-current-live-browser.log. The concurrent journal entry records
+its complete integrated local/browser validation; the earlier full live verifier
+above describes the preceding publication, not a rerun on ea255504. The final
+main rebase added only that journal record and preserved unrelated local work.
