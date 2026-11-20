@@ -55,11 +55,17 @@ for all remaining stages, including parallel execution at large project sizes.
    and require explicit conversions. No overload ranking or implicit promotions.
 5. **Deterministic staged execution.** `comptime` requests ordinary graph
    interpreter execution after demanded dependencies resolve. It is a stage,
-   not a separate expression evaluator. Give the evaluator explicit semantics,
+   not a separate expression evaluator. Accept arbitrary Tower values as staged
+   arguments and results: aggregates, containers, graphs, functions and function
+   pointers as well as types and scalars. Type/integer-only specialization is a
+   bootstrap limitation, not the language contract. Give the evaluator explicit semantics,
    target/layout, capabilities, resource limits, dependency recorder and virtual
    inputs. A file read records canonical identity, existence and bytes (including
    failed lookup dependencies); changing byte five invalidates its consumers.
    Reject untracked clock/random/network/process/foreign effects in strict mode.
+   Explicit capabilities may acquire network responses, including by opening a
+   socket and waiting; record those responses as build inputs with replay and
+   invalidation policies. See the arbitrary-value staging contract below.
    Materialize results as Foundation values with relocation-aware owned storage;
    a host address cannot become a constant. Current `const Name()` remains an
    ordinary function until this replacement is complete and migration is tested.
@@ -102,6 +108,81 @@ for all remaining stages, including parallel execution at large project sizes.
     joining through a common typed completion protocol. Develop it with the
     shared work graph and ownership/result model below. This is a language and
     runtime goal, not a claim that async/await or thread creation currently works.
+
+## Arbitrary values at compile time
+
+The intended language accepts any Tower value as an input to, intermediate value
+of, or result from compile-time execution. This includes types, every scalar kind,
+whole structs and tagged values, strings, buffers, arrays and containers, trees,
+parse trees, syntax/grammar entities, shared compiler graphs, functions and
+function pointers. Type-producing functions and specialization use these same
+ordinary values and calls. The template example's type/integer arguments describe
+today's bootstrap implementation; they do not restrict the eventual language.
+Values need not become compile-time-only: execution stage follows dependencies
+and explicit staging, and the same eligible code and values remain usable at runtime.
+
+A type constructor may consume a parsed configuration struct, a complete buffer
+read from a file, a container of schema records, a function that transforms those
+records, or a parse tree built by ordinary Tower code. Passing those objects must
+not require reducing them to integers, encoding them as source strings or creating
+a second metaprogramming representation. Shared syntax and Foundation graphs stay
+on the existing entity/component model. Runtime data cannot retroactively change
+an already compiled static layout; staged construction records which inputs fixed it.
+
+Functions are ordinary staged values, including functions passed to other
+functions or returned from them. Function pointers can be passed and invoked
+under their exact signature, target and effect contracts. Represent persistent
+code references through stable declaration/specialization identity and target
+relocations, not the compiler process's numeric code addresses. Track the selected
+function's body and dependencies when it is evaluated. Define captures and their
+ownership if function values carry environments; a function value does not imply
+a garbage collector, hidden object lifetime or native callback shim.
+
+Arbitrary data graphs require explicit ownership and identity, including shared
+subobjects, cycles and pointers into owned storage. A staged argument can borrow a
+pinned revision or own its storage; it need not deep-copy an entire compiler world.
+Track the fields, buffers, entities and revisions actually read, with ordered
+writes and invalidation for mutable inputs. Define equality/identity and cache
+keys per value kind; do not hash allocator addresses, uninitialized padding,
+incidental container capacity or host traversal order as semantic inputs. Preserve
+nominal type/function identities and alias relationships where they are observable.
+
+External data acquisition is allowed through explicit capabilities. Ordinary
+Tower code may read files, open a socket, wait for a reply and parse the returned
+bytes into any of these values. A network request/response is an input acquisition
+dependency, not a pure computation that can be cached without a policy. Record
+request identity, ordered response bytes and observable outcomes, with explicit
+refresh, pinned snapshot and offline replay behavior. Treat timeout, cancellation
+and I/O failure as ordinary result data; asynchronous acquisition uses the shared
+completion protocol. Track only the external observations the program uses,
+including time or randomness when explicitly provided as inputs. Credentials and
+live handles belong to the supplied capability, not emitted program constants.
+
+Strict evaluation has identical defined behavior for the same program, recorded
+inputs, semantics version and explicit target. A live server can provide different
+inputs to a later build; that changes the dependency identity and invalidates its
+consumers. Replaying the recorded inputs must not depend on the host's clock,
+socket wake-up order or the availability of the original server. This permits
+live network-backed compilation without silently treating arbitrary I/O as pure.
+
+Separate values usable during staged execution from how they cross a stage or
+artifact boundary. Owned data and graph edges need canonical Foundation
+construction and relocations; function references need target code bindings.
+A live socket or host address can be used through its capability while evaluating,
+but cannot be copied numerically into a target executable. A value crossing that
+boundary needs a defined target representation or an explicit reconstruction
+operation. Diagnose unsupported escapes precisely instead of prohibiting whole
+value categories from compile-time code. Keep Foundation as the semantic storage
+format and preserve the same no-GC, no-exception ownership/result rules.
+
+Acceptance tests must pass aggregate/container/function/graph values through
+ordinary staged calls and type construction, exercise mutation and dependency
+invalidation, and preserve aliases/cycles through Foundation reconstruction.
+Use recorded socket transcripts to test refresh, failure, cancellation and offline
+replay without relying on a public service. Compare native/browser interpreters,
+worker counts and explicit target profiles; verify that changed used inputs or
+function bodies invalidate consumers and unchanged inputs reproduce artifacts.
+These are design and validation goals, not implemented general staging today.
 
 ## Coroutines, threads and job-group completion
 

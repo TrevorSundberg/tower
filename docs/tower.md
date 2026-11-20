@@ -1,9 +1,28 @@
 # The Tower language layer
 
 Use `import tower;` for the language above Foundation. Compiler code can use the
-same layer. The [development plan](tower-language-plan.md) distinguishes the
-implemented features below from upcoming expression syntax, compile-time
+same layer. The [development plan](tower-language-plan.md) distinguishes shipped
+features from upcoming expression syntax, compile-time
 execution, result types and ownership rules.
+
+## Compile-time value goals
+
+The intended compile-time model accepts arbitrary Tower values: structs, buffers,
+containers, trees and parse trees, shared compiler entities/graphs, functions and
+function pointers, as well as types and scalar values. Any of these can be an
+argument or result of ordinary staged code, including a type-producing function.
+They remain usable at runtime too. The templates example currently uses type and
+integer arguments because general value staging is still a bootstrap milestone.
+
+Files and explicitly enabled network capabilities, including opening a socket
+and awaiting a response, can supply tracked compile-time inputs. Recorded inputs
+support dependency invalidation, deterministic evaluation and offline replay.
+Persisting values into generated code requires defined ownership, canonical
+Foundation construction and target relocations; host addresses and live handles
+cannot simply be copied into an executable. The
+[staging contract](tower-language-plan.md#arbitrary-values-at-compile-time)
+describes these goals and their validation. This general capability is not yet
+implemented.
 
 ## Enums
 

@@ -16050,3 +16050,43 @@ The new async/thread/job completion section remains a proposal. Native CLI
 threads and parallel phases over a pinned shared compiler world are still open;
 these release checks validate isolated compiler-unit workers, not those future
 capabilities. Hosted verification and push results follow below.
+
+#### Arbitrary staged values: user clarification
+
+The user explicitly expands the compile-time goal beyond the templates example's
+type/integer specialization: whole structs, buffers and containers, files and
+network/socket responses, functions/function pointers, trees/parse trees and any
+other Tower values may be fed into ordinary staged code. Documented this in
+`docs/tower.md` and `docs/tower-language-plan.md`. It is a future language contract;
+general value specialization, function-value/indirect-call contracts and staged
+execution remain implementation work.
+
+The design retains ordinary Tower values and shared entities, explicit storage
+ownership and function identity, tracked reads/writes and dependency invalidation.
+Network input acquisition may open a socket and await data through a capability;
+recorded responses/outcomes permit deterministic evaluation and offline replay.
+Distinguished stage evaluation from materializing values into target artifacts:
+preserve graph aliases/cycles and code references through Foundation/relocations,
+while live resource handles require an explicit crossing/reconstruction contract.
+Added corresponding future differential, invalidation and recorded-I/O tests.
+No implementation, example behavior or deployment asset changed in this update.
+
+#### Parallel compiler hosted publication
+
+Published Pages commit `f553811ec9646adeece327a8327eb2ca5b6e37e5` with a normal
+fast-forward push from a4aa9fa. GitHub Pages workflow 44655774503 completed
+successfully. After the user resumed the interrupted turn, `git pull --rebase`
+reported main current. The hosted command
+`node playground/scripts/verify-deployment.mjs https://trevorsundberg.github.io/tower/`
+then exited zero: all **68** served assets match the tested local manifest, and
+both desktop/mobile profiles pass interpreter/LLVM agreement, grammar, completion,
+project persistence, native artifact downloads and compiler-workbench checks.
+Evidence: `build/language-next/parallel-dotted-verify-hosted.log` and
+`build/deployment-verification/report.json` (hosted URL). The manifest remains
+`47bdbc09d000de3af99eefe8c6a13b54e1c230500f77495a5a0c90a0cb0adcb3`.
+
+Source implementation commits after the documentation-only final rebase are
+f8425b6 (workers/access contracts) and 26782c2 (source-prefix failure completion).
+The async/join and arbitrary-value staging goals are documentation, with no
+additional deployed runtime behavior. Final source synchronization/push follows.
+`todo.txt` remains blob 96a9e58964d7f01e4a97819f259448db81ef5e40.
