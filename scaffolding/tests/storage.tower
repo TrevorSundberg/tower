@@ -27,7 +27,7 @@ var a: u8* = arena_take(pool, 7);
 var b: u8* = arena_take(pool, 17);
 var one: usize = bits(usize, a);
 var two: usize = bits(usize, b);
-var distance: usize = two - one;
+var distance: usize = two -one;
 print(distance);
 var missing: u8* = arena_take(pool, 32);
 ok = missing == null;

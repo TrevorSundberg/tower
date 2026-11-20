@@ -100,7 +100,7 @@ fn scan_after_skip(input: SyntaxScanInput*, result: SyntaxScanResult*): void {
     var invalid = choice.length == 0;
     if invalid {
         var codepoint: u32;
-        var remaining = input.size - input.cursor;
+        var remaining = input.size -input.cursor;
         choice.length = tower_utf8_decode(&input.source[input.cursor], remaining, &codepoint);
         var empty = choice.length == 0;
         if empty {
@@ -155,7 +155,7 @@ fn scan_capture(input: SyntaxScanInput*, name: u8*): usize {
         if done {
             return lr_none();
         }
-        var middle = high - low;
+        var middle = high -low;
         middle = middle / 2;
         middle = middle + low;
         var order = template_text_order(input.captures[middle].name, name);

@@ -1,7 +1,9 @@
 import tower;
 
 extern fn guest_host_allocate(bytes: usize): void*;
+
 extern fn guest_host_reallocate(pointer: void*, bytes: usize): void*;
+
 extern fn guest_host_free(pointer: void*): void;
 
 // Guest raw-address allocation preserves the platform allocator's zero-size
@@ -13,20 +15,26 @@ fn guest_runtime_product(count: usize, size: usize): bool {
     if sized {
         var limit = maximum / size;
         var overflow = count > limit;
-        if overflow { return false; }
+        if overflow {
+            return false;
+        }
     }
     return true;
 }
 
 export fn guest_runtime_allocate(count: usize, size: usize): void* {
-    if !(guest_runtime_product(count, size)) { return null; }
-    var bytes = count * size;
+    if !(guest_runtime_product(count, size)) {
+        return null;
+    }
+    var bytes = count *size;
     return guest_host_allocate(bytes);
 }
 
 export fn guest_runtime_reallocate(pointer: void*, count: usize, size: usize): void* {
-    if !(guest_runtime_product(count, size)) { return null; }
-    var bytes = count * size;
+    if !(guest_runtime_product(count, size)) {
+        return null;
+    }
+    var bytes = count *size;
     return guest_host_reallocate(pointer, bytes);
 }
 

@@ -29,8 +29,9 @@ Never migrate compiler source to unsupported syntax before the replacement
 bootstrap is committed and the default clean build path has passed.
 
 The current pin supports expression operators, scoped `for` loops and identifier
-module paths, leading parent dots, and exact quoted filenames. The for-capable
-compiler was built using the previous pin before migrating compiler loops;
-`source-changes.patch` and the manifest retain that exact predecessor source.
-Revalidate the final
-rebased source with the default bootstrap before publishing an updated pin.
+module paths, leading parent dots, and exact quoted filenames. Build and validate
+the implementation with the preceding pin before migrating compiler sources.
+The manifest records the exact source revision and input hashes, with an
+accompanying `source-changes.patch` when the build includes uncommitted sources.
+Revalidate the final rebased source with the default bootstrap before publishing
+an updated pin.

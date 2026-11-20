@@ -104,6 +104,10 @@ def rewrite_once(source):
         body = words[body_start:end-3]
         if 'continue' in body:
             continue
+        # A body-local declaration could bind the old terminal increment while
+        # a header update would bind the outer counter. Keep such loops explicit.
+        if any(body[k:k+2] == ['var', counter] for k in range(len(body)-1)):
+            continue
         if any(body[k] == counter and k+1 < len(body) and body[k+1] in ('=', '++', '--', '+', '-', '*', '/', '%', '&', '|', '^') and (body[k+1] in ('=', '++', '--') or k+2 < len(body) and body[k+2] == '=') for k in range(len(body))):
             continue
         if any(body[k:k+2] in (['++', counter], ['--', counter]) for k in range(len(body)-1)):

@@ -2,15 +2,32 @@ import tower;
 import memory_types;
 
 extern fn compiler_memory_reallocate(state: CompilerMemoryState*, pointer: void*, count: usize, size: usize): void*;
+
 extern fn compiler_memory_deallocate(state: CompilerMemoryState*, pointer: void*): void;
+
 extern fn compiler_test_state(): CompilerMemoryState*;
 
 // Legacy test ABI only. Its single-owner state is explicitly initialized by the
 // runtime artifact builder; production compiler worlds never select this mode.
-export fn tower_test_buffer_count(): usize { var state = compiler_test_state(); return state.live_buffers; }
-export fn tower_test_buffer_allocations(): usize { var state = compiler_test_state(); return state.allocation_calls; }
-export fn tower_test_buffer_fail_next(): void { var state = compiler_test_state(); state.fail_after = 0; }
-export fn tower_test_buffer_fail_after(count: usize): void { var state = compiler_test_state(); state.fail_after = count; }
+export fn tower_test_buffer_count(): usize {
+    var state = compiler_test_state();
+    return state.live_buffers;
+}
+
+export fn tower_test_buffer_allocations(): usize {
+    var state = compiler_test_state();
+    return state.allocation_calls;
+}
+
+export fn tower_test_buffer_fail_next(): void {
+    var state = compiler_test_state();
+    state.fail_after = 0;
+}
+
+export fn tower_test_buffer_fail_after(count: usize): void {
+    var state = compiler_test_state();
+    state.fail_after = count;
+}
 
 export fn compiler_runtime_allocate(count: usize, size: usize): void* {
     return compiler_memory_reallocate(compiler_test_state(), null, count, size);

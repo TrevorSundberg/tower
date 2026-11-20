@@ -217,7 +217,7 @@ export fn parser_request_lookahead(request: ParserRequest*, result: ParserReques
         return;
     }
     var frame: LRFrame;
-    var last = count - 1;
+    var last = count -1;
     lr_parser_frame(request.control, last, &frame);
     result.runtime = request.runtime;
     result.state = frame.state;
@@ -474,7 +474,7 @@ export fn parser_recognizer_diagnostic(request: ParserRequest*, reader: ParserDi
                     var inside = position < text.source.length;
                     if inside {
                         var at = text.source.data + position;
-                        var remaining = text.source.length - position;
+                        var remaining = text.source.length -position;
                         var read = tower_utf8_decode(at, remaining, &id);
                         valid = read != 0;
                         position = position + read;

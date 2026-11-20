@@ -27,7 +27,7 @@ extern fn fixture_box(box: PointerBox*): usize;
 extern fn fixture_callback(value: i32): i32;
 
 export fn tower_twice(value: i32): i32 {
-    var answer: i32 = value * 2;
+    var answer: i32 = value *2;
     return answer;
 }
 
