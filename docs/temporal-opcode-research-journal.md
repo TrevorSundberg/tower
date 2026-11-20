@@ -21217,3 +21217,25 @@ startup/compiler changes are within these process-timing fluctuations; the
 observed allocation regression is fixed. Native trap/binder/CLI/frontend checks
 still pass (5/5, 4.47 s). A separate parser-only build and final artifact rebuild
 are in progress; neither is claimed complete by these earlier results.
+
+Post-rebase validation correction: the required pull brought journal-only commits
+through 6ad1fa8; the append-only journal conflict preserved both complete histories.
+The independent parser-only build exposed duplicate tower_allocate/reallocate/free
+exports because its legacy failure-injection member and production runtime object
+could both be selected from the archive. The build now selects exactly one
+allocation ABI: instrumentation for parser-only tests, Tower production objects
+for native/browser compilers. Trap reporting is Tower in both. All five native
+focused tests pass after the fix (4.40 s), and both WASI tests pass (1.47 s).
+
+The full parser CTest unexpectedly invokes the whole-repository formatter sweep
+that the task explicitly defers. It aborted at the pre-existing noncanonical
+compiler/format-diagnostic-types.tower (66.49 s overall); no unrelated source was
+reformatted and no test was deleted. The proper focused rerun uses
+`cd scaffolding && <parser-build>/tower-parser-tests --host-only` and
+`ctest --test-dir <parser-build> -E '^tower-parser-tests$' --output-on-failure`:
+all host/interpreter-storage checks and four selected tests pass (1.85 s).
+The full parser test is not reported as passing. The original failure and the
+selection correction remain recorded here. GitHub DNS briefly failed one pull;
+a normal retry succeeded. Latest inspected gh-pages is 1828ff9, source 0e4bd41,
+which is an ancestor of this work. Fetching a shallow deployment tip requires a
+local remote-tracking ref refresh; no remote force push is involved or permitted.

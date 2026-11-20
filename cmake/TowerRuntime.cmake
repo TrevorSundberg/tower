@@ -42,9 +42,12 @@ function(tower_runtime_object name input triple)
 endfunction()
 
 function(tower_compiler_runtime triple)
-  tower_runtime_object(runtime-allocate "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/host/memory-runtime.tower" "${triple}"
-    compiler_runtime_allocate tower_allocate compiler_runtime_reallocate tower_reallocate
-    compiler_runtime_deallocate tower_deallocate)
+  if(NOT TOWER_PARSER_ONLY)
+    tower_runtime_object(runtime-allocate "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/host/memory-runtime.tower" "${triple}"
+      compiler_runtime_allocate tower_allocate compiler_runtime_reallocate tower_reallocate
+      compiler_runtime_deallocate tower_deallocate)
+    target_sources(tower-compiler-memory PRIVATE "${runtime-allocate_OBJECT}")
+  endif()
   set(platform posix)
   if(triple MATCHES "windows")
     set(platform windows)
@@ -52,7 +55,7 @@ function(tower_compiler_runtime triple)
   set(input "${CMAKE_CURRENT_BINARY_DIR}/runtime-trap.tower")
   file(GENERATE OUTPUT "${input}" CONTENT "import tower;\nimport \"${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/host/memory-trap\";\nimport \"${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/host/memory-output-${platform}\";\n")
   tower_runtime_object(runtime-trap "${input}" "${triple}" compiler_runtime_trap tower_trap)
-  target_sources(tower-compiler-memory PRIVATE "${runtime-allocate_OBJECT}" "${runtime-trap_OBJECT}")
+  target_sources(tower-compiler-memory PRIVATE "${runtime-trap_OBJECT}")
   set_property(GLOBAL PROPERTY TOWER_RUNTIME_TRAP_OBJECT "${runtime-trap_OBJECT}")
   set_target_properties(tower-compiler-memory PROPERTIES LINKER_LANGUAGE C)
 endfunction()
