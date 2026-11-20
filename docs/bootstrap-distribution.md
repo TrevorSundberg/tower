@@ -11,7 +11,7 @@ The 2026-11-20 retirement audit now finds 6,430 lines in 54 production
 C/C++ source/header files under scaffolding, another 4,115 test lines and 4,547
 bootstrap lines (including native `.inc` fragments), excluding third-party
 dependencies. These are a source inventory,
-not a completion percentage. syntax.cpp and parser.cpp account for about 2,800
+not a completion percentage. syntax.cpp and parser.cpp account for 2,729
 production lines; CLI/browser entry points, raw platform/foreign operations,
 native registries and bootstrap/distribution remain meaningful retirement work.
 Tower now owns generic registry lifetime, module compilation-session leasing and

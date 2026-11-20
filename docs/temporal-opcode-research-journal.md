@@ -17233,3 +17233,20 @@ run-to-run variation; no material time regression was observed in these workload
 This is not a claim about unmeasured workloads or memory performance. Raw samples,
 CPU/Node versions and input/module hashes are saved in provenance-benchmark.json
 and provenance-benchmark.log. todo.txt remains unchanged.
+
+Publication completed from implementation commit 3fc8e625aec2cf03c8399e736a6bd2ddeb2691e8.
+The required final main pull/rebase found no upstream changes; direct backend API
+checks and all 10 replacement regression checks passed again afterward. Main was
+pushed normally. Pages commit 1a6ba4511a530e0861aae7eb49a10978bab3c854 preserves
+CNAME tower-lang.org and passed GitHub Pages run 44749362970. One deployment push
+failed on transient GitHub DNS resolution; a normal retry succeeded. No force push,
+configuration change, discarded work or native fallback was used.
+
+The HTTPS verifier at https://tower-lang.org/ exits zero: all 69 hosted assets
+match the final manifest, and desktop/mobile checks pass backend agreement,
+editable grammar, persistence, native builds/downloads, completion, output
+highlighting, compiler-project behavior and target defaults. Evidence is saved in
+build/language-next/provenance-hosted.log, provenance-hosted-report.json and
+provenance-pages-workflow.log. This final documentation update changes no deployed
+artifact. todo.txt retains blob 96a9e58964d7f01e4a97819f259448db81ef5e40, and both
+pre-existing stashes remain intact.
