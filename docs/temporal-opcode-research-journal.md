@@ -18779,3 +18779,34 @@ The previous unpushed parser-format-only preparation was superseded; its manifes
 was retained under build/language-next/parser-format-superseded-manifest.json.
 Normal publication and hosted verification follow. todo.txt and both earlier
 user-work stashes remain unchanged.
+
+Publication completed: main implementation 36c51ad and validation 46bdc81 were
+pushed normally. The first main push hit a transient github.com DNS lookup
+failure; explicit DNS resolution and a normal retry succeeded. Pages commit
+af65b18b0cc8913ceb11b59f2f72a1411f1fa296 was pushed without force. Workflow
+44775760865 completed successfully. `node playground/scripts/verify-deployment.mjs
+https://tower-lang.org/` then passed all 69 asset hashes and the complete desktop
+and mobile flows, including interpreter/LLVM agreement, native downloads, C/Roku
+outputs, editable grammar, completion and output highlighting. Evidence:
+parser-table-pages.log, parser-table-hosted.log and parser-table-hosted-report.json.
+The hosted manifest is the bb99871e... manifest recorded above. This completes
+publication of this table-ownership slice, not the entire native-removal goal.
+
+Next slice, prepared while publication verified: port parser.cpp's scalar/range,
+production/item, grammar/state/edge and conflict text composition to Tower using
+the existing FormatEngine. Use explicit request/resume for the current host's
+symbol-name and describe-rule callbacks; preserve callback order, null/empty
+fallback behavior, ownership and the disabled-trace guard. Do not eagerly cache
+callback results or add a native callback shim. Reuse the table's retained LR
+records and kernel-first contexts. Keep compilation/debug views separate from
+canonical Foundation serialization. Place shared parser markers in a type/API
+module rather than importing implementation aggregates just for constants.
+
+Functional Tower fixtures should cover complete output, EOF/lookahead markers,
+scalar fallback, symbol ranges, generated/start productions, empty productions,
+state/action ordering, conflicts, callbacks and failure cleanup. Retain the
+byte-identical native trace comparison and native/browser compiler successor
+checks. This can extend the isolated parser-format unit; any remaining native
+changes must only remove formatting or mechanically connect existing callback
+interfaces. After this, tackle syntax.cpp session/version ownership on the same
+entity/component model. The sustained migration goal remains active.
