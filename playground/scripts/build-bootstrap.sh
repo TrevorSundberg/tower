@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# Imports are implemented in Tower. Do not recreate them in a native seed.
-if [ -z "${TOWER_BOOTSTRAP_COMPILER:-}" ]; then
-  printf '%s\n' 'Set TOWER_BOOTSTRAP_COMPILER to an expression-capable Tower-built towerc (see docs/modules.md).' >&2
-  exit 1
+# An explicit compiler remains useful for predecessor/successor comparisons.
+# Otherwise install the checked-in, hash-pinned development bootstrap.
+if [ -n "${TOWER_BOOTSTRAP_COMPILER:-}" ]; then
+  test -x "$TOWER_BOOTSTRAP_COMPILER"
+  printf '%s\n' "$TOWER_BOOTSTRAP_COMPILER"
+else
+  repo="$(cd "$(dirname "$0")/../.." && pwd)"
+  python3 "$repo/bootstrap/install.py"
 fi
-test -x "$TOWER_BOOTSTRAP_COMPILER"
-printf '%s\n' "$TOWER_BOOTSTRAP_COMPILER"

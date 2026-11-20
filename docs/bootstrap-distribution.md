@@ -1,7 +1,8 @@
 # Compiler hosts and bootstrap distribution
 
-The compiler is still a **hybrid development bootstrap**. No portable compiler
-release is checked in. Its semantic compiler and LLVM backend algorithms are
+The compiler is still a **hybrid development bootstrap**. A hash-pinned Linux x64
+development package is checked in under `bootstrap/` and selected automatically by
+the standard Docker build; no portable compiler release is checked in. Its semantic compiler and LLVM backend algorithms are
 Tower code, while frontend/session lifecycle, native transports, runtime startup
 and bootstrap distribution still need migration and integration. The tooling
 below keeps those release gates explicit; a module comparison does not establish
@@ -24,8 +25,9 @@ existing native callback invocation and table-specific diagnostics remain bridge
 Native SyntaxSession/grammar state and the legacy default-world handle remain.
 Portable compiler release gates below are still required. The obsolete native
 seed/stage1 targets and twelve unused implementation fragments have been removed.
-Still-used native differential references remain. Validated builds require an
-existing import-capable Tower host binary; this is not a source-only bootstrap.
+Still-used native differential references remain. Builds use the bundled,
+operator-capable Tower host binary unless explicitly overridden; this is not a
+source-only bootstrap. See [the development bootstrap](../bootstrap/README.md).
 
 ## Implemented host migration
 
@@ -232,6 +234,8 @@ a bare executable copy cannot locate its Bedrock/Foundation/Tower inputs.
 
 At this milestone Linux x64 host behavior is tested, while a complete Tower-only
 compiler and its self-build are unavailable. Windows/macOS compiler execution
-has not been performed. No hybrid executable is committed as a portable
-bootstrap. Commit binaries only after the corresponding gates pass, with exact
+has not been performed. The user-authorized Linux development artifact now fixes
+the previously missing bootstrap path, with exact source/member hashes and LLVM
+license material. It is explicitly not a portable bootstrap release. Publish
+portable release binaries only after the corresponding gates pass, with exact
 provenance, licenses, hashes and platform verification evidence.

@@ -240,24 +240,16 @@ imports show their implicit Bedrock/Foundation dependencies.
 
 ## Bootstrap requirement
 
-Building these sources requires an **expression-capable Tower-built host compiler**:
+The standard build automatically verifies and installs the checked-in development
+bootstrap, including expression support and its complete grammar/library resources:
 
 ```sh
-export TOWER_BOOTSTRAP_COMPILER=/absolute/path/to/towerc
-bash playground/scripts/build-native.sh
-bash playground/scripts/build-wasm.sh
+./build.sh bash playground/scripts/build-native.sh
+./build.sh bash playground/scripts/build-wasm.sh
 ```
 
-The bootstrap must support module scopes, aliases, declaration-only import cycles,
-compatible foreign-declaration linking, leading-parent-dot imports and exact quoted
-filenames. It must also support Tower's numeric grammar precedence annotations,
-compound expressions and lazy operators. Preserve the predecessor's accompanying
-`share/tower` resources when copying its executable; copying only `towerc` can load
-incompatible grammar sources. A compiler from before the expression update cannot
-build this revision merely by loading the new `tower.tower`. The old native seed does not implement
-imports. Build scripts require an explicit previous compiler instead of trying to
-extend or regenerate that seed. Historical seed
-targets are excluded from default builds. This change does not publish a portable
-bootstrap compiler release; distributing validated host binaries remains the
-bootstrap/distribution integration dependency. The import implementation and
-functional tests are Tower source.
+See [bootstrap/README.md](../bootstrap/README.md) for Windows PowerShell commands,
+the Linux x64/LLVM 19 development profile and the hash-pinned manifest. An explicit
+`TOWER_BOOTSTRAP_COMPILER` override is still available for compatible predecessor
+comparisons. The old native seed is not regenerated. This development artifact
+does not satisfy the future standalone portable compiler release gates.

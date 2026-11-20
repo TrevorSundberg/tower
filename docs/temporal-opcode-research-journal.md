@@ -21884,3 +21884,67 @@ the combined native/parser/LLVM/cross artifacts, rerun formatting and import/
 operator/runtime suites plus successor checks, regenerate the compiler project,
 and deploy/verify the resulting assets. Source publication can proceed without
 misrepresenting the older live artifact as this revision.
+
+Checkpoint published: 0939c91 on main. The requested pull fetched upstream through
+b6b4f17, including parser/CLI retirement and shared type-use queries. Resolved four
+conflicts by retaining both journal histories, the new type-use recording, retained
+template-remapping arguments, and ParserInputService.Empty; preserved the operator
+changes around them. Rebuilt native, parser, LLVM and cross reactors. All 86 focused
+Node tests and five native CTest checks passed after this rebase, then normal
+`git push origin main` succeeded. Browser deployment is still pending below.
+
+The continued audit covers 300 directly Tower-importing tracked files after the
+upstream additions: 35 more empty-success branches, four boolean comparisons,
+44 increments/decrements, 28 lazy boolean compounds, and 424 arithmetic/bitwise
+compounds across 97 files. Arithmetic replacements require an unchanged plain
+name/member destination and a single simple RHS operand; expressions with other
+operators are not regrouped mechanically. The logical matcher now excludes any
+following else. Foundation and todo.txt remain untouched.
+
+Integrated sanitizer-build findings: enabling C in upstream selected /usr/bin/cc,
+which cannot compile target LLVM IR. Configure both C and C++ explicitly to LLVM
+19 clang, reapply the parser/sanitizer options after CMake resets its cache, and
+build with /cache/operator-bootstrap-final (compiler plus share resources). The
+combined parser fixture import unit exceeded the former 256-specialization guard.
+Raised the compiler resource budget to 512, retained the separate 65,536-node
+budget, and added a 300-distinct-instance regression. This does not add a Foundation
+syntax rule or a fixed language-level function/type limit.
+
+Native differential traces now match for both operator fixtures with LLVM
+optimization disabled and enabled: `docker exec tower-c-validation python3
+/work/build/verify-operator-native.py`. Four sanitizer CTest cases excluding the
+repository-wide parser/formatting case pass. Added .towerbc checks: operator source
+executes from a verified package, reconstructs canonical Foundation, and reproduces
+identical package bytes. The initial browser workbench trial built two successive
+complete reactor generations, exercised the edited semantic diagnostic in each,
+and verified identical generation bytes. That trial precedes the inference fixes
+described next; final packaging must use the final source/build.
+
+Broader checks caught autocomplete excluding void-returning functions at a bare
+Tower expression statement. Recovery can now finish a bare name as a discarded
+value instead of the previous call-shaped statement; the query incorrectly marked
+the statement hole as requiring a value. Clear that requirement only for a bare
+discarded name, retaining it inside operands/call arguments. The complete completion
+and prior inference suites pass 31 tests with the correction. Two old inference
+assertions assumed unsnapshotted Foundation text; preserve their type/round-trip
+checks, and use the separate Foundation replacement fixture for replacement tests.
+
+User follow-up prompted expanded inference checks. `null ?? pointer` passed, but
+`(null) ?? pointer` failed with Expected void*, got u64*: null coalescing inspected
+the grouped spelling instead of the transparent semantic operand. Unwrap before
+testing for the untyped null literal. `0 <=> u64Value` independently defaulted its
+left operand too early; three-way comparison now obtains the typed peer just like
+other comparisons. Parentheses remain in source/provenance, while semantic grouping
+is transparent. Negated grouped integer literals also use the existing shared
+exact-magnitude typer, allowing `-(2147483648)` and `-(9223372036854775808)` in the
+corresponding signed contexts without overflowing a positive typed intermediate.
+Added ungrouped, grouped and triply grouped inference regressions; their final
+cross-backend validation is pending the rebuild.
+
+Formatting uses the production syntax_format API, including its parse-tree
+equivalence check. An ignored native harness links the existing compiler objects
+and partitions repository files across four processes; this avoids serial Wasm
+host overhead without replacing the formatting engine or stripping imports.
+The final canonical/idempotence checks remain required. Large import closures are
+still repeatedly parsed by formatting/completion; no global cross-source grammar
+cache or performance guarantee is introduced here.

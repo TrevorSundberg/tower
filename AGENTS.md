@@ -12,6 +12,14 @@ Do NOT modify todo.txt
 - Use the established deployment process and verify the published result. If a
   pull, rebase, deployment or push is blocked, report the specific blocker;
   never claim an unfinished step succeeded or force-push to bypass it.
+- Never push compiler sources that require a newer bootstrap unless that bootstrap
+  is already available through the repository's documented build path. Implement
+  new syntax using the previous language first, build and validate a successor,
+  publish/pin its complete executable and resources (with hashes/provenance), and
+  only then migrate compiler sources to the new syntax. A compiler saved in an
+  agent's local cache does not satisfy this requirement. Test a clean build with
+  no private bootstrap environment variable before pushing a migration. Clearly
+  distinguish a platform-specific development bootstrap from a portable release.
 
 ## Module names and imports
 
@@ -57,6 +65,10 @@ Do NOT modify todo.txt
   one; `>>` extends signed values and `>>>` zero-fills. Signed-minimum literals
   must keep their exact magnitude until range checking; never overflow a signed
   host intermediate or add interpreter-only arithmetic behavior.
+- Parentheses determine grouping and are transparent to semantic type inference.
+  Use the common operand-unwrapping helper for literal/type queries, while keeping
+  source grouping and provenance for formatting. Typed peers constrain literals;
+  incompatible typed values require explicit conversions.
 - Keep this syntax in `tower.tower` and its shared-node checking/lowering above
   Foundation. Numeric grammar annotations (`@ N left/right/nonassoc`, including
   `L>R`/`R<L`) resolve eligible conflicts during table construction; ordinary
