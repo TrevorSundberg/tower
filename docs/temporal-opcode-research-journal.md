@@ -16961,3 +16961,39 @@ them and rebuild/revalidate before publication. The measurements above isolate
 the ownership change before that unrelated integration; they are not performance
 claims about the combined hover release. Do not overwrite the newer Pages tree
 or discard its custom-domain state.
+
+Integrated validation after 75fde8d passes: rebuilt native compiler/backend API,
+parser/WASI and LLVM/cross reactors, then waited for packaging to finish before
+running dependent checks. The native parser suite with address/undefined
+sanitizers passes in 102.56 seconds. All 349 Node/Wasm checks pass in 28.52 seconds.
+Two compiler successors (two then four workers) preserve edited semantic behavior
+and produce identical reactor hashes: tower
+46b0e7ae9762ce084f799c1093469f1b497799033e91926a6e4700965263dd3c,
+llvm 371baef6ceec6150d65f7e90c5884fe0307e4b3e522bf92d7c8876db8542f214,
+cross 32dd5616aa00c21fd54b3f958b8974f78cfe62e198ef4c7bdd73d8b723580ac5.
+Build wall times are 76.38/52.85 seconds while other checks also ran; these remain
+functional/determinism evidence, not a worker scaling benchmark. Browser checks
+pass 47 cases with the existing mobile successor-build skip. The local verifier
+matches all 69 assets and passes both desktop/mobile profiles. Logs are
+build/language-next/ownership-sync-{native,api,parser-build,parser,wasi,llvm,
+package,node,generations,dist,browser,local}.log. The saved local report is
+ownership-sync-local-report.json. Distribution manifest SHA-256:
+04e3dd38f17dd053d5cad938e8bbf60a0e0bfea6ae103a983949313236ac5ac3.
+
+The updated native retirement inventory after upstream integration is 56
+production C/C++ source/header files with 6,644 lines, 20 native test files with
+4,115 lines and 22 bootstrap files with 4,036 lines under scaffolding. This does
+not count third-party implementations or claim percentage completion. Our native
+diff remains seven deletions; upstream hover integration added native metadata
+accessors. The remaining critical path includes parser/session implementation,
+Foundation/parser registries and grammar baselines, singleton-store removal,
+CLI/browser entry points, platform/runtime adapters and a verified Tower-only
+portable bootstrap. Next isolate those registries and sessions in explicit worlds
+before dispatching within-unit phase work over pinned inputs; module-scoped
+bindings/import aliases remain the next related language milestone. Unit builds
+are parallel today; within-unit phases and ownership bookkeeping remain serial.
+
+Upstream 5989281 records completed custom-domain HTTPS provisioning and changes
+only this journal. Read-only checks confirm an approved certificate, enforced
+HTTPS and HTTP 200 from https://tower-lang.org/ with normal certificate validation.
+Preserve that configuration while publishing this ownership milestone.
