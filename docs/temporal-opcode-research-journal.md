@@ -20706,3 +20706,81 @@ defaults (build/type-use-local-report.json). Two successor compiler generations
 passed with byte-identical modules and the edited semantic diagnostic check
 (build/type-use-generations.log). Source code is unchanged since the successful
 72 service tests. Deployment and hosted checks follow.
+Agent 2 launch and continued retirement (2026-11-20): user explicitly requested
+an independent local Codex agent with a visible PowerShell window. Cloned
+origin/main into C:/Sandbox/tower-cli-runtime using a reference-assisted clone
+with --dissociate; verified there is no alternates file and origin points to
+GitHub. Codex CLI 0.170.0 accepts --yolo --no-daemon. Started a visible PowerShell
+window (initial PID 20744), with its standalone CLI/runtime task in
+C:/Sandbox/build/codex-agents/tower-cli-runtime-task.txt. The user confirmed it
+is running and trusted. That agent owns driver.cpp, runtime.c, compiler-memory.cpp
+and related Tower host/runtime code; agent 1 owns parser bridging. Both were
+instructed to use independent build directories and preserve newer deployments.
+This agent keeps syntax/session revision ownership. No subagents were spawned
+inside this session and no other checkout was edited by this agent.
+
+Completed the previously deferred bf906b5 release candidate. All 70 local asset
+hashes and desktop/mobile flows pass; the fully integrated compiler project
+builds byte-identical generations with 2 and 4 workers (890031/52085239/63642606
+bytes). Reusing five byte-identical decompressed gzip payloads preserves 37632634
+bytes of existing compressed assets and avoids metadata-only upload churn.
+The candidate preserves 888e0ee's hover/pointer fixes and IDE/runtime metadata.
+Against that exact deployed predecessor, 6 warmups and 16 paired samples produce
+identical objects with medians: templates 5.293 -> 5.316 ms (+0.45%), layout
+17.846 -> 17.423 ms (-2.37%), compiler-host 139.430 -> 138.786 ms (-0.46%). No
+consistent throughput regression is evident from this small benchmark. Reports:
+syntax-revision-local-report.json, syntax-revision-integrated-successors.log,
+syntax-revision-published-benchmark.log and ownership-benchmark.json. Candidate
+b35dd45 is uploading normally; hosted verification is still required.
+
+Next bounded syntax port: reuse the retained emission hash index for the first
+production of each rule name, including generated repetition/capture rules.
+Store the first production index when existing parser entities are emitted;
+read-only lookup performs no insertion, allocation or entity/refcount mutation.
+Remove Version::named_indices and both native graph scans, including the unused
+scan of temporary template-hole productions. Production remapping uses the
+Tower revision directly; existing row-view remapping remains usable by its
+standalone functional fixtures. This is a derived index over the same entities,
+not another grammar or semantic IR. Extend production-API tests for multiple
+alternatives, generated names, interned non-rule names, absent keys, input-array
+lifetime and independent revisions; run replacement/completion integration.
+
+The bf906b5 artifact release was accepted as gh-pages b35dd45fc9705593d5840a7d75d5803c992720c7.
+GitHub Pages workflow 44808496230 completed successfully. The PowerShell wrapper
+reported a nonzero status after redirected Git progress, but Git's acknowledgement,
+remote branch and successful workflow establish the push; do not infer failure
+from the wrapper alone. Hosted validation is running against the unchanged
+candidate dist before preparing the next release.
+
+Named production lookup is implemented and integrated. An existing interned name
+stores its first emitted production index. Template remapping reads that frozen
+Tower hash index; native named_indices, both child/component scans and the copied
+name-row array are removed. The old row-view Tower entry remains for standalone
+consumers, sharing the same remapping implementation. No new native algorithm,
+wrapper, fallback seed or semantic model. The slice removes 14 syntax.cpp lines
+net and adds two ABI declarations: 12 net native lines removed, production now
+4866 lines, syntax.cpp 1232. Literal-only names correctly return no production.
+
+Native compiler/frontend checks pass (0.02 s), including allocation-failure
+cleanup, stable borrowed names, independent revision teardown and zero-allocation
+reads of ordinary/generated names. Parser/LLVM/cross builds pass; 109 selected
+Node tests pass (7.02 s). Successor compilers built with 2 and 4 workers have
+identical bytes and preserve the edited-semantic probe (889343/52084549/63641918
+bytes). Logs use syntax-named-index-{native,tests,parser,backends,node,successors}.
+
+Performance investigation: two short 6-warmup/16-pair runs showed the small
+Templates case +3.28%/+2.65%, with mixed or better larger workloads. A longer
+20-warmup/64-pair run using the same benchmark code and byte-identical output
+checks shows Templates 4.812 -> 4.783 ms (-0.61%), layout 16.956 -> 16.898 ms
+(-0.34%), and compiler-host 142.279 -> 140.730 ms (-1.09%). Short-run drift was
+not reproduced with the longer warmed sample; no code change was made to chase
+that timing noise. Reports are syntax-named-index-benchmark-{1,2,long}.json and
+matching logs. The temporary benchmark copy was removed. No sanitizer or source
+formatter sweep was run. Next: publish this tested slice, then move helper and
+capture provenance indexes into the same pinned revision, preserving duplicate
+source/capture ordering before removing the remaining native maps.
+
+Final pull integrated upstream 0b48236 (shared resolved type-use query metadata).
+Only the append-only journal conflicted; both histories are preserved. Rebuild
+the affected native/Wasm units and rerun focused checks before publishing the
+named-index slice, so the incoming type-use feature is retained.

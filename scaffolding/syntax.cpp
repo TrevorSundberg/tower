@@ -95,7 +95,6 @@ struct Version {
   std::map<TowerNode*, std::string> capture_names;
   std::map<std::string, uint32_t> declaration_literals;
   std::set<std::string> declaration_starts;
-  std::map<std::string, size_t> named_indices;
   std::map<std::string, Term> repetitions;
   std::map<size_t, Replacement> replacements;
   std::vector<std::vector<SyntaxExpansionCapture>> expansion_captures;
@@ -217,11 +216,6 @@ bool seed(Version& version, const Definitions& definitions, const char* category
     SyntaxEmissionHelper entry{}; syntax_emission_helper(emitted.get(), i, &entry);
     if (entry.capture) { version.capture_sources[entry.name] = entry.source; version.capture_names[entry.source] = entry.name; }
     else version.repetitions.emplace(entry.name, TowerNodeRef(entry.source));
-  }
-  for (size_t i = 0; i < tower_node_get_child_count(version.rules.get()); ++i) {
-    auto* node = tower_node_get_child(version.rules.get(), i);
-    auto* rule = static_cast<Rule*>(tower_node_get_component_userdata(node, parser_rule_get_type()));
-    version.named_indices.try_emplace(parser_rule_get_name(rule), i + 1);
   }
   return true;
 }
@@ -512,13 +506,7 @@ bool compile_template(Version& version, const Definitions& defs, const Sequence&
   holes.emission.string_kind = parser_string_get_type();
   holes.captures = captures.data(); holes.count = captures.size();
   holes.repetitions = repetitions.data(); holes.repetition_count = repetitions.size();
-  const auto first_added = tower_node_get_child_count(grammar->rules.get());
   if (!syntax_template_holes(&holes)) { error = "Unable to allocate replacement hole productions"; return false; }
-  for (size_t i = first_added; i < tower_node_get_child_count(grammar->rules.get()); ++i) {
-    auto* node = child(grammar->rules.get(), i);
-    auto* rule = static_cast<Rule*>(tower_node_get_component_userdata(node, parser_rule_get_type()));
-    grammar->named_indices.try_emplace(parser_rule_get_name(rule), i + 1);
-  }
   char* diagnostic = nullptr;
   grammar->table = parser_table_create(grammar->rules.get(), grammar.get(), resolve, token_name, &diagnostic,
     ParserTableMode::WholeInput, describe_rule);
@@ -548,18 +536,16 @@ bool compile_template(Version& version, const Definitions& defs, const Sequence&
   if (!body) { error = "Replacement must produce one syntax tree"; return false; }
   tower_node_add_ref(body); tower_node_detach(body); replacement.tree = owned(body);
   std::vector<SyntaxTemplateAlias> aliases;
-  std::vector<SyntaxTemplateName> names;
   std::vector<size_t> uses(captures.size());
-  aliases.reserve(grammar->capture_sources.size()); names.reserve(version.named_indices.size());
+  aliases.reserve(grammar->capture_sources.size());
   for (const auto& [name, entity] : grammar->capture_sources)
     aliases.push_back({name.c_str(), version.capture_names.at(entity).c_str()});
-  for (const auto& [name, index] : version.named_indices) names.push_back({name.c_str(), index});
   SyntaxTemplateRemap remap{body, parser_match_get_type(),
     syntax_emission_productions(grammar->emission.get()), syntax_emission_production_count(grammar->emission.get()),
     syntax_emission_productions(version.emission.get()), syntax_emission_production_count(version.emission.get()),
-    aliases.data(), aliases.size(), names.data(), names.size(),
+    aliases.data(), aliases.size(), nullptr, 0,
     parser_table_grammar(version.table), uses.data(), uses.size()};
-  if (!syntax_template_remap(&remap)) { error = "Unable to allocate replacement template mapping"; return false; }
+  if (!syntax_template_remap_to_emission(&remap, version.emission.get())) { error = "Unable to allocate replacement template mapping"; return false; }
   for (size_t i = 0; i < captures.size(); ++i) if (uses[i]) replacement.uses[captures[i].name] = uses[i];
   return true;
 }

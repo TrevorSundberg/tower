@@ -24,6 +24,7 @@ struct SyntaxEmissionEntry {
     next: usize;
     wrapper: usize;
     rule: usize;
+    production: usize;
     literal: u32;
     terminal: u32;
     excluded: SyntaxNode*;
@@ -166,6 +167,7 @@ fn emission_name(value: SyntaxEmission*, text: u8*, length: usize): usize {
     entry.next = value.buckets.data[bucket];
     entry.wrapper = lr_none();
     entry.rule = lr_none();
+    entry.production = lr_none();
     entry.literal = 4294967294;
     entry.terminal = 4294967294;
     value.buckets.data[bucket] = index;
@@ -181,6 +183,29 @@ fn emission_cname(value: SyntaxEmission*, text: u8*): usize {
         }
         length = length + 1;
     }
+}
+
+// Read an already-published name index without inserting, allocating or touching
+// entity/refcount state. Generated names share the same revision-owned storage.
+export fn syntax_emission_rule_index(value: SyntaxEmission*, text: u8*): usize {
+    var size = value.buckets.length;
+    var empty = size == 0;
+    if empty { return lr_none(); }
+    var length = syntax_text_length(text);
+    var hash = emission_hash(text, length);
+    var bucket = hash % size;
+    var index = value.buckets.data[bucket];
+    while index != lr_none() {
+        var entry = value.names.data[index];
+        var same = entry.hash == hash;
+        if same {
+            var order = syntax_bytes_compare(text, length, entry.text.data, entry.text.length);
+            same = order == 0;
+            if same { return entry.production; }
+        }
+        index = entry.next;
+    }
+    return lr_none();
 }
 
 fn emission_text(value: SyntaxEmission*, index: usize): u8* {
@@ -313,6 +338,9 @@ fn emission_production(value: SyntaxEmission*, name: usize, generated: bool): vo
     if ok {} else {
         value.failed = true;
     }
+    var entry = value.names.data[name];
+    var first = entry.production == lr_none();
+    if first { entry.production = entity_child_count(value.input.root); }
     return node;
 }
 

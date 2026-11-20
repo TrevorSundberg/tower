@@ -257,7 +257,7 @@ fn template_named(input: SyntaxTemplateRemap*, name: u8*): usize {
     }
 }
 
-fn template_remap_node(input: SyntaxTemplateRemap*, node: void*): bool {
+fn template_remap_node(input: SyntaxTemplateRemap*, node: void*, destination: SyntaxEmission*): bool {
     var data = lr_tree_match(node, input.match_kind);
     var ordinal = data.id - 3145728;
     var hole = data.id >= 3145728;
@@ -278,7 +278,12 @@ fn template_remap_node(input: SyntaxTemplateRemap*, node: void*): bool {
     if supplied {
         data.rule = template_destination(input, source);
     } else {
-        data.rule = template_named(input, label);
+        var retained = destination != null;
+        if retained {
+            data.rule = syntax_emission_rule_index(destination, label);
+        } else {
+            data.rule = template_named(input, label);
+        }
     }
     var id = lr_grammar_lookup(input.grammar, label, lr_name_hash(label));
     var missing = id == lr_none();
@@ -292,6 +297,12 @@ fn template_remap_node(input: SyntaxTemplateRemap*, node: void*): bool {
 }
 
 export fn syntax_template_remap(input: SyntaxTemplateRemap*): bool {
+    return syntax_template_remap_to_emission(input, null);
+}
+
+// Production consumers borrow the revision's frozen name index. The original
+// row-view entry remains available to standalone remapping fixtures/consumers.
+export fn syntax_template_remap_to_emission(input: SyntaxTemplateRemap*, destination: SyntaxEmission*): bool {
     var pending: vector(void*);
     vector_init(void*, &pending);
     var bytes = input.count * sizeof(usize);
@@ -307,7 +318,7 @@ export fn syntax_template_remap(input: SyntaxTemplateRemap*): bool {
         }
         pending.length = pending.length - 1;
         var node = pending.data[pending.length];
-        ok = template_remap_node(input, node);
+        ok = template_remap_node(input, node, destination);
         if ok {} else {
             break;
         }

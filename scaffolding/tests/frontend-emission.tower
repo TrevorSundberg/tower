@@ -15,6 +15,9 @@ extern fn syntax_emission_production_count(value: void*): usize;
 extern fn syntax_emission_productions(value: void*): SyntaxEmissionProduction*;
 extern fn syntax_emission_find_index(value: void*, index: usize): SyntaxEmissionProduction*;
 extern fn syntax_emission_find_name(value: void*, name: u8*, alternative: usize): usize;
+extern fn syntax_emission_rule_index(value: void*, name: u8*): usize;
+extern fn syntax_emission_helper_count(value: void*): usize;
+extern fn syntax_emission_helper(value: void*, index: usize, out: SyntaxEmissionHelper*): void;
 
 // Exercise production exports against shared grammar components in an isolated
 // world. Emission owns its rows/names; the caller pins the source entities.
@@ -68,6 +71,10 @@ fn frontend_emission_tests(): void {
     var ok = revision != null;
     frontend_world_check(ok);
     var rows = syntax_emission_productions(revision);
+    var helper: SyntaxEmissionHelper;
+    ok = syntax_emission_helper_count(revision) == 1;
+    frontend_world_check(ok);
+    syntax_emission_helper(revision, 0, &helper);
     ok = syntax_emission_production_count(revision) == 3;
     frontend_world_check(ok);
     var first_root = input.root;
@@ -131,6 +138,18 @@ fn frontend_emission_tests(): void {
         }
         ok = syntax_emission_find_name(revision, "A", 0) == rows[0].index;
         frontend_world_check(ok);
+        ok = syntax_emission_rule_index(revision, "A") == rows[0].index;
+        frontend_world_check(ok);
+        ok = syntax_emission_rule_index(revision, "B") == rows[2].index;
+        frontend_world_check(ok);
+        var helper_index = rows[0].index + 1;
+        ok = syntax_emission_rule_index(revision, helper.name) == helper_index;
+        frontend_world_check(ok);
+        // A literal name may exist in the interner without defining a rule.
+        ok = syntax_emission_rule_index(revision, "x") == frontend_world_unlimited();
+        frontend_world_check(ok);
+        ok = syntax_emission_rule_index(revision, "Missing") == frontend_world_unlimited();
+        frontend_world_check(ok);
         ok = syntax_emission_find_name(revision, "B", 0) == rows[2].index;
         frontend_world_check(ok);
         ok = syntax_emission_find_name(revision, "A", 2) == frontend_world_unlimited();
@@ -153,6 +172,8 @@ fn frontend_emission_tests(): void {
     syntax_emission_destroy(revision);
     entity_release(first_root);
     ok = syntax_emission_find_name(second, "B", 0) == b;
+    frontend_world_check(ok);
+    ok = syntax_emission_rule_index(second, "B") == b;
     frontend_world_check(ok);
     syntax_emission_destroy(second);
     entity_release(second_root);

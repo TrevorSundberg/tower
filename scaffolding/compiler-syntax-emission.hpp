@@ -38,6 +38,7 @@ void syntax_emission_production(const SyntaxEmission*, size_t, SyntaxEmissionPro
 const SyntaxEmissionProduction* syntax_emission_productions(const SyntaxEmission*);
 const SyntaxEmissionProduction* syntax_emission_find_index(const SyntaxEmission*, size_t);
 size_t syntax_emission_find_name(const SyntaxEmission*, const char*, size_t);
+size_t syntax_emission_rule_index(const SyntaxEmission*, const char*);
 size_t syntax_emission_helper_count(const SyntaxEmission*);
 void syntax_emission_helper(const SyntaxEmission*, size_t, SyntaxEmissionHelper*);
 }
