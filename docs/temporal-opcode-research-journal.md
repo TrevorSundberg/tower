@@ -19416,3 +19416,34 @@ it. Native build/test, targeted formatting and packaging logs use driver-*
 under build/module-scopes. The earlier full sanitizer and portable-suite results
 apply to the module-scope/compiler implementation; the subsequent native CLI
 integration is validated separately as described here.
+
+Publication integration: local deployment verification passed all 69 assets and
+both viewport flows. The first gh-pages push was rejected normally because a
+concurrent native CLI metadata publication advanced the branch. Integrated
+42a7afe and then 9e6ff1c on main, preserving both journal histories and all
+unrelated local work. Rebased the unpublished Pages commit onto 5bda931 and
+retained its nativeCli metadata; no force push was used. Template source is
+3ef76c3, pushed normally to main.
+
+Rebuilt parser/LLVM/cross after the first integration. The later fixed-signature
+driver-host followup only changes native CLI sources, outside the Wasm link
+units. Refreshed the packaged source catalog from the same source folders used
+by package-compiler-project.py, retaining its generated unit recipes and compiled
+support archives. Rebuilt the UI and stamped its source revision/previous
+deployment while preserving the incoming native validation record. All 63
+query/template/module checks pass again (17.12 s), both focused template browser
+checks pass, and another two successive compiler generations reproduce the same
+1,086,676 / 52,080,060 / 63,637,192-byte reactors. No native CLI binary validation
+is claimed by this hover change; that independent validation remains recorded
+in the preceding entries. Sync logs use build/generic-info-sync-*.
+
+Published gh-pages 81816ac18f8d4046609d2aaaebfc9b78f3658d02; Pages reports built.
+Manifest SHA-256: bae12c7b040350ab6dc0107b10130cc560eb5238b359d9eeacf54e1572ef9b52.
+All 69 hosted assets match the final local bundle, and all 12 focused live
+hover checks pass on desktop/mobile (24.4 s), including the new template case.
+The full hosted verifier also passes both viewport flows: backend agreement,
+module/grammar behavior, persistence, native downloads, parser/type completion,
+output highlighting and detected target defaults. Saved the final report as
+build/generic-info-live-report.json; live logs are generic-info-live-browser.log
+and generic-info-live-deployment.log. Source and publication metadata are
+committed, with the unrelated local files preserved.
