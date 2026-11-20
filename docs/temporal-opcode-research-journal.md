@@ -20141,3 +20141,46 @@ older local LLVM reactor. Rebuilt/copied the matching LLVM/cross reactors, and a
 tower-frontend passes in 0.02 seconds. Logs: ide-first-tests (failed ABI trial),
 ide-second-tests, ide-focused-tests, ide-module-scopes, ide-formatting-focused,
 ide-native-build, ide-llvm-build. Final integrated/package validation follows.
+
+Final integration: committed the port, then git pull --rebase incorporated
+8426c78 (syntax diagnostics/preview, error-state template hovers and allocator
+forwarding). Preserved both append-only journal histories in the sole conflict.
+Tested code commit 284c6415e0e99749df373d3ec919835edb86b417, tree
+5889df947a7cec2e5f117e8c54d832d71d0d540f. No edits were made to parser.cpp,
+syntax.cpp, driver.cpp, runtime.c, compiler-memory.cpp, backend lowering or todo.txt;
+their incoming owners' changes remain intact.
+
+Rebuilt parser/IDE, LLVM/cross and native targets with the validated scoped
+bootstrap. Focused Tower IDE fixtures pass again. All 198 selected Node/Wasm
+checks pass (8.28 seconds), covering completion, execution/foreign calls, graph/
+fast/bytecode agreement, formatting artifacts, module scopes, hover, ownership,
+raw memory and parser/replacement diagnostics. All four native CTests pass in
+4.14 seconds: allocator, real Wasm growth, frontend and CLI. A first SDK argument
+was split by PowerShell at the version suffix; reran with the typed CMake PATH
+argument and the correct SDK. No source change or disabled check hid that failure.
+
+Two successive compiler generations built all 11 parser/IDE units and both
+10-unit LLVM/cross sets; edited semantic behavior and identical successor hashes
+pass. Generation 2 sizes: 878750 / 52074004 / 63631370 bytes. The recipe now
+packages the exact foreign import allowlist as an explicit input; reserved
+linker tower-* names initially rejected it, so use imports-tower-*.txt. No broad
+allow-undefined option or new native import wrapper was added. Production excludes
+ide_tests and retains exactly the baseline's 42 tw_* exports. Generic services
+use IDE terminology; actual WASI/browser deployment names remain platform names.
+
+The final combined headless cancellation/edit/restart/stale-download checks pass
+on desktop and mobile (8 cases, 15.1 seconds). Local deployment verification
+passes all 70 exact assets and both viewport flows, including backend agreement,
+diagnostics, completion, persistence and downloadable artifacts. Logs/reports:
+build/ide-integrated-{tests,generations,browser,local,package}.log and
+build/compiler-workbench/generation{1,2}.json. The established build-native.sh
+deployed build/native/towerc and resources; executable SHA-256 is
+59a6c8a5cb375cd4f4c4d99587c2ac2f1bca9390c7d7e48c2caf4840a4c0a86c.
+
+Publication is prepared on latest gh-pages 4d3d19f, whose recorded source 6a49c53
+is included in this main tree. Preserve its native CLI provenance and newer hover
+changes; replace it only with this verified combined package. Hosted verification
+and final push evidence follow. Remaining dependency: syntax inspection still
+uses the existing native APIs through the isolated WASI ABI binding; this port
+does not claim a native LSP protocol, parallel shared-graph mutation or complete
+native compiler/runtime removal.
