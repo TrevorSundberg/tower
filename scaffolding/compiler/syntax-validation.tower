@@ -362,6 +362,58 @@ fn syntax_validation_declaration(value: SyntaxValidation*, name: u8*, empty: boo
     }
 }
 
+fn syntax_validation_imports(value: SyntaxValidation*): bool {
+    // Older editable declaration grammars may still capture Identifier directly.
+    var index = syntax_validation_find(value, "ImportDeclaration", 17);
+    var present = index != lr_none();
+    if present {
+        var ok = syntax_validation_declaration(value, "ImportDeclaration", false, "name", null, null, null, false);
+        if ok {} else {
+            return false;
+        }
+    }
+    index = syntax_validation_find(value, "ImportPath", 10);
+    var missing = index == lr_none();
+    if missing {
+        return true;
+    }
+    var ok = syntax_validation_declaration(value, "ImportPath", false, "segment", null, null, null, false);
+    if ok {} else {
+        return false;
+    }
+    var rule = &value.rules[index];
+    var alternative: usize = 0;
+    loop {
+        var done = alternative == rule.count;
+        if done {
+            return true;
+        }
+        var sequence = syntax_validation_node(value, rule.alternatives[alternative]);
+        var item: usize = 0;
+        loop {
+            done = item == sequence.items.length;
+            if done {
+                break;
+            }
+            var term = syntax_validation_node(value, sequence.items.data[item]);
+            var recursive = term.literal == false;
+            if recursive {
+                recursive = syntax_bytes_compare(term.text.data, term.text.length, "ImportPath", 10) == 0;
+            }
+            if recursive {
+                ok = syntax_bytes_compare(term.capture.data, term.capture.length, "previous", 8) == 0;
+                if ok {} else {
+                    syntax_validation_location(value, term);
+                    syntax_validation_text(value, "Recursive ImportPath must preserve capture 'previous'");
+                    return false;
+                }
+            }
+            item = item + 1;
+        }
+        alternative = alternative + 1;
+    }
+}
+
 fn syntax_validation_declarations(value: SyntaxValidation*): bool {
     var ok = syntax_validation_declaration(value, "GrammarAlternatives", false, "sequence", null, null, null, false);
     if ok {
@@ -393,6 +445,9 @@ fn syntax_validation_declarations(value: SyntaxValidation*): bool {
     }
     if ok {
         ok = syntax_validation_declaration(value, "GrammarTokenDeclaration", false, "name", "pattern", "style", null, false);
+    }
+    if ok {
+        ok = syntax_validation_imports(value);
     }
     return ok;
 }

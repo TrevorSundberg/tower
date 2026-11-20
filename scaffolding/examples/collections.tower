@@ -1,6 +1,6 @@
 import tower;
-import 'library/stack';
-import 'library/queue';
+import library.stack;
+import library.queue;
 
 var lifo: stack(i32);
 var fifo: queue(i32);

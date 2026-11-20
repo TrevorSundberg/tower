@@ -39,8 +39,8 @@ export async function linkCompiler({compiler, recipe, files, inputs, support, pr
   // Instantiate every candidate before publishing any of them. A failed build
   // leaves the previous generation active; reset never depends on candidate code.
   const tower = await loadTower(modules.tower, undefined, grammar.foundation, undefined, grammar.bedrock, {tower:grammar.tower});
-  const fixture = 'import tower; import "answer"; print(answer());';
-  const probeFiles = [{path:'probe.tower',text:fixture}, {path:'answer.tower',text:'import tower; fn answer(): i32 { return 42; }'}];
+  const fixture = 'import tower; import helpers.answer; import "helpers/answer"; print(answer());';
+  const probeFiles = [{path:'probe.tower',text:fixture}, {path:'helpers/answer.tower',text:'import tower; fn answer(): i32 { return 42; }'}];
   tower.configureModules({entry:'probe.tower',files:probeFiles,builtins:grammar});
   const parse = tower.create(fixture);
   try { const {end} = runToEnd(tower,parse); if (end.status !== 'done') throw new Error('Candidate parser: '+end.error); }

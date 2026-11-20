@@ -67,6 +67,31 @@ test('keyword classification follows declaration boundaries, including removal a
     [['identifier',3],['keyword',5],['identifier',6]]);
   assert.equal(snapshot.highlights.find(t => source.slice(t.start,t.end) === 'forest').kind, 'identifier');
 });
+
+test('names keep identifier styling while actual keywords, grammar names and captures stay distinct', () => {
+  const source = 'import tower; import library.vector;\n' +
+    'token Label = /@[a-z]+/ as identifier;\n' +
+    "parse Name = $value:Identifier;\n" +
+    'struct Record { field: i32; }\n' +
+    'fn identity(parameter: i32): i32 { return parameter; }\n' +
+    'var local: i32 = identity(42); print(local);';
+  const {end,snapshot} = analyze(source);
+  assert.equal(end.status,'done',end.error);
+  const kinds = text => snapshot.highlights.filter(span=>source.slice(span.start,span.end)===text).map(span=>span.kind);
+  for (const name of ['tower','library','vector','identifier','Record','field','i32','identity','parameter','local','print'])
+    assert.ok(kinds(name).length && kinds(name).every(kind=>kind==='identifier'),name+': '+kinds(name));
+  for (const word of ['import','token','as','parse','struct','fn','return','var'])
+    assert.ok(kinds(word).length && kinds(word).every(kind=>kind==='keyword'),word+': '+kinds(word));
+  assert.deepEqual(kinds('Label'),['rule']);
+  assert.deepEqual(kinds('Name'),['rule']);
+  assert.deepEqual(kinds('Identifier'),['rule']);
+  assert.deepEqual(kinds('value'),['capture']);
+  const incomplete = analyze('import tower; import missing.path');
+  assert.equal(incomplete.end.status,'error');
+  for (const span of incomplete.snapshot.highlights)
+    if (['tower','missing','path'].includes('import tower; import missing.path'.slice(span.start,span.end)))
+      assert.equal(span.kind,'identifier');
+});
 test('highlight preview never consumes input or commits future declarations', () => {
   const handle = tower.create(base + loop + 'for(x in xs){}');
   try {

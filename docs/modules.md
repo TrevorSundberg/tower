@@ -53,19 +53,42 @@ steps; ordinary `import tower;` resolution is already implemented.
 
 ```tower
 import tower;
-import "library/vector";
+import library.vector;
 import "lib/answer";
 
 const Expected: i32 = 42;
 print(Expected());
 ```
 
-Imports omit `.tower`. A bare identifier or quoted path is accepted, followed by
-`;`. Put imports before the file's own declarations and statements. Resolution
+Imports omit `.tower`. Use dotted identifiers for ordinary module names and
+strings for relative paths or filenames that are not identifiers:
+
+```tower
+import foo.bar.baz;          // foo/bar/baz.tower
+import "foo/bar/baz";        // the same file
+import "../shared/helpers";  // relative to this importing file
+import "tools/file-name";    // filenames outside the identifier spelling
+```
+
+The last dotted segment is the filename; earlier segments are directories.
+Dots select files and do not yet create namespace bindings, aliases or qualified
+function names. All imported declarations still bind across the resolved program.
+Keep literal dots in filenames inside strings, such as `"tools/schema.v2"`;
+escaped identifier segments are also preserved by formatting.
+
+Use `/` as the portable source spelling. Quoted strings also accept escaped
+backslashes (`"..\\shared\\helpers"`); the loader normalizes them to `/`, and
+the formatter emits that canonical spelling. `.` and `..` are resolved lexically.
+Paths beginning with `./` or `../` stay relative to the importing file, with no
+library fallback. Absolute paths remain machine-specific; normalization does
+not translate a Windows drive into a Linux mount point. Symlinks are not resolved.
+
+Put imports before the file's own declarations and statements. Resolution
 tries the importing file's directory, then the explicitly configured library
 directory. Native compilation uses the selected Foundation directory first and
-the packaged resource directory as a fallback. Quoted relative paths support `.` and `..`. Canonical lexical paths
-identify modules; symlink aliases are not resolved. Missing modules, cycles,
+the packaged resource directory as a fallback, except for explicit relative paths.
+Canonical lexical paths identify modules, so dotted, quoted and separator variants
+of one file share its identity and execute its effects once. Missing modules, cycles,
 invalid UTF-8/NUL bytes, sources above 8 MiB and nesting above 128 modules produce
 diagnostics. The size limit is per source, not an aggregate graph limit.
 

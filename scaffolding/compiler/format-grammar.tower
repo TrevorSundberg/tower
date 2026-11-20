@@ -132,7 +132,25 @@ fn format_grammar(f: FormatEngine*, entity: void*): void {
             format_quote(f, &n.name);
         }
         else {
-            format_identifier(f, &n.name);
+            var legacy = n.items.length == 0;
+            if legacy {
+                format_identifier(f, &n.name);
+            } else {
+                var i: usize = 0;
+                loop {
+                    var done = i == n.items.length;
+                    if done {
+                        break;
+                    }
+                    var separator = i != 0;
+                    if separator {
+                        format_text(f, ".");
+                    }
+                    var segment = format_syntax(f, n.items.data[i]);
+                    format_identifier(f, &segment.text);
+                    i = i + 1;
+                }
+            }
         }
         format_text(f, ";\n");
         format_span(f, begin, n.start);

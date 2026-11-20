@@ -4,6 +4,7 @@
 #include <fstream>
 #include <filesystem>
 #include <sstream>
+#include <iostream>
 #include <unordered_map>
 
 CoreProgram reference_core_compile(const char*, unsigned);
@@ -39,6 +40,12 @@ void compare(const std::vector<std::string>& files, unsigned width, bool valid) 
   auto reference = reference_core_compile_files(files, width);
   auto actual = core_compile_files(files, width);
   assert(actual.error.empty() == valid);
+  if (actual.error != reference.error || actual.error_offset != reference.error_offset) {
+    std::cerr << "Semantic diagnostic mismatch (pointer width " << width << ")\n"
+              << "actual: " << actual.error << " at " << actual.error_offset << '\n'
+              << "reference: " << reference.error << " at " << reference.error_offset << '\n';
+    for (const auto& file : files) std::cerr << file << '\n';
+  }
   assert(actual.error == reference.error && actual.error_offset == reference.error_offset);
   // Error trees are intentionally incomplete; they are not public results.
   if (!valid) return;
@@ -79,6 +86,17 @@ void semantic_port_tests() {
         "var a: u64 = 18446744073709551615; var b: i64 = -9223372036854775808; print(a); print(b);",
         "fn f(): void { loop { if false { continue; } break; } return; } f();"
     }) compare({source}, width, true);
+    // The frozen reference predates the work graph's cycle-path diagnostics.
+    // Check both contracts exactly instead of weakening all error comparisons.
+    for (const auto& [source, message] : {
+        std::pair{"struct A { a: A; }", "Recursive by-value layout: A -> A; use a pointer"},
+        std::pair{"struct A { b: B; } struct B { a: A; }", "Recursive by-value layout: A -> B -> A; use a pointer"}
+    }) {
+      auto reference = reference_core_compile(source, width);
+      auto actual = core_compile(source, width);
+      assert(reference.error == "Recursive by-value layout for 'A'; use a pointer" && reference.error_offset == 0);
+      assert(actual.error == message && actual.error_offset == 0);
+    }
     for (const char* source : {
         "var a: Mystery;", "var a: void;", "var a: i32; var a: i32;", "var a = b; var b = a;",
         "var a = a;", "var a = f(); fn f(): void {}", "fn f(): i32 {}", "break;", "continue;",
@@ -102,18 +120,7 @@ void semantic_port_tests() {
         "fn bad(T: type): T { return true; } print(bad(i32));",
         "fn a(T: type, n: bool): type { return T; } var a: a(i32, true);"
     }) compare({source}, width, false);
-    // The iterative layout query reports the complete dependency cycle. The
-    // frozen recursive seed predates that diagnostic; assert both rejections
-    // and the exact new text/span instead of requiring the obsolete wording.
-    for (const auto& [source, cycle] : {
-        std::pair{"struct A { a: A; }", "A -> A"},
-        std::pair{"struct A { b: B; } struct B { a: A; }", "A -> B -> A"}}) {
-      auto actual = core_compile(source, width);
-      auto reference = reference_core_compile(source, width);
-      assert(reference.error.starts_with("Recursive by-value layout for '"));
-      assert(actual.error == std::string("Recursive by-value layout: ") + cycle + "; use a pointer");
-      assert(actual.error_offset == 0);
-    }
+
     compare({"fn fail(): i32 { return missing; }", "print(fail());"}, width, false);
   }
 }

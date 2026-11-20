@@ -268,10 +268,18 @@ export fn frontend_bedrock_create(kinds: FrontendKinds*): void* {
     frontend_bedrock_term(&b, b.alternative, "as", "", true);
     frontend_bedrock_term(&b, b.alternative, "Identifier", "kind", false);
 
+    frontend_bedrock_rule(&b, "ImportPath");
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "ImportPath", "previous", false);
+    frontend_bedrock_term(&b, b.alternative, ".", "", true);
+    frontend_bedrock_term(&b, b.alternative, "Identifier", "segment", false);
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "Identifier", "segment", false);
+
     frontend_bedrock_rule(&b, "ImportDeclaration");
     frontend_bedrock_alternative(&b);
     frontend_bedrock_term(&b, b.alternative, "import", "", true);
-    frontend_bedrock_term(&b, b.alternative, "Identifier", "name", false);
+    frontend_bedrock_term(&b, b.alternative, "ImportPath", "name", false);
     frontend_bedrock_term(&b, b.alternative, ";", "", true);
     frontend_bedrock_alternative(&b);
     frontend_bedrock_term(&b, b.alternative, "import", "", true);

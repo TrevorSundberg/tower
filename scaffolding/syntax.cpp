@@ -1230,16 +1230,23 @@ TowerNode* syntax_next(SyntaxSession* session) {
       preserve_comments(*session, declaration, session->cursor);
       tower_node_attach(root.get(), session->document.get());
       semantic(session->document).items.push_back(construct);
-      // These are roles of the fixed declaration language, not application
-      // tokens. Patterns and quoted literals keep their own classification.
+      // Grammar roles apply only to grammar names/references and captures.
+      // Imports and `as style` values are ordinary identifiers, not rule names.
+      // Patterns, quoted paths and replacement bodies keep their token styles.
       bool capture = false;
+      auto* declared_name = match(member(construct, "name"));
       size_t template_start = TOWER_INVALID_INDEX;
       if (declaration.replacement) template_start = semantic(declaration.replacement).start - 1;
       for (auto& token : session->highlights) {
         if (token.start < construct_start) continue;
         if (token.start >= template_start) continue;
         if (token.kind == "comment") continue;
-        if (token.kind == "identifier") token.kind = capture ? "capture" : "rule";
+        if (token.kind == "identifier") {
+          if (construct_kind == "GrammarDeclaration") token.kind = capture ? "capture" : "rule";
+          else if ((construct_kind == "GrammarTokenDeclaration" || construct_kind == "GrammarSkipDeclaration") &&
+                   token.start == parser_match_get_start(declared_name) &&
+                   token.end == parser_match_get_start(declared_name) + parser_match_get_length(declared_name)) token.kind = "rule";
+        }
         capture = session->source.substr(token.start, token.end - token.start) == "$";
       }
     } else {

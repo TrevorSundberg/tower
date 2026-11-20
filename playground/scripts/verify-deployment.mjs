@@ -173,7 +173,7 @@ try {
       assert.ok(Number((await timing.textContent()).match(/([\d.]+) ms/)[1])<20);
     }
     const project = newProject('Deployment project', {bedrock,foundation}, [
-      {path:'main.tower',text:'import foundation; import "lib/answer"; print(answer());'},
+      {path:'main.tower',text:'import foundation; import lib.answer; import "lib/answer"; print(answer());'},
       {path:'lib/answer.tower',text:'import foundation; fn answer(): i32 { return 42; }'},
       {path:'assets/notes.txt',text:'Project archive verification'},
     ]);
@@ -181,6 +181,9 @@ try {
     await expect(page.locator('#execution-status')).toContainText('backends match',{timeout:60000});
     await expect(page.locator('#execution-output')).toHaveText('42\n');
     await expect(page.locator('#project-storage')).toHaveText('Saved in browser');
+    await expect(page.locator('#editor .tw-identifier').filter({hasText:/^foundation$/})).toHaveCount(1);
+    await expect(page.locator('#editor .tw-identifier').filter({hasText:/^lib$/})).toHaveCount(1);
+    await expect(page.locator('#editor .tw-keyword,#editor .tw-rule').filter({hasText:/^(foundation|lib|answer)$/})).toHaveCount(0);
     await page.reload();
     await expect(page.locator('#project-kind option:checked')).toHaveText('Deployment project');
     await expect(page.locator('#execution-status')).toContainText('backends match',{timeout:60000});

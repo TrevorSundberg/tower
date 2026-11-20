@@ -15637,3 +15637,73 @@ Final integrated browser validation passes 53/53 executed cases (4.5 min); the m
 Implementation commits 3d5f065 and ab0a854 are published as gh-pages 757f76742f3f61a362abcf45694472024daad6f7. GitHub Pages reports built with no error. All 67 hosted assets exactly match the final local manifest. Hosted real-mouse hover measurements pass all 20 distinct snapshots on both desktop and mobile, with zero worker requests on each cached hover; median DOM 3.0/2.9 ms and conservative paint boundary 19.3/19.1 ms, p95 26.3/26.0 ms. Evidence: build/hover-live-timing.{json,log}. This journal-only publication record changes no deployed runtime asset. Unrelated local notes and externally updated todo.txt remain uncommitted and preserved; this task has not edited todo.txt.
 
 The full hosted verifier exits zero after validating all 67 hashes and desktop/mobile execution agreement, forward module bindings, editable grammar, persistence, native builds/downloads, contextual completion, shared highlighting, defaults and compiler workbench checks. Command: node playground/scripts/verify-deployment.mjs https://trevorsundberg.github.io/tower/. Evidence: build/hover-live.log and build/deployment-verification/report.json. The implementation commits were pushed to main after deployment; no force push or discarded local work.
+
+## 2026-11-19 - Dotted module paths and identifier highlighting
+
+The user identified the visual source of the earlier import confusion and asked
+for dotted module paths, then chose to retain quoted paths for relative/unusual
+filenames. Inspection found that syntax.cpp recolored every identifier in every
+declaration as a grammar-rule name, including import names and `as style` values.
+Restricted grammar roles to actual grammar rule/reference/capture names and token
+or skip declaration names. Imported names and style values retain identifier
+classification; the existing compiler-provided highlights still drive both editor
+and Foundation output. No JavaScript keyword list or path parser was added.
+
+Added the ordinary ImportPath rule to bedrock.tower and the Tower-written initial
+grammar builder. Dotted segments remain syntax components on their existing parse
+entities; the slash-joined import name is a derived resolver key. The same
+formatter emits dotted segments, including escaped identifiers with literal dots.
+Quoted paths keep string syntax and normalize decoded backslashes to `/`; explicit
+`./` and `../` imports are anchored to their importing file and no longer search
+a different library location on failure. Other names retain relative-then-library
+lookup. Canonical path identity deduplicates dotted/quoted/separator variants.
+There are still no namespace bindings or import aliases. Absolute Windows drives
+are not mapped to Linux mounts. Direct Identifier captures in older editable
+Bedrock grammars remain accepted by the import reader.
+
+The local native bootstrap predates upstream enums/work-graph source, so this
+rebuild uses the verified current published cross-Wasm compiler through the
+existing ignored Node object-emission transport. Frozen its binary under
+`build/dotted-imports/bootstrap-cross.wasm.gz`; the transport supplies source files
+and the real compiler performs parsing/resolution/code generation. Built the new
+native compiler with build-native.sh in Docker tower_build, user 1000:1000,
+HOME=/tmp/tower-home, and the existing tower-docker cache mounted there. Then used
+that compiler to rebuild parser/LLVM/cross reactors. This is a bootstrap bridge,
+not a new standalone distribution claim.
+
+Native graph and fast interpreter trials import math.answer and "math/answer"
+together and print exactly `7\n42\n`, proving the dependency effect runs once.
+The first fast trial used the nonexistent --fast flag and failed with Unexpected
+argument; the corrected --interpret-fast trial passes. Canonical formatting over
+scaffolding completes without additional source changes. Logs/trial files are
+under build/dotted-imports (native.log, native-fast-corrected.log,
+format-initial.log and fixture/). Added Wasm regressions for identity/effects,
+relative Windows spellings, explicit-relative misses, comments/escaped-segment
+round trips, invalid dotted syntax, imported-file diagnostics and old grammars.
+Browser checks compare actual keyword/identifier classes and colors and rerun
+a dotted dependency after editing it. Successor activation now includes a dotted
+import plus its quoted equivalent. Build/test/publication results follow below.
+
+The declaration validator now rejects ImportPath edits that remove the segment
+or recursive previous captures, and ImportDeclaration edits that remove name;
+failed installs remain atomic. The Collections example uses library.stack and
+library.queue. Rebuilt native, parser, LLVM and cross compilers with this final
+validation, repackaged native link support against those exact objects, and built
+the complete 67-asset website with TOWER_REQUIRE_BACKENDS=1. Canonical formatting
+passes (format-final.log).
+
+The broad Node/Wasm run passed 302/303 cases. The failing inheritance assertion
+treated every top-level name capture as a grammar definition; an import's name
+now correctly exposes its ImportPath node. Restricting that assertion to actual
+definitions fixes the test without changing production code. All 36 Bedrock,
+module-resolution and Wasm tests then pass (node.log, focused-final.log).
+
+The native sanitizer suite also exposed an older reference-test assumption:
+the Tower work graph reports the actual recursive layout path (A -> A or
+A -> B -> A), while the frozen C++ reference reports only A. Added useful
+diagnostic mismatch logging and separated those two fixtures to assert each
+compiler's exact message and offset, preserving strict differential comparisons
+for every other case. The initial failure and diagnostic trial are recorded in
+native-asan.log and native-parser-diagnostic.log. This test-only correction does
+not alter any release object or published compiler. Final sanitizer, browser,
+successor-generation and publication results follow below.

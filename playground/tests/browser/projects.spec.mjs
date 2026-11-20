@@ -121,3 +121,28 @@ test('import-only entry executes its closure and updates after a dependency edit
   await expect(page.locator('#execution-output')).toHaveText('42\n');
   await expect(page.locator('#llvm-output')).toHaveText('42\n');
 });
+
+test('dotted imports share file identity and import names look different from keywords',async({page}) => {
+  await prompt(page,'#new-project','Dotted imports');
+  await edit(page,'import tower; import math.answer; import "math/answer"; print(answer());');
+  await prompt(page,'#new-file','math/answer.tower');
+  await edit(page,'import tower; print(7); fn answer(): i32 { return 42; }');
+  await page.locator('#auto-execute').check();
+  await expect(page.locator('#execution-output')).toHaveText('7\n42\n');
+  await expect(page.locator('#llvm-output')).toHaveText('7\n42\n');
+  await page.locator('[data-path="main.tower"]').click();
+  const source = page.locator('#editor .cm-content');
+  await expect(source.locator('.tw-identifier').filter({hasText:/^tower$/})).toHaveCount(1);
+  await expect(source.locator('.tw-identifier').filter({hasText:/^math$/})).toHaveCount(1);
+  await expect(source.locator('.tw-keyword').filter({hasText:/^import$/})).toHaveCount(3);
+  await expect(source.locator('.tw-keyword,.tw-rule').filter({hasText:/^(tower|math|answer)$/})).toHaveCount(0);
+  const colors = await source.evaluate(root => {
+    const find = (selector,text) => [...root.querySelectorAll(selector)].find(el=>el.textContent===text);
+    return [getComputedStyle(find('.tw-keyword','import')).color,getComputedStyle(find('.tw-identifier','tower')).color];
+  });
+  expect(colors[0]).not.toBe(colors[1]);
+  await page.locator('[data-path="math/answer.tower"]').click();
+  await edit(page,'import tower; print(8); fn answer(): i32 { return 43; }');
+  await expect(page.locator('#execution-output')).toHaveText('8\n43\n');
+  await expect(page.locator('#llvm-output')).toHaveText('8\n43\n');
+});

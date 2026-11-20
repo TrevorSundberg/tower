@@ -755,8 +755,22 @@ fn module_resolve(parent: FrontendModule*, name: u8*, path: vector(u8)*, text: v
     if ok {
         status = module_read(parent.graph.environment, path.data, text);
     }
+    // Explicit relative paths stay relative to their importing file. A missing
+    // ../ dependency must not silently select an unrelated library file.
+    var relative: bool = false;
+    var dot = name[0] == 46;
+    if dot {
+        relative = name[1] == 47;
+        var parent_path = name[1] == 46;
+        if parent_path {
+            relative = name[2] == 47;
+        }
+    }
     var search: usize = 0;
     loop {
+        if relative {
+            break;
+        }
         var missing = status == ModuleMissing();
         if missing {} else {
             break;
@@ -880,6 +894,94 @@ fn module_load(parent: FrontendModule*, name: u8*): FrontendModule* {
     return result;
 }
 
+// Dotted segments retain components on their actual parse entities. The joined
+// slash path is a derived lookup key; formatting uses the preserved segments.
+fn module_import_name(reader: SyntaxReader*, node: void*, value: SyntaxNode*): bool {
+    var span = syntax_reader_span(reader, node);
+    var missing = span == null;
+    if missing {
+        return false;
+    }
+    var first = reader.source.text.data[span.start];
+    var quoted = first == 34;
+    if quoted {} else {
+        quoted = first == 39;
+    }
+    var ok: bool = true;
+    if quoted {
+        value.literal = true;
+        ok = syntax_reader_quoted(reader, node, &value.name);
+    } else {
+        var segment = syntax_reader_member(node, "segment");
+        var legacy = segment == null;
+        if legacy {
+            // Editable older Bedrock grammars can still capture Identifier directly.
+            ok = syntax_reader_name(reader, node, &value.name);
+        } else {
+            loop {
+                var done = node == null;
+                if done {
+                    break;
+                }
+                segment = syntax_reader_required(reader, node, "segment");
+                missing = segment == null;
+                if missing {
+                    return false;
+                }
+                var part = syntax_reader_attach(reader, segment, SyntaxTerm());
+                missing = part == null;
+                if missing {
+                    return false;
+                }
+                ok = syntax_reader_name(reader, segment, &part.text);
+                if ok {
+                    ok = part.text.length != 0;
+                }
+                if ok {
+                    ok = vector_push(void*, &value.items, segment);
+                }
+                if ok {} else {
+                    return false;
+                }
+                node = syntax_reader_member(node, "previous");
+            }
+            syntax_reader_reverse(&value.items);
+            var i: usize = 0;
+            loop {
+                var done = i == value.items.length;
+                if done {
+                    break;
+                }
+                var separator = i != 0;
+                if separator {
+                    module_require(foundation_name_append(&value.name, 47));
+                }
+                var part = frontend_syntax(value.items.data[i], reader.syntax_kind);
+                module_require(bytes_append(&value.name, part.text.data, part.text.length));
+                i = i + 1;
+            }
+            module_require(foundation_name_append(&value.name, 0));
+            value.name.length = value.name.length - 1;
+        }
+    }
+    if ok {
+        ok = value.name.length != 0;
+        var i: usize = 0;
+        loop {
+            var done = i == value.name.length;
+            if done {
+                break;
+            }
+            var windows_separator = value.name.data[i] == 92;
+            if windows_separator {
+                value.name.data[i] = 47;
+            }
+            i = i + 1;
+        }
+    }
+    return ok;
+}
+
 export fn frontend_module_import(module: FrontendModule*, node: void*, source: SyntaxSource*): bool {
     var reader: SyntaxReader;
     fill(&reader, 0, sizeof(SyntaxReader));
@@ -890,18 +992,7 @@ export fn frontend_module_import(module: FrontendModule*, node: void*, source: S
     var name = syntax_reader_required(&reader, node, "name");
     var ok = reader.error == null;
     if ok {
-        ok = syntax_reader_name(&reader, name, &value.name);
-    }
-    if ok {
-        var quoted = value.name.data[0] == 34;
-        if quoted {} else {
-            quoted = value.name.data[0] == 39;
-        }
-        if quoted {
-            value.literal = true;
-            value.name.length = 0;
-            ok = syntax_reader_quoted(&reader, name, &value.name);
-        }
+        ok = module_import_name(&reader, name, value);
     }
     if module.body {
         module_fail(module, "Imports must precede this file's declarations and statements", "");

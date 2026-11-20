@@ -20,6 +20,7 @@ test('foundation inherits bedrock without redeclaring any of its definitions', (
   assert.equal(defined.end.status, 'done', defined.end.error);
   const bedrockNames = new Set([...defined.snapshot.tokens, ...defined.snapshot.rules].map(item => item.name));
   for (const declaration of inherited.events) {
+    if (declaration.nodes[0].semantic === 'import') continue;
     const name = declaration.nodes.find(node => node.parent === 0 && node.role === 'name');
     assert.ok(name, 'a declaration must expose its name capture');
     assert.ok(!bedrockNames.has(name.label), `Foundation redeclares Bedrock's ${name.label}`);
@@ -199,4 +200,15 @@ test('bedrock installation is atomic, validates semantic captures and is idempot
   } finally { tower.destroy(handle); }
   assert.equal(tower.exports.tw_live_nodes(), nodes);
   assert.equal(tower.exports.tw_live_allocations(), allocations);
+});
+
+test('import grammar edits must preserve path segments, prefixes and declaration names', () => {
+  for (const [before,after,capture] of [
+    ['$segment:Identifier','Identifier','segment'],
+    ['$previous:ImportPath','ImportPath','previous'],
+    ['$name:ImportPath','ImportPath','name'],
+  ]) {
+    assert.throws(()=>tower.configureBedrock(bedrock.replaceAll(before,after)),new RegExp("preserve capture '"+capture+"'"));
+    assert.equal(inspect('print(1);').end.status,'done');
+  }
 });
