@@ -17484,3 +17484,22 @@ this checkout also includes the pulled 55cd34d hover improvements. This comparis
 does not isolate those upstream changes or claim unmeasured memory/workload
 performance. Full timings, CPU/Node versions and hashes are saved in
 parser-state-benchmark.json and parser-state-benchmark.log. todo.txt is unchanged.
+
+Published implementation c0aaf2d2cde63d20978e40d2131ff97750e92c18. Final pull/rebase
+picked up e14f0fd's documentation-only additions; preserved both sides of the
+journal append conflict. Verified no scaffolding/playground/cmake/CMakeLists.txt
+differences from the tested commit bede957, then reran the backend API and 38
+replacement/hover Node checks successfully. Main was pushed normally. Pulled the
+latest Pages branch before copying the verified manifest assets; no force push,
+configuration change or unrelated-work removal was used.
+
+Pages 7568f7e190010e2e256d058119dfe5a8cc37fae4 passed deployment run 44754352051.
+HTTPS verification at https://tower-lang.org/ exits zero: all 69 assets match the
+local manifest and desktop/mobile checks pass backend agreement, editable grammar,
+persistence, native downloads, completion, compiler-project behavior, output
+highlighting and target defaults. The focused hosted foreach/import/grammar hover
+check also passes on both device profiles. Evidence: parser-state-hosted.log,
+parser-state-hosted-report.json, parser-state-hosted-hover.log and
+parser-state-pages-workflow.log. CNAME tower-lang.org is preserved. This final
+journal-only update changes no deployed artifact. todo.txt remains Git blob
+96a9e58964d7f01e4a97819f259448db81ef5e40 and both pre-existing stashes remain intact.
