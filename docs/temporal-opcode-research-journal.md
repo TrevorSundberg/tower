@@ -21315,3 +21315,39 @@ is the revision's literal/declaration/token-name indexes, followed by definition
 and session lifecycle. These must keep diagnostics and source order, and expose
 explicit world/revision APIs for the CLI agent's eventual driver retirement.
 Full within-unit parallel compilation is still not implemented by this change.
+
+Next-slice audit completed while publishing: the remaining literal map feeds
+lexicon construction, diagnostic repair membership, completion acceptance/call
+follow checks, ordered suffix candidates and keyword enumeration. Declaration
+starts also validate Bedrock's keyword-only activation; pending names reserve
+generated-name space before emission. Template revisions inherit both reserved
+names and numeric literal IDs, then add their own hole display names. Move these
+together behind a retained revision interface; do not reconstruct IDs from a
+new sort or feed completion candidates in hash-bucket order. An immutable parent
+view plus a template-local display overlay avoids copying all names while keeping
+owner lifetimes explicit. This is an audited design dependency, not implemented
+behavior yet. Definitions and SyntaxSession lifecycle remain later work.
+
+Source 781958a was committed, pulled/rebased (already current) and pushed normally.
+Local publication verification passes all 70 asset hashes and desktop/mobile
+backend agreement, completion, highlighting, persistence, target defaults and
+native artifact downloads (helper-local-report.json). The release preserves the
+CLI/runtime agent's newly published 82b4ef2 deployment, source 451cc14, rather than
+overwriting it with an earlier snapshot. Fifteen assets plus the manifest changed.
+No identical gzip payloads were available for reuse against that independent
+build. Pages commit f714b9d pushed normally; workflow 44816692440 succeeded.
+Initial Pages push failed GitHub DNS resolution; Windows resolved 172.139.64.112
+and a command-local http.curloptResolve retry succeeded, preserving TLS hostname
+verification and without permanent configuration or a force push. Hosted checks
+are in progress; their outcome is recorded below after completion.
+
+Hosted verification now passes: all 70 exact assets and both desktop/mobile
+execution/backend, completion/highlighting, persistence, target-default and
+download checks. Logs: helper-hosted-deployment.log; report:
+helper-hosted-report.json. Published manifest SHA256:
+626959bf755d89ec218464e643eb64b85a56cd79b3692163335b60cf1a96bfa4.
+The final native inventory is saved as native-lines-helper-index.json. todo.txt
+still hashes to 96a9e58964d7f01e4a97819f259448db81ef5e40; existing stashes and
+the independent CLI/runtime checkout were preserved. Only this checkout's
+build caches were reconfigured. Final journal-only commit uses the same verified
+release; no source/artifact change requires rebuilding it.
