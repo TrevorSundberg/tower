@@ -54,6 +54,10 @@ fn language_declaration_description(value: FoundationNode*): u8* {
     if selected {
         return "A named part of a struct. Each value of that struct has its own copy of this field, which you access with a dot.";
     }
+    selected = value.kind == KType();
+    if selected {
+        return language_type_description(value);
+    }
     return null;
 }
 
@@ -189,33 +193,35 @@ fn language_foundation_present(node: void*, candidate: LanguageCandidate*): void
     }
 }
 
-// Type annotations outside generic definitions reuse ordinary type checking.
-fn language_parsed_present(q: CompletionQuery*, node: void*, candidate: LanguageCandidate*): bool {
-    var generic = generic_info(node, q.generic_info) != null;
-    if generic {
-        return false;
+fn language_type_description(value: FoundationNode*): u8* {
+    var pointer = value.type.pointers != 0;
+    if pointer {
+        return "A memory address that can be used to access a value.";
     }
-    // Resolved entities already have the higher-priority Foundation presenter.
-    // In particular, do not scan specializations for every ordinary function.
-    var resolved_entity = sem_get(node) != null;
-    if resolved_entity {
-        return false;
+    var boolean = value.type.scalar == SBool();
+    if boolean {
+        return "A true or false value.";
     }
-    if sem_is(node, "CoreType") {
-        var type = sem_type(&q.context, node);
-        var resolved = sem_ok(&q.context);
-        if resolved {
-            candidate.subject = sem_type_entity(&q.context, type);
+    if semantic_integer(&value.type) {
+        if semantic_signed(&value.type) {
+            return "A whole number that can be positive, zero or negative.";
         }
-        q.program.error.length = 0;
-        return resolved;
+        return "A whole number that is zero or positive.";
     }
-    return false;
+    var record = value.type.scalar == SStruct();
+    if record {
+        return "A type that groups named fields.";
+    }
+    var array = value.type.scalar == SArray();
+    if array {
+        return "A fixed number of elements stored next to each other.";
+    }
+    return "No value; used for functions that return no result.";
 }
 
 // Dispatch by the actual ECS component type. Priority is explicit so storage
-// order cannot change the result: checked Foundation, grammar, then parsed
-// annotations/specializations. Unsupported metadata leaves the inherited view.
+// order cannot change the result: checked Foundation, symbolic generic metadata,
+// grammar, then resolved type uses. Unsupported metadata leaves the inherited view.
 fn language_component_present(q: CompletionQuery*, node: void*, component: void*, checked: bool, candidate: LanguageCandidate*): LanguagePresentation {
     candidate.node = node;
     candidate.subject = node;
@@ -224,6 +230,23 @@ fn language_component_present(q: CompletionQuery*, node: void*, component: void*
     candidate.description = null;
     candidate.structural = false;
     var type = entity_component_type(component);
+    var type_use = type == q.context.type_uses;
+    if type_use {
+        var use = bits(SemanticTypeUse*, entity_component_data(component));
+        var target = sem_get(use.target);
+        var usable = target != null;
+        if usable {
+            if checked {} else {
+                usable = target.type.record == null;
+            }
+        }
+        if usable {
+            candidate.subject = use.target;
+            candidate.description = language_type_description(target);
+            return LanguagePresentation.TypeUse;
+        }
+        return LanguagePresentation.None;
+    }
     var generic_check1 = type == q.generic_info;
     if generic_check1 {
         language_generic_present(q, node, candidate);
@@ -241,14 +264,6 @@ fn language_component_present(q: CompletionQuery*, node: void*, component: void*
     if grammar {
         candidate.grammar = true;
         return LanguagePresentation.Grammar;
-    }
-    var parsed = type == parser_match_get_type();
-    if parsed {
-        if checked {
-            if language_parsed_present(q, node, candidate) {
-                return LanguagePresentation.ParsedType;
-            }
-        }
     }
     return LanguagePresentation.None;
 }

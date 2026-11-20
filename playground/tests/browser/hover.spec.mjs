@@ -143,6 +143,23 @@ test('Templates pop body exposes field, operator and dependent element types fro
   }
 });
 
+test('Templates call type arguments display their own type from the cached query',async({page},info)=>{
+  await selectDocument(page,'templates.tower');
+  const original=await savedSource(page),tip=page.locator('.tw-language-hover');
+  for(const text of [original,original+'\nmissing();']) {
+    const editor=await source(page,text);await editor.press('ControlOrMeta+End');await ready(page,text);
+    const count=await page.evaluate(()=>window.documentQueries.length);
+    const position=await point(page,'i32');await page.mouse.move(position.x,position.y);
+    await expect(tip).toBeVisible();await expect(tip).toContainText('Type: i32');
+    // The renderer intentionally omits a signature identical to the hovered text.
+    await expect(tip.locator('code')).toHaveCount(0);
+    await expect(tip).toContainText('4 bytes');await expect(tip).toContainText('whole number');
+    await expect(tip).not.toContainText(/fn pop|function template|Runs the function/);
+    expect(await page.evaluate(()=>window.documentQueries.length)).toBe(count);
+    await page.screenshot({path:'../build/type-argument-hover-'+info.project.name+'.png'});
+  }
+});
+
 test('grammar hover follows each parsed part and shows referenced types without a hover-time worker query',async({page},info)=>{
   const text='// Increment a location.\nfn increment(p:i32*):i32 { var result = *p; return result; }\n// Match an assignable location.\nparse CoreCall |= $target:CoreLocation \'++\'\n    => replace { increment(&$target) };\nvar value:i32 = 2;\nprint(value++);';
   await source(page,text);await ready(page,text);

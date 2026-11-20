@@ -476,6 +476,7 @@ export fn language_document(source: u8*, length: usize, mode: u32, pointer_bytes
     sem_require(host_text_terminate(&q.input));
     var c = &q.context;
     sem_context_init(c, &q.program);
+    sem_type_uses_begin(c);
     q.analyzed = true;
     language_grammar_index(q);
     c.source = q.input.data;

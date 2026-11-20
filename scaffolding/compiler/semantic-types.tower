@@ -55,6 +55,23 @@ fn sem_type_entity(c: SemanticContext*, t: FoundationType*): void* {
     return n;
 }
 
+fn sem_type_uses_begin(c: SemanticContext*): void {
+    c.type_uses = sem_create(c.program.root);
+    sem_require(entity_register(c.type_uses, sizeof(SemanticTypeUse), alignof(SemanticTypeUse), 0));
+}
+
+fn sem_type_use(c: SemanticContext*, node: void*, type: FoundationType*): void {
+    var observing = c.type_uses != null;
+    if observing {} else {
+        return;
+    }
+    var component = entity_component_add(node, c.type_uses);
+    var use = bits(SemanticTypeUse*, entity_component_data(component));
+    var allocated = use != null;
+    sem_require(allocated);
+    use.target = sem_type_entity(c, type);
+}
+
 fn sem_constant_argument(c: SemanticContext*, n: void*, expected_type: FoundationType*): void* {
     loop {
         var step1 = sem_is(n, "CoreTypeArgument");
@@ -493,6 +510,9 @@ fn sem_type(c: SemanticContext*, n: void*): FoundationType* {
     var step1 = sem_type_impl(c, n);
     var result: FoundationType* = step1;
     c.type_depth = c.type_depth - 1;
+    if sem_ok(c) {
+        sem_type_use(c, n, result);
+    }
     return result;
 }
 

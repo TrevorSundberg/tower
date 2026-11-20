@@ -39,13 +39,25 @@ span. There are no keyword/punctuation spelling checks or operation allow-lists
 in this lookup. `language-components.tower` dispatches presentation by actual ECS
 component type with explicit priority, independent of component storage order.
 The Foundation component presenter uses its operation tag and resolved bindings
-to choose details; syntax and parsed-type presenters handle their own metadata.
+to choose details; syntax and resolved-type presenters handle their own metadata.
 New surface spellings therefore work through the same nodes without adding hover
 cases. Generic definitions retain their own symbolic signatures and bindings;
 hover never substitutes the first concrete instance for the definition. Structural statements
 receive descriptions without fabricated value types. Unchecked custom syntax
 uses its actual matched rules and captures instead of claiming a runtime
 type. Whitespace and unattached comment text do not fabricate symbol hovers.
+
+`sem_type_uses_begin` enables shared type-use observations for a semantic context.
+Every successful `sem_type` resolution then attaches a `SemanticTypeUse` component
+to the source entity, linking the ordinary reflected type entity. This includes
+annotations, template call arguments and built-in call arguments, regardless of
+their parsed spelling or wrapper. Query consumers can reuse these links; hover
+does not run a second annotation-specific resolver during presentation. Normal
+compilation leaves observations disabled. The observation component and any
+temporary type entities belong to the query's existing lifetime. Original generic
+definitions still use symbolic metadata rather than a particular instantiation;
+failed checks retain independently resolved primitive uses while withholding
+unfinished named layouts.
 
 UI locations use `path/file.tower:line:column` consistently. A function signature
 already contains `fn` and its return type, so the tooltip omits those duplicate

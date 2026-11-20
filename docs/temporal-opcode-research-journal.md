@@ -20636,3 +20636,73 @@ syntax-revision-bootstrap-direct.log. The next pull added eea2cc6, journal-only;
 both appended histories are retained. User requests two independent handoff
 prompts and a stop after synchronization. Reserve syntax.cpp/session revision
 ownership for this agent; hand off parser.cpp and native CLI/runtime retirement.
+
+## 2026-11-20 — Shared resolved type uses for compiler queries
+
+The previous template member/operator correction is published at gh-pages
+888e0ee (source 81fe722). The complete hosted verifier passed all 70 asset hashes
+and desktop/mobile execution, completion, highlighting, persistence and native
+download checks; its report is build/template-path-pointer-live-report.json.
+Both successor compiler generations and all 70 service / 42 hover browser tests
+had passed before that publication. Two normal deployment pushes raced with
+metadata-only IDE/allocator publications; normal rebases preserved their metadata
+and our tested assets. No force push was used.
+
+The next screenshot showed the call signature while hovering i32 in
+pop(i32, &values). Semantic checking already resolved that type argument, but
+discarded the source-to-type link when constructing the runtime call. The old
+hover-only CoreType fallback did not cover arguments parsed as operands. New
+service regressions failed with kind function instead of type; desktop and mobile
+browser regressions reproduced the exact fn pop(i32) tooltip (logs:
+build/type-use-before.log and build/type-use-browser-before.log).
+
+Added opt-in SemanticTypeUse components in Tower's semantic context. Every
+successful sem_type records its result on the original source entity, referring
+to the ordinary reflected type entity. Annotations, type-function and function
+template arguments, pointer shapes, imported names and built-in type inputs now
+share that observation path. The generic component presenter reads the link;
+the old annotation-specific second resolution during hover presentation is
+removed. No identifier spelling tests, alternate type representation, native
+bridge or JavaScript semantic logic were added. Compiler query consumers can
+enable and reuse these components; ordinary compilation leaves them disabled.
+Original generic definitions retain their symbolic component priority and
+query-owned metadata is released with the existing document lifecycle.
+
+Type descriptions explain numbers, booleans, pointers, arrays, structs and void
+from resolved type properties. Primitive type uses remain usable after an
+unrelated semantic error, while named layouts remain gated by successful document
+checking. One prior test assumed all types disappear after an invalid initializer;
+updated it to require that the independently resolved i32 annotation survives
+while the invalid variable's value/reference is still withheld. All other
+existing tests passed unchanged, including symbolic definitions under multiple
+specializations, broken named layouts and repeated inspection lifetime checks.
+
+Pulled upstream bf906b5, including the syntax/emission integration and retired
+seed sources, before rebuilding. Git's automatic geometric repack delayed the
+pull; stopped only its pack-objects housekeeping subprocesses, then the pull
+fast-forwarded and restored the full autostash successfully. Subsequent commands
+disable automatic maintenance. No user work was discarded; todo.txt was untouched.
+
+Validation so far: published-bootstrap canonical formatting of the four changed
+Tower implementation files; parser, LLVM and cross-target rebuilds succeeded via
+build/context-bootstrap.sh and the standard build-wasm.sh/build-llvm.sh scripts
+(WASI SDK 34, WSL). Packaged Tower units: 11/10/10. All 72 hover/template/module
+service tests pass in 10.55 seconds. Browser, successor-generation and deployment
+validation follows below; logs use build/type-use-*.
+
+Local validation completed: all 42 existing hover browser cases passed unchanged.
+The two new cases initially expected a redundant i32 signature heading; the
+actual tooltip correctly follows the UI's established suppression of a signature
+identical to the hovered text. Corrected only the assertions to check Type: i32,
+its description/layout and the absence of a duplicate heading. Both desktop and
+mobile cases now pass for the original Templates file and with an unrelated
+error. Screenshots build/type-argument-hover-{desktop,mobile}.png were reviewed.
+Mouse inspection makes no additional document worker request.
+
+The complete local deployment verifier passed all 70 asset hashes and both
+browser profiles, including execution/backend agreement, native downloads,
+parser-aware completion, Tab acceptance, highlighting, persistence and target
+defaults (build/type-use-local-report.json). Two successor compiler generations
+passed with byte-identical modules and the edited semantic diagnostic check
+(build/type-use-generations.log). Source code is unchanged since the successful
+72 service tests. Deployment and hosted checks follow.

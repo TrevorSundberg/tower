@@ -39,6 +39,41 @@ test('function names and calls share canonical typed signatures',()=>{
   assert.doesNotMatch(definition('address').description,/without returning a value/);
 });
 
+test('type argument hovers retain the resolved type on their source entities',async()=>{
+  const example=(await read('scaffolding/examples/templates.tower')).toString();
+  for(const source of [example,example+'\nmissing();']) {
+    const entries=inspect(source,{entry:'templates.tower'});
+    for(const match of source.matchAll(/(?:push|pop)\((i32)/g)) {
+      const entry=hoverAt(entries,match.index+match[0].length-2);
+      assert.equal(entry.kind,'type');assert.equal(entry.signature,'i32');assert.equal(entry.type,'i32');
+      assert.equal(entry.size,4);assert.match(entry.description,/whole number/);
+      assert.doesNotMatch(entry.description,/function|Runs/);
+    }
+  }
+});
+
+test('type-use metadata shares semantic resolution for builtins, pointers and imported names',()=>{
+  const source=`import tower; import models as model;
+fn accept(T:type, value:T):T { return value; }
+var address:i32* = null;
+print(accept(i32,1)); print(accept(bool,true));
+var same = accept(i32*,address);
+var width = sizeof(model.Point); var aligned = alignof(i32);
+var heap = alloc(i32,1); var widened = convert(i64,7); free(heap);`;
+  const entries=inspect(source,{files:[{path:'models.tower',text:'import tower; struct Point { x:i32; }'}]});
+  for(const [needle,offset,type,size] of [
+    ['accept(i32,',7,'i32',4],['accept(bool,',7,'bool',1],
+    ['accept(i32*,',10,'i32*',4],['sizeof(model.Point)',13,'Point',4],
+    ['alignof(i32)',9,'i32',4],['alloc(i32,',7,'i32',4],['convert(i64,',9,'i64',8],
+  ]) {
+    const entry=hoverAt(entries,source.indexOf(needle)+offset);
+    assert.equal(entry.kind,'type',needle);assert.equal(entry.type,type,needle);assert.equal(entry.size,size,needle);
+    assert.ok(entry.description,needle);
+  }
+  const variable=at('var i32:bool = true; print(i32);','i32);');
+  assert.equal(variable.kind,'global variable');assert.equal(variable.type,'bool');
+});
+
 test('generic entity lookup covers every source position in checked statements',()=>{
   const source='fn advance(p:i32*):i32 {\n var old:i32 = *p;\n *p = old + 1;\n return old;\n}\nvar value:i32 = 1;\nprint(advance(&value));';
   const entries=inspect(source,{entry:'advance.tower'});
@@ -285,7 +320,10 @@ test('incomplete suffixes retain checked earlier declarations and edits never re
   assert.equal(at(source,'answer);').type,'i32');
   assert.equal(at('var answer:bool = true; print(answer);','answer);').type,'bool');
   const broken='var answer:i32 = true; print(answer);';
-  assert.ok(inspect(broken).every(entry=>entry.type===undefined));
+  const entries=inspect(broken);
+  assert.ok(entries.every(entry=>entry.type===undefined || broken.slice(entry.from,entry.to)==='i32'));
+  assert.equal(hoverAt(entries,broken.indexOf('i32')).type,'i32');
+  assert.equal(hoverAt(entries,broken.lastIndexOf('answer')).type,undefined);
 });
 test('grammar files expose syntax/entity metadata under their own baseline',()=>{
   for(const editingModule of ['bedrock','foundation']) {
