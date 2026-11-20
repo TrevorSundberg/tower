@@ -70,10 +70,15 @@ try {
     const cArtifact=await cDownload, rawC=await readFile(await cArtifact.path(),'utf8');
     assert.match(rawC,/int main\(void\)/);
     assert.match(cArtifact.suggestedFilename(),/\.c$/);
+    await writeFile(new URL(name+'-c-raw.c',output),rawC);
     await page.screenshot({path:new URL(name+'-c-source.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
     await page.locator('#build-targets summary').click();
     await page.locator('#optimize').check();
     await expect.poll(()=>outputText(page,'c-disassembly'),{timeout:60000}).not.toBe(rawC);
+    await expect(page.locator('#c-download')).toHaveAttribute('href',/^blob:/);
+    const optimizedC=await page.locator('#c-download').evaluate(link=>fetch(link.href).then(response=>response.text()));
+    assert.equal(optimizedC,await outputText(page,'c-disassembly'));
+    await writeFile(new URL(name+'-c-optimized.c',output),optimizedC);
     await page.locator('#preserve-comments').uncheck();
     await expect.poll(()=>outputText(page,'c-disassembly')).not.toContain('deployment C comment');
     await expect.poll(()=>outputText(page,'core-instructions')).not.toContain('deployment C comment');

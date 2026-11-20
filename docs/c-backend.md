@@ -75,5 +75,8 @@ Reproduce differential and compiler-warning checks with
 `python3 scaffolding/tests/c-backend.py /path/to/towerc build/c-validation` and
 `powershell -File scaffolding/tests/c-backend-msvc.ps1 build/c-validation`.
 `c-backend-profiles.py` adds 32/64-bit C99/C++11 checks with multilib installed.
+After the playground deployment verifier, `python3 scaffolding/tests/c-downloads.py`
+compiles its captured browser C output; the MSVC script can also consume
+`build/deployment-verification` to check those same files.
 The research journal records measured compiler/platform coverage and performance;
 backend equivalence is tested on defined programs, not inferred from matching C.
