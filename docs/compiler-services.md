@@ -62,6 +62,10 @@ semantic scope tables for lexical bindings. Type parameters and compile-time
 integer inputs remain symbolic; fields can display `T[size]` without claiming
 a concrete layout. Independent annotations use ordinary type resolution and the
 explicit target profile. Concrete uses retain their separately checked types and
+layouts. Inspection of registered generic definitions also runs when another
+part of the document has a semantic error. Executable Foundation presentation
+and concrete layout resolution remain gated by successful checking; failed
+documents retain symbolic annotations/bindings without exposing unfinished type
 layouts. This pass does not fully type-check an uninstantiated function body or
 infer all dependent expressions; those checks remain with ordinary instantiation.
 Depth/node limits report an incomplete index when reached.

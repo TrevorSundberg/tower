@@ -494,9 +494,14 @@ export fn language_document(source: u8*, length: usize, mode: u32, pointer_bytes
     if checked {
         sem_run(c);
         checked = sem_ok(c);
+        // A document diagnostic does not invalidate the declared parameters and
+        // symbolic annotations of its registered templates. Inspect those even
+        // when executable checking failed; keep Foundation presentation gated
+        // by the original result so partially checked values are never exposed.
+        q.program.error.length = 0;
+        q.generic_info = sem_generic_inspect(c, checked, &q.truncated);
     }
     if checked {
-        q.generic_info = sem_generic_inspect(c, &q.truncated);
         i = 0;
         loop {
             var done = i == q.comment_modules.length;

@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 import {readFile} from 'node:fs/promises';
-import {savedSource} from './project-helpers.mjs';
+import {savedSource,selectDocument} from './project-helpers.mjs';
 
 async function source(page,text) {
   const editor=page.getByRole('textbox',{name:'Tower source'});
@@ -80,6 +80,27 @@ test('template hover explains symbolic types, compile-time parameters and docs f
     if(token==='data')await page.screenshot({path:'../build/generic-template-hover-'+info.project.name+'.png'});
   }
   expect(await page.evaluate(()=>window.documentQueries.length)).toBe(count);
+});
+
+test('bundled Templates hovers survive an unrelated document error',async({page},info)=>{
+  await selectDocument(page,'templates.tower');
+  await expect(page.locator('#filename')).toHaveText('templates.tower');
+  const original=await savedSource(page),tip=page.locator('.tw-language-hover');
+  for(const text of [original,original+'\nmissing();']) {
+    const editor=await source(page,text);await editor.press('ControlOrMeta+Home');await ready(page,text);
+    const count=await page.evaluate(()=>window.documentQueries.length);
+    for(const [token,expected] of [['buffer','fn buffer(T: type, size: usize): type'],['data','data: T[size]']]) {
+      await page.mouse.move(0,0);const position=await point(page,token,false);await page.mouse.move(position.x,position.y);
+      await expect(tip).toBeVisible();await expect(tip).toContainText(expected);
+      await expect(tip).not.toContainText(/Matched rule|Capture:|matches the pattern/);
+      if(token==='buffer') {
+        await expect(tip).toContainText('Type and integer arguments determine the fields');
+        await expect(tip).toContainText('templates.tower:4:1');
+        if(text!==original)await page.screenshot({path:'../build/template-error-hover-'+info.project.name+'.png'});
+      }
+    }
+    expect(await page.evaluate(()=>window.documentQueries.length)).toBe(count);
+  }
 });
 
 test('grammar hover follows each parsed part and shows referenced types without a hover-time worker query',async({page},info)=>{

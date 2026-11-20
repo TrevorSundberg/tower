@@ -387,10 +387,13 @@ test('generated functions, declarations and return nodes have their own template
   }
 });
 test('document queries release their temporary shared entities after repeated inspection',()=>{
-  const source='// Point documentation\nstruct Point { x:i32; }\n// Instance documentation\nvar p:Point; print(p.x);\n// A parameterized container.\nfn box(T:type):type { struct R { value:T; } return R; } var b:box(i32);';inspect(source);
-  const nodes=tower.exports.tw_live_nodes(),allocations=tower.exports.tw_live_allocations();
-  for(let i=0;i<30;i++)inspect(source);
-  assert.equal(tower.exports.tw_live_nodes(),nodes);assert.equal(tower.exports.tw_live_allocations(),allocations);
+  const source='// Point documentation\nstruct Point { x:i32; }\n// Instance documentation\nvar p:Point; print(p.x);\n// A parameterized container.\nfn box(T:type):type { struct R { value:T; } return R; } var b:box(i32);';
+  for(const text of [source,source+'\nmissing();']) {
+    inspect(text);
+    const nodes=tower.exports.tw_live_nodes(),allocations=tower.exports.tw_live_allocations();
+    for(let i=0;i<30;i++)inspect(text);
+    assert.equal(tower.exports.tw_live_nodes(),nodes);assert.equal(tower.exports.tw_live_allocations(),allocations);
+  }
 });
 
 test('hover documentation shares attached comments for local and imported bindings',()=>{
@@ -407,6 +410,42 @@ test('the templates example exposes push documentation at the declaration and re
   const entries=inspect(source),declaration=hoverAt(entries,source.indexOf('push(')+1),call=hoverAt(entries,source.lastIndexOf('push(')+1);
   for(const entry of [declaration,call])assert.match(entry.documentation??'',/This small example assumes there is space to push and a value to pop/);
   assert.match(call.signature,/i32/);
+});
+
+test('the bundled Templates definitions retain symbolic hovers despite semantic errors elsewhere',async()=>{
+  const example=(await read('scaffolding/examples/templates.tower')).toString();
+  for(const source of [example,example+'\nmissing();',example+'\nvar invalid:buffer(i32,0);',example.replace('var values:', 'var broken:bool = 42;\nvar values:')]) {
+    const entries=inspect(source,{entry:'templates.tower'});
+    const get=needle=>hoverAt(entries,source.indexOf(needle));
+    const buffer=get('buffer('),field=get('data:');
+    assert.equal(buffer.kind,'type function');assert.equal(buffer.signature,'fn buffer(T: type, size: usize): type');
+    assert.equal(buffer.matchedRule,undefined);assert.equal(buffer.declarationFile,'templates.tower');
+    assert.match(buffer.documentation,/Type and integer arguments/);
+    assert.equal(field.type,'T[size]');assert.equal(field.size,undefined);
+    assert.equal(get('T[size]').kind,'type parameter');
+    assert.equal(get('size]').kind,'compile-time parameter');assert.equal(get('size]').type,'usize');
+    assert.equal(get('size]').size,source===example?4:undefined);
+    assert.equal(get('push(').kind,'function template');assert.match(get('push(').documentation,/space to push/);
+    const handle=tower.compile(source);
+    try {
+      const result=tower.execute(handle,100000);
+      assert.equal(result.status,source===example?'done':'error');
+      if(source.includes('missing();')) {
+        assert.match(result.error,/Unknown function 'missing'/);
+        assert.equal(hoverAt(entries,source.lastIndexOf('missing')).type,undefined);
+      }
+    } finally { tower.destroyExecution(handle); }
+  }
+});
+
+test('failed document checks never expose unfinished named-type layouts through generic metadata',()=>{
+  for(const field of ['missing:Missing','cycle:Broken']) {
+    const source=`struct Broken { ${field}; } fn demo(T:type,value:Broken):void {}`;
+    const value=at(source,'value:');
+    assert.equal(value.signature,'value: Broken');assert.equal(value.type,'Broken');
+    assert.equal(value.size,undefined);assert.equal(value.alignment,undefined);
+    assert.equal(value.matchedRule,undefined);
+  }
 });
 
 test('presentation hides bare syntax tokens and converts declaration offsets after Unicode',()=>{

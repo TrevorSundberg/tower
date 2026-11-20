@@ -19699,3 +19699,49 @@ hashes, leaving a clean deployment worktree. Do not publish the pre-rebase
 candidate. The refreshed package needs its focused successor/browser/publication
 checks on continuation; controlled benchmark remains pending. Neither sanitizer
 nor source-format sweeps should be restarted on continuation.
+
+## 2026-11-20 — Keep template inspection available in erroneous documents
+
+The user still saw the CoreFunction grammar fallback on buffer in Templates.
+The complete bundled example produces the intended symbolic hover on the shipped
+compiler, but appending `missing();` reproduces the exact screenshot text, down
+to foundation.tower:45:22. The new desktop/mobile regression selects the actual
+Templates project and confirms the valid state before adding the unrelated error;
+both variants fail against the previous browser bundle with the reported grammar
+tooltip. This establishes a real error-state bug without assuming the user's
+entire source or blaming browser caching.
+
+Root cause: language_document only invoked sem_generic_inspect when the whole
+semantic check succeeded. One unrelated error therefore hid every registered
+template's declared parameters, bindings, annotations and docs. The optional
+generic inspection now runs after checking regardless of that result. Clear the
+query-local diagnostic before inspection, retaining the original success flag
+for executable Foundation presentation. Ordinary compilation still reports its
+original errors, verified separately by the regression.
+
+A followup probe found an important boundary: after `struct Broken { x:Missing; }`
+or a by-value self-cycle failed, consulting the partially populated type registry
+could report a zero-byte Broken layout. Added an explicit resolve_types input to
+the generic pass. Failed documents keep symbolic annotations and bindings while
+withholding concrete layout resolution; successful documents keep normal target
+layouts. This uses the existing Tower service/component path and existing named
+limits/enums, with no browser parser, token-specific hover case or stale-snapshot
+fallback. Full checking of uninstantiated bodies remains deferred as before.
+
+Validation so far: rebuilt parser and LLVM/cross through the published Tower/Wasm
+bootstrap in WSL with WASI SDK 34; all ten compiler units package. Changed Tower
+source passes canonical formatting. All 65 hover/template/module-scope Node/Wasm
+checks pass (10.09 s), covering valid and erroneous Templates, invalid constructor
+arguments, name/type errors, unfinished nominal layouts, and unchanged compiler
+diagnostics. Repeated valid and failed queries both return live entity/allocation
+counts to baseline after 30 inspections. The first new unit fixture targeted the
+bracket after one-character T; corrected the offset to inspect T itself. The
+initial browser pass had all 40 cases pass. The final required-backend UI build
+and rebuilt-bundle desktop/mobile hover suite also pass all 40 cases (47.6 s).
+Inspected both new Templates/error screenshots: the signature, symbolic type
+explanation, attached comment and templates.tower:4:1 replace the grammar-only
+fallback. Hosted verification follows below. Logs and screenshots use
+build/template-error-*.
+
+Unrelated working changes in AGENTS.md, foundation docs, the journal and todo.txt
+are preserved outside this commit. No edits to todo.txt were made.

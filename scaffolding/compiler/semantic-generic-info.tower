@@ -29,6 +29,7 @@ struct GenericAnalysis {
     component: void*;
     definition: void*;
     constructor: bool;
+    resolve_types: bool;
     budget: usize;
     truncated: bool;
 }
@@ -129,6 +130,12 @@ fn generic_info_type(a: GenericAnalysis*, meaning: GenericInfo*): void {
     }
     meaning.dependent = generic_info_dependent(annotation, a.component, 0);
     if meaning.dependent {
+        return;
+    }
+    // A failed check may leave a named type with an unfinished layout in the
+    // ordinary registry. Its written annotation/bindings remain useful, but
+    // querying that partial registry must not turn zeroed fields into a layout.
+    if a.resolve_types {} else {
         return;
     }
     if sem_equal(sem_tokens(a.context, annotation), "type") {
@@ -270,12 +277,13 @@ fn generic_info_walk(a: GenericAnalysis*, node: void*, values: SemanticScope*, t
 
 // Query clients opt into this pass; executable compilation still checks each
 // concrete instance normally. Type/value bindings stay on the source entities.
-fn sem_generic_inspect(c: SemanticContext*, truncated: bool*): void* {
+fn sem_generic_inspect(c: SemanticContext*, resolve_types: bool, truncated: bool*): void* {
     var component = sem_create(c.program.root);
     sem_require(entity_register(component, sizeof(GenericInfo), alignof(GenericInfo), 0));
     var a: GenericAnalysis;
     a.context = c;
     a.component = component;
+    a.resolve_types = resolve_types;
     a.budget = InspectionNodeLimit();
     a.truncated = false;
     var i: usize = 0;
