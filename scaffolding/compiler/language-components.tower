@@ -10,6 +10,9 @@ import 'semantic-support';
 import 'semantic-definitions';
 import 'syntax-tags';
 import 'syntax-types';
+import 'semantic-generic-info';
+import 'language-generics';
+import 'inspection-policy';
 
 extern fn entity_component_at(node: void*, index: usize): void*;
 
@@ -186,10 +189,12 @@ fn language_foundation_present(node: void*, candidate: LanguageCandidate*): void
     }
 }
 
-// Type annotations and generic definitions have parsed components before they
-// have a single Foundation value. Reuse ordinary checking/specialization here;
-// this adapter cannot infer a concrete type for an unchecked generic body.
+// Type annotations outside generic definitions reuse ordinary type checking.
 fn language_parsed_present(q: CompletionQuery*, node: void*, candidate: LanguageCandidate*): bool {
+    var generic = generic_info(node, q.generic_info) != null;
+    if generic {
+        return false;
+    }
     // Resolved entities already have the higher-priority Foundation presenter.
     // In particular, do not scan specializations for every ordinary function.
     var resolved_entity = sem_get(node) != null;
@@ -205,68 +210,47 @@ fn language_parsed_present(q: CompletionQuery*, node: void*, candidate: Language
         q.program.error.length = 0;
         return resolved;
     }
-    if sem_is(node, "CoreFunction") {
-        var i: usize = 0;
-        loop {
-            var done = i == q.program.functions.length;
-            if done {
-                break;
-            }
-            var function = q.program.functions.data[i];
-            var definition = generic_definition(q.context.generics, function);
-            var same = definition == node;
-            if same {
-                candidate.subject = function;
-                candidate.specialization = true;
-                // The specialization is a preview of this declaration's name,
-                // not a checked type for every use inside the generic body.
-                var name = sem_match(sem_member(node, "name"));
-                var named = name != null;
-                if named {
-                    candidate.from = name.start;
-                    candidate.to = name.start + name.length;
-                }
-                return true;
-            }
-            i = i + 1;
-        }
-    }
     return false;
 }
 
 // Dispatch by the actual ECS component type. Priority is explicit so storage
 // order cannot change the result: checked Foundation, grammar, then parsed
 // annotations/specializations. Unsupported metadata leaves the inherited view.
-fn language_component_present(q: CompletionQuery*, node: void*, component: void*, checked: bool, candidate: LanguageCandidate*): u32 {
+fn language_component_present(q: CompletionQuery*, node: void*, component: void*, checked: bool, candidate: LanguageCandidate*): LanguagePresentation {
     candidate.node = node;
     candidate.subject = node;
     candidate.grammar = false;
-    candidate.specialization = false;
+    candidate.generic = null;
     candidate.description = null;
     candidate.structural = false;
     var type = entity_component_type(component);
+    var generic_check1 = type == q.generic_info;
+    if generic_check1 {
+        language_generic_present(q, node, candidate);
+        return LanguagePresentation.Generic;
+    }
     var foundation = type == core_component_type();
     if foundation {
         if checked {
             language_foundation_present(node, candidate);
-            return 30;
+            return LanguagePresentation.Foundation;
         }
-        return 0;
+        return LanguagePresentation.None;
     }
     var grammar = type == syntax_component_type();
     if grammar {
         candidate.grammar = true;
-        return 20;
+        return LanguagePresentation.Grammar;
     }
     var parsed = type == parser_match_get_type();
     if parsed {
         if checked {
             if language_parsed_present(q, node, candidate) {
-                return 10;
+                return LanguagePresentation.ParsedType;
             }
         }
     }
-    return 0;
+    return LanguagePresentation.None;
 }
 
 fn language_kind(value: FoundationNode*): u8* {

@@ -1,0 +1,17 @@
+import tower;
+
+// Resource limits for compiler inspection/display, not limits on Tower types.
+const InspectionDepthLimit: usize = 256;
+const InspectionNodeLimit: usize = 100000;
+const HoverPreviewByteLimit: usize = 512;
+const InspectionSourceByteLimit: usize = 8388608;
+
+// Component ordering must not influence which semantic presentation wins.
+enum LanguagePresentation: u32 {
+    None = 0, ParsedType = 10, Grammar = 20, Generic = 25, Foundation = 30
+}
+
+const TriviaTab: u8 = 9;
+const TriviaNewline: u8 = 10;
+const TriviaCarriageReturn: u8 = 13;
+const TriviaSpace: u8 = 32;

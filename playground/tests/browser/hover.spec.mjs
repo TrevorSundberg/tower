@@ -61,6 +61,27 @@ test('cached mouse hover shows resolved types and declaration locations without 
   await page.mouse.move(0,0);await expect(tip).toHaveCount(0);
 });
 
+test('template hover explains symbolic types, compile-time parameters and docs from the cached tree',async({page},info)=>{
+  const text='// Builds fixed-size arrays.\nfn buffer(T:type, size:usize):type {\n  struct Result {\n    // The stored elements.\n    data:T[size];\n  }\n  return Result;\n}';
+  await source(page,text);await ready(page,text);
+  const count=await page.evaluate(()=>window.documentQueries.length),tip=page.locator('.tw-language-hover');
+  for(const [token,last,expected] of [
+    ['buffer',false,['fn buffer(T: type, size: usize): type','Runs during compilation','Builds fixed-size arrays.']],
+    ['T',true,['T: type','A type you supply']],
+    ['size',true,['size: usize','compile-time parameter','Type: usize']],
+    ['data',false,['data: T[size]','Type: T[size]','Depends on the arguments','The stored elements.']],
+    ['Result',true,['struct Result { data: T[size]; }','struct type']],
+  ]) {
+    await page.mouse.move(0,0);const position=await point(page,token,last);await page.mouse.move(position.x,position.y);
+    await expect(tip).toBeVisible();
+    for(const value of expected)await expect(tip).toContainText(value);
+    await expect(tip).not.toContainText(/Matched rule|Capture:|entity|components|function specialization/);
+    if(token==='data' || token==='Result')await expect(tip).not.toContainText('bytes');
+    if(token==='data')await page.screenshot({path:'../build/generic-template-hover-'+info.project.name+'.png'});
+  }
+  expect(await page.evaluate(()=>window.documentQueries.length)).toBe(count);
+});
+
 test('grammar hover follows each parsed part and shows referenced types without a hover-time worker query',async({page},info)=>{
   const text='// Increment a location.\nfn increment(p:i32*):i32 { var result = *p; return result; }\n// Match an assignable location.\nparse CoreCall |= $target:CoreLocation \'++\'\n    => replace { increment(&$target) };\nvar value:i32 = 2;\nprint(value++);';
   await source(page,text);await ready(page,text);

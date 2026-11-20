@@ -93,25 +93,78 @@ test('control flow punctuation uses structural descriptions without invented val
   for(const entry of entries)assert.ok(hasHoverDetails(entry),source.slice(entry.from,entry.to));
 });
 
-test('uninstantiated function bodies retain tree lookups without claiming concrete types',()=>{
+test('uninstantiated function definitions retain symbolic signatures and parameter bindings',()=>{
   const source='fn unused(T:type,value:T):T { print(1); return value; }';
   const entries=inspect(source);
   for(const entry of entries)assert.ok(hasHoverDetails(entry),source.slice(entry.from,entry.to));
-  const body=hoverAt(entries,source.indexOf('print'));
-  assert.equal(body.type,undefined);assert.ok(body.matchedRule);
+  const definition=hoverAt(entries,source.indexOf('unused'));
+  assert.equal(definition.signature,'fn unused(T: type, value: T): T');
+  assert.equal(definition.kind,'function template');assert.equal(definition.size,undefined);
+  const value=hoverAt(entries,source.lastIndexOf('value'));
+  assert.equal(value.signature,'value: T');assert.equal(value.type,'T');
+  assert.equal(value.size,undefined);assert.equal(value.declarationColumn,18);
 });
 
-test('a specialization preview never supplies a concrete type to its generic source body',()=>{
+test('multiple specializations never replace the symbolic definition with the first instance',()=>{
   const source='fn identity(T:type,value:T):T { return value; } print(identity(i32,1)); print(identity(bool,true));';
   const entries=inspect(source);
   const name=hoverAt(entries,source.indexOf('identity'));
-  assert.equal(name.kind,'function specialization');
+  assert.equal(name.kind,'function template');assert.equal(name.signature,'fn identity(T: type, value: T): T');
   for(const token of ['{','return','value;','}']) {
-    const entry=hoverAt(entries,source.indexOf(token));assert.ok(hasHoverDetails(entry));assert.equal(entry.type,undefined,token);assert.ok(entry.matchedRule,token);
+    const entry=hoverAt(entries,source.indexOf(token));assert.ok(hasHoverDetails(entry));assert.equal(entry.type,'T',token);assert.equal(entry.size,undefined,token);assert.equal(entry.matchedRule,undefined,token);
   }
   const first=hoverAt(entries,source.indexOf('identity(i32'));
   const second=hoverAt(entries,source.indexOf('identity(bool'));
   assert.equal(first.type,'i32');assert.equal(second.type,'bool');
+});
+
+test('type functions expose source bindings, dependent fields and docs before any instance exists',()=>{
+  const source='// Makes a fixed-size buffer.\nfn buffer(T: type, size: usize): type {\n  struct Result {\n    // The stored elements.\n    data: T[size];\n  }\n  return Result;\n}';
+  const entries=inspect(source,{entry:'templates.tower'}),get=needle=>hoverAt(entries,source.indexOf(needle));
+  const definition=get('buffer(');assert.equal(definition.signature,'fn buffer(T: type, size: usize): type');
+  assert.equal(definition.kind,'type function');assert.equal(definition.documentation,'Makes a fixed-size buffer.');
+  assert.equal(definition.declarationFile,'templates.tower');assert.equal(definition.declarationLine,2);
+  const type=get('T[size]'),size=get('size]'),field=get('data:');
+  assert.equal(type.kind,'type parameter');assert.equal(type.signature,'T: type');
+  assert.equal(type.binding,get('T: type').binding);
+  assert.equal(size.kind,'compile-time parameter');assert.equal(size.type,'usize');assert.equal(size.size,4);
+  assert.equal(size.binding,get('size:').binding);
+  assert.equal(field.signature,'data: T[size]');assert.equal(field.type,'T[size]');assert.equal(field.size,undefined);
+  assert.equal(field.documentation,'The stored elements.');assert.match(field.resolution,/arguments/);
+  const returned=hoverAt(entries,source.lastIndexOf('Result'));
+  assert.equal(returned.signature,'struct Result { data: T[size]; }');
+  assert.equal(returned.binding,get('Result {').binding);assert.equal(returned.size,undefined);
+  for(const entry of entries)assert.ok(hasHoverDetails(entry),source.slice(entry.from,entry.to));
+});
+
+test('dependent annotations preserve nested type applications, pointers, lexical shadowing and target widths',()=>{
+  const source='fn example(T:type, value:T):void { var first:T = value; { var value:bool = true; print(value); } print(value); }\nfn box(T:type, size:usize):type { struct Result { items:T*[size]; } return Result; }';
+  const entries=inspect(source),get=needle=>hoverAt(entries,source.indexOf(needle));
+  assert.equal(get('value); }').type,'bool');assert.equal(get('value); }\n').type,'T');
+  assert.equal(get('first:T').type,'T');assert.equal(get('first:T').size,undefined);
+  assert.equal(get('items:').type,'T*[size]');
+  const wide=inspect(source,{pointerBytes:8});
+  assert.equal(hoverAt(wide,source.indexOf('size:')).size,8);
+  const nested='fn box(T:type):type { struct Result { field:T; } return Result; } fn wrap(T:type):type { struct Result { field:box(T)*; } return Result; }';
+  assert.equal(at(nested,'field:box').signature,'field: box(T)*');
+  const counted='fn buffer(T:type,size:usize):type { struct Result { data:T[size]; } return Result; } fn wrap(T:type,size:usize):type { struct Result { nested:buffer(T,size); } return Result; }';
+  assert.equal(at(counted,'size);').kind,'compile-time parameter');
+});
+
+test('generic information follows semantic captures under renamed declaration syntax',()=>{
+  const source="parse CoreFunction = 'procedure' $name:Identifier '[' $params:CoreParameters? ']' '->' $type:CoreType $body:CoreBlock;\nprocedure unused[T:type,value:T]->T { return value; }";
+  const entries=inspect(source),definition=hoverAt(entries,source.indexOf('unused'));
+  assert.equal(definition.signature,'fn unused(T: type, value: T): T');assert.equal(definition.kind,'function template');
+  assert.equal(hoverAt(entries,source.lastIndexOf('value')).signature,'value: T');
+});
+
+test('type function uses retain distinct concrete field layouts alongside the symbolic definition',()=>{
+  const source='fn buffer(T:type,size:usize):type { struct Result { data:T[size]; } return Result; } var a:buffer(i32,4); var b:buffer(bool,2); print(sizeof(buffer(i32,4)));';
+  const entries=inspect(source),get=needle=>hoverAt(entries,source.indexOf(needle));
+  assert.equal(get('buffer(T').kind,'type function');assert.equal(get('data:').type,'T[size]');
+  assert.equal(get('data:').size,undefined);
+  assert.equal(get('a:buffer').type,'buffer(i32, 4)');assert.equal(get('a:buffer').size,16);
+  assert.equal(get('b:buffer').type,'buffer(bool, 2)');assert.equal(get('b:buffer').size,2);
 });
 test('members, pointer receivers, nominal types and layouts come from checked fields',()=>{
   const source='struct Point { first:i32; ready:bool; } var p:Point; var pointer = &p; pointer.ready = true; print(pointer.ready);';
@@ -334,7 +387,7 @@ test('generated functions, declarations and return nodes have their own template
   }
 });
 test('document queries release their temporary shared entities after repeated inspection',()=>{
-  const source='// Point documentation\nstruct Point { x:i32; }\n// Instance documentation\nvar p:Point; print(p.x);';inspect(source);
+  const source='// Point documentation\nstruct Point { x:i32; }\n// Instance documentation\nvar p:Point; print(p.x);\n// A parameterized container.\nfn box(T:type):type { struct R { value:T; } return R; } var b:box(i32);';inspect(source);
   const nodes=tower.exports.tw_live_nodes(),allocations=tower.exports.tw_live_allocations();
   for(let i=0;i<30;i++)inspect(source);
   assert.equal(tower.exports.tw_live_nodes(),nodes);assert.equal(tower.exports.tw_live_allocations(),allocations);

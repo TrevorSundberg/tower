@@ -1,4 +1,5 @@
 import 'format-types';
+import 'format-dependent';
 import tower;
 import 'format-foundation';
 import 'foundation-types';

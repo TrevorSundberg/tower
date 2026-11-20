@@ -49,6 +49,8 @@ extern fn frontend_module_at(module: void*, index: usize): void*;
 
 extern fn frontend_module_source(module: void*): u8*;
 
+extern fn frontend_module_comments(module: void*, count: usize*): usize*;
+
 extern fn frontend_module_size(module: void*): usize;
 
 extern fn frontend_module_roots(module: void*): usize;

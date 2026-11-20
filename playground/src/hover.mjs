@@ -19,7 +19,7 @@ function tooltipContent(entry,doc,file) {
       dom.append(signature);
     }
     const line=text=>{const row=document.createElement('div');row.textContent=text;dom.append(row);};
-    const functionType=entry.kind?.startsWith('function');
+    const functionType=entry.kind?.startsWith('function') || entry.kind==='type function';
     if(entry.kind && !['syntax','matched syntax','captured syntax','function'].includes(entry.kind))line(entry.kind);
     if(entry.description)line(entry.description);
     if(entry.capture)line(`Capture: $${entry.capture}${entry.category && entry.category!==entry.capture?`:${entry.category}`:''}${entry.capturedBy?` in ${entry.capturedBy}`:''}`);

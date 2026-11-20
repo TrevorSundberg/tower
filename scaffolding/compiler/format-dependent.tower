@@ -1,0 +1,219 @@
+import tower;
+import 'inspection-policy';
+import 'format';
+import 'format-types';
+import 'parser-types';
+import 'syntax-reader';
+import 'regex-lowering';
+import '../library/vector';
+
+// Canonical display fragments for declarations whose types still contain
+// parameters. Consume the same named parser relationships as semantic checking.
+fn format_dependent_member(entity: void*, role: u8*): void* {
+    var generic_check1 = entity == null;
+    if generic_check1 {
+        return null;
+    }
+    return entity_child_at(entity, entity_member_index(entity, role));
+}
+
+fn format_dependent_is(f: FormatEngine*, entity: void*, label: u8*): bool {
+    var span = format_match(f, entity);
+    var generic_check2 = span == null;
+    if generic_check2 {
+        return false;
+    }
+    return format_name_is(&span.label, label);
+}
+
+fn format_dependent_tokens(f: FormatEngine*, entity: void*, text: vector(u8)*, depth: usize): void {
+    var next = depth + 1;
+    var generic_check3 = entity == null;
+    if generic_check3 {
+        return;
+    }
+    var generic_check4 = depth == InspectionDepthLimit();
+    if generic_check4 {
+        f.result.failed = true;
+        return;
+    }
+    var span = format_match(f, entity);
+    var generic_check5 = span != null;
+    if generic_check5 {
+        var terminal: usize = 0;
+        terminal = terminal - 1;
+        var generic_check6 = span.rule == terminal;
+        if generic_check6 {
+            if bytes_append(text, span.label.data, span.label.length) {} else {
+                f.result.failed = true;
+            }
+            return;
+        }
+    }
+    var i: usize = 0;
+    while i < entity_child_count(entity) {
+        format_dependent_tokens(f, entity_child_at(entity, i), text, next);
+        i = i + 1;
+    }
+}
+
+fn format_dependent_name(f: FormatEngine*, entity: void*): void {
+    var name: vector(u8);
+    vector_init(u8, &name);
+    format_dependent_tokens(f, entity, &name, 0);
+    name.length = syntax_identifier_decode_in_place(name.data, name.length);
+    format_identifier(f, &name);
+    vector_dispose(u8, &name);
+}
+
+fn format_dependent_list(f: FormatEngine*, entity: void*, label: u8*, separator: u8*, count: usize*, depth: usize): void {
+    var next = depth + 1;
+    var generic_check7 = entity == null;
+    if generic_check7 {
+        return;
+    }
+    var generic_check8 = depth == InspectionDepthLimit();
+    if generic_check8 {
+        f.result.failed = true;
+        return;
+    }
+    if format_dependent_is(f, entity, label) {
+        var generic_check9 = *count != 0;
+        if generic_check9 {
+            format_text(f, separator);
+        }
+        format_dependent(f, entity, next);
+        *count = *count + 1;
+        return;
+    }
+    var i: usize = 0;
+    while i < entity_child_count(entity) {
+        format_dependent_list(f, entity_child_at(entity, i), label, separator, count, next);
+        i = i + 1;
+    }
+}
+
+fn format_dependent(f: FormatEngine*, entity: void*, depth: usize): void {
+    var next = depth + 1;
+    var generic_check10 = entity == null;
+    if generic_check10 {
+        return;
+    }
+    var generic_check11 = depth == InspectionDepthLimit();
+    if generic_check11 {
+        f.result.failed = true;
+        return;
+    }
+    var name = format_dependent_member(entity, "name");
+    var annotation = format_dependent_member(entity, "type");
+    if format_dependent_is(f, entity, "CoreFunction") {
+        format_text(f, "fn ");
+        format_dependent_name(f, name);
+        format_text(f, "(");
+        var count: usize = 0;
+        format_dependent_list(f, format_dependent_member(entity, "params"), "CoreParameter", ", ", &count, next);
+        format_text(f, "): ");
+        format_dependent(f, annotation, next);
+        return;
+    }
+    if format_dependent_is(f, entity, "CoreStruct") {
+        format_text(f, "struct ");
+        format_dependent_name(f, name);
+        format_text(f, " { ");
+        var count: usize = 0;
+        format_dependent_list(f, format_dependent_member(entity, "fields"), "CoreField", "; ", &count, next);
+        var generic_check12 = count != 0;
+        if generic_check12 {
+            format_text(f, "; ");
+        }
+        format_text(f, "}");
+        return;
+    }
+    var declared = format_dependent_is(f, entity, "CoreDeclare");
+    var named = declared;
+    if format_dependent_is(f, entity, "CoreParameter") {
+        named = true;
+    }
+    if format_dependent_is(f, entity, "CoreField") {
+        named = true;
+    }
+    if named {
+        if declared {
+            format_text(f, "var ");
+        }
+        format_dependent_name(f, name);
+        var generic_check13 = annotation != null;
+        if generic_check13 {
+            format_text(f, ": ");
+            format_dependent(f, annotation, next);
+        }
+        return;
+    }
+    if format_dependent_is(f, entity, "CoreType") {
+        var base = format_dependent_member(entity, "base");
+        var generic_check14 = base != null;
+        if generic_check14 {
+            format_dependent(f, base, next);
+            var count = format_dependent_member(entity, "count");
+            var generic_check15 = count != null;
+            if generic_check15 {
+                format_text(f, "[");
+                format_dependent(f, count, next);
+                format_text(f, "]");
+            } else {
+                format_text(f, "*");
+            }
+        } else {
+            format_dependent(f, name, next);
+            // A type application has delimiter children even with zero args.
+            var generic_check16 = entity_child_count(entity) > 1;
+            if generic_check16 {
+                format_text(f, "(");
+                var count: usize = 0;
+                format_dependent_list(f, format_dependent_member(entity, "args"), "CoreTypeArgument", ", ", &count, next);
+                format_text(f, ")");
+            }
+        }
+        return;
+    }
+    if format_dependent_is(f, entity, "CoreTypeName") {
+        var base = format_dependent_member(entity, "base");
+        var generic_check17 = base != null;
+        if generic_check17 {
+            format_dependent(f, base, next);
+            format_text(f, ".");
+            format_dependent_name(f, format_dependent_member(entity, "field"));
+        } else {
+            format_dependent_name(f, name);
+        }
+        return;
+    }
+    if format_dependent_is(f, entity, "Identifier") {
+        format_dependent_name(f, entity);
+        return;
+    }
+    var span = format_match(f, entity);
+    var generic_check18 = span != null;
+    if generic_check18 {
+        var terminal: usize = 0;
+        terminal = terminal - 1;
+        var generic_check19 = span.rule == terminal;
+        if generic_check19 {
+            format_bytes(f, &span.label);
+            return;
+        }
+    }
+    var i: usize = 0;
+    while i < entity_child_count(entity) {
+        format_dependent(f, entity_child_at(entity, i), next);
+        i = i + 1;
+    }
+}
+
+export fn format_dependent_summary(result: FormatResult*, entity: void*, match_kind: void*): void {
+    var f: FormatEngine;
+    fill(&f, 0, sizeof(FormatEngine));
+    f.result = result;
+    f.match_kind = match_kind;
+    format_dependent(&f, entity, 0);
+}

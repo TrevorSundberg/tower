@@ -29,6 +29,7 @@ struct CompletionQuery {
     analyzed: bool;
     inspection: bool;
     inspection_session: void*;
+    generic_info: void*;
     grammar: vector(LanguageGrammar);
     grammar_index: SemanticTable*;
     comment_modules: vector(void*);

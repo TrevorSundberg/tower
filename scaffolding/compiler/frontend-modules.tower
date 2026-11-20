@@ -1220,6 +1220,12 @@ export fn frontend_module_comment(module: FrontendModule*, first: usize, last: u
     module_require(vector_push(usize, &module.comments, last));
 }
 
+// Borrowed paired lexer offsets, retained for the module's lifetime.
+export fn frontend_module_comments(module: FrontendModule*, count: usize*): usize* {
+    *count = module.comments.length;
+    return module.comments.data;
+}
+
 export fn frontend_module_attach_comments(module: FrontendModule*, root: void*, base: usize): void {
     semantic_source_comments(root, module.source.text.data, module.comments.data, module.comments.length, base, module.source.text.length);
 }

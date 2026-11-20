@@ -19245,3 +19245,62 @@ rather than adding a native shim. Shared PATH search, status normalization, file
 ownership and diagnostics are unchanged. Linux's error pipe is now atomically
 close-on-exec. The Tower CLI suite and macOS object compilation are rerun after
 this correction; macOS runtime validation remains unavailable.
+
+## 2026-11-20 — Symbolic template inspection on shared entities
+
+Request: make generic/type-function definitions useful to inspect before an
+instance exists, and use Tower constants/enums for inspection policy. Pulled
+main before editing; unrelated AGENTS.md, foundation docs, journal additions and
+todo.txt remain preserved and unstaged.
+
+Root cause: generic definitions already carry registry metadata, but hover only
+presented Foundation, grammar and parsed-type components. Its CoreFunction
+fallback selected the first checked runtime function instance, so type-producing
+functions were missed entirely and definition previews depended on unrelated
+instantiation order. Removed that preview. `semantic-generic-info.tower` now
+provides optional bounded source analysis, attaching GenericInfo components to
+the actual definition/parameter/field/type-expression/reference entities. These
+retain declaration bindings and the original annotation trees, reusing semantic
+scope tables and ordinary resolution for independent types. Type/value inputs
+remain symbolic, including nested applications, pointer/array annotations and
+lexical shadowing. A type application's integer argument binds to its compile-time
+value parameter even when parsed through CoreTypeName. Concrete instances still
+receive the ordinary checker and target layouts; no generic-body type is borrowed
+from the first instance. Budget/depth exhaustion marks the query incomplete.
+
+The GenericInfo presenter uses the same component-dispatched tree walk and cached
+document index. Canonical signature/type fragments use format-dependent.tower in
+the existing formatting engine. The module API exposes borrowed paired lexer
+comment spans so generic docs use the same comment normalization without browser
+parsing or forced instantiation. GenericInfoKind and LanguagePresentation are
+enums; depth/node/source/preview limits and trivia bytes are named Tower constants.
+This is not full dependent-expression inference or whole-body checking before
+instantiation. Unsupported body expressions still depend on ordinary checking.
+
+Trials: the first build used the previous published compiler and rejected the
+new upstream module cycles. After that process ended, pulled gh-pages a6bacaf
+and used its scope-capable Tower/Wasm compiler through context-bootstrap.sh.
+Initial new source used unsupported inline comparison conditions; lowered them
+to ordinary Tower locals without extending the language grammar. Importing the
+frontend implementation directly into the semantic link unit caused incompatible
+foreign declaration types; replaced that dependency with the narrow borrowed
+comment-span accessor. The query fixture initially targeted 'buffer' inside its
+comment and expected noncanonical comma spacing; corrected those offsets/expected
+formatting while retaining the semantic assertions.
+
+Validation on Windows Node 21.7.3 / WSL WASI SDK 34: parser and LLVM/cross builds
+pass using the published Tower bootstrap. All ten Tower units package for each
+reactor. The changed Tower files pass canonical formatting. All 63 hover,
+template and module-scope Node/Wasm tests pass (13.40 s); a further lifetime
+check with generic metadata/docs confirms live entity/allocation counts return
+to baseline after 30 queries. All 38 desktop/mobile hover tests pass (55.7 s),
+including symbolic hovers, comments, no mouse-time worker round trip, dwell,
+5px grace and existing grammar/custom-syntax behavior. Reviewed both template
+hover screenshots; preview transparency is intentional. Two successive compiler
+generations (2 then 4 workers) pass edited behavior and identical-byte checks;
+reactor sizes are 1,086,676 / 52,080,060 / 63,637,192 bytes. Logs and screenshots
+use build/generic-info-* and build/generic-template-hover-*.
+
+A direct local deployment check initially found no server after Playwright had
+closed its managed server. Reran through verify-local.mjs, which owns the server
+lifetime. Final local/hosted verification and publication are recorded below.

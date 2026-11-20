@@ -1,5 +1,7 @@
 import 'format-types';
 import 'language-components';
+import 'language-generics';
+import 'inspection-policy';
 import tower;
 import 'completion';
 import 'foundation-tags';
@@ -12,6 +14,7 @@ import 'semantic-lifecycle';
 import 'semantic-statements';
 import 'semantic-support';
 import 'semantic-types';
+import 'semantic-generic-info';
 import 'syntax-tags';
 import 'syntax-types';
 import '../library/vector';
@@ -43,7 +46,7 @@ struct LanguageCandidate {
     from: usize;
     to: usize;
     grammar: bool;
-    specialization: bool;
+    generic: GenericInfo*;
     template: LanguageGrammar*;
     matched: LanguageGrammar*;
     capture: void*;
@@ -53,9 +56,9 @@ struct LanguageCandidate {
 }
 
 fn language_quote(q: CompletionQuery*, text: u8*, size: usize): void {
-    var hover_condition1 = size > 512;
+    var hover_condition1 = size > HoverPreviewByteLimit();
     if hover_condition1 {
-        size = 512;
+        size = HoverPreviewByteLimit();
         loop {
             var byte = text[size] & 192;
             var hover_condition2 = byte != 128;
@@ -197,7 +200,7 @@ fn language_candidate(q: CompletionQuery*, node: void*, candidate: LanguageCandi
     if outside {
         return;
     }
-    var priority: u32 = 0;
+    var priority = LanguagePresentation.None;
     var i: usize = 0;
     var count = entity_component_count(node);
     loop {
@@ -211,7 +214,7 @@ fn language_candidate(q: CompletionQuery*, node: void*, candidate: LanguageCandi
         presented.from = span.start;
         presented.to = span.start + span.length;
         var rank = language_component_present(q, node, component, checked, &presented);
-        var preferred = rank > priority;
+        var preferred = convert(u32, rank) > convert(u32, priority);
         if preferred {
             priority = rank;
             copy(candidate, &presented, sizeof(LanguageCandidate));
@@ -251,13 +254,19 @@ fn language_leaf(q: CompletionQuery*, leaf: void*, candidate: LanguageCandidate*
         subject = candidate.subject;
         node = candidate.node;
         value = sem_get(subject);
-        if candidate.structural {
+        var generic_check1 = candidate.generic != null;
+        if generic_check1 {
             value = null;
+            format_dependent_summary(&formatted, subject, parser_match_get_type());
         } else {
-            if candidate.grammar {
-                format_grammar_preview(&formatted, subject, syntax_component_type());
+            if candidate.structural {
+                value = null;
             } else {
-                format_summary(&formatted, subject, syntax_component_type(), core_component_type(), parser_match_get_type());
+                if candidate.grammar {
+                    format_grammar_preview(&formatted, subject, syntax_component_type());
+                } else {
+                    format_summary(&formatted, subject, syntax_component_type(), core_component_type(), parser_match_get_type());
+                }
             }
         }
     }
@@ -288,8 +297,9 @@ fn language_leaf(q: CompletionQuery*, leaf: void*, candidate: LanguageCandidate*
         if candidate.grammar {
             kind = "grammar";
         }
-        if candidate.specialization {
-            kind = "function specialization";
+        var generic_check2 = candidate.generic != null;
+        if generic_check2 {
+            kind = language_generic_kind(candidate.generic);
         }
     }
     var grammar_details = selected;
@@ -340,6 +350,12 @@ fn language_leaf(q: CompletionQuery*, leaf: void*, candidate: LanguageCandidate*
         language_number(q, "parent", entity_id(parent));
     }
     var hover_condition36 = value != null;
+    if selected {
+        var generic_check3 = candidate.generic != null;
+        if generic_check3 {
+            language_generic_details(q, candidate.generic);
+        }
+    }
     if hover_condition36 {
         language_documentation(q, value);
         language_string(q, "type", sem_type_name(&q.context, &value.type));
@@ -365,7 +381,7 @@ fn language_leaf(q: CompletionQuery*, leaf: void*, candidate: LanguageCandidate*
 }
 
 fn language_walk(q: CompletionQuery*, node: void*, inherited: LanguageCandidate*, checked: bool, depth: usize, budget: usize*): void {
-    var hover_condition40 = depth == 256;
+    var hover_condition40 = depth == InspectionDepthLimit();
     if hover_condition40 {
         q.truncated = true;
         return;
@@ -435,7 +451,7 @@ export fn language_document(source: u8*, length: usize, mode: u32, pointer_bytes
     if valid_width {} else {
         return null;
     }
-    var hover_condition44 = length > 8388608;
+    var hover_condition44 = length > InspectionSourceByteLimit();
     if hover_condition44 {
         return null;
     }
@@ -480,6 +496,7 @@ export fn language_document(source: u8*, length: usize, mode: u32, pointer_bytes
         checked = sem_ok(c);
     }
     if checked {
+        q.generic_info = sem_generic_inspect(c, &q.truncated);
         i = 0;
         loop {
             var done = i == q.comment_modules.length;
@@ -500,7 +517,7 @@ export fn language_document(source: u8*, length: usize, mode: u32, pointer_bytes
     completion_text(&q.output, "{\"entries\":[");
     var empty: LanguageCandidate;
     fill(&empty, 0, sizeof(LanguageCandidate));
-    var budget: usize = 100000;
+    var budget = InspectionNodeLimit();
     i = 0;
     loop {
         var hover_condition48 = i == q.roots.length;

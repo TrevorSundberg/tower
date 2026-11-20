@@ -41,8 +41,8 @@ component type with explicit priority, independent of component storage order.
 The Foundation component presenter uses its operation tag and resolved bindings
 to choose details; syntax and parsed-type presenters handle their own metadata.
 New surface spellings therefore work through the same nodes without adding hover
-cases. A generic declaration's specialization preview is scoped to its name;
-it does not supply types to the unchecked generic body. Structural statements
+cases. Generic definitions retain their own symbolic signatures and bindings;
+hover never substitutes the first concrete instance for the definition. Structural statements
 receive descriptions without fabricated value types. Unchecked custom syntax
 uses its actual matched rules and captures instead of claiming a runtime
 type. Whitespace and unattached comment text do not fabricate symbol hovers.
@@ -54,6 +54,24 @@ Component descriptions explain what the construct does in plain language rather
 than restating its name: variables store values that can change, parameters are
 inputs supplied by a call, and functions are reusable code. Function explanations
 use checked parameter/result metadata, including no-input and void-result cases.
+
+`semantic-generic-info.tower` supplies an optional bounded inspection pass over
+the original template entities. It attaches `GenericInfo` components linking
+declarations, parameter uses and their actual type-expression trees, reusing
+semantic scope tables for lexical bindings. Type parameters and compile-time
+integer inputs remain symbolic; fields can display `T[size]` without claiming
+a concrete layout. Independent annotations use ordinary type resolution and the
+explicit target profile. Concrete uses retain their separately checked types and
+layouts. This pass does not fully type-check an uninstantiated function body or
+infer all dependent expressions; those checks remain with ordinary instantiation.
+Depth/node limits report an incomplete index when reached.
+
+`language-generics.tower` presents these components through the same dispatcher,
+including preceding lexer-captured comments and declaration locations. Canonical
+generic signatures and dependent type expressions use `format-dependent.tower`
+in the shared formatting engine. `inspection-policy.tower` names query limits
+and the `LanguagePresentation` priority enum. The browser still only renders the
+returned data and uses its cached position index for mouse movement.
 
 This is an incremental library boundary, not a claim that the whole compiler is
 already pure Tower or independently concurrent. Parser/session adapters and some
