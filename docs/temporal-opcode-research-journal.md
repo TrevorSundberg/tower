@@ -20301,3 +20301,32 @@ still points at 60d9453. The user supplied a faster connection and requested a
 fresh retry. Restarted the same normal push. New main commits 91e6d45/ac6c13b
 only add journal evidence and extend the hosted completion wait to 60 seconds;
 they do not change compiler or deployed application source.
+
+The fresh retry also reset while upstream published 7d63df1, whose manifest
+records 3e606d1 and explicitly includes this IDE port plus newer template member/
+expression hovers. Preserve this newer deployment instead of publishing the older
+candidate. Its packaged compiler recipe contains all 11 host/ide-*.tower modules
+byte-for-byte identical to main, the compiler-ide unit and exact foreign import
+allowlist. Its reactor retains the same 42 tw_* exports and excludes ide_tests.
+Saved our preceding tested bundle in build/ide-validated-release and selected the
+newer, hash-verified 70-asset package for hosted validation. The recorded newer
+hover source commit was not yet fetchable when inspected; do not mislabel that
+artifact set as built from this local main. No payload downgrade is made.
+
+Hosted validation now passes for preserved deployment
+7d63df1b74edc9cad8d6988d8a30e226193ad6b2 at https://tower-lang.org/:
+node playground/scripts/verify-deployment.mjs https://tower-lang.org/ checks all
+70 exact assets and both isolated headless desktop/mobile flows. Backend
+agreement, forward module bindings, editable grammar, persistence, completion,
+highlighting, native builds and downloads all pass. Evidence:
+build/ide-preserved-live.log and build/ide-preserved-live-report.json. This active
+release contains the identical Tower IDE implementation and preserves the newer
+hover work; our older 4274271 candidate is intentionally not published over it.
+
+The final publication change records IDE validation/provenance metadata only on
+top of 7d63df1. Keep every deployed asset hash and its existing sourceCommit,
+scope/build notes and native CLI metadata intact. The main-tree changes since
+the tested port are journal updates and the verifier's bounded completion wait;
+no compiler rebuild is warranted for that documentation/verification integration.
+All required port implementation and functional validation is complete. Remaining
+syntax-view portability and shared-mutation limitations are unchanged above.
