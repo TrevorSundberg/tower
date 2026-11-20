@@ -14939,6 +14939,27 @@ mobile compiler-successor skip; see final-browser.log. The upstream ecaab92
 follow-up contains only its release journal, so incorporating it does not alter
 these compiled sources or packaged assets.
 
+Published the combined implementation on main through 011a9f4 (performance code
+251e6db). The final ecaab92 rebase preserved both complete journal additions and
+changed no scaffolding/playground/cmake/CMakeLists.txt input from the tested
+96bebeb tree. All eight template regression checks pass again after that rebase.
+Advanced the clean deployment worktree to the latest gh-pages, preserved CNAME,
+copied the complete distribution and checked all 70 copied files by SHA-256
+(69 manifest entries plus the manifest itself). Normal pushes succeeded for main
+and Pages commit 44be125515f891d0b498d36d03aa10f619874701; no force push was used.
+
+GitHub Pages run 44756183140 completed successfully. Hosted verification with
+node playground/scripts/verify-deployment.mjs https://tower-lang.org/ exits zero:
+all 69 assets match and both desktop/mobile profiles pass backend agreement,
+editable grammar, persistence, native builds/downloads, completion/highlighting,
+compiler-project behavior and target defaults. HTTP, www HTTPS and the former
+GitHub Pages URL each return 301 to https://tower-lang.org/. Pages reports built,
+CNAME tower-lang.org and HTTPS enforced. Evidence: hosted.log,
+hosted-report.json, redirects.log, pages-workflow.log under
+build/compiler-performance. The final publication journal update changes no
+packaged input. todo.txt remains Git blob
+96a9e58964d7f01e4a97819f259448db81ef5e40.
+
 Published and verified:
 Implementation/validation source e5ef1e623612db6b371236789c6a661471dc4e51 is pushed
 to main. The final pull was current. Published the tested 52-asset build as
