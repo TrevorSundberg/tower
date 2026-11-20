@@ -4,7 +4,7 @@ import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import {runBrightScript,wastCases,assertions} from './harness.mjs';
 const read=path=>readFile(new URL(path,import.meta.url),'utf8');
 // Exercise the exact shipped runtime text, not a JS transcription of it.
-const towerRuntime=await read('../../../scaffolding/compiler/roku-runtime.tower');
+const towerRuntime=await read('../../../scaffolding/compiler/roku_runtime.tower');
 const runtime=[...towerRuntime.matchAll(/re_text\(r, ("(?:\\.|[^"\\])*")\);/g)].map(m=>JSON.parse(m[1])).join('');
 assert.ok(runtime.includes('function tr_udiv('));
 

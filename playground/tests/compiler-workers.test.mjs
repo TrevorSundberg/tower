@@ -12,7 +12,7 @@ const read = path => readFile(new URL(path,root));
 const project = JSON.parse(await read('build/compiler-project/project.json'));
 const files = [...project.files];
 const names = ['batch-a','batch-b','batch-c','batch-d'];
-const kernel = (await read('scaffolding/tests/parallel-unit.tower')).toString();
+const kernel = (await read('scaffolding/tests/parallel_unit.tower')).toString();
 for (const name of names) files.push({path:'tests/'+name+'.tower',text:kernel});
 const recipe = {units:names.map(name => ({entry:'tests/'+name+'.tower',object:name+'.o'}))};
 const grammar = Object.fromEntries(['bedrock','foundation','tower'].map(name => [name,files.find(file => file.path===name+'.tower').text]));
@@ -53,8 +53,8 @@ test('compiler cancellation terminates children and cannot publish partial artif
 
 test('parallel diagnostics select source order and publish no failed build objects',async () => {
   const broken = structuredClone(files), published = [];
-  broken.find(file => file.path===recipe.units[0].entry).text = (await read('scaffolding/tests/semantic-invalid/enum-number.tower')).toString();
-  broken.find(file => file.path===recipe.units[1].entry).text = (await read('scaffolding/tests/semantic-invalid/enum-mix.tower')).toString();
+  broken.find(file => file.path===recipe.units[0].entry).text = (await read('scaffolding/tests/semantic_invalid/enum_number.tower')).toString();
+  broken.find(file => file.path===recipe.units[1].entry).text = (await read('scaffolding/tests/semantic_invalid/enum_mix.tower')).toString();
   let serial;
   try { await compileUnits({compiler,recipe,files:broken}); }
   catch (error) { serial = error.message; }
@@ -68,7 +68,7 @@ test('parallel diagnostics select source order and publish no failed build objec
 
 test('an earlier Tower failure cancels a worker whose later receipt never arrives',async () => {
   const broken = structuredClone(files), exits = [];
-  broken.find(file => file.path===recipe.units[0].entry).text = (await read('scaffolding/tests/semantic-invalid/enum-number.tower')).toString();
+  broken.find(file => file.path===recipe.units[0].entry).text = (await read('scaffolding/tests/semantic_invalid/enum_number.tower')).toString();
   let expected;
   try { await compileUnits({compiler,recipe,files:broken}); } catch (error) { expected = error.message; }
   assert.ok(expected);

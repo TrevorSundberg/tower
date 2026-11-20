@@ -1,0 +1,62 @@
+import tower;
+import .library.vector;
+
+extern fn abort(): void;
+
+extern fn module_path_component(path: u8*, start: usize): bool;
+
+// Verify each named component without resolving symlinks or changing the
+// compiler's lexical module identity. Input is already lexically normalized.
+export fn module_file_case_matches(path: u8*): bool {
+    var prefix: vector(u8);
+    vector_init(u8, &prefix);
+    var start: usize = 0;
+    var i: usize = 0;
+    var protected_parts: usize = 0;
+    if path[0] == 47 && path[1] == 47 {
+        protected_parts = 2;
+    }
+    var ok: bool = true;
+    loop {
+        var byte = path[i];
+        if byte == 47 || byte == 0 {
+            var length = i - start;
+            var check = length != 0;
+            if protected_parts != 0 {
+                if check {
+                    protected_parts--;
+                }
+                check = false;
+            }
+            if length == 2 {
+                var next = start + 1;
+                if start == 0 && path[next] == 58 {
+                    check = false;
+                }
+                if path[start] == 46 && path[next] == 46 {
+                    check = false;
+                }
+            }
+            if check {
+                if !vector_push(u8, &prefix, 0) {
+                    abort();
+                }
+                ok = module_path_component(prefix.data, start);
+                prefix.length--;
+                if !ok {
+                    break;
+                }
+            }
+            start = i + 1;
+        }
+        if byte == 0 {
+            break;
+        }
+        if !vector_push(u8, &prefix, byte) {
+            abort();
+        }
+        i++;
+    }
+    vector_dispose(u8, &prefix);
+    return ok;
+}

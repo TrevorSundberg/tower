@@ -219,9 +219,16 @@ test('import grammar edits must preserve path segments, prefixes and declaration
   for (const [before,after,capture] of [
     ['$segment:Identifier','Identifier','segment'],
     ['$previous:ImportPath','ImportPath','previous'],
-    ['$name:ImportPath','ImportPath','name'],
+    ['$name:ImportName','ImportName','name'],
   ]) {
     assert.throws(()=>tower.configureBedrock(bedrock.replaceAll(before,after)),new RegExp("preserve capture '"+capture+"'"));
     assert.equal(inspect('print(1);').end.status,'done');
+  }
+});
+
+test('parent import grammar cannot drop the parent/segments roles',()=>{
+  for(const capture of ['parent','segments']) {
+    const changed=bedrock.replace('$'+capture+':','');
+    assert.throws(()=>tower.configureBedrock(changed),/ImportName.*capture/);
   }
 });

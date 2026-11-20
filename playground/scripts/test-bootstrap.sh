@@ -16,7 +16,7 @@ for utility in "$@"; do
   source="$repo/scaffolding/compiler/utf8.tower"
   if [ "$utility" = bytes ]; then source="$repo/scaffolding/library/bytes.tower"; fi
   if [ "$utility" = entities ]; then source="$native/tower-compiler-entities.tower"; fi
-  if [ "$utility" = parser-nodes ]; then source="$native/tower-compiler-parser-nodes.tower"; fi
+  if [ "$utility" = parser-nodes ]; then source="$native/tower-compiler-parser_nodes.tower"; fi
   if [ "$utility" = host ]; then source="$native/tower-compiler-host.tower"; fi
   if [ "$utility" = interpreter ]; then source="$native/tower-compiler-interpreter.tower"; fi
   if [ "$utility" = semantics ]; then source="$native/tower-compiler-semantics.tower"; fi
@@ -49,17 +49,17 @@ if sys.argv[1] == 'entities': allowed |= {
     'tower_allocate', 'tower_entity_finalize', 'compiler_node_label',
     'compiler_name_is', 'compiler_name_equal', 'compiler_node_copy_metadata',
     'compiler_generic_type', 'compiler_component_add'}
-if sys.argv[1] == 'parser-nodes': allowed |= {
+if sys.argv[1] == 'parser_nodes': allowed |= {
     'parse_forest_create', 'parse_forest_destroy', 'tower_utf8_validate',
     'syntax_scan_highlight',
     'syntax_replacement_begin', 'syntax_replacement_capture', 'syntax_replacement_attempt',
     'syntax_replacement_diagnostic', 'syntax_replacement_offset',
     'syntax_replacement_select', 'syntax_replacement_commit'}
-if sys.argv[1] == 'parser-nodes': allowed |= {
+if sys.argv[1] == 'parser_nodes': allowed |= {
     'entity_id', 'entity_replace_child', 'entity_take_last_child', 'entity_child_name',
     'syntax_expansion_history', 'syntax_expansion_previous', 'syntax_expansion_trace',
     'syntax_expansion_origin', 'syntax_expansion_copy_origin'}
-if sys.argv[1] == 'parser-nodes': allowed |= {
+if sys.argv[1] == 'parser_nodes': allowed |= {
     'tower_utf8_decode', 'tower_allocate', 'compiler_grammar_root',
     'compiler_grammar_rule', 'compiler_grammar_reference',
     'compiler_grammar_literal', 'compiler_grammar_range',
@@ -67,7 +67,7 @@ if sys.argv[1] == 'parser-nodes': allowed |= {
     'entity_create_related', 'entity_attach', 'entity_child_at', 'entity_child_count', 'entity_parent', 'entity_release', 'entity_retain',
     'compiler_parse_match', 'parse_forest_leaf', 'parse_forest_join',
     'parse_forest_attach', 'parse_forest_take', 'bytes_assign_text', 'bytes_append'}
-if sys.argv[1] == 'parser-nodes': allowed |= {
+if sys.argv[1] == 'parser_nodes': allowed |= {
     'core_component_type', 'semantic_builtin_name', 'semantic_operator', 'semantic_scalar_name',
     'semantic_signed', 'semantic_mask'}
 if sys.argv[1] == 'semantics': allowed |= {

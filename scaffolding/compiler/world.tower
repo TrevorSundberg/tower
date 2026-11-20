@@ -1,10 +1,10 @@
 import tower;
-import '../library/entities';
-import 'component-kinds';
-import 'parser-types';
-import 'syntax-types';
-import 'foundation-types';
-import 'grammar-types';
+import .library.entities;
+import component_kinds;
+import parser_types;
+import syntax_types;
+import foundation_types;
+import grammar_types;
 
 extern fn node_payload_init(kind: u32, data: void*): void;
 

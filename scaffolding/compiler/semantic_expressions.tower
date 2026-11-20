@@ -1,0 +1,514 @@
+import tower;
+import foundation_tags;
+import foundation_types;
+import semantic_context;
+import semantic_control;
+import semantic_definitions;
+import semantic_support;
+import semantic_types;
+import semantic_layout;
+import semantic_values;
+
+// Transient surface classifications on the same entities. These are eliminated
+// before publishing a Foundation graph; they have no interpreter/cache encoding.
+const SurfaceSelect: u32 = 100;
+const SurfaceAnd: u32 = 101;
+const SurfaceOr: u32 = 102;
+const SurfaceAssign: u32 = 103;
+const SurfaceModify: u32 = 104;
+const SurfaceComma: u32 = 105;
+const SurfaceShift: u32 = 106;
+const SurfaceCompare: u32 = 107;
+const SurfaceDiscard: u32 = 108;
+const SurfaceCoalesce: u32 = 109;
+const SurfaceNullField: u32 = 110;
+const SurfaceNullIndex: u32 = 111;
+const SurfaceShiftLeft: u32 = 14;
+const SurfaceShiftRight: u32 = 15;
+const SurfaceShiftUnsigned: u32 = 16;
+const SurfaceSet: u32 = 4294967295;
+
+fn sem_surface_unwrap(n: void*): void* {
+    loop {
+        var wrapper = sem_is(n, "TowerExpression");
+        if !wrapper { wrapper = sem_is(n, "TowerComma"); }
+        if !wrapper { wrapper = sem_is(n, "CoreOperand"); }
+        if !wrapper { wrapper = sem_is(n, "CoreCallArgument"); }
+        if !wrapper { wrapper = sem_is(n, "CoreValue"); }
+        if !wrapper { return n; }
+        var single = sem_child_count(n) == 1;
+        if single { n = sem_child(n, 0); }
+        else {
+            var group = sem_member(n, "value");
+            var grouped = group != null;
+            if grouped { n = group; } else { return n; }
+        }
+    }
+}
+
+fn sem_surface_expected(c: SemanticContext*, n: void*, expected_type: FoundationType*): void* {
+    if !sem_ok(c) { return n; }
+    var value = sem_get(n);
+    var missing = value == null;
+    if missing { return n; }
+    var present = expected_type != null;
+    if present {
+        var same = semantic_type_equal(&value.type, expected_type);
+        if !same {
+            sem_fail(c, n, sem_cat(c, "Expected ", sem_cat(c, sem_type_name(c, expected_type),
+                sem_cat(c, ", got ", sem_type_name(c, &value.type)))));
+        }
+    }
+    return n;
+}
+
+fn sem_surface_integer(c: SemanticContext*, n: void*): bool {
+    var value = sem_get(n);
+    var ok = semantic_integer(&value.type);
+    if ok {
+        var nominal = semantic_enum(&value.type);
+        if nominal { ok = false; }
+    }
+    if !ok { sem_fail(c, n, "This operation requires integer operands"); }
+    return ok;
+}
+
+fn sem_surface_constant(c: SemanticContext*, parent: void*, type: FoundationType*, bits_value: u64): void* {
+    var n = sem_control_node(c, parent, KOperand());
+    var value = sem_get(n);
+    value.constant = true;
+    value.bits = bits_value;
+    sem_set_type(&value.type, type);
+    return n;
+}
+
+fn sem_surface_pointee(c: SemanticContext*, n: void*, pointer: FoundationType*): void {
+    var element = sem_type_copy(c, pointer);
+    element.pointers--;
+    if semantic_aggregate(element) { sem_layout(c, element.record); }
+    if semantic_size(element) == 0 { sem_fail(c, n, "Cannot offset a void pointer"); }
+}
+
+fn sem_surface_optional(value: FoundationNode*): bool {
+    return value.kind == SurfaceNullField() || value.kind == SurfaceNullIndex();
+}
+
+fn sem_surface_nullable(c: SemanticContext*, n: void*, expected_type: FoundationType*): void* {
+    if c.value_depth > 128 { sem_fail(c, n, "Foundation expression nesting limit is 128"); return n; }
+    c.value_depth++;
+    var result = sem_surface_nullable_impl(c, n, expected_type);
+    c.value_depth--;
+    return result;
+}
+
+fn sem_surface_nullable_impl(c: SemanticContext*, n: void*, expected_type: FoundationType*): void* {
+    n = sem_surface_unwrap(n);
+    if !sem_is(n, "TowerNullAccess") { return sem_operand(c, n, expected_type); }
+    if sem_get(n) != null { return n; }
+    c.surface_expressions = true;
+    var source = sem_surface_unwrap(sem_member(n, "base"));
+    var base: void* = null;
+    if sem_is(source, "CoreLocation") { base = sem_location(c, source, 0); }
+    else { base = sem_surface_nullable(c, source, null); }
+    if !sem_ok(c) { return n; }
+    var guarded = sem_tokens(c, sem_child(n, 1))[0] == 63;
+    if guarded && sem_get(base).type.pointers == 0 {
+        sem_fail(c, n, "Null-conditional access requires a pointer receiver");
+        return n;
+    }
+    sem_location(c, n, 0);
+    if !sem_ok(c) { return n; }
+    var value = sem_get(n);
+    value.kind = SurfaceNullField();
+    if sem_member(n, "index") != null { value.kind = SurfaceNullIndex(); }
+    value.op = convert(u32, guarded);
+    return n;
+}
+
+// One operator classification is shared by binary and compound syntax.
+// Compound assignment strips '=' and uses this same operation/type contract.
+fn sem_surface_code(operation: u8*): u32 {
+    if sem_equal(operation, "&&") { return SurfaceAnd(); }
+    if sem_equal(operation, "||") { return SurfaceOr(); }
+    if sem_equal(operation, "??") { return SurfaceCoalesce(); }
+    if sem_equal(operation, "<<") { return SurfaceShiftLeft(); }
+    if sem_equal(operation, ">>") { return SurfaceShiftRight(); }
+    if sem_equal(operation, ">>>") { return SurfaceShiftUnsigned(); }
+    var code: u32 = 0;
+    while code <= OGe() {
+        if sem_equal(operation, semantic_operator(code)) { return code; }
+        code++;
+    }
+    return SurfaceSet();
+}
+
+fn sem_surface_compound(op: u8*): bool {
+    var length = sem_length(op);
+    if length < 2 || op[length - 1] != 61 { return false; }
+    return !sem_equal(op, "==") && !sem_equal(op, "!=")
+        && !sem_equal(op, "<=") && !sem_equal(op, ">=");
+}
+
+fn sem_surface_binary(c: SemanticContext*, n: void*, left: void*, right: void*, op: u32, expected_type: FoundationType*): void* {
+    var value = sem_node(c, n, KBinary());
+    value.op = op;
+    var comparison = op >= OEq();
+    var input = expected_type;
+    var infer = comparison;
+    if !infer { infer = input == null; }
+    if infer {
+        var anchor = left;
+        var literal = sem_literal(c, left);
+        if literal {
+            var other_literal = sem_literal(c, right);
+            if !other_literal { anchor = right; }
+        }
+        var known = sem_operand(c, anchor, null);
+        if !sem_ok(c) { return n; }
+            input = &sem_get(known).type;
+    }
+    value.left = sem_operand(c, left, input);
+    if !sem_ok(c) { return n; }
+    var offset = input.pointers != 0;
+    if offset {
+        offset = op == OAdd();
+        if !offset { offset = op == OSub(); }
+    }
+    var right_type = input;
+    if offset {
+        right_type = null;
+        if sem_literal(c, right) { right_type = sem_type_new(c, SUSize(), 0, null); }
+    }
+    value.right = sem_operand(c, right, right_type);
+    if !sem_ok(c) { return n; }
+    if comparison { sem_set_type(&value.type, sem_type_new(c, SBool(), 0, null)); }
+    else { sem_set_type(&value.type, input); }
+    if offset {
+        sem_surface_integer(c, value.right);
+        sem_surface_pointee(c, n, input);
+    } else {
+        var equality = op == OEq();
+        if !equality { equality = op == ONe(); }
+        if !equality { sem_surface_integer(c, value.left); }
+    }
+    return sem_surface_expected(c, n, expected_type);
+}
+
+fn sem_surface_place(c: SemanticContext*, n: void*): void* {
+    n = sem_surface_unwrap(n);
+    var location = sem_is(n, "CoreLocation");
+    if location { return sem_location(c, n, 0); }
+    var value: void* = null;
+    var dereference = sem_is(n, "TowerExpression") && sem_member(n, "left") == null
+        && sem_member(n, "right") != null && sem_equal(sem_tokens(c, sem_child(n, 0)), "*");
+    if dereference { value = sem_surface(c, n, null); }
+    else { value = sem_operand(c, n, null); }
+    if !sem_ok(c) { return value; }
+    var data = sem_get(value);
+    var place = data.kind == KLoad();
+    if !place { place = data.kind == KField(); }
+    if !place { place = data.kind == KIndex(); }
+    if !place {
+        sem_fail(c, n, "Operator requires an addressable location");
+    }
+    return value;
+}
+
+fn sem_surface_operator(c: SemanticContext*, n: void*, left: void*): u8* {
+    var index: usize = 0;
+    var binary = left != null;
+    if binary { index = 1; }
+    var op = sem_tokens(c, sem_child(n, index));
+    if sem_equal(op, "not") { return "!"; }
+    if sem_equal(op, "compl") { return "~"; }
+    if sem_equal(op, "bitand") { return "&"; }
+    if sem_equal(op, "bitor") { return "|"; }
+    if sem_equal(op, "xor") { return "^"; }
+    if sem_equal(op, "and") { return "&&"; }
+    if sem_equal(op, "or") { return "||"; }
+    if sem_equal(op, "not_eq") { return "!="; }
+    if sem_equal(op, "and_eq") { return "&="; }
+    if sem_equal(op, "or_eq") { return "|="; }
+    if sem_equal(op, "xor_eq") { return "^="; }
+    return op;
+}
+
+// A discarded/comma-left expression may be void. Value contexts still use the
+// ordinary operand checker, so a void branch cannot initialize a local or argument.
+fn sem_surface_discard(c: SemanticContext*, n: void*): void* {
+    n = sem_surface_unwrap(n);
+    if sem_is(n, "CoreCall") { return sem_call(c, n); }
+    var condition = sem_member(n, "condition");
+    var comma = sem_is(n, "TowerComma") && sem_member(n, "left") != null;
+    if condition == null && !comma { return sem_operand(c, n, null); }
+    c.surface_expressions = true;
+    var kind = SurfaceSelect();
+    if comma { kind = SurfaceComma(); }
+    var value = sem_node(c, n, kind);
+    var left = sem_member(n, "body");
+    var right = sem_member(n, "otherwise");
+    if comma {
+        left = sem_member(n, "left");
+        right = sem_member(n, "right");
+    } else { value.value = sem_operand(c, condition, sem_type_new(c, SBool(), 0, null)); }
+    value.left = sem_surface_discard(c, left);
+    if !sem_ok(c) { return n; }
+    value.right = sem_surface_discard(c, right);
+    if !sem_ok(c) { return n; }
+    var left_value = sem_get(value.left);
+    var right_value = sem_get(value.right);
+    if !comma && !semantic_type_equal(&left_value.type, &right_value.type) {
+        sem_fail(c, n, "Conditional branches must have the same type");
+    }
+    sem_set_type(&value.type, &right_value.type);
+    return n;
+}
+
+fn sem_surface(c: SemanticContext*, n: void*, expected_type: FoundationType*): void* {
+    var original = n;
+    n = sem_surface_unwrap(n);
+    var wrapper = n != original;
+    if wrapper { return sem_operand(c, n, expected_type); }
+    var existing = sem_get(n);
+    var checked = existing != null;
+    if checked { return sem_surface_expected(c, n, expected_type); }
+    c.surface_expressions = true;
+    var group = sem_member(n, "value");
+    var grouped = group != null;
+    if grouped { return sem_operand(c, group, expected_type); }
+    var left = sem_member(n, "left");
+    var right = sem_member(n, "right");
+    var condition = sem_member(n, "condition");
+    var conditional = condition != null;
+    if conditional {
+        var value = sem_node(c, n, SurfaceSelect());
+        value.value = sem_operand(c, condition, sem_type_new(c, SBool(), 0, null));
+        var body = sem_member(n, "body");
+        var otherwise = sem_member(n, "otherwise");
+        var input = expected_type;
+        if input == null && sem_literal(c, body) && !sem_literal(c, otherwise) {
+            var known = sem_operand(c, otherwise, null);
+            if !sem_ok(c) { return n; }
+            input = &sem_get(known).type;
+        }
+        value.left = sem_operand(c, body, input);
+        if !sem_ok(c) { return n; }
+        value.right = sem_operand(c, otherwise, &sem_get(value.left).type);
+            sem_set_type(&value.type, &sem_get(value.left).type);
+        return sem_surface_expected(c, n, expected_type);
+    }
+    var op = sem_surface_operator(c, n, left);
+    var comma = sem_equal(op, ",");
+    if comma {
+        var value = sem_node(c, n, SurfaceComma());
+        value.left = sem_surface_discard(c, left);
+        if !sem_ok(c) { return n; }
+        value.right = sem_operand(c, right, expected_type);
+            if sem_ok(c) { sem_set_type(&value.type, &sem_get(value.right).type); }
+        return n;
+    }
+    var postfix = left != null;
+    var increment = sem_equal(op, "++");
+    var decrement = sem_equal(op, "--");
+    var modify = increment;
+    if decrement { modify = true; }
+    if modify {
+        var place = right;
+        if postfix { place = left; }
+        var value = sem_node(c, n, SurfaceModify());
+        value.target = sem_surface_place(c, place);
+        if !sem_ok(c) { return n; }
+            sem_set_type(&value.type, &sem_get(value.target).type);
+        var pointer = value.type.pointers != 0;
+        if pointer { sem_surface_pointee(c, n, &value.type); }
+        else { sem_surface_integer(c, value.target); }
+        value.op = OAdd();
+        if decrement { value.op = OSub(); }
+        value.indirect = postfix;
+        return sem_surface_expected(c, n, expected_type);
+    }
+    var binary = left != null;
+    if !binary {
+        var missing = right == null;
+        if missing {
+            sem_fail(c, n, "A pointer type spelling cannot be used as a value");
+            return n;
+        }
+        var address = sem_equal(op, "&");
+        var load = sem_equal(op, "*");
+        var indirect = address;
+        if load { indirect = true; }
+        if indirect {
+            var kind = KLoad();
+            if address { kind = KAddress(); }
+            var value = sem_node(c, n, kind);
+            if address { value.value = sem_surface_place(c, right); }
+            else { value.value = sem_operand(c, right, null); }
+            if !sem_ok(c) { return n; }
+                    sem_set_type(&value.type, &sem_get(value.value).type);
+            if address { value.type.pointers++; }
+            else {
+                var invalid = value.type.pointers == 0;
+                if invalid { sem_fail(c, n, "Load requires a pointer"); }
+                else {
+                    value.type.pointers--;
+                    if value.type.pointers == 0 && value.type.scalar == SVoid() {
+                        sem_fail(c, n, "Cannot load a void pointer");
+                    }
+                    if semantic_aggregate(&value.type) { sem_layout(c, value.type.record); }
+                }
+            }
+            return sem_surface_expected(c, n, expected_type);
+        }
+        var negate = sem_equal(op, "!");
+        var input = expected_type;
+        if negate { input = sem_type_new(c, SBool(), 0, null); }
+        // Preserve the existing signed minimum literal/range contract.
+        var minus = sem_equal(op, "-");
+        if minus {
+            var text = sem_tokens(c, right);
+            var literal = text[0] != 0;
+            var index: usize = 0;
+            loop {
+                var end = text[index] == 0;
+                if end { break; }
+                var digit = text[index] >= 48;
+                if digit { digit = text[index] <= 57; }
+                if !digit { literal = false; break; }
+                index++;
+            }
+            if literal { return sem_operand_leaf(c, n, expected_type); }
+        }
+        var operand = sem_operand(c, right, input);
+        if !sem_ok(c) { return n; }
+        if !negate { sem_surface_integer(c, operand); }
+        var plus = sem_equal(op, "+");
+        if plus { return sem_surface_expected(c, operand, expected_type); }
+        var value = sem_node(c, n, KBinary());
+            sem_set_type(&value.type, &sem_get(operand).type);
+        value.op = OSub();
+        value.left = sem_surface_constant(c, n, &value.type, 0);
+        value.right = operand;
+        if negate { value.op = OEq(); }
+        var complement = sem_equal(op, "~");
+        if complement {
+            value.op = OXor();
+                    sem_get(value.left).bits = semantic_mask(&value.type);
+        }
+        return sem_surface_expected(c, n, expected_type);
+    }
+    var missing = right == null;
+    if missing {
+        sem_fail(c, n, "A pointer type spelling cannot be used as a value");
+        return n;
+    }
+    var logical_and = sem_equal(op, "&&");
+    var logical_or = sem_equal(op, "||");
+    var logical = logical_and;
+    if logical_or { logical = true; }
+    if logical {
+        var kind = SurfaceAnd();
+        if logical_or { kind = SurfaceOr(); }
+        var value = sem_node(c, n, kind);
+        var boolean = sem_type_new(c, SBool(), 0, null);
+        value.left = sem_operand(c, left, boolean);
+        value.right = sem_operand(c, right, boolean);
+        sem_set_type(&value.type, boolean);
+        return sem_surface_expected(c, n, expected_type);
+    }
+    var length = sem_length(op);
+    var assignment = sem_equal(op, "=");
+    var compound = sem_surface_compound(op);
+    var assign = assignment;
+    if compound { assign = true; }
+    var operation = op;
+    if compound {
+        var count = length - 1;
+        operation = sem_text(c, op, count);
+    }
+    var shift_left = sem_equal(operation, "<<");
+    var shift_right = sem_equal(operation, ">>");
+    var shift_unsigned = sem_equal(operation, ">>>");
+    var shift = shift_left;
+    if shift_right { shift = true; }
+    if shift_unsigned { shift = true; }
+    var threeway = sem_equal(operation, "<=>");
+    var code = sem_surface_code(operation);
+    if !assign && code == SurfaceCoalesce() {
+        var value = sem_node(c, n, SurfaceCoalesce());
+        var infer = sem_equal(sem_tokens(c, left), "null") && expected_type == null;
+        var input = expected_type;
+        if infer {
+            var known = sem_operand(c, right, null);
+            if !sem_ok(c) { return n; }
+            input = &sem_get(known).type;
+        }
+        value.left = sem_surface_nullable(c, left, input);
+        if !sem_ok(c) { return n; }
+        var first = sem_get(value.left);
+        if !sem_surface_optional(first) && first.type.pointers == 0 {
+            sem_fail(c, n, "Null coalescing requires a pointer or null-conditional access");
+            return n;
+        }
+        value.right = sem_operand(c, right, &first.type);
+        sem_set_type(&value.type, &first.type);
+        return sem_surface_expected(c, n, expected_type);
+    }
+    if assign {
+        var value = sem_node(c, n, SurfaceAssign());
+        value.target = sem_surface_place(c, left);
+        if !sem_ok(c) { return n; }
+            sem_set_type(&value.type, &sem_get(value.target).type);
+        value.op = SurfaceSet();
+        var input = &value.type;
+        if compound {
+            value.op = code;
+            var pointer = input.pointers != 0;
+            if code == SurfaceAnd() || code == SurfaceOr() {
+                if input.scalar != SBool() || pointer { sem_fail(c, n, "Logical compound assignment requires bool operands"); }
+            } else {
+            if code == SurfaceCoalesce() {
+                if !pointer { sem_fail(c, n, "Null-coalescing assignment requires a pointer location"); }
+            } else {
+            if pointer {
+                var offset = code == OAdd();
+                if !offset { offset = code == OSub(); }
+                if offset { sem_surface_pointee(c, n, input); input = null; }
+                else { sem_fail(c, n, "Only += and -= (or ??=) apply to pointers"); }
+            } else { sem_surface_integer(c, value.target); }
+            if shift {
+                input = null;
+            }
+            }
+            }
+        }
+        value.value = sem_operand(c, right, input);
+        if sem_ok(c) {
+            var integer_rhs = input == null;
+            if integer_rhs { sem_surface_integer(c, value.value); }
+        }
+        return sem_surface_expected(c, n, expected_type);
+    }
+    var special = shift;
+    if threeway { special = true; }
+    if special {
+        var kind = SurfaceShift();
+        if threeway { kind = SurfaceCompare(); }
+        var value = sem_node(c, n, kind);
+        var input = expected_type;
+        if threeway { input = null; }
+        value.left = sem_operand(c, left, input);
+        if !sem_ok(c) { return n; }
+        sem_surface_integer(c, value.left);
+        input = null;
+            if threeway { input = &sem_get(value.left).type; }
+        value.right = sem_operand(c, right, input);
+        if !sem_ok(c) { return n; }
+        sem_surface_integer(c, value.right);
+        value.op = code;
+            sem_set_type(&value.type, &sem_get(value.left).type);
+        if threeway { sem_set_type(&value.type, sem_type_new(c, SI32(), 0, null)); }
+        return sem_surface_expected(c, n, expected_type);
+    }
+    return sem_surface_binary(c, n, left, right, code, expected_type);
+}

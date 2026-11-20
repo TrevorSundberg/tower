@@ -1,0 +1,9 @@
+import tower;
+
+// Borrowed, name-sorted views of shared grammar entities. Not semantic storage.
+struct SyntaxRuleView {
+    name: u8*;
+    name_length: usize;
+    alternatives: void**;
+    count: usize;
+}

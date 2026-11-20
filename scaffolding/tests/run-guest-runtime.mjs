@@ -1,4 +1,4 @@
-// Transport only: functional checks live in guest-runtime.tower.
+// Transport only: functional checks live in guest_runtime.tower.
 // Usage: node scaffolding/tests/run-guest-runtime.mjs /path/to/towerc
 import {readFile, writeFile, mkdir} from 'node:fs/promises';
 import {execFileSync} from 'node:child_process';
@@ -9,7 +9,7 @@ const compiler = process.argv[2];
 if (!compiler) throw Error('Supply a native Tower compiler');
 const out = new URL('../../build/shared-runtime/', import.meta.url);
 await mkdir(out, {recursive:true});
-const input = root + 'scaffolding/tests/guest-runtime.tower';
+const input = root + 'scaffolding/tests/guest_runtime.tower';
 const expected = 'Tower guest runtime passed\n';
 const common = [input, '--bedrock', root + 'scaffolding/bedrock.tower', '--foundation', root + 'scaffolding/foundation.tower'];
 for (const triple of ['wasm32-unknown-unknown', 'x86_64-pc-linux-gnu']) {

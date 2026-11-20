@@ -19,7 +19,7 @@ test('projects own folders, built-ins, undo, links and execution state',async({p
   await expect(page.locator('.builtin-badge')).toHaveCount(2);
   await expect(page.locator('.builtin-badge')).toHaveText(['library','library']);
   await prompt(page,'#new-project','Ocean');
-  await edit(page,'import tower; import "src/math"; print(answer());');
+  await edit(page,'import tower; import src.math; print(answer());');
   await prompt(page,'#new-file','src/math.tower');
   await edit(page,'import tower; fn answer(): i32 { return 42; }');
   await page.locator('#execute').click();
@@ -67,7 +67,7 @@ test('switching projects cancels an infinite loop and discards stale output',asy
 test('errors in another project file are named without marking the active source',async({page}) => {
   await prompt(page,'#new-project','Errors');
   await prompt(page,'#new-file','lib/bad.tower'); await edit(page,'import tower; var bad: i32 = true;');
-  await page.locator('[data-path="main.tower"]').click(); await edit(page,'import tower; import "lib/bad"; print(42);'); await page.locator('#execute').click();
+  await page.locator('[data-path="main.tower"]').click(); await edit(page,'import tower; import lib.bad; print(42);'); await page.locator('#execute').click();
   await expect(page.locator('#error-message')).toContainText('lib/bad.tower');
   await expect(page.locator('.tw-inline-error')).toHaveCount(0);
 });
@@ -108,7 +108,7 @@ test('storage errors are visible and project download remains available',async({
 
 test('import-only entry executes its closure and updates after a dependency edit',async({page}) => {
   await prompt(page,'#new-project','Imports');
-  await edit(page,'import tower; import "lib/effects";');
+  await edit(page,'import tower; import lib.effects;');
   await prompt(page,'#new-file','lib/effects.tower');
   await edit(page,'import tower; print(41);');
   await page.locator('#auto-execute').check();
@@ -124,7 +124,7 @@ test('import-only entry executes its closure and updates after a dependency edit
 
 test('dotted imports share file identity and import names look different from keywords',async({page}) => {
   await prompt(page,'#new-project','Dotted imports');
-  await edit(page,'import tower; import math.answer; import "math/answer"; print(answer());');
+  await edit(page,'import tower; import math.answer; import math.answer; print(answer());');
   await prompt(page,'#new-file','math/answer.tower');
   await edit(page,'import tower; print(7); fn answer(): i32 { return 42; }');
   await page.locator('#auto-execute').check();
@@ -149,7 +149,7 @@ test('dotted imports share file identity and import names look different from ke
 
 test('module aliases isolate names and dependency edits update both backends',async({page}) => {
   await prompt(page,'#new-project','Module scopes');
-  await edit(page,'import tower; import left.tools as left; import "right/tools" as right; print(left.answer()); print(right.answer());');
+  await edit(page,'import tower; import left.tools as left; import right.tools as right; print(left.answer()); print(right.answer());');
   await prompt(page,'#new-file','left/tools.tower');
   await edit(page,'import tower; fn answer(): i32 { return hidden(); } fn hidden(): i32 { return 20; }');
   await prompt(page,'#new-file','right/tools.tower');

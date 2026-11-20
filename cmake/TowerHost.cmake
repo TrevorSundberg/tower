@@ -1,24 +1,34 @@
 # Temporary host ABI objects. Both implementations and functional tests are Tower.
 function(tower_compiler_host bootstrap dependency triple)
-  set(input "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-host.tower")
+  set(input "${CMAKE_CURRENT_BINARY_DIR}/tower_compiler_host.tower")
   set(object "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-host.o")
   set(tests "")
   set(driver "")
+  set(module_platform linux)
+  if(triple MATCHES "wasm")
+    set(module_platform wasi)
+  elseif(triple MATCHES "windows")
+    set(module_platform windows)
+  elseif(triple MATCHES "apple|darwin")
+    set(module_platform macos)
+  elseif(NOT triple MATCHES "^(x86_64|aarch64|arm64)-.*linux")
+    message(FATAL_ERROR "Revalidate the module filesystem ABI for ${triple}")
+  endif()
   if(TOWER_NATIVE OR TOWER_PARSER_ONLY)
-    set(driver "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/host/driver-options.tower")
+    set(driver "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/host/driver_options.tower")
   endif()
   if(TOWER_PARSER_ONLY)
-    set(tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/host-runtime.tower")
+    set(tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/host_runtime.tower")
   endif()
   add_custom_command(OUTPUT "${input}"
-    COMMAND "${CMAKE_COMMAND}" -DROOT=${CMAKE_CURRENT_SOURCE_DIR} -DDRIVER=${driver} -DTESTS=${tests} -DOUTPUT=${input}
+    COMMAND "${CMAKE_COMMAND}" -DROOT=${CMAKE_CURRENT_SOURCE_DIR} -DDRIVER=${driver} -DTESTS=${tests} -DOUTPUT=${input} -DMODULE_PLATFORM=${module_platform}
       -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ComposeHost.cmake"
-    DEPENDS scaffolding/host/memory.tower scaffolding/host/driver-options.tower
-      scaffolding/host/driver-services.tower scaffolding/tests/host-services.tower
-      scaffolding/host/driver-files.tower
-      scaffolding/host/ide-protocol.tower
-      scaffolding/library/bytes.tower scaffolding/compiler/host-text.tower
-      scaffolding/compiler/host-handles.tower scaffolding/tests/host.tower
+    DEPENDS scaffolding/host/memory.tower scaffolding/host/driver_options.tower
+      scaffolding/host/driver_services.tower scaffolding/tests/host_services.tower
+      scaffolding/host/driver_files.tower
+      scaffolding/host/ide_protocol.tower
+      scaffolding/library/bytes.tower scaffolding/compiler/host_text.tower
+      scaffolding/compiler/host_handles.tower scaffolding/tests/host.tower
       ${tests} cmake/ComposeHost.cmake VERBATIM)
   add_custom_command(OUTPUT "${object}"
     COMMAND "${bootstrap}" "${input}" --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"

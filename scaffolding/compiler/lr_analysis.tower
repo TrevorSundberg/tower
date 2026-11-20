@@ -1,0 +1,649 @@
+import tower;
+import lr_types;
+import lexer_table;
+import .library.vector;
+
+// Disposable FIRST/nullable and LR item indexes over the shared grammar entities.
+// Character and token streams use the same integer ranges and closure algorithm.
+struct LRNonterminal {
+    nullable: bool;
+    order: usize;
+    first: vector(SymbolRange);
+    productions: vector(usize);
+}
+
+struct LRAnalysis {
+    rules: LRProduction*;
+    rule_count: usize;
+    symbols: LRSymbol*;
+    symbol_count: usize;
+    nonterminals: LRNonterminal*;
+    nonterminal_count: usize;
+    failed: bool;
+}
+
+struct LRItems {
+    values: vector(LRItem);
+    pending: vector(LRItem);
+    failed: bool;
+}
+
+fn lr_none(): usize {
+    var value: usize = 0;
+    value--;
+    return value;
+}
+
+fn lr_append(T: type, values: vector(T)*, value: T*): bool {
+    var count = values.length + 1;
+    var overflow = count == 0;
+    if overflow {
+        return false;
+    }
+    var ok = vector_reserve(T, values, count);
+    if ok {
+        copy(&values.data[values.length], value, sizeof(T));
+        values.length = count;
+    }
+    return ok;
+}
+
+// Preserve distinct range identities here: overlapping ranges can represent
+// different parse actions. Union/partition belongs to action construction.
+fn lr_range_insert(values: vector(SymbolRange)*, first: u32, last: u32, changed: bool*): bool {
+    var low: usize = 0;
+    var high = values.length;
+    loop {
+        var done = low == high;
+        if done {
+            break;
+        }
+        var middle = high - low;
+        middle = middle / 2;
+        middle = middle + low;
+        var value = &values.data[middle];
+        var less = value.first < first;
+        var equal = value.first == first;
+        if equal {
+            less = value.last < last;
+        }
+        if less {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
+    }
+    var present = low < values.length;
+    if present {
+        var value = &values.data[low];
+        var same = value.first == first;
+        var end_same = value.last == last;
+        same &&= end_same;
+        if same {
+            return true;
+        }
+    }
+    var count = values.length + 1;
+    var ok = vector_reserve(SymbolRange, values, count);
+    if !ok {
+        return false;
+    }
+    var moved = values.length - low;
+    var bytes = moved * sizeof(SymbolRange);
+    var next = low + 1;
+    copy(&values.data[next], &values.data[low], bytes);
+    values.data[low].first = first;
+    values.data[low].last = last;
+    values.length = count;
+    *changed = true;
+    return true;
+}
+
+fn lr_range_merge(destination: vector(SymbolRange)*, source: vector(SymbolRange)*, changed: bool*): bool {
+    var same = destination == source;
+    if same {
+        return true;
+    }
+    var index: usize = 0;
+    loop {
+        var done = index == source.length;
+        if done {
+            return true;
+        }
+        var range = &source.data[index];
+        var ok = lr_range_insert(destination, range.first, range.last, changed);
+        if !ok {
+            return false;
+        }
+        index++;
+    }
+}
+
+export fn lr_analysis_destroy(value: LRAnalysis*): void {
+    var missing = value == null;
+    if missing {
+        return;
+    }
+    var index: usize = 0;
+    loop {
+        var done = index == value.nonterminal_count;
+        if done {
+            break;
+        }
+        var item = &value.nonterminals[index];
+        vector_dispose(SymbolRange, &item.first);
+        vector_dispose(usize, &item.productions);
+        index++;
+    }
+    free(value.nonterminals);
+    free(value);
+}
+
+// Production/symbol arrays are borrowed and immutable for this analysis lifetime.
+export fn lr_analysis_create(rules: LRProduction*, rule_count: usize, symbols: LRSymbol*, symbol_count: usize, nonterminal_count: usize): LRAnalysis* {
+    var result = alloc(LRAnalysis, 1);
+    var failed = result == null;
+    if failed {
+        return null;
+    }
+    fill(result, 0, sizeof(LRAnalysis));
+    result.rules = rules;
+    result.rule_count = rule_count;
+    result.symbols = symbols;
+    result.symbol_count = symbol_count;
+    result.nonterminals = alloc(LRNonterminal, nonterminal_count);
+    failed = result.nonterminals == null;
+    if failed {
+        free(result);
+        return null;
+    }
+    result.nonterminal_count = nonterminal_count;
+    var bytes = sizeof(LRNonterminal) * nonterminal_count;
+    fill(result.nonterminals, 0, bytes);
+    var index: usize = 0;
+    loop {
+        var done = index == nonterminal_count;
+        if done {
+            break;
+        }
+        result.nonterminals[index].order = index;
+        index++;
+    }
+    index = 0;
+    loop {
+        var done = index == rule_count;
+        if done {
+            return result;
+        }
+        var rule = &rules[index];
+        var invalid = rule.owner >= nonterminal_count;
+        var outside = rule.begin > symbol_count;
+        if outside {
+            invalid = true;
+        }
+        if invalid {
+            lr_analysis_destroy(result);
+            return null;
+        }
+        var available = symbol_count - rule.begin;
+        invalid = rule.count > available;
+        if invalid {
+            lr_analysis_destroy(result);
+            return null;
+        }
+        var ok = vector_push(usize, &result.nonterminals[rule.owner].productions, index);
+        if !ok {
+            lr_analysis_destroy(result);
+            return null;
+        }
+        index++;
+    }
+}
+
+export fn lr_analysis_compute(value: LRAnalysis*): bool {
+    loop {
+        var changed: bool = false;
+        var index: usize = 0;
+        loop {
+            var done = index == value.rule_count;
+            if done {
+                break;
+            }
+            var rule = &value.rules[index];
+            var owner = &value.nonterminals[rule.owner];
+            var nullable: bool = true;
+            var position: usize = 0;
+            loop {
+                done = position == rule.count;
+                if done {
+                    break;
+                }
+                var symbol_index = rule.begin + position;
+                var symbol = &value.symbols[symbol_index];
+                var terminal = symbol.nonterminal == lr_none();
+                var ok: bool = true;
+                if terminal {
+                    ok = lr_range_insert(&owner.first, symbol.first, symbol.last, &changed);
+                    nullable = false;
+                } else {
+                    var invalid = symbol.nonterminal >= value.nonterminal_count;
+                    if invalid {
+                        value.failed = true;
+                        return false;
+                    }
+                    var referenced = &value.nonterminals[symbol.nonterminal];
+                    ok = lr_range_merge(&owner.first, &referenced.first, &changed);
+                    nullable = referenced.nullable;
+                }
+                if !ok {
+                    value.failed = true;
+                    return false;
+                }
+                if !nullable {
+                    break;
+                }
+                position++;
+            }
+            if nullable {
+                if !owner.nullable {
+                    owner.nullable = true;
+                    changed = true;
+                }
+            }
+            index++;
+        }
+        if !changed {
+            return true;
+        }
+    }
+}
+
+export fn lr_analysis_failed(value: LRAnalysis*): bool {
+    return value.failed;
+}
+
+export fn lr_analysis_order(value: LRAnalysis*, index: usize, order: usize): void {
+    value.nonterminals[index].order = order;
+}
+
+export fn lr_analysis_nullable(value: LRAnalysis*, index: usize): bool {
+    return value.nonterminals[index].nullable;
+}
+
+export fn lr_analysis_first_count(value: LRAnalysis*, index: usize): usize {
+    return value.nonterminals[index].first.length;
+}
+
+export fn lr_analysis_first_data(value: LRAnalysis*, index: usize): SymbolRange* {
+    return value.nonterminals[index].first.data;
+}
+
+export fn lr_items_create(): LRItems* {
+    var result = alloc(LRItems, 1);
+    var ok = result != null;
+    if ok {
+        fill(result, 0, sizeof(LRItems));
+    }
+    return result;
+}
+
+export fn lr_items_destroy(value: LRItems*): void {
+    var missing = value == null;
+    if missing {
+        return;
+    }
+    vector_dispose(LRItem, &value.values);
+    vector_dispose(LRItem, &value.pending);
+    free(value);
+}
+
+fn lr_item_less(a: LRItem*, b: LRItem*): bool {
+    var different = a.rule != b.rule;
+    if different {
+        var less = a.rule < b.rule;
+        return less;
+    }
+    different = a.position != b.position;
+    if different {
+        var less = a.position < b.position;
+        return less;
+    }
+    different = a.first != b.first;
+    if different {
+        var less = a.first < b.first;
+        return less;
+    }
+    var less = a.last < b.last;
+    return less;
+}
+
+export fn lr_items_insert(value: LRItems*, item: LRItem*): bool {
+    if value.failed {
+        return false;
+    }
+    // The caller may supply an item from this vector, which growth invalidates.
+    var saved: LRItem;
+    copy(&saved, item, sizeof(LRItem));
+    var low: usize = 0;
+    var high = value.values.length;
+    loop {
+        var done = low == high;
+        if done {
+            break;
+        }
+        var middle = high - low;
+        middle = middle / 2;
+        middle = middle + low;
+        var less = lr_item_less(&value.values.data[middle], &saved);
+        if less {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
+    }
+    var present = low < value.values.length;
+    if present {
+        var different = lr_item_less(&saved, &value.values.data[low]);
+        if !different {
+            return true;
+        }
+    }
+    var count = value.values.length + 1;
+    var ok = vector_reserve(LRItem, &value.values, count);
+    ok &&= lr_append(LRItem, &value.pending, &saved);
+    if !ok {
+        value.failed = true;
+        return false;
+    }
+    var moved = value.values.length - low;
+    var bytes = moved * sizeof(LRItem);
+    var next = low + 1;
+    copy(&value.values.data[next], &value.values.data[low], bytes);
+    copy(&value.values.data[low], &saved, sizeof(LRItem));
+    value.values.length = count;
+    return true;
+}
+
+export fn lr_items_count(value: LRItems*): usize {
+    return value.values.length;
+}
+
+export fn lr_items_data(value: LRItems*): LRItem* {
+    return value.values.data;
+}
+
+fn lr_suffix(value: LRAnalysis*, rule: LRProduction*, position: usize, item: LRItem*, ranges: vector(SymbolRange)*): bool {
+    var changed: bool = false;
+    loop {
+        var done = position >= rule.count;
+        if done {
+            return lr_range_insert(ranges, item.first, item.last, &changed);
+        }
+        var index = rule.begin + position;
+        var symbol = &value.symbols[index];
+        var terminal = symbol.nonterminal == lr_none();
+        if terminal {
+            return lr_range_insert(ranges, symbol.first, symbol.last, &changed);
+        }
+        var next = &value.nonterminals[symbol.nonterminal];
+        var ok = lr_range_merge(ranges, &next.first, &changed);
+        if !ok {
+            return false;
+        }
+        if !next.nullable {
+            return true;
+        }
+        position++;
+    }
+}
+
+export fn lr_items_close(value: LRAnalysis*, items: LRItems*, lookahead: bool): bool {
+    var ranges: vector(SymbolRange);
+    vector_init(SymbolRange, &ranges);
+    var ok: bool = true;
+    loop {
+        var done = items.pending.length == 0;
+        if items.failed {
+            done = true;
+        }
+        if value.failed {
+            done = true;
+        }
+        if done {
+            break;
+        }
+        items.pending.length--;
+        var item: LRItem;
+        copy(&item, &items.pending.data[items.pending.length], sizeof(LRItem));
+        var rule = &value.rules[item.rule];
+        done = item.position >= rule.count;
+        if done {
+            continue;
+        }
+        var index = rule.begin + item.position;
+        var symbol = &value.symbols[index];
+        var terminal = symbol.nonterminal == lr_none();
+        if terminal {
+            continue;
+        }
+        ranges.length = 0;
+        if lookahead {
+            var position = item.position + 1;
+            ok = lr_suffix(value, rule, position, &item, &ranges);
+        } else {
+            var changed: bool = false;
+            ok = lr_range_insert(&ranges, 0, 0, &changed);
+        }
+        if !ok {
+            value.failed = true;
+            break;
+        }
+        var productions = &value.nonterminals[symbol.nonterminal].productions;
+        var production: usize = 0;
+        loop {
+            done = production == productions.length;
+            if items.failed {
+                done = true;
+            }
+            if done {
+                break;
+            }
+            var next: LRItem;
+            next.rule = productions.data[production];
+            next.position = 0;
+            var range: usize = 0;
+            loop {
+                done = range == ranges.length;
+                if done {
+                    break;
+                }
+                next.first = ranges.data[range].first;
+                next.last = ranges.data[range].last;
+                ok = lr_items_insert(items, &next);
+                if !ok {
+                    break;
+                }
+                range++;
+            }
+            production++;
+        }
+    }
+    vector_dispose(SymbolRange, &ranges);
+    if items.failed {
+        value.failed = true;
+    }
+    ok = !value.failed;
+    return ok;
+}
+
+export fn lr_items_shift(value: LRAnalysis*, input: LRItems*, symbol: LRSymbol*, output: LRItems*): bool {
+    var index: usize = 0;
+    loop {
+        var done = index == input.values.length;
+        if done {
+            break;
+        }
+        var item: LRItem;
+        copy(&item, &input.values.data[index], sizeof(LRItem));
+        var rule = &value.rules[item.rule];
+        var present = item.position < rule.count;
+        if present {
+            var at = rule.begin + item.position;
+            var next = &value.symbols[at];
+            var matches = next.nonterminal == symbol.nonterminal;
+            var terminal = next.nonterminal == lr_none();
+            if terminal {
+                var contained = symbol.first >= next.first;
+                if !contained {
+                    matches = false;
+                }
+                contained = symbol.last <= next.last;
+                if !contained {
+                    matches = false;
+                }
+            }
+            if matches {
+                item.position++;
+                var ok = lr_items_insert(output, &item);
+                if !ok {
+                    value.failed = true;
+                    return false;
+                }
+            }
+        }
+        index++;
+    }
+    return true;
+}
+
+export fn lr_items_goto(value: LRAnalysis*, input: LRItems*, symbol: LRSymbol*, output: LRItems*, lookahead: bool): bool {
+    if !lr_items_shift(value, input, symbol, output) { return false; }
+    return lr_items_close(value, output, lookahead);
+}
+
+// LALR lookahead dependencies refer to kernel items by temporary dense indices.
+// Propagate only changed sets; cyclic grammars converge without recursive calls.
+struct LRPropagationNode {
+    ranges: vector(SymbolRange);
+    edges: vector(usize);
+    queued: bool;
+}
+
+struct LRPropagation {
+    nodes: LRPropagationNode*;
+    count: usize;
+    pending: vector(usize);
+}
+
+export fn lr_propagation_destroy(value: LRPropagation*): void {
+    var missing = value == null;
+    if missing {
+        return;
+    }
+    var index: usize = 0;
+    loop {
+        var done = index == value.count;
+        if done {
+            break;
+        }
+        var node = &value.nodes[index];
+        vector_dispose(SymbolRange, &node.ranges);
+        vector_dispose(usize, &node.edges);
+        index++;
+    }
+    free(value.nodes);
+    vector_dispose(usize, &value.pending);
+    free(value);
+}
+
+export fn lr_propagation_create(count: usize): LRPropagation* {
+    var value = alloc(LRPropagation, 1);
+    var missing = value == null;
+    if missing {
+        return null;
+    }
+    fill(value, 0, sizeof(LRPropagation));
+    value.nodes = alloc(LRPropagationNode, count);
+    missing = value.nodes == null;
+    if missing {
+        lr_propagation_destroy(value);
+        return null;
+    }
+    value.count = count;
+    var bytes = sizeof(LRPropagationNode) * count;
+    fill(value.nodes, 0, bytes);
+    var ok = vector_reserve(usize, &value.pending, count);
+    if !ok {
+        lr_propagation_destroy(value);
+        return null;
+    }
+    return value;
+}
+
+fn lr_propagation_queue(value: LRPropagation*, index: usize): void {
+    var node = &value.nodes[index];
+    if node.queued {
+        return;
+    }
+    // At most count distinct nodes can be queued. Capacity was reserved once.
+    value.pending.data[value.pending.length] = index;
+    value.pending.length++;
+    node.queued = true;
+}
+
+export fn lr_propagation_seed(value: LRPropagation*, index: usize, first: u32, last: u32): bool {
+    var changed: bool = false;
+    var ok = lr_range_insert(&value.nodes[index].ranges, first, last, &changed);
+    if changed {
+        lr_propagation_queue(value, index);
+    }
+    return ok;
+}
+
+export fn lr_propagation_edge(value: LRPropagation*, source: usize, destination: usize): bool {
+    // Duplicate dependencies do not change the fixed point or queued work.
+    var ok = vector_push(usize, &value.nodes[source].edges, destination);
+    if ok {
+        lr_propagation_queue(value, source);
+    }
+    return ok;
+}
+
+export fn lr_propagation_solve(value: LRPropagation*): bool {
+    loop {
+        var done = value.pending.length == 0;
+        if done {
+            return true;
+        }
+        value.pending.length--;
+        var index = value.pending.data[value.pending.length];
+        var source = &value.nodes[index];
+        source.queued = false;
+        var edge: usize = 0;
+        loop {
+            done = edge == source.edges.length;
+            if done {
+                break;
+            }
+            var destination = source.edges.data[edge];
+            var target = &value.nodes[destination];
+            var changed: bool = false;
+            var ok = lr_range_merge(&target.ranges, &source.ranges, &changed);
+            if !ok {
+                return false;
+            }
+            if changed {
+                lr_propagation_queue(value, destination);
+            }
+            edge++;
+        }
+    }
+}
+
+export fn lr_propagation_count(value: LRPropagation*, index: usize): usize {
+    return value.nodes[index].ranges.length;
+}
+
+export fn lr_propagation_data(value: LRPropagation*, index: usize): SymbolRange* {
+    return value.nodes[index].ranges.data;
+}

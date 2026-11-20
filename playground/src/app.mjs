@@ -12,7 +12,7 @@ import { selectFoundation } from './foundation-storage.mjs';
 import { targets, sourceTargets, targetChoices, nativeTargetKeys, emptySelection, savedTargetSelection, targetSelectionKey, linkInputsForTarget } from './targets.mjs';
 import { detectBrowserTarget, defaultTargetSelection } from './browser-target.mjs';
 import { OutputPane } from './output-pane.mjs';
-import {examples, filePath, newProject, projectStore, validateProject, projectSources} from './projects.mjs';
+import {examples, filePath, newProject, projectStore, validateProject, projectSources, refreshCompilerSources} from './projects.mjs';
 import {exportProject, importProject} from './project-archive.mjs';
 import {compilerSelection, selectCompiler, onCompilerSelection} from './compiler-selection.mjs';
 import { towerCompletion } from './completion.mjs';
@@ -935,12 +935,7 @@ async function start() {
       Object.assign(compilerProject,{id:'tower:compiler',compilerProject:true,library:'.'});
       projects.push(compilerProject);
     } else {
-      // Upgrade untouched files and add new ports without discarding local edits.
-      for (const file of recipe.files) {
-        const saved = compilerProject.files.find(f => f.path === file.path);
-        if (!saved) compilerProject.files.push(file);
-        else if (saved.text === compilerProject.sourceBaseline?.[file.path]) saved.text = file.text;
-      }
+      refreshCompilerSources(compilerProject, recipe);
     }
     compilerProject.sourceBaseline = Object.fromEntries(compilerSources);
     compilerBuildSnapshot = JSON.stringify(compilerProject.files);

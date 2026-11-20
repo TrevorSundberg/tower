@@ -1,0 +1,355 @@
+import syntax_emission_types;
+import tower;
+import lr_analysis;
+import lr_grammar;
+import lr_tree;
+import parser_nodes;
+import regex_lowering;
+import syntax_emission;
+import syntax_reader;
+import syntax_validation;
+import .library.vector;
+
+// Typed capture holes add ordinary generated productions to the template table.
+// Remapping restores active production identities on the same parse entities.
+struct SyntaxTemplateCapture {
+    name: u8*;
+    source: void*;
+    wrapper: u8*;
+}
+
+struct SyntaxTemplateGrammar {
+    emission: SyntaxEmissionInput;
+    captures: SyntaxTemplateCapture*;
+    count: usize;
+    repetitions: SyntaxEmissionHelper*;
+    repetition_count: usize;
+}
+
+struct SyntaxTemplateAlias {
+    name: u8*;
+    target: u8*;
+}
+
+struct SyntaxTemplateName {
+    name: u8*;
+    index: usize;
+}
+
+struct SyntaxTemplateRemap {
+    root: void*;
+    match_kind: void*;
+    source: SyntaxEmissionProduction*;
+    source_count: usize;
+    destination: SyntaxEmissionProduction*;
+    destination_count: usize;
+    aliases: SyntaxTemplateAlias*;
+    alias_count: usize;
+    names: SyntaxTemplateName*;
+    name_count: usize;
+    grammar: LRGrammar*;
+    uses: usize*;
+    count: usize;
+}
+
+fn template_hole(value: SyntaxEmission*, category: u8*, id: u32, append: bool): void {
+    var name = emission_cname(value, category);
+    if value.failed {
+        return;
+    }
+    var rule = emission_production(value, name, true);
+    if value.failed {
+        return;
+    }
+    if append {
+        emission_reference(value, rule, name, "");
+    }
+    if !value.failed {
+        emission_string(value, rule, id);
+    }
+}
+
+export fn syntax_template_holes(input: SyntaxTemplateGrammar*): bool {
+    var value = alloc(SyntaxEmission, 1);
+    var missing = value == null;
+    if missing {
+        return false;
+    }
+    fill(value, 0, sizeof(SyntaxEmission));
+    value.input = &input.emission;
+    var index: usize = 0;
+    loop {
+        var done = index == input.count;
+        if done {
+            break;
+        }
+        if value.failed {
+            break;
+        }
+        var capture = &input.captures[index];
+        var term = emission_node(value, capture.source);
+        var ordinal = index & 4294967295;
+        var id = convert(u32, ordinal);
+        id = id + 3145728;
+        var scalar = term.repetition == 0;
+        if scalar {
+            var category = capture.wrapper;
+            missing = category == null;
+            if missing {
+                category = node_text_get(&term.text);
+            }
+            template_hole(value, category, id, false);
+        } else {
+            var helper: usize = 0;
+            loop {
+                done = helper == input.repetition_count;
+                if done {
+                    break;
+                }
+                var entry = &input.repetitions[helper];
+                var target = emission_node(value, entry.source);
+                var compatible = target.repetition == 42;
+                compatible ||= target.repetition == term.repetition;
+                if target.literal {
+                    compatible = false;
+                }
+                if compatible {
+                    var order = syntax_bytes_compare(target.text.data, target.text.length, term.text.data, term.text.length);
+                    compatible = order == 0;
+                }
+                if compatible {
+                    var base = target.repetition != 42;
+                    if base {
+                        template_hole(value, entry.name, id, false);
+                    }
+                    var repeated = target.repetition != 63;
+                    if repeated {
+                        template_hole(value, entry.name, id, true);
+                    }
+                }
+                if value.failed {
+                    break;
+                }
+                helper++;
+            }
+        }
+        index++;
+    }
+    var ok = !value.failed;
+    syntax_emission_destroy(value);
+    return ok;
+}
+
+fn template_text_order(left: u8*, right: u8*): i32 {
+    var left_length = syntax_text_length(left);
+    var right_length = syntax_text_length(right);
+    return syntax_bytes_compare(left, left_length, right, right_length);
+}
+
+fn template_source(input: SyntaxTemplateRemap*, index: usize): SyntaxEmissionProduction* {
+    var low: usize = 0;
+    var high = input.source_count;
+    loop {
+        var done = low == high;
+        if done {
+            return null;
+        }
+        var middle = high - low;
+        middle = middle / 2;
+        middle = middle + low;
+        var value = &input.source[middle];
+        var same = value.index == index;
+        if same {
+            return value;
+        }
+        var less = value.index < index;
+        if less {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
+    }
+}
+
+fn template_destination(input: SyntaxTemplateRemap*, source: SyntaxEmissionProduction*): usize {
+    var low: usize = 0;
+    var high = input.destination_count;
+    loop {
+        var done = low == high;
+        if done {
+            return lr_none();
+        }
+        var middle = high - low;
+        middle = middle / 2;
+        middle = middle + low;
+        var value = &input.destination[middle];
+        var order = template_text_order(value.name, source.name);
+        var equal_name = order == 0;
+        if equal_name {
+            var equal_alternative = value.alternative == source.alternative;
+            if equal_alternative {
+                return value.index;
+            }
+        }
+        var less = order < 0;
+        if equal_name {
+            less = value.alternative < source.alternative;
+        }
+        if less {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
+    }
+}
+
+fn template_alias(input: SyntaxTemplateRemap*, name: u8*): u8* {
+    var low: usize = 0;
+    var high = input.alias_count;
+    loop {
+        var done = low == high;
+        if done {
+            return name;
+        }
+        var middle = high - low;
+        middle = middle / 2;
+        middle = middle + low;
+        var value = &input.aliases[middle];
+        var order = template_text_order(value.name, name);
+        var same = order == 0;
+        if same {
+            return value.target;
+        }
+        var less = order < 0;
+        if less {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
+    }
+}
+
+fn template_named(input: SyntaxTemplateRemap*, name: u8*): usize {
+    var low: usize = 0;
+    var high = input.name_count;
+    loop {
+        var done = low == high;
+        if done {
+            return lr_none();
+        }
+        var middle = high - low;
+        middle = middle / 2;
+        middle = middle + low;
+        var value = &input.names[middle];
+        var order = template_text_order(value.name, name);
+        var same = order == 0;
+        if same {
+            return value.index;
+        }
+        var less = order < 0;
+        if less {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
+    }
+}
+
+fn template_remap_node(input: SyntaxTemplateRemap*, node: void*, revision: SyntaxEmission*, destination: SyntaxEmission*): bool {
+    var data = lr_tree_match(node, input.match_kind);
+    var ordinal = data.id - 3145728;
+    var hole = data.id >= 3145728;
+    hole &&= convert(usize, ordinal) < input.count;
+    if hole {
+        input.uses[ordinal] = input.uses[ordinal] + 1;
+        return true;
+    }
+    var terminal = data.rule == lr_none();
+    if terminal {
+        return true;
+    }
+    var source = template_source(input, data.rule);
+    var label = template_alias(input, node_text_get(&data.label));
+    var owned = revision != null;
+    if owned {
+        var helper = syntax_emission_find_helper(revision, label);
+        var found = helper != null;
+        if found {
+            if helper.capture {
+                label = syntax_emission_capture_name(destination, helper.source);
+                var missing = label == null;
+                if missing { return false; }
+            }
+        }
+    }
+    var supplied = source != null;
+    if supplied {
+        data.rule = template_destination(input, source);
+    } else {
+        var retained = destination != null;
+        if retained {
+            data.rule = syntax_emission_rule_index(destination, label);
+        } else {
+            data.rule = template_named(input, label);
+        }
+    }
+    var id = lr_grammar_lookup(input.grammar, label, lr_name_hash(label));
+    var missing = id == lr_none();
+    if missing {
+        data.id = 4294967294;
+    } else {
+        id = id & 4294967295;
+        data.id = convert(u32, id);
+    }
+    return node_match_set_label(data, label);
+}
+
+export fn syntax_template_remap(input: SyntaxTemplateRemap*): bool {
+    return syntax_template_remap_to_emission(input, null);
+}
+
+// Production consumers borrow the revision's frozen name index. The original
+// row-view entry remains available to standalone remapping fixtures/consumers.
+export fn syntax_template_remap_to_emission(input: SyntaxTemplateRemap*, destination: SyntaxEmission*): bool {
+    return syntax_template_remap_revisions(input, null, destination);
+}
+
+// Both owners and their source entities stay pinned for this private-tree write.
+// Helper identity comes from the shared entity, never a caller-owned alias map.
+export fn syntax_template_remap_revisions(input: SyntaxTemplateRemap*, source: SyntaxEmission*, destination: SyntaxEmission*): bool {
+    var pending: vector(void*);
+    vector_init(void*, &pending);
+    var bytes = input.count * sizeof(usize);
+    fill(input.uses, 0, bytes);
+    var ok = vector_push(void*, &pending, input.root);
+    loop {
+        if !ok {
+            break;
+        }
+        var empty = pending.length == 0;
+        if empty {
+            break;
+        }
+        pending.length--;
+        var node = pending.data[pending.length];
+        ok = template_remap_node(input, node, source, destination);
+        if !ok {
+            break;
+        }
+        var index: usize = 0;
+        var count = entity_child_count(node);
+        loop {
+            var done = index == count;
+            if done {
+                break;
+            }
+            ok = vector_push(void*, &pending, entity_child_at(node, index));
+            if !ok {
+                break;
+            }
+            index++;
+        }
+    }
+    vector_dispose(void*, &pending);
+    return ok;
+}

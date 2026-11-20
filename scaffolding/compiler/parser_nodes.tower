@@ -1,0 +1,247 @@
+import tower;
+
+import parser_types;
+import .library.vector;
+
+extern fn tower_utf8_decode(source: u8*, length: usize, value: u32*): usize;
+
+export fn node_payload_size(kind: u32): usize {
+    var selected = kind == 0;
+    if selected {
+        return sizeof(ParserRuleData);
+    }
+    selected = kind == 1;
+    if selected {
+        return sizeof(ParserReferenceData);
+    }
+    selected = kind == 2;
+    if selected {
+        return sizeof(ParserStringData);
+    }
+    selected = kind == 3;
+    if selected {
+        return sizeof(ParserRangeData);
+    }
+    return sizeof(ParserMatchData);
+}
+
+export fn node_payload_init(kind: u32, data: void*): void {
+    fill(data, 0, node_payload_size(kind));
+    var `match` = kind == 4;
+    if `match` {
+        var value = bits(ParserMatchData*, data);
+        value.id = 4294967294;
+        value.rule = 0;
+        value.rule--;
+    }
+}
+
+export fn node_payload_dispose(kind: u32, data: void*): void {
+    var selected = kind == 0;
+    if selected {
+        var rule = bits(ParserRuleData*, data);
+        vector_dispose(u8, &rule.name);
+        return;
+    }
+    selected = kind == 1;
+    if selected {
+        var reference = bits(ParserReferenceData*, data);
+        vector_dispose(u8, &reference.name);
+        vector_dispose(u8, &reference.capture);
+        return;
+    }
+    selected = kind == 2;
+    if selected {
+        var string = bits(ParserStringData*, data);
+        vector_dispose(u32, &string.ids);
+        return;
+    }
+    selected = kind == 4;
+    if selected {
+        var `match` = bits(ParserMatchData*, data);
+        vector_dispose(u8, &`match`.label);
+    }
+}
+
+fn node_text_get(text: vector(u8)*): u8* {
+    var empty = text.data == null;
+    if empty {
+        return "";
+    }
+    return text.data;
+}
+
+fn node_text_set(text: vector(u8)*, source: u8*): bool {
+    var count: usize = 0;
+    loop {
+        var done = source[count] == 0;
+        if done {
+            break;
+        }
+        count++;
+    }
+    var bytes = count + 1;
+    var ok = vector_reserve(u8, text, bytes);
+    if ok {
+        copy(text.data, source, bytes);
+        text.length = count;
+    }
+    return ok;
+}
+
+export fn node_rule_name(value: ParserRuleData*): u8* {
+    return node_text_get(&value.name);
+}
+
+export fn node_rule_set_name(value: ParserRuleData*, name: u8*): bool {
+    return node_text_set(&value.name, name);
+}
+
+export fn node_rule_generated(value: ParserRuleData*): bool {
+    return value.generated;
+}
+
+export fn node_rule_set_generated(value: ParserRuleData*, generated: bool): void {
+    value.generated = generated;
+}
+
+export fn node_reference_name(value: ParserReferenceData*): u8* {
+    return node_text_get(&value.name);
+}
+
+export fn node_reference_set_name(value: ParserReferenceData*, name: u8*): bool {
+    return node_text_set(&value.name, name);
+}
+
+export fn node_reference_capture(value: ParserReferenceData*): u8* {
+    return node_text_get(&value.capture);
+}
+
+export fn node_reference_set_capture(value: ParserReferenceData*, capture: u8*): bool {
+    return node_text_set(&value.capture, capture);
+}
+
+export fn node_string_length(value: ParserStringData*): usize {
+    return value.ids.length;
+}
+
+export fn node_string_data(value: ParserStringData*): u32* {
+    return value.ids.data;
+}
+
+export fn node_string_resize(value: ParserStringData*, length: usize): bool {
+    var ok = vector_reserve(u32, &value.ids, length);
+    if ok {
+        var i = value.ids.length;
+        loop {
+            var done = i >= length;
+            if done {
+                break;
+            }
+            value.ids.data[i] = 4294967294;
+            i++;
+        }
+        value.ids.length = length;
+    }
+    return ok;
+}
+
+export fn node_string_set(value: ParserStringData*, index: usize, id: u32): bool {
+    var grows = index >= value.ids.length;
+    if grows {
+        var length = index + 1;
+        var wrapped = length == 0;
+        if wrapped {
+            return false;
+        }
+        var ok = node_string_resize(value, length);
+        if !ok {
+            return false;
+        }
+    }
+    value.ids.data[index] = id;
+    return true;
+}
+
+export fn node_string_append(value: ParserStringData*, source: u8*, count: usize): bool {
+    var end = value.ids.length + count;
+    var wrapped = end < value.ids.length;
+    if wrapped {
+        return false;
+    }
+    var ok = vector_reserve(u32, &value.ids, end);
+    if !ok {
+        return false;
+    }
+    var offset: usize = 0;
+    loop {
+        var id: u32;
+        var start = source + offset;
+        var remaining = count - offset;
+        var bytes = tower_utf8_decode(start, remaining, &id);
+        var done = bytes == 0;
+        if done {
+            break;
+        }
+        value.ids.data[value.ids.length] = id;
+        value.ids.length++;
+        offset = offset + bytes;
+    }
+    return true;
+}
+
+export fn node_range_start(value: ParserRangeData*): u32 {
+    return value.start;
+}
+
+export fn node_range_set_start(value: ParserRangeData*, id: u32): void {
+    value.start = id;
+}
+
+export fn node_range_end(value: ParserRangeData*): u32 {
+    return value.end;
+}
+
+export fn node_range_set_end(value: ParserRangeData*, id: u32): void {
+    value.end = id;
+}
+
+export fn node_match_id(value: ParserMatchData*): u32 {
+    return value.id;
+}
+
+export fn node_match_set_id(value: ParserMatchData*, id: u32): void {
+    value.id = id;
+}
+
+export fn node_match_start(value: ParserMatchData*): usize {
+    return value.start;
+}
+
+export fn node_match_set_start(value: ParserMatchData*, start: usize): void {
+    value.start = start;
+}
+
+export fn node_match_length(value: ParserMatchData*): usize {
+    return value.length;
+}
+
+export fn node_match_set_length(value: ParserMatchData*, length: usize): void {
+    value.length = length;
+}
+
+export fn node_match_rule(value: ParserMatchData*): usize {
+    return value.rule;
+}
+
+export fn node_match_set_rule(value: ParserMatchData*, rule: usize): void {
+    value.rule = rule;
+}
+
+export fn node_match_label(value: ParserMatchData*): u8* {
+    return node_text_get(&value.label);
+}
+
+export fn node_match_set_label(value: ParserMatchData*, label: u8*): bool {
+    return node_text_set(&value.label, label);
+}

@@ -1,0 +1,34 @@
+import .library.vector;
+import tower;
+
+// Components stored on the same compiler entities. The native adapter borrows
+// these payloads; all field layout, text and token-array ownership is Tower code.
+// Built with library/vector.tower; public construction still uses entity APIs.
+struct ParserRuleData {
+    name: vector(u8);
+    generated: bool;
+    precedence: u32;
+    associativity: u32;
+}
+
+struct ParserReferenceData {
+    name: vector(u8);
+    capture: vector(u8);
+}
+
+struct ParserStringData {
+    ids: vector(u32);
+}
+
+struct ParserRangeData {
+    start: u32;
+    end: u32;
+}
+
+struct ParserMatchData {
+    id: u32;
+    start: usize;
+    length: usize;
+    rule: usize;
+    label: vector(u8);
+}

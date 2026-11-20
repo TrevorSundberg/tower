@@ -1,0 +1,82 @@
+import tower;
+import .compiler.generic_registry;
+import .library.entities;
+
+fn registry_check(ok: bool, code: i32, failure: i32*): void {
+    if !ok {
+        var first = *failure == 0;
+        if first {
+            *failure = code;
+        }
+    }
+}
+
+var failure: i32 = 0;
+var store = entity_store_create();
+var other_store = entity_store_create();
+var first = entity_create(store);
+var second = entity_create(store);
+var other = entity_create(other_store);
+var a = generic_begin(first);
+var b = generic_begin(second);
+var c = generic_begin(other);
+var ok = a.template_type != b.template_type;
+registry_check(ok, 1, &failure);
+ok = a.instance_type != b.instance_type;
+registry_check(ok, 2, &failure);
+ok = a.origin_type != b.origin_type;
+registry_check(ok, 3, &failure);
+ok = c.template_type.store == other_store;
+registry_check(ok, 4, &failure);
+ok = a.template_type.store == store;
+registry_check(ok, 5, &failure);
+// Registry ownership must not add phantom declarations to the program root.
+ok = entity_child_count(first) == 0;
+registry_check(ok, 6, &failure);
+
+var held = entity_create(store);
+var component = entity_component_add(held, a.origin_type);
+var origin = bits(GenericOrigin*, entity_component_data(component));
+origin.definition = second;
+origin.use = second;
+ok = generic_definition(a, held) == second;
+registry_check(ok, 7, &failure);
+ok = generic_definition(b, held) == held;
+registry_check(ok, 8, &failure);
+ok = generic_origin(b, held) == null;
+registry_check(ok, 9, &failure);
+ok = entity_component_add(held, c.origin_type) == null;
+registry_check(ok, 10, &failure);
+var retained_type = a.origin_type;
+entity_release(first);
+// A component can outlive the registry owner. Its type remains alive without
+// retaining the dead context or collecting anything by reachability.
+ok = entity_component_type(component) == retained_type;
+registry_check(ok, 11, &failure);
+ok = entity_query_count(retained_type) == 1;
+registry_check(ok, 12, &failure);
+ok = origin.definition == second;
+registry_check(ok, 13, &failure);
+entity_release(held);
+entity_release(second);
+entity_release(other);
+ok = entity_store_count(store) == 0;
+registry_check(ok, 14, &failure);
+ok = entity_store_component_count(store) == 0;
+registry_check(ok, 15, &failure);
+ok = entity_store_count(other_store) == 0;
+registry_check(ok, 16, &failure);
+var iteration: usize = 0;
+while iteration < 40 {
+    var root = entity_create(store);
+    var context = generic_begin(root);
+    ok = context.root == root;
+    registry_check(ok, 17, &failure);
+    entity_release(root);
+    ok = entity_store_count(store) == 0;
+    registry_check(ok, 18, &failure);
+    iteration++;
+}
+registry_check(entity_store_dispose(store), 19, &failure);
+registry_check(entity_store_dispose(other_store), 20, &failure);
+print(failure);

@@ -32,7 +32,7 @@ test('Tower semantic compiler preserves layouts, bindings, templates, and Founda
 
 // Behavioral checks live in Tower; this adapter runs the same fixtures through
 // the browser transports and checks their failure-code output and round trips.
-for(const [name,output] of [['language-control','42\n0\n'],['language-collections','0\n'],['language-enums','0\n'],['work-graph','0\n'],['work-access','0\n'],['compiler-work','0\n'],['compiler-batch','0\n'],['backend-popcount','0\n'],['backend-stack','0\n'],['backend-import-constants','0\n']]) {
+for(const [name,output] of [['language_control','42\n0\n'],['language_collections','0\n'],['language_enums','0\n'],['work_graph','0\n'],['work_access','0\n'],['compiler_work','0\n'],['compiler_batch','0\n'],['backend_popcount','0\n'],['backend_stack','0\n'],['backend_import_constants','0\n']]) {
  test(`Tower ${name} agrees across graph, fast, LLVM and Foundation text`,async()=>{
   const source=(await read(`scaffolding/tests/${name}.tower`)).toString();
   tower.configureModules({entry:`.tower/tests/${name}.tower`});
@@ -60,7 +60,7 @@ for(const [name,output] of [['language-control','42\n0\n'],['language-collection
     const rebuilt=llvm.compile(canonical,{emit:'foundation',optimize,
      target:pointerBytes===8?'wasm64-unknown-unknown':'wasm32-unknown-unknown'});
     assert.equal(rebuilt.status,'compiled',rebuilt.error);
-    if(name==='backend-popcount' && optimize)assert.match(rebuilt.after,/llvm\.ctpop\.i(?:8|32|64)/);
+    if(name==='backend_popcount' && optimize)assert.match(rebuilt.after,/llvm\.ctpop\.i(?:8|32|64)/);
     const optimized=tower.compile(rebuilt.foundation,{pointerBytes});
     try {
      tower.useFast(optimized);
@@ -81,18 +81,18 @@ for(const [name,output] of [['language-control','42\n0\n'],['language-collection
 
 test('Tower semantic diagnostics agree between interpreter and LLVM entry points',async()=>{
  for(const [name,message] of [
-  ['inference-cycle',/initializer dependency cycle/],['layout-cycle',/Recursive by-value layout/],
-  ['argument-type',/Expected i32, got bool/],['literal-range',/Integer literal out of range for u8/],
-  ['template-origin',/Instantiated by wrong\(i32\)/],['missing-return',/without returning a value/],
-  ['match-duplicate',/Duplicate match pattern/],['match-range',/Integer literal out of range for u8/],
-  ['match-type',/An integer literal needs an integer type/],['match-scope',/Unknown local 'local'/],
-  ['match-break',/CoreBreak requires an enclosing loop/],['while-type',/Expected bool, got i32/],
-  ['enum-mix',/Expected Left, got Right/],['enum-number',/Enum values require a named member/],
-  ['enum-overflow',/Enum discriminant overflow/],['enum-duplicate',/Duplicate enum discriminant/],
-  ['enum-operation',/Enum operations require equality/],
-  ['enum-address',/not an addressable location/],['enum-index',/index must be an integer/],
+  ['inference_cycle',/initializer dependency cycle/],['layout_cycle',/Recursive by-value layout/],
+  ['argument_type',/Expected i32, got bool/],['literal_range',/Integer literal out of range for u8/],
+  ['template_origin',/Instantiated by wrong\(i32\)/],['missing_return',/without returning a value/],
+  ['match_duplicate',/Duplicate match pattern/],['match_range',/Integer literal out of range for u8/],
+  ['match_type',/An integer literal needs an integer type/],['match_scope',/Unknown local 'local'/],
+  ['match_break',/CoreBreak requires an enclosing loop/],['while_type',/Expected bool, got i32/],
+  ['enum_mix',/Expected Left, got Right/],['enum_number',/Enum values require a named member/],
+  ['enum_overflow',/Enum discriminant overflow/],['enum_duplicate',/Duplicate enum discriminant/],
+  ['enum_operation',/Enum operations require equality/],
+  ['enum_address',/not an addressable location/],['enum_index',/index must be an integer/],
  ]){
-  const text=(await read(`scaffolding/tests/semantic-invalid/${name}.tower`)).toString();
+  const text=(await read(`scaffolding/tests/semantic_invalid/${name}.tower`)).toString();
   let error,offset;
   for(const pointerBytes of [4,8]){
    const h=tower.compile(text,{pointerBytes});
@@ -105,8 +105,8 @@ test('Tower semantic diagnostics agree between interpreter and LLVM entry points
 });
 
 test('Tower-generated deep layout dependencies compile without recursive traversal',async()=>{
- const generator=(await read('scaffolding/tests/layout-depth-source.tower')).toString();
- tower.configureModules({entry:'.tower/tests/layout-depth-source.tower'});
+ const generator=(await read('scaffolding/tests/layout_depth_source.tower')).toString();
+ tower.configureModules({entry:'.tower/tests/layout_depth_source.tower'});
  const generated=tower.compile(generator);
  let source;
  try {
@@ -130,8 +130,8 @@ test('Tower-generated deep layout dependencies compile without recursive travers
 });
 
 test('Tower control-flow parser rejects incomplete and unbraced bodies',async()=>{
- for(const name of ['match-default','while-braces']) {
-  const text=(await read(`scaffolding/tests/syntax-invalid/${name}.tower`)).toString();
+ for(const name of ['match_default','while_braces']) {
+  const text=(await read(`scaffolding/tests/syntax_invalid/${name}.tower`)).toString();
   const h=tower.compile(text);
   try { assert.equal(tower.execute(h).status,'error',name); }
   finally { tower.destroyExecution(h); }

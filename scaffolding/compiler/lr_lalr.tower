@@ -1,0 +1,385 @@
+import tower;
+import lr_analysis;
+import lr_states;
+import .library.vector;
+import lr_types;
+
+// Build LALR lookahead dependencies from LR(1) closures of LR(0) kernels.
+// Grammar order determines indices, never conflict priority or a shift bias.
+fn lr_lalr_index(value: LRStates*, state_index: usize, item: LRItem*): usize {
+    var state = value.states.data[state_index];
+    var key: LRItem;
+    key.rule = item.rule;
+    key.position = item.position;
+    key.first = 0;
+    key.last = 0;
+    var low: usize = 0;
+    var high = state.items.values.length;
+    loop {
+        var done = low == high;
+        if done {
+            break;
+        }
+        var middle = high - low;
+        middle = middle / 2;
+        middle = middle + low;
+        var less = lr_item_less(&state.items.values.data[middle], &key);
+        if less {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
+    }
+    var missing = low == state.items.values.length;
+    if missing {
+        return lr_none();
+    }
+    missing = lr_item_less(&key, &state.items.values.data[low]);
+    if missing {
+        return lr_none();
+    }
+    var result = state.base + low;
+    return result;
+}
+
+fn lr_lalr_link(value: LRStates*, graph: LRPropagation*, source: usize, state: usize, item: LRItem*): bool {
+    var destination = lr_lalr_index(value, state, item);
+    var missing = destination == lr_none();
+    if missing {
+        return false;
+    }
+    var propagate = item.first == LRTokenPropagation();
+    if propagate {
+        return lr_propagation_edge(graph, source, destination);
+    }
+    return lr_propagation_seed(graph, destination, item.first, item.last);
+}
+
+fn lr_lalr_destination(value: LRStates*, state: LRState*, symbol: usize): usize {
+    var low: usize = 0;
+    var high = state.edges.length;
+    loop {
+        var done = low == high;
+        if done {
+            break;
+        }
+        var middle = high - low;
+        middle = middle / 2;
+        middle = middle + low;
+        var less = lr_symbol_less(value.analysis, state.edges.data[middle].symbol, symbol);
+        if less {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
+    }
+    var missing = low == state.edges.length;
+    if missing {
+        return lr_none();
+    }
+    missing = lr_symbol_less(value.analysis, symbol, state.edges.data[low].symbol);
+    if missing {
+        return lr_none();
+    }
+    return state.edges.data[low].state;
+}
+
+// Closure and goto sets depend on a dotted production, not its LR state.
+// Memoize them only while building this table; shared grammar nodes remain the
+// authority. This avoids repeating wide operator closures in every state.
+struct LRKernelClosure {
+    state: LRState;
+    next: vector(LRItems*);
+}
+
+fn lr_kernel_closure_destroy(value: LRKernelClosure*): void {
+    var absent = value == null;
+    if absent { return; }
+    var index: usize = 0;
+    loop {
+        var done = index == value.next.length;
+        if done { break; }
+        lr_items_destroy(value.next.data[index]);
+        index++;
+    }
+    vector_dispose(LRItems*, &value.next);
+    vector_dispose(usize, &value.state.symbols);
+    lr_items_destroy(value.state.items);
+    free(value);
+}
+
+fn lr_kernel_closure(analysis: LRAnalysis*, kernel: LRItem*): LRKernelClosure* {
+    var cached = alloc(LRKernelClosure, 1);
+    var missing = cached == null;
+    if missing { return null; }
+    fill(cached, 0, sizeof(LRKernelClosure));
+    var closure = &cached.state;
+    closure.items = lr_items_create();
+    missing = closure.items == null;
+    if missing { lr_kernel_closure_destroy(cached); return null; }
+    var seed: LRItem;
+    copy(&seed, kernel, sizeof(LRItem));
+    seed.first = LRTokenPropagation();
+    seed.last = LRTokenPropagation();
+    var ok = lr_items_insert(closure.items, &seed);
+    ok &&= lr_items_close(analysis, closure.items, true);
+    var index: usize = 0;
+    loop {
+        if !ok { break; }
+        var done = index == closure.items.values.length;
+        if done { break; }
+        var item = &closure.items.values.data[index];
+        var rule = &analysis.rules[item.rule];
+        var present = item.position < rule.count;
+        if present {
+            var symbol = rule.begin + item.position;
+            ok = lr_state_symbol(analysis, closure, symbol);
+        }
+        index++;
+    }
+    index = 0;
+    loop {
+        if !ok { break; }
+        var done = index == closure.symbols.length;
+        if done { break; }
+        var next = lr_items_create();
+        missing = next == null;
+        if missing { ok = false; break; }
+        ok = vector_push(LRItems*, &cached.next, next);
+        if !ok { lr_items_destroy(next); break; }
+        var symbol = closure.symbols.data[index];
+        // Only advanced kernel items cross a transition. Destination closures
+        // (including empty reductions) are already linked from those kernels
+        // in that destination state; closing every goto repeats that work.
+        ok = lr_items_shift(analysis, closure.items, &analysis.symbols[symbol], next);
+        index++;
+    }
+    if ok { return cached; }
+    lr_kernel_closure_destroy(cached);
+    return null;
+}
+
+fn lr_lalr_kernel(value: LRStates*, graph: LRPropagation*, state_index: usize, source: usize,
+    kernel: LRItem*, cache: LRKernelClosure**): bool {
+    var key = value.analysis.rules[kernel.rule].begin + kernel.rule;
+    key = key + kernel.position;
+    var cached = cache[key];
+    var missing = cached == null;
+    if missing {
+        cached = lr_kernel_closure(value.analysis, kernel);
+        cache[key] = cached;
+        missing = cached == null;
+        if missing { return false; }
+    }
+    var closure = &cached.state;
+    var state = value.states.data[state_index];
+    var index: usize = 0;
+    loop {
+        var done = index == closure.items.values.length;
+        if done { break; }
+        var item = &closure.items.values.data[index];
+        var empty = value.analysis.rules[item.rule].count == 0;
+        if empty {
+            var ok = lr_lalr_link(value, graph, source, state_index, item);
+            if !ok { return false; }
+        }
+        index++;
+    }
+    index = 0;
+    loop {
+        var done = index == closure.symbols.length;
+        if done { return true; }
+        var symbol = closure.symbols.data[index];
+        var destination = lr_lalr_destination(value, state, symbol);
+        missing = destination == lr_none();
+        if missing { return false; }
+        var next = cached.next.data[index];
+        var position: usize = 0;
+        loop {
+            done = position == next.values.length;
+            if done { break; }
+            var item = &next.values.data[position];
+            if lr_kernel(value.analysis, item) {
+                var ok = lr_lalr_link(value, graph, source, destination, item);
+                if !ok { return false; }
+            }
+            position++;
+        }
+        index++;
+    }
+}
+
+fn lr_lalr_actions(value: LRStates*, graph: LRPropagation*): bool {
+    var state_index: usize = 0;
+    loop {
+        var done = state_index == value.states.length;
+        if done {
+            return true;
+        }
+        var state = value.states.data[state_index];
+        state.actions.length = 0;
+        var index: usize = 0;
+        loop {
+            done = index == state.edges.length;
+            if done {
+                break;
+            }
+            var edge = &state.edges.data[index];
+            var symbol = &value.analysis.symbols[edge.symbol];
+            var terminal = symbol.nonterminal == lr_none();
+            if terminal {
+                var action: LRAction;
+                action.first = symbol.first;
+                action.last = symbol.last;
+                action.rule = lr_none();
+                action.state = edge.state;
+                var ok = lr_append(LRAction, &state.actions, &action);
+                if !ok {
+                    return false;
+                }
+            }
+            index++;
+        }
+        index = 0;
+        loop {
+            done = index == state.items.values.length;
+            if done {
+                break;
+            }
+            var item = &state.items.values.data[index];
+            var reduction = item.position == value.analysis.rules[item.rule].count;
+            if reduction {
+                var vertex = state.base + index;
+                var ranges = &graph.nodes[vertex].ranges;
+                var range_index: usize = 0;
+                loop {
+                    done = range_index == ranges.length;
+                    if done {
+                        break;
+                    }
+                    var range = &ranges.data[range_index];
+                    var action: LRAction;
+                    action.first = range.first;
+                    action.last = range.last;
+                    action.rule = item.rule;
+                    action.state = lr_none();
+                    var ok = lr_append(LRAction, &state.actions, &action);
+                    if !ok {
+                        return false;
+                    }
+                    range_index++;
+                }
+            }
+            index++;
+        }
+        state_index++;
+    }
+}
+
+fn lr_lalr_seed(value: LRStates*, graph: LRPropagation*, constructs: bool): bool {
+    var seed: LRItem;
+    fill(&seed, 0, sizeof(LRItem));
+    var start = lr_lalr_index(value, 0, &seed);
+    var missing = start == lr_none();
+    if missing {
+        return false;
+    }
+    var ok = lr_propagation_seed(graph, start, LRTokenEnd(), LRTokenEnd());
+    if !ok {
+        return false;
+    }
+    if constructs {
+        var owner = value.analysis.rules[0].owner;
+        var first = &value.analysis.nonterminals[owner].first;
+        var index: usize = 0;
+        loop {
+            var done = index == first.length;
+            if done {
+                break;
+            }
+            var range = &first.data[index];
+            ok = lr_propagation_seed(graph, start, range.first, range.last);
+            if !ok {
+                return false;
+            }
+            index++;
+        }
+    }
+    return true;
+}
+
+export fn lr_states_lalr(value: LRStates*, constructs: bool): bool {
+    var count: usize = 0;
+    var index: usize = 0;
+    loop {
+        var done = index == value.states.length;
+        if done {
+            break;
+        }
+        var state = value.states.data[index];
+        state.base = count;
+        count = count + state.items.values.length;
+        index++;
+    }
+    var graph = lr_propagation_create(count);
+    var missing = graph == null;
+    if missing {
+        return false;
+    }
+    var cache_count = value.analysis.symbol_count + value.analysis.rule_count;
+    var cache = alloc(LRKernelClosure*, cache_count);
+    missing = cache == null;
+    if missing { lr_propagation_destroy(graph); return false; }
+    var cache_bytes = cache_count * sizeof(LRKernelClosure*);
+    fill(cache, 0, cache_bytes);
+    var ok = lr_lalr_seed(value, graph, constructs);
+    var state_index: usize = 0;
+    loop {
+        if !ok {
+            break;
+        }
+        var done = state_index == value.states.length;
+        if done {
+            break;
+        }
+        var state = value.states.data[state_index];
+        index = 0;
+        loop {
+            if !ok {
+                break;
+            }
+            done = index == state.items.values.length;
+            if done {
+                break;
+            }
+            var item = &state.items.values.data[index];
+            var kernel = lr_kernel(value.analysis, item);
+            if kernel {
+                var source = state.base + index;
+                ok = lr_lalr_kernel(value, graph, state_index, source, item, cache);
+            }
+            index++;
+        }
+        state_index++;
+    }
+    ok &&= lr_propagation_solve(graph);
+    ok &&= lr_lalr_actions(value, graph);
+    index = 0;
+    loop {
+        var done = index == cache_count;
+        if done { break; }
+        lr_kernel_closure_destroy(cache[index]);
+        index++;
+    }
+    free(cache);
+    lr_propagation_destroy(graph);
+    return ok;
+}
+
+export fn lr_states_action_count(value: LRStates*, index: usize): usize {
+    return value.states.data[index].actions.length;
+}
+
+export fn lr_states_actions(value: LRStates*, index: usize): LRAction* {
+    return value.states.data[index].actions.data;
+}

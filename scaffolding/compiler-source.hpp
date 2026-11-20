@@ -3,7 +3,7 @@
 #include <utility>
 
 // Native view only. Allocation, text ownership, reference count and coordinates
-// are implemented in compiler/syntax-source.tower.
+// are implemented in compiler/syntax_source.tower.
 struct SyntaxSource { mutable size_t references; CoreName name, text; };
 extern "C" {
 size_t syntax_source_size();

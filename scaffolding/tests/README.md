@@ -15,22 +15,22 @@ of the production driver object. The standalone runner uses the Tower guest
 runtime artifact for allocation, output and traps.
 
 Windows process/quoting checks can run independently of a Windows compiler build:
-cross-compile a manifest importing the driver support, timing, windows-arguments,
-windows, link and prepare modules plus `tests/driver-windows` and `tests/driver`.
-Separately compile `tests/driver-standalone.tower` and `library/bytes.tower`; link
+cross-compile a manifest importing the driver support, timing, windows_arguments,
+windows, link and prepare modules plus `tests.driver_windows` and `tests.driver`.
+Separately compile `tests/driver_standalone.tower` and `library/bytes.tower`; link
 the three objects with a Tower guest runtime built without its entry point, the
 Windows CRT and kernel32. Run without a compiler argument for platform checks.
 The standalone provenance stub is unused by these tests; actual CLI diagnostics
 are checked by launching a real compiler, never by that stub.
 
-The parser command also runs `host-runtime.tower`: CLI ordering, borrowed argument
+The parser command also runs `host_runtime.tower`: CLI ordering, borrowed argument
 lifetimes, link-array cleanup, allocation overflow, zero-size release and injected
 allocation failures are tested in Tower. `towerc-stage1` and `towerc` use the
 Tower host implementations. The obsolete native driver seed has been removed;
 the current compiler still contains other native compiler adapters.
 
 `host.tower` checks JSON byte escaping, exact unsigned 64-bit serialization,
-buffer aliasing and typed browser handle ownership. `interpreter-storage.tower`
+buffer aliasing and typed browser handle ownership. `interpreter_storage.tower`
 checks execution-memory growth/failure, sorted maps, frame/task storage and
 disposal. Both run in the parser command, alongside the retained native
 reference comparisons. Their functional cases and storage implementations are

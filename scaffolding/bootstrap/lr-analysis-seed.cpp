@@ -1,4 +1,4 @@
-// Transitional bootstrap/reference. Production links lr-analysis.tower instead.
+// Transitional bootstrap/reference. Production links lr_analysis.tower instead.
 #include "../compiler-lr.hpp"
 #include "../compiler-parse-tree.hpp"
 #include "../parser.hpp"
@@ -248,7 +248,7 @@ size_t lr_states_action_count(LRStates* value,size_t index) { return value->stat
 const LRAction* lr_states_actions(LRStates* value,size_t index) { return value->states[index]->actions.data(); }
 }
 
-// Temporary independent reference/seed. Production uses lr-runtime.tower.
+// Temporary independent reference/seed. Production uses lr_runtime.tower.
 struct ReferenceRuntimeState {
   std::vector<LRAction> actions;
   std::vector<LRGoto> gotos;

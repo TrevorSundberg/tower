@@ -1,0 +1,641 @@
+import tower;
+import .compiler.grammar_types;
+import .compiler.parser_types;
+import .compiler.parser_table_types;
+import .compiler.parser_markers;
+import .compiler.parser_diagnostic_types;
+import .compiler.component_kinds;
+import .library.vector;
+
+// Deliberately declaration-only: exercise production objects, never compile a
+// second parser implementation into the fixture. Works in native and Wasm.
+extern fn abort(): void;
+
+extern fn puts(text: u8*): i32;
+
+extern fn compiler_world_create(): void*;
+
+extern fn compiler_world_dispose(world: void*): bool;
+
+extern fn compiler_world_type(world: void*, kind: u32): void*;
+
+extern fn compiler_world_store(world: void*): void*;
+
+extern fn entity_store_count(store: void*): usize;
+
+extern fn entity_store_component_count(store: void*): usize;
+
+extern fn entity_references(node: void*): usize;
+
+extern fn entity_release(node: void*): usize;
+
+extern fn entity_child_count(node: void*): usize;
+
+extern fn entity_child_at(node: void*, index: usize): void*;
+
+extern fn entity_child_member(node: void*, name: u8*): void*;
+
+extern fn entity_component_get(node: void*, kind: void*): void*;
+
+extern fn entity_component_data(component: void*): void*;
+
+extern fn grammar_builder_init(builder: GrammarBuilder*, kinds: FrontendKinds*): void;
+
+extern fn grammar_builder_finish(builder: GrammarBuilder*): void*;
+
+extern fn grammar_builder_rule(builder: GrammarBuilder*, name: u8*, generated: bool): void*;
+
+extern fn grammar_builder_literal(builder: GrammarBuilder*, parent: void*, text: u8*): void;
+
+extern fn grammar_builder_reference(builder: GrammarBuilder*, parent: void*, name: u8*, capture: u8*): void;
+
+extern fn parser_table_open(root: void*, kinds: FrontendKinds*, userdata: void*, presentation: ParserPresentation, mode: u32): ParserHostTable*;
+
+extern fn parser_table_finish(table: ParserHostTable*, error: u8**, specialize: bool): ParserHostTable*;
+
+extern fn parser_table_destroy(table: ParserHostTable*): void;
+
+extern fn parser_table_completion(table: ParserHostTable*): void*;
+
+extern fn parser_stream_utf8_null_terminated_create(text: u8*): void*;
+
+extern fn parser_stream_recognizer_create(request: void*): void*;
+
+extern fn parser_stream_destroy(stream: void*): void;
+
+extern fn parser_stream_read(stream: void*, id: u32*, start: usize*, length: usize*): void*;
+
+extern fn parser_stream_return(stream: void*, node: void**, id: u32, start: usize, length: usize, error: vector(u8)*): void;
+
+extern fn parser_stream_get_userdata(stream: void*): void*;
+
+extern fn parser_recognizer_create(table: ParserHostTable*, stream: void*): void*;
+
+extern fn parser_recognizer_create_prefix(table: ParserHostTable*, stream: void*): void*;
+
+extern fn parser_recognizer_step(request: void*, running: bool*): void*;
+
+extern fn parser_recognizer_destroy(request: void*): void;
+
+extern fn parser_recognizer_get_error(request: void*): u8*;
+
+extern fn parser_recognizer_capture_completion(request: void*): void;
+
+extern fn parser_recognizer_take_completion(request: void*): void*;
+
+extern fn parser_recognizer_accepts(request: void*, id: u32): bool;
+
+extern fn parser_recognizer_diagnostic(request: void*, reader: ParserDiagnosticReader, source: void*): ParserDiagnostic*;
+
+extern fn parser_diagnostic_destroy(result: ParserDiagnostic*): void;
+
+extern fn lr_completion_destroy(completion: void*): void;
+
+extern fn lr_completion_runtime(completion: void*): void*;
+
+extern fn tower_memory_get_allocated_count(): usize;
+
+extern fn tower_memory_free(memory: void*): void;
+
+extern fn parser_set_debug_trace(enabled: bool): void;
+
+struct ParserFixture {
+    world: void*;
+    kinds: FrontendKinds;
+    builder: GrammarBuilder;
+    root: void*;
+    table: ParserHostTable*;
+    stream: void*;
+    request: void*;
+}
+
+extern fn putchar(byte: i32): i32;
+
+fn parser_check(ok: bool, code: usize): void {
+    if ok {} else {
+        puts("Tower parser integration check failed (check code):");
+        var digits: u8[20];
+        var count: usize = 0;
+        loop {
+            var digit = code % 10;
+            digits[count] = convert(u8, digit);
+            count = count + 1;
+            code = code / 10;
+            var done = code == 0;
+            if done {
+                break;
+            }
+        }
+        while count != 0 {
+            count = count - 1;
+            var byte = digits[count] + 48;
+            putchar(convert(i32, byte));
+        }
+        putchar(10);
+        abort();
+    }
+}
+
+fn parser_equal(a: u8*, b: u8*): bool {
+    var index: usize = 0;
+    loop {
+        var different = a[index] != b[index];
+        if different {
+            return false;
+        }
+        var end = a[index] == 0;
+        if end {
+            return true;
+        }
+        index = index + 1;
+    }
+}
+
+fn parser_fixture_init(f: ParserFixture*): void {
+    fill(f, 0, sizeof(ParserFixture));
+    f.world = compiler_world_create();
+    f.kinds.rule = compiler_world_type(f.world, CompilerParserRule());
+    f.kinds.reference = compiler_world_type(f.world, CompilerParserReference());
+    f.kinds.string = compiler_world_type(f.world, CompilerParserString());
+    f.kinds.range = compiler_world_type(f.world, CompilerParserRange());
+    f.kinds.`match` = compiler_world_type(f.world, CompilerParserMatch());
+    grammar_builder_init(&f.builder, &f.kinds);
+}
+
+fn parser_fixture_table(f: ParserFixture*, prefix: bool, specialize: bool): void {
+    f.root = grammar_builder_finish(&f.builder);
+    var mode = convert(u32, prefix);
+    var table = parser_table_open(f.root, &f.kinds, null, ParserPresentation.Utf8, mode);
+    var error: u8* = null;
+    f.table = parser_table_finish(table, &error, specialize);
+    var ok = f.table != null;
+    if ok {} else {
+        puts(error);
+    }
+    parser_check(ok, 115);
+    ok = error == null;
+    parser_check(ok, 117);
+    // Tables have detached their derived source indexes; trees need no original
+    // grammar entities. The world/kind owner stays pinned until requests end.
+    entity_release(f.root);
+    f.root = null;
+}
+
+fn parser_fixture_begin(f: ParserFixture*, source: u8*, prefix: bool): void {
+    f.stream = parser_stream_utf8_null_terminated_create(source);
+    if prefix {
+        f.request = parser_recognizer_create_prefix(f.table, f.stream);
+    }
+    else {
+        f.request = parser_recognizer_create(f.table, f.stream);
+    }
+    var ok = f.request != null;
+    parser_check(ok, 128);
+}
+
+fn parser_fixture_end_request(f: ParserFixture*): void {
+    parser_recognizer_destroy(f.request);
+    parser_stream_destroy(f.stream);
+    f.request = null;
+    f.stream = null;
+}
+
+fn parser_fixture_dispose(f: ParserFixture*): void {
+    parser_fixture_end_request(f);
+    parser_table_destroy(f.table);
+    var present = f.root != null;
+    if present {
+        entity_release(f.root);
+    }
+    present = f.world != null;
+    if present {
+        parser_check(compiler_world_dispose(f.world), 142);
+    }
+}
+
+fn parser_finish(request: void*, success: bool): void* {
+    var running: bool = true;
+    var root: void* = null;
+    var steps: usize = 0;
+    while running {
+        root = parser_recognizer_step(request, &running);
+        steps = steps + 1;
+        var bounded = steps < 1000000;
+        parser_check(bounded, 152);
+    }
+    var ready = root != null;
+    var ok = ready == success;
+    parser_check(ok, 156);
+    var error = parser_recognizer_get_error(request);
+    ready = error[0] == 0;
+    ok = ready == success;
+    parser_check(ok, 160);
+    var repeated = parser_recognizer_step(request, &running);
+    ok = repeated == null;
+    parser_check(ok, 163);
+    ok = running == false;
+    parser_check(ok, 165);
+    return root;
+}
+
+fn parser_span(node: void*, kind: void*, start: usize, length: usize): ParserMatchData* {
+    var span = bits(ParserMatchData*, entity_component_data(entity_component_get(node, kind)));
+    var ok = span != null;
+    parser_check(ok, 171);
+    ok = span.start == start;
+    parser_check(ok, 173);
+    ok = span.length == length;
+    parser_check(ok, 175);
+    return span;
+}
+
+fn parser_sequence_fixture(prefix: bool, specialize: bool, input: u8*, valid: bool): void {
+    var f: ParserFixture;
+    parser_fixture_init(&f);
+    var rule = grammar_builder_rule(&f.builder, "Unicode", true);
+    grammar_builder_literal(&f.builder, rule, "aé€🏰");
+    parser_fixture_table(&f, prefix, specialize);
+    var store = compiler_world_store(f.world);
+    var nodes = entity_store_count(store);
+    var components = entity_store_component_count(store);
+    var kind_refs = entity_references(f.kinds.`match`);
+    var iteration: usize = 0;
+    while iteration < 8 {
+        parser_fixture_begin(&f, input, prefix);
+        parser_recognizer_capture_completion(f.request);
+        parser_check(parser_recognizer_accepts(f.request, 97), 193);
+        var root = parser_finish(f.request, valid);
+        if valid {
+            parser_span(root, f.kinds.`match`, 0, 10);
+            var count = entity_child_count(root);
+            var ok = count == 4;
+            parser_check(ok, 199);
+            parser_span(entity_child_at(root, 1), f.kinds.`match`, 1, 2);
+            parser_span(entity_child_at(root, 2), f.kinds.`match`, 3, 3);
+            parser_span(entity_child_at(root, 3), f.kinds.`match`, 6, 4);
+            parser_fixture_end_request(&f);
+            // No request owns the returned root; labels and spans survive.
+            var span = parser_span(root, f.kinds.`match`, 0, 10);
+            parser_check(parser_equal(span.label.data, "Unicode"), 206);
+            entity_release(root);
+        } else {
+            var completion = parser_recognizer_take_completion(f.request);
+            var before_nodes = entity_store_count(store);
+            var before_refs = entity_references(f.kinds.`match`);
+            var diagnostic = parser_recognizer_diagnostic(f.request, ParserDiagnosticReader.None, null);
+            var ok = diagnostic != null;
+            parser_check(ok, 214);
+            ok = diagnostic.options.length != 0;
+            parser_check(ok, 216);
+            // Probing cannot mutate source/entity indexes or retain kind nodes.
+            ok = entity_store_count(store) == before_nodes;
+            parser_check(ok, 219);
+            ok = entity_references(f.kinds.`match`) == before_refs;
+            parser_check(ok, 221);
+            parser_diagnostic_destroy(diagnostic);
+            parser_fixture_end_request(&f);
+            lr_completion_destroy(completion);
+        }
+        var ok = entity_store_count(store) == nodes;
+        parser_check(ok, 227);
+        ok = entity_store_component_count(store) == components;
+        parser_check(ok, 229);
+        ok = entity_references(f.kinds.`match`) == kind_refs;
+        parser_check(ok, 231);
+        iteration = iteration + 1;
+    }
+    parser_fixture_dispose(&f);
+}
+
+fn parser_prefix_fixture(): void {
+    var f: ParserFixture;
+    parser_fixture_init(&f);
+    var rule = grammar_builder_rule(&f.builder, "Root", false);
+    grammar_builder_literal(&f.builder, rule, "a");
+    rule = grammar_builder_rule(&f.builder, "Root", false);
+    grammar_builder_literal(&f.builder, rule, "ab");
+    parser_fixture_table(&f, true, true);
+    parser_fixture_begin(&f, "ac", true);
+    var root = parser_finish(f.request, true);
+    parser_span(root, f.kinds.`match`, 0, 1);
+    var id: u32;
+    var start: usize;
+    var length: usize;
+    var node = parser_stream_read(f.stream, &id, &start, &length);
+    var ok = node == null;
+    parser_check(ok, 253);
+    ok = id == 99;
+    parser_check(ok, 255);
+    ok = start == 1;
+    parser_check(ok, 257);
+    // Root remains valid after destroying both the table and its request.
+    parser_fixture_end_request(&f);
+    parser_table_destroy(f.table);
+    f.table = null;
+    parser_span(root, f.kinds.`match`, 0, 1);
+    entity_release(root);
+    parser_fixture_dispose(&f);
+}
+
+fn parser_layered_fixture(valid: bool): void {
+    var inner: ParserFixture;
+    var outer: ParserFixture;
+    parser_fixture_init(&inner);
+    fill(&outer, 0, sizeof(ParserFixture));
+    copy(&outer.kinds, &inner.kinds, sizeof(FrontendKinds));
+    grammar_builder_init(&outer.builder, &outer.kinds);
+    var rule = grammar_builder_rule(&inner.builder, "Word", false);
+    grammar_builder_literal(&inner.builder, rule, "ab");
+    parser_fixture_table(&inner, false, true);
+    var text: u8* = "ab";
+    if valid {} else {
+        text = "ax";
+    }
+    parser_fixture_begin(&inner, text, false);
+    // Layered streams share a world so returned entities can be attached without
+    // copying. Unrelated worlds use independent request/entity ownership.
+    rule = grammar_builder_rule(&outer.builder, "Wrapper", false);
+    grammar_builder_reference(&outer.builder, rule, "Word", "word");
+    outer.root = grammar_builder_finish(&outer.builder);
+    outer.table = parser_table_open(outer.root, &outer.kinds, bits(void*, inner.table), ParserPresentation.NonTerminal, 0);
+    outer.table = parser_table_finish(outer.table, null, true);
+    var ok = outer.table != null;
+    parser_check(ok, 288);
+    outer.stream = parser_stream_recognizer_create(inner.request);
+    outer.request = parser_recognizer_create(outer.table, outer.stream);
+    var root = parser_finish(outer.request, valid);
+    if valid {
+        parser_span(root, outer.kinds.`match`, 0, 2);
+        var word = entity_child_at(root, 0);
+        parser_span(word, inner.kinds.`match`, 0, 2);
+        entity_release(root);
+    } else {
+        parser_check(parser_equal(parser_recognizer_get_error(outer.request), parser_recognizer_get_error(inner.request)), 298);
+    }
+    parser_fixture_dispose(&outer);
+    parser_fixture_dispose(&inner);
+}
+
+fn parser_recovery_fixture(): void {
+    var f: ParserFixture;
+    parser_fixture_init(&f);
+    var rule = grammar_builder_rule(&f.builder, "Statement", false);
+    grammar_builder_literal(&f.builder, rule, "ab;");
+    parser_fixture_table(&f, true, false);
+    parser_fixture_begin(&f, "a;", true);
+    parser_finish(f.request, false);
+    parser_check(parser_equal(parser_recognizer_get_error(f.request), "Unexpected ';'."), 312);
+    var diagnostic = parser_recognizer_diagnostic(f.request, ParserDiagnosticReader.Utf8, parser_stream_get_userdata(f.stream));
+    var ok = diagnostic.offset == 1;
+    parser_check(ok, 315);
+    ok = diagnostic.insertion_offset == 1;
+    parser_check(ok, 317);
+    ok = diagnostic.options.length == 1;
+    parser_check(ok, 319);
+    parser_check(parser_equal(diagnostic.options.data[0].label, "'b'"), 320);
+    parser_check(diagnostic.options.data[0].insertion, 321);
+    parser_diagnostic_destroy(diagnostic);
+    parser_fixture_dispose(&f);
+}
+
+struct ParserFixtureWork {
+    reads: usize;
+    actions: usize;
+    shifts: usize;
+    reductions: usize;
+    popped: usize;
+    forest_visits: usize;
+}
+
+extern fn parser_request_work(request: void*, result: ParserFixtureWork*): void;
+
+fn parser_independent_fixture(): void {
+    var a: ParserFixture;
+    var b: ParserFixture;
+    parser_fixture_init(&a);
+    parser_fixture_init(&b);
+    var rule = grammar_builder_rule(&a.builder, "First", false);
+    grammar_builder_literal(&a.builder, rule, "ab");
+    rule = grammar_builder_rule(&b.builder, "Second", false);
+    grammar_builder_literal(&b.builder, rule, "xy");
+    parser_fixture_table(&a, false, true);
+    parser_fixture_table(&b, false, false);
+    parser_fixture_begin(&a, "ab", false);
+    parser_fixture_begin(&b, "x", false);
+    parser_recognizer_capture_completion(b.request);
+    var ok = a.kinds.`match` != b.kinds.`match`;
+    parser_check(ok, 344);
+    var running: bool;
+    parser_recognizer_step(a.request, &running);
+    parser_check(running, 347);
+    parser_finish(b.request, false);
+    var completion = parser_recognizer_take_completion(b.request);
+    ok = completion != null;
+    parser_check(ok, 351);
+    parser_fixture_end_request(&b);
+    ok = lr_completion_runtime(completion) == b.table.runtime;
+    parser_check(ok, 354);
+    lr_completion_destroy(completion);
+    parser_fixture_dispose(&b);
+    var root = parser_finish(a.request, true);
+    parser_span(root, a.kinds.`match`, 0, 2);
+    entity_release(root);
+    parser_fixture_dispose(&a);
+}
+
+// Generated lists flatten in both recursion directions. These production work
+// counters preserve the former native test's linearity eligibility and bound.
+fn parser_recursive_fixture(right: bool): void {
+    var f: ParserFixture;
+    parser_fixture_init(&f);
+    var rule = grammar_builder_rule(&f.builder, "Root", false);
+    grammar_builder_reference(&f.builder, rule, "Items", "");
+    grammar_builder_literal(&f.builder, rule, ";");
+    rule = grammar_builder_rule(&f.builder, "Items", true);
+    if right {
+        grammar_builder_literal(&f.builder, rule, "x");
+    }
+    grammar_builder_reference(&f.builder, rule, "Items", "");
+    if right {} else {
+        grammar_builder_literal(&f.builder, rule, "x");
+    }
+    rule = grammar_builder_rule(&f.builder, "Items", true);
+    grammar_builder_literal(&f.builder, rule, "x");
+    parser_fixture_table(&f, true, true);
+    var count: usize = 256;
+    var previous: usize = 0;
+    while count <= 2048 {
+        var size = count + 2;
+        var text = alloc(u8, size);
+        fill(text, 120, count);
+        text[count] = 59;
+        var end = count + 1;
+        text[end] = 0;
+        parser_fixture_begin(&f, text, true);
+        free(text);
+        var root = parser_finish(f.request, true);
+        parser_span(root, f.kinds.`match`, 0, end);
+        var ok = entity_child_count(root) == end;
+        parser_check(ok, 392);
+        var work: ParserFixtureWork;
+        parser_request_work(f.request, &work);
+        ok = work.shifts == end;
+        parser_check(ok, 396);
+        ok = work.reads == end;
+        parser_check(ok, 398);
+        var total = work.actions + work.popped;
+        total = total + work.forest_visits;
+        var limit = end * 12;
+        ok = total < limit;
+        parser_check(ok, 403);
+        var check_growth = previous != 0;
+        if check_growth {
+            limit = previous * 2;
+            limit = limit + 12;
+            ok = total <= limit;
+            parser_check(ok, 409);
+        }
+        previous = total;
+        entity_release(root);
+        parser_fixture_end_request(&f);
+        count = count * 2;
+    }
+    // Cancellation owns the same partial forest as failure, with no accepted root.
+    parser_fixture_begin(&f, "xxxx;", true);
+    var running: bool;
+    parser_recognizer_step(f.request, &running);
+    parser_recognizer_step(f.request, &running);
+    parser_fixture_dispose(&f);
+}
+
+fn parser_bad_grammar_fixture(): void {
+    var f: ParserFixture;
+    parser_fixture_init(&f);
+    var rule = grammar_builder_rule(&f.builder, "Root", false);
+    grammar_builder_reference(&f.builder, rule, "Missing", "");
+    f.root = grammar_builder_finish(&f.builder);
+    var table = parser_table_open(f.root, &f.kinds, null, ParserPresentation.Utf8, 0);
+    var error: u8* = null;
+    f.table = parser_table_finish(table, &error, true);
+    var ok = f.table == null;
+    parser_check(ok, 434);
+    ok = error != null;
+    parser_check(ok, 436);
+    tower_memory_free(bits(void*, error));
+    parser_fixture_dispose(&f);
+    parser_fixture_init(&f);
+    grammar_builder_rule(&f.builder, "Empty", false);
+    parser_fixture_table(&f, true, false);
+    parser_fixture_begin(&f, "", true);
+    parser_finish(f.request, false);
+    parser_check(parser_equal(parser_recognizer_get_error(f.request), "Prefix construct must consume input"), 444);
+    parser_fixture_dispose(&f);
+}
+
+// Owned buffered nodes keep their identity/payload; cancellation discards exactly
+// one transferred reference. This uses the public stream input protocol.
+fn parser_buffered_fixture(): void {
+    var f: ParserFixture;
+    parser_fixture_init(&f);
+    var rule = grammar_builder_rule(&f.builder, "Token", false);
+    grammar_builder_literal(&f.builder, rule, "a");
+    parser_fixture_table(&f, true, true);
+    parser_fixture_begin(&f, "a", true);
+    var input_node = parser_finish(f.request, true);
+    var retained = input_node;
+    parser_fixture_end_request(&f);
+    parser_fixture_begin(&f, "", true);
+    var error: vector(u8);
+    vector_init(u8, &error);
+    parser_stream_return(f.stream, &input_node, 97, 10, 2, &error);
+    var ok = input_node == null;
+    parser_check(ok, 465);
+    var root = parser_finish(f.request, true);
+    ok = entity_child_at(root, 0) == retained;
+    parser_check(ok, 468);
+    // A supplied node's original match/provenance is preserved.
+    parser_span(retained, f.kinds.`match`, 0, 1);
+    parser_span(root, f.kinds.`match`, 10, 2);
+    entity_release(root);
+    parser_fixture_dispose(&f);
+}
+
+extern fn parser_stream_create(bytes: usize, kind: ParserInputService): void*;
+
+extern fn parser_recognizer_poll(request: void*, running: bool*, waiting: bool*): void*;
+
+fn parser_incremental_fixture(): void {
+    var f: ParserFixture;
+    parser_fixture_init(&f);
+    var rule = grammar_builder_rule(&f.builder, "Root", false);
+    grammar_builder_literal(&f.builder, rule, "ab");
+    parser_fixture_table(&f, false, true);
+    f.stream = parser_stream_create(0, ParserInputService.Empty);
+    f.request = parser_recognizer_create(f.table, f.stream);
+    var running: bool;
+    var waiting: bool;
+    var root = parser_recognizer_poll(f.request, &running, &waiting);
+    parser_check(waiting, 501);
+    var position: usize = 0;
+    while position < 3 {
+        var id = convert(u32, position) + 97;
+        var length: usize = 1;
+        var end = position == 2;
+        if end {
+            id = ParserStreamEnd();
+            length = 0;
+        }
+        var node: void* = null;
+        var error: vector(u8);
+        vector_init(u8, &error);
+        parser_stream_return(f.stream, &node, id, position, length, &error);
+        running = true;
+        while running {
+            root = parser_recognizer_poll(f.request, &running, &waiting);
+        }
+        if end {
+            var ready = root != null;
+            parser_check(ready, 502);
+            parser_span(root, f.kinds.`match`, 0, 2);
+            entity_release(root);
+        } else {
+            parser_check(waiting, 503);
+        }
+        position = position + 1;
+    }
+    parser_fixture_dispose(&f);
+}
+
+export fn parser_tests(): void {
+    var baseline = tower_memory_get_allocated_count();
+    var prefix: bool = false;
+    loop {
+        var specialize: bool = false;
+        loop {
+            parser_sequence_fixture(prefix, specialize, "aé€🏰", true);
+            parser_sequence_fixture(prefix, specialize, "aé", false);
+            parser_sequence_fixture(prefix, specialize, "x", false);
+            if specialize {
+                break;
+            }
+            specialize = true;
+        }
+        if prefix {
+            break;
+        }
+        prefix = true;
+    }
+    parser_prefix_fixture();
+    parser_layered_fixture(true);
+    parser_layered_fixture(false);
+    parser_recovery_fixture();
+    parser_independent_fixture();
+    parser_recursive_fixture(false);
+    parser_recursive_fixture(true);
+    parser_bad_grammar_fixture();
+    parser_buffered_fixture();
+    parser_incremental_fixture();
+    var ok = tower_memory_get_allocated_count() == baseline;
+    parser_check(ok, 501);
+    puts("Tower parser integration checks passed");
+}

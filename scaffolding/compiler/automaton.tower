@@ -1,7 +1,7 @@
 import tower;
-import 'lexer-table';
-import 'syntax-types';
-import '../library/vector';
+import lexer_table;
+import syntax_types;
+import .library.vector;
 
 // Derived automata over integer symbols, shared by character and token grammars.
 // The source grammar/entities remain authoritative. Limits bound compilation work.

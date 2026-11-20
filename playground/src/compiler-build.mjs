@@ -92,7 +92,7 @@ export async function linkCompiler({compiler, recipe, files, inputs, support, pr
   // Instantiate every candidate before publishing any of them. A failed build
   // leaves the previous generation active; reset never depends on candidate code.
   const tower = await loadTower(modules.tower, undefined, grammar.foundation, undefined, grammar.bedrock, {tower:grammar.tower});
-  const fixture = '// candidate C metadata\nimport tower; import helpers.answer as left; import "other/answer" as right; import "helpers/answer" as again; var total = left.answer() + right.answer(); print(total);';
+  const fixture = '// candidate C metadata\nimport tower; import helpers.answer as left; import other.answer as right; import helpers.answer as again; var total = left.answer() + right.answer(); print(total);';
   const probeFiles = [{path:'probe.tower',text:fixture},
     {path:'helpers/answer.tower',text:'import tower; fn answer(): i32 { return hidden(); } fn hidden(): i32 { return 20; }'},
     {path:'other/answer.tower',text:'import tower; fn answer(): i32 { return hidden(); } fn hidden(): i32 { return 22; }'}];

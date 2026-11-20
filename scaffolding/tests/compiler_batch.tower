@@ -1,0 +1,43 @@
+import tower;
+import parallel_unit;
+
+fn compiler_batch_tests(): u32 {
+    var values: u32[19];
+    var i: usize = 0;
+    var sum: u32 = 0;
+    while i < 19 {
+        var value = convert(u32, i) + 4294967277;
+        values[i] = value;
+        i++;
+    }
+    parallel_transform(&values[1], 17);
+    var guards = values[0] == 4294967277;
+    guards &&= values[18] == 4294967295;
+    if !guards {
+        return 1;
+    }
+    i = 1;
+    while i < 18 {
+        var original = convert(u32, i) + 4294967277;
+        var wanted = original * 3;
+        wanted = wanted + 7;
+        var same = values[i] == wanted;
+        if !same {
+            return 2;
+        }
+        sum = sum + wanted;
+        i++;
+    }
+    var same = parallel_checksum(&values[1], 17) == sum;
+    if !same {
+        return 3;
+    }
+    parallel_transform(&values[0], 0);
+    same = parallel_checksum(&values[0], 0) == 0;
+    if !same {
+        return 4;
+    }
+    return 0;
+}
+
+print(compiler_batch_tests());

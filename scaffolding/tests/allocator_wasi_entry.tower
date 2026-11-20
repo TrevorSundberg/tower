@@ -1,0 +1,8 @@
+import tower;
+import allocator_glue;
+
+// wasi-libc's command startup calls this lowered argc/argv entry. Tower exports
+// C names literally; it does not apply Clang's special main-symbol rewriting.
+export fn __main_argc_argv(argc: i32, argv: u8**): i32 {
+    return main(argc, argv);
+}

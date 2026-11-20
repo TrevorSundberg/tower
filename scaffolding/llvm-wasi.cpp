@@ -1,1 +1,1 @@
-// WASI integration is implemented in backend/wasi-support.tower.
+// WASI integration is implemented in backend/wasi_support.tower.

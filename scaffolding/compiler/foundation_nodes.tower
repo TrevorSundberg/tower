@@ -1,0 +1,239 @@
+import tower;
+
+import foundation_types;
+import .library.vector;
+
+export fn foundation_node_size(): usize {
+    return sizeof(FoundationNode);
+}
+
+export fn foundation_node_init(value: FoundationNode*): void {
+    fill(value, 0, sizeof(FoundationNode));
+    value.type.pointer_bytes = 4;
+    value.element.pointer_bytes = 4;
+    value.alignment = 1;
+}
+
+export fn foundation_node_dispose(value: FoundationNode*): void {
+    vector_dispose(u8, &value.name);
+    vector_dispose(void*, &value.items);
+    vector_dispose(void*, &value.locals);
+    vector_dispose(void*, &value.parameters);
+    vector_dispose(u8, &value.comments);
+}
+
+export fn foundation_nodes_push(values: vector(void*)*, node: void*): bool {
+    return vector_push(void*, values, node);
+}
+
+export fn foundation_nodes_erase(values: vector(void*)*, first: usize, count: usize): bool {
+    var invalid = first > values.length;
+    if invalid {
+        return false;
+    }
+    var remaining = values.length - first;
+    invalid = count > remaining;
+    if invalid {
+        return false;
+    }
+    var tail = remaining - count;
+    var move = tail != 0;
+    if move {
+        var end = first + count;
+        var bytes = tail * sizeof(void*);
+        copy(&values.data[first], &values.data[end], bytes);
+    }
+    values.length = values.length - count;
+    return true;
+}
+
+export fn foundation_nodes_prepend(values: vector(void*)*, source: void**, count: usize): bool {
+    var empty = count == 0;
+    if empty {
+        return true;
+    }
+    var total = values.length + count;
+    var overflow = total < values.length;
+    if overflow {
+        return false;
+    }
+    var start = bits(usize, source);
+    var base = bits(usize, values.data);
+    var offset = start - base;
+    var bytes = values.capacity * sizeof(void*);
+    var inside = offset < bytes;
+    var index: usize = 0;
+    if inside {
+        index = offset / sizeof(void*);
+        var remainder = offset % sizeof(void*);
+        var invalid = remainder != 0;
+        if invalid {
+            return false;
+        }
+        invalid = index > values.length;
+        if invalid {
+            return false;
+        }
+        var remaining = values.length - index;
+        invalid = count > remaining;
+        if invalid {
+            return false;
+        }
+    }
+    var ok = vector_reserve(void*, values, total);
+    if ok {
+        var nonempty = values.length != 0;
+        if nonempty {
+            bytes = values.length * sizeof(void*);
+            copy(&values.data[count], values.data, bytes);
+        }
+        if inside {
+            index = index + count;
+            source = &values.data[index];
+        }
+        bytes = count * sizeof(void*);
+        copy(values.data, source, bytes);
+        values.length = total;
+    }
+    return ok;
+}
+
+export fn foundation_name_append(value: vector(u8)*, byte: u8): bool {
+    var needed = value.length + 2;
+    var overflow = needed < value.length;
+    if overflow {
+        return false;
+    }
+    var ok = vector_reserve(u8, value, needed);
+    if ok {
+        value.data[value.length] = byte;
+        value.length++;
+        value.data[value.length] = 0;
+    }
+    return ok;
+}
+
+// Temporary native-view verification, evaluated under each explicit build target.
+export fn foundation_node_offset(field: usize): usize {
+    var value: FoundationNode;
+    var base = bits(usize, &value);
+    var address: usize = base;
+    var selected = field == 0;
+    if selected {
+        address = bits(usize, &value.kind);
+    }
+    selected = field == 1;
+    if selected {
+        address = bits(usize, &value.type);
+    }
+    selected = field == 2;
+    if selected {
+        address = bits(usize, &value.op);
+    }
+    selected = field == 3;
+    if selected {
+        address = bits(usize, &value.name);
+    }
+    selected = field == 4;
+    if selected {
+        address = bits(usize, &value.binding);
+    }
+    selected = field == 5;
+    if selected {
+        address = bits(usize, &value.left);
+    }
+    selected = field == 6;
+    if selected {
+        address = bits(usize, &value.right);
+    }
+    selected = field == 7;
+    if selected {
+        address = bits(usize, &value.value);
+    }
+    selected = field == 8;
+    if selected {
+        address = bits(usize, &value.target);
+    }
+    selected = field == 9;
+    if selected {
+        address = bits(usize, &value.body);
+    }
+    selected = field == 10;
+    if selected {
+        address = bits(usize, &value.otherwise);
+    }
+    selected = field == 11;
+    if selected {
+        address = bits(usize, &value.items);
+    }
+    selected = field == 12;
+    if selected {
+        address = bits(usize, &value.locals);
+    }
+    selected = field == 13;
+    if selected {
+        address = bits(usize, &value.parameters);
+    }
+    selected = field == 14;
+    if selected {
+        address = bits(usize, &value.element);
+    }
+    selected = field == 15;
+    if selected {
+        address = bits(usize, &value.size);
+    }
+    selected = field == 16;
+    if selected {
+        address = bits(usize, &value.alignment);
+    }
+    selected = field == 17;
+    if selected {
+        address = bits(usize, &value.length);
+    }
+    selected = field == 18;
+    if selected {
+        address = bits(usize, &value.byte_offset);
+    }
+    selected = field == 19;
+    if selected {
+        address = bits(usize, &value.frame_size);
+    }
+    selected = field == 20;
+    if selected {
+        address = bits(usize, &value.index);
+    }
+    selected = field == 21;
+    if selected {
+        address = bits(usize, &value.start);
+    }
+    selected = field == 22;
+    if selected {
+        address = bits(usize, &value.end);
+    }
+    selected = field == 23;
+    if selected {
+        address = bits(usize, &value.bits);
+    }
+    selected = field == 24;
+    if selected {
+        address = bits(usize, &value.constant);
+    }
+    selected = field == 25;
+    if selected {
+        address = bits(usize, &value.indirect);
+    }
+    selected = field == 26;
+    if selected {
+        address = bits(usize, &value.external);
+    }
+    selected = field == 27;
+    if selected {
+        address = bits(usize, &value.exported);
+    }
+    selected = field == 28;
+    if selected {
+        address = bits(usize, &value.global);
+    }
+    var offset = address - base;
+    return offset;
+}

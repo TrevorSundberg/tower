@@ -19,7 +19,7 @@ introduced: the existing Foundation name is authoritative, and the foreign
 description is a disposable encoding cache. Foundation serialization retains
 the declaration rather than replacing it with a target-specific symbol.
 
-For an unquoted single expression, load `foreign-grammar.tower`. A single colon
+For an unquoted single expression, load `foreign_grammar.tower`. A single colon
 separates adjacent C++ words; `::` still means a qualified C++ name:
 
 ```tower
@@ -111,7 +111,7 @@ produces an error. Names alone never establish that a library's call ABI matches
 the explicit Tower signature. The pinned WASI bindings separately validate those
 signatures against upstream emitted IR and record layouts.
 
-`foreign-names.tower` contains the functional encoding tests; backend API tests
+`foreign_names.tower` contains the functional encoding tests; backend API tests
 execute them both natively and in wasm32. `backend-foreign-{library,calls,surface}`
 exercise real exports, extern resolution and compact grammar. The build-host
 `tower-foreign` tool expands quoted declaration identifiers to Foundation text

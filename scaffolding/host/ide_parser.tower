@@ -1,0 +1,163 @@
+import tower;
+import ide_types;
+import ide_api;
+import ide_state;
+import ide_text;
+import ide_syntax_wasi;
+import .library.bytes_types;
+import .library.bytes_interface;
+import .library.vector;
+import .compiler.format_types;
+
+fn ide_grammar(out: ByteBuffer*, syntax: void*, query: void*): void {
+    var listing: IdeForeignVector;
+    `cpp_name(std::vector<SyntaxRuleInfo> syntax_get_rules(SyntaxSession*))`(&listing, syntax);
+    var rules = bits(IdeForeignRule*, listing.data);
+    var count = ide_foreign_count(&listing, sizeof(IdeForeignRule));
+    var json = out != null;
+    if json { ide_text(out, ",\"rules\":["); }
+    var i: usize = 0;
+    while i < count {
+        var rule = &rules[i];
+        if json {
+            ide_comma(out, i); ide_text(out, "{\"name\":"); ide_foreign_quote(out, &rule.name);
+            ide_key(out, "definition"); ide_foreign_quote(out, &rule.definition);
+            ide_key(out, "pending"); ide_bool(out, rule.pending); ide_text(out, "}");
+        } else { completion_offer(query, ide_foreign_data(&rule.name), "type", "grammar rule", 2); }
+        ide_foreign_dispose(&rule.name); ide_foreign_dispose(&rule.definition);
+        i++;
+    }
+    ide_foreign_free(&listing);
+    `cpp_name(std::vector<std::string> syntax_get_keywords(SyntaxSession*))`(&listing, syntax);
+    var keywords = bits(IdeForeignString*, listing.data);
+    count = ide_foreign_count(&listing, sizeof(IdeForeignString));
+    if json { ide_text(out, "],\"keywords\":["); }
+    i = 0;
+    while i < count {
+        if json { ide_comma(out, i); ide_foreign_quote(out, &keywords[i]); }
+        else { completion_offer(query, ide_foreign_data(&keywords[i]), "keyword", "active grammar", 0); }
+        ide_foreign_dispose(&keywords[i]); i++;
+    }
+    ide_foreign_free(&listing);
+    `cpp_name(std::vector<SyntaxTokenInfo> syntax_get_tokens(SyntaxSession*))`(&listing, syntax);
+    var tokens = bits(IdeForeignToken*, listing.data);
+    count = ide_foreign_count(&listing, sizeof(IdeForeignToken));
+    if json { ide_text(out, "] ,\"tokens\":["); }
+    i = 0;
+    while i < count {
+        var item = &tokens[i];
+        if json {
+            ide_comma(out, i); ide_text(out, "{\"name\":"); ide_foreign_quote(out, &item.name);
+            ide_key(out, "pattern"); ide_foreign_quote(out, &item.pattern);
+            ide_key(out, "kind"); ide_foreign_quote(out, &item.kind);
+            ide_key(out, "skip"); ide_bool(out, item.`skip`);
+            ide_key(out, "contextual"); ide_bool(out, item.contextual); ide_text(out, "}");
+        } else {
+            if !(item.`skip`) { completion_offer(query, ide_foreign_data(&item.name), "type", "token rule", 2); }
+        }
+        ide_foreign_dispose(&item.name); ide_foreign_dispose(&item.pattern); ide_foreign_dispose(&item.kind);
+        i++;
+    }
+    ide_foreign_free(&listing);
+    if json { ide_text(out, "]"); }
+}
+
+fn ide_status(out: ByteBuffer*, syntax: void*, status: u8*): void {
+    ide_assign(out, "{\"status\":"); ide_quote(out, status);
+    ide_field(out, "revision", syntax_get_revision(syntax));
+    ide_field(out, "offset", `cpp_name(unsigned long syntax_get_offset(SyntaxSession*))`(syntax));
+    ide_string(out, "error", syntax_get_error(syntax));
+    ide_field(out, "errorOffset", syntax_get_error_offset(syntax));
+    if `cpp_name(bool syntax_get_error_insertion(SyntaxSession*))`(syntax) { ide_field(out, "errorLength", 0); }
+}
+
+fn ide_parser_create(source: u8*, bytes: usize, mode: u32): u32 {
+    if !ide_valid(source, bytes) { return 0; }
+    var state = ide_state();
+    var full = host_handles_count(&state.handles, 0) >= 32;
+    if full { ide_error("Too many open parser sessions"); return 0; }
+    var copy = ide_copy(source, bytes);
+    var syntax = syntax_completion_create(copy, mode); free(copy);
+    var error = syntax_get_error(syntax);
+    var reject = mode == 0;
+    reject &&= error[0] != 0;
+    if reject { ide_error(error); syntax_destroy(syntax); return 0; }
+    var session = alloc(IdeParser, 1);
+    var failed = session == null;
+    if failed { syntax_destroy(syntax); ide_error("Cannot allocate parser handle"); return 0; }
+    fill(session, 0, sizeof(IdeParser)); session.syntax = syntax;
+    var handle = host_handles_insert(&state.handles, 0, bits(void*, session));
+    failed = handle == 0;
+    if failed { syntax_destroy(syntax); free(session); ide_error("Cannot allocate parser handle"); }
+    return handle;
+}
+export fn tw_create(source: u8*, bytes: usize): u32 { return ide_parser_create(source, bytes, 0); }
+export fn tw_create_foundation(source: u8*, bytes: usize): u32 { return ide_parser_create(source, bytes, 1); }
+export fn tw_create_bedrock(source: u8*, bytes: usize): u32 { return ide_parser_create(source, bytes, 2); }
+export fn tw_destroy(handle: u32): void {
+    var state = ide_state();
+    var session = bits(IdeParser*, host_handles_take(&state.handles, 0, handle));
+    var missing = session == null; if missing { return; }
+    syntax_destroy(session.syntax); bytes_dispose(&session.response); free(session);
+}
+export fn tw_reset(handle: u32, source: u8*, bytes: usize): i32 {
+    if !ide_valid(source, bytes) { return 0; }
+    var session = ide_parser(handle);
+    var missing = session == null; if missing { ide_error("Invalid session handle"); return 0; }
+    var copy = ide_copy(source, bytes); syntax_reset(session.syntax, copy, null); free(copy);
+    session.response.length = 0;
+    var error = syntax_get_error(session.syntax); var failed = error[0] != 0;
+    if failed { ide_error(error); return 0; } return 1;
+}
+export fn tw_inspect(handle: u32): u8* {
+    var session = ide_parser(handle);
+    var missing = session == null; if missing { return "{\"status\":\"error\",\"error\":\"Invalid session handle\"}"; }
+    var out = &session.response;
+    var error = syntax_get_error(session.syntax); var failed = error[0] != 0;
+    var status: u8* = "snapshot"; if failed { status = "error"; }
+    ide_status(out, session.syntax, status);
+    var stats: IdeForeignStats;
+    `cpp_name(SyntaxCacheStats syntax_get_cache_stats(SyntaxSession*))`(&stats, session.syntax);
+    ide_field(out, "grammarBuilds", stats.first); ide_field(out, "grammarCacheHits", stats.second); ide_field(out, "cachedGrammars", stats.third);
+    ide_grammar(out, session.syntax, null);
+    var listing: IdeForeignVector;
+    `cpp_name(std::vector<SyntaxHighlight> syntax_get_highlights(SyntaxSession*))`(&listing, session.syntax);
+    var highlights = bits(IdeForeignHighlight*, listing.data);
+    var count = ide_foreign_count(&listing, sizeof(IdeForeignHighlight));
+    ide_text(out, ",\"highlights\":[");
+    var i: usize = 0;
+    while i < count {
+        var span = &highlights[i]; ide_comma(out, i);
+        ide_text(out, "{\"start\":"); ide_number(out, span.start);
+        ide_field(out, "end", span.end); ide_field(out, "revision", span.revision);
+        ide_key(out, "kind"); ide_foreign_quote(out, &span.kind); ide_text(out, "}");
+        ide_foreign_dispose(&span.kind); i++;
+    }
+    ide_foreign_free(&listing); ide_text(out, "]}"); return ide_result(out);
+}
+fn ide_spans(out: ByteBuffer*, spans: FormatSpan*, count: usize): void {
+    ide_text(out, ",\"spans\":["); var i: usize = 0;
+    while i < count {
+        var span = &spans[i]; ide_comma(out, i); ide_text(out, "{\"begin\":"); ide_number(out, span.begin);
+        ide_field(out, "end", span.end); ide_field(out, "source", span.source); ide_text(out, "}"); i++;
+    }
+    ide_text(out, "]");
+}
+export fn tw_format(handle: u32): u8* {
+    var session = ide_parser(handle);
+    var missing = session == null; if missing { return "{\"error\":\"Invalid session handle\"}"; }
+    var out = &session.response; ide_assign(out, "{");
+    if !(`cpp_name(bool syntax_can_format(SyntaxSession*))`(session.syntax)) {
+        ide_text(out, "\"error\":\"Formatting requires a complete, valid source document\"}"); return ide_result(out);
+    }
+    var formatted: IdeForeignText;
+    `cpp_name(TowerText syntax_format(SyntaxSession*))`(&formatted, session.syntax);
+    var failed = ide_foreign_size(&formatted.error) != 0;
+    if failed { ide_text(out, "\"error\":"); ide_foreign_quote(out, &formatted.error); }
+    else {
+        ide_text(out, "\"source\":"); ide_foreign_quote(out, &formatted.source);
+        ide_spans(out, bits(FormatSpan*, formatted.spans.data), ide_foreign_count(&formatted.spans, sizeof(FormatSpan)));
+    }
+    ide_foreign_dispose(&formatted.source); ide_foreign_dispose(&formatted.error); ide_foreign_free(&formatted.spans);
+    ide_text(out, "}"); return ide_result(out);
+}

@@ -11,7 +11,7 @@ const recipe = JSON.parse(await read('build/compiler-project/project.json'));
 const grammar = Object.fromEntries(await Promise.all(['bedrock','foundation','tower'].map(async name => [name,(await read('scaffolding/'+name+'.tower')).toString()])));
 let compiler = await loadLLVM(await read('build/browser-wasi-llvm/tower-llvm.wasm'),undefined,grammar.foundation,undefined,grammar.bedrock,{tower:grammar.tower});
 const files = structuredClone(recipe.files);
-const values = files.find(file => file.path === 'compiler/semantic-values.tower');
+const values = files.find(file => file.path === 'compiler/semantic_values.tower');
 assert.ok(values.text.includes('null requires a pointer type'));
 values.text = values.text.replace('null requires a pointer type','Compiler project generation says: null requires a pointer type');
 let previous;

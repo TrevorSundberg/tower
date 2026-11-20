@@ -1,0 +1,744 @@
+import tower;
+import foundation_nodes;
+import parser_nodes;
+import parser_types;
+import regex_lowering;
+import syntax_lexer;
+import syntax_nodes;
+import syntax_types;
+import syntax_validation;
+import .library.vector;
+
+// Interpret declaration parse trees on their existing shared entities.
+// Temporary native registration supplies component kinds; all reading is Tower.
+extern fn entity_component_add(node: void*, kind: void*): void*;
+
+extern fn bytes_assign_text(value: vector(u8)*, source: u8*, length: usize): bool;
+
+extern fn bytes_append(value: vector(u8)*, source: u8*, length: usize): bool;
+
+struct SyntaxReader {
+    source: SyntaxSource*;
+    match_kind: void*;
+    syntax_kind: void*;
+    error: u8*;
+    detail: u8*;
+    detail_length: usize;
+    suffix: u8*;
+}
+
+fn syntax_reader_fail(reader: SyntaxReader*, message: u8*): bool {
+    var first = reader.error == null;
+    if first {
+        reader.error = message;
+    }
+    return false;
+}
+
+fn syntax_reader_detail(reader: SyntaxReader*, message: u8*, detail: u8*, length: usize, suffix: u8*): bool {
+    var first = reader.error == null;
+    if first {
+        reader.detail = detail;
+        reader.detail_length = length;
+        reader.suffix = suffix;
+    }
+    return syntax_reader_fail(reader, message);
+}
+
+fn syntax_reader_ok(reader: SyntaxReader*, ok: bool): bool {
+    if ok {
+        return true;
+    }
+    return syntax_reader_fail(reader, "Unable to allocate grammar declaration");
+}
+
+fn syntax_text_length(text: u8*): usize {
+    var length: usize = 0;
+    loop {
+        var done = text[length] == 0;
+        if done {
+            return length;
+        }
+        length++;
+    }
+}
+
+fn syntax_reader_finish(reader: SyntaxReader*, error: vector(u8)*): bool {
+    var success = reader.error == null;
+    if success {
+        return true;
+    }
+    var ok = node_text_set(error, reader.error);
+    ok &&= bytes_append(error, reader.detail, reader.detail_length);
+    var suffix = reader.suffix != null;
+    if suffix {
+        if ok {
+            var length = syntax_text_length(reader.suffix);
+            ok = bytes_append(error, reader.suffix, length);
+        }
+    }
+    if ok {
+        ok = foundation_name_append(error, 0);
+        if ok {
+            error.length--;
+        }
+    }
+    if !ok {
+        vector_dispose(u8, error);
+    }
+    return false;
+}
+
+fn syntax_reader_member(node: void*, name: u8*): void* {
+    var missing = node == null;
+    if missing {
+        return null;
+    }
+    var index = entity_member_index(node, name);
+    return entity_child_at(node, index);
+}
+
+fn syntax_reader_required(reader: SyntaxReader*, node: void*, name: u8*): void* {
+    var result = syntax_reader_member(node, name);
+    var missing = result == null;
+    if missing {
+        var length = syntax_text_length(name);
+        syntax_reader_detail(reader, "Malformed bedrock tree: missing capture '", name, length, "'");
+    }
+    return result;
+}
+
+fn syntax_reader_span(reader: SyntaxReader*, node: void*): ParserMatchData* {
+    var component = entity_component_get(node, reader.match_kind);
+    var span = bits(ParserMatchData*, entity_component_data(component));
+    var missing = span == null;
+    if missing {
+        syntax_reader_fail(reader, "Malformed bedrock tree: missing source span");
+        return null;
+    }
+    var outside = span.start > reader.source.text.length;
+    if !outside {
+        var remaining = reader.source.text.length - span.start;
+        outside = span.length > remaining;
+    }
+    if outside {
+        syntax_reader_fail(reader, "Malformed bedrock tree: source span outside source");
+        return null;
+    }
+    return span;
+}
+
+fn syntax_reader_attach(reader: SyntaxReader*, node: void*, kind: u32): SyntaxNode* {
+    var component = entity_component_get(node, reader.syntax_kind);
+    var fresh = component == null;
+    if fresh {
+        component = entity_component_add(node, reader.syntax_kind);
+    }
+    var value = bits(SyntaxNode*, entity_component_data(component));
+    var missing = value == null;
+    if missing {
+        syntax_reader_fail(reader, "Unable to allocate grammar declaration");
+        return null;
+    }
+    if fresh {
+        syntax_node_init(value);
+    }
+    value.kind = kind;
+    var span = syntax_reader_span(reader, node);
+    missing = span == null;
+    if missing {
+        return null;
+    }
+    value.start = span.start;
+    value.end = span.start + span.length;
+    syntax_node_source(value, reader.source);
+    return value;
+}
+
+// The same decoder is used by semantic lookup and source formatting. Decode in
+// the destination after the shared byte-buffer copy, including overlapping input.
+export fn syntax_identifier_decode(text: u8*, length: usize, result: vector(u8)*): bool {
+    var ok = bytes_assign_text(result, text, length);
+    if !ok {
+        return false;
+    }
+    result.length = syntax_identifier_decode_in_place(result.data, length);
+    return true;
+}
+
+// Borrow a writable, NUL-terminated buffer so existing callers can reuse their
+// own storage rather than allocating a second string solely to decode a name.
+export fn syntax_identifier_decode_in_place(text: u8*, length: usize): usize {
+    var quoted = length >= 2;
+    quoted &&= text[0] == 96;
+    var end = length - 1;
+    quoted &&= text[end] == 96;
+    if !quoted {
+        return length;
+    }
+    var read: usize = 1;
+    var write: usize = 0;
+    loop {
+        var done = read == end;
+        if done {
+            break;
+        }
+        var byte = text[read];
+        read++;
+        var escape = byte == 92;
+        escape &&= read < end;
+        if escape {
+            byte = text[read];
+            read++;
+            var selected = byte == 110;
+            if selected {
+                byte = 10;
+            } else {
+                selected = byte == 114;
+                if selected {
+                    byte = 13;
+                } else {
+                    selected = byte == 116;
+                    if selected {
+                        byte = 9;
+                    }
+                }
+            }
+        }
+        text[write] = byte;
+        write++;
+    }
+    text[write] = 0;
+    return write;
+}
+
+fn syntax_reader_name(reader: SyntaxReader*, node: void*, result: vector(u8)*): bool {
+    var span = syntax_reader_span(reader, node);
+    var missing = span == null;
+    if missing {
+        return false;
+    }
+    var text = reader.source.text.data + span.start;
+    var ok = syntax_identifier_decode(text, span.length, result);
+    return syntax_reader_ok(reader, ok);
+}
+
+// 0 valid, 1 empty, 2 unsupported. Preserve the existing literal category policy.
+export fn syntax_literal_check(text: u8*, length: usize): u32 {
+    var empty = length == 0;
+    if empty {
+        return 1;
+    }
+    var letters: bool = false;
+    var index: usize = 0;
+    loop {
+        var done = index == length;
+        if done {
+            break;
+        }
+        var byte = text[index];
+        var invalid = byte == 0;
+        invalid ||= byte == 32;
+        invalid ||= byte == 10;
+        invalid ||= byte == 13;
+        invalid ||= byte == 9;
+        invalid ||= byte == 34;
+        invalid ||= byte == 39;
+        if invalid {
+            return 2;
+        }
+        var alpha = lexicon_letter(byte);
+        if !alpha {
+            alpha = byte >= 48;
+            alpha &&= byte <= 57;
+        }
+        if alpha {
+            letters = true;
+        }
+        index++;
+    }
+    if letters {
+        var word = lexicon_word(text, length);
+        if !word {
+            return 2;
+        }
+    }
+    var comment = length >= 2;
+    if comment {
+        comment = text[0] == 47;
+        if comment {
+            comment = text[1] == 47;
+            comment ||= text[1] == 42;
+        }
+    }
+    if comment {
+        return 2;
+    }
+    return 0;
+}
+
+fn syntax_reader_literal(reader: SyntaxReader*, value: vector(u8)*): bool {
+    var status = syntax_literal_check(value.data, value.length);
+    var empty = status == 1;
+    if empty {
+        return syntax_reader_fail(reader, "Token literal is empty. Expected at least one character between the quotes.");
+    }
+    var invalid = status == 2;
+    if invalid {
+        return syntax_reader_detail(reader, "Unsupported token literal: ", value.data, value.length, "");
+    }
+    return true;
+}
+
+fn syntax_reader_quoted(reader: SyntaxReader*, node: void*, result: vector(u8)*): bool {
+    var span = syntax_reader_span(reader, node);
+    var missing = span == null;
+    if missing {
+        return false;
+    }
+    var cursor = span.start;
+    var end = reader.source.text.length;
+    var empty = cursor == end;
+    if empty {
+        return syntax_reader_fail(reader, "Unterminated quoted literal");
+    }
+    var quote = reader.source.text.data[cursor];
+    cursor++;
+    loop {
+        var done = cursor == end;
+        if done {
+            return syntax_reader_fail(reader, "Unterminated quoted literal");
+        }
+        var byte = reader.source.text.data[cursor];
+        cursor++;
+        var closes = byte == quote;
+        if closes {
+            return true;
+        }
+        var newline = byte == 10;
+        newline ||= byte == 13;
+        if newline {
+            return syntax_reader_fail(reader, "Newline in quoted literal");
+        }
+        var escape = byte == 92;
+        if escape {
+            done = cursor == end;
+            if done {
+                return syntax_reader_fail(reader, "Unterminated quoted literal");
+            }
+            byte = reader.source.text.data[cursor];
+            cursor++;
+            var selected = byte == 110;
+            if selected {
+                byte = 10;
+            } else {
+                selected = byte == 114;
+                if selected {
+                    byte = 13;
+                } else {
+                    selected = byte == 116;
+                    if selected {
+                        byte = 9;
+                    } else {
+                        selected = byte == 92;
+                        selected ||= byte == 39;
+                        selected ||= byte == 34;
+                        if !selected {
+                            return syntax_reader_fail(reader, "Unsupported literal escape");
+                        }
+                    }
+                }
+            }
+        }
+        var ok = foundation_name_append(result, byte);
+        if !ok {
+            return syntax_reader_ok(reader, false);
+        }
+    }
+}
+
+fn syntax_reader_reverse(items: vector(void*)*): void {
+    var left: usize = 0;
+    var right = items.length;
+    loop {
+        var done = left >= right;
+        if done {
+            return;
+        }
+        right--;
+        var saved = items.data[left];
+        items.data[left] = items.data[right];
+        items.data[right] = saved;
+        left++;
+    }
+}
+
+fn syntax_reader_term(reader: SyntaxReader*, node: void*): bool {
+    var term = syntax_reader_attach(reader, node, 5);
+    var failed = term == null;
+    if failed {
+        return false;
+    }
+    var atom = syntax_reader_required(reader, node, "atom");
+    var suffix = syntax_reader_required(reader, node, "suffix");
+    failed = reader.error != null;
+    if failed {
+        return false;
+    }
+    var literal = syntax_reader_member(atom, "literal");
+    var reference = syntax_reader_member(atom, "reference");
+    var capture = syntax_reader_member(atom, "capture");
+    var exclusions = syntax_reader_member(atom, "set");
+    var present = exclusions != null;
+    if present {
+        term.terminal_set = true;
+        loop {
+            var done = exclusions == null;
+            if done {
+                break;
+            }
+            var count = entity_child_count(exclusions);
+            done = count == 0;
+            if done {
+                break;
+            }
+            var item = syntax_reader_required(reader, exclusions, "literal");
+            failed = item == null;
+            if failed {
+                return false;
+            }
+            var value = syntax_reader_attach(reader, item, 5);
+            failed = value == null;
+            if failed {
+                return false;
+            }
+            value.literal = true;
+            var ok = syntax_reader_quoted(reader, item, &value.text);
+            ok &&= syntax_reader_literal(reader, &value.text);
+            if ok {
+                ok = vector_push(void*, &term.items, item);
+                ok = syntax_reader_ok(reader, ok);
+            }
+            if !ok {
+                return false;
+            }
+            exclusions = syntax_reader_member(exclusions, "previous");
+        }
+        syntax_reader_reverse(&term.items);
+    } else {
+        present = literal != null;
+        if present {
+            term.literal = true;
+            var ok = syntax_reader_quoted(reader, literal, &term.text);
+            if !ok {
+                return false;
+            }
+        } else {
+            present = reference != null;
+            if !present {
+                reference = capture;
+            }
+            present = reference != null;
+            if !present {
+                return syntax_reader_fail(reader, "Malformed bedrock atom: expected literal, reference or capture");
+            }
+            var ok = syntax_reader_name(reader, reference, &term.text);
+            present = capture != null;
+            if present {
+                ok &&= syntax_reader_name(reader, capture, &term.capture);
+            }
+            if !ok {
+                return false;
+            }
+        }
+    }
+    var repetition = syntax_reader_span(reader, suffix);
+    failed = repetition == null;
+    if failed {
+        return false;
+    }
+    var nonempty = repetition.length != 0;
+    if nonempty {
+        var text = reader.source.text.data + repetition.start;
+        var valid = repetition.length == 1;
+        if valid {
+            valid = text[0] == 42;
+            valid ||= text[0] == 43;
+            valid ||= text[0] == 63;
+        }
+        if valid {
+            term.repetition = text[0];
+        } else {
+            return syntax_reader_detail(reader, "Unknown grammar repetition: ", text, repetition.length, "");
+        }
+    }
+    return true;
+}
+
+fn syntax_reader_sequence(reader: SyntaxReader*, node: void*): bool {
+    var sequence = syntax_reader_attach(reader, node, 4);
+    var failed = sequence == null;
+    if failed {
+        return false;
+    }
+    loop {
+        var count = entity_child_count(node);
+        var done = count == 0;
+        if done {
+            break;
+        }
+        var term = syntax_reader_required(reader, node, "term");
+        var previous = syntax_reader_required(reader, node, "previous");
+        failed = reader.error != null;
+        if failed {
+            return false;
+        }
+        var ok = syntax_reader_term(reader, term);
+        if ok {
+            ok = vector_push(void*, &sequence.items, term);
+            ok = syntax_reader_ok(reader, ok);
+        }
+        if !ok {
+            return false;
+        }
+        node = previous;
+    }
+    syntax_reader_reverse(&sequence.items);
+    return true;
+}
+
+fn syntax_reader_rule(reader: SyntaxReader*, node: void*): bool {
+    var name = syntax_reader_required(reader, node, "name");
+    var assignment = syntax_reader_required(reader, node, "op");
+    var alternatives = syntax_reader_required(reader, node, "alternatives");
+    var replacement = syntax_reader_required(reader, node, "replacement");
+    var failed = reader.error != null;
+    if failed {
+        return false;
+    }
+    var rule = syntax_reader_attach(reader, node, 1);
+    failed = rule == null;
+    if failed {
+        return false;
+    }
+    var ok = syntax_reader_name(reader, name, &rule.name);
+    if !ok {
+        return false;
+    }
+    var empty = rule.name.length == 0;
+    if empty {
+        return syntax_reader_fail(reader, "Rule name cannot be empty");
+    }
+    var op = syntax_reader_span(reader, assignment);
+    failed = op == null;
+    if failed {
+        return false;
+    }
+    var text = reader.source.text.data + op.start;
+    var valid = op.length == 1;
+    valid &&= text[0] == 61;
+    if !valid {
+        valid = op.length == 2;
+        valid &&= text[0] == 124;
+        valid &&= text[1] == 61;
+        rule.append = valid;
+    }
+    if !valid {
+        return syntax_reader_detail(reader, "Unknown grammar assignment: ", text, op.length, "");
+    }
+    var annotation = syntax_reader_member(node, "precedence");
+    var level = syntax_reader_member(annotation, "level");
+    var annotated = level != null;
+    if annotated {
+        var span = syntax_reader_span(reader, level);
+        if span == null { return false; }
+        var cursor: usize = 0;
+        loop {
+            var done = cursor == span.length;
+            if done { break; }
+            var offset = span.start + cursor;
+            var digit = convert(u32, reader.source.text.data[offset]);
+            digit = digit - 48;
+            if digit > 9 { return syntax_reader_fail(reader, "Grammar precedence requires decimal digits"); }
+            var overflow = rule.precedence > 429496729;
+            if !overflow {
+                var edge = rule.precedence == 429496729;
+                if edge { overflow = digit > 5; }
+            }
+            if overflow { return syntax_reader_fail(reader, "Grammar precedence exceeds u32"); }
+            rule.precedence = rule.precedence * 10;
+            rule.precedence = rule.precedence + digit;
+            cursor++;
+        }
+        var zero = rule.precedence == 0;
+        if zero { return syntax_reader_fail(reader, "Grammar precedence must be positive"); }
+        var direction = syntax_reader_member(annotation, "direction");
+        span = syntax_reader_span(reader, direction);
+        if span == null { return false; }
+        var spelling = reader.source.text.data + span.start;
+        if syntax_bytes_compare(spelling, span.length, "left", 4) == 0 { rule.associativity = 1; }
+        if syntax_bytes_compare(spelling, span.length, "L>R", 3) == 0 { rule.associativity = 1; }
+        if syntax_bytes_compare(spelling, span.length, "right", 5) == 0 { rule.associativity = 2; }
+        if syntax_bytes_compare(spelling, span.length, "R<L", 3) == 0 { rule.associativity = 2; }
+        if syntax_bytes_compare(spelling, span.length, "nonassoc", 8) == 0 { rule.associativity = 3; }
+        if rule.associativity == 0 { return syntax_reader_fail(reader, "Unknown grammar associativity"); }
+    }
+    loop {
+        var done = alternatives == null;
+        if done {
+            break;
+        }
+        var sequence = syntax_reader_required(reader, alternatives, "sequence");
+        failed = sequence == null;
+        if failed {
+            return false;
+        }
+        ok = syntax_reader_sequence(reader, sequence);
+        if ok {
+            var component = entity_component_get(sequence, reader.syntax_kind);
+            var data = bits(SyntaxNode*, entity_component_data(component));
+            data.precedence = rule.precedence;
+            data.associativity = rule.associativity;
+        }
+        if ok {
+            ok = vector_push(void*, &rule.items, sequence);
+            ok = syntax_reader_ok(reader, ok);
+        }
+        if !ok {
+            return false;
+        }
+        alternatives = syntax_reader_member(alternatives, "previous");
+    }
+    syntax_reader_reverse(&rule.items);
+    var body = syntax_reader_member(replacement, "body");
+    var present = body != null;
+    if present {
+        var span = syntax_reader_span(reader, body);
+        failed = span == null;
+        if failed {
+            return false;
+        }
+        var invalid = span.length < 2;
+        if invalid {
+            return syntax_reader_fail(reader, "Replacement body must contain opening and closing delimiters");
+        }
+        var value = syntax_reader_attach(reader, body, 6);
+        failed = value == null;
+        if failed {
+            return false;
+        }
+        value.start = span.start + 1;
+        var length = span.length - 2;
+        value.end = value.start + length;
+        text = reader.source.text.data + value.start;
+        ok = bytes_assign_text(&value.text, text, length);
+        if !ok {
+            return syntax_reader_ok(reader, false);
+        }
+        syntax_node_replacement(rule, body);
+        var index: usize = 0;
+        loop {
+            var done = index == rule.items.length;
+            if done {
+                break;
+            }
+            var component = entity_component_get(rule.items.data[index], reader.syntax_kind);
+            var alternative = bits(SyntaxNode*, entity_component_data(component));
+            syntax_node_replacement(alternative, body);
+            index++;
+        }
+    }
+    return true;
+}
+
+export fn syntax_read_rule(node: void*, source: SyntaxSource*, match_kind: void*, syntax_kind: void*, error: vector(u8)*): bool {
+    var reader: SyntaxReader;
+    fill(&reader, 0, sizeof(SyntaxReader));
+    reader.source = source;
+    reader.match_kind = match_kind;
+    reader.syntax_kind = syntax_kind;
+    syntax_reader_rule(&reader, node);
+    return syntax_reader_finish(&reader, error);
+}
+
+fn syntax_reader_token(reader: SyntaxReader*, node: void*, skipped: bool): bool {
+    var name = syntax_reader_required(reader, node, "name");
+    var pattern = syntax_reader_required(reader, node, "pattern");
+    var style = syntax_reader_required(reader, node, "style");
+    var failed = reader.error != null;
+    if failed {
+        return false;
+    }
+    var kind: u32 = 2;
+    if skipped {
+        kind = 3;
+    }
+    var value = syntax_reader_attach(reader, node, kind);
+    failed = value == null;
+    if failed {
+        return false;
+    }
+    var ok = syntax_reader_name(reader, name, &value.name);
+    if !ok {
+        return false;
+    }
+    var empty = value.name.length == 0;
+    if empty {
+        return syntax_reader_fail(reader, "Token name cannot be empty");
+    }
+    var label = syntax_reader_member(style, "kind");
+    var present = label != null;
+    if present {
+        ok = syntax_reader_name(reader, label, &value.style);
+    } else {
+        if !skipped {
+            ok = node_text_set(&value.style, "identifier");
+            ok = syntax_reader_ok(reader, ok);
+        }
+    }
+    if !ok {
+        return false;
+    }
+    var span = syntax_reader_span(reader, pattern);
+    failed = span == null;
+    if failed {
+        return false;
+    }
+    var invalid = span.length < 2;
+    if invalid {
+        return syntax_reader_fail(reader, "Token pattern must contain opening and closing delimiters");
+    }
+    var start = span.start + 1;
+    var length = span.length - 2;
+    var text = reader.source.text.data + start;
+    ok = bytes_assign_text(&value.text, text, length);
+    if !ok {
+        return syntax_reader_ok(reader, false);
+    }
+    var mode = syntax_reader_member(node, "mode");
+    present = mode != null;
+    if present {
+        span = syntax_reader_span(reader, mode);
+        failed = span == null;
+        if failed {
+            return false;
+        }
+        value.contextual = span.length != 0;
+    }
+    if skipped {
+        if value.contextual {
+            return syntax_reader_fail(reader, "Skip rules cannot be contextual");
+        }
+    }
+    return true;
+}
+
+export fn syntax_read_token(node: void*, source: SyntaxSource*, match_kind: void*, syntax_kind: void*, skipped: bool, error: vector(u8)*): bool {
+    var reader: SyntaxReader;
+    fill(&reader, 0, sizeof(SyntaxReader));
+    reader.source = source;
+    reader.match_kind = match_kind;
+    reader.syntax_kind = syntax_kind;
+    syntax_reader_token(&reader, node, skipped);
+    return syntax_reader_finish(&reader, error);
+}

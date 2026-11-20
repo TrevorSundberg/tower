@@ -1,0 +1,1253 @@
+import tower;
+import c_runtime;
+import c_control;
+import foundation_tags;
+import foundation_types;
+import frontend_compilation;
+import semantic_context;
+import semantic_definitions;
+import semantic_support;
+import .library.vector;
+
+// C89-style output over the shared Foundation entities. The vectors below are
+// disposable name/storage indexes, not a second semantic representation.
+struct CEmitter {
+    text: vector(u8)*;
+    error: vector(u8)*;
+    nodes: vector(void*);
+    owners: vector(void*);
+    active: vector(bool);
+    returning: vector(bool);
+    changed: bool;
+    owner: void*;
+    depth: usize;
+    pointer_bytes: u32;
+    comments: bool;
+}
+
+fn ce_text(c: CEmitter*, text: u8*): void {
+    sem_require(bytes_append(c.text, text, frontend_source_length(text)));
+}
+
+fn ce_number(c: CEmitter*, number: u64): void {
+    var digits: u8[20];
+    var at: usize = 20;
+    loop {
+        at--;
+        var c_step1 = number % 10;
+        digits[at] = convert(u8, c_step1) + 48;
+        number = number / 10;
+        if number == 0 {
+            break;
+        }
+    }
+    var c_step3 = 20 - at;
+    sem_require(bytes_append(c.text, &digits[at], c_step3));
+}
+
+fn ce_fail(c: CEmitter*, message: u8*): void {
+    if c.error.length == 0 {
+        sem_require(bytes_append(c.error, message, frontend_source_length(message)));
+    }
+}
+
+fn ce_indent(c: CEmitter*): void {
+    var i: usize = 0;
+    loop {
+        if i == c.depth {
+            break;
+        }
+        ce_text(c, "    ");
+        i++;
+    }
+}
+
+fn ce_id(c: CEmitter*, node: void*): usize {
+    var i: usize = 0;
+    loop {
+        if i == c.nodes.length {
+            return i;
+        }
+        if c.nodes.data[i] == node {
+            return i;
+        }
+        i++;
+    }
+}
+
+fn ce_name(c: CEmitter*, node: void*, prefix: u8*): void {
+    ce_text(c, prefix);
+    ce_number(c, convert(u64, ce_id(c, node)));
+}
+
+fn ce_reserved(name: vector(u8)*): bool {
+    var words = "auto break case char const continue default do double else enum extern float for goto if int long register return short signed sizeof static struct switch typedef union unsigned void volatile while asm bool catch class delete explicit export false friend inline mutable namespace new operator private protected public reinterpret_cast static_cast dynamic_cast const_cast template this throw true try typeid typename using virtual wchar_t and and_eq bitand bitor compl not not_eq or or_eq xor xor_eq alignas alignof char16_t char32_t constexpr decltype noexcept nullptr static_assert thread_local main uint8_t uint32_t uint64_t int32_t int64_t uintptr_t size_t NULL UINT64_C UINT64_MAX INT64_MAX INT64_MIN UINT32_MAX INT32_MAX INT32_MIN SIZE_MAX CHAR_BIT stdout stderr fputs fputc putchar puts printf exit memcpy memmove memset malloc realloc free fwrite _setmode _fileno";
+    var at: usize = 0;
+    loop {
+        var end = words[at] == 0;
+        if end {
+            break;
+        }
+        var start = at;
+        loop {
+            var stop = words[at] == 0;
+            var space = words[at] == 32;
+            if space {
+                stop = true;
+            }
+            if stop {
+                break;
+            }
+            at++;
+        }
+        var length = at - start;
+        var equal = length == name.length;
+        var i: usize = 0;
+        if equal {
+            loop {
+                var done = i == length;
+                if done {
+                    break;
+                }
+                var p = start + i;
+                var mismatch = words[p] != name.data[i];
+                if mismatch {
+                    equal = false;
+                    break;
+                }
+                i++;
+            }
+        }
+        if equal {
+            return true;
+        }
+        var space = words[at] == 32;
+        if space {
+            at++;
+        }
+    }
+    var enough = name.length >= 3;
+    if enough {
+        var first = name.data[0] == 116;
+        var upper_first = name.data[0] == 84;
+        if upper_first {
+            first = true;
+        }
+        if first {
+            var second = name.data[1] == 99;
+            var upper_second = name.data[1] == 67;
+            if upper_second {
+                second = true;
+            }
+            if second {
+                var third = name.data[2] == 95;
+                if third {
+                    return true;
+                }
+            }
+        }
+    }
+    var generated = name.length >= 2;
+    if generated {
+        var first = name.data[0] == 118;
+        var temp = name.data[0] == 116;
+        if temp {
+            first = true;
+        }
+        if first {
+            var digit = name.data[1] >= 48;
+            digit &&= name.data[1] <= 57;
+            if digit {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+fn ce_function_name(c: CEmitter*, entity: void*): void {
+    var n = sem_get(entity);
+    if n.external {
+        if sem_equal(sem_name(n), "platform_write") {
+            ce_text(c, "tc_platform_write");
+            return;
+        }
+    }
+    var public = n.external;
+    if n.exported {
+        public = true;
+    }
+    if public {
+        if ce_reserved(&n.name) {
+            ce_fail(c, "C target external name conflicts with a reserved word or generated support symbol; use a C ABI wrapper");
+        }
+        var i: usize = 0;
+        if n.name.length == 0 {
+            ce_fail(c, "C target requires a nonempty foreign symbol");
+        }
+        loop {
+            if i == n.name.length {
+                break;
+            }
+            var b = n.name.data[i];
+            var valid = b >= 65;
+            valid &&= b <= 90;
+            if b >= 97 {
+                if b <= 122 {
+                    valid = true;
+                }
+            }
+            if b == 95 {
+                valid = true;
+            }
+            if i != 0 {
+                if b >= 48 {
+                    if b <= 57 {
+                        valid = true;
+                    }
+                }
+            }
+            if !valid {
+                ce_fail(c, "C target needs a plain C identifier for extern/export; namespace or member declarations require a C ABI wrapper");
+            }
+            i++;
+        }
+        // Preserve the explicit link name. C keywords/reserved names are rejected
+        // below instead of silently changing an external ABI.
+        if sem_equal(sem_name(n), "main") {
+            ce_fail(c, "C target reserves main for the program entry point");
+        }
+        ce_text(c, sem_name(n));
+        return;
+    }
+    ce_name(c, entity, "tc_fn_");
+    ce_text(c, "_");
+    var i: usize = 0;
+    loop {
+        if i == n.name.length {
+            break;
+        }
+        var b = n.name.data[i];
+        var valid = b >= 65;
+        valid &&= b <= 90;
+        if b >= 97 {
+            if b <= 122 {
+                valid = true;
+            }
+        }
+        if b >= 48 {
+            if b <= 57 {
+                valid = true;
+            }
+        }
+        if valid {
+            sem_require(vector_push(u8, c.text, b));
+        }
+        else {
+            ce_text(c, "_");
+        }
+        i++;
+    }
+}
+
+fn ce_type(c: CEmitter*, t: FoundationType*): void {
+    if t.pointers != 0 {
+        ce_text(c, "unsigned char *");
+        return;
+    }
+    if t.scalar == SVoid() {
+        ce_text(c, "void");
+        return;
+    }
+    if t.scalar == SBool() {
+        ce_text(c, "uint8_t");
+        return;
+    }
+    if t.scalar == SU8() {
+        ce_text(c, "uint8_t");
+        return;
+    }
+    if t.scalar == SI32() {
+        ce_text(c, "uint32_t");
+        return;
+    }
+    if t.scalar == SU32() {
+        ce_text(c, "uint32_t");
+        return;
+    }
+    if t.scalar == SUSize() {
+        ce_text(c, "uintptr_t");
+        return;
+    }
+    if t.scalar == SI64() {
+        ce_text(c, "uint64_t");
+        return;
+    }
+    if t.scalar == SU64() {
+        ce_text(c, "uint64_t");
+        return;
+    }
+    ce_fail(c, "C target does not pass aggregate values by value");
+}
+
+fn ce_abi_type(c: CEmitter*, t: FoundationType*): void {
+    // Function declarations keep their signed C ABI types. Locals/temporaries
+    // still store unsigned bits; calls and returns convert explicitly.
+    if semantic_signed(t) {
+        ce_text(c, "int");
+        ce_number(c, convert(u64, semantic_width(t)));
+        ce_text(c, "_t");
+    } else {
+        ce_type(c, t);
+    }
+}
+
+fn ce_suffix(c: CEmitter*, t: FoundationType*): void {
+    if t.pointers != 0 {
+        ce_text(c, "ptr");
+        return;
+    }
+    ce_number(c, convert(u64, semantic_width(t)));
+}
+
+fn ce_temp(c: CEmitter*, entity: void*): void {
+    ce_name(c, entity, "t");
+}
+
+fn ce_value_kind(n: FoundationNode*): bool {
+    if semantic_aggregate(&n.type) {
+        return false;
+    }
+    if n.kind == KOperand() {
+        return true;
+    }
+    if n.kind == KBinary() {
+        return true;
+    }
+    if n.kind == KAddress() {
+        return true;
+    }
+    if n.kind == KLoad() {
+        return true;
+    }
+    if n.kind == KConvert() {
+        return true;
+    }
+    if n.kind == KBits() {
+        return true;
+    }
+    if n.kind == KCall() {
+        if n.type.pointers != 0 {
+            return true;
+        }
+        return n.type.scalar != SVoid();
+    }
+    if n.kind == KField() {
+        return true;
+    }
+    if n.kind == KIndex() {
+        return true;
+    }
+    if n.kind == KString() {
+        return true;
+    }
+    if n.kind == KSizeOf() {
+        return true;
+    }
+    if n.kind == KAlignOf() {
+        return true;
+    }
+    if n.kind == KAllocate() {
+        return true;
+    }
+    return n.kind == KReallocate();
+}
+
+fn ce_collect(c: CEmitter*, entity: void*, owner: void*): void {
+    if entity == null {
+        return;
+    }
+    if ce_id(c, entity) < c.nodes.length {
+        return;
+    }
+    var n = sem_get(entity);
+    if n == null {
+        return;
+    }
+    if n.kind == KFunction() {
+        owner = entity;
+    }
+    sem_require(vector_push(void*, &c.nodes, entity));
+    sem_require(vector_push(void*, &c.owners, owner));
+    sem_require(vector_push(bool, &c.active, false));
+    sem_require(vector_push(bool, &c.returning, true));
+    // Labels point back to their block. Types contain recursive nominal edges.
+    if n.kind == KLabel() {
+        return;
+    }
+    if n.kind == KType() {
+        return;
+    }
+    ce_collect(c, n.left, owner);
+    ce_collect(c, n.right, owner);
+    ce_collect(c, n.value, owner);
+    ce_collect(c, n.target, owner);
+    ce_collect(c, n.body, owner);
+    ce_collect(c, n.otherwise, owner);
+    var i: usize = 0;
+    loop {
+        if i == n.parameters.length {
+            break;
+        }
+        ce_collect(c, n.parameters.data[i], owner);
+        i++;
+    }
+    i = 0;
+    loop {
+        if i == n.items.length {
+            break;
+        }
+        ce_collect(c, n.items.data[i], owner);
+        i++;
+    }
+}
+
+fn ce_comments(c: CEmitter*, n: FoundationNode*): void {
+    if !c.comments {
+        return;
+    }
+    var i: usize = 0;
+    loop {
+        if i == n.comments.length {
+            break;
+        }
+        var b = n.comments.data[i];
+        var slash = b == 92;
+        if slash {
+            ce_text(c, "\\x5c");
+        }
+        else {
+            sem_require(vector_push(u8, c.text, b));
+        }
+        // Prevent preprocessing trigraphs and backslash/newline splicing in C.
+        if b == 63 {
+            ce_text(c, " ");
+        }
+        i++;
+    }
+}
+
+fn ce_quote(c: CEmitter*, text: vector(u8)*): void {
+    // C89 only requires 509 characters after string literal concatenation.
+    // Large constants use a byte initializer with short physical lines instead.
+    var large = text.length > 96;
+    if large {
+        ce_text(c, "{\n    ");
+        var at: usize = 0;
+        loop {
+            var done = at == text.length;
+            if done {
+                break;
+            }
+            ce_number(c, convert(u64, text.data[at]));
+            ce_text(c, ", ");
+            at++;
+            var column = at % 16;
+            var newline = column == 0;
+            if newline {
+                ce_text(c, "\n    ");
+            }
+        }
+        ce_text(c, "0\n}");
+        return;
+    }
+    ce_text(c, "\"");
+    var i: usize = 0;
+    loop {
+        if i == text.length {
+            break;
+        }
+        // Fixed-width octal escapes avoid source encoding, trigraphs and hex
+        // escape greediness. The C compiler adds the required terminating NUL.
+        var b = convert(u32, text.data[i]);
+        ce_text(c, "\\");
+        var c_step59 = b / 64;
+        ce_number(c, convert(u64, c_step59));
+        var c_step60 = b / 8;
+        var c_step61 = c_step60 % 8;
+        ce_number(c, convert(u64, c_step61));
+        var c_step62 = b % 8;
+        ce_number(c, convert(u64, c_step62));
+        i++;
+    }
+    ce_text(c, "\"");
+}
+
+fn ce_prepare_address(c: CEmitter*, entity: void*): void {
+    var n = sem_get(entity);
+    if n.kind == KLoad() {
+        ce_prepare(c, n.value);
+        return;
+    }
+    var place = n.kind == KField();
+    if n.kind == KIndex() {
+        place = true;
+    }
+    if place {
+        if n.indirect {
+            ce_prepare(c, n.left);
+        }
+        else {
+            ce_prepare_address(c, n.left);
+        }
+        if n.kind == KIndex() {
+            ce_prepare(c, n.right);
+        }
+    }
+}
+
+fn ce_signed_value(c: CEmitter*, entity: void*): void {
+    var n = sem_get(entity);
+    if semantic_signed(&n.type) {
+        ce_text(c, "tc_s");
+        ce_suffix(c, &n.type);
+        ce_text(c, "(");
+        ce_temp(c, entity);
+        ce_text(c, ")");
+    }
+    else {
+        ce_temp(c, entity);
+    }
+}
+
+fn ce_address(c: CEmitter*, entity: void*): void {
+    var n = sem_get(entity);
+    if n.kind == KLoad() {
+        ce_temp(c, n.value);
+        return;
+    }
+    var place = n.kind == KField();
+    if n.kind == KIndex() {
+        place = true;
+    }
+    if place {
+        ce_text(c, "tc_offset(");
+        if n.indirect {
+            ce_temp(c, n.left);
+        }
+        else {
+            ce_address(c, n.left);
+        }
+        ce_text(c, ", ");
+        if n.kind == KIndex() {
+            ce_text(c, "(uintptr_t)(");
+            ce_signed_value(c, n.right);
+            ce_text(c, ") * ");
+            ce_number(c, convert(u64, semantic_size(&n.type)));
+        }
+        else {
+            ce_number(c, convert(u64, n.byte_offset));
+        }
+        ce_text(c, ")");
+        return;
+    }
+    var binding = n.binding;
+    if binding == null {
+        binding = entity;
+    }
+    ce_text(c, "(unsigned char *)&");
+    ce_name(c, binding, "v");
+}
+
+fn ce_bit_value(c: CEmitter*, entity: void*, signed_extend: bool): void {
+    var n = sem_get(entity);
+    if n.type.pointers != 0 {
+        ce_text(c, "(uintptr_t)");
+    }
+    if signed_extend {
+        ce_signed_value(c, entity);
+    }
+    else {
+        ce_temp(c, entity);
+    }
+}
+
+fn ce_expression(c: CEmitter*, entity: void*): void {
+    var n = sem_get(entity);
+    if n.kind == KOperand() {
+        if n.constant {
+            if n.type.pointers != 0 {
+                ce_text(c, "NULL");
+            }
+            else {
+                ce_text(c, "UINT64_C(");
+                var c_step73 = n.bits & semantic_mask(&n.type);
+                ce_number(c, c_step73);
+                ce_text(c, ")");
+            }
+        }
+        else {
+            ce_name(c, n.binding, "v");
+        }
+        return;
+    }
+    if n.kind == KString() {
+        ce_name(c, entity, "tc_string_");
+        return;
+    }
+    if n.kind == KAddress() {
+        ce_address(c, n.value);
+        return;
+    }
+    var load = n.kind == KLoad();
+    if n.kind == KField() {
+        load = true;
+    }
+    if n.kind == KIndex() {
+        load = true;
+    }
+    if load {
+        ce_text(c, "tc_load");
+        ce_suffix(c, &n.type);
+        ce_text(c, "(");
+        ce_address(c, entity);
+        ce_text(c, ")");
+        return;
+    }
+    if n.kind == KCall() {
+        ce_function_name(c, n.binding);
+        ce_text(c, "(");
+        var i: usize = 0;
+        loop {
+            if i == n.items.length {
+                break;
+            }
+            if i != 0 {
+                ce_text(c, ", ");
+            }
+            ce_signed_value(c, n.items.data[i]);
+            i++;
+        }
+        ce_text(c, ")");
+        return;
+    }
+    if n.kind == KSizeOf() {
+        ce_number(c, convert(u64, semantic_size(&n.element)));
+        return;
+    }
+    if n.kind == KAlignOf() {
+        ce_number(c, convert(u64, semantic_alignment(&n.element)));
+        return;
+    }
+    if n.kind == KAllocate() {
+        ce_text(c, "tc_alloc(");
+        ce_temp(c, n.right);
+        ce_text(c, ", ");
+        ce_number(c, convert(u64, semantic_size(&n.element)));
+        ce_text(c, ")");
+        return;
+    }
+    if n.kind == KReallocate() {
+        ce_text(c, "tc_realloc(");
+        ce_temp(c, n.left);
+        ce_text(c, ", ");
+        ce_temp(c, n.right);
+        ce_text(c, ", ");
+        ce_number(c, convert(u64, semantic_size(&n.element)));
+        ce_text(c, ")");
+        return;
+    }
+    if n.kind == KBits() {
+        ce_text(c, "(");
+        ce_type(c, &n.type);
+        ce_text(c, ")");
+        if n.type.pointers != 0 {
+            ce_text(c, "(uintptr_t)");
+        }
+        ce_bit_value(c, n.value, true);
+        return;
+    }
+    if n.kind == KConvert() {
+        if n.type.scalar == SBool() {
+            ce_text(c, "(");
+            ce_temp(c, n.value);
+            ce_text(c, " != 0)");
+            return;
+        }
+        var from = sem_get(n.value);
+        ce_text(c, "(");
+        ce_type(c, &n.type);
+        ce_text(c, ")tc_convert(");
+        ce_temp(c, n.value);
+        ce_text(c, ", ");
+        ce_number(c, convert(u64, semantic_width(&from.type)));
+        ce_text(c, ", ");
+        ce_number(c, convert(u64, semantic_signed(&from.type)));
+        ce_text(c, ", ");
+        ce_number(c, convert(u64, semantic_width(&n.type)));
+        ce_text(c, ", ");
+        ce_number(c, convert(u64, semantic_signed(&n.type)));
+        ce_text(c, ")");
+        return;
+    }
+    if n.kind == KBinary() {
+        var from = sem_get(n.left);
+        if from.type.pointers != 0 {
+            var arithmetic = n.op == OAdd();
+            if n.op == OSub() {
+                arithmetic = true;
+            }
+            if arithmetic {
+                var element: FoundationType;
+                copy(&element, &from.type, sizeof(FoundationType));
+                element.pointers--;
+                ce_text(c, "tc_offset(");
+                ce_temp(c, n.left);
+                ce_text(c, ", ");
+                if n.op == OSub() {
+                    ce_text(c, "(uintptr_t)0 - ");
+                }
+                ce_text(c, "(uintptr_t)(");
+                ce_signed_value(c, n.right);
+                ce_text(c, ") * ");
+                ce_number(c, convert(u64, semantic_size(&element)));
+                ce_text(c, ")");
+                return;
+            }
+            ce_text(c, "((uintptr_t)");
+            ce_temp(c, n.left);
+            ce_text(c, " ");
+            ce_text(c, semantic_operator(n.op));
+            ce_text(c, " (uintptr_t)");
+            ce_temp(c, n.right);
+            ce_text(c, ")");
+            return;
+        }
+        var division = n.op == ODiv();
+        if n.op == ORem() {
+            division = true;
+        }
+        if division {
+            ce_text(c, "tc_div(");
+            ce_temp(c, n.left);
+            ce_text(c, ", ");
+            ce_temp(c, n.right);
+            ce_text(c, ", ");
+            ce_number(c, convert(u64, semantic_width(&from.type)));
+            ce_text(c, ", ");
+            ce_number(c, convert(u64, semantic_signed(&from.type)));
+            ce_text(c, ", ");
+            var c_step94 = n.op == ORem();
+            ce_number(c, convert(u64, c_step94));
+            ce_text(c, ")");
+            return;
+        }
+        if n.op >= OEq() {
+            ce_text(c, "(");
+            ce_signed_value(c, n.left);
+            ce_text(c, " ");
+            ce_text(c, semantic_operator(n.op));
+            ce_text(c, " ");
+            ce_signed_value(c, n.right);
+            ce_text(c, ")");
+            return;
+        }
+        // Promote u8/bool before arithmetic to avoid signed-int multiplication.
+        ce_text(c, "((uint64_t)");
+        ce_temp(c, n.left);
+        ce_text(c, " ");
+        ce_text(c, semantic_operator(n.op));
+        ce_text(c, " (uint64_t)");
+        ce_temp(c, n.right);
+        ce_text(c, ")");
+        return;
+    }
+    ce_fail(c, "Unsupported Foundation value in C emitter");
+    ce_text(c, "0");
+}
+
+fn ce_prepare(c: CEmitter*, entity: void*): void {
+    if entity == null {
+        return;
+    }
+    var n = sem_get(entity);
+    if n.kind == KAddress() {
+        ce_prepare_address(c, n.value);
+    }
+    else {
+        var place = n.kind == KField();
+        if n.kind == KIndex() {
+            place = true;
+        }
+        if n.kind == KLoad() {
+            place = true;
+        }
+        if place {
+            ce_prepare_address(c, entity);
+        }
+        else {
+            ce_prepare(c, n.left);
+            ce_prepare(c, n.right);
+            ce_prepare(c, n.value);
+            var i: usize = 0;
+            loop {
+                if i == n.items.length {
+                    break;
+                }
+                ce_prepare(c, n.items.data[i]);
+                i++;
+            }
+        }
+    }
+    ce_indent(c);
+    if ce_value_kind(n) {
+        ce_temp(c, entity);
+        ce_text(c, " = ");
+        ce_text(c, "(");
+        ce_type(c, &n.type);
+        ce_text(c, ")(");
+    }
+    ce_expression(c, entity);
+    if ce_value_kind(n) {
+        ce_text(c, ")");
+    }
+    ce_text(c, ";\n");
+}
+
+fn ce_store(c: CEmitter*, target: void*, value: void*): void {
+    var n = sem_get(target);
+    ce_indent(c);
+    ce_text(c, "tc_store");
+    ce_suffix(c, &n.type);
+    ce_text(c, "(");
+    ce_address(c, target);
+    ce_text(c, ", ");
+    ce_temp(c, value);
+    ce_text(c, ");\n");
+}
+
+fn ce_statement(c: CEmitter*, entity: void*): void {
+    if entity == null {
+        return;
+    }
+    var n = sem_get(entity);
+    if n.kind == KFunction() {
+        return;
+    }
+    if n.kind == KType() {
+        ce_comments(c, n);
+        return;
+    }
+    ce_comments(c, n);
+    var list = n.kind == KProgram();
+    if n.kind == KBlock() {
+        list = true;
+    }
+    if list {
+        var i: usize = 0;
+        loop {
+            if i == n.items.length {
+                break;
+            }
+            var child = n.items.data[i];
+            var index = ce_id(c, child);
+            if c.active.data[index] {
+                ce_statement(c, child);
+            } else {
+                ce_notes(c, child);
+            }
+            i++;
+        }
+        return;
+    }
+    if n.kind == KDeclare() {
+        if n.value != null {
+            ce_prepare(c, n.value);
+            ce_store(c, entity, n.value);
+        }
+        else {
+            ce_indent(c);
+            ce_text(c, "memset(&");
+            ce_name(c, entity, "v");
+            ce_text(c, ", 0, ");
+            ce_number(c, convert(u64, semantic_size(&n.type)));
+            ce_text(c, ");\n");
+        }
+        return;
+    }
+    if n.kind == KAssign() {
+        ce_prepare_address(c, n.target);
+        ce_prepare(c, n.value);
+        ce_store(c, n.target, n.value);
+        return;
+    }
+    if n.kind == KIf() {
+        var condition = sem_get(n.value);
+        if condition.constant {
+            var yes = condition.bits != 0;
+            if yes {
+                ce_statement(c, n.body);
+                ce_notes(c, n.otherwise);
+            } else {
+                ce_notes(c, n.body);
+                ce_statement(c, n.otherwise);
+            }
+            return;
+        }
+        ce_prepare(c, n.value);
+        ce_indent(c);
+        ce_text(c, "if (");
+        ce_temp(c, n.value);
+        ce_text(c, ") {\n");
+        c.depth++;
+        ce_statement(c, n.body);
+        c.depth--;
+        ce_indent(c);
+        ce_text(c, "}");
+        if n.otherwise != null {
+            ce_text(c, " else {\n");
+            c.depth++;
+            ce_statement(c, n.otherwise);
+            c.depth--;
+            ce_indent(c);
+            ce_text(c, "}");
+        }
+        ce_text(c, "\n");
+        return;
+    }
+    if n.kind == KLoop() {
+        ce_indent(c);
+        ce_text(c, "for (;;) {\n");
+        c.depth++;
+        ce_statement(c, n.body);
+        c.depth--;
+        ce_indent(c);
+        ce_text(c, "}\n");
+        return;
+    }
+    if n.kind == KBreak() {
+        ce_indent(c);
+        ce_text(c, "break;\n");
+        return;
+    }
+    if n.kind == KContinue() {
+        ce_indent(c);
+        ce_text(c, "continue;\n");
+        return;
+    }
+    if n.kind == KReturn() {
+        ce_prepare(c, n.value);
+        ce_indent(c);
+        ce_text(c, "return");
+        if n.value != null {
+            ce_text(c, " ");
+            ce_signed_value(c, n.value);
+        }
+        ce_text(c, ";\n");
+        return;
+    }
+    if n.kind == KLabel() {
+        var unused = ce_label_used(c, entity) == false;
+        if unused {
+            return;
+        }
+        ce_indent(c);
+        ce_name(c, entity, "label_");
+        ce_text(c, ":;\n");
+        return;
+    }
+    if n.kind == KJump() {
+        ce_indent(c);
+        ce_text(c, "goto ");
+        ce_name(c, n.binding, "label_");
+        ce_text(c, ";\n");
+        return;
+    }
+    if n.kind == KPrint() {
+        ce_prepare(c, n.value);
+        var value = sem_get(n.value);
+        ce_indent(c);
+        if value.type.pointers != 0 {
+            ce_text(c, "tc_print_pointer((uintptr_t)");
+            ce_temp(c, n.value);
+            ce_text(c, ");\n");
+            return;
+        }
+        if value.type.scalar == SBool() {
+            ce_text(c, "puts(");
+            ce_temp(c, n.value);
+            ce_text(c, " ? \"true\" : \"false\");\n");
+            return;
+        }
+        if semantic_signed(&value.type) {
+            ce_text(c, "tc_print_signed((int64_t)");
+            ce_signed_value(c, n.value);
+        }
+        else {
+            ce_text(c, "tc_print_unsigned((uint64_t)");
+            ce_temp(c, n.value);
+        }
+        ce_text(c, ");\n");
+        return;
+    }
+    if n.kind == KFree() {
+        ce_prepare(c, n.left);
+        ce_indent(c);
+        ce_text(c, "free(");
+        ce_temp(c, n.left);
+        ce_text(c, ");\n");
+        return;
+    }
+    var memory = n.kind == KCopy();
+    if n.kind == KFill() {
+        memory = true;
+    }
+    if memory {
+        ce_prepare(c, n.left);
+        ce_prepare(c, n.right);
+        ce_prepare(c, n.value);
+        ce_indent(c);
+        ce_text(c, "if (");
+        ce_temp(c, n.value);
+        ce_text(c, ") ");
+        if n.kind == KCopy() {
+            ce_text(c, "memmove(");
+        }
+        else {
+            ce_text(c, "memset(");
+        }
+        ce_temp(c, n.left);
+        ce_text(c, ", ");
+        ce_temp(c, n.right);
+        ce_text(c, ", ");
+        ce_temp(c, n.value);
+        ce_text(c, ");\n");
+        return;
+    }
+    if n.kind == KTrap() {
+        ce_prepare(c, n.left);
+        ce_prepare(c, n.right);
+        ce_indent(c);
+        ce_text(c, "tc_trap((const char *)");
+        ce_temp(c, n.left);
+        ce_text(c, ");\n");
+        return;
+    }
+    if n.kind == KCall() {
+        ce_prepare(c, entity);
+        return;
+    }
+    ce_fail(c, "Unsupported Foundation statement in C emitter");
+}
+
+fn ce_declaration(c: CEmitter*, entity: void*, variable: bool): void {
+    var n = sem_get(entity);
+    ce_indent(c);
+    if semantic_aggregate(&n.type) {
+        ce_text(c, "union { uint64_t alignment; unsigned char bytes[");
+        var size = semantic_size(&n.type);
+        if size == 0 {
+            size = 1;
+        }
+        ce_number(c, convert(u64, size));
+        ce_text(c, "]; } ");
+    }
+    else {
+        ce_type(c, &n.type);
+        ce_text(c, " ");
+    }
+    if variable {
+        ce_name(c, entity, "v");
+    }
+    else {
+        ce_temp(c, entity);
+    }
+    ce_text(c, ";\n");
+}
+
+fn ce_signature(c: CEmitter*, entity: void*): void {
+    var n = sem_get(entity);
+    var index = ce_id(c, entity);
+    var terminal = c.returning.data[index] == false;
+    if terminal {
+        ce_text(c, "TC_NORETURN ");
+    }
+    ce_abi_type(c, &n.type);
+    ce_text(c, " ");
+    ce_function_name(c, entity);
+    ce_text(c, "(");
+    if n.parameters.length == 0 {
+        ce_text(c, "void");
+    }
+    var i: usize = 0;
+    loop {
+        if i == n.parameters.length {
+            break;
+        }
+        if i != 0 {
+            ce_text(c, ", ");
+        }
+        var parameter = sem_get(n.parameters.data[i]);
+        ce_abi_type(c, &parameter.type);
+        ce_text(c, " ");
+        ce_name(c, n.parameters.data[i], "v");
+        i++;
+    }
+    ce_text(c, ")");
+}
+
+fn ce_body(c: CEmitter*, entity: void*, program: bool): void {
+    c.owner = entity;
+    c.depth = 1;
+    var i: usize = 0;
+    loop {
+        if i == c.nodes.length {
+            break;
+        }
+        if c.owners.data[i] == entity {
+            var item = c.nodes.data[i];
+            var n = sem_get(item);
+            var local = n.kind == KDeclare();
+            if n.global {
+                local = false;
+            }
+            if local {
+                ce_declaration(c, item, true);
+            }
+            if ce_value_kind(n) {
+                ce_declaration(c, item, false);
+            }
+        }
+        i++;
+    }
+    i = 0;
+    loop {
+        if i == c.nodes.length {
+            break;
+        }
+        if c.owners.data[i] == entity {
+            var item = c.nodes.data[i];
+            var n = sem_get(item);
+            var variable = n.kind == KDeclare();
+            if n.kind == KParameter() {
+                variable = true;
+            }
+            var temp = ce_value_kind(n);
+            var string = n.kind == KString();
+            if string {
+                ce_indent(c);
+                ce_text(c, "(void)");
+                ce_name(c, item, "tc_string_");
+                ce_text(c, ";\n");
+            }
+            if variable {
+                ce_indent(c);
+                ce_text(c, "(void)&");
+                ce_name(c, item, "v");
+                ce_text(c, ";\n");
+            }
+            if temp {
+                ce_indent(c);
+                ce_text(c, "(void)&");
+                ce_temp(c, item);
+                ce_text(c, ";\n");
+            }
+        }
+        i++;
+    }
+    if program {
+        ce_text(c, "    tc_environment();\n");
+        ce_text(c, "    { const uint32_t endian = 1; if (*(const unsigned char *)&endian != 1) tc_trap(\"C target requires little endian storage\"); }\n");
+        ce_statement(c, entity);
+        if ce_falls(c, entity) {
+            ce_text(c, "    return 0;\n");
+        } else {
+            ce_text(c, "    TC_MAIN_END\n");
+        }
+    }
+    else {
+        var n = sem_get(entity);
+        ce_statement(c, n.body);
+    }
+    ce_text(c, "}\n\n");
+    c.depth = 0;
+}
+
+export fn c_emit(text: vector(u8)*, error: vector(u8)*, root: void*, pointer_bytes: u32, comments: bool): void {
+    var c: CEmitter;
+    fill(&c, 0, sizeof(CEmitter));
+    c.text = text;
+    c.error = error;
+    c.pointer_bytes = pointer_bytes;
+    c.comments = comments;
+    ce_collect(&c, root, root);
+    ce_reachable(&c, root);
+    ce_text(&c, "/* Tower generated C. Compile: cc -std=c89 -pedantic -Wall -Wextra -O2 program.c */\n");
+    ce_text(&c, "#define TC_POINTER_BYTES ");
+    ce_number(&c, convert(u64, pointer_bytes));
+    ce_text(&c, "\n");
+    ce_runtime(&c);
+    ce_text(&c, "typedef char tc_pointer_width[(sizeof(void *) == ");
+    ce_number(&c, convert(u64, pointer_bytes));
+    ce_text(&c, ") ? 1 : -1];\n\n");
+    var i: usize = 0;
+    loop {
+        if i == c.nodes.length {
+            break;
+        }
+        var entity = c.nodes.data[i];
+        var n = sem_get(entity);
+        if n.kind == KString() {
+            ce_text(&c, "static unsigned char ");
+            ce_name(&c, entity, "tc_string_");
+            ce_text(&c, "[] = ");
+            ce_quote(&c, &n.name);
+            ce_text(&c, ";\n");
+        }
+        if n.kind == KDeclare() {
+            if n.global {
+                ce_declaration(&c, entity, true);
+            }
+        }
+        if n.kind == KFunction() {
+            var platform = n.external;
+            platform &&= sem_equal(sem_name(n), "platform_write");
+            if !platform {
+                ce_signature(&c, entity);
+                ce_text(&c, ";\n");
+            }
+            if n.external {
+                ce_comments(&c, n);
+            }
+        }
+        i++;
+    }
+    ce_text(&c, "\n");
+    i = 0;
+    loop {
+        if i == c.nodes.length {
+            break;
+        }
+        var entity = c.nodes.data[i];
+        var n = sem_get(entity);
+        if n.kind == KFunction() {
+            if !n.external {
+                ce_comments(&c, n);
+                ce_signature(&c, entity);
+                ce_text(&c, "\n{\n");
+                ce_body(&c, entity, false);
+            }
+        }
+        i++;
+    }
+    ce_text(&c, "int main(void)\n{\n");
+    ce_body(&c, root, true);
+    ce_text(&c, "#ifdef __cplusplus\n}\n#endif\n");
+    vector_dispose(void*, &c.nodes);
+    vector_dispose(void*, &c.owners);
+    vector_dispose(bool, &c.active);
+    vector_dispose(bool, &c.returning);
+    if error.length != 0 {
+        text.length = 0;
+    }
+}

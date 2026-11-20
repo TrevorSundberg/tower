@@ -7,7 +7,7 @@ const read=p=>readFile(new URL('../../'+p,import.meta.url));
 const foundation=(await read('scaffolding/foundation.tower')).toString();
 const tower=await loadTower(await read('build/browser-wasi/tower.wasm'),undefined,foundation);
 const llvm=await loadLLVM(await read('build/browser-wasi-llvm/tower-llvm.wasm'),undefined,foundation);
-const platform='import "library/platform";\n';
+const platform='import library.platform;\n';
 test('platform writes share byte ordering and UTF-8 decoding across interpreter and Wasm',async()=>{
  const source=platform+`var p: u8* = "hello λ\\n"; var n: i64 = platform_write(1, p, 9); print(n);
  n = platform_write(2, p, 5); n = platform_write(0, p, 5); print(n);

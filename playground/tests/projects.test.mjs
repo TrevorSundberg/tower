@@ -14,13 +14,13 @@ function run(files) {
   finally { tower.destroyExecution(handle); }
 }
 test('project binds across files, preserves effect order and canonical round trips', () => {
-  const result = run([['main.tower','import tower; import "lib/answer"; print(answer()); print(1);'],['lib/answer.tower','import tower; fn answer(): i32 { return 42; } print(2);']]);
+  const result = run([['main.tower','import tower; import lib.answer; print(answer()); print(1);'],['lib/answer.tower','import tower; fn answer(): i32 { return 42; } print(2);']]);
   assert.equal(result.status,'done',result.error); assert.equal(result.output,'2\n42\n1\n');
   const handle = tower.compile(result.foundation);
   try { assert.equal(tower.execute(handle,10000).output,result.output); } finally { tower.destroyExecution(handle); }
 });
 test('imported project files have isolated grammars and byte-correct diagnostics', () => {
-  const first = "import tower; import 'src/b'; // snow: 雪\nparse Statement |= 'show' $x:CoreOperand ';' => replace { print($x); }; show 1;";
+  const first = "import tower; import src.b; // snow: 雪\nparse Statement |= 'show' $x:CoreOperand ';' => replace { print($x); }; show 1;";
   const files = [{path:'a.tower',text:first},{path:'src/b.tower',text:'import tower; show 2;'}];
   const result = projectDiagnostic(run(files.map(f=>[f.path,f.text])),files);
   assert.equal(result.status,'error'); assert.equal(result.errorFile,'src/b.tower'); assert.ok(result.errorOffset < files[1].text.length);
@@ -70,7 +70,7 @@ test('an explicit project-root library resolves sibling imports from nested buil
     [name,(await read('scaffolding/'+name+'.tower')).toString()])));
   const host = await loadTower(await read('build/browser-wasi/tower.wasm'),undefined,grammar.foundation,undefined,grammar.bedrock);
   const files = [...Object.entries(grammar).map(([name,text]) => ({path:name+'.tower',text})),
-    {path:'units/main.tower',text:'import tower; import "lib/value"; print(value());'},
+    {path:'units/main.tower',text:'import tower; import lib.value; print(value());'},
     {path:'lib/value.tower',text:'import tower; fn value(): i32 { return 42; }'}];
   host.configureModules({entry:'units/main.tower',library:'.',files});
   const handle = host.compile(files[3].text);

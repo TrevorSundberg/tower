@@ -44,7 +44,7 @@ var count: i32 = ${n};
 `));
 
 test('canonical module scopes distinguish identical basenames, functions, nominal types and globals', () => {
-  succeeds(`import tower; import left.tools as left; import "right/tools" as right;
+  succeeds(`import tower; import left.tools as left; import "right/tools.tower" as right;
 print(left.helper()); print(right.helper());
 var a: left.Item; var b: right.Item; a.value = 30; b.value = 40;
 print(a.value); print(b.value); left.count = 5; right.count = 6;
@@ -87,9 +87,9 @@ test('aliases preserve canonical identity, dependency order and diamond initiali
   const files = [
     file('shared.tower', 'import tower; print(1); var value: i32 = 40;'),
     file('left.tower', 'import tower; import shared as common; print(2); fn answer(): i32 { return common.value; }'),
-    file('right.tower', 'import tower; import "./shared"; print(3); fn other(): i32 { var n = value + 2; return n; }'),
+    file('right.tower', 'import tower; import "./shared.tower"; print(3); fn other(): i32 { var n = value + 2; return n; }'),
   ];
-  succeeds('import tower; import left; import right; import "left" as again; print(answer()); print(again.answer()); print(other());', files,
+  succeeds('import tower; import left; import right; import "left.tower" as again; print(answer()); print(again.answer()); print(other());', files,
     '1\n2\n3\n40\n40\n42\n');
 });
 

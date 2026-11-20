@@ -1,0 +1,49 @@
+import tower;
+import syntax_view;
+
+// Derived grammar-emission views; names belong to the retained emission result.
+struct SyntaxEmissionLiteral {
+    text: u8*;
+    length: usize;
+    id: u32;
+}
+
+struct SyntaxEmissionInput {
+    rules: SyntaxRuleView*;
+    count: usize;
+    tokens: void**;
+    token_count: usize;
+    reserved: u8**;
+    reserved_count: usize;
+    literals: SyntaxEmissionLiteral*;
+    literal_count: usize;
+    category: u8*;
+    root: void*;
+    syntax_kind: void*;
+    rule_kind: void*;
+    reference_kind: void*;
+    string_kind: void*;
+    range_kind: void*;
+}
+
+struct SyntaxEmissionName {
+    text: u8*;
+    length: usize;
+    wrapper: u8*;
+    literal: u32;
+    used: bool;
+    declaration: bool;
+    start: bool;
+}
+
+struct SyntaxEmissionProduction {
+    name: u8*;
+    alternative: usize;
+    index: usize;
+}
+
+struct SyntaxEmissionHelper {
+    name: u8*;
+    source: void*;
+    capture: bool;
+}

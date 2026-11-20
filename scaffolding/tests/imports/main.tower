@@ -1,5 +1,5 @@
-import 'left';
-import 'right';
+import left;
+import right;
 
 const ExpectedAnswer: i32 = 42;
 var left = left_answer();

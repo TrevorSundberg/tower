@@ -1,4 +1,4 @@
-// Transitional seed/reference. Production reads shared entities in lr-grammar.tower.
+// Transitional seed/reference. Production reads shared entities in lr_grammar.tower.
 #include "../compiler-lr.hpp"
 #include "../parser.hpp"
 #include <vector>

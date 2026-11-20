@@ -1,0 +1,222 @@
+import tower;
+import host_world;
+import host_parser_components;
+import host_parser_constructors;
+import host_provenance;
+import component_kinds;
+import entity_require;
+import syntax_types;
+import .library.entities;
+
+export fn core_component_type(): Entity* {
+    return compiler_host_type(CompilerFoundation());
+}
+
+export fn syntax_component_type(): Entity* {
+    return compiler_host_type(CompilerSyntax());
+}
+
+export fn syntax_get(owner: Entity*): SyntaxNode* {
+    var missing = owner == null;
+    if missing {
+        return null;
+    }
+    var component = entity_component_get(owner, syntax_component_type());
+    return bits(SyntaxNode*, entity_component_data(component));
+}
+
+export fn syntax_component_attach(owner: Entity*, kind: u32): SyntaxNode* {
+    var value = bits(SyntaxNode*, compiler_host_component(owner, CompilerSyntax()));
+    value.kind = kind;
+    return value;
+}
+
+extern fn syntax_nodes_equal(left: Entity*, right: Entity*, type: Entity*, locations: bool): i32;
+
+export fn syntax_equal(left: Entity*, right: Entity*, locations: bool): bool {
+    var result = syntax_nodes_equal(left, right, syntax_component_type(), locations);
+    var valid = result >= 0;
+    compiler_entity_require(valid);
+    var equal = result != 0;
+    return equal;
+}
+
+export fn syntax_kind_name(kind: u32): u8* {
+    var tag = convert(SyntaxKind, kind);
+    match tag {
+        SyntaxKind.Document => {
+            return "document";
+        }
+        SyntaxKind.Rule => {
+            return "parse";
+        }
+        SyntaxKind.Token => {
+            return "token";
+        }
+        SyntaxKind.Skip => {
+            return "skip";
+        }
+        SyntaxKind.Alternative => {
+            return "alternative";
+        }
+        SyntaxKind.Term => {
+            return "term";
+        }
+        SyntaxKind.Template => {
+            return "template";
+        }
+        SyntaxKind.Import => {
+            return "import";
+        }
+        _ => {
+            compiler_entity_require(false);
+            return "";
+        }
+    }
+}
+
+export fn tower_node_get_allocated_count(): usize {
+    return entity_store_count(compiler_entity_store());
+}
+
+export fn tower_component_get_allocated_count(): usize {
+    return entity_store_component_count(compiler_entity_store());
+}
+
+export fn tower_node_create(): Entity* {
+    var node = entity_create(compiler_entity_store());
+    var ok = node != null;
+    compiler_entity_require(ok);
+    return node;
+}
+
+export fn tower_node_add_ref(node: Entity*): usize {
+    return entity_retain(node);
+}
+
+export fn tower_node_release_ref(node: Entity*): usize {
+    return entity_release(node);
+}
+
+export fn tower_node_get_ref_count(node: Entity*): usize {
+    return entity_references(node);
+}
+
+export fn tower_node_get_id(node: Entity*): usize {
+    return entity_id(node);
+}
+
+export fn tower_node_attach(child: Entity*, parent: Entity*): void {
+    compiler_entity_require(entity_attach(child, parent, null));
+}
+
+export fn tower_node_attach_member(child: Entity*, parent: Entity*, name: u8*): void {
+    compiler_entity_require(entity_attach(child, parent, name));
+}
+
+export fn tower_node_detach(child: Entity*): void {
+    compiler_entity_require(entity_attach(child, null, null));
+}
+
+export fn tower_node_get_parent(child: Entity*): Entity* {
+    return entity_parent(child);
+}
+
+export fn tower_node_get_child_count(parent: Entity*): usize {
+    return entity_child_count(parent);
+}
+
+export fn tower_node_get_child(parent: Entity*, index: usize): Entity* {
+    return entity_child_at(parent, index);
+}
+
+export fn tower_node_replace_child(parent: Entity*, index: usize, node: Entity*): void {
+    compiler_entity_require(entity_replace_child(parent, index, node));
+}
+
+export fn tower_node_take_last_child(parent: Entity*): Entity* {
+    return entity_take_last_child(parent);
+}
+
+export fn tower_node_get_child_member_index(parent: Entity*, name: u8*): usize {
+    var ok = name != null;
+    compiler_entity_require(ok);
+    ok = *name != 0;
+    compiler_entity_require(ok);
+    return entity_member_index(parent, name);
+}
+
+export fn tower_node_get_child_member(parent: Entity*, name: u8*): Entity* {
+    var index = tower_node_get_child_member_index(parent, name);
+    return entity_child_at(parent, index);
+}
+
+export fn tower_node_get_parent_member_name(child: Entity*): u8* {
+    var parent = entity_parent(child);
+    var absent = parent == null;
+    if absent {
+        return null;
+    }
+    var index = entity_child_index(parent, child);
+    return entity_child_name(parent, index);
+}
+
+export fn tower_node_get_child_member_name(parent: Entity*, index: usize): u8* {
+    return entity_child_name(parent, index);
+}
+
+export fn tower_node_get_parent_child_index(child: Entity*): usize {
+    var parent = entity_parent(child);
+    var absent = parent == null;
+    if absent {
+        var invalid: usize = 0;
+        invalid--;
+        return invalid;
+    }
+    return entity_child_index(parent, child);
+}
+
+export fn tower_node_get_component(owner: Entity*, type: Entity*): EntityComponent* {
+    return entity_component_get(owner, type);
+}
+
+export fn tower_node_get_component_userdata(owner: Entity*, type: Entity*): void* {
+    var component = entity_component_get(owner, type);
+    return bits(void*, entity_component_data(component));
+}
+
+export fn tower_node_get_component_count(owner: Entity*): usize {
+    return entity_component_count(owner);
+}
+
+export fn tower_node_get_component_by_index(owner: Entity*, index: usize): EntityComponent* {
+    return entity_component_at(owner, index);
+}
+
+export fn tower_component_get_owner(component: EntityComponent*): Entity* {
+    return entity_component_owner(component);
+}
+
+export fn tower_component_get_type(component: EntityComponent*): Entity* {
+    return entity_component_type(component);
+}
+
+export fn tower_component_get_userdata(component: EntityComponent*): void* {
+    return bits(void*, entity_component_data(component));
+}
+
+export fn tower_component_from_userdata(data: void*): EntityComponent* {
+    return entity_component_from_data(bits(u8*, data));
+}
+
+export fn tower_component_type_count(type: Entity*): usize {
+    return entity_query_count(type);
+}
+
+export fn tower_component_type_at(type: Entity*, index: usize): EntityComponent* {
+    return entity_query_at(type, index);
+}
+
+export fn tower_node_remove_component(owner: Entity*, type: Entity*): bool {
+    return entity_component_remove(owner, type);
+}

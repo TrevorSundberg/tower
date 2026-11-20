@@ -1,0 +1,366 @@
+import tower;
+import frontend_diagnostic_types;
+import lr_analysis;
+import lr_parser;
+import lr_runtime;
+import .library.vector;
+
+// Error-only bounded lookahead correction. This pull protocol borrows numeric
+// LR frames; it never copies parse trees or rewinds the real source stream.
+struct FrontendDiagnostic {
+    runtime: LRRuntime*;
+    budget: LRProbeBudget;
+    original: LRProbe*;
+    stack: LRProbe*;
+    continuation: LRProbe*;
+    candidates: u32[64];
+    count: usize;
+    index: usize;
+    current: FrontendExpectation;
+    options: vector(FrontendExpectation);
+    phase: u32;
+    accepted: u32;
+    state: usize;
+    offset: usize;
+    position: usize;
+    ahead: usize;
+    lookahead: u32;
+    prefix: bool;
+    reader: bool;
+    bad_input: bool;
+    complete: bool;
+    done: bool;
+}
+
+export fn frontend_diagnostic_destroy(d: FrontendDiagnostic*): void {
+    var absent = d == null;
+    if absent {
+        return;
+    }
+    lr_probe_destroy(d.original);
+    lr_probe_destroy(d.stack);
+    lr_probe_destroy(d.continuation);
+    vector_dispose(FrontendRulePosition, &d.current.contexts);
+    var i: usize = 0;
+    loop {
+        var done = i == d.options.length;
+        if done {
+            break;
+        }
+        vector_dispose(FrontendRulePosition, &d.options.data[i].contexts);
+        i++;
+    }
+    vector_dispose(FrontendExpectation, &d.options);
+    free(d);
+}
+
+export fn frontend_diagnostic_create(parser: LRParser*, prefix: bool,
+reader: bool, bad_input: bool, lookahead: u32, offset: usize): FrontendDiagnostic* {
+    var d = alloc(FrontendDiagnostic, 1);
+    var missing = d == null;
+    if missing {
+        return null;
+    }
+    fill(d, 0, sizeof(FrontendDiagnostic));
+    d.runtime = parser.runtime;
+    d.prefix = prefix;
+    d.reader = reader;
+    d.bad_input = bad_input;
+    d.lookahead = lookahead;
+    d.offset = offset;
+    d.complete = true;
+    d.budget.remaining = 8192;
+    d.budget.complete = true;
+    var count = lr_parser_frame_count(parser);
+    var invalid = count == 0;
+    var too_deep = count > 4096;
+    if too_deep {
+        invalid = true;
+    }
+    if invalid {
+        d.done = true;
+        return d;
+    }
+    d.original = lr_probe_create(parser, &d.budget);
+    missing = d.original == null;
+    if missing {
+        d.complete = false;
+        d.done = true;
+        return d;
+    }
+    var frames = lr_probe_frames(d.original);
+    var last = count - 1;
+    var state = frames[last].state;
+    var actions = lr_runtime_actions(d.runtime, state);
+    d.count = lr_runtime_action_count(d.runtime, state);
+    var truncated = d.count > 64;
+    if truncated {
+        d.count = 64;
+        d.complete = false;
+    }
+    // Runtime rows are already sorted by first terminal ID. No extra sort or
+    // unbounded candidate allocation is necessary on an error path.
+    var i: usize = 0;
+    loop {
+        var done = i == d.count;
+        if done {
+            break;
+        }
+        d.candidates[i] = actions[i].first;
+        i++;
+    }
+    return d;
+}
+
+fn frontend_diagnostic_consume(d: FrontendDiagnostic*, id: u32): u32 {
+    var previous = lr_probe_clone(d.continuation);
+    var missing = previous == null;
+    if missing {
+        return 0;
+    }
+    var before: usize;
+    var status = lr_probe_step(d.continuation, id, &before);
+    var boundary = d.prefix;
+    var ordinary = id != 4294967294;
+    if !ordinary {
+        boundary = false;
+    }
+    if boundary {
+        var accepted = status == 2;
+        var rejected = status == 0;
+        if rejected {
+            var ending = lr_probe_step(previous, 4294967294, &before);
+            accepted = ending == 2;
+        }
+        if accepted {
+            lr_probe_reset(d.continuation);
+            status = lr_probe_step(d.continuation, id, &before);
+        }
+    }
+    lr_probe_destroy(previous);
+    return status;
+}
+
+// Called only for the state preceding a hypothetical expected terminal. The
+// positions are the table's ordered derived LR items, never user intent guesses.
+export fn frontend_diagnostic_contexts(d: FrontendDiagnostic*, items: FrontendContextPosition*, count: usize): void {
+    var frames = lr_probe_frames(d.stack);
+    var frame_count = lr_probe_count(d.stack);
+    var i: usize = 0;
+    loop {
+        var done = i == count;
+        if done {
+            break;
+        }
+        var item = &items[i];
+        var active = item.term != 0;
+        var last = frame_count - 1;
+        var within = item.term < last;
+        if !within {
+            active = false;
+        }
+        if active {
+            var begin = last - item.term;
+            var position = begin;
+            var consumed: bool = false;
+            loop {
+                done = position == last;
+                if done {
+                    break;
+                }
+                if frames[position].consumed {
+                    consumed = true;
+                    break;
+                }
+                position++;
+            }
+            var rule = &d.runtime.rules.data[item.production];
+            active = consumed;
+            within = item.term < rule.count;
+            if !within {
+                active = false;
+            }
+            if active {
+                active = item.terminal;
+                within = d.current.id >= item.first;
+                if !within {
+                    active = false;
+                }
+                within = d.current.id <= item.last;
+                if !within {
+                    active = false;
+                }
+                if active {
+                    var context: FrontendRulePosition;
+                    context.production = item.production;
+                    context.term = item.term;
+                    var ok = lr_append(FrontendRulePosition, &d.current.contexts, &context);
+                    if !ok {
+                        d.complete = false;
+                        d.done = true;
+                        return;
+                    }
+                }
+            }
+        }
+        i++;
+    }
+    d.phase = 2;
+}
+
+export fn frontend_diagnostic_feed(d: FrontendDiagnostic*, valid: bool, position: usize, id: u32): void {
+    d.position = position;
+    if !valid {
+        d.current.insertion = false;
+        d.complete = false;
+        d.phase = 4;
+        return;
+    }
+    var status = frontend_diagnostic_consume(d, id);
+    d.current.insertion = status != 0;
+    d.ahead++;
+    var eof = id == 4294967294;
+    if eof {
+        d.phase = 4;
+    }
+}
+
+// 0 finished; 1 requests table item positions; 2 requests a contextual lexer
+// lookahead. Hosts only supply borrowed data and input, not repair decisions.
+export fn frontend_diagnostic_next(d: FrontendDiagnostic*): u32 {
+    loop {
+        if d.done {
+            return 0;
+        }
+        var begin = d.phase == 0;
+        if begin {
+            var finished = d.index == d.count;
+            if finished {
+                d.done = true;
+                return 0;
+            }
+            d.stack = lr_probe_clone(d.original);
+            var missing = d.stack == null;
+            if missing {
+                d.complete = false;
+                d.done = true;
+                return 0;
+            }
+            d.current.id = d.candidates[d.index];
+            d.index++;
+            d.state = lr_none();
+            d.accepted = lr_probe_step(d.stack, d.current.id, &d.state);
+            var rejected = d.accepted == 0;
+            if rejected {
+                lr_probe_destroy(d.stack);
+                d.stack = null;
+                continue;
+            }
+            d.phase = 2;
+            var context = d.state != lr_none();
+            if context {
+                d.phase = 1;
+                return 1;
+            }
+        }
+        var contexts = d.phase == 1;
+        if contexts {
+            return 1;
+        }
+        begin = d.phase == 2;
+        if begin {
+            d.phase = 4;
+            var can_insert = d.accepted == 1;
+            var ordinary = d.current.id != 4294967294;
+            if !ordinary {
+                can_insert = false;
+            }
+            if !d.reader {
+                if d.bad_input {
+                    can_insert = false;
+                }
+            }
+            if can_insert {
+                d.continuation = lr_probe_clone(d.stack);
+                d.current.insertion = d.continuation != null;
+                d.position = d.offset;
+                d.ahead = 0;
+                if d.current.insertion {
+                    if d.reader {
+                        d.phase = 3;
+                    } else {
+                        var status = frontend_diagnostic_consume(d, d.lookahead);
+                        d.current.insertion = status != 0;
+                    }
+                }
+            }
+        }
+        var reading = d.phase == 3;
+        if reading {
+            var more = d.ahead < 3;
+            if !d.current.insertion {
+                more = false;
+            }
+            if more {
+                var frames = lr_probe_frames(d.continuation);
+                var last = lr_probe_count(d.continuation);
+                last--;
+                d.state = frames[last].state;
+                return 2;
+            }
+            d.phase = 4;
+        }
+        var finish = d.phase == 4;
+        if finish {
+            var boundary = d.current.insertion;
+            if !d.prefix {
+                boundary = false;
+            }
+            if boundary {
+                var end = lr_probe_clone(d.stack);
+                var exists = end != null;
+                if exists {
+                    var before: usize;
+                    var status = lr_probe_step(end, 4294967294, &before);
+                    d.current.completes = status == 2;
+                }
+                lr_probe_destroy(end);
+            }
+            var ok = lr_append(FrontendExpectation, &d.options, &d.current);
+            if !ok {
+                d.complete = false;
+                d.done = true;
+                return 0;
+            }
+            fill(&d.current, 0, sizeof(FrontendExpectation));
+            lr_probe_destroy(d.stack);
+            lr_probe_destroy(d.continuation);
+            d.stack = null;
+            d.continuation = null;
+            d.phase = 0;
+        }
+    }
+}
+
+export fn frontend_diagnostic_state(d: FrontendDiagnostic*): usize {
+    return d.state;
+}
+
+export fn frontend_diagnostic_position(d: FrontendDiagnostic*): usize {
+    return d.position;
+}
+
+export fn frontend_diagnostic_count(d: FrontendDiagnostic*): usize {
+    return d.options.length;
+}
+
+export fn frontend_diagnostic_expected(d: FrontendDiagnostic*, index: usize): FrontendExpectation* {
+    return &d.options.data[index];
+}
+
+export fn frontend_diagnostic_complete(d: FrontendDiagnostic*): bool {
+    if d.complete {
+        return d.budget.complete;
+    }
+    return false;
+}

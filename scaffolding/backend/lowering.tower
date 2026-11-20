@@ -1,14 +1,14 @@
 import tower;
-import 'bindings';
-import 'context';
-import 'foreign-api';
-import 'foreign-reader';
-import 'foreign-symbol';
-import 'pipeline';
-import 'text';
-import '../compiler/foundation-tags';
-import '../compiler/foundation-types';
-import '../library/vector';
+import bindings;
+import context;
+import foreign_api;
+import foreign_reader;
+import foreign_symbol;
+import pipeline;
+import text;
+import .compiler.foundation_tags;
+import .compiler.foundation_types;
+import .library.vector;
 
 // LLVMAttributeFunctionIndex in the C API (the unsigned all-ones sentinel).
 const BackendFunctionAttributeIndex: u32 = ~convert(u32, 0);

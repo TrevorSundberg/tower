@@ -13,7 +13,7 @@ const files=[{path:'.tower/library/vector.tower',text:await read('scaffolding/li
 for(const path of paths)compilers.push(await loadTower(await readFile(path),undefined,foundation,undefined,bedrock,{tower:towerSource}));
 for(const compiler of compilers)compiler.configureModules({files});
 const cases={structs:await read('scaffolding/examples/structs.tower'),semantics:await read('scaffolding/tests/semantics.tower'),
- vector:'import \"library/vector\";\nvar v: vector(i32); vector_init(i32, &v); vector_push(i32, &v, 42); print(v.data[0]); vector_dispose(i32, &v);'};
+ vector:'import library.vector;\nvar v: vector(i32); vector_init(i32, &v); vector_push(i32, &v, 42); print(v.data[0]); vector_dispose(i32, &v);'};
 const report={node:process.version,paths,warmups:10,samples:31,cases:{}};
 for(const [name,source] of Object.entries(cases))for(const pointerBytes of [4,8]){
  const samples=[[],[]];let expected;

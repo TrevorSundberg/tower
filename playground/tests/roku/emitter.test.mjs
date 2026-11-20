@@ -30,7 +30,7 @@ function reference(source) {
 }
 
 for(const optimize of [false,true]) test(`optimized foundation to Roku (${optimize?'O2':'O0'}) executes shared semantics`,{timeout:180000},async()=>{
-  for(const file of ['tests/backend-semantics.tower','examples/functions.tower','examples/structs.tower','examples/memory.tower','examples/collections.tower','examples/match.tower']) {
+  for(const file of ['tests/backend_semantics.tower','examples/functions.tower','examples/structs.tower','examples/memory.tower','examples/collections.tower','examples/match.tower']) {
     const source=await text('scaffolding/'+file);
     const emitted=compile(source,optimize);
     const expected=reference(source);
@@ -90,12 +90,12 @@ test('LLVM scalar idioms retain high-bit semantics after reconstruction',{timeou
     assert.equal(await runBrightScript(compile(source,true)),expected,name);
   // Retain zero, partial patterns, sign bits and full-width masks while keeping
   // the simulator run bounded; the complete fixture runs in the main LLVM suite.
-  const population=(await text('scaffolding/tests/backend-popcount.tower')).replace('while i < 256','while i < 8');
+  const population=(await text('scaffolding/tests/backend_popcount.tower')).replace('while i < 256','while i < 8');
   assert.equal(await runBrightScript(compile(population,true)),'0\n');
 });
 
 test('build a sideloadable conformance package for later device validation',async()=>{
-  const source=await text('scaffolding/tests/backend-semantics.tower');
+  const source=await text('scaffolding/tests/backend_semantics.tower');
   const emitted=compile(source,true);
   const directory=new URL('build/roku-device/source/',root);
   await mkdir(directory,{recursive:true});

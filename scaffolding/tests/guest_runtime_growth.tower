@@ -1,0 +1,36 @@
+import tower;
+import guest_runtime_abi;
+
+extern fn `llvm.wasm.memory.size.i32`(memory: u32): u32;
+
+// Production runtime owns the initial heap suffix and grows it up to 512 KiB.
+export fn guest_runtime_growth_tests(): i32 {
+    var common = guest_runtime_tests();
+    var bad = common != 0;
+    if bad { return common; }
+    var before = `llvm.wasm.memory.size.i32`(0);
+    var first = alloc(u8, 160000);
+    bad = first == null;
+    if bad { return 20; }
+    var grown = `llvm.wasm.memory.size.i32`(0);
+    bad = grown <= before;
+    if bad { return 21; }
+    fill(first, 91, 160000);
+    var failed = realloc(u8, first, 1048576);
+    bad = failed != null;
+    if bad { return 22; }
+    var i: usize = 0;
+    while i < 160000 {
+        bad = first[i] != 91;
+        if bad { return 23; }
+        ++i;
+    }
+    free(first);
+    var reused = alloc(u8, 160000);
+    bad = reused == null;
+    if bad { return 24; }
+    bad = `llvm.wasm.memory.size.i32`(0) != grown;
+    if bad { return 25; }
+    free(reused);
+    return 0;
+}

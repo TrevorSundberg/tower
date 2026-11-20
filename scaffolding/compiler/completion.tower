@@ -1,16 +1,16 @@
-import 'semantic-program-types';
+import semantic_program_types;
 import tower;
-import 'language-grammar';
-import 'foundation-tags';
-import 'frontend-compilation';
-import 'semantic-context';
-import 'semantic-definitions';
-import 'semantic-lifecycle';
-import 'semantic-modules';
-import 'semantic-statements';
-import 'semantic-support';
-import 'semantic-types';
-import '../library/vector';
+import language_grammar;
+import foundation_tags;
+import frontend_compilation;
+import semantic_context;
+import semantic_definitions;
+import semantic_lifecycle;
+import semantic_modules;
+import semantic_statements;
+import semantic_support;
+import semantic_types;
+import .library.vector;
 
 // Editor queries over the compiler's shared syntax entities. Recovery text is
 // scratch input to the ordinary parser, never a second AST or program format.

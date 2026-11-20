@@ -1,16 +1,16 @@
 import tower;
-import '../host/ide-api';
-import '../host/ide-types';
-import '../host/ide-text';
-import '../host/ide-state';
-import '../host/ide-parser';
-import '../host/ide-tree';
-import '../host/ide-completion';
-import '../host/ide-execution';
-import '../host/ide-artifacts';
-import '../host/ide-syntax-wasi';
-import '../library/bytes-types';
-import '../library/bytes-interface';
+import .host.ide_api;
+import .host.ide_types;
+import .host.ide_text;
+import .host.ide_state;
+import .host.ide_parser;
+import .host.ide_tree;
+import .host.ide_completion;
+import .host.ide_execution;
+import .host.ide_artifacts;
+import .host.ide_syntax_wasi;
+import .library.bytes_types;
+import .library.bytes_interface;
 
 // Functional tests call the production tw_* exports. The host only installs
 // ordinary source modules and invokes ide_tests; no native/JS test policy.
@@ -18,18 +18,32 @@ fn ide_test_same(a: u8*, b: u8*): bool {
     var i: usize = 0;
     loop { var same = a[i] == b[i]; if !same { return false; } var end = a[i] == 0; if end { return true; } i++; }
 }
+
 fn ide_test_contains(text: u8*, part: u8*): bool {
-    var size = ide_length(text); var n = ide_length(part); var i: usize = 0;
+    var size = ide_length(text);
+    var n = ide_length(part);
+    var i: usize = 0;
     while i <= size {
-        var remaining = size - i; var short = remaining < n; if short { break; }
+        var remaining = size - i;
+        var short = remaining < n;
+        if short {
+            break;
+        }
         var j: usize = 0;
         while j < n { var at = i + j; var same = text[at] == part[j]; if !same { break; } j++; }
         var found = j == n; if found { return true; } i++;
     }
     return false;
 }
-fn ide_test_create(text: u8*): u32 { return tw_create(text, ide_length(text)); }
-fn ide_test_compile(text: u8*, width: u32): u32 { return tw_exec_create_target(text, ide_length(text), width); }
+
+fn ide_test_create(text: u8*): u32 {
+    return tw_create(text, ide_length(text));
+}
+
+fn ide_test_compile(text: u8*, width: u32): u32 {
+    return tw_exec_create_target(text, ide_length(text), width);
+}
+
 fn ide_test_consume(handle: u32): bool {
     var i: usize = 0;
     while i < 1024 {
@@ -39,6 +53,7 @@ fn ide_test_consume(handle: u32): bool {
     }
     return false;
 }
+
 fn ide_test_sessions(): u32 {
     var source = "var a: i32 = 42; print(a);";
     var one = ide_test_create(source); var two = ide_test_create("print(7);");
@@ -75,13 +90,23 @@ fn ide_test_sessions(): u32 {
     i = 0; while i < 32 { tw_destroy(handles[i]); i++; }
     return 0;
 }
+
 fn ide_test_execution(): u32 {
     var width: u32 = 4;
     while width <= 8 {
         var source = "var a: i32 = 20; a = a + 22; print(a);";
-        var graph = ide_test_compile(source, width); var fast = ide_test_compile(source, width); var bad = graph == 0; if bad { return 30; }
-        bad = tw_exec_fast(fast) != 1; if bad { return 31; }
-        var result = tw_exec_step(graph, 100000); var saved = ide_copy(result, ide_length(result));
+        var graph = ide_test_compile(source, width);
+        var fast = ide_test_compile(source, width);
+        var bad = graph == 0;
+        if bad {
+            return 30;
+        }
+        bad = tw_exec_fast(fast) != 1;
+        if bad {
+            return 31;
+        }
+        var result = tw_exec_step(graph, 100000);
+        var saved = ide_copy(result, ide_length(result));
         result = tw_exec_step(fast, 100000);
         if !ide_test_contains(saved, "\"outputBytes\":[52,50,10]") { return 32; }
         if !ide_test_contains(result, "\"outputBytes\":[52,50,10]") { return 33; } free(saved);
@@ -136,8 +161,60 @@ fn ide_test_requests(): u32 {
     }
     return 0;
 }
+
+fn ide_test_requests(): u32 {
+    var i: usize = 0;
+    var nodes: usize = 0;
+    var allocations: usize = 0;
+    while i < 16 {
+        var handle = ide_test_create("print(42);");
+        if ide_test_consume(handle) {} else {
+            return 60;
+        }
+        tw_inspect(handle);
+        tw_format(handle);
+        tw_destroy(handle);
+        var response = tw_complete("pri", 3, 3, 0, null, null, 0);
+        if ide_test_contains(response, "print") {} else {
+            return 61;
+        }
+        response = tw_complete("pri", 3, 4, 0, null, null, 0);
+        if ide_test_contains(response, "Invalid completion request") {} else {
+            return 62;
+        }
+        handle = ide_test_compile("print(42);", 4);
+        tw_exec_step(handle, 100000);
+        tw_exec_destroy(handle);
+        var now = tw_live_nodes();
+        var memory = tw_live_allocations();
+        var warm = i >= 2;
+        if warm {
+            var grew = now != nodes;
+            if grew {
+                return 63;
+            }
+            grew = memory != allocations;
+            if grew {
+                return 64;
+            }
+        }
+        nodes = now;
+        allocations = memory;
+        i = i + 1;
+    }
+    return 0;
+}
+
 export fn ide_tests(): u32 {
-    var result = ide_test_sessions(); var failed = result != 0; if failed { return result; }
-    result = ide_test_execution(); failed = result != 0; if failed { return result; }
+    var result = ide_test_sessions();
+    var failed = result != 0;
+    if failed {
+        return result;
+    }
+    result = ide_test_execution();
+    failed = result != 0;
+    if failed {
+        return result;
+    }
     return ide_test_requests();
 }

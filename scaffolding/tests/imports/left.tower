@@ -1,4 +1,4 @@
-import 'shared';
+import shared;
 
 fn left_answer(): i32 {
     var result = shared_answer() + 1;

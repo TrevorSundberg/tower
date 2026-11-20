@@ -4,7 +4,7 @@ import {readFile} from 'node:fs/promises';
 import {loadTower,runToEnd} from './compiler-fixtures.mjs';
 import {loadLLVM,executeWasm} from './compiler-fixtures.mjs';
 const read=name=>readFile(new URL('../../'+name,import.meta.url));
-const utility='import "compiler/utf8";\n';
+const utility='import compiler.utf8;\n';
 const foundation=(await read('scaffolding/foundation.tower')).toString();
 const tower=await loadTower(await read('build/browser-wasi/tower.wasm'),undefined,foundation);
 const llvm=await loadLLVM(await read('build/browser-wasi-llvm/tower-llvm.wasm'),undefined,foundation);

@@ -1,0 +1,609 @@
+import tower;
+import automaton;
+import parser_nodes;
+import parser_types;
+import syntax_types;
+import .library.vector;
+
+// Read the ordinary parser entities and lower their regex semantics into a
+// disposable automaton. Work stacks hold borrowed entities, never another AST.
+extern fn entity_component_get(node: void*, kind: void*): void*;
+
+extern fn entity_component_data(component: void*): void*;
+
+extern fn entity_member_index(node: void*, name: u8*): usize;
+
+extern fn entity_child_at(node: void*, index: usize): void*;
+
+extern fn entity_child_count(node: void*): usize;
+
+struct RegexPatch {
+    state: i32;
+    other: bool;
+    next: usize;
+}
+
+struct RegexFragment {
+    start: i32;
+    first: usize;
+    last: usize;
+}
+
+struct RegexVisit {
+    node: void*;
+    depth: usize;
+    finish: bool;
+}
+
+struct RegexLowering {
+    source: u8*;
+    match_type: void*;
+    automaton: Automaton*;
+    error: u8*;
+    cursor: usize;
+    visits: vector(RegexVisit);
+    values: vector(RegexFragment);
+    patches: vector(RegexPatch);
+    pending: vector(void*);
+    characters: vector(void*);
+}
+
+fn regex_none(): usize {
+    var value: usize = 0;
+    value--;
+    return value;
+}
+
+fn regex_match(context: RegexLowering*, node: void*): ParserMatchData* {
+    var component = entity_component_get(node, context.match_type);
+    var data = entity_component_data(component);
+    return bits(ParserMatchData*, data);
+}
+
+fn regex_member(node: void*, name: u8*): void* {
+    var index = entity_member_index(node, name);
+    return entity_child_at(node, index);
+}
+
+fn regex_named(context: RegexLowering*, node: void*, name: u8*): bool {
+    var missing = node == null;
+    if missing {
+        return false;
+    }
+    var `match` = regex_match(context, node);
+    var label = node_text_get(&`match`.label);
+    var i: usize = 0;
+    loop {
+        var different = label[i] != name[i];
+        if different {
+            return false;
+        }
+        var end = label[i] == 0;
+        if end {
+            return true;
+        }
+        i++;
+    }
+}
+
+fn regex_fail(context: RegexLowering*, message: u8*): void {
+    var first = context.error == null;
+    if first {
+        context.error = message;
+    }
+}
+
+fn regex_allocation(context: RegexLowering*, ok: bool): void {
+    if !ok {
+        regex_fail(context, "Unable to allocate regex lowering work");
+    }
+}
+
+fn regex_empty(fragment: RegexFragment*): void {
+    fragment.start = -1;
+    fragment.first = regex_none();
+    fragment.last = regex_none();
+}
+
+fn regex_visit(context: RegexLowering*, node: void*, depth: usize, finish: bool): void {
+    var count = context.visits.length + 1;
+    var ok = vector_reserve(RegexVisit, &context.visits, count);
+    regex_allocation(context, ok);
+    if ok {
+        var visit = &context.visits.data[context.visits.length];
+        visit.node = node;
+        visit.depth = depth;
+        visit.finish = finish;
+        context.visits.length = count;
+    }
+}
+
+fn regex_push(context: RegexLowering*, fragment: RegexFragment*): void {
+    var count = context.values.length + 1;
+    var ok = vector_reserve(RegexFragment, &context.values, count);
+    regex_allocation(context, ok);
+    if ok {
+        copy(&context.values.data[context.values.length], fragment, sizeof(RegexFragment));
+        context.values.length = count;
+    }
+}
+
+fn regex_pop(context: RegexLowering*, fragment: RegexFragment*): void {
+    context.values.length--;
+    copy(fragment, &context.values.data[context.values.length], sizeof(RegexFragment));
+}
+
+fn regex_end(context: RegexLowering*, fragment: RegexFragment*, state: i32, other: bool): void {
+    var index = context.patches.length;
+    var count = index + 1;
+    var ok = vector_reserve(RegexPatch, &context.patches, count);
+    regex_allocation(context, ok);
+    if ok {
+        var end = &context.patches.data[index];
+        end.state = state;
+        end.other = other;
+        end.next = regex_none();
+        var empty = fragment.first == regex_none();
+        if empty {
+            fragment.first = index;
+        }
+        else {
+            context.patches.data[fragment.last].next = index;
+        }
+        fragment.last = index;
+        context.patches.length = count;
+    }
+}
+
+fn regex_join(context: RegexLowering*, left: RegexFragment*, right: RegexFragment*): void {
+    var empty = right.first == regex_none();
+    if empty {
+        return;
+    }
+    empty = left.first == regex_none();
+    if empty {
+        left.first = right.first;
+    }
+    else {
+        context.patches.data[left.last].next = right.first;
+    }
+    left.last = right.last;
+}
+
+fn regex_patch(context: RegexLowering*, fragment: RegexFragment*, target: i32): void {
+    var index = fragment.first;
+    loop {
+        var done = index == regex_none();
+        if done {
+            return;
+        }
+        var patch = &context.patches.data[index];
+        automaton_patch(context.automaton, patch.state, patch.other, target);
+        index = patch.next;
+    }
+}
+
+fn regex_state(context: RegexLowering*, kind: u32, out: i32, other: i32, negated: bool): i32 {
+    var index = automaton_add(context.automaton, kind, out, other, negated);
+    var failed = index < 0;
+    if failed {
+        regex_fail(context, "Token pattern exceeds 512 NFA states");
+    }
+    return index;
+}
+
+fn regex_range(context: RegexLowering*, index: i32, first: u32, last: u32): void {
+    var ok = automaton_range(context.automaton, index, first, last);
+    regex_allocation(context, ok);
+}
+
+fn regex_scalar(context: RegexLowering*, node: void*): u32 {
+    var `match` = regex_match(context, node);
+    context.cursor = `match`.start;
+    var text = context.source + `match`.start;
+    var escaped = text[0] == 92;
+    if !escaped {
+        var result: u32;
+        tower_utf8_decode(text, `match`.length, &result);
+        return result;
+    }
+    var escape = text[1];
+    var selected = escape == 110;
+    if selected {
+        return 10;
+    }
+    selected = escape == 114;
+    if selected {
+        return 13;
+    }
+    selected = escape == 116;
+    if selected {
+        return 9;
+    }
+    var unicode = escape == 117;
+    var hex = escape == 120;
+    if !unicode {
+        if !hex {
+            return convert(u32, escape);
+        }
+    }
+    var first: usize = 2;
+    var end = `match`.length;
+    if unicode {
+        first = 3;
+        end--;
+    }
+    var count = end - first;
+    var invalid = count == 0;
+    if invalid {
+        regex_fail(context, "Invalid Unicode scalar escape");
+        return 0;
+    }
+    invalid = count > 6;
+    if invalid {
+        regex_fail(context, "Invalid Unicode scalar escape");
+        return 0;
+    }
+    var value: u32 = 0;
+    loop {
+        var done = first == end;
+        if done {
+            break;
+        }
+        var digit = convert(u32, text[first]);
+        var decimal = digit <= 57;
+        if decimal {
+            digit = digit - 48;
+        }
+        else {
+            var uppercase = digit <= 70;
+            if uppercase {
+                digit = digit - 55;
+            }
+            else {
+                digit = digit - 87;
+            }
+        }
+        value = value * 16;
+        value = value + digit;
+        first++;
+    }
+    invalid = value > 1114111;
+    if invalid {
+        regex_fail(context, "Invalid Unicode scalar escape");
+    }
+    var surrogate = value >= 55296;
+    if surrogate {
+        surrogate = value <= 57343;
+        if surrogate {
+            regex_fail(context, "Invalid Unicode scalar escape");
+        }
+    }
+    return value;
+}
+
+fn regex_class(context: RegexLowering*, node: void*, index: i32, negated: void*): void {
+    context.pending.length = 0;
+    context.characters.length = 0;
+    var body = negated;
+    var positive = body == null;
+    if positive {
+        body = regex_member(node, "body");
+    }
+    var ok = vector_push(void*, &context.pending, body);
+    regex_allocation(context, ok);
+    loop {
+        var failed = context.error != null;
+        if failed {
+            return;
+        }
+        var done = context.pending.length == 0;
+        if done {
+            break;
+        }
+        context.pending.length--;
+        var at = context.pending.data[context.pending.length];
+        var character = regex_named(context, at, "RegexClassFirst");
+        character ||= regex_named(context, at, "RegexClassCharacter");
+        if character {
+            ok = vector_push(void*, &context.characters, at);
+            regex_allocation(context, ok);
+        } else {
+            var children = entity_child_count(at);
+            loop {
+                done = children == 0;
+                if done {
+                    break;
+                }
+                children--;
+                var child = entity_child_at(at, children);
+                ok = vector_push(void*, &context.pending, child);
+                regex_allocation(context, ok);
+            }
+        }
+    }
+    var empty = context.characters.length == 0;
+    if empty {
+        regex_fail(context, "Empty character class");
+        return;
+    }
+    var i: usize = 0;
+    loop {
+        var done = i == context.characters.length;
+        if done {
+            return;
+        }
+        var first = regex_scalar(context, context.characters.data[i]);
+        var last = first;
+        i++;
+        var after = i + 1;
+        var has_range = after < context.characters.length;
+        if has_range {
+            var dash = regex_match(context, context.characters.data[i]);
+            var plain = dash.length == 1;
+            if plain {
+                plain = context.source[dash.start] == 45;
+                if plain {
+                    i++;
+                    last = regex_scalar(context, context.characters.data[i]);
+                    i++;
+                    var reversed = last < first;
+                    if reversed {
+                        regex_fail(context, "Reversed character range");
+                    }
+                }
+            }
+        }
+        regex_range(context, index, first, last);
+    }
+}
+
+fn regex_atom(context: RegexLowering*, node: void*, result: RegexFragment*): void {
+    var character_class = regex_named(context, node, "RegexClass");
+    var dot = regex_named(context, node, "RegexAtom");
+    var negated: void* = null;
+    var complement = dot;
+    if character_class {
+        negated = regex_member(node, "negated");
+        complement = negated != null;
+    }
+    var index = regex_state(context, 0, -1, -1, complement);
+    if character_class {
+        regex_class(context, node, index, negated);
+    }
+    else {
+        if dot {
+            regex_range(context, index, 10, 10);
+            regex_range(context, index, 13, 13);
+        } else {
+            var value = regex_scalar(context, node);
+            regex_range(context, index, value, value);
+        }
+    }
+    result.start = index;
+    regex_end(context, result, index, false);
+}
+
+fn regex_lower(context: RegexLowering*, root: void*, output: RegexFragment*): void {
+    regex_visit(context, root, 0, false);
+    loop {
+        var failed = context.error != null;
+        if failed {
+            return;
+        }
+        var done = context.visits.length == 0;
+        if done {
+            regex_pop(context, output);
+            return;
+        }
+        context.visits.length--;
+        var visit = &context.visits.data[context.visits.length];
+        // Copy before pushing: growth can move the visit vector.
+        var node = visit.node;
+        var depth = visit.depth;
+        var finish = visit.finish;
+        var `match` = regex_match(context, node);
+        context.cursor = `match`.start;
+        var deep = depth > 64;
+        if deep {
+            regex_fail(context, "Token pattern nesting exceeds 64");
+            return;
+        }
+        var top = regex_named(context, node, "Regex");
+        var choice = regex_named(context, node, "RegexChoice");
+        var sequence = regex_named(context, node, "RegexSequence");
+        var repeat = regex_named(context, node, "RegexRepeat");
+        var left = regex_member(node, "left");
+        var group = regex_member(node, "group");
+        var paired = left != null;
+        var grouped = group != null;
+        if !finish {
+            regex_visit(context, node, depth, true);
+            if top {
+                regex_visit(context, regex_member(node, "value"), depth, false);
+            }
+            else {
+                if choice {
+                    if paired {
+                        regex_visit(context, regex_member(node, "right"), depth, false);
+                        regex_visit(context, left, depth, false);
+                    } else {
+                        regex_visit(context, regex_member(node, "value"), depth, false);
+                    }
+                } else {
+                    if sequence {
+                        if paired {
+                            regex_visit(context, regex_member(node, "right"), depth, false);
+                            regex_visit(context, left, depth, false);
+                        }
+                    } else {
+                        if repeat {
+                            regex_visit(context, regex_member(node, "atom"), depth, false);
+                        }
+                        else {
+                            if grouped {
+                                var deeper = depth + 1;
+                                regex_visit(context, group, deeper, false);
+                            }
+                        }
+                    }
+                }
+            }
+            continue;
+        }
+        var result: RegexFragment;
+        regex_empty(&result);
+        if top {
+            regex_pop(context, &result);
+        }
+        else {
+            if choice {
+                if paired {
+                    var right: RegexFragment;
+                    regex_pop(context, &right);
+                    regex_pop(context, &result);
+                    var empty_left = result.start < 0;
+                    var empty_right = right.start < 0;
+                    result.start = regex_state(context, 1, result.start, right.start, false);
+                    regex_join(context, &result, &right);
+                    if empty_left {
+                        regex_end(context, &result, result.start, false);
+                    }
+                    if empty_right {
+                        regex_end(context, &result, result.start, true);
+                    }
+                } else {
+                    regex_pop(context, &result);
+                }
+            } else {
+                if sequence {
+                    if paired {
+                        var right: RegexFragment;
+                        regex_pop(context, &right);
+                        regex_pop(context, &result);
+                        var empty_left = result.start < 0;
+                        var empty_right = right.start < 0;
+                        if empty_left {
+                            copy(&result, &right, sizeof(RegexFragment));
+                        }
+                        else {
+                            if !empty_right {
+                                regex_patch(context, &result, right.start);
+                                result.first = right.first;
+                                result.last = right.last;
+                            }
+                        }
+                    }
+                } else {
+                    if repeat {
+                        regex_pop(context, &result);
+                        var suffix = regex_match(context, regex_member(node, "suffix"));
+                        var nonempty = result.start >= 0;
+                        var suffixed = suffix.length != 0;
+                        if nonempty {
+                            if suffixed {
+                                var operation = context.source[suffix.start];
+                                var split = regex_state(context, 1, result.start, -1, false);
+                                var optional = operation == 63;
+                                if optional {
+                                    regex_end(context, &result, split, true);
+                                }
+                                else {
+                                    regex_patch(context, &result, split);
+                                    result.first = regex_none();
+                                    result.last = regex_none();
+                                    regex_end(context, &result, split, true);
+                                }
+                                var plus = operation == 43;
+                                if !plus {
+                                    result.start = split;
+                                }
+                            }
+                        }
+                    } else {
+                        if grouped {
+                            regex_pop(context, &result);
+                        }
+                        else {
+                            var value = regex_member(node, "value");
+                            var missing = value == null;
+                            if missing {
+                                value = node;
+                            }
+                            regex_atom(context, value, &result);
+                        }
+                    }
+                }
+            }
+        }
+        regex_push(context, &result);
+    }
+}
+
+export fn regex_compile_tree(root: void*, source: u8*, match_type: void*, table: LexerTable*, error_offset: usize*): u8* {
+    var context = alloc(RegexLowering, 1);
+    var failed = context == null;
+    if failed {
+        return "Unable to allocate regex lowering work";
+    }
+    fill(context, 0, sizeof(RegexLowering));
+    context.source = source;
+    context.match_type = match_type;
+    context.automaton = automaton_create(1114112);
+    failed = context.automaton == null;
+    if failed {
+        free(context);
+        return "Unable to allocate token automaton";
+    }
+    var result: RegexFragment;
+    regex_lower(context, root, &result);
+    var ok = context.error == null;
+    if ok {
+        var empty = result.start < 0;
+        if empty {
+            regex_fail(context, "Token pattern must not match empty input");
+        }
+        else {
+            var accept = regex_state(context, 2, -1, -1, false);
+            regex_patch(context, &result, accept);
+            ok = context.error == null;
+            var valid_accept = accept >= 0;
+            if !valid_accept {
+                ok = false;
+            }
+            if ok {
+                // The explicit branch bounds the checked signed conversion.
+                if valid_accept {
+                    var accepting = convert(usize, accept);
+                    var status = automaton_compile(context.automaton, result.start, accepting, table, true);
+                    var too_large = status == 3;
+                    var nullable = status == 4;
+                    var failure = status != 0;
+                    if too_large {
+                        regex_fail(context, "Token pattern exceeds DFA complexity limit");
+                    }
+                    else {
+                        if nullable {
+                            regex_fail(context, "Token pattern must not match empty input");
+                        }
+                        else {
+                            if failure {
+                                regex_fail(context, "Unable to allocate token automaton");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    *error_offset = context.cursor;
+    var error = context.error;
+    vector_dispose(RegexVisit, &context.visits);
+    vector_dispose(RegexFragment, &context.values);
+    vector_dispose(RegexPatch, &context.patches);
+    vector_dispose(void*, &context.pending);
+    vector_dispose(void*, &context.characters);
+    automaton_destroy(context.automaton);
+    free(context);
+    return error;
+}

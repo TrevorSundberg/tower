@@ -1,4 +1,4 @@
-import './shared';
+import './shared.tower';
 
 fn right_answer(): i32 {
     var result = shared_answer() + 2;

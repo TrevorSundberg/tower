@@ -1,0 +1,7 @@
+import tower;
+
+// Browser source inputs and the memory-backed WASI filesystem use exact keys.
+// No native, case-insensitive filesystem is exposed to these compiler reactors.
+export fn module_file_case_matches(path: u8*): bool {
+    return true;
+}

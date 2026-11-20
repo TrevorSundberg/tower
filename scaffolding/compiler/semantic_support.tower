@@ -1,0 +1,837 @@
+import tower;
+import foundation_tags;
+import foundation_types;
+import frontend_compilation;
+import parser_types;
+import semantic_context;
+import semantic_definitions;
+import semantic_lifecycle;
+import semantic_modules;
+import .library.stack;
+import .library.vector;
+
+// Semantic compiler over shared Foundation components.
+// Temporary indexes and scratch allocations are scoped to one compilation.
+
+export fn semantic_type_equal(a: FoundationType*, b: FoundationType*): bool {
+    var step2 = a.scalar != b.scalar;
+    if !step2 {
+        var step4 = a.pointers != b.pointers;
+        step2 = step4;
+    }
+    if !step2 {
+        var step6 = a.record != b.record;
+        step2 = step6;
+    }
+    if step2 {
+        return false;
+    }
+    var step8 = a.pointers != 0;
+    if !step8 {
+        var step10 = a.scalar == SUSize();
+        step8 = step10;
+    }
+    if step8 {
+        return a.pointer_bytes == b.pointer_bytes;
+    }
+    return true;
+}
+
+// Scalar representation plus nominal entity identity; pointers retain that
+// identity too. Built-in scalars have no record, aggregates have their own tags.
+export fn semantic_enum(t: FoundationType*): bool {
+    var nominal = t.record != null;
+    nominal &&= t.scalar != SStruct();
+    nominal &&= t.scalar != SArray();
+    return nominal;
+}
+
+export fn semantic_aggregate(t: FoundationType*): bool {
+    var step2 = t.pointers == 0;
+    if step2 {
+        var step4 = t.scalar == SStruct();
+        if !step4 {
+            var step6 = t.scalar == SArray();
+            step4 = step6;
+        }
+        step2 = step4;
+    }
+    return step2;
+}
+
+export fn semantic_integer(t: FoundationType*): bool {
+    var step2 = t.pointers == 0;
+    if step2 {
+        var step4 = t.scalar == SI32();
+        if !step4 {
+            var step6 = t.scalar == SU32();
+            step4 = step6;
+        }
+        if !step4 {
+            var step8 = t.scalar == SU8();
+            step4 = step8;
+        }
+        if !step4 {
+            var step10 = t.scalar == SI64();
+            step4 = step10;
+        }
+        if !step4 {
+            var step12 = t.scalar == SU64();
+            step4 = step12;
+        }
+        if !step4 {
+            var step14 = t.scalar == SUSize();
+            step4 = step14;
+        }
+        step2 = step4;
+    }
+    return step2;
+}
+
+export fn semantic_signed(t: FoundationType*): bool {
+    var step2 = t.pointers == 0;
+    if step2 {
+        var step4 = t.scalar == SI32();
+        if !step4 {
+            var step6 = t.scalar == SI64();
+            step4 = step6;
+        }
+        step2 = step4;
+    }
+    return step2;
+}
+
+export fn semantic_size(t: FoundationType*): usize {
+    var step2 = t.pointers != 0;
+    if !step2 {
+        var step4 = t.scalar == SUSize();
+        step2 = step4;
+    }
+    if step2 {
+        return convert(usize, t.pointer_bytes);
+    }
+    if semantic_aggregate(t) {
+        var step7 = sem_get(t.record);
+        return step7.size;
+    }
+    if t.scalar == SVoid() {
+        return 0;
+    }
+    var step10 = t.scalar == SBool();
+    if !step10 {
+        var step12 = t.scalar == SU8();
+        step10 = step12;
+    }
+    if step10 {
+        return 1;
+    }
+    var step14 = t.scalar == SI64();
+    if !step14 {
+        var step16 = t.scalar == SU64();
+        step14 = step16;
+    }
+    if step14 {
+        return 8;
+    }
+    return 4;
+}
+
+export fn semantic_alignment(t: FoundationType*): usize {
+    var step2 = t.pointers != 0;
+    if !step2 {
+        var step4 = t.scalar == SUSize();
+        step2 = step4;
+    }
+    if step2 {
+        return convert(usize, t.pointer_bytes);
+    }
+    if semantic_aggregate(t) {
+        var step7 = sem_get(t.record);
+        return step7.alignment;
+    }
+    var result: usize = semantic_size(t);
+    if result == 0 {
+        return 1;
+    }
+    return result;
+}
+
+export fn semantic_width(t: FoundationType*): u32 {
+    var step1 = semantic_size(t);
+    var step2 = step1 * 8;
+    return convert(u32, step2);
+}
+
+export fn semantic_mask(t: FoundationType*): u64 {
+    var width: u32 = semantic_width(t);
+    var result: u64 = 1;
+    var i: u32 = 0;
+    loop {
+        var step2 = i < width;
+        if !step2 {
+            break;
+        }
+        result = result * 2;
+        i++;
+    }
+    return result - 1;
+}
+
+fn sem_length(s: u8*): usize {
+    var i: usize = 0;
+    if s != null {
+        loop {
+            var step2 = s[i] != 0;
+            if !step2 {
+                break;
+            }
+            i++;
+        }
+    }
+    return i;
+}
+
+fn sem_equal(a: u8*, b: u8*): bool {
+    var i: usize = 0;
+    loop {
+        var step1 = a[i] == b[i];
+        if !step1 {
+            break;
+        }
+        if a[i] == 0 {
+            return true;
+        }
+        i++;
+    }
+    return false;
+}
+
+fn sem_allocate(c: SemanticContext*, count: usize): u8* {
+    var result: u8* = alloc(u8, count);
+    var step2 = result != null;
+    sem_require(step2);
+    sem_track(c, result);
+    return result;
+}
+
+fn sem_text(c: SemanticContext*, s: u8*, count: usize): u8* {
+    var step1 = count + 1;
+    var result: u8* = sem_allocate(c, step1);
+    if count != 0 {
+        copy(result, s, count);
+    }
+    result[count] = 0;
+    return result;
+}
+
+fn sem_cat(c: SemanticContext*, a: u8*, b: u8*): u8* {
+    var x: usize = sem_length(a);
+    var y: usize = sem_length(b);
+    var step3 = x + y;
+    var step4 = step3 + 1;
+    var result: u8* = sem_allocate(c, step4);
+    copy(result, a, x);
+    copy(&result[x], b, y);
+    var step6 = x + y;
+    result[step6] = 0;
+    return result;
+}
+
+fn sem_decimal(c: SemanticContext*, value: u64): u8* {
+    var buffer: u8[21];
+    var i: usize = 20;
+    buffer[i] = 0;
+    loop {
+        if !true {
+            break;
+        }
+        i--;
+        var digit: u64 = value % 10;
+        var step3 = digit + 48;
+        var step4 = convert(u8, step3);
+        buffer[i] = step4;
+        var step5 = value / 10;
+        value = step5;
+        if value == 0 {
+            break;
+        }
+    }
+    var step7 = 20 - i;
+    return sem_text(c, &buffer[i], step7);
+}
+
+fn sem_type_new(c: SemanticContext*, scalar: u32, pointers: u32, record: void*): FoundationType* {
+    var step1 = sizeof(FoundationType);
+    var step2 = sem_allocate(c, step1);
+    var t: FoundationType* = bits(FoundationType*, step2);
+    var step4 = sizeof(FoundationType);
+    fill(t, 0, step4);
+    t.scalar = scalar;
+    t.pointers = pointers;
+    t.record = record;
+    t.pointer_bytes = c.program.pointer_bytes;
+    return t;
+}
+
+fn sem_type_copy(c: SemanticContext*, t: FoundationType*): FoundationType* {
+    var result: FoundationType* = sem_type_new(c, SI32(), 0, null);
+    var step2 = sizeof(FoundationType);
+    copy(result, t, step2);
+    return result;
+}
+
+fn sem_set_type(out: FoundationType*, t: FoundationType*): void {
+    var step1 = sizeof(FoundationType);
+    copy(out, t, step1);
+}
+
+fn sem_type_name(c: SemanticContext*, t: FoundationType*): u8* {
+    var name: u8* = "";
+    if t.scalar == SArray() {
+        var a: FoundationNode* = sem_get(t.record);
+        var step3 = sem_type_name(c, &a.element);
+        var step4 = sem_cat(c, step3, "[");
+        var step5 = convert(u64, a.length);
+        var step6 = sem_decimal(c, step5);
+        var step7 = sem_cat(c, step4, step6);
+        var step8 = sem_cat(c, step7, "]");
+        name = step8;
+    } else {
+        var step9 = t.scalar == SStruct();
+        if semantic_enum(t) {
+            step9 = true;
+        }
+        if step9 {
+            var step10 = sem_get(t.record);
+            var step11 = sem_name(step10);
+            name = step11;
+        } else {
+            var step12 = semantic_scalar_name(t.scalar);
+            name = step12;
+        }
+    }
+    var i: u32 = 0;
+    loop {
+        var step13 = i < t.pointers;
+        if !step13 {
+            break;
+        }
+        var step15 = sem_cat(c, name, "*");
+        name = step15;
+        i++;
+    }
+    return name;
+}
+
+fn sem_number(c: SemanticContext*, value: u64, t: FoundationType*): u8* {
+    var mask: u64 = semantic_mask(t);
+    var step2 = value & mask;
+    value = step2;
+    var sign: u64 = mask / 2;
+    sign++;
+    var step5 = semantic_signed(t);
+    if step5 {
+        var step6 = value & sign;
+        var step7 = step6 != 0;
+        step5 = step7;
+    }
+    if step5 {
+        var negative: u64 = 0;
+        negative = negative - value;
+        var step8 = negative & mask;
+        var step9 = sem_decimal(c, step8);
+        return sem_cat(c, "-", step9);
+    }
+    return sem_decimal(c, value);
+}
+
+fn sem_name(n: FoundationNode*): u8* {
+    if n.name.data == null {
+        return "";
+    }
+    return n.name.data;
+}
+
+fn sem_set_name(n: FoundationNode*, name: u8*): void {
+    var count: usize = sem_length(name);
+    var step2 = count + 1;
+    var step3 = vector_reserve(u8, &n.name, step2);
+    sem_require(step3);
+    var step4 = count + 1;
+    copy(n.name.data, name, step4);
+    n.name.length = count;
+}
+
+fn sem_push(v: vector(void*)*, n: void*): void {
+    var step1 = vector_push(void*, v, n);
+    sem_require(step1);
+}
+
+fn sem_list(c: SemanticContext*): vector(void*)* {
+    var step1 = sizeof(vector(void*));
+    var step2 = sem_allocate(c, step1);
+    var v: vector(void*)* = bits(vector(void*)*, step2);
+    var step4 = sizeof(vector(void*));
+    fill(v, 0, step4);
+    var step5 = bits(void*, v);
+    var step6 = vector_push(void*, &c.lists, step5);
+    sem_require(step6);
+    return v;
+}
+
+fn sem_has(v: vector(void*)*, n: void*): bool {
+    var i: usize = 0;
+    while i < v.length {
+        var found = v.data[i] == n;
+        if found {
+            return true;
+        }
+        i++;
+    }
+    return false;
+}
+
+// Push in reverse so popping visits source children in their original order.
+// Neither scan calls semantic resolution or another scan while scratch is live.
+fn sem_scan_children(c: SemanticContext*, n: void*): void {
+    var i = sem_child_count(n);
+    while i != 0 {
+        i--;
+        sem_require(stack_push(void*, &c.scan, sem_child(n, i)));
+    }
+}
+
+fn sem_collect(c: SemanticContext*, n: void*, wanted: u8*): vector(void*)* {
+    var result = sem_list(c);
+    var present = n != null;
+    if present {
+        sem_require(stack_push(void*, &c.scan, n));
+    }
+    var at: void* = null;
+    while stack_pop(void*, &c.scan, &at) {
+        if sem_is(at, wanted) {
+            sem_push(result, at);
+        } else {
+            sem_scan_children(c, at);
+        }
+    }
+    return result;
+}
+
+fn sem_tokens(c: SemanticContext*, n: void*): u8* {
+    c.token_text.length = 0;
+    var present = n != null;
+    if present {
+        sem_require(stack_push(void*, &c.scan, n));
+    }
+    var at: void* = null;
+    while stack_pop(void*, &c.scan, &at) {
+        var parsed = sem_match(at);
+        var is_token = parsed != null;
+        is_token &&= parsed.rule == sem_maximum();
+        if is_token {
+            sem_require(bytes_append(&c.token_text, parsed.label.data, parsed.label.length));
+        } else {
+            sem_scan_children(c, at);
+        }
+    }
+    // Identifier decoding mutates this owned copy, never the parsed token or
+    // scratch storage subsequently reused by another query.
+    return sem_text(c, c.token_text.data, c.token_text.length);
+}
+
+fn sem_identifier(c: SemanticContext*, n: void*): u8* {
+    var text: u8* = sem_tokens(c, n);
+    sem_decode_identifier(text);
+    return text;
+}
+
+fn sem_literal(c: SemanticContext*, n: void*): bool {
+    // Rich expressions can start with digits or '-'; that does not make the
+    // whole expression an untyped literal. Only unwrap transparent/group nodes.
+    loop {
+        var wrapper = sem_is(n, "TowerExpression") || sem_is(n, "TowerComma")
+            || sem_is(n, "CoreOperand") || sem_is(n, "CoreValue") || sem_is(n, "CoreCallArgument");
+        if !wrapper { break; }
+        if sem_child_count(n) == 1 { n = sem_child(n, 0); }
+        else {
+            var group = sem_member(n, "value");
+            if group != null { n = group; }
+            else { break; }
+        }
+    }
+    if sem_is(n, "TowerExpression") || sem_is(n, "TowerComma") {
+        var right = sem_member(n, "right");
+        if right == null || sem_member(n, "left") != null { return false; }
+        if !sem_equal(sem_tokens(c, sem_child(n, 0)), "-") { return false; }
+        return sem_literal(c, right);
+    }
+    var text: u8* = sem_tokens(c, n);
+    var step3 = sem_equal(text, "true");
+    if !step3 {
+        var step5 = sem_equal(text, "false");
+        step3 = step5;
+    }
+    if !step3 {
+        var step7 = sem_equal(text, "null");
+        step3 = step7;
+    }
+    if !step3 {
+        var step9 = text[0] == 39;
+        step3 = step9;
+    }
+    if !step3 {
+        var step11 = text[0] == 34;
+        step3 = step11;
+    }
+    if !step3 {
+        var step13 = text[0] == 45;
+        step3 = step13;
+    }
+    if !step3 {
+        var step16 = text[0] >= 48;
+        if step16 {
+            var step17 = text[0] <= 57;
+            step16 = step17;
+        }
+        step3 = step16;
+    }
+    return step3;
+}
+
+fn sem_unwrap(n: void*): void* {
+    var step2 = sem_is(n, "Statement");
+    if step2 {
+        var step3 = sem_child_count(n);
+        var step4 = step3 == 1;
+        step2 = step4;
+    }
+    if step2 {
+        return sem_child(n, 0);
+    }
+    return n;
+}
+
+fn sem_maximum(): usize {
+    var n: usize = 0;
+    return n - 1;
+}
+
+fn sem_hash(key: u8*): usize {
+    var h: usize = 2166136261;
+    var i: usize = 0;
+    loop {
+        var step1 = key[i] != 0;
+        if !step1 {
+            break;
+        }
+        var step3 = convert(usize, key[i]);
+        var step4 = h ^ step3;
+        h = step4;
+        h = h * 16777619;
+        i++;
+    }
+    return h;
+}
+
+fn sem_table(c: SemanticContext*): SemanticTable* {
+    var step1 = sizeof(SemanticTable);
+    var step2 = sem_allocate(c, step1);
+    var t: SemanticTable* = bits(SemanticTable*, step2);
+    var step4 = sizeof(SemanticTable);
+    fill(t, 0, step4);
+    return t;
+}
+
+fn sem_find(t: SemanticTable*, text: u8*, entity: void*): SemanticEntry* {
+    if t.capacity == 0 {
+        return null;
+    }
+    var h: usize = bits(usize, entity);
+    if text != null {
+        var step4 = sem_hash(text);
+        h = step4 ^ h;
+    } else {
+        var step5 = h / 8;
+        h = step5;
+    }
+    var i: usize = h % t.capacity;
+    loop {
+        var step7 = t.entries[i] != null;
+        if !step7 {
+            break;
+        }
+        var entry: SemanticEntry* = t.entries[i];
+        if text != null {
+            var step11 = entry.text != null;
+            if step11 {
+                var step12 = sem_equal(entry.text, text);
+                step11 = step12;
+                step11 &&= entry.entity == entity;
+            }
+            if step11 {
+                return entry;
+            }
+        } else {
+            var step14 = entry.text == null;
+            if step14 {
+                var step15 = entry.entity == entity;
+                step14 = step15;
+            }
+            if step14 {
+                return entry;
+            }
+        }
+        var step16 = i + 1;
+        var step17 = step16 % t.capacity;
+        i = step17;
+    }
+    return null;
+}
+
+fn sem_insert(t: SemanticTable*, entry: SemanticEntry*): void {
+    var h: usize = bits(usize, entry.entity);
+    if entry.text != null {
+        var step3 = sem_hash(entry.text);
+        h = step3 ^ h;
+    } else {
+        var step4 = h / 8;
+        h = step4;
+    }
+    var i: usize = h % t.capacity;
+    loop {
+        var step6 = t.entries[i] != null;
+        if !step6 {
+            break;
+        }
+        var step8 = i + 1;
+        var step9 = step8 % t.capacity;
+        i = step9;
+    }
+    t.entries[i] = entry;
+}
+
+fn sem_entry(c: SemanticContext*, t: SemanticTable*, text: u8*, entity: void*): SemanticEntry* {
+    var found: SemanticEntry* = sem_find(t, text, entity);
+    if found != null {
+        return found;
+    }
+    var step3 = t.count + 1;
+    var step4 = step3 * 2;
+    if step4 >= t.capacity {
+        var capacity: usize = t.capacity * 2;
+        if capacity < 16 {
+            capacity = 16;
+        }
+        var old: SemanticEntry** = t.entries;
+        var count: usize = t.capacity;
+        var step8 = sizeof(SemanticEntry*);
+        var step9 = capacity * step8;
+        var step10 = sem_allocate(c, step9);
+        var step11 = bits(SemanticEntry**, step10);
+        t.entries = step11;
+        var step12 = sizeof(SemanticEntry*);
+        var step13 = capacity * step12;
+        fill(t.entries, 0, step13);
+        t.capacity = capacity;
+        var i: usize = 0;
+        loop {
+            var step14 = i < count;
+            if !step14 {
+                break;
+            }
+            if old[i] != null {
+                sem_insert(t, old[i]);
+            }
+            i++;
+        }
+    }
+    var step17 = sizeof(SemanticEntry);
+    var step18 = sem_allocate(c, step17);
+    var result: SemanticEntry* = bits(SemanticEntry*, step18);
+    var step20 = sizeof(SemanticEntry);
+    fill(result, 0, step20);
+    result.text = text;
+    result.entity = entity;
+    sem_insert(t, result);
+    t.count++;
+    return result;
+}
+
+fn sem_lookup_table(t: SemanticTable*, text: u8*): void* {
+    var found: SemanticEntry* = sem_find(t, text, null);
+    if found == null {
+        return null;
+    }
+    return found.value;
+}
+
+fn sem_put(c: SemanticContext*, t: SemanticTable*, text: u8*, value: void*): bool {
+    var found: SemanticEntry* = sem_entry(c, t, text, null);
+    if found.value != null {
+        return false;
+    }
+    found.value = value;
+    return true;
+}
+
+fn sem_state(c: SemanticContext*, t: SemanticTable*, n: void*): SemanticEntry* {
+    return sem_entry(c, t, null, n);
+}
+
+fn sem_source_base(c: SemanticContext*, n: void*): usize {
+    loop {
+        var step1 = n != null;
+        if !step1 {
+            break;
+        }
+        var found: SemanticEntry* = sem_find(c.source_bases, null, n);
+        if found != null {
+            return found.number;
+        }
+        var scoped = c.program.modules != null;
+        if scoped {
+            var component = entity_component_get(n, c.program.modules.owner_kind);
+            var link = bits(SemanticModuleLink*, entity_component_data(component));
+            var present = link != null;
+            if present {
+                var scope = link.module == n;
+                if scope {
+                    return link.base;
+                }
+            }
+        }
+        var step5 = sem_parent(n);
+        n = step5;
+    }
+    return 0;
+}
+
+fn sem_offset(c: SemanticContext*, n: void*): usize {
+    var m: ParserMatchData* = sem_match(n);
+    var at: usize = sem_source_base(c, n);
+    if m != null {
+        at = at + m.start;
+    }
+    return at;
+}
+
+fn sem_ok(c: SemanticContext*): bool {
+    return c.program.error.length == 0;
+}
+
+fn sem_fail(c: SemanticContext*, n: void*, text: u8*): void {
+    var step1 = sem_ok(c);
+    if !step1 {
+        return;
+    }
+    var step3 = sem_offset(c, n);
+    c.program.error_offset = step3;
+    var seen: vector(void*)* = sem_list(c);
+    var use: void* = generic_origin(c.generics, n);
+    loop {
+        var step7 = use != null;
+        if step7 {
+            var step8 = seen.length < 8;
+            step7 = step8;
+        }
+        if step7 {
+            var step9 = sem_has(seen, use);
+            var step10 = !step9;
+            step7 = step10;
+        }
+        if !step7 {
+            break;
+        }
+        sem_push(seen, use);
+        var at: usize = sem_offset(c, use);
+        var line: u64 = 1;
+        var column: u64 = 1;
+        var i: usize = 0;
+        loop {
+            var step14 = i < at;
+            if step14 {
+                var step15 = c.source[i] != 0;
+                step14 = step15;
+            }
+            if !step14 {
+                break;
+            }
+            if c.source[i] == 10 {
+                line++;
+                column = 1;
+            } else {
+                column++;
+            }
+            i++;
+        }
+        var step18 = sem_tokens(c, use);
+        var step19 = sem_cat(c, "\nInstantiated by ", step18);
+        var step20 = sem_cat(c, text, step19);
+        text = step20;
+        var step21 = sem_decimal(c, line);
+        var step22 = sem_cat(c, " at line ", step21);
+        var step23 = sem_cat(c, text, step22);
+        text = step23;
+        var step24 = sem_decimal(c, column);
+        var step25 = sem_cat(c, step24, ".");
+        var step26 = sem_cat(c, ", column ", step25);
+        var step27 = sem_cat(c, text, step26);
+        text = step27;
+        var step28 = generic_origin(c.generics, use);
+        use = step28;
+    }
+    var count: usize = sem_length(text);
+    var step30 = count + 1;
+    var step31 = vector_reserve(u8, &c.program.error, step30);
+    sem_require(step31);
+    var step32 = count + 1;
+    copy(c.program.error.data, text, step32);
+    c.program.error.length = count;
+}
+
+fn sem_generic_ok(c: SemanticContext*, n: void*): bool {
+    var error: u8* = generic_error(c.generics);
+    if error != null {
+        sem_fail(c, n, error);
+    }
+    return sem_ok(c);
+}
+
+fn sem_shape(c: SemanticContext*, n: void*, capture: u8*): bool {
+    if n == null {
+        sem_fail(c, n, "Missing foundation tree");
+        return false;
+    }
+    var step2 = sem_member(n, capture);
+    if step2 == null {
+        var step4 = sem_label(n);
+        var step5 = sem_cat(c, "Malformed ", step4);
+        var step6 = sem_cat(c, step5, " tree: missing capture '");
+        var step7 = sem_cat(c, capture, "'");
+        var step8 = sem_cat(c, step6, step7);
+        sem_fail(c, n, step8);
+        return false;
+    }
+    return true;
+}
+
+fn sem_node(c: SemanticContext*, n: void*, kind: u32): FoundationNode* {
+    var step1 = sem_get(n);
+    var fresh: bool = step1 == null;
+    var result: FoundationNode* = sem_attach(n, kind);
+    var step4 = sem_offset(c, n);
+    result.start = step4;
+    result.end = result.start;
+    var m: ParserMatchData* = sem_match(n);
+    if m != null {
+        result.end = result.end + m.length;
+    }
+    if fresh {
+        c.count++;
+        if c.count > c.node_limit {
+            sem_fail(c, n, "Foundation component memory budget exceeded");
+        }
+    }
+    return result;
+}

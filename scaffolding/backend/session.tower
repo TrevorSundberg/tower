@@ -1,16 +1,16 @@
 import tower;
-import 'context';
-import 'disassembly';
-import 'import-module';
-import 'linker-wasi';
-import 'linker';
-import 'lowering';
-import 'pipeline';
-import 'session-wasi';
-import 'target';
-import 'text';
-import '../compiler/foundation-types';
-import '../library/vector';
+import context;
+import disassembly;
+import import_module;
+import linker_wasi;
+import linker;
+import lowering;
+import pipeline;
+import session_wasi;
+import target;
+import text;
+import .compiler.foundation_types;
+import .library.vector;
 
 // Backend service over validated Foundation entities. Source parsing and worker/
 // CLI scheduling belong to callers. Results own their buffers until reset/close.

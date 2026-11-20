@@ -1,0 +1,278 @@
+import tower;
+import host_world;
+import component_kinds;
+import entity_require;
+import parser_types;
+import .library.entities;
+
+// Compatibility symbols over the world-owned Tower parser components.
+
+export fn parser_rule_get_type(): Entity* {
+    return compiler_host_type(CompilerParserRule());
+}
+
+export fn parser_rule_create(owner: Entity*): ParserRuleData* {
+    return bits(ParserRuleData*, compiler_host_component(owner, CompilerParserRule()));
+}
+
+export fn parser_reference_get_type(): Entity* {
+    return compiler_host_type(CompilerParserReference());
+}
+
+export fn parser_reference_create(owner: Entity*): ParserReferenceData* {
+    return bits(ParserReferenceData*, compiler_host_component(owner, CompilerParserReference()));
+}
+
+export fn parser_string_get_type(): Entity* {
+    return compiler_host_type(CompilerParserString());
+}
+
+export fn parser_string_create(owner: Entity*): ParserStringData* {
+    return bits(ParserStringData*, compiler_host_component(owner, CompilerParserString()));
+}
+
+export fn parser_range_get_type(): Entity* {
+    return compiler_host_type(CompilerParserRange());
+}
+
+export fn parser_range_create(owner: Entity*): ParserRangeData* {
+    return bits(ParserRangeData*, compiler_host_component(owner, CompilerParserRange()));
+}
+
+export fn parser_match_get_type(): Entity* {
+    return compiler_host_type(CompilerParserMatch());
+}
+
+export fn parser_match_create(owner: Entity*): ParserMatchData* {
+    return bits(ParserMatchData*, compiler_host_component(owner, CompilerParserMatch()));
+}
+
+extern fn node_rule_name(value: ParserRuleData*): u8*;
+
+extern fn node_rule_set_name(value: ParserRuleData*, data: u8*): bool;
+
+export fn parser_rule_get_name(value: ParserRuleData*): u8* {
+    var present = value != null;
+    compiler_entity_require(present);
+    return node_rule_name(value);
+}
+
+export fn parser_rule_set_name(value: ParserRuleData*, data: u8*): void {
+    var present = value != null;
+    compiler_entity_require(present);
+    compiler_entity_require(node_rule_set_name(value, data));
+}
+
+extern fn node_rule_generated(value: ParserRuleData*): bool;
+
+extern fn node_rule_set_generated(value: ParserRuleData*, data: bool): void;
+
+export fn parser_rule_get_generated(value: ParserRuleData*): bool {
+    var present = value != null;
+    compiler_entity_require(present);
+    return node_rule_generated(value);
+}
+
+export fn parser_rule_set_generated(value: ParserRuleData*, data: bool): void {
+    var present = value != null;
+    compiler_entity_require(present);
+    node_rule_set_generated(value, data);
+}
+
+extern fn node_reference_name(value: ParserReferenceData*): u8*;
+
+extern fn node_reference_set_name(value: ParserReferenceData*, data: u8*): bool;
+
+export fn parser_reference_get_name(value: ParserReferenceData*): u8* {
+    var present = value != null;
+    compiler_entity_require(present);
+    return node_reference_name(value);
+}
+
+export fn parser_reference_set_name(value: ParserReferenceData*, data: u8*): void {
+    var present = value != null;
+    compiler_entity_require(present);
+    compiler_entity_require(node_reference_set_name(value, data));
+}
+
+extern fn node_reference_capture(value: ParserReferenceData*): u8*;
+
+extern fn node_reference_set_capture(value: ParserReferenceData*, data: u8*): bool;
+
+export fn parser_reference_get_capture(value: ParserReferenceData*): u8* {
+    var present = value != null;
+    compiler_entity_require(present);
+    return node_reference_capture(value);
+}
+
+export fn parser_reference_set_capture(value: ParserReferenceData*, data: u8*): void {
+    var present = value != null;
+    compiler_entity_require(present);
+    compiler_entity_require(node_reference_set_capture(value, data));
+}
+
+extern fn node_range_start(value: ParserRangeData*): u32;
+
+extern fn node_range_set_start(value: ParserRangeData*, data: u32): void;
+
+export fn parser_range_get_start(value: ParserRangeData*): u32 {
+    var present = value != null;
+    compiler_entity_require(present);
+    return node_range_start(value);
+}
+
+export fn parser_range_set_start(value: ParserRangeData*, data: u32): void {
+    var present = value != null;
+    compiler_entity_require(present);
+    node_range_set_start(value, data);
+}
+
+extern fn node_range_end(value: ParserRangeData*): u32;
+
+extern fn node_range_set_end(value: ParserRangeData*, data: u32): void;
+
+export fn parser_range_get_end(value: ParserRangeData*): u32 {
+    var present = value != null;
+    compiler_entity_require(present);
+    return node_range_end(value);
+}
+
+export fn parser_range_set_end(value: ParserRangeData*, data: u32): void {
+    var present = value != null;
+    compiler_entity_require(present);
+    node_range_set_end(value, data);
+}
+
+extern fn node_match_id(value: ParserMatchData*): u32;
+
+extern fn node_match_set_id(value: ParserMatchData*, data: u32): void;
+
+export fn parser_match_get_id(value: ParserMatchData*): u32 {
+    var present = value != null;
+    compiler_entity_require(present);
+    return node_match_id(value);
+}
+
+export fn parser_match_set_id(value: ParserMatchData*, data: u32): void {
+    var present = value != null;
+    compiler_entity_require(present);
+    node_match_set_id(value, data);
+}
+
+extern fn node_match_start(value: ParserMatchData*): usize;
+
+extern fn node_match_set_start(value: ParserMatchData*, data: usize): void;
+
+export fn parser_match_get_start(value: ParserMatchData*): usize {
+    var present = value != null;
+    compiler_entity_require(present);
+    return node_match_start(value);
+}
+
+export fn parser_match_set_start(value: ParserMatchData*, data: usize): void {
+    var present = value != null;
+    compiler_entity_require(present);
+    node_match_set_start(value, data);
+}
+
+extern fn node_match_length(value: ParserMatchData*): usize;
+
+extern fn node_match_set_length(value: ParserMatchData*, data: usize): void;
+
+export fn parser_match_get_length(value: ParserMatchData*): usize {
+    var present = value != null;
+    compiler_entity_require(present);
+    return node_match_length(value);
+}
+
+export fn parser_match_set_length(value: ParserMatchData*, data: usize): void {
+    var present = value != null;
+    compiler_entity_require(present);
+    node_match_set_length(value, data);
+}
+
+extern fn node_match_rule(value: ParserMatchData*): usize;
+
+extern fn node_match_set_rule(value: ParserMatchData*, data: usize): void;
+
+export fn parser_match_get_rule_index(value: ParserMatchData*): usize {
+    var present = value != null;
+    compiler_entity_require(present);
+    return node_match_rule(value);
+}
+
+export fn parser_match_set_rule_index(value: ParserMatchData*, data: usize): void {
+    var present = value != null;
+    compiler_entity_require(present);
+    node_match_set_rule(value, data);
+}
+
+extern fn node_match_label(value: ParserMatchData*): u8*;
+
+extern fn node_match_set_label(value: ParserMatchData*, data: u8*): bool;
+
+export fn parser_match_get_label(value: ParserMatchData*): u8* {
+    var present = value != null;
+    compiler_entity_require(present);
+    return node_match_label(value);
+}
+
+export fn parser_match_set_label(value: ParserMatchData*, data: u8*): void {
+    var present = value != null;
+    compiler_entity_require(present);
+    compiler_entity_require(node_match_set_label(value, data));
+}
+
+extern fn node_string_length(value: ParserStringData*): usize;
+
+extern fn node_string_data(value: ParserStringData*): u32*;
+
+extern fn node_string_resize(value: ParserStringData*, length: usize): bool;
+
+extern fn node_string_set(value: ParserStringData*, index: usize, id: u32): bool;
+
+extern fn node_string_append(value: ParserStringData*, source: u8*, length: usize): bool;
+
+export fn parser_string_get_length(value: ParserStringData*): usize {
+    var present = value != null;
+    compiler_entity_require(present);
+    return node_string_length(value);
+}
+
+export fn parser_string_get_data(value: ParserStringData*): u32* {
+    var present = value != null;
+    compiler_entity_require(present);
+    return node_string_data(value);
+}
+
+export fn parser_string_get_id(value: ParserStringData*, index: usize): u32 {
+    var present = value != null;
+    compiler_entity_require(present);
+    var in_range = index < node_string_length(value);
+    compiler_entity_require(in_range);
+    var data = node_string_data(value);
+    return data[index];
+}
+
+export fn parser_string_set_length(value: ParserStringData*, length: usize): void {
+    var present = value != null;
+    compiler_entity_require(present);
+    compiler_entity_require(node_string_resize(value, length));
+}
+
+export fn parser_string_set_id(value: ParserStringData*, index: usize, id: u32): void {
+    var present = value != null;
+    compiler_entity_require(present);
+    compiler_entity_require(node_string_set(value, index, id));
+}
+
+export fn parser_string_append_utf8(value: ParserStringData*, begin: u8*, end: u8*): void {
+    var present = value != null;
+    compiler_entity_require(present);
+    var first = bits(usize, begin);
+    var last = bits(usize, end);
+    var ordered = last >= first;
+    compiler_entity_require(ordered);
+    var length = last - first;
+    compiler_entity_require(node_string_append(value, begin, length));
+}

@@ -13,6 +13,26 @@ Do NOT modify todo.txt
   pull, rebase, deployment or push is blocked, report the specific blocker;
   never claim an unfinished step succeeded or force-push to bypass it.
 
+## Module names and imports
+
+- Project-owned Tower module, library, file and directory names use identifiers
+  with underscores, never hyphens. Audit references, build manifests, browser
+  packaging, tests and docs when renaming them. User files need not follow this rule.
+- Prefer unquoted imports for all project-owned Tower sources: `import library.vector;`.
+  The last segment is the filename with `.tower` omitted. Each leading dot moves
+  up one directory: `import .compiler.syntax_types;` means
+  `../compiler/syntax_types.tower`, and `..foo` means `../../foo.tower`.
+- Leading-dot imports are anchored to their importing file, without library
+  fallback. Bare names search the importing directory and configured libraries.
+- Quoted imports remain supported for arbitrary filenames and explicit paths.
+  They name the complete file, including `.tower` when present, and match directory
+  and filename case exactly on every host, including Windows. Do not infer an
+  extension or apply builtin-name aliases to a quoted path. Assets may keep quoted
+  relative paths; string-import tests intentionally exercise this syntax.
+- Keep lexical module identity distinct from filesystem identity: symlinks are
+  followed by file reads but are not canonicalized into one module identity.
+  Do not claim symlink aliases execute once or that lexical `..` resolves symlinks.
+
 ## Writing Tower code
 
 - In files that import `tower`, prefer its normal expression syntax: nested

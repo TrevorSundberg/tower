@@ -1,0 +1,128 @@
+import .compiler.syntax_emission_types;
+import tower;
+import .compiler.regex_lowering;
+import .compiler.lr_tree;
+import syntax_emission;
+import .compiler.lr_analysis;
+import .compiler.lr_grammar;
+import .compiler.parser_nodes;
+import .compiler.parser_types;
+import .compiler.syntax_emission;
+import .compiler.syntax_template;
+
+// Typed holes preserve scalar/token distinctions and list cardinality. Exercise
+// every allocator failure while retaining the partial grammar's owning root.
+fn template_test_holes(context: SyntaxEmissionInput*): usize {
+    var budget: usize = 0;
+    loop {
+        var exhausted = budget == 512;
+        if exhausted {
+            return 501;
+        }
+        var buffers = tower_test_buffer_count();
+        var f: EmissionFixture;
+        emission_test_init(&f, context, false);
+        var rule = emission_test_rule(&f, "Inputs");
+        var sequence = emission_test_sequence(&f, rule);
+        var captures: SyntaxTemplateCapture[4];
+        fill(&captures[0], 0, sizeof(SyntaxTemplateCapture[4]));
+        captures[0].source = emission_test_term(&f, sequence, "Identifier", false, 0, "name");
+        captures[0].wrapper = "TokenWrapper";
+        captures[1].source = emission_test_term(&f, sequence, "Expression", false, 0, "one");
+        captures[2].source = emission_test_term(&f, sequence, "Expression", false, 43, "many");
+        captures[3].source = emission_test_term(&f, sequence, "Expression", false, 63, "maybe");
+        var helpers: SyntaxEmissionHelper[5];
+        fill(&helpers[0], 0, sizeof(SyntaxEmissionHelper[5]));
+        helpers[0].name = "Star";
+        helpers[0].source = emission_test_term(&f, sequence, "Expression", false, 42, "");
+        helpers[1].name = "Plus";
+        helpers[1].source = emission_test_term(&f, sequence, "Expression", false, 43, "");
+        helpers[2].name = "Optional";
+        helpers[2].source = emission_test_term(&f, sequence, "Expression", false, 63, "");
+        helpers[3].name = "Literal";
+        helpers[3].source = emission_test_term(&f, sequence, "Expression", true, 42, "");
+        helpers[4].name = "Other";
+        helpers[4].source = emission_test_term(&f, sequence, "Statement", false, 42, "");
+        var input: SyntaxTemplateGrammar;
+        fill(&input, 0, sizeof(SyntaxTemplateGrammar));
+        copy(&input.emission, context, sizeof(SyntaxEmissionInput));
+        input.emission.root = entity_create_related(context.root);
+        input.captures = &captures[0];
+        input.count = 4;
+        input.repetitions = &helpers[0];
+        input.repetition_count = 5;
+        tower_test_buffer_fail_after(budget);
+        var ran = syntax_template_holes(&input);
+        tower_test_buffer_fail_after(lr_none());
+        var ok: bool = true;
+        if ran {
+            ok = entity_child_count(input.emission.root) == 7;
+            var names: u8*[7];
+            names[0] = "TokenWrapper";
+            names[1] = "Expression";
+            names[2] = "Star";
+            names[3] = "Plus";
+            names[4] = "Plus";
+            names[5] = "Star";
+            names[6] = "Optional";
+            var ids: u32[7];
+            ids[0] = 3145728;
+            ids[1] = 3145729;
+            ids[2] = 3145730;
+            ids[3] = 3145730;
+            ids[4] = 3145730;
+            ids[5] = 3145731;
+            ids[6] = 3145731;
+            var index: usize = 0;
+            loop {
+                var done = index == 7;
+                if done {
+                    break;
+                }
+                if !ok {
+                    break;
+                }
+                var node = entity_child_at(input.emission.root, index);
+                var data = bits(ParserRuleData*, lr_grammar_payload(node, context.rule_kind));
+                ok = lr_name_equal(node_text_get(&data.name), names[index]);
+                ok &&= data.generated;
+                var count: usize = 1;
+                var recursive = index == 2;
+                recursive ||= index == 4;
+                recursive ||= index == 5;
+                if recursive {
+                    count = 2;
+                }
+                ok &&= entity_child_count(node) == count;
+                if ok {
+                    var last = count - 1;
+                    var terminal = entity_child_at(node, last);
+                    var text = bits(ParserStringData*, lr_grammar_payload(terminal, context.string_kind));
+                    ok = text.ids.length == 1;
+                    ok &&= text.ids.data[0] == ids[index];
+                }
+                if ok {
+                    if recursive {
+                        var first = entity_child_at(node, 0);
+                        var ref = bits(ParserReferenceData*, lr_grammar_payload(first, context.reference_kind));
+                        ok = lr_name_equal(node_text_get(&ref.name), names[index]);
+                    }
+                }
+                index++;
+            }
+        }
+        entity_release(input.emission.root);
+        emission_test_dispose(&f);
+        var balanced = tower_test_buffer_count() == buffers;
+        if !balanced {
+            return 502;
+        }
+        if !ok {
+            return 503;
+        }
+        if ran {
+            return 0;
+        }
+        budget++;
+    }
+}

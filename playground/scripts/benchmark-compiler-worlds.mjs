@@ -20,7 +20,7 @@ const git=(...args)=>execFileSync('git',args,{cwd:fileURLToPath(root),encoding:'
 const baselineRevision=git('rev-parse',reference+'^{commit}').trim();
 const recipe=JSON.parse(await read('build/compiler-project/project.json'));
 const files=recipe.files,originals=structuredClone(files);
-for(const entry of ['library/entities.tower','compiler/semantic-layout.tower','backend/import-instructions.tower']) {
+for(const entry of ['library/entities.tower','compiler/semantic_layout.tower','backend/import_instructions.tower']) {
  const file=originals.find(file=>file.path===entry);assert.ok(file,entry);
  file.text=git('show',baselineRevision+':scaffolding/'+entry);
 }
@@ -47,8 +47,8 @@ for(const [name,inputs,plan] of [['baseline',originals,baselineRecipe],['current
 }
 
 const generator=await loadFixtureTower(await read('build/browser-wasi/tower.wasm'),undefined,grammar.foundation);
-generator.configureModules({entry:'.tower/tests/layout-depth-source.tower'});
-const handle=generator.compile((await read('scaffolding/tests/layout-depth-source.tower')).toString());
+generator.configureModules({entry:'.tower/tests/layout_depth_source.tower'});
+const handle=generator.compile((await read('scaffolding/tests/layout_depth_source.tower')).toString());
 let layout='';
 try {
  let result;
@@ -65,7 +65,7 @@ for(const [name,inputs] of [['baseline',originals],['current',files]]) {
  host.configureModules({entry:'headers.tower',files:inputs,builtins:grammar,library:'.'});
  report.headers[name]={};
  for(const pointerBytes of [4,8]) {
-  const query=host.compile('import "library/entities"; print(sizeof(Entity)); print(sizeof(EntityStore));',{pointerBytes});
+  const query=host.compile('import library.entities; print(sizeof(Entity)); print(sizeof(EntityStore));',{pointerBytes});
   try{const result=host.execute(query,10000);assert.equal(result.status,'done',result.error);report.headers[name][pointerBytes]=result.output;}
   finally{host.destroyExecution(query);}
  }

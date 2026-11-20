@@ -1,9 +1,9 @@
 import tower;
-import 'bindings';
-import 'foreign-api';
-import 'text';
-import '../compiler/foundation-types';
-import '../library/vector';
+import bindings;
+import foreign_api;
+import text;
+import .compiler.foundation_types;
+import .library.vector;
 
 extern fn semantic_collect_comments(source: void*, destination: void*): void;
 

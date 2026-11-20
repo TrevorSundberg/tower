@@ -17,10 +17,10 @@ python playground/scripts/package-roku.py program.brs program-roku.zip
 `--raw-ir` and `--optimized-ir` retain the LLVM stages for inspection. Both O0 and
 O2 follow the fast interpreter's bridge: checked foundation → LLVM scalar
 pipeline → reconstructed, checked foundation → BrightScript. The emitter is
-`scaffolding/compiler/roku-emitter.tower`, using the same entities, type/layout
+`scaffolding/compiler/roku_emitter.tower`, using the same entities, type/layout
 queries and operation definitions as other backends. It shares the existing
 source-emission entity index; it neither reads fast bytecode nor introduces a
-program storage format. The runtime text is owned by `roku-runtime.tower`.
+program storage format. The runtime text is owned by `roku_runtime.tower`.
 
 ## Execution contract
 

@@ -1,6 +1,6 @@
 # Tower IDE ABI, version 3
 
-`scaffolding/host/ide-*.tower` owns the reusable session, query, execution and
+`scaffolding/host/ide_*.tower` owns the reusable session, query, execution and
 artifact services behind ordinary C exports. The current WASI build uses wasm32
 integers/pointers. Instantiate with WASI Preview 1 imports and
 `env.tw_foreign_call(handle, request)` for foreign execution, then call `_initialize`
@@ -18,7 +18,7 @@ Calls into one instance are serialized. Separate worker instances own separate
 worlds; shared graph mutation is not claimed thread-safe. Cancellation terminates
 the owning worker, and request generations continue to reject stale results.
 
-The temporary `ide-syntax-wasi.tower` module calls existing syntax inspection
+The temporary `ide_syntax_wasi.tower` module calls existing syntax inspection
 interfaces using WASI SDK 34 libc++ ABI v2 (alternate strings and size-based
 vectors). It owns and disposes those foreign return values before returning
 Tower-owned JSON. Other hosts need bindings for their syntax API ABI until those

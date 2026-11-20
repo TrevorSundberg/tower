@@ -1,0 +1,976 @@
+import tower;
+import semantic_control;
+import foundation_tags;
+import foundation_types;
+import semantic_context;
+import semantic_definitions;
+import semantic_enums;
+import semantic_layout;
+import semantic_modules;
+import semantic_support;
+import semantic_types;
+import semantic_values;
+import semantic_expressions;
+import .library.vector;
+
+// Semantic compiler over shared Foundation components.
+// Temporary indexes and scratch allocations are scoped to one compilation.
+
+fn sem_header(c: SemanticContext*, n: void*, name: u8*, definition: void*): void {
+    var external: bool = sem_is(n, "CoreExternal");
+    var step2 = sem_shape(c, n, "name");
+    var step4 = !step2;
+    if !step4 {
+        var step6 = sem_shape(c, n, "type");
+        var step7 = !step6;
+        step4 = step7;
+    }
+    if !step4 {
+        var step10 = !external;
+        if step10 {
+            var step11 = sem_shape(c, n, "body");
+            var step12 = !step11;
+            step10 = step12;
+        }
+        step4 = step10;
+    }
+    if step4 {
+        return;
+    }
+    var function_node: FoundationNode* = sem_node(c, n, KFunction());
+    if name[0] == 0 {
+        var step15 = sem_member(n, "name");
+        var step16 = sem_identifier(c, step15);
+        name = step16;
+    }
+    var published = external;
+    if sem_is(n, "CoreExport") {
+        published = true;
+    }
+    if published {
+        sem_set_name(function_node, name);
+    } else {
+        sem_set_name(function_node, sem_output_name(c, n, name));
+    }
+    var step17 = sem_member(n, "type");
+    var step18 = sem_type(c, step17);
+    sem_set_type(&function_node.type, step18);
+    var step19 = semantic_builtin_kind(name);
+    if step19 != 0 {
+        var step21 = sem_cat(c, "Function name '", name);
+        var step22 = sem_cat(c, step21, "' already names a foundation builtin");
+        sem_fail(c, n, step22);
+    }
+    function_node.external = external;
+    var step23 = sem_is(n, "CoreExport");
+    function_node.exported = step23;
+    if semantic_aggregate(&function_node.type) {
+        sem_fail(c, n, "Struct returns require a pointer; by-value returns are not implemented");
+    }
+    var step26 = name[0] == 0;
+    if !step26 {
+        var step28 = sem_owned(c.functions, sem_owner(c, n), name);
+        var step29 = step28 != null;
+        step26 = step29;
+    }
+    if !step26 {
+        var step31 = sem_owned(c.templates, sem_owner(c, n), name);
+        var step32 = step31 != null;
+        step26 = step32;
+    }
+    if !step26 {
+        var step34 = sem_owned(c.type_functions, sem_owner(c, n), name);
+        var step35 = step34 != null;
+        step26 = step35;
+    }
+    if step26 {
+        var step36 = sem_cat(c, "Missing or duplicate function '", name);
+        var step37 = sem_cat(c, step36, "'");
+        sem_fail(c, n, step37);
+        return;
+    }
+    function_node.index = c.program.functions.length;
+    sem_define(c, c.functions, n, name);
+    sem_push(&c.program.functions, n);
+    var names: SemanticTable* = sem_table(c);
+    var step39 = sem_member(n, "params");
+    var params: vector(void*)* = sem_collect(c, step39, "CoreParameter");
+    var i: usize = 0;
+    loop {
+        var step41 = i < params.length;
+        if !step41 {
+            break;
+        }
+        var p: void* = params.data[i];
+        var index: usize = i;
+        i++;
+        var step44 = definition != null;
+        if step44 {
+            var step45 = generic_type_parameter(c.generics, definition, index);
+            step44 = step45;
+        }
+        if step44 {
+            continue;
+        }
+        var step46 = sem_shape(c, p, "name");
+        var step48 = !step46;
+        if !step48 {
+            var step50 = sem_shape(c, p, "type");
+            var step51 = !step50;
+            step48 = step51;
+        }
+        if step48 {
+            return;
+        }
+        var param: FoundationNode* = sem_node(c, p, KParameter());
+        var step53 = sem_member(p, "name");
+        var pname: u8* = sem_identifier(c, step53);
+        sem_set_name(param, pname);
+        var step55 = sem_member(p, "type");
+        var step56 = sem_type(c, step55);
+        sem_set_type(&param.type, step56);
+        var step58 = param.type.pointers == 0;
+        if step58 {
+            var step59 = param.type.scalar == SVoid();
+            step58 = step59;
+        }
+        var step60 = step58;
+        if !step60 {
+            var step62 = pname[0] == 0;
+            step60 = step62;
+        }
+        if !step60 {
+            var step64 = sem_put(c, names, pname, p);
+            var step65 = !step64;
+            step60 = step65;
+        }
+        if step60 {
+            sem_fail(c, p, "Invalid or duplicate function parameter");
+        }
+        if semantic_aggregate(&param.type) {
+            sem_fail(c, p, "Struct parameters require a pointer; by-value arguments are not implemented");
+        }
+        var saved: void* = c.current;
+        c.current = n;
+        sem_add_local(c, p);
+        c.current = saved;
+        sem_push(&function_node.parameters, p);
+    }
+    if function_node.parameters.length > 64 {
+        sem_fail(c, n, "Foundation parameter limit is 64");
+    }
+}
+
+fn sem_scope(c: SemanticContext*, parent: SemanticScope*): SemanticScope* {
+    var step1 = sizeof(SemanticScope);
+    var step2 = sem_allocate(c, step1);
+    var scope: SemanticScope* = bits(SemanticScope*, step2);
+    scope.parent = parent;
+    var step4 = sem_table(c);
+    scope.names = step4;
+    return scope;
+}
+
+fn sem_text_less(a: u8*, b: u8*): bool {
+    var i: usize = 0;
+    loop {
+        var step2 = a[i] == b[i];
+        if step2 {
+            var step3 = a[i] != 0;
+            step2 = step3;
+        }
+        if !step2 {
+            break;
+        }
+        i++;
+    }
+    return a[i] < b[i];
+}
+
+fn sem_order_name(c: SemanticContext*, node: void*, value: FoundationNode*): u8* {
+    var checked = value != null;
+    if checked {
+        return sem_name(value);
+    }
+    return sem_identifier(c, sem_member(node, "name"));
+}
+
+fn sem_scope_locals(c: SemanticContext*, scope: SemanticScope*, locals: vector(void*)*): void {
+    var i: usize = 0;
+    loop {
+        var step1 = i < scope.names.capacity;
+        if !step1 {
+            break;
+        }
+        var entry: SemanticEntry* = scope.names.entries[i];
+        var step4 = entry != null;
+        if step4 {
+            var step5 = entry.value != null;
+            step4 = step5;
+        }
+        if step4 {
+            sem_push(locals, entry.value);
+        }
+        i++;
+    }
+    i = 1;
+    loop {
+        var step6 = i < locals.length;
+        if !step6 {
+            break;
+        }
+        var value: void* = locals.data[i];
+        var j: usize = i;
+        loop {
+            var step9 = j != 0;
+            if step9 {
+                var step10 = sem_get(value);
+                var step11 = sem_order_name(c, value, step10);
+                var step12 = j - 1;
+                var step13 = sem_get(locals.data[step12]);
+                var step14 = sem_order_name(c, locals.data[step12], step13);
+                var step15 = sem_text_less(step11, step14);
+                step9 = step15;
+            }
+            if !step9 {
+                break;
+            }
+            var step17 = j - 1;
+            locals.data[j] = locals.data[step17];
+            j--;
+        }
+        locals.data[j] = value;
+        i++;
+    }
+}
+
+fn sem_control_call(c: SemanticContext*, statement: void*, name: u8*): void* {
+    if sem_is(statement, "TowerExpressionStatement") {
+        var call = sem_surface_unwrap(sem_member(statement, "value"));
+        if sem_is(call, "CoreCall") {
+            var spelling = sem_identifier(c, sem_member(call, "name"));
+            if sem_equal(spelling, name) { return call; }
+        }
+    }
+    if sem_is(statement, "CoreCallStatement") {
+        var call = sem_member(statement, "call");
+        var identifier = sem_member(call, "name");
+        var spelling = sem_identifier(c, identifier);
+        if sem_equal(spelling, name) {
+            return call;
+        }
+    }
+    return null;
+}
+
+fn sem_label_name(c: SemanticContext*, call: void*): u8* {
+    var arguments = sem_collect(c, sem_member(call, "args"), "CoreCallArgument");
+    var one = arguments.length == 1;
+    if one {
+        var argument = arguments.data[0];
+        var names = sem_collect(c, argument, "CoreLocation");
+        one = names.length == 1;
+        if one {
+            var whole = sem_tokens(c, argument);
+            var identifier = sem_member(names.data[0], "name");
+            var name = sem_tokens(c, identifier);
+            if sem_equal(whole, name) {
+                return sem_identifier(c, identifier);
+            }
+        }
+    }
+    sem_fail(c, call, "label/jump require one label identifier");
+    return "";
+}
+
+fn sem_labels(c: SemanticContext*, body: void*): void {
+    c.labels = sem_table(c);
+    var index: usize = 0;
+    var i: usize = 0;
+    loop {
+        var done = i == sem_child_count(body);
+        if done {
+            return;
+        }
+        var item = sem_child(body, i);
+        if sem_is(item, "Statement") {
+            item = sem_unwrap(item);
+            var call = sem_control_call(c, item, "label");
+            var present = call != null;
+            if present {
+                var label = sem_node(c, call, KLabel());
+                var name = sem_label_name(c, call);
+                sem_set_name(label, name);
+                label.body = body;
+                label.index = index;
+                var unique = sem_put(c, c.labels, name, call);
+                if !unique {
+                    sem_fail(c, item, "Duplicate function label");
+                }
+            }
+            index++;
+        }
+        i++;
+    }
+}
+
+fn sem_block(c: SemanticContext*, n: void*, depth: u32): u32 {
+    var step2 = n == null;
+    if !step2 {
+        var step4 = sem_is(n, "CoreBlock");
+        var step5 = !step4;
+        step2 = step5;
+    }
+    if step2 {
+        sem_fail(c, n, "Expected a CoreBlock tree");
+        return 1;
+    }
+    var value: FoundationNode* = sem_node(c, n, KBlock());
+    var step7 = sem_scope(c, c.scope);
+    c.scope = step7;
+    var flow: u32 = 1;
+    var labeled = false;
+    var i: usize = 0;
+    loop {
+        var step8 = sem_child_count(n);
+        var step10 = i < step8;
+        if step10 {
+            var step11 = sem_ok(c);
+            step10 = step11;
+        }
+        if !step10 {
+            break;
+        }
+        var at: void* = sem_child(n, i);
+        if sem_is(at, "Statement") {
+            var step15 = sem_unwrap(at);
+            at = step15;
+            var label_call = sem_control_call(c, at, "label");
+            var explicit_label = label_call != null;
+            if explicit_label {
+                var falls = flow & 1;
+                if labeled {
+                    var open = falls != 0;
+                    if open {
+                        sem_fail(c, at, "A labeled block must end with jump or return before the next label");
+                    }
+                }
+                labeled = true;
+                flow = 1;
+            }
+            var step16 = depth + 1;
+            var next: u32 = sem_statement(c, at, step16);
+            if sem_is(at, "CoreCallStatement") {
+                var step19 = sem_member(at, "call");
+                at = step19;
+            }
+            var control = sem_control_call(c, at, "label");
+            var absent = control == null;
+            if absent { control = sem_control_call(c, at, "jump"); }
+            var present = control != null;
+            if present { at = control; }
+            sem_push(&value.items, at);
+            var step20 = flow & 1;
+            if step20 != 0 {
+                var step22 = flow & 4294967294;
+                var step23 = step22 | next;
+                flow = step23;
+            }
+        } else {
+            var step24 = sem_is(at, "{");
+            var step26 = !step24;
+            if step26 {
+                var step27 = sem_is(at, "}");
+                var step28 = !step27;
+                step26 = step28;
+            }
+            if step26 {
+                sem_fail(c, at, "Malformed CoreBlock tree");
+            }
+        }
+        i++;
+    }
+    sem_scope_locals(c, c.scope, &value.locals);
+    c.scope = c.scope.parent;
+    return flow;
+}
+
+fn sem_statement(c: SemanticContext*, n: void*, depth: u32): u32 {
+    var label_call = sem_control_call(c, n, "label");
+    var explicit_label = label_call != null;
+    if explicit_label {
+        var direct = depth == 1;
+        var found = sem_get(label_call) != null;
+        if direct {
+            if found {
+                return 1;
+            }
+        }
+        sem_fail(c, n, "Labels must be direct statements in a function body");
+        return 1;
+    }
+    var jump_call = sem_control_call(c, n, "jump");
+    var explicit_jump = jump_call != null;
+    if explicit_jump {
+        var value = sem_node(c, jump_call, KJump());
+        var name = sem_label_name(c, jump_call);
+        sem_set_name(value, name);
+        var labels = c.labels != null;
+        if labels {
+            value.binding = sem_lookup_table(c.labels, name);
+        }
+        var missing = value.binding == null;
+        if missing {
+            sem_fail(c, n, "Unknown function label");
+        }
+        return 0;
+    }
+    if depth > 128 {
+        sem_fail(c, n, "Foundation block nesting limit is 128");
+        return 1;
+    }
+    var step2 = sem_ok(c);
+    if !step2 {
+        return 1;
+    }
+    if sem_is(n, "TowerMatch") {
+        return sem_control_match(c, n, depth);
+    }
+    if sem_is(n, "TowerWhile") {
+        return sem_control_while(c, n, depth);
+    }
+    if sem_is(n, "TowerExpressionStatement") {
+        c.surface_expressions = true;
+        var expression = sem_surface_unwrap(sem_member(n, "value"));
+        var value = sem_node(c, n, SurfaceDiscard());
+        value.value = sem_surface_discard(c, expression);
+        if sem_ok(c) {
+            var operation = sem_get(value.value);
+            var trap = operation.kind == KTrap();
+            if trap { return 0; }
+        }
+        return FlowNext();
+    }
+    if sem_is(n, "CoreEnum") {
+        sem_fail(c, n, "Enum types must be declared at top level");
+        return FlowNext();
+    }
+    var kind: u8* = sem_label(n);
+    if sem_equal(kind, "CoreDeclare") {
+        var step6 = sem_shape(c, n, "name");
+        if !step6 {
+            return 1;
+        }
+        var value: FoundationNode* = sem_node(c, n, KDeclare());
+        var step9 = sem_member(n, "name");
+        var name: u8* = sem_identifier(c, step9);
+        if !value.global {
+            sem_set_name(value, name);
+        }
+        var step12 = name[0] == 0;
+        if !step12 {
+            var step15 = !value.global;
+            if step15 {
+                var step16 = sem_lookup_table(c.scope.names, name);
+                var step17 = step16 != null;
+                step15 = step17;
+            }
+            step12 = step15;
+        }
+        if step12 {
+            var step18 = sem_cat(c, "Missing or duplicate local '", name);
+            var step19 = sem_cat(c, step18, "'");
+            sem_fail(c, n, step19);
+            return 1;
+        }
+        if !value.global {
+            sem_put(c, c.scope.names, name, n);
+        }
+        var step21 = sem_declaration_type(c, n);
+        if !step21 {
+            return 1;
+        }
+        if !value.global {
+            sem_add_local(c, n);
+        }
+        var initial: void* = sem_member(n, "value");
+        var step26 = initial != null;
+        if step26 {
+            var step27 = value.value == null;
+            step26 = step27;
+        }
+        if step26 {
+            var step28 = sem_expression(c, initial, &value.type);
+            value.value = step28;
+        }
+    } else {
+        if sem_equal(kind, "CoreAssign") {
+            var step30 = sem_shape(c, n, "target");
+            var step32 = !step30;
+            if !step32 {
+                var step34 = sem_shape(c, n, "value");
+                var step35 = !step34;
+                step32 = step35;
+            }
+            if !step32 {
+                var step37 = sem_member(n, "target");
+                var step38 = sem_shape(c, step37, "name");
+                var step39 = !step38;
+                step32 = step39;
+            }
+            if step32 {
+                return 1;
+            }
+            var value: FoundationNode* = sem_node(c, n, KAssign());
+            var target: void* = sem_member(n, "target");
+            var step42 = sem_member(target, "name");
+            var step43 = sem_location(c, step42, 0);
+            value.target = step43;
+            var step44 = sem_ok(c);
+            if !step44 {
+                return 1;
+            }
+            var step46 = sem_get(value.target);
+            var expected_type: FoundationType* = sem_type_copy(c, &step46.type);
+            var step48 = sem_child(target, 0);
+            var step49 = sem_tokens(c, step48);
+            if sem_equal(step49, "*") {
+                var dest: FoundationNode* = sem_node(c, target, KLoad());
+                dest.value = value.target;
+                if expected_type.pointers == 0 {
+                    sem_fail(c, target, "Store requires a pointer");
+                } else {
+                    expected_type.pointers--;
+                }
+                sem_set_type(&dest.type, expected_type);
+                value.target = target;
+            }
+            if semantic_aggregate(expected_type) {
+                sem_fail(c, target, "Struct values require field access or a pointer; aggregate copies are not implemented");
+            }
+            var step54 = sem_member(n, "value");
+            var step55 = sem_expression(c, step54, expected_type);
+            value.value = step55;
+        } else {
+            if sem_equal(kind, "CoreCallStatement") {
+                var step57 = sem_member(n, "call");
+                sem_call(c, step57);
+                var call_node = sem_get(step57);
+                var has_node = call_node != null;
+                if has_node {
+                    var trapping = call_node.kind == 33;
+                    if trapping {
+                        return 0;
+                    }
+                }
+            } else {
+                if sem_equal(kind, "CoreReturn") {
+                    var value: FoundationNode* = sem_node(c, n, KReturn());
+                    var returned: void* = sem_member(n, "value");
+                    var step61 = sem_tokens(c, returned);
+                    var step62 = sem_length(step61);
+                    var present: bool = step62 != 0;
+                    var function: FoundationNode* = sem_get(c.current);
+                    var step66 = function.type.pointers == 0;
+                    if step66 {
+                        var step67 = function.type.scalar == SVoid();
+                        step66 = step67;
+                    }
+                    if step66 {
+                        if present {
+                            sem_fail(c, n, "A void function cannot return a value");
+                        }
+                    } else {
+                        if !present {
+                            sem_fail(c, n, "A non-void function must return a value");
+                        } else {
+                            var operands = sem_collect(c, returned, "CoreOperand");
+                            var one = operands.length == 1;
+                            if one { value.value = sem_operand(c, operands.data[0], &function.type); }
+                            else { sem_fail(c, n, "A return value must contain one Foundation operand"); }
+                        }
+                    }
+                    return 8;
+                } else {
+                    if sem_function_syntax(n) {
+                        sem_fail(c, n, "Functions must be declared at top level");
+                    } else {
+                        if sem_equal(kind, "CoreStruct") {
+                            sem_fail(c, n, "Struct types must be declared at top level");
+                        } else {
+                            if sem_equal(kind, "CoreBlock") {
+                                return sem_block(c, n, depth);
+                            } else {
+                                if sem_equal(kind, "CoreIf") {
+                                    var step77 = sem_shape(c, n, "condition");
+                                    var step79 = !step77;
+                                    if !step79 {
+                                        var step81 = sem_shape(c, n, "body");
+                                        var step82 = !step81;
+                                        step79 = step82;
+                                    }
+                                    if step79 {
+                                        return 1;
+                                    }
+                                    var value: FoundationNode* = sem_node(c, n, KIf());
+                                    var step84 = sem_member(n, "condition");
+                                    var step85 = sem_type_new(c, SBool(), 0, null);
+                                    var step86 = sem_operand(c, step84, step85);
+                                    value.value = step86;
+                                    var step87 = sem_member(n, "body");
+                                    value.body = step87;
+                                    var yes: u32 = sem_block(c, value.body, depth);
+                                    var no: u32 = 1;
+                                    var step89 = sem_member(n, "otherwise");
+                                    value.otherwise = step89;
+                                    if value.otherwise != null {
+                                        var step91 = sem_block(c, value.otherwise, depth);
+                                        no = step91;
+                                    }
+                                    var condition: FoundationNode* = sem_get(value.value);
+                                    var step94 = condition != null;
+                                    step94 &&= condition.constant;
+                                    if step94 {
+                                        if condition.bits != 0 {
+                                            return yes;
+                                        }
+                                        return no;
+                                    }
+                                    return yes | no;
+                                } else {
+                                    if sem_equal(kind, "CoreLoop") {
+                                        var value: FoundationNode* = sem_node(c, n, KLoop());
+                                        var step99 = sem_member(n, "body");
+                                        value.body = step99;
+                                        c.loops++;
+                                        var flow: u32 = sem_block(c, value.body, depth);
+                                        c.loops--;
+                                        var result: u32 = flow & 8;
+                                        var step102 = flow & 2;
+                                        if step102 != 0 {
+                                            var step104 = result | 1;
+                                            result = step104;
+                                        }
+                                        return result;
+                                    } else {
+                                        var step106 = sem_equal(kind, "CoreBreak");
+                                        if !step106 {
+                                            var step108 = sem_equal(kind, "CoreContinue");
+                                            step106 = step108;
+                                        }
+                                        if step106 {
+                                            var op: u32 = 16;
+                                            var result: u32 = 4;
+                                            if sem_equal(kind, "CoreBreak") {
+                                                op = 15;
+                                                result = 2;
+                                            }
+                                            sem_node(c, n, op);
+                                            if c.loops == 0 {
+                                                var step111 = sem_cat(c, kind, " requires an enclosing loop");
+                                                sem_fail(c, n, step111);
+                                            }
+                                            return result;
+                                        } else {
+                                            var step112 = sem_cat(c, "No execution semantics for '", kind);
+                                            var step113 = sem_cat(c, step112, "'; replace it with a foundation operation");
+                                            sem_fail(c, n, step113);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return 1;
+}
+
+fn sem_function_syntax(n: void*): bool {
+    var step2 = sem_is(n, "CoreFunction");
+    if !step2 {
+        var step4 = sem_is(n, "CoreExternal");
+        step2 = step4;
+    }
+    if !step2 {
+        var step6 = sem_is(n, "CoreExport");
+        step2 = step6;
+    }
+    return step2;
+}
+
+fn sem_run(c: SemanticContext*): void {
+    sem_validate_aliases(c);
+    var step1 = sem_get(c.program.root);
+    var statements: vector(void*)* = &step1.items;
+    var i: usize = 0;
+    loop {
+        var step2 = i < statements.length;
+        if !step2 {
+            break;
+        }
+        var n: void* = statements.data[i];
+        var name: void* = sem_member(n, "name");
+        if name != null {
+            var step6 = sem_identifier(c, name);
+            var entry = sem_entry(c, c.source_names, step6, null);
+            var repeated = entry.value != null;
+            if repeated {
+                var different = sem_owner(c, entry.value) != sem_owner(c, n);
+                if different {
+                    entry.number = 1;
+                }
+            } else {
+                entry.value = n;
+            }
+        }
+        var step8 = sem_ok(c);
+        if step8 {
+            var step9 = sem_function_syntax(n);
+            step8 = step9;
+        }
+        if step8 {
+            sem_register_template(c, n);
+        }
+        i++;
+    }
+    i = 0;
+    var count: usize = 0;
+    loop {
+        var step10 = i < statements.length;
+        if !step10 {
+            break;
+        }
+        var n: void* = statements.data[i];
+        var step12 = sem_has(&c.template_nodes, n);
+        if !step12 {
+            statements.data[count] = n;
+            count++;
+        }
+        i++;
+    }
+    statements.length = count;
+    i = 0;
+    loop {
+        var step15 = i < statements.length;
+        if step15 {
+            var step16 = sem_ok(c);
+            step15 = step16;
+        }
+        if !step15 {
+            break;
+        }
+        var n: void* = statements.data[i];
+        if sem_is(n, "CoreStruct") {
+            sem_type_header(c, n, "");
+        }
+        if sem_is(n, "CoreEnum") {
+            sem_enum_header(c, n);
+        }
+        i++;
+    }
+    i = 8;
+    loop {
+        var step20 = i < c.program.types.length;
+        if step20 {
+            var step21 = sem_ok(c);
+            step20 = step21;
+        }
+        if !step20 {
+            break;
+        }
+        var n: void* = c.program.types.data[i];
+        var step23 = sem_get(n);
+        if step23.type.scalar == SStruct() {
+            sem_type_fields(c, n);
+        }
+        if semantic_enum(&step23.type) {
+            sem_enum_fields(c, n);
+        }
+        i++;
+    }
+    i = 8;
+    loop {
+        var step26 = i < c.program.types.length;
+        if step26 {
+            var step27 = sem_ok(c);
+            step26 = step27;
+        }
+        if !step26 {
+            break;
+        }
+        sem_layout(c, c.program.types.data[i]);
+        i++;
+    }
+    i = 0;
+    loop {
+        var step30 = i < statements.length;
+        if step30 {
+            var step31 = sem_ok(c);
+            step30 = step31;
+        }
+        if !step30 {
+            break;
+        }
+        var n: void* = statements.data[i];
+        if sem_function_syntax(n) {
+            sem_header(c, n, "", null);
+        }
+        i++;
+    }
+    sem_link_functions(c);
+    i = 0;
+    loop {
+        var step35 = i < statements.length;
+        if step35 {
+            var step36 = sem_ok(c);
+            step35 = step36;
+        }
+        if !step35 {
+            break;
+        }
+        var n: void* = statements.data[i];
+        if sem_is(n, "CoreDeclare") {
+            var step39 = sem_shape(c, n, "name");
+            if !step39 {
+                break;
+            }
+            var value: FoundationNode* = sem_node(c, n, KDeclare());
+            value.global = true;
+            var step42 = sem_member(n, "name");
+            var name: u8* = sem_identifier(c, step42);
+            sem_set_name(value, sem_output_name(c, n, name));
+            var step44 = sem_define(c, c.globals, n, name);
+            if !step44 {
+                var step46 = sem_cat(c, "Duplicate module variable '", name);
+                var step47 = sem_cat(c, step46, "'");
+                sem_fail(c, n, step47);
+                break;
+            }
+        }
+        i++;
+    }
+    i = 0;
+    loop {
+        var step49 = i < statements.length;
+        if step49 {
+            var step50 = sem_ok(c);
+            step49 = step50;
+        }
+        if !step49 {
+            break;
+        }
+        var n: void* = statements.data[i];
+        if sem_is(n, "CoreDeclare") {
+            var step53 = sem_declaration_type(c, n);
+            if !step53 {
+                break;
+            }
+            sem_add_local(c, n);
+        }
+        i++;
+    }
+    i = 0;
+    loop {
+        var step55 = i < statements.length;
+        if !step55 {
+            break;
+        }
+        var n: void* = statements.data[i];
+        var step57 = sem_function_syntax(n);
+        var step59 = !step57;
+        if step59 {
+            var step60 = sem_is(n, "CoreStruct");
+            if sem_is(n, "CoreEnum") {
+                step60 = true;
+            }
+            var step61 = !step60;
+            step59 = step61;
+        }
+        if step59 {
+            sem_statement(c, n, 0);
+            if sem_is(n, "CoreCallStatement") {
+                var step63 = sem_member(n, "call");
+                statements.data[i] = step63;
+            }
+        }
+        i++;
+    }
+    i = 1;
+    loop {
+        var step65 = i < c.program.functions.length;
+        if step65 {
+            var step66 = sem_ok(c);
+            step65 = step66;
+        }
+        if !step65 {
+            break;
+        }
+        var n: void* = c.program.functions.data[i];
+        var function_node: FoundationNode* = sem_get(n);
+        c.current = n;
+        i++;
+        var editor_condition1 = c.editor != null;
+        if editor_condition1 {
+            if !sem_editor_contains(c, n) {
+                continue;
+            }
+        }
+        if function_node.external {
+            continue;
+        }
+        var step69 = sem_scope(c, null);
+        c.scope = step69;
+        c.loops = 0;
+        var j: usize = 0;
+        loop {
+            var step70 = j < function_node.parameters.length;
+            if !step70 {
+                break;
+            }
+            var p: void* = function_node.parameters.data[j];
+            var step72 = sem_get(p);
+            var step73 = sem_name(step72);
+            sem_put(c, c.scope.names, step73, p);
+            j++;
+        }
+        var step74 = sem_member(n, "body");
+        function_node.body = step74;
+        sem_labels(c, function_node.body);
+        var flow: u32 = sem_block(c, function_node.body, 0);
+        var step77 = function_node.type.pointers != 0;
+        if !step77 {
+            var step79 = function_node.type.scalar != SVoid();
+            step77 = step79;
+        }
+        var step80 = step77;
+        if step80 {
+            var step81 = flow & 1;
+            var step82 = step81 != 0;
+            step80 = step82;
+        }
+        if step80 {
+            var step83 = sem_name(function_node);
+            var step84 = sem_cat(c, "Function '", step83);
+            var step85 = sem_cat(c, step84, "' can finish without returning a value");
+            sem_fail(c, n, step85);
+        }
+    }
+    i = 8;
+    loop {
+        var step87 = i < c.program.types.length;
+        if step87 {
+            var step88 = sem_ok(c);
+            step87 = step88;
+        }
+        if !step87 {
+            break;
+        }
+        sem_layout(c, c.program.types.data[i]);
+        i++;
+    }
+    var step90 = foundation_nodes_prepend(statements, c.generated.data, c.generated.length);
+    sem_require(step90);
+}

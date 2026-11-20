@@ -1,5 +1,5 @@
 import tower;
-import '../library/vector';
+import .library.vector;
 
 fn backend_length(text: u8*): usize {
     var count: usize = 0;

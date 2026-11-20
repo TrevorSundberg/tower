@@ -4,14 +4,14 @@
 and defines executable foundation syntax, and `tower.tower` imports Foundation
 and adds language conveniences. Compiler, runtime, backend and user code can all
 import Tower. The foreign C/C++ declaration grammar remains in
-`backend/foreign-grammar.tower`; it is not part of Foundation.
+`backend/foreign_grammar.tower`; it is not part of Foundation.
 Tower also supplies [match/while and generic collection libraries](tower.md).
 The [language plan](tower-language-plan.md) records the staged work beyond these
 features, including selective imports, dependency queries and returned errors.
 
 ## Why the compiler imports Tower
 
-`import tower;` is an ordinary file import, equivalent to `import "tower";`.
+`import tower;` is an ordinary file import, equivalent to `import "tower.tower";` when no host override is selected.
 The name is not reserved and does not refer to `tower.wasm`, a compiler service,
 or the entire compiler project. It resolves `tower.tower` using the same search
 rules as every other module. That file defines surface syntax such as `const`,
@@ -54,34 +54,51 @@ steps; ordinary `import tower;` resolution is already implemented.
 ```tower
 import tower;
 import library.vector;
-import "lib/answer";
+import lib.answer;
 
 const Expected: i32 = 42;
 print(Expected());
 ```
 
-Imports omit `.tower`. Use dotted identifiers for ordinary module names and
-strings for relative paths or filenames that are not identifiers:
+Project-owned Tower files and directories use identifier names with underscores,
+not hyphens, and use unquoted imports. The last dotted segment is the filename;
+earlier segments are directories. Only unquoted imports infer the `.tower` suffix.
+Each leading dot moves up one directory:
 
 ```tower
-import foo.bar.baz;          // foo/bar/baz.tower
-import "foo/bar/baz";        // the same file
-import "../shared/helpers";  // relative to this importing file
-import "tools/file-name";    // filenames outside the identifier spelling
+import foo.bar.baz;              // foo/bar/baz.tower
+import .shared.helpers;         // ../shared/helpers.tower
+import ..shared.helpers;        // ../../shared/helpers.tower
+import "foo/bar/baz.tower";      // the same file as foo.bar.baz
+import "./helpers.tower";        // force the current directory only
+import "tools/file-name.tower";  // arbitrary user filenames remain supported
 ```
 
-The last dotted segment is the filename; earlier segments are directories.
-Dots select files; use an explicit alias to bind a namespace in the importing
-file. Declarations belong to their canonical file identity, not its basename.
-Keep literal dots in filenames inside strings, such as `"tools/schema.v2"`;
-escaped identifier segments are also preserved by formatting.
+Leading-dot imports are anchored to the importing file, without library fallback.
+Dots select files; use an explicit alias to bind a namespace. Backtick-escaped
+identifier segments can represent names such as ``foo.`schema.v2` ``. Quoted paths
+remain useful for absolute paths, assets, names containing separators or spaces,
+and filenames with literal dots. Importing a file still parses Tower source;
+this change does not introduce an image or other binary-asset loader.
 
-Use `/` as the portable source spelling. Quoted strings also accept escaped
-backslashes (`"..\\shared\\helpers"`); the loader normalizes them to `/`, and
-the formatter emits that canonical spelling. `.` and `..` are resolved lexically.
-Paths beginning with `./` or `../` stay relative to the importing file, with no
-library fallback. Absolute paths remain machine-specific; normalization does
-not translate a Windows drive into a Linux mount point. Symlinks are not resolved.
+Quoted imports specify the complete filename with its extension, if any. They
+never append `.tower` or select a host builtin-name override. Directory and file
+names must match case exactly, even on Windows and case-insensitive POSIX volumes.
+The native loader checks directory entries; browser files use exact source keys.
+Native POSIX checks require permission to enumerate the containing directories.
+Windows drive letters are normalized to uppercase; UNC server/share roots retain
+the platform's lookup semantics. This is not a claim to normalize Unicode names
+or make platform-invalid filenames portable.
+
+Use `/` as the portable quoted spelling. Escaped backslashes are also accepted
+and formatted as slashes. Quoted `./` and `../` paths have no library fallback.
+Absolute paths remain machine-specific: a Windows drive is not a Linux mount.
+Paths and `..` are normalized lexically **before** file reads. Symlinks are
+followed by the filesystem, but their targets are not module identities: two
+symlink/hard-link aliases may load the same file twice and repeat initialization.
+A symlink cycle can reach the depth limit. Lexical `link/../file` need not mean
+the same file as walking that path through the filesystem. These are existing
+resolver policies, not guarantees provided by the dotted spelling.
 
 Put imports before the file's own declarations and statements. Resolution
 tries the importing file's directory, then the explicitly configured library
@@ -117,7 +134,7 @@ foreign ABI profiles now use these named values.
 
 ## Compiler API and dependencies
 
-`compiler/frontend-modules.tower` owns resolution, source validation, dependency
+`compiler/frontend_modules.tower` owns resolution, source validation, dependency
 order, import grammar composition, source locations and Make-style dependency
 output. Its module components retain source snapshots and actual shared syntax
 entities. The semantic compiler still attaches Foundation components to those
@@ -223,7 +240,7 @@ imports show their implicit Bedrock/Foundation dependencies.
 
 ## Bootstrap requirement
 
-Building these sources requires a **scope-capable Tower-built host compiler**:
+Building these sources requires an **expression-capable Tower-built host compiler**:
 
 ```sh
 export TOWER_BOOTSTRAP_COMPILER=/absolute/path/to/towerc
@@ -231,8 +248,13 @@ bash playground/scripts/build-native.sh
 bash playground/scripts/build-wasm.sh
 ```
 
-The bootstrap must support module scopes, aliases, declaration-only import cycles
-and compatible foreign-declaration linking. The old native seed does not implement
+The bootstrap must support module scopes, aliases, declaration-only import cycles,
+compatible foreign-declaration linking, leading-parent-dot imports and exact quoted
+filenames. It must also support Tower's numeric grammar precedence annotations,
+compound expressions and lazy operators. Preserve the predecessor's accompanying
+`share/tower` resources when copying its executable; copying only `towerc` can load
+incompatible grammar sources. A compiler from before the expression update cannot
+build this revision merely by loading the new `tower.tower`. The old native seed does not implement
 imports. Build scripts require an explicit previous compiler instead of trying to
 extend or regenerate that seed. Historical seed
 targets are excluded from default builds. This change does not publish a portable

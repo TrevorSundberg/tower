@@ -27,7 +27,7 @@ struct CoreBuiltin { const char* name; CoreKind kind; size_t arguments; };
 const std::vector<CoreBuiltin>& core_builtins();
 const char* core_builtin_name(CoreKind kind);
 
-// Temporary native ABI view of compiler/foundation-nodes.tower's component ON
+// Temporary native ABI view of compiler/foundation_nodes.tower's component ON
 // the expanded parser entity. Tower owns initialization and dynamic field storage.
 // References below are non-owning edges within CoreProgram's tree.
 // Both backends and the formatter consume these same nodes, not a copied IR.
@@ -122,7 +122,7 @@ struct CoreMachineState {
   bool failed = false;
   size_t frame_count = 0, task_count = 0;
   bool cached = false; // current task may read suspended per-statement results
-  TowerByteBuffer memory_storage{}; // owned by interpreter-storage.tower
+  TowerByteBuffer memory_storage{}; // owned by interpreter_storage.tower
   CoreMachineArray<CoreMachineEntry> allocations, free_blocks, strings, sequenced;
   CoreMachineArray<CoreMachineFrame> frames;
   CoreMachineArray<CoreMachineEntry> node_cache;

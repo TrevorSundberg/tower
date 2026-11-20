@@ -1,9 +1,9 @@
-import 'interpreter-types';
+import interpreter_types;
 import tower;
-import 'foundation-tags';
-import 'foundation-types';
-import 'interpreter-abi';
-import 'interpreter-storage';
+import foundation_tags;
+import foundation_types;
+import interpreter_abi;
+import interpreter_storage;
 
 fn im_ok(m: IMState*): bool {
     var ok = !m.failed;

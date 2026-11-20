@@ -36,7 +36,7 @@ attached comments, and file/line/column locations. Grammar references retain the
 snapshot active at that source position. One tree walk covers every leaf and
 selects the nearest entity with supported components across its whole source
 span. There are no keyword/punctuation spelling checks or operation allow-lists
-in this lookup. `language-components.tower` dispatches presentation by actual ECS
+in this lookup. `language_components.tower` dispatches presentation by actual ECS
 component type with explicit priority, independent of component storage order.
 The Foundation component presenter uses its operation tag and resolved bindings
 to choose details; syntax and resolved-type presenters handle their own metadata.
@@ -67,7 +67,7 @@ than restating its name: variables store values that can change, parameters are
 inputs supplied by a call, and functions are reusable code. Function explanations
 use checked parameter/result metadata, including no-input and void-result cases.
 
-`semantic-generic-info.tower` supplies an optional bounded inspection pass over
+`semantic_generic_info.tower` supplies an optional bounded inspection pass over
 the original template entities. It attaches `GenericInfo` components linking
 declarations, parameter uses and their actual type-expression trees, reusing
 semantic scope tables for lexical bindings. Type parameters and compile-time
@@ -80,7 +80,7 @@ and nominal layout resolution remain gated by successful checking; failed
 documents retain symbolic annotations/bindings without exposing unfinished type
 layouts. Independently known primitive field types remain usable after errors.
 
-`semantic-generic-values.tower` follows member paths through those annotations
+`semantic_generic_values.tower` follows member paths through those annotations
 and declaration-based argument bindings. A type function with direct struct
 declarations followed by a return of one of those structs has a fixed field
 shape, cached on its original definition. For example, `stack(T)*` can expose
@@ -98,11 +98,11 @@ enclosing function. It does not fully check unused bodies or infer every
 dependent expression; ordinary instantiation still performs those checks.
 Depth/node limits report an incomplete index when reached.
 
-`language-generics.tower` presents these components through the same dispatcher,
+`language_generics.tower` presents these components through the same dispatcher,
 including preceding lexer-captured comments and declaration locations. Canonical
-generic signatures and dependent type expressions use `format-dependent.tower`
+generic signatures and dependent type expressions use `format_dependent.tower`
 in the shared formatting engine, with disposable substitution views of the
-original annotation entities. `inspection-policy.tower` names query limits
+original annotation entities. `inspection_policy.tower` names query limits
 and the `LanguagePresentation` priority enum. The browser still only renders the
 returned data and uses its cached position index for mouse movement.
 

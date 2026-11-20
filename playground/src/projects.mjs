@@ -51,6 +51,20 @@ export async function projectStore() {
 
 // The first Tower file is the project entry. Tower resolves its import closure.
 export function projectSources(project) { return project.files.filter(file => file.path.endsWith('.tower')).slice(0, 1); }
+
+// Retire unchanged bundled paths after a rename; keep edited/user files intact.
+export function refreshCompilerSources(project, recipe) {
+  const current = new Set(recipe.files.map(file => file.path));
+  project.files = project.files.filter(file => current.has(file.path) ||
+    file.text !== project.sourceBaseline?.[file.path]);
+  for (const file of recipe.files) {
+    const saved = project.files.find(saved => saved.path === file.path);
+    if (!saved) project.files.push({...file});
+    else if (saved.text === project.sourceBaseline?.[file.path]) saved.text = file.text;
+  }
+  if (!project.files.some(file => file.path === project.active)) project.active = recipe.entry;
+  project.sourceBaseline = Object.fromEntries(recipe.files.map(file => [file.path, file.text]));
+}
 export function projectDiagnostic(result, files) {
   if (result.status !== 'error' || result.errorFile || !files?.length) return result;
   let offset = result.errorOffset ?? 0;

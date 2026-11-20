@@ -19,8 +19,8 @@ for(const [name,module] of Object.entries(bytes))
  compilers[name]=await loadLLVM(module,undefined,grammar.foundation,undefined,grammar.bedrock,{tower:grammar.tower});
 
 const generator=await loadTower(await read('build/browser-wasi/tower.wasm'),undefined,grammar.foundation);
-generator.configureModules({entry:'.tower/tests/layout-depth-source.tower'});
-const handle=generator.compile((await read('scaffolding/tests/layout-depth-source.tower')).toString());
+generator.configureModules({entry:'.tower/tests/layout_depth_source.tower'});
+const handle=generator.compile((await read('scaffolding/tests/layout_depth_source.tower')).toString());
 let layout='';
 try {
  let result;

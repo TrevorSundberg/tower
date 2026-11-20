@@ -9,16 +9,16 @@ function(tower_compiler_interpreter)
     message(FATAL_ERROR "Set TOWER_BOOTSTRAP_COMPILER to an import-capable Tower-built host compiler.")
   endif()
   get_property(triple GLOBAL PROPERTY TOWER_COMPILER_TRIPLE)
-  set(input "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-interpreter.tower")
+  set(input "${CMAKE_CURRENT_BINARY_DIR}/tower_compiler_interpreter.tower")
   set(object "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-interpreter.o")
   add_custom_command(OUTPUT "${input}"
     COMMAND "${CMAKE_COMMAND}" -DROOT=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT=${input} -DTESTS=${TOWER_PARSER_ONLY}
       -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ComposeInterpreter.cmake"
-    DEPENDS scaffolding/compiler/interpreter.tower scaffolding/compiler/interpreter-abi.tower scaffolding/compiler/fast-interpreter.tower
-      scaffolding/compiler/interpreter-storage.tower scaffolding/tests/interpreter-storage.tower
-      scaffolding/compiler/bytecode-package.tower
-      scaffolding/library/vector.tower scaffolding/compiler/foundation-nodes.tower
-      scaffolding/compiler/foundation-tags.tower cmake/ComposeInterpreter.cmake VERBATIM)
+    DEPENDS scaffolding/compiler/interpreter.tower scaffolding/compiler/interpreter_abi.tower scaffolding/compiler/fast_interpreter.tower
+      scaffolding/compiler/interpreter_storage.tower scaffolding/tests/interpreter_storage.tower
+      scaffolding/compiler/bytecode_package.tower
+      scaffolding/library/vector.tower scaffolding/compiler/foundation_nodes.tower
+      scaffolding/compiler/foundation_tags.tower cmake/ComposeInterpreter.cmake VERBATIM)
   add_custom_command(OUTPUT "${object}"
     COMMAND "${bootstrap}" "${input}" --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
       --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"

@@ -1,0 +1,10 @@
+import tower;
+import guest_runtime_abi;
+var result = guest_runtime_tests();
+print(result);
+var failed = result != 0;
+if failed {
+    var zero: i32 = 0;
+    var trap = 1 / zero;
+    print(trap);
+}

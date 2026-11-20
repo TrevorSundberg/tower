@@ -1,0 +1,36 @@
+import tower;
+import .library.vector;
+import frontend_diagnostic_types;
+
+enum ParserReadMode: u32 {
+    WholeInput, Constructs
+}
+
+struct ParserHostState {
+    origin: usize;
+    kernels: usize;
+    contexts: vector(FrontendContextPosition);
+}
+
+// Presentation services are explicit until Tower supports function values. The
+// Syntax service calls the existing syntax owner's exported views; it does not
+// own or mutate a SyntaxSession or grammar revision.
+enum ParserPresentation: u32 {
+    Numeric, Utf8, NonTerminal, Syntax
+}
+
+// The coordinator owns the table and pins it and its world for all requests.
+// Build completes before publication. Requests borrow it without refcount/cache
+// writes; it must not be rebuilt or destroyed until those requests have ended.
+struct ParserHostTable {
+    grammar: void*;
+    runtime: void*;
+    states: vector(ParserHostState);
+    userdata: void*;
+    presentation: ParserPresentation;
+    mode: u32;
+    error: u8*;
+    built: bool;
+    match_kind: void*;
+    trace: bool;
+}

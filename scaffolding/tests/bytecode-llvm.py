@@ -76,7 +76,7 @@ print(f'LLVM bytecode comparisons passed: {runs} (both widths, optimized/debug, 
 # snapshots must still drive runtime diagnostics and dependency output.
 main = output / 'module-main.tower'
 dependency = output / 'module-helper.tower'
-main.write_text('import "module-helper"; print(answer());')
+main.write_text('import "module-helper.tower"; print(answer());')
 for failing in [False, True]:
     dependency.write_text('import foundation;\nfn answer(): i32 {\nvar zero = 0;\nvar result = 42 / zero;\nreturn result;\n}' if failing else
                           'import foundation;\nfn answer(): i32 { return 42; }')

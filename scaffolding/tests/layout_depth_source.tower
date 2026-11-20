@@ -1,0 +1,63 @@
+import tower;
+import .library.vector;
+import .library.platform;
+
+// Generate a functional layout test with a dependency chain deeper than the
+// former recursive limit. The generated program is ordinary Foundation/Tower.
+fn layout_text(out: vector(u8)*, text: u8*): void {
+    var length: usize = 0;
+    while text[length] != 0 {
+        vector_push(u8, out, text[length]);
+        length++;
+    }
+}
+
+fn layout_number(out: vector(u8)*, number: usize): void {
+    var digits: u8[24];
+    var count: usize = 0;
+    loop {
+        var digit = number % 10;
+        digit = digit + 48;
+        digits[count] = convert(u8, digit);
+        count++;
+        number = number / 10;
+        var done = number == 0;
+        if done {
+            break;
+        }
+    }
+    while count != 0 {
+        count--;
+        vector_push(u8, out, digits[count]);
+    }
+}
+
+fn layout_source(): void {
+    var out: vector(u8);
+    vector_init(u8, &out);
+    layout_text(&out, "import tower;\n");
+    var i: usize = 1024;
+    while i != 0 {
+        layout_text(&out, "struct Level");
+        layout_number(&out, i);
+        layout_text(&out, " { value: Level");
+        var previous = i - 1;
+        layout_number(&out, previous);
+        layout_text(&out, "; }\n");
+        i = previous;
+    }
+    layout_text(&out, "struct Level0 { value: i32; }\n");
+    layout_text(&out, "struct Wide {\n");
+    i = 0;
+    while i < 512 {
+        layout_text(&out, "field");
+        layout_number(&out, i);
+        layout_text(&out, ": i32;\n");
+        i++;
+    }
+    layout_text(&out, "}\nfn check(): i32 { var correct = sizeof(Level1024) == 4; if correct {} else { return 1; } correct = sizeof(Wide) == 2048; if correct {} else { return 2; } var wide: Wide; wide.field511 = 42; var result = wide.field511 - 42; return result; }\nprint(check());\n");
+    platform_write(1, out.data, out.length);
+    vector_dispose(u8, &out);
+}
+
+layout_source();

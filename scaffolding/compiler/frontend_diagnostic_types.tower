@@ -1,0 +1,22 @@
+import tower;
+import .library.vector;
+
+struct FrontendRulePosition {
+    production: usize;
+    term: usize;
+}
+
+struct FrontendContextPosition {
+    production: usize;
+    term: usize;
+    first: u32;
+    last: u32;
+    terminal: bool;
+}
+
+struct FrontendExpectation {
+    id: u32;
+    insertion: bool;
+    completes: bool;
+    contexts: vector(FrontendRulePosition);
+}

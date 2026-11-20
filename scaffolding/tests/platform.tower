@@ -1,4 +1,4 @@
-import '../library/platform';
+import .library.platform;
 import tower;
 
 // Concatenate library/platform.tower before this program.

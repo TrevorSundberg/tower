@@ -27,8 +27,9 @@ parse GrammarAtom = $literal:String | $reference:Identifier | '$' $capture:Ident
 parse GrammarTokenSet = $previous:GrammarTokenSet $literal:String | ;
 parse GrammarStyle = | 'as' $kind:Identifier;
 parse ImportPath = $previous:ImportPath '.' $segment:Identifier | $segment:Identifier;
-parse ImportDeclaration = 'import' $name:ImportPath ';' | 'import' $name:String ';'
-                         | 'import' $name:ImportPath 'as' $alias:Identifier ';'
+parse ImportName = '.' $parent:ImportName | $segments:ImportPath;
+parse ImportDeclaration = 'import' $name:ImportName ';' | 'import' $name:String ';'
+                         | 'import' $name:ImportName 'as' $alias:Identifier ';'
                          | 'import' $name:String 'as' $alias:Identifier ';';
 
 // Optional production binding power. Larger numbers bind more tightly.

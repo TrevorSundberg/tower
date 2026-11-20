@@ -1,0 +1,175 @@
+import tower;
+import ide_types;
+import .library.bytes_types;
+import .library.vector;
+import .compiler.host_handle_types;
+import .compiler.semantic_program_types;
+import .compiler.interpreter_types;
+import .compiler.foundation_types;
+import .compiler.format_types;
+import .compiler.parser_types;
+import .compiler.syntax_types;
+import .library.bytes_interface;
+
+// Existing compiler interfaces. This unit selects no compiler implementation.
+extern fn abort(): void;
+
+extern fn bytes_assign_text(out: ByteBuffer*, data: u8*, length: usize): bool;
+
+extern fn host_text_terminate(out: ByteBuffer*): bool;
+
+extern fn host_json_quote(out: ByteBuffer*, data: u8*, length: usize): bool;
+
+extern fn host_json_unsigned(out: ByteBuffer*, value: u64): bool;
+
+extern fn host_source_error(data: u8*, length: usize): u8*;
+
+extern fn host_execution_json(out: ByteBuffer*, error: u8*, error_count: usize, offset: usize, done: bool, output: u8*, output_count: usize, steps: u64, truncated: bool): bool;
+
+extern fn host_handles_count(table: HostHandles*, kind: u32): usize;
+
+extern fn host_handles_get(table: HostHandles*, kind: u32, handle: u32): void*;
+
+extern fn host_handles_insert(table: HostHandles*, kind: u32, value: void*): u32;
+
+extern fn host_handles_take(table: HostHandles*, kind: u32, handle: u32): void*;
+
+extern fn tower_node_create(): void*;
+
+extern fn entity_release(node: void*): usize;
+
+extern fn entity_id(node: void*): usize;
+
+extern fn entity_child_count(node: void*): usize;
+
+extern fn entity_child_at(node: void*, index: usize): void*;
+
+extern fn entity_child_name(node: void*, index: usize): u8*;
+
+extern fn entity_member_index(node: void*, name: u8*): usize;
+
+extern fn entity_attach(node: void*, parent: void*, name: u8*): bool;
+
+extern fn entity_register(node: void*, size: usize, alignment: usize, lifecycle: usize): bool;
+
+extern fn entity_component_add(owner: void*, type: void*): void*;
+
+extern fn entity_component_get(owner: void*, type: void*): void*;
+
+extern fn entity_component_data(component: void*): u8*;
+
+extern fn tower_node_get_parent_member_name(node: void*): u8*;
+
+extern fn tower_node_get_component_userdata(node: void*, type: void*): void*;
+
+extern fn tower_node_get_allocated_count(): usize;
+
+extern fn tower_memory_get_allocated_count(): usize;
+
+extern fn core_component_type(): void*;
+
+extern fn syntax_component_type(): void*;
+
+extern fn parser_match_get_type(): void*;
+
+extern fn syntax_get(node: void*): SyntaxNode*;
+
+extern fn syntax_kind_name(kind: u32): u8*;
+
+extern fn syntax_get_origin(node: void*): SyntaxOrigin*;
+
+extern fn syntax_completion_create(text: u8*, mode: u32): void*;
+
+extern fn syntax_destroy(session: void*): void;
+
+extern fn syntax_reset(session: void*, text: u8*, module: void*): void;
+
+extern fn syntax_next(session: void*): void*;
+
+extern fn syntax_get_error(session: void*): u8*;
+
+extern fn syntax_get_revision(session: void*): usize;
+
+extern fn syntax_get_error_offset(session: void*): usize;
+
+extern fn syntax_completion_enable(session: void*): void;
+
+extern fn syntax_completion_module(session: void*): void*;
+
+extern fn frontend_module_environment(module: void*): void*;
+
+extern fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendSource*, count: usize, environment: void*): void;
+
+extern fn semantic_initialize(program: SemanticProgram*, root: void*, width: u32): void;
+
+extern fn semantic_program_dispose(program: SemanticProgram*): void;
+
+extern fn sem_get(node: void*): FoundationNode*;
+
+extern fn semantic_format_type(type: FoundationType*, out: vector(u8)*): void;
+
+extern fn semantic_size(type: FoundationType*): usize;
+
+extern fn semantic_alignment(type: FoundationType*): usize;
+
+extern fn semantic_strip_comments(root: void*): void;
+
+extern fn format_entity(out: FormatResult*, root: void*, syntax: void*, foundation: void*, match_kind: void*): void;
+
+extern fn format_dispose(out: FormatResult*): void;
+
+extern fn c_emit(out: ByteBuffer*, error: ByteBuffer*, root: void*, width: u32, comments: bool): void;
+
+extern fn roku_emit(out: ByteBuffer*, error: ByteBuffer*, root: void*, width: u32, comments: bool): void;
+
+extern fn interpreter_init(machine: IMState*): void;
+
+extern fn interpreter_storage_dispose(machine: IMState*): void;
+
+extern fn interpreter_step(machine: IMState*, budget: usize): void;
+
+extern fn interpreter_allocate(machine: IMState*, count: usize): u64;
+
+extern fn interpreter_deallocate(machine: IMState*, address: u64): void;
+
+extern fn fast_interpreter_create(machine: IMState*): void*;
+
+extern fn fast_interpreter_dispose(fast: void*): void;
+
+extern fn fast_interpreter_step(machine: IMState*, fast: void*, budget: usize): void;
+
+extern fn fast_interpreter_stat(fast: void*, key: usize): usize;
+
+extern fn bytecode_validate(data: u8*, size: usize): u32;
+
+extern fn bytecode_error(code: u32): u8*;
+
+extern fn bytecode_source_size(data: u8*): usize;
+
+extern fn bytecode_pointer_bytes(data: u8*): usize;
+
+extern fn bytecode_encode(fast: void*, source: u8*, size: usize, width: usize, profile: u32, length: usize*): u8*;
+
+extern fn bytecode_matches(fast: void*, data: u8*): bool;
+
+extern fn bytecode_free(data: u8*): void;
+
+struct IdeCompletionSpan {
+    start: usize;
+    end: usize;
+    opaque: bool;
+}
+
+extern fn completion_begin(source: u8*, size: usize, cursor: usize, spans: IdeCompletionSpan*, count: usize): void*;
+
+extern fn completion_from(query: void*): usize;
+
+extern fn completion_analyze(query: void*, active: void*, mode: u32, files: u8**, lengths: usize*, count: usize): void;
+
+extern fn completion_symbols(query: void*): void;
+
+extern fn completion_offer(query: void*, name: u8*, kind: u8*, detail: u8*, category: u32): void;
+
+extern fn completion_end(query: void*): u8*;
+
+extern fn completion_dispose(query: void*): void;

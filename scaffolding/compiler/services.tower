@@ -2,19 +2,19 @@
 // The bootstrap composes this import closure into the semantic library unit.
 // Nodes, bindings, types and source metadata remain the compiler's shared ECS.
 // See docs/compiler-services.md for query ownership and platform boundaries.
-import 'foundation-types';
-import 'parser-types';
-import 'semantic-context';
-import 'semantic-definitions';
-import 'semantic-support';
-import 'semantic-modules';
-import 'semantic-types';
-import 'semantic-values';
-import 'semantic-statements';
-import 'semantic-lifecycle';
-import 'frontend-compilation';
-import 'source-comments';
-import 'c-emitter';
-import 'roku-emitter';
-import 'completion';
-import 'language-query';
+import foundation_types;
+import parser_types;
+import semantic_context;
+import semantic_definitions;
+import semantic_support;
+import semantic_modules;
+import semantic_types;
+import semantic_values;
+import semantic_statements;
+import semantic_lifecycle;
+import frontend_compilation;
+import source_comments;
+import c_emitter;
+import roku_emitter;
+import completion;
+import language_query;

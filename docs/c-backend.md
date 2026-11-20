@@ -1,7 +1,7 @@
 # C output
 
-Tower's C emitter is implemented in `scaffolding/compiler/c-emitter.tower` and
-`c-runtime.tower`. It reads the same checked Foundation entities as the formatter,
+Tower's C emitter is implemented in `scaffolding/compiler/c_emitter.tower` and
+`c_runtime.tower`. It reads the same checked Foundation entities as the formatter,
 interpreter and LLVM backend. C is a platform output, not a Tower storage format.
 
 In the playground, enable **C source** under **Targets**. It is off by default.

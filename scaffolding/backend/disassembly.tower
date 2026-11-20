@@ -1,8 +1,8 @@
-import 'target-api';
+import target_api;
 import tower;
-import 'bindings';
-import 'text';
-import '../library/vector';
+import bindings;
+import text;
+import .library.vector;
 
 // Object inspection is separate from semantics. Bytes here are platform output.
 struct BackendLabel {

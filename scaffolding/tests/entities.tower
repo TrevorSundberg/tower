@@ -1,4 +1,4 @@
-import '../library/entities';
+import .library.entities;
 import tower;
 
 // Compose after entities.tower; the host supplies the optional lifecycle bridge.

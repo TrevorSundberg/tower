@@ -1,0 +1,319 @@
+import tower;
+import frontend_table;
+import grammar_types;
+import lr_tree;
+import parser_nodes;
+import regex_lowering;
+import syntax_emission;
+import syntax_nodes;
+import syntax_reader;
+import syntax_types;
+import .library.vector;
+
+// The initial grammar is constructed by Tower on the ordinary shared entities.
+// Loading bedrock.tower still applies each declaration to its following source.
+struct FrontendBedrock {
+    kinds: FrontendKinds*;
+    patterns: FrontendTable;
+    document: void*;
+    rule: void*;
+    alternative: void*;
+    failed: bool;
+}
+
+fn frontend_syntax(node: void*, kind: void*): SyntaxNode* {
+    var component = entity_component_get(node, kind);
+    return bits(SyntaxNode*, entity_component_data(component));
+}
+
+fn frontend_bedrock_entity(b: FrontendBedrock*, kind: u32, parent: void*): void* {
+    if b.failed {
+        return null;
+    }
+    var node = entity_create_related(b.kinds.syntax);
+    var ok = node != null;
+    if !ok {
+        b.failed = true;
+        return null;
+    }
+    var component = entity_component_add(node, b.kinds.syntax);
+    ok = component != null;
+    if ok {
+        var value = bits(SyntaxNode*, entity_component_data(component));
+        syntax_node_init(value);
+        value.kind = kind;
+        var child = parent != null;
+        if child {
+            var owner = frontend_syntax(parent, b.kinds.syntax);
+            var needed = owner.items.length + 1;
+            ok = vector_reserve(void*, &owner.items, needed);
+            ok &&= entity_attach(node, parent, "");
+            if ok {
+                owner.items.data[owner.items.length] = node;
+                owner.items.length++;
+                entity_release(node);
+            }
+        }
+    }
+    if ok {
+        return node;
+    }
+    entity_release(node);
+    b.failed = true;
+    return null;
+}
+
+fn frontend_bedrock_rule(b: FrontendBedrock*, name: u8*): void {
+    b.rule = frontend_bedrock_entity(b, 1, b.document);
+    if b.failed {
+        return;
+    }
+    var value = frontend_syntax(b.rule, b.kinds.syntax);
+    var ok = node_text_set(&value.name, name);
+    b.failed = !ok;
+}
+
+fn frontend_bedrock_alternative(b: FrontendBedrock*): void {
+    b.alternative = frontend_bedrock_entity(b, 4, b.rule);
+}
+
+fn frontend_bedrock_term(b: FrontendBedrock*, parent: void*, text: u8*, capture: u8*, literal: bool): void* {
+    var node = frontend_bedrock_entity(b, 5, parent);
+    if b.failed {
+        return null;
+    }
+    var value = frontend_syntax(node, b.kinds.syntax);
+    value.literal = literal;
+    var ok = node_text_set(&value.text, text);
+    ok &&= node_text_set(&value.capture, capture);
+    b.failed = !ok;
+    return node;
+}
+
+fn frontend_bedrock_token(b: FrontendBedrock*, kind: u32, name: u8*, text: u8*, style: u8*, contextual: bool): void {
+    var node = frontend_bedrock_entity(b, kind, b.document);
+    if b.failed {
+        return;
+    }
+    var value = frontend_syntax(node, b.kinds.syntax);
+    value.contextual = contextual;
+    var ok = node_text_set(&value.name, name);
+    ok &&= node_text_set(&value.text, text);
+    ok &&= node_text_set(&value.style, style);
+    if ok {
+        value.compiled = frontend_pattern_compile(&b.patterns, b.kinds, text);
+        ok = value.compiled != null;
+    }
+    b.failed = !ok;
+}
+
+fn frontend_bedrock_comment(b: FrontendBedrock*, text: u8*): void {
+    if b.failed {
+        return;
+    }
+    var document = frontend_syntax(b.document, b.kinds.syntax);
+    var first = frontend_syntax(document.items.data[0], b.kinds.syntax);
+    var ok = syntax_comments_push(&first.comments, text, syntax_text_length(text));
+    b.failed = !ok;
+}
+
+// Fixed seed definitions follow. They are ordinary constructors, not a native
+// parser or a serialized binary grammar. The formatter prints these same nodes.
+
+export fn frontend_bedrock_create(kinds: FrontendKinds*): void* {
+    var b: FrontendBedrock;
+    fill(&b, 0, sizeof(FrontendBedrock));
+    b.kinds = kinds;
+    var ready = frontend_pattern_table(&b.patterns, kinds);
+    b.failed = !ready;
+    b.document = frontend_bedrock_entity(&b, 0, null);
+    frontend_bedrock_token(&b, 3, "Whitespace", "[ \\t\\r\\n]+", "", false);
+    frontend_bedrock_token(&b, 3, "LineComment", "\\/\\/[^\\r\\n]*", "comment", false);
+    frontend_bedrock_token(&b, 3, "BlockComment", "\\/\\*([^*]|\\*+[^*/])*\\*+\\/", "comment", false);
+    frontend_bedrock_token(&b, 2, "Identifier", "[A-Za-z_][A-Za-z0-9_]*|`([^`\\\\\\r\\n]|\\\\[nrt\\\\`])*`", "identifier", false);
+    frontend_bedrock_token(&b, 2, "String", "\"([^\"\\\\\\r\\n]|\\\\[nrt\\\\'\"])*\"|'([^'\\\\\\r\\n]|\\\\[nrt\\\\'\"])*'", "string", false);
+    frontend_bedrock_token(&b, 2, "GrammarPattern", "\\/([^/\\\\\\[\\r\\n]|\\\\[^\\r\\n]|\\[([^\\\\\\]\\r\\n]|\\\\[^\\r\\n])*\\])*\\/", "pattern", true);
+    frontend_bedrock_token(&b, 2, "GrammarCharacter", "[^{}\\r\\n]", "operator", true);
+    frontend_bedrock_comment(&b, "// This bedrock.tower is loaded first, then foundation.tower.");
+    frontend_bedrock_comment(&b, "// GrammarPattern reads /patterns/ for token and skip rules.");
+    frontend_bedrock_comment(&b, "// GrammarTemplate reads {replacement bodies} with balanced braces.");
+
+    frontend_bedrock_rule(&b, "GrammarDeclaration");
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "parse", "", true);
+    frontend_bedrock_term(&b, b.alternative, "Identifier", "name", false);
+    frontend_bedrock_term(&b, b.alternative, "GrammarAssignment", "op", false);
+    frontend_bedrock_term(&b, b.alternative, "GrammarAlternatives", "alternatives", false);
+    frontend_bedrock_term(&b, b.alternative, "GrammarReplacement", "replacement", false);
+    frontend_bedrock_term(&b, b.alternative, ";", "", true);
+
+    frontend_bedrock_rule(&b, "GrammarTemplate");
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "{", "", true);
+    frontend_bedrock_term(&b, b.alternative, "GrammarTemplateItems", "", false);
+    frontend_bedrock_term(&b, b.alternative, "}", "", true);
+
+    frontend_bedrock_rule(&b, "GrammarTemplateItems");
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "GrammarTemplateItems", "", false);
+    frontend_bedrock_term(&b, b.alternative, "GrammarTemplateItem", "", false);
+    frontend_bedrock_alternative(&b);
+
+    frontend_bedrock_rule(&b, "GrammarTemplateItem");
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "GrammarTemplate", "", false);
+    frontend_bedrock_alternative(&b);
+    var exclusion = frontend_bedrock_term(&b, b.alternative, "", "", false);
+    if !b.failed {
+        var term = frontend_syntax(exclusion, kinds.syntax);
+        term.terminal_set = true;
+    }
+    frontend_bedrock_term(&b, exclusion, "{", "", true);
+    frontend_bedrock_term(&b, exclusion, "}", "", true);
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "GrammarCharacter", "", false);
+
+    frontend_bedrock_rule(&b, "GrammarTokenDeclaration");
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "token", "", true);
+    frontend_bedrock_term(&b, b.alternative, "Identifier", "name", false);
+    frontend_bedrock_term(&b, b.alternative, "=", "", true);
+    frontend_bedrock_term(&b, b.alternative, "GrammarPattern", "pattern", false);
+    frontend_bedrock_term(&b, b.alternative, "GrammarTokenMode", "mode", false);
+    frontend_bedrock_term(&b, b.alternative, "GrammarStyle", "style", false);
+    frontend_bedrock_term(&b, b.alternative, ";", "", true);
+
+    frontend_bedrock_rule(&b, "GrammarSkipDeclaration");
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "skip", "", true);
+    frontend_bedrock_term(&b, b.alternative, "Identifier", "name", false);
+    frontend_bedrock_term(&b, b.alternative, "=", "", true);
+    frontend_bedrock_term(&b, b.alternative, "GrammarPattern", "pattern", false);
+    frontend_bedrock_term(&b, b.alternative, "GrammarTokenMode", "mode", false);
+    frontend_bedrock_term(&b, b.alternative, "GrammarStyle", "style", false);
+    frontend_bedrock_term(&b, b.alternative, ";", "", true);
+
+    frontend_bedrock_rule(&b, "GrammarTokenMode");
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "when", "", true);
+    frontend_bedrock_term(&b, b.alternative, "expected", "", true);
+
+    frontend_bedrock_rule(&b, "GrammarAssignment");
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "=", "", true);
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "|=", "", true);
+
+    frontend_bedrock_rule(&b, "GrammarReplacement");
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "=>", "", true);
+    frontend_bedrock_term(&b, b.alternative, "replace", "", true);
+    frontend_bedrock_term(&b, b.alternative, "GrammarTemplate", "body", false);
+
+    frontend_bedrock_rule(&b, "GrammarAlternatives");
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "GrammarAlternatives", "previous", false);
+    frontend_bedrock_term(&b, b.alternative, "|", "", true);
+    frontend_bedrock_term(&b, b.alternative, "GrammarSequence", "sequence", false);
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "GrammarSequence", "sequence", false);
+
+    frontend_bedrock_rule(&b, "GrammarSequence");
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "GrammarSequence", "previous", false);
+    frontend_bedrock_term(&b, b.alternative, "GrammarTerm", "term", false);
+    frontend_bedrock_alternative(&b);
+
+    frontend_bedrock_rule(&b, "GrammarTerm");
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "GrammarAtom", "atom", false);
+    frontend_bedrock_term(&b, b.alternative, "GrammarSuffix", "suffix", false);
+
+    frontend_bedrock_rule(&b, "GrammarSuffix");
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "*", "", true);
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "+", "", true);
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "?", "", true);
+    frontend_bedrock_alternative(&b);
+
+    frontend_bedrock_rule(&b, "GrammarAtom");
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "String", "literal", false);
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "Identifier", "reference", false);
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "$", "", true);
+    frontend_bedrock_term(&b, b.alternative, "Identifier", "capture", false);
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "$", "", true);
+    frontend_bedrock_term(&b, b.alternative, "Identifier", "capture", false);
+    frontend_bedrock_term(&b, b.alternative, ":", "", true);
+    frontend_bedrock_term(&b, b.alternative, "Identifier", "reference", false);
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "[^", "", true);
+    frontend_bedrock_term(&b, b.alternative, "GrammarTokenSet", "set", false);
+    frontend_bedrock_term(&b, b.alternative, "]", "", true);
+
+    frontend_bedrock_rule(&b, "GrammarTokenSet");
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "GrammarTokenSet", "previous", false);
+    frontend_bedrock_term(&b, b.alternative, "String", "literal", false);
+    frontend_bedrock_alternative(&b);
+
+    frontend_bedrock_rule(&b, "GrammarStyle");
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "as", "", true);
+    frontend_bedrock_term(&b, b.alternative, "Identifier", "kind", false);
+
+    frontend_bedrock_rule(&b, "ImportPath");
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "ImportPath", "previous", false);
+    frontend_bedrock_term(&b, b.alternative, ".", "", true);
+    frontend_bedrock_term(&b, b.alternative, "Identifier", "segment", false);
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "Identifier", "segment", false);
+
+    frontend_bedrock_rule(&b, "ImportName");
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, ".", "", true);
+    frontend_bedrock_term(&b, b.alternative, "ImportName", "parent", false);
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "ImportPath", "segments", false);
+
+    frontend_bedrock_rule(&b, "ImportDeclaration");
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "import", "", true);
+    frontend_bedrock_term(&b, b.alternative, "ImportName", "name", false);
+    frontend_bedrock_term(&b, b.alternative, ";", "", true);
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "import", "", true);
+    frontend_bedrock_term(&b, b.alternative, "String", "name", false);
+    frontend_bedrock_term(&b, b.alternative, ";", "", true);
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "import", "", true);
+    frontend_bedrock_term(&b, b.alternative, "ImportName", "name", false);
+    frontend_bedrock_term(&b, b.alternative, "as", "", true);
+    frontend_bedrock_term(&b, b.alternative, "Identifier", "alias", false);
+    frontend_bedrock_term(&b, b.alternative, ";", "", true);
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "import", "", true);
+    frontend_bedrock_term(&b, b.alternative, "String", "name", false);
+    frontend_bedrock_term(&b, b.alternative, "as", "", true);
+    frontend_bedrock_term(&b, b.alternative, "Identifier", "alias", false);
+    frontend_bedrock_term(&b, b.alternative, ";", "", true);
+
+    frontend_table_dispose(&b.patterns);
+    if b.failed {
+        var present = b.document != null;
+        if present {
+            entity_release(b.document);
+        }
+        return null;
+    }
+    return b.document;
+}

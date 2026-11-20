@@ -1,0 +1,56 @@
+import tower;
+import ide_api;
+import ide_state;
+import ide_text;
+import ide_syntax_wasi;
+import .library.vector;
+
+fn ide_consume(syntax: void*): void {
+    var i: usize = 0;
+    while i < 1024 { var root = syntax_next(syntax); var end = root == null; if end { break; } entity_release(root); i++; }
+}
+export fn tw_complete(source: u8*, bytes: usize, cursor: usize, mode: u32, files: u8**, lengths: usize*, count: usize): u8* {
+    var valid = ide_valid(source, bytes); var bad = cursor > bytes; if bad { valid = false; }
+    bad = mode > 2; if bad { valid = false; } bad = count > 1024; if bad { valid = false; }
+    var has_files = count != 0;
+    if has_files { bad = files == null; if bad { valid = false; } bad = lengths == null; if bad { valid = false; } }
+    if !valid { return "{\"error\":\"Invalid completion request\"}"; }
+    var inside = cursor < bytes;
+    if inside { var prefix = source[cursor] & 192; bad = prefix == 128; if bad { return "{\"error\":\"Completion cursor must be a UTF-8 boundary\"}"; } }
+    var total = bytes; var i: usize = 0;
+    while i < count {
+        var left = 8388608 - total; bad = lengths[i] > left;
+        if !bad { valid = ide_valid(files[i], lengths[i]); bad = !valid; }
+        if bad { return "{\"error\":\"Invalid completion project source\"}"; }
+        total = total + lengths[i]; i++;
+    }
+    var text = ide_copy(source, bytes); var original = syntax_completion_create(text, mode); free(text); ide_consume(original);
+    var listing: IdeForeignVector; `cpp_name(std::vector<SyntaxHighlight> syntax_get_lexemes(SyntaxSession*))`(&listing, original);
+    var lexemes = bits(IdeForeignHighlight*, listing.data); var size = ide_foreign_count(&listing, sizeof(IdeForeignHighlight));
+    var spans = alloc(IdeCompletionSpan, size); var allocated = spans != null; var empty = size == 0; if empty { allocated = true; } ide_require(allocated);
+    i = 0;
+    while i < size { spans[i].start = lexemes[i].start; spans[i].end = lexemes[i].end; spans[i].opaque = lexemes[i].opaque; ide_foreign_dispose(&lexemes[i].kind); i++; }
+    ide_foreign_free(&listing);
+    var query = completion_begin(source, bytes, cursor, spans, size); free(spans);
+    var missing = query == null; if missing { syntax_destroy(original); return "{\"error\":\"Cannot allocate completion query\"}"; }
+    text = ide_copy(source, completion_from(query)); var active = syntax_completion_create(text, mode); free(text);
+    syntax_completion_enable(active); ide_consume(active); completion_analyze(query, active, mode, files, lengths, count); completion_symbols(query);
+    // Preserve offering order and priority from the public completion contract.
+    `cpp_name(std::vector<std::string> syntax_get_keywords(SyntaxSession*))`(&listing, active);
+    var keywords = bits(IdeForeignString*, listing.data); size = ide_foreign_count(&listing, sizeof(IdeForeignString)); i = 0;
+    while i < size { completion_offer(query, ide_foreign_data(&keywords[i]), "keyword", "active grammar", 0); ide_foreign_dispose(&keywords[i]); i++; }
+    ide_foreign_free(&listing);
+    `cpp_name(std::vector<SyntaxRuleInfo> syntax_get_rules(SyntaxSession*))`(&listing, active);
+    var rules = bits(IdeForeignRule*, listing.data); size = ide_foreign_count(&listing, sizeof(IdeForeignRule)); i = 0;
+    while i < size { completion_offer(query, ide_foreign_data(&rules[i].name), "type", "grammar rule", 2); ide_foreign_dispose(&rules[i].name); ide_foreign_dispose(&rules[i].definition); i++; }
+    ide_foreign_free(&listing);
+    `cpp_name(std::vector<SyntaxTokenInfo> syntax_get_tokens(SyntaxSession*))`(&listing, active);
+    var tokens = bits(IdeForeignToken*, listing.data); size = ide_foreign_count(&listing, sizeof(IdeForeignToken)); i = 0;
+    while i < size {
+        var item = &tokens[i]; if !(item.`skip`) { completion_offer(query, ide_foreign_data(&item.name), "type", "token rule", 2); }
+        ide_foreign_dispose(&item.name); ide_foreign_dispose(&item.pattern); ide_foreign_dispose(&item.kind); i++;
+    }
+    ide_foreign_free(&listing);
+    var state = ide_state(); ide_assign(&state.completion, completion_end(query));
+    completion_dispose(query); syntax_destroy(active); syntax_destroy(original); return ide_result(&state.completion);
+}

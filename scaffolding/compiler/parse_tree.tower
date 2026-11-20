@@ -1,0 +1,218 @@
+import tower;
+import .library.entities;
+
+// Built with entities.tower until language imports replace build-time composition.
+// A parser work arena, not an alternative AST: leaves own the shared entities.
+struct ParseChild {
+    entity: Entity*;
+    capture: u8*;
+    first: usize;
+    next: usize;
+}
+
+struct ParseVisit {
+    index: usize;
+    capture: u8*;
+}
+
+struct ParseForest {
+    first: usize;
+    last: usize;
+}
+
+struct ParseForestStore {
+    children: ParseChild*;
+    count: usize;
+    capacity: usize;
+    pending: ParseVisit*;
+    pending_count: usize;
+    pending_capacity: usize;
+    visits: usize;
+}
+
+fn parse_missing(): usize {
+    var none: usize = 0;
+    none--;
+    return none;
+}
+
+export fn parse_forest_create(): ParseForestStore* {
+    var forest = alloc(ParseForestStore, 1);
+    var ok = forest != null;
+    if ok {
+        fill(forest, 0, sizeof(ParseForestStore));
+    }
+    return forest;
+}
+
+export fn parse_forest_destroy(forest: ParseForestStore*): void {
+    var i: usize = 0;
+    loop {
+        var done = i == forest.count;
+        if done {
+            break;
+        }
+        var entity = forest.children[i].entity;
+        var owned = entity != null;
+        if owned {
+            entity_release(entity);
+        }
+        i++;
+    }
+    free(forest.children);
+    free(forest.pending);
+    free(forest);
+}
+
+fn parse_forest_reserve(forest: ParseForestStore*): bool {
+    var enough = forest.count < forest.capacity;
+    if enough {
+        return true;
+    }
+    var capacity = forest.capacity * 2;
+    var overflow = capacity < forest.capacity;
+    if overflow {
+        return false;
+    }
+    var small = capacity < 16;
+    if small {
+        capacity = 16;
+    }
+    var next = realloc(ParseChild, forest.children, capacity);
+    var failed = next == null;
+    if failed {
+        return false;
+    }
+    forest.children = next;
+    forest.capacity = capacity;
+    return true;
+}
+
+export fn parse_forest_leaf(forest: ParseForestStore*, entity: Entity*, result: ParseForest*): bool {
+    var ok = parse_forest_reserve(forest);
+    if ok {
+        var index = forest.count;
+        forest.count++;
+        forest.children[index].entity = entity;
+        forest.children[index].capture = null;
+        forest.children[index].first = parse_missing();
+        forest.children[index].next = parse_missing();
+        result.first = index;
+        result.last = index;
+    }
+    return ok;
+}
+
+// Concatenate generated reductions in O(1); captures are applied lazily.
+// Capture strings borrow the immutable parser table, which outlives this arena.
+export fn parse_forest_join(forest: ParseForestStore*, result: ParseForest*, first: usize, last: usize, capture: u8*): bool {
+    var empty = first == parse_missing();
+    if empty {
+        return true;
+    }
+    var captured = capture != null;
+    captured &&= *capture != 0;
+    if captured {
+        var ok = parse_forest_reserve(forest);
+        var failed = !ok;
+        if failed {
+            return false;
+        }
+        var index = forest.count;
+        forest.count++;
+        forest.children[index].entity = null;
+        forest.children[index].capture = capture;
+        forest.children[index].first = first;
+        forest.children[index].next = parse_missing();
+        first = index;
+        last = index;
+    }
+    empty = result.first == parse_missing();
+    if empty {
+        result.first = first;
+    } else {
+        forest.children[result.last].next = first;
+    }
+    result.last = last;
+    return true;
+}
+
+fn parse_forest_visit(forest: ParseForestStore*, index: usize, capture: u8*): bool {
+    var empty = index == parse_missing();
+    if empty {
+        return true;
+    }
+    var full = forest.pending_count == forest.pending_capacity;
+    if full {
+        var capacity = forest.pending_capacity * 2;
+        var overflow = capacity < forest.pending_capacity;
+        if overflow {
+            return false;
+        }
+        var small = capacity < 16;
+        if small {
+            capacity = 16;
+        }
+        var next = realloc(ParseVisit, forest.pending, capacity);
+        var failed = next == null;
+        if failed {
+            return false;
+        }
+        forest.pending = next;
+        forest.pending_capacity = capacity;
+    }
+    forest.pending[forest.pending_count].index = index;
+    forest.pending[forest.pending_count].capture = capture;
+    forest.pending_count++;
+    return true;
+}
+
+// Flatten each fragment once into a real shared node; outer captures win.
+export fn parse_forest_attach(forest: ParseForestStore*, parent: Entity*, first: usize): bool {
+    forest.pending_count = 0;
+    var ok = parse_forest_visit(forest, first, null);
+    loop {
+        var failed = !ok;
+        if failed {
+            return false;
+        }
+        var done = forest.pending_count == 0;
+        if done {
+            return true;
+        }
+        forest.pending_count--;
+        var index = forest.pending[forest.pending_count].index;
+        var capture = forest.pending[forest.pending_count].capture;
+        var child = &forest.children[index];
+        forest.visits++;
+        ok = parse_forest_visit(forest, child.next, capture);
+        failed = !ok;
+        if failed {
+            return false;
+        }
+        var uncaptured = capture == null;
+        if uncaptured {
+            capture = child.capture;
+        }
+        var leaf = child.entity != null;
+        if leaf {
+            ok = entity_attach(child.entity, parent, capture);
+            if ok {
+                entity_release(child.entity);
+                child.entity = null;
+            }
+        } else {
+            ok = parse_forest_visit(forest, child.first, capture);
+        }
+    }
+}
+
+export fn parse_forest_take(forest: ParseForestStore*, index: usize): Entity* {
+    var node = forest.children[index].entity;
+    forest.children[index].entity = null;
+    return node;
+}
+
+export fn parse_forest_visits(forest: ParseForestStore*): usize {
+    return forest.visits;
+}

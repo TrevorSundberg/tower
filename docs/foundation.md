@@ -580,7 +580,7 @@ The [storage library](../scaffolding/library/storage.tower) provides a resettabl
 arena and growing u32-to-i32 map; those are not yet used inside the compiler.
 These are ordinary Tower functions, not new native collection operations.
 Callers initialize/dispose containers and check allocation results.
-Reallocation invalidates old views; arena reset invalidates its views. Import the library with `import "library/storage";`, or link exported functions
+Reallocation invalidates old views; arena reset invalidates its views. Import the library with `import library.storage;`, or link exported functions
 from a separately compiled object with matching declarations. See [modules](modules.md).
 
 Extern/export signatures support scalars, raw pointers and void returns under
@@ -748,7 +748,7 @@ columns, general relationship queries and jobs remain planned. A small host
 lifecycle bridge still invokes existing C++ payload destructors. The eventual
 Tower implementation must replace that bridge as those payloads move over.
 
-[parse-tree.tower](../scaffolding/compiler/parse-tree.tower) now performs parser
+[parse_tree.tower](../scaffolding/compiler/parse_tree.tower) now performs parser
 forest concatenation, lazy capture application, generated-node flattening and
 ownership transfer into the same entities. Its temporary arena is a derived
 parsing work structure, not an authoritative alternative tree. Concatenation is
@@ -760,11 +760,11 @@ Tower; the native semantic implementation remains only as a bootstrap/reference.
 ## Semantic compiler implementation
 
 `scaffolding/compiler/semantic-*.tower` implements the semantic pass over the
-existing expanded parser entities. `semantic-types.tower` resolves module and
+existing expanded parser entities. `semantic_types.tower` resolves module and
 local bindings, inference, types, target layouts and type constructors;
-`semantic-values.tower` checks locations, operands, operations and calls;
-`semantic-statements.tower` handles function headers, lexical scopes, control
-flow and ordered module passes. `semantic-support.tower` supplies type queries,
+`semantic_values.tower` checks locations, operands, operations and calls;
+`semantic_statements.tower` handles function headers, lexical scopes, control
+flow and ordered module passes. `semantic_support.tower` supplies type queries,
 diagnostics and temporary indexes. Definitions, context and lifetime management
 live in the other three modules.
 
@@ -787,7 +787,7 @@ bootstrap or a fully interpreted parser/host integration.
 
 The native semantic differential suite compares fields, bindings, layout, order,
 effects and lifetime indexes against the reference pass for both pointer widths.
-The Tower fixtures in `scaffolding/tests/semantics.tower` and `semantic-invalid/`
+The Tower fixtures in `scaffolding/tests/semantics.tower` and `semantic_invalid/`
 exercise valid and invalid programs; browser tests compare interpretation, LLVM,
 and canonical Foundation round trips. `test-bootstrap.sh` compares optimized LLVM
 and object bytes for the semantic compiler itself across four targets. The

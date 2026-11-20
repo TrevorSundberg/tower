@@ -416,9 +416,9 @@ Tasks are effectively React components that define how these nodes get created a
 ## Tower request integration
 
 `parser.cpp` and `parser-tree-tests.cpp` have been retired. Table construction is
-in `compiler/parser-integration.tower`, request stepping and bounded diagnostic
-integration in `compiler/parser-state.tower`, streams in `parser-stream.tower`,
-and presentation in `parser-presentation.tower`. These reuse the existing LR,
+in `compiler/parser_integration.tower`, request stepping and bounded diagnostic
+integration in `compiler/parser_state.tower`, streams in `parser_stream.tower`,
+and presentation in `parser_presentation.tower`. These reuse the existing LR,
 forest, entity and formatting implementations. Parser tables are disposable
 indexes over grammar entities, not a program serialization format.
 
@@ -452,6 +452,6 @@ and presentation callbacks are replaced by these services and input polling.
 Tracing is set before table publication. Explicit-world callers set `table.trace`;
 the legacy `parser_set_debug_trace` changes only its world's coordinator setting.
 Disabled requests never construct trace strings. Functional fixtures live in
-`tests/parser-integration.tower` and `tests/parser-failures.tower`; the browser
+`tests/parser_integration.tower` and `tests/parser_failures.tower`; the browser
 self-test invokes the same production exports. The optional native measurement
-target in `cmake/TowerParserBenchmark.cmake` uses `tests/parser-benchmark.tower`.
+target in `cmake/TowerParserBenchmark.cmake` uses `tests/parser_benchmark.tower`.

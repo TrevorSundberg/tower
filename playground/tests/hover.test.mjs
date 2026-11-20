@@ -248,7 +248,7 @@ test('dependent inspection does not guess conditional record shapes or accept in
 });
 
 test('template field queries preserve imported declaration ownership and target widths',()=>{
-  const source="import tower; import 'helper'; fn demo(T:type,p:box(T)*):usize { return p.count; }";
+  const source="import tower; import helper; fn demo(T:type,p:box(T)*):usize { return p.count; }";
   const options={entry:'main.tower',pointerBytes:8,files:[{path:'helper.tower',text:'import tower; fn box(E:type):type { struct R {\n// Number of stored entries.\ncount:usize; value:E; } return R; }'}]};
   const field=hoverAt(inspect(source,options),source.indexOf('p.count')+2);
   assert.equal(field.kind,'field');assert.equal(field.type,'usize');assert.equal(field.size,8);
@@ -272,7 +272,7 @@ test('members, pointer receivers, nominal types and layouts come from checked fi
   assert.equal(at(source,'Point;').kind,'type');
 });
 test('imports contribute real bindings without leaking their source ranges',()=>{
-  const source='import tower; import "helper"; var result = answer(); print(result);';
+  const source='import tower; import helper; var result = answer(); print(result);';
   const entries=inspect(source,{files:[{path:'helper.tower',text:'import tower; fn answer():i32 { return 42; }'}]});
   const call=hoverAt(entries,source.indexOf('answer')+2);
   assert.equal(call.signature,'fn answer(): i32');assert.equal(call.declaration,undefined);
@@ -282,7 +282,7 @@ test('imports contribute real bindings without leaking their source ranges',()=>
 });
 
 test('dotted import segments retain their own source entities during hover inspection',()=>{
-  const source='import tower; import helpers.answer; import "helpers/answer"; print(answer());';
+  const source='import tower; import helpers.answer; import helpers.answer; print(answer());';
   const entries=inspect(source,{files:[{path:'helpers/answer.tower',text:'import tower; fn answer():i32 { return 42; }'}]});
   const segments=['tower','helpers','answer'].map(name=>hoverAt(entries,source.indexOf(name)+1));
   assert.deepEqual(segments.map(entry=>entry.signature),['tower','helpers','answer']);
@@ -334,7 +334,7 @@ test('grammar files expose syntax/entity metadata under their own baseline',()=>
 });
 
 test('increment grammar hovers distinguish rule references, capture binding, literals and parsed replacement nodes',async()=>{
-  const source=(await read('scaffolding/tests/increment-rules.tower')).toString(),entries=inspect(source);
+  const source=(await read('scaffolding/tests/increment_rules.tower')).toString(),entries=inspect(source);
   const get=(needle,offset=1)=>hoverAt(entries,source.indexOf(needle)+offset);
   const capture=get('$target:CoreLocation');
   assert.equal(capture.kind,'capture binding');assert.equal(capture.capture,'target');
@@ -454,7 +454,7 @@ test('syntax-only foreach bodies inspect actual matched rules and captures acros
 
 test('custom syntax follows named terminal captures and the actual selected alternative in imported rules',()=>{
   const grammar="import foundation; parse Value = Number | Identifier; // Bind a syntactic name and value.\nparse Statement = 'bind' $name:Identifier '=' $value:Value ';';";
-  const source='import "grammar"; bind result = 42; bind other = result;';
+  const source='import grammar; bind result = 42; bind other = result;';
   const entries=inspect(source,{files:[{path:'grammar.tower',text:grammar}]}),get=needle=>hoverAt(entries,source.indexOf(needle)+1);
   const name=get('result =');assert.equal(name.capture,'name');assert.equal(name.category,'Identifier');
   assert.equal(name.capturedBy,'Statement');assert.equal(name.type,undefined);
@@ -500,7 +500,7 @@ test('hover documentation shares attached comments for local and imported bindin
   const source='// Adds a value.\n// Keeps the original.\nfn increment(value:i32):i32 { var result = value + 1; return result; }\nprint(increment(41));';
   assert.equal(at(source,'increment(41').documentation,'Adds a value.\nKeeps the original.');
   assert.equal(hoverAt(inspect(source),source.indexOf('increment')+1).documentation,'Adds a value.\nKeeps the original.');
-  const imported='import tower; import "helper"; print(answer());';
+  const imported='import tower; import helper; print(answer());';
   const options={files:[{path:'helper.tower',text:'import tower;\n// The imported answer.\nfn answer():i32 { return 42; }'}]};
   assert.equal(at(imported,'answer()',options).documentation,'The imported answer.');
 });

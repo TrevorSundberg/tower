@@ -1,0 +1,291 @@
+import tower;
+import parser_nodes;
+import frontend_modules;
+import lr_tree;
+import parser_state;
+import syntax_reader;
+import .library.vector;
+import parser_markers;
+
+// A stream has one writer. Buffered input transfers one owned entity reference.
+// Empty streams can be fed with parser_stream_return; no hidden host callbacks.
+struct ParserStream {
+    kind: ParserInputService;
+    error: vector(u8);
+    buffered: bool;
+    buffered_node: void*;
+    buffered_id: u32;
+    buffered_start: usize;
+    buffered_length: usize;
+    buffered_error: vector(u8);
+}
+
+struct ParserUtf8Stream {
+    source: vector(u8);
+    cursor: usize;
+    allocation_failed: bool;
+}
+
+struct ParserRecognizerStream {
+    recognizer: void*;
+    complete: bool;
+}
+
+extern fn tower_memory_allocate(bytes: usize): void*;
+
+extern fn tower_memory_free(memory: void*): void;
+
+fn parser_state_require(ok: bool): void {
+    if !ok {
+        abort();
+    }
+}
+
+fn parser_state_text(value: vector(u8)*): u8* {
+    var absent = value.data == null;
+    if absent {
+        return "";
+    }
+    return value.data;
+}
+
+fn parser_state_clear(value: vector(u8)*): void {
+    value.length = 0;
+    var present = value.data != null;
+    if present {
+        value.data[0] = 0;
+    }
+}
+
+fn parser_state_assign(value: vector(u8)*, text: u8*): void {
+    var length: usize = 0;
+    while text[length] != 0 {
+        length++;
+    }
+    var empty = length == 0;
+    if empty {
+        parser_state_clear(value);
+        return;
+    }
+    parser_state_require(bytes_assign_text(value, text, length));
+}
+
+export fn parser_stream_create(bytes: usize, kind: ParserInputService): ParserStream* {
+    var total = sizeof(ParserStream) + bytes;
+    var overflow = total < bytes;
+    if overflow {
+        return null;
+    }
+    var stream = bits(ParserStream*, tower_memory_allocate(total));
+    var missing = stream == null;
+    if missing {
+        return null;
+    }
+    fill(stream, 0, sizeof(ParserStream));
+    stream.kind = kind;
+    stream.buffered_id = ParserStreamEnd();
+    return stream;
+}
+
+export fn parser_stream_get_userdata(stream: ParserStream*): void* {
+    var missing = stream == null;
+    if missing {
+        return null;
+    }
+    var data = bits(u8*, stream) + sizeof(ParserStream);
+    return bits(void*, data);
+}
+
+export fn parser_stream_from_userdata(data: void*): ParserStream* {
+    var missing = data == null;
+    if missing {
+        return null;
+    }
+    var address = bits(u8*, data) - sizeof(ParserStream);
+    return bits(ParserStream*, address);
+}
+
+export fn parser_stream_get_error(stream: ParserStream*): u8* {
+    return parser_state_text(&stream.error);
+}
+
+export fn parser_stream_set_error(stream: ParserStream*, error: u8*): void {
+    parser_state_assign(&stream.error, error);
+}
+
+// Discard returns ownership of buffered entities before disposing stream storage.
+export fn parser_stream_discard(stream: ParserStream*): void {
+    var node = stream.buffered_node;
+    stream.buffered_node = null;
+    stream.buffered = false;
+    var present = node != null;
+    if present {
+        entity_release(node);
+    }
+}
+
+export fn parser_stream_dispose(stream: ParserStream*): void {
+    var utf8 = stream.kind == ParserInputService.Utf8;
+    if utf8 {
+        var data = bits(ParserUtf8Stream*, parser_stream_get_userdata(stream));
+        vector_dispose(u8, &data.source);
+    }
+    vector_dispose(u8, &stream.error);
+    vector_dispose(u8, &stream.buffered_error);
+    tower_memory_free(bits(void*, stream));
+}
+
+export fn parser_stream_utf8_create(begin: u8*, end: u8*): ParserStream* {
+    var stream = parser_stream_create(sizeof(ParserUtf8Stream), ParserInputService.Utf8);
+    var missing = stream == null;
+    if missing {
+        return null;
+    }
+    var data = bits(ParserUtf8Stream*, parser_stream_get_userdata(stream));
+    fill(data, 0, sizeof(ParserUtf8Stream));
+    var length = bits(usize, end) - bits(usize, begin);
+    var ok = bytes_assign_text(&data.source, begin, length);
+    data.allocation_failed = !ok;
+    return stream;
+}
+
+export fn parser_stream_utf8_null_terminated_create(text: u8*): ParserStream* {
+    var length: usize = 0;
+    while text[length] != 0 {
+        length++;
+    }
+    var end = text + length;
+    return parser_stream_utf8_create(text, end);
+}
+
+export fn parser_stream_recognizer_create(recognizer: void*): ParserStream* {
+    var stream = parser_stream_create(sizeof(ParserRecognizerStream), ParserInputService.Recognizer);
+    var missing = stream == null;
+    if missing {
+        return null;
+    }
+    var data = bits(ParserRecognizerStream*, parser_stream_get_userdata(stream));
+    data.recognizer = recognizer;
+    data.complete = false;
+    return stream;
+}
+
+// true supplies a token/EOF; false denotes an empty externally-fed stream.
+// A returned node transfers exactly one reference to the reader.
+export fn parser_stream_poll(stream: ParserStream*, id: u32*, start: usize*, length: usize*, node: void**): bool {
+    *node = null;
+    if stream.buffered {
+        stream.buffered = false;
+        *id = stream.buffered_id;
+        *start = stream.buffered_start;
+        *length = stream.buffered_length;
+        vector_dispose(u8, &stream.error);
+        copy(&stream.error, &stream.buffered_error, sizeof(vector(u8)));
+        fill(&stream.buffered_error, 0, sizeof(vector(u8)));
+        *node = stream.buffered_node;
+        stream.buffered_node = null;
+        return true;
+    }
+    parser_state_clear(&stream.error);
+    var custom = stream.kind == ParserInputService.Empty;
+    if custom {
+        return false;
+    }
+    *id = ParserStreamEnd();
+    *start = convert(usize, ParserStreamEnd());
+    *length = 0;
+    var utf8 = stream.kind == ParserInputService.Utf8;
+    if utf8 {
+        var data = bits(ParserUtf8Stream*, parser_stream_get_userdata(stream));
+        if data.allocation_failed {
+            parser_stream_set_error(stream, "Unable to allocate UTF-8 stream source");
+            return true;
+        }
+        var remaining = data.source.length - data.cursor;
+        var at = data.source.data + data.cursor;
+        var read = tower_utf8_decode(at, remaining, id);
+        var decoded = read != 0;
+        if decoded {
+            *start = data.cursor;
+            *length = read;
+            data.cursor = data.cursor + read;
+        } else {
+            *id = ParserStreamEnd();
+        }
+        return true;
+    }
+    var syntax = stream.kind == ParserInputService.Syntax;
+    var template = stream.kind == ParserInputService.Template;
+    if syntax {
+        *node = syntax_parser_read(stream, parser_stream_get_userdata(stream), id, start, length);
+        return true;
+    }
+    if template {
+        *node = syntax_parser_template_read(stream, parser_stream_get_userdata(stream), id, start, length);
+        return true;
+    }
+    var data = bits(ParserRecognizerStream*, parser_stream_get_userdata(stream));
+    var running = !data.complete;
+    while running {
+        *node = parser_recognizer_step(bits(ParserRequest*, data.recognizer), &running);
+        var ready = *node != null;
+        if ready {
+            break;
+        }
+    }
+    data.complete = !running;
+    parser_stream_set_error(stream, parser_recognizer_get_error(data.recognizer));
+    var ready = *node != null;
+    if ready {
+        var request = bits(ParserRequest*, data.recognizer);
+        var span = lr_tree_match(*node, request.match_kind);
+        var valid = span != null;
+        parser_state_require(valid);
+        *id = span.id;
+        *start = span.start;
+        *length = span.length;
+    }
+    return true;
+}
+
+// Consume the recognizer's lookahead and error storage, without allocating.
+export fn parser_stream_return(stream: ParserStream*, node: void**, id: u32, start: usize, length: usize, error: vector(u8)*): void {
+    var empty = !stream.buffered;
+    parser_state_require(empty);
+    stream.buffered = true;
+    stream.buffered_node = *node;
+    *node = null;
+    stream.buffered_id = id;
+    stream.buffered_start = start;
+    stream.buffered_length = length;
+    vector_dispose(u8, &stream.buffered_error);
+    copy(&stream.buffered_error, error, sizeof(vector(u8)));
+    fill(error, 0, sizeof(vector(u8)));
+    parser_state_clear(&stream.error);
+}
+
+// These are the syntax owner's existing functions, mechanically exposed by name.
+// Their request-local cursor/highlights remain outside the immutable table.
+extern fn syntax_parser_read(stream: ParserStream*, data: void*, id: u32*, start: usize*, length: usize*): void*;
+
+extern fn syntax_parser_template_read(stream: ParserStream*, data: void*, id: u32*, start: usize*, length: usize*): void*;
+
+export fn parser_stream_read(stream: ParserStream*, id: u32*, start: usize*, length: usize*): void* {
+    var node: void* = null;
+    var ready = parser_stream_poll(stream, id, start, length, &node);
+    if ready {} else {
+        *id = ParserStreamEnd();
+        *start = convert(usize, ParserStreamEnd());
+        *length = 0;
+    }
+    return node;
+}
+
+export fn parser_stream_destroy(stream: ParserStream*): void {
+    var missing = stream == null;
+    if missing {
+        return;
+    }
+    parser_stream_discard(stream);
+    parser_stream_dispose(stream);
+}

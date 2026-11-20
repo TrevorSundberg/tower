@@ -8,7 +8,7 @@ export function languagePayload(configuration,source,method,position=0) {
   const config=configuration();
   return {...config,compilerRevision:compilerSelection().revision,method,source,
     cursor:encoder.encode(source.slice(0,position)).length,builtins:{...config.builtins},
-    files:config.files?.filter(file=>file.path.endsWith('.tower')).map(file=>({path:file.path,text:file.path===config.activePath?source:file.text}))};
+    files:config.files?.filter(file=>typeof file.text==='string').map(file=>({path:file.path,text:file.path===config.activePath?source:file.text}))};
 }
 
 export function hoverIndex(source,result) {

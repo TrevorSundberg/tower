@@ -35,7 +35,7 @@ function(tower_backend_integrate)
   execute_process(COMMAND "${TOWER_BACKEND_HOST_CC}" -print-target-triple
     OUTPUT_VARIABLE foreign_host_triple OUTPUT_STRIP_TRAILING_WHITESPACE
     COMMAND_ERROR_IS_FATAL ANY)
-  set(foreign_source "${CMAKE_CURRENT_BINARY_DIR}/tower-foreign.tower")
+  set(foreign_source "${CMAKE_CURRENT_BINARY_DIR}/tower_foreign.tower")
   set(foreign_object "${CMAKE_CURRENT_BINARY_DIR}/tower-foreign.o")
   set(foreign_tool "${CMAKE_CURRENT_BINARY_DIR}/tower-foreign${CMAKE_HOST_EXECUTABLE_SUFFIX}")
   set(foreign_runtime_profile posix)
@@ -57,8 +57,8 @@ function(tower_backend_integrate)
     DEPENDS "${foreign_source}" "${TOWER_BOOTSTRAP_COMPILER}" "${foreign_runtime}"
     BYPRODUCTS "${foreign_object}" VERBATIM)
   foreach(flavor IN ITEMS native wasm)
-    set(input "${CMAKE_CURRENT_BINARY_DIR}/tower-backend-${flavor}.tower")
-    set(expanded "${CMAKE_CURRENT_BINARY_DIR}/tower-backend-${flavor}-expanded.tower")
+    set(input "${CMAKE_CURRENT_BINARY_DIR}/tower_backend_${flavor}.tower")
+    set(expanded "${CMAKE_CURRENT_BINARY_DIR}/tower_backend_${flavor}_expanded.tower")
     set(object "${CMAKE_CURRENT_BINARY_DIR}/tower-backend-${flavor}.o")
     set(wasm_only OFF)
     if(flavor STREQUAL "wasm")
@@ -67,11 +67,11 @@ function(tower_backend_integrate)
     add_custom_command(OUTPUT "${input}"
       COMMAND "${CMAKE_COMMAND}" -DROOT=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT=${input} -DWASM_ONLY=${wasm_only} -DWASI_HOST=${TOWER_BROWSER} -DTESTS=${TOWER_BACKEND_TESTS} -DLLVM_CONFIG_DIR=${backend_llvm_config} -DHOST_TRIPLE=${triple}
         -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ComposeBackend.cmake"
-      DEPENDS ${backend_sources} scaffolding/library/vector.tower scaffolding/compiler/foundation-nodes.tower
-        cmake/ComposeBackend.cmake scaffolding/tests/backend.tower scaffolding/tests/foreign-names.tower VERBATIM)
+      DEPENDS ${backend_sources} scaffolding/library/vector.tower scaffolding/compiler/foundation_nodes.tower
+        cmake/ComposeBackend.cmake scaffolding/tests/backend.tower scaffolding/tests/foreign_names.tower VERBATIM)
     set(mangle_input "${input}")
     if(TOWER_BROWSER_LLVM)
-      set(mangle_input "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/backend/wasi-support.tower")
+      set(mangle_input "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/backend/wasi_support.tower")
     endif()
     add_custom_command(OUTPUT "${expanded}"
       COMMAND "${foreign_tool}" "${triple}" "${mangle_input}" "${expanded}"
@@ -92,10 +92,10 @@ function(tower_backend_integrate)
     if(TOWER_BACKEND_TESTS)
       set(test_object "${CMAKE_CURRENT_BINARY_DIR}/tower-backend-test-main.o")
       add_custom_command(OUTPUT "${test_object}"
-        COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/backend-main.tower"
+        COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/backend_main.tower"
           --library --target "${triple}" -o "${test_object}" --depfile "${test_object}.d"
         DEPFILE "${test_object}.d"
-    DEPENDS scaffolding/tests/backend-main.tower "${TOWER_BOOTSTRAP_COMPILER}" VERBATIM)
+    DEPENDS scaffolding/tests/backend_main.tower "${TOWER_BOOTSTRAP_COMPILER}" VERBATIM)
       set_source_files_properties("${test_object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
       get_target_property(test_sources towerc SOURCES)
       list(REMOVE_ITEM test_sources "$<TARGET_OBJECTS:tower-native-driver>")
@@ -121,7 +121,7 @@ function(tower_backend_integrate)
         set(wrap_flavor wasm)
       endif()
       target_link_options(${target} PRIVATE
-        "-Wl,@${CMAKE_CURRENT_BINARY_DIR}/tower-backend-${wrap_flavor}-expanded.tower.wrap.rsp")
+        "-Wl,@${CMAKE_CURRENT_BINARY_DIR}/tower_backend_${wrap_flavor}_expanded.tower.wrap.rsp")
       # Browser compiler builds use the same Tower linker and explicit inputs.
       # Retire this host export list when Tower owns the complete reactor recipe.
       foreach(symbol IN ITEMS backend_link_create backend_link_close backend_link_add_input

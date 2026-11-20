@@ -1,0 +1,138 @@
+import tower;
+import format_types;
+import format;
+import frontend_table;
+import grammar_types;
+import lr_tree;
+import parser_nodes;
+import regex_lowering;
+import syntax_nodes;
+import syntax_types;
+
+// Token patterns use the same character grammar/table reader as Bedrock.
+// Errors use the shared text formatter and Unicode character positions.
+struct FrontendPatternCompiler {
+    kinds: FrontendKinds;
+    table: FrontendTable;
+}
+
+export fn frontend_pattern_destroy(compiler: FrontendPatternCompiler*): void {
+    var absent = compiler == null;
+    if absent {
+        return;
+    }
+    frontend_table_dispose(&compiler.table);
+    free(compiler);
+}
+
+export fn frontend_pattern_create(kinds: FrontendKinds*): FrontendPatternCompiler* {
+    var compiler = alloc(FrontendPatternCompiler, 1);
+    var absent = compiler == null;
+    if absent {
+        return null;
+    }
+    copy(&compiler.kinds, kinds, sizeof(FrontendKinds));
+    var ok = frontend_pattern_table(&compiler.table, &compiler.kinds);
+    if ok {
+        return compiler;
+    }
+    frontend_pattern_destroy(compiler);
+    return null;
+}
+
+fn frontend_pattern_position(source: u8*, length: usize, offset: usize): usize {
+    var character: usize = 1;
+    var at: usize = 0;
+    loop {
+        var done = at >= offset;
+        var end = at >= length;
+        if end {
+            done = true;
+        }
+        if done {
+            return character;
+        }
+        var id: u32;
+        var remaining = length - at;
+        var width = tower_utf8_decode(&source[at], remaining, &id);
+        var invalid = width == 0;
+        if invalid {
+            width = 1;
+        }
+        at = at + width;
+        character++;
+    }
+}
+
+export fn frontend_pattern_read(compiler: FrontendPatternCompiler*, source: u8*, length: usize,
+error: FormatResult*): SyntaxPattern* {
+    var formatter: FormatEngine;
+    fill(&formatter, 0, sizeof(FormatEngine));
+    formatter.result = error;
+    var too_long = length > 4096;
+    if too_long {
+        format_text(&formatter, "Token pattern exceeds 4096 bytes");
+        return null;
+    }
+    var valid = tower_utf8_validate(source, length, 0) != 0;
+    if !valid {
+        format_text(&formatter, "Invalid UTF-8 in token pattern");
+        return null;
+    }
+    var missing = compiler == null;
+    if missing {
+        format_text(&formatter, "Unable to allocate token pattern grammar");
+        return null;
+    }
+    var input: FrontendCharacters;
+    fill(&input, 0, sizeof(FrontendCharacters));
+    input.source = source;
+    input.length = length;
+    var root = frontend_read_characters(&compiler.table, &compiler.kinds, &input);
+    missing = root == null;
+    if missing {
+        var allocation = input.error == 1;
+        if allocation {
+            format_text(&formatter, "Unable to allocate token pattern");
+            return null;
+        }
+        format_text(&formatter, "Unexpected ");
+        var end = input.offset == length;
+        if end {
+            format_text(&formatter, "end of input");
+        } else {
+            var zero = source[input.offset] == 0;
+            if zero {
+                format_text(&formatter, "'\\0'");
+            } else {
+                var id: u32;
+                var remaining = length - input.offset;
+                var width = tower_utf8_decode(&source[input.offset], remaining, &id);
+                format_escape(&formatter, &source[input.offset], width, 39);
+            }
+        }
+        format_text(&formatter, ". In token pattern at character ");
+        var position = frontend_pattern_position(source, length, input.offset);
+        format_unsigned(&formatter, convert(u64, position));
+        return null;
+    }
+    var pattern = syntax_pattern_create(root);
+    entity_release(root);
+    missing = pattern == null;
+    if missing {
+        format_text(&formatter, "Unable to allocate token pattern");
+        return null;
+    }
+    var offset: usize = 0;
+    var message = regex_compile_tree(pattern.grammar, source, compiler.kinds.`match`, pattern.table, &offset);
+    var failed = message != null;
+    if failed {
+        format_text(&formatter, message);
+        format_text(&formatter, " at pattern character ");
+        var position = frontend_pattern_position(source, length, offset);
+        format_unsigned(&formatter, convert(u64, position));
+        syntax_pattern_release(pattern);
+        return null;
+    }
+    return pattern;
+}

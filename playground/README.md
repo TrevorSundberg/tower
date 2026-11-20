@@ -16,7 +16,7 @@ The current recovery is deliberately bounded: earlier unrelated syntax errors,
 inferred receiver types, chained member access and generic specialization can
 limit suggestions. Completion is advisory, not a substitute for type checking.
 Reusable IDE sessions, handle ownership, transport, query integration and execution
-now live in `scaffolding/host/ide-*.tower`. Query decisions, scope filtering,
+now live in `scaffolding/host/ide_*.tower`. Query decisions, scope filtering,
 prefix matching and result construction execute in Tower. The syntax owner still
 supplies some native inspection interfaces through the isolated WASI binding.
 
@@ -717,19 +717,19 @@ query positions, and removal/destruction invalidates borrowed payload pointers.
 This first store is single-threaded and uses sparse stable payloads, not archetype
 columns, safe handles, access scopes or jobs. Ownership cycles remain invalid.
 
-`scaffolding/compiler/parse-tree.tower` implements parser forest concatenation,
+`scaffolding/compiler/parse_tree.tower` implements parser forest concatenation,
 lazy capture wrappers, generated-node flattening and ownership transfer into those
 entities. It preserves O(1) fragment concatenation and visits each flattened
 fragment once. CMake temporarily composes it after `entities.tower`; this is not a
 new import syntax. `compiler/generics.tower` uses the same entities for type-function
 specialization, bindings, provenance and iterative syntax cloning.
 
-`compiler/parser-nodes.tower` owns rule, reference, token-string, range and match
+`compiler/parser_nodes.tower` owns rule, reference, token-string, range and match
 payloads, including their text and arrays through `vector(T)`. Native consumers
 borrow opaque payloads through accessors; they do not mirror their field layouts.
-`compiler/lexer-table.tower` owns flat DFA transition rows and performs Unicode
+`compiler/lexer_table.tower` owns flat DFA transition rows and performs Unicode
 maximal-prefix matching. These tables are derived caches. Regex notation is now
-defined in `compiler/regex-grammar.tower` using the ordinary grammar components
+defined in `compiler/regex_grammar.tower` using the ordinary grammar components
 and parsed by the same LR engine over Unicode scalars. Its parse tree stays on
 shared entities. NFA/DFA lowering, the LALR table builder, recognizer control loop, higher-level grammar/foundation
 payloads, formatter and backends still contain C++ to migrate.

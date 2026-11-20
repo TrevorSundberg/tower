@@ -1,0 +1,336 @@
+import tower;
+import c_emitter;
+import foundation_tags;
+import semantic_context;
+
+// Monotone reachability over the existing entities. Incoming jumps may expose
+// another label on the next pass; no independent instruction graph is created.
+fn ce_reach(c: CEmitter*, entity: void*): void {
+    var n = sem_get(entity);
+    var absent = n == null;
+    if absent {
+        return;
+    }
+    var index = ce_id(c, entity);
+    var fresh = c.active.data[index] == false;
+    if fresh {
+        c.active.data[index] = true;
+        c.changed = true;
+    }
+    var conditional = n.kind == KIf();
+    if conditional {
+        var condition = sem_get(n.value);
+        if condition.constant {
+            var yes = condition.bits != 0;
+            if yes {
+                ce_reach(c, n.body);
+            } else {
+                ce_reach(c, n.otherwise);
+            }
+        } else {
+            ce_reach(c, n.body);
+            ce_reach(c, n.otherwise);
+        }
+        return;
+    }
+    var looping = n.kind == KLoop();
+    if looping {
+        ce_reach(c, n.body);
+        return;
+    }
+    var list = n.kind == KBlock();
+    var program = n.kind == KProgram();
+    if program {
+        list = true;
+    }
+    if list {
+        var falls = true;
+        var i: usize = 0;
+        loop {
+            var done = i == n.items.length;
+            if done {
+                break;
+            }
+            var child = n.items.data[i];
+            var item = sem_get(child);
+            var label = item.kind == KLabel();
+            if label {
+                if ce_label_used(c, child) {
+                    falls = true;
+                }
+            }
+            if falls {
+                ce_reach(c, child);
+                falls = ce_falls(c, child);
+            }
+            i++;
+        }
+    }
+}
+
+fn ce_reach_pass(c: CEmitter*, root: void*): void {
+    loop {
+        c.changed = false;
+        ce_reach(c, root);
+        var i: usize = 0;
+        loop {
+            var done = i == c.nodes.length;
+            if done {
+                break;
+            }
+            var n = sem_get(c.nodes.data[i]);
+            var function = n.kind == KFunction();
+            if function {
+                ce_reach(c, n.body);
+            }
+            i++;
+        }
+        var done = !c.changed;
+        if done {
+            break;
+        }
+    }
+}
+
+fn ce_reachable(c: CEmitter*, root: void*): void {
+    // Propagate functions which cannot return (for example an optimized trap).
+    // Rebuild statement reachability after each refinement, so no manufactured
+    // return remains after a call which MSVC correctly recognizes as terminal.
+    loop {
+        var i: usize = 0;
+        loop {
+            var done = i == c.nodes.length;
+            if done {
+                break;
+            }
+            c.active.data[i] = false;
+            i++;
+        }
+        ce_reach_pass(c, root);
+        var changed = false;
+        i = 0;
+        loop {
+            var done = i == c.nodes.length;
+            if done {
+                break;
+            }
+            var entity = c.nodes.data[i];
+            var n = sem_get(entity);
+            var function = n.kind == KFunction();
+            if n.external {
+                function = false;
+            }
+            if function {
+                var returns = ce_falls(c, n.body);
+                var j: usize = 0;
+                loop {
+                    var end = j == c.nodes.length;
+                    if end {
+                        break;
+                    }
+                    var owner = c.owners.data[j] == entity;
+                    if owner {
+                        var item = sem_get(c.nodes.data[j]);
+                        var returning = item.kind == KReturn();
+                        if returning {
+                            if c.active.data[j] {
+                                returns = true;
+                            }
+                        }
+                    }
+                    j++;
+                }
+                var refined = c.returning.data[i] != returns;
+                if refined {
+                    c.returning.data[i] = returns;
+                    changed = true;
+                }
+            }
+            i++;
+        }
+        if !changed {
+            break;
+        }
+    }
+}
+
+// Even when a constant branch or unreachable statement emits no C, its source
+// comments remain available unless the user explicitly strips them.
+fn ce_notes(c: CEmitter*, entity: void*): void {
+    var n = sem_get(entity);
+    var absent = n == null;
+    if absent {
+        return;
+    }
+    var function = n.kind == KFunction();
+    if function {
+        return;
+    }
+    ce_comments(c, n);
+    var conditional = n.kind == KIf();
+    if conditional {
+        ce_notes(c, n.body);
+        ce_notes(c, n.otherwise);
+        return;
+    }
+    var looping = n.kind == KLoop();
+    if looping {
+        ce_notes(c, n.body);
+        return;
+    }
+    var list = n.kind == KBlock();
+    if list {
+        var i: usize = 0;
+        loop {
+            var done = i == n.items.length;
+            if done {
+                break;
+            }
+            ce_notes(c, n.items.data[i]);
+            i++;
+        }
+    }
+}
+
+// Derived control-flow queries over Foundation nodes. Avoid manufacturing dead
+// C statements/labels: several C compilers warn about them even without -Wextra.
+fn ce_label_used(c: CEmitter*, entity: void*): bool {
+    var i: usize = 0;
+    loop {
+        var done = i == c.nodes.length;
+        if done {
+            return false;
+        }
+        var n = sem_get(c.nodes.data[i]);
+        var jump = n.kind == KJump();
+        jump &&= c.active.data[i];
+        if jump {
+            var selected = n.binding == entity;
+            if selected {
+                return true;
+            }
+        }
+        i++;
+    }
+}
+
+fn ce_breaks(c: CEmitter*, entity: void*): bool {
+    var n = sem_get(entity);
+    var absent = n == null;
+    if absent {
+        return false;
+    }
+    var index = ce_id(c, entity);
+    var inactive = c.active.data[index] == false;
+    if inactive {
+        return false;
+    }
+    var breaking = n.kind == KBreak();
+    if breaking {
+        return true;
+    }
+    var nested = n.kind == KLoop();
+    if nested {
+        return false;
+    }
+    var conditional = n.kind == KIf();
+    if conditional {
+        if ce_breaks(c, n.body) {
+            return true;
+        }
+        return ce_breaks(c, n.otherwise);
+    }
+    var block = n.kind == KBlock();
+    if block {
+        var i: usize = 0;
+        loop {
+            var done = i == n.items.length;
+            if done {
+                break;
+            }
+            if ce_breaks(c, n.items.data[i]) {
+                return true;
+            }
+            i++;
+        }
+    }
+    return false;
+}
+
+fn ce_falls(c: CEmitter*, entity: void*): bool {
+    var n = sem_get(entity);
+    var absent = n == null;
+    if absent {
+        return true;
+    }
+    var call = n.kind == KCall();
+    if call {
+        var index = ce_id(c, n.binding);
+        return c.returning.data[index];
+    }
+    var terminal = n.kind == KReturn();
+    var jump = n.kind == KJump();
+    if jump {
+        terminal = true;
+    }
+    var trapping = n.kind == KTrap();
+    if trapping {
+        terminal = true;
+    }
+    var breaking = n.kind == KBreak();
+    if breaking {
+        terminal = true;
+    }
+    var continuing = n.kind == KContinue();
+    if continuing {
+        terminal = true;
+    }
+    if terminal {
+        return false;
+    }
+    var conditional = n.kind == KIf();
+    if conditional {
+        var condition = sem_get(n.value);
+        if condition.constant {
+            var yes = condition.bits != 0;
+            if yes {
+                return ce_falls(c, n.body);
+            }
+            return ce_falls(c, n.otherwise);
+        }
+        if ce_falls(c, n.body) {
+            return true;
+        }
+        return ce_falls(c, n.otherwise);
+    }
+    var loop_node = n.kind == KLoop();
+    if loop_node {
+        return ce_breaks(c, n.body);
+    }
+    var list = n.kind == KBlock();
+    var program = n.kind == KProgram();
+    if program {
+        list = true;
+    }
+    if list {
+        var falls = true;
+        var i: usize = 0;
+        loop {
+            var done = i == n.items.length;
+            if done {
+                return falls;
+            }
+            var child = n.items.data[i];
+            var item = sem_get(child);
+            var label = item.kind == KLabel();
+            if label {
+                if ce_label_used(c, child) {
+                    falls = true;
+                }
+            }
+            falls &&= ce_falls(c, child);
+            i++;
+        }
+    }
+    return true;
+}

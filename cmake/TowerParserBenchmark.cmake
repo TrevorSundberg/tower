@@ -4,9 +4,9 @@ function(tower_parser_benchmark)
   if(NOT TARGET tower-frontend-tests)
     return()
   endif()
-  set(source "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../scaffolding/tests/parser-benchmark.tower")
+  set(source "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../scaffolding/tests/parser_benchmark.tower")
   set(object "${CMAKE_CURRENT_BINARY_DIR}/tower-parser-benchmark.o")
-  set(expanded "${CMAKE_CURRENT_BINARY_DIR}/tower-parser-benchmark-expanded.tower")
+  set(expanded "${CMAKE_CURRENT_BINARY_DIR}/tower_parser_benchmark_expanded.tower")
   get_property(triple GLOBAL PROPERTY TOWER_COMPILER_TRIPLE)
   add_custom_command(OUTPUT "${object}"
     COMMAND "${CMAKE_CURRENT_BINARY_DIR}/tower-foreign" "${triple}" "${source}" "${expanded}"

@@ -29,18 +29,18 @@ existing import-capable Tower host binary; this is not a source-only bootstrap.
 
 ## Implemented host migration
 
-`scaffolding/host/driver-options.tower` parses options and supplies help/version.
-`driver-services.tower` owns resource path construction, diagnostic positions
-and output-kind/default-name policy. `driver-files.tower` owns binary file
+`scaffolding/host/driver_options.tower` parses options and supplies help/version.
+`driver_services.tower` owns resource path construction, diagnostic positions
+and output-kind/default-name policy. `driver_files.tower` owns binary file
 reads/writes through opaque libc file services. Failed reads close the file and
 preserve the previous buffer, including allocation failures. Writes report
 write/close failure; a partial output is not a successful artifact.
 
-`ide-protocol.tower` exports `tw_abi_version`, `tw_alloc` and `tw_free`,
+`ide_protocol.tower` exports `tw_abi_version`, `tw_alloc` and `tw_free`,
 validates IDE source, and serializes execution status/error/output/steps.
-The other `host/ide-*.tower` modules own session lifetimes, grammar/tree/type
+The other `host/ide_*.tower` modules own session lifetimes, grammar/tree/type
 serialization, completion integration, execution and downloadable artifacts on
-the existing shared entities and compiler APIs. `ide-syntax-wasi.tower` binds the
+the existing shared entities and compiler APIs. `ide_syntax_wasi.tower` binds the
 remaining native syntax inspection interfaces without a native IDE wrapper.
 Worker cancellation, edit/restart behavior and stale-result handling remain the
 existing worker implementation; compiler services do not depend on this transport.
@@ -174,8 +174,8 @@ host fixtures alone cannot establish compiler correctness.
 | Host/distribution | Complete CLI/browser orchestration over those APIs, remaining serialization, Tower test runner, composition recipes, repeated full self-build, platform execution and packaged artifacts. |
 
 The shared-runtime cutover at `dfdf95b` supplies `TowerSharedRuntime.cmake`,
-explicit semantic-component queries, `host/guest-memory.tower` and
-`host/platform-output.tower`. Its build fragment is integrated. GuestHeap accepts
+explicit semantic-component queries, `host/guest_memory.tower` and
+`host/platform_output.tower`. Its build fragment is integrated. GuestHeap accepts
 an explicitly committed contiguous target address range; output helpers implement
 deterministic formatting and progress-aware writes. These are reusable pieces,
 which now back the active guest runtime. The Tower runtime artifact tool connects
@@ -183,7 +183,7 @@ reserved runtime symbols, explicit Wasm instance storage and heap-base access,
 and Linux startup/syscalls through upstream LLVM C APIs. Ordinary Foundation
 foreign calls retain their spellings and the existing shared layouts.
 
-The CLI entry now lives in `host/driver-entry.tower`: it owns argument options,
+The CLI entry now lives in `host/driver_entry.tower`: it owns argument options,
 resource-location buffers and timing lifetime, calling the retained synchronous
 `driver_compile` transport adapter. Linux/macOS/Windows executable lookup uses
 their platform C APIs. The obsolete native driver/bootstrap branches are gone.

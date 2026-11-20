@@ -14,7 +14,7 @@ function execute(handle) {
   assert.equal(result.status, 'done', result.error);
   return output;
 }
-for (const fixture of ['operators', 'null-operators']) {
+for (const fixture of ['operators', 'null_operators']) {
 const source = (await read('scaffolding/tests/' + fixture + '.tower')).toString();
 const expected = (await read('scaffolding/tests/' + fixture + '.expected.txt')).toString().replaceAll('\r\n', '\n');
 test(fixture + ' preserve values, grouping and effects through Foundation', () => {

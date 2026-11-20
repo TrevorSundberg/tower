@@ -1,0 +1,216 @@
+import tower;
+import syntax_types;
+import parser_nodes;
+import .library.vector;
+
+// Derived lexer tables only: token declarations remain on shared syntax entities.
+// Flat transition rows and maximal-prefix matching are owned and executed by Tower.
+// A finite-state chain over arbitrary integer symbols. State n accepts; each
+// earlier state has one range transition to its successor. No parse stack.
+struct SymbolRange {
+    first: u32;
+    last: u32;
+}
+
+struct SymbolSequence {
+    symbols: SymbolRange*;
+    count: usize;
+}
+
+export fn symbol_sequence_create(count: usize): SymbolSequence* {
+    var sequence = alloc(SymbolSequence, 1);
+    var failed = sequence == null;
+    if failed {
+        return null;
+    }
+    sequence.symbols = alloc(SymbolRange, count);
+    failed = sequence.symbols == null;
+    if failed {
+        free(sequence);
+        return null;
+    }
+    sequence.count = count;
+    return sequence;
+}
+
+export fn symbol_sequence_destroy(sequence: SymbolSequence*): void {
+    var empty = sequence == null;
+    if empty {
+        return;
+    }
+    free(sequence.symbols);
+    free(sequence);
+}
+
+export fn symbol_sequence_set(sequence: SymbolSequence*, state: usize, first: u32, last: u32): void {
+    sequence.symbols[state].first = first;
+    sequence.symbols[state].last = last;
+}
+
+export fn symbol_sequence_accepts(sequence: SymbolSequence*, state: usize, symbol: u32): bool {
+    var done = state >= sequence.count;
+    if done {
+        return false;
+    }
+    var low = symbol < sequence.symbols[state].first;
+    if low {
+        return false;
+    }
+    var accepted = symbol <= sequence.symbols[state].last;
+    return accepted;
+}
+
+export fn lex_table_create(): LexerTable* {
+    var table = alloc(LexerTable, 1);
+    var ok = table != null;
+    if ok {
+        fill(table, 0, sizeof(LexerTable));
+    }
+    return table;
+}
+
+export fn lex_table_destroy(table: LexerTable*): void {
+    var empty = table == null;
+    if empty {
+        return;
+    }
+    vector_dispose(u32, &table.alphabet);
+    vector_dispose(i32, &table.transitions);
+    vector_dispose(u8, &table.accepting);
+    free(table);
+}
+
+export fn lex_table_set_alphabet(table: LexerTable*, values: u32*, count: usize): bool {
+    var invalid = count < 2;
+    if invalid {
+        return false;
+    }
+    var active = table.accepting.length != 0;
+    if active {
+        return false;
+    }
+    var ok = vector_reserve(u32, &table.alphabet, count);
+    if ok {
+        var bytes = count * sizeof(u32);
+        copy(table.alphabet.data, values, bytes);
+        table.alphabet.length = count;
+    }
+    return ok;
+}
+
+export fn lex_table_append(table: LexerTable*, transitions: i32*, count: usize, accepting: bool): bool {
+    var empty = table.alphabet.length < 2;
+    if empty {
+        return false;
+    }
+    var columns = table.alphabet.length - 1;
+    var invalid = count != columns;
+    if invalid {
+        return false;
+    }
+    var end = table.transitions.length + count;
+    var wrapped = end < table.transitions.length;
+    if wrapped {
+        return false;
+    }
+    var rows = table.accepting.length + 1;
+    wrapped = rows == 0;
+    if wrapped {
+        return false;
+    }
+    var ok = vector_reserve(i32, &table.transitions, end);
+    if !ok {
+        return false;
+    }
+    ok = vector_reserve(u8, &table.accepting, rows);
+    if ok {
+        var destination = table.transitions.data + table.transitions.length;
+        var bytes = count * sizeof(i32);
+        copy(destination, transitions, bytes);
+        table.transitions.length = end;
+        table.accepting.data[table.accepting.length] = convert(u8, accepting);
+        table.accepting.length = rows;
+    }
+    return ok;
+}
+
+// The transition engine knows integer IDs, not UTF-8. Character decoding is one
+// stream adapter; token grammar automata use these same rows directly.
+export fn lex_table_step(table: LexerTable*, state: usize, symbol: u32): i32 {
+    var invalid = state >= table.accepting.length;
+    if invalid {
+        return -1;
+    }
+    var columns = table.alphabet.length - 1;
+    invalid = symbol >= table.alphabet.data[columns];
+    if invalid {
+        return -1;
+    }
+    invalid = symbol < table.alphabet.data[0];
+    if invalid {
+        return -1;
+    }
+    var first: usize = 0;
+    var count = table.alphabet.length;
+    loop {
+        var done = count == 0;
+        if done {
+            break;
+        }
+        var half = count / 2;
+        var middle = first + half;
+        var higher = symbol < table.alphabet.data[middle];
+        if higher {
+            count = half;
+        }
+        else {
+            first = middle + 1;
+            count = count - half;
+            count--;
+        }
+    }
+    var column = first - 1;
+    var index = state * columns;
+    index = index + column;
+    return table.transitions.data[index];
+}
+
+export fn lex_table_accepts(table: LexerTable*, state: usize): bool {
+    var invalid = state >= table.accepting.length;
+    if invalid {
+        return false;
+    }
+    var accepted = table.accepting.data[state] != 0;
+    return accepted;
+}
+
+export fn lex_table_match(table: LexerTable*, source: u8*, length: usize, start: usize): usize {
+    var position = start;
+    var longest: usize = 0;
+    var state: usize = 0;
+    loop {
+        var done = position >= length;
+        if done {
+            return longest;
+        }
+        var scalar: u32;
+        var begin = source + position;
+        var remaining = length - position;
+        var bytes = tower_utf8_decode(begin, remaining, &scalar);
+        var invalid = bytes == 0;
+        if invalid {
+            return longest;
+        }
+        var next = lex_table_step(table, state, scalar);
+        done = next < 0;
+        if done {
+            return longest;
+        }
+        state = convert(usize, next);
+        position = position + bytes;
+        var accepted = table.accepting.data[state] != 0;
+        if accepted {
+            longest = position - start;
+        }
+    }
+}

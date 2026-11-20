@@ -94,7 +94,7 @@ Foundation alone does not import these keywords or control-flow rules.
 
 ```tower
 import tower;
-import 'library/queue';
+import library.queue;
 
 var work: queue(i32);
 queue_init(i32, &work);
@@ -248,7 +248,7 @@ serial until their remaining mutable state and publication contracts are moved.
 
 ## Validation fixtures
 
-`scaffolding/tests/language-control.tower` and `language-collections.tower` contain
+`scaffolding/tests/language_control.tower` and `language_collections.tower` contain
 the functional assertions as failure codes. Success prints `42` then `0` for the
 control fixture, and `0` for collections. The existing browser test adapter runs
 them on the graph and fast interpreters at both pointer widths, round-trips

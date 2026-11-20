@@ -1,0 +1,5 @@
+import tower;
+import linker_wasi;
+
+// The reactor build selects the Wasm-only or cross-target dispatcher.
+extern fn backend_lld_dispatch(triple: u8*, args: BackendLldArguments*, output: BackendLldStream*, error: BackendLldStream*): bool;

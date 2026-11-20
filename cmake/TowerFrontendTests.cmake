@@ -1,7 +1,7 @@
 # Keep functional world checks in their own Tower unit. They call the production
 # ABI and need no native harness or enlarged bootstrap compilation-unit limit.
 if(TOWER_PARSER_ONLY)
-  set(frontend_tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/frontend-world.tower")
+  set(frontend_tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/frontend_world.tower")
   set(frontend_tests_object "${CMAKE_CURRENT_BINARY_DIR}/tower-frontend-world-tests.o")
   add_custom_command(OUTPUT "${frontend_tests_object}"
     COMMAND "${bootstrap}" "${frontend_tests}"

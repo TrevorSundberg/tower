@@ -5,17 +5,19 @@ function(tower_guest_runtime_tests)
   tower_guest_runtime(wasm32 wasm32-unknown-unknown wasm OFF)
   get_property(runtime GLOBAL PROPERTY TOWER_GUEST_wasm32_OBJECT)
   foreach(mode IN ITEMS fixed growth)
-    set(source guest-runtime-abi)
+    set(source guest_runtime_abi)
     set(function allocator_wasm_tests)
     set(maximum 131072)
     if(mode STREQUAL "growth")
-      set(source guest-runtime-growth)
+      set(source guest_runtime_growth)
       set(function guest_runtime_growth_tests)
       set(maximum 524288)
     endif()
     set(base "${CMAKE_CURRENT_BINARY_DIR}/guest-runtime-${mode}-tests")
     add_custom_command(OUTPUT "${base}.o"
       COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${source}.tower"
+        --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
+        --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
         --library --target wasm32-unknown-unknown -o "${base}.o" --depfile "${base}.d"
       DEPFILE "${base}.d"
       DEPENDS "${TOWER_BOOTSTRAP_COMPILER}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${source}.tower" VERBATIM)

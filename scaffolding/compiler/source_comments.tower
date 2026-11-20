@@ -1,0 +1,267 @@
+import tower;
+import foundation_tags;
+import foundation_types;
+import frontend_compilation;
+import semantic_context;
+import .library.vector;
+
+// Comments are optional metadata on the same Foundation entities. The lexer
+// supplies spans; neither this attachment path nor either emitter tokenizes source.
+fn source_comment_targets(entity: void*, base: usize, limit: usize, targets: vector(void*)*): void {
+    var n = sem_get(entity);
+    var absent = n == null;
+    if absent {
+        return;
+    }
+    var inside = n.start >= base;
+    inside &&= n.start < limit;
+    if inside {
+        sem_require(vector_push(void*, targets, entity));
+    }
+    var function = n.kind == KFunction();
+    var looping = n.kind == KLoop();
+    if looping {
+        function = true;
+    }
+    if function {
+        source_comment_targets(n.body, base, limit, targets);
+        return;
+    }
+    var conditional = n.kind == KIf();
+    if conditional {
+        source_comment_targets(n.body, base, limit, targets);
+        source_comment_targets(n.otherwise, base, limit, targets);
+        return;
+    }
+    var list = n.kind == KProgram();
+    var block = n.kind == KBlock();
+    if block {
+        list = true;
+    }
+    if list {
+        var i: usize = 0;
+        loop {
+            var done = i == n.items.length;
+            if done {
+                break;
+            }
+            source_comment_targets(n.items.data[i], base, limit, targets);
+            i++;
+        }
+    }
+}
+
+// Stable bottom-up merge sort preserves the original traversal's first match
+// when generated nodes share a source position. This index is discarded below.
+fn source_comment_sort(targets: vector(void*)*): void {
+    var scratch: vector(void*);
+    vector_init(void*, &scratch);
+    var i: usize = 0;
+    loop {
+        var done = i == targets.length;
+        if done {
+            break;
+        }
+        sem_require(vector_push(void*, &scratch, targets.data[i]));
+        i++;
+    }
+    var width: usize = 1;
+    loop {
+        var done = width >= targets.length;
+        if done {
+            break;
+        }
+        var begin: usize = 0;
+        loop {
+            done = begin >= targets.length;
+            if done {
+                break;
+            }
+            var middle = begin + width;
+            var end = middle + width;
+            var past = middle > targets.length;
+            if past {
+                middle = targets.length;
+            }
+            past = end > targets.length;
+            if past {
+                end = targets.length;
+            }
+            var left = begin;
+            var right = middle;
+            var at = begin;
+            loop {
+                done = at == end;
+                if done {
+                    break;
+                }
+                var take_left = right == end;
+                var available = left < middle;
+                if available {
+                    if !take_left {
+                        var a = sem_get(targets.data[left]);
+                        var b = sem_get(targets.data[right]);
+                        take_left = a.start <= b.start;
+                    }
+                } else {
+                    take_left = false;
+                }
+                if take_left {
+                    scratch.data[at] = targets.data[left];
+                    left++;
+                }
+                else {
+                    scratch.data[at] = targets.data[right];
+                    right++;
+                }
+                at++;
+            }
+            begin = end;
+        }
+        var swap = targets.data;
+        targets.data = scratch.data;
+        scratch.data = swap;
+        var capacity = targets.capacity;
+        targets.capacity = scratch.capacity;
+        scratch.capacity = capacity;
+        width = width * 2;
+    }
+    vector_dispose(void*, &scratch);
+}
+
+fn source_comment_append(n: FoundationNode*, source: u8*, first: usize, last: usize): void {
+    // Normalize imported/custom lexer spellings into compilable Foundation trivia.
+    if last > first {
+        var count = last - first;
+        if count >= 2 {
+            if source[first] == 47 {
+                var second = first + 1;
+                if source[second] == 47 {
+                    first = first + 2;
+                }
+                else {
+                    if source[second] == 42 {
+                        first = first + 2;
+                        last = last - 2;
+                    }
+                }
+            }
+        }
+    }
+    sem_require(bytes_append(&n.comments, "/*", 2));
+    loop {
+        if first >= last {
+            break;
+        }
+        var c = source[first];
+        sem_require(vector_push(u8, &n.comments, c));
+        var next = first + 1;
+        if c == 42 {
+            if next < last {
+                if source[next] == 47 {
+                    sem_require(vector_push(u8, &n.comments, 32));
+                }
+            }
+        }
+        first = next;
+    }
+    sem_require(bytes_append(&n.comments, "*/\n", 3));
+}
+
+export fn semantic_source_comments(root: void*, source: u8*, spans: usize*, count: usize, base: usize, length: usize): void {
+    var empty = count == 0;
+    if empty {
+        return;
+    }
+    var targets: vector(void*);
+    vector_init(void*, &targets);
+    var limit = base + length;
+    source_comment_targets(root, base, limit, &targets);
+    source_comment_sort(&targets);
+    var i: usize = 0;
+    loop {
+        var done = i == count;
+        if done {
+            break;
+        }
+        var next = i + 1;
+        var boundary = base + spans[next];
+        var left: usize = 0;
+        var right = targets.length;
+        loop {
+            done = left == right;
+            if done {
+                break;
+            }
+            var middle = right - left;
+            middle = middle / 2;
+            middle = middle + left;
+            var node = sem_get(targets.data[middle]);
+            var before = node.start < boundary;
+            if before {
+                left = middle + 1;
+            } else {
+                right = middle;
+            }
+        }
+        var target = root;
+        var found = left < targets.length;
+        if found {
+            target = targets.data[left];
+        }
+        source_comment_append(sem_get(target), source, spans[i], spans[next]);
+        i = i + 2;
+    }
+    vector_dispose(void*, &targets);
+}
+
+fn source_comments_walk(entity: void*, target: vector(u8)*, strip: bool): void {
+    var n = sem_get(entity);
+    if n == null {
+        return;
+    }
+    if strip {
+        n.comments.length = 0;
+    }
+    else {
+        sem_require(bytes_append(target, n.comments.data, n.comments.length));
+    }
+    if n.kind == KFunction() {
+        source_comments_walk(n.body, target, strip);
+        return;
+    }
+    if n.kind == KIf() {
+        source_comments_walk(n.body, target, strip);
+        source_comments_walk(n.otherwise, target, strip);
+        return;
+    }
+    if n.kind == KLoop() {
+        source_comments_walk(n.body, target, strip);
+        return;
+    }
+    var list = n.kind == KProgram();
+    if n.kind == KBlock() {
+        list = true;
+    }
+    if list {
+        var i: usize = 0;
+        loop {
+            if i == n.items.length {
+                break;
+            }
+            source_comments_walk(n.items.data[i], target, strip);
+            i++;
+        }
+    }
+}
+
+export fn semantic_strip_comments(root: void*): void {
+    source_comments_walk(root, null, true);
+}
+
+// Optimization can remove/reorder statements. Retain their comments at module
+// scope, without inventing an instruction association or an original source span.
+export fn semantic_collect_comments(source: void*, destination: void*): void {
+    var n = sem_get(destination);
+    source_comments_walk(source, &n.comments, false);
+}

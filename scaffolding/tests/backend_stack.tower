@@ -1,0 +1,31 @@
+import tower;
+import .library.platform;
+
+// Escaping large locals must retain Windows guard-page probes. Exercise several
+// pages and a nested call; optimization cannot shrink the observable allocation.
+fn stack_fill(data: u8*, count: usize): u32 {
+    platform_write(1, data, 0);
+    var i: usize = 0;
+    while i < count {
+        data[i] = 7;
+        i++;
+    }
+    var last = count - 1;
+    return convert(u32, data[last]);
+}
+
+fn stack_inner(): u32 {
+    var data: u8[65536];
+    return stack_fill(&data[0], 65536);
+}
+
+fn stack_test(): u32 {
+    var data: u8[65536];
+    var value = stack_fill(&data[0], 65536);
+    value = value + stack_inner();
+    value = value + convert(u32, data[65535]);
+    value = value - 21;
+    return value;
+}
+
+print(stack_test());

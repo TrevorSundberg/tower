@@ -20,7 +20,7 @@ SOURCES = ROOT / 'scaffolding'
 UNIT_SOURCES = {
     'tower-compiler-utf8.o': 'compiler/utf8.tower',
     'tower-compiler-bytes.o': 'library/bytes.tower',
-    'tower-shared-lifecycle.o': 'host/entity-lifecycle.tower',
+    'tower-shared-lifecycle.o': 'host/entity_lifecycle.tower',
 }
 
 def run(args, cwd):
@@ -55,7 +55,7 @@ def package(builds, destination):
              for p in (SOURCES/folder).rglob('*.tower')}
     files.update({n+'.tower': (SOURCES/(n+'.tower')).read_text() for n in ['bedrock','foundation','tower']})
     # The browser self-test now links the production-export Tower parser fixture.
-    files['tests/parser-integration.tower'] = (SOURCES/'tests/parser-integration.tower').read_text()
+    files['tests/parser_integration.tower'] = (SOURCES/'tests/parser_integration.tower').read_text()
     units, reactors = {}, {}
     for name, build, target, binary in builds:
         command = next(line for line in reversed(run(['ninja','-t','commands',target], build).splitlines()) if ' -o ' + binary + ' ' in line)
@@ -88,16 +88,13 @@ def package(builds, destination):
         names = []
         for obj in tower_objects:
             key = obj.stem.removeprefix('tower-')
-            entry = 'units/'+key+'.tower'
+            entry = 'units/'+key.replace('-', '_')+'.tower'
             if obj.name in UNIT_SOURCES:
-                text = 'import tower;\nimport "../'+UNIT_SOURCES[obj.name][:-6]+'";\n'
+                text = 'import tower;\nimport .'+UNIT_SOURCES[obj.name][:-6].replace('/', '.')+';\n'
             else:
-                text = obj.with_suffix('.tower').read_text()
-                # Expanded backend manifests contain the same ordinary imports.
-                def relative(match):
-                    imported = (build / (match[1]+'.tower')).resolve()
-                    return 'import "../'+imported.relative_to(SOURCES).as_posix()[:-6]+'";'
-                text = re.sub(r'import "([^"]+)";', relative, text)
+                # CMake manifests use ordinary dotted names rooted at the selected
+                # library directory, which is this project's root in the browser.
+                text = obj.with_name(obj.stem.replace('-', '_')+'.tower').read_text()
             files[entry] = ('// Compiler build unit. Imports define its complete source closure.\n'
                             '// Add newly ported .tower modules to the owning CMake import manifest;\n'
                             '// the published project follows it. Browser edits to these imports also rebuild.\n'+text)
@@ -189,7 +186,7 @@ def package(builds, destination):
             args.append('--allow-undefined-file='+imported)
         reactors[name] = {'units':names,'support':support_files,'arguments':args,'supportBytes':support_size,'exports':exports(build/binary)}
         print(name, support_size, 'support bytes;', len(names), 'Tower units')
-    entry = 'units/compiler-parser-nodes.tower'
+    entry = 'units/compiler_parser_nodes.tower'
     files[entry] = ('// Tower Compiler: editable compiler, interpreter, host and LLVM backend source.\n'
                     '// import tower resolves the project file tower.tower, not the compiler binary.\n'
                     '// Its ordinary imports load foundation.tower and then bedrock.tower.\n'

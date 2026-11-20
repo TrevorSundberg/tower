@@ -1,0 +1,609 @@
+import tower;
+import format_grammar;
+import format_types;
+import format;
+import regex_lowering;
+import .library.vector;
+
+// Temporary token positions/spacing flags derived from parser matches.
+// Comments come exclusively from the lexer; no second token grammar.
+// The checked sorted-input fast path replaces rescanning every comment for
+// every root. This is a derived lookup, never authoritative syntax.
+fn format_comments_ordered(comments: FormatComment*, count: usize): bool {
+    var i: usize = 1;
+    loop {
+        var done = i >= count;
+        if done {
+            return true;
+        }
+        var previous = i - 1;
+        var backwards = comments[previous].start > comments[i].start;
+        if backwards {
+            return false;
+        }
+        i++;
+    }
+}
+
+fn format_comment_bound(comments: FormatComment*, count: usize, start: usize): usize {
+    var low: usize = 0;
+    var high = count;
+    loop {
+        var done = low == high;
+        if done {
+            return low;
+        }
+        var middle = high - low;
+        middle = middle / 2;
+        middle = low + middle;
+        var before = comments[middle].start < start;
+        if before {
+            low = middle + 1;
+        }
+        else {
+            high = middle;
+        }
+    }
+}
+
+struct FormatToken {
+    start: usize;
+    end: usize;
+    comment: bool;
+    pointer: bool;
+    unary: bool;
+    call: bool;
+    prefix: bool;
+    postfix: bool;
+}
+
+struct FormatComment {
+    start: usize;
+    end: usize;
+}
+
+fn format_symbolic(source: u8*, start: usize, end: usize): bool {
+    if start == end {
+        return false;
+    }
+    loop {
+        if start == end {
+            return true;
+        }
+        var c = source[start];
+        var symbols = "+-*/%&|^~!<>=?";
+        var i: usize = 0;
+        var found = false;
+        loop {
+            if symbols[i] == 0 {
+                break;
+            }
+            if symbols[i] == c {
+                found = true;
+                break;
+            }
+            i++;
+        }
+        if !found {
+            return false;
+        }
+        start++;
+    }
+}
+
+fn format_operator_leaf(f: FormatEngine*, entity: void*, source: u8*): bool {
+    // Grouped operator alternatives are transparent single-child rules.
+    var depth: usize = 0;
+    while entity_child_count(entity) == 1 && depth < 128 {
+        entity = entity_child_at(entity, 0);
+        depth++;
+    }
+    var `match` = format_match(f, entity);
+    if `match` == null {
+        return false;
+    }
+    var invalid: usize = 0;
+    invalid--;
+    if `match`.rule != invalid {
+        return false;
+    }
+    var end = `match`.start + `match`.length;
+    return format_symbolic(source, `match`.start, end);
+}
+
+fn format_token_push(f: FormatEngine*, tokens: vector(FormatToken)*, start: usize, end: usize,
+comment: bool, pointer: bool, unary: bool, call: bool): void {
+    var needed = tokens.length + 1;
+    var ok = vector_reserve(FormatToken, tokens, needed);
+    if ok {
+        var t = &tokens.data[tokens.length];
+        t.start = start;
+        t.end = end;
+        t.comment = comment;
+        t.pointer = pointer;
+        t.unary = unary;
+        t.call = call;
+        t.prefix = false;
+        t.postfix = false;
+        tokens.length = needed;
+    } else {
+        f.result.failed = true;
+    }
+}
+
+fn format_tokens(f: FormatEngine*, entity: void*, source: u8*, tokens: vector(FormatToken)*,
+pointer: bool, unary: bool, call: bool): void {
+    var `match` = format_match(f, entity);
+    if `match` == null {
+        return;
+    }
+    if format_name_is(&`match`.label, "CoreType") {
+        pointer = true;
+    }
+    if format_name_is(&`match`.label, "CorePointerArgument") {
+        pointer = true;
+    }
+    if format_name_is(&`match`.label, "CoreAddress") {
+        unary = true;
+    }
+    if format_name_is(&`match`.label, "CoreLoad") {
+        unary = true;
+    }
+    if format_name_is(&`match`.label, "CoreTarget") {
+        unary = true;
+    }
+    if format_name_is(&`match`.label, "CoreOperand") {
+        unary = true;
+    }
+    if format_name_is(&`match`.label, "CoreCall") {
+        call = true;
+    }
+    if format_name_is(&`match`.label, "CoreFunction") {
+        call = true;
+    }
+    if format_name_is(&`match`.label, "CoreExternal") {
+        call = true;
+    }
+    if format_name_is(&`match`.label, "CoreExport") {
+        call = true;
+    }
+    if format_name_is(&`match`.label, "CoreType") {
+        call = true;
+    }
+    var invalid: usize = 0;
+    invalid--;
+    if `match`.rule == invalid {
+        var end = `match`.start + `match`.length;
+        if end > `match`.start {
+            format_token_push(f, tokens, `match`.start, end, false, pointer, unary, call);
+        }
+        return;
+    }
+    var begin = tokens.length;
+    var children = entity_child_count(entity);
+    var i: usize = 0;
+    loop {
+        if i == children {
+            break;
+        }
+        format_tokens(f, entity_child_at(entity, i), source, tokens, pointer, unary, call);
+        i++;
+    }
+    if children == 2 {
+        var minimum = begin + 1;
+        if tokens.length > minimum {
+            var first = format_operator_leaf(f, entity_child_at(entity, 0), source);
+            var last = format_operator_leaf(f, entity_child_at(entity, 1), source);
+            if first != last {
+                if first {
+                    tokens.data[begin].prefix = true;
+                }
+                else {
+                    var back = tokens.length - 1;
+                    tokens.data[back].postfix = true;
+                }
+            }
+        }
+    }
+}
+
+fn format_source_declaration(f: FormatEngine*, entity: void*): bool {
+    var `match` = format_match(f, entity);
+    if `match` == null {
+        return false;
+    }
+    if format_name_is(&`match`.label, "CoreFunction") {
+        return true;
+    }
+    if format_name_is(&`match`.label, "CoreExternal") {
+        return true;
+    }
+    if format_name_is(&`match`.label, "CoreExport") {
+        return true;
+    }
+    if format_name_is(&`match`.label, "CoreStruct") {
+        return true;
+    }
+    var children = entity_child_count(entity);
+    if children == 1 {
+        return format_source_declaration(f, entity_child_at(entity, 0));
+    }
+    return false;
+}
+
+fn format_token_swap(a: FormatToken*, b: FormatToken*): void {
+    var temporary: FormatToken;
+    copy(&temporary, a, sizeof(FormatToken));
+    copy(a, b, sizeof(FormatToken));
+    copy(b, &temporary, sizeof(FormatToken));
+}
+
+fn format_sift(tokens: vector(FormatToken)*, root: usize, end: usize): void {
+    loop {
+        var child = root * 2;
+        child++;
+        if child >= end {
+            return;
+        }
+        var next = child + 1;
+        if next < end {
+            if tokens.data[child].start < tokens.data[next].start {
+                child = next;
+            }
+        }
+        if tokens.data[root].start >= tokens.data[child].start {
+            return;
+        }
+        format_token_swap(&tokens.data[root], &tokens.data[child]);
+        root = child;
+    }
+}
+
+fn format_sort(tokens: vector(FormatToken)*): void {
+    // Parser leaves are already ordered in the usual no-comment case.
+    var next: usize = 1;
+    loop {
+        var finished = next >= tokens.length;
+        if finished {
+            return;
+        }
+        var previous = next - 1;
+        var unordered = tokens.data[previous].start > tokens.data[next].start;
+        if unordered {
+            break;
+        }
+        next++;
+    }
+    var at = tokens.length / 2;
+    loop {
+        if at == 0 {
+            break;
+        }
+        at--;
+        format_sift(tokens, at, tokens.length);
+    }
+    var end = tokens.length;
+    loop {
+        if end <= 1 {
+            break;
+        }
+        end--;
+        format_token_swap(&tokens.data[0], &tokens.data[end]);
+        format_sift(tokens, 0, end);
+    }
+}
+
+fn format_lines(source: u8*, start: usize, end: usize): usize {
+    var count: usize = 0;
+    loop {
+        if start >= end {
+            return count;
+        }
+        if source[start] == 10 {
+            count++;
+        }
+        start++;
+    }
+}
+
+fn format_token_is(source: u8*, entry: FormatToken*, text: u8*): bool {
+    var length = entry.end - entry.start;
+    return format_equal(&source[entry.start], length, text);
+}
+
+fn format_source_statement(f: FormatEngine*, entity: void*, source: u8*, from: usize, end: usize,
+comments: FormatComment*, comment_count: usize, ordered: bool): void {
+    var tokens: vector(FormatToken);
+    vector_init(FormatToken, &tokens);
+    format_tokens(f, entity, source, &tokens, false, false, false);
+    var i: usize = 0;
+    if ordered {
+        i = format_comment_bound(comments, comment_count, from);
+    }
+    loop {
+        if i == comment_count {
+            break;
+        }
+        var comment = &comments[i];
+        if ordered {
+            var beyond = comment.start > end;
+            if beyond {
+                break;
+            }
+        }
+        var after = comment.start >= from;
+        var before = comment.end <= end;
+        var include = format_and(after, before);
+        if include {
+            format_token_push(f, &tokens, comment.start, comment.end, true, false, false, false);
+        }
+        i++;
+    }
+    format_sort(&tokens);
+    var previous: FormatToken;
+    fill(&previous, 0, sizeof(FormatToken));
+    var previous_end = from;
+    var parentheses: usize = 0;
+    i = 0;
+    loop {
+        if i == tokens.length {
+            break;
+        }
+        var entry = &tokens.data[i];
+        var lines = format_lines(source, previous_end, entry.start);
+        var close = format_token_is(source, entry, "}");
+        if !entry.comment {
+            if close {
+                if f.result.depth != 0 {
+                    f.result.depth--;
+                }
+            }
+        }
+        var last_open = format_token_is(source, &previous, "{");
+        var last_close = format_token_is(source, &previous, "}");
+        var close_empty = format_and(close, last_open);
+        var break_line = false;
+        var last_present = previous.end != previous.start;
+        if last_present {
+            if !close_empty {
+                var semicolon = format_token_is(source, &previous, ";");
+                if parentheses != 0 {
+                    semicolon = false;
+                }
+                if entry.comment {
+                    if lines == 0 {
+                        semicolon = false;
+                    }
+                }
+                var after_close = last_close;
+                var condition44 = format_token_is(source, entry, ";");
+                if condition44 {
+                    after_close = false;
+                }
+                if format_token_is(source, entry, "else") {
+                    after_close = false;
+                }
+                if format_token_is(source, entry, ",") {
+                    after_close = false;
+                }
+                if format_token_is(source, entry, ")") {
+                    after_close = false;
+                }
+                break_line = format_or(previous.comment, semicolon);
+                break_line = format_or(break_line, last_open);
+                break_line = format_or(break_line, close);
+                break_line = format_or(break_line, after_close);
+                var gap_lines = lines != 0;
+                break_line = format_or(break_line, gap_lines);
+            }
+        }
+        if break_line {
+            var blank = lines > 1;
+            if last_open {
+                blank = false;
+            }
+            format_newline(f, blank);
+        }
+        var line_start = f.result.text.length == 0;
+        if !line_start {
+            var last = f.result.text.length - 1;
+            line_start = f.result.text.data[last] == 10;
+        }
+        if line_start {
+            format_indent(f);
+        }
+        else {
+            if !close_empty {
+                var tight = false;
+                var condition48 = format_token_is(source, entry, ";");
+                if condition48 {
+                    tight = true;
+                }
+                if format_token_is(source, entry, ",") {
+                    tight = true;
+                }
+                if format_token_is(source, entry, ")") {
+                    tight = true;
+                }
+                if format_token_is(source, entry, "]") {
+                    tight = true;
+                }
+                if format_token_is(source, entry, ".") {
+                    tight = true;
+                }
+                if format_token_is(source, entry, ":") {
+                    tight = true;
+                }
+                if format_token_is(source, entry, "[") {
+                    tight = true;
+                }
+                if format_token_is(source, &previous, "(") {
+                    tight = true;
+                }
+                if format_token_is(source, &previous, "[") {
+                    tight = true;
+                }
+                if format_token_is(source, &previous, ".") {
+                    tight = true;
+                }
+                if format_token_is(source, entry, "(") {
+                    var empty_gap = previous_end == entry.start;
+                    var call = format_or(entry.call, empty_gap);
+                    tight = format_or(tight, call);
+                }
+                if format_token_is(source, entry, "*") {
+                    tight = format_or(tight, entry.pointer);
+                }
+                var affix = format_or(previous.prefix, entry.postfix);
+                if previous.comment {
+                    affix = false;
+                }
+                if affix {
+                    var left = format_symbolic(source, previous.start, previous.end);
+                    var right = format_symbolic(source, entry.start, entry.end);
+                    var adjacent = format_and(left, right);
+                    if !adjacent {
+                        tight = true;
+                    }
+                }
+                var unary = false;
+                if format_token_is(source, &previous, "*") {
+                    unary = true;
+                }
+                if format_token_is(source, &previous, "&") {
+                    unary = true;
+                }
+                if format_token_is(source, &previous, "-") {
+                    unary = true;
+                }
+                unary = format_and(unary, previous.unary);
+                if previous.pointer {
+                    unary = false;
+                }
+                tight = format_or(tight, unary);
+                if entry.comment {
+                    tight = false;
+                }
+                if !tight {
+                    format_text(f, " ");
+                }
+            }
+        }
+        var begin = f.result.text.length;
+        var length = entry.end - entry.start;
+        format_write(f, &source[entry.start], length);
+        format_span(f, begin, entry.start);
+        if !entry.comment {
+            var opening = format_token_is(source, entry, "{");
+            if opening {
+                f.result.depth++;
+            }
+            if format_token_is(source, entry, "(") {
+                parentheses++;
+            }
+            if format_token_is(source, entry, ")") {
+                if parentheses != 0 {
+                    parentheses--;
+                }
+            }
+        }
+        copy(&previous, entry, sizeof(FormatToken));
+        previous_end = entry.end;
+        i++;
+    }
+    format_newline(f, false);
+    vector_dispose(FormatToken, &tokens);
+}
+
+export fn format_source(result: FormatResult*, roots: void**, count: usize, source: u8*, length: usize,
+comments: FormatComment*, comment_count: usize, syntax: void*, foundation: void*, match_kind: void*): void {
+    var engine: FormatEngine;
+    engine.source_names = false;
+    var f = &engine;
+    f.result = result;
+    f.syntax_kind = syntax;
+    f.foundation_kind = foundation;
+    f.match_kind = match_kind;
+    var previous_end: usize = 0;
+    var previous_declaration = false;
+    // Lexer trivia is ordered. Check eligibility once, retaining the original
+    // behavior for arbitrary caller-supplied comment order.
+    var ordered = format_comments_ordered(comments, comment_count);
+    var i: usize = 0;
+    loop {
+        if i == count {
+            break;
+        }
+        var root = roots[i];
+        var `match` = format_match(f, root);
+        var end = `match`.start + `match`.length;
+        var first = `match`.start;
+        var j: usize = 0;
+        if ordered {
+            j = format_comment_bound(comments, comment_count, previous_end);
+        }
+        loop {
+            if j == comment_count {
+                break;
+            }
+            var comment = &comments[j];
+            if ordered {
+                var beyond = comment.start >= first;
+                if beyond {
+                    break;
+                }
+            }
+            var after = comment.start >= previous_end;
+            var before = comment.start < first;
+            var include = format_and(after, before);
+            if include {
+                first = comment.start;
+            }
+            j++;
+        }
+        var declaration = format_source_declaration(f, root);
+        var separate = format_or(previous_declaration, declaration);
+        if separate {
+            format_newline(f, true);
+        }
+        var lines = format_lines(source, previous_end, first);
+        if lines > 1 {
+            format_newline(f, true);
+        }
+        var grammar = root;
+        loop {
+            var syntax_node = format_syntax(f, grammar);
+            if syntax_node != null {
+                break;
+            }
+            var children = entity_child_count(grammar);
+            if children != 1 {
+                break;
+            }
+            grammar = entity_child_at(grammar, 0);
+        }
+        var syntax_node = format_syntax(f, grammar);
+        if syntax_node != null {
+            format_grammar(f, grammar);
+        }
+        else {
+            format_source_statement(f, root, source, previous_end, end, comments, comment_count, ordered);
+        }
+        previous_end = end;
+        previous_declaration = declaration;
+        i++;
+    }
+    i = 0;
+    loop {
+        if i == comment_count {
+            break;
+        }
+        var comment = &comments[i];
+        if comment.start >= previous_end {
+            var count = comment.end - comment.start;
+            format_write(f, &source[comment.start], count);
+            format_newline(f, false);
+        }
+        i++;
+    }
+}

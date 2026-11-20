@@ -1,0 +1,288 @@
+import tower;
+import foreign_itanium;
+import foreign_microsoft;
+import foreign_reader;
+import text;
+
+// Returns owned text/error views; release with foreign_name_close. The profile
+// describes the foreign compiler, never the host running this Tower function.
+fn foreign_profile(m: ForeignName*, profile: u32): void {
+    var foreign_condition3001 = profile == foreign_windows_arm64ec();
+    if foreign_condition3001 {
+        foreign_profile(m, foreign_windows_arm64());
+        m.profile = foreign_windows_arm64ec();
+        return;
+    }
+    m.profile = profile;
+    m.abi = 1;
+    m.pointer_bytes = 8;
+    m.long_bytes = 8;
+    m.arch = 2;
+    var foreign_condition1 = profile == foreign_wasi();
+    if foreign_condition1 {
+        m.pointer_bytes = 4;
+        m.long_bytes = 4;
+        m.arch = 0;
+    }
+    var foreign_condition2 = profile == foreign_macos_x64();
+    if foreign_condition2 {
+        m.object_format = 1;
+    }
+    var foreign_condition3 = profile == foreign_macos_arm64();
+    if foreign_condition3 {
+        m.object_format = 1;
+        m.arch = 3;
+    }
+    var foreign_condition4 = profile == foreign_windows_x64();
+    if foreign_condition4 {
+        m.object_format = 2;
+        m.long_bytes = 4;
+        m.abi = 2;
+    }
+    var foreign_condition5 = profile == foreign_windows_x86();
+    if foreign_condition5 {
+        m.object_format = 2;
+        m.long_bytes = 4;
+        m.pointer_bytes = 4;
+        m.arch = 1;
+        m.abi = 2;
+    }
+    var foreign_condition6 = profile == foreign_mingw_x64();
+    if foreign_condition6 {
+        m.object_format = 2;
+        m.long_bytes = 4;
+    }
+    var foreign_condition7 = profile == foreign_linux_arm64();
+    if foreign_condition7 {
+        m.arch = 3;
+    }
+    var foreign_condition8 = profile == foreign_linux_x86();
+    if foreign_condition8 {
+        m.pointer_bytes = 4;
+        m.long_bytes = 4;
+        m.arch = 1;
+    }
+    var foreign_condition9 = profile == foreign_windows_arm64();
+    if foreign_condition9 {
+        m.object_format = 2;
+        m.long_bytes = 4;
+        m.arch = 3;
+        m.abi = 2;
+    }
+    var foreign_condition10 = profile == 0;
+    if foreign_condition10 {
+        foreign_fail(m, "Unknown foreign ABI profile");
+    }
+    var foreign_condition11 = profile > foreign_windows_arm64ec();
+    if foreign_condition11 {
+        foreign_fail(m, "Unknown foreign ABI profile");
+    }
+}
+
+fn foreign_argument_bytes(m: ForeignName*, type: ForeignType*): usize {
+    var foreign_condition12 = type.kind == 3;
+    if foreign_condition12 {
+        return convert(usize, m.pointer_bytes);
+    }
+    var foreign_condition13 = type.kind == 4;
+    if foreign_condition13 {
+        return convert(usize, m.pointer_bytes);
+    }
+    var foreign_condition14 = type.kind == 5;
+    if foreign_condition14 {
+        return convert(usize, m.pointer_bytes);
+    }
+    var foreign_condition15 = type.kind == 1;
+    if foreign_condition15 {
+        if backend_equal(type.name, "x") {
+            return 8;
+        }
+        if backend_equal(type.name, "y") {
+            return 8;
+        }
+        if backend_equal(type.name, "d") {
+            return 8;
+        }
+        if backend_equal(type.name, "e") {
+            return 8;
+        }
+        if backend_equal(type.name, "n") {
+            return 16;
+        }
+        if backend_equal(type.name, "o") {
+            return 16;
+        }
+        if backend_equal(type.name, "l") {
+            return convert(usize, m.long_bytes);
+        }
+        if backend_equal(type.name, "m") {
+            return convert(usize, m.long_bytes);
+        }
+        return 4;
+    }
+    foreign_fail(m, "C byte-count decoration needs an explicit scalar/pointer ABI signature");
+    return 0;
+}
+
+fn foreign_c(m: ForeignName*, object: bool): void {
+    var foreign_condition16 = m.name.scope != null;
+    if foreign_condition16 {
+        foreign_fail(m, "C linkage uses an unqualified name");
+        return;
+    }
+    if m.name.template_id {
+        foreign_fail(m, "C linkage cannot name a template");
+        return;
+    }
+    var foreign_condition17 = m.member != 0;
+    if foreign_condition17 {
+        foreign_fail(m, "C linkage cannot name a member function");
+        return;
+    }
+    var cc = m.function.convention;
+    if m.function.variadic {
+        cc = 1;
+    }
+    var decorate = m.object_format == 2;
+    var counted = cc == 4;
+    var foreign_condition18 = m.arch == 1;
+    if foreign_condition18 {
+        var foreign_condition19 = cc == 2;
+        if foreign_condition19 {
+            counted = true;
+        }
+        var foreign_condition20 = cc == 3;
+        if foreign_condition20 {
+            counted = true;
+        }
+    }
+    var foreign_condition21 = !decorate;
+    if foreign_condition21 {
+        counted = false;
+    }
+    var ir_name = !object;
+    if ir_name {
+        counted = false;
+    }
+    if object {
+        var foreign_condition3002 = m.profile == foreign_windows_arm64ec();
+        if foreign_condition3002 {
+            backend_text(&m.text, "#");
+        }
+        var foreign_condition22 = m.object_format == 1;
+        if foreign_condition22 {
+            backend_text(&m.text, "_");
+        }
+        if decorate {
+            var foreign_condition23 = m.arch == 1;
+            if foreign_condition23 {
+                var foreign_condition24 = cc == 3;
+                if foreign_condition24 {
+                    backend_text(&m.text, "@");
+                }
+                else {
+                    var foreign_condition25 = cc != 4;
+                    if foreign_condition25 {
+                        backend_text(&m.text, "_");
+                    }
+                }
+            }
+        }
+    }
+    backend_text(&m.text, m.name.name);
+    if counted {
+        backend_text(&m.text, "@");
+        var foreign_condition26 = cc == 4;
+        if foreign_condition26 {
+            backend_text(&m.text, "@");
+        }
+        var count: usize = 0;
+        var i: usize = 0;
+        loop {
+            var foreign_condition27 = i == m.function.args.length;
+            if foreign_condition27 {
+                break;
+            }
+            count = count + foreign_argument_bytes(m, m.function.args.data[i]);
+            i++;
+        }
+        foreign_number(&m.text, count, 10);
+    }
+}
+
+export fn foreign_mangle(profile: u32, declaration: u8*, cpp: bool, object: bool): ForeignName* {
+    var m = alloc(ForeignName, 1);
+    var foreign_condition28 = m == null;
+    if foreign_condition28 {
+        return null;
+    }
+    fill(m, 0, sizeof(ForeignName));
+    m.object_symbol = object;
+    foreign_profile(m, profile);
+    foreign_lex(m, declaration);
+    var foreign_condition29 = m.error.length == 0;
+    if foreign_condition29 {
+        foreign_declaration(m);
+    }
+    var foreign_condition30 = m.error.length == 0;
+    if foreign_condition30 {
+        if cpp {
+            if object {
+                var foreign_condition31 = m.object_format == 1;
+                if foreign_condition31 {
+                    backend_text(&m.text, "_");
+                }
+            }
+            var foreign_condition32 = m.abi == 1;
+            if foreign_condition32 {
+                foreign_itanium(m);
+            }
+            else {
+                foreign_microsoft(m);
+            }
+        } else {
+            foreign_c(m, object);
+        }
+    }
+    var foreign_condition33 = m.error.length != 0;
+    if foreign_condition33 {
+        m.text.length = 0;
+        var foreign_condition34 = m.text.data != null;
+        if foreign_condition34 {
+            m.text.data[0] = 0;
+        }
+    }
+    return m;
+}
+
+export fn cpp_name(profile: u32, declaration: u8*): ForeignName* {
+    return foreign_mangle(profile, declaration, true, false);
+}
+
+export fn c_name(profile: u32, declaration: u8*): ForeignName* {
+    return foreign_mangle(profile, declaration, false, false);
+}
+
+export fn foreign_name_text(m: ForeignName*): u8* {
+    var foreign_condition35 = m == null;
+    if foreign_condition35 {
+        return "";
+    }
+    var foreign_condition36 = m.text.data == null;
+    if foreign_condition36 {
+        return "";
+    }
+    return m.text.data;
+}
+
+export fn foreign_name_error(m: ForeignName*): u8* {
+    var foreign_condition37 = m == null;
+    if foreign_condition37 {
+        return "Unable to allocate foreign name result";
+    }
+    var foreign_condition38 = m.error.data == null;
+    if foreign_condition38 {
+        return "";
+    }
+    return m.error.data;
+}

@@ -1,13 +1,13 @@
-import 'format-types';
-import 'format-dependent';
+import format_types;
+import format_dependent;
 import tower;
-import 'format-foundation';
-import 'foundation-types';
-import 'parser-types';
-import 'regex-lowering';
-import 'syntax-reader';
-import 'syntax-types';
-import '../library/vector';
+import format_foundation;
+import foundation_types;
+import parser_types;
+import regex_lowering;
+import syntax_reader;
+import syntax_types;
+import .library.vector;
 
 // Canonical text and source mapping over the existing shared components.
 // Composed after their definitions; these buffers are output, not another IR.

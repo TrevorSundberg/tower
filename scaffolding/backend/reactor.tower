@@ -1,7 +1,7 @@
 import tower;
-import '../library/compiler-work';
-import 'linker-wasi';
-import 'linker';
+import .library.compiler_work;
+import linker_wasi;
+import linker;
 
 // Host build service for compiler reactors. Inputs and arguments are explicit
 // capabilities supplied by the build recipe, never filesystem/tool searches.

@@ -1,0 +1,169 @@
+import tower;
+import driver_types;
+import driver_support;
+import driver_platform;
+import .library.bytes_types;
+import .library.bytes_interface;
+
+extern fn frontend_modules_create(): void*;
+extern fn frontend_modules_destroy(modules: void*): void;
+extern fn frontend_modules_configure(modules: void*, source: u8*, library: u8*): void;
+extern fn frontend_modules_fallback(modules: void*, root: u8*): void;
+extern fn frontend_modules_builtin(modules: void*, name: u8*, path: u8*): void;
+extern fn fopen(path: u8*, mode: u8*): void*;
+extern fn fclose(file: void*): i32;
+
+const DriverBedrockText: usize = 0;
+const DriverFoundationText: usize = 1;
+const DriverSourceText: usize = 2;
+const DriverCanonicalBedrockText: usize = 3;
+const DriverCanonicalFoundationText: usize = 4;
+
+// One synchronous invocation owns these snapshots and environments. The native
+// adapter lends its legacy module slot only until it returns; this does not make
+// the syntax baseline or that slot safe for concurrent compilation.
+struct DriverRequest {
+    options: DriverOptions*;
+    root: u8*;
+    bedrock_path: ByteBuffer;
+    foundation_path: ByteBuffer;
+    text: ByteBuffer[5];
+    error: ByteBuffer;
+    modules: void*;
+    generated: void*;
+    slot: void**;
+    previous: void*;
+    canonical: bool;
+}
+
+fn driver_request_path(out: ByteBuffer*, override: u8*, root: u8*, name: u8*): bool {
+    var custom = override[0] != 0;
+    var ok = true;
+    if custom {
+        ok = driver_text(out, override);
+    } else {
+        ok = driver_text(out, root);
+        if ok { ok = driver_text(out, "/"); }
+        if ok { ok = driver_text(out, name); }
+    }
+    if ok { ok = host_text_terminate(out); }
+    return ok;
+}
+
+fn driver_request_failure(request: DriverRequest*, prefix: u8*, detail: u8*): bool {
+    request.error.length = 0;
+    var ok = driver_text(&request.error, prefix);
+    if ok { ok = driver_text(&request.error, detail); }
+    if ok { ok = host_text_terminate(&request.error); }
+    if !ok { request.error.length = 0; }
+    return false;
+}
+
+export fn driver_request_error(request: DriverRequest*): u8* {
+    var present = request.error.length != 0;
+    if present { return request.error.data; }
+    return "Unable to allocate compiler input storage";
+}
+
+fn driver_request_read(request: DriverRequest*, path: u8*, index: usize): bool {
+    if driver_read_file(path, &request.text[index]) { return true; }
+    return driver_request_failure(request, "Cannot read file: ", path);
+}
+
+fn driver_request_check_grammar(request: DriverRequest*, path: u8*): bool {
+    var file = fopen(path, "rb");
+    var missing = file == null;
+    if missing { return driver_request_failure(request, "Cannot read grammar module: ", path); }
+    fclose(file);
+    return true;
+}
+
+// Snapshot explicit inputs before entering the compiler. File failures return
+// through the owner, so a failed read cannot bypass request/timing destruction.
+export fn driver_request_open(request: DriverRequest*, options: DriverOptions*, root: u8*): bool {
+    fill(request, 0, sizeof(DriverRequest));
+    request.options = options;
+    request.root = root;
+    if !(driver_platform_exists(options.source)) {
+        return driver_request_failure(request, "Supply a Tower source file; use --help for options", "");
+    }
+    if !(driver_request_path(&request.bedrock_path, options.bedrock, root, "bedrock.tower")) { return false; }
+    if !(driver_request_path(&request.foundation_path, options.foundation, root, "foundation.tower")) { return false; }
+    if !(driver_request_check_grammar(request, request.bedrock_path.data)) { return false; }
+    if !(driver_request_check_grammar(request, request.foundation_path.data)) { return false; }
+    if !(driver_request_read(request, request.bedrock_path.data, DriverBedrockText())) { return false; }
+    if !(driver_request_read(request, request.foundation_path.data, DriverFoundationText())) { return false; }
+    if !(driver_request_read(request, options.source, DriverSourceText())) { return false; }
+    return true;
+}
+
+export fn driver_request_text(request: DriverRequest*, index: usize): ByteBuffer* {
+    return &request.text[index];
+}
+
+// Canonical grammar is loaded only for the existing normalization/bytecode
+// stages. A failed pair is never published as a complete snapshot.
+export fn driver_request_canonical(request: DriverRequest*): bool {
+    if request.canonical { return true; }
+    var path: ByteBuffer;
+    fill(&path, 0, sizeof(ByteBuffer));
+    var ok = driver_request_path(&path, "", request.root, "bedrock.tower");
+    if ok { ok = driver_request_read(request, path.data, DriverCanonicalBedrockText()); }
+    path.length = 0;
+    if ok { ok = driver_request_path(&path, "", request.root, "foundation.tower"); }
+    if ok { ok = driver_request_read(request, path.data, DriverCanonicalFoundationText()); }
+    bytes_dispose(&path);
+    request.canonical = ok;
+    return ok;
+}
+
+export fn driver_request_bind(request: DriverRequest*, slot: void**): void {
+    request.slot = slot;
+    request.previous = *slot;
+    request.modules = frontend_modules_create();
+    *slot = request.modules;
+    // The parent view borrows the owned path, with its separator retained. This
+    // preserves POSIX roots and Windows drive/UNC roots without host stat layouts.
+    var path = request.foundation_path.data;
+    var boundary: usize = 0;
+    var i: usize = 0;
+    while path[i] != 0 {
+        var separator = path[i] == 47;
+        if !separator { separator = driver_platform_separator(path[i]); }
+        if separator { boundary = i + 1; }
+        ++i;
+    }
+    var saved = path[boundary];
+    path[boundary] = 0;
+    frontend_modules_configure(request.modules, request.options.source, path);
+    path[boundary] = saved;
+    frontend_modules_fallback(request.modules, request.root);
+    var custom = request.options.bedrock[0] != 0;
+    if custom { frontend_modules_builtin(request.modules, "bedrock", request.bedrock_path.data); }
+    custom = request.options.foundation[0] != 0;
+    if custom { frontend_modules_builtin(request.modules, "foundation", request.foundation_path.data); }
+}
+
+export fn driver_request_stage(request: DriverRequest*): void {
+    request.generated = frontend_modules_create();
+    frontend_modules_configure(request.generated, request.options.source, request.root);
+    *request.slot = request.generated;
+}
+
+export fn driver_request_close(request: DriverRequest*): void {
+    var bound = request.slot != null;
+    if bound { *request.slot = request.previous; }
+    var present = request.generated != null;
+    if present { frontend_modules_destroy(request.generated); }
+    present = request.modules != null;
+    if present { frontend_modules_destroy(request.modules); }
+    var i: usize = 0;
+    while i < 5 {
+        bytes_dispose(&request.text[i]);
+        ++i;
+    }
+    bytes_dispose(&request.bedrock_path);
+    bytes_dispose(&request.foundation_path);
+    bytes_dispose(&request.error);
+    fill(request, 0, sizeof(DriverRequest));
+}

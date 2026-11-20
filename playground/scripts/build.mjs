@@ -17,7 +17,7 @@ for (const file of ['index.html', 'style.css', 'CNAME']) await copyFile(path.joi
 await copyFile(path.join(root, '../build/browser-wasi/tower.wasm'), path.join(dist, 'tower.wasm'));
 await copyFile(path.join(root, '../scaffolding/examples/foreach.tower'), path.join(dist, 'foreach.tower'));
 const builtinModules = ['bedrock', 'foundation', 'tower', ...(await readdir(path.join(root, '../scaffolding/library')))
-  .filter(name => name.endsWith('.tower')).sort().map(name => 'library/' + name.slice(0, -6)), 'backend/foreign-grammar'];
+  .filter(name => name.endsWith('.tower')).sort().map(name => 'library/' + name.slice(0, -6)), 'backend/foreign_grammar'];
 for (const name of builtinModules) {
   const destination = path.join(dist, name + '.tower');
   await mkdir(path.dirname(destination), {recursive:true});

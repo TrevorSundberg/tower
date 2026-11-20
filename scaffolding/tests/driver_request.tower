@@ -1,0 +1,90 @@
+import tower;
+import .host.driver_request;
+import .host.driver_support;
+import .host.driver_types;
+import .host.driver_platform;
+
+extern fn tower_test_buffer_count(): usize;
+extern fn tower_test_buffer_fail_after(count: usize): void;
+extern fn exit(status: i32): void;
+extern fn puts(text: u8*): i32;
+
+fn request_check(ok: bool, message: u8*): void {
+    if !ok { driver_error("Driver request test failed: ", message); exit(1); }
+}
+
+fn request_counts(wanted: usize): void {
+    var ok = tower_test_buffer_count() == wanted;
+    request_check(ok, "all request buffers and module environments released");
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    var arguments = argc == 2;
+    request_check(arguments, "resource root argument");
+    var baseline = tower_test_buffer_count();
+    var source = "driver request source.tower";
+    var text = "import tower; print(42);\n";
+    request_check(driver_write_file(source, text, strlen(text)), "source snapshot fixture");
+    var options: DriverOptions;
+    fill(&options, 0, sizeof(DriverOptions));
+    options.source = source;
+    options.bedrock = "";
+    options.foundation = "";
+    var request: DriverRequest;
+    request_check(driver_request_open(&request, &options, argv[1]), "open input snapshots");
+    var old = frontend_modules_create();
+    var slot = old;
+    driver_request_bind(&request, &slot);
+    var original = slot;
+    var fresh = original != old;
+    request_check(fresh, "request owns a distinct module environment");
+    request_check(driver_request_canonical(&request), "canonical grammar snapshot");
+    request_check(driver_write_file(source, "changed", 7), "edit source after pinning");
+    var snapshot = driver_request_text(&request, DriverSourceText());
+    request_check(driver_same(snapshot.data, text), "pinned source remains stable");
+    driver_request_stage(&request);
+    fresh = slot != original;
+    request_check(fresh, "generated stage has independent module ownership");
+    driver_request_close(&request);
+    var restored = slot == old;
+    request_check(restored, "borrowed legacy slot restored before teardown");
+    frontend_modules_destroy(old);
+    driver_request_close(&request);
+    request_counts(baseline);
+
+    // Failed open must still be safely closable. Exercise every fallible
+    // snapshot allocation until the first successful trial, with real buffers.
+    var fail: usize = 0;
+    var success = false;
+    var unlimited: usize = 0;
+    --unlimited;
+    while fail < 64 {
+        tower_test_buffer_fail_after(fail);
+        success = driver_request_open(&request, &options, argv[1]);
+        tower_test_buffer_fail_after(unlimited);
+        driver_request_close(&request);
+        request_counts(baseline);
+        if success { break; }
+        ++fail;
+    }
+    request_check(success, "allocation-failure sweep reached success");
+    options.source = "driver request missing.tower";
+    driver_platform_remove(options.source);
+    success = driver_request_open(&request, &options, argv[1]);
+    var rejected = success == false;
+    request_check(rejected, "missing source rejected");
+    request_check(driver_same(driver_request_error(&request), "Supply a Tower source file; use --help for options"), "missing-source diagnostic");
+    driver_request_close(&request);
+    request_counts(baseline);
+    options.source = source;
+    options.foundation = "driver request missing.tower";
+    success = driver_request_open(&request, &options, argv[1]);
+    rejected = success == false;
+    request_check(rejected, "missing grammar rejected");
+    request_check(driver_same(driver_request_error(&request), "Cannot read grammar module: driver request missing.tower"), "missing-grammar diagnostic");
+    driver_request_close(&request);
+    request_counts(baseline);
+    driver_platform_remove(source);
+    puts("Tower CLI request ownership passed");
+    return 0;
+}

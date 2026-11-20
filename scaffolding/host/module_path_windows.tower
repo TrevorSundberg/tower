@@ -1,0 +1,28 @@
+import tower;
+
+// Windows x64/ARM64 CRT _finddata64_t. Compare the returned long basename,
+// so case-insensitive lookup and short-name aliases cannot bypass the check.
+struct ModuleFindData {
+    attributes: u32;
+    created: i64;
+    accessed: i64;
+    written: i64;
+    size: i64;
+    name: u8[260];
+}
+
+extern fn _findfirst64(path: u8*, data: ModuleFindData*): i64;
+
+extern fn _findclose(handle: i64): i32;
+
+extern fn strcmp(a: u8*, b: u8*): i32;
+
+export fn module_path_component(path: u8*, start: usize): bool {
+    var data: ModuleFindData;
+    var handle = _findfirst64(path, &data);
+    if handle == -1 {
+        return false;
+    }
+    _findclose(handle);
+    return strcmp(&data.name[0], path + start) == 0;
+}

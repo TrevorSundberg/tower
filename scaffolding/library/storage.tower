@@ -1,4 +1,4 @@
-import 'bytes';
+import bytes;
 import tower;
 
 // Concrete arena and map helpers; byte buffers live in bytes.tower.

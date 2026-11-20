@@ -6,12 +6,14 @@ function(tower_driver_request_tests)
   endif()
   get_property(triple GLOBAL PROPERTY TOWER_COMPILER_TRIPLE)
   get_property(source GLOBAL PROPERTY TOWER_DRIVER_SOURCE)
-  string(APPEND source "import \"${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/driver-request\";\n")
-  set(input "${CMAKE_CURRENT_BINARY_DIR}/tower-driver-request-tests.tower")
+  string(APPEND source "import tests.driver_request;\n")
+  set(input "${CMAKE_CURRENT_BINARY_DIR}/tower_driver_request_tests.tower")
   set(object "${CMAKE_CURRENT_BINARY_DIR}/tower-driver-request-tests.o")
   file(GENERATE OUTPUT "${input}" CONTENT "${source}")
   add_custom_command(OUTPUT "${object}"
     COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${input}" --library --target "${triple}"
+      --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
+      --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
       -o "${object}" --depfile "${object}.d"
     DEPFILE "${object}.d"
     DEPENDS "${input}" "${TOWER_BOOTSTRAP_COMPILER}" VERBATIM)

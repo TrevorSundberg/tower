@@ -1,0 +1,8 @@
+import tower;
+
+// Darwin x86_64/AArch64 dirent ABI: ino64, seekoff64, reclen16, namlen16, type8.
+export fn module_dirent_name(entry: void*): u8* {
+    var bytes = bits(u8*, entry);
+    var name = bytes + 21;
+    return name;
+}

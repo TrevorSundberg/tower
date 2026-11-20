@@ -1,0 +1,14 @@
+import tower;
+import frontend_world;
+import parser_failures;
+
+extern fn parser_tests(): void;
+
+// Focused production-API checks, including allocation-failure cleanup.
+// This entry does not walk or reformat the repository's source files.
+export fn main(argc: i32, argv: u8**): i32 {
+    frontend_world_tests();
+    parser_tests();
+    parser_failure_tests();
+    return 0;
+}

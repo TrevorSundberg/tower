@@ -26,7 +26,7 @@ function format(file,source){
 }
 for(const file of files){
  // Negative parser fixtures intentionally have no complete source parse tree.
- if(file.startsWith('scaffolding/tests/syntax-invalid/'))continue;
+ if(file.startsWith('scaffolding/tests/syntax_invalid/'))continue;
  const source=await read(file),first=format(file,source),second=format(file,first.source);
  assert.equal(second.source,first.source,file+': formatting must be idempotent');
  assert.deepEqual(second.snapshot.rules,first.snapshot.rules,file+': formatting must preserve grammar rules');

@@ -35,7 +35,7 @@ test('member completion follows typed declarations to shared struct fields', () 
 });
 
 test('enum completion uses the shared type and member declarations', async () => {
-  const source = (await read('scaffolding/tests/language-enums.tower')).toString();
+  const source = (await read('scaffolding/tests/language_enums.tower')).toString();
   assert.deepEqual(labels(source+'\nState.|'), ['Idle','Busy','Done']);
   assert.ok(labels(source+'\nvar state: St|').includes('State'));
   assert.ok(!labels(source+'\n|').includes('Busy'));
@@ -43,19 +43,19 @@ test('enum completion uses the shared type and member declarations', async () =>
 });
 test('project declarations contribute globals without leaking locals', () => {
   const files = [{path:'lib/helper.tower',text:'import tower; fn helper(secret: i32): void {} struct Point { x: i32; } var shared: i32 = 1;'}];
-  const names = labels('import tower; import "lib/helper"; |', {files});
+  const names = labels('import tower; import lib.helper; |', {files});
   for (const name of ['helper','shared']) assert.ok(names.includes(name), name);
   assert.ok(!names.includes('Point'));
-  assert.deepEqual(labels('import tower; import "lib/helper"; var point: Po|', {files}), ['Point']);
+  assert.deepEqual(labels('import tower; import lib.helper; var point: Po|', {files}), ['Point']);
   assert.ok(!names.includes('secret'));
   assert.ok(!labels('he|', {files}).includes('helper'));
-  assert.deepEqual(labels('import tower; import "lib/helper"; helper(sh|', {files}), ['shared']);
+  assert.deepEqual(labels('import tower; import lib.helper; helper(sh|', {files}), ['shared']);
 });
 
 test('imported generic names use the same module graph and template registry', async () => {
   const files = [{path:'library/vector.tower', text:(await read('scaffolding/library/vector.tower')).toString()}];
-  assert.ok(labels('import tower; import "library/vector"; vector_i|', {files}).includes('vector_init'));
-  assert.ok(!labels('import tower; import "library/vector"; print(vector_i|', {files}).includes('vector_init'));
+  assert.ok(labels('import tower; import library.vector; vector_i|', {files}).includes('vector_init'));
+  assert.ok(!labels('import tower; import library.vector; print(vector_i|', {files}).includes('vector_init'));
 });
 
 test('LR lookahead excludes declaration keywords inside calls, including the reported print case', () => {

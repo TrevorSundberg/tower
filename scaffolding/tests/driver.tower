@@ -1,12 +1,12 @@
 import tower;
-import '../library/bytes-types';
-import '../library/bytes-interface';
-import '../host/driver-support';
-import '../host/driver-timing';
-import '../host/driver-link';
-import '../host/driver-platform';
-import '../host/driver-windows-arguments';
-import 'driver-platform-api';
+import .library.bytes_types;
+import .library.bytes_interface;
+import .host.driver_support;
+import .host.driver_timing;
+import .host.driver_link;
+import .host.driver_platform;
+import .host.driver_windows_arguments;
+import driver_platform_api;
 
 extern fn strstr(text: u8*, part: u8*): u8*;
 
@@ -439,9 +439,13 @@ export fn driver_tests(argc: i32, argv: u8**): i32 {
         driver_test_cli(argv[1]);
     }
     var bindings = argc > 2;
-    if bindings { driver_test_runtime_bind(argv[2]); }
+    if bindings {
+        driver_test_runtime_bind(argv[2]);
+    }
     var traps = argc > 3;
-    if traps { driver_test_runtime_trap(argv[3]); }
+    if traps {
+        driver_test_runtime_trap(argv[3]);
+    }
     return 0;
 }
 
@@ -459,8 +463,12 @@ fn driver_test_binding(tool: u8*, text: u8*, source: u8*, destination: u8*, stat
     driver_check(correct, "runtime binding exit status");
     driver_arguments_dispose(&args);
     var failed = status != 0;
-    if failed { driver_test_read("driver stdout.txt", message, false); }
-    else { driver_test_read("runtime output.ll", message, false); }
+    if failed {
+        driver_test_read("driver stdout.txt", message, false);
+    }
+    else {
+        driver_test_read("runtime output.ll", message, false);
+    }
 }
 
 fn driver_test_runtime_bind(tool: u8*): void {

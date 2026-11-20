@@ -1,4 +1,4 @@
-// Transitional bootstrap/reference for syntax-emission.tower. The production
+// Transitional bootstrap/reference for syntax_emission.tower. The production
 // compiler uses Tower; these algorithms retain the pre-port native behavior.
 #include "../compiler-syntax-emission.hpp"
 #include "../parser.hpp"

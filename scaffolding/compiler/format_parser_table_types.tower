@@ -1,0 +1,39 @@
+import format_types;
+import tower;
+import .library.vector;
+import parser_table_types;
+
+enum ParserFormatKind: u32 {
+    Scalar, Range, Item, Rule, Grammar, State, Tables, Edge, Conflict,
+    Expected, Unexpected, Missing
+}
+
+enum ParserFormatNeed: u32 {
+    Done, Name, Description
+}
+
+// Private formatter traversal frames, not grammar/semantic nodes or a program
+// encoding. Input records stay borrowed and immutable until the request ends.
+enum ParserFormatTask: u32 {
+    Text, Scalar, Range, Symbol, Item, ItemTail, Rules, Names, NamedRules,
+    Header, State, States, Actions, Gotos, Edge, Describe, Conflict,
+    Alternative, Continue, Expected, Unexpected, Missing
+}
+
+struct ParserFormatFrame {
+    kind: ParserFormatTask;
+    a: usize;
+    b: usize;
+    c: usize;
+    text: u8*;
+}
+
+struct ParserFormat {
+    result: FormatResult;
+    table: ParserHostTable*;
+    frames: vector(ParserFormatFrame);
+    need: ParserFormatNeed;
+    index: usize;
+    names: bool;
+    descriptions: bool;
+}

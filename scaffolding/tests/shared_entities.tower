@@ -1,0 +1,641 @@
+import tower;
+import .compiler.component_kinds;
+import .compiler.parser_types;
+import .compiler.syntax_types;
+import .compiler.foundation_types;
+import .library.vector;
+
+// Functional entity tests: all mutation, ownership and failure assertions execute
+// in Tower. The test composition reuses FoundationNode's authoritative layout.
+extern fn abort(): void;
+
+extern fn entity_store_create(): void*;
+
+extern fn entity_store_dispose(store: void*): bool;
+
+extern fn entity_store_count(store: void*): usize;
+
+extern fn entity_store_component_count(store: void*): usize;
+
+extern fn entity_create(store: void*): void*;
+
+extern fn entity_register(type: void*, bytes: usize, alignment: usize, lifecycle: usize): bool;
+
+extern fn entity_component_add(owner: void*, type: void*): void*;
+
+extern fn entity_component_get(owner: void*, type: void*): void*;
+
+extern fn entity_component_data(component: void*): void*;
+
+extern fn entity_component_from_data(data: void*): void*;
+
+extern fn entity_component_owner(component: void*): void*;
+
+extern fn entity_component_type(component: void*): void*;
+
+extern fn entity_component_count(owner: void*): usize;
+
+extern fn entity_component_remove(owner: void*, type: void*): bool;
+
+extern fn entity_query_count(type: void*): usize;
+
+extern fn entity_query_at(type: void*, index: usize): void*;
+
+extern fn entity_id(node: void*): usize;
+
+extern fn entity_release(node: void*): usize;
+
+extern fn entity_parent(node: void*): void*;
+
+extern fn entity_attach(child: void*, parent: void*, name: u8*): bool;
+
+extern fn entity_child_name(parent: void*, index: usize): u8*;
+
+extern fn entity_child_at(parent: void*, index: usize): void*;
+
+extern fn entity_replace_child(parent: void*, index: usize, node: void*): bool;
+
+extern fn entity_take_last_child(parent: void*): void*;
+
+extern fn semantic_component_attach(node: void*, type: void*, kind: u32): FoundationNode*;
+
+extern fn semantic_component_get(node: void*, type: void*): FoundationNode*;
+
+extern fn tower_test_buffer_count(): usize;
+
+extern fn tower_test_buffer_fail_next(): void;
+
+fn shared_check(ok: bool): void {
+    if !ok {
+        abort();
+    }
+}
+
+export fn shared_entity_tests(): void {
+    shared_world_tests();
+    shared_provenance_tests();
+    shared_metadata_tests();
+    var baseline = tower_test_buffer_count();
+    var store = entity_store_create();
+    var type = entity_create(store);
+    shared_check(entity_register(type, 48, 128, 0));
+    shared_check(entity_register(type, 48, 128, 0));
+    var ok = entity_register(type, 49, 128, 0) == false;
+    shared_check(ok);
+    ok = entity_register(type, 48, 3, 0) == false;
+    shared_check(ok);
+    var other_store = entity_store_create();
+    var other = entity_create(other_store);
+    ok = entity_component_add(other, type) == null;
+    shared_check(ok);
+    ok = entity_attach(other, type, null) == false;
+    shared_check(ok);
+    ok = entity_store_dispose(store) == false;
+    shared_check(ok);
+    var nodes: void*[1000];
+    var addresses: void*[1000];
+    var i: usize = 0;
+    loop {
+        var done = i == 1000;
+        if done {
+            break;
+        }
+        var node = entity_create(store);
+        nodes[i] = node;
+        var component = entity_component_add(node, type);
+        var data = entity_component_data(component);
+        addresses[i] = data;
+        var remainder = bits(usize, data) % 128;
+        ok = remainder == 0;
+        shared_check(ok);
+        ok = entity_component_from_data(data) == component;
+        shared_check(ok);
+        ok = entity_component_add(node, type) == component;
+        shared_check(ok);
+        ok = entity_component_owner(component) == node;
+        shared_check(ok);
+        ok = entity_component_type(component) == type;
+        shared_check(ok);
+        var wanted = i + 1;
+        ok = entity_id(node) == wanted;
+        shared_check(ok);
+        var low = i % 256;
+        var byte = convert(u8, low);
+        fill(data, byte, 48);
+        i++;
+    }
+    ok = entity_query_count(type) == 1000;
+    shared_check(ok);
+    i = 0;
+    loop {
+        var done = i == 1000;
+        if done {
+            break;
+        }
+        var component = entity_component_get(nodes[i], type);
+        ok = entity_component_data(component) == addresses[i];
+        shared_check(ok);
+        var bytes = bits(u8*, addresses[i]);
+        var low = i % 256;
+        var byte = convert(u8, low);
+        var j: usize = 0;
+        loop {
+            done = j == 48;
+            if done {
+                break;
+            }
+            ok = bytes[j] == byte;
+            shared_check(ok);
+            j++;
+        }
+        ok = entity_component_owner(entity_query_at(type, i)) == nodes[i];
+        shared_check(ok);
+        i++;
+    }
+    i = 0;
+    loop {
+        var done = i == 1000;
+        if done {
+            break;
+        }
+        shared_check(entity_component_remove(nodes[i], type));
+        ok = entity_component_remove(nodes[i], type) == false;
+        shared_check(ok);
+        i = i + 2;
+    }
+    ok = entity_query_count(type) == 500;
+    shared_check(ok);
+    i = 0;
+    loop {
+        var done = i == 500;
+        if done {
+            break;
+        }
+        var component = entity_query_at(type, i);
+        var owner = entity_component_owner(component);
+        var remainder = entity_id(owner) % 2;
+        ok = remainder == 0;
+        shared_check(ok);
+        ok = entity_component_get(owner, type) == component;
+        shared_check(ok);
+        i++;
+    }
+    ok = entity_query_at(type, 500) == null;
+    shared_check(ok);
+    tower_test_buffer_fail_next();
+    ok = entity_component_add(nodes[0], type) == null;
+    shared_check(ok);
+    ok = entity_component_count(nodes[0]) == 0;
+    shared_check(ok);
+    ok = entity_query_count(type) == 500;
+    shared_check(ok);
+    var parent = entity_create(store);
+    shared_check(entity_attach(nodes[0], parent, "value"));
+    var borrowed = entity_child_name(parent, 0);
+    shared_check(entity_attach(nodes[0], parent, borrowed));
+    var name = entity_child_name(parent, 0);
+    ok = name[0] == 118;
+    shared_check(ok);
+    tower_test_buffer_fail_next();
+    ok = entity_attach(nodes[1], parent, "value") == false;
+    shared_check(ok);
+    ok = entity_child_at(parent, 0) == nodes[0];
+    shared_check(ok);
+    ok = entity_parent(nodes[1]) == null;
+    shared_check(ok);
+    shared_check(entity_attach(nodes[1], parent, "value"));
+    ok = entity_parent(nodes[0]) == null;
+    shared_check(ok);
+    shared_check(entity_replace_child(parent, 0, nodes[2]));
+    ok = entity_parent(nodes[1]) == null;
+    shared_check(ok);
+    ok = entity_parent(nodes[2]) == parent;
+    shared_check(ok);
+    name = entity_child_name(parent, 0);
+    ok = name[0] == 118;
+    shared_check(ok);
+    var transferred = entity_take_last_child(parent);
+    ok = transferred == nodes[2];
+    shared_check(ok);
+    ok = entity_parent(transferred) == null;
+    shared_check(ok);
+    entity_release(transferred);
+    entity_release(parent);
+    entity_release(type);
+    i = 0;
+    loop {
+        var done = i == 1000;
+        if done {
+            break;
+        }
+        entity_release(nodes[i]);
+        i++;
+    }
+    ok = entity_store_count(store) == 0;
+    shared_check(ok);
+    ok = entity_store_component_count(store) == 0;
+    shared_check(ok);
+
+    // Foundation payloads use the same store, explicit type identity and a
+    // Tower finalizer. Failure creates no component; reattachment preserves data.
+    type = entity_create(store);
+    var node = entity_create(store);
+    tower_test_buffer_fail_next();
+    ok = semantic_component_attach(node, type, 3) == null;
+    shared_check(ok);
+    ok = entity_component_count(node) == 0;
+    shared_check(ok);
+    var foundation = semantic_component_attach(node, type, 3);
+    ok = foundation != null;
+    shared_check(ok);
+    ok = foundation.type.pointer_bytes == 4;
+    shared_check(ok);
+    ok = foundation.alignment == 1;
+    shared_check(ok);
+    shared_check(vector_push(u8, &foundation.name, 97));
+    shared_check(vector_push(void*, &foundation.items, node));
+    shared_check(vector_push(void*, &foundation.locals, node));
+    shared_check(vector_push(void*, &foundation.parameters, node));
+    var same = semantic_component_attach(node, type, 19);
+    ok = same == foundation;
+    shared_check(ok);
+    ok = same.kind == 19;
+    shared_check(ok);
+    ok = same.name.data[0] == 97;
+    shared_check(ok);
+    ok = semantic_component_get(node, type) == same;
+    shared_check(ok);
+    entity_release(type);
+    entity_release(node);
+    ok = entity_store_count(store) == 0;
+    shared_check(ok);
+    shared_check(entity_store_dispose(store));
+    entity_release(other);
+    shared_check(entity_store_dispose(other_store));
+    ok = tower_test_buffer_count() == baseline;
+    shared_check(ok);
+}
+
+extern fn compiler_world_create(): void*;
+
+extern fn compiler_world_dispose(world: void*): bool;
+
+extern fn compiler_world_store(world: void*): void*;
+
+extern fn compiler_world_type(world: void*, kind: u32): void*;
+
+extern fn compiler_world_get(world: void*, node: void*, kind: u32): void*;
+
+extern fn compiler_world_component(world: void*, node: void*, kind: u32): void*;
+
+extern fn entity_retain(node: void*): usize;
+
+extern fn entity_view_open(node: void*): void*;
+
+extern fn entity_view_close(view: void*): void;
+
+extern fn syntax_source_create(name: u8*, text: u8*, length: usize): SyntaxSource*;
+
+extern fn syntax_source_release(source: SyntaxSource*): void;
+
+extern fn syntax_node_source(node: SyntaxNode*, source: SyntaxSource*): void;
+
+extern fn syntax_node_replacement(node: SyntaxNode*, replacement: void*): void;
+
+extern fn syntax_trace_create(world: void*, invocation: void*, rule: u8*, start: usize, end: usize): SyntaxExpansion*;
+
+extern fn syntax_trace_release(trace: SyntaxExpansion*): void;
+
+extern fn syntax_origin_get(world: void*, node: void*): SyntaxOrigin*;
+
+extern fn syntax_origin_mark(world: void*, trace: SyntaxExpansion*, node: void*, source: void*, generated: bool): bool;
+
+extern fn syntax_origin_copy(world: void*, source: void*, destination: void*): bool;
+
+fn shared_provenance_tests(): void {
+    var baseline = tower_test_buffer_count();
+    var world = compiler_world_create();
+    var other = compiler_world_create();
+    var store = compiler_world_store(world);
+    var invocation = entity_create(store);
+    var source = entity_create(store);
+    var destination = entity_create(store);
+    var foreign = entity_create(compiler_world_store(other));
+    var span = bits(ParserMatchData*, compiler_world_component(world, invocation, CompilerParserMatch()));
+    span.start = 12;
+    span.length = 7;
+    span = bits(ParserMatchData*, compiler_world_component(world, source, CompilerParserMatch()));
+    span.start = 40;
+    span.length = 9;
+    var trace = syntax_trace_create(world, invocation, "Expression", 30, 60);
+    var ok = trace != null;
+    shared_check(ok);
+    ok = trace.start == 12;
+    shared_check(ok);
+    ok = trace.end == 19;
+    shared_check(ok);
+    ok = trace.definition_start == 30;
+    shared_check(ok);
+    ok = trace.definition_end == 60;
+    shared_check(ok);
+    ok = trace.rule.length == 10;
+    shared_check(ok);
+    ok = trace.rule.data[0] == 69;
+    shared_check(ok);
+    shared_check(syntax_origin_mark(world, trace, source, source, true));
+    shared_check(syntax_origin_mark(world, trace, source, source, false));
+    var origin = syntax_origin_get(world, source);
+    shared_check(origin.generated);
+    ok = origin.template_start == 40;
+    shared_check(ok);
+    ok = origin.template_end == 49;
+    shared_check(ok);
+    ok = origin.splices.length == 1;
+    shared_check(ok);
+    shared_check(syntax_origin_copy(world, source, destination));
+    var clone = syntax_origin_get(world, destination);
+    ok = clone.expansion == trace;
+    shared_check(ok);
+    ok = clone.splices.data != origin.splices.data;
+    shared_check(ok);
+    ok = clone.splices.data[0] == trace;
+    shared_check(ok);
+    shared_check(syntax_origin_copy(world, source, source));
+    ok = syntax_origin_copy(world, source, foreign) == false;
+    shared_check(ok);
+    ok = syntax_origin_mark(other, trace, foreign, foreign, true) == false;
+    shared_check(ok);
+    ok = syntax_trace_create(other, invocation, "foreign", 0, 0) == null;
+    shared_check(ok);
+    var allocations = tower_test_buffer_count();
+    tower_test_buffer_fail_next();
+    ok = syntax_origin_copy(world, source, destination) == false;
+    shared_check(ok);
+    ok = clone.expansion == trace;
+    shared_check(ok);
+    ok = clone.splices.length == 1;
+    shared_check(ok);
+    ok = tower_test_buffer_count() == allocations;
+    shared_check(ok);
+    tower_test_buffer_fail_next();
+    ok = syntax_trace_create(world, invocation, "failure", 0, 0) == null;
+    shared_check(ok);
+    ok = tower_test_buffer_count() == allocations;
+    shared_check(ok);
+    syntax_trace_release(trace);
+    entity_release(invocation);
+    entity_release(source);
+    // A copied origin keeps its complete history after the source/session dies.
+    ok = clone.expansion.rule.data[9] == 110;
+    shared_check(ok);
+    ok = compiler_world_dispose(world) == false;
+    shared_check(ok);
+    entity_release(destination);
+    entity_release(foreign);
+    shared_check(compiler_world_dispose(other));
+    shared_check(compiler_world_dispose(world));
+    ok = tower_test_buffer_count() == baseline;
+    shared_check(ok);
+
+    // Each generated invocation points to its predecessor. Destroying a deep
+    // history must not consume one native stack frame per expansion.
+    world = compiler_world_create();
+    store = compiler_world_store(world);
+    invocation = entity_create(store);
+    span = bits(ParserMatchData*, compiler_world_component(world, invocation, CompilerParserMatch()));
+    span.start = 5;
+    span.length = 3;
+    var index: usize = 0;
+    while index < 10000 {
+        trace = syntax_trace_create(world, invocation, "Nested", index, index);
+        ok = trace != null;
+        shared_check(ok);
+        shared_check(syntax_origin_mark(world, trace, invocation, invocation, true));
+        syntax_trace_release(trace);
+        index++;
+    }
+    var type = compiler_world_type(world, CompilerSyntaxExpansion());
+    ok = entity_query_count(type) == 10000;
+    shared_check(ok);
+    origin = syntax_origin_get(world, invocation);
+    trace = origin.expansion;
+    var previous = trace.previous;
+    var view = entity_view_open(invocation);
+    entity_release(invocation);
+    ok = trace.previous == previous;
+    shared_check(ok);
+    ok = trace.rule.length == 6;
+    shared_check(ok);
+    ok = entity_query_count(type) == 10000;
+    shared_check(ok);
+    ok = compiler_world_dispose(world) == false;
+    shared_check(ok);
+    entity_view_close(view);
+    ok = entity_query_count(type) == 0;
+    shared_check(ok);
+    shared_check(compiler_world_dispose(world));
+    ok = tower_test_buffer_count() == baseline;
+    shared_check(ok);
+}
+
+extern fn compiler_host_world(): void*;
+
+extern fn parser_match_set_label(span: ParserMatchData*, label: u8*): void;
+
+extern fn compiler_node_label(node: void*, label: u8*): bool;
+
+extern fn compiler_name_is(node: void*, name: u8*): bool;
+
+extern fn compiler_name_equal(left: void*, right: void*): bool;
+
+extern fn compiler_node_copy_metadata(source: void*, destination: void*): void;
+
+fn shared_metadata_leaf(world: void*, label: u8*): void* {
+    var node = entity_create(compiler_world_store(world));
+    var span = bits(ParserMatchData*, compiler_world_component(world, node, CompilerParserMatch()));
+    var invalid: usize = 0;
+    span.rule = invalid - 1;
+    parser_match_set_label(span, label);
+    return node;
+}
+
+fn shared_metadata_tests(): void {
+    var world = compiler_host_world();
+    var first = shared_metadata_leaf(world, "type");
+    var quoted = shared_metadata_leaf(world, "`type`");
+    var copy = shared_metadata_leaf(world, "before");
+    shared_check(compiler_node_label(first, "type"));
+    shared_check(compiler_name_is(first, "type"));
+    shared_check(compiler_name_is(quoted, "type"));
+    shared_check(compiler_name_equal(first, quoted));
+    shared_check(compiler_name_is(null, ""));
+    var ok = compiler_node_label(null, "") == false;
+    shared_check(ok);
+    var wrapper = entity_create(compiler_world_store(world));
+    shared_check(entity_attach(first, wrapper, null));
+    shared_check(compiler_name_equal(wrapper, quoted));
+    var suffix = shared_metadata_leaf(world, "Name");
+    shared_check(entity_attach(suffix, wrapper, null));
+    shared_check(compiler_name_is(wrapper, "typeName"));
+    ok = compiler_name_equal(wrapper, quoted) == false;
+    shared_check(ok);
+    var span = bits(ParserMatchData*, compiler_world_get(world, quoted, CompilerParserMatch()));
+    span.id = 37;
+    span.start = 21;
+    span.length = 6;
+    var trace = syntax_trace_create(world, quoted, "Generic", 0, 50);
+    shared_check(syntax_origin_mark(world, trace, quoted, quoted, true));
+    syntax_trace_release(trace);
+    compiler_node_copy_metadata(quoted, copy);
+    compiler_node_copy_metadata(copy, copy);
+    var cloned = bits(ParserMatchData*, compiler_world_get(world, copy, CompilerParserMatch()));
+    ok = cloned.id == 37;
+    shared_check(ok);
+    ok = cloned.start == 21;
+    shared_check(ok);
+    ok = cloned.length == 6;
+    shared_check(ok);
+    ok = cloned.label.data != span.label.data;
+    shared_check(ok);
+    entity_release(quoted);
+    shared_check(compiler_name_is(copy, "type"));
+    var origin = syntax_origin_get(world, copy);
+    ok = origin.expansion.rule.length == 7;
+    shared_check(ok);
+    entity_release(copy);
+    entity_release(first);
+    entity_release(suffix);
+    entity_release(wrapper);
+}
+
+// Exercises the production registry/creation/finalization paths, linked to the
+// same Tower runtime as the compiler. Assertions and workloads are all Tower.
+export fn shared_world_tests(): void {
+    var baseline = tower_test_buffer_count();
+    var iteration: usize = 0;
+    while iteration < 40 {
+        var first = compiler_world_create();
+        var second = compiler_world_create();
+        var ok = first != null;
+        shared_check(ok);
+        ok = second != null;
+        shared_check(ok);
+        var store = compiler_world_store(first);
+        var other_store = compiler_world_store(second);
+        ok = store != other_store;
+        shared_check(ok);
+        var node = entity_create(store);
+        var other = entity_create(other_store);
+        var invalid = CompilerComponentCount();
+        ok = compiler_world_type(first, invalid) == null;
+        shared_check(ok);
+        ok = compiler_world_component(first, other, CompilerParserRule()) == null;
+        shared_check(ok);
+        ok = compiler_world_component(first, null, CompilerParserRule()) == null;
+        shared_check(ok);
+        ok = entity_store_count(store) == 1;
+        shared_check(ok);
+        var kind: u32 = 0;
+        while kind < CompilerComponentCount() {
+            var type = compiler_world_type(first, kind);
+            var other_type = compiler_world_type(second, kind);
+            ok = type != other_type;
+            shared_check(ok);
+            ok = compiler_world_type(first, kind) == type;
+            shared_check(ok);
+            ok = entity_component_add(other, type) == null;
+            shared_check(ok);
+            tower_test_buffer_fail_next();
+            ok = compiler_world_component(first, node, kind) == null;
+            shared_check(ok);
+            ok = entity_query_count(type) == 0;
+            shared_check(ok);
+            var data = compiler_world_component(first, node, kind);
+            ok = data != null;
+            shared_check(ok);
+            ok = compiler_world_component(first, node, kind) == data;
+            shared_check(ok);
+            ok = compiler_world_get(first, node, kind) == data;
+            shared_check(ok);
+            ok = compiler_world_get(second, node, kind) == null;
+            shared_check(ok);
+            ok = entity_component_owner(entity_query_at(type, 0)) == node;
+            shared_check(ok);
+            kind++;
+        }
+        var rule = bits(ParserRuleData*, compiler_world_get(first, node, CompilerParserRule()));
+        shared_check(vector_push(u8, &rule.name, 65));
+        var reference = bits(ParserReferenceData*, compiler_world_get(first, node, CompilerParserReference()));
+        shared_check(vector_push(u8, &reference.name, 66));
+        shared_check(vector_push(u8, &reference.capture, 67));
+        var string = bits(ParserStringData*, compiler_world_get(first, node, CompilerParserString()));
+        shared_check(vector_push(u32, &string.ids, 68));
+        var parsed = bits(ParserMatchData*, compiler_world_get(first, node, CompilerParserMatch()));
+        ok = parsed.id == 4294967294;
+        shared_check(ok);
+        var missing: usize = 0;
+        missing--;
+        ok = parsed.rule == missing;
+        shared_check(ok);
+        shared_check(vector_push(u8, &parsed.label, 69));
+        var syntax = bits(SyntaxNode*, compiler_world_get(first, node, CompilerSyntax()));
+        ok = syntax.start == missing;
+        shared_check(ok);
+        shared_check(vector_push(u8, &syntax.name, 70));
+        shared_check(vector_push(u8, &syntax.text, 71));
+        var source = syntax_source_create("world.tower", "x", 1);
+        syntax_node_source(syntax, source);
+        syntax_source_release(source);
+        var replacement = entity_create(store);
+        syntax_node_replacement(syntax, replacement);
+        entity_release(replacement);
+        var foundation = bits(FoundationNode*, compiler_world_get(first, node, CompilerFoundation()));
+        ok = foundation.type.pointer_bytes == 4;
+        shared_check(ok);
+        ok = foundation.alignment == 1;
+        shared_check(ok);
+        shared_check(vector_push(u8, &foundation.name, 72));
+        shared_check(vector_push(void*, &foundation.items, node));
+        shared_check(vector_push(void*, &foundation.locals, node));
+        shared_check(vector_push(void*, &foundation.parameters, node));
+        ok = compiler_world_dispose(first) == false;
+        shared_check(ok);
+        var held_type = compiler_world_type(first, CompilerParserRule());
+        entity_retain(held_type);
+        var view = entity_view_open(node);
+        entity_release(node);
+        ok = entity_query_count(held_type) == 1;
+        shared_check(ok);
+        ok = compiler_world_dispose(first) == false;
+        shared_check(ok);
+        entity_view_close(view);
+        ok = entity_query_count(held_type) == 0;
+        shared_check(ok);
+        ok = entity_store_component_count(store) == 0;
+        shared_check(ok);
+        ok = entity_store_count(store) == convert(usize, CompilerComponentCount());
+        shared_check(ok);
+        ok = compiler_world_dispose(first) == false;
+        shared_check(ok);
+        entity_release(held_type);
+        shared_check(compiler_world_dispose(first));
+        // The second world remains usable after the first is reclaimed.
+        var data = compiler_world_component(second, other, CompilerParserRule());
+        ok = data != null;
+        shared_check(ok);
+        entity_release(other);
+        shared_check(compiler_world_dispose(second));
+        ok = tower_test_buffer_count() == baseline;
+        shared_check(ok);
+        iteration++;
+    }
+    var empty = compiler_world_create();
+    var type = compiler_world_type(empty, CompilerParserRule());
+    var view = entity_view_open(type);
+    var ok = compiler_world_type(empty, CompilerParserReference()) == null;
+    shared_check(ok);
+    ok = compiler_world_dispose(empty) == false;
+    shared_check(ok);
+    entity_view_close(view);
+    shared_check(compiler_world_dispose(empty));
+}

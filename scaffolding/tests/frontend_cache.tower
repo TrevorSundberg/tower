@@ -1,0 +1,130 @@
+import .compiler.syntax_view;
+import tower;
+import syntax_emission;
+import .compiler.lr_tree;
+import .compiler.frontend_bedrock;
+import .compiler.frontend_cache;
+import .compiler.grammar_types;
+import .compiler.lr_analysis;
+import .compiler.parser_nodes;
+import .compiler.syntax_validation;
+
+// Revision lifetime, eviction and failed insertions are tested in Tower. These
+// snapshots reference the same component-bearing nodes as ordinary declarations.
+fn frontend_test_cache_node(kinds: FrontendKinds*, id: usize): void* {
+    var b: FrontendBedrock;
+    fill(&b, 0, sizeof(FrontendBedrock));
+    b.kinds = kinds;
+    var entity = frontend_bedrock_entity(&b, 2, null);
+    var node = frontend_syntax(entity, kinds.syntax);
+    var text: u8[2];
+    var code = id + 32;
+    text[0] = convert(u8, code);
+    text[1] = 0;
+    var ok = node_text_set(&node.text, &text[0]);
+    if ok {
+        return entity;
+    }
+    entity_release(entity);
+    return null;
+}
+
+fn frontend_cache_tests(kinds: FrontendKinds*): usize {
+    var buffers = tower_test_buffer_count();
+    var cache: FrontendCache;
+    var fork: FrontendCache;
+    fill(&cache, 0, sizeof(FrontendCache));
+    fill(&fork, 0, sizeof(FrontendCache));
+    var ok: bool = true;
+    var i: usize = 0;
+    loop {
+        var done = i == 64;
+        if done {
+            break;
+        }
+        var node = frontend_test_cache_node(kinds, i);
+        var slot = frontend_cache_store(&cache, null, 0, &node, 1);
+        entity_release(node);
+        var correct = slot == i;
+        if !correct {
+            ok = false;
+            break;
+        }
+        i++;
+    }
+    if ok {
+        var node = frontend_test_cache_node(kinds, 0);
+        ok = frontend_cache_find(&cache, null, 0, &node, 1, kinds.syntax) == 0;
+        entity_release(node);
+    }
+    if ok {
+        var node = frontend_test_cache_node(kinds, 64);
+        ok = frontend_cache_store(&cache, null, 0, &node, 1) == 1;
+        entity_release(node);
+    }
+    if ok {
+        var node = frontend_test_cache_node(kinds, 1);
+        ok = frontend_cache_find(&cache, null, 0, &node, 1, kinds.syntax) == lr_none();
+        entity_release(node);
+    }
+    ok &&= frontend_cache_copy(&fork, &cache);
+    frontend_cache_dispose(&cache);
+    if ok {
+        var node = frontend_test_cache_node(kinds, 0);
+        ok = frontend_cache_find(&fork, null, 0, &node, 1, kinds.syntax) == 0;
+        entity_release(node);
+    }
+    frontend_cache_dispose(&fork);
+    if !ok {
+        return 730;
+    }
+    var leaked = tower_test_buffer_count() != buffers;
+    if leaked {
+        return 731;
+    }
+    // Allocation failure must never evict a valid cached revision or retain
+    // partially copied names, alternative references or token references.
+    var node = frontend_test_cache_node(kinds, 0);
+    var rule: SyntaxRuleView;
+    rule.name = "Rule";
+    rule.name_length = 4;
+    rule.alternatives = &node;
+    rule.count = 1;
+    var budget: usize = 0;
+    var result: usize = 0;
+    loop {
+        var limit = budget == 64;
+        if limit {
+            result = 732;
+            break;
+        }
+        buffers = tower_test_buffer_count();
+        var first = frontend_cache_store(&cache, null, 0, &node, 1);
+        tower_test_buffer_fail_after(budget);
+        var second = frontend_cache_store(&cache, &rule, 1, &node, 1);
+        tower_test_buffer_fail_after(lr_none());
+        var stored = second != lr_none();
+        if stored {
+            ok = second == 1;
+        } else {
+            ok = cache.entries.length == 1;
+        }
+        ok &&= frontend_cache_find(&cache, null, 0, &node, 1, kinds.syntax) == first;
+        frontend_cache_dispose(&cache);
+        leaked = tower_test_buffer_count() != buffers;
+        if leaked {
+            result = 733;
+            break;
+        }
+        if !ok {
+            result = 734;
+            break;
+        }
+        if stored {
+            break;
+        }
+        budget++;
+    }
+    entity_release(node);
+    return result;
+}

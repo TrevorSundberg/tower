@@ -1,0 +1,66 @@
+import tower;
+import ide_types;
+import ide_api;
+import ide_text;
+
+// Worker-instance lifetime, just like the former native static handle table.
+// The host owns this component on its existing world type registry; it is not a
+// syntax/semantic node and never enters a compiled program. No global native
+// storage, second entity registry, or cross-worker mutable state is introduced.
+fn ide_state(): IdeState* {
+    var owner = core_component_type();
+    var slot = entity_member_index(owner, "ide.transport");
+    var absent = slot == ide_missing();
+    var type: void* = null;
+    if absent {
+        type = tower_node_create();
+        ide_require(entity_register(type, sizeof(IdeState), alignof(IdeState), 0));
+        var component = entity_component_add(owner, type);
+        var ok = component != null;
+        ide_require(ok);
+        var state = bits(IdeState*, entity_component_data(component));
+        fill(state, 0, sizeof(IdeState));
+        ide_require(entity_attach(type, owner, "ide.transport"));
+        entity_release(type);
+        return state;
+    }
+    type = entity_child_at(owner, slot);
+    return bits(IdeState*, entity_component_data(entity_component_get(owner, type)));
+}
+
+fn ide_error(message: u8*): void {
+    var state = ide_state();
+    ide_assign(&state.error, message);
+}
+
+fn ide_valid(data: u8*, length: usize): bool {
+    var error = host_source_error(data, length);
+    ide_error(error);
+    var ok = error[0] == 0;
+    return ok;
+}
+
+fn ide_parser(handle: u32): IdeParser* {
+    var state = ide_state();
+    return bits(IdeParser*, host_handles_get(&state.handles, 0, handle));
+}
+
+fn ide_execution(handle: u32): IdeExecution* {
+    var state = ide_state();
+    return bits(IdeExecution*, host_handles_get(&state.handles, 1, handle));
+}
+
+export fn tw_last_error(): u8* {
+    var state = ide_state();
+    return ide_result(&state.error);
+}
+
+export fn tw_live_nodes(): usize {
+    ide_state();
+    return tower_node_get_allocated_count();
+}
+
+export fn tw_live_allocations(): usize {
+    ide_state();
+    return tower_memory_get_allocated_count();
+}

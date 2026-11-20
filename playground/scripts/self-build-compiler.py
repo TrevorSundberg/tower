@@ -168,7 +168,10 @@ def build(recipe_path, bootstrap, out):
             for unit in recipe["units"]:
                 source = source_dir / (unit["name"] + ".tower")
                 source.write_text("import tower;\n" + "".join(
-                    "import " + json.dumps("../" + path.removesuffix(".tower"), ensure_ascii=False) + ";\n"
+                    "import " + ("." + path.removesuffix(".tower").replace("/", ".")
+                        if all(re.fullmatch(r"[A-Za-z_][A-Za-z_0-9]*", part)
+                            for part in path.removesuffix(".tower").split("/"))
+                        else json.dumps("../" + path, ensure_ascii=False)) + ";\n"
                     for path in unit["sources"]), encoding="utf-8")
                 object_path = stage / outputs[unit["name"]]
                 object_path.parent.mkdir(parents=True, exist_ok=True)

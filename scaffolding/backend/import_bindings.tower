@@ -1,0 +1,100 @@
+import tower;
+import .compiler.foundation_types;
+
+// LLVM's C API is the inspection boundary. All reconstructed semantics live on
+// the same Foundation components as parsing, formatting and execution.
+extern fn sem_create(parent: void*): void*;
+
+extern fn sem_attach(node: void*, kind: u32): FoundationNode*;
+
+extern fn LLVMGetFirstFunction(module: void*): void*;
+
+extern fn LLVMGetNextFunction(function: void*): void*;
+
+extern fn LLVMGetFirstGlobal(module: void*): void*;
+
+extern fn LLVMGetNextGlobal(global: void*): void*;
+
+extern fn LLVMGetInitializer(global: void*): void*;
+
+extern fn LLVMGetFirstBasicBlock(function: void*): void*;
+
+extern fn LLVMGetNextBasicBlock(block: void*): void*;
+
+extern fn LLVMGetFirstInstruction(block: void*): void*;
+
+extern fn LLVMGetNextInstruction(instruction: void*): void*;
+
+extern fn LLVMGetInstructionOpcode(instruction: void*): u32;
+
+extern fn LLVMGetConstOpcode(value: void*): u32;
+
+extern fn LLVMGetValueKind(value: void*): u32;
+
+extern fn LLVMGetOperand(value: void*, index: u32): void*;
+
+extern fn LLVMGetNumOperands(value: void*): i32;
+
+extern fn LLVMCountParams(function: void*): u32;
+
+extern fn LLVMGetReturnType(type: void*): void*;
+
+extern fn LLVMGetTypeKind(type: void*): u32;
+
+extern fn LLVMGetIntTypeWidth(type: void*): u32;
+
+extern fn LLVMGetElementType(type: void*): void*;
+
+extern fn LLVMGetArrayLength2(type: void*): u64;
+
+extern fn LLVMStructGetTypeAtIndex(type: void*, index: u32): void*;
+
+extern fn LLVMCountStructElementTypes(type: void*): u32;
+
+extern fn LLVMConstIntGetZExtValue(value: void*): u64;
+
+extern fn LLVMGetAggregateElement(value: void*, index: u32): void*;
+
+extern fn LLVMGetGEPSourceElementType(value: void*): void*;
+
+extern fn LLVMGetAllocatedType(value: void*): void*;
+
+extern fn LLVMGetAlignment(value: void*): u32;
+
+extern fn LLVMGetVolatile(value: void*): i32;
+
+extern fn LLVMGetOrdering(value: void*): u32;
+
+extern fn LLVMGetICmpPredicate(value: void*): u32;
+
+extern fn LLVMCountIncoming(phi: void*): u32;
+
+extern fn LLVMGetIncomingValue(phi: void*, index: u32): void*;
+
+extern fn LLVMGetIncomingBlock(phi: void*, index: u32): void*;
+
+extern fn LLVMGetNumSuccessors(terminator: void*): u32;
+
+extern fn LLVMGetSuccessor(terminator: void*, index: u32): void*;
+
+extern fn LLVMGetCondition(branch: void*): void*;
+
+extern fn LLVMGetCalledValue(call: void*): void*;
+
+extern fn LLVMGetNumArgOperands(call: void*): u32;
+
+extern fn LLVMIsDeclaration(value: void*): i32;
+
+extern fn LLVMIsUndef(value: void*): i32;
+
+extern fn LLVMIsPoison(value: void*): i32;
+
+extern fn LLVMIsNull(value: void*): i32;
+
+extern fn LLVMABISizeOfType(layout: void*, type: void*): u64;
+
+extern fn LLVMOffsetOfElement(layout: void*, type: void*, index: u32): u64;
+
+extern fn LLVMPassBuilderOptionsSetLoopVectorization(options: void*, enabled: i32): void;
+
+extern fn LLVMPassBuilderOptionsSetSLPVectorization(options: void*, enabled: i32): void;

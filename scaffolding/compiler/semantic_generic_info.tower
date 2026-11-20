@@ -1,0 +1,351 @@
+import tower;
+import inspection_policy;
+import semantic_context;
+import semantic_support;
+import semantic_statements;
+import semantic_types;
+import semantic_modules;
+import semantic_generic_values;
+import .library.vector;
+
+// Optional, disposable analysis on the original shared entities. The annotation
+// is the actual type-expression tree, whose name leaves bind to declarations;
+// it is not a second type language or a partially instantiated Foundation graph.
+enum GenericInfoKind: u32 {
+    Function, Constructor, TypeParameter, ConstantParameter, Parameter,
+    Structure, Field, Variable, TypeExpression, Return,
+    Member, Index, Binary, Value, Load, Assignment
+}
+
+enum GenericShapeState: u32 {
+    Uninspected, Fixed, Unknown
+}
+
+// Query-local substitutions bind declaration entities to existing argument
+// trees. They are a view of the shared graph, not another type representation.
+struct GenericBinding {
+    parameter: void*;
+    argument: void*;
+    bindings: GenericBinding*;
+    next: GenericBinding*;
+}
+
+struct GenericInfo {
+    kind: GenericInfoKind;
+    definition: void*;
+    declaration: void*;
+    annotation: void*;
+    resolved: void*;
+    dependent: bool;
+    bindings: GenericBinding*;
+    shape_state: GenericShapeState;
+    fixed_record: void*;
+}
+
+struct GenericAnalysis {
+    context: SemanticContext*;
+    component: void*;
+    definition: void*;
+    constructor: bool;
+    resolve_types: bool;
+    budget: usize;
+    truncated: bool;
+}
+
+fn generic_info(node: void*, component: void*): GenericInfo* {
+    var generic_check1 = node == null;
+    if generic_check1 {
+        return null;
+    }
+    return bits(GenericInfo*, entity_component_data(entity_component_get(node, component)));
+}
+
+fn generic_info_add(a: GenericAnalysis*, node: void*, declaration: void*, kind: GenericInfoKind): GenericInfo* {
+    var result = bits(GenericInfo*, entity_component_data(entity_component_add(node, a.component)));
+    var allocated = result != null;
+    sem_require(allocated);
+    fill(result, 0, sizeof(GenericInfo));
+    result.kind = kind;
+    result.definition = a.definition;
+    result.declaration = declaration;
+    result.annotation = sem_member(declaration, "type");
+    return result;
+}
+
+fn generic_info_bind(a: GenericAnalysis*, node: void*, declaration: void*): void {
+    var meaning = generic_info(declaration, a.component);
+    var generic_check2 = meaning == null;
+    if generic_check2 {
+        return;
+    }
+    var result = generic_info_add(a, node, declaration, meaning.kind);
+    copy(result, meaning, sizeof(GenericInfo));
+}
+
+fn generic_info_lookup(scope: SemanticScope*, name: u8*): void* {
+    while scope != null {
+        var found = sem_lookup_table(scope.names, name);
+        var generic_check3 = found != null;
+        if generic_check3 {
+            return found;
+        }
+        scope = scope.parent;
+    }
+    return null;
+}
+
+fn generic_info_name(a: GenericAnalysis*, scope: SemanticScope*, node: void*): void {
+    var name = sem_member(node, "name");
+    var generic_check4 = name != null;
+    if generic_check4 {
+        // Duplicate/invalid unused bodies remain for ordinary instantiation to
+        // diagnose. Never make a failed speculative check a document error.
+        sem_put(a.context, scope.names, sem_identifier(a.context, name), node);
+    }
+}
+
+fn generic_info_dependent(node: void*, component: void*, depth: usize): bool {
+    var next = depth + 1;
+    var generic_check5 = node == null;
+    if generic_check5 {
+        return false;
+    }
+    var generic_check6 = depth == InspectionDepthLimit();
+    if generic_check6 {
+        return true;
+    }
+    var meaning = generic_info(node, component);
+    var generic_check7 = meaning != null;
+    if generic_check7 {
+        var generic_check8 = meaning.kind == GenericInfoKind.TypeParameter;
+        if generic_check8 {
+            return true;
+        }
+        var generic_check9 = meaning.kind == GenericInfoKind.ConstantParameter;
+        if generic_check9 {
+            return true;
+        }
+        var generic_check10 = meaning.kind == GenericInfoKind.Structure;
+        if generic_check10 {
+            return true;
+        }
+    }
+    var i: usize = 0;
+    while i < sem_child_count(node) {
+        if generic_info_dependent(sem_child(node, i), component, next) {
+            return true;
+        }
+        i++;
+    }
+    return false;
+}
+
+fn generic_info_type(a: GenericAnalysis*, meaning: GenericInfo*): void {
+    var annotation = meaning.annotation;
+    var generic_check11 = annotation == null;
+    if generic_check11 {
+        return;
+    }
+    meaning.dependent = generic_info_dependent(annotation, a.component, 0);
+    if meaning.dependent {
+        return;
+    }
+    // A failed check may leave a named type with an unfinished layout in the
+    // ordinary registry. Its written annotation/bindings remain useful, but
+    // querying that partial registry must not turn zeroed fields into a layout.
+    if !a.resolve_types {
+        return;
+    }
+    if sem_equal(sem_tokens(a.context, annotation), "type") {
+        return;
+    }
+    var type = sem_type(a.context, annotation);
+    if sem_ok(a.context) {
+        meaning.resolved = sem_type_entity(a.context, type);
+    }
+    a.context.program.error.length = 0;
+}
+
+fn generic_info_walk(a: GenericAnalysis*, node: void*, values: SemanticScope*, types: SemanticScope*, depth: usize): void {
+    var next = depth + 1;
+    var generic_check12 = node == null;
+    if generic_check12 {
+        return;
+    }
+    var generic_check13 = depth == InspectionDepthLimit();
+    if generic_check13 {
+        a.truncated = true;
+        return;
+    }
+    var generic_check14 = a.budget == 0;
+    if generic_check14 {
+        a.truncated = true;
+        return;
+    }
+    a.budget--;
+    var c = a.context;
+    var declaration = generic_info(node, a.component);
+    var name: void* = null;
+    if sem_is(node, "CoreStruct") {
+        declaration = generic_info_add(a, node, node, GenericInfoKind.Structure);
+        declaration.dependent = true;
+        generic_info_name(a, types, node);
+        name = sem_member(node, "name");
+    }
+    if sem_is(node, "CoreField") {
+        declaration = generic_info_add(a, node, node, GenericInfoKind.Field);
+        name = sem_member(node, "name");
+    }
+    var local = sem_is(node, "CoreDeclare");
+    if local {
+        declaration = generic_info_add(a, node, node, GenericInfoKind.Variable);
+        name = sem_member(node, "name");
+    }
+    if sem_is(node, "CoreParameter") {
+        name = sem_member(node, "name");
+    }
+    var generic_check15 = node == a.definition;
+    if generic_check15 {
+        name = sem_member(node, "name");
+    }
+    if sem_is(node, "CoreType") {
+        declaration = generic_info_add(a, node, node, GenericInfoKind.TypeExpression);
+        declaration.annotation = node;
+    }
+    if sem_is(node, "CoreReturn") {
+        declaration = generic_info_add(a, node, a.definition, GenericInfoKind.Return);
+    }
+    // Bind names by their semantic tree roles, not token spelling. In particular
+    // a member name is never mistaken for a same-named parameter or local.
+    var reference: void* = null;
+    var type_name = sem_is(node, "CoreTypeName");
+    var location = sem_is(node, "CoreLocation");
+    var reference_role = type_name;
+    if location {
+        reference_role = true;
+    }
+    if reference_role {
+        var generic_check16 = sem_member(node, "base") == null;
+        if generic_check16 {
+            reference = sem_member(node, "name");
+        }
+    }
+    var count = sem_is(node, "CoreArrayCount");
+    if count {
+        reference = node;
+    }
+    var generic_check17 = reference != null;
+    if generic_check17 {
+        var text = sem_identifier(c, reference);
+        var binding: void* = null;
+        if type_name {
+            binding = generic_info_lookup(types, text);
+            // A type application's argument can name a compile-time integer.
+            var missing = binding == null;
+            if missing {
+                var value = generic_info_lookup(values, text);
+                var meaning = generic_info(value, a.component);
+                var constant = meaning != null;
+                constant &&= meaning.kind == GenericInfoKind.ConstantParameter;
+                if constant {
+                    binding = value;
+                }
+            }
+        }
+        else {
+            binding = generic_info_lookup(values, text);
+            var generic_check18 = binding == null;
+            if generic_check18 {
+                binding = generic_info_lookup(types, text);
+            }
+        }
+        var generic_check19 = binding != null;
+        if generic_check19 {
+            generic_info_bind(a, node, binding);
+        }
+    }
+    if sem_is(node, "CoreBlock") {
+        values = sem_scope(c, values);
+        types = sem_scope(c, types);
+    }
+    var i: usize = 0;
+    while i < sem_child_count(node) {
+        var child = sem_child(node, i);
+        var generic_check20 = child != name;
+        if generic_check20 {
+            generic_info_walk(a, child, values, types, next);
+        }
+        i++;
+    }
+    var generic_check21 = declaration != null;
+    if generic_check21 {
+        generic_info_type(a, declaration);
+        var generic_check22 = name != null;
+        if generic_check22 {
+            generic_info_bind(a, name, node);
+        }
+    }
+    // Local scope begins after the initializer, preserving lexical shadowing.
+    if local {
+        generic_info_name(a, values, node);
+    }
+}
+
+// Query clients opt into this pass; executable compilation still checks each
+// concrete instance normally. Type/value bindings stay on the source entities.
+fn sem_generic_inspect(c: SemanticContext*, resolve_types: bool, truncated: bool*): void* {
+    var component = sem_create(c.program.root);
+    sem_require(entity_register(component, sizeof(GenericInfo), alignof(GenericInfo), 0));
+    var a: GenericAnalysis;
+    a.context = c;
+    a.component = component;
+    a.resolve_types = resolve_types;
+    a.budget = InspectionNodeLimit();
+    a.truncated = false;
+    var i: usize = 0;
+    while i < c.template_nodes.length {
+        var definition = c.template_nodes.data[i];
+        a.definition = definition;
+        a.constructor = sem_equal(sem_tokens(c, sem_member(definition, "type")), "type");
+        var kind = GenericInfoKind.Function;
+        if a.constructor {
+            kind = GenericInfoKind.Constructor;
+        }
+        generic_info_add(&a, definition, definition, kind);
+        var values = sem_scope(c, null);
+        var types = sem_scope(c, null);
+        var parameters = sem_collect(c, sem_member(definition, "params"), "CoreParameter");
+        var p: usize = 0;
+        while p < parameters.length {
+            var parameter = parameters.data[p];
+            var parameter_kind = GenericInfoKind.Parameter;
+            if a.constructor {
+                parameter_kind = GenericInfoKind.ConstantParameter;
+            }
+            var is_type = generic_type_parameter(c.generics, definition, p);
+            if is_type {
+                parameter_kind = GenericInfoKind.TypeParameter;
+            }
+            generic_info_add(&a, parameter, parameter, parameter_kind);
+            if is_type {
+                generic_info_name(&a, types, parameter);
+            }
+            else {
+                generic_info_name(&a, values, parameter);
+            }
+            p++;
+        }
+        generic_info_walk(&a, definition, values, types, 0);
+        i++;
+    }
+    // Bind every definition before following type applications. This preserves
+    // module forward references and makes inspection independent of file order.
+    i = 0;
+    while i < c.template_nodes.length {
+        a.definition = c.template_nodes.data[i];
+        generic_value_walk(&a, a.definition, 0);
+        i++;
+    }
+    *truncated = a.truncated;
+    return component;
+}

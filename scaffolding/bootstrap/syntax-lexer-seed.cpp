@@ -1,4 +1,4 @@
-// Transitional reference. Production token selection runs syntax-lexer.tower.
+// Transitional reference. Production token selection runs syntax_lexer.tower.
 #include "../compiler-syntax-lexer.hpp"
 #include <vector>
 #include <string_view>

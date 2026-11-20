@@ -1,10 +1,10 @@
-import '../compiler/host-handle-types';
+import .compiler.host_handle_types;
 import tower;
-import 'host-runtime';
-import '../compiler/host-handles';
-import '../compiler/host-text';
-import '../library/bytes-interface';
-import '../library/bytes-types';
+import host_runtime;
+import .compiler.host_handles;
+import .compiler.host_text;
+import .library.bytes_interface;
+import .library.bytes_types;
 
 // Compiled into the native/WASI test host. All assertions and trials are Tower.
 fn host_test_bytes(buffer: ByteBuffer*, wanted: u8*, count: usize): bool {

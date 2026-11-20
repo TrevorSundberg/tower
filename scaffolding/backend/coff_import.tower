@@ -1,0 +1,126 @@
+import tower;
+import .library.vector;
+
+// COFF short-import metadata in a deterministic single-symbol archive. This
+// contains no owned machine-code implementation: upstream LLD builds the import
+// thunk and Windows supplies the function. The archive makes the import lazy.
+// PE/COFF specification: archive linker member and import library header.
+const CoffArchiveMagicBytes: usize = 8;
+const CoffArchiveHeaderBytes: usize = 60;
+const CoffShortImportHeaderBytes: usize = 20;
+const CoffMachineAmd64: u32 = 34404;
+const CoffImportCodeByName: u32 = 4;
+
+fn coff_unsigned(data: u8*, number: u32, count: usize, big: bool): void {
+    var i: usize = 0;
+    while i < count {
+        var at = i;
+        if big {
+            at = count - i;
+            at--;
+        }
+        var byte = number &255;
+        data[at] = convert(u8, byte);
+        number = number / 256;
+        i++;
+    }
+}
+
+fn coff_archive_header(data: u8*, name: u8*, name_size: usize, size: usize): void {
+    fill(data, 32, CoffArchiveHeaderBytes());
+    copy(data, name, name_size);
+    // Fixed-width ASCII date, owner, group and mode. Timestamp zero is stable.
+    data[16] = 48;
+    data[28] = 48;
+    data[34] = 48;
+    data[40] = 48;
+    var digits: u8[20];
+    var count: usize = 0;
+    loop {
+        var digit = size % 10;
+        digit = digit + 48;
+        digits[count] = convert(u8, digit);
+        count++;
+        size = size / 10;
+        var done = size == 0;
+        if done {
+            break;
+        }
+    }
+    var i: usize = 48;
+    while count != 0 {
+        count--;
+        data[i] = digits[count];
+        i++;
+    }
+    data[58] = 96;
+    data[59] = 10;
+}
+
+fn coff_name_length(name: u8*): usize {
+    var i: usize = 0;
+    while name[i] != 0 {
+        i++;
+    }
+    return i;
+}
+
+fn coff_import_archive(out: vector(u8)*, machine: u32, symbol: u8*, dll: u8*): bool {
+    var symbol_size = coff_name_length(symbol) + 1;
+    var dll_size = coff_name_length(dll) + 1;
+    var valid = symbol_size > 1;
+    valid &&= symbol_size <= 65536;
+    valid &&= dll_size > 1;
+    valid &&= dll_size <= 65536;
+    valid &&= machine <= 65535;
+    if !valid {
+        return false;
+    }
+    // Big-endian symbol count and member offset, then the NUL-terminated name.
+    var linker_size = 8 + symbol_size;
+    var padding = linker_size &1;
+    var member = CoffArchiveMagicBytes() + CoffArchiveHeaderBytes();
+    member = member + linker_size;
+    member = member + padding;
+    var data_size = symbol_size + dll_size;
+    var object_size = CoffShortImportHeaderBytes() + data_size;
+    var total = member + CoffArchiveHeaderBytes();
+    total = total + object_size;
+    padding = object_size & 1;
+    total = total + padding;
+    if !vector_reserve(u8, out, total) {
+        return false;
+    }
+    out.length = total;
+    fill(out.data, 0, total);
+    copy(out.data, "!<arch>\n", CoffArchiveMagicBytes());
+    var header = &out.data[CoffArchiveMagicBytes()];
+    coff_archive_header(header, "/", 1, linker_size);
+    var data = header + CoffArchiveHeaderBytes();
+    coff_unsigned(data, 1, 4, true);
+    coff_unsigned(&data[4], convert(u32, member), 4, true);
+    copy(&data[8], symbol, symbol_size);
+    var odd = linker_size &1;
+    var padded = odd != 0;
+    if padded {
+        data[linker_size] = 10;
+    }
+    header = &out.data[member];
+    coff_archive_header(header, "import.obj/", 11, object_size);
+    data = header + CoffArchiveHeaderBytes();
+    // IMPORT_OBJECT_HEADER: signature, version, machine, timestamp, payload
+    // length, hint, and IMPORT_CODE | (IMPORT_NAME << 2). All little endian.
+    coff_unsigned(&data[2], 65535, 2, false);
+    coff_unsigned(&data[6], machine, 2, false);
+    coff_unsigned(&data[12], convert(u32, data_size), 4, false);
+    coff_unsigned(&data[18], CoffImportCodeByName(), 2, false);
+    data = data + CoffShortImportHeaderBytes();
+    copy(data, symbol, symbol_size);
+    copy(&data[symbol_size], dll, dll_size);
+    padded = padding != 0;
+    if padded {
+        var last = total -1;
+        out.data[last] = 10;
+    }
+    return true;
+}

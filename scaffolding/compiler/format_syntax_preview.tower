@@ -1,0 +1,251 @@
+import tower;
+import .library.vector;
+import format_types;
+import format_api;
+import format_parser;
+import parser_types;
+import parser_markers;
+import syntax_types;
+
+extern fn entity_component_get(node: void*, kind: void*): void*;
+
+extern fn entity_component_data(component: void*): void*;
+
+extern fn format_entity(result: FormatResult*, node: void*, syntax: void*, foundation: void*, kind: void*): void;
+
+extern fn syntax_source_location(source: SyntaxSource*, offset: usize, line: usize*, column: usize*): void;
+
+extern fn syntax_nodes_equal(left: void*, right: void*, kind: void*, locations: bool): i32;
+
+// Diagnostic previews borrow the same components as canonical formatting.
+// They are presentation only; never serialized as grammar or foundation source.
+const SyntaxPreviewLimit: usize = 120;
+
+fn format_preview_node(node: void*, kind: void*): SyntaxNode* {
+    return bits(SyntaxNode*, entity_component_data(entity_component_get(node, kind)));
+}
+
+fn format_preview_location(f: FormatEngine*, node: SyntaxNode*): void {
+    var absent = node.source == null;
+    var generated = node.start == ParserNoIndex();
+    if generated {
+        absent = true;
+    }
+    if absent {
+        format_text(f, "native seed");
+        return;
+    }
+    var line: usize;
+    var column: usize;
+    syntax_source_location(node.source, node.start, &line, &column);
+    format_bytes(f, &node.source.name);
+    format_char(f, 58);
+    format_unsigned(f, convert(u64, line));
+    format_char(f, 58);
+    format_unsigned(f, convert(u64, column));
+}
+
+// name_only uses the first alternative, selected by the caller's revision view.
+export fn format_syntax_description(result: FormatResult*, entity: void*, name: u8*,
+name_only: bool, syntax: void*, kind: void*): void {
+    var f: FormatEngine;
+    fill(&f, 0, sizeof(FormatEngine));
+    f.result = result;
+    var node = format_preview_node(entity, syntax);
+    var absent = node == null;
+    if absent {
+        result.failed = true;
+        return;
+    }
+    format_text(&f, name);
+    if !name_only {
+        format_text(&f, " = ");
+        var begin = result.text.length;
+        var part: FormatResult;
+        fill(&part, 0, sizeof(FormatResult));
+        var i: usize = 0;
+        while i < node.items.length {
+            var separated = result.text.length != begin;
+            if separated {
+                format_char(&f, 32);
+            }
+            // Reuse scratch capacity without retaining source-map output.
+            part.text.length = 0;
+            part.spans.length = 0;
+            format_entity(&part, node.items.data[i], syntax, null, kind);
+            if part.failed {
+                result.failed = true;
+                break;
+            }
+            format_bytes(&f, &part.text);
+            if result.failed {
+                break;
+            }
+            var length = result.text.length - begin;
+            var truncate = length > SyntaxPreviewLimit();
+            if truncate {
+                var end = begin + SyntaxPreviewLimit();
+                while end > begin {
+                    var prefix = result.text.data[end] & 192;
+                    var continuation = prefix == 128;
+                    if !continuation { break; }
+                    end--;
+                }
+                result.text.length = end;
+                format_text(&f, " ...");
+                break;
+            }
+            i++;
+        }
+        format_dispose(&part);
+        var empty = result.text.length == begin;
+        if empty {
+            format_text(&f, "<empty>");
+        }
+    }
+    format_text(&f, " (");
+    format_preview_location(&f, node);
+    format_char(&f, 41);
+}
+
+export fn syntax_description_text(entity: void*, name: u8*, name_only: bool,
+syntax: void*, kind: void*): u8* {
+    var result: FormatResult;
+    fill(&result, 0, sizeof(FormatResult));
+    format_syntax_description(&result, entity, name, name_only, syntax, kind);
+    return format_parser_host_text(&result);
+}
+
+export fn format_syntax_origin(result: FormatResult*, entity: void*, prefix: u8*, syntax: void*, kind: void*): void {
+    var f: FormatEngine;
+    fill(&f, 0, sizeof(FormatEngine));
+    f.result = result;
+    var node = format_preview_node(entity, syntax);
+    var absent = node == null;
+    if absent {
+        result.failed = true;
+        return;
+    }
+    format_text(&f, prefix);
+    format_entity(result, entity, syntax, null, kind);
+    format_text(&f, " (");
+    format_preview_location(&f, node);
+    format_char(&f, 41);
+}
+
+export fn syntax_origin_text(entity: void*, prefix: u8*, syntax: void*, kind: void*): u8* {
+    var result: FormatResult;
+    fill(&result, 0, sizeof(FormatResult));
+    format_syntax_origin(&result, entity, prefix, syntax, kind);
+    return format_parser_host_text(&result);
+}
+
+struct FormatTreePair {
+    left: void*;
+    right: void*;
+}
+
+fn format_preview_bytes(left: u8*, left_size: usize, right: u8*, right_size: usize): bool {
+    var same = left_size == right_size;
+    if !same { return false; }
+    var i: usize = 0;
+    while i < left_size {
+        same = left[i] == right[i];
+        if !same { return false; }
+        i++;
+    }
+    return true;
+}
+
+fn format_preview_pair(pair: FormatTreePair*, source_a: u8*, size_a: usize,
+source_b: u8*, size_b: usize, syntax: void*, kind: void*, pending: vector(FormatTreePair)*): bool {
+    var a = pair.left;
+    var b = pair.right;
+    var x_syntax = format_preview_node(a, syntax);
+    var y_syntax = format_preview_node(b, syntax);
+    var grammar = x_syntax != null;
+    var other = y_syntax != null;
+    if other {
+        grammar = true;
+    }
+    if grammar {
+        var same = syntax_nodes_equal(a, b, syntax, false) == 1;
+        return same;
+    }
+    var x = bits(ParserMatchData*, entity_component_data(entity_component_get(a, kind)));
+    var y = bits(ParserMatchData*, entity_component_data(entity_component_get(b, kind)));
+    var absent = x == null;
+    if absent {
+        return false;
+    }
+    absent = y == null;
+    if absent {
+        return false;
+    }
+    var same = x.rule == y.rule;
+    same &&= format_preview_bytes(x.label.data, x.label.length, y.label.data, y.label.length);
+    var count = entity_child_count(a);
+    same &&= count == entity_child_count(b);
+    if !same { return false; }
+    var leaf = x.rule == ParserNoIndex();
+    if leaf {
+        var invalid = x.start > size_a;
+        if invalid {
+            return false;
+        }
+        invalid = y.start > size_b;
+        if invalid {
+            return false;
+        }
+        var length_a = size_a - x.start;
+        var length_b = size_b - y.start;
+        var shorter = x.length < length_a;
+        if shorter {
+            length_a = x.length;
+        }
+        shorter = y.length < length_b;
+        if shorter {
+            length_b = y.length;
+        }
+        same = format_preview_bytes(&source_a[x.start], length_a, &source_b[y.start], length_b);
+        if !same { return false; }
+    }
+    var needed = pending.length + count;
+    var overflow = needed < pending.length;
+    if overflow {
+        return false;
+    }
+    var ok = vector_reserve(FormatTreePair, pending, needed);
+    if !ok { return false; }
+    // Reverse push preserves source order while avoiding host recursion.
+    while count != 0 {
+        count--;
+        var next = &pending.data[pending.length];
+        next.left = entity_child_at(a, count);
+        next.right = entity_child_at(b, count);
+        pending.length++;
+    }
+    return true;
+}
+
+// Read-only, explicit-world query over pinned source/graph inputs. Failure is
+// conservative: a formatter must not publish text it could not verify.
+export fn format_same_tree(a: void*, b: void*, source_a: u8*, size_a: usize,
+source_b: u8*, size_b: usize, syntax: void*, kind: void*): bool {
+    var pending: vector(FormatTreePair);
+    vector_init(FormatTreePair, &pending);
+    var pair: FormatTreePair;
+    pair.left = a;
+    pair.right = b;
+    var same = format_preview_pair(&pair, source_a, size_a, source_b, size_b, syntax, kind, &pending);
+    while same {
+        var done = pending.length == 0;
+        if done { break; }
+        pending.length--;
+        pair.left = pending.data[pending.length].left;
+        pair.right = pending.data[pending.length].right;
+        same = format_preview_pair(&pair, source_a, size_a, source_b, size_b, syntax, kind, &pending);
+    }
+    vector_dispose(FormatTreePair, &pending);
+    return same;
+}

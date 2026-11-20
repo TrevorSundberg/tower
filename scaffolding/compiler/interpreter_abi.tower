@@ -1,0 +1,190 @@
+import tower;
+import foundation_types;
+import interpreter_storage;
+import .library.vector;
+
+import interpreter_types;
+
+// Remaining host callbacks and existing shared type queries only.
+// FoundationNode and FoundationType are composed from foundation_nodes.tower.
+
+extern fn sem_get(node: void*): FoundationNode*;
+
+extern fn semantic_size(type: FoundationType*): usize;
+
+extern fn semantic_alignment(type: FoundationType*): usize;
+
+extern fn semantic_mask(type: FoundationType*): u64;
+
+extern fn semantic_signed(type: FoundationType*): bool;
+
+fn im_node(node: void*): FoundationNode* {
+    return sem_get(node);
+}
+
+// Direct-mapped memoization of component lookup, scoped to an immutable checked
+// program. Collisions are checked with the full entity key, never trusted hashes.
+fn im_cached_node(m: IMState*, node: void*): FoundationNode* {
+    var key = convert(u64, bits(usize, node));
+    var hash = key / 16;
+    var high = key / 4096;
+    hash = hash ^ high;
+    hash = hash & 255;
+    var index = convert(usize, hash);
+    var empty = m.node_cache.length == 0;
+    if empty {
+        im_storage_require(vector_reserve(IMEntry, &m.node_cache, 256));
+        var bytes = sizeof(IMEntry) * 256;
+        fill(m.node_cache.data, 0, bytes);
+        m.node_cache.length = 256;
+    }
+    var entry = &m.node_cache.data[index];
+    var same = entry.key == key;
+    if same {
+        return bits(FoundationNode*, convert(usize, entry.value));
+    }
+    var value = sem_get(node);
+    entry.key = key;
+    entry.value = convert(u64, bits(usize, value));
+    return value;
+}
+
+fn im_binding(node: void*): void* {
+    var value = sem_get(node);
+    var bound = value.binding != null;
+    if bound {
+        return value.binding;
+    }
+    return node;
+}
+
+fn im_type_size(type: FoundationType*): usize {
+    return semantic_size(type);
+}
+
+fn im_type_alignment(type: FoundationType*): usize {
+    return semantic_alignment(type);
+}
+
+fn im_type_mask(type: FoundationType*): u64 {
+    return semantic_mask(type);
+}
+
+fn im_type_signed(type: FoundationType*): bool {
+    return semantic_signed(type);
+}
+
+extern fn im_pointer_bytes(host: IMState*): usize;
+
+extern fn im_root(host: IMState*): void*;
+
+extern fn im_has_foreign(host: IMState*): bool;
+
+extern fn im_fail(host: IMState*, text: u8*, offset: usize): void;
+
+extern fn im_missing_foreign(host: IMState*, node: void*, offset: usize): void;
+
+extern fn im_append(host: IMState*, text: u8*, count: usize): void;
+
+extern fn im_foreign(host: IMState*, node: void*, args: u64*, count: usize): u64;
+
+fn im_pointee_size(type: FoundationType*): usize {
+    var element: FoundationType;
+    element.scalar = type.scalar;
+    element.pointers = type.pointers - 1;
+    element.record = type.record;
+    element.pointer_bytes = type.pointer_bytes;
+    return semantic_size(&element);
+}
+
+// Verify the transitional native view under each actual compilation target.
+export fn interpreter_state_size(): usize {
+    return sizeof(IMState);
+}
+
+export fn interpreter_state_offset(field: usize): usize {
+    var state: IMState;
+    var base = bits(usize, &state);
+    var address: usize = base;
+    var selected_0 = field == 0;
+    if selected_0 {
+        address = bits(usize, &state.stack);
+    }
+    var selected_1 = field == 1;
+    if selected_1 {
+        address = bits(usize, &state.heap);
+    }
+    var selected_2 = field == 2;
+    if selected_2 {
+        address = bits(usize, &state.error_offset);
+    }
+    var selected_3 = field == 3;
+    if selected_3 {
+        address = bits(usize, &state.output_bytes);
+    }
+    var selected_4 = field == 4;
+    if selected_4 {
+        address = bits(usize, &state.steps);
+    }
+    var selected_5 = field == 5;
+    if selected_5 {
+        address = bits(usize, &state.done);
+    }
+    var selected_6 = field == 6;
+    if selected_6 {
+        address = bits(usize, &state.output_truncated);
+    }
+    var selected_7 = field == 7;
+    if selected_7 {
+        address = bits(usize, &state.failed);
+    }
+    var selected_8 = field == 8;
+    if selected_8 {
+        address = bits(usize, &state.frame_count);
+    }
+    var selected_9 = field == 9;
+    if selected_9 {
+        address = bits(usize, &state.task_count);
+    }
+    var selected_10 = field == 10;
+    if selected_10 {
+        address = bits(usize, &state.cached);
+    }
+    var selected_11 = field == 11;
+    if selected_11 {
+        address = bits(usize, &state.memory);
+    }
+    var selected_12 = field == 12;
+    if selected_12 {
+        address = bits(usize, &state.allocations);
+    }
+    var selected_13 = field == 13;
+    if selected_13 {
+        address = bits(usize, &state.free_blocks);
+    }
+    var selected_14 = field == 14;
+    if selected_14 {
+        address = bits(usize, &state.strings);
+    }
+    var selected_15 = field == 15;
+    if selected_15 {
+        address = bits(usize, &state.sequenced);
+    }
+    var selected_16 = field == 16;
+    if selected_16 {
+        address = bits(usize, &state.frames);
+    }
+    var selected_17 = field == 17;
+    if selected_17 {
+        address = bits(usize, &state.node_cache);
+    }
+    var offset = address - base;
+    return offset;
+}
+
+struct IMNeighbors {
+    next: u64;
+    next_count: u64;
+    previous: u64;
+    previous_count: u64;
+}

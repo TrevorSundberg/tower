@@ -1,0 +1,8 @@
+import tower;
+
+// Linux x86_64/AArch64 libc dirent ABI: ino64, off64, reclen16, type8, name.
+export fn module_dirent_name(entry: void*): u8* {
+    var bytes = bits(u8*, entry);
+    var name = bytes + 19;
+    return name;
+}

@@ -1,0 +1,187 @@
+import tower;
+
+// CLI parsing owns its link array and borrows argv/default-target strings.
+// Keep option ordering and early --help behavior of the original native driver.
+import driver_types;
+
+fn driver_equal(a: u8*, b: u8*): bool {
+    var index: usize = 0;
+    loop {
+        var different = a[index] != b[index];
+        if different {
+            return false;
+        }
+        var end = a[index] == 0;
+        if end {
+            return true;
+        }
+        index++;
+    }
+    return false;
+}
+
+export fn driver_help(): u8* {
+    return "towerc source.tower -o output [--target triple|roku] [--emit object|llvm|llvm-optimized|exe|bytecode|foundation|c|brightscript]\n  [--link object-or-library] [--cc clang] [--linker tool] [--sysroot path]\n  [--raw-ir file] [--optimized-ir file] [--no-optimize] [--strip-comments] [--interpret|--interpret-fast] [--library] [--timings]\n  [--bedrock file] [--foundation file] [--depfile file] [--help] [--version]\n";
+}
+
+export fn driver_version(): u8* {
+    return "Tower development (hybrid bootstrap; not a portable release)\n";
+}
+
+export fn driver_dispose(options: DriverOptions*): void {
+    free(options.links);
+    options.links = null;
+    options.link_count = 0;
+}
+
+export fn driver_parse(options: DriverOptions*, argc: usize, argv: u8**, target: u8*): bool {
+    options.source = "";
+    options.output = "";
+    options.target = target;
+    options.emit = "exe";
+    options.cc = "clang";
+    options.linker = "";
+    options.sysroot = "";
+    options.raw = "";
+    options.optimized = "";
+    options.bedrock = "";
+    options.foundation = "";
+    options.depfile = "";
+    options.links = null;
+    options.link_count = 0;
+    options.optimize = true;
+    options.interpret = false;
+    options.library = false;
+    options.timings = false;
+    options.help = false;
+    options.version = false;
+    options.fast = false;
+    options.error = 0;
+    options.argument = "";
+    options.comments = true;
+    var index: usize = 1;
+    loop {
+        var end = index >= argc;
+        if end {
+            return true;
+        }
+        var arg = argv[index];
+        index++;
+        if driver_equal(arg, "--help") {
+            options.help = true;
+            return true;
+        }
+        if driver_equal(arg, "--version") {
+            options.version = true;
+            return true;
+        }
+        if driver_equal(arg, "--no-optimize") {
+            options.optimize = false;
+            continue;
+        }
+        if driver_equal(arg, "--strip-comments") {
+            options.comments = false;
+            continue;
+        }
+        if driver_equal(arg, "--interpret") {
+            options.interpret = true;
+            options.fast = false;
+            continue;
+        }
+        if driver_equal(arg, "--interpret-fast") {
+            options.interpret = true;
+            options.fast = true;
+            continue;
+        }
+        if driver_equal(arg, "--timings") {
+            options.timings = true;
+            continue;
+        }
+        if driver_equal(arg, "--library") {
+            options.library = true;
+            options.emit = "object";
+            continue;
+        }
+        var slot: u8** = null;
+        if driver_equal(arg, "-o") {
+            slot = &options.output;
+        }
+        if driver_equal(arg, "--target") {
+            slot = &options.target;
+        }
+        if driver_equal(arg, "--emit") {
+            slot = &options.emit;
+        }
+        if driver_equal(arg, "--cc") {
+            slot = &options.cc;
+        }
+        if driver_equal(arg, "--linker") {
+            slot = &options.linker;
+        }
+        if driver_equal(arg, "--sysroot") {
+            slot = &options.sysroot;
+        }
+        if driver_equal(arg, "--raw-ir") {
+            slot = &options.raw;
+        }
+        if driver_equal(arg, "--optimized-ir") {
+            slot = &options.optimized;
+        }
+        if driver_equal(arg, "--bedrock") {
+            slot = &options.bedrock;
+        }
+        if driver_equal(arg, "--foundation") {
+            slot = &options.foundation;
+        }
+        if driver_equal(arg, "--depfile") {
+            slot = &options.depfile;
+        }
+        var link = driver_equal(arg, "--link");
+        var valued = slot != null;
+        if link {
+            valued = true;
+        }
+        if valued {
+            var missing = index == argc;
+            if missing {
+                options.error = 1;
+                options.argument = arg;
+                return false;
+            }
+            var value = argv[index];
+            index++;
+            if link {
+                var unallocated = options.links == null;
+                if unallocated {
+                    // argc bounds the number of link values. One allocation;
+                    // failure leaves the options safely disposable.
+                    options.links = alloc(u8*, argc);
+                    var failed = options.links == null;
+                    if failed {
+                        options.error = 3;
+                        options.argument = arg;
+                        return false;
+                    }
+                }
+                options.links[options.link_count] = value;
+                options.link_count++;
+            } else {
+                *slot = value;
+            }
+            continue;
+        }
+        var option = arg[0] == 45;
+        var have_source = options.source[0] != 0;
+        var unexpected = option;
+        if have_source {
+            unexpected = true;
+        }
+        if unexpected {
+            options.error = 2;
+            options.argument = arg;
+            return false;
+        }
+        options.source = arg;
+    }
+    return true;
+}

@@ -26,7 +26,7 @@ async function compare(source,expected){
 }
 const box='fn box(T: type): type { struct Result { value: T; } return Result; }';
 test('compiler scans preserve token ownership and interleaved specialization identities',async()=>{
- const source=(await read('scaffolding/tests/compiler-scans.tower')).toString();
+ const source=(await read('scaffolding/tests/compiler_scans.tower')).toString();
  const text=await compare(source,'17\n23\n31\n47\n59\n61\n71\n17\n');
  assert.equal((text.match(/struct `pair\(i32, u32\)`/g)||[]).length,1);
  assert.equal((text.match(/struct `pair\(u32, i32\)`/g)||[]).length,1);
@@ -97,7 +97,7 @@ var e: box(\`i32[2]\`); e.value.other = 8; print(e.value.other);`,'42\n3\n4\n7\n
  assert.ok(text.includes('struct `box(Left)`'));assert.ok(text.includes('struct `box(Right)`'));
 });
 test('the typed vector grows scalar and pointer storage with target layouts',async()=>{
- const vector='import "library/vector";\n';
+ const vector='import library.vector;\n';
  await compare(vector+`
 var values: vector(i32); vector_init(i32, &values);
 var i: i32 = 0; loop { var done = i == 40; if done { break; } var ok = vector_push(i32, &values, i); if ok {} else { print(999); break; } i = i + 1; }

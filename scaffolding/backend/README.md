@@ -164,9 +164,9 @@ the complete compiler/bootstrap/package migration. Task 1 still owns source
 compilation, and task 3 owns runtime objects, shared entity lifetime and the
 existing semantic/layout accessors. No shared layouts or operation IDs changed.
 
-Backend fixtures include `tests/backend-semantics.tower` and its expected output,
+Backend fixtures include `tests/backend_semantics.tower` and its expected output,
 `tests/backend.tower` for direct API/error checks, and the separately compiled
-`tests/foreign-fixture.tower`. The foreign C fixture is removed. Its three former
+`tests/foreign_fixture.tower`. The foreign C fixture is removed. Its three former
 build invocations now mechanically use the Tower compiler; broad scripts and
 packaging are otherwise unchanged. Reproducible comparisons, benchmarks and
 remaining platform execution limitations are recorded in the project journal.

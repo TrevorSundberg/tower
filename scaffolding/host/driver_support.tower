@@ -1,0 +1,127 @@
+import tower;
+import .library.bytes_interface;
+import .library.bytes_types;
+import .library.vector;
+import driver_platform;
+
+extern fn strlen(text: u8*): usize;
+
+extern fn strcmp(left: u8*, right: u8*): i32;
+
+extern fn getenv(name: u8*): u8*;
+
+extern fn strerror(code: i32): u8*;
+
+extern fn fflush(file: void*): i32;
+
+extern fn host_text_terminate(out: ByteBuffer*): bool;
+
+extern fn host_json_unsigned(out: ByteBuffer*, value: u64): bool;
+
+extern fn driver_read_file(path: u8*, out: ByteBuffer*): bool;
+
+extern fn driver_write_file(path: u8*, data: u8*, length: usize): bool;
+
+fn driver_text(out: ByteBuffer*, text: u8*): bool {
+    return bytes_append(out, text, strlen(text));
+}
+
+fn driver_same(left: u8*, right: u8*): bool {
+    var equal = strcmp(left, right) == 0;
+    return equal;
+}
+
+// Each argument owns a stable allocation. Growing the pointer vector never
+// invalidates the argv views, and no argument is interpreted by a shell.
+struct DriverArguments {
+    values: vector(u8*);
+    ok: bool;
+}
+
+fn driver_arguments_init(args: DriverArguments*): void {
+    fill(args, 0, sizeof(DriverArguments));
+    args.ok = true;
+}
+
+fn driver_argument(args: DriverArguments*, prefix: u8*, value: u8*): void {
+    if !args.ok {
+        return;
+    }
+    var text: ByteBuffer;
+    fill(&text, 0, sizeof(ByteBuffer));
+    args.ok = driver_text(&text, prefix);
+    args.ok &&= driver_text(&text, value);
+    args.ok &&= host_text_terminate(&text);
+    args.ok &&= vector_push(u8*, &args.values, text.data);
+    if !args.ok {
+        bytes_dispose(&text);
+    }
+}
+
+fn driver_arguments_dispose(args: DriverArguments*): void {
+    var i: usize = 0;
+    while i < args.values.length {
+        free(args.values.data[i]);
+        i++;
+    }
+    vector_dispose(u8*, &args.values);
+}
+
+export fn driver_message(stream: i32, message: u8*, detail: u8*, newline: bool): void {
+    fflush(null);
+    driver_platform_write(stream, message, strlen(message));
+    driver_platform_write(stream, detail, strlen(detail));
+    if newline {
+        driver_platform_write(stream, "\n", 1);
+    }
+}
+
+export fn driver_error(message: u8*, detail: u8*): void {
+    driver_message(2, message, detail, true);
+}
+
+extern fn frontend_modules_location(modules: void*, offset: usize, line: usize*, column: usize*): u8*;
+
+extern fn driver_source_position(source: u8*, length: usize, offset: usize, line: usize*, column: usize*): void;
+
+// Module provenance is supplied by the existing frontend API. UTF-8 positions,
+// fallback filenames and diagnostic composition all belong to the Tower host.
+export fn driver_report(error: u8*, offset: usize, text: u8*, length: usize, source: u8*, modules: void*): void {
+    fflush(null);
+    var line: usize = 1;
+    var column: usize = 1;
+    driver_source_position(text, length, offset, &line, &column);
+    var file = frontend_modules_location(modules, offset, &line, &column);
+    var empty_file = file[0] == 0;
+    if empty_file {
+        file = source;
+    }
+    var out: ByteBuffer;
+    fill(&out, 0, sizeof(ByteBuffer));
+    var ok = driver_text(&out, file);
+    ok &&= driver_text(&out, ":");
+    ok &&= host_json_unsigned(&out, convert(u64, line));
+    ok &&= driver_text(&out, ":");
+    ok &&= host_json_unsigned(&out, convert(u64, column));
+    ok &&= driver_text(&out, ": ");
+    ok &&= driver_text(&out, error);
+    ok &&= driver_text(&out, "\n");
+    if ok {
+        driver_platform_write(2, out.data, out.length);
+    }
+    else {
+        driver_error("Unable to allocate diagnostic: ", error);
+    }
+    bytes_dispose(&out);
+}
+
+fn driver_command(args: DriverArguments*): i32 {
+    args.ok &&= vector_push(u8*, &args.values, null);
+    if !args.ok {
+        driver_error("Unable to allocate tool arguments", "");
+        return 1;
+    }
+    var result = driver_platform_run(args.values.data);
+    args.values.length--;
+    return result;
+}

@@ -227,7 +227,7 @@ try {
       assert.ok(Number((await timing.textContent()).match(/([\d.]+) ms/)[1])<20);
     }
     const project = newProject('Deployment project', {bedrock,foundation}, [
-      {path:'main.tower',text:'import foundation; import lib.answer as left; import "other/answer" as right; import "lib/answer" as again; var total: i32 = left.answer() + right.answer(); print(total);'},
+      {path:'main.tower',text:'import foundation; import lib.answer as left; import other.answer as right; import lib.answer as again; var total: i32 = left.answer() + right.answer(); print(total);'},
       {path:'lib/answer.tower',text:'import foundation; fn answer(): i32 { return 20; }'},
       {path:'other/answer.tower',text:'import foundation; fn answer(): i32 { return 22; }'},
       {path:'assets/notes.txt',text:'Project archive verification'},

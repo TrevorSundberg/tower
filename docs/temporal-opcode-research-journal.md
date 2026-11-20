@@ -21735,3 +21735,152 @@ its adjacent resources, or a matching LLVM/Wasm reactor, is required to rebuild
 this source state. Do not restore a native seed, invent a second expression
 compiler, discard the upstream operator work or deploy stale artifacts as a
 substitute. Publication of this retirement slice remains pending that bootstrap.
+
+## 2026-11-20 — Identifier module paths, parent dots and exact quoted imports
+
+Implemented the requested internal naming/import audit. This supersedes earlier
+journal examples that omit `.tower` inside quoted imports. All 259 pre-existing
+hyphenated Tower file/directory paths under scaffolding were renamed with
+underscores, including compiler, backend, runtime/host, libraries and fixtures.
+Updated source imports, CMake source lists and generated manifests, browser
+packaging, test/script inputs and current documentation. Historical journal and
+research entries retain their original paths as historical evidence. AGENTS.md
+now records the naming and import contract. No todo.txt edits were made; its
+pre-existing edits and later concurrent changes remain user-owned.
+
+`foo.bar` selects foo/bar.tower, `.foo.bar` selects ../foo/bar.tower, and every
+additional leading dot adds another parent. Prefix imports never search libraries.
+Bedrock's existing ImportPath retains identifier segments and `previous`; a new
+ImportName wraps that path or a `parent` prefix. The immutable Tower-built seed
+and parsed Bedrock use the same rules. Prefix terms live on their actual syntax
+entities, alongside identifier terms, and the shared formatter emits both.
+Validation requires the declaration reader's captures. Cache re-resolution now
+retains the quoted/unquoted distinction as part of the import declaration.
+
+Quoted paths are complete filenames, with no implicit extension or builtin-name
+alias. Arbitrary user directory names, hyphens, spaces, extensionless source files
+and other extensions remain supported. Browser source capabilities now transport
+all supplied text files so an explicit filename is not filtered by `.tower`.
+These are still Tower source imports, not a new PNG/binary-asset loader.
+
+Native case checking is Tower code. Platform implementations use Linux/Darwin
+directory entries and Windows CRT `_findfirst64`; WASI source/file keys already
+compare exactly. Checks reject incorrect directory/basename/extension case and
+Windows short-name/trailing-dot aliases. A mismatched nearer filename cannot hide
+a correctly spelled library candidate. Linux/Darwin ABI profiles are explicit
+x86_64/AArch64 layouts; macOS execution has not been tested here. POSIX checking
+requires directory enumeration permission. Drive-letter normalization and UNC
+server/share root lookup retain their platform policy. Sources for these ABIs:
+[Linux readdir](https://man7.org/linux/man-pages/man3/readdir.3.html),
+[Microsoft file-search functions](https://learn.microsoft.com/en-us/cpp/c-runtime-library/filename-search-functions?view=msvc-170).
+
+Symlink and hard-link identity remains lexical. File reads follow symlinks, but
+two lexical aliases can repeat initialization. Lexical `..` is normalized before
+filesystem traversal and does not follow a symlink's physical parent. Symlink
+cycles may hit the depth limit. These limitations are documented rather than
+silently introducing a host-dependent realpath identity policy.
+
+Browser compiler project refresh retires obsolete unchanged bundled paths while
+preserving edited/user files. Old edited modules are retained for manual migration;
+their old quoted spelling is not silently reinterpreted. The source naming audit
+now has a regression test, as does this project refresh behavior.
+
+Environment: Windows PowerShell, Node 21.7.3, WSL Orchestral-Revng, LLVM 19,
+Clang 19 (installed for the upstream runtime binding step), WASI SDK 34 and the
+existing pinned LLVM/WASI cache. The starting pull fast-forwarded 7ecd752 to
+451cc14 with autostash, preserving existing AGENTS/docs/journal/todo work. Git's
+automatic geometric repack stalled that pull; stopping the optional pack process
+allowed the pull to finish. No forced Git push or discarded source changes.
+
+Bootstrap trials: the saved native compiler predates module/depfile support.
+Used the existing published browser compiler transport in build/import-audit to
+compile a current native predecessor, then built the migrated compiler with it.
+The private transport supplies source files, not a second import resolver. LLVM
+20's optional `icmp samesign` flag was removed for the older LLVM 19 binder in
+that temporary bootstrap transport; no project compiler lowering was changed.
+Clang 18 rejected newer IR attributes, so Clang 19 was installed. A first draft
+tried to replace ImportPath's shape outright and was correctly rejected by the
+previous compiler's capture validator; keeping ImportPath and adding ImportName
+solved this without weakening validation. Other corrected implementation trials
+used unsupported compound `if`/return operands and value names in `sizeof`; the
+final code uses foundation operands and explicit types.
+
+Validation so far: native, parser/WASI and both LLVM reactors build. Thirty
+module-resolution/scope tests pass, including prefixes, aliases, shared module
+identity, cached grammar reuse, exact quoted filenames and formatting with
+comments. The full source formatter's parse/structure/idempotence sweep passes;
+the added module_paths fixture and final loader edits also pass a focused sweep.
+`python3 scaffolding/tests/module_paths.py build/native/towerc` passes real-filesystem
+checks, including repeated symlink initialization. The Windows implementation was
+cross-linked with the existing runtime/kernel32 pack and a CRT import library,
+then executed on Windows: exact path true, directory/file/extension/trailing-dot
+variants false. The permanent module_paths.tower fixture returns zero on Windows.
+The Darwin name-access module cross-compiles to an ARM64 object; this is not a
+macOS execution result.
+
+The first full Node run exposed stale dynamically constructed fixture names and
+the static packager's foreign-grammar name; all 19 affected tests pass after their
+corrections. The first successor check exposed old quoted alias imports in its
+candidate probe; those now use ordinary dotted imports. Full-suite completion,
+two successor generations, final upstream integration and publication verification
+are still pending at this checkpoint. Logs and temporary bootstrap/Windows trials
+are under build/import-audit. Reproduce standard builds with the explicit new
+TOWER_BOOTSTRAP_COMPILER, build-native.sh/build-wasm.sh and
+TOWER_BROWSER_CROSS=ON build-llvm.sh; native build cache import_audit_native19 uses
+Clang 19 for C and the installed clang++ for C++.
+
+
+### Import audit: latest operator/runtime integration and bootstrap blocker
+
+Pulled/rebased through 0939c91 (expression precedence, lazy/null operators and
+compound updates) and aa2bc73 (Tower guest runtime and compiler-memory bridge
+retirement). Preserved those implementations and the new AGENTS.md writing
+guidance. Applied the import conventions to the four new expression fixtures/
+modules and nineteen new runtime/driver modules, including generated manifests
+and their build dependencies. Updated the newly added path helpers to use the
+available Tower expressions. Native target names and target profiles retain their
+existing spelling; Tower source filenames and import segments use underscores.
+
+The source audit now covers all 345 owned .tower files. It checks every path
+segment and resolves every production dotted import against the actual source
+set. Both audit/project-upgrade tests pass. CMake native configuration/generation
+passes; twelve generated runtime/driver manifests contain only identifier imports
+and all of their imported modules exist. Commands/logs: node --test
+playground/tests/module-path-names.test.mjs (runtime-audit.log),
+python3 build/import-audit/manifests.py, and the standard build-native.sh command
+with TOWER_NATIVE_BUILD=/root/.cache/tower/import_audit_native19 and
+TOWER_BOOTSTRAP_COMPILER=/mnt/c/Sandbox/tower/build/native/towerc (latest-native.log).
+
+Correction to the earlier checkpoint: two complete successive browser compiler
+generations did pass before the expression/runtime rebase, including the edited
+semantic behavior probe (successors.log). The 30 import/scope tests, 19 focused
+regressions, native import checks, Windows path checks and full formatter sweep
+also describe that earlier compiled revision. They are not validation of the
+combined latest source. The broad Node run overlapped source changes and finished
+379/396, with stale fixture names and an obsolete compiler encountering the new
+operators; it is not a passing full-suite result. After the rebase, the project
+test selection reports 6/10 and fails on the same obsolete grammar activation.
+
+Current native compilation stops while building runtime_bind: the available
+bootstrap reports a shift/reduce conflict on '&' between TowerPrefixOperator
+and TowerExpression='*' at tower.tower:83. It predates numeric precedence and
+expression semantics. An earlier direct operators.tower probe also rejects '+'.
+Latest Pages f714b9d predates these features too. aa2bc73's integration journal
+independently records this same missing-bootstrap condition. Neither substituting
+old artifacts nor reverting the new operators produces a valid current release.
+No updated deployment or post-rebase full compiler validation is claimed.
+
+Rebase debugging: a temporary resolution script exceeded Node's default output
+buffer while reading the 1.6 MB journal; CRLF conflict markers also required
+explicit handling. Retained both append-only histories, removed every marker,
+verified the journal against upstream plus this turn's entries, and consolidated
+the unpublished integration commits. Existing unrelated AGENTS/foundation/journal
+edits remain unstaged, and todo.txt was not edited or staged by this task.
+
+Next requirement is an expression-capable predecessor: native towerc with its
+adjacent share/tower resources, or matching LLVM/Wasm compiler artifacts. The
+bootstrap documentation now states that requirement. Once available, rebuild
+the combined native/parser/LLVM/cross artifacts, rerun formatting and import/
+operator/runtime suites plus successor checks, regenerate the compiler project,
+and deploy/verify the resulting assets. Source publication can proceed without
+misrepresenting the older live artifact as this revision.

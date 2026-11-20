@@ -1,0 +1,97 @@
+import tower;
+import driver_posix;
+import driver_support;
+import .library.bytes_types;
+import .library.bytes_interface;
+
+extern fn __error(): i32*;
+
+extern fn _NSGetExecutablePath(output: u8*, capacity: u32*): i32;
+
+extern fn realpath(path: u8*, output: u8*): u8*;
+
+extern fn `c_name(void free(void*))`(pointer: void*): void;
+
+export fn driver_platform_executable(out: ByteBuffer*): bool {
+    var capacity: u32 = 256;
+    loop {
+        if bytes_reserve(out, convert(usize, capacity)) {} else {
+            return false;
+        }
+        var previous = capacity;
+        var result = _NSGetExecutablePath(out.data, &capacity);
+        var complete = result == 0;
+        if complete {
+            // Resolve symlinks and dot segments before locating adjacent resources.
+            var resolved = realpath(out.data, null);
+            var missing = resolved == null;
+            if missing {
+                return false;
+            }
+            out.length = 0;
+            var ok = driver_text(out, resolved);
+            `c_name(void free(void*))`(bits(void*, resolved));
+            if ok {
+                ok = host_text_terminate(out);
+            }
+            return ok;
+        }
+        var invalid = capacity <= previous;
+        if invalid {
+            return false;
+        }
+    }
+}
+
+export fn driver_errno(): i32* {
+    return __error();
+}
+
+export fn driver_monotonic_clock(): i32 {
+    return 6;
+}
+
+// Fixed-signature Darwin services avoid Apple ARM64's stack-based varargs ABI.
+// The environment is borrowed from libc; tool invocations preserve it exactly.
+extern fn _NSGetEnviron(): u8***;
+
+extern fn posix_spawn(pid: i32*, path: u8*, actions: void*, attributes: void*, argv: u8**, environment: u8**): i32;
+
+extern fn waitpid(pid: i32, status: i32*, flags: i32): i32;
+
+export fn driver_posix_execute(executable: u8*, argv: u8**): i32 {
+    var environment = _NSGetEnviron();
+    var pid: i32 = 0;
+    var error = posix_spawn(&pid, executable, null, null, argv, *environment);
+    var failed = error != 0;
+    if failed {
+        var missing = error == 2;
+        if missing {
+            driver_error("Cannot find tool: ", argv[0]);
+        }
+        else {
+            driver_error("Cannot execute tool: ", strerror(error));
+        }
+        return 1;
+    }
+    var status: i32 = 0;
+    loop {
+        var waited = waitpid(pid, &status, 0);
+        var done = waited == pid;
+        if done {
+            break;
+        }
+        error = driver_error_code();
+        var interrupted = error == 4;
+        if interrupted {
+            continue;
+        }
+        driver_error("Cannot wait for tool: ", strerror(error));
+        return 1;
+    }
+    var success = status == 0;
+    if success {
+        return 0;
+    }
+    return 1;
+}

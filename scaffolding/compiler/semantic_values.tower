@@ -1,0 +1,1272 @@
+import tower;
+import foundation_tags;
+import foundation_types;
+import semantic_context;
+import semantic_definitions;
+import semantic_enums;
+import semantic_layout;
+import semantic_modules;
+import semantic_statements;
+import semantic_support;
+import semantic_types;
+import semantic_expressions;
+import .library.vector;
+
+// Semantic compiler over shared Foundation components.
+// Temporary indexes and scratch allocations are scoped to one compilation.
+
+fn sem_location_base(c: SemanticContext*, n: void*, depth: u32): void* {
+    n = sem_surface_unwrap(n);
+    if sem_is(n, "CoreLocation") { return sem_location(c, n, depth); }
+    if sem_is(n, "TowerExpression") && sem_member(n, "left") == null
+        && sem_member(n, "right") != null && sem_equal(sem_tokens(c, sem_child(n, 0)), "*") {
+        return sem_surface_place(c, n);
+    }
+    return sem_operand(c, n, null);
+}
+
+fn sem_location(c: SemanticContext*, n: void*, depth: u32): void* {
+    loop {
+        var step2 = sem_is(n, "CoreCallArgument");
+        if !step2 {
+            var step4 = sem_is(n, "CoreOperand");
+            step2 = step4;
+        }
+        var step5 = step2;
+        if step5 {
+            var step6 = sem_child_count(n);
+            var step7 = step6 == 1;
+            step5 = step7;
+        }
+        if !step5 {
+            break;
+        }
+        var step9 = sem_child(n, 0);
+        n = step9;
+    }
+    if sem_is(n, "CorePointerArgument") {
+        sem_node(c, n, KOperand());
+        sem_fail(c, n, "Expected a value argument, got a type spelling");
+        return n;
+    }
+    if depth > 128 {
+        sem_node(c, n, KOperand());
+        sem_fail(c, n, "Foundation field path limit is 128");
+        return n;
+    }
+    var step12 = sem_get(n);
+    if step12 != null {
+        return n;
+    }
+    var module = sem_namespace(c, n);
+    var qualified_global = module != null;
+    if qualified_global {
+        if sem_editor_symbol(c, n, 1) {
+            sem_node(c, n, KOperand());
+            return n;
+        }
+        var name = sem_identifier(c, sem_member(n, "field"));
+        var value = sem_node(c, n, KOperand());
+        value.binding = sem_owned(c.globals, module, name);
+        var present = value.binding != null;
+        if present {
+            sem_declaration_type(c, value.binding);
+            var declaration = sem_get(value.binding);
+            sem_set_type(&value.type, &declaration.type);
+        } else {
+            sem_fail(c, n, sem_cat(c, "Unknown module variable '", sem_cat(c, name, "'")));
+        }
+        return n;
+    }
+    if sem_enum_operand(c, n) {
+        sem_fail(c, n, "An enum member is a value, not an addressable location");
+        return n;
+    }
+    var step14 = sem_is(n, "CoreLocation") || sem_is(n, "TowerNullAccess");
+    var step16 = !step14;
+    if !step16 {
+        var step18 = sem_member(n, "base");
+        var step19 = step18 == null;
+        step16 = step19;
+    }
+    if step16 {
+        var name: void* = n;
+        if sem_is(n, "CoreLocation") {
+            var step21 = sem_member(n, "name");
+            name = step21;
+        }
+        if name == null {
+            sem_fail(c, n, "Malformed CoreLocation tree: missing capture 'name'");
+            return n;
+        }
+        var value: FoundationNode* = sem_node(c, n, KOperand());
+        var step24 = sem_lookup(c, name);
+        value.binding = step24;
+        if value.binding != null {
+            var step26 = sem_get(value.binding);
+            sem_set_type(&value.type, &step26.type);
+        }
+        return n;
+    }
+    var index: void* = sem_member(n, "index");
+    if index != null {
+        var value: FoundationNode* = sem_node(c, n, KIndex());
+        var step30 = sem_member(n, "base");
+        var step31 = depth + 1;
+        var step32: void* = null;
+        if sem_is(n, "TowerNullAccess") { step32 = sem_surface_nullable(c, step30, null); }
+        else { step32 = sem_location_base(c, step30, step31); }
+        value.left = step32;
+        var step33 = sem_ok(c);
+        if !step33 {
+            return n;
+        }
+        var step35 = sem_get(value.left);
+        var parent: FoundationType* = sem_type_copy(c, &step35.type);
+        var step37 = parent.pointers != 0;
+        value.indirect = step37;
+        if parent.pointers != 0 {
+            parent.pointers--;
+            sem_set_type(&value.type, parent);
+        } else {
+            if parent.scalar == SArray() {
+                var step40 = sem_get(parent.record);
+                sem_set_type(&value.type, &step40.element);
+            } else {
+                sem_fail(c, n, "Indexing requires a pointer or an array");
+                return n;
+            }
+        }
+        if semantic_aggregate(&value.type) {
+            sem_layout(c, value.type.record);
+        }
+        var step42 = semantic_size(&value.type);
+        if step42 == 0 {
+            sem_fail(c, n, "Cannot index a void pointer");
+            return n;
+        }
+        var expected_type: FoundationType* = null;
+        if sem_editor_contains(c, index) {
+            c.editor.require_integer = true;
+        }
+        if sem_literal(c, index) {
+            var step45 = sem_type_new(c, SUSize(), 0, null);
+            expected_type = step45;
+        }
+        var step46 = sem_operand(c, index, expected_type);
+        value.right = step46;
+        var step47 = sem_ok(c);
+        if !step47 {
+            return n;
+        }
+        var step49 = sem_get(value.right);
+        var step50 = semantic_integer(&step49.type);
+        if semantic_enum(&step49.type) {
+            step50 = false;
+        }
+        if !step50 {
+            sem_fail(c, index, "An index must be an integer");
+        }
+        return n;
+    }
+    var step52 = sem_shape(c, n, "base");
+    var step54 = !step52;
+    if !step54 {
+        var step56 = sem_shape(c, n, "field");
+        var step57 = !step56;
+        step54 = step57;
+    }
+    if step54 {
+        return n;
+    }
+    var value: FoundationNode* = sem_node(c, n, KField());
+    var step59 = sem_member(n, "base");
+    var step60 = depth + 1;
+    var step61: void* = null;
+    if sem_is(n, "TowerNullAccess") { step61 = sem_surface_nullable(c, step59, null); }
+    else { step61 = sem_location_base(c, step59, step60); }
+    value.left = step61;
+    var step62 = sem_ok(c);
+    if !step62 {
+        return n;
+    }
+    var step64 = sem_get(value.left);
+    var parent: FoundationType* = &step64.type;
+    var step65 = sem_member(n, "field");
+    if sem_editor_capture(c, step65, 3, parent) {
+        return n;
+    }
+    var step66 = sem_identifier(c, step65);
+    sem_set_name(value, step66);
+    var step67 = parent.pointers == 1;
+    value.indirect = step67;
+    var step69 = parent.scalar != SStruct();
+    if !step69 {
+        var step71 = parent.pointers > 1;
+        step69 = step71;
+    }
+    if step69 {
+        sem_fail(c, n, "Field access requires a struct or a single pointer to a struct");
+        return n;
+    }
+    sem_layout(c, parent.record);
+    var step72 = sem_ok(c);
+    if !step72 {
+        return n;
+    }
+    var step74 = sem_get(parent.record);
+    var fields: vector(void*)* = &step74.items;
+    var i: usize = 0;
+    loop {
+        var step75 = i < fields.length;
+        if !step75 {
+            break;
+        }
+        var field: void* = fields.data[i];
+        var step77 = sem_get(field);
+        var step78 = sem_name(step77);
+        var step79 = sem_name(value);
+        if sem_equal(step78, step79) {
+            value.binding = field;
+        }
+        i++;
+    }
+    if value.binding == null {
+        var step82 = sem_name(value);
+        var step83 = sem_cat(c, "Unknown field '", step82);
+        var step84 = sem_cat(c, step83, "' in '");
+        var step85 = sem_get(parent.record);
+        var step86 = sem_name(step85);
+        var step87 = sem_cat(c, step86, "'");
+        var step88 = sem_cat(c, step84, step87);
+        sem_fail(c, n, step88);
+        return n;
+    }
+    var step89 = sem_get(value.binding);
+    sem_set_type(&value.type, &step89.type);
+    var step90 = sem_get(value.binding);
+    value.byte_offset = step90.byte_offset;
+    return n;
+}
+
+fn sem_operand(c: SemanticContext*, n: void*, expected_type: FoundationType*): void* {
+    if sem_editor_contains(c, n) {
+        c.editor.value_required = true;
+        c.editor.has_expected = expected_type != null;
+        if c.editor.has_expected {
+            sem_set_type(&c.editor.type, expected_type);
+        }
+    }
+    if n == null {
+        sem_fail(c, n, "Missing operand");
+        return null;
+    }
+    c.value_depth++;
+    var result: void* = sem_operand_impl(c, n, expected_type);
+    c.value_depth--;
+    return result;
+}
+
+fn sem_operand_impl(c: SemanticContext*, n: void*, expected_type: FoundationType*): void* {
+    var deep = c.value_depth > 128;
+    if deep {
+        sem_fail(c, n, "Foundation expression nesting limit is 128");
+        return n;
+    }
+    n = sem_surface_unwrap(n);
+    if sem_is(n, "TowerNullAccess") {
+        var result = sem_surface_nullable(c, n, expected_type);
+        if sem_ok(c) {
+            var value = sem_get(result);
+            if value.type.pointers == 0 {
+                sem_fail(c, n, "A null-conditional scalar result must be consumed with ??; nullable scalar storage is not supported");
+            } else { sem_surface_expected(c, result, expected_type); }
+        }
+        return result;
+    }
+    var surface = sem_is(n, "TowerExpression");
+    surface ||= sem_is(n, "TowerComma");
+    if surface {
+        var result = sem_surface(c, n, expected_type);
+        if sem_ok(c) {
+            var value = sem_get(result);
+            if semantic_aggregate(&value.type) {
+                sem_fail(c, n, "Struct values require field access or a pointer; aggregate copies are not implemented");
+            }
+        }
+        return result;
+    }
+    return sem_operand_leaf(c, n, expected_type);
+}
+
+fn sem_operand_leaf(c: SemanticContext*, n: void*, expected_type: FoundationType*): void* {
+    if c.value_depth > 128 {
+        sem_fail(c, n, "Foundation expression nesting limit is 128");
+        return n;
+    }
+    loop {
+        var step3 = sem_is(n, "CoreCallArgument");
+        if !step3 {
+            var step5 = sem_is(n, "CoreOperand");
+            step3 = step5;
+        }
+        var step6 = step3;
+        if step6 {
+            var step7 = sem_child_count(n);
+            var step8 = step7 == 1;
+            step6 = step8;
+        }
+        if !step6 {
+            break;
+        }
+        var step10 = sem_child(n, 0);
+        n = step10;
+    }
+    var step11 = sem_is(n, "CoreCall");
+    if sem_editor_contains(c, n) {
+        if c.editor.has_expected {
+            if sem_is(n, "CoreAddress") {
+                var pointer = c.editor.type.pointers != 0;
+                if pointer {
+                    c.editor.type.pointers--;
+                }
+            }
+            if sem_is(n, "CoreLoad") {
+                c.editor.type.pointers++;
+            }
+        }
+    }
+    if step11 {
+        var step12 = sem_get(n);
+        var step14 = step12 == null;
+        if step14 {
+            var step15 = sem_call(c, n);
+            var step16 = step15 == null;
+            step14 = step16;
+        }
+        var step17 = step14;
+        if !step17 {
+            var step19 = sem_ok(c);
+            var step20 = !step19;
+            step17 = step20;
+        }
+        if step17 {
+            return n;
+        }
+        var v: FoundationNode* = sem_get(n);
+        var step23 = v.type.pointers == 0;
+        if step23 {
+            var step24 = v.type.scalar == SVoid();
+            step23 = step24;
+        }
+        if step23 {
+            sem_fail(c, n, "A void call cannot be used as a value");
+            return n;
+        }
+    } else {
+        var step26 = sem_is(n, "CoreAddress");
+        if !step26 {
+            var step28 = sem_is(n, "CoreLoad");
+            step26 = step28;
+        }
+        if step26 {
+            var step29 = sem_shape(c, n, "name");
+            if !step29 {
+                return n;
+            }
+            var address: bool = sem_is(n, "CoreAddress");
+            var kind: u32 = 8;
+            if address {
+                kind = KAddress();
+            }
+            var value: FoundationNode* = sem_node(c, n, kind);
+            if address {
+                var step33 = sem_member(n, "name");
+                var step34 = sem_location(c, step33, 0);
+                value.value = step34;
+            } else {
+                var step35 = sem_member(n, "name");
+                var load_expected: FoundationType* = null;
+                if sem_editor_contains(c, step35) {
+                    c.editor.require_pointer = true;
+                    if c.editor.has_expected {
+                        load_expected = &c.editor.type;
+                    }
+                }
+                var step36 = sem_operand(c, step35, load_expected);
+                value.value = step36;
+            }
+            var step37 = sem_ok(c);
+            if !step37 {
+                return n;
+            }
+            var step39 = sem_get(value.value);
+            sem_set_type(&value.type, &step39.type);
+            if address {
+                value.type.pointers++;
+            } else {
+                if value.type.pointers == 0 {
+                    sem_fail(c, n, "Load requires a pointer");
+                    return n;
+                } else {
+                    value.type.pointers--;
+                }
+            }
+        } else {
+            var step41 = sem_literal(c, n);
+            if !step41 {
+                if !sem_enum_operand(c, n) {
+                    var step43 = sem_location(c, n, 0);
+                    n = step43;
+                }
+            }
+        }
+    }
+    var step44 = sem_ok(c);
+    if !step44 {
+        return n;
+    }
+    var value: FoundationNode* = sem_get(n);
+    if value == null {
+        var step48 = sem_node(c, n, KOperand());
+        value = step48;
+    }
+    var text: u8* = sem_tokens(c, n);
+    if sem_literal(c, n) {
+        var nominal = expected_type != null;
+        nominal &&= expected_type.pointers == 0;
+        nominal &&= semantic_enum(expected_type);
+        if nominal {
+            sem_fail(c, n, "Enum values require a named member or an explicit conversion");
+            return n;
+        }
+        value.constant = true;
+        var step52 = sem_equal(text, "true");
+        if !step52 {
+            var step54 = sem_equal(text, "false");
+            step52 = step54;
+        }
+        if step52 {
+            var step55 = sem_type_new(c, SBool(), 0, null);
+            sem_set_type(&value.type, step55);
+            value.type.pointer_bytes = 4;
+            var step56 = sem_equal(text, "true");
+            var step57 = convert(u64, step56);
+            value.bits = step57;
+        } else {
+            if sem_equal(text, "null") {
+                if expected_type != null {
+                    sem_set_type(&value.type, expected_type);
+                } else {
+                    var step60 = sem_type_new(c, SVoid(), 1, null);
+                    sem_set_type(&value.type, step60);
+                }
+                value.bits = 0;
+                if value.type.pointers == 0 {
+                    sem_fail(c, n, "null requires a pointer type");
+                }
+            } else {
+                var step63 = text[0] == 39;
+                if !step63 {
+                    var step65 = text[0] == 34;
+                    step63 = step65;
+                }
+                if step63 {
+                    value.kind = KString();
+                    var step66 = sem_type_new(c, SU8(), 1, null);
+                    sem_set_type(&value.type, step66);
+                    var i: usize = 1;
+                    var length: usize = sem_length(text);
+                    loop {
+                        var step68 = i + 1;
+                        var step69 = step68 < length;
+                        if !step69 {
+                            break;
+                        }
+                        var byte: u8 = text[i];
+                        var step72 = byte == 92;
+                        if step72 {
+                            var step73 = i + 2;
+                            var step74 = step73 < length;
+                            step72 = step74;
+                        }
+                        if step72 {
+                            i++;
+                            byte = text[i];
+                            if byte == 110 {
+                                byte = 10;
+                            } else {
+                                if byte == 114 {
+                                    byte = 13;
+                                } else {
+                                    if byte == 116 {
+                                        byte = 9;
+                                    }
+                                }
+                            }
+                        }
+                        var step78 = foundation_name_append(&value.name, byte);
+                        sem_require(step78);
+                        i++;
+                    }
+                } else {
+                    if expected_type != null {
+                        sem_set_type(&value.type, expected_type);
+                    } else {
+                        var step80 = sem_type_new(c, SI32(), 0, null);
+                        sem_set_type(&value.type, step80);
+                        value.type.pointer_bytes = 4;
+                    }
+                    var step81 = semantic_integer(&value.type);
+                    if !step81 {
+                        sem_fail(c, n, "An integer literal needs an integer type");
+                        return n;
+                    }
+                    var negative: bool = text[0] == 45;
+                    var number: u64 = 0;
+                    var i: usize = 0;
+                    if negative {
+                        i = 1;
+                    }
+                    var length: usize = sem_length(text);
+                    var maximum: u64 = 0;
+                    maximum--;
+                    loop {
+                        var step85 = i < length;
+                        if !step85 {
+                            break;
+                        }
+                        var digit: u64 = convert(u64, text[i]);
+                        digit = digit - 48;
+                        var step89 = digit > 9;
+                        if !step89 {
+                            var step91 = maximum - digit;
+                            var step92 = step91 / 10;
+                            var step93 = number > step92;
+                            step89 = step93;
+                        }
+                        if step89 {
+                            sem_fail(c, n, "Integer literal out of range");
+                            break;
+                        }
+                        var step94 = number * 10;
+                        var step95 = step94 + digit;
+                        number = step95;
+                        i++;
+                    }
+                    var mask: u64 = semantic_mask(&value.type);
+                    var limit: u64 = mask;
+                    var signed: bool = semantic_signed(&value.type);
+                    if signed {
+                        var step98 = mask / 2;
+                        limit = step98;
+                        if negative {
+                            limit++;
+                        }
+                    }
+                    var step100 = number > limit;
+                    if !step100 {
+                        var step102 = negative;
+                        if step102 {
+                            var step103 = !signed;
+                            step102 = step103;
+                        }
+                        step100 = step102;
+                    }
+                    if step100 {
+                        var step104 = sem_type_name(c, &value.type);
+                        var step105 = sem_cat(c, "Integer literal out of range for ", step104);
+                        sem_fail(c, n, step105);
+                    }
+                    if negative {
+                        var negated: u64 = 0;
+                        var step106 = negated - number;
+                        number = step106;
+                    }
+                    var step107 = number & mask;
+                    value.bits = step107;
+                }
+            }
+        }
+    }
+    if semantic_aggregate(&value.type) {
+        sem_fail(c, n, "Struct values require field access or a pointer; aggregate copies are not implemented");
+    }
+    var step110 = expected_type != null;
+    if step110 {
+        var step111 = semantic_type_equal(&value.type, expected_type);
+        var step112 = !step111;
+        step110 = step112;
+    }
+    if step110 {
+        var step113 = sem_type_name(c, expected_type);
+        var step114 = sem_cat(c, "Expected ", step113);
+        var step115 = sem_cat(c, step114, ", got ");
+        var step116 = sem_type_name(c, &value.type);
+        var step117 = sem_cat(c, step116, "; use an explicit conversion");
+        var step118 = sem_cat(c, step115, step117);
+        sem_fail(c, n, step118);
+    }
+    return n;
+}
+
+fn sem_builtin(c: SemanticContext*, n: void*, kind: u32, args: vector(void*)*): void* {
+    var label = kind == 31;
+    var jump = kind == 32;
+    if label {
+        sem_fail(c, n, "label is only valid as a function-body statement");
+        return n;
+    }
+    if jump {
+        sem_fail(c, n, "jump is only valid as a function-body statement");
+        return n;
+    }
+    var value: FoundationNode* = sem_node(c, n, kind);
+    var step2 = sem_type_new(c, SVoid(), 0, null);
+    sem_set_type(&value.type, step2);
+    value.type.pointer_bytes = 4;
+    // Observe the argument at the editor hole even when later arguments have
+    // not been written. Resolution still uses the ordinary type/value helpers.
+    if sem_editor_contains(c, n) {
+        var index: usize = 0;
+        loop {
+            var done = index == args.length;
+            if done {
+                break;
+            }
+            var argument = args.data[index];
+            if sem_editor_contains(c, argument) {
+                var type_argument = kind == KSizeOf();
+                var editor_guard_1 = kind == KAlignOf();
+                if editor_guard_1 {
+                    type_argument = true;
+                }
+                var editor_guard_2 = kind == KAllocate();
+                if editor_guard_2 {
+                    type_argument = true;
+                }
+                var editor_guard_3 = kind == KReallocate();
+                if editor_guard_3 {
+                    type_argument = true;
+                }
+                var editor_guard_4 = kind == KConvert();
+                if editor_guard_4 {
+                    type_argument = true;
+                }
+                var editor_guard_5 = kind == KBits();
+                if editor_guard_5 {
+                    type_argument = true;
+                }
+                var editor_guard_6 = index != 0;
+                if editor_guard_6 {
+                    type_argument = false;
+                }
+                if type_argument {
+                    sem_type(c, argument);
+                } else {
+                    var expected_type: FoundationType* = null;
+                    var last = semantic_builtin_arity(kind);
+                    last--;
+                    var size_argument = kind == KAllocate();
+                    var editor_guard_7 = kind == KReallocate();
+                    if editor_guard_7 {
+                        size_argument = true;
+                    }
+                    var editor_guard_8 = kind == KCopy();
+                    if editor_guard_8 {
+                        size_argument = true;
+                    }
+                    var editor_guard_9 = kind == KFill();
+                    if editor_guard_9 {
+                        size_argument = true;
+                    }
+                    var editor_guard_10 = index != last;
+                    if editor_guard_10 {
+                        size_argument = false;
+                    }
+                    if size_argument {
+                        expected_type = sem_type_new(c, SUSize(), 0, null);
+                    }
+                    var editor_guard_11 = kind == KFree();
+                    if editor_guard_11 {
+                        c.editor.require_pointer = true;
+                    }
+                    var editor_guard_12 = kind == KCopy();
+                    if editor_guard_12 {
+                        var editor_guard_13 = index < 2;
+                        if editor_guard_13 {
+                            c.editor.require_pointer = true;
+                        }
+                    }
+                    var editor_guard_14 = kind == KFill();
+                    if editor_guard_14 {
+                        var editor_guard_15 = index == 0;
+                        if editor_guard_15 {
+                            c.editor.require_pointer = true;
+                        }
+                        var editor_guard_16 = index == 1;
+                        if editor_guard_16 {
+                            expected_type = sem_type_new(c, SU8(), 0, null);
+                        }
+                    }
+                    var editor_guard_17 = kind == KReallocate();
+                    if editor_guard_17 {
+                        var editor_guard_18 = index == 1;
+                        if editor_guard_18 {
+                            expected_type = sem_type(c, args.data[0]);
+                            expected_type.pointers++;
+                        }
+                    }
+                    var trapping_argument = kind == KTrap();
+                    if trapping_argument {
+                        var message = index == 0;
+                        if message {
+                            expected_type = sem_type_new(c, SU8(), 1, null);
+                        } else {
+                            expected_type = sem_type_new(c, SU32(), 0, null);
+                        }
+                    }
+                    sem_operand(c, argument, expected_type);
+                }
+                return n;
+            }
+            index++;
+        }
+    }
+    var count: usize = semantic_builtin_arity(kind);
+    if args.length != count {
+        var step5 = semantic_builtin_name(kind);
+        var step6 = sem_cat(c, "Wrong argument count for '", step5);
+        var step7 = sem_cat(c, step6, "': expected ");
+        var step8 = convert(u64, count);
+        var step9 = sem_decimal(c, step8);
+        var step10 = sem_cat(c, step7, step9);
+        sem_fail(c, n, step10);
+        return n;
+    }
+    var step11 = sem_type_new(c, SUSize(), 0, null);
+    var trapping = kind == KTrap();
+    if trapping {
+        value.left = sem_operand(c, args.data[0], sem_type_new(c, SU8(), 1, null));
+        value.right = sem_operand(c, args.data[1], sem_type_new(c, SU32(), 0, null));
+        return n;
+    }
+    var size: FoundationType* = step11;
+    var byte: FoundationType* = sem_type_new(c, SU8(), 0, null);
+    byte.pointer_bytes = 4;
+    if kind == KPrint() {
+        var step14 = sem_operand(c, args.data[0], null);
+        value.value = step14;
+    } else {
+        var step16 = kind == KFree();
+        if !step16 {
+            var step18 = kind == KCopy();
+            step16 = step18;
+        }
+        if !step16 {
+            var step20 = kind == KFill();
+            step16 = step20;
+        }
+        if step16 {
+            var step21 = sem_operand(c, args.data[0], null);
+            value.left = step21;
+            var step22 = sem_ok(c);
+            if !step22 {
+                return n;
+            }
+            var step24 = sem_get(value.left);
+            if step24.type.pointers == 0 {
+                sem_fail(c, n, "Memory operations require a pointer");
+            }
+            if kind != KFree() {
+                var step27 = sem_operand(c, args.data[2], size);
+                value.value = step27;
+                var expected_type: FoundationType* = null;
+                if kind == KFill() {
+                    expected_type = byte;
+                }
+                var step29 = sem_operand(c, args.data[1], expected_type);
+                value.right = step29;
+                var step30 = sem_ok(c);
+                if !step30 {
+                    return n;
+                }
+                var step33 = kind == KCopy();
+                if step33 {
+                    var step34 = sem_get(value.right);
+                    var step35 = step34.type.pointers == 0;
+                    step33 = step35;
+                }
+                if step33 {
+                    sem_fail(c, n, "copy requires source and destination pointers");
+                }
+            }
+        } else {
+            var step37 = kind == KSizeOf();
+            if !step37 {
+                var step39 = kind == KAlignOf();
+                step37 = step39;
+            }
+            if step37 {
+                var step40 = sem_type(c, args.data[0]);
+                sem_set_type(&value.element, step40);
+                if semantic_aggregate(&value.element) {
+                    sem_layout(c, value.element.record);
+                }
+                sem_set_type(&value.type, size);
+            } else {
+                var step43 = kind == KAllocate();
+                if !step43 {
+                    var step45 = kind == KReallocate();
+                    step43 = step45;
+                }
+                if step43 {
+                    var step46 = sem_type(c, args.data[0]);
+                    sem_set_type(&value.element, step46);
+                    if semantic_aggregate(&value.element) {
+                        sem_layout(c, value.element.record);
+                    }
+                    var step48 = semantic_size(&value.element);
+                    if step48 == 0 {
+                        sem_fail(c, n, "Cannot allocate void elements");
+                        return n;
+                    }
+                    sem_set_type(&value.type, &value.element);
+                    value.type.pointers++;
+                    var step50 = args.length - 1;
+                    var step51 = sem_operand(c, args.data[step50], size);
+                    value.right = step51;
+                    if kind == KReallocate() {
+                        var step53 = sem_operand(c, args.data[1], &value.type);
+                        value.left = step53;
+                    }
+                } else {
+                    var step55 = kind == KConvert();
+                    if !step55 {
+                        var step57 = kind == KBits();
+                        step55 = step57;
+                    }
+                    if step55 {
+                        var step58 = sem_type(c, args.data[0]);
+                        sem_set_type(&value.type, step58);
+                        var step59 = sem_operand(c, args.data[1], null);
+                        value.value = step59;
+                        var step60 = sem_ok(c);
+                        if !step60 {
+                            return n;
+                        }
+                        var step62 = sem_get(value.value);
+                        var source: FoundationType* = &step62.type;
+                        var step64 = semantic_aggregate(&value.type);
+                        if !step64 {
+                            var step67 = value.type.pointers == 0;
+                            if step67 {
+                                var step68 = value.type.scalar == SVoid();
+                                step67 = step68;
+                            }
+                            step64 = step67;
+                        }
+                        if step64 {
+                            sem_fail(c, n, "Conversion requires scalar values");
+                        }
+                        var step70 = kind == KConvert();
+                        if step70 {
+                            var step72 = value.type.pointers != 0;
+                            if !step72 {
+                                var step74 = source.pointers != 0;
+                                step72 = step74;
+                            }
+                            step70 = step72;
+                        }
+                        if step70 {
+                            sem_fail(c, n, "Pointer reinterpretation requires bits");
+                        }
+                        var step76 = kind == KBits();
+                        if step76 {
+                            var step77 = semantic_width(&value.type);
+                            var step78 = semantic_width(source);
+                            var step80 = step77 != step78;
+                            if !step80 {
+                                var step82 = semantic_integer(&value.type);
+                                var step84 = !step82;
+                                if step84 {
+                                    var step85 = value.type.pointers == 0;
+                                    step84 = step85;
+                                }
+                                step80 = step84;
+                            }
+                            if !step80 {
+                                var step87 = semantic_integer(source);
+                                var step89 = !step87;
+                                if step89 {
+                                    var step90 = source.pointers == 0;
+                                    step89 = step90;
+                                }
+                                step80 = step89;
+                            }
+                            step76 = step80;
+                        }
+                        if step76 {
+                            sem_fail(c, n, "bits requires equal-width integers or pointers");
+                        }
+                    } else {
+                        sem_fail(c, n, "Unsupported foundation builtin");
+                    }
+                }
+            }
+        }
+    }
+    return n;
+}
+
+fn sem_call(c: SemanticContext*, n: void*): void* {
+    if sem_editor_symbol(c, sem_member(n, "name"), 4) {
+        sem_node(c, n, KCall());
+        return n;
+    }
+    var step1 = sem_shape(c, n, "name");
+    if !step1 {
+        return null;
+    }
+    var step3 = sem_member(n, "name");
+    var name: u8* = sem_identifier(c, step3);
+    var step5 = sem_member(n, "args");
+    var args: vector(void*)* = sem_collect(c, step5, "CoreCallArgument");
+    var builtin: u32 = semantic_builtin_kind(name);
+    if builtin != 0 {
+        return sem_builtin(c, n, builtin, args);
+    }
+    var step10 = sem_resolve(c, c.type_functions, step3, name);
+    if step10 != null {
+        var step12 = sem_cat(c, "Type constructor '", name);
+        var step13 = sem_cat(c, step12, "' produces a type, not a runtime value");
+        sem_fail(c, n, step13);
+        return n;
+    }
+    var definition: void* = sem_resolve(c, c.templates, step3, name);
+    if definition != null {
+        var step16 = generic_parameter_count(c.generics, definition);
+        if args.length != step16 {
+            var step18 = sem_cat(c, "Wrong argument count for template '", name);
+            var step19 = sem_cat(c, step18, "'");
+            sem_fail(c, n, step19);
+            return n;
+        }
+        var arguments: vector(void*)* = sem_list(c);
+        var values: vector(void*)* = sem_list(c);
+        var i: usize = 0;
+        loop {
+            var step22 = i < args.length;
+            if !step22 {
+                break;
+            }
+            if generic_type_parameter(c.generics, definition, i) {
+                var step25 = sem_type(c, args.data[i]);
+                var step26 = sem_type_entity(c, step25);
+                sem_push(arguments, step26);
+            } else {
+                sem_push(values, args.data[i]);
+            }
+            var step27 = sem_ok(c);
+            if !step27 {
+                return n;
+            }
+            i++;
+        }
+        var instance: void* = generic_instantiate(c.generics, definition, n, arguments.data, arguments.length);
+        var step30 = sem_generic_ok(c, n);
+        var step32 = !step30;
+        if !step32 {
+            var step34 = instance == null;
+            step32 = step34;
+        }
+        if step32 {
+            return n;
+        }
+        var step35 = sem_state(c, c.source_bases, instance);
+        var step36 = sem_source_base(c, definition);
+        step35.number = step36;
+        var step37 = sem_get(instance);
+        if step37 == null {
+            var step39 = sem_instance_name(c, definition, arguments);
+            sem_header(c, instance, step39, definition);
+            var step40 = sem_ok(c);
+            if !step40 {
+                return n;
+            }
+            sem_push(&c.generated, instance);
+        }
+        var value: FoundationNode* = sem_node(c, n, KCall());
+        var callee: FoundationNode* = sem_get(instance);
+        value.binding = instance;
+        sem_set_type(&value.type, &callee.type);
+        i = 0;
+        loop {
+            var step44 = i < values.length;
+            if !step44 {
+                break;
+            }
+            var step46 = sem_get(callee.parameters.data[i]);
+            var step47 = sem_operand(c, values.data[i], &step46.type);
+            sem_push(&value.items, step47);
+            i++;
+        }
+        return n;
+    }
+    var value: FoundationNode* = sem_node(c, n, KCall());
+    var step49 = sem_resolve(c, c.functions, step3, name);
+    value.binding = step49;
+    if value.binding == null {
+        var step51 = sem_cat(c, "Unknown function '", name);
+        var step52 = sem_cat(c, step51, "'");
+        sem_fail(c, n, step52);
+        return n;
+    }
+    var callee: FoundationNode* = sem_get(value.binding);
+    sem_set_type(&value.type, &callee.type);
+    var step54 = args.length != callee.parameters.length;
+    // A completion snapshot may end before later arguments have been written.
+    // Resolve every present argument using the real signature nonetheless.
+    if sem_editor_contains(c, n) {
+        step54 = args.length > callee.parameters.length;
+    }
+    if step54 {
+        var step55 = sem_cat(c, "Wrong argument count for '", name);
+        var step56 = sem_cat(c, step55, "'");
+        sem_fail(c, n, step56);
+        return n;
+    }
+    var i: usize = 0;
+    loop {
+        var step57 = i < args.length;
+        if !step57 {
+            break;
+        }
+        var step59 = sem_get(callee.parameters.data[i]);
+        var step60 = sem_operand(c, args.data[i], &step59.type);
+        sem_push(&value.items, step60);
+        i++;
+    }
+    return n;
+}
+
+fn sem_expression(c: SemanticContext*, n: void*, expected_type: FoundationType*): void* {
+    var step2 = sem_is(n, "CoreValue");
+    if step2 {
+        var step3 = sem_child_count(n);
+        var step4 = step3 == 1;
+        step2 = step4;
+    }
+    if step2 {
+        var step5 = sem_child(n, 0);
+        n = step5;
+    }
+    var kind: u8* = sem_label(n);
+    var step8 = sem_equal(kind, "CoreOperand");
+    if !step8 {
+        var step10 = sem_equal(kind, "CoreAddress");
+        step8 = step10;
+    }
+    if !step8 {
+        var step12 = sem_equal(kind, "CoreLoad");
+        step8 = step12;
+    }
+    if step8 {
+        return sem_operand(c, n, expected_type);
+    }
+    if n == null {
+        sem_fail(c, n, "Missing expression");
+        return null;
+    }
+    if sem_equal(kind, "CoreCall") {
+        var step16 = sem_call(c, n);
+        if step16 == null {
+            return null;
+        }
+    } else {
+        if sem_equal(kind, "CoreBinary") {
+            var step19 = sem_shape(c, n, "left");
+            var step21 = !step19;
+            if !step21 {
+                var step23 = sem_shape(c, n, "op");
+                var step24 = !step23;
+                step21 = step24;
+            }
+            if !step21 {
+                var step26 = sem_shape(c, n, "right");
+                var step27 = !step26;
+                step21 = step27;
+            }
+            if step21 {
+                return null;
+            }
+            var value: FoundationNode* = sem_node(c, n, KBinary());
+            var step29 = sem_member(n, "op");
+            var op: u8* = sem_tokens(c, step29);
+            var found: bool = false;
+            var i: u32 = 0;
+            loop {
+                var step31 = i <= 13;
+                if !step31 {
+                    break;
+                }
+                var step33 = semantic_operator(i);
+                if sem_equal(op, step33) {
+                    value.op = i;
+                    found = true;
+                    break;
+                }
+                i++;
+            }
+            if !found {
+                sem_fail(c, n, "Unknown foundation binary operation");
+            }
+            var input: FoundationType* = sem_type_new(c, SI32(), 0, null);
+            input.pointer_bytes = 4;
+            if expected_type != null {
+                input = expected_type;
+            }
+            var comparison: bool = value.op >= OEq();
+            var left: void* = sem_member(n, "left");
+            var right: void* = sem_member(n, "right");
+            var step41 = comparison;
+            if !step41 {
+                var step43 = expected_type == null;
+                step41 = step43;
+            }
+            if step41 {
+                var anchor: void* = left;
+                var step45 = sem_literal(c, left);
+                if step45 {
+                    var step46 = sem_literal(c, right);
+                    var step47 = !step46;
+                    step45 = step47;
+                }
+                if step45 {
+                    anchor = right;
+                }
+                var known: void* = sem_operand(c, anchor, null);
+                var step49 = sem_ok(c);
+                var step51 = !step49;
+                if !step51 {
+                    var step53 = known == null;
+                    step51 = step53;
+                }
+                if step51 {
+                    return n;
+                }
+                var step54 = sem_get(known);
+                input = &step54.type;
+            }
+            var step55 = sem_operand(c, left, input);
+            value.left = step55;
+            var nominal = input.pointers == 0;
+            nominal &&= semantic_enum(input);
+            if nominal {
+                var equality = value.op == OEq();
+                var inequality = value.op == ONe();
+                if inequality {
+                    equality = true;
+                }
+                if !equality {
+                    sem_fail(c, n, "Enum operations require equality or an explicit integer conversion");
+                }
+            }
+            var step56 = sem_ok(c);
+            if !step56 {
+                return n;
+            }
+            var step59 = input.pointers != 0;
+            if step59 {
+                var step61 = value.op == OAdd();
+                if !step61 {
+                    var step63 = value.op == OSub();
+                    step61 = step63;
+                }
+                step59 = step61;
+            }
+            var pointer_offset: bool = step59;
+            var right_type: FoundationType* = input;
+            if pointer_offset {
+                right_type = null;
+                if sem_literal(c, right) {
+                    var step65 = sem_type_new(c, SUSize(), 0, null);
+                    right_type = step65;
+                }
+            }
+            var step66 = sem_operand(c, right, right_type);
+            value.right = step66;
+            var step67 = sem_ok(c);
+            if !step67 {
+                return n;
+            }
+            if comparison {
+                var step69 = sem_type_new(c, SBool(), 0, null);
+                sem_set_type(&value.type, step69);
+                value.type.pointer_bytes = 4;
+            } else {
+                sem_set_type(&value.type, input);
+            }
+            if pointer_offset {
+                var step70 = sem_get(value.right);
+                var step71 = semantic_integer(&step70.type);
+                if semantic_enum(&step70.type) {
+                    step71 = false;
+                }
+                if !step71 {
+                    sem_fail(c, n, "A pointer offset must be an integer");
+                }
+                var element: FoundationType* = sem_type_copy(c, input);
+                element.pointers--;
+                if semantic_aggregate(element) {
+                    sem_layout(c, element.record);
+                }
+                var step75 = semantic_size(element);
+                if step75 == 0 {
+                    sem_fail(c, n, "Cannot offset a void pointer");
+                }
+            } else {
+                var step77 = semantic_integer(input);
+                var step79 = !step77;
+                if step79 {
+                    var step80 = value.op != OEq();
+                    step79 = step80;
+                }
+                if step79 {
+                    var step81 = value.op != ONe();
+                    step79 = step81;
+                }
+                if step79 {
+                    sem_fail(c, n, "This operation requires integer operands");
+                }
+            }
+        } else {
+            var step82 = sem_cat(c, "Unsupported foundation expression '", kind);
+            var step83 = sem_cat(c, step82, "'");
+            sem_fail(c, n, step83);
+            return null;
+        }
+    }
+    var value: FoundationNode* = sem_get(n);
+    if value == null {
+        return n;
+    }
+    if semantic_aggregate(&value.type) {
+        sem_fail(c, n, "Struct values require field access or a pointer; aggregate copies are not implemented");
+    }
+    var step88 = expected_type != null;
+    if step88 {
+        var step89 = semantic_type_equal(&value.type, expected_type);
+        var step90 = !step89;
+        step88 = step90;
+    }
+    if step88 {
+        var step91 = sem_type_name(c, expected_type);
+        var step92 = sem_cat(c, "Expected ", step91);
+        var step93 = sem_cat(c, step92, ", got ");
+        var step94 = sem_type_name(c, &value.type);
+        var step95 = sem_cat(c, step93, step94);
+        sem_fail(c, n, step95);
+    }
+    return n;
+}

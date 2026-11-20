@@ -160,7 +160,7 @@ test('scalar idioms exercise LLVM intrinsic legalization with runtime inputs', {
 
 test('LLVM bytecode preserves imported effects and original module diagnostics', {skip:!llvm},()=>{
   for(const failing of [false,true])for(const width of [4,8])for(const optimize of [false,true]){
-    const source='import "helper"; print(answer());';
+    const source='import helper; print(answer());';
     tower.configureModules({entry:'main.tower',files:[{path:'helper.tower',text:failing?
       'import foundation;\nfn answer(): i32 {\nvar zero = 0;\nvar result = 42 / zero;\nreturn result;\n}':
       'import foundation;\nfn answer(): i32 { return 42; }'}]});

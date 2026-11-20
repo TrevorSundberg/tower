@@ -1,0 +1,443 @@
+import tower;
+import foreign_operators;
+import foreign_reader;
+import text;
+import .library.vector;
+
+fn foreign_number(out: vector(u8)*, value: usize, radix: usize): void {
+    foreign_number64(out, convert(u64, value), convert(u64, radix));
+}
+
+// Itanium ABI 5.1. Substitution keys describe canonical foreign types/scopes;
+// the ordered table is local to one mangling and contains no host addresses.
+fn foreign_number64(out: vector(u8)*, value: u64, radix: u64): void {
+    var digits: u8[64];
+    var count: usize = 0;
+    loop {
+        var digit = value % radix;
+        var byte = digit + 48;
+        var foreign_condition39 = digit >= 10;
+        if foreign_condition39 {
+            byte = digit + 55;
+        }
+        digits[count] = convert(u8, byte);
+        count++;
+        value = value / radix;
+        var foreign_condition40 = value == 0;
+        if foreign_condition40 {
+            break;
+        }
+    }
+    loop {
+        var foreign_condition41 = count == 0;
+        if foreign_condition41 {
+            break;
+        }
+        count--;
+        backend_text_append(out, &digits[count], 1);
+    }
+}
+
+fn foreign_key(out: vector(u8)*, type: ForeignType*): void {
+    var foreign_condition42 = type == null;
+    if foreign_condition42 {
+        backend_text(out, "_");
+        return;
+    }
+    foreign_number(out, convert(usize, type.kind), 10);
+    backend_text(out, ":");
+    foreign_number(out, convert(usize, type.cv), 10);
+    backend_text(out, ":");
+    backend_text(out, type.name);
+    backend_text(out, "{");
+    foreign_key(out, type.scope);
+    foreign_key(out, type.base);
+    foreign_number64(out, type.count, 10);
+    foreign_number(out, convert(usize, type.ref), 10);
+    foreign_number(out, convert(usize, type.convention), 10);
+    if type.nothrow {
+        backend_text(out, "n");
+    }
+    if type.variadic {
+        backend_text(out, "z");
+    }
+    if type.template_id {
+        backend_text(out, "I");
+    }
+    var i: usize = 0;
+    loop {
+        var foreign_condition43 = i == type.args.length;
+        if foreign_condition43 {
+            break;
+        }
+        foreign_key(out, type.args.data[i]);
+        i++;
+    }
+    backend_text(out, "}");
+}
+
+fn foreign_substitute(m: ForeignName*, type: ForeignType*, insert: bool): bool {
+    var key: vector(u8);
+    vector_init(u8, &key);
+    foreign_key(&key, type);
+    var i: usize = 0;
+    loop {
+        var foreign_condition44 = i == m.substitutions.length;
+        if foreign_condition44 {
+            break;
+        }
+        if backend_equal(key.data, m.substitutions.data[i]) {
+            var foreign_condition45 = !insert;
+            if foreign_condition45 {
+                backend_text(&m.text, "S");
+                var foreign_condition46 = i != 0;
+                if foreign_condition46 {
+                    var n = i -1;
+                    foreign_number(&m.text, n, 36);
+                }
+                backend_text(&m.text, "_");
+            }
+            vector_dispose(u8, &key);
+            return true;
+        }
+        i++;
+    }
+    if insert {
+        foreign_require(m, vector_push(u8*, &m.substitutions, foreign_copy(m, key.data, key.length)));
+    }
+    vector_dispose(u8, &key);
+    return false;
+}
+
+fn foreign_std(type: ForeignType*): bool {
+    var foreign_condition47 = type == null;
+    if foreign_condition47 {
+        return false;
+    }
+    var foreign_condition48 = type.scope != null;
+    if foreign_condition48 {
+        return false;
+    }
+    return backend_equal(type.name, "std");
+}
+
+fn foreign_it_special(type: ForeignType*): u8* {
+    if foreign_std(type) {
+        return "St";
+    }
+    if foreign_std(type.scope) {
+        var foreign_condition49 = !type.template_id;
+        if foreign_condition49 {
+            if backend_equal(type.name, "allocator") {
+                return "Sa";
+            }
+            if backend_equal(type.name, "basic_string") {
+                return "Sb";
+            }
+        }
+    }
+    return "";
+}
+
+fn foreign_it_qualifiers(m: ForeignName*, cv: u32): void {
+    var flag = cv &4;
+    var foreign_condition50 = flag != 0;
+    if foreign_condition50 {
+        backend_text(&m.text, "r");
+    }
+    flag = cv & 2;
+    var foreign_condition51 = flag != 0;
+    if foreign_condition51 {
+        backend_text(&m.text, "V");
+    }
+    flag = cv & 1;
+    var foreign_condition52 = flag != 0;
+    if foreign_condition52 {
+        backend_text(&m.text, "K");
+    }
+}
+
+fn foreign_it_arguments(m: ForeignName*, type: ForeignType*): void {
+    backend_text(&m.text, "I");
+    var i: usize = 0;
+    loop {
+        var foreign_condition53 = i == type.args.length;
+        if foreign_condition53 {
+            break;
+        }
+        foreign_it_type(m, type.args.data[i]);
+        i++;
+    }
+    backend_text(&m.text, "E");
+}
+
+fn foreign_it_component(m: ForeignName*, type: ForeignType*): void {
+    if type.operator_name {
+        backend_text(&m.text, foreign_operator_code(m, type.name, false));
+        return;
+    }
+    if type.template_id {
+        var prefix = foreign_clone(m, type);
+        prefix.template_id = false;
+        prefix.args.length = 0;
+        var special = foreign_it_special(prefix);
+        var foreign_condition54 = special[0] != 0;
+        if foreign_condition54 {
+            backend_text(&m.text, special);
+        }
+        else {
+            var used = foreign_substitute(m, prefix, false);
+            var foreign_condition55 = !used;
+            if foreign_condition55 {
+                foreign_number(&m.text, backend_length(type.name), 10);
+                backend_text(&m.text, type.name);
+                foreign_substitute(m, prefix, true);
+            }
+        }
+        foreign_it_arguments(m, type);
+    } else {
+        foreign_number(&m.text, backend_length(type.name), 10);
+        backend_text(&m.text, type.name);
+    }
+}
+
+fn foreign_it_prefix(m: ForeignName*, type: ForeignType*): void {
+    var foreign_condition56 = type == null;
+    if foreign_condition56 {
+        return;
+    }
+    var special = foreign_it_special(type);
+    var foreign_condition57 = special[0] != 0;
+    if foreign_condition57 {
+        backend_text(&m.text, special);
+        return;
+    }
+    if foreign_substitute(m, type, false) {
+        return;
+    }
+    foreign_it_prefix(m, type.scope);
+    foreign_it_component(m, type);
+    foreign_substitute(m, type, true);
+}
+
+fn foreign_it_name(m: ForeignName*, type: ForeignType*, function: bool): void {
+    var nested = type.scope != null;
+    if foreign_std(type.scope) {
+        nested = false;
+    }
+    if nested {
+        backend_text(&m.text, "N");
+        if function {
+            foreign_it_qualifiers(m, m.function.cv);
+            var foreign_condition58 = m.function.ref == 1;
+            if foreign_condition58 {
+                backend_text(&m.text, "R");
+            }
+            var foreign_condition59 = m.function.ref == 2;
+            if foreign_condition59 {
+                backend_text(&m.text, "O");
+            }
+        }
+    }
+    foreign_it_prefix(m, type.scope);
+    var special: u8* = "";
+    if function {
+        var foreign_condition60 = m.special == 1;
+        if foreign_condition60 {
+            special = "C1";
+        }
+        var foreign_condition61 = m.special == 2;
+        if foreign_condition61 {
+            special = "C2";
+        }
+        var foreign_condition62 = m.special == 4;
+        if foreign_condition62 {
+            special = "D1";
+        }
+        var foreign_condition63 = m.special == 5;
+        if foreign_condition63 {
+            special = "D2";
+        }
+        var foreign_condition64 = m.special == 6;
+        if foreign_condition64 {
+            special = "D0";
+        }
+    }
+    var foreign_condition65 = special[0] != 0;
+    if foreign_condition65 {
+        backend_text(&m.text, special);
+    }
+    else {
+        foreign_it_component(m, type);
+    }
+    if function {
+        // ABI tags are explicitly supplied because a declaration does not carry
+        // a header's inline-namespace attributes or inferred return-type tags.
+        var i: usize = 0;
+        loop {
+            var foreign_condition2001 = i == m.abi_tags.length;
+            if foreign_condition2001 {
+                break;
+            }
+            backend_text(&m.text, "B");
+            foreign_number(&m.text, backend_length(m.abi_tags.data[i]), 10);
+            backend_text(&m.text, m.abi_tags.data[i]);
+            i++;
+        }
+    }
+    if nested {
+        backend_text(&m.text, "E");
+    }
+}
+
+fn foreign_it_parameters(m: ForeignName*, type: ForeignType*): void {
+    var foreign_condition66 = type.args.length == 0;
+    if foreign_condition66 {
+        var foreign_condition67 = !type.variadic;
+        if foreign_condition67 {
+            backend_text(&m.text, "v");
+        }
+    }
+    var i: usize = 0;
+    loop {
+        var foreign_condition68 = i == type.args.length;
+        if foreign_condition68 {
+            break;
+        }
+        foreign_it_type(m, type.args.data[i]);
+        i++;
+    }
+    if type.variadic {
+        backend_text(&m.text, "z");
+    }
+}
+
+fn foreign_it_type(m: ForeignName*, type: ForeignType*): void {
+    var foreign_condition2002 = type.cv == 0;
+    if foreign_condition2002 {
+        var standard = foreign_it_standard(type);
+        var foreign_condition2003 = standard[0] != 0;
+        if foreign_condition2003 {
+            backend_text(&m.text, standard);
+            return;
+        }
+    }
+    var builtin = type.kind == 1;
+    builtin &&= type.cv == 0;
+    if builtin {
+        backend_text(&m.text, type.name);
+        return;
+    }
+    var foreign_condition69 = type.kind == 9;
+    if foreign_condition69 {
+        backend_text(&m.text, "L");
+        foreign_it_type(m, type.base);
+        var foreign_condition70 = type.ref != 0;
+        if foreign_condition70 {
+            backend_text(&m.text, "n");
+        }
+        foreign_number64(&m.text, type.count, 10);
+        backend_text(&m.text, "E");
+        return;
+    }
+    if foreign_substitute(m, type, false) {
+        return;
+    }
+    var foreign_condition71 = type.cv != 0;
+    if foreign_condition71 {
+        foreign_it_qualifiers(m, type.cv);
+        var base = foreign_clone(m, type);
+        base.cv = 0;
+        foreign_it_type(m, base);
+    } else {
+        var foreign_condition72 = type.kind == 2;
+        if foreign_condition72 {
+            foreign_it_name(m, type, false);
+        }
+        else {
+            var foreign_condition73 = type.kind == 3;
+            if foreign_condition73 {
+                backend_text(&m.text, "P");
+                foreign_it_type(m, type.base);
+            }
+            else {
+                var foreign_condition74 = type.kind == 4;
+                if foreign_condition74 {
+                    backend_text(&m.text, "R");
+                    foreign_it_type(m, type.base);
+                }
+                else {
+                    var foreign_condition75 = type.kind == 5;
+                    if foreign_condition75 {
+                        backend_text(&m.text, "O");
+                        foreign_it_type(m, type.base);
+                    }
+                    else {
+                        var foreign_condition76 = type.kind == 6;
+                        if foreign_condition76 {
+                            backend_text(&m.text, "A");
+                            foreign_number64(&m.text, type.count, 10);
+                            backend_text(&m.text, "_");
+                            foreign_it_type(m, type.base);
+                        } else {
+                            var foreign_condition77 = type.kind == 7;
+                            if foreign_condition77 {
+                                if type.nothrow {
+                                    backend_text(&m.text, "Do");
+                                }
+                                backend_text(&m.text, "F");
+                                foreign_it_type(m, type.base);
+                                foreign_it_parameters(m, type);
+                                var foreign_condition78 = type.ref == 1;
+                                if foreign_condition78 {
+                                    backend_text(&m.text, "R");
+                                }
+                                var foreign_condition79 = type.ref == 2;
+                                if foreign_condition79 {
+                                    backend_text(&m.text, "O");
+                                }
+                                backend_text(&m.text, "E");
+                            } else {
+                                var foreign_condition80 = type.kind == 8;
+                                if foreign_condition80 {
+                                    backend_text(&m.text, "M");
+                                    foreign_it_type(m, type.scope);
+                                    foreign_it_type(m, type.base);
+                                } else {
+                                    var foreign_condition81 = type.kind == 10;
+                                    if foreign_condition81 {
+                                        backend_text(&m.text, "T");
+                                        var foreign_condition82 = type.count != 0;
+                                        if foreign_condition82 {
+                                            var index = type.count -1;
+                                            foreign_number64(&m.text, index, 10);
+                                        }
+                                        backend_text(&m.text, "_");
+                                    } else {
+                                        foreign_fail(m, "Unsupported Itanium foreign type");
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    foreign_substitute(m, type, true);
+}
+
+fn foreign_itanium(m: ForeignName*): void {
+    foreign_sort_tags(m);
+    var foreign_condition83 = m.function.convention > 1;
+    if foreign_condition83 {
+        foreign_fail(m, "This Itanium profile does not support the requested calling convention");
+        return;
+    }
+    backend_text(&m.text, "_Z");
+    foreign_it_name(m, m.name, true);
+    if m.name.template_id {
+        foreign_it_type(m, m.function.base);
+    }
+    foreign_it_parameters(m, m.function);
+}

@@ -1,0 +1,20 @@
+import tower;
+
+extern fn compiler_memory_reallocate(state: void*, pointer: void*, count: usize, size: usize): void*;
+
+extern fn compiler_memory_deallocate(state: void*, pointer: void*): void;
+
+// Production compiler runtime uses no mutable global instrumentation. Each
+// compiler world continues to pass its own node allocator state explicitly.
+// runtime-bind connects these definitions to the reserved Foundation ABI.
+export fn compiler_runtime_allocate(count: usize, size: usize): void* {
+    return compiler_memory_reallocate(null, null, count, size);
+}
+
+export fn compiler_runtime_reallocate(pointer: void*, count: usize, size: usize): void* {
+    return compiler_memory_reallocate(null, pointer, count, size);
+}
+
+export fn compiler_runtime_deallocate(pointer: void*): void {
+    compiler_memory_deallocate(null, pointer);
+}

@@ -18,7 +18,7 @@ export function moduleInputs(exports, initial = {}) {
   function configure(update = {}) {
     state = {...state, ...update, builtins:{...state.builtins, ...update.builtins}};
     exports.frontend_modules_clear(environment);
-    const files = [...state.files.filter(file => file.path.endsWith('.tower')), ...Object.entries(state.builtins).filter(([,source]) => typeof source === 'string')
+    const files = [...state.files.filter(file => typeof file.text === 'string'), ...Object.entries(state.builtins).filter(([,source]) => typeof source === 'string')
       .map(([name, source]) => ({path:'.tower/' + name + '.tower', text:source}))];
     for (const file of files) text(file.path, name => text(file.text, (source, length) => {
       if (!exports.frontend_modules_source(environment, name, source, length)) throw new Error('Invalid module input: ' + file.path);

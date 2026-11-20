@@ -1,0 +1,156 @@
+import tower;
+import foundation_tags;
+import semantic_context;
+import semantic_modules;
+import semantic_support;
+import semantic_types;
+import semantic_values;
+
+// Enum declarations/members are the original shared parse entities enriched
+// with Foundation type/constant components. No copied semantic representation.
+fn sem_enum_header(c: SemanticContext*, n: void*): void {
+    var representation = sem_type(c, sem_member(n, "type"));
+    var valid = semantic_integer(representation);
+    if semantic_enum(representation) {
+        valid = false;
+    }
+    if !valid {
+        sem_fail(c, n, "An enum representation must be a built-in integer type");
+        return;
+    }
+    sem_type_header(c, n, "");
+    if !sem_ok(c) {
+        return;
+    }
+    var value = sem_get(n);
+    sem_set_type(&value.element, representation);
+    value.type.scalar = representation.scalar;
+}
+
+fn sem_enum_fields(c: SemanticContext*, n: void*): void {
+    var state = sem_state(c, c.fields_done, n);
+    var ready = state.number != 0;
+    if ready {
+        return;
+    }
+    state.number = 1;
+    var type = sem_get(n);
+    var members = sem_collect(c, sem_member(n, "fields"), "CoreEnumMember");
+    var names = sem_table(c);
+    state.value = bits(void*, names);
+    var values = sem_table(c);
+    var mask = semantic_mask(&type.element);
+    var maximum = mask;
+    if semantic_signed(&type.element) {
+        maximum = mask / 2;
+    }
+    var next: u64 = 0;
+    var overflow = false;
+    var i: usize = 0;
+    loop {
+        if !sem_ok(c) {
+            return;
+        }
+        var done = i == members.length;
+        if done {
+            return;
+        }
+        var member = members.data[i];
+        var name = sem_identifier(c, sem_member(member, "name"));
+        var initial = sem_member(member, "value");
+        var explicit = initial != null;
+        if explicit {
+            var literal = sem_operand(c, initial, &type.element);
+            if !sem_ok(c) {
+                return;
+            }
+            var constant = sem_get(literal);
+            next = constant.bits;
+        } else {
+            if overflow {
+                sem_fail(c, member, "Enum discriminant overflow; provide an explicit in-range value");
+                return;
+            }
+        }
+        if !sem_put(c, names, name, member) {
+            sem_fail(c, member, sem_cat(c, "Duplicate enum member '", sem_cat(c, name, "'")));
+            return;
+        }
+        var key = sem_decimal(c, next);
+        if !sem_put(c, values, key, member) {
+            sem_fail(c, member, "Duplicate enum discriminant");
+            return;
+        }
+        var value = sem_node(c, member, KOperand());
+        sem_set_name(value, name);
+        sem_set_type(&value.type, &type.type);
+        value.constant = true;
+        value.bits = next;
+        sem_push(&type.items, member);
+        overflow = next == maximum;
+        next++;
+        next = next & mask;
+        i++;
+    }
+}
+
+// Type/member lookup applies only in value position. An enum member is not an
+// addressable variable. A local/global value with the same name takes precedence.
+fn sem_enum_operand(c: SemanticContext*, n: void*): bool {
+    var base = sem_member(n, "base");
+    var field = sem_member(n, "field");
+    var possible = base != null;
+    possible &&= field != null;
+    if !possible {
+        return false;
+    }
+    var identifier = sem_name_node(base);
+    var name = sem_identifier(c, identifier);
+    // Most member accesses are ordinary fields. Reject those before walking
+    // lexical scopes; only a matching enum type needs the shadowing check.
+    var definition = sem_resolve(c, c.types, base, name);
+    var found = definition != null;
+    if !found {
+        return false;
+    }
+    var type = sem_get(definition);
+    if !semantic_enum(&type.type) {
+        return false;
+    }
+    var scope = c.scope;
+    loop {
+        var done = scope == null;
+        if done {
+            break;
+        }
+        var shadowed = sem_lookup_table(scope.names, name) != null;
+        if shadowed {
+            return false;
+        }
+        scope = scope.parent;
+    }
+    var shadowed = sem_resolve(c, c.globals, base, name) != null;
+    if shadowed {
+        return false;
+    }
+    if sem_editor_capture(c, field, EditorEnumMembers(), &type.type) {
+        return true;
+    }
+    var member_name = sem_identifier(c, field);
+    // Reuse the per-definition derived member index; payloads remain on entities.
+    var state = sem_state(c, c.fields_done, definition);
+    var names = bits(SemanticTable*, state.value);
+    var member = sem_lookup_table(names, member_name);
+    var missing = member == null;
+    if missing {
+        sem_fail(c, n, sem_cat(c, "Unknown enum member '", sem_cat(c, member_name, "'")));
+        return true;
+    }
+    var item = sem_get(member);
+    var value = sem_node(c, n, KOperand());
+    value.binding = member;
+    value.constant = true;
+    value.bits = item.bits;
+    sem_set_type(&value.type, &type.type);
+    return true;
+}

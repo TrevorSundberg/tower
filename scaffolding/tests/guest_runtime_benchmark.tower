@@ -1,0 +1,81 @@
+import .host.guest_memory;
+import tower;
+
+// Both paths execute the same Tower workload. A null heap selects the current
+// runtime.c allocator through alloc/free; the other selects the Tower allocator.
+fn benchmark_allocate(heap: GuestHeap*, count: usize): u8* {
+    var baseline = heap == null;
+    if baseline {
+        return alloc(u8, count);
+    }
+    return bits(u8*, guest_heap_allocate(heap, count, 1));
+}
+
+fn benchmark_free(heap: GuestHeap*, pointer: u8*): void {
+    var baseline = heap == null;
+    if baseline {
+        free(pointer);
+    } else {
+        guest_heap_free(heap, bits(void*, pointer));
+    }
+}
+
+export fn guest_runtime_benchmark(use_tower: bool, rounds: usize): u64 {
+    var backing = alloc(u8, 131072);
+    var context: GuestHeap;
+    var end = backing + 131072;
+    guest_heap_init(&context, backing, end);
+    var heap: GuestHeap* = null;
+    if use_tower {
+        heap = &context;
+    }
+    var pointers: u8*[64];
+    var sum: u64 = 0;
+    var round: usize = 0;
+    loop {
+        var done = round == rounds;
+        if done {
+            break;
+        }
+        var i: usize = 0;
+        loop {
+            done = i == 64;
+            if done {
+                break;
+            }
+            var size = i * 17;
+            size++;
+            var pointer = benchmark_allocate(heap, size);
+            var failed = pointer == null;
+            if failed {
+                return 0;
+            }
+            pointers[i] = pointer;
+            pointer[0] = convert(u8, i);
+            i++;
+        }
+        // Odd/even release order exercises address-ordered insertion/coalescing.
+        var parity: usize = 0;
+        loop {
+            done = parity == 2;
+            if done {
+                break;
+            }
+            i = parity;
+            loop {
+                done = i >= 64;
+                if done {
+                    break;
+                }
+                var pointer = pointers[i];
+                sum = sum + convert(u64, pointer[0]);
+                benchmark_free(heap, pointer);
+                i = i + 2;
+            }
+            parity++;
+        }
+        round++;
+    }
+    free(backing);
+    return sum;
+}

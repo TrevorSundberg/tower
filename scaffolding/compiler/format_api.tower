@@ -1,0 +1,22 @@
+import tower;
+import .library.vector;
+import format_types;
+import parser_types;
+
+// Shared formatting engine across compiler units. These declarations call the
+// same implementation used for canonical foundation and source formatting.
+extern fn format_match(f: FormatEngine*, entity: void*): ParserMatchData*;
+
+extern fn format_write(f: FormatEngine*, bytes: u8*, count: usize): void;
+
+extern fn format_text(f: FormatEngine*, text: u8*): void;
+
+extern fn format_bytes(f: FormatEngine*, text: vector(u8)*): void;
+
+extern fn format_char(f: FormatEngine*, byte: u8): void;
+
+extern fn format_repeat(f: FormatEngine*, byte: u8, count: usize): void;
+
+extern fn format_unsigned(f: FormatEngine*, value: u64): void;
+
+extern fn format_dispose(result: FormatResult*): void;
