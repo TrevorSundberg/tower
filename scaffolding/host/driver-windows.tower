@@ -22,6 +22,26 @@ extern fn GetTempFileNameA(directory: u8*, prefix: u8*, unique: u32, output: u8*
 
 extern fn DeleteFileA(path: u8*): i32;
 
+extern fn GetModuleFileNameA(module: void*, output: u8*, capacity: u32): u32;
+
+export fn driver_platform_executable(out: ByteBuffer*): bool {
+    var capacity: u32 = 256;
+    loop {
+        if bytes_reserve(out, convert(usize, capacity)) {} else { return false; }
+        var length = GetModuleFileNameA(null, out.data, capacity);
+        var failed = length == 0;
+        if failed { return false; }
+        var complete = length < capacity;
+        if complete {
+            out.length = convert(usize, length);
+            return host_text_terminate(out);
+        }
+        var overflow = capacity > 2147483647;
+        if overflow { return false; }
+        capacity = capacity * 2;
+    }
+}
+
 export fn driver_clock(): u64 {
     var value: i64 = 0;
     var frequency: i64 = 0;

@@ -1,33 +1,17 @@
 #include "core.hpp"
-#ifdef TOWER_INTERPRETER_SEED
-#include "bootstrap/interpreter-reference.hpp"
-#define CoreMachine NativeCoreMachine
-#endif
 #include "llvm-engine.hpp"
 #include "compiler-host.hpp"
 #include "compiler-frontend.hpp"
-#include <llvm/TargetParser/Host.h>
-#ifdef TOWER_BOOTSTRAP_HOST
-#include <llvm/Support/Program.h>
-#include <llvm/ADT/SmallString.h>
-#include <chrono>
-#endif
-#include <llvm/Support/FileSystem.h>
 #include <fstream>
 #include <iostream>
 #include <filesystem>
 
 namespace fs = std::filesystem;
-#ifndef TOWER_BOOTSTRAP_HOST
 // Private host connections. Compiler/backend APIs and semantic objects are unchanged.
 extern "C" {
-void* driver_timing_open();
 void driver_timing_mark(void*, bool, const char*);
 void driver_timing_value(void*, const char*, uint64_t);
-void driver_timing_close(void*, bool);
 void driver_error(const char*, const char*);
-void driver_message(int, const char*, const char*, bool);
-int driver_prepare(DriverOptions*, size_t, const char* const*, const char*);
 void driver_report(const char*, size_t, const char*, size_t, const char*, void*);
 bool driver_write_ir(const char*, const char*, size_t, const char*, const char*, size_t);
 void* driver_link_open(const char*, const char*, const char*, const char*, const char*, const char*, bool, bool, void*, bool);
@@ -36,38 +20,12 @@ void driver_link_export(void*, const char*);
 void driver_link_input(void*, const char*);
 int driver_link_run(void*, const uint8_t*, size_t);
 }
-#endif
 namespace {
-#ifdef TOWER_BOOTSTRAP_HOST
 struct Timings {
-  using Clock = std::chrono::steady_clock;
-  Clock::time_point start = Clock::now(), previous = start;
-  bool enabled = false;
-  std::map<std::string, double> values;
-  void mark(const std::string& name) {
-    if (!enabled) return;
-    auto now = Clock::now(); values[name] = std::chrono::duration<double, std::milli>(now - previous).count(); previous = now;
-  }
-  ~Timings() {
-    if (!enabled) return;
-    values["total"] = std::chrono::duration<double, std::milli>(Clock::now() - start).count();
-    std::cerr << "Tower timings (ms): {"; bool first = true;
-    for (const auto& [name, ms] : values) { if (!first) std::cerr << ','; first = false; std::cerr << '"' << name << "\":" << ms; }
-    std::cerr << "}\n";
-  }
-};
-#else
-struct Timings {
-  void* state = driver_timing_open();
-  bool enabled = false;
+  void* state;
+  bool enabled;
   void mark(const char* name) { driver_timing_mark(state, enabled, name); }
-  ~Timings() { driver_timing_close(state, enabled); }
 };
-#endif
-#ifdef TOWER_BOOTSTRAP_HOST
-std::string read(const fs::path& path) { std::ifstream input(path, std::ios::binary); return {std::istreambuf_iterator<char>(input), {}}; }
-bool write(const fs::path& path, const char* bytes, size_t count) { std::ofstream out(path, std::ios::binary); out.write(bytes, std::streamsize(count)); return bool(out); }
-#else
 std::string read(const fs::path& path) {
   TowerByteBuffer buffer{};
   if (!driver_read_file(path.string().c_str(), &buffer)) { driver_error("Cannot read file: ", path.string().c_str()); std::exit(1); }
@@ -76,89 +34,22 @@ std::string read(const fs::path& path) {
   return result;
 }
 bool write(const fs::path& path, const char* bytes, size_t count) { return driver_write_file(path.string().c_str(), bytes, count); }
-#endif
-#ifdef TOWER_BOOTSTRAP_HOST
-int run(const std::string& executable, const std::vector<std::string>& args) {
-  auto path = llvm::sys::findProgramByName(executable); if (!path) { std::cerr << "Cannot find tool: " << executable << '\n'; return 1; }
-  std::vector<llvm::StringRef> refs{*path}; for (auto& arg : args) refs.emplace_back(arg);
-  std::string error; int code = llvm::sys::ExecuteAndWait(*path, refs, std::nullopt, {}, 0, 0, &error);
-  if (!error.empty()) std::cerr << error << '\n'; return code == 0 ? 0 : 1;
 }
-struct Temporary {
-  llvm::SmallString<128> path;
-  explicit Temporary(const char* suffix) { if (auto error = llvm::sys::fs::createTemporaryFile("tower", suffix, path)) { std::cerr << "Cannot create temporary file: " << error.message() << '\n'; path.clear(); } }
-  ~Temporary() { if (!path.empty()) llvm::sys::fs::remove(path); }
-  std::string str() const { return std::string(path); }
-};
-#endif
-}
-int main(int argc, char** argv) {
-  Timings timings;
-  std::string source, output, target = llvm::sys::getDefaultTargetTriple(), emit = "exe", cc = "clang", linker, sysroot, raw, optimized, bedrock_path, foundation_path, resources, depfile;
-  std::vector<std::string> inputs; bool optimize = true, interpret = false, library = false, fast = false, comments = true;
-#ifdef TOWER_BOOTSTRAP_HOST
-  // Retained only in towerc-seed until the Tower-only bootstrap is available.
-  for (int i = 1; i < argc; ++i) {
-    std::string arg = argv[i];
-    if (arg == "--help") {
-      std::cout << "towerc source.tower -o output [--target triple] [--emit object|llvm|llvm-optimized|exe]\n"
-        "  [--link object-or-library] [--cc clang] [--linker tool] [--sysroot path]\n"
-        "  [--raw-ir file] [--optimized-ir file] [--no-optimize] [--interpret] [--library] [--timings]\n"
-        "  [--bedrock file] [--foundation file]\n"; return 0;
-    }
-    if (arg == "--no-optimize") { optimize = false; continue; }
-    if (arg == "--interpret") { interpret = true; continue; }
-    if (arg == "--timings") { timings.enabled = true; continue; }
-    if (arg == "--library") { library = true; emit = "object"; continue; }
-    if (arg == "-o" || arg == "--target" || arg == "--emit" || arg == "--link" || arg == "--cc" || arg == "--linker" || arg == "--sysroot" || arg == "--raw-ir" || arg == "--optimized-ir" || arg == "--bedrock" || arg == "--foundation") {
-      if (++i == argc) { std::cerr << "Missing argument for " << arg << '\n'; return 1; }
-      if (arg == "-o") output = argv[i]; else if (arg == "--target") target = argv[i]; else if (arg == "--emit") emit = argv[i];
-      else if (arg == "--link") inputs.push_back(argv[i]); else if (arg == "--cc") cc = argv[i]; else if (arg == "--linker") linker = argv[i];
-      else if (arg == "--sysroot") sysroot = argv[i]; else if (arg == "--raw-ir") raw = argv[i];
-      else if (arg == "--bedrock") bedrock_path = argv[i]; else if (arg == "--foundation") foundation_path = argv[i]; else optimized = argv[i];
-    } else if (arg.starts_with('-') || !source.empty()) { std::cerr << "Unexpected argument: " << arg << '\n'; return 1; }
-    else source = arg;
-  }
-#else
-  DriverOptions options;
-  const auto parsed = driver_prepare(&options, size_t(argc), argv, target.c_str());
-  timings.enabled = options.timings;
-  if (parsed) {
-    driver_dispose(&options);
-    return parsed == 2 ? 0 : 1;
-  }
-  TowerByteBuffer resource_path{};
-  const bool located = driver_resource_root(&resource_path, llvm::sys::fs::getMainExecutable(argv[0], reinterpret_cast<void*>(&main)).c_str());
-  if (located) resources.assign(reinterpret_cast<const char*>(resource_path.data), resource_path.length);
-  bytes_dispose(&resource_path);
-  if (!located) { driver_dispose(&options); driver_error("Cannot locate compiler resources", ""); return 1; }
-  source = options.source; output = options.output; target = options.target;
-  emit = options.emit; cc = options.cc; linker = options.linker; sysroot = options.sysroot;
-  raw = options.raw; optimized = options.optimized; bedrock_path = options.bedrock;
-  foundation_path = options.foundation; optimize = options.optimize; interpret = options.interpret;
-  fast = options.fast;
-  comments = options.comments;
-  library = options.library; timings.enabled = options.timings;
-  depfile = options.depfile;
+// The Tower entry owns options, resource text and timings throughout this call.
+// This adapter still connects the retained C++ compiler result/interpreter APIs.
+extern "C" int driver_compile(const DriverOptions* prepared, const char* resource_root, void* timing_state) {
+  const auto& options = *prepared;
+  Timings timings{timing_state, options.timings};
+  std::string source = options.source, output = options.output, target = options.target;
+  std::string emit = options.emit, cc = options.cc, linker = options.linker, sysroot = options.sysroot;
+  std::string raw = options.raw, optimized = options.optimized, bedrock_path = options.bedrock;
+  std::string foundation_path = options.foundation, resources = resource_root, depfile = options.depfile;
+  bool optimize = options.optimize, interpret = options.interpret, library = options.library;
+  bool fast = options.fast, comments = options.comments;
+  std::vector<std::string> inputs;
   for (size_t i = 0; i < options.link_count; ++i) inputs.emplace_back(options.links[i]);
-  driver_dispose(&options);
-#endif
-#ifdef TOWER_BOOTSTRAP_HOST
-  if (target == "roku") {
-    if (emit != "exe" && emit != "brightscript") { std::cerr << "Roku target emits BrightScript source; use --emit brightscript\n"; return 1; }
-    emit = "brightscript";
-  }
-  if (emit == "brightscript") {
-    if (library || interpret || !inputs.empty()) { std::cerr << "Roku source requires a complete program without native link inputs or interpreter flags\n"; return 1; }
-    target = "wasm32-unknown-unknown"; // Explicit VM layout, not a Roku native LLVM triple.
-  }
-#endif
   if (source.empty() || !fs::exists(source)) { std::cerr << "Supply a Tower source file; use --help for options\n"; return 1; }
-#ifdef TOWER_BOOTSTRAP_HOST
-  const fs::path root = fs::path(llvm::sys::fs::getMainExecutable(argv[0], reinterpret_cast<void*>(&main))).parent_path() / "share/tower";
-#else
   const fs::path root(resources);
-#endif
   const auto bedrock_file = bedrock_path.empty() ? root / "bedrock.tower" : fs::path(bedrock_path);
   const auto foundation_file = foundation_path.empty() ? root / "foundation.tower" : fs::path(foundation_path);
   syntax_modules = frontend_modules_create();
@@ -179,22 +70,10 @@ int main(int argc, char** argv) {
   ModuleEnvironment* input_modules = nullptr;
   const auto report_error = [&](const std::string& error, size_t offset, const std::string* origin = nullptr) {
     const auto& diagnostic_source = origin ? *origin : text;
-#ifdef TOWER_BOOTSTRAP_HOST
-    size_t line = 1, column = 1;
-    for (size_t i = 0; i < offset && i < diagnostic_source.size(); ++i) {
-      auto c = static_cast<unsigned char>(diagnostic_source[i]);
-      if (c == '\n') { ++line; column = 1; }
-      else if ((c & 0xc0) != 0x80) ++column;
-    }
-    const auto* file = frontend_modules_location(origin && input_modules ? input_modules : syntax_modules, offset, &line, &column);
-    std::cerr << (*file ? file : source.c_str()) << ':' << line << ':' << column << ": " << error << '\n';
-#else
     driver_report(error.c_str(), offset, diagnostic_source.data(), diagnostic_source.size(), source.c_str(), origin && input_modules ? input_modules : syntax_modules);
-#endif
   };
   unsigned packaged_width = 0;
   unsigned packaged_profile = 0;
-#ifndef TOWER_INTERPRETER_SEED
   const auto install_canonical_grammar = [&]() {
     auto failure = syntax_set_bedrock(read(root / "bedrock.tower").c_str());
     if (failure.empty()) failure = syntax_set_bootstrap(read(root / "foundation.tower").c_str());
@@ -253,7 +132,6 @@ int main(int argc, char** argv) {
     if (bytes.empty()) { std::cerr << error << '\n'; return 1; }
     return write(output, reinterpret_cast<const char*>(bytes.data()), bytes.size()) ? 0 : 1;
   }
-#endif
   if (text.find('\0') != std::string::npos) { std::cerr << "Source contains NUL bytes\n"; return 1; }
   bool wasm = target.starts_with("wasm"), windows = target.find("windows") != std::string::npos;
   if (interpret) {
@@ -262,11 +140,7 @@ int main(int argc, char** argv) {
     CoreMachine machine(core_compile_foundation(text.c_str(), width));
     if (!frontend_modules_depfile(input_modules ? input_modules : syntax_modules, output.c_str(), depfile.c_str())) { std::cerr << "Cannot write dependency file: " << depfile << '\n'; return 1; }
     timings.mark("compile");
-#ifndef TOWER_INTERPRETER_SEED
     if (fast) { machine.use_fast(); timings.mark("prepare"); }
-#else
-    if (fast) { std::cerr << "Fast interpreter requires the production Tower runner\n"; return 1; }
-#endif
     machine.foreign = [](CoreMachine& machine, TowerNode* function, const std::vector<CoreValue>& args) -> CoreValue {
       const auto& fn = core_node(function);
       if (fn.name != "platform_write" || args.size() != 3) { machine.fail("No native interpreter binding for '" + fn.name + "'", 0); return {}; }
@@ -285,55 +159,18 @@ int main(int argc, char** argv) {
   auto object = tower_emit_object(text.c_str(), target, optimize, library);
   if (!frontend_modules_depfile(syntax_modules, output.c_str(), depfile.c_str())) { std::cerr << "Cannot write dependency file: " << depfile << '\n'; return 1; }
   timings.mark("compile");
-#ifdef TOWER_BOOTSTRAP_HOST
-  if (timings.enabled) timings.values.insert(object.timings.begin(), object.timings.end());
-#else
   if (timings.enabled) for (const auto& [name, ms] : object.timings) driver_timing_value(timings.state, name.c_str(), uint64_t(ms * 1000000));
-#endif
   if (!object.error.empty()) { report_error(object.error, object.error_offset); return 1; }
-#ifdef TOWER_BOOTSTRAP_HOST
-  if ((!raw.empty() && !write(raw, object.raw.data(), object.raw.size())) || (!optimized.empty() && !write(optimized, object.optimized.data(), object.optimized.size()))) { std::cerr << "Cannot write LLVM output\n"; return 1; }
-  if (output.empty()) output = emit == "object" ? "tower.o" : emit.starts_with("llvm") ? "tower.ll" : wasm ? "tower.wasm" : windows ? "tower.exe" : "tower.out";
-#else
   if (!driver_write_ir(raw.c_str(), object.raw.data(), object.raw.size(), optimized.c_str(), object.optimized.data(), object.optimized.size())) return 1;
   if (output.empty()) output = driver_output_name(emit.c_str(), wasm, windows);
-#endif
   if (emit == "object") return write(output, (const char*)object.bytes.data(), object.bytes.size()) ? 0 : 1;
   if (emit == "llvm" || emit == "llvm-optimized") { auto& text = emit == "llvm" ? object.raw : object.optimized; return write(output, text.data(), text.size()) ? 0 : 1; }
   if (emit != "exe") { std::cerr << "Unknown output kind: " << emit << '\n'; return 1; }
   for (auto& input : inputs) if (!fs::is_regular_file(input)) { std::cerr << "Missing link input: " << input << '\n'; return 1; }
-#ifdef TOWER_BOOTSTRAP_HOST
-  Temporary program("o"), runtime("o"), allowed("txt");
-  if (program.path.empty() || runtime.path.empty() || allowed.path.empty()) return 1;
-  if (!write(program.str(), (const char*)object.bytes.data(), object.bytes.size())) return 1;
-  std::vector<std::string> compile{"--target=" + target, "-O2", "-ffreestanding", "-fno-builtin", "-c", (root / "runtime.c").string(), "-o", runtime.str()};
-  if (!sysroot.empty()) compile.push_back("--sysroot=" + sysroot);
-  if (run(cc, compile)) return 1;
-  timings.mark("runtimeCompile");
-  std::vector<std::string> args;
-  if (wasm) {
-    if (linker.empty()) linker = "wasm-ld-19";
-    std::string imports = "tower_print\ntower_trap\n"; for (auto& name : object.imports) imports += name + '\n';
-    write(allowed.str(), imports.data(), imports.size());
-    args = {"--no-entry", "--export=tower_main", "--export-memory", "--allow-undefined-file=" + allowed.str(), "--stack-first", "-z", "stack-size=4194304", "--max-memory=268435456", program.str(), runtime.str()};
-    for (auto& name : object.exports) args.push_back("--export=" + name);
-  } else if (windows) {
-    if (linker.empty()) linker = "lld-link-19";
-    args = {"/entry:mainCRTStartup", "/subsystem:console", "/out:" + output, program.str(), runtime.str()};
-    for (auto& name : object.exports) args.push_back("/export:" + name);
-  } else {
-    if (linker.empty()) linker = cc;
-    args = {"--target=" + target, program.str(), runtime.str()}; if (!sysroot.empty()) args.push_back("--sysroot=" + sysroot);
-  }
-  args.insert(args.end(), inputs.begin(), inputs.end());
-  if (!windows) { args.push_back("-o"); args.push_back(output); }
-  auto result = run(linker, args); timings.mark("link"); return result;
-#else
   auto* link = driver_link_open(target.c_str(), cc.c_str(), linker.c_str(), sysroot.c_str(), output.c_str(), resources.c_str(), wasm, windows, timings.state, timings.enabled);
   if (!link) return 1;
   for (const auto& name : object.imports) driver_link_import(link, name.c_str());
   for (const auto& name : object.exports) driver_link_export(link, name.c_str());
   for (const auto& input : inputs) driver_link_input(link, input.c_str());
   return driver_link_run(link, object.bytes.data(), object.bytes.size());
-#endif
 }

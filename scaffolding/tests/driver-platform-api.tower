@@ -1,5 +1,7 @@
 import tower;
 
+extern fn driver_test_cli_platform(compiler: u8*): void;
+
 extern fn driver_test_file(file: void*): i32;
 
 extern fn driver_test_dup(fd: i32): i32;

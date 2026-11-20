@@ -21074,3 +21074,146 @@ previous IDE/runtime metadata, records integrated source 1aae8e8 and previous
 publication 1828ff9, and lists the parser retirement and native binary hash.
 Normal source/Pages pushes and hosted verification follow; no publication success
 is inferred from these local checks.
+## 2026-11-20 - Tower CLI entry and production compiler runtime exports
+
+Agent-2 work in the independent C:/Sandbox/tower-cli-runtime clone on main.
+Initial pull was bf906b5; subsequent autostash pulls preserved all local changes
+and integrated 0b48236 and 0e4bd41. No parser.cpp, parser-tree-tests.cpp, syntax.cpp,
+frontend algorithms, backend lowering, todo.txt, other checkouts or their build
+outputs were edited. Sanitizer and whole-repository formatter sweeps remain
+intentionally skipped. No additional agents were spawned.
+
+The production main now lives in host/driver-entry.tower. It owns parsed options,
+the upstream LLVM C API's default-target string, executable/resource buffers and
+timings through the synchronous compiler call and releases them on ordinary
+returns. Linux readlink(/proc/self/exe), Darwin _NSGetExecutablePath + realpath,
+and Windows GetModuleFileNameA provide resolved executable locations, growing
+buffers when necessary. Help/version and malformed-option early exits retain
+existing behavior. driver.cpp is now the retained driver_compile transport over
+the existing C++ compiler/interpreter interfaces. Its obsolete bootstrap and
+interpreter seed branches were deleted, not moved into another native file.
+That adapter still owns source/Foundation orchestration, C++ results and existing
+process-global syntax_modules; this is not independent concurrent compiler worlds.
+Its existing fatal read/abort paths still terminate the process. Do not describe
+this entry port as complete retirement of the compiler transport or session state.
+
+Production tower_allocate/tower_reallocate/tower_deallocate and internal trap
+reporting now originate in Tower. They reuse host/memory.tower and the shared
+platform-output formatter. No new allocator or graph model was introduced.
+compiler-memory.cpp contains only the old single-owner test failure-injection
+state and its connections. Production builds no longer compile it. The retained
+legacy test ABI is not advertised as thread safe; explicit CompilerMemoryState
+and CompilerNodeMemoryState callers continue to own their contexts.
+
+The existing backend rejects both literal and foreign-spelled reserved runtime
+function definitions. Rather than add a native wrapper or change lowering owned
+by another agent, host/runtime-bind.tower uses installed LLVM C APIs to connect
+ordinary Tower implementations in emitted target LLVM output. It requires a
+defined source function, rejects an already-defined destination and mismatched
+function types, replaces declaration uses, removes temporary Wasm export-name
+metadata, and verifies the resulting module before writing output. Clang emits
+the ordinary target object. This is a private platform artifact step, not a new
+Tower program storage format or public instruction ABI. Canonical Foundation
+and ordinary reserved-name diagnostics are unchanged. cmake/TowerRuntime.cmake
+integrates this step. The binding tool itself links directly to upstream LLVM
+and libc without a project-owned runtime seed. Browser packages retain these
+small generated runtime ABI objects as prebuilt support while rebuilding host
+policies; editing the runtime-object build stage in-browser remains future work.
+
+Environment/reproduction: Windows PowerShell orchestration, WSL Ubuntu,
+/usr/bin/clang and clang++ 21.1.8, installed LLVM 19 C API library; WASI SDK 34.
+Bootstrap /home/trevo/.cache/tower/parser-text-scope-bootstrap/towerc has SHA256
+943c88c2c74fa2c4befa8e58d58774acb0bd8b264a6bb25074119f37c9d5e8d8.
+Isolated builds are /home/trevo/.cache/tower/cli-runtime-native and cli-runtime-wasi.
+Configure native with -G Ninja -DTOWER_NATIVE=ON -DTOWER_DRIVER_TESTS=ON
+-DTOWER_ALLOCATOR_TESTS=ON -DTOWER_BACKEND_TESTS=ON -DCMAKE_BUILD_TYPE=Release
+-DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++
+-DLLVM_DIR=/usr/lib/llvm-19/lib/cmake/llvm
+-DCMAKE_PROJECT_scaffolding_INCLUDE=<checkout>/cmake/TowerBackend.cmake
+-DTOWER_BOOTSTRAP_COMPILER=<bootstrap>, plus TOWER_ALLOCATOR_WASI_SDK set to
+/home/trevo/.cache/tower/wasi-sdk/wasi-sdk-34.0-x86_64-linux. Node was absent from
+WSL PATH; a separate Node 22.14.0 distribution under cli-runtime-tools supplies
+TOWER_ALLOCATOR_NODE. Windows verification uses the installed Node 22.23.4.
+Run cmake --build <build> -j 4 and ctest --test-dir <build> --output-on-failure.
+WASI uses the SDK's share/cmake/wasi-sdk-p1.cmake toolchain, TOWER_BROWSER=ON and
+the same allocator test option. Deferred enable_testing fixes discovery when
+this fragment is included inside a function and no native driver enables tests.
+
+Focused checks: allocation/reallocation/free, zero size, multiplication overflow,
+failed growth preserving data, alignment, copy/fill, the existing Wasm arena's
+memory growth/failure/reuse, reserved-symbol ABI binding success and rejection,
+and actual compiler-internal trap text/termination. Existing CLI fixtures cover
+argument quoting, diagnostics/exit status, interpretation, raw/optimized LLVM,
+bytecode/Foundation/C/BrightScript/object/executable output, linking, imports,
+exports and dependency files. New POSIX fixtures execute through a symlink and
+copy the compiler plus resources into a directory containing spaces, then compile
+from another cwd. All functional additions are Tower files. Five native CTests
+pass, as do both WASI CTests. Windows executes runtime-windows-entry.tower linked
+against the production Tower allocation/trap objects and upstream UCRT/kernel32
+import libraries: prints "Tower production runtime ABI passed", exit 0. Import
+libraries are generated by llvm-dlltool-19; SDK bin/wasm-ld -flavor link supplies
+the COFF linker (there is no lld-link-19 executable here). LLVM optimized a null
+realloc into malloc, so the UCRT import description must include malloc too.
+The CLI entry/platform unit cross-compiles to macOS ARM64 (25344-byte object)
+and Windows x64 (17957-byte object). macOS and the complete Windows compiler
+were not executed. Tests and logs are under build/cli-runtime.
+
+Browser validation rebuilds every project-owned reactor object in this checkout,
+using only read-only upstream archives/headers from backend-wasi and the pinned
+LLVM source. The local UseUpstreamLibraries.cmake validation recipe preserves the
+original ordered LLVM/LLD library lists and their rt/dl/pthread dependencies.
+An initial broad archive list and missing imported LLVMTarget/LLVMObject targets
+failed linking; the corrected recipe exposed omitted -ldl via unresolved dlopen,
+dlclose, dlsym and dlerror. Comparing the actual clang -### link commands isolated
+the missing transitive system libraries. Restoring the established library
+contract fixed both reactors; no dynamic-loader stub or native wrapper was added.
+No LLVM rebuild or other checkout's project-owned object was reused. The usual
+package-compiler-project.py consumes the isolated native manifests, then standard
+build-targets.sh and npm run build prepare this clone's own publication directory.
+
+Other trials: PowerShell's Python aliases are unavailable, so edits/build probes
+use WSL python3. A raw return expression in a fixture was correctly rejected by
+Foundation; it now uses a three-address local. The first driver platform compile
+needed explicit ByteBuffer imports, consistent with module-scoped lookup. External
+objects inside a CMake OBJECT library were not included by TARGET_OBJECTS; the
+Tower driver object is now attached to towerc and excluded from standalone backend
+and frontend test mains. Rewriting a running script on DrvFS caused an input-file
+read error after packaging completed; the remaining target build was run directly.
+These were build/fixture integration failures, not runtime semantic failures.
+
+At this point 149 selected Node tests pass (one native-compiler-in-browser test is
+skipped by its existing environment gate). Two complete successor generations,
+using 2 then 4 workers, pass with byte-identical reactors and the edited semantic
+diagnostic: 893135 / 52088191 / 63645540 bytes. The local deployment verifier
+passes all 70 asset hashes and desktop/mobile execution/backend agreement,
+completion, highlighting, persistence, target defaults and native downloads.
+Logs: node-tests.log, successors.log, local-deployment.log. A subsequent small
+trap error-sentinel correction and its targeted test are being revalidated before
+publication. Performance and final pull/deploy/push results follow below.
+
+Native retirement so far: 163 net lines removed from driver.cpp and 33 from
+compiler-memory.cpp (196 total); all newly introduced implementation and functional
+checks are Tower. runtime.c remains active for guest programs, browser embedded
+runtime objects, target packs and standalone tools. Next slices must connect the
+existing guest allocator/Wasm intrinsics and platform output to initialization and
+runtime symbols, then replace native startup using an explicit upstream CRT or
+Tower-supported platform ABI. Do not delete runtime.c until every consumer has a
+validated replacement. Full driver retirement needs a direct Foundation/module
+bootstrap and compiler-result lifecycle API without C++ strings/global sessions;
+no new C++ shim or duplicated semantic algorithm is authorized for that boundary.
+
+Performance follow-up: paired process trials used the saved original driver and
+native memory objects relinked against the current identical compiler objects;
+all compared program objects/stdout were byte-identical. Each case has 10 warmups
+and 25 alternating-order pairs. The first run overlapped browser verification and
+was discarded. The isolated run showed allocation +3.07%; disassembly found that
+the bound LLVM output was being compiled with Clang's default O0 machine-code
+settings, adding redundant moves compared with the former native bridges.
+TowerRuntime.cmake now explicitly uses -O2 for target object production. The
+rerun (benchmark-optimized.json) reports startup 10.616 -> 10.722 ms (+1.00%),
+Templates 215.666 -> 215.065 ms (-0.28%), compiler/utf8 228.774 -> 228.899 ms
+(+0.05%), and 640000 allocations/frees 4.237 -> 4.196 ms (-0.97%). The small
+startup/compiler changes are within these process-timing fluctuations; the
+observed allocation regression is fixed. Native trap/binder/CLI/frontend checks
+still pass (5/5, 4.47 s). A separate parser-only build and final artifact rebuild
+are in progress; neither is claimed complete by these earlier results.

@@ -11,3 +11,6 @@ extern fn driver_platform_remove(path: u8*): void;
 extern fn driver_platform_temporary(out: ByteBuffer*): bool;
 
 extern fn driver_platform_run(argv: u8**): i32;
+
+// Resolved running executable, independent of cwd, PATH and argv[0].
+extern fn driver_platform_executable(out: ByteBuffer*): bool;

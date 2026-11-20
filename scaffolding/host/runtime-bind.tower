@@ -1,0 +1,89 @@
+import tower;
+
+// Private build tool: connect Tower implementations to reserved runtime symbols
+// in emitted target LLVM output. This is object production, not Tower storage.
+// The compiler's public source/graph contract and reserved-name checks stay intact.
+extern fn LLVMContextCreate(): void*;
+extern fn LLVMContextDispose(context: void*): void;
+extern fn LLVMCreateMemoryBufferWithContentsOfFile(path: u8*, buffer: void**, error: u8**): i32;
+extern fn LLVMParseIRInContext(context: void*, buffer: void*, module: void**, error: u8**): i32;
+extern fn LLVMDisposeModule(module: void*): void;
+extern fn LLVMDisposeMessage(message: u8*): void;
+extern fn LLVMGetNamedFunction(module: void*, name: u8*): void*;
+extern fn LLVMIsDeclaration(value: void*): i32;
+extern fn LLVMGlobalGetValueType(value: void*): void*;
+extern fn LLVMReplaceAllUsesWith(old: void*, replacement: void*): void;
+extern fn LLVMDeleteFunction(function: void*): void;
+extern fn LLVMSetValueName2(value: void*, name: u8*, length: usize): void;
+extern fn LLVMRemoveStringAttributeAtIndex(function: void*, index: u32, name: u8*, length: u32): void;
+extern fn LLVMVerifyModule(module: void*, action: u32, error: u8**): i32;
+extern fn LLVMPrintModuleToFile(module: void*, path: u8*, error: u8**): i32;
+extern fn puts(message: u8*): i32;
+extern fn strlen(message: u8*): usize;
+
+const RuntimeReturnVerificationStatus: u32 = 2;
+
+fn runtime_bind_function(module: void*, source: u8*, destination: u8*): bool {
+    var function = LLVMGetNamedFunction(module, source);
+    var missing = function == null;
+    if missing { puts("Missing runtime implementation"); puts(source); return false; }
+    var declaration = LLVMIsDeclaration(function) != 0;
+    if declaration { puts("Runtime implementation must be defined"); return false; }
+    var previous = LLVMGetNamedFunction(module, destination);
+    var present = previous != null;
+    if present {
+        declaration = LLVMIsDeclaration(previous) != 0;
+        if declaration {} else { puts("Runtime destination is already defined"); return false; }
+        var same = LLVMGlobalGetValueType(previous) == LLVMGlobalGetValueType(function);
+        if same {} else { puts("Runtime ABI type mismatch"); return false; }
+        LLVMReplaceAllUsesWith(previous, function);
+        LLVMDeleteFunction(previous);
+    }
+    LLVMSetValueName2(function, destination, strlen(destination));
+    // A runtime object is linked by its symbol. Do not retain the temporary
+    // Tower export spelling in Wasm's explicit export-name attribute.
+    LLVMRemoveStringAttributeAtIndex(function, 4294967295, "wasm-export-name", 16);
+    return true;
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    var invalid = argc < 5;
+    if invalid { puts("runtime-bind input.ll output.ll implementation runtime-symbol [...]"); return 1; }
+    var context = LLVMContextCreate();
+    var buffer: void* = null;
+    var module: void* = null;
+    var error: u8* = null;
+    var status = LLVMCreateMemoryBufferWithContentsOfFile(argv[1], &buffer, &error);
+    var ok = status == 0;
+    if ok {
+        status = LLVMParseIRInContext(context, buffer, &module, &error);
+        ok = status == 0;
+    }
+    var i: i32 = 3;
+    while ok {
+        var done = i == argc;
+        if done { break; }
+        var next = i + 1;
+        invalid = next == argc;
+        if invalid { puts("Missing runtime destination"); ok = false; break; }
+        ok = runtime_bind_function(module, argv[i], argv[next]);
+        i = i + 2;
+    }
+    if ok {
+        status = LLVMVerifyModule(module, RuntimeReturnVerificationStatus(), &error);
+        ok = status == 0;
+    }
+    if ok {
+        LLVMDisposeMessage(error);
+        error = null;
+        status = LLVMPrintModuleToFile(module, argv[2], &error);
+        ok = status == 0;
+    }
+    var reported = error != null;
+    if reported { puts(error); LLVMDisposeMessage(error); }
+    var loaded = module != null;
+    if loaded { LLVMDisposeModule(module); }
+    LLVMContextDispose(context);
+    if ok { return 0; }
+    return 1;
+}

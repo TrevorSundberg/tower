@@ -1,8 +1,34 @@
 import tower;
 import 'driver-posix';
 import 'driver-support';
+import '../library/bytes-types';
+import '../library/bytes-interface';
 
 extern fn __errno_location(): i32*;
+
+extern fn readlink(path: u8*, output: u8*, capacity: usize): i64;
+
+export fn driver_platform_executable(out: ByteBuffer*): bool {
+    var capacity: usize = 256;
+    loop {
+        if bytes_reserve(out, capacity) {} else { return false; }
+        var count = readlink("/proc/self/exe", out.data, capacity);
+        var failed = count < 0;
+        if failed { return false; }
+        var length = convert(usize, count);
+        var complete = length < capacity;
+        if complete {
+            out.length = length;
+            return host_text_terminate(out);
+        }
+        var maximum: usize = 0;
+        maximum = maximum - 1;
+        var limit = maximum / 2;
+        var overflow = capacity > limit;
+        if overflow { return false; }
+        capacity = capacity * 2;
+    }
+}
 
 export fn driver_errno(): i32* {
     return __errno_location();

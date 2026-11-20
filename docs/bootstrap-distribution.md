@@ -183,6 +183,22 @@ runtime symbol definitions, foreign symbol/data access, Wasm memory growth and
 native startup/syscalls is still needed before replacing `runtime.c`. Preserve
 the existing shared layouts and named-call semantics when supplying that contract.
 
+The CLI entry now lives in `host/driver-entry.tower`: it owns argument options,
+resource-location buffers and timing lifetime, calling the retained synchronous
+`driver_compile` transport adapter. Linux/macOS/Windows executable lookup uses
+their platform C APIs. The obsolete native driver/bootstrap branches are gone.
+The production compiler allocation/reallocation/free exports and internal trap
+reporting are Tower modules; `compiler-memory.cpp` now contains only the legacy
+single-owner test instrumentation. `cmake/TowerRuntime.cmake` builds the Tower
+`runtime-bind` tool against the installed upstream LLVM C library. It checks
+definition/declaration and function-type compatibility, connects reserved names
+in target LLVM output, verifies the module, and produces ordinary target objects.
+This private artifact step does not change canonical Foundation storage or allow
+reserved-symbol definitions in ordinary user programs. Browser compiler packages
+retain these generated ABI objects as prebuilt support while rebuilding their
+Tower host policies. Guest `runtime.c`, native compiler-result transport, complete
+session ownership, and an editable runtime-object build stage still need retirement.
+
 Generate the native artifact inventory:
 
 ```sh

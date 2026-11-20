@@ -72,8 +72,9 @@ def package(builds, destination):
                 if path.name in UNIT_SOURCES or path.name.startswith(('tower-compiler-', 'tower-backend-')) and path.suffix == '.o':
                     tower_objects.append(path)
                 elif path.name == 'libtower-compiler-memory.a':
-                    # The host Tower object shares this archive with a temporary
-                    # native allocator. Rebuild the former, retain only the latter.
+                    # Rebuild host policy. Retain the small runtime ABI objects,
+                    # generated from Tower through the reserved-symbol binder,
+                    # with the prebuilt support until that build step is editable.
                     for member in run([sdk/'llvm-ar','t',path], build).splitlines():
                         if member == 'tower-compiler-host.o':
                             tower_objects.append(build/member)

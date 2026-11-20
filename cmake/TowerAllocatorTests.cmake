@@ -22,17 +22,33 @@ if(TOWER_ALLOCATOR_TESTS)
       DEPENDS "${bootstrap}" "${input}" VERBATIM)
     set_source_files_properties("${object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
   endforeach()
+  get_property(runtime_trap GLOBAL PROPERTY TOWER_RUNTIME_TRAP_OBJECT)
   add_executable(tower-allocator-tests scaffolding/compiler-memory.cpp
-    "${allocator_test_object}" "${allocator_policy_object}")
+    "${allocator_test_object}" "${allocator_policy_object}" "${runtime_trap}")
   target_compile_features(tower-allocator-tests PRIVATE cxx_std_20)
   target_compile_definitions(tower-allocator-tests PRIVATE TOWER_COMPILER_MEMORY_TESTS=1)
-  enable_testing()
+  # This fragment is included inside tower_compiler_host. Enable discovery in
+  # directory scope too, including browser-only configurations.
+  cmake_language(DEFER CALL enable_testing)
+  set(runtime_test_object "${CMAKE_CURRENT_BINARY_DIR}/runtime-abi-tests.o")
+  add_custom_command(OUTPUT "${runtime_test_object}"
+    COMMAND "${bootstrap}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/runtime-abi.tower"
+      --library --target "${triple}" -o "${runtime_test_object}" --depfile "${runtime_test_object}.d"
+    DEPFILE "${runtime_test_object}.d"
+    DEPENDS "${bootstrap}" scaffolding/tests/runtime-abi.tower VERBATIM)
+  set_source_files_properties("${runtime_test_object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
+  add_executable(tower-runtime-abi-tests "${runtime_test_object}")
+  set_target_properties(tower-runtime-abi-tests PROPERTIES LINKER_LANGUAGE C)
+  target_link_libraries(tower-runtime-abi-tests PRIVATE tower-compiler-memory tower-compiler-utilities)
   if(triple MATCHES "^wasm32")
     find_program(TOWER_ALLOCATOR_NODE NAMES node REQUIRED)
     add_test(NAME tower-allocator COMMAND "${TOWER_ALLOCATOR_NODE}"
       "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/host-wasi.mjs" "$<TARGET_FILE:tower-allocator-tests>")
+    add_test(NAME tower-runtime-abi COMMAND "${TOWER_ALLOCATOR_NODE}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/host-wasi.mjs" "$<TARGET_FILE:tower-runtime-abi-tests>")
   else()
     add_test(NAME tower-allocator COMMAND tower-allocator-tests)
+    add_test(NAME tower-runtime-abi COMMAND tower-runtime-abi-tests)
   endif()
 
   # Optional cross-target growth check, using upstream wasi-libc for memory

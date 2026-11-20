@@ -25,3 +25,7 @@ export fn driver_test_close(fd: i32): void {
 }
 
 export fn driver_test_platform_cases(): void {}
+
+// Windows symlink creation can require privileges; ordinary path/argv cases
+// still run through the same driver suite and GetModuleFileNameA implementation.
+export fn driver_test_cli_platform(compiler: u8*): void {}

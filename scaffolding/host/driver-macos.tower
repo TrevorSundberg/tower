@@ -1,8 +1,37 @@
 import tower;
 import 'driver-posix';
 import 'driver-support';
+import '../library/bytes-types';
+import '../library/bytes-interface';
 
 extern fn __error(): i32*;
+
+extern fn _NSGetExecutablePath(output: u8*, capacity: u32*): i32;
+extern fn realpath(path: u8*, output: u8*): u8*;
+extern fn `c_name(void free(void*))`(pointer: void*): void;
+
+export fn driver_platform_executable(out: ByteBuffer*): bool {
+    var capacity: u32 = 256;
+    loop {
+        if bytes_reserve(out, convert(usize, capacity)) {} else { return false; }
+        var previous = capacity;
+        var result = _NSGetExecutablePath(out.data, &capacity);
+        var complete = result == 0;
+        if complete {
+            // Resolve symlinks and dot segments before locating adjacent resources.
+            var resolved = realpath(out.data, null);
+            var missing = resolved == null;
+            if missing { return false; }
+            out.length = 0;
+            var ok = driver_text(out, resolved);
+            `c_name(void free(void*))`(bits(void*, resolved));
+            if ok { ok = host_text_terminate(out); }
+            return ok;
+        }
+        var invalid = capacity <= previous;
+        if invalid { return false; }
+    }
+}
 
 export fn driver_errno(): i32* {
     return __error();
