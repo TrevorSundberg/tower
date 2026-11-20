@@ -153,8 +153,9 @@ The host adapter can select 1/2/4/8 workers; Node worker threads exercise the sa
 transport and Tower code. Objects publish in recipe order only after all units
 succeed; linking and candidate activation checks remain serial and atomic at
 the project boundary. Cancelling a browser build also terminates its children.
-After failure the coordinator stops admitting later units and settles already
-running work before selecting the earliest diagnostic in source order.
+After failure the coordinator stops admitting later units. Once all earlier
+ordinals settle, its first diagnostic is final and the host terminates irrelevant
+later workers before closing the coordinator.
 
 This is parallel compilation of the compiler's import units. Layout/type/body
 phases inside each unit still run serially. Native CLI worker pools, concurrent

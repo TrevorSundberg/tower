@@ -292,3 +292,19 @@ containers. Benchmark representative compiler workloads before migrating them.
    1/2/4/8 workers. Inspect optimized IR/disassembly for actual SIMD. Threaded
    dispatch, dense storage and vectorization are independent claims. Continue
    the language milestones above on these same shared entities throughout.
+
+Current migration audit (after the isolated compiler-worker milestone):
+
+| Area | Authoritative/shared data and present storage | Concurrency work still required |
+| --- | --- | --- |
+| Entities | Stable per-component payload allocations; dense per-type pointer indexes; owner component lists | Explicit world lifetime, pinned query views, structural publication and non-racing reference ownership |
+| Syntax/grammar | Shared entity components; parser tables and session stacks are derived | Isolate mutable session/cache state; preserve incremental grammar and source/effect order |
+| Semantics/layout | FoundationNode components; derived hash tables and layout work graph | Pure query inputs, declared accesses, owned result buffers, deterministic component commit |
+| Interpreter/staging | Shared Foundation plus a private verified execution cache | Explicit deterministic effects/inputs and invalidation; no metadata in the cache stream |
+| LLVM | Shared Foundation inputs; one mutable LLVM context/module per compiler instance | Function/query boundaries that do not concurrently mutate one LLVM module; preserve target legality |
+| Link/publication | Tower plans/artifacts plus upstream LLD and filesystem interfaces | Keep LLD globals and fixed temporary names isolated/serialized; publish a candidate only after its checks |
+
+Do not replace the sparse payload store everywhere just to resemble an ECS
+library. Cached typed queries and measured hot/cold columns should preserve the
+same node identities and canonical Foundation. The current worker isolation is
+the safety boundary until those explicit-world and publication contracts land.

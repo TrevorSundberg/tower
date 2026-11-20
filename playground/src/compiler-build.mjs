@@ -46,6 +46,9 @@ export async function compileUnits({compiler, recipe, files, workers = 1, create
         if (!work.accept(id,!result.error)) throw new Error('Stale or cancelled compiler result');
         results[id-1] = result;
         timings[id-1] = {entry:unit.entry,lane,start:result.start,end:result.end};
+        // Tower decides when the earliest diagnostic is final. Closing the
+        // transport interrupts later units whose results cannot affect it.
+        if (work.done() && work.failed()) throw new Error(results[work.failed()-1].error);
       }
     }));
     if (!work.done()) throw new Error('Compiler work did not complete');

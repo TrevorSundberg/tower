@@ -13,6 +13,7 @@ struct CompilerWork {
     units: usize;
     workers: usize;
     completed: usize;
+    settled: usize;
     failed: usize;
     peak: usize;
 }
@@ -115,6 +116,20 @@ export fn compiler_work_accept(work: CompilerWork*, unit: usize, revision: u64, 
         return false;
     }
     work.completed = work.completed + 1;
+    // Advance a dense completion prefix once per unit, rather than rescanning
+    // every earlier task for every out-of-order receipt in a large project.
+    while work.settled < work.units {
+        var next = work.settled + 1;
+        var task = work_task(&work.graph, next);
+        var settled = task.state == WorkState.Succeeded;
+        if settled {} else {
+            settled = task.state == WorkState.Failed;
+        }
+        if settled {} else {
+            break;
+        }
+        work.settled = next;
+    }
     if success {} else {
         var earlier = work.failed == 0;
         if earlier {} else {
@@ -131,7 +146,9 @@ export fn compiler_work_done(work: CompilerWork*): bool {
     var done = work.completed == work.units;
     var failed = work.failed != 0;
     if failed {
-        done = work.graph.running == 0;
+        // A later unit cannot change the first diagnostic. Do not wait for a
+        // large unrelated compilation before reporting an earlier failure.
+        done = work.settled >= work.failed;
     }
     if done {
         done = work_ok(&work.graph);
@@ -139,8 +156,9 @@ export fn compiler_work_done(work: CompilerWork*): bool {
     return done;
 }
 
-// Failures are reported in source order after all earlier work is settled,
-// independent of completion order. No artifact is published from a failed build.
+// Failures are decided after all earlier work settles. The executor must then
+// cancel/drain later workers before closing the coordinator. No failed-build
+// artifact is published, independent of completion order.
 export fn compiler_work_failed(work: CompilerWork*): usize {
     return work.failed;
 }

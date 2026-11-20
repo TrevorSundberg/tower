@@ -15927,3 +15927,25 @@ every earlier ordinal is already admitted when a failure arrives. Stop admitting
 new work, settle existing tickets, then report the minimum failed ordinal. Added
 a Tower fixture for this transition and an adapter assertion that no third unit
 starts after either of the first two fails. Rebuild/revalidation follows.
+
+Integrated c06fc83's direct Tower hover/query work by rebasing f65f225; the only
+conflict was the append-only journal, and both entries were preserved. Rebuilt
+all three reactors and native backend successfully. The integrated 319-test Node
+suite and two byte-identical successor generations passed, including new hover
+activation probes. A requested extra native parser-test target is unavailable in
+the existing backend-native configuration (`unknown target tower-parser-tests`);
+native backend tests and browser compiler suites remain the executed checks.
+
+The integrated browser test found a second latency issue: even with admission
+stopped, waiting for a later parser unit delayed the first unit's diagnostic past
+30 seconds. Supersede the preceding "settle existing tickets" policy: a dense
+settled-prefix cursor now proves that every earlier ordinal has completed. Once
+that prefix reaches the first failed ordinal, Tower declares the diagnostic
+final; the host terminates irrelevant later workers before disposing the graph.
+The cursor visits each unit once rather than repeatedly scanning all earlier
+units. Tower tests cover a final first-unit error while unit two is still running.
+A real-worker transport regression deliberately withholds unit two's receipt;
+the correct first diagnostic arrives and both workers exit without the five-second
+cancellation deadline firing. All five worker transport/SIMD checks pass after
+this correction (`parallel-prefix-workers.log`); raw/optimized/interpreter Tower
+coordinator checks pass (`parallel-prefix-fixture.log`). No UI timeout was raised.

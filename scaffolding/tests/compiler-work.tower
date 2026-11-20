@@ -80,6 +80,18 @@ fn compiler_work_tests(): void {
     equal = compiler_work_accept(work, 3, 45, 17, true) == false;
     check(equal);
     compiler_work_close(work);
+    work = compiler_work_create(4, 2, 46, 17);
+    a = compiler_work_next(work);
+    b = compiler_work_next(work);
+    check(compiler_work_accept(work, a, 46, 17, false));
+    // Unit two is still running, but can no longer change the diagnostic.
+    check(compiler_work_done(work));
+    equal = compiler_work_failed(work) == 1;
+    check(equal);
+    compiler_work_cancel(work);
+    equal = compiler_work_accept(work, b, 46, 17, true) == false;
+    check(equal);
+    compiler_work_close(work);
 }
 
 compiler_work_tests();

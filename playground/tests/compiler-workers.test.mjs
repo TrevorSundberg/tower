@@ -66,6 +66,33 @@ test('parallel diagnostics select source order and publish no failed build objec
   assert.deepEqual(published,[]);
 });
 
+test('an earlier Tower failure cancels a worker whose later receipt never arrives',async () => {
+  const broken = structuredClone(files), exits = [];
+  broken.find(file => file.path===recipe.units[0].entry).text = (await read('scaffolding/tests/semantic-invalid/enum-number.tower')).toString();
+  let expected;
+  try { await compileUnits({compiler,recipe,files:broken}); } catch (error) { expected = error.message; }
+  assert.ok(expected);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(),5000);
+  try {
+    await assert.rejects(compileUnits({compiler,recipe,files:broken,workers:2,signal:controller.signal,
+      createWorker:() => {
+        const worker = createWorker();
+        exits.push(new Promise(resolve => worker.once('exit',resolve)));
+        return {
+          postMessage:data => worker.postMessage(data),
+          terminate:() => worker.terminate(),
+          on:(event,listener) => worker.on(event,event==='message' ? data => {
+            // Hold an irrelevant later response to exercise adversarial delivery.
+            if (data.type!=='result' || data.unit!==2) listener(data);
+          } : listener),
+        };
+      }}),error => error.message===expected);
+    await Promise.all(exits);
+    assert.equal(controller.signal.aborted,false);
+  } finally { clearTimeout(timeout); }
+});
+
 test('the dense Tower batch kernel vectorizes on native targets without changing baseline Wasm',async () => {
   const native = await loadLLVM(await read('build/browser-wasi-llvm/tower-cross.wasm'),undefined,grammar.foundation,undefined,grammar.bedrock,{tower:grammar.tower});
   native.configureModules({entry:recipe.units[0].entry,files,builtins:grammar,library:'.'});
