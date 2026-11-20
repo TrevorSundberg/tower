@@ -20338,3 +20338,59 @@ manifest URL now matches the local manifest exactly, SHA-256
 45d89840f775bf17058c14d39ee75d1ea297ccdd2343956b1c11745987db057d;
 its IDE validation commit is 03b8d43. Evidence: build/ide-final-manifest-check.json.
 This final journal-only completion record changes no deployed payload or tests.
+
+Final publication/network integration: source commits 4885b97 and 8426c78 were
+pushed normally. Prepared Pages commit 72aed7a passed local asset/desktop/mobile
+verification, but its upload failed with curl 55 / OpenSSL "decryption failed or
+bad record mac". The remote stayed at 4d3d19f; the misleading trailing Git
+"Everything up-to-date" did not mean success. A normal HTTP/1.1 retry with a
+268435456-byte postBuffer (certificate verification retained) prepared an 84.96
+MiB pack but encountered very low throughput and packet retransmissions. The
+connected GitHub API could not provide an alternate blob upload: HTTP 403,
+"Resource not accessible by integration". No ref was forced or certificate
+check disabled.
+
+At the user's request to retry on a new connection, terminated only this turn's
+still-running upload and checked the remote before restarting. gh-pages had
+advanced through 60d9453 to 7d63df1b74edc9cad8d6988d8a30e226193ad6b2. The required
+pull advanced main to ac6c13b, incorporating the other owner's Tower IDE port.
+The newer published package explicitly integrates this allocator migration.
+Compared memory.tower, memory-libc.tower, guest-memory.tower and guest-wasm.tower
+in its compiler recipe against the committed sources: all match exactly.
+Inspected its decompressed support-tower archive with llvm-ar/nm: the retained
+compiler-memory.cpp object defines only tower_allocate/reallocate/deallocate/trap,
+not compiler_host_reallocate/deallocate. Thus the already published compiler
+uses the new Tower libc bindings; do not overwrite its newer IDE/template work
+with the older candidate. The unpublished 72aed7a artifact set is retained under
+build/runtime-port/candidate-4885b97-dist and its old compiler recipe beside it.
+The deployment worktree now points cleanly at the newer published release.
+
+Validation against those exact published reactors: all 65 focused memory,
+compiler-project and hover Node checks pass (4.63 s). Both successor generations
+pass edited semantic behavior and identical-byte checks: 892,612 / 52,087,832 /
+63,645,197 bytes. The full hosted verifier passes all 70 exact asset hashes,
+desktop/mobile execution, grammar, persistence, downloads, completion and Linux
+target defaults at https://tower-lang.org/. Manifest SHA-256:
+eb692d2cc3618b3c865228b3ad2d5e20fa6bab1b421ec1c01e8051f285c8fb61.
+Evidence: published-{symbols,node,successors}.log, hosted-deployment.log and
+hosted-report.json under build/runtime-port. No full browser overwrite/re-upload
+was necessary after the newer combined publication was verified.
+
+Rebuilt/redeployed native from ac6c13b through build-native.sh; all four focused
+CTest targets pass (16.57 s), and the deployed compiler again passes guest
+runtime/output checks under 32/64-bit interpretation plus native/Wasm execution.
+Its SHA-256 is 59a6c8a5cb375cd4f4c4d99587c2ac2f1bca9390c7d7e48c2caf4840a4c0a86c,
+superseding the prior native hash for this combined source. The canonical host
+memory object also passes the actual WASI allocation ABI fixture after relinking,
+not just compilation (host-roundtrip-execution.log). Remaining work is the
+reserved-export, global/foreign-data and startup handoff above; runtime.c and the
+historical native seed remain until their replacements can be activated. This
+is a published, validated incremental port, not complete native runtime removal.
+No sanitizer/format sweep, new native implementation, force push or todo.txt edit
+was performed.
+
+Final synchronization pulled 5b77c88 and df2c247. These additions are journal/IDE
+validation metadata only; all 70 published asset hashes remain those already
+verified above. Preserved both append-only histories. Add allocator validation
+metadata on that newer Pages tip, retaining its source provenance and IDE/CLI
+records. No compiler/test rerun is needed for this metadata-only integration.
