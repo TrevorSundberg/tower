@@ -136,6 +136,26 @@ test('keywords, operators and function braces use Tower services and one locatio
   }
 });
 
+test('custom surface keywords and punctuation use the same component presenters',async({page})=>{
+  const text=`parse CoreDeclare = 'let' $name:Identifier ':' $type:CoreType ':=' $value:CoreValue '!';
+parse CoreReturn = 'give' $value:CoreOperand? '!';
+fn answer():i32 {
+  let result:i32 := 42!
+  give result!
+}`;
+  await source(page,text);await ready(page,text);
+  const requests=await page.evaluate(()=>window.documentQueries.length),tip=page.locator('.tw-language-hover');
+  for(const [token,line,signature] of [['let','let result','var result: i32'],[':=','let result','var result: i32'],['give','give result','fn answer(): i32']]) {
+    await page.locator('#editor .cm-line').filter({hasText:line}).scrollIntoViewIfNeeded();
+    await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+    const position=await point(page,token);await page.mouse.move(position.x,position.y);
+    await expect(tip.locator('.tw-hover-signature')).toHaveText(signature);
+    await expect(tip).toContainText('i32');
+    await page.mouse.move(0,0);await expect(tip).toHaveCount(0);
+  }
+  expect(await page.evaluate(()=>window.documentQueries.length)).toBe(requests);
+});
+
 test('foreach imports, compact alternatives and syntax-only loop tokens have useful cached hovers',async({page},info)=>{
   const text=await readFile(new URL('../../../scaffolding/examples/foreach.tower',import.meta.url),'utf8');
   await source(page,text);await ready(page,text);
@@ -342,7 +362,7 @@ test('hover shows attached documentation and typed signatures, suppressing name-
   const position=await point(page,'twice'),tip=page.locator('.tw-language-hover');
   await page.mouse.move(position.x,position.y);
   await expect(tip.locator('code')).toHaveText('fn twice(value: i32): i32');
-  await expect(tip).not.toContainText('Returns:');await expect(tip).not.toContainText('\nfunction\n');await expect(tip).toContainText('Result: 4 bytes');
+  await expect(tip).not.toContainText('Returns:');await expect(tip.getByText('function',{exact:true})).toHaveCount(0);await expect(tip).toContainText('Result: 4 bytes');
   await expect(tip).toContainText('Doubles the input. <b>This is plain text.</b>');
   await expect(tip.locator('b')).toHaveCount(0);
   await expect(tip).not.toContainText(/entity|components|Syntax/);

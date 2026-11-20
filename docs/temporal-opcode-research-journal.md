@@ -18569,3 +18569,29 @@ cad13e96c226e557e360db2b2805ad7a2c7eb60715df2eb27e6d134d513de4cc.
 The manifest records the source commit, rebuilt assets and 41 unchanged runtime
 or static assets retained from ea255504. These hosted browser results do not
 substitute for the still-pending physical Roku conformance/performance run.
+
+Integrated release validation: source 9744908 was rebased onto the parser-format
+migration edeae15 and then combined with Roku source 9058f7d/47dbce1. The newer Roku
+Pages release arrived before its source; waited for that source rather than
+overwriting the publication with older assets. All unrelated working changes,
+including todo.txt, remain intact. Rebuilt parser, LLVM/cross and their support
+archives from the combined source; each packaged reactor now has nine Tower units.
+All 44 focused hover/diagnostic/location checks pass on the combined reactor.
+
+Desktop/mobile hover and completion checks pass: 50/52 initially, with two false
+failures from Playwright whitespace normalization treating '\nfunction\n' as a
+substring of the new call description. Replaced that test assertion with an exact
+row-text lookup; both failed cases then passed. The new custom-surface browser
+test passes on both profiles and confirms hovering does not send a worker query.
+Reviewed the function tooltip screenshot: signature, operation description,
+result layout, location and literal attached comments remain; redundant labels
+are absent. The deliberately translucent preview still lets editor text through.
+Evidence: generic-hover-browser.log and generic-hover-browser-corrected.log.
+
+Two successive compiler builds pass edited semantic behavior and produce identical
+module bytes with 2 and 4 workers: tower 1061759, llvm 52050440, cross 63607715.
+Evidence: generic-hover-successors.log and compiler-workbench/generation{1,2}.json.
+The tested deployment manifest SHA-256 is
+957112792c7989fbb4f18d0acc6d5aedb287e1796bef8509f2d2c1535316eccc.
+Prepared publication includes both newer compiler changes and the generic ECS
+inspection dispatch. Hosted verification follows after normal Pages publication.
