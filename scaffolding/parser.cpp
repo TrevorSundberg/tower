@@ -3,6 +3,7 @@
 #include "compiler-parse-tree.hpp"
 #include "compiler-lexer-table.hpp"
 #include "compiler-lr.hpp"
+#include "foundation-values.hpp"
 #include <cstdlib>
 #include "parser.hpp"
 #include <string_view>
@@ -302,165 +303,29 @@ TowerNode* parser_match_create_subtree(TowerNode* parent, uint32_t id, size_t st
 }
 
 
+// Borrowed layout of Tower's request-owned stream; only native callback calls remain.
 struct Stream {
-  ParserStreamDestructor destructor = nullptr;
-  ParserStreamRead read = nullptr;
-  std::string error;
-  bool buffered = false;
-  TowerNode* buffered_node = nullptr;
-  uint32_t buffered_id = PARSER_ID_EOF;
-  size_t buffered_start = 0, buffered_length = 0;
-  std::string buffered_error;
+  ParserStreamDestructor destructor;
+  ParserStreamRead read;
+  uint32_t kind;
+  CoreName error;
+  bool buffered;
+  TowerNode* buffered_node;
+  uint32_t buffered_id;
+  size_t buffered_start, buffered_length;
+  CoreName buffered_error;
 };
-
-Stream* parser_stream_create(size_t userdata_bytes, ParserStreamDestructor destructor, ParserStreamRead read) {
-  void* memory = tower_memory_allocate(sizeof(Stream) + userdata_bytes);
-  Stream* stream = new (memory) Stream();
-  stream->destructor = destructor;
-  stream->read = read;
-  return stream;
-}
 
 void parser_stream_destroy(Stream* stream) {
-  if (stream->buffered_node) tower_node_release_ref(stream->buffered_node);
-  if (stream->destructor) {
-    stream->destructor(stream, parser_stream_get_userdata(stream));
-  }
-  stream->~Stream();
-  tower_memory_free(stream);
+  parser_stream_discard(stream);
+  if (stream->destructor) stream->destructor(stream, parser_stream_get_userdata(stream));
+  parser_stream_dispose(stream);
 }
 
-void* parser_stream_get_userdata(Stream* stream) {
-  if (stream == nullptr) {
-    return nullptr;
-  }
-  return ((uint8_t*)stream) + sizeof(Stream);
-}
-
-Stream* parser_stream_from_userdata(void* userdata) {
-  if (userdata == nullptr) {
-    return nullptr;
-  }
-  return (Stream*)((uint8_t*)userdata - sizeof(Stream));
-}
-
-TowerNode* parser_stream_read(
-  Stream* stream,
-  uint32_t* id,
-  size_t* start_index,
-  size_t* length
-) {
-  if (stream->buffered) {
-    stream->buffered = false;
-    *id = stream->buffered_id; *start_index = stream->buffered_start; *length = stream->buffered_length;
-    stream->error = std::move(stream->buffered_error);
-    auto* node = stream->buffered_node; stream->buffered_node = nullptr;
-    return node;
-  }
-  stream->error.clear();
-  return stream->read(stream, parser_stream_get_userdata(stream), id, start_index, length);
-}
-
-const char* parser_stream_get_error(Stream* stream) {
-  return stream->error.c_str();
-}
-
-void parser_stream_set_error(Stream* stream, const char* error) {
-  stream->error = error;
-}
-
-struct StreamUtf8 {
-  CompilerText data;
-  const char* utf8_begin = nullptr;
-  bool allocation_failed = false;
-};
-
-TowerNode* parser_stream_utf8_read(
-  Stream* stream,
-  void* userdata,
-  uint32_t* id,
-  size_t* start_index,
-  size_t* length
-) {
-  StreamUtf8* stream_utf8 = (StreamUtf8*)userdata;
-  const auto& data = stream_utf8->data;
-  const char*& utf8_begin = stream_utf8->utf8_begin;
-
-  if (stream_utf8->allocation_failed) parser_stream_set_error(stream, "Unable to allocate UTF-8 stream source");
-  size_t bytes_read = stream_utf8->allocation_failed ? 0 : parser_decode_utf8_codepoint(utf8_begin, data.c_str() + data.size(), id);
-  if (bytes_read > 0) {
-    *length = bytes_read;
-    *start_index = utf8_begin - data.c_str();
-    utf8_begin += bytes_read;
-  } else {
-    *id = PARSER_ID_EOF;
-    *start_index = PARSER_ID_EOF;
-    *length = 0;
-  }
-
-  // The utf8 stream does not create tower nodes
-  return nullptr;
-}
-
-Stream* parser_stream_utf8_null_terminated_create(const char* utf8) {
-  const char* utf8_end = utf8 + strlen(utf8);
-  return parser_stream_utf8_create(utf8, utf8_end);
-}
-
-Stream* parser_stream_utf8_create(const char* utf8_begin, const char* utf8_end) {
-  Stream* stream = parser_stream_create(sizeof(StreamUtf8), [](Stream*, void* userdata) {
-    ((StreamUtf8*)userdata)->~StreamUtf8();
-  }, parser_stream_utf8_read);
-  void* userdata = parser_stream_get_userdata(stream);
-  StreamUtf8* stream_utf8 = new (userdata) StreamUtf8();
-  stream_utf8->allocation_failed = !stream_utf8->data.assign({utf8_begin, size_t(utf8_end - utf8_begin)});
-  stream_utf8->utf8_begin = stream_utf8->data.c_str();
-  return stream;
-}
-
-
-struct StreamRecognizer {
-  Recognizer* recognizer = nullptr;
-  bool complete = false;
-};
-
-TowerNode* parser_stream_recognizer_read(
-  Stream* stream,
-  void* userdata,
-  uint32_t* id,
-  size_t* start_index,
-  size_t* length
-) {
-  StreamRecognizer* stream_recognizer = (StreamRecognizer*)userdata;
-  bool running = !stream_recognizer->complete;
+TowerNode* parser_stream_read(Stream* stream, uint32_t* id, size_t* start_index, size_t* length) {
   TowerNode* node = nullptr;
-  while (running && !node) {
-    node = parser_recognizer_step(stream_recognizer->recognizer, &running);
-  }
-  stream_recognizer->complete = !running;
-  stream->error = parser_recognizer_get_error(stream_recognizer->recognizer);
-
-  if (node) {
-    Match* match = (Match*)tower_node_get_component_userdata(node, parser_match_get_type());
-    assert(match);
-    *id = parser_match_get_id(match);
-    *start_index = parser_match_get_start(match);
-    *length = parser_match_get_length(match);
-    return node;
-  }
-
-  *id = PARSER_ID_EOF;
-  *start_index = PARSER_ID_EOF;
-  *length = 0;
-  return nullptr; 
-}
-
-Stream* parser_stream_recognizer_create(Recognizer* recognizer) {
-  Stream* stream = parser_stream_create(sizeof(StreamRecognizer), nullptr, parser_stream_recognizer_read);
-  void* userdata = parser_stream_get_userdata(stream);
-  StreamRecognizer* stream_recognizer = new (userdata) StreamRecognizer();
-  stream_recognizer->recognizer = recognizer;
-  return stream;
+  if (parser_stream_poll(stream, id, start_index, length, &node)) return node;
+  return stream->read(stream, parser_stream_get_userdata(stream), id, start_index, length);
 }
 
 struct GrammarRule;
@@ -742,6 +607,7 @@ struct StateEdge {
 
 struct State {
   const Table* table = nullptr;
+  LRRuntime* runtime = nullptr;
   size_t index = 0;
   std::vector<LR0Item> diagnostic_items; // derived grammar positions, error path only
   const GrammarSymbol* symbol = nullptr;
@@ -993,6 +859,7 @@ struct Recognizer {
   ParseForestStore* forest = nullptr;
   Stream* stream = nullptr;       // Borrowed; caller keeps both dependencies alive.
   const Table* table = nullptr;
+  LRRuntime* runtime = nullptr;
   TowerNode* read_node_or_null = nullptr; // Owned lookahead, transferred on shift.
   uint32_t read_id = PARSER_ID_EOF;
   size_t read_start = 0;
@@ -1000,36 +867,11 @@ struct Recognizer {
   bool complete = false;
   bool has_lookahead = false;
   bool prefix = false;
-  std::string lookahead_error;
-  std::string error;
+  CoreName lookahead_error;
+  CoreName error;
   ParserWork work;
 };
 
-void parser_recognizer_read_id(Recognizer* recognizer) {
-  assert(!recognizer->read_node_or_null);
-  ++recognizer->work.reads;
-  recognizer->read_node_or_null = parser_stream_read(
-    recognizer->stream, &recognizer->read_id,
-    &recognizer->read_start, &recognizer->read_length);
-  if (recognizer->read_id == PARSER_ID_EOF) {
-    // Streams historically report the EOF sentinel as the position. Empty
-    // reductions instead need a real source gap, including on an empty input.
-    if (recognizer->read_start == PARSER_ID_EOF || recognizer->read_start == TOWER_INVALID_INDEX)
-      recognizer->read_start = lr_parser_consumed(recognizer->control);
-    recognizer->read_length = 0;
-  }
-  recognizer->lookahead_error = parser_stream_get_error(recognizer->stream);
-  if (recognizer->capture_completion && recognizer->read_id == PARSER_ID_EOF && recognizer->lookahead_error.empty()) {
-    lr_completion_destroy(recognizer->completion);
-    recognizer->completion = lr_completion_create(recognizer->control);
-  }
-  recognizer->has_lookahead = true;
-}
-
-void parser_recognizer_capture_completion(Recognizer* r) { r->capture_completion = true; }
-LRCompletion* parser_recognizer_take_completion(Recognizer* r) {
-  auto* result = r->completion; r->completion = nullptr; return result;
-}
 LRCompletion* parser_table_completion(Table* table) {
   auto* parser = lr_parser_create(table->runtime, true, false);
   auto* result = lr_completion_create(parser); lr_parser_destroy(parser); return result;
@@ -1037,14 +879,8 @@ LRCompletion* parser_table_completion(Table* table) {
 
 static Recognizer* parser_recognizer_create_mode(Table* table, Stream* stream, bool prefix) {
   assert(table && !table->states.empty() && stream);
-  void* memory = tower_memory_allocate(sizeof(Recognizer));
-  Recognizer* recognizer = new (memory) Recognizer();
-  recognizer->forest = parse_forest_create();
-  recognizer->control = lr_parser_create(table->runtime, prefix, !parser_debug_trace);
-  if (!recognizer->forest || !recognizer->control) std::abort();
-  recognizer->stream = stream;
-  recognizer->table = table;
-  recognizer->prefix = prefix;
+  auto* recognizer = parser_request_create(table->runtime, table, stream, prefix, !parser_debug_trace);
+  if (!recognizer) std::abort();
   return recognizer;
 }
 
@@ -1058,57 +894,11 @@ Recognizer* parser_recognizer_create_prefix(Table* table, Stream* stream) {
 }
 
 ParserWork parser_recognizer_get_work(const Recognizer* recognizer) {
-  auto work = recognizer->work;
-  LRWork control; lr_parser_work(recognizer->control, &control);
-  work.actions += control.actions; work.shifts += control.shifts;
-  work.reductions += control.reductions; work.popped += control.popped;
-  work.forest_visits = parse_forest_visits(recognizer->forest); return work;
+  ParserWork result; parser_request_work(recognizer, &result); return result;
 }
 
 ParserLookahead parser_recognizer_lookahead(Recognizer* recognizer) {
-  if (!recognizer) return {};
-  const auto count = lr_parser_frame_count(recognizer->control);
-  if (!count) return {};
-  LRFrame frame; lr_parser_frame(recognizer->control, count - 1, &frame);
-  return {recognizer->table->runtime, frame.state};
-}
-void parser_recognizer_account_lookahead(Recognizer* recognizer, size_t checks) {
-  if (recognizer) recognizer->work.actions += checks;
-}
-bool parser_recognizer_accepts(Recognizer* recognizer, uint32_t id) {
-  auto context = parser_recognizer_lookahead(recognizer);
-  if (!context.runtime) return false;
-  parser_recognizer_account_lookahead(recognizer, 1);
-  LRAction action; return lr_runtime_action(context.runtime, context.state, id, &action);
-}
-
-static void parser_return_lookahead(Recognizer* recognizer) {
-  if (!recognizer->has_lookahead) return;
-  auto* stream = recognizer->stream;
-  assert(!stream->buffered);
-  stream->buffered = true;
-  stream->buffered_node = recognizer->read_node_or_null;
-  stream->buffered_id = recognizer->read_id;
-  stream->buffered_start = recognizer->read_start;
-  stream->buffered_length = recognizer->read_length;
-  stream->buffered_error = std::move(recognizer->lookahead_error);
-  stream->error.clear();
-  recognizer->read_node_or_null = nullptr;
-  recognizer->has_lookahead = false;
-}
-
-void parser_recognizer_destroy(Recognizer* recognizer) {
-  if (recognizer) lr_completion_destroy(recognizer->completion);
-  if (!recognizer) return;
-  parse_forest_destroy(recognizer->forest);
-  lr_parser_destroy(recognizer->control);
-  if (recognizer->read_node_or_null) tower_node_release_ref(recognizer->read_node_or_null);
-  recognizer->~Recognizer();
-  tower_memory_free(recognizer);
-}
-
-const char* parser_recognizer_get_error(Recognizer* recognizer) {
-  return recognizer->error.c_str();
+  ParserLookahead result; parser_request_lookahead(recognizer, &result); return result;
 }
 
 #ifdef TOWER_EXPANSION_SEED
@@ -1232,7 +1022,7 @@ ParserDiagnostic parser_recognizer_diagnostic(Recognizer* r, ParserDiagnosticRea
 static void parser_unexpected(Recognizer* recognizer) {
   recognizer->error = recognizer->lookahead_error.empty() ?
     "Unexpected " + (recognizer->read_id == PARSER_ID_EOF ? std::string("end of input") : debug_str(recognizer->read_id, recognizer->table->grammar))
-    + "." : recognizer->lookahead_error;
+    + "." : std::string(recognizer->lookahead_error.view());
   recognizer->complete = true;
 }
 
@@ -1241,13 +1031,7 @@ TowerNode* parser_recognizer_step(Recognizer* recognizer, bool* running) {
   *running = false;
   if (recognizer->complete) return nullptr;
   LRStep step;
-  auto advance = [&] {
-    return lr_parser_step(recognizer->control, recognizer->has_lookahead,
-      recognizer->read_id, !recognizer->lookahead_error.empty(),
-      recognizer->read_start, recognizer->read_length, &step);
-  };
-  auto kind = advance();
-  if (kind == LR_NEED_INPUT) { parser_recognizer_read_id(recognizer); kind = advance(); }
+  auto kind = parser_request_next(recognizer, &step);
   if (kind == LR_UNEXPECTED) { parser_unexpected(recognizer); return nullptr; }
   if (kind == LR_EMPTY_PREFIX) {
     recognizer->error = "Prefix construct must consume input";

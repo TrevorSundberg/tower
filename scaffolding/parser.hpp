@@ -14,8 +14,8 @@ struct Recognizer;
 
 inline constexpr uint32_t PARSER_ID_EOF = (uint32_t)-2;
 struct LRCompletion;
-void parser_recognizer_capture_completion(struct Recognizer*);
-LRCompletion* parser_recognizer_take_completion(struct Recognizer*);
+extern "C" void parser_recognizer_capture_completion(struct Recognizer*);
+extern "C" LRCompletion* parser_recognizer_take_completion(struct Recognizer*);
 LRCompletion* parser_table_completion(struct Table*);
 
 // Enable verbose table-building and recognizer traces (off by default).
@@ -209,17 +209,17 @@ typedef TowerNode* (*ParserStreamRead)(
 );
 
 // Create a stream that the parser will consume
-Stream* parser_stream_create(size_t userdata_bytes, ParserStreamDestructor destructor, ParserStreamRead read);
+extern "C" Stream* parser_stream_create(size_t userdata_bytes, ParserStreamDestructor destructor, ParserStreamRead read);
 
 // Destroy a parser stream
-void parser_stream_destroy(Stream* stream);
+extern "C" void parser_stream_destroy(Stream* stream);
 
 // Get a pointer to the arbitrary data section of the stream
 // The size of the data section matches userdata_bytes passed in parser_stream_create
-void* parser_stream_get_userdata(Stream* stream);
+extern "C" void* parser_stream_get_userdata(Stream* stream);
 
 // From a pointer to a component's data section, get the original Stream
-Stream* parser_stream_from_userdata(void* data);
+extern "C" Stream* parser_stream_from_userdata(void* data);
 
 // Returns an optional tower node, and an id from reading the next character or token
 // The id of PARSER_ID_EOF means the stream is completed
@@ -228,7 +228,7 @@ Stream* parser_stream_from_userdata(void* data);
 // The start and length between consecutive valid reads must never overlap
 // A non-null returned node transfers one owned reference to the caller and must
 // be unattached. Its payload/children are preserved by the consuming recognizer.
-TowerNode* parser_stream_read(
+extern "C" TowerNode* parser_stream_read(
   Stream* stream,
   uint32_t* id,
   size_t* start_index,
@@ -239,23 +239,23 @@ TowerNode* parser_stream_read(
 // Canonically this is used for tokenization in tower
 // This stream does not return tower nodes, and the ids returned are utf8 decoded codepoints
 // Note that the string memory is copied in and owned by the stream
-Stream* parser_stream_utf8_null_terminated_create(const char* utf8);
+extern "C" Stream* parser_stream_utf8_null_terminated_create(const char* utf8);
 
 // Create a specialized utf8 reading stream (also works for ASCII)
 // Canonically this is used for tokenization in tower
 // This stream does not return tower nodes, and the ids returned are utf8 decoded codepoints
 // Note that the string memory is copied in and owned by the stream
-Stream* parser_stream_utf8_create(const char* utf8_begin, const char* utf8_end);
+extern "C" Stream* parser_stream_utf8_create(const char* utf8_begin, const char* utf8_end);
 
 // Create a specialized node reading stream that reads from the output of another Recognizer
 // Lazily exposes the recognizer's one completed root as a token, then EOF.
 // This is not a repeated/maximal-munch tokenizer. The recognizer must remain alive
 // until this stream is destroyed. Recognition failure propagates to a consuming recognizer.
-Stream* parser_stream_recognizer_create(Recognizer* recognizer);
+extern "C" Stream* parser_stream_recognizer_create(Recognizer* recognizer);
 
 // Empty unless this stream has reported an error (currently used by recognizer streams).
-const char* parser_stream_get_error(Stream* stream);
-void parser_stream_set_error(Stream* stream, const char* error);
+extern "C" const char* parser_stream_get_error(Stream* stream);
+extern "C" void parser_stream_set_error(Stream* stream, const char* error);
 
 
 // Virtual reference resolution for the table
@@ -346,10 +346,10 @@ struct ParserWork {
 };
 ParserWork parser_recognizer_get_work(const Recognizer* recognizer);
 // Current LR ACTION lookup; no speculative reductions or backtracking.
-bool parser_recognizer_accepts(Recognizer* recognizer, uint32_t id);
+extern "C" bool parser_recognizer_accepts(Recognizer* recognizer, uint32_t id);
 
 // Destructs the parser and frees it's memory
-void parser_recognizer_destroy(Recognizer* recognizer);
+extern "C" void parser_recognizer_destroy(Recognizer* recognizer);
 
 // Perform one shift/reduction. running is an output, false on acceptance or error.
 // On acceptance, transfers one owned reference to the root; caller must release it.
@@ -357,10 +357,10 @@ void parser_recognizer_destroy(Recognizer* recognizer);
 // Destroying an unfinished recognizer releases all partial nodes and lookahead.
 // The accepted root survives recognizer/table/stream destruction. Reduction callbacks
 // and repeated tokenization are not implemented by this interface yet.
-TowerNode* parser_recognizer_step(Recognizer* recognizer, bool* running);
+extern "C" TowerNode* parser_recognizer_step(Recognizer* recognizer, bool* running);
 
 // Empty on success/in-progress; otherwise a diagnostic owned by the recognizer.
-const char* parser_recognizer_get_error(Recognizer* recognizer);
+extern "C" const char* parser_recognizer_get_error(Recognizer* recognizer);
 
 // Error-only lookahead correction. Probes copy numeric state frames, never trees or
 // streams, and have fixed work limits. Unknown/budget-exhausted probes are omitted.
@@ -382,7 +382,7 @@ struct LRRuntime;
 // Borrowed immutable table and a valid current state, shared with Tower's lexer.
 struct ParserLookahead { LRRuntime* runtime = nullptr; size_t state = TOWER_INVALID_INDEX; };
 ParserLookahead parser_recognizer_lookahead(Recognizer* recognizer);
-void parser_recognizer_account_lookahead(Recognizer* recognizer, size_t checks);
+extern "C" void parser_recognizer_account_lookahead(Recognizer* recognizer, size_t checks);
 using ParserDiagnosticRead = bool (*)(void*, size_t&, const ParserLookahead&, uint32_t&);
 ParserDiagnostic parser_recognizer_diagnostic(Recognizer* recognizer,
   ParserDiagnosticRead read = nullptr, void* source = nullptr);

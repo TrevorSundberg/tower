@@ -17378,3 +17378,109 @@ behavior without worker requests. Evidence is in `build/hover-followup-live.log`
 `build/hover-followup-live-browser.log`, and `build/hover-followup-live-report.json`.
 The final implementation is pushed on main; unrelated local journal additions,
 AGENTS.md, foundation documentation, and todo.txt were preserved.
+
+## 2026-11-20: move mutable parser streams and recognizer ownership into Tower
+
+Pulled main to 55cd34d, retaining the newer grammar-hover changes. The next
+session-isolation dependency is request-local parser ownership: LR control and
+forest algorithms are already Tower, but stream buffers and recognizer lifetime
+remain native. Move those into Tower with the existing shared forest/entities.
+Keep native callback invocation, immutable table presentation and diagnostic text
+at their existing interface boundaries; add no native shim or implementation.
+Preserve copied UTF-8 input, EOF positions, prefix lookahead ownership/errors,
+completion snapshots, cancellation cleanup and work accounting. Use Tower tests
+for independent interleaved requests, failures and teardown, plus existing native
+and browser differential suites. This does not yet move native SyntaxSession or
+grammar registries into explicit worlds; it removes a mutable-state dependency of
+that migration. Baseline reactor saved to build/language-next/parser-state-baseline.
+
+Implemented parser-stream.tower and parser-state.tower. Stream source/error and
+lookahead storage use Tower vectors; specialized UTF-8 and recognizer streams use
+the existing Tower decoder and shared match components. A poll protocol retains
+only the existing native callback call sites. Prefix return transfers node/error
+ownership without allocation. Recognizers own LR control, forest, completion and
+lookahead references in Tower; the diagnostic table and input stream remain
+borrowed. The request API takes the existing LR runtime plus an opaque diagnostic
+context, independently of C++ SyntaxSession. The remaining step adapter only
+connects existing table presentation/tree interfaces; no new native implementation,
+wrapper or fallback seed was added. This is request-state ownership, not a claim
+that concurrent mutation of the legacy default world is safe.
+
+Removed 216 lines net from parser.cpp; 14 borrowed ABI declarations connect the
+Tower replacements, for a net removal of 202 production native lines. Upstream
+hover changes added 16 native lines since the last inventory, so the current total
+is 6,244 lines across 54 production files. Native tests/bootstrap counts are
+unchanged. Native SyntaxSession/baseline/grammar registries, diagnostics, callback
+invocation, host/runtime transports and portable distribution still remain.
+
+Tower functional tests cover copied ASCII/multibyte input, invalid/truncated UTF-8,
+stable EOF, userdata identity, size overflow, source-copy failure, interleaved
+requests sharing immutable tables, retained output/completion after request
+teardown, buffered node/error transfer and abandoned lookahead cleanup. Failure
+injection walks request construction allocations and checks cleanup of partial
+forest/control allocations. Review caught that parse_forest_destroy requires a
+non-null forest; request cleanup guards partially initialized ownership. The first
+native compile also caught a missing include for the existing borrowed CoreName
+view; corrected the include and both error-buffer layouts before running checks.
+The legacy source-copy failure boundary is preserved with the existing node
+allocator interface, mechanically exposed with C linkage; no new native allocator.
+
+Native backend API checks pass. Built native towerc/tower-backend-tests, native
+ASAN/UBSAN tower-parser-tests, parser WASI, and LLVM/cross WASI with the established
+WSL caches and bootstrap. The sanitizer harness passes in 157.96 seconds including
+new Tower fixtures and existing differential/lifetime/scaling/formatter coverage.
+All 352 Node/Wasm tests pass, preserving the newer upstream hover regressions.
+Formatting used format-tower.mjs --write before validation. Reports are under
+build/language-next/parser-state-{native,api,parser-build,parser,node}.log.
+
+Both successor generations (2 then 4 workers) pass, including edited semantic and
+syntax-only behavior, and produce identical bytes. Hashes: tower
+7b4acf10334c935a91683b9be2140867c3d7aabd23618b3e68ce376ef34f763b; llvm
+e9059f2005e126b2a247ef5ea3ee6486b7dafde9c5cc4766d57bd2b5c31db295; cross
+82835f31bf5f0261f62cb63d1568a661b3da7ca17c276f0fe34095571e86ec68.
+The packaged native-support archives are smaller after removing the moved symbols.
+These remain hybrid compiler successors, not standalone pure Tower distributions.
+Evidence: parser-state-package.log, parser-state-successors.log and
+build/compiler-workbench/generation{1,2}.json. Local publication verification
+passes all 69 assets and both desktop/mobile profiles; report saved as
+parser-state-local-report.json. Manifest SHA-256:
+a6df400e22cf2906ec528e771c077154e4f536c561e0859859de2e559b77bf43.
+
+Next isolate grammar baseline/snapshot registries and SyntaxSession lifetime in
+explicit worlds, reusing the existing shared grammar entities and derived views.
+This port removes mutable stream/recognizer storage as one dependency, while
+native callbacks/table diagnostics still need Tower replacements. Within-unit
+parallel scheduling is not added here; the existing unit-worker builds still pass.
+
+Browser validation initially passed 80 checks with one intentional mobile
+successor-build skip, but the new upstream foreach hover test failed on mobile
+at the foundation import. Three focused repeats reproduced it. Investigated the
+Playwright trace and instrumented browser events: mousemove reached the correct
+identifier at 575.5 ms, then cm-scroller dispatched scroll at 577.4 ms and the
+existing hover handler correctly dismissed the tooltip. A 1-pixel subsequent
+mousemove displayed the correct module metadata. This was a harness event-order
+race, not missing compiler metadata. A rejected trial waited for a new worker
+reply, but identical source intentionally reuses its cached query; that wait timed
+out and was removed. The existing JS browser transport test now waits two animation
+frames after programmatic scrolling before moving the mouse. Product UI and
+compiler behavior are unchanged by this harness fix. Evidence:
+parser-state-browser.log, parser-state-hover-recheck.log,
+parser-state-hover-ready.log (rejected trial), parser-state-hover-events.log.
+
+After the harness correction, all 78 hover executions pass (every desktop/mobile
+hover test repeated three times), including the formerly failing import check.
+The remaining 80 checks from the full browser run passed; the one mobile full
+compiler-successor skip is intentional. No product change was needed for the
+scroll race. See parser-state-hover-final.log.
+
+With all other builds/tests stopped, the benchmark uses six warmups and 16
+alternating baseline/current pairs. Every emitted object matches byte-for-byte.
+Median milliseconds before -> after: templates 6.00375 -> 6.07355; depth-1024
+layouts 17.5268 -> 17.58195; compiler-host 154.4834 -> 154.1769. The largest median
+increase is 1.17%, within observed variation; no material time regression was
+observed in these workloads. The saved baseline is the previous published
+integration 3fc8e62 (reactor d662a2e3e3d1d75889bbfc84e101b855576121b2dac062bb3a58309f9078e785);
+this checkout also includes the pulled 55cd34d hover improvements. This comparison
+does not isolate those upstream changes or claim unmeasured memory/workload
+performance. Full timings, CPU/Node versions and hashes are saved in
+parser-state-benchmark.json and parser-state-benchmark.log. todo.txt is unchanged.

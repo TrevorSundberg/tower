@@ -14,10 +14,10 @@ void tower_tests();
 
 
 // Allocate memory and return a pointer to it, or null if the allocation fails
-void* tower_memory_allocate(size_t size);
+extern "C" void* tower_memory_allocate(size_t size);
 
 // Free a pointer to allocated memory
-void tower_memory_free(void* memory);
+extern "C" void tower_memory_free(void* memory);
 
 // Get how many tower allocations there have been
 size_t tower_memory_get_allocated_count();

@@ -109,6 +109,9 @@ test('foreach imports, compact alternatives and syntax-only loop tokens have use
     const lineText=token==='foundation'?'import foundation':token==='Expression'?'parse Expression':
       token==='child'||token==='children'?'for (child in children)':'for (item in items)';
     await page.locator('#editor .cm-line').filter({hasText:lineText}).scrollIntoViewIfNeeded();
+    // Scroll events deliberately dismiss hover. Let the programmatic scroll
+    // finish before sending the mouse movement that this assertion exercises.
+    await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
     // Select source-use tokens without matching a grammar literal or a substring.
     const position=token==='for'||token==='item'||token==='child'
       ?await page.locator('#editor .cm-line').filter({hasText:token==='for'?'for (item in items)':`for (${token} in`}).evaluate((line,token)=>{

@@ -1,0 +1,217 @@
+import tower;
+import 'parser-stream';
+import 'frontend-table';
+import 'lr-tree';
+
+extern fn parser_stream_read(stream: ParserStream*, id: u32*, start: usize*, length: usize*): void*;
+
+extern fn parse_forest_visits(forest: void*): usize;
+
+struct ParserRequestWork {
+    reads: usize;
+    actions: usize;
+    shifts: usize;
+    reductions: usize;
+    popped: usize;
+    forest_visits: usize;
+}
+
+struct ParserRequestLookahead {
+    runtime: LRRuntime*;
+    state: usize;
+}
+
+// Request-owned mutable state. Runtime/diagnostic context/stream are borrowed;
+// LR control, completion, forest and unread node references are owned here.
+struct ParserRequest {
+    capture_completion: bool;
+    completion: LRCompletion*;
+    control: LRParser*;
+    forest: void*;
+    stream: ParserStream*;
+    table: void*;
+    runtime: LRRuntime*;
+    read_node_or_null: void*;
+    read_id: u32;
+    read_start: usize;
+    read_length: usize;
+    complete: bool;
+    has_lookahead: bool;
+    prefix: bool;
+    lookahead_error: vector(u8);
+    error: vector(u8);
+    work: ParserRequestWork;
+}
+
+export fn parser_recognizer_destroy(request: ParserRequest*): void {
+    var missing = request == null;
+    if missing {
+        return;
+    }
+    lr_completion_destroy(request.completion);
+    var forest = request.forest != null;
+    if forest {
+        parse_forest_destroy(request.forest);
+    }
+    lr_parser_destroy(request.control);
+    var retained = request.read_node_or_null != null;
+    if retained {
+        entity_release(request.read_node_or_null);
+    }
+    vector_dispose(u8, &request.lookahead_error);
+    vector_dispose(u8, &request.error);
+    tower_memory_free(bits(void*, request));
+}
+
+// This API does not require a C++ table/session. The context is opaque and is
+// never interpreted by Tower; the remaining host uses it only for diagnostics.
+export fn parser_request_create(runtime: LRRuntime*, context: void*, stream: ParserStream*, prefix: bool, specialize: bool): ParserRequest* {
+    var missing = runtime == null;
+    if missing {
+        return null;
+    }
+    missing = stream == null;
+    if missing {
+        return null;
+    }
+    var request = bits(ParserRequest*, tower_memory_allocate(sizeof(ParserRequest)));
+    missing = request == null;
+    if missing {
+        return null;
+    }
+    fill(request, 0, sizeof(ParserRequest));
+    request.stream = stream;
+    request.table = context;
+    request.runtime = runtime;
+    request.read_id = ParserStreamEnd();
+    request.prefix = prefix;
+    request.forest = parse_forest_create();
+    request.control = lr_parser_create(runtime, prefix, specialize);
+    missing = request.forest == null;
+    if missing {} else {
+        missing = request.control == null;
+    }
+    if missing {
+        parser_recognizer_destroy(request);
+        return null;
+    }
+    return request;
+}
+
+export fn parser_recognizer_capture_completion(request: ParserRequest*): void {
+    request.capture_completion = true;
+}
+
+export fn parser_recognizer_take_completion(request: ParserRequest*): LRCompletion* {
+    var result = request.completion;
+    request.completion = null;
+    return result;
+}
+
+export fn parser_recognizer_get_error(opaque: void*): u8* {
+    var request = bits(ParserRequest*, opaque);
+    return parser_state_text(&request.error);
+}
+
+export fn parser_recognizer_read_id(request: ParserRequest*): void {
+    var empty = request.read_node_or_null == null;
+    parser_state_require(empty);
+    request.work.reads = request.work.reads + 1;
+    request.read_node_or_null = parser_stream_read(request.stream, &request.read_id, &request.read_start, &request.read_length);
+    var end = request.read_id == ParserStreamEnd();
+    if end {
+        var gap = request.read_start == convert(usize, ParserStreamEnd());
+        if gap {} else {
+            gap = request.read_start == lr_none();
+        }
+        if gap {
+            request.read_start = lr_parser_consumed(request.control);
+        }
+        request.read_length = 0;
+    }
+    parser_state_assign(&request.lookahead_error, parser_stream_get_error(request.stream));
+    var capture = request.capture_completion;
+    if capture {
+        capture = end;
+    }
+    if capture {
+        capture = request.lookahead_error.length == 0;
+    }
+    if capture {
+        lr_completion_destroy(request.completion);
+        request.completion = lr_completion_create(request.control);
+    }
+    request.has_lookahead = true;
+}
+
+export fn parser_return_lookahead(request: ParserRequest*): void {
+    if request.has_lookahead {} else {
+        return;
+    }
+    parser_stream_return(request.stream, &request.read_node_or_null, request.read_id, request.read_start, request.read_length, &request.lookahead_error);
+    request.has_lookahead = false;
+}
+
+// Advance ordinary LR control, requesting at most one stream token per step.
+export fn parser_request_next(request: ParserRequest*, step: LRStep*): u32 {
+    var error = request.lookahead_error.length != 0;
+    var kind = lr_parser_step(request.control, request.has_lookahead, request.read_id,
+    error, request.read_start, request.read_length, step);
+    var input = kind == 0;
+    if input {
+        parser_recognizer_read_id(request);
+        error = request.lookahead_error.length != 0;
+        kind = lr_parser_step(request.control, request.has_lookahead, request.read_id,
+        error, request.read_start, request.read_length, step);
+    }
+    return kind;
+}
+
+export fn parser_request_work(request: ParserRequest*, result: ParserRequestWork*): void {
+    copy(result, &request.work, sizeof(ParserRequestWork));
+    var work: LRWork;
+    lr_parser_work(request.control, &work);
+    result.actions = result.actions + work.actions;
+    result.shifts = result.shifts + work.shifts;
+    result.reductions = result.reductions + work.reductions;
+    result.popped = result.popped + work.popped;
+    result.forest_visits = parse_forest_visits(request.forest);
+}
+
+export fn parser_request_lookahead(request: ParserRequest*, result: ParserRequestLookahead*): void {
+    result.runtime = null;
+    result.state = lr_none();
+    var missing = request == null;
+    if missing {
+        return;
+    }
+    var count = lr_parser_frame_count(request.control);
+    var empty = count == 0;
+    if empty {
+        return;
+    }
+    var frame: LRFrame;
+    var last = count - 1;
+    lr_parser_frame(request.control, last, &frame);
+    result.runtime = request.runtime;
+    result.state = frame.state;
+}
+
+export fn parser_recognizer_account_lookahead(request: ParserRequest*, checks: usize): void {
+    var present = request != null;
+    if present {
+        request.work.actions = request.work.actions + checks;
+    }
+}
+
+export fn parser_recognizer_accepts(request: ParserRequest*, id: u32): bool {
+    var context: ParserRequestLookahead;
+    parser_request_lookahead(request, &context);
+    var missing = context.runtime == null;
+    if missing {
+        return false;
+    }
+    parser_recognizer_account_lookahead(request, 1);
+    var action: LRAction;
+    return lr_runtime_action(context.runtime, context.state, id, &action);
+}

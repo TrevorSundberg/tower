@@ -169,8 +169,13 @@ fn frontend_test_pattern_reader(kinds: FrontendKinds*): usize {
 }
 
 export fn frontend_bedrock_tests(kinds: FrontendKinds*): usize {
-    var result = frontend_cache_tests(kinds);
+    var result = parser_state_tests(kinds);
     var failed = result != 0;
+    if failed {
+        return result;
+    }
+    result = frontend_cache_tests(kinds);
+    failed = result != 0;
     if failed {
         return result;
     }
