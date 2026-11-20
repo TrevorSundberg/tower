@@ -14915,6 +14915,30 @@ The final packaged distribution manifest SHA-256 is
 63604e5eeddcf1abdc787c851d79a786f3925d7849bc33e3e04ceaae8c483e27.
 Publication and hosted verification are recorded below after completion.
 
+A second final pull brought c0aaf2d (Tower-owned parser stream/recognizer state).
+Again preserved both journal sections; no compiler-code conflicts occurred.
+Rebuilt all four artifacts and support archives with the same bootstrap/config.
+The matched performance figures above remain measurements of the e14f0fd
+integration; they were not rerun against c0aaf2d. Do not attribute the upstream
+parser ownership migration's performance to this optimization.
+
+Final c0aaf2d integration validation passes all 353 Node/Wasm tests (71.71 s),
+all five native ASan/UBSan targets (168.68 s), native CLI output/object checks,
+and two deterministic compiler successor generations. These runs intentionally
+overlap and their wall times are validation evidence, not speed measurements.
+Generation-two edited-diagnostic hashes: parser
+98c283a3a715e08cc88cb57aa21c8397f3858d4226b7da131229f0122cbfc06e,
+LLVM 286a02f18933d532000b85fd93c38b2ba45d6671fcb4f0ffb3f919da246be385,
+cross 959d8a23d31a2b8f8aaff5003a59ed2a9ca91c61d78c2fb2a291b005591cde05.
+Local deployment verification matches all 69 assets and passes both browser
+profiles. Evidence uses the final- prefix under build/compiler-performance,
+including final-local-report.json. Superseding distribution manifest SHA-256:
+aeb6c9234067b991b9424fa988261af60c99ab3d80b8f7934f4126fd6630e890.
+The final focused browser rerun passes 81 checks with the same single intentional
+mobile compiler-successor skip; see final-browser.log. The upstream ecaab92
+follow-up contains only its release journal, so incorporating it does not alter
+these compiled sources or packaged assets.
+
 Published and verified:
 Implementation/validation source e5ef1e623612db6b371236789c6a661471dc4e51 is pushed
 to main. The final pull was current. Published the tested 52-asset build as
