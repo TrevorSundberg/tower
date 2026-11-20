@@ -71,7 +71,13 @@
     "worker.js.map": "0a268a2c98e18c3d8f14c12302436d34f89b375acb3dce8ef203a7b1ff517634"
   },
   "sourceCommit": "b5307be2a6586b7ff2d3a4219055c1dce6da0e7e",
-  "previousDeployment": "e835bd4f5709466ff79c170d9702e0714949a025",
+  "previousDeployment": "a6bacafb0bc2aa9e42d42a5dbe93d798303266f0",
   "scope": "Module scopes and import aliases, with Tower-owned parser tables and plain-language hover explanations",
-  "buildNote": "Complete playground bundle rebuilt with required parser, LLVM, cross-target and ten-unit editable compiler packages; native and browser validation recorded in the project journal."
+  "buildNote": "Complete playground bundle rebuilt with required parser, LLVM, cross-target and ten-unit editable compiler packages; native and browser validation recorded in the project journal.",
+  "nativeCli": {
+    "sourceCommit": "42a7afe632fde0b4ba124be2a57350025aa03c1a",
+    "scope": "Native CLI host policies migrated to Tower; browser asset bytes are unchanged.",
+    "validation": "Tower CLI tests on Linux; native Windows process/quoting tests; macOS ARM64 object compilation.",
+    "portableNativeRelease": false
+  }
 }
