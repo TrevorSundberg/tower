@@ -14850,6 +14850,71 @@ JSON; reran without that redirect and explicitly propagated LASTEXITCODE (zero).
 The archived report uses the successful rerun, not a selectively faster sample.
 todo.txt still hashes to 96a9e58964d7f01e4a97819f259448db81ef5e40.
 
+Integration correction: the required final pull brought main from d8d856c to
+e14f0fd, including Tower-owned provenance/host metadata and custom syntax hover
+changes. Rebased the implementation as 6c15364. The only conflict was concurrent
+journal append content; preserved both sections in full. Rebuilt native, parser,
+LLVM and cross reactors against the integrated source. The earlier measurements
+and manifest above describe the pre-integration build, not this final release.
+
+Integrated validation: all 353 Node/Wasm tests pass (45.73 s); all five native
+ASan/UBSan CTest targets pass (142.73 s). Native CLI interpretation, executable
+execution and object emission pass profile-native.py output checks again.
+Two browser-built successor generations preserve the edited diagnostic and pass
+the upstream activation/hover/import probes; two/four-worker successor hashes
+are identical. Generation-two hashes (the deliberately edited diagnostic build):
+parser c57ea5c0287d0cdfc483b3f93f7c6b8a7434475a45322ccc78e8b1469d5f00ad,
+LLVM 1638a4659dac0314c9d192855d9638ddbf02c560030565003648312635980fbc,
+cross cc617ac7692c4ef4d3e828e4d9524f56339d5119f0d2e77f01790da308b50371.
+The focused browser rerun covers hover, compiler-project, templates, completion
+and execution: 81 passed, one existing mobile compiler-rebuild skip (2.1 min).
+Local deployment verification again matches all 69 assets and passes desktop and
+mobile behavior. Evidence: build/compiler-performance/integrated-{build,node,
+sanitizers,successors,browser,local,native-execution}.log and associated reports.
+
+To remeasure with upstream changes preserved, rebuild BOTH baseline and current
+variants using the same integrated browser LLVM builder and current support/link
+recipe. Restore only the seven changed backend/compiler modules from e14f0fd for
+the baseline (pipeline, import-module, generic-registry, generics,
+semantic-context, semantic-lifecycle, semantic-support); all other inputs remain
+the integrated recipe's files. Both builds pass activation. This avoids comparing
+a native-bootstrap-built current artifact against a browser-built baseline.
+The ignored reproducible wrapper is build/compiler-performance/
+build-integrated-baseline.mjs, run with Node from the checkout. Retain linkReactor
+byte results when saving: buildCompiler returns WebAssembly.Module objects, not
+the original serializable bytes. These matched successors are a controlled
+compiler comparison, not the exact native-bootstrap reactors in the distribution.
+Builder SHA-256: 0d7915020367fc621b8e8ef9dec036df69d3402424ac4412c7e6e83d80e4970c.
+Recipe SHA-256: cb3d87c004ada731cd1cb60c5ce93b7af6ff6bfb37ae279686349e2d9f7bf8b7.
+Baseline LLVM: e8ea23ca3d273f2249b11dcf1b21529b69541fea3c978b884f93ce2a9e8b2549.
+Current LLVM: c56cd262d17cee8b706ed3a907906c36e87647ebb6dd30b6a62ccc0c3eaf69f6.
+
+Run profile-compiler.mjs with integrated-current.wasm, integrated-paired.json,
+integrated-baseline.wasm; set TOWER_PROFILE_CASE=units/compiler-, WARMUPS=2,
+PAIRS=4 and REPEATS=1 (each latter variable has the TOWER_PROFILE_ prefix).
+All task-owned builds/tests were finished before timing. Four alternating pairs
+per workload, after two warmups, emit byte-identical objects on every sample:
+
+| Integrated compiler unit | Baseline median ms | Current median ms | Reduction |
+| --- | ---: | ---: | ---: |
+| host | 240.937 | 176.499 | 26.7% |
+| entities | 2325.871 | 738.248 | 68.3% |
+| semantics | 24992.219 | 4092.350 | 83.6% |
+
+The semantics-unit optimization phase falls from 23068.754 to 1986.614 ms.
+Its parse/semantic phase rises from 633.546 to 741.528 ms in this small sample;
+there is still no established parse/semantic speedup. The end-to-end reduction
+survives upstream integration, but these results do not establish a universal
+6.1x speedup, native cold-start improvement, or confidence intervals. The matched
+successors are stripped, so use the earlier unstripped named profile for hotspot
+attribution. Full final samples and hashes: integrated-paired.json; CPU sampling
+is separate, after timing. Native cold grammar/module loading remains the next
+performance target.
+
+The final packaged distribution manifest SHA-256 is
+63604e5eeddcf1abdc787c851d79a786f3925d7849bc33e3e04ceaae8c483e27.
+Publication and hosted verification are recorded below after completion.
+
 Published and verified:
 Implementation/validation source e5ef1e623612db6b371236789c6a661471dc4e51 is pushed
 to main. The final pull was current. Published the tested 52-asset build as
