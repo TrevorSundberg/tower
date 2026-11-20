@@ -22562,3 +22562,45 @@ not every compatibility declaration. The next release/build-integration owner ca
 consider publishing this validated faster successor as the development bootstrap
 so subsequent compiler builds also benefit from the LR change; this turn does not
 alter the pinned bootstrap distribution.
+
+Final integrated validation: 41/41 focused Node checks pass in 10.50 s; the fresh
+native compiler passes module_paths.py. Two successor generations using 2 then
+4 isolated workers pass with edited semantic behavior and identical hashes:
+parser 44f8f83898859393b38f9c161e3c33ff7ca7da0c2884b47d4db31b047cbe8455,
+LLVM 7d549dc0dff1cf30b7a257ad261984cb258e8b1a20720e07d00a4340864459e0,
+cross 0283a5b9095f9aaa4a658780dc8a5c1a1b9c0e123c4260b43408a79c540c9e8f.
+Sizes are 905824 / 52134652 / 63692008 bytes; generation times 46.02 / 32.57 s.
+These final successor results supersede the pre-optimization hashes above.
+Full local desktop/mobile verification passed, followed by the hosted check.
+Evidence: build/language-next/pending-integrated-{node,successors,local,live}.log
+and the corresponding saved local/live JSON reports.
+
+Published source through 60dfb513ae2bc86e88dc749518e2ce888ccb0e9d and Pages
+commit eb8d69a5031305371fc1e097643f9e50bd0b2757, based on incoming Pages 98b1392.
+Workflow 44838899124 completed successfully for that exact Pages SHA.
+`node playground/scripts/verify-deployment.mjs https://tower-lang.org/` exited 0:
+all 70 hashes and desktop/mobile backend agreement, completion, persistence,
+editable grammar, downloads and target selection passed. Manifest SHA-256:
+4e8805789b71e7de0e7ea8427ed57b708fbb069357f0e1f770d723c097e41268.
+Preserved incoming app assets, license whitespace and the Windows runtime object;
+the candidate runtime differed only in COFF timestamp bytes, verified explicitly.
+All 71 publication files including the manifest match their committed Git blobs.
+The normal source push briefly failed DNS; a command-local verified GitHub address
+override succeeded with TLS validation retained. Remote branch SHA and exact-sha
+Actions run confirm the Pages push despite PowerShell wrapping Git progress stderr
+as NativeCommandError. No force push. Both earlier stashes remain intact;
+todo.txt retains hash 96a9e58964d7f01e4a97819f259448db81ef5e40.
+
+Independent backend follow-up audit: llvm-backend.cpp still owns a worker-global
+backend session and imported Foundation string (67 lines); its lowering/linking
+already calls Tower. The new Tower frontend_compile_sources/SemanticProgram and
+format_entity interfaces used by driver_execution can replace that legacy
+CoreProgram orchestration without changing semantic algorithms. Its remaining
+packaging dependency is the embedded guest object generated as tower-runtime.inc;
+retirement must supply those bytes through Tower data/generated Tower source or
+an explicit existing input contract, never a new native shim. This follow-up is
+not implemented. Definitions/session ownership remains the larger world-isolation
+port described above. Full within-unit parallel compilation and portable pure-Tower
+bootstrap releases are still outstanding; the verified worker generations do not
+claim either. Production native count remains 3,729 lines, all owned categories
+10,982, excluding third-party dependencies and including blanks/comments.
