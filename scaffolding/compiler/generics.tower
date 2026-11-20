@@ -68,17 +68,17 @@ export fn generic_register(context: GenericContext*, definition: Entity*): u32 {
     var produces_type = compiler_name_is(result, "type");
     var generic = template.type_count != 0;
     if generic {
-        template.kind = 1;
+        template.kind = GenericKind.Function;
     }
     if produces_type {
-        template.kind = 2;
+        template.kind = GenericKind.TypeConstructor;
     }
-    var needed = template.kind != 0;
+    var needed = template.kind != GenericKind.Ordinary;
     if needed {
         var data = generic_component_add(definition, context.template_type);
         copy(data, template, sizeof(GenericTemplate));
     }
-    return template.kind;
+    return convert(u32, template.kind);
 }
 
 export fn generic_parameter_count(context: GenericContext*, definition: Entity*): usize {
@@ -211,7 +211,7 @@ export fn generic_instantiate(context: GenericContext*, definition: Entity*, use
     var data = compiler_component_get(definition, context.template_type);
     var template = bits(GenericTemplate*, data);
     var needed = template.type_count;
-    var type_constructor = template.kind == 2;
+    var type_constructor = template.kind == GenericKind.TypeConstructor;
     if type_constructor {
         needed = template.count;
     }
@@ -221,36 +221,35 @@ export fn generic_instantiate(context: GenericContext*, definition: Entity*, use
         return null;
     }
     var current = context.first;
-    loop {
-        var done = current == null;
-        if done {
-            break;
-        }
+    while current != null {
         var same = current.definition == definition;
-        var i: usize = 0;
-        loop {
-            var complete = i == count;
-            if complete {
-                break;
+        // Only compare arguments for this definition; stop at the first
+        // mismatch. Other templates may have a different argument count.
+        if same {
+            same = current.count == count;
+        }
+        if same {
+            var i: usize = 0;
+            while i < count {
+                var different = current.arguments[i] != arguments[i];
+                if different {
+                    same = false;
+                    break;
+                }
+                i = i + 1;
             }
-            var different = current.arguments[i] != arguments[i];
-            if different {
-                same = false;
-            }
-            i = i + 1;
         }
         if same {
             return current.node;
         }
         current = current.next;
     }
-    var full = context.count == 256;
+    var full = context.count == GenericInstanceLimit();
     if full {
         context.error = "Template specialization limit exceeded (256 instances); check recursive type arguments";
         return null;
     }
-    var remaining: usize = 65536;
-    remaining = remaining - context.copied;
+    var remaining = GenericNodeLimit() - context.copied;
     var before = remaining;
     var node = compiler_clone_branch(definition, &remaining, context, use);
     var copied = before - remaining;
@@ -268,11 +267,7 @@ export fn generic_instantiate(context: GenericContext*, definition: Entity*, use
     instance.node = node;
     instance.count = count;
     var i: usize = 0;
-    loop {
-        var done = i == count;
-        if done {
-            break;
-        }
+    while i < count {
         instance.arguments[i] = arguments[i];
         i = i + 1;
     }
@@ -319,7 +314,7 @@ export fn generic_lookup(context: GenericContext*, node: Entity*, name: Entity*)
                     return null;
                 }
                 var compile_time = template.type_parameters[i];
-                var type_constructor = template.kind == 2;
+                var type_constructor = template.kind == GenericKind.TypeConstructor;
                 if type_constructor {
                     compile_time = true;
                 }

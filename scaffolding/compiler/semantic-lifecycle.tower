@@ -54,6 +54,8 @@ fn sem_context_init(c: SemanticContext*, program: SemanticProgram*): void {
 }
 
 fn sem_context_dispose(c: SemanticContext*): void {
+    stack_dispose(void*, &c.scan);
+    vector_dispose(u8, &c.token_text);
     work_dispose(&c.layout_work);
     var i: usize = 0;
     loop {

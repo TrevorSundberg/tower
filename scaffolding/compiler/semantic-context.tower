@@ -1,5 +1,6 @@
 import tower;
 import '../library/work-graph';
+import '../library/stack';
 
 // Transitional native boundary uses these exact layouts. Semantic results live
 // on FoundationNode components; lists below are derived indexes, never an IR.
@@ -88,6 +89,10 @@ struct SemanticContext {
     inferring: vector(void*);
     allocations: vector(void*);
     lists: vector(void*);
+    // Non-reentrant tree scans reuse scratch storage. Results remain owned by
+    // allocations/lists; no caller receives a pointer into either scratch buffer.
+    scan: stack(void*);
+    token_text: vector(u8);
 }
 
 fn sem_editor_contains(c: SemanticContext*, n: void*): bool {

@@ -17503,3 +17503,148 @@ parser-state-hosted-report.json, parser-state-hosted-hover.log and
 parser-state-pages-workflow.log. CNAME tower-lang.org is preserved. This final
 journal-only update changes no deployed artifact. todo.txt remains Git blob
 96a9e58964d7f01e4a97819f259448db81ef5e40 and both pre-existing stashes remain intact.
+
+## 2026-11-20: profile compiler execution and modernize Tower hot paths
+
+Pulled main to d8d856c before work; the checkout was clean. This Windows machine
+has Docker Desktop rather than a general WSL distribution. Use the existing
+tower-c-validation container (/work mounts C:/Sandbox/tower, /cache is the
+tower_host_cache volume). Preserve /cache/c-native/towerc and its share directory
+as /cache/performance-bootstrap before rebuilding. Run build-native.sh,
+build-wasm.sh and build-llvm.sh with TOWER_BOOTSTRAP_COMPILER pointing there,
+WASI_SDK_PATH=/cache/wasi/wasi-sdk-34.0-x86_64-linux,
+TOWER_NATIVE_BUILD=/cache/c-native, TOWER_LLVM_SOURCE_DIR=/cache/llvm-source,
+TOWER_LLVM_HOST_BUILD=/cache/llvm-tablegen,
+TOWER_LLVM_WASM_BUILD=/cache/llvm-bc-browser, TOWER_BROWSER_CROSS=ON and six jobs.
+The reproducible command wrapper and logs are in build/compiler-performance.
+Saved fresh baseline parser/native/LLVM artifacts, an unstripped LLVM reactor
+for named samples, and baseline-project.json before any implementation build.
+The unstripped reactor is for profiling only, not publication.
+
+Added playground/scripts/profile-compiler.mjs: six warmups, sixteen alternating
+paired samples, fresh compilation with warm grammar caches, identical recipe and
+sources for both compilers, byte-identical object assertions, input/artifact
+hashes, startup and phase timings. CPU sampling at 100 microseconds follows the
+timed runs in a separate inspector session; it never enters the timed samples.
+Workloads include functions, collections, and compiler host/entities/semantics
+units. Module-file registration is excluded from compile timings and startup is
+reported separately; this is not a claim about network/page startup or all
+possible inputs. Run without concurrent builds/tests. Initial measurements on
+Node v21.7.3 show LLVM optimization dominates the entities unit (about 1.55 s of
+2.05 s total); parse/semantic work remains about 309 ms.
+
+Candidate changes, pending validation and paired measurement below: semantic
+tree scans use the existing stack container and while loops, reuse per-context
+scratch, and append complete token byte ranges instead of pushing each byte.
+Returned strings remain independently owned because identifier decoding mutates
+them; scratch never escapes and scans do not reenter semantic resolution.
+Generic specialization uses a private nominal enum, named resource constants,
+while loops and early rejection of unrelated definitions/unequal arguments.
+External generic_register numeric values and resource limits remain unchanged.
+No new grammar or Foundation operation is introduced. General precedence,
+logical-not, aggregate initializers and container foreach are not implemented
+in this checkout; no source migration pretends that they are available.
+
+The Tower backend also sets VerifyEach for every LLVM pass. Local primary source
+third_party/llvm-project/llvm/docs/CommandGuide/opt.rst describes this as a way to
+locate a pass producing invalid IR; PassBuilderBindings.cpp defaults it off.
+Try BackendVerifyEach = 0 as an explicit Tower debugging policy, preserving
+verification after lowering and optimization and using the same setting for
+interpreter optimization. This changes verification frequency, not the pass
+pipeline or semantic profile. Object equality and existing lowering/interpreter
+tests must pass before retaining it. Setting the constant to 1 restores the
+previous per-pass diagnostic policy. Detailed sampled evidence, final results,
+validation and publication follow below.
+
+Profiling correction: the initial all-workload repetition count was excessive
+for the semantics unit. Stopped that run after roughly eight minutes; it had
+completed the four smaller workloads, but produced no completed semantics timing
+report. Preserve initial-long-run.log as a partial trial, not a successful full
+benchmark. Added workload filters and configurable warmup/pair/sample counts,
+plus a sampling-only mode. One fresh sampled semantics compile completed in
+21,706.86 ms (includes profiler overhead). Of 39,702 self samples, 13,539 were in
+verifier-named functions and 30,159 (76.0%) had verifier ancestry. Attribute and
+dominator helpers account for much of the difference. The largest Tower self
+samples were lr_items_insert (266), lr_range_insert (78), entity_component_get
+(62) and entity_reclaim (53). sem_tokens had nine self samples. Thus verifier
+policy is the measured primary optimization; scratch/container modernization is
+secondary and is not evidence of a large standalone semantic-analysis speedup.
+Cold LR table construction is a subsequent research target, not changed here.
+Evidence: baseline-sampled.json.cpuprofile and summarize-profile.mjs under
+build/compiler-performance; filtering is by function names/ancestor stacks.
+
+An initial build rejected the local name `token`, a Bedrock keyword. Renamed it
+to is_token. Canonical formatting then passed across the Tower source tree;
+rebuilt after its whitespace normalization so packaged inputs and compiled
+objects agree. All algorithms remain Tower source; added JS/Python files only
+transport workloads, assert equivalence and measure existing compilers. The new
+compiler-scans.tower fixture interleaves different template definitions, argument
+counts, swapped argument types, repeated nominal identities and quoted identifiers.
+It passes interpretation at both pointer widths, canonical Foundation round trips
+and LLVM execution through templates.test.mjs. All 350 Node/Wasm tests pass
+(41.46 s). Native parser/tree/interpreter tests pass with native ASan/UBSan:
+five CTest targets, 132.81 s total, including the 125.74 s parser suite. Native
+CLI interpretation, native executable execution and object emission pass the
+existing profile-native.py output checks; those overlapping validation timings
+are not used as performance evidence.
+
+Two successive browser compiler builds with two then four workers preserve an
+edited semantic diagnostic and yield byte-identical successor modules. Generation
+two SHA-256: parser f255e4a743218a1ce96247788f8a1e456ed3699126c650e208b1a07d0a8bbf8a,
+LLVM ffd79e0bd3027b9e485ed35f60119d29f4dbaae19f5fce82cdd570bfecf89a5b,
+cross 7262ac7bb6c18eb25212fb7374a3befbb7af359dfdb48e7d2adc7d0abc3decb1.
+These runs overlapped other validation, so their wall times are not scaling
+benchmarks. Logs and JSON are in build/compiler-performance and
+build/compiler-workbench/generation{1,2}.json. The complete distribution was
+packaged with TOWER_REQUIRE_BACKENDS=1; browser and local/hosted verification
+results follow with final idle paired measurements.
+
+Final paired measurements on Node v21.7.3 / AMD RYZEN AI MAX+ 395, identical final
+recipe b0a738a33636d0f45ececbf0e566de4475b7765f5df1dc425b382161399eb969:
+
+| Source-to-object workload | Baseline median ms | Current median ms | Reduction |
+| --- | ---: | ---: | ---: |
+| functions example | 11.346 | 9.640 | 15.0% |
+| collections example | 118.402 | 97.518 | 17.6% |
+| compiler-host | 272.853 | 203.679 | 25.4% |
+| compiler-entities | 1893.445 | 684.806 | 63.8% |
+| compiler-semantics | 23565.069 | 3487.410 | 85.2% |
+
+Every sample emitted byte-identical baseline/current objects. The first four
+cases use six warmups/sixteen pairs and four subsequent sampling repetitions;
+set TOWER_PROFILE_EXCLUDE=compiler-semantics and TOWER_PROFILE_REPEATS=4. The large
+case uses TOWER_PROFILE_CASE=compiler-semantics, TOWER_PROFILE_WARMUPS=2,
+TOWER_PROFILE_PAIRS=6 and TOWER_PROFILE_REPEATS=1. Run profile-compiler.mjs with
+current-symbols.wasm, the report path, then baseline-symbols.wasm. Unstripped
+SHA-256 baseline 3f5bf7e57ba7d70922c55d63893f33db20bc977c8fe96ade1fa5e2d7c277041d;
+current d8b390e05c065f881a334de6cd4dc1f2201c5cfc0ea44c207d164d0fbf33ec94.
+Reports: build/compiler-performance/paired{,-semantics}.json, associated logs and
+.cpuprofile files. Tower-family function names are also summarized separately.
+No task-owned builds/tests ran during measurements. Another workspace's browser
+tests were observed with light CPU use; these are paired local observations,
+not isolated-hardware or universal performance guarantees.
+
+The improvement is predominantly the verification policy: entities optimization
+1452.768 -> 229.618 ms, semantics optimization 21778.647 -> 1734.097 ms.
+Parse/semantic phase medians are essentially unchanged (entities 288.662 ->
+287.093 ms; semantics 665.703 -> 657.440 ms). Retain scratch/container and enum
+cleanup for simpler ownership/code and fewer transient allocations; do not claim
+an independently established semantic-analysis speedup from those measurements.
+
+benchmark-compiler-native.py ran two warmups/twelve alternating fresh-process
+pairs per example, with byte-identical x86_64 Linux objects. Native CLI wall
+medians, baseline -> current: functions 355.998 -> 357.992 ms, collections
+445.275 -> 458.375 ms, templates 320.030 -> 319.830 ms. Optimizer phases improve
+but full native cold starts show no improvement in these samples, with collections
+about 2.9% slower. Bootstrap and parsing dominate; filesystem/startup variability
+is included. Evidence: native-paired.{json,log}. Next profile cold grammar/module
+loading and LR item/range insertion, retaining canonical shared grammar nodes and
+explicit input/version/target identity for any derived cache. Do not hide this
+remaining bottleneck behind warm browser speedups.
+
+Final browser validation: 191 passed, one existing mobile compiler-rebuild skip
+(4.7 minutes). Local deployment verification passes both profiles and matches all
+69 assets. Distribution manifest SHA-256:
+1e4bbdfcaa7c649ffd58e3ddc319e556cdaeb8735a88202a8617a85cfd4905e0.
+Logs and local-deployment-report.json are under build/compiler-performance.
+todo.txt still hashes to 96a9e58964d7f01e4a97819f259448db81ef5e40.

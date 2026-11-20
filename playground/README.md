@@ -896,6 +896,32 @@ from the current run's status-bar timings.
 
 For native end-to-end measurements, build `towerc`, then run under Linux/WSL:
 `python3 playground/scripts/profile-native.py build/native/towerc build/native-profile.json --timings`.
+
+For compiler-source workloads, save a baseline LLVM reactor before changing the
+compiler, rebuild the compiler project recipe, then run from the repository root:
+
+```text
+node playground/scripts/profile-compiler.mjs current-unstripped.wasm build/compiler-profile.json baseline.wasm
+```
+
+Use the unstripped `tower-llvm.wasm` from the LLVM build directory for readable
+Tower/LLVM function names. The script measures ordinary functions, collections
+and three compiler units with six warmups and sixteen alternating pairs. Both
+versions receive identical current recipe inputs and must emit identical object
+bytes. Reports include startup, compile/phase timings, artifact/source hashes and
+a separate `.cpuprofile`; sampling runs after timing. Module-file registration,
+network transfer and page rendering are outside these compile measurements.
+Run without concurrent builds or tests. Omit the baseline argument for an initial
+profile. `TOWER_PROFILE_CASE` and `TOWER_PROFILE_EXCLUDE` filter workload paths;
+`TOWER_PROFILE_WARMUPS`, `TOWER_PROFILE_PAIRS` and `TOWER_PROFILE_REPEATS` control
+the timing and sampling counts. For expensive units, start with
+`TOWER_PROFILE_ONLY=1` and `TOWER_PROFILE_REPEATS=1` to sample one compilation
+before selecting repetition counts. Sampling-only elapsed times include profiler
+overhead and are not benchmark results. For paired native CLI measurements use
+`python3 playground/scripts/benchmark-compiler-native.py before-towerc after-towerc build/native-paired.json`
+under Linux; it checks object equality and includes process startup and grammar
+loading. The Tower `BackendVerifyEach` constant enables extra per-pass LLVM
+verification for debugging; normal compilation verifies at stage boundaries.
 The CLI's `--timings` flag reports bootstrap, frontend/LLVM phases, runtime C
 compilation, linking and interpreter execution to stderr. The probe also measures
 process startup and the generated executable separately, checking its output.

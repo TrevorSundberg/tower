@@ -1,0 +1,52 @@
+import tower;
+
+// Interleave definitions, argument counts and nominal types. Repeated queries
+// must reuse the right instance and keep previously decoded token text intact.
+fn pair(Left: type, Right: type): type {
+    struct Result {
+        left: Left;
+        right: Right;
+    }
+    return Result;
+}
+
+fn box(T: type): type {
+    struct Result {
+        value: T;
+    }
+    return Result;
+}
+
+fn buffer(T: type, count: usize): type {
+    struct Result {
+        data: T[count];
+    }
+    return Result;
+}
+
+fn identity(T: type, value: T): T {
+    return value;
+}
+
+var first: pair(i32, u32);
+var boxed: box(i32);
+var second: pair(u32, i32);
+var short: buffer(i32, 2);
+var long: buffer(i32, 3);
+var repeated: pair(i32, u32)* = &first;
+var `value with spaces`: i32 = 17;
+first.left = identity(i32, `value with spaces`);
+first.right = identity(u32, 23);
+second.left = 31;
+second.right = 47;
+boxed.value = 59;
+short.data[1] = 61;
+long.data[2] = 71;
+print(repeated.left);
+print(repeated.right);
+print(second.left);
+print(second.right);
+print(boxed.value);
+print(short.data[1]);
+print(long.data[2]);
+print(identity(i32, `value with spaces`));

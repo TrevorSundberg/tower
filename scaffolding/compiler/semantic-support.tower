@@ -440,14 +440,9 @@ fn sem_list(c: SemanticContext*): vector(void*)* {
 
 fn sem_has(v: vector(void*)*, n: void*): bool {
     var i: usize = 0;
-    loop {
-        var step1 = i < v.length;
-        var step2 = step1 == false;
-        if step2 {
-            break;
-        }
-        var step3 = v.data[i] == n;
-        if step3 {
+    while i < v.length {
+        var found = v.data[i] == n;
+        if found {
             return true;
         }
         i = i + 1;
@@ -455,102 +450,55 @@ fn sem_has(v: vector(void*)*, n: void*): bool {
     return false;
 }
 
-fn sem_collect(c: SemanticContext*, n: void*, wanted: u8*): vector(void*)* {
-    var step1 = sem_list(c);
-    var result: vector(void*)* = step1;
-    var step2 = sem_list(c);
-    var pending: vector(void*)* = step2;
-    var step3 = n != null;
-    if step3 {
-        sem_push(pending, n);
+// Push in reverse so popping visits source children in their original order.
+// Neither scan calls semantic resolution or another scan while scratch is live.
+fn sem_scan_children(c: SemanticContext*, n: void*): void {
+    var i = sem_child_count(n);
+    while i != 0 {
+        i = i - 1;
+        sem_require(stack_push(void*, &c.scan, sem_child(n, i)));
     }
-    loop {
-        var step4 = pending.length != 0;
-        var step5 = step4 == false;
-        if step5 {
-            break;
-        }
-        pending.length = pending.length - 1;
-        var at: void* = pending.data[pending.length];
-        var step6 = sem_is(at, wanted);
-        if step6 {
+}
+
+fn sem_collect(c: SemanticContext*, n: void*, wanted: u8*): vector(void*)* {
+    var result = sem_list(c);
+    var present = n != null;
+    if present {
+        sem_require(stack_push(void*, &c.scan, n));
+    }
+    var at: void* = null;
+    while stack_pop(void*, &c.scan, &at) {
+        if sem_is(at, wanted) {
             sem_push(result, at);
         } else {
-            var step7 = sem_child_count(at);
-            var i: usize = step7;
-            loop {
-                var step8 = i != 0;
-                var step9 = step8 == false;
-                if step9 {
-                    break;
-                }
-                i = i - 1;
-                var step10 = sem_child(at, i);
-                sem_push(pending, step10);
-            }
+            sem_scan_children(c, at);
         }
     }
     return result;
 }
 
 fn sem_tokens(c: SemanticContext*, n: void*): u8* {
-    var buffer: vector(u8);
-    var step1 = sizeof(vector(u8));
-    fill(&buffer, 0, step1);
-    var step2 = sem_list(c);
-    var pending: vector(void*)* = step2;
-    var step3 = n != null;
-    if step3 {
-        sem_push(pending, n);
+    c.token_text.length = 0;
+    var present = n != null;
+    if present {
+        sem_require(stack_push(void*, &c.scan, n));
     }
-    loop {
-        var step4 = pending.length != 0;
-        var step5 = step4 == false;
-        if step5 {
-            break;
+    var at: void* = null;
+    while stack_pop(void*, &c.scan, &at) {
+        var parsed = sem_match(at);
+        var is_token = parsed != null;
+        if is_token {
+            is_token = parsed.rule == sem_maximum();
         }
-        pending.length = pending.length - 1;
-        var at: void* = pending.data[pending.length];
-        var step6 = sem_match(at);
-        var m: ParserMatchData* = step6;
-        var step7 = m != null;
-        var step8 = step7;
-        if step8 {
-            var step9 = sem_maximum();
-            var step10 = m.rule == step9;
-            step8 = step10;
-        }
-        if step8 {
-            var i: usize = 0;
-            loop {
-                var step11 = i < m.label.length;
-                var step12 = step11 == false;
-                if step12 {
-                    break;
-                }
-                var step13 = vector_push(u8, &buffer, m.label.data[i]);
-                sem_require(step13);
-                i = i + 1;
-            }
+        if is_token {
+            sem_require(bytes_append(&c.token_text, parsed.label.data, parsed.label.length));
         } else {
-            var step14 = sem_child_count(at);
-            var i: usize = step14;
-            loop {
-                var step15 = i != 0;
-                var step16 = step15 == false;
-                if step16 {
-                    break;
-                }
-                i = i - 1;
-                var step17 = sem_child(at, i);
-                sem_push(pending, step17);
-            }
+            sem_scan_children(c, at);
         }
     }
-    var step18 = sem_text(c, buffer.data, buffer.length);
-    var result: u8* = step18;
-    vector_dispose(u8, &buffer);
-    return result;
+    // Identifier decoding mutates this owned copy, never the parsed token or
+    // scratch storage subsequently reused by another query.
+    return sem_text(c, c.token_text.data, c.token_text.length);
 }
 
 fn sem_identifier(c: SemanticContext*, n: void*): u8* {

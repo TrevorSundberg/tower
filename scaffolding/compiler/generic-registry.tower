@@ -34,12 +34,19 @@ fn generic_registry_type(registry: Entity*, size: usize, alignment: usize): Enti
 
 // These are semantic components attached to real definition/instance nodes.
 // Fixed bounds match the current foundation parameter and function limits.
+enum GenericKind: u32 {
+    Ordinary, Function, TypeConstructor
+}
+
+const GenericInstanceLimit: usize = 256;
+const GenericNodeLimit: usize = 65536;
+
 struct GenericTemplate {
     parameters: Entity*[64];
     type_parameters: bool[64];
     count: usize;
     type_count: usize;
-    kind: u32;
+    kind: GenericKind;
 }
 
 struct GenericInstance {

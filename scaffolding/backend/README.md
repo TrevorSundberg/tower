@@ -53,7 +53,10 @@ be regenerated from their foundation source.
 4. `backend_optimize(backend, enabled)` verifies again and retains the resulting
    LLVM text. With optimization enabled it runs
    `function(sroa,mem2reg,instcombine<no-verify-fixpoint>,simplifycfg),default<O2>`
-   with `VerifyEach`. With optimization disabled it retains unoptimized IR.
+   with verification at the lowering/optimization boundaries. Set the Tower
+   `BackendVerifyEach` constant in `pipeline.tower` to `1` when debugging passes
+   to additionally verify after every pass (including interpreter optimization).
+   With optimization disabled it retains unoptimized IR.
 5. `backend_emit(backend)` produces target object bytes in memory.
 6. Read `backend_raw`, `backend_optimized`, `backend_bytes`, `backend_size`,
    `backend_error` and `backend_error_offset`. Call `backend_close` once.

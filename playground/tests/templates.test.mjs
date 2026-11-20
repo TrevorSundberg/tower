@@ -25,6 +25,13 @@ async function compare(source,expected){
  return result.source;
 }
 const box='fn box(T: type): type { struct Result { value: T; } return Result; }';
+test('compiler scans preserve token ownership and interleaved specialization identities',async()=>{
+ const source=(await read('scaffolding/tests/compiler-scans.tower')).toString();
+ const text=await compare(source,'17\n23\n31\n47\n59\n61\n71\n17\n');
+ assert.equal((text.match(/struct `pair\(i32, u32\)`/g)||[]).length,1);
+ assert.equal((text.match(/struct `pair\(u32, i32\)`/g)||[]).length,1);
+});
+
 test('the short fixed-size stack example specializes type and integer arguments',async()=>{
  const source=(await read('scaffolding/examples/templates.tower')).toString();
  const text=await compare(source,'20\n10\n');

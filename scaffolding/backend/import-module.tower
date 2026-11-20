@@ -289,7 +289,7 @@ export fn backend_import_foundation(b: Backend*, root: void*): bool {
 export fn backend_optimize_interpreter(b: Backend*, optimize: bool): bool {
     if optimize {
         var options = LLVMCreatePassBuilderOptions();
-        LLVMPassBuilderOptionsSetVerifyEach(options, 1);
+        LLVMPassBuilderOptionsSetVerifyEach(options, BackendVerifyEach());
         LLVMPassBuilderOptionsSetLoopVectorization(options, 0);
         LLVMPassBuilderOptionsSetSLPVectorization(options, 0);
         // A scalar portable profile. These are upstream passes, not Tower
