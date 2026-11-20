@@ -19115,6 +19115,7 @@ Local deployment verification passes all 69 asset checks and desktop/mobile/
 Linux target-default flows. These timings are validation observations, not
 performance benchmarks. Final packaging, hosted verification and completion of
 the extended native/portable suites remain pending.
+
 ## 2026-11-20: Tower native CLI host-policy migration
 
 Pulled main from 04b0613 to 4ece094 before editing. The user assigned driver.cpp,
@@ -19304,3 +19305,42 @@ use build/generic-info-* and build/generic-template-hover-*.
 A direct local deployment check initially found no server after Playwright had
 closed its managed server. Reran through verify-local.mjs, which owns the server
 lifetime. Final local/hosted verification and publication are recorded below.
+Final code revision 9e6ff1c is pushed. The corrected production host and standalone
+Tower test target build successfully; CTest passes in 4.64 seconds. Running the
+same suite against /work/build/native/towerc also passes, verifying the deployed
+native executable/resources rather than only the build-tree binary. Windows
+platform tests passed after the scope integration; the final POSIX-only changes
+do not change that Windows unit. macOS ARM64 compilation passes with posix_spawn;
+execution on macOS remains unverified.
+
+Two successive native compiler generations emit the identical final driver object:
+c2acb00830bbbf0e81fbd5d0fa9dffdc1c9fdcaef08adc807a95ff179666325d.
+The deployed native compiler SHA-256 is
+66e991cb0bf14ffb3be3b2c10caac6451461755a2e4b6eaf05745b85ba88dacb.
+Evidence: driver-platform-final.log, driver-deployed-native.log, the two
+build/driver-final-generation*.o objects and driver-format-final.log.
+
+Published metadata-only Pages commit 5bda9316c4c75527a514597324c2311418f3d671
+preserves every browser asset from a6bacaf and records the native source revision.
+A transient github.com DNS failure blocked its first push; DNS resolution and a
+normal retry succeeded, without force. Pages workflow 44790422426 completed
+successfully. Manifest SHA-256 is
+08adddb896232fa5e28021e82624dfd9a8fefdb3f4321dc258e6f072be0ead07.
+The hosted verifier confirms all 69 asset hashes; its browser flow result follows.
+
+Hosted verification completed successfully: all 69 assets plus the full desktop
+and mobile execution/download, grammar, persistence, completion, highlighting and
+target-default flows pass. Evidence: build/driver-hosted-deployment.log and
+build/driver-hosted-report.json. Both main and gh-pages were pushed normally.
+The native compiler/interpreter transport and historical bootstrap branches remain
+explicit follow-up work; no complete native-removal or portable-release claim is
+made. todo.txt and unrelated worktrees remain untouched.
+
+The final journal pull additionally integrated upstream 3ef76c3 (symbolic template
+inspection). Preserved both append-only journal entries, rebuilt the native
+compiler and reran the complete Tower CLI suite: passed in 4.75 seconds. Redeployed
+the combined native executable/resources. Log: build/driver-upstream-integration.log.
+Its new executable SHA-256 is 6408b480738f74f0315066de453efe55538b590a8ac353eae2f08e617cbee64e.
+This supersedes the earlier executable hash for the combined checkout; the driver
+implementation itself did not change. The already verified Pages deployment was
+preserved rather than replacing the other owner's browser artifacts.
