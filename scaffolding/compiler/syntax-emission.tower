@@ -25,6 +25,7 @@ struct SyntaxEmissionEntry {
     wrapper: usize;
     rule: usize;
     production: usize;
+    provenance: usize;
     literal: u32;
     terminal: u32;
     excluded: SyntaxNode*;
@@ -45,6 +46,9 @@ struct SyntaxEmission {
     buckets: vector(usize);
     productions: vector(SyntaxEmissionProduction);
     helpers: vector(SyntaxEmissionHelper);
+    repetitions: vector(SyntaxEmissionHelper);
+    capture_buckets: vector(usize);
+    capture_next: vector(usize);
     states: vector(SyntaxEmissionState);
     queue: vector(usize);
     terminals: vector(usize);
@@ -168,6 +172,7 @@ fn emission_name(value: SyntaxEmission*, text: u8*, length: usize): usize {
     entry.wrapper = lr_none();
     entry.rule = lr_none();
     entry.production = lr_none();
+    entry.provenance = lr_none();
     entry.literal = 4294967294;
     entry.terminal = 4294967294;
     value.buckets.data[bucket] = index;
@@ -187,10 +192,10 @@ fn emission_cname(value: SyntaxEmission*, text: u8*): usize {
 
 // Read an already-published name index without inserting, allocating or touching
 // entity/refcount state. Generated names share the same revision-owned storage.
-export fn syntax_emission_rule_index(value: SyntaxEmission*, text: u8*): usize {
+fn emission_find_entry(value: SyntaxEmission*, text: u8*): SyntaxEmissionEntry* {
     var size = value.buckets.length;
     var empty = size == 0;
-    if empty { return lr_none(); }
+    if empty { return null; }
     var length = syntax_text_length(text);
     var hash = emission_hash(text, length);
     var bucket = hash % size;
@@ -201,11 +206,59 @@ export fn syntax_emission_rule_index(value: SyntaxEmission*, text: u8*): usize {
         if same {
             var order = syntax_bytes_compare(text, length, entry.text.data, entry.text.length);
             same = order == 0;
-            if same { return entry.production; }
+            if same { return entry; }
         }
         index = entry.next;
     }
-    return lr_none();
+    return null;
+}
+
+export fn syntax_emission_rule_index(value: SyntaxEmission*, text: u8*): usize {
+    var entry = emission_find_entry(value, text);
+    var missing = entry == null;
+    if missing { return lr_none(); }
+    return entry.production;
+}
+
+export fn syntax_emission_wrapper(value: SyntaxEmission*, text: u8*): u8* {
+    var entry = emission_find_entry(value, text);
+    var missing = entry == null;
+    if missing { return null; }
+    missing = entry.wrapper == lr_none();
+    if missing { return null; }
+    return value.names.data[entry.wrapper].text.data;
+}
+
+export fn syntax_emission_find_helper(value: SyntaxEmission*, text: u8*): SyntaxEmissionHelper* {
+    var entry = emission_find_entry(value, text);
+    var missing = entry == null;
+    if missing { return null; }
+    missing = entry.provenance == lr_none();
+    if missing { return null; }
+    return &value.helpers.data[entry.provenance];
+}
+
+fn emission_capture_bucket(source: void*, size: usize): usize {
+    // Pointer identity is only a private lookup key, never output ordering.
+    var address = bits(usize, source);
+    address = address / 8;
+    var bucket = address % size;
+    return bucket;
+}
+
+export fn syntax_emission_capture_name(value: SyntaxEmission*, source: void*): u8* {
+    var size = value.capture_buckets.length;
+    var empty = size == 0;
+    if empty { return null; }
+    var bucket = emission_capture_bucket(source, size);
+    var index = value.capture_buckets.data[bucket];
+    while index != lr_none() {
+        var entry = &value.helpers.data[index];
+        var same = entry.source == source;
+        if same { return entry.name; }
+        index = value.capture_next.data[index];
+    }
+    return null;
 }
 
 fn emission_text(value: SyntaxEmission*, index: usize): u8* {
@@ -392,6 +445,7 @@ fn emission_provenance(value: SyntaxEmission*, name: usize, source: void*, captu
     item.name = emission_text(value, name);
     item.source = source;
     item.capture = capture;
+    value.names.data[name].provenance = value.helpers.length;
     var ok = lr_append(SyntaxEmissionHelper, &value.helpers, &item);
     if ok {} else {
         value.failed = true;
@@ -1032,6 +1086,99 @@ fn emission_declarations(value: SyntaxEmission*): void {
     emission_starts(value, "ImportDeclaration");
 }
 
+fn emission_helper_order(left: SyntaxEmissionHelper*, right: SyntaxEmissionHelper*): i32 {
+    return syntax_bytes_compare(left.name, syntax_text_length(left.name), right.name, syntax_text_length(right.name));
+}
+
+fn emission_helper_swap(rows: SyntaxEmissionHelper*, left: usize, right: usize): void {
+    var saved: SyntaxEmissionHelper;
+    copy(&saved, &rows[left], sizeof(SyntaxEmissionHelper));
+    copy(&rows[left], &rows[right], sizeof(SyntaxEmissionHelper));
+    copy(&rows[right], &saved, sizeof(SyntaxEmissionHelper));
+}
+
+fn emission_helper_sift(rows: SyntaxEmissionHelper*, size: usize, root: usize): void {
+    var parents = size / 2;
+    while root < parents {
+        var child = root * 2;
+        child = child + 1;
+        var right = child + 1;
+        var exists = right < size;
+        if exists {
+            var larger = emission_helper_order(&rows[right], &rows[child]) > 0;
+            if larger { child = right; }
+        }
+        var ordered = emission_helper_order(&rows[root], &rows[child]) >= 0;
+        if ordered { return; }
+        emission_helper_swap(rows, root, child);
+        root = child;
+    }
+}
+
+fn emission_index_helpers(value: SyntaxEmission*): bool {
+    var captures: usize = 0;
+    var index: usize = 0;
+    while index < value.helpers.length {
+        var row = &value.helpers.data[index];
+        if row.capture { captures = captures + 1; } else {
+            var ok = lr_append(SyntaxEmissionHelper, &value.repetitions, row);
+            if ok {} else { return false; }
+        }
+        index = index + 1;
+    }
+    // Preserve the old name-ordered repetition traversal without per-row trees.
+    var rows = value.repetitions.data;
+    var size = value.repetitions.length;
+    var start = size / 2;
+    while start != 0 {
+        start = start - 1;
+        emission_helper_sift(rows, size, start);
+    }
+    while size > 1 {
+        size = size - 1;
+        emission_helper_swap(rows, 0, size);
+        emission_helper_sift(rows, size, 0);
+    }
+    var empty = captures == 0;
+    if empty { return true; }
+    // Newest source-identity entry is the bucket head, matching last emission.
+    // All allocations occur before publication; failed construction is discarded.
+    size = captures * 2;
+    size = size + 1;
+    var overflow = size <= captures;
+    if overflow { return false; }
+    var ok = vector_reserve(usize, &value.capture_buckets, size);
+    if ok { ok = vector_reserve(usize, &value.capture_next, value.helpers.length); }
+    if ok {} else { return false; }
+    value.capture_buckets.length = size;
+    value.capture_next.length = value.helpers.length;
+    index = 0;
+    while index < size {
+        value.capture_buckets.data[index] = lr_none();
+        index = index + 1;
+    }
+    index = 0;
+    while index < value.helpers.length {
+        var row = &value.helpers.data[index];
+        value.capture_next.data[index] = lr_none();
+        if row.capture {
+            var bucket = emission_capture_bucket(row.source, size);
+            value.capture_next.data[index] = value.capture_buckets.data[bucket];
+            value.capture_buckets.data[bucket] = index;
+        }
+        index = index + 1;
+    }
+    return true;
+}
+
+export fn syntax_emission_repetition_count(value: SyntaxEmission*): usize {
+    return value.repetitions.length;
+}
+
+export fn syntax_emission_repetitions(value: SyntaxEmission*): SyntaxEmissionHelper* {
+    return value.repetitions.data;
+}
+
 fn emission_discard_scratch(value: SyntaxEmission*): void {
     var index: usize = 0;
     while index < value.states.length {
@@ -1065,6 +1212,9 @@ export fn syntax_emission_destroy(value: SyntaxEmission*): void {
     vector_dispose(usize, &value.buckets);
     vector_dispose(SyntaxEmissionProduction, &value.productions);
     vector_dispose(SyntaxEmissionHelper, &value.helpers);
+    vector_dispose(SyntaxEmissionHelper, &value.repetitions);
+    vector_dispose(usize, &value.capture_buckets);
+    vector_dispose(usize, &value.capture_next);
     free(value);
 }
 
@@ -1083,6 +1233,10 @@ export fn syntax_emit(input: SyntaxEmissionInput*): SyntaxEmission* {
             emission_declarations(value);
         }
     }
+    if value.failed {} else {
+        var indexed = emission_index_helpers(value);
+        if indexed {} else { value.failed = true; }
+    }
     if value.failed {
         syntax_emission_destroy(value);
         return null;
@@ -1098,12 +1252,12 @@ export fn syntax_emission_name_count(value: SyntaxEmission*): usize {
 
 export fn syntax_emission_name(value: SyntaxEmission*, index: usize, out: SyntaxEmissionName*): void {
     var entry = value.names.data[index];
-    out.text = node_text_get(&entry.text);
+    out.text = entry.text.data;
     out.length = entry.text.length;
     out.wrapper = null;
     var wrapper = entry.wrapper != lr_none();
     if wrapper {
-        out.wrapper = emission_text(value, entry.wrapper);
+        out.wrapper = value.names.data[entry.wrapper].text.data;
     }
     out.literal = entry.literal;
     out.used = entry.used;

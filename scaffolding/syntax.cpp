@@ -90,12 +90,8 @@ struct Version {
   PendingRules pending;
   std::shared_ptr<const Bedrock> bedrock;
   std::set<std::string> used_names;
-  std::map<std::string, std::string> template_tokens;
-  std::map<std::string, TowerNode*> capture_sources;
-  std::map<TowerNode*, std::string> capture_names;
   std::map<std::string, uint32_t> declaration_literals;
   std::set<std::string> declaration_starts;
-  std::map<std::string, Term> repetitions;
   std::map<size_t, Replacement> replacements;
   std::vector<std::vector<SyntaxExpansionCapture>> expansion_captures;
   std::vector<SyntaxExpansionRule> expansion_rules;
@@ -133,15 +129,9 @@ extern "C" char* syntax_parser_describe(void* context, size_t index) {
   auto* node = index ? tower_node_get_child(v.rules.get(), index - 1) : nullptr;
   if (!node) return copy_string("start of input");
   auto* rule = static_cast<Rule*>(tower_node_get_component_userdata(node, parser_rule_get_type()));
-  std::string name = parser_rule_get_name(rule);
-  for (const auto& [key, entity] : v.repetitions) if (key == name) {
-    auto* text = syntax_origin_text(entity.get(), "repetition ", syntax_component_type(), parser_match_get_type());
-    return text;
-  }
-  for (const auto& [key, entity] : v.capture_sources) if (key == name) {
-    auto* text = syntax_origin_text(entity, "capture ", syntax_component_type(), parser_match_get_type());
-    return text;
-  }
+  const auto* helper = syntax_emission_find_helper(v.emission.get(), parser_rule_get_name(rule));
+  if (helper) return syntax_origin_text(helper->source, helper->capture ? "capture " : "repetition ",
+    syntax_component_type(), parser_match_get_type());
   return copy_string("start of a statement or grammar declaration");
 }
 
@@ -208,14 +198,8 @@ bool seed(Version& version, const Definitions& definitions, const char* category
     std::string name(entry.text, entry.length);
     if (entry.used) version.used_names.insert(name);
     if (entry.literal != PARSER_ID_EOF) { version.literals[name] = entry.literal; version.names[entry.literal] = "'" + name + "'"; }
-    if (entry.wrapper) version.template_tokens[name] = entry.wrapper;
     if (entry.declaration) version.declaration_literals[name] = entry.literal;
     if (entry.start) version.declaration_starts.insert(name);
-  }
-  for (size_t i = 0; i < syntax_emission_helper_count(emitted.get()); ++i) {
-    SyntaxEmissionHelper entry{}; syntax_emission_helper(emitted.get(), i, &entry);
-    if (entry.capture) { version.capture_sources[entry.name] = entry.source; version.capture_names[entry.source] = entry.name; }
-    else version.repetitions.emplace(entry.name, TowerNodeRef(entry.source));
   }
   return true;
 }
@@ -489,22 +473,20 @@ bool compile_template(Version& version, const Definitions& defs, const Sequence&
   input.session.bedrock = version.bedrock;
   input.session.version = grammar;
   std::vector<SyntaxTemplateCapture> captures;
-  std::vector<SyntaxEmissionHelper> repetitions;
   for (const auto& [name, entity] : replacement.captures) {
     const auto id = FirstHole + static_cast<uint32_t>(captures.size());
     grammar->names[id] = "$" + name;
     const auto& term = semantic(entity);
-    const auto wrapper = grammar->template_tokens.find(term.text);
-    captures.push_back({name.c_str(), entity.get(), wrapper == grammar->template_tokens.end() ? nullptr : wrapper->second.c_str()});
+    captures.push_back({name.c_str(), entity.get(), syntax_emission_wrapper(grammar->emission.get(), term.text.c_str())});
   }
-  for (const auto& [name, entity] : grammar->repetitions) repetitions.push_back({name.c_str(), entity.get(), false});
   input.captures = captures.data(); input.count = captures.size();
   SyntaxTemplateGrammar holes{};
   holes.emission.root = grammar->rules.get(); holes.emission.syntax_kind = syntax_component_type();
   holes.emission.rule_kind = parser_rule_get_type(); holes.emission.reference_kind = parser_reference_get_type();
   holes.emission.string_kind = parser_string_get_type();
   holes.captures = captures.data(); holes.count = captures.size();
-  holes.repetitions = repetitions.data(); holes.repetition_count = repetitions.size();
+  holes.repetitions = syntax_emission_repetitions(grammar->emission.get());
+  holes.repetition_count = syntax_emission_repetition_count(grammar->emission.get());
   if (!syntax_template_holes(&holes)) { error = "Unable to allocate replacement hole productions"; return false; }
   char* diagnostic = nullptr;
   grammar->table = parser_table_create(grammar->rules.get(), grammar.get(), ParserPresentation::Syntax, &diagnostic,
@@ -534,17 +516,13 @@ bool compile_template(Version& version, const Definitions& defs, const Sequence&
   auto* body = child(root.get(), 0);
   if (!body) { error = "Replacement must produce one syntax tree"; return false; }
   tower_node_add_ref(body); tower_node_detach(body); replacement.tree = owned(body);
-  std::vector<SyntaxTemplateAlias> aliases;
   std::vector<size_t> uses(captures.size());
-  aliases.reserve(grammar->capture_sources.size());
-  for (const auto& [name, entity] : grammar->capture_sources)
-    aliases.push_back({name.c_str(), version.capture_names.at(entity).c_str()});
   SyntaxTemplateRemap remap{body, parser_match_get_type(),
     syntax_emission_productions(grammar->emission.get()), syntax_emission_production_count(grammar->emission.get()),
     syntax_emission_productions(version.emission.get()), syntax_emission_production_count(version.emission.get()),
-    aliases.data(), aliases.size(), nullptr, 0,
+    nullptr, 0, nullptr, 0,
     parser_table_grammar(version.table), uses.data(), uses.size()};
-  if (!syntax_template_remap_to_emission(&remap, version.emission.get())) { error = "Unable to allocate replacement template mapping"; return false; }
+  if (!syntax_template_remap_revisions(&remap, grammar->emission.get(), version.emission.get())) { error = "Unable to allocate replacement template mapping"; return false; }
   for (size_t i = 0; i < captures.size(); ++i) if (uses[i]) replacement.uses[captures[i].name] = uses[i];
   return true;
 }

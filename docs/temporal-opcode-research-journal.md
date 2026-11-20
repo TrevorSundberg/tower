@@ -21239,3 +21239,79 @@ selection correction remain recorded here. GitHub DNS briefly failed one pull;
 a normal retry succeeded. Latest inspected gh-pages is 1828ff9, source 0e4bd41,
 which is an ancestor of this work. Fetching a shallow deployment tip requires a
 local remote-tracking ref refresh; no remote force push is involved or permitted.
+
+### 2026-11-20 — Retained grammar helper ownership: inventory and plan
+
+Pulled main through 451cc14 before this slice. Tracked project-owned native
+physical lines (including blanks/comments, excluding dependencies/generated files):
+production 4,195 = 2,045 C++ implementation + 192 C + 1,958 headers (50 files);
+bootstrap/reference 2,996 (14); tests 3,483 (19); research 774 (4). Total 11,448
+in 87 files, down 1,304 from the previous 12,752 inventory. Production fell 671.
+Largest production implementation remains syntax.cpp (1,231). This measures
+source retirement, not percent of remaining engineering effort or platform proof.
+The incoming parser retirement and Tower CLI/runtime exports are included.
+Reproduce with git ls-files, filter native extensions, exclude third_party,
+classify scaffolding/bootstrap, scaffolding/tests and *-tests, docs/research,
+and count physical lines. Detailed local output: build/language-next/native-lines-451cc14.json.
+
+Next port: remove Version's native token-wrapper, capture-source, reverse-capture
+and repetition maps. Retain disposable indexes under the Tower emission owner;
+all source/provenance pointers continue to identify the same pinned shared ECS
+entities. Preserve lexicographic repetition ordering and last-emitted capture
+selection for a repeated source identity. Published lookup must allocate nothing,
+write no component/refcount state and retain no caller temporary views. Template
+remapping consumes source/destination emissions directly. New implementation and
+functional/failure-injection coverage stay in Tower; native changes only connect
+existing interfaces and remove duplicate ownership. Independent unit compilation
+is parallel; this does not establish concurrent mutation or within-unit jobs.
+
+Validation plan: integrated baseline and paired Wasm timings; focused native
+frontend fixtures including failure cleanup and revision independence; replacement,
+diagnostic, completion, hover and module browser regressions; 2/4-worker identical
+successor builds; local and hosted deployment checks. Sanitizer and repository
+formatter sweeps remain deferred at the user's request. Baseline native build
+exposed an old cache selecting GCC for the newly added LLVM IR runtime objects
+(--target rejected). Reconfigure only this task's backend-native cache with Clang
+for both C and C++; CMake resets options on compiler changes, so restore the
+explicit native/bootstrap/LLVM/backend/driver options after that reset. No source
+workaround or new native implementation is needed.
+
+Implementation now retains helper ordinals in the existing name interner, a
+contiguous name-sorted repetition view, and immutable source-identity hash chains.
+Chain insertion order preserves the old reverse map's last-emitted capture.
+Pointer identity is private lookup data, never a serialized ordering/key. The
+native Version's four maps, copied repetition rows and copied alias rows are gone.
+Tests include 12 occurrences of one source, a distinct source with identical text,
+13 sorted repetitions (crossing decimal helper-name boundaries), token/skip/absent
+wrappers, helper provenance, 64 allocation-free lookups with stable refcounts,
+independent revision destruction and allocation failure sweeps. Focused native
+frontend test passes in 0.04 s; all three Wasm reactors compile and link.
+
+Two initial fixture/parser errors were corrected: token is a grammar declaration
+keyword, so the local is named terminal; the Foundation index operand needs a
+separate previous = i - 1 local. Likewise pointer-key bucketing uses division by
+8, since the current surface has no >> operator. These were compilation failures,
+not successful runtime trials. No sanitizer or repository formatting sweep ran.
+
+Validation after the complete slice: native frontend and driver CTests 2/2 pass
+(5.02 s); 111 replacement/diagnostic/completion/query/hover/module Node tests pass
+(8.25 s). Two successor generations (2 then 4 workers) produce identical reactors
+871562 / 52096101 / 63653463 bytes, including the edited-semantic-behavior probe.
+Logs are build/language-next/helper-{native-all-tests,node,successors}.log.
+The before reactor was rebuilt from clean integrated 451cc14 with the same
+bootstrap and WASI toolchain, not an older pre-parser/runtime artifact. Paired
+benchmark-compiler-ownership.mjs runs (6 warmups, 16 alternating-order pairs, no
+other local validation running) compare identical object bytes in all cases:
+templates 5.480 -> 5.416 ms (-1.16%), layout-depth 17.931 -> 17.487 ms (-2.48%),
+compiler-host unit 140.495 -> 140.077 ms (-0.30%). No regression observed; small
+differences are measurements, not a general speedup guarantee. Saved baseline:
+helper-baseline-llvm.wasm; report: helper-benchmark.json in the same directory.
+
+This slice removes 22 net C++ implementation lines and adds six ABI declaration
+lines. Remaining production: 2,023 C++ + 192 C + 1,964 headers = 4,179; all tracked
+owned native categories total 11,432. Four map owners and two temporary-copy paths
+are retired, although the physical-line reduction is small. Next ownership work
+is the revision's literal/declaration/token-name indexes, followed by definitions
+and session lifecycle. These must keep diagnostics and source order, and expose
+explicit world/revision APIs for the CLI agent's eventual driver retirement.
+Full within-unit parallel compilation is still not implemented by this change.

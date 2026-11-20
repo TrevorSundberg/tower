@@ -257,7 +257,7 @@ fn template_named(input: SyntaxTemplateRemap*, name: u8*): usize {
     }
 }
 
-fn template_remap_node(input: SyntaxTemplateRemap*, node: void*, destination: SyntaxEmission*): bool {
+fn template_remap_node(input: SyntaxTemplateRemap*, node: void*, revision: SyntaxEmission*, destination: SyntaxEmission*): bool {
     var data = lr_tree_match(node, input.match_kind);
     var ordinal = data.id - 3145728;
     var hole = data.id >= 3145728;
@@ -274,6 +274,18 @@ fn template_remap_node(input: SyntaxTemplateRemap*, node: void*, destination: Sy
     }
     var source = template_source(input, data.rule);
     var label = template_alias(input, node_text_get(&data.label));
+    var owned = revision != null;
+    if owned {
+        var helper = syntax_emission_find_helper(revision, label);
+        var found = helper != null;
+        if found {
+            if helper.capture {
+                label = syntax_emission_capture_name(destination, helper.source);
+                var missing = label == null;
+                if missing { return false; }
+            }
+        }
+    }
     var supplied = source != null;
     if supplied {
         data.rule = template_destination(input, source);
@@ -303,6 +315,12 @@ export fn syntax_template_remap(input: SyntaxTemplateRemap*): bool {
 // Production consumers borrow the revision's frozen name index. The original
 // row-view entry remains available to standalone remapping fixtures/consumers.
 export fn syntax_template_remap_to_emission(input: SyntaxTemplateRemap*, destination: SyntaxEmission*): bool {
+    return syntax_template_remap_revisions(input, null, destination);
+}
+
+// Both owners and their source entities stay pinned for this private-tree write.
+// Helper identity comes from the shared entity, never a caller-owned alias map.
+export fn syntax_template_remap_revisions(input: SyntaxTemplateRemap*, source: SyntaxEmission*, destination: SyntaxEmission*): bool {
     var pending: vector(void*);
     vector_init(void*, &pending);
     var bytes = input.count * sizeof(usize);
@@ -318,7 +336,7 @@ export fn syntax_template_remap_to_emission(input: SyntaxTemplateRemap*, destina
         }
         pending.length = pending.length - 1;
         var node = pending.data[pending.length];
-        ok = template_remap_node(input, node, destination);
+        ok = template_remap_node(input, node, source, destination);
         if ok {} else {
             break;
         }

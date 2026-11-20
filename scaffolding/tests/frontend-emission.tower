@@ -18,6 +18,22 @@ extern fn syntax_emission_find_name(value: void*, name: u8*, alternative: usize)
 extern fn syntax_emission_rule_index(value: void*, name: u8*): usize;
 extern fn syntax_emission_helper_count(value: void*): usize;
 extern fn syntax_emission_helper(value: void*, index: usize, out: SyntaxEmissionHelper*): void;
+extern fn syntax_emission_wrapper(value: void*, name: u8*): u8*;
+extern fn syntax_emission_find_helper(value: void*, name: u8*): SyntaxEmissionHelper*;
+extern fn syntax_emission_capture_name(value: void*, source: void*): u8*;
+extern fn syntax_emission_repetitions(value: void*): SyntaxEmissionHelper*;
+extern fn syntax_emission_repetition_count(value: void*): usize;
+
+fn frontend_emission_before(left: u8*, right: u8*): bool {
+    var index: usize = 0;
+    while left[index] == right[index] {
+        var end = left[index] == 0;
+        if end { return false; }
+        index = index + 1;
+    }
+    var before = left[index] < right[index];
+    return before;
+}
 
 // Exercise production exports against shared grammar components in an isolated
 // world. Emission owns its rows/names; the caller pins the source entities.
@@ -42,8 +58,33 @@ fn frontend_emission_tests(): void {
     term.literal = true;
     term.repetition = 43;
     frontend_world_check(bytes_append(&term.text, "x", 1));
+    frontend_world_check(bytes_append(&term.capture, "items", 5));
     var first = preview_syntax(world, alternatives[0]);
-    frontend_world_check(vector_push(void*, &first.items, term_entity));
+    // Shared source can occur multiple times; reverse capture lookup must pick
+    // its last emitted helper, even when names cross a decimal digit boundary.
+    i = 0;
+    while i < 12 {
+        frontend_world_check(vector_push(void*, &first.items, term_entity));
+        i = i + 1;
+    }
+    var other_entity = frontend_format_child(store, alternatives[1], null);
+    var other = preview_syntax(world, other_entity);
+    other.kind = convert(u32, SyntaxKind.Term);
+    other.literal = true;
+    other.repetition = 43;
+    frontend_world_check(bytes_append(&other.text, "x", 1));
+    frontend_world_check(bytes_append(&other.capture, "items", 5));
+    var other_sequence = preview_syntax(world, alternatives[1]);
+    frontend_world_check(vector_push(void*, &other_sequence.items, other_entity));
+    var tokens: void*[2];
+    tokens[0] = frontend_format_child(store, source, null);
+    tokens[1] = frontend_format_child(store, source, null);
+    var terminal = preview_syntax(world, tokens[0]);
+    terminal.kind = convert(u32, SyntaxKind.Token);
+    frontend_world_check(bytes_append(&terminal.name, "Identifier", 10));
+    terminal = preview_syntax(world, tokens[1]);
+    terminal.kind = convert(u32, SyntaxKind.Skip);
+    frontend_world_check(bytes_append(&terminal.name, "Whitespace", 10));
     var names: u8[4];
     fill(&names, 0, 4);
     names[0] = 65;
@@ -61,6 +102,15 @@ fn frontend_emission_tests(): void {
     fill(&input, 0, sizeof(SyntaxEmissionInput));
     input.rules = &rules[0];
     input.count = 2;
+    input.tokens = &tokens[0];
+    input.token_count = 2;
+    input.category = "A";
+    var literal: SyntaxEmissionLiteral;
+    literal.text = "x";
+    literal.length = 1;
+    literal.id = 2097152;
+    input.literals = &literal;
+    input.literal_count = 1;
     input.syntax_kind = kinds.syntax;
     input.rule_kind = kinds.rule;
     input.reference_kind = kinds.reference;
@@ -72,9 +122,27 @@ fn frontend_emission_tests(): void {
     frontend_world_check(ok);
     var rows = syntax_emission_productions(revision);
     var helper: SyntaxEmissionHelper;
-    ok = syntax_emission_helper_count(revision) == 1;
+    ok = syntax_emission_helper_count(revision) == 26;
     frontend_world_check(ok);
     syntax_emission_helper(revision, 0, &helper);
+    var last_capture: SyntaxEmissionHelper;
+    syntax_emission_helper(revision, 23, &last_capture);
+    var other_capture: SyntaxEmissionHelper;
+    syntax_emission_helper(revision, 25, &other_capture);
+    var repetitions = syntax_emission_repetitions(revision);
+    ok = syntax_emission_repetition_count(revision) == 13;
+    frontend_world_check(ok);
+    i = 1;
+    while i < 13 {
+        var previous = i - 1;
+        frontend_world_check(frontend_emission_before(repetitions[previous].name, repetitions[i].name));
+        i = i + 1;
+    }
+    var wrapper = syntax_emission_wrapper(revision, "Identifier");
+    ok = wrapper != null;
+    frontend_world_check(ok);
+    ok = syntax_emission_rule_index(revision, wrapper) != frontend_world_unlimited();
+    frontend_world_check(ok);
     ok = syntax_emission_production_count(revision) == 3;
     frontend_world_check(ok);
     var first_root = input.root;
@@ -126,6 +194,7 @@ fn frontend_emission_tests(): void {
     fill(&rules, 0, rule_bytes);
     fill(&names, 0, 4);
     var allocations = tower_test_buffer_allocations();
+    var references = entity_references(term_entity);
     var repeat: usize = 0;
     while repeat < 64 {
         i = 0;
@@ -144,6 +213,29 @@ fn frontend_emission_tests(): void {
         frontend_world_check(ok);
         var helper_index = rows[0].index + 1;
         ok = syntax_emission_rule_index(revision, helper.name) == helper_index;
+        frontend_world_check(ok);
+        var origin = syntax_emission_find_helper(revision, helper.name);
+        ok = origin != null;
+        frontend_world_check(ok);
+        ok = origin.source == term_entity;
+        frontend_world_check(ok);
+        ok = origin.capture == false;
+        frontend_world_check(ok);
+        origin = syntax_emission_find_helper(revision, last_capture.name);
+        frontend_world_check(origin.capture);
+        frontend_format_text(syntax_emission_capture_name(revision, term_entity), last_capture.name);
+        frontend_format_text(syntax_emission_capture_name(revision, other_entity), other_capture.name);
+        ok = syntax_emission_capture_name(revision, source) == null;
+        frontend_world_check(ok);
+        ok = syntax_emission_find_helper(revision, "A") == null;
+        frontend_world_check(ok);
+        ok = syntax_emission_find_helper(revision, "Missing") == null;
+        frontend_world_check(ok);
+        ok = syntax_emission_wrapper(revision, "Identifier") == wrapper;
+        frontend_world_check(ok);
+        ok = syntax_emission_wrapper(revision, "Whitespace") == null;
+        frontend_world_check(ok);
+        ok = syntax_emission_wrapper(revision, "Missing") == null;
         frontend_world_check(ok);
         // A literal name may exist in the interner without defining a rule.
         ok = syntax_emission_rule_index(revision, "x") == frontend_world_unlimited();
@@ -168,12 +260,25 @@ fn frontend_emission_tests(): void {
     frontend_world_check(ok);
     ok = tower_test_buffer_allocations() == allocations;
     frontend_world_check(ok);
+    ok = entity_references(term_entity) == references;
+    frontend_world_check(ok);
+    // Source names are borrowed only by the source graph; result text is owned.
+    var capture_text: u8[64];
+    fill(&capture_text, 0, 64);
+    i = 0;
+    while last_capture.name[i] != 0 {
+        capture_text[i] = last_capture.name[i];
+        i = i + 1;
+    }
     var b = rows[2].index;
     syntax_emission_destroy(revision);
     entity_release(first_root);
     ok = syntax_emission_find_name(second, "B", 0) == b;
     frontend_world_check(ok);
     ok = syntax_emission_rule_index(second, "B") == b;
+    frontend_world_check(ok);
+    frontend_format_text(syntax_emission_capture_name(second, term_entity), &capture_text[0]);
+    ok = syntax_emission_wrapper(second, "Identifier") != null;
     frontend_world_check(ok);
     syntax_emission_destroy(second);
     entity_release(second_root);

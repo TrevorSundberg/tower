@@ -39,6 +39,11 @@ const SyntaxEmissionProduction* syntax_emission_productions(const SyntaxEmission
 const SyntaxEmissionProduction* syntax_emission_find_index(const SyntaxEmission*, size_t);
 size_t syntax_emission_find_name(const SyntaxEmission*, const char*, size_t);
 size_t syntax_emission_rule_index(const SyntaxEmission*, const char*);
+const char* syntax_emission_wrapper(const SyntaxEmission*, const char*);
+const SyntaxEmissionHelper* syntax_emission_find_helper(const SyntaxEmission*, const char*);
+const char* syntax_emission_capture_name(const SyntaxEmission*, TowerNode*);
+size_t syntax_emission_repetition_count(const SyntaxEmission*);
+const SyntaxEmissionHelper* syntax_emission_repetitions(const SyntaxEmission*);
 size_t syntax_emission_helper_count(const SyntaxEmission*);
 void syntax_emission_helper(const SyntaxEmission*, size_t, SyntaxEmissionHelper*);
 }

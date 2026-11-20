@@ -26,3 +26,4 @@ struct SyntaxTemplateRemap {
 extern "C" bool syntax_template_holes(const SyntaxTemplateGrammar*);
 extern "C" bool syntax_template_remap(const SyntaxTemplateRemap*);
 extern "C" bool syntax_template_remap_to_emission(const SyntaxTemplateRemap*, const SyntaxEmission*);
+extern "C" bool syntax_template_remap_revisions(const SyntaxTemplateRemap*, const SyntaxEmission*, const SyntaxEmission*);
