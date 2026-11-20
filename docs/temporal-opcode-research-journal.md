@@ -19235,3 +19235,13 @@ case. The no-environment POSIX fallback is /tmp; macOS normally supplies TMPDIR,
 but the native per-user confstr fallback is not yet ported. Tests establish actual
 Linux and Windows execution, not macOS runtime parity. Final validation and
 publication evidence are recorded in the following entry.
+
+A final ABI review found that declaring fcntl as a fixed-signature function is
+not valid for Apple ARM64's variadic argument convention. Superseding the earlier
+shared POSIX process implementation: Linux now uses fixed-signature pipe2 with
+O_CLOEXEC and fork/execv; macOS uses fixed-signature posix_spawn with the exact
+borrowed libc environment from _NSGetEnviron. This removes the variadic boundary
+rather than adding a native shim. Shared PATH search, status normalization, file
+ownership and diagnostics are unchanged. Linux's error pipe is now atomically
+close-on-exec. The Tower CLI suite and macOS object compilation are rerun after
+this correction; macOS runtime validation remains unavailable.
