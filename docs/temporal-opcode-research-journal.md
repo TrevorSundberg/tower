@@ -16276,3 +16276,11 @@ then adds Tower-backed hover type/documentation queries plus frontend changes;
 integrate those before rebuilding final artifacts. The separate baseline source
 copies for entity/layout/import code are retained under world-baseline for the
 controlled overhead comparison; no new native seed or fallback was introduced.
+
+Rebased the implementation to f9af9eb over 8f49aa3, preserving the hover changes
+and both journal histories. Rebuilt all three release reactors and the native
+compiler/API checks. Packed the new deferred-queue flag beside the existing
+registration flag, using header padding instead of adding a second padded field;
+the deferred link still needs one pointer per entity. The baseline comparison
+will record actual reflected header sizes at both pointer widths. This is an
+internal Tower storage layout; native clients only borrow opaque entity pointers.
