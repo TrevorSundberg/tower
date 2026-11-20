@@ -14311,6 +14311,30 @@ tests exercise allocation growth and arithmetic failure preservation. No GC or
 exceptions are added. todo.txt still hashes to
 96a9e58964d7f01e4a97819f259448db81ef5e40.
 
+Current-main results after the bounded-view adjustment: the fresh default-pin
+native compiler build passes, as do focused Tower ownership/failure and CLI
+CTests (2/2, 30.94 s). All three browser reactors build and the package includes
+12 parser units / 11 LLVM units / 11 cross units. Two browser successor generations
+using 2 then 4 workers pass with byte-identical 905573 / 52134212 / 63691570-byte
+reactors and the edited-semantic behavior probe. Within-unit phases remain serial.
+
+All seven browser cross-compilation/link/reproducibility checks pass. Windows
+x64 and Linux x64 outputs execute with the expected memory, pointer-width and
+foreign-library results; Linux ARM64 matches under qemu-aarch64. macOS x64/ARM64
+link and emit disassembly but are not executed here. The standalone native target
+script generated every runtime pack, then stopped because ld.lld-19 is not installed;
+the browser checks use the actual bundled upstream linkers and validate those
+same generated packs. No native linker implementation was added.
+
+The broader Node selection finds two imported-name completion failures:
+completion.test.mjs's project-declaration and imported-generic cases. Built an
+unmodified 479962b parser reactor from a git archive in the separate Linux cache
+lexical-current-reference-source/parser and reran those exact existing cases:
+both fail there too (helper and vector_init missing). This establishes pre-existing
+current-main failures, not a passing completion suite or an attribution to this
+port. Reference build/probe logs are lexical-current-reference{,-completion}.log.
+Remaining tests, native paired timings and deployment verification continue.
+
 ### Tower language milestone published and verified
 
 Implementation/source commit 4ae9076 is on main. Required post-commit
@@ -22227,3 +22251,57 @@ then attach syntax sessions and installed baselines to explicit CompilerWorld
 ownership. Cache lookup currently mutates hit/LRU state, so coordinator-owned
 publication must precede worker reads; sharing that mutable cache is not yet safe.
 This next ownership design is audited, not implemented or concurrency-validated.
+
+### 2026-11-20 - Lexical ownership integration with the published bootstrap
+
+Pulled/rebased runtime retirement aa2bc73, module-path migration 943f73b, and
+bootstrap recovery through 479962b. Preserved both append-only journal histories.
+Adapted the new lexical module and its imports to identifier names/underscores;
+the incoming Tower runtime and source import implementation remain intact.
+The earlier bootstrap blocker is superseded: the checked-in a5435617 archive
+installs with all member hashes verified, including adjacent grammar resources.
+The missing step was distribution of the intermediate compiler, not a fundamental
+inability to bootstrap expression features. The published staged build now closes
+that gap. Future syntax migrations must preserve that available predecessor path.
+
+Started a fresh native build with no TOWER_BOOTSTRAP_COMPILER override:
+`env -u TOWER_BOOTSTRAP_COMPILER TOWER_NATIVE_BUILD=/home/trevo/.cache/tower/lexical-current-clean
+TOWER_BUILD_JOBS=8 bash playground/scripts/build-native.sh`. Logs are
+build/language-next/lexical-current-{clean,parser,backends}.log. Existing native
+reference caches and prior bootstraps remain untouched. Browser caches use the
+same installed pin, without rebuilding upstream LLVM. Sanitizer and broad
+formatting sweeps remain deferred per the user's instruction.
+
+The first combined build reached the actual port and rejected sizeof(u8*[9])
+inside the new expression grammar. Replaced the suffix priority and path array
+search bounds with named usize constants. This
+avoids that unsupported type spelling and makes the existing fixed search policy
+explicit; no Foundation grammar or semantic workaround was introduced. Rebuild
+and current-main functional verification follow, replacing the historical
+pre-operator validation evidence only when those checks actually pass.
+
+Follow-up trials corrected my assumptions about current const syntax: it expands
+to a zero-argument function, must be declared at module scope, and is read with
+Name(). Array counts still accept literals/template-bound values, not those
+calls. The bounded scratch arrays therefore retain literal sizes, while search
+policy uses the named functions. These are current staging limitations, not a
+claim that arbitrary compile-time values or local constants already work.
+
+The combined parser unit then exceeded the existing 256 generic-specialization
+budget. Reduced unnecessary specializations in the new derived views: hole labels
+own terminated byte allocations in the already-used pointer vector; the immutable
+literal table and temporary sort order allocate their known bounds once. Literal
+allocation checks multiplication overflow, and all partial construction remains
+covered by the owner's existing cleanup path. This also avoids growing a literal
+vector during publication preparation. No compiler budget, semantic algorithm or
+native bootstrap was changed to accommodate the port.
+
+Inventory after runtime integration: 1,906 production .cpp lines, zero production
+.c lines, and 1,981 production header lines (3,887 total). Other owned native
+categories: bootstrap 2,996; functional/reference tests 3,483; research 774;
+grand total 11,140 lines. Counts include blanks/comments, use tracked native
+extensions, and exclude third-party/vendor/external directories. syntax.cpp is
+1,130 lines and remains the largest production implementation. This is a source
+inventory, not a claim that the remaining ownership/release work is proportional
+to line count. todo.txt's object hash remains
+96a9e58964d7f01e4a97819f259448db81ef5e40.

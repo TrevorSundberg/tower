@@ -745,8 +745,8 @@ fn emission_initialize(value: SyntaxEmission*, parent: SyntaxEmission*): void {
     }
     index = 0;
     if inherited {
-        while index < parent.lexical.literals.length {
-            var literal = &parent.lexical.literals.data[index];
+        while index < parent.lexical.literal_count {
+            var literal = &parent.lexical.literals[index];
             var name = emission_name(value, literal.text, literal.length);
             if value.failed { return; }
             value.names.data[name].literal = literal.id;
