@@ -19745,3 +19745,41 @@ build/template-error-*.
 
 Unrelated working changes in AGENTS.md, foundation docs, the journal and todo.txt
 are preserved outside this commit. No edits to todo.txt were made.
+
+## 2026-11-20 — Template error-state integration and publication
+
+Rebased the hover correction onto 894f903, preserving the incoming parser trace/
+conflict formatter migration, module-scope integration and focused frontend test
+target. Resolved the append-only journal conflict by retaining the upstream
+entries and this turn's entry. Autostash restored the unrelated local edits.
+The resulting implementation commit is 6a49c53. Rebuilt the parser, LLVM and
+cross-target compilers together using the published Tower/Wasm bootstrap rather
+than publishing the earlier pre-rebase artifacts.
+
+Post-rebase validation: all 65 Node/Wasm hover, template and module-scope tests
+pass (10.63 s), all 40 desktop/mobile hover tests pass (56.4 s), and the full local
+deployment verifier matches all 69 assets and passes both browser profiles.
+The verifier exercises agreement between execution backends, forward module
+bindings, editable grammar, persistence, native builds/downloads, completion,
+Tab acceptance, struct fields and compiler-based output highlighting. Required
+backend packaging completed for all three reactors and their ten Tower units.
+The rebuilt parser support archive is smaller than the previous deployment;
+to validate package completeness, the packaged compiler project also builds two byte-identical successor
+generations, including the edited-semantic-behavior check. Commands/logs:
+build/template-error-rebased-{wasm,llvm,ui,tests,browser,generations}.log and
+build/template-error-local-deployment.log; the copied local report is
+build/template-error-local-report.json.
+
+The publication manifest retains the previous native CLI validation metadata,
+records 6a49c53 as the source revision and 81816ac as its predecessor deployment.
+Normal gh-pages push succeeded as 4d3d19f and GitHub Pages reports that revision
+built without error. All 69 live assets match the tested build, including manifest
+SHA-256 `9cb432ce636be8430c9daeeec6e4ecb6dcf5b813054afb709e7d055d9155f10f`.
+The focused live hover suite passes
+12/12 checks (22.3 s), including actual bundled Templates before and after an
+unrelated document error, symbolic template details, documentation, generic
+tree queries, and zero hover-time worker round trips on desktop and mobile.
+The full live deployment verifier also passes both browser profiles, including
+backend agreement, native downloads, persistence, completion and highlighting;
+its report is copied to build/template-error-live-report.json. The source and
+publication changes are committed on main; unrelated local work remains unstaged.
