@@ -16408,3 +16408,24 @@ served asset changes; reuse the exact current Pages artifacts rather than stale
 local compiler builds. The clean existing detached Pages worktree was advanced
 with `git merge --ff-only origin/gh-pages`; its complete published contents were
 copied into the ignored `playground/dist/` for manifest-based live verification.
+
+Final synchronization rebased this assessment onto be490d5, including upstream's
+pinned entity views and their measured validation. The append-only journal was
+the only conflict; both histories were retained. That lifetime work does not
+supply module-local name lookup, so the selected next task is unchanged. The
+published-parser probe passes again after rebase, and `git diff --check` passes.
+Only `docs/modules.md` and this journal change in this assessment.
+
+Hosted verification exits zero using the Docker `tower_build` environment with
+this checkout mounted at `/home/deck/tower`, UID 1000, and
+`/home/deck/.cache/tower-docker` mounted at `/tmp/tower-home/.cache`:
+`node playground/scripts/verify-deployment.mjs https://trevorsundberg.github.io/tower/`.
+All 68 exact published asset hashes and desktop/mobile checks pass, including
+backend agreement, C/comment controls and downloads, imported execution,
+grammar editing, persistence, native exports, completion and the workbench.
+Evidence: `build/next-task/verify-live.log` and
+`build/deployment-verification/report.json`. The verified manifest remains
+444d45dcfe2e9f49ff3ea8b4ae1a65d4de3ab909600fc9812c94f172c0ef21ea.
+No runtime rebuild or new Pages content is needed for these repository docs;
+publication uses the unchanged verified deployment. `todo.txt` remains Git blob
+96a9e58964d7f01e4a97819f259448db81ef5e40.
