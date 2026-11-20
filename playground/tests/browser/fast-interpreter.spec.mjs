@@ -25,6 +25,7 @@ test('three default runners compare and either interpreter can run independently
   await page.locator('#optimize').check();
   await expect(page.locator('#target-interpreter')).toBeChecked();
   await expect(page.locator('#target-fast')).toBeChecked();
+  await expect.poll(()=>page.locator('.target-menu').evaluate(menu=>menu.getBoundingClientRect().top)).toBeGreaterThanOrEqual(0);
   await page.locator('#target-interpreter').uncheck();
   await page.locator('#target-wasm').uncheck();
   await page.locator('#build-targets summary').click();

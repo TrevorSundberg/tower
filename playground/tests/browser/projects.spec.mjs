@@ -166,6 +166,7 @@ test('module aliases isolate names and dependency edits update both backends',as
   await expect(page.locator('#llvm-output')).toHaveText('21\n22\n');
   await page.locator('[data-path="main.tower"]').click();
   await edit(page,'import tower; import left.tools as left; print(answer());');
-  await expect(page.locator('#execution-status')).toContainText('error');
+  await expect(page.locator('#execution-status')).toContainText('Failed');
+  await expect(page.locator('#execution-error')).toContainText("Unknown function 'answer'");
   await expect(page.locator('#execution-output')).not.toContainText('21');
 });

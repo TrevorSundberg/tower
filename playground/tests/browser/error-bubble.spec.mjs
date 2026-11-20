@@ -5,6 +5,14 @@ test('error bubble connects to the marked text at both corners, across wide and 
   const errors=[]; page.on('pageerror',error=>errors.push(error.message));
   if(info.project.name==='mobile')await page.setViewportSize({width:390,height:844});
   await page.goto('/'); await expect(page.locator('#status')).toContainText('Complete');
+  // Measure with the same two-line gutter as the fixtures, rather than the
+  // wider line-number gutter of the initial example.
+  await page.locator('#editor').click({position:{x:80,y:20}});
+  await page.getByRole('textbox',{name:'Tower source'}).press('ControlOrMeta+a');
+  const initial="parse Statement = Number ';';\n1;";
+  await page.keyboard.insertText(initial);
+  await expect.poll(()=>savedSource(page)).toBe(initial);
+  await expect(page.locator('#status')).toContainText('Complete');
   const columns=await page.locator('.cm-line').first().evaluate(line=>{
     const style=getComputedStyle(line), canvas=document.createElement('canvas'), context=canvas.getContext('2d');
     context.font=style.font;

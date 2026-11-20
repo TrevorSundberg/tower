@@ -822,6 +822,19 @@ for(const [key,target] of Object.entries(targetChoices)) {
 updateColumns();
 document.addEventListener('click',event=>{if(!$('build-targets').contains(event.target))$('build-targets').open=false;});
 $('build-targets').addEventListener('keydown',event=>{if(event.key==='Escape')$('build-targets').open=false;});
+function fitTargetMenu() {
+  if (!$('build-targets').open) return;
+  const menu=$('build-targets').querySelector('.target-menu');
+  // The menu opens above its positioned parent (the heading on mobile).
+  // Keep its first options reachable even after scrolling to the last option.
+  const available=menu.offsetParent.getBoundingClientRect().top-12;
+  menu.style.maxHeight=`min(60vh, ${Math.max(0,available)}px)`;
+}
+$('build-targets').addEventListener('toggle',fitTargetMenu);
+window.addEventListener('resize',fitTargetMenu);
+const targetMenuLayout=new ResizeObserver(fitTargetMenu);
+targetMenuLayout.observe(document.querySelector('.workspace'));
+targetMenuLayout.observe(document.querySelector('.execution-heading'));
 try { $('optimize').checked = localStorage.getItem('tower-optimize-v1') !== 'false'; } catch {}
 $('optimize').onchange = () => {
   try { localStorage.setItem('tower-optimize-v1',String($('optimize').checked)); } catch {}

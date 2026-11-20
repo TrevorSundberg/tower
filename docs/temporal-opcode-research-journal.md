@@ -19029,3 +19029,42 @@ tests passed with isolated Node 22. The full Node suite imports the exact
 retain that full-suite check. Browser tests initially could not launch the newly
 required Chromium after the upstream Playwright update; installing that matching
 browser before rerunning the matrix. No test assertion was weakened.
+
+The full browser matrix reached the new alias test: both backends produced
+20/22, then 21/22 after editing only the imported file; keyword classification
+also passed. Its final negative check correctly rejected unqualified answer(),
+but the test expected the substring "error" in the status while the UI says
+"Failed · backends match". Corrected the status expectation and added an exact
+unknown-function diagnostic assertion. This was a test-label mismatch, not a
+compiler or UI fix. The activation/reset test passed using the scoped compiler.
+
+`npm test --prefix playground` passes all 377 Node/Wasm tests with no skips,
+including the 18 module-scope regressions and complete source formatting check.
+Elapsed time was 1004.35 seconds under concurrent native/browser validation.
+The exhaustive formatter now repeatedly loads the explicit compiler dependency
+closures for individual source files. Future parse-cache work should measure
+that workload and preserve the fresh-entity/ownership invariants established
+here; this change does not claim declaration-level incremental compilation.
+
+The full mobile matrix exposed two inherited layout cases. The error-bubble
+right-edge fixture measured columns while the initial example still had a
+two-digit line-number gutter, then replaced it with two lines and a narrower
+gutter. Initialize that same two-line document before measuring, retaining all
+outline geometry assertions. The target menu issue was a real accessibility
+defect: at 393x851, the 60vh menu started at y=-34.90625 and the first checkbox
+occupied y=-17.90625..-4.90625 after scrolling back from Optimize. The independent
+`mobile-menu-probe.mjs` reproduces it. Limit the menu to the space above its actual
+positioned parent, recalculating on open and workspace/heading/viewport resize;
+retain its scrollable contents. Add a viewport-bound assertion to the existing
+runner-selection test. These browser-only corrections do not change the compiler.
+
+The full portable WASI parser/host and interpreter harness passes, including
+237 canonical source files, two invalid parser fixtures, grammar allocation
+failures/random automata, and 156 differential interpreter runs. The full browser
+matrix completed 203 passing cases, four failures described above, and the
+existing mobile full-successor skip. After rebuilding only the UI, all six
+focused desktop/mobile alias, bubble and runner checks pass (60 seconds). The
+independent menu probe now reports menu top=7 and checkbox y=19..32. Initial local
+deployment verification passed all 69 assets and both viewport flows; rerunning
+that verification against the final menu bundle. Native sanitizer completion and
+final publication remain pending.
