@@ -20330,3 +20330,11 @@ the tested port are journal updates and the verifier's bounded completion wait;
 no compiler rebuild is warranted for that documentation/verification integration.
 All required port implementation and functional validation is complete. Remaining
 syntax-view portability and shared-mutation limitations are unchanged above.
+
+Publication completed normally on the faster connection: gh-pages df2c247 and
+main 03b8d43 were acknowledged. The metadata-only deployment preserves every
+asset from 7d63df1 and its recorded 3e606d1 source provenance. The ordinary hosted
+manifest URL now matches the local manifest exactly, SHA-256
+45d89840f775bf17058c14d39ee75d1ea297ccdd2343956b1c11745987db057d;
+its IDE validation commit is 03b8d43. Evidence: build/ide-final-manifest-check.json.
+This final journal-only completion record changes no deployed payload or tests.
