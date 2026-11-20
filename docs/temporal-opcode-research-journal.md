@@ -18635,3 +18635,17 @@ to reject an exact standalone 'function' label; no UI/semantic change was needed
 Both viewport reruns pass (build/roku-integrated-hover-recheck.log), yielding
 87 passed / one skipped for this integration selection. Recreated both manual
 device ZIPs from the newly tested output. Physical Roku testing remains pending.
+
+The remaining source rebases added only journal entries and browser tests,
+including the same independently corrected hover assertion. All six final
+desktop/mobile Roku, documentation-hover and custom-surface checks pass.
+Published the integrated artifacts as 9febc93, then corrected manifest provenance
+in 1dcd1196e52d2014cd47299fa6de84642f484117 to the exact built implementation
+revision 47dbce15ddedbc24919a0b26d3dec4697cd1195c (later changes are docs/tests only).
+Pages workflow 44771792988 succeeded. Final hosted verification passes all 69
+assets and desktop/mobile flows, including BrightScript download, C/Roku profile
+separation and compiler-driven highlighting. Final manifest SHA-256:
+f45fe4537041167ef6d78c2a0e81d560eb1e97ed80880b0c1304bd5d7a064918.
+Evidence: build/roku-integrated-hosted.log and build/roku-integrated-hosted-report.json.
+Both main and gh-pages were pushed normally. todo.txt remains unchanged; only
+the physical Roku conformance/performance check awaits a device.
