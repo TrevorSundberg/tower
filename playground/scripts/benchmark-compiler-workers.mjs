@@ -14,7 +14,10 @@ const grammar = Object.fromEntries(['bedrock','foundation','tower'].map(name => 
 const compiler = await loadLLVM(await read('build/browser-wasi-llvm/tower-llvm.wasm'),undefined,grammar.foundation,undefined,grammar.bedrock,{tower:grammar.tower});
 const report = {cpu:os.cpus()[0].model,cpus:os.availableParallelism(),node:process.version,units:recipe.units.length,runs:[]};
 let reference;
-for (const workers of [0,1,2,4,8]) {
+const requested = process.argv.slice(2).map(Number);
+const counts = requested.length ? requested : [0,1,2,4,8];
+if (counts.some(count => !Number.isInteger(count) || count < 0 || count > 8)) throw new Error('Expected worker counts from 0 through 8');
+for (const workers of counts) {
   let memory = process.memoryUsage().rss;
   const sample = setInterval(() => { memory = Math.max(memory,process.memoryUsage().rss); },50);
   const started = performance.now();

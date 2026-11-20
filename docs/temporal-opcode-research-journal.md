@@ -15949,3 +15949,52 @@ the correct first diagnostic arrives and both workers exit without the five-seco
 cancellation deadline firing. All five worker transport/SIMD checks pass after
 this correction (`parallel-prefix-workers.log`); raw/optimized/interpreter Tower
 coordinator checks pass (`parallel-prefix-fixture.log`). No UI timeout was raised.
+
+Final integrated validation at 405ed8b supersedes the earlier interim results:
+
+- **320/320 Node/Wasm tests pass** (`parallel-final-node.log`). The updated Tower
+  coordinator also compiles/runs natively with zero failure codes.
+- **13 browser cases pass**, with the mobile full successor build intentionally
+  skipped (`parallel-final-browser.log`). Desktop rebuild activates the edited
+  compiler, preserves hover, reports the bad first unit within the unchanged
+  30-second test, and resets successfully. Both browser profiles verify that
+  cancelling the coordinator removes its nested compiler worker targets.
+- Two final successive generations built with two and four workers are byte
+  identical and pass all activation probes (`parallel-final-generations.log`).
+  Parser/LLVM/cross sizes: 878772 / 51863089 / 63420355 bytes. SHA-256:
+  `0ab10f6a987b25b84c26c51f18ff6d0f5322ba7192ef901eb228fa046847bd1f`,
+  `c111ab35e402ce494dca59a5bb85f97fe1a18d3d8bedaa7c5ab1f93230376810`,
+  `c01b8beb65b072f2d72138a88a7b4142881155c9fd5aa848662ca681d9199da1`.
+- The three new access/coordinator/batch fixtures each compile/link twice with
+  identical artifact bytes for all six supported executable profiles; raw IR,
+  optimized IR and disassembly are present. All print zero on Windows x64,
+  Linux x64, Linux ARM64 under QEMU and Wasm. macOS x64/ARM64 are linked only.
+  Evidence: `parallel-final-targets.log`, `build/compiler-parallel/targets/`.
+- The final source-set benchmark (`benchmark-compiler-workers.mjs 0 2`) measures
+  **164.86 seconds serial / 116.92 seconds with two workers**, identical objects,
+  observed overlap 1/2 and sampled RSS about 321/570 MiB. This is roughly 1.41x
+  throughput for this run. Earlier 1/2/4/8 results are retained separately as
+  `build/compiler-parallel/benchmark-before-hover.json`; do not present their
+  absolute times or 1.74x result as a stable guarantee for the integrated source.
+  The final report is `build/compiler-parallel/benchmark.json`.
+- Investigated the shifted absolute timings with alternating published/current
+  reactors on identical source and target inputs, two warmups and six measured
+  pairs. UTF-8 unit medians are approximately 123.1/121.6 ms; host unit medians
+  450.0/472.4 ms. Objects match exactly. The small host case remains about 5%
+  slower in this sample; do not claim zero serial overhead or infer the cause
+  from this short control. The large absolute timing shift is also visible in
+  the published reactor under these conditions. Evidence:
+  `parallel-published-comparison.log` and `published-comparison.json`. Profile
+  the residual serial delta before changing storage/alias rules to chase it.
+- The final local deployment verifier passes all **68** asset hashes and both
+  browser profiles (`parallel-final-verify-local.log`). Prepared Pages assets
+  match manifest SHA-256
+  `8ea387626b84d9c2a7c34f4afc52115661b774460de9e920e3871023c53a2775`.
+  The Pages worktree was advanced from 4ef942b to upstream 757f767 before copying
+  these files; no deployed asset was removed. Publication verification follows.
+
+No owned C/C++ source changed relative to integrated upstream c06fc83. The
+benchmark adapter now accepts explicit counts for reproducible focused comparisons.
+`todo.txt` remains blob 96a9e58964d7f01e4a97819f259448db81ef5e40. Native CLI
+threads, shared-node phase migration, incremental invalidation, packed compiler
+columns and the remaining language roadmap are still required work.
