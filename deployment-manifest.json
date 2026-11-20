@@ -72,7 +72,7 @@
     "worker.js.map": "c715c0460b1eed9b2e40c2f8f768c6170409b951be15c303760118bfe87d8e02"
   },
   "sourceCommit": "3e606d16e821f6e4d55a86b8c630dd608f3f6a2a",
-  "previousDeployment": "7d63df1b74edc9cad8d6988d8a30e226193ad6b2",
+  "previousDeployment": "df2c247f2dd0dfa368873b10ab270406434e3c9b",
   "scope": "Template member paths and concrete expression inspection; integrated Tower IDE services, syntax formatting and allocator migration",
   "buildNote": "Parser, LLVM and cross-target compilers rebuilt together. Fixed record shapes preserve symbolic arguments; concrete subexpressions reuse the ordinary checker on temporary query trees.",
   "nativeCli": {
@@ -92,5 +92,16 @@
     "localValidation": "Tower functional fixtures; 198 Node/Wasm checks; four native checks; 12 headless cases; two successive compiler generations.",
     "hostedValidation": "All 70 exact assets and isolated desktop/mobile flows: backend agreement, completion, persistence and downloadable artifacts.",
     "integration": "Existing Foundation ECS entities and compiler/query/interpreter APIs. Transitional WASI syntax bindings; serialized calls per instance and isolated workers."
+  },
+  "runtimeAllocator": {
+    "sourceCommit": "4885b97de69aea8ae23ced32500d7820f7b95f3a",
+    "validationCommit": "9f2f3787023f7d84f005a87fe135fb42a7112340",
+    "validatedDeployment": "7d63df1b74edc9cad8d6988d8a30e226193ad6b2",
+    "implementation": "scaffolding/host/memory.tower, memory-libc.tower, guest-memory.tower, guest-wasm.tower",
+    "nativeBuildSource": "ac6c13b11464cd2d9b2d237c19722628bbd516ac",
+    "nativeExecutableSha256": "59a6c8a5cb375cd4f4c4d99587c2ac2f1bca9390c7d7e48c2caf4840a4c0a86c",
+    "validation": "Linux/WASI allocator ABI, overflow/alignment/failure cleanup, real Wasm growth, Foundation round trips, frontend/CLI tests, six target layouts, two identical successor generations and 70 hosted assets with desktop/mobile flows.",
+    "remaining": "Runtime exports, library globals, foreign data and platform startup contracts still block retiring runtime.c and the remaining compiler-memory.cpp paths.",
+    "portableNativeRelease": false
   }
 }
