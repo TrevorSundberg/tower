@@ -53,7 +53,7 @@ test('cached mouse hover shows resolved types and declaration locations without 
   const tip=page.locator('.tw-language-hover');await expect(tip).toBeVisible();
   await expect(tip.locator('code')).toHaveText('var value: i32');
   await expect(tip).toContainText('global variable');await expect(tip).toContainText('4 bytes');
-  await expect(tip).toContainText('Type: i32');await expect(tip).toContainText('Declared at line 1, column 1');
+  await expect(tip).toContainText('Type: i32');await expect(tip).toContainText('foreach.tower:1:1');
   await expect(tip).not.toContainText(/entity|components|Syntax|CoreLocation/);
   expect(await page.evaluate(()=>window.documentQueries.length)).toBe(count);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
@@ -95,6 +95,45 @@ test('member hover uses the resolved field and comments have no tooltip',async({
   await expect(tip).toContainText('field offset 4');
   position=await point(page,'comment');await page.mouse.move(position.x,position.y);
   await expect(tip).toHaveCount(0);
+});
+
+test('keywords, operators and function braces use Tower services and one location spelling',async({page})=>{
+  const text='fn increment(p:i32*):i32 {\n  var old:i32 = *p;\n  *p = old + 1;\n  return old;\n}';
+  await source(page,text);await ready(page,text);
+  await expect(page.locator('#position')).toHaveText('foreach.tower:5:2');
+  const tip=page.locator('.tw-language-hover');
+  for(const [lineText,token,description] of [
+    ['fn increment','fn','Defines this function.'],
+    ['var old','var','Declares a mutable variable.'],
+    ['var old','=','starting value'],
+    ['var old','*','Reads the value stored at this pointer.'],
+    ['*p =','*','Selects the pointed-to value to write.'],
+    ['*p =','=','Stores the value on the right'],
+    ['*p =','+','Type: i32'],
+    ['return old','return','Returns this value'],
+    ['}','}','Ends the body of this function.'],
+  ]) {
+    const line=page.locator('#editor .cm-line').filter({hasText:lineText});
+    await line.scrollIntoViewIfNeeded();
+    await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+    const position=await line.evaluate((line,token)=>{
+      let offset=line.textContent.indexOf(token);const walker=document.createTreeWalker(line,NodeFilter.SHOW_TEXT);
+      while(walker.nextNode()) {
+        const node=walker.currentNode;
+        if(offset>=node.length){offset-=node.length;continue;}
+        const range=document.createRange();range.setStart(node,offset);range.setEnd(node,offset+token.length);
+        const box=range.getBoundingClientRect();return {x:box.x+box.width/2,y:box.y+box.height/2};
+      }
+    },token);
+    await page.mouse.move(position.x,position.y);await expect(tip).toContainText(description);
+    await expect(tip).not.toContainText(/Declared at|Defined in|Returns:|\nfunction\n/);
+    if(['fn','return','}'].includes(token)) {
+      await expect(tip).toContainText('fn increment(p: i32*): i32');
+      await expect(tip).toContainText('Result: 4 bytes');
+      await expect(tip).toContainText('foreach.tower:1:1');
+    }
+    await page.mouse.move(0,0);await expect(tip).toHaveCount(0);
+  }
 });
 
 test('foreach imports, compact alternatives and syntax-only loop tokens have useful cached hovers',async({page},info)=>{
@@ -297,19 +336,20 @@ test('another symbol inside the margin dims the border and replaces the pinned t
   await expect(panel).toHaveCSS('opacity','1');
 });
 
-test('hover shows attached documentation and typed signatures, suppressing name-only syntax',async({page})=>{
+test('hover shows attached documentation and typed signatures, suppressing name-only syntax',async({page},info)=>{
   const text='// Doubles the input. <b>This is plain text.</b>\nfn twice(value:i32):i32 { var result = value + value; return result; }\nprint(twice(21));';
   await source(page,text);await ready(page,text);
   const position=await point(page,'twice'),tip=page.locator('.tw-language-hover');
   await page.mouse.move(position.x,position.y);
   await expect(tip.locator('code')).toHaveText('fn twice(value: i32): i32');
-  await expect(tip).toContainText('Returns: i32');
+  await expect(tip).not.toContainText('Returns:');await expect(tip).not.toContainText('\nfunction\n');await expect(tip).toContainText('Result: 4 bytes');
   await expect(tip).toContainText('Doubles the input. <b>This is plain text.</b>');
   await expect(tip.locator('b')).toHaveCount(0);
   await expect(tip).not.toContainText(/entity|components|Syntax/);
+  await tip.screenshot({path:`../build/ide-function-hover-${info.project.name}.png`});
   await page.keyboard.press('Escape');
   const keyword=await point(page,'return');await page.mouse.move(keyword.x,keyword.y);
-  await expect(tip).toHaveCount(0);
+  await expect(tip).toContainText('Returns this value from the function to its caller.');
   const broken='var unknown = missing;';await source(page,broken);await ready(page,broken);
   const missing=await point(page,'missing');await page.mouse.move(missing.x,missing.y);
   await expect(tip).toContainText('This code matches the pattern shown below.');await expect(tip).not.toContainText('Type:');

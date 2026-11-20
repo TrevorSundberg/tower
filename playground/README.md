@@ -172,7 +172,7 @@ of the marked text; wrapped tokens connect at their final visual row. Its border
 and rounded corners form one outline, including at the left and right edges.
 At an edge the adjacent top corner becomes straight, keeping the connector a
 trapezoid rather than leaving an inset notch.
-Select **Error · Ln …** in the editor footer to jump to an offscreen
+Select **Error · filename.tower:line:column** in the editor footer to jump to an offscreen
 error. Editing retains the diagnostic through the debounce. A successful parse
 clears parse errors immediately; successful semantic compilation clears old
 semantic/runtime errors before execution finishes. Grammar-driven diagnostics

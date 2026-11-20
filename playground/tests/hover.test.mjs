@@ -28,6 +28,42 @@ test('function names and calls share canonical typed signatures',()=>{
   assert.equal(at(source,'add(1').signature,'fn add(a: i32, b: i32): i32');
   assert.equal(at(source,'i32 {').signature,'i32');
 });
+
+test('compiler services describe every token in checked statements, including keywords and punctuation',()=>{
+  const source='fn advance(p:i32*):i32 {\n var old:i32 = *p;\n *p = old + 1;\n return old;\n}\nvar value:i32 = 1;\nprint(advance(&value));';
+  const entries=inspect(source,{entry:'advance.tower'});
+  for(const entry of entries)assert.ok(hasHoverDetails(entry),JSON.stringify({text:source.slice(entry.from,entry.to),entry}));
+  const get=(text,offset=0)=>hoverAt(entries,source.indexOf(text)+offset);
+  assert.match(get('var old').description,/mutable variable/);
+  assert.equal(get('var old').type,'i32');
+  assert.match(get('= *p').description,/starting value/);
+  assert.match(get('= old').description,/Stores/);
+  assert.equal(get('= old').type,'i32');
+  assert.equal(get('*p;').kind,'pointer dereference');assert.equal(get('*p;').type,'i32');
+  assert.match(get('*p =').description,/pointed-to value to write/);
+  for(const text of ['return old','}']) {
+    const entry=get(text);assert.equal(entry.signature,'fn advance(p: i32*): i32');
+    assert.equal(entry.declarationFile,'advance.tower');assert.equal(entry.declarationLine,1);assert.equal(entry.declarationColumn,1);
+  }
+  assert.match(get('}').description,/Ends the body/);
+});
+
+test('control flow punctuation uses structural descriptions without invented value types',()=>{
+  const source='fn repeat():void { var ready:bool = true; loop { if ready { break; } else { continue; } } return; } repeat();';
+  const entries=inspect(source);
+  for(const text of ['loop','if','break','else','continue']) {
+    const entry=hoverAt(entries,source.indexOf(text));assert.ok(entry.description,text);assert.equal(entry.type,undefined,text);
+  }
+  for(const entry of entries)assert.ok(hasHoverDetails(entry),source.slice(entry.from,entry.to));
+});
+
+test('uninstantiated function bodies retain tree lookups without claiming concrete types',()=>{
+  const source='fn unused(T:type,value:T):T { print(1); return value; }';
+  const entries=inspect(source);
+  for(const entry of entries)assert.ok(hasHoverDetails(entry),source.slice(entry.from,entry.to));
+  const body=hoverAt(entries,source.indexOf('print'));
+  assert.equal(body.type,undefined);assert.ok(body.matchedRule);
+});
 test('members, pointer receivers, nominal types and layouts come from checked fields',()=>{
   const source='struct Point { first:i32; ready:bool; } var p:Point; var pointer = &p; pointer.ready = true; print(pointer.ready);';
   const field=at(source,'ready);');assert.equal(field.signature,'ready: bool');assert.equal(field.kind,'field');
@@ -40,6 +76,7 @@ test('imports contribute real bindings without leaking their source ranges',()=>
   const entries=inspect(source,{files:[{path:'helper.tower',text:'import tower; fn answer():i32 { return 42; }'}]});
   const call=hoverAt(entries,source.indexOf('answer')+2);
   assert.equal(call.signature,'fn answer(): i32');assert.equal(call.declaration,undefined);
+  assert.equal(call.declarationFile,'helper.tower');assert.equal(call.declarationLine,1);assert.equal(call.declarationColumn,15);
   assert.equal(hoverAt(entries,source.lastIndexOf('result')+2).type,'i32');
   assert.ok(entries.every(entry=>entry.to<=source.length));
 });

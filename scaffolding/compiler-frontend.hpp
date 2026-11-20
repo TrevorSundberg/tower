@@ -45,6 +45,7 @@ const char* frontend_modules_location(ModuleEnvironment*, size_t, size_t*, size_
 FrontendModule* frontend_module_root(const char*, ModuleEnvironment*);
 void frontend_module_destroy(FrontendModule*);
 const char* frontend_module_name(FrontendModule*);
+const char* frontend_module_location(FrontendModule*, size_t, size_t*, size_t*);
 const char* frontend_module_error(FrontendModule*);
 ModuleGrammar* frontend_module_grammar(FrontendModule*);
 bool frontend_module_import(FrontendModule*, TowerNode*, const SyntaxSource*);

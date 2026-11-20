@@ -4,6 +4,7 @@ import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirro
 import { byteOffsets } from './offsets.mjs';
 import { editorDiagnostics, goToDiagnostic, setDiagnostic, sourceDiagnostic } from './diagnostics.mjs';
 import { DiagnosticDelay } from './diagnostic-delay.mjs';
+import {documentLocation,sourceLocation} from './source-location.mjs';
 import { expandedCode } from './expanded-code.mjs';
 import { replacementLocations } from './replacement-locations.mjs';
 import { compareResults } from './comparison.mjs';
@@ -313,17 +314,26 @@ function executionDiagnostic(error) {
 }
 function publishDiagnostic(error, phase) {
   if (error?.errorFile && error.errorFile !== activePath) {
-    showError(error.errorFile + ': ' + error.error); return;
+    const text=project.files.find(file=>file.path===error.errorFile)?.text ??
+      (error.errorFile.startsWith('.tower/')?project.builtins[error.errorFile.slice(7,-6)]:undefined);
+    let location=error.errorFile;
+    if(text!==undefined && Number.isInteger(error.errorOffset)) {
+      const doc=EditorState.create({doc:text}).doc;
+      const diagnostic=sourceDiagnostic(doc,byteOffsets(text),error,[],error.errorFile);
+      location=sourceLocation(diagnostic.file,diagnostic.line,diagnostic.column);
+    }
+    showError(location + ': ' + error.error); return;
   }
   diagnosticPhase = error ? phase : null;
-  const diagnostic = sourceDiagnostic(editor.state.doc, byteOffsets(editor.state.doc.toString()), error, result?.snapshot?.highlights ?? []);
+  const diagnostic = sourceDiagnostic(editor.state.doc, byteOffsets(editor.state.doc.toString()), error, result?.snapshot?.highlights ?? [], activePath);
   editor.dispatch({ effects: setDiagnostic.of(diagnostic) });
   $('editor-error').hidden = !diagnostic;
   $('diagnostic').hidden = true;
   if (error && !diagnostic) showError(error.error);
   if (diagnostic) {
-    $('editor-error').textContent = `Error · Ln ${diagnostic.line}`;
-    $('editor-error').setAttribute('aria-label', `Go to error on line ${diagnostic.line}`);
+    const location=sourceLocation(diagnostic.file,diagnostic.line,diagnostic.column);
+    $('editor-error').textContent = `Error · ${location}`;
+    $('editor-error').setAttribute('aria-label', `Go to error at ${location}`);
     $('editor-error').title = diagnostic.message;
   }
 }
@@ -702,7 +712,12 @@ function selectFile(path, fresh = false) {
   const text = editingModule ? project.builtins[editingModule] : project.files.find(f => f.path === path).text;
   $('filename').textContent = editingModule ? editingModule + '.tower' : path;
   editor.setState(fileStates.get(path) ?? EditorState.create({doc:text, extensions:editorExtensions}));
+  showPosition(editor.state);
   stopExecution(); clearCompiled(); clearInspection(); renderFiles(); changed(false); typingDeadline = 0; schedule();
+}
+function showPosition(state) {
+  const location=documentLocation(state.doc,state.selection.main.head,activePath);
+  $('position').textContent=sourceLocation(location.file,location.line,location.column);
 }
 function selectProject(id) {
   const next = projects.find(p => p.id === id); if (!next || next === project) return;
@@ -964,8 +979,7 @@ async function start() {
       else if (update.selectionSet && !update.startState.selection.eq(update.state.selection) && !update.view.composing)
         queueMicrotask(() => diagnosticDelay.reveal());
       if (update.selectionSet || update.docChanged) {
-        const position = update.state.selection.main.head, line = update.state.doc.lineAt(position);
-        $('position').textContent = `Ln ${line.number}, Col ${position - line.from + 1}`;
+        showPosition(update.state);
       }
     }),
   ];

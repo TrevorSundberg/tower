@@ -2,6 +2,7 @@ import {StateEffect,StateField} from '@codemirror/state';
 import {ViewPlugin,showTooltip,repositionTooltips,closeHoverTooltips} from '@codemirror/view';
 import {DocumentQueries,languagePayload,hoverAt,hasHoverDetails} from './language-queries.mjs';
 import {compilerSelection,onCompilerSelection} from './compiler-selection.mjs';
+import {documentLocation,sourceLocation} from './source-location.mjs';
 
 const dwellTime=800,holdMargin=5;
 // Keep two pixels beyond the pointer even when mouse coordinates and tooltip
@@ -10,7 +11,7 @@ const anchorGap=holdMargin-2-1.5;
 const contains=(rect,point,margin=0)=>point.x>=rect.left-margin && point.x<=rect.right+margin &&
   point.y>=rect.top-margin && point.y<=rect.bottom+margin;
 
-function tooltipContent(entry,doc) {
+function tooltipContent(entry,doc,file) {
     const dom=document.createElement('div');dom.className='tw-language-hover';
     dom.setAttribute('role','tooltip');
     if(entry.signature?.trim()!==doc.sliceString(entry.from,entry.to).trim()) {
@@ -18,7 +19,8 @@ function tooltipContent(entry,doc) {
       dom.append(signature);
     }
     const line=text=>{const row=document.createElement('div');row.textContent=text;dom.append(row);};
-    if(entry.kind && !['syntax','matched syntax','captured syntax'].includes(entry.kind))line(entry.kind);
+    const functionType=entry.kind?.startsWith('function');
+    if(entry.kind && !['syntax','matched syntax','captured syntax','function'].includes(entry.kind))line(entry.kind);
     if(entry.description)line(entry.description);
     if(entry.capture)line(`Capture: $${entry.capture}${entry.category && entry.category!==entry.capture?`:${entry.category}`:''}${entry.capturedBy?` in ${entry.capturedBy}`:''}`);
     if(entry.module)line(`Module: ${entry.module}`);
@@ -31,13 +33,14 @@ function tooltipContent(entry,doc) {
       definition.textContent=entry.definition;dom.append(definition);
     }
     if(entry.resolution)line(entry.resolution);
-    if(entry.definedIn)line(`Defined in ${entry.definedIn}${entry.definitionLine?`:${entry.definitionLine}`:''}`);
-    const functionType=entry.kind?.startsWith('function');
-    if(entry.type)line(`${functionType?'Returns':'Type'}: ${entry.type}`);
+    if(entry.definedIn)line(sourceLocation(entry.definedIn,entry.definitionLine,entry.definitionColumn));
+    if(entry.type && !functionType)line(`Type: ${entry.type}`);
     if(entry.size!==undefined && entry.type!=='void')line(`${functionType?'Result: ':''}${entry.size} bytes · alignment ${entry.alignment}${entry.offset===undefined?'':` · field offset ${entry.offset}`}`);
-    if(Number.isInteger(entry.declarationFrom) && entry.declarationFrom<=doc.length) {
-      const location=doc.lineAt(entry.declarationFrom);
-      line(`Declared at line ${location.number}, column ${entry.declarationFrom-location.from+1}`);
+    if(entry.declarationFile) {
+      line(sourceLocation(entry.declarationFile,entry.declarationLine,entry.declarationColumn));
+    } else if(Number.isInteger(entry.declarationFrom) && entry.declarationFrom<=doc.length) {
+      const location=documentLocation(doc,entry.declarationFrom,file);
+      line(sourceLocation(location.file,location.line,location.column));
     }
     if(entry.documentation) {
       const documentation=document.createElement('div');documentation.className='tw-hover-documentation';
@@ -194,7 +197,7 @@ export function towerHover(service,configuration) {
         const description={pos:entry.from,end:entry.to,above:true,clip:false,create:()=>{
           const dom=hover.dom=this.document.createElement('div');
           dom.className=`tw-hover-panel ${locked?'tw-hover-pinned':'tw-hover-preview'}`;
-          dom.append(tooltipContent(entry,this.view.state.doc));
+          dom.append(tooltipContent(entry,this.view.state.doc,configuration().activePath));
           return {dom,overlap:true,getCoords:()=>({left:hover.anchor.x,right:hover.anchor.x,top:hover.anchor.y-anchorGap,bottom:hover.anchor.y+anchorGap})};
         }};
         this.view.dispatch({effects:setHover.of(description)});

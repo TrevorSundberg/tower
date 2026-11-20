@@ -42,7 +42,7 @@ test('typing resets the quiet period and keeps errors until the replacement resu
 test('parse errors clear on successful analysis even while execution replies are held',async({page},info)=>{
  await edit(page,'print(42)\nvar answer: i32;'); await revealDiagnostics(page);
  await expect(page.locator('.tw-inline-error-message')).toContainText("Missing ';' before 'var'.");
- await expect(page.locator('.tw-inline-error-heading')).toHaveText('ErrorLn 1, Col 10');
+ await expect(page.locator('.tw-inline-error-heading')).toHaveText(`Error${await page.locator('#filename').innerText()}:1:10`);
  await expect(page.locator('.tw-error-point')).toHaveCount(1);
  await page.locator('#editor').screenshot({path:`../build/diagnostics-semicolon-${info.project.name}.png`});
  await page.evaluate(()=>{

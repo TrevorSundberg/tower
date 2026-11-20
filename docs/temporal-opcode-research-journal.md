@@ -18051,3 +18051,64 @@ reactor is b5e9bb788650417a3ca3316a908c10a6a9dce0d669236c54fe7e4a29788cbf68.
 Raw samples and environment are in parser-constructors-benchmark.json/.log.
 The bootstrap compiler remains unchanged (b4539248e28633bb98ea0b42e21233636622f47e26b689f9d2c365ef20c09f02).
 Both migration steps are ready for final rebase, push and hosted verification.
+
+## 2026-11-20: Tree-based IDE services and consistent source locations
+
+The user requested compact function hovers, consistent source locations, and
+queries for keywords, operators and delimiters rather than name-only coverage.
+They explicitly requested reusable Tower compiler services, shared by IDE clients.
+Added compiler/services.tower as the actual imported library entry module used by
+ComposeSemanticSources.cmake. It collects the existing checking, completion,
+inspection, source metadata and formatting implementation modules; this is a
+working import boundary, not a separate parser, AST, semantic model or server.
+docs/compiler-services.md records direct query entry points, handle ownership,
+UTF-8 offsets, explicit pointer-width inputs and remaining native adapters.
+
+The root cause of missing keyword hovers was that language_candidate narrowed a
+declaration/call to its name. Tower's new language_context_candidate follows the
+same leaf's parent relationships to its nearest checked Foundation operation.
+It distinguishes declaration/initialization, assignment destinations, pointer
+read/write, return, function parameter/body boundaries and structural control
+flow. Function closing braces identify their actual containing function. Values
+use checked types and canonical signatures; blocks/if/loop/break/continue have
+descriptions without fabricated runtime types. Literal spelling only refines an
+already selected operation's role. The browser still performs interval hit-tests
+and presentation only, with no hover-time compiler request.
+
+Review found that an uninstantiated generic call statement has no Foundation
+payload. The initial parent walk could revisit that statement through its call
+child; it now descends to the call only when its semantic payload exists. Actual
+matched-production metadata is retained even after successful checking, but is
+displayed only when no semantic subject was selected. Thus uninstantiated bodies
+retain tree lookups without pretending to have concrete types.
+
+Function tooltips omit the duplicate function and Returns rows while preserving
+Result byte size/alignment. Source positions use filename.tower:line:column in
+hover definitions/declarations, cursor status, inline errors and their shortcut,
+and grammar diagnostic references. The Tower module service now exports
+frontend_module_location; it uses the same immutable SyntaxSource position helper
+as grammar locations and handles imported declarations in their actual file.
+The browser shares one location renderer and counts Unicode scalars consistently
+with Tower instead of UTF-16 units. Switching/restoring editor state explicitly
+updates the cursor label. Cross-file diagnostics use the corresponding source.
+
+An initial reuse of driver_source_position produced an unresolved env import in
+the browser reactor: that driver-only helper is not linked into this target.
+Replaced it with the existing syntax-source position logic through the Tower
+module API, rather than introducing a JS import or a native implementation.
+The first native diagnostic-text edit also exposed CoreName's string overload:
+used string separators rather than a char for its first concatenation. Updated
+the diagnostic/browser expectations to the shared location spelling.
+
+Builds use the existing WSL WASI SDK 34 scripts and published Tower/Wasm bootstrap,
+then TOWER_REQUIRE_BACKENDS=1 for the UI bundle. Logs use build/ide-services-*.
+
+Initial validation passed all 356 Node/Wasm tests and canonical formatting. The
+broad desktop/mobile run passed 108 of 110 browser checks; both failures were the
+same obsolete assertion requiring no tooltip on return. Replaced it with the
+new function-return description. The new browser coverage exercises fn, var,
+initializer/assignment equals, pointer read/write stars, addition, return, closing
+braces, signature deduplication and location spelling on both device profiles.
+After the generic fallback correction, all 42 focused hover, grammar diagnostic
+and Unicode-location tests pass. Final browser/self-build results follow in the
+publication verification entry.

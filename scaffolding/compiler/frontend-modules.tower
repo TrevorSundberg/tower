@@ -531,6 +531,12 @@ export fn frontend_module_name(module: FrontendModule*): u8* {
     return module.source.name.data;
 }
 
+// Shared source lookup for IDE services and native compiler clients.
+export fn frontend_module_location(module: FrontendModule*, offset: usize, line: usize*, column: usize*): u8* {
+    syntax_source_location(module.source, offset, line, column);
+    return module.source.name.data;
+}
+
 export fn frontend_module_error(module: FrontendModule*): u8* {
     return module_text(&module.graph.error);
 }

@@ -140,7 +140,7 @@ char* copy_string(const std::string& text) {
 std::string source_location(const SyntaxNode& node) {
   if (!node.source || node.start == TOWER_INVALID_INDEX) return "native seed";
   size_t line, column; syntax_source_location(node.source, node.start, &line, &column);
-  return node.source->name + ", line " + std::to_string(line) + ", column " + std::to_string(column);
+  return node.source->name + ":" + std::to_string(line) + ":" + std::to_string(column);
 }
 std::string describe_production(const Version& version, const Definitions& definitions, size_t index, bool name_only = false) {
   auto found = version.productions.find(index);

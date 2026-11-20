@@ -139,7 +139,7 @@ try {
     await expect(page.locator('.tw-inline-error-message')).toContainText('No token rule matches source');
     await expect(page.locator('.has-bubble-outline')).toBeVisible();
     const badLine = bedrock.slice(0,bedrock.indexOf('token String')).split('\n').length;
-    await expect(page.locator('.tw-inline-error-heading')).toHaveText(`ErrorLn ${badLine}, Col 7`);
+    await expect(page.locator('.tw-inline-error-heading')).toHaveText(`Error${await page.locator('#filename').innerText()}:${badLine}:7`);
     await page.screenshot({path:new URL(name+'-bedrock-identifier.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
     await page.getByRole('button',{name:'Restore',exact:true}).click();
     await expect(page.locator('#status')).toContainText('Complete');
@@ -163,8 +163,8 @@ try {
     await page.keyboard.insertText('print(42)\nvar answer: i32;');
     await revealDiagnostics(page);
     await expect(page.locator('.tw-inline-error-message')).toContainText("Missing ';' before 'var'.");
-    await expect(page.locator('.tw-inline-error-message')).toContainText('foundation.tower, line');
-    await expect(page.locator('.tw-inline-error-heading')).toHaveText('ErrorLn 1, Col 10');
+    await expect(page.locator('.tw-inline-error-message')).toContainText('foundation.tower:');
+    await expect(page.locator('.tw-inline-error-heading')).toHaveText(`Error${await page.locator('#filename').innerText()}:1:10`);
     await expect(page.locator('.tw-error-point')).toHaveCount(1);
     await page.screenshot({path:new URL(name+'-missing-semicolon.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
     await page.getByRole('button',{name:'Restore',exact:true}).click();

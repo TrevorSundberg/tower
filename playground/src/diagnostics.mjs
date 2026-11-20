@@ -1,5 +1,6 @@
 import { RangeSet, StateEffect, StateField } from '@codemirror/state';
 import { Decoration, EditorView, GutterMarker, ViewPlugin, WidgetType, gutter } from '@codemirror/view';
+import {documentLocation,sourceLocation} from './source-location.mjs';
 
 export const setDiagnostic = StateEffect.define();
 
@@ -7,10 +8,10 @@ class ErrorMessage extends WidgetType {
   constructor(diagnostic) { super(); this.diagnostic = diagnostic; }
   eq(other) {
     const a = this.diagnostic, b = other.diagnostic;
-    return a.from === b.from && a.line === b.line && a.column === b.column && a.message === b.message;
+    return a.from === b.from && a.file === b.file && a.line === b.line && a.column === b.column && a.message === b.message;
   }
   toDOM() {
-    const { line, column, message } = this.diagnostic;
+    const { file, line, column, message } = this.diagnostic;
     const box = document.createElement('div'); box.className = 'tw-inline-error';
     box.setAttribute('role', 'alert'); box.contentEditable = 'false';
     const outline = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -21,7 +22,7 @@ class ErrorMessage extends WidgetType {
     card.tabIndex = 0;
     const heading = card.appendChild(document.createElement('div')); heading.className = 'tw-inline-error-heading';
     const label = heading.appendChild(document.createElement('strong')); label.textContent = 'Error';
-    const location = heading.appendChild(document.createElement('span')); location.textContent = `Ln ${line}, Col ${column}`;
+    const location = heading.appendChild(document.createElement('span')); location.textContent = sourceLocation(file,line,column);
     const body = card.appendChild(document.createElement('div')); body.className = 'tw-inline-error-message'; body.textContent = message;
     return box;
   }
@@ -149,7 +150,7 @@ export const editorDiagnostics = [diagnostics, bubbleOutline, gutter({
   } },
 })];
 
-export function sourceDiagnostic(doc, offsets, error, highlights = []) {
+export function sourceDiagnostic(doc, offsets, error, highlights = [], file) {
   if (!Number.isInteger(error?.errorOffset)) return null;
   const byte = Math.max(0, Math.min(error.errorOffset, offsets.length - 1));
   const from = Math.min(offsets[byte], doc.length), line = doc.lineAt(from);
@@ -159,5 +160,5 @@ export function sourceDiagnostic(doc, offsets, error, highlights = []) {
   const characterEnd = from + (character.codePointAt(0) > 0xffff ? 2 : 1);
   const to = error.errorLength === 0 || from === line.to ? from : Math.min(line.to, token ? offsets[token.end] : characterEnd);
   const message = error.error;
-  return { from, to, line: line.number, column: from - line.from + 1, message };
+  return {from,to,...documentLocation(doc,from,error.errorFile || file),message};
 }

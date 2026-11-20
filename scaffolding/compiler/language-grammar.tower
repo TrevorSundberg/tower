@@ -473,23 +473,10 @@ fn language_grammar_location(q: CompletionQuery*, node: void*): void {
     var source = syntax.source;
     language_string(q, "definedIn", source.name.data);
     var line: usize = 1;
-    var i: usize = 0;
-    loop {
-        var grammar_condition38 = i >= syntax.start;
-        if grammar_condition38 {
-            break;
-        }
-        var grammar_condition39 = i >= source.text.length;
-        if grammar_condition39 {
-            break;
-        }
-        var grammar_condition40 = source.text.data[i] == 10;
-        if grammar_condition40 {
-            line = line + 1;
-        }
-        i = i + 1;
-    }
+    var column: usize = 1;
+    syntax_source_location(source, syntax.start, &line, &column);
     language_number(q, "definitionLine", line);
+    language_number(q, "definitionColumn", column);
 }
 
 fn language_grammar_targets(q: CompletionQuery*, entry: LanguageGrammar*, documentation: bool): void {

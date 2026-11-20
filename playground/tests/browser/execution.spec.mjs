@@ -56,7 +56,7 @@ test('replacement errors explain the required syntax inline and recover after co
   await expect(page.locator('.tw-inline-error-message')).toContainText('Replacement for Statement must produce a valid Statement.');
   await expect(page.locator('.tw-inline-error-message')).toContainText('"$name - $name;" is not a valid Statement.');
   await expect(page.locator('.tw-error-range')).toHaveText('-');
-  await expect(page.locator('.tw-inline-error-heading')).toHaveText('ErrorLn 2, Col 24');
+  await expect(page.locator('.tw-inline-error-heading')).toHaveText(`Error${await page.locator('#filename').innerText()}:2:24`);
   await page.locator('#editor-error').click();
   expect(await page.locator('.tw-inline-error-card').evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
   await page.screenshot({ path: `../build/playground-replacement-error-${info.project.name}.png` });
@@ -69,7 +69,7 @@ test('replacement errors explain the required syntax inline and recover after co
 test('extra semicolons have concise context and increment demonstrates both returned values', async ({page},info) => {
   await setSource(page,'// Aliases share the same typed storage.\nvar alias: i32*;;');
   await expect(page.locator('.tw-inline-error-message')).toHaveText("Unexpected ';'. Expected a statement or grammar declaration.");
-  await expect(page.locator('.tw-inline-error-heading')).toHaveText('ErrorLn 2, Col 17');
+  await expect(page.locator('.tw-inline-error-heading')).toHaveText(`Error${await page.locator('#filename').innerText()}:2:17`);
   await expect(page.locator('.tw-error-range')).toHaveText(';');
   expect(await page.locator('.tw-inline-error-card').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
   await page.locator('#editor').screenshot({path:`../build/extra-semicolon-${info.project.name}.png`});

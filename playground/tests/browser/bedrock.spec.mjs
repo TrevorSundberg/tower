@@ -135,7 +135,7 @@ test('Identifier edits immediately affect following declarations in every docume
     await page.locator('#editor-error').click();
     await expect(page.locator('.tw-inline-error-message')).toContainText('No token rule matches source');
     const line = source.slice(0, source.indexOf('token String')).split('\n').length;
-    await expect(page.locator('.tw-inline-error-heading')).toHaveText(`ErrorLn ${line}, Col 7`);
+    await expect(page.locator('.tw-inline-error-heading')).toHaveText(`Error${filename}:${line}:7`);
     await expect(page.locator('#execution-panel')).toBeVisible();
     if (filename === 'bedrock.tower') await page.screenshot({path:'../build/playground-bedrock-identifier-'+info.project.name+'.png'});
     await page.getByRole('button',{name:'Restore',exact:true}).click();

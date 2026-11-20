@@ -128,11 +128,11 @@ test('inline errors mark the source and preserve the saved document', async ({ p
   await setSource(page, source);
   await expect(page.locator('#status')).toContainText('Stopped');
   await expect(page.locator('.tw-error-range')).toHaveText(')');
-  await expect(page.locator('.tw-inline-error-heading')).toHaveText('ErrorLn 8, Col 9');
+  await expect(page.locator('.tw-inline-error-heading')).toHaveText(`Error${await page.locator('#filename').innerText()}:8:9`);
   await expect(page.locator('.tw-inline-error-message')).toContainText('Unexpected');
   await expect(page.locator('#diagnostic')).toBeHidden();
   await expect(page.getByRole('textbox', { name: 'Tower source' })).toBeFocused();
-  await page.getByRole('button', { name: 'Go to error on line 8' }).click();
+  await page.getByRole('button', { name: 'Go to error at foreach.tower:8:9' }).click();
   const line = await page.locator('.tw-error-line').boundingBox();
   const card = await page.locator('.tw-inline-error').boundingBox();
   expect(card.y).toBeGreaterThanOrEqual(line.y + line.height - 1);
@@ -159,12 +159,12 @@ test('inline errors mark the source and preserve the saved document', async ({ p
 test('inline Unicode and end-of-input locations stay visible until fresh diagnostics arrive', async ({ page }, info) => {
   await setSource(page, "// 雪🚀\nparse Statement = Number ';';\n🚀;");
   await expect(page.locator('.tw-error-range')).toHaveText('🚀');
-  await expect(page.locator('.tw-inline-error-heading')).toHaveText('ErrorLn 3, Col 1');
+  await expect(page.locator('.tw-inline-error-heading')).toHaveText(`Error${await page.locator('#filename').innerText()}:3:1`);
   const incomplete = "// 雪🚀\nparse Statement = Number ';';\n42";
   await setSource(page, incomplete);
   await expect(page.locator('.tw-inline-error-message')).toContainText('end of input');
   await expect(page.locator('.tw-inline-error-message')).not.toContainText('at byte');
-  await expect(page.locator('.tw-inline-error-heading')).toHaveText('ErrorLn 3, Col 3');
+  await expect(page.locator('.tw-inline-error-heading')).toHaveText(`Error${await page.locator('#filename').innerText()}:3:3`);
   await expect(page.locator('.tw-error-range')).toHaveCount(0);
   await expect(page.locator('.tw-error-point')).toHaveCount(1);
   await page.locator('#editor').screenshot({ path: `../build/playground-error-eof-${info.project.name}.png` });
@@ -183,7 +183,7 @@ test('inline Unicode and end-of-input locations stay visible until fresh diagnos
   await expect(page.locator('#editor-error')).toBeHidden();
   await setSource(page, incomplete + '\n');
   // The missing semicolon belongs after the last token, before trailing trivia.
-  await expect(page.locator('.tw-inline-error-heading')).toHaveText('ErrorLn 3, Col 3');
+  await expect(page.locator('.tw-inline-error-heading')).toHaveText(`Error${await page.locator('#filename').innerText()}:3:3`);
   await expect(page.locator('.tw-error-point')).toHaveCount(1);
 
 });
@@ -191,7 +191,7 @@ test('inline Unicode and end-of-input locations stay visible until fresh diagnos
 test('the error shortcut reveals errors outside the editor viewport', async ({ page }) => {
   await setSource(page, "// A rejected declaration keeps its source location.\ntoken Identifier = /[a-z]*/;\n" + '// more source\n'.repeat(100));
   await expect(page.locator('#status')).toContainText('Stopped');
-  await expect(page.locator('#editor-error')).toHaveText('Error · Ln 2');
+  await expect(page.locator('#editor-error')).toHaveText('Error · foreach.tower:2:1');
   expect(await page.locator('.cm-scroller').evaluate(el => el.scrollTop)).toBeGreaterThan(500);
   await page.locator('#editor-error').click();
   await expect(page.locator('.tw-inline-error-message')).toContainText('must not match empty input');

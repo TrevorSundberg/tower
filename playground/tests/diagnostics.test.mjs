@@ -15,7 +15,7 @@ test('missing delimiters are inferred from the active grammar and point at the i
   ['print(42)',"';'",9],
   ['print(42;',"')'",8],
   ['print(42) // comment\nvar answer: i32;',"';'",9],
- ]) {const result=error(source);assert.ok(result.error.startsWith('Missing '+literal),result.error);assert.equal(result.errorOffset,offset);assert.equal(result.errorLength,0);assert.match(result.error,/foundation\.tower, line \d+, column \d+/);}
+ ]) {const result=error(source);assert.ok(result.error.startsWith('Missing '+literal),result.error);assert.equal(result.errorOffset,offset);assert.equal(result.errorLength,0);assert.match(result.error,/foundation\.tower:\d+:\d+/);}
 });
 
 test('an omitted declaration separator reports both type and initializer alternatives',()=>{
@@ -44,7 +44,7 @@ test('user grammar literals, including keywords, participate without compiler an
  const source=grammar+'say 42\nsay 43 done';
  const result=error(source);
  assert.match(result.error,/Missing 'done' before 'say'/);
- assert.match(result.error,/Statement = 'say' Number 'done' \(input.tower, line 1,/);
+ assert.match(result.error,/Statement = 'say' Number 'done' \(input.tower:1:/);
  assert.equal(result.errorOffset,grammar.length+6);
  assert.equal(parse(grammar+'say 42 done\nsay 43 done').status,'done');
  const required="parse Statement = 'if' Identifier 'then' Identifier ';';\nif condition result;";
@@ -66,20 +66,20 @@ test('conflicts describe both choices, rule definitions and source locations',()
  assert.match(shift.error,/Grammar conflict \(shift\/reduce\) on 'x'/);
  assert.match(shift.error,/continue Statement = 'x' 'x'/);
  assert.match(shift.error,/finish Statement = 'x'/);
- assert.equal((shift.error.match(/input.tower, line 1, column/g)||[]).length,2);
+ assert.equal((shift.error.match(/input.tower:1:/g)||[]).length,2);
  const reduce=error("parse A = Number;\nparse B = Number;\nparse Statement = A ';' | B ';';");
  assert.match(reduce.error,/reduce\/reduce/);
- assert.match(reduce.error,/A = Number \(input.tower, line 1,/);
- assert.match(reduce.error,/B = Number \(input.tower, line 2,/);
+ assert.match(reduce.error,/A = Number \(input.tower:1:/);
+ assert.match(reduce.error,/B = Number \(input.tower:2:/);
 });
 
 test('cached grammar diagnostics use current source locations after comments move rules',()=>{
  const rule="parse Statement = 'say' Number ';';\nsay 42";
  const handle=tower.create(rule);
  try{
-  assert.match(runToEnd(tower,handle).end.error,/input.tower, line 1,/);
+  assert.match(runToEnd(tower,handle).end.error,/input.tower:1:/);
   tower.reset(handle,'// moved\n\n'+rule);
-  assert.match(runToEnd(tower,handle).end.error,/input.tower, line 3,/);
+  assert.match(runToEnd(tower,handle).end.error,/input.tower:3:/);
   assert.ok(tower.inspect(handle).grammarCacheHits>0);
  }finally{tower.destroy(handle);}
 });
@@ -113,7 +113,7 @@ test('statement boundaries never cite an unstarted call or other possible next r
  const partial=error('print(42)\nvar answer: i32;');
  assert.match(partial.error,/In rule CoreCallStatement/);
  const line=foundation.split('\n').findIndex(text=>text.startsWith('parse CoreCallStatement ='))+1;
- assert.ok(partial.error.includes('foundation.tower, line '+line+','),partial.error);
+ assert.ok(partial.error.includes('foundation.tower:'+line+':'),partial.error);
  assert.doesNotMatch(partial.error,/Required by/);
  assert.equal(parse("parse Statement |= ';'; var x: i32;;").status,'done','a user rule may permit empty statements');
 });

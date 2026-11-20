@@ -20,6 +20,10 @@ extern fn host_source_error(source: u8*, count: usize): u8*;
 
 extern fn generic_definition(context: void*, node: void*): void*;
 
+extern fn frontend_module_location(module: void*, offset: usize, line: usize*, column: usize*): u8*;
+
+extern fn syntax_source_location(source: SyntaxSource*, offset: usize, line: usize*, column: usize*): void;
+
 struct LanguageCandidate {
     node: void*;
     subject: void*;
@@ -31,6 +35,8 @@ struct LanguageCandidate {
     matched: LanguageGrammar*;
     capture: void*;
     capture_node: void*;
+    description: u8*;
+    structural: bool;
 }
 
 fn language_quote(q: CompletionQuery*, text: u8*, size: usize): void {
@@ -188,7 +194,245 @@ fn language_kind(value: FoundationNode*): u8* {
     if hover_condition12 {
         return "index";
     }
+    var context_condition1 = value.kind == KLoad();
+    if context_condition1 {
+        return "pointer dereference";
+    }
+    var context_condition2 = value.kind == KAddress();
+    if context_condition2 {
+        return "address of";
+    }
     return "foundation operation";
+}
+
+// Keywords and punctuation use the nearest checked operation on the same tree.
+// A token's spelling only refines that operation's role; it never resolves a
+// name, invents a type, or parses a second representation of the program.
+fn language_context_candidate(q: CompletionQuery*, leaf: void*, candidate: LanguageCandidate*): void {
+    var span = sem_match(leaf);
+    var context_condition3 = span == null;
+    if context_condition3 {
+        return;
+    }
+    var end = span.start + span.length;
+    var selected = candidate.subject != null;
+    if selected {
+        selected = span.start >= candidate.from;
+    }
+    if selected {
+        selected = end <= candidate.to;
+    }
+    if selected {
+        return;
+    }
+    var node = sem_parent(leaf);
+    var value: FoundationNode* = null;
+    loop {
+        var context_condition4 = node == null;
+        if context_condition4 {
+            return;
+        }
+        value = sem_get(node);
+        var context_condition5 = value == null;
+        if context_condition5 {
+            if sem_is(node, "CoreCallStatement") {
+                var call = sem_member(node, "call");
+                value = sem_get(call);
+                var present = value != null;
+                if present {
+                    node = call;
+                }
+            }
+        }
+        var context_condition6 = value != null;
+        if context_condition6 {
+            break;
+        }
+        node = sem_parent(node);
+    }
+    var context_condition7 = value.kind == KProgram();
+    if context_condition7 {
+        return;
+    }
+    var subject = node;
+    var spelling = sem_tokens(&q.context, leaf);
+    var description: u8* = null;
+    var structural = false;
+    var context_condition8 = value.kind == KDeclare();
+    if context_condition8 {
+        description = "Declares a mutable variable.";
+        if sem_equal(spelling, "=") {
+            description = "Sets this variable's starting value.";
+        }
+        if sem_equal(spelling, ":") {
+            description = "Specifies the type of this variable.";
+        }
+        if sem_equal(spelling, ";") {
+            description = "Ends this variable declaration.";
+        }
+    }
+    var context_condition9 = value.kind == KAssign();
+    if context_condition9 {
+        subject = value.target;
+        description = "Stores the value on the right in this location.";
+        var target = sem_get(subject);
+        var context_condition10 = target != null;
+        if context_condition10 {
+            var context_condition11 = target.binding != null;
+            if context_condition11 {
+                subject = target.binding;
+            }
+        }
+    }
+    var context_condition12 = value.kind == KLoad();
+    if context_condition12 {
+        description = "Reads the value stored at this pointer.";
+        if sem_is(node, "CoreTarget") {
+            description = "Selects the pointed-to value to write.";
+        }
+    }
+    var context_condition13 = value.kind == KAddress();
+    if context_condition13 {
+        description = "Takes the address of this value, producing a pointer to it.";
+    }
+    var context_condition14 = value.kind == KReturn();
+    if context_condition14 {
+        subject = language_ancestor(node, "CoreFunction");
+        description = "Returns from this function to its caller.";
+        var context_condition15 = value.value != null;
+        if context_condition15 {
+            description = "Returns this value from the function to its caller.";
+        }
+    }
+    var context_condition16 = value.kind == KBlock();
+    if context_condition16 {
+        var function = sem_parent(node);
+        var function_value = sem_get(function);
+        var body = function_value != null;
+        if body {
+            body = function_value.kind == KFunction();
+        }
+        if body {
+            body = function_value.body == node;
+        }
+        if body {
+            subject = function;
+            description = "Starts the body of this function.";
+            if sem_equal(spelling, "}") {
+                description = "Ends the body of this function.";
+            }
+        } else {
+            structural = true;
+            description = "Starts a block of statements with its own local variables.";
+            if sem_equal(spelling, "}") {
+                description = "Ends this block and the scope of its local variables.";
+            }
+        }
+    }
+    var context_condition17 = value.kind == KFunction();
+    if context_condition17 {
+        description = "Defines this function.";
+        if sem_equal(spelling, ":") {
+            description = "Specifies the type of value this function returns.";
+        }
+        if sem_equal(spelling, "(") {
+            description = "Starts this function's parameter list.";
+        }
+        if sem_equal(spelling, ")") {
+            description = "Ends this function's parameter list.";
+        }
+    }
+    var context_condition18 = value.kind == KParameter();
+    if context_condition18 {
+        description = "Declares an input passed to this function.";
+    }
+    var context_condition19 = value.kind == KFieldDeclaration();
+    if context_condition19 {
+        description = "Declares a field with this type and position in its containing value.";
+    }
+    var context_condition20 = value.kind == KCall();
+    if context_condition20 {
+        var context_condition21 = value.binding != null;
+        if context_condition21 {
+            subject = value.binding;
+        }
+        description = "Calls this function with the supplied arguments.";
+    }
+    var context_condition22 = value.kind == KIf();
+    if context_condition22 {
+        structural = true;
+        description = "Runs the first block when the condition is true, or the else block when it is false.";
+    }
+    var context_condition23 = value.kind == KLoop();
+    if context_condition23 {
+        structural = true;
+        description = "Repeats this block until control leaves the loop.";
+    }
+    var context_condition24 = value.kind == KBreak();
+    if context_condition24 {
+        structural = true;
+        description = "Leaves the nearest enclosing loop.";
+    }
+    var context_condition25 = value.kind == KContinue();
+    if context_condition25 {
+        structural = true;
+        description = "Starts the next iteration of the nearest enclosing loop.";
+    }
+    var context_condition26 = value.kind == KLabel();
+    if context_condition26 {
+        structural = true;
+        description = "Names a destination for a jump in this function.";
+    }
+    var context_condition27 = value.kind == KJump();
+    if context_condition27 {
+        structural = true;
+        description = "Continues execution at the named label.";
+    }
+    if sem_equal(spelling, ";") {
+        var context_condition28 = description == null;
+        if context_condition28 {
+            description = "Ends this statement.";
+        }
+    }
+    var context_condition29 = subject == null;
+    if context_condition29 {
+        return;
+    }
+    candidate.node = node;
+    candidate.subject = subject;
+    candidate.from = span.start;
+    candidate.to = end;
+    candidate.grammar = false;
+    candidate.description = description;
+    candidate.structural = structural;
+}
+
+fn language_declaration_location(q: CompletionQuery*, subject: void*): void {
+    var span = sem_match(subject);
+    var context_condition30 = span == null;
+    if context_condition30 {
+        return;
+    }
+    var base = sem_source_base(&q.context, subject);
+    var i: usize = 0;
+    loop {
+        var context_condition31 = i == q.comment_modules.length;
+        if context_condition31 {
+            return;
+        }
+        var context_condition32 = base == q.comment_bases.data[i];
+        if context_condition32 {
+            var module = q.comment_modules.data[i];
+            var line: usize = 1;
+            var column: usize = 1;
+            var file = frontend_module_location(module, span.start, &line, &column);
+            language_string(q, "declarationFile", file);
+            language_number(q, "declarationLine", line);
+            language_number(q, "declarationColumn", column);
+            return;
+        }
+        i = i + 1;
+    }
 }
 
 fn language_candidate(q: CompletionQuery*, node: void*, candidate: LanguageCandidate*, checked: bool): void {
@@ -352,10 +596,14 @@ fn language_leaf(q: CompletionQuery*, leaf: void*, candidate: LanguageCandidate*
         subject = candidate.subject;
         node = candidate.node;
         value = sem_get(subject);
-        if candidate.grammar {
-            format_grammar_preview(&formatted, subject, syntax_component_type());
+        if candidate.structural {
+            value = null;
         } else {
-            format_summary(&formatted, subject, syntax_component_type(), core_component_type(), parser_match_get_type());
+            if candidate.grammar {
+                format_grammar_preview(&formatted, subject, syntax_component_type());
+            } else {
+                format_summary(&formatted, subject, syntax_component_type(), core_component_type(), parser_match_get_type());
+            }
         }
     }
     var hover_condition32 = q.count != 0;
@@ -377,6 +625,10 @@ fn language_leaf(q: CompletionQuery*, leaf: void*, candidate: LanguageCandidate*
     }
     format_dispose(&formatted);
     var kind = language_kind(value);
+    var context_condition33 = candidate.description != null;
+    if context_condition33 {
+        language_string(q, "description", candidate.description);
+    }
     if selected {
         if candidate.grammar {
             kind = "grammar";
@@ -394,6 +646,9 @@ fn language_leaf(q: CompletionQuery*, leaf: void*, candidate: LanguageCandidate*
     } else {
         var template_details = candidate.template != null;
         var matched = candidate.matched != null;
+        if selected {
+            matched = false;
+        }
         if matched {
             template_details = true;
         }
@@ -402,6 +657,9 @@ fn language_leaf(q: CompletionQuery*, leaf: void*, candidate: LanguageCandidate*
         }
     }
     var matched_details = candidate.matched != null;
+    if selected {
+        matched_details = false;
+    }
     if matched_details {
         language_match_details(q, candidate);
     }
@@ -445,6 +703,7 @@ fn language_leaf(q: CompletionQuery*, leaf: void*, candidate: LanguageCandidate*
                 language_number(q, "declaration", declaration.start);
             }
         }
+        language_declaration_location(q, subject);
     }
     completion_text(&q.output, "}");
     q.count = q.count + 1;
@@ -465,9 +724,9 @@ fn language_walk(q: CompletionQuery*, node: void*, inherited: LanguageCandidate*
     var current: LanguageCandidate;
     copy(&current, inherited, sizeof(LanguageCandidate));
     language_candidate(q, node, &current, checked);
-    if checked {} else {
-        language_match_candidate(q, node, &current);
-    }
+    // Keep syntax available for nodes that have no concrete specialization yet.
+    // A selected semantic subject takes precedence when rendering the leaf.
+    language_match_candidate(q, node, &current);
     var count = sem_child_count(node);
     var syntax = language_syntax(node);
     var grammar_condition2 = syntax != null;
@@ -490,6 +749,9 @@ fn language_walk(q: CompletionQuery*, node: void*, inherited: LanguageCandidate*
     }
     var hover_condition42 = count == 0;
     if hover_condition42 {
+        if checked {
+            language_context_candidate(q, node, &current);
+        }
         language_leaf(q, node, &current);
         return;
     }
