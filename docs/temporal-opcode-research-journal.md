@@ -22525,3 +22525,40 @@ explicit CompilerWorld/ModuleEnvironment ownership. Current frontend_cache_find
 mutates LRU/hit state, so it remains a coordinator operation; pinned read-only
 revisions are the worker input. Only after that ownership boundary is explicit
 should within-unit phases be distributed. Existing unit workers remain isolated.
+
+The allocation-free ready path passed a second fresh default-pin build and the
+Tower ownership tests (0.04 s). The native driver check passed (41.37 s); an
+unanchored CTest filter also selected an unbuilt tower-driver-request executable,
+so that command exited nonzero despite the intended check passing. Final combined
+checks use the anchored frontend/driver filter. The original pending candidate
+also passed two byte-identical browser successor generations (2/4 workers,
+905601 / 52134429 / 63691785 bytes) and full desktop/mobile local verification;
+those successor hashes precede the empty-owner optimization.
+
+With other compiler/test work stopped, repeated the existing paired benchmark
+for collections only (same two warmups and twelve pairs), baseline lexical-cli-clean
+versus pending-ready-clean. Identical emitted objects; median wall times
+2529.970 -> 2542.729 ms (+0.50%), but the paired median is -0.175%, with only
+5/12 current samples slower and paired changes spanning -1.59% to +1.93%.
+The earlier consistent slowdown was not reproduced. Report:
+build/language-next/pending-ready-benchmark.json. This supports the allocation
+removal and functional equivalence, not a general speedup guarantee.
+
+Final pull integrated 3ff2f80/def4e6b: Tower LR closure deduplication and explicit
+browser parse cancellation replace the provisional deadline. Preserved both
+append-only journal sections. No implementation conflict. Started another fresh
+default-bootstrap build in pending-integrated-clean plus native checks and all
+three reactors. The predecessor comparison above uses the saved pre-rebase
+binaries; the incoming LR optimization is separately measured in its journal.
+
+Combined main passes another fresh default-pin native build (all 56 targets) and
+anchored frontend/driver CTests 2/2 (16.86 s), with the pending ready path and
+incoming closure optimization together. All three reactors rebuilt successfully.
+No source requirement depends on a private bootstrap. Remaining production source
+is 1,737 C++ implementation lines and 1,992 header lines (3,729 total); owned native
+bootstrap/tests/research remain separate. The API status/out-parameter declarations
+account for the small header increase; this port retires ownership and algorithms,
+not every compatibility declaration. The next release/build-integration owner can
+consider publishing this validated faster successor as the development bootstrap
+so subsequent compiler builds also benefit from the LR change; this turn does not
+alter the pinned bootstrap distribution.
