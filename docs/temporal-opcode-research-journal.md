@@ -20184,3 +20184,56 @@ and final push evidence follow. Remaining dependency: syntax inspection still
 uses the existing native APIs through the isolated WASI ABI binding; this port
 does not claim a native LSP protocol, parallel shared-graph mutation or complete
 native compiler/runtime removal.
+Publication dependency resolved during the normal push: main advanced to 3cb734b,
+including the missing 6a49c53 hover fix. The initial source push was rejected
+normally; pulled/rebased and retained both append-only journal histories. No
+production conflict. New commits f4f5366/81bad0a are pushed. Rebuilt native/parser/
+LLVM/cross units and packages on the combined source. Focused frontend still
+passes in 0.03 s; all 67 Node diagnostic/hover/scope checks pass in 7.23 s. Local
+packaged-site verification passes all 69 assets and both desktop/mobile flows,
+including backend agreement, native builds/downloads, editable grammar, completion
+and persistence. Six focused desktop/mobile diagnostic-bubble/template-hover
+checks pass in 9.9 s. Supersedes the preceding pending-source publication blocker.
+The unchanged pre-rebase compiler-generation and benchmark results remain scoped
+to that slice; the query-only upstream fix was validated separately after rebase.
+
+Observed publication delay: normal Pages push is uploading binary artifacts
+slowly while compiler checks have already completed. Read/transfer counters keep
+advancing, so do not kill/restart the upload and discard progress. A concrete
+packaging reproducibility issue: previous support-llvm-1.a.gz has gzip header
+1f8b0800000000000203; this machine emits 1f8b08000000000002ff. Decompressed bytes
+compare exactly equal. The packager already sets mtime=0, but that alone does not
+normalize the gzip platform byte across Python versions. Record this for the
+packaging owner; do not claim a compiler regression or modify their broad build
+integration. Before a future publication commit, reuse the previous compressed
+asset when both decompressed payloads are byte-identical (and update/verify the
+manifest against the actual reused bytes). The current publication was already
+in flight when this was diagnosed. Separate remaining churn: selected archive
+members receive positional names and size-partitioned chunks, so removing a
+native dependency can shift subsequent members/chunks; stable member naming is
+another packaging-owner optimization to investigate, not a validated speedup.
+
+Next-slice inspection: syntax_emit already owns stable name storage, dense
+production/helper rows and hashed name lookup; it clears its borrowed input
+pointer before returning. Native seed(Version&) immediately copies those indexes
+to std::map/set containers and destroys the Tower result. Retaining/finalizing
+this existing result is preferable to adding another revision representation.
+Discard construction-only FIRST/nullable/work-queue scratch after emission,
+retain shared source entities through the existing FrontendRevision ownership,
+and expose index/name/alternative lookup directly in Tower. Account for template
+hole productions added after initial emission before publishing an immutable
+revision. Test view-array destruction, failed construction, cached/uncached
+revision eviction and interleaved retained completions. This is the next concrete
+ownership/performance port, not yet implemented in the published slice.
+
+Current native-line inventory at 81bad0a (tracked files, physical lines including
+comments/blank lines, excluding third_party): production 5510 lines in 52 files,
+comprising 3339 C++ implementation lines, 192 C runtime lines and 1979 header/ABI
+lines. Separate bootstrap/reference code: 4546 lines in 26 files; native tests:
+4116 lines in 20 files (including the three root-level *-tests.cpp files); research
+native examples: 774 lines in four files. Total project-owned native inventory:
+14946 lines. Largest production implementations: syntax.cpp 1369, browser.cpp 510,
+parser.cpp 446, driver.cpp 339. These are remaining lines, not a completion
+percentage or a claim that each line represents equivalent migration effort.
+Report: build/language-next/native-lines-current.json. Temporary build snapshots
+and third-party sources are excluded.

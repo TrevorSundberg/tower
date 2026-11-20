@@ -208,7 +208,7 @@ try {
     await selectDocument(page, 'templates.tower');
     await expect(page.locator('#execution-output')).toHaveText('20\n10\n',{timeout:60000});
     await expect(page.locator('#llvm-output')).toHaveText('20\n10\n',{timeout:60000});
-    await expect(page.locator('#execution-status')).toContainText('backends match');
+    await expect(page.locator('#execution-status')).toContainText('backends match',{timeout:60000});
     await expect.poll(()=>outputText(page,'core-instructions')).toContain('struct `buffer(i32, 4)`');
     await page.screenshot({path:new URL(name+'-templates.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
     await selectDocument(page, 'execution.tower');
