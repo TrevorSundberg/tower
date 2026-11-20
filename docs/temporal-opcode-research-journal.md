@@ -14372,6 +14372,34 @@ compiler-entry paths. This unblocks large source inspection; it is not a parsing
 speed improvement. Repeated imported-grammar construction remains measured work
 for the world/revision caching and parallel-phase followups.
 
+The local verifier subsequently passed all 70 assets plus complete desktop and
+mobile behavior, downloads, project persistence and compiler-build cancellation.
+Its report/manifest were saved as lexical-pre-cli-{local-report,manifest}.json.
+The final pull then integrated 23baf5f/5df129b, retiring driver.cpp. Preserved both
+journals and combined the equivalent verifier assertions. New production inventory:
+1,745 C++ implementation lines + 1,981 headers = 3,726, zero production C;
+all owned native categories total 10,979. The 161-line reduction is the CLI agent's
+work, separate from this slice's 79-line native implementation reduction.
+
+After this rebase, a second fresh default-bootstrap build passed all 56 native
+targets in /home/trevo/.cache/tower/lexical-cli-clean. Focused integrated ownership/
+CLI CTests pass 2/2 (39.61 s), and that fresh compiler passes module_paths.py.
+The browser caches were rebuilt; parser and stripped LLVM reactor hashes remain
+identical to the desktop/mobile-verified candidate. Regenerating the source package
+includes the incoming Tower CLI files. Cross-reactor/package comparison and hosted
+publication verification follow. Logs use build/language-next/lexical-cli-*.
+
+Next bounded ownership slice: replace PendingRules' copied native dependency
+strings/offsets with an immutable Tower pending view over retained grammar entities.
+Reuse FrontendRevision for stable names and retained alternatives, index the
+validation-produced source terms in lexical rule order, and format dependency
+chains through the existing formatter. Preserve last-source diagnostic offsets,
+reserved pending names, '=' versus '|=' activation and allocation-failure cleanup.
+Queries must not mutate references or component storage. This is the first step
+toward moving Definitions overlays and session/baseline state into explicit worlds;
+it does not claim those remaining native registries or within-unit phases are
+already safe for shared concurrent mutation.
+
 ### Tower language milestone published and verified
 
 Implementation/source commit 4ae9076 is on main. Required post-commit
