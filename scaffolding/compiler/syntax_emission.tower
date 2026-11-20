@@ -1256,10 +1256,10 @@ export fn syntax_emit_inherit(input: SyntaxEmissionInput*, parent: SyntaxEmissio
             emission_declarations(value);
         }
     }
-    if value.failed {} else {
+    if !value.failed {
         var indexed = emission_index_helpers(value);
-        if indexed { indexed = emission_index_lexical(value); }
-        if indexed {} else { value.failed = true; }
+        indexed &&= emission_index_lexical(value);
+        value.failed = !indexed;
     }
     if value.failed {
         syntax_emission_destroy(value);

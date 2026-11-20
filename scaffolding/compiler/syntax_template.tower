@@ -92,10 +92,9 @@ export fn syntax_template_holes_revision(input: SyntaxTemplateGrammar*, revision
             break;
         }
         var capture = &input.captures[index];
-        var retained = revision != null;
-        if retained {
-            var named = emission_display_hole(revision, capture.name);
-            if named {} else { value.failed = true; break; }
+        if revision is not null && !emission_display_hole(revision, capture.name) {
+            value.failed = true;
+            break;
         }
         var term = emission_node(value, capture.source);
         var ordinal = index & 4294967295;

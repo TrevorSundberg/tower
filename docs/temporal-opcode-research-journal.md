@@ -22194,3 +22194,36 @@ Current slice removes 79 net C++ implementation lines and adds 16 ABI declaratio
 lines. Before integrating the user's newly announced compound-expression work:
 production 1,944 C++ + 192 C + 1,980 headers = 4,116; all owned native categories
 11,369. Checkpointing before the requested pull/rebase and rereading AGENTS.md.
+
+Requested pull integrated operator commit 0939c91; lexical port rebased as
+63a5154. The append-only journal conflict preserved all incoming entries and this
+slice. Read the new AGENTS.md: the lexical module now uses ordinary expressions,
+lazy boolean compounds, increments, typed masks and guarded pointer/scalar access
+with explicit fallbacks. The formatter label helper and template construction
+guards were simplified too. These edits preserve left-to-right and lazy effects;
+post-operator execution validation is not yet available on this machine.
+
+Concrete integration blocker: backend-native's configured bootstrap
+/home/trevo/.cache/tower/parser-text-scope-bootstrap/towerc predates the new
+precedence/operator compiler. The attempted rebuild fails at platform-output.tower
+22:19 on `||=` and at tower.tower activation with the shift/reduce '&' conflict
+between TowerPrefixOperator and TowerExpression='*'. Full log:
+build/language-next/lexical-operators-build.log. Preserved the previously validated
+native compiler and its resources in /home/trevo/.cache/tower/lexical-preoperators-bootstrap
+before reconfiguration. Other local native caches also predate the operator port.
+The recorded /cache/operator-bootstrap-csharp lives in another Docker environment;
+this host has no running Docker engine at that location. No compatible compiler
+release is available in GitHub releases or the deployed Pages artifacts. The CLI
+agent independently found the same dependency. Need a compatible Tower-built
+native compiler plus adjacent resources, or an LLVM/Wasm compiler reactor, to
+rebuild/verify current main. No native fallback, second expression implementation,
+discarded upstream feature or stale publication is used to bypass this boundary.
+
+Follow-on audit identifies the existing Tower FrontendRevision as the reusable
+owner for retained rule views, name storage, alternatives and token entities.
+Next port should move native Definitions/PendingRules overlays and pending-chain
+diagnostics onto that owner, preserve '=' versus '|=' and active-reader boundaries,
+then attach syntax sessions and installed baselines to explicit CompilerWorld
+ownership. Cache lookup currently mutates hit/LRU state, so coordinator-owned
+publication must precede worker reads; sharing that mutable cache is not yet safe.
+This next ownership design is audited, not implemented or concurrency-validated.
