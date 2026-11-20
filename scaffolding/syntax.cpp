@@ -29,7 +29,7 @@
 ModuleEnvironment* syntax_modules = nullptr;
 
 namespace {
-bool diagnostic_peek(void*, size_t&, const ParserLookahead&, uint32_t&);
+extern "C" bool syntax_parser_diagnostic_read(void*, size_t*, const ParserLookahead*, uint32_t*);
 constexpr uint32_t MetaName = 0x110000, MetaString = MetaName + 1, FirstHole = 0x300000;
 constexpr uint32_t FirstToken = 0x120000;
 
@@ -125,24 +125,24 @@ std::string describe_production(const Version& version, const Definitions& defin
     syntax_component_type(), parser_match_get_type());
   std::string result(text); tower_memory_free(text); return result;
 }
-std::string describe_rule(void* context, size_t index) {
+extern "C" char* syntax_parser_describe(void* context, size_t index) {
   const auto& v = *static_cast<Version*>(context);
   // Generated repetition/capture rules refer back to the user's term.
   auto text = describe_production(v, v.definitions, index);
-  if (!text.empty()) return text;
+  if (!text.empty()) return copy_string(text);
   auto* node = index ? tower_node_get_child(v.rules.get(), index - 1) : nullptr;
-  if (!node) return "start of input";
+  if (!node) return copy_string("start of input");
   auto* rule = static_cast<Rule*>(tower_node_get_component_userdata(node, parser_rule_get_type()));
   std::string name = parser_rule_get_name(rule);
   for (const auto& [key, entity] : v.repetitions) if (key == name) {
     auto* text = syntax_origin_text(entity.get(), "repetition ", syntax_component_type(), parser_match_get_type());
-    std::string result(text); tower_memory_free(text); return result;
+    return text;
   }
   for (const auto& [key, entity] : v.capture_sources) if (key == name) {
     auto* text = syntax_origin_text(entity, "capture ", syntax_component_type(), parser_match_get_type());
-    std::string result(text); tower_memory_free(text); return result;
+    return text;
   }
-  return "start of a statement or grammar declaration";
+  return copy_string("start of a statement or grammar declaration");
 }
 
 uint32_t token_id(const std::string& name, size_t index) {
@@ -170,11 +170,11 @@ uint32_t resolve_token(const TokenDefinitions& tokens, const std::string& name) 
     if (semantic(tokens[i]).kind != SyntaxKind::Skip && semantic(tokens[i]).name == name) return token_id(name, i);
   return PARSER_ID_EOF;
 }
-uint32_t resolve(void* context, const char* name) {
+extern "C" uint32_t syntax_parser_resolve(void* context, const char* name) {
   return resolve_token(((Version*)context)->tokens, name);
 }
 
-char* token_name(void* context, uint32_t id) {
+extern "C" char* syntax_parser_token_name(void* context, uint32_t id) {
   auto& version = *(Version*)context;
   auto found = version.names.find(id);
   return found == version.names.end() ? nullptr : copy_string(found->second);
@@ -283,7 +283,7 @@ std::unique_ptr<Version> build(const Definitions& defs, const TokenDefinitions& 
   for (const auto& [name, dependency] : v->pending) v->used_names.insert(name);
   if (!seed(*v, definitions)) { message = "Unable to allocate grammar construction"; return nullptr; }
   char* error = nullptr;
-  v->table = parser_table_create(v->rules.get(), v.get(), resolve, token_name, &error, ParserTableMode::Constructs, describe_rule);
+  v->table = parser_table_create(v->rules.get(), v.get(), ParserPresentation::Syntax, &error, ParserTableMode::Constructs);
   if (!v->table) {
     message = error ? error : "Unable to build grammar";
     tower_memory_free(error);
@@ -354,22 +354,20 @@ bool set_source(SyntaxSession& session, std::string_view text, const char* name)
   return true;
 }
 std::string syntax_diagnostic(SyntaxSession& session, Recognizer* recognizer, bool repairs = true) {
-  const auto diagnostic = parser_recognizer_diagnostic(recognizer, repairs ? diagnostic_peek : nullptr, &session);
+  const std::unique_ptr<ParserDiagnostic, decltype(&parser_diagnostic_destroy)> diagnostic(
+    parser_recognizer_diagnostic(recognizer, repairs ? ParserDiagnosticReader::Syntax : ParserDiagnosticReader::None, &session), parser_diagnostic_destroy);
   auto definitions = session.bedrock->definitions;
   for (const auto& [name, alternatives] : session.definitions) definitions[name] = alternatives;
-  std::vector<SyntaxDiagnosticOption> options;
-  for (const auto& option : diagnostic.expected)
-    options.push_back({option.id, option.label.c_str(), option.insertion, option.completes, option.contexts.data(), option.contexts.size()});
   std::vector<uint32_t> literals;
   for (const auto& [text, id] : session.version->literals) literals.push_back(id);
   const SyntaxDiagnosticInput input{session.source.data(), session.source.size(), session.cursor,
-    diagnostic.offset, diagnostic.insertion_offset, parser_recognizer_get_error(recognizer),
-    options.data(), options.size(), literals.data(), literals.size(),
+    diagnostic->offset, diagnostic->insertion_offset, parser_recognizer_get_error(recognizer),
+    diagnostic->options.data, diagnostic->options.length, literals.data(), literals.size(),
     syntax_emission_productions(session.version->emission.get()), syntax_emission_production_count(session.version->emission.get()),
-    repairs, diagnostic.complete, diagnostic.at_start, definitions.contains("Statement")};
+    repairs, diagnostic->complete, diagnostic->at_start, definitions.contains("Statement")};
   SyntaxDiagnosticText output{};
   format_syntax_diagnostic(&input, &output);
-  if (output.insertion) { session.error_offset = diagnostic.insertion_offset; session.error_insertion = true; }
+  if (output.insertion) { session.error_offset = diagnostic->insertion_offset; session.error_insertion = true; }
   const auto description = describe_production(*session.version, definitions, output.production, output.multiple);
   auto* text = syntax_diagnostic_text_finish(&output, description.c_str());
   std::string result(text); tower_memory_free(text); return result;
@@ -404,7 +402,8 @@ extern "C" void syntax_scan_highlight(void* host, size_t start, size_t end, size
 }
 SyntaxScanInput scan_input(const SyntaxSession& session, size_t pos, std::vector<SyntaxHighlight>* highlights,
     const ParserLookahead* expected = nullptr) {
-  const auto context = expected ? *expected : parser_recognizer_lookahead(session.recognizer);
+  ParserLookahead context;
+  if (expected) context = *expected; else parser_request_lookahead(session.recognizer, &context);
   SyntaxScanInput input{};
   input.lexicon = session.version->lexicon; input.source = session.source.data(); input.size = session.source.size();
   input.cursor = pos; input.revision = session.revision;
@@ -413,10 +412,10 @@ SyntaxScanInput scan_input(const SyntaxSession& session, size_t pos, std::vector
   input.context = session.version->rules.get(); input.match_kind = parser_match_get_type();
   return input;
 }
-bool diagnostic_peek(void* context, size_t& pos, const ParserLookahead& expected, uint32_t& id) {
-  auto input = scan_input(*static_cast<SyntaxSession*>(context), pos, nullptr, &expected);
-  const bool ok = syntax_scan_peek(&input, &id);
-  pos = input.cursor;
+extern "C" bool syntax_parser_diagnostic_read(void* context, size_t* pos, const ParserLookahead* expected, uint32_t* id) {
+  auto input = scan_input(*static_cast<SyntaxSession*>(context), *pos, nullptr, expected);
+  const bool ok = syntax_scan_peek(&input, id);
+  *pos = input.cursor;
   return ok;
 }
 bool declaration_at(const SyntaxSession& session, size_t pos) {
@@ -449,7 +448,7 @@ TowerNode* read_scan(Stream* stream, SyntaxSession& session, SyntaxScanInput& in
   syntax_scan_dispose(&result);
   return node;
 }
-TowerNode* lex(Stream* stream, void* userdata, uint32_t* id, size_t* start, size_t* length) {
+extern "C" TowerNode* syntax_parser_read(Stream* stream, void* userdata, uint32_t* id, size_t* start, size_t* length) {
   auto& session = **static_cast<SyntaxSession**>(userdata);
   auto input = scan_input(session, session.cursor, &session.highlights);
   return read_scan(stream, session, input, id, start, length);
@@ -459,7 +458,7 @@ struct TemplateInput {
   const SyntaxTemplateCapture* captures = nullptr;
   size_t count = 0, base = 0;
 };
-TowerNode* template_lex(Stream* stream, void* userdata, uint32_t* id, size_t* start, size_t* length) {
+extern "C" TowerNode* syntax_parser_template_read(Stream* stream, void* userdata, uint32_t* id, size_t* start, size_t* length) {
   auto& host = **static_cast<TemplateInput**>(userdata);
   auto input = scan_input(host.session, host.session.cursor, &host.session.highlights);
   input.replacement = true; input.captures = host.captures; input.count = host.count; input.base = host.base;
@@ -508,8 +507,8 @@ bool compile_template(Version& version, const Definitions& defs, const Sequence&
   holes.repetitions = repetitions.data(); holes.repetition_count = repetitions.size();
   if (!syntax_template_holes(&holes)) { error = "Unable to allocate replacement hole productions"; return false; }
   char* diagnostic = nullptr;
-  grammar->table = parser_table_create(grammar->rules.get(), grammar.get(), resolve, token_name, &diagnostic,
-    ParserTableMode::WholeInput, describe_rule);
+  grammar->table = parser_table_create(grammar->rules.get(), grammar.get(), ParserPresentation::Syntax, &diagnostic,
+    ParserTableMode::WholeInput);
   if (!grammar->table) {
     grammar_error = true;
     error = diagnostic ? diagnostic : "Cannot build replacement parser";
@@ -518,7 +517,7 @@ bool compile_template(Version& version, const Definitions& defs, const Sequence&
   }
   if (!build_lexicon(*grammar)) { error = "Unable to allocate replacement lexical indexes"; return false; }
   std::unique_ptr<Stream, decltype(&parser_stream_destroy)> stream(
-    parser_stream_create(sizeof(TemplateInput*), nullptr, template_lex), parser_stream_destroy);
+    parser_stream_create(sizeof(TemplateInput*), ParserInputService::Template), parser_stream_destroy);
   *(TemplateInput**)parser_stream_get_userdata(stream.get()) = &input;
   std::unique_ptr<Recognizer, decltype(&parser_recognizer_destroy)> recognizer(
     parser_recognizer_create(grammar->table, stream.get()), parser_recognizer_destroy);
@@ -864,7 +863,7 @@ TowerNode* syntax_next(SyntaxSession* session) {
     Node root = owned(nullptr);
     {
       std::unique_ptr<Stream, decltype(&parser_stream_destroy)> stream(
-        parser_stream_create(sizeof(SyntaxSession*), nullptr, lex), parser_stream_destroy);
+        parser_stream_create(sizeof(SyntaxSession*), ParserInputService::Syntax), parser_stream_destroy);
       *(SyntaxSession**)parser_stream_get_userdata(stream.get()) = session;
       std::unique_ptr<Recognizer, decltype(&parser_recognizer_destroy)> recognizer(
         parser_recognizer_create_prefix(session->version->table, stream.get()), parser_recognizer_destroy);

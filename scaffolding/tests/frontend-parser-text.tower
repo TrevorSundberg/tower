@@ -122,7 +122,7 @@ fn parser_text_table_tests(): void {
     var kinds: FrontendKinds;
     frontend_world_check(frontend_world_test_kinds(world, &kinds));
     var root = table_owner_grammar(&kinds, TableOwnerFixture.Sequence);
-    var table = parser_table_open(root, &kinds, null, null, null, 0);
+    var table = parser_table_open(root, &kinds, null, ParserPresentation.Numeric, 0);
     table_owner_check(parser_table_build(table, false), 120);
     entity_release(root);
     table_owner_check(compiler_world_dispose(world), 121);
@@ -175,21 +175,21 @@ fn parser_text_conflict_tests(): void {
     var kinds: FrontendKinds;
     frontend_world_check(frontend_world_test_kinds(world, &kinds));
     var root = table_owner_grammar(&kinds, TableOwnerFixture.Missing);
-    var table = parser_table_open(root, &kinds, null, null, null, 0);
+    var table = parser_table_open(root, &kinds, null, ParserPresentation.Numeric, 0);
     parser_text_plain(table, ParserFormatKind.Missing, 0, 0, "Unresolved grammar rule: Missing");
     parser_table_build(table, false);
     parser_text_plain(table, ParserFormatKind.Conflict, 0, 0, "Unresolved grammar rule");
     parser_table_destroy(table);
     entity_release(root);
     root = table_owner_grammar(&kinds, TableOwnerFixture.EmptyClosure);
-    table = parser_table_open(root, &kinds, null, null, null, 0);
+    table = parser_table_open(root, &kinds, null, ParserPresentation.Numeric, 0);
     table_owner_check(parser_table_build(table, false), 130);
     parser_text_plain(table, ParserFormatKind.Rule, 2, 0, "Maybe = ");
     parser_text_plain(table, ParserFormatKind.Item, 2, 0, "Maybe = •");
     parser_table_destroy(table);
     entity_release(root);
     root = table_owner_grammar(&kinds, TableOwnerFixture.Ambiguous);
-    table = parser_table_open(root, &kinds, null, null, null, 0);
+    table = parser_table_open(root, &kinds, null, ParserPresentation.Numeric, 0);
     table_owner_check(parser_table_build(table, false), 131);
     parser_text_plain(table, ParserFormatKind.Conflict, 0, 0,
     "Grammar conflict (reduce/reduce) on $: the parser could finish A = 120 , or finish B = 120 . Make these alternatives distinct; their order does not resolve the conflict.");
@@ -254,7 +254,7 @@ fn parser_text_shift_tests(kernels: bool): void {
         grammar_builder_literal(&builder, rule, "a");
     }
     var root = grammar_builder_finish(&builder);
-    var table = parser_table_open(root, &kinds, null, null, null, 0);
+    var table = parser_table_open(root, &kinds, null, ParserPresentation.Numeric, 0);
     table_owner_check(parser_table_build(table, false), 145);
     var request = parser_format_create(table, ParserFormatKind.Conflict, 0, 0, false, true);
     var count: usize = 0;

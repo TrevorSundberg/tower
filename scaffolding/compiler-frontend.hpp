@@ -5,7 +5,7 @@
 struct FrontendKinds {
   TowerNode *rule, *reference, *string, *range, *match, *syntax;
 };
-extern "C" Table* parser_table_open_host(TowerNode*, void*, ParserTableIdToString, ParserDescribeRule, uint32_t);
+extern "C" Table* parser_table_open_host(TowerNode*, void*, ParserPresentation, uint32_t);
 extern "C" bool parser_table_build(Table*, bool);
 extern "C" size_t parser_table_rule_next(const Table*, size_t, size_t);
 extern "C" TowerNode* frontend_bedrock_create(FrontendKinds*);

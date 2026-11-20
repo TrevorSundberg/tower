@@ -1,7 +1,5 @@
 #pragma once
 #include "tower.hpp"
-#include <string>
-#include <vector>
 
 struct Rule;
 struct Reference;
@@ -19,13 +17,13 @@ inline constexpr uint32_t PARSER_ID_EOF = (uint32_t)-2;
 struct LRCompletion;
 extern "C" void parser_recognizer_capture_completion(struct Recognizer*);
 extern "C" LRCompletion* parser_recognizer_take_completion(struct Recognizer*);
-LRCompletion* parser_table_completion(struct Table*);
+extern "C" LRCompletion* parser_table_completion(struct Table*);
 
 // Enable verbose table-building and recognizer traces (off by default).
-void parser_set_debug_trace(bool enabled);
+extern "C" void parser_set_debug_trace(bool enabled);
 
 // Run a suite of tests for the parser and tower node configurations
-void parser_tests();
+extern "C" void parser_tests();
 
 
 // Get the compiletime type of the Rule component
@@ -189,7 +187,7 @@ extern "C" void parser_match_set_label(Match* component, const char* label);
 // Format/print the tree with labels, production indices and byte spans.
 // Free the returned string with tower_memory_free. Neither function takes ownership.
 extern "C" char* parser_tree_debug_string(TowerNode* root);
-void parser_tree_debug_print(TowerNode* root);
+extern "C" void parser_tree_debug_print(TowerNode* root);
 
 // Creates a child node and attaches it to the parent,
 // adds the Match component to the child, and sets up the component
@@ -198,21 +196,9 @@ void parser_tree_debug_print(TowerNode* root);
 extern "C" TowerNode* parser_match_create_subtree(TowerNode* parent, uint32_t id, size_t start_index, size_t length);
 
 
-// Virtual destructor for a stream
-typedef void (*ParserStreamDestructor)(Stream* stream, void* userdata);
-
-// Virtual read for a stream
-// See the comments on parser_stream_read
-typedef TowerNode* (*ParserStreamRead)(
-  Stream* stream,
-  void* userdata,
-  uint32_t* id,
-  size_t* start_index,
-  size_t* length
-);
-
-// Create a stream that the parser will consume
-extern "C" Stream* parser_stream_create(size_t userdata_bytes, ParserStreamDestructor destructor, ParserStreamRead read);
+// Explicit stream services; Empty streams accept caller-owned buffered input.
+enum class ParserInputService : uint32_t { Empty, Utf8, Recognizer, Syntax, Template };
+extern "C" Stream* parser_stream_create(size_t userdata_bytes, ParserInputService service);
 
 // Destroy a parser stream
 extern "C" void parser_stream_destroy(Stream* stream);
@@ -261,21 +247,10 @@ extern "C" const char* parser_stream_get_error(Stream* stream);
 extern "C" void parser_stream_set_error(Stream* stream, const char* error);
 
 
-// Virtual reference resolution for the table
-// Returns the id of the resolved reference (canonically used when a parser refers to a token by rule index)
-// A returned value of PARSER_ID_EOF means that we did not resolve the name
-typedef uint32_t (*ParserTableResolveReference)(void* userdata, const char* name);
-
 // Looks up rule id's from a table by name (see ParserTableResolveReference)
 // The userdata parameter passed here MUST be a Table*
 // This is most commonly used by a parser that wants to resolve the names of token rules
 extern "C" uint32_t parser_table_non_terminal_resolve_reference(void* userdata, const char* name);
-
-// Virtual stringify for ids for the table
-// This is primarily used for debugging and is optional
-// The string returned should be utf8 null-terminated and allocated with tower_memory_allocate (freed by caller)
-// If there is no associated name with the id, return nullptr
-typedef char* (*ParserTableIdToString)(void* userdata, uint32_t id);
 
 // Stringify utf8 codepoints to look like 'x' (see ParserTableIdToString)
 // The userdata parameter passed here is not used and can be any value (including nullptr)
@@ -288,10 +263,9 @@ extern "C" char* parser_table_non_terminal_id_to_string(void* userdata, uint32_t
 
 // Create a parser for the given BNF parse rules specified by a component tree
 // Note that the parser does not hold on to the tree, and changes no reference counts
-// The resolve callback is optional (null), and is used to resolve named references when they don't
-// refer to another rule (canonically when a parser refers to token's by rule index)
-// The table only uses the resolve callback while building the table and will not be called again
-// However the userdata and to_string will be stored with the table for error reporting and debug
+// The presentation service resolves external names during construction. The
+// coordinator pins its borrowed context, table and world through every request.
+// Completed tables are immutable; parsing does not change their reference counts.
 // The tree should take the following format:
 /*
 type ParseRules = {
@@ -309,16 +283,14 @@ type ParseRules = {
 }
 */
 enum class ParserTableMode { WholeInput, Constructs };
-using ParserDescribeRule = std::string (*)(void* userdata, size_t production);
+enum class ParserPresentation : uint32_t { Numeric, Utf8, NonTerminal, Syntax };
 
-Table* parser_table_create(
+extern "C" Table* parser_table_create(
   TowerNode* root,
   void* userdata,
-  ParserTableResolveReference resolve,
-  ParserTableIdToString to_string,
+  ParserPresentation presentation,
   char** error = nullptr,
   ParserTableMode mode = ParserTableMode::WholeInput,
-  ParserDescribeRule describe_rule = nullptr,
   bool specialize = true
 );
 
@@ -334,20 +306,20 @@ extern "C" void parser_table_destroy(Table* table);
 
 
 // The table and the stream must be kept alive for the duration of the Recognizer
-Recognizer* parser_recognizer_create(Table* table, Stream* stream);
+extern "C" Recognizer* parser_recognizer_create(Table* table, Stream* stream);
 
 // Read one nonempty construct, using real lookahead to prefer a continuation.
 // Requires a Constructs table, whose start-rule FOLLOW includes the next
 // construct's FIRST set so ambiguous boundaries are rejected during construction.
 // An unconsumed lookahead is returned to the stream (including ownership/errors).
 // If tokenization changes, discard that stream and resume at the root's end byte.
-Recognizer* parser_recognizer_create_prefix(Table* table, Stream* stream);
+extern "C" Recognizer* parser_recognizer_create_prefix(Table* table, Stream* stream);
 
 // Work counters for checking scaling independently of wall-clock noise.
 struct ParserWork {
   size_t reads = 0, actions = 0, shifts = 0, reductions = 0, popped = 0, forest_visits = 0;
 };
-ParserWork parser_recognizer_get_work(const Recognizer* recognizer);
+extern "C" void parser_request_work(const Recognizer*, ParserWork*);
 // Current LR ACTION lookup; no speculative reductions or backtracking.
 extern "C" bool parser_recognizer_accepts(Recognizer* recognizer, uint32_t id);
 
@@ -361,6 +333,9 @@ extern "C" void parser_recognizer_destroy(Recognizer* recognizer);
 // The accepted root survives recognizer/table/stream destruction. Reduction callbacks
 // and repeated tokenization are not implemented by this interface yet.
 extern "C" TowerNode* parser_recognizer_step(Recognizer* recognizer, bool* running);
+// Empty external-input streams suspend with waiting=true. Feed one token through
+// the Tower stream input API, including an explicit EOF, then poll again.
+extern "C" TowerNode* parser_recognizer_poll(Recognizer*, bool* running, bool* waiting);
 
 // Empty on success/in-progress; otherwise a diagnostic owned by the recognizer.
 extern "C" const char* parser_recognizer_get_error(Recognizer* recognizer);
@@ -370,24 +345,23 @@ extern "C" const char* parser_recognizer_get_error(Recognizer* recognizer);
 struct ParserRulePosition { size_t production, term; };
 struct ParserExpectation {
   uint32_t id;
-  std::string label;
-  bool insertion = false;
-  bool completes = false;
-  std::vector<ParserRulePosition> contexts;
+  const char* label;
+  bool insertion, completes;
+  const ParserRulePosition* contexts;
+  size_t count;
 };
 struct ParserDiagnostic {
-  size_t offset = 0, insertion_offset = 0;
-  bool complete = true;
-  bool at_start = false;
-  std::vector<ParserExpectation> expected;
+  size_t offset, insertion_offset;
+  bool complete, at_start;
+  struct { ParserExpectation* data; size_t length, capacity; } options;
+  void* probe;
 };
+enum class ParserDiagnosticReader : uint32_t { None, Utf8, Syntax };
+extern "C" void parser_diagnostic_destroy(ParserDiagnostic*);
 struct LRRuntime;
 // Borrowed immutable table and a valid current state, shared with Tower's lexer.
 struct ParserLookahead { LRRuntime* runtime = nullptr; size_t state = TOWER_INVALID_INDEX; };
-ParserLookahead parser_recognizer_lookahead(Recognizer* recognizer);
+extern "C" void parser_request_lookahead(Recognizer*, ParserLookahead*);
 extern "C" void parser_recognizer_account_lookahead(Recognizer* recognizer, size_t checks);
-using ParserDiagnosticRead = bool (*)(void*, size_t&, const ParserLookahead&, uint32_t&);
-ParserDiagnostic parser_recognizer_diagnostic(Recognizer* recognizer,
-  ParserDiagnosticRead read = nullptr, void* source = nullptr);
-
-
+extern "C" ParserDiagnostic* parser_recognizer_diagnostic(Recognizer*,
+  ParserDiagnosticReader reader = ParserDiagnosticReader::None, void* source = nullptr);

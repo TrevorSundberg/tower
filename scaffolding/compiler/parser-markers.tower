@@ -9,3 +9,13 @@ fn ParserNoIndex(): usize {
     index = index - 1;
     return index;
 }
+
+// These statuses describe a request protocol, never foundation instructions.
+enum ParserAction: u32 {
+    NeedInput, Shift, Reduce, Accept, Unexpected, EmptyPrefix,
+    SequenceShift, SequenceReduce, Invalid
+}
+
+enum ParserInputService: u32 {
+    Empty, Utf8, Recognizer, Syntax, Template
+}

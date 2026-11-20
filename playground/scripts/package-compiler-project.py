@@ -54,6 +54,8 @@ def package(builds, destination):
     files = {p.relative_to(SOURCES).as_posix(): p.read_text() for folder in ['compiler','host','backend','library']
              for p in (SOURCES/folder).rglob('*.tower')}
     files.update({n+'.tower': (SOURCES/(n+'.tower')).read_text() for n in ['bedrock','foundation','tower']})
+    # The browser self-test now links the production-export Tower parser fixture.
+    files['tests/parser-integration.tower'] = (SOURCES/'tests/parser-integration.tower').read_text()
     units, reactors = {}, {}
     for name, build, target, binary in builds:
         command = next(line for line in reversed(run(['ninja','-t','commands',target], build).splitlines()) if ' -o ' + binary + ' ' in line)

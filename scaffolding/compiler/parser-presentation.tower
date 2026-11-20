@@ -1,0 +1,128 @@
+import tower;
+import 'format-parser';
+import 'format-parser-table';
+import 'format-types';
+import 'format-api';
+import '../library/vector';
+import 'parser-table-types';
+import 'format-parser-table-types';
+
+extern fn syntax_parser_token_name(context: void*, id: u32): u8*;
+
+extern fn syntax_parser_describe(context: void*, rule: usize): u8*;
+
+extern fn parser_table_non_terminal_id_to_string(context: void*, id: u32): u8*;
+
+extern fn tower_memory_free(memory: void*): void;
+
+extern fn puts(text: u8*): i32;
+
+extern fn putchar(byte: i32): i32;
+
+fn parser_trace_write(text: u8*): void {
+    var index: usize = 0;
+    while text[index] != 0 {
+        putchar(convert(i32, text[index]));
+        index = index + 1;
+    }
+}
+
+// The formatter's existing pull protocol owns traversal and composition. This
+// service only answers names/descriptions and returns text through the existing
+// host allocation API. Formatter vectors keep their own allocation family.
+export fn parser_presentation_text(table: ParserHostTable*, kind: ParserFormatKind, first: usize, second: usize): u8* {
+    var names = table.presentation != ParserPresentation.Numeric;
+    var descriptions = table.presentation == ParserPresentation.Syntax;
+    var request = parser_format_create(table, kind, first, second, names, descriptions);
+    var missing = request == null;
+    if missing {
+        return null;
+    }
+    loop {
+        var need = parser_format_next(request);
+        var done = need == ParserFormatNeed.Done;
+        if done {
+            break;
+        }
+        var index = parser_format_index(request);
+        var text: u8* = null;
+        var description = need == ParserFormatNeed.Description;
+        if description {
+            text = syntax_parser_describe(table.userdata, index);
+        } else {
+            var id = convert(u32, index);
+            match table.presentation {
+                ParserPresentation.Utf8 => {
+                    text = parser_table_utf8_id_to_string(null, id);
+                }
+                ParserPresentation.NonTerminal => {
+                    text = parser_table_non_terminal_id_to_string(table.userdata, id);
+                }
+                ParserPresentation.Syntax => {
+                    text = syntax_parser_token_name(table.userdata, id);
+                }
+                _ => {}
+            }
+        }
+        var length: usize = 0;
+        var present = text != null;
+        if present {
+            while text[length] != 0 {
+                length = length + 1;
+            }
+        }
+        parser_format_reply(request, text, length);
+        if present {
+            tower_memory_free(bits(void*, text));
+        }
+    }
+    var output = parser_format_result(request);
+    var text: u8* = null;
+    if output.failed {} else {
+        text = format_parser_host_text(output);
+    }
+    parser_format_destroy(request);
+    return text;
+}
+
+// Callers guard this before any formatter request or debug string allocation.
+export fn parser_trace_table(table: ParserHostTable*, kind: ParserFormatKind): void {
+    if table.trace {} else {
+        return;
+    }
+    var text = parser_presentation_text(table, kind, 0, 0);
+    var present = text != null;
+    if present {
+        puts(text);
+        tower_memory_free(bits(void*, text));
+    }
+}
+
+export fn parser_trace_step(table: ParserHostTable*, rule: usize, state: usize, offset: usize): void {
+    if table.trace {} else {
+        return;
+    }
+    var text = parser_presentation_text(table, ParserFormatKind.Edge, rule, state);
+    var present = text != null;
+    if present {
+        var result: FormatResult;
+        var engine: FormatEngine;
+        fill(&result, 0, sizeof(FormatResult));
+        fill(&engine, 0, sizeof(FormatEngine));
+        engine.result = &result;
+        format_text(&engine, "STEP: ");
+        format_text(&engine, text);
+        format_text(&engine, " at byte ");
+        format_unsigned(&engine, convert(u64, offset));
+        format_char(&engine, 10);
+        parser_trace_write(result.text.data);
+        format_dispose(&result);
+        tower_memory_free(bits(void*, text));
+    }
+}
+
+export fn parser_tree_debug_print(root: void*): void {
+    var text = parser_tree_debug_string(root);
+    parser_trace_write(text);
+    tower_memory_free(bits(void*, text));
+}

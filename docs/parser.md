@@ -412,3 +412,46 @@ This part is still being worked out, but the concept is that an Abstract Syntax 
 A great example of this would be how template evaluation works, we end up building out a new ephermeral tree of AST nodes based on the template definition and whatever types T we are given. However, most compilers would stop there, but to support minimal rebuild at runtime, especially when the language is being run in live mode, we should only rebuild parts of the tree when aspects of T changes, not the entire thing.
 
 Tasks are effectively React components that define how these nodes get created and react based on the dependencies taken in.
+
+## Tower request integration
+
+`parser.cpp` and `parser-tree-tests.cpp` have been retired. Table construction is
+in `compiler/parser-integration.tower`, request stepping and bounded diagnostic
+integration in `compiler/parser-state.tower`, streams in `parser-stream.tower`,
+and presentation in `parser-presentation.tower`. These reuse the existing LR,
+forest, entity and formatting implementations. Parser tables are disposable
+indexes over grammar entities, not a program serialization format.
+
+Create explicit worlds and register `FrontendKinds` on the coordinator. Build a
+grammar with `GrammarBuilder`, open its table with `parser_table_open`, and call
+`parser_table_finish`. Keep the table, its presentation context and world alive
+until all requests and completion snapshots finish. Accepted roots own their
+entities and copied labels; they survive request, stream and table destruction.
+Finish table construction before sharing it. Requests do not mutate table
+caches or reference counts. Node materialization still requires exclusive access
+to its entity store; independent worker units use independent worlds.
+
+UTF-8 and layered recognizer streams work through `parser_recognizer_step`.
+External producers use `ParserInputService.Empty`, supply one token with
+`parser_stream_return`, and call `parser_recognizer_poll`. A poll with
+`waiting=true` needs another input token, including an explicit `ParserStreamEnd`
+when the input is finished. `running=true` means another step can proceed;
+a non-null root transfers ownership. Prefix recognition returns unused lookahead
+and its error/node ownership to the stream. Cancel by destroying the request and
+then the stream. Layered streams share a world so their nodes can be attached.
+
+`parser_recognizer_diagnostic` returns an owned `ParserDiagnostic`; destroy it
+with `parser_diagnostic_destroy`. Its option/context views remain valid until
+then. Probes do not mutate the recognizer, stream or graph. Presentation services
+are explicit enums because indirect function calls remain unimplemented. Numeric,
+UTF-8 and nonterminal services are Tower implementations. Syntax presentation and
+input use the syntax owner's existing C-linked services; SyntaxSession and grammar
+revision ownership have not moved in this port. The old function-pointer stream
+and presentation callbacks are replaced by these services and input polling.
+
+Tracing is set before table publication. Explicit-world callers set `table.trace`;
+the legacy `parser_set_debug_trace` changes only its world's coordinator setting.
+Disabled requests never construct trace strings. Functional fixtures live in
+`tests/parser-integration.tower` and `tests/parser-failures.tower`; the browser
+self-test invokes the same production exports. The optional native measurement
+target in `cmake/TowerParserBenchmark.cmake` uses `tests/parser-benchmark.tower`.

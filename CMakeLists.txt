@@ -26,7 +26,7 @@ if(TOWER_NATIVE)
     configure_file("scaffolding/${resource}" "share/tower/${resource}" COPYONLY)
   endforeach()
   add_library(tower-native-compiler OBJECT scaffolding/llvm-engine.cpp
-    scaffolding/tests/nodes.cpp scaffolding/parser-tree-tests.cpp
+    scaffolding/tests/nodes.cpp
     scaffolding/syntax-nodes.cpp
     scaffolding/lex-pattern-common.cpp scaffolding/syntax-tests.cpp)
   target_include_directories(tower-native-compiler PRIVATE ${LLVM_INCLUDE_DIRS})
@@ -40,7 +40,7 @@ if(TOWER_NATIVE)
   tower_compiler_parser_nodes()
   tower_compiler_interpreter()
   add_executable(towerc scaffolding/core-machine.cpp $<TARGET_OBJECTS:tower-native-driver> $<TARGET_OBJECTS:tower-native-compiler> scaffolding/tower.cpp scaffolding/lex-pattern.cpp scaffolding/format.cpp)
-  target_sources(towerc PRIVATE scaffolding/core.cpp scaffolding/core-nodes.cpp scaffolding/parser.cpp)
+  target_sources(towerc PRIVATE scaffolding/core.cpp scaffolding/core-nodes.cpp)
   target_compile_features(towerc PRIVATE cxx_std_20)
   target_sources(towerc PRIVATE scaffolding/syntax.cpp)
   target_link_libraries(towerc PRIVATE tower-compiler-parser-nodes tower-compiler-semantics tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
@@ -60,7 +60,7 @@ if(TOWER_BROWSER)
   tower_compiler_parser_nodes()
   tower_compiler_interpreter()
   add_executable(tower-browser
-    scaffolding/tower.cpp scaffolding/tests/nodes.cpp scaffolding/parser.cpp scaffolding/parser-tree-tests.cpp
+    scaffolding/tower.cpp scaffolding/tests/nodes.cpp
     scaffolding/syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/format.cpp scaffolding/lex-pattern.cpp scaffolding/lex-pattern-common.cpp scaffolding/syntax-tests.cpp)
   target_compile_features(tower-browser PRIVATE cxx_std_20)
   if(TOWER_FORMAT_DIFFERENTIAL)
@@ -111,7 +111,7 @@ if(TOWER_BROWSER)
     set(CMAKE_SYSTEM_NAME "${tower_sdk_system_name}")
     set(tower_llvm_sources
       scaffolding/llvm-backend.cpp scaffolding/llvm-engine.cpp scaffolding/llvm-wasi.cpp scaffolding/core.cpp scaffolding/core-nodes.cpp
-      scaffolding/tower.cpp scaffolding/tests/nodes.cpp scaffolding/parser.cpp scaffolding/parser-tree-tests.cpp
+      scaffolding/tower.cpp scaffolding/tests/nodes.cpp
       scaffolding/syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/format.cpp scaffolding/lex-pattern.cpp scaffolding/lex-pattern-common.cpp scaffolding/syntax-tests.cpp)
     get_filename_component(tower_sdk_bin "${CMAKE_C_COMPILER}" DIRECTORY)
     add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/tower-runtime.inc"
@@ -154,7 +154,7 @@ if(TOWER_PARSER_ONLY)
   add_executable(tower-parser-tests scaffolding/tests/main.cpp
     scaffolding/tests/compiler-storage.cpp scaffolding/tests/entities.cpp scaffolding/tests/lexer-table.cpp scaffolding/tests/regex.cpp scaffolding/tests/lr-analysis.cpp scaffolding/tests/lr-grammar.cpp scaffolding/tests/syntax-lexer.cpp scaffolding/tests/syntax-nodes.cpp scaffolding/tests/syntax-reader.cpp scaffolding/tests/syntax-validation.cpp
     scaffolding/core.cpp scaffolding/core-nodes.cpp scaffolding/core-machine.cpp scaffolding/core-tests.cpp
-    scaffolding/tower.cpp scaffolding/tests/nodes.cpp scaffolding/parser.cpp scaffolding/parser-tree-tests.cpp
+    scaffolding/tower.cpp scaffolding/tests/nodes.cpp
     scaffolding/syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/format.cpp scaffolding/lex-pattern.cpp scaffolding/lex-pattern-common.cpp scaffolding/syntax-tests.cpp)
   target_compile_features(tower-parser-tests PRIVATE cxx_std_20)
   target_compile_definitions(tower-parser-tests PRIVATE TOWER_EXPANSION_TESTS=1)

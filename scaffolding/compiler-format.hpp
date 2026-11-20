@@ -13,10 +13,8 @@
 struct TowerFormatSpans { TowerSourceSpan* data; size_t length, capacity; };
 struct TowerFormatResult { TowerByteBuffer text; TowerFormatSpans spans; size_t depth; bool failed; };
 struct ParserRulePosition;
-struct SyntaxDiagnosticOption {
-  uint32_t id; const char* label; bool insertion, completes;
-  const ParserRulePosition* contexts; size_t count;
-};
+struct ParserExpectation;
+using SyntaxDiagnosticOption = ParserExpectation;
 struct SyntaxEmissionProduction;
 struct SyntaxDiagnosticInput {
   const char* source; size_t size, cursor, offset, insertion_offset;

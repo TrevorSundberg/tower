@@ -20891,3 +20891,103 @@ Report: build/language-next/native-lines-named-index.json. todo.txt retains blob
 96a9e58964d7f01e4a97819f259448db81ef5e40; both pre-existing stashes are preserved.
 Agent 2's independent checkout/window remains separate from this implementation
 and publication. No new native implementation, sanitizer sweep or formatter sweep.
+
+## 2026-11-20 — Parser integration retirement (in progress)
+
+Pulled/rebased current main to bf906b5. The first pull encountered another
+process's transient index.lock; retried after the lock disappeared, preserving
+all work. Scope is parser.cpp, parser-tree-tests.cpp, their declarations and Tower
+parser integration. SyntaxSession and revision ownership remain with the syntax
+owner. No todo.txt, CLI/runtime implementation, sanitizer or whole-tree formatter
+changes. Saved the existing native compiler and parser reactor under
+build/parser-retirement/baseline; built a current-main native baseline before
+retiring the bridge. Use the existing tower_build image with this checkout bound
+at /home/deck/tower and ~/.cache/tower-docker at /tmp/tower-home/.cache, HOME
+/tmp/tower-home. The host shell lacks cmake/Clang; the initial direct configure
+failed with cmake not found. The isolated container is tower-parser-retirement;
+all new caches are build/parser-retirement/{native,wasm}. Reuse LLVM 19 and WASI
+SDK 34; never reconfigure another owner's cache.
+
+Audit: existing Tower lr-parser/lr-tree/parser-state/parser-stream already own LR
+control, forests, buffered lookahead and completion; frontend-diagnostics owns
+bounded error correction; format-parser-table owns formatting traversal. The
+remaining 446-line parser.cpp supplied orchestration and callback dispatch plus
+native fixtures. Tower currently has neither indirect function calls nor library
+global initialization. Rejected inventing a native callback trampoline or new
+seed. Explicit presentation/input services now invoke the syntax owner's existing
+functions through mechanical C linkage. The existing custom input pull/buffer
+protocol remains Tower code; generic function-pointer callbacks are retired.
+The syntax owner still supplies source scanning, token-name resolution and rule
+description; this is an explicit interface dependency, not complete syntax
+retirement. Diagnostic output is an owned Tower result with borrowed views of
+probe contexts, eliminating C++ vector/string copies. Canonical foundation and
+ECS semantics are unchanged; formatting continues through the existing engine.
+
+Table construction finishes before publication. Requests borrow immutable tables
+and pinned world/component identities without changing table reference counts;
+mutable control, streams, forests and diagnostics are request-local. Materializing
+nodes requires exclusive ownership of the world/store (independent compilation
+workers have separate worlds). Diagnostic probes only allocate their own numeric
+stacks/text, without modifying recognizer, table, stream or entity caches.
+Tracing is snapshotted on each table. The legacy host flag is registry metadata
+changed only by its coordinator, with no worker-side lazy initialization. Explicit
+world callers set table.trace before finalization. Disabled stepping never calls
+the trace formatter. Layered streams must share a world to attach nodes; isolated
+world tests interleave independent requests instead of mixing their entities.
+
+Initial trials exposed ordinary foundation syntax/import boundaries (imports
+must be direct and precede declarations; binary operands need locals; expected
+and token are reserved names). A production smoke abort exposed an allocator
+ownership error: directly transferring a vector buffer to tower_memory_free used
+the wrong allocation family. The stack was compiler_node_free <-
+tower_memory_free <- parser_table_finish in an unstripped Wasm reactor. Fixed it
+by reusing format_parser_host_text, which copies through the established host
+allocation API and disposes the formatter buffer. Do not infer successful
+validation from the earlier link-only builds. Results follow after focused tests.
+
+Focused results: native frontend/world fixtures plus the new parser production
+fixtures pass; the original Wasm transport suites pass 75/75 (12.41 s): wasm,
+diagnostics, completion, completion-queries, bedrock and replacements. The
+replacement fixtures check Unicode byte spans, finite-sequence/reference LR,
+repeated requests, prefix lookahead return, layered nodes, independent worlds,
+retained roots/completions, cancellation, generated-list linear work and exact
+recovery labels/insertion offsets. A fixture incorrectly omitted the existing
+period in "Unexpected ';'."; corrected the expectation, not the formatter.
+Added recoverable constructor and diagnostic-probe allocation-budget sweeps.
+Generic externally-fed streams now suspend through parser_recognizer_poll;
+waiting for input does not manufacture EOF. Both polling and automatic streams
+share the same request advance/tree code. The EOF token remains explicit.
+
+The parser-only native target builds. Ran its existing --trace --parse
+examples/foreach.tower path successfully (build/parser-retirement/trace.log).
+Did not run its default main because formatter_tests includes a recursive
+repository-wide source sweep, which is temporarily skipped by instruction.
+Focused production-export tests and existing browser self-tests run independently.
+
+Benchmark fixture is tests/parser-benchmark.tower, linked against both the
+saved bf906b5 source snapshot and this port via TowerParserBenchmark.cmake.
+It warms the production syntax session five times, then measures eleven parses
+of 256/512/1024/2048-token lists, including accepted-tree release but excluding
+reset/declaration construction. Allocation calls are the existing instrumented
+Tower buffer allocator, not all libc/C++ allocations. Live buffer counts are also
+checked after each request. The initial measurements (while builds still ran)
+showed identical calls 1056/2082/4132/8230 and 3.3–7.1% lower medians; these are
+preliminary, not the final isolated comparison. Benchmark setup trials first
+called syntax_create before bootstrap installation and then selected Foundation
+mode, which correctly rejects ordinary statements. The final harness explicitly
+installs its grammar through the existing syntax_set_bootstrap ABI. Linux x64
+libstdc++ requires the documented abi_tag(cxx11) foreign spelling; its omission
+produced a link error. No native benchmark wrapper was introduced.
+
+Backend builds reuse the pinned upstream LLVM/LLD archives without reconfiguring
+that cache. build/parser-retirement/rebuild-backends.py records the existing
+Ninja compile/link commands, recompiles every remaining project native adapter
+against current headers into this task's directory, recompiles Tower backend
+units with the frozen bootstrap and links the new parser units. Removed parser
+objects are absent. Copying generated manifests initially retained imports
+relative to the old build directory; rebased those imports to their exact
+absolute source paths. build-record.json and build.ninja record the actual link
+closure for package-compiler-project.py. The established packager includes the
+new parser-integration unit and the Tower parser fixture source, rather than
+hiding its object in native support. Initial packaging reports 12 parser units
+and 11 each for the LLVM/cross reactors. Final rebuild/validation follows below.

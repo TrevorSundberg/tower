@@ -16,9 +16,9 @@ extern fn grammar_builder_reference(builder: GrammarBuilder*, parent: void*, nam
 
 extern fn grammar_builder_literal(builder: GrammarBuilder*, parent: void*, text: u8*): void;
 
-extern fn parser_table_open(root: void*, kinds: FrontendKinds*, userdata: void*, to_string: void*, describe: void*, mode: u32): ParserHostTable*;
+extern fn parser_table_open(root: void*, kinds: FrontendKinds*, userdata: void*, presentation: ParserPresentation, mode: u32): ParserHostTable*;
 
-extern fn parser_table_open_host(root: void*, userdata: void*, to_string: void*, describe: void*, mode: u32): ParserHostTable*;
+extern fn parser_table_open_host(root: void*, userdata: void*, presentation: ParserPresentation, mode: u32): ParserHostTable*;
 
 extern fn parser_table_build(table: ParserHostTable*, specialize: bool): bool;
 
@@ -99,7 +99,7 @@ fn table_owner_snapshot_tests(): void {
     var kinds: FrontendKinds;
     frontend_world_check(frontend_world_test_kinds(world, &kinds));
     var root = table_owner_grammar(&kinds, TableOwnerFixture.Closure);
-    var table = parser_table_open(root, &kinds, root, null, null, 0);
+    var table = parser_table_open(root, &kinds, root, ParserPresentation.Numeric, 0);
     var ok = table != null;
     table_owner_check(ok, 3);
     table_owner_check(parser_table_build(table, false), 4);
@@ -171,7 +171,7 @@ fn table_owner_modes_tests(): void {
     var root = table_owner_grammar(&kinds, TableOwnerFixture.Sequence);
     var mode: u32 = 0;
     while mode < 2 {
-        var table = parser_table_open(root, &kinds, null, null, null, mode);
+        var table = parser_table_open(root, &kinds, null, ParserPresentation.Numeric, mode);
         table_owner_check(parser_table_build(table, true), 30);
         table_owner_check(parser_table_uses_dfa(table), 31);
         var conflict: LRConflict;
@@ -182,7 +182,7 @@ fn table_owner_modes_tests(): void {
     }
     entity_release(root);
     root = table_owner_grammar(&kinds, TableOwnerFixture.EmptyClosure);
-    var table = parser_table_open(root, &kinds, null, null, null, 0);
+    var table = parser_table_open(root, &kinds, null, ParserPresentation.Numeric, 0);
     table_owner_check(parser_table_build(table, false), 33);
     var state = &table.states.data[0];
     var ok = state.kernels == 2;
@@ -198,7 +198,7 @@ fn table_owner_modes_tests(): void {
     parser_table_destroy(table);
     entity_release(root);
     root = table_owner_grammar(&kinds, TableOwnerFixture.Missing);
-    table = parser_table_open(root, &kinds, null, null, null, 0);
+    table = parser_table_open(root, &kinds, null, ParserPresentation.Numeric, 0);
     ok = parser_table_build(table, true) == false;
     table_owner_check(ok, 39);
     frontend_format_text(table.error, "Unresolved grammar rule");
@@ -209,7 +209,7 @@ fn table_owner_modes_tests(): void {
     parser_table_destroy(table);
     entity_release(root);
     root = table_owner_grammar(&kinds, TableOwnerFixture.Ambiguous);
-    table = parser_table_open(root, &kinds, null, null, null, 0);
+    table = parser_table_open(root, &kinds, null, ParserPresentation.Numeric, 0);
     table_owner_check(parser_table_build(table, true), 42);
     var conflict: LRConflict;
     table_owner_check(lr_runtime_conflict(table.runtime, &conflict), 43);
@@ -235,14 +235,14 @@ fn table_owner_failure_tests(): void {
     var root = table_owner_grammar(&kinds, TableOwnerFixture.Sequence);
     var buffers = tower_test_buffer_count();
     var count = tower_test_buffer_allocations();
-    var table = parser_table_open(root, &kinds, null, null, null, 0);
+    var table = parser_table_open(root, &kinds, null, ParserPresentation.Numeric, 0);
     table_owner_check(parser_table_build(table, true), 50);
     count = tower_test_buffer_allocations() - count;
     parser_table_destroy(table);
     var budget: usize = 0;
     while budget < count {
         tower_test_buffer_fail_after(budget);
-        table = parser_table_open(root, &kinds, null, null, null, 0);
+        table = parser_table_open(root, &kinds, null, ParserPresentation.Numeric, 0);
         var present = table != null;
         if present {
             parser_table_build(table, true);

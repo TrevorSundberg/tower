@@ -88,7 +88,7 @@ fn parser_test_streams(): usize {
     }
     var maximum = lr_none();
     if ok {
-        ok = parser_stream_create(maximum, null, null) == null;
+        ok = parser_stream_create(maximum, ParserInputService.Empty) == null;
     }
     // Preserve the legacy recoverable source-copy allocation boundary.
     tower_test_buffer_fail_after(0);

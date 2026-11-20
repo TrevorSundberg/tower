@@ -1,0 +1,158 @@
+import tower;
+
+// Measurement only: calls the unchanged production syntax exports so exactly
+// the same fixture can link against the saved predecessor and current compiler.
+// Allocation calls below count the existing instrumented Tower buffer allocator;
+// they are not a claim about all libc/C++ allocations.
+extern fn syntax_create(source: u8*, module: void*): void*;
+
+// Linux x64 / libstdc++ existing syntax return ABI; an empty success string uses
+// inline storage. The normal Tower foreign-name tool resolves the declaration.
+struct BenchmarkString {
+    data: u8*;
+    length: usize;
+    inline_bytes: u8[16];
+}
+
+extern fn `cpp_name(abi_tag(cxx11) std::string syntax_set_bootstrap(char const*))`(result: BenchmarkString*, source: u8*): void;
+
+extern fn syntax_reset(session: void*, source: u8*, module: void*): void;
+
+extern fn syntax_next(session: void*): void*;
+
+extern fn syntax_get_error(session: void*): u8*;
+
+extern fn syntax_destroy(session: void*): void;
+
+extern fn entity_release(node: void*): usize;
+
+extern fn tower_test_buffer_allocations(): usize;
+
+extern fn tower_test_buffer_count(): usize;
+
+// This measurement executable selects Linux x64's explicit libc time ABI.
+struct BenchmarkTime {
+    seconds: i64;
+    nanoseconds: i64;
+}
+
+extern fn clock_gettime(clock: i32, value: BenchmarkTime*): i32;
+
+fn benchmark_clock(): u64 {
+    var time: BenchmarkTime;
+    var failed = clock_gettime(1, &time) != 0;
+    if failed {
+        abort();
+    }
+    var seconds = convert(u64, time.seconds) * 1000000000;
+    var result = seconds + convert(u64, time.nanoseconds);
+    return result;
+}
+
+extern fn putchar(byte: i32): i32;
+
+extern fn puts(text: u8*): i32;
+
+extern fn abort(): void;
+
+fn benchmark_number(value: u64): void {
+    var digits: u8[20];
+    var count: usize = 0;
+    loop {
+        var digit = value % 10;
+        digits[count] = convert(u8, digit);
+        count = count + 1;
+        value = value / 10;
+        var done = value == 0;
+        if done {
+            break;
+        }
+    }
+    while count != 0 {
+        count = count - 1;
+        var byte = digits[count] + 48;
+        putchar(convert(i32, byte));
+    }
+}
+
+fn benchmark_parse(session: void*): void {
+    var root = syntax_next(session);
+    var failed = root == null;
+    if failed {
+        puts(syntax_get_error(session));
+        abort();
+    }
+    entity_release(root);
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    var declaration: u8* = "parse Statement = 'x'* ';';";
+    var setup: BenchmarkString;
+    `cpp_name(abi_tag(cxx11) std::string syntax_set_bootstrap(char const*))`(&setup, declaration);
+    var failed = setup.length != 0;
+    if failed {
+        puts(setup.data);
+        abort();
+    }
+    var length: usize = 0;
+    while declaration[length] != 0 {
+        length = length + 1;
+    }
+    var size: usize = 256;
+    while size <= 2048 {
+        var body_bytes = size * 2;
+        var bytes = body_bytes + length;
+        bytes = bytes + 2;
+        var source = alloc(u8, bytes);
+        copy(source, declaration, length);
+        var at = source + length;
+        var position: usize = 0;
+        while position < body_bytes {
+            at[position] = 120;
+            position = position + 1;
+            at[position] = 32;
+            position = position + 1;
+        }
+        at[body_bytes] = 59;
+        var end = body_bytes + 1;
+        at[end] = 0;
+        var session = syntax_create(source, null);
+        var iteration: usize = 0;
+        var live: usize = 0;
+        while iteration < 16 {
+            syntax_reset(session, source, null);
+            benchmark_parse(session);
+            var allocations = tower_test_buffer_allocations();
+            var start = benchmark_clock();
+            benchmark_parse(session);
+            var elapsed = benchmark_clock() - start;
+            allocations = tower_test_buffer_allocations() - allocations;
+            var warmed = iteration >= 5;
+            if warmed {
+                // CSV: input symbols, nanoseconds, tracked allocation calls,
+                // live tracked buffers after releasing the accepted tree.
+                benchmark_number(convert(u64, size));
+                putchar(44);
+                benchmark_number(elapsed);
+                putchar(44);
+                benchmark_number(convert(u64, allocations));
+                putchar(44);
+                benchmark_number(convert(u64, tower_test_buffer_count()));
+                putchar(10);
+                var repeated = iteration > 5;
+                if repeated {
+                    var leaked = tower_test_buffer_count() != live;
+                    if leaked {
+                        abort();
+                    }
+                }
+                live = tower_test_buffer_count();
+            }
+            iteration = iteration + 1;
+        }
+        syntax_destroy(session);
+        free(source);
+        size = size * 2;
+    }
+    return 0;
+}

@@ -23,6 +23,8 @@ extern fn parser_string_get_type(): void*;
 
 extern fn parser_range_get_type(): void*;
 
+extern fn parser_match_get_type(): void*;
+
 fn parser_table_none(): usize {
     var result: usize = 0;
     result = result - 1;
@@ -53,7 +55,7 @@ export fn parser_table_destroy(table: ParserHostTable*): void {
 
 // Input entities/kinds are borrowed for construction. LRGrammar owns immutable
 // name/capture snapshots; successful build releases its source-node indexes.
-export fn parser_table_open(root: void*, kinds: FrontendKinds*, userdata: void*, to_string: void*, describe_rule: void*, mode: u32): ParserHostTable* {
+export fn parser_table_open(root: void*, kinds: FrontendKinds*, userdata: void*, presentation: ParserPresentation, mode: u32): ParserHostTable* {
     var table = bits(ParserHostTable*, tower_memory_allocate(sizeof(ParserHostTable)));
     var missing = table == null;
     if missing {
@@ -61,8 +63,8 @@ export fn parser_table_open(root: void*, kinds: FrontendKinds*, userdata: void*,
     }
     fill(table, 0, sizeof(ParserHostTable));
     table.userdata = userdata;
-    table.to_string = to_string;
-    table.describe_rule = describe_rule;
+    table.presentation = presentation;
+    table.match_kind = kinds.`match`;
     table.mode = mode;
     var empty = root == null;
     if empty {} else {
@@ -81,7 +83,7 @@ export fn parser_table_open(root: void*, kinds: FrontendKinds*, userdata: void*,
 }
 
 // Existing default-world transport API. Empty grammars do not create kind nodes.
-export fn parser_table_open_host(root: void*, userdata: void*, to_string: void*, describe_rule: void*, mode: u32): ParserHostTable* {
+export fn parser_table_open_host(root: void*, userdata: void*, presentation: ParserPresentation, mode: u32): ParserHostTable* {
     var kinds: FrontendKinds;
     fill(&kinds, 0, sizeof(FrontendKinds));
     var present = root != null;
@@ -93,8 +95,9 @@ export fn parser_table_open_host(root: void*, userdata: void*, to_string: void*,
         kinds.reference = parser_reference_get_type();
         kinds.string = parser_string_get_type();
         kinds.range = parser_range_get_type();
+        kinds.`match` = parser_match_get_type();
     }
-    return parser_table_open(root, &kinds, userdata, to_string, describe_rule, mode);
+    return parser_table_open(root, &kinds, userdata, presentation, mode);
 }
 
 fn parser_table_contexts(table: ParserHostTable*, analysis: void*, states: void*): bool {
