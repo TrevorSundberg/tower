@@ -1,5 +1,10 @@
 import tower;
 import 'world';
+import 'component-kinds';
+import 'parser-types';
+import 'syntax-types';
+import '../library/entities';
+import '../library/vector';
 
 extern fn bytes_assign_text(value: vector(u8)*, source: u8*, length: usize): bool;
 

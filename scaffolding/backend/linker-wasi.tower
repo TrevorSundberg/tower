@@ -1,4 +1,9 @@
 import tower;
+import 'foreign-tool';
+import 'lld-api';
+import 'linker';
+import 'text';
+import '../library/vector';
 
 // Pinned LLVM/lld 20 wasm32 library ABI. ArrayRef is passed indirectly; constructors
 // and destructors are upstream implementations. No owned native adapter.

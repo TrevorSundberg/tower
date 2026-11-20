@@ -1,7 +1,15 @@
 import tower;
+import 'language-components';
 import 'syntax-types';
 import 'syntax-tags';
 import 'format-types';
+import 'completion';
+import 'frontend-compilation';
+import 'language-query';
+import 'semantic-context';
+import 'semantic-modules';
+import 'semantic-support';
+import '../library/vector';
 
 // Disposable references into the shared grammar entities, captured at each
 // declaration boundary. Later overrides cannot rewrite an earlier hover.
@@ -535,7 +543,7 @@ fn language_grammar_details(q: CompletionQuery*, leaf: void*, node: void*): void
         var module = language_syntax(imported);
         language_string(q, "kind", "module import");
         language_string(q, "module", module.name.data);
-        language_string(q, "description", "Makes this module's exported definitions available in this file.");
+        language_string(q, "description", "Imports this file's grammar and declarations, optionally through a module alias.");
         language_grammar_docs(q, imported);
         return;
     }
@@ -979,7 +987,7 @@ fn language_template_walk(q: CompletionQuery*, node: void*, template: LanguageGr
                 if grammar_condition71 {
                     if language_member_at(node, call, "name") {
                         var name = sem_identifier(&q.context, sem_member(call, "name"));
-                        candidate.subject = sem_lookup_table(q.context.functions, name);
+                        candidate.subject = sem_resolve_from(&q.context, q.context.functions, sem_member(call, "name"), name, sem_owner(&q.context, template.node));
                     }
                 }
             }

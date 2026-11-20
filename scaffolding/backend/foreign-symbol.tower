@@ -1,4 +1,8 @@
 import tower;
+import 'foreign-api';
+import 'foreign-reader';
+import 'text';
+import '../library/vector';
 
 export fn foreign_profile_for_target(triple: u8*): u32 {
     if backend_prefix(triple, "arm64ec") {

@@ -8,6 +8,7 @@ struct SemanticProgram {
   CoreNodes functions, types;
   TowerByteBuffer error;
   size_t error_offset;
+  void* modules;
 };
 extern "C" {
 CoreNode* sem_get(TowerNode*);

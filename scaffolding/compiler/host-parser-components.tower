@@ -1,5 +1,9 @@
 import tower;
 import 'host-world';
+import 'component-kinds';
+import 'entity-require';
+import 'parser-types';
+import '../library/entities';
 
 // Compatibility symbols over the world-owned Tower parser components.
 

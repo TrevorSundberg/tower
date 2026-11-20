@@ -1,4 +1,6 @@
 import tower;
+import 'fast-interpreter';
+import 'interpreter';
 
 // .towerbc v1: portable, versioned distribution envelope. Canonical Foundation
 // is the semantic authority; packed words/constants are a verified execution

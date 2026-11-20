@@ -1,6 +1,7 @@
 import tower;
 
 import 'parser-types';
+import '../library/vector';
 
 extern fn tower_utf8_decode(source: u8*, length: usize, value: u32*): usize;
 

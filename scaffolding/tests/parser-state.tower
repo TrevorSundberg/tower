@@ -1,5 +1,17 @@
 import tower;
+import '../compiler/entity-require';
+import 'syntax-emission';
+import '../compiler/syntax-emission';
+import 'frontend-bedrock';
 import '../compiler/parser-state';
+import '../compiler/format';
+import '../compiler/frontend-table';
+import '../compiler/grammar-types';
+import '../compiler/lr-analysis';
+import '../compiler/lr-parser';
+import '../compiler/lr-tree';
+import '../compiler/parser-stream';
+import '../library/vector';
 
 extern fn parser_stream_destroy(stream: ParserStream*): void;
 

@@ -1,4 +1,8 @@
 import tower;
+import 'semantic-context';
+import 'semantic-lifecycle';
+import 'semantic-modules';
+import '../library/vector';
 
 // Source/module orchestration over the same semantic program and parse entities.
 // Composed with the semantic declarations; no copied Foundation operation model.
@@ -57,6 +61,8 @@ extern fn frontend_module_position(module: void*, base: usize): void;
 
 extern fn frontend_module_diagnostic(module: void*, offset: usize): void;
 
+extern fn frontend_module_error(module: void*): u8*;
+
 extern fn syntax_capture_comments(session: void*, module: void*): void;
 
 extern fn frontend_module_attach_comments(module: void*, root: void*, base: usize): void;
@@ -99,6 +105,13 @@ export fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendS
         }
         syntax_capture_comments(session, module);
         frontend_module_finish(module);
+        error = frontend_module_error(module);
+        failed = error[0] != 0;
+        if failed {
+            frontend_compile_error(program, error);
+            break;
+        }
+        sem_module_graph(program, module);
         var dependency: usize = 0;
         var dependencies = frontend_module_count(module);
         loop {
@@ -109,6 +122,7 @@ export fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendS
             var current = frontend_module_at(module, dependency);
             var base = source.length;
             frontend_module_position(current, base);
+            sem_module_position(program, current, base);
             var data = frontend_module_source(current);
             var length = frontend_module_size(current);
             sem_require(bytes_append(&source, data, length));

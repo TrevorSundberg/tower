@@ -20,4 +20,5 @@ struct FormatEngine {
     syntax_kind: void*;
     foundation_kind: void*;
     match_kind: void*;
+    source_names: bool;
 }

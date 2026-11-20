@@ -1,4 +1,8 @@
 import tower;
+import '../backend/foreign-api';
+import '../backend/foreign-reader';
+import '../backend/foreign-symbol';
+import '../backend/text';
 
 // Expected symbols come from the pinned LLVM/lld objects, the Itanium ABI,
 // and upstream clang/test/CodeGenCXX/mangle-ms.cpp. No native test definitions.

@@ -1,6 +1,9 @@
 import tower;
 import 'host-world';
 import 'syntax-provenance';
+import 'entity-require';
+import 'syntax-types';
+import '../library/entities';
 
 export fn syntax_get_origin(node: Entity*): SyntaxOrigin* {
     return syntax_origin_get(compiler_host_world(), node);

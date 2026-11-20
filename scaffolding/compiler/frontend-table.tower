@@ -1,6 +1,19 @@
 import tower;
 import 'grammar-types';
 import 'grammar-builder';
+import 'lr-analysis';
+import 'lr-grammar';
+import 'lr-lalr';
+import 'lr-parser';
+import 'lr-runtime';
+import 'lr-states';
+import 'lr-tree';
+import 'parser-nodes';
+import 'regex-grammar';
+import 'regex-lowering';
+import 'syntax-nodes';
+import 'syntax-reader';
+import 'syntax-types';
 
 // Table ownership shared by character and token readers. These are derived LR
 // indexes over ordinary grammar entities, not a second grammar representation.

@@ -1,4 +1,7 @@
 import tower;
+import '../compiler/host-text';
+import '../library/bytes-interface';
+import '../library/bytes-types';
 
 // Opaque libc file handles are temporary platform services, not Tower values or
 // program storage. Paths and bytes are explicit inputs; no host file is read

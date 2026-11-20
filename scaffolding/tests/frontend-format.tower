@@ -1,4 +1,6 @@
 import tower;
+import 'frontend-world';
+import '../compiler/component-kinds';
 import '../compiler/format-types';
 import '../compiler/parser-types';
 

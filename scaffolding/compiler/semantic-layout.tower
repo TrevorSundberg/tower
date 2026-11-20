@@ -1,4 +1,11 @@
 import tower;
+import 'foundation-tags';
+import 'foundation-types';
+import 'semantic-context';
+import 'semantic-support';
+import 'semantic-types';
+import '../library/vector';
+import '../library/work-graph';
 
 const LayoutQuery: u32 = 1;
 const LayoutMaximumBytes: usize = 4194304;

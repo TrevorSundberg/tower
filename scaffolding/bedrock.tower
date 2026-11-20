@@ -27,4 +27,6 @@ parse GrammarAtom = $literal:String | $reference:Identifier | '$' $capture:Ident
 parse GrammarTokenSet = $previous:GrammarTokenSet $literal:String | ;
 parse GrammarStyle = | 'as' $kind:Identifier;
 parse ImportPath = $previous:ImportPath '.' $segment:Identifier | $segment:Identifier;
-parse ImportDeclaration = 'import' $name:ImportPath ';' | 'import' $name:String ';';
+parse ImportDeclaration = 'import' $name:ImportPath ';' | 'import' $name:String ';'
+                         | 'import' $name:ImportPath 'as' $alias:Identifier ';'
+                         | 'import' $name:String 'as' $alias:Identifier ';';

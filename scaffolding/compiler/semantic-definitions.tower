@@ -1,4 +1,6 @@
 import tower;
+import 'foundation-tags';
+import 'semantic-support';
 
 // Shared semantic spellings and arities, consumed through the existing native queries.
 // Numeric tags retain the CoreKind/CoreOp/CoreScalar ABI in core.hpp. They are

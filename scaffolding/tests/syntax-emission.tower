@@ -1,4 +1,17 @@
 import tower;
+import '../compiler/regex-lowering';
+import '../compiler/lr-tree';
+import '../compiler/syntax-reader';
+import 'syntax-template';
+import '../compiler/lr-analysis';
+import '../compiler/lr-grammar';
+import '../compiler/parser-nodes';
+import '../compiler/parser-types';
+import '../compiler/syntax-emission';
+import '../compiler/syntax-nodes';
+import '../compiler/syntax-types';
+import '../compiler/syntax-validation';
+import '../library/vector';
 
 // Native and Wasm compiler builds share the production module. Only the test
 // build appends these Tower fixtures; the old native emitter is the reference.

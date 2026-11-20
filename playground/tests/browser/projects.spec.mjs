@@ -146,3 +146,26 @@ test('dotted imports share file identity and import names look different from ke
   await expect(page.locator('#execution-output')).toHaveText('8\n43\n');
   await expect(page.locator('#llvm-output')).toHaveText('8\n43\n');
 });
+
+test('module aliases isolate names and dependency edits update both backends',async({page}) => {
+  await prompt(page,'#new-project','Module scopes');
+  await edit(page,'import tower; import left.tools as left; import "right/tools" as right; print(left.answer()); print(right.answer());');
+  await prompt(page,'#new-file','left/tools.tower');
+  await edit(page,'import tower; fn answer(): i32 { return hidden(); } fn hidden(): i32 { return 20; }');
+  await prompt(page,'#new-file','right/tools.tower');
+  await edit(page,'import tower; fn answer(): i32 { return hidden(); } fn hidden(): i32 { return 22; }');
+  await page.locator('#auto-execute').check();
+  await expect(page.locator('#execution-output')).toHaveText('20\n22\n');
+  await expect(page.locator('#llvm-output')).toHaveText('20\n22\n');
+  await page.locator('[data-path="main.tower"]').click();
+  await expect(page.locator('#editor .tw-keyword').filter({hasText:/^as$/})).toHaveCount(2);
+  await expect(page.locator('#editor .tw-keyword,.tw-rule').filter({hasText:/^(left|right)$/})).toHaveCount(0);
+  await page.locator('[data-path="left/tools.tower"]').click();
+  await edit(page,'import tower; fn answer(): i32 { return hidden(); } fn hidden(): i32 { return 21; }');
+  await expect(page.locator('#execution-output')).toHaveText('21\n22\n');
+  await expect(page.locator('#llvm-output')).toHaveText('21\n22\n');
+  await page.locator('[data-path="main.tower"]').click();
+  await edit(page,'import tower; import left.tools as left; print(answer());');
+  await expect(page.locator('#execution-status')).toContainText('error');
+  await expect(page.locator('#execution-output')).not.toContainText('21');
+});

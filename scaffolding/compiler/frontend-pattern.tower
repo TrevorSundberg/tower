@@ -1,4 +1,13 @@
 import tower;
+import 'format-types';
+import 'format';
+import 'frontend-table';
+import 'grammar-types';
+import 'lr-tree';
+import 'parser-nodes';
+import 'regex-lowering';
+import 'syntax-nodes';
+import 'syntax-types';
 
 // Token patterns use the same character grammar/table reader as Bedrock.
 // Errors use the shared text formatter and Unicode character positions.

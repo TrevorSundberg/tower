@@ -2,6 +2,11 @@ import tower;
 import 'parser-stream';
 import 'frontend-table';
 import 'lr-tree';
+import 'lr-analysis';
+import 'lr-parser';
+import 'lr-runtime';
+import 'lr-states';
+import '../library/vector';
 
 extern fn parser_stream_read(stream: ParserStream*, id: u32*, start: usize*, length: usize*): void*;
 

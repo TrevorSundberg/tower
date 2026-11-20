@@ -1,4 +1,12 @@
 import tower;
+import 'context';
+import 'disassembly';
+import 'import-bindings';
+import 'import-values';
+import 'text';
+import '../compiler/foundation-tags';
+import '../compiler/foundation-types';
+import '../library/vector';
 
 // Disposable LLVM->entity associations only. There is no second Tower IR.
 struct BackendImport {

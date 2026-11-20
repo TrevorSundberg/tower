@@ -1,4 +1,16 @@
 import tower;
+import 'syntax-emission';
+import '../compiler/regex-lowering';
+import '../compiler/syntax-emission';
+import 'syntax-replacements';
+import 'syntax-scan';
+import '../compiler/lr-analysis';
+import '../compiler/lr-tree';
+import '../compiler/parser-nodes';
+import '../compiler/parser-types';
+import '../compiler/syntax-expansion';
+import '../compiler/syntax-reader';
+import '../compiler/syntax-validation';
 
 // Test fixtures use the production Tower expander and shared entities directly.
 struct ExpansionFixture {

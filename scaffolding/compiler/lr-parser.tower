@@ -1,4 +1,9 @@
 import tower;
+import 'lexer-table';
+import 'lr-analysis';
+import 'lr-runtime';
+import 'lr-states';
+import '../library/vector';
 
 // LR and proven finite-sequence control over integer symbols. Frames borrow
 // forest handles; the shared entity forest retains ownership of syntax nodes.

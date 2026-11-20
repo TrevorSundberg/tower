@@ -25,6 +25,7 @@ TowerText source(const std::string& text, int baseline = 0) {
   if (*syntax_get_error(session)) fprintf(stderr, "%s\nInput:\n%s\n", syntax_get_error(session), text.c_str());
   assert(!*syntax_get_error(session));
   auto result = syntax_format(session);
+  if (!result.error.empty()) fprintf(stderr, "%s\nInput:\n%s\n", result.error.c_str(), text.c_str());
   assert(result.error.empty());
   syntax_destroy(session);
   return result;

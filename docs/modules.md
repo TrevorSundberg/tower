@@ -7,7 +7,7 @@ import Tower. The foreign C/C++ declaration grammar remains in
 `backend/foreign-grammar.tower`; it is not part of Foundation.
 Tower also supplies [match/while and generic collection libraries](tower.md).
 The [language plan](tower-language-plan.md) records the staged work beyond these
-features, including file namespaces and returned errors.
+features, including selective imports, dependency queries and returned errors.
 
 ## Why the compiler imports Tower
 
@@ -71,8 +71,8 @@ import "tools/file-name";    // filenames outside the identifier spelling
 ```
 
 The last dotted segment is the filename; earlier segments are directories.
-Dots select files and do not yet create namespace bindings, aliases or qualified
-function names. All imported declarations still bind across the resolved program.
+Dots select files; use an explicit alias to bind a namespace in the importing
+file. Declarations belong to their canonical file identity, not its basename.
 Keep literal dots in filenames inside strings, such as `"tools/schema.v2"`;
 escaped identifier segments are also preserved by formatting.
 
@@ -88,16 +88,18 @@ tries the importing file's directory, then the explicitly configured library
 directory. Native compilation uses the selected Foundation directory first and
 the packaged resource directory as a fallback, except for explicit relative paths.
 Canonical lexical paths identify modules, so dotted, quoted and separator variants
-of one file share its identity and execute its effects once. Missing modules, cycles,
+of one file share its identity and execute its effects once. Missing modules, invalid cycles,
 invalid UTF-8/NUL bytes, sources above 8 MiB and nesting above 128 modules produce
 diagnostics. The size limit is per source, not an aggregate graph limit.
 
 Each imported file starts from the immutable declaration seed and imports the
 grammar it needs. Dependencies run once in dependency-first order; sibling
 dependencies follow import order. A diamond imports its shared dependency once.
-Declarations bind across the resulting program; effects retain that order.
-There are no namespaces or import aliases yet, and duplicate bindings still
-produce semantic errors. Imports do not imply separate object compilation.
+Declarations bind across their own file and its direct imports; effects retain
+that order. Two files may define the same name. Imports do not imply separate
+object compilation. Declaration-only cycles are supported; a cycle containing
+grammar updates or initialization effects is rejected because those operations
+require an unambiguous dependency-first order. Self imports remain errors.
 
 Grammar updates are local to the file being parsed. Importing a module applies
 its dependencies and local declaration changes, preserving `=` versus `|=`.
@@ -155,44 +157,59 @@ transitive source dependencies. Build fragments generate small import manifests
 and consume these depfiles rather than concatenating source or scraping native
 enum declarations. `--bedrock` and `--foundation` still select builtin overrides.
 
-## Next milestone: module scopes and aliases (planned)
+## Module scopes and aliases
 
-File resolution now preserves canonical module identity, but semantic compilation
-still collects every imported module's statements into one program-wide binding
-environment. The next module task is to preserve that ownership during name
-resolution. This is the bindings milestone in the
-[language plan](tower-language-plan.md#dependency-order-and-milestones), not
-implemented syntax yet.
+Both path forms accept aliases:
 
-Two independent files should be able to define `helper` without a duplicate-name
-error. A module must also resolve its function bodies from its own declarations
-and explicit imports: adding a sibling import to the entry must not silently
-make that sibling's functions visible inside another module.
+```tower
+import tower;
+import left.tools as left;
+import "right/tools" as right;
 
-The first complete slice should:
+print(left.helper());
+print(right.helper());
+var item: left.Item;
+left.count = 3;
+```
 
-1. Retain each declaration's canonical module owner and import relationships on
-   the existing shared entities. Derive per-module lookup indexes from them;
-   preserve forward declarations and lexical local scopes.
-2. Add an alias form for either path spelling, such as the proposed
-   `import left.tools as left;` and `import "right/tools" as right;`, with
-   `left.helper()` and `right.helper()` resolving to distinct entities. Bind by
-   canonical module identity, not filename basename or alias text.
-3. Make ordinary imports establish visibility in the importing module. Audit and
-   migrate compiler/library imports that currently rely on accidental transitive
-   or sibling visibility. Keep source visibility separate from foreign-symbol
-   `export`; explicit selective imports/re-exports can follow this slice.
-4. Preserve dependency-first, once-only initialization and file-local grammar
-   composition. Keep deterministic compilable Foundation output with unique
-   spellings for distinct bindings, plus original names/source metadata for
-   diagnostics, formatting, completion and hover.
+Each module resolves names from its own declarations and explicit imports.
+An unaliased import makes that file's declarations directly visible. An aliased
+import makes them available as `alias.name`, including functions, nominal types,
+globals, generic functions and type constructors. For example, `types.Box(i32)`
+is a qualified type application and `types.Mode.Ready` names an enum member.
+Aliases do not change the imported grammar: grammar composition remains local
+and incremental through the existing declaration machinery.
 
-Completion requires same-basename and same-local-name collision tests, rejection
-of undeclared sibling access, alias ambiguity diagnostics, diamond effects,
-forward/type/template bindings, canonical Foundation round trips, agreement
-between both interpreters and LLVM/C output, and successive browser compiler
-builds including activation/reset. This is a language/binding change; separate
-object compilation and declaration-level incremental caching remain later work.
+Own declarations take precedence over open imports. If two open imports supply
+different declarations of the same name, using that name reports ambiguity;
+qualify it through an alias. Importing the same file twice does not introduce
+ambiguity or repeat initialization. Duplicate aliases, aliases conflicting with
+own declarations, and aliases using Foundation builtin names are errors. A local
+variable may shadow an alias within its lexical scope.
+
+Imports are not implicit re-exports. Import a declaration's defining file directly;
+importing an aggregator does not expose its dependencies' ordinary functions or
+types. A module cannot see a sibling merely because the entry imported both.
+Selective imports and explicit re-exports remain future work. `export` continues
+to specify a foreign link symbol, independently of source visibility. Compatible
+`extern` declarations of the same link symbol coalesce and may resolve to a
+matching Tower `export`; incompatible signatures and duplicate exports fail.
+Build-selected implementations use explicit interface modules for this purpose.
+
+Module ownership and import relationships live on retained syntax entities.
+Per-compilation tables are derived lookup indexes. Cached grammar import trees
+are copied before acquiring compilation-specific metadata. Function bodies and
+generic instantiations retain their definition module; call sites cannot silently
+supply a missing dependency. Declarations remain forward-visible within a file,
+while initialization retains source order.
+
+Canonical Foundation flattens the resolved program with deterministic escaped
+names for colliding bindings. It remains compilable text and preserves identity,
+order and effects. Source formatting retains aliases; completion and hover use
+module visibility and original source names. Separate objects, selective imports,
+re-exports and declaration-level incremental dependency queries are later work.
+Grammar replacements retain their existing substitution rules; this binding
+milestone does not add hygienic macro bindings.
 
 ## Playground
 
@@ -206,7 +223,7 @@ imports show their implicit Bedrock/Foundation dependencies.
 
 ## Bootstrap requirement
 
-Building these sources requires an **import-capable Tower-built host compiler**:
+Building these sources requires a **scope-capable Tower-built host compiler**:
 
 ```sh
 export TOWER_BOOTSTRAP_COMPILER=/absolute/path/to/towerc
@@ -214,8 +231,10 @@ bash playground/scripts/build-native.sh
 bash playground/scripts/build-wasm.sh
 ```
 
-The old native seed does not implement imports. Build scripts now report this
-requirement instead of trying to extend or regenerate that seed. Historical seed
+The bootstrap must support module scopes, aliases, declaration-only import cycles
+and compatible foreign-declaration linking. The old native seed does not implement
+imports. Build scripts require an explicit previous compiler instead of trying to
+extend or regenerate that seed. Historical seed
 targets are excluded from default builds. This change does not publish a portable
 bootstrap compiler release; distributing validated host binaries remains the
 bootstrap/distribution integration dependency. The import implementation and

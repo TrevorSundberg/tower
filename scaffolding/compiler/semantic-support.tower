@@ -1,4 +1,14 @@
 import tower;
+import 'foundation-tags';
+import 'foundation-types';
+import 'frontend-compilation';
+import 'parser-types';
+import 'semantic-context';
+import 'semantic-definitions';
+import 'semantic-lifecycle';
+import 'semantic-modules';
+import '../library/stack';
+import '../library/vector';
 
 // Semantic compiler over shared Foundation components.
 // Temporary indexes and scratch allocations are scoped to one compilation.
@@ -610,7 +620,7 @@ fn sem_find(t: SemanticTable*, text: u8*, entity: void*): SemanticEntry* {
     var step3 = text != null;
     if step3 {
         var step4 = sem_hash(text);
-        h = step4;
+        h = step4 ^ h;
     } else {
         var step5 = h / 8;
         h = step5;
@@ -631,6 +641,9 @@ fn sem_find(t: SemanticTable*, text: u8*, entity: void*): SemanticEntry* {
             if step11 {
                 var step12 = sem_equal(entry.text, text);
                 step11 = step12;
+                if step11 {
+                    step11 = entry.entity == entity;
+                }
             }
             if step11 {
                 return entry;
@@ -659,7 +672,7 @@ fn sem_insert(t: SemanticTable*, entry: SemanticEntry*): void {
     var step2 = entry.text != null;
     if step2 {
         var step3 = sem_hash(entry.text);
-        h = step3;
+        h = step3 ^ h;
     } else {
         var step4 = h / 8;
         h = step4;
@@ -772,6 +785,18 @@ fn sem_source_base(c: SemanticContext*, n: void*): usize {
         var step4 = found != null;
         if step4 {
             return found.number;
+        }
+        var scoped = c.program.modules != null;
+        if scoped {
+            var component = entity_component_get(n, c.program.modules.owner_kind);
+            var link = bits(SemanticModuleLink*, entity_component_data(component));
+            var present = link != null;
+            if present {
+                var scope = link.module == n;
+                if scope {
+                    return link.base;
+                }
+            }
         }
         var step5 = sem_parent(n);
         n = step5;

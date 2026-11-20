@@ -1,4 +1,5 @@
 import tower;
+import '../library/vector';
 import 'format-types';
 import 'parser-types';
 

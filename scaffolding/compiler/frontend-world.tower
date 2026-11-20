@@ -1,6 +1,12 @@
 import tower;
 import 'grammar-types';
 import 'component-kinds';
+import 'format-types';
+import 'frontend-bedrock';
+import 'frontend-modules';
+import 'frontend-pattern';
+import 'lr-tree';
+import 'syntax-types';
 
 extern fn compiler_host_world(): void*;
 

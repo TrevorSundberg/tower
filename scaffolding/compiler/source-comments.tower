@@ -1,4 +1,9 @@
 import tower;
+import 'foundation-tags';
+import 'foundation-types';
+import 'frontend-compilation';
+import 'semantic-context';
+import '../library/vector';
 
 // Comments are optional metadata on the same Foundation entities. The lexer
 // supplies spans; neither this attachment path nor either emitter tokenizes source.

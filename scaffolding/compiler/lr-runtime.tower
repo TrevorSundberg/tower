@@ -1,5 +1,9 @@
 import tower;
 import 'lr-types';
+import 'lexer-table';
+import 'lr-analysis';
+import 'lr-states';
+import '../library/vector';
 
 // Disposable runtime indexes. Grammar entities and their provenance remain the
 // source of truth; rows preserve conflicts instead of selecting an alternative.

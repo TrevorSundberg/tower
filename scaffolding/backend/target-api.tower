@@ -1,0 +1,5 @@
+import tower;
+
+// The build imports exactly one target initializer implementation. This is an
+// explicit link contract, not a name borrowed from a sibling module.
+extern fn backend_initialize_targets(): void;

@@ -1,4 +1,6 @@
 import tower;
+import 'format-types';
+import '../library/vector';
 import 'format-api';
 import 'parser-types';
 

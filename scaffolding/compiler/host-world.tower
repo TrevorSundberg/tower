@@ -1,6 +1,8 @@
 import tower;
 import 'entity-require';
 import 'world';
+import 'component-kinds';
+import '../library/entities';
 
 // Existing host API over the same entity store. No copied nodes or components.
 // The legacy host retains one world handle. Its store/types/lifetime are Tower.

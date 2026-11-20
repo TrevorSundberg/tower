@@ -1,6 +1,20 @@
 import 'format-types';
 import 'language-components';
 import tower;
+import 'completion';
+import 'foundation-tags';
+import 'foundation-types';
+import 'frontend-compilation';
+import 'language-grammar';
+import 'semantic-context';
+import 'semantic-definitions';
+import 'semantic-lifecycle';
+import 'semantic-statements';
+import 'semantic-support';
+import 'semantic-types';
+import 'syntax-tags';
+import 'syntax-types';
+import '../library/vector';
 
 // Language-service inspection shares completion's source/module ownership,
 // ordinary semantic checking, and the real syntax/Foundation ECS components.
@@ -18,8 +32,6 @@ extern fn format_summary(result: FormatResult*, entity: void*, syntax: void*, fo
 extern fn format_dispose(result: FormatResult*): void;
 
 extern fn host_source_error(source: u8*, count: usize): u8*;
-
-extern fn generic_definition(context: void*, node: void*): void*;
 
 extern fn frontend_module_location(module: void*, offset: usize, line: usize*, column: usize*): u8*;
 

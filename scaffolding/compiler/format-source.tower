@@ -1,4 +1,9 @@
 import tower;
+import 'format-grammar';
+import 'format-types';
+import 'format';
+import 'regex-lowering';
+import '../library/vector';
 
 // Temporary token positions/spacing flags derived from parser matches.
 // Comments come exclusively from the lexer; no second token grammar.
@@ -570,6 +575,7 @@ comments: FormatComment*, comment_count: usize, ordered: bool): void {
 export fn format_source(result: FormatResult*, roots: void**, count: usize, source: u8*, length: usize,
 comments: FormatComment*, comment_count: usize, syntax: void*, foundation: void*, match_kind: void*): void {
     var engine: FormatEngine;
+    engine.source_names = false;
     var f = &engine;
     f.result = result;
     f.syntax_kind = syntax;

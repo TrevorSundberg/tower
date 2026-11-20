@@ -1,0 +1,6 @@
+import tower;
+
+// The selected platform implementation exports these concrete C ABI functions.
+extern fn backend_file_seek(file: void*, offset: i64, origin: i32): i32;
+
+extern fn backend_file_position(file: void*): i64;

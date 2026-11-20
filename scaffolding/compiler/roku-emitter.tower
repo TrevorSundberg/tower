@@ -1,4 +1,11 @@
 import tower;
+import 'frontend-compilation';
+import 'foundation-types';
+import 'foundation-tags';
+import 'semantic-context';
+import 'semantic-definitions';
+import 'semantic-support';
+import '../library/vector';
 import 'c-emitter';
 import 'roku-runtime';
 

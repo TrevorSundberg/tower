@@ -1,4 +1,9 @@
 import tower;
+import 'foreign-api';
+import 'foreign-reader';
+import 'foreign-symbol';
+import 'text';
+import '../library/vector';
 
 // Build-time Foundation-to-Foundation expansion for bootstrap compilers which
 // predate foreign-symbol lowering. Implementation and CLI are both Tower.

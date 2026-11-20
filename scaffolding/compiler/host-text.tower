@@ -1,4 +1,6 @@
 import tower;
+import '../library/bytes-interface';
+import '../library/bytes-types';
 
 // Browser JSON is transport text, never a Tower program storage format.
 // ByteBuffer and bytes_* are supplied by the shared byte-buffer library.

@@ -1,6 +1,7 @@
 import tower;
 
 import 'foundation-types';
+import '../library/vector';
 
 export fn foundation_node_size(): usize {
     return sizeof(FoundationNode);

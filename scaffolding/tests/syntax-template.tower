@@ -1,4 +1,13 @@
 import tower;
+import '../compiler/regex-lowering';
+import '../compiler/lr-tree';
+import 'syntax-emission';
+import '../compiler/lr-analysis';
+import '../compiler/lr-grammar';
+import '../compiler/parser-nodes';
+import '../compiler/parser-types';
+import '../compiler/syntax-emission';
+import '../compiler/syntax-template';
 
 // Typed holes preserve scalar/token distinctions and list cardinality. Exercise
 // every allocator failure while retaining the partial grammar's owning root.

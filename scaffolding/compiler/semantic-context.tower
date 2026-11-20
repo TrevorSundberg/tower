@@ -1,6 +1,11 @@
 import tower;
 import '../library/work-graph';
 import '../library/stack';
+import 'foundation-types';
+import 'parser-types';
+import 'semantic-modules';
+import 'semantic-support';
+import '../library/vector';
 
 // Transitional native boundary uses these exact layouts. Semantic results live
 // on FoundationNode components; lists below are derived indexes, never an IR.
@@ -11,6 +16,7 @@ struct SemanticProgram {
     types: vector(void*);
     error: vector(u8);
     error_offset: usize;
+    modules: SemanticModules*;
 }
 
 struct SemanticEntry {
@@ -55,6 +61,8 @@ struct SemanticEditor {
     type: FoundationType;
     receiver: FoundationType;
     scope: SemanticScope*;
+    node: void*;
+    module: void*;
 }
 
 struct SemanticContext {
@@ -76,6 +84,7 @@ struct SemanticContext {
     type_results: SemanticTable*;
     source_names: SemanticTable*;
     source_bases: SemanticTable*;
+    output_names: SemanticTable*;
     fields_done: SemanticTable*;
     layout_work: WorkGraph;
     declaration_state: SemanticTable*;
@@ -142,6 +151,7 @@ fn sem_editor_capture(c: SemanticContext*, n: void*, kind: u32, receiver: Founda
     c.editor.found = true;
     c.editor.kind = kind;
     c.editor.scope = c.scope;
+    c.editor.node = n;
     c.editor.current = c.current;
     c.editor.loops = c.loops;
     var parent = n;
@@ -303,6 +313,8 @@ extern fn generic_lookup(context: void*, node: void*, name: void*): void*;
 extern fn generic_type_result(context: void*, instance: void*): void*;
 
 extern fn generic_origin(context: void*, node: void*): void*;
+
+extern fn generic_definition(context: void*, node: void*): void*;
 
 fn sem_label(node: void*): u8* {
     var `match` = sem_match(node);

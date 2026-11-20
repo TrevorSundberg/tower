@@ -92,8 +92,10 @@ export async function linkCompiler({compiler, recipe, files, inputs, support, pr
   // Instantiate every candidate before publishing any of them. A failed build
   // leaves the previous generation active; reset never depends on candidate code.
   const tower = await loadTower(modules.tower, undefined, grammar.foundation, undefined, grammar.bedrock, {tower:grammar.tower});
-  const fixture = '// candidate C metadata\nimport tower; import helpers.answer; import "helpers/answer"; print(answer());';
-  const probeFiles = [{path:'probe.tower',text:fixture}, {path:'helpers/answer.tower',text:'import tower; fn answer(): i32 { return 42; }'}];
+  const fixture = '// candidate C metadata\nimport tower; import helpers.answer as left; import "other/answer" as right; import "helpers/answer" as again; var total = left.answer() + right.answer(); print(total);';
+  const probeFiles = [{path:'probe.tower',text:fixture},
+    {path:'helpers/answer.tower',text:'import tower; fn answer(): i32 { return hidden(); } fn hidden(): i32 { return 20; }'},
+    {path:'other/answer.tower',text:'import tower; fn answer(): i32 { return hidden(); } fn hidden(): i32 { return 22; }'}];
   tower.configureModules({entry:'probe.tower',files:probeFiles,builtins:grammar});
   const parse = tower.create(fixture);
   try { const {end} = runToEnd(tower,parse); if (end.status !== 'done') throw new Error('Candidate parser: '+end.error); }
@@ -126,6 +128,15 @@ export async function linkCompiler({compiler, recipe, files, inputs, support, pr
       } finally { if (fast) tower.destroyExecution(run); }
     }
   } finally { tower.destroyExecution(handle); }
+  const qualified = 'import tower; import helpers.answer as left; left.an';
+  const members = tower.complete(qualified,new TextEncoder().encode(qualified).length);
+  if (members.error || members.options?.length !== 1 || members.options[0].label !== 'answer')
+    throw new Error('Candidate module completion check failed');
+  const hidden = tower.compile('import tower; import helpers.answer as left; print(answer());');
+  try {
+    if (!/Unknown function/.test(tower.execute(hidden,0).error ?? ''))
+      throw new Error('Candidate module visibility check failed');
+  } finally { tower.destroyExecution(hidden); }
   tower.configureModules({entry:'completion.tower',files:[],builtins:grammar});
   const partial = 'var value: i32 = 1; var valid: bool = true; fn check(flag: bool): void {} check(va';
   const completion = tower.complete(partial,new TextEncoder().encode(partial).length);

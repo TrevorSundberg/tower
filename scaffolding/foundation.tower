@@ -6,8 +6,9 @@ token Number = /[0-9]+/ as number;
 
 // Bootstrap semantic ABI: these Core* tree labels and captures name typed ops.
 // No precedence hierarchy: a binary value has two operands and one operator.
-parse CoreType = $name:Identifier | $base:CoreType '*' | $base:CoreType '[' $count:CoreArrayCount ']'
-                | $name:Identifier '(' $args:CoreTypeArguments? ')';
+parse CoreTypeName = $name:Identifier | $base:CoreTypeName '.' $field:Identifier;
+parse CoreType = $name:CoreTypeName | $base:CoreType '*' | $base:CoreType '[' $count:CoreArrayCount ']'
+                | $name:CoreTypeName '(' $args:CoreTypeArguments? ')';
 parse CoreArrayCount = Number | Identifier | '-' Number;
 parse CoreTypeArgument = CoreType | Number | '-' Number;
 parse CoreTypeArguments = CoreTypeArgument | CoreTypeArguments ',' CoreTypeArgument;
@@ -39,7 +40,7 @@ parse CoreParameters = CoreParameter | CoreParameters ',' CoreParameter;
 parse CoreCallArgument = CoreOperand | CorePointerArgument;
 parse CorePointerArgument = $base:CoreCallArgument '*' | $base:CorePointerArgument '[' $index:CoreOperand ']';
 parse CoreArguments = CoreCallArgument | CoreArguments ',' CoreCallArgument;
-parse CoreCall = $name:Identifier '(' $args:CoreArguments? ')';
+parse CoreCall = $name:CoreLocation '(' $args:CoreArguments? ')';
 parse CoreOperand |= CoreCall | CoreAddress | CoreLoad;
 parse CoreFunction = 'fn' $name:Identifier '(' $params:CoreParameters? ')' ':' $type:CoreType $body:CoreBlock;
 parse CoreReturn = 'return' $value:CoreOperand? ';';

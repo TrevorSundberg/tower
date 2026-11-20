@@ -1,4 +1,13 @@
 import tower;
+import 'lr-analysis';
+import 'lr-grammar';
+import 'lr-tree';
+import 'parser-nodes';
+import 'regex-lowering';
+import 'syntax-emission';
+import 'syntax-reader';
+import 'syntax-validation';
+import '../library/vector';
 
 // Typed capture holes add ordinary generated productions to the template table.
 // Remapping restores active production identities on the same parse entities.

@@ -36,8 +36,9 @@ for all remaining stages, including parallel execution at large project sizes.
    `export`; preserve explicit runtime initialization order. Track declaration,
    type, layout, body, specialization and evaluation dependencies separately.
    Unused declarations need not instantiate or execute, but syntax/grammar reads
-   and ordered module effects remain dependencies. Migrate the currently flat
-   compiler imports together, with collision and diamond tests.
+   and ordered module effects remain dependencies. The 2026-11-20 binding slice implements module ownership, aliases, direct
+   import visibility and the compiler import migration. Selective imports,
+   re-exports and declaration-level dependency queries remain pending.
 3. **Nominal enums and exact resolution.** `enum State: u32 { Idle, Busy = 4 }`
    should create a distinct reflected type, named members and a specified integer
    representation. `State.Idle` is a value. Reject implicit integer/enum and
@@ -380,8 +381,8 @@ containers. Benchmark representative compiler workloads before migrating them.
 - The 2026-11-17 operand-composition work already defines left-to-right effects,
   resumable graph evaluation and assignment-address capture. Preserve it.
 - The 2026-11-18 template work supports concrete type/integer specialization,
-  not arbitrary staged execution. The 2026-11-19 imports still flatten bindings;
-  import caching is not declaration-level incremental resolution.
+  not arbitrary staged execution. The 2026-11-20 module scopes supersede the initially flat import bindings;
+  import caching is still not declaration-level incremental resolution.
 - [C# operator specification](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/language-specification/expressions#1242-operator-precedence-and-associativity)
   informs the familiar grouping table. Tower's effect and integer contracts remain
   its own.

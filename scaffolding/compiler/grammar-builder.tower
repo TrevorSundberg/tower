@@ -1,6 +1,12 @@
 import tower;
 import 'grammar-types';
 import 'component-kinds';
+import 'lr-tree';
+import 'parser-nodes';
+import 'parser-types';
+import 'regex-lowering';
+import 'syntax-emission';
+import 'syntax-reader';
 
 // Fallible construction on the caller's registered kinds. The root owns every
 // attached node; a failure is sticky and finish discards the partial document.

@@ -1,4 +1,10 @@
 import tower;
+import 'lr-analysis';
+import 'regex-lowering';
+import 'syntax-nodes';
+import 'syntax-reader';
+import 'syntax-types';
+import '../library/vector';
 
 // Disposable revision analysis over shared grammar entities. Only lookup and
 // dependency indexes live here; declarations remain the authoritative nodes.
@@ -370,6 +376,30 @@ fn syntax_validation_imports(value: SyntaxValidation*): bool {
         var ok = syntax_validation_declaration(value, "ImportDeclaration", false, "name", null, null, null, false);
         if ok {} else {
             return false;
+        }
+        var rule = &value.rules[index];
+        var alternative: usize = 0;
+        while alternative < rule.count {
+            var sequence = syntax_validation_node(value, rule.alternatives[alternative]);
+            var item: usize = 0;
+            var aliased = false;
+            while item < sequence.items.length {
+                var term = syntax_validation_node(value, sequence.items.data[item]);
+                if term.literal {
+                    var keyword = syntax_bytes_compare(term.text.data, term.text.length, "as", 2) == 0;
+                    if keyword {
+                        aliased = true;
+                    }
+                }
+                item = item + 1;
+            }
+            if aliased {
+                ok = syntax_validation_required(value, sequence, "ImportDeclaration", "alias");
+                if ok {} else {
+                    return false;
+                }
+            }
+            alternative = alternative + 1;
         }
     }
     index = syntax_validation_find(value, "ImportPath", 10);

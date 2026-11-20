@@ -1,4 +1,14 @@
 import tower;
+import 'bindings';
+import 'context';
+import 'disassembly';
+import 'import-bindings';
+import 'import-foundation';
+import 'import-values';
+import 'text';
+import '../compiler/foundation-tags';
+import '../compiler/foundation-types';
+import '../library/vector';
 
 fn bi_edge(c: BackendImport*, from: void*, to: void*): void {
     var copies: vector(BackendAssociation);

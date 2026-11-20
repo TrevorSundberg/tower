@@ -7,6 +7,13 @@ and the compiler's existing formatting services. These queries inspect the
 ordinary syntax and Foundation entities and their components, bindings, named
 relationships, and resolved types. Their result indexes are disposable views.
 
+The entry composes a link unit; it does not implicitly re-export source names.
+Tower callers import the defining modules (`language-query`, `completion`,
+`frontend-compilation` or `frontend-modules`) and their needed type modules.
+Source visibility follows the [module scope rules](modules.md#module-scopes-and-aliases).
+Completion and hover resolve aliases through those same scopes and display
+original declaration names when flattened Foundation needs a unique spelling.
+
 An IDE links these services directly. It does not need a language-server process
 or protocol. The browser runs them in its existing cancellable worker and keeps
 the returned document index for synchronous mouse lookup. It owns positioning,

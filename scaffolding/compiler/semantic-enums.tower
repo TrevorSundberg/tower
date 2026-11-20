@@ -1,4 +1,10 @@
 import tower;
+import 'foundation-tags';
+import 'semantic-context';
+import 'semantic-modules';
+import 'semantic-support';
+import 'semantic-types';
+import 'semantic-values';
 
 // Enum declarations/members are the original shared parse entities enriched
 // with Foundation type/constant components. No copied semantic representation.
@@ -100,15 +106,11 @@ fn sem_enum_operand(c: SemanticContext*, n: void*): bool {
     if possible {} else {
         return false;
     }
-    var identifier = sem_member(base, "name");
-    var simple = identifier != null;
-    if simple {} else {
-        return false;
-    }
+    var identifier = sem_name_node(base);
     var name = sem_identifier(c, identifier);
     // Most member accesses are ordinary fields. Reject those before walking
     // lexical scopes; only a matching enum type needs the shadowing check.
-    var definition = sem_lookup_table(c.types, name);
+    var definition = sem_resolve(c, c.types, base, name);
     var found = definition != null;
     if found {} else {
         return false;
@@ -129,7 +131,7 @@ fn sem_enum_operand(c: SemanticContext*, n: void*): bool {
         }
         scope = scope.parent;
     }
-    var shadowed = sem_lookup_table(c.globals, name) != null;
+    var shadowed = sem_resolve(c, c.globals, base, name) != null;
     if shadowed {
         return false;
     }

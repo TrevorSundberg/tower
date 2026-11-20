@@ -1,6 +1,13 @@
 import tower;
 import 'c-runtime';
 import 'c-control';
+import 'foundation-tags';
+import 'foundation-types';
+import 'frontend-compilation';
+import 'semantic-context';
+import 'semantic-definitions';
+import 'semantic-support';
+import '../library/vector';
 
 // C89-style output over the shared Foundation entities. The vectors below are
 // disposable name/storage indexes, not a second semantic representation.

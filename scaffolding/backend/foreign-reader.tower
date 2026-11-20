@@ -1,4 +1,8 @@
 import tower;
+import 'foreign-declarators';
+import 'foreign-operators';
+import 'text';
+import '../library/vector';
 
 // Foreign declaration descriptions are temporary mangler data, not Tower IR.
 // Their source spelling is the declaration supplied to cpp_name/c_name.

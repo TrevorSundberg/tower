@@ -1,4 +1,8 @@
 import tower;
+import '../compiler/host-text';
+import 'driver-options';
+import '../library/bytes-interface';
+import '../library/bytes-types';
 
 // Host policies consume explicit inputs. Locating the running executable is an
 // OS service supplied by the caller; argv[0] alone is not a resolved filename.

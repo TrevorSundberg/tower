@@ -1,4 +1,14 @@
 import tower;
+import 'bindings';
+import 'context';
+import 'foreign-api';
+import 'foreign-reader';
+import 'foreign-symbol';
+import 'pipeline';
+import 'text';
+import '../compiler/foundation-tags';
+import '../compiler/foundation-types';
+import '../library/vector';
 
 fn backend_type(b: Backend*, t: FoundationType*): void* {
     var pointer = t.pointers != 0;

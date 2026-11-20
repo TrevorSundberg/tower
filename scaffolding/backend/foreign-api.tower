@@ -1,4 +1,8 @@
 import tower;
+import 'foreign-itanium';
+import 'foreign-microsoft';
+import 'foreign-reader';
+import 'text';
 
 // Returns owned text/error views; release with foreign_name_close. The profile
 // describes the foreign compiler, never the host running this Tower function.

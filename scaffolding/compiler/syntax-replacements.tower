@@ -1,4 +1,11 @@
 import tower;
+import 'lr-analysis';
+import 'parser-nodes';
+import 'regex-lowering';
+import 'syntax-reader';
+import 'syntax-types';
+import 'syntax-validation';
+import '../library/vector';
 
 // Validate replacements when their rules become reachable from Statement.
 // Nearest unit-rule ancestors provide inferred destinations; ordinary parsing

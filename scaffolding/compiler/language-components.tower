@@ -1,4 +1,15 @@
 import tower;
+import 'semantic-types';
+import 'language-query';
+import 'language-grammar';
+import 'completion';
+import 'foundation-types';
+import 'foundation-tags';
+import 'semantic-context';
+import 'semantic-support';
+import 'semantic-definitions';
+import 'syntax-tags';
+import 'syntax-types';
 
 extern fn entity_component_at(node: void*, index: usize): void*;
 

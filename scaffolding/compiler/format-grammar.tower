@@ -1,4 +1,9 @@
 import tower;
+import 'format-foundation';
+import 'format-types';
+import 'format';
+import 'syntax-tags';
+import 'syntax-types';
 
 // Grammar terms, alternatives and declarations retain shared entity identity.
 fn format_grammar_term(f: FormatEngine*, entity: void*): void {
@@ -152,6 +157,11 @@ fn format_grammar(f: FormatEngine*, entity: void*): void {
                 }
             }
         }
+        var aliased = n.capture.length != 0;
+        if aliased {
+            format_text(f, " as ");
+            format_identifier(f, &n.capture);
+        }
         format_text(f, ";\n");
         format_span(f, begin, n.start);
         return;
@@ -178,6 +188,7 @@ fn format_grammar(f: FormatEngine*, entity: void*): void {
                 var output: FormatResult;
                 fill(&output, 0, sizeof(FormatResult));
                 var probe: FormatEngine;
+                probe.source_names = false;
                 probe.result = &output;
                 probe.syntax_kind = f.syntax_kind;
                 probe.foundation_kind = f.foundation_kind;
@@ -271,6 +282,7 @@ fn format_grammar(f: FormatEngine*, entity: void*): void {
 // or replacement bodies. Hover descriptions are emitted by the language query.
 export fn format_grammar_preview(result: FormatResult*, entity: void*, syntax: void*): void {
     var f: FormatEngine;
+    f.source_names = false;
     fill(&f, 0, sizeof(FormatEngine));
     f.result = result;
     f.syntax_kind = syntax;

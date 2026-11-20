@@ -1,4 +1,13 @@
 import tower;
+import 'host-runtime';
+import 'host';
+import '../compiler/host-text';
+import '../host/browser-protocol';
+import '../host/driver-files';
+import '../host/driver-options';
+import '../host/driver-services';
+import '../library/bytes-interface';
+import '../library/bytes-types';
 
 // Host behavior is tested in Tower on native and wasm32 test hosts.
 extern fn remove(path: u8*): i32;

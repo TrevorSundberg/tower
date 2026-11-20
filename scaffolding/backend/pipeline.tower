@@ -1,4 +1,6 @@
 import tower;
+import 'bindings';
+import 'context';
 
 // Pass-by-pass verification is a debugging policy. Production still verifies
 // lowering and the complete optimized module at the stage boundaries.

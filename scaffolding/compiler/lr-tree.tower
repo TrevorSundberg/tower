@@ -1,4 +1,14 @@
 import tower;
+import 'component-kinds';
+import 'frontend-modules';
+import 'lr-analysis';
+import 'lr-grammar';
+import 'lr-parser';
+import 'parser-nodes';
+import 'parser-types';
+import 'regex-lowering';
+import 'syntax-emission';
+import 'syntax-reader';
 
 // Assemble shifts/reductions into the shared entities. Forests are temporary
 // ownership/work indexes; generated productions flatten without another AST.

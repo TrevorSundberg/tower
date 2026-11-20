@@ -1,5 +1,10 @@
 import tower;
 import 'parser-nodes';
+import 'frontend-modules';
+import 'lr-tree';
+import 'parser-state';
+import 'syntax-reader';
+import '../library/vector';
 
 // Mutable stream state belongs to one request. Native callbacks are borrowed
 // opaque addresses; the existing host calls them only when poll requests input.

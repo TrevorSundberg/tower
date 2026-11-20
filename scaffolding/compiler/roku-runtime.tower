@@ -1,4 +1,5 @@
 import tower;
+import 'roku-emitter';
 
 // Platform runtime text. Full-width integers retain exact bit patterns; masked
 // limb extraction uses only exactly representable powers-of-two scaling.

@@ -1,4 +1,6 @@
 import tower;
+import 'interpreter-abi';
+import '../library/vector';
 
 // Owned execution-space bytes. Target addresses are offsets into this buffer;
 // this is host containment, not foundation object/lifetime safety metadata.

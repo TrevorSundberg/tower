@@ -1,4 +1,8 @@
 import tower;
+import '../compiler/lr-tree';
+import '../compiler/frontend-modules';
+import '../compiler/syntax-reader';
+import '../library/vector';
 
 fn module_test_source(environment: ModuleEnvironment*, name: u8*, source: u8*): void {
     module_require(frontend_modules_source(environment, name, source, syntax_text_length(source)));

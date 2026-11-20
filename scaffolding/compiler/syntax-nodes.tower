@@ -1,5 +1,10 @@
 import tower;
 import 'syntax-types';
+import 'lexer-table';
+import 'lr-tree';
+import 'regex-lowering';
+import 'syntax-source';
+import '../library/vector';
 
 // Grammar declarations augment the same entities used by syntax and foundation.
 // Source entities are authoritative; lexer tables and comparison work lists are derived.

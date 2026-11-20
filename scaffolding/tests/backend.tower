@@ -1,4 +1,13 @@
 import tower;
+import 'foreign-names';
+import '../backend/bindings';
+import '../backend/context';
+import '../backend/disassembly';
+import '../backend/foreign-tool';
+import '../backend/linker';
+import '../backend/pipeline';
+import '../backend/target';
+import '../backend/text';
 
 // Functional backend API checks, compiled as Tower and linked to the same
 // upstream LLVM and shared entity/semantic objects as the production compiler.

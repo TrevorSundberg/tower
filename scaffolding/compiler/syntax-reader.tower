@@ -1,4 +1,12 @@
 import tower;
+import 'foundation-nodes';
+import 'parser-nodes';
+import 'parser-types';
+import 'regex-lowering';
+import 'syntax-lexer';
+import 'syntax-nodes';
+import 'syntax-types';
+import '../library/vector';
 
 // Interpret declaration parse trees on their existing shared entities.
 // Temporary native registration supplies component kinds; all reading is Tower.

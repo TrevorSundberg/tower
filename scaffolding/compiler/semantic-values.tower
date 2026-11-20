@@ -1,4 +1,15 @@
 import tower;
+import 'foundation-tags';
+import 'foundation-types';
+import 'semantic-context';
+import 'semantic-definitions';
+import 'semantic-enums';
+import 'semantic-layout';
+import 'semantic-modules';
+import 'semantic-statements';
+import 'semantic-support';
+import 'semantic-types';
+import '../library/vector';
 
 // Semantic compiler over shared Foundation components.
 // Temporary indexes and scratch allocations are scoped to one compilation.
@@ -40,6 +51,26 @@ fn sem_location(c: SemanticContext*, n: void*, depth: u32): void* {
     var step12 = sem_get(n);
     var step13 = step12 != null;
     if step13 {
+        return n;
+    }
+    var module = sem_namespace(c, n);
+    var qualified_global = module != null;
+    if qualified_global {
+        if sem_editor_symbol(c, n, 1) {
+            sem_node(c, n, KOperand());
+            return n;
+        }
+        var name = sem_identifier(c, sem_member(n, "field"));
+        var value = sem_node(c, n, KOperand());
+        value.binding = sem_owned(c.globals, module, name);
+        var present = value.binding != null;
+        if present {
+            sem_declaration_type(c, value.binding);
+            var declaration = sem_get(value.binding);
+            sem_set_type(&value.type, &declaration.type);
+        } else {
+            sem_fail(c, n, sem_cat(c, "Unknown module variable '", sem_cat(c, name, "'")));
+        }
         return n;
     }
     if sem_enum_operand(c, n) {
@@ -967,7 +998,7 @@ fn sem_builtin(c: SemanticContext*, n: void*, kind: u32, args: vector(void*)*): 
 }
 
 fn sem_call(c: SemanticContext*, n: void*): void* {
-    if sem_editor_capture(c, sem_member(n, "name"), 4, null) {
+    if sem_editor_symbol(c, sem_member(n, "name"), 4) {
         sem_node(c, n, KCall());
         return n;
     }
@@ -989,7 +1020,7 @@ fn sem_call(c: SemanticContext*, n: void*): void* {
         var step9 = sem_builtin(c, n, builtin, args);
         return step9;
     }
-    var step10 = sem_lookup_table(c.type_functions, name);
+    var step10 = sem_resolve(c, c.type_functions, step3, name);
     var step11 = step10 != null;
     if step11 {
         var step12 = sem_cat(c, "Type constructor '", name);
@@ -997,7 +1028,7 @@ fn sem_call(c: SemanticContext*, n: void*): void* {
         sem_fail(c, n, step13);
         return n;
     }
-    var step14 = sem_lookup_table(c.templates, name);
+    var step14 = sem_resolve(c, c.templates, step3, name);
     var definition: void* = step14;
     var step15 = definition != null;
     if step15 {
@@ -1085,7 +1116,7 @@ fn sem_call(c: SemanticContext*, n: void*): void* {
     }
     var step48 = sem_node(c, n, KCall());
     var value: FoundationNode* = step48;
-    var step49 = sem_lookup_table(c.functions, name);
+    var step49 = sem_resolve(c, c.functions, step3, name);
     value.binding = step49;
     var step50 = value.binding == null;
     if step50 {

@@ -1,4 +1,11 @@
 import tower;
+import 'syntax-emission';
+import '../compiler/lr-analysis';
+import '../compiler/lr-grammar';
+import '../compiler/lr-tree';
+import '../compiler/parser-nodes';
+import '../compiler/syntax-lexer';
+import '../compiler/syntax-scan';
 
 // Tokens keep the existing parser EOF contract and shared-node ownership even
 // when any one of the node/payload/text allocations fails.

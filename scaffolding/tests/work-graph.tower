@@ -1,5 +1,6 @@
 import tower;
 import '../library/work-graph';
+import '../library/vector';
 
 // Execute a wide fan-out/fan-in graph under different simulated worker counts.
 // Workers write disjoint result slots; the join reads only published results.

@@ -32,7 +32,7 @@ extern fn LLVMInitializeAArch64AsmPrinter(): void;
 
 extern fn LLVMInitializeAArch64Disassembler(): void;
 
-fn backend_initialize_targets(): void {
+export fn backend_initialize_targets(): void {
     LLVMInitializeWebAssemblyTargetInfo();
     LLVMInitializeWebAssemblyTarget();
     LLVMInitializeWebAssemblyTargetMC();

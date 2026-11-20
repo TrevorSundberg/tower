@@ -1,4 +1,7 @@
 import tower;
+import 'c-emitter';
+import 'foundation-tags';
+import 'semantic-context';
 
 // Monotone reachability over the existing entities. Incoming jumps may expose
 // another label on the next pass; no independent instruction graph is created.

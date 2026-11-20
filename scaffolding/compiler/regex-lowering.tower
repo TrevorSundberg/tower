@@ -1,4 +1,9 @@
 import tower;
+import 'automaton';
+import 'parser-nodes';
+import 'parser-types';
+import 'syntax-types';
+import '../library/vector';
 
 // Read the ordinary parser entities and lower their regex semantics into a
 // disposable automaton. Work stacks hold borrowed entities, never another AST.

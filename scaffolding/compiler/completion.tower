@@ -1,5 +1,15 @@
 import tower;
 import 'language-grammar';
+import 'foundation-tags';
+import 'frontend-compilation';
+import 'semantic-context';
+import 'semantic-definitions';
+import 'semantic-lifecycle';
+import 'semantic-modules';
+import 'semantic-statements';
+import 'semantic-support';
+import 'semantic-types';
+import '../library/vector';
 
 // Editor queries over the compiler's shared syntax entities. Recovery text is
 // scratch input to the ordinary parser, never a second AST or program format.
@@ -75,6 +85,7 @@ fn completion_attach(q: CompletionQuery*, root: void*, base: usize): void {
 }
 
 fn completion_parse(q: CompletionQuery*, source: u8*, mode: u32, future: bool): bool {
+    var first_root = q.roots.length;
     var base = q.input.length;
     var length = sem_length(source);
     sem_require(bytes_append(&q.input, source, length));
@@ -124,6 +135,27 @@ fn completion_parse(q: CompletionQuery*, source: u8*, mode: u32, future: bool): 
     }
     var error = syntax_get_error(session);
     var clean = error[0] == 0;
+    var parsed_module = syntax_completion_module(session);
+    var scoped = parsed_module != null;
+    if scoped {
+        sem_module_graph(&q.program, parsed_module);
+        // Entry statements collected during recovery may not be in the normal
+        // module roots yet; retain their same explicit owner before teardown.
+        var owner = sem_module_scope(&q.program, parsed_module);
+        sem_module_position(&q.program, parsed_module, base);
+        var root_index: usize = 0;
+        while root_index < entries.length {
+            sem_module_link(entries.data[root_index], q.program.modules.owner_kind, owner);
+            root_index = root_index + 1;
+        }
+        // Grammar declarations also carry a definition scope for replacement
+        // inspection, without modifying cached template trees.
+        root_index = first_root;
+        while root_index < q.roots.length {
+            sem_module_link(q.roots.data[root_index], q.program.modules.owner_kind, owner);
+            root_index = root_index + 1;
+        }
+    }
     // Only the entry's actual import closure contributes external declarations.
     // These are fresh ordinary module entities, retained before session teardown.
     if future {} else {
@@ -141,6 +173,7 @@ fn completion_parse(q: CompletionQuery*, source: u8*, mode: u32, future: bool): 
                 var imported = dependency != module;
                 if imported {
                     var dependency_base = q.input.length;
+                    sem_module_position(&q.program, dependency, dependency_base);
                     if q.inspection {
                         sem_push(&q.comment_modules, dependency);
                         sem_require(vector_push(usize, &q.comment_bases, dependency_base));
@@ -914,14 +947,28 @@ fn completion_table(q: CompletionQuery*, table: SemanticTable*, kind: u8*, categ
     scope.names = table;
     var nodes: vector(void*);
     vector_init(void*, &nodes);
-    sem_scope_locals(&scope, &nodes);
+    sem_scope_locals(&q.context, &scope, &nodes);
     var i: usize = 0;
     loop {
         var editor_condition23 = i == nodes.length;
         if editor_condition23 {
             break;
         }
-        completion_semantic_node(q, nodes.data[i], kind, category);
+        var candidate = nodes.data[i];
+        var lexical = table == q.context.functions;
+        if lexical {} else {
+            lexical = table == q.context.globals;
+        }
+        if lexical {} else {
+            lexical = table == q.context.types;
+        }
+        var visible = true;
+        if lexical {
+            visible = sem_completion_visible(&q.context, &q.editor, table, candidate);
+        }
+        if visible {
+            completion_semantic_node(q, candidate, kind, category);
+        }
         i = i + 1;
     }
     vector_dispose(void*, &nodes);
@@ -933,7 +980,7 @@ fn completion_templates(q: CompletionQuery*, table: SemanticTable*, kind: u8*, d
     scope.names = table;
     var nodes: vector(void*);
     vector_init(void*, &nodes);
-    sem_scope_locals(&scope, &nodes);
+    sem_scope_locals(&q.context, &scope, &nodes);
     var i: usize = 0;
     loop {
         var done = i == nodes.length;
@@ -941,7 +988,7 @@ fn completion_templates(q: CompletionQuery*, table: SemanticTable*, kind: u8*, d
             break;
         }
         var node = nodes.data[i];
-        var eligible: bool = true;
+        var eligible = sem_completion_visible(&q.context, &q.editor, table, node);
         var function = category == 0;
         if function {
             // Resolve return annotations with the ordinary type resolver when
@@ -961,7 +1008,9 @@ fn completion_templates(q: CompletionQuery*, table: SemanticTable*, kind: u8*, d
                     }
                 }
                 if q.editor.has_expected {
-                    eligible = semantic_type_equal(result, &q.editor.type);
+                    if eligible {
+                        eligible = semantic_type_equal(result, &q.editor.type);
+                    }
                 }
                 if q.editor.require_pointer {
                     var pointer = result.pointers != 0;
@@ -982,6 +1031,25 @@ fn completion_templates(q: CompletionQuery*, table: SemanticTable*, kind: u8*, d
 export fn completion_symbols(q: CompletionQuery*): void {
     if q.editor.found {} else {
         return;
+    }
+    var qualified_namespace = q.editor.module != null;
+    if qualified_namespace {} else {
+        var owner = sem_owner(&q.context, q.editor.node);
+        var imports = sem_child_count(owner);
+        var i: usize = 0;
+        var category: u32 = 0;
+        var types = q.editor.kind == 2;
+        if types {
+            category = 1;
+        }
+        while i < imports {
+            var name = sem_import_alias(owner, i);
+            var named = name[0] != 0;
+            if named {
+                completion_offer(q, name, "namespace", "module", category);
+            }
+            i = i + 1;
+        }
     }
     var editor_condition24 = q.editor.kind == 2;
     if editor_condition24 {
@@ -1023,8 +1091,12 @@ export fn completion_symbols(q: CompletionQuery*): void {
         return;
     }
     var editor_condition30 = q.editor.kind != 4;
+    var qualified = q.editor.module != null;
     if editor_condition30 {
         var scope = q.editor.scope;
+        if qualified {
+            scope = null;
+        }
         loop {
             var editor_condition31 = scope == null;
             if editor_condition31 {
@@ -1037,6 +1109,9 @@ export fn completion_symbols(q: CompletionQuery*): void {
     }
     completion_table(q, q.context.functions, "function", 0);
     completion_templates(q, q.context.templates, "function", "generic function", 0);
+    if qualified {
+        return;
+    }
     var i: usize = 0;
     loop {
         var builtin = semantic_builtin_at(i);

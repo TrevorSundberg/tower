@@ -1,4 +1,21 @@
 import tower;
+import 'syntax-emission';
+import '../compiler/lr-tree';
+import 'frontend-cache';
+import 'parser-state';
+import '../compiler/format-types';
+import '../compiler/format';
+import '../compiler/frontend-bedrock';
+import '../compiler/frontend-diagnostics';
+import '../compiler/frontend-pattern';
+import '../compiler/frontend-table';
+import '../compiler/grammar-builder';
+import '../compiler/grammar-types';
+import '../compiler/lexer-table';
+import '../compiler/lr-analysis';
+import '../compiler/lr-parser';
+import '../compiler/syntax-nodes';
+import '../compiler/syntax-reader';
 
 extern fn frontend_world_tests(): void;
 

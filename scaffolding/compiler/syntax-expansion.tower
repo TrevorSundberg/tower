@@ -1,4 +1,14 @@
 import tower;
+import 'lr-analysis';
+import 'lr-tree';
+import 'parser-nodes';
+import 'parser-types';
+import 'regex-lowering';
+import 'syntax-emission';
+import 'syntax-nodes';
+import 'syntax-reader';
+import 'syntax-validation';
+import '../library/vector';
 
 // Replacement execution over shared parse entities. Rule slots and visitation
 // sets are disposable indexes; capture holes refer to the compiled template tree.

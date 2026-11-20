@@ -1,4 +1,14 @@
 import tower;
+import 'frontend-table';
+import 'grammar-types';
+import 'lr-tree';
+import 'parser-nodes';
+import 'regex-lowering';
+import 'syntax-emission';
+import 'syntax-nodes';
+import 'syntax-reader';
+import 'syntax-types';
+import '../library/vector';
 
 // The initial grammar is constructed by Tower on the ordinary shared entities.
 // Loading bedrock.tower still applies each declaration to its following source.
@@ -284,6 +294,18 @@ export fn frontend_bedrock_create(kinds: FrontendKinds*): void* {
     frontend_bedrock_alternative(&b);
     frontend_bedrock_term(&b, b.alternative, "import", "", true);
     frontend_bedrock_term(&b, b.alternative, "String", "name", false);
+    frontend_bedrock_term(&b, b.alternative, ";", "", true);
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "import", "", true);
+    frontend_bedrock_term(&b, b.alternative, "ImportPath", "name", false);
+    frontend_bedrock_term(&b, b.alternative, "as", "", true);
+    frontend_bedrock_term(&b, b.alternative, "Identifier", "alias", false);
+    frontend_bedrock_term(&b, b.alternative, ";", "", true);
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "import", "", true);
+    frontend_bedrock_term(&b, b.alternative, "String", "name", false);
+    frontend_bedrock_term(&b, b.alternative, "as", "", true);
+    frontend_bedrock_term(&b, b.alternative, "Identifier", "alias", false);
     frontend_bedrock_term(&b, b.alternative, ";", "", true);
 
     frontend_table_dispose(&b.patterns);

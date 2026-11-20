@@ -1,4 +1,5 @@
 import tower;
+import '../library/entities';
 
 // Built with entities.tower until language imports replace build-time composition.
 // A parser work arena, not an alternative AST: leaves own the shared entities.

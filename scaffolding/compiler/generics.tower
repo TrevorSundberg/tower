@@ -1,6 +1,7 @@
 import tower;
 import 'generic-registry';
 import 'host-metadata';
+import '../library/entities';
 
 // Compiler transformations and metadata over the shared entity store.
 

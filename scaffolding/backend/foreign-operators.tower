@@ -1,4 +1,8 @@
 import tower;
+import 'foreign-itanium';
+import 'foreign-reader';
+import 'text';
+import '../library/vector';
 
 fn foreign_operator(m: ForeignName*, part: ForeignType*): void {
     var text: vector(u8);

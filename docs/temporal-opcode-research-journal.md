@@ -18852,3 +18852,180 @@ persistence, completion, output highlighting and target defaults. Logs use
 novice-hover-{wasm,llvm,tests,browser,live-browser,live-deployment}.log; the final
 report is copied to novice-hover-live-report.json. This is a presentation change
 within the existing generic Tower component service, not a token-specific query.
+
+## 2026-11-20 — Module scopes and import aliases (implementation in progress)
+
+Request: implement the selected module-binding milestone, beginning with a pull
+and rebase. The unrestricted initial fetch stalled transferring the large Pages
+history (a second attempt hit curl's 30-second low-speed timeout). Retried
+`git pull --rebase origin main`; it fast-forwarded cleanly from 40d7d91 to
+708681d, preserving the new Tower-owned parser/world/metadata and IDE services.
+No local work was discarded. Deployment synchronization will be retried separately.
+
+Established a native baseline in the `tower_build` Docker image, UID 1000,
+repository mounted at `/home/deck/tower`, host cache
+`/home/deck/.cache/tower-docker` at `/tmp/tower-home/.cache`, HOME
+`/tmp/tower-home`. `TOWER_BUILD_JOBS=2`, LLVM 19, and the existing Tower-built
+bootstrap produced the current baseline successfully. Saved previous and baseline
+compilers under ignored `build/module-scopes/`; native builds use
+`playground/scripts/build-native.sh`. Logs: baseline-native.log,
+first-native.log, second-native.log, third-native.log, scoped-bootstrap-native.log,
+and migrated-native.log in that directory.
+
+Implemented the first scope/alias path in Tower: per-program module ownership
+and resolved import relationships are components on retained parse entities;
+lookup tables use name plus module identity. Open imports contribute declarations
+only to their importing module; aliases select an explicit module. Functions,
+types, globals and template resolution consume these same scopes. Colliding
+module-local names serialize to unique escaped Foundation identifiers. Existing
+lexical locals and declaration forward references remain in the ordinary checker.
+Import syntax and formatting retain optional aliases for dotted and quoted paths.
+Core calls and types accept qualified names through ordinary grammar rules.
+
+The compiler's existing source split contains mutually dependent declaration
+helpers. Added declaration-only import cycles to migrate that code without
+inventing shared global namespaces or hiding dependencies in host build order.
+Cycles containing grammar declarations or initialization effects are rejected;
+acyclic effects retain dependency-first, once-only order. Self imports remain
+errors. Module loading still uses each file's immutable baseline and ordinary
+incremental grammar updates. Explicit foreign declarations retain their separate
+link-symbol contract: compatible declarations coalesce, and a matching Tower
+export supplies their implementation. Incompatible declarations and duplicate
+exports diagnose instead of silently selecting an implementation.
+
+Migrated 102 compiler/library/host/backend files to explicit imports, using an
+ignored token/provider inventory as an editing aid, followed by actual compiler
+validation. No runtime resolver scrapes source with that script. Platform-selected
+LLVM initializers, file positioning and LLD dispatch now have explicit interface
+modules and exported implementations selected by the existing build manifests.
+The migrated native compiler rebuild completed with scope checking enabled.
+This remains the existing hybrid compiler; these changes do not retire all native
+adapters or claim a standalone distribution.
+
+Debugging: the initial bootstrap build found a duplicate `generic_definition`
+extern while the older compiler still had flat binding. Consolidated that
+interface declaration into semantic-context. The first runtime test crashed in
+sem_resolve: unnamed entity relationships store a null name, not an empty string.
+GDB confirmed the resolver stack; normalize unnamed import edges before reading
+alias text. GDB was installed only inside the isolated tower-module-debug
+container for this investigation. The subsequent end-to-end fixture passed:
+two same-basename modules each define helper/hidden, Item and count. Aliased calls,
+nominal types and global writes produce `1,2,30,40,5,6` on separate lines in graph
+and fast interpreters, a canonical Foundation round trip, raw/optimized C compiled
+with Clang, and native LLVM. `python3 build/module-scopes/probe.py` records these
+assertions; probe.log and probe-migrated.log contain the results.
+
+IDE work now filters completion through the same visible bindings and resolves
+qualified function/type/variable requests. Hover summaries use original source
+names when canonical Foundation needs a module suffix; Foundation serialization
+retains the unique spelling. Both use the existing formatting engine. Added
+module-scopes.test.mjs covering collisions, leaks, aliases, generics, nominal enums,
+cycles, effects, foreign linkage, formatting, completion and hover. These are
+pending full validation, not a release claim.
+
+The first Wasm build rejected a newly written inline comparison in a return:
+Foundation deliberately requires an operand there. Replaced it with a typed
+intermediate. The next parser reactor linked, then the build script's separate
+foreign-fixture command found that the saved bootstrap lacked adjacent grammar
+resources. Copied the matching share/tower directory beside it. This is a local
+bootstrap packaging fix; no implicit grammar fallback was added. Final tests,
+formatting, successor builds, integration and publication results follow below.
+
+
+Module-scope follow-up: the expanded 90-test import/Bedrock/completion/hover run
+passed (`node --test` on module-scopes, module-resolution, bedrock, completion and
+hover; targeted-second.log). A repeated compile/query stress check initially
+leaked eight entities per iteration. Cached grammar clones reused import syntax
+entities, so attaching a per-compilation component retained its type in the cache.
+Module cloning now copies import trees and rereads their syntax metadata using
+the same import reader before semantic ownership is attached. Cached grammar
+remains immutable, and repeated graph/fast execution plus hover/completion,
+including declaration cycles, returns to the same entity/allocation counts.
+
+Inspection exposed another ownership issue: moving an import declaration out of
+its retained source wrapper erased the children visited by hover. Move the whole
+wrapper instead; source roles and spans remain intact. Replacement-call previews
+also used the old text-only function table. They now resolve from the grammar
+node's module through ordinary semantic lookup, without attaching mutable scope
+metadata to cached replacement trees. Completion filters templates before
+expected-type filtering, and generated Foundation names avoid all reserved source
+spellings, including escaped names resembling generated module suffixes.
+
+The initial import inventory also suggested false dependencies for local names
+in standalone examples/tests and some platform helpers. Removed these suggestions
+rather than introducing unrelated test/example imports. Direct implementation
+imports and actual compile diagnostics determine the migration. One JS buffer
+fixture now explicitly imports bytes-types to name ByteBuffer.
+
+A broader exploratory Node run used stale LLVM/cross reactors and therefore
+reported missing newer upstream intrinsic/comment/worker behavior; it is not a
+release validation. Stopped that run and the full formatter to incorporate new
+upstream source before rebuilding. `git pull --rebase origin main` advanced from
+708681d to c17992d with local work preserved in a named stash. Resolved the journal
+conflict by retaining both histories, and moved the new formatter display flag
+onto upstream's shared FormatEngine definition. Added explicit imports to the
+new parser formatter/interface and its test module. Upstream parser formatting
+remains Tower-owned. A shallow fetch of gh-pages obtained ee00eb4 without the
+stalled historical asset transfer; no remote history was rewritten. Final build,
+formatting, integration, successor and publication checks are still pending.
+
+
+Combined-source validation: merged upstream f839566 after another preserved-work
+pull/rebase, retaining the Roku backend and component-driven inspection already
+published by other work. Migrated the new language-components and Roku modules to
+explicit dependencies; language-grammar now imports the relocated presenter.
+Native builds use the saved rebased-bootstrap, then merged-bootstrap. Two Node
+regressions were actionable: sem_instance_name still consulted ownerless type/
+function indexes, so array and escaped nominal type arguments could request the
+same specialization spelling. It now checks the shared emitted-name reservation
+index and the definition's module. The Foundation installation test still replaced
+CoreCall's former Identifier spelling; update its edit to CoreLocation and assert
+that the edit actually changed the grammar.
+
+The prior complete Node run (excluding the separately run formatting file) had
+366 passes and those two failures. The 26 focused buffer/entity/worker/C/module
+checks and all 17 new scope checks passed against rebuilt LLVM/cross reactors.
+The native graph/fast/Foundation/C O0+O2/LLVM probe passed inside tower_build;
+the host cannot execute this binary directly because libLLVM.so.19.1 is supplied
+by that Docker image. The five focused formatting checks passed. Full repository
+formatting is resumed with the same engine after completed files; final checks
+will run with a stable source snapshot.
+
+Native test migration exposed unit boundaries hidden by previous global lookup:
+parser tests must import existing opaque entity interfaces, not compile the
+concrete entity implementation again. BackendSession uses the sem_get interface
+already in backend/context, rather than importing the semantic implementation
+unit (which caused duplicate exported symbols during Wasm linking). The strict
+foreign signature check correctly rejected mixing opaque and concrete pointer
+prototypes in one compilation. Corrected the imports; did not weaken typing or
+linker checks. Test-to-test imports are explicit for real shared helpers only.
+The first complete sanitizer CTest run passed four of five targets and failed
+source formatting; added the formatted-source error to the existing native test
+diagnostic. Revalidation follows after canonical formatting and integration.
+
+A cache-order regression discovered during final review: compile an invalid
+grammar cycle `a -> b -> a`, then compile it from b in the same environment.
+Before the fix, the second entry reached execution rather than reporting the
+cycle. A partially loaded dependency had been admitted into the declaration
+cache while its backedge still pointed at a loading module. `module_cacheable`
+now requires ModuleLoaded and rejects graphs with cycles. The new repeated-entry
+regression fails on the pre-fix Wasm and passes after rebuilding; nominal generic
+argument tests also pass. This deliberately forgoes caching declaration-only
+cycles instead of publishing an incomplete snapshot.
+
+All repository sources have now passed the formatter's idempotence, grammar and
+statement-tree checks during canonicalization. A separate full read-only check
+is running. The host's Node 21 cannot load upstream brs-node 2.7.1 because it uses
+iterator helpers (`values(...).map`); rerun the Roku tests with npm's isolated
+Node 22 package rather than modifying dependencies or suppressing the tests.
+
+Final reactor checks: `test-compiler-project.mjs` passed two complete generations
+(2 workers, then 4), including edited diagnostic behavior, alias isolation,
+completion, metadata and all candidate backend probes. Both generations produced
+identical hashes; sizes were Tower 1,075,870 bytes, LLVM 52,068,349 and cross
+63,625,481. The final native multi-backend alias probe also passed. All 11 Roku
+tests passed with isolated Node 22. The full Node suite imports the exact
+`format-tower.mjs` check, so stopped the redundant standalone format process and
+retain that full-suite check. Browser tests initially could not launch the newly
+required Chromium after the upstream Playwright update; installing that matching
+browser before rerunning the matrix. No test assertion was weakened.

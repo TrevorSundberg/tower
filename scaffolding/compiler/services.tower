@@ -7,6 +7,7 @@ import 'parser-types';
 import 'semantic-context';
 import 'semantic-definitions';
 import 'semantic-support';
+import 'semantic-modules';
 import 'semantic-types';
 import 'semantic-values';
 import 'semantic-statements';

@@ -1,6 +1,13 @@
 import tower;
 import 'host-parser-components';
 import 'host-provenance';
+import 'component-kinds';
+import 'entity-require';
+import 'host-world';
+import 'parser-types';
+import 'world';
+import '../library/entities';
+import '../library/vector';
 
 extern fn syntax_identifier_decode_in_place(text: u8*, length: usize): usize;
 

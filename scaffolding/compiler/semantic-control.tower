@@ -1,4 +1,10 @@
 import tower;
+import 'foundation-tags';
+import 'semantic-context';
+import 'semantic-statements';
+import 'semantic-support';
+import 'semantic-types';
+import 'semantic-values';
 
 // Control-flow outcomes are a private analysis bit set, not program opcodes.
 const FlowNext: u32 = 1;

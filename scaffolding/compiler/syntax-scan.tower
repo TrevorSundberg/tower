@@ -1,4 +1,15 @@
 import tower;
+import 'lr-analysis';
+import 'lr-runtime';
+import 'lr-tree';
+import 'parser-nodes';
+import 'parser-types';
+import 'regex-lowering';
+import 'syntax-emission';
+import 'syntax-lexer';
+import 'syntax-reader';
+import 'syntax-template';
+import '../library/vector';
 
 // Session token traversal uses the same data-driven lexer for declarations,
 // ordinary code, diagnostic lookahead and typed replacement captures.

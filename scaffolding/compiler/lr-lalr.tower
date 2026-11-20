@@ -1,4 +1,7 @@
 import tower;
+import 'lr-analysis';
+import 'lr-states';
+import '../library/vector';
 
 // Build LALR lookahead dependencies from LR(1) closures of LR(0) kernels.
 // Grammar order determines indices, never conflict priority or a shift bias.

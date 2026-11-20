@@ -1,4 +1,8 @@
 import tower;
+import 'foundation-tags';
+import 'foundation-types';
+import 'interpreter-abi';
+import 'interpreter-storage';
 
 fn im_ok(m: IMState*): bool {
     var ok = m.failed == false;

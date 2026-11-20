@@ -1,4 +1,10 @@
 import tower;
+import 'foreign-declarators';
+import 'foreign-itanium';
+import 'foreign-operators';
+import 'foreign-reader';
+import 'text';
+import '../library/vector';
 
 // Microsoft name mangling. Source of truth/reference: upstream Clang MicrosoftMangle.
 // Name backreferences and parameter backreferences have separate scopes.

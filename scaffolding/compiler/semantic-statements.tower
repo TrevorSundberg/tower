@@ -1,5 +1,16 @@
 import tower;
 import 'semantic-control';
+import 'foundation-tags';
+import 'foundation-types';
+import 'semantic-context';
+import 'semantic-definitions';
+import 'semantic-enums';
+import 'semantic-layout';
+import 'semantic-modules';
+import 'semantic-support';
+import 'semantic-types';
+import 'semantic-values';
+import '../library/vector';
 
 // Semantic compiler over shared Foundation components.
 // Temporary indexes and scratch allocations are scoped to one compilation.
@@ -38,7 +49,15 @@ fn sem_header(c: SemanticContext*, n: void*, name: u8*, definition: void*): void
         var step16 = sem_identifier(c, step15);
         name = step16;
     }
-    sem_set_name(function_node, name);
+    var published = external;
+    if sem_is(n, "CoreExport") {
+        published = true;
+    }
+    if published {
+        sem_set_name(function_node, name);
+    } else {
+        sem_set_name(function_node, sem_output_name(c, n, name));
+    }
     var step17 = sem_member(n, "type");
     var step18 = sem_type(c, step17);
     sem_set_type(&function_node.type, step18);
@@ -60,19 +79,19 @@ fn sem_header(c: SemanticContext*, n: void*, name: u8*, definition: void*): void
     var step26 = step25;
     var step27 = step26 == false;
     if step27 {
-        var step28 = sem_lookup_table(c.functions, name);
+        var step28 = sem_owned(c.functions, sem_owner(c, n), name);
         var step29 = step28 != null;
         step26 = step29;
     }
     var step30 = step26 == false;
     if step30 {
-        var step31 = sem_lookup_table(c.templates, name);
+        var step31 = sem_owned(c.templates, sem_owner(c, n), name);
         var step32 = step31 != null;
         step26 = step32;
     }
     var step33 = step26 == false;
     if step33 {
-        var step34 = sem_lookup_table(c.type_functions, name);
+        var step34 = sem_owned(c.type_functions, sem_owner(c, n), name);
         var step35 = step34 != null;
         step26 = step35;
     }
@@ -83,7 +102,7 @@ fn sem_header(c: SemanticContext*, n: void*, name: u8*, definition: void*): void
         return;
     }
     function_node.index = c.program.functions.length;
-    sem_put(c, c.functions, name, n);
+    sem_define(c, c.functions, n, name);
     sem_push(&c.program.functions, n);
     var step38 = sem_table(c);
     var names: SemanticTable* = step38;
@@ -197,7 +216,15 @@ fn sem_text_less(a: u8*, b: u8*): bool {
     return step5;
 }
 
-fn sem_scope_locals(scope: SemanticScope*, locals: vector(void*)*): void {
+fn sem_order_name(c: SemanticContext*, node: void*, value: FoundationNode*): u8* {
+    var checked = value != null;
+    if checked {
+        return sem_name(value);
+    }
+    return sem_identifier(c, sem_member(node, "name"));
+}
+
+fn sem_scope_locals(c: SemanticContext*, scope: SemanticScope*, locals: vector(void*)*): void {
     var i: usize = 0;
     loop {
         var step1 = i < scope.names.capacity;
@@ -231,10 +258,10 @@ fn sem_scope_locals(scope: SemanticScope*, locals: vector(void*)*): void {
             var step9 = step8;
             if step9 {
                 var step10 = sem_get(value);
-                var step11 = sem_name(step10);
+                var step11 = sem_order_name(c, value, step10);
                 var step12 = j - 1;
                 var step13 = sem_get(locals.data[step12]);
-                var step14 = sem_name(step13);
+                var step14 = sem_order_name(c, locals.data[step12], step13);
                 var step15 = sem_text_less(step11, step14);
                 step9 = step15;
             }
@@ -396,7 +423,7 @@ fn sem_block(c: SemanticContext*, n: void*, depth: u32): u32 {
         }
         i = i + 1;
     }
-    sem_scope_locals(c.scope, &value.locals);
+    sem_scope_locals(c, c.scope, &value.locals);
     c.scope = c.scope.parent;
     return flow;
 }
@@ -465,7 +492,9 @@ fn sem_statement(c: SemanticContext*, n: void*, depth: u32): u32 {
         var step9 = sem_member(n, "name");
         var step10 = sem_identifier(c, step9);
         var name: u8* = step10;
-        sem_set_name(value, name);
+        if value.global {} else {
+            sem_set_name(value, name);
+        }
         var step11 = name[0] == 0;
         var step12 = step11;
         var step13 = step12 == false;
@@ -762,6 +791,7 @@ fn sem_function_syntax(n: void*): bool {
 }
 
 fn sem_run(c: SemanticContext*): void {
+    sem_validate_aliases(c);
     var step1 = sem_get(c.program.root);
     var statements: vector(void*)* = &step1.items;
     var i: usize = 0;
@@ -777,7 +807,16 @@ fn sem_run(c: SemanticContext*): void {
         var step5 = name != null;
         if step5 {
             var step6 = sem_identifier(c, name);
-            sem_put(c, c.source_names, step6, n);
+            var entry = sem_entry(c, c.source_names, step6, null);
+            var repeated = entry.value != null;
+            if repeated {
+                var different = sem_owner(c, entry.value) != sem_owner(c, n);
+                if different {
+                    entry.number = 1;
+                }
+            } else {
+                entry.value = n;
+            }
         }
         var step7 = sem_ok(c);
         var step8 = step7;
@@ -887,6 +926,7 @@ fn sem_run(c: SemanticContext*): void {
         }
         i = i + 1;
     }
+    sem_link_functions(c);
     i = 0;
     loop {
         var step34 = i < statements.length;
@@ -913,8 +953,8 @@ fn sem_run(c: SemanticContext*): void {
             var step42 = sem_member(n, "name");
             var step43 = sem_identifier(c, step42);
             var name: u8* = step43;
-            sem_set_name(value, name);
-            var step44 = sem_put(c, c.globals, name, n);
+            sem_set_name(value, sem_output_name(c, n, name));
+            var step44 = sem_define(c, c.globals, n, name);
             var step45 = step44 == false;
             if step45 {
                 var step46 = sem_cat(c, "Duplicate module variable '", name);

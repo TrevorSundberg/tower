@@ -1,4 +1,10 @@
 import tower;
+import 'lexer-table';
+import 'lr-analysis';
+import 'lr-runtime';
+import 'lr-states';
+import 'syntax-types';
+import '../library/vector';
 
 // A revision's disposable lexical index. Patterns and text borrow its immutable
 // declaration entities; declarations remain the authoritative grammar nodes.

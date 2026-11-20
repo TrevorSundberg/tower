@@ -1,5 +1,18 @@
 import tower;
 import 'syntax-tags';
+import 'foundation-nodes';
+import 'frontend-bedrock';
+import 'frontend-table';
+import 'frontend-world';
+import 'lr-tree';
+import 'parser-nodes';
+import 'regex-lowering';
+import 'syntax-nodes';
+import 'syntax-reader';
+import 'syntax-source';
+import 'syntax-types';
+import 'syntax-validation';
+import '../library/vector';
 
 // Imports retain source, declaration and ordinary parse entities in one graph.
 // Grammar views below are derived indexes over those entities, never another IR.
@@ -24,6 +37,8 @@ extern fn syntax_get_error(session: void*): u8*;
 extern fn syntax_get_error_offset(session: void*): usize;
 
 extern fn tower_node_create(): void*;
+
+extern fn compiler_clone_tree(source: void*, limit: usize, copied: usize*): void*;
 
 extern fn entity_register(type: void*, size: usize, alignment: usize, lifecycle: usize): bool;
 
@@ -95,6 +110,7 @@ struct ModuleGraph {
     order: vector(FrontendModule*);
     error: vector(u8);
     depth: usize;
+    cycles: bool;
 }
 
 struct FrontendModule {
@@ -848,8 +864,13 @@ fn module_load(parent: FrontendModule*, name: u8*): FrontendModule* {
         if found {
             var active = result.state == ModuleLoading();
             if active {
-                module_fail(parent, "Import cycle through ", path.data);
-                result = null;
+                var self = result == parent;
+                if self {
+                    module_fail(parent, "Import cycle through ", path.data);
+                    result = null;
+                } else {
+                    parent.graph.cycles = true;
+                }
             }
         } else {
             var cached = module_cached(parent.graph.environment, path.data, text.data);
@@ -886,6 +907,7 @@ fn module_load(parent: FrontendModule*, name: u8*): FrontendModule* {
                     parent.graph.depth = parent.graph.depth - 1;
                     result.state = ModuleLoaded();
                     module_require(vector_push(FrontendModule*, &parent.graph.order, result));
+                    module_validate_cycles(result.graph);
                     var clean = parent.graph.error.length == 0;
                     if clean {
                         module_cache_store(result);
@@ -1001,18 +1023,38 @@ fn module_import_name(reader: SyntaxReader*, node: void*, value: SyntaxNode*): b
     return ok;
 }
 
+fn module_read_import(reader: SyntaxReader*, node: void*): bool {
+    var value = syntax_reader_attach(reader, node, SyntaxImport());
+    var name = syntax_reader_required(reader, node, "name");
+    var ok = reader.error == null;
+    if ok {
+        ok = module_import_name(reader, name, value);
+    }
+    var alias = syntax_reader_member(node, "alias");
+    var aliased = alias != null;
+    if aliased {
+        var part = syntax_reader_attach(reader, alias, SyntaxTerm());
+        ok = part != null;
+        if ok {
+            ok = syntax_reader_name(reader, alias, &value.capture);
+        }
+        if ok {
+            ok = value.capture.length != 0;
+            module_require(node_text_set(&part.text, value.capture.data));
+        }
+    }
+    return ok;
+}
+
 export fn frontend_module_import(module: FrontendModule*, node: void*, source: SyntaxSource*): bool {
     var reader: SyntaxReader;
     fill(&reader, 0, sizeof(SyntaxReader));
     reader.source = source;
     reader.match_kind = parser_match_get_type();
     reader.syntax_kind = syntax_component_type();
-    var value = syntax_reader_attach(&reader, node, SyntaxImport());
-    var name = syntax_reader_required(&reader, node, "name");
-    var ok = reader.error == null;
-    if ok {
-        ok = module_import_name(&reader, name, value);
-    }
+    var ok = module_read_import(&reader, node);
+    var value = frontend_syntax(node, reader.syntax_kind);
+    var aliased = syntax_reader_member(node, "alias") != null;
     if module.body {
         module_fail(module, "Imports must precede this file's declarations and statements", "");
         return false;
@@ -1020,6 +1062,18 @@ export fn frontend_module_import(module: FrontendModule*, node: void*, source: S
     if ok {} else {
         module_fail(module, "Invalid import declaration", "");
         return false;
+    }
+    if aliased {
+        var index: usize = 0;
+        while index < module.imports.length {
+            var previous = frontend_syntax(module.imports.data[index], reader.syntax_kind);
+            var duplicate = module_equal(module_text(&previous.capture), value.capture.data);
+            if duplicate {
+                module_fail(module, "Duplicate import alias: ", value.capture.data);
+                return false;
+            }
+            index = index + 1;
+        }
     }
     var dependency = module_load(module, value.name.data);
     var present = dependency != null;
@@ -1057,6 +1111,108 @@ export fn frontend_module_record(module: FrontendModule*, root: void*, declarati
 export fn frontend_module_finish(module: FrontendModule*): void {
     module.state = ModuleLoaded();
     module_require(vector_push(FrontendModule*, &module.graph.order, module));
+    module_validate_cycles(module.graph);
+}
+
+// Semantic declarations may depend on one another across files. A cyclic
+// component may not publish grammar updates or ordered initialization effects:
+// there is no dependency-first order for those operations inside a cycle.
+fn module_reaches(start: FrontendModule*, target: FrontendModule*): bool {
+    var pending: vector(FrontendModule*);
+    var seen: vector(FrontendModule*);
+    vector_init(FrontendModule*, &pending);
+    vector_init(FrontendModule*, &seen);
+    module_require(vector_push(FrontendModule*, &pending, start));
+    var found = false;
+    while pending.length != 0 {
+        pending.length = pending.length - 1;
+        var current = pending.data[pending.length];
+        var duplicate = false;
+        var i: usize = 0;
+        while i < seen.length {
+            var same = seen.data[i] == current;
+            if same {
+                duplicate = true;
+            }
+            i = i + 1;
+        }
+        if duplicate {
+            continue;
+        }
+        module_require(vector_push(FrontendModule*, &seen, current));
+        i = 0;
+        while i < current.dependencies.length {
+            var dependency = current.dependencies.data[i];
+            var same = dependency == target;
+            if same {
+                found = true;
+                break;
+            }
+            module_require(vector_push(FrontendModule*, &pending, dependency));
+            i = i + 1;
+        }
+        if found {
+            break;
+        }
+    }
+    vector_dispose(FrontendModule*, &pending);
+    vector_dispose(FrontendModule*, &seen);
+    return found;
+}
+
+fn module_validate_cycles(graph: ModuleGraph*): void {
+    if graph.cycles {} else {
+        return;
+    }
+    var i: usize = 0;
+    while i < graph.entities.length {
+        var current = module_node(graph, graph.entities.data[i]);
+        var ready = current.state == ModuleLoaded();
+        if ready {
+            var cyclic = module_reaches(current, current);
+            if cyclic {
+                var invalid = current.declarations.length != 0;
+                if invalid {} else {
+                    invalid = current.roots.length == 0;
+                }
+                var n: usize = 0;
+                while n < current.roots.length {
+                    var node = entity_child_at(current.roots.data[n], 0);
+                    var reader: SyntaxReader;
+                    fill(&reader, 0, sizeof(SyntaxReader));
+                    reader.match_kind = parser_match_get_type();
+                    var span = syntax_reader_span(&reader, node);
+                    var wrapper = module_equal(span.label.data, "Statement");
+                    if wrapper {
+                        node = entity_child_at(node, 0);
+                        span = syntax_reader_span(&reader, node);
+                    }
+                    var declaration = module_equal(span.label.data, "CoreFunction");
+                    if declaration {} else {
+                        declaration = module_equal(span.label.data, "CoreExternal");
+                    }
+                    if declaration {} else {
+                        declaration = module_equal(span.label.data, "CoreExport");
+                    }
+                    if declaration {} else {
+                        declaration = module_equal(span.label.data, "CoreStruct");
+                    }
+                    if declaration {} else {
+                        declaration = module_equal(span.label.data, "CoreEnum");
+                    }
+                    if declaration {} else {
+                        invalid = true;
+                    }
+                    n = n + 1;
+                }
+                if invalid {
+                    module_fail(current, "Import cycle requires declarations only (no grammar updates or initialization effects): ", current.source.name.data);
+                    return;
+                }
+            }
+        }
+        i = i + 1;
+    }
 }
 
 export fn frontend_module_comment(module: FrontendModule*, first: usize, last: usize): void {
@@ -1086,6 +1242,25 @@ export fn frontend_module_size(module: FrontendModule*): usize {
 
 export fn frontend_module_roots(module: FrontendModule*): usize {
     return module.roots.length;
+}
+
+// Import bindings refer to the actual declaration and canonical dependency.
+// Alias text is source metadata, independent of foreign symbol export names.
+export fn frontend_module_import_count(module: FrontendModule*): usize {
+    return module.imports.length;
+}
+
+export fn frontend_module_import_at(module: FrontendModule*, index: usize): void* {
+    return module.imports.data[index];
+}
+
+export fn frontend_module_dependency_at(module: FrontendModule*, index: usize): FrontendModule* {
+    return module.dependencies.data[index];
+}
+
+export fn frontend_module_alias(module: FrontendModule*, index: usize): u8* {
+    var value = frontend_syntax(module.imports.data[index], syntax_component_type());
+    return module_text(&value.capture);
 }
 
 export fn frontend_module_tree(module: FrontendModule*, index: usize): void* {
@@ -1280,6 +1455,15 @@ export fn frontend_modules_destroy(environment: ModuleEnvironment*): void {
 // program-specific semantic components and must be rebuilt for each program.
 // Cache identity includes exact source bytes of every transitive dependency.
 fn module_cacheable(module: FrontendModule*): bool {
+    // A back-edge may still point at an unfinished module. Never cache that
+    // partial snapshot, even if cycle validation will reject the request later.
+    if module.graph.cycles {
+        return false;
+    }
+    var ready = module.state == ModuleLoaded();
+    if ready {} else {
+        return false;
+    }
     var ordinary = module.roots.length != 0;
     if ordinary {
         return false;
@@ -1411,8 +1595,18 @@ fn module_clone(graph: ModuleGraph*, source: FrontendModule*): FrontendModule* {
         if done {
             break;
         }
-        var declaration = source.imports.data[i];
-        entity_retain(declaration);
+        // Cached grammar is immutable. Each request gets fresh import syntax
+        // entities before attaching compilation-specific ownership/bindings.
+        var copied: usize = 0;
+        var declaration = compiler_clone_tree(source.imports.data[i], ModuleMaximumSourceBytes(), &copied);
+        var present = declaration != null;
+        module_require(present);
+        var reader: SyntaxReader;
+        fill(&reader, 0, sizeof(SyntaxReader));
+        reader.source = result.source;
+        reader.match_kind = parser_match_get_type();
+        reader.syntax_kind = syntax_component_type();
+        module_require(module_read_import(&reader, declaration));
         module_require(vector_push(void*, &result.imports, declaration));
         i = i + 1;
     }

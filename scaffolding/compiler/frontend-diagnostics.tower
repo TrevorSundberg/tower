@@ -1,5 +1,9 @@
 import tower;
 import 'frontend-diagnostic-types';
+import 'lr-analysis';
+import 'lr-parser';
+import 'lr-runtime';
+import '../library/vector';
 
 // Error-only bounded lookahead correction. This pull protocol borrows numeric
 // LR frames; it never copies parse trees or rewinds the real source stream.

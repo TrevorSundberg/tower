@@ -12,7 +12,7 @@ extern fn LLVMInitializeWebAssemblyAsmPrinter(): void;
 
 extern fn LLVMInitializeWebAssemblyDisassembler(): void;
 
-fn backend_initialize_targets(): void {
+export fn backend_initialize_targets(): void {
     LLVMInitializeWebAssemblyTargetInfo();
     LLVMInitializeWebAssemblyTarget();
     LLVMInitializeWebAssemblyTargetMC();

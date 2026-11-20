@@ -1,4 +1,6 @@
 import tower;
+import '../compiler/interpreter-abi';
+import '../compiler/interpreter-storage';
 
 // Execution-space ownership and allocation-failure tests, run at both widths.
 extern fn tower_test_buffer_fail_next(): void;

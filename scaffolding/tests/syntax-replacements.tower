@@ -1,5 +1,8 @@
 import tower;
+import '../compiler/lr-tree';
 import '../compiler/frontend-modules';
+import '../compiler/syntax-reader';
+import '../compiler/syntax-validation';
 
 // Exercise preparation through the public session API. These same cases will
 // keep running when session ownership itself moves into Tower.

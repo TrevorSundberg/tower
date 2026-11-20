@@ -2,7 +2,7 @@
 set -euo pipefail
 # Imports are implemented in Tower. Do not recreate them in a native seed.
 if [ -z "${TOWER_BOOTSTRAP_COMPILER:-}" ]; then
-  printf '%s\n' 'Set TOWER_BOOTSTRAP_COMPILER to an import-capable Tower-built towerc (see docs/modules.md).' >&2
+  printf '%s\n' 'Set TOWER_BOOTSTRAP_COMPILER to a scope-capable Tower-built towerc (see docs/modules.md).' >&2
   exit 1
 fi
 test -x "$TOWER_BOOTSTRAP_COMPILER"

@@ -1,4 +1,5 @@
 import tower;
+import '../compiler/foundation-types';
 
 // LLVM's C API is the inspection boundary. All reconstructed semantics live on
 // the same Foundation components as parsing, formatting and execution.

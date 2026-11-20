@@ -3,6 +3,7 @@ import tower;
 // Regex notation is parsed by the ordinary LR engine over Unicode scalar IDs.
 // These are the same Rule/Reference/String/Range components as other grammars.
 import 'grammar-builder';
+import 'grammar-types';
 
 fn regex_reference(builder: GrammarBuilder*, name: u8*, child: u8*): void {
     var rule = grammar_builder_rule(builder, name, false);

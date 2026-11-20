@@ -1,5 +1,9 @@
 import tower;
 import 'host-parser-components';
+import 'entity-require';
+import 'host-world';
+import 'parser-types';
+import '../library/entities';
 
 extern fn tower_utf8_decode(source: u8*, length: usize, value: u32*): usize;
 

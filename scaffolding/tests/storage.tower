@@ -1,5 +1,7 @@
 import '../library/storage';
 import tower;
+import '../library/bytes-types';
+import '../library/bytes';
 
 // Storage imports its byte-buffer dependency once.
 var bytes: ByteBuffer;

@@ -1,4 +1,12 @@
 import tower;
+import 'syntax-emission';
+import '../compiler/lr-tree';
+import '../compiler/frontend-bedrock';
+import '../compiler/frontend-cache';
+import '../compiler/grammar-types';
+import '../compiler/lr-analysis';
+import '../compiler/parser-nodes';
+import '../compiler/syntax-validation';
 
 // Revision lifetime, eviction and failed insertions are tested in Tower. These
 // snapshots reference the same component-bearing nodes as ordinary declarations.

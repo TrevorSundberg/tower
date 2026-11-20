@@ -1,4 +1,5 @@
 import tower;
+import 'c-emitter';
 
 // Standard C runtime text; no external Tower runtime or compiler extensions
 // outside the legacy integer and optional non-returning function adapters.

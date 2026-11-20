@@ -1,4 +1,7 @@
 import tower;
+import '../compiler/host-text';
+import '../library/bytes-interface';
+import '../library/bytes-types';
 
 // Browser transport policies. These consume borrowed values from the compiler;
 // JSON is not a second semantic model or a Tower interchange format.

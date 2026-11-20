@@ -1,4 +1,10 @@
 import tower;
+import 'foundation-tags';
+import 'foundation-types';
+import 'interpreter-abi';
+import 'interpreter-storage';
+import 'interpreter';
+import '../library/vector';
 
 // Private, disposable execution cache of checked foundation nodes. This is not
 // an interchange format or a second semantic IR. No graph pointers or compiler

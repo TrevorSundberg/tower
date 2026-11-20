@@ -1,4 +1,7 @@
 import tower;
+import 'foreign-microsoft';
+import 'foreign-reader';
+import 'text';
 
 fn foreign_array(m: ForeignName*, base: ForeignType*): ForeignType* {
     var foreign_condition3003 = foreign_take(m, "[") == false;

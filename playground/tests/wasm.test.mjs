@@ -156,7 +156,8 @@ test('one foundation module bootstraps itself, installs idempotently and pins ex
     assert.equal(tower.inspect(module).grammarBuilds, 0);
     tower.configure(bootstrap); tower.configure(bootstrap);
     assert.equal(analyze('fn answer(): i32 { return 42; } var x: i32 = answer(); print(x);').end.status, 'done');
-    const edited = bootstrap.replace("parse CoreCall = $name:Identifier '(' $args:CoreArguments? ')';", "parse CoreCall = 'invoke' $name:Identifier '(' $args:CoreArguments? ')';");
+    const edited = bootstrap.replace("parse CoreCall = $name:CoreLocation '(' $args:CoreArguments? ')';", "parse CoreCall = 'invoke' $name:CoreLocation '(' $args:CoreArguments? ')';");
+    assert.notEqual(edited, bootstrap);
     tower.configure(edited); tower.configure(edited);
     assert.equal(analyze('invoke print(4);').end.status, 'done');
     assert.equal(analyze('print(4);').end.status, 'error');

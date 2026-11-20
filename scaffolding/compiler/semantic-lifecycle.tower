@@ -1,4 +1,13 @@
 import tower;
+import 'foundation-tags';
+import 'foundation-types';
+import 'semantic-context';
+import 'semantic-definitions';
+import 'semantic-statements';
+import 'semantic-support';
+import '../library/stack';
+import '../library/vector';
+import '../library/work-graph';
 
 // Semantic compiler over shared Foundation components.
 // Temporary indexes and scratch allocations are scoped to one compilation.
@@ -31,6 +40,7 @@ fn sem_context_init(c: SemanticContext*, program: SemanticProgram*): void {
     c.source_names = step8;
     var step9 = sem_table(c);
     c.source_bases = step9;
+    c.output_names = sem_table(c);
     var step10 = sem_table(c);
     c.fields_done = step10;
     work_init(&c.layout_work, 1, convert(u64, program.pointer_bytes));

@@ -1,4 +1,8 @@
 import tower;
+import 'foreign-operators';
+import 'foreign-reader';
+import 'text';
+import '../library/vector';
 
 fn foreign_number(out: vector(u8)*, value: usize, radix: usize): void {
     foreign_number64(out, convert(u64, value), convert(u64, radix));

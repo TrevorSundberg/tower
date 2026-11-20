@@ -3,6 +3,10 @@ import 'host-world';
 import 'host-parser-components';
 import 'host-parser-constructors';
 import 'host-provenance';
+import 'component-kinds';
+import 'entity-require';
+import 'syntax-types';
+import '../library/entities';
 
 export fn core_component_type(): Entity* {
     return compiler_host_type(CompilerFoundation());

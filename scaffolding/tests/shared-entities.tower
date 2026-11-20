@@ -2,6 +2,8 @@ import tower;
 import '../compiler/component-kinds';
 import '../compiler/parser-types';
 import '../compiler/syntax-types';
+import '../compiler/foundation-types';
+import '../library/vector';
 
 // Functional entity tests: all mutation, ownership and failure assertions execute
 // in Tower. The test composition reuses FoundationNode's authoritative layout.

@@ -1,5 +1,7 @@
 import tower;
 import 'syntax-types';
+import 'parser-nodes';
+import '../library/vector';
 
 // Immutable source storage shared by declaration entities and later diagnostics.
 // These references use the compiler runtime's current single-threaded ownership.

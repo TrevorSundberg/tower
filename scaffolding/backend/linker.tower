@@ -1,5 +1,12 @@
 import tower;
 import 'coff-import';
+import 'context';
+import 'file-api';
+import 'foreign-api';
+import 'foreign-reader';
+import 'foreign-symbol';
+import 'text';
+import '../library/vector';
 
 // Link plans are transport-independent argument lists for upstream LLD.
 // Native hosts execute the bundled upstream tool; WASI invokes its pinned ABI.

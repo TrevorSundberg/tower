@@ -1,4 +1,15 @@
 import tower;
+import 'bindings';
+import 'context';
+import 'import-bindings';
+import 'import-foundation';
+import 'import-instructions';
+import 'import-values';
+import 'lowering';
+import 'pipeline';
+import 'text';
+import '../compiler/foundation-types';
+import '../library/vector';
 
 fn bi_initializer(c: BackendImport*, address: void*, initializer: void*, type: void*): void {
     var kind = LLVMGetTypeKind(type);
