@@ -45,8 +45,9 @@ void syntax_node_pattern(SyntaxNode*, const LexPattern*);
 int32_t syntax_nodes_equal(TowerNode*, TowerNode*, TowerNode* type, bool locations);
 }
 extern "C" TowerNode* syntax_component_type();
-SyntaxNode* syntax_get(TowerNode* node);
+extern "C" SyntaxNode* syntax_get(TowerNode* node);
+extern "C" SyntaxNode* syntax_component_attach(TowerNode* node, SyntaxKind kind);
 SyntaxNode& syntax_node(TowerNode* node);
 SyntaxNode& syntax_attach(TowerNode* node, SyntaxKind kind);
-bool syntax_equal(TowerNode* a, TowerNode* b, bool locations = false);
-const char* syntax_kind_name(SyntaxKind kind);
+extern "C" bool syntax_equal(TowerNode* a, TowerNode* b, bool locations = false);
+extern "C" const char* syntax_kind_name(SyntaxKind kind);

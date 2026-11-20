@@ -1,0 +1,27 @@
+import tower;
+import 'entity-require';
+import 'world';
+
+// Existing host API over the same entity store. No copied nodes or components.
+// The legacy host retains one world handle. Its store/types/lifetime are Tower.
+// Explicit callers create/dispose worlds through world.tower without this handle.
+extern fn compiler_host_world(): CompilerWorld*;
+
+export fn compiler_entity_store(): EntityStore* {
+    var world = compiler_host_world();
+    return world.store;
+}
+
+fn compiler_host_type(kind: u32): Entity* {
+    var type = compiler_world_type(compiler_host_world(), kind);
+    var present = type != null;
+    compiler_entity_require(present);
+    return type;
+}
+
+fn compiler_host_component(owner: Entity*, kind: u32): void* {
+    var data = compiler_world_component(compiler_host_world(), owner, kind);
+    var present = data != null;
+    compiler_entity_require(present);
+    return data;
+}

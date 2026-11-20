@@ -206,8 +206,8 @@ The executor remains serial within each compiler unit.
 
 The eventual compiler-service world owns module inputs, sessions, type registries,
 entities, diagnostics and a revision/cancellation lifetime, like an independent
-language-runtime environment. The native compiler still selects a singleton
-store and has native grammar/type caches. Migrating those boundaries is required
+language-runtime environment. The legacy compiler still selects one default
+world and has native session/grammar caches. Migrating those boundaries is required
 before offering several independent compiler worlds in one native instance.
 Browser worker/Wasm-instance isolation continues to provide that separation now.
 
@@ -217,8 +217,28 @@ instance and origin type entities. Programs use distinct component identities
 even when they share an underlying store. Releasing a program reclaims its
 registry through ordinary entity ownership; a retained component still keeps its
 own type alive. `compiler/generic-registry` provides this without a native type
-cache or process-lifetime generic registry. The remaining parser/Foundation type
-registries and store boundary are still native.
+cache or process-lifetime generic registry.
+
+`compiler/world` now owns a store and its parser, syntax and Foundation component
+types in Tower. `compiler_world_create` creates an independent registry;
+`compiler_world_type` lazily registers a borrowed type handle, and
+`compiler_world_component` creates/initializes or reuses a payload on a node in
+that same world. `compiler_world_get` never creates a type. Foreign-world nodes
+and invalid kinds are rejected. Allocation failure leaves the node unchanged;
+a successfully registered type may remain cached for retry. Parser/syntax payload
+destruction now dispatches directly in Tower, alongside Foundation destruction.
+
+`compiler_world_dispose` succeeds only after nodes, components, pinned views and
+retained type references drain. A rejected disposal leaves the world usable.
+Store/type handles are borrowed; the world owns the store and callers must not
+dispose it separately. Registry mutation and refcounts remain coordinator-owned.
+The production host uses these APIs through one default-world handle retained
+by its existing native boundary. Library objects currently reject top-level
+variables, so that handle has not moved to a Tower global. Explicit registry
+worlds are available, but complete independent compilation still requires moving
+native sessions, grammar baselines, syntax provenance metadata and default-only
+semantic accessors. The native provenance component registry is not one of the
+seven primary payload kinds migrated here.
 
 Module environments now lend exclusive parser-session leases to active module
 graphs and retain one idle session for reuse. Cache invalidation does not destroy

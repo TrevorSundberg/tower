@@ -1,0 +1,28 @@
+import tower;
+
+// Private component slots and lifecycle IDs, not Foundation operation numbers.
+const CompilerParserRule: u32 = 0;
+const CompilerParserReference: u32 = 1;
+const CompilerParserString: u32 = 2;
+const CompilerParserRange: u32 = 3;
+const CompilerParserMatch: u32 = 4;
+const CompilerSyntax: u32 = 5;
+const CompilerFoundation: u32 = 6;
+const CompilerComponentCount: u32 = 7;
+
+fn compiler_foundation_lifecycle(): usize {
+    var last: usize = 0;
+    last = last - 1;
+    return last;
+}
+
+fn compiler_syntax_lifecycle(): usize {
+    var value = compiler_foundation_lifecycle() - 1;
+    return value;
+}
+
+fn compiler_parser_lifecycle(kind: u32): usize {
+    var value = compiler_syntax_lifecycle() - 1;
+    value = value - convert(usize, kind);
+    return value;
+}

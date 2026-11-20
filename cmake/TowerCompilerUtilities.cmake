@@ -155,7 +155,7 @@ function(tower_compiler_parser_nodes)
   set_source_files_properties("${object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
   tower_compiler_semantics()
   add_library(tower-compiler-parser-nodes INTERFACE)
-  target_sources(tower-compiler-parser-nodes INTERFACE "${object}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/parser-nodes.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler-grammar.cpp")
+  target_sources(tower-compiler-parser-nodes INTERFACE "${object}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler-grammar.cpp")
 endfunction()
 
 function(tower_compiler_semantics)

@@ -7,15 +7,17 @@ and bootstrap distribution still need migration and integration. The tooling
 below keeps those release gates explicit; a module comparison does not establish
 complete compiler self-hosting.
 
-The 2026-11-19 retirement audit finds approximately 6,600 lines in 56 production
+The 2026-11-19 retirement audit now finds 6,534 lines in 55 production
 C/C++ source/header files under scaffolding, another 4,100 test lines and 4,000
 bootstrap lines, excluding third-party dependencies. These are a source inventory,
-not a completion percentage. syntax.cpp and parser.cpp account for about 2,700
+not a completion percentage. syntax.cpp and parser.cpp account for about 2,800
 production lines; CLI/browser entry points, raw platform/foreign operations,
 native registries and bootstrap/distribution remain meaningful retirement work.
-Tower now owns generic registry lifetime and module compilation-session leasing,
-but the native SyntaxSession implementation and other process-global registries
-remain. Portable compiler release gates below are still required.
+Tower now owns generic registry lifetime, module compilation-session leasing and
+CompilerWorld stores with parser/syntax/Foundation type registries. The native
+parser-nodes.cpp adapter is retired. Native SyntaxSession/grammar/provenance state
+and the legacy default-world handle remain. Portable compiler release gates below
+are still required.
 
 ## Implemented host migration
 

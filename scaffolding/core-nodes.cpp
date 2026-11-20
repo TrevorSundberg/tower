@@ -20,7 +20,6 @@ const char* core_builtin_name(CoreKind kind) {
   return semantic_builtin_name(unsigned(kind));
 }
 
-TowerNode* core_component_type() { static auto* type = tower_node_create(); return type; }
 CoreNode* core_get(TowerNode* n) {
   return sem_get(n);
 }

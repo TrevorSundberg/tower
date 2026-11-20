@@ -17018,3 +17018,86 @@ summary to acknowledge the already-Tower LLVM backend algorithms; remaining
 native transports and complete bootstrap retirement are still open. Existing
 stashes are preserved and todo.txt remains Git blob
 96a9e58964d7f01e4a97819f259448db81ef5e40.
+
+## 2026-11-19: retire native compiler component registries
+
+Pulled e3095e7 before work, clean main. The next native retirement slice is the
+parser component registration/creation API, syntax registration, Foundation type
+identity and default entity-store ownership. Payload implementations already
+exist in Tower; native templates/statics still own their identities and callbacks.
+Implement an explicit Tower CompilerWorld owning its store and lazily registered
+component types. Reject disposal while nodes, pinned views or retained type
+references remain. Preserve existing callers through a Tower-owned default world;
+this does not yet isolate native SyntaxSession/grammar baselines or make mutable
+world state concurrent. Keep new algorithms and functional assertions in Tower.
+Native changes only delete replaced implementations or connect declarations to
+the same C ABI. Dispatch parser/syntax destruction directly in Tower alongside
+the existing Foundation finalizer. Validate real compiler use, independent-world
+identity/reclamation, raw/optimized behavior, successors, native sanitizers and
+browser deployment. Saved the unchanged LLVM baseline at
+build/language-next/world-baseline/tower-llvm.wasm for comparative measurement.
+
+Implemented compiler/world.tower, component-kinds.tower and the Tower compatibility
+API in host-parser-components.tower. Deleted parser-nodes.cpp and removed its
+source from the isolated parser build fragment. Replaced syntax-nodes.cpp's type,
+creation, comparison and naming implementations with Tower; its two existing
+reference-return adapters remain mechanical. Removed core_component_type's native
+static. Header edits only connect existing signatures to C ABI exports. Tower now
+owns seven primary payload identities (five parser types, syntax and Foundation),
+their store, creation/reuse and finalization. Syntax naming uses a Tower enum and
+match instead of numeric dispatch. Current production native inventory is 55 files
+and 6,534 lines, down 110 lines including header connections. Native tests and
+bootstrap inventory is unchanged; no new native implementation/test/seed exists.
+
+Two implementation trials exposed current language limits: return operands do
+not accept arbitrary binary expressions, and library source rejects top-level
+variables. Used ordinary locals for the first. For the second, corrected the
+initial plan: the existing native default-handle boundary now mechanically calls
+compiler_world_create rather than entity_store_create. It retains one world
+handle; store/type management is Tower, but this is not a Tower global or complete
+native compiler-world isolation. Explicit world creation/disposal needs no default
+handle. Native SyntaxSession/grammar/provenance state and default-only semantic
+accessors remain. In particular syntax.cpp's origin_type is not one of the seven
+component kinds ported here. Ownership changes do not make payload/refcount
+mutation concurrent or introduce parallel phases within units.
+
+Extended tests/shared-entities.tower with the production-world fixture: 40 pairs
+of independent worlds, type identities, invalid/cross-world attachment rejection,
+injected component allocation failures, state-preserving reuse, owned text/source/
+replacement/Foundation data, pinned reclamation, retained types, rejected disposal,
+empty-world disposal and complete buffer reclamation. All assertions are Tower.
+The first sanitizer run stopped at the existing canonical-format assertion,
+before reaching these tests. Ran format-tower.mjs --write, rebuilt and reran: the
+full native parser suite passes with native address/undefined sanitizers in 128.24
+seconds. Native backend API checks pass. Native, parser/WASI and LLVM/cross builds
+pass. After packaging completed, all 349 Node/Wasm tests pass in 30.17 seconds.
+Logs: build/language-next/world-{native,api,parser-build,parser,format,wasi,llvm,
+package,node}.log. Native support payloads now report 5,526,990 / 114,049,852 /
+129,957,562 bytes for parser/LLVM/cross, with eight Tower units each. These totals
+still contain explicitly identified project-owned native code and third-party
+libraries; they are not standalone pure Tower compiler distributions.
+
+The first packaged build also passed 47 browser cases (one existing mobile
+successor-build skip), desktop/mobile local verification and two byte-identical
+compiler successors using two then four workers. Before publication, split the
+default-world helpers into host-world.tower so host-parser-components imports its
+dependencies directly instead of relying on composition order. Rebuilt all four
+native/WASI targets and repackaged; native backend API checks and the sanitizer
+parser suite pass again (116.71 seconds). Canonical formatting is checked with
+format-tower.mjs, without changing Foundation or the bootstrap grammar. All 349
+Node/Wasm checks pass on this final composition (36.71 seconds). Final logs use
+the world-final- prefix; pre-cleanup evidence remains under world-.
+
+Ran benchmark-compiler-ownership.mjs after the final builds and sanitizer suite
+finished, with no other task-owned test/build running. The saved pre-change LLVM
+reactor and new reactor receive identical final recipe/grammar inputs. Six warmups
+and sixteen alternating pairs on Node v22.23.4 / AMD RYZEN AI MAX+ 395 produce
+byte-identical objects for every sample. Median milliseconds, baseline -> new:
+templates 6.2043 -> 6.2303, layout stress 18.4949 -> 18.0500, compiler-host unit
+155.5250 -> 155.2377. No material regression is evident in these samples; this is
+not a universal speedup or memory/SIMD claim. Exact samples and provenance are in
+build/language-next/world-benchmark.{json,log}. Baseline SHA-256:
+e9b170a0932d8ccf618aa1f62411ef5cbf82b8039f860fbd505e5b9da54f6bae;
+new LLVM reactor c1cd7289728ddd142150fd850eb80a7ff7fff2f779ee6f27a405f9cc4c2dfada;
+recipe f3bbf836a6850e60cf837b1ff706fe5778de955b2b2bc91e71936e2dc3bdc0c3.
+The previous ownership benchmark was saved separately before running this one.

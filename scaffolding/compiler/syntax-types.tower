@@ -3,6 +3,10 @@ import tower;
 
 // Shared component layouts for grammar construction, formatting and inspection.
 // Native adapters borrow these exact payloads; there is only one grammar model.
+enum SyntaxKind: u32 {
+    Document, Rule, Token, Skip, Alternative, Term, Template, Import
+}
+
 struct LexerTable {
     alphabet: vector(u32);
     transitions: vector(i32);

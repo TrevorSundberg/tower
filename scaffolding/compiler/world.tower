@@ -1,0 +1,206 @@
+import tower;
+import '../library/entities';
+import 'component-kinds';
+import 'parser-types';
+import 'syntax-types';
+import 'foundation-types';
+
+extern fn node_payload_init(kind: u32, data: void*): void;
+
+extern fn syntax_node_init(data: SyntaxNode*): void;
+
+extern fn foundation_node_init(data: FoundationNode*): void;
+
+// Coordinator-owned identity and lifetime. Worlds do not share stores or type
+// entities. The legacy host uses one default world until its sessions migrate.
+struct CompilerWorld {
+    store: EntityStore*;
+    types: Entity*[7]; // CompilerComponentCount slots.
+    registered: usize;
+}
+
+export fn compiler_world_create(): CompilerWorld* {
+    var world = alloc(CompilerWorld, 1);
+    var missing = world == null;
+    if missing {
+        return null;
+    }
+    fill(world, 0, sizeof(CompilerWorld));
+    world.store = entity_store_create();
+    var missing_store = world.store == null;
+    if missing_store {
+        free(world);
+        return null;
+    }
+    return world;
+}
+
+// Borrowed store and type handles; callers retain types they need to own.
+export fn compiler_world_store(world: CompilerWorld*): EntityStore* {
+    return world.store;
+}
+
+export fn compiler_world_type(world: CompilerWorld*, kind: u32): Entity* {
+    var invalid = kind >= CompilerComponentCount();
+    if invalid {
+        return null;
+    }
+    var type = world.types[kind];
+    var present = type != null;
+    if present {
+        return type;
+    }
+    var size = sizeof(FoundationNode);
+    var alignment = alignof(FoundationNode);
+    var lifecycle = compiler_foundation_lifecycle();
+    var syntax = kind == CompilerSyntax();
+    if syntax {
+        size = sizeof(SyntaxNode);
+        alignment = alignof(SyntaxNode);
+        lifecycle = compiler_syntax_lifecycle();
+    }
+    var parser = kind <= CompilerParserMatch();
+    if parser {
+        lifecycle = compiler_parser_lifecycle(kind);
+        var rule = kind == CompilerParserRule();
+        if rule {
+            size = sizeof(ParserRuleData);
+            alignment = alignof(ParserRuleData);
+        }
+        var reference = kind == CompilerParserReference();
+        if reference {
+            size = sizeof(ParserReferenceData);
+            alignment = alignof(ParserReferenceData);
+        }
+        var string = kind == CompilerParserString();
+        if string {
+            size = sizeof(ParserStringData);
+            alignment = alignof(ParserStringData);
+        }
+        var range = kind == CompilerParserRange();
+        if range {
+            size = sizeof(ParserRangeData);
+            alignment = alignof(ParserRangeData);
+        }
+        var parsed = kind == CompilerParserMatch();
+        if parsed {
+            size = sizeof(ParserMatchData);
+            alignment = alignof(ParserMatchData);
+        }
+    }
+    type = entity_create(world.store);
+    var missing = type == null;
+    if missing {
+        return null;
+    }
+    var registered = entity_register(type, size, alignment, lifecycle);
+    if registered {} else {
+        entity_release(type);
+        return null;
+    }
+    world.types[kind] = type;
+    world.registered = world.registered + 1;
+    return type;
+}
+
+export fn compiler_world_get(world: CompilerWorld*, owner: Entity*, kind: u32): void* {
+    var missing_owner = owner == null;
+    if missing_owner {
+        return null;
+    }
+    var foreign_store = owner.store != world.store;
+    if foreign_store {
+        return null;
+    }
+    var invalid = kind >= CompilerComponentCount();
+    if invalid {
+        return null;
+    }
+    var type = world.types[kind];
+    var missing_type = type == null;
+    if missing_type {
+        return null;
+    }
+    return bits(void*, entity_component_data(entity_component_get(owner, type)));
+}
+
+// Reattachment preserves payload state. A failed attachment leaves the node
+// unchanged; a successfully registered type may remain cached for a retry.
+export fn compiler_world_component(world: CompilerWorld*, owner: Entity*, kind: u32): void* {
+    var missing_owner = owner == null;
+    if missing_owner {
+        return null;
+    }
+    var foreign_store = owner.store != world.store;
+    if foreign_store {
+        return null;
+    }
+    var type = compiler_world_type(world, kind);
+    var missing_type = type == null;
+    if missing_type {
+        return null;
+    }
+    var data = compiler_world_get(world, owner, kind);
+    var existing = data != null;
+    if existing {
+        return data;
+    }
+    data = bits(void*, entity_component_data(entity_component_add(owner, type)));
+    var failed = data == null;
+    if failed {
+        return null;
+    }
+    var parser = kind <= CompilerParserMatch();
+    if parser {
+        node_payload_init(kind, data);
+    }
+    var syntax = kind == CompilerSyntax();
+    if syntax {
+        syntax_node_init(bits(SyntaxNode*, data));
+    }
+    var foundation = kind == CompilerFoundation();
+    if foundation {
+        foundation_node_init(bits(FoundationNode*, data));
+    }
+    return data;
+}
+
+// Failed disposal is non-mutating. All requests and views must drain first.
+export fn compiler_world_dispose(world: CompilerWorld*): bool {
+    var pinned = world.store.views != 0;
+    if pinned {
+        return false;
+    }
+    var live_nodes = entity_store_count(world.store) != world.registered;
+    if live_nodes {
+        return false;
+    }
+    var live_components = entity_store_component_count(world.store) != 0;
+    if live_components {
+        return false;
+    }
+    var index: u32 = 0;
+    while index < CompilerComponentCount() {
+        var type = world.types[index];
+        var present = type != null;
+        if present {
+            var retained = entity_references(type) != 1;
+            if retained {
+                return false;
+            }
+        }
+        index = index + 1;
+    }
+    index = 0;
+    while index < CompilerComponentCount() {
+        var type = world.types[index];
+        var present = type != null;
+        if present {
+            entity_release(type);
+        }
+        index = index + 1;
+    }
+    var disposed = entity_store_dispose(world.store);
+    free(world);
+    return disposed;
+}

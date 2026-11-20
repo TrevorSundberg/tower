@@ -26,22 +26,22 @@ void parser_tests();
 
 
 // Get the compiletime type of the Rule component
-TowerNode* parser_rule_get_type();
+extern "C" TowerNode* parser_rule_get_type();
 
 // A Rule starts with a name that defines it: A = ...;
 // The children under a Rule must be Strings/References and other operators
 // Construct a rule component and attach it to the node
-Rule* parser_rule_create(TowerNode* owner);
+extern "C" Rule* parser_rule_create(TowerNode* owner);
 
 // The name of a rule which references look up by name
 // Note that the string memory is copied in and owned by the component
-void parser_rule_set_name(Rule* component, const char* name);
-const char* parser_rule_get_name(Rule* component);
+extern "C" void parser_rule_set_name(Rule* component, const char* name);
+extern "C" const char* parser_rule_get_name(Rule* component);
 
 // Generated helper rules flatten their children into the containing rule.
 // The start rule always keeps a root node, even if marked generated.
-void parser_rule_set_generated(Rule* component, bool generated);
-bool parser_rule_get_generated(Rule* component);
+extern "C" void parser_rule_set_generated(Rule* component, bool generated);
+extern "C" bool parser_rule_get_generated(Rule* component);
 
 // Creates a child node and attaches it to the parent,
 // adds the Rule component to the child, and sets up the component
@@ -54,20 +54,20 @@ TowerNode* parser_rule_create_subtree(
 
 
 // Get the compiletime type of the Reference component
-TowerNode* parser_reference_get_type();
+extern "C" TowerNode* parser_reference_get_type();
 
 // A Reference represents a recursive reference to a rule
 // Construct a reference component and attach it to the node
-Reference* parser_reference_create(TowerNode* owner);
+extern "C" Reference* parser_reference_create(TowerNode* owner);
 
 // Refers to a rule by name
 // Note that the string memory is copied in and owned by the component
-void parser_reference_set_name(Reference* component, const char* name);
-const char* parser_reference_get_name(Reference* component);
+extern "C" void parser_reference_set_name(Reference* component, const char* name);
+extern "C" const char* parser_reference_get_name(Reference* component);
 
 // Name the reduced child in its parent's generic member map (empty means unnamed).
-void parser_reference_set_capture(Reference* component, const char* name);
-const char* parser_reference_get_capture(Reference* component);
+extern "C" void parser_reference_set_capture(Reference* component, const char* name);
+extern "C" const char* parser_reference_get_capture(Reference* component);
 
 // Creates a child node and attaches it to the parent,
 // adds the Reference component to the child, and sets up the component
@@ -77,26 +77,26 @@ TowerNode* parser_reference_create_subtree(TowerNode* parent, const char* name);
 
 
 // Get the compiletime type of the String component
-TowerNode* parser_string_get_type();
+extern "C" TowerNode* parser_string_get_type();
 
 // A String represents a sequence of characters (or a single character) to be parsed
 // Construct a string component and attach it to the node
-String* parser_string_create(TowerNode* owner);
+extern "C" String* parser_string_create(TowerNode* owner);
 
 // Sets an id at a specific index of the string
 // If the string length is not long enough it will be
 // resized and any gaps will be filled with PARSER_ID_EOF
 // Canonically this id is used as a character codepoint in tokenizing
-void parser_string_set_id(String* component, size_t index, uint32_t id);
-uint32_t parser_string_get_id(String* component, size_t index);
+extern "C" void parser_string_set_id(String* component, size_t index, uint32_t id);
+extern "C" uint32_t parser_string_get_id(String* component, size_t index);
 
 // The length of the string of ids
 // Setting the length will truncate end elements if it's smaller,
 // or if it is larger it will be filled with PARSER_ID_EOF
-void parser_string_set_length(String* component, size_t length);
-size_t parser_string_get_length(String* component);
+extern "C" void parser_string_set_length(String* component, size_t length);
+extern "C" size_t parser_string_get_length(String* component);
 // Borrowed storage, invalidated by mutation.
-const uint32_t* parser_string_get_data(String* component);
+extern "C" const uint32_t* parser_string_get_data(String* component);
 
 // Appends the string of ids from a null-terminated utf8 string (the character codepoint values)
 // Each utf8 character will be decoded and stored within a 32 bit integer as an id
@@ -104,7 +104,7 @@ void parser_string_append_utf8_null_terminated(String* component, const char* ut
 
 // Appends the string of ids from a utf8 string (the character codepoint values)
 // Each utf8 character will be decoded and stored within a 32 bit integer as an id
-void parser_string_append_utf8(String* component, const char* utf8_begin, const char* utf8_end);
+extern "C" void parser_string_append_utf8(String* component, const char* utf8_begin, const char* utf8_end);
 
 // Creates a child node and attaches it to the parent,
 // adds the String component to the child, and sets up the component (utf8 null terminated)
@@ -120,20 +120,20 @@ TowerNode* parser_string_create_subtree_utf8(TowerNode* parent, const char* utf8
 
 
 // Get the compiletime type of the Range component
-TowerNode* parser_range_get_type();
+extern "C" TowerNode* parser_range_get_type();
 
 // A Range represents a contiguous numerical range canonically of characters and is a more
 // optimal representation as opposed to creating many rules with single characters each
 // Construct a character-range component and attach it to the node
-Range* parser_range_create(TowerNode* owner);
+extern "C" Range* parser_range_create(TowerNode* owner);
 
 // The start of the character range (inclusive)
-void parser_range_set_start(Range* component, uint32_t start_id);
-uint32_t parser_range_get_start(Range* component);
+extern "C" void parser_range_set_start(Range* component, uint32_t start_id);
+extern "C" uint32_t parser_range_get_start(Range* component);
 
 // The end of the character range (inclusive)
-void parser_range_set_end(Range* component, uint32_t end_id);
-uint32_t parser_range_get_end(Range* component);
+extern "C" void parser_range_set_end(Range* component, uint32_t end_id);
+extern "C" uint32_t parser_range_get_end(Range* component);
 
 // Creates a child node and attaches it to the parent,
 // adds the Range component to the child, and sets up the component
@@ -149,13 +149,13 @@ extern "C" TowerNode* parser_match_get_type();
 // Match components will appear on the root of all nodes produced by a Recognizer (akin to a parse tree)
 // Match nodes also contain the start/end indices of the range they parsed
 // Construct a parse component and attach it to the node
-Match* parser_match_create(TowerNode* owner);
+extern "C" Match* parser_match_create(TowerNode* owner);
 
 // Used to indicate a generic id or value of what was successfully parsed
 // For reductions this is the table's non-terminal id, compatible with reference
 // resolution. Use get_rule_index to distinguish productions with the same name.
-void parser_match_set_id(Match* component, uint32_t id);
-uint32_t parser_match_get_id(Match* component);
+extern "C" void parser_match_set_id(Match* component, uint32_t id);
+extern "C" uint32_t parser_match_get_id(Match* component);
 
 // The starting index into the stream where the match was successfully parsed
 // Canonically this is the byte index of the starting character that created this match
@@ -163,25 +163,25 @@ uint32_t parser_match_get_id(Match* component);
 // the start is often bubbled up from the tokenizer and will refer to character bytes (not nodes)
 // It is also common practice that if the Match has children Matches, the
 // parents start  and length with encompass it's children, and so on recursively
-void parser_match_set_start(Match* component, size_t start_index);
-size_t parser_match_get_start(Match* component);
+extern "C" void parser_match_set_start(Match* component, size_t start_index);
+extern "C" size_t parser_match_get_start(Match* component);
 
 // The length of the match relative to the stream where the match was successfully parsed
 // Canonically this is the byte length of the characters that created this match
 // It is also common practice that if the Match has children Matches, the
 // parents start and length with encompass it's children, and so on recursively
-void parser_match_set_length(Match* component, size_t length);
-size_t parser_match_get_length(Match* component);
+extern "C" void parser_match_set_length(Match* component, size_t length);
+extern "C" size_t parser_match_get_length(Match* component);
 
 // A reduction's id is its non-terminal id; its production index distinguishes
 // alternatives of that non-terminal. Terminals have TOWER_INVALID_INDEX here.
-size_t parser_match_get_rule_index(Match* component);
+extern "C" size_t parser_match_get_rule_index(Match* component);
 // Used when copying/remapping a parsed template into another grammar table.
-void parser_match_set_rule_index(Match* component, size_t index);
+extern "C" void parser_match_set_rule_index(Match* component, size_t index);
 
 // A copied debug label, independent of the lifetime of the parser table.
-const char* parser_match_get_label(Match* component);
-void parser_match_set_label(Match* component, const char* label);
+extern "C" const char* parser_match_get_label(Match* component);
+extern "C" void parser_match_set_label(Match* component, const char* label);
 
 // Format/print the tree with labels, production indices and byte spans.
 // Free the returned string with tower_memory_free. Neither function takes ownership.

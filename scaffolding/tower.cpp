@@ -8,8 +8,8 @@
 
 // These are adapters to the same entities, not native copies of their fields.
 namespace {
-EntityStore* store() {
-  static auto* value = entity_store_create();
+CompilerWorld* world() {
+  static auto* value = compiler_world_create();
   if (!value) std::abort();
   return value;
 }
@@ -42,10 +42,10 @@ void* tower_memory_allocate(size_t size) {
 void tower_memory_free(void* memory) {
   compiler_node_free(&node_memory, memory, node_diagnostics);
 }
+extern "C" CompilerWorld* compiler_host_world() { return world(); }
 size_t tower_memory_get_allocated_count() {
   return node_memory.live_allocations;
 }
-extern "C" EntityStore* compiler_entity_store() { return store(); }
 TowerComponent* tower_component_create(TowerNode* owner, TowerNode* type, size_t size, TowerComponentDestructor destructor) {
   require(tower_component_register(type, size, destructor));
   auto* component = entity_component_add(owner, type); require(component); return component;

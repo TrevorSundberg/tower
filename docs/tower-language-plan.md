@@ -436,8 +436,11 @@ containers. Benchmark representative compiler workloads before migrating them.
    Generic component registries now belong to individual programs and are
    implemented entirely in Tower. Active module graphs also own exclusive parser
    session leases; environments retain one idle cache and reject disposal with
-   live requests. Parser/Foundation registries, grammar baselines, native session
-   implementation and the singleton entity store still need explicit ownership.
+   live requests. Tower CompilerWorld now owns stores and lazy parser/syntax/
+   Foundation registries, with direct Tower payload finalizers and guarded
+   disposal. The production host uses one default-world handle; native sessions,
+   grammar baselines, provenance metadata and default-only semantic accessors
+   still need migration before complete independent compilation can use explicit worlds.
 3. Migrate pure layout, body-analysis and lowering queries individually. Cache
    matching entity/component tuples. Preserve stable sparse payloads where
    address stability matters; introduce dense typed columns only for measured
