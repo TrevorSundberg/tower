@@ -1,0 +1,88 @@
+import tower;
+import 'host-parser-components';
+
+extern fn tower_utf8_decode(source: u8*, length: usize, value: u32*): usize;
+
+extern fn tower_utf8_encode(value: u32, destination: u8*, capacity: usize): usize;
+
+// Legacy host constructors preserve the parent-owned reference convention.
+// Explicit world grammar construction uses GrammarBuilder and fallible results.
+fn parser_host_child(parent: Entity*): Entity* {
+    var node = entity_create(compiler_entity_store());
+    var present = node != null;
+    compiler_entity_require(present);
+    compiler_entity_require(entity_attach(node, parent, null));
+    entity_release(node);
+    return node;
+}
+
+fn parser_utf8_end(text: u8*): u8* {
+    var end = text;
+    loop {
+        var done = *end == 0;
+        if done {
+            return end;
+        }
+        end = end + 1;
+    }
+}
+
+export fn parser_rule_create_subtree(parent: Entity*, name: u8*, generated: bool): Entity* {
+    var node = parser_host_child(parent);
+    var rule = parser_rule_create(node);
+    parser_rule_set_name(rule, name);
+    parser_rule_set_generated(rule, generated);
+    return node;
+}
+
+export fn parser_reference_create_subtree(parent: Entity*, name: u8*): Entity* {
+    var node = parser_host_child(parent);
+    parser_reference_set_name(parser_reference_create(node), name);
+    return node;
+}
+
+export fn parser_string_append_utf8_null_terminated(value: ParserStringData*, text: u8*): void {
+    parser_string_append_utf8(value, text, parser_utf8_end(text));
+}
+
+export fn parser_string_create_subtree_utf8(parent: Entity*, begin: u8*, end: u8*): Entity* {
+    var first = bits(usize, begin);
+    var last = bits(usize, end);
+    var ordered = last >= first;
+    compiler_entity_require(ordered);
+    var node = parser_host_child(parent);
+    parser_string_append_utf8(parser_string_create(node), begin, end);
+    return node;
+}
+
+export fn parser_string_create_subtree_utf8_null_terminated(parent: Entity*, text: u8*): Entity* {
+    return parser_string_create_subtree_utf8(parent, text, parser_utf8_end(text));
+}
+
+export fn parser_range_create_subtree(parent: Entity*, first: u32, last: u32): Entity* {
+    var node = parser_host_child(parent);
+    var range = parser_range_create(node);
+    parser_range_set_start(range, first);
+    parser_range_set_end(range, last);
+    return node;
+}
+
+export fn parser_match_create_subtree(parent: Entity*, id: u32, start: usize, length: usize): Entity* {
+    var node = parser_host_child(parent);
+    var span = parser_match_create(node);
+    parser_match_set_id(span, id);
+    parser_match_set_start(span, start);
+    parser_match_set_length(span, length);
+    return node;
+}
+
+export fn parser_decode_utf8_codepoint(begin: u8*, end: u8*, value: u32*): usize {
+    var first = bits(usize, begin);
+    var last = bits(usize, end);
+    var length = last - first;
+    return tower_utf8_decode(begin, length, value);
+}
+
+export fn parser_encode_utf8_codepoint(value: u32, destination: u8*, capacity: usize): usize {
+    return tower_utf8_encode(value, destination, capacity);
+}

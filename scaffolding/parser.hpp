@@ -12,6 +12,9 @@ struct Stream;
 struct Table;
 struct Recognizer;
 
+extern "C" size_t parser_decode_utf8_codepoint(const char*, const char*, uint32_t*);
+extern "C" size_t parser_encode_utf8_codepoint(uint32_t, char*, size_t);
+
 inline constexpr uint32_t PARSER_ID_EOF = (uint32_t)-2;
 struct LRCompletion;
 extern "C" void parser_recognizer_capture_completion(struct Recognizer*);
@@ -47,7 +50,7 @@ extern "C" bool parser_rule_get_generated(Rule* component);
 // adds the Rule component to the child, and sets up the component
 // Returns the child node, not the component itself (it's most common to create and move on)
 // This also releases the reference to the child node since it's attached to the parent
-TowerNode* parser_rule_create_subtree(
+extern "C" TowerNode* parser_rule_create_subtree(
   TowerNode* parent,
   const char* name,
   bool generated);
@@ -73,7 +76,7 @@ extern "C" const char* parser_reference_get_capture(Reference* component);
 // adds the Reference component to the child, and sets up the component
 // Returns the child node, not the component itself (it's most common to create and move on)
 // This also releases the reference to the child node since it's attached to the parent
-TowerNode* parser_reference_create_subtree(TowerNode* parent, const char* name);
+extern "C" TowerNode* parser_reference_create_subtree(TowerNode* parent, const char* name);
 
 
 // Get the compiletime type of the String component
@@ -100,7 +103,7 @@ extern "C" const uint32_t* parser_string_get_data(String* component);
 
 // Appends the string of ids from a null-terminated utf8 string (the character codepoint values)
 // Each utf8 character will be decoded and stored within a 32 bit integer as an id
-void parser_string_append_utf8_null_terminated(String* component, const char* utf8);
+extern "C" void parser_string_append_utf8_null_terminated(String* component, const char* utf8);
 
 // Appends the string of ids from a utf8 string (the character codepoint values)
 // Each utf8 character will be decoded and stored within a 32 bit integer as an id
@@ -110,13 +113,13 @@ extern "C" void parser_string_append_utf8(String* component, const char* utf8_be
 // adds the String component to the child, and sets up the component (utf8 null terminated)
 // Returns the child node, not the component itself (it's most common to create and move on)
 // This also releases the reference to the child node since it's attached to the parent
-TowerNode* parser_string_create_subtree_utf8_null_terminated(TowerNode* parent, const char* utf8);
+extern "C" TowerNode* parser_string_create_subtree_utf8_null_terminated(TowerNode* parent, const char* utf8);
 
 // Creates a child node and attaches it to the parent,
 // adds the String component to the child, and sets up the component
 // Returns the child node, not the component itself (it's most common to create and move on)
 // This also releases the reference to the child node since it's attached to the parent
-TowerNode* parser_string_create_subtree_utf8(TowerNode* parent, const char* utf8_begin, const char* utf8_end);
+extern "C" TowerNode* parser_string_create_subtree_utf8(TowerNode* parent, const char* utf8_begin, const char* utf8_end);
 
 
 // Get the compiletime type of the Range component
@@ -139,7 +142,7 @@ extern "C" uint32_t parser_range_get_end(Range* component);
 // adds the Range component to the child, and sets up the component
 // Returns the child node, not the component itself (it's most common to create and move on)
 // This also releases the reference to the child node since it's attached to the parent
-TowerNode* parser_range_create_subtree(TowerNode* parent, uint32_t start_id, uint32_t end_id);
+extern "C" TowerNode* parser_range_create_subtree(TowerNode* parent, uint32_t start_id, uint32_t end_id);
 
 
 // Get the compiletime type of the Match component
@@ -192,7 +195,7 @@ void parser_tree_debug_print(TowerNode* root);
 // adds the Match component to the child, and sets up the component
 // Returns the child node, not the component itself (it's most common to create and move on)
 // This also releases the reference to the child node since it's attached to the parent
-TowerNode* parser_match_create_subtree(TowerNode* parent, uint32_t id, size_t start_index, size_t length);
+extern "C" TowerNode* parser_match_create_subtree(TowerNode* parent, uint32_t id, size_t start_index, size_t length);
 
 
 // Virtual destructor for a stream

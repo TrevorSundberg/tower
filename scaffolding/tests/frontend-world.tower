@@ -3,6 +3,7 @@ import '../compiler/grammar-types';
 import '../compiler/syntax-types';
 import '../compiler/format-types';
 import '../compiler/component-kinds';
+import '../compiler/parser-types';
 
 // Separate test unit: call the actual production exports, without embedding a
 // second copy of the grammar reader or depending on the native default world.
@@ -39,6 +40,124 @@ extern fn regex_grammar_create(kinds: FrontendKinds*): void*;
 extern fn tower_test_buffer_count(): usize;
 
 extern fn tower_test_buffer_fail_after(count: usize): void;
+
+extern fn tower_node_create(): void*;
+
+extern fn entity_parent(node: void*): void*;
+
+extern fn entity_references(node: void*): usize;
+
+extern fn entity_component_data(component: void*): void*;
+
+extern fn entity_store_component_count(store: void*): usize;
+
+extern fn parser_rule_create_subtree(parent: void*, name: u8*, generated: bool): void*;
+
+extern fn parser_reference_create_subtree(parent: void*, name: u8*): void*;
+
+extern fn parser_string_create_subtree_utf8(parent: void*, begin: u8*, end: u8*): void*;
+
+extern fn parser_string_create_subtree_utf8_null_terminated(parent: void*, text: u8*): void*;
+
+extern fn parser_string_append_utf8_null_terminated(value: ParserStringData*, text: u8*): void;
+
+extern fn parser_range_create_subtree(parent: void*, first: u32, last: u32): void*;
+
+extern fn parser_match_create_subtree(parent: void*, id: u32, start: usize, length: usize): void*;
+
+extern fn parser_decode_utf8_codepoint(begin: u8*, end: u8*, value: u32*): usize;
+
+extern fn parser_encode_utf8_codepoint(value: u32, buffer: u8*, capacity: usize): usize;
+
+fn frontend_constructor_tests(): void {
+    var world = compiler_host_world();
+    var store = compiler_world_store(world);
+    var kinds: FrontendKinds;
+    frontend_world_check(frontend_world_test_kinds(world, &kinds));
+    var nodes = entity_store_count(store);
+    var components = entity_store_component_count(store);
+    var root = tower_node_create();
+    var name: u8[5];
+    copy(&name, "Rule", 5);
+    var rule = parser_rule_create_subtree(root, &name[0], true);
+    name[0] = 88;
+    var data = bits(ParserRuleData*, entity_component_data(entity_component_get(rule, kinds.rule)));
+    frontend_world_check(data.generated);
+    var ok = data.name.data[0] == 82;
+    frontend_world_check(ok);
+    ok = entity_parent(rule) == root;
+    frontend_world_check(ok);
+    ok = entity_references(rule) == 1;
+    frontend_world_check(ok);
+    var reference = parser_reference_create_subtree(rule, "Rule");
+    var ref = bits(ParserReferenceData*, entity_component_data(entity_component_get(reference, kinds.reference)));
+    ok = ref.name.length == 4;
+    frontend_world_check(ok);
+    ok = ref.capture.length == 0;
+    frontend_world_check(ok);
+    var text: u8* = "Aé🏰";
+    var string = parser_string_create_subtree_utf8_null_terminated(rule, text);
+    var symbols = bits(ParserStringData*, entity_component_data(entity_component_get(string, kinds.string)));
+    ok = symbols.ids.length == 3;
+    frontend_world_check(ok);
+    ok = symbols.ids.data[1] == 233;
+    frontend_world_check(ok);
+    ok = symbols.ids.data[2] == 127984;
+    frontend_world_check(ok);
+    parser_string_append_utf8_null_terminated(symbols, "!");
+    ok = symbols.ids.length == 4;
+    frontend_world_check(ok);
+    var end = text + 3;
+    var slice = parser_string_create_subtree_utf8(rule, text, end);
+    symbols = bits(ParserStringData*, entity_component_data(entity_component_get(slice, kinds.string)));
+    ok = symbols.ids.length == 2;
+    frontend_world_check(ok);
+    var range_node = parser_range_create_subtree(rule, 122, 97);
+    var range = bits(ParserRangeData*, entity_component_data(entity_component_get(range_node, kinds.range)));
+    ok = range.start == 122;
+    frontend_world_check(ok);
+    ok = range.end == 97;
+    frontend_world_check(ok);
+    var match_node = parser_match_create_subtree(root, 97, 17, 3);
+    var span = bits(ParserMatchData*, entity_component_data(entity_component_get(match_node, kinds.`match`)));
+    ok = span.id == 97;
+    frontend_world_check(ok);
+    ok = span.start == 17;
+    frontend_world_check(ok);
+    ok = span.length == 3;
+    frontend_world_check(ok);
+    ok = span.rule == frontend_world_unlimited();
+    frontend_world_check(ok);
+    var codepoint: u32;
+    var begin = text + 1;
+    ok = parser_decode_utf8_codepoint(begin, end, &codepoint) == 2;
+    frontend_world_check(ok);
+    ok = codepoint == 233;
+    frontend_world_check(ok);
+    ok = parser_decode_utf8_codepoint(begin, begin, &codepoint) == 0;
+    frontend_world_check(ok);
+    ok = codepoint == 0;
+    frontend_world_check(ok);
+    var encoded: u8[4];
+    ok = parser_encode_utf8_codepoint(127984, null, 0) == 4;
+    frontend_world_check(ok);
+    ok = parser_encode_utf8_codepoint(127984, &encoded[0], 4) == 4;
+    frontend_world_check(ok);
+    ok = encoded[0] == 240;
+    frontend_world_check(ok);
+    ok = encoded[3] == 176;
+    frontend_world_check(ok);
+    entity_retain(string);
+    entity_release(root);
+    symbols = bits(ParserStringData*, entity_component_data(entity_component_get(string, kinds.string)));
+    ok = symbols.ids.data[3] == 33;
+    frontend_world_check(ok);
+    entity_release(string);
+    ok = entity_store_count(store) == nodes;
+    frontend_world_check(ok);
+    ok = entity_store_component_count(store) == components;
+    frontend_world_check(ok);
+}
 
 fn frontend_world_test_kinds(world: void*, kinds: FrontendKinds*): bool {
     kinds.rule = compiler_world_type(world, CompilerParserRule());
@@ -318,6 +437,7 @@ fn frontend_world_failure_tests(): void {
 }
 
 export fn frontend_world_tests(): void {
+    frontend_constructor_tests();
     frontend_world_lifetime_tests();
     frontend_world_failure_tests();
 }

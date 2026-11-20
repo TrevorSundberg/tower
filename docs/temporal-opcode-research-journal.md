@@ -17985,3 +17985,69 @@ performance and hover commits through 273e845 arrived during validation. Integra
 them before publication, preserve both journal histories, then continue the next
 constructor removal and validate the combined release. Pages was fast-forwarded
 to efcaa3f for preparation only; this migration has not yet been published.
+
+### 2026-11-20 -- continue retirement with parser entity constructors (plan)
+
+Rebased the grammar port to c1c71f0 on upstream 273e845, preserving both journal
+append histories. Per the user's request to continue into the next native removal,
+move parser.cpp's rule/reference/string/range/match subtree constructors and UTF-8
+convenience adapters into host-parser-constructors.tower. Preserve borrowed return
+values, parent-owned references, copied names, generated-rule flags, Unicode
+scalars, span defaults and the existing fatal-allocation host contract. Connect
+existing declarations with C linkage; write functional assertions in Tower. No
+new native code, shims, fallback seed, semantic model or todo.txt edits.
+
+The existing explicit-world GrammarBuilder remains the fallible path; these are
+legacy default-host compatibility entry points that disappear when native callers
+are retired. Validate the combined rebased release, including the newer upstream
+compiler-performance/hover behavior. Save Pages efcaa3f's LLVM reactor as
+build/language-next/parser-constructors-baseline/tower-llvm.wasm to compare against
+the current published integration, not the older pre-upstream performance build.
+
+Implemented the next removal in host-parser-constructors.tower: existing host
+rule/reference/string/range/match child creation, UTF-8 range/null-terminated
+helpers and encode/decode adapters now execute Tower. Deleted 70 lines from
+parser.cpp. Header changes only give existing interfaces C linkage and declare
+the two codec exports; removed the redundant bootstrap-local decoder declaration.
+No native implementation was added. Default-host callers still use the existing
+fatal-allocation contract and receive borrowed, parent-owned node references.
+The explicit-world fallible construction path is unchanged.
+
+Extended the separate Tower functional unit to check copied mutable input names,
+generated flags, parent/reference counts, multibyte and supplementary Unicode,
+string slices and append, reversed range endpoints, match span/default metadata,
+UTF-8 sizing/encoding/decoding, and a retained child surviving parent destruction.
+Production inventory is now 52 native files / 6,049 lines (195 net fewer than the
+turn's 6,244-line baseline). The bootstrap declaration removal is separate. Both
+migration steps use the same existing entities/components; no semantic IR was
+introduced. Integrated build/validation reports use parser-constructors-* paths.
+
+Integrated native towerc and backend API checks pass. Native ASAN/UBSAN parser
+harness passes in 184.12 seconds alongside other verification work; isolated
+constructor/world checks pass under GDB as well. All 353 Node/Wasm tests pass,
+including upstream compiler-scan and hover regressions. Both browser successor
+generations (2 then 4 workers) pass with identical bytes: tower 980409 bytes,
+f50205de94ad1be36bb20659035feae60192a386393c833d4bc15800696189cb; llvm 51966507 bytes,
+9fb8f1a0c9033e53f5a7759cae91b63d858b7b6405fa22d1df6dd76ca0103ac8; cross 63523779 bytes,
+6fbf2b0584bce728cd5b751da542050dbb6182951d3fe3387c851f80cbf44643. These remain hybrid
+successors with explicitly labelled native support, not pure Tower distributions.
+
+Local verification passes all 69 assets and desktop/mobile execution, downloads,
+completion, highlighting, persistence and compiler-project checks. Saved report:
+parser-constructors-local-report.json. Current manifest SHA-256 is
+d7e51df10dbc9e73f65c25dfa270a07aff2ef565485a1c88dd914d92debc78aa.
+Full browser suite, idle benchmark and publication follow below. No production
+source changes were needed after the integrated builds. todo.txt is unchanged.
+
+The integrated browser suite passes all 87 checks with one intentional mobile
+successor-build skip (parser-constructors-browser.log). With all other builds and
+tests stopped, the benchmark's six warmups and 16 alternating pairs produce
+identical objects. Median milliseconds before -> after versus published Pages
+efcaa3f: templates 5.62445 -> 5.42, depth-1024 layouts 17.36205 -> 17.2194,
+compiler-host 124.363 -> 125.44025 (+0.87%, within observed variation). No material
+time regression is observed in these workloads. The published baseline hash is
+43a2e9b7969b523ee4d942bf7aae17683360effc96eea59d0f8c3d15c0e5782e; the current built
+reactor is b5e9bb788650417a3ca3316a908c10a6a9dce0d669236c54fe7e4a29788cbf68.
+Raw samples and environment are in parser-constructors-benchmark.json/.log.
+The bootstrap compiler remains unchanged (b4539248e28633bb98ea0b42e21233636622f47e26b689f9d2c365ef20c09f02).
+Both migration steps are ready for final rebase, push and hosted verification.

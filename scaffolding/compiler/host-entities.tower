@@ -1,6 +1,7 @@
 import tower;
 import 'host-world';
 import 'host-parser-components';
+import 'host-parser-constructors';
 import 'host-provenance';
 
 export fn core_component_type(): Entity* {

@@ -193,68 +193,6 @@ void parser_tests() {
   assert(tower_memory_get_allocated_count() == tower_memory_initial_count);
 }
 
-TowerNode* create_attached_child_without_ref(TowerNode* parent) {
-  TowerNode* child = tower_node_create();
-  tower_node_attach(child, parent);
-  tower_node_release_ref(child);
-  return child;
-}
-
-TowerNode* parser_rule_create_subtree(
-  TowerNode* parent,
-  const char* name,
-  bool generated) {
-  TowerNode* child = create_attached_child_without_ref(parent);
-  Rule* component = parser_rule_create(child);
-  parser_rule_set_name(component, name);
-  parser_rule_set_generated(component, generated);
-  return child;
-}
-
-TowerNode* parser_reference_create_subtree(TowerNode* parent, const char* name) {
-  TowerNode* child = create_attached_child_without_ref(parent);
-  Reference* component = parser_reference_create(child);
-  parser_reference_set_name(component, name);
-  return child;
-}
-
-size_t parser_decode_utf8_codepoint(const char* begin, const char* end, uint32_t* codepoint) {
-  return tower_utf8_decode(reinterpret_cast<const uint8_t*>(begin), size_t(end - begin), codepoint);
-}
-
-size_t parser_encode_utf8_codepoint(uint32_t codepoint, char* buffer, size_t buffer_size) {
-  return tower_utf8_encode(codepoint, reinterpret_cast<uint8_t*>(buffer), buffer_size);
-}
-
-void parser_string_append_utf8_null_terminated(String* component, const char* utf8) {
-  const char* utf8_end = utf8 + strlen(utf8);
-  return parser_string_append_utf8(component, utf8, utf8_end);
-}
-
-TowerNode* parser_string_create_subtree_utf8_null_terminated(TowerNode* parent, const char* utf8) {
-  const char* utf8_end = utf8 + strlen(utf8);
-  return parser_string_create_subtree_utf8(parent, utf8, utf8_end);
-}
-
-TowerNode* parser_string_create_subtree_utf8(TowerNode* parent, const char* utf8_begin, const char* utf8_end) {
-  assert(utf8_end >= utf8_begin);
-  TowerNode* child = create_attached_child_without_ref(parent);
-  assert(child);
-  String* component = parser_string_create(child);
-  assert(component);
-  assert(parser_string_get_length(component) == 0);
-  parser_string_append_utf8(component, utf8_begin, utf8_end);
-  return child;
-}
-
-TowerNode* parser_range_create_subtree(TowerNode* parent, uint32_t start_id, uint32_t end_id) {
-  TowerNode* child = create_attached_child_without_ref(parent);
-  Range* component = parser_range_create(child);
-  parser_range_set_start(component, start_id);
-  parser_range_set_end(component, end_id);
-  return child;
-}
-
 char* parser_copy_string(const std::string& str);
 
 char* parser_tree_debug_string(TowerNode* root) {
@@ -293,14 +231,6 @@ void parser_tree_debug_print(TowerNode* root) {
   tower_memory_free(text);
 }
 
-TowerNode* parser_match_create_subtree(TowerNode* parent, uint32_t id, size_t start, size_t length) {
-  TowerNode* child = create_attached_child_without_ref(parent);
-  Match* component = parser_match_create(child);
-  parser_match_set_id(component, id);
-  parser_match_set_start(component, start);
-  parser_match_set_length(component, length);
-  return child;
-}
 
 
 // Borrowed layout of Tower's request-owned stream; only native callback calls remain.

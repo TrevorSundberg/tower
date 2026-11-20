@@ -5,7 +5,6 @@
 #include <new>
 #include <string>
 #include <vector>
-size_t parser_decode_utf8_codepoint(const char* begin, const char* end, uint32_t* codepoint);
 template <typename T>
 T* create_component(TowerNode* owner) {
   if (auto* data = tower_node_get_component_userdata(owner, T::compiletime_type)) return static_cast<T*>(data);
