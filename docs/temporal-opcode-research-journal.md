@@ -16090,3 +16090,10 @@ f8425b6 (workers/access contracts) and 26782c2 (source-prefix failure completion
 The async/join and arbitrary-value staging goals are documentation, with no
 additional deployed runtime behavior. Final source synchronization/push follows.
 `todo.txt` remains blob 96a9e58964d7f01e4a97819f259448db81ef5e40.
+
+Source main was then pushed through 649022b and its remote SHA verified. The first
+push attempt had a GitHub DNS lookup failure; an ordinary retry succeeded, with
+no force push. Both source and Pages worktrees are clean. Removed only our obsolete
+prepared-assets stash 4a5baa0 after successful publication; the two pre-existing
+backend stashes remain intact. This final publication record changes no served
+asset and retains the verified 47bdbc09 manifest above.
