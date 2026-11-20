@@ -7,8 +7,6 @@ extern fn syntax_component_type(): void*;
 
 extern fn parser_match_get_type(): void*;
 
-extern fn syntax_native_bedrock(): void*;
-
 extern fn syntax_create(source: u8*, module: FrontendModule*): void*;
 
 extern fn syntax_destroy(session: void*): void;

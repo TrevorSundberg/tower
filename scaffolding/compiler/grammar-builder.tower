@@ -1,0 +1,101 @@
+import tower;
+import 'grammar-types';
+import 'component-kinds';
+
+// Fallible construction on the caller's registered kinds. The root owns every
+// attached node; a failure is sticky and finish discards the partial document.
+struct GrammarBuilder {
+    kinds: FrontendKinds*;
+    root: void*;
+    failed: bool;
+}
+
+fn grammar_builder_init(builder: GrammarBuilder*, kinds: FrontendKinds*): void {
+    fill(builder, 0, sizeof(GrammarBuilder));
+    builder.kinds = kinds;
+    builder.root = entity_create_related(kinds.rule);
+    builder.failed = builder.root == null;
+}
+
+fn grammar_builder_finish(builder: GrammarBuilder*): void* {
+    var root = builder.root;
+    builder.root = null;
+    if builder.failed {
+        var present = root != null;
+        if present {
+            entity_release(root);
+        }
+        return null;
+    }
+    return root;
+}
+
+fn grammar_builder_child(builder: GrammarBuilder*, parent: void*, type: void*, kind: u32): void* {
+    if builder.failed {
+        return null;
+    }
+    var node = entity_create_related(parent);
+    var missing = node == null;
+    if missing {
+        builder.failed = true;
+        return null;
+    }
+    var data = entity_component_data(entity_component_add(node, type));
+    missing = data == null;
+    if missing {
+        entity_release(node);
+        builder.failed = true;
+        return null;
+    }
+    node_payload_init(kind, data);
+    var attached = entity_attach(node, parent, null);
+    entity_release(node);
+    if attached {} else {
+        builder.failed = true;
+        return null;
+    }
+    return node;
+}
+
+fn grammar_builder_rule(builder: GrammarBuilder*, name: u8*, generated: bool): void* {
+    var node = grammar_builder_child(builder, builder.root, builder.kinds.rule, CompilerParserRule());
+    if builder.failed {
+        return null;
+    }
+    var data = bits(ParserRuleData*, entity_component_data(entity_component_get(node, builder.kinds.rule)));
+    data.generated = generated;
+    builder.failed = node_rule_set_name(data, name) == false;
+    return node;
+}
+
+fn grammar_builder_reference(builder: GrammarBuilder*, parent: void*, name: u8*, capture: u8*): void {
+    var node = grammar_builder_child(builder, parent, builder.kinds.reference, CompilerParserReference());
+    if builder.failed {
+        return;
+    }
+    var data = bits(ParserReferenceData*, entity_component_data(entity_component_get(node, builder.kinds.reference)));
+    var ok = node_reference_set_name(data, name);
+    if ok {
+        ok = node_reference_set_capture(data, capture);
+    }
+    builder.failed = ok == false;
+}
+
+fn grammar_builder_literal(builder: GrammarBuilder*, parent: void*, text: u8*): void {
+    var node = grammar_builder_child(builder, parent, builder.kinds.string, CompilerParserString());
+    if builder.failed {
+        return;
+    }
+    var data = bits(ParserStringData*, entity_component_data(entity_component_get(node, builder.kinds.string)));
+    builder.failed = node_string_append(data, text, syntax_text_length(text)) == false;
+}
+
+fn grammar_builder_range(builder: GrammarBuilder*, parent: void*, first: u32, last: u32): void {
+    var node = grammar_builder_child(builder, parent, builder.kinds.range, CompilerParserRange());
+    if builder.failed {
+        return;
+    }
+    var data = bits(ParserRangeData*, entity_component_data(entity_component_get(node, builder.kinds.range)));
+    data.start = first;
+    data.end = last;
+}

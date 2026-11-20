@@ -1,11 +1,19 @@
 import tower;
 
+extern fn frontend_world_tests(): void;
+
+fn frontend_test_root(kinds: FrontendKinds*): void* {
+    var builder: GrammarBuilder;
+    grammar_builder_init(&builder, kinds);
+    var rule = grammar_builder_rule(&builder, "Root", false);
+    grammar_builder_literal(&builder, rule, "ab");
+    return grammar_builder_finish(&builder);
+}
+
 // Character parsing, regex lowering and construction use the production Tower
 // modules. The legacy host supplies only the existing registered component kinds.
 fn frontend_test_table_failures(kinds: FrontendKinds*): usize {
-    var root = compiler_grammar_root();
-    var rule = compiler_grammar_rule(root, "Root", false);
-    compiler_grammar_literal(rule, "ab");
+    var root = frontend_test_root(kinds);
     var budget: usize = 0;
     var result: usize = 0;
     loop {
@@ -39,9 +47,7 @@ fn frontend_test_table_failures(kinds: FrontendKinds*): usize {
 }
 
 fn frontend_test_diagnostics(kinds: FrontendKinds*): usize {
-    var root = compiler_grammar_root();
-    var rule = compiler_grammar_rule(root, "Root", false);
-    compiler_grammar_literal(rule, "ab");
+    var root = frontend_test_root(kinds);
     var table: FrontendTable;
     var ok = frontend_table_init(&table, root, kinds);
     if ok {
@@ -169,6 +175,7 @@ fn frontend_test_pattern_reader(kinds: FrontendKinds*): usize {
 }
 
 export fn frontend_bedrock_tests(kinds: FrontendKinds*): usize {
+    frontend_world_tests();
     var result = parser_state_tests(kinds);
     var failed = result != 0;
     if failed {

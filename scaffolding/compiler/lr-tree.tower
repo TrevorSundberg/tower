@@ -11,8 +11,6 @@ extern fn entity_parent(node: void*): void*;
 
 extern fn entity_release(node: void*): usize;
 
-extern fn compiler_parse_match(node: void*): ParserMatchData*;
-
 extern fn parse_forest_leaf(forest: void*, node: void*, result: ParserForestSpan*): bool;
 
 extern fn parse_forest_join(forest: void*, result: ParserForestSpan*, first: usize, last: usize, capture: u8*): bool;
@@ -27,6 +25,15 @@ fn lr_tree_match(node: void*, kind: void*): ParserMatchData* {
         return null;
     }
     var data = entity_component_data(entity_component_get(node, kind));
+    return bits(ParserMatchData*, data);
+}
+
+fn lr_tree_create_match(node: void*, kind: void*): ParserMatchData* {
+    var data = entity_component_data(entity_component_add(node, kind));
+    var present = data != null;
+    if present {
+        node_payload_init(CompilerParserMatch(), data);
+    }
     return bits(ParserMatchData*, data);
 }
 
@@ -51,12 +58,23 @@ export fn lr_tree_shift(parser: LRParser*, forest: void*, grammar: LRGrammar*, k
             return 2;
         }
     } else {
-        node = compiler_grammar_root();
+        node = entity_create_related(kind);
+        var absent = node == null;
+        if absent {
+            return 0;
+        }
     }
     var data = lr_tree_match(node, kind);
     var missing = data == null;
     if missing {
-        data = compiler_parse_match(node);
+        data = lr_tree_create_match(node, kind);
+        var absent = data == null;
+        if absent {
+            if supplied {} else {
+                entity_release(node);
+            }
+            return 0;
+        }
         data.id = step.id;
         data.start = step.start;
         data.length = step.end - step.start;
@@ -101,6 +119,10 @@ export fn lr_tree_shift(parser: LRParser*, forest: void*, grammar: LRGrammar*, k
 // A non-null result is the completed finite-sequence root. Ordinary LR roots
 // stay in the forest until acceptance. Empty reductions retain their source gap.
 export fn lr_tree_reduce(parser: LRParser*, forest: void*, grammar: LRGrammar*, step: LRStep*, result: void**): bool {
+    return lr_tree_reduce_kind(parser, forest, grammar, parser_match_get_type(), step, result);
+}
+
+export fn lr_tree_reduce_kind(parser: LRParser*, forest: void*, grammar: LRGrammar*, kind: void*, step: LRStep*, result: void**): bool {
     *result = null;
     var rule = &parser.runtime.rules.data[step.rule];
     var children: ParserForestSpan;
@@ -136,8 +158,17 @@ export fn lr_tree_reduce(parser: LRParser*, forest: void*, grammar: LRGrammar*, 
         materialize = true;
     }
     if materialize {
-        var node = compiler_grammar_root();
-        var data = compiler_parse_match(node);
+        var node = entity_create_related(kind);
+        var absent = node == null;
+        if absent {
+            return false;
+        }
+        var data = lr_tree_create_match(node, kind);
+        absent = data == null;
+        if absent {
+            entity_release(node);
+            return false;
+        }
         var id = rule.owner & 4294967295;
         data.id = convert(u32, id);
         data.rule = step.rule;

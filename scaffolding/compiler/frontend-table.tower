@@ -1,16 +1,9 @@
 import tower;
+import 'grammar-types';
+import 'grammar-builder';
 
 // Table ownership shared by character and token readers. These are derived LR
 // indexes over ordinary grammar entities, not a second grammar representation.
-struct FrontendKinds {
-    rule: void*;
-    reference: void*;
-    string: void*;
-    range: void*;
-    `match`: void*;
-    syntax: void*;
-}
-
 struct FrontendTable {
     grammar: LRGrammar*;
     runtime: LRRuntime*;
@@ -180,7 +173,7 @@ export fn frontend_read_characters(table: FrontendTable*, kinds: FrontendKinds*,
             reduce = true;
         }
         if reduce {
-            ok = lr_tree_reduce(parser, forest, table.grammar, &step, &root);
+            ok = lr_tree_reduce_kind(parser, forest, table.grammar, kinds.`match`, &step, &root);
             var complete = root != null;
             if complete {
                 input.error = 0;
@@ -200,13 +193,16 @@ export fn frontend_read_characters(table: FrontendTable*, kinds: FrontendKinds*,
 }
 
 export fn frontend_pattern_table(table: FrontendTable*, kinds: FrontendKinds*): bool {
-    var root = regex_grammar_create();
+    var root = regex_grammar_create(kinds);
     var ok = frontend_table_init(table, root, kinds);
     if ok {
         var status = frontend_table_finish(table, false, true);
         ok = status == 0;
     }
-    entity_release(root);
+    var present = root != null;
+    if present {
+        entity_release(root);
+    }
     return ok;
 }
 

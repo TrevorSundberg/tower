@@ -223,8 +223,8 @@ fn parser_test_buffered(table: FrontendTable*, kinds: FrontendKinds*): usize {
     var baseline = tower_test_buffer_count();
     var stream = parser_stream_utf8_null_terminated_create("");
     var request = parser_request_create(table.runtime, null, stream, true, false);
-    var node = compiler_grammar_root();
-    var span = compiler_parse_match(node);
+    var node = entity_create_related(kinds.`match`);
+    var span = lr_tree_create_match(node, kinds.`match`);
     span.id = 97;
     span.start = 17;
     span.length = 3;
@@ -273,9 +273,7 @@ fn parser_state_tests(kinds: FrontendKinds*): usize {
         return result;
     }
     var baseline = tower_test_buffer_count();
-    var root = compiler_grammar_root();
-    var rule = compiler_grammar_rule(root, "Root", false);
-    compiler_grammar_literal(rule, "ab");
+    var root = frontend_test_root(kinds);
     var table: FrontendTable;
     var ok = frontend_table_init(&table, root, kinds);
     if ok {

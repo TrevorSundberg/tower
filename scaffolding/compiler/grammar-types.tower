@@ -1,0 +1,18 @@
+import tower;
+
+// Borrowed component identities from one world, shared by every grammar reader.
+struct FrontendKinds {
+    rule: void*;
+    reference: void*;
+    string: void*;
+    range: void*;
+    `match`: void*;
+    syntax: void*;
+}
+
+// World-owned caches, populated/reset by the coordinator. Tables are derived;
+// Bedrock remains an ordinary shared-entity document with foundation text.
+struct CompilerGrammarCache {
+    bedrock: void*;
+    patterns: void*;
+}

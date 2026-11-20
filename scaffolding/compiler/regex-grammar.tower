@@ -2,23 +2,14 @@ import tower;
 
 // Regex notation is parsed by the ordinary LR engine over Unicode scalar IDs.
 // These are the same Rule/Reference/String/Range components as other grammars.
-// Construction calls are temporary native ABI adapters, not a regex parser.
-extern fn compiler_grammar_root(): void*;
+import 'grammar-builder';
 
-extern fn compiler_grammar_rule(root: void*, name: u8*, generated: bool): void*;
-
-extern fn compiler_grammar_reference(rule: void*, name: u8*, capture: u8*): void;
-
-extern fn compiler_grammar_literal(rule: void*, text: u8*): void;
-
-extern fn compiler_grammar_range(rule: void*, first: u32, last: u32): void;
-
-fn regex_reference(root: void*, name: u8*, child: u8*): void {
-    var rule = compiler_grammar_rule(root, name, false);
-    compiler_grammar_reference(rule, child, "value");
+fn regex_reference(builder: GrammarBuilder*, name: u8*, child: u8*): void {
+    var rule = grammar_builder_rule(builder, name, false);
+    grammar_builder_reference(builder, rule, child, "value");
 }
 
-fn regex_symbols(root: void*, name: u8*, symbols: u8*): void {
+fn regex_symbols(builder: GrammarBuilder*, name: u8*, symbols: u8*): void {
     var i: usize = 0;
     loop {
         var value = symbols[i];
@@ -26,14 +17,14 @@ fn regex_symbols(root: void*, name: u8*, symbols: u8*): void {
         if done {
             return;
         }
-        var rule = compiler_grammar_rule(root, name, false);
+        var rule = grammar_builder_rule(builder, name, false);
         var scalar = convert(u32, value);
-        compiler_grammar_range(rule, scalar, scalar);
+        grammar_builder_range(builder, rule, scalar, scalar);
         i = i + 1;
     }
 }
 
-fn regex_characters(root: void*, name: u8*, excluded: u8*): void {
+fn regex_characters(builder: GrammarBuilder*, name: u8*, excluded: u8*): void {
     var blocked: u8[128];
     fill(&blocked, 0, 128);
     var i: usize = 0;
@@ -58,97 +49,99 @@ fn regex_characters(root: void*, name: u8*, excluded: u8*): void {
             var nonempty = first < scalar;
             if nonempty {
                 var last = scalar - 1;
-                var rule = compiler_grammar_rule(root, name, false);
-                compiler_grammar_range(rule, first, last);
+                var rule = grammar_builder_rule(builder, name, false);
+                grammar_builder_range(builder, rule, first, last);
             }
             first = scalar + 1;
         }
         scalar = scalar + 1;
     }
-    var rule = compiler_grammar_rule(root, name, false);
-    compiler_grammar_range(rule, first, 1114111);
+    var rule = grammar_builder_rule(builder, name, false);
+    grammar_builder_range(builder, rule, first, 1114111);
 }
 
-export fn regex_grammar_create(): void* {
-    var root = compiler_grammar_root();
-    regex_reference(root, "Regex", "RegexChoice");
+export fn regex_grammar_create(kinds: FrontendKinds*): void* {
+    var storage: GrammarBuilder;
+    var builder = &storage;
+    grammar_builder_init(builder, kinds);
+    regex_reference(builder, "Regex", "RegexChoice");
 
-    var rule = compiler_grammar_rule(root, "RegexChoice", false);
-    compiler_grammar_reference(rule, "RegexChoice", "left");
-    compiler_grammar_literal(rule, "|");
-    compiler_grammar_reference(rule, "RegexSequence", "right");
-    regex_reference(root, "RegexChoice", "RegexSequence");
+    var rule = grammar_builder_rule(builder, "RegexChoice", false);
+    grammar_builder_reference(builder, rule, "RegexChoice", "left");
+    grammar_builder_literal(builder, rule, "|");
+    grammar_builder_reference(builder, rule, "RegexSequence", "right");
+    regex_reference(builder, "RegexChoice", "RegexSequence");
 
-    rule = compiler_grammar_rule(root, "RegexSequence", false);
-    compiler_grammar_reference(rule, "RegexSequence", "left");
-    compiler_grammar_reference(rule, "RegexRepeat", "right");
-    compiler_grammar_rule(root, "RegexSequence", false);
+    rule = grammar_builder_rule(builder, "RegexSequence", false);
+    grammar_builder_reference(builder, rule, "RegexSequence", "left");
+    grammar_builder_reference(builder, rule, "RegexRepeat", "right");
+    grammar_builder_rule(builder, "RegexSequence", false);
 
-    rule = compiler_grammar_rule(root, "RegexRepeat", false);
-    compiler_grammar_reference(rule, "RegexAtom", "atom");
-    compiler_grammar_reference(rule, "RegexSuffix", "suffix");
-    regex_symbols(root, "RegexSuffix", "*+?");
-    compiler_grammar_rule(root, "RegexSuffix", false);
+    rule = grammar_builder_rule(builder, "RegexRepeat", false);
+    grammar_builder_reference(builder, rule, "RegexAtom", "atom");
+    grammar_builder_reference(builder, rule, "RegexSuffix", "suffix");
+    regex_symbols(builder, "RegexSuffix", "*+?");
+    grammar_builder_rule(builder, "RegexSuffix", false);
 
-    rule = compiler_grammar_rule(root, "RegexAtom", false);
-    compiler_grammar_literal(rule, "(");
-    compiler_grammar_reference(rule, "RegexChoice", "group");
-    compiler_grammar_literal(rule, ")");
-    regex_reference(root, "RegexAtom", "RegexClass");
-    regex_reference(root, "RegexAtom", "RegexCharacter");
-    rule = compiler_grammar_rule(root, "RegexAtom", false);
-    compiler_grammar_literal(rule, ".");
+    rule = grammar_builder_rule(builder, "RegexAtom", false);
+    grammar_builder_literal(builder, rule, "(");
+    grammar_builder_reference(builder, rule, "RegexChoice", "group");
+    grammar_builder_literal(builder, rule, ")");
+    regex_reference(builder, "RegexAtom", "RegexClass");
+    regex_reference(builder, "RegexAtom", "RegexCharacter");
+    rule = grammar_builder_rule(builder, "RegexAtom", false);
+    grammar_builder_literal(builder, rule, ".");
 
     // Class dashes remain character entries. Range grouping is a semantic step;
     // escaped dashes and leading/trailing dashes keep their literal meanings.
-    rule = compiler_grammar_rule(root, "RegexClass", false);
-    compiler_grammar_literal(rule, "[");
-    compiler_grammar_literal(rule, "^");
-    compiler_grammar_reference(rule, "RegexClassCharacters", "negated");
-    compiler_grammar_literal(rule, "]");
-    rule = compiler_grammar_rule(root, "RegexClass", false);
-    compiler_grammar_literal(rule, "[");
-    compiler_grammar_reference(rule, "RegexClassBody", "body");
-    compiler_grammar_literal(rule, "]");
-    rule = compiler_grammar_rule(root, "RegexClassBody", false);
-    compiler_grammar_reference(rule, "RegexClassFirst", "first");
-    compiler_grammar_reference(rule, "RegexClassCharacters", "rest");
-    compiler_grammar_rule(root, "RegexClassBody", false);
-    rule = compiler_grammar_rule(root, "RegexClassCharacters", false);
-    compiler_grammar_reference(rule, "RegexClassCharacters", "left");
-    compiler_grammar_reference(rule, "RegexClassCharacter", "right");
-    compiler_grammar_rule(root, "RegexClassCharacters", false);
-    regex_reference(root, "RegexClassFirst", "RegexClassInitial");
-    regex_reference(root, "RegexClassFirst", "RegexEscape");
-    regex_reference(root, "RegexClassCharacter", "RegexClassPlain");
-    regex_reference(root, "RegexClassCharacter", "RegexEscape");
-    regex_characters(root, "RegexClassInitial", "^]\\");
-    regex_characters(root, "RegexClassPlain", "]\\");
+    rule = grammar_builder_rule(builder, "RegexClass", false);
+    grammar_builder_literal(builder, rule, "[");
+    grammar_builder_literal(builder, rule, "^");
+    grammar_builder_reference(builder, rule, "RegexClassCharacters", "negated");
+    grammar_builder_literal(builder, rule, "]");
+    rule = grammar_builder_rule(builder, "RegexClass", false);
+    grammar_builder_literal(builder, rule, "[");
+    grammar_builder_reference(builder, rule, "RegexClassBody", "body");
+    grammar_builder_literal(builder, rule, "]");
+    rule = grammar_builder_rule(builder, "RegexClassBody", false);
+    grammar_builder_reference(builder, rule, "RegexClassFirst", "first");
+    grammar_builder_reference(builder, rule, "RegexClassCharacters", "rest");
+    grammar_builder_rule(builder, "RegexClassBody", false);
+    rule = grammar_builder_rule(builder, "RegexClassCharacters", false);
+    grammar_builder_reference(builder, rule, "RegexClassCharacters", "left");
+    grammar_builder_reference(builder, rule, "RegexClassCharacter", "right");
+    grammar_builder_rule(builder, "RegexClassCharacters", false);
+    regex_reference(builder, "RegexClassFirst", "RegexClassInitial");
+    regex_reference(builder, "RegexClassFirst", "RegexEscape");
+    regex_reference(builder, "RegexClassCharacter", "RegexClassPlain");
+    regex_reference(builder, "RegexClassCharacter", "RegexEscape");
+    regex_characters(builder, "RegexClassInitial", "^]\\");
+    regex_characters(builder, "RegexClassPlain", "]\\");
 
-    regex_reference(root, "RegexCharacter", "RegexPlain");
-    regex_reference(root, "RegexCharacter", "RegexEscape");
-    regex_characters(root, "RegexPlain", "\\[()|.*+?^${}");
-    rule = compiler_grammar_rule(root, "RegexEscape", false);
-    compiler_grammar_literal(rule, "\\");
-    compiler_grammar_reference(rule, "RegexEscapedSymbol", "symbol");
-    regex_symbols(root, "RegexEscapedSymbol", "nrt\\/[]()|*+?.^-{}$\"'");
-    rule = compiler_grammar_rule(root, "RegexEscape", false);
-    compiler_grammar_literal(rule, "\\x");
-    compiler_grammar_reference(rule, "RegexHexDigit", "first");
-    compiler_grammar_reference(rule, "RegexHexDigit", "second");
-    rule = compiler_grammar_rule(root, "RegexEscape", false);
-    compiler_grammar_literal(rule, "\\u{");
-    compiler_grammar_reference(rule, "RegexHexDigits", "digits");
-    compiler_grammar_literal(rule, "}");
-    regex_reference(root, "RegexHexDigits", "RegexHexDigit");
-    rule = compiler_grammar_rule(root, "RegexHexDigits", false);
-    compiler_grammar_reference(rule, "RegexHexDigits", "left");
-    compiler_grammar_reference(rule, "RegexHexDigit", "right");
-    rule = compiler_grammar_rule(root, "RegexHexDigit", false);
-    compiler_grammar_range(rule, 48, 57);
-    rule = compiler_grammar_rule(root, "RegexHexDigit", false);
-    compiler_grammar_range(rule, 65, 70);
-    rule = compiler_grammar_rule(root, "RegexHexDigit", false);
-    compiler_grammar_range(rule, 97, 102);
-    return root;
+    regex_reference(builder, "RegexCharacter", "RegexPlain");
+    regex_reference(builder, "RegexCharacter", "RegexEscape");
+    regex_characters(builder, "RegexPlain", "\\[()|.*+?^${}");
+    rule = grammar_builder_rule(builder, "RegexEscape", false);
+    grammar_builder_literal(builder, rule, "\\");
+    grammar_builder_reference(builder, rule, "RegexEscapedSymbol", "symbol");
+    regex_symbols(builder, "RegexEscapedSymbol", "nrt\\/[]()|*+?.^-{}$\"'");
+    rule = grammar_builder_rule(builder, "RegexEscape", false);
+    grammar_builder_literal(builder, rule, "\\x");
+    grammar_builder_reference(builder, rule, "RegexHexDigit", "first");
+    grammar_builder_reference(builder, rule, "RegexHexDigit", "second");
+    rule = grammar_builder_rule(builder, "RegexEscape", false);
+    grammar_builder_literal(builder, rule, "\\u{");
+    grammar_builder_reference(builder, rule, "RegexHexDigits", "digits");
+    grammar_builder_literal(builder, rule, "}");
+    regex_reference(builder, "RegexHexDigits", "RegexHexDigit");
+    rule = grammar_builder_rule(builder, "RegexHexDigits", false);
+    grammar_builder_reference(builder, rule, "RegexHexDigits", "left");
+    grammar_builder_reference(builder, rule, "RegexHexDigit", "right");
+    rule = grammar_builder_rule(builder, "RegexHexDigit", false);
+    grammar_builder_range(builder, rule, 48, 57);
+    rule = grammar_builder_rule(builder, "RegexHexDigit", false);
+    grammar_builder_range(builder, rule, 65, 70);
+    rule = grammar_builder_rule(builder, "RegexHexDigit", false);
+    grammar_builder_range(builder, rule, 97, 102);
+    return grammar_builder_finish(builder);
 }

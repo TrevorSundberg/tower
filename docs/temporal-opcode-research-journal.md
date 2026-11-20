@@ -17864,3 +17864,124 @@ build/hover-grace-live-{deployment,browser,wording}.log and the deployment repor
 The first main push encountered the newer documentation-only a17e7ac; rebased and
 pushed the combined source without changing the tested deployment. Unrelated
 local edits were preserved, and todo.txt matched its pre-sync SHA-256 throughout.
+
+### 2026-11-20 -- grammar cache ownership and native constructor retirement (plan)
+
+Start main ecaab924; initial pull --rebase is up to date, checkout clean. Next
+remove the C++ Bedrock constructor/cache and grammar-construction adapter, and
+move the token-pattern compiler cache into explicit Tower world ownership.
+Investigation found a prerequisite: regex_grammar_create and LR tree materialization
+still call default-world native adapters even when passed another world's kinds.
+Merely moving the static pointers would leave those worlds incorrectly coupled.
+Port those construction paths to explicit kinds on the same shared entities;
+keep the existing host entry points as Tower compatibility functions. Do not add
+another grammar representation or native implementation. Retain source order,
+UTF-8 diagnostics and canonical Bedrock formatting.
+
+World cache creation/reset is coordinator work. Pinned views must prevent reset;
+callers drain caches before world disposal, and retained grammar/parse nodes keep
+their ordinary entity lifetime. Test independent worlds, reuse, clear/rebuild,
+retained outputs, pin rejection and allocation failures in Tower. Retire the
+already-superseded native Bedrock seed with its production adapter; historical
+EXCLUDE_FROM_ALL native seed targets are not a supported source-only bootstrap.
+Native SyntaxSession and installed grammar Version maps remain subsequent work;
+this step does not claim concurrent mutation of the default host world is safe.
+
+Save the previously published LLVM reactor in
+build/language-next/grammar-world-baseline/tower-llvm.wasm for alternating object
+agreement/performance checks. Run native sanitizer/API tests, browser reactors,
+Node/browser tests, parallel compiler successors and local/hosted deployment
+verification. New compiler implementation and functional assertions remain Tower.
+
+Implementation: removed bedrock.cpp (including its superseded native seed) and
+compiler-grammar.cpp. The existing syntax_native_bedrock symbol now executes Tower
+frontend_world_bedrock against the legacy host world. lex-pattern.cpp keeps only
+its existing C++ string-result adapter and calls Tower's host pattern API; no new
+native implementation or wrapper was introduced. Mechanical CMake edits retire
+the deleted objects. Production inventory is 52 files / 6,116 native lines, down
+128 net lines including the one borrowed C ABI declaration.
+
+CompilerWorld now owns its immutable initial Bedrock document and derived regex
+reader cache. frontend-world.tower exposes explicit world-based read/reset APIs.
+Reset rejects pinned ECS views atomically; disposal rejects undrained caches or
+retained graph outputs. Regex entity construction and LR shift/reduction use the
+provided component identities/store, including fallible partial-tree cleanup.
+GrammarBuilder is only a construction cursor over ordinary entities. Regex/LR
+indexes remain derived data. Legacy lr_tree_reduce retains its existing host ABI;
+explicit frontend readers call lr_tree_reduce_kind. The grammar construction
+adapter symbols became unused and were removed, rather than retained as wrappers.
+
+New Tower fixtures compare canonical Bedrock text between independent worlds,
+check component identity separation and no default-world node leakage, reuse/reset
+caches, retain trees/patterns across reset, reject disposal with live outputs, and
+reject reset under a pin while another world is cleared/disposed. Allocation
+injection walks every regex construction allocation and samples failed reader/
+Bedrock construction with retry. These exercise production exports in a separate
+Tower unit registered by cmake/TowerFrontendTests.cmake.
+
+Initial test aggregation exceeded the existing bootstrap's 65,536 Foundation-node
+limit. Rejected increasing that limit or adding a native harness: split the new
+functional checks into their own Tower unit instead. Initial syntax checks also
+caught return comparisons and direct member access on a call result, which the
+current bootstrap grammar does not accept. Used operand locals; compiler modules
+already import tower.tower, and richer return syntax remains a language milestone.
+Formatter is idempotent after these corrections. Native compiler/backend API and
+all three browser reactors build successfully; all 352 Node/Wasm checks pass.
+Parallel successors, native sanitizer suite, browser and deployment verification
+are still being run; record their actual results below.
+
+The first complete sanitizer run aborted after 197.50 seconds in the new fixture.
+Isolated frontend_world_tests under GDB (installed the distro debugger in WSL)
+and mapped the optimized assertion address to the regex failure-loop buffer
+check. This was a test-baseline error: ECS component query indexes retain their
+capacity after the last component is released. Warm those indexes before counting
+allocation positions and checking partial-build cleanup; also establish the host
+world before the fixture's baseline. No production change was needed. Added a
+second allocation sweep with the regex reader already cached, covering LR
+shift/reduction, parse-entity creation and lowering cleanup. The corrected entire
+world fixture passes when invoked directly under GDB; the complete suite is being
+rerun. Evidence: grammar-world-debug*.log and grammar-world-disassembly.log.
+
+All 81 browser checks pass with the one intentional mobile successor-build skip.
+Local deployment verification passes all 69 assets and both desktop/mobile
+profiles. Both successor generations (2 then 4 workers) pass with identical
+binaries: tower 980505 bytes, 37f29b677507db4f49f02a977760fdc824785353a9e9472316a8e6e8e71aa3d3;
+llvm 51965925 bytes, 5ca44f81c2c3835517b49491a3369e6f93e38bc496fde72c5f82319a7fbf2406;
+cross 63523182 bytes, 6d4f4317806bdb51bab99c80a22cf1f5c9731413a92cd519e8a8b4e62e9a2802.
+The test-only corrections change no packaged production source or asset. Manifest
+SHA-256 remains 3ab4c605cf7c9faffe808d6a95e5b7dea32049b4a103ab488822d42b4b93708a.
+Reports: grammar-world-{node,browser,successors,local}.log and
+build/language-next/grammar-world-local-report.json; successor records remain in
+build/compiler-workbench/generation{1,2}.json.
+
+With all other builds/tests stopped, six warmups and 16 alternating benchmark
+pairs produce identical objects for every workload. Median milliseconds before
+-> after: templates 5.99115 -> 6.08125 (+1.50%, within observed variation), depth-1024
+layouts 18.1648 -> 17.43285, compiler-host 155.767 -> 155.3936. No material time
+regression is observed in these workloads; no claim about unmeasured memory or
+programs. Baseline is the previously built/published c0aaf2d integration reactor
+(e07f2afdfbe4117a4b71392e10889a1575def17f365f00c669997c2aa5a12615). Raw samples,
+CPU/Node versions and hashes are in grammar-world-benchmark.json and .log.
+
+Next native removal: parser.cpp's remaining subtree construction helpers and
+UTF-8 convenience adapters can directly use the existing Tower component/entity
+APIs. Native SyntaxSession, installed grammar/version registries, default-world
+host transport and runtime/bootstrap remain larger dependencies. This change
+makes explicit-world grammar reads isolated; it does not add within-unit parallel
+jobs or prove SIMD performance. Unit-worker successor determinism remains verified.
+
+The full rerun then reached existing Unicode fixture 717: a PowerShell mechanical
+read/write had re-encoded its Greek alpha literals. Restored the original UTF-8
+with apply_patch and audited the diff for other unintended character changes.
+Only that test fixture was affected; no production artifact or benchmark changed.
+Use explicit UTF-8 reads (or apply_patch) for subsequent mechanical edits. Rebuild
+and rerun the complete sanitizer harness after correcting the fixture.
+
+Final sanitizer harness passes in 148.70 seconds after the UTF-8 fixture repair,
+including the separate world tests and existing regex/reference/lifetime/formatter
+coverage. See grammar-world-parser-final.log. Tower test code is exercised inside
+the native ASAN/UBSAN harness; it is not itself sanitizer-instrumented. Upstream
+performance and hover commits through 273e845 arrived during validation. Integrate
+them before publication, preserve both journal histories, then continue the next
+constructor removal and validate the combined release. Pages was fast-forwarded
+to efcaa3f for preparation only; this migration has not yet been published.

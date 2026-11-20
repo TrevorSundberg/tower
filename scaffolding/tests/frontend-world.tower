@@ -1,0 +1,323 @@
+import tower;
+import '../compiler/grammar-types';
+import '../compiler/syntax-types';
+import '../compiler/format-types';
+import '../compiler/component-kinds';
+
+// Separate test unit: call the actual production exports, without embedding a
+// second copy of the grammar reader or depending on the native default world.
+extern fn abort(): void;
+
+extern fn compiler_host_world(): void*;
+
+extern fn compiler_world_type(world: void*, kind: u32): void*;
+
+extern fn compiler_world_grammar(world: void*): CompilerGrammarCache*;
+
+extern fn frontend_world_bedrock(world: void*): void*;
+
+extern fn frontend_world_pattern(world: void*, source: u8*, length: usize, error: FormatResult*): SyntaxPattern*;
+
+extern fn frontend_world_clear(world: void*): bool;
+
+extern fn entity_component_get(node: void*, kind: void*): void*;
+
+extern fn entity_retain(node: void*): usize;
+
+extern fn entity_release(node: void*): usize;
+
+extern fn format_entity(result: FormatResult*, node: void*, syntax: void*, foundation: void*, kind: void*): void;
+
+extern fn format_dispose(result: FormatResult*): void;
+
+extern fn syntax_pattern_release(pattern: SyntaxPattern*): void;
+
+extern fn lex_table_match(table: LexerTable*, source: u8*, length: usize, start: usize): usize;
+
+extern fn regex_grammar_create(kinds: FrontendKinds*): void*;
+
+extern fn tower_test_buffer_count(): usize;
+
+extern fn tower_test_buffer_fail_after(count: usize): void;
+
+fn frontend_world_test_kinds(world: void*, kinds: FrontendKinds*): bool {
+    kinds.rule = compiler_world_type(world, CompilerParserRule());
+    kinds.reference = compiler_world_type(world, CompilerParserReference());
+    kinds.string = compiler_world_type(world, CompilerParserString());
+    kinds.range = compiler_world_type(world, CompilerParserRange());
+    kinds.`match` = compiler_world_type(world, CompilerParserMatch());
+    kinds.syntax = compiler_world_type(world, CompilerSyntax());
+    var ready = kinds.syntax != null;
+    return ready;
+}
+
+fn frontend_world_unlimited(): usize {
+    var value: usize = 0;
+    value = value - 1;
+    return value;
+}
+
+fn frontend_world_error_is(result: FormatResult*, text: u8*): bool {
+    var index: usize = 0;
+    while index < result.text.length {
+        var different = result.text.data[index] != text[index];
+        if different {
+            return false;
+        }
+        index = index + 1;
+    }
+    var end = text[index] == 0;
+    return end;
+}
+
+extern fn compiler_world_create(): void*;
+
+extern fn compiler_world_dispose(world: void*): bool;
+
+extern fn compiler_world_store(world: void*): void*;
+
+extern fn entity_store_count(store: void*): usize;
+
+extern fn entity_view_open(anchor: void*): void*;
+
+extern fn entity_view_close(view: void*): void;
+
+extern fn tower_test_buffer_allocations(): usize;
+
+fn frontend_world_check(ok: bool): void {
+    if ok {} else {
+        abort();
+    }
+}
+
+fn frontend_world_text_equal(left: FormatResult*, right: FormatResult*): bool {
+    var different = left.text.length != right.text.length;
+    if different {
+        return false;
+    }
+    var index: usize = 0;
+    while index < left.text.length {
+        different = left.text.data[index] != right.text.data[index];
+        if different {
+            return false;
+        }
+        index = index + 1;
+    }
+    return true;
+}
+
+fn frontend_world_lifetime_tests(): void {
+    var host_store = compiler_world_store(compiler_host_world());
+    var baseline = tower_test_buffer_count();
+    var host_nodes = entity_store_count(host_store);
+    var first = compiler_world_create();
+    var second = compiler_world_create();
+    var kinds: FrontendKinds;
+    var other: FrontendKinds;
+    frontend_world_check(frontend_world_test_kinds(first, &kinds));
+    frontend_world_check(frontend_world_test_kinds(second, &other));
+    var ok = kinds.syntax != other.syntax;
+    frontend_world_check(ok);
+    var document = frontend_world_bedrock(first);
+    var other_document = frontend_world_bedrock(second);
+    ok = document != null;
+    frontend_world_check(ok);
+    ok = other_document != document;
+    frontend_world_check(ok);
+    ok = frontend_world_bedrock(first) == document;
+    frontend_world_check(ok);
+    ok = entity_component_get(document, kinds.syntax) != null;
+    frontend_world_check(ok);
+    ok = entity_component_get(document, other.syntax) == null;
+    frontend_world_check(ok);
+    var original: FormatResult;
+    var alternate: FormatResult;
+    fill(&original, 0, sizeof(FormatResult));
+    fill(&alternate, 0, sizeof(FormatResult));
+    format_entity(&original, document, kinds.syntax, null, kinds.`match`);
+    format_entity(&alternate, other_document, other.syntax, null, other.`match`);
+    ok = original.failed == false;
+    frontend_world_check(ok);
+    ok = alternate.failed == false;
+    frontend_world_check(ok);
+    frontend_world_check(frontend_world_text_equal(&original, &alternate));
+    format_dispose(&alternate);
+
+    var error: FormatResult;
+    fill(&error, 0, sizeof(FormatResult));
+    var pattern = frontend_world_pattern(first, "[a-z]+", 6, &error);
+    ok = pattern != null;
+    frontend_world_check(ok);
+    ok = entity_component_get(pattern.grammar, kinds.`match`) != null;
+    frontend_world_check(ok);
+    ok = entity_component_get(pattern.grammar, other.`match`) == null;
+    frontend_world_check(ok);
+    var other_pattern = frontend_world_pattern(second, "[0-9]+", 6, &error);
+    ok = other_pattern != null;
+    frontend_world_check(ok);
+    var cache = compiler_world_grammar(first);
+    var cached = cache.patterns;
+    var invalid = frontend_world_pattern(first, "a)", 2, &error);
+    ok = invalid == null;
+    frontend_world_check(ok);
+    ok = frontend_world_error_is(&error, "Unexpected ')'. In token pattern at character 2");
+    frontend_world_check(ok);
+    ok = cache.patterns == cached;
+    frontend_world_check(ok);
+    format_dispose(&error);
+    ok = compiler_world_dispose(first) == false;
+    frontend_world_check(ok);
+
+    // A pinned ECS view prevents cache reset. The other world remains editable.
+    var view = entity_view_open(document);
+    ok = view != null;
+    frontend_world_check(ok);
+    ok = frontend_world_clear(first) == false;
+    frontend_world_check(ok);
+    ok = cache.bedrock == document;
+    frontend_world_check(ok);
+    ok = cache.patterns == cached;
+    frontend_world_check(ok);
+    frontend_world_check(frontend_world_clear(second));
+    ok = lex_table_match(other_pattern.table, "123!", 4, 0) == 3;
+    frontend_world_check(ok);
+    ok = compiler_world_dispose(second) == false;
+    frontend_world_check(ok);
+    syntax_pattern_release(other_pattern);
+    frontend_world_check(compiler_world_dispose(second));
+    entity_view_close(view);
+
+    entity_retain(document);
+    frontend_world_check(frontend_world_clear(first));
+    frontend_world_check(frontend_world_clear(first));
+    ok = compiler_world_dispose(first) == false;
+    frontend_world_check(ok);
+    ok = lex_table_match(pattern.table, "abc!", 4, 0) == 3;
+    frontend_world_check(ok);
+    var rebuilt = frontend_world_bedrock(first);
+    ok = rebuilt != document;
+    frontend_world_check(ok);
+    format_entity(&alternate, rebuilt, kinds.syntax, null, kinds.`match`);
+    frontend_world_check(frontend_world_text_equal(&original, &alternate));
+    format_dispose(&original);
+    format_dispose(&alternate);
+    frontend_world_check(frontend_world_clear(first));
+    syntax_pattern_release(pattern);
+    entity_release(document);
+    frontend_world_check(compiler_world_dispose(first));
+    ok = entity_store_count(host_store) == host_nodes;
+    frontend_world_check(ok);
+    ok = tower_test_buffer_count() == baseline;
+    frontend_world_check(ok);
+}
+
+fn frontend_world_failure_tests(): void {
+    var baseline = tower_test_buffer_count();
+    var world = compiler_world_create();
+    var kinds: FrontendKinds;
+    frontend_world_check(frontend_world_test_kinds(world, &kinds));
+    var cache = compiler_world_grammar(world);
+    var root = regex_grammar_create(&kinds);
+    var ok = root != null;
+    frontend_world_check(ok);
+    entity_release(root);
+    // Component-query indexes retain reusable capacity in their world. Warm
+    // them before measuring partial-build cleanup and allocation positions.
+    var buffers = tower_test_buffer_count();
+    var allocations = tower_test_buffer_allocations();
+    root = regex_grammar_create(&kinds);
+    var count = tower_test_buffer_allocations() - allocations;
+    entity_release(root);
+    // Every allocation in regex entity construction, including attachment/name
+    // growth. Failure must discard the whole partial graph in this world.
+    var budget: usize = 0;
+    while budget < count {
+        tower_test_buffer_fail_after(budget);
+        root = regex_grammar_create(&kinds);
+        tower_test_buffer_fail_after(frontend_world_unlimited());
+        ok = root == null;
+        frontend_world_check(ok);
+        ok = tower_test_buffer_count() == buffers;
+        frontend_world_check(ok);
+        budget = budget + 1;
+    }
+    // Exercise failures across the cached reader and Bedrock build, followed by
+    // successful retry. Partial registry publication must never survive failure.
+    budget = 0;
+    loop {
+        tower_test_buffer_fail_after(budget);
+        var document = frontend_world_bedrock(world);
+        tower_test_buffer_fail_after(frontend_world_unlimited());
+        ok = document == null;
+        frontend_world_check(ok);
+        ok = cache.bedrock == null;
+        frontend_world_check(ok);
+        ok = tower_test_buffer_count() == buffers;
+        frontend_world_check(ok);
+        var error: FormatResult;
+        fill(&error, 0, sizeof(FormatResult));
+        tower_test_buffer_fail_after(budget);
+        var pattern = frontend_world_pattern(world, "a+", 2, &error);
+        tower_test_buffer_fail_after(frontend_world_unlimited());
+        ok = pattern == null;
+        frontend_world_check(ok);
+        format_dispose(&error);
+        frontend_world_check(frontend_world_clear(world));
+        ok = tower_test_buffer_count() == buffers;
+        frontend_world_check(ok);
+        var done = budget == 512;
+        if done {
+            break;
+        }
+        var first = budget == 0;
+        if first {
+            budget = 1;
+        } else {
+            budget = budget * 2;
+        }
+    }
+    var document = frontend_world_bedrock(world);
+    ok = document != null;
+    frontend_world_check(ok);
+    var error: FormatResult;
+    fill(&error, 0, sizeof(FormatResult));
+    var pattern = frontend_world_pattern(world, "a+", 2, &error);
+    ok = pattern != null;
+    frontend_world_check(ok);
+    syntax_pattern_release(pattern);
+    format_dispose(&error);
+    buffers = tower_test_buffer_count();
+    allocations = tower_test_buffer_allocations();
+    pattern = frontend_world_pattern(world, "a+", 2, &error);
+    count = tower_test_buffer_allocations() - allocations;
+    syntax_pattern_release(pattern);
+    format_dispose(&error);
+    // With the reader cached, inject failures through LR shift/reduction,
+    // parse-entity materialization and regex lowering. Every outcome releases
+    // temporary trees while preserving the reader for the next request.
+    budget = 0;
+    while budget < count {
+        tower_test_buffer_fail_after(budget);
+        pattern = frontend_world_pattern(world, "a+", 2, &error);
+        tower_test_buffer_fail_after(frontend_world_unlimited());
+        var present = pattern != null;
+        if present {
+            ok = lex_table_match(pattern.table, "aaa!", 4, 0) == 3;
+            frontend_world_check(ok);
+        }
+        syntax_pattern_release(pattern);
+        format_dispose(&error);
+        ok = tower_test_buffer_count() == buffers;
+        frontend_world_check(ok);
+        budget = budget + 1;
+    }
+    frontend_world_check(frontend_world_clear(world));
+    frontend_world_check(compiler_world_dispose(world));
+    ok = tower_test_buffer_count() == baseline;
+    frontend_world_check(ok);
+}
+
+export fn frontend_world_tests(): void {
+    frontend_world_lifetime_tests();
+    frontend_world_failure_tests();
+}

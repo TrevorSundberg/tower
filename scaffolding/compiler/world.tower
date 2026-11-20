@@ -4,6 +4,7 @@ import 'component-kinds';
 import 'parser-types';
 import 'syntax-types';
 import 'foundation-types';
+import 'grammar-types';
 
 extern fn node_payload_init(kind: u32, data: void*): void;
 
@@ -17,6 +18,7 @@ struct CompilerWorld {
     store: EntityStore*;
     types: Entity*[9]; // CompilerComponentCount slots.
     registered: usize;
+    grammar: CompilerGrammarCache;
 }
 
 export fn compiler_world_create(): CompilerWorld* {
@@ -38,6 +40,15 @@ export fn compiler_world_create(): CompilerWorld* {
 // Borrowed store and type handles; callers retain types they need to own.
 export fn compiler_world_store(world: CompilerWorld*): EntityStore* {
     return world.store;
+}
+
+export fn compiler_world_grammar(world: CompilerWorld*): CompilerGrammarCache* {
+    return &world.grammar;
+}
+
+export fn compiler_world_pinned(world: CompilerWorld*): bool {
+    var pinned = world.store.views != 0;
+    return pinned;
 }
 
 export fn compiler_world_type(world: CompilerWorld*, kind: u32): Entity* {
@@ -187,6 +198,15 @@ export fn compiler_world_component(world: CompilerWorld*, owner: Entity*, kind: 
 
 // Failed disposal is non-mutating. All requests and views must drain first.
 export fn compiler_world_dispose(world: CompilerWorld*): bool {
+    // Drain frontend caches explicitly, after their requests have joined.
+    var cached = world.grammar.bedrock != null;
+    if cached {
+        return false;
+    }
+    cached = world.grammar.patterns != null;
+    if cached {
+        return false;
+    }
     var pinned = world.store.views != 0;
     if pinned {
         return false;
