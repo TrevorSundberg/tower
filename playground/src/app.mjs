@@ -934,6 +934,17 @@ async function start() {
     }
   } catch (error) { $('project-storage').textContent = 'Previous workspace could not migrate: ' + error.message; }
   for (const p of projects) {
+    // Remove the retired bundled explanation from saved copies too, retaining
+    // every other edit to the example.
+    const example = p.files.find(file => file.path === 'foreach.tower');
+    if (example) {
+      const updated = example.text.replace(/^\/\/ This feature is defined here, not in the C\+\+ parser\.(?:\r?\n|$)/gm, '');
+      if (updated !== example.text) {
+        example.text = updated;
+        if (storage) try { await storage.save(p); }
+        catch (error) { $('project-storage').textContent = 'Not saved: ' + error.message; }
+      }
+    }
     p.builtins.bedrock = await selectFoundation(bundledBedrock, p.builtins.bedrock, p.baseline?.bedrock ?? null);
     p.builtins.foundation = await selectFoundation(bundledFoundation, p.builtins.foundation, p.baseline?.foundation ?? null, {bedrock:p.builtins.bedrock});
     p.builtins.tower = await selectFoundation(bundledTower, p.builtins.tower ?? null, p.baseline?.tower ?? null);

@@ -11,7 +11,7 @@ fn ce_runtime(c: CEmitter*): void {
     ce_text(c, "#ifdef _WIN32\n#include <io.h>\n#include <fcntl.h>\n#endif\n");
     ce_text(c, "\n");
     ce_text(c, "\n");
-    ce_text(c, "/* Prefer standard integer types; C89/C++98 use this small data-model adapter. */\n");
+    ce_text(c, "/* Prefer standard integer types; older compilers use this small data-model adapter. */\n");
     ce_text(c, "#if (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L) || \\\n");
     ce_text(c, "    (defined(__cplusplus) && __cplusplus >= 201103L) || \\\n");
     ce_text(c, "    (defined(_MSC_VER) && _MSC_VER >= 1600)\n");

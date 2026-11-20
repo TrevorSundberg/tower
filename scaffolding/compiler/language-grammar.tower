@@ -165,7 +165,7 @@ fn language_match_details(q: CompletionQuery*, candidate: LanguageCandidate*): v
     }
     var kind: u8* = "matched syntax";
     language_string(q, "matchedRule", sem_label(entry.node));
-    language_string(q, "description", "Parsed by this rule at this source location; no resolved runtime type is available.");
+    language_string(q, "description", "This code matches the pattern shown below.");
     language_grammar_targets(q, entry, false);
     var documentation = entry.targets.data[0];
     var captured = candidate.capture != null;
@@ -559,12 +559,12 @@ fn language_grammar_details(q: CompletionQuery*, leaf: void*, node: void*): void
     var grammar_condition47 = syntax.kind == SyntaxRule();
     if grammar_condition47 {
         kind = "parse rule";
-        description = "Defines alternatives for this grammar category.";
+        description = "Defines how to write this part of the language.";
         if syntax.append {
-            description = "Extends the existing rule with these alternatives after this declaration.";
+            description = "Adds another way to write this part of the language. Applies to the code below.";
         }
         else {
-            description = "Replaces this rule's alternatives after this declaration.";
+            description = "Sets how to write this part of the language, replacing any earlier version. Applies to the code below.";
         }
         if language_member_at(leaf, node, "name") {
             reference = true;

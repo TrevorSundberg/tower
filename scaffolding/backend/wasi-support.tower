@@ -1,6 +1,6 @@
 import tower;
 
-// LLVM 20 revision 1e57ee22, wasm32-wasip1, WASI SDK 34/libc++ ABI.
+// LLVM 20 revision 1e57ee22, wasm32-wasip1, WASI SDK 34 runtime ABI.
 // These are the lowered upstream ABI signatures, including explicit sret.
 // They do not define Tower pointer semantics or request executable memory.
 struct BackendWasiError {
@@ -41,7 +41,7 @@ export fn `cpp_name(method void llvm::CrashRecoveryContext::HandleExit(int))`(se
 
 // Upstream FileOutputBuffer already falls back to its InMemoryBuffer when
 // file mapping fails. Supply its data-only allocation, replacing the WASI
-// unsupported-operation stub through --wrap, without a C++ subclass/vtable.
+// unsupported-operation stub through --wrap, without a native subclass/vtable.
 export fn `cpp_name(__wrap; static llvm::sys::MemoryBlock llvm::sys::Memory::allocateMappedMemory(unsigned long, llvm::sys::MemoryBlock const*, unsigned int, std::__2::error_code&))`(out: BackendWasiMemory*, size: usize, near: BackendWasiMemory*, flags: u32, error: BackendWasiError*): void {
     fill(out, 0, sizeof(BackendWasiMemory));
     error.value = 0;

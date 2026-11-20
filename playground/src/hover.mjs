@@ -15,12 +15,12 @@ function tooltipContent(entry,doc) {
       dom.append(signature);
     }
     const line=text=>{const row=document.createElement('div');row.textContent=text;dom.append(row);};
-    if(entry.kind && entry.kind!=='syntax')line(entry.kind);
+    if(entry.kind && !['syntax','matched syntax','captured syntax'].includes(entry.kind))line(entry.kind);
     if(entry.description)line(entry.description);
-    if(entry.capture)line(`Capture: $${entry.capture}${entry.capturedBy?` in ${entry.capturedBy}`:''}`);
+    if(entry.capture)line(`Capture: $${entry.capture}${entry.category && entry.category!==entry.capture?`:${entry.category}`:''}${entry.capturedBy?` in ${entry.capturedBy}`:''}`);
     if(entry.module)line(`Module: ${entry.module}`);
-    if(entry.matchedRule)line(`Matched rule: ${entry.matchedRule}`);
-    if(entry.category && entry.category!==entry.matchedRule)line(`Grammar category: ${entry.category}`);
+    if(entry.matchedRule && (!entry.capture || entry.matchedRule!==entry.category))line(`Matched rule: ${entry.matchedRule}`);
+    if(entry.category && !entry.capture && entry.category!==entry.matchedRule)line(`Grammar category: ${entry.category}`);
     if(entry.replacementCategory)line(`Replacement produces: ${entry.replacementCategory}`);
     if(entry.replacementAlternatives>1)line(`Shared by ${entry.replacementAlternatives} alternatives; syntax preview uses the first compiled alternative.`);
     if(entry.definition) {

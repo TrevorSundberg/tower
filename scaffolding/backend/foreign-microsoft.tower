@@ -1,6 +1,6 @@
 import tower;
 
-// Microsoft C++ ABI. Source of truth/reference: upstream Clang MicrosoftMangle.
+// Microsoft name mangling. Source of truth/reference: upstream Clang MicrosoftMangle.
 // Name backreferences and parameter backreferences have separate scopes.
 fn foreign_ms_builtin(type: ForeignType*): u8* {
     var code = type.name;

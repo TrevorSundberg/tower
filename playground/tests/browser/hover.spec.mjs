@@ -1,5 +1,6 @@
 import {test,expect} from '@playwright/test';
 import {readFile} from 'node:fs/promises';
+import {savedSource} from './project-helpers.mjs';
 
 async function source(page,text) {
   const editor=page.getByRole('textbox',{name:'Tower source'});
@@ -73,7 +74,8 @@ test('grammar hover follows each parsed part and shows referenced types without 
     await expect(tip).toBeVisible();await expect(tip).toContainText(expected);
     await expect(tip).not.toContainText(/entity|components/);
     if(expected==='capture substitution') {
-      await expect(tip).toContainText('Grammar category: CoreLocation');
+      await expect(tip).toContainText('Capture: $target:CoreLocation');
+      await expect(tip).not.toContainText('Grammar category:');
       await expect(tip).not.toContainText('Type:');
     }
     if(expected==='grammar reference') {
@@ -124,6 +126,8 @@ test('foreach imports, compact alternatives and syntax-only loop tokens have use
     await page.mouse.move(position.x,position.y);await expect(tip,`Hovering ${token}`).toBeVisible();
     await expect(tip).toContainText(expected);
     await expect(tip).not.toContainText(/active alternative|entity|components/);
+    await expect(tip).not.toContainText(/matched syntax|captured syntax|C\+\+/);
+    if(['item','items','child','children'].includes(token))await expect(tip).not.toContainText(/Matched rule:|Grammar category:/);
     if(token==='foundation')await expect(tip).not.toContainText('Grammar category');
     if(token==='Expression')await expect(tip.locator('.tw-hover-definition')).toHaveText('Identifier | Number');
     if(token==='items')await page.screenshot({path:`../build/foreach-hover-${info.project.name}.png`});
@@ -139,6 +143,24 @@ test('editing dismisses hover and the next snapshot contains the new type',async
   await expect(page.locator('.tw-language-hover')).toHaveCount(0);await ready(page,text);
   position=await point(page,'value');await page.mouse.move(position.x,position.y);
   await expect(page.locator('.tw-hover-signature')).toHaveText('var value: bool');
+});
+
+test('capture details combine aliases and retain a different nested matched rule',async({page})=>{
+  const text="parse Inner = Identifier; parse Outer = Inner; parse Statement = 'use' $value:Outer ';'; use example;";
+  await source(page,text);await ready(page,text);
+  const position=await point(page,'example'),tip=page.locator('.tw-language-hover');
+  await page.mouse.move(position.x,position.y);
+  await expect(tip).toContainText('Capture: $value:Outer in Statement');
+  await expect(tip).toContainText('Matched rule: Inner');
+  await expect(tip).not.toContainText(/Grammar category:|matched syntax|captured syntax/);
+});
+
+test('saved foreach copies lose the retired explanation while preserving edits',async({page})=>{
+  const text="// My own explanation.\n// This feature is defined here, not in the C++ parser.\nparse Kept = 'custom';\n";
+  await source(page,text);await expect.poll(()=>savedSource(page)).toBe(text);
+  await page.reload();await expect(page.locator('#status')).toContainText('Complete');
+  await expect.poll(()=>savedSource(page)).toBe("// My own explanation.\nparse Kept = 'custom';\n");
+  await expect(page.getByRole('textbox',{name:'Tower source'})).not.toContainText('C++');
 });
 
 test('late document replies cannot show a tooltip from the previous source',async({page})=>{
@@ -267,7 +289,7 @@ test('hover shows attached documentation and typed signatures, suppressing name-
   await expect(tip).toHaveCount(0);
   const broken='var unknown = missing;';await source(page,broken);await ready(page,broken);
   const missing=await point(page,'missing');await page.mouse.move(missing.x,missing.y);
-  await expect(tip).toContainText('no resolved runtime type');await expect(tip).not.toContainText('Type:');
+  await expect(tip).toContainText('This code matches the pattern shown below.');await expect(tip).not.toContainText('Type:');
 });
 
 test('changing symbols restarts dwell and blank space or Escape dismisses the preview',async({page})=>{

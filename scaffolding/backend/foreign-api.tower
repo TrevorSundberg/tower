@@ -132,7 +132,7 @@ fn foreign_c(m: ForeignName*, object: bool): void {
     }
     var foreign_condition17 = m.member != 0;
     if foreign_condition17 {
-        foreign_fail(m, "C linkage cannot name a C++ member");
+        foreign_fail(m, "C linkage cannot name a member function");
         return;
     }
     var cc = m.function.convention;

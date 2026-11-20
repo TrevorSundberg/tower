@@ -107,7 +107,7 @@ test('increment grammar hovers distinguish rule references, capture binding, lit
   assert.match(rule.documentation,/CoreLocation matches variables/);
   assert.match(get('parse CoreCall',1).documentation,/CoreLocation matches variables/);
   assert.doesNotMatch(rule.signature,/=>|\/\//);
-  assert.equal(get('|=').kind,'grammar assignment');assert.match(get('|=').description,/Extends/);
+  assert.equal(get('|=').kind,'grammar assignment');assert.match(get('|=').description,/Adds another way/);
   const call=get('replace { post_increment',12);
   assert.equal(call.signature,'fn post_increment(p: i32*): i32');assert.equal(call.type,'i32');
   assert.equal(call.replacementCategory,'CoreCall');
@@ -187,7 +187,7 @@ test('imports describe modules without mislabelling path segments as grammar cat
 test('syntax-only foreach bodies inspect actual matched rules and captures across later overrides',async()=>{
   const source=(await read('scaffolding/examples/foreach.tower')).toString();
   const entries=inspect(source,{entry:'foreach.tower'});
-  const body=source.indexOf('for (item'),end=source.indexOf('// A later');
+  const body=source.indexOf('for (item'),end=source.indexOf('// Change the spelling');
   const tokens=entries.filter(entry=>entry.from>=body&&entry.to<end);
   assert.ok(tokens.length>=20);
   for(const entry of tokens) {
@@ -198,7 +198,7 @@ test('syntax-only foreach bodies inspect actual matched rules and captures acros
   }
   const get=needle=>hoverAt(entries,source.indexOf(needle,body)+1);
   const loop=get('for (item');assert.equal(loop.matchedRule,'ForEach');
-  assert.match(loop.definition,/^'for'/);assert.match(loop.documentation,/feature is defined here/);
+  assert.match(loop.definition,/^'for'/);assert.equal(loop.documentation,undefined);
   assert.equal(loop.definedIn,'foreach.tower');
   for(const [needle,capture] of [['item in','Variable'],['items)','Expression'],['child in','Variable'],['children)','Expression']]) {
     const entry=get(needle);assert.equal(entry.kind,'captured syntax');

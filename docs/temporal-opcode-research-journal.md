@@ -17758,3 +17758,43 @@ Final browser validation: 191 passed, one existing mobile compiler-rebuild skip
 1e4bbdfcaa7c649ffd58e3ddc319e556cdaeb8735a88202a8617a85cfd4905e0.
 Logs and local-deployment-report.json are under build/compiler-performance.
 todo.txt still hashes to 96a9e58964d7f01e4a97819f259448db81ef5e40.
+
+## 2026-11-20: Plain language and compact capture hovers
+
+Follow-up UX requests supersede the previous explanatory wording: `=` describes
+setting how to write this part of the language, replacing any earlier version;
+`|=` describes adding another way. Both explicitly apply to the code below.
+Matched source nodes now say "This code matches the pattern shown below." The
+query still reports only actual grammar facts when semantic checking has no
+resolved value type; removing the technical disclaimer does not invent types.
+
+The renderer combines capture name, category, and owning rule in one line, e.g.
+`Capture: $value:Expression in ForEach`. An implicit capture named for its category
+does not repeat that category. A matched-rule row remains only when there is no
+capture or its actual nested rule differs from the capture category. This matters
+for `Outer = Inner`: the named capture can accept Outer while the most specific
+matched subtree is Inner. Generic "matched syntax" and "captured syntax" labels
+are hidden; query metadata and meaningful binding/type information are retained.
+
+Removed the obsolete implementation comment from foreach and rewrote its other
+comments around the example's behavior. Removed explicit language-name references
+from project-owned Tower comments exposed in builtins/compiler source, emitted
+C comments, and diagnostic prose. ABI spellings and third-party license notices
+remain intact. A narrowly anchored startup migration removes the exact retired
+comment from saved foreach.tower files without changing their other text, so
+existing browser workspaces receive the requested cleanup after reload.
+
+An initial wording-only build/test trial passed before the additional requests;
+it was not deployed. Final validation covers the combined changes. Existing hover
+assertions were updated for the display text, with browser checks for nonredundant
+captures, differing nested rules, and preservation of edits during saved-example
+cleanup. Rebuilt all browser reactors and the compiler project using the established
+WASI scripts and published bootstrap. Logs use `build/hover-cleanup-*`.
+
+Validation: the existing hover, C-source, and project suites passed 42/42;
+canonical formatting passed; Playwright hover, project persistence, and C-source
+suites passed 52/52 across desktop/mobile. The targeted rendered-text probe
+`node build/verify-hover-wording.mjs` also confirmed both new assignment sentences.
+Reviewed the compact foreach tooltip screenshots on both device sizes. The
+published bundle is built with `TOWER_REQUIRE_BACKENDS=1`; its manifest SHA256 is
+`597fcf7184a7aa73e0ba3b30b18026564708c37cf5a4093718f2ff6203b9ae10`.

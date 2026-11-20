@@ -179,7 +179,7 @@ fn ce_function_name(c: CEmitter*, entity: void*): void {
     }
     if public {
         if ce_reserved(&n.name) {
-            ce_fail(c, "C target external name conflicts with a C/C++ keyword or generated support symbol; use a C ABI wrapper");
+            ce_fail(c, "C target external name conflicts with a reserved word or generated support symbol; use a C ABI wrapper");
         }
         var i: usize = 0;
         var c_step8 = n.name.length == 0;
@@ -219,7 +219,7 @@ fn ce_function_name(c: CEmitter*, entity: void*): void {
             }
             if valid {}
             else {
-                ce_fail(c, "C target needs a plain C identifier for extern/export; C++ declarations require a C ABI wrapper");
+                ce_fail(c, "C target needs a plain C identifier for extern/export; namespace or member declarations require a C ABI wrapper");
             }
             i = i + 1;
         }

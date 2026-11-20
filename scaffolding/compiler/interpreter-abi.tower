@@ -138,7 +138,7 @@ fn im_pointee_size(type: FoundationType*): usize {
     return semantic_size(&element);
 }
 
-// Verify the transitional C++ view under each actual compilation target.
+// Verify the transitional native view under each actual compilation target.
 export fn interpreter_state_size(): usize {
     return sizeof(IMState);
 }
