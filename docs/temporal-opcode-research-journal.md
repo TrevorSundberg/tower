@@ -18344,3 +18344,12 @@ explicit request/resume boundary until native callback ownership is retired;
 do not replace them with a new native implementation or a second semantic graph.
 Full within-unit parallelism and complete native/bootstrap retirement remain
 unfinished; the ongoing migration goal stays active.
+
+Publication race: source commit edeae15 is complete and locally validated. While
+preparing Pages, origin/gh-pages advanced from ea25550 to ee00eb4 (Roku BrightScript
+and optimized foundation backend; workflow 44768875999 succeeded). Its source is
+not yet on origin/main. Do not publish the older prepared asset bundle over that
+work. Wait for its source, integrate on main, and rebuild/verify the combination.
+The current Pages worktree has the prepared migration assets as local edits only;
+the published Roku build remains intact. A main push initially encountered a
+transient github.com DNS failure; resolve/retry normally without force-pushing.
