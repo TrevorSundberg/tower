@@ -70,7 +70,7 @@ for(const [name,inputs] of [['baseline',originals],['current',files]]) {
   finally{host.destroyExecution(query);}
  }
 }
-for(const [entry,source,library] of [['layout.tower',layout,false],['units/compiler-host.tower',files.find(file=>file.path==='units/compiler-host.tower').text,true]]) {
+for(const [entry,source,library] of [['layout.tower',layout,false],['units/compiler_host.tower',files.find(file=>file.path==='units/compiler_host.tower').text,true]]) {
  const samples={baseline:[],current:[]};let reference;
  for(let i=0;i<12;i++)for(const name of i%2?['current','baseline']:['baseline','current']) {
   const compiler=compilers[name];compiler.configureModules({entry,files,builtins:grammar,library:'.'});

@@ -23604,3 +23604,65 @@ lexical revision ownership and updated publication expectations. Those require
 another clean successor build after rebase. The current turn's old AGENTS wording
 that imports remain future work is also corrected to describe the implemented
 Bedrock/Foundation/Tower module chain and the no-import compatibility baseline.
+
+### Import audit follow-up: combined 8577783 validation and another upstream integration
+
+The clean default-bootstrap successor build after the 8577783 rebase passed all
+55 targets in `/root/.cache/tower/import_followup_8577783`, with no private
+TOWER_BOOTSTRAP_COMPILER. Rebuilt parser/WASI, LLVM/Wasm and cross reactors and
+the compiler project package. Native module filesystem checks and six naming/
+storage checks pass. The inventory now has 361 scaffolding Tower sources plus
+the renamed legacy fixture; every owned path has an identifier import spelling.
+
+Fixed an editor regression introduced by Tower expression statements: recovery
+can finish a statement as a bare CoreLocation, but sem_operand marked every
+such hole as requiring a value and hid void-returning functions/templates.
+sem_surface_discard now clears that flag only for the exact bare-name or
+module-qualified-name hole. Operand and call-argument holes still require
+values. All 23 completion tests pass, including qualified void helpers, generic
+vector_init and negative value-context cases (completion-rebased.log).
+
+The compiler-worker cancellation check passed in 6.3 seconds under concurrent
+test load after raising its deadlock guard from five to thirty seconds; its
+earlier-error, worker-exit and non-aborted-controller assertions remain intact.
+Two inference tests still expected direct call/operator initializers and the
+obsolete ++ helper replacement. They now check the inferred declarations while
+retaining exact execution, Foundation round trips and LLVM execution. All seven
+inference tests pass (inference-fixed.log). These are test expectation changes,
+not changes to operator evaluation or lowering.
+
+Found remaining generated filename references in test-bootstrap.sh, two compiler
+benchmark adapters and the browser compiler-workbench test. Updated them to the
+underscore unit names; kept the parser-nodes CLI selector consistent with its
+Python dependency checks. Restored explicit dependency allowlists for the current
+shared entity/parser/module/editor interfaces and POSIX case-check primitives;
+the previous lists predated those migrations. Existing project declarations were
+checked for the added symbols. This checks object dependency closure and bootstrap
+agreement, not a complete portable compiler executable for every target.
+
+The newly merged 28 Tower files passed production native formatting and
+idempotence checks (format-rebased.log). The harness now retains driver-owned
+interpreter callbacks by renaming its entry symbol in a temporary object; no
+alternative formatter or production native implementation was introduced.
+The five focused browser formatter tests pass; their duplicate full-source
+sweep is skipped because the native sweep already checked all prior sources
+and this merged subset. Target packs again link for all five targets and execute
+on Linux x64, actual Windows x64 and QEMU Linux ARM64; macOS remains link-only.
+
+The required-backends static bundle and full local deployment verification pass:
+all 70 assets match, and both desktop and mobile verify execution, C/native
+exports, saved state, editable grammar, completion, compiler-project loading and
+target defaults (verify-local-rebased.log). The workbench cancellation/persistence
+test also passes in 55.6 seconds. Its whole-test budget is now 120 seconds so its
+existing 65-second parse allowance can actually run before later assertions.
+
+Before publication, fetched six additional upstream commits through 8d8b4aa:
+LR closure work reduction, removal of the editor parse deadline, and Tower-owned
+pending grammar revisions. Stopped the remaining old-artifact checks for this
+integration: the broad Node run reached the module-scope tests, with only the two
+now-fixed inference assertions reported; it did not finish its lifetime stress
+case. Bootstrap comparisons passed utf8/bytes/entities on all four targets and
+parser-nodes on Linux/Wasm before stopping. The browser successor test reached
+its first linked candidate; neither that new two-generation run nor the full
+workbench activation test is claimed complete. A new clean successor and rebuilt
+artifact validation must follow the new rebase before deployment or push.

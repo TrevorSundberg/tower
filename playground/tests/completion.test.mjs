@@ -50,6 +50,9 @@ test('project declarations contribute globals without leaking locals', () => {
   assert.ok(!names.includes('secret'));
   assert.ok(!labels('he|', {files}).includes('helper'));
   assert.deepEqual(labels('import tower; import lib.helper; helper(sh|', {files}), ['shared']);
+  assert.deepEqual(labels('import tower; import lib.helper as helpers; helpers.he|', {files}), ['helper']);
+  assert.deepEqual(labels('import tower; import lib.helper as helpers; print(helpers.he|);', {files}), []);
+  assert.ok(!labels('import tower; import lib.helper; 1 + he|;', {files}).includes('helper'));
 });
 
 test('imported generic names use the same module graph and template registry', async () => {

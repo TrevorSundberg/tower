@@ -34,7 +34,7 @@ const report={node:process.version,cpu:os.cpus()[0].model,baselinePath:process.a
  recipeHash:hash(recipeBytes),cases:{}};
 const cases=[['examples/templates.tower',(await read('scaffolding/examples/templates.tower')).toString(),false],
  ['layout.tower',layout,false],
- ['units/compiler-host.tower',files.find(file=>file.path==='units/compiler-host.tower').text,true]];
+ ['units/compiler_host.tower',files.find(file=>file.path==='units/compiler_host.tower').text,true]];
 for(const [entry,source,library] of cases){
  const samples={baseline:[],current:[]};let expected;
  for(let i=0;i<warmups+pairs;i++)for(const name of i%2?['current','baseline']:['baseline','current']){

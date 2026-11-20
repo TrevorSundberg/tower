@@ -365,10 +365,14 @@ fn sem_surface_discard(c: SemanticContext*, n: void*): void* {
     var comma = sem_is(n, "TowerComma") && sem_member(n, "left") != null;
     if condition == null && !comma {
         var result = sem_operand(c, n, null);
-        // A discarded name can grow into a void call, including a for update.
-        // Nested operands (print(name), 1 + name) still require values.
-        if sem_is(n, "CoreLocation") && sem_member(n, "base") == null && sem_editor_contains(c, n) {
-            c.editor.value_required = false;
+        // Bare and module-qualified names can grow into void calls, including
+        // for updates. Holes inside operands or arguments still need values.
+        if c.editor != null && c.editor.found && sem_is(n, "CoreLocation") {
+            var bare_name = c.editor.node == sem_member(n, "name");
+            var module_name = c.editor.node == n && c.editor.module != null;
+            if bare_name || module_name {
+                c.editor.value_required = false;
+            }
         }
         return result;
     }

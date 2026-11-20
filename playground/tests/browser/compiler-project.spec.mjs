@@ -17,6 +17,9 @@ async function hoverValue(page) {
   await page.mouse.move(position.x,position.y);
 }
 test('compiler sources, migration comments, cancellation and persistence are available',async({page},info) => {
+  // The bounded compiler-project parse can use 65 seconds before the remaining
+  // cancellation/persistence checks; it must fit inside the whole-test budget.
+  test.setTimeout(120000);
   await page.goto('/'); await expect(page.locator('#status')).toContainText('Complete');
   await page.locator('#project-kind').selectOption('tower:compiler');
   await expect(page.locator('#compiler-controls')).toBeVisible();
@@ -96,7 +99,7 @@ test('browser rebuild activates edited compiler behavior and reset recovers the 
   await page.locator('#auto-rebuild-compiler').uncheck();
   expect((await savedProject(page)).files.find(f=>f.path==='compiler/semantic_values.tower').text).toContain('Workbench says');
   await page.locator('details[data-path="units"] > summary').click();
-  await page.locator('button[data-path="units/compiler-interpreter.tower"]').click();
+  await page.locator('button[data-path="units/compiler_interpreter.tower"]').click();
   await edit(page,'import missing_compiler_source;');
   await page.locator('#rebuild-compiler').click();
   await expect(page.locator('#compiler-build-status')).toContainText('Build failed:',{timeout:30000});

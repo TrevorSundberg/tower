@@ -73,7 +73,9 @@ test('an earlier Tower failure cancels a worker whose later receipt never arrive
   try { await compileUnits({compiler,recipe,files:broken}); } catch (error) { expected = error.message; }
   assert.ok(expected);
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(),5000);
+  // This is a deadlock guard, not a compiler latency assertion. Cold expression
+  // grammar startup can exceed five seconds while other test workers are active.
+  const timeout = setTimeout(() => controller.abort(),30000);
   try {
     await assert.rejects(compileUnits({compiler,recipe,files:broken,workers:2,signal:controller.signal,
       createWorker:() => {
