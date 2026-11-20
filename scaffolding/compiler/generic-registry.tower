@@ -1,0 +1,110 @@
+import tower;
+import '../library/entities';
+import 'entity-require';
+
+fn compiler_component_get(node: Entity*, type: Entity*): void* {
+    var missing = node == null;
+    if missing {
+        return null;
+    }
+    var component = entity_component_get(node, type);
+    var data = entity_component_data(component);
+    return bits(void*, data);
+}
+
+fn generic_component_add(node: Entity*, type: Entity*): void* {
+    var component = entity_component_add(node, type);
+    var present = component != null;
+    compiler_entity_require(present);
+    return bits(void*, entity_component_data(component));
+}
+
+// A program's context component retains its registry type. The registry owns
+// its other type entities through ordinary containment; attached components
+// retain their own types as usual. No process-lifetime type cache is required.
+fn generic_registry_type(registry: Entity*, size: usize, alignment: usize): Entity* {
+    var type = entity_create(registry.store);
+    var present = type != null;
+    compiler_entity_require(present);
+    compiler_entity_require(entity_register(type, size, alignment, 0));
+    compiler_entity_require(entity_attach(type, registry, null));
+    entity_release(type);
+    return type;
+}
+
+// These are semantic components attached to real definition/instance nodes.
+// Fixed bounds match the current foundation parameter and function limits.
+struct GenericTemplate {
+    parameters: Entity*[64];
+    type_parameters: bool[64];
+    count: usize;
+    type_count: usize;
+    kind: u32;
+}
+
+struct GenericInstance {
+    definition: Entity*;
+    use: Entity*;
+    node: Entity*;
+    arguments: Entity*[64];
+    count: usize;
+    next: GenericInstance*;
+}
+
+struct GenericOrigin {
+    definition: Entity*;
+    use: Entity*;
+}
+
+// This linked index is derived from instance components, scoped to one program
+// and its explicit target. It is not a second representation of the program.
+struct GenericContext {
+    root: Entity*;
+    template_type: Entity*;
+    instance_type: Entity*;
+    origin_type: Entity*;
+    first: GenericInstance*;
+    count: usize;
+    copied: usize;
+    error: u8*;
+}
+
+export fn generic_begin(root: Entity*): GenericContext* {
+    var registry = entity_create(root.store);
+    var present = registry != null;
+    compiler_entity_require(present);
+    compiler_entity_require(entity_register(registry, sizeof(GenericContext), alignof(GenericContext), 0));
+    var data = generic_component_add(root, registry);
+    var context = bits(GenericContext*, data);
+    fill(context, 0, sizeof(GenericContext));
+    context.root = root;
+    context.template_type = generic_registry_type(registry, sizeof(GenericTemplate), alignof(GenericTemplate));
+    context.instance_type = generic_registry_type(registry, sizeof(GenericInstance), alignof(GenericInstance));
+    context.origin_type = generic_registry_type(registry, sizeof(GenericOrigin), alignof(GenericOrigin));
+    entity_release(registry);
+    return context;
+}
+
+export fn generic_error(context: GenericContext*): u8* {
+    return context.error;
+}
+
+export fn generic_origin(context: GenericContext*, node: Entity*): Entity* {
+    var data = compiler_component_get(node, context.origin_type);
+    var present = data != null;
+    if present {
+        var origin = bits(GenericOrigin*, data);
+        return origin.use;
+    }
+    return null;
+}
+
+export fn generic_definition(context: GenericContext*, node: Entity*): Entity* {
+    var data = compiler_component_get(node, context.origin_type);
+    var present = data != null;
+    if present {
+        var origin = bits(GenericOrigin*, data);
+        return origin.definition;
+    }
+    return node;
+}

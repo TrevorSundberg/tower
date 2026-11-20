@@ -24,13 +24,6 @@ extern "C" {
 bool compiler_node_label(TowerNode* n, const char* text) { auto* m = match(n); return m && !std::strcmp(parser_match_get_label(m), text); }
 bool compiler_name_is(TowerNode* n, const char* text) { return name(n) == text; }
 bool compiler_name_equal(TowerNode* a, TowerNode* b) { return name(a) == name(b); }
-TowerNode* compiler_generic_type(size_t index) {
-  static TowerNode* types[] = {tower_node_create(), tower_node_create(), tower_node_create(), tower_node_create()};
-  return index < 4 ? types[index] : nullptr;
-}
-void* compiler_component_add(TowerNode* n, TowerNode* type, size_t bytes) {
-  return tower_component_get_userdata(tower_component_create(n, type, bytes, nullptr));
-}
 void compiler_node_copy_metadata(TowerNode* from, TowerNode* to) {
   if (auto* m = match(from)) {
     auto* copy = parser_match_create(to);

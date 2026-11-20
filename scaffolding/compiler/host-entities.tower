@@ -1,16 +1,9 @@
 import tower;
+import 'entity-require';
 
 // Existing host API over the same entity store. No copied nodes or components.
 // Only singleton lifetime and native callback dispatch remain host boundaries.
 extern fn compiler_entity_store(): EntityStore*;
-
-extern fn abort(): void;
-
-fn host_entity_require(ok: bool): void {
-    if ok {} else {
-        abort();
-    }
-}
 
 export fn tower_node_get_allocated_count(): usize {
     return entity_store_count(compiler_entity_store());
@@ -23,7 +16,7 @@ export fn tower_component_get_allocated_count(): usize {
 export fn tower_node_create(): Entity* {
     var node = entity_create(compiler_entity_store());
     var ok = node != null;
-    host_entity_require(ok);
+    compiler_entity_require(ok);
     return node;
 }
 
@@ -44,15 +37,15 @@ export fn tower_node_get_id(node: Entity*): usize {
 }
 
 export fn tower_node_attach(child: Entity*, parent: Entity*): void {
-    host_entity_require(entity_attach(child, parent, null));
+    compiler_entity_require(entity_attach(child, parent, null));
 }
 
 export fn tower_node_attach_member(child: Entity*, parent: Entity*, name: u8*): void {
-    host_entity_require(entity_attach(child, parent, name));
+    compiler_entity_require(entity_attach(child, parent, name));
 }
 
 export fn tower_node_detach(child: Entity*): void {
-    host_entity_require(entity_attach(child, null, null));
+    compiler_entity_require(entity_attach(child, null, null));
 }
 
 export fn tower_node_get_parent(child: Entity*): Entity* {
@@ -68,7 +61,7 @@ export fn tower_node_get_child(parent: Entity*, index: usize): Entity* {
 }
 
 export fn tower_node_replace_child(parent: Entity*, index: usize, node: Entity*): void {
-    host_entity_require(entity_replace_child(parent, index, node));
+    compiler_entity_require(entity_replace_child(parent, index, node));
 }
 
 export fn tower_node_take_last_child(parent: Entity*): Entity* {
@@ -77,9 +70,9 @@ export fn tower_node_take_last_child(parent: Entity*): Entity* {
 
 export fn tower_node_get_child_member_index(parent: Entity*, name: u8*): usize {
     var ok = name != null;
-    host_entity_require(ok);
+    compiler_entity_require(ok);
     ok = *name != 0;
-    host_entity_require(ok);
+    compiler_entity_require(ok);
     return entity_member_index(parent, name);
 }
 

@@ -5,7 +5,8 @@ import {loadTower} from './compiler-fixtures.mjs';
 import {loadLLVM,executeWasm} from './compiler-fixtures.mjs';
 const read=name=>readFile(new URL('../../'+name,import.meta.url));
 const foundation=(await read('scaffolding/foundation.tower')).toString();
-const imports={tower_entity_finalize:()=>{throw new Error('Plain components do not need host finalization');}};
+const imports={tower_entity_finalize:()=>{throw new Error('Plain components do not need host finalization');},
+ abort:()=>{throw new Error('Compiler ownership allocation failed');}};
 const tower=await loadTower(await read('build/browser-wasi/tower.wasm'),undefined,foundation,undefined,undefined,{imports});
 const source='import "library/entities"; import "tests/entities";';
 const expected='true\ntrue\n1\n1\ntrue\ntrue\n42\ntrue\ntrue\n1\n0\n0\ntrue\n';
@@ -29,8 +30,11 @@ test('the shared entity library runs under both interpreter layouts and LLVM',as
  }
 });
 
-test('Tower world views pin query ranges and defer ownership reclamation',async()=>{
- const source='import "tests/entity-views";';
+for(const [title,fixture] of [
+ ['Tower world views pin query ranges and defer ownership reclamation','entity-views'],
+ ['Tower generic registries belong to their programs and reclaim their types','generic-registry'],
+])test(title,async()=>{
+ const source=`import "tests/${fixture}";`;
  const llvm=await loadLLVM(await read('build/browser-wasi-llvm/tower-llvm.wasm'),undefined,foundation);
  const run=(source,pointerBytes,fast)=>{
   const h=tower.compile(source,{pointerBytes});

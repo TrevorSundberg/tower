@@ -81,7 +81,10 @@ struct ModuleEnvironment {
     diagnostic: SyntaxSource*;
     diagnostic_offset: usize;
     cache: vector(FrontendModule*);
+    // One idle parser-table cache. Active sessions belong to module leases.
     compilation_session: void*;
+    session_generation: usize;
+    active_graphs: usize;
     active: FrontendModule*;
 }
 
@@ -109,6 +112,8 @@ struct FrontendModule {
     body: bool;
     explicit: bool;
     comments: vector(usize); // paired lexer byte spans, captured before session reset
+    compilation_session: void*;
+    session_generation: usize;
 }
 
 fn module_require(ok: bool): void {
@@ -499,6 +504,10 @@ export fn frontend_module_root(source: u8*, environment: ModuleEnvironment*): Fr
         graph.environment = environment;
         graph.owns_environment = true;
     }
+    var next = environment.active_graphs + 1;
+    var valid = next != 0;
+    module_require(valid);
+    environment.active_graphs = next;
     frontend_modules_used_clear(environment);
     frontend_modules_sources_clear(environment);
     environment.implicit = true;
@@ -1092,6 +1101,7 @@ export fn frontend_module_destroy(module: FrontendModule*): void {
             break;
         }
         var current = module_node(graph, graph.entities.data[i]);
+        module_session_release(current);
         var n: usize = 0;
         loop {
             done = n == current.declarations.length;
@@ -1138,6 +1148,9 @@ export fn frontend_module_destroy(module: FrontendModule*): void {
     if kind {
         entity_release(graph.kind);
     }
+    if graph.tracked {
+        graph.environment.active_graphs = graph.environment.active_graphs - 1;
+    }
     if graph.owns_environment {
         frontend_modules_destroy(graph.environment);
     }
@@ -1162,22 +1175,68 @@ export fn frontend_modules_reset_compilation(environment: ModuleEnvironment*): v
         syntax_destroy(environment.compilation_session);
     }
     environment.compilation_session = null;
+    // Live leases keep their parser and inputs. Retired caches are discarded
+    // only after the owning request drains and returns its session.
+    var next = environment.session_generation + 1;
+    var valid = next != 0;
+    module_require(valid);
+    environment.session_generation = next;
 }
 
 // Reuse parser tables, never program-specific parse trees or semantic components.
 export fn frontend_module_session(module: FrontendModule*): void* {
+    var leased = module.compilation_session != null;
+    if leased {
+        return module.compilation_session;
+    }
     var environment = module.graph.environment;
-    var missing = environment.compilation_session == null;
+    var session = environment.compilation_session;
+    environment.compilation_session = null;
+    var missing = session == null;
     if missing {
-        environment.compilation_session = syntax_create(module.source.text.data, module);
+        session = syntax_create(module.source.text.data, module);
     }
     else {
-        syntax_reset(environment.compilation_session, module.source.text.data, module);
+        syntax_reset(session, module.source.text.data, module);
     }
-    return environment.compilation_session;
+    module.compilation_session = session;
+    module.session_generation = environment.session_generation;
+    return session;
+}
+
+fn module_session_release(module: FrontendModule*): void {
+    var session = module.compilation_session;
+    var missing = session == null;
+    if missing {
+        return;
+    }
+    module.compilation_session = null;
+    var environment = module.graph.environment;
+    var reusable = module.session_generation == environment.session_generation;
+    if reusable {
+        reusable = environment.compilation_session == null;
+    }
+    if reusable {
+        environment.compilation_session = session;
+    } else {
+        syntax_destroy(session);
+    }
+}
+
+// The caller owns the environment and must drain requests before disposing it.
+// This check is coordinator-owned, not a concurrent reference count.
+export fn frontend_modules_try_destroy(environment: ModuleEnvironment*): bool {
+    var busy = environment.active_graphs != 0;
+    if busy {
+        return false;
+    }
+    frontend_modules_destroy(environment);
+    return true;
 }
 
 export fn frontend_modules_destroy(environment: ModuleEnvironment*): void {
+    var drained = environment.active_graphs == 0;
+    module_require(drained);
     frontend_modules_reset_compilation(environment);
     var i: usize = 0;
     loop {

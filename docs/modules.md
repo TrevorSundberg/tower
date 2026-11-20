@@ -129,6 +129,20 @@ and its import closure. Canonical Foundation output flattens the resolved progra
 into ordinary compilable Foundation, preserving bindings and execution order.
 Per-compilation source maps retain imported-file diagnostics.
 
+Compilation parser sessions are now exclusive leases owned by their module graph.
+Asking the same module for its session again preserves its cursor and grammar;
+another active module gets a different session. Each environment retains at most
+one idle session for parser-table reuse. A grammar reset retires the cache
+generation while active requests keep their sessions; retired leases are disposed
+when their graphs drain. `frontend_modules_try_destroy` rejects disposal while
+request graphs remain live. Existing `frontend_modules_destroy` requires that
+same drained state.
+
+Lease bookkeeping, input changes and source/diagnostic publication remain
+coordinator-owned. This is not permission to mutate an environment concurrently.
+Native grammar baselines and component registries still prevent full independent
+compiler worlds within one native instance; browser workers remain isolated.
+
 Declaration-only module caches are bounded to 16 snapshots. Reuse checks source
 bytes and current dependency resolution, including newly added nearer files.
 The compilation environment also reuses the bounded parser-table cache. Ordinary

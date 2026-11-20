@@ -211,6 +211,21 @@ store and has native grammar/type caches. Migrating those boundaries is required
 before offering several independent compiler worlds in one native instance.
 Browser worker/Wasm-instance isolation continues to provide that separation now.
 
+Generic component registries are now program-owned Tower entities. A context
+component retains its registry type, and that registry owns its template,
+instance and origin type entities. Programs use distinct component identities
+even when they share an underlying store. Releasing a program reclaims its
+registry through ordinary entity ownership; a retained component still keeps its
+own type alive. `compiler/generic-registry` provides this without a native type
+cache or process-lifetime generic registry. The remaining parser/Foundation type
+registries and store boundary are still native.
+
+Module environments now lend exclusive parser-session leases to active module
+graphs and retain one idle session for reuse. Cache invalidation does not destroy
+an active lease. See [module lifetime rules](modules.md). These changes establish
+ownership boundaries used by compilation and tooling; shared-world phases remain
+serial until their remaining mutable state and publication contracts are moved.
+
 ## Validation fixtures
 
 `scaffolding/tests/language-control.tower` and `language-collections.tower` contain

@@ -6,6 +6,16 @@ lifecycle, LLVM integration, runtime and host adapters still need integration
 from their respective migration owners. The tooling below keeps those release
 gates explicit; it does not turn a module comparison into compiler self-hosting.
 
+The 2026-11-19 retirement audit finds approximately 6,600 lines in 56 production
+C/C++ source/header files under scaffolding, another 4,100 test lines and 4,000
+bootstrap lines, excluding third-party dependencies. These are a source inventory,
+not a completion percentage. syntax.cpp and parser.cpp account for about 2,700
+production lines; CLI/browser entry points, raw platform/foreign operations,
+native registries and bootstrap/distribution remain meaningful retirement work.
+Tower now owns generic registry lifetime and module compilation-session leasing,
+but the native SyntaxSession implementation and other process-global registries
+remain. Portable compiler release gates below are still required.
+
 ## Implemented host migration
 
 `scaffolding/host/driver-options.tower` parses options and supplies help/version.

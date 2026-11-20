@@ -140,5 +140,88 @@ export fn frontend_modules_tests(): usize {
     }
     vector_dispose(u8, &path);
     frontend_modules_destroy(environment);
+    var prior_failure = result != 0;
+    if prior_failure {
+        return result;
+    }
+    return module_session_tests();
+}
+
+fn module_session_step(session: void*): bool {
+    var node = syntax_next(session);
+    var present = node != null;
+    if present {
+        entity_release(node);
+    }
+    return present;
+}
+
+fn module_session_check(ok: bool, code: usize, result: usize*): void {
+    if ok {} else {
+        var first = *result == 0;
+        if first {
+            *result = code;
+        }
+    }
+}
+
+fn module_session_tests(): usize {
+    var result: usize = 0;
+    var environment = frontend_modules_create();
+    var other = frontend_modules_create();
+    var left = frontend_module_root("parse Statement = 'left'; left left", environment);
+    var left_session = frontend_module_session(left);
+    module_session_check(module_session_step(left_session), 820, &result);
+    var right = frontend_module_root("parse Statement = 'right'; right", environment);
+    var right_session = frontend_module_session(right);
+    var isolated = left_session != right_session;
+    module_session_check(isolated, 821, &result);
+    module_session_check(module_session_step(right_session), 822, &result);
+    var same = frontend_module_session(left) == left_session;
+    module_session_check(same, 823, &result);
+    module_session_check(module_session_step(left_session), 824, &result);
+    module_session_check(module_session_step(right_session), 825, &result);
+    // Reset invalidates caches without destroying or rewinding live requests.
+    frontend_modules_reset_compilation(environment);
+    module_session_check(module_session_step(left_session), 826, &result);
+    var done = syntax_next(left_session) == null;
+    module_session_check(done, 827, &result);
+    done = syntax_next(right_session) == null;
+    module_session_check(done, 828, &result);
+    var error = syntax_get_error(left_session);
+    var clean = error[0] == 0;
+    module_session_check(clean, 829, &result);
+    error = syntax_get_error(right_session);
+    clean = error[0] == 0;
+    module_session_check(clean, 830, &result);
+    var busy = frontend_modules_try_destroy(environment) == false;
+    module_session_check(busy, 831, &result);
+    // A second environment remains usable while the first has outstanding leases.
+    var foreign = frontend_module_root("parse Statement = 'other'; other", other);
+    var foreign_session = frontend_module_session(foreign);
+    module_session_check(module_session_step(foreign_session), 832, &result);
+    module_session_check(module_session_step(foreign_session), 833, &result);
+    frontend_module_destroy(right);
+    frontend_module_destroy(left);
+    var retired = environment.compilation_session == null;
+    module_session_check(retired, 834, &result);
+    // A current-generation lease is returned to the one-entry idle cache.
+    var fresh = frontend_module_root("parse Statement = 'fresh'; fresh", environment);
+    var fresh_session = frontend_module_session(fresh);
+    module_session_check(module_session_step(fresh_session), 835, &result);
+    module_session_check(module_session_step(fresh_session), 836, &result);
+    frontend_module_destroy(fresh);
+    var cached = environment.compilation_session == fresh_session;
+    module_session_check(cached, 837, &result);
+    var reused = frontend_module_root("parse Statement = 'again'; again", environment);
+    var reused_session = frontend_module_session(reused);
+    same = reused_session == fresh_session;
+    module_session_check(same, 838, &result);
+    module_session_check(module_session_step(reused_session), 839, &result);
+    module_session_check(module_session_step(reused_session), 840, &result);
+    frontend_module_destroy(reused);
+    frontend_module_destroy(foreign);
+    module_session_check(frontend_modules_try_destroy(environment), 841, &result);
+    module_session_check(frontend_modules_try_destroy(other), 842, &result);
     return result;
 }

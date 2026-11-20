@@ -16854,3 +16854,110 @@ with zero hover-time worker requests. This is a browser scheduling measurement,
 not a promise of zero physical display latency. Evidence: build/grammar-hover-
 performance.json and .log. Existing local edits remain preserved; todo.txt still
 matches SHA-256 41167ea6c171d41aa333ee35e307b9f1d0f20a22e8832e8f4fb7de2a216efab7.
+
+## 2026-11-19: program-owned generic registries and leased compiler sessions
+
+Pulled current main before work. The user prioritizes explicit world ownership
+alongside the full language roadmap. Module-scoped bindings/aliases remain the
+next language visibility slice; first retire two concrete ownership hazards in
+the real compiler. GenericContext currently obtains four process-lifetime type
+entities from compiler-syntax.cpp. Move that registry into Tower: each program's
+context component owns its type entity, which owns the other generic component
+types. Existing entity/component references reclaim the registry naturally; no
+new collector, native callback, global current-world selector or semantic IR.
+Delete the superseded native registry/component adapter once replaced.
+
+ModuleEnvironment currently lends the same mutable compilation session to every
+module graph, resetting a still-active request when another starts. Give each
+module an exclusive session lease; its environment owns at most one idle cached
+session. Repeated acquisition by the same module is idempotent. Resetting cached
+grammar state retires a generation, never destroys a live lease; obsolete leases
+are destroyed when their module graph drains. Refuse world/environment disposal
+while request graphs remain live. This keeps parser-table reuse for serial builds
+and allows independent interleaved requests without a global current session.
+
+These are coordinator-owned lifetime changes, not a claim of threaded mutation:
+native parser/Foundation registries, grammar baselines, source/diagnostic
+publication and the singleton entity store still require migration. Validate
+independent generic identities/lifetime, interleaved parse continuations, reset
+while leased, reuse, teardown, language queries, compiler successors and overhead
+before publication. Implement algorithms and functional assertions in Tower;
+native edits only remove the replaced code. Journal outcomes and remaining
+dependencies below.
+
+Implemented compiler/generic-registry.tower and removed the native four-type
+registry plus component-add wrapper from compiler-syntax.cpp (seven deleted
+lines, no native additions). Each program's context component retains its registry
+type, whose child entities own template/instance/origin types; attached components
+independently retain their types. The Tower fixture verifies different programs in
+one store, another store, cross-registry lookup, a component outliving its context,
+no phantom program children, and repeated complete reclamation. Both pointer
+widths, graph/fast execution, Foundation round trips, raw/optimized reconstruction
+and Wasm execution pass (ownership-registry-fixture.log, 4/4).
+
+Compilation sessions now belong exclusively to their module until its graph
+drains. Reacquiring the same module is idempotent; another active module receives
+another parser. The environment caches one returned session. Reset increments a
+cache generation and disposes only idle state; active sessions continue, and
+retired ones are destroyed on return. frontend_modules_try_destroy rejects live
+request graphs. Native SyntaxSession storage and global grammar baselines remain;
+input changes, diagnostics and lease bookkeeping are still coordinator-owned.
+This is not full native-world isolation or concurrent environment mutation.
+
+The first build exposed the still-flat module namespace: adding a second abort
+extern collided with host-entities. Moved the shared declaration/infallible
+compiler check into entity-require.tower and imported it from both owners.
+Recoverable entity-library allocation failures retain their existing return
+contract. The sanitizer cache initially pointed at an obsolete stage1 compiler
+that rejects --depfile; reconfigured it with the existing import-capable bootstrap
+at build/import-port/towerc. An initial direct test launch from the repository
+root could not find bedrock.tower; using the established CTest working directory
+fixes the invocation. No compiler behavior was changed for either setup failure.
+
+Native compiler/backend API checks pass. The native parser suite, including the
+new Tower interleaving/reset/reuse/disposal assertions, passes in 193.10 seconds
+with address/undefined sanitizers on its native code (ownership-parser-tests.log;
+ctest --test-dir /home/trevo/.cache/tower/core-asan -R '^tower-parser-tests$'
+--output-on-failure). Canonical formatting passes. Rebuilt parser/LLVM/cross
+reactors; the complete Node/Wasm suite passes 341/341 in 61.79 seconds. That run
+overlapped packaging, so repeated the five compiler-worker checks after the new
+recipe finished; all pass. Successor builds below validate the new recipe itself.
+Relevant logs are build/language-next/ownership-{native,native-api,wasi,llvm,
+package,node,workers,format}.log.
+
+Saved the pre-change LLVM reactor before rebuilding with the same unchanged
+bootstrap/toolchain. Bootstrap SHA-256:
+b4539248e28633bb98ea0b42e21233636622f47e26b689f9d2c365ef20c09f02.
+benchmark-compiler-ownership.mjs is a host measurement adapter; Tower generates
+the layout stress source, and both compilers receive identical current inputs.
+Every measured object is byte-identical. Run it with the saved
+build/language-next/ownership-baseline/tower-llvm.wasm. Final measurement uses six
+warmups and 16 alternating pairs on Node v22.23.4 / AMD RYZEN AI MAX+ 395: templates
+median 6.335 -> 6.264 ms, layout 18.124 -> 17.598 ms, compiler-host unit
+155.743 -> 158.458 ms. The host-unit sample carries a small measured cost (~1.7%);
+the other cases are slightly faster. These samples do not establish universal
+speedups, SIMD benefits or zero overhead. Track this cost during further world
+migration. An earlier two-warmup/ten-pair trial had much higher absolute times
+and wider variation (16.875/16.743, 66.207/53.082, 514.144/528.856 ms). It is
+retained in ownership-benchmark-initial.{json,log}; do not attribute the between-run
+timing difference to this code change. Final samples, binary and recipe hashes
+are in ownership-benchmark.json. No native fallback or alternate semantic IR was
+introduced for measurement.
+
+Before final synchronization, two compiler successors pass with two then four
+workers and identical artifacts: tower 01d9636ba5dab756a86ec9769c07106e85d7d706a059eb36579dcc646c1eedc0,
+llvm fb1578d74614306d36d96b2c4efe61726057c64a4bbbe02ce665b05b6c2afe8f,
+cross 41809111eb086e4b4ab306f46d55c477b4c61ca06cbe61b5d289e4e792200d99.
+Validation wall times are 50.293/59.440 seconds, overlapping other checks and not
+worker-speedup measurements. Browser activation/reset, completion, hover and C
+checks pass 45 cases with one intentional mobile rebuild skip (2.3 minutes).
+The local verifier passes all 68 assets and desktop/mobile flows. Logs:
+ownership-generations.log, ownership-browser.log, ownership-local.log. Saved
+manifest hash: 87891392ea893efc44165fc0605096178dfcca0f116efea3b96b6b46629237c8.
+
+Fetched newer upstream through 75fde8d: grammar/replacement hover queries and
+custom-domain preparation/DNS notes. These include compiler changes, so integrate
+them and rebuild/revalidate before publication. The measurements above isolate
+the ownership change before that unrelated integration; they are not performance
+claims about the combined hover release. Do not overwrite the newer Pages tree
+or discard its custom-domain state.

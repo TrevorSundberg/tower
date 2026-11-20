@@ -1,0 +1,11 @@
+import tower;
+
+extern fn abort(): void;
+
+// Infallible compiler ownership operations use the existing fatal allocation
+// contract. Recoverable entity-library operations continue to return failure.
+fn compiler_entity_require(ok: bool): void {
+    if ok {} else {
+        abort();
+    }
+}

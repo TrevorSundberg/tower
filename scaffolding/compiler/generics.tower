@@ -1,7 +1,8 @@
 import tower;
+import 'generic-registry';
 
 // Compiler transformations over the shared entity store. C++ only exposes
-// existing payload access until those components are also defined in Tower.
+// existing parser metadata access; registry ownership and transforms are Tower.
 extern fn compiler_node_label(node: Entity*, label: u8*): bool;
 
 extern fn compiler_name_is(node: Entity*, name: u8*): bool;
@@ -9,20 +10,6 @@ extern fn compiler_name_is(node: Entity*, name: u8*): bool;
 extern fn compiler_name_equal(left: Entity*, right: Entity*): bool;
 
 extern fn compiler_node_copy_metadata(source: Entity*, destination: Entity*): void;
-
-extern fn compiler_generic_type(index: usize): Entity*;
-
-fn compiler_component_get(node: Entity*, type: Entity*): void* {
-    var missing = node == null;
-    if missing {
-        return null;
-    }
-    var component = entity_component_get(node, type);
-    var data = entity_component_data(component);
-    return bits(void*, data);
-}
-
-extern fn compiler_component_add(node: Entity*, type: Entity*, size: usize): void*;
 
 fn compiler_node_count(node: Entity*): usize {
     var missing = node == null;
@@ -39,59 +26,6 @@ fn compiler_node_member(node: Entity*, role: u8*): Entity* {
     }
     var index = entity_member_index(node, role);
     return entity_child_at(node, index);
-}
-
-// These are semantic components attached to real definition/instance nodes.
-// Fixed bounds match the current foundation parameter and function limits.
-struct GenericTemplate {
-    parameters: Entity*[64];
-    type_parameters: bool[64];
-    count: usize;
-    type_count: usize;
-    kind: u32;
-}
-
-struct GenericInstance {
-    definition: Entity*;
-    use: Entity*;
-    node: Entity*;
-    arguments: Entity*[64];
-    count: usize;
-    next: GenericInstance*;
-}
-
-struct GenericOrigin {
-    definition: Entity*;
-    use: Entity*;
-}
-
-// This linked index is derived from instance components, scoped to one program
-// and its explicit target. It is not a second representation of the program.
-struct GenericContext {
-    root: Entity*;
-    template_type: Entity*;
-    instance_type: Entity*;
-    origin_type: Entity*;
-    first: GenericInstance*;
-    count: usize;
-    copied: usize;
-    error: u8*;
-}
-
-export fn generic_begin(root: Entity*): GenericContext* {
-    var type = compiler_generic_type(0);
-    var data = compiler_component_add(root, type, sizeof(GenericContext));
-    var context = bits(GenericContext*, data);
-    fill(context, 0, sizeof(GenericContext));
-    context.root = root;
-    context.template_type = compiler_generic_type(1);
-    context.instance_type = compiler_generic_type(2);
-    context.origin_type = compiler_generic_type(3);
-    return context;
-}
-
-export fn generic_error(context: GenericContext*): u8* {
-    return context.error;
 }
 
 fn generic_parameters(context: GenericContext*, template: GenericTemplate*, node: Entity*, depth: usize): void {
@@ -148,7 +82,7 @@ export fn generic_register(context: GenericContext*, definition: Entity*): u32 {
     }
     var needed = template.kind != 0;
     if needed {
-        var data = compiler_component_add(definition, context.template_type, sizeof(GenericTemplate));
+        var data = generic_component_add(definition, context.template_type);
         copy(data, template, sizeof(GenericTemplate));
     }
     return template.kind;
@@ -185,7 +119,7 @@ fn compiler_clone_node(source: Entity*, context: GenericContext*, use: Entity*):
     compiler_node_copy_metadata(source, result);
     var record = context != null;
     if record {
-        var data = compiler_component_add(result, context.origin_type, sizeof(GenericOrigin));
+        var data = generic_component_add(result, context.origin_type);
         var origin = bits(GenericOrigin*, data);
         origin.definition = source;
         origin.use = use;
@@ -333,7 +267,7 @@ export fn generic_instantiate(context: GenericContext*, definition: Entity*, use
         context.error = "Template expansion exceeds 65536 nodes or could not allocate its work stack";
         return null;
     }
-    data = compiler_component_add(node, context.instance_type, sizeof(GenericInstance));
+    data = generic_component_add(node, context.instance_type);
     var instance = bits(GenericInstance*, data);
     fill(instance, 0, sizeof(GenericInstance));
     instance.definition = definition;
@@ -478,24 +412,4 @@ export fn generic_type_result(context: GenericContext*, instance: Entity*): Enti
             return returned;
         }
     }
-}
-
-export fn generic_origin(context: GenericContext*, node: Entity*): Entity* {
-    var data = compiler_component_get(node, context.origin_type);
-    var present = data != null;
-    if present {
-        var origin = bits(GenericOrigin*, data);
-        return origin.use;
-    }
-    return null;
-}
-
-export fn generic_definition(context: GenericContext*, node: Entity*): Entity* {
-    var data = compiler_component_get(node, context.origin_type);
-    var present = data != null;
-    if present {
-        var origin = bits(GenericOrigin*, data);
-        return origin.definition;
-    }
-    return node;
 }

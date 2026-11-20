@@ -433,6 +433,11 @@ containers. Benchmark representative compiler workloads before migrating them.
    payload mutation/refcounts concurrent. Live compiler services must bind each
    request to a world/revision, drain work before releasing views and reject stale
    replies; worker/Wasm-instance isolation remains the present service boundary.
+   Generic component registries now belong to individual programs and are
+   implemented entirely in Tower. Active module graphs also own exclusive parser
+   session leases; environments retain one idle cache and reject disposal with
+   live requests. Parser/Foundation registries, grammar baselines, native session
+   implementation and the singleton entity store still need explicit ownership.
 3. Migrate pure layout, body-analysis and lowering queries individually. Cache
    matching entity/component tuples. Preserve stable sparse payloads where
    address stability matters; introduce dense typed columns only for measured
