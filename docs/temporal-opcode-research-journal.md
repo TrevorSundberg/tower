@@ -16769,3 +16769,53 @@ recognized but Pages serving was not yet recognized. HTTPS initially failed with
 a certificate-name mismatch, and the Pages API had no issued custom-domain
 certificate. Do not count that HTTP response as completed HTTPS deployment;
 certificate provisioning, HTTPS enforcement and final hosted checks follow below.
+
+The final source rebase integrated grammar-hover release 27e59fd, preserving
+both journal append sequences. Its `.gitattributes` fix pins CNAME to LF on
+Windows. The packaging test passes again after integration. Published domain
+manifest commit 8c2d5fb and source commit 75fde8d with normal fast-forward pushes;
+transient `Could not resolve host: github.com` errors cleared on retries.
+
+Certificate provisioning did not progress on the initial attempt: the health
+endpoint continued reporting NotServedByPagesError for both names despite correct
+public DNS and HTTP 200 from GitHub. The preceding "stale" description was an
+inference, not a confirmed GitHub root cause. Followed GitHub's documented
+[certificate-provisioning retry](https://docs.github.com/en/pages/getting-started-with-github-pages/securing-your-github-pages-site-with-https):
+removed and immediately reapplied the same custom domain through `gh api` once
+DNS was live. GitHub then approved a certificate for both apex and www.
+`gh api --method PUT repos/TrevorSundberg/tower/pages -F https_enforced=true`
+succeeded; Pages now reports built and `https://tower-lang.org/`.
+
+That retry created automatic CNAME commits ending at 6c1705c, restoring GitHub's
+14-byte file without a newline. The asset-preparation hash guard correctly
+rejected its mismatch against the existing 15-byte source-derived CNAME hash.
+Copied the tracked CNAME back, verified every asset again, and published the
+one-file normalization as 65d0238. The final manifest remains
+70e1349adf9dca05e4c6baa8b903fdf63f2fe433d26d607902d167ff047c822f; all application
+and compiler bytes remain those from the newer grammar-hover publication.
+
+`node playground/scripts/verify-local.mjs` passes all 69 served-asset hashes and
+both desktop/mobile flows (domain-local.log and domain-local-report.json under
+build). `node build/verify-domain-routing.mjs` passes exact A/AAAA/CNAME checks,
+normal TLS hostname/trust validation for apex and www, and all redirect chains:
+HTTP apex, HTTP/HTTPS www and the previous GitHub Pages URL reach HTTPS apex
+with final status 200. The old URL also preserves `index.html?domain-check=1`.
+Evidence: build/domain-routing.log and build/domain-routing-report.json. The
+actual certificate reports both names and expiry February 18, 2027 at 02:46 UTC;
+the Pages API's coarser expires_at field reports February 17.
+
+Opened the working HTTPS site in the user's existing Chrome window. The
+Cloudflare tab remains available, and temporary remote debugging is disabled.
+No browser credentials or API tokens were exported.
+
+The full HTTPS hosted verifier exits zero:
+`node playground/scripts/verify-deployment.mjs https://tower-lang.org/` verifies
+all 69 exact asset hashes and both desktop/mobile flows, including backend
+agreement, C optimization/comments, forward bindings, editable grammar, project
+persistence, native downloads, completion, output highlighting, compiler-project
+behavior and target defaults. Evidence: build/domain-live.log and
+build/domain-live-report.json. The final published commit is
+65d0238a39279a448bf8c6cc27a3692d41d85b61 with the unchanged final manifest hash
+recorded above. This completes the new-domain deployment; the earlier API-token
+and browser-launch blockers no longer apply. `todo.txt` remains Git blob
+96a9e58964d7f01e4a97819f259448db81ef5e40.
