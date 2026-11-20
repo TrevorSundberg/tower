@@ -35,7 +35,7 @@ fn vector_reserve(T: type, value: vector(T)*, needed: usize): bool {
     if impossible {
         return false;
     }
-    var capacity = value.capacity * 2;
+    var capacity = value.capacity *2;
     var wrapped = capacity < value.capacity;
     if wrapped {
         capacity = needed;
@@ -92,7 +92,7 @@ fn vector_pop(T: type, value: vector(T)*, output: T*): bool {
     if missing {
         return false;
     }
-    var last = value.length - 1;
+    var last = value.length -1;
     *output = value.data[last];
     value.length = last;
     return true;

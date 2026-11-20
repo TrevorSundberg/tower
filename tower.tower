@@ -45,8 +45,10 @@ parse TowerExpression |= $left:TowerExpression TowerShiftOperator $right:TowerEx
 parse TowerExpression |= $left:TowerExpression '<=>' $right:TowerExpression @ 100 left;
 parse TowerRelationalOperator = '<' | '<=' | '>' | '>=' @ 90 left;
 parse TowerExpression |= $left:TowerExpression TowerRelationalOperator $right:TowerExpression @ 90 left;
-parse TowerExpression |= $left:TowerExpression 'is' 'null' @ 90 left => replace { $left == null };
-parse TowerExpression |= $left:TowerExpression 'is' 'not' 'null' @ 90 left => replace { $left != null };
+parse TowerExpression |= $left:TowerExpression 'is' 'null' @ 90 left
+    => replace { $left == null };
+parse TowerExpression |= $left:TowerExpression 'is' 'not' 'null' @ 90 left
+    => replace { $left != null };
 parse TowerEqualityOperator = '==' | '!=' | 'not_eq' @ 80 left;
 parse TowerExpression |= $left:TowerExpression TowerEqualityOperator $right:TowerExpression @ 80 left;
 parse TowerBitAndOperator = '&' | 'bitand' @ 70 left;
@@ -61,25 +63,29 @@ parse TowerOrOperator = '||' | 'or' @ 30 left;
 parse TowerExpression |= $left:TowerExpression TowerOrOperator $right:TowerExpression @ 30 left;
 parse TowerExpression |= $left:TowerExpression '??' $right:TowerExpression @ 20 right;
 parse TowerExpression |= $condition:TowerExpression '?' $body:TowerComma ':' $otherwise:TowerExpression @ 10 right;
-parse TowerAssignmentOperator = '=' | '+=' | '-=' | '*=' | '/=' | '%=' | '<<=' | '>>=' | '>>>=' | '&=' | '^=' | '|='
-                       | '&&=' | '||=' | '??='
-                       | 'and_eq' | 'xor_eq' | 'or_eq' @ 10 right;
+parse TowerAssignmentOperator = '=' | '+=' | '-=' | '*=' | '/=' | '%=' | '<<=' | '>>=' | '>>>=' | '&=' | '^='
+                               | '|=' | '&&=' | '||=' | '??=' | 'and_eq' | 'xor_eq' | 'or_eq' @ 10 right;
 parse TowerExpression |= $left:TowerExpression TowerAssignmentOperator $right:TowerExpression @ 10 right;
 parse TowerComma = TowerExpression | $left:TowerComma ',' $right:TowerExpression;
 parse TowerNullAccess = $base:TowerExpression '?.' $field:Identifier
-                     | $base:TowerExpression '?[' $index:TowerExpression ']' @ 150 left;
+                       | $base:TowerExpression '?[' $index:TowerExpression ']' @ 150 left;
 parse TowerNullAccess |= $base:TowerNullAccess '.' $field:Identifier
-                      | $base:TowerNullAccess '[' $index:TowerExpression ']' @ 150 left;
+                        | $base:TowerNullAccess '[' $index:TowerExpression ']' @ 150 left;
 parse TowerExpression |= TowerNullAccess;
 parse CoreLocation |= '(' $base:TowerComma ')' '.' $field:Identifier
-                    | '(' $base:TowerComma ')' '[' $index:TowerExpression ']'
-                    | $base:CoreCall '.' $field:Identifier
-                    | $base:CoreCall '[' $index:TowerExpression ']';
+                     | '(' $base:TowerComma ')' '[' $index:TowerExpression ']'
+                     | $base:CoreCall '.' $field:Identifier | $base:CoreCall '[' $index:TowerExpression ']';
 // Disable the Foundation binary alternative before activating nested operands.
 parse CoreValue = CoreOperand;
-parse CoreCallArgument = TowerExpression;
+parse CoreCallArgument = CoreOperand;
 parse CoreOperand = TowerExpression;
 parse TowerExpressionStatement = $value:TowerComma ';';
-parse Statement = CoreDeclare | CoreBlock | CoreIf | CoreLoop | CoreBreak | CoreContinue
-                  | CoreFunction | CoreReturn | CoreStruct | CoreEnum | CoreExternal | CoreExport
-                  | TowerConstant | TowerExportedConstant | TowerMatch | TowerWhile | TowerExpressionStatement;
+// A scoped initializer, a bool test before each iteration, and an update after
+// the body (including continue). Empty clauses mean no initialization/test/update.
+parse TowerForInitial = CoreDeclare | TowerExpressionStatement | ';';
+parse TowerForCondition = TowerComma?;
+parse TowerForStep = TowerComma?;
+parse TowerFor = 'for' '(' $initial:TowerForInitial $condition:TowerForCondition ';' $step:TowerForStep ')' $body:CoreBlock;
+parse Statement = CoreDeclare | CoreBlock | CoreIf | CoreLoop | CoreBreak | CoreContinue | CoreFunction
+                 | CoreReturn | CoreStruct | CoreEnum | CoreExternal | CoreExport | TowerConstant
+                 | TowerExportedConstant | TowerMatch | TowerWhile | TowerFor | TowerExpressionStatement;
