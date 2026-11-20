@@ -20810,3 +20810,19 @@ verified every published-checkout file against its recorded SHA-256, and selecte
 those exact artifacts as the expected package for the final hosted verification.
 This does not claim byte identity between the two build environments. The hosted
 package itself must pass the deployment and hover checks before completion.
+
+Final hosted verification passed for gh-pages 1828ff9a750d00b43e262cdd87e0f14ff4bc9261
+(integrated source 0e4bd413d2e73774162a4851e73c9cec6bd684ad, including the type-use fix
+0b48236). All 70 exact asset hashes and both complete desktop/mobile flows pass:
+backend agreement, native/C downloads, contextual and typed completion, Tab
+acceptance, highlighting, deferred diagnostics, persistence and default targets.
+All 14 targeted live hover cases pass (27.2 s), including the screenshot's i32
+argument, template members/operators, symbolic definitions and unrelated errors.
+The report is build/type-use-integrated-live-report.json; logs are
+build/type-use-integrated-live.log and type-use-integrated-live-hover.log.
+
+Published manifest SHA-256:
+890314fd96784fb24c2967bf7c41307f9d699dda09ef97f6edb546c522f30b4d.
+The remaining changes are journal records only. Retain the verified publication
+as a no-op deployment, verify its manifest again after the final pull, and push
+the records without rebuilding or replacing the identical source deployment.
