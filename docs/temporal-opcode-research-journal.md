@@ -15776,3 +15776,17 @@ also passes both profiles with two workers (clock-browser-final.log, 7.3 s).
 The final local deployment
 verifier exits zero for all 67 assets and both profiles
 (integrated-verify-local.log). Publication and hosted results follow below.
+
+Published implementation 2821aa9 with validation record 0537084 to main and
+Pages a4aa9fa109d205e1dd7be15f57636feb625f261c, based on upstream 757f767.
+The final pull was already current; all 22 import/hover checks passed afterward
+(final-sync-tests.log). No force push was used. Once Pages served the exact
+ab66ed12 manifest above, the hosted verifier exited zero: all 67 assets match,
+and desktop/mobile execution, imports, identifier highlighting, grammar editing,
+native builds/downloads, persistence, completion and compiler-workbench checks
+pass. Evidence: build/dotted-imports/verify-live.log and
+build/deployment-verification/report.json for https://trevorsundberg.github.io/tower/.
+This publication record changes no deployed asset. todo.txt remains blob
+96a9e58964d7f01e4a97819f259448db81ef5e40. Namespace bindings/aliases and the
+remaining native-to-Tower migration stay future work; dotted paths and quoted
+relative imports are implemented and verified.
