@@ -18744,3 +18744,38 @@ is parser debug/conflict formatting and its callback request/resume handling,
 followed by syntax.cpp session/version ownership. Keep the shared formatter and
 LR/entity records; do not introduce a second grammar or semantic IR. Final
 browser checks, quiet-machine benchmark, rebase and publication follow.
+
+Final local checks: the focused browser suite initially produced 103 passes,
+one intentional mobile compiler-build skip and two failures in the old hover
+assertion. Both failures match the already-upstream whitespace-normalization
+correction: '\nfunction\n' incorrectly matched the call description. Committed
+the implementation, then git pull --rebase integrated 04b0613. Preserved both
+append-only journal entries. Only journal text and hover tests changed compared
+with the validated implementation. Reran both corrected cases and both new
+custom-surface cases: 4/4 pass. Combined browser result: 107 passed / one skipped.
+Logs: parser-table-browser.log and parser-table-hover-recheck.log. The rebased
+implementation is 36c51adeed1d33652259181f86f0a156032ff9b8.
+
+After other validation jobs completed, ran
+`node playground/scripts/benchmark-compiler-ownership.mjs
+build/language-next/parser-table-baseline.wasm`: six warmups, sixteen alternating
+pairs, identical emitted objects in every comparison. Baseline is the published
+Roku integration at ee00eb4, LLVM reactor SHA-256
+c8379012f8b512331c1701397abe853998457076daff79085f911006c0ff35bd.
+Median baseline -> current milliseconds: templates 13.91875 -> 13.44620;
+depth-1024 layouts 61.50780 -> 60.99955; compiler-host 402.70915 -> 406.77805.
+The approximately one-percent host difference is smaller than within-run
+variation; no material regression was observed. These timings are not directly
+comparable to older journal runs with different system load/toolchains. Complete
+samples, CPU, Node version and reactor hashes are in parser-table-benchmark.json.
+
+Prepared publication starts from the latest Pages revision 1dcd119, preserving
+its Roku and ECS integration. All 69 asset names remain. Sixteen compiler assets
+changed; 53 assets are byte-identical to that deployment, including UI and target
+runtime packs. The manifest records implementation revision 36c51ad and this
+provenance; its SHA-256 is
+bb99871e46cdf137d766d3288a63fa357456649e96118acabe08c08d7faf410d.
+The previous unpushed parser-format-only preparation was superseded; its manifest
+was retained under build/language-next/parser-format-superseded-manifest.json.
+Normal publication and hosted verification follow. todo.txt and both earlier
+user-work stashes remain unchanged.
