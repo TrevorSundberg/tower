@@ -22370,3 +22370,63 @@ extensions, and exclude third-party/vendor/external directories. syntax.cpp is
 inventory, not a claim that the remaining ownership/release work is proportional
 to line count. todo.txt's object hash remains
 96a9e58964d7f01e4a97819f259448db81ef5e40.
+
+### 2026-11-20 - Remove the parser deadline and memoize closure expansion
+
+The user explicitly expanded this checkout's CLI/runtime work to remove the
+10-second parsing timeout and optimize parsing. The deadline was a JavaScript
+setTimeout in playground/src/app.mjs Engine.request, not a language/compiler
+limit. Removed it. Follow-up inspection corrected an initial assumption: ordinary
+edits previously queued behind the running parse, and Cancel only stopped
+execution. Edits now terminate unfinished obsolete parser workers; completed
+requests still reuse their worker. Cancel also stops parsing, and the generation
+and request-ID guards continue to reject stale results. No new parser deadline.
+
+Profiled the packaged compiler project entry units/compiler_parser_nodes.tower
+(2,071 source bytes, 255 packaged files) using Node 22.23.4 on this Windows host,
+with the Wasm reactor rebuilt in the isolated cli-runtime-wasi WSL cache. Baseline
+CPU sampling attributed 56.6 seconds of the initial/reset run to lr_items_insert.
+The closure repeatedly expanded identical nonterminal/lookahead pairs, inserting
+all their productions again. lr_items_close now keeps a disposable, per-call set
+of those pairs and expands each once. It retains exact lookahead interval
+identity, sorted closure items and the existing pending-item queue. This is a
+Tower algorithm change, with no native implementation or cross-world cache.
+Both scratch vectors are released on success and allocation failure.
+
+The initial CPU-profiled trial was 43.10/31.76 seconds for initial/reset parsing;
+the first optimized unsampled run was 7.44/6.98 seconds. Those differently
+instrumented numbers are not the fair comparison. Added
+playground/scripts/benchmark-parser.mjs to compare corresponding phases of saved
+reactors without profiling, checking SHA256 of syntax events, grammar rules,
+keywords, tokens, highlights and dependencies. Run from the checkout:
+`node playground/scripts/benchmark-parser.mjs build/parsing/baseline.wasm
+build/parsing/optimized.wasm`. Matched results were 29,020.75 -> 8,386.20 ms initial
+(3.46x) and 27,327.23 -> 7,586.62 ms reset (3.60x). Initial output hash db41c5db...
+and reset dfb833fb... agree across both reactors; event revisions intentionally
+change after reset. Host build activity overlapped parts of this trial; these are
+observed samples, not a latency guarantee. Inspection remained below 2 ms.
+
+Rebuilt native compiler and all three browser reactors with the published
+bootstrap pin and existing LLVM/LLD archives. The full native parser test aggregate
+hit the pre-existing 256-specialization ceiling at SyntaxEmissionLiteral.
+An isolated attempt to invoke existing native LR reference tests also hit their
+node/allocation baseline assertion at lr-analysis.cpp:427. Relinking the same
+harness against the saved pre-change clean parser object fails at the identical
+assertion, so this is not evidence of a new closure regression; the experiment
+is not a passed reference suite. Its temporary Tower entry was not retained.
+Logs and temporary orchestration are under build/parsing; no native tests changed.
+
+Focused existing Bedrock, operator and module-path tests pass 22/22 in 3.62 s.
+The new browser regression delays parsing 11.5 seconds, verifies completion,
+cancels another delayed request and supersedes a third with a normal edit; both
+desktop/mobile pass in 15 s. The first attempt accidentally reused the already
+running server on port 4173 and correctly observed its old timeout. Reran against
+this checkout's own server on 4197 with reuse disabled. Local deployment checks
+pass both device profiles and all 70 asset hashes, including the previously
+blocked compiler-project view and compiler-build cancellation. The algorithm
+still spends seconds building imported grammar tables; this change does not
+claim that parsing cost is eliminated or that every grammar finishes quickly.
+
+Fetched incoming lexical ownership work through 8577783 before publication.
+Next: preserve that work in the rebase, rebuild affected artifacts using the
+published bootstrap, rerun the relevant checks, then publish and verify.

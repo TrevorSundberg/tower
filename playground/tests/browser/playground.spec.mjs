@@ -18,6 +18,37 @@ test.beforeEach(async ({ page }) => {
   await expect(page.locator('#status')).toContainText('Complete');
 });
 
+test('slow parsing has no deadline and can be cancelled or superseded', async ({page}) => {
+  test.setTimeout(45000);
+  await page.route('**/worker.js', async route => {
+    const response = await route.fetch();
+    await route.fulfill({response, body: await response.text() + `
+      const analyze = self.onmessage;
+      self.onmessage = async event => {
+        if (event.data.source.includes('slow-parser-fixture'))
+          await new Promise(resolve => setTimeout(resolve, 11500));
+        return analyze(event);
+      };`});
+  });
+  await page.reload();
+  await expect(page.locator('#status')).toContainText('Complete');
+  await page.locator('#auto-execute').uncheck();
+  const slow = value => `// slow-parser-fixture\nprint(${value});`;
+  await setSource(page, slow(1));
+  await expect(page.locator('#status')).toContainText('Tower is parsing');
+  await expect(page.locator('#status')).toContainText('Complete', {timeout:20000});
+
+  await setSource(page, slow(2));
+  await expect(page.locator('#status')).toContainText('Tower is parsing');
+  await page.locator('#cancel-execution').click();
+  await expect(page.locator('#status')).toHaveText('Parsing cancelled');
+  await setSource(page, slow(3));
+  await expect(page.locator('#status')).toContainText('Tower is parsing');
+  await setSource(page, 'print(4);');
+  await expect(page.locator('#status')).toContainText('Complete');
+  await expect(page.locator('#tree')).toContainText('4');
+});
+
 test('whole-document tree selects roots, nested nodes and replacements', async ({ page }, info) => {
   const errors = []; page.on('pageerror', error => errors.push(error.message));
   await expect(page.locator('.document-children > li')).toHaveCount(9);

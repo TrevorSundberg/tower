@@ -72,7 +72,7 @@ class Engine {
   constructor() { this.id = 0; this.pending = null; this.worker = null; }
   stop(message = 'Superseded') {
     this.worker?.terminate(); this.worker = null;
-    if (this.pending) { clearTimeout(this.pending.timer); this.pending.reject(new Error(message)); this.pending = null; }
+    if (this.pending) { this.pending.reject(new Error(message)); this.pending = null; }
   }
   request(method, source) {
     if (this.pending) this.stop();
@@ -82,18 +82,16 @@ class Engine {
       this.worker.onmessage = ({ data }) => {
         const pending = this.pending;
         if (!pending || data.id !== pending.id) return;
-        clearTimeout(pending.timer); this.pending = null;
+        this.pending = null;
         if (data.error) { this.stop(); pending.reject(new Error(data.error)); }
         else pending.resolve(data.result);
       };
     }
     return new Promise((resolve, reject) => {
       const id = ++this.id;
-      // Compiler entries import the implementation's full source closure.
-      // Keep their cold parse bounded and cancellable while allowing that work.
-      const timeout = project.compilerProject ? 60000 : 10000;
-      const timer = setTimeout(() => this.stop(`Parsing exceeded ${timeout / 1000} seconds. Simplify the grammar and try again.`), timeout);
-      this.pending = { id, resolve, reject, timer };
+      // Parsing runs in a disposable worker. Stop and edits cancel it explicitly;
+      // a large valid grammar must not fail because of a wall-clock deadline.
+      this.pending = { id, resolve, reject };
       this.worker.postMessage({ compiler:compilerSelection(), library:project.library ?? '.tower', id, method, source, foundation, bedrock, editingModule, files:project.files, builtins:project.builtins, activePath, entry:projectSources(project)[0]?.path });
     });
   }
@@ -154,7 +152,7 @@ const selectedBackends = () => backendIds.filter(key => selectedTargets[key === 
 const outputId = backend => backend === 'interpreter' ? 'execution-output' : backend === 'fast' ? 'fast-output' : 'llvm-output';
 const errorId = backend => backend === 'interpreter' ? 'execution-error' : backend === 'fast' ? 'fast-error' : 'llvm-error';
 function isExecuting() { return Object.values(runners).some(runner => runner.worker); }
-function cancelState() { $('cancel-execution').disabled = !isExecuting(); }
+function cancelState() { $('cancel-execution').disabled = !busy && !isExecuting(); }
 function warmSelectedTargets() {
   for (const backend of ['llvm','native']) {
     if (!(backend === 'llvm' ? selectedTargets.wasm : selectedNativeKeys().length) || idleExecutionWorkers.has(backend) || runners[backend]?.worker) continue;
@@ -444,6 +442,7 @@ function empty(container, title, description) {
   container.replaceChildren(box);
 }
 function controls() {
+  cancelState();
   $('auto-execute').disabled = !editor;
   $('execute').disabled = !editor || isExecuting();
   for (const id of ['open', 'save', 'new-project', 'new-file', 'project-kind']) $(id).disabled = !editor;
@@ -588,8 +587,8 @@ function render() {
   $('runtime').classList.add('ready'); $('runtime-text').textContent = 'WASM ready';
 }
 async function perform(method) {
-  // One request in flight, one latest pending request. Ordinary edits never
-  // destroy the warm WASM worker or accumulate a backlog of obsolete sources.
+  // One request in flight, one latest pending request. Completed requests keep
+  // the warm worker; edits terminate unfinished work for the obsolete source.
   if (busy) { queued = method; return; }
   cancelAnimationFrame(frame); clearTimeout(typingTimer); typingTimer=0; frame = 0; queued = null;
   const ticket = ++generation;
@@ -658,7 +657,9 @@ function changed(deferDiagnostics = editor.hasFocus) {
   const wasExecuting = isExecuting();
   stopExecution(wasExecuting ? 'Cancelled by edit' : 'Ready');
   executionError = null; captureDocument();
-  ++generation; dirty = true; controls();
+  ++generation;
+  if (busy) engine.stop();
+  dirty = true; controls();
   $('node-info').textContent = 'Tree spans refer to UTF-8 source bytes.';
   $('status').textContent = 'Updating...';
   $('project-storage').textContent = 'Unsaved changes';
@@ -800,7 +801,15 @@ onCompilerSelection(selection => {
 });
 $('tokens').onchange = () => renderTree();
 $('execute').onclick = () => { diagnosticDelay.reveal(); execute(); };
-$('cancel-execution').onclick = () => { executedRevision = documentRevision; stopExecution('Cancelled'); };
+$('cancel-execution').onclick = () => {
+  executedRevision = documentRevision;
+  if (busy) {
+    ++generation; queued = null;
+    engine.stop('Cancelled'); dirty = true;
+    $('status').textContent = 'Parsing cancelled';
+  }
+  stopExecution('Cancelled');
+};
 for(const [key,target] of Object.entries(targetChoices)) {
   const label=node('label'), input=node('input'), caption=node('span','',target.label);
   caption.id='target-label-'+key;

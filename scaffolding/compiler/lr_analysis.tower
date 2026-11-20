@@ -400,6 +400,11 @@ fn lr_suffix(value: LRAnalysis*, rule: LRProduction*, position: usize, item: LRI
 export fn lr_items_close(value: LRAnalysis*, items: LRItems*, lookahead: bool): bool {
     var ranges: vector(SymbolRange);
     vector_init(SymbolRange, &ranges);
+    // Many items reach the same nonterminal with identical lookahead. Expand
+    // each pair once, rather than inserting every production for every incoming
+    // item. Exact range identities and the sorted closure remain unchanged.
+    var expanded: LRItems;
+    fill(&expanded, 0, sizeof(LRItems));
     var ok: bool = true;
     loop {
         var done = items.pending.length == 0;
@@ -439,35 +444,48 @@ export fn lr_items_close(value: LRAnalysis*, items: LRItems*, lookahead: bool): 
             break;
         }
         var productions = &value.nonterminals[symbol.nonterminal].productions;
-        var production: usize = 0;
+        var range: usize = 0;
         loop {
-            done = production == productions.length;
+            done = range == ranges.length;
             if items.failed {
                 done = true;
             }
             if done {
                 break;
             }
-            var next: LRItem;
-            next.rule = productions.data[production];
-            next.position = 0;
-            var range: usize = 0;
+            var key: LRItem;
+            key.rule = symbol.nonterminal;
+            key.position = 0;
+            key.first = ranges.data[range].first;
+            key.last = ranges.data[range].last;
+            range++;
+            var previous = expanded.values.length;
+            ok = lr_items_insert(&expanded, &key);
+            // This set is only a membership index, never a closure work queue.
+            expanded.pending.length = 0;
+            if !ok { value.failed = true; break; }
+            if previous == expanded.values.length { continue; }
+            var production: usize = 0;
             loop {
-                done = range == ranges.length;
+                done = production == productions.length;
                 if done {
                     break;
                 }
-                next.first = ranges.data[range].first;
-                next.last = ranges.data[range].last;
+                var next: LRItem;
+                next.rule = productions.data[production];
+                next.position = 0;
+                next.first = key.first;
+                next.last = key.last;
                 ok = lr_items_insert(items, &next);
                 if !ok {
                     break;
                 }
-                range++;
+                production++;
             }
-            production++;
         }
     }
+    vector_dispose(LRItem, &expanded.values);
+    vector_dispose(LRItem, &expanded.pending);
     vector_dispose(SymbolRange, &ranges);
     if items.failed {
         value.failed = true;
