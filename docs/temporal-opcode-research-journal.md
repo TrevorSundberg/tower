@@ -16579,3 +16579,28 @@ The remote Pages branch remains c4ae62c2a1e4ecc54033c2843bf0591477b0b059 and the
 Pages API still reports built, no custom domain and HTTPS enabled. This verifies
 the retained existing site, not the pending new domain. Domain deployment is
 explicitly blocked rather than switching the working site to unresolved DNS.
+
+### Browser-dashboard attempt
+
+The user explicitly requested opening the Cloudflare page and completing the
+configuration directly. Began with `git pull --rebase` on main (already current).
+This session exposes no browser/computer-control tool. Tried the Windows URL
+launcher for `https://dash.cloudflare.com/`; automatic approval review rejected
+the command with `blocked by policy`. A narrower launch of the installed Chrome
+executable with that single URL was also rejected with the same message. Neither
+attempt opened a browser, and the rejection supplied no more specific reason.
+Did not try additional launch mechanisms or inspect browser credentials.
+
+Plugin discovery found TinyFish as an available browser-automation integration,
+but it is not installed/connected. Suggested it as a supported way to operate
+the dashboard; using it will require installation and an authenticated browser
+session. This is an alternative to the API-token approach, not evidence of
+Cloudflare access. No DNS or GitHub custom-domain changes occurred.
+
+The retained Pages build still reports `built` at
+c4ae62c2a1e4ecc54033c2843bf0591477b0b059. Fetched the live deployment manifest and
+compared its SHA-256 with `playground/dist/deployment-manifest.json`: both are
+64f02bc254edfbc31cdc164e208992c2fa30bf4bd0226ba8b5f4c04d6c8d0e26, the exact
+publication whose full desktop/mobile verification passed in the preceding
+entry. Only this journal changes in this turn; the prepared custom-domain
+deployment remains blocked on an authorized, usable Cloudflare access path.
