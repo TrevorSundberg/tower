@@ -1,4 +1,5 @@
 import tower;
+import 'parser-markers';
 import 'parser-stream';
 import 'frontend-table';
 import 'lr-tree';

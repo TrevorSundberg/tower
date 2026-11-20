@@ -1,4 +1,5 @@
 import tower;
+import '../compiler/parser-markers';
 import '../compiler/entity-require';
 import 'syntax-emission';
 import '../compiler/syntax-emission';

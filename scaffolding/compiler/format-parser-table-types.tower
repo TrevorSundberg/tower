@@ -1,6 +1,7 @@
 import 'format-types';
+import tower;
+import '../library/vector';
 import 'parser-table-types';
-import 'parser-markers';
 
 enum ParserFormatKind: u32 {
     Scalar, Range, Item, Rule, Grammar, State, Tables, Edge, Conflict,

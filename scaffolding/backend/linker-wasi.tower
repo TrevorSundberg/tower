@@ -1,5 +1,4 @@
 import tower;
-import 'foreign-tool';
 import 'lld-api';
 import 'linker';
 import 'text';

@@ -19535,3 +19535,57 @@ before publishing, then rebuild its affected unit and compiler package and run
 the relevant combined checks. Do not replace that published update with the
 older candidate. Current full parser/browser tests and benchmark are still
 pending at this entry.
+
+Final hover-integrated validation (c4b15ec): all 359 Node checks pass (77.92 s),
+57 focused browser cases pass with the existing one skip, and all 69 local assets
+plus desktop/mobile flows pass. The earlier full browser run passed 107 cases
+with that same skip; the full ASAN/UBSAN parser suite passed in 388.12 s. Two
+successive browser compiler generations with 2 and 4 workers produce identical
+bytes. Reports/logs use parser-text-integrated-* and parser-text-generation*.
+These results preceded the next scope integration and are not its validation.
+
+The next required pull brought b5307be (module scopes/import aliases and explicit
+compiler dependencies). Preserved both journal histories and both import lists
+in parser-stream/table during the rebase. The new formatter and fixture now
+import their defining type/helper modules explicitly; parser-state and its test
+also import the relocated marker module. No semantic implementation changes.
+
+Local bootstrap transition: the saved import-port/towerc rejects the new
+import cycles in interpreter-storage, frontend-table and foreign-microsoft.
+The initial native/WASI builds therefore failed before linking; logs are
+parser-text-scoped-{native,wasi-parser}.log. Upstream documents that these sources
+require a scope-capable previous Tower compiler, but has not distributed that
+bootstrap here. Build a transition entirely from existing Tower code: an ignored
+c4b15ec source snapshot at /home/trevo/.cache/tower/parser-text-loader-source,
+with only frontend-modules.tower replaced by b5307be's implementation and its
+imports retained from c4b15ec. Its older flat resolver already sees the selected
+parser unit's definitions. This upgrades declaration-cycle loading before
+building the full scoped compiler from unmodified b5307be sources in a separate
+ignored snapshot. It is a local bootstrap experiment, not a new native seed,
+production fallback or a distributed compiler claim. Native implementations are
+unmodified snapshots; final production builds must use the complete main source
+and be checked again. Results and bootstrap hashes follow.
+
+The loader-only transition built successfully. The attempted full scoped build
+then correctly hit its older semantic compiler's inability to coalesce the new
+backend_file_seek extern/export pair. Completed the transition by linking the
+new scoped parser/semantic units with the preceding Tower backend object through
+the generated native link command; all native objects were compiled unchanged
+from b5307be, including its enlarged SemanticProgram ABI. Kept this transitional
+binary separately, then rebuilt every Tower unit and linked unmodified b5307be
+normally using it. That complete build passed. Local hashes:
+- loader compiler: 06cc4ea0758a3e991d87e4ea41b2fea445e7ba7d83bc3099b571c5fa42aee9d9
+- transitional compiler: 0cdc9e664c99b9664c23e594dbc4c8ea78037d360a248c352c7a860933054ee4
+- complete scoped bootstrap: 943c88c2c74fa2c4befa8e58d58774acb0bd8b264a6bb25074119f37c9d5e8d8
+Reproduction logs: parser-text-{loader-*,scope-bootstrap-*,scope-transition,
+scope-complete-*}. The complete scoped compiler is now the explicit bootstrap
+for native, sanitizer, parser WASI and LLVM/cross WASI builds of main.
+
+Combined native API-test linking exposed two excessive upstream imports:
+backend tests and linker-wasi imported foreign-tool merely to see C declarations.
+That module exports its executable main, causing duplicate main in the native
+compiler/test link. Both already import the actual providers: foreign-names has
+puts, and linker has fopen/fclose/fileno/remove. Removed just those two imports
+in Tower. The build failure is recorded in parser-text-scoped-native-final.log;
+new final-source builds/tests use parser-text-final-* logs. Do not weaken export
+identity or suppress the duplicate-symbol failure.

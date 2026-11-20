@@ -3,7 +3,6 @@ import 'foreign-names';
 import '../backend/bindings';
 import '../backend/context';
 import '../backend/disassembly';
-import '../backend/foreign-tool';
 import '../backend/linker';
 import '../backend/pipeline';
 import '../backend/target';

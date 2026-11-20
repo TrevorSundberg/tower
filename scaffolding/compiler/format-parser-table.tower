@@ -2,6 +2,11 @@ import tower;
 import 'format-api';
 import 'format-parser-table-types';
 import 'lr-api';
+import 'lr-types';
+import 'format-types';
+import 'parser-table-types';
+import 'parser-markers';
+import '../library/vector';
 
 extern fn parser_table_rule_next(table: ParserHostTable*, owner: usize, begin: usize): usize;
 

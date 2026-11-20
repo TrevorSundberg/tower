@@ -1,5 +1,11 @@
 import tower;
 import '../compiler/format-parser-table-types';
+import '../compiler/format-types';
+import '../compiler/parser-table-types';
+import '../compiler/parser-markers';
+import '../compiler/grammar-types';
+import 'frontend-table-owner';
+import 'frontend-world';
 
 extern fn parser_format_create(table: ParserHostTable*, kind: ParserFormatKind, first: usize, second: usize, names: bool, descriptions: bool): ParserFormat*;
 
