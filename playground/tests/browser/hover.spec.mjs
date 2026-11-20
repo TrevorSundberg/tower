@@ -103,15 +103,15 @@ test('keywords, operators and function braces use Tower services and one locatio
   await expect(page.locator('#position')).toHaveText('foreach.tower:5:2');
   const tip=page.locator('.tw-language-hover');
   for(const [lineText,token,description] of [
-    ['fn increment','fn','Defines this function.'],
-    ['var old','var','Declares a mutable variable.'],
-    ['var old','=','Declares a mutable variable.'],
-    ['var old','*','Reads the value stored at this pointer.'],
-    ['*p =','*','Selects the pointed-to value to write.'],
-    ['*p =','=','Stores the value on the right'],
+    ['fn increment','fn','Parameters are the named inputs you supply'],
+    ['var old','var','change it later by assigning a new value'],
+    ['var old','=','change it later by assigning a new value'],
+    ['var old','*','reads the value stored at that address'],
+    ['*p =','*','changes the value at that address'],
+    ['*p =','=','previous value is overwritten'],
     ['*p =','+','Type: i32'],
-    ['return old','return','Returns this value'],
-    ['}','}','The body of this function.'],
+    ['return old','return','sends this value back'],
+    ['}','}','statements run when this function is called'],
   ]) {
     const line=page.locator('#editor .cm-line').filter({hasText:lineText});
     await line.scrollIntoViewIfNeeded();
@@ -369,7 +369,7 @@ test('hover shows attached documentation and typed signatures, suppressing name-
   await tip.screenshot({path:`../build/ide-function-hover-${info.project.name}.png`});
   await page.keyboard.press('Escape');
   const keyword=await point(page,'return');await page.mouse.move(keyword.x,keyword.y);
-  await expect(tip).toContainText('Returns this value from the function to its caller.');
+  await expect(tip).toContainText('sends this value back to the code that called it');
   const broken='var unknown = missing;';await source(page,broken);await ready(page,broken);
   const missing=await point(page,'missing');await page.mouse.move(missing.x,missing.y);
   await expect(tip).toContainText('This code matches the pattern shown below.');await expect(tip).not.toContainText('Type:');

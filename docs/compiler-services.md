@@ -43,6 +43,10 @@ type. Whitespace and unattached comment text do not fabricate symbol hovers.
 UI locations use `path/file.tower:line:column` consistently. A function signature
 already contains `fn` and its return type, so the tooltip omits those duplicate
 rows while retaining result size/alignment, comments and location.
+Component descriptions explain what the construct does in plain language rather
+than restating its name: variables store values that can change, parameters are
+inputs supplied by a call, and functions are reusable code. Function explanations
+use checked parameter/result metadata, including no-input and void-result cases.
 
 This is an incremental library boundary, not a claim that the whole compiler is
 already pure Tower or independently concurrent. Parser/session adapters and some

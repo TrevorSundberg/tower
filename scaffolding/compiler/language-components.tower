@@ -4,24 +4,65 @@ extern fn entity_component_at(node: void*, index: usize): void*;
 
 extern fn entity_component_type(component: void*): void*;
 
+// Explain the concept using checked metadata, without repeating the signature.
+fn language_function_description(value: FoundationNode*): u8* {
+    var inputs = value.parameters.length != 0;
+    var no_result = value.type.scalar == SVoid();
+    if no_result {
+        no_result = value.type.pointers == 0;
+    }
+    if inputs {
+        if no_result {
+            return "Reusable code you run by calling its name. Parameters are the named inputs you supply; void means it finishes without returning a value.";
+        }
+        return "Reusable code you run by calling its name. Parameters are the named inputs you supply; return sends a result back to the code that called it.";
+    }
+    if no_result {
+        return "Reusable code you run by calling its name. It takes no inputs; void means it finishes without returning a value.";
+    }
+    return "Reusable code you run by calling its name. It takes no inputs; return sends a result back to the code that called it.";
+}
+
+fn language_declaration_description(value: FoundationNode*): u8* {
+    var selected = value.kind == KFunction();
+    if selected {
+        return language_function_description(value);
+    }
+    selected = value.kind == KDeclare();
+    if selected {
+        return "A named place to store a value. You can read it or change it later by assigning a new value.";
+    }
+    selected = value.kind == KParameter();
+    if selected {
+        return "A named input to the function. Each call supplies a value for this parameter; the function uses this name to read that value.";
+    }
+    selected = value.kind == KFieldDeclaration();
+    if selected {
+        return "A named part of a struct. Each value of that struct has its own copy of this field, which you access with a dot.";
+    }
+    return null;
+}
+
 // Component presenters consume resolved compiler data. They never inspect the
 // hovered token's spelling or decide which source positions get a tree query.
 // Foundation operation tags customize presentation within that component.
 fn language_foundation_present(node: void*, candidate: LanguageCandidate*): void {
     var value = sem_get(node);
+    candidate.description = language_declaration_description(value);
     var bound = value.binding != null;
     if bound {
         candidate.subject = value.binding;
+        var declaration = sem_get(value.binding);
+        var present = declaration != null;
+        if present {
+            candidate.description = language_declaration_description(declaration);
+        }
     }
     var kind = value.kind;
     var selected = kind == KProgram();
     if selected {
         candidate.structural = true;
-        candidate.description = "Module declarations and statements.";
-    }
-    selected = kind == KDeclare();
-    if selected {
-        candidate.description = "Declares a mutable variable.";
+        candidate.description = "Top-level code defines names for the file. Statements outside functions run in source order.";
     }
     selected = kind == KAssign();
     if selected {
@@ -34,31 +75,31 @@ fn language_foundation_present(node: void*, candidate: LanguageCandidate*): void
         if resolved {
             candidate.subject = target.binding;
         }
-        candidate.description = "Stores the value on the right in this location.";
+        candidate.description = "Changes the value on the left to the value on the right. The previous value is overwritten.";
     }
     selected = kind == KLoad();
     if selected {
-        candidate.description = "Reads the value stored at this pointer.";
+        candidate.description = "A pointer holds a memory address. This reads the value stored at that address.";
         var owner = sem_get(sem_parent(node));
         var destination = owner != null;
         if destination {
             destination = owner.target == node;
         }
         if destination {
-            candidate.description = "Selects the pointed-to value to write.";
+            candidate.description = "A pointer holds a memory address. This changes the value at that address, not the address held by the pointer.";
         }
     }
     selected = kind == KAddress();
     if selected {
-        candidate.description = "Takes the address of this value, producing a pointer to it.";
+        candidate.description = "Produces a pointer: the memory address of this value. Other code can use that address to read or change the value.";
     }
     selected = kind == KReturn();
     if selected {
         candidate.structural = true;
-        candidate.description = "Returns from this function to its caller.";
+        candidate.description = "Ends this function call and goes back to the code that called it.";
         var returning = value.value != null;
         if returning {
-            candidate.description = "Returns this value from the function to its caller.";
+            candidate.description = "Ends this function call and sends this value back to the code that called it.";
         }
         var ancestor = sem_parent(node);
         loop {
@@ -82,7 +123,7 @@ fn language_foundation_present(node: void*, candidate: LanguageCandidate*): void
     selected = kind == KBlock();
     if selected {
         candidate.structural = true;
-        candidate.description = "A block of statements with its own local variables.";
+        candidate.description = "Groups statements together. Names declared inside this block can be used here, but not outside it.";
         var parent = sem_parent(node);
         var owner = sem_get(parent);
         var body = owner != null;
@@ -95,54 +136,42 @@ fn language_foundation_present(node: void*, candidate: LanguageCandidate*): void
         if body {
             candidate.subject = parent;
             candidate.structural = false;
-            candidate.description = "The body of this function.";
+            candidate.description = "Contains the statements run when this function is called. Variables created here belong to this call.";
         }
-    }
-    selected = kind == KFunction();
-    if selected {
-        candidate.description = "Defines this function.";
-    }
-    selected = kind == KParameter();
-    if selected {
-        candidate.description = "Declares an input passed to this function.";
-    }
-    selected = kind == KFieldDeclaration();
-    if selected {
-        candidate.description = "Declares a field with this type and position in its containing value.";
     }
     selected = kind == KCall();
     if selected {
-        candidate.description = "Calls this function with the supplied arguments.";
+        candidate.description = "Runs the function's code. Values supplied in parentheses become its inputs; when it finishes, execution continues here.";
     }
     selected = kind == KIf();
     if selected {
         candidate.structural = true;
-        candidate.description = "Runs the first block when the condition is true, or the else block when it is false.";
+        candidate.description = "Uses a true/false condition to choose which block runs. The else block, if present, runs when the condition is false.";
     }
     selected = kind == KLoop();
     if selected {
         candidate.structural = true;
-        candidate.description = "Repeats this block until control leaves the loop.";
+        candidate.description = "Runs this block repeatedly. break leaves the loop; continue starts its next repetition.";
     }
     selected = kind == KBreak();
     if selected {
         candidate.structural = true;
-        candidate.description = "Leaves the nearest enclosing loop.";
+        candidate.description = "Stops the nearest loop and continues with the code after it.";
     }
     selected = kind == KContinue();
     if selected {
         candidate.structural = true;
-        candidate.description = "Starts the next iteration of the nearest enclosing loop.";
+        candidate.description = "Skips the rest of the nearest loop's current repetition and starts the next one.";
     }
     selected = kind == KLabel();
     if selected {
         candidate.structural = true;
-        candidate.description = "Names a destination for a jump in this function.";
+        candidate.description = "Marks a place in this function that jump can continue from.";
     }
     selected = kind == KJump();
     if selected {
         candidate.structural = true;
-        candidate.description = "Continues execution at the named label.";
+        candidate.description = "Continues at the named label instead of running the next statement.";
     }
 }
 

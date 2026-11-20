@@ -18810,3 +18810,23 @@ checks. This can extend the isolated parser-format unit; any remaining native
 changes must only remove formatting or mechanically connect existing callback
 interfaces. After this, tackle syntax.cpp session/version ownership on the same
 entity/component model. The sustained migration goal remains active.
+
+## 2026-11-20: Explain hover concepts instead of repeating their names
+
+The user first rejected redundant captions such as "Defines this function," then
+clarified that short novice explanations would be useful, especially explaining
+that a mutable variable's value can change. Replaced the Foundation presenter's
+label-like sentences with plain-language explanations of functions, variables,
+parameters, fields, calls, assignment, pointers, return, blocks and control flow.
+Function descriptions read checked parameter count and return type: no-input
+functions say so, void means no returned value, and void pointers still return a
+value. Shared declaration descriptions follow resolved bindings as well, so
+variable/parameter/field references receive the same explanation as declarations.
+
+The generic tree/component dispatch and cached browser lookup are unchanged.
+Signatures, actual type/layout details, attached author comments and locations
+remain distinct from these concept explanations. Updated existing query/browser
+assertions, including function input/result variants and descriptions reached
+through bindings. The Tower formatter ran successfully on the changed presenter.
+Build and publication validation results follow below. Unrelated working changes
+in AGENTS.md, foundation docs, the journal and todo.txt remain outside this commit.

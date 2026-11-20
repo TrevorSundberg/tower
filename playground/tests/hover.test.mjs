@@ -18,15 +18,25 @@ test('hover resolves lexical shadowing, parameters and inferred locals on shared
   const entries=inspect(source);
   const parameter=hoverAt(entries,source.indexOf('= value;')+3);
   assert.equal(parameter.signature,'value: i32');assert.equal(parameter.kind,'parameter');
+  assert.match(parameter.description,/Each call supplies a value/);
   assert.equal(at(source,'local;').signature,'var local: i32');
   const global=at(source,'value);');assert.equal(global.type,'bool');assert.equal(global.kind,'global variable');
+  assert.match(global.description,/change it later by assigning a new value/);
   assert.ok(global.entity>0);assert.ok(global.binding>0);assert.notEqual(global.entity,global.binding);
   assert.equal(global.syntax,'CoreLocation');assert.ok(global.components>=2);
 });
 test('function names and calls share canonical typed signatures',()=>{
-  const source='fn add(a:i32,b:i32):i32 { var sum = a + b; return sum; } print(add(1,2));';
+  const source='fn add(a:i32,b:i32):i32 { var sum = a + b; return sum; } print(add(1,2)); fn idle():void { return; } fn answer():i32 { return 42; } fn sink(value:i32):void { return; } fn address():void* { return null; }';
   assert.equal(at(source,'add(1').signature,'fn add(a: i32, b: i32): i32');
   assert.equal(at(source,'i32 {').signature,'i32');
+  const entries=inspect(source),definition=name=>hoverAt(entries,source.indexOf('fn '+name)+3);
+  assert.match(definition('add').description,/Parameters are the named inputs/);
+  assert.match(definition('add').description,/sends a result back/);
+  assert.match(definition('idle').description,/no inputs.*without returning a value/);
+  assert.match(definition('answer').description,/no inputs.*sends a result back/);
+  assert.match(definition('sink').description,/named inputs.*without returning a value/);
+  assert.match(definition('address').description,/sends a result back/);
+  assert.doesNotMatch(definition('address').description,/without returning a value/);
 });
 
 test('generic entity lookup covers every source position in checked statements',()=>{
@@ -34,19 +44,19 @@ test('generic entity lookup covers every source position in checked statements',
   const entries=inspect(source,{entry:'advance.tower'});
   for(const match of source.matchAll(/\S/g))assert.ok(hasHoverDetails(hoverAt(entries,match.index)),`Missing metadata at ${match.index}: ${match[0]}`);
   const get=(text,offset=0)=>hoverAt(entries,source.indexOf(text)+offset);
-  assert.match(get('var old').description,/mutable variable/);
+  assert.match(get('var old').description,/change it later by assigning a new value/);
   assert.equal(get('var old').type,'i32');
   assert.equal(get('= *p').entity,get('var old').entity);
   assert.equal(get('= *p').description,get('var old').description);
-  assert.match(get('= old').description,/Stores/);
+  assert.match(get('= old').description,/previous value is overwritten/);
   assert.equal(get('= old').type,'i32');
   assert.equal(get('*p;').kind,'pointer dereference');assert.equal(get('*p;').type,'i32');
-  assert.match(get('*p =').description,/pointed-to value to write/);
+  assert.match(get('*p =').description,/changes the value at that address/);
   for(const text of ['return old','}']) {
     const entry=get(text);assert.equal(entry.signature,'fn advance(p: i32*): i32');
     assert.equal(entry.declarationFile,'advance.tower');assert.equal(entry.declarationLine,1);assert.equal(entry.declarationColumn,1);
   }
-  assert.match(get('}').description,/body of this function/);
+  assert.match(get('}').description,/statements run when this function is called/);
 });
 
 test('component presentation is independent of custom keyword and delimiter spellings',()=>{
@@ -66,7 +76,7 @@ procedure advance[] -> i32 {
   for(const [text,offset] of [['let counter',4],[':= 1',0],['1!',1]]) {
     const entry=get(text,offset);assert.equal(entry.entity,declaration.entity);assert.equal(entry.signature,'var counter: i32');assert.equal(entry.type,'i32');
   }
-  assert.match(get(':= counter').description,/Stores/);assert.equal(get(':= counter').type,'i32');
+  assert.match(get(':= counter').description,/previous value is overwritten/);assert.equal(get(':= counter').type,'i32');
   for(const text of ['procedure','[',']','->','{','}','give']) {
     const entry=get(text);assert.equal(entry.signature,'fn advance(): i32');assert.equal(entry.declarationFile,'custom.tower');assert.equal(entry.declarationLine,5);
   }
@@ -107,6 +117,7 @@ test('members, pointer receivers, nominal types and layouts come from checked fi
   const source='struct Point { first:i32; ready:bool; } var p:Point; var pointer = &p; pointer.ready = true; print(pointer.ready);';
   const field=at(source,'ready);');assert.equal(field.signature,'ready: bool');assert.equal(field.kind,'field');
   assert.equal(field.offset,4);assert.equal(field.size,1);
+  assert.match(field.description,/Each value of that struct has its own copy/);
   assert.equal(at(source,'pointer.ready);').type,'Point*');
   assert.equal(at(source,'Point;').kind,'type');
 });
