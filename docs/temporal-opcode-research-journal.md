@@ -16506,3 +16506,14 @@ Tower implementation has not changed since the native/339-case/generation gates.
 Later verifier corrections are test adapters only. Upstream through 91bed1a adds
 module-binding plans and C-comment tests, including an independent fix for the
 same cleared-output wait; retain those additions during final synchronization.
+
+Final synchronization is complete through 91bed1a. Preserved module-binding plans,
+increment comment checks and both journal histories; combined both C-output
+completion checks with the cold-start wait correction. Compiler and application
+sources are byte-identical to be490d5 (`git diff --exit-code be490d5 HEAD --
+scaffolding playground/src`). After integration, all 12 C/increment Node tests,
+all four C browser cases and the complete merged local deployment verifier pass
+(world-final-c-node.log, world-final-c-browser.log, world-merged-verifier.log).
+The same 68 assets remain published at c4ae62c; no rebuild or asset replacement is
+needed for these validation/docs changes. todo.txt retains Git blob
+96a9e58964d7f01e4a97819f259448db81ef5e40, and pre-existing stashes are untouched.
