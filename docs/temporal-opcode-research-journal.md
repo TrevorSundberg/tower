@@ -22430,3 +22430,28 @@ claim that parsing cost is eliminated or that every grammar finishes quickly.
 Fetched incoming lexical ownership work through 8577783 before publication.
 Next: preserve that work in the rebase, rebuild affected artifacts using the
 published bootstrap, rerun the relevant checks, then publish and verify.
+
+Integration follow-up: rebased as 3ff2f80 onto 8577783, preserving both journal
+histories and all lexical ownership changes. This explicitly supersedes incoming
+0216c3f's temporary 60-second compiler-project limit: neither ordinary nor compiler
+project parsing has a wall-clock deadline. The clean published-pin native cache
+rebuilt all seven affected targets without a private bootstrap override; all
+three browser reactors rebuilt and the compiler-project package was regenerated.
+Unchanged Tower target runtime objects were retained. No temporary LR harness is
+present in the distributed project. Final package has 256 files, including the
+new upstream lexical module. Initial/reset parses measured 9,466.24/8,952.06 ms
+while browser validation was active; this larger integrated workload is separate
+from the matched 3.46x/3.60x comparison above.
+
+Post-rebase focused grammar/operator/module tests pass 22/22 (3.83 s); isolated
+desktop/mobile delayed-parser cancellation tests pass 2/2 (16 s). The complete
+local deployment verifier passes both device profiles and all 70 assets again,
+including compiler-project parsing, build cancellation, editable grammars,
+completion, output agreement, native downloads, persistence and target detection.
+Evidence: build/parsing/rebased-{clean-build,grammar-tests,cancellation-browser,
+local-deployment}.log, rebased-benchmark.jsonl and local-deployment-report.json.
+The clean build and these browser/native-Wasm checks are the completed validation;
+the full native parser aggregate/reference attempts remain limited as recorded
+above. Prepared publication records the matched timings and retained native CLI
+retirement evidence; the hosted verifier will check the exact published hashes
+and both device flows after the normal Pages push.
