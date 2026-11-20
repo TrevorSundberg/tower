@@ -77,8 +77,3 @@ const char* core_operator(CoreOp op) { return semantic_operator(unsigned(op)); }
 CoreText core_format(const CoreProgram& program) {
   return program.error.empty() ? tower_format(program.root) : CoreText{};
 }
-
-// Mechanical access to existing entities and payloads. No semantic decisions.
-extern "C" {
-void* sem_match(TowerNode* n) { return n ? tower_node_get_component_userdata(n, parser_match_get_type()) : nullptr; }
-}

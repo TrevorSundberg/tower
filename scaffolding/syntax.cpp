@@ -83,20 +83,6 @@ std::shared_ptr<const Bedrock> native_bedrock() {
   return value;
 }
 std::shared_ptr<const Bedrock> current_bedrock() { return installed_bedrock ? installed_bedrock : native_bedrock(); }
-TowerNode* origin_type = tower_node_create();
-SyntaxOrigin* origin(TowerNode* node) {
-  auto* existing = (SyntaxOrigin*)tower_node_get_component_userdata(node, origin_type);
-  if (existing) return existing;
-  const auto dispose = +[](TowerComponent*, void* data) { ((SyntaxOrigin*)data)->~SyntaxOrigin(); };
-#ifdef TOWER_EXPANSION_SEED
-  auto* component = tower_component_create(node, origin_type, sizeof(SyntaxOrigin), dispose);
-#else
-  if (!tower_component_register(origin_type, sizeof(SyntaxOrigin), dispose)) return nullptr;
-  auto* component = entity_component_add(node, origin_type);
-  if (!component) return nullptr;
-#endif
-  return new (tower_component_get_userdata(component)) SyntaxOrigin();
-}
 
 using ProductionKey = std::pair<std::string, size_t>;
 struct Replacement {
@@ -788,14 +774,9 @@ bool prepare_replacements(Version& version, const Definitions& defs, std::string
 #ifdef TOWER_EXPANSION_SEED
 #include "bootstrap/syntax-expansion-seed.inc"
 #else
-struct ExpansionHost {
-  std::vector<std::shared_ptr<const SyntaxExpansion>> traces;
-};
-
 bool expand(SyntaxSession& session, Node& root) {
-  ExpansionHost host;
   SyntaxExpansionInput input{session.version->expansion_index.data(),
-    session.version->expansion_index.size(), parser_match_get_type(), &host};
+    session.version->expansion_index.size(), parser_match_get_type()};
   SyntaxExpansionResult result{root.release(), session.expansion_stats.replacements,
     session.expansion_stats.generated_nodes, session.expansion_stats.copied_nodes,
     session.error_offset, {}};
@@ -812,14 +793,6 @@ bool expand(SyntaxSession& session, Node& root) {
 #endif
 }
 
-const SyntaxOrigin* syntax_get_origin(TowerNode* node) {
-  return (const SyntaxOrigin*)tower_node_get_component_userdata(node, origin_type);
-}
-void syntax_copy_origin(TowerNode* source, TowerNode* destination) {
-  if (auto* previous = syntax_get_origin(source)) {
-    auto* copy = origin(destination); if (!copy) std::abort(); *copy = *previous;
-  }
-}
 #ifndef TOWER_EXPANSION_SEED
 extern "C" void syntax_replacement_begin(void* context, const char* name, TowerNode* sequence, size_t start, size_t end) {
   auto& host = *static_cast<ReplacementPlanHost*>(context);
@@ -855,46 +828,13 @@ extern "C" void syntax_replacement_commit(void* context, size_t alternative) {
   auto index = host.version.indices.at({host.current.rule, alternative});
   host.version.replacements.emplace(index, std::move(host.current));
 }
-extern "C" const void* syntax_expansion_history(TowerNode* node) {
-  auto* previous = syntax_get_origin(node); return previous ? previous->expansion.get() : nullptr;
-}
-extern "C" const void* syntax_expansion_previous(const void* trace) {
-  return static_cast<const SyntaxExpansion*>(trace)->previous.get();
-}
-extern "C" size_t syntax_expansion_trace(void* context, const SyntaxExpansionRule* rule, TowerNode* invocation) {
-  auto& host = *static_cast<ExpansionHost*>(context);
-  auto trace = std::make_shared<SyntaxExpansion>();
-  trace->rule = rule->rule;
-  auto* span = match(invocation);
-  trace->start = parser_match_get_start(span); trace->end = trace->start + parser_match_get_length(span);
-  trace->definition_start = rule->start; trace->definition_end = rule->end;
-  if (auto* previous = syntax_get_origin(invocation)) trace->previous = previous->expansion;
-  host.traces.push_back(std::move(trace)); return host.traces.size() - 1;
-}
-extern "C" bool syntax_expansion_copy_origin(TowerNode* source, TowerNode* destination) {
-  auto* previous = syntax_get_origin(source); if (!previous) return true;
-  auto* copy = origin(destination); if (!copy) return false; *copy = *previous; return true;
-}
-extern "C" bool syntax_expansion_origin(void* context, size_t trace_index, TowerNode* node, TowerNode* source, bool generated) {
-  auto& trace = static_cast<ExpansionHost*>(context)->traces.at(trace_index);
-  const bool splice = !generated && syntax_get_origin(node);
-  auto* value = origin(node); if (!value) return false;
-  if (splice) value->splices.push_back(trace);
-  else {
-    value->generated = generated; value->expansion = trace;
-    auto* span = match(source); value->template_start = parser_match_get_start(span);
-    value->template_end = value->template_start + parser_match_get_length(span);
-  }
-  return true;
-}
 #endif
 SyntaxExpansionStats syntax_get_expansion_stats(SyntaxSession* session) { return session->expansion_stats; }
 
 #ifdef TOWER_EXPANSION_TESTS
 extern "C" size_t syntax_expansion_tests(const SyntaxExpansionInput*, TowerNode*);
 size_t syntax_expansion_test_entry() {
-  ExpansionHost host;
-  SyntaxExpansionInput input{nullptr, 0, parser_match_get_type(), &host};
+  SyntaxExpansionInput input{nullptr, 0, parser_match_get_type()};
   FrontendKinds kinds{parser_rule_get_type(), parser_reference_get_type(), parser_string_get_type(),
     parser_range_get_type(), parser_match_get_type(), syntax_component_type()};
   if (auto status = frontend_bedrock_tests(&kinds)) return status;

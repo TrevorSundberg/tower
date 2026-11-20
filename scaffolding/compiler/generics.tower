@@ -1,15 +1,8 @@
 import tower;
 import 'generic-registry';
+import 'host-metadata';
 
-// Compiler transformations over the shared entity store. C++ only exposes
-// existing parser metadata access; registry ownership and transforms are Tower.
-extern fn compiler_node_label(node: Entity*, label: u8*): bool;
-
-extern fn compiler_name_is(node: Entity*, name: u8*): bool;
-
-extern fn compiler_name_equal(left: Entity*, right: Entity*): bool;
-
-extern fn compiler_node_copy_metadata(source: Entity*, destination: Entity*): void;
+// Compiler transformations and metadata over the shared entity store.
 
 fn compiler_node_count(node: Entity*): usize {
     var missing = node == null;

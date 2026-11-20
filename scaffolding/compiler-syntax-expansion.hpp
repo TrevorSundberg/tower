@@ -17,7 +17,6 @@ struct SyntaxExpansionInput {
   const SyntaxExpansionRule* const* rules;
   size_t count;
   TowerNode* match_kind;
-  void* host; // transitional provenance storage, never expansion decisions
 };
 struct SyntaxExpansionResult {
   TowerNode* root; // one owning reference in/out, including on failure
@@ -27,9 +26,9 @@ struct SyntaxExpansionResult {
 extern "C" bool syntax_expand(const SyntaxExpansionInput*, SyntaxExpansionResult*);
 extern "C" void syntax_expansion_result_dispose(SyntaxExpansionResult*);
 
-// Leaf storage callbacks while the public provenance facade is still native.
+// Tower-owned provenance on the same world entities.
 extern "C" const void* syntax_expansion_history(TowerNode*);
 extern "C" const void* syntax_expansion_previous(const void*);
-extern "C" size_t syntax_expansion_trace(void*, const SyntaxExpansionRule*, TowerNode*);
-extern "C" bool syntax_expansion_origin(void*, size_t, TowerNode*, TowerNode*, bool);
+extern "C" const void* syntax_expansion_trace(const char*, size_t, size_t, TowerNode*);
+extern "C" bool syntax_expansion_origin(const void*, TowerNode*, TowerNode*, bool);
 extern "C" bool syntax_expansion_copy_origin(TowerNode*, TowerNode*);

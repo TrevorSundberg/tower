@@ -30,7 +30,6 @@ struct SyntaxExpansionInput {
     rules: SyntaxExpansionRule**;
     count: usize;
     match_kind: void*;
-    host: void*;
 }
 
 struct SyntaxExpansionResult {
@@ -42,15 +41,17 @@ struct SyntaxExpansionResult {
     error: vector(u8);
 }
 
-// Only provenance storage still crosses the native facade. Selection, traversal,
+// Provenance lives in Tower world components. Selection, traversal,
 // recursion/output limits and copying decisions all live in this module.
 extern fn syntax_expansion_history(node: void*): void*;
 
 extern fn syntax_expansion_previous(trace: void*): void*;
 
-extern fn syntax_expansion_trace(host: void*, rule: SyntaxExpansionRule*, invocation: void*): usize;
+extern fn syntax_expansion_trace(rule: u8*, start: usize, end: usize, invocation: void*): void*;
 
-extern fn syntax_expansion_origin(host: void*, trace: usize, node: void*, template: void*, generated: bool): bool;
+extern fn syntax_expansion_origin(trace: void*, node: void*, template: void*, generated: bool): bool;
+
+extern fn syntax_trace_release(trace: void*): void;
 
 extern fn syntax_expansion_copy_origin(source: void*, destination: void*): bool;
 
@@ -81,6 +82,7 @@ struct ExpansionState {
     clones: vector(ExpansionWork);
     captures: vector(ExpansionCapture);
     items: vector(void*);
+    traces: vector(void*);
 }
 
 fn expansion_match(state: ExpansionState*, node: void*): ParserMatchData* {
@@ -332,8 +334,8 @@ fn expansion_copy_tree(state: ExpansionState*, source: void*): void* {
     }
 }
 
-fn expansion_splice(state: ExpansionState*, trace: usize, node: void*, work: ExpansionWork*): bool {
-    var ok = syntax_expansion_origin(state.input.host, trace, node, work.source, false);
+fn expansion_splice(state: ExpansionState*, trace: void*, node: void*, work: ExpansionWork*): bool {
+    var ok = syntax_expansion_origin(trace, node, work.source, false);
     if ok {
         ok = entity_attach(node, work.parent, work.role);
     }
@@ -343,7 +345,7 @@ fn expansion_splice(state: ExpansionState*, trace: usize, node: void*, work: Exp
     return expansion_memory(state);
 }
 
-fn expansion_hole(state: ExpansionState*, rule: SyntaxExpansionRule*, trace: usize, work: ExpansionWork*): bool {
+fn expansion_hole(state: ExpansionState*, rule: SyntaxExpansionRule*, trace: void*, work: ExpansionWork*): bool {
     var data = expansion_match(state, work.source);
     var index = data.id - 3145728;
     var invalid = convert(usize, index) >= rule.count;
@@ -457,7 +459,18 @@ fn expansion_instantiate(state: ExpansionState*, rule: SyntaxExpansionRule*, inv
         state.captures.data[index].remaining = rule.captures[index].uses;
         index = index + 1;
     }
-    var trace = syntax_expansion_trace(state.input.host, rule, invocation);
+    var trace = syntax_expansion_trace(rule.rule, rule.start, rule.end, invocation);
+    var missing_trace = trace == null;
+    if missing_trace {
+        expansion_memory(state);
+        return null;
+    }
+    var retained = vector_push(void*, &state.traces, trace);
+    if retained {} else {
+        syntax_trace_release(trace);
+        expansion_memory(state);
+        return null;
+    }
     var container = entity_create_related(invocation);
     var missing = container == null;
     if missing {
@@ -497,7 +510,7 @@ fn expansion_instantiate(state: ExpansionState*, rule: SyntaxExpansionRule*, inv
             var made = expansion_match(state, node);
             made.start = span.start;
             made.length = span.length;
-            ok = syntax_expansion_origin(state.input.host, trace, node, work.source, true);
+            ok = syntax_expansion_origin(trace, node, work.source, true);
             if ok {
                 ok = entity_attach(node, work.parent, work.role);
             }
@@ -665,6 +678,12 @@ export fn syntax_expand(input: SyntaxExpansionInput*, result: SyntaxExpansionRes
     vector_dispose(ExpansionWork, &state.clones);
     vector_dispose(ExpansionCapture, &state.captures);
     vector_dispose(void*, &state.items);
+    var index: usize = 0;
+    while index < state.traces.length {
+        syntax_trace_release(state.traces.data[index]);
+        index = index + 1;
+    }
+    vector_dispose(void*, &state.traces);
     return ok;
 }
 

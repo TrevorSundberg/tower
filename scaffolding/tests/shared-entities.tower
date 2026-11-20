@@ -71,6 +71,8 @@ fn shared_check(ok: bool): void {
 
 export fn shared_entity_tests(): void {
     shared_world_tests();
+    shared_provenance_tests();
+    shared_metadata_tests();
     var baseline = tower_test_buffer_count();
     var store = entity_store_create();
     var type = entity_create(store);
@@ -297,6 +299,212 @@ extern fn syntax_source_release(source: SyntaxSource*): void;
 extern fn syntax_node_source(node: SyntaxNode*, source: SyntaxSource*): void;
 
 extern fn syntax_node_replacement(node: SyntaxNode*, replacement: void*): void;
+
+extern fn syntax_trace_create(world: void*, invocation: void*, rule: u8*, start: usize, end: usize): SyntaxExpansion*;
+
+extern fn syntax_trace_release(trace: SyntaxExpansion*): void;
+
+extern fn syntax_origin_get(world: void*, node: void*): SyntaxOrigin*;
+
+extern fn syntax_origin_mark(world: void*, trace: SyntaxExpansion*, node: void*, source: void*, generated: bool): bool;
+
+extern fn syntax_origin_copy(world: void*, source: void*, destination: void*): bool;
+
+fn shared_provenance_tests(): void {
+    var baseline = tower_test_buffer_count();
+    var world = compiler_world_create();
+    var other = compiler_world_create();
+    var store = compiler_world_store(world);
+    var invocation = entity_create(store);
+    var source = entity_create(store);
+    var destination = entity_create(store);
+    var foreign = entity_create(compiler_world_store(other));
+    var span = bits(ParserMatchData*, compiler_world_component(world, invocation, CompilerParserMatch()));
+    span.start = 12;
+    span.length = 7;
+    span = bits(ParserMatchData*, compiler_world_component(world, source, CompilerParserMatch()));
+    span.start = 40;
+    span.length = 9;
+    var trace = syntax_trace_create(world, invocation, "Expression", 30, 60);
+    var ok = trace != null;
+    shared_check(ok);
+    ok = trace.start == 12;
+    shared_check(ok);
+    ok = trace.end == 19;
+    shared_check(ok);
+    ok = trace.definition_start == 30;
+    shared_check(ok);
+    ok = trace.definition_end == 60;
+    shared_check(ok);
+    ok = trace.rule.length == 10;
+    shared_check(ok);
+    ok = trace.rule.data[0] == 69;
+    shared_check(ok);
+    shared_check(syntax_origin_mark(world, trace, source, source, true));
+    shared_check(syntax_origin_mark(world, trace, source, source, false));
+    var origin = syntax_origin_get(world, source);
+    shared_check(origin.generated);
+    ok = origin.template_start == 40;
+    shared_check(ok);
+    ok = origin.template_end == 49;
+    shared_check(ok);
+    ok = origin.splices.length == 1;
+    shared_check(ok);
+    shared_check(syntax_origin_copy(world, source, destination));
+    var clone = syntax_origin_get(world, destination);
+    ok = clone.expansion == trace;
+    shared_check(ok);
+    ok = clone.splices.data != origin.splices.data;
+    shared_check(ok);
+    ok = clone.splices.data[0] == trace;
+    shared_check(ok);
+    shared_check(syntax_origin_copy(world, source, source));
+    ok = syntax_origin_copy(world, source, foreign) == false;
+    shared_check(ok);
+    ok = syntax_origin_mark(other, trace, foreign, foreign, true) == false;
+    shared_check(ok);
+    ok = syntax_trace_create(other, invocation, "foreign", 0, 0) == null;
+    shared_check(ok);
+    var allocations = tower_test_buffer_count();
+    tower_test_buffer_fail_next();
+    ok = syntax_origin_copy(world, source, destination) == false;
+    shared_check(ok);
+    ok = clone.expansion == trace;
+    shared_check(ok);
+    ok = clone.splices.length == 1;
+    shared_check(ok);
+    ok = tower_test_buffer_count() == allocations;
+    shared_check(ok);
+    tower_test_buffer_fail_next();
+    ok = syntax_trace_create(world, invocation, "failure", 0, 0) == null;
+    shared_check(ok);
+    ok = tower_test_buffer_count() == allocations;
+    shared_check(ok);
+    syntax_trace_release(trace);
+    entity_release(invocation);
+    entity_release(source);
+    // A copied origin keeps its complete history after the source/session dies.
+    ok = clone.expansion.rule.data[9] == 110;
+    shared_check(ok);
+    ok = compiler_world_dispose(world) == false;
+    shared_check(ok);
+    entity_release(destination);
+    entity_release(foreign);
+    shared_check(compiler_world_dispose(other));
+    shared_check(compiler_world_dispose(world));
+    ok = tower_test_buffer_count() == baseline;
+    shared_check(ok);
+
+    // Each generated invocation points to its predecessor. Destroying a deep
+    // history must not consume one native stack frame per expansion.
+    world = compiler_world_create();
+    store = compiler_world_store(world);
+    invocation = entity_create(store);
+    span = bits(ParserMatchData*, compiler_world_component(world, invocation, CompilerParserMatch()));
+    span.start = 5;
+    span.length = 3;
+    var index: usize = 0;
+    while index < 10000 {
+        trace = syntax_trace_create(world, invocation, "Nested", index, index);
+        ok = trace != null;
+        shared_check(ok);
+        shared_check(syntax_origin_mark(world, trace, invocation, invocation, true));
+        syntax_trace_release(trace);
+        index = index + 1;
+    }
+    var type = compiler_world_type(world, CompilerSyntaxExpansion());
+    ok = entity_query_count(type) == 10000;
+    shared_check(ok);
+    origin = syntax_origin_get(world, invocation);
+    trace = origin.expansion;
+    var previous = trace.previous;
+    var view = entity_view_open(invocation);
+    entity_release(invocation);
+    ok = trace.previous == previous;
+    shared_check(ok);
+    ok = trace.rule.length == 6;
+    shared_check(ok);
+    ok = entity_query_count(type) == 10000;
+    shared_check(ok);
+    ok = compiler_world_dispose(world) == false;
+    shared_check(ok);
+    entity_view_close(view);
+    ok = entity_query_count(type) == 0;
+    shared_check(ok);
+    shared_check(compiler_world_dispose(world));
+    ok = tower_test_buffer_count() == baseline;
+    shared_check(ok);
+}
+
+extern fn compiler_host_world(): void*;
+
+extern fn parser_match_set_label(span: ParserMatchData*, label: u8*): void;
+
+extern fn compiler_node_label(node: void*, label: u8*): bool;
+
+extern fn compiler_name_is(node: void*, name: u8*): bool;
+
+extern fn compiler_name_equal(left: void*, right: void*): bool;
+
+extern fn compiler_node_copy_metadata(source: void*, destination: void*): void;
+
+fn shared_metadata_leaf(world: void*, label: u8*): void* {
+    var node = entity_create(compiler_world_store(world));
+    var span = bits(ParserMatchData*, compiler_world_component(world, node, CompilerParserMatch()));
+    var invalid: usize = 0;
+    span.rule = invalid - 1;
+    parser_match_set_label(span, label);
+    return node;
+}
+
+fn shared_metadata_tests(): void {
+    var world = compiler_host_world();
+    var first = shared_metadata_leaf(world, "type");
+    var quoted = shared_metadata_leaf(world, "`type`");
+    var copy = shared_metadata_leaf(world, "before");
+    shared_check(compiler_node_label(first, "type"));
+    shared_check(compiler_name_is(first, "type"));
+    shared_check(compiler_name_is(quoted, "type"));
+    shared_check(compiler_name_equal(first, quoted));
+    shared_check(compiler_name_is(null, ""));
+    var ok = compiler_node_label(null, "") == false;
+    shared_check(ok);
+    var wrapper = entity_create(compiler_world_store(world));
+    shared_check(entity_attach(first, wrapper, null));
+    shared_check(compiler_name_equal(wrapper, quoted));
+    var suffix = shared_metadata_leaf(world, "Name");
+    shared_check(entity_attach(suffix, wrapper, null));
+    shared_check(compiler_name_is(wrapper, "typeName"));
+    ok = compiler_name_equal(wrapper, quoted) == false;
+    shared_check(ok);
+    var span = bits(ParserMatchData*, compiler_world_get(world, quoted, CompilerParserMatch()));
+    span.id = 37;
+    span.start = 21;
+    span.length = 6;
+    var trace = syntax_trace_create(world, quoted, "Generic", 0, 50);
+    shared_check(syntax_origin_mark(world, trace, quoted, quoted, true));
+    syntax_trace_release(trace);
+    compiler_node_copy_metadata(quoted, copy);
+    compiler_node_copy_metadata(copy, copy);
+    var cloned = bits(ParserMatchData*, compiler_world_get(world, copy, CompilerParserMatch()));
+    ok = cloned.id == 37;
+    shared_check(ok);
+    ok = cloned.start == 21;
+    shared_check(ok);
+    ok = cloned.length == 6;
+    shared_check(ok);
+    ok = cloned.label.data != span.label.data;
+    shared_check(ok);
+    entity_release(quoted);
+    shared_check(compiler_name_is(copy, "type"));
+    var origin = syntax_origin_get(world, copy);
+    ok = origin.expansion.rule.length == 7;
+    shared_check(ok);
+    entity_release(copy);
+    entity_release(first);
+    entity_release(suffix);
+    entity_release(wrapper);
+}
 
 // Exercises the production registry/creation/finalization paths, linked to the
 // same Tower runtime as the compiler. Assertions and workloads are all Tower.

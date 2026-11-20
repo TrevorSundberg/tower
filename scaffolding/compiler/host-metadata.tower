@@ -1,0 +1,162 @@
+import tower;
+import 'host-parser-components';
+import 'host-provenance';
+
+extern fn syntax_identifier_decode_in_place(text: u8*, length: usize): usize;
+
+export fn sem_match(node: Entity*): ParserMatchData* {
+    return bits(ParserMatchData*, compiler_world_get(compiler_host_world(), node, CompilerParserMatch()));
+}
+
+fn metadata_text_equal(left: u8*, right: u8*): bool {
+    var index: usize = 0;
+    loop {
+        var different = left[index] != right[index];
+        if different {
+            return false;
+        }
+        var done = left[index] == 0;
+        if done {
+            return true;
+        }
+        index = index + 1;
+    }
+}
+
+// The usual identifier is a single terminal beneath wrappers. Compare its
+// borrowed spelling directly; quoted or composite names use the shared decoder.
+fn metadata_plain_name(node: Entity*): u8* {
+    loop {
+        var missing = node == null;
+        if missing {
+            return "";
+        }
+        var span = sem_match(node);
+        var present = span != null;
+        if present {
+            var invalid: usize = 0;
+            invalid = invalid - 1;
+            var terminal = span.rule == invalid;
+            if terminal {
+                var label = parser_match_get_label(span);
+                var quoted = label[0] == 96;
+                if quoted {
+                    return null;
+                }
+                return label;
+            }
+        }
+        var single = entity_child_count(node) == 1;
+        if single {
+            node = entity_child_at(node, 0);
+        } else {
+            return null;
+        }
+    }
+}
+
+fn metadata_name(node: Entity*, text: vector(u8)*): void {
+    var pending: vector(Entity*);
+    vector_init(Entity*, &pending);
+    vector_init(u8, text);
+    var present = node != null;
+    if present {
+        compiler_entity_require(vector_push(Entity*, &pending, node));
+    }
+    while pending.length != 0 {
+        pending.length = pending.length - 1;
+        var current = pending.data[pending.length];
+        var span = sem_match(current);
+        var terminal = span != null;
+        if terminal {
+            var invalid: usize = 0;
+            invalid = invalid - 1;
+            terminal = span.rule == invalid;
+        }
+        if terminal {
+            var label = parser_match_get_label(span);
+            var index: usize = 0;
+            while label[index] != 0 {
+                compiler_entity_require(vector_push(u8, text, label[index]));
+                index = index + 1;
+            }
+        } else {
+            var count = entity_child_count(current);
+            while count != 0 {
+                count = count - 1;
+                compiler_entity_require(vector_push(Entity*, &pending, entity_child_at(current, count)));
+            }
+        }
+    }
+    vector_dispose(Entity*, &pending);
+    var length = text.length;
+    compiler_entity_require(vector_push(u8, text, 0));
+    text.length = syntax_identifier_decode_in_place(text.data, length);
+}
+
+export fn compiler_node_label(node: Entity*, label: u8*): bool {
+    var span = sem_match(node);
+    var missing = span == null;
+    if missing {
+        return false;
+    }
+    return metadata_text_equal(parser_match_get_label(span), label);
+}
+
+export fn compiler_name_is(node: Entity*, name: u8*): bool {
+    var plain = metadata_plain_name(node);
+    var present = plain != null;
+    if present {
+        return metadata_text_equal(plain, name);
+    }
+    var text: vector(u8);
+    metadata_name(node, &text);
+    var equal = metadata_text_equal(text.data, name);
+    vector_dispose(u8, &text);
+    return equal;
+}
+
+export fn compiler_name_equal(left: Entity*, right: Entity*): bool {
+    var a = metadata_plain_name(left);
+    var b = metadata_plain_name(right);
+    var plain = a != null;
+    if plain {
+        plain = b != null;
+    }
+    if plain {
+        return metadata_text_equal(a, b);
+    }
+    var x: vector(u8);
+    var y: vector(u8);
+    metadata_name(left, &x);
+    metadata_name(right, &y);
+    var equal = x.length == y.length;
+    var index: usize = 0;
+    while index < x.length {
+        if equal {
+            equal = x.data[index] == y.data[index];
+        }
+        index = index + 1;
+    }
+    vector_dispose(u8, &x);
+    vector_dispose(u8, &y);
+    return equal;
+}
+
+export fn compiler_node_copy_metadata(source: Entity*, destination: Entity*): void {
+    var same = source == destination;
+    if same {
+        return;
+    }
+    var span = sem_match(source);
+    var present = span != null;
+    if present {
+        var target = parser_match_create(destination);
+        target.id = span.id;
+        target.start = span.start;
+        target.length = span.length;
+        target.rule = span.rule;
+        parser_match_set_label(target, parser_match_get_label(span));
+    }
+    syntax_copy_origin(source, destination);
+}

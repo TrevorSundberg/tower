@@ -15,7 +15,7 @@ extern fn foundation_node_init(data: FoundationNode*): void;
 // entities. The legacy host uses one default world until its sessions migrate.
 struct CompilerWorld {
     store: EntityStore*;
-    types: Entity*[7]; // CompilerComponentCount slots.
+    types: Entity*[9]; // CompilerComponentCount slots.
     registered: usize;
 }
 
@@ -87,6 +87,18 @@ export fn compiler_world_type(world: CompilerWorld*, kind: u32): Entity* {
             size = sizeof(ParserMatchData);
             alignment = alignof(ParserMatchData);
         }
+    }
+    var origin = kind == CompilerSyntaxOrigin();
+    if origin {
+        size = sizeof(SyntaxOrigin);
+        alignment = alignof(SyntaxOrigin);
+        lifecycle = compiler_origin_lifecycle();
+    }
+    var expansion = kind == CompilerSyntaxExpansion();
+    if expansion {
+        size = sizeof(SyntaxExpansion);
+        alignment = alignof(SyntaxExpansion);
+        lifecycle = compiler_expansion_lifecycle();
     }
     type = entity_create(world.store);
     var missing = type == null;
@@ -161,6 +173,14 @@ export fn compiler_world_component(world: CompilerWorld*, owner: Entity*, kind: 
     var foundation = kind == CompilerFoundation();
     if foundation {
         foundation_node_init(bits(FoundationNode*, data));
+    }
+    var origin = kind == CompilerSyntaxOrigin();
+    if origin {
+        fill(data, 0, sizeof(SyntaxOrigin));
+    }
+    var expansion = kind == CompilerSyntaxExpansion();
+    if expansion {
+        fill(data, 0, sizeof(SyntaxExpansion));
     }
     return data;
 }

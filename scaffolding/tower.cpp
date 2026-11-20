@@ -9,7 +9,7 @@
 // These are adapters to the same entities, not native copies of their fields.
 namespace {
 CompilerWorld* world() {
-  static auto* value = compiler_world_create();
+  static auto* value = compiler_host_world_create();
   if (!value) std::abort();
   return value;
 }

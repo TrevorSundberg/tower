@@ -4,7 +4,7 @@
 struct EntityStore;
 struct CompilerWorld;
 extern "C" {
-CompilerWorld* compiler_world_create();
+CompilerWorld* compiler_host_world_create();
 EntityStore* entity_store_create();
 bool entity_store_dispose(EntityStore*);
 size_t entity_store_count(EntityStore*);

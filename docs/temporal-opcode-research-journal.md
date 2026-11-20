@@ -17140,3 +17140,96 @@ remain and todo.txt retains Git blob 96a9e58964d7f01e4a97819f259448db81ef5e40.
 The production count excludes native test/bootstrap sources and four research
 reference files under docs/research; those also require retirement or explicit
 archival before claiming complete removal of project-owned native source.
+
+## 2026-11-20: remove native provenance and generic metadata ownership
+
+Pulled d8d856c on clean main. Continue from 6,534 production native lines in 55
+files. Move SyntaxOrigin and immutable expansion history into Tower components
+on the same world/entity model, then retire compiler-syntax.cpp's name collection
+and metadata copying. Keep captured/generated spans, previous chains, splices,
+session-independent lifetime and browser JSON stable. Native edits only remove
+implementations or mechanically connect existing transport/declarations to Tower
+payloads; no new native wrapper/test/fallback. Expansion traversal already lives
+in Tower and will own its temporary trace references there. Test self/cross-world
+copying, failed allocations, deep history reclamation, reset survival and visible
+provenance. Preserve pinned metadata until views drain. Rebuild native/browser,
+compare raw/optimized behavior and compiler successors, benchmark the saved
+pre-change LLVM reactor, then publish and verify. Baseline saved in
+build/language-next/provenance-baseline/tower-llvm.wasm.
+
+Implemented provenance as CompilerSyntaxOrigin and CompilerSyntaxExpansion entity
+components in syntax-provenance.tower. Histories own their rule text and retain
+previous traces; origins retain primary/splice traces. Copying prepares all
+fallible storage before replacing destination metadata. Reclamation detaches
+unique unpinned predecessor links iteratively; pinned owners defer destruction
+until the coordinator closes the view. Refcounts remain coordinator-owned, not
+atomic worker mutation. The world API is independent of native sessions and
+transport; host-provenance.tower only selects the legacy default world. That host
+pre-registers the two provenance identities to preserve allocation-baseline
+behavior. Explicit worlds remain lazy. The existing Tower expander now owns and
+releases its temporary traces on success and failure.
+
+Removed compiler-syntax.cpp and the native sem_match definition. Tower metadata
+access follows shared parser components, compares ordinary single-terminal names
+without allocation, and uses the existing Tower identifier decoder for quoted or
+composite names. Metadata copies retain provenance independently of the source.
+Browser changes only borrow the new payload layout; JSON fields and trace
+identity/order are unchanged. No Foundation grammar change, native implementation,
+wrapper, functional test or fallback seed was added.
+
+New Tower assertions cover world rejection, spans, copied rule text, shared history
+with independent splice storage, self-copy, failed allocations preserving existing
+state, source destruction, a 10,000-entry predecessor chain, pinned lifetime and
+reclamation, plain/quoted/composite names, and generic metadata copying. Existing
+native syntax tests retain generated trees after destroying their sessions.
+The native ASAN/UBSAN harness passes (157.44 seconds while other validation ran),
+and the direct Tower backend API checks pass. All 349 Node/Wasm tests pass.
+Formatting used node playground/scripts/format-tower.mjs --write. A shell-quoting
+error rejected the first ctest -R invocation before testing; reran successfully
+with -R tower-parser-tests. No compiler fix was needed for that invocation.
+
+Rebuilt towerc/tower-backend-tests in /home/trevo/.cache/tower/backend-native,
+tower-parser-tests in /home/trevo/.cache/tower/core-asan, the parser reactor in
+build/browser-wasi, and LLVM/cross reactors in /home/trevo/.cache/tower/backend-wasi.
+Packaged the actual link inputs with package-compiler-project.py. The two successor
+builds (2 then 4 workers) pass, including edited semantic behavior, with identical
+hashes: tower 50ce666f6970e4bd1281c914b885896e0dc4e31f87f8a1a59d377030525ed72c,
+llvm 6789e751ffc314535fde3169ebcd9cfc808ef8c2a4804af70558f4d3c38f791f,
+cross 8441c1f5c933fd49737b8d03653809facc277af54e58a2e87b1a63afcbc406c1.
+These still link project-owned native support and are not pure Tower releases.
+Evidence: build/language-next/provenance-{native,api,parser-build,parser,node,
+package,successors}.log and build/compiler-workbench/generation{1,2}.json.
+
+Inventory: 6,430 production C/C++ lines in 54 files under scaffolding, down 104
+lines and one file. Tests remain 4,115 lines in 20 files. Correction to previous
+bootstrap counts: including the four .inc fragments gives 4,547 lines in 26 files;
+the previous 4,036/22 excluded them. Four native research files outside scaffolding
+also remain. The historical EXCLUDE_FROM_ALL seed/stage1 source targets are not
+validated bootstrap paths and their old expander assumes the retired native
+provenance representation. Do not add a native fallback to revive them; use the
+existing import-capable bootstrap until validated portable successors replace it.
+Largest remaining production bodies are syntax.cpp (1,442), parser.cpp (1,287),
+browser.cpp (502), driver.cpp (295), runtime.c (192), and core-machine.cpp (138).
+Next move native session/grammar registries into explicit world ownership, then
+schedule within-unit phases over pinned shared inputs. Unit compilation already
+uses workers; neither within-unit parallelism nor complete service isolation is
+claimed by this change. Portable bootstrap/runtime/transport release gates remain.
+
+Final pre-publication validation: 79 desktop/mobile browser checks pass with one
+intentional mobile successor-build skip (compiler-project, hover, completion,
+C downloads and execution suites; 3.7 minutes). Local publication verification
+passes all 69 assets and both device profiles, including editable grammar,
+backend agreement, native downloads, compiler-project behavior and target defaults.
+Reports: provenance-browser.log, provenance-local.log, provenance-local-report.json.
+The final deployment manifest SHA-256 is
+0e84831083c9d81400df773a77f0ec394c185174419da0396f55e78ae6ea1ab0.
+
+After the other builds/tests stopped, benchmark-compiler-ownership.mjs compared
+the saved pre-change LLVM reactor with this build (6 warmups, 16 alternating
+pairs). Every emitted object matched byte-for-byte. Median milliseconds before
+-> after: templates 6.493 -> 6.2534; depth-1024 layouts 17.68735 -> 17.66175;
+compiler-host 161.61995 -> 162.115. The largest increase is 0.31%, within observed
+run-to-run variation; no material time regression was observed in these workloads.
+This is not a claim about unmeasured workloads or memory performance. Raw samples,
+CPU/Node versions and input/module hashes are saved in provenance-benchmark.json
+and provenance-benchmark.log. todo.txt remains unchanged.

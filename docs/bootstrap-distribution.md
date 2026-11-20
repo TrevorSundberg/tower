@@ -7,17 +7,22 @@ and bootstrap distribution still need migration and integration. The tooling
 below keeps those release gates explicit; a module comparison does not establish
 complete compiler self-hosting.
 
-The 2026-11-19 retirement audit now finds 6,534 lines in 55 production
-C/C++ source/header files under scaffolding, another 4,100 test lines and 4,000
-bootstrap lines, excluding third-party dependencies. These are a source inventory,
+The 2026-11-20 retirement audit now finds 6,430 lines in 54 production
+C/C++ source/header files under scaffolding, another 4,115 test lines and 4,547
+bootstrap lines (including native `.inc` fragments), excluding third-party
+dependencies. These are a source inventory,
 not a completion percentage. syntax.cpp and parser.cpp account for about 2,800
 production lines; CLI/browser entry points, raw platform/foreign operations,
 native registries and bootstrap/distribution remain meaningful retirement work.
 Tower now owns generic registry lifetime, module compilation-session leasing and
-CompilerWorld stores with parser/syntax/Foundation type registries. The native
-parser-nodes.cpp adapter is retired. Native SyntaxSession/grammar/provenance state
-and the legacy default-world handle remain. Portable compiler release gates below
-are still required.
+CompilerWorld stores with parser/syntax/Foundation/provenance type registries.
+The native parser-nodes.cpp and compiler-syntax.cpp adapters are retired.
+Expansion histories and generic metadata access now execute in Tower, with
+session-independent references and deferred reclamation under pinned views.
+Native SyntaxSession/grammar state and the legacy default-world handle remain.
+Portable compiler release gates below are still required. The archived seed/stage1
+sources are not the active bootstrap path; validated builds use the existing
+import-capable host binary. They do not establish a source-only bootstrap.
 
 ## Implemented host migration
 

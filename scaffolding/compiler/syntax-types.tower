@@ -44,3 +44,23 @@ struct SyntaxNode {
     end: usize;
     compiled: SyntaxPattern*;
 }
+
+// Provenance is metadata on shared entities, retained independently of sessions.
+// Expansion payloads are immutable after construction; references retain their
+// component-owning entities. Native views borrow these exact fields.
+struct SyntaxExpansion {
+    rule: vector(u8);
+    start: usize;
+    end: usize;
+    definition_start: usize;
+    definition_end: usize;
+    previous: SyntaxExpansion*;
+}
+
+struct SyntaxOrigin {
+    template_start: usize;
+    template_end: usize;
+    generated: bool;
+    expansion: SyntaxExpansion*;
+    splices: vector(SyntaxExpansion*);
+}

@@ -10,9 +10,23 @@ extern fn syntax_node_dispose(data: void*): void;
 
 extern fn node_payload_dispose(kind: u32, data: void*): void;
 
+extern fn syntax_origin_dispose(data: void*): void;
+
+extern fn syntax_trace_dispose(data: void*): void;
+
 extern fn compiler_native_finalize(kind: usize, component: void*, data: void*): void;
 
 export fn tower_entity_finalize(kind: usize, component: void*, data: void*): void {
+    var origin = kind == compiler_origin_lifecycle();
+    if origin {
+        syntax_origin_dispose(data);
+        return;
+    }
+    var expansion = kind == compiler_expansion_lifecycle();
+    if expansion {
+        syntax_trace_dispose(data);
+        return;
+    }
     var foundation = kind == compiler_foundation_lifecycle();
     if foundation {
         foundation_node_dispose(data);

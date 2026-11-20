@@ -77,19 +77,19 @@ bool syntax_get_error_insertion(SyntaxSession* session);
 // Match spans on generated nodes point to the invocation, while this component
 // records the template source. Captured subtrees keep their original spans.
 struct SyntaxExpansion {
-  std::string rule;
+  CoreName rule;
   size_t start = 0, end = 0, definition_start = 0, definition_end = 0;
-  std::shared_ptr<const SyntaxExpansion> previous;
+  const SyntaxExpansion* previous;
 };
 struct SyntaxOrigin {
   size_t template_start = 0, template_end = 0;
   bool generated = false;
-  std::shared_ptr<const SyntaxExpansion> expansion;
+  const SyntaxExpansion* expansion;
   // Additional splices preserve the history of an already-generated capture.
-  std::vector<std::shared_ptr<const SyntaxExpansion>> splices;
+  struct { const SyntaxExpansion** data; size_t length, capacity; } splices;
 };
-const SyntaxOrigin* syntax_get_origin(TowerNode* node);
-void syntax_copy_origin(TowerNode* source, TowerNode* destination);
+extern "C" const SyntaxOrigin* syntax_get_origin(TowerNode* node);
+extern "C" void syntax_copy_origin(TowerNode* source, TowerNode* destination);
 struct SyntaxExpansionStats { size_t replacements = 0, generated_nodes = 0, copied_nodes = 0; };
 SyntaxExpansionStats syntax_get_expansion_stats(SyntaxSession* session);
 

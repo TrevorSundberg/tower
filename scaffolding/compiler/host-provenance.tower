@@ -1,0 +1,36 @@
+import tower;
+import 'host-world';
+import 'syntax-provenance';
+
+export fn syntax_get_origin(node: Entity*): SyntaxOrigin* {
+    return syntax_origin_get(compiler_host_world(), node);
+}
+
+export fn syntax_copy_origin(source: Entity*, destination: Entity*): void {
+    compiler_entity_require(syntax_origin_copy(compiler_host_world(), source, destination));
+}
+
+export fn syntax_expansion_copy_origin(source: Entity*, destination: Entity*): bool {
+    return syntax_origin_copy(compiler_host_world(), source, destination);
+}
+
+export fn syntax_expansion_history(node: Entity*): SyntaxExpansion* {
+    var origin = syntax_get_origin(node);
+    var missing = origin == null;
+    if missing {
+        return null;
+    }
+    return origin.expansion;
+}
+
+export fn syntax_expansion_previous(trace: SyntaxExpansion*): SyntaxExpansion* {
+    return trace.previous;
+}
+
+export fn syntax_expansion_trace(rule: u8*, start: usize, end: usize, invocation: Entity*): SyntaxExpansion* {
+    return syntax_trace_create(compiler_host_world(), invocation, rule, start, end);
+}
+
+export fn syntax_expansion_origin(trace: SyntaxExpansion*, node: Entity*, source: Entity*, generated: bool): bool {
+    return syntax_origin_mark(compiler_host_world(), trace, node, source, generated);
+}

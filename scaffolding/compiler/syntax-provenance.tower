@@ -1,0 +1,193 @@
+import tower;
+import 'world';
+
+extern fn bytes_assign_text(value: vector(u8)*, source: u8*, length: usize): bool;
+
+fn provenance_owner(trace: SyntaxExpansion*): Entity* {
+    var component = entity_component_from_data(bits(u8*, trace));
+    return entity_component_owner(component);
+}
+
+export fn syntax_trace_retain(trace: SyntaxExpansion*): void {
+    var present = trace != null;
+    if present {
+        entity_retain(provenance_owner(trace));
+    }
+}
+
+// Detach a uniquely owned chain before reclaiming each entity, avoiding recursive
+// destruction. A pinned trace remains unchanged until the view drains.
+export fn syntax_trace_release(trace: SyntaxExpansion*): void {
+    loop {
+        var done = trace == null;
+        if done {
+            return;
+        }
+        var owner = provenance_owner(trace);
+        var unique = entity_references(owner) == 1;
+        var unpinned = owner.store.views == 0;
+        if unique {
+            if unpinned {
+                var previous = trace.previous;
+                trace.previous = null;
+                entity_release(owner);
+                trace = previous;
+                continue;
+            }
+        }
+        entity_release(owner);
+        return;
+    }
+}
+
+export fn syntax_trace_dispose(trace: SyntaxExpansion*): void {
+    var previous = trace.previous;
+    trace.previous = null;
+    vector_dispose(u8, &trace.rule);
+    syntax_trace_release(previous);
+}
+
+export fn syntax_origin_dispose(origin: SyntaxOrigin*): void {
+    syntax_trace_release(origin.expansion);
+    origin.expansion = null;
+    var index: usize = 0;
+    while index < origin.splices.length {
+        syntax_trace_release(origin.splices.data[index]);
+        index = index + 1;
+    }
+    vector_dispose(SyntaxExpansion*, &origin.splices);
+}
+
+export fn syntax_origin_get(world: CompilerWorld*, node: Entity*): SyntaxOrigin* {
+    return bits(SyntaxOrigin*, compiler_world_get(world, node, CompilerSyntaxOrigin()));
+}
+
+export fn syntax_trace_create(world: CompilerWorld*, invocation: Entity*, rule: u8*, definition_start: usize, definition_end: usize): SyntaxExpansion* {
+    var span = bits(ParserMatchData*, compiler_world_get(world, invocation, CompilerParserMatch()));
+    var missing = span == null;
+    if missing {
+        return null;
+    }
+    var owner = entity_create(world.store);
+    missing = owner == null;
+    if missing {
+        return null;
+    }
+    var trace = bits(SyntaxExpansion*, compiler_world_component(world, owner, CompilerSyntaxExpansion()));
+    missing = trace == null;
+    if missing {
+        entity_release(owner);
+        return null;
+    }
+    var length: usize = 0;
+    while rule[length] != 0 {
+        length = length + 1;
+    }
+    var copied = bytes_assign_text(&trace.rule, rule, length);
+    if copied {} else {
+        entity_release(owner);
+        return null;
+    }
+    trace.start = span.start;
+    trace.end = span.start + span.length;
+    trace.definition_start = definition_start;
+    trace.definition_end = definition_end;
+    var prior = syntax_origin_get(world, invocation);
+    var present = prior != null;
+    if present {
+        trace.previous = prior.expansion;
+        syntax_trace_retain(trace.previous);
+    }
+    return trace;
+}
+
+// Copies own their splice storage and retain shared immutable history. Prepare
+// all allocations before replacing destination state, including self-copy.
+export fn syntax_origin_copy(world: CompilerWorld*, source: Entity*, destination: Entity*): bool {
+    var prior = syntax_origin_get(world, source);
+    var missing = prior == null;
+    if missing {
+        return true;
+    }
+    var same = source == destination;
+    if same {
+        return true;
+    }
+    missing = destination == null;
+    if missing {
+        return false;
+    }
+    var foreign = destination.store != world.store;
+    if foreign {
+        return false;
+    }
+    var pending: vector(SyntaxExpansion*);
+    vector_init(SyntaxExpansion*, &pending);
+    var ok = vector_reserve(SyntaxExpansion*, &pending, prior.splices.length);
+    if ok {} else {
+        return false;
+    }
+    var target = bits(SyntaxOrigin*, compiler_world_component(world, destination, CompilerSyntaxOrigin()));
+    missing = target == null;
+    if missing {
+        vector_dispose(SyntaxExpansion*, &pending);
+        return false;
+    }
+    var index: usize = 0;
+    while index < prior.splices.length {
+        var trace = prior.splices.data[index];
+        syntax_trace_retain(trace);
+        pending.data[index] = trace;
+        index = index + 1;
+    }
+    pending.length = prior.splices.length;
+    syntax_trace_retain(prior.expansion);
+    syntax_origin_dispose(target);
+    target.template_start = prior.template_start;
+    target.template_end = prior.template_end;
+    target.generated = prior.generated;
+    target.expansion = prior.expansion;
+    copy(&target.splices, &pending, sizeof(vector(SyntaxExpansion*)));
+    return true;
+}
+
+export fn syntax_origin_mark(world: CompilerWorld*, trace: SyntaxExpansion*, node: Entity*, source: Entity*, generated: bool): bool {
+    var missing = trace == null;
+    if missing {
+        return false;
+    }
+    var owner = provenance_owner(trace);
+    var foreign = owner.store != world.store;
+    if foreign {
+        return false;
+    }
+    var existing = syntax_origin_get(world, node);
+    var splice = generated == false;
+    if splice {
+        splice = existing != null;
+    }
+    if splice {
+        var ok = vector_push(SyntaxExpansion*, &existing.splices, trace);
+        if ok {
+            syntax_trace_retain(trace);
+        }
+        return ok;
+    }
+    var span = bits(ParserMatchData*, compiler_world_get(world, source, CompilerParserMatch()));
+    missing = span == null;
+    if missing {
+        return false;
+    }
+    var origin = bits(SyntaxOrigin*, compiler_world_component(world, node, CompilerSyntaxOrigin()));
+    missing = origin == null;
+    if missing {
+        return false;
+    }
+    syntax_trace_retain(trace);
+    syntax_trace_release(origin.expansion);
+    origin.expansion = trace;
+    origin.generated = generated;
+    origin.template_start = span.start;
+    origin.template_end = span.start + span.length;
+    return true;
+}

@@ -122,11 +122,11 @@ void tree(BrowserText& out, TowerNode* root) {
   std::vector<Item> pending{{root, TOWER_INVALID_INDEX, tower_node_get_parent_member_name(root)}};
   size_t index = 0;
   std::map<const SyntaxExpansion*, size_t> trace_ids;
-  std::vector<std::shared_ptr<const SyntaxExpansion>> traces;
-  auto trace_id = [&](std::shared_ptr<const SyntaxExpansion> trace) {
-    const auto* original = trace.get();
-    while (trace && !trace_ids.contains(trace.get())) {
-      trace_ids[trace.get()] = traces.size(); traces.push_back(trace); trace = trace->previous;
+  std::vector<const SyntaxExpansion*> traces;
+  auto trace_id = [&](const SyntaxExpansion* trace) {
+    const auto* original = trace;
+    while (trace && !trace_ids.contains(trace)) {
+      trace_ids[trace] = traces.size(); traces.push_back(trace); trace = trace->previous;
     }
     return original ? trace_ids.at(original) : TOWER_INVALID_INDEX;
   };
@@ -153,8 +153,8 @@ void tree(BrowserText& out, TowerNode* root) {
       auto id = trace_id(origin->expansion);
       if (id == TOWER_INVALID_INDEX) out += "null"; else number(out, id);
       out += ",\"splices\":[";
-      for (size_t i = 0; i < origin->splices.size(); ++i) {
-        if (i) out += ','; number(out, trace_id(origin->splices[i]));
+      for (size_t i = 0; i < origin->splices.length; ++i) {
+        if (i) out += ','; number(out, trace_id(origin->splices.data[i]));
       }
       out += "]}";
     }
@@ -171,7 +171,7 @@ void tree(BrowserText& out, TowerNode* root) {
     field(out, "start", trace->start); field(out, "end", trace->end);
     field(out, "definitionStart", trace->definition_start); field(out, "definitionEnd", trace->definition_end);
     out += ",\"previous\":";
-    if (trace->previous) number(out, trace_ids.at(trace->previous.get())); else out += "null";
+    if (trace->previous) number(out, trace_ids.at(trace->previous)); else out += "null";
     out += '}';
   }
   out += ']';
