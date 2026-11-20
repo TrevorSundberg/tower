@@ -18830,3 +18830,25 @@ assertions, including function input/result variants and descriptions reached
 through bindings. The Tower formatter ran successfully on the changed presenter.
 Build and publication validation results follow below. Unrelated working changes
 in AGENTS.md, foundation docs, the journal and todo.txt remain outside this commit.
+
+Validation/publication: built parser and LLVM/cross reactors through the published
+Tower/Wasm bootstrap in WSL (WASI SDK 34); packaged all ten Tower units. All 33
+query checks pass, including named/no-input functions, void versus void* results,
+and variable/parameter/field descriptions through bindings. All 36 desktop/mobile
+hover tests pass, including dwell, pointer tolerance, custom grammar and comments.
+Reviewed wrapping in desktop variable and mobile function preview screenshots;
+copied them to novice-hover-variable-desktop.png and novice-hover-function-mobile.png.
+The local browser suite was invoked from the repository root with an explicit
+config path, so its original extra screenshots went to C:/Sandbox/build; live
+checks were invoked from playground as usual. No product UI layout change was
+needed for the longer explanations.
+
+Source 67e5ca8 is pushed. Published gh-pages e835bd4f5709466ff79c170d9702e0714949a025
+normally; Pages reports built. Manifest SHA-256:
+09db5728fc3fb43ede3ba6d12fef80f5ca80777e09e9f28c925ec93fb357b207.
+All 69 hosted assets match, all ten focused live hover tests pass, and the full
+deployment verifier passes desktop/mobile execution, native downloads, grammar,
+persistence, completion, output highlighting and target defaults. Logs use
+novice-hover-{wasm,llvm,tests,browser,live-browser,live-deployment}.log; the final
+report is copied to novice-hover-live-report.json. This is a presentation change
+within the existing generic Tower component service, not a token-specific query.
