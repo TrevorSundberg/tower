@@ -16566,3 +16566,16 @@ writing the DNS records, publishing the CNAME/manifest with a normal fast-forwar
 push, and verifying the certificate, HTTPS enforcement, apex/www/default-URL
 redirects and the full hosted verifier at the new origin. Those steps remain
 pending; preparation is not a completed domain migration.
+
+Validation and synchronization: preparation commit 5eb948c passed the final
+`git pull --rebase` (already current), the packaging test again and
+`git diff --check`, then pushed normally to main. The full existing-origin check
+`node playground/scripts/verify-deployment.mjs https://trevorsundberg.github.io/tower/`
+exited zero: all 68 exact asset hashes and both desktop/mobile profiles pass,
+including backend agreement, C output, forward bindings, editable grammar,
+persistence, native exports, completion, highlighting and target defaults.
+Evidence: `build/domain-current-live.log` and `build/domain-current-live-report.json`.
+The remote Pages branch remains c4ae62c2a1e4ecc54033c2843bf0591477b0b059 and the
+Pages API still reports built, no custom domain and HTTPS enabled. This verifies
+the retained existing site, not the pending new domain. Domain deployment is
+explicitly blocked rather than switching the working site to unresolved DNS.
