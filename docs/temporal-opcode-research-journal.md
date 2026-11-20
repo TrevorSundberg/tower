@@ -21427,3 +21427,32 @@ needed or made. Our combined successor sizes are 873208/52097749/63655111
 bytes, with identical two-/four-worker hashes; this independent build is retained
 as evidence, not substituted for the newer published bytes. Final work is only
 this append-only journal record and a normal source sync/push.
+
+Final syntax-owner sync: main advanced to 781958a's retained helper indexes.
+Preserved its complete journal and left its implementation untouched. Parser
+request/stream/integration/presentation modules are unchanged. Rebuilt/deployed
+native through build-native.sh; allocator/runtime-ABI/frontend/driver CTests pass
+4/4 (9.98 s), and the newly built parser reactor passes all 75 focused transport
+tests (11.45 s). Native SHA-256 is
+9afed3aa8df1ebd097fd2a0bbb935bbda5dc45b9b1342a14f7b74a60aeaf261b.
+Logs: helper-integrated-{native,wasm,node}.log. The syntax presentation dependency
+now borrows the owner's frozen helper lookup through its unchanged named service.
+
+The syntax owner then published newer f714b9dab4706d99b2a327e5c66fa7e5c41cf3c8
+from 781958a. Preserve this release too. Its served manifest, parser reactor and
+compiler recipe match their recorded hashes; every packaged source file matches
+the integrated checkout. All 14 JS/source-map/HTML/CSS assets are identical to
+82b4ef2's fully verified desktop/mobile package. Downloaded the actual hosted
+parser reactor and ran the same 75 transport/production-export tests against it:
+75/75 pass (11.39 s), including browser self-tests. The first parser download was
+truncated by the connection (IncompleteRead); a fresh bounded retry passed the
+SHA-256 check before any tests ran. Evidence: latest-publication-audit.log,
+latest-live-parser-tests.log and latest-published under build/parser-retirement.
+Manifest SHA-256:
+626959bf755d89ec218464e643eb64b85a56cd79b3692163335b60cf1a96bfa4.
+This is targeted verification of the newer parser payload, not a claim that the
+full desktop/mobile suite was rerun after the helper-only update. No new Pages
+push is needed: the verified parser retirement remains in the newest deployment.
+Existing low-level native LR/reference differential harnesses remain separate
+coverage; the retired production bridge and component/tree integration fixtures
+are the two files explicitly named in this task.
