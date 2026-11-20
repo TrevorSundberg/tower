@@ -19823,3 +19823,55 @@ Reuse the validated scoped bootstrap and existing parser-format compilation unit
 Logs: build/language-next/syntax-{preview,diagnostic}-{native,tests}.log. Saved
 syntax-preview-baseline-llvm.wasm before rebuilding the backend reactors for the
 controlled compiler-throughput comparison.
+
+Final syntax-port validation on 60aaac7: native, parser WASI, LLVM WASI and cross
+WASI builds pass; native backend API checks pass; tower-frontend passes in 0.03 s.
+All 65 focused diagnostics/hover/module-scope Node checks pass (7.06 s). Three
+selected source-format API tests pass (0.259 s): ordinary source/Foundation
+roundtrip, comments/replacement invocation preservation, and rejection when
+layout would change custom lexical meaning. These are functional tests of the
+migrated verifier, not the skipped repository formatter sweep. The extra CTest
+shell attempt initially misquoted a regex containing parentheses; reran the
+simple frontend filter and the backend executable successfully.
+
+Refreshed packages still have ten Tower units per reactor. Two successive
+browser compiler generations with 2 then 4 workers pass in 14.48 s and 10.34 s,
+including edited semantic behavior and byte-identical generation outputs:
+- parser 886493 bytes, 0a791152c778e27dec97a8519dbe88f7f63aa8b493872a2a65bc6a4b5b38ecef
+- LLVM 52073914 bytes, 8afb3f1defe3f15b6fd3de9bbe13ff740e13d829d5dc41e0921ddacda7faf09b
+- cross 63631280 bytes, 0898fc499f7a8f0cee08c055a4303b86f6c73c704215c82c6751c61aa7bcdb95
+Reports are syntax-diagnostic-generation{1,2}.json and successors.log.
+
+Controlled compiler-ownership benchmark uses the saved pre-slice LLVM reactor
+SHA256 71beb82fb60a8b1ddfcdcedbe4063b58c1bdc2c7ba930cb314cd0cddd9afb8ca,
+the same bootstrap/toolchain, six warmups and sixteen alternating pairs; every
+object must be byte-identical. Discard the initial timing run that overlapped
+package completion; retained separately as benchmark-initial.json. Final medians
+baseline -> current: templates 6.399 -> 6.191 ms; 1024-level layouts 22.361 ->
+22.792 ms; compiler-host unit 150.351 -> 148.951 ms. These small mixed changes do
+not establish a speedup or a clear throughput regression. Final samples and
+machine/recipe hashes: syntax-diagnostic-benchmark.json. This slice removes 88
+net lines from syntax.cpp, adds 19 ABI declaration lines, and adds only Tower
+implementations and Tower test bodies.
+
+Publication coordination blocker: fetching found gh-pages 4d3d19f, whose manifest
+claims source 6a49c532e16a22d32c87d6fd5700c3dd76fc6df0. That commit is absent from
+origin/main and GitHub's commits API returns HTTP 422 (no commit found). Its
+published compiler/project.json includes newer language-query.tower and
+semantic-generic-info.tower changes keeping template hovers available in erroneous
+documents. Compared their exact source text with main and saved the differences
+under build/language-next/published-compiler-*.tower. Do not overwrite those
+published fixes with a build from older main, import another owner's unpushed
+semantic work silently, or claim this slice is deployed. The clean Pages worktree
+is untouched; source is committed for a normal push. Once that published source
+lands on main, rebase, rebuild the affected query unit/packages, and publish the
+combined result using the established deployment verifier. No sanitizer/source
+formatter sweep is required for that integration.
+
+Next native removal boundary remains the derived Version indexes and shared
+revision/session ownership in syntax.cpp. Reuse FrontendRevision and world-owned
+entities/components; preserve immutable pinned snapshots for active requests.
+Global baseline installation and mutable query-cache ownership are still blockers
+to claiming all within-unit phases are parallel. Keep AST, grammar, parse matches
+and Foundation on the existing shared entity model; parallelize eligible read
+phases only after ownership and deterministic commit boundaries are explicit.
