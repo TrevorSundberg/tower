@@ -16429,3 +16429,15 @@ Evidence: `build/next-task/verify-live.log` and
 No runtime rebuild or new Pages content is needed for these repository docs;
 publication uses the unchanged verified deployment. `todo.txt` remains Git blob
 96a9e58964d7f01e4a97819f259448db81ef5e40.
+
+A final fetch then found the entity-view release had advanced Pages to c4ae62c.
+Advanced the detached deployment worktree by fast-forward and preserved that
+release. Repeated the import probe against its parser: both namespace limitations
+remain reproducible. The supplementary hosted check
+`node build/next-task/verify-current.mjs` exits zero: all 68 latest assets match
+manifest 64f02bc254edfbc31cdc164e208992c2fa30bf4bd0226ba8b5f4c04d6c8d0e26,
+and desktop/mobile both import Tower and print 42 through graph, fast and LLVM
+execution with no page errors. Logs/reports: `build/next-task/verify-current.log`,
+`verify-current.json` and `import-probe-current.log`. This narrower final smoke
+check supplements the full earlier hosted check; it does not claim to rerun that
+whole suite on the newer upstream compiler. No prior deployment is republished.
