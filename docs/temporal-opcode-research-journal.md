@@ -19589,3 +19589,113 @@ puts, and linker has fopen/fclose/fileno/remove. Removed just those two imports
 in Tower. The build failure is recorded in parser-text-scoped-native-final.log;
 new final-source builds/tests use parser-text-final-* logs. Do not weaken export
 identity or suppress the duplicate-symbol failure.
+
+Final combined native API checks pass. All 376 Node/Wasm behavioral checks pass
+(42.28 s); the exhaustive formatting check is running separately, using its
+unchanged script rather than executing it twice in Node. Rechecked compiler-worker
+fixtures after the package completed because those fixtures read project.json.
+Both browser successor generations pass, with 2 then 4 workers and identical
+bytes, including the edited semantic diagnostic and the scoped compiler probes.
+Generation 2: parser 877286 bytes, LLVM 52063520, cross 63620654; hashes/timings
+are in parser-text-final-generation{1,2}.json. All 69 local deployed assets and
+both desktop/mobile verification flows pass (parser-text-final-local-report.json).
+The full sanitizer, browser matrix and canonical formatter checks continue.
+
+For a controlled performance comparison after the unrelated scope change, built
+b5307be's unmodified parser.cpp, format-parser.tower and parser-table.tower using
+the same scoped bootstrap/toolchain, and linked them with the current compiler's
+other components. This isolates the removed formatter implementation; no native
+reference code was added to the repository. Exact compile/link commands and the
+baseline reactors are under build/language-next/parser-text-scoped-reference/.
+The parser reactor is 1073882 bytes with the old implementation versus 877164
+with Tower formatting (18.3% smaller). The LLVM reactor is 52064594 versus
+52064277 bytes; LLVM already needs the stream-library dependencies. Benchmark
+only after other validation jobs have joined, and require identical object bytes.
+
+Next removal boundary: syntax.cpp still owns Version/SyntaxSession and installed
+baseline state through native maps/vectors/shared_ptr. Reuse FrontendRevision's
+existing retained shared-node snapshots and the explicit world grammar cache;
+do not add another authoritative grammar/snapshot model. Move derived version
+indexes and their ownership into Tower, then move baseline/session references
+into explicit world/request owners. Preserve sorted lookup behavior, declaration
+order/activation, provenance and old snapshots held by active completions. Add
+Tower lifetime/failure/interleaving tests before claiming within-unit parallel
+phases safe. The current verified parallel path is compilation of isolated units.
+Leave driver.cpp untouched for the independently proposed CLI-port task.
+
+All 247 Tower sources covered by the standalone canonical formatter pass its
+text/idempotence/grammar/statement-tree checks. The expanded browser matrix
+passes 127 cases with the existing one intentional skip (4.0 minutes). An ignored
+Tower fixture under parser-text-native-scope exercises colliding names through
+aliases and declaration-only import cycles: graph, fast, raw LLVM, optimized LLVM
+and canonical Foundation re-execution all print 20/22/22/20. Raw/optimized IR and
+executables are retained there; parser-text-final-native-agreement.log records
+agreement. No new native fixture was written.
+
+While preparing publication, gh-pages advanced to a6bacaf (source b5307be's module
+scope release). Stopped the stale-base preparation before copying, verified that
+source is already included, and prepared the candidate on that deployment.
+Manifest provenance currently identifies c7a230c; 53 asset hashes are retained,
+16 are rebuilt. Nothing from this formatter slice has been published yet.
+
+The final full native sanitizer suite is much longer after scope integration.
+Its read counters continue advancing. A read-only GDB sample at roughly 20 minutes
+shows ASAN allocator recycling in lr_items_close/lr_states_lalr, reached through
+compile_template, syntax_replacements_prepare and nested frontend_module_import
+calls during formatter_tests (source-comments.tower), rather than a completed
+suite result. Plain-user attach was unavailable; WSL root attach/read/detach
+succeeded without changing system settings. Evidence is
+parser-text-final-asan-{progress,stack}.log. This sample identifies work in progress,
+not a whole-run cost attribution. The staged C++-removal benchmark remains pending.
+Reusing immutable revision tables across explicitly owned sessions is a relevant
+next optimization; preserve source/provenance identity and active-reader pins.
+
+User-directed fast iteration policy (2026-11-20): keep the sanitizer and formatter
+available, but skip ASan/UBSan sweeps and source-formatting sweeps for now. Stop
+repeating whole matrices for small ports or documentation-only rebases. Rebuild
+affected units with the already validated scoped bootstrap; run focused behavior,
+ownership and allocation-failure checks. Batch related removals before publication.
+Use focused differential/browser checks when their contracts change. Optimize
+observed iteration blockers before taking the next native-port slice.
+
+Stopped the long sanitizer process explicitly at the user's request; CTest records
+INTERRUPT after 1692.39 seconds. This is a cancelled check, not a sanitizer defect
+or a passing suite. No formatter process remains running. The imported scope
+journal independently records its earlier complete native suite passing in
+2244.46 seconds; do not attribute that result to this formatter port.
+
+Pulled/rebased onto 4d00289, preserving the native CLI port and symbolic template
+inspection work. Formatter implementation/fixtures are unchanged by that rebase.
+With the same frozen scoped bootstrap, native API tests pass, the Tower driver
+suite passes in 4.17 seconds, and 55 focused query/scope tests pass in 6.35 seconds.
+Native/parser/LLVM/cross builds and refreshed ten-unit packaging complete. Skipped
+sanitizer and formatting reruns as requested. Current validation logs use
+parser-text-fast-*. Publication of this combined build is still pending.
+
+Added frontend-main.tower as a focused entry point to the existing production-API
+world, parser-table and text-formatting fixtures. The isolated
+TowerFrontendFocused.cmake fragment enables it beside TOWER_BACKEND_TESTS; it
+reuses production objects and the existing compiler-memory.cpp instrumentation
+mode. No native implementation, wrapper or test body was added. Fault injection
+remains enabled; the runner does not walk or reformat repository sources.
+The initial fragment name collided with the existing parser-only test fragment;
+restored that file unchanged and gave the new fragment its own name.
+
+Validation: tower-frontend passes in 0.02 seconds; a warm build plus rerun took
+4949 ms including WSL/build startup, with CTest reporting 0.11 seconds. Commands:
+cmake --build /home/trevo/.cache/tower/backend-native --target tower-frontend-tests -j4
+ctest --test-dir /home/trevo/.cache/tower/backend-native -R ^tower-frontend$ --output-on-failure
+This is focused coverage, not equivalent to the exhaustive suite. Logs:
+parser-text-fast-frontend-{build,build-final}.log, parser-text-fast-frontend.log,
+parser-text-fast-warm.log. Keep this fast path for subsequent ownership/diagnostic
+ports and expand its Tower fixtures when those contracts change.
+
+The user requested two independent handoff prompts, then a turn stop. Browser
+transport/lifetimes (browser.cpp) and runtime/allocator glue (runtime.c and
+compiler-memory.cpp) are suitable separate boundaries. Retain parser/syntax and
+its diagnostic/version ownership work here; native CLI has its own landed port.
+Restore only this agent's obsolete prepared Pages assets after verifying their
+hashes, leaving a clean deployment worktree. Do not publish the pre-rebase
+candidate. The refreshed package needs its focused successor/browser/publication
+checks on continuation; controlled benchmark remains pending. Neither sanitizer
+nor source-format sweeps should be restarted on continuation.
