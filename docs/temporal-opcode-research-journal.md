@@ -19344,3 +19344,55 @@ Its new executable SHA-256 is 6408b480738f74f0315066de453efe55538b590a8ac353eae2
 This supersedes the earlier executable hash for the combined checkout; the driver
 implementation itself did not change. The already verified Pages deployment was
 preserved rather than replacing the other owner's browser artifacts.
+
+
+## 2026-11-20: Module scopes publication and final validation
+
+Final combined-source results: two more browser compiler generations pass with
+identical hashes, including the edited semantic diagnostic; reactor sizes are
+1,073,956 / 52,067,342 / 63,624,474 bytes. All 36 desktop/mobile hover checks pass.
+Running self-builds concurrently with browser validation caused two cold-start
+timing failures (execution's 10-second wait and the verifier's 5-second parse
+wait). The unchanged mobile runner test passes in isolation, and the complete
+local deployment verifier passes in isolation for all 69 assets, desktop/mobile
+flows and native Linux target defaults. No assertion or timeout was relaxed.
+The complete portable WASI suite now passes on the parser-table integration:
+243 canonical source files, two invalid fixtures, allocation failures, random
+automata and 156 differential interpreter runs. Logs are hover-{successors,
+browser,browser-recheck,local-isolated}.log and table-host-wasm.log under
+build/module-scopes; the local report is hover-local-report.json.
+
+Source b5307be is pushed normally. Published complete artifact commit a6bacaf
+from source b5307be on top of the fetched e835bd4 Pages tip, preserving CNAME
+and .nojekyll. Asset differences in index.html, style.css and third-party notices
+are only line endings from the previous Windows build; content is unchanged.
+Manifest SHA-256: fd65d033230253d1454e0876358a6fe06f2ed09ecee06dc59bd9af0f2bb799a3.
+Hosted verification and native sanitizer completion remain pending.
+
+Pages reports a6bacaf built. The full hosted verifier passes all 69 exact asset
+hashes, desktop/mobile execution and exports, module aliases and project imports,
+grammar editing, persistence, completion, shared highlighting and default target
+selection. Saved hosted-verification.log and hosted-report.json under
+build/module-scopes. HTTP, https://www.tower-lang.org/ and the old GitHub Pages
+URL each resolve to HTTP 200 at https://tower-lang.org/. No force push or domain
+change was used. The native sanitizer process is the sole remaining validation;
+its source read counters continue to advance through exhaustive round trips.
+
+Native validation completed successfully: ASan/UBSan CTest passes all five targets
+with no failures. The exhaustive parser/formatter target took 2231.74 seconds;
+total reported test time was 2244.46 seconds. This is the scoped parser-table
+build described above, with the subsequent hover presenter independently rebuilt
+and checked by the native differential probe, 51 query/scope tests, the complete
+portable suite and browser checks. The sanitizer instruments the native adapters;
+it does not retroactively instrument Tower-generated objects. Full log:
+build/module-scopes/table-core-tests.log. No test was skipped or weakened to
+obtain this result. Implementation and hosted publication are complete; only
+this validation record changes after the deployed source revision.
+
+Further module work should add selective imports and explicit re-exports through
+the same ownership/import components. Measure declaration-cache reuse for large
+cyclic compiler dependency closures before optimizing it; preserve fresh semantic
+entities, definition scopes and the invalid-cycle cache regression. Continue
+porting native compiler pieces as ordinary modules with explicit defining-file
+or foreign-interface imports, retaining successive-generation validation and
+compilable Foundation output. todo.txt was not changed by this work.
