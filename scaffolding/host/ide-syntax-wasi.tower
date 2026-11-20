@@ -1,0 +1,43 @@
+import tower;
+import 'ide-api';
+import 'ide-text';
+import '../library/bytes-types';
+
+// Existing syntax API, lowered for wasm32 WASI SDK 34 / libc++ __2. Nontrivial
+// returns use an explicit sret pointer. Foreign containers are temporary ABI
+// views only and are disposed after copying into request-owned Tower buffers.
+// Retire this module when syntax's owner exposes the remaining Tower views.
+struct IdeForeignString { words: usize[3]; }
+// SDK 34 enables libc++ ABI v2's alternate string and bounded vector layouts.
+struct IdeForeignVector { data: u8*; size: usize; capacity: usize; }
+struct IdeForeignRule { name: IdeForeignString; definition: IdeForeignString; pending: bool; }
+struct IdeForeignToken { name: IdeForeignString; pattern: IdeForeignString; kind: IdeForeignString; `skip`: bool; contextual: bool; }
+struct IdeForeignHighlight { start: usize; end: usize; revision: usize; kind: IdeForeignString; opaque: bool; `token`: u32; }
+struct IdeForeignText { source: IdeForeignString; spans: IdeForeignVector; error: IdeForeignString; }
+struct IdeForeignStats { first: usize; second: usize; third: usize; }
+
+extern fn `cpp_name(unsigned long syntax_get_offset(SyntaxSession*))`(session: void*): usize;
+extern fn `cpp_name(bool syntax_get_error_insertion(SyntaxSession*))`(session: void*): bool;
+extern fn `cpp_name(bool syntax_can_format(SyntaxSession*))`(session: void*): bool;
+extern fn `cpp_name(TowerText syntax_format(SyntaxSession*))`(result: IdeForeignText*, session: void*): void;
+extern fn `cpp_name(SyntaxCacheStats syntax_get_cache_stats(SyntaxSession*))`(result: IdeForeignStats*, session: void*): void;
+extern fn `cpp_name(SyntaxExpansionStats syntax_get_expansion_stats(SyntaxSession*))`(result: IdeForeignStats*, session: void*): void;
+extern fn `cpp_name(std::vector<SyntaxRuleInfo> syntax_get_rules(SyntaxSession*))`(result: IdeForeignVector*, session: void*): void;
+extern fn `cpp_name(std::vector<SyntaxTokenInfo> syntax_get_tokens(SyntaxSession*))`(result: IdeForeignVector*, session: void*): void;
+extern fn `cpp_name(std::vector<SyntaxHighlight> syntax_get_lexemes(SyntaxSession*))`(result: IdeForeignVector*, session: void*): void;
+extern fn `cpp_name(std::vector<SyntaxHighlight> syntax_get_highlights(SyntaxSession*))`(result: IdeForeignVector*, session: void*): void;
+extern fn `cpp_name(std::vector<std::string> syntax_get_keywords(SyntaxSession*))`(result: IdeForeignVector*, session: void*): void;
+extern fn `cpp_name(std::string syntax_set_bootstrap(char const*))`(result: IdeForeignString*, source: u8*): void;
+extern fn `cpp_name(void operator delete(void*))`(data: u8*): void;
+extern fn tower_tests(): void;
+extern fn `cpp_name(void parser_tests())`(): void;
+extern fn `cpp_name(void syntax_tests())`(): void;
+
+fn ide_foreign_long(value: IdeForeignString*): bool { var raw = bits(u8*, value); var flag = raw[11] & 128; var yes = flag != 0; return yes; }
+fn ide_foreign_data(value: IdeForeignString*): u8* { if ide_foreign_long(value) { return bits(u8*, value.words[0]); } return bits(u8*, value); }
+fn ide_foreign_size(value: IdeForeignString*): usize { if ide_foreign_long(value) { return value.words[1]; } var raw = bits(u8*, value); var length = convert(usize, raw[11]); return length; }
+fn ide_foreign_dispose(value: IdeForeignString*): void { if ide_foreign_long(value) { `cpp_name(void operator delete(void*))`(ide_foreign_data(value)); } }
+fn ide_foreign_quote(out: ByteBuffer*, value: IdeForeignString*): void { ide_quote_bytes(out, ide_foreign_data(value), ide_foreign_size(value)); }
+fn ide_foreign_count(value: IdeForeignVector*, size: usize): usize { return value.size; }
+fn ide_foreign_free(value: IdeForeignVector*): void { `cpp_name(void operator delete(void*))`(value.data); }
+export fn tw_self_test(): i32 { tower_tests(); `cpp_name(void parser_tests())`(); `cpp_name(void syntax_tests())`(); return 0; }

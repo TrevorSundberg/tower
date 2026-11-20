@@ -1,3 +1,4 @@
+import '../compiler/host-handle-types';
 import tower;
 import 'host-runtime';
 import '../compiler/host-handles';

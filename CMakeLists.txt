@@ -87,8 +87,7 @@ if(TOWER_BROWSER)
   tower_compiler_utilities()
   tower_compiler_parser_nodes()
   tower_compiler_interpreter()
-  add_executable(tower-browser scaffolding/browser.cpp
-    scaffolding/core.cpp scaffolding/core-nodes.cpp scaffolding/core-machine.cpp
+  add_executable(tower-browser
     scaffolding/tower.cpp scaffolding/tests/nodes.cpp scaffolding/parser.cpp scaffolding/parser-tree-tests.cpp
     scaffolding/syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/format.cpp scaffolding/lex-pattern.cpp scaffolding/lex-pattern-common.cpp scaffolding/syntax-tests.cpp)
   target_compile_features(tower-browser PRIVATE cxx_std_20)
@@ -103,6 +102,8 @@ if(TOWER_BROWSER)
     $<$<CONFIG:MinSizeRel>:-Wl,--strip-all>
     -Wl,-z,stack-size=2097152 -Wl,--initial-memory=8388608 -Wl,--max-memory=268435456)
   set_target_properties(tower-browser PROPERTIES OUTPUT_NAME tower SUFFIX .wasm)
+  include(cmake/TowerIde.cmake)
+  tower_ide_integrate(tower-browser)
   if(TOWER_BROWSER_LLVM)
     set(TOWER_LLVM_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/llvm-project" CACHE PATH "LLVM source checkout")
     include_directories(${TOWER_LLVM_SOURCE_DIR}/wasi-include)

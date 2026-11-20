@@ -1,0 +1,48 @@
+import tower;
+import '../library/vector';
+// Execution storage only; entity keys refer to the existing foundation nodes.
+// Ordered map entries and task arrays are derived execution indexes, not IR.
+struct IMEntry {
+    key: u64;
+    value: u64;
+}
+
+struct IMTask {
+    node: void*;
+    loop_resume: u64;
+    phase: usize;
+    offset: usize;
+}
+
+struct IMFrame {
+    function: void*;
+    base: usize;
+    call_offset: usize;
+    call: void*;
+    tasks: vector(IMTask);
+    values: vector(IMEntry);
+    addresses: vector(IMEntry);
+}
+
+// Shared directly with the transitional native view; Tower owns all arrays.
+struct IMState {
+    stack: usize;
+    heap: usize;
+    error_offset: usize;
+    output_bytes: usize;
+    steps: u64;
+    done: bool;
+    output_truncated: bool;
+    failed: bool;
+    frame_count: usize;
+    task_count: usize;
+    cached: bool;
+    memory: vector(u8);
+    allocations: vector(IMEntry);
+    free_blocks: vector(IMEntry);
+    strings: vector(IMEntry);
+    sequenced: vector(IMEntry);
+    frames: vector(IMFrame);
+    node_cache: vector(IMEntry);
+}
+

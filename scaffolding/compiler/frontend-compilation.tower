@@ -1,4 +1,5 @@
 import tower;
+import 'semantic-program-types';
 import 'semantic-context';
 import 'semantic-lifecycle';
 import 'semantic-modules';
@@ -17,11 +18,6 @@ extern fn syntax_get_revision(session: void*): usize;
 extern fn syntax_get_error_offset(session: void*): usize;
 
 extern fn bytes_append(target: vector(u8)*, data: u8*, count: usize): bool;
-
-struct FrontendSource {
-    data: u8*;
-    length: usize;
-}
 
 fn frontend_source_length(source: u8*): usize {
     var length: usize = 0;

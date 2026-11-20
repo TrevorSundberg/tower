@@ -1839,3 +1839,6 @@ export fn frontend_modules_depfile(environment: ModuleEnvironment*, output: u8*,
     vector_dispose(u8, &text);
     return ok;
 }
+
+// Borrowed environment; the caller retains the module lease for this access.
+export fn frontend_module_environment(module: FrontendModule*): ModuleEnvironment* { return module.graph.environment; }

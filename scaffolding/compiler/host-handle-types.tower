@@ -1,0 +1,14 @@
+import tower;
+struct HostHandleSlot {
+    handle: u32;
+    kind: u32;
+    payload: void*;
+}
+
+struct HostHandles {
+    slots: HostHandleSlot*;
+    count: usize;
+    capacity: usize;
+    next: u32;
+}
+

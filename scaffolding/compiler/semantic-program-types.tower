@@ -1,0 +1,14 @@
+import tower;
+import '../library/vector';
+struct SemanticModules { root: void*; owner_kind: void*; import_kind: void*; scopes: void*; }
+struct FrontendSource { data: u8*; length: usize; }
+struct SemanticProgram {
+    pointer_bytes: u32;
+    root: void*;
+    functions: vector(void*);
+    types: vector(void*);
+    error: vector(u8);
+    error_offset: usize;
+    modules: SemanticModules*;
+}
+

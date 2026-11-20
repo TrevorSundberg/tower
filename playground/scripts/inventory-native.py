@@ -25,7 +25,7 @@ for name in tracked:
         group = 'bootstrap/references: retire after whole-compiler and differential gates'
     elif '/tests/' in name or name.endswith('-tests.cpp'):
         group = 'native tests: port assertions/fixtures to Tower before retirement'
-    elif name in ('scaffolding/driver.cpp', 'scaffolding/browser.cpp', 'scaffolding/compiler-host.hpp'):
+    elif name in ('scaffolding/driver.cpp', 'scaffolding/compiler-host.hpp'):
         group = 'host: integrate Tower lifecycle/backend interfaces then retire adapter'
     elif '/llvm-' in name:
         group = 'backend owner: Tower lowering and linker interface required'

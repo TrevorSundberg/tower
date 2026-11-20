@@ -1,11 +1,34 @@
-# Tower browser ABI, version 3
+# Tower IDE ABI, version 3
 
-`scaffolding/browser.cpp` exports ordinary C functions. Integers/pointers are
-wasm32 values. Instantiate with WASI Preview 1 imports, then call `_initialize`
+`scaffolding/host/ide-*.tower` owns the reusable session, query, execution and
+artifact services behind ordinary C exports. The current WASI build uses wasm32
+integers/pointers. Instantiate with WASI Preview 1 imports and
+`env.tw_foreign_call(handle, request)` for foreign execution, then call `_initialize`
 exactly once before calling any Tower export. Load `bedrock.tower` through
 `tw_set_bedrock`, then `foundation.tower` through `tw_set_bootstrap` before
 creating sessions. The provided JavaScript adapter
 is `src/tower-host.mjs`, usable from both browser workers and Node tests.
+
+The adapter accepts the preceding `tower_host.call` import as well, so it can
+load either generation during deployment. Compiler services remain independent
+of this JSON transport. Each host instance owns its IDE state component on the
+existing entity registry; session handles own their parse/semantic roots and
+interpreter storage. No separate AST, graph registry or semantic IR is created.
+Calls into one instance are serialized. Separate worker instances own separate
+worlds; shared graph mutation is not claimed thread-safe. Cancellation terminates
+the owning worker, and request generations continue to reject stale results.
+
+The temporary `ide-syntax-wasi.tower` module calls existing syntax inspection
+interfaces using WASI SDK 34 libc++ ABI v2 (alternate strings and size-based
+vectors). It owns and disposes those foreign return values before returning
+Tower-owned JSON. Other hosts need bindings for their syntax API ABI until those
+remaining syntax services expose portable Tower views.
+
+Focused fixtures are implemented in `scaffolding/tests/ide.tower`. Configure the
+WASI build with `-DTOWER_IDE_TESTS=ON`, rebuild, then run
+`node playground/scripts/test-ide.mjs path/to/tower.wasm`. Production builds leave
+that option off. The test runner supplies normal module inputs and calls Tower;
+all assertions and lifetime/execution fixtures are Tower code.
 
 | Export | Contract |
 | --- | --- |

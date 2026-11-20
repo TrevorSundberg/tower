@@ -1,3 +1,4 @@
+import 'semantic-program-types';
 import tower;
 import 'language-grammar';
 import 'foundation-tags';

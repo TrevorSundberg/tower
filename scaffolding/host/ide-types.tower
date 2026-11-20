@@ -1,0 +1,27 @@
+import tower;
+import '../library/bytes-types';
+import '../library/vector';
+import '../compiler/host-handle-types';
+import '../compiler/semantic-program-types';
+import '../compiler/interpreter-types';
+
+// Transport ownership only. Programs own ordinary Foundation entity roots;
+// the interpreter state contains disposable execution indexes over those roots.
+struct IdeParser { syntax: void*; response: ByteBuffer; }
+struct IdeExecution {
+    machine: IMState;
+    program: SemanticProgram;
+    fast: void*;
+    error: ByteBuffer;
+    output: ByteBuffer;
+    handle: u32;
+}
+struct IdeState {
+    handles: HostHandles;
+    error: ByteBuffer;
+    execution: ByteBuffer;
+    completion: ByteBuffer;
+    bytecode: u8*;
+    bytecode_size: usize;
+    foundation_error: ByteBuffer;
+}

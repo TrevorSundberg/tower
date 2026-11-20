@@ -1,0 +1,175 @@
+import tower;
+import 'ide-types';
+import 'ide-api';
+import 'ide-state';
+import 'ide-text';
+import 'ide-syntax-wasi';
+import '../library/bytes-types';
+import '../library/bytes-interface';
+import '../library/vector';
+import '../compiler/interpreter-types';
+import '../compiler/semantic-program-types';
+import '../compiler/foundation-types';
+
+// Each execution owns its root, typed program indexes, cache and guest storage.
+// Destruction takes the handle first; a stale handle cannot reach freed state.
+fn ide_execution_close(session: IdeExecution*): void {
+    var present = session.fast != null; if present { fast_interpreter_dispose(session.fast); }
+    interpreter_storage_dispose(&session.machine);
+    semantic_program_dispose(&session.program); entity_release(session.program.root);
+    bytes_dispose(&session.error); bytes_dispose(&session.output); free(session);
+}
+fn ide_execution_compile(sources: FrontendSource*, count: usize, width: u32, foundation: bool): IdeExecution* {
+    var session = alloc(IdeExecution, 1); var exists = session != null; ide_require(exists);
+    fill(session, 0, sizeof(IdeExecution));
+    semantic_initialize(&session.program, tower_node_create(), width);
+    var state = ide_state(); var rejected = false;
+    if foundation { rejected = state.foundation_error.length != 0; }
+    if rejected { ide_require(bytes_assign_text(bits(ByteBuffer*, &session.program.error), state.foundation_error.data, state.foundation_error.length)); }
+    else {
+        // Retain a normal frontend session lease while borrowing its environment.
+        // This is the existing module loader, including caller-supplied inputs.
+        var lease = syntax_completion_create("", 0);
+        var environment = frontend_module_environment(syntax_completion_module(lease));
+        frontend_compile_sources(&session.program, sources, count, environment);
+        syntax_destroy(lease);
+    }
+    ide_require(bytes_assign_text(&session.error, session.program.error.data, session.program.error.length));
+    session.machine.error_offset = session.program.error_offset;
+    session.machine.failed = session.error.length != 0; session.machine.done = session.machine.failed;
+    session.machine.stack = 16; session.machine.heap = 4194304;
+    interpreter_init(&session.machine); return session;
+}
+fn ide_execution_text(source: u8*, length: usize, width: u32, foundation: bool): IdeExecution* {
+    var text = ide_copy(source, length); var input: FrontendSource; input.data = text; input.length = length;
+    var session = ide_execution_compile(&input, 1, width, foundation); free(text); return session;
+}
+fn ide_execution_publish(session: IdeExecution*): u32 {
+    var state = ide_state(); var handle = host_handles_insert(&state.handles, 1, bits(void*, session));
+    var failed = handle == 0;
+    if failed { ide_execution_close(session); ide_error("Cannot allocate execution handle"); } else { session.handle = handle; }
+    return handle;
+}
+fn ide_execution_capacity(): bool {
+    var state = ide_state(); var full = host_handles_count(&state.handles, 1) >= 8;
+    if full { ide_error("Too many execution sessions"); return false; } return true;
+}
+fn ide_execution_fast(session: IdeExecution*): bool {
+    var started = session.machine.steps != 0; if started { return false; }
+    var missing = session.fast == null; if missing { session.fast = fast_interpreter_create(&session.machine); }
+    var ready = session.fast != null; return ready;
+}
+export fn tw_exec_create_target(source: u8*, bytes: usize, width: u32): u32 {
+    if ide_valid(source, bytes) {} else { return 0; }
+    var valid = width == 4; var wide = width == 8; if wide { valid = true; }
+    if valid {} else { ide_error("Unsupported target pointer width"); return 0; }
+    if ide_execution_capacity() {} else { return 0; }
+    return ide_execution_publish(ide_execution_text(source, bytes, width, false));
+}
+export fn tw_exec_create(source: u8*, bytes: usize): u32 { return tw_exec_create_target(source, bytes, 4); }
+export fn tw_exec_create_foundation(source: u8*, bytes: usize): u32 {
+    if ide_valid(source, bytes) {} else { return 0; } if ide_execution_capacity() {} else { return 0; }
+    return ide_execution_publish(ide_execution_text(source, bytes, 4, true));
+}
+export fn tw_exec_create_files(sources: u8**, lengths: u32*, count: u32, width: u32): u32 {
+    var valid = sources != null; var bad = lengths == null; if bad { valid = false; }
+    bad = count == 0; if bad { valid = false; } bad = count > 1024; if bad { valid = false; }
+    var allowed = width == 4; var wide = width == 8; if wide { allowed = true; } if allowed {} else { valid = false; }
+    var state = ide_state(); bad = host_handles_count(&state.handles, 1) >= 8; if bad { valid = false; }
+    if valid {} else { ide_error("Invalid project compilation request"); return 0; }
+    var total: usize = 0; var i: usize = 0;
+    while i < convert(usize, count) {
+        if ide_valid(sources[i], convert(usize, lengths[i])) {} else { return 0; }
+        total = total + convert(usize, lengths[i]); bad = total > 8388608;
+        if bad { ide_error("Project compilation limit is 8 MiB"); return 0; } i = i + 1;
+    }
+    var inputs = alloc(FrontendSource, convert(usize, count)); var ok = inputs != null; ide_require(ok); i = 0;
+    while i < convert(usize, count) { inputs[i].data = ide_copy(sources[i], convert(usize, lengths[i])); inputs[i].length = convert(usize, lengths[i]); i = i + 1; }
+    var session = ide_execution_compile(inputs, convert(usize, count), width, false); i = 0;
+    while i < convert(usize, count) { free(inputs[i].data); i = i + 1; } free(inputs);
+    return ide_execution_publish(session);
+}
+export fn tw_exec_destroy(handle: u32): void {
+    var state = ide_state(); var session = bits(IdeExecution*, host_handles_take(&state.handles, 1, handle));
+    var exists = session != null; if exists { ide_execution_close(session); }
+}
+export fn tw_exec_fast(handle: u32): i32 {
+    var session = ide_execution(handle); var missing = session == null; if missing { return 0; }
+    if ide_execution_fast(session) { return 1; } return 0;
+}
+export fn tw_exec_memory(handle: u32): u8* { var session = ide_execution(handle); var missing = session == null; if missing { return null; } return session.machine.memory.data; }
+export fn tw_exec_memory_size(handle: u32): usize { var session = ide_execution(handle); var missing = session == null; if missing { return 0; } return session.machine.memory.length; }
+export fn tw_exec_allocate(handle: u32, size: u32): u32 { var session = ide_execution(handle); var missing = session == null; if missing { return 0; } return convert(u32, interpreter_allocate(&session.machine, convert(usize, size))); }
+export fn tw_exec_deallocate(handle: u32, address: u32): void { var session = ide_execution(handle); var exists = session != null; if exists { interpreter_deallocate(&session.machine, convert(u64, address)); } }
+export fn tw_exec_fail(handle: u32, error: u8*, length: usize): void {
+    var session = ide_execution(handle); var missing = session == null; if missing { return; }
+    var empty = session.error.length == 0;
+    if empty { ide_require(bytes_assign_text(&session.error, error, length)); session.machine.failed = true; session.machine.error_offset = 0; }
+}
+export fn tw_exec_output(handle: u32, data: u8*, length: usize): void {
+    var session = ide_execution(handle); var missing = session == null; if missing { return; }
+    var left = 65536 - session.machine.output_bytes; var exceeded = length > left;
+    if exceeded { session.machine.output_truncated = true; return; }
+    ide_require(bytes_append(&session.output, data, length)); session.machine.output_bytes = session.machine.output_bytes + length;
+}
+export fn tw_exec_step(handle: u32, budget: u32): u8* {
+    var session = ide_execution(handle); var missing = session == null;
+    if missing { return "{\"status\":\"error\",\"error\":\"Invalid execution handle\"}"; }
+    var capped = budget > 100000; if capped { budget = 100000; }
+    session.machine.failed = session.error.length != 0;
+    var fast = session.fast != null;
+    if fast { fast_interpreter_step(&session.machine, session.fast, convert(usize, budget)); }
+    else { interpreter_step(&session.machine, convert(usize, budget)); }
+    var state = ide_state(); var out = &state.execution;
+    ide_require(host_execution_json(out, session.error.data, session.error.length, session.machine.error_offset, session.machine.done, session.output.data, session.output.length, session.machine.steps, session.machine.output_truncated));
+    session.output.length = 0; return ide_result(out);
+}
+export fn tw_exec_fast_stats(handle: u32): u8* {
+    var session = ide_execution(handle); var missing = session == null; if missing { return "{}"; }
+    missing = session.fast == null; if missing { return "{}"; }
+    var state = ide_state(); var out = &state.execution; ide_assign(out, "{");
+    var names: u8*[5]; names[0] = "codeBytes"; names[1] = "instructions"; names[2] = "wideInstructions"; names[3] = "registerCapacityBytes"; names[4] = "cacheCapacityBytes";
+    var i: usize = 0;
+    while i < 5 { ide_comma(out, i); ide_quote(out, names[i]); ide_text(out, ":"); ide_number(out, fast_interpreter_stat(session.fast, i)); i = i + 1; }
+    ide_text(out, "}"); return ide_result(out);
+}
+export fn tw_set_foundation(source: u8*, bytes: usize): i32 {
+    var bad = source == null; if bad { return 0; } bad = bytes > 131072; if bad { return 0; }
+    var text = ide_copy(source, bytes); var error: IdeForeignString;
+    `cpp_name(std::string syntax_set_bootstrap(char const*))`(&error, text); free(text);
+    var state = ide_state(); ide_require(bytes_assign_text(&state.foundation_error, ide_foreign_data(&error), ide_foreign_size(&error)));
+    ide_foreign_dispose(&error); return 1;
+}
+
+// Interpreter callbacks bind the existing portable engines to this request's
+// owner. Host invocation is the only transport-dependent execution operation.
+extern fn tw_foreign_call(handle: u32, request: u8*): u64;
+export fn im_pointer_bytes(machine: IMState*): usize { var session = bits(IdeExecution*, machine); return convert(usize, session.program.pointer_bytes); }
+export fn im_root(machine: IMState*): void* { var session = bits(IdeExecution*, machine); return session.program.root; }
+export fn im_has_foreign(machine: IMState*): bool { return true; }
+export fn im_fail(machine: IMState*, text: u8*, offset: usize): void {
+    var session = bits(IdeExecution*, machine); var empty = session.error.length == 0;
+    if empty { ide_assign(&session.error, text); machine.failed = true; machine.error_offset = offset; }
+}
+export fn im_missing_foreign(machine: IMState*, node: void*, offset: usize): void {
+    var text: ByteBuffer; fill(&text, 0, sizeof(ByteBuffer)); ide_text(&text, "No interpreter implementation registered for external function '");
+    var function = sem_get(node); ide_require(bytes_append(&text, function.name.data, function.name.length)); ide_text(&text, "'");
+    im_fail(machine, ide_result(&text), offset); bytes_dispose(&text);
+}
+export fn im_append(machine: IMState*, text: u8*, count: usize): void {
+    var session = bits(IdeExecution*, machine); ide_require(bytes_append(&session.output, text, count)); machine.output_bytes = machine.output_bytes + count;
+}
+export fn im_foreign(machine: IMState*, node: void*, args: u64*, count: usize): u64 {
+    var session = bits(IdeExecution*, machine); var function = sem_get(node);
+    var request: ByteBuffer; fill(&request, 0, sizeof(ByteBuffer)); ide_text(&request, "{\"name\":"); ide_quote_bytes(&request, function.name.data, function.name.length);
+    ide_field(&request, "pointerBytes", convert(usize, session.program.pointer_bytes)); ide_text(&request, ",\"types\":[");
+    var type: ByteBuffer; fill(&type, 0, sizeof(ByteBuffer)); var i: usize = 0;
+    while i < function.parameters.length {
+        var parameter = sem_get(function.parameters.data[i]); semantic_format_type(&parameter.type, bits(vector(u8)*, &type));
+        ide_comma(&request, i); ide_quote_bytes(&request, type.data, type.length); i = i + 1;
+    }
+    bytes_dispose(&type); ide_text(&request, "],\"args\":["); i = 0;
+    while i < count { ide_comma(&request, i); ide_text(&request, "\""); ide_require(host_json_unsigned(&request, args[i])); ide_text(&request, "\""); i = i + 1; }
+    ide_text(&request, "]}"); var result = tw_foreign_call(session.handle, ide_result(&request)); bytes_dispose(&request);
+    machine.failed = session.error.length != 0; return result;
+}

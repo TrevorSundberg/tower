@@ -9,12 +9,7 @@ import 'semantic-support';
 // registry and lookup tables are compilation-local indexes, not another IR.
 // Text is owned by ordinary entity relationship names; no context allocation
 // escapes into a retained component. Foundation output encodes resolved bindings.
-struct SemanticModules {
-    root: void*;
-    owner_kind: void*;
-    import_kind: void*;
-    scopes: void*;
-}
+import 'semantic-program-types';
 
 struct SemanticModuleLink {
     module: void*;

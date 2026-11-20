@@ -15,8 +15,10 @@ ordinary parser; it does not introduce another AST or a JavaScript symbol table.
 The current recovery is deliberately bounded: earlier unrelated syntax errors,
 inferred receiver types, chained member access and generic specialization can
 limit suggestions. Completion is advisory, not a substitute for type checking.
-The native session/ABI adapter remains during bootstrap migration; query decisions,
-scope filtering, prefix matching and result construction execute in Tower.
+Reusable IDE sessions, handle ownership, transport, query integration and execution
+now live in `scaffolding/host/ide-*.tower`. Query decisions, scope filtering,
+prefix matching and result construction execute in Tower. The syntax owner still
+supplies some native inspection interfaces through the isolated WASI binding.
 
 Completion runs in a separate worker, coalesces edits, rejects stale replies and
 has a ten-second termination limit. Browser positions are translated between
@@ -954,8 +956,8 @@ changes that alter its parsed trees.
 ## Toward a Tower-written playground
 
 JavaScript currently handles the DOM, editor input, worker scheduling and WASI
-hosting. Parser decisions and highlighting come from native Tower code. The
-[browser ABI](ABI.md) is intentionally independent of CodeMirror and the DOM:
+hosting. Parser decisions and highlighting come from the compiler. The
+[IDE ABI](ABI.md) is independent of CodeMirror and the DOM:
 Tower's own renderer, editor and highlighter can replace those adapters while
 keeping the same session/source/tree boundary. A binary transport can replace
 the current JSON snapshots later.

@@ -1,20 +1,9 @@
 import tower;
 
-// Browser ABI handles identify host sessions, never foundation pointer values.
+// IDE ABI handles identify host sessions, never foundation pointer values.
 // Payload ownership transfers only after a successful insert/take. The table
 // does not call native destructors; hosts dispose the returned payload once.
-struct HostHandleSlot {
-    handle: u32;
-    kind: u32;
-    payload: void*;
-}
-
-struct HostHandles {
-    slots: HostHandleSlot*;
-    count: usize;
-    capacity: usize;
-    next: u32;
-}
+import 'host-handle-types';
 
 export fn host_handles_count(table: HostHandles*, kind: u32): usize {
     var count: usize = 0;

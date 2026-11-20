@@ -1,0 +1,99 @@
+import tower;
+import 'ide-types';
+import 'ide-api';
+import 'ide-state';
+import 'ide-text';
+import 'ide-parser';
+import 'ide-execution';
+import '../library/bytes-types';
+import '../library/bytes-interface';
+import '../library/vector';
+import '../compiler/foundation-types';
+import '../compiler/foundation-tags';
+import '../compiler/format-types';
+
+fn ide_program_format(session: IdeExecution*, formatted: FormatResult*): void {
+    fill(formatted, 0, sizeof(FormatResult));
+    var present = session != null; if present { present = session.program.error.length == 0; }
+    if present { format_entity(formatted, session.program.root, syntax_component_type(), null, parser_match_get_type()); }
+}
+fn ide_emit(handle: u32, flags: u32, roku: bool): u8* {
+    var session = ide_execution(handle); var missing = session == null;
+    if missing { ide_error("Invalid execution handle"); return null; }
+    var output: ByteBuffer; var error: ByteBuffer; fill(&output, 0, sizeof(ByteBuffer)); fill(&error, 0, sizeof(ByteBuffer));
+    var bit = flags & 1; var comments = bit == 0;
+    if roku { roku_emit(&output, &error, session.program.root, session.program.pointer_bytes, comments); }
+    else { c_emit(&output, &error, session.program.root, session.program.pointer_bytes, comments); }
+    var failed = error.length != 0;
+    if failed { ide_error(ide_result(&error)); bytes_dispose(&output); bytes_dispose(&error); return null; }
+    var state = ide_state(); ide_require(bytes_assign_text(&state.execution, output.data, output.length));
+    bytes_dispose(&output); bytes_dispose(&error); return ide_result(&state.execution);
+}
+export fn tw_exec_c(handle: u32, flags: u32): u8* { return ide_emit(handle, flags, false); }
+export fn tw_exec_roku(handle: u32, flags: u32): u8* { return ide_emit(handle, flags, true); }
+export fn tw_exec_strip_comments(handle: u32): void { var session = ide_execution(handle); var present = session != null; if present { semantic_strip_comments(session.program.root); } }
+
+export fn tw_exec_bytecode_options(handle: u32, profile: u32): usize {
+    var state = ide_state(); bytecode_free(state.bytecode); state.bytecode = null; state.bytecode_size = 0;
+    var session = ide_execution(handle); var invalid = session == null;
+    if invalid {} else { invalid = session.program.error.length != 0; }
+    if invalid { ide_error("Cannot package an invalid program"); return 0; }
+    ide_error("");
+    var formatted: FormatResult; ide_program_format(session, &formatted);
+    var canonical = ide_execution_text(formatted.text.data, formatted.text.length, session.program.pointer_bytes, true);
+    var failed = canonical.error.length != 0;
+    if failed { ide_error(ide_result(&canonical.error)); }
+    else {
+        var ready = ide_execution_fast(canonical);
+        if ready { state.bytecode = bytecode_encode(canonical.fast, formatted.text.data, formatted.text.length, convert(usize, session.program.pointer_bytes), profile, &state.bytecode_size); }
+        failed = state.bytecode == null; if failed { ide_error("Cannot allocate .towerbc package"); }
+    }
+    ide_execution_close(canonical); format_dispose(&formatted); return state.bytecode_size;
+}
+export fn tw_exec_bytecode(handle: u32): usize { return tw_exec_bytecode_options(handle, 0); }
+export fn tw_exec_bytecode_data(): u8* { var state = ide_state(); return state.bytecode; }
+export fn tw_exec_load_bytecode(data: u8*, size: usize): u32 {
+    if ide_execution_capacity() {} else { return 0; }
+    ide_error(""); var invalid = bytecode_validate(data, size); var rejected = invalid != 0;
+    if rejected { ide_error(bytecode_error(invalid)); return 0; }
+    var source = data + 56; var length = bytecode_source_size(data); var i: usize = 0;
+    while i < length { rejected = source[i] == 0; if rejected { ide_error("NUL in .towerbc Foundation source"); return 0; } i = i + 1; }
+    var session = ide_execution_text(source, length, convert(u32, bytecode_pointer_bytes(data)), true);
+    rejected = session.error.length != 0;
+    if rejected { ide_error(ide_result(&session.error)); ide_execution_close(session); return 0; }
+    var ready = ide_execution_fast(session);
+    if ready { ready = bytecode_matches(session.fast, data); }
+    if ready {} else { ide_error(bytecode_error(9)); ide_execution_close(session); return 0; }
+    return ide_execution_publish(session);
+}
+fn ide_type_name(out: ByteBuffer*, type: FoundationType*): void {
+    var name: vector(u8); vector_init(u8, &name); semantic_format_type(type, &name); ide_quote_bytes(out, name.data, name.length); vector_dispose(u8, &name);
+}
+export fn tw_exec_foundation(handle: u32): u8* {
+    var session = ide_execution(handle); var formatted: FormatResult; ide_program_format(session, &formatted);
+    var state = ide_state(); var out = &state.execution;
+    ide_assign(out, "{\"source\":");
+    if formatted.failed { ide_quote(out, ""); ide_spans(out, null, 0); }
+    else { ide_quote_bytes(out, formatted.text.data, formatted.text.length); ide_spans(out, formatted.spans.data, formatted.spans.length); }
+    ide_text(out, ",\"types\":[");
+    var present = session != null; if present { present = session.program.error.length == 0; }
+    if present {
+        var i: usize = 0;
+        while i < session.program.types.length {
+            var type = sem_get(session.program.types.data[i]); ide_comma(out, i); ide_text(out, "{\"name\":"); ide_quote_bytes(out, type.name.data, type.name.length);
+            var kind: u8* = "scalar"; var array = type.type.scalar == SArray(); var record = type.type.scalar == SStruct(); var empty = type.type.scalar == SVoid();
+            if array { kind = "array"; } if record { kind = "struct"; } if empty { kind = "void"; }
+            ide_string(out, "kind", kind);
+            if array { ide_key(out, "element"); ide_type_name(out, &type.element); ide_field(out, "length", type.length); }
+            ide_field(out, "size", type.size); ide_field(out, "alignment", type.alignment); ide_text(out, ",\"fields\":[");
+            var j: usize = 0;
+            while j < type.items.length {
+                var member = sem_get(type.items.data[j]); ide_comma(out, j); ide_text(out, "{\"name\":"); ide_quote_bytes(out, member.name.data, member.name.length);
+                ide_key(out, "type"); ide_type_name(out, &member.type); ide_field(out, "offset", member.byte_offset);
+                ide_field(out, "size", semantic_size(&member.type)); ide_field(out, "alignment", semantic_alignment(&member.type)); ide_text(out, "}"); j = j + 1;
+            }
+            ide_text(out, "]}"); i = i + 1;
+        }
+    }
+    ide_text(out, "]}"); format_dispose(&formatted); return ide_result(out);
+}

@@ -1,0 +1,143 @@
+import tower;
+import '../host/ide-api';
+import '../host/ide-types';
+import '../host/ide-text';
+import '../host/ide-state';
+import '../host/ide-parser';
+import '../host/ide-tree';
+import '../host/ide-completion';
+import '../host/ide-execution';
+import '../host/ide-artifacts';
+import '../host/ide-syntax-wasi';
+import '../library/bytes-types';
+import '../library/bytes-interface';
+
+// Functional tests call the production tw_* exports. The host only installs
+// ordinary source modules and invokes ide_tests; no native/JS test policy.
+fn ide_test_same(a: u8*, b: u8*): bool {
+    var i: usize = 0;
+    loop { var same = a[i] == b[i]; if same {} else { return false; } var end = a[i] == 0; if end { return true; } i = i + 1; }
+}
+fn ide_test_contains(text: u8*, part: u8*): bool {
+    var size = ide_length(text); var n = ide_length(part); var i: usize = 0;
+    while i <= size {
+        var remaining = size - i; var short = remaining < n; if short { break; }
+        var j: usize = 0;
+        while j < n { var at = i + j; var same = text[at] == part[j]; if same {} else { break; } j = j + 1; }
+        var found = j == n; if found { return true; } i = i + 1;
+    }
+    return false;
+}
+fn ide_test_create(text: u8*): u32 { return tw_create(text, ide_length(text)); }
+fn ide_test_compile(text: u8*, width: u32): u32 { return tw_exec_create_target(text, ide_length(text), width); }
+fn ide_test_consume(handle: u32): bool {
+    var i: usize = 0;
+    while i < 1024 {
+        var response = tw_step(handle);
+        if ide_test_contains(response, "\"status\":\"done\"") { return true; }
+        if ide_test_contains(response, "\"status\":\"error\"") { return false; } i = i + 1;
+    }
+    return false;
+}
+fn ide_test_sessions(): u32 {
+    var source = "var a: i32 = 42; print(a);";
+    var one = ide_test_create(source); var two = ide_test_create("print(7);");
+    var bad = one == 0; if bad { return 1; } bad = two == 0; if bad { return 2; }
+    if ide_test_contains(tw_format(one), "Formatting requires a complete") {} else { return 3; }
+    if ide_test_consume(one) {} else { return 4; }
+    var response = tw_format(one); var saved = ide_copy(response, ide_length(response));
+    if ide_test_contains(response, "\"source\":\"var a: i32 = 42;") {} else { return 5; }
+    tw_inspect(two); tw_step(two);
+    if ide_test_same(response, saved) {} else { return 6; } free(saved);
+    var result = tw_reset(one, "print(43);", 10); bad = result != 1; if bad { return 7; }
+    if ide_test_consume(one) {} else { return 8; }
+    if ide_test_contains(tw_format(one), "print(43);") {} else { return 9; }
+    tw_exec_destroy(one); if ide_test_contains(tw_inspect(one), "snapshot") {} else { return 10; }
+    tw_destroy(one); tw_destroy(one);
+    if ide_test_contains(tw_step(one), "Invalid session handle") {} else { return 11; }
+    var replacement = ide_test_create("print(9);"); bad = replacement == one; if bad { return 12; }
+    tw_destroy(one); if ide_test_consume(replacement) {} else { return 13; }
+    tw_destroy(replacement); tw_destroy(two);
+    var invalid = ide_test_create("var x: i32 = ;");
+    if ide_test_contains(tw_step(invalid), "\"status\":\"error\"") {} else { return 14; }
+    response = tw_step(invalid); saved = ide_copy(response, ide_length(response));
+    if ide_test_same(saved, tw_step(invalid)) {} else { return 15; } free(saved); tw_destroy(invalid);
+    bad = tw_create(null, 0) != 0; if bad { return 16; }
+    if ide_test_contains(tw_last_error(), "valid UTF-8") {} else { return 17; }
+    var invalid_utf8: u8[2]; invalid_utf8[0] = 192; invalid_utf8[1] = 128;
+    bad = tw_create(&invalid_utf8[0], 2) != 0; if bad { return 18; }
+    var embedded: u8[3]; embedded[0] = 97; embedded[1] = 0; embedded[2] = 98;
+    bad = tw_create(&embedded[0], 3) != 0; if bad { return 19; }
+    var handles: u32[32]; var i: usize = 0;
+    while i < 32 { handles[i] = ide_test_create(""); bad = handles[i] == 0; if bad { return 20; } i = i + 1; }
+    bad = ide_test_create("") != 0; if bad { return 21; }
+    if ide_test_contains(tw_last_error(), "Too many open parser sessions") {} else { return 22; }
+    i = 0; while i < 32 { tw_destroy(handles[i]); i = i + 1; }
+    return 0;
+}
+fn ide_test_execution(): u32 {
+    var width: u32 = 4;
+    while width <= 8 {
+        var source = "var a: i32 = 20; a = a + 22; print(a);";
+        var graph = ide_test_compile(source, width); var fast = ide_test_compile(source, width); var bad = graph == 0; if bad { return 30; }
+        bad = tw_exec_fast(fast) != 1; if bad { return 31; }
+        var result = tw_exec_step(graph, 100000); var saved = ide_copy(result, ide_length(result));
+        result = tw_exec_step(fast, 100000);
+        if ide_test_contains(saved, "\"outputBytes\":[52,50,10]") {} else { return 32; }
+        if ide_test_contains(result, "\"outputBytes\":[52,50,10]") {} else { return 33; } free(saved);
+        if ide_test_contains(tw_exec_foundation(graph), "a = a + 22;") {} else { return 34; }
+        if ide_test_contains(tw_exec_c(graph, 0), "main(") {} else { return 35; }
+        var roku = tw_exec_roku(graph, 0); var narrow = width == 4;
+        if narrow { if ide_test_contains(roku, "TowerRun()") {} else { return 36; } }
+        else { bad = roku != null; if bad { return 36; } if ide_test_contains(tw_last_error(), "32-bit") {} else { return 36; } }
+        var bytes = tw_exec_bytecode(graph); bad = bytes == 0; if bad { return 37; }
+        var packet = alloc(u8, bytes); copy(packet, tw_exec_bytecode_data(), bytes);
+        var loaded = tw_exec_load_bytecode(packet, bytes); free(packet); bad = loaded == 0; if bad { return 38; }
+        if ide_test_contains(tw_exec_step(loaded, 100000), "\"outputBytes\":[52,50,10]") {} else { return 39; }
+        tw_exec_destroy(loaded); tw_destroy(graph);
+        if ide_test_contains(tw_exec_step(graph, 0), "\"status\":\"done\"") {} else { return 40; }
+        tw_exec_destroy(graph); tw_exec_destroy(graph);
+        if ide_test_contains(tw_exec_step(graph, 1), "Invalid execution handle") {} else { return 41; }
+        bad = tw_exec_memory_size(graph) != 0; if bad { return 42; }
+        tw_exec_destroy(fast); width = width + 4;
+    }
+    var errors = ide_test_compile("var a: i32 = unknown;", 4);
+    if ide_test_contains(tw_exec_step(errors, 1), "\"status\":\"error\"") {} else { return 43; }
+    var bad = tw_exec_bytecode(errors) != 0; if bad { return 44; } tw_exec_destroy(errors);
+    var bounded = ide_test_compile("loop {}", 4); tw_exec_step(bounded, 0);
+    var session = ide_execution(bounded); bad = session.machine.steps != 0; if bad { return 45; }
+    tw_exec_step(bounded, 4294967295); bad = session.machine.steps != 100000; if bad { return 46; }
+    tw_exec_destroy(bounded);
+    var output = ide_test_compile("", 4); var data = alloc(u8, 65536); fill(data, 65, 65536);
+    tw_exec_output(output, data, 65536); tw_exec_output(output, data, 1); free(data);
+    session = ide_execution(output); bad = session.machine.output_bytes != 65536; if bad { return 47; }
+    if session.machine.output_truncated {} else { return 48; }
+    tw_exec_step(output, 0); bad = session.output.length != 0; if bad { return 49; } tw_exec_destroy(output);
+    var handles: u32[8]; var i: usize = 0;
+    while i < 8 { handles[i] = ide_test_compile("", 4); bad = handles[i] == 0; if bad { return 50; } i = i + 1; }
+    bad = ide_test_compile("", 4) != 0; if bad { return 51; }
+    i = 0; while i < 8 { tw_exec_destroy(handles[i]); i = i + 1; }
+    bad = tw_exec_create_target("", 0, 16) != 0; if bad { return 52; }
+    return 0;
+}
+fn ide_test_requests(): u32 {
+    var i: usize = 0; var nodes: usize = 0; var allocations: usize = 0;
+    while i < 16 {
+        var handle = ide_test_create("print(42);"); if ide_test_consume(handle) {} else { return 60; }
+        tw_inspect(handle); tw_format(handle); tw_destroy(handle);
+        var response = tw_complete("pri", 3, 3, 0, null, null, 0);
+        if ide_test_contains(response, "print") {} else { return 61; }
+        response = tw_complete("pri", 3, 4, 0, null, null, 0);
+        if ide_test_contains(response, "Invalid completion request") {} else { return 62; }
+        handle = ide_test_compile("print(42);", 4); tw_exec_step(handle, 100000); tw_exec_destroy(handle);
+        var now = tw_live_nodes(); var memory = tw_live_allocations(); var warm = i >= 2;
+        if warm { var grew = now != nodes; if grew { return 63; } grew = memory != allocations; if grew { return 64; } }
+        nodes = now; allocations = memory; i = i + 1;
+    }
+    return 0;
+}
+export fn ide_tests(): u32 {
+    var result = ide_test_sessions(); var failed = result != 0; if failed { return result; }
+    result = ide_test_execution(); failed = result != 0; if failed { return result; }
+    return ide_test_requests();
+}

@@ -1,3 +1,4 @@
+import 'interpreter-types';
 import tower;
 import 'interpreter-abi';
 import '../library/vector';

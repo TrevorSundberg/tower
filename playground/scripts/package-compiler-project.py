@@ -152,7 +152,7 @@ def package(builds, destination):
             for i,chunk in enumerate(chunks):
                 support = destination/('support-'+name+'-'+str(i)+'.a')
                 # Preserve original import/export-name metadata. A partial -r
-                # link loses export aliases required by the browser ABI.
+                # link loses export aliases required by the IDE ABI.
                 if support.exists(): support.unlink()
                 run([sdk/'llvm-ar','rcsD',support,*chunk],build)
                 data = support.read_bytes()
@@ -171,6 +171,19 @@ def package(builds, destination):
                 args += shlex.split((build/arg[1:]).read_text())
             elif arg.startswith('--wrap='): args.append(arg)
         args += [units[key]['object'] for key in names]+['--whole-archive']+[p[:-3] for p in support_files]+['--no-whole-archive','-o','tower-output.bin']
+        # Preserve explicit foreign-import allowlists without embedding build-host
+        # paths or weakening undefined-symbol checks in the successor reactor.
+        for index, arg in enumerate(linker):
+            if not arg.startswith('--allow-undefined-file='): continue
+            path = Path(arg.split('=', 1)[1])
+            if not path.is_absolute(): path = build/path
+            data = path.read_bytes()
+            # The linker reserves tower-* for its own temporary files.
+            imported = f'imports-{name}-{index}.txt'
+            (destination/(imported+'.gz')).write_bytes(gzip.compress(data, compresslevel=9, mtime=0))
+            support_files.append(imported+'.gz')
+            support_size += len(data)
+            args.append('--allow-undefined-file='+imported)
         reactors[name] = {'units':names,'support':support_files,'arguments':args,'supportBytes':support_size,'exports':exports(build/binary)}
         print(name, support_size, 'support bytes;', len(names), 'Tower units')
     entry = 'units/compiler-parser-nodes.tower'

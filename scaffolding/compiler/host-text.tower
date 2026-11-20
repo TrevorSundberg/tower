@@ -2,7 +2,7 @@ import tower;
 import '../library/bytes-interface';
 import '../library/bytes-types';
 
-// Browser JSON is transport text, never a Tower program storage format.
+// IDE JSON is transport text, never a Tower program storage format.
 // ByteBuffer and bytes_* are supplied by the shared byte-buffer library.
 // Appends are atomic on failure, preserve UTF-8 bytes, and permit self-slices.
 export fn host_json_quote(out: ByteBuffer*, source: u8*, count: usize): bool {

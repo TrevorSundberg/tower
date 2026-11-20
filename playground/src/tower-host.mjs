@@ -9,8 +9,7 @@ export async function loadTower(bytes, log = () => {}, bootstrap, foundation, be
   const available = {...platformImports((_stream, data, context) => context.output(data)),...imports};
   const wasi = new TowerWASI({ log });
   const module = bytes instanceof WebAssembly.Module ? bytes : await WebAssembly.compile(bytes);
-  const instance = await WebAssembly.instantiate(module, { wasi_snapshot_preview1: wasi.wasiImport, tower_host: {
-    call(handle, request) {
+  const foreignCall = (handle, request) => {
       try {
         const {name, args, types, pointerBytes} = JSON.parse(string(request));
         const context = {
@@ -28,12 +27,13 @@ export async function loadTower(bytes, log = () => {}, bootstrap, foundation, be
       } catch (error) {
         withSource(error.message, (pointer, length) => { exports.tw_exec_fail(handle, pointer, length); return 1; }); return 0n;
       }
-    },
-  } });
+    };
+  const instance = await WebAssembly.instantiate(module, { wasi_snapshot_preview1: wasi.wasiImport,
+    tower_host: {call: foreignCall}, env: {tw_foreign_call: foreignCall} });
   wasi.initialize(instance);
   const exports = instance.exports;
   const modules = moduleInputs(exports, {bedrock, foundation:foundation ?? bootstrap, tower});
-  if (exports.tw_abi_version() !== 3) throw new Error('Unsupported Tower browser ABI');
+  if (exports.tw_abi_version() !== 3) throw new Error('Unsupported Tower IDE ABI');
   if (bedrock !== undefined) configureBedrock(exports, bedrock);
   configureTower(exports, bootstrap, modules.environment);
   if (foundation !== undefined) configureFoundation(exports, foundation);

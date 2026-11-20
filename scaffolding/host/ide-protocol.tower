@@ -3,7 +3,7 @@ import '../compiler/host-text';
 import '../library/bytes-interface';
 import '../library/bytes-types';
 
-// Browser transport policies. These consume borrowed values from the compiler;
+// Ide transport policies. These consume borrowed values from the compiler;
 // JSON is not a second semantic model or a Tower interchange format.
 extern fn tower_utf8_validate(source: u8*, count: usize, reject_nul: u32): u32;
 
@@ -47,8 +47,8 @@ fn host_protocol_text(out: ByteBuffer*, text: u8*): bool {
     return bytes_append(out, text, count);
 }
 
-// On allocation failure callers must discard the partial response. The native
-// adapter retains its existing abort-on-transport-allocation-failure policy.
+// On allocation failure callers must discard the partial response. IDE transport
+// retains the existing abort-on-transport-allocation-failure policy.
 export fn host_execution_json(out: ByteBuffer*, error: u8*, error_count: usize, offset: usize, done: bool, output: u8*, output_count: usize, steps: u64, truncated: bool): bool {
     out.length = 0;
     var status: u8* = "executing";

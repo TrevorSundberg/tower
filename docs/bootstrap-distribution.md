@@ -36,12 +36,14 @@ reads/writes through opaque libc file services. Failed reads close the file and
 preserve the previous buffer, including allocation failures. Writes report
 write/close failure; a partial output is not a successful artifact.
 
-`browser-protocol.tower` exports `tw_abi_version`, `tw_alloc` and `tw_free`,
-validates browser source, and serializes execution status/error/output/steps.
-It uses the existing Tower byte-buffer and JSON routines. Browser session
-lifecycle, grammar/tree/reflection serialization and foreign dispatch still use
-native adapters. Worker cancellation, edit/restart behavior and stale-result
-handling remain the existing worker implementation.
+`ide-protocol.tower` exports `tw_abi_version`, `tw_alloc` and `tw_free`,
+validates IDE source, and serializes execution status/error/output/steps.
+The other `host/ide-*.tower` modules own session lifetimes, grammar/tree/type
+serialization, completion integration, execution and downloadable artifacts on
+the existing shared entities and compiler APIs. `ide-syntax-wasi.tower` binds the
+remaining native syntax inspection interfaces without a native IDE wrapper.
+Worker cancellation, edit/restart behavior and stale-result handling remain the
+existing worker implementation; compiler services do not depend on this transport.
 
 CLI resources now accompany each built compiler:
 

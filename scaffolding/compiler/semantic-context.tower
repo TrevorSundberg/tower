@@ -9,15 +9,7 @@ import '../library/vector';
 
 // Transitional native boundary uses these exact layouts. Semantic results live
 // on FoundationNode components; lists below are derived indexes, never an IR.
-struct SemanticProgram {
-    pointer_bytes: u32;
-    root: void*;
-    functions: vector(void*);
-    types: vector(void*);
-    error: vector(u8);
-    error_offset: usize;
-    modules: SemanticModules*;
-}
+import 'semantic-program-types';
 
 struct SemanticEntry {
     text: u8*;

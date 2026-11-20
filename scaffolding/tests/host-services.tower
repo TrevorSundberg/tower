@@ -2,7 +2,7 @@ import tower;
 import 'host-runtime';
 import 'host';
 import '../compiler/host-text';
-import '../host/browser-protocol';
+import '../host/ide-protocol';
 import '../host/driver-files';
 import '../host/driver-options';
 import '../host/driver-types';

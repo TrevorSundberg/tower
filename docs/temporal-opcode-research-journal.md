@@ -20073,3 +20073,71 @@ record and describe the remaining native runtime paths explicitly. Local/hosted
 publication verification results follow. Git lacked a local author identity;
 commit commands use the same identity as the repository's preceding commits,
 without changing global Git configuration.
+## 2026-11-20: Browser integration ownership port (Agent 1)
+
+Request: replace remaining browser.cpp integration with Tower on main. Initial
+checkout was clean; git pull --rebase advanced ebbad1d to 894f903. Read AGENTS.md
+and recent scope, CLI, parser-formatting and fast-iteration journal entries.
+Own browser transport/session modules, browser.cpp removal, focused Tower tests
+and isolated build composition. Do not edit todo.txt or parser/syntax/backend/
+driver/runtime/allocator implementations. No new native wrappers or seed copies.
+
+Plan: map existing tw_* exports to frontend, query, interpreter and formatting
+APIs; preserve source validation, handle kinds/caps, response ownership, compile
+errors, bounded stepping/output, bytecode and source downloads. Keep JSON and
+request policy in host modules and semantic entities in the existing Foundation
+model. Reuse the validated scoped bootstrap and affected-unit builds. Add Tower
+functional fixtures for repeated requests, stale/destroyed handles, diagnostics,
+result lifetimes and execution agreement; run relevant existing browser checks.
+Skip sanitizer and repository formatting sweeps as explicitly requested. Commit,
+pull/rebase, validate integrated changes, deploy without overwriting newer Pages
+assets, verify and push normally when ready. Validation not yet performed.
+
+User steering: keep AST/parse/Foundation graphs on the same ECS entities and
+components, with explicit ownership and worker isolation. No parallel mutation
+claim without validation. Name reusable host services IDE, including existing
+transport helpers; browser wording is reserved for actual browser deployment or
+platform bindings. Renamed host/browser-protocol to host/ide-protocol and new
+modules/types accordingly; tw_* exports and handle contracts stay unchanged.
+
+The cached /cache/driver-scoped-bootstrap/towerc is available in the existing
+tower-c-validation container. Reconfigured /cache/fast-browser to reuse it and
+rebuilt the starting integrated tree. Initial Tower API modules compile. A probe
+confirmed --library rejects top-level globals, so host state is an explicitly
+owned component on the existing worker-local compiler type registry. It never
+enters source/semantic graphs. Split shared interpreter/program/handle type
+layouts into declaration-only modules to avoid importing duplicate services.
+Syntax's current string/vector return APIs require a WASI SDK 34 libc++ ABI view;
+no new native wrappers or source-project changes are used. These transitional
+bindings will be retired when the syntax owner supplies Tower-native views.
+
+Active replacement: CMake now links tower-compiler-ide.o and no longer links
+browser.cpp/core-machine.cpp/core.cpp/core-nodes.cpp into the IDE reactor.
+Deleted browser.cpp after the first behavioral validation. Compiler and interpreter
+services remain separate units; IDE transport uses their shared type declarations
+and a borrowed frontend environment lease. Requests traverse existing ECS nodes;
+tree/expansion identities use a request-owned hash index, not a new graph model.
+
+Initial integration failed because WASI SDK 34 libc++ uses alternate strings and
+size/capacity vector words, unlike the assumed older layout. Inspected generated
+LLVM IR of the unchanged existing syntax.cpp (build/ide-native-syntax.ll), corrected
+only the Tower foreign views, and reran the tests. All 51 parser/completion/
+execution/bytecode checks pass. Tower-only IDE fixtures now pass through
+playground/scripts/test-ide.mjs: parser/execution caps, cross-kind and repeated
+destruction, stale handles, borrowed response lifetime, reset/error/UTF-8 behavior,
+bounded stepping and output, graph/fast/bytecode agreement for 32/64-bit targets,
+C/Roku artifacts (including Roku's explicit 32-bit restriction), and stable node/
+allocation counts after repeated parsing/completion/execution. No throughput or
+shared-mutation safety claim is made.
+
+An affected-test command accidentally included the repository formatting sweep
+inside formatting.test.mjs; cancelled it while still running and excluded that
+case from the replacement command. This was not a completed formatting check.
+The five focused formatting contract tests pass, with the sweep explicitly skipped.
+No sanitizer or repository-wide formatting pass was completed. Of 145 additional
+checks, 144 first passed; the module-scope LLVM agreement check initially used an
+older local LLVM reactor. Rebuilt/copied the matching LLVM/cross reactors, and all
+18 module-scope tests pass. Native compiler and focused frontend runner rebuild;
+tower-frontend passes in 0.02 seconds. Logs: ide-first-tests (failed ABI trial),
+ide-second-tests, ide-focused-tests, ide-module-scopes, ide-formatting-focused,
+ide-native-build, ide-llvm-build. Final integrated/package validation follows.
