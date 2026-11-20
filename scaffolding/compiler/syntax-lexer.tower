@@ -5,6 +5,7 @@ import 'lr-runtime';
 import 'lr-states';
 import 'syntax-types';
 import '../library/vector';
+import 'lr-types';
 
 // A revision's disposable lexical index. Patterns and text borrow its immutable
 // declaration entities; declarations remain the authoritative grammar nodes.

@@ -16,6 +16,7 @@ import '../compiler/lr-analysis';
 import '../compiler/lr-parser';
 import '../compiler/syntax-nodes';
 import '../compiler/syntax-reader';
+import '../compiler/frontend-diagnostic-types';
 
 extern fn frontend_world_tests(): void;
 

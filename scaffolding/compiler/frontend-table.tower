@@ -14,6 +14,7 @@ import 'regex-lowering';
 import 'syntax-nodes';
 import 'syntax-reader';
 import 'syntax-types';
+import 'lr-types';
 
 // Table ownership shared by character and token readers. These are derived LR
 // indexes over ordinary grammar entities, not a second grammar representation.

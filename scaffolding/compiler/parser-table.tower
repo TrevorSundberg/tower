@@ -2,6 +2,9 @@ import tower;
 import 'parser-table-types';
 import 'grammar-types';
 import 'lr-api';
+import 'lr-types';
+import 'frontend-diagnostic-types';
+import '../library/vector';
 
 extern fn entity_child_count(root: void*): usize;
 

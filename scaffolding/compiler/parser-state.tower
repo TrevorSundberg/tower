@@ -7,6 +7,7 @@ import 'lr-parser';
 import 'lr-runtime';
 import 'lr-states';
 import '../library/vector';
+import 'lr-types';
 
 extern fn parser_stream_read(stream: ParserStream*, id: u32*, start: usize*, length: usize*): void*;
 

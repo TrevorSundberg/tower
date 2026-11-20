@@ -4,6 +4,7 @@ import 'parser-nodes';
 import 'parser-types';
 import 'regex-lowering';
 import '../library/vector';
+import 'lr-types';
 
 // Derived indexes over ordinary grammar entities. Names/captures are snapshots
 // for this table revision; source entities and declaration order remain intact.

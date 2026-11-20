@@ -19068,3 +19068,29 @@ independent menu probe now reports menu top=7 and checkbox y=19..32. Initial loc
 deployment verification passed all 69 assets and both viewport flows; rerunning
 that verification against the final menu bundle. Native sanitizer completion and
 final publication remain pending.
+
+Publication synchronization found upstream 5234e36, including 36c51ad's parser
+table ownership port. Stopped the now-obsolete native sanitizer run while its
+repository formatter was still making progress (read counters continued to
+advance; no new assertion had failed), then pulled/rebased main. Preserved both
+journal histories and merged import lists with the relocated shared type modules.
+Added direct imports for LR records, diagnostic records and GrammarBuilder at
+their new defining files; the new parser-table implementation imports vector
+operations directly, and its test unit imports its actual opaque-interface test
+helpers. Retained the new separate parser-table build unit and native removal.
+Rebuilding native/parser and the sanitizer harness with final-bootstrap; final
+LLVM/cross packaging and successor checks must include this combined revision.
+The pre-port portable WASI harness and final UI local deployment checks both
+completed successfully before this sync.
+
+Combined parser-table validation: native/parser/LLVM/cross builds succeeded and
+the packaged recipe now has ten Tower units per reactor. The native alias probe
+agrees across graph, fast, Foundation, C and LLVM again. All 371 non-formatting
+Node/Wasm tests pass (157.69 seconds); all five behavioral formatter tests and
+the complete canonical/idempotence/tree checks for the 21 changed Tower sources
+pass. The earlier exhaustive check covered every unchanged source, and the
+current native sanitizer suite again includes all repository files. Two new
+browser compiler generations pass with identical hashes and edited behavior;
+reactor sizes are 1,072,244 / 52,065,638 / 63,622,770 bytes. Browser project,
+compiler replacement, grammar editing, mobile controls and deployment checks
+are rerunning against this ten-unit package.

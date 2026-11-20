@@ -1,6 +1,10 @@
 import tower;
 import '../compiler/lr-api';
 import '../compiler/parser-table-types';
+import '../compiler/lr-types';
+import '../compiler/grammar-types';
+import 'frontend-world';
+import 'frontend-format';
 
 extern fn grammar_builder_init(builder: GrammarBuilder*, kinds: FrontendKinds*): void;
 
