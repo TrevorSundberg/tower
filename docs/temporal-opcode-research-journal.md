@@ -15707,3 +15707,72 @@ for every other case. The initial failure and diagnostic trial are recorded in
 native-asan.log and native-parser-diagnostic.log. This test-only correction does
 not alter any release object or published compiler. Final sanitizer, browser,
 successor-generation and publication results follow below.
+
+The corrected native sanitizer suite passes all five CTests (268.24 s,
+native-asan-final.log); as with prior runs, generated Tower objects are not
+themselves sanitizer-instrumented. The pre-integration local deployment verifier
+passes all 67 asset hashes and desktop/mobile checks (verify-local.log).
+
+Final synchronization discovered upstream c06fc83 / Pages 757f767 with direct
+hover queries. Rebased onto it, preserving both journal sections and the typed
+hover/enum candidate checks alongside the new dotted-import probe. Both branches
+had independently corrected the recursive-layout reference fixtures; kept one
+set with exact messages and offsets for both implementations. Rebuilt the combined
+native compiler, then started parser/LLVM/cross rebuilds with the established scripts
+(integrated-native.log, integrated-wasm.log, integrated-llvm.log). The LLVM script
+normalizes/restores upstream config.guess/config.sub as required for regeneration.
+The pre-integration browser matrix hit a mobile native-download expectation's
+10-second timeout while compiler rebuilds were active; final combined validation
+will recheck this case and the upstream hover/import interaction before publishing.
+
+Both pre-integration successor generations pass, including the edited semantic
+diagnostic and dotted/quoted activation probe, with identical bytes. Saved sizes,
+hashes and times in build/dotted-imports/generation{1,2}.json; generations.log
+records the successful exit. Hashes: parser
+dd505d1b10950bf447192beb1e14a19b18752d94ddc78a1fd0b85a58e6f8137e,
+LLVM 66a337410d59764de40f91f373d5900a3804afcc5416dd6ce6356b8e2fd0bb63,
+cross 652e9eaf9a710675d6f82eb33cbe3b111556d00fa88ffa54edb4b6e1a52c47ad.
+These generation artifacts intentionally contain the test's edited diagnostic;
+the released original compiler does not. The final integrated browser trial also
+checks activation/reset with upstream's typed-hover and enum-hover probes.
+
+The pre-integration browser matrix completed 160/162 cases (browser.log). Besides
+the mobile download timeout, the old debounce test assumed its assertions would
+run before 200 ms of real time elapsed; the trace shows valid worker dispatch at
+228.9 ms. Converted that test to the existing controlled browser-clock pattern,
+typing every 100 ms and checking no dispatch at 199 ms after the last character.
+This preserves the timing contract without depending on host load. Added a direct
+hover regression for distinct dotted-segment entities/ranges, no invented types,
+and the actual imported function binding. Combined parser/LLVM/cross builds have
+completed; support packaging and final test results follow below.
+
+Integrated packaging and the required-backends website build succeed. All 320
+Node/Wasm tests pass (87.15 s, integrated-node.log), including the new dotted
+import hover assertions; canonical formatting passes (integrated-format.log).
+The final desktop/mobile selection includes Bedrock, compiler-project,
+completion, diagnostic-delay, export, hover, interaction, output-highlighting
+and projects specs. Unlike the earlier broad matrix, this selection runs the
+actual desktop successor activation/reset test as well. No runtime test timeout
+has been relaxed, and todo.txt remains unchanged.
+
+The first controlled-clock trial correctly passed the no-dispatch boundary but
+left the clock paused while waiting for asynchronous execution output. Resuming
+time immediately after advancing to 200 ms fixes that harness error; the focused
+desktop/mobile regression passes 2/2 (clock-browser.log). No product timing changed.
+The final recipe's 117 source files that map to scaffolding match the checkout
+byte-for-byte as text. The prepared Pages asset set matches upstream's 67 names.
+The sole changed native target-runtime object differs only in COFF timestamp
+bytes 5-7, not instructions; all other target assets match upstream. The complete
+manifest SHA-256 is ab66ed122783a921f3d014fa388dfa4066f0f70b4af11dd47a184bfd0a430fd7.
+
+The integrated browser selection passes 85 cases, including the full desktop
+compiler rebuild/activation/failure-preservation/reset trial (4.6 min) and the
+formerly timed-out mobile native-download case. Its two debounce cases report
+the paused-clock output failure from the in-flight harness trial; the corrected
+focused desktop/mobile run passes both. One mobile full compiler build is
+intentionally skipped because desktop performs it and mobile covers the UI.
+Logs: integrated-browser.log and clock-browser.log; the final stable-source rerun
+also passes both profiles with two workers (clock-browser-final.log, 7.3 s).
+The final local deployment
+verifier exits zero for all 67 assets and both profiles
+(integrated-verify-local.log). Publication and hosted results follow below.

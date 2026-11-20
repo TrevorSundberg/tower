@@ -12,6 +12,7 @@ test('typing resets the quiet period and keeps errors until the replacement resu
  await edit(page,'var value: i32 = true;'); await revealDiagnostics(page);
  await expect(page.locator('#execution-status')).toContainText('backends match');
  await expect(page.locator('.tw-inline-error-message')).toContainText('Expected i32');
+ await page.clock.install();await page.clock.pauseAt(new Date(Date.now()+1000));
  await page.evaluate(()=>{
   window.__requests=[];window.__lastInput=0;
   document.querySelector('#editor').addEventListener('input',()=>{window.__lastInput=performance.now();},true);
@@ -19,11 +20,16 @@ test('typing resets the quiet period and keeps errors until the replacement resu
   Worker.prototype.postMessage=function(data,...rest){window.__requests.push({method:data.method,backend:data.backend,afterInput:performance.now()-window.__lastInput});return post.call(this,data,...rest);};
  });
  await edit(page,'print(42); // ');
- await page.keyboard.type('abcdef',{delay:100});
+ for (const character of 'abcdef') {
+  await page.keyboard.insertText(character);await page.clock.runFor(100);
+ }
  await expect(page.locator('.tw-inline-error-message')).toContainText('Expected i32');
  // Completion has its own shorter, independent query schedule. This contract
  // concerns diagnostic parsing and execution, which still wait for quiet input.
+ // Control the browser clock so a slow assertion cannot cross the quiet period.
+ await page.clock.runFor(99);
  expect(await page.evaluate(()=>window.__requests.filter(r=>r.method==='analyze'||r.backend))).toHaveLength(0);
+ await page.clock.runFor(1);await page.clock.resume();
  await expect(page.locator('#execution-output')).toHaveText('42\n');
  await expect(page.locator('#execution-status')).toContainText('backends match');
  await expect(page.locator('.tw-inline-error')).toHaveCount(0);

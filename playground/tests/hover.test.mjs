@@ -44,6 +44,20 @@ test('imports contribute real bindings without leaking their source ranges',()=>
   assert.ok(entries.every(entry=>entry.to<=source.length));
 });
 
+test('dotted import segments retain their own source entities during hover inspection',()=>{
+  const source='import tower; import helpers.answer; import "helpers/answer"; print(answer());';
+  const entries=inspect(source,{files:[{path:'helpers/answer.tower',text:'import tower; fn answer():i32 { return 42; }'}]});
+  const segments=['tower','helpers','answer'].map(name=>hoverAt(entries,source.indexOf(name)+1));
+  assert.deepEqual(segments.map(entry=>entry.signature),['tower','helpers','answer']);
+  assert.equal(new Set(segments.map(entry=>entry.entity)).size,3);
+  for (const entry of segments) {
+    assert.ok(entry.entity>0&&entry.components>0);
+    assert.equal(source.slice(entry.from,entry.to),entry.signature);
+    assert.equal(entry.type,undefined);
+  }
+  assert.equal(hoverAt(entries,source.lastIndexOf('answer')+1).signature,'fn answer(): i32');
+});
+
 test('enum member declarations and accesses use their nominal type and canonical spelling',()=>{
   const source='enum State:u32 { Idle = 0, Busy = 4 } var state:State = State.Busy;';
   const entries=inspect(source),member=hoverAt(entries,source.lastIndexOf('Busy')+1);
