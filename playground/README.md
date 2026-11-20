@@ -33,12 +33,7 @@ the implementations of grammar installation and foundation operations.
 
 ## Try the built page
 
-Live playground: **https://trevorsundberg.github.io/tower/**.
-
-The custom-domain configuration for **https://tower-lang.org/** is prepared.
-Its DNS cutover is pending Cloudflare DNS-edit access; the current live URL above
-remains active until that cutover is completed. See the deployment instructions
-below before publishing a build containing `CNAME`.
+Live playground: **https://tower-lang.org/**.
 
 The optional **C source** target emits downloadable, syntax-highlighted C after
 LLVM optimized, followed by Bytecode disassembly. Targets also contains shared
@@ -806,17 +801,13 @@ silently survive a rebuild. A present cross compiler requires all target packs.
 GitHub Pages serves the contents of `dist/` from the repository's `gh-pages`
 branch. The build copies `playground/CNAME` into `dist/CNAME` and includes its
 checksum in the manifest, preserving the custom domain on future publications.
-Do not publish the first build containing this file until Cloudflare DNS access
-is available to complete the cutover below; publishing it changes Pages routing.
 
-For the initial `tower-lang.org` cutover:
+The domain configuration is:
 
-1. Obtain a Cloudflare API token scoped to `tower-lang.org` with **Zone:DNS:Edit**
-   and **Zone:Zone:Read**. Keep credentials outside the repository.
-2. Read the zone's existing records and preserve unrelated records, including
-   mail and verification records. Set the repository's Pages custom domain with
+1. GitHub Pages uses `tower-lang.org` as its custom domain. To restore it, use
    `gh api --method PUT repos/TrevorSundberg/tower/pages -f cname=tower-lang.org`.
-3. Configure these Cloudflare records as **DNS only** (`proxied: false`):
+2. Cloudflare hosts these records as **DNS only** (`proxied: false`), with a
+   300-second TTL. Preserve unrelated records when updating DNS.
 
    | Type | Name | Value |
    | --- | --- | --- |
@@ -830,16 +821,20 @@ For the initial `tower-lang.org` cutover:
    | AAAA | @ | 2606:50c0:8003::153 |
    | CNAME | www | trevorsundberg.github.io |
 
-4. Fetch the latest `gh-pages` commit before publishing, preserving any CNAME
+3. Fetch the latest `gh-pages` commit before publishing, preserving any CNAME
    commit GitHub created. Publish the complete tested `dist/` directory, including
    `CNAME`, `.nojekyll` and the manifest, with a normal fast-forward push.
-5. Wait for GitHub's domain certificate, then enforce HTTPS with
+4. GitHub manages the domain certificate. Enforce HTTPS with
    `gh api --method PUT repos/TrevorSundberg/tower/pages -F https_enforced=true`.
    Check the resulting Pages state with `gh api repos/TrevorSundberg/tower/pages`.
-6. Verify the exact hosted build with
+5. Verify the exact hosted build with
    `node scripts/verify-deployment.mjs https://tower-lang.org/`, and verify that
    HTTP, `https://www.tower-lang.org/` and the old GitHub Pages URL redirect to
-   the HTTPS apex. Update the live URL and remove the pending-cutover notice above.
+   the HTTPS apex.
+
+DNS can be managed through the signed-in Cloudflare dashboard or an API token
+scoped to `tower-lang.org` with **Zone:DNS:Edit** and **Zone:Zone:Read**. Keep
+credentials outside the repository.
 
 The DNS values and apex/www behavior follow
 [GitHub's custom-domain documentation](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site).

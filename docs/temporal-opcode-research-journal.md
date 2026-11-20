@@ -16723,3 +16723,49 @@ f60b71f0605fc3b293bcbcf3f61a9bf033492d4bbb5408e8cc199226e2e02a05.
 Published verification follows once Pages completes the release. Unrelated local
 edits are preserved, including 1,045 journal lines; todo.txt matches its pre-sync
 SHA-256 41167ea6c171d41aa333ee35e307b9f1d0f20a22e8832e8f4fb7de2a216efab7.
+
+## 2026-11-19 - Signed-in CDP session and DNS cutover
+
+The user explicitly authorized attaching to the now-running signed-in browser
+through CDP. This supersedes the preceding access blocker: Chrome 157 was open
+on the Cloudflare account, and Windows UI Automation could operate that existing
+window even though the earlier shell launch commands were rejected. No browser
+restart, profile copy, cookie extraction or new API credential was needed.
+Followed Chrome's documented
+[existing-session remote-debugging flow](https://developer.chrome.com/docs/devtools/agents/get-started/configuration):
+opened `chrome://inspect/#remote-debugging` in a new tab, enabled its browser-instance
+checkbox, and accepted Chrome's connection prompt under the user's explicit CDP
+authorization. The local Playwright client connected using DevToolsActivePort on
+127.0.0.1:9222. Its ignored command runner is `build/domain-cdp.mjs`.
+
+Inspected the actual `tower-lang.org` DNS table: it contained zero records.
+Set the GitHub Pages custom domain with
+`gh api --method PUT repos/TrevorSundberg/tower/pages -f cname=tower-lang.org`,
+then imported `build/tower-lang.org.zone` through Cloudflare's DNS Import dialog.
+The proxy checkbox was explicitly unchecked before upload. Cloudflare reported
+success and its table contained exactly nine records: GitHub's four apex IPv4
+addresses, four apex IPv6 addresses, and www CNAME to trevorsundberg.github.io,
+all DNS-only with TTL 300. Evidence: `build/domain-dns-records.json`.
+`Resolve-DnsName` against 1.1.1.1 returns the intended records. No other zone or
+mail records were changed. Disconnected the CDP client and turned the browser's
+remote-debugging checkbox back off; Chrome no longer listens on that port.
+
+GitHub created CNAME commit 9f2bf23 above concurrent deployment 9c25540 (grammar
+tree hover inspection). Advanced the existing detached deployment checkout by
+fast-forward, preserving all newer application/compiler bytes. The preparation
+script `node build/prepare-domain-assets.mjs` checks every existing manifest hash,
+normalizes CNAME to the tracked source's trailing newline, adds its checksum using
+the build's directory traversal order, and copies the exact deployment assets to
+local dist. Only CNAME and its one manifest entry change in the deployment tree.
+The resulting manifest SHA-256 is
+70e1349adf9dca05e4c6baa8b903fdf63f2fe433d26d607902d167ff047c822f.
+The README now identifies the custom domain and documents dashboard/API DNS
+administration without requiring an API token for browser-based changes.
+
+At this intermediate point HTTP serves Tower and `/CNAME` successfully from the
+new domain, and Pages reports its CNAME build as built. The first DNS-health
+check was stale while the newly configured route propagated: DNS addresses were
+recognized but Pages serving was not yet recognized. HTTPS initially failed with
+a certificate-name mismatch, and the Pages API had no issued custom-domain
+certificate. Do not count that HTTP response as completed HTTPS deployment;
+certificate provisioning, HTTPS enforcement and final hosted checks follow below.
