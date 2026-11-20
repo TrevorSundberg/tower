@@ -20509,3 +20509,27 @@ The parser rebuild and all 70 service tests pass (9.92 s), including concrete
 and symbolic stores, loads, inferred locals and invalid array dereferences.
 Canonical formatting passes. This correction is included in the final package
 and publication described below; logs use build/template-path-pointer-*.
+
+## 2026-11-20: Allocator publication completion
+
+Allocator publication completed on the new connection: main 9f2f378 and
+metadata-only gh-pages e246bb4 were acknowledged by normal pushes. The ordinary
+hosted manifest URL now exactly matches the local manifest, SHA-256
+d4372d9259914ab96f8f0a5e1c286596be8296e188f923f6284d4c8478e3d1a2,
+with allocator validation commit 9f2f378 and all 70 asset hashes preserved.
+Evidence: build/runtime-port/final-manifest-check.json. The cached native deploy
+retains SHA-256 59a6c8a5cb375cd4f4c4d99587c2ac2f1bca9390c7d7e48c2caf4840a4c0a86c.
+This final journal-only completion record changes no implementation or payload;
+the explicit backend/startup dependencies above remain open.
+
+The final required pull incorporated template-owner commits 07f6973/81fe722;
+resolved only the appended journal by retaining both histories. Rebuilt and
+deployed the combined native compiler with build-native.sh. The first focused
+build command misspelled the existing target as tower-allocator-wasm-tests;
+reran with tower-allocator-wasm. All four focused CTests then pass (9.44 s),
+and guest runtime/output passes 32/64-bit interpretation plus native/Wasm
+execution. Evidence: integrated-{native-deploy,focused-build,focused-tests,
+deployed-runtime}.log under build/runtime-port. Combined native SHA-256:
+5c960219a6115abbf490d2c631afa956c949a4aba49ecbd5bcddd011bde7bdfc.
+The hosted manifest correctly retains provenance for its earlier validated
+native build; no newer template payload was published by this allocator turn.
