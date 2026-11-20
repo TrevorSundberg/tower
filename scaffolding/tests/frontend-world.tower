@@ -4,6 +4,7 @@ import '../compiler/syntax-types';
 import '../compiler/format-types';
 import '../compiler/component-kinds';
 import '../compiler/parser-types';
+import 'frontend-format';
 
 // Separate test unit: call the actual production exports, without embedding a
 // second copy of the grammar reader or depending on the native default world.
@@ -437,7 +438,9 @@ fn frontend_world_failure_tests(): void {
 }
 
 export fn frontend_world_tests(): void {
+    frontend_format_empty();
     frontend_constructor_tests();
+    frontend_format_tests();
     frontend_world_lifetime_tests();
     frontend_world_failure_tests();
 }

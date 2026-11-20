@@ -14,3 +14,10 @@ struct FormatResult {
     depth: usize;
     failed: bool;
 }
+
+struct FormatEngine {
+    result: FormatResult*;
+    syntax_kind: void*;
+    foundation_kind: void*;
+    match_kind: void*;
+}

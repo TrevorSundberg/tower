@@ -156,6 +156,7 @@ function(tower_compiler_parser_nodes)
   tower_compiler_semantics()
   add_library(tower-compiler-parser-nodes INTERFACE)
   target_sources(tower-compiler-parser-nodes INTERFACE "${object}")
+  include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/TowerParserFormatting.cmake")
   include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/TowerFrontendTests.cmake")
 endfunction()
 

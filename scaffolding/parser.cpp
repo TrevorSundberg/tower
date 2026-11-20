@@ -11,7 +11,6 @@
 #include <vector>
 #include <cassert>
 #include <sstream>
-#include <algorithm>
 #include <memory>
 #include <cstdio>
 #include <cstring>
@@ -193,38 +192,6 @@ void parser_tests() {
   assert(tower_memory_get_allocated_count() == tower_memory_initial_count);
 }
 
-char* parser_copy_string(const std::string& str);
-
-char* parser_tree_debug_string(TowerNode* root) {
-  std::ostringstream out;
-  struct Entry { TowerNode* node; size_t depth; };
-  std::vector<Entry> pending;
-  if (root) pending.push_back({root, 0});
-  else out << "<empty tree>\n";
-  while (!pending.empty()) {
-    Entry entry = pending.back();
-    pending.pop_back();
-    out << std::string(entry.depth * 2, ' ');
-    const char* member = tower_node_get_parent_member_name(entry.node);
-    if (member && *member) out << member << ": ";
-    auto* match = (Match*)tower_node_get_component_userdata(entry.node, parser_match_get_type());
-    if (match) {
-      bool is_rule = parser_match_get_rule_index(match) != TOWER_INVALID_INDEX;
-      out << (is_rule ? "rule " : "token ");
-      out << (*parser_match_get_label(match) ? parser_match_get_label(match) : std::to_string(parser_match_get_id(match)));
-      if (is_rule) out << " #" << parser_match_get_rule_index(match);
-      out << " [" << parser_match_get_start(match) << ", " << parser_match_get_start(match) + parser_match_get_length(match) << ")";
-    } else {
-      out << "node";
-    }
-    out << '\n';
-    for (size_t i = tower_node_get_child_count(entry.node); i > 0; --i) {
-      pending.push_back({tower_node_get_child(entry.node, i - 1), entry.depth + 1});
-    }
-  }
-  return parser_copy_string(out.str());
-}
-
 void parser_tree_debug_print(TowerNode* root) {
   char* text = parser_tree_debug_string(root);
   fputs(text, stdout);
@@ -280,19 +247,6 @@ struct GrammarTerminal {
     return end < rhs.start;
   }
 
-  bool operator<(const GrammarTerminal& rhs) const {
-    if (start < rhs.start) {
-      return true;
-    }
-    if (rhs.start < start) {
-      return false;
-    }
-    return end < rhs.end;
-  }
-
-  bool operator==(const GrammarTerminal& rhs) const {
-    return start == rhs.start && end == rhs.end;
-  }
 };
 
 struct GrammarSymbol {
@@ -380,23 +334,6 @@ struct LR0Item {
     symbol_index(symbol_index_) {
   }
 
-  // Note: We use std::set<LR0Item> so that we have a deterministic order
-  bool operator<(const LR0Item& rhs) const {
-    // Sort by rules next so the first rules come first
-    if (rule_index < rhs.rule_index) {
-      return true;
-    }
-    if (rhs.rule_index < rule_index) {
-      return false;
-    }
-
-    // Finally, sort by symbol index
-    return symbol_index < rhs.symbol_index;
-  }
-
-  bool operator==(const LR0Item& rhs) const {
-    return rule_index == rhs.rule_index && symbol_index == rhs.symbol_index;
-  }
 };
 
 bool parser_table_is_kernel_item(const Grammar& grammar, const LR0Item& item) {
@@ -698,27 +635,6 @@ char* parser_copy_string(const std::string& str) {
   return (char*)str_mem;
 }
 
-char* parser_table_utf8_id_to_string(void* userdata, uint32_t id) {
-  switch (id) {
-    case '\n': return parser_copy_string("'\\n'");
-    case '\r': return parser_copy_string("'\\r'");
-    case '\t': return parser_copy_string("'\\t'");
-    case '\0': return parser_copy_string("'\\0'");
-    case '\\': return parser_copy_string("'\\\\'");
-    case '\'': return parser_copy_string("'\\\''");
-  }
-  size_t encode_size = parser_encode_utf8_codepoint(id, nullptr, 0);
-  if (!encode_size) return nullptr;
-  // Include the null terminator, and two '' characters
-  char* str_mem = (char*)tower_memory_allocate(encode_size + 3);
-  str_mem[0] = '\'';
-  str_mem[encode_size + 1] = '\'';
-  str_mem[encode_size + 2] = 0;
-  parser_encode_utf8_codepoint(id, str_mem + 1, encode_size);
-  return str_mem;
-
-}
-
 char* parser_table_non_terminal_id_to_string(void* userdata, uint32_t id) {
   assert(userdata);
   Table* table = (Table*)userdata;
@@ -831,87 +747,7 @@ ParserLookahead parser_recognizer_lookahead(Recognizer* recognizer) {
   ParserLookahead result; parser_request_lookahead(recognizer, &result); return result;
 }
 
-#ifdef TOWER_EXPANSION_SEED
-ParserDiagnostic parser_recognizer_diagnostic(Recognizer* r, ParserDiagnosticRead read, void* source) {
-  ParserDiagnostic result{r->read_start, lr_parser_consumed(r->control)};
-  result.at_start = !lr_parser_shifted(r->control);
-  const auto stack_size = lr_parser_frame_count(r->control);
-  if (!stack_size || stack_size > 4096) return result;
-  LRProbeBudget budget{8192, true};
-  using Probe = std::unique_ptr<LRProbe, decltype(&lr_probe_destroy)>;
-  Probe original(lr_probe_create(r->control, &budget), lr_probe_destroy);
-  if (!original) { result.complete = false; return result; }
-  const auto clone = [](const Probe& source) { return Probe(lr_probe_clone(source.get()), lr_probe_destroy); };
-  const auto probe = [&](const Probe& value, uint32_t id, const State** before) -> uint32_t {
-    if (!value) return 0;
-    size_t state;
-    const auto status = lr_probe_step(value.get(), id, &state);
-    if (before && state != SIZE_MAX) *before = &r->table->states[state];
-    return status;
-  };
-  std::vector<uint32_t> candidates;
-  const auto state_index = lr_probe_frames(original.get())[stack_size - 1].state;
-  const auto* actions = lr_runtime_actions(r->table->runtime, state_index);
-  for (size_t i = 0; i < lr_runtime_action_count(r->table->runtime, state_index); ++i) candidates.push_back(actions[i].first);
-  std::sort(candidates.begin(), candidates.end());
-  // A large grammar must not turn one error into an unbounded repair search.
-  if (candidates.size() > 64) { candidates.resize(64); result.complete = false; }
-  for (auto id : candidates) {
-    auto stack = clone(original); const State* before = nullptr;
-    if (!stack) break;
-    const auto accepted = probe(stack, id, &before);
-    if (!accepted) continue;
-    ParserExpectation expected{id, id == PARSER_ID_EOF ? "end of input" : debug_str(id, r->table->grammar)};
-    if (before) for (const auto& item : before->diagnostic_items) {
-      // Closure items at position zero are possible future rules, not context
-      // already read from the source. Never attribute the error to those rules.
-      if (!item.symbol_index) continue;
-      // Empty reductions do not establish context either. The final stack entry
-      // is the hypothetical expected token, so only inspect its preceding prefix.
-      const auto count = lr_probe_count(stack.get());
-      const auto* frames = lr_probe_frames(stack.get());
-      if (item.symbol_index >= count - 1 ||
-          !std::any_of(frames + count - 1 - item.symbol_index, frames + count - 1,
-            [](const auto& entry) { return entry.consumed; })) continue;
-      const auto* symbol = parser_table_get_grammar_symbol_or_null(r->table->grammar, item);
-      if (symbol && !symbol->non_terminal && id >= symbol->terminal.start && id <= symbol->terminal.end)
-        expected.contexts.push_back({item.rule_index, item.symbol_index});
-    }
-    if (accepted == 1 && id != PARSER_ID_EOF && (read || r->lookahead_error.empty())) {
-      auto continuation = clone(stack);
-      const auto consume = [&](uint32_t token) {
-        if (!continuation) return uint32_t(0);
-        auto previous = clone(continuation);
-        if (!previous) return uint32_t(0);
-        auto status = probe(continuation, token, nullptr);
-        if (r->prefix && token != PARSER_ID_EOF &&
-            (status == 2 || (!status && probe(previous, PARSER_ID_EOF, nullptr) == 2))) {
-          lr_probe_reset(continuation.get());
-          status = probe(continuation, token, nullptr);
-        }
-        return status;
-      };
-      expected.insertion = continuation && (read ? true : consume(r->read_id) != 0);
-      size_t position = r->read_start;
-      for (size_t ahead = 0; expected.insertion && read && ahead < 3; ++ahead) {
-        uint32_t token;
-        const auto count = lr_probe_count(continuation.get());
-        ParserLookahead context{r->table->runtime, lr_probe_frames(continuation.get())[count - 1].state};
-        if (!read(source, position, context, token)) { expected.insertion = false; result.complete = false; break; }
-        expected.insertion = consume(token) != 0;
-        if (token == PARSER_ID_EOF) break;
-      }
-      if (expected.insertion && r->prefix) {
-        auto end = clone(stack);
-        expected.completes = probe(end, PARSER_ID_EOF, nullptr) == 2;
-      }
-    }
-    result.expected.push_back(std::move(expected));
-  }
-  result.complete = result.complete && budget.complete;
-  return result;
-}
-#else
+
 #include "compiler-frontend.hpp"
 ParserDiagnostic parser_recognizer_diagnostic(Recognizer* r, ParserDiagnosticRead read, void* source) {
   ParserDiagnostic result{r->read_start, lr_parser_consumed(r->control)};
@@ -947,7 +783,7 @@ ParserDiagnostic parser_recognizer_diagnostic(Recognizer* r, ParserDiagnosticRea
   result.complete = frontend_diagnostic_complete(diagnostic.get());
   return result;
 }
-#endif
+
 
 static void parser_unexpected(Recognizer* recognizer) {
   recognizer->error = recognizer->lookahead_error.empty() ?

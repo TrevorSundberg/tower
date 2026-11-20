@@ -188,7 +188,7 @@ extern "C" void parser_match_set_label(Match* component, const char* label);
 
 // Format/print the tree with labels, production indices and byte spans.
 // Free the returned string with tower_memory_free. Neither function takes ownership.
-char* parser_tree_debug_string(TowerNode* root);
+extern "C" char* parser_tree_debug_string(TowerNode* root);
 void parser_tree_debug_print(TowerNode* root);
 
 // Creates a child node and attaches it to the parent,
@@ -279,7 +279,7 @@ typedef char* (*ParserTableIdToString)(void* userdata, uint32_t id);
 
 // Stringify utf8 codepoints to look like 'x' (see ParserTableIdToString)
 // The userdata parameter passed here is not used and can be any value (including nullptr)
-char* parser_table_utf8_id_to_string(void* userdata, uint32_t id);
+extern "C" char* parser_table_utf8_id_to_string(void* userdata, uint32_t id);
 
 // Looks a non-terminal from a table by id/index (see ParserTableIdToString)
 // The userdata parameter passed here MUST be a Table*

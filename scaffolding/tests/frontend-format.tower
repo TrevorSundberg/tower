@@ -1,0 +1,265 @@
+import tower;
+import '../compiler/format-types';
+import '../compiler/parser-types';
+
+extern fn format_parser_tree(result: FormatResult*, root: void*, kind: void*): void;
+
+extern fn format_parser_scalar(result: FormatResult*, id: u32): bool;
+
+extern fn parser_tree_debug_string(root: void*): u8*;
+
+extern fn parser_table_utf8_id_to_string(userdata: void*, id: u32): u8*;
+
+extern fn tower_memory_free(memory: void*): void;
+
+extern fn tower_memory_get_allocated_count(): usize;
+
+extern fn entity_create(store: void*): void*;
+
+extern fn entity_attach(node: void*, parent: void*, member: u8*): bool;
+
+extern fn compiler_world_component(world: void*, owner: void*, kind: u32): void*;
+
+extern fn node_match_set_label(span: ParserMatchData*, label: u8*): bool;
+
+fn frontend_format_text(actual: u8*, wanted: u8*): void {
+    var exists = actual != null;
+    frontend_world_check(exists);
+    var index: usize = 0;
+    loop {
+        var equal = actual[index] == wanted[index];
+        frontend_world_check(equal);
+        var done = actual[index] == 0;
+        if done {
+            return;
+        }
+        index = index + 1;
+    }
+}
+
+fn frontend_format_child(store: void*, parent: void*, member: u8*): void* {
+    var child = entity_create(store);
+    var exists = child != null;
+    frontend_world_check(exists);
+    frontend_world_check(entity_attach(child, parent, member));
+    entity_release(child);
+    return child;
+}
+
+fn frontend_format_scalar(id: u32, wanted: u8*): void {
+    var buffers = tower_test_buffer_count();
+    var allocations = tower_memory_get_allocated_count();
+    var text = parser_table_utf8_id_to_string(null, id);
+    frontend_format_text(text, wanted);
+    tower_memory_free(bits(void*, text));
+    var ok = tower_memory_get_allocated_count() == allocations;
+    frontend_world_check(ok);
+    ok = tower_test_buffer_count() == buffers;
+    frontend_world_check(ok);
+}
+
+fn frontend_format_empty(): void {
+    // Run before constructor tests: formatting an empty tree must not register
+    // a match component type in an otherwise fresh host world.
+    var store = compiler_world_store(compiler_host_world());
+    var nodes = entity_store_count(store);
+    var allocations = tower_memory_get_allocated_count();
+    var text = parser_tree_debug_string(null);
+    frontend_format_text(text, "<empty tree>\n");
+    tower_memory_free(bits(void*, text));
+    var ok = entity_store_count(store) == nodes;
+    frontend_world_check(ok);
+    ok = tower_memory_get_allocated_count() == allocations;
+    frontend_world_check(ok);
+}
+
+fn frontend_format_scalars(): void {
+    frontend_format_scalar(0, "'\\0'");
+    frontend_format_scalar(9, "'\\t'");
+    frontend_format_scalar(10, "'\\n'");
+    frontend_format_scalar(13, "'\\r'");
+    frontend_format_scalar(39, "'\\\''");
+    frontend_format_scalar(92, "'\\\\'");
+    var control: u8[4];
+    control[0] = 39;
+    control[1] = 1;
+    control[2] = 39;
+    control[3] = 0;
+    frontend_format_scalar(1, &control[0]);
+    frontend_format_scalar(65, "'A'");
+    frontend_format_scalar(233, "'é'");
+    frontend_format_scalar(8364, "'€'");
+    frontend_format_scalar(127984, "'🏰'");
+    var maximum: u8[7];
+    maximum[0] = 39;
+    maximum[1] = 244;
+    maximum[2] = 143;
+    maximum[3] = 191;
+    maximum[4] = 191;
+    maximum[5] = 39;
+    maximum[6] = 0;
+    frontend_format_scalar(1114111, &maximum[0]);
+    var ok = parser_table_utf8_id_to_string(null, 55296) == null;
+    frontend_world_check(ok);
+    ok = parser_table_utf8_id_to_string(null, 57343) == null;
+    frontend_world_check(ok);
+    ok = parser_table_utf8_id_to_string(null, 1114112) == null;
+    frontend_world_check(ok);
+    ok = parser_table_utf8_id_to_string(null, 4294967294) == null;
+    frontend_world_check(ok);
+    var result: FormatResult;
+    fill(&result, 0, sizeof(FormatResult));
+    frontend_world_check(format_parser_scalar(&result, 65));
+    ok = format_parser_scalar(&result, 55296) == false;
+    frontend_world_check(ok);
+    frontend_world_check(frontend_world_error_is(&result, "'A'"));
+    format_dispose(&result);
+}
+
+fn frontend_format_trees(): void {
+    var host = compiler_host_world();
+    var host_kind = compiler_world_type(host, CompilerParserMatch());
+    var host_nodes = entity_store_count(compiler_world_store(host));
+    var allocations = tower_memory_get_allocated_count();
+    var text = parser_tree_debug_string(null);
+    frontend_format_text(text, "<empty tree>\n");
+    tower_memory_free(bits(void*, text));
+    var world = compiler_world_create();
+    var store = compiler_world_store(world);
+    var kind = compiler_world_type(world, CompilerParserMatch());
+    var root = entity_create(store);
+    var rule = frontend_format_child(store, root, "left");
+    var span = bits(ParserMatchData*, compiler_world_component(world, rule, CompilerParserMatch()));
+    span.id = 1;
+    span.start = 2;
+    span.length = 9;
+    span.rule = 7;
+    frontend_world_check(node_match_set_label(span, "Sum"));
+    var leaf = frontend_format_child(store, rule, null);
+    span = bits(ParserMatchData*, compiler_world_component(world, leaf, CompilerParserMatch()));
+    span.id = 233;
+    span.start = 2;
+    span.length = 2;
+    frontend_world_check(node_match_set_label(span, "'é'"));
+    var eof = frontend_format_child(store, root, null);
+    span = bits(ParserMatchData*, compiler_world_component(world, eof, CompilerParserMatch()));
+    span.id = 4294967294;
+    span.start = 11;
+    var wanted: u8* = "node\n  left: rule Sum #7 [2, 11)\n    token 'é' [2, 4)\n  token 4294967294 [11, 11)\n";
+    var result: FormatResult;
+    fill(&result, 0, sizeof(FormatResult));
+    format_parser_tree(&result, root, kind);
+    frontend_world_check(frontend_world_error_is(&result, wanted));
+    format_dispose(&result);
+    format_parser_tree(&result, rule, kind);
+    frontend_world_check(frontend_world_error_is(&result, "left: rule Sum #7 [2, 11)\n  token 'é' [2, 4)\n"));
+    format_dispose(&result);
+    // A kind from another world never resolves these components or changes the
+    // graph. This catches an accidental default-world lookup in the formatter.
+    format_parser_tree(&result, root, host_kind);
+    frontend_world_check(frontend_world_error_is(&result, "node\n  left: node\n    node\n  node\n"));
+    format_dispose(&result);
+    var buffers = tower_test_buffer_count();
+    var count = tower_test_buffer_allocations();
+    format_parser_tree(&result, root, kind);
+    count = tower_test_buffer_allocations() - count;
+    format_dispose(&result);
+    var budget: usize = 0;
+    while budget < count {
+        fill(&result, 0, sizeof(FormatResult));
+        tower_test_buffer_fail_after(budget);
+        format_parser_tree(&result, root, kind);
+        tower_test_buffer_fail_after(frontend_world_unlimited());
+        frontend_world_check(result.failed);
+        format_dispose(&result);
+        var ok = tower_test_buffer_count() == buffers;
+        frontend_world_check(ok);
+        budget = budget + 1;
+    }
+    fill(&result, 0, sizeof(FormatResult));
+    format_parser_tree(&result, root, kind);
+    entity_release(root);
+    frontend_world_check(compiler_world_dispose(world));
+    frontend_world_check(frontend_world_error_is(&result, wanted));
+    format_dispose(&result);
+    // Check the unchanged host ABI against actual default-world components too.
+    root = tower_node_create();
+    parser_match_create_subtree(root, 123, 17, 3);
+    text = parser_tree_debug_string(root);
+    entity_release(root);
+    frontend_format_text(text, "node\n  token 123 [17, 20)\n");
+    tower_memory_free(bits(void*, text));
+    var ok = entity_store_count(compiler_world_store(host)) == host_nodes;
+    frontend_world_check(ok);
+    ok = tower_memory_get_allocated_count() == allocations;
+    frontend_world_check(ok);
+    // Host component query capacity may have grown; isolated-world lifetime is
+    // checked independently in the deep/wide case below.
+}
+
+fn frontend_format_deep(): void {
+    var baseline = tower_test_buffer_count();
+    var world = compiler_world_create();
+    var store = compiler_world_store(world);
+    var kind = compiler_world_type(world, CompilerParserMatch());
+    var root = entity_create(store);
+    var node = root;
+    var depth: usize = 0;
+    while depth < 1024 {
+        node = frontend_format_child(store, node, null);
+        depth = depth + 1;
+    }
+    var result: FormatResult;
+    fill(&result, 0, sizeof(FormatResult));
+    format_parser_tree(&result, root, kind);
+    var ok = result.failed == false;
+    frontend_world_check(ok);
+    // Verify every byte and indentation level, including the final leaf.
+    var at: usize = 0;
+    depth = 0;
+    while depth <= 1024 {
+        var spaces = depth * 2;
+        var index: usize = 0;
+        while index < spaces {
+            ok = result.text.data[at] == 32;
+            frontend_world_check(ok);
+            at = at + 1;
+            index = index + 1;
+        }
+        var wanted: u8* = "node\n";
+        index = 0;
+        while index < 5 {
+            ok = result.text.data[at] == wanted[index];
+            frontend_world_check(ok);
+            at = at + 1;
+            index = index + 1;
+        }
+        depth = depth + 1;
+    }
+    ok = at == result.text.length;
+    frontend_world_check(ok);
+    format_dispose(&result);
+    entity_release(root);
+    root = entity_create(store);
+    var index: usize = 0;
+    while index < 128 {
+        frontend_format_child(store, root, null);
+        index = index + 1;
+    }
+    format_parser_tree(&result, root, kind);
+    ok = result.failed == false;
+    frontend_world_check(ok);
+    ok = result.text.length == 901;
+    frontend_world_check(ok);
+    format_dispose(&result);
+    entity_release(root);
+    frontend_world_check(compiler_world_dispose(world));
+    ok = tower_test_buffer_count() == baseline;
+    frontend_world_check(ok);
+}
+
+fn frontend_format_tests(): void {
+    frontend_format_scalars();
+    frontend_format_trees();
+    frontend_format_deep();
+}

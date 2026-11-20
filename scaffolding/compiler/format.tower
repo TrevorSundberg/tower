@@ -3,13 +3,6 @@ import tower;
 
 // Canonical text and source mapping over the existing shared components.
 // Composed after their definitions; these buffers are output, not another IR.
-struct FormatEngine {
-    result: FormatResult*;
-    syntax_kind: void*;
-    foundation_kind: void*;
-    match_kind: void*;
-}
-
 extern fn core_component_type(): void*;
 
 fn format_syntax(f: FormatEngine*, entity: void*): SyntaxNode* {
@@ -26,31 +19,31 @@ fn format_foundation(f: FormatEngine*, entity: void*): FoundationNode* {
     return bits(FoundationNode*, entity_component_data(component));
 }
 
-fn format_match(f: FormatEngine*, entity: void*): ParserMatchData* {
+export fn format_match(f: FormatEngine*, entity: void*): ParserMatchData* {
     var component = entity_component_get(entity, f.match_kind);
     return bits(ParserMatchData*, entity_component_data(component));
 }
 
-fn format_write(f: FormatEngine*, bytes: u8*, count: usize): void {
+export fn format_write(f: FormatEngine*, bytes: u8*, count: usize): void {
     var ok = bytes_append(&f.result.text, bytes, count);
     if ok {} else {
         f.result.failed = true;
     }
 }
 
-fn format_text(f: FormatEngine*, text: u8*): void {
+export fn format_text(f: FormatEngine*, text: u8*): void {
     format_write(f, text, syntax_text_length(text));
 }
 
-fn format_bytes(f: FormatEngine*, text: vector(u8)*): void {
+export fn format_bytes(f: FormatEngine*, text: vector(u8)*): void {
     format_write(f, text.data, text.length);
 }
 
-fn format_char(f: FormatEngine*, byte: u8): void {
+export fn format_char(f: FormatEngine*, byte: u8): void {
     format_write(f, &byte, 1);
 }
 
-fn format_repeat(f: FormatEngine*, byte: u8, count: usize): void {
+export fn format_repeat(f: FormatEngine*, byte: u8, count: usize): void {
     var empty = count == 0;
     if empty {
         return;
@@ -380,7 +373,7 @@ fn format_quote(f: FormatEngine*, value: vector(u8)*): void {
     format_escape(f, value.data, value.length, 39);
 }
 
-fn format_unsigned(f: FormatEngine*, value: u64): void {
+export fn format_unsigned(f: FormatEngine*, value: u64): void {
     var digits: u8[20];
     var at: usize = 20;
     loop {

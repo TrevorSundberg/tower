@@ -18245,3 +18245,102 @@ will only delete implementations and mechanically connect the existing ABI.
 Then continue moving syntax-session/registry ownership into explicit worlds;
 within-unit parallel phases still require pinned inputs and declared read/write
 access, and are not claimed implemented by these migrations.
+
+## 2026-11-20: Parser formatting migration implementation plan
+
+Pulled main 804a806 with a clean checkout. Previous goal turn made verified
+progress: both native removals were committed, deployed and checked live.
+This step replaces parser_tree_debug_string and parser_table_utf8_id_to_string
+with Tower implementations using FormatEngine/FormatResult. Expose the fallible
+tree operation with an explicit match-component kind so isolated worlds need no
+default-world access; the existing host ABI supplies its kind and retains the
+tower_memory_allocate/free ownership contract. Preserve the diagnostic tree
+format as a diagnostic view, separate from canonical foundation serialization.
+Test deep/wide traversal, field labels/order, Unicode and scalar boundaries,
+retained outputs, isolated-world components, and allocation-failure cleanup.
+The native TOWER_EXPANSION_SEED diagnostic-search branch duplicates the validated
+frontend-diagnostics.tower implementation and is obsolete in current builds;
+retire that fallback as well. Callback invocation and native Table presentation
+views still require a subsequent ownership boundary migration.
+
+Initial compilation exposed two existing bootstrap rules: const names denote
+zero-argument functions (not bare match patterns), and enum members use commas.
+Use an ordinary ParserScalar enum for named escape characters and match arms.
+The new functional fixture also used the reserved grammar word expected as a
+local; renamed it wanted. No language/native changes were needed for these.
+More substantively, adding the production formatter to the large parser/test
+aggregate exceeded its 65,536 Foundation-node bootstrap limit. Give diagnostic
+formatting its own Tower unit through TowerParserFormatting.cmake instead.
+Move FormatEngine's shared layout into format-types.tower and expose the existing
+engine operations through format-api.tower; do not duplicate their algorithms or
+raise the compiler limit. The automatic compiler-project packager discovers the
+new tower-compiler-parser-format.o and its import manifest from the real link.
+New functional tests remain in the existing separate frontend-world test unit.
+
+Implementation uses iterative graph traversal with a borrowed component kind,
+copies diagnostic output into owned buffers, and preserves rule/token labels,
+capture names, byte spans and child order. The legacy UTF-8 label ABI uses the
+same formatter over six bytes of bounded stack scratch, so it still allocates
+only the returned string. Unsupported scalars return null without allocating.
+Empty-tree host formatting avoids looking up/registering a match type; a cold
+host-world fixture checks that it changes no entity count. Explicit-world tests
+also use another world's component kind to reject accidental global lookup.
+The native source now has only the existing C ABI declarations for these two
+operations. Removed the obsolete diagnostic-search seed branch and unused native
+LR comparison methods; net production native reduction is 164 lines, leaving
+5,886 lines across the same 52 files before any further upstream integration.
+
+New Tower functional checks cover exact escaped/scalar labels, invalid Unicode,
+mixed rule/token trees and captures, child-root formatting, retained text after
+world disposal, a 1,024-edge chain, 128 siblings and every allocation position in
+the mixed-tree formatter. The isolated frontend_world_tests call passes in GDB
+under the ASAN/UBSAN native harness. Tower objects themselves are not sanitizer
+instrumented. The first full parser run passes in 272.55 seconds during other
+validation; rerun the final build after adding the empty-tree registration check.
+Canonical formatting passes; native backend API checks and parser/LLVM/cross WASI
+builds pass. The existing bootstrap binary remains unchanged:
+b4539248e28633bb98ea0b42e21233636622f47e26b689f9d2c365ef20c09f02.
+
+The final packaged compiler project now has nine common Tower units, including
+compiler-parser-format. All 357 Node/Wasm checks pass. Two successive compiler
+generations with 2 then 4 workers pass edited semantic behavior and produce the
+same bytes: tower 984266 bytes / 4dbe8ab06912fbeaf74028f160804cca86b68890a1c0d9b86c8d2409a4694780;
+llvm 51973621 / 756f4a7eb30c0589f68cc8bf35e90b3693dcbb2ae04251e71f23e7959624df37;
+cross 63530888 / 111d9c805dd0d802af34f21a472fc7587c8edaee36978a569605f8ca03a6aaa6.
+Commands follow the prior WSL SDK 34 workflow; evidence for this step uses
+build/language-next/parser-format-*. Browser checks, final parser validation,
+uncontended benchmark and publication results follow below.
+
+Final validation passes the cold-host fixture before normal host registration
+(parser-format-isolated-final.log), the full native ASAN/UBSAN parser suite in
+219.57 seconds, and 103 desktop/mobile browser checks with the existing mobile
+successor-build skip. Browser coverage includes Bedrock edits, compiler-project
+build/cancellation, completion, execution, hover and inline/delayed diagnostics.
+Local deployment verification passes all 69 assets and both device profiles,
+including native artifact downloads and interpreter/backend agreement. Saved
+report: parser-format-local-report.json. The tested manifest SHA-256 is
+ba1a152e9498259266c7ba26ffc28bb3970dcd06f59b2bc6fa2a1e98853e340e.
+
+With all other validation jobs stopped, the existing ownership benchmark ran six
+warmups and 16 alternating pairs against the preceding deployed integration.
+All emitted objects are identical. Median milliseconds before -> after:
+templates 5.86665 -> 5.84505; depth-1024 layouts 18.79450 -> 19.17635 (+2.03%,
+within the observed sample variation); compiler-host 178.01345 -> 167.38740.
+No material time regression is observed in these workloads. Baseline reactor
+SHA-256: 2304b867e1d325449e218fe717a0d299dcdabc05d110ca2e7f43f53d6d9d3da9;
+current: 7f0a3692b2d7c303aca9aeac635e51f349add5e3b66164a5845b19b0a6a646d4.
+Reproduce with node playground/scripts/benchmark-compiler-ownership.mjs
+build/language-next/parser-format-baseline.wasm; samples/environment are saved
+in parser-format-benchmark.json/.log. Inventory was recomputed from tracked
+scaffolding C/C++ headers/sources excluding bootstrap/, tests/ and *-tests.*:
+52 files, 5,886 lines. todo.txt and the two pre-existing stashes are unchanged.
+
+Continue after publication with the native Table's duplicate grammar/debug views
+and ownership. Tower already owns LRGrammar, LRRuntime and diagnostic probing;
+the remaining native vectors copy these indexes for presentation and callback
+adaptation. Preserve callback timing and diagnostic text while moving that state
+and formatting into Tower. C++ std::string rule-description callbacks require an
+explicit request/resume boundary until native callback ownership is retired;
+do not replace them with a new native implementation or a second semantic graph.
+Full within-unit parallelism and complete native/bootstrap retirement remain
+unfinished; the ongoing migration goal stays active.
