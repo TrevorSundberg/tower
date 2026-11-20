@@ -26,12 +26,18 @@ byte ranges; JavaScript maps them to UTF-16 offsets solely for editor rendering.
 
 Hover results include a canonical signature, resolved type/layout where present,
 attached comments, and file/line/column locations. Grammar references retain the
-snapshot active at that source position. Keyword and punctuation queries follow
-their nearest checked operation: declarations and initializers, assignment
-destinations, pointer loads/stores, return statements, calls, block boundaries and
-control flow. A closing function brace identifies that function. Structural
-statements receive descriptions without fabricated value types. Unchecked custom
-syntax uses its actual matched rules and captures instead of claiming a runtime
+snapshot active at that source position. One tree walk covers every leaf and
+selects the nearest entity with supported components across its whole source
+span. There are no keyword/punctuation spelling checks or operation allow-lists
+in this lookup. `language-components.tower` dispatches presentation by actual ECS
+component type with explicit priority, independent of component storage order.
+The Foundation component presenter uses its operation tag and resolved bindings
+to choose details; syntax and parsed-type presenters handle their own metadata.
+New surface spellings therefore work through the same nodes without adding hover
+cases. A generic declaration's specialization preview is scoped to its name;
+it does not supply types to the unchecked generic body. Structural statements
+receive descriptions without fabricated value types. Unchecked custom syntax
+uses its actual matched rules and captures instead of claiming a runtime
 type. Whitespace and unattached comment text do not fabricate symbol hovers.
 
 UI locations use `path/file.tower:line:column` consistently. A function signature

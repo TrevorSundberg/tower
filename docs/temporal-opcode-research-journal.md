@@ -18353,3 +18353,48 @@ work. Wait for its source, integrate on main, and rebuild/verify the combination
 The current Pages worktree has the prepared migration assets as local edits only;
 the published Roku build remains intact. A main push initially encountered a
 transient github.com DNS failure; resolve/retry normally without force-pushing.
+
+## 2026-11-20: Generic ECS dispatch for language inspection
+
+The user clarified that keywords/operators must not gain individual hover cases:
+source lookup should be generic, with component-specific formatting allowed.
+The prior language_context_candidate did walk actual parents, but also compared
+literal token spellings and selected a list of operation kinds. Removed that
+separate fallback and the operation allow-list. language_candidate now enumerates
+each entity's actual components during the same tree walk. Presentation dispatch
+in language-components.tower has explicit priority (Foundation, grammar, parsed
+annotations/specializations), independent of component storage order. Whole
+semantic node spans supply coverage; descendants provide more specific metadata.
+Foundation operation descriptions/binding projections remain presentation code,
+using operation tags and actual semantic relationships, never source token text.
+Both ends of a block now present the same block information. Canonical signatures,
+resolved layouts, attached comments and source locations retain their existing
+formatting/ownership. The browser's synchronous cached lookup is unchanged.
+
+Added a regression that changes declarations to let, assignment/initialization to
+:=, return to give, statement terminators to !, and function headers to procedure
+with [] and ->. Every non-whitespace position in its executable source has useful
+inspection data; declaration punctuation shares the declaration entity and type.
+The first test also changed block braces to begin/end, but ordinary semantic
+checking correctly rejected that unsupported CoreBlock shape. Kept the compiler
+contract unchanged and tested custom function-header punctuation instead. This is
+a test-fixture correction, not a new promise that arbitrary Foundation shapes
+are legal without Tower replacements.
+
+Full-span inheritance exposed a separate correctness concern: a generic function's
+specialization preview must not supply a concrete type to its uninstantiated source
+body. The parsed-component presenter scopes that preview to the declaration name;
+the body keeps matched-rule/capture metadata. A regression instantiates the same
+function with both i32 and bool and checks the distinct calls plus untyped source
+body. Resolved ordinary functions skip the specialization search entirely.
+
+Built through the published Tower/Wasm bootstrap using WSL/WASI SDK 34. The initial
+full Node/Wasm suite passed 358/358 (generic-hover-all-tests.log); after the generic
+preview guard, focused hover checks pass 33/33 (generic-hover-tests.log). No native
+compiler changes were required. Compared whole document inspection against the
+previous published reactor with six warmups and 16 alternating sample pairs:
+median ms increment 57.745 -> 57.244, templates 23.274 -> 22.149, 200 functions
+27.447 -> 24.053. These are worker document-query timings, not tooltip paint latency
+or a claim of zero elapsed time. Raw samples are in generic-hover-benchmark.json;
+the benchmark ran before starting the final LLVM build. Browser/deployment and
+successor-build results are recorded below when complete.

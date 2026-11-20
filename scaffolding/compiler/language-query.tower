@@ -1,4 +1,5 @@
 import 'format-types';
+import 'language-components';
 import tower;
 
 // Language-service inspection shares completion's source/module ownership,
@@ -140,273 +141,6 @@ fn language_documentation(q: CompletionQuery*, value: FoundationNode*): void {
     vector_dispose(u8, &text);
 }
 
-fn language_kind(value: FoundationNode*): u8* {
-    var hover_condition3 = value == null;
-    if hover_condition3 {
-        return "syntax";
-    }
-    var hover_condition4 = value.kind == KFunction();
-    if hover_condition4 {
-        return "function";
-    }
-    var hover_condition5 = value.kind == KParameter();
-    if hover_condition5 {
-        return "parameter";
-    }
-    var hover_condition6 = value.kind == KDeclare();
-    if hover_condition6 {
-        if value.global {
-            return "global variable";
-        }
-        return "local variable";
-    }
-    var hover_condition7 = value.kind == KFieldDeclaration();
-    if hover_condition7 {
-        return "field";
-    }
-    var hover_condition8 = value.kind == KType();
-    if hover_condition8 {
-        return "type";
-    }
-    var hover_condition9 = value.kind == KCall();
-    if hover_condition9 {
-        return "call";
-    }
-    var hover_condition10 = value.kind == KOperand();
-    if hover_condition10 {
-        var member = value.constant;
-        if member {
-            member = value.type.pointers == 0;
-        }
-        if member {
-            member = semantic_enum(&value.type);
-        }
-        if member {
-            return "enum member";
-        }
-        return "value";
-    }
-    var hover_condition11 = value.kind == KField();
-    if hover_condition11 {
-        return "field access";
-    }
-    var hover_condition12 = value.kind == KIndex();
-    if hover_condition12 {
-        return "index";
-    }
-    var context_condition1 = value.kind == KLoad();
-    if context_condition1 {
-        return "pointer dereference";
-    }
-    var context_condition2 = value.kind == KAddress();
-    if context_condition2 {
-        return "address of";
-    }
-    return "foundation operation";
-}
-
-// Keywords and punctuation use the nearest checked operation on the same tree.
-// A token's spelling only refines that operation's role; it never resolves a
-// name, invents a type, or parses a second representation of the program.
-fn language_context_candidate(q: CompletionQuery*, leaf: void*, candidate: LanguageCandidate*): void {
-    var span = sem_match(leaf);
-    var context_condition3 = span == null;
-    if context_condition3 {
-        return;
-    }
-    var end = span.start + span.length;
-    var selected = candidate.subject != null;
-    if selected {
-        selected = span.start >= candidate.from;
-    }
-    if selected {
-        selected = end <= candidate.to;
-    }
-    if selected {
-        return;
-    }
-    var node = sem_parent(leaf);
-    var value: FoundationNode* = null;
-    loop {
-        var context_condition4 = node == null;
-        if context_condition4 {
-            return;
-        }
-        value = sem_get(node);
-        var context_condition5 = value == null;
-        if context_condition5 {
-            if sem_is(node, "CoreCallStatement") {
-                var call = sem_member(node, "call");
-                value = sem_get(call);
-                var present = value != null;
-                if present {
-                    node = call;
-                }
-            }
-        }
-        var context_condition6 = value != null;
-        if context_condition6 {
-            break;
-        }
-        node = sem_parent(node);
-    }
-    var context_condition7 = value.kind == KProgram();
-    if context_condition7 {
-        return;
-    }
-    var subject = node;
-    var spelling = sem_tokens(&q.context, leaf);
-    var description: u8* = null;
-    var structural = false;
-    var context_condition8 = value.kind == KDeclare();
-    if context_condition8 {
-        description = "Declares a mutable variable.";
-        if sem_equal(spelling, "=") {
-            description = "Sets this variable's starting value.";
-        }
-        if sem_equal(spelling, ":") {
-            description = "Specifies the type of this variable.";
-        }
-        if sem_equal(spelling, ";") {
-            description = "Ends this variable declaration.";
-        }
-    }
-    var context_condition9 = value.kind == KAssign();
-    if context_condition9 {
-        subject = value.target;
-        description = "Stores the value on the right in this location.";
-        var target = sem_get(subject);
-        var context_condition10 = target != null;
-        if context_condition10 {
-            var context_condition11 = target.binding != null;
-            if context_condition11 {
-                subject = target.binding;
-            }
-        }
-    }
-    var context_condition12 = value.kind == KLoad();
-    if context_condition12 {
-        description = "Reads the value stored at this pointer.";
-        if sem_is(node, "CoreTarget") {
-            description = "Selects the pointed-to value to write.";
-        }
-    }
-    var context_condition13 = value.kind == KAddress();
-    if context_condition13 {
-        description = "Takes the address of this value, producing a pointer to it.";
-    }
-    var context_condition14 = value.kind == KReturn();
-    if context_condition14 {
-        subject = language_ancestor(node, "CoreFunction");
-        description = "Returns from this function to its caller.";
-        var context_condition15 = value.value != null;
-        if context_condition15 {
-            description = "Returns this value from the function to its caller.";
-        }
-    }
-    var context_condition16 = value.kind == KBlock();
-    if context_condition16 {
-        var function = sem_parent(node);
-        var function_value = sem_get(function);
-        var body = function_value != null;
-        if body {
-            body = function_value.kind == KFunction();
-        }
-        if body {
-            body = function_value.body == node;
-        }
-        if body {
-            subject = function;
-            description = "Starts the body of this function.";
-            if sem_equal(spelling, "}") {
-                description = "Ends the body of this function.";
-            }
-        } else {
-            structural = true;
-            description = "Starts a block of statements with its own local variables.";
-            if sem_equal(spelling, "}") {
-                description = "Ends this block and the scope of its local variables.";
-            }
-        }
-    }
-    var context_condition17 = value.kind == KFunction();
-    if context_condition17 {
-        description = "Defines this function.";
-        if sem_equal(spelling, ":") {
-            description = "Specifies the type of value this function returns.";
-        }
-        if sem_equal(spelling, "(") {
-            description = "Starts this function's parameter list.";
-        }
-        if sem_equal(spelling, ")") {
-            description = "Ends this function's parameter list.";
-        }
-    }
-    var context_condition18 = value.kind == KParameter();
-    if context_condition18 {
-        description = "Declares an input passed to this function.";
-    }
-    var context_condition19 = value.kind == KFieldDeclaration();
-    if context_condition19 {
-        description = "Declares a field with this type and position in its containing value.";
-    }
-    var context_condition20 = value.kind == KCall();
-    if context_condition20 {
-        var context_condition21 = value.binding != null;
-        if context_condition21 {
-            subject = value.binding;
-        }
-        description = "Calls this function with the supplied arguments.";
-    }
-    var context_condition22 = value.kind == KIf();
-    if context_condition22 {
-        structural = true;
-        description = "Runs the first block when the condition is true, or the else block when it is false.";
-    }
-    var context_condition23 = value.kind == KLoop();
-    if context_condition23 {
-        structural = true;
-        description = "Repeats this block until control leaves the loop.";
-    }
-    var context_condition24 = value.kind == KBreak();
-    if context_condition24 {
-        structural = true;
-        description = "Leaves the nearest enclosing loop.";
-    }
-    var context_condition25 = value.kind == KContinue();
-    if context_condition25 {
-        structural = true;
-        description = "Starts the next iteration of the nearest enclosing loop.";
-    }
-    var context_condition26 = value.kind == KLabel();
-    if context_condition26 {
-        structural = true;
-        description = "Names a destination for a jump in this function.";
-    }
-    var context_condition27 = value.kind == KJump();
-    if context_condition27 {
-        structural = true;
-        description = "Continues execution at the named label.";
-    }
-    if sem_equal(spelling, ";") {
-        var context_condition28 = description == null;
-        if context_condition28 {
-            description = "Ends this statement.";
-        }
-    }
-    var context_condition29 = subject == null;
-    if context_condition29 {
-        return;
-    }
-    candidate.node = node;
-    candidate.subject = subject;
-    candidate.from = span.start;
-    candidate.to = end;
-    candidate.grammar = false;
-    candidate.description = description;
-    candidate.structural = structural;
-}
-
 fn language_declaration_location(q: CompletionQuery*, subject: void*): void {
     var span = sem_match(subject);
     var context_condition30 = span == null;
@@ -435,133 +169,42 @@ fn language_declaration_location(q: CompletionQuery*, subject: void*): void {
     }
 }
 
+// The same walk handles every source leaf. The nearest entity with supported
+// components owns its entire source span; no keyword or punctuation allow-list.
 fn language_candidate(q: CompletionQuery*, node: void*, candidate: LanguageCandidate*, checked: bool): void {
     var span = sem_match(node);
-    var hover_condition13 = span == null;
-    if hover_condition13 {
+    var absent = span == null;
+    if absent {
         return;
     }
-    var hover_condition14 = span.length == 0;
-    if hover_condition14 {
+    var empty = span.length == 0;
+    if empty {
         return;
     }
-    var hover_condition15 = span.start >= q.length;
-    if hover_condition15 {
+    var outside = span.start >= q.length;
+    if outside {
         return;
     }
-    var subject = node;
-    var range = node;
-    var grammar = entity_component_get(node, syntax_component_type()) != null;
-    var value = sem_get(node);
-    var usable = grammar;
-    var specialization = false;
-    if checked {
-        var generic = value == null;
-        if generic {
-            generic = sem_is(node, "CoreFunction");
+    var priority: u32 = 0;
+    var i: usize = 0;
+    var count = entity_component_count(node);
+    loop {
+        var done = i == count;
+        if done {
+            break;
         }
-        if generic {
-            // A generic declaration has no single concrete type. Show a real
-            // checked instantiation when available, explicitly labelled as such.
-            var i: usize = 0;
-            loop {
-                var done = i == q.program.functions.length;
-                if done {
-                    break;
-                }
-                var function = q.program.functions.data[i];
-                var definition = generic_definition(q.context.generics, function);
-                var same = definition == node;
-                if same {
-                    subject = function;
-                    value = sem_get(function);
-                    specialization = true;
-                    break;
-                }
-                i = i + 1;
-            }
+        var component = entity_component_at(node, i);
+        var presented: LanguageCandidate;
+        copy(&presented, candidate, sizeof(LanguageCandidate));
+        presented.from = span.start;
+        presented.to = span.start + span.length;
+        var rank = language_component_present(q, node, component, checked, &presented);
+        var preferred = rank > priority;
+        if preferred {
+            priority = rank;
+            copy(candidate, &presented, sizeof(LanguageCandidate));
         }
-        if sem_is(node, "CoreType") {
-            var type = sem_type(&q.context, node);
-            if sem_ok(&q.context) {
-                subject = sem_type_entity(&q.context, type);
-                usable = true;
-            }
-            q.program.error.length = 0;
-        } else {
-            var hover_condition16 = value != null;
-            if hover_condition16 {
-                // Blocks/control statements have no value/signature to preview.
-                usable = value.kind == KFunction();
-                var hover_condition17 = value.kind == KParameter();
-                if hover_condition17 {
-                    usable = true;
-                }
-                var hover_condition18 = value.kind == KDeclare();
-                if hover_condition18 {
-                    usable = true;
-                }
-                var hover_condition19 = value.kind == KType();
-                if hover_condition19 {
-                    usable = true;
-                }
-                var hover_condition20 = value.kind == KFieldDeclaration();
-                if hover_condition20 {
-                    usable = true;
-                }
-                var expression = value.kind >= KOperand();
-                if expression {
-                    expression = value.kind <= KCall();
-                }
-                if expression {
-                    usable = true;
-                }
-                var hover_condition21 = value.kind == KField();
-                if hover_condition21 {
-                    usable = true;
-                }
-                var hover_condition22 = value.kind == KIndex();
-                if hover_condition22 {
-                    usable = true;
-                }
-                var hover_condition23 = value.kind == KString();
-                if hover_condition23 {
-                    usable = true;
-                }
-                var hover_condition24 = semantic_builtin_name(value.kind) != null;
-                if hover_condition24 {
-                    usable = true;
-                }
-                if usable {
-                    var hover_condition25 = value.binding != null;
-                    if hover_condition25 {
-                        subject = value.binding;
-                    }
-                    var named = sem_member(node, "name");
-                    var hover_condition26 = value.kind == KField();
-                    if hover_condition26 {
-                        named = sem_member(node, "field");
-                    }
-                    var hover_condition27 = named != null;
-                    if hover_condition27 {
-                        range = named;
-                    }
-                }
-            }
-        }
-    }
-    if usable {
-        span = sem_match(range);
-        var hover_condition28 = span == null;
-        if hover_condition28 {
-            return;
-        }
-        candidate.node = node;
-        candidate.subject = subject;
-        candidate.from = span.start;
-        candidate.to = span.start + span.length;
-        candidate.grammar = grammar;
-        candidate.specialization = specialization;
+        i = i + 1;
     }
 }
 
@@ -749,9 +392,6 @@ fn language_walk(q: CompletionQuery*, node: void*, inherited: LanguageCandidate*
     }
     var hover_condition42 = count == 0;
     if hover_condition42 {
-        if checked {
-            language_context_candidate(q, node, &current);
-        }
         language_leaf(q, node, &current);
         return;
     }

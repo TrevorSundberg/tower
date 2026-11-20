@@ -105,13 +105,13 @@ test('keywords, operators and function braces use Tower services and one locatio
   for(const [lineText,token,description] of [
     ['fn increment','fn','Defines this function.'],
     ['var old','var','Declares a mutable variable.'],
-    ['var old','=','starting value'],
+    ['var old','=','Declares a mutable variable.'],
     ['var old','*','Reads the value stored at this pointer.'],
     ['*p =','*','Selects the pointed-to value to write.'],
     ['*p =','=','Stores the value on the right'],
     ['*p =','+','Type: i32'],
     ['return old','return','Returns this value'],
-    ['}','}','Ends the body of this function.'],
+    ['}','}','The body of this function.'],
   ]) {
     const line=page.locator('#editor .cm-line').filter({hasText:lineText});
     await line.scrollIntoViewIfNeeded();

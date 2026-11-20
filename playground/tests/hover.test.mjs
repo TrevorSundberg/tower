@@ -29,14 +29,15 @@ test('function names and calls share canonical typed signatures',()=>{
   assert.equal(at(source,'i32 {').signature,'i32');
 });
 
-test('compiler services describe every token in checked statements, including keywords and punctuation',()=>{
+test('generic entity lookup covers every source position in checked statements',()=>{
   const source='fn advance(p:i32*):i32 {\n var old:i32 = *p;\n *p = old + 1;\n return old;\n}\nvar value:i32 = 1;\nprint(advance(&value));';
   const entries=inspect(source,{entry:'advance.tower'});
-  for(const entry of entries)assert.ok(hasHoverDetails(entry),JSON.stringify({text:source.slice(entry.from,entry.to),entry}));
+  for(const match of source.matchAll(/\S/g))assert.ok(hasHoverDetails(hoverAt(entries,match.index)),`Missing metadata at ${match.index}: ${match[0]}`);
   const get=(text,offset=0)=>hoverAt(entries,source.indexOf(text)+offset);
   assert.match(get('var old').description,/mutable variable/);
   assert.equal(get('var old').type,'i32');
-  assert.match(get('= *p').description,/starting value/);
+  assert.equal(get('= *p').entity,get('var old').entity);
+  assert.equal(get('= *p').description,get('var old').description);
   assert.match(get('= old').description,/Stores/);
   assert.equal(get('= old').type,'i32');
   assert.equal(get('*p;').kind,'pointer dereference');assert.equal(get('*p;').type,'i32');
@@ -45,7 +46,32 @@ test('compiler services describe every token in checked statements, including ke
     const entry=get(text);assert.equal(entry.signature,'fn advance(p: i32*): i32');
     assert.equal(entry.declarationFile,'advance.tower');assert.equal(entry.declarationLine,1);assert.equal(entry.declarationColumn,1);
   }
-  assert.match(get('}').description,/Ends the body/);
+  assert.match(get('}').description,/body of this function/);
+});
+
+test('component presentation is independent of custom keyword and delimiter spellings',()=>{
+  const source=`parse CoreDeclare = 'let' $name:Identifier ':' $type:CoreType ':=' $value:CoreValue '!';
+parse CoreAssign = $target:CoreTarget ':=' $value:CoreValue '!';
+parse CoreReturn = 'give' $value:CoreOperand? '!';
+parse CoreFunction = 'procedure' $name:Identifier '[' $params:CoreParameters? ']' '->' $type:CoreType $body:CoreBlock;
+procedure advance[] -> i32 {
+  let counter:i32 := 1!
+  counter := counter + 1!
+  give counter!
+}`;
+  const entries=inspect(source,{entry:'custom.tower'}),start=source.indexOf('procedure advance');
+  const get=(text,offset=0)=>hoverAt(entries,source.indexOf(text,start)+offset);
+  for(let offset=start;offset<source.length;offset++)if(/\S/.test(source[offset]))assert.ok(hasHoverDetails(hoverAt(entries,offset)),`Missing metadata at ${offset}: ${source[offset]}`);
+  const declaration=get('let counter');
+  for(const [text,offset] of [['let counter',4],[':= 1',0],['1!',1]]) {
+    const entry=get(text,offset);assert.equal(entry.entity,declaration.entity);assert.equal(entry.signature,'var counter: i32');assert.equal(entry.type,'i32');
+  }
+  assert.match(get(':= counter').description,/Stores/);assert.equal(get(':= counter').type,'i32');
+  for(const text of ['procedure','[',']','->','{','}','give']) {
+    const entry=get(text);assert.equal(entry.signature,'fn advance(): i32');assert.equal(entry.declarationFile,'custom.tower');assert.equal(entry.declarationLine,5);
+  }
+  assert.equal(get('{').entity,get('}').entity);
+  assert.equal(get('{').description,get('}').description);
 });
 
 test('control flow punctuation uses structural descriptions without invented value types',()=>{
@@ -63,6 +89,19 @@ test('uninstantiated function bodies retain tree lookups without claiming concre
   for(const entry of entries)assert.ok(hasHoverDetails(entry),source.slice(entry.from,entry.to));
   const body=hoverAt(entries,source.indexOf('print'));
   assert.equal(body.type,undefined);assert.ok(body.matchedRule);
+});
+
+test('a specialization preview never supplies a concrete type to its generic source body',()=>{
+  const source='fn identity(T:type,value:T):T { return value; } print(identity(i32,1)); print(identity(bool,true));';
+  const entries=inspect(source);
+  const name=hoverAt(entries,source.indexOf('identity'));
+  assert.equal(name.kind,'function specialization');
+  for(const token of ['{','return','value;','}']) {
+    const entry=hoverAt(entries,source.indexOf(token));assert.ok(hasHoverDetails(entry));assert.equal(entry.type,undefined,token);assert.ok(entry.matchedRule,token);
+  }
+  const first=hoverAt(entries,source.indexOf('identity(i32'));
+  const second=hoverAt(entries,source.indexOf('identity(bool'));
+  assert.equal(first.type,'i32');assert.equal(second.type,'bool');
 });
 test('members, pointer receivers, nominal types and layouts come from checked fields',()=>{
   const source='struct Point { first:i32; ready:bool; } var p:Point; var pointer = &p; pointer.ready = true; print(pointer.ready);';
