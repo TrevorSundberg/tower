@@ -1,0 +1,13 @@
+import tower;
+import '../library/bytes-interface';
+import '../compiler/host-text';
+import '../host/driver-options';
+import '../host/driver-services';
+import '../host/driver-files';
+import 'driver-main';
+
+// Standalone platform tests do not compile source in-process. Their CLI tests
+// launch a real compiler; this unused provenance boundary has no native shim.
+export fn frontend_modules_location(modules: void*, offset: usize, line: usize*, column: usize*): u8* {
+    return "";
+}

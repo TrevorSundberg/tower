@@ -1,0 +1,131 @@
+import tower;
+
+// x64/ARM64 Windows CRT and kernel32 ABI. These are ordinary host effects.
+extern fn _write(fd: i32, data: u8*, length: u32): i32;
+
+extern fn _spawnvp(mode: i32, executable: u8*, argv: u8**): i64;
+
+extern fn _errno(): i32*;
+
+extern fn QueryPerformanceCounter(value: i64*): i32;
+
+extern fn QueryPerformanceFrequency(value: i64*): i32;
+
+extern fn GetTempPathA(capacity: u32, output: u8*): u32;
+
+extern fn GetTempFileNameA(directory: u8*, prefix: u8*, unique: u32, output: u8*): u32;
+
+extern fn DeleteFileA(path: u8*): i32;
+
+fn driver_clock(): u64 {
+    var value: i64 = 0;
+    var frequency: i64 = 0;
+    var ok = QueryPerformanceCounter(&value) != 0;
+    if ok {
+        ok = QueryPerformanceFrequency(&frequency) != 0;
+    }
+    if ok {
+        ok = frequency > 0;
+    }
+    if ok {} else {
+        return 0;
+    }
+    var ticks = convert(u64, value);
+    var rate = convert(u64, frequency);
+    var seconds = ticks / rate;
+    var fraction = ticks % rate;
+    seconds = seconds * 1000000000;
+    fraction = fraction * 1000000000;
+    fraction = fraction / rate;
+    var result = seconds + fraction;
+    return result;
+}
+
+fn driver_platform_write(fd: i32, data: u8*, length: usize): void {
+    while length != 0 {
+        var amount: usize = 65536;
+        var small = length < amount;
+        if small {
+            amount = length;
+        }
+        var written = _write(fd, data, convert(u32, amount));
+        var failed = written <= 0;
+        if failed {
+            return;
+        }
+        var done = convert(usize, written);
+        data = data + done;
+        length = length - done;
+    }
+}
+
+fn driver_platform_remove(path: u8*): void {
+    DeleteFileA(path);
+}
+
+fn driver_platform_temporary(out: ByteBuffer*): bool {
+    var directory: u8[261];
+    var length = GetTempPathA(261, &directory[0]);
+    var ok = length != 0;
+    if ok {
+        ok = length < 261;
+    }
+    if ok {
+        ok = bytes_reserve(out, 261);
+    }
+    if ok {
+        ok = GetTempFileNameA(&directory[0], "twr", 0, out.data) != 0;
+    }
+    if ok {
+        out.length = strlen(out.data);
+    }
+    else {
+        driver_error("Cannot create temporary file", "");
+    }
+    return ok;
+}
+
+fn driver_platform_run(argv: u8**): i32 {
+    var quoted: DriverArguments;
+    driver_arguments_init(&quoted);
+    var i: usize = 0;
+    while argv[i] != null {
+        var text: ByteBuffer;
+        fill(&text, 0, sizeof(ByteBuffer));
+        quoted.ok = driver_windows_quote(&text, argv[i]);
+        if quoted.ok {
+            quoted.ok = vector_push(u8*, &quoted.values, text.data);
+        }
+        if quoted.ok {} else {
+            bytes_dispose(&text);
+            break;
+        }
+        i = i + 1;
+    }
+    if quoted.ok {
+        quoted.ok = vector_push(u8*, &quoted.values, null);
+    }
+    var result: i32 = 1;
+    if quoted.ok {
+        var code = _spawnvp(0, argv[0], quoted.values.data);
+        var failed = code == -1;
+        if failed {
+            var error = _errno();
+            var missing = *error == 2;
+            if missing {
+                driver_error("Cannot find tool: ", argv[0]);
+            }
+            else {
+                driver_error("Cannot execute tool: ", strerror(*error));
+            }
+        }
+        var succeeded = code == 0;
+        if succeeded {
+            result = 0;
+        }
+    } else {
+        driver_error("Unable to allocate tool arguments", "");
+    }
+    driver_arguments_dispose(&quoted);
+    return result;
+}

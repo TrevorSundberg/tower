@@ -1,0 +1,279 @@
+import tower;
+
+// Native POSIX services. Explicit libc ABI; no guest JIT or shell invocation.
+// Linux/macOS native builds use their pointer-sized time_t/long profile.
+struct DriverTimespec {
+    seconds: i64;
+    nanoseconds: i64;
+}
+
+extern fn clock_gettime(clock: i32, time: DriverTimespec*): i32;
+
+extern fn write(fd: i32, data: u8*, length: usize): i64;
+
+extern fn read(fd: i32, data: u8*, length: usize): i64;
+
+extern fn close(fd: i32): i32;
+
+extern fn pipe(descriptors: i32*): i32;
+
+extern fn fcntl(fd: i32, command: i32, flags: i32): i32;
+
+extern fn fork(): i32;
+
+extern fn execv(file: u8*, argv: u8**): i32;
+
+extern fn access(path: u8*, mode: i32): i32;
+
+extern fn _exit(code: i32): void;
+
+extern fn waitpid(pid: i32, status: i32*, flags: i32): i32;
+
+extern fn mkstemp(path: u8*): i32;
+
+extern fn unlink(path: u8*): i32;
+
+fn driver_error_code(): i32 {
+    var slot = driver_errno();
+    return *slot;
+}
+
+fn driver_clock(): u64 {
+    var time: DriverTimespec;
+    var clock_failed = clock_gettime(driver_monotonic_clock(), &time) != 0;
+    if clock_failed {
+        return 0;
+    }
+    var seconds = convert(u64, time.seconds) * 1000000000;
+    var result = seconds + convert(u64, time.nanoseconds);
+    return result;
+}
+
+fn driver_platform_write(fd: i32, data: u8*, length: usize): void {
+    while length != 0 {
+        var count = write(fd, data, length);
+        var write_failed = count < 0;
+        if write_failed {
+            var write_interrupted = driver_error_code() == 4;
+            if write_interrupted {
+                continue;
+            }
+            return;
+        }
+        var write_stopped = count == 0;
+        if write_stopped {
+            return;
+        }
+        var done = convert(usize, count);
+        data = data + done;
+        length = length - done;
+    }
+}
+
+fn driver_platform_remove(path: u8*): void {
+    unlink(path);
+}
+
+fn driver_platform_temporary(out: ByteBuffer*): bool {
+    var directory = getenv("TMPDIR");
+    var missing_directory = directory == null;
+    if missing_directory {
+        directory = "/tmp";
+    }
+    var empty_directory = directory[0] == 0;
+    if empty_directory {
+        directory = "/tmp";
+    }
+    var ok = driver_text(out, directory);
+    if ok {
+        ok = driver_text(out, "/tower-XXXXXX");
+    }
+    if ok {
+        ok = host_text_terminate(out);
+    }
+    if ok {} else {
+        out.length = 0;
+        return false;
+    }
+    var fd = mkstemp(out.data);
+    var create_failed = fd < 0;
+    if create_failed {
+        driver_error("Cannot create temporary file: ", strerror(driver_error_code()));
+        out.length = 0;
+        return false;
+    }
+    var close_failed = close(fd) != 0;
+    if close_failed {
+        driver_platform_remove(out.data);
+        out.length = 0;
+        return false;
+    }
+    return true;
+}
+
+fn driver_posix_run(executable: u8*, argv: u8**): i32 {
+    // A close-on-exec pipe distinguishes exec failure from a tool returning 127.
+    // The child only invokes libc async-signal-safe operations before exec/_exit.
+    var descriptors: i32[2];
+    var pipe_failed = pipe(&descriptors[0]) != 0;
+    if pipe_failed {
+        driver_error("Cannot start tool: ", strerror(driver_error_code()));
+        return 1;
+    }
+    var cloexec_failed = fcntl(descriptors[1], 2, 1) != 0;
+    if cloexec_failed {
+        driver_error("Cannot start tool: ", strerror(driver_error_code()));
+        close(descriptors[0]);
+        close(descriptors[1]);
+        return 1;
+    }
+    var pid = fork();
+    var child = pid == 0;
+    if child {
+        close(descriptors[0]);
+        execv(executable, argv);
+        var error = driver_error_code();
+        write(descriptors[1], bits(u8*, &error), sizeof(i32));
+        _exit(127);
+    }
+    var fork_error = driver_error_code();
+    close(descriptors[1]);
+    var fork_failed = pid < 0;
+    if fork_failed {
+        close(descriptors[0]);
+        driver_error("Cannot start tool: ", strerror(fork_error));
+        return 1;
+    }
+    var error: i32 = 0;
+    var received: usize = 0;
+    while received < sizeof(i32) {
+        var data = bits(u8*, &error) + received;
+        var remaining = sizeof(i32) - received;
+        var count = read(descriptors[0], data, remaining);
+        var read_failed = count < 0;
+        if read_failed {
+            var read_interrupted = driver_error_code() == 4;
+            if read_interrupted {
+                continue;
+            }
+            error = 5;
+            break;
+        }
+        var read_done = count == 0;
+        if read_done {
+            break;
+        }
+        received = received + convert(usize, count);
+    }
+    close(descriptors[0]);
+    var status: i32 = 0;
+    loop {
+        var waited = waitpid(pid, &status, 0);
+        var wait_done = waited == pid;
+        if wait_done {
+            break;
+        }
+        var wait_interrupted = driver_error_code() == 4;
+        if wait_interrupted {
+            continue;
+        }
+        driver_error("Cannot wait for tool: ", strerror(driver_error_code()));
+        return 1;
+    }
+    var exec_failed = error != 0;
+    if exec_failed {
+        var missing_tool = error == 2;
+        if missing_tool {
+            driver_error("Cannot find tool: ", argv[0]);
+        }
+        else {
+            driver_error("Cannot execute tool: ", strerror(error));
+        }
+        return 1;
+    }
+    var success = status == 0;
+    if success {
+        return 0;
+    }
+    return 1;
+}
+
+fn driver_find_tool(out: ByteBuffer*, name: u8*): bool {
+    var i: usize = 0;
+    while name[i] != 0 {
+        var separator = name[i] == 47;
+        if separator {
+            var ok = driver_text(out, name);
+            if ok {
+                ok = host_text_terminate(out);
+            }
+            if ok {
+                ok = access(out.data, 1) == 0;
+            }
+            return ok;
+        }
+        i = i + 1;
+    }
+    var path = getenv("PATH");
+    var missing = path == null;
+    if missing {
+        return false;
+    }
+    var begin: usize = 0;
+    i = 0;
+    loop {
+        var c = path[i];
+        var boundary = c == 58;
+        var end = c == 0;
+        if end {
+            boundary = true;
+        }
+        if boundary {
+            out.length = 0;
+            var count = i - begin;
+            var segment = path + begin;
+            var ok = bytes_append(out, segment, count);
+            var nonempty = count != 0;
+            if nonempty {
+                if ok {
+                    ok = driver_text(out, "/");
+                }
+            }
+            if ok {
+                ok = driver_text(out, name);
+            }
+            if ok {
+                ok = host_text_terminate(out);
+            }
+            if ok {} else {
+                return false;
+            }
+            var executable = access(out.data, 1) == 0;
+            if executable {
+                return true;
+            }
+            if end {
+                return false;
+            }
+            begin = i + 1;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+fn driver_platform_run(argv: u8**): i32 {
+    var executable: ByteBuffer;
+    fill(&executable, 0, sizeof(ByteBuffer));
+    var result: i32 = 1;
+    if driver_find_tool(&executable, argv[0]) {
+        var original = argv[0];
+        argv[0] = executable.data;
+        result = driver_posix_run(executable.data, argv);
+        argv[0] = original;
+    } else {
+        driver_error("Cannot find tool: ", argv[0]);
+    }
+    bytes_dispose(&executable);
+    return result;
+}

@@ -1,0 +1,41 @@
+import tower;
+
+extern fn fileno(file: void*): i32;
+
+extern fn dup(fd: i32): i32;
+
+extern fn dup2(source: i32, destination: i32): i32;
+
+extern fn chmod(path: u8*, mode: u32): i32;
+
+fn driver_test_file(file: void*): i32 {
+    return fileno(file);
+}
+
+fn driver_test_dup(fd: i32): i32 {
+    return dup(fd);
+}
+
+fn driver_test_dup2(source: i32, destination: i32): i32 {
+    return dup2(source, destination);
+}
+
+fn driver_test_close(fd: i32): void {
+    close(fd);
+}
+
+fn driver_test_platform_cases(): void {
+    var path = "./driver executable text";
+    driver_check(driver_write_file(path, "exit 0\n", 7), "executable text fixture");
+    var ok = chmod(path, 448) == 0;
+    driver_check(ok, "executable fixture mode");
+    var args: DriverArguments;
+    driver_arguments_init(&args);
+    driver_argument(&args, "", path);
+    var result = driver_test_capture(&args);
+    ok = result == 1;
+    driver_check(ok, "executable text does not fall back to a shell");
+    driver_test_read("driver stderr.txt", "Cannot execute tool: ", false);
+    driver_arguments_dispose(&args);
+    driver_platform_remove(path);
+}

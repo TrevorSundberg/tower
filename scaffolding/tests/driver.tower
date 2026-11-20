@@ -1,0 +1,437 @@
+import tower;
+
+extern fn strstr(text: u8*, part: u8*): u8*;
+
+extern fn fopen(path: u8*, mode: u8*): void*;
+
+extern fn fclose(file: void*): i32;
+
+extern fn exit(code: i32): void;
+
+fn driver_check(ok: bool, message: u8*): void {
+    if ok {} else {
+        driver_error("Driver test failed: ", message);
+        exit(1);
+    }
+}
+
+fn driver_check_text(actual: u8*, wanted: u8*): void {
+    driver_check(driver_same(actual, wanted), wanted);
+}
+
+fn driver_check_argument(args: DriverArguments*, index: usize, wanted: u8*): void {
+    var present = index < args.values.length;
+    driver_check(present, "argument count");
+    if present {
+        driver_check_text(args.values.data[index], wanted);
+    }
+}
+
+fn driver_quote_check(input: u8*, wanted: u8*): void {
+    var out: ByteBuffer;
+    fill(&out, 0, sizeof(ByteBuffer));
+    driver_check(driver_windows_quote(&out, input), "Windows argument allocation");
+    driver_check_text(out.data, wanted);
+    bytes_dispose(&out);
+}
+
+fn driver_test_policies(): void {
+    driver_quote_check("", "\"\"");
+    driver_quote_check("a b", "\"a b\"");
+    driver_quote_check("a\"b", "\"a\\\"b\"");
+    driver_quote_check("a\\", "\"a\\\\\"");
+    driver_quote_check("a\\\"b", "\"a\\\\\\\"b\"");
+    driver_quote_check("; $HOME & |", "\"; $HOME & |\"");
+    var timing: DriverTiming;
+    fill(&timing, 0, sizeof(DriverTiming));
+    driver_timing_value(&timing, "total", 1234567890);
+    driver_timing_value(&timing, "compile", 999999);
+    driver_timing_value(&timing, "after", 9);
+    driver_timing_value(&timing, "compile", 1000001);
+    var out: ByteBuffer;
+    fill(&out, 0, sizeof(ByteBuffer));
+    driver_check(driver_timing_render(&out, &timing), "timing render");
+    host_text_terminate(&out);
+    driver_check_text(out.data, "Tower timings (ms): {\"after\":0.000009,\"compile\":1.000001,\"total\":1234.567890}\n");
+    bytes_dispose(&out);
+
+    var link = driver_link_open("target", "cc path", "", "/sdk path", "output path", "/resource path", false, false, null, false);
+    var check1 = link != null;
+    driver_check(check1, "link allocation");
+    var check15 = link == null;
+    if check15 {
+        return;
+    }
+    driver_text(&link.program, "program.o");
+    host_text_terminate(&link.program);
+    driver_text(&link.runtime, "runtime.o");
+    host_text_terminate(&link.runtime);
+    driver_text(&link.allowed, "allowed.txt");
+    host_text_terminate(&link.allowed);
+    driver_link_input(link, "external lib.o");
+    driver_link_export(link, "hello");
+    var args: DriverArguments;
+    driver_arguments_init(&args);
+    driver_link_compile_arguments(link, &args);
+    driver_check_argument(&args, 0, "cc path");
+    driver_check_argument(&args, 6, "/resource path/runtime.c");
+    driver_check_argument(&args, 9, "--sysroot=/sdk path");
+    driver_arguments_dispose(&args);
+    driver_arguments_init(&args);
+    driver_link_arguments(link, &args);
+    driver_check_argument(&args, 0, "cc path");
+    driver_check_argument(&args, 4, "--sysroot=/sdk path");
+    driver_check_argument(&args, 5, "external lib.o");
+    driver_check_argument(&args, 7, "output path");
+    driver_arguments_dispose(&args);
+    link.wasm = true;
+    driver_arguments_init(&args);
+    driver_link_arguments(link, &args);
+    driver_check_argument(&args, 0, "wasm-ld-19");
+    driver_check_argument(&args, 4, "--allow-undefined-file=allowed.txt");
+    driver_check_argument(&args, 11, "--export=hello");
+    driver_check_argument(&args, 12, "external lib.o");
+    driver_arguments_dispose(&args);
+    link.wasm = false;
+    link.windows = true;
+    driver_arguments_init(&args);
+    driver_link_arguments(link, &args);
+    driver_check_argument(&args, 0, "lld-link-19");
+    driver_check_argument(&args, 3, "/out:output path");
+    driver_check_argument(&args, 6, "/export:hello");
+    driver_check_argument(&args, 7, "external lib.o");
+    var check2 = args.values.length == 8;
+    driver_check(check2, "Windows omits -o");
+    driver_arguments_dispose(&args);
+    // These three paths are plan fixtures, never created files.
+    link.program.length = 0;
+    link.runtime.length = 0;
+    link.allowed.length = 0;
+    driver_link_close(link);
+}
+
+fn driver_test_process(self: u8*): void {
+    var args: DriverArguments;
+    driver_arguments_init(&args);
+    driver_argument(&args, "", self);
+    driver_argument(&args, "", "--arguments");
+    driver_argument(&args, "", "a b");
+    driver_argument(&args, "", "");
+    driver_argument(&args, "", "a\"b\\");
+    driver_argument(&args, "", "; $HOME & |");
+    var check3 = driver_command(&args) == 0;
+    driver_check(check3, "argv boundary and shell-free execution");
+    driver_arguments_dispose(&args);
+    driver_arguments_init(&args);
+    driver_argument(&args, "", self);
+    driver_argument(&args, "", "--failure");
+    var check4 = driver_command(&args) == 1;
+    driver_check(check4, "nonzero tool exit becomes one");
+    driver_arguments_dispose(&args);
+
+    var link = driver_link_open("target", "tower-deliberately-missing-tool-239482", "", "", "out", "resources", false, false, null, false);
+    var check5 = link != null;
+    driver_check(check5, "failure link allocation");
+    var check16 = link == null;
+    if check16 {
+        return;
+    }
+    var check6 = driver_link_execute(link, "test", 4) == 1;
+    driver_check(check6, "missing tool fails");
+    var path: ByteBuffer;
+    fill(&path, 0, sizeof(ByteBuffer));
+    driver_text(&path, link.program.data);
+    host_text_terminate(&path);
+    var other: ByteBuffer;
+    fill(&other, 0, sizeof(ByteBuffer));
+    driver_text(&other, link.runtime.data);
+    host_text_terminate(&other);
+    var check7 = driver_same(path.data, other.data) == false;
+    driver_check(check7, "unique temporary names");
+    driver_link_close(link);
+    var file = fopen(path.data, "rb");
+    var check8 = file == null;
+    driver_check(check8, "program temporary removed after failure");
+    var check17 = file != null;
+    if check17 {
+        fclose(file);
+    }
+    file = fopen(other.data, "rb");
+    var check9 = file == null;
+    driver_check(check9, "runtime temporary removed after failure");
+    var check18 = file != null;
+    if check18 {
+        fclose(file);
+    }
+    bytes_dispose(&path);
+    bytes_dispose(&other);
+}
+
+fn driver_test_read(path: u8*, wanted: u8*, exact: bool): void {
+    var out: ByteBuffer;
+    fill(&out, 0, sizeof(ByteBuffer));
+    var ok = driver_read_file(path, &out);
+    driver_check(ok, path);
+    if ok {
+        if exact {
+            driver_check_text(out.data, wanted);
+        }
+        else {
+            var found = strstr(out.data, wanted) != null;
+            driver_check(found, wanted);
+        }
+    }
+    bytes_dispose(&out);
+}
+
+fn driver_test_capture(args: DriverArguments*): i32 {
+    fflush(null);
+    var output = fopen("driver stdout.txt", "wb");
+    var error = fopen("driver stderr.txt", "wb");
+    var ok = output != null;
+    if ok {
+        ok = error != null;
+    }
+    driver_check(ok, "capture files");
+    var saved_output = driver_test_dup(1);
+    var saved_error = driver_test_dup(2);
+    ok = saved_output >= 0;
+    if ok {
+        ok = saved_error >= 0;
+    }
+    driver_check(ok, "saved output descriptors");
+    driver_test_dup2(driver_test_file(output), 1);
+    driver_test_dup2(driver_test_file(error), 2);
+    var result = driver_command(args);
+    fflush(null);
+    driver_test_dup2(saved_output, 1);
+    driver_test_dup2(saved_error, 2);
+    driver_test_close(saved_output);
+    driver_test_close(saved_error);
+    fclose(output);
+    fclose(error);
+    return result;
+}
+
+fn driver_test_same_file(left: u8*, right: u8*): void {
+    var a: ByteBuffer;
+    var b: ByteBuffer;
+    fill(&a, 0, sizeof(ByteBuffer));
+    fill(&b, 0, sizeof(ByteBuffer));
+    driver_check(driver_read_file(left, &a), left);
+    driver_check(driver_read_file(right, &b), right);
+    driver_check_text(a.data, b.data);
+    bytes_dispose(&a);
+    bytes_dispose(&b);
+}
+
+fn driver_test_compile(compiler: u8*, source: u8*, kind: u8*, output: u8*, extra: u8*, value: u8*): i32 {
+    var args: DriverArguments;
+    driver_arguments_init(&args);
+    driver_argument(&args, "", compiler);
+    driver_argument(&args, "", source);
+    driver_argument(&args, "", "--emit");
+    driver_argument(&args, "", kind);
+    driver_argument(&args, "", "-o");
+    driver_argument(&args, "", output);
+    var more = extra[0] != 0;
+    if more {
+        driver_argument(&args, "", extra);
+        var valued = value != null;
+        if valued {
+            driver_argument(&args, "", value);
+        }
+    }
+    var result = driver_test_capture(&args);
+    driver_arguments_dispose(&args);
+    return result;
+}
+
+fn driver_test_outputs(compiler: u8*, source: u8*): void {
+    var result = driver_test_compile(compiler, source, "object", "driver object.o", "", null);
+    var ok = result == 0;
+    driver_check(ok, "object output");
+    result = driver_test_compile(compiler, source, "llvm-optimized", "driver optimized-kind.ll", "", null);
+    ok = result == 0;
+    driver_check(ok, "optimized LLVM output");
+    driver_test_same_file("driver optimized-kind.ll", "driver optimized.ll");
+    result = driver_test_compile(compiler, source, "foundation", "driver foundation.tower", "--strip-comments", null);
+    ok = result == 0;
+    driver_check(ok, "canonical Foundation output");
+    driver_test_read("driver foundation.tower", "print(42)", false);
+    result = driver_test_compile(compiler, source, "c", "driver output.c", "--no-optimize", null);
+    ok = result == 0;
+    driver_check(ok, "C output");
+    result = driver_test_compile(compiler, source, "brightscript", "driver output.brs", "", null);
+    ok = result == 0;
+    driver_check(ok, "BrightScript output");
+    result = driver_test_compile(compiler, source, "bytecode", "driver program.towerbc", "", null);
+    ok = result == 0;
+    driver_check(ok, "bytecode output");
+    var args: DriverArguments;
+    driver_arguments_init(&args);
+    driver_argument(&args, "", compiler);
+    driver_argument(&args, "", "driver program.towerbc");
+    result = driver_test_capture(&args);
+    ok = result == 0;
+    driver_check(ok, "bytecode execution");
+    driver_test_read("driver stdout.txt", "42\n", true);
+    driver_arguments_dispose(&args);
+
+    var library = "import tower;\nexport fn answer(): i32 { return 42; }\n";
+    driver_check(driver_write_file("driver library.tower", library, strlen(library)), "library fixture");
+    result = driver_test_compile(compiler, "driver library.tower", "object", "driver library.o", "--library", null);
+    ok = result == 0;
+    driver_check(ok, "library object");
+    var program = "import tower;\nextern fn answer(): i32;\nprint(answer());\n";
+    driver_check(driver_write_file("driver link.tower", program, strlen(program)), "link fixture");
+    result = driver_test_compile(compiler, "driver link.tower", "exe", "driver linked", "--link", "driver library.o");
+    ok = result == 0;
+    driver_check(ok, "separate library linking");
+    driver_arguments_init(&args);
+    driver_argument(&args, "", "./driver linked");
+    result = driver_test_capture(&args);
+    ok = result == 0;
+    driver_check(ok, "linked library execution");
+    driver_test_read("driver stdout.txt", "42\n", true);
+    driver_arguments_dispose(&args);
+}
+
+fn driver_test_errors(compiler: u8*, source: u8*): void {
+    var invalid = "import tower;\n\n// é: UTF-8 provenance\nvar value: i32 = true;\n";
+    driver_check(driver_write_file("driver invalid.tower", invalid, strlen(invalid)), "invalid fixture");
+    var result = driver_test_compile(compiler, "driver invalid.tower", "object", "driver invalid.o", "--interpret", null);
+    var ok = result == 1;
+    driver_check(ok, "diagnostic exit code");
+    driver_test_read("driver stderr.txt", "driver invalid.tower:4:", false);
+    driver_test_read("driver stderr.txt", "Expected i32, got bool", false);
+    result = driver_test_compile(compiler, source, "object", "/tower-missing-directory/out.o", "", null);
+    ok = result == 1;
+    driver_check(ok, "unwritable output exit code");
+    result = driver_test_compile(compiler, source, "exe", "driver failed", "--link", "driver missing.o");
+    ok = result == 1;
+    driver_check(ok, "missing link input exit code");
+    driver_test_read("driver stderr.txt", "Missing link input: driver missing.o", false);
+    result = driver_test_compile(compiler, source, "exe", "driver failed", "--cc", "tower-deliberately-missing-tool-239482");
+    ok = result == 1;
+    driver_check(ok, "missing compiler exit code");
+    driver_test_read("driver stderr.txt", "Cannot find tool: tower-deliberately-missing-tool-239482", false);
+    result = driver_test_compile(compiler, source, "unknown", "driver failed", "", null);
+    ok = result == 1;
+    driver_check(ok, "unknown output exit code");
+    driver_test_read("driver stderr.txt", "Unknown output kind: unknown\n", true);
+    result = driver_test_compile(compiler, source, "object", "driver failed", "--target", "roku");
+    ok = result == 1;
+    driver_check(ok, "Roku mode validation");
+    driver_test_read("driver stderr.txt", "Roku target emits BrightScript source", false);
+    var args: DriverArguments;
+    driver_arguments_init(&args);
+    driver_argument(&args, "", compiler);
+    driver_argument(&args, "", "--help");
+    driver_argument(&args, "", "--unknown");
+    result = driver_test_capture(&args);
+    ok = result == 0;
+    driver_check(ok, "help exits before later invalid argument");
+    driver_test_read("driver stdout.txt", "--target", false);
+    driver_arguments_dispose(&args);
+    driver_arguments_init(&args);
+    driver_argument(&args, "", compiler);
+    driver_argument(&args, "", "--timings");
+    driver_argument(&args, "", "--target");
+    result = driver_test_capture(&args);
+    ok = result == 1;
+    driver_check(ok, "missing value exit code");
+    driver_test_read("driver stderr.txt", "Missing argument for --target\nTower timings (ms): {", false);
+    driver_arguments_dispose(&args);
+}
+
+fn driver_test_cli(compiler: u8*): void {
+    var source = "driver fixture with spaces.tower";
+    var program = "import tower;\nprint(42);\n";
+    driver_check(driver_write_file(source, program, strlen(program)), "source fixture");
+    var args: DriverArguments;
+    driver_arguments_init(&args);
+    driver_argument(&args, "", compiler);
+    driver_argument(&args, "", source);
+    driver_argument(&args, "", "--emit");
+    driver_argument(&args, "", "llvm");
+    driver_argument(&args, "", "-o");
+    driver_argument(&args, "", "driver raw.ll");
+    driver_argument(&args, "", "--raw-ir");
+    driver_argument(&args, "", "driver duplicate.ll");
+    driver_argument(&args, "", "--optimized-ir");
+    driver_argument(&args, "", "driver optimized.ll");
+    driver_argument(&args, "", "--depfile");
+    driver_argument(&args, "", "driver deps.d");
+    driver_argument(&args, "", "--timings");
+    var check10 = driver_test_capture(&args) == 0;
+    driver_check(check10, "CLI LLVM and dependency outputs");
+    driver_arguments_dispose(&args);
+    driver_test_read("driver raw.ll", "define", false);
+    driver_test_read("driver duplicate.ll", "define", false);
+    driver_test_read("driver optimized.ll", "define", false);
+    driver_test_read("driver deps.d", "driver\\ fixture\\ with\\ spaces.tower", false);
+    driver_test_read("driver stderr.txt", "Tower timings (ms): {", false);
+    driver_test_same_file("driver raw.ll", "driver duplicate.ll");
+
+    driver_arguments_init(&args);
+    driver_argument(&args, "", compiler);
+    driver_argument(&args, "", source);
+    driver_argument(&args, "", "--interpret");
+    var check11 = driver_test_capture(&args) == 0;
+    driver_check(check11, "CLI reference interpreter");
+    driver_test_read("driver stdout.txt", "42\n", true);
+    driver_arguments_dispose(&args);
+    driver_arguments_init(&args);
+    driver_argument(&args, "", compiler);
+    driver_argument(&args, "", source);
+    driver_argument(&args, "", "--interpret-fast");
+    var check12 = driver_test_capture(&args) == 0;
+    driver_check(check12, "CLI fast interpreter");
+    driver_test_read("driver stdout.txt", "42\n", true);
+    driver_arguments_dispose(&args);
+    driver_arguments_init(&args);
+    driver_argument(&args, "", compiler);
+    driver_argument(&args, "", source);
+    driver_argument(&args, "", "-o");
+    driver_argument(&args, "", "driver executable");
+    var check13 = driver_test_capture(&args) == 0;
+    driver_check(check13, "CLI executable linking");
+    driver_arguments_dispose(&args);
+    driver_arguments_init(&args);
+    driver_argument(&args, "", "./driver executable");
+    var check14 = driver_test_capture(&args) == 0;
+    driver_check(check14, "compiled executable runs");
+    driver_test_read("driver stdout.txt", "42\n", true);
+    driver_arguments_dispose(&args);
+    driver_test_outputs(compiler, source);
+    driver_test_errors(compiler, source);
+}
+
+export fn driver_tests(argc: i32, argv: u8**): i32 {
+    var check19 = argc > 1;
+    if check19 {
+        if driver_same(argv[1], "--failure") {
+            return 127;
+        }
+        if driver_same(argv[1], "--arguments") {
+            var check20 = argc != 6;
+            if check20 {
+                return 2;
+            }
+            driver_check_text(argv[2], "a b");
+            driver_check_text(argv[3], "");
+            driver_check_text(argv[4], "a\"b\\");
+            driver_check_text(argv[5], "; $HOME & |");
+            return 0;
+        }
+    }
+    driver_test_policies();
+    driver_test_process(argv[0]);
+    driver_test_platform_cases();
+    var check21 = argc > 1;
+    if check21 {
+        driver_test_cli(argv[1]);
+    }
+    return 0;
+}

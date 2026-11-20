@@ -19115,3 +19115,96 @@ Local deployment verification passes all 69 asset checks and desktop/mobile/
 Linux target-default flows. These timings are validation observations, not
 performance benchmarks. Final packaging, hosted verification and completion of
 the extended native/portable suites remain pending.
+## 2026-11-20: Tower native CLI host-policy migration
+
+Pulled main from 04b0613 to 4ece094 before editing. The user assigned driver.cpp,
+scaffolding/host/driver-*.tower, Tower CLI tests and an isolated build fragment,
+with no new C++ implementation or tests and no uncoordinated compiler/backend API
+changes. No subagents were used. todo.txt is untouched.
+
+Implemented Tower ownership of option-result reporting and Roku output policy,
+module-aware diagnostic composition through the existing frontend location API,
+locale-independent ordered timing reports, optional LLVM output writes, owned
+argument vectors, runtime compile/link command construction, temporary-file
+lifetime and direct process execution. Tower's existing vector/ByteBuffer modules,
+ordinary inferred locals, match and while are used; no alternate compiler graph
+or instruction ABI was added. C++ changes are private host declarations and
+connections to these Tower functions. The existing compilation, optimization,
+packaging and interpreter entry APIs have not changed.
+
+POSIX uses an explicit PATH search, fork/execv and a close-on-exec error pipe;
+execv deliberately avoids execvp's implicit shell fallback for executable text
+without a shebang. Windows uses the existing CRT _spawnvp ABI with Tower-written
+Microsoft CRT argument quoting, including empty strings, embedded quotes and
+trailing backslashes. Both preserve argument boundaries. Temporary creation uses
+mkstemp or GetTempFileNameA, closes handles before tool execution and removes every
+successfully created file on ordinary success/failure returns. Allocation failure
+before creation cannot mark a path as owned. No shell interprets user arguments.
+Supported host ABI profiles are explicit 64-bit Linux, macOS and Windows; this
+does not constrain the compiler's output target or its 32-bit guest layouts.
+
+Tower timing values are integer nanoseconds rendered as milliseconds with six
+fractional digits in the existing sorted-key JSON envelope. Clock values only
+measure host execution; they do not affect compiler semantics or cache identity.
+The existing backend transport still supplies its double millisecond substage
+measurements; the C++ connection converts their units at the boundary. Diagnostic
+writes flush prior libc/iostream output before direct stream writes.
+
+cmake/TowerDriver.cmake builds a separate production object, adds it to the native
+CLI and retained stage1 target, and optionally builds standalone Tower tests.
+The test executable reuses the existing runtime.c allocation/trap implementation;
+it introduces no native test code. Test code is excluded from the production
+object. The old TOWER_BOOTSTRAP_HOST implementations remain conditional seed code:
+this turn does not establish a source-only bootstrap or justify deleting them.
+Source compilation/grammar installation, CoreProgram and CoreMachine transport
+still require the existing native interfaces. A complete orchestration port must
+coordinate those API/lifetime boundaries with their owners; none was silently
+changed or copied into a new driver semantic model.
+
+Validation environment: Windows host plus the existing tower-c-validation Docker
+container (tower_build, /work bind mount, /cache volume), LLVM 19, validated
+/cache/performance-bootstrap/towerc. Default WSL is docker-desktop and has no bash;
+used the existing build container instead. Native configuration:
+cmake -S /work -B /cache/c-native -DTOWER_NATIVE=ON
+-DTOWER_BOOTSTRAP_COMPILER=/cache/performance-bootstrap/towerc
+-DCMAKE_PROJECT_scaffolding_INCLUDE=/work/cmake/TowerBackend.cmake
+-DLLVM_DIR=/usr/lib/llvm-19/lib/cmake/llvm -DTOWER_DRIVER_TESTS=ON.
+Build towerc and tower-driver-tests, then
+ctest --test-dir /cache/c-native -R tower-driver --output-on-failure.
+The full Tower CLI suite passes, covering exact captured stdout/errors, UTF-8
+source provenance, early help, missing options, unknown output, both interpreters,
+raw/optimized IR equality, dependency escaping, all text/bytecode output kinds,
+bytecode execution, object output, separate library linking and executable output.
+
+Trials/corrections: Foundation accepts binary values but requires operand-only
+if/return/call arguments; used explicit named booleans where required and Tower
+while/match for structured control. `expected` is a declaration-reader token, so
+the test parameter is `wanted`. Library units reject executable global initializers;
+assertions now report and exit directly. CMake enable_testing inside the deferred
+function did not register CTest files; moved it to the include's directory scope.
+The Windows standalone build initially combined external declarations with their
+implementations in one unit; compiled the host support and byte library separately,
+as the existing ABI requires. Windows platform tests then linked with MSVC CRT and
+kernel32 and ran successfully, including process argument preservation and cleanup.
+The macOS ARM64 driver object cross-compiles; no macOS execution is claimed.
+
+The existing Python distribution verifier stops at its stale line-2 diagnostic
+expectation, while distribution-invalid.tower's error is on line 4. Both baseline
+/cache/performance-bootstrap/towerc and the new CLI emit the identical line-4
+location. That Python test was not edited (new tests must be Tower). The new Tower
+suite independently exercises the relevant library/link/interpret/output checks
+and explicitly checks the correct line-4 diagnostic. Its final result, successor
+object determinism, final rebase and deployment evidence follow below.
+
+Final implementation checks: the isolated standalone CTest suite passes in 5.13 s
+(build/driver-final-tests.log). Rebuilt Windows fixtures run successfully from
+`build/driver windows tests.exe`, exercising an executable filename with spaces.
+The POSIX suite also rejects an executable text file without a shebang instead
+of interpreting it with a shell. Both runs intentionally diagnose the named
+missing-tool fixture. The ordinary shared Tower formatter passes idempotence and
+parse-tree preservation for all changed driver modules. `git diff --check` passes.
+The established build-native.sh command deployed the native executable and its
+adjacent share/tower resources into build/native; log: driver-native-build.log.
+Browser production code is unchanged by this host-only unit. Publication will
+preserve the latest complete gh-pages assets and record this native-only source
+revision in manifest provenance; it does not distribute a portable native release.

@@ -1,0 +1,28 @@
+import tower;
+
+struct DriverOptions {
+    source: u8*;
+    output: u8*;
+    target: u8*;
+    emit: u8*;
+    cc: u8*;
+    linker: u8*;
+    sysroot: u8*;
+    raw: u8*;
+    optimized: u8*;
+    bedrock: u8*;
+    foundation: u8*;
+    depfile: u8*;
+    links: u8**;
+    link_count: usize;
+    optimize: bool;
+    interpret: bool;
+    library: bool;
+    timings: bool;
+    help: bool;
+    version: bool;
+    fast: bool;
+    error: u32;
+    argument: u8*;
+    comments: bool;
+}

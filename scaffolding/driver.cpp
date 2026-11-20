@@ -7,16 +7,38 @@
 #include "compiler-host.hpp"
 #include "compiler-frontend.hpp"
 #include <llvm/TargetParser/Host.h>
+#ifdef TOWER_BOOTSTRAP_HOST
 #include <llvm/Support/Program.h>
-#include <llvm/Support/FileSystem.h>
 #include <llvm/ADT/SmallString.h>
+#include <chrono>
+#endif
+#include <llvm/Support/FileSystem.h>
 #include <fstream>
 #include <iostream>
 #include <filesystem>
-#include <chrono>
 
 namespace fs = std::filesystem;
+#ifndef TOWER_BOOTSTRAP_HOST
+// Private host connections. Compiler/backend APIs and semantic objects are unchanged.
+extern "C" {
+void* driver_timing_open();
+void driver_timing_mark(void*, bool, const char*);
+void driver_timing_value(void*, const char*, uint64_t);
+void driver_timing_close(void*, bool);
+void driver_error(const char*, const char*);
+void driver_message(int, const char*, const char*, bool);
+int driver_prepare(DriverOptions*, size_t, const char* const*, const char*);
+void driver_report(const char*, size_t, const char*, size_t, const char*, void*);
+bool driver_write_ir(const char*, const char*, size_t, const char*, const char*, size_t);
+void* driver_link_open(const char*, const char*, const char*, const char*, const char*, const char*, bool, bool, void*, bool);
+void driver_link_import(void*, const char*);
+void driver_link_export(void*, const char*);
+void driver_link_input(void*, const char*);
+int driver_link_run(void*, const uint8_t*, size_t);
+}
+#endif
 namespace {
+#ifdef TOWER_BOOTSTRAP_HOST
 struct Timings {
   using Clock = std::chrono::steady_clock;
   Clock::time_point start = Clock::now(), previous = start;
@@ -34,19 +56,28 @@ struct Timings {
     std::cerr << "}\n";
   }
 };
+#else
+struct Timings {
+  void* state = driver_timing_open();
+  bool enabled = false;
+  void mark(const char* name) { driver_timing_mark(state, enabled, name); }
+  ~Timings() { driver_timing_close(state, enabled); }
+};
+#endif
 #ifdef TOWER_BOOTSTRAP_HOST
 std::string read(const fs::path& path) { std::ifstream input(path, std::ios::binary); return {std::istreambuf_iterator<char>(input), {}}; }
 bool write(const fs::path& path, const char* bytes, size_t count) { std::ofstream out(path, std::ios::binary); out.write(bytes, std::streamsize(count)); return bool(out); }
 #else
 std::string read(const fs::path& path) {
   TowerByteBuffer buffer{};
-  if (!driver_read_file(path.string().c_str(), &buffer)) { std::cerr << "Cannot read file: " << path.string() << '\n'; std::exit(1); }
+  if (!driver_read_file(path.string().c_str(), &buffer)) { driver_error("Cannot read file: ", path.string().c_str()); std::exit(1); }
   std::string result(reinterpret_cast<const char*>(buffer.data), buffer.length);
   bytes_dispose(&buffer);
   return result;
 }
 bool write(const fs::path& path, const char* bytes, size_t count) { return driver_write_file(path.string().c_str(), bytes, count); }
 #endif
+#ifdef TOWER_BOOTSTRAP_HOST
 int run(const std::string& executable, const std::vector<std::string>& args) {
   auto path = llvm::sys::findProgramByName(executable); if (!path) { std::cerr << "Cannot find tool: " << executable << '\n'; return 1; }
   std::vector<llvm::StringRef> refs{*path}; for (auto& arg : args) refs.emplace_back(arg);
@@ -59,6 +90,7 @@ struct Temporary {
   ~Temporary() { if (!path.empty()) llvm::sys::fs::remove(path); }
   std::string str() const { return std::string(path); }
 };
+#endif
 }
 int main(int argc, char** argv) {
   Timings timings;
@@ -89,25 +121,17 @@ int main(int argc, char** argv) {
   }
 #else
   DriverOptions options;
-  const bool parsed = driver_parse(&options, size_t(argc), argv, target.c_str());
+  const auto parsed = driver_prepare(&options, size_t(argc), argv, target.c_str());
   timings.enabled = options.timings;
-  if (!parsed) {
-    if (options.error == 1) std::cerr << "Missing argument for " << options.argument << '\n';
-    else if (options.error == 2) std::cerr << "Unexpected argument: " << options.argument << '\n';
-    else std::cerr << "Unable to allocate command-line link inputs\n";
+  if (parsed) {
     driver_dispose(&options);
-    return 1;
-  }
-  if (options.help || options.version) {
-    std::cout << (options.version ? driver_version() : driver_help());
-    driver_dispose(&options);
-    return 0;
+    return parsed == 2 ? 0 : 1;
   }
   TowerByteBuffer resource_path{};
   const bool located = driver_resource_root(&resource_path, llvm::sys::fs::getMainExecutable(argv[0], reinterpret_cast<void*>(&main)).c_str());
   if (located) resources.assign(reinterpret_cast<const char*>(resource_path.data), resource_path.length);
   bytes_dispose(&resource_path);
-  if (!located) { driver_dispose(&options); std::cerr << "Cannot locate compiler resources\n"; return 1; }
+  if (!located) { driver_dispose(&options); driver_error("Cannot locate compiler resources", ""); return 1; }
   source = options.source; output = options.output; target = options.target;
   emit = options.emit; cc = options.cc; linker = options.linker; sysroot = options.sysroot;
   raw = options.raw; optimized = options.optimized; bedrock_path = options.bedrock;
@@ -118,8 +142,8 @@ int main(int argc, char** argv) {
   depfile = options.depfile;
   for (size_t i = 0; i < options.link_count; ++i) inputs.emplace_back(options.links[i]);
   driver_dispose(&options);
-  if (!driver_output_valid(emit.c_str())) { std::cerr << "Unknown output kind: " << emit << '\n'; return 1; }
 #endif
+#ifdef TOWER_BOOTSTRAP_HOST
   if (target == "roku") {
     if (emit != "exe" && emit != "brightscript") { std::cerr << "Roku target emits BrightScript source; use --emit brightscript\n"; return 1; }
     emit = "brightscript";
@@ -128,6 +152,7 @@ int main(int argc, char** argv) {
     if (library || interpret || !inputs.empty()) { std::cerr << "Roku source requires a complete program without native link inputs or interpreter flags\n"; return 1; }
     target = "wasm32-unknown-unknown"; // Explicit VM layout, not a Roku native LLVM triple.
   }
+#endif
   if (source.empty() || !fs::exists(source)) { std::cerr << "Supply a Tower source file; use --help for options\n"; return 1; }
 #ifdef TOWER_BOOTSTRAP_HOST
   const fs::path root = fs::path(llvm::sys::fs::getMainExecutable(argv[0], reinterpret_cast<void*>(&main))).parent_path() / "share/tower";
@@ -154,18 +179,18 @@ int main(int argc, char** argv) {
   ModuleEnvironment* input_modules = nullptr;
   const auto report_error = [&](const std::string& error, size_t offset, const std::string* origin = nullptr) {
     const auto& diagnostic_source = origin ? *origin : text;
-    size_t line = 1, column = 1;
 #ifdef TOWER_BOOTSTRAP_HOST
+    size_t line = 1, column = 1;
     for (size_t i = 0; i < offset && i < diagnostic_source.size(); ++i) {
       auto c = static_cast<unsigned char>(diagnostic_source[i]);
       if (c == '\n') { ++line; column = 1; }
       else if ((c & 0xc0) != 0x80) ++column;
     }
-#else
-    driver_source_position(diagnostic_source.data(), diagnostic_source.size(), offset, &line, &column);
-#endif
     const auto* file = frontend_modules_location(origin && input_modules ? input_modules : syntax_modules, offset, &line, &column);
     std::cerr << (*file ? file : source.c_str()) << ':' << line << ':' << column << ": " << error << '\n';
+#else
+    driver_report(error.c_str(), offset, diagnostic_source.data(), diagnostic_source.size(), source.c_str(), origin && input_modules ? input_modules : syntax_modules);
+#endif
   };
   unsigned packaged_width = 0;
   unsigned packaged_profile = 0;
@@ -191,10 +216,7 @@ int main(int argc, char** argv) {
     if (!error.empty()) { std::cerr << error << '\n'; return 1; }
     auto optimized_program = tower_optimize_foundation(text.c_str(), width, optimize);
     if (!optimized_program.error.empty()) { report_error(optimized_program.error, optimized_program.error_offset); return 1; }
-    if ((!raw.empty() && !write(raw, optimized_program.raw.data(), optimized_program.raw.size())) ||
-        (!optimized.empty() && !write(optimized, optimized_program.optimized.data(), optimized_program.optimized.size()))) {
-      std::cerr << "Cannot write LLVM output\n"; return 1;
-    }
+    if (!driver_write_ir(raw.c_str(), optimized_program.raw.data(), optimized_program.raw.size(), optimized.c_str(), optimized_program.optimized.data(), optimized_program.optimized.size())) return 1;
     error = install_canonical_grammar();
     if (!error.empty()) { std::cerr << error << '\n'; return 1; }
     runtime_source = std::move(text);
@@ -263,18 +285,24 @@ int main(int argc, char** argv) {
   auto object = tower_emit_object(text.c_str(), target, optimize, library);
   if (!frontend_modules_depfile(syntax_modules, output.c_str(), depfile.c_str())) { std::cerr << "Cannot write dependency file: " << depfile << '\n'; return 1; }
   timings.mark("compile");
-  if (timings.enabled) timings.values.insert(object.timings.begin(), object.timings.end());
-  if (!object.error.empty()) { report_error(object.error, object.error_offset); return 1; }
-  if ((!raw.empty() && !write(raw, object.raw.data(), object.raw.size())) || (!optimized.empty() && !write(optimized, object.optimized.data(), object.optimized.size()))) { std::cerr << "Cannot write LLVM output\n"; return 1; }
 #ifdef TOWER_BOOTSTRAP_HOST
+  if (timings.enabled) timings.values.insert(object.timings.begin(), object.timings.end());
+#else
+  if (timings.enabled) for (const auto& [name, ms] : object.timings) driver_timing_value(timings.state, name.c_str(), uint64_t(ms * 1000000));
+#endif
+  if (!object.error.empty()) { report_error(object.error, object.error_offset); return 1; }
+#ifdef TOWER_BOOTSTRAP_HOST
+  if ((!raw.empty() && !write(raw, object.raw.data(), object.raw.size())) || (!optimized.empty() && !write(optimized, object.optimized.data(), object.optimized.size()))) { std::cerr << "Cannot write LLVM output\n"; return 1; }
   if (output.empty()) output = emit == "object" ? "tower.o" : emit.starts_with("llvm") ? "tower.ll" : wasm ? "tower.wasm" : windows ? "tower.exe" : "tower.out";
 #else
+  if (!driver_write_ir(raw.c_str(), object.raw.data(), object.raw.size(), optimized.c_str(), object.optimized.data(), object.optimized.size())) return 1;
   if (output.empty()) output = driver_output_name(emit.c_str(), wasm, windows);
 #endif
   if (emit == "object") return write(output, (const char*)object.bytes.data(), object.bytes.size()) ? 0 : 1;
   if (emit == "llvm" || emit == "llvm-optimized") { auto& text = emit == "llvm" ? object.raw : object.optimized; return write(output, text.data(), text.size()) ? 0 : 1; }
   if (emit != "exe") { std::cerr << "Unknown output kind: " << emit << '\n'; return 1; }
   for (auto& input : inputs) if (!fs::is_regular_file(input)) { std::cerr << "Missing link input: " << input << '\n'; return 1; }
+#ifdef TOWER_BOOTSTRAP_HOST
   Temporary program("o"), runtime("o"), allowed("txt");
   if (program.path.empty() || runtime.path.empty() || allowed.path.empty()) return 1;
   if (!write(program.str(), (const char*)object.bytes.data(), object.bytes.size())) return 1;
@@ -300,4 +328,12 @@ int main(int argc, char** argv) {
   args.insert(args.end(), inputs.begin(), inputs.end());
   if (!windows) { args.push_back("-o"); args.push_back(output); }
   auto result = run(linker, args); timings.mark("link"); return result;
+#else
+  auto* link = driver_link_open(target.c_str(), cc.c_str(), linker.c_str(), sysroot.c_str(), output.c_str(), resources.c_str(), wasm, windows, timings.state, timings.enabled);
+  if (!link) return 1;
+  for (const auto& name : object.imports) driver_link_import(link, name.c_str());
+  for (const auto& name : object.exports) driver_link_export(link, name.c_str());
+  for (const auto& input : inputs) driver_link_input(link, input.c_str());
+  return driver_link_run(link, object.bytes.data(), object.bytes.size());
+#endif
 }

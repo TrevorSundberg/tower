@@ -3,6 +3,26 @@
 The same runtime/parser now also runs in the [static WASM playground](../../playground/README.md).
 Native and WASM parser builds use explicit error returns with C++ exceptions disabled.
 
+The isolated `cmake/TowerDriver.cmake` fragment adds CLI checks with
+`-DTOWER_DRIVER_TESTS=ON` to a native compiler configuration. Build `towerc` and
+`tower-driver-tests`, then run `ctest --test-dir <build> -R tower-driver
+--output-on-failure`. The runner and fixtures are Tower; it launches the real CLI
+and checks output/error bytes, flags, both interpreters, dependency/IR outputs,
+Foundation/C/BrightScript/bytecode outputs, separate library linking and executable
+results. Policy checks also cover target link arguments, timing serialization,
+argument boundaries and temporary cleanup after tool failure. Fixtures stay out
+of the production driver object. The standalone runner reuses `runtime.c` only
+for the existing allocation/trap bindings.
+
+Windows process/quoting checks can run independently of a Windows compiler build:
+cross-compile a manifest importing the driver support, timing, windows-arguments,
+windows, link and prepare modules plus `tests/driver-windows` and `tests/driver`.
+Separately compile `tests/driver-standalone.tower` and `library/bytes.tower`; link
+the three objects with the existing `runtime.c` built with `TOWER_NO_MAIN`, the
+Windows CRT and kernel32. Run without a compiler argument for platform checks.
+The standalone provenance stub is unused by these tests; actual CLI diagnostics
+are checked by launching a real compiler, never by that stub.
+
 The parser command also runs `host-runtime.tower`: CLI ordering, borrowed argument
 lifetimes, link-array cleanup, allocation overflow, zero-size release and injected
 allocation failures are tested in Tower. `towerc-stage1` and `towerc` use the
