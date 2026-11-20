@@ -97,6 +97,71 @@ for all remaining stages, including parallel execution at large project sizes.
    before/after behavior, canonical text, deterministic outputs and performance
    measurements. Replace foundational numeric tags only after preserving their
    transitional foreign ABI. Remove superseded helpers when the successor works.
+10. **Unified asynchronous completion and jobs.** Provide very low overhead
+    coroutines/async execution, native thread joining and compiler/job-group
+    joining through a common typed completion protocol. Develop it with the
+    shared work graph and ownership/result model below. This is a language and
+    runtime goal, not a claim that async/await or thread creation currently works.
+
+## Coroutines, threads and job-group completion
+
+The desired surface is one understandable way to wait for work and obtain its
+typed result, whether that work suspends as a coroutine, completes on a native
+thread, or consists of many dependency-scheduled component batches. An operation
+such as `join(completion)` and optional `await completion` sugar are design
+sketches, not accepted syntax. Completion types should use ordinary Tower type
+construction, such as a future `task(T, E)`, rather than a parallel type system.
+Keep free functions and explicit operands; a hidden receiver is not required.
+
+Separate the completion protocol from execution policy. A coroutine suspension
+does not imply creating a thread. A batch job should use a bounded worker pool;
+a group join should not allocate an OS thread per task. A single result may be
+joined once by its owner, or shared through an explicitly borrowed/shared handle
+whose lifetime and result access are defined. Do not equate shared handles with
+unrestricted mutable payload access. Decide consuming versus repeatable joins,
+single versus multiple waiters, and result ownership before fixing an ABI.
+
+Use explicit state and ordinary `result(T, E)` values, including a defined
+cancellation outcome. There are no exceptions, garbage collector or implicit
+unwinding runtime. State-machine storage can live in caller-owned frames, arenas
+or explicit allocations when lifetimes allow; do not require a heap allocation
+for every suspension, waiter or batch. Captures and borrowed component views must
+remain valid until children finish or are safely drained. Define structured task
+groups and explicit detachment before allowing background work to outlive scope.
+Cancellation requests are distinct from completion and reclamation. Native
+threads cannot be killed while retaining shared-world references or locks.
+
+The coordinator records dependency edges, completion state and waiters in compact
+derived indexes over the same shared entities. Batch notifications and group
+joins should avoid repeated full scans, per-node event dispatch and one allocation
+per edge. Joining from a worker must not consume the last worker needed by its
+dependencies: suspend, park or help execute eligible work through a specified
+policy. Detect dependency cycles; distinguish them from external pending inputs.
+Keep deterministic result/diagnostic publication independent of completion order.
+
+Coroutine lowering should produce ordinary Foundation state, branches, calls and
+explicit lifetime/effect operations on the existing nodes. Canonical Foundation
+must remain compilable and preserve suspended state semantics; no new public
+bytecode, independent coroutine IR or native shim is permitted. Native, browser
+and portable interpreted executors share these contracts. Strict compile-time
+execution must use deterministic scheduling/effect rules and tracked capabilities;
+an OS wake-up order, clock or arbitrary async I/O cannot affect constant values.
+
+Burst-style jobs use the same completion/dependency handles but execute compact
+typed query batches with declared reads/writes, pinned inputs and owned outputs.
+Suspension/joins belong at valid lifetime/publication boundaries, not implicitly
+inside every element of a vectorizable kernel. Keep alias/access facts available
+to LLVM; prove them before emitting noalias or vectorization promises. Thread
+distribution and SIMD remain separately measured capabilities.
+
+Performance acceptance must measure ready/completed joins, suspend/resume,
+fan-out/fan-in, cancellation/drain, allocations, peak memory, wake-up contention
+and starvation across 1/2/4/8 workers and native/browser/interpreted paths. Compare
+small jobs against a direct loop so scheduling overhead cannot hide behind large
+tasks. Record throughput and tail latency, inspect actual vectorized IR/assembly,
+and preserve outputs across worker counts and adversarial completion orders. Set
+concrete budgets from these baselines; "lightning fast" is a goal to demonstrate,
+not an unmeasured guarantee.
 
 ## Resolution and evaluation details
 

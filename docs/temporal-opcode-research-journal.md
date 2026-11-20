@@ -15998,3 +15998,21 @@ benchmark adapter now accepts explicit counts for reproducible focused compariso
 `todo.txt` remains blob 96a9e58964d7f01e4a97819f259448db81ef5e40. Native CLI
 threads, shared-node phase migration, incremental invalidation, packed compiler
 columns and the remaining language roadmap are still required work.
+
+User follow-up adds a language goal: very fast async/coroutines, native thread
+join and Burst-style job/group join through a shared primitive or interface.
+Added the goal and explicit design/measurement gates to `docs/tower-language-plan.md`.
+The proposal separates completion from execution policy, uses ordinary typed
+result/cancellation values, keeps frame/handle ownership explicit, prevents joins
+from starving worker pools, and preserves deterministic Foundation/state-machine
+semantics and compile-time effects. No async syntax or implementation is claimed
+by this documentation update. Continue the current parallel compiler publication.
+
+The final pull brought in 0537084 (dotted imports and identifier highlighting).
+Preserved those changes and both append-only journal histories while rebasing;
+source commits are now 4010596, 33162c0 and 4482345. Prepared pre-integration Pages
+assets are preserved in our stash 4a5baa04b09eb15617fb516257251a8ab8c7d6ef. Advanced
+the clean Pages worktree to upstream a4aa9fa, and are rebuilding the combined
+compiler before repackaging/publishing. This prevents overwriting newer language
+support with an older runtime. The previous 68-asset manifest is superseded by
+that upcoming integrated build, not yet published.
