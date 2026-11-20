@@ -73,13 +73,7 @@ fn node_text_get(text: vector(u8)*): u8* {
 
 fn node_text_set(text: vector(u8)*, source: u8*): bool {
     var count: usize = 0;
-    loop {
-        var done = source[count] == 0;
-        if done {
-            break;
-        }
-        count++;
-    }
+    for(; !(source[count] == 0); count++) {}
     var bytes = count + 1;
     var ok = vector_reserve(u8, text, bytes);
     if ok {
@@ -132,14 +126,8 @@ export fn node_string_data(value: ParserStringData*): u32* {
 export fn node_string_resize(value: ParserStringData*, length: usize): bool {
     var ok = vector_reserve(u32, &value.ids, length);
     if ok {
-        var i = value.ids.length;
-        loop {
-            var done = i >= length;
-            if done {
-                break;
-            }
+        for(var i = value.ids.length; i < length; i++) {
             value.ids.data[i] = 4294967294;
-            i++;
         }
         value.ids.length = length;
     }
@@ -177,7 +165,7 @@ export fn node_string_append(value: ParserStringData*, source: u8*, count: usize
     loop {
         var id: u32;
         var start = source + offset;
-        var remaining = count - offset;
+        var remaining = count -offset;
         var bytes = tower_utf8_decode(start, remaining, &id);
         var done = bytes == 0;
         if done {

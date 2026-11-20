@@ -46,18 +46,12 @@ export fn parse_forest_create(): ParseForestStore* {
 }
 
 export fn parse_forest_destroy(forest: ParseForestStore*): void {
-    var i: usize = 0;
-    loop {
-        var done = i == forest.count;
-        if done {
-            break;
-        }
+    for(var i: usize = 0; i != forest.count; i++) {
         var entity = forest.children[i].entity;
         var owned = entity != null;
         if owned {
             entity_release(entity);
         }
-        i++;
     }
     free(forest.children);
     free(forest.pending);
@@ -69,7 +63,7 @@ fn parse_forest_reserve(forest: ParseForestStore*): bool {
     if enough {
         return true;
     }
-    var capacity = forest.capacity * 2;
+    var capacity = forest.capacity *2;
     var overflow = capacity < forest.capacity;
     if overflow {
         return false;
@@ -144,7 +138,7 @@ fn parse_forest_visit(forest: ParseForestStore*, index: usize, capture: u8*): bo
     }
     var full = forest.pending_count == forest.pending_capacity;
     if full {
-        var capacity = forest.pending_capacity * 2;
+        var capacity = forest.pending_capacity *2;
         var overflow = capacity < forest.pending_capacity;
         if overflow {
             return false;

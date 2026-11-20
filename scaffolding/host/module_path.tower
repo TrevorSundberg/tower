@@ -20,7 +20,7 @@ export fn module_file_case_matches(path: u8*): bool {
     loop {
         var byte = path[i];
         if byte == 47 || byte == 0 {
-            var length = i - start;
+            var length = i -start;
             var check = length != 0;
             if protected_parts != 0 {
                 if check {

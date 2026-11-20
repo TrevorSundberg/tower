@@ -10,7 +10,7 @@ fn next(): i32 {
 }
 
 fn combine(a: i32, b: i32): i32 {
-    var tens = a * 10;
+    var tens = a *10;
     var result = tens + b;
     return result;
 }

@@ -6,6 +6,6 @@ export fn `cpp_name(int foreign_fixture::increment(int value))`(value: i32): i32
 }
 
 export fn `c_name(int foreign_twice(int value))`(value: i32): i32 {
-    var result = value * 2;
+    var result = value *2;
     return result;
 }

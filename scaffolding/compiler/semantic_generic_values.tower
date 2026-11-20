@@ -77,8 +77,12 @@ fn generic_literal(a: GenericAnalysis*, node: void*): bool {
     if sem_is(node, "CoreBinary") {
         return false;
     }
-    if sem_is(node, "TowerExpression") { return false; }
-    if sem_is(node, "TowerComma") { return false; }
+    if sem_is(node, "TowerExpression") {
+        return false;
+    }
+    if sem_is(node, "TowerComma") {
+        return false;
+    }
     if sem_is(node, "CoreLocation") {
         return false;
     }
@@ -135,7 +139,7 @@ fn generic_binding(a: GenericAnalysis*, node: void*, bindings: GenericBinding*):
 }
 
 fn generic_normalize(a: GenericAnalysis*, view: GenericInfo*, depth: usize): void {
-    while view.annotation != null {
+    for(; view.annotation != null; depth++) {
         if !generic_step(a, depth) {
             return;
         }
@@ -147,7 +151,6 @@ fn generic_normalize(a: GenericAnalysis*, view: GenericInfo*, depth: usize): voi
         }
         view.annotation = binding.argument;
         view.bindings = binding.bindings;
-        depth++;
     }
 }
 
@@ -181,12 +184,10 @@ fn generic_view_dependent(a: GenericAnalysis*, node: void*, bindings: GenericBin
             return true;
         }
     }
-    var i: usize = 0;
-    while i < sem_child_count(node) {
+    for(var i: usize = 0; i < sem_child_count(node); i++) {
         if generic_view_dependent(a, sem_child(node, i), bindings, next) {
             return true;
         }
-        i++;
     }
     return false;
 }
@@ -261,7 +262,7 @@ fn generic_record_result(a: GenericAnalysis*, definition: void*): void* {
     var statements = sem_collect(a.context, sem_member(definition, "body"), "Statement");
     var record: void* = null;
     var i: usize = 0;
-    while i < statements.length {
+    for(; i < statements.length; i++) {
         var node = generic_unwrap(statements.data[i]);
         var after = i + 1;
         var last = after == statements.length;
@@ -285,18 +286,16 @@ fn generic_record_result(a: GenericAnalysis*, definition: void*): void* {
                 return null;
             }
         }
-        i++;
     }
     // The returned declaration must be one of those direct declarations.
     i = 0;
-    while i < statements.length {
+    for(; i < statements.length; i++) {
         var inspection_condition21 = generic_unwrap(statements.data[i]) == record;
         if inspection_condition21 {
             meaning.shape_state = GenericShapeState.Fixed;
             meaning.fixed_record = record;
             return record;
         }
-        i++;
     }
     return null;
 }
@@ -355,15 +354,13 @@ fn generic_record(a: GenericAnalysis*, source: GenericInfo*, depth: usize): Gene
             return null;
         }
         var bindings: GenericBinding* = null;
-        var i: usize = 0;
-        while i < parameters.length {
+        for(var i: usize = 0; i < parameters.length; i++) {
             var binding = bits(GenericBinding*, sem_allocate(a.context, sizeof(GenericBinding)));
             binding.parameter = parameters.data[i];
             binding.argument = arguments.data[i];
             binding.bindings = view.bindings;
             binding.next = bindings;
             bindings = binding;
-            i++;
         }
         return generic_view(a, record, bindings);
     }
@@ -393,8 +390,7 @@ fn generic_member(a: GenericAnalysis*, node: void*, source: GenericInfo*, depth:
     var name = sem_identifier(a.context, sem_member(node, "field"));
     var fields = sem_collect(a.context, sem_member(record.annotation, "fields"), "CoreField");
     var field: void* = null;
-    var i: usize = 0;
-    while i < fields.length {
+    for(var i: usize = 0; i < fields.length; i++) {
         var candidate = fields.data[i];
         if sem_equal(name, sem_identifier(a.context, sem_member(candidate, "name"))) {
             var inspection_condition33 = field != null;
@@ -403,7 +399,6 @@ fn generic_member(a: GenericAnalysis*, node: void*, source: GenericInfo*, depth:
             }
             field = candidate;
         }
-        i++;
     }
     var inspection_condition34 = field == null;
     if inspection_condition34 {
@@ -495,11 +490,10 @@ fn generic_expression_seed(a: GenericAnalysis*, source: void*, copy: void*, dept
     }
     var i: usize = 0;
     var next = depth + 1;
-    while i < sem_child_count(source) {
+    for(; i < sem_child_count(source); i++) {
         if !generic_expression_seed(a, sem_child(source, i), sem_child(copy, i), next) {
             return false;
         }
-        i++;
     }
     return true;
 }
@@ -520,17 +514,20 @@ fn generic_expression_result(a: GenericAnalysis*, source: void*, copy: void*, de
     }
     var i: usize = 0;
     var next = depth + 1;
-    while i < sem_child_count(source) {
+    for(; i < sem_child_count(source); i++) {
         generic_expression_result(a, sem_child(source, i), sem_child(copy, i), next);
-        i++;
     }
 }
 
 fn generic_expression_check(a: GenericAnalysis*, node: void*, expected_type: void*, depth: usize): void {
     node = generic_unwrap(node);
     var eligible = sem_is(node, "CoreBinary");
-    if sem_is(node, "TowerExpression") { eligible = true; }
-    if sem_is(node, "TowerComma") { eligible = true; }
+    if sem_is(node, "TowerExpression") {
+        eligible = true;
+    }
+    if sem_is(node, "TowerComma") {
+        eligible = true;
+    }
     if generic_literal(a, node) {
         eligible = true;
     }
@@ -584,10 +581,8 @@ fn generic_value_walk(a: GenericAnalysis*, node: void*, depth: usize): void {
         return;
     }
     var next = depth + 1;
-    var i: usize = 0;
-    while i < sem_child_count(node) {
+    for(var i: usize = 0; i < sem_child_count(node); i++) {
         generic_value_walk(a, sem_child(node, i), next);
-        i++;
     }
     var info = generic_info(node, a.component);
     var inspection_condition49 = info != null;
@@ -633,9 +628,13 @@ fn generic_value_walk(a: GenericAnalysis*, node: void*, depth: usize): void {
             var op = sem_surface_operator(a.context, node, left);
             var assignment = sem_equal(op, "=") || sem_surface_compound(op);
             var kind = GenericInfoKind.Binary;
-            if assignment { kind = GenericInfoKind.Assignment; }
+            if assignment {
+                kind = GenericInfoKind.Assignment;
+            }
             info = generic_info_add(a, node, node, kind);
-            if assignment { generic_view_copy(info, generic_info(left, a.component)); }
+            if assignment {
+                generic_view_copy(info, generic_info(left, a.component));
+            }
             generic_expression_check(a, node, null, next);
         } else {
             if sem_child_count(node) != 1 {
@@ -649,8 +648,12 @@ fn generic_value_walk(a: GenericAnalysis*, node: void*, depth: usize): void {
         }
     }
     var wrapper = sem_is(node, "CoreOperand");
-    if sem_is(node, "TowerExpression") { wrapper = true; }
-    if sem_is(node, "TowerComma") { wrapper = true; }
+    if sem_is(node, "TowerExpression") {
+        wrapper = true;
+    }
+    if sem_is(node, "TowerComma") {
+        wrapper = true;
+    }
     if sem_is(node, "CoreValue") {
         wrapper = true;
     }
@@ -734,8 +737,7 @@ fn generic_format_substitutions(a: GenericAnalysis*, node: void*, bindings: Gene
         return result;
     }
     var result: FormatSubstitution* = null;
-    var i: usize = 0;
-    while i < sem_child_count(node) {
+    for(var i: usize = 0; i < sem_child_count(node); i++) {
         var child = generic_format_substitutions(a, sem_child(node, i), bindings, next);
         var inspection_condition60 = child != null;
         if inspection_condition60 {
@@ -746,7 +748,6 @@ fn generic_format_substitutions(a: GenericAnalysis*, node: void*, bindings: Gene
             last.next = result;
             result = child;
         }
-        i++;
     }
     return result;
 }

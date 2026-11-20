@@ -8,13 +8,11 @@ const PopulationByteSum: u64 = 72340172838076673;
 
 fn population_mask(T: type, value: u64): T {
     var maximum: u64 = 0;
-    var left = sizeof(T) * 8;
-    while left != 0 {
+    for(var left = sizeof(T) *8; left != 0; left--) {
         maximum = maximum * 2;
         maximum++;
-        left--;
     }
-    var masked = value & maximum;
+    var masked = value &maximum;
     return convert(T, masked);
 }
 
@@ -32,12 +30,11 @@ fn population(T: type, value: T): T {
     value = value + high;
     value = value & population_mask(T, PopulationBytes());
     value = value * population_mask(T, PopulationByteSum());
-    var shift = sizeof(T) * 8;
+    var shift = sizeof(T) *8;
     shift = shift - 8;
     var divisor: T = 1;
-    while shift != 0 {
+    for(; shift != 0; shift--) {
         divisor = divisor * 2;
-        shift--;
     }
     var count = value / divisor;
     return count;
@@ -52,7 +49,7 @@ fn verify(T: type, value: T, wanted: T): void {
 }
 
 var i: u32 = 0;
-while i < 256 {
+for (; i < 256; i++) {
     var remaining = i;
     var wanted: u32 = 0;
     while remaining != 0 {
@@ -63,13 +60,12 @@ while i < 256 {
     verify(u8, convert(u8, i), convert(u8, wanted));
     verify(u32, i, wanted);
     verify(u64, convert(u64, i), convert(u64, wanted));
-    var word = i * 16843009;
-    var word_count = wanted * 4;
+    var word = i *16843009;
+    var word_count = wanted *4;
     verify(u32, word, word_count);
-    var wide = convert(u64, i) * 72340172838076673;
-    var wide_count = convert(u64, wanted) * 8;
+    var wide = convert(u64, i) *72340172838076673;
+    var wide_count = convert(u64, wanted) *8;
     verify(u64, wide, wide_count);
-    i++;
 }
 verify(u32, 4294967295, 32);
 verify(u32, 2147483648, 1);

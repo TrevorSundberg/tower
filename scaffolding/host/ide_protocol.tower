@@ -37,13 +37,7 @@ export fn host_source_error(source: u8*, count: usize): u8* {
 
 fn host_protocol_text(out: ByteBuffer*, text: u8*): bool {
     var count: usize = 0;
-    loop {
-        var done = text[count] == 0;
-        if done {
-            break;
-        }
-        count++;
-    }
+    for(; !(text[count] == 0); count++) {}
     return bytes_append(out, text, count);
 }
 
@@ -69,12 +63,7 @@ export fn host_execution_json(out: ByteBuffer*, error: u8*, error_count: usize, 
         ok = host_json_unsigned(out, wide);
     }
     ok &&= host_protocol_text(out, ",\"outputBytes\":[");
-    var i: usize = 0;
-    loop {
-        var end = i == output_count;
-        if end {
-            break;
-        }
+    for(var i: usize = 0; i != output_count; i++) {
         if !ok {
             break;
         }
@@ -86,7 +75,6 @@ export fn host_execution_json(out: ByteBuffer*, error: u8*, error_count: usize, 
             var byte = convert(u64, output[i]);
             ok = host_json_unsigned(out, byte);
         }
-        i++;
     }
     ok &&= host_protocol_text(out, "],\"steps\":");
     ok &&= host_json_unsigned(out, steps);

@@ -83,7 +83,7 @@ export fn driver_write_file(path: u8*, data: u8*, count: usize): bool {
             break;
         }
         var next = data + written;
-        var remaining = count - written;
+        var remaining = count -written;
         var amount = fwrite(next, 1, remaining, file);
         var stalled = amount == 0;
         if stalled {

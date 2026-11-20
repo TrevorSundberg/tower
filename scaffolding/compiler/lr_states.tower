@@ -60,27 +60,17 @@ fn lr_state_equal(analysis: LRAnalysis*, a: LRItems*, b: LRItems*): bool {
     var left: usize = 0;
     var right: usize = 0;
     loop {
-        loop {
-            var end = left == a.values.length;
-            if end {
-                break;
-            }
+        for(; left != a.values.length; left++) {
             var kernel = lr_kernel(analysis, &a.values.data[left]);
             if kernel {
                 break;
             }
-            left++;
         }
-        loop {
-            var end = right == b.values.length;
-            if end {
-                break;
-            }
+        for(; right != b.values.length; right++) {
             var kernel = lr_kernel(analysis, &b.values.data[right]);
             if kernel {
                 break;
             }
-            right++;
         }
         var end = left == a.values.length;
         if end {
@@ -134,7 +124,7 @@ fn lr_state_symbol(analysis: LRAnalysis*, state: LRState*, symbol: usize): bool 
         if done {
             break;
         }
-        var middle = high - low;
+        var middle = high -low;
         middle = middle / 2;
         middle = middle + low;
         var less = lr_symbol_less(analysis, state.symbols.data[middle], symbol);
@@ -156,8 +146,8 @@ fn lr_state_symbol(analysis: LRAnalysis*, state: LRState*, symbol: usize): bool 
     if !ok {
         return false;
     }
-    var moved = state.symbols.length - low;
-    var bytes = moved * sizeof(usize);
+    var moved = state.symbols.length -low;
+    var bytes = moved *sizeof(usize);
     var next = low + 1;
     copy(&state.symbols.data[next], &state.symbols.data[low], bytes);
     state.symbols.data[low] = symbol;
@@ -178,14 +168,8 @@ export fn lr_states_destroy(value: LRStates*): void {
     if missing {
         return;
     }
-    var index: usize = 0;
-    loop {
-        var done = index == value.states.length;
-        if done {
-            break;
-        }
+    for(var index: usize = 0; index != value.states.length; index++) {
         lr_state_destroy(value.states.data[index]);
-        index++;
     }
     vector_dispose(LRState*, &value.states);
     vector_dispose(usize, &value.pending);
@@ -194,7 +178,7 @@ export fn lr_states_destroy(value: LRStates*): void {
 }
 
 fn lr_states_rehash(value: LRStates*): bool {
-    var needed = value.states.length * 2;
+    var needed = value.states.length *2;
     var enough = value.buckets.length > needed;
     if enough {
         return true;
@@ -207,13 +191,8 @@ fn lr_states_rehash(value: LRStates*): bool {
     }
     value.buckets.length = needed;
     var index: usize = 0;
-    loop {
-        var done = index == needed;
-        if done {
-            break;
-        }
+    for(; index != needed; index++) {
         value.buckets.data[index] = lr_none();
-        index++;
     }
     index = 0;
     loop {

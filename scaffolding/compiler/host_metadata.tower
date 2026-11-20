@@ -82,10 +82,8 @@ fn metadata_name(node: Entity*, text: vector(u8)*): void {
         }
         if terminal {
             var label = parser_match_get_label(span);
-            var index: usize = 0;
-            while label[index] != 0 {
+            for(var index: usize = 0; label[index] != 0; index++) {
                 compiler_entity_require(vector_push(u8, text, label[index]));
-                index++;
             }
         } else {
             var count = entity_child_count(current);
@@ -136,10 +134,8 @@ export fn compiler_name_equal(left: Entity*, right: Entity*): bool {
     metadata_name(left, &x);
     metadata_name(right, &y);
     var equal = x.length == y.length;
-    var index: usize = 0;
-    while index < x.length {
+    for(var index: usize = 0; index < x.length; index++) {
         equal &&= x.data[index] == y.data[index];
-        index++;
     }
     vector_dispose(u8, &x);
     vector_dispose(u8, &y);

@@ -10,7 +10,7 @@ struct Bytes {
 fn append(buffer: Bytes*, value: u8): void {
     var full: bool = buffer.length == buffer.capacity;
     if full {
-        var capacity: usize = buffer.capacity * 2;
+        var capacity: usize = buffer.capacity *2;
         var empty: bool = capacity == 0;
         if empty {
             capacity = 8;

@@ -42,13 +42,8 @@ export fn frontend_diagnostic_destroy(d: FrontendDiagnostic*): void {
     lr_probe_destroy(d.continuation);
     vector_dispose(FrontendRulePosition, &d.current.contexts);
     var i: usize = 0;
-    loop {
-        var done = i == d.options.length;
-        if done {
-            break;
-        }
+    for(; i != d.options.length; i++) {
         vector_dispose(FrontendRulePosition, &d.options.data[i].contexts);
-        i++;
     }
     vector_dispose(FrontendExpectation, &d.options);
     free(d);
@@ -89,7 +84,7 @@ reader: bool, bad_input: bool, lookahead: u32, offset: usize): FrontendDiagnosti
         return d;
     }
     var frames = lr_probe_frames(d.original);
-    var last = count - 1;
+    var last = count -1;
     var state = frames[last].state;
     var actions = lr_runtime_actions(d.runtime, state);
     d.count = lr_runtime_action_count(d.runtime, state);
@@ -100,14 +95,8 @@ reader: bool, bad_input: bool, lookahead: u32, offset: usize): FrontendDiagnosti
     }
     // Runtime rows are already sorted by first terminal ID. No extra sort or
     // unbounded candidate allocation is necessary on an error path.
-    var i: usize = 0;
-    loop {
-        var done = i == d.count;
-        if done {
-            break;
-        }
+    for(var i: usize = 0; i != d.count; i++) {
         d.candidates[i] = actions[i].first;
-        i++;
     }
     return d;
 }
@@ -154,13 +143,13 @@ export fn frontend_diagnostic_contexts(d: FrontendDiagnostic*, items: FrontendCo
         }
         var item = &items[i];
         var active = item.term != 0;
-        var last = frame_count - 1;
+        var last = frame_count -1;
         var within = item.term < last;
         if !within {
             active = false;
         }
         if active {
-            var begin = last - item.term;
+            var begin = last -item.term;
             var position = begin;
             var consumed: bool = false;
             loop {

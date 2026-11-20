@@ -59,9 +59,7 @@ fn parser_state_clear(value: vector(u8)*): void {
 
 fn parser_state_assign(value: vector(u8)*, text: u8*): void {
     var length: usize = 0;
-    while text[length] != 0 {
-        length++;
-    }
+    for(; text[length] != 0; length++) {}
     var empty = length == 0;
     if empty {
         parser_state_clear(value);
@@ -101,7 +99,7 @@ export fn parser_stream_from_userdata(data: void*): ParserStream* {
     if missing {
         return null;
     }
-    var address = bits(u8*, data) - sizeof(ParserStream);
+    var address = bits(u8*, data) -sizeof(ParserStream);
     return bits(ParserStream*, address);
 }
 
@@ -143,7 +141,7 @@ export fn parser_stream_utf8_create(begin: u8*, end: u8*): ParserStream* {
     }
     var data = bits(ParserUtf8Stream*, parser_stream_get_userdata(stream));
     fill(data, 0, sizeof(ParserUtf8Stream));
-    var length = bits(usize, end) - bits(usize, begin);
+    var length = bits(usize, end) -bits(usize, begin);
     var ok = bytes_assign_text(&data.source, begin, length);
     data.allocation_failed = !ok;
     return stream;
@@ -151,9 +149,7 @@ export fn parser_stream_utf8_create(begin: u8*, end: u8*): ParserStream* {
 
 export fn parser_stream_utf8_null_terminated_create(text: u8*): ParserStream* {
     var length: usize = 0;
-    while text[length] != 0 {
-        length++;
-    }
+    for(; text[length] != 0; length++) {}
     var end = text + length;
     return parser_stream_utf8_create(text, end);
 }
@@ -201,7 +197,7 @@ export fn parser_stream_poll(stream: ParserStream*, id: u32*, start: usize*, len
             parser_stream_set_error(stream, "Unable to allocate UTF-8 stream source");
             return true;
         }
-        var remaining = data.source.length - data.cursor;
+        var remaining = data.source.length -data.cursor;
         var at = data.source.data + data.cursor;
         var read = tower_utf8_decode(at, remaining, id);
         var decoded = read != 0;

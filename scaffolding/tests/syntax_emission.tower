@@ -61,11 +61,7 @@ fn emission_test_init(f: EmissionFixture*, context: SyntaxEmissionInput*, bedroc
     if bedrock {
         var document = emission_test_node(f, context.root);
         var index: usize = 0;
-        loop {
-            var done = index == document.items.length;
-            if done {
-                break;
-            }
+        for(; index != document.items.length; index++) {
             var node = document.items.data[index];
             var data = emission_test_node(f, node);
             var rule = data.kind == 1;
@@ -78,7 +74,6 @@ fn emission_test_init(f: EmissionFixture*, context: SyntaxEmissionInput*, bedroc
             if !ok {
                 f.failed = true;
             }
-            index++;
         }
     }
 }
@@ -180,11 +175,7 @@ fn emission_test_reserve(f: EmissionFixture*, name: u8*): void {
 fn emission_test_input(f: EmissionFixture*): void {
     f.rules.length = 0;
     var index: usize = 0;
-    loop {
-        var done = index == f.definitions.length;
-        if done {
-            break;
-        }
+    for(; index != f.definitions.length; index++) {
         var data = emission_test_node(f, f.definitions.data[index]);
         var rule: SyntaxRuleView;
         rule.name = node_text_get(&data.name);
@@ -202,7 +193,7 @@ fn emission_test_input(f: EmissionFixture*): void {
             if first {
                 break;
             }
-            var previous = position - 1;
+            var previous = position -1;
             var left = &f.rules.data[previous];
             var order = syntax_bytes_compare(left.name, left.name_length, rule.name, rule.name_length);
             var ordered = order <= 0;
@@ -213,7 +204,6 @@ fn emission_test_input(f: EmissionFixture*): void {
             position = previous;
         }
         copy(&f.rules.data[position], &rule, sizeof(SyntaxRuleView));
-        index++;
     }
     f.input.rules = f.rules.data;
     f.input.count = f.rules.length;
@@ -311,11 +301,7 @@ fn emission_test_metadata(actual: SyntaxEmission*, reference: void*): bool {
     var expected_count = reference_syntax_emission_name_count(reference);
     var found: usize = 0;
     var index: usize = 0;
-    loop {
-        var done = index == count;
-        if done {
-            break;
-        }
+    for(; index != count; index++) {
         var a: SyntaxEmissionName;
         syntax_emission_name(actual, index, &a);
         var relevant = a.literal != 4294967294;
@@ -362,7 +348,6 @@ fn emission_test_metadata(actual: SyntaxEmission*, reference: void*): bool {
                 at++;
             }
         }
-        index++;
     }
     var same = found == expected_count;
     if !same {
@@ -374,11 +359,7 @@ fn emission_test_metadata(actual: SyntaxEmission*, reference: void*): bool {
         return false;
     }
     index = 0;
-    loop {
-        var done = index == count;
-        if done {
-            break;
-        }
+    for(; index != count; index++) {
         var a: SyntaxEmissionProduction;
         var b: SyntaxEmissionProduction;
         syntax_emission_production(actual, index, &a);
@@ -389,7 +370,6 @@ fn emission_test_metadata(actual: SyntaxEmission*, reference: void*): bool {
         if !same {
             return false;
         }
-        index++;
     }
     count = syntax_emission_helper_count(actual);
     same = count == reference_syntax_emission_helper_count(reference);
@@ -461,11 +441,7 @@ fn emission_test_both(f: EmissionFixture*): bool {
     var ordinary = syntax_emit(&f.input);
     var count = syntax_emission_name_count(ordinary);
     var index: usize = 0;
-    loop {
-        var done = index == count;
-        if done {
-            break;
-        }
+    for(; index != count; index++) {
         var entry: SyntaxEmissionName;
         syntax_emission_name(ordinary, index, &entry);
         var literal = entry.literal != 4294967294;
@@ -479,7 +455,6 @@ fn emission_test_both(f: EmissionFixture*): bool {
         if entry.used {
             emission_test_reserve(f, entry.text);
         }
-        index++;
     }
     var root = f.input.root;
     ok &&= emission_test_compare(f, "Statement");
@@ -648,11 +623,7 @@ export fn syntax_emission_tests(context: SyntaxEmissionInput*): usize {
     var first = emission_test_excluded(&f, sequence, 43, "a");
     var second = emission_test_excluded(&f, sequence, 42, "b");
     var item: u32 = 0;
-    loop {
-        var done = item == 512;
-        if done {
-            break;
-        }
+    for(; item != 512; item++) {
         var text: u8[5];
         text[0] = 120;
         text[4] = 0;
@@ -670,13 +641,12 @@ export fn syntax_emission_tests(context: SyntaxEmissionInput*): usize {
         digit = digit & 255;
         text[3] = convert(u8, digit);
         var owner = first;
-        var bit = item & 1;
+        var bit = item &1;
         var odd = bit != 0;
         if odd {
             owner = second;
         }
         emission_test_term(&f, owner, &text[0], true, 0, "");
-        item++;
     }
     ok = emission_test_both(&f);
     emission_test_dispose(&f);
@@ -703,11 +673,7 @@ export fn syntax_emission_tests(context: SyntaxEmissionInput*): usize {
         var count = emission_test_random(&f, 10);
         count++;
         var r: u32 = 0;
-        loop {
-            var done = r == count;
-            if done {
-                break;
-            }
+        for(; r != count; r++) {
             var name: u8[3];
             name[0] = 82;
             var ordinal = r + 48;
@@ -718,19 +684,11 @@ export fn syntax_emission_tests(context: SyntaxEmissionInput*): usize {
             var alternatives = emission_test_random(&f, 3);
             alternatives++;
             var a: u32 = 0;
-            loop {
-                var done = a == alternatives;
-                if done {
-                    break;
-                }
+            for(; a != alternatives; a++) {
                 sequence = emission_test_sequence(&f, rule);
                 var terms = emission_test_random(&f, 5);
                 var t: u32 = 0;
-                loop {
-                    var done = t == terms;
-                    if done {
-                        break;
-                    }
+                for(; t != terms; t++) {
                     var kind = emission_test_random(&f, 5);
                     var repeat = emission_test_repeat(&f);
                     var capture: u8[2];
@@ -761,11 +719,8 @@ export fn syntax_emission_tests(context: SyntaxEmissionInput*): usize {
                         }
                         emission_test_term(&f, sequence, text, literal, repeat, &capture[0]);
                     }
-                    t++;
                 }
-                a++;
             }
-            r++;
         }
         emission_test_one(&f, "Statement", "R0", false);
         ok = emission_test_both(&f);

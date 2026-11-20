@@ -88,7 +88,7 @@ export fn driver_posix_execute(executable: u8*, argv: u8**): i32 {
     var received: usize = 0;
     while received < sizeof(i32) {
         var data = bits(u8*, &error) + received;
-        var remaining = sizeof(i32) - received;
+        var remaining = sizeof(i32) -received;
         var count = read(descriptors[0], data, remaining);
         var read_failed = count < 0;
         if read_failed {

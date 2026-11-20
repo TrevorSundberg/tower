@@ -124,13 +124,11 @@ fn table_owner_snapshot_tests(): void {
     table_owner_check(ok, 13);
     ok = lr_grammar_symbol_count(grammar) == 3;
     table_owner_check(ok, 14);
-    var index: usize = 0;
-    while index < 3 {
+    for(var index: usize = 0; index < 3; index++) {
         ok = lr_grammar_rule_node(grammar, index) == null;
         table_owner_check(ok, 15);
         ok = lr_grammar_symbol_node(grammar, index) == null;
         table_owner_check(ok, 16);
-        index++;
     }
     frontend_format_text(lr_grammar_capture(grammar, 1), "value");
     entity_release(root);
@@ -170,7 +168,7 @@ fn table_owner_modes_tests(): void {
     frontend_world_check(frontend_world_test_kinds(world, &kinds));
     var root = table_owner_grammar(&kinds, TableOwnerFixture.Sequence);
     var mode: u32 = 0;
-    while mode < 2 {
+    for(; mode < 2; mode++) {
         var table = parser_table_open(root, &kinds, null, ParserPresentation.Numeric, mode);
         table_owner_check(parser_table_build(table, true), 30);
         table_owner_check(parser_table_uses_dfa(table), 31);
@@ -178,7 +176,6 @@ fn table_owner_modes_tests(): void {
         var ok = lr_runtime_conflict(table.runtime, &conflict) == false;
         table_owner_check(ok, 32);
         parser_table_destroy(table);
-        mode++;
     }
     entity_release(root);
     root = table_owner_grammar(&kinds, TableOwnerFixture.EmptyClosure);
@@ -240,7 +237,7 @@ fn table_owner_failure_tests(): void {
     count = tower_test_buffer_allocations() - count;
     parser_table_destroy(table);
     var budget: usize = 0;
-    while budget < count {
+    for(; budget < count; budget++) {
         tower_test_buffer_fail_after(budget);
         table = parser_table_open(root, &kinds, null, ParserPresentation.Numeric, 0);
         var present = table != null;
@@ -260,7 +257,6 @@ fn table_owner_failure_tests(): void {
         parser_table_destroy(table);
         var ok = tower_test_buffer_count() == buffers;
         table_owner_check(ok, 53);
-        budget++;
     }
     entity_release(root);
     table_owner_check(compiler_world_dispose(world), 54);

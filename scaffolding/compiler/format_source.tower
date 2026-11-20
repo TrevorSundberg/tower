@@ -16,7 +16,7 @@ fn format_comments_ordered(comments: FormatComment*, count: usize): bool {
         if done {
             return true;
         }
-        var previous = i - 1;
+        var previous = i -1;
         var backwards = comments[previous].start > comments[i].start;
         if backwards {
             return false;
@@ -33,7 +33,7 @@ fn format_comment_bound(comments: FormatComment*, count: usize, start: usize): u
         if done {
             return low;
         }
-        var middle = high - low;
+        var middle = high -low;
         middle = middle / 2;
         middle = low + middle;
         var before = comments[middle].start < start;
@@ -93,10 +93,8 @@ fn format_symbolic(source: u8*, start: usize, end: usize): bool {
 
 fn format_operator_leaf(f: FormatEngine*, entity: void*, source: u8*): bool {
     // Grouped operator alternatives are transparent single-child rules.
-    var depth: usize = 0;
-    while entity_child_count(entity) == 1 && depth < 128 {
+    for(var depth: usize = 0; entity_child_count(entity) == 1 && depth < 128; depth++) {
         entity = entity_child_at(entity, 0);
-        depth++;
     }
     var `match` = format_match(f, entity);
     if `match` == null {
@@ -199,7 +197,7 @@ pointer: bool, unary: bool, call: bool): void {
                     tokens.data[begin].prefix = true;
                 }
                 else {
-                    var back = tokens.length - 1;
+                    var back = tokens.length -1;
                     tokens.data[back].postfix = true;
                 }
             }
@@ -240,7 +238,7 @@ fn format_token_swap(a: FormatToken*, b: FormatToken*): void {
 
 fn format_sift(tokens: vector(FormatToken)*, root: usize, end: usize): void {
     loop {
-        var child = root * 2;
+        var child = root *2;
         child++;
         if child >= end {
             return;
@@ -267,7 +265,7 @@ fn format_sort(tokens: vector(FormatToken)*): void {
         if finished {
             return;
         }
-        var previous = next - 1;
+        var previous = next -1;
         var unordered = tokens.data[previous].start > tokens.data[next].start;
         if unordered {
             break;
@@ -307,7 +305,7 @@ fn format_lines(source: u8*, start: usize, end: usize): usize {
 }
 
 fn format_token_is(source: u8*, entry: FormatToken*, text: u8*): bool {
-    var length = entry.end - entry.start;
+    var length = entry.end -entry.start;
     return format_equal(&source[entry.start], length, text);
 }
 
@@ -406,7 +404,7 @@ comments: FormatComment*, comment_count: usize, ordered: bool): void {
         }
         var line_start = f.result.text.length == 0;
         if !line_start {
-            var last = f.result.text.length - 1;
+            var last = f.result.text.length -1;
             line_start = f.result.text.data[last] == 10;
         }
         if line_start {
@@ -490,7 +488,7 @@ comments: FormatComment*, comment_count: usize, ordered: bool): void {
             }
         }
         var begin = f.result.text.length;
-        var length = entry.end - entry.start;
+        var length = entry.end -entry.start;
         format_write(f, &source[entry.start], length);
         format_span(f, begin, entry.start);
         if !entry.comment {
@@ -600,7 +598,7 @@ comments: FormatComment*, comment_count: usize, syntax: void*, foundation: void*
         }
         var comment = &comments[i];
         if comment.start >= previous_end {
-            var count = comment.end - comment.start;
+            var count = comment.end -comment.start;
             format_write(f, &source[comment.start], count);
             format_newline(f, false);
         }

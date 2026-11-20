@@ -143,25 +143,15 @@ fn entity_reclaim(entity: Entity*): void {
     var store = entity.store;
     store.reclaiming++;
     var i: usize = 0;
-    loop {
-        var done = i == entity.child_count;
-        if done {
-            break;
-        }
+    for(; i != entity.child_count; i++) {
         var child = entity.children[i].entity;
         child.parent = null;
         free(entity.children[i].name);
         entity_release(child);
-        i++;
     }
     i = 0;
-    loop {
-        var done = i == entity.component_count;
-        if done {
-            break;
-        }
+    for(; i != entity.component_count; i++) {
         entity_component_dispose(entity.components[i]);
-        i++;
     }
     free(entity.children);
     free(entity.components);
@@ -230,7 +220,7 @@ export fn entity_view_query(view: EntityView*, type: Entity*, first: usize, coun
     if invalid {
         return false;
     }
-    var remaining = type.instance_count - first;
+    var remaining = type.instance_count -first;
     invalid = count > remaining;
     if invalid {
         return false;
@@ -251,8 +241,8 @@ export fn entity_register(type: Entity*, size: usize, alignment: usize, lifecycl
     if zero {
         return false;
     }
-    var mask = alignment - 1;
-    var bits = alignment & mask;
+    var mask = alignment -1;
+    var bits = alignment &mask;
     var invalid = bits != 0;
     if invalid {
         return false;
@@ -296,7 +286,7 @@ fn entity_reserve_components(data: EntityComponent***, capacity: usize*, count: 
     if enough {
         return true;
     }
-    var next = *capacity * 2;
+    var next = *capacity *2;
     var wrapped = next < *capacity;
     if wrapped {
         return false;
@@ -345,7 +335,7 @@ export fn entity_component_add(owner: Entity*, type: Entity*): EntityComponent* 
     if small {
         alignment = pointer_size;
     }
-    var extra = alignment - 1;
+    var extra = alignment -1;
     extra = extra + pointer_size;
     var wrapped = extra < alignment;
     if wrapped {
@@ -374,7 +364,7 @@ export fn entity_component_add(owner: Entity*, type: Entity*): EntityComponent* 
     address = address / alignment;
     address = address * alignment;
     var data = bits(u8*, address);
-    var back = bits(EntityComponent**, data);
+    var back = bits(EntityComponent **, data);
     back--;
     *back = component;
     component.owner = owner;
@@ -424,8 +414,8 @@ export fn entity_component_remove(owner: Entity*, type: Entity*): bool {
         if found {
             owner.component_count--;
             var following = i + 1;
-            var count = owner.component_count - i;
-            var bytes = count * sizeof(EntityComponent*);
+            var count = owner.component_count -i;
+            var bytes = count *sizeof(EntityComponent*);
             copy(&owner.components[i], &owner.components[following], bytes);
             entity_component_dispose(component);
             return true;
@@ -447,7 +437,7 @@ export fn entity_component_from_data(data: u8*): EntityComponent* {
     if missing {
         return null;
     }
-    var back = bits(EntityComponent**, data);
+    var back = bits(EntityComponent **, data);
     back--;
     return *back;
 }
@@ -528,8 +518,8 @@ fn entity_unlink(child: Entity*): void {
     free(parent.children[index].name);
     parent.child_count--;
     var following = index + 1;
-    var count = parent.child_count - index;
-    var bytes = count * sizeof(EntityChild);
+    var count = parent.child_count -index;
+    var bytes = count *sizeof(EntityChild);
     copy(&parent.children[index], &parent.children[following], bytes);
     child.parent = null;
 }
@@ -554,7 +544,7 @@ export fn entity_attach(child: Entity*, parent: Entity*, name: u8*): bool {
         }
         var full = parent.child_count == parent.child_capacity;
         if full {
-            var capacity = parent.child_capacity * 2;
+            var capacity = parent.child_capacity *2;
             var overflow = capacity < parent.child_capacity;
             if overflow {
                 return false;
@@ -575,13 +565,7 @@ export fn entity_attach(child: Entity*, parent: Entity*, name: u8*): bool {
         has_name &&= *name != 0;
         if has_name {
             var length: usize = 0;
-            loop {
-                var end = name[length] == 0;
-                if end {
-                    break;
-                }
-                length++;
-            }
+            for(; !(name[length] == 0); length++) {}
             length++;
             named = alloc(u8, length);
             var failed = named == null;

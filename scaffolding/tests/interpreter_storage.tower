@@ -17,17 +17,12 @@ export fn interpreter_storage_tests(): i32 {
         return 501;
     }
     var i: usize = 0;
-    loop {
-        var done = i == 128;
-        if done {
-            break;
-        }
+    for(; i != 128; i++) {
         ok = state.memory.data[i] == 0;
         if !ok {
             return 502;
         }
         state.memory.data[i] = 93;
-        i++;
     }
     var original = state.memory.data;
     var capacity = state.memory.capacity;
@@ -66,16 +61,11 @@ export fn interpreter_storage_tests(): i32 {
         return 510;
     }
     i = 8;
-    loop {
-        var done = i == 16;
-        if done {
-            break;
-        }
+    for(; i != 16; i++) {
         ok = state.memory.data[i] == 0;
         if !ok {
             return 511;
         }
-        i++;
     }
     ok = im_memory_resize(&state, larger);
     if !ok {
@@ -85,7 +75,7 @@ export fn interpreter_storage_tests(): i32 {
     if !ok {
         return 513;
     }
-    var end = larger - 1;
+    var end = larger -1;
     ok = state.memory.data[end] == 0;
     if !ok {
         return 514;
@@ -108,16 +98,11 @@ fn interpreter_container_tests(): i32 {
     var state: IMState;
     fill(&state, 0, sizeof(IMState));
     var i: u64 = 0;
-    loop {
-        var done = i == 257;
-        if done {
-            break;
-        }
-        var key = i * 37;
+    for(; i != 257; i++) {
+        var key = i *37;
         key = key % 257;
-        var value = key * 3;
+        var value = key *3;
         im_allocations_set(&state, key, value);
-        i++;
     }
     im_allocations_set(&state, 18446744073709551615, 99);
     im_allocations_set(&state, 9223372036854775808, 98);
@@ -137,16 +122,12 @@ fn interpreter_container_tests(): i32 {
         return 603;
     }
     i = 0;
-    loop {
-        var done = i == 257;
-        if done {
-            break;
-        }
+    for(; i != 257; i++) {
         value = im_allocations_get(&state, i, &found);
         if !found {
             return 604;
         }
-        var wanted = i * 3;
+        var wanted = i *3;
         ok = value == wanted;
         if !ok {
             return 605;
@@ -167,7 +148,6 @@ fn interpreter_container_tests(): i32 {
                 return 608;
             }
         }
-        i++;
     }
     value = im_allocations_get(&state, 18446744073709551615, &found);
     ok = value == 99;
@@ -216,17 +196,12 @@ fn interpreter_container_tests(): i32 {
         return 617;
     }
     var frame: usize = 0;
-    loop {
-        var done = frame == 17;
-        if done {
-            break;
-        }
+    for(; frame != 17; frame++) {
         im_frame_push(&state, null, frame, frame, null);
         im_task_push(&state, null, true, 1, 3);
         im_task_push(&state, null, false, 2, 4);
         im_values_set(&state, 1, convert(u64, frame));
         im_addresses_set(&state, 2, 42);
-        frame++;
     }
     loop {
         var done = frame == 0;

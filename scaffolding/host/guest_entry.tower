@@ -1,5 +1,7 @@
 import tower;
+
 extern fn guest_program_main(): void;
+
 extern fn guest_exit(status: i32): void;
 
 export fn guest_runtime_start(): void {

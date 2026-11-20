@@ -138,7 +138,7 @@ void formatter_tests() {
     const auto name = entry.path().filename().string();
     const int baseline = name == "bedrock.tower" ? 1 : name == "foundation.tower" ? 2 : 0;
     const auto input = read(entry.path());
-    if (entry.path().parent_path().filename() == "syntax-invalid") {
+    if (entry.path().parent_path().filename() == "syntax_invalid") {
       auto* session = syntax_create(input.c_str());
       while (auto* root = syntax_next(session)) tower_node_release_ref(root);
       assert(*syntax_get_error(session));

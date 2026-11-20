@@ -39,14 +39,8 @@ fn source_comment_targets(entity: void*, base: usize, limit: usize, targets: vec
         list = true;
     }
     if list {
-        var i: usize = 0;
-        loop {
-            var done = i == n.items.length;
-            if done {
-                break;
-            }
+        for(var i: usize = 0; i != n.items.length; i++) {
             source_comment_targets(n.items.data[i], base, limit, targets);
-            i++;
         }
     }
 }
@@ -57,13 +51,8 @@ fn source_comment_sort(targets: vector(void*)*): void {
     var scratch: vector(void*);
     vector_init(void*, &scratch);
     var i: usize = 0;
-    loop {
-        var done = i == targets.length;
-        if done {
-            break;
-        }
+    for(; i != targets.length; i++) {
         sem_require(vector_push(void*, &scratch, targets.data[i]));
-        i++;
     }
     var width: usize = 1;
     loop {
@@ -132,7 +121,7 @@ fn source_comment_sort(targets: vector(void*)*): void {
 fn source_comment_append(n: FoundationNode*, source: u8*, first: usize, last: usize): void {
     // Normalize imported/custom lexer spellings into compilable Foundation trivia.
     if last > first {
-        var count = last - first;
+        var count = last -first;
         if count >= 2 {
             if source[first] == 47 {
                 var second = first + 1;
@@ -193,7 +182,7 @@ export fn semantic_source_comments(root: void*, source: u8*, spans: usize*, coun
             if done {
                 break;
             }
-            var middle = right - left;
+            var middle = right -left;
             middle = middle / 2;
             middle = middle + left;
             var node = sem_get(targets.data[middle]);

@@ -41,7 +41,7 @@ fn ce_number(c: CEmitter*, number: u64): void {
             break;
         }
     }
-    var c_step3 = 20 - at;
+    var c_step3 = 20 -at;
     sem_require(bytes_append(c.text, &digits[at], c_step3));
 }
 
@@ -100,22 +100,17 @@ fn ce_reserved(name: vector(u8)*): bool {
             }
             at++;
         }
-        var length = at - start;
+        var length = at -start;
         var equal = length == name.length;
         var i: usize = 0;
         if equal {
-            loop {
-                var done = i == length;
-                if done {
-                    break;
-                }
+            for(; i != length; i++) {
                 var p = start + i;
                 var mismatch = words[p] != name.data[i];
                 if mismatch {
                     equal = false;
                     break;
                 }
-                i++;
             }
         }
         if equal {
@@ -581,7 +576,7 @@ fn ce_expression(c: CEmitter*, entity: void*): void {
             }
             else {
                 ce_text(c, "UINT64_C(");
-                var c_step73 = n.bits & semantic_mask(&n.type);
+                var c_step73 = n.bits &semantic_mask(&n.type);
                 ce_number(c, c_step73);
                 ce_text(c, ")");
             }

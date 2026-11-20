@@ -60,7 +60,7 @@ fn language_quote(q: CompletionQuery*, text: u8*, size: usize): void {
     if hover_condition1 {
         size = HoverPreviewByteLimit();
         loop {
-            var byte = text[size] & 192;
+            var byte = text[size] &192;
             var hover_condition2 = byte != 128;
             if hover_condition2 {
                 break;
@@ -124,7 +124,7 @@ fn language_documentation(q: CompletionQuery*, value: FoundationNode*): void {
         loop {
             var spaces = first < last;
             if spaces {
-                var before = last - 1;
+                var before = last -1;
                 spaces = value.comments.data[before] == 32;
             }
             if spaces {
@@ -139,7 +139,7 @@ fn language_documentation(q: CompletionQuery*, value: FoundationNode*): void {
             if newline {
                 sem_require(vector_push(u8, &text, 10));
             }
-            var count = last - first;
+            var count = last -first;
             sem_require(bytes_append(&text, &value.comments.data[first], count));
         }
         i = i + 3;
@@ -199,11 +199,7 @@ fn language_candidate(q: CompletionQuery*, node: void*, candidate: LanguageCandi
     var priority = LanguagePresentation.None;
     var i: usize = 0;
     var count = entity_component_count(node);
-    loop {
-        var done = i == count;
-        if done {
-            break;
-        }
+    for(; i != count; i++) {
         var component = entity_component_at(node, i);
         var presented: LanguageCandidate;
         copy(&presented, candidate, sizeof(LanguageCandidate));
@@ -215,7 +211,6 @@ fn language_candidate(q: CompletionQuery*, node: void*, candidate: LanguageCandi
             priority = rank;
             copy(candidate, &presented, sizeof(LanguageCandidate));
         }
-        i++;
     }
 }
 
@@ -404,7 +399,7 @@ fn language_walk(q: CompletionQuery*, node: void*, inherited: LanguageCandidate*
             if grammar_condition4 {
                 language_leaf(q, sem_child(node, 0), &current);
                 language_template_walk(q, template.targets.data[0], template, null, checked, depth, budget);
-                var last = count - 1;
+                var last = count -1;
                 language_leaf(q, sem_child(node, last), &current);
                 return;
             }
@@ -416,14 +411,9 @@ fn language_walk(q: CompletionQuery*, node: void*, inherited: LanguageCandidate*
         return;
     }
     var i: usize = 0;
-    loop {
-        var hover_condition43 = i == count;
-        if hover_condition43 {
-            break;
-        }
+    for(; i != count; i++) {
         var child_depth = depth + 1;
         language_walk(q, sem_child(node, i), &current, checked, child_depth, budget);
-        i++;
     }
 }
 
@@ -474,14 +464,9 @@ export fn language_document(source: u8*, length: usize, mode: u32, pointer_bytes
     c.source = q.input.data;
     c.generics = generic_begin(root);
     var i: usize = 0;
-    loop {
-        var hover_condition47 = i == q.roots.length;
-        if hover_condition47 {
-            break;
-        }
+    for(; i != q.roots.length; i++) {
         var entry = sem_state(c, c.source_bases, q.roots.data[i]);
         entry.number = q.bases.data[i];
-        i++;
     }
     var checked = mode == 0;
     if checked {
@@ -496,17 +481,12 @@ export fn language_document(source: u8*, length: usize, mode: u32, pointer_bytes
     }
     if checked {
         i = 0;
-        loop {
-            var done = i == q.comment_modules.length;
-            if done {
-                break;
-            }
+        for(; i != q.comment_modules.length; i++) {
             var module = q.comment_modules.data[i];
             var ordinary = frontend_module_roots(module) != 0;
             if ordinary {
                 frontend_module_attach_comments(module, q.program.root, q.comment_bases.data[i]);
             }
-            i++;
         }
     }
     q.program.error.length = 0;
@@ -517,16 +497,11 @@ export fn language_document(source: u8*, length: usize, mode: u32, pointer_bytes
     fill(&empty, 0, sizeof(LanguageCandidate));
     var budget = InspectionNodeLimit();
     i = 0;
-    loop {
-        var hover_condition48 = i == q.roots.length;
-        if hover_condition48 {
-            break;
-        }
+    for(; i != q.roots.length; i++) {
         var hover_condition49 = q.bases.data[i] == 0;
         if hover_condition49 {
             language_walk(q, q.roots.data[i], &empty, checked, 0, &budget);
         }
-        i++;
     }
     completion_text(&q.output, "],\"complete\":");
     if q.truncated {

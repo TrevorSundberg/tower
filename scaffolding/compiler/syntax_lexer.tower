@@ -88,7 +88,7 @@ fn lexicon_prefix(source: u8*, length: usize, start: usize, text: u8*, count: us
     if invalid {
         return false;
     }
-    var remaining = length - start;
+    var remaining = length -start;
     invalid = count > remaining;
     if invalid {
         return false;
@@ -182,11 +182,7 @@ fn lexicon_accepts(runtime: LRRuntime*, state: usize, id: u32, choice: LexiconCh
 export fn lexicon_choose(value: SyntaxLexicon*, source: u8*, length: usize, start: usize, declaration: bool, runtime: LRRuntime*, state: usize, choice: LexiconChoice*): void {
     lexicon_choice_init(choice);
     var index: usize = 0;
-    loop {
-        var done = index == value.tokens.length;
-        if done {
-            break;
-        }
+    for(; index != value.tokens.length; index++) {
         var entry = &value.tokens.data[index];
         var eligible = true;
         if entry.contextual {
@@ -212,14 +208,9 @@ export fn lexicon_choose(value: SyntaxLexicon*, source: u8*, length: usize, star
                 choice.skipped = entry.skipped;
             }
         }
-        index++;
     }
     index = 0;
-    loop {
-        var done = index == value.literals.length;
-        if done {
-            break;
-        }
+    for(; index != value.literals.length; index++) {
         var literal = &value.literals.data[index];
         var eligible = !declaration;
         if literal.declaration {
@@ -239,7 +230,6 @@ export fn lexicon_choose(value: SyntaxLexicon*, source: u8*, length: usize, star
                 choice.skipped = false;
             }
         }
-        index++;
     }
 }
 

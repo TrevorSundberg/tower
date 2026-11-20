@@ -197,14 +197,8 @@ fn foreign_c(m: ForeignName*, object: bool): void {
             backend_text(&m.text, "@");
         }
         var count: usize = 0;
-        var i: usize = 0;
-        loop {
-            var foreign_condition27 = i == m.function.args.length;
-            if foreign_condition27 {
-                break;
-            }
+        for(var i: usize = 0; i != m.function.args.length; i++) {
             count = count + foreign_argument_bytes(m, m.function.args.data[i]);
-            i++;
         }
         foreign_number(&m.text, count, 10);
     }

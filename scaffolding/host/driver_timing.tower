@@ -65,14 +65,12 @@ export fn driver_timing_value(timing: DriverTiming*, name: u8*, nanoseconds: u64
     if missing {
         return;
     }
-    var i: usize = 0;
-    while i < 11 {
+    for(var i: usize = 0; i < 11; i++) {
         if driver_same(name, driver_timing_name(i)) {
             timing.values[i] = nanoseconds;
             timing.present[i] = true;
             return;
         }
-        i++;
     }
 }
 
@@ -99,8 +97,7 @@ export fn driver_timing_mark(timing: DriverTiming*, enabled: bool, name: u8*): v
 fn driver_timing_render(out: ByteBuffer*, timing: DriverTiming*): bool {
     var ok = driver_text(out, "Tower timings (ms): {");
     var first = true;
-    var i: usize = 0;
-    while i < 11 {
+    for(var i: usize = 0; i < 11; i++) {
         if timing.present[i] {
             if !first {
                 ok &&= driver_text(out, ",");
@@ -122,7 +119,6 @@ fn driver_timing_render(out: ByteBuffer*, timing: DriverTiming*): bool {
                 divisor = divisor / 10;
             }
         }
-        i++;
     }
     if ok {
         ok = driver_text(out, "}\n");

@@ -67,7 +67,7 @@ registry_check(ok, 15, &failure);
 ok = entity_store_count(other_store) == 0;
 registry_check(ok, 16, &failure);
 var iteration: usize = 0;
-while iteration < 40 {
+for (; iteration < 40; iteration++) {
     var root = entity_create(store);
     var context = generic_begin(root);
     ok = context.root == root;
@@ -75,7 +75,6 @@ while iteration < 40 {
     entity_release(root);
     ok = entity_store_count(store) == 0;
     registry_check(ok, 18, &failure);
-    iteration++;
 }
 registry_check(entity_store_dispose(store), 19, &failure);
 registry_check(entity_store_dispose(other_store), 20, &failure);

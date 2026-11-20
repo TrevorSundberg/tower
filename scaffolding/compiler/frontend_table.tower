@@ -43,14 +43,8 @@ export fn frontend_table_finish(table: FrontendTable*, constructs: bool, special
     if missing {
         return 1;
     }
-    var index: usize = 0;
-    loop {
-        var done = index == grammar.names.length;
-        if done {
-            break;
-        }
+    for(var index: usize = 0; index != grammar.names.length; index++) {
         lr_analysis_order(analysis, index, grammar.names.data[index].order);
-        index++;
     }
     var states: LRStates* = null;
     var ok = lr_analysis_compute(analysis);
@@ -140,7 +134,7 @@ export fn frontend_read_characters(table: FrontendTable*, kinds: FrontendKinds*,
             id = 4294967294;
             var remaining = start < input.length;
             if remaining {
-                var count = input.length - start;
+                var count = input.length -start;
                 length = tower_utf8_decode(&input.source[start], count, &id);
                 var invalid = length == 0;
                 if invalid {

@@ -33,11 +33,7 @@ fn backend_json(out: vector(u8)*, text: u8*, length: usize): void {
     backend_text(out, "\"");
     var i: usize = 0;
     var digits: u8* = "0123456789abcdef";
-    loop {
-        var done = i == length;
-        if done {
-            break;
-        }
+    for(; i != length; i++) {
         var byte = text[i];
         var escape = byte == 34;
         var slash = byte == 92;
@@ -59,7 +55,6 @@ fn backend_json(out: vector(u8)*, text: u8*, length: usize): void {
                 backend_text_append(out, &text[i], 1);
             }
         }
-        i++;
     }
     backend_text(out, "\"");
 }
@@ -153,18 +148,12 @@ export fn backend_session_begin(s: BackendSession*, source: u8*, length: usize):
         backend_session_failure(s, "Invalid foundation source length", 0);
         return 0;
     }
-    var i: usize = 0;
-    loop {
-        var done = i == length;
-        if done {
-            break;
-        }
+    for(var i: usize = 0; i != length; i++) {
         var zero = source[i] == 0;
         if zero {
             backend_session_failure(s, "Foundation source cannot contain NUL bytes", 0);
             return 0;
         }
-        i++;
     }
     s.times[0] = backend_session_clock();
     s.backend = backend_open(s.target.data);
@@ -232,12 +221,7 @@ export fn backend_session_response(s: BackendSession*): u8* {
 fn backend_session_names(b: Backend*, out: vector(u8)*, functions: void**, count: usize, imports: bool): void {
     backend_text(out, "[");
     var first = true;
-    var i: usize = 1;
-    loop {
-        var done = i >= count;
-        if done {
-            break;
-        }
+    for(var i: usize = 1; i < count; i++) {
         var n = sem_get(functions[i]);
         var selected = n.exported;
         if imports {
@@ -251,7 +235,6 @@ fn backend_session_names(b: Backend*, out: vector(u8)*, functions: void**, count
             backend_json_text(out, backend_function_name(b, i));
             first = false;
         }
-        i++;
     }
     backend_text(out, "]");
 }

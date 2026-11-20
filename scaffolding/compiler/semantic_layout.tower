@@ -45,7 +45,7 @@ fn sem_layout_compute(c: SemanticContext*, n: void*): void {
         return;
     }
     var i: usize = 0;
-    while i < t.items.length {
+    for(; i < t.items.length; i++) {
         var field = t.items.data[i];
         var value = sem_get(field);
         var alignment = semantic_alignment(&value.type);
@@ -55,14 +55,13 @@ fn sem_layout_compute(c: SemanticContext*, n: void*): void {
         }
         value.byte_offset = sem_round(t.size, alignment);
         var bytes = semantic_size(&value.type);
-        var maximum = LayoutMaximumBytes() - value.byte_offset;
+        var maximum = LayoutMaximumBytes() -value.byte_offset;
         var large = bytes > maximum;
         if large {
             sem_fail(c, field, "Foundation struct storage exceeds 4 MiB");
             return;
         }
         t.size = value.byte_offset + bytes;
-        i++;
     }
     t.size = sem_round(t.size, t.alignment);
     var empty = t.size == 0;
@@ -98,7 +97,7 @@ fn sem_layout(c: SemanticContext*, n: void*): void {
     // layout and each by-value edge is indexed once for the whole compilation.
     // Pointer fields do not demand pointee layout, so recursive pointers work.
     var i = first;
-    while i < g.tasks.length {
+    for(; i < g.tasks.length; i++) {
         var id = i + 1;
         task = work_task(g, id);
         var type = sem_get(task.subject);
@@ -108,15 +107,13 @@ fn sem_layout(c: SemanticContext*, n: void*): void {
         } else {
             if !semantic_enum(&type.type) {
                 var j: usize = 0;
-                while j < type.items.length {
+                for(; j < type.items.length; j++) {
                     var field = sem_get(type.items.data[j]);
                     sem_layout_dependency(c, id, &field.type);
-                    j++;
                 }
             }
         }
         sem_require(work_seal(g, id));
-        i++;
     }
     sem_require(work_demand(g, root));
     // The coordinator owns this view until all admitted kernels have joined.
@@ -149,7 +146,7 @@ fn sem_layout(c: SemanticContext*, n: void*): void {
     var chain: u8* = "";
     if found {
         i = 0;
-        while i < cycle.length {
+        for(; i < cycle.length; i++) {
             task = work_task(g, cycle.data[i]);
             var value = sem_get(task.subject);
             var separator = i != 0;
@@ -157,7 +154,6 @@ fn sem_layout(c: SemanticContext*, n: void*): void {
                 chain = sem_cat(c, chain, " -> ");
             }
             chain = sem_cat(c, chain, sem_name(value));
-            i++;
         }
     }
     vector_dispose(usize, &cycle);

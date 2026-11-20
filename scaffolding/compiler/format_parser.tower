@@ -87,7 +87,7 @@ export fn format_parser_tree(result: FormatResult*, root: void*, kind: void*): v
         var node = entry.node;
         var depth = entry.depth;
         member = entry.member;
-        var indent = depth * 2;
+        var indent = depth *2;
         var overflow = indent < depth;
         if overflow {
             result.failed = true;

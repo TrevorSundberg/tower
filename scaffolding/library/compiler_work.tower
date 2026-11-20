@@ -42,23 +42,21 @@ export fn compiler_work_create(units: usize, workers: usize, revision: u64, prof
     work.units = units;
     work.workers = workers;
     var i: usize = 0;
-    while i < units {
+    for(; i < units; i++) {
         var task = work_request(&work.graph, null, convert(u32, CompilerQuery.Unit), convert(u64, i));
         if !work_seal(&work.graph, task) {
             compiler_work_close(work);
             return null;
         }
-        i++;
     }
     var join = work_request(&work.graph, null, convert(u32, CompilerQuery.Join), 0);
     i = 0;
-    while i < units {
+    for(; i < units; i++) {
         var task = i + 1;
         if !work_depend(&work.graph, join, task) {
             compiler_work_close(work);
             return null;
         }
-        i++;
     }
     var valid = work_seal(&work.graph, join);
     valid &&= work_demand(&work.graph, join);

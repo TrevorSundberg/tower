@@ -139,13 +139,8 @@ export fn syntax_node_dispose(value: SyntaxNode*): void {
     vector_dispose(u8, &value.style);
     vector_dispose(void*, &value.items);
     var index: usize = 0;
-    loop {
-        var done = index == value.comments.length;
-        if done {
-            break;
-        }
+    for(; index != value.comments.length; index++) {
         vector_dispose(u8, &value.comments.data[index]);
-        index++;
     }
     vector_dispose(vector(u8), &value.comments);
     syntax_node_source(value, null);
@@ -270,17 +265,12 @@ export fn syntax_nodes_equal(left: void*, right: void*, kind: void*, locations: 
             break;
         }
         var index: usize = 0;
-        loop {
-            var done_items = index == x.items.length;
-            if done_items {
-                break;
-            }
+        for(; index != x.items.length; index++) {
             ok = syntax_comparison_push(&pending, x.items.data[index], y.items.data[index]);
             var failed_item = !ok;
             if failed_item {
                 break;
             }
-            index++;
         }
         ok &&= syntax_comparison_push(&pending, x.replacement, y.replacement);
     }
@@ -362,6 +352,6 @@ export fn syntax_node_offset(field: usize): usize {
     if selected {
         address = bits(usize, &value.compiled);
     }
-    var offset = address - base;
+    var offset = address -base;
     return offset;
 }

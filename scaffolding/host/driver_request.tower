@@ -6,11 +6,17 @@ import .library.bytes_types;
 import .library.bytes_interface;
 
 extern fn frontend_modules_create(): void*;
+
 extern fn frontend_modules_destroy(modules: void*): void;
+
 extern fn frontend_modules_configure(modules: void*, source: u8*, library: u8*): void;
+
 extern fn frontend_modules_fallback(modules: void*, root: u8*): void;
+
 extern fn frontend_modules_builtin(modules: void*, name: u8*, path: u8*): void;
+
 extern fn fopen(path: u8*, mode: u8*): void*;
+
 extern fn fclose(file: void*): i32;
 
 const DriverBedrockText: usize = 0;
@@ -43,37 +49,55 @@ fn driver_request_path(out: ByteBuffer*, override: u8*, root: u8*, name: u8*): b
         ok = driver_text(out, override);
     } else {
         ok = driver_text(out, root);
-        if ok { ok = driver_text(out, "/"); }
-        if ok { ok = driver_text(out, name); }
+        if ok {
+            ok = driver_text(out, "/");
+        }
+        if ok {
+            ok = driver_text(out, name);
+        }
     }
-    if ok { ok = host_text_terminate(out); }
+    if ok {
+        ok = host_text_terminate(out);
+    }
     return ok;
 }
 
 fn driver_request_failure(request: DriverRequest*, prefix: u8*, detail: u8*): bool {
     request.error.length = 0;
     var ok = driver_text(&request.error, prefix);
-    if ok { ok = driver_text(&request.error, detail); }
-    if ok { ok = host_text_terminate(&request.error); }
-    if !ok { request.error.length = 0; }
+    if ok {
+        ok = driver_text(&request.error, detail);
+    }
+    if ok {
+        ok = host_text_terminate(&request.error);
+    }
+    if !ok {
+        request.error.length = 0;
+    }
     return false;
 }
 
 export fn driver_request_error(request: DriverRequest*): u8* {
     var present = request.error.length != 0;
-    if present { return request.error.data; }
+    if present {
+        return request.error.data;
+    }
     return "Unable to allocate compiler input storage";
 }
 
 fn driver_request_read(request: DriverRequest*, path: u8*, index: usize): bool {
-    if driver_read_file(path, &request.text[index]) { return true; }
+    if driver_read_file(path, &request.text[index]) {
+        return true;
+    }
     return driver_request_failure(request, "Cannot read file: ", path);
 }
 
 fn driver_request_check_grammar(request: DriverRequest*, path: u8*): bool {
     var file = fopen(path, "rb");
     var missing = file == null;
-    if missing { return driver_request_failure(request, "Cannot read grammar module: ", path); }
+    if missing {
+        return driver_request_failure(request, "Cannot read grammar module: ", path);
+    }
     fclose(file);
     return true;
 }
@@ -87,13 +111,27 @@ export fn driver_request_open(request: DriverRequest*, options: DriverOptions*, 
     if !(driver_platform_exists(options.source)) {
         return driver_request_failure(request, "Supply a Tower source file; use --help for options", "");
     }
-    if !(driver_request_path(&request.bedrock_path, options.bedrock, root, "bedrock.tower")) { return false; }
-    if !(driver_request_path(&request.foundation_path, options.foundation, root, "foundation.tower")) { return false; }
-    if !(driver_request_check_grammar(request, request.bedrock_path.data)) { return false; }
-    if !(driver_request_check_grammar(request, request.foundation_path.data)) { return false; }
-    if !(driver_request_read(request, request.bedrock_path.data, DriverBedrockText())) { return false; }
-    if !(driver_request_read(request, request.foundation_path.data, DriverFoundationText())) { return false; }
-    if !(driver_request_read(request, options.source, DriverSourceText())) { return false; }
+    if !(driver_request_path(&request.bedrock_path, options.bedrock, root, "bedrock.tower")) {
+        return false;
+    }
+    if !(driver_request_path(&request.foundation_path, options.foundation, root, "foundation.tower")) {
+        return false;
+    }
+    if !(driver_request_check_grammar(request, request.bedrock_path.data)) {
+        return false;
+    }
+    if !(driver_request_check_grammar(request, request.foundation_path.data)) {
+        return false;
+    }
+    if !(driver_request_read(request, request.bedrock_path.data, DriverBedrockText())) {
+        return false;
+    }
+    if !(driver_request_read(request, request.foundation_path.data, DriverFoundationText())) {
+        return false;
+    }
+    if !(driver_request_read(request, options.source, DriverSourceText())) {
+        return false;
+    }
     return true;
 }
 
@@ -104,14 +142,22 @@ export fn driver_request_text(request: DriverRequest*, index: usize): ByteBuffer
 // Canonical grammar is loaded only for the existing normalization/bytecode
 // stages. A failed pair is never published as a complete snapshot.
 export fn driver_request_canonical(request: DriverRequest*): bool {
-    if request.canonical { return true; }
+    if request.canonical {
+        return true;
+    }
     var path: ByteBuffer;
     fill(&path, 0, sizeof(ByteBuffer));
     var ok = driver_request_path(&path, "", request.root, "bedrock.tower");
-    if ok { ok = driver_request_read(request, path.data, DriverCanonicalBedrockText()); }
+    if ok {
+        ok = driver_request_read(request, path.data, DriverCanonicalBedrockText());
+    }
     path.length = 0;
-    if ok { ok = driver_request_path(&path, "", request.root, "foundation.tower"); }
-    if ok { ok = driver_request_read(request, path.data, DriverCanonicalFoundationText()); }
+    if ok {
+        ok = driver_request_path(&path, "", request.root, "foundation.tower");
+    }
+    if ok {
+        ok = driver_request_read(request, path.data, DriverCanonicalFoundationText());
+    }
     bytes_dispose(&path);
     request.canonical = ok;
     return ok;
@@ -129,8 +175,12 @@ export fn driver_request_bind(request: DriverRequest*, slot: void**): void {
     var i: usize = 0;
     while path[i] != 0 {
         var separator = path[i] == 47;
-        if !separator { separator = driver_platform_separator(path[i]); }
-        if separator { boundary = i + 1; }
+        if !separator {
+            separator = driver_platform_separator(path[i]);
+        }
+        if separator {
+            boundary = i + 1;
+        }
         ++i;
     }
     var saved = path[boundary];
@@ -139,9 +189,13 @@ export fn driver_request_bind(request: DriverRequest*, slot: void**): void {
     path[boundary] = saved;
     frontend_modules_fallback(request.modules, request.root);
     var custom = request.options.bedrock[0] != 0;
-    if custom { frontend_modules_builtin(request.modules, "bedrock", request.bedrock_path.data); }
+    if custom {
+        frontend_modules_builtin(request.modules, "bedrock", request.bedrock_path.data);
+    }
     custom = request.options.foundation[0] != 0;
-    if custom { frontend_modules_builtin(request.modules, "foundation", request.foundation_path.data); }
+    if custom {
+        frontend_modules_builtin(request.modules, "foundation", request.foundation_path.data);
+    }
 }
 
 export fn driver_request_stage(request: DriverRequest*): void {
@@ -152,11 +206,17 @@ export fn driver_request_stage(request: DriverRequest*): void {
 
 export fn driver_request_close(request: DriverRequest*): void {
     var bound = request.slot != null;
-    if bound { *request.slot = request.previous; }
+    if bound {
+        *request.slot = request.previous;
+    }
     var present = request.generated != null;
-    if present { frontend_modules_destroy(request.generated); }
+    if present {
+        frontend_modules_destroy(request.generated);
+    }
     present = request.modules != null;
-    if present { frontend_modules_destroy(request.modules); }
+    if present {
+        frontend_modules_destroy(request.modules);
+    }
     var i: usize = 0;
     while i < 5 {
         bytes_dispose(&request.text[i]);

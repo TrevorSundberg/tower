@@ -49,7 +49,7 @@ fn im_key(node: void*): u64 {
 
 fn im_align(n: usize): usize {
     var v = n + 15;
-    var returned_173 = v & im_align_mask();
+    var returned_173 = v &im_align_mask();
     return returned_173;
 }
 
@@ -71,7 +71,7 @@ fn im_sign(value: u64, type: FoundationType*): i64 {
 fn im_sign_mask(value: u64, mask: u64): i64 {
     var high = mask / 2;
     high++;
-    var sign = value & high;
+    var sign = value &high;
     if sign != 0 {
         value |= ~mask;
     }
@@ -84,7 +84,7 @@ export fn interpreter_bytes(m: IMState*, address: u64, count: usize, offset: usi
         im_fail(m, "Address outside interpreter memory", offset);
         return null;
     }
-    var remaining = size - address;
+    var remaining = size -address;
     if convert(u64, count) > remaining {
         im_fail(m, "Address outside interpreter memory", offset);
         return null;
@@ -192,7 +192,7 @@ export fn interpreter_allocate(m: IMState*, count: usize): u64 {
             im_free_blocks_erase(m, at);
             if available > convert(u64, count) {
                 var tail = at + convert(u64, count);
-                var rest = available - convert(u64, count);
+                var rest = available -convert(u64, count);
                 im_free_blocks_set(m, tail, rest);
             }
             im_allocations_set(m, at, convert(u64, count));
@@ -387,7 +387,7 @@ fn im_address_uncached(m: IMState*, node: void*, n: FoundationNode*, offset: usi
             if im_type_signed(&right.type) {
                 index = bits(u64, im_sign(index, &right.type));
             }
-            var delta = index * convert(u64, im_type_size(&n.type));
+            var delta = index *convert(u64, im_type_size(&n.type));
             pointer = pointer + delta;
         }
         if im_pointer_bytes(m) == 4 {
@@ -494,7 +494,7 @@ fn im_evaluate_uncached(m: IMState*, node: void*, n: FoundationNode*, offset: us
             result = im_binary(m, n, a, offset);
         }
     }
-    var returned_175 = result & im_type_mask(&n.type);
+    var returned_175 = result &im_type_mask(&n.type);
     return returned_175;
 }
 
@@ -508,7 +508,7 @@ fn im_convert_value(m: IMState*, a: u64, input: FoundationType*, type: Foundatio
     var mask = im_type_mask(input);
     var high = mask / 2;
     high++;
-    var sign = a & high;
+    var sign = a &high;
     var negative = sign != 0;
     negative = im_and(negative, im_type_signed(input));
     var magnitude = a;
@@ -571,11 +571,11 @@ fn im_binary_scalar(m: IMState*, op: u32, x: u64, y: u64, mask: u64, signed: boo
         return returned_176;
     }
     if op == OSub() {
-        var returned_177 = x - y;
+        var returned_177 = x -y;
         return returned_177;
     }
     if op == OMul() {
-        var returned_178 = x * y;
+        var returned_178 = x *y;
         return returned_178;
     }
     var division = op == ODiv();
@@ -613,7 +613,7 @@ fn im_binary_scalar(m: IMState*, op: u32, x: u64, y: u64, mask: u64, signed: boo
         return returned_180;
     }
     if op == OAnd() {
-        var returned_181 = x & y;
+        var returned_181 = x &y;
         return returned_181;
     }
     if op == OOr() {
@@ -851,14 +851,14 @@ fn im_print_value(m: IMState*, value: u64, type: FoundationType*): void {
         text[0] = 48;
         text[1] = 120;
         length = 2;
-        var digits = im_pointer_bytes(m) * 2;
+        var digits = im_pointer_bytes(m) *2;
         var hex = "0123456789abcdef";
         loop {
             if digits == 0 {
                 break;
             }
             digits--;
-            var exponent = digits * 4;
+            var exponent = digits *4;
             var digit = value / im_power(exponent);
             digit = digit & 15;
             text[length] = hex[convert(usize, digit)];
@@ -879,7 +879,7 @@ fn im_print_value(m: IMState*, value: u64, type: FoundationType*): void {
             if im_type_signed(type) {
                 var high = mask / 2;
                 high++;
-                var sign = value & high;
+                var sign = value &high;
                 if sign != 0 {
                     text[0] = 45;
                     length = 1;
@@ -1242,7 +1242,7 @@ fn im_raise(m: IMState*, message: u64, offset: u64): void {
         im_fail(m, "Tower trap", at);
         return;
     }
-    var available = im_memory_size(m) - convert(usize, message);
+    var available = im_memory_size(m) -convert(usize, message);
     var i: usize = 0;
     loop {
         var end = i == available;

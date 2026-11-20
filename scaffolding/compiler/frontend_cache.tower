@@ -37,22 +37,12 @@ fn frontend_revision_release(revision: FrontendRevision*): void {
         return;
     }
     var i: usize = 0;
-    loop {
-        var done = i == revision.alternatives.length;
-        if done {
-            break;
-        }
+    for(; i != revision.alternatives.length; i++) {
         entity_release(revision.alternatives.data[i]);
-        i++;
     }
     i = 0;
-    loop {
-        var done = i == revision.tokens.length;
-        if done {
-            break;
-        }
+    for(; i != revision.tokens.length; i++) {
         entity_release(revision.tokens.data[i]);
-        i++;
     }
     vector_dispose(SyntaxRuleView, &revision.rules);
     vector_dispose(u8, &revision.names);
@@ -98,11 +88,7 @@ fn frontend_revision_create(rules: SyntaxRuleView*, count: usize, tokens: void**
     var alternatives: usize = 0;
     var ok: bool = true;
     var i: usize = 0;
-    loop {
-        var done = i == count;
-        if done {
-            break;
-        }
+    for(; i != count; i++) {
         var next = names + rules[i].name_length;
         var overflow = next < names;
         var full = next == lr_none();
@@ -121,7 +107,6 @@ fn frontend_revision_create(rules: SyntaxRuleView*, count: usize, tokens: void**
             break;
         }
         alternatives = next;
-        i++;
     }
     ok &&= vector_reserve(SyntaxRuleView, &revision.rules, count);
     ok &&= vector_reserve(u8, &revision.names, names);
@@ -216,14 +201,8 @@ tokens: void**, token_count: usize, kind: void*): bool {
 }
 
 export fn frontend_cache_dispose(cache: FrontendCache*): void {
-    var i: usize = 0;
-    loop {
-        var done = i == cache.entries.length;
-        if done {
-            break;
-        }
+    for(var i: usize = 0; i != cache.entries.length; i++) {
         frontend_revision_release(cache.entries.data[i]);
-        i++;
     }
     vector_dispose(FrontendRevision*, &cache.entries);
     cache.builds = 0;
@@ -238,16 +217,10 @@ export fn frontend_cache_copy(target: FrontendCache*, source: FrontendCache*): b
     if !ok {
         return false;
     }
-    var i: usize = 0;
-    loop {
-        var done = i == count;
-        if done {
-            break;
-        }
+    for(var i: usize = 0; i != count; i++) {
         var revision = source.entries.data[i];
         revision.references++;
         target.entries.data[i] = revision;
-        i++;
     }
     target.entries.length = count;
     target.builds = source.builds;
@@ -257,7 +230,7 @@ export fn frontend_cache_copy(target: FrontendCache*, source: FrontendCache*): b
 
 fn frontend_cache_touch(cache: FrontendCache*, index: usize): void {
     var entry = cache.entries.data[index];
-    var last = cache.entries.length - 1;
+    var last = cache.entries.length -1;
     loop {
         var done = index == last;
         if done {

@@ -26,11 +26,7 @@ export fn host_runtime_tests(): i32 {
         return 702;
     }
     var size: usize = 0;
-    loop {
-        var done = size == 65;
-        if done {
-            break;
-        }
+    for(; size != 65; size++) {
         var diagnostic = compiler_node_allocate(&node_state, size, true);
         var ordinary = compiler_node_allocate(&node_state, size, false);
         bad = diagnostic == null;
@@ -59,7 +55,6 @@ export fn host_runtime_tests(): i32 {
         if bad {
             return 707;
         }
-        size++;
     }
     var state: CompilerMemoryState;
     state.live_buffers = 0;
@@ -333,11 +328,7 @@ export fn host_runtime_tests(): i32 {
     flags[9] = "--bedrock";
     flags[10] = "--foundation";
     var index: usize = 0;
-    loop {
-        var check_48 = index == 11;
-        if check_48 {
-            break;
-        }
+    for(; index != 11; index++) {
         argv[1] = flags[index];
         ok = driver_parse(&options, 2, args, "host");
         if ok {
@@ -352,7 +343,6 @@ export fn host_runtime_tests(): i32 {
             return 51;
         }
         driver_dispose(&options);
-        index++;
     }
     argv[1] = "--help";
     argv[2] = "--invalid";

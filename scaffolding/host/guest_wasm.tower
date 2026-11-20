@@ -18,7 +18,7 @@ fn guest_wasm_pages(): u32 {
 // Preserve the raw allocator's address-overflow rule, leaving its final byte
 // outside the arena rather than wrapping the committed limit to null.
 fn guest_wasm_limit(pages: u32): usize {
-    var limit = convert(u64, pages) * 65536;
+    var limit = convert(u64, pages) *65536;
     var full = limit > 4294967295;
     if full {
         limit = 4294967295;
@@ -61,7 +61,7 @@ export fn guest_wasm_allocate(heap: GuestHeap*, count: usize, size: usize): void
     var needed = end + 65535;
     needed = needed / 65536;
     var committed = convert(u32, needed);
-    var delta = committed - pages;
+    var delta = committed -pages;
     var previous = `llvm.wasm.memory.grow.i32`(0, delta);
     var failed = previous != pages;
     if failed {
@@ -83,7 +83,7 @@ export fn guest_wasm_reallocate(heap: GuestHeap*, pointer: void*, count: usize, 
     if absent {
         return guest_wasm_allocate(heap, count, size);
     }
-    var bytes = count * size;
+    var bytes = count *size;
     var empty = bytes == 0;
     if empty {
         guest_heap_free(heap, pointer);

@@ -146,16 +146,14 @@ fn completion_parse(q: CompletionQuery*, source: u8*, mode: u32, future: bool): 
         var owner = sem_module_scope(&q.program, parsed_module);
         sem_module_position(&q.program, parsed_module, base);
         var root_index: usize = 0;
-        while root_index < entries.length {
+        for(; root_index < entries.length; root_index++) {
             sem_module_link(entries.data[root_index], q.program.modules.owner_kind, owner);
-            root_index++;
         }
         // Grammar declarations also carry a definition scope for replacement
         // inspection, without modifying cached template trees.
         root_index = first_root;
-        while root_index < q.roots.length {
+        for(; root_index < q.roots.length; root_index++) {
             sem_module_link(q.roots.data[root_index], q.program.modules.owner_kind, owner);
-            root_index++;
         }
     }
     // Only the entry's actual import closure contributes external declarations.
@@ -199,15 +197,9 @@ fn completion_parse(q: CompletionQuery*, source: u8*, mode: u32, future: bool): 
             }
         }
     }
-    var i: usize = 0;
-    loop {
-        var done = i == entries.length;
-        if done {
-            break;
-        }
+    for(var i: usize = 0; i != entries.length; i++) {
         completion_attach(q, entries.data[i], base);
         entity_release(entries.data[i]);
-        i++;
     }
     vector_dispose(void*, &entries);
     if q.inspection {
@@ -244,7 +236,7 @@ export fn completion_analyze(q: CompletionQuery*, active: void*, mode: u32, file
     // not its spelling, mark the query, including under local token overrides.
     var hole: vector(u8);
     vector_init(u8, &hole);
-    var prefix_length = q.cursor - q.from;
+    var prefix_length = q.cursor -q.from;
     var preferred = &q.source[q.from];
     sem_require(bytes_append(&hole, preferred, prefix_length));
     sem_require(host_text_terminate(&hole));
@@ -291,7 +283,7 @@ export fn completion_analyze(q: CompletionQuery*, active: void*, mode: u32, file
     completion_text(&text, hole.data);
     vector_dispose(u8, &hole);
     var prefix_end = text.length;
-    var suffix_length = q.length - q.to;
+    var suffix_length = q.length -q.to;
     sem_require(bytes_append(&text, &q.source[q.to], suffix_length));
     sem_require(host_text_terminate(&text));
     var root = tower_node_create();
@@ -312,19 +304,13 @@ export fn completion_analyze(q: CompletionQuery*, active: void*, mode: u32, file
         sem_require(host_text_terminate(&text));
         var probe = syntax_completion_create(text.data, mode);
         syntax_completion_enable(probe);
-        var i: usize = 0;
-        loop {
-            var editor_condition6 = i == 1024;
-            if editor_condition6 {
-                break;
-            }
+        for(var i: usize = 0; i != 1024; i++) {
             var root = syntax_next(probe);
             var editor_condition7 = root == null;
             if editor_condition7 {
                 break;
             }
             entity_release(root);
-            i++;
         }
         var suffix = syntax_completion_close(probe, semantic_scalar_name(SVoid()));
         var editor_condition8 = suffix == null;
@@ -355,14 +341,9 @@ export fn completion_analyze(q: CompletionQuery*, active: void*, mode: u32, file
     q.editor.offset = q.from;
     c.generics = generic_begin(root);
     i = 0;
-    loop {
-        var editor_condition10 = i == q.roots.length;
-        if editor_condition10 {
-            break;
-        }
+    for(; i != q.roots.length; i++) {
         var entry = sem_state(c, c.source_bases, q.roots.data[i]);
         entry.number = q.bases.data[i];
-        i++;
     }
     sem_run(c);
     // Observed scope tables borrow real entities and remain valid until dispose.
@@ -400,7 +381,7 @@ fn completion_word(byte: u8): bool {
 }
 
 fn completion_slice(source: u8*, start: usize, end: usize, word: u8*): bool {
-    var size = end - start;
+    var size = end -start;
     var same = size == sem_length(word);
     if !same {
         return false;
@@ -441,11 +422,7 @@ export fn completion_begin(source: u8*, length: usize, cursor: usize, spans: Com
     q.to = cursor;
     var i: usize = 0;
     var grammar: bool = false;
-    loop {
-        var done = i == count;
-        if done {
-            break;
-        }
+    for(; i != count; i++) {
         var s = &spans[i];
         var inside = s.start < cursor;
         inside &&= cursor <= s.end;
@@ -500,7 +477,6 @@ export fn completion_begin(source: u8*, length: usize, cursor: usize, spans: Com
                 }
             }
         }
-        i++;
     }
     if grammar {
         q.mode = 2;
@@ -543,11 +519,7 @@ export fn completion_begin(source: u8*, length: usize, cursor: usize, spans: Com
     // parser then gives us ordinary shared nodes for the enclosing function.
     var end = length;
     i = 0;
-    loop {
-        var done = i == count;
-        if done {
-            break;
-        }
+    for(; i != count; i++) {
         var s = &spans[i];
         var after = s.start >= cursor;
         if after {
@@ -564,27 +536,17 @@ export fn completion_begin(source: u8*, length: usize, cursor: usize, spans: Com
                 }
             }
         }
-        i++;
     }
     i = q.boundary;
-    loop {
-        var done = i >= end;
-        if done {
-            break;
-        }
+    for(; i < end; i++) {
         var newline = source[i] == 10;
         if !newline {
             q.recovered.data[i] = 32;
         }
-        i++;
     }
     var depth: usize = 0;
     i = 0;
-    loop {
-        var done = i == count;
-        if done {
-            break;
-        }
+    for(; i != count; i++) {
         var s = &spans[i];
         var kept = s.start < q.boundary;
         var suffix = s.start >= end;
@@ -607,18 +569,12 @@ export fn completion_begin(source: u8*, length: usize, cursor: usize, spans: Com
                 }
             }
         }
-        i++;
     }
     // Bounded recovery; deeply malformed input still gets grammar suggestions.
     var bounded = depth < 256;
     if bounded {
-        loop {
-            var done = depth == 0;
-            if done {
-                break;
-            }
+        for(; depth != 0; depth--) {
             sem_require(vector_push(u8, &q.recovered, 125));
-            depth--;
         }
     }
     sem_require(host_text_terminate(&q.recovered));
@@ -815,35 +771,25 @@ export fn completion_offer(q: CompletionQuery*, name: u8*, kind: u8*, detail: u8
     if empty {
         return;
     }
-    var prefix = q.cursor - q.from;
+    var prefix = q.cursor -q.from;
     var short = size < prefix;
     if short {
         return;
     }
     var i: usize = 0;
-    loop {
-        var done = i == prefix;
-        if done {
-            break;
-        }
+    for(; i != prefix; i++) {
         var at = q.from + i;
         var same = completion_fold(name[i]) == completion_fold(q.source[at]);
         if !same {
             return;
         }
-        i++;
     }
     i = 0;
-    loop {
-        var done = i == q.names.length;
-        if done {
-            break;
-        }
+    for(; i != q.names.length; i++) {
         var duplicate = sem_equal(name, q.names.data[i]);
         if duplicate {
             return;
         }
-        i++;
     }
     var limit = q.count >= 128;
     if limit {
@@ -872,16 +818,10 @@ fn completion_semantic_node(q: CompletionQuery*, node: void*, kind: u8*, categor
     }
     if sem_equal(kind, "variable") {
         var name = sem_name(value);
-        var i: usize = 0;
-        loop {
-            var editor_guard_3 = i == q.bindings.length;
-            if editor_guard_3 {
-                break;
-            }
+        for(var i: usize = 0; i != q.bindings.length; i++) {
             if sem_equal(name, q.bindings.data[i]) {
                 return;
             }
-            i++;
         }
         sem_require(vector_push(u8*, &q.bindings, name));
     }
@@ -937,11 +877,7 @@ fn completion_table(q: CompletionQuery*, table: SemanticTable*, kind: u8*, categ
     vector_init(void*, &nodes);
     sem_scope_locals(&q.context, &scope, &nodes);
     var i: usize = 0;
-    loop {
-        var editor_condition23 = i == nodes.length;
-        if editor_condition23 {
-            break;
-        }
+    for(; i != nodes.length; i++) {
         var candidate = nodes.data[i];
         var lexical = table == q.context.functions;
         lexical ||= table == q.context.globals;
@@ -953,7 +889,6 @@ fn completion_table(q: CompletionQuery*, table: SemanticTable*, kind: u8*, categ
         if visible {
             completion_semantic_node(q, candidate, kind, category);
         }
-        i++;
     }
     vector_dispose(void*, &nodes);
 }
@@ -966,11 +901,7 @@ fn completion_templates(q: CompletionQuery*, table: SemanticTable*, kind: u8*, d
     vector_init(void*, &nodes);
     sem_scope_locals(&q.context, &scope, &nodes);
     var i: usize = 0;
-    loop {
-        var done = i == nodes.length;
-        if done {
-            break;
-        }
+    for(; i != nodes.length; i++) {
         var node = nodes.data[i];
         var eligible = sem_completion_visible(&q.context, &q.editor, table, node);
         var function = category == 0;
@@ -1003,7 +934,6 @@ fn completion_templates(q: CompletionQuery*, table: SemanticTable*, kind: u8*, d
         if eligible {
             completion_offer(q, completion_name(node), kind, detail, category);
         }
-        i++;
     }
     vector_dispose(void*, &nodes);
 }
@@ -1022,13 +952,12 @@ export fn completion_symbols(q: CompletionQuery*): void {
         if types {
             category = 1;
         }
-        while i < imports {
+        for(; i < imports; i++) {
             var name = sem_import_alias(owner, i);
             var named = name[0] != 0;
             if named {
                 completion_offer(q, name, "namespace", "module", category);
             }
-            i++;
         }
     }
     var editor_condition24 = q.editor.kind == 2;
@@ -1059,14 +988,8 @@ export fn completion_symbols(q: CompletionQuery*): void {
         if editor_condition28 {
             return;
         }
-        var i: usize = 0;
-        loop {
-            var editor_condition29 = i == record.items.length;
-            if editor_condition29 {
-                break;
-            }
+        for(var i: usize = 0; i != record.items.length; i++) {
             completion_semantic_node(q, record.items.data[i], "property", 3);
-            i++;
         }
         return;
     }

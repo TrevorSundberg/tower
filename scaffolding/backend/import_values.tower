@@ -44,18 +44,12 @@ fn bi_memory_load(c: BackendImport*, address: void*, type: void*): void* {
         var count = width + 7;
         count = count / 8;
         var result = bi_const(c, 7, 0);
-        var i: u32 = 0;
-        loop {
-            var done = i == count;
-            if done {
-                break;
-            }
+        for(var i: u32 = 0; i != count; i++) {
             var at = bi_offset(c, address, bi_const(c, 8, convert(u64, i)));
             var byte = bi_cast(c, bi_load(c, at, 5), 7, false);
             var shift = i *8;
             byte = bi_binary(c, 2, byte, bi_const(c, 7, bi_pow2(shift)), 7);
             result = bi_binary(c, 6, result, byte, 7);
-            i++;
         }
         return bi_mask(c, result, type);
     }
@@ -325,12 +319,7 @@ fn bi_shift(c: BackendImport*, op: u32, a: void*, b: void*, type: void*, shift: 
     b = bi_binary(c, 5, b, bi_const(c, 7, 63), 7);
     var power = bi_decl(c, 7);
     bi_assign(c, bi_ref(c, power), bi_const(c, 7, 1));
-    var i: u32 = 0;
-    loop {
-        var done = i == 6;
-        if done {
-            break;
-        }
+    for(var i: u32 = 0; i != 6; i++) {
         var bit = bi_pow2(i);
         var test = bi_binary(c, 5, b, bi_const(c, 7, bit), 7);
         test = bi_binary(c, 9, test, bi_const(c, 7, 0), 2);
@@ -341,7 +330,6 @@ fn bi_shift(c: BackendImport*, op: u32, a: void*, b: void*, type: void*, shift: 
         var product = bi_binary(c, 2, bi_ref(c, power), factor, 7);
         bi_assign(c, bi_ref(c, power), product);
         c.block = outer;
-        i++;
     }
     var left = op == 20;
     if left {

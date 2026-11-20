@@ -64,8 +64,8 @@ fn guest_heap_request_size(count: usize, size: usize): usize {
             return 0;
         }
     }
-    var bytes = count * size;
-    var limit = maximum - 15;
+    var bytes = count *size;
+    var limit = maximum -15;
     var overflow = bytes > limit;
     if overflow {
         return 0;
@@ -96,7 +96,7 @@ export fn guest_heap_allocate(heap: GuestHeap*, count: usize, size: usize): void
         }
         var enough = block.size >= bytes;
         if enough {
-            var spare = block.size - bytes;
+            var spare = block.size -bytes;
             var minimum = header + 16;
             var split = spare >= minimum;
             if split {
@@ -116,7 +116,7 @@ export fn guest_heap_allocate(heap: GuestHeap*, count: usize, size: usize): void
         }
         link = &block.next;
     }
-    var remaining = heap.limit - heap.cursor;
+    var remaining = heap.limit -heap.cursor;
     var short_header = remaining < header;
     if short_header {
         return null;
@@ -216,7 +216,7 @@ export fn guest_heap_reallocate(heap: GuestHeap*, pointer: void*, count: usize, 
     if absent {
         return guest_heap_allocate(heap, count, size);
     }
-    var bytes = count * size;
+    var bytes = count *size;
     var empty = bytes == 0;
     if empty {
         guest_heap_free(heap, pointer);

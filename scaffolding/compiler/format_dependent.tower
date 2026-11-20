@@ -50,10 +50,8 @@ fn format_dependent_tokens(f: FormatEngine*, entity: void*, text: vector(u8)*, d
             return;
         }
     }
-    var i: usize = 0;
-    while i < entity_child_count(entity) {
+    for(var i: usize = 0; i < entity_child_count(entity); i++) {
         format_dependent_tokens(f, entity_child_at(entity, i), text, next);
-        i++;
     }
 }
 
@@ -86,10 +84,8 @@ fn format_dependent_list(f: FormatEngine*, entity: void*, label: u8*, separator:
         *count = *count + 1;
         return;
     }
-    var i: usize = 0;
-    while i < entity_child_count(entity) {
+    for(var i: usize = 0; i < entity_child_count(entity); i++) {
         format_dependent_list(f, entity_child_at(entity, i), label, separator, count, next);
-        i++;
     }
 }
 
@@ -255,10 +251,8 @@ fn format_dependent(f: FormatEngine*, entity: void*, depth: usize): void {
             return;
         }
     }
-    var i: usize = 0;
-    while i < entity_child_count(entity) {
+    for(var i: usize = 0; i < entity_child_count(entity); i++) {
         format_dependent(f, entity_child_at(entity, i), next);
-        i++;
     }
 }
 

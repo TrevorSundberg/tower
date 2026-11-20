@@ -84,7 +84,7 @@ export fn parser_match_create_subtree(parent: Entity*, id: u32, start: usize, le
 export fn parser_decode_utf8_codepoint(begin: u8*, end: u8*, value: u32*): usize {
     var first = bits(usize, begin);
     var last = bits(usize, end);
-    var length = last - first;
+    var length = last -first;
     return tower_utf8_decode(begin, length, value);
 }
 

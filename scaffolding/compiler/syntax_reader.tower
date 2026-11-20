@@ -118,7 +118,7 @@ fn syntax_reader_span(reader: SyntaxReader*, node: void*): ParserMatchData* {
     }
     var outside = span.start > reader.source.text.length;
     if !outside {
-        var remaining = reader.source.text.length - span.start;
+        var remaining = reader.source.text.length -span.start;
         outside = span.length > remaining;
     }
     if outside {
@@ -171,18 +171,14 @@ export fn syntax_identifier_decode(text: u8*, length: usize, result: vector(u8)*
 export fn syntax_identifier_decode_in_place(text: u8*, length: usize): usize {
     var quoted = length >= 2;
     quoted &&= text[0] == 96;
-    var end = length - 1;
+    var end = length -1;
     quoted &&= text[end] == 96;
     if !quoted {
         return length;
     }
     var read: usize = 1;
     var write: usize = 0;
-    loop {
-        var done = read == end;
-        if done {
-            break;
-        }
+    for(; read != end; write++) {
         var byte = text[read];
         read++;
         var escape = byte == 92;
@@ -206,7 +202,6 @@ export fn syntax_identifier_decode_in_place(text: u8*, length: usize): usize {
             }
         }
         text[write] = byte;
-        write++;
     }
     text[write] = 0;
     return write;
@@ -230,12 +225,7 @@ export fn syntax_literal_check(text: u8*, length: usize): u32 {
         return 1;
     }
     var letters: bool = false;
-    var index: usize = 0;
-    loop {
-        var done = index == length;
-        if done {
-            break;
-        }
+    for(var index: usize = 0; index != length; index++) {
         var byte = text[index];
         var invalid = byte == 0;
         invalid ||= byte == 32;
@@ -255,7 +245,6 @@ export fn syntax_literal_check(text: u8*, length: usize): u32 {
         if alpha {
             letters = true;
         }
-        index++;
     }
     if letters {
         var word = lexicon_word(text, length);
@@ -551,37 +540,57 @@ fn syntax_reader_rule(reader: SyntaxReader*, node: void*): bool {
     var annotated = level != null;
     if annotated {
         var span = syntax_reader_span(reader, level);
-        if span == null { return false; }
-        var cursor: usize = 0;
-        loop {
-            var done = cursor == span.length;
-            if done { break; }
+        if span == null {
+            return false;
+        }
+        for(var cursor: usize = 0; cursor != span.length; cursor++) {
             var offset = span.start + cursor;
             var digit = convert(u32, reader.source.text.data[offset]);
             digit = digit - 48;
-            if digit > 9 { return syntax_reader_fail(reader, "Grammar precedence requires decimal digits"); }
+            if digit > 9 {
+                return syntax_reader_fail(reader, "Grammar precedence requires decimal digits");
+            }
             var overflow = rule.precedence > 429496729;
             if !overflow {
                 var edge = rule.precedence == 429496729;
-                if edge { overflow = digit > 5; }
+                if edge {
+                    overflow = digit > 5;
+                }
             }
-            if overflow { return syntax_reader_fail(reader, "Grammar precedence exceeds u32"); }
+            if overflow {
+                return syntax_reader_fail(reader, "Grammar precedence exceeds u32");
+            }
             rule.precedence = rule.precedence * 10;
             rule.precedence = rule.precedence + digit;
-            cursor++;
         }
         var zero = rule.precedence == 0;
-        if zero { return syntax_reader_fail(reader, "Grammar precedence must be positive"); }
+        if zero {
+            return syntax_reader_fail(reader, "Grammar precedence must be positive");
+        }
         var direction = syntax_reader_member(annotation, "direction");
         span = syntax_reader_span(reader, direction);
-        if span == null { return false; }
+        if span == null {
+            return false;
+        }
         var spelling = reader.source.text.data + span.start;
-        if syntax_bytes_compare(spelling, span.length, "left", 4) == 0 { rule.associativity = 1; }
-        if syntax_bytes_compare(spelling, span.length, "L>R", 3) == 0 { rule.associativity = 1; }
-        if syntax_bytes_compare(spelling, span.length, "right", 5) == 0 { rule.associativity = 2; }
-        if syntax_bytes_compare(spelling, span.length, "R<L", 3) == 0 { rule.associativity = 2; }
-        if syntax_bytes_compare(spelling, span.length, "nonassoc", 8) == 0 { rule.associativity = 3; }
-        if rule.associativity == 0 { return syntax_reader_fail(reader, "Unknown grammar associativity"); }
+        if syntax_bytes_compare(spelling, span.length, "left", 4) == 0 {
+            rule.associativity = 1;
+        }
+        if syntax_bytes_compare(spelling, span.length, "L>R", 3) == 0 {
+            rule.associativity = 1;
+        }
+        if syntax_bytes_compare(spelling, span.length, "right", 5) == 0 {
+            rule.associativity = 2;
+        }
+        if syntax_bytes_compare(spelling, span.length, "R<L", 3) == 0 {
+            rule.associativity = 2;
+        }
+        if syntax_bytes_compare(spelling, span.length, "nonassoc", 8) == 0 {
+            rule.associativity = 3;
+        }
+        if rule.associativity == 0 {
+            return syntax_reader_fail(reader, "Unknown grammar associativity");
+        }
     }
     loop {
         var done = alternatives == null;
@@ -628,7 +637,7 @@ fn syntax_reader_rule(reader: SyntaxReader*, node: void*): bool {
             return false;
         }
         value.start = span.start + 1;
-        var length = span.length - 2;
+        var length = span.length -2;
         value.end = value.start + length;
         text = reader.source.text.data + value.start;
         ok = bytes_assign_text(&value.text, text, length);
@@ -636,16 +645,10 @@ fn syntax_reader_rule(reader: SyntaxReader*, node: void*): bool {
             return syntax_reader_ok(reader, false);
         }
         syntax_node_replacement(rule, body);
-        var index: usize = 0;
-        loop {
-            var done = index == rule.items.length;
-            if done {
-                break;
-            }
+        for(var index: usize = 0; index != rule.items.length; index++) {
             var component = entity_component_get(rule.items.data[index], reader.syntax_kind);
             var alternative = bits(SyntaxNode*, entity_component_data(component));
             syntax_node_replacement(alternative, body);
-            index++;
         }
     }
     return true;
@@ -709,7 +712,7 @@ fn syntax_reader_token(reader: SyntaxReader*, node: void*, skipped: bool): bool 
         return syntax_reader_fail(reader, "Token pattern must contain opening and closing delimiters");
     }
     var start = span.start + 1;
-    var length = span.length - 2;
+    var length = span.length -2;
     var text = reader.source.text.data + start;
     ok = bytes_assign_text(&value.text, text, length);
     if !ok {

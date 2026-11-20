@@ -59,10 +59,8 @@ fn driver_argument(args: DriverArguments*, prefix: u8*, value: u8*): void {
 }
 
 fn driver_arguments_dispose(args: DriverArguments*): void {
-    var i: usize = 0;
-    while i < args.values.length {
+    for(var i: usize = 0; i < args.values.length; i++) {
         free(args.values.data[i]);
-        i++;
     }
     vector_dispose(u8*, &args.values);
 }

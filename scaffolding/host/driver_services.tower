@@ -58,7 +58,7 @@ export fn driver_source_position(source: u8*, count: usize, offset: usize, line:
             *line = *line + 1;
             *column = 1;
         } else {
-            var prefix = c & 192;
+            var prefix = c &192;
             var first = prefix != 128;
             if first {
                 *column = *column + 1;

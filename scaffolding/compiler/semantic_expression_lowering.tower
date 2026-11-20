@@ -36,9 +36,13 @@ fn sem_lift_result(source: void*, result: void*): void* {
 
 fn sem_lift_snapshot(c: SemanticContext*, block: void*, n: void*): void* {
     var value = sem_get(n);
-    if value.constant { return n; }
+    if value.constant {
+        return n;
+    }
     var string = value.kind == KString();
-    if string { return n; }
+    if string {
+        return n;
+    }
     var local = sem_control_local(c, block, n);
     return sem_control_read(c, block, local);
 }
@@ -64,13 +68,20 @@ fn sem_lift_store(c: SemanticContext*, block: void*, target: void*, value: void*
 fn sem_lift_place(c: SemanticContext*, block: void*, n: void*): void* {
     var value = sem_get(n);
     var load = value.kind == KLoad();
-    if load { value.value = sem_lift_value(c, block, value.value); return n; }
+    if load {
+        value.value = sem_lift_value(c, block, value.value);
+        return n;
+    }
     var field = value.kind == KField();
     var index = value.kind == KIndex();
     var projection = field;
-    if index { projection = true; }
+    if index {
+        projection = true;
+    }
     if projection {
-        if value.indirect { value.left = sem_lift_value(c, block, value.left); }
+        if value.indirect {
+            value.left = sem_lift_value(c, block, value.left);
+        }
         else {
             value.left = sem_lift_place(c, block, value.left);
             var base = sem_get(value.left);
@@ -90,7 +101,9 @@ fn sem_lift_place(c: SemanticContext*, block: void*, n: void*): void* {
                 value.indirect = true;
             }
         }
-        if index { value.right = sem_lift_value(c, block, value.right); }
+        if index {
+            value.right = sem_lift_value(c, block, value.right);
+        }
     }
     return n;
 }
@@ -99,7 +112,9 @@ fn sem_lift_target(c: SemanticContext*, block: void*, n: void*): void* {
     n = sem_lift_place(c, block, n);
     var source = sem_get(n);
     var indirect = source.kind == KLoad();
-    if indirect { return n; }
+    if indirect {
+        return n;
+    }
     var address = sem_control_node(c, block, KAddress());
     var pointer = sem_get(address);
     pointer.value = n;
@@ -123,7 +138,9 @@ fn sem_lift_shift(c: SemanticContext*, block: void*, left: void*, right: void*, 
         var original = &input.type;
         var type = sem_type_copy(c, original);
         type.scalar = SU32();
-        if original.scalar == SI64() { type.scalar = SU64(); }
+        if original.scalar == SI64() {
+            type.scalar = SU64();
+        }
         var converted = sem_control_node(c, block, KBits());
         sem_get(converted).value = left;
         sem_set_type(&sem_get(converted).type, type);
@@ -134,8 +151,8 @@ fn sem_lift_shift(c: SemanticContext*, block: void*, left: void*, right: void*, 
         return sem_lift_snapshot(c, block, result);
     }
     var count_type = sem_get(right);
-    var width = semantic_size(&input.type) * 8;
-    var mask = convert(u64, width) - 1;
+    var width = semantic_size(&input.type) *8;
+    var mask = convert(u64, width) -1;
     var count_mask = sem_surface_constant(c, block, &count_type.type, mask);
     var count = sem_lift_binary(c, block, OAnd(), right, count_mask, &count_type.type);
     var remaining = sem_control_local(c, block, count);
@@ -155,7 +172,9 @@ fn sem_lift_shift(c: SemanticContext*, block: void*, left: void*, right: void*, 
     var current = sem_control_read(c, body, result);
     var two = sem_surface_constant(c, body, &input.type, 2);
     var op = OMul();
-    if backwards { op = ODiv(); }
+    if backwards {
+        op = ODiv();
+    }
     var next = sem_lift_binary(c, body, op, current, two, &input.type);
     if backwards {
         if semantic_signed(&input.type) {
@@ -163,7 +182,7 @@ fn sem_lift_shift(c: SemanticContext*, block: void*, left: void*, right: void*, 
             var one = sem_surface_constant(c, body, &input.type, 1);
             var low = sem_lift_binary(c, body, OAnd(), current, one, &input.type);
             var negative = sem_lift_binary(c, body, OLt(), current,
-                sem_surface_constant(c, body, &input.type, 0), boolean);
+            sem_surface_constant(c, body, &input.type, 0), boolean);
             var adjusted = sem_control_local(c, body, next);
             var correction = sem_control_node(c, body, KBlock());
             var rounded = sem_lift_binary(c, correction, OSub(), next, low, &input.type);
@@ -189,10 +208,14 @@ fn sem_lift_nonnull(c: SemanticContext*, block: void*, value: void*): void* {
 // Intermediate struct fields remain places, so no aggregate copy is introduced.
 fn sem_lift_guarded_path(c: SemanticContext*, selected: void**, n: void*): void* {
     var value = sem_get(n);
-    if !sem_surface_optional(value) { return sem_lift_value(c, *selected, n); }
+    if !sem_surface_optional(value) {
+        return sem_lift_value(c, *selected, n);
+    }
     var indexed = value.kind == SurfaceNullIndex();
     var left = sem_lift_guarded_path(c, selected, value.left);
-    if sem_get(left).type.pointers != 0 { left = sem_lift_value(c, *selected, left); }
+    if sem_get(left).type.pointers != 0 {
+        left = sem_lift_value(c, *selected, left);
+    }
     if value.op != 0 {
         var present = sem_lift_nonnull(c, *selected, left);
         var yes = sem_control_node(c, *selected, KBlock());
@@ -200,10 +223,14 @@ fn sem_lift_guarded_path(c: SemanticContext*, selected: void**, n: void*): void*
         *selected = yes;
     }
     value.kind = KField();
-    if indexed { value.kind = KIndex(); }
+    if indexed {
+        value.kind = KIndex();
+    }
     value.op = 0;
     value.left = left;
-    if indexed { value.right = sem_lift_value(c, *selected, value.right); }
+    if indexed {
+        value.right = sem_lift_value(c, *selected, value.right);
+    }
     var projection = sem_control_node(c, *selected, value.kind);
     var data = sem_get(projection);
     data.left = value.left;
@@ -233,12 +260,14 @@ fn sem_lift_coalesce(c: SemanticContext*, block: void*, left: void*, right: void
     sem_lift_store(c, selected, sem_control_read(c, selected, result), first);
     sem_lift_store(c, selected, sem_control_read(c, selected, found), sem_surface_constant(c, selected, boolean, 1));
     var missing = sem_lift_binary(c, block, OEq(), sem_control_read(c, block, found),
-        sem_surface_constant(c, block, boolean, 0), boolean);
+    sem_surface_constant(c, block, boolean, 0), boolean);
     var fallback = sem_control_node(c, block, KBlock());
     sem_control_branch(c, block, missing, fallback);
     var second = sem_lift_value(c, fallback, right);
     sem_lift_store(c, fallback, sem_control_read(c, fallback, result), second);
-    if target != null { sem_lift_store(c, fallback, target, second); }
+    if target != null {
+        sem_lift_store(c, fallback, target, second);
+    }
     return sem_control_read(c, block, result);
 }
 
@@ -248,18 +277,26 @@ fn sem_lift_logical(c: SemanticContext*, block: void*, left: void*, right: void*
     var yes = sem_control_node(c, block, KBlock());
     var no = sem_control_branch(c, block, first, yes);
     var chosen = yes;
-    if operation == SurfaceOr() { chosen = no; }
+    if operation == SurfaceOr() {
+        chosen = no;
+    }
     var second = sem_lift_value(c, chosen, right);
     sem_lift_store(c, chosen, sem_control_read(c, chosen, result), second);
-    if target != null { sem_lift_store(c, chosen, target, second); }
+    if target != null {
+        sem_lift_store(c, chosen, target, second);
+    }
     return sem_control_read(c, block, result);
 }
 
 fn sem_lift_value(c: SemanticContext*, block: void*, n: void*): void* {
     var absent = n == null;
-    if absent { return null; }
+    if absent {
+        return null;
+    }
     var value = sem_get(n);
-    if value.constant { return n; }
+    if value.constant {
+        return n;
+    }
     if sem_surface_optional(value) {
         var absent = sem_surface_constant(c, block, &value.type, 0);
         return sem_lift_result(n, sem_lift_coalesce(c, block, n, absent, null));
@@ -304,12 +341,16 @@ fn sem_lift_value(c: SemanticContext*, block: void*, n: void*): void* {
     var assign = value.kind == SurfaceAssign();
     var modify = value.kind == SurfaceModify();
     var writes = assign;
-    if modify { writes = true; }
+    if modify {
+        writes = true;
+    }
     if writes {
         var target = sem_lift_target(c, block, value.target);
         var previous: void* = null;
         var compound = value.op != SurfaceSet();
-        if compound { previous = sem_lift_snapshot(c, block, target); }
+        if compound {
+            previous = sem_lift_snapshot(c, block, target);
+        }
         if value.op == SurfaceCoalesce() {
             return sem_lift_result(n, sem_lift_coalesce(c, block, previous, value.value, target));
         }
@@ -320,26 +361,40 @@ fn sem_lift_value(c: SemanticContext*, block: void*, n: void*): void* {
         if modify {
             var type = &value.type;
             var pointer = type.pointers != 0;
-            if pointer { type = sem_type_new(c, SUSize(), 0, null); }
+            if pointer {
+                type = sem_type_new(c, SUSize(), 0, null);
+            }
             next = sem_surface_constant(c, block, type, 1);
-        } else { next = sem_lift_value(c, block, value.value); }
+        } else {
+            next = sem_lift_value(c, block, value.value);
+        }
         if compound {
             var shift = value.op >= SurfaceShiftLeft() && value.op <= SurfaceShiftUnsigned();
             if shift {
                 next = sem_lift_shift(c, block, previous, next, value.op);
             }
-            else { next = sem_lift_binary(c, block, value.op, previous, next, &value.type); }
+            else {
+                next = sem_lift_binary(c, block, value.op, previous, next, &value.type);
+            }
         }
         sem_lift_store(c, block, target, next);
-        if modify { if value.indirect { return sem_lift_result(n, previous); } }
+        if modify {
+            if value.indirect {
+                return sem_lift_result(n, previous);
+            }
+        }
         return sem_lift_result(n, next);
     }
     var shift = value.kind == SurfaceShift();
     var threeway = value.kind == SurfaceCompare();
     var binary = value.kind == KBinary();
     var pair = binary;
-    if shift { pair = true; }
-    if threeway { pair = true; }
+    if shift {
+        pair = true;
+    }
+    if threeway {
+        pair = true;
+    }
     if pair {
         value.left = sem_lift_value(c, block, value.left);
         value.right = sem_lift_value(c, block, value.right);
@@ -369,12 +424,18 @@ fn sem_lift_value(c: SemanticContext*, block: void*, n: void*): void* {
         value.value = sem_lift_place(c, block, value.value);
         var location = sem_get(value.value);
         var dereference = location.kind == KLoad();
-        if dereference { return location.value; }
+        if dereference {
+            return location.value;
+        }
     }
     else {
         var location = value.kind == KField();
-        if !location { location = value.kind == KIndex(); }
-        if location { sem_lift_place(c, block, n); }
+        if !location {
+            location = value.kind == KIndex();
+        }
+        if location {
+            sem_lift_place(c, block, n);
+        }
         else {
             value.left = sem_lift_value(c, block, value.left);
             value.right = sem_lift_value(c, block, value.right);
@@ -383,17 +444,18 @@ fn sem_lift_value(c: SemanticContext*, block: void*, n: void*): void* {
     }
     var call = value.kind == KCall();
     if call {
-        var index: usize = 0;
-        loop {
-            var done = index == value.items.length;
-            if done { break; }
+        for(var index: usize = 0; index != value.items.length; index++) {
             value.items.data[index] = sem_lift_value(c, block, value.items.data[index]);
-            index++;
         }
     }
     var discarded = value.type.pointers == 0;
-    if discarded { discarded = value.type.scalar == SVoid(); }
-    if discarded { sem_lift_append(block, n); return n; }
+    if discarded {
+        discarded = value.type.scalar == SVoid();
+    }
+    if discarded {
+        sem_lift_append(block, n);
+        return n;
+    }
     return sem_lift_snapshot(c, block, n);
 }
 
@@ -401,22 +463,24 @@ fn sem_lift_block(c: SemanticContext*, block: void*): void {
     var value = sem_get(block);
     var source = sem_list(c);
     var index: usize = 0;
-    loop {
-        var done = index == value.items.length;
-        if done { break; }
+    for(; index != value.items.length; index++) {
         sem_push(source, value.items.data[index]);
-        index++;
     }
     value.items.length = 0;
     index = 0;
     loop {
         var done = index == source.length;
-        if done { return; }
+        if done {
+            return;
+        }
         var n = source.data[index];
         index++;
         var statement = sem_get(n);
         var absent = statement == null;
-        if absent { sem_lift_append(block, n); continue; }
+        if absent {
+            sem_lift_append(block, n);
+            continue;
+        }
         var discard = statement.kind == SurfaceDiscard();
         if discard {
             sem_lift_value(c, block, statement.value);
@@ -425,48 +489,84 @@ fn sem_lift_block(c: SemanticContext*, block: void*): void {
             continue;
         }
         var nested = statement.kind == KBlock();
-        if nested { sem_lift_block(c, n); }
+        if nested {
+            sem_lift_block(c, n);
+        }
         var loop_node = statement.kind == KLoop();
-        if loop_node { sem_lift_block(c, statement.body); }
+        if loop_node {
+            sem_lift_block(c, statement.body);
+        }
         var branch = statement.kind == KIf();
         if branch {
             statement.value = sem_lift_value(c, block, statement.value);
             sem_lift_block(c, statement.body);
             var otherwise = statement.otherwise != null;
-            if otherwise { sem_lift_block(c, statement.otherwise); }
+            if otherwise {
+                sem_lift_block(c, statement.otherwise);
+            }
         }
         var declaration = statement.kind == KDeclare();
         var assignment = statement.kind == KAssign();
         var returned = statement.kind == KReturn();
-        if assignment { statement.target = sem_lift_target(c, block, statement.target); }
+        if assignment {
+            statement.target = sem_lift_target(c, block, statement.target);
+        }
         var initializer = declaration;
-        if assignment { initializer = true; }
-        if returned { initializer = true; }
-        if initializer { statement.value = sem_lift_value(c, block, statement.value); }
+        if assignment {
+            initializer = true;
+        }
+        if returned {
+            initializer = true;
+        }
+        if initializer {
+            statement.value = sem_lift_value(c, block, statement.value);
+        }
         var call = statement.kind == KCall();
-        if !call { call = statement.kind == KPrint(); }
-        if !call { call = statement.kind == KFree(); }
-        if !call { call = statement.kind == KCopy(); }
-        if !call { call = statement.kind == KFill(); }
-        if call { sem_lift_value(c, block, n); }
-        else { sem_lift_append(block, n); }
+        if !call {
+            call = statement.kind == KPrint();
+        }
+        if !call {
+            call = statement.kind == KFree();
+        }
+        if !call {
+            call = statement.kind == KCopy();
+        }
+        if !call {
+            call = statement.kind == KFill();
+        }
+        if call {
+            sem_lift_value(c, block, n);
+        }
+        else {
+            sem_lift_append(block, n);
+        }
     }
 }
 
 fn sem_lower_expressions(c: SemanticContext*): void {
-    if !c.surface_expressions { return; }
-    if !sem_ok(c) { return; }
+    if !c.surface_expressions {
+        return;
+    }
+    if !sem_ok(c) {
+        return;
+    }
     var index: usize = 0;
     loop {
         var done = index == c.program.functions.length;
-        if done { return; }
+        if done {
+            return;
+        }
         c.current = c.program.functions.data[index];
         var function = sem_get(c.current);
         var block = function.body;
         var root = index == 0;
-        if root { block = c.current; }
+        if root {
+            block = c.current;
+        }
         index++;
         var present = block != null;
-        if present { sem_lift_block(c, block); }
+        if present {
+            sem_lift_block(c, block);
+        }
     }
 }

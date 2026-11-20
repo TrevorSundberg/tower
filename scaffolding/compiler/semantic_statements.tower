@@ -197,11 +197,7 @@ fn sem_order_name(c: SemanticContext*, node: void*, value: FoundationNode*): u8*
 
 fn sem_scope_locals(c: SemanticContext*, scope: SemanticScope*, locals: vector(void*)*): void {
     var i: usize = 0;
-    loop {
-        var step1 = i < scope.names.capacity;
-        if !step1 {
-            break;
-        }
+    for(; i < scope.names.capacity; i++) {
         var entry: SemanticEntry* = scope.names.entries[i];
         var step4 = entry != null;
         if step4 {
@@ -211,14 +207,9 @@ fn sem_scope_locals(c: SemanticContext*, scope: SemanticScope*, locals: vector(v
         if step4 {
             sem_push(locals, entry.value);
         }
-        i++;
     }
     i = 1;
-    loop {
-        var step6 = i < locals.length;
-        if !step6 {
-            break;
-        }
+    for(; i < locals.length; i++) {
         var value: void* = locals.data[i];
         var j: usize = i;
         loop {
@@ -226,7 +217,7 @@ fn sem_scope_locals(c: SemanticContext*, scope: SemanticScope*, locals: vector(v
             if step9 {
                 var step10 = sem_get(value);
                 var step11 = sem_order_name(c, value, step10);
-                var step12 = j - 1;
+                var step12 = j -1;
                 var step13 = sem_get(locals.data[step12]);
                 var step14 = sem_order_name(c, locals.data[step12], step13);
                 var step15 = sem_text_less(step11, step14);
@@ -235,12 +226,11 @@ fn sem_scope_locals(c: SemanticContext*, scope: SemanticScope*, locals: vector(v
             if !step9 {
                 break;
             }
-            var step17 = j - 1;
+            var step17 = j -1;
             locals.data[j] = locals.data[step17];
             j--;
         }
         locals.data[j] = value;
-        i++;
     }
 }
 
@@ -249,7 +239,9 @@ fn sem_control_call(c: SemanticContext*, statement: void*, name: u8*): void* {
         var call = sem_surface_unwrap(sem_member(statement, "value"));
         if sem_is(call, "CoreCall") {
             var spelling = sem_identifier(c, sem_member(call, "name"));
-            if sem_equal(spelling, name) { return call; }
+            if sem_equal(spelling, name) {
+                return call;
+            }
         }
     }
     if sem_is(statement, "CoreCallStatement") {
@@ -348,7 +340,7 @@ fn sem_block(c: SemanticContext*, n: void*, depth: u32): u32 {
             var label_call = sem_control_call(c, at, "label");
             var explicit_label = label_call != null;
             if explicit_label {
-                var falls = flow & 1;
+                var falls = flow &1;
                 if labeled {
                     var open = falls != 0;
                     if open {
@@ -366,13 +358,17 @@ fn sem_block(c: SemanticContext*, n: void*, depth: u32): u32 {
             }
             var control = sem_control_call(c, at, "label");
             var absent = control == null;
-            if absent { control = sem_control_call(c, at, "jump"); }
+            if absent {
+                control = sem_control_call(c, at, "jump");
+            }
             var present = control != null;
-            if present { at = control; }
+            if present {
+                at = control;
+            }
             sem_push(&value.items, at);
-            var step20 = flow & 1;
+            var step20 = flow &1;
             if step20 != 0 {
-                var step22 = flow & 4294967294;
+                var step22 = flow &4294967294;
                 var step23 = step22 | next;
                 flow = step23;
             }
@@ -439,6 +435,9 @@ fn sem_statement(c: SemanticContext*, n: void*, depth: u32): u32 {
     if sem_is(n, "TowerWhile") {
         return sem_control_while(c, n, depth);
     }
+    if sem_is(n, "TowerFor") {
+        return sem_control_for(c, n, depth);
+    }
     if sem_is(n, "TowerExpressionStatement") {
         c.surface_expressions = true;
         var expression = sem_surface_unwrap(sem_member(n, "value"));
@@ -447,7 +446,9 @@ fn sem_statement(c: SemanticContext*, n: void*, depth: u32): u32 {
         if sem_ok(c) {
             var operation = sem_get(value.value);
             var trap = operation.kind == KTrap();
-            if trap { return 0; }
+            if trap {
+                return 0;
+            }
         }
         return FlowNext();
     }
@@ -586,8 +587,12 @@ fn sem_statement(c: SemanticContext*, n: void*, depth: u32): u32 {
                         } else {
                             var operands = sem_collect(c, returned, "CoreOperand");
                             var one = operands.length == 1;
-                            if one { value.value = sem_operand(c, operands.data[0], &function.type); }
-                            else { sem_fail(c, n, "A return value must contain one Foundation operand"); }
+                            if one {
+                                value.value = sem_operand(c, operands.data[0], &function.type);
+                            }
+                            else {
+                                sem_fail(c, n, "A return value must contain one Foundation operand");
+                            }
                         }
                     }
                     return 8;
@@ -645,8 +650,8 @@ fn sem_statement(c: SemanticContext*, n: void*, depth: u32): u32 {
                                         c.loops++;
                                         var flow: u32 = sem_block(c, value.body, depth);
                                         c.loops--;
-                                        var result: u32 = flow & 8;
-                                        var step102 = flow & 2;
+                                        var result: u32 = flow &8;
+                                        var step102 = flow &2;
                                         if step102 != 0 {
                                             var step104 = result | 1;
                                             result = step104;
@@ -706,11 +711,7 @@ fn sem_run(c: SemanticContext*): void {
     var step1 = sem_get(c.program.root);
     var statements: vector(void*)* = &step1.items;
     var i: usize = 0;
-    loop {
-        var step2 = i < statements.length;
-        if !step2 {
-            break;
-        }
+    for(; i < statements.length; i++) {
         var n: void* = statements.data[i];
         var name: void* = sem_member(n, "name");
         if name != null {
@@ -734,22 +735,16 @@ fn sem_run(c: SemanticContext*): void {
         if step8 {
             sem_register_template(c, n);
         }
-        i++;
     }
     i = 0;
     var count: usize = 0;
-    loop {
-        var step10 = i < statements.length;
-        if !step10 {
-            break;
-        }
+    for(; i < statements.length; i++) {
         var n: void* = statements.data[i];
         var step12 = sem_has(&c.template_nodes, n);
         if !step12 {
             statements.data[count] = n;
             count++;
         }
-        i++;
     }
     statements.length = count;
     i = 0;
@@ -873,11 +868,7 @@ fn sem_run(c: SemanticContext*): void {
         i++;
     }
     i = 0;
-    loop {
-        var step55 = i < statements.length;
-        if !step55 {
-            break;
-        }
+    for(; i < statements.length; i++) {
         var n: void* = statements.data[i];
         var step57 = sem_function_syntax(n);
         var step59 = !step57;
@@ -896,7 +887,6 @@ fn sem_run(c: SemanticContext*): void {
                 statements.data[i] = step63;
             }
         }
-        i++;
     }
     i = 1;
     loop {
@@ -924,17 +914,11 @@ fn sem_run(c: SemanticContext*): void {
         var step69 = sem_scope(c, null);
         c.scope = step69;
         c.loops = 0;
-        var j: usize = 0;
-        loop {
-            var step70 = j < function_node.parameters.length;
-            if !step70 {
-                break;
-            }
+        for(var j: usize = 0; j < function_node.parameters.length; j++) {
             var p: void* = function_node.parameters.data[j];
             var step72 = sem_get(p);
             var step73 = sem_name(step72);
             sem_put(c, c.scope.names, step73, p);
-            j++;
         }
         var step74 = sem_member(n, "body");
         function_node.body = step74;
@@ -947,7 +931,7 @@ fn sem_run(c: SemanticContext*): void {
         }
         var step80 = step77;
         if step80 {
-            var step81 = flow & 1;
+            var step81 = flow &1;
             var step82 = step81 != 0;
             step80 = step82;
         }

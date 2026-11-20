@@ -13,7 +13,7 @@ export fn bytes_reserve(buffer: ByteBuffer*, needed: usize): bool {
     if enough {
         return true;
     }
-    var capacity = buffer.capacity * 2;
+    var capacity = buffer.capacity *2;
     var overflow = capacity < buffer.capacity;
     if overflow {
         capacity = needed;
@@ -49,14 +49,14 @@ export fn bytes_append(buffer: ByteBuffer*, source: u8*, count: usize): bool {
     }
     var start = bits(usize, source);
     var base = bits(usize, buffer.data);
-    var offset = start - base;
+    var offset = start -base;
     var inside = offset < buffer.capacity;
     if inside {
         var outside = offset > buffer.length;
         if outside {
             return false;
         }
-        var remaining = buffer.length - offset;
+        var remaining = buffer.length -offset;
         var invalid = count > remaining;
         if invalid {
             return false;
@@ -88,14 +88,14 @@ export fn bytes_assign_text(buffer: ByteBuffer*, source: u8*, count: usize): boo
     }
     var start = bits(usize, source);
     var base = bits(usize, buffer.data);
-    var offset = start - base;
+    var offset = start -base;
     var inside = offset < buffer.capacity;
     if inside {
         var outside = offset > buffer.length;
         if outside {
             return false;
         }
-        var remaining = buffer.length - offset;
+        var remaining = buffer.length -offset;
         var invalid = count > remaining;
         if invalid {
             return false;

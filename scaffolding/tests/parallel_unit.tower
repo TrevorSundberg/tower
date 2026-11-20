@@ -3,20 +3,16 @@ import tower;
 // Dense scalar kernel with modular arithmetic. Ordinary raw pointers can alias;
 // no noalias/fast-math promise or mandatory SIMD width is introduced.
 export fn parallel_transform(values: u32*, count: usize): void {
-    var i: usize = 0;
-    while i < count {
-        var scaled = values[i] * 3;
+    for(var i: usize = 0; i < count; i++) {
+        var scaled = values[i] *3;
         values[i] = scaled + 7;
-        i++;
     }
 }
 
 export fn parallel_checksum(values: u32*, count: usize): u32 {
     var sum: u32 = 0;
-    var i: usize = 0;
-    while i < count {
+    for(var i: usize = 0; i < count; i++) {
         sum = sum + values[i];
-        i++;
     }
     return sum;
 }

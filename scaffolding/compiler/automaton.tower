@@ -49,7 +49,7 @@ export fn automaton_create(symbol_limit: u32): Automaton* {
         free(result);
         return null;
     }
-    var bytes = sizeof(AutomatonState) * 512;
+    var bytes = sizeof(AutomatonState) *512;
     fill(result.states, 0, bytes);
     result.limit = symbol_limit;
     return result;
@@ -61,13 +61,8 @@ export fn automaton_destroy(value: Automaton*): void {
         return;
     }
     var i: usize = 0;
-    loop {
-        var done = i == value.count;
-        if done {
-            break;
-        }
+    for(; i != value.count; i++) {
         vector_dispose(SymbolRange, &value.states[i].ranges);
-        i++;
     }
     free(value.states);
     free(value);
@@ -127,7 +122,7 @@ export fn automaton_patch(value: Automaton*, index: i32, other: bool, target: i3
 fn automaton_sift(values: u32*, size: usize, start: usize): void {
     var root = start;
     loop {
-        var child = root * 2;
+        var child = root *2;
         child++;
         var done = child >= size;
         if done {
@@ -179,7 +174,7 @@ fn automaton_sort(values: u32*, size: usize): void {
 fn automaton_has(work: AutomatonWork*, subset: AutomatonSubset*, index: usize): bool {
     var word = index / 64;
     var bit = index % 64;
-    var masked = subset.bits[word] & work.masks[bit];
+    var masked = subset.bits[word] &work.masks[bit];
     var present = masked != 0;
     return present;
 }
@@ -187,7 +182,7 @@ fn automaton_has(work: AutomatonWork*, subset: AutomatonSubset*, index: usize): 
 fn automaton_closure(value: Automaton*, work: AutomatonWork*, count: usize, result: AutomatonSubset*): bool {
     fill(result, 0, sizeof(AutomatonSubset));
     fill(&work.visited, 0, value.count);
-    var bytes = count * sizeof(i32);
+    var bytes = count *sizeof(i32);
     copy(&work.pending, &work.seeds, bytes);
     var any = false;
     loop {
@@ -227,14 +222,9 @@ fn automaton_intern(value: Automaton*, work: AutomatonWork*, subset: AutomatonSu
     var words = value.count + 63;
     words = words / 64;
     var i: usize = 0;
-    loop {
-        var done = i == words;
-        if done {
-            break;
-        }
+    for(; i != words; i++) {
         hash = hash ^ subset.bits[i];
         hash = hash * 16777619;
-        i++;
     }
     var bucket = hash % 2039;
     var found = work.buckets[bucket];
@@ -264,7 +254,7 @@ fn automaton_intern(value: Automaton*, work: AutomatonWork*, subset: AutomatonSu
     }
     var index = work.subsets.length;
     var count = index + 1;
-    var complexity = count * work.alphabet.length;
+    var complexity = count *work.alphabet.length;
     var large = index >= 1024;
     if large {
         value.error = 3;
@@ -299,27 +289,17 @@ fn automaton_build(value: Automaton*, start: i32, accepting: usize, table: Lexer
     }
     var mask: u64 = 1;
     var i: usize = 0;
-    loop {
-        var done = i == 64;
-        if done {
-            break;
-        }
+    for(; i != 64; i++) {
         work.masks[i] = mask;
         mask = mask * 2;
-        i++;
     }
-    var bucket_bytes = sizeof(i32) * 2039;
+    var bucket_bytes = sizeof(i32) *2039;
     fill(&work.buckets, 255, bucket_bytes);
     var count: usize = 2;
     i = 0;
-    loop {
-        var done = i == value.count;
-        if done {
-            break;
-        }
-        var ranges = value.states[i].ranges.length * 2;
+    for(; i != value.count; i++) {
+        var ranges = value.states[i].ranges.length *2;
         count = count + ranges;
-        i++;
     }
     var ok = vector_reserve(u32, &work.alphabet, count);
     if !ok {
@@ -352,18 +332,13 @@ fn automaton_build(value: Automaton*, start: i32, accepting: usize, table: Lexer
     automaton_sort(work.alphabet.data, count);
     work.alphabet.length = 1;
     i = 1;
-    loop {
-        var done = i == count;
-        if done {
-            break;
-        }
-        var previous = i - 1;
+    for(; i != count; i++) {
+        var previous = i -1;
         var different = work.alphabet.data[i] != work.alphabet.data[previous];
         if different {
             work.alphabet.data[work.alphabet.length] = work.alphabet.data[i];
             work.alphabet.length++;
         }
-        i++;
     }
     ok = lex_table_set_alphabet(table, work.alphabet.data, work.alphabet.length);
     if !ok {
@@ -383,7 +358,7 @@ fn automaton_build(value: Automaton*, start: i32, accepting: usize, table: Lexer
     if failed {
         return value.error;
     }
-    var columns = work.alphabet.length - 1;
+    var columns = work.alphabet.length -1;
     ok = vector_reserve(i32, &work.row, columns);
     if !ok {
         return 2;

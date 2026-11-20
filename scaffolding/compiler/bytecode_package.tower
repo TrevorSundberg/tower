@@ -72,17 +72,11 @@ export fn bytecode_validate(data: u8*, length: usize): u32 {
         return 1;
     }
     var magic = "TOWERBC";
-    var i: usize = 0;
-    loop {
-        var end = i == 8;
-        if end {
-            break;
-        }
+    for(var i: usize = 0; i != 8; i++) {
         var different = data[i] != magic[i];
         if different {
             return 2;
         }
-        i++;
     }
     var version = bc_read(data, 8, 4) != 1;
     if version {
@@ -188,8 +182,8 @@ export fn bytecode_encode(f: FMState*, source: u8*, source_size: usize, width: u
     if invalid_profile {
         return null;
     }
-    var words = f.words.length * 4;
-    var constants = f.constants.length * 8;
+    var words = f.words.length *4;
+    var constants = f.constants.length *8;
     var total = source_size + words;
     total = total + constants;
     total = total + 56;
@@ -220,24 +214,14 @@ export fn bytecode_encode(f: FMState*, source: u8*, source_size: usize, width: u
     copy(&data[56], source, source_size);
     var at = source_size + 56;
     var i: usize = 0;
-    loop {
-        var end = i == f.words.length;
-        if end {
-            break;
-        }
+    for(; i != f.words.length; i++) {
         bc_write(data, at, convert(u64, f.words.data[i]), 4);
         at = at + 4;
-        i++;
     }
     i = 0;
-    loop {
-        var end = i == f.constants.length;
-        if end {
-            break;
-        }
+    for(; i != f.constants.length; i++) {
         bc_write(data, at, f.constants.data[i], 8);
         at = at + 8;
-        i++;
     }
     bc_write(data, 48, bc_checksum(data, total), 8);
     *length = total;
@@ -260,17 +244,12 @@ export fn bytecode_matches(f: FMState*, data: u8*): bool {
     var at = bytecode_source_size(data);
     at = at + 56;
     var i: usize = 0;
-    loop {
-        var end = i == f.words.length;
-        if end {
-            break;
-        }
+    for(; i != f.words.length; i++) {
         different = bc_read(data, at, 4) != convert(u64, f.words.data[i]);
         if different {
             return false;
         }
         at = at + 4;
-        i++;
     }
     i = 0;
     loop {

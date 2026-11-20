@@ -87,7 +87,7 @@ extern fn `cpp_name(void syntax_tests())`(): void;
 
 fn ide_foreign_long(value: IdeForeignString*): bool {
     var raw = bits(u8*, value);
-    var flag = raw[11] & 128;
+    var flag = raw[11] &128;
     var yes = flag != 0;
     return yes;
 }

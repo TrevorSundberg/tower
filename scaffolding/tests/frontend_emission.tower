@@ -27,10 +27,15 @@ extern fn syntax_emission_rule_index(value: void*, name: u8*): usize;
 extern fn syntax_emission_helper_count(value: void*): usize;
 
 extern fn syntax_emission_helper(value: void*, index: usize, out: SyntaxEmissionHelper*): void;
+
 extern fn syntax_emission_wrapper(value: void*, name: u8*): u8*;
+
 extern fn syntax_emission_find_helper(value: void*, name: u8*): SyntaxEmissionHelper*;
+
 extern fn syntax_emission_capture_name(value: void*, source: void*): u8*;
+
 extern fn syntax_emission_repetitions(value: void*): SyntaxEmissionHelper*;
+
 extern fn syntax_emission_repetition_count(value: void*): usize;
 extern fn syntax_emission_literal(value: void*, name: u8*): u32;
 extern fn syntax_emission_terminal(value: void*, name: u8*): u32;
@@ -45,7 +50,9 @@ fn frontend_emission_before(left: u8*, right: u8*): bool {
     var index: usize = 0;
     while left[index] == right[index] {
         var end = left[index] == 0;
-        if end { return false; }
+        if end {
+            return false;
+        }
         index = index + 1;
     }
     var before = left[index] < right[index];
@@ -63,11 +70,10 @@ fn frontend_emission_tests(): void {
     var source = entity_create(store);
     var alternatives: void*[3];
     var i: usize = 0;
-    while i < 3 {
+    for(; i < 3; i++) {
         alternatives[i] = frontend_format_child(store, source, null);
         var data = preview_syntax(world, alternatives[i]);
         data.kind = convert(u32, SyntaxKind.Alternative);
-        i++;
     }
     var term_entity = frontend_format_child(store, alternatives[0], null);
     var term = preview_syntax(world, term_entity);
@@ -154,7 +160,7 @@ fn frontend_emission_tests(): void {
     frontend_world_check(ok);
     i = 1;
     while i < 13 {
-        var previous = i - 1;
+        var previous = i -1;
         frontend_world_check(frontend_emission_before(repetitions[previous].name, repetitions[i].name));
         i = i + 1;
     }
@@ -191,7 +197,7 @@ fn frontend_emission_tests(): void {
     entity_release(input.root);
     var buffers = tower_test_buffer_count();
     var budget: usize = 0;
-    while budget < probe_allocations {
+    for(; budget < probe_allocations; budget++) {
         input.root = entity_create(store);
         var actual = tower_test_buffer_allocations();
         tower_test_buffer_fail_after(budget);
@@ -216,10 +222,9 @@ fn frontend_emission_tests(): void {
         entity_release(input.root);
         ok = tower_test_buffer_count() == buffers;
         frontend_world_check(ok);
-        budget++;
     }
     // None of these temporary arrays are retained by either revision.
-    var rule_bytes = sizeof(SyntaxRuleView) * 2;
+    var rule_bytes = sizeof(SyntaxRuleView) *2;
     fill(&rules, 0, rule_bytes);
     fill(&names, 0, 4);
     fill(&literals, 0, sizeof(SyntaxEmissionLiteral[5]));
@@ -251,7 +256,7 @@ fn frontend_emission_tests(): void {
     var allocations = tower_test_buffer_allocations();
     var references = entity_references(term_entity);
     var repeat: usize = 0;
-    while repeat < 64 {
+    for(; repeat < 64; repeat++) {
         i = 0;
         while i < 5 {
             ok = syntax_emission_literal(revision, literal_rows[i].text) == literal_ids[i];
@@ -267,12 +272,11 @@ fn frontend_emission_tests(): void {
         ok = syntax_emission_literal(revision, "Missing") == 4294967294;
         frontend_world_check(ok);
         i = 0;
-        while i < 3 {
+        for(; i < 3; i++) {
             ok = syntax_emission_find_index(revision, rows[i].index) == &rows[i];
             frontend_world_check(ok);
             ok = syntax_emission_find_name(revision, rows[i].name, rows[i].alternative) == rows[i].index;
             frontend_world_check(ok);
-            i++;
         }
         ok = syntax_emission_find_name(revision, "A", 0) == rows[0].index;
         frontend_world_check(ok);
@@ -319,7 +323,6 @@ fn frontend_emission_tests(): void {
         frontend_world_check(ok);
         ok = syntax_emission_find_index(revision, frontend_world_unlimited()) == null;
         frontend_world_check(ok);
-        repeat++;
     }
     // Repetition helpers occupy indices between source alternatives.
     var gap = rows[0].index + 1;

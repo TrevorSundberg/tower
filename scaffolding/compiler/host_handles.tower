@@ -52,7 +52,7 @@ export fn host_handles_insert(table: HostHandles*, kind: u32, payload: void*): u
     }
     full = table.count == table.capacity;
     if full {
-        var capacity = table.capacity * 2;
+        var capacity = table.capacity *2;
         var wrapped = capacity < table.capacity;
         if wrapped {
             return 0;
@@ -77,18 +77,12 @@ export fn host_handles_insert(table: HostHandles*, kind: u32, payload: void*): u
             continue;
         }
         var occupied = false;
-        var i: usize = 0;
-        loop {
-            var done = i == table.count;
-            if done {
-                break;
-            }
+        for(var i: usize = 0; i != table.count; i++) {
             var same = table.slots[i].handle == handle;
             if same {
                 occupied = true;
                 break;
             }
-            i++;
         }
         if !occupied {
             break;

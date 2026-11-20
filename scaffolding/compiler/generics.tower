@@ -47,15 +47,10 @@ fn generic_parameters(context: GenericContext*, template: GenericTemplate*, node
     }
     var i: usize = 0;
     var count = compiler_node_count(node);
-    loop {
-        var done = i == count;
-        if done {
-            break;
-        }
+    for(; i != count; i++) {
         var child = entity_child_at(node, i);
         var next = depth + 1;
         generic_parameters(context, template, child, next);
-        i++;
     }
 }
 
@@ -149,7 +144,7 @@ fn compiler_clone_branch(source: Entity*, remaining: usize*, context: GenericCon
         if empty {
             break;
         }
-        var top = length - 1;
+        var top = length -1;
         var frame = &frames[top];
         var count = compiler_node_count(frame.source);
         var done = frame.next == count;
@@ -228,14 +223,12 @@ export fn generic_instantiate(context: GenericContext*, definition: Entity*, use
         // mismatch. Other templates may have a different argument count.
         same &&= current.count == count;
         if same {
-            var i: usize = 0;
-            while i < count {
+            for(var i: usize = 0; i < count; i++) {
                 var different = current.arguments[i] != arguments[i];
                 if different {
                     same = false;
                     break;
                 }
-                i++;
             }
         }
         if same {
@@ -245,13 +238,13 @@ export fn generic_instantiate(context: GenericContext*, definition: Entity*, use
     }
     var full = context.count == GenericInstanceLimit();
     if full {
-        context.error = "Template specialization limit exceeded (256 instances); check recursive type arguments";
+        context.error = "Template specialization limit exceeded (512 instances); check recursive type arguments";
         return null;
     }
-    var remaining = GenericNodeLimit() - context.copied;
+    var remaining = GenericNodeLimit() -context.copied;
     var before = remaining;
     var node = compiler_clone_branch(definition, &remaining, context, use);
-    var copied = before - remaining;
+    var copied = before -remaining;
     context.copied = context.copied + copied;
     var failed = node == null;
     if failed {
@@ -265,10 +258,8 @@ export fn generic_instantiate(context: GenericContext*, definition: Entity*, use
     instance.use = use;
     instance.node = node;
     instance.count = count;
-    var i: usize = 0;
-    while i < count {
+    for(var i: usize = 0; i < count; i++) {
         instance.arguments[i] = arguments[i];
-        i++;
     }
     var attached = entity_attach(node, context.root, null);
     if !attached {
@@ -340,12 +331,7 @@ export fn generic_type_result(context: GenericContext*, instance: Entity*): Enti
     var structure: Entity* = null;
     var returned: Entity* = null;
     var count = compiler_node_count(body);
-    var i: usize = 0;
-    loop {
-        var done = i == count;
-        if done {
-            break;
-        }
+    for(var i: usize = 0; i != count; i++) {
         var statement = entity_child_at(body, i);
         var relevant = compiler_node_label(statement, "Statement");
         if relevant {
@@ -373,7 +359,6 @@ export fn generic_type_result(context: GenericContext*, instance: Entity*): Enti
                 }
             }
         }
-        i++;
     }
     var missing = returned == null;
     if missing {

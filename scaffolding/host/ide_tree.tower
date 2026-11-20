@@ -11,107 +11,235 @@ import .compiler.syntax_types;
 
 // Disposable preorder/identity indexes over borrowed ECS entities. No copied
 // graph or semantic components; each request releases its parse root afterward.
-struct IdeTreeItem { node: void*; parent: usize; role: u8*; }
-struct IdeTraces { items: vector(SyntaxExpansion*); slots: vector(usize); }
-fn ide_trace_hash(trace: SyntaxExpansion*, capacity: usize): usize {
-    var key = bits(usize, trace); var shifted = key / 4096; key = key / 16; key = key ^ shifted;
-    var mask = capacity - 1; key = key & mask; return key;
+struct IdeTreeItem {
+    node: void*;
+    parent: usize;
+    role: u8*;
 }
+
+struct IdeTraces {
+    items: vector(SyntaxExpansion*);
+    slots: vector(usize);
+}
+
+fn ide_trace_hash(trace: SyntaxExpansion*, capacity: usize): usize {
+    var key = bits(usize, trace);
+    var shifted = key / 4096;
+    key = key / 16;
+    key = key ^ shifted;
+    var mask = capacity -1;
+    key = key & mask;
+    return key;
+}
+
 fn ide_trace_find(index: IdeTraces*, trace: SyntaxExpansion*): usize {
-    var none = trace == null; if none { return ide_missing(); }
-    var empty = index.slots.length == 0; if empty { return ide_missing(); }
+    var none = trace == null;
+    if none {
+        return ide_missing();
+    }
+    var empty = index.slots.length == 0;
+    if empty {
+        return ide_missing();
+    }
     var slot = ide_trace_hash(trace, index.slots.length);
     loop {
-        var value = index.slots.data[slot]; var absent = value == 0; if absent { return ide_missing(); }
-        value--; var same = index.items.data[value] == trace; if same { return value; }
-        slot++; slot = slot % index.slots.length;
+        var value = index.slots.data[slot];
+        var absent = value == 0;
+        if absent {
+            return ide_missing();
+        }
+        value--;
+        var same = index.items.data[value] == trace;
+        if same {
+            return value;
+        }
+        slot++;
+        slot = slot % index.slots.length;
     }
 }
+
 fn ide_trace_insert(index: IdeTraces*, trace: SyntaxExpansion*): void {
-    var needed = index.items.length + 1; needed = needed * 2;
+    var needed = index.items.length + 1;
+    needed = needed * 2;
     var grow = needed > index.slots.length;
     if grow {
-        var capacity = index.slots.length * 2; var small = capacity < 16; if small { capacity = 16; }
-        ide_require(vector_reserve(usize, &index.slots, capacity)); index.slots.length = capacity;
-        var size = capacity * sizeof(usize); fill(index.slots.data, 0, size);
-        var i: usize = 0;
-        while i < index.items.length {
+        var capacity = index.slots.length *2;
+        var small = capacity < 16;
+        if small {
+            capacity = 16;
+        }
+        ide_require(vector_reserve(usize, &index.slots, capacity));
+        index.slots.length = capacity;
+        var size = capacity *sizeof(usize);
+        fill(index.slots.data, 0, size);
+        for(var i: usize = 0; i < index.items.length; i++) {
             var slot = ide_trace_hash(index.items.data[i], capacity);
-            loop { var empty = index.slots.data[slot] == 0; if empty { break; } slot++; slot = slot % capacity; }
-            index.slots.data[slot] = i + 1; i++;
+            loop {
+                var empty = index.slots.data[slot] == 0;
+                if empty {
+                    break;
+                }
+                slot++;
+                slot = slot % capacity;
+            }
+            index.slots.data[slot] = i + 1;
         }
     }
     ide_require(vector_push(SyntaxExpansion*, &index.items, trace));
     var slot = ide_trace_hash(trace, index.slots.length);
-    loop { var empty = index.slots.data[slot] == 0; if empty { break; } slot++; slot = slot % index.slots.length; }
+    loop {
+        var empty = index.slots.data[slot] == 0;
+        if empty {
+            break;
+        }
+        slot++;
+        slot = slot % index.slots.length;
+    }
     index.slots.data[slot] = index.items.length;
 }
+
 fn ide_trace_id(index: IdeTraces*, trace: SyntaxExpansion*): usize {
     var original = trace;
     loop {
-        var done = trace == null; if done { break; }
-        done = ide_trace_find(index, trace) != ide_missing(); if done { break; }
-        ide_trace_insert(index, trace); trace = trace.previous;
+        var done = trace == null;
+        if done {
+            break;
+        }
+        done = ide_trace_find(index, trace) != ide_missing();
+        if done {
+            break;
+        }
+        ide_trace_insert(index, trace);
+        trace = trace.previous;
     }
     return ide_trace_find(index, original);
 }
+
 fn ide_tree_push(items: vector(IdeTreeItem)*, node: void*, parent: usize, role: u8*): void {
-    var next = items.length + 1; ide_require(vector_reserve(IdeTreeItem, items, next));
-    var item = &items.data[items.length]; item.node = node; item.parent = parent; item.role = role; items.length = next;
+    var next = items.length + 1;
+    ide_require(vector_reserve(IdeTreeItem, items, next));
+    var item = &items.data[items.length];
+    item.node = node;
+    item.parent = parent;
+    item.role = role;
+    items.length = next;
 }
+
 fn ide_tree(out: ByteBuffer*, root: void*): void {
-    var pending: vector(IdeTreeItem); vector_init(IdeTreeItem, &pending);
-    var traces: IdeTraces; fill(&traces, 0, sizeof(IdeTraces));
+    var pending: vector(IdeTreeItem);
+    vector_init(IdeTreeItem, &pending);
+    var traces: IdeTraces;
+    fill(&traces, 0, sizeof(IdeTraces));
     ide_tree_push(&pending, root, ide_missing(), tower_node_get_parent_member_name(root));
-    ide_text(out, ",\"nodes\":["); var index: usize = 0;
-    while pending.length != 0 {
+    ide_text(out, ",\"nodes\":[");
+    var index: usize = 0;
+    for(; pending.length != 0; index++) {
         pending.length--;
-        var current = &pending.data[pending.length]; var node = current.node; var parent = current.parent; var role = current.role;
+        var current = &pending.data[pending.length];
+        var node = current.node;
+        var parent = current.parent;
+        var role = current.role;
         ide_comma(out, index);
         var span = bits(ParserMatchData*, tower_node_get_component_userdata(node, parser_match_get_type()));
-        ide_text(out, "{\"id\":"); ide_number(out, entity_id(node));
-        ide_key(out, "parent"); ide_index(out, parent);
-        ide_key(out, "label"); ide_quote_bytes(out, span.label.data, span.label.length);
+        ide_text(out, "{\"id\":");
+        ide_number(out, entity_id(node));
+        ide_key(out, "parent");
+        ide_index(out, parent);
+        ide_key(out, "label");
+        ide_quote_bytes(out, span.label.data, span.label.length);
         ide_string(out, "role", role);
-        var semantic = syntax_get(node); var exists = semantic != null;
-        if exists { ide_string(out, "semantic", syntax_kind_name(semantic.kind)); }
-        ide_field(out, "start", span.start); var end = span.start + span.length; ide_field(out, "end", end);
-        ide_key(out, "production"); ide_index(out, span.rule);
-        var origin = syntax_get_origin(node); exists = origin != null;
+        var semantic = syntax_get(node);
+        var exists = semantic != null;
         if exists {
-            ide_text(out, ",\"origin\":{\"generated\":"); ide_bool(out, origin.generated);
-            ide_field(out, "templateStart", origin.template_start); ide_field(out, "templateEnd", origin.template_end);
-            ide_key(out, "expansion"); ide_index(out, ide_trace_id(&traces, origin.expansion));
-            ide_text(out, ",\"splices\":["); var i: usize = 0;
-            while i < origin.splices.length { ide_comma(out, i); ide_number(out, ide_trace_id(&traces, origin.splices.data[i])); i++; }
+            ide_string(out, "semantic", syntax_kind_name(semantic.kind));
+        }
+        ide_field(out, "start", span.start);
+        var end = span.start + span.length;
+        ide_field(out, "end", end);
+        ide_key(out, "production");
+        ide_index(out, span.rule);
+        var origin = syntax_get_origin(node);
+        exists = origin != null;
+        if exists {
+            ide_text(out, ",\"origin\":{\"generated\":");
+            ide_bool(out, origin.generated);
+            ide_field(out, "templateStart", origin.template_start);
+            ide_field(out, "templateEnd", origin.template_end);
+            ide_key(out, "expansion");
+            ide_index(out, ide_trace_id(&traces, origin.expansion));
+            ide_text(out, ",\"splices\":[");
+            var i: usize = 0;
+            for(; i < origin.splices.length; i++) {
+                ide_comma(out, i);
+                ide_number(out, ide_trace_id(&traces, origin.splices.data[i]));
+            }
             ide_text(out, "]}");
         }
         ide_text(out, "}");
         var count = entity_child_count(node);
-        while count != 0 { count--; ide_tree_push(&pending, entity_child_at(node, count), index, entity_child_name(node, count)); }
-        index++;
+        while count != 0 {
+            count--;
+            ide_tree_push(&pending, entity_child_at(node, count), index, entity_child_name(node, count));
+        }
     }
-    ide_text(out, "],\"expansions\":["); var i: usize = 0;
-    while i < traces.items.length {
-        var trace = traces.items.data[i]; ide_comma(out, i); ide_text(out, "{\"rule\":"); ide_quote_bytes(out, trace.rule.data, trace.rule.length);
-        ide_field(out, "start", trace.start); ide_field(out, "end", trace.end);
-        ide_field(out, "definitionStart", trace.definition_start); ide_field(out, "definitionEnd", trace.definition_end);
-        ide_key(out, "previous"); ide_index(out, ide_trace_find(&traces, trace.previous)); ide_text(out, "}"); i++;
+    ide_text(out, "],\"expansions\":[");
+    var i: usize = 0;
+    for(; i < traces.items.length; i++) {
+        var trace = traces.items.data[i];
+        ide_comma(out, i);
+        ide_text(out, "{\"rule\":");
+        ide_quote_bytes(out, trace.rule.data, trace.rule.length);
+        ide_field(out, "start", trace.start);
+        ide_field(out, "end", trace.end);
+        ide_field(out, "definitionStart", trace.definition_start);
+        ide_field(out, "definitionEnd", trace.definition_end);
+        ide_key(out, "previous");
+        ide_index(out, ide_trace_find(&traces, trace.previous));
+        ide_text(out, "}");
     }
-    ide_text(out, "]"); vector_dispose(IdeTreeItem, &pending); vector_dispose(SyntaxExpansion*, &traces.items); vector_dispose(usize, &traces.slots);
+    ide_text(out, "]");
+    vector_dispose(IdeTreeItem, &pending);
+    vector_dispose(SyntaxExpansion*, &traces.items);
+    vector_dispose(usize, &traces.slots);
 }
+
 export fn tw_step(handle: u32): u8* {
-    var session = ide_parser(handle); var missing = session == null;
-    if missing { return "{\"status\":\"error\",\"error\":\"Invalid session handle\"}"; }
-    var before = syntax_get_revision(session.syntax); var root = syntax_next(session.syntax);
-    var kind: u8* = "done"; var found = root != null;
+    var session = ide_parser(handle);
+    var missing = session == null;
+    if missing {
+        return "{\"status\":\"error\",\"error\":\"Invalid session handle\"}";
+    }
+    var before = syntax_get_revision(session.syntax);
+    var root = syntax_next(session.syntax);
+    var kind: u8* = "done";
+    var found = root != null;
     if found {
-        var same = before == syntax_get_revision(session.syntax); if same { kind = "statement"; } else { kind = "declaration"; }
-    } else { var error = syntax_get_error(session.syntax); var failed = error[0] != 0; if failed { kind = "error"; } }
-    var out = &session.response; ide_status(out, session.syntax, kind); ide_field(out, "previousRevision", before);
+        var same = before == syntax_get_revision(session.syntax);
+        if same {
+            kind = "statement";
+        } else {
+            kind = "declaration";
+        }
+    } else {
+        var error = syntax_get_error(session.syntax);
+        var failed = error[0] != 0;
+        if failed {
+            kind = "error";
+        }
+    }
+    var out = &session.response;
+    ide_status(out, session.syntax, kind);
+    ide_field(out, "previousRevision", before);
     ide_grammar(out, session.syntax, null);
-    var stats: IdeForeignStats; `cpp_name(SyntaxExpansionStats syntax_get_expansion_stats(SyntaxSession*))`(&stats, session.syntax);
-    ide_field(out, "replacementCount", stats.first); ide_field(out, "generatedNodes", stats.second); ide_field(out, "copiedNodes", stats.third);
-    if found { ide_tree(out, entity_child_at(root, 0)); entity_release(root); }
-    ide_text(out, "}"); return ide_result(out);
+    var stats: IdeForeignStats;
+    `cpp_name(SyntaxExpansionStats syntax_get_expansion_stats(SyntaxSession*))`(&stats, session.syntax);
+    ide_field(out, "replacementCount", stats.first);
+    ide_field(out, "generatedNodes", stats.second);
+    ide_field(out, "copiedNodes", stats.third);
+    if found {
+        ide_tree(out, entity_child_at(root, 0));
+        entity_release(root);
+    }
+    ide_text(out, "}");
+    return ide_result(out);
 }

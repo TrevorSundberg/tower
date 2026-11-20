@@ -73,7 +73,7 @@ export fn format_repeat(f: FormatEngine*, byte: u8, count: usize): void {
 }
 
 fn format_indent(f: FormatEngine*): void {
-    var count = f.result.depth * 4;
+    var count = f.result.depth *4;
     format_repeat(f, 32, count);
 }
 
@@ -83,7 +83,7 @@ fn format_newline(f: FormatEngine*, blank: bool): void {
         if text.length == 0 {
             return;
         }
-        var at = text.length - 1;
+        var at = text.length -1;
         var c = text.data[at];
         var space = c == 32;
         var tab = c == 9;
@@ -186,7 +186,7 @@ fn format_escape(f: FormatEngine*, bytes: u8*, length: usize, quote: u8): void {
         escape = format_or(escape, slash);
         escape = format_or(escape, delimiter);
         if escape {
-            var count = i - start;
+            var count = i -start;
             format_write(f, &bytes[start], count);
             format_char(f, 92);
             if newline {
@@ -209,7 +209,7 @@ fn format_escape(f: FormatEngine*, bytes: u8*, length: usize, quote: u8): void {
         }
         i++;
     }
-    var count = length - start;
+    var count = length -start;
     // Empty vector payloads may have a null data pointer.
     if count != 0 {
         format_write(f, &bytes[start], count);

@@ -17,12 +17,11 @@ fn collection_tests(): i32 {
         return 2;
     }
     var i = 0;
-    while i < 80 {
+    for(; i < 80; i++) {
         ok = stack_push(i32, &values, i);
         if !ok {
             return 3;
         }
-        i++;
     }
     stack_move(i32, &values, &values);
     ok = stack_push(i32, &moved, 999);
@@ -57,15 +56,14 @@ fn collection_tests(): i32 {
     queue_init(i32, &fifo);
     queue_init(i32, &destination);
     i = 0;
-    while i < 8 {
+    for(; i < 8; i++) {
         ok = queue_push(i32, &fifo, i);
         if !ok {
             return 9;
         }
-        i++;
     }
     var expected_value = 0;
-    while expected_value < 5 {
+    for(; expected_value < 5; expected_value++) {
         ok = queue_pop(i32, &fifo, &output);
         if !ok {
             return 10;
@@ -74,15 +72,13 @@ fn collection_tests(): i32 {
         if !good {
             return 11;
         }
-        expected_value++;
     }
     // Wrap the ring before growing it; retain FIFO order across relocation.
-    while i < 100 {
+    for(; i < 100; i++) {
         ok = queue_push(i32, &fifo, i);
         if !ok {
             return 12;
         }
-        i++;
     }
     var saved = fifo.length;
     ok = queue_pop(i32, &fifo, null);
@@ -114,12 +110,11 @@ fn collection_tests(): i32 {
     if !good {
         return 18;
     }
-    while queue_pop(i32, &destination, &output) {
+    for(; queue_pop(i32, &destination, &output); expected_value++) {
         good = output == expected_value;
         if !good {
             return 19;
         }
-        expected_value++;
     }
     good = expected_value == 100;
     if !good {

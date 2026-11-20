@@ -144,22 +144,17 @@ export fn lr_tree_reduce_kind(parser: LRParser*, forest: void*, grammar: LRGramm
         children.last = parser.sequence_last;
     } else {
         var count = parser.stack.length;
-        var begin = count - step.pop;
+        var begin = count -step.pop;
         var index = begin;
-        loop {
-            var done = index == count;
-            if done {
-                break;
-            }
+        for(; index != count; index++) {
             var frame = &parser.stack.data[index];
-            var symbol = index - begin;
+            var symbol = index -begin;
             symbol = symbol + rule.begin;
             var capture = lr_grammar_capture(grammar, symbol);
             var ok = parse_forest_join(forest, &children, frame.first, frame.last, capture);
             if !ok {
                 return false;
             }
-            index++;
         }
     }
     var materialize = !grammar.rule_metadata.data[step.rule].generated;
@@ -179,7 +174,7 @@ export fn lr_tree_reduce_kind(parser: LRParser*, forest: void*, grammar: LRGramm
             entity_release(node);
             return false;
         }
-        var id = rule.owner & 4294967295;
+        var id = rule.owner &4294967295;
         data.id = convert(u32, id);
         data.rule = step.rule;
         data.start = step.start;

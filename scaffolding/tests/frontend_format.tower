@@ -167,7 +167,7 @@ fn frontend_format_trees(): void {
     count = tower_test_buffer_allocations() - count;
     format_dispose(&result);
     var budget: usize = 0;
-    while budget < count {
+    for(; budget < count; budget++) {
         fill(&result, 0, sizeof(FormatResult));
         tower_test_buffer_fail_after(budget);
         format_parser_tree(&result, root, kind);
@@ -176,7 +176,6 @@ fn frontend_format_trees(): void {
         format_dispose(&result);
         var ok = tower_test_buffer_count() == buffers;
         frontend_world_check(ok);
-        budget++;
     }
     fill(&result, 0, sizeof(FormatResult));
     format_parser_tree(&result, root, kind);
@@ -207,9 +206,8 @@ fn frontend_format_deep(): void {
     var root = entity_create(store);
     var node = root;
     var depth: usize = 0;
-    while depth < 1024 {
+    for(; depth < 1024; depth++) {
         node = frontend_format_child(store, node, null);
-        depth++;
     }
     var result: FormatResult;
     fill(&result, 0, sizeof(FormatResult));
@@ -219,34 +217,29 @@ fn frontend_format_deep(): void {
     // Verify every byte and indentation level, including the final leaf.
     var at: usize = 0;
     depth = 0;
-    while depth <= 1024 {
-        var spaces = depth * 2;
+    for(; depth <= 1024; depth++) {
+        var spaces = depth *2;
         var index: usize = 0;
-        while index < spaces {
+        for(; index < spaces; index++) {
             ok = result.text.data[at] == 32;
             frontend_world_check(ok);
             at++;
-            index++;
         }
         var wanted: u8* = "node\n";
         index = 0;
-        while index < 5 {
+        for(; index < 5; index++) {
             ok = result.text.data[at] == wanted[index];
             frontend_world_check(ok);
             at++;
-            index++;
         }
-        depth++;
     }
     ok = at == result.text.length;
     frontend_world_check(ok);
     format_dispose(&result);
     entity_release(root);
     root = entity_create(store);
-    var index: usize = 0;
-    while index < 128 {
+    for(var index: usize = 0; index < 128; index++) {
         frontend_format_child(store, root, null);
-        index++;
     }
     format_parser_tree(&result, root, kind);
     ok = !result.failed;

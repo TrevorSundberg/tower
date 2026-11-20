@@ -15,7 +15,7 @@ fn format_diagnostic_actual(f: FormatEngine*, input: SyntaxDiagnosticInput*): vo
         format_text(f, "end of input");
         return;
     }
-    var remaining = input.size - input.offset;
+    var remaining = input.size -input.offset;
     var long = remaining > SyntaxDiagnosticTokenLimit();
     if long {
         remaining = SyntaxDiagnosticTokenLimit();
@@ -25,17 +25,19 @@ fn format_diagnostic_actual(f: FormatEngine*, input: SyntaxDiagnosticInput*): vo
     if shorter {
         end = input.cursor;
     }
-    while end > input.offset {
+    for(; end > input.offset; end--) {
         var within = end < input.size;
-        if !within { break; }
-        var prefix = input.source[end] & 192;
+        if !within {
+            break;
+        }
+        var prefix = input.source[end] &192;
         var continuation = prefix == 128;
-        if !continuation { break; }
-        end--;
+        if !continuation {
+            break;
+        }
     }
     format_char(f, 39);
-    var i = input.offset;
-    while i < end {
+    for(var i = input.offset; i < end; i++) {
         var byte = input.source[i];
         var escaped: u8* = null;
         var newline = byte == 10;
@@ -64,7 +66,6 @@ fn format_diagnostic_actual(f: FormatEngine*, input: SyntaxDiagnosticInput*): vo
             }
             format_char(f, byte);
         }
-        i++;
     }
     var truncated = end < input.cursor;
     if truncated {
@@ -74,11 +75,11 @@ fn format_diagnostic_actual(f: FormatEngine*, input: SyntaxDiagnosticInput*): vo
 }
 
 fn format_diagnostic_literal(input: SyntaxDiagnosticInput*, id: u32): bool {
-    var i: usize = 0;
-    while i < input.literal_count {
+    for(var i: usize = 0; i < input.literal_count; i++) {
         var found = input.literals[i] == id;
-        if found { return true; }
-        i++;
+        if found {
+            return true;
+        }
     }
     return false;
 }
@@ -90,15 +91,16 @@ fn format_diagnostic_break(input: SyntaxDiagnosticInput*): bool {
     if outside {
         end = input.size;
     }
-    while begin < end {
+    for(; begin < end; begin++) {
         var byte = input.source[begin];
         var newline = byte == 10;
         if newline {
             return true;
         }
         var carriage = byte == 13;
-        if carriage { return true; }
-        begin++;
+        if carriage {
+            return true;
+        }
     }
     return false;
 }
@@ -111,7 +113,9 @@ fn format_diagnostic_same_name(left: u8*, right: u8*): bool {
             return false;
         }
         var end = left[i] == 0;
-        if end { return true; }
+        if end {
+            return true;
+        }
         i++;
     }
 }
@@ -122,7 +126,7 @@ fn format_diagnostic_production(input: SyntaxDiagnosticInput*, index: usize): Sy
     var low: usize = 0;
     var high = input.production_count;
     while low < high {
-        var middle = high - low;
+        var middle = high -low;
         middle = middle / 2;
         middle = middle + low;
         var row = &input.productions[middle];
@@ -144,7 +148,7 @@ fn format_diagnostic_production(input: SyntaxDiagnosticInput*, index: usize): Sy
 fn format_diagnostic_context(input: SyntaxDiagnosticInput*, output: SyntaxDiagnosticText*, repair: usize): void {
     var name: u8* = null;
     var i: usize = 0;
-    while i < input.count {
+    for(; i < input.count; i++) {
         var include = repair == ParserNoIndex();
         var selected = repair == i;
         if selected {
@@ -152,8 +156,7 @@ fn format_diagnostic_context(input: SyntaxDiagnosticInput*, output: SyntaxDiagno
         }
         if include {
             var option = &input.options[i];
-            var j: usize = 0;
-            while j < option.count {
+            for(var j: usize = 0; j < option.count; j++) {
                 var index = option.contexts[j].production;
                 var row = format_diagnostic_production(input, index);
                 var found = row != null;
@@ -175,10 +178,8 @@ fn format_diagnostic_context(input: SyntaxDiagnosticInput*, output: SyntaxDiagno
                         }
                     }
                 }
-                j++;
             }
         }
-        i++;
     }
 }
 
@@ -199,7 +200,7 @@ export fn format_syntax_diagnostic(input: SyntaxDiagnosticInput*, output: Syntax
     var repairs: usize = 0;
     var boundaries: usize = 0;
     var i: usize = 0;
-    while i < input.count {
+    for(; i < input.count; i++) {
         var option = &input.options[i];
         var eligible = option.insertion;
         eligible &&= format_diagnostic_literal(input, option.id);
@@ -211,7 +212,6 @@ export fn format_syntax_diagnostic(input: SyntaxDiagnosticInput*, output: Syntax
                 boundary = i;
             }
         }
-        i++;
     }
     var suggested: bool = false;
     var ambiguous = repairs != 1;
@@ -226,8 +226,12 @@ export fn format_syntax_diagnostic(input: SyntaxDiagnosticInput*, output: Syntax
             }
         }
     }
-    if !input.repairs { repair = ParserNoIndex(); }
-    if !input.complete { repair = ParserNoIndex(); }
+    if !input.repairs {
+        repair = ParserNoIndex();
+    }
+    if !input.complete {
+        repair = ParserNoIndex();
+    }
     var repaired = repair != ParserNoIndex();
     if repaired {
         if suggested {
@@ -245,10 +249,12 @@ export fn format_syntax_diagnostic(input: SyntaxDiagnosticInput*, output: Syntax
         var prefix: u8* = "Unexpected ";
         var unexpected: bool = true;
         i = 0;
-        while prefix[i] != 0 {
+        for(; prefix[i] != 0; i++) {
             var different = input.original[i] != prefix[i];
-            if different { unexpected = false; break; }
-            i++;
+            if different {
+                unexpected = false;
+                break;
+            }
         }
         if unexpected {
             format_text(&f, prefix);
@@ -283,7 +289,7 @@ export fn format_syntax_diagnostic(input: SyntaxDiagnosticInput*, output: Syntax
             count = SyntaxDiagnosticChoiceLimit();
         }
         i = 0;
-        while i < count {
+        for(; i < count; i++) {
             var separator = i != 0;
             if separator {
                 var next = i + 1;
@@ -296,7 +302,6 @@ export fn format_syntax_diagnostic(input: SyntaxDiagnosticInput*, output: Syntax
                 }
             }
             format_text(&f, input.options[i].label);
-            i++;
         }
         if limited {
             format_text(&f, ", among other valid continuations");

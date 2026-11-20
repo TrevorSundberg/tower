@@ -8,7 +8,7 @@ import .library.bytes_types;
 export fn host_json_quote(out: ByteBuffer*, source: u8*, count: usize): bool {
     var maximum: usize = 0;
     maximum--;
-    var left = maximum - out.length;
+    var left = maximum -out.length;
     var small = left < 2;
     if small {
         return false;
@@ -21,20 +21,20 @@ export fn host_json_quote(out: ByteBuffer*, source: u8*, count: usize): bool {
     }
     var base = bits(usize, out.data);
     var start = bits(usize, source);
-    var offset = start - base;
+    var offset = start -base;
     var inside = offset < out.capacity;
     if inside {
         var invalid = offset > out.length;
         if invalid {
             return false;
         }
-        var remaining = out.length - offset;
+        var remaining = out.length -offset;
         invalid = count > remaining;
         if invalid {
             return false;
         }
     }
-    var needed = count * 6;
+    var needed = count *6;
     needed = needed + out.length;
     needed = needed + 2;
     var ok = bytes_reserve(out, needed);
@@ -48,12 +48,7 @@ export fn host_json_quote(out: ByteBuffer*, source: u8*, count: usize): bool {
     out.data[at] = 34;
     at++;
     var hex: u8* = "0123456789abcdef";
-    var i: usize = 0;
-    loop {
-        var done = i == count;
-        if done {
-            break;
-        }
+    for(var i: usize = 0; i != count; i++) {
         var c = source[i];
         var quote = c == 34;
         var slash = c == 92;
@@ -88,7 +83,6 @@ export fn host_json_quote(out: ByteBuffer*, source: u8*, count: usize): bool {
                 at++;
             }
         }
-        i++;
     }
     out.data[at] = 34;
     out.length = at + 1;

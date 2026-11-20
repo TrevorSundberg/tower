@@ -95,11 +95,7 @@ export fn shared_entity_tests(): void {
     var nodes: void*[1000];
     var addresses: void*[1000];
     var i: usize = 0;
-    loop {
-        var done = i == 1000;
-        if done {
-            break;
-        }
+    for(; i != 1000; i++) {
         var node = entity_create(store);
         nodes[i] = node;
         var component = entity_component_add(node, type);
@@ -122,7 +118,6 @@ export fn shared_entity_tests(): void {
         var low = i % 256;
         var byte = convert(u8, low);
         fill(data, byte, 48);
-        i++;
     }
     ok = entity_query_count(type) == 1000;
     shared_check(ok);
@@ -166,11 +161,7 @@ export fn shared_entity_tests(): void {
     ok = entity_query_count(type) == 500;
     shared_check(ok);
     i = 0;
-    loop {
-        var done = i == 500;
-        if done {
-            break;
-        }
+    for(; i != 500; i++) {
         var component = entity_query_at(type, i);
         var owner = entity_component_owner(component);
         var remainder = entity_id(owner) % 2;
@@ -178,7 +169,6 @@ export fn shared_entity_tests(): void {
         shared_check(ok);
         ok = entity_component_get(owner, type) == component;
         shared_check(ok);
-        i++;
     }
     ok = entity_query_at(type, 500) == null;
     shared_check(ok);
@@ -223,13 +213,8 @@ export fn shared_entity_tests(): void {
     entity_release(parent);
     entity_release(type);
     i = 0;
-    loop {
-        var done = i == 1000;
-        if done {
-            break;
-        }
+    for(; i != 1000; i++) {
         entity_release(nodes[i]);
-        i++;
     }
     ok = entity_store_count(store) == 0;
     shared_check(ok);
@@ -405,14 +390,12 @@ fn shared_provenance_tests(): void {
     span = bits(ParserMatchData*, compiler_world_component(world, invocation, CompilerParserMatch()));
     span.start = 5;
     span.length = 3;
-    var index: usize = 0;
-    while index < 10000 {
+    for(var index: usize = 0; index < 10000; index++) {
         trace = syntax_trace_create(world, invocation, "Nested", index, index);
         ok = trace != null;
         shared_check(ok);
         shared_check(syntax_origin_mark(world, trace, invocation, invocation, true));
         syntax_trace_release(trace);
-        index++;
     }
     var type = compiler_world_type(world, CompilerSyntaxExpansion());
     ok = entity_query_count(type) == 10000;
@@ -513,7 +496,7 @@ fn shared_metadata_tests(): void {
 export fn shared_world_tests(): void {
     var baseline = tower_test_buffer_count();
     var iteration: usize = 0;
-    while iteration < 40 {
+    for(; iteration < 40; iteration++) {
         var first = compiler_world_create();
         var second = compiler_world_create();
         var ok = first != null;
@@ -535,8 +518,7 @@ export fn shared_world_tests(): void {
         shared_check(ok);
         ok = entity_store_count(store) == 1;
         shared_check(ok);
-        var kind: u32 = 0;
-        while kind < CompilerComponentCount() {
+        for(var kind: u32 = 0; kind < CompilerComponentCount(); kind++) {
             var type = compiler_world_type(first, kind);
             var other_type = compiler_world_type(second, kind);
             ok = type != other_type;
@@ -561,7 +543,6 @@ export fn shared_world_tests(): void {
             shared_check(ok);
             ok = entity_component_owner(entity_query_at(type, 0)) == node;
             shared_check(ok);
-            kind++;
         }
         var rule = bits(ParserRuleData*, compiler_world_get(first, node, CompilerParserRule()));
         shared_check(vector_push(u8, &rule.name, 65));
@@ -627,7 +608,6 @@ export fn shared_world_tests(): void {
         shared_check(compiler_world_dispose(second));
         ok = tower_test_buffer_count() == baseline;
         shared_check(ok);
-        iteration++;
     }
     var empty = compiler_world_create();
     var type = compiler_world_type(empty, CompilerParserRule());

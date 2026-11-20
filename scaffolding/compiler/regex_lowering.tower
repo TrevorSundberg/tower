@@ -233,7 +233,7 @@ fn regex_scalar(context: RegexLowering*, node: void*): u32 {
         first = 3;
         end--;
     }
-    var count = end - first;
+    var count = end -first;
     var invalid = count == 0;
     if invalid {
         regex_fail(context, "Invalid Unicode scalar escape");
@@ -245,11 +245,7 @@ fn regex_scalar(context: RegexLowering*, node: void*): u32 {
         return 0;
     }
     var value: u32 = 0;
-    loop {
-        var done = first == end;
-        if done {
-            break;
-        }
+    for(; first != end; first++) {
         var digit = convert(u32, text[first]);
         var decimal = digit <= 57;
         if decimal {
@@ -266,7 +262,6 @@ fn regex_scalar(context: RegexLowering*, node: void*): u32 {
         }
         value = value * 16;
         value = value + digit;
-        first++;
     }
     invalid = value > 1114111;
     if invalid {

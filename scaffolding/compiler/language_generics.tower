@@ -161,7 +161,7 @@ fn language_generic_present(q: CompletionQuery*, node: void*, candidate: Languag
 }
 
 fn language_generic_space(text: u8*, first: usize, last: usize): bool {
-    while first < last {
+    for(; first < last; first++) {
         var byte = text[first];
         var space = byte == TriviaSpace();
         var generic_check19 = byte == TriviaTab();
@@ -179,7 +179,6 @@ fn language_generic_space(text: u8*, first: usize, last: usize): bool {
         if !space {
             return false;
         }
-        first++;
     }
     return true;
 }
@@ -194,7 +193,7 @@ fn language_generic_documentation(q: CompletionQuery*, declaration: void*): void
     }
     var base = sem_source_base(&q.context, declaration);
     var m: usize = 0;
-    while m < q.comment_modules.length {
+    for(; m < q.comment_modules.length; m++) {
         var generic_check23 = q.comment_bases.data[m] == base;
         if generic_check23 {
             var module = q.comment_modules.data[m];
@@ -205,7 +204,7 @@ fn language_generic_documentation(q: CompletionQuery*, declaration: void*): void
             var end = span.start;
             var first = count;
             while first != 0 {
-                var before = first - 2;
+                var before = first -2;
                 var after = before + 1;
                 var last = comments[after];
                 var generic_check24 = last <= end;
@@ -246,7 +245,6 @@ fn language_generic_documentation(q: CompletionQuery*, declaration: void*): void
             }
             return;
         }
-        m++;
     }
 }
 

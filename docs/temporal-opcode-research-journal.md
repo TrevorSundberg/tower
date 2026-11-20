@@ -22604,3 +22604,127 @@ port described above. Full within-unit parallel compilation and portable pure-To
 bootstrap releases are still outstanding; the verified worker generations do not
 claim either. Production native count remains 3,729 lines, all owned categories
 10,982, excluding third-party dependencies and including blanks/comments.
+
+## 2026-11-20 - Whole-source language audit and scoped for loops
+
+Request: audit compiler/runtime and all tracked Tower code, consult this journal,
+todo and the Tower language notes, then implement the next surface feature with
+the largest practical code reduction. Read todo.txt without changing it. Retain
+the previous operator followups in stash 30babcc83aff46e980e0ab42e1ae361311894bc9;
+this work starts from the published bootstrap recovery at 479962b.
+
+The reproducible audit is docs/research/audit_tower_loops.py; its decision and
+per-area migration table are in docs/research/tower-loop-audit.md. Baseline command:
+`python3 docs/research/audit_tower_loops.py --revision 479962b`. All 346 tracked
+.tower files contain 70,556 lines; 329 import Tower directly. The other 17 have no
+executable loops and are grammar/bootstrap/import/negative fixtures or forwarding
+declarations. Found 881 loop and 338 while constructs, including 842 loops ending
+in a standalone local counter update across 147 files. Of those, 654 index storage
+with that counter. Also counted 743 vector calls and 994 free/dispose/destroy calls;
+these indicate later container/ownership opportunities, not guaranteed removals.
+
+Selected scoped C-style for: 515 conservative rewrites in 123 files remove 1,804
+source lines before formatting/new implementation/tests/docs. General foreach is
+still attractive, but the stage-6 iterator/ownership contract remains necessary:
+evaluate the source once, define borrowed elements, growth/mutation/invalidation
+and early-exit cleanup across different collections. The existing foreach example
+only demonstrates grammar extension. Old todo sketches of checked handles and
+throwing on growth do not override today's explicit raw Foundation pointer model.
+
+Implementation is entirely Tower: grammar in tower.tower, checking/lowering in
+semantic_control.tower with ordinary Foundation blocks, locals, branches, stores
+and loops on the same ECS entities. No Foundation/Bedrock grammar or operation,
+public IR, execution ABI or backend instruction was added. Header locals have a
+scope distinct from the body's scope. Conditions are bool, dynamic bounds are
+re-read, comma/empty clauses work, and nested break/continue/return retain effects.
+When the body's control-flow summary contains a reachable continue, a first-entry
+flag moves the single update to the next loop head; ordinary loops append it after
+the body. This avoids duplicating the update or changing nested continues. No
+runtime speed claim is made. A trapping initializer preserves definite-return
+analysis. For lowering enforces the existing 128-level Foundation block ceiling.
+
+Trials/corrections: the initial checker passed TowerExpression to the narrow
+Foundation expression dispatcher and got Unsupported foundation expression;
+using the existing shared operand checker fixed it. The first audit counted two
+field updates as local counters; a clean build caught a truncated out.length++.
+Restored only this turn's migration edits, corrected the scanner's statement
+boundary check, and reran the migration. Tightened declaration movement further:
+retain module-visible counters and any counter whose header/body has an address
+operation, plus counters used after the loop. Skip continues, counter writes,
+reused guard temporaries and scaffolding comments rather than change their meaning.
+The initial 517/1,922 and intermediate 515/1,918 estimates are superseded by the
+final 515/1,804 conservative migration. No todo edits or stash deletion occurred.
+
+User reiterated that new feature code must be .tower. A temporary ignored C++
+formatter harness was tried before that reminder; it failed to configure the
+Bedrock import environment. Removed that harness and its generated objects and
+executable. Formatting now invokes the existing browser formatter through a JS
+transport, checking idempotence and parse-tree/grammar equivalence. No C/C++ file
+is part of this change. AGENTS.md explicitly records this implementation rule.
+
+Bootstrap sequencing: built the for checker using the existing public a5435617
+pin in /cache/operator-published-clean before migrating compiler source. Native
+graph/fast interpretation, Foundation reconstruction, native LLVM execution and
+browser graph/fast execution at 32/64-bit pointer profiles passed the Tower
+fixture. Raw and optimized LLVM/Wasm matched as well (5/5 for-loops tests at this
+checkpoint). Packaged this predecessor as archive 12be5d2695c4196151af34fb1897aade9
+e29871abe83259e6fe1002ca4cbf0d3 with complete resources, input hashes and source
+patch. Then migrated sources and completed a fresh default build with no private
+compiler override: `env -u TOWER_BOOTSTRAP_COMPILER
+TOWER_NATIVE_BUILD=/cache/for-pinned-clean TOWER_BUILD_JOBS=8
+bash playground/scripts/build-native.sh` (all 60 targets across initial/retry
+logs). This is still the Linux x64/Ubuntu24/LLVM19 hybrid development profile.
+
+Focused wider checks reproduced two old completion and two old inference-test
+failures from the operator followup. The discarded bare-name editor context now
+admits void calls (also needed by for updates), while nested values still reject
+them. Restored the relevant small Tower fix from the preserved work. Inference
+checks now assert exact checked types plus output, allowing Foundation temporaries;
+the replacement test again uses increment_rules.tower instead of the operator
+example. Other stashed changes remain separate. Final formatting, rebuilt artifact
+validation, publication and any remaining limitations are recorded below when done.
+
+Further validation exposed four independent issues from the earlier expression
+and module migrations. CoreCallArgument had lost its CoreOperand wrapper, breaking
+existing replacement captures such as `show $value:CoreOperand`; restoring that
+wrapper retains full expressions through CoreOperand. A raw-storage test assumed
+one 100,000-step execution chunk; it now drains bounded chunks like the other
+execution tests. The integrated native parser fixture exceeded the 256 generic
+specializations budget; the Tower registry and diagnostic now allow 512. Enum
+arithmetic still failed checking, but the surface checker gave a less specific
+diagnostic than Foundation; it now preserves the enum equality-only diagnostic.
+
+The broad browser run initially passed 356/367 tests. Nine failures shared a
+poisoned compiler instance after importing the work-graph LLVM reconstruction.
+Measured its memory at 86,179,840 bytes before the 1,238,513-byte import, then at
+exactly 268,435,456 bytes on allocation failure. Raising the compiler reactor's
+maximum heap from 256 to 512 MiB fixes that case; a repeated graph/fast/Foundation
+and raw/optimized LLVM reconstruction run at pointer widths 4 and 8 passed, with
+memory reaching 308,412,416 bytes. Initial memory and stack are unchanged, as is
+the guest interpreter's address-space policy. The affected-suite rerun passed
+47/48 tests; its remaining enum diagnostic failure led to the correction above.
+Logs: build/for-broad-tests.log, for-workgraph-debug.log,
+for-workgraph-memory.log and for-affected-tests.log.
+
+The browser formatter proved too slow for the whole audit. Superseding the
+earlier transport note, an ignored Tower-written validation driver now invokes
+the existing formatter through its existing foreign-call interface, checking
+parse-tree equivalence and idempotence before writing. Independent file partitions
+run concurrently. No native formatter implementation was added. The first native
+CTest run passed four of five suites; the parser suite reached its repository
+formatting check and found pre-existing noncanonical backend/target.tower. Also
+corrected that existing C++ test's directory-name string from syntax-invalid to
+syntax_invalid after the previous module rename. This one-line test-data path
+correction is the only C++ edit; the feature, checker, lowering and validation
+driver are Tower. The earlier statement that no C++ file changes is superseded
+by this test-path correction. The complete native rerun is recorded below.
+
+For-header flow now preserves both trapping and jumping initializers. The Tower
+fixture includes old CoreOperand replacement syntax inside a for body, as well as
+an explicit jump in the initializer; generated Foundation retains both behaviors.
+Next-feature research counted repeated identical cleanup expressions in 60
+functions (136 extra copies). Explicit scoped defer is the next implementation
+candidate: caller-written cleanup, lexical binding, late evaluation, reverse
+registration order, and existing Foundation blocks on every structured exit.
+This is not an implicit ownership/destructor system or a claim that every
+repeated cleanup can safely be removed.

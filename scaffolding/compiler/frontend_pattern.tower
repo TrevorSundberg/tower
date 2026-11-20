@@ -53,7 +53,7 @@ fn frontend_pattern_position(source: u8*, length: usize, offset: usize): usize {
             return character;
         }
         var id: u32;
-        var remaining = length - at;
+        var remaining = length -at;
         var width = tower_utf8_decode(&source[at], remaining, &id);
         var invalid = width == 0;
         if invalid {
@@ -106,7 +106,7 @@ error: FormatResult*): SyntaxPattern* {
                 format_text(&formatter, "'\\0'");
             } else {
                 var id: u32;
-                var remaining = length - input.offset;
+                var remaining = length -input.offset;
                 var width = tower_utf8_decode(&source[input.offset], remaining, &id);
                 format_escape(&formatter, &source[input.offset], width, 39);
             }

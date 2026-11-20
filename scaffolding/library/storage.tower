@@ -30,7 +30,7 @@ export fn arena_take(arena: ByteArena*, count: usize): u8* {
     }
     rounded = rounded / 16;
     rounded = rounded * 16;
-    var left: usize = arena.capacity - arena.used;
+    var left: usize = arena.capacity -arena.used;
     var full: bool = rounded > left;
     if full {
         return null;
@@ -71,7 +71,7 @@ export fn map_init(map: IntMap*): void {
 }
 
 fn map_index(key: u32, capacity: usize): usize {
-    var hash: u32 = key * 2654435761;
+    var hash: u32 = key *2654435761;
     var wide: usize = convert(usize, hash);
     wide = wide % capacity;
     return wide;
@@ -102,7 +102,7 @@ export fn map_set(map: IntMap*, key: u32, value: i32): bool {
     var half: usize = map.capacity / 2;
     var grow: bool = map.count >= half;
     if grow {
-        var capacity: usize = map.capacity * 2;
+        var capacity: usize = map.capacity *2;
         var overflow: bool = capacity < map.capacity;
         if overflow {
             return false;
@@ -117,7 +117,7 @@ export fn map_set(map: IntMap*, key: u32, value: i32): bool {
             return false;
         }
         var size: usize = sizeof(IntMapSlot);
-        var bytes: usize = capacity * size;
+        var bytes: usize = capacity *size;
         fill(slots, 0, bytes);
         var old: IntMapSlot* = map.slots;
         var length: usize = map.capacity;

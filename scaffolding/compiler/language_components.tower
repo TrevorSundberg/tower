@@ -262,15 +262,33 @@ fn language_kind(value: FoundationNode*): u8* {
     if hover_condition3 {
         return "syntax";
     }
-    if value.kind == SurfaceSelect() { return "conditional expression"; }
-    if value.kind == SurfaceAnd() || value.kind == SurfaceOr() { return "logical expression"; }
-    if value.kind == SurfaceAssign() { return "assignment"; }
-    if value.kind == SurfaceModify() { return "increment or decrement"; }
-    if value.kind == SurfaceComma() { return "comma expression"; }
-    if value.kind == SurfaceShift() { return "shift"; }
-    if value.kind == SurfaceCompare() { return "three-way comparison"; }
-    if value.kind == SurfaceCoalesce() { return "null coalescing"; }
-    if sem_surface_optional(value) { return "null-conditional access"; }
+    if value.kind == SurfaceSelect() {
+        return "conditional expression";
+    }
+    if value.kind == SurfaceAnd() || value.kind == SurfaceOr() {
+        return "logical expression";
+    }
+    if value.kind == SurfaceAssign() {
+        return "assignment";
+    }
+    if value.kind == SurfaceModify() {
+        return "increment or decrement";
+    }
+    if value.kind == SurfaceComma() {
+        return "comma expression";
+    }
+    if value.kind == SurfaceShift() {
+        return "shift";
+    }
+    if value.kind == SurfaceCompare() {
+        return "three-way comparison";
+    }
+    if value.kind == SurfaceCoalesce() {
+        return "null coalescing";
+    }
+    if sem_surface_optional(value) {
+        return "null-conditional access";
+    }
     var hover_condition4 = value.kind == KFunction();
     if hover_condition4 {
         return "function";

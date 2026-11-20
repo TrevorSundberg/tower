@@ -16,30 +16,20 @@ import .library.vector;
 
 fn sem_type_entity(c: SemanticContext*, t: FoundationType*): void* {
     var i: usize = 0;
-    loop {
-        var step1 = i < c.program.types.length;
-        if !step1 {
-            break;
-        }
+    for(; i < c.program.types.length; i++) {
         var n: void* = c.program.types.data[i];
         var step3 = sem_get(n);
         if semantic_type_equal(&step3.type, t) {
             return n;
         }
-        i++;
     }
     i = 0;
-    loop {
-        var step5 = i < c.type_arguments.length;
-        if !step5 {
-            break;
-        }
+    for(; i < c.type_arguments.length; i++) {
         var n: void* = c.type_arguments.data[i];
         var step7 = sem_get(n);
         if semantic_type_equal(&step7.type, t) {
             return n;
         }
-        i++;
     }
     var n: void* = sem_create(c.program.root);
     var value: FoundationNode* = sem_attach(n, KType());
@@ -153,11 +143,7 @@ fn sem_constant_argument(c: SemanticContext*, n: void*, expected_type: Foundatio
         return null;
     }
     var i: usize = 0;
-    loop {
-        var step46 = i < c.constant_arguments.length;
-        if !step46 {
-            break;
-        }
+    for(; i < c.constant_arguments.length; i++) {
         var existing: void* = c.constant_arguments.data[i];
         var e: FoundationNode* = sem_get(existing);
         var step50 = semantic_type_equal(&e.type, &constant.type);
@@ -168,7 +154,6 @@ fn sem_constant_argument(c: SemanticContext*, n: void*, expected_type: Foundatio
         if step50 {
             return existing;
         }
-        i++;
     }
     var result: void* = sem_create(c.program.root);
     var out: FoundationNode* = sem_attach(result, KOperand());
@@ -184,11 +169,7 @@ fn sem_instance_name(c: SemanticContext*, definition: void*, arguments: vector(v
     var step2 = sem_identifier(c, step1);
     var name: u8* = sem_cat(c, step2, "(");
     var i: usize = 0;
-    loop {
-        var step4 = i < arguments.length;
-        if !step4 {
-            break;
-        }
+    for(; i < arguments.length; i++) {
         if i != 0 {
             var step7 = sem_cat(c, name, ", ");
             name = step7;
@@ -203,7 +184,6 @@ fn sem_instance_name(c: SemanticContext*, definition: void*, arguments: vector(v
             var step12 = sem_cat(c, name, step11);
             name = step12;
         }
-        i++;
     }
     var step13 = sem_cat(c, name, ")");
     name = step13;
@@ -255,12 +235,7 @@ fn sem_register_template(c: SemanticContext*, n: void*): void {
     var names: SemanticTable* = sem_table(c);
     var step12 = sem_member(n, "params");
     var parameters: vector(void*)* = sem_collect(c, step12, "CoreParameter");
-    var i: usize = 0;
-    loop {
-        var step14 = i < parameters.length;
-        if !step14 {
-            break;
-        }
+    for(var i: usize = 0; i < parameters.length; i++) {
         var p: void* = parameters.data[i];
         var step16 = sem_member(p, "name");
         var value: u8* = sem_identifier(c, step16);
@@ -271,7 +246,6 @@ fn sem_register_template(c: SemanticContext*, n: void*): void {
             sem_fail(c, p, step21);
             return;
         }
-        i++;
     }
     var registry: SemanticTable* = c.templates;
     if kind == KParameter() {
@@ -337,12 +311,7 @@ fn sem_type_call(c: SemanticContext*, n: void*): FoundationType* {
     var arguments: vector(void*)* = sem_list(c);
     var step22 = sem_member(definition, "params");
     var parameters: vector(void*)* = sem_collect(c, step22, "CoreParameter");
-    var i: usize = 0;
-    loop {
-        var step24 = i < args.length;
-        if !step24 {
-            break;
-        }
+    for(var i: usize = 0; i < args.length; i++) {
         if generic_type_parameter(c.generics, definition, i) {
             var step27 = sem_type(c, args.data[i]);
             var step28 = sem_type_entity(c, step27);
@@ -362,7 +331,6 @@ fn sem_type_call(c: SemanticContext*, n: void*): FoundationType* {
         if !step34 {
             return invalid;
         }
-        i++;
     }
     var instance: void* = generic_instantiate(c.generics, definition, n, arguments.data, arguments.length);
     var step37 = sem_generic_ok(c, n);
@@ -448,19 +416,22 @@ fn sem_type_impl(c: SemanticContext*, n: void*): FoundationType* {
             if pointer {
                 var tail = sem_tokens(c, sem_member(n, "right"));
                 var count: u32 = 1;
-                var index: usize = 0;
-                loop {
-                    var end = tail[index] == 0;
-                    if end { break; }
+                for(var index: usize = 0; !(tail[index] == 0); index++) {
                     var star = tail[index] == 42;
-                    if star { count++; }
-                    else { sem_fail(c, n, "Expected a type spelling"); break; }
-                    index++;
+                    if star {
+                        count++;
+                    }
+                    else {
+                        sem_fail(c, n, "Expected a type spelling");
+                        break;
+                    }
                 }
                 var type = sem_type_copy(c, sem_type(c, left));
                 type.pointers = type.pointers + count;
                 var excessive = type.pointers > 16;
-                if excessive { sem_fail(c, n, "Foundation pointer nesting limit is 16"); }
+                if excessive {
+                    sem_fail(c, n, "Foundation pointer nesting limit is 16");
+                }
                 return type;
             }
         }
@@ -542,7 +513,7 @@ fn sem_type_impl(c: SemanticContext*, n: void*): FoundationType* {
             sign++;
             var step36 = semantic_signed(&v.type);
             if step36 {
-                var step37 = length & sign;
+                var step37 = length &sign;
                 var step38 = step37 != 0;
                 step36 = step38;
             }
@@ -573,11 +544,7 @@ fn sem_type_impl(c: SemanticContext*, n: void*): FoundationType* {
             var step49 = sem_cat(c, step47, step48);
             var name: u8* = sem_cat(c, step49, "]");
             var i: usize = 0;
-            loop {
-                var step51 = i < c.program.types.length;
-                if !step51 {
-                    break;
-                }
+            for(; i < c.program.types.length; i++) {
                 var a: FoundationNode* = sem_get(c.program.types.data[i]);
                 var step55 = a.type.scalar == SArray();
                 if step55 {
@@ -592,7 +559,6 @@ fn sem_type_impl(c: SemanticContext*, n: void*): FoundationType* {
                 if step55 {
                     return &a.type;
                 }
-                i++;
             }
             var entity: void* = sem_create(c.program.root);
             var a: FoundationNode* = sem_attach(entity, KType());
@@ -731,11 +697,7 @@ fn sem_type_fields(c: SemanticContext*, n: void*): void {
     var step5 = sem_member(n, "fields");
     var fields: vector(void*)* = sem_collect(c, step5, "CoreField");
     var i: usize = 0;
-    loop {
-        var step7 = i < fields.length;
-        if !step7 {
-            break;
-        }
+    for(; i < fields.length; i++) {
         var field: void* = fields.data[i];
         var step9 = sem_shape(c, field, "name");
         var step11 = !step9;
@@ -774,15 +736,14 @@ fn sem_type_fields(c: SemanticContext*, n: void*): void {
             sem_fail(c, field, "A field cannot have void type");
         }
         sem_push(&t.items, field);
-        i++;
     }
 }
 
 fn sem_round(size: usize, alignment: usize): usize {
     var step1 = size + alignment;
-    var step2 = step1 - 1;
+    var step2 = step1 -1;
     var step3 = step2 / alignment;
-    return step3 * alignment;
+    return step3 *alignment;
 }
 
 fn sem_add_local(c: SemanticContext*, n: void*): void {
@@ -862,17 +823,12 @@ fn sem_declaration_type(c: SemanticContext*, n: void*): bool {
             }
             i++;
         }
-        loop {
-            var step12 = i < c.inferring.length;
-            if !step12 {
-                break;
-            }
+        for(; i < c.inferring.length; i++) {
             var step14 = sem_get(c.inferring.data[i]);
             var step15 = sem_name(step14);
             var step16 = sem_cat(c, step15, " -> ");
             var step17 = sem_cat(c, chain, step16);
             chain = step17;
-            i++;
         }
         var step18 = sem_name(value);
         var step19 = sem_cat(c, "Cannot infer the type of '", step18);

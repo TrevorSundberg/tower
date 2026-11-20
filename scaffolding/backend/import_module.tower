@@ -26,12 +26,7 @@ fn bi_initializer(c: BackendImport*, address: void*, initializer: void*, type: v
         else {
             count = convert(u64, LLVMCountStructElementTypes(type));
         }
-        var i: u64 = 0;
-        loop {
-            var done = i == count;
-            if done {
-                break;
-            }
+        for(var i: u64 = 0; i != count; i++) {
             var element: void* = null;
             var offset: u64 = 0;
             if array {
@@ -44,7 +39,6 @@ fn bi_initializer(c: BackendImport*, address: void*, initializer: void*, type: v
             var child = LLVMGetAggregateElement(initializer, convert(u32, i));
             var pointer = bi_offset(c, address, bi_const(c, 8, offset));
             bi_initializer(c, pointer, child, element);
-            i++;
         }
         return;
     }
@@ -115,13 +109,8 @@ fn bi_function(c: BackendImport*, function: void*): void {
     var declarations = sem_get(c.declarations);
     var body = sem_get(n.body);
     var i: usize = 0;
-    loop {
-        var done = i == body.items.length;
-        if done {
-            break;
-        }
+    for(; i != body.items.length; i++) {
         backend_require(c.backend, vector_push(void*, &declarations.items, body.items.data[i]));
-        i++;
     }
     n.body = c.declarations;
 }
@@ -139,18 +128,13 @@ export fn backend_import_foundation(b: Backend*, root: void*): bool {
     program.type.pointer_bytes = b.pointer_bytes;
     var original_root = sem_get(b.source_root);
     var original_index: usize = 0;
-    loop {
-        var done = original_index == original_root.items.length;
-        if done {
-            break;
-        }
+    for(; original_index != original_root.items.length; original_index++) {
         var entity = original_root.items.data[original_index];
         var n = sem_get(entity);
         var record = n.kind == 19;
         if record {
             bi_append(&c, root, entity);
         }
-        original_index++;
     }
     var function = LLVMGetFirstFunction(b.module);
     loop {

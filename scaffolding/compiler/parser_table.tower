@@ -35,9 +35,8 @@ fn parser_table_clear_runtime(table: ParserHostTable*): void {
     lr_runtime_destroy(table.runtime);
     table.runtime = null;
     var index: usize = 0;
-    while index < table.states.length {
+    for(; index < table.states.length; index++) {
         vector_dispose(FrontendContextPosition, &table.states.data[index].contexts);
-        index++;
     }
     vector_dispose(ParserHostState, &table.states);
     table.built = false;
@@ -103,13 +102,13 @@ fn parser_table_contexts(table: ParserHostTable*, analysis: void*, states: void*
         return false;
     }
     var state_size = sizeof(ParserHostState);
-    var bytes = count * state_size;
+    var bytes = count *state_size;
     fill(table.states.data, 0, bytes);
     table.states.length = count;
     var rules = lr_grammar_rule_data(table.grammar);
     var symbols = lr_grammar_symbol_data(table.grammar);
     var index: usize = 0;
-    while index < count {
+    for(; index < count; index++) {
         var state = &table.states.data[index];
         state.origin = lr_states_origin(states, index);
         var items = lr_states_items(states, index);
@@ -122,7 +121,7 @@ fn parser_table_contexts(table: ParserHostTable*, analysis: void*, states: void*
         var kernel: bool = true;
         loop {
             var position: usize = 0;
-            while position < size {
+            for(; position < size; position++) {
                 var item = &values[position];
                 var selected = lr_kernel(analysis, item) == kernel;
                 if selected {
@@ -143,7 +142,6 @@ fn parser_table_contexts(table: ParserHostTable*, analysis: void*, states: void*
                     }
                     state.contexts.length++;
                 }
-                position++;
             }
             if kernel {
                 state.kernels = state.contexts.length;
@@ -152,7 +150,6 @@ fn parser_table_contexts(table: ParserHostTable*, analysis: void*, states: void*
                 break;
             }
         }
-        index++;
     }
     return true;
 }
@@ -184,10 +181,8 @@ export fn parser_table_build(table: ParserHostTable*, specialize: bool): bool {
         return false;
     }
     var names = lr_grammar_name_count(grammar);
-    var index: usize = 0;
-    while index < names {
+    for(var index: usize = 0; index < names; index++) {
         lr_analysis_order(analysis, index, lr_grammar_name_order(grammar, index));
-        index++;
     }
     var ok = lr_analysis_compute(analysis);
     var states: void* = null;
@@ -254,13 +249,11 @@ export fn parser_table_grammar(table: ParserHostTable*): void* {
 export fn parser_table_rule_next(table: ParserHostTable*, owner: usize, begin: usize): usize {
     var count = lr_grammar_rule_count(table.grammar);
     var rules = lr_grammar_rule_data(table.grammar);
-    var index = begin;
-    while index < count {
+    for(var index = begin; index < count; index++) {
         var same = rules[index].owner == owner;
         if same {
             return index;
         }
-        index++;
     }
     return parser_table_none();
 }
@@ -277,22 +270,14 @@ export fn parser_table_non_terminal_resolve_reference(userdata: void*, name: u8*
     var table = bits(ParserHostTable*, userdata);
     parser_table_require(table);
     var count = lr_grammar_name_count(table.grammar);
-    var index: usize = 0;
-    while index < count {
+    for(var index: usize = 0; index < count; index++) {
         var candidate = lr_grammar_name(table.grammar, index);
-        var position: usize = 0;
-        loop {
-            var different = candidate[position] != name[position];
-            if different {
-                break;
-            }
+        for(var position: usize = 0; !(candidate[position] != name[position]); position++) {
             var end = candidate[position] == 0;
             if end {
                 return convert(u32, index);
             }
-            position++;
         }
-        index++;
     }
     return ParserStreamEnd();
 }
@@ -307,9 +292,7 @@ export fn parser_table_non_terminal_id_to_string(userdata: void*, id: u32): u8* 
     }
     var source = lr_grammar_name(table.grammar, index);
     var length: usize = 0;
-    while source[length] != 0 {
-        length++;
-    }
+    for(; source[length] != 0; length++) {}
     var size = length + 1;
     var text = bits(u8*, tower_memory_allocate(size));
     var missing = text == null;

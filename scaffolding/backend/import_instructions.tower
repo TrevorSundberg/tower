@@ -44,14 +44,9 @@ fn bi_edge(c: BackendImport*, from: void*, to: void*): void {
         instruction = LLVMGetNextInstruction(instruction);
     }
     var index: usize = 0;
-    loop {
-        var done = index == copies.length;
-        if done {
-            break;
-        }
+    for(; index != copies.length; index++) {
         var pair = &copies.data[index];
         bi_assign(c, bi_ref(c, pair.entity), bi_ref(c, pair.value));
-        index++;
     }
     vector_dispose(BackendAssociation, &copies);
     var target = backend_find(&c.blocks, to);
@@ -99,12 +94,7 @@ fn bi_call(c: BackendImport*, instruction: void*): void* {
         }
         else {
             code = bi_value(c, code);
-            var i: u32 = 0;
-            loop {
-                var done = i == 9;
-                if done {
-                    break;
-                }
+            for(var i: u32 = 0; i != 9; i++) {
                 var valid = i != 4;
                 if valid {
                     var test = bi_binary(c, 8, code, bi_const(c, 1, convert(u64, i)), 2);
@@ -114,7 +104,6 @@ fn bi_call(c: BackendImport*, instruction: void*): void* {
                     bi_print(c, value, i);
                     c.block = outer;
                 }
-                i++;
             }
         }
         return null;
@@ -243,8 +232,7 @@ fn bi_call(c: BackendImport*, instruction: void*): void* {
         while group < width {
             var mask: u64 = 0;
             var bit: u64 = 1;
-            var position: u32 = 0;
-            while position < width {
+            for(var position: u32 = 0; position < width; position++) {
                 var part = position / group;
                 part = part % 2;
                 var low = part == 0;
@@ -252,7 +240,6 @@ fn bi_call(c: BackendImport*, instruction: void*): void* {
                     mask = mask | bit;
                 }
                 bit = bit * 2;
-                position++;
             }
             var low = bi_binary(c, OAnd(), value, bi_const(c, scalar, mask), scalar);
             var high = bi_binary(c, ODiv(), value, bi_const(c, scalar, bi_pow2(group)), scalar);
@@ -369,16 +356,11 @@ fn bi_call(c: BackendImport*, instruction: void*): void* {
     copy(&n.type, &function.type, sizeof(FoundationType));
     var count = LLVMGetNumArgOperands(instruction);
     var i: u32 = 0;
-    loop {
-        var done = i == count;
-        if done {
-            break;
-        }
+    for(; i != count; i++) {
         var value = bi_value(c, LLVMGetOperand(instruction, i));
         var parameter = sem_get(function.parameters.data[convert(usize, i)]);
         value = bi_cast_type(c, value, &parameter.type);
         backend_require(c.backend, vector_push(void*, &n.items, value));
-        i++;
     }
     var empty = n.type.scalar == 3;
     if empty {

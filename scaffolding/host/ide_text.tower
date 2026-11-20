@@ -4,28 +4,104 @@ import ide_types;
 import .library.bytes_types;
 import .library.bytes_interface;
 
-fn ide_require(ok: bool): void { if !ok { abort(); } }
+fn ide_require(ok: bool): void {
+    if !ok {
+        abort();
+    }
+}
+
 fn ide_length(text: u8*): usize {
     var n: usize = 0;
     var missing = text == null;
-    if missing { return 0; }
-    loop { var done = text[n] == 0; if done { return n; } n++; }
+    if missing {
+        return 0;
+    }
+    loop {
+        var done = text[n] == 0;
+        if done {
+            return n;
+        }
+        n++;
+    }
 }
-fn ide_text(out: ByteBuffer*, text: u8*): void { ide_require(bytes_append(out, text, ide_length(text))); }
-fn ide_assign(out: ByteBuffer*, text: u8*): void { ide_require(bytes_assign_text(out, text, ide_length(text))); }
-fn ide_quote_bytes(out: ByteBuffer*, data: u8*, length: usize): void { ide_require(host_json_quote(out, data, length)); }
-fn ide_quote(out: ByteBuffer*, text: u8*): void { ide_quote_bytes(out, text, ide_length(text)); }
-fn ide_number(out: ByteBuffer*, number: usize): void { ide_require(host_json_unsigned(out, convert(u64, number))); }
-fn ide_key(out: ByteBuffer*, name: u8*): void { ide_text(out, ","); ide_quote(out, name); ide_text(out, ":"); }
-fn ide_field(out: ByteBuffer*, name: u8*, number: usize): void { ide_key(out, name); ide_number(out, number); }
-fn ide_string(out: ByteBuffer*, name: u8*, value: u8*): void { ide_key(out, name); ide_quote(out, value); }
-fn ide_bool(out: ByteBuffer*, value: bool): void { if value { ide_text(out, "true"); } else { ide_text(out, "false"); } }
-fn ide_result(out: ByteBuffer*): u8* { ide_require(host_text_terminate(out)); return out.data; }
+
+fn ide_text(out: ByteBuffer*, text: u8*): void {
+    ide_require(bytes_append(out, text, ide_length(text)));
+}
+
+fn ide_assign(out: ByteBuffer*, text: u8*): void {
+    ide_require(bytes_assign_text(out, text, ide_length(text)));
+}
+
+fn ide_quote_bytes(out: ByteBuffer*, data: u8*, length: usize): void {
+    ide_require(host_json_quote(out, data, length));
+}
+
+fn ide_quote(out: ByteBuffer*, text: u8*): void {
+    ide_quote_bytes(out, text, ide_length(text));
+}
+
+fn ide_number(out: ByteBuffer*, number: usize): void {
+    ide_require(host_json_unsigned(out, convert(u64, number)));
+}
+
+fn ide_key(out: ByteBuffer*, name: u8*): void {
+    ide_text(out, ",");
+    ide_quote(out, name);
+    ide_text(out, ":");
+}
+
+fn ide_field(out: ByteBuffer*, name: u8*, number: usize): void {
+    ide_key(out, name);
+    ide_number(out, number);
+}
+
+fn ide_string(out: ByteBuffer*, name: u8*, value: u8*): void {
+    ide_key(out, name);
+    ide_quote(out, value);
+}
+
+fn ide_bool(out: ByteBuffer*, value: bool): void {
+    if value {
+        ide_text(out, "true");
+    } else {
+        ide_text(out, "false");
+    }
+}
+
+fn ide_result(out: ByteBuffer*): u8* {
+    ide_require(host_text_terminate(out));
+    return out.data;
+}
+
 fn ide_copy(data: u8*, length: usize): u8* {
     var size = length + 1;
-    var result = alloc(u8, size); var ok = result != null; ide_require(ok);
-    copy(result, data, length); result[length] = 0; return result;
+    var result = alloc(u8, size);
+    var ok = result != null;
+    ide_require(ok);
+    copy(result, data, length);
+    result[length] = 0;
+    return result;
 }
-fn ide_missing(): usize { var value: usize = 0; value--; return value; }
-fn ide_comma(out: ByteBuffer*, index: usize): void { var comma = index != 0; if comma { ide_text(out, ","); } }
-fn ide_index(out: ByteBuffer*, index: usize): void { var missing = index == ide_missing(); if missing { ide_text(out, "null"); } else { ide_number(out, index); } }
+
+fn ide_missing(): usize {
+    var value: usize = 0;
+    value--;
+    return value;
+}
+
+fn ide_comma(out: ByteBuffer*, index: usize): void {
+    var comma = index != 0;
+    if comma {
+        ide_text(out, ",");
+    }
+}
+
+fn ide_index(out: ByteBuffer*, index: usize): void {
+    var missing = index == ide_missing();
+    if missing {
+        ide_text(out, "null");
+    } else {
+        ide_number(out, index);
+    }
+}

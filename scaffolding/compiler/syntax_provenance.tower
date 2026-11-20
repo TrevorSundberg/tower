@@ -55,10 +55,8 @@ export fn syntax_trace_dispose(trace: SyntaxExpansion*): void {
 export fn syntax_origin_dispose(origin: SyntaxOrigin*): void {
     syntax_trace_release(origin.expansion);
     origin.expansion = null;
-    var index: usize = 0;
-    while index < origin.splices.length {
+    for(var index: usize = 0; index < origin.splices.length; index++) {
         syntax_trace_release(origin.splices.data[index]);
-        index++;
     }
     vector_dispose(SyntaxExpansion*, &origin.splices);
 }
@@ -85,9 +83,7 @@ export fn syntax_trace_create(world: CompilerWorld*, invocation: Entity*, rule: 
         return null;
     }
     var length: usize = 0;
-    while rule[length] != 0 {
-        length++;
-    }
+    for(; rule[length] != 0; length++) {}
     var copied = bytes_assign_text(&trace.rule, rule, length);
     if !copied {
         entity_release(owner);
@@ -138,12 +134,10 @@ export fn syntax_origin_copy(world: CompilerWorld*, source: Entity*, destination
         vector_dispose(SyntaxExpansion*, &pending);
         return false;
     }
-    var index: usize = 0;
-    while index < prior.splices.length {
+    for(var index: usize = 0; index < prior.splices.length; index++) {
         var trace = prior.splices.data[index];
         syntax_trace_retain(trace);
         pending.data[index] = trace;
-        index++;
     }
     pending.length = prior.splices.length;
     syntax_trace_retain(prior.expansion);

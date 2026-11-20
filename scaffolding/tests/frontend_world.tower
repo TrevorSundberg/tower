@@ -185,12 +185,11 @@ fn frontend_world_unlimited(): usize {
 
 fn frontend_world_error_is(result: FormatResult*, text: u8*): bool {
     var index: usize = 0;
-    while index < result.text.length {
+    for(; index < result.text.length; index++) {
         var different = result.text.data[index] != text[index];
         if different {
             return false;
         }
-        index++;
     }
     var end = text[index] == 0;
     return end;
@@ -221,13 +220,11 @@ fn frontend_world_text_equal(left: FormatResult*, right: FormatResult*): bool {
     if different {
         return false;
     }
-    var index: usize = 0;
-    while index < left.text.length {
+    for(var index: usize = 0; index < left.text.length; index++) {
         different = left.text.data[index] != right.text.data[index];
         if different {
             return false;
         }
-        index++;
     }
     return true;
 }
@@ -352,12 +349,12 @@ fn frontend_world_failure_tests(): void {
     var buffers = tower_test_buffer_count();
     var allocations = tower_test_buffer_allocations();
     root = regex_grammar_create(&kinds);
-    var count = tower_test_buffer_allocations() - allocations;
+    var count = tower_test_buffer_allocations() -allocations;
     entity_release(root);
     // Every allocation in regex entity construction, including attachment/name
     // growth. Failure must discard the whole partial graph in this world.
     var budget: usize = 0;
-    while budget < count {
+    for(; budget < count; budget++) {
         tower_test_buffer_fail_after(budget);
         root = regex_grammar_create(&kinds);
         tower_test_buffer_fail_after(frontend_world_unlimited());
@@ -365,7 +362,6 @@ fn frontend_world_failure_tests(): void {
         frontend_world_check(ok);
         ok = tower_test_buffer_count() == buffers;
         frontend_world_check(ok);
-        budget++;
     }
     // Exercise failures across the cached reader and Bedrock build, followed by
     // successful retry. Partial registry publication must never survive failure.
@@ -422,7 +418,7 @@ fn frontend_world_failure_tests(): void {
     // parse-entity materialization and regex lowering. Every outcome releases
     // temporary trees while preserving the reader for the next request.
     budget = 0;
-    while budget < count {
+    for(; budget < count; budget++) {
         tower_test_buffer_fail_after(budget);
         pattern = frontend_world_pattern(world, "a+", 2, &error);
         tower_test_buffer_fail_after(frontend_world_unlimited());
@@ -435,7 +431,6 @@ fn frontend_world_failure_tests(): void {
         format_dispose(&error);
         ok = tower_test_buffer_count() == buffers;
         frontend_world_check(ok);
-        budget++;
     }
     frontend_world_check(frontend_world_clear(world));
     frontend_world_check(compiler_world_dispose(world));

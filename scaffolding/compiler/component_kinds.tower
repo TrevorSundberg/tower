@@ -19,22 +19,22 @@ fn compiler_foundation_lifecycle(): usize {
 }
 
 fn compiler_syntax_lifecycle(): usize {
-    var value = compiler_foundation_lifecycle() - 1;
+    var value = compiler_foundation_lifecycle() -1;
     return value;
 }
 
 fn compiler_parser_lifecycle(kind: u32): usize {
-    var value = compiler_syntax_lifecycle() - 1;
+    var value = compiler_syntax_lifecycle() -1;
     value = value - convert(usize, kind);
     return value;
 }
 
 fn compiler_origin_lifecycle(): usize {
-    var value = compiler_parser_lifecycle(CompilerParserMatch()) - 1;
+    var value = compiler_parser_lifecycle(CompilerParserMatch()) -1;
     return value;
 }
 
 fn compiler_expansion_lifecycle(): usize {
-    var value = compiler_origin_lifecycle() - 1;
+    var value = compiler_origin_lifecycle() -1;
     return value;
 }

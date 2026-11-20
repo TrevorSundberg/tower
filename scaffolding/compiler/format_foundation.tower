@@ -244,10 +244,8 @@ fn format_semantic_name(f: FormatEngine*, entity: void*, fallback: vector(u8)*):
                 if ok {
                     original.length = syntax_identifier_decode_in_place(original.data, original.length);
                     var same = original.length < fallback.length;
-                    var i: usize = 0;
-                    while i < original.length {
+                    for(var i: usize = 0; i < original.length; i++) {
                         same &&= original.data[i] == fallback.data[i];
-                        i++;
                     }
                     same &&= fallback.data[original.length] == 64;
                     if same {
@@ -297,7 +295,7 @@ fn format_type(f: FormatEngine*, t: FoundationType*): void {
 
 fn format_number(f: FormatEngine*, n: FoundationNode*): void {
     var mask = format_mask(&n.type);
-    var value = n.bits & mask;
+    var value = n.bits &mask;
     if format_signed(&n.type) {
         var sign = format_sign(&n.type);
         sign = value & sign;
@@ -490,11 +488,7 @@ fn format_function_header(f: FormatEngine*, entity: void*, n: FoundationNode*): 
     format_semantic_name(f, entity, &n.name);
     format_text(f, "(");
     var i: usize = 0;
-    loop {
-        var hover_condition1 = i == n.parameters.length;
-        if hover_condition1 {
-            break;
-        }
+    for(; i != n.parameters.length; i++) {
         var hover_condition2 = i != 0;
         if hover_condition2 {
             format_text(f, ", ");
@@ -503,7 +497,6 @@ fn format_function_header(f: FormatEngine*, entity: void*, n: FoundationNode*): 
         format_identifier(f, &p.name);
         format_text(f, ": ");
         format_type(f, &p.type);
-        i++;
     }
     format_text(f, "): ");
     format_type(f, &n.type);
@@ -668,18 +661,13 @@ fn format_statement_body(f: FormatEngine*, entity: void*): void {
             format_text(f, " {\n");
             f.result.depth++;
             var i: usize = 0;
-            loop {
-                var done = i == n.items.length;
-                if done {
-                    break;
-                }
+            for(; i != n.items.length; i++) {
                 var member = format_foundation(f, n.items.data[i]);
                 format_indent(f);
                 format_identifier(f, &member.name);
                 format_text(f, " = ");
                 format_number(f, member);
                 format_text(f, ",\n");
-                i++;
             }
             f.result.depth--;
             format_indent(f);
@@ -724,18 +712,13 @@ fn format_statement(f: FormatEngine*, entity: void*): void {
 fn format_node_comments(f: FormatEngine*, n: FoundationNode*): void {
     var i: usize = 0;
     var line = true;
-    loop {
-        var done = i == n.comments.length;
-        if done {
-            break;
-        }
+    for(; i != n.comments.length; i++) {
         if line {
             format_indent(f);
         }
         var byte = n.comments.data[i];
         format_char(f, byte);
         line = byte == 10;
-        i++;
     }
 }
 

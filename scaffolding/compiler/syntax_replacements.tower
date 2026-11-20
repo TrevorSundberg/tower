@@ -156,7 +156,7 @@ fn replacement_parents(state: ReplacementPlanState*): bool {
                             var count = parents.length;
                             var duplicate = count != 0;
                             if duplicate {
-                                var last = count - 1;
+                                var last = count -1;
                                 duplicate = parents.data[last] == index;
                             }
                             if !duplicate {
@@ -195,23 +195,18 @@ fn replacement_space(value: u8): bool {
 fn replacement_excerpt(state: ReplacementPlanState*, source: vector(u8)*): void {
     var first: usize = 0;
     var last = source.length;
-    loop {
-        var done = first == last;
-        if done {
-            break;
-        }
+    for(; first != last; first++) {
         var blank = replacement_space(source.data[first]);
         if !blank {
             break;
         }
-        first++;
     }
     loop {
         var done = first == last;
         if done {
             break;
         }
-        var index = last - 1;
+        var index = last -1;
         var blank = replacement_space(source.data[index]);
         if !blank {
             break;
@@ -228,25 +223,16 @@ fn replacement_excerpt(state: ReplacementPlanState*, source: vector(u8)*): void 
     if beyond {
         end = last;
     }
-    loop {
-        var complete = end == last;
-        if complete {
-            break;
-        }
-        var byte = source.data[end] & 192;
+    for(; end != last; end--) {
+        var byte = source.data[end] &192;
         var continuation = byte == 128;
         if !continuation {
             break;
         }
-        end--;
     }
     replacement_text(state, "\"");
     var index = first;
-    loop {
-        var done = index == end;
-        if done {
-            break;
-        }
+    for(; index != end; index++) {
         var character = source.data[index];
         var selected = character == 10;
         if selected {
@@ -274,7 +260,6 @@ fn replacement_excerpt(state: ReplacementPlanState*, source: vector(u8)*): void 
                 }
             }
         }
-        index++;
     }
     var truncated = end < last;
     if truncated {
@@ -294,19 +279,13 @@ fn replacement_invalid(state: ReplacementPlanState*, name: u8*, body: SyntaxNode
         replacement_text(state, state.plan.rules[first].name);
     } else {
         replacement_text(state, "one of these syntax categories: ");
-        var index: usize = 0;
-        loop {
-            var done = index == state.tried.length;
-            if done {
-                break;
-            }
+        for(var index: usize = 0; index != state.tried.length; index++) {
             var separator = index != 0;
             if separator {
                 replacement_text(state, ", ");
             }
             var target = state.tried.data[index];
             replacement_text(state, state.plan.rules[target].name);
-            index++;
         }
     }
     replacement_text(state, ". ");
@@ -337,18 +316,13 @@ fn replacement_prepare_one(state: ReplacementPlanState*, index: usize, alternati
     var body = replacement_node(state, sequence.replacement);
     syntax_replacement_begin(state.plan.host, rule.name, source, body.start, body.end);
     var item: usize = 0;
-    loop {
-        var done = item == sequence.items.length;
-        if done {
-            break;
-        }
+    for(; item != sequence.items.length; item++) {
         var entity = sequence.items.data[item];
         var term = replacement_node(state, entity);
         var captured = term.capture.length != 0;
         if captured {
             syntax_replacement_capture(state.plan.host, node_text_get(&term.capture), entity);
         }
-        item++;
     }
     state.pending.length = 0;
     state.tried.length = 0;
@@ -466,7 +440,7 @@ fn replacement_prepare_all(state: ReplacementPlanState*): bool {
     if !state.allocated {
         return false;
     }
-    var bytes = state.plan.count * sizeof(ReplacementRuleState);
+    var bytes = state.plan.count *sizeof(ReplacementRuleState);
     fill(state.rules.data, 0, bytes);
     state.rules.length = state.plan.count;
     var ok = replacement_reachable(state);
@@ -510,13 +484,8 @@ export fn syntax_replacements_prepare(plan: SyntaxReplacementPlan*): bool {
     state.allocated = true;
     var ok = replacement_prepare_all(&state);
     var index: usize = 0;
-    loop {
-        var done = index == state.rules.length;
-        if done {
-            break;
-        }
+    for(; index != state.rules.length; index++) {
         vector_dispose(usize, &state.rules.data[index].parents);
-        index++;
     }
     vector_dispose(ReplacementRuleState, &state.rules);
     vector_dispose(usize, &state.pending);

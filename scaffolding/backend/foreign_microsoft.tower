@@ -127,16 +127,11 @@ fn foreign_ms_cv(m: ForeignName*, cv: u32): void {
 
 fn foreign_ms_identifier(m: ForeignName*, name: u8*): void {
     var i: usize = 0;
-    loop {
-        var foreign_condition88 = i == m.ms_names.length;
-        if foreign_condition88 {
-            break;
-        }
+    for(; i != m.ms_names.length; i++) {
         if backend_equal(m.ms_names.data[i], name) {
             foreign_number(&m.text, i, 10);
             return;
         }
-        i++;
     }
     backend_text(&m.text, name);
     backend_text(&m.text, "@");
@@ -164,11 +159,7 @@ fn foreign_ms_component(m: ForeignName*, type: ForeignType*): void {
     backend_text(&m.text, "?$");
     foreign_ms_identifier(m, type.name);
     var i: usize = 0;
-    loop {
-        var foreign_condition91 = i == type.args.length;
-        if foreign_condition91 {
-            break;
-        }
+    for(; i != type.args.length; i++) {
         var argument = type.args.data[i];
         var foreign_condition92 = argument.kind == 9;
         if foreign_condition92 {
@@ -181,7 +172,6 @@ fn foreign_ms_component(m: ForeignName*, type: ForeignType*): void {
         } else {
             foreign_ms_type(m, argument, false);
         }
-        i++;
     }
     var count = m.text.length -start;
     var encoded = foreign_copy(m, &m.text.data[start], count);
@@ -257,28 +247,19 @@ fn foreign_ms_parameters(m: ForeignName*, function: ForeignType*): void {
         }
     }
     var i: usize = 0;
-    loop {
-        var foreign_condition106 = i == function.args.length;
-        if foreign_condition106 {
-            break;
-        }
+    for(; i != function.args.length; i++) {
         var type = function.args.data[i];
         var key: vector(u8);
         vector_init(u8, &key);
         foreign_key(&key, type);
         var j: usize = 0;
         var found = false;
-        loop {
-            var foreign_condition107 = j == m.substitutions.length;
-            if foreign_condition107 {
-                break;
-            }
+        for(; j != m.substitutions.length; j++) {
             if backend_equal(key.data, m.substitutions.data[j]) {
                 foreign_number(&m.text, j, 10);
                 found = true;
                 break;
             }
-            j++;
         }
         var foreign_condition108 = !found;
         if foreign_condition108 {
@@ -294,7 +275,6 @@ fn foreign_ms_parameters(m: ForeignName*, function: ForeignType*): void {
             }
         }
         vector_dispose(u8, &key);
-        i++;
     }
     if function.variadic {
         backend_text(&m.text, "Z");

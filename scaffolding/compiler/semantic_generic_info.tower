@@ -130,12 +130,10 @@ fn generic_info_dependent(node: void*, component: void*, depth: usize): bool {
             return true;
         }
     }
-    var i: usize = 0;
-    while i < sem_child_count(node) {
+    for(var i: usize = 0; i < sem_child_count(node); i++) {
         if generic_info_dependent(sem_child(node, i), component, next) {
             return true;
         }
-        i++;
     }
     return false;
 }
@@ -268,14 +266,12 @@ fn generic_info_walk(a: GenericAnalysis*, node: void*, values: SemanticScope*, t
         values = sem_scope(c, values);
         types = sem_scope(c, types);
     }
-    var i: usize = 0;
-    while i < sem_child_count(node) {
+    for(var i: usize = 0; i < sem_child_count(node); i++) {
         var child = sem_child(node, i);
         var generic_check20 = child != name;
         if generic_check20 {
             generic_info_walk(a, child, values, types, next);
         }
-        i++;
     }
     var generic_check21 = declaration != null;
     if generic_check21 {
@@ -303,7 +299,7 @@ fn sem_generic_inspect(c: SemanticContext*, resolve_types: bool, truncated: bool
     a.budget = InspectionNodeLimit();
     a.truncated = false;
     var i: usize = 0;
-    while i < c.template_nodes.length {
+    for(; i < c.template_nodes.length; i++) {
         var definition = c.template_nodes.data[i];
         a.definition = definition;
         a.constructor = sem_equal(sem_tokens(c, sem_member(definition, "type")), "type");
@@ -316,7 +312,7 @@ fn sem_generic_inspect(c: SemanticContext*, resolve_types: bool, truncated: bool
         var types = sem_scope(c, null);
         var parameters = sem_collect(c, sem_member(definition, "params"), "CoreParameter");
         var p: usize = 0;
-        while p < parameters.length {
+        for(; p < parameters.length; p++) {
             var parameter = parameters.data[p];
             var parameter_kind = GenericInfoKind.Parameter;
             if a.constructor {
@@ -333,18 +329,15 @@ fn sem_generic_inspect(c: SemanticContext*, resolve_types: bool, truncated: bool
             else {
                 generic_info_name(&a, values, parameter);
             }
-            p++;
         }
         generic_info_walk(&a, definition, values, types, 0);
-        i++;
     }
     // Bind every definition before following type applications. This preserves
     // module forward references and makes inspection independent of file order.
     i = 0;
-    while i < c.template_nodes.length {
+    for(; i < c.template_nodes.length; i++) {
         a.definition = c.template_nodes.data[i];
         generic_value_walk(&a, a.definition, 0);
-        i++;
     }
     *truncated = a.truncated;
     return component;

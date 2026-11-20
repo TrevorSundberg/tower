@@ -39,7 +39,9 @@ fn allocator_glue_tests(): i32 {
     }
     var pointer = alloc(u8, 32);
     var check_3 = pointer != null;
-    if check_3 { return 3; }
+    if check_3 {
+        return 3;
+    }
     calls++;
     var check_4 = tower_test_buffer_allocations() != calls;
     if check_4 {
@@ -60,9 +62,8 @@ fn allocator_glue_tests(): i32 {
         return 7;
     }
     var i: usize = 0;
-    while i < 32 {
+    for(; i < 32; i++) {
         pointer[i] = convert(u8, i);
-        i++;
     }
     calls = tower_test_buffer_allocations();
     tower_test_buffer_fail_next();
@@ -87,10 +88,11 @@ fn allocator_glue_tests(): i32 {
         return 11;
     }
     i = 0;
-    while i < 32 {
+    for(; i < 32; i++) {
         var check_12 = pointer[i] != convert(u8, i);
-        if check_12 { return 12; }
-        i++;
+        if check_12 {
+            return 12;
+        }
     }
     next = realloc(u8, pointer, 256);
     var check_13 = next == null;
@@ -103,10 +105,11 @@ fn allocator_glue_tests(): i32 {
         return 14;
     }
     i = 0;
-    while i < 32 {
+    for(; i < 32; i++) {
         var check_15 = pointer[i] != convert(u8, i);
-        if check_15 { return 15; }
-        i++;
+        if check_15 {
+            return 15;
+        }
     }
     // Failure injection precedes zero-size deallocation, including realloc.
     tower_test_buffer_fail_next();
@@ -169,8 +172,7 @@ fn allocator_glue_tests(): i32 {
     // target ABI alignment without assuming that a wasm host has 64-bit pointers.
     calls = tower_test_buffer_allocations();
     tower_test_buffer_fail_next();
-    var size: usize = 1;
-    while size <= 257 {
+    for(var size: usize = 1; size <= 257; size++) {
         var memory = compiler_host_reallocate(null, size);
         var check_27 = memory == null;
         if check_27 {
@@ -199,10 +201,11 @@ fn allocator_glue_tests(): i32 {
         }
         bytes = bits(u8*, memory);
         i = 0;
-        while i < size {
+        for(; i < size; i++) {
             var check_31 = bytes[i] != 173;
-            if check_31 { return 31; }
-            i++;
+            if check_31 {
+                return 31;
+            }
         }
         address = bits(usize, memory);
         var check_32 = allocator_misaligned(address, alignof(u64));
@@ -218,7 +221,6 @@ fn allocator_glue_tests(): i32 {
             return 43;
         }
         compiler_host_deallocate(memory);
-        size++;
     }
     compiler_host_deallocate(null);
     var check_34 = tower_test_buffer_allocations() != calls;
@@ -251,11 +253,10 @@ fn allocator_glue_benchmark(): i32 {
     var initial = tower_test_buffer_count();
     var pointers: u8*[64];
     var sum: u64 = 0;
-    var round: usize = 0;
-    while round < 10000 {
+    for(var round: usize = 0; round < 10000; round++) {
         var i: usize = 0;
-        while i < 64 {
-            var size = i * 17;
+        for(; i < 64; i++) {
+            var size = i *17;
             size++;
             var pointer = alloc(u8, size);
             var check_39 = pointer == null;
@@ -264,16 +265,13 @@ fn allocator_glue_benchmark(): i32 {
             }
             pointers[i] = pointer;
             pointer[0] = convert(u8, i);
-            i++;
         }
         i = 0;
-        while i < 64 {
+        for(; i < 64; i++) {
             var pointer = pointers[i];
             sum = sum + convert(u64, pointer[0]);
             free(pointer);
-            i++;
         }
-        round++;
     }
     var check_40 = tower_test_buffer_count() != initial;
     if check_40 {

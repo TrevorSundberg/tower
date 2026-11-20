@@ -402,11 +402,7 @@ fn foreign_tag_less(a: u8*, b: u8*): bool {
 
 fn foreign_sort_tags(m: ForeignName*): void {
     var i: usize = 1;
-    loop {
-        var foreign_condition3005 = i >= m.abi_tags.length;
-        if foreign_condition3005 {
-            break;
-        }
+    for(; i < m.abi_tags.length; i++) {
         var j = i;
         loop {
             var foreign_condition3006 = j == 0;
@@ -423,15 +419,10 @@ fn foreign_sort_tags(m: ForeignName*): void {
             m.abi_tags.data[previous] = temporary;
             j = previous;
         }
-        i++;
     }
     var count: usize = 0;
     i = 0;
-    loop {
-        var foreign_condition3008 = i == m.abi_tags.length;
-        if foreign_condition3008 {
-            break;
-        }
+    for(; i != m.abi_tags.length; i++) {
         var distinct = true;
         var foreign_condition3009 = count != 0;
         if foreign_condition3009 {
@@ -442,7 +433,6 @@ fn foreign_sort_tags(m: ForeignName*): void {
             m.abi_tags.data[count] = m.abi_tags.data[i];
             count++;
         }
-        i++;
     }
     m.abi_tags.length = count;
 }

@@ -64,14 +64,8 @@ fn foreign_key(out: vector(u8)*, type: ForeignType*): void {
     if type.template_id {
         backend_text(out, "I");
     }
-    var i: usize = 0;
-    loop {
-        var foreign_condition43 = i == type.args.length;
-        if foreign_condition43 {
-            break;
-        }
+    for(var i: usize = 0; i != type.args.length; i++) {
         foreign_key(out, type.args.data[i]);
-        i++;
     }
     backend_text(out, "}");
 }
@@ -81,11 +75,7 @@ fn foreign_substitute(m: ForeignName*, type: ForeignType*, insert: bool): bool {
     vector_init(u8, &key);
     foreign_key(&key, type);
     var i: usize = 0;
-    loop {
-        var foreign_condition44 = i == m.substitutions.length;
-        if foreign_condition44 {
-            break;
-        }
+    for(; i != m.substitutions.length; i++) {
         if backend_equal(key.data, m.substitutions.data[i]) {
             var foreign_condition45 = !insert;
             if foreign_condition45 {
@@ -100,7 +90,6 @@ fn foreign_substitute(m: ForeignName*, type: ForeignType*, insert: bool): bool {
             vector_dispose(u8, &key);
             return true;
         }
-        i++;
     }
     if insert {
         foreign_require(m, vector_push(u8*, &m.substitutions, foreign_copy(m, key.data, key.length)));
@@ -159,14 +148,8 @@ fn foreign_it_qualifiers(m: ForeignName*, cv: u32): void {
 
 fn foreign_it_arguments(m: ForeignName*, type: ForeignType*): void {
     backend_text(&m.text, "I");
-    var i: usize = 0;
-    loop {
-        var foreign_condition53 = i == type.args.length;
-        if foreign_condition53 {
-            break;
-        }
+    for(var i: usize = 0; i != type.args.length; i++) {
         foreign_it_type(m, type.args.data[i]);
-        i++;
     }
     backend_text(&m.text, "E");
 }
@@ -274,15 +257,10 @@ fn foreign_it_name(m: ForeignName*, type: ForeignType*, function: bool): void {
         // ABI tags are explicitly supplied because a declaration does not carry
         // a header's inline-namespace attributes or inferred return-type tags.
         var i: usize = 0;
-        loop {
-            var foreign_condition2001 = i == m.abi_tags.length;
-            if foreign_condition2001 {
-                break;
-            }
+        for(; i != m.abi_tags.length; i++) {
             backend_text(&m.text, "B");
             foreign_number(&m.text, backend_length(m.abi_tags.data[i]), 10);
             backend_text(&m.text, m.abi_tags.data[i]);
-            i++;
         }
     }
     if nested {
@@ -298,14 +276,8 @@ fn foreign_it_parameters(m: ForeignName*, type: ForeignType*): void {
             backend_text(&m.text, "v");
         }
     }
-    var i: usize = 0;
-    loop {
-        var foreign_condition68 = i == type.args.length;
-        if foreign_condition68 {
-            break;
-        }
+    for(var i: usize = 0; i != type.args.length; i++) {
         foreign_it_type(m, type.args.data[i]);
-        i++;
     }
     if type.variadic {
         backend_text(&m.text, "z");

@@ -273,6 +273,6 @@ export fn parser_string_append_utf8(value: ParserStringData*, begin: u8*, end: u
     var last = bits(usize, end);
     var ordered = last >= first;
     compiler_entity_require(ordered);
-    var length = last - first;
+    var length = last -first;
     compiler_entity_require(node_string_append(value, begin, length));
 }

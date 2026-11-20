@@ -44,7 +44,7 @@ fn benchmark_clock(): u64 {
     if failed {
         abort();
     }
-    var seconds = convert(u64, time.seconds) * 1000000000;
+    var seconds = convert(u64, time.seconds) *1000000000;
     var result = seconds + convert(u64, time.nanoseconds);
     return result;
 }
@@ -100,7 +100,7 @@ export fn main(argc: i32, argv: u8**): i32 {
     }
     var size: usize = 256;
     while size <= 2048 {
-        var body_bytes = size * 2;
+        var body_bytes = size *2;
         var bytes = body_bytes + length;
         bytes = bytes + 2;
         var source = alloc(u8, bytes);
@@ -125,7 +125,7 @@ export fn main(argc: i32, argv: u8**): i32 {
             var allocations = tower_test_buffer_allocations();
             var start = benchmark_clock();
             benchmark_parse(session);
-            var elapsed = benchmark_clock() - start;
+            var elapsed = benchmark_clock() -start;
             allocations = tower_test_buffer_allocations() - allocations;
             var warmed = iteration >= 5;
             if warmed {

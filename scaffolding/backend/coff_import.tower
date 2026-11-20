@@ -13,7 +13,7 @@ const CoffImportCodeByName: u32 = 4;
 
 fn coff_unsigned(data: u8*, number: u32, count: usize, big: bool): void {
     var i: usize = 0;
-    while i < count {
+    for(; i < count; i++) {
         var at = i;
         if big {
             at = count - i;
@@ -22,7 +22,6 @@ fn coff_unsigned(data: u8*, number: u32, count: usize, big: bool): void {
         var byte = number &255;
         data[at] = convert(u8, byte);
         number = number / 256;
-        i++;
     }
 }
 
@@ -47,11 +46,9 @@ fn coff_archive_header(data: u8*, name: u8*, name_size: usize, size: usize): voi
             break;
         }
     }
-    var i: usize = 48;
-    while count != 0 {
+    for(var i: usize = 48; count != 0; i++) {
         count--;
         data[i] = digits[count];
-        i++;
     }
     data[58] = 96;
     data[59] = 10;
@@ -59,9 +56,7 @@ fn coff_archive_header(data: u8*, name: u8*, name_size: usize, size: usize): voi
 
 fn coff_name_length(name: u8*): usize {
     var i: usize = 0;
-    while name[i] != 0 {
-        i++;
-    }
+    for(; name[i] != 0; i++) {}
     return i;
 }
 

@@ -44,11 +44,9 @@ fn frontend_diagnostic_text_tests(): void {
     var options: SyntaxDiagnosticOption[7];
     fill(&options, 0, sizeof(SyntaxDiagnosticOption[7]));
     input.options = &options[0];
-    var i: usize = 0;
-    while i < 7 {
+    for(var i: usize = 0; i < 7; i++) {
         options[i].id = convert(u32, i);
         options[i].label = "'x'";
-        i++;
     }
     var literals: u32[2];
     literals[0] = 0;
@@ -119,7 +117,7 @@ fn frontend_diagnostic_text_tests(): void {
     allocations = tower_test_buffer_allocations() - allocations;
     format_dispose(&output.result);
     var budget: usize = 0;
-    while budget < allocations {
+    for(; budget < allocations; budget++) {
         fill(&output, 0, sizeof(SyntaxDiagnosticText));
         tower_test_buffer_fail_after(budget);
         format_syntax_diagnostic(&input, &output);
@@ -128,7 +126,6 @@ fn frontend_diagnostic_text_tests(): void {
         format_dispose(&output.result);
         var ok = tower_test_buffer_count() == buffers;
         frontend_world_check(ok);
-        budget++;
     }
     input.count = 0;
     input.original = "Error";

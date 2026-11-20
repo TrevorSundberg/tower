@@ -236,16 +236,11 @@ fn backend_hex(out: vector(u8)*, value: u64, digits: usize): void {
     var buffer: u8[18];
     var i = digits;
     var alphabet: u8* = "0123456789abcdef";
-    loop {
-        var done = i == 0;
-        if done {
-            break;
-        }
+    for(; i != 0; i--) {
         var remainder = value % 16;
         var digit = convert(usize, remainder);
         buffer[i] = alphabet[digit];
         value = value / 16;
-        i--;
     }
     backend_text(out, "0x");
     backend_text_append(out, &buffer[1], digits);
@@ -560,18 +555,12 @@ fn backend_wasm_disassembly(d: BackendDecoder*): void {
     header[2] = 115;
     header[3] = 109;
     header[4] = 1;
-    var h: usize = 0;
-    loop {
-        var done = h == 8;
-        if done {
-            break;
-        }
+    for(var h: usize = 0; h != 8; h++) {
         var mismatch = d.data[h] != header[h];
         if mismatch {
             d.failed = true;
             return;
         }
-        h++;
     }
     backend_wasm_labels(d);
     if d.failed {
@@ -847,13 +836,8 @@ export fn backend_disassembly_close(d: BackendDecoder*): void {
     }
     vector_dispose(u8, &d.text);
     var i: usize = 0;
-    loop {
-        var done = i == d.labels.length;
-        if done {
-            break;
-        }
+    for(; i != d.labels.length; i++) {
         vector_dispose(u8, &d.labels.data[i].name);
-        i++;
     }
     vector_dispose(BackendLabel, &d.labels);
     free(d);

@@ -50,17 +50,11 @@ fn sem_context_init(c: SemanticContext*, program: SemanticProgram*): void {
     c.declaration_state = step12;
     var step13 = sem_scope(c, null);
     c.scope = step13;
-    var i: usize = 0;
-    loop {
-        var step14 = i < program.types.length;
-        if !step14 {
-            break;
-        }
+    for(var i: usize = 0; i < program.types.length; i++) {
         var n: void* = program.types.data[i];
         var step16 = sem_get(n);
         var step17 = sem_name(step16);
         sem_put(c, c.types, step17, n);
-        i++;
     }
 }
 
@@ -69,14 +63,9 @@ fn sem_context_dispose(c: SemanticContext*): void {
     vector_dispose(u8, &c.token_text);
     work_dispose(&c.layout_work);
     var i: usize = 0;
-    loop {
-        var step1 = i < c.lists.length;
-        if !step1 {
-            break;
-        }
+    for(; i < c.lists.length; i++) {
         var step3 = bits(vector(void*)*, c.lists.data[i]);
         vector_dispose(void*, step3);
-        i++;
     }
     vector_dispose(void*, &c.lists);
     vector_dispose(void*, &c.type_arguments);
@@ -85,13 +74,8 @@ fn sem_context_dispose(c: SemanticContext*): void {
     vector_dispose(void*, &c.template_nodes);
     vector_dispose(void*, &c.inferring);
     i = 0;
-    loop {
-        var step4 = i < c.allocations.length;
-        if !step4 {
-            break;
-        }
+    for(; i < c.allocations.length; i++) {
         free(c.allocations.data[i]);
-        i++;
     }
     vector_dispose(void*, &c.allocations);
 }
@@ -137,15 +121,9 @@ export fn semantic_compile_budget(program: SemanticProgram*, roots: void**, base
     c.source = source;
     var step1 = generic_begin(program.root);
     c.generics = step1;
-    var i: usize = 0;
-    loop {
-        var step2 = i < count;
-        if !step2 {
-            break;
-        }
+    for(var i: usize = 0; i < count; i++) {
         var step4 = sem_state(c, c.source_bases, roots[i]);
         step4.number = bases[i];
-        i++;
     }
     sem_run(c);
     sem_lower_expressions(c);

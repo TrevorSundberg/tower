@@ -485,7 +485,7 @@ fn parser_recursive_fixture(right: bool): void {
         parser_check(ok, 398);
         var total = work.actions + work.popped;
         total = total + work.forest_visits;
-        var limit = end * 12;
+        var limit = end *12;
         ok = total < limit;
         parser_check(ok, 403);
         var check_growth = previous != 0;

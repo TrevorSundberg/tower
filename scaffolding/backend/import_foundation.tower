@@ -76,17 +76,11 @@ fn bi_name(c: BackendImport*, entity: void*, prefix: u8*): void {
         backend_decimal(&n.name, c.serial);
         c.serial++;
         var collision = false;
-        var i: usize = 0;
-        loop {
-            var done = i == c.backend.source_functions.length;
-            if done {
-                break;
-            }
+        for(var i: usize = 0; i != c.backend.source_functions.length; i++) {
             var original = sem_get(c.backend.source_functions.data[i]);
             if backend_equal(backend_name(original), n.name.data) {
                 collision = true;
             }
-            i++;
         }
         var unique = !collision;
         if unique {

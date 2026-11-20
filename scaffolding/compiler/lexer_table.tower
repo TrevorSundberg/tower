@@ -91,7 +91,7 @@ export fn lex_table_set_alphabet(table: LexerTable*, values: u32*, count: usize)
     }
     var ok = vector_reserve(u32, &table.alphabet, count);
     if ok {
-        var bytes = count * sizeof(u32);
+        var bytes = count *sizeof(u32);
         copy(table.alphabet.data, values, bytes);
         table.alphabet.length = count;
     }
@@ -103,7 +103,7 @@ export fn lex_table_append(table: LexerTable*, transitions: i32*, count: usize, 
     if empty {
         return false;
     }
-    var columns = table.alphabet.length - 1;
+    var columns = table.alphabet.length -1;
     var invalid = count != columns;
     if invalid {
         return false;
@@ -125,7 +125,7 @@ export fn lex_table_append(table: LexerTable*, transitions: i32*, count: usize, 
     ok = vector_reserve(u8, &table.accepting, rows);
     if ok {
         var destination = table.transitions.data + table.transitions.length;
-        var bytes = count * sizeof(i32);
+        var bytes = count *sizeof(i32);
         copy(destination, transitions, bytes);
         table.transitions.length = end;
         table.accepting.data[table.accepting.length] = convert(u8, accepting);
@@ -141,7 +141,7 @@ export fn lex_table_step(table: LexerTable*, state: usize, symbol: u32): i32 {
     if invalid {
         return -1;
     }
-    var columns = table.alphabet.length - 1;
+    var columns = table.alphabet.length -1;
     invalid = symbol >= table.alphabet.data[columns];
     if invalid {
         return -1;
@@ -169,8 +169,8 @@ export fn lex_table_step(table: LexerTable*, state: usize, symbol: u32): i32 {
             count--;
         }
     }
-    var column = first - 1;
-    var index = state * columns;
+    var column = first -1;
+    var index = state *columns;
     index = index + column;
     return table.transitions.data[index];
 }
@@ -195,7 +195,7 @@ export fn lex_table_match(table: LexerTable*, source: u8*, length: usize, start:
         }
         var scalar: u32;
         var begin = source + position;
-        var remaining = length - position;
+        var remaining = length -position;
         var bytes = tower_utf8_decode(begin, remaining, &scalar);
         var invalid = bytes == 0;
         if invalid {

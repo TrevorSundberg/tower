@@ -93,6 +93,16 @@ test('new Tower control flow shares the same expected types and lexical scopes',
   assert.ok(labels('import tower; while true { var local:i32 = 1; loc|').includes('local'));
 });
 
+test('for completion uses header scope, bool conditions and discarded updates', () => {
+  assert.deepEqual(labels('import tower; var valid: bool; var value: i32; for (; va|; ) {}'), ['valid']);
+  assert.ok(labels('import tower; for (var index = 0; index < 2; ind|) {}').includes('index'));
+  assert.ok(labels('import tower; for (var index = 0; index < 2; index++) { ind| }').includes('index'));
+  assert.ok(!labels('import tower; for (var index = 0; index < 2; index++) {} ind|').includes('index'));
+  assert.ok(!labels('import tower; for (; true; hid|) { var hidden = 0; }').includes('hidden'));
+  assert.ok(labels('import tower; fn action(): void {} for (; true; ac|) {}').includes('action'));
+  assert.ok(!labels('import tower; fn action(): void {} for (; ac|; ) {}').includes('action'));
+});
+
 test('foundation control operations respect function scope and trap argument types', () => {
   assert.ok(!labels('la|').includes('label'));
   assert.ok(!labels('ju|').includes('jump'));

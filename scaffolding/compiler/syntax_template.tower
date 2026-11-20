@@ -97,7 +97,7 @@ export fn syntax_template_holes_revision(input: SyntaxTemplateGrammar*, revision
             break;
         }
         var term = emission_node(value, capture.source);
-        var ordinal = index & 4294967295;
+        var ordinal = index &4294967295;
         var id = convert(u32, ordinal);
         id = id + 3145728;
         var scalar = term.repetition == 0;
@@ -163,7 +163,7 @@ fn template_source(input: SyntaxTemplateRemap*, index: usize): SyntaxEmissionPro
         if done {
             return null;
         }
-        var middle = high - low;
+        var middle = high -low;
         middle = middle / 2;
         middle = middle + low;
         var value = &input.source[middle];
@@ -188,7 +188,7 @@ fn template_destination(input: SyntaxTemplateRemap*, source: SyntaxEmissionProdu
         if done {
             return lr_none();
         }
-        var middle = high - low;
+        var middle = high -low;
         middle = middle / 2;
         middle = middle + low;
         var value = &input.destination[middle];
@@ -220,7 +220,7 @@ fn template_alias(input: SyntaxTemplateRemap*, name: u8*): u8* {
         if done {
             return name;
         }
-        var middle = high - low;
+        var middle = high -low;
         middle = middle / 2;
         middle = middle + low;
         var value = &input.aliases[middle];
@@ -246,7 +246,7 @@ fn template_named(input: SyntaxTemplateRemap*, name: u8*): usize {
         if done {
             return lr_none();
         }
-        var middle = high - low;
+        var middle = high -low;
         middle = middle / 2;
         middle = middle + low;
         var value = &input.names[middle];
@@ -266,7 +266,7 @@ fn template_named(input: SyntaxTemplateRemap*, name: u8*): usize {
 
 fn template_remap_node(input: SyntaxTemplateRemap*, node: void*, revision: SyntaxEmission*, destination: SyntaxEmission*): bool {
     var data = lr_tree_match(node, input.match_kind);
-    var ordinal = data.id - 3145728;
+    var ordinal = data.id -3145728;
     var hole = data.id >= 3145728;
     hole &&= convert(usize, ordinal) < input.count;
     if hole {
@@ -287,7 +287,9 @@ fn template_remap_node(input: SyntaxTemplateRemap*, node: void*, revision: Synta
             if helper.capture {
                 label = syntax_emission_capture_name(destination, helper.source);
                 var missing = label == null;
-                if missing { return false; }
+                if missing {
+                    return false;
+                }
             }
         }
     }
@@ -328,7 +330,7 @@ export fn syntax_template_remap_to_emission(input: SyntaxTemplateRemap*, destina
 export fn syntax_template_remap_revisions(input: SyntaxTemplateRemap*, source: SyntaxEmission*, destination: SyntaxEmission*): bool {
     var pending: vector(void*);
     vector_init(void*, &pending);
-    var bytes = input.count * sizeof(usize);
+    var bytes = input.count *sizeof(usize);
     fill(input.uses, 0, bytes);
     var ok = vector_push(void*, &pending, input.root);
     loop {
@@ -347,16 +349,11 @@ export fn syntax_template_remap_revisions(input: SyntaxTemplateRemap*, source: S
         }
         var index: usize = 0;
         var count = entity_child_count(node);
-        loop {
-            var done = index == count;
-            if done {
-                break;
-            }
+        for(; index != count; index++) {
             ok = vector_push(void*, &pending, entity_child_at(node, index));
             if !ok {
                 break;
             }
-            index++;
         }
     }
     vector_dispose(void*, &pending);

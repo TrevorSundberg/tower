@@ -45,9 +45,8 @@ fn check(): i32 {
     }
     var count: u32 = 0;
     var small: u8 = 255;
-    while count < 4 {
+    for(; count < 4; count++) {
         small = small + 255;
-        count++;
     }
     wrong = small != 251;
     if wrong {

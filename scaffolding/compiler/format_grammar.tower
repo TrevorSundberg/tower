@@ -75,13 +75,21 @@ fn format_alternative(f: FormatEngine*, entity: void*): void {
 }
 
 fn format_precedence(f: FormatEngine*, n: SyntaxNode*): void {
-    if n.precedence == 0 { return; }
+    if n.precedence == 0 {
+        return;
+    }
     format_text(f, " @ ");
     format_unsigned(f, convert(u64, n.precedence));
-    if n.associativity == 1 { format_text(f, " left"); }
+    if n.associativity == 1 {
+        format_text(f, " left");
+    }
     else {
-        if n.associativity == 2 { format_text(f, " right"); }
-        else { format_text(f, " nonassoc"); }
+        if n.associativity == 2 {
+            format_text(f, " right");
+        }
+        else {
+            format_text(f, " nonassoc");
+        }
     }
 }
 
@@ -220,7 +228,7 @@ fn format_grammar(f: FormatEngine*, entity: void*): void {
         format_replacement(f, n);
         if n.replacement == null {
             if n.items.length != 0 {
-                var last = n.items.length - 1;
+                var last = n.items.length -1;
                 var alternative = format_syntax(f, n.items.data[last]);
                 if alternative.items.length == 0 {
                     format_text(f, " ");

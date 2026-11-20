@@ -14,7 +14,7 @@ fn work_scale(count: usize): i32 {
     var root: usize = 0;
     var previous: usize = 0;
     var i: usize = 0;
-    while i < count {
+    for(; i < count; i++) {
         var id = work_request(&g, bits(void*, &subjects[i]), 1, 0);
         missing = id == 0;
         if missing {
@@ -38,18 +38,16 @@ fn work_scale(count: usize): i32 {
             return 6;
         }
         previous = id;
-        i++;
     }
     if !work_demand(&g, previous) {
         return 7;
     }
     var ticket: WorkTicket;
     var completed: usize = 0;
-    while work_take(&g, &ticket) {
+    for(; work_take(&g, &ticket); completed++) {
         if !work_finish(&g, &ticket, true) {
             return 8;
         }
-        completed++;
     }
     var correct = completed == count;
     work_dispose(&g);

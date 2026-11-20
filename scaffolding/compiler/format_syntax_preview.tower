@@ -64,7 +64,7 @@ name_only: bool, syntax: void*, kind: void*): void {
         var part: FormatResult;
         fill(&part, 0, sizeof(FormatResult));
         var i: usize = 0;
-        while i < node.items.length {
+        for(; i < node.items.length; i++) {
             var separated = result.text.length != begin;
             if separated {
                 format_char(&f, 32);
@@ -81,21 +81,21 @@ name_only: bool, syntax: void*, kind: void*): void {
             if result.failed {
                 break;
             }
-            var length = result.text.length - begin;
+            var length = result.text.length -begin;
             var truncate = length > SyntaxPreviewLimit();
             if truncate {
                 var end = begin + SyntaxPreviewLimit();
-                while end > begin {
-                    var prefix = result.text.data[end] & 192;
+                for(; end > begin; end--) {
+                    var prefix = result.text.data[end] &192;
                     var continuation = prefix == 128;
-                    if !continuation { break; }
-                    end--;
+                    if !continuation {
+                        break;
+                    }
                 }
                 result.text.length = end;
                 format_text(&f, " ...");
                 break;
             }
-            i++;
         }
         format_dispose(&part);
         var empty = result.text.length == begin;
@@ -147,12 +147,14 @@ struct FormatTreePair {
 
 fn format_preview_bytes(left: u8*, left_size: usize, right: u8*, right_size: usize): bool {
     var same = left_size == right_size;
-    if !same { return false; }
-    var i: usize = 0;
-    while i < left_size {
+    if !same {
+        return false;
+    }
+    for(var i: usize = 0; i < left_size; i++) {
         same = left[i] == right[i];
-        if !same { return false; }
-        i++;
+        if !same {
+            return false;
+        }
     }
     return true;
 }
@@ -186,7 +188,9 @@ source_b: u8*, size_b: usize, syntax: void*, kind: void*, pending: vector(Format
     same &&= format_preview_bytes(x.label.data, x.label.length, y.label.data, y.label.length);
     var count = entity_child_count(a);
     same &&= count == entity_child_count(b);
-    if !same { return false; }
+    if !same {
+        return false;
+    }
     var leaf = x.rule == ParserNoIndex();
     if leaf {
         var invalid = x.start > size_a;
@@ -197,8 +201,8 @@ source_b: u8*, size_b: usize, syntax: void*, kind: void*, pending: vector(Format
         if invalid {
             return false;
         }
-        var length_a = size_a - x.start;
-        var length_b = size_b - y.start;
+        var length_a = size_a -x.start;
+        var length_b = size_b -y.start;
         var shorter = x.length < length_a;
         if shorter {
             length_a = x.length;
@@ -208,7 +212,9 @@ source_b: u8*, size_b: usize, syntax: void*, kind: void*, pending: vector(Format
             length_b = y.length;
         }
         same = format_preview_bytes(&source_a[x.start], length_a, &source_b[y.start], length_b);
-        if !same { return false; }
+        if !same {
+            return false;
+        }
     }
     var needed = pending.length + count;
     var overflow = needed < pending.length;
@@ -216,7 +222,9 @@ source_b: u8*, size_b: usize, syntax: void*, kind: void*, pending: vector(Format
         return false;
     }
     var ok = vector_reserve(FormatTreePair, pending, needed);
-    if !ok { return false; }
+    if !ok {
+        return false;
+    }
     // Reverse push preserves source order while avoiding host recursion.
     while count != 0 {
         count--;
@@ -240,7 +248,9 @@ source_b: u8*, size_b: usize, syntax: void*, kind: void*): bool {
     var same = format_preview_pair(&pair, source_a, size_a, source_b, size_b, syntax, kind, &pending);
     while same {
         var done = pending.length == 0;
-        if done { break; }
+        if done {
+            break;
+        }
         pending.length--;
         pair.left = pending.data[pending.length].left;
         pair.right = pending.data[pending.length].right;

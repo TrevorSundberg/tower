@@ -239,7 +239,7 @@ fn re_expression(r: RokuEmitter*, entity: void*): void {
     var n = sem_get(entity);
     if n.kind == KOperand() {
         if n.constant {
-            var c_step15 = n.bits & semantic_mask(&n.type);
+            var c_step15 = n.bits &semantic_mask(&n.type);
             re_hex(r, c_step15);
         }
         else {

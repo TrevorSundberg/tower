@@ -19,7 +19,9 @@ export fn allocator_wasm_tests(): i32 {
     }
     var heap: GuestHeap;
     var initialized = guest_wasm_init(&heap);
-    if !initialized { return 4; }
+    if !initialized {
+        return 4;
+    }
     var begin = heap.cursor;
     var initial_pages = guest_wasm_pages();
     var zero = guest_wasm_allocate(&heap, 0, 1);
@@ -56,7 +58,9 @@ export fn allocator_wasm_tests(): i32 {
     fill(bytes, 91, 65520);
     var second = guest_wasm_allocate(&heap, 17, 1);
     bad = second == null;
-    if bad { return 11; }
+    if bad {
+        return 11;
+    }
     wanted++;
     bad = guest_wasm_pages() != wanted;
     if bad {
@@ -77,11 +81,11 @@ export fn allocator_wasm_tests(): i32 {
     }
     first = next;
     bytes = bits(u8*, first);
-    var i: usize = 0;
-    while i < 65520 {
+    for(var i: usize = 0; i < 65520; i++) {
         bad = bytes[i] != 91;
-        if bad { return 16; }
-        i++;
+        if bad {
+            return 16;
+        }
     }
     var cursor = heap.cursor;
     var limit = heap.limit;
@@ -161,7 +165,7 @@ export fn allocator_wasm_tests(): i32 {
     if bad {
         return 31;
     }
-    var capacity = heap.limit - heap.cursor;
+    var capacity = heap.limit -heap.cursor;
     next = guest_wasm_allocate(&heap, capacity, 1);
     bad = next != null;
     if bad {

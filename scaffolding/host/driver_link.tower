@@ -85,24 +85,38 @@ extern fn strstr(text: u8*, part: u8*): u8*;
 
 fn driver_runtime_resource(target: u8*): u8* {
     var wasm = strstr(target, "wasm32") == target;
-    if wasm { return "/runtime-wasm32.ll"; }
+    if wasm {
+        return "/runtime-wasm32.ll";
+    }
     var arm = strstr(target, "aarch64") == target;
-    if arm {} else { arm = strstr(target, "arm64") == target; }
+    if arm {} else {
+        arm = strstr(target, "arm64") == target;
+    }
     var x64 = strstr(target, "x86_64") == target;
     var supported = arm;
-    if x64 { supported = true; }
-    if supported {} else { return null; }
+    if x64 {
+        supported = true;
+    }
+    if supported {} else {
+        return null;
+    }
     var windows = strstr(target, "windows") != null;
     if windows {
-        if arm { return "/runtime-windows-arm64.ll"; }
+        if arm {
+            return "/runtime-windows-arm64.ll";
+        }
         return "/runtime-windows-x64.ll";
     }
     var macos = strstr(target, "apple") != null;
     if macos {
-        if arm { return "/runtime-macos-arm64.ll"; }
+        if arm {
+            return "/runtime-macos-arm64.ll";
+        }
         return "/runtime-macos-x64.ll";
     }
-    if arm { return "/runtime-host-linux-arm64.ll"; }
+    if arm {
+        return "/runtime-host-linux-arm64.ll";
+    }
     return "/runtime-host-linux-x64.ll";
 }
 
@@ -148,10 +162,8 @@ fn driver_link_arguments(link: DriverLink*, args: DriverArguments*): void {
         if link.windows {
             prefix = "/export:";
         }
-        var i: usize = 0;
-        while i < link.exports.values.length {
+        for(var i: usize = 0; i < link.exports.values.length; i++) {
             driver_argument(args, prefix, link.exports.values.data[i]);
-            i++;
         }
     } else {
         var has_sysroot = link.sysroot[0] != 0;
@@ -159,10 +171,8 @@ fn driver_link_arguments(link: DriverLink*, args: DriverArguments*): void {
             driver_argument(args, "--sysroot=", link.sysroot);
         }
     }
-    var i: usize = 0;
-    while i < link.inputs.values.length {
+    for(var i: usize = 0; i < link.inputs.values.length; i++) {
         driver_argument(args, "", link.inputs.values.data[i]);
-        i++;
     }
     if !link.windows {
         driver_argument(args, "", "-o");

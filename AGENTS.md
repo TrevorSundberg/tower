@@ -45,6 +45,17 @@ Do NOT modify todo.txt
 
 ## Writing Tower code
 
+- Implement Tower language features, checking and lowering in `.tower`. Do not
+  introduce C/C++ implementations or native helper code for these features; use
+  the existing compiler/formatter tools to validate them.
+- Use `for (var i: usize = 0; i < count; i++) { ... }` for counted traversal
+  when initialization, condition and update describe one loop. Its initializer
+  has loop scope; condition and update bind outside the body's scope. `continue`
+  executes the update, while `break`/`return` skip it. Keep `while` for sentinel
+  tests, queue draining and other condition-driven work. When migrating old loops,
+  preserve dynamic bounds, counter visibility, effects and skipped updates; an
+  old `continue` may intentionally bypass a trailing increment. General collection
+  `foreach` still requires the planned iterator/ownership contract.
 - In files that import `tower`, prefer its normal expression syntax: nested
   calls, parentheses, arithmetic/comparison/bitwise operators, `!`/`~`, `&&`/`||`,
   `?:`, and prefix/postfix `++`/`--`. Use clear expressions instead of generated

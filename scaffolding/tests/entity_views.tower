@@ -118,12 +118,11 @@ fn batches(): void {
     check(entity_register(type, sizeof(u32), alignof(u32), 0));
     var owners: Entity*[37];
     var i: usize = 0;
-    while i < 37 {
+    for(; i < 37; i++) {
         owners[i] = entity_create(world);
         var component = entity_component_add(owners[i], type);
         var data = bits(u32*, entity_component_data(component));
         *data = convert(u32, i);
-        i++;
     }
     var view = entity_view_open(type);
     var query: EntityQuery;
@@ -139,17 +138,15 @@ fn batches(): void {
     i = 0;
     while i < 37 {
         var count: usize = 8;
-        var remaining = 37 - i;
+        var remaining = 37 -i;
         var tail = count > remaining;
         if tail {
             count = remaining;
         }
         check(entity_view_query(view, type, i, count, &query));
-        var j: usize = 0;
-        while j < query.length {
+        for(var j: usize = 0; j < query.length; j++) {
             var data = bits(u32*, entity_component_data(query.data[j]));
             sum = sum + *data;
-            j++;
         }
         i = i + count;
     }
@@ -168,9 +165,8 @@ fn batches(): void {
     entity_release(owners[0]);
     entity_retain(owners[0]);
     i = 1;
-    while i < 37 {
+    for(; i < 37; i++) {
         entity_release(owners[i]);
-        i++;
     }
     entity_view_close(view);
     var view_check37 = entity_store_count(world) == 2;

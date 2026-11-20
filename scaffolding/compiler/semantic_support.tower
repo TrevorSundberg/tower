@@ -158,50 +158,32 @@ export fn semantic_alignment(t: FoundationType*): usize {
 
 export fn semantic_width(t: FoundationType*): u32 {
     var step1 = semantic_size(t);
-    var step2 = step1 * 8;
+    var step2 = step1 *8;
     return convert(u32, step2);
 }
 
 export fn semantic_mask(t: FoundationType*): u64 {
     var width: u32 = semantic_width(t);
     var result: u64 = 1;
-    var i: u32 = 0;
-    loop {
-        var step2 = i < width;
-        if !step2 {
-            break;
-        }
+    for(var i: u32 = 0; i < width; i++) {
         result = result * 2;
-        i++;
     }
-    return result - 1;
+    return result -1;
 }
 
 fn sem_length(s: u8*): usize {
     var i: usize = 0;
     if s != null {
-        loop {
-            var step2 = s[i] != 0;
-            if !step2 {
-                break;
-            }
-            i++;
-        }
+        for(; s[i] != 0; i++) {}
     }
     return i;
 }
 
 fn sem_equal(a: u8*, b: u8*): bool {
-    var i: usize = 0;
-    loop {
-        var step1 = a[i] == b[i];
-        if !step1 {
-            break;
-        }
+    for(var i: usize = 0; a[i] == b[i]; i++) {
         if a[i] == 0 {
             return true;
         }
-        i++;
     }
     return false;
 }
@@ -256,7 +238,7 @@ fn sem_decimal(c: SemanticContext*, value: u64): u8* {
             break;
         }
     }
-    var step7 = 20 - i;
+    var step7 = 20 -i;
     return sem_text(c, &buffer[i], step7);
 }
 
@@ -310,35 +292,29 @@ fn sem_type_name(c: SemanticContext*, t: FoundationType*): u8* {
             name = step12;
         }
     }
-    var i: u32 = 0;
-    loop {
-        var step13 = i < t.pointers;
-        if !step13 {
-            break;
-        }
+    for(var i: u32 = 0; i < t.pointers; i++) {
         var step15 = sem_cat(c, name, "*");
         name = step15;
-        i++;
     }
     return name;
 }
 
 fn sem_number(c: SemanticContext*, value: u64, t: FoundationType*): u8* {
     var mask: u64 = semantic_mask(t);
-    var step2 = value & mask;
+    var step2 = value &mask;
     value = step2;
     var sign: u64 = mask / 2;
     sign++;
     var step5 = semantic_signed(t);
     if step5 {
-        var step6 = value & sign;
+        var step6 = value &sign;
         var step7 = step6 != 0;
         step5 = step7;
     }
     if step5 {
         var negative: u64 = 0;
         negative = negative - value;
-        var step8 = negative & mask;
+        var step8 = negative &mask;
         var step9 = sem_decimal(c, step8);
         return sem_cat(c, "-", step9);
     }
@@ -380,13 +356,11 @@ fn sem_list(c: SemanticContext*): vector(void*)* {
 }
 
 fn sem_has(v: vector(void*)*, n: void*): bool {
-    var i: usize = 0;
-    while i < v.length {
+    for(var i: usize = 0; i < v.length; i++) {
         var found = v.data[i] == n;
         if found {
             return true;
         }
-        i++;
     }
     return false;
 }
@@ -451,19 +425,31 @@ fn sem_literal(c: SemanticContext*, n: void*): bool {
     // whole expression an untyped literal. Only unwrap transparent/group nodes.
     loop {
         var wrapper = sem_is(n, "TowerExpression") || sem_is(n, "TowerComma")
-            || sem_is(n, "CoreOperand") || sem_is(n, "CoreValue") || sem_is(n, "CoreCallArgument");
-        if !wrapper { break; }
-        if sem_child_count(n) == 1 { n = sem_child(n, 0); }
+        || sem_is(n, "CoreOperand") || sem_is(n, "CoreValue") || sem_is(n, "CoreCallArgument");
+        if !wrapper {
+            break;
+        }
+        if sem_child_count(n) == 1 {
+            n = sem_child(n, 0);
+        }
         else {
             var group = sem_member(n, "value");
-            if group != null { n = group; }
-            else { break; }
+            if group != null {
+                n = group;
+            }
+            else {
+                break;
+            }
         }
     }
     if sem_is(n, "TowerExpression") || sem_is(n, "TowerComma") {
         var right = sem_member(n, "right");
-        if right == null || sem_member(n, "left") != null { return false; }
-        if !sem_equal(sem_tokens(c, sem_child(n, 0)), "-") { return false; }
+        if right == null || sem_member(n, "left") != null {
+            return false;
+        }
+        if !sem_equal(sem_tokens(c, sem_child(n, 0)), "-") {
+            return false;
+        }
         return sem_literal(c, right);
     }
     var text: u8* = sem_tokens(c, n);
@@ -514,22 +500,16 @@ fn sem_unwrap(n: void*): void* {
 
 fn sem_maximum(): usize {
     var n: usize = 0;
-    return n - 1;
+    return n -1;
 }
 
 fn sem_hash(key: u8*): usize {
     var h: usize = 2166136261;
-    var i: usize = 0;
-    loop {
-        var step1 = key[i] != 0;
-        if !step1 {
-            break;
-        }
+    for(var i: usize = 0; key[i] != 0; i++) {
         var step3 = convert(usize, key[i]);
         var step4 = h ^ step3;
         h = step4;
         h = h * 16777619;
-        i++;
     }
     return h;
 }
@@ -617,33 +597,27 @@ fn sem_entry(c: SemanticContext*, t: SemanticTable*, text: u8*, entity: void*): 
         return found;
     }
     var step3 = t.count + 1;
-    var step4 = step3 * 2;
+    var step4 = step3 *2;
     if step4 >= t.capacity {
-        var capacity: usize = t.capacity * 2;
+        var capacity: usize = t.capacity *2;
         if capacity < 16 {
             capacity = 16;
         }
         var old: SemanticEntry** = t.entries;
         var count: usize = t.capacity;
         var step8 = sizeof(SemanticEntry*);
-        var step9 = capacity * step8;
+        var step9 = capacity *step8;
         var step10 = sem_allocate(c, step9);
-        var step11 = bits(SemanticEntry**, step10);
+        var step11 = bits(SemanticEntry **, step10);
         t.entries = step11;
         var step12 = sizeof(SemanticEntry*);
-        var step13 = capacity * step12;
+        var step13 = capacity *step12;
         fill(t.entries, 0, step13);
         t.capacity = capacity;
-        var i: usize = 0;
-        loop {
-            var step14 = i < count;
-            if !step14 {
-                break;
-            }
+        for(var i: usize = 0; i < count; i++) {
             if old[i] != null {
                 sem_insert(t, old[i]);
             }
-            i++;
         }
     }
     var step17 = sizeof(SemanticEntry);

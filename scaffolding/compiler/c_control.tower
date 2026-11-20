@@ -45,12 +45,7 @@ fn ce_reach(c: CEmitter*, entity: void*): void {
     }
     if list {
         var falls = true;
-        var i: usize = 0;
-        loop {
-            var done = i == n.items.length;
-            if done {
-                break;
-            }
+        for(var i: usize = 0; i != n.items.length; i++) {
             var child = n.items.data[i];
             var item = sem_get(child);
             var label = item.kind == KLabel();
@@ -63,7 +58,6 @@ fn ce_reach(c: CEmitter*, entity: void*): void {
                 ce_reach(c, child);
                 falls = ce_falls(c, child);
             }
-            i++;
         }
     }
 }
@@ -72,18 +66,12 @@ fn ce_reach_pass(c: CEmitter*, root: void*): void {
     loop {
         c.changed = false;
         ce_reach(c, root);
-        var i: usize = 0;
-        loop {
-            var done = i == c.nodes.length;
-            if done {
-                break;
-            }
+        for(var i: usize = 0; i != c.nodes.length; i++) {
             var n = sem_get(c.nodes.data[i]);
             var function = n.kind == KFunction();
             if function {
                 ce_reach(c, n.body);
             }
-            i++;
         }
         var done = !c.changed;
         if done {
@@ -98,22 +86,13 @@ fn ce_reachable(c: CEmitter*, root: void*): void {
     // return remains after a call which MSVC correctly recognizes as terminal.
     loop {
         var i: usize = 0;
-        loop {
-            var done = i == c.nodes.length;
-            if done {
-                break;
-            }
+        for(; i != c.nodes.length; i++) {
             c.active.data[i] = false;
-            i++;
         }
         ce_reach_pass(c, root);
         var changed = false;
         i = 0;
-        loop {
-            var done = i == c.nodes.length;
-            if done {
-                break;
-            }
+        for(; i != c.nodes.length; i++) {
             var entity = c.nodes.data[i];
             var n = sem_get(entity);
             var function = n.kind == KFunction();
@@ -122,12 +101,7 @@ fn ce_reachable(c: CEmitter*, root: void*): void {
             }
             if function {
                 var returns = ce_falls(c, n.body);
-                var j: usize = 0;
-                loop {
-                    var end = j == c.nodes.length;
-                    if end {
-                        break;
-                    }
+                for(var j: usize = 0; j != c.nodes.length; j++) {
                     var owner = c.owners.data[j] == entity;
                     if owner {
                         var item = sem_get(c.nodes.data[j]);
@@ -138,7 +112,6 @@ fn ce_reachable(c: CEmitter*, root: void*): void {
                             }
                         }
                     }
-                    j++;
                 }
                 var refined = c.returning.data[i] != returns;
                 if refined {
@@ -146,7 +119,6 @@ fn ce_reachable(c: CEmitter*, root: void*): void {
                     changed = true;
                 }
             }
-            i++;
         }
         if !changed {
             break;
@@ -180,14 +152,8 @@ fn ce_notes(c: CEmitter*, entity: void*): void {
     }
     var list = n.kind == KBlock();
     if list {
-        var i: usize = 0;
-        loop {
-            var done = i == n.items.length;
-            if done {
-                break;
-            }
+        for(var i: usize = 0; i != n.items.length; i++) {
             ce_notes(c, n.items.data[i]);
-            i++;
         }
     }
 }
@@ -242,16 +208,10 @@ fn ce_breaks(c: CEmitter*, entity: void*): bool {
     }
     var block = n.kind == KBlock();
     if block {
-        var i: usize = 0;
-        loop {
-            var done = i == n.items.length;
-            if done {
-                break;
-            }
+        for(var i: usize = 0; i != n.items.length; i++) {
             if ce_breaks(c, n.items.data[i]) {
                 return true;
             }
-            i++;
         }
     }
     return false;

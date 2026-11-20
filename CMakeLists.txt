@@ -65,7 +65,7 @@ if(TOWER_BROWSER)
     -Wl,--export=tw_abi_version -Wl,--export=tw_alloc -Wl,--export=tw_free
     $<$<CONFIG:Release>:-Wl,--strip-all>
     $<$<CONFIG:MinSizeRel>:-Wl,--strip-all>
-    -Wl,-z,stack-size=2097152 -Wl,--initial-memory=8388608 -Wl,--max-memory=268435456)
+    -Wl,-z,stack-size=2097152 -Wl,--initial-memory=8388608 -Wl,--max-memory=536870912)
   set_target_properties(tower-browser PROPERTIES OUTPUT_NAME tower SUFFIX .wasm)
   include(cmake/TowerIde.cmake)
   tower_ide_integrate(tower-browser)

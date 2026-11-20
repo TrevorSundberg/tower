@@ -19,7 +19,7 @@ export fn im_memory_resize(m: IMState*, count: usize): bool {
         var grow = count > m.memory.length;
         if grow {
             var start = m.memory.data + m.memory.length;
-            var extra = count - m.memory.length;
+            var extra = count -m.memory.length;
             fill(start, 0, extra);
         }
         m.memory.length = count;
@@ -29,16 +29,11 @@ export fn im_memory_resize(m: IMState*, count: usize): bool {
 
 export fn interpreter_storage_dispose(m: IMState*): void {
     var i: usize = 0;
-    loop {
-        var end = i == m.frames.capacity;
-        if end {
-            break;
-        }
+    for(; i != m.frames.capacity; i++) {
         var frame = &m.frames.data[i];
         vector_dispose(IMTask, &frame.tasks);
         vector_dispose(IMEntry, &frame.values);
         vector_dispose(IMEntry, &frame.addresses);
-        i++;
     }
     vector_dispose(IMFrame, &m.frames);
     vector_dispose(IMEntry, &m.node_cache);
@@ -69,7 +64,7 @@ fn im_map_lower(map: vector(IMEntry)*, key: u64): usize {
         if done {
             return begin;
         }
-        var middle = end - begin;
+        var middle = end -begin;
         middle = middle / 2;
         middle = middle + begin;
         var before = map.data[middle].key < key;
@@ -110,8 +105,8 @@ fn im_map_set(map: vector(IMEntry)*, key: u64, value: u64): void {
     var valid = needed != 0;
     im_storage_require(valid);
     im_storage_require(vector_reserve(IMEntry, map, needed));
-    var tail = map.length - index;
-    var bytes = tail * sizeof(IMEntry);
+    var tail = map.length -index;
+    var bytes = tail *sizeof(IMEntry);
     var next = index + 1;
     copy(&map.data[next], &map.data[index], bytes);
     map.data[index].key = key;
@@ -133,15 +128,15 @@ fn im_map_take(map: vector(IMEntry)*, key: u64, found: bool*): u64 {
     *found = true;
     var result = map.data[index].value;
     map.length--;
-    var tail = map.length - index;
-    var bytes = tail * sizeof(IMEntry);
+    var tail = map.length -index;
+    var bytes = tail *sizeof(IMEntry);
     var next = index + 1;
     copy(&map.data[index], &map.data[next], bytes);
     return result;
 }
 
 fn im_frame(m: IMState*): IMFrame* {
-    var index = m.frames.length - 1;
+    var index = m.frames.length -1;
     return &m.frames.data[index];
 }
 
@@ -161,7 +156,7 @@ export fn im_frame_push(m: IMState*, function: void*, base: usize, offset: usize
     im_storage_require(vector_reserve(IMFrame, &m.frames, needed));
     var grown = m.frames.capacity > previous;
     if grown {
-        var extra = m.frames.capacity - previous;
+        var extra = m.frames.capacity -previous;
         extra = extra * sizeof(IMFrame);
         fill(&m.frames.data[previous], 0, extra);
     }

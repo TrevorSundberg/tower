@@ -24,7 +24,9 @@ test('imported project files have isolated grammars and byte-correct diagnostics
   const files = [{path:'a.tower',text:first},{path:'src/b.tower',text:'import tower; show 2;'}];
   const result = projectDiagnostic(run(files.map(f=>[f.path,f.text])),files);
   assert.equal(result.status,'error'); assert.equal(result.errorFile,'src/b.tower'); assert.ok(result.errorOffset < files[1].text.length);
-  assert.equal(run([['a.tower',first],['src/b.tower','import tower; print(2);']]).output,'2\n1\n');
+  const valid = run([['a.tower',first],['src/b.tower','import tower; print(2);']]);
+  assert.equal(valid.status, 'done', valid.error);
+  assert.equal(valid.output,'2\n1\n');
 });
 test('cross-file semantic and specialized template diagnostics retain file coordinates', () => {
   const files = [{path:'main.tower',text:'import tower; import bad; print(1);'}, {path:'bad.tower',text:'import tower; var broken: i32 = true;'}];

@@ -22,18 +22,18 @@ export fn compiler_node_allocate(state: CompilerNodeMemoryState*, size: usize, d
     if diagnostic {
         var maximum: usize = 0;
         maximum--;
-        var overhead = word * 4;
+        var overhead = word *4;
         overhead--;
-        var limit = maximum - overhead;
+        var limit = maximum -overhead;
         var overflow = size > limit;
         if overflow {
             return null;
         }
-        var padding = word - 1;
+        var padding = word -1;
         bytes = size + padding;
         bytes = bytes / word;
         bytes = bytes * word;
-        var guards = word * 3;
+        var guards = word *3;
         bytes = bytes + guards;
     }
     // A successful zero-size request still owns a releasable allocation.
@@ -49,8 +49,8 @@ export fn compiler_node_allocate(state: CompilerNodeMemoryState*, size: usize, d
     state.live_allocations++;
     if diagnostic {
         var header = bits(usize*, memory);
-        var overhead = word * 3;
-        var payload = bytes - overhead;
+        var overhead = word *3;
+        var payload = bytes -overhead;
         header[0] = payload;
         header[1] = compiler_memory_guard();
         var end = payload / word;
@@ -91,7 +91,7 @@ export fn compiler_node_free(state: CompilerNodeMemoryState*, pointer: void*, di
             abort();
             return;
         }
-        var overhead = sizeof(usize) * 3;
+        var overhead = sizeof(usize) *3;
         bytes = bytes + overhead;
         fill(header, 254, bytes);
         allocation = bits(void*, header);
@@ -132,7 +132,7 @@ export fn compiler_memory_reallocate(state: CompilerMemoryState*, pointer: void*
             state.fail_after--;
         }
     }
-    var bytes = count * size;
+    var bytes = count *size;
     var empty = bytes == 0;
     if empty {
         compiler_memory_deallocate(state, pointer);

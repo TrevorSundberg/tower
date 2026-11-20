@@ -5,12 +5,10 @@ import .library.platform;
 // pages and a nested call; optimization cannot shrink the observable allocation.
 fn stack_fill(data: u8*, count: usize): u32 {
     platform_write(1, data, 0);
-    var i: usize = 0;
-    while i < count {
+    for(var i: usize = 0; i < count; i++) {
         data[i] = 7;
-        i++;
     }
-    var last = count - 1;
+    var last = count -1;
     return convert(u32, data[last]);
 }
 

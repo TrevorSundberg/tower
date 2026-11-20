@@ -1,6 +1,7 @@
 import tower;
 import foundation_tags;
 import semantic_context;
+import semantic_expressions;
 import semantic_statements;
 import semantic_support;
 import semantic_types;
@@ -98,9 +99,13 @@ fn sem_control_local(c: SemanticContext*, block: void*, initial: void*): void* {
     sem_add_local(c, entity);
     var owner = sem_get(block);
     var same = block == c.current;
-    if !same { sem_push(&owner.locals, entity); }
+    if !same {
+        sem_push(&owner.locals, entity);
+    }
     var global = block == c.program.root;
-    if global { value.global = true; }
+    if global {
+        value.global = true;
+    }
     sem_push(&owner.items, entity);
     return entity;
 }
@@ -283,13 +288,13 @@ fn sem_control_while(c: SemanticContext*, n: void*, depth: u32): u32 {
     var stop = sem_control_node(c, otherwise, KBreak());
     var failure = sem_get(otherwise);
     sem_push(&failure.items, stop);
-    var result = flow & FlowReturn();
+    var result = flow &FlowReturn();
     if known.constant {
         var never = known.bits == 0;
         if never {
             return FlowNext();
         }
-        var exits = flow & FlowBreak();
+        var exits = flow &FlowBreak();
         var breaks = exits != 0;
         if breaks {
             result = result | FlowNext();
@@ -298,4 +303,94 @@ fn sem_control_while(c: SemanticContext*, n: void*, depth: u32): u32 {
     }
     result = result | FlowNext();
     return result;
+}
+
+// The header owns a scope; body locals never affect binding of the test/update.
+// Only existing Foundation nodes survive lowering. Most counted loops append the
+// update directly. A reachable continue requires moving it to the next loop head,
+// guarded on the first entry; this preserves effects without duplicating updates
+// or rewriting continues belonging to nested loops.
+fn sem_control_for(c: SemanticContext*, n: void*, depth: u32): u32 {
+    if depth > 125 {
+        sem_fail(c, n, "for lowering exceeds Foundation block nesting limit of 128");
+        return FlowNext();
+    }
+    var value = sem_node(c, n, KBlock());
+    var saved = c.scope;
+    c.scope = sem_scope(c, saved);
+    var initial = sem_child(sem_member(n, "initial"), 0);
+    var initial_flow = FlowNext();
+    if !sem_is(initial, ";") {
+        initial_flow = sem_statement(c, initial, depth + 1);
+        // The statement checker attaches jump semantics to its call entity,
+        // exactly as ordinary block statements do.
+        var jump = sem_control_call(c, initial, "jump");
+        if jump != null {
+            initial = jump;
+        }
+        sem_push(&value.items, initial);
+    }
+    var condition_syntax = sem_member(n, "condition");
+    var condition: void* = null;
+    if sem_child_count(condition_syntax) == 0 {
+        condition = sem_control_literal(c, n, 1);
+    } else {
+        condition = sem_operand(c, sem_child(condition_syntax, 0), sem_type_new(c, SBool(), 0, null));
+    }
+    var step_syntax = sem_member(n, "step");
+    var update: void* = null;
+    if sem_child_count(step_syntax) != 0 && sem_ok(c) {
+        c.surface_expressions = true;
+        update = sem_control_node(c, n, SurfaceDiscard());
+        sem_get(update).value = sem_surface_discard(c, sem_child(step_syntax, 0));
+    }
+    var body = sem_member(n, "body");
+    c.loops++;
+    var flow = sem_block(c, body, depth + 2);
+    c.loops--;
+    sem_scope_locals(c, c.scope, &value.locals);
+    c.scope = saved;
+    if !sem_ok(c) {
+        return FlowNext();
+    }
+
+    var loop_node = sem_control_node(c, n, KLoop());
+    var block = sem_control_node(c, loop_node, KBlock());
+    sem_get(loop_node).body = block;
+    var repeats = flow &FlowContinue();
+    if update != null && repeats != 0 {
+        var first = sem_control_local(c, n, sem_control_literal(c, n, 1));
+        var start = sem_control_node(c, block, KBlock());
+        var store = sem_control_node(c, start, KAssign());
+        sem_get(store).target = sem_control_read(c, store, first);
+        sem_get(store).value = sem_control_literal(c, store, 0);
+        sem_push(&sem_get(start).items, store);
+        var next = sem_control_branch(c, block, sem_control_read(c, block, first), start);
+        sem_push(&sem_get(next).items, update);
+    }
+    sem_push(&value.items, loop_node);
+    var known = sem_get(condition);
+    var guard = condition;
+    if !known.constant {
+        guard = sem_control_read(c, block, sem_control_local(c, block, condition));
+    }
+    var otherwise = sem_control_branch(c, block, guard, body);
+    sem_push(&sem_get(otherwise).items, sem_control_node(c, otherwise, KBreak()));
+    if update != null && repeats == 0 {
+        sem_push(&sem_get(block).items, update);
+    }
+    if(initial_flow &FlowNext()) == 0 {
+        return initial_flow;
+    }
+    var result = flow &FlowReturn();
+    if known.constant {
+        if known.bits == 0 {
+            return FlowNext();
+        }
+        if(flow &FlowBreak()) != 0 {
+            result |= FlowNext();
+        }
+        return result;
+    }
+    return result | FlowNext();
 }

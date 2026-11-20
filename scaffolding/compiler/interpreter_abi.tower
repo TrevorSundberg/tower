@@ -34,7 +34,7 @@ fn im_cached_node(m: IMState*, node: void*): FoundationNode* {
     var empty = m.node_cache.length == 0;
     if empty {
         im_storage_require(vector_reserve(IMEntry, &m.node_cache, 256));
-        var bytes = sizeof(IMEntry) * 256;
+        var bytes = sizeof(IMEntry) *256;
         fill(m.node_cache.data, 0, bytes);
         m.node_cache.length = 256;
     }
@@ -178,7 +178,7 @@ export fn interpreter_state_offset(field: usize): usize {
     if selected_17 {
         address = bits(usize, &state.node_cache);
     }
-    var offset = address - base;
+    var offset = address -base;
     return offset;
 }
 

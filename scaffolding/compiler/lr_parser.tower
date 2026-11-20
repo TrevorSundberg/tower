@@ -138,7 +138,7 @@ fn lr_parser_decide(value: LRParser*, ready: bool, id: u32, error: bool, result:
     if value.sequence {
         return lr_parser_sequence_step(value, ready, id, error, result);
     }
-    var top = value.stack.length - 1;
+    var top = value.stack.length -1;
     var state = value.stack.data[top].state;
     var action: LRAction;
     action.rule = lr_none();
@@ -214,27 +214,22 @@ fn lr_parser_decide(value: LRParser*, ready: bool, id: u32, error: bool, result:
         result.start = value.consumed;
     }
     result.end = result.start;
-    var begin = value.stack.length - rule.count;
+    var begin = value.stack.length -rule.count;
     var nonempty = rule.count != 0;
     if nonempty {
         result.start = value.stack.data[begin].start;
         result.end = result.start;
         var index = begin;
-        loop {
-            var done = index == value.stack.length;
-            if done {
-                break;
-            }
+        for(; index != value.stack.length; index++) {
             var frame = &value.stack.data[index];
             var end = frame.start + frame.length;
             var larger = end > result.end;
             if larger {
                 result.end = end;
             }
-            index++;
         }
     }
-    var previous = begin - 1;
+    var previous = begin -1;
     result.next = lr_runtime_goto(value.runtime, value.stack.data[previous].state, rule.owner);
     invalid = result.next == lr_none();
     if invalid {
@@ -278,7 +273,7 @@ export fn lr_parser_commit(value: LRParser*, step: LRStep*, first: usize, last: 
         value.work.shifts++;
         return true;
     }
-    var length = value.stack.length - step.pop;
+    var length = value.stack.length -step.pop;
     var count = length + 1;
     var ok = vector_reserve(LRFrame, &value.stack, count);
     if !ok {
@@ -320,7 +315,7 @@ export fn lr_parser_frame(value: LRParser*, index: usize, result: LRFrame*): voi
         result.state = value.runtime.sequence_states.data[index];
         var nonzero = index != 0;
         if nonzero {
-            var previous = index - 1;
+            var previous = index -1;
             result.length = convert(usize, value.evidence.data[previous]);
         }
     } else {
@@ -425,7 +420,7 @@ export fn lr_probe_clone(source: LRProbe*): LRProbe* {
     var value = lr_probe_allocate(source.runtime, source.budget, count);
     var present = value != null;
     if present {
-        var bytes = count * sizeof(LRProbeFrame);
+        var bytes = count *sizeof(LRProbeFrame);
         copy(value.frames.data, source.frames.data, bytes);
     }
     return value;
@@ -446,7 +441,7 @@ export fn lr_probe_frames(value: LRProbe*): LRProbeFrame* {
 }
 
 export fn lr_probe_accepts(value: LRProbe*, id: u32): bool {
-    var top = value.frames.length - 1;
+    var top = value.frames.length -1;
     var action: LRAction;
     return lr_runtime_action(value.runtime, value.frames.data[top].state, id, &action);
 }
@@ -464,7 +459,7 @@ export fn lr_probe_step(value: LRProbe*, id: u32, before: usize*): u32 {
             break;
         }
         value.budget.remaining--;
-        var top = value.frames.length - 1;
+        var top = value.frames.length -1;
         var state = value.frames.data[top].state;
         var action: LRAction;
         var found = lr_runtime_action(value.runtime, state, id, &action);
@@ -492,20 +487,14 @@ export fn lr_probe_step(value: LRProbe*, id: u32, before: usize*): u32 {
         if invalid {
             return 0;
         }
-        var begin = value.frames.length - rule.count;
-        var index = begin;
-        loop {
-            var done = index == value.frames.length;
-            if done {
-                break;
-            }
+        var begin = value.frames.length -rule.count;
+        for(var index = begin; index != value.frames.length; index++) {
             if value.frames.data[index].consumed {
                 frame.consumed = true;
             }
-            index++;
         }
         value.frames.length = begin;
-        var previous = begin - 1;
+        var previous = begin -1;
         frame.state = lr_runtime_goto(value.runtime, value.frames.data[previous].state, rule.owner);
         invalid = frame.state == lr_none();
         if invalid {
@@ -566,7 +555,7 @@ export fn lr_completion_runtime(c: LRCompletion*): LRRuntime* {
 }
 
 export fn lr_completion_state(c: LRCompletion*): usize {
-    var top = c.original.frames.length - 1;
+    var top = c.original.frames.length -1;
     return c.original.frames.data[top].state;
 }
 
@@ -657,11 +646,7 @@ fn lr_completion_terminators(c: LRCompletion*, ids: u32*, count: usize, result: 
         }
         var found: bool = false;
         var i: usize = 0;
-        loop {
-            var done = i == count;
-            if done {
-                break;
-            }
+        for(; i != count; i++) {
             trial = lr_probe_clone(current);
             missing = trial == null;
             if missing {
@@ -678,7 +663,6 @@ fn lr_completion_terminators(c: LRCompletion*, ids: u32*, count: usize, result: 
                 break;
             }
             lr_probe_destroy(trial);
-            i++;
         }
         var failed = !found;
         if failed {
@@ -724,11 +708,7 @@ export fn lr_completion_suffix(c: LRCompletion*, ids: u32*, count: usize, result
     }
     var at: usize = 0;
     var length = lr_none();
-    loop {
-        var editor_condition9 = at == paths.length;
-        if editor_condition9 {
-            break;
-        }
+    for(; at != paths.length; at++) {
         var editor_condition10 = c.budget.remaining == 0;
         if editor_condition10 {
             break;
@@ -765,11 +745,7 @@ export fn lr_completion_suffix(c: LRCompletion*, ids: u32*, count: usize, result
         var editor_condition14 = depth < capacity;
         if editor_condition14 {
             var i: usize = 0;
-            loop {
-                var editor_condition15 = i == count;
-                if editor_condition15 {
-                    break;
-                }
+            for(; i != count; i++) {
                 var editor_condition16 = paths.length >= 512;
                 if editor_condition16 {
                     break;
@@ -796,19 +772,12 @@ export fn lr_completion_suffix(c: LRCompletion*, ids: u32*, count: usize, result
                 } else {
                     lr_probe_destroy(probe);
                 }
-                i++;
             }
         }
-        at++;
     }
     at = 0;
-    loop {
-        var editor_condition19 = at == paths.length;
-        if editor_condition19 {
-            break;
-        }
+    for(; at != paths.length; at++) {
         lr_probe_destroy(paths.data[at].probe);
-        at++;
     }
     vector_dispose(LRCompletionPath, &paths);
     return length;

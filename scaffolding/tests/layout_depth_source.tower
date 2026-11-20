@@ -5,10 +5,8 @@ import .library.platform;
 // Generate a functional layout test with a dependency chain deeper than the
 // former recursive limit. The generated program is ordinary Foundation/Tower.
 fn layout_text(out: vector(u8)*, text: u8*): void {
-    var length: usize = 0;
-    while text[length] != 0 {
+    for(var length: usize = 0; text[length] != 0; length++) {
         vector_push(u8, out, text[length]);
-        length++;
     }
 }
 
@@ -41,7 +39,7 @@ fn layout_source(): void {
         layout_text(&out, "struct Level");
         layout_number(&out, i);
         layout_text(&out, " { value: Level");
-        var previous = i - 1;
+        var previous = i -1;
         layout_number(&out, previous);
         layout_text(&out, "; }\n");
         i = previous;
@@ -49,11 +47,10 @@ fn layout_source(): void {
     layout_text(&out, "struct Level0 { value: i32; }\n");
     layout_text(&out, "struct Wide {\n");
     i = 0;
-    while i < 512 {
+    for(; i < 512; i++) {
         layout_text(&out, "field");
         layout_number(&out, i);
         layout_text(&out, ": i32;\n");
-        i++;
     }
     layout_text(&out, "}\nfn check(): i32 { var correct = sizeof(Level1024) == 4; if correct {} else { return 1; } correct = sizeof(Wide) == 2048; if correct {} else { return 2; } var wide: Wide; wide.field511 = 42; var result = wide.field511 - 42; return result; }\nprint(check());\n");
     platform_write(1, out.data, out.length);

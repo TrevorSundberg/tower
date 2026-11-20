@@ -39,7 +39,7 @@ export fn tower_entity_finalize(kind: usize, component: void*, data: void*): voi
     }
     var parser = kind >= compiler_parser_lifecycle(CompilerParserMatch());
     if parser {
-        var parser_kind = compiler_parser_lifecycle(CompilerParserRule()) - kind;
+        var parser_kind = compiler_parser_lifecycle(CompilerParserRule()) -kind;
         node_payload_dispose(convert(u32, parser_kind), data);
         return;
     }

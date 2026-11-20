@@ -220,7 +220,7 @@ export fn compiler_world_dispose(world: CompilerWorld*): bool {
         return false;
     }
     var index: u32 = 0;
-    while index < CompilerComponentCount() {
+    for(; index < CompilerComponentCount(); index++) {
         var type = world.types[index];
         var present = type != null;
         if present {
@@ -229,16 +229,14 @@ export fn compiler_world_dispose(world: CompilerWorld*): bool {
                 return false;
             }
         }
-        index++;
     }
     index = 0;
-    while index < CompilerComponentCount() {
+    for(; index < CompilerComponentCount(); index++) {
         var type = world.types[index];
         var present = type != null;
         if present {
             entity_release(type);
         }
-        index++;
     }
     var disposed = entity_store_dispose(world.store);
     free(world);

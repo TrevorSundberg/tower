@@ -155,7 +155,7 @@ fn lr_grammar_name_less(value: LRGrammar*, a: usize, b: usize): bool {
 fn lr_grammar_name_sift(value: LRGrammar*, order: usize*, count: usize, start: usize): void {
     var root = start;
     loop {
-        var child = root * 2;
+        var child = root *2;
         child++;
         var end = child >= count;
         if end {
@@ -188,13 +188,8 @@ fn lr_grammar_order(value: LRGrammar*): bool {
         return false;
     }
     var index: usize = 0;
-    loop {
-        var end = index == count;
-        if end {
-            break;
-        }
+    for(; index != count; index++) {
         order[index] = index;
-        index++;
     }
     var start = count / 2;
     loop {
@@ -218,14 +213,9 @@ fn lr_grammar_order(value: LRGrammar*): bool {
         lr_grammar_name_sift(value, order, remaining, 0);
     }
     index = 0;
-    loop {
-        var end = index == count;
-        if end {
-            break;
-        }
+    for(; index != count; index++) {
         var original = order[index];
         value.names.data[original].order = index;
-        index++;
     }
     free(order);
     return true;
@@ -237,24 +227,14 @@ export fn lr_grammar_destroy(value: LRGrammar*): void {
         return;
     }
     var index: usize = 0;
-    loop {
-        var done = index == value.names.length;
-        if done {
-            break;
-        }
+    for(; index != value.names.length; index++) {
         var name = value.names.data[index];
         vector_dispose(u8, &name.text);
         free(name);
-        index++;
     }
     index = 0;
-    loop {
-        var done = index == value.symbol_metadata.length;
-        if done {
-            break;
-        }
+    for(; index != value.symbol_metadata.length; index++) {
         vector_dispose(u8, &value.symbol_metadata.data[index].capture);
-        index++;
     }
     vector_dispose(LRGrammarName*, &value.names);
     vector_dispose(usize, &value.buckets);
@@ -290,14 +270,14 @@ fn lr_grammar_add_symbol(value: LRGrammar*, symbol: LRSymbol*, node: void*, capt
 
 fn lr_grammar_rules(value: LRGrammar*, root: void*, kind: void*): bool {
     var count = entity_child_count(root);
-    var size = count * 2;
+    var size = count *2;
     size++;
     var ok = vector_reserve(usize, &value.buckets, size);
     if !ok {
         return false;
     }
     value.buckets.length = size;
-    var bytes = size * sizeof(usize);
+    var bytes = size *sizeof(usize);
     fill(value.buckets.data, 255, bytes);
     var index: usize;
     ok = lr_grammar_name_add(value, "S'", &index);
@@ -525,14 +505,12 @@ export fn lr_grammar_resolve(value: LRGrammar*, index: usize, id: u32): bool {
 
 // First unresolved name, or lr_none(). Share this check across table owners.
 export fn lr_grammar_pending(value: LRGrammar*): usize {
-    var index: usize = 0;
-    while index < value.unresolved.length {
+    for(var index: usize = 0; index < value.unresolved.length; index++) {
         var symbol = value.unresolved.data[index].symbol;
         var missing = value.symbols.data[symbol].first == LRTokenEnd();
         if missing {
             return index;
         }
-        index++;
     }
     return lr_none();
 }
@@ -542,22 +520,12 @@ export fn lr_grammar_pending(value: LRGrammar*): usize {
 export fn lr_grammar_detach(value: LRGrammar*): void {
     vector_dispose(LRUnresolved, &value.unresolved);
     var index: usize = 0;
-    loop {
-        var done = index == value.rule_metadata.length;
-        if done {
-            break;
-        }
+    for(; index != value.rule_metadata.length; index++) {
         value.rule_metadata.data[index].node = null;
-        index++;
     }
     index = 0;
-    loop {
-        var done = index == value.symbol_metadata.length;
-        if done {
-            break;
-        }
+    for(; index != value.symbol_metadata.length; index++) {
         value.symbol_metadata.data[index].node = null;
-        index++;
     }
 }
 

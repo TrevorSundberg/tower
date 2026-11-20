@@ -33,7 +33,9 @@ export fn driver_platform_exists(path: u8*): bool {
 
 export fn driver_platform_separator(byte: u8): bool {
     var separator = byte == 47;
-    if separator { return true; }
+    if separator {
+        return true;
+    }
     separator = byte == 92;
     return separator;
 }
@@ -129,7 +131,7 @@ export fn driver_platform_run(argv: u8**): i32 {
     var quoted: DriverArguments;
     driver_arguments_init(&quoted);
     var i: usize = 0;
-    while argv[i] != null {
+    for(; argv[i] != null; i++) {
         var text: ByteBuffer;
         fill(&text, 0, sizeof(ByteBuffer));
         quoted.ok = driver_windows_quote(&text, argv[i]);
@@ -138,7 +140,6 @@ export fn driver_platform_run(argv: u8**): i32 {
             bytes_dispose(&text);
             break;
         }
-        i++;
     }
     quoted.ok &&= vector_push(u8*, &quoted.values, null);
     var result: i32 = 1;

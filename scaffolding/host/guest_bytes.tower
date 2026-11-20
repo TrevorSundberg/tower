@@ -6,7 +6,10 @@ export fn guest_runtime_copy(destination: void*, source: void*, count: usize): v
     var out = bits(u8*, destination);
     var input = bits(u8*, source);
     var i: usize = 0;
-    while i < count { out[i] = input[i]; ++i; }
+    while i < count {
+        out[i] = input[i];
+        ++i;
+    }
     return destination;
 }
 
@@ -14,17 +17,25 @@ export fn guest_runtime_move(destination: void*, source: void*, count: usize): v
     var out = bits(u8*, destination);
     var input = bits(u8*, source);
     var forward = bits(usize, out) < bits(usize, input);
-    if forward { return guest_runtime_copy(destination, source, count); }
+    if forward {
+        return guest_runtime_copy(destination, source, count);
+    }
     var i = count;
-    while i != 0 { --i; out[i] = input[i]; }
+    while i != 0 {
+        --i;
+        out[i] = input[i];
+    }
     return destination;
 }
 
 export fn guest_runtime_fill(destination: void*, value: i32, count: usize): void* {
     var out = bits(u8*, destination);
-    var low = bits(u32, value) & 255;
+    var low = bits(u32, value) &255;
     var byte = convert(u8, low);
     var i: usize = 0;
-    while i < count { out[i] = byte; ++i; }
+    while i < count {
+        out[i] = byte;
+        ++i;
+    }
     return destination;
 }

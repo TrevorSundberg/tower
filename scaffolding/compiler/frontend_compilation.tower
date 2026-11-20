@@ -186,13 +186,8 @@ export fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendS
         }
     }
     index = 0;
-    loop {
-        var done = index == modules.length;
-        if done {
-            break;
-        }
+    for(; index != modules.length; index++) {
         frontend_module_destroy(modules.data[index]);
-        index++;
     }
     vector_dispose(void*, &modules);
     vector_dispose(u8, &source);

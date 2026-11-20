@@ -13,7 +13,7 @@ fn runtime_abi_benchmark(): i32 {
     while round < 10000 {
         var i: usize = 0;
         while i < 64 {
-            var size = i * 17;
+            var size = i *17;
             size = size + 1;
             var pointer = alloc(u8, size);
             var failed = pointer == null;

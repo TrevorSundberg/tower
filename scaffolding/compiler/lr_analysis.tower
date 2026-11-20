@@ -58,7 +58,7 @@ fn lr_range_insert(values: vector(SymbolRange)*, first: u32, last: u32, changed:
         if done {
             break;
         }
-        var middle = high - low;
+        var middle = high -low;
         middle = middle / 2;
         middle = middle + low;
         var value = &values.data[middle];
@@ -88,8 +88,8 @@ fn lr_range_insert(values: vector(SymbolRange)*, first: u32, last: u32, changed:
     if !ok {
         return false;
     }
-    var moved = values.length - low;
-    var bytes = moved * sizeof(SymbolRange);
+    var moved = values.length -low;
+    var bytes = moved *sizeof(SymbolRange);
     var next = low + 1;
     copy(&values.data[next], &values.data[low], bytes);
     values.data[low].first = first;
@@ -125,15 +125,10 @@ export fn lr_analysis_destroy(value: LRAnalysis*): void {
         return;
     }
     var index: usize = 0;
-    loop {
-        var done = index == value.nonterminal_count;
-        if done {
-            break;
-        }
+    for(; index != value.nonterminal_count; index++) {
         var item = &value.nonterminals[index];
         vector_dispose(SymbolRange, &item.first);
         vector_dispose(usize, &item.productions);
-        index++;
     }
     free(value.nonterminals);
     free(value);
@@ -158,16 +153,11 @@ export fn lr_analysis_create(rules: LRProduction*, rule_count: usize, symbols: L
         return null;
     }
     result.nonterminal_count = nonterminal_count;
-    var bytes = sizeof(LRNonterminal) * nonterminal_count;
+    var bytes = sizeof(LRNonterminal) *nonterminal_count;
     fill(result.nonterminals, 0, bytes);
     var index: usize = 0;
-    loop {
-        var done = index == nonterminal_count;
-        if done {
-            break;
-        }
+    for(; index != nonterminal_count; index++) {
         result.nonterminals[index].order = index;
-        index++;
     }
     index = 0;
     loop {
@@ -185,7 +175,7 @@ export fn lr_analysis_create(rules: LRProduction*, rule_count: usize, symbols: L
             lr_analysis_destroy(result);
             return null;
         }
-        var available = symbol_count - rule.begin;
+        var available = symbol_count -rule.begin;
         invalid = rule.count > available;
         if invalid {
             lr_analysis_destroy(result);
@@ -331,7 +321,7 @@ export fn lr_items_insert(value: LRItems*, item: LRItem*): bool {
         if done {
             break;
         }
-        var middle = high - low;
+        var middle = high -low;
         middle = middle / 2;
         middle = middle + low;
         var less = lr_item_less(&value.values.data[middle], &saved);
@@ -355,8 +345,8 @@ export fn lr_items_insert(value: LRItems*, item: LRItem*): bool {
         value.failed = true;
         return false;
     }
-    var moved = value.values.length - low;
-    var bytes = moved * sizeof(LRItem);
+    var moved = value.values.length -low;
+    var bytes = moved *sizeof(LRItem);
     var next = low + 1;
     copy(&value.values.data[next], &value.values.data[low], bytes);
     copy(&value.values.data[low], &saved, sizeof(LRItem));
@@ -496,11 +486,7 @@ export fn lr_items_close(value: LRAnalysis*, items: LRItems*, lookahead: bool): 
 
 export fn lr_items_shift(value: LRAnalysis*, input: LRItems*, symbol: LRSymbol*, output: LRItems*): bool {
     var index: usize = 0;
-    loop {
-        var done = index == input.values.length;
-        if done {
-            break;
-        }
+    for(; index != input.values.length; index++) {
         var item: LRItem;
         copy(&item, &input.values.data[index], sizeof(LRItem));
         var rule = &value.rules[item.rule];
@@ -529,13 +515,14 @@ export fn lr_items_shift(value: LRAnalysis*, input: LRItems*, symbol: LRSymbol*,
                 }
             }
         }
-        index++;
     }
     return true;
 }
 
 export fn lr_items_goto(value: LRAnalysis*, input: LRItems*, symbol: LRSymbol*, output: LRItems*, lookahead: bool): bool {
-    if !lr_items_shift(value, input, symbol, output) { return false; }
+    if !lr_items_shift(value, input, symbol, output) {
+        return false;
+    }
     return lr_items_close(value, output, lookahead);
 }
 
@@ -559,15 +546,10 @@ export fn lr_propagation_destroy(value: LRPropagation*): void {
         return;
     }
     var index: usize = 0;
-    loop {
-        var done = index == value.count;
-        if done {
-            break;
-        }
+    for(; index != value.count; index++) {
         var node = &value.nodes[index];
         vector_dispose(SymbolRange, &node.ranges);
         vector_dispose(usize, &node.edges);
-        index++;
     }
     free(value.nodes);
     vector_dispose(usize, &value.pending);
@@ -588,7 +570,7 @@ export fn lr_propagation_create(count: usize): LRPropagation* {
         return null;
     }
     value.count = count;
-    var bytes = sizeof(LRPropagationNode) * count;
+    var bytes = sizeof(LRPropagationNode) *count;
     fill(value.nodes, 0, bytes);
     var ok = vector_reserve(usize, &value.pending, count);
     if !ok {

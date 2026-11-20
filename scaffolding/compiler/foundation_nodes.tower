@@ -31,16 +31,16 @@ export fn foundation_nodes_erase(values: vector(void*)*, first: usize, count: us
     if invalid {
         return false;
     }
-    var remaining = values.length - first;
+    var remaining = values.length -first;
     invalid = count > remaining;
     if invalid {
         return false;
     }
-    var tail = remaining - count;
+    var tail = remaining -count;
     var move = tail != 0;
     if move {
         var end = first + count;
-        var bytes = tail * sizeof(void*);
+        var bytes = tail *sizeof(void*);
         copy(&values.data[first], &values.data[end], bytes);
     }
     values.length = values.length - count;
@@ -59,8 +59,8 @@ export fn foundation_nodes_prepend(values: vector(void*)*, source: void**, count
     }
     var start = bits(usize, source);
     var base = bits(usize, values.data);
-    var offset = start - base;
-    var bytes = values.capacity * sizeof(void*);
+    var offset = start -base;
+    var bytes = values.capacity *sizeof(void*);
     var inside = offset < bytes;
     var index: usize = 0;
     if inside {
@@ -74,7 +74,7 @@ export fn foundation_nodes_prepend(values: vector(void*)*, source: void**, count
         if invalid {
             return false;
         }
-        var remaining = values.length - index;
+        var remaining = values.length -index;
         invalid = count > remaining;
         if invalid {
             return false;
@@ -234,6 +234,6 @@ export fn foundation_node_offset(field: usize): usize {
     if selected {
         address = bits(usize, &value.global);
     }
-    var offset = address - base;
+    var offset = address -base;
     return offset;
 }

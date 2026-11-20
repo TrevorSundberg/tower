@@ -23,12 +23,11 @@ fn parser_text_equal(result: FormatResult*, wanted: u8*): void {
     var ok = !result.failed;
     table_owner_check(ok, 101);
     var index: usize = 0;
-    while index < result.text.length {
+    for(; index < result.text.length; index++) {
         ok = wanted[index] != 0;
         table_owner_check(ok, 102);
         ok = result.text.data[index] == wanted[index];
         table_owner_check(ok, 103);
-        index++;
     }
     ok = wanted[index] == 0;
     table_owner_check(ok, 104);
@@ -148,8 +147,7 @@ fn parser_text_table_tests(): void {
     table_owner_check(ok, 123);
     count = tower_test_buffer_allocations() - count;
     parser_format_destroy(request);
-    var budget: usize = 0;
-    while budget < count {
+    for(var budget: usize = 0; budget < count; budget++) {
         tower_test_buffer_fail_after(budget);
         request = parser_format_create(table, ParserFormatKind.Tables, 0, 0, false, false);
         var present = request != null;
@@ -162,7 +160,6 @@ fn parser_text_table_tests(): void {
         parser_format_destroy(request);
         ok = tower_test_buffer_count() == buffers;
         table_owner_check(ok, 126);
-        budget++;
     }
     parser_table_destroy(table);
     ok = tower_test_buffer_count() == baseline;

@@ -50,14 +50,8 @@ fn backend_link_argument(link: BackendLink*, prefix: u8*, value: u8*): void {
 export fn backend_link_reset_plan(link: BackendLink*): void {
     remove("tower-stack-probe.lib");
     remove("tower-platform.tbd");
-    var i: usize = 0;
-    loop {
-        var done = i == link.arguments.length;
-        if done {
-            break;
-        }
+    for(var i: usize = 0; i != link.arguments.length; i++) {
         free(link.arguments.data[i]);
-        i++;
     }
     link.arguments.length = 0;
     link.error.length = 0;
@@ -66,16 +60,11 @@ export fn backend_link_reset_plan(link: BackendLink*): void {
 
 export fn backend_link_clear_inputs(link: BackendLink*): void {
     var i: usize = 0;
-    loop {
-        var done = i == link.inputs.length;
-        if done {
-            break;
-        }
+    for(; i != link.inputs.length; i++) {
         var input = &link.inputs.data[i];
         remove(input.name.data);
         vector_dispose(u8, &input.name);
         vector_dispose(u8, &input.bytes);
-        i++;
     }
     link.inputs.length = 0;
 }
@@ -170,17 +159,12 @@ export fn backend_link_add_input(link: BackendLink*, name: u8*, data: u8*, lengt
     }
     var i: usize = 0;
     var found: BackendLinkInput* = null;
-    loop {
-        var end = i == link.inputs.length;
-        if end {
-            break;
-        }
+    for(; i != link.inputs.length; i++) {
         var same = backend_equal(link.inputs.data[i].name.data, name);
         if same {
             found = &link.inputs.data[i];
             break;
         }
-        i++;
     }
     var absent = found == null;
     if absent {
@@ -276,11 +260,7 @@ export fn backend_link_plan(link: BackendLink*, triple: u8*, functions: void**, 
         vector_init(u8, &allowed);
         backend_text(&allowed, "tower_print\ntower_trap\n");
         var i: usize = 1;
-        loop {
-            var done = i >= count;
-            if done {
-                break;
-            }
+        for(; i < count; i++) {
             var n = sem_get(functions[i]);
             if n.external {
                 var spelling = foreign_symbol(foreign_profile_for_target(triple), backend_name(n));
@@ -288,7 +268,6 @@ export fn backend_link_plan(link: BackendLink*, triple: u8*, functions: void**, 
                 foreign_name_close(spelling);
                 backend_text(&allowed, "\n");
             }
-            i++;
         }
         ok = backend_write_file(link, "tower-allowed.txt", allowed.data, allowed.length);
         vector_dispose(u8, &allowed);
@@ -390,15 +369,10 @@ export fn backend_link_plan(link: BackendLink*, triple: u8*, functions: void**, 
         i++;
     }
     i = 0;
-    loop {
-        var done = i == order.length;
-        if done {
-            break;
-        }
+    for(; i != order.length; i++) {
         var input = &link.inputs.data[order.data[i]];
         ok = backend_write_file(link, input.name.data, input.bytes.data, input.bytes.length);
         backend_link_argument(link, "", input.name.data);
-        i++;
     }
     vector_dispose(usize, &order);
     if windows {
@@ -408,7 +382,9 @@ export fn backend_link_plan(link: BackendLink*, triple: u8*, functions: void**, 
         var archive: vector(u8);
         vector_init(u8, &archive);
         ok = coff_import_archive(&archive, CoffMachineAmd64(), "__chkstk", "kernelbase.dll");
-        if ok { ok = backend_write_file(link, "tower-stack-probe.lib", archive.data, archive.length); } else {
+        if ok {
+            ok = backend_write_file(link, "tower-stack-probe.lib", archive.data, archive.length);
+        } else {
             backend_text(&link.error, "Unable to allocate Windows stack-probe import metadata");
         }
         vector_dispose(u8, &archive);
@@ -429,11 +405,7 @@ export fn backend_link_plan(link: BackendLink*, triple: u8*, functions: void**, 
         backend_link_argument(link, "", "tower-platform.tbd");
     }
     i = 1;
-    loop {
-        var done = i >= count;
-        if done {
-            break;
-        }
+    for(; i < count; i++) {
         var n = sem_get(functions[i]);
         if n.exported {
             var spelling = foreign_symbol(foreign_profile_for_target(triple), backend_name(n));
@@ -445,7 +417,6 @@ export fn backend_link_plan(link: BackendLink*, triple: u8*, functions: void**, 
             }
             foreign_name_close(spelling);
         }
-        i++;
     }
     if wasm {
         backend_link_argument(link, "", "--export=tower_allocate");

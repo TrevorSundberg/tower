@@ -130,13 +130,8 @@ fn foreign_clone(m: ForeignName*, type: ForeignType*): ForeignType* {
     copy(result, type, sizeof(ForeignType));
     vector_init(ForeignType*, &result.args);
     var i: usize = 0;
-    loop {
-        var done = i == type.args.length;
-        if done {
-            break;
-        }
+    for(; i != type.args.length; i++) {
         foreign_require(m, vector_push(ForeignType*, &result.args, type.args.data[i]));
-        i++;
     }
     return result;
 }
@@ -282,11 +277,7 @@ fn foreign_integer(m: ForeignName*): u64 {
     var text = foreign_peek(m);
     var value: u64 = 0;
     var i: usize = 0;
-    loop {
-        var foreign_condition149 = text[i] == 0;
-        if foreign_condition149 {
-            break;
-        }
+    for(; !(text[i] == 0); i++) {
         var foreign_condition150 = !foreign_digit(text[i]);
         if foreign_condition150 {
             foreign_fail(m, "Expected an unsigned integer literal");
@@ -304,7 +295,6 @@ fn foreign_integer(m: ForeignName*): u64 {
         }
         value = value * 10;
         value = value + part;
-        i++;
     }
     var foreign_condition152 = i == 0;
     if foreign_condition152 {
@@ -613,16 +603,11 @@ fn foreign_alias(m: ForeignName*, type: ForeignType*): ForeignType* {
     foreign_simple_name(&name, type);
     var i: usize = 0;
     var result = type;
-    loop {
-        var foreign_condition165 = i == m.aliases.length;
-        if foreign_condition165 {
-            break;
-        }
+    for(; i != m.aliases.length; i++) {
         if backend_equal(name.data, m.aliases.data[i].name) {
             result = m.aliases.data[i].type;
             break;
         }
-        i++;
     }
     vector_dispose(u8, &name);
     return result;
@@ -1064,23 +1049,13 @@ export fn foreign_name_close(m: ForeignName*): void {
         return;
     }
     var i: usize = 0;
-    loop {
-        var foreign_condition185 = i == m.types.length;
-        if foreign_condition185 {
-            break;
-        }
+    for(; i != m.types.length; i++) {
         vector_dispose(ForeignType*, &m.types.data[i].args);
         free(m.types.data[i]);
-        i++;
     }
     i = 0;
-    loop {
-        var foreign_condition186 = i == m.memory.length;
-        if foreign_condition186 {
-            break;
-        }
+    for(; i != m.memory.length; i++) {
         free(m.memory.data[i]);
-        i++;
     }
     vector_dispose(u8, &m.text);
     vector_dispose(u8, &m.error);

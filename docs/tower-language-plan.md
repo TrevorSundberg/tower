@@ -28,6 +28,9 @@ for all remaining stages, including parallel execution at large project sizes.
    operations and generic stack/queue libraries with failure-preserving APIs.
    Exercise ordinary type templates, both interpreters, raw/optimized LLVM and
    canonical Foundation round trips. This is the first implementation slice.
+   Scoped C-style `for` is also implemented above Foundation, following the
+   [whole-source loop audit](research/tower-loop-audit.md). It does not depend on
+   the general borrowed iterator/ownership work in stage 6.
 2. **Bindings and dependency queries.** Make a file's canonical module identity
    its namespace. Add `import "path" as alias;` and selective imports (proposed
    `import {Name, Other as Local} from "path";`). Bare filenames alone are not
@@ -416,7 +419,8 @@ containers. Benchmark representative compiler workloads before migrating them.
   dependency coordinator. Component read/write ranges and structural exclusivity
   are available in that shared scheduler. Native CLI worker pools, frozen-world
   phase publication, query/storage migration and measured SIMD remain open.
-  Selective imports, full expressions, automatic moves, general foreach,
+  Tower expression precedence/operators and scoped `for` are implemented.
+  Selective imports, exact overloads, automatic moves, general foreach,
   comptime/eval, properties, interfaces and attributes are not implemented yet.
 
 ## Next parallel/compiler milestones

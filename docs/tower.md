@@ -2,7 +2,7 @@
 
 Use `import tower;` for the language above Foundation. Compiler code can use the
 same layer. The [development plan](tower-language-plan.md) distinguishes shipped
-features from upcoming expression syntax, compile-time
+features from upcoming overloads, compile-time
 execution, result types and ownership rules.
 
 ## Compile-time value goals
@@ -76,8 +76,36 @@ Every body requires braces and introduces a lexical scope. A match is not a loop
 `break` and `continue` inside an arm apply to an enclosing loop. `while` tests its
 bool condition before each iteration; `continue` retests it. Numeric conditions
 are not implicitly converted to bool. Conditions/subjects use current Foundation
-values (one binary operation or an operand, including nested calls), not general
-expression precedence yet.
+values with Tower's expression precedence and short-circuit operators.
+
+Counted traversal uses scoped `for`:
+
+```tower
+for (var i: usize = 0; i < items.length; i++) {
+    if items.data[i] == null { continue; }
+    print(i);
+}
+```
+
+The initializer runs once. The bool condition is evaluated before every body
+execution, and the update runs after normal completion or `continue`. `break`
+and `return` skip the update. Nested loops handle their own breaks/continues.
+The initializer can declare one local or be an expression; condition and update
+can be comma expressions. Each clause can be omitted: `for (;;) { ... }` repeats
+until an explicit exit. Braces are required.
+
+A declared header local is visible in the condition, update and body, and ends
+at the loop's closing brace. Body locals may shadow it without changing header
+bindings. A bound such as `items.length` is re-read on each test; `for` does not
+snapshot a container or introduce an iterator, allocation, implicit copy or move.
+Ordinary pointer validity and container invalidation rules still apply.
+
+For lowering uses the same shared Foundation entities as `while`. The usual case
+appends the update after the body. If the body can continue this loop, a generated
+first-entry flag lets the update run at the next loop head, before the next test.
+This avoids copying effectful updates or changing nested continues. No interpreter
+opcode, backend ABI, Foundation grammar or Bedrock change is needed. The same
+128-level Foundation nesting limit applies.
 
 These constructs lower to existing Foundation operations. Canonical Foundation
 contains generated locals, blocks, comparisons, ifs and loops; no backend opcode

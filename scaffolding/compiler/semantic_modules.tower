@@ -90,13 +90,12 @@ fn sem_module_record(program: SemanticProgram*, module: void*): void {
     var scope = sem_module_scope(program, module);
     var count = frontend_module_roots(module);
     var i: usize = 0;
-    while i < count {
+    for(; i < count; i++) {
         sem_module_link(frontend_module_tree(module, i), registry.owner_kind, scope);
-        i++;
     }
     count = frontend_module_import_count(module);
     i = 0;
-    while i < count {
+    for(; i < count; i++) {
         var declaration = frontend_module_import_at(module, i);
         // Recovered editor parses may contribute a second source snapshot.
         // Each actual declaration keeps its own components and source spans.
@@ -117,18 +116,15 @@ fn sem_module_record(program: SemanticProgram*, module: void*): void {
             sem_module_link(declaration, registry.import_kind, target);
             sem_module_link(declaration, registry.owner_kind, scope);
         }
-        i++;
     }
 }
 
 fn sem_module_graph(program: SemanticProgram*, module: void*): void {
     sem_module_record(program, module);
     var count = frontend_module_count(module);
-    var i: usize = 0;
-    while i < count {
+    for(var i: usize = 0; i < count; i++) {
         var dependency = frontend_module_at(module, i);
         sem_module_record(program, dependency);
-        i++;
     }
 }
 
@@ -162,13 +158,11 @@ fn sem_owner(c: SemanticContext*, node: void*): void* {
 fn sem_module_path(c: SemanticContext*, module: void*): u8* {
     var scopes = c.program.modules.scopes;
     var count = sem_child_count(scopes);
-    var i: usize = 0;
-    while i < count {
+    for(var i: usize = 0; i < count; i++) {
         var found = sem_child(scopes, i) == module;
         if found {
             return entity_child_name(scopes, i);
         }
-        i++;
     }
     return "";
 }
@@ -228,13 +222,12 @@ fn sem_import_alias(owner: void*, index: usize): u8* {
 fn sem_alias(c: SemanticContext*, owner: void*, name: u8*): void* {
     var i: usize = 0;
     var count = sem_child_count(owner);
-    while i < count {
+    for(; i < count; i++) {
         var alias = sem_import_alias(owner, i);
         var matches = sem_equal(alias, name);
         if matches {
             return sem_import_target(c, sem_child(owner, i));
         }
-        i++;
     }
     return null;
 }
@@ -250,8 +243,7 @@ fn sem_visible(c: SemanticContext*, table: SemanticTable*, node: void*, owner: v
         return null;
     }
     var count = sem_child_count(owner);
-    var i: usize = 0;
-    while i < count {
+    for(var i: usize = 0; i < count; i++) {
         var alias = sem_import_alias(owner, i);
         var open = alias[0] == 0;
         if open {
@@ -268,7 +260,6 @@ fn sem_visible(c: SemanticContext*, table: SemanticTable*, node: void*, owner: v
                 found = candidate;
             }
         }
-        i++;
     }
     var missing = found == null;
     if missing {
@@ -321,7 +312,7 @@ fn sem_callable_visible(c: SemanticContext*, table: SemanticTable*, node: void*,
     var found: void* = null;
     var i: usize = 0;
     var count = sem_child_count(owner);
-    while i < count {
+    for(; i < count; i++) {
         var alias = sem_import_alias(owner, i);
         var open = alias[0] == 0;
         if open {
@@ -339,7 +330,6 @@ fn sem_callable_visible(c: SemanticContext*, table: SemanticTable*, node: void*,
                 selected = dependency;
             }
         }
-        i++;
     }
     return sem_owned(table, selected, name);
 }
@@ -509,19 +499,16 @@ fn sem_validate_aliases(c: SemanticContext*): void {
     }
     var root = sem_get(c.program.root);
     var count = sem_child_count(registry.scopes);
-    var i: usize = 0;
-    while i < count {
+    for(var i: usize = 0; i < count; i++) {
         var scope = sem_child(registry.scopes, i);
         var imports = sem_child_count(scope);
-        var edge: usize = 0;
-        while edge < imports {
+        for(var edge: usize = 0; edge < imports; edge++) {
             var alias = sem_import_alias(scope, edge);
             var named = alias[0] != 0;
             if named {
                 var conflict = semantic_builtin_kind(alias) != 0;
                 conflict ||= sem_owned(c.types, null, alias) != null;
-                var n: usize = 0;
-                while n < root.items.length {
+                for(var n: usize = 0; n < root.items.length; n++) {
                     var declaration = root.items.data[n];
                     var own = sem_owner(c, declaration) == scope;
                     if own {
@@ -534,16 +521,13 @@ fn sem_validate_aliases(c: SemanticContext*): void {
                             }
                         }
                     }
-                    n++;
                 }
                 if conflict {
                     sem_fail(c, sem_child(scope, edge), sem_cat(c, "Import alias conflicts with declaration: ", alias));
                     return;
                 }
             }
-            edge++;
         }
-        i++;
     }
 }
 
@@ -556,7 +540,7 @@ fn sem_link_functions(c: SemanticContext*): void {
     }
     var symbols = sem_table(c);
     var i: usize = 1;
-    while i < c.program.functions.length {
+    for(; i < c.program.functions.length; i++) {
         var node = c.program.functions.data[i];
         var function = sem_get(node);
         var foreign = function.external;
@@ -573,13 +557,12 @@ fn sem_link_functions(c: SemanticContext*): void {
                 var compatible = semantic_type_equal(&function.type, &old.type);
                 compatible &&= function.parameters.length == old.parameters.length;
                 var p: usize = 0;
-                while p < function.parameters.length {
+                for(; p < function.parameters.length; p++) {
                     if compatible {
                         var left = sem_get(function.parameters.data[p]);
                         var right = sem_get(old.parameters.data[p]);
                         compatible = semantic_type_equal(&left.type, &right.type);
                     }
-                    p++;
                 }
                 if !compatible {
                     sem_fail(c, node, sem_cat(c, "Incompatible declarations of foreign symbol '", sem_cat(c, name, "'")));
@@ -601,10 +584,9 @@ fn sem_link_functions(c: SemanticContext*): void {
                 entry.value = node;
             }
         }
-        i++;
     }
     i = 0;
-    while i < c.functions.capacity {
+    for(; i < c.functions.capacity; i++) {
         var entry = c.functions.entries[i];
         var present = entry != null;
         if present {
@@ -614,11 +596,10 @@ fn sem_link_functions(c: SemanticContext*): void {
                 node = sem_get(entry.value);
             }
         }
-        i++;
     }
     var count: usize = 0;
     i = 0;
-    while i < c.program.functions.length {
+    for(; i < c.program.functions.length; i++) {
         var node = c.program.functions.data[i];
         var value = sem_get(node);
         var unique = value.binding == null;
@@ -627,13 +608,12 @@ fn sem_link_functions(c: SemanticContext*): void {
             c.program.functions.data[count] = node;
             count++;
         }
-        i++;
     }
     c.program.functions.length = count;
     var root = sem_get(c.program.root);
     count = 0;
     i = 0;
-    while i < root.items.length {
+    for(; i < root.items.length; i++) {
         var node = root.items.data[i];
         var value = sem_get(node);
         var duplicate = value != null;
@@ -643,7 +623,6 @@ fn sem_link_functions(c: SemanticContext*): void {
             root.items.data[count] = node;
             count++;
         }
-        i++;
     }
     root.items.length = count;
 }

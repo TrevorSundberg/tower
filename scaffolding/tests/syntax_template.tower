@@ -74,11 +74,7 @@ fn template_test_holes(context: SyntaxEmissionInput*): usize {
             ids[5] = 3145731;
             ids[6] = 3145731;
             var index: usize = 0;
-            loop {
-                var done = index == 7;
-                if done {
-                    break;
-                }
+            for(; index != 7; index++) {
                 if !ok {
                     break;
                 }
@@ -95,7 +91,7 @@ fn template_test_holes(context: SyntaxEmissionInput*): usize {
                 }
                 ok &&= entity_child_count(node) == count;
                 if ok {
-                    var last = count - 1;
+                    var last = count -1;
                     var terminal = entity_child_at(node, last);
                     var text = bits(ParserStringData*, lr_grammar_payload(terminal, context.string_kind));
                     ok = text.ids.length == 1;
@@ -108,7 +104,6 @@ fn template_test_holes(context: SyntaxEmissionInput*): usize {
                         ok = lr_name_equal(node_text_get(&ref.name), names[index]);
                     }
                 }
-                index++;
             }
         }
         entity_release(input.emission.root);

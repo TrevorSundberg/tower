@@ -71,14 +71,8 @@ fn expansion_test_init(f: ExpansionFixture*, input: SyntaxExpansionInput*, conte
         f.capture.repeated = repeated;
         var capture = expansion_test_child(f, f.result.root, "value", "Expression", 0, 0);
         expansion_test_child(f, capture, null, "x", lr_none(), 7);
-        var i: usize = 0;
-        loop {
-            var done = i == uses;
-            if done {
-                break;
-            }
+        for(var i: usize = 0; i != uses; i++) {
             expansion_test_child(f, f.rule.tree, null, "$value", lr_none(), 3145728);
-            i++;
         }
     } else {
         expansion_test_child(f, f.rule.tree, null, "42", lr_none(), 7);
@@ -193,13 +187,8 @@ fn expansion_test_steps(input: SyntaxExpansionInput*, context: void*): bool {
     root.rule = 0;
     node_match_set_label(root, "Module");
     var index: usize = 0;
-    loop {
-        var done = index == 4097;
-        if done {
-            break;
-        }
+    for(; index != 4097; index++) {
         expansion_test_child(&f, f.result.root, null, "Statement", 1, 0);
-        index++;
     }
     var ran = syntax_expand(&f.input, &f.result);
     var ok = !ran;
@@ -214,13 +203,8 @@ fn expansion_test_nodes(input: SyntaxExpansionInput*, context: void*): bool {
     expansion_test_init(&f, input, context, 3, false);
     var capture = entity_child_at(f.result.root, 0);
     var index: usize = 1;
-    loop {
-        var done = index == 33000;
-        if done {
-            break;
-        }
+    for(; index != 33000; index++) {
         expansion_test_child(&f, capture, null, "x", lr_none(), 7);
-        index++;
     }
     var ran = syntax_expand(&f.input, &f.result);
     var ok = !ran;

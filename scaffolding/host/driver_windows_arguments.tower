@@ -26,9 +26,8 @@ fn driver_windows_quote(out: ByteBuffer*, argument: u8*): bool {
                 if escape {
                     count = count * 2;
                 }
-                while count != 0 {
+                for(; count != 0; count--) {
                     ok &&= bytes_push(out, 92);
-                    count--;
                 }
                 slashes = 0;
                 if end {

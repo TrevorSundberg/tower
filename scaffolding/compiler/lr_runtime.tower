@@ -58,7 +58,7 @@ fn lr_action_insert(values: vector(LRAction)*, value: LRAction*): bool {
         if done {
             break;
         }
-        var middle = high - low;
+        var middle = high -low;
         middle = middle / 2;
         middle = middle + low;
         var less = lr_action_less(&values.data[middle], value);
@@ -80,8 +80,8 @@ fn lr_action_insert(values: vector(LRAction)*, value: LRAction*): bool {
     if !ok {
         return false;
     }
-    var moved = values.length - low;
-    var bytes = moved * sizeof(LRAction);
+    var moved = values.length -low;
+    var bytes = moved *sizeof(LRAction);
     var next = low + 1;
     copy(&values.data[next], &values.data[low], bytes);
     copy(&values.data[low], value, sizeof(LRAction));
@@ -101,22 +101,12 @@ export fn lr_runtime_destroy(value: LRRuntime*): void {
         return;
     }
     var index: usize = 0;
-    loop {
-        var done = index == value.states.length;
-        if done {
-            break;
-        }
+    for(; index != value.states.length; index++) {
         vector_dispose(LRGoto, &value.states.data[index].gotos);
-        index++;
     }
     index = 0;
-    loop {
-        var done = index == value.rows.length;
-        if done {
-            break;
-        }
+    for(; index != value.rows.length; index++) {
         lr_row_destroy(value.rows.data[index]);
-        index++;
     }
     vector_dispose(LRRuntimeState, &value.states);
     vector_dispose(LRRow*, &value.rows);
@@ -133,58 +123,84 @@ fn lr_precedence_choice(source: LRStates*, state: usize, a: LRAction*, b: LRActi
     var exact = a.first == a.last;
     exact &&= b.first == b.last;
     exact &&= a.first == b.first;
-    if !exact { return 0; }
+    if !exact {
+        return 0;
+    }
     var a_shift = a.state != lr_none();
     var b_shift = b.state != lr_none();
     var same = a_shift == b_shift;
-    if same { return 0; }
+    if same {
+        return 0;
+    }
     var reduction = a;
-    if a_shift { reduction = b; }
+    if a_shift {
+        reduction = b;
+    }
     var rule = &source.analysis.rules[reduction.rule];
     var annotated = rule.precedence != 0;
-    if !annotated { return 0; }
+    if !annotated {
+        return 0;
+    }
     var power: u32 = 0;
     var direction: u32 = 0;
     var items = source.states.data[state].items;
     var index: usize = 0;
     loop {
         var done = index == items.values.length;
-        if done { break; }
+        if done {
+            break;
+        }
         var item = &items.values.data[index];
         index++;
         var candidate = &source.analysis.rules[item.rule];
         var eligible = item.position < candidate.count;
-        if !eligible { continue; }
+        if !eligible {
+            continue;
+        }
         var position = candidate.begin + item.position;
         var symbol = &source.analysis.symbols[position];
         eligible = symbol.nonterminal == lr_none();
         eligible &&= symbol.first == a.first;
         eligible &&= symbol.last == a.last;
-        if !eligible { continue; }
+        if !eligible {
+            continue;
+        }
         var missing = candidate.precedence == 0;
-        if missing { return 0; }
+        if missing {
+            return 0;
+        }
         var present = power != 0;
         if present {
             var incompatible = power != candidate.precedence;
             incompatible ||= direction != candidate.associativity;
-            if incompatible { return 0; }
+            if incompatible {
+                return 0;
+            }
         }
         power = candidate.precedence;
         direction = candidate.associativity;
     }
     var missing = power == 0;
-    if missing { return 0; }
+    if missing {
+        return 0;
+    }
     var reduce = rule.precedence > power;
     var equal = rule.precedence == power;
     if equal {
         var incompatible = rule.associativity != direction;
-        if incompatible { return 0; }
+        if incompatible {
+            return 0;
+        }
         var nonassoc = direction == 3;
-        if nonassoc { return 3; }
+        if nonassoc {
+            return 3;
+        }
         reduce = direction == 1;
     }
     var choose_a = reduce != a_shift;
-    if choose_a { return 1; }
+    if choose_a {
+        return 1;
+    }
     return 2;
 }
 
@@ -192,22 +208,22 @@ fn lr_row_normalize(row: LRRow*, conflict: LRConflict*, state: usize, source: LR
     // Precedence never hides a reduce/reduce conflict behind a chosen shift.
     // Validate pairs before merging ranges or dropping a non-associative action.
     var first: usize = 0;
-    while first < row.actions.length {
+    for(; first < row.actions.length; first++) {
         var a = &row.actions.data[first];
         var second = first + 1;
-        while second < row.actions.length {
+        for(; second < row.actions.length; second++) {
             var b = &row.actions.data[second];
-            if b.first > a.last { break; }
-            var same_kind = (a.state == lr_none()) == (b.state == lr_none());
-            if same_kind && (a.state != b.state || a.rule != b.rule) {
+            if b.first > a.last {
+                break;
+            }
+            var same_kind =(a.state == lr_none()) ==(b.state == lr_none());
+            if same_kind &&(a.state != b.state || a.rule != b.rule) {
                 conflict.state = state;
                 copy(&conflict.left, a, sizeof(LRAction));
                 copy(&conflict.right, b, sizeof(LRAction));
                 return;
             }
-            second++;
         }
-        first++;
     }
     var read: usize = 0;
     var count: usize = 0;
@@ -220,7 +236,7 @@ fn lr_row_normalize(row: LRRow*, conflict: LRConflict*, state: usize, source: LR
         var merged = false;
         var present = count != 0;
         if present {
-            var previous = count - 1;
+            var previous = count -1;
             var last = &row.actions.data[previous];
             var same = last.rule == action.rule;
             same &&= last.state == action.state;
@@ -243,9 +259,13 @@ fn lr_row_normalize(row: LRRow*, conflict: LRConflict*, state: usize, source: LR
                     var resolved = choice != 0;
                     if resolved {
                         var second = choice == 2;
-                        if second { copy(last, action, sizeof(LRAction)); }
+                        if second {
+                            copy(last, action, sizeof(LRAction));
+                        }
                         var reject = choice == 3;
-                        if reject { count--; }
+                        if reject {
+                            count--;
+                        }
                         read++;
                         continue;
                     }
@@ -320,11 +340,7 @@ fn lr_row_index(row: LRRow*): bool {
     var singles: usize = 0;
     var index: usize = 0;
     row.reduction = lr_none();
-    loop {
-        var done = index == row.actions.length;
-        if done {
-            break;
-        }
+    for(; index != row.actions.length; index++) {
         var action = &row.actions.data[index];
         var single = action.first == action.last;
         if single {
@@ -334,9 +350,8 @@ fn lr_row_index(row: LRRow*): bool {
                 row.reduction = action.rule;
             }
         }
-        index++;
     }
-    var needed = singles * 2;
+    var needed = singles *2;
     var size: usize = 1;
     loop {
         var enough = size > needed;
@@ -350,9 +365,9 @@ fn lr_row_index(row: LRRow*): bool {
         return false;
     }
     row.direct.length = size;
-    var bytes = size * sizeof(usize);
+    var bytes = size *sizeof(usize);
     fill(row.direct.data, 255, bytes);
-    var mask = size - 1;
+    var mask = size -1;
     index = 0;
     loop {
         var done = index == row.actions.length;
@@ -407,7 +422,7 @@ fn lr_runtime_gotos(state: LRRuntimeState*, input: LRState*, analysis: LRAnalysi
                 if first {
                     break;
                 }
-                var previous = position - 1;
+                var previous = position -1;
                 var sorted = state.gotos.data[previous].nonterminal < entry.nonterminal;
                 if sorted {
                     break;
@@ -427,7 +442,7 @@ fn lr_runtime_build(value: LRRuntime*, source: LRStates*, buckets: vector(usize)
     if !ok {
         return false;
     }
-    var rule_bytes = rule_count * sizeof(LRProduction);
+    var rule_bytes = rule_count *sizeof(LRProduction);
     copy(value.rules.data, source.analysis.rules, rule_bytes);
     value.rules.length = rule_count;
     var count = source.states.length;
@@ -435,10 +450,10 @@ fn lr_runtime_build(value: LRRuntime*, source: LRStates*, buckets: vector(usize)
     if !ok {
         return false;
     }
-    var bytes = count * sizeof(LRRuntimeState);
+    var bytes = count *sizeof(LRRuntimeState);
     fill(value.states.data, 0, bytes);
     value.states.length = count;
-    var bucket_count = count * 2;
+    var bucket_count = count *2;
     bucket_count++;
     ok = vector_reserve(usize, buckets, bucket_count);
     if !ok {
@@ -581,7 +596,7 @@ export fn lr_runtime_goto(value: LRRuntime*, state: usize, nonterminal: usize): 
         if done {
             break;
         }
-        var middle = high - low;
+        var middle = high -low;
         middle = middle / 2;
         middle = middle + low;
         var less = gotos.data[middle].nonterminal < nonterminal;
@@ -603,7 +618,7 @@ export fn lr_runtime_goto(value: LRRuntime*, state: usize, nonterminal: usize): 
 
 export fn lr_runtime_action(value: LRRuntime*, state: usize, id: u32, result: LRAction*): bool {
     var row = value.states.data[state].row;
-    var mask = row.direct.length - 1;
+    var mask = row.direct.length -1;
     var bucket = convert(usize, id);
     bucket = bucket * 16777619;
     bucket = bucket & mask;
@@ -629,7 +644,7 @@ export fn lr_runtime_action(value: LRRuntime*, state: usize, id: u32, result: LR
         if done {
             break;
         }
-        var middle = high - low;
+        var middle = high -low;
         middle = middle / 2;
         middle = middle + low;
         var less = row.actions.data[middle].last < id;
@@ -656,11 +671,7 @@ export fn lr_runtime_action(value: LRRuntime*, state: usize, id: u32, result: LR
 export fn lr_runtime_specialize(value: LRRuntime*, source: LRStates*): void {
     var root: usize = lr_none();
     var index: usize = 0;
-    loop {
-        var done = index == value.rules.length;
-        if done {
-            break;
-        }
+    for(; index != value.rules.length; index++) {
         var candidate = value.rules.data[index].owner == 1;
         if candidate {
             var duplicate = root != lr_none();
@@ -669,7 +680,6 @@ export fn lr_runtime_specialize(value: LRRuntime*, source: LRStates*): void {
             }
             root = index;
         }
-        index++;
     }
     var missing = root == lr_none();
     if missing {
@@ -685,11 +695,7 @@ export fn lr_runtime_specialize(value: LRRuntime*, source: LRStates*): void {
         return;
     }
     index = 0;
-    loop {
-        var done = index == rule.count;
-        if done {
-            break;
-        }
+    for(; index != rule.count; index++) {
         var position = rule.begin + index;
         var symbol = &source.analysis.symbols[position];
         invalid = symbol.nonterminal != lr_none();
@@ -700,7 +706,6 @@ export fn lr_runtime_specialize(value: LRRuntime*, source: LRStates*): void {
         if invalid {
             return;
         }
-        index++;
     }
     var count = rule.count + 1;
     var ok = vector_reserve(usize, &value.sequence_states, count);

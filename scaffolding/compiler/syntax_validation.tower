@@ -75,7 +75,7 @@ fn syntax_rule_find(rules: SyntaxRuleView*, count: usize, name: u8*, length: usi
         if done {
             return lr_none();
         }
-        var middle = high - low;
+        var middle = high -low;
         middle = middle / 2;
         middle = middle + low;
         var rule = &rules[middle];
@@ -145,7 +145,7 @@ fn syntax_validation_location(value: SyntaxValidation*, node: SyntaxNode*): void
 // Reuse a borrowed-name hash set for each alternative. Its capacity is bounded
 // by the largest sequence, without copying capture names or rescanning prefixes.
 fn syntax_validation_captures(value: SyntaxValidation*, count: usize): bool {
-    var size = count * 2;
+    var size = count *2;
     var overflow = size < count;
     if overflow {
         value.allocated = false;
@@ -155,7 +155,7 @@ fn syntax_validation_captures(value: SyntaxValidation*, count: usize): bool {
     value.allocated = vector_reserve(SyntaxNode*, &value.captures, size);
     if value.allocated {
         value.captures.length = size;
-        var bytes = size * sizeof(SyntaxNode*);
+        var bytes = size *sizeof(SyntaxNode*);
         fill(value.captures.data, 0, bytes);
     }
     return value.allocated;
@@ -167,16 +167,10 @@ fn syntax_validation_capture(value: SyntaxValidation*, term: SyntaxNode*): bool 
         return true;
     }
     var hash: usize = 2166136261;
-    var index: usize = 0;
-    loop {
-        var done = index == term.capture.length;
-        if done {
-            break;
-        }
+    for(var index: usize = 0; index != term.capture.length; index++) {
         var byte = convert(usize, term.capture.data[index]);
         hash = hash ^ byte;
         hash = hash * 16777619;
-        index++;
     }
     var size = value.captures.length;
     var unavailable = size == 0;
@@ -358,12 +352,11 @@ fn syntax_validation_imports(value: SyntaxValidation*): bool {
             return false;
         }
         var rule = &value.rules[index];
-        var alternative: usize = 0;
-        while alternative < rule.count {
+        for(var alternative: usize = 0; alternative < rule.count; alternative++) {
             var sequence = syntax_validation_node(value, rule.alternatives[alternative]);
             var item: usize = 0;
             var aliased = false;
-            while item < sequence.items.length {
+            for(; item < sequence.items.length; item++) {
                 var term = syntax_validation_node(value, sequence.items.data[item]);
                 if term.literal {
                     var keyword = syntax_bytes_compare(term.text.data, term.text.length, "as", 2) == 0;
@@ -371,7 +364,6 @@ fn syntax_validation_imports(value: SyntaxValidation*): bool {
                         aliased = true;
                     }
                 }
-                item++;
             }
             if aliased {
                 ok = syntax_validation_required(value, sequence, "ImportDeclaration", "alias");
@@ -379,7 +371,6 @@ fn syntax_validation_imports(value: SyntaxValidation*): bool {
                     return false;
                 }
             }
-            alternative++;
         }
     }
     index = syntax_validation_find(value, "ImportName", 10);
@@ -763,18 +754,13 @@ export fn syntax_validate(rules: SyntaxRuleView*, count: usize, tokens: void**, 
     value.pending = pending;
     value.allocated = true;
     var index: usize = 0;
-    loop {
-        var done = index == count;
-        if done {
-            break;
-        }
+    for(; index != count; index++) {
         pending[index] = null;
-        index++;
     }
     value.allocated = vector_reserve(SyntaxRuleState, &value.states, count);
     var ok = value.allocated;
     if ok {
-        var bytes = count * sizeof(SyntaxRuleState);
+        var bytes = count *sizeof(SyntaxRuleState);
         fill(value.states.data, 0, bytes);
         value.states.length = count;
         ok = syntax_validation_terms(&value);
@@ -791,13 +777,8 @@ export fn syntax_validate(rules: SyntaxRuleView*, count: usize, tokens: void**, 
         ok = syntax_validation_productive(&value);
     }
     index = 0;
-    loop {
-        var done = index == value.states.length;
-        if done {
-            break;
-        }
+    for(; index != value.states.length; index++) {
         vector_dispose(SyntaxDependent, &value.states.data[index].dependents);
-        index++;
     }
     vector_dispose(SyntaxRuleState, &value.states);
     vector_dispose(usize, &value.queue);
@@ -805,13 +786,8 @@ export fn syntax_validate(rules: SyntaxRuleView*, count: usize, tokens: void**, 
     if !value.allocated {
         vector_dispose(u8, error);
         index = 0;
-        loop {
-            var done = index == count;
-            if done {
-                break;
-            }
+        for(; index != count; index++) {
             pending[index] = null;
-            index++;
         }
         return false;
     }

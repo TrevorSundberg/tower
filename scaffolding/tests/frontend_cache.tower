@@ -37,11 +37,7 @@ fn frontend_cache_tests(kinds: FrontendKinds*): usize {
     fill(&fork, 0, sizeof(FrontendCache));
     var ok: bool = true;
     var i: usize = 0;
-    loop {
-        var done = i == 64;
-        if done {
-            break;
-        }
+    for(; i != 64; i++) {
         var node = frontend_test_cache_node(kinds, i);
         var slot = frontend_cache_store(&cache, null, 0, &node, 1);
         entity_release(node);
@@ -50,7 +46,6 @@ fn frontend_cache_tests(kinds: FrontendKinds*): usize {
             ok = false;
             break;
         }
-        i++;
     }
     if ok {
         var node = frontend_test_cache_node(kinds, 0);

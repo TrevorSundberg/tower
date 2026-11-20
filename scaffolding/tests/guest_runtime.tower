@@ -24,31 +24,21 @@ fn check_text(kind: u32, value: u64, width: u32, wanted: u8*, count: usize): voi
     var ok = length == count;
     runtime_check(ok);
     var i: usize = 0;
-    loop {
-        var done = i == count;
-        if done {
-            break;
-        }
+    for(; i != count; i++) {
         ok = output[i] == wanted[i];
         runtime_check(ok);
-        i++;
     }
     ok = output[count] == 165;
     runtime_check(ok);
     fill(&output[0], 165, 80);
-    var short_capacity = count - 1;
+    var short_capacity = count -1;
     length = runtime_format_value(&output[0], short_capacity, kind, value, width);
     ok = length == 0;
     runtime_check(ok);
     i = 0;
-    loop {
-        var done = i == 80;
-        if done {
-            break;
-        }
+    for(; i != 80; i++) {
         ok = output[i] == 165;
         runtime_check(ok);
-        i++;
     }
 }
 
@@ -109,7 +99,7 @@ fn guest_runtime_tests(): void {
     var slots: void*[64];
     var lengths: usize[64];
     var patterns: u8[64];
-    var slot_bytes = sizeof(void*) * 64;
+    var slot_bytes = sizeof(void*) *64;
     fill(&slots[0], 0, slot_bytes);
     var random: u32 = 1900587981;
     var trial: usize = 0;
@@ -156,13 +146,8 @@ fn guest_runtime_tests(): void {
         trial++;
     }
     var i: usize = 0;
-    loop {
-        var done = i == 64;
-        if done {
-            break;
-        }
+    for(; i != 64; i++) {
         guest_heap_free(&heap, slots[i]);
-        i++;
     }
     p = guest_heap_allocate(&heap, 0, 1);
     ok = p != null;
