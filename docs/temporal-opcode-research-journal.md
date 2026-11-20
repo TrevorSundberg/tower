@@ -16343,3 +16343,68 @@ llvm b6a92e02356d808aae4691ddecbf3913f92f8192fea2874528fb0a3e6b06747e;
 cross e8b4f2826b2b964e57f8304cb575991f667d3f7e6ee9eefc01b518ab94f743e3.
 Wall times 107.210 and 83.035 seconds overlap browser validation and are not
 isolated speedup measurements. Main synchronization and publication follow.
+
+## 2026-11-19 — Next task after synchronizing C output, workers and hover
+
+Request: pull/rebase and determine the next useful task. `git pull --rebase`
+fast-forwarded clean main from 24f9aa8 to 4bac421, bringing the Tower-written C
+backend, actual isolated compiler-unit workers and typed/documented hover. No
+implementation change is requested by this assessment. Reviewed the current
+module implementation, language milestone ledger and standalone distribution
+release gates; `todo.txt` is unchanged.
+
+Selected **module-scoped bindings and import aliases** as the next complete
+slice. This follows the existing bindings/dependency milestone and the preceding
+dotted-import work. Native runtime/session migration remains necessary for a
+standalone compiler, while native worker dispatch additionally needs function
+address/call contracts. Module ownership fixes a demonstrated language limitation
+now and supplies the correct identity/visibility boundary for later dependency
+queries; it is not itself an incremental compiler or a standalone release.
+
+Reproduced both limitations using the current published parser from Pages
+09eadd9ce669fec8df68239bdab357b4fd99f78b, SHA-256
+c39aed079c5a9e3d292eca0f696f80f5c1e74b2d75bc103f51e16a4fceec9ded.
+The probe uses Node v21.7.3 on Linux, `loadTower` from
+`playground/src/tower-host.mjs`, and the same commit's Bedrock/Foundation/Tower
+sources. It supplies source files with `configureModules` (entry `main.tower`,
+library `.`), compiles, executes at most 10,000 steps, and destroys each handle.
+Command: `node build/next-task/import-probe.mjs`; exact observed results are in
+`build/next-task/import-probe.log` (ignored investigation artifacts).
+
+Reproduction inputs/results:
+
+- `left/tools.tower`: `import tower; fn helper(): i32 { return 1; }`.
+  `right/tools.tower`: the same declaration returning 2. Entry:
+  `import tower; import left.tools; import right.tools;`. Compilation fails with
+  `Missing or duplicate function 'helper'` in `right/tools.tower` at byte 14.
+  Path identity already distinguishes these modules; binding identity does not.
+- `left.tower`: `import tower; fn left_value(): i32 { return hidden(); }`.
+  `right.tower`: `import tower; fn hidden(): i32 { return 42; }`. Both are supplied
+  as available source inputs. Entry `import tower; import left;
+  print(left_value());` correctly reports `Unknown function 'hidden'` in
+  `left.tower` at byte 44. Adding only `import right;` to the entry makes the
+  unchanged left module compile and print `42\n`, despite left never importing
+  right. All three observed outcomes are asserted by the probe.
+
+Root cause: `frontend-compilation.tower` attaches all dependency statements to
+`program.root` and passes one collected root list into `semantic_compile`.
+`SemanticContext` has shared function/type lookup tables without per-module
+visibility. The loader already retains canonical paths, dependency edges and
+source entities; preserve these owners through binding rather than inventing
+another semantic graph or changing path syntax.
+
+Added a clearly marked proposal to `docs/modules.md`: retain owner/import
+relationships on shared entities; add aliases/qualified lookup; migrate accidental
+cross-module dependencies in compiler/library sources; preserve forward/lexical
+bindings, once-only ordered effects, grammar composition and deterministic
+compilable Foundation. Completion includes collision/visibility/diamond tests,
+types/templates, tooling, interpreter/LLVM/C agreement and compiler successor
+activation/reset. Selective imports, separate object builds and fine-grained
+query caching remain subsequent work. No alias syntax or module isolation was
+implemented in this assessment.
+
+Publication validation follows below. This documentation-only change has no
+served asset changes; reuse the exact current Pages artifacts rather than stale
+local compiler builds. The clean existing detached Pages worktree was advanced
+with `git merge --ff-only origin/gh-pages`; its complete published contents were
+copied into the ignored `playground/dist/` for manifest-based live verification.

@@ -141,6 +141,45 @@ transitive source dependencies. Build fragments generate small import manifests
 and consume these depfiles rather than concatenating source or scraping native
 enum declarations. `--bedrock` and `--foundation` still select builtin overrides.
 
+## Next milestone: module scopes and aliases (planned)
+
+File resolution now preserves canonical module identity, but semantic compilation
+still collects every imported module's statements into one program-wide binding
+environment. The next module task is to preserve that ownership during name
+resolution. This is the bindings milestone in the
+[language plan](tower-language-plan.md#dependency-order-and-milestones), not
+implemented syntax yet.
+
+Two independent files should be able to define `helper` without a duplicate-name
+error. A module must also resolve its function bodies from its own declarations
+and explicit imports: adding a sibling import to the entry must not silently
+make that sibling's functions visible inside another module.
+
+The first complete slice should:
+
+1. Retain each declaration's canonical module owner and import relationships on
+   the existing shared entities. Derive per-module lookup indexes from them;
+   preserve forward declarations and lexical local scopes.
+2. Add an alias form for either path spelling, such as the proposed
+   `import left.tools as left;` and `import "right/tools" as right;`, with
+   `left.helper()` and `right.helper()` resolving to distinct entities. Bind by
+   canonical module identity, not filename basename or alias text.
+3. Make ordinary imports establish visibility in the importing module. Audit and
+   migrate compiler/library imports that currently rely on accidental transitive
+   or sibling visibility. Keep source visibility separate from foreign-symbol
+   `export`; explicit selective imports/re-exports can follow this slice.
+4. Preserve dependency-first, once-only initialization and file-local grammar
+   composition. Keep deterministic compilable Foundation output with unique
+   spellings for distinct bindings, plus original names/source metadata for
+   diagnostics, formatting, completion and hover.
+
+Completion requires same-basename and same-local-name collision tests, rejection
+of undeclared sibling access, alias ambiguity diagnostics, diamond effects,
+forward/type/template bindings, canonical Foundation round trips, agreement
+between both interpreters and LLVM/C output, and successive browser compiler
+builds including activation/reset. This is a language/binding change; separate
+object compilation and declaration-level incremental caching remain later work.
+
 ## Playground
 
 The first Tower file is the project entry. Other files are available to imports;
