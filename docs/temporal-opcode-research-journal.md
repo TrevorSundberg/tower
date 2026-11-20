@@ -21381,3 +21381,49 @@ syntax sessions. No claim of whole-compiler/native-runtime retirement or arbitra
 shared-world parallel parsing. Sanitizer and whole-repository formatting sweeps
 remain temporarily skipped. Parser orchestration and its native fixture files
 are actually retired from every build and the published compiler recipe.
+
+Final-pull correction: after verifying publication 260e410, main advanced with
+the CLI/runtime owner's a668f41 and 451cc14. Preserved both journal histories.
+These are executable changes, so the earlier proposed no-op is superseded for
+the combined build. Rebuilt native and parser Wasm in this task's existing
+caches and rebuilt both backend reactors against the new runtime archive. No
+CLI/runtime implementation edits were made here. Enabled the owner's existing
+TOWER_DRIVER_TESTS and TOWER_ALLOCATOR_TESTS in our native cache. Focused CTest
+allocator/runtime-ABI/frontend/driver checks pass 4/4 (10.39 s), and all 75
+parser/diagnostic/completion transport tests pass (15.47 s). Native deployment
+through build-native.sh now has SHA-256
+caff6d8684c9b47271c866b0361bc063ea195a4ba72b0e652a13ea77a3883640.
+Evidence: runtime-integrated-{native,wasm,tests,parser-node,backends}.log under
+build/parser-retirement. Publication 260e410 remains valid for the parser port;
+combined successor/package and browser validation continue before replacing it.
+
+Combined runtime integration also passes all 146 backend/hover/worker Node checks
+(24.71 s). Before a second publication, the runtime owner published newer
+gh-pages 82b4ef2d5e7f7f1f774f9eb6685393eb74cfd302 from 451cc14. Preserve it.
+Verified source ancestry includes parser implementation 7262faa and all 204
+packaged Tower source files exactly match this checkout. The recipe contains the
+parser integration and fixture units, and its manifest preserves the parser
+retirement metadata. Downloaded its exact immutable-commit assets, checked every
+SHA-256, saved our earlier distribution as build/parser-retirement/parser-release-dist,
+and selected the newer package as the expected hosted verification payload.
+Audit: newer-deployment-audit.json and newer-dist under build/parser-retirement.
+The newer manifest SHA-256 is
+a413b46045a4cf7e2c761abdefa5f3cf486a9a4ca150f817fb4d9985b6559318.
+No second Pages push will overwrite that newer combined deployment.
+
+Our independently rebuilt combined recipe also passes both edited-semantic
+successor generations using 2 then 4 isolated workers with identical reactor
+bytes. Results and hashes are in runtime-integrated-successors.log and
+runtime-successors/generation{1,2}.json. This confirms parser integration with
+the runtime owner's ABI; it does not assert byte equality between independent
+build environments. Hosted verification of the newer package follows.
+
+Final combined publication verification passes for preserved gh-pages 82b4ef2:
+all 70 exact hosted assets and the complete desktop/mobile/default-target flows
+pass. Logs: build/parser-retirement/newer-live-verification.log and
+newer-live-report.json. Both parser retirement and the runtime owner's newer
+changes are present in the published compiler. No additional Pages push was
+needed or made. Our combined successor sizes are 873208/52097749/63655111
+bytes, with identical two-/four-worker hashes; this independent build is retained
+as evidence, not substituted for the newer published bytes. Final work is only
+this append-only journal record and a normal source sync/push.
