@@ -20533,3 +20533,106 @@ deployed-runtime}.log under build/runtime-port. Combined native SHA-256:
 5c960219a6115abbf490d2c631afa956c949a4aba49ecbd5bcddd011bde7bdfc.
 The hosted manifest correctly retains provenance for its earlier validated
 native build; no newer template payload was published by this allocator turn.
+Retained grammar-emission ownership (2026-11-20): pull/rebase main ac6c13b; keep
+sanitizer and source-format sweeps skipped. Retain the existing Tower emission
+result instead of copying its production rows into two C++ maps and temporary
+remapping/diagnostic arrays. The rows are derived indexes over the existing ECS
+source/parser entities, not another grammar model. Input rule views are name
+sorted; append-only production construction makes one row vector ordered by
+both index and (name, alternative), with generated-helper gaps preserved. Add
+read-only binary lookups, borrowed rows, independent result lifetime/failure tests,
+and discard construction-only FIRST/work-queue scratch before retaining results.
+No allocations, globals or component mutations are needed during these lookups.
+The enclosing revision continues to pin source entities; full session ownership
+and shared entity-query-cache synchronization are separate remaining work.
+
+Mechanical declaration-only Tower modules expose the existing rule/emission ABI
+without importing compiler implementations into the focused test executable.
+Production consumers and diagnostic rendering use the same emission-row type.
+Native edits connect existing calls to these Tower views and delete copied maps.
+Retire the four old TOWER_EXPANSION_SEED .inc paths after their Tower successors
+have been validated repeatedly, and delete the obsolete excluded seed/stage1
+CMake targets. Configuration already requires an explicit import-capable Tower
+bootstrap; those targets no longer provide that contract. This is retirement,
+not a new native fallback or shim. Keep the still-used differential references.
+Validate the native compiler and focused tests first, then the browser/IDE,
+replacement diagnostics, retained completions and parallel successor builds.
+Use the current bootstrap and isolated units; batch publication after the slice.
+
+Retained emission implementation and validation (2026-11-20): production
+syntax.cpp now borrows one Tower-owned production vector for inspection,
+diagnostics and template remapping. Lookups are binary, allocation-free and
+read-only; source/parser entities remain pinned by the existing revision owner.
+Construction-only FIRST sets and queues are released before returning emission.
+Declaration-only syntax-view and syntax-emission-types modules avoid duplicating
+compiler implementations in the focused test object.
+
+Removed the four obsolete syntax seed .inc files and eight other bootstrap .cpp
+implementations used solely by the retired seed/stage1 targets. Kept all native
+references still used by differential tests. The existing bootstrap comparison
+script now connects its predecessor stage to the already-required supplied Tower
+bootstrap, not the removed native targets. No new C/C++ implementation or shim.
+Current physical inventory: production 4878 lines/51 files, bootstrap/reference
+2996/14, native tests 4116/20, research 774/4; total 12764. This slice removes 1668
+net native lines (1550 obsolete bootstrap, 118 production/header). syntax.cpp is
+1246 lines, parser.cpp 446. Report: native-lines-syntax-revision.json.
+
+Focused production-export tests cover owned names after temporary input arrays
+are overwritten, generated-rule index gaps, absent keys, repeated allocation-free
+reads, independent revision teardown and every reached allocation failure.
+Initial fixture fixes: Tower strings do not accept the C-style zero escape;
+FrontendKinds requires a direct grammar-types import. A failure-injection test
+initially assumed the warmed allocation count stayed constant across retries.
+Entity component-index capacity can grow during partial attempts: budget 114
+saw only 114 allocation calls, so no failure was injected. The test now checks
+actual calls and requires null whenever the injected call was reached; successful
+shorter attempts must have the same production mapping. All temporary diagnostic
+prints were removed. No sanitizer/formatter sweep was run.
+
+Native towerc and frontend tests pass (0.06 s); parser/LLVM/cross Wasm rebuilds
+pass. 104 Node checks pass for diagnostics, hover, module scopes, replacements
+and completion. Two browser compiler generations using 2 then 4 workers pass
+with identical reactor bytes and edited-semantic behavior: 875965/52071169/
+63628537 bytes. Evidence: build/language-next/syntax-revision-{native,tests,node,
+parser,backends,successors}.log. Unit compilation is parallel; this read-only
+index change does not establish parallel mutation or within-unit phase safety.
+
+Publication audit fetched main 5b77c88 (journal-only) and gh-pages df2c247. The
+live release includes additional hover work recorded as source 3e606d16e821f6e4d55a86b8c630dd608f3f6a2a.
+Both abbreviated and full-hash fetches fail; GitHub reports "not our ref" for the
+full hash. Preserve that published work. Its manifest-verified compiler project
+contains six differing/new Tower hover modules; recover their exact source into
+main before building the combined release, with a separate provenance commit.
+Do not publish an older payload over those features. The first performance run
+shared CPU with successor builds and is not evidence. The isolated paired rerun
+against the saved pre-IDE reactor produced identical objects and median changes
+of -0.44% templates, -3.99% layout, -2.26% compiler-host. This baseline includes
+intervening IDE/runtime changes; remeasure against the deployed predecessor after
+recovering its hover modules. Deployment is still pending for this slice.
+
+Publication dependency resolved by upstream: the requested final pull brought
+07f6973 and 81fe722, including the published hover modules and the subsequent
+pointed-to-store correction, onto main. No artifact-source recovery is needed.
+Both journal histories are preserved. The older unavailable 3e606d1 hash was
+rebased by its owner; keep the current upstream commits and rebuild against them.
+
+Bootstrap-script trial failed before comparison: build-native.sh hardcodes clang++,
+which differs from this cache's previous compiler setting. CMake reset its cache and
+lost the requested options during compiler switching. Restore an explicit
+host compiler configuration; do not attribute this configuration failure
+to the Tower emission port. Avoid this broad convenience script for focused
+iteration; use the configured cache and supplied bootstrap directly.
+
+Final integrated checks: native towerc and frontend suite rebuilt with explicit
+/usr/bin/clang++ (21.1.8), LLVM 19 and the existing Tower bootstrap; frontend
+passes in 0.05 s. The attempted clang++-19 path does not exist on this host;
+the earlier guess about its previous compiler version was incorrect. Parser,
+LLVM and cross-target Wasm rebuilds pass after the hover integration. All 109
+selected Node tests pass. Direct predecessor/successor UTF-8 compilation produces
+identical optimized IR and object bytes for Linux x64, Windows x64, macOS ARM64
+and wasm32. Bypassing build-native.sh avoids changing configured compilers.
+Logs: syntax-revision-rebased-{native,tests,parser,backends,node}.log and
+syntax-revision-bootstrap-direct.log. The next pull added eea2cc6, journal-only;
+both appended histories are retained. User requests two independent handoff
+prompts and a stop after synchronization. Reserve syntax.cpp/session revision
+ownership for this agent; hand off parser.cpp and native CLI/runtime retirement.

@@ -1,0 +1,163 @@
+import tower;
+import '../library/vector';
+import '../compiler/syntax-view';
+import '../compiler/syntax-emission-types';
+import '../compiler/syntax-types';
+import '../compiler/component-kinds';
+import '../compiler/grammar-types';
+import 'frontend-world';
+import 'frontend-format';
+import 'frontend-syntax-preview';
+
+extern fn syntax_emit(input: SyntaxEmissionInput*): void*;
+extern fn syntax_emission_destroy(value: void*): void;
+extern fn syntax_emission_production_count(value: void*): usize;
+extern fn syntax_emission_productions(value: void*): SyntaxEmissionProduction*;
+extern fn syntax_emission_find_index(value: void*, index: usize): SyntaxEmissionProduction*;
+extern fn syntax_emission_find_name(value: void*, name: u8*, alternative: usize): usize;
+
+// Exercise production exports against shared grammar components in an isolated
+// world. Emission owns its rows/names; the caller pins the source entities.
+fn frontend_emission_tests(): void {
+    var baseline = tower_test_buffer_count();
+    var world = compiler_world_create();
+    var store = compiler_world_store(world);
+    var kinds: FrontendKinds;
+    frontend_world_check(frontend_world_test_kinds(world, &kinds));
+    var source = entity_create(store);
+    var alternatives: void*[3];
+    var i: usize = 0;
+    while i < 3 {
+        alternatives[i] = frontend_format_child(store, source, null);
+        var data = preview_syntax(world, alternatives[i]);
+        data.kind = convert(u32, SyntaxKind.Alternative);
+        i = i + 1;
+    }
+    var term_entity = frontend_format_child(store, alternatives[0], null);
+    var term = preview_syntax(world, term_entity);
+    term.kind = convert(u32, SyntaxKind.Term);
+    term.literal = true;
+    term.repetition = 43;
+    frontend_world_check(bytes_append(&term.text, "x", 1));
+    var first = preview_syntax(world, alternatives[0]);
+    frontend_world_check(vector_push(void*, &first.items, term_entity));
+    var names: u8[4];
+    fill(&names, 0, 4);
+    names[0] = 65;
+    names[2] = 66;
+    var rules: SyntaxRuleView[2];
+    rules[0].name = &names[0];
+    rules[0].name_length = 1;
+    rules[0].alternatives = &alternatives[0];
+    rules[0].count = 2;
+    rules[1].name = &names[2];
+    rules[1].name_length = 1;
+    rules[1].alternatives = &alternatives[2];
+    rules[1].count = 1;
+    var input: SyntaxEmissionInput;
+    fill(&input, 0, sizeof(SyntaxEmissionInput));
+    input.rules = &rules[0];
+    input.count = 2;
+    input.syntax_kind = kinds.syntax;
+    input.rule_kind = kinds.rule;
+    input.reference_kind = kinds.reference;
+    input.string_kind = kinds.string;
+    input.range_kind = kinds.range;
+    input.root = entity_create(store);
+    var revision = syntax_emit(&input);
+    var ok = revision != null;
+    frontend_world_check(ok);
+    var rows = syntax_emission_productions(revision);
+    ok = syntax_emission_production_count(revision) == 3;
+    frontend_world_check(ok);
+    var first_root = input.root;
+    input.root = entity_create(store);
+    var second = syntax_emit(&input);
+    ok = second != null;
+    frontend_world_check(ok);
+    // Warm entity/query capacity before counting an emission's temporary work.
+    var second_root = input.root;
+    input.root = entity_create(store);
+    var probe_allocations = tower_test_buffer_allocations();
+    var probe = syntax_emit(&input);
+    probe_allocations = tower_test_buffer_allocations() - probe_allocations;
+    ok = probe != null;
+    frontend_world_check(ok);
+    syntax_emission_destroy(probe);
+    entity_release(input.root);
+    var buffers = tower_test_buffer_count();
+    var budget: usize = 0;
+    while budget < probe_allocations {
+        input.root = entity_create(store);
+        var actual = tower_test_buffer_allocations();
+        tower_test_buffer_fail_after(budget);
+        probe = syntax_emit(&input);
+        actual = tower_test_buffer_allocations() - actual;
+        tower_test_buffer_fail_after(frontend_world_unlimited());
+        // Retained component-index capacity can remove allocations on retry.
+        // Require failure only when this attempt reached the injected call.
+        var injected = actual > budget;
+        if injected {
+            ok = probe == null;
+            frontend_world_check(ok);
+        } else {
+            ok = probe != null;
+            frontend_world_check(ok);
+            ok = syntax_emission_production_count(probe) == 3;
+            frontend_world_check(ok);
+            ok = syntax_emission_find_name(probe, "B", 0) == rows[2].index;
+            frontend_world_check(ok);
+        }
+        syntax_emission_destroy(probe);
+        entity_release(input.root);
+        ok = tower_test_buffer_count() == buffers;
+        frontend_world_check(ok);
+        budget = budget + 1;
+    }
+    // None of these temporary arrays are retained by either revision.
+    var rule_bytes = sizeof(SyntaxRuleView) * 2;
+    fill(&rules, 0, rule_bytes);
+    fill(&names, 0, 4);
+    var allocations = tower_test_buffer_allocations();
+    var repeat: usize = 0;
+    while repeat < 64 {
+        i = 0;
+        while i < 3 {
+            ok = syntax_emission_find_index(revision, rows[i].index) == &rows[i];
+            frontend_world_check(ok);
+            ok = syntax_emission_find_name(revision, rows[i].name, rows[i].alternative) == rows[i].index;
+            frontend_world_check(ok);
+            i = i + 1;
+        }
+        ok = syntax_emission_find_name(revision, "A", 0) == rows[0].index;
+        frontend_world_check(ok);
+        ok = syntax_emission_find_name(revision, "B", 0) == rows[2].index;
+        frontend_world_check(ok);
+        ok = syntax_emission_find_name(revision, "A", 2) == frontend_world_unlimited();
+        frontend_world_check(ok);
+        ok = syntax_emission_find_name(revision, "Missing", 0) == frontend_world_unlimited();
+        frontend_world_check(ok);
+        ok = syntax_emission_find_index(revision, frontend_world_unlimited()) == null;
+        frontend_world_check(ok);
+        repeat = repeat + 1;
+    }
+    // Repetition helpers occupy indices between source alternatives.
+    var gap = rows[0].index + 1;
+    ok = gap < rows[1].index;
+    frontend_world_check(ok);
+    ok = syntax_emission_find_index(revision, gap) == null;
+    frontend_world_check(ok);
+    ok = tower_test_buffer_allocations() == allocations;
+    frontend_world_check(ok);
+    var b = rows[2].index;
+    syntax_emission_destroy(revision);
+    entity_release(first_root);
+    ok = syntax_emission_find_name(second, "B", 0) == b;
+    frontend_world_check(ok);
+    syntax_emission_destroy(second);
+    entity_release(second_root);
+    entity_release(source);
+    frontend_world_check(compiler_world_dispose(world));
+    ok = tower_test_buffer_count() == baseline;
+    frontend_world_check(ok);
+}

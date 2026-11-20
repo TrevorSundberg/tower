@@ -1,6 +1,7 @@
 import tower;
 import 'format-types';
 import 'frontend-diagnostic-types';
+import 'syntax-emission-types';
 
 // Borrowed presentation views of the existing LR diagnostic and revision
 // indexes. Entities remain authoritative; this call does not mutate either.
@@ -12,7 +13,6 @@ struct SyntaxDiagnosticOption {
     contexts: FrontendRulePosition*;
     count: usize;
 }
-struct SyntaxDiagnosticProduction { index: usize; name: u8*; }
 struct SyntaxDiagnosticInput {
     source: u8*;
     size: usize;
@@ -24,7 +24,7 @@ struct SyntaxDiagnosticInput {
     count: usize;
     literals: u32*;
     literal_count: usize;
-    productions: SyntaxDiagnosticProduction*;
+    productions: SyntaxEmissionProduction*;
     production_count: usize;
     repairs: bool;
     complete: bool;

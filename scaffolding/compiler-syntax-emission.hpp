@@ -33,6 +33,11 @@ size_t syntax_emission_name_count(const SyntaxEmission*);
 void syntax_emission_name(const SyntaxEmission*, size_t, SyntaxEmissionName*);
 size_t syntax_emission_production_count(const SyntaxEmission*);
 void syntax_emission_production(const SyntaxEmission*, size_t, SyntaxEmissionProduction*);
+// Borrowed immutable rows, valid for the emission's lifetime. Lookup does not
+// allocate or mutate shared entities; the caller keeps source entities pinned.
+const SyntaxEmissionProduction* syntax_emission_productions(const SyntaxEmission*);
+const SyntaxEmissionProduction* syntax_emission_find_index(const SyntaxEmission*, size_t);
+size_t syntax_emission_find_name(const SyntaxEmission*, const char*, size_t);
 size_t syntax_emission_helper_count(const SyntaxEmission*);
 void syntax_emission_helper(const SyntaxEmission*, size_t, SyntaxEmissionHelper*);
 }

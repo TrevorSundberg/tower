@@ -5,8 +5,8 @@ bash "$repo/playground/scripts/build-native.sh"
 native="${TOWER_NATIVE_BUILD:-$HOME/.cache/tower/native}"
 out="$repo/build/bootstrap-check"
 mkdir -p "$out"
-# A production compiler already uses Tower-written utilities when it reads the
-# utility source again. Compare its output with the independent C++ seed.
+# Compare the supplied import-capable Tower bootstrap with its built successor.
+bootstrap="$(bash "$repo/playground/scripts/build-bootstrap.sh")"
 if [ "$#" -eq 0 ]; then set -- utf8 bytes entities parser-nodes host interpreter semantics; fi
 for utility in "$@"; do
   case "$utility" in
@@ -21,10 +21,9 @@ for utility in "$@"; do
   if [ "$utility" = interpreter ]; then source="$native/tower-compiler-interpreter.tower"; fi
   if [ "$utility" = semantics ]; then source="$native/tower-compiler-semantics.tower"; fi
   for target in x86_64-pc-linux-gnu wasm32-unknown-unknown x86_64-pc-windows-msvc aarch64-apple-darwin; do
-    for stage in seed tower; do
+    for stage in bootstrap tower; do
       compiler="$native/towerc"
-      if [ "$stage" = seed ]; then compiler="$native/towerc-seed"; fi
-      if { [ "$utility" = parser-nodes ] || [ "$utility" = interpreter ] || [ "$utility" = semantics ]; } && [ "$stage" = seed ]; then compiler="$native/towerc-stage1"; fi
+      if [ "$stage" = bootstrap ]; then compiler="$bootstrap"; fi
       "$compiler" "$source" --library --target "$target" \
         --bedrock "$repo/scaffolding/bedrock.tower" --foundation "$repo/scaffolding/foundation.tower" \
         --optimized-ir "$out/$utility-$target-$stage.ll" -o "$out/$utility-$target-$stage.o"
@@ -86,8 +85,8 @@ symbols = {line.split()[-1].lstrip('_') for line in pathlib.Path(sys.argv[2]).re
 assert symbols <= allowed, f'Unexpected runtime dependencies: {symbols - allowed}'
 PY
     done
-    cmp "$out/$utility-$target-seed.ll" "$out/$utility-$target-tower.ll"
-    cmp "$out/$utility-$target-seed.o" "$out/$utility-$target-tower.o"
+    cmp "$out/$utility-$target-bootstrap.ll" "$out/$utility-$target-tower.ll"
+    cmp "$out/$utility-$target-bootstrap.o" "$out/$utility-$target-tower.o"
     printf 'Bootstrap utility agreement: %s %s\n' "$utility" "$target"
   done
 done

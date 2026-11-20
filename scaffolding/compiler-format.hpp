@@ -17,12 +17,12 @@ struct SyntaxDiagnosticOption {
   uint32_t id; const char* label; bool insertion, completes;
   const ParserRulePosition* contexts; size_t count;
 };
-struct SyntaxDiagnosticProduction { size_t index; const char* name; };
+struct SyntaxEmissionProduction;
 struct SyntaxDiagnosticInput {
   const char* source; size_t size, cursor, offset, insertion_offset;
   const char* original; const SyntaxDiagnosticOption* options; size_t count;
   const uint32_t* literals; size_t literal_count;
-  const SyntaxDiagnosticProduction* productions; size_t production_count;
+  const SyntaxEmissionProduction* productions; size_t production_count;
   bool repairs, complete, at_start, statements;
 };
 struct SyntaxDiagnosticText { TowerFormatResult result; size_t production; bool multiple, insertion; };

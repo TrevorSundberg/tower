@@ -4,6 +4,7 @@ import 'format-api';
 import 'format-parser';
 import 'parser-markers';
 import 'format-diagnostic-types';
+import 'syntax-emission-types';
 
 const SyntaxDiagnosticTokenLimit: usize = 48;
 const SyntaxDiagnosticChoiceLimit: usize = 6;
@@ -90,7 +91,7 @@ fn format_diagnostic_same_name(left: u8*, right: u8*): bool {
 
 // Input rows are sorted by production index. No map/set allocations or global
 // caches on this error path, and no heuristic selection among different rules.
-fn format_diagnostic_production(input: SyntaxDiagnosticInput*, index: usize): SyntaxDiagnosticProduction* {
+fn format_diagnostic_production(input: SyntaxDiagnosticInput*, index: usize): SyntaxEmissionProduction* {
     var low: usize = 0;
     var high = input.production_count;
     while low < high {

@@ -777,14 +777,13 @@ remains the interchange format. Temporary native adapters in `core.cpp`,
 `core-nodes.cpp` and `compiler-semantic.hpp` load parser sessions, expose components,
 and marshal the existing query interfaces.
 
-CMake compiles these ordinary Tower modules to the compiler host's target. No
-project-language generator is needed to build them. Imports remain future work;
-composition reuses the original component declarations verbatim. The frozen
-`bootstrap/core-seed.cpp` and `bootstrap/core-nodes-seed.cpp` are used only by the
-transitional seed/stage1 compiler and reference tests. Production native and Wasm
-compilers use the Tower implementation. Retiring those bootstrap sources still
-requires the portable compiler distribution; this change does not claim complete
-compiler self-hosting or a fully interpreted parser/host integration.
+CMake compiles these ordinary Tower modules to the compiler host's target using
+explicit Tower imports and a supplied import-capable Tower bootstrap. The unused
+native seed/stage1 targets and their unreferenced support implementations have
+been retired. `bootstrap/core-seed.cpp` remains a semantic differential reference;
+production native and Wasm compilers use the Tower implementation. Portable
+compiler distribution is still required; this does not establish a source-only
+bootstrap or a fully interpreted parser/host integration.
 
 The native semantic differential suite compares fields, bindings, layout, order,
 effects and lifetime indexes against the reference pass for both pointer widths.

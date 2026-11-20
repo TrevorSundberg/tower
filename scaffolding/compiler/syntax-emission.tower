@@ -1,3 +1,5 @@
+import 'syntax-view';
+import 'syntax-emission-types';
 import tower;
 import 'lr-analysis';
 import 'lr-grammar';
@@ -15,52 +17,6 @@ import '../library/vector';
 extern fn entity_create_related(node: void*): void*;
 
 extern fn entity_attach(child: void*, parent: void*, name: u8*): bool;
-
-struct SyntaxEmissionLiteral {
-    text: u8*;
-    length: usize;
-    id: u32;
-}
-
-struct SyntaxEmissionInput {
-    rules: SyntaxRuleView*;
-    count: usize;
-    tokens: void**;
-    token_count: usize;
-    reserved: u8**;
-    reserved_count: usize;
-    literals: SyntaxEmissionLiteral*;
-    literal_count: usize;
-    category: u8*;
-    root: void*;
-    syntax_kind: void*;
-    rule_kind: void*;
-    reference_kind: void*;
-    string_kind: void*;
-    range_kind: void*;
-}
-
-struct SyntaxEmissionName {
-    text: u8*;
-    length: usize;
-    wrapper: u8*;
-    literal: u32;
-    used: bool;
-    declaration: bool;
-    start: bool;
-}
-
-struct SyntaxEmissionProduction {
-    name: u8*;
-    alternative: usize;
-    index: usize;
-}
-
-struct SyntaxEmissionHelper {
-    name: u8*;
-    source: void*;
-    capture: bool;
-}
 
 struct SyntaxEmissionEntry {
     text: vector(u8);
@@ -1048,6 +1004,18 @@ fn emission_declarations(value: SyntaxEmission*): void {
     emission_starts(value, "ImportDeclaration");
 }
 
+fn emission_discard_scratch(value: SyntaxEmission*): void {
+    var index: usize = 0;
+    while index < value.states.length {
+        vector_dispose(usize, &value.states.data[index].first);
+        index = index + 1;
+    }
+    vector_dispose(SyntaxEmissionState, &value.states);
+    vector_dispose(usize, &value.queue);
+    vector_dispose(usize, &value.terminals);
+    vector_dispose(u8, &value.scratch);
+}
+
 export fn syntax_emission_destroy(value: SyntaxEmission*): void {
     var missing = value == null;
     if missing {
@@ -1064,23 +1032,11 @@ export fn syntax_emission_destroy(value: SyntaxEmission*): void {
         free(entry);
         index = index + 1;
     }
-    index = 0;
-    loop {
-        var done = index == value.states.length;
-        if done {
-            break;
-        }
-        vector_dispose(usize, &value.states.data[index].first);
-        index = index + 1;
-    }
+    emission_discard_scratch(value);
     vector_dispose(SyntaxEmissionEntry*, &value.names);
     vector_dispose(usize, &value.buckets);
     vector_dispose(SyntaxEmissionProduction, &value.productions);
     vector_dispose(SyntaxEmissionHelper, &value.helpers);
-    vector_dispose(SyntaxEmissionState, &value.states);
-    vector_dispose(usize, &value.queue);
-    vector_dispose(usize, &value.terminals);
-    vector_dispose(u8, &value.scratch);
     free(value);
 }
 
@@ -1104,6 +1060,7 @@ export fn syntax_emit(input: SyntaxEmissionInput*): SyntaxEmission* {
         return null;
     }
     value.input = null;
+    emission_discard_scratch(value);
     return value;
 }
 
@@ -1128,6 +1085,53 @@ export fn syntax_emission_name(value: SyntaxEmission*, index: usize, out: Syntax
 
 export fn syntax_emission_production_count(value: SyntaxEmission*): usize {
     return value.productions.length;
+}
+
+// Immutable derived rows after syntax_emit returns. They share the retained
+// name storage, never borrow the caller's temporary rule-view/name arrays.
+// Sorted input rules and append-only entity construction make the same rows
+// ordered by both production index and (name, alternative). Generated helpers
+// leave gaps in production indices and do not need a second sparse map.
+export fn syntax_emission_productions(value: SyntaxEmission*): SyntaxEmissionProduction* {
+    return value.productions.data;
+}
+
+export fn syntax_emission_find_index(value: SyntaxEmission*, index: usize): SyntaxEmissionProduction* {
+    var low: usize = 0;
+    var high = value.productions.length;
+    while low < high {
+        var middle = high - low;
+        middle = middle / 2;
+        middle = middle + low;
+        var row = &value.productions.data[middle];
+        var found = row.index == index;
+        if found { return row; }
+        var before = row.index < index;
+        if before { low = middle + 1; } else { high = middle; }
+    }
+    return null;
+}
+
+export fn syntax_emission_find_name(value: SyntaxEmission*, name: u8*, alternative: usize): usize {
+    var low: usize = 0;
+    var high = value.productions.length;
+    var length = syntax_text_length(name);
+    while low < high {
+        var middle = high - low;
+        middle = middle / 2;
+        middle = middle + low;
+        var row = &value.productions.data[middle];
+        var order = syntax_bytes_compare(row.name, syntax_text_length(row.name), name, length);
+        var same_name = order == 0;
+        if same_name {
+            var found = row.alternative == alternative;
+            if found { return row.index; }
+        }
+        var before = order < 0;
+        if same_name { before = row.alternative < alternative; }
+        if before { low = middle + 1; } else { high = middle; }
+    }
+    return lr_none();
 }
 
 export fn syntax_emission_production(value: SyntaxEmission*, index: usize, out: SyntaxEmissionProduction*): void {

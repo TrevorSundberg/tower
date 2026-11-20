@@ -1,3 +1,4 @@
+import '../compiler/syntax-view';
 import tower;
 import 'syntax-emission';
 import '../compiler/lr-tree';

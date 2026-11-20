@@ -1,3 +1,4 @@
+import 'syntax-view';
 import tower;
 import 'lr-analysis';
 import 'regex-lowering';
@@ -8,13 +9,6 @@ import '../library/vector';
 
 // Disposable revision analysis over shared grammar entities. Only lookup and
 // dependency indexes live here; declarations remain the authoritative nodes.
-struct SyntaxRuleView {
-    name: u8*;
-    name_length: usize;
-    alternatives: void**;
-    count: usize;
-}
-
 struct SyntaxDependent {
     owner: usize;
     term: void*;

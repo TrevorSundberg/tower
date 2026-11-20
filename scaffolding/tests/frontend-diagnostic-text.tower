@@ -1,6 +1,7 @@
 import tower;
 import '../compiler/format-types';
 import '../compiler/format-diagnostic-types';
+import '../compiler/syntax-emission-types';
 import '../compiler/frontend-diagnostic-types';
 import '../compiler/parser-markers';
 import 'frontend-world';
@@ -53,7 +54,7 @@ fn frontend_diagnostic_text_tests(): void {
     literals[1] = 1;
     input.literals = &literals[0];
     input.literal_count = 2;
-    var productions: SyntaxDiagnosticProduction[3];
+    var productions: SyntaxEmissionProduction[3];
     productions[0].index = 3;
     productions[0].name = "Rule";
     productions[1].index = 4;

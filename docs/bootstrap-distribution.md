@@ -7,13 +7,12 @@ and bootstrap distribution still need migration and integration. The tooling
 below keeps those release gates explicit; a module comparison does not establish
 complete compiler self-hosting.
 
-The 2026-11-20 retirement audit now finds 6,244 lines in 54 production
-C/C++ source/header files under scaffolding, another 4,115 test lines and 4,547
-bootstrap lines (including native `.inc` fragments), excluding third-party
-dependencies. These are a source inventory,
-not a completion percentage. syntax.cpp and parser.cpp account for 2,528
-production lines; CLI/browser entry points, raw platform/foreign operations,
-native registries and bootstrap/distribution remain meaningful retirement work.
+The retirement inventory and reproducible validation are recorded in the ongoing
+project journal. Counts include blank lines and comments and exclude third-party
+dependencies; they are a source inventory, not a completion percentage.
+Syntax sessions, parser bridges, the CLI entry point, raw platform operations
+and bootstrap/distribution remain meaningful retirement work. The native browser
+entry point has been removed in favor of Tower IDE services.
 Tower now owns generic registry lifetime, module compilation-session leasing and
 CompilerWorld stores with parser/syntax/Foundation/provenance type registries.
 The native parser-nodes.cpp and compiler-syntax.cpp adapters are retired.
@@ -23,9 +22,10 @@ Tower also owns mutable parser streams and recognizer requests: copied input,
 buffered lookahead, completion snapshots, work accounting and teardown. The
 existing native callback invocation and table-specific diagnostics remain bridges.
 Native SyntaxSession/grammar state and the legacy default-world handle remain.
-Portable compiler release gates below are still required. The archived seed/stage1
-sources are not the active bootstrap path; validated builds use the existing
-import-capable host binary. They do not establish a source-only bootstrap.
+Portable compiler release gates below are still required. The obsolete native
+seed/stage1 targets and twelve unused implementation fragments have been removed.
+Still-used native differential references remain. Validated builds require an
+existing import-capable Tower host binary; this is not a source-only bootstrap.
 
 ## Implemented host migration
 

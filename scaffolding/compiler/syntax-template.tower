@@ -1,3 +1,4 @@
+import 'syntax-emission-types';
 import tower;
 import 'lr-analysis';
 import 'lr-grammar';

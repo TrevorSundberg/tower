@@ -1,3 +1,4 @@
+import '../compiler/syntax-emission-types';
 import tower;
 import '../compiler/regex-lowering';
 import '../compiler/lr-tree';

@@ -38,9 +38,6 @@ function(tower_driver_integrate)
     DEPENDS "${input}" ${sources} "${TOWER_BOOTSTRAP_COMPILER}" VERBATIM)
   set_source_files_properties("${object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
   target_sources(towerc PRIVATE "${object}")
-  if(TARGET towerc-stage1)
-    target_sources(towerc-stage1 PRIVATE "${object}")
-  endif()
   if(TOWER_DRIVER_TESTS)
     # Keep fixtures out of the production object. The runner uses existing
     # runtime.c only for reserved allocation/trap symbols, with no native tests.

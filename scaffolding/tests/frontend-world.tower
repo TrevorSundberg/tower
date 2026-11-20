@@ -9,6 +9,7 @@ import 'frontend-table-owner';
 import 'frontend-parser-text';
 import 'frontend-syntax-preview';
 import 'frontend-diagnostic-text';
+import 'frontend-emission';
 
 // Separate test unit: call the actual production exports, without embedding a
 // second copy of the grammar reader or depending on the native default world.
@@ -449,6 +450,7 @@ export fn frontend_world_tests(): void {
     frontend_parser_text_tests();
     frontend_syntax_preview_tests();
     frontend_diagnostic_text_tests();
+    frontend_emission_tests();
     frontend_world_lifetime_tests();
     frontend_world_failure_tests();
 }

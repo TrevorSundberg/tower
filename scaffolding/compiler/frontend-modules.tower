@@ -1,3 +1,4 @@
+import 'syntax-view';
 import tower;
 import 'syntax-tags';
 import 'foundation-nodes';

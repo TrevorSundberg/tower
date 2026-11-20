@@ -45,22 +45,6 @@ struct PendingRule { std::string dependency; size_t offset = TOWER_INVALID_INDEX
 using PendingRules = std::map<std::string, PendingRule>;
 SyntaxNode& semantic(const TowerNodeRef& node) { return syntax_node(node.get()); }
 SyntaxNode& semantic(TowerNode* node) { return syntax_node(node); }
-#ifdef TOWER_EXPANSION_SEED
-bool same(const std::vector<TowerNodeRef>& a, const std::vector<TowerNodeRef>& b) {
-  if (a.size() != b.size()) return false;
-  for (size_t i = 0; i < a.size(); ++i) if (!syntax_equal(a[i].get(), b[i].get(), true)) return false;
-  return true;
-}
-bool same(const Definitions& a, const Definitions& b) {
-  if (a.size() != b.size()) return false;
-  auto right = b.begin();
-  for (const auto& [name, alternatives] : a) {
-    if (name != right->first || !same(alternatives, right->second)) return false;
-    ++right;
-  }
-  return true;
-}
-#endif
 std::shared_ptr<const TokenDefinitions> bootstrap;
 std::shared_ptr<const Definitions> foundation_definitions;
 struct Bedrock {
@@ -85,7 +69,6 @@ std::shared_ptr<const Bedrock> native_bedrock() {
 }
 std::shared_ptr<const Bedrock> current_bedrock() { return installed_bedrock ? installed_bedrock : native_bedrock(); }
 
-using ProductionKey = std::pair<std::string, size_t>;
 struct Replacement {
   std::string rule, category;
   size_t start = 0, end = 0;
@@ -100,6 +83,7 @@ struct Version {
   Node rules = owned(tower_node_create());
   Table* table = nullptr;
   SyntaxLexicon* lexicon = nullptr;
+  std::unique_ptr<SyntaxEmission, decltype(&syntax_emission_destroy)> emission{nullptr, syntax_emission_destroy};
   std::map<std::string, uint32_t> literals;
   std::map<uint32_t, std::string> names;
   TokenDefinitions tokens;
@@ -111,23 +95,18 @@ struct Version {
   std::map<TowerNode*, std::string> capture_names;
   std::map<std::string, uint32_t> declaration_literals;
   std::set<std::string> declaration_starts;
-  std::map<size_t, ProductionKey> productions;
-  std::map<ProductionKey, size_t> indices;
   std::map<std::string, size_t> named_indices;
   std::map<std::string, Term> repetitions;
   std::map<size_t, Replacement> replacements;
-#ifndef TOWER_EXPANSION_SEED
   std::vector<std::vector<SyntaxExpansionCapture>> expansion_captures;
   std::vector<SyntaxExpansionRule> expansion_rules;
   std::vector<const SyntaxExpansionRule*> expansion_index;
-#endif
   size_t replacement_error_offset = TOWER_INVALID_INDEX;
   ~Version() { lexicon_destroy(lexicon); parser_table_destroy(table); }
 };
 
 bool letter(char c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'; }
 bool digit(char c) { return c >= '0' && c <= '9'; }
-bool space(char c) { return c == ' ' || c == '\n' || c == '\r' || c == '\t'; }
 bool word(const std::string& s) {
   return !s.empty() && letter(s[0]) && std::all_of(s.begin(), s.end(), [](char c) { return letter(c) || digit(c); });
 }
@@ -139,12 +118,11 @@ char* copy_string(const std::string& text) {
 }
 
 std::string describe_production(const Version& version, const Definitions& definitions, size_t index, bool name_only = false) {
-  auto found = version.productions.find(index);
-  if (found == version.productions.end()) return {};
-  const auto& [name, alternative] = found->second;
-  auto rule = definitions.find(name);
-  if (rule == definitions.end() || alternative >= rule->second.size()) return {};
-  auto* text = syntax_description_text(rule->second[name_only ? 0 : alternative].get(), name.c_str(), name_only,
+  auto* found = syntax_emission_find_index(version.emission.get(), index);
+  if (!found) return {};
+  auto rule = definitions.find(found->name);
+  if (rule == definitions.end() || found->alternative >= rule->second.size()) return {};
+  auto* text = syntax_description_text(rule->second[name_only ? 0 : found->alternative].get(), found->name, name_only,
     syntax_component_type(), parser_match_get_type());
   std::string result(text); tower_memory_free(text); return result;
 }
@@ -203,18 +181,6 @@ char* token_name(void* context, uint32_t id) {
   return found == version.names.end() ? nullptr : copy_string(found->second);
 }
 
-TowerNode* production(Version& version, const std::string& name, bool generated = false) {
-  auto* result = parser_rule_create_subtree(version.rules.get(), name.c_str(), generated);
-  version.named_indices.try_emplace(name, tower_node_get_child_count(version.rules.get()));
-  return result;
-}
-
-void reference(TowerNode* rule, const std::string& name, const std::string& capture = {}) {
-  auto* node = parser_reference_create_subtree(rule, name.c_str());
-  auto* ref = (Reference*)tower_node_get_component_userdata(node, parser_reference_get_type());
-  parser_reference_set_capture(ref, capture.c_str());
-}
-
 // Borrowed ABI views and native presentation indexes around Tower emission.
 bool seed(Version& version, const Definitions& definitions, const char* category = nullptr) {
   std::vector<std::vector<TowerNode*>> alternatives;
@@ -235,7 +201,8 @@ bool seed(Version& version, const Definitions& definitions, const char* category
     reserved.data(), reserved.size(), literals.data(), literals.size(), category,
     version.rules.get(), syntax_component_type(), parser_rule_get_type(), parser_reference_get_type(),
     parser_string_get_type(), parser_range_get_type()};
-  std::unique_ptr<SyntaxEmission, decltype(&syntax_emission_destroy)> emitted(syntax_emit(&input), syntax_emission_destroy);
+  auto& emitted = version.emission;
+  emitted.reset(syntax_emit(&input));
   if (!emitted) return false;
   for (size_t i = 0; i < syntax_emission_name_count(emitted.get()); ++i) {
     SyntaxEmissionName entry{}; syntax_emission_name(emitted.get(), i, &entry);
@@ -245,11 +212,6 @@ bool seed(Version& version, const Definitions& definitions, const char* category
     if (entry.wrapper) version.template_tokens[name] = entry.wrapper;
     if (entry.declaration) version.declaration_literals[name] = entry.literal;
     if (entry.start) version.declaration_starts.insert(name);
-  }
-  for (size_t i = 0; i < syntax_emission_production_count(emitted.get()); ++i) {
-    SyntaxEmissionProduction entry{}; syntax_emission_production(emitted.get(), i, &entry);
-    ProductionKey key{entry.name, entry.alternative};
-    version.productions[entry.index] = key; version.indices[key] = entry.index;
   }
   for (size_t i = 0; i < syntax_emission_helper_count(emitted.get()); ++i) {
     SyntaxEmissionHelper entry{}; syntax_emission_helper(emitted.get(), i, &entry);
@@ -345,11 +307,6 @@ Match* match(TowerNode* node) {
   return (Match*)tower_node_get_component_userdata(node, parser_match_get_type());
 }
 TowerNode* child(TowerNode* node, size_t i) { return tower_node_get_child(node, i); }
-std::string text(TowerNode* node, std::string_view source) {
-  auto* m = match(node);
-  return std::string(source.substr(parser_match_get_start(m), parser_match_get_length(m)));
-}
-
 TowerNode* member(TowerNode* node, const char* name) { return node ? tower_node_get_child_member(node, name) : nullptr; }
 std::string read_declaration(TowerNode* node, const SyntaxSource* source, SyntaxKind kind) {
   TowerByteBuffer error{};
@@ -383,15 +340,9 @@ struct SyntaxSession {
   size_t comment_cursor = 0;
   std::shared_ptr<const Bedrock> bedrock;
   std::shared_ptr<Version> version;
-#ifdef TOWER_EXPANSION_SEED
-  struct CachedVersion { Definitions definitions; TokenDefinitions tokens; std::shared_ptr<Version> version; };
-  std::vector<CachedVersion> cache;
-  size_t builds = 0, hits = 0;
-#else
   FrontendCache cache{};
   std::array<std::shared_ptr<Version>, SYNTAX_MAX_CACHED_GRAMMARS> versions;
   ~SyntaxSession() { frontend_cache_dispose(&cache); if (owns_module) frontend_module_destroy(module); }
-#endif
   SyntaxExpansionStats expansion_stats;
   std::string error;
   size_t error_offset = 0;
@@ -417,11 +368,10 @@ std::string syntax_diagnostic(SyntaxSession& session, Recognizer* recognizer, bo
     options.push_back({option.id, option.label.c_str(), option.insertion, option.completes, option.contexts.data(), option.contexts.size()});
   std::vector<uint32_t> literals;
   for (const auto& [text, id] : session.version->literals) literals.push_back(id);
-  std::vector<SyntaxDiagnosticProduction> productions;
-  for (const auto& [index, key] : session.version->productions) productions.push_back({index, key.first.c_str()});
   const SyntaxDiagnosticInput input{session.source.data(), session.source.size(), session.cursor,
     diagnostic.offset, diagnostic.insertion_offset, parser_recognizer_get_error(recognizer),
-    options.data(), options.size(), literals.data(), literals.size(), productions.data(), productions.size(),
+    options.data(), options.size(), literals.data(), literals.size(),
+    syntax_emission_productions(session.version->emission.get()), syntax_emission_production_count(session.version->emission.get()),
     repairs, diagnostic.complete, diagnostic.at_start, definitions.contains("Statement")};
   SyntaxDiagnosticText output{};
   format_syntax_diagnostic(&input, &output);
@@ -432,26 +382,6 @@ std::string syntax_diagnostic(SyntaxSession& session, Recognizer* recognizer, bo
 }
 
 std::shared_ptr<Version> compiled(SyntaxSession& session, const Definitions& definitions, const TokenDefinitions& tokens, std::string& error) {
-#ifdef TOWER_EXPANSION_SEED
-  // The complete structural grammar is the key, including literals, captures,
-  // alternatives and repetition. Source positions and the numeric revision are
-  // deliberately absent. Only successful immutable tables enter this cache.
-  for (size_t i = 0; i < session.cache.size(); ++i) {
-    if (!same(session.cache[i].definitions, definitions) || !same(session.cache[i].tokens, tokens)) continue;
-    auto hit = std::move(session.cache[i]);
-    session.cache.erase(session.cache.begin() + i);
-    session.cache.push_back(std::move(hit));
-    ++session.hits; error.clear();
-    return session.cache.back().version;
-  }
-  ++session.builds;
-  std::shared_ptr<Version> version = build(definitions, tokens, session.bedrock, error, &session.error_offset);
-  if (version) {
-    session.cache.push_back({definitions, tokens, version});
-    if (session.cache.size() > SYNTAX_MAX_CACHED_GRAMMARS) session.cache.erase(session.cache.begin());
-  }
-  return version;
-#else
   std::vector<TowerNode*> alternatives;
   std::vector<SyntaxRuleView> rules;
   std::vector<TowerNode*> token_nodes;
@@ -473,12 +403,8 @@ std::shared_ptr<Version> compiled(SyntaxSession& session, const Definitions& def
     if (stored != TOWER_INVALID_INDEX) session.versions[stored] = version;
   }
   return version;
-#endif
 }
 
-#ifdef TOWER_EXPANSION_SEED
-#include "bootstrap/syntax-scan-seed.inc"
-#else
 extern "C" void syntax_scan_highlight(void* host, size_t start, size_t end, size_t revision, const char* style, uint32_t id, bool skipped) {
   static_cast<std::vector<SyntaxHighlight>*>(host)->push_back({start, end, revision, style, skipped || id == MetaString, id});
 }
@@ -545,11 +471,7 @@ TowerNode* template_lex(Stream* stream, void* userdata, uint32_t* id, size_t* st
   input.replacement = true; input.captures = host.captures; input.count = host.count; input.base = host.base;
   return read_scan(stream, host.session, input, id, start, length);
 }
-#endif
 
-#ifdef TOWER_EXPANSION_SEED
-#include "bootstrap/syntax-template-seed.inc"
-#else
 bool compile_template(Version& version, const Definitions& defs, const Sequence& seq,
     Replacement& replacement, std::string& error, bool& grammar_error) {
   grammar_error = false;
@@ -625,29 +547,23 @@ bool compile_template(Version& version, const Definitions& defs, const Sequence&
   auto* body = child(root.get(), 0);
   if (!body) { error = "Replacement must produce one syntax tree"; return false; }
   tower_node_add_ref(body); tower_node_detach(body); replacement.tree = owned(body);
-  std::vector<SyntaxEmissionProduction> source, destination;
   std::vector<SyntaxTemplateAlias> aliases;
   std::vector<SyntaxTemplateName> names;
   std::vector<size_t> uses(captures.size());
-  source.reserve(grammar->productions.size()); destination.reserve(version.indices.size());
   aliases.reserve(grammar->capture_sources.size()); names.reserve(version.named_indices.size());
-  for (const auto& [index, key] : grammar->productions) source.push_back({key.first.c_str(), key.second, index});
-  for (const auto& [key, index] : version.indices) destination.push_back({key.first.c_str(), key.second, index});
   for (const auto& [name, entity] : grammar->capture_sources)
     aliases.push_back({name.c_str(), version.capture_names.at(entity).c_str()});
   for (const auto& [name, index] : version.named_indices) names.push_back({name.c_str(), index});
-  SyntaxTemplateRemap remap{body, parser_match_get_type(), source.data(), source.size(),
-    destination.data(), destination.size(), aliases.data(), aliases.size(), names.data(), names.size(),
+  SyntaxTemplateRemap remap{body, parser_match_get_type(),
+    syntax_emission_productions(grammar->emission.get()), syntax_emission_production_count(grammar->emission.get()),
+    syntax_emission_productions(version.emission.get()), syntax_emission_production_count(version.emission.get()),
+    aliases.data(), aliases.size(), names.data(), names.size(),
     parser_table_grammar(version.table), uses.data(), uses.size()};
   if (!syntax_template_remap(&remap)) { error = "Unable to allocate replacement template mapping"; return false; }
   for (size_t i = 0; i < captures.size(); ++i) if (uses[i]) replacement.uses[captures[i].name] = uses[i];
   return true;
 }
-#endif
 
-#ifdef TOWER_EXPANSION_SEED
-#include "bootstrap/syntax-replacements-seed.inc"
-#else
 struct ReplacementPlanHost {
   Version& version;
   const Definitions& definitions;
@@ -695,11 +611,7 @@ bool prepare_replacements(Version& version, const Definitions& defs, std::string
   }
   return true;
 }
-#endif
 
-#ifdef TOWER_EXPANSION_SEED
-#include "bootstrap/syntax-expansion-seed.inc"
-#else
 bool expand(SyntaxSession& session, Node& root) {
   SyntaxExpansionInput input{session.version->expansion_index.data(),
     session.version->expansion_index.size(), parser_match_get_type()};
@@ -716,10 +628,8 @@ bool expand(SyntaxSession& session, Node& root) {
   syntax_expansion_result_dispose(&result);
   return ok;
 }
-#endif
 }
 
-#ifndef TOWER_EXPANSION_SEED
 extern "C" void syntax_replacement_begin(void* context, const char* name, TowerNode* sequence, size_t start, size_t end) {
   auto& host = *static_cast<ReplacementPlanHost*>(context);
   host.current = Replacement{}; host.current.rule = name;
@@ -751,10 +661,9 @@ extern "C" void syntax_replacement_commit(void* context, size_t alternative) {
   auto& host = *static_cast<ReplacementPlanHost*>(context);
   host.current.tree = std::move(host.selected); host.current.category = std::move(host.selected_category);
   host.current.uses = std::move(host.selected_uses);
-  auto index = host.version.indices.at({host.current.rule, alternative});
+  auto index = syntax_emission_find_name(host.version.emission.get(), host.current.rule.c_str(), alternative);
   host.version.replacements.emplace(index, std::move(host.current));
 }
-#endif
 SyntaxExpansionStats syntax_get_expansion_stats(SyntaxSession* session) { return session->expansion_stats; }
 
 #ifdef TOWER_EXPANSION_TESTS
@@ -828,11 +737,7 @@ void syntax_reset(SyntaxSession* session, const char* source, FrontendModule* mo
   }
   session->cursor = session->revision = session->error_offset = 0;
   session->error_insertion = false;
-#ifdef TOWER_EXPANSION_SEED
-  session->builds = session->hits = 0;
-#else
   session->cache.builds = session->cache.hits = 0;
-#endif
   session->expansion_stats = {};
   session->finalized = false; session->declarations_only = true; session->comment_cursor = 0;
   session->error.clear(); session->highlights.clear(); session->definitions = session->baseline_definitions;
@@ -843,11 +748,7 @@ void syntax_reset(SyntaxSession* session, const char* source, FrontendModule* mo
   session->version = compiled(*session, session->definitions, session->tokens, session->error);
 }
 SyntaxCacheStats syntax_get_cache_stats(SyntaxSession* session) {
-#ifdef TOWER_EXPANSION_SEED
-  return {session->builds, session->hits, session->cache.size()};
-#else
   return {session->cache.builds, session->cache.hits, session->cache.entries.length};
-#endif
 }
 
 void syntax_destroy(SyntaxSession* session) { delete session; }
@@ -868,11 +769,7 @@ TowerText syntax_format(SyntaxSession* session) {
   copy.baseline = session->baseline; copy.baseline_definitions = session->baseline_definitions;
   copy.bedrock = session->bedrock; copy.bootstrapping = session->bootstrapping;
   copy.building_bedrock = session->building_bedrock;
-#ifdef TOWER_EXPANSION_SEED
-  copy.cache = session->cache;
-#else
   if (frontend_cache_copy(&copy.cache, &session->cache)) copy.versions = session->versions;
-#endif
   copy.formatting = true; syntax_reset(&copy, session->source.data());
   std::vector<TowerNodeRef> owned; std::vector<TowerNode*> roots;
   while (auto* root = syntax_next(&copy)) { owned.push_back(TowerNodeRef::adopt(root)); roots.push_back(root); }
@@ -886,11 +783,7 @@ TowerText syntax_format(SyntaxSession* session) {
   verify.baseline = copy.baseline; verify.baseline_definitions = copy.baseline_definitions;
   verify.bedrock = copy.bedrock; verify.bootstrapping = copy.bootstrapping;
   verify.building_bedrock = copy.building_bedrock; verify.formatting = true;
-#ifdef TOWER_EXPANSION_SEED
-  verify.cache = copy.cache;
-#else
   if (frontend_cache_copy(&verify.cache, &copy.cache)) verify.versions = copy.versions;
-#endif
   syntax_reset(&verify, result.source.c_str());
   size_t index = 0; bool same = true;
   while (auto* raw = syntax_next(&verify)) {
@@ -1035,12 +928,7 @@ TowerNode* syntax_next(SyntaxSession* session) {
       if (!error.empty()) return fail(error);
       auto& token = syntax_node(construct);
       if (session->definitions.contains(token.name)) return fail("Name already defines a parse rule: " + token.name);
-#ifdef TOWER_EXPANSION_SEED
-      for (const auto& entry : session->cache) for (const auto& old : entry.tokens)
-        if (semantic(old).text == token.text) syntax_node_pattern(&token, semantic(old).compiled);
-#else
       frontend_cache_pattern(&session->cache, construct, syntax_component_type());
-#endif
       if (!token.compiled) { auto pattern = lex_pattern_compile(token.text, error); syntax_node_pattern(&token, pattern.get()); }
       if (!token.compiled) return fail(error);
       auto candidate = session->tokens;
@@ -1104,12 +992,7 @@ TowerNode* syntax_next(SyntaxSession* session) {
     } else {
       session->declarations_only = false;
       if (!session->formatting && !session->version->replacements.empty()) {
-#ifdef TOWER_EXPANSION_SEED
-        Expander expander{*session};
-        if (!expander.run(root)) return nullptr;
-#else
         if (!expand(*session, root)) return nullptr;
-#endif
       }
       session->comment_cursor = session->cursor;
     }
@@ -1248,12 +1131,11 @@ extern "C" TowerNode* syntax_inspection_match(SyntaxSession* session, TowerNode*
   if (!span) return nullptr;
   const auto& version = *session->version;
   const std::string name = parser_match_get_label(span);
-  auto production = version.productions.find(parser_match_get_rule_index(span));
-  if (production != version.productions.end() && production->second.first == name) {
-    const auto& [rule, alternative] = production->second;
-    auto found = version.definitions.find(rule);
-    if (found != version.definitions.end() && alternative < found->second.size())
-      return found->second[alternative].get();
+  auto* production = syntax_emission_find_index(version.emission.get(), parser_match_get_rule_index(span));
+  if (production && production->name == name) {
+    auto found = version.definitions.find(production->name);
+    if (found != version.definitions.end() && production->alternative < found->second.size())
+      return found->second[production->alternative].get();
   }
   return nullptr;
 }
@@ -1261,12 +1143,11 @@ static const Replacement* inspection_replacement(SyntaxSession* session, TowerNo
   if (!session->version) return nullptr;
   const auto& version = *session->version;
   for (const auto& [index, replacement] : version.replacements) {
-    auto production = version.productions.find(index);
-    if (production == version.productions.end()) continue;
-    const auto& [name, alternative] = production->second;
-    auto rule = version.definitions.find(name);
-    if (rule != version.definitions.end() && alternative < rule->second.size() &&
-        semantic(rule->second[alternative]).replacement == body) return &replacement;
+    auto* production = syntax_emission_find_index(version.emission.get(), index);
+    if (!production) continue;
+    auto rule = version.definitions.find(production->name);
+    if (rule != version.definitions.end() && production->alternative < rule->second.size() &&
+        semantic(rule->second[production->alternative]).replacement == body) return &replacement;
   }
   return nullptr;
 }
@@ -1286,9 +1167,6 @@ extern "C" TowerNode* syntax_inspection_capture(SyntaxSession* session, TowerNod
 }
 static uint32_t completion_token(SyntaxSession* session, const char* text) {
   if (!session->completion) return PARSER_ID_EOF;
-#ifdef TOWER_EXPANSION_SEED
-  return PARSER_ID_EOF; // The seed has no editor host; the Tower scanner replaces it.
-#else
   ParserLookahead context{lr_completion_runtime(session->completion.get()), lr_completion_state(session->completion.get())};
   auto input = scan_input(*session, 0, nullptr, &context);
   input.source = text; input.size = std::strlen(text);
@@ -1298,7 +1176,6 @@ static uint32_t completion_token(SyntaxSession* session, const char* text) {
   const auto id = complete ? result.id : PARSER_ID_EOF;
   syntax_scan_dispose(&result);
   return id;
-#endif
 }
 extern "C" bool syntax_completion_identifier(SyntaxSession* session, const char* text) {
   return completion_token(session, text) == MetaName && lr_completion_accepts(session->completion.get(), MetaName);
