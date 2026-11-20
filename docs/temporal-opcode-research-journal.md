@@ -16679,3 +16679,47 @@ Upstream moved from 4bac421 to 5dd7ddb during validation (entity query/view life
 changes and associated tests/docs). Integrating it before publishing, then rebuilding
 and validating the combined tree. Final synchronization/deployment evidence follows
 in a later journal entry.
+
+## 2026-11-19 — Grammar hover: integrated release validation
+
+Integrated the entity-view/lifetime changes through 5dd7ddb, rebuilt the parser,
+LLVM and cross-target reactors with WASI SDK 34 under WSL, and repackaged all eight
+Tower compiler units. Commands used the established build-wasm.sh/build-llvm.sh
+scripts with TOWER_BOOTSTRAP_COMPILER pointing at the existing published-Wasm
+bootstrap wrapper and TOWER_BROWSER_CROSS=ON. The complete combined tree passes:
+
+- `npm test --prefix playground`: 348/348, including the 25 hover cases, shared
+  entity lifetimes/layouts, compilation, execution, round trips and C comments.
+- `npm run check:format --prefix playground`: canonical Tower sources pass.
+- Playwright hover, completion, C-source, output-highlighting and diagnostic-delay
+  suites: 56/56 across desktop/mobile. This includes five-pixel hold tolerance,
+  continuous dwell, cached grammar hovers without a worker round trip, ten-second
+  diagnostic deferral and comments preserved in the increment C download.
+- `node playground/scripts/verify-local.mjs`: all 68 asset hashes plus both browser
+  profiles, backend agreement, native exports, persistence and target controls pass.
+- `npm run test:compiler --prefix playground`: two successor generations pass,
+  including the new grammar-tree activation probe. The existing test intentionally
+  edits a semantic diagnostic before rebuilding. Generations using 2 then 4 workers
+  take 189.24 s and 100.46 s and produce identical respective reactor hashes:
+  tower ca6c457b4e21903bf1db8944a40b535e8ffc12c59f323355b0b97a4f95310894,
+  llvm 3c24a691ea08abd12511e4a3c5e4f1058085daa1e6bb74e7ea2bacf15c7942f4,
+  cross 4dd7d956f8bb41497284caf6fc1e133246401943ccf37cb84a68ea220d78fc70.
+
+Logs are build/grammar-hover-integrated-{wasm,llvm,tests,format,browser,local,
+successors}.log; desktop/mobile screenshots are build/grammar-hover-*.png.
+Main subsequently advanced through f1bf2bf with custom-domain preparation and
+documentation only. Rebasing retained both journal append sequences; `git diff
+7b2772e..HEAD -- scaffolding playground/src playground/style.css` is empty.
+The updated packaging fixture exposed CRLF in the prepared CNAME on this Windows
+checkout. Pinning CNAME to LF in .gitattributes and normalizing the prepared file
+fixes it; the complete packaging fixture now passes (grammar-hover-domain-packaging-
+fixed.log). This is a source portability correction, not a DNS/routing change.
+
+Per the pending-cutover instructions, this release retains the already-tested
+68-asset bundle without CNAME rather than routing visitors to unresolved DNS.
+Pages still reports cname=null and HTTPS enabled at the existing GitHub Pages URL.
+The staged deployment commit is 9c25540 and its manifest SHA-256 is
+f60b71f0605fc3b293bcbcf3f61a9bf033492d4bbb5408e8cc199226e2e02a05.
+Published verification follows once Pages completes the release. Unrelated local
+edits are preserved, including 1,045 journal lines; todo.txt matches its pre-sync
+SHA-256 41167ea6c171d41aa333ee35e307b9f1d0f20a22e8832e8f4fb7de2a216efab7.
