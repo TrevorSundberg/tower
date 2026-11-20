@@ -19447,3 +19447,27 @@ output highlighting and detected target defaults. Saved the final report as
 build/generic-info-live-report.json; live logs are generic-info-live-browser.log
 and generic-info-live-deployment.log. Source and publication metadata are
 committed, with the unrelated local files preserved.
+
+Final integration also preserved 3ef76c3's symbolic-template inspection and the
+subsequent publication records through 9398325. The prepared driver-only recipe
+refresh was not published: upstream 81816ac already supplies the complete newer
+browser package. Compared all compiler/host/backend/library Tower file texts in
+its recipe with this checkout: all match, including the newly ported native CLI
+files and symbolic inspection modules (182 recipe files including generated
+units/baselines). Adopted that complete published bundle for verification,
+preserving its runtime/support artifacts and explicit source provenance.
+
+All 63 module-scope/template/hover regressions pass against the published reactors
+(15.13 seconds). Rebuilt the current native compiler; the native CLI suite passes
+again (12.01 seconds), followed by the graph/fast/Foundation/C O0+O2/LLVM alias
+probe. Both successive browser compiler generations pass with edited behavior
+and identical hashes: 1,086,676 / 52,080,060 / 63,637,192 bytes. The full hosted
+verifier passes all 69 exact assets plus desktop/mobile/Linux target flows on
+81816ac. Logs: latest-published-tests.log, generic-integration-native.log,
+generic-integration-probe.log, latest-successors.log and
+latest-hosted-verification.log; report: latest-hosted-report.json, all under
+build/module-scopes. The two relocated-type test imports are pushed in 4d00289.
+The final incoming commit only appended journal evidence. No older artifact
+bundle overwrote the newer publication. Module scopes/import aliases are
+implemented, integrated, pushed and verified live; remaining work is the future
+module and standalone migration milestones recorded above.
