@@ -17307,3 +17307,74 @@ C-source, output-highlighting, and diagnostic-delay suites passed 58/58 across
 desktop/mobile. The 28 focused query tests include all earlier typed/grammar/
 replacement coverage and the new syntax-only cases. Final self-hosting,
 performance, and publication verification are recorded in the follow-up entry.
+
+### Custom syntax hover validation before concurrent provenance integration
+
+After commit `ef83424`, the required pull/rebase had no new upstream changes and
+the 28 focused hover tests passed again. The full local deployment verifier
+matched all 69 served assets and passed desktop/mobile backend agreement, module
+bindings, editable grammar, persistence, native builds/downloads, layout,
+completion, output highlighting, and target defaults/detection. Raw results:
+`build/hover-followup-local-report.json` and `build/hover-followup-local.log`.
+
+`npm run test:compiler --prefix playground` built two successive compilers with
+the deliberate semantic-diagnostic edit, using two then four workers. Both passed
+all activation checks, including the new syntax-only hover/import probes, and
+produced identical corresponding bytes. Sizes were 969244 / 51954661 / 63511918
+bytes for parser / LLVM / cross reactors. SHA256 values were respectively
+`26c76251e6f076a858b70574e0728fe6e8da7453ba499726e5527f43fa785602`,
+`bccf93275c1b1158e8393c5e9543285b37338a58d484fe44bbbe0ffe6b68129c`,
+`ffdcd48c948a669cefe1c9a6e04d7b99da8f7f705f1b0d70c80ce974032d1062`.
+These edited-diagnostic successor hashes are not the default deployment bytes.
+
+`node playground/scripts/benchmark-hover.mjs http://127.0.0.1:4173/
+build/hover-followup-performance.json` measured 20 fresh document snapshots per
+device profile. Median DOM insertion was 0.5 ms on both; median paint boundary
+was 2.3 ms desktop / 2.1 ms mobile; p95 was 5.3 / 3.4 ms. Every sample made zero
+hover-time worker requests. This measures the task after animation frame, not
+physical display latency. The exact custom-rule browser tests also assert no
+hover-time document requests. Desktop/mobile screenshots were visually reviewed;
+wrapped previews fit and retain the requested translucency.
+
+Publication of the first candidate was rejected because another gh-pages commit
+landed during the upload (`1a6ba45`, Tower-owned syntax provenance/metadata). Main
+had advanced to `3fc8e62`. Rebased the hover implementation to `3adb7ec`, preserving
+both journal entries and unrelated local changes; no source conflicts required
+behavior changes. The generated deployment conflicts must be resolved by a new
+build of the combined source, not by choosing older binaries. The evidence above
+describes the pre-integration candidate; combined-tree validation follows below.
+
+### Combined provenance/hover compiler
+
+Rebuilt all reactors and the complete compiler project after integrating `3fc8e62`.
+A further upstream documentation-only update (`846ec9a`) rebased the implementation
+to `55cd34d`; verified that scaffolding, playground, cmake, and CMakeLists.txt had
+no differences from the tested combined source. The 28 focused query tests,
+352 full tests, format check, and 58 desktop/mobile browser tests all passed.
+Logs: `build/hover-followup-integrated-{query,tests,format,browser}.log`.
+
+Repeated the two-generation compiler test for the combined source. Generation 1
+took 175207 ms, generation 2 took 96835 ms; both passed activation including
+syntax-only capture/import inspection and the edited diagnostic, with identical
+corresponding reactor bytes. Parser / LLVM / cross sizes: 973577 / 51957291 /
+63514547. SHA256 values:
+`2a997af5c2fa7848bf16422e7b238e10315612607ec34317215dc645aec41ae9`,
+`854bf1eced77730e6c25c8865bdd8b297360cc19678b53d6b5dfb1f7df69908e`,
+`ce9147fcb1f1b884a3f60e1d52f932b5b08e7a448f31262407b8ab3b9a291894`.
+
+Resolved gh-pages binary/manifest conflicts by copying the regenerated combined
+distribution, continued the rebase, pulled again, and pushed normally. GitHub
+Pages reports commit `1c2c246dfee77ee1d8725b2b9f33e508bd15d0be` built. The domain
+and HTTPS configuration remain intact. Final local deployment-manifest SHA256:
+`b6eb99aa5f8680bf5bd034228675a5348e01929cec710a7e822e4d57df441b39`.
+
+Published verification completed successfully at `https://tower-lang.org/`:
+`node playground/scripts/verify-deployment.mjs https://tower-lang.org/` matched
+all 69 assets and passed the full desktop/mobile deployment checks listed above.
+An additional hosted Playwright run with `TOWER_HOVER_TEST_URL` and grep
+`foreach|grammar hover|cached mouse` passed 6/6, including the exact reported
+example, compact alternatives, module labels, nested captures, and cached mouse
+behavior without worker requests. Evidence is in `build/hover-followup-live.log`,
+`build/hover-followup-live-browser.log`, and `build/hover-followup-live-report.json`.
+The final implementation is pushed on main; unrelated local journal additions,
+AGENTS.md, foundation documentation, and todo.txt were preserved.
