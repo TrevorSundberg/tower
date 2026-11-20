@@ -1,0 +1,80 @@
+import tower;
+
+var failures: u32 = 0;
+const PopulationPairs: u64 = 6148914691236517205;
+const PopulationQuads: u64 = 3689348814741910323;
+const PopulationBytes: u64 = 1085102592571150095;
+const PopulationByteSum: u64 = 72340172838076673;
+
+fn population_mask(T: type, value: u64): T {
+    var maximum: u64 = 0;
+    var left = sizeof(T) * 8;
+    while left != 0 {
+        maximum = maximum * 2;
+        maximum = maximum + 1;
+        left = left - 1;
+    }
+    var masked = value & maximum;
+    return convert(T, masked);
+}
+
+// LLVM recognizes this scalar idiom as ctpop. Reconstruction must retain the same
+// defined count for zero, full-width unsigned values and partial bit patterns.
+fn population(T: type, value: T): T {
+    var high = value / 2;
+    high = high & population_mask(T, PopulationPairs());
+    value = value - high;
+    high = value / 4;
+    high = high & population_mask(T, PopulationQuads());
+    value = value & population_mask(T, PopulationQuads());
+    value = value + high;
+    high = value / 16;
+    value = value + high;
+    value = value & population_mask(T, PopulationBytes());
+    value = value * population_mask(T, PopulationByteSum());
+    var shift = sizeof(T) * 8;
+    shift = shift - 8;
+    var divisor: T = 1;
+    while shift != 0 {
+        divisor = divisor * 2;
+        shift = shift - 1;
+    }
+    var count = value / divisor;
+    return count;
+}
+
+fn verify(T: type, value: T, wanted: T): void {
+    var actual = population(T, value);
+    var wrong = actual != wanted;
+    if wrong {
+        failures = failures + 1;
+    }
+}
+
+var i: u32 = 0;
+while i < 256 {
+    var remaining = i;
+    var wanted: u32 = 0;
+    while remaining != 0 {
+        var bit = remaining % 2;
+        wanted = wanted + bit;
+        remaining = remaining / 2;
+    }
+    verify(u8, convert(u8, i), convert(u8, wanted));
+    verify(u32, i, wanted);
+    verify(u64, convert(u64, i), convert(u64, wanted));
+    var word = i * 16843009;
+    var word_count = wanted * 4;
+    verify(u32, word, word_count);
+    var wide = convert(u64, i) * 72340172838076673;
+    var wide_count = convert(u64, wanted) * 8;
+    verify(u64, wide, wide_count);
+    i = i + 1;
+}
+verify(u32, 4294967295, 32);
+verify(u32, 2147483648, 1);
+verify(u32, 2863311530, 16);
+verify(u64, 18446744073709551615, 64);
+verify(u64, 9223372036854775808, 1);
+verify(u64, 12297829382473034410, 32);
+print(failures);

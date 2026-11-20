@@ -211,6 +211,47 @@ fn bi_call(c: BackendImport*, instruction: void*): void* {
     }
     // InstCombine recognizes these ordinary scalar idioms even without target
     // vectorization. Legalize their bit semantics; do not re-optimize the graph.
+    var population = backend_prefix(name, "llvm.ctpop.");
+    if population {
+        var type = LLVMTypeOf(instruction);
+        var integer = LLVMGetTypeKind(type) == 8;
+        if integer {} else {
+            backend_fail(c.backend, "Population count reconstruction requires a scalar integer");
+            return null;
+        }
+        var width = LLVMGetIntTypeWidth(type);
+        var supported = width <= 64;
+        if supported {} else {
+            backend_fail(c.backend, "Population count reconstruction supports up to 64 bits");
+            return null;
+        }
+        var scalar = bi_scalar(c, type);
+        var value = bi_mask(c, bi_value(c, LLVMGetOperand(instruction, 0)), type);
+        // Sum adjacent bit groups, doubling their width each step. The masks
+        // also cover non-power-of-two LLVM widths without out-of-range shifts.
+        var group: u32 = 1;
+        while group < width {
+            var mask: u64 = 0;
+            var bit: u64 = 1;
+            var position: u32 = 0;
+            while position < width {
+                var part = position / group;
+                part = part % 2;
+                var low = part == 0;
+                if low {
+                    mask = mask | bit;
+                }
+                bit = bit * 2;
+                position = position + 1;
+            }
+            var low = bi_binary(c, OAnd(), value, bi_const(c, scalar, mask), scalar);
+            var high = bi_binary(c, ODiv(), value, bi_const(c, scalar, bi_pow2(group)), scalar);
+            high = bi_binary(c, OAnd(), high, bi_const(c, scalar, mask), scalar);
+            value = bi_binary(c, OAdd(), low, high, scalar);
+            group = group * 2;
+        }
+        return value;
+    }
     var absolute = backend_prefix(name, "llvm.abs.");
     if absolute {
         var type = LLVMTypeOf(instruction);

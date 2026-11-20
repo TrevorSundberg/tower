@@ -426,6 +426,13 @@ containers. Benchmark representative compiler workloads before migrating them.
    Audit node lifetimes, source references, per-type instance arrays, allocator
    ownership, caches and linker temporary paths. Freeze inputs for a revision;
    use worker-owned output components and deterministic coordinator publication.
+   The first lifetime primitive is now implemented: EntityView pins one existing
+   store, keeps component query ranges stable, defers zero-reference reclamation
+   and rejects structural edits until the last view closes. Layout kernels use
+   this boundary. This does not yet replace the singleton compiler store or make
+   payload mutation/refcounts concurrent. Live compiler services must bind each
+   request to a world/revision, drain work before releasing views and reject stale
+   replies; worker/Wasm-instance isolation remains the present service boundary.
 3. Migrate pure layout, body-analysis and lowering queries individually. Cache
    matching entity/component tuples. Preserve stable sparse payloads where
    address stability matters; introduce dense typed columns only for measured

@@ -29,6 +29,36 @@ test('the shared entity library runs under both interpreter layouts and LLVM',as
  }
 });
 
+test('Tower world views pin query ranges and defer ownership reclamation',async()=>{
+ const source='import "tests/entity-views";';
+ const llvm=await loadLLVM(await read('build/browser-wasi-llvm/tower-llvm.wasm'),undefined,foundation);
+ const run=(source,pointerBytes,fast)=>{
+  const h=tower.compile(source,{pointerBytes});
+  try{
+   if(fast)tower.useFast(h);
+   let output='',result;
+   do{result=tower.execute(h,100000);output+=result.output;}while(result.status==='executing');
+   assert.equal(result.status,'done',result.error);assert.equal(output,'0\n');
+   return tower.foundation(h).source;
+  }finally{tower.destroyExecution(h);}
+ };
+ for(const pointerBytes of [4,8]){
+  const canonical=run(source,pointerBytes,false);
+  assert.equal(run(canonical,pointerBytes,true),canonical);
+  for(const optimize of [false,true]){
+   const rebuilt=llvm.compile(canonical,{emit:'foundation',optimize,
+    target:pointerBytes===8?'wasm64-unknown-unknown':'wasm32-unknown-unknown'});
+   assert.equal(rebuilt.status,'compiled',rebuilt.error);
+   run(rebuilt.foundation,pointerBytes,true);
+  }
+ }
+ for(const optimize of [false,true]){
+  const compiled=llvm.compile(source,{optimize});assert.equal(compiled.status,'compiled',compiled.error);
+  const result=await executeWasm(compiled,undefined,{imports});
+  assert.equal(result.status,'done',result.error);assert.equal(result.output,'0\n');
+ }
+});
+
 test('the browser compiler exposes its real Tower entity store and component query index',()=>{
  const e=tower.exports,world=e.entity_store_create(),type=e.entity_create(world),nodes=[];
  assert.equal(e.entity_register(type,4,64,0),1);

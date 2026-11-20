@@ -6,6 +6,9 @@ struct EntityStore {
     next_id: usize;
     entity_count: usize;
     component_count: usize;
+    views: usize;
+    deferred: Entity*;
+    reclaiming: usize;
 }
 
 struct EntityChild {
@@ -31,6 +34,21 @@ struct Entity {
     data_size: usize;
     data_alignment: usize;
     lifecycle: usize;
+    deferred: Entity*;
+    queued: bool;
+}
+
+// The coordinator opens/closes views and owns refcounts. Workers borrow the
+// view and query ranges until they join; no worker mutates this bookkeeping.
+// Payload access still needs declared read/write permissions. A view pins
+// structure and lifetime, not arbitrary writes through Foundation raw pointers.
+struct EntityView {
+    store: EntityStore*;
+}
+
+struct EntityQuery {
+    data: EntityComponent**;
+    length: usize;
 }
 
 struct EntityComponent {
@@ -57,6 +75,9 @@ export fn entity_store_create(): EntityStore* {
 // The store is borrowed by its entities and cannot be disposed while any live.
 export fn entity_store_dispose(store: EntityStore*): bool {
     var occupied = store.entity_count != 0;
+    if occupied {} else {
+        occupied = store.views != 0;
+    }
     if occupied {
         return false;
     }
@@ -65,6 +86,10 @@ export fn entity_store_dispose(store: EntityStore*): bool {
 }
 
 export fn entity_create(store: EntityStore*): Entity* {
+    var pinned = store.views != 0;
+    if pinned {
+        return null;
+    }
     var next = store.next_id + 1;
     var exhausted = next == 0;
     if exhausted {
@@ -102,6 +127,25 @@ export fn entity_release(entity: Entity*): usize {
     if alive {
         return remaining;
     }
+    var pinned = entity.store.views != 0;
+    if pinned {} else {
+        pinned = entity.queued;
+    }
+    if pinned {
+        if entity.queued {} else {
+            entity.deferred = entity.store.deferred;
+            entity.store.deferred = entity;
+            entity.queued = true;
+        }
+    } else {
+        entity_reclaim(entity);
+    }
+    return 0;
+}
+
+fn entity_reclaim(entity: Entity*): void {
+    var store = entity.store;
+    store.reclaiming = store.reclaiming + 1;
     var i: usize = 0;
     loop {
         var done = i == entity.child_count;
@@ -126,10 +170,83 @@ export fn entity_release(entity: Entity*): usize {
     free(entity.children);
     free(entity.components);
     free(entity.instances);
-    var store = entity.store;
     store.entity_count = store.entity_count - 1;
     free(entity);
-    return 0;
+    store.reclaiming = store.reclaiming - 1;
+}
+
+// Opening a view is an owning operation on the store's lifetime. The anchor
+// need not be the root; every type index in this same store becomes stable.
+// Close exactly once, after all borrowed queries/workers finish.
+export fn entity_view_open(anchor: Entity*): EntityView* {
+    var missing = anchor == null;
+    if missing {
+        return null;
+    }
+    var store = anchor.store;
+    var reclaiming = store.reclaiming != 0;
+    if reclaiming {
+        return null;
+    }
+    var next = store.views + 1;
+    var overflow = next == 0;
+    if overflow {
+        return null;
+    }
+    var view = alloc(EntityView, 1);
+    missing = view == null;
+    if missing {
+        return null;
+    }
+    view.store = store;
+    store.views = next;
+    return view;
+}
+
+export fn entity_view_close(view: EntityView*): void {
+    var store = view.store;
+    free(view);
+    store.views = store.views - 1;
+    var pinned = store.views != 0;
+    if pinned {
+        return;
+    }
+    while store.deferred != null {
+        var entity = store.deferred;
+        store.deferred = entity.deferred;
+        entity.deferred = null;
+        entity.queued = false;
+        var dead = entity.references == 0;
+        if dead {
+            entity_reclaim(entity);
+        }
+    }
+}
+
+// A borrowed dense pointer range over the authoritative stable payloads.
+// Empty/end batches succeed, invalid/cross-world ranges preserve the output.
+export fn entity_view_query(view: EntityView*, type: Entity*, first: usize, count: usize, result: EntityQuery*): bool {
+    var invalid = type.store != view.store;
+    if invalid {
+        return false;
+    }
+    invalid = first > type.instance_count;
+    if invalid {
+        return false;
+    }
+    var remaining = type.instance_count - first;
+    invalid = count > remaining;
+    if invalid {
+        return false;
+    }
+    var data: EntityComponent** = null;
+    var present = count != 0;
+    if present {
+        data = type.instances + first;
+    }
+    result.data = data;
+    result.length = count;
+    return true;
 }
 
 // Component types are ordinary entities with a consistent layout/lifecycle.
@@ -153,6 +270,10 @@ export fn entity_register(type: Entity*, size: usize, alignment: usize, lifecycl
             same = type.lifecycle == lifecycle;
         }
         return same;
+    }
+    var pinned = type.store.views != 0;
+    if pinned {
+        return false;
     }
     type.data_size = size;
     type.data_alignment = alignment;
@@ -207,6 +328,10 @@ export fn entity_component_add(owner: Entity*, type: Entity*): EntityComponent* 
     var found = present != null;
     if found {
         return present;
+    }
+    var pinned = owner.store.views != 0;
+    if pinned {
+        return null;
     }
     var wrong_store = owner.store != type.store;
     if wrong_store {
@@ -294,6 +419,10 @@ fn entity_component_dispose(component: EntityComponent*): void {
 }
 
 export fn entity_component_remove(owner: Entity*, type: Entity*): bool {
+    var pinned = owner.store.views != 0;
+    if pinned {
+        return false;
+    }
     var i: usize = 0;
     loop {
         var done = i == owner.component_count;
@@ -418,6 +547,10 @@ fn entity_unlink(child: Entity*): void {
 // Ordered, named containment owns children. Other semantic links remain borrowed.
 // Reserve/copy before changing ownership; a failed allocation leaves links intact.
 export fn entity_attach(child: Entity*, parent: Entity*, name: u8*): bool {
+    var pinned = child.store.views != 0;
+    if pinned {
+        return false;
+    }
     var same = child == parent;
     if same {
         return false;
@@ -503,6 +636,10 @@ export fn entity_attach(child: Entity*, parent: Entity*, name: u8*): bool {
 }
 
 export fn entity_replace_child(parent: Entity*, index: usize, replacement: Entity*): bool {
+    var pinned = parent.store.views != 0;
+    if pinned {
+        return false;
+    }
     var invalid = index >= parent.child_count;
     if invalid {
         return false;
@@ -529,6 +666,10 @@ export fn entity_replace_child(parent: Entity*, index: usize, replacement: Entit
 }
 
 export fn entity_take_last_child(parent: Entity*): Entity* {
+    var pinned = parent.store.views != 0;
+    if pinned {
+        return null;
+    }
     var empty = parent.child_count == 0;
     if empty {
         return null;

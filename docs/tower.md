@@ -182,6 +182,35 @@ phases over frozen shared entities, incremental invalidation, packed component
 columns and measured SIMD improvements remain required work. A sparse payload
 store with dense pointer indexes is not automatically vectorized storage.
 
+## Pinned world views
+
+`library/entities` supports separate entity stores. `entity_view_open(anchor)`
+pins the anchor's store until `entity_view_close(view)`. During that interval,
+creation, new component registration/addition, removal and containment changes
+fail without changing the graph. Existing component lookup/registration remains
+available. Releasing the final reference defers reclamation until the last nested
+view closes; query indexes, component payloads and their owners stay allocated.
+
+`entity_view_query(view, type, first, count, &query)` borrows a dense range of
+component pointers with stable payload addresses. Empty ranges succeed; invalid
+or cross-store ranges leave the output unchanged. The view and all query ranges
+are borrowed by workers. The coordinator must join/drain them before closing the
+view, and owns all retain/release/open/close operations. Payload reads and writes
+still require the scheduler's access contracts; raw pointers do not enforce them.
+This provides lifetime/structure pinning, not atomic refcounts or automatic SIMD.
+
+Type-layout discovery happens before opening a view; the compiler now executes
+layout kernels inside it and closes it on success or error. This applies to CLI,
+browser compilation and language queries through the same Tower implementation.
+The executor remains serial within each compiler unit.
+
+The eventual compiler-service world owns module inputs, sessions, type registries,
+entities, diagnostics and a revision/cancellation lifetime, like an independent
+language-runtime environment. The native compiler still selects a singleton
+store and has native grammar/type caches. Migrating those boundaries is required
+before offering several independent compiler worlds in one native instance.
+Browser worker/Wasm-instance isolation continues to provide that separation now.
+
 ## Validation fixtures
 
 `scaffolding/tests/language-control.tower` and `language-collections.tower` contain

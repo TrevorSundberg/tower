@@ -16206,3 +16206,73 @@ Final synchronization integrated upstream's C publication journal entry at 120af
 Hosted verification at https://trevorsundberg.github.io/tower/ passes all 68 exact asset hashes and both browser profiles (node playground/scripts/verify-deployment.mjs; build/hover-margin-verify-live.log). All eight focused live hover checks pass in 16.7 seconds: from playground, set TOWER_HOVER_TEST_URL to that URL and run npx playwright test tests/browser/hover.spec.mjs --grep 'five pixel|another symbol|attached documentation|resolved types'. This covers physical pointer tolerance, the pending border and dwell transition, typed/declaration details without debug metadata, attached documentation, plain-text rendering and suppression of bare/unresolved syntax. Evidence: build/hover-margin-browser-live.log. The exact templates.tower push call was additionally checked on the hosted desktop/mobile UI; its resolved signature and original comment both appear. Inspected build/hover-push-live-desktop.png and hover-push-live-mobile.png for wrapping and complete readable documentation; build/hover-push-live.log records the checks.
 
 The final hosted cached-hover benchmark still sends no additional worker queries: 20 fresh documents per profile, median mouse-to-DOM 0.5 ms for both; median paint boundary 2.2 ms desktop and 2.0 ms mobile, p95 4.3/4.0 ms. Command: node playground/scripts/benchmark-hover.mjs https://trevorsundberg.github.io/tower/ build/hover-margin-timing.json (matching .log). These browser-observed paint boundaries are not a literal zero-time or monitor-latency guarantee. This final journal addition changes no published asset.
+
+## 2026-11-19: pinned compiler worlds and component queries (plan)
+
+Pulled main through 32282ad, preserving the upstream C backend and hover changes.
+The next parallel-phase prerequisite is explicit lifetime ownership. The user
+confirms the desired compiler world resembles an independent Lua state/V8 isolate
+and must support browser live compiler services. Today worker/Wasm isolation is
+real, but the native compiler still obtains its store from tower.cpp's singleton.
+ModuleEnvironment owns source/module/cache/session state, while component type
+registries and native grammar caches still need explicit world migration.
+
+Start with structural views in the existing Tower EntityStore. An open view pins
+the store's entities/components and dense per-type query indexes. Coordinators
+reject structural mutation during the view, defer zero-reference reclamation,
+and reclaim after the last view closes. Refcounts/view state remain coordinator
+owned; this does not add atomics or make arbitrary raw payload writes safe.
+Workers borrow batches under the scheduler's declared access contracts and return
+before the coordinator closes their view. Separate stores remain independent.
+
+Integrate the view into the compiler's layout kernel execution boundary. Discovery
+and structural publication remain outside that boundary. Add Tower functional
+fixtures for independent stores, nested views, deferred parent/component/type
+reclamation, retained entities, structural rejection and stable query batches.
+Check interpreter/LLVM/round-trip behavior and real compiler rebuilds; benchmark
+the serial cost before claiming a useful parallel prerequisite. No new native
+implementation and no completed singleton removal or threaded phase claim.
+
+Implemented EntityView/EntityQuery in the existing Tower entity library and
+opened/closed views around semantic layout kernels, including the error path.
+Independent stores remain mutable while another is pinned. Last-reference releases
+queue an entity once; a retained queued entity survives draining. Reclamation
+cannot recursively admit a view while dismantling containment/components. This
+uses existing explicit retain/release ownership, not language garbage collection.
+The native entity types are opaque, so no owned C/C++ changes were needed.
+
+The first fixture trials used comparisons inside call arguments and an expression
+directly in `if`, exceeding current Foundation/Tower syntax. Replaced them with
+ordinary locals; no parser changes. Graph interpretation then passed, but optimized
+LLVM reconstruction rejected `llvm.ctpop.i32`, produced from the library's bit
+idioms. Added scalar population-count reconstruction (integer widths through 64)
+using ordinary Foundation arithmetic/bit operations over the same entities.
+LLVM's contract counts set bits and returns the input integer type:
+[LLVM 20.1 LangRef](https://releases.llvm.org/20.1.0/docs/LangRef.html#llvm-ctpop-intrinsic).
+Vector/wider types retain explicit diagnostics.
+
+The dedicated population fixture first used a bit-clearing loop; this pipeline
+did not recognize it as ctpop, so the IR assertion correctly failed. Replaced it
+with the scalar parallel bit-summing idiom and checked the optimized IR contains
+ctpop. Also corrected untyped large literals and narrowed masks before checked
+numeric conversion. The fixture now tests every byte value, repeated-byte u32/u64
+patterns, zero, full-width values and high bits against an independent reference.
+Both widths, graph/fast execution, canonical text, raw/optimized reconstruction
+and Wasm output pass. The world fixture covers nested views, query tails, invalid
+and cross-world ranges, structural rejection and deferred ownership reclamation.
+
+Rebuilt native compiler/backend checks plus parser and both WASI LLVM reactors
+with the established release caches. Native API checks and formatting pass.
+Focused tests: 17/17; complete Node/Wasm suite: 336/336 (world-node.log, 43.85 s).
+Repackaged from actual compiler-unit manifests. Browser service, successor and
+serial-overhead measurements follow; do not claim those passed yet. Evidence is
+under build/language-next/world-*.log. The obsolete singleton, compiler phase
+parallelism and native thread transport remain explicitly unfinished.
+
+The first browser gate passes 23 cases, with one intentional mobile successor
+skip (world-browser.log, 3.0 minutes): edited compiler activation/C output/reset,
+nested worker cancellation and hover queries on both profiles. Upstream 8f49aa3
+then adds Tower-backed hover type/documentation queries plus frontend changes;
+integrate those before rebuilding final artifacts. The separate baseline source
+copies for entity/layout/import code are retained under world-baseline for the
+controlled overhead comparison; no new native seed or fallback was introduced.
