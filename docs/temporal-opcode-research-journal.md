@@ -20784,3 +20784,29 @@ Final pull integrated upstream 0b48236 (shared resolved type-use query metadata)
 Only the append-only journal conflicted; both histories are preserved. Rebuild
 the affected native/Wasm units and rerun focused checks before publishing the
 named-index slice, so the incoming type-use feature is retained.
+
+## 2026-11-20 — Type-use publication and template-remapping integration
+
+Published the type-use fix as main 0b48236 and gh-pages 7d872f5. The first normal
+deployment push raced with b35dd45, which published its parent source bf906b5;
+rebased normally and preserved the incoming metadata. All 70 live assets and the
+full desktop/mobile deployment flows passed for 7d872f5, plus 14 targeted live
+hover cases (build/type-use-live-report.json and type-use-live-hover.log).
+
+The final integration pull brought 0e4bd41's retained name indexes for template
+remapping. Rebuilt all parser/LLVM/cross packages with that source. All 72 service
+tests pass (15.32 s), all 44 desktop/mobile hover cases pass (1.1 min), two
+successor compiler generations are byte-identical and exercise edited semantic
+behavior, and the full local 70-asset deployment verification passes both
+profiles. Logs use build/type-use-integrated-*; the local report is
+build/type-use-integrated-local-report.json.
+
+While those checks ran, upstream published the same integrated source 0e4bd41
+as gh-pages 1828ff9. Its source includes this turn's 0b48236 fix. Keep that
+publication rather than replace an equivalent source deployment with another
+build's line endings, source-map paths and support archives. Preserved our
+independently tested local distribution in build/type-use-integrated-local-dist,
+verified every published-checkout file against its recorded SHA-256, and selected
+those exact artifacts as the expected package for the final hosted verification.
+This does not claim byte identity between the two build environments. The hosted
+package itself must pass the deployment and hover checks before completion.
