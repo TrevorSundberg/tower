@@ -18211,3 +18211,37 @@ and ide-services-current-live-browser.log. The concurrent journal entry records
 its complete integrated local/browser validation; the earlier full live verifier
 above describes the preceding publication, not a rerun on ea255504. The final
 main rebase added only that journal record and preserved unrelated local work.
+
+## 2026-11-20: Parser migration publication and next removal
+
+Publication completed: another Pages commit, 80a7aee, arrived while the combined
+candidate was ready. Its packaged Tower sources and app.mjs match the current
+checkout (normalizing source line endings); it includes the same source changes.
+Rebased the candidate onto that publication and resolved asset conflicts with
+the combined, fully validated dist. The normal push published ea25550458458a3a4055594a7e7e6f73190d23d1;
+Pages workflow 44764035189 succeeded. Main migration commits c1c71f0 and 3f2cab4
+and the integrated validation record 7b5cea2 are pushed. No force push, source
+discard or new native implementation was used.
+
+Hosted verification now passes at https://tower-lang.org/: all 69 assets match
+the local build, and desktop/mobile checks confirm backend agreement, editable
+grammar, forward bindings, persistence, native outputs/downloads, completion,
+highlighting and target defaults. Reproduce with
+node playground/scripts/verify-deployment.mjs https://tower-lang.org/.
+Evidence: build/language-next/parser-integrated-hosted.log and
+parser-integrated-hosted-report.json. The deployed manifest remains
+02edb30e5d5fd0dd711aca360ca555cba443d1b6c10385391e14e8c1350d6b1b.
+The two steps removed a net 195 production native lines; the combined main still
+has 6,050 production native lines across 52 files, with bootstrap/reference tests
+counted separately. This is a measured inventory, not a completion percentage.
+
+Next removal plan: migrate parser_tree_debug_string and remaining diagnostic
+formatting helpers from parser.cpp into Tower over the existing entity graph and
+formatting engine. Preserve exact text, ordering, labels, spans and allocation
+ownership; use an iterative work list for deep trees. Add functional coverage in
+the separate Tower frontend-world test unit for empty/unannotated/named trees,
+rule/token output, Unicode, deep traversal and resource cleanup. Native changes
+will only delete implementations and mechanically connect the existing ABI.
+Then continue moving syntax-session/registry ownership into explicit worlds;
+within-unit parallel phases still require pinned inputs and declared read/write
+access, and are not claimed implemented by these migrations.
