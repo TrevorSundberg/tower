@@ -1,0 +1,42 @@
+import '../library/vector';
+import tower;
+
+// Shared component layouts for grammar construction, formatting and inspection.
+// Native adapters borrow these exact payloads; there is only one grammar model.
+struct LexerTable {
+    alphabet: vector(u32);
+    transitions: vector(i32);
+    accepting: vector(u8);
+}
+
+struct SyntaxSource {
+    references: usize;
+    name: vector(u8);
+    text: vector(u8);
+}
+
+struct SyntaxPattern {
+    references: usize;
+    table: LexerTable*;
+    grammar: void*;
+}
+
+struct SyntaxNode {
+    kind: u32;
+    name: vector(u8);
+    text: vector(u8);
+    capture: vector(u8);
+    style: vector(u8);
+    source: SyntaxSource*;
+    literal: bool;
+    append: bool;
+    contextual: bool;
+    terminal_set: bool;
+    repetition: u8;
+    items: vector(void*);
+    replacement: void*;
+    comments: vector(vector(u8));
+    start: usize;
+    end: usize;
+    compiled: SyntaxPattern*;
+}

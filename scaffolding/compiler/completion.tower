@@ -1,4 +1,5 @@
 import tower;
+import 'language-grammar';
 
 // Editor queries over the compiler's shared syntax entities. Recovery text is
 // scratch input to the ordinary parser, never a second AST or program format.
@@ -18,6 +19,7 @@ struct CompletionQuery {
     analyzed: bool;
     inspection: bool;
     inspection_session: void*;
+    grammar: vector(LanguageGrammar);
     comment_modules: vector(void*);
     comment_bases: vector(usize);
     truncated: bool;
@@ -104,6 +106,8 @@ fn completion_parse(q: CompletionQuery*, source: u8*, mode: u32, future: bool): 
             sem_push(&entries, root);
         } else {
             if q.inspection {
+                language_snapshot(q, root, session, 0);
+                language_templates_refresh(q, session);
                 // Keep grammar entities for inspection without adding them to
                 // the executable statement list consumed by ordinary checking.
                 sem_require(entity_attach(root, q.program.root, ""));
@@ -1166,6 +1170,7 @@ export fn completion_end(q: CompletionQuery*): u8* {
 }
 
 export fn completion_dispose(q: CompletionQuery*): void {
+    language_grammar_dispose(q);
     if q.analyzed {
         sem_context_dispose(&q.context);
     }

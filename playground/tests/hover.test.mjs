@@ -92,6 +92,112 @@ test('grammar files expose syntax/entity metadata under their own baseline',()=>
     assert.ok(entries.length);assert.ok(entries.every(entry=>entry.entity>0&&entry.components>0));
   }
 });
+
+test('increment grammar hovers distinguish rule references, capture binding, literals and parsed replacement nodes',async()=>{
+  const source=(await read('scaffolding/examples/increment.tower')).toString(),entries=inspect(source);
+  const get=(needle,offset=1)=>hoverAt(entries,source.indexOf(needle)+offset);
+  const capture=get('$target:CoreLocation');
+  assert.equal(capture.kind,'capture binding');assert.equal(capture.capture,'target');
+  assert.equal(capture.category,'CoreLocation');assert.equal(capture.type,undefined);
+  const reference=get('$target:CoreLocation',10);
+  assert.equal(reference.kind,'grammar reference');assert.match(reference.definition,/\$name:Identifier/);
+  assert.ok(reference.alternatives>=3);assert.match(reference.definedIn,/foundation/);
+  assert.equal(get("'++'").kind,'literal token');
+  const rule=get('parse CoreCall',7);assert.equal(rule.kind,'parse rule');assert.ok(rule.alternatives>=2);
+  assert.match(rule.documentation,/CoreLocation matches variables/);
+  assert.match(get('parse CoreCall',1).documentation,/CoreLocation matches variables/);
+  assert.doesNotMatch(rule.signature,/=>|\/\//);
+  assert.equal(get('|=').kind,'grammar assignment');assert.match(get('|=').description,/Extends/);
+  const call=get('replace { post_increment',12);
+  assert.equal(call.signature,'fn post_increment(p: i32*): i32');assert.equal(call.type,'i32');
+  assert.equal(call.replacementCategory,'CoreCall');
+  assert.equal(get('&$target').kind,'capture substitution');
+  assert.equal(get('&$target',0).kind,'address of');
+  const hole=get('&$target',2);assert.equal(hole.capture,'target');assert.equal(hole.category,'CoreLocation');
+  assert.equal(hole.type,undefined);assert.match(hole.description,/after substitution/);
+  assert.ok(entries.filter(entry=>entry.description).every(entry=>entry.kind!=='grammar'));
+});
+
+test('grammar hovers cover token/skip metadata, repetitions, exclusions and alternatives in both bootstrap modes',()=>{
+  const source="// Word documentation\ntoken Word = /[a-z]+/ when expected as string;\nskip Space = /[ ]+/;\nparse Example = $word:Word? '!'* Word+ | [^'{' '}'];";
+  for(const editingModule of ['bedrock','foundation']) {
+    const entries=inspect(source,{editingModule}),get=(needle,offset=0)=>hoverAt(entries,source.indexOf(needle)+offset);
+    assert.equal(get('Word =').kind,'token declaration');assert.equal(get('Word =').documentation,'Word documentation');
+    assert.equal(get('/[a-z]+/',3).kind,'lexical pattern');
+    assert.equal(get('when',1).kind,'contextual token');
+    assert.equal(get('string',1).kind,'highlight style');assert.match(get('string',1).description,/not declare a semantic type/);
+    assert.equal(get('Space',1).kind,'skip declaration');
+    for(const [needle,description] of [['?',/zero or one/],['*',/zero or more/],['Word+',/one or more/]]) {
+      const entry=get(needle,needle==='Word+'?4:0);assert.equal(entry.kind,'repetition');assert.match(entry.description,description);
+    }
+    assert.equal(get("'!'",1).kind,'literal token');
+    assert.equal(get('[^',1).kind,'token exclusion set');
+    assert.equal(get("'{'",1).kind,'excluded token');
+    assert.equal(get('|',0).kind,'alternative separator');
+    const reference=get('$word:Word',7);assert.equal(reference.kind,'grammar reference');
+    assert.equal(reference.definition,'token Word = /[a-z]+/');assert.equal(reference.documentation,'Word documentation');
+  }
+});
+
+test('grammar reference snapshots preserve overrides, append order, pending rules and comment ownership',()=>{
+  const source="// First\nparse Item = 'first';\nparse Before = Item;\n// Second\nparse Item = 'second';\nparse Middle = Item;\nparse Item |= 'third';\nparse After = Item;\nparse Pending = Future;\nparse Future = 'later';";
+  const entries=inspect(source),get=needle=>hoverAt(entries,source.indexOf(needle)+needle.length-2);
+  assert.equal(get('Before = Item;').definition,"'first'");assert.equal(get('Before = Item;').documentation,'First');
+  assert.equal(get('Middle = Item;').definition,"'second'");assert.equal(get('Middle = Item;').documentation,'Second');
+  assert.equal(get('After = Item;').definition,"'second'\n| 'third'");assert.equal(get('After = Item;').alternatives,2);
+  const pending=get('Pending = Future;');assert.match(pending.resolution,/Not resolved at this declaration/);
+  assert.equal(pending.definition,undefined);
+});
+
+test('nested replacement trees retain capture identity and distinguish blocks, calls and control flow',()=>{
+  const source="fn sink(x:i32):void { print(x); }\nparse Statement |= 'twice' $value:CoreOperand ';' => replace { { sink($value); if true { sink($value); } } };\ntwice 3;";
+  const entries=inspect(source),get=needle=>hoverAt(entries,source.indexOf(needle)+1);
+  assert.equal(get('sink($value)').signature,'fn sink(x: i32): void');
+  assert.equal(get('if true').kind,'replacement conditional');
+  const holes=entries.filter(entry=>entry.kind==='capture substitution');
+  assert.equal(holes.length,2);assert.ok(holes.every(entry=>entry.capture==='value'&&entry.category==='CoreOperand'&&!entry.type));
+  const templateStart=source.indexOf('replace {')+9,templateEnd=source.lastIndexOf('};');
+  const body=entries.filter(entry=>entry.from>=templateStart&&entry.to<=templateEnd);
+  assert.ok(body.length>10);assert.ok(body.every(entry=>entry.description));
+  const nodes=tower.exports.tw_live_nodes(),allocations=tower.exports.tw_live_allocations();
+  for(let i=0;i<15;i++)inspect(source);
+  assert.equal(tower.exports.tw_live_nodes(),nodes);assert.equal(tower.exports.tw_live_allocations(),allocations);
+});
+
+test('whole Bedrock and Foundation trees have meaningful grammar entries and valid ranges',async()=>{
+  for(const editingModule of ['bedrock','foundation']) {
+    const source=(await read(`scaffolding/${editingModule}.tower`)).toString(),entries=inspect(source,{editingModule});
+    assert.ok(entries.length>300);
+    for(const entry of entries) {
+      assert.ok(entry.from>=0&&entry.to<=source.length&&entry.to>entry.from);
+      assert.ok(entry.description,`${editingModule}: ${source.slice(entry.from,entry.to)} (${entry.syntax})`);
+      assert.notEqual(entry.kind,'grammar');assert.notEqual(entry.kind,'syntax');
+    }
+  }
+});
+
+test('shared replacements show every possible capture category rather than claiming the first applies to all',()=>{
+  const source="parse Statement |= 'one' $x:Number ';' | 'two' $x:CoreOperand ';' => replace { print($x); }; one 2; two 3;";
+  const entry=at(source,'$x);');
+  assert.equal(entry.kind,'capture substitution');assert.equal(entry.category,'Number | CoreOperand');
+  assert.equal(entry.replacementAlternatives,2);assert.equal(entry.type,undefined);
+});
+
+test('templates become inspectable when later declarations activate their rules',()=>{
+  const source="fn sink(x:i32):void { print(x); } parse Later = 'later' $value:CoreOperand ';' => replace { sink($value); }; parse Statement |= Later; later 4;";
+  const entries=inspect(source),call=hoverAt(entries,source.indexOf('sink($value)')+1);
+  assert.equal(call.signature,'fn sink(x: i32): void');assert.equal(call.replacementCategory,'Statement');
+  assert.equal(at(source,'$value);').kind,'capture substitution');
+  const pending="parse Unused = 'unused' $value:CoreOperand ';' => replace { print($value); };";
+  assert.equal(at(pending,'$value);').kind,'replacement template');
+});
+
+test('generated functions, declarations and return nodes have their own template roles',async()=>{
+  const source=(await read('scaffolding/tower.tower')).toString(),entries=inspect(source);
+  for(const [needle,kind] of [['fn $name','replacement function'],['var result','replacement declaration'],['return result','replacement return']]) {
+    const entry=hoverAt(entries,source.indexOf(needle)+1);assert.equal(entry.kind,kind);assert.ok(entry.description);
+  }
+});
 test('document queries release their temporary shared entities after repeated inspection',()=>{
   const source='// Point documentation\nstruct Point { x:i32; }\n// Instance documentation\nvar p:Point; print(p.x);';inspect(source);
   const nodes=tower.exports.tw_live_nodes(),allocations=tower.exports.tw_live_allocations();

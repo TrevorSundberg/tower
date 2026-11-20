@@ -1,34 +1,9 @@
 import tower;
+import 'syntax-types';
 
 // Grammar declarations augment the same entities used by syntax and foundation.
 // Source entities are authoritative; lexer tables and comparison work lists are derived.
 extern fn entity_retain(node: void*): usize;
-
-struct SyntaxPattern {
-    references: usize;
-    table: LexerTable*;
-    grammar: void*;
-}
-
-struct SyntaxNode {
-    kind: u32;
-    name: vector(u8);
-    text: vector(u8);
-    capture: vector(u8);
-    style: vector(u8);
-    source: SyntaxSource*;
-    literal: bool;
-    append: bool;
-    contextual: bool;
-    terminal_set: bool;
-    repetition: u8;
-    items: vector(void*);
-    replacement: void*;
-    comments: vector(vector(u8));
-    start: usize;
-    end: usize;
-    compiled: SyntaxPattern*;
-}
 
 export fn syntax_pattern_size(): usize {
     return sizeof(SyntaxPattern);

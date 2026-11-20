@@ -23,7 +23,7 @@ export function hoverIndex(source,result) {
 // Presentation eligibility only; types, documentation and signatures are all
 // supplied by Tower. Raw token/entity inspection belongs in the tree inspector.
 export function hasHoverDetails(entry,source) {
-  return !!(entry.type || entry.documentation || entry.kind==='grammar' && entry.signature?.trim()!==source.trim());
+  return !!(entry.type || entry.documentation || entry.description);
 }
 
 // Interval lookup only. Tower already selected the bound entity, type,

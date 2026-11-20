@@ -1,13 +1,8 @@
 import tower;
+import 'syntax-types';
 
 // Derived lexer tables only: token declarations remain on shared syntax entities.
 // Flat transition rows and maximal-prefix matching are owned and executed by Tower.
-struct LexerTable {
-    alphabet: vector(u32);
-    transitions: vector(i32);
-    accepting: vector(u8);
-}
-
 // A finite-state chain over arbitrary integer symbols. State n accepts; each
 // earlier state has one range transition to its successor. No parse stack.
 struct SymbolRange {

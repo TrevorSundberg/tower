@@ -59,6 +59,31 @@ test('cached mouse hover shows resolved types and declaration locations without 
   await page.mouse.move(0,0);await expect(tip).toHaveCount(0);
 });
 
+test('grammar hover follows each parsed part and shows referenced types without a hover-time worker query',async({page},info)=>{
+  const text='// Increment a location.\nfn increment(p:i32*):i32 { var result = *p; return result; }\n// Match an assignable location.\nparse CoreCall |= $target:CoreLocation \'++\'\n    => replace { increment(&$target) };\nvar value:i32 = 2;\nprint(value++);';
+  await source(page,text);await ready(page,text);
+  const count=await page.evaluate(()=>window.documentQueries.length),tip=page.locator('.tw-language-hover');
+  for(const [name,last,expected] of [
+    ['target',false,'capture binding'],['CoreLocation',true,'grammar reference'],
+    ['++',false,'literal token'],['increment',true,'fn increment(p: i32*): i32'],
+    ['target',true,'capture substitution'],
+  ]) {
+    await page.mouse.move(0,0);const position=await point(page,name,last);await page.mouse.move(position.x,position.y);
+    await expect(tip).toBeVisible();await expect(tip).toContainText(expected);
+    await expect(tip).not.toContainText(/entity|components/);
+    if(expected==='capture substitution') {
+      await expect(tip).toContainText('Grammar category: CoreLocation');
+      await expect(tip).not.toContainText('Type:');
+    }
+    if(expected==='grammar reference') {
+      await expect(tip.locator('.tw-hover-definition')).toContainText('$name:Identifier');
+      await page.screenshot({path:'../build/grammar-hover-'+info.project.name+'.png'});
+    }
+  }
+  expect(await page.evaluate(()=>window.documentQueries.length)).toBe(count);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});
+
 test('member hover uses the resolved field and comments have no tooltip',async({page})=>{
   const text='struct P { x:i32; ready:bool; }\nvar p:P;\np.ready = true;\n// comment';
   await source(page,text);await ready(page,text);

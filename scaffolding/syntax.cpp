@@ -1372,6 +1372,51 @@ extern "C" SyntaxSession* syntax_completion_create(const char* source, unsigned 
 }
 extern "C" void syntax_completion_enable(SyntaxSession* session) { session->completing = true; }
 extern "C" FrontendModule* syntax_completion_module(SyntaxSession* session) { return session->module; }
+// Read-only migration bridges to the current derived grammar tables. Tower
+// retains the returned shared entities before the next declaration can replace
+// or evict this version. No parser or presentation policy is duplicated here.
+extern "C" TowerNode* syntax_inspection_reference(SyntaxSession* session, const char* text,
+                                                 size_t length, size_t index, size_t* count) {
+  *count = 0;
+  if (!session->version) return nullptr;
+  const auto& version = *session->version;
+  const std::string name(text, length);
+  if (auto found = version.definitions.find(name); found != version.definitions.end()) {
+    *count = found->second.size();
+    return index < *count ? found->second[index].get() : nullptr;
+  }
+  for (const auto& token : version.tokens) if (semantic(token).name == name) {
+    *count = 1; return index == 0 ? token.get() : nullptr;
+  }
+  return nullptr;
+}
+static const Replacement* inspection_replacement(SyntaxSession* session, TowerNode* body) {
+  if (!session->version) return nullptr;
+  const auto& version = *session->version;
+  for (const auto& [index, replacement] : version.replacements) {
+    auto production = version.productions.find(index);
+    if (production == version.productions.end()) continue;
+    const auto& [name, alternative] = production->second;
+    auto rule = version.definitions.find(name);
+    if (rule != version.definitions.end() && alternative < rule->second.size() &&
+        semantic(rule->second[alternative]).replacement == body) return &replacement;
+  }
+  return nullptr;
+}
+extern "C" TowerNode* syntax_inspection_template(SyntaxSession* session, TowerNode* body,
+                                                const char** category, size_t* captures) {
+  *category = ""; *captures = 0;
+  auto* replacement = inspection_replacement(session, body);
+  if (!replacement) return nullptr;
+  *category = replacement->category.c_str(); *captures = replacement->captures.size();
+  return replacement->tree.get();
+}
+extern "C" TowerNode* syntax_inspection_capture(SyntaxSession* session, TowerNode* body, size_t index) {
+  auto* replacement = inspection_replacement(session, body);
+  if (!replacement || index >= replacement->captures.size()) return nullptr;
+  auto capture = replacement->captures.begin(); std::advance(capture, index);
+  return capture->second.get();
+}
 static uint32_t completion_token(SyntaxSession* session, const char* text) {
   if (!session->completion) return PARSER_ID_EOF;
 #ifdef TOWER_EXPANSION_SEED

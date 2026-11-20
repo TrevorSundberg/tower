@@ -27,6 +27,7 @@ struct LanguageCandidate {
     to: usize;
     grammar: bool;
     specialization: bool;
+    template: LanguageGrammar*;
 }
 
 fn language_quote(q: CompletionQuery*, text: u8*, size: usize): void {
@@ -348,7 +349,11 @@ fn language_leaf(q: CompletionQuery*, leaf: void*, candidate: LanguageCandidate*
         subject = candidate.subject;
         node = candidate.node;
         value = sem_get(subject);
-        format_summary(&formatted, subject, syntax_component_type(), core_component_type(), parser_match_get_type());
+        if candidate.grammar {
+            format_grammar_preview(&formatted, subject, syntax_component_type());
+        } else {
+            format_summary(&formatted, subject, syntax_component_type(), core_component_type(), parser_match_get_type());
+        }
     }
     var hover_condition32 = q.count != 0;
     if hover_condition32 {
@@ -377,7 +382,22 @@ fn language_leaf(q: CompletionQuery*, leaf: void*, candidate: LanguageCandidate*
             kind = "function specialization";
         }
     }
-    language_string(q, "kind", kind);
+    var grammar_details = selected;
+    if grammar_details {
+        grammar_details = candidate.grammar;
+    }
+    if grammar_details {
+        language_grammar_details(q, leaf, node);
+    } else {
+        var template_details = candidate.template != null;
+        if template_details {} else {
+            language_string(q, "kind", kind);
+        }
+    }
+    var grammar_condition1 = candidate.template != null;
+    if grammar_condition1 {
+        language_template_details(q, leaf, candidate);
+    }
     var syntax = sem_label(node);
     var hover_condition33 = node == leaf;
     if hover_condition33 {
@@ -435,6 +455,25 @@ fn language_walk(q: CompletionQuery*, node: void*, inherited: LanguageCandidate*
     copy(&current, inherited, sizeof(LanguageCandidate));
     language_candidate(q, node, &current, checked);
     var count = sem_child_count(node);
+    var syntax = language_syntax(node);
+    var grammar_condition2 = syntax != null;
+    if grammar_condition2 {
+        var grammar_condition3 = syntax.kind == SyntaxTemplate();
+        if grammar_condition3 {
+            var template = language_grammar_find(q, node);
+            var grammar_condition4 = template != null;
+            if grammar_condition4 {
+                grammar_condition4 = template.targets.length != 0;
+            }
+            if grammar_condition4 {
+                language_leaf(q, sem_child(node, 0), &current);
+                language_template_walk(q, template.targets.data[0], template, null, checked, depth, budget);
+                var last = count - 1;
+                language_leaf(q, sem_child(node, last), &current);
+                return;
+            }
+        }
+    }
     var hover_condition42 = count == 0;
     if hover_condition42 {
         language_leaf(q, node, &current);

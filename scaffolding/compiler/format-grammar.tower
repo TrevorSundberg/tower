@@ -266,3 +266,48 @@ fn format_grammar(f: FormatEngine*, entity: void*): void {
         format_span(f, begin, n.start);
     }
 }
+
+// Compact grammar previews share canonical spelling without enclosing comments
+// or replacement bodies. Hover descriptions are emitted by the language query.
+export fn format_grammar_preview(result: FormatResult*, entity: void*, syntax: void*): void {
+    var f: FormatEngine;
+    fill(&f, 0, sizeof(FormatEngine));
+    f.result = result;
+    f.syntax_kind = syntax;
+    var n = format_syntax(&f, entity);
+    var grammar_condition1 = n == null;
+    if grammar_condition1 {
+        return;
+    }
+    var grammar_condition2 = n.kind == SyntaxAlternative();
+    if grammar_condition2 {
+        format_alternative(&f, entity);
+        return;
+    }
+    var grammar_condition3 = n.kind == SyntaxTerm();
+    if grammar_condition3 {
+        format_grammar_term(&f, entity);
+        return;
+    }
+    var grammar_condition4 = n.kind == SyntaxToken();
+    if grammar_condition4 {
+        format_text(&f, "token ");
+    }
+    var grammar_condition5 = n.kind == SyntaxSkip();
+    if grammar_condition5 {
+        format_text(&f, "skip ");
+    }
+    format_identifier(&f, &n.name);
+    var grammar_condition6 = n.kind == SyntaxToken();
+    if grammar_condition6 {
+        format_text(&f, " = /");
+        format_bytes(&f, &n.text);
+        format_text(&f, "/");
+    }
+    var grammar_condition7 = n.kind == SyntaxSkip();
+    if grammar_condition7 {
+        format_text(&f, " = /");
+        format_bytes(&f, &n.text);
+        format_text(&f, "/");
+    }
+}

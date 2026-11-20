@@ -1,13 +1,8 @@
 import tower;
+import 'syntax-types';
 
 // Immutable source storage shared by declaration entities and later diagnostics.
 // These references use the compiler runtime's current single-threaded ownership.
-struct SyntaxSource {
-    references: usize;
-    name: vector(u8);
-    text: vector(u8);
-}
-
 export fn syntax_source_size(): usize {
     return sizeof(SyntaxSource);
 }

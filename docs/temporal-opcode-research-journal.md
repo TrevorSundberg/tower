@@ -16604,3 +16604,78 @@ compared its SHA-256 with `playground/dist/deployment-manifest.json`: both are
 publication whose full desktop/mobile verification passed in the preceding
 entry. Only this journal changes in this turn; the prepared custom-domain
 deployment remains blocked on an authorized, usable Cloudflare access path.
+
+## 2026-11-19 — Inspect grammar roles and compiled replacement trees
+
+The increment example exposed a language-query selection defect: every Bedrock
+reader leaf inherited the nearest `SyntaxNode`, and `format_summary` printed that
+whole declaration/term/template followed by the generic label `grammar`. Replacement
+body inspection walked the balanced declaration-reader tree rather than the already
+compiled replacement tree, so function names, address operators and capture holes
+could not explain their separate roles.
+
+The query now reads the same SyntaxNode/SyntaxSource/SyntaxPattern/LexerTable layouts
+from one type-only Tower module. No layout or semantic representation changes.
+Tower snapshots a bounded preview of effective reference alternatives at each
+declaration boundary and retains compiled replacement trees plus their source capture
+entities. These are disposable indexes of existing entities. Three narrow native
+read-only adapters bridge the current Version's still-native lookup maps; classification,
+source locations, comments, canonical previews, capture interpretation and function
+signature lookup remain Tower code. The JavaScript layer only renders query fields.
+Later `=` overrides and `|=` extensions cannot retroactively change earlier reference
+hovers. Pending forward dependencies are identified as unresolved at that declaration.
+
+Grammar hovers distinguish rule definition/assignment, alternative separators,
+capture bindings, references, literals, exclusion sets and their members, repetition,
+lexical patterns, contextual token mode, highlighting metadata and module imports.
+Replacement hovers traverse the actual parsed tree and distinguish substitutions,
+calls, address/dereference operations, declarations and control flow. A known function
+reference uses the ordinary checked function table and shared Foundation signature
+formatter. Capture categories are explicitly grammar categories; the query does not
+invent concrete runtime types before expansion/substitution. Attached comments are
+shown separately from the compact preview. All source ranges remain byte offsets
+until the existing UI UTF-8/UTF-16 conversion.
+
+Implementation trials: the first bootstrap compile diagnosed bare Syntax* constants
+(Tower constants are zero-argument functions), then aggregate vector_push (by-value
+struct parameters are not implemented). Changed those uses to ordinary calls and
+reserve/copy ownership transfer respectively. Retained entities are released before
+query/session disposal. Shared parser component ABI remains covered by the existing
+layout and round-trip tests.
+
+The first executable grammar tests caught a component/payload access mistake:
+entity_component_get returns the component handle, so inspection must call
+entity_component_data before reading SyntaxNode. Corrected this and reran imports,
+grammar, ordinary typed hovers and repeated-query allocation checks successfully.
+Additional whole-tree trials exposed two important cases: a replacement shared by
+alternatives with Number versus CoreOperand captures, and an unreachable rule whose
+template only compiles when a later Statement extension activates it. Capture hover
+now reports the ordered union of categories. Shared replacement previews explicitly
+identify that their syntax tree comes from the first compiled alternative; they do
+not claim one concrete runtime type. Pending templates are filled at their first
+activation and then retained without later overrides changing their interpretation.
+The role table also covers generated functions, parameters, structs/enums, fields,
+binary values, assignment destinations and loop control, using actual parsed nodes.
+
+The final focused command `node --test playground/tests/hover.test.mjs` passes all
+25 tests, including all entries in both complete bootstrap grammar files and the
+generated-function templates in tower.tower. The initial broad Node/Wasm run passed
+342 tests; final broad/browser/self-successor results follow. `npm run check:format
+--prefix playground` passes with the shared canonical formatter.
+
+Before upstream integration, the final source passes 345 Node/Wasm tests and the
+canonical format check; the desktop/mobile hover and completion run passes all 40
+cases. Local deployment verification matches all 68 assets and passes both browser
+profiles, including interpreter/LLVM/native outputs, editable grammar, imports,
+persistence and output highlighting. Visual inspection confirms useful per-token
+panels and wrapping on desktop/mobile. A final documentation correction makes an
+extension declaration's name show that declaration's own attached comments, while
+references show the referenced rule's comments; its regression is included above.
+The preliminary self-successor run was stopped after linking generation 1 when this
+last correction required refreshed packaged sources; no generation-success claim
+is made for that interrupted run.
+
+Upstream moved from 4bac421 to 5dd7ddb during validation (entity query/view lifetime
+changes and associated tests/docs). Integrating it before publishing, then rebuilding
+and validating the combined tree. Final synchronization/deployment evidence follows
+in a later journal entry.
