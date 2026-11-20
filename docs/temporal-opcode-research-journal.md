@@ -18595,3 +18595,15 @@ The tested deployment manifest SHA-256 is
 957112792c7989fbb4f18d0acc6d5aedb287e1796bef8509f2d2c1535316eccc.
 Prepared publication includes both newer compiler changes and the generic ECS
 inspection dispatch. Hosted verification follows after normal Pages publication.
+
+Published gh-pages f457f0fb3194d3120fc9b9013d7e5e3af713a545 normally; Pages reports
+built and the hosted manifest matches the tested combined bundle above. All 69
+served assets match. The complete live deployment verifier passes both desktop
+and mobile: backend agreement, grammar editing, module bindings, persistence,
+native downloads, completion, output highlighting and target defaults. All 12
+focused live hover checks pass as well, including custom-surface spelling,
+comments, types and cached lookup. HTTP, www and the old GitHub Pages URL each
+return 301 to https://tower-lang.org/. Evidence: generic-hover-live-deployment.log,
+generic-hover-live-browser.log and generic-hover-live-report.json. Source and
+validation commits are pushed on main; only this final publication record remains
+to sync. No token-specific query fallback was restored during integration.
