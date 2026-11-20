@@ -205,6 +205,9 @@ fn driver_compile_interpret(state: DriverCompilation*): i32 {
         driver_timing_mark(state.timing, options.timings, "prepare");
     }
     var execution = &state.execution;
+    if !driver_execution_start(execution) {
+        driver_compile_report(state, execution.error.data, execution.machine.error_offset); return 1;
+    }
     while !execution.machine.done {
         if execution.fast != null { fast_interpreter_step(&execution.machine, execution.fast, 10000); }
         else { interpreter_step(&execution.machine, 10000); }

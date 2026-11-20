@@ -31,15 +31,25 @@ const cases = [
   ['wide arithmetic comparison and conversion', 'var a: i64 = -5000000000; var b: i64 = a / 3; print(b); var yes: bool = a < b; print(yes); var c: u8 = 255; var d: u64 = convert(u64, c); print(d); var e: i64 = -2; var f: i32 = convert(i32, e); print(f);', '-1666666666\ntrue\n255\n-2\n'],
   ['raw field offsets', 'struct S { tag: u8; value: i32; link: S*; } var s: S; var p: S* = &s; var f: i32* = &s.value; var base: usize = bits(usize, p); var field: usize = bits(usize, f); var offset: usize = field - base; print(offset); var size: usize = sizeof(S); print(size); var alignment: usize = alignof(S); print(alignment);', '4\n12\n4\n'],
 ];
+function executeFixture(handle) {
+  let result, output = '';
+  // Expression normalization can exceed one bounded worker slice. Continue
+  // through the existing execution API, preserving output from every slice.
+  for (let slice = 0; slice < 20; ++slice) {
+    result = tower.execute(handle, 100000); output += result.output;
+    if (result.status !== 'executing') break;
+  }
+  return {...result, output};
+}
 for (const [name, source, expected] of cases) test('raw memory: ' + name, async () => {
   const handle = tower.compile(source);
   try {
-    const reference = tower.execute(handle, 100000);
+    const reference = executeFixture(handle);
     assert.equal(reference.status, 'done', reference.error); assert.equal(reference.output, expected);
     const fastHandle = tower.compile(source);
     try {
       tower.useFast(fastHandle);
-      const fast = tower.execute(fastHandle,100000);
+      const fast = executeFixture(fastHandle);
       assert.equal(fast.status,'done',fast.error); assert.equal(fast.output,expected);
     } finally { tower.destroyExecution(fastHandle); }
     const formatted = tower.foundation(handle), round = tower.compileFoundation(formatted.source);

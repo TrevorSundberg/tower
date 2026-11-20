@@ -22069,3 +22069,56 @@ these object builds do not claim Windows/macOS compiler execution. Earlier guest
 runtime execution on Windows x64 and qemu ARM64 remains distinct from host CLI
 execution. Source pin a5435617 is still a hybrid development bootstrap; this CLI
 retirement does not establish a portable, completely Tower-only compiler release.
+
+
+Final integration results: a completely fresh default build (no private
+TOWER_BOOTSTRAP_COMPILER) passed all 56 native targets in
+cli-runtime-clean-20261120. The full focused native suite passed 8/8 in 44.44 s,
+and the actual native module-path/import checks passed. New runtime allocations
+and interpreter state are now initialized only when execution/cache preparation
+needs them: object/source emission does not allocate a 4 MiB interpreter arena.
+This uses the existing interpreter initializer and does not change its semantics.
+
+Paired CLI benchmark, same Clang/LLVM/current compiler objects and resources:
+relinked the saved pre-port C++ driver and a Tower entry compiled from 479962b
+against the current shared compiler objects (port-benchmark.py). Emitted objects
+were byte-identical for both programs. Medians before/after: startup
+12.849/12.743 ms (-0.83%), templates 1796.038/1788.018 ms (-0.45%), UTF-8 compiler
+unit 1948.460/2017.432 ms (+3.54%). The later samples overlapped browser checks,
+so the small UTF-8 difference is not isolated evidence of a regression. These
+measurements precede the final lazy interpreter initialization above; no claim
+of a measured speedup from that cleanup. Earlier allocator measurements remain
+recorded in this journal; this slice changes no allocator algorithm.
+
+The selected Node/Wasm run completed 77 passing checks and one skip, with two
+reported failures: the intentionally interrupted module-scope process and the
+storage fixture exceeding one fast-interpreter slice. Expression normalization
+adds instructions; continued execution through the existing bounded step API
+(with a finite 20-slice test ceiling and accumulated output) fixes the latter.
+The complete raw-memory suite now passes 25 with one optional native-Wasm fixture
+skip. Module scope collision/round-trip/LLVM and hover cases independently pass
+2/2 in 8.38 s. The expensive 20-iteration query/ownership sweep was interrupted,
+not passed; no new compiler cache or ownership implementation was introduced.
+
+Publication preparation rebuilt all target packs and packaged/stripped all three
+reactors. The local verifier confirms all 70 asset hashes and progressed through
+native/Wasm output, interpreter agreement, grammar edits, persistence, diagnostics
+and downloads. It exposed stale assertions assuming increment replacement calls,
+unsnapshotted inferred initializers and one lib identifier even though two dotted
+imports now contain it. Updated those existing verification expectations while
+retaining exact execution-output assertions.
+
+Deployment is BLOCKED at the compiler project view: its default
+units/compiler_parser_nodes.tower document exceeds the playground Engine's fixed
+10-second parsing deadline (app.mjs request timer). The UI shows "Unable to
+finish. Edit the source to retry." and verify-deployment.mjs stops at the compiler
+project Complete assertion. The native CLI compiles successfully; this is browser
+project parsing/latency after the upstream expression/import changes. No timeout
+was removed, no parser/frontend algorithm was changed outside task ownership,
+and no failing build was published. Latest remote Pages f714b9d still serves
+source 781958a; it remains untouched. Logs: ported-local-deployment.log,
+ported-node.log, ported-memory-node.log, ported-scope-node.log,
+clean-pinned-build.log, ported-final-tests.log and ported-lazy-tests.log.
+The CLI/runtime source retirement is complete. Publication needs the compiler
+project parsing deadline issue resolved, then the existing local/hosted verifier
+rerun; remaining native syntax/browser transports belong to separate migrations.

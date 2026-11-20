@@ -16,6 +16,7 @@ struct DriverExecution {
     fast: void*;
     error: ByteBuffer;
     output: ByteBuffer;
+    started: bool;
 }
 
 fn driver_execution_close(execution: DriverExecution*): void {
@@ -47,11 +48,19 @@ fn driver_execution_compile(execution: DriverExecution*, text: u8*, length: usiz
     execution.machine.done = execution.machine.failed;
     execution.machine.stack = 16;
     execution.machine.heap = 4194304;
-    interpreter_init(&execution.machine);
+    return !execution.machine.failed;
+}
+
+fn driver_execution_start(execution: DriverExecution*): bool {
+    if !execution.started {
+        execution.started = true;
+        interpreter_init(&execution.machine);
+    }
     return !execution.machine.failed;
 }
 
 fn driver_execution_fast(execution: DriverExecution*): bool {
+    if !driver_execution_start(execution) { return false; }
     if execution.fast == null { execution.fast = fast_interpreter_create(&execution.machine); }
     return execution.fast != null;
 }

@@ -194,7 +194,7 @@ try {
     await expect(page.locator('#execution-status')).toContainText('backends match',{timeout:60000});
     await expect(page.locator('#execution-output')).toHaveText('5\n6\n7\n7\n9\n');
     await expect(page.locator('#llvm-output')).toHaveText('5\n6\n7\n7\n9\n');
-    await expect.poll(()=>outputText(page,'core-instructions')).toContain('post_increment(&value)');
+    await expect.poll(()=>outputText(page,'core-instructions')).toContain(' = &value;');
     await expect.poll(()=>outputText(page,'llvm-after')).not.toContain('post_increment');
     await expect(page.locator('.tw-inline-error')).toHaveCount(0);
     await page.screenshot({path:new URL(name+'-increment.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
@@ -202,8 +202,10 @@ try {
     await expect(page.locator('#execution-status')).toContainText('backends match',{timeout:60000});
     await expect(page.locator('#execution-output')).toHaveText('42\ntrue\n43\n42\n');
     await expect(page.locator('#llvm-output')).toHaveText('42\ntrue\n43\n42\n');
-    await expect.poll(()=>outputText(page,'core-instructions')).toContain('var answer: i32 = add_one(41);');
-    await expect.poll(()=>outputText(page,'core-instructions')).toContain('var pointer: i32* = &answer;');
+    await expect.poll(()=>outputText(page,'core-instructions')).toMatch(/var answer: i32 = /);
+    await expect.poll(()=>outputText(page,'core-instructions')).toContain(' = add_one(41);');
+    await expect.poll(()=>outputText(page,'core-instructions')).toMatch(/var pointer: i32\* = /);
+    await expect.poll(()=>outputText(page,'core-instructions')).toContain(' = &answer;');
     await page.screenshot({path:new URL(name+'-inference.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
     await selectDocument(page, 'templates.tower');
     await expect(page.locator('#execution-output')).toHaveText('20\n10\n',{timeout:60000});
@@ -237,7 +239,7 @@ try {
     await expect(page.locator('#execution-output')).toHaveText('42\n');
     await expect(page.locator('#project-storage')).toHaveText('Saved in browser');
     await expect(page.locator('#editor .tw-identifier').filter({hasText:/^foundation$/})).toHaveCount(1);
-    await expect(page.locator('#editor .tw-identifier').filter({hasText:/^lib$/})).toHaveCount(1);
+    await expect(page.locator('#editor .tw-identifier').filter({hasText:/^lib$/})).toHaveCount(2);
     await expect(page.locator('#editor .tw-keyword').filter({hasText:/^as$/})).toHaveCount(3);
     await expect(page.locator('#editor .tw-keyword,#editor .tw-rule').filter({hasText:/^(foundation|lib|answer)$/})).toHaveCount(0);
     await page.reload();
