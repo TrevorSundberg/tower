@@ -18555,3 +18555,17 @@ remains 96a9e58964d7f01e4a97819f259448db81ef5e40, identical to HEAD.
 Publication rebase fetched 804a806, which adds only three journal records.
 Resolved the append-only journal conflict by preserving every upstream record
 and this Roku entry; all executable/test sources remain the validated versions.
+
+Publication completed from implementation commit d382ba73f567acbaa4698c44d8d4eeeec9dfabae.
+The post-rebase focused Roku checks pass on both desktop and mobile. Deployment
+commit ee00eb41263422cee909a0a10ec9e4cb9590ca0c was pushed normally to gh-pages;
+Pages workflow 44768875999 completed successfully. The first hosted probe ran
+while Pages was waiting and correctly rejected the previous manifest. After
+deployment completed, `node playground/scripts/verify-deployment.mjs
+https://tower-lang.org/` passed all 69 asset hashes and full desktop/mobile
+flows, including the new Roku download and simultaneous C layout checks.
+Log: build/roku-hosted-final.log. Published manifest SHA-256:
+cad13e96c226e557e360db2b2805ad7a2c7eb60715df2eb27e6d134d513de4cc.
+The manifest records the source commit, rebuilt assets and 41 unchanged runtime
+or static assets retained from ea255504. These hosted browser results do not
+substitute for the still-pending physical Roku conformance/performance run.
