@@ -9,10 +9,15 @@ import frontend_format;
 import frontend_syntax_preview;
 
 extern fn syntax_pending_create(rules: SyntaxRuleView*, count: usize, waiting: void**, kind: void*, out: void**): bool;
+
 extern fn syntax_pending_destroy(value: void*): void;
+
 extern fn syntax_pending_count(value: void*): usize;
+
 extern fn syntax_pending_name(value: void*, index: usize): u8*;
+
 extern fn syntax_pending_contains(value: void*, name: u8*): bool;
+
 extern fn syntax_pending_message(value: void*, offset: usize*): u8*;
 
 fn frontend_pending_tests(): void {
@@ -42,8 +47,8 @@ fn frontend_pending_tests(): void {
             waiting[index] = frontend_format_child(store, alternatives[index], null);
             var term = preview_syntax(world, waiting[index]);
             term.kind = convert(u32, SyntaxKind.Term);
-            term.start = index == 0 ? 11 : 29;
-            frontend_world_check(bytes_append(&term.text, index == 0 ? "B" : "missing", index == 0 ? 1 : 7));
+            term.start = index == 0 ? 11: 29;
+            frontend_world_check(bytes_append(&term.text, index == 0 ? "B": "missing", index == 0 ? 1: 7));
             frontend_world_check(vector_push(void*, &sequence.items, waiting[index]));
         }
         ++index;
@@ -52,7 +57,7 @@ fn frontend_pending_tests(): void {
     var allocations = tower_test_buffer_allocations();
     var revision: void* = null;
     frontend_world_check(syntax_pending_create(&rules[0], 3, &waiting[0], kinds.syntax, &revision));
-    var construction = tower_test_buffer_allocations() - allocations;
+    var construction = tower_test_buffer_allocations() -allocations;
     frontend_world_check(revision is not null);
     frontend_world_check(entity_references(alternatives[0]) == references + 1);
     frontend_world_check(entity_references(alternatives[2]) == references);
@@ -70,7 +75,7 @@ fn frontend_pending_tests(): void {
         frontend_world_check(!syntax_pending_contains(revision, "absent"));
         var offset = frontend_world_unlimited();
         frontend_format_text(syntax_pending_message(revision, &offset),
-            "Unresolved grammar reference at end of module: A -> B -> missing (undefined rule 'missing')");
+        "Unresolved grammar reference at end of module: A -> B -> missing (undefined rule 'missing')");
         frontend_world_check(offset == 29);
         ++index;
     }
@@ -98,7 +103,7 @@ fn frontend_pending_tests(): void {
     frontend_format_text(syntax_pending_name(revision, 0), "A");
     frontend_format_text(syntax_pending_name(revision, 1), "B");
     frontend_format_text(syntax_pending_message(revision, null),
-        "Unresolved grammar reference at end of module: A -> B -> missing (undefined rule 'missing')");
+    "Unresolved grammar reference at end of module: A -> B -> missing (undefined rule 'missing')");
     syntax_pending_destroy(revision);
     // Empty input succeeds even when every allocation is forbidden.
     tower_test_buffer_fail_after(0);

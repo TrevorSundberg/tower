@@ -22728,3 +22728,37 @@ candidate: caller-written cleanup, lexical binding, late evaluation, reverse
 registration order, and existing Foundation blocks on every structured exit.
 This is not an implicit ownership/destructor system or a claim that every
 repeated cleanup can safely be removed.
+
+Pre-rebase release checks passed 42/42 focused tests (for, operators, inference,
+completion), and the enum diagnostic rerun passed. The final migration scanner
+also excludes body declarations shadowing its counter; rerunning the baseline
+audit still reports 515 rewrites / 1,804 removed lines. A separate scan found no
+such shadowing in migrated loops (the new for fixture deliberately tests it).
+
+Before publication, fetched and rebased onto 8d8b4aa, retaining the upstream Tower
+CLI retirement, lexical indexes, pending grammar ownership and parser performance
+changes. Conflicts required preserving the new inherited lexical reservation pass
+before our counted traversal, all new emission checks, and the Tower driver import
+instead of restoring the retired external driver declaration. Both independently
+added raw-memory chunk-draining helpers were equivalent; retained upstream's
+executeFixture and removed the duplicate. Preserved both journal histories.
+
+The in-progress second native CTest run was stopped after its first two suites
+passed because its executable predated that rebase; it is not a passing complete
+run. Fourteen formatter partitions completed, with two final files rescheduled
+alongside the newly merged sources using the rebased Tower-built formatter driver.
+Rebuilt all native/browser/LLVM reactors. Archive 86e6f454 was a local transition
+predecessor with a 512-specialization registry; its relocated copy passed for,
+operators and null_operators in both graph and fast modes. The combined checkout
+then passed all 55 targets of a fresh default build in /cache/for-rebased-clean,
+with TOWER_BOOTSTRAP_COMPILER unset. The final published pin is regenerated from
+the combined sources, so its source revision remains reachable after the rebase.
+
+Combined validation passed 96/96 tests across for-loops, operators, precedence,
+inference, completion, semantic-port, projects and raw-memory. Local deployment
+verification matched all 70 assets and passed the complete desktop/mobile browser
+checks, including interpreter/LLVM agreement, native target downloads, completion,
+module projects and compiler-project cancellation. The eight rebase-formatting
+partitions also finished successfully, including the two rescheduled fixtures.
+Logs: build/for-rebased-tests.log, for-rebased-format.log and
+for-deployment-local.log. No Foundation/Bedrock grammar or todo.txt change was made.

@@ -1,8 +1,17 @@
 import tower;
+
 // Native Darwin libc++ ABI 1: the low tag bit selects the long representation.
-export fn driver_syntax_heap(value: usize*): bool { return (value[0] & 1) != 0; }
+export fn driver_syntax_heap(value: usize*): bool {
+    return(value[0] &1) != 0;
+}
+
 export fn driver_syntax_data(value: usize*): u8* {
-    if driver_syntax_heap(value) { return bits(u8*, value[2]); }
+    if driver_syntax_heap(value) {
+        return bits(u8*, value[2]);
+    }
     return bits(u8*, value) + 1;
 }
-export fn driver_syntax_storage(value: usize*): u8* { return bits(u8*, value[2]); }
+
+export fn driver_syntax_storage(value: usize*): u8* {
+    return bits(u8*, value[2]);
+}

@@ -1,3 +1,6 @@
 import tower;
+
 // Darwin 64-bit struct stat: little-endian mode_t at offset 4, width 2.
-export fn driver_stat_mode(data: u8*): u32 { return convert(u32, data[4]) | (convert(u32, data[5]) * 256); }
+export fn driver_stat_mode(data: u8*): u32 {
+    return convert(u32, data[4]) |(convert(u32, data[5]) *256);
+}

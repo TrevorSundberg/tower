@@ -234,15 +234,25 @@ export fn format_parser_host_text(result: FormatResult*): u8* {
 // This is the same direct-output approach as the bounded scalar formatter below.
 export fn format_parser_label_text(text: u8*, length: usize, prefix: u8*, suffix: u8*): u8* {
     var before: usize = 0;
-    while prefix[before] != 0 { ++before; }
+    while prefix[before] != 0 {
+        ++before;
+    }
     var after: usize = 0;
-    while suffix[after] != 0 { ++after; }
+    while suffix[after] != 0 {
+        ++after;
+    }
     var size = length + before;
     var end = size + after;
     var capacity = end + 1;
-    if size < length || end < size || capacity == 0 { abort(); return null; }
+    if size < length || end < size || capacity == 0 {
+        abort();
+        return null;
+    }
     var output = bits(u8*, tower_memory_allocate(capacity));
-    if output is null { abort(); return null; }
+    if output is null {
+        abort();
+        return null;
+    }
     copy(output, prefix, before);
     copy(&output[before], text, length);
     copy(&output[size], suffix, after);

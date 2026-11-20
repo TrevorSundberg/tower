@@ -1,3 +1,6 @@
 import tower;
+
 // Linux x86-64 struct stat: st_mode is the u32 at offset 24.
-export fn driver_stat_mode(data: u8*): u32 { return *bits(u32*, data + 24); }
+export fn driver_stat_mode(data: u8*): u32 {
+    return *bits(u32*, data + 24);
+}

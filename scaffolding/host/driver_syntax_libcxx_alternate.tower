@@ -1,8 +1,17 @@
 import tower;
+
 // libc++ alternate string layout on little-endian 64-bit targets.
-export fn driver_syntax_heap(value: usize*): bool { return (bits(u8*, value)[23] & 128) != 0; }
+export fn driver_syntax_heap(value: usize*): bool {
+    return(bits(u8*, value)[23] &128) != 0;
+}
+
 export fn driver_syntax_data(value: usize*): u8* {
-    if driver_syntax_heap(value) { return bits(u8*, value[0]); }
+    if driver_syntax_heap(value) {
+        return bits(u8*, value[0]);
+    }
     return bits(u8*, value);
 }
-export fn driver_syntax_storage(value: usize*): u8* { return bits(u8*, value[0]); }
+
+export fn driver_syntax_storage(value: usize*): u8* {
+    return bits(u8*, value[0]);
+}

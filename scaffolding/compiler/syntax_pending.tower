@@ -22,7 +22,9 @@ struct SyntaxPendingRevision {
 }
 
 export fn syntax_pending_destroy(value: SyntaxPendingRevision*): void {
-    if value is null { return; }
+    if value is null {
+        return;
+    }
     frontend_revision_release(value.owner);
     free(value.terms);
     vector_dispose(u8, &value.message);
@@ -44,11 +46,16 @@ fn syntax_pending_format(value: SyntaxPendingRevision*, kind: void*): bool {
     var visited: usize = 0;
     while index != lr_none() {
         // Successful validation cannot produce a cyclic missing-reference chain.
-        if visited == value.count { format_dispose(&result); return false; }
+        if visited == value.count {
+            format_dispose(&result);
+            return false;
+        }
         ++visited;
         var component = entity_component_get(value.terms[index], kind);
         var term = bits(SyntaxNode*, entity_component_data(component));
-        if term.start != lr_none() { value.offset = term.start; }
+        if term.start != lr_none() {
+            value.offset = term.start;
+        }
         name = term.text.data;
         length = term.text.length;
         format_text(&format, " -> ");
@@ -75,13 +82,21 @@ export fn syntax_pending_create(rules: SyntaxRuleView*, count: usize, waiting: v
     var total: usize = 0;
     var index: usize = 0;
     while index < count {
-        if waiting[index] is not null { ++total; }
+        if waiting[index] is not null {
+            ++total;
+        }
         ++index;
     }
-    if total == 0 { return true; }
-    if total > ~convert(usize, 0) / sizeof(SyntaxRuleView) { return false; }
+    if total == 0 {
+        return true;
+    }
+    if total > ~convert(usize, 0) / sizeof(SyntaxRuleView) {
+        return false;
+    }
     var value = alloc(SyntaxPendingRevision, 1);
-    if value is null { return false; }
+    if value is null {
+        return false;
+    }
     fill(value, 0, sizeof(SyntaxPendingRevision));
     value.offset = lr_none();
     var selected = alloc(SyntaxRuleView, total);
@@ -111,21 +126,29 @@ export fn syntax_pending_create(rules: SyntaxRuleView*, count: usize, waiting: v
 }
 
 export fn syntax_pending_count(value: SyntaxPendingRevision*): usize {
-    return value?.count ?? 0;
+    return value ?. count ?? 0;
 }
 
 export fn syntax_pending_name(value: SyntaxPendingRevision*, index: usize): u8* {
-    if value is null || index >= value.count { return null; }
+    if value is null || index >= value.count {
+        return null;
+    }
     return value.owner.rules.data[index].name;
 }
 
 export fn syntax_pending_contains(value: SyntaxPendingRevision*, name: u8*): bool {
-    if value is null || value.count == 0 { return false; }
+    if value is null || value.count == 0 {
+        return false;
+    }
     return syntax_rule_find(value.owner.rules.data, value.count, name, syntax_text_length(name)) != lr_none();
 }
 
 export fn syntax_pending_message(value: SyntaxPendingRevision*, offset: usize*): u8* {
-    if value is null || value.count == 0 { return ""; }
-    if offset is not null && value.offset != lr_none() { *offset = value.offset; }
+    if value is null || value.count == 0 {
+        return "";
+    }
+    if offset is not null && value.offset != lr_none() {
+        *offset = value.offset;
+    }
     return value.message.data;
 }

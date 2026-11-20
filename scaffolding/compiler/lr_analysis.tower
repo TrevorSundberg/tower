@@ -453,8 +453,13 @@ export fn lr_items_close(value: LRAnalysis*, items: LRItems*, lookahead: bool): 
             ok = lr_items_insert(&expanded, &key);
             // This set is only a membership index, never a closure work queue.
             expanded.pending.length = 0;
-            if !ok { value.failed = true; break; }
-            if previous == expanded.values.length { continue; }
+            if !ok {
+                value.failed = true;
+                break;
+            }
+            if previous == expanded.values.length {
+                continue;
+            }
             var production: usize = 0;
             loop {
                 done = production == productions.length;

@@ -20,7 +20,9 @@ struct DriverExecution {
 }
 
 fn driver_execution_close(execution: DriverExecution*): void {
-    if execution.fast != null { fast_interpreter_dispose(execution.fast); }
+    if execution.fast != null {
+        fast_interpreter_dispose(execution.fast);
+    }
     interpreter_storage_dispose(&execution.machine);
     if execution.program.root != null {
         var root = execution.program.root;
@@ -60,8 +62,12 @@ fn driver_execution_start(execution: DriverExecution*): bool {
 }
 
 fn driver_execution_fast(execution: DriverExecution*): bool {
-    if !driver_execution_start(execution) { return false; }
-    if execution.fast == null { execution.fast = fast_interpreter_create(&execution.machine); }
+    if !driver_execution_start(execution) {
+        return false;
+    }
+    if execution.fast == null {
+        execution.fast = fast_interpreter_create(&execution.machine);
+    }
     return execution.fast != null;
 }
 
@@ -73,17 +79,28 @@ fn driver_execution_flush(execution: DriverExecution*): void {
 export fn im_pointer_bytes(machine: IMState*): usize {
     return convert(usize, bits(DriverExecution*, machine).program.pointer_bytes);
 }
-export fn im_root(machine: IMState*): void* { return bits(DriverExecution*, machine).program.root; }
-export fn im_has_foreign(machine: IMState*): bool { return true; }
+
+export fn im_root(machine: IMState*): void* {
+    return bits(DriverExecution*, machine).program.root;
+}
+
+export fn im_has_foreign(machine: IMState*): bool {
+    return true;
+}
+
 export fn im_fail(machine: IMState*, text: u8*, offset: usize): void {
     var execution = bits(DriverExecution*, machine);
     if execution.error.length == 0 {
-        if !bytes_assign_text(&execution.error, text, strlen(text)) { abort(); }
+        if !bytes_assign_text(&execution.error, text, strlen(text)) {
+            abort();
+        }
         machine.failed = true;
         machine.error_offset = offset;
     }
 }
+
 extern fn abort(): void;
+
 export fn im_missing_foreign(machine: IMState*, node: void*, offset: usize): void {
     var text: ByteBuffer;
     fill(&text, 0, sizeof(ByteBuffer));
@@ -92,16 +109,22 @@ export fn im_missing_foreign(machine: IMState*, node: void*, offset: usize): voi
     ok &&= bytes_append(&text, function.name.data, function.name.length);
     ok &&= driver_text(&text, "'");
     ok &&= host_text_terminate(&text);
-    im_fail(machine, ok ? text.data : "Unable to allocate interpreter diagnostic", offset);
+    im_fail(machine, ok ? text.data: "Unable to allocate interpreter diagnostic", offset);
     bytes_dispose(&text);
 }
+
 export fn im_append(machine: IMState*, text: u8*, count: usize): void {
     var execution = bits(DriverExecution*, machine);
-    if !bytes_append(&execution.output, text, count) { abort(); }
+    if !bytes_append(&execution.output, text, count) {
+        abort();
+    }
     machine.output_bytes += count;
 }
+
 extern fn memcmp(left: u8*, right: u8*, count: usize): i32;
+
 extern fn driver_platform_write_result(fd: i32, data: u8*, length: usize): bool;
+
 export fn im_foreign(machine: IMState*, node: void*, args: u64*, count: usize): u64 {
     var function = sem_get(node);
     if function.name.length != 14 || memcmp(function.name.data, "platform_write", 14) != 0 || count != 3 {
@@ -111,14 +134,20 @@ export fn im_foreign(machine: IMState*, node: void*, args: u64*, count: usize): 
         ok &&= bytes_append(&text, function.name.data, function.name.length);
         ok &&= driver_text(&text, "'");
         ok &&= host_text_terminate(&text);
-        im_fail(machine, ok ? text.data : "Unable to allocate interpreter diagnostic", 0);
+        im_fail(machine, ok ? text.data: "Unable to allocate interpreter diagnostic", 0);
         bytes_dispose(&text);
         return 0;
     }
-    if args[0] != 1 && args[0] != 2 { return ~convert(u64, 0); }
+    if args[0] != 1 && args[0] != 2 {
+        return ~convert(u64, 0);
+    }
     var data = interpreter_bytes(machine, args[1], convert(usize, args[2]), 0);
-    if data == null { return ~convert(u64, 0); }
+    if data == null {
+        return ~convert(u64, 0);
+    }
     driver_execution_flush(bits(DriverExecution*, machine));
-    if driver_platform_write_result(convert(i32, args[0]), data, convert(usize, args[2])) { return args[2]; }
+    if driver_platform_write_result(convert(i32, args[0]), data, convert(usize, args[2])) {
+        return args[2];
+    }
     return ~convert(u64, 0);
 }

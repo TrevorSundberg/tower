@@ -3,27 +3,39 @@ import driver_support;
 import driver_posix;
 import .library.bytes_types;
 import .library.bytes_interface;
+
 extern fn getcwd(buffer: u8*, capacity: usize): u8*;
+
 extern fn driver_stat(path: u8*, data: void*): i32;
+
 extern fn driver_stat_mode(data: u8*): u32;
 
 export fn driver_platform_absolute(path: u8*, out: ByteBuffer*): bool {
-    if path[0] == 47 { return driver_text(out, path) && host_text_terminate(out); }
+    if path[0] == 47 {
+        return driver_text(out, path) && host_text_terminate(out);
+    }
     var capacity: usize = 256;
     loop {
-        if !bytes_reserve(out, capacity) { return false; }
-        if getcwd(out.data, capacity) != null { break; }
+        if !bytes_reserve(out, capacity) {
+            return false;
+        }
+        if getcwd(out.data, capacity) != null {
+            break;
+        }
         // ERANGE has the same value in the selected Linux/Darwin libc profiles.
-        if driver_error_code() != 34 || capacity > ~convert(usize, 0) / 2 { return false; }
+        if driver_error_code() != 34 || capacity > ~convert(usize, 0) / 2 {
+            return false;
+        }
         capacity *= 2;
     }
     out.length = strlen(out.data);
     return driver_text(out, "/") && driver_text(out, path) && host_text_terminate(out);
 }
+
 export fn driver_platform_regular(path: u8*): bool {
     // Storage exceeds the selected platform stat layout and has 8-byte alignment.
     var status: u64[32];
     var ok = driver_stat(path, bits(void*, &status[0])) == 0;
-    ok &&= (driver_stat_mode(bits(u8*, &status[0])) & 61440) == 32768;
+    ok &&=(driver_stat_mode(bits(u8*, &status[0])) & 61440) == 32768;
     return ok;
 }

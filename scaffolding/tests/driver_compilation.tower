@@ -8,7 +8,7 @@ import .library.bytes_interface;
 fn driver_test_interpreter_transport(compiler: u8*, fast: bool): void {
     var source = "import tower;\nextern fn platform_write(fd: i32, data: u8*, length: usize): i64;\nprint(1);\nprint(platform_write(1, \"write\\n\", 6));\n";
     driver_check(driver_write_file("driver foreign.tower", source, strlen(source)), "foreign fixture");
-    var mode = fast ? "--interpret-fast" : "--interpret";
+    var mode = fast ? "--interpret-fast": "--interpret";
     var status = driver_test_compile(compiler, "driver foreign.tower", "object", "unused.o", mode, null);
     driver_check(status == 0, "foreign execution");
     driver_test_read("driver stdout.txt", "1\nwrite\n6\n", true);
@@ -23,7 +23,7 @@ fn driver_test_compilation(compiler: u8*): void {
     driver_test_interpreter_transport(compiler, false);
     driver_test_interpreter_transport(compiler, true);
     var status = driver_test_compile(compiler, "driver fixture with spaces.tower", "foundation",
-        "unused/../driver fixture with spaces.tower", "", null);
+    "unused/../driver fixture with spaces.tower", "", null);
     driver_check(status == 1, "normalized source overwrite rejected");
     driver_test_read("driver stderr.txt", "Choose an output path different from the input", false);
     driver_test_read("driver fixture with spaces.tower", "import tower;\nprint(42);\n", true);
@@ -32,7 +32,7 @@ fn driver_test_compilation(compiler: u8*): void {
     fill(&bytes, 0, sizeof(ByteBuffer));
     driver_check(driver_read_file("driver program.towerbc", &bytes), "read package for tampering");
     driver_check(bytes.length > 56, "package has source/cache sections");
-    bytes.data[bytes.length - 1] ^= 1;
+    bytes.data[bytes.length -1] ^= 1;
     driver_check(driver_write_file("driver corrupted.towerbc", bytes.data, bytes.length), "write corrupted cache");
     var args: DriverArguments;
     driver_arguments_init(&args);
@@ -45,7 +45,7 @@ fn driver_test_compilation(compiler: u8*): void {
     var invalid = "parse InvalidBootstrapDeclarationThatNeedsALongDiagnostic = ;\n";
     driver_check(driver_write_file("driver invalid grammar.tower", invalid, strlen(invalid)), "invalid grammar fixture");
     status = driver_test_compile(compiler, "driver fixture with spaces.tower", "object", "unused.o",
-        "--foundation", "driver invalid grammar.tower");
+    "--foundation", "driver invalid grammar.tower");
     driver_check(status == 1, "foreign string diagnostic ownership");
     driver_check(driver_read_file("driver stderr.txt", &bytes), "read grammar diagnostic");
     driver_check(bytes.length > 15, "long foreign string diagnostic preserved");

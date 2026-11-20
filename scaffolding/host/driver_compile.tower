@@ -30,23 +30,34 @@ struct DriverCompilation {
 
 fn driver_install_grammar(request: DriverRequest*, canonical: bool): bool {
     if canonical && !driver_request_canonical(request) {
-        driver_error("", driver_request_error(request)); return false;
+        driver_error("", driver_request_error(request));
+        return false;
     }
-    var first = canonical ? DriverCanonicalBedrockText() : DriverBedrockText();
+    var first = canonical ? DriverCanonicalBedrockText(): DriverBedrockText();
     // Large enough for each explicitly selected 64-bit standard-library profile.
     // Only the selected foreign callee writes this temporary ABI storage.
     var foreign: usize[4];
     driver_syntax_bedrock(&foreign[0], request.text[first].data);
     var message = driver_syntax_data(&foreign[0]);
     var ok = message[0] == 0;
-    if !ok { driver_error("", message); }
-    if driver_syntax_heap(&foreign[0]) { driver_syntax_delete(driver_syntax_storage(&foreign[0])); }
-    if !ok { return false; }
+    if !ok {
+        driver_error("", message);
+    }
+    if driver_syntax_heap(&foreign[0]) {
+        driver_syntax_delete(driver_syntax_storage(&foreign[0]));
+    }
+    if !ok {
+        return false;
+    }
     driver_syntax_foundation(&foreign[0], request.text[first + 1].data);
     message = driver_syntax_data(&foreign[0]);
     ok = message[0] == 0;
-    if !ok { driver_error("", message); }
-    if driver_syntax_heap(&foreign[0]) { driver_syntax_delete(driver_syntax_storage(&foreign[0])); }
+    if !ok {
+        driver_error("", message);
+    }
+    if driver_syntax_heap(&foreign[0]) {
+        driver_syntax_delete(driver_syntax_storage(&foreign[0]));
+    }
     return ok;
 }
 
@@ -54,20 +65,30 @@ fn driver_compile_report(state: DriverCompilation*, error: u8*, offset: usize): 
     var request = state.request;
     // Original inputs remain pinned even after optimization replaces the source.
     driver_report(error, offset, request.text[DriverSourceText()].data,
-        request.text[DriverSourceText()].length, request.options.source, request.modules);
+    request.text[DriverSourceText()].length, request.options.source, request.modules);
 }
 
 fn driver_compile_program(state: DriverCompilation*): bool {
-    if driver_execution_compile(&state.execution, state.text, state.length, state.width, *state.request.slot) { return true; }
+    if driver_execution_compile(&state.execution, state.text, state.length, state.width, *state.request.slot) {
+        return true;
+    }
     driver_compile_report(state, state.execution.error.data ?? "Unable to compile source", state.execution.machine.error_offset);
     return false;
 }
 
 fn driver_compile_backend(state: DriverCompilation*, target: u8*): bool {
-    if state.backend != null { backend_close(state.backend); }
+    if state.backend != null {
+        backend_close(state.backend);
+    }
     state.backend = backend_open(target);
-    if state.backend == null { driver_error("Unable to allocate backend storage", ""); return false; }
-    if backend_error(state.backend)[0] != 0 { driver_error("", backend_error(state.backend)); return false; }
+    if state.backend == null {
+        driver_error("Unable to allocate backend storage", "");
+        return false;
+    }
+    if backend_error(state.backend)[0] != 0 {
+        driver_error("", backend_error(state.backend));
+        return false;
+    }
     return true;
 }
 
@@ -82,7 +103,9 @@ fn driver_compile_format(state: DriverCompilation*, root: void*, out: ByteBuffer
     format_entity(&formatted, root, syntax_component_type(), null, parser_match_get_type());
     var ok = !formatted.failed && bytes_assign_text(out, formatted.text.data, formatted.text.length);
     format_dispose(&formatted);
-    if !ok { driver_error("Unable to allocate canonical formatted source", ""); }
+    if !ok {
+        driver_error("Unable to allocate canonical formatted source", "");
+    }
     return ok;
 }
 
@@ -92,25 +115,40 @@ fn driver_compile_ir(state: DriverCompilation*): bool {
     var optimized = backend_optimized(state.backend);
     return driver_write_ir(options.raw, raw, strlen(raw), options.optimized, optimized, strlen(optimized));
 }
+
 extern fn driver_write_ir(raw_path: u8*, raw: u8*, raw_length: usize, optimized_path: u8*, optimized: u8*, optimized_length: usize): bool;
 
 fn driver_compile_normalize(state: DriverCompilation*): bool {
-    if !driver_compile_program(state) { return false; }
-    if !driver_compile_backend(state, state.width == 4 ? "wasm32-unknown-unknown" : "wasm64-unknown-unknown") { return false; }
+    if !driver_compile_program(state) {
+        return false;
+    }
+    if !driver_compile_backend(state, state.width == 4 ? "wasm32-unknown-unknown": "wasm64-unknown-unknown") {
+        return false;
+    }
     var program = &state.execution.program;
     if !backend_lower(state.backend, program.root, program.functions.data, program.functions.length, state.width, false)
-        || !backend_optimize_interpreter(state.backend, state.request.options.optimize) { return driver_backend_failed(state); }
-    if !driver_compile_ir(state) { return false; }
+    || !backend_optimize_interpreter(state.backend, state.request.options.optimize) {
+        return driver_backend_failed(state);
+    }
+    if !driver_compile_ir(state) {
+        return false;
+    }
     var imported: SemanticProgram;
     fill(&imported, 0, sizeof(SemanticProgram));
     semantic_initialize(&imported, tower_node_create(), state.width);
     var root = imported.root;
     var ok = backend_import_foundation(state.backend, root);
-    if ok { ok = driver_compile_format(state, root, &state.generated); }
-    else { driver_backend_failed(state); }
+    if ok {
+        ok = driver_compile_format(state, root, &state.generated);
+    }
+    else {
+        driver_backend_failed(state);
+    }
     semantic_program_dispose(&imported);
     entity_release(root);
-    if !ok || !driver_install_grammar(state.request, true) { return false; }
+    if !ok || !driver_install_grammar(state.request, true) {
+        return false;
+    }
     driver_request_stage(state.request);
     state.text = state.generated.data;
     state.length = state.generated.length;
@@ -118,9 +156,14 @@ fn driver_compile_normalize(state: DriverCompilation*): bool {
 }
 
 fn driver_compile_package(state: DriverCompilation*): bool {
-    if !driver_install_grammar(state.request, true) { return false; }
+    if !driver_install_grammar(state.request, true) {
+        return false;
+    }
     var invalid = bytecode_validate(state.text, state.length);
-    if invalid != 0 { driver_error("", bytecode_error(invalid)); return false; }
+    if invalid != 0 {
+        driver_error("", bytecode_error(invalid));
+        return false;
+    }
     var data = state.text;
     state.width = convert(u32, bytecode_pointer_bytes(data));
     state.profile = convert(u32, data[24]);
@@ -128,21 +171,31 @@ fn driver_compile_package(state: DriverCompilation*): bool {
     state.text = data + 56;
     var i: usize = 0;
     while i < state.length {
-        if state.text[i] == 0 { driver_error("NUL in .towerbc Foundation source", ""); return false; }
+        if state.text[i] == 0 {
+            driver_error("NUL in .towerbc Foundation source", "");
+            return false;
+        }
         ++i;
     }
     // The canonical source is bounded by the envelope, not NUL-terminated.
-    if !bytes_assign_text(&state.generated, state.text, state.length) { return false; }
+    if !bytes_assign_text(&state.generated, state.text, state.length) {
+        return false;
+    }
     state.text = state.generated.data;
-    if !driver_compile_program(state) { return false; }
+    if !driver_compile_program(state) {
+        return false;
+    }
     if !driver_execution_fast(&state.execution) || !bytecode_matches(state.execution.fast, data) {
-        driver_error("", bytecode_error(9)); return false;
+        driver_error("", bytecode_error(9));
+        return false;
     }
     return true;
 }
 
 fn driver_compile_dependencies(state: DriverCompilation*, output: u8*): bool {
-    if frontend_modules_depfile(state.request.modules, output, state.request.options.depfile) { return true; }
+    if frontend_modules_depfile(state.request.modules, output, state.request.options.depfile) {
+        return true;
+    }
     driver_error("Cannot write dependency file: ", state.request.options.depfile);
     return false;
 }
@@ -153,27 +206,47 @@ fn driver_compile_text_output(state: DriverCompilation*): i32 {
     var output = options.output;
     if output[0] == 0 {
         var suffix = ".disassembled.tower";
-        if driver_same(emit, "bytecode") { suffix = ".towerbc"; }
-        if driver_same(emit, "c") { suffix = ".c"; }
-        if driver_same(emit, "brightscript") { suffix = ".brs"; }
+        if driver_same(emit, "bytecode") {
+            suffix = ".towerbc";
+        }
+        if driver_same(emit, "c") {
+            suffix = ".c";
+        }
+        if driver_same(emit, "brightscript") {
+            suffix = ".brs";
+        }
         if !bytes_append(&state.output, options.source, driver_extension(options.source))
-            || !driver_text(&state.output, suffix) || !host_text_terminate(&state.output) { return 1; }
+        || !driver_text(&state.output, suffix) || !host_text_terminate(&state.output) {
+            return 1;
+        }
         output = state.output.data;
     }
-    if !driver_output_safe(options.source, output) || !driver_compile_dependencies(state, output) { return 1; }
+    if !driver_output_safe(options.source, output) || !driver_compile_dependencies(state, output) {
+        return 1;
+    }
     var program = &state.execution.program;
-    if !options.comments { semantic_strip_comments(program.root); }
-    var text: ByteBuffer; var error: ByteBuffer;
-    fill(&text, 0, sizeof(ByteBuffer)); fill(&error, 0, sizeof(ByteBuffer));
+    if !options.comments {
+        semantic_strip_comments(program.root);
+    }
+    var text: ByteBuffer;
+    var error: ByteBuffer;
+    fill(&text, 0, sizeof(ByteBuffer));
+    fill(&error, 0, sizeof(ByteBuffer));
     var ok = true;
     if driver_same(emit, "foundation") || driver_same(emit, "bytecode") {
         ok = driver_compile_format(state, program.root, &text);
     } else {
-        if driver_same(emit, "c") { c_emit(&text, &error, program.root, state.width, options.comments); }
-        else { roku_emit(&text, &error, program.root, state.width, options.comments); }
+        if driver_same(emit, "c") {
+            c_emit(&text, &error, program.root, state.width, options.comments);
+        }
+        else {
+            roku_emit(&text, &error, program.root, state.width, options.comments);
+        }
     }
     if error.length != 0 {
-        if host_text_terminate(&error) { driver_error("", error.data); }
+        if host_text_terminate(&error) {
+            driver_error("", error.data);
+        }
         ok = false;
     }
     if ok && driver_same(emit, "bytecode") {
@@ -181,40 +254,66 @@ fn driver_compile_text_output(state: DriverCompilation*): i32 {
         var canonical: DriverExecution;
         fill(&canonical, 0, sizeof(DriverExecution));
         ok &&= driver_execution_compile(&canonical, text.data, text.length, state.width, *state.request.slot);
-        if !ok && canonical.error.length != 0 { driver_error("", canonical.error.data); }
+        if !ok && canonical.error.length != 0 {
+            driver_error("", canonical.error.data);
+        }
         ok &&= driver_execution_fast(&canonical);
         if ok {
             var size: usize = 0;
-            var profile = state.packaged ? state.profile : (options.optimize ? convert(u32, 1) : convert(u32, 2));
+            var profile = state.packaged ? state.profile:(options.optimize ? convert(u32, 1): convert(u32, 2));
             var bytes = bytecode_encode(canonical.fast, text.data, text.length, convert(usize, state.width), profile, &size);
-            if bytes == null { driver_error("Cannot allocate .towerbc package", ""); ok = false; }
-            else { ok = driver_write_file(output, bytes, size); bytecode_free(bytes); }
+            if bytes == null {
+                driver_error("Cannot allocate .towerbc package", "");
+                ok = false;
+            }
+            else {
+                ok = driver_write_file(output, bytes, size);
+                bytecode_free(bytes);
+            }
         }
         driver_execution_close(&canonical);
-    } else { if ok { ok = driver_write_file(output, text.data, text.length); } }
-    bytes_dispose(&text); bytes_dispose(&error);
-    return ok ? 0 : 1;
+    } else {
+        if ok {
+            ok = driver_write_file(output, text.data, text.length);
+        }
+    }
+    bytes_dispose(&text);
+    bytes_dispose(&error);
+    return ok ? 0: 1;
 }
 
 fn driver_compile_interpret(state: DriverCompilation*): i32 {
     var options = state.request.options;
-    if !driver_compile_dependencies(state, options.output) { return 1; }
+    if !driver_compile_dependencies(state, options.output) {
+        return 1;
+    }
     driver_timing_mark(state.timing, options.timings, "compile");
     if options.fast || state.packaged {
-        if !driver_execution_fast(&state.execution) { driver_error("Unable to allocate interpreter cache", ""); return 1; }
+        if !driver_execution_fast(&state.execution) {
+            driver_error("Unable to allocate interpreter cache", "");
+            return 1;
+        }
         driver_timing_mark(state.timing, options.timings, "prepare");
     }
     var execution = &state.execution;
     if !driver_execution_start(execution) {
-        driver_compile_report(state, execution.error.data, execution.machine.error_offset); return 1;
+        driver_compile_report(state, execution.error.data, execution.machine.error_offset);
+        return 1;
     }
     while !execution.machine.done {
-        if execution.fast != null { fast_interpreter_step(&execution.machine, execution.fast, 10000); }
-        else { interpreter_step(&execution.machine, 10000); }
+        if execution.fast != null {
+            fast_interpreter_step(&execution.machine, execution.fast, 10000);
+        }
+        else {
+            interpreter_step(&execution.machine, 10000);
+        }
         driver_execution_flush(execution);
     }
     driver_timing_mark(state.timing, options.timings, "execute");
-    if execution.error.length != 0 { driver_compile_report(state, execution.error.data, execution.machine.error_offset); return 1; }
+    if execution.error.length != 0 {
+        driver_compile_report(state, execution.error.data, execution.machine.error_offset);
+        return 1;
+    }
     return 0;
 }
 
@@ -223,50 +322,79 @@ fn driver_compile_object(state: DriverCompilation*, started: u64): i32 {
     var program = &state.execution.program;
     var parsed = driver_clock();
     if !backend_lower(state.backend, program.root, program.functions.data, program.functions.length, state.width, options.library) {
-        driver_backend_failed(state); return 1;
+        driver_backend_failed(state);
+        return 1;
     }
     var lowered = driver_clock();
-    if !backend_optimize(state.backend, options.optimize) { driver_backend_failed(state); return 1; }
+    if !backend_optimize(state.backend, options.optimize) {
+        driver_backend_failed(state);
+        return 1;
+    }
     var optimized = driver_clock();
-    if !backend_emit(state.backend) { driver_backend_failed(state); return 1; }
+    if !backend_emit(state.backend) {
+        driver_backend_failed(state);
+        return 1;
+    }
     var emitted = driver_clock();
-    if !driver_compile_dependencies(state, options.output) { return 1; }
+    if !driver_compile_dependencies(state, options.output) {
+        return 1;
+    }
     driver_timing_mark(state.timing, options.timings, "compile");
     if options.timings {
-        driver_timing_value(state.timing, "parse", parsed - started);
-        driver_timing_value(state.timing, "before", lowered - parsed);
-        driver_timing_value(state.timing, "after", optimized - lowered);
-        driver_timing_value(state.timing, "emit", emitted - optimized);
+        driver_timing_value(state.timing, "parse", parsed -started);
+        driver_timing_value(state.timing, "before", lowered -parsed);
+        driver_timing_value(state.timing, "after", optimized -lowered);
+        driver_timing_value(state.timing, "emit", emitted -optimized);
     }
-    if !driver_compile_ir(state) { return 1; }
+    if !driver_compile_ir(state) {
+        return 1;
+    }
     var wasm = strstr(options.target, "wasm") == options.target;
     var windows = strstr(options.target, "windows") != null;
-    var output = options.output[0] == 0 ? driver_output_name(options.emit, wasm, windows) : options.output;
-    if driver_same(options.emit, "object") { return driver_write_file(output, backend_bytes(state.backend), backend_size(state.backend)) ? 0 : 1; }
-    if driver_same(options.emit, "llvm") || driver_same(options.emit, "llvm-optimized") {
-        var text = driver_same(options.emit, "llvm") ? backend_raw(state.backend) : backend_optimized(state.backend);
-        return driver_write_file(output, text, strlen(text)) ? 0 : 1;
+    var output = options.output[0] == 0 ? driver_output_name(options.emit, wasm, windows): options.output;
+    if driver_same(options.emit, "object") {
+        return driver_write_file(output, backend_bytes(state.backend), backend_size(state.backend)) ? 0: 1;
     }
-    if !driver_same(options.emit, "exe") { driver_error("Unknown output kind: ", options.emit); return 1; }
+    if driver_same(options.emit, "llvm") || driver_same(options.emit, "llvm-optimized") {
+        var text = driver_same(options.emit, "llvm") ? backend_raw(state.backend): backend_optimized(state.backend);
+        return driver_write_file(output, text, strlen(text)) ? 0: 1;
+    }
+    if !driver_same(options.emit, "exe") {
+        driver_error("Unknown output kind: ", options.emit);
+        return 1;
+    }
     var i: usize = 0;
     while i < options.link_count {
-        if !driver_platform_regular(options.links[i]) { driver_error("Missing link input: ", options.links[i]); return 1; }
+        if !driver_platform_regular(options.links[i]) {
+            driver_error("Missing link input: ", options.links[i]);
+            return 1;
+        }
         ++i;
     }
     var link = driver_link_open(options.target, options.cc, options.linker, options.sysroot, output,
-        state.request.root, wasm, windows, state.timing, options.timings);
-    if link == null { return 1; }
+    state.request.root, wasm, windows, state.timing, options.timings);
+    if link == null {
+        return 1;
+    }
     i = 1;
     while i < program.functions.length {
         var function = sem_get(program.functions.data[i]);
-        if function.external { driver_link_import(link, backend_function_name(state.backend, i)); }
-        if function.exported { driver_link_export(link, backend_function_name(state.backend, i)); }
+        if function.external {
+            driver_link_import(link, backend_function_name(state.backend, i));
+        }
+        if function.exported {
+            driver_link_export(link, backend_function_name(state.backend, i));
+        }
         ++i;
     }
     i = 0;
-    while i < options.link_count { driver_link_input(link, options.links[i]); ++i; }
+    while i < options.link_count {
+        driver_link_input(link, options.links[i]);
+        ++i;
+    }
     return driver_link_run(link, backend_bytes(state.backend), backend_size(state.backend));
 }
+
 extern fn driver_output_name(emit: u8*, wasm: bool, windows: bool): u8*;
 
 fn driver_compile_run(state: DriverCompilation*): i32 {
@@ -275,32 +403,49 @@ fn driver_compile_run(state: DriverCompilation*): i32 {
     state.length = state.request.text[DriverSourceText()].length;
     state.packaged = driver_same(options.source + driver_extension(options.source), ".towerbc");
     if state.packaged {
-        if !driver_compile_package(state) { return 1; }
+        if !driver_compile_package(state) {
+            return 1;
+        }
     } else {
         var i: usize = 0;
         while i < state.length {
-            if state.text[i] == 0 { driver_error("Source contains NUL bytes", ""); return 1; }
+            if state.text[i] == 0 {
+                driver_error("Source contains NUL bytes", "");
+                return 1;
+            }
             ++i;
         }
-        if !driver_compile_backend(state, options.target) { return 1; }
+        if !driver_compile_backend(state, options.target) {
+            return 1;
+        }
         state.width = backend_pointer_bytes(state.backend);
         var normalize = driver_same(options.emit, "bytecode") || driver_same(options.emit, "brightscript")
-            || (options.interpret && options.fast) || (driver_same(options.emit, "c") && options.optimize);
-        if normalize && !driver_compile_normalize(state) { return 1; }
+        ||(options.interpret && options.fast) ||(driver_same(options.emit, "c") && options.optimize);
+        if normalize && !driver_compile_normalize(state) {
+            return 1;
+        }
         var started = driver_clock();
-        if !driver_compile_program(state) { return 1; }
+        if !driver_compile_program(state) {
+            return 1;
+        }
         var textual = driver_same(options.emit, "foundation") || driver_same(options.emit, "bytecode")
-            || driver_same(options.emit, "c") || driver_same(options.emit, "brightscript");
-        if !textual && !options.interpret { return driver_compile_object(state, started); }
+        || driver_same(options.emit, "c") || driver_same(options.emit, "brightscript");
+        if !textual && !options.interpret {
+            return driver_compile_object(state, started);
+        }
     }
     if driver_same(options.emit, "foundation") || driver_same(options.emit, "bytecode")
-        || driver_same(options.emit, "c") || driver_same(options.emit, "brightscript") { return driver_compile_text_output(state); }
+    || driver_same(options.emit, "c") || driver_same(options.emit, "brightscript") {
+        return driver_compile_text_output(state);
+    }
     return driver_compile_interpret(state);
 }
 
 export fn driver_compile(options: DriverOptions*, resources: u8*, timing: DriverTiming*, request: DriverRequest*): i32 {
     driver_request_bind(request, driver_syntax_slot());
-    if !driver_install_grammar(request, false) { return 1; }
+    if !driver_install_grammar(request, false) {
+        return 1;
+    }
     driver_timing_mark(timing, options.timings, "bootstrap");
     var state: DriverCompilation;
     fill(&state, 0, sizeof(DriverCompilation));
@@ -308,7 +453,10 @@ export fn driver_compile(options: DriverOptions*, resources: u8*, timing: Driver
     state.timing = timing;
     var result = driver_compile_run(&state);
     driver_execution_close(&state.execution);
-    if state.backend != null { backend_close(state.backend); }
-    bytes_dispose(&state.generated); bytes_dispose(&state.output);
+    if state.backend != null {
+        backend_close(state.backend);
+    }
+    bytes_dispose(&state.generated);
+    bytes_dispose(&state.output);
     return result;
 }
