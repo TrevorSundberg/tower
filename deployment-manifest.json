@@ -72,7 +72,7 @@
     "worker.js.map": "c715c0460b1eed9b2e40c2f8f768c6170409b951be15c303760118bfe87d8e02"
   },
   "sourceCommit": "3e606d16e821f6e4d55a86b8c630dd608f3f6a2a",
-  "previousDeployment": "60d94537344a33a33c07f3f68f27e7d8541f9219",
+  "previousDeployment": "7d63df1b74edc9cad8d6988d8a30e226193ad6b2",
   "scope": "Template member paths and concrete expression inspection; integrated Tower IDE services, syntax formatting and allocator migration",
   "buildNote": "Parser, LLVM and cross-target compilers rebuilt together. Fixed record shapes preserve symbolic arguments; concrete subexpressions reuse the ordinary checker on temporary query trees.",
   "nativeCli": {
@@ -80,5 +80,17 @@
     "scope": "Native CLI host policies migrated to Tower; browser asset bytes are unchanged.",
     "validation": "Tower CLI tests on Linux; native Windows process/quoting tests; macOS ARM64 object compilation.",
     "portableNativeRelease": false
+  },
+  "ideServices": {
+    "sourceCommit": "284c6415e0e99749df373d3ec919835edb86b417",
+    "validationCommit": "03b8d43fa100c2c45cd8f0dc631371079e357557",
+    "validatedDeployment": "7d63df1b74edc9cad8d6988d8a30e226193ad6b2",
+    "implementation": "scaffolding/host/ide-*.tower",
+    "abiVersion": 3,
+    "exports": 42,
+    "identicalPublishedModules": 11,
+    "localValidation": "Tower functional fixtures; 198 Node/Wasm checks; four native checks; 12 headless cases; two successive compiler generations.",
+    "hostedValidation": "All 70 exact assets and isolated desktop/mobile flows: backend agreement, completion, persistence and downloadable artifacts.",
+    "integration": "Existing Foundation ECS entities and compiler/query/interpreter APIs. Transitional WASI syntax bindings; serialized calls per instance and isolated workers."
   }
 }
