@@ -17121,3 +17121,22 @@ not allow a native SyntaxSession to compile against an arbitrary world yet.
 Keep CLI/browser transports and portable bootstrap retirement as explicit release
 gates, and preserve the already working isolated unit executor while migrating
 within-unit phases over pinned inputs.
+
+Published implementation 5b6e021 and validation 711b3e1 on main after the required
+pull/rebase (no upstream source changes). Git's automatic maintenance delayed
+the commit/fetch; it completed normally. Transient GitHub DNS failures on the
+deployment pull/push cleared with ordinary retries. No force push, rebase discard
+or credential/configuration change was used. The bootstrap compiler remains
+b4539248e28633bb98ea0b42e21233636622f47e26b689f9d2c365ef20c09f02.
+
+Pages eae625b1fbdcb033eb31bee9639636068c24e2a8 preserves tower-lang.org and passes
+GitHub deployment run 44679562375. The HTTPS verifier exits zero: all 69 hosted
+assets match the final manifest and desktop/mobile profiles pass backend
+agreement, editable grammar, persistence, native downloads, completion, output
+highlighting, compiler-project behavior and target defaults. Evidence:
+build/language-next/world-hosted.log, world-hosted-report.json and
+world-pages-workflow.log. Source/deployment checkouts are clean; existing stashes
+remain and todo.txt retains Git blob 96a9e58964d7f01e4a97819f259448db81ef5e40.
+The production count excludes native test/bootstrap sources and four research
+reference files under docs/research; those also require retirement or explicit
+archival before claiming complete removal of project-owned native source.
