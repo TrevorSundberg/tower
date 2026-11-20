@@ -8,20 +8,20 @@ extern fn _dup2(source: i32, destination: i32): i32;
 
 extern fn _close(fd: i32): i32;
 
-fn driver_test_file(file: void*): i32 {
+export fn driver_test_file(file: void*): i32 {
     return _fileno(file);
 }
 
-fn driver_test_dup(fd: i32): i32 {
+export fn driver_test_dup(fd: i32): i32 {
     return _dup(fd);
 }
 
-fn driver_test_dup2(source: i32, destination: i32): i32 {
+export fn driver_test_dup2(source: i32, destination: i32): i32 {
     return _dup2(source, destination);
 }
 
-fn driver_test_close(fd: i32): void {
+export fn driver_test_close(fd: i32): void {
     _close(fd);
 }
 
-fn driver_test_platform_cases(): void {}
+export fn driver_test_platform_cases(): void {}

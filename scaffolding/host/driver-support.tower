@@ -1,6 +1,8 @@
 import tower;
 import '../library/bytes-interface';
+import '../library/bytes-types';
 import '../library/vector';
+import 'driver-platform';
 
 extern fn strlen(text: u8*): usize;
 

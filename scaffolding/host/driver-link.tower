@@ -1,4 +1,9 @@
 import tower;
+import '../library/bytes-types';
+import '../library/bytes-interface';
+import 'driver-support';
+import 'driver-timing';
+import 'driver-platform';
 
 struct DriverLink {
     target: u8*;

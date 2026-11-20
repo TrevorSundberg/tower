@@ -2,10 +2,10 @@ import tower;
 
 extern fn __errno_location(): i32*;
 
-fn driver_errno(): i32* {
+export fn driver_errno(): i32* {
     return __errno_location();
 }
 
-fn driver_monotonic_clock(): i32 {
+export fn driver_monotonic_clock(): i32 {
     return 1;
 }

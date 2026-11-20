@@ -1,4 +1,8 @@
 import tower;
+import '../library/bytes-types';
+import '../library/bytes-interface';
+import 'driver-support';
+import 'driver-posix-api';
 
 // Native POSIX services. Explicit libc ABI; no guest JIT or shell invocation.
 // Linux/macOS native builds use their pointer-sized time_t/long profile.
@@ -38,7 +42,7 @@ fn driver_error_code(): i32 {
     return *slot;
 }
 
-fn driver_clock(): u64 {
+export fn driver_clock(): u64 {
     var time: DriverTimespec;
     var clock_failed = clock_gettime(driver_monotonic_clock(), &time) != 0;
     if clock_failed {
@@ -49,7 +53,7 @@ fn driver_clock(): u64 {
     return result;
 }
 
-fn driver_platform_write(fd: i32, data: u8*, length: usize): void {
+export fn driver_platform_write(fd: i32, data: u8*, length: usize): void {
     while length != 0 {
         var count = write(fd, data, length);
         var write_failed = count < 0;
@@ -70,23 +74,37 @@ fn driver_platform_write(fd: i32, data: u8*, length: usize): void {
     }
 }
 
-fn driver_platform_remove(path: u8*): void {
+export fn driver_platform_remove(path: u8*): void {
     unlink(path);
 }
 
-fn driver_platform_temporary(out: ByteBuffer*): bool {
+export fn driver_platform_temporary(out: ByteBuffer*): bool {
     var directory = getenv("TMPDIR");
     var missing_directory = directory == null;
     if missing_directory {
-        directory = "/tmp";
+        directory = getenv("TMP");
     }
-    var empty_directory = directory[0] == 0;
-    if empty_directory {
+    missing_directory = directory == null;
+    if missing_directory {
+        directory = getenv("TEMP");
+    }
+    missing_directory = directory == null;
+    if missing_directory {
+        directory = getenv("TEMPDIR");
+    }
+    missing_directory = directory == null;
+    if missing_directory {
         directory = "/tmp";
     }
     var ok = driver_text(out, directory);
+    var nonempty_directory = directory[0] != 0;
+    if nonempty_directory {
+        if ok {
+            ok = driver_text(out, "/");
+        }
+    }
     if ok {
-        ok = driver_text(out, "/tower-XXXXXX");
+        ok = driver_text(out, "tower-XXXXXX");
     }
     if ok {
         ok = host_text_terminate(out);
@@ -262,7 +280,7 @@ fn driver_find_tool(out: ByteBuffer*, name: u8*): bool {
     return false;
 }
 
-fn driver_platform_run(argv: u8**): i32 {
+export fn driver_platform_run(argv: u8**): i32 {
     var executable: ByteBuffer;
     fill(&executable, 0, sizeof(ByteBuffer));
     var result: i32 = 1;

@@ -1,5 +1,6 @@
 import tower;
 import 'driver-types';
+import 'driver-support';
 
 extern fn driver_parse(options: DriverOptions*, argc: usize, argv: u8**, target: u8*): bool;
 

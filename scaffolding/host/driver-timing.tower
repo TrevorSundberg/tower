@@ -1,4 +1,8 @@
 import tower;
+import '../library/bytes-types';
+import '../library/bytes-interface';
+import 'driver-support';
+import 'driver-platform';
 
 struct DriverTiming {
     start: u64;

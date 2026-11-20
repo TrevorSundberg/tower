@@ -1,0 +1,11 @@
+import tower;
+
+extern fn driver_test_file(file: void*): i32;
+
+extern fn driver_test_dup(fd: i32): i32;
+
+extern fn driver_test_dup2(source: i32, destination: i32): i32;
+
+extern fn driver_test_close(fd: i32): void;
+
+extern fn driver_test_platform_cases(): void;

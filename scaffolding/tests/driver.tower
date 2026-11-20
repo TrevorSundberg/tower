@@ -1,4 +1,12 @@
 import tower;
+import '../library/bytes-types';
+import '../library/bytes-interface';
+import '../host/driver-support';
+import '../host/driver-timing';
+import '../host/driver-link';
+import '../host/driver-platform';
+import '../host/driver-windows-arguments';
+import 'driver-platform-api';
 
 extern fn strstr(text: u8*, part: u8*): u8*;
 

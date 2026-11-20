@@ -1,4 +1,9 @@
 import tower;
+import '../library/bytes-types';
+import '../library/bytes-interface';
+import '../library/vector';
+import 'driver-support';
+import 'driver-windows-arguments';
 
 // x64/ARM64 Windows CRT and kernel32 ABI. These are ordinary host effects.
 extern fn _write(fd: i32, data: u8*, length: u32): i32;
@@ -17,7 +22,7 @@ extern fn GetTempFileNameA(directory: u8*, prefix: u8*, unique: u32, output: u8*
 
 extern fn DeleteFileA(path: u8*): i32;
 
-fn driver_clock(): u64 {
+export fn driver_clock(): u64 {
     var value: i64 = 0;
     var frequency: i64 = 0;
     var ok = QueryPerformanceCounter(&value) != 0;
@@ -41,7 +46,7 @@ fn driver_clock(): u64 {
     return result;
 }
 
-fn driver_platform_write(fd: i32, data: u8*, length: usize): void {
+export fn driver_platform_write(fd: i32, data: u8*, length: usize): void {
     while length != 0 {
         var amount: usize = 65536;
         var small = length < amount;
@@ -59,11 +64,11 @@ fn driver_platform_write(fd: i32, data: u8*, length: usize): void {
     }
 }
 
-fn driver_platform_remove(path: u8*): void {
+export fn driver_platform_remove(path: u8*): void {
     DeleteFileA(path);
 }
 
-fn driver_platform_temporary(out: ByteBuffer*): bool {
+export fn driver_platform_temporary(out: ByteBuffer*): bool {
     var directory: u8[261];
     var length = GetTempPathA(261, &directory[0]);
     var ok = length != 0;
@@ -85,7 +90,7 @@ fn driver_platform_temporary(out: ByteBuffer*): bool {
     return ok;
 }
 
-fn driver_platform_run(argv: u8**): i32 {
+export fn driver_platform_run(argv: u8**): i32 {
     var quoted: DriverArguments;
     driver_arguments_init(&quoted);
     var i: usize = 0;

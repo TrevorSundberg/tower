@@ -19208,3 +19208,30 @@ adjacent share/tower resources into build/native; log: driver-native-build.log.
 Browser production code is unchanged by this host-only unit. Publication will
 preserve the latest complete gh-pages assets and record this native-only source
 revision in manifest provenance; it does not distribute a portable native release.
+
+Final rebase integrated b5307be (module scopes/import aliases and their parser-table
+integration). Only the append-only journal conflicted; retained both entries.
+The newly scoped language requires each driver module to import its own ordinary
+function/type providers. Added those imports plus private build-selected platform
+interfaces, using the established compatible extern/export coalescing mechanism.
+This is driver-internal wiring; compiler/backend APIs are still unchanged.
+
+No scoped native bootstrap was installed in this checkout. Reused the existing
+ignored build/c-prepare-bootstrap.mjs and c-bootstrap.sh tooling to extract the
+published a6bacaf LLVM/cross reactors and compile native objects through their
+ordinary API. That build passed, including the scoped driver modules. Saved the
+result and matching share directory under /cache/driver-scoped-bootstrap and
+used that native compiler for the next complete native build. Both generations
+pass the Tower CLI suite; driver-scoped-build.log, driver-scoped-tests.log and
+driver-native-generation2.log record the builds. Windows platform tests and the
+macOS ARM64 object check also pass after this rebase. The local publication
+verifier passes all 69 current assets and desktop/mobile/Linux target flows.
+Only native host code changed here, so all published browser asset bytes remain
+those of the newer a6bacaf module-scope deployment.
+
+Review of upstream LLVM Unix/Path.inc confirmed TMPDIR/TMP/TEMP/TEMPDIR priority;
+the Tower host now preserves that order and the empty-directory/current-directory
+case. The no-environment POSIX fallback is /tmp; macOS normally supplies TMPDIR,
+but the native per-user confstr fallback is not yet ported. Tests establish actual
+Linux and Windows execution, not macOS runtime parity. Final validation and
+publication evidence are recorded in the following entry.

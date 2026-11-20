@@ -1,0 +1,5 @@
+import tower;
+
+extern fn driver_errno(): i32*;
+
+extern fn driver_monotonic_clock(): i32;

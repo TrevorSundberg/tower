@@ -1,4 +1,7 @@
 import tower;
+import '../library/bytes-types';
+import '../library/bytes-interface';
+import 'driver-support';
 
 // Microsoft CRT argv encoding, including embedded quotes and trailing slashes.
 // _spawnvp joins its argv with spaces; quote each argument before that boundary.

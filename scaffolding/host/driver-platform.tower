@@ -1,0 +1,13 @@
+import tower;
+import '../library/bytes-types';
+
+// The isolated build selects one implementation of these native host effects.
+extern fn driver_clock(): u64;
+
+extern fn driver_platform_write(fd: i32, data: u8*, length: usize): void;
+
+extern fn driver_platform_remove(path: u8*): void;
+
+extern fn driver_platform_temporary(out: ByteBuffer*): bool;
+
+extern fn driver_platform_run(argv: u8**): i32;
