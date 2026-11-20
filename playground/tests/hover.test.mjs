@@ -166,6 +166,58 @@ test('type function uses retain distinct concrete field layouts alongside the sy
   assert.equal(get('a:buffer').type,'buffer(i32, 4)');assert.equal(get('a:buffer').size,16);
   assert.equal(get('b:buffer').type,'buffer(bool, 2)');assert.equal(get('b:buffer').size,2);
 });
+
+test('template member paths and operators have their own resolved or symbolic types',async()=>{
+  const example=(await read('scaffolding/examples/templates.tower')).toString();
+  for(const source of [example,example+'\nmissing();']) {
+  const entries=inspect(source,{entry:'templates.tower'});
+  const start=source.indexOf('fn pop('),get=(text,offset=0)=>hoverAt(entries,source.indexOf(text,start)+offset);
+  const count=get('values.count =',7);
+  assert.equal(count.kind,'field');assert.equal(count.signature,'count: usize');assert.equal(count.type,'usize');assert.equal(count.size,4);
+  assert.equal(count.declarationLine,14);assert.equal(count.resolution,undefined);
+  const subtract=get(' - ',1);
+  assert.equal(subtract.kind,'binary operation');assert.equal(subtract.signature,'values.count - 1');assert.equal(subtract.type,'usize');
+  assert.equal(get(' = ',1).kind,'assignment');assert.equal(get(' = ',1).type,'usize');
+  assert.equal(get('storage.data').type,'buffer(T, 4)');
+  assert.equal(get('data[values').signature,'data: T[4]');assert.equal(get('data[values').type,'T[4]');
+  const element=get('[values.count]');assert.equal(element.kind,'indexed element');assert.equal(element.type,'T');assert.equal(element.size,undefined);
+  for(const entry of [count,subtract,element])assert.notEqual(entry.kind,'function template');
+  }
+});
+
+test('symbolic field substitution follows forward constructors, renamed parameters, docs and inferred locals',()=>{
+  const source=`fn demo(U:type,p:wrap(U)*):U { var next = p.storage.count - 1; var empty = p.storage.count == 0; return p.storage.data[next]; }
+fn wrap(Item:type):type { struct R { storage:bucket(Item,4); } return R; }
+fn bucket(Element:type,n:usize):type { struct R { // Stored elements.
+data:Element[n]; count:usize; } return R; }`;
+  const entries=inspect(source),get=(text,offset=0)=>hoverAt(entries,source.indexOf(text)+offset);
+  assert.equal(get('storage.count').type,'bucket(U, 4)');
+  assert.equal(get('count -').type,'usize');
+  assert.equal(get('data[next]').type,'U[4]');assert.equal(get('data[next]').documentation,'Stored elements.');
+  assert.equal(get('[next]').type,'U');
+  assert.equal(get('next =').signature,'var next: usize');assert.equal(get('next]').type,'usize');
+  assert.equal(get('empty =').signature,'var empty: bool');assert.equal(get('==').type,'bool');
+});
+
+test('dependent inspection does not guess conditional record shapes or accept invalid concrete operators',()=>{
+  const conditional='fn choice(T:type):type { struct A { count:usize; } struct B { count:bool; } if true { return A; } return B; } fn use(T:type,p:choice(T)*):void { print(p.count); }';
+  assert.equal(at(conditional,'count);').kind,'member access');assert.equal(at(conditional,'count);').type,undefined);
+  const pointer='fn box(T:type):type { struct R { count:usize; } return R; } fn use(T:type,p:box(T)**):void { print(p.count); }';
+  assert.equal(at(pointer,'count);').type,undefined);
+  for(const [type,number] of [['bool','1'],['u8','256']]) {
+    const source=`fn box(T:type):type { struct R { count:${type}; } return R; } fn use(T:type,p:box(T)*):void { var value = p.count + ${number}; }`;
+    const entry=hoverAt(inspect(source),source.indexOf(' + ')+1);
+    assert.equal(entry.kind,'binary operation');assert.equal(entry.type,undefined);assert.equal(entry.size,undefined);
+  }
+});
+
+test('template field queries preserve imported declaration ownership and target widths',()=>{
+  const source="import tower; import 'helper'; fn demo(T:type,p:box(T)*):usize { return p.count; }";
+  const options={entry:'main.tower',pointerBytes:8,files:[{path:'helper.tower',text:'import tower; fn box(E:type):type { struct R {\n// Number of stored entries.\ncount:usize; value:E; } return R; }'}]};
+  const field=hoverAt(inspect(source,options),source.indexOf('p.count')+2);
+  assert.equal(field.kind,'field');assert.equal(field.type,'usize');assert.equal(field.size,8);
+  assert.equal(field.declarationFile,'helper.tower');assert.equal(field.documentation,'Number of stored entries.');
+});
 test('members, pointer receivers, nominal types and layouts come from checked fields',()=>{
   const source='struct Point { first:i32; ready:bool; } var p:Point; var pointer = &p; pointer.ready = true; print(pointer.ready);';
   const field=at(source,'ready);');assert.equal(field.signature,'ready: bool');assert.equal(field.kind,'field');
@@ -387,7 +439,7 @@ test('generated functions, declarations and return nodes have their own template
   }
 });
 test('document queries release their temporary shared entities after repeated inspection',()=>{
-  const source='// Point documentation\nstruct Point { x:i32; }\n// Instance documentation\nvar p:Point; print(p.x);\n// A parameterized container.\nfn box(T:type):type { struct R { value:T; } return R; } var b:box(i32);';
+  const source='// Point documentation\nstruct Point { x:i32; }\n// Instance documentation\nvar p:Point; print(p.x);\n// A parameterized container.\nfn box(T:type):type { struct R { value:T; count:usize; } return R; } var b:box(i32); fn advance(T:type,p:box(T)*):usize { var next = p.count + 1; return next; }';
   for(const text of [source,source+'\nmissing();']) {
     inspect(text);
     const nodes=tower.exports.tw_live_nodes(),allocations=tower.exports.tw_live_allocations();

@@ -2,6 +2,7 @@ import tower;
 import 'completion';
 import 'language-query';
 import 'semantic-generic-info';
+import 'semantic-generic-values';
 import 'semantic-context';
 import 'semantic-support';
 import 'semantic-types';
@@ -14,7 +15,33 @@ import '../library/vector';
 
 extern fn format_dependent_summary(result: FormatResult*, entity: void*, match_kind: void*): void;
 
+extern fn format_dependent_view(result: FormatResult*, entity: void*, subject: void*, annotation: void*, match_kind: void*, substitutions: FormatSubstitution*): void;
+
 fn language_generic_kind(info: GenericInfo*): u8* {
+    var inspection_condition1 = info.kind == GenericInfoKind.Member;
+    if inspection_condition1 {
+        return "member access";
+    }
+    var inspection_condition2 = info.kind == GenericInfoKind.Index;
+    if inspection_condition2 {
+        return "indexed element";
+    }
+    var inspection_condition3 = info.kind == GenericInfoKind.Binary;
+    if inspection_condition3 {
+        return "binary operation";
+    }
+    var inspection_condition4 = info.kind == GenericInfoKind.Value;
+    if inspection_condition4 {
+        return "value";
+    }
+    var inspection_condition5 = info.kind == GenericInfoKind.Load;
+    if inspection_condition5 {
+        return "pointer dereference";
+    }
+    var inspection_condition6 = info.kind == GenericInfoKind.Assignment;
+    if inspection_condition6 {
+        return "assignment";
+    }
     var generic_check1 = info.kind == GenericInfoKind.Function;
     if generic_check1 {
         return "function template";
@@ -55,6 +82,34 @@ fn language_generic_kind(info: GenericInfo*): u8* {
 }
 
 fn language_generic_description(info: GenericInfo*): u8* {
+    var inspection_condition7 = info.kind == GenericInfoKind.Member;
+    if inspection_condition7 {
+        return "Accesses a named field. Its type is not yet known for this template.";
+    }
+    var inspection_condition8 = info.kind == GenericInfoKind.Index;
+    if inspection_condition8 {
+        return "Selects one element using its index. The first element has index zero.";
+    }
+    var inspection_condition9 = info.kind == GenericInfoKind.Binary;
+    if inspection_condition9 {
+        var inspection_condition10 = info.resolved == null;
+        if inspection_condition10 {
+            return "The operation needs known operand types before it can be checked.";
+        }
+        return "Uses the two operands to compute a new value.";
+    }
+    var inspection_condition11 = info.kind == GenericInfoKind.Value;
+    if inspection_condition11 {
+        return "A value used by this expression.";
+    }
+    var inspection_condition12 = info.kind == GenericInfoKind.Load;
+    if inspection_condition12 {
+        return "A pointer holds a memory address. This reads the value stored at that address.";
+    }
+    var inspection_condition13 = info.kind == GenericInfoKind.Assignment;
+    if inspection_condition13 {
+        return "Changes the value on the left to the value on the right. The previous value is overwritten.";
+    }
     var generic_check10 = info.kind == GenericInfoKind.Function;
     if generic_check10 {
         return "Reusable code that accepts types as inputs. Each set of type arguments is checked separately; the remaining parameters receive values when the function runs.";
@@ -195,13 +250,54 @@ fn language_generic_documentation(q: CompletionQuery*, declaration: void*): void
     }
 }
 
+fn language_generic_format(q: CompletionQuery*, info: GenericInfo*, formatted: FormatResult*, signature: bool): void {
+    var a: GenericAnalysis;
+    fill(&a, 0, sizeof(GenericAnalysis));
+    a.context = &q.context;
+    a.component = q.generic_info;
+    a.budget = InspectionNodeLimit();
+    var substitutions = generic_format_substitutions(&a, info.annotation, info.bindings, 0);
+    if a.truncated {
+        q.truncated = true;
+    }
+    var node = info.annotation;
+    var subject: void* = null;
+    if signature {
+        node = info.declaration;
+        subject = node;
+    }
+    format_dependent_view(formatted, node, subject, info.annotation, parser_match_get_type(), substitutions);
+    var inspection_condition14 = info.annotation == null;
+    if inspection_condition14 {
+        var inspection_condition15 = info.resolved != null;
+        if inspection_condition15 {
+            var append = signature == false;
+            if signature {
+                append = info.kind == GenericInfoKind.Variable;
+                if append {
+                    sem_require(bytes_append(&formatted.text, ": ", 2));
+                }
+            }
+            if append {
+                var resolved = sem_get(info.resolved);
+                var text = sem_type_name(&q.context, &resolved.type);
+                sem_require(bytes_append(&formatted.text, text, sem_length(text)));
+            }
+        }
+    }
+}
+
 fn language_generic_details(q: CompletionQuery*, info: GenericInfo*): void {
     var annotation = info.annotation;
     var generic_check28 = annotation != null;
+    var inspection_condition16 = info.resolved != null;
+    if inspection_condition16 {
+        generic_check28 = true;
+    }
     if generic_check28 {
         var formatted: FormatResult;
         fill(&formatted, 0, sizeof(FormatResult));
-        format_dependent_summary(&formatted, annotation, parser_match_get_type());
+        language_generic_format(q, info, &formatted, false);
         var formatted_ok = formatted.failed == false;
         if formatted_ok {
             formatted_ok = formatted.text.length != 0;

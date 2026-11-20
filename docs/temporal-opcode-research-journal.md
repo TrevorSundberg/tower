@@ -20394,3 +20394,69 @@ validation metadata only; all 70 published asset hashes remain those already
 verified above. Preserved both append-only histories. Add allocator validation
 metadata on that newer Pages tip, retaining its source provenance and IDE/CLI
 records. No compiler/test rerun is needed for this metadata-only integration.
+
+## 2026-11-20 — Resolve fields and concrete expressions inside templates
+
+The user's Templates screenshots exposed the next missing layer: hovering
+values.count or the subtraction operator inside pop still inherited pop's
+function-template presentation. The earlier pass bound declarations and written
+annotations, but did not follow dependent type applications into fields or type
+body expressions. Describing that pass as partially typed without that boundary
+was misleading. A runtime value of values is not needed here: stack(T) always
+declares count:usize, while storage.data can remain symbolic as T[4].
+
+Added the bounded Tower-only semantic-generic-values library pass. It follows
+original annotation entities with declaration-keyed argument bindings, caches
+fixed record shapes on the original constructor components, and attaches member,
+index, dereference, assignment and expression information to the original nodes.
+All template definitions are bound before this pass, preserving module forward
+references. A recognized shape consists of direct struct declarations followed
+by a return of one of those structs. Conditional returns and arbitrary type
+programs remain unknown; this does not execute type functions speculatively or
+select a first concrete instance. Nested substitutions preserve the argument's
+own binding context, so differently named parameters and nested integer/type
+arguments resolve correctly. Names, field docs and locations refer to their
+actual declarations, including imported ones.
+
+Concrete subexpressions reuse sem_expression/sem_operand on temporary clones in
+the same entity store, seeded with known operand types. This shares contextual
+literal range checks, operation legality, comparison results and target types.
+The clones are released, and the original generic body is never partly lowered.
+Inference propagates to locals and later lexical uses. Unknown operations now
+have their own query components rather than the enclosing function's tooltip.
+GenericInfoKind and GenericShapeState use enums; existing inspection limits bound
+the analysis. Shared formatting consumes disposable substitution views of the
+original nodes; no browser type parser or independent semantic representation
+was added. Hover still consumes the existing cached document query.
+
+Refined the previous error-state restriction: unfinished nominal layouts remain
+unavailable, but registered primitive field types can be used independently after
+an unrelated document error. Thus count and its subtraction still report usize
+while incomplete Broken layouts remain suppressed. Ordinary compilation keeps
+its diagnostics, and full checking of unused bodies still awaits instantiation.
+Substituted composite layouts and arbitrary dependent expression inference are
+not implemented by this bounded inspection pass.
+
+Trials/root causes: the new Node tests and actual Templates browser regression
+fail against the preceding bundle, with the exact fn pop fallback on both desktop
+and mobile. Initial compiler attempts rejected inline binary if conditions and
+the reserved identifier expected; changed these to foundation condition locals
+and expected_type. A first shape probe found generated optional-capture wrappers
+around returns; transparent unnamed single-child relationships now unwrap
+generically. Another trial attached formatter substitutions to list wrappers
+that the list printer skips; bind the visited type/name/count entities instead.
+This also preserves bindings attached to array-count nodes before unwrapping.
+
+Local validation before publication: parser rebuilt with the published Tower/Wasm
+bootstrap under WASI SDK 34; all 69 hover/template/module-scope Node/Wasm tests
+pass (9.63 s), plus the added comparison-result check. Coverage includes normal
+and erroneous documents, the bundled pop body, nested/renamed and forward type
+constructors, inferred locals, imported field docs, 64-bit target widths,
+conditional shapes, pointer depth, invalid boolean arithmetic and overflowing
+integer literals. Repeated valid and erroneous inspections, now including
+concrete template-expression clones, return node/allocation counts to baseline.
+Canonical formatting passes. Build and test logs use build/template-path-*;
+the required backend rebuild and browser/live verification follow below.
+
+Unrelated local AGENTS.md, foundation docs, journal and todo.txt work is preserved
+outside this commit. No edits to todo.txt were made.

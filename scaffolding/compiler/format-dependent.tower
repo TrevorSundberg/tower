@@ -104,8 +104,24 @@ fn format_dependent(f: FormatEngine*, entity: void*, depth: usize): void {
         f.result.failed = true;
         return;
     }
+    var substitution = f.substitutions;
+    while substitution != null {
+        var inspection_condition1 = substitution.node == entity;
+        if inspection_condition1 {
+            var saved = f.substitutions;
+            f.substitutions = substitution.nested;
+            format_dependent(f, substitution.replacement, next);
+            f.substitutions = saved;
+            return;
+        }
+        substitution = substitution.next;
+    }
     var name = format_dependent_member(entity, "name");
     var annotation = format_dependent_member(entity, "type");
+    var inspection_condition2 = entity == f.dependent_subject;
+    if inspection_condition2 {
+        annotation = f.dependent_annotation;
+    }
     if format_dependent_is(f, entity, "CoreFunction") {
         format_text(f, "fn ");
         format_dependent_name(f, name);
@@ -188,6 +204,21 @@ fn format_dependent(f: FormatEngine*, entity: void*, depth: usize): void {
         }
         return;
     }
+    if format_dependent_is(f, entity, "CoreBinary") {
+        format_dependent(f, format_dependent_member(entity, "left"), next);
+        format_text(f, " ");
+        format_dependent(f, format_dependent_member(entity, "op"), next);
+        format_text(f, " ");
+        format_dependent(f, format_dependent_member(entity, "right"), next);
+        return;
+    }
+    if format_dependent_is(f, entity, "CoreAssign") {
+        format_dependent(f, format_dependent_member(entity, "target"), next);
+        format_text(f, " = ");
+        format_dependent(f, format_dependent_member(entity, "value"), next);
+        format_text(f, ";");
+        return;
+    }
     if format_dependent_is(f, entity, "Identifier") {
         format_dependent_name(f, entity);
         return;
@@ -211,9 +242,16 @@ fn format_dependent(f: FormatEngine*, entity: void*, depth: usize): void {
 }
 
 export fn format_dependent_summary(result: FormatResult*, entity: void*, match_kind: void*): void {
+    format_dependent_view(result, entity, null, null, match_kind, null);
+}
+
+export fn format_dependent_view(result: FormatResult*, entity: void*, subject: void*, annotation: void*, match_kind: void*, substitutions: FormatSubstitution*): void {
     var f: FormatEngine;
     fill(&f, 0, sizeof(FormatEngine));
     f.result = result;
     f.match_kind = match_kind;
+    f.substitutions = substitutions;
+    f.dependent_subject = subject;
+    f.dependent_annotation = annotation;
     format_dependent(&f, entity, 0);
 }

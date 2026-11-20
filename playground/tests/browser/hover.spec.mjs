@@ -103,6 +103,46 @@ test('bundled Templates hovers survive an unrelated document error',async({page}
   }
 });
 
+test('Templates pop body exposes field, operator and dependent element types from the cached query',async({page},info)=>{
+  await selectDocument(page,'templates.tower');
+  const original=await savedSource(page),tip=page.locator('.tw-language-hover');
+  async function token(lineText,text) {
+    const scroller=page.locator('#editor .cm-scroller');
+    await scroller.evaluate(el=>el.scrollTop=0);
+    const line=page.locator('#editor .cm-line').filter({hasText:lineText});
+    for(let i=0;i<50&&!await line.count();i++) {
+      await scroller.evaluate(el=>el.scrollTop+=el.clientHeight/2);
+      await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+    }
+    await line.scrollIntoViewIfNeeded();
+    const position=await line.evaluate((line,text)=>{
+      let offset=line.textContent.indexOf(text);const walker=document.createTreeWalker(line,NodeFilter.SHOW_TEXT);
+      while(walker.nextNode()) {
+        const node=walker.currentNode;if(offset>=node.length){offset-=node.length;continue;}
+        const range=document.createRange();range.setStart(node,offset);range.setEnd(node,offset+1);
+        const rect=range.getBoundingClientRect();return {x:rect.x+rect.width/2,y:rect.y+rect.height/2};
+      }
+    },text);
+    await page.mouse.move(0,0);await page.mouse.move(position.x,position.y);
+  }
+  for(const text of [original,original+'\nmissing();']) {
+    await source(page,text);await ready(page,text);
+    const count=await page.evaluate(()=>window.documentQueries.length);
+    for(const [line,tokenText,signature,type] of [
+      ['values.count = values.count - 1;','count','count: usize','usize'],
+      ['values.count = values.count - 1;','-','values.count - 1','usize'],
+      ['return values.storage.data[values.count];','data','data: T[4]','T[4]'],
+      ['return values.storage.data[values.count];','[','values.storage.data[values.count]','T'],
+    ]) {
+      await token(line,tokenText);await expect(tip).toBeVisible();
+      await expect(tip.locator('code')).toHaveText(signature);await expect(tip).toContainText('Type: '+type);
+      await expect(tip).not.toContainText(/fn pop|function template|Matched rule|Capture:/);
+      if(tokenText==='count'||tokenText==='-')await page.screenshot({path:'../build/template-path-'+(tokenText==='-'?'operator':'field')+'-'+info.project.name+'.png'});
+    }
+    expect(await page.evaluate(()=>window.documentQueries.length)).toBe(count);
+  }
+});
+
 test('grammar hover follows each parsed part and shows referenced types without a hover-time worker query',async({page},info)=>{
   const text='// Increment a location.\nfn increment(p:i32*):i32 { var result = *p; return result; }\n// Match an assignable location.\nparse CoreCall |= $target:CoreLocation \'++\'\n    => replace { increment(&$target) };\nvar value:i32 = 2;\nprint(value++);';
   await source(page,text);await ready(page,text);

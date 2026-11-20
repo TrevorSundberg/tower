@@ -5,6 +5,7 @@ import 'semantic-support';
 import 'semantic-statements';
 import 'semantic-types';
 import 'semantic-modules';
+import 'semantic-generic-values';
 import '../library/vector';
 
 // Optional, disposable analysis on the original shared entities. The annotation
@@ -12,7 +13,21 @@ import '../library/vector';
 // it is not a second type language or a partially instantiated Foundation graph.
 enum GenericInfoKind: u32 {
     Function, Constructor, TypeParameter, ConstantParameter, Parameter,
-    Structure, Field, Variable, TypeExpression, Return
+    Structure, Field, Variable, TypeExpression, Return,
+    Member, Index, Binary, Value, Load, Assignment
+}
+
+enum GenericShapeState: u32 {
+    Uninspected, Fixed, Unknown
+}
+
+// Query-local substitutions bind declaration entities to existing argument
+// trees. They are a view of the shared graph, not another type representation.
+struct GenericBinding {
+    parameter: void*;
+    argument: void*;
+    bindings: GenericBinding*;
+    next: GenericBinding*;
 }
 
 struct GenericInfo {
@@ -22,6 +37,9 @@ struct GenericInfo {
     annotation: void*;
     resolved: void*;
     dependent: bool;
+    bindings: GenericBinding*;
+    shape_state: GenericShapeState;
+    fixed_record: void*;
 }
 
 struct GenericAnalysis {
@@ -320,6 +338,14 @@ fn sem_generic_inspect(c: SemanticContext*, resolve_types: bool, truncated: bool
             p = p + 1;
         }
         generic_info_walk(&a, definition, values, types, 0);
+        i = i + 1;
+    }
+    // Bind every definition before following type applications. This preserves
+    // module forward references and makes inspection independent of file order.
+    i = 0;
+    while i < c.template_nodes.length {
+        a.definition = c.template_nodes.data[i];
+        generic_value_walk(&a, a.definition, 0);
         i = i + 1;
     }
     *truncated = a.truncated;

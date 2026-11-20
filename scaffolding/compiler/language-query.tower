@@ -257,7 +257,7 @@ fn language_leaf(q: CompletionQuery*, leaf: void*, candidate: LanguageCandidate*
         var generic_check1 = candidate.generic != null;
         if generic_check1 {
             value = null;
-            format_dependent_summary(&formatted, subject, parser_match_get_type());
+            language_generic_format(q, candidate.generic, &formatted, true);
         } else {
             if candidate.structural {
                 value = null;

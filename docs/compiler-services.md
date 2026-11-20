@@ -64,16 +64,33 @@ a concrete layout. Independent annotations use ordinary type resolution and the
 explicit target profile. Concrete uses retain their separately checked types and
 layouts. Inspection of registered generic definitions also runs when another
 part of the document has a semantic error. Executable Foundation presentation
-and concrete layout resolution remain gated by successful checking; failed
+and nominal layout resolution remain gated by successful checking; failed
 documents retain symbolic annotations/bindings without exposing unfinished type
-layouts. This pass does not fully type-check an uninstantiated function body or
-infer all dependent expressions; those checks remain with ordinary instantiation.
+layouts. Independently known primitive field types remain usable after errors.
+
+`semantic-generic-values.tower` follows member paths through those annotations
+and declaration-based argument bindings. A type function with direct struct
+declarations followed by a return of one of those structs has a fixed field
+shape, cached on its original definition. For example, `stack(T)*` can expose
+`count: usize`, `storage: buffer(T, 4)`, `storage.data: T[4]`, and an indexed
+element of type `T`, without choosing an instance or evaluating a runtime value.
+Branch-dependent returns and other arbitrary type programs remain unknown.
+
+Concrete subexpressions use the ordinary semantic checker on temporary cloned
+query subtrees, seeded with already known operand types. This shares operator
+legality, contextual integer literals, range checks, comparison result types,
+and target data. It never lowers the original template body or suppresses an
+executable compilation diagnostic. The query also propagates inferred local
+types and gives unresolved operations their own metadata instead of showing the
+enclosing function. It does not fully check unused bodies or infer every
+dependent expression; ordinary instantiation still performs those checks.
 Depth/node limits report an incomplete index when reached.
 
 `language-generics.tower` presents these components through the same dispatcher,
 including preceding lexer-captured comments and declaration locations. Canonical
 generic signatures and dependent type expressions use `format-dependent.tower`
-in the shared formatting engine. `inspection-policy.tower` names query limits
+in the shared formatting engine, with disposable substitution views of the
+original annotation entities. `inspection-policy.tower` names query limits
 and the `LanguagePresentation` priority enum. The browser still only renders the
 returned data and uses its cached position index for mouse movement.
 
