@@ -22455,3 +22455,46 @@ the full native parser aggregate/reference attempts remain limited as recorded
 above. Prepared publication records the matched timings and retained native CLI
 retirement evidence; the hosted verifier will check the exact published hashes
 and both device flows after the normal Pages push.
+### 2026-11-20 - Pending grammar ownership in Tower
+
+Completed the lexical publication from source 8577783: Pages commit
+446076e62a8d3bc7c2df13da7c4cbc6471abc047, workflow 44833860673 succeeded.
+`node playground/scripts/verify-deployment.mjs https://tower-lang.org/` exited 0;
+all 70 asset hashes matched and desktop/mobile backend agreement, completion,
+editable grammar, persistence, target defaults and native downloads passed.
+Manifest SHA-256: 7e9a240cbece6dd8d36976c38ccccd8490c62a059ba35db0f5e6e2c111bd032e.
+Saved report: build/language-next/lexical-current-live-report.json.
+
+Next slice replaces native PendingRules and pending-chain diagnostic assembly
+with syntax_pending.tower. Construction copies the name-sorted pending subset
+through the existing FrontendRevision owner and retains its shared alternative
+entities. Waiting terms remain references into those entities; no separate
+semantic graph or interchange format is introduced. The common formatting engine
+builds the exact existing diagnostic and last valid source offset before publication.
+Queries borrow stable data without allocation, refcount changes or lazy mutation.
+The coordinator must still pin the owner while workers read; shared concurrent
+release, cache mutation and within-unit parallel execution are not implemented.
+Native edits only remove the map/algorithm and connect existing call sites to
+Tower exports. Existing Definitions/session ownership remains the next target.
+
+Added Tower functional checks for length-delimited names/text, source lifetime,
+name order, pending versus ready rules, exact chained diagnostic/offset, repeated
+read-only queries and failure of every construction allocation. Empty/null owners
+are checked too. Initial compilation exposed missing direct imports for entity
+access and FrontendKinds; added those dependencies rather than relying on transitive
+visibility. An attempted backend build used a filename instead of the CMake target;
+the correct target is tower-browser-cross. Fresh default-pin native, integrated
+native tests and all browser reactors are being rebuilt. No sanitizer or broad
+formatter pass is run, per the user's iteration-speed instruction.
+
+The pending slice passes a fresh native build using the documented default
+bootstrap, with no private compiler override, in
+/home/trevo/.cache/tower/pending-current-clean. Integrated frontend/CLI CTests
+pass 2/2 (40.93 s), including the new ownership/OOM checks; the fresh compiler
+also passes module_paths.py. All three browser reactors rebuilt, and the actual
+CMake source/support recipe was regenerated. Focused Node checks pass 41/41
+(23.62 s): forward dependencies/activation, diagnostics, formatter, precedence,
+operators, isolated compiler workers and all cross targets. These checks retain
+interpreter/LLVM output agreement and native linking; they do not supersede the
+two known upstream completion failures documented in the lexical slice.
+Paired benchmarks and successive browser compiler generations follow.

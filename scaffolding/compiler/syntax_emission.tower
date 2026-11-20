@@ -1,6 +1,7 @@
 import syntax_view;
 import syntax_emission_types;
 import syntax_emission_lexical;
+import syntax_pending;
 import tower;
 import lr_analysis;
 import lr_grammar;

@@ -40,8 +40,7 @@ using Sequence = TowerNodeRef;
 using Alternatives = std::vector<Sequence>;
 using Definitions = std::map<std::string, Alternatives>;
 using TokenDefinitions = std::vector<TowerNodeRef>;
-struct PendingRule { std::string dependency; size_t offset = TOWER_INVALID_INDEX; };
-using PendingRules = std::map<std::string, PendingRule>;
+using PendingRules = std::unique_ptr<SyntaxPendingRevision, decltype(&syntax_pending_destroy)>;
 SyntaxNode& semantic(const TowerNodeRef& node) { return syntax_node(node.get()); }
 SyntaxNode& semantic(TowerNode* node) { return syntax_node(node); }
 std::shared_ptr<const TokenDefinitions> bootstrap;
@@ -84,7 +83,7 @@ struct Version {
   SyntaxLexicon* lexicon = nullptr;
   std::unique_ptr<SyntaxEmission, decltype(&syntax_emission_destroy)> emission{nullptr, syntax_emission_destroy};
   TokenDefinitions tokens;
-  PendingRules pending;
+  PendingRules pending{nullptr, syntax_pending_destroy};
   std::shared_ptr<const Bedrock> bedrock;
   std::map<size_t, Replacement> replacements;
   std::vector<std::vector<SyntaxExpansionCapture>> expansion_captures;
@@ -150,7 +149,8 @@ bool seed(Version& version, const Definitions& definitions, const char* category
     rules.push_back({name.data(), name.size(), list.data(), list.size()});
   }
   for (const auto& token : version.tokens) tokens.push_back(token.get());
-  for (const auto& [name, dependency] : version.pending) reserved.push_back(name.c_str());
+  for (size_t i = 0; i < syntax_pending_count(version.pending.get()); ++i)
+    reserved.push_back(syntax_pending_name(version.pending.get(), i));
   SyntaxEmissionInput input{rules.data(), rules.size(), tokens.data(), tokens.size(),
     reserved.data(), reserved.size(), nullptr, 0, category,
     version.rules.get(), syntax_component_type(), parser_rule_get_type(), parser_reference_get_type(),
@@ -160,15 +160,6 @@ bool seed(Version& version, const Definitions& definitions, const char* category
   return emitted != nullptr;
 }
 
-std::string pending_message(const PendingRules& pending, std::string name, size_t* error_offset) {
-  std::string message = name;
-  while (pending.contains(name)) {
-    const auto& missing = pending.at(name);
-    if (error_offset && missing.offset != TOWER_INVALID_INDEX) *error_offset = missing.offset;
-    name = missing.dependency; message += " -> " + name;
-  }
-  return message + " (undefined rule '" + name + "')";
-}
 std::string validate(Definitions& defs, const TokenDefinitions& tokens, size_t* error_offset, PendingRules& pending) {
   std::vector<std::vector<TowerNode*>> alternatives;
   std::vector<SyntaxRuleView> rules;
@@ -186,12 +177,11 @@ std::string validate(Definitions& defs, const TokenDefinitions& tokens, size_t* 
   std::string message = ok ? "" : error.length ? std::string(reinterpret_cast<const char*>(error.data), error.length)
     : "Unable to allocate grammar validation";
   bytes_dispose(&error);
-  for (size_t i = 0; i < rules.size(); ++i) if (waiting[i]) {
-    const auto& term = syntax_node(waiting[i]);
-    pending.emplace(std::string(rules[i].name, rules[i].name_length), PendingRule{term.text, term.start});
-  }
+  if (ok) pending.reset(syntax_pending_create(rules.data(), rules.size(), waiting.data(), syntax_component_type()));
+  if (ok && !pending) return "Unable to allocate grammar validation";
   // Only the executable revision excludes pending rules. Source entities survive.
-  if (ok) for (const auto& [name, dependency] : pending) defs.erase(name);
+  if (ok) for (size_t i = 0; i < syntax_pending_count(pending.get()); ++i)
+    defs.erase(syntax_pending_name(pending.get(), i));
   return message;
 }
 
@@ -207,7 +197,7 @@ std::unique_ptr<Version> build(const Definitions& defs, const TokenDefinitions& 
     auto found = std::find_if(effective_tokens.begin(), effective_tokens.end(), [&](const auto& old) { return semantic(old).name == semantic(entity).name; });
     if (found == effective_tokens.end()) effective_tokens.push_back(entity); else *found = entity;
   }
-  PendingRules pending;
+  PendingRules pending{nullptr, syntax_pending_destroy};
   message = validate(definitions, effective_tokens, error_offset, pending);
   if (!message.empty()) return nullptr;
   auto v = std::make_unique<Version>();
@@ -706,10 +696,10 @@ TowerText syntax_format(SyntaxSession* session) {
 
 namespace {
 std::string validate_bedrock(const Bedrock& module, size_t& error_offset) {
-  auto definitions = module.definitions; PendingRules pending;
+  auto definitions = module.definitions; PendingRules pending{nullptr, syntax_pending_destroy};
   auto error = validate(definitions, module.tokens, &error_offset, pending);
   if (!error.empty()) return error;
-  if (!pending.empty()) return "Unresolved grammar reference at end of module: " + pending_message(pending, pending.begin()->first, &error_offset);
+  if (syntax_pending_count(pending.get())) return syntax_pending_message(pending.get(), &error_offset);
   for (const auto& [name, alternatives] : module.definitions) {
     for (const auto& alternative : alternatives) if (semantic(alternative).replacement)
       return "Bedrock declaration rules cannot use replacement handlers yet";
@@ -756,8 +746,8 @@ TowerNode* syntax_next(SyntaxSession* session) {
     }
     if (!session->finalized) {
       preserve_comments(*session, semantic(session->document), session->cursor);
-      if (!session->version->pending.empty())
-        session->error = "Unresolved grammar reference at end of module: " + pending_message(session->version->pending, session->version->pending.begin()->first, &session->error_offset);
+      if (syntax_pending_count(session->version->pending.get()))
+        session->error = syntax_pending_message(session->version->pending.get(), &session->error_offset);
       if (session->building_bedrock && session->error.empty()) {
         auto module = collected_bedrock(*session);
         session->error = validate_bedrock(*module, session->error_offset);
@@ -1124,7 +1114,7 @@ std::vector<SyntaxRuleInfo> syntax_get_rules(SyntaxSession* session) {
       const auto part = tower_format(sequence.get()).source;
       definition += part.empty() ? "ε" : part;
     }
-    result.push_back({name, definition, session->version && session->version->pending.contains(name)});
+    result.push_back({name, definition, session->version && syntax_pending_contains(session->version->pending.get(), name.c_str())});
   }
   return result;
 }

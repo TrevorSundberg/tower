@@ -1,0 +1,128 @@
+import tower;
+import frontend_cache;
+import format_api;
+import format_types;
+import syntax_reader;
+import syntax_validation;
+import syntax_view;
+import syntax_types;
+import lr_analysis;
+import lr_tree;
+import regex_lowering;
+import .library.vector;
+
+// Frozen analysis over retained grammar entities, not a second grammar graph.
+// Construction owns all mutation; queries borrow stable names and diagnostics.
+struct SyntaxPendingRevision {
+    owner: FrontendRevision*;
+    terms: void**;
+    count: usize;
+    message: vector(u8);
+    offset: usize;
+}
+
+export fn syntax_pending_destroy(value: SyntaxPendingRevision*): void {
+    if value is null { return; }
+    frontend_revision_release(value.owner);
+    free(value.terms);
+    vector_dispose(u8, &value.message);
+    free(value);
+}
+
+fn syntax_pending_format(value: SyntaxPendingRevision*, kind: void*): bool {
+    var result: FormatResult;
+    fill(&result, 0, sizeof(FormatResult));
+    var format: FormatEngine;
+    fill(&format, 0, sizeof(FormatEngine));
+    format.result = &result;
+    format_text(&format, "Unresolved grammar reference at end of module: ");
+    var rules = &value.owner.rules;
+    var name = rules.data[0].name;
+    var length = rules.data[0].name_length;
+    format_write(&format, name, length);
+    var index: usize = 0;
+    var visited: usize = 0;
+    while index != lr_none() {
+        // Successful validation cannot produce a cyclic missing-reference chain.
+        if visited == value.count { format_dispose(&result); return false; }
+        ++visited;
+        var component = entity_component_get(value.terms[index], kind);
+        var term = bits(SyntaxNode*, entity_component_data(component));
+        if term.start != lr_none() { value.offset = term.start; }
+        name = term.text.data;
+        length = term.text.length;
+        format_text(&format, " -> ");
+        format_write(&format, name, length);
+        index = syntax_rule_find(rules.data, rules.length, name, length);
+    }
+    format_text(&format, " (undefined rule '");
+    format_write(&format, name, length);
+    format_text(&format, "')");
+    var ok = !result.failed && vector_push(u8, &result.text, 0);
+    if ok {
+        copy(&value.message, &result.text, sizeof(vector(u8)));
+        fill(&result.text, 0, sizeof(vector(u8)));
+    }
+    format_dispose(&result);
+    return ok;
+}
+
+// rules are sorted by name; waiting contains the validator's source-term views.
+// Copy only pending rules and retain their alternatives through FrontendRevision.
+export fn syntax_pending_create(rules: SyntaxRuleView*, count: usize, waiting: void**, kind: void*): SyntaxPendingRevision* {
+    var total: usize = 0;
+    var index: usize = 0;
+    while index < count {
+        if waiting[index] is not null { ++total; }
+        ++index;
+    }
+    if total > ~convert(usize, 0) / sizeof(SyntaxRuleView) { return null; }
+    var value = alloc(SyntaxPendingRevision, 1);
+    if value is null { return null; }
+    fill(value, 0, sizeof(SyntaxPendingRevision));
+    value.offset = lr_none();
+    if total == 0 { return value; }
+    var selected = alloc(SyntaxRuleView, total);
+    value.terms = alloc(void*, total);
+    if selected is null || value.terms is null {
+        free(selected);
+        syntax_pending_destroy(value);
+        return null;
+    }
+    index = 0;
+    while index < count {
+        if waiting[index] is not null {
+            copy(&selected[value.count], &rules[index], sizeof(SyntaxRuleView));
+            value.terms[value.count] = waiting[index];
+            ++value.count;
+        }
+        ++index;
+    }
+    value.owner = frontend_revision_create(selected, total, null, 0);
+    free(selected);
+    if value.owner is null || !syntax_pending_format(value, kind) {
+        syntax_pending_destroy(value);
+        return null;
+    }
+    return value;
+}
+
+export fn syntax_pending_count(value: SyntaxPendingRevision*): usize {
+    return value?.count ?? 0;
+}
+
+export fn syntax_pending_name(value: SyntaxPendingRevision*, index: usize): u8* {
+    if value is null || index >= value.count { return null; }
+    return value.owner.rules.data[index].name;
+}
+
+export fn syntax_pending_contains(value: SyntaxPendingRevision*, name: u8*): bool {
+    if value is null || value.count == 0 { return false; }
+    return syntax_rule_find(value.owner.rules.data, value.count, name, syntax_text_length(name)) != lr_none();
+}
+
+export fn syntax_pending_message(value: SyntaxPendingRevision*, offset: usize*): u8* {
+    if value is null || value.count == 0 { return ""; }
+    if offset is not null && value.offset != lr_none() { *offset = value.offset; }
+    return value.message.data;
+}
