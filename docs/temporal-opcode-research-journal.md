@@ -19875,3 +19875,180 @@ Global baseline installation and mutable query-cache ownership are still blocker
 to claiming all within-unit phases are parallel. Keep AST, grammar, parse matches
 and Foundation on the existing shared entity model; parallelize eligible read
 phases only after ownership and deterministic commit boundaries are explicit.
+
+## 2026-11-20: Runtime/allocator glue port and backend handoff
+
+Started on clean main with `git pull --rebase`, advancing e2ae5ba to 894f903.
+Read AGENTS.md, recent publication/fast-iteration entries, runtime.c,
+compiler-memory.cpp, the existing Tower memory/output modules and the actual
+Tower backend declaration/lowering path. No agents were spawned; todo.txt,
+parser/syntax, browser transport and CLI policy are untouched. The user's ECS
+follow-up applies to shared syntax/semantic entities and explicit context
+ownership; pure allocator functions remain raw-storage functions. This work
+makes no new parallel-execution or lock-free claim.
+
+The host allocation policy was already Tower. Its last libc forwarding calls
+now also live in Tower: memory-libc.tower declares the ordinary Foundation
+foreign names `c_name(void* realloc(void*, size_t))` and
+`c_name(void free(void*))`, with explicit lowered signatures
+`(void*, usize): void*` and `(void*): void`. memory.tower defines the existing
+compiler_host_reallocate/deallocate exports and compiler-memory.cpp deletes
+its two C++ definitions. The production host unit imports these definitions
+through its existing manifest and dependency file; no separate native shim or
+new support archive was introduced. Foundation allocation count/size overflow,
+zero-size release, optional diagnostics, failure-injection order and buffer
+counters remain the existing Tower policy. Upstream libc still supplies storage
+and target alignment; usize follows the selected target, never C++ host sizeof.
+
+A rejected first attempt used qualified module calls to ordinary extern realloc
+and free. Semantic declaration checking correctly rejects those builtin names
+before qualified call resolution. The existing foreign-name identifiers solve
+this without a grammar/backend edit. LLVM can optimize realloc(null,n) into
+malloc; the host dependency allowlist now names malloc/realloc/free instead of
+the deleted C bridges. The low-level exports remain available with their old ABI.
+
+Correction to the earlier 2026-11-19 runtime handoff: this backend can already
+lower explicit LLVM Wasm intrinsic declarations through ordinary foreign calls.
+A Tower probe declaring `llvm.wasm.memory.size.i32(memory:u32):u32` and
+`llvm.wasm.memory.grow.i32(memory:u32,pages:u32):u32` compiled and linked without
+native wrappers. With two initial pages and a three-page maximum it observed
+`2, 2, 3, -1, 3` (size, grow return, size, failed grow return, size).
+Sources: pinned third_party/llvm-project/llvm/include/llvm/IR/IntrinsicsWebAssembly.td
+and llvm/test/CodeGen/WebAssembly/memory-addr32.ll. memory.size is ordered with
+memory.grow, returns 64 KiB pages, and grow returns the previous size or all ones.
+These are explicit target foreign bindings, not new portable Foundation operations.
+The module is selected only for wasm32; no interpreter/native support is claimed.
+
+Unblocked Wasm work: guest-wasm.tower now connects the existing explicit GuestHeap
+to those target operations. It starts an empty arena at the current memory end,
+reuses/coalesces committed storage first, grows only on demand, and publishes
+limits only after successful growth. Shared request-size rounding lives in
+GuestHeap; pointers remain raw. Realloc keeps the old allocation on failure and
+copies before releasing it. A full 4 GiB committed memory uses UINT32_MAX as the
+arena limit rather than wrapping a one-past pointer to zero, preserving address
+overflow policy. Init refuses an already full memory. The owner must serialize
+access and exclusively own the suffix; an observed foreign growth prevents
+claiming that new range. This is a tested explicit-context replacement component,
+not yet the process-wide runtime malloc/free path. runtime.c is retained unchanged
+until runtime exports and startup storage can be connected correctly.
+
+Focused tests are Tower sources: allocator-glue.tower exercises real alloc,
+realloc/free and all four tower_test_buffer_* functions; allocator-wasm.tower
+executes real growth with a 128 KiB initial / 512 KiB maximum memory. The small
+Node file only invokes the latter export and reports its status. Isolated
+cmake/TowerAllocatorTests.cmake is opt-in via TOWER_ALLOCATOR_TESTS and optionally
+TOWER_ALLOCATOR_WASI_SDK. Growth tests link upstream wasi-libc memory routines,
+not runtime.c's allocator. Only tower_trap is permitted as an unresolved import.
+The WASI libc command entry initially hit undefined_weak:main: Clang normally
+rewrites an argc/argv main to __main_argc_argv, while Tower intentionally exports
+literal C symbols. allocator-wasi-entry.tower now supplies that documented
+upstream startup entry in Tower. No native wrapper or test was written. The
+first test compile also caught that `if` takes a simple operand; fixtures now
+name their conditions rather than adding expression syntax to Foundation.
+
+Backend-owner blockers, reproduced with the scoped bootstrap and current source:
+
+1. Canonical declarations such as
+   `export fn tower_allocate(count: usize, size: usize): void* { return null; }`
+   fail with "Function symbol conflicts with Tower runtime". backend_lower also
+   creates runtime declarations first and rejects the final foreign symbol, so
+   a c_name alias cannot evade this. Required runtime-library signatures are
+   tower_allocate(usize,usize):void*, tower_reallocate(void*,usize,usize):void*,
+   tower_deallocate(void*):void, tower_print(u32,u64,u32):void and
+   tower_trap(u8*,usize):void. They must define/reuse exactly the backend's runtime
+   declaration type/calling convention, retain normal Foundation bodies/names
+   and canonical round trips, and avoid recursive builtin allocation in their
+   implementations. Print's kind/bits/pointer-width ABI and trap message/offset
+   must stay unchanged. Guest trap exits with status 1; compiler internal trap
+   emits its existing diagnostic and aborts. Wasm guest print/trap imports retain
+   module `tower` and their existing import names. This is an explicit runtime
+   binding requirement, not permission to rename symbols after code generation.
+2. Library `var heap_cursor: usize = 0;` fails with "Library source cannot contain
+   top-level executable statements". Runtime heap storage and the existing test
+   CompilerMemoryState need ordinary shared global declaration entities, target
+   layout and ordered initialization. Zero-initialized storage and any required
+   initialization entry must be established before the first allocation. In
+   particular fail_after must start at SIZE_MAX, not zero. Preserve the ABI:
+   tower_test_buffer_count():usize, tower_test_buffer_allocations():usize,
+   tower_test_buffer_fail_next():void, tower_test_buffer_fail_after(usize):void.
+   Overflow does not consume an injection/call count; an injected zero-size
+   realloc failure precedes deallocation; failure automatically disarms. Existing
+   C test-state storage remains, and is intentionally not claimed thread-safe.
+3. Proposed Foundation spelling `extern var __heap_base: u8;` is rejected by
+   the declaration grammar (extern currently requires fn). Needed semantics:
+   imported data entity with ordinary target address `&__heap_base`, linker
+   relocation, explicit declared type/layout, no allocation/handle or fabricated
+   initialized byte. Wasm's linker supplies the symbol after static data/stack;
+   use it to preserve the existing initial heap extent when activating malloc.
+   Foreign-data support must use shared nodes and reversible Foundation text.
+4. Native startup should use upstream CRT/startup where possible, with Tower
+   `export fn main(argc:i32, argv:u8**):i32` calling
+   `extern fn tower_main():void`, or the existing Windows mainCRTStartup ABI.
+   Referencing tower_main is currently forbidden by the same reserved-name rule.
+   Linux freestanding _start also needs ABI-correct initial stack alignment and
+   exit; do not replace it with an ordinary C-ABI Tower function on the process
+   entry stack. Supply upstream Linux CRT/platform calls in the target pack or
+   coordinate an explicit backend entry contract before removing that assembly.
+   Existing libc/kernel32 calls cover hosted allocation/output/exit; no speculative
+   syscall operation or native fallback was added. Native target-pack integration
+   is a remaining dependency, not a deployed all-Tower runtime claim.
+
+Validation environment: Linux x64 tower_build container, LLVM 19 host compiler,
+WASI SDK 34 (LLVM 23), Node 22.23.5, frozen scope-capable bootstrap
+build/module-scopes/table-bootstrap. Container mounts this checkout at its real
+path and /home/deck/.cache/tower-docker at /tmp/tower-home/.cache. Reproduce focused
+native checks with `cmake --build /tmp/tower-home/.cache/tower/native --target
+ tower-allocator-tests tower-allocator-wasm tower-frontend-tests tower-driver-tests -j4`
+and CTest regex `^tower-(allocator.*|frontend|driver)$`. The optional SDK path is
+/tmp/tower-home/.cache/tower/wasi-sdk/wasi-sdk-34.0-x86_64-linux. Reproduce hosted
+Wasm allocation by building tower-allocator-tests in the existing host-wasi-tests
+tree and invoking scaffolding/tests/host-wasi.mjs on it. Source fixtures execute
+all checks; no sanitizer or repository-wide formatting pass was run.
+
+Results so far: native allocation passes; real Wasm growth passes; WASI allocation
+passes after the startup correction; frontend failure-cleanup passes (0.05 s);
+CLI suite passes (10.01 s). Host allocation objects compile for Linux x64/arm64,
+Windows x64, macOS arm64 and wasm32 with the same exports and libc imports.
+Cross-object success is not Windows/macOS/arm64 execution. Canonical Foundation
+from both host memory and Wasm growth compiles again. Existing guest allocator,
+format/output tests pass under 32/64-bit interpretation, native execution and
+Wasm execution. Old and new host policy linkage both pass the identical new
+Tower ABI fixture. Logs/probes/objects are under build/runtime-port; benchmark,
+publication, final synchronization and hosted verification results follow.
+
+Additional validation: the allocator's explicit 16-byte host alignment checks
+pass both natively and in WASI, before and after realloc. The Wasm growth fixture
+also passes after serializing to canonical Foundation, recompiling and relinking
+with wasi-libc. All 26 existing focused browser raw-memory/compiler-project checks
+pass (4.14 s); parser/LLVM/cross reactors and their ten-unit recipe build normally.
+No broad browser matrix or source/sanitizer sweep was substituted for these checks.
+
+Short idle alternating benchmarks (same Tower workloads, build/runtime-port):
+host 640,000 allocations/sample, 3 warmups and 9 samples, median 19.012286 ms
+before versus 17.890380 ms after. Individual samples contain 42–46 ms scheduling
+outliers, so this is not a general speedup claim. Guest arena 64,000 allocations/
+sample, 10 warmups and 30 samples, old versus refactored Tower implementation:
+2.882936 versus 2.880293 ms (ratio 0.9991), identical checksums. The extracted
+baseline is unchanged prior Tower source in ignored build storage, not a new seed.
+Reproduce via allocator-before/after benchmark and guest-benchmark.mjs there.
+
+Publication dependency found before overwriting the website: origin/gh-pages
+advanced to 4d3d19f, recording source 6a49c532e16a22d32c87d6fd5700c3dd76fc6df0.
+Both HTTP and direct HTTPS main advertise 894f903; fetching the recorded commit
+fails with "not our ref". Compared all published recipe Tower files against this
+checkout: language-query.tower and semantic-generic-info.tower contain newer
+symbolic-hover-on-error fixes absent from main (in addition to this turn's own
+memory edits). Those changes belong to another owner. Do not publish the rebuilt
+browser candidate over them. Preserve the current live assets, publish only a
+native runtime validation record if appropriate, and deploy the native compiler
+normally. Full browser allocator publication waits for the source fixes to land
+on main so a combined build can be validated. This is a concrete publication
+blocker, not a runtime test failure. The complete native/runtime cutover still
+also depends on the backend contracts listed above.
+
+Publication blocker superseded by the required final pull: upstream main advanced
+to 81bad0a, including 6a49c53/3cb734b and the syntax diagnostic/preview port. Both
+append-only journal histories were preserved during the sole rebase conflict.
+The published semantic fixes are now available from main, so rebuild and validate
+the combined browser/native artifacts before publication. The allocator code and
+backend-runtime blockers are unchanged.

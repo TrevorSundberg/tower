@@ -38,7 +38,7 @@ if sys.argv[1] == 'interpreter': allowed |= {
     'im_pointer_bytes', 'im_root', 'sem_get',
     'semantic_alignment', 'semantic_mask', 'semantic_signed', 'semantic_size'}
 if sys.argv[1] == 'host': allowed |= {
-    'compiler_host_reallocate', 'compiler_host_deallocate', 'tower_allocate', 'abort',
+    'malloc', 'realloc', 'free', 'tower_allocate', 'abort',
     'bytes_reserve', 'bytes_push', 'bytes_append', 'bytes_dispose', 'tower_utf8_validate',
     'fopen', 'fread', 'fwrite', 'ferror', 'feof', 'fclose'}
 # LLVM's Windows lowering probes the file reader's 16 KiB stack buffer. This

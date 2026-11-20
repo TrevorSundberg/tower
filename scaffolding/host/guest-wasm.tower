@@ -1,0 +1,104 @@
+import tower;
+import 'guest-memory';
+
+// wasm32, unshared memory 0, 65536-byte pages. These are upstream LLVM target
+// intrinsics reached through ordinary Foundation foreign-call declarations.
+// The owner must serialize access and own the complete suffix after init. Do
+// not mix this growing arena with another allocator/grower in the same memory.
+// Context storage is supplied by the caller, never hidden in a pointer handle.
+extern fn `llvm.wasm.memory.size.i32`(memory: u32): u32;
+extern fn `llvm.wasm.memory.grow.i32`(memory: u32, pages: u32): u32;
+
+fn guest_wasm_pages(): u32 {
+    return `llvm.wasm.memory.size.i32`(0);
+}
+
+// A full 4 GiB memory has no representable one-past address in wasm32.
+// Preserve the raw allocator's address-overflow rule, leaving its final byte
+// outside the arena rather than wrapping the committed limit to null.
+fn guest_wasm_limit(pages: u32): usize {
+    var limit = convert(u64, pages) * 65536;
+    var full = limit > 4294967295;
+    if full {
+        limit = 4294967295;
+    }
+    return convert(usize, limit);
+}
+
+export fn guest_wasm_init(heap: GuestHeap*): bool {
+    var pages = guest_wasm_pages();
+    var full = pages >= 65536;
+    if full {
+        return false;
+    }
+    var end = bits(u8*, guest_wasm_limit(pages));
+    return guest_heap_init(heap, end, end);
+}
+
+export fn guest_wasm_allocate(heap: GuestHeap*, count: usize, size: usize): void* {
+    var result = guest_heap_allocate(heap, count, size);
+    var allocated = result != null;
+    if allocated {
+        return result;
+    }
+    var bytes = guest_heap_request_size(count, size);
+    var overflow = bytes == 0;
+    if overflow {
+        return null;
+    }
+    var end = convert(u64, heap.cursor) + convert(u64, sizeof(GuestBlock));
+    end = end + convert(u64, bytes);
+    overflow = end > 4294967295;
+    if overflow {
+        return null;
+    }
+    var pages = guest_wasm_pages();
+    var detached = heap.limit != guest_wasm_limit(pages);
+    if detached {
+        return null;
+    }
+    var needed = end + 65535;
+    needed = needed / 65536;
+    var committed = convert(u32, needed);
+    var delta = committed - pages;
+    var previous = `llvm.wasm.memory.grow.i32`(0, delta);
+    var failed = previous != pages;
+    if failed {
+        // Includes UINT32_MAX on failure. Never publish an uncommitted range.
+        return null;
+    }
+    var limit = bits(u8*, guest_wasm_limit(committed));
+    guest_heap_extend(heap, limit);
+    return guest_heap_allocate(heap, count, size);
+}
+
+export fn guest_wasm_reallocate(heap: GuestHeap*, pointer: void*, count: usize, size: usize): void* {
+    var requested = guest_heap_request_size(count, size);
+    var overflow = requested == 0;
+    if overflow {
+        return null;
+    }
+    var absent = pointer == null;
+    if absent {
+        return guest_wasm_allocate(heap, count, size);
+    }
+    var bytes = count * size;
+    var empty = bytes == 0;
+    if empty {
+        guest_heap_free(heap, pointer);
+        return null;
+    }
+    var block = bits(GuestBlock*, pointer);
+    block = block - 1;
+    var enough = block.size >= bytes;
+    if enough {
+        return pointer;
+    }
+    var result = guest_wasm_allocate(heap, count, size);
+    var allocated = result != null;
+    if allocated {
+        copy(result, pointer, block.size);
+        guest_heap_free(heap, pointer);
+    }
+    return result;
+}

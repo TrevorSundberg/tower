@@ -52,7 +52,8 @@ export fn guest_heap_extend(heap: GuestHeap*, end: u8*): bool {
     return true;
 }
 
-export fn guest_heap_allocate(heap: GuestHeap*, count: usize, size: usize): void* {
+// Zero is the overflow sentinel; a zero-byte request owns 16 releasable bytes.
+fn guest_heap_request_size(count: usize, size: usize): usize {
     var maximum: usize = 0;
     maximum = maximum - 1;
     var sized = size != 0;
@@ -60,14 +61,14 @@ export fn guest_heap_allocate(heap: GuestHeap*, count: usize, size: usize): void
         var limit = maximum / size;
         var overflow = count > limit;
         if overflow {
-            return null;
+            return 0;
         }
     }
     var bytes = count * size;
     var limit = maximum - 15;
     var overflow = bytes > limit;
     if overflow {
-        return null;
+        return 0;
     }
     bytes = bytes + 15;
     bytes = bytes / 16;
@@ -75,6 +76,15 @@ export fn guest_heap_allocate(heap: GuestHeap*, count: usize, size: usize): void
     var empty = bytes == 0;
     if empty {
         bytes = 16;
+    }
+    return bytes;
+}
+
+export fn guest_heap_allocate(heap: GuestHeap*, count: usize, size: usize): void* {
+    var bytes = guest_heap_request_size(count, size);
+    var overflow = bytes == 0;
+    if overflow {
+        return null;
     }
     var header = sizeof(GuestBlock);
     var link: GuestBlock** = &heap.available;

@@ -1,0 +1,8 @@
+import tower;
+
+// Borrow the target's C allocator directly. Foreign declaration identifiers
+// distinguish these calls from Foundation realloc/free operations.
+// usize is the selected target's size_t; pointers remain ordinary raw addresses.
+extern fn `c_name(void* realloc(void*, size_t))`(pointer: void*, bytes: usize): void*;
+
+extern fn `c_name(void free(void*))`(pointer: void*): void;

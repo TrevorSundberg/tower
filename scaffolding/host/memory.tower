@@ -1,4 +1,5 @@
 import tower;
+import 'memory-libc';
 
 // Compiler allocation policy, separate from guest raw-address allocation.
 // A null state selects production behavior; tests explicitly supply a state.
@@ -110,9 +111,13 @@ export fn compiler_node_free(state: CompilerNodeMemoryState*, pointer: void*, di
     compiler_host_deallocate(allocation);
 }
 
-extern fn compiler_host_reallocate(pointer: void*, bytes: usize): void*;
+export fn compiler_host_reallocate(pointer: void*, bytes: usize): void* {
+    return `c_name(void* realloc(void*, size_t))`(pointer, bytes);
+}
 
-extern fn compiler_host_deallocate(pointer: void*): void;
+export fn compiler_host_deallocate(pointer: void*): void {
+    `c_name(void free(void*))`(pointer);
+}
 
 export fn compiler_memory_reallocate(state: CompilerMemoryState*, pointer: void*, count: usize, size: usize): void* {
     var maximum: usize = 0;

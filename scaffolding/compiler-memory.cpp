@@ -22,10 +22,9 @@ extern "C" void* tower_allocate(size_t count, size_t size) {
   return tower_reallocate(nullptr, count, size);
 }
 #else
-// Temporary foreign-call and reserved runtime-symbol bridges only. Allocation
-// policy and failure instrumentation live in host/memory.tower.
+// Temporary reserved runtime-symbol bridges and test-state storage only.
+// Allocation policy and direct libc bindings live in host/memory.tower.
 #include "compiler-host.hpp"
-#include <cstdlib>
 
 #ifdef TOWER_COMPILER_MEMORY_TESTS
 static CompilerMemoryState instrumentation{0, 0, SIZE_MAX};
@@ -47,9 +46,6 @@ extern "C" void tower_deallocate(void* pointer) {
 extern "C" void* tower_allocate(size_t count, size_t size) {
   return compiler_memory_reallocate(state, nullptr, count, size);
 }
-extern "C" void* compiler_host_reallocate(void* pointer, size_t bytes) { return std::realloc(pointer, bytes); }
-extern "C" void compiler_host_deallocate(void* pointer) { std::free(pointer); }
-
 #endif
 
 // Shared by compiler-owned Tower modules (semantics and interpretation). Guest
