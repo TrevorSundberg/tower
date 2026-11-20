@@ -17798,3 +17798,43 @@ suites passed 52/52 across desktop/mobile. The targeted rendered-text probe
 Reviewed the compact foreach tooltip screenshots on both device sizes. The
 published bundle is built with `TOWER_REQUIRE_BACKENDS=1`; its manifest SHA256 is
 `597fcf7184a7aa73e0ba3b30b18026564708c37cf5a4093718f2ff6203b9ae10`.
+
+## 2026-11-20: Keep the hover bubble within its pointer grace area
+
+The fixed five-pixel hold margin previously surrounded a bubble placed 12 pixels
+above or 18 pixels below the pointer. The source token also retained the bubble,
+but the bubble's own margin did not surround the pointer. Move the bubble closer
+instead of enlarging that margin. Both placements now use a 1.5-pixel anchor gap,
+leaving at least two CSS pixels on every side of the pointer after coordinate
+rounding in the tested desktop and high-density mobile profiles. CodeMirror's
+tooltip overlap option prevents collision avoidance from moving this bubble away
+from its pointer anchor. Viewport clamping and above/below placement remain active.
+The 800 ms dwell, translucent pointer-through preview, pinned position, five-pixel
+dismissal margin and delayed switching to neighboring symbols are unchanged.
+
+An initial 2.5-pixel anchor gap passed desktop but failed the new mobile geometry
+assertion: the bottom grace edge extended only 1.515625 pixels beyond the requested
+pointer position. Mouse coordinates and tooltip bounds round differently. Moving
+the bubble one pixel closer supplies sufficient rounding tolerance without growing
+the margin. The browser regression forces both above and below placement, checks
+all four geometric clearances, moves two pixels in eight directions and verifies
+the pinned bubble stays visible and stationary. It also waits for programmatic
+scroll events before hovering, matching the upstream harness race correction.
+
+Integrated upstream parser stream/recognizer migration c0aaf2d and publication
+record ecaab92 before rebuilding, preserving its native/Tower ABI and packaged
+compiler support. Rebuilt parser and LLVM/cross WASI with the established WSL/WASI
+SDK 34 scripts and published bootstrap, then built with TOWER_REQUIRE_BACKENDS=1.
+The preceding compact-hover cleanup was published as gh-pages 90d72cb and verified
+against all 69 hosted assets, with 12 live targeted hover checks and both new
+assignment descriptions checked in the rendered UI. The combined release below
+supersedes that bundle and the intervening upstream parser publication.
+
+Combined validation: npm test --prefix playground passed all 352 tests; canonical
+Tower formatting passed. Playwright hover and completion suites passed 48/48
+across desktop/mobile, including both placements, eight-direction pointer motion,
+exact dismissal margin, pending-switch border and capture/documentation rendering.
+Reviewed the pinned mobile screenshot with the closer bubble. Reproduction logs
+are build/hover-grace-{wasm,llvm,ui,tests,format,browser-final}.log; the failed first
+geometry trial is hover-grace-browser.log. Combined deployment manifest SHA-256:
+3f7b07c11836119066394a4a89a8c80532c376a90a3a346cf477964425819130.

@@ -243,6 +243,29 @@ test('a pinned panel allows interaction and exactly a five pixel dismissal margi
   await page.mouse.move(box.x+box.width-8,box.y+box.height+6);await expect(panel).toHaveCount(0);
 });
 
+test('above and below bubbles keep at least two pixels of grace around the pointer',async({page})=>{
+  for(const above of [true,false]) {
+    const text=above?'\n\n\n\nvar borderSymbol:i32 = 42;\nprint(borderSymbol);':
+      'print(borderSymbol());\n'+'// Documentation for this function.\n'.repeat(10)+'fn borderSymbol():i32 { return 42; }';
+    await source(page,text);await ready(page,text);
+    await page.locator('#editor .cm-line').filter({hasText:above?'print(borderSymbol);':'print(borderSymbol());'}).scrollIntoViewIfNeeded();
+    await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+    const position=await point(page,'borderSymbol',above),panel=page.locator('.tw-hover-panel');
+    await page.mouse.move(position.x,position.y);await expect(panel).toHaveClass(/tw-hover-pinned/);
+    const box=await panel.boundingBox();
+    expect(box.y+box.height<=position.y).toBe(above);
+    expect(position.x-(box.x-5)).toBeGreaterThanOrEqual(2);
+    expect(box.x+box.width+5-position.x).toBeGreaterThanOrEqual(2);
+    expect(position.y-(box.y-5)).toBeGreaterThanOrEqual(2);
+    expect(box.y+box.height+5-position.y).toBeGreaterThanOrEqual(2);
+    for(const [x,y] of [[-2,-2],[0,-2],[2,-2],[2,0],[2,2],[0,2],[-2,2],[-2,0]]) {
+      await page.mouse.move(position.x+x,position.y+y);await expect(panel).toBeVisible();
+    }
+    expect(await panel.boundingBox()).toEqual(box);
+    await page.mouse.move(0,0);await expect(panel).toHaveCount(0);
+  }
+});
+
 test('another symbol inside the margin dims the border and replaces the pinned tooltip after continuous dwell',async({page},info)=>{
   const text='\n\n\n\nvar original:i32 = 1;\nvar target:i32 = 2;\nvar third:i32 = 3;\noriginal = target + third;';
   await source(page,text);await ready(page,text);

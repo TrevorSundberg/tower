@@ -4,6 +4,9 @@ import {DocumentQueries,languagePayload,hoverAt,hasHoverDetails} from './languag
 import {compilerSelection,onCompilerSelection} from './compiler-selection.mjs';
 
 const dwellTime=800,holdMargin=5;
+// Keep two pixels beyond the pointer even when mouse coordinates and tooltip
+// placement round differently on high-density displays.
+const anchorGap=holdMargin-2-1.5;
 const contains=(rect,point,margin=0)=>point.x>=rect.left-margin && point.x<=rect.right+margin &&
   point.y>=rect.top-margin && point.y<=rect.bottom+margin;
 
@@ -192,7 +195,7 @@ export function towerHover(service,configuration) {
           const dom=hover.dom=this.document.createElement('div');
           dom.className=`tw-hover-panel ${locked?'tw-hover-pinned':'tw-hover-preview'}`;
           dom.append(tooltipContent(entry,this.view.state.doc));
-          return {dom,getCoords:()=>({left:hover.anchor.x,right:hover.anchor.x,top:hover.anchor.y-12,bottom:hover.anchor.y+18})};
+          return {dom,overlap:true,getCoords:()=>({left:hover.anchor.x,right:hover.anchor.x,top:hover.anchor.y-anchorGap,bottom:hover.anchor.y+anchorGap})};
         }};
         this.view.dispatch({effects:setHover.of(description)});
         if(locked)return;
