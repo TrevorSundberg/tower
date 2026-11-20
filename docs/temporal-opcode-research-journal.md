@@ -16016,3 +16016,37 @@ the clean Pages worktree to upstream a4aa9fa, and are rebuilding the combined
 compiler before repackaging/publishing. This prevents overwriting newer language
 support with an older runtime. The previous 68-asset manifest is superseded by
 that upcoming integrated build, not yet published.
+
+#### Parallel compiler integration: dotted imports and release validation
+
+Rebuilt parser, LLVM/cross reactors and the native compiler/backend tests after
+integrating 0537084. Repackaged with
+`package-compiler-project.py --parser-build build/browser-wasi --llvm-build /home/trevo/.cache/tower/backend-wasi`,
+then built the playground with `TOWER_REQUIRE_BACKENDS=1`. Logs below are under
+`build/language-next/`; the existing release cache configuration is unchanged.
+
+- `parallel-dotted-native-tests.log`: native Tower backend API checks pass.
+- `parallel-dotted-format.log`: canonical Tower formatting check passes.
+- `parallel-dotted-node.log`: **328/328 Node/Wasm tests pass**.
+- `parallel-dotted-browser.log`: **31 browser cases pass**, one mobile full
+  successor-build case intentionally skipped. Includes compiler activation,
+  nested-worker cancellation, source-order failure, hover and project/dotted
+  import behavior in desktop/mobile profiles.
+- `parallel-dotted-generations.log`: successive compiler generations built with
+  two and four workers have identical bytes and pass edited semantic behavior,
+  import, hover, interpreter, LLVM reconstruction and native-object probes.
+  Parser/LLVM/cross sizes: 883026 / 51867270 / 63424536 bytes. SHA-256:
+  `c10b08b310b728f1b38b7c5818a0b2508b3049d75c4a52b68e05d178dc97f23a`,
+  `44dcce9247f8634b65fdce4f00e39ffd2aafcf0be44b4de9e367a1cf00b1cf37`,
+  `3b2d6a8c2d74a55ae0a1637f8f2935a1176e904a5da4cf1b07a799feb846db4c`.
+- `parallel-dotted-verify-local.log`: all 68 served asset hashes match, and
+  desktop/mobile execution, diagnostics, native downloads and project checks pass.
+  Prepared Pages files match manifest SHA-256
+  `47bdbc09d000de3af99eefe8c6a13b54e1c230500f77495a5a0c90a0cb0adcb3`.
+
+The later upstream 24f9aa8 contains only its dotted-import publication journal;
+integrate that history before publishing. No owned C/C++ implementation changed.
+The new async/thread/job completion section remains a proposal. Native CLI
+threads and parallel phases over a pinned shared compiler world are still open;
+these release checks validate isolated compiler-unit workers, not those future
+capabilities. Hosted verification and push results follow below.
