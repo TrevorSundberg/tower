@@ -22762,3 +22762,12 @@ module projects and compiler-project cancellation. The eight rebase-formatting
 partitions also finished successfully, including the two rescheduled fixtures.
 Logs: build/for-rebased-tests.log, for-rebased-format.log and
 for-deployment-local.log. No Foundation/Bedrock grammar or todo.txt change was made.
+
+Final for bootstrap: archive 9bbb2eb8fa039442303d231fd35b5b4ac416df21f19c80f0d5f9dbf6bb01f395
+contains the combined compiler built from 216219a and complete resources. Its
+relocated installation passes all six for/operators/null-operators interpreter
+checks. A fresh default successor build in /cache/for-published-clean passes all
+55 targets with no private override (build/for-published-clean.log and
+for-published-relocated.log). The final native/parser/LLVM artifacts were rebuilt
+after formatting, and the complete deployment assets were repackaged. The native
+CTest aggregate is still running at this checkpoint; no complete pass is claimed.
