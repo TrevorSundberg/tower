@@ -16453,3 +16453,56 @@ Final validation: node --test playground/tests/c-source.test.mjs playground/test
 Final synchronization brought in main through be490d5 (pinned compiler world views), preserving both sides of the append-only journal conflict. The initial no-op gh-pages push was rejected because a newer publication arrived; fetched c4ae62c and restored its exact 68 assets, with manifest SHA-256 64f02bc254edfbc31cdc164e208992c2fa30bf4bd0226ba8b5f4c04d6c8d0e26. No older assets were pushed. The no-op publication push then succeeded (Everything up-to-date). All four C browser cases pass against that publication in 7.1 seconds (build/comment-increment-browser-current.log), and the exact live increment reproduction again finds the note at line 372. The first broad hosted verification of this newer publication passed every asset hash but hit a five-second download assertion while C optimization was still pending (build/comment-increment-live-current.log). Updated the deployment verifier to await completed commented/stripped C with the existing 60-second compilation allowance, rather than accepting a transient cleared output as completion. No deployed runtime asset changes are needed for this test-harness correction.
 
 The final hosted verification passes all 68 asset hashes and both desktop/mobile profiles against c4ae62c, including C optimization/comment stripping and all native downloads (build/comment-increment-live-final.log and build/comment-increment-live-final-report.json). The 12 focused Node cases and four browser cases also pass after the main rebase; browser cases were then repeated against the newer published compiler as recorded above. The live C note remains at line 372, with all eight example comments retained when preservation is enabled. There was no reproduced compiler comment-loss defect to fix.
+
+### Pinned world publication follow-up
+
+Final rebase integrated upstream's hover release notes at 4bac421, preserving both
+journal entries. Compiler/browser implementation bytes are unchanged by that
+rebase; all 17 focused entity/semantic checks pass again (world-post-sync.log).
+Source reached main be490d5 and Pages c4ae62c deployed successfully. The first
+hosted verifier confirms all 68 asset hashes, then exposes a verifier race after
+turning on C optimization: its `output != rawC` condition accepts the temporarily
+cleared pane, and the following default five-second download assertion expires
+while the hosted worker still reports Optimizing C. No compiler diagnostic or
+execution mismatch is reported. Changed the verifier and existing C browser
+adapter to require a complete new C main function as well as changed/comment-free
+content; empty output cannot satisfy those checks. The normal 60-second compiler
+wait now covers this transition. This changes validation adapters only, not
+published application/compiler assets. Original evidence: world-hosted.log and
+world-hosted-first-failure.json. The corrected hosted result follows below.
+
+Concrete next-world audit: host-entities.tower still obtains its store through
+zero-argument compiler_entity_store; tower.cpp owns that singleton, native
+finalizer callback registry and allocation diagnostics. core-nodes.cpp and
+compiler-syntax.cpp still cache component type entities, and bedrock.cpp caches
+grammar documents. ModuleEnvironment already owns inputs, aliases, source indexes,
+diagnostics, module cache and compilation session. Move the remaining mutable
+ownership into an explicit Tower compiler-world context, with per-world type
+identity and service revision/cancellation ownership; connect existing native
+interfaces mechanically as replacements land. Do not use a mutable global
+"current world" to claim concurrency. Worker outputs must drain before releasing
+their pinned inputs, with deterministic publication and stale-result rejection.
+
+The stronger C waits pass both desktop/mobile tests (world-c-waits-browser.log,
+2/2, 6.6 seconds). The next hosted run passes the full desktop and mobile compiler
+flows, including C downloads, native outputs and completion, then reaches a
+second verifier-only deadline: the fresh mobile target-detection context still
+shows Loading Tower/Tower is parsing when its default five-second initial-page
+wait expires. Give those new-context startup checks the same 60-second budget as
+the verifier's first cold page; keep ordinary interactive checks unchanged.
+Evidence: world-hosted-final.log and world-hosted-detection-failure.json. The
+complete rerun is recorded separately below; neither failure is counted as a
+passing full hosted verifier.
+
+The complete corrected hosted verifier now exits zero against Pages
+c4ae62c2a1e4ecc54033c2843bf0591477b0b059: all 68 exact asset hashes and desktop/mobile
+execution agreement, C optimization/comment controls, native downloads, imports,
+grammar edits, persistence, completion, workbench cancellation and cold-start
+target defaults pass. Command: `node playground/scripts/verify-deployment.mjs
+https://trevorsundberg.github.io/tower/`; evidence world-hosted-verified.log and
+world-hosted-report.json. Manifest remains
+64f02bc254edfbc31cdc164e208992c2fa30bf4bd0226ba8b5f4c04d6c8d0e26. The published
+Tower implementation has not changed since the native/339-case/generation gates.
+Later verifier corrections are test adapters only. Upstream through 91bed1a adds
+module-binding plans and C-comment tests, including an independent fix for the
+same cleared-output wait; retain those additions during final synchronization.

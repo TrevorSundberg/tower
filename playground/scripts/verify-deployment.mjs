@@ -74,14 +74,22 @@ try {
     await page.screenshot({path:new URL(name+'-c-source.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
     await page.locator('#build-targets summary').click();
     await page.locator('#optimize').check();
-    await expect.poll(()=>outputText(page,'c-disassembly'),{timeout:60000}).not.toBe(rawC);
+    // Clearing the old pane also differs from rawC. Wait for a complete new
+    // result, including cold hosted worker/compiler loading, before downloading.
+    await expect.poll(async()=>{
+      const source=await outputText(page,'c-disassembly');
+      return source.includes('int main(void)') && source!==rawC;
+    },{timeout:60000}).toBe(true);
     await expect.poll(()=>outputText(page,'c-disassembly'),{timeout:60000}).toContain('deployment C comment');
     await expect(page.locator('#c-download')).toHaveAttribute('href',/^blob:/,{timeout:60000});
     const optimizedC=await page.locator('#c-download').evaluate(link=>fetch(link.href).then(response=>response.text()));
     assert.equal(optimizedC,await outputText(page,'c-disassembly'));
     await writeFile(new URL(name+'-c-optimized.c',output),optimizedC);
     await page.locator('#preserve-comments').uncheck();
-    await expect.poll(()=>outputText(page,'c-disassembly')).not.toContain('deployment C comment');
+    await expect.poll(async()=>{
+      const source=await outputText(page,'c-disassembly');
+      return source.includes('int main(void)') && !source.includes('deployment C comment');
+    },{timeout:60000}).toBe(true);
     await expect(page.locator('#c-download')).toHaveAttribute('href',/^blob:/,{timeout:60000});
     assert.ok(!(await outputText(page,'c-disassembly')).includes('deployment C comment'));
     await expect.poll(()=>outputText(page,'core-instructions')).not.toContain('deployment C comment');
@@ -329,7 +337,9 @@ try {
     const detectionPage=await detectionContext.newPage();
     detectionPage.on('pageerror',error=>errors.push(error.message));
     await detectionPage.goto(base.href);
-    await expect(detectionPage.locator('#status')).toContainText('Complete');
+    // This is a fresh browser context with a cold compiler download, like the
+    // initial page above; it needs the same startup budget.
+    await expect(detectionPage.locator('#status')).toContainText('Complete',{timeout:60000});
     await detectionPage.locator('#build-targets summary').click();
     const detectedKey=name==='mobile'?'wasm':'windows';
     await expect(detectionPage.locator('#target-options input:checked')).toHaveCount(detectedKey==='wasm'?3:4);
@@ -352,7 +362,7 @@ try {
     try {
       const page = await context.newPage();
       await page.goto(base.href);
-      await expect(page.locator('#status')).toContainText('Complete');
+      await expect(page.locator('#status')).toContainText('Complete',{timeout:60000});
       const key = process.arch === 'arm64' ? 'linux-arm' : 'linux';
       await expect(page.locator('#target-options input:checked')).toHaveCount(4);
       await expect(page.locator('#target-wasm')).toBeChecked();

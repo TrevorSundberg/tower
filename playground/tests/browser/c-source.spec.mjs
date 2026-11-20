@@ -32,11 +32,17 @@ test('C is optional, ordered, highlighted, downloadable and obeys shared options
   expect(raw).toContain('int main(void)');
   await page.locator('#build-targets summary').click();
   await page.locator('#optimize').check();
-  await expect.poll(()=>outputText(page,'c-disassembly')).not.toBe(raw);
+  await expect.poll(async()=>{
+    const source=await outputText(page,'c-disassembly');
+    return source.includes('int main(void)') && source!==raw;
+  },{timeout:60000}).toBe(true);
   await expect(page.locator('#execution-status')).toContainText('backends match');
   await expect.poll(()=>outputText(page,'c-disassembly')).toContain('a carried comment');
   await page.locator('#preserve-comments').uncheck();
-  await expect.poll(()=>outputText(page,'c-disassembly')).not.toContain('a carried comment');
+  await expect.poll(async()=>{
+    const source=await outputText(page,'c-disassembly');
+    return source.includes('int main(void)') && !source.includes('a carried comment');
+  },{timeout:60000}).toBe(true);
   await expect.poll(()=>outputText(page,'core-instructions')).not.toContain('a carried comment');
   await expect.poll(()=>outputText(page,'fast-disassembly')).not.toContain('a carried comment');
   await expect(page.locator('#c-download')).toHaveAttribute('href',/^blob:/);
