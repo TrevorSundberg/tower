@@ -13,7 +13,7 @@ await mkdir(dist, { recursive: true });
 await build({ absWorkingDir: root, entryPoints: ['src/app.mjs', 'src/worker.mjs', 'src/execution-worker.mjs', 'src/target-worker.mjs', 'src/language-worker.mjs', 'src/compiler-build-worker.mjs'],
   outdir: dist, bundle: true, format: 'esm', target: 'es2022', minify: true,
   sourcemap: true, outExtension: { '.js': '.js' }, legalComments: 'linked' });
-for (const file of ['index.html', 'style.css']) await copyFile(path.join(root, file), path.join(dist, file));
+for (const file of ['index.html', 'style.css', 'CNAME']) await copyFile(path.join(root, file), path.join(dist, file));
 await copyFile(path.join(root, '../build/browser-wasi/tower.wasm'), path.join(dist, 'tower.wasm'));
 await copyFile(path.join(root, '../scaffolding/examples/foreach.tower'), path.join(dist, 'foreach.tower'));
 const builtinModules = ['bedrock', 'foundation', 'tower', ...(await readdir(path.join(root, '../scaffolding/library')))

@@ -35,6 +35,11 @@ the implementations of grammar installation and foundation operations.
 
 Live playground: **https://trevorsundberg.github.io/tower/**.
 
+The custom-domain configuration for **https://tower-lang.org/** is prepared.
+Its DNS cutover is pending Cloudflare DNS-edit access; the current live URL above
+remains active until that cutover is completed. See the deployment instructions
+below before publishing a build containing `CNAME`.
+
 The optional **C source** target emits downloadable, syntax-highlighted C after
 LLVM optimized, followed by Bytecode disassembly. Targets also contains shared
 O0/O2 optimization and comment-preservation controls. See
@@ -799,10 +804,49 @@ Bundling clears generated `dist/` contents so stale optional backends cannot
 silently survive a rebuild. A present cross compiler requires all target packs.
 
 GitHub Pages serves the contents of `dist/` from the repository's `gh-pages`
-branch. Publish the whole directory, including `.nojekyll` and the manifest,
-after these checks pass. Once Pages finishes deploying, verify the exact hosted
-build with `node scripts/verify-deployment.mjs https://trevorsundberg.github.io/tower/`.
-The build command validates deployment locally; it does not push or publish.
+branch. The build copies `playground/CNAME` into `dist/CNAME` and includes its
+checksum in the manifest, preserving the custom domain on future publications.
+Do not publish the first build containing this file until Cloudflare DNS access
+is available to complete the cutover below; publishing it changes Pages routing.
+
+For the initial `tower-lang.org` cutover:
+
+1. Obtain a Cloudflare API token scoped to `tower-lang.org` with **Zone:DNS:Edit**
+   and **Zone:Zone:Read**. Keep credentials outside the repository.
+2. Read the zone's existing records and preserve unrelated records, including
+   mail and verification records. Set the repository's Pages custom domain with
+   `gh api --method PUT repos/TrevorSundberg/tower/pages -f cname=tower-lang.org`.
+3. Configure these Cloudflare records as **DNS only** (`proxied: false`):
+
+   | Type | Name | Value |
+   | --- | --- | --- |
+   | A | @ | 185.199.108.153 |
+   | A | @ | 185.199.109.153 |
+   | A | @ | 185.199.110.153 |
+   | A | @ | 185.199.111.153 |
+   | AAAA | @ | 2606:50c0:8000::153 |
+   | AAAA | @ | 2606:50c0:8001::153 |
+   | AAAA | @ | 2606:50c0:8002::153 |
+   | AAAA | @ | 2606:50c0:8003::153 |
+   | CNAME | www | trevorsundberg.github.io |
+
+4. Fetch the latest `gh-pages` commit before publishing, preserving any CNAME
+   commit GitHub created. Publish the complete tested `dist/` directory, including
+   `CNAME`, `.nojekyll` and the manifest, with a normal fast-forward push.
+5. Wait for GitHub's domain certificate, then enforce HTTPS with
+   `gh api --method PUT repos/TrevorSundberg/tower/pages -F https_enforced=true`.
+   Check the resulting Pages state with `gh api repos/TrevorSundberg/tower/pages`.
+6. Verify the exact hosted build with
+   `node scripts/verify-deployment.mjs https://tower-lang.org/`, and verify that
+   HTTP, `https://www.tower-lang.org/` and the old GitHub Pages URL redirect to
+   the HTTPS apex. Update the live URL and remove the pending-cutover notice above.
+
+The DNS values and apex/www behavior follow
+[GitHub's custom-domain documentation](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site).
+[Cloudflare DNS-only records](https://developers.cloudflare.com/dns/proxy-status/)
+send visitors directly to GitHub Pages, which continues to host the static site
+and manage its certificate. DNS propagation and certificate issuance may delay
+the final HTTPS checks. The build command does not push or publish.
 
 The WASM suite runs the existing C++ runtime/parser/syntax tests in the module,
 then checks the ABI, revision-aware highlights, strings/comments, Unicode spans,

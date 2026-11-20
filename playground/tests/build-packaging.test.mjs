@@ -13,7 +13,7 @@ test('deployment bundles remove stale backends, require complete packs and check
   const fixture = await mkdtemp(path.join(tmpdir(), 'tower-package-'));
   try {
     for (const name of ['playground/scripts/build.mjs', 'playground/src', 'playground/index.html',
-      'playground/style.css', 'playground/licenses', 'scaffolding/examples', 'scaffolding/bedrock.tower',
+      'playground/style.css', 'playground/CNAME', 'playground/licenses', 'scaffolding/examples', 'scaffolding/bedrock.tower',
       'scaffolding/foundation.tower', 'scaffolding/tower.tower', 'scaffolding/library', 'scaffolding/backend/foreign-grammar.tower', 'third_party/llvm-project/llvm/LICENSE.TXT', 'third_party/llvm-project/libcxx/LICENSE.TXT']) {
       await mkdir(path.dirname(path.join(fixture, name)), {recursive:true});
       await cp(path.join(repository, name), path.join(fixture, name), {recursive:true});
@@ -37,6 +37,7 @@ test('deployment bundles remove stale backends, require complete packs and check
     let result = build(true);
     assert.equal(result.status, 0, result.stderr);
     const dist = path.join(fixture, 'playground/dist');
+    assert.equal(await readFile(path.join(dist, 'CNAME'), 'utf8'), 'tower-lang.org\n');
     assert.equal(await readFile(path.join(dist,'compiler/support-tower-0.a.gz'),'utf8'), 'fixture');
     await assert.rejects(readFile(path.join(dist,'compiler/obsolete-support.o.gz')), {code:'ENOENT'});
     const manifest = JSON.parse(await readFile(path.join(dist, 'deployment-manifest.json')));

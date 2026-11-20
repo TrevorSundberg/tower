@@ -16517,3 +16517,52 @@ all four C browser cases and the complete merged local deployment verifier pass
 The same 68 assets remain published at c4ae62c; no rebuild or asset replacement is
 needed for these validation/docs changes. todo.txt retains Git blob
 96a9e58964d7f01e4a97819f259448db81ef5e40, and pre-existing stashes are untouched.
+
+## 2026-11-19 - Prepare tower-lang.org on GitHub Pages; DNS access blocker
+
+The requested deployment remains GitHub static Pages, with Cloudflare providing
+DNS for `tower-lang.org`. Began on main with `git pull --rebase`, which
+fast-forwarded 91bed1a to 5dd7ddb without conflicts or local edits. `gh auth status`
+confirms the TrevorSundberg login; `gh api repos/TrevorSundberg/tower/pages`
+reports the existing built legacy deployment from `gh-pages` at `/`, no custom
+domain, and HTTPS enforced at https://trevorsundberg.github.io/tower/.
+
+On Windows PowerShell, `Resolve-DnsName tower-lang.org -Type NS` returns
+`kinsley.ns.cloudflare.com` and `yoxall.ns.cloudflare.com`. Apex A and www CNAME
+queries return no such DNS name. These public queries do not constitute a full
+zone-record audit. Read the current
+[GitHub custom-domain instructions](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site)
+and [Cloudflare proxy-status documentation](https://developers.cloudflare.com/dns/proxy-status/).
+The chosen configuration is GitHub's four apex A and four AAAA records, plus
+`www` CNAME to `trevorsundberg.github.io`, all DNS-only. GitHub continues to host
+the application and issue its certificate; no Cloudflare Pages/Worker is needed.
+
+Credential discovery found no Cloudflare plugin, API-token environment setting
+(process/user/machine), or Cloudflare entry in the Codex configuration. The
+existing Wrangler OAuth configuration has `zone:read`, Worker/Pages privileges,
+and an expired access token with a refresh token, but no DNS-edit scope. Secrets
+were not printed or copied into the repository. As an additional tooling trial,
+`npx --yes wrangler whoami` fetched Wrangler 4.165.0 but exited before authenticating:
+this host's Node 21.7.3 is below its minimum 22.12.0. A newer Node would not grant
+the missing DNS permissions. Cloudflare access remains the actual cutover blocker;
+no DNS writes or GitHub domain-setting writes have been attempted.
+
+Prepared `playground/CNAME` with `tower-lang.org` and made the build copy it into
+dist before manifest hashing. Updated the existing packaging fixture to include
+and verify the file; `node --test playground/tests/build-packaging.test.mjs`
+passes, including its full/degraded builds, required backend/support checks,
+stale-asset removal and manifest checks. Added the concrete DNS records, `gh`
+configuration commands, HTTPS/redirect checks and pending-cutover status to the
+playground README. Source URL references in historical journal entries remain
+historical. `git diff --check` passes and `todo.txt` retains blob
+96a9e58964d7f01e4a97819f259448db81ef5e40.
+
+Do not publish the prepared CNAME before DNS access is available: changing Pages
+routing now would redirect the working default URL to an unresolved domain.
+The current deployment and its 68-asset manifest are retained. Completing this
+request requires a Cloudflare token scoped to this zone with Zone:DNS:Edit and
+Zone:Zone:Read, inspecting existing zone records, setting GitHub's custom domain,
+writing the DNS records, publishing the CNAME/manifest with a normal fast-forward
+push, and verifying the certificate, HTTPS enforcement, apex/www/default-URL
+redirects and the full hosted verifier at the new origin. Those steps remain
+pending; preparation is not a completed domain migration.
