@@ -16997,3 +16997,24 @@ Upstream 5989281 records completed custom-domain HTTPS provisioning and changes
 only this journal. Read-only checks confirm an approved certificate, enforced
 HTTPS and HTTP 200 from https://tower-lang.org/ with normal certificate validation.
 Preserve that configuration while publishing this ownership milestone.
+
+Publication complete: preserved both upstream journal additions through 91c8a94
+during rebase; the only conflict was append-only journal ordering. Confirmed the
+entire tested tree outside this journal was unchanged. Implementation is main
+bc4b5d7, with integrated validation in 984b5f3. Published gh-pages
+63bb681314d2eac9acf3bc2a38530cff073d7213 after advancing the deployment worktree
+and checking every copied asset hash. CNAME remains tower-lang.org. GitHub Pages
+run 44671022329 completed successfully. No force push or native implementation
+was added.
+
+`node playground/scripts/verify-deployment.mjs https://tower-lang.org/` exits zero:
+all 69 hosted assets match the tested distribution and both desktop/mobile
+profiles pass backend agreement, forward module bindings, editable grammar,
+persistence, native builds/downloads, completion, output highlighting,
+compiler-project behavior and target defaults. Evidence:
+build/language-next/ownership-hosted.log, ownership-hosted-report.json and
+ownership-pages-workflow.log. Corrected the bootstrap document's old opening
+summary to acknowledge the already-Tower LLVM backend algorithms; remaining
+native transports and complete bootstrap retirement are still open. Existing
+stashes are preserved and todo.txt remains Git blob
+96a9e58964d7f01e4a97819f259448db81ef5e40.

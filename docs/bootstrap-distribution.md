@@ -1,10 +1,11 @@
 # Compiler hosts and bootstrap distribution
 
 The compiler is still a **hybrid development bootstrap**. No portable compiler
-release is checked in. Its semantic compiler is Tower code, but the frontend
-lifecycle, LLVM integration, runtime and host adapters still need integration
-from their respective migration owners. The tooling below keeps those release
-gates explicit; it does not turn a module comparison into compiler self-hosting.
+release is checked in. Its semantic compiler and LLVM backend algorithms are
+Tower code, while frontend/session lifecycle, native transports, runtime startup
+and bootstrap distribution still need migration and integration. The tooling
+below keeps those release gates explicit; a module comparison does not establish
+complete compiler self-hosting.
 
 The 2026-11-19 retirement audit finds approximately 6,600 lines in 56 production
 C/C++ source/header files under scaffolding, another 4,100 test lines and 4,000
