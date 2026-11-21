@@ -74,15 +74,15 @@ fn oracle_grammar_unresolved(value: OracleGrammar*, text: u8*): void {
     utility_check(vector_push(&value.missing, entry), "LR oracle unresolved index");
 }
 fn oracle_grammar_dispose(value: OracleGrammar*): void {
-    for (var index: usize = 0; index < value.names.length; ++index) {
-        var entry = value.names.data[index]; vector_dispose(&entry.text); free(entry);
+    foreach (var entry in &value.names) {
+        vector_dispose(&entry.text); free(entry);
     }
-    for (var index: usize = 0; index < value.rules.length; ++index) { free(value.rules.data[index]); }
-    for (var index: usize = 0; index < value.symbols.length; ++index) {
-        var entry = value.symbols.data[index]; vector_dispose(&entry.capture); free(entry);
+    foreach (var entry in &value.rules) { free(entry); }
+    foreach (var entry in &value.symbols) {
+        vector_dispose(&entry.capture); free(entry);
     }
-    for (var index: usize = 0; index < value.missing.length; ++index) {
-        var entry = value.missing.data[index]; vector_dispose(&entry.name); free(entry);
+    foreach (var entry in &value.missing) {
+        vector_dispose(&entry.name); free(entry);
     }
     vector_dispose(&value.names); vector_dispose(&value.rules);
     vector_dispose(&value.symbols); vector_dispose(&value.missing);
@@ -125,8 +125,7 @@ fn oracle_grammar_init(value: OracleGrammar*, root: void*, kinds: FrontendKinds*
             }
             var text = bits(ParserStringData*, oracle_grammar_payload(node, kinds.string));
             if text is not null {
-                for (var position: usize = 0; position < text.ids.length; ++position) {
-                    var id = text.ids.data[position];
+                foreach (var id in &text.ids) {
                     oracle_grammar_symbol(value, ~convert(usize, 0), id, id, node, "");
                 }
             }

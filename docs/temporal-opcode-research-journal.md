@@ -25570,3 +25570,24 @@ object (cmp0). Updated both focused CMake caches to the documented new bootstrap
 cleared temporary project includes, and repeated the relevant checks. Logs:
 agent-2-lr-inference-*, agent-2-lr-actual-successor.log. This remains a pinned
 Linux development bootstrap; no portable compiler release is claimed.
+
+Final grammar source integration (2026-11-20): preserved Agent3 reader/validation
+retirement0f63985 and upstream borrowed iteration2452c10. The intermediate empty
+25765446 successor after0f63985 built successfully, but final checks below use
+2452c10's documented bootstrapbcc76755fbf9cb0959828e2e35a6868974cd740328d58bc3366bf247f524dc51.
+Read the new borrowed-iteration contract and converted five stable traversals in
+the oracle to foreach: four pointer-vector payload disposals (owners unchanged
+until after traversal) and immutable string IDs. Coordinated/indexed loops stay
+counted. No production LR algorithm changed.
+
+An empty agent-2-lr-foreach-2452c10 cache completed build-native.sh with
+TOWER_BOOTSTRAP_COMPILER unset, Clang19/LLVM19 and four jobs. Native focused
+frontend/driver/storage/format/execution/request passed6/6 in17.45s; backend API
+passed. Both focused native/WASI caches use the documented new pin with external
+proof includes cleared: grammar entries PASS, parser aggregates LINK PASS. The
+actual new successor compiled the current grammar fixture to a native object
+byte-identical to the bootstrap object (cmp0). Logs: agent-2-lr-foreach-successor.log
+and agent-2-lr-foreach-focused.log. This remains a Linux development bootstrap.
+The larger analysis oracle drafts remain outside Git. Agent1 explicitly accepts
+combined deployment of this grammar batch after the source slot; publication
+and hosted verification are pending that owner, not claimed here.
