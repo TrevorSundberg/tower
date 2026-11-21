@@ -28,8 +28,9 @@ the operator fixtures, and a clean successor build before updating this pin.
 Never migrate compiler source to unsupported syntax before the replacement
 bootstrap is committed and the default clean build path has passed.
 
-The current pin supports expression operators, scoped `for` loops and identifier
-module paths, leading parent dots, and exact quoted filenames. Build and validate
+The current pin supports expression operators, scoped `for`/`defer`, exact generic
+call-argument inference, identifier module paths, leading parent dots, and exact
+quoted filenames. Build and validate
 the implementation with the preceding pin before migrating compiler sources.
 The manifest records the exact source revision and input hashes, with an
 accompanying `source-changes.patch` when the build includes uncommitted sources.

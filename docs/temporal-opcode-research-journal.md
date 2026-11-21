@@ -25108,3 +25108,14 @@ orchestration, preserving both journal histories. A fresh no-override native bui
 at /cache/inference-rebased passes all 55 steps. New code remains Tower; the
 upstream native boundary changes are preserved rather than attributed to this
 feature. Current implementation/fixture formatting passes tree/idempotence checks.
+
+Packaged the validated inference successor from 3ee1868 as development bootstrap
+257654461fa38f9febb0a56492ba3999713bab5f458dfbb5f4bf6d310232bb3a.
+The package includes all resources, per-file hashes, dependency observations and
+the exact source revision; no source patch is needed. A relocated hash-addressed
+installation executes inferred collections, literal extremes and reconstructed
+Foundation successfully. Both registry-isolation interpreter runs print zero.
+A completely empty /cache/inference-pinned-clean build with
+TOWER_BOOTSTRAP_COMPILER unset succeeds through all 55 steps using the new default
+pin. This remains the documented hybrid Linux x64 development bootstrap, not a
+portable pure-Tower release. Publish this pin before migrating production calls.
