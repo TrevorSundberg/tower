@@ -37219,6 +37219,8 @@ optimized C passes GCC C89 too. Logs include build/narrow-{native,tests,all,
 oracle,backend-build,browser-build}.log. Browser, fresh bootstrap and publication
 validation are pending; this entry is not a publication receipt.
 
+### 2026-11-21: import-driver publication receipt after concurrent source merge
+
 Publication receipt: 81d4600 and 717b25b are pushed. Metadata-only Pages commit
 bb3a8b6a27dfad9cf885a6d02e4e211973a833bc directly follows a317282 and changes
 only deployment-manifest.json. Pages run 44957176973 succeeds. The hosted
@@ -37233,3 +37235,14 @@ project.json and support archives. Its dependency closure, export/wrap/import
 metadata and deterministic archive selection cannot simply be discarded. The
 new Tower Wasm archive/object readers may replace some current llvm-nm/text
 parsing; evaluate that reuse before writing another parser or packaging layer.
+
+The receipt pull subsequently included 6c03edd's narrow-integer implementation.
+Do not relabel the already published tooling snapshot as that runtime release.
+Repeat the documented clean native build from a fresh clone at
+/cache/import_driver_narrow_checkout with /cache/import_driver_narrow_native,
+the same public 1a5b588 pin and Python unavailable. All 54 native and three test
+build steps pass; successor SHA-256 is
+519707062260ea381e1f1b2b63ac609cd5d9cbd7af5483e19c7ffcf03487cdf4.
+The complete driver suite passes in 9.99 seconds and module-path checks in 3.08
+seconds. The verified metadata deployment remains bb3a8b6; its publication lock
+has been released. The narrow-integer runtime publication belongs to its lane.
