@@ -22881,6 +22881,7 @@ CTest records are in agent-1-native-current/Testing/Temporary/LastTest.log.
 Sanitizers and broad formatting sweeps remain skipped as requested. Browser
 reactors, publication and hosted verification are still pending coordination.
 
+
 ### 2026-11-20 - Agent 2: shared Tower execution requests and native core harness retirement
 
 Scope: extracted the existing CLI execution owner into `compiler/execution_session.tower`
@@ -22966,3 +22967,66 @@ fetch process tree because it pulled archived binary history; a depth-1 fetch of
 the latest gh-pages succeeded. Source publication is prepared under agent 2's
 exclusive lock. The coordinator will perform the combined deployment after this
 source push; hosted success remains unclaimed here.
+
+
+### 2026-11-20 - World-owned installed syntax baselines (agent 1)
+
+Revision milestone d78e5d4 is pushed after agent 3's 27a50c8. The final rebase
+conflicted only at the journal append boundary; both entries were preserved.
+Repeated default-pin build and anchored frontend/driver checks passed 2/2 again
+(15.40 s). Before the test-only rebase, the actual successor compiled
+agent-1-native-current/tower_compiler_parser_nodes.tower for both
+x86_64-pc-linux-gnu and wasm32-unknown-unknown; cmp found byte-identical objects
+against the published bootstrap for each target. No portable compiler release or
+within-unit parallelism is inferred. Coordinator explicitly accepted combined
+browser reactor/deployment/hosted verification ownership; that step is pending.
+
+The next bounded slice removes native bootstrap, installed_bedrock, native_bedrock
+and installed-source string registries from syntax.cpp. syntax_baselines.tower
+owns seed, installed Bedrock and installed Foundation revisions in the explicit
+CompilerGrammarCache. Existing native entry points select the host world, while
+the Tower API takes a world explicitly and tests use independent worlds. Baseline
+publication first prepares copied source text, verifies that the document and
+indexed entities belong to the selected world, retains the complete candidate,
+then replaces the old entry. Publishing Bedrock invalidates future Foundation
+selection; existing retained revisions remain readable. World clear rejects
+pinned ECS views, drains this owner along with its other grammar caches, and
+world disposal rejects undrained owners or live retained source entities.
+
+This also removes a transient limitation of d78e5d4: native static seed setup
+could retain a null revision after its first allocation failure. World seed
+revision creation now remains retryable, with explicit tests for every allocation
+in the new ownership path. No fallback seed or new native implementation exists.
+Native SyntaxSession/table/template orchestration and presentation containers
+still remain; this slice does not claim the entire syntax adapter is retired.
+
+Tower tests in frontend_baselines.tower cover separate-world seed identity,
+foreign-world publication rejection, exact length-delimited source matching,
+Foundation invalidation with a surviving old pin, publication rollback for each
+allocation, pinned-view rejection, allocation-free selection of an existing
+revision, world-reset lifetime and disposal, and exhaustive seed-revision failure
+followed by successful retry. Initial compilation exposed missing direct imports
+for bytes_append and entity_retain; added syntax_reader/syntax_nodes declarations
+instead of relying on transitive name visibility. Incremental current-pin native
+and focused tests build; anchored frontend/driver CTests pass 2/2 (16.02 s), and
+the new compiler passes module_paths.py. Logs:
+C:/Sandbox/build/codex-agents/agent-1-baselines-{build,module-paths}.log.
+A fresh clean successor after the final source pull and shared browser publication
+remain the next required validation steps. Sanitizers/broad formatter remain skipped.
+
+
+Baseline publication validation: rebased onto agent 2's 726767d, preserving all
+journal additions; no implementation conflict. A new empty
+/home/trevo/.cache/tower/agent-1-baselines-clean completed the documented native
+build with TOWER_BOOTSTRAP_COMPILER unset and the published 9bbb development pin.
+Enabled TOWER_EXECUTION_TESTS/TOWER_BACKEND_TESTS/TOWER_DRIVER_TESTS and built the
+three focused test executables. Anchored execution/frontend/driver CTests pass
+3/3 (16.53 s; frontend 0.04 s, execution 0.31 s). This integrated check includes
+agent 2's source ownership/bytecode/graph-fast agreement tests. The clean successor
+passes module_paths.py and compiles tower_compiler_parser_nodes.tower to an x86_64
+object byte-identical to its bootstrap-produced object. Logs are
+agent-1-baselines-clean-{build,tests-build,module-paths}.log in the coordination
+directory, plus the clean cache's CTest LastTest.log. Updated the native header's
+stale descriptions to name the world-owned Tower-built seed. Source publication
+is under agent 1's lock; coordinator owns the combined browser deployment after
+handoff. No hosted success is claimed at this checkpoint.

@@ -7,7 +7,7 @@
 #include <memory>
 
 struct SyntaxSession;
-// Bedrock starts from the immutable native grammar, then applies declarations
+// Bedrock starts from the world's immutable Tower-built seed, then applies declarations
 // incrementally like every file. Existing sessions retain their own baselines.
 extern "C" TowerNode* syntax_native_bedrock(); // read-only borrowed document of generated shared nodes
 std::string syntax_set_bedrock(const char* source);
@@ -16,7 +16,7 @@ TowerNode* syntax_document(SyntaxSession* session); // borrowed declaration docu
 TowerText syntax_format(SyntaxSession* session);
 bool syntax_can_format(SyntaxSession* session);
 inline constexpr size_t SYNTAX_MAX_CACHED_GRAMMARS = 64;
-// Load foundation with the installed bedrock reader (native seed for legacy
+// Load foundation with the installed bedrock reader (world seed for legacy
 // callers that have not installed bedrock). Same source is idempotent; failures
 // are atomic.
 // Existing sessions keep their original baseline even if this is called again.
@@ -25,7 +25,7 @@ std::string syntax_set_bootstrap(const char* source);
 // its previous foundation definitions.
 SyntaxSession* syntax_create_foundation(const char* source);
 
-// Native bootstrap for Tower's in-source `parse` declarations. Owns a copy of
+// Incremental reader for Tower's in-source `parse` declarations. Owns a copy of
 // the source and a grammar revision. Declarations activate after their semicolon.
 struct FrontendModule;
 extern "C" SyntaxSession* syntax_create(const char* source, FrontendModule* module = nullptr);

@@ -62,11 +62,17 @@ struct FrontendRevision {
   struct { unsigned char* data; size_t length, capacity; } names;
   struct { TowerNode** data; size_t length, capacity; } alternatives, tokens;
 };
+enum class SyntaxBaselineMode : uint32_t { Foundation, Bedrock, Seed };
+struct CompilerWorld;
 struct FrontendCache {
   struct { FrontendRevision** data; size_t length, capacity; } entries;
   size_t builds, hits;
 };
 extern "C" {
+CompilerWorld* compiler_host_world();
+const FrontendRevision* syntax_world_revision(CompilerWorld*, SyntaxBaselineMode);
+bool syntax_world_matches(CompilerWorld*, const char*, size_t, bool);
+bool syntax_world_publish(CompilerWorld*, const char*, size_t, TowerNode*, const FrontendRevision*, bool);
 void frontend_revision_release(const FrontendRevision*);
 const FrontendRevision* frontend_revision_retain(const FrontendRevision*);
 const FrontendRevision* syntax_revision_create(const SyntaxRuleView*, size_t, TowerNode* const*, size_t);

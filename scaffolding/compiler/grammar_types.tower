@@ -15,6 +15,7 @@ struct FrontendKinds {
 struct CompilerGrammarCache {
     bedrock: void*;
     patterns: void*;
+    syntax: void*; // SyntaxBaselines, owned/reset by the world's coordinator
 }
 
 struct GrammarBuilder {

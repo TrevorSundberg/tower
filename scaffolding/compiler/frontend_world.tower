@@ -7,6 +7,7 @@ import frontend_modules;
 import frontend_pattern;
 import lr_tree;
 import syntax_types;
+import syntax_baselines;
 
 extern fn compiler_host_world(): void*;
 
@@ -85,6 +86,7 @@ export fn frontend_world_clear(world: void*): bool {
         return false;
     }
     var cache = compiler_world_grammar(world);
+    syntax_baselines_clear(world);
     frontend_pattern_destroy(bits(FrontendPatternCompiler*, cache.patterns));
     cache.patterns = null;
     var present = cache.bedrock != null;

@@ -39,21 +39,6 @@ using Revision = std::shared_ptr<const FrontendRevision>;
 using PendingRules = std::unique_ptr<SyntaxPendingRevision, decltype(&syntax_pending_destroy)>;
 SyntaxNode& semantic(const TowerNodeRef& node) { return syntax_node(node.get()); }
 SyntaxNode& semantic(TowerNode* node) { return syntax_node(node); }
-Revision bootstrap;
-struct Bedrock {
-  TowerNodeRef document;
-  Revision grammar;
-};
-std::shared_ptr<const Bedrock> installed_bedrock;
-std::shared_ptr<const Bedrock> native_bedrock() {
-  static const auto value = [] {
-    auto result = std::make_shared<Bedrock>(); result->document = TowerNodeRef(syntax_native_bedrock());
-    result->grammar = Revision(syntax_revision_document(result->document.get(), syntax_component_type()), frontend_revision_release);
-    return result;
-  }();
-  return value;
-}
-std::shared_ptr<const Bedrock> current_bedrock() { return installed_bedrock ? installed_bedrock : native_bedrock(); }
 
 struct Replacement {
   std::string rule, category;
@@ -71,7 +56,7 @@ struct Version {
   SyntaxLexicon* lexicon = nullptr;
   std::unique_ptr<SyntaxEmission, decltype(&syntax_emission_destroy)> emission{nullptr, syntax_emission_destroy};
   PendingRules pending{nullptr, syntax_pending_destroy};
-  std::shared_ptr<const Bedrock> bedrock;
+  Revision bedrock;
   std::map<size_t, Replacement> replacements;
   std::vector<std::vector<SyntaxExpansionCapture>> expansion_captures;
   std::vector<SyntaxExpansionRule> expansion_rules;
@@ -161,10 +146,10 @@ std::string validate(Revision& defs, size_t* error_offset, PendingRules& pending
 
 bool prepare_replacements(Version& version, const Revision& defs, std::string& message);
 std::unique_ptr<Version> build(const Revision& defs,
-    std::shared_ptr<const Bedrock> bedrock, std::string& message, size_t* error_offset) {
+    Revision bedrock, std::string& message, size_t* error_offset) {
   // Import by reference: both readers and downstream grammars use the original
   // semantic entities until a local declaration replaces or extends a binding.
-  Revision definitions(syntax_revision_overlay(bedrock->grammar.get(),
+  Revision definitions(syntax_revision_overlay(bedrock.get(),
     defs ? defs->rules.data : nullptr, defs ? defs->rules.length : 0,
     defs ? defs->tokens.data : nullptr, defs ? defs->tokens.length : 0, syntax_component_type()), frontend_revision_release);
   PendingRules pending{nullptr, syntax_pending_destroy};
@@ -224,7 +209,7 @@ struct SyntaxSession {
   bool building_bedrock = false, finalized = false, declarations_only = true;
   bool formatting = false;
   size_t comment_cursor = 0;
-  std::shared_ptr<const Bedrock> bedrock;
+  Revision bedrock;
   std::shared_ptr<Version> version;
   FrontendCache cache{};
   std::array<std::shared_ptr<Version>, SYNTAX_MAX_CACHED_GRAMMARS> versions;
@@ -527,13 +512,15 @@ SyntaxSession* syntax_create(const char* source, FrontendModule* module) {
   if (const auto* grammar = module ? frontend_module_grammar(module) : nullptr) {
     session->baseline = Revision(syntax_revision_create(grammar->rules.data, grammar->rules.length,
       grammar->tokens.data, grammar->tokens.length), frontend_revision_release);
-    session->bedrock = native_bedrock();
+    session->bedrock = Revision(syntax_world_revision(compiler_host_world(), SyntaxBaselineMode::Seed), frontend_revision_release);
+    if (!session->bedrock) { session->error = "Unable to allocate Bedrock revision"; return session.release(); }
     syntax_reset(session.get(), source);
     return session.release();
   }
-  if (!bootstrap) { session->error = "Load foundation.tower before creating a syntax session"; return session.release(); }
-  session->baseline = bootstrap;
-  session->bedrock = current_bedrock();
+  session->baseline = Revision(syntax_world_revision(compiler_host_world(), SyntaxBaselineMode::Foundation), frontend_revision_release);
+  if (!session->baseline) { session->error = "Load foundation.tower before creating a syntax session"; return session.release(); }
+  session->bedrock = Revision(syntax_world_revision(compiler_host_world(), SyntaxBaselineMode::Bedrock), frontend_revision_release);
+  if (!session->bedrock) { session->error = "Unable to allocate Bedrock revision"; return session.release(); }
   syntax_reset(session.get(), source);
   return session.release();
 }
@@ -541,8 +528,9 @@ SyntaxSession* syntax_create(const char* source, FrontendModule* module) {
 SyntaxSession* syntax_create_foundation(const char* source) {
   auto session = std::make_unique<SyntaxSession>();
   session->bootstrapping = true;
-  session->bedrock = current_bedrock();
-  session->baseline = session->bedrock->grammar;
+  session->bedrock = Revision(syntax_world_revision(compiler_host_world(), SyntaxBaselineMode::Bedrock), frontend_revision_release);
+  if (!session->bedrock) { session->error = "Unable to allocate Bedrock revision"; return session.release(); }
+  session->baseline = session->bedrock;
   syntax_reset(session.get(), source);
   return session.release();
 }
@@ -550,8 +538,9 @@ SyntaxSession* syntax_create_foundation(const char* source) {
 SyntaxSession* syntax_create_bedrock(const char* source) {
   auto session = std::make_unique<SyntaxSession>();
   session->bootstrapping = session->building_bedrock = true;
-  session->bedrock = native_bedrock();
-  session->baseline = session->bedrock->grammar;
+  session->bedrock = Revision(syntax_world_revision(compiler_host_world(), SyntaxBaselineMode::Seed), frontend_revision_release);
+  if (!session->bedrock) { session->error = "Unable to allocate Bedrock revision"; return session.release(); }
+  session->baseline = session->bedrock;
   syntax_reset(session.get(), source);
   return session.release();
 }
@@ -632,17 +621,12 @@ TowerText syntax_format(SyntaxSession* session) {
 }
 
 namespace {
-std::string validate_bedrock(const Bedrock& module, size_t& error_offset) {
-  auto definitions = module.grammar; PendingRules pending{nullptr, syntax_pending_destroy};
+std::string validate_bedrock(const Revision& module, size_t& error_offset) {
+  auto definitions = module; PendingRules pending{nullptr, syntax_pending_destroy};
   auto error = validate(definitions, &error_offset, pending);
   if (!error.empty()) return error;
   if (syntax_pending_count(pending.get())) return syntax_pending_message(pending.get(), &error_offset);
-  return syntax_revision_bedrock_error(module.grammar.get(), syntax_component_type());
-}
-std::shared_ptr<Bedrock> collected_bedrock(SyntaxSession& session) {
-  auto module = std::make_shared<Bedrock>(); module->document = session.document;
-  module->grammar = session.grammar;
-  return module;
+  return syntax_revision_bedrock_error(module.get(), syntax_component_type());
 }
 void preserve_comments(SyntaxSession& session, SyntaxNode& declaration, size_t through) {
   for (const auto& token : session.highlights) {
@@ -676,8 +660,8 @@ TowerNode* syntax_next(SyntaxSession* session) {
       if (syntax_pending_count(session->version->pending.get()))
         session->error = syntax_pending_message(session->version->pending.get(), &session->error_offset);
       if (session->building_bedrock && session->error.empty()) {
-        auto module = collected_bedrock(*session);
-        session->error = validate_bedrock(*module, session->error_offset);
+        const auto& module = session->grammar;
+        session->error = validate_bedrock(module, session->error_offset);
         if (session->error.empty()) {
           auto version = build({}, module, session->error, &session->error_offset);
           if (version && !syntax_emission_keyword_starts(version->emission.get()))
@@ -866,32 +850,29 @@ std::vector<SyntaxTokenInfo> syntax_get_tokens(SyntaxSession* session) {
 }
 
 std::string syntax_set_bedrock(const char* source) {
-  static std::string installed;
-  if (installed_bedrock && installed == source) return {};
+  if (syntax_world_matches(compiler_host_world(), source, std::strlen(source), false)) return {};
   std::unique_ptr<SyntaxSession> session(syntax_create_bedrock(source));
   while (auto* root = syntax_next(session.get())) tower_node_release_ref(root);
   if (!session->error.empty()) return session->error;
+  if (!syntax_world_publish(compiler_host_world(), source, std::strlen(source), session->document.get(), session->grammar.get(), false))
+    return "Unable to allocate grammar baseline";
   frontend_modules_reset_compilation(syntax_modules);
-  installed_bedrock = collected_bedrock(*session);
-  installed = source;
   // Foundation must be reloaded under the new bedrock. Existing syntax sessions
   // retain their own foundation and bedrock entities and remain valid.
-  bootstrap.reset();
   return {};
 }
 
 std::string syntax_set_bootstrap(const char* source) {
-  static std::string installed;
-  if (bootstrap && installed == source) return {};
+  if (syntax_world_matches(compiler_host_world(), source, std::strlen(source), true)) return {};
   std::unique_ptr<SyntaxSession> session(syntax_create_foundation(source));
   while (auto* root = syntax_next(session.get())) tower_node_release_ref(root);
   if (!session->error.empty()) return session->error;
   if (session->grammar->tokens.length == 0) return "Bootstrap must define at least one token or skip rule";
   // Baselines reference the same semantic declaration entities. Existing
   // sessions retain their baseline; a new module affects only new sessions.
+  if (!syntax_world_publish(compiler_host_world(), source, std::strlen(source), session->document.get(), session->grammar.get(), true))
+    return "Unable to allocate grammar baseline";
   frontend_modules_reset_compilation(syntax_modules);
-  bootstrap = session->grammar;
-  installed = source;
   return {};
 }
 

@@ -1,0 +1,110 @@
+import tower;
+import .compiler.frontend_revision_types;
+import .compiler.grammar_types;
+import .compiler.syntax_types;
+import frontend_world;
+import frontend_revision;
+import frontend_format;
+import frontend_syntax_preview;
+
+extern fn syntax_world_revision(world: void*, mode: u32): FrontendRevision*;
+extern fn syntax_world_matches(world: void*, source: u8*, length: usize, foundation: bool): bool;
+extern fn syntax_world_publish(world: void*, source: u8*, length: usize, document: void*, revision: FrontendRevision*, foundation: bool): bool;
+
+fn frontend_baseline_tests(): void {
+    var baseline = tower_test_buffer_count();
+    var world = compiler_world_create();
+    var other = compiler_world_create();
+    var kinds: FrontendKinds;
+    var other_kinds: FrontendKinds;
+    frontend_world_check(frontend_world_test_kinds(world, &kinds));
+    frontend_world_check(frontend_world_test_kinds(other, &other_kinds));
+    frontend_world_check(syntax_world_revision(world, SyntaxFoundationBaseline()) is null);
+    var seed = syntax_world_revision(world, SyntaxSeedBaseline());
+    var second = syntax_world_revision(other, SyntaxSeedBaseline());
+    frontend_world_check(seed is not null && second is not null && seed != second);
+    var document = frontend_world_bedrock(world);
+    frontend_world_check(!syntax_world_publish(other, "foreign", 7, document, seed, false));
+    frontend_world_check(syntax_world_publish(world, "old", 3, document, seed, true));
+    var prior = syntax_world_revision(world, SyntaxFoundationBaseline());
+    frontend_world_check(prior == seed);
+    frontend_world_check(syntax_world_matches(world, "old!", 3, true));
+    frontend_world_check(!syntax_world_matches(world, "old!", 4, true));
+    var allocations = tower_test_buffer_allocations();
+    frontend_world_check(syntax_world_publish(world, "new", 3, document, seed, false));
+    var construction = tower_test_buffer_allocations() - allocations;
+    frontend_world_check(syntax_world_revision(world, SyntaxFoundationBaseline()) is null);
+    frontend_world_check(syntax_world_matches(world, "new", 3, false));
+    frontend_world_check(!syntax_world_matches(other, "new", 3, false));
+    frontend_world_check(syntax_revision_rule(prior, "GrammarDeclaration", 18) is not null);
+    frontend_world_check(syntax_world_publish(world, "old", 3, document, seed, true));
+    var buffers = tower_test_buffer_count();
+    var references = entity_references(document);
+    for (var i: usize = 0; i < construction; ++i) {
+        tower_test_buffer_fail_after(i);
+        var published = syntax_world_publish(world, "replace", 7, document, seed, false);
+        tower_test_buffer_fail_after(frontend_world_unlimited());
+        frontend_world_check(!published);
+        frontend_world_check(tower_test_buffer_count() == buffers && entity_references(document) == references);
+        frontend_world_check(syntax_world_matches(world, "new", 3, false) && syntax_world_matches(world, "old", 3, true));
+    }
+    var view = entity_view_open(document);
+    frontend_world_check(view is not null);
+    frontend_world_check(!syntax_world_publish(world, "pinned", 6, document, seed, false));
+    frontend_world_check(!frontend_world_clear(world));
+    allocations = tower_test_buffer_allocations();
+    var pinned = syntax_world_revision(world, SyntaxBedrockBaseline());
+    frontend_world_check(pinned == seed && tower_test_buffer_allocations() == allocations);
+    frontend_revision_release(pinned);
+    entity_view_close(view);
+    frontend_world_check(frontend_world_clear(world));
+    frontend_world_check(!compiler_world_dispose(world));
+    frontend_world_check(syntax_revision_rule(prior, "GrammarDeclaration", 18) is not null);
+    frontend_revision_release(prior);
+    frontend_revision_release(seed);
+    frontend_world_check(compiler_world_dispose(world));
+    frontend_revision_release(second);
+    frontend_world_check(frontend_world_clear(other));
+    frontend_world_check(compiler_world_dispose(other));
+    frontend_world_check(tower_test_buffer_count() == baseline);
+}
+
+fn frontend_baseline_failure_tests(): void {
+    var baseline = tower_test_buffer_count();
+    var world = compiler_world_create();
+    var kinds: FrontendKinds;
+    frontend_world_check(frontend_world_test_kinds(world, &kinds));
+    // Seed construction failures must remain retryable, including the retained
+    // revision allocation after the world's declaration document already exists.
+    var document = frontend_world_bedrock(world);
+    entity_retain(document);
+    var allocations = tower_test_buffer_allocations();
+    var seed = syntax_world_revision(world, SyntaxSeedBaseline());
+    var construction = tower_test_buffer_allocations() - allocations;
+    frontend_world_check(seed is not null);
+    frontend_revision_release(seed);
+    frontend_world_check(frontend_world_clear(world));
+    // Reuse the same seed document to isolate registry/revision allocations from
+    // the existing exhaustive Bedrock-construction tests.
+    var cache = compiler_world_grammar(world);
+    cache.bedrock = document;
+    entity_retain(document);
+    var buffers = tower_test_buffer_count();
+    for (var i: usize = 0; i < construction; ++i) {
+        tower_test_buffer_fail_after(i);
+        seed = syntax_world_revision(world, SyntaxSeedBaseline());
+        tower_test_buffer_fail_after(frontend_world_unlimited());
+        frontend_world_check(seed is null);
+        frontend_world_check(frontend_world_clear(world));
+        cache.bedrock = document;
+        entity_retain(document);
+        frontend_world_check(tower_test_buffer_count() == buffers);
+    }
+    seed = syntax_world_revision(world, SyntaxSeedBaseline());
+    frontend_world_check(seed is not null);
+    frontend_revision_release(seed);
+    frontend_world_check(frontend_world_clear(world));
+    entity_release(document);
+    frontend_world_check(compiler_world_dispose(world));
+    frontend_world_check(tower_test_buffer_count() == baseline);
+}
