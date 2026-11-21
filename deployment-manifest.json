@@ -94,9 +94,9 @@
                                  "sourceCommit":  "3c9a01c8d05b88872d56aaff11b029e7cb630aba",
                                  "report":  "docs/temporal-opcode-research-journal.md"
                              },
-    "previousDeployment":  "c607f92a28e65fd5f8806767e04d0646ba621268",
+    "previousDeployment":  "e7c8abb9ffa63c068aa276fde06cb8bc450a5ea2",
     "buildNote":  "Public-bootstrap native and browser builds; 121 browser checks, native/WASI checks and two browser successor generations pass. Runtime inputs are byte-identical across the final journal-only rebase. All 77 local assets and desktop/mobile workflows verified.",
     "buildSourceCommit":  "cb350533e22ac5b4c61013111039e4f7240532c8",
-    "sourceCommit":  "8ce92ae8447f0d85edd3fc7888ea28adf2aec1ea",
+    "sourceCommit":  "f15bd68581ce3bb68fc155020ab63c20a17f570b",
     "scope":  "World-owned Tower baseline/session/seed transport; retire native syntax/formatter adapters, obsolete headers and historical C/C++ research. Includes current main named-initializer adoption and LR completion fix."
 }
