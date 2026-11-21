@@ -645,6 +645,14 @@ fn work_release(g: WorkGraph*, id: usize): void {
 // this derived scheduler never copies it or repeats already-observed effects.
 // Seal a newly discovered dependency before suspending its consumer.
 fn work_suspend(g: WorkGraph*, ticket: WorkTicket*, dependency: usize): bool {
+    return work_suspend_access(g, ticket, dependency, 0, 0, 0, 0, WorkAccessMode.Read);
+}
+
+// Discover a payload range together with its dependency. The new claim applies
+// on readmission, after the dependency publishes; it cannot block that producer.
+// A zero count preserves the ordinary suspension contract without another claim.
+fn work_suspend_access(g: WorkGraph*, ticket: WorkTicket*, dependency: usize,
+    domain: u64, component: u64, first: usize, count: usize, mode: WorkAccessMode): bool {
     if !work_ticket_valid(g, ticket) {
         return false;
     }
@@ -655,6 +663,7 @@ fn work_suspend(g: WorkGraph*, ticket: WorkTicket*, dependency: usize): bool {
     var task = work_task(g, ticket.task);
     task.state = WorkState.Building;
     var attached = work_depend(g, ticket.task, dependency);
+    if attached && count != 0 { attached = work_access(g, ticket.task, domain, component, first, count, mode); }
     if !attached {
         task.state = WorkState.Running;
         return false;
