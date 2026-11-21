@@ -36,7 +36,6 @@ list(FILTER lr_grammar_sources EXCLUDE REGEX "scaffolding/tests/|scaffolding/boo
 list(APPEND lr_grammar_sources scaffolding/tests/nodes.cpp)
 add_executable(tower-lr-grammar-tests ${lr_grammar_sources} "${lr_grammar_main_object}")
 target_compile_features(tower-lr-grammar-tests PRIVATE cxx_std_20)
-target_compile_definitions(tower-lr-grammar-tests PRIVATE TOWER_EXPANSION_TESTS=1)
 if(MSVC)
   target_compile_options(tower-lr-grammar-tests PRIVATE /UNDEBUG)
   target_compile_definitions(tower-lr-grammar-tests PRIVATE _HAS_EXCEPTIONS=0)

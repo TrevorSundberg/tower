@@ -27738,3 +27738,33 @@ execute successfully. Native main.cpp removed after these executable checks.
 Next: rebase onto the latest public bootstrap/threading profile and Agent2 LR
 retirement, run the complete merged checks and publish the ready batch. Native
 node callback tests remain intact; no production test-dispatch IDs were added.
+
+### 2026-11-20 - Agent 3: merged parser aggregate passes native and WASI
+
+Rebased all three ready retirement commits onto1651d1a, preserving every journal
+entry and both lanes' CMake removals. The runner now calls direct C-exported
+lr_analysis_tests. Kept the new storage/formatter single-owner profile assertions
+and the final TowerParserEvaluation target scan. On the earlier bae9edc merge,
+new semantic invocation calls were unresolved at native link time and remained
+WASI env imports despite successful linking; neither was called an execution PASS.
+The1651 evaluator dependency and explicit portable test transport resolve these
+through existing Tower units. No native shim or fallback implementation added.
+
+Fresh empty agent-3-native-successor-1651d1a built with build-native.sh,
+TOWER_BOOTSTRAP_COMPILER unset, publishedbcc76755 and Clang19/jobs4. Both affected
+parser configurations rebuilt. Full native tower-parser-tests CTest now passes
+in1.98s, and the full portable-WASI aggregate executes to 'Tower and parser tests
+passed', including every migrated reader/validation/live/formatter suite and the
+new independent LR reference. This supersedes the earlier legacy-LR assertion
+limitation; it is still single-owner instrumentation, not evidence of parallel
+allocator safety.
+
+Coordinator approved deleting the now-unused12-line syntax_expansion_test_entry
+wrapper and obsolete TOWER_EXPANSION_TESTS defines. Its original three-step
+functional sequence is already in the Tower runner. Latest publicbcc function
+address probe still rejects bits(usize, &callback) with 'Unknown local callback'
+at agent_3_callback_address_probe.tower:3:59. Native tests/nodes.cpp and its real
+callback coverage remain intact, as directed; no test IDs entered production.
+Coordinator5d69144 has now published pool/emission work and handed the exclusive
+source slot to Agent3. A final rebase/clean successor/merged validation is next;
+coordinator explicitly owns the subsequent combined deployment and root cache.

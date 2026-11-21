@@ -191,18 +191,6 @@ extern "C" unsigned syntax_replacement_attempt(void* context, const char* catego
 }
 SyntaxExpansionStats syntax_get_expansion_stats(SyntaxSession* session) { return session->expansion_stats; }
 
-#ifdef TOWER_EXPANSION_TESTS
-extern "C" size_t syntax_expansion_tests(const SyntaxExpansionInput*, TowerNode*);
-size_t syntax_expansion_test_entry() {
-  SyntaxExpansionInput input{nullptr, 0, parser_match_get_type()};
-  FrontendKinds kinds{parser_rule_get_type(), parser_reference_get_type(), parser_string_get_type(),
-    parser_range_get_type(), parser_match_get_type(), syntax_component_type()};
-  if (auto status = frontend_bedrock_tests(&kinds)) return status;
-  if (auto status = frontend_modules_tests()) return status;
-  return syntax_expansion_tests(&input, syntax_native_bedrock());
-}
-#endif
-
 SyntaxSession* syntax_create(const char* source, FrontendModule* module) {
   return syntax_session_open(compiler_host_world(), syntax_modules, source, module, SyntaxBaselineMode::Foundation);
 }

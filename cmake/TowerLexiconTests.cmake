@@ -37,7 +37,6 @@ list(FILTER lexicon_sources EXCLUDE REGEX "scaffolding/tests/|scaffolding/bootst
 list(APPEND lexicon_sources scaffolding/tests/nodes.cpp)
 add_executable(tower-lexicon-tests ${lexicon_sources} "${lexicon_main_object}")
 target_compile_features(tower-lexicon-tests PRIVATE cxx_std_20)
-target_compile_definitions(tower-lexicon-tests PRIVATE TOWER_EXPANSION_TESTS=1)
 if(MSVC)
   target_compile_options(tower-lexicon-tests PRIVATE /UNDEBUG)
   target_compile_definitions(tower-lexicon-tests PRIVATE _HAS_EXCEPTIONS=0)

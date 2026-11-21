@@ -22,7 +22,6 @@ list(FILTER interpreter_test_sources EXCLUDE REGEX "scaffolding/tests/|\\.(o|obj
 list(APPEND interpreter_test_sources scaffolding/tests/nodes.cpp)
 add_executable(tower-interpreter-tests ${interpreter_test_sources} "${execution_object}")
 target_compile_features(tower-interpreter-tests PRIVATE cxx_std_20)
-target_compile_definitions(tower-interpreter-tests PRIVATE TOWER_EXPANSION_TESTS=1)
 target_compile_options(tower-interpreter-tests PRIVATE -UNDEBUG -fno-exceptions)
 target_link_libraries(tower-interpreter-tests PRIVATE tower-compiler-interpreter
   tower-compiler-parser-nodes tower-compiler-semantics tower-compiler-entities tower-compiler-utilities tower-compiler-memory)

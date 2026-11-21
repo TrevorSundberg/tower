@@ -1,5 +1,5 @@
-# Program entry and CLI orchestration are Tower. The remaining native node and
-# LR fixtures keep their existing symbols until their independent replacements.
+# Program entry and CLI orchestration are Tower; the existing node callback
+# fixture keeps its native implementation until function addresses are supported.
 get_property(main_triple GLOBAL PROPERTY TOWER_COMPILER_TRIPLE)
 set(main_entry main)
 set(main_bedrock _Z18syntax_set_bedrockB5cxx11PKc)

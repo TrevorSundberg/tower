@@ -145,7 +145,6 @@ if(TOWER_PARSER_ONLY)
     scaffolding/tower.cpp scaffolding/tests/nodes.cpp
     scaffolding/syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/format.cpp scaffolding/lex-pattern.cpp scaffolding/lex-pattern-common.cpp)
   target_compile_features(tower-parser-tests PRIVATE cxx_std_20)
-  target_compile_definitions(tower-parser-tests PRIVATE TOWER_EXPANSION_TESTS=1)
   if(CMAKE_CXX_COMPILER_TARGET MATCHES "^wasm")
     target_compile_options(tower-parser-tests PRIVATE "-ffile-prefix-map=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding=source")
   endif()

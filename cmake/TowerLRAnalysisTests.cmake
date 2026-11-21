@@ -36,7 +36,6 @@ list(FILTER lr_analysis_sources EXCLUDE REGEX "scaffolding/tests/|scaffolding/bo
 list(APPEND lr_analysis_sources scaffolding/tests/nodes.cpp)
 add_executable(tower-lr-analysis-tests ${lr_analysis_sources} "${lr_analysis_main_object}")
 target_compile_features(tower-lr-analysis-tests PRIVATE cxx_std_20)
-target_compile_definitions(tower-lr-analysis-tests PRIVATE TOWER_EXPANSION_TESTS=1)
 if(MSVC)
   target_compile_options(tower-lr-analysis-tests PRIVATE /UNDEBUG)
   target_compile_definitions(tower-lr-analysis-tests PRIVATE _HAS_EXCEPTIONS=0)

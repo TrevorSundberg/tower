@@ -37,7 +37,6 @@ list(FILTER regex_sources EXCLUDE REGEX "scaffolding/tests/|scaffolding/bootstra
 list(APPEND regex_sources scaffolding/tests/nodes.cpp)
 add_executable(tower-regex-tests ${regex_sources} "${regex_main_object}")
 target_compile_features(tower-regex-tests PRIVATE cxx_std_20)
-target_compile_definitions(tower-regex-tests PRIVATE TOWER_EXPANSION_TESTS=1)
 if(MSVC)
   target_compile_options(tower-regex-tests PRIVATE /UNDEBUG)
   target_compile_definitions(tower-regex-tests PRIVATE _HAS_EXCEPTIONS=0)
