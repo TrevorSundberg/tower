@@ -23791,3 +23791,42 @@ Before publication, integrate the newly fetched backend source-session migration
 build and affected checks. Publish through the existing gh-pages checkout with
 normal fast-forward pushes and verify the hosted result. Unrelated local AGENTS,
 foundation, journal and todo edits remain excluded from these audit commits.
+
+### Import audit follow-up: release validation through the published defer bootstrap
+
+The 781c4d5 integration completed successfully: a clean 55-target default
+bootstrap build, native module paths, 49 parser/completion/diagnostic tests and
+71 LLVM/cross/module/semantic comparisons all passed. Two browser compiler
+generations produced identical hashes (sizes 893647 / 52129502 / 63686866 bytes),
+and local desktop/mobile verification matched all 70 assets. The next upstream
+update introduced scoped defer and its published compatible bootstrap, so those
+results were not used as the sole validation of the final merged sources.
+
+Rebased again through ef5c5ff, preserving its defer cleanup migration, source
+sessions, current diagnostic provenance and bootstrap pin. The only rebase
+conflict was the append-only journal; both sets of entries were retained and
+unrelated local edits restored. Repeated a clean default-bootstrap build in
+`/root/.cache/tower/import_followup_ef5c5ff` with TOWER_BOOTSTRAP_COMPILER unset:
+all 55 targets pass. Rebuilt WASI, LLVM/cross and compiler-project support using
+the documented scripts. Native real-filesystem imports and all five explicit
+compiler-unit dependency allowlists pass; no new native implementation was added.
+The naming audit and changed Tower file's canonical/idempotent formatter check
+also pass. Existing scope and symlink limitations remain as documented above.
+
+The final focused Node run passes all 100 tests across diagnostics, completion,
+Wasm self-tests, imports, module lifetimes, semantic/Foundation round trips and
+defer (`tests-defer.log`). Both successive browser compiler generations pass
+edited-behavior checks and identical-output hashes; final sizes are { tower: 900628, llvm: 52136475, cross: 63693840 }
+(`successors-defer.log`). Required-backend static packaging and complete local
+desktop/mobile verification pass all 70 asset hashes and editor, completion,
+execution, persistence, target defaults and native-download flows
+(`verify-local-defer.log`). Earlier Linux/Windows/ARM64 target executions and
+macOS link checks are documented above; this final run does not claim execution
+of a macOS binary or a general allocation-failure recovery change.
+
+Publication uses the verified complete asset set in the existing gh-pages clone,
+normal atomic fast-forward updates for source and deployment, and then hosted
+manifest/hash plus desktop/mobile verification. No force-push or discard of
+unrelated working changes is part of the release. Hosted results are recorded
+in build/import-followup/verify-hosted-final.log and the deployment report after
+publication, rather than being asserted before they have run.
