@@ -1,0 +1,4 @@
+import tower;
+var values:i32[4];
+var flag:bool=true;
+var wrong:decltype(values[flag]);

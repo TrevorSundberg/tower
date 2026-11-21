@@ -686,8 +686,11 @@ containers. Benchmark representative compiler workloads before migrating them.
   worker-created evaluations publish into the same interpreter query graph.
   Eligible generic argument deduction also runs on workers with private type
   constraints and alias diagnostics; the coordinator interns results and creates
-  signatures. Type construction and indexed declaration operands still retain
-  coordinator checking. Call continuations preserve enclosing evaluation depth
+  signatures. Role-aware declaration admission now includes value indexing and
+  ordinary builtins; type arguments still exclude array/type construction.
+  Field-layout readiness projects pointers, arrays and published call results.
+  Computed field bases without that projection retain coordinator checking.
+  Call continuations preserve enclosing evaluation depth
   so skipped nested stages remain lazy during deduction.
   Shared entities now use stable component pages, exact-signature archetype rows,
   published component columns and view-owned multi-component query plans.

@@ -29564,3 +29564,96 @@ idempotence and a Foundation-rebuilt compiler successor, two identical edited
 browser generations, and local deployment. Commit/pull/rebase and publication
 follow before integrating the separately tested operand draft. todo.txt remains
 unchanged (96a9e58964d7f01e4a97819f259448db81ef5e40).
+
+### 2026-11-21 — role-aware declaration operand workers (in progress)
+
+Inference/enum checkpoint ed5281b7628a2ad65ddc17b3ea5c38e553cb5364 is pushed
+on main after an unchanged pull/rebase. Pages commit
+9689cf7c158bb7c57391c0609e6e5632f78ae0e0 follows
+8e5d72b4611105d5ce514648b91dead383f15c5e; action 44894449973 is running.
+Initial publication failed on the Docker-owned deployment manifest; restoring
+that generated file's checkout-user ownership allowed the ordinary retry/push.
+Hosted verification remains pending; no source changes were lost or force-pushed.
+
+Integrated the separately checked operand draft. Declaration admission carries
+explicit type/value roles through builtins, default and decltype, so ordinary
+indexing can run in leased worker syntax while array/type construction remains
+structural. Pointer depth is projected through address/dereference and indexing
+before discovering field-layout dependencies. Computed field bases without this
+read-only projection remain conservative. Builtin/index checks reuse the same
+ordinary semantic functions and interpreter; no folding pass or C++ code.
+
+Added declaration_operands coverage for arrays, pointer-to-array dereference,
+address-of-array indexing, nested fields, function-returned pointers, nullable
+index effects, builtin type operands, inferred generic arguments, and lazy/
+unevaluated nested stages. Added indexed type-cycle and noninteger-index errors,
+including error/offset determinism at 1/2/4/8 workers. The isolated draft proof
+already has 16+16 checks on eight workers and unchanged canonical output; now
+validate the integrated native/browser/compiler builds and publication artifacts.
+
+Integrated operand native validation passes 8/8 (65.05s) plus backend API.
+The first browser negative-index check used a bool literal, so ordinary contextual
+checking correctly diagnosed "Expected usize, got bool" before the intended
+integer-index guard. This is a fixture mismatch, not a new compiler failure.
+Use a typed bool variable to reach that guard, retaining the exact expected
+"An index must be an integer" diagnostic and source-offset comparisons. The
+compiletime test process had already finished before this fixture correction;
+rerun that affected suite and capacity checks while remaining regressions finish.
+No compiler source or backend artifact changed for this correction.
+
+Hosted inference checkpoint ed5281b/9689cf7 passes all assets and desktop/mobile,
+editor, native-download and default-target workflows; action 44894449973 succeeds.
+Saved report: declaration-inference-hosted-report.json. Corrected operand tests
+pass compiletime 45/45 (22.86s), capacity 3/3 (85.68s) and editor 28/28 (143.93s).
+The actual integrated native semantics successor object compares byte-for-byte.
+Remaining full-regression and browser-generation/local-release checks continue.
+
+Next audit: lr_runtime_build still sorts/normalizes action rows, creates direct
+lookup indexes and sorted gotos serially after threaded LALR action production.
+Draft lr_runtime_work (outside frozen sources) puts independent contiguous row
+ranges on ECS components and shared WorkGraph claims, with pinned immutable
+states and private outputs. Publication interns duplicate rows and selects the
+first conflict in state order; all submitted tasks join before any cleanup.
+Tiny tables retain the ordinary serial reference. Differential trials compare
+all runtime actions, direct indexes, reductions and gotos, plus complete conflict
+records and entity/component cleanup. Initial isolated build reports missing
+lr_none because the new module omitted its direct lr_analysis import; corrected
+that import and restarted the default-bootstrap compile. No runtime-table draft
+is yet integrated, published or claimed validated.
+
+Operand browser generations pass at 2/4 workers (158.63s / 99.30s), with
+identical modules sized 1,045,667 / 52,350,768 / 63,908,207 bytes; saved hashes
+are declaration-operands-generation{1,2}.json. The next runtime-table draft now
+compiles parser_nodes, parser_integration and semantics with the documented
+bootstrap. Its first debugger probe targeted an inlined/nonexistent private
+lr_row_normalize symbol and recorded no hits, so it proves nothing. Switch the
+baseline probe to the public serial constructor and the draft probe to the new
+public worker kernel; require actual non-coordinator execution plus unchanged
+Foundation and the full runtime-row differential tests before adoption.
+
+The isolated runtime-table successor passes the native LR serial/threaded trials,
+including every runtime action/direct-index/reduction/goto, full conflict records
+and transient entity/component counts, then executes declaration_operands as 0.
+Public constructor baseline records 230 calls on coordinator thread 1. The new
+row kernel records 95 calls across worker thread IDs 2–10, none on thread 1
+(pools grow/reuse across phases; this is not a claim of nine simultaneous workers).
+Before/after Foundation is byte-identical. Files: lr-runtime-draft-tests.log,
+lr-runtime-before-entry-debug.log, lr-runtime-after-debug.log and matching
+lr-runtime-{before,after}.foundation. Broad integration, allocation-failure and
+browser/bootstrap validation remain before publication of this next draft.
+
+Operand release checks finish. The original broad run is 114/115 (614.54s),
+with only the documented bool-literal fixture mismatch; the corrected affected
+compiletime suite is 45/45. All other cases passed, with no skips. Local release
+verification passes 77 assets and every browser workflow. Together with native
+8/8/API, capacity 3/3, editor 28/28, exact native semantics successor, and identical
+edited generations, this validates the checkpoint without repeating unaffected
+expensive suites. Native/compiler source stayed frozen throughout. todo.txt is
+unchanged. Commit/pull/rebase and deployment follow.
+
+Runtime-table draft fault testing now has an explicit worker-width entry point,
+so the existing serial instrumented allocator can exercise staged ownership
+without racing its counters. Production admission retains its table-size policy.
+The first new fault-fixture compile used reserved token `expected` as a local;
+rename it to baseline_table. This draft-only harness correction does not change
+the operand release or weaken its checks. Full fault sweeps remain pending.

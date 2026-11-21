@@ -51,7 +51,7 @@ test('demanded generic body copies retain the node budget and reject execution',
  assert.match(compiled.error, /Template expansion exceeds 65536 nodes/);
 });
 
-for (const name of ['decltype', 'decltype_expressions', 'declaration_continuations', 'declaration_inference', 'enum_expressions', 'decltype_headers', 'decltype_layout', 'decltype_generic_headers', 'decltype_type_fields', 'decltype_aggregate', 'decltype_lazy_body', 'body_continuation', 'comptime', 'comptime_flow']) {
+for (const name of ['decltype', 'decltype_expressions', 'declaration_continuations', 'declaration_inference', 'declaration_operands', 'enum_expressions', 'decltype_headers', 'decltype_layout', 'decltype_generic_headers', 'decltype_type_fields', 'decltype_aggregate', 'decltype_lazy_body', 'body_continuation', 'comptime', 'comptime_flow']) {
  test(`${name} preserves types and behavior through Foundation, interpreters and LLVM`, async () => {
   tower.configureModules({entry: `.tower/tests/${name}.tower`});
   const source = await readFile(`scaffolding/tests/${name}.tower`, 'utf8');
@@ -95,6 +95,8 @@ for (const [name, message] of [
  ['comptime_fuel', /fuel exhausted/],
  ['comptime_generic_selected', /Division by zero/],
  ['inference_alias_invalid', /Type constructors currently support a struct and return/],
+ ['declaration_index_cycle', /initializer dependency cycle first -> second -> first/],
+ ['declaration_index_type', /An index must be an integer/],
 ]) {
  test(`${name} reports its stage dependency or execution error`, async () => {
   const source = await readFile(`scaffolding/tests/semantic_invalid/${name}.tower`, 'utf8');

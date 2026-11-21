@@ -1,0 +1,38 @@
+import tower;
+fn box(T:type):type { struct Box { value:T; } return Box; }
+fn identity(T:type,value:T):T { return value; }
+struct Item { value:decltype(seed); slots:i32[2]; }
+var seed:i32=7;
+var storage:Item[2];
+var pointer:Item* = &storage[0];
+var absent:Item* = null;
+var array_pointer:Item[2]* = &storage;
+var index:usize=0;
+var hits:i32=0;
+fn position():usize { hits++; return 0; }
+fn address():Item* { hits++; return pointer; }
+var field:decltype(storage[index].value)=seed;
+var element:decltype(pointer[index].slots[index])=seed;
+var from_call:decltype(address()[position()].value)=seed;
+var from_array:decltype((*array_pointer)[position()].value)=seed;
+var via_address:decltype((&storage)[0][position()].value)=seed;
+var size=sizeof(Item);
+var alignment=alignof(Item);
+var converted=convert(i64,seed+1);
+var raw=bits(u64,converted);
+var allocation:decltype(alloc(Item,2));
+var fallback=absent?[position()].value ?? seed;
+var array_size=sizeof(i32[4]);
+var nominal_size=sizeof(box(i32));
+var basic=default(i32);
+var nested=identity(convert(i64,seed+2));
+var staged=comptime(convert(u64,comptime(41)+1));
+var unevaluated:decltype(convert(u64,comptime(1/0)));
+var skipped=comptime(false ? convert(i64,comptime(1/0)) : convert(i64,42));
+var failures:i32=0;
+if field!=7 || element!=7 || from_call!=7 || hits!=0 { failures++; }
+if from_array!=7 || via_address!=7 { failures++; }
+if size!=12 || alignment!=4 || converted!=8 || raw!=8 { failures++; }
+if fallback!=7 || array_size!=16 || nominal_size!=4 || basic!=0 { failures++; }
+if nested!=9 || staged!=42 || skipped!=42 { failures++; }
+print(failures);

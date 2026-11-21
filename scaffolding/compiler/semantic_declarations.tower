@@ -153,17 +153,25 @@ fn sem_declaration_layout_waiting(c: SemanticContext*, record: void*): usize {
 fn sem_declaration_location(c: SemanticContext*, node: void*, waiting: usize*, layout: void**, depth: usize): FoundationType* {
     if node == null || depth > 128 { return null; }
     node = sem_surface_unwrap(node);
-    // Address/dereference do not change the nominal record whose fields a
-    // following selector needs. This is dependency projection only: the
-    // ordinary checker still validates pointer depth and addressability.
+    var operand: void* = null;
+    var address = false;
     if sem_is(node, "CoreLoad") || sem_is(node, "CoreAddress") {
-        return sem_declaration_location(c, sem_member(node, "name"), waiting, layout, depth + 1);
+        operand = sem_member(node, "name");
+        address = sem_is(node, "CoreAddress");
     }
     if sem_is(node, "TowerExpression") && sem_member(node, "left") == null {
         var operation = sem_surface_operator(c, node, null);
         if sem_equal(operation, "*") || sem_equal(operation, "&") {
-            return sem_declaration_location(c, sem_member(node, "right"), waiting, layout, depth + 1);
+            operand = sem_member(node, "right");
+            address = sem_equal(operation, "&");
         }
+    }
+    if operand != null {
+        var parent = sem_declaration_location(c, operand, waiting, layout, depth + 1);
+        if parent == null || !address && parent.pointers == 0 { return null; }
+        var type = sem_type_copy(c, parent);
+        if address { type.pointers++; } else { type.pointers--; }
+        return type;
     }
     if sem_is(node, "CoreCall") {
         var name = sem_member(node, "name");
@@ -178,7 +186,7 @@ fn sem_declaration_location(c: SemanticContext*, node: void*, waiting: usize*, l
         }
         return &sem_get(function).type;
     }
-    if !sem_is(node, "CoreLocation") { return null; }
+    if !sem_is(node, "CoreLocation") && !sem_is(node, "TowerNullAccess") { return null; }
     var module = sem_namespace(c, node);
     var base = sem_member(node, "base");
     if module != null || base == null {
@@ -199,8 +207,14 @@ fn sem_declaration_location(c: SemanticContext*, node: void*, waiting: usize*, l
     }
     var type = sem_declaration_location(c, base, waiting, layout, depth + 1);
     if type == null { return null; }
-    if type.scalar == SArray() && sem_member(node, "index") != null {
-        return &sem_get(type.record).element;
+    if sem_member(node, "index") != null {
+        if type.pointers != 0 {
+            var element = sem_type_copy(c, type);
+            element.pointers--;
+            return element;
+        }
+        if type.scalar == SArray() { return &sem_get(type.record).element; }
+        return null;
     }
     if type.scalar != SStruct() || type.record == null { return null; }
     // Field offsets consume the entire containing layout, including by-value
@@ -264,7 +278,7 @@ fn sem_declaration_waiting(c: SemanticContext*, subject: void*, layout: void**):
             }
             continue;
         }
-        if !type && sem_is(node, "CoreLocation") {
+        if !type && (sem_is(node, "CoreLocation") || sem_is(node, "TowerNullAccess")) {
             sem_declaration_location(c, node, &waiting, layout, 0);
         }
         var index: usize = 0;
@@ -426,9 +440,31 @@ fn sem_declaration_function(c: SemanticContext*, node: void*): bool {
     return sem_resolve(c, c.functions, name_node, name) != null;
 }
 
-// These expressions only enrich their leased syntax or create private children.
-// Their declaration/layout dependencies must be ready before execution. Type
-// construction and indexed operands still need structural continuations.
+// Readiness can project these place/call types without checking expressions.
+// A computed base whose type is not yet known needs a structural continuation
+// before field access can safely consume its record layout on a worker.
+fn sem_declaration_projectable(c: SemanticContext*, node: void*, depth: usize): bool {
+    if node == null || depth > 128 { return false; }
+    node = sem_surface_unwrap(node);
+    if sem_is(node, "CoreLocation") || sem_is(node, "TowerNullAccess") {
+        var base = sem_member(node, "base");
+        return base == null || sem_namespace(c, node) != null || sem_declaration_projectable(c, base, depth + 1);
+    }
+    if sem_is(node, "CoreCall") { return sem_declaration_function(c, node); }
+    if sem_is(node, "CoreLoad") || sem_is(node, "CoreAddress") {
+        return sem_declaration_projectable(c, sem_member(node, "name"), depth + 1);
+    }
+    if sem_is(node, "TowerExpression") && sem_member(node, "left") == null {
+        var operation = sem_surface_operator(c, node, null);
+        if sem_equal(operation, "*") || sem_equal(operation, "&") {
+            return sem_declaration_projectable(c, sem_member(node, "right"), depth + 1);
+        }
+    }
+    return false;
+}
+
+// Expressions enrich leased syntax and private children. Type arguments are
+// checked separately by role: value indexing does not construct an array type.
 fn sem_declaration_expression(c: SemanticContext*, root: void*): bool {
     var pending = sem_list(c);
     sem_push(pending, root);
@@ -440,11 +476,28 @@ fn sem_declaration_expression(c: SemanticContext*, root: void*): bool {
             continue;
         }
         if sem_is(node, "CoreCall") {
-            if !sem_declaration_function(c, node) { return false; }
+            var name = sem_member(node, "name");
+            var builtin = semantic_builtin_kind(sem_identifier(c, name));
+            if builtin == 0 && !sem_declaration_function(c, node) { return false; }
             var prepared = sem_prepared_call(c, node);
             var args = prepared != null ? prepared.values
                 : sem_collect(c, sem_member(node, "args"), "CoreCallArgument");
-            foreach(var argument in args) { sem_push(pending, argument); }
+            for(var argument: usize = 0; argument < args.length; argument++) {
+                if !semantic_builtin_type_argument(builtin, argument) { sem_push(pending, args.data[argument]); }
+            }
+            continue;
+        }
+        if sem_is(node, "CoreLocation") || sem_is(node, "TowerNullAccess") {
+            var base = sem_member(node, "base");
+            if base == null { return false; }
+            if sem_member(node, "field") != null && !sem_declaration_projectable(c, base, 0) { return false; }
+            sem_push(pending, base);
+            var index = sem_member(node, "index");
+            if index != null { sem_push(pending, index); }
+            continue;
+        }
+        if sem_is(node, "CoreLoad") || sem_is(node, "CoreAddress") {
+            sem_push(pending, sem_member(node, "name"));
             continue;
         }
         if !sem_is(node, "TowerExpression") && !sem_is(node, "TowerComma")
@@ -465,42 +518,51 @@ fn sem_declaration_expression(c: SemanticContext*, root: void*): bool {
     return true;
 }
 
-// Named/pointer annotations are read-only. Eligible decltype and inferred values
-// attach only to their own syntax, with all referenced types dependency-ready.
-// Module-qualified leaves and ordinary struct fields use the same ownership.
-// Generic preparation, indexing and type construction retain the coordinator.
-// Shared admission for declaration types and inferred-call operands. A private
-// stage owns every syntax payload that either checker can enrich.
-fn sem_declaration_syntax(c: SemanticContext*, annotation: void*, nodes: vector(void*)*, staged: bool): bool {
+// Keep type/value roles through ordinary builtin arguments, defaults and
+// decltype. Only value indexing is read-only; array/type construction still
+// requires structural preparation. Admission leases the original syntax nodes.
+fn sem_declaration_syntax(c: SemanticContext*, annotation: void*, nodes: vector(void*)*, staged: bool, type: bool): bool {
     var evaluates = false;
-    var pending = sem_list(c);
-    sem_push(pending, annotation);
+    var pending: vector(DeclarationScan) = default;
+    defer vector_dispose(&pending);
+    sem_declaration_scan_push(&pending, annotation, type);
     for(var i: usize = 0; i < pending.length; i++) {
-        var node = pending.data[i];
+        var node = pending.data[i].node;
+        var type = pending.data[i].type;
         evaluates ||= sem_is(node, "TowerComptime");
-        if sem_is(node, "TowerDecltype") {
-            if !sem_declaration_expression(c, sem_member(node, "value")) { return false; }
-            staged = true;
+        if sem_is(node, "TowerDefault") {
+            sem_declaration_scan_push(&pending, sem_member(node, "type"), true);
+            continue;
         }
-        var call = sem_is(node, "CoreCall");
-        if call {
-            if !sem_declaration_function(c, node) { return false; }
+        if sem_is(node, "TowerDecltype") {
+            var value = sem_member(node, "value");
+            if !sem_declaration_expression(c, value) { return false; }
+            sem_declaration_scan_push(&pending, value, false);
+            staged = true;
+            continue;
+        }
+        if !type && sem_is(node, "CoreCall") {
+            var name = sem_member(node, "name");
+            var builtin = semantic_builtin_kind(sem_identifier(c, name));
+            if builtin == 0 && !sem_declaration_function(c, node) { return false; }
             staged = true;
             var prepared = sem_prepared_call(c, node);
-            if prepared != null {
-                // Preparation already checked type arguments. Only runtime
-                // operands can be enriched by the readmitted call checker.
-                foreach(var argument in prepared.values) { sem_push(pending, argument); }
-                continue;
+            var args = prepared != null ? prepared.values
+                : sem_collect(c, sem_member(node, "args"), "CoreCallArgument");
+            for(var argument: usize = 0; argument < args.length; argument++) {
+                sem_declaration_scan_push(&pending, args.data[argument], semantic_builtin_type_argument(builtin, argument));
             }
+            continue;
         }
-        if sem_is(node, "CoreArrayCount") { return false; }
-        if (!call && sem_member(node, "args") != null)
-            || sem_member(node, "count") != null || sem_member(node, "index") != null { return false; }
-        for(var j: usize = 0; j < sem_child_count(node); j++) { sem_push(pending, sem_child(node, j)); }
+        if sem_is(node, "CoreArrayCount") || sem_member(node, "args") != null
+            || sem_member(node, "count") != null { return false; }
+        if type && sem_member(node, "index") != null { return false; }
+        for(var j: usize = 0; j < sem_child_count(node); j++) {
+            sem_declaration_scan_push(&pending, sem_child(node, j), type);
+        }
     }
     if evaluates { sem_evaluation_begin(c); }
-    if staged { foreach(var node in pending) { sem_push(nodes, node); } }
+    if staged { foreach(var &entry in &pending) { sem_push(nodes, entry.node); } }
     return true;
 }
 
@@ -513,12 +575,13 @@ fn sem_declaration_worker(c: SemanticContext*, result: SemanticDeclaration*): bo
     c.scope = result.scope;
     defer { c.scope = previous_scope; }
     var annotation = sem_member(subject, record ? "fields" : "type");
-    var staged = record || annotation == null;
+    var type = annotation != null;
+    var staged = record || !type;
     if annotation == null {
         annotation = sem_member(subject, "value");
         if annotation == null || !sem_declaration_expression(c, annotation) { return false; }
     }
-    if !sem_declaration_syntax(c, annotation, &result.nodes, staged) { return false; }
+    if !sem_declaration_syntax(c, annotation, &result.nodes, staged, type) { return false; }
     // A worker may update its existing field state, never grow the shared index.
     if record { sem_state(c, c.fields_done, subject); }
     return true;
@@ -541,7 +604,7 @@ fn sem_declaration_inference_begin(c: SemanticContext*, result: SemanticDeclarat
     sem_require(result.nodes.length == 0);
     foreach(var argument in args) {
         if !sem_declaration_expression(c, argument)
-            || !sem_declaration_syntax(c, argument, &result.nodes, true) {
+            || !sem_declaration_syntax(c, argument, &result.nodes, true, false) {
             result.nodes.length = 0;
             return false;
         }

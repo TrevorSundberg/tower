@@ -55,6 +55,7 @@ test('declaration, body checking, lowering and staging are deterministic at 1/2/
  const expressionTypes = await readFile('scaffolding/tests/decltype_expressions.tower', 'utf8');
  const declarationContinuations = await readFile('scaffolding/tests/declaration_continuations.tower', 'utf8');
  const declarationInference = await readFile('scaffolding/tests/declaration_inference.tower', 'utf8');
+ const declarationOperands = await readFile('scaffolding/tests/declaration_operands.tower', 'utf8');
  const enumExpressions = await readFile('scaffolding/tests/enum_expressions.tower', 'utf8');
  const defaults = await readFile('scaffolding/tests/default_initialization.tower', 'utf8');
  const typeFields = (await readFile('scaffolding/tests/decltype_type_fields.tower', 'utf8')).replace('var seed12:u64=0;',
@@ -255,12 +256,14 @@ fn badSecond(value:MissingSecond):void {}`);
     'import tower; fn identity(T:type,value:T):T { return value; } var value=comptime(true ? identity(comptime(1/0)) : 42);',
     'import tower; fn identity(T:type,value:T):T { return value; } var warm:decltype(identity(u64,1)); var first=identity(i32,false); var second=identity(u64,false);',
     'import tower; fn alias(T:type):type { var value:i32=1; return T; } fn read(T:type,value:alias(T)):T { return value; } var actual:i32=1; var first=read(actual); var second=read(actual);',
+    'import tower; var first:decltype(second[0]); var second:decltype(first[0]);',
+    'import tower; var values:i32[4]; var flag:bool=true; var first:decltype(values[flag]); var second:decltype(values[flag]);',
    ]) {
     const handle=tower.compile(source);
     try {
      const result=tower.execute(handle);
      assert.equal(result.status,'error');
-     assert.match(result.error,/Division by zero|Expected (i32|u64), got bool|Type constructors currently support a struct and return/);
+     assert.match(result.error,/Division by zero|Expected (i32|u64), got bool|Type constructors currently support a struct and return|initializer dependency cycle first -> second -> first|An index must be an integer/);
      const diagnostic={error:result.error,offset:result.errorOffset};
      if (!continuationDiagnostics.has(source)) continuationDiagnostics.set(source,diagnostic);
      assert.deepEqual(diagnostic,continuationDiagnostics.get(source),`declaration continuation errors at ${capacity} workers`);
@@ -273,7 +276,7 @@ fn badSecond(value:MissingSecond):void {}`);
     assert.match(result.error, /duplicate field 'first'/);
     assert.doesNotMatch(result.error, /duplicate field 'second'/);
    } finally { tower.destroyExecution(fieldsInvalid); }
-   for (const fixture of [delayedLayout, genericHeaders, typeFields, aggregateTypes, bodyContinuation, lazyBodies, lazyBodyBudget, expressionTypes, declarationContinuations, declarationInference, enumExpressions, defaults])
+   for (const fixture of [delayedLayout, genericHeaders, typeFields, aggregateTypes, bodyContinuation, lazyBodies, lazyBodyBudget, expressionTypes, declarationContinuations, declarationInference, declarationOperands, enumExpressions, defaults])
    for (const pointerBytes of [4,8]) for (let fast=0; fast<2; fast++) {
     const handle=tower.compile(fixture,{pointerBytes});
     try {
