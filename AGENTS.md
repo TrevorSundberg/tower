@@ -45,6 +45,14 @@ Do NOT modify todo.txt
 
 ## Writing Tower code
 
+- Prefer inferred generic call arguments when typed operands determine them,
+  e.g. `vector_push(&values, item)`. Keep explicit arguments for unresolved type
+  parameters or when they explain an otherwise ambiguous call. Omit all type
+  arguments together; partial omission is not supported. Deduction uses exact
+  types and nominal specialization metadata, follows straight-return type aliases,
+  and introduces no implicit conversions. Typed peers constrain integer literals;
+  a bare unconstrained integer uses the existing i32 default, and null alone
+  cannot determine a type. Publish a compatible bootstrap before migrating calls.
 - Implement Tower language features, checking and lowering in `.tower`. Do not
   introduce C/C++ implementations or native helper code for these features; use
   the existing compiler/formatter tools to validate them.

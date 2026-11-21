@@ -25042,3 +25042,49 @@ This slice removes145 native lines (6 mechanical adapter lines remain) from synt
 
 Previous published ownership work through6a3af2d is now verified in source dafeb208afdf5618d00759d57c6ad8fba2e11e69 / Pages df6e5c53e3028a8c9724cad133c3f1fb01b7f311: exact action44852551683 succeeded,416/416Node, both parallel successor generations identical,70hosted asset hashes and desktop/mobile/redirect checks passed (Agent2 records). External expression cleanup406c198/bb7967d and Pages0480cdc arrived afterward and are not covered by those exact-release claims. Coordinator has assigned the next source queue to Agent1's private session/format/setup/scanner batch, then Agent3's ready fixtures, with Agent1 responsible for a combined deployment. Further parsing/template orchestration remains native and is not claimed retired by this slice.
 Post-rebase publication validation for the session/format/setup/scanner batch: source86bbac6 includes external expression cleanupbb7967d and coordinator closeouteace288. Only append-only journal conflicts occurred; all histories were retained. A previously empty /home/trevo/.cache/tower/agent-1-session-release built through the documented build-native.sh with TOWER_BOOTSTRAP_COMPILER unset, public fb1ab1f9 and Clang19. Native frontend/driver/storage/format/execution/request passed6/6 in17.40s, backend API and module_paths.py passed. The actual built successor compiled the generated parser-node closure byte-identically to the bootstrap native object (cmp0), then compiled that same current source for wasm32-wasip1. The last pre-rebase SDK34 formatter run also passed all exact fixtures after scanner retirement; combined current-source browser/WASI deployment validation remains next. No todo.txt changes and git diff --check passes. Source lock is held only for this validated source push, then handed to Agent3 and the coordinator's ready reference slices; Agent1 owns the following combined deployment. These follow-ups are not yet claimed deployed in the prior df6e5c5/0480cdc results.
+Milestone 1 publication completed as main 406c198/bb7967d and Pages 0480cdc.
+One further rebase integrated dafeb20's final unused native adapter removals and
+semantic-definition comment update. Rebuilt the default-bootstrap successor and
+all browser reactors again; native CTests pass 5/5 in 16.76 seconds and backend
+API checks pass. The first Pages push was normally rejected by the independently
+published df6e5c5. Verified its source dafeb20 is an ancestor of the cleaned build,
+rebased the prepared artifacts, retained the upstream audit metadata, and checked
+all 70 asset hashes before the normal push. Hosted verification passes every
+asset plus desktop/mobile execution agreement, completion, editable grammar,
+persistence and native download flows (expression-final-live.log).
+
+### 2026-11-20: Milestone 2, exact generic call-argument inference
+
+Implemented the checker in semantic_call_inference.tower. Calls may omit all
+`: type` parameters, retaining the runtime argument order; explicit calls reuse
+the same sem_call_specialization path. Constraint bindings reference canonical
+type entities. Generic registry queries expose existing instance components and
+arguments, including a nominal record nested in its constructor instance. No
+display-name parsing, new Foundation operation, native code or separate generic
+IR is introduced. Straight-return aliases reuse GenericBinding syntax views;
+arbitrary type-program inversion and partial/result-driven deduction remain out.
+
+Typed operands constrain exact types before integer/null literals. A bare type
+parameter constrained only by integer literals defaults to i32; null alone cannot
+choose a type. Normal instantiated-signature checking still rejects incompatible
+nominal types and fixed array/count mismatches. Runtime operands remain in source
+order and execute once. Source-name and owner checks prevent qualified names from
+being mistaken for local type parameters. Constraints/depth budgets and ambiguous
+cases produce diagnostics rather than conversions or overload guesses.
+
+The prior published fb1ab1f9 bootstrap builds the implementation in a fresh
+/cache/inference-stage1 cache. The first draft used unsupported `else if` spelling;
+changed it to ordinary nested blocks, after which the native successor links.
+Three initial execution cases agree between both interpreters and native LLVM.
+Test corrections separated `i32* =` tokens and compared a string's byte rather
+than assuming print(pointer) prints text (it correctly prints an address).
+Expanded browser tests pass 6/6 across 32/64-bit reference/cache execution,
+Foundation reconstruction, LLVM/Wasm, nested aliases, pointer/array deduction,
+literal extremes, conflicting/unresolved constraints, deterministic explicit/
+inferred specialization reuse and typed completion. Existing template/inference/
+operator/completion interpreter checks pass 43 with two LLVM cases intentionally
+skipped in that interpreter-only run. Logs are inference-*-build.log,
+inference-native-cases.log, inference-node-all.log and
+inference-existing-interpreters.log. All feature implementation is Tower.
+Formatting, successor packaging and a clean default build are required before
+any compiler call-site migration; no compatible new bootstrap is claimed yet.

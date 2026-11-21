@@ -4,6 +4,9 @@ import foundation;
 // `import tower;` resolves this file, not the compiler or its Wasm binary.
 // An existing compiler reads these rules while compiling its successor;
 // the successor does not need to run before its own source can be compiled.
+// Calls may omit all `type` parameters when their exact types can be deduced
+// from runtime operands. This reuses ordinary call syntax and shared-node
+// specialization; explicit type arguments remain supported for ambiguity.
 // Named values are ordinary zero-argument Tower functions. Calling Name()
 // evaluates the initializer under the same execution contract as any function.
 // They do not imply memoization or a separate constant-expression evaluator.

@@ -307,6 +307,12 @@ extern fn generic_origin(context: void*, node: void*): void*;
 
 extern fn generic_definition(context: void*, node: void*): void*;
 
+extern fn generic_specialization(context: void*, node: void*): void*;
+
+extern fn generic_argument_count(context: void*, node: void*): usize;
+
+extern fn generic_argument(context: void*, node: void*, index: usize): void*;
+
 fn sem_label(node: void*): u8* {
     var `match` = sem_match(node);
     var present = `match` != null;

@@ -112,3 +112,31 @@ export fn generic_definition(context: GenericContext*, node: Entity*): Entity* {
     }
     return node;
 }
+
+// Query the existing specialization components, including a returned nominal
+// struct nested inside its constructor instance. Display names are not identity.
+export fn generic_specialization(context: GenericContext*, node: Entity*): Entity* {
+    while node != null {
+        if compiler_component_get(node, context.instance_type) != null {
+            return node;
+        }
+        node = entity_parent(node);
+    }
+    return null;
+}
+
+export fn generic_argument_count(context: GenericContext*, node: Entity*): usize {
+    var instance = bits(GenericInstance*, compiler_component_get(node, context.instance_type));
+    if instance == null {
+        return 0;
+    }
+    return instance.count;
+}
+
+export fn generic_argument(context: GenericContext*, node: Entity*, index: usize): Entity* {
+    var instance = bits(GenericInstance*, compiler_component_get(node, context.instance_type));
+    if instance == null || index >= instance.count {
+        return null;
+    }
+    return instance.arguments[index];
+}

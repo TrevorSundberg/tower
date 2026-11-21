@@ -423,6 +423,10 @@ containers. Benchmark representative compiler workloads before migrating them.
   are available in that shared scheduler. Native CLI worker pools, frozen-world
   phase publication, query/storage migration and measured SIMD remain open.
   Tower expression precedence/operators and scoped `for` are implemented.
+  Generic calls can infer omitted type arguments from exact typed operands and
+  nominal specialization metadata, including straight-return aliases. See
+  [generic call inference](generic-call-inference.md) for constraints and bootstrap
+  compatibility; this does not add implicit conversions or overload ranking.
   Selective imports, exact overloads, automatic moves, general foreach,
   comptime/eval, properties, interfaces and attributes are not implemented yet.
 

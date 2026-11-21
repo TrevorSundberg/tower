@@ -10,6 +10,7 @@ import semantic_statements;
 import semantic_support;
 import semantic_types;
 import semantic_expressions;
+import semantic_call_inference;
 import .library.vector;
 
 // Semantic compiler over shared Foundation components.
@@ -692,6 +693,22 @@ fn sem_builtin(c: SemanticContext*, n: void*, kind: u32, args: vector(void*)*): 
     return n;
 }
 
+fn sem_call_specialization(c: SemanticContext*, definition: void*, use: void*, arguments: vector(void*)*): void* {
+    var instance = generic_instantiate(c.generics, definition, use, arguments.data, arguments.length);
+    if !sem_generic_ok(c, use) || instance == null {
+        return null;
+    }
+    sem_state(c, c.source_bases, instance).number = sem_source_base(c, definition);
+    if sem_get(instance) == null {
+        sem_header(c, instance, sem_instance_name(c, definition, arguments), definition);
+        if !sem_ok(c) {
+            return null;
+        }
+        sem_push(&c.generated, instance);
+    }
+    return instance;
+}
+
 fn sem_call(c: SemanticContext*, n: void*): void* {
     if sem_editor_symbol(c, sem_member(n, "name"), 4) {
         sem_node(c, n, KCall());
@@ -716,51 +733,44 @@ fn sem_call(c: SemanticContext*, n: void*): void* {
     }
     var definition: void* = sem_resolve(c, c.templates, step3, name);
     if definition != null {
-        var step16 = generic_parameter_count(c.generics, definition);
-        if args.length != step16 {
-            var step18 = sem_cat(c, "Wrong argument count for template '", name);
-            var step19 = sem_cat(c, step18, "'");
-            sem_fail(c, n, step19);
-            return n;
+        var count = generic_parameter_count(c.generics, definition);
+        var runtime: usize = 0;
+        for(var i: usize = 0; i < count; i++) {
+            if !generic_type_parameter(c.generics, definition, i) {
+                runtime++;
+            }
         }
         var arguments: vector(void*)* = sem_list(c);
         var values: vector(void*)* = sem_list(c);
-        var i: usize = 0;
-        for(; i < args.length; i++) {
-            if generic_type_parameter(c.generics, definition, i) {
-                var step25 = sem_type(c, args.data[i]);
-                sem_push(arguments, sem_type_entity(c, step25));
-            } else {
-                sem_push(values, args.data[i]);
+        if args.length == count {
+            for(var i: usize = 0; i < count && sem_ok(c); i++) {
+                if generic_type_parameter(c.generics, definition, i) {
+                    sem_push(arguments, sem_type_entity(c, sem_type(c, args.data[i])));
+                } else {
+                    sem_push(values, args.data[i]);
+                }
             }
-            if !sem_ok(c) {
-                return n;
+        } else {
+            if args.length == runtime {
+                values = args;
+                arguments = sem_infer_arguments(c, definition, n, values);
+            } else {
+                sem_fail(c, n, sem_cat(c, "Wrong argument count for template '", sem_cat(c, name, "'")));
             }
         }
-        var instance: void* = generic_instantiate(c.generics, definition, n, arguments.data, arguments.length);
-        if !sem_generic_ok(c, n) || instance == null {
+        if !sem_ok(c) {
             return n;
         }
-        var step35 = sem_state(c, c.source_bases, instance);
-        var step36 = sem_source_base(c, definition);
-        step35.number = step36;
-        if sem_get(instance) == null {
-            var step39 = sem_instance_name(c, definition, arguments);
-            sem_header(c, instance, step39, definition);
-            if !sem_ok(c) {
-                return n;
-            }
-            sem_push(&c.generated, instance);
+        var instance = sem_call_specialization(c, definition, n, arguments);
+        if !sem_ok(c) || instance == null {
+            return n;
         }
         var value: FoundationNode* = sem_node(c, n, KCall());
         var callee: FoundationNode* = sem_get(instance);
         value.binding = instance;
         sem_set_type(&value.type, &callee.type);
-        i = 0;
-        for(; i < values.length; i++) {
-            var step46 = sem_get(callee.parameters.data[i]);
-            var step47 = sem_operand(c, values.data[i], &step46.type);
-            sem_push(&value.items, step47);
+        for(var i: usize = 0; i < values.length && sem_ok(c); i++) {
+            sem_push(&value.items, sem_operand(c, values.data[i], &sem_get(callee.parameters.data[i]).type));
         }
         return n;
     }

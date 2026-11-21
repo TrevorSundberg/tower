@@ -1,0 +1,263 @@
+import tower;
+import foundation_tags;
+import foundation_types;
+import semantic_context;
+import semantic_support;
+import semantic_types;
+import semantic_values;
+import semantic_expressions;
+import semantic_modules;
+import semantic_generic_info;
+import .library.vector;
+
+// Query-local constraints refer to the existing parameter and canonical type
+// entities. Specialization still uses generic_instantiate and ordinary calls.
+struct SemanticCallInference {
+    context: SemanticContext*;
+    definition: void*;
+    use: void*;
+    parameters: vector(void*)*;
+    bindings: vector(void*)*;
+}
+
+fn sem_infer_parameter(inference: SemanticCallInference*, annotation: void*): usize {
+    var c = inference.context;
+    var owner = annotation;
+    while owner != null && !sem_is(owner, "CoreFunction") {
+        owner = entity_parent(owner);
+    }
+    if owner != inference.definition {
+        return sem_maximum();
+    }
+    var name = sem_member(annotation, "name");
+    if name == null {
+        name = annotation;
+    }
+    if sem_member(name, "field") != null {
+        return sem_maximum();
+    }
+    var spelling = sem_identifier(c, name);
+    for(var i: usize = 0; i < inference.parameters.length; i++) {
+        if generic_type_parameter(c.generics, inference.definition, i) &&
+        sem_equal(spelling, sem_identifier(c, sem_member(inference.parameters.data[i], "name"))) {
+            return i;
+        }
+    }
+    return sem_maximum();
+}
+
+fn sem_infer_bind(inference: SemanticCallInference*, index: usize, actual: FoundationType*): void {
+    var c = inference.context;
+    var old = inference.bindings.data[index];
+    if old != null && !semantic_type_equal(&sem_get(old).type, actual) {
+        var name = sem_identifier(c, sem_member(inference.parameters.data[index], "name"));
+        sem_fail(c, inference.use, sem_cat(c, "Conflicting inferred types for '", sem_cat(c, name, "'")));
+        return;
+    }
+    inference.bindings.data[index] = sem_type_entity(c, actual);
+}
+
+fn sem_infer_match(inference: SemanticCallInference*, annotation: void*, actual: FoundationType*, substitutions: GenericBinding*, depth: u32): void {
+    var c = inference.context;
+    if !sem_ok(c) {
+        return;
+    }
+    if depth > 128 {
+        sem_fail(c, inference.use, "Generic argument inference nesting exceeds 128");
+        return;
+    }
+    annotation = sem_surface_unwrap(annotation);
+    while sem_is(annotation, "CoreTypeArgument") && sem_child_count(annotation) == 1 {
+        annotation = sem_child(annotation, 0);
+    }
+    if sem_member(annotation, "field") != null {
+        return;
+    }
+    if sem_is(annotation, "TowerExpression") {
+        var left = sem_member(annotation, "left");
+        if left != null && sem_equal(sem_surface_operator(c, annotation, left), "*") {
+            var tail = sem_tokens(c, sem_member(annotation, "right"));
+            var count: u32 = 1;
+            for(var i: usize = 0; tail[i] != 0; i++) {
+                if tail[i] != 42 {
+                    return;
+                }
+                count++;
+            }
+            if actual.pointers >= count {
+                var pointee = sem_type_copy(c, actual);
+                pointee.pointers -= count;
+                sem_infer_match(inference, left, pointee, substitutions, depth + 1);
+            }
+            return;
+        }
+    }
+    var base = sem_member(annotation, "base");
+    if base != null {
+        var count = sem_member(annotation, "count");
+        if count == null {
+            count = sem_member(annotation, "index");
+        }
+        if count != null {
+            if actual.pointers == 0 && actual.scalar == SArray() {
+                sem_infer_match(inference, base, &sem_get(actual.record).element, substitutions, depth + 1);
+            }
+        } else {
+            if actual.pointers != 0 {
+                var pointee = sem_type_copy(c, actual);
+                pointee.pointers--;
+                sem_infer_match(inference, base, pointee, substitutions, depth + 1);
+            }
+        }
+        return;
+    }
+    var arguments_node = sem_member(annotation, "args");
+    if arguments_node != null {
+        var name = sem_member(annotation, "name");
+        var definition = sem_resolve(c, c.type_functions, name, sem_identifier(c, name));
+        if definition == null {
+            return;
+        }
+        var label: u8* = "CoreTypeArgument";
+        if sem_is(annotation, "CoreCall") {
+            label = "CoreCallArgument";
+        }
+        var arguments = sem_collect(c, arguments_node, label);
+        var parameters = sem_collect(c, sem_member(definition, "params"), "CoreParameter");
+        if arguments.length != parameters.length {
+            return;
+        }
+        var returned = generic_type_result(c.generics, definition);
+        if !sem_generic_ok(c, inference.use) {
+            return;
+        }
+        // Follow the existing straight-return alias subset by substituting its
+        // actual syntax arguments. Do not infer by executing/inverting arbitrary
+        // type programs or by parsing specialization display names.
+        if !sem_is(returned, "CoreStruct") {
+            var bindings: GenericBinding* = null;
+            for(var i: usize = 0; i < parameters.length; i++) {
+                var binding = bits(GenericBinding*, sem_allocate(c, sizeof(GenericBinding)));
+                binding.parameter = parameters.data[i];
+                binding.argument = arguments.data[i];
+                binding.bindings = substitutions;
+                binding.next = bindings;
+                bindings = binding;
+            }
+            sem_infer_match(inference, returned, actual, bindings, depth + 1);
+            return;
+        }
+        // Nominal instances retain their constructor and canonical arguments as
+        // shared components. Validate the whole substituted type at the call.
+        if actual.pointers != 0 || actual.scalar != SStruct() {
+            return;
+        }
+        var instance = generic_specialization(c.generics, actual.record);
+        if instance == null || generic_definition(c.generics, instance) != definition {
+            return;
+        }
+        if arguments.length != generic_argument_count(c.generics, instance) {
+            return;
+        }
+        for(var i: usize = 0; i < arguments.length; i++) {
+            var value = generic_argument(c.generics, instance, i);
+            if !sem_get(value).constant {
+                sem_infer_match(inference, arguments.data[i], &sem_get(value).type, substitutions, depth + 1);
+            }
+        }
+        return;
+    }
+    var name = sem_member(annotation, "name");
+    if name == null {
+        name = annotation;
+    }
+    var spelling = sem_identifier(c, name);
+    var binding = substitutions;
+    while binding != null {
+        if sem_equal(spelling, sem_identifier(c, sem_member(binding.parameter, "name"))) {
+            sem_infer_match(inference, binding.argument, actual, binding.bindings, depth + 1);
+            return;
+        }
+        binding = binding.next;
+    }
+    var parameter = sem_infer_parameter(inference, annotation);
+    if parameter != sem_maximum() {
+        sem_infer_bind(inference, parameter, actual);
+    }
+}
+
+fn sem_infer_contextual(c: SemanticContext*, argument: void*): bool {
+    if !sem_literal(c, argument) {
+        return false;
+    }
+    var text = sem_tokens(c, sem_surface_unwrap(argument));
+    // bool/string have intrinsic types; integer literals and null use peers.
+    return !sem_equal(text, "true") && !sem_equal(text, "false") && text[0] != 34 && text[0] != 39;
+}
+
+fn sem_infer_arguments(c: SemanticContext*, definition: void*, use: void*, values: vector(void*)*): vector(void*)* {
+    var parameters = sem_collect(c, sem_member(definition, "params"), "CoreParameter");
+    var bindings = sem_list(c);
+    var result = sem_list(c);
+    for(var i: usize = 0; i < parameters.length; i++) {
+        sem_push(bindings, null);
+    }
+    var inference: SemanticCallInference;
+    inference.context = c;
+    inference.definition = definition;
+    inference.use = use;
+    inference.parameters = parameters;
+    inference.bindings = bindings;
+    // Analyze typed arguments first, without evaluating runtime code. The call's
+    // item list is still emitted in source order, exactly once per argument.
+    var value_index: usize = 0;
+    for(var i: usize = 0; i < parameters.length && sem_ok(c); i++) {
+        if generic_type_parameter(c.generics, definition, i) {
+            continue;
+        }
+        var argument = values.data[value_index];
+        value_index++;
+        if argument != null && !sem_infer_contextual(c, argument) && !sem_editor_contains(c, argument) {
+            var value = sem_operand(c, argument, null);
+            if sem_ok(c) {
+                sem_infer_match(&inference, sem_member(parameters.data[i], "type"), &sem_get(value).type, null, 0);
+            }
+        }
+    }
+    // A bare T constrained only by an integer literal uses the existing i32
+    // default. Null cannot invent a type. Already bound peers retain exact range
+    // information, including signed minima and u64 magnitudes.
+    value_index = 0;
+    for(var i: usize = 0; i < parameters.length && sem_ok(c); i++) {
+        if generic_type_parameter(c.generics, definition, i) {
+            continue;
+        }
+        var argument = values.data[value_index];
+        value_index++;
+        if argument != null && sem_infer_contextual(c, argument) {
+            var annotation = sem_member(parameters.data[i], "type");
+            if sem_member(annotation, "base") != null || sem_member(annotation, "args") != null {
+                continue;
+            }
+            var parameter = sem_infer_parameter(&inference, annotation);
+            if parameter != sem_maximum() && bindings.data[parameter] == null &&
+            !sem_equal(sem_tokens(c, sem_surface_unwrap(argument)), "null") {
+                var value = sem_operand(c, argument, null);
+                if sem_ok(c) {
+                    sem_infer_bind(&inference, parameter, &sem_get(value).type);
+                }
+            }
+        }
+    }
+    for(var i: usize = 0; i < parameters.length && sem_ok(c); i++) {
+        if generic_type_parameter(c.generics, definition, i) {
+            if bindings.data[i] == null {
+                var name = sem_identifier(c, sem_member(parameters.data[i], "name"));
+                sem_fail(c, use, sem_cat(c, "Cannot infer type argument '", sem_cat(c, name, "'; pass explicit type arguments")));
+                break;
+            }
+            sem_push(result, bindings.data[i]);
+        }
+    }
+    return result;
+}
