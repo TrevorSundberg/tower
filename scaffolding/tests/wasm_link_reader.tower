@@ -2,6 +2,7 @@ import tower;
 import .compiler.utf8;
 import utility_checks;
 import wasm_link_fixture;
+import wasm_link_shared;
 import .backend.wasm_bytes;
 import .backend.wasm_object;
 import .backend.wasm_object_types;
@@ -204,7 +205,7 @@ fn wasm_test_import_policy(): void {
     }
     var unsupported: WasmLink = default;
     utility_check(wasm_link_init(&unsupported), "unsupported profile world"); unsupported.shared_memory = true;
-    utility_check(!wasm_link_run(&unsupported) && unsupported.error == WasmLinkError.Unsupported && unsupported.output.length == 0, "shared memory is rejected until TLS initialization is implemented");
+    utility_check(!wasm_link_run(&unsupported) && unsupported.error == WasmLinkError.Unsupported && unsupported.output.length == 0, "shared memory requires explicit target features");
     utility_check(wasm_link_close(&unsupported), "unsupported profile cleanup");
     var input: ByteBuffer = default;
     var section: ByteBuffer = default;
@@ -760,6 +761,7 @@ export fn main(): i32 {
     wasm_test_byte_plans();
     wasm_test_archive_comdat_fallback();
     wasm_test_memory_imports();
+    wasm_test_shared_memory();
     puts("Wasm linker reader and world checks passed");
     return 0;
 }

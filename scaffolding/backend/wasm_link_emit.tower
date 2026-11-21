@@ -3,6 +3,7 @@ import wasm_bytes;
 import wasm_object_types;
 import wasm_link_types;
 import wasm_link_relocate;
+import wasm_link_memory;
 import .library.bytes_interface;
 import .library.bytes_types;
 
@@ -20,6 +21,7 @@ fn wasm_emit_i32_expression(output: ByteBuffer*, value: u64): bool {
 
 fn wasm_emit_memory_limits(link: WasmLink*, section: ByteBuffer*): bool {
     var flags: u64 = link.maximum_memory != 0 ? convert(u64, WasmLimitFlag.Maximum) : 0;
+    if link.shared_memory { flags |= convert(u64, WasmLimitFlag.Shared); }
     return wasm_write_uleb(section, flags) && wasm_write_uleb(section, link.initial_memory / WasmPageBytes)
         && (link.maximum_memory == 0 || wasm_write_uleb(section, link.maximum_memory / WasmPageBytes));
 }
@@ -70,16 +72,15 @@ fn wasm_emit_globals(link: WasmLink*, section: ByteBuffer*): bool {
 
 fn wasm_emit_synthetic(link: WasmLink*, output: WasmOutputFunction*, body: ByteBuffer*): bool {
     var symbol = &link.symbols.data[convert(usize, output.symbol)];
-    var unreachable: u8 = 0;
-    var call: u8 = 16;
+    if symbol.synthetic == WasmSynthetic.InitMemory { return wasm_emit_memory_init(link, body); }
     if !wasm_write_uleb(body, 0) { return false; }
     if symbol.synthetic == WasmSynthetic.SignatureTrap {
-        if !bytes_push(body, unreachable) { return false; }
+        if !bytes_push(body, convert(u8, WasmOpcode.Unreachable)) { return false; }
     } else {
         if symbol.synthetic != WasmSynthetic.Constructors { return wasm_link_fail(link, WasmLinkError.Unsupported, symbol.name); }
         foreach (var & initializer in &link.initializers) {
             var function = &link.symbols.data[convert(usize, initializer.symbol)];
-            if !bytes_push(body, call) || !wasm_write_uleb(body, convert(u64, function.output_index)) { return false; }
+            if !bytes_push(body, convert(u8, WasmOpcode.Call)) || !wasm_write_uleb(body, convert(u64, function.output_index)) { return false; }
         }
     }
     return bytes_push(body, convert(u8, WasmOpcode.End));
@@ -112,8 +113,7 @@ fn wasm_emit_code(link: WasmLink*, section: ByteBuffer*): bool {
 }
 
 fn wasm_emit_data(link: WasmLink*, section: ByteBuffer*): bool {
-    var count: usize = 0;
-    foreach (var layout in &link.layouts) { foreach (var & chunk in &layout.data) { if chunk.live { count++; } } }
+    var count = link.data_count;
     if count == 0 { return true; }
     if !wasm_write_uleb(section, convert(u64, count)) { return false; }
     for (var input: usize = 0; input < link.world.objects.length; input++) {
@@ -123,7 +123,8 @@ fn wasm_emit_data(link: WasmLink*, section: ByteBuffer*): bool {
             var chunk = &layout.data.data[row];
             if !chunk.live { continue; }
             var data = &object.data.data[row];
-            if !wasm_write_uleb(section, 0) || !wasm_emit_i32_expression(section, chunk.address)
+            var mode = link.shared_memory ? WasmDataMode.Passive : WasmDataMode.Active;
+            if !wasm_write_uleb(section, convert(u64, mode)) || (!link.shared_memory && !wasm_emit_i32_expression(section, chunk.address))
                 || !wasm_write_uleb(section, convert(u64, data.bytes.length)) { return false; }
             chunk.output_offset = convert(u64, section.length);
             if !bytes_append(section, data.bytes.data, data.bytes.length) { return false; }
@@ -187,12 +188,17 @@ fn wasm_link_emit_sections(link: WasmLink*, output: ByteBuffer*): bool {
         }
         if !wasm_emit_section(output, WasmSection.Export, &section) { return false; }
     }
+    if link.memory_init_symbol != WasmNoIndex {
+        var start = link.symbols.data[convert(usize, link.memory_init_symbol)].output_index;
+        if !wasm_write_uleb(&section, convert(u64, start)) || !wasm_emit_section(output, WasmSection.Start, &section) { return false; }
+    }
     if link.table_functions.length != 0 {
         if !wasm_write_uleb(&section, 1) || !wasm_write_uleb(&section, 0) || !wasm_emit_i32_expression(&section, convert(u64, WasmTableBase))
             || !wasm_write_uleb(&section, convert(u64, link.table_functions.length)) { return false; }
         foreach (var function in &link.table_functions) { if !wasm_write_uleb(&section, convert(u64, function)) { return false; } }
         if !wasm_emit_section(output, WasmSection.Element, &section) { return false; }
     }
+    if link.shared_memory && (!wasm_write_uleb(&section, convert(u64, link.data_count)) || !wasm_emit_section(output, WasmSection.DataCount, &section)) { return false; }
     if !wasm_emit_code(link, &section) || !wasm_emit_section(output, WasmSection.Code, &section)
         || !wasm_emit_data(link, &section) || !wasm_emit_section(output, WasmSection.Data, &section) { return false; }
     if link.emit_names && (!wasm_emit_names(link, &section) || !wasm_emit_section(output, WasmSection.Custom, &section)) { return false; }

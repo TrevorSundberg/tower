@@ -1,0 +1,76 @@
+import tower;
+import wasm_bytes;
+import wasm_object_types;
+import wasm_link_types;
+import .library.bytes_interface;
+import .library.bytes_types;
+
+// Static wasm32 shared memory. Object layout components supply the same final
+// addresses and segment indices used by relocation/data emission. The host must
+// dedicate these ranges and initially zero the aligned synchronization word.
+fn wasm_memory_opcode(body: ByteBuffer*, opcode: WasmOpcode): bool {
+    return bytes_push(body, convert(u8, opcode));
+}
+
+fn wasm_memory_const(body: ByteBuffer*, value: u64): bool {
+    return wasm_memory_opcode(body, WasmOpcode.I32Const)
+        && wasm_write_sleb(body, convert(i64, bits(i32, convert(u32, value))));
+}
+
+fn wasm_memory_atomic(body: ByteBuffer*, opcode: WasmAtomicOpcode): bool {
+    return wasm_memory_opcode(body, WasmOpcode.Atomic) && wasm_write_uleb(body, convert(u64, opcode))
+        && wasm_write_uleb(body, WasmAtomic32Alignment) && wasm_write_uleb(body, 0);
+}
+
+fn wasm_memory_block(body: ByteBuffer*, opcode: WasmOpcode): bool {
+    return wasm_memory_opcode(body, opcode) && bytes_push(body, WasmEmptyBlock);
+}
+
+fn wasm_emit_memory_init(link: WasmLink*, body: ByteBuffer*): bool {
+    // No locals or stack memory: each instance has its own globals but all
+    // instances arbitrate initialization through this shared atomic word.
+    if !wasm_write_uleb(body, 0) || !wasm_memory_const(body, link.memory_init_flag)
+        || !wasm_memory_const(body, convert(u64, WasmMemoryInitState.Uninitialized))
+        || !wasm_memory_const(body, convert(u64, WasmMemoryInitState.Initializing))
+        || !wasm_memory_atomic(body, WasmAtomicOpcode.I32CompareExchange)
+        || !wasm_memory_opcode(body, WasmOpcode.I32Eqz) || !wasm_memory_block(body, WasmOpcode.If) { return false; }
+    for (var input: usize = 0; input < link.world.objects.length; input++) {
+        var object = link.world.objects.data[input].object;
+        var layout = link.layouts.data[input];
+        for (var row: usize = 0; row < object.data.length; row++) {
+            var chunk = &layout.data.data[row];
+            if !chunk.live { continue; }
+            if !wasm_memory_const(body, chunk.address) || !wasm_memory_const(body, 0)
+                || !wasm_memory_const(body, convert(u64, object.data.data[row].bytes.length))
+                || !wasm_memory_opcode(body, WasmOpcode.BulkMemory) || !wasm_write_uleb(body, convert(u64, WasmBulkOpcode.MemoryInit))
+                || !wasm_write_uleb(body, convert(u64, chunk.output_index)) || !wasm_write_uleb(body, 0) { return false; }
+        }
+    }
+    var all_waiters: u64 = convert(u64, ~convert(u32, 0));
+    if !wasm_memory_const(body, link.memory_init_flag) || !wasm_memory_const(body, convert(u64, WasmMemoryInitState.Ready))
+        || !wasm_memory_atomic(body, WasmAtomicOpcode.I32Store)
+        || !wasm_memory_const(body, link.memory_init_flag) || !wasm_memory_const(body, all_waiters)
+        || !wasm_memory_atomic(body, WasmAtomicOpcode.Notify) || !wasm_memory_opcode(body, WasmOpcode.Drop)
+        || !wasm_memory_opcode(body, WasmOpcode.Else)
+        || !wasm_memory_block(body, WasmOpcode.Block) || !wasm_memory_block(body, WasmOpcode.Loop) { return false; }
+    // Recheck after every wake. An unrelated notify at this address must not
+    // expose partially initialized data. Waiting may block only in a worker.
+    var done_depth: u64 = 1;
+    var retry_depth: u64 = 0;
+    if !wasm_memory_const(body, link.memory_init_flag) || !wasm_memory_atomic(body, WasmAtomicOpcode.I32Load)
+        || !wasm_memory_const(body, convert(u64, WasmMemoryInitState.Ready)) || !wasm_memory_opcode(body, WasmOpcode.I32Eq)
+        || !wasm_memory_opcode(body, WasmOpcode.BranchIf) || !wasm_write_uleb(body, done_depth)
+        || !wasm_memory_const(body, link.memory_init_flag) || !wasm_memory_const(body, convert(u64, WasmMemoryInitState.Initializing))
+        || !wasm_memory_opcode(body, WasmOpcode.I64Const) || !wasm_write_sleb(body, -1)
+        || !wasm_memory_atomic(body, WasmAtomicOpcode.Wait32) || !wasm_memory_opcode(body, WasmOpcode.Drop)
+        || !wasm_memory_opcode(body, WasmOpcode.Branch) || !wasm_write_uleb(body, retry_depth)
+        || !wasm_memory_opcode(body, WasmOpcode.End) || !wasm_memory_opcode(body, WasmOpcode.End)
+        || !wasm_memory_opcode(body, WasmOpcode.End) { return false; }
+    // Every instance owns its passive segments. Drop only its own copies after
+    // observing completion. TLS templates are deliberately unsupported here.
+    for (var segment: u32 = 0; segment < link.data_count; segment++) {
+        if !wasm_memory_opcode(body, WasmOpcode.BulkMemory) || !wasm_write_uleb(body, convert(u64, WasmBulkOpcode.DataDrop))
+            || !wasm_write_uleb(body, convert(u64, segment)) { return false; }
+    }
+    return wasm_memory_opcode(body, WasmOpcode.End);
+}

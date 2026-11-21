@@ -38137,3 +38137,50 @@ measurement evidence above remains applicable. The full ordinary driver suite
 passes in 12.65 seconds and the rebased functions native-measurement preset
 passes all five interpret/compile/execute/object samples. Preserve the newer
 hosted runtime/build identity during the metadata-only tooling publication.
+### 2026-11-21: shared-memory data initialization in the Tower Wasm linker
+
+Continue third-party dependency replacement after the completed profiling gate.
+Initial pull advances main through fb20d60, preserving the tooling agent's C-test
+runner migration. Read pinned upstream lld/wasm/Writer.cpp (1e57ee22ca274b663eeb279fd86e7010a8441c99),
+particularly populateTargetFeatures/layoutMemory/createInitMemoryFunction, and
+https://github.com/WebAssembly/threads/blob/main/proposals/threads/Overview.md.
+Upstream source: https://github.com/llvm/llvm-project/blob/1e57ee22ca274b663eeb279fd86e7010a8441c99/lld/wasm/Writer.cpp.
+
+Implement the static wasm32, non-TLS shared profile in Tower. Require explicit
+atomics/bulk-memory features, no shared-mem prohibition and a maximum. Retain
+shared input limits only for a shared output. Preserve TLS segment/symbol and
+memory64 rejection. The same request-owned ECS layout components assign dense
+live segment indexes and a dedicated aligned four-byte initialization flag.
+Emit passive data, DataCount before code, and a synthetic start function. Its
+compare/exchange elects one initializer; completion uses atomic store/notify.
+Waiters load/recheck after every wake, so an unrelated notification cannot expose
+partial data. Each instance drops its own segment copies after observing ready.
+No separate semantic IR, native shim, fallback or shared mutable linker cursor.
+Make synthetic-name eligibility request-aware so an ordinary nonshared archive
+reference to __wasm_init_memory is not accidentally suppressed.
+
+Scope: this does not implement TLS or a thread runtime. Imported shared memory
+must initially zero the flag and reserve this image's fixed ranges. Instance-local
+stack globals initially point to the same stack; runtime transport must assign
+separate stacks before concurrent stack-using calls. Tests deliberately use
+stack-free operations. Parallel input-reading/linker jobs remain a separate gate.
+
+Smallest wasm_link_memory unit compiles first with public bootstrap 0d752e7.
+New Tower fixtures validate legal defined/imported/empty profiles and failure
+without artifacts for missing features, prohibited shared-mem, absent maximum,
+TLS and reserved definitions. Executable fixtures retain two data segments around
+a collected segment, checking passive index remapping. Generate them with the
+Tower-only wasm_link_shared_generate tool linked to existing guest-host-library.o.
+The only JS addition extends existing host-wasi byte/worker transport: instantiate
+one supplied module/memory and invoke named exports under a per-worker deadline;
+all assertions remain Tower code. Eight cold instances, one mutation, eight warm
+instances and the final exact atomic completion count pass. No claim of exhaustive
+wait/wakeup scheduling coverage or full compiler thread-runtime compatibility.
+
+Reference trial initially failed because SDK 34 wasm-ld now defaults stack-first,
+placing data at 65536 while this fixture explicitly uses address 1024. Attempting
+--global-base=1024 alone diagnoses an incompatible stack then the upstream tool
+crashes (no successful artifact claimed). --no-stack-first matches the declared
+fixture layout; the same shared-instance assertions then pass with LLD. Keep
+that option explicit in reproduction instructions. Native expanded reader suite
+passes; final multi-segment WASI, successor and browser gates follow.

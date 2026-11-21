@@ -1,0 +1,34 @@
+import tower;
+import wasm_link_shared;
+import utility_checks;
+import .compiler.utf8;
+import .backend.wasm_bytes;
+import .backend.wasm_link_world;
+import .backend.wasm_link_types;
+import .backend.wasm_link_prepare;
+import .backend.wasm_link;
+import .host.driver_files;
+import .library.bytes;
+import .library.bytes_types;
+import .library.entities;
+import .library.entity_types;
+
+export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void { abort(); }
+
+export fn main(argc: i32, argv: u8**): i32 {
+    if argc != 3 { puts("wasm_link_shared_generate object.o image.wasm"); return 1; }
+    wasm_test_shared_memory();
+    var input: ByteBuffer = default;
+    defer bytes_dispose(&input);
+    wasm_shared_object(&input, WasmSharedCase.Imported, WasmSharedFixtureBytes);
+    utility_check(driver_write_file(argv[1], input.data, input.length), "write shared comparison object");
+    var link: WasmLink = default;
+    utility_check(wasm_link_init(&link), "shared execution world");
+    defer wasm_link_close(&link);
+    link.shared_memory = true; link.import_memory = true;
+    utility_check(wasm_link_read_object(&link.world, wasm_text_bytes("shared.o"), init(WasmBytes) { data: input.data, length: input.length })
+        && wasm_link_run(&link), "shared execution image");
+    utility_check(driver_write_file(argv[2], link.output.data, link.output.length), "write shared execution image");
+    puts("Shared-memory linker fixtures passed");
+    return 0;
+}

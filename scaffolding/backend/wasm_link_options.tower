@@ -95,6 +95,7 @@ fn wasm_link_option(link: WasmLink*, options: WasmLinkOptions*, argument: WasmBy
     if wasm_bytes_text(argument, "--whole-archive") { options.whole_archive = true; return true; }
     if wasm_bytes_text(argument, "--no-whole-archive") { options.whole_archive = false; return true; }
     if wasm_bytes_text(argument, "--export-memory") { link.export_memory = true; return true; }
+    if wasm_bytes_text(argument, "--shared-memory") { link.shared_memory = true; return true; }
     if wasm_bytes_text(argument, "--import-memory") {
         link.import_memory = true; link.memory_module = wasm_text_bytes("env"); link.memory_name = wasm_text_bytes("memory"); return true;
     }

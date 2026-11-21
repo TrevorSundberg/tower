@@ -144,8 +144,19 @@ Static wasm32 output may define memory or import it with `--import-memory`
 (`env.memory`) or `--import-memory=module,name`. Both paths preserve explicit
 initial/maximum limits and optional memory export. Imported memory does not make
 the image relocatable: the host must dedicate its assigned static/stack ranges,
-and active data segments initialize them on every instantiation. It is not the
-shared-memory worker profile, which still requires atomic initialization and TLS.
+and active data segments initialize them on every instantiation.
+
+`--shared-memory` now supports static wasm32 data initialization with defined or
+imported shared memory. It requires a maximum and input `atomics`/`bulk-memory`
+features, and rejects inputs that disallow `shared-mem`. Live data becomes passive;
+a generated start function claims a dedicated aligned flag, initializes once,
+publishes completion and wakes waiting instances. Waiters recheck after notification;
+each instance then drops its own data copies. The host must initially zero the
+flag and dedicate the static memory ranges to this image. Instantiation that may
+wait belongs on workers. Stack globals remain instance-local, but their initial
+address is identical: the runtime must assign distinct stacks before concurrent
+stack-using calls. This feature does not provide a thread runtime. TLS templates,
+TLS relocations, dynamic memory bases and memory64 remain explicitly unsupported.
 
 Entity layouts live in `library/entity_types.tower`; separately compiled linker
 clients use the typed `entity_api.tower` declarations and link the existing Tower

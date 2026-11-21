@@ -62,7 +62,7 @@ fn wasm_archive_schedule(link: WasmLink*, selection: WasmArchiveSelection*, name
 fn wasm_archive_demand(link: WasmLink*, selection: WasmArchiveSelection*, name: WasmBytes): bool {
     // Satisfied references cannot trigger a future extraction. Avoid retaining
     // their often long C++ names in the unresolved-demand index.
-    if wasm_names_get(&selection.definitions, name) != WasmNoIndex || wasm_link_synthetic_kind(name) != WasmSynthetic.None { return true; }
+    if wasm_names_get(&selection.definitions, name) != WasmNoIndex || wasm_link_synthetic_kind(link, name) != WasmSynthetic.None { return true; }
     if !wasm_names_set(&selection.demands, name, 0) { return wasm_link_fail(link, WasmLinkError.Allocation, name); }
     return wasm_archive_schedule(link, selection, name);
 }

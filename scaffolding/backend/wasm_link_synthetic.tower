@@ -5,13 +5,14 @@ import wasm_object_types;
 import wasm_link_types;
 import wasm_link_prepare;
 
-fn wasm_link_synthetic_kind(name: WasmBytes): WasmSynthetic {
+fn wasm_link_synthetic_kind(link: WasmLink*, name: WasmBytes): WasmSynthetic {
     if wasm_bytes_text(name, "__stack_pointer") { return WasmSynthetic.Stack; }
     if wasm_bytes_text(name, "__heap_base") { return WasmSynthetic.HeapBase; }
     if wasm_bytes_text(name, "__data_end") { return WasmSynthetic.DataEnd; }
     if wasm_bytes_text(name, "__memory_base") { return WasmSynthetic.MemoryBase; }
     if wasm_bytes_text(name, "__table_base") { return WasmSynthetic.TableBase; }
     if wasm_bytes_text(name, "__wasm_call_ctors") { return WasmSynthetic.Constructors; }
+    if link.shared_memory && wasm_bytes_text(name, "__wasm_init_memory") { return WasmSynthetic.InitMemory; }
     if wasm_bytes_text(name, "__indirect_function_table") { return WasmSynthetic.IndirectTable; }
     if wasm_bytes_text(name, "__dso_handle") { return WasmSynthetic.DsoHandle; }
     if wasm_bytes_text(name, "__stack_low") { return WasmSynthetic.StackLow; }
@@ -23,14 +24,14 @@ fn wasm_link_synthetic_kind(name: WasmBytes): WasmSynthetic {
 }
 
 fn wasm_link_synthetic_symbol(link: WasmLink*, name: WasmBytes, required: bool): bool {
-    var synthetic = wasm_link_synthetic_kind(name);
+    var synthetic = wasm_link_synthetic_kind(link, name);
     if synthetic == WasmSynthetic.None { return true; }
     var index = wasm_names_get(&link.names, name);
     if index == WasmNoIndex {
         if !required { return true; }
         var kind = WasmSymbolKind.Data;
         if synthetic == WasmSynthetic.Stack { kind = WasmSymbolKind.Global; }
-        if synthetic == WasmSynthetic.Constructors { kind = WasmSymbolKind.Function; }
+        if synthetic == WasmSynthetic.Constructors || synthetic == WasmSynthetic.InitMemory { kind = WasmSymbolKind.Function; }
         if synthetic == WasmSynthetic.IndirectTable { kind = WasmSymbolKind.Table; }
         var symbol: WasmResolvedSymbol = { name: name, kind: convert(u8, kind),
             definition: { object: WasmNoIndex, symbol: WasmNoIndex },
@@ -42,10 +43,13 @@ fn wasm_link_synthetic_symbol(link: WasmLink*, name: WasmBytes, required: bool):
         }
     }
     var symbol = &link.symbols.data[convert(usize, index)];
-    if symbol.defined { return true; }
+    if symbol.defined {
+        if synthetic == WasmSynthetic.InitMemory && symbol.synthetic != synthetic { return wasm_link_fail(link, WasmLinkError.Duplicate, name); }
+        return true;
+    }
     var kind = convert(WasmSymbolKind, symbol.kind);
     var valid = kind == WasmSymbolKind.Data || kind == WasmSymbolKind.Global;
-    if synthetic == WasmSynthetic.Constructors { valid = kind == WasmSymbolKind.Function; }
+    if synthetic == WasmSynthetic.Constructors || synthetic == WasmSynthetic.InitMemory { valid = kind == WasmSymbolKind.Function; }
     if synthetic == WasmSynthetic.IndirectTable { valid = kind == WasmSymbolKind.Table; }
     if synthetic == WasmSynthetic.Stack { valid = kind == WasmSymbolKind.Global; }
     if !valid { return wasm_link_fail(link, WasmLinkError.Signature, name); }
@@ -69,6 +73,11 @@ fn wasm_link_synthetic_symbol(link: WasmLink*, name: WasmBytes, required: bool):
 }
 
 fn wasm_link_synthetics(link: WasmLink*): bool {
+    if link.shared_memory {
+        var name = wasm_text_bytes("__wasm_init_memory");
+        if !wasm_link_synthetic_symbol(link, name, true) { return false; }
+        link.memory_init_symbol = wasm_names_get(&link.names, name);
+    }
     if link.export_table {
         var request: WasmExportRequest = { name: wasm_text_bytes("__indirect_function_table"), required: true };
         if !wasm_link_push(link, &link.exports, request) { return false; }

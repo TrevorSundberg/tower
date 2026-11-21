@@ -91,7 +91,7 @@ LLD while the remaining compatibility and worker gates are implemented.
 `wasm_link_reader.tower` checks bounded LEB/object/archive decoding, independent
 worlds and pinned disposal, symbol selection, wrapping, direct-call signature
 variants versus address-only declarations, relocation bit patterns, import/weak
-policies, rejected shared-memory requests and failure without partial output.
+policies, shared-memory legality and failure without partial output.
 It also checks lazy GNU archive extraction, backward references, recursive member
 dependencies, cycles, weak references, exports, COMDAT alternatives, unused
 malformed members, byte-only plans and deterministic retry cleanup. Memory-profile
@@ -107,11 +107,12 @@ run with `node scaffolding/tests/host-wasi.mjs OUTPUT.wasm`.
 `tools/wasm_link_audit.tower` reads and optionally resolves real support archives.
 Both build as library objects with the same native runtime. The static tool
 supports explicit `--whole-archive`, `--export=`, `--export-if-defined=`, `--wrap=`,
-allow-undefined lists, stack/memory limits, `--import-memory[=module,name]` and `-o`. Its optional
+allow-undefined lists, stack/memory limits, `--import-memory[=module,name]`,
+`--shared-memory` and `-o`. Its optional
 `--export-if-defined-list=FILE` reads one export name per line to avoid host
 command-line limits; `--debug-names` retains symbolic Wasm stack traces.
 Indexed GNU archives are lazy by default; `--whole-archive` requests every member.
-Thin/BSD-index archives remain unsupported. Shared-memory/TLS, memory64, tags, referential global initializers,
+Thin/BSD-index archives remain unsupported. TLS, memory64, tags, referential global initializers,
 dynamic/relocatable output and DWARF/custom-section preservation
 are not implemented. Requests for currently recognized unsupported profiles
 fail explicitly; this is not a complete drop-in `wasm-ld` CLI.
@@ -129,6 +130,28 @@ To execute an imported-memory fixture, provide `TOWER_TEST_MEMORY_MODULE`,
 `TOWER_TEST_MEMORY_NAME`, `TOWER_TEST_MEMORY_INITIAL` and
 `TOWER_TEST_MEMORY_MAXIMUM` to the same host runner. Sizes are Wasm pages. This
 only supplies the host memory; assertions and linking remain Tower code.
+
+`wasm_link_shared.tower` adds shared-memory feature/limit/TLS/reserved-symbol
+rejections, start/data-count/flag layout, passive segments and collected-segment
+index checks. `wasm_link_shared_generate.tower` builds with the same native runtime
+and accepts `fixture.o image.wasm`. It writes a stack-free executable fixture with
+all assertions in Tower-authored Wasm byte fixtures. To exercise real instances,
+set `TOWER_TEST_MEMORY_INITIAL=32`, `TOWER_TEST_MEMORY_MAXIMUM=32768`, and
+`TOWER_TEST_INSTANCE_PHASES` to this JSON, then run the existing host runner:
+
+```json
+[{"entry":"cold","workers":8},{"entry":"mutate","workers":1},{"entry":"warm","workers":8},{"entry":"finish","workers":1}]
+```
+
+The host only supplies shared memory, worker lifetimes and exported calls, with
+a 30-second worker deadline. Tower checks cold data, a second retained segment
+after a collected segment, preservation of mutations across new instances, and
+the exact shared atomic completion count. Compare the same object with SDK 34
+`wasm-ld --no-entry --no-stack-first --shared-memory --import-memory
+--initial-memory=2097152 --max-memory=2147483648 fixture.o -o reference.wasm`.
+The explicit stack policy matches this fixture's deliberate absolute addresses;
+newer LLD defaults to stack-first. These stack-free instances do not establish
+TLS or a full threaded compiler runtime, nor prove every wait/wakeup schedule.
 
 `backend/wasm_link_plan.tower` accepts length-delimited arguments and explicitly
 named input bytes, including allow/export lists. Its keys need no NUL terminator.

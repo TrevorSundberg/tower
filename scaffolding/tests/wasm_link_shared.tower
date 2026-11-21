@@ -1,0 +1,172 @@
+import tower;
+import utility_checks;
+import wasm_link_fixture;
+import .backend.wasm_bytes;
+import .backend.wasm_object;
+import .backend.wasm_object_types;
+import .backend.wasm_link_types;
+import .backend.wasm_link_world;
+import .backend.wasm_link_prepare;
+import .backend.wasm_link_options;
+import .backend.wasm_link;
+import .backend.wasm_link_memory;
+import .library.vector;
+import .library.bytes_interface;
+import .library.bytes_types;
+
+enum WasmSharedCase: u32 { Defined = 0, Imported = 1, MissingAtomics = 2, MissingBulk = 3, Disallowed = 4, Unlimited = 5, TlsSegment = 6, Empty = 7, ReservedDefinition = 8 }
+enum WasmSharedFunction: u32 { Cold = 0, Mutate = 1, Warm = 2, Finish = 3, Count = 4 }
+var WasmSharedFixtureBytes: usize = 1048576;
+var WasmSharedWorkers: u64 = 8;
+var WasmSharedInitialValue: u64 = 42;
+var WasmSharedChangedValue: u64 = 43;
+var WasmSharedCounterOffset: u64 = 4;
+var WasmSharedInputSegments: u64 = 3;
+var WasmSharedRetainedSegments: u32 = 2;
+var WasmSharedTailValue: u64 = 99;
+
+fn wasm_shared_name(function: WasmSharedFunction): u8* {
+    match function {
+        WasmSharedFunction.Cold => { return "cold"; }
+        WasmSharedFunction.Mutate => { return "mutate"; }
+        WasmSharedFunction.Warm => { return "warm"; }
+        _ => { return "finish"; }
+    }
+}
+
+fn wasm_shared_check(body: ByteBuffer*, address: u64, value: u64): void {
+    utility_check(wasm_memory_const(body, address) && wasm_memory_atomic(body, WasmAtomicOpcode.I32Load)
+        && wasm_memory_const(body, value) && wasm_memory_opcode(body, WasmOpcode.I32Eq)
+        && wasm_memory_opcode(body, WasmOpcode.I32Eqz) && wasm_memory_block(body, WasmOpcode.If)
+        && wasm_memory_opcode(body, WasmOpcode.Unreachable) && wasm_memory_opcode(body, WasmOpcode.End), "shared fixture assertion");
+}
+
+// A stack-free executable fixture: its bytes and every runtime assertion are
+// authored here in Tower. Absolute addresses are deliberate fixture values;
+// production relocation checks remain in wasm_link_reader.
+fn wasm_shared_object(output: ByteBuffer*, mode: WasmSharedCase, data_size: usize): void {
+    var header: u8[8] = default;
+    header[1] = 97; header[2] = 115; header[3] = 109; header[4] = 1;
+    utility_check(bytes_append(output, &header[0], 8), "shared fixture header");
+    var section: ByteBuffer = default;
+    var body: ByteBuffer = default;
+    var symbols: ByteBuffer = default;
+    var segments: ByteBuffer = default;
+    defer bytes_dispose(&section); defer bytes_dispose(&body);
+    defer bytes_dispose(&symbols); defer bytes_dispose(&segments);
+    wasm_test_index(&section, 1); wasm_test_byte(&section, WasmFunctionType);
+    wasm_test_index(&section, 0); wasm_test_index(&section, 0);
+    wasm_test_section(output, WasmSection.Type, &section);
+    wasm_test_index(&section, convert(u64, WasmSharedFunction.Count));
+    for (var at: u32 = 0; at < convert(u32, WasmSharedFunction.Count); at++) { wasm_test_index(&section, 0); }
+    wasm_test_section(output, WasmSection.Function, &section);
+    wasm_test_index(&section, convert(u64, WasmSharedFunction.Count));
+    for (var at: u32 = 0; at < convert(u32, WasmSharedFunction.Count); at++) {
+        var function = convert(WasmSharedFunction, at);
+        body.length = 0; wasm_test_index(&body, 0);
+        if function == WasmSharedFunction.Mutate {
+            utility_check(wasm_memory_const(&body, WasmDefaultGlobalBase) && wasm_memory_const(&body, WasmSharedChangedValue)
+                && wasm_memory_atomic(&body, WasmAtomicOpcode.I32Store), "shared fixture mutation");
+        } else {
+            var address = WasmDefaultGlobalBase;
+            var value = function == WasmSharedFunction.Cold ? WasmSharedInitialValue : WasmSharedChangedValue;
+            if function == WasmSharedFunction.Finish { address += WasmSharedCounterOffset; value = WasmSharedWorkers * 2; }
+            wasm_shared_check(&body, address, value);
+            if data_size != 0 { wasm_shared_check(&body, WasmDefaultGlobalBase + convert(u64, data_size), WasmSharedTailValue); }
+            if function != WasmSharedFunction.Finish {
+                utility_check(wasm_memory_const(&body, WasmDefaultGlobalBase + WasmSharedCounterOffset) && wasm_memory_const(&body, 1)
+                    && wasm_memory_atomic(&body, WasmAtomicOpcode.I32Add)
+                    && wasm_memory_opcode(&body, WasmOpcode.Drop), "shared fixture completion counter");
+            }
+        }
+        wasm_test_byte(&body, convert(u8, WasmOpcode.End));
+        wasm_test_index(&section, convert(u64, body.length));
+        utility_check(bytes_append(&section, body.data, body.length), "shared fixture code");
+    }
+    wasm_test_section(output, WasmSection.Code, &section);
+    if data_size != 0 {
+        wasm_test_index(&section, WasmSharedInputSegments); wasm_test_index(&section, convert(u64, WasmDataMode.Active));
+        utility_check(wasm_memory_const(&section, 0), "shared fixture data offset");
+        wasm_test_byte(&section, convert(u8, WasmOpcode.End));
+        wasm_test_index(&section, convert(u64, data_size));
+        wasm_test_byte(&section, convert(u8, WasmSharedInitialValue));
+        for (var at: usize = 1; at < data_size; at++) { wasm_test_byte(&section, 0); }
+        for (var segment: u64 = 1; segment < WasmSharedInputSegments; segment++) {
+            wasm_test_index(&section, convert(u64, WasmDataMode.Active));
+            utility_check(wasm_memory_const(&section, 0), "shared extra segment offset");
+            wasm_test_byte(&section, convert(u8, WasmOpcode.End)); wasm_test_index(&section, WasmMemoryInitFlagBytes);
+            wasm_test_byte(&section, convert(u8, WasmSharedTailValue));
+            for (var byte: u64 = 1; byte < WasmMemoryInitFlagBytes; byte++) { wasm_test_byte(&section, 0); }
+        }
+        wasm_test_section(output, WasmSection.Data, &section);
+        wasm_test_index(&segments, WasmSharedInputSegments); wasm_test_name(&segments, ".data.shared_fixture");
+        wasm_test_index(&segments, WasmAtomic32Alignment);
+        var flags = convert(u64, WasmSegmentFlag.Retain);
+        if mode == WasmSharedCase.TlsSegment { flags |= convert(u64, WasmSegmentFlag.ThreadLocal); }
+        wasm_test_index(&segments, flags);
+        wasm_test_name(&segments, ".data.discarded"); wasm_test_index(&segments, WasmAtomic32Alignment); wasm_test_index(&segments, 0);
+        wasm_test_name(&segments, ".data.tail"); wasm_test_index(&segments, WasmAtomic32Alignment); wasm_test_index(&segments, flags);
+    }
+    wasm_test_index(&symbols, convert(u64, WasmSharedFunction.Count));
+    for (var at: u32 = 0; at < convert(u32, WasmSharedFunction.Count); at++) {
+        wasm_test_byte(&symbols, convert(u8, WasmSymbolKind.Function));
+        wasm_test_index(&symbols, convert(u64, WasmSymbolFlag.Exported)); wasm_test_index(&symbols, convert(u64, at));
+        wasm_test_name(&symbols, mode == WasmSharedCase.ReservedDefinition && at == 0 ? "__wasm_init_memory" : wasm_shared_name(convert(WasmSharedFunction, at)));
+    }
+    wasm_test_name(&section, "linking"); wasm_test_index(&section, convert(u64, WasmLinkingVersion));
+    if data_size != 0 {
+        wasm_test_byte(&section, convert(u8, WasmLinkingSection.Segments)); wasm_test_index(&section, convert(u64, segments.length));
+        utility_check(bytes_append(&section, segments.data, segments.length), "shared fixture segment metadata");
+    }
+    wasm_test_byte(&section, convert(u8, WasmLinkingSection.Symbols)); wasm_test_index(&section, convert(u64, symbols.length));
+    utility_check(bytes_append(&section, symbols.data, symbols.length), "shared fixture symbols");
+    wasm_test_section(output, WasmSection.Custom, &section);
+    wasm_test_name(&section, "target_features");
+    var feature_count: u64 = 2;
+    if mode == WasmSharedCase.MissingAtomics || mode == WasmSharedCase.MissingBulk { feature_count--; }
+    if mode == WasmSharedCase.Disallowed { feature_count++; }
+    wasm_test_index(&section, feature_count);
+    if mode != WasmSharedCase.MissingAtomics { wasm_test_byte(&section, convert(u8, WasmFeaturePrefix.Used)); wasm_test_name(&section, "atomics"); }
+    if mode != WasmSharedCase.MissingBulk { wasm_test_byte(&section, convert(u8, WasmFeaturePrefix.Used)); wasm_test_name(&section, "bulk-memory"); }
+    if mode == WasmSharedCase.Disallowed { wasm_test_byte(&section, convert(u8, WasmFeaturePrefix.Disallowed)); wasm_test_name(&section, "shared-mem"); }
+    wasm_test_section(output, WasmSection.Custom, &section);
+}
+
+fn wasm_test_shared_memory(): void {
+    for (var at: u32 = 0; at <= convert(u32, WasmSharedCase.ReservedDefinition); at++) {
+        var mode = convert(WasmSharedCase, at);
+        var input: ByteBuffer = default;
+        defer bytes_dispose(&input);
+        var size: usize = mode == WasmSharedCase.Empty ? 0 : 8;
+        wasm_shared_object(&input, mode, size);
+        var link: WasmLink = default;
+        utility_check(wasm_link_init(&link), "shared profile world");
+        defer wasm_link_close(&link);
+        var options: WasmLinkOptions = default; var item: WasmLinkOption = default;
+        utility_check(wasm_link_option(&link, &options, wasm_text_bytes("--shared-memory"), &item), "shared option");
+        link.import_memory = mode == WasmSharedCase.Imported;
+        if mode == WasmSharedCase.Unlimited { link.maximum_memory = 0; }
+        utility_check(wasm_link_read_object(&link.world, wasm_text_bytes("shared.o"), init(WasmBytes) { data: input.data, length: input.length }), "shared profile input");
+        var ok = wasm_link_run(&link);
+        if mode != WasmSharedCase.Defined && mode != WasmSharedCase.Imported && mode != WasmSharedCase.Empty {
+            var error = mode == WasmSharedCase.Unlimited ? WasmLinkError.Layout : WasmLinkError.Unsupported;
+            if mode == WasmSharedCase.ReservedDefinition { error = WasmLinkError.Duplicate; }
+            utility_check(!ok && link.error == error && link.output.length == 0, "unsupported shared profile cannot publish bytes");
+            continue;
+        }
+        utility_check(ok, "shared profile links");
+        var output: WasmObject = default;
+        defer wasm_object_dispose(&output);
+        var reader: WasmReader = { bytes: { data: link.output.data, length: link.output.length }, ..default };
+        wasm_object_sections(&output, &reader);
+        utility_check(reader.error == WasmReadError.None && output.memories.length == 1, "shared output sections validate");
+        utility_check(output.memories.data[0].limits.flags == (convert(u32, WasmLimitFlag.Maximum) | convert(u32, WasmLimitFlag.Shared))
+            && output.memories.data[0].imported == link.import_memory, "shared import/definition retains flags and limits");
+        utility_check(output.start == link.symbols.data[convert(usize, link.memory_init_symbol)].output_index
+            && output.data_count == link.data_count && output.data.length == convert(usize, link.data_count), "shared start and data count emitted");
+        utility_check(link.data_count == (size == 0 ? 0 : WasmSharedRetainedSegments), "collected segment does not leave a passive index gap");
+        utility_check(link.memory_init_flag % WasmMemoryInitFlagBytes == 0 && link.memory_init_flag >= WasmDefaultGlobalBase + convert(u64, size)
+            && link.data_end == link.memory_init_flag + WasmMemoryInitFlagBytes && link.heap_base > link.memory_init_flag, "atomic flag has dedicated aligned storage");
+        foreach (var & data in &output.data) { utility_check(data.passive, "shared data must never initialize actively"); }
+    }
+}

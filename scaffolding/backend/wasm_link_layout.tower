@@ -43,7 +43,14 @@ fn wasm_link_memory_layout(link: WasmLink*): bool {
                 return wasm_link_fail(link, WasmLinkError.Layout, data.name);
             }
             chunk.address = address; address += length;
+            if link.data_count == WasmNoIndex { return wasm_link_fail(link, WasmLinkError.Layout, data.name); }
+            chunk.output_index = link.data_count++;
         }
+    }
+    if link.shared_memory {
+        link.memory_init_flag = wasm_link_align(link, address, WasmMemoryInitFlagBytes);
+        if link.memory_init_flag >= WasmMemory32Limit - WasmMemoryInitFlagBytes { return wasm_link_fail(link, WasmLinkError.Layout, wasm_text_bytes("memory initialization flag")); }
+        address = link.memory_init_flag + WasmMemoryInitFlagBytes;
     }
     link.data_end = address;
     if !link.stack_first { address = wasm_link_stack(link, address); }

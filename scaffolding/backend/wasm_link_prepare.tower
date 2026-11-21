@@ -67,9 +67,26 @@ fn wasm_link_type(link: WasmLink*, type: WasmFunctionTypeRecord*): u32 {
     return index;
 }
 
+fn wasm_link_shared_features(link: WasmLink*): bool {
+    if !link.shared_memory { return true; }
+    if link.maximum_memory == 0 { return wasm_link_fail(link, WasmLinkError.Layout, wasm_text_bytes("shared memory requires a maximum")); }
+    var atomics = wasm_names_get(&link.feature_names, wasm_text_bytes("atomics"));
+    var bulk = wasm_names_get(&link.feature_names, wasm_text_bytes("bulk-memory"));
+    var shared = wasm_names_get(&link.feature_names, wasm_text_bytes("shared-mem"));
+    if shared != WasmNoIndex && link.features.data[convert(usize, shared)].prefix == convert(u8, WasmFeaturePrefix.Disallowed) {
+        return wasm_link_fail(link, WasmLinkError.Unsupported, wasm_text_bytes("shared-mem is disallowed by an input"));
+    }
+    if atomics == WasmNoIndex || link.features.data[convert(usize, atomics)].prefix == convert(u8, WasmFeaturePrefix.Disallowed) {
+        return wasm_link_fail(link, WasmLinkError.Unsupported, wasm_text_bytes("shared memory requires atomics"));
+    }
+    if bulk == WasmNoIndex || link.features.data[convert(usize, bulk)].prefix == convert(u8, WasmFeaturePrefix.Disallowed) {
+        return wasm_link_fail(link, WasmLinkError.Unsupported, wasm_text_bytes("shared memory requires bulk-memory"));
+    }
+    return true;
+}
+
 fn wasm_link_prepare(link: WasmLink*): bool {
     if link.layout_type != null { return wasm_link_fail(link, WasmLinkError.Input, wasm_text_bytes("link request already prepared")); }
-    if link.shared_memory { return wasm_link_fail(link, WasmLinkError.Unsupported, wasm_text_bytes("shared memory requires atomic initialization and TLS")); }
     if link.import_memory && (!wasm_bytes_utf8(link.memory_module) || !wasm_bytes_utf8(link.memory_name)) {
         return wasm_link_fail(link, WasmLinkError.Input, wasm_text_bytes("memory import names require UTF-8"));
     }
@@ -101,7 +118,8 @@ fn wasm_link_prepare(link: WasmLink*): bool {
             return wasm_link_fail(link, WasmLinkError.Unsupported, entry.name);
         }
         foreach (var & memory in &object.memories) {
-            var unsupported = convert(u32, WasmLimitFlag.Memory64) | convert(u32, WasmLimitFlag.Shared);
+            var unsupported = convert(u32, WasmLimitFlag.Memory64);
+            if !link.shared_memory { unsupported |= convert(u32, WasmLimitFlag.Shared); }
             if (memory.limits.flags & unsupported) != 0 { return wasm_link_fail(link, WasmLinkError.Unsupported, entry.name); }
         }
         foreach (var & table in &object.tables) {
@@ -112,6 +130,11 @@ fn wasm_link_prepare(link: WasmLink*): bool {
         foreach (var & data in &object.data) {
             var supported_flags = convert(u32, WasmSegmentFlag.Strings) | convert(u32, WasmSegmentFlag.Retain);
             if data.passive || (data.flags & ~supported_flags) != 0 || data.memory != 0 { return wasm_link_fail(link, WasmLinkError.Unsupported, entry.name); }
+        }
+        foreach (var & symbol in &object.symbols) {
+            if (symbol.flags & convert(u32, WasmSymbolFlag.ThreadLocal)) != 0 {
+                return wasm_link_fail(link, WasmLinkError.Unsupported, wasm_text_bytes("thread-local storage requires per-instance TLS initialization"));
+            }
         }
         var component = entity_component_add(entry.node, link.layout_type);
         if component == null { return wasm_link_fail(link, WasmLinkError.Allocation, entry.name); }
@@ -129,7 +152,7 @@ fn wasm_link_prepare(link: WasmLink*): bool {
             if index == WasmNoIndex || !wasm_link_push(link, &layout.types, index) { return false; }
         }
     }
-    return true;
+    return wasm_link_shared_features(link);
 }
 
 fn wasm_link_message(error: WasmLinkError): u8* {

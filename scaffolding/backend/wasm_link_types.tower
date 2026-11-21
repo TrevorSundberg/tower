@@ -8,7 +8,7 @@ import .library.bytes_types;
 import .library.entity_types;
 
 enum WasmLinkError: u32 { None = 0, Allocation = 1, Duplicate = 2, Signature = 3, Undefined = 4, Unsupported = 5, Layout = 6, Input = 7 }
-enum WasmSynthetic: u8 { None = 0, Stack = 1, HeapBase = 2, DataEnd = 3, MemoryBase = 4, TableBase = 5, Constructors = 6, IndirectTable = 7, DsoHandle = 8, StackLow = 9, StackHigh = 10, GlobalBase = 11, HeapEnd = 12, FirstPageEnd = 13, SignatureTrap = 14 }
+enum WasmSynthetic: u8 { None = 0, Stack = 1, HeapBase = 2, DataEnd = 3, MemoryBase = 4, TableBase = 5, Constructors = 6, IndirectTable = 7, DsoHandle = 8, StackLow = 9, StackHigh = 10, GlobalBase = 11, HeapEnd = 12, FirstPageEnd = 13, SignatureTrap = 14, InitMemory = 15 }
 struct WasmSymbolReference { object: u32; symbol: u32; }
 struct WasmResolvedSymbol {
     name: WasmBytes;
@@ -93,6 +93,9 @@ struct WasmLink {
     memory_module: WasmBytes;
     memory_name: WasmBytes;
     shared_memory: bool;
+    memory_init_flag: u64;
+    data_count: u32;
+    memory_init_symbol: u32;
     allow_undefined: bool;
     garbage_collect: bool;
     started: bool;
@@ -104,6 +107,8 @@ var WasmDefaultMaximumBytes: u64 = 2147483648;
 var WasmDefaultGlobalBase: u64 = 1024;
 var WasmMemory32Limit: u64 = 4294967296;
 var WasmTableBase: u32 = 1;
+var WasmMemoryInitFlagBytes: u64 = 4;
+enum WasmMemoryInitState: u32 { Uninitialized = 0, Initializing = 1, Ready = 2 }
 
 fn wasm_link_fail(link: WasmLink*, error: WasmLinkError, name: WasmBytes): bool {
     if link.error == WasmLinkError.None { link.error = error; link.error_name = name; }
@@ -124,6 +129,7 @@ fn wasm_link_init(link: WasmLink*): bool {
     link.garbage_collect = true;
     link.memory_module = wasm_text_bytes("env");
     link.memory_name = wasm_text_bytes("memory");
+    link.memory_init_symbol = WasmNoIndex;
     if !wasm_link_world_open(&link.world) { return wasm_link_fail(link, WasmLinkError.Allocation, default(WasmBytes)); }
     return true;
 }
