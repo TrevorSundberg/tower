@@ -1,31 +1,31 @@
 {
   "archive": "linux-x64/towerc.tar.gz",
   "build": {
-    "command": "TOWER_NATIVE_BUILD=/cache/struct-values TOWER_BUILD_JOBS=3 bash playground/scripts/build-native.sh",
+    "command": "playground/scripts/build-native.sh",
     "compiler": "Clang 19.1.1",
     "configuration": "Release",
     "llvm": "19.1.1",
-    "predecessor_sha256": "7a747a0d44d51611048e2b35feb8d077f8db75addf8bd332898e2adebd51cf45"
+    "predecessor_sha256": "b193bc91c12deb80f52dfea7903534dc81565c1b6c328e0ca3782b11d833150a"
   },
   "dynamic_dependencies": [
-    "\tlinux-vdso.so.1 (0x0000795d083f1000)",
-    "\tlibLLVM.so.19.1 => /usr/lib/llvm-19/lib/libLLVM.so.19.1 (0x0000795d0072d000)",
-    "\tlibstdc++.so.6 => /lib/x86_64-linux-gnu/libstdc++.so.6 (0x0000795d004aa000)",
-    "\tlibm.so.6 => /lib/x86_64-linux-gnu/libm.so.6 (0x0000795d003c1000)",
-    "\tlibgcc_s.so.1 => /lib/x86_64-linux-gnu/libgcc_s.so.1 (0x0000795d00393000)",
-    "\tlibc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x0000795d00180000)",
-    "\tlibffi.so.8 => /lib/x86_64-linux-gnu/libffi.so.8 (0x0000795d00172000)",
-    "\tlibedit.so.2 => /lib/x86_64-linux-gnu/libedit.so.2 (0x0000795d00138000)",
-    "\tlibz.so.1 => /lib/x86_64-linux-gnu/libz.so.1 (0x0000795d0011c000)",
-    "\tlibzstd.so.1 => /lib/x86_64-linux-gnu/libzstd.so.1 (0x0000795d00062000)",
-    "\tlibxml2.so.2 => /lib/x86_64-linux-gnu/libxml2.so.2 (0x0000795cffe80000)",
-    "\t/lib64/ld-linux-x86-64.so.2 (0x0000795d083f3000)",
-    "\tlibtinfo.so.6 => /lib/x86_64-linux-gnu/libtinfo.so.6 (0x0000795cffe4a000)",
-    "\tlibbsd.so.0 => /lib/x86_64-linux-gnu/libbsd.so.0 (0x0000795cffe34000)",
-    "\tlibicuuc.so.74 => /lib/x86_64-linux-gnu/libicuuc.so.74 (0x0000795cffc27000)",
-    "\tliblzma.so.5 => /lib/x86_64-linux-gnu/liblzma.so.5 (0x0000795cffbf5000)",
-    "\tlibmd.so.0 => /lib/x86_64-linux-gnu/libmd.so.0 (0x0000795cffbe6000)",
-    "\tlibicudata.so.74 => /lib/x86_64-linux-gnu/libicudata.so.74 (0x0000795cfde84000)"
+    "\tlinux-vdso.so.1 (0x0000773620b6f000)",
+    "\tlibLLVM.so.19.1 => /usr/lib/llvm-19/lib/libLLVM.so.19.1 (0x0000773618eaa000)",
+    "\tlibstdc++.so.6 => /lib/x86_64-linux-gnu/libstdc++.so.6 (0x0000773618c27000)",
+    "\tlibm.so.6 => /lib/x86_64-linux-gnu/libm.so.6 (0x0000773618b3e000)",
+    "\tlibgcc_s.so.1 => /lib/x86_64-linux-gnu/libgcc_s.so.1 (0x0000773618b10000)",
+    "\tlibc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007736188fd000)",
+    "\tlibffi.so.8 => /lib/x86_64-linux-gnu/libffi.so.8 (0x00007736188ef000)",
+    "\tlibedit.so.2 => /lib/x86_64-linux-gnu/libedit.so.2 (0x00007736188b5000)",
+    "\tlibz.so.1 => /lib/x86_64-linux-gnu/libz.so.1 (0x0000773618899000)",
+    "\tlibzstd.so.1 => /lib/x86_64-linux-gnu/libzstd.so.1 (0x00007736187df000)",
+    "\tlibxml2.so.2 => /lib/x86_64-linux-gnu/libxml2.so.2 (0x00007736185fd000)",
+    "\t/lib64/ld-linux-x86-64.so.2 (0x0000773620b71000)",
+    "\tlibtinfo.so.6 => /lib/x86_64-linux-gnu/libtinfo.so.6 (0x00007736185c7000)",
+    "\tlibbsd.so.0 => /lib/x86_64-linux-gnu/libbsd.so.0 (0x00007736185b1000)",
+    "\tlibicuuc.so.74 => /lib/x86_64-linux-gnu/libicuuc.so.74 (0x00007736183a4000)",
+    "\tliblzma.so.5 => /lib/x86_64-linux-gnu/liblzma.so.5 (0x0000773618372000)",
+    "\tlibmd.so.0 => /lib/x86_64-linux-gnu/libmd.so.0 (0x0000773618363000)",
+    "\tlibicudata.so.74 => /lib/x86_64-linux-gnu/libicudata.so.74 (0x0000773616601000)"
   ],
   "files": {
     "LLVM-LICENSE.txt": {
@@ -97,54 +97,54 @@
       "size": 5543
     },
     "share/tower/runtime-host-linux-arm64.ll": {
-      "sha256": "2aab724baa61f48814ce692cef54020827ce9eb8f7eea086ddd20cb9ef7735d0",
-      "size": 67465
+      "sha256": "fe663007e22626e5dfbf4e4b46ebdb36374ff8c7da7ec081f9193ac0486b5ab0",
+      "size": 67424
     },
     "share/tower/runtime-host-linux-x64.ll": {
-      "sha256": "d1be055187de3bb0b2ab8d0c089432cd1a038f0f682ac31daad3259ba3a3fdc4",
-      "size": 67485
+      "sha256": "7bd2107769f8f67d1f5ab614b91c4c28ac0f9dc20c9609f4aceab7a822acb873",
+      "size": 67444
     },
     "share/tower/runtime-linux-arm64.ll": {
-      "sha256": "2ddca4d72bdcb84d3cd27d2ba719c90a507c81a332fcb1069d1262fee1062d0d",
-      "size": 103956
+      "sha256": "81a83eb47070d8238cec45fd70733128239cc0c96ae891545ce4d26f04a3b21e",
+      "size": 103800
     },
     "share/tower/runtime-linux-x64.ll": {
-      "sha256": "55118db2b5ffaf27cf7d83238de384754a21282d5f87a69fad291011ade8f77c",
-      "size": 104087
+      "sha256": "9d9c63408398567ba49e7ed03c121973119893396c5aa9b539f9b830f72cb211",
+      "size": 103931
     },
     "share/tower/runtime-macos-arm64.ll": {
-      "sha256": "45205511179831e4b02afe8ec5d403d3dcb5db1e479a510758051006c3e0c6d5",
-      "size": 67436
+      "sha256": "2b9989e431271360195997aa48742505824c87ddfaf04ba39a825b16a5cd62c0",
+      "size": 67395
     },
     "share/tower/runtime-macos-x64.ll": {
-      "sha256": "407413a8e9bfc46e1fa4e0b105583c516851f19e92703d0fce8db121c6180732",
-      "size": 67476
+      "sha256": "9679e9a3ffc0577fd9710df8c719a27a83b0bfeef48310c7e2bdba74d37614a3",
+      "size": 67435
     },
     "share/tower/runtime-wasm32.ll": {
-      "sha256": "c5caf93e1e4126d4de60daaf08671c6e967f833997d8caaa8825233408816790",
-      "size": 149720
+      "sha256": "0d5c498b3a1a548473b31e93b284f6c3274cb9a0f24904dbb7564827bc70b502",
+      "size": 149312
     },
     "share/tower/runtime-windows-arm64.ll": {
-      "sha256": "368fb94d333446201cd9d72b983a221a796fdb2c64b06d1df0daee524621a588",
-      "size": 96629
+      "sha256": "5c320c691606a95d1b38ea144cd03d7cf8b9c5aef87fbb7bca4232dff0b9e597",
+      "size": 96484
     },
     "share/tower/runtime-windows-x64.ll": {
-      "sha256": "ea4ecd8768fca04b10971d0c7e61c093f99c81e1c94b2211e8acbfc1ab6acbd4",
-      "size": 96652
+      "sha256": "c671b2ec865c51785762bde6f3264f78e425e5a037aa222241a50fa31bca5c06",
+      "size": 96507
     },
     "share/tower/tower.tower": {
       "sha256": "c2fe8dfb51afa7a846e9633e91e4ac36831d25abeebd098b62edd66109a97f99",
       "size": 8676
     },
     "towerc": {
-      "sha256": "b193bc91c12deb80f52dfea7903534dc81565c1b6c328e0ca3782b11d833150a",
-      "size": 1297744
+      "sha256": "f57acd2254fa396b1e556cfa33ea6507b38e73e08910e94ed46995c697ac2a55",
+      "size": 1301840
     }
   },
   "host": "linux-x64-ubuntu24-llvm19",
   "schema": 1,
-  "sha256": "512ae5643fcc27dcde2e94ea6517c662d3e960f12309179e1eca14b089f5ea91",
-  "source_base_revision": "f50b79dfd2f356dde20a3394fc7ddf5b9b0220d2",
+  "sha256": "083b7da564f33389f4ca512829e0d50a3982e76632a65d5bbe8dbb683c2f3f35",
+  "source_base_revision": "2b65c3e516b90f47993c362ff4750f9ef5bed949",
   "source_files": {
     "CMakeLists.txt": "34e219e850a3481619639762c135d47e7b47359488a4eb568d5fcebbc3e586fc",
     "cmake/ComposeBackend.cmake": "e862abd5dcefc7f36418892c6b80a068c689dc98094d5770c3a5a51102394319",
@@ -352,14 +352,14 @@
     "scaffolding/compiler/semantic_enums.tower": "f3f9907fc0b3c782d9b41ab6debd24fc423654522db5b3b023dc7b4df8fae6d3",
     "scaffolding/compiler/semantic_evaluation.tower": "851262188468a7c02ad60d01af3341870ee40799a1aca8e9db7018466e3591a1",
     "scaffolding/compiler/semantic_evaluation_work.tower": "2f81772cc72861f20ddfd84f10b27efb1584d94f697663ade60b3e516887e315",
-    "scaffolding/compiler/semantic_expression_lowering.tower": "0666fd037466ee823fb7d9d81238fd608d639e206c1fdcae0f604be049688c7d",
+    "scaffolding/compiler/semantic_expression_lowering.tower": "3a35657ccd6fbf36314b4d37d88d850432907eb568b47ec4b5de51bef1124f4a",
     "scaffolding/compiler/semantic_expressions.tower": "06105d66d57a6db29e63542b002cdd8877d545b5b23ea2218aeff760464440b1",
     "scaffolding/compiler/semantic_flow.tower": "5fac7aff16d156e3c8b7f9841fa2e7a358f3137bbb5f3714084c686679ca7199",
     "scaffolding/compiler/semantic_generic_body_work.tower": "32ed0689250d06ce951aee275a02a0221f40429793f34f304d380ddfc6301dd5",
     "scaffolding/compiler/semantic_generic_info.tower": "5120561af054ccc5d8e31ff4db347c8d633dd135f564c533bf2f166800a619fa",
     "scaffolding/compiler/semantic_generic_values.tower": "9d2b4efa59f2f15a15d2d908d3b0113695f879bc2f25cc2b0140729965f06c93",
     "scaffolding/compiler/semantic_iteration.tower": "24bf3711fd7efe17bef1839967d9fa23d936415066ca6d7b0c0f952fbf84c8dc",
-    "scaffolding/compiler/semantic_known_bindings.tower": "ba030d4744aefbe21ea4f31b2635fa6382b2cfb438907f22a458334fe8929c26",
+    "scaffolding/compiler/semantic_known_bindings.tower": "a2c77375b45ad51e43fe8cfa8f98e7c9188206397066213c6522c9242f3c1332",
     "scaffolding/compiler/semantic_layout.tower": "d51e722915662fd8ef10eda54ac6b8067ff5bdc162da4dcbf26539cf7392a243",
     "scaffolding/compiler/semantic_layout_kernel.tower": "ae1c6fb212adc5127c37d8b98a3695e7b3b91a8b75779415f3c8cd37f124bcf3",
     "scaffolding/compiler/semantic_lifecycle.tower": "24523cb278f986ac710f1448bc91eddefd3e8a2bc582f668a0c38d548a4cccb5",
@@ -671,7 +671,8 @@
     "scaffolding/tests/interpreter_invocation.tower": "4d0e251443e8b078ceb3eb2c5f42afc982784a63a4c54abd2634990936e0e27d",
     "scaffolding/tests/interpreter_storage.tower": "8a7af781f1b887936c48b34d233945cceca71a7d02ecfd9775a8c4162db188c7",
     "scaffolding/tests/iteration_parallel_unit.tower": "e59dc34c96137c42b4e86ccb16f4c875dbeb6cf7ef1db3e0c2fde005510cad7f",
-    "scaffolding/tests/known_binding_checks.tower": "e93ce99cc3106e18017cbefd86a627b17bc58667ef2fa3cb5af87b69d43edfd1",
+    "scaffolding/tests/known_binding_checks.tower": "f91e10e1e85aabd9b5b2dfdf1b55904faf31f384518ce45cf433447e46c66d2a",
+    "scaffolding/tests/known_binding_library.tower": "47f8b184042db9a897c6567d74366a8a9da2581477caa7fe7ca0f02670225829",
     "scaffolding/tests/known_bindings.tower": "31bf7333aa3a2ee16a20c8ba310884829d967a54bffade98130d62d980760588",
     "scaffolding/tests/language_collections.tower": "22fb28aa11ecd3c28566db0306f4c628015e988cbacd82c5e40f03b31ab741d8",
     "scaffolding/tests/language_control.tower": "fe31e32dc0c0ad1f574815bc5f752db3eb01ec64848faa904e6570c35eb597ec",

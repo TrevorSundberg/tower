@@ -32178,3 +32178,9 @@ any initializer wrapper. The complete native execution suite passes after slot
 renumbering (`binding-library-index-tests.log`), including both feature suites,
 both target widths and prior semantic oracles. LLVM execution of the named-binding
 fixture also prints 0 after initializer removal.
+
+Refreshed package SHA-256 is
+083b7da564f33389f4ca512829e0d50a3982e76632a65d5bbe8dbb683c2f3f35,
+from implementation 2b65c3e. Its documented default bootstrap path builds a fresh
+successor in `/cache/binding-library-clean`, all 53 steps passing. The successor's
+library fixture links/runs without initialization and both value fixtures pass.
