@@ -23345,3 +23345,73 @@ pass against the combined source (build/defer-release-native-tests.log).
 Browser parser/LLVM/cross builds and compiler-project packaging have completed;
 consumers start only after packaging finishes. The cleanup inventory remains
 59/126 after this integration. Final browser/deployment results follow below.
+Final frozen-source validation for 781c4d517af328018a885b1b674661cd2b3ec5bb:
+- Native frontend/driver/execution 3/3, 16.75s; standalone backend API passed.
+- Repackaged only after all current reactors finished. Full Node suite excluding
+  formatting.test.mjs: 409/409, zero failures/skips, 180.13s. The existing
+  round-trip/formatter behavior tests in other files remain included; only the
+  broad formatting sweep file is excluded. Logs: agents-final-{package,node,native}.
+- Two browser compiler successor generations pass, using 2 then 4 isolated unit
+  workers; edited behavior and byte identity checked. Generation 2 sizes:
+  parser893622, LLVM52129653, cross63687017 bytes. agents-final-successors.log.
+- Local desktop/mobile deployment verification passes all 70 served assets,
+  interpreter/LLVM agreement, raw/optimized downloads, all supported native
+  target artifacts, completion, cancellation/restart and editable compiler build.
+  Report: build/language-next/agents-final-local-deployment.json.
+- Pages preserves current target packs and byte-identical compressed assets.
+  All 71 committed asset/manifest blobs match tested bytes without Git filters.
+  Source main781c4d5 and Pagesa13c7de1af17df670ac03054a1d3119d9609c398 pushed.
+  Ordinary source push hit transient github.com DNS failure; command-local
+  http.curloptResolve succeeded, with no persistent configuration or force push.
+  Hosted verification is recorded next after Pages completion.
+
+Inventory excludes third-party implementations: production native 3449 lines
+(1457 cpp +1992 headers), tests3126, bootstrap/reference2996, research774;
+10345 total, down637 from launch10982. This counts retained compatibility headers
+and reference seeds, not just algorithms. syntax.cpp1016 is the largest remaining
+production implementation. Agent1's next source/document leases, agent2's
+CoreMachine/reference retirement and agent3's lexer/storage test ports remain
+separate unpublished work; their proposed removals are not included in totals.
+All agents retain separate checkouts/caches and visible consoles; source/deploy
+publication is serialized by external coordination lock. Keep nodes.cpp until
+its browser lifecycle callback coverage has a proper Tower replacement; do not
+hide test dispatch in production or discard it. Remaining native callback and
+C++ container return boundaries need explicit Tower service APIs as consumers
+migrate. Shared semantic entities stay authoritative; pinned views permit reader
+parallelism, while structural mutation and within-unit phases remain serial.
+
+Hosted publication completed: Pages action44845387191 succeeded for exact commit
+a13c7de1af17df670ac03054a1d3119d9609c398. verify-deployment.mjs against
+https://tower-lang.org/ passed: all70 served assets match the tested build,
+desktop/mobile backends agree, editable grammar/module/project/compiler behavior,
+native builds/downloads and target defaults pass, and both browsers report zero
+page errors. Saved agents-final-pages-action.json and
+agents-final-hosted-deployment.{log,json} under build/language-next. Source/artifact
+worktrees are clean; todo hash remains96a9e58964d7f01e4a97819f259448db81ef5e40.
+
+Next source slots are agent1 session leases, agent3 ready lexer/storage fixtures,
+then agent2 CoreMachine retirement. Agent2 accepted next combined publication
+ownership; each source owner still rebases, validates and pushes its own coherent
+commit. Optional exclusive root deployment-cache reuse is authorized only after
+this handoff, with clean published source and the publication lock, to avoid
+rebuilding unchanged upstream LLVM. Implementation stays in independent clones;
+no concurrent root-source edits, source conflict resolution or hidden native seeds.
+Current deployment includes only781c4d5 and its ancestors, not those next slices.
+
+Post-publication upstream integration: final journal push pulled the independent
+scoped-defer release ef5c5ff. Resolved the append-only journal conflict preserving
+both histories; normalized the resolution back to the original LF bytes before
+amending the unpublished documentation commit (no whole-file rewrite remains).
+Read the new AGENTS defer guidance and notified all agents of the newer published
+bootstrap fb1ab1f9e44dad9e8302472ee2c0d7c54471e4c555ce72c355e29a44aacc4628.
+Fresh default successor in agents-defer-final-clean passed all56 targets, then
+frontend/driver/execution3/3 in15.97s and backend API checks passed. Private
+bootstrap override was unset. Logs: agents-defer-final-clean.log and
+agents-defer-final-tests.log. No compiler source change was needed for this merge.
+The independent author published Pagesc1b54ec3f0ec5440550e623a62fc4682bef7034b,
+whose raw parent is oura13c7de; deployment history and backend retirement persist.
+Exact-SHA action44845917807 succeeded. Independently verified its manifest and
+all70 served assets against the committed manifest (agents-defer-hosted-assets.json,
+sourceef5c5ff). The full desktop/mobile verification recorded above was for oura13
+publication; do not misattribute it to this later artifact set. Agent2's next
+publication must start from this newer source/bootstrap/Pages manifest.
