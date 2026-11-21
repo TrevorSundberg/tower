@@ -1,0 +1,114 @@
+import tower;
+import storage_api;
+import utility_checks;
+import entity_page_faults;
+import .compiler.component_kinds;
+import .compiler.syntax_types;
+import .compiler.parser_types;
+
+extern fn compiler_world_create(): void*;
+extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_component(world: void*, owner: void*, kind: u32): void*;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn entity_stage_create_named(stage: void*, parent: void*, name: u8*): void*;
+extern fn entity_stage_hold(stage: void*): void;
+extern fn entity_stage_discard(stage: void*): void;
+extern fn entity_references(node: void*): usize;
+extern fn entity_component_from_data(data: void*): void*;
+extern fn entity_component_owner(component: void*): void*;
+extern fn entity_child_count(node: void*): usize;
+extern fn entity_member_index(node: void*, name: u8*): usize;
+extern fn entity_child_at(node: void*, index: usize): void*;
+extern fn syntax_trace_create(world: void*, invocation: void*, rule: u8*, start: usize, end: usize): SyntaxExpansion*;
+extern fn syntax_trace_release(trace: SyntaxExpansion*): void;
+extern fn syntax_origin_get(world: void*, node: void*): SyntaxOrigin*;
+extern fn syntax_origin_mark(world: void*, trace: SyntaxExpansion*, node: void*, source: void*, generated: bool): bool;
+extern fn syntax_origin_copy_staged(world: void*, source: void*, destination: void*, stage: void*): bool;
+
+// Sweep named creation, provenance copying and publication independently. A
+// failed private copy is discarded, including any initialized empty component.
+fn entity_stage_fault_trial(phase: usize, failure: usize): usize {
+    var baseline = tower_test_buffer_count();
+    var world = compiler_world_create();
+    var store = compiler_world_store(world);
+    var root = entity_create(store);
+    var source = entity_create(store);
+    var span = bits(ParserMatchData*, compiler_world_component(world, source, CompilerParserMatch()));
+    span.start = 12; span.length = 7;
+    var trace = syntax_trace_create(world, source, "Staged", 30, 60);
+    utility_check(trace != null, "Staged trace creation");
+    utility_check(syntax_origin_mark(world, trace, source, source, true)
+        && syntax_origin_mark(world, trace, source, source, false), "Staged source origin");
+    var owner = entity_component_owner(entity_component_from_data(bits(void*, trace)));
+    utility_check(entity_references(owner) == 3, "Source owns expansion and splice");
+    var stage = entity_stage_open(root);
+    var view = entity_view_open(root);
+    var before = tower_test_buffer_allocations();
+    if phase == 0 { tower_test_buffer_fail_after(failure); }
+    var child = entity_stage_create_named(stage, root, "body");
+    tower_test_buffer_fail_after(~convert(usize, 0));
+    var used = tower_test_buffer_allocations() - before;
+    if phase == 0 {
+        utility_check((child != null) == (failure == ~convert(usize, 0)), "Named creation failure reached");
+        if child == null { child = entity_stage_create_named(stage, root, "body"); }
+    }
+    utility_check(child != null && entity_child_count(root) == 0, "Private names stay unpublished");
+    before = tower_test_buffer_allocations();
+    if phase == 1 { tower_test_buffer_fail_after(failure); }
+    var copied = syntax_origin_copy_staged(world, source, child, stage);
+    tower_test_buffer_fail_after(~convert(usize, 0));
+    if phase == 1 {
+        used = tower_test_buffer_allocations() - before;
+        utility_check(copied == (failure == ~convert(usize, 0)), "Staged origin failure reached");
+        if !copied {
+            entity_stage_discard(stage);
+            utility_check(entity_references(owner) == 3, "Failed private copy leaves shared ownership unchanged");
+            stage = entity_stage_open(root);
+            child = entity_stage_create_named(stage, root, "body");
+            copied = syntax_origin_copy_staged(world, source, child, stage);
+        }
+    }
+    utility_check(copied && entity_references(owner) == 3, "Worker queues ownership without shared writes");
+    var origin = syntax_origin_get(world, child);
+    utility_check(origin.expansion == trace && origin.splices.length == 1
+        && origin.splices.data[0] == trace && origin.template_start == 12
+        && origin.template_end == 19 && origin.generated, "Staged origin metadata");
+    utility_check(!syntax_origin_copy_staged(world, source, child, stage), "Cannot overwrite queued payload ownership");
+    entity_stage_hold(stage);
+    entity_stage_hold(stage);
+    utility_check(entity_references(owner) == 5, "Coordinator transfers each queued reference once");
+    entity_view_close(view);
+    before = tower_test_buffer_allocations();
+    if phase == 2 { tower_test_buffer_fail_after(failure); }
+    var published = entity_stage_publish(stage);
+    tower_test_buffer_fail_after(~convert(usize, 0));
+    if phase == 2 {
+        used = tower_test_buffer_allocations() - before;
+        utility_check(published == (failure == ~convert(usize, 0)), "Named publication failure reached");
+        if !published {
+            utility_check(entity_child_count(root) == 0 && entity_references(owner) == 5,
+                "Failed publication preserves containment and held ownership");
+            published = entity_stage_publish(stage);
+        }
+    }
+    utility_check(published && entity_child_count(root) == 1
+        && entity_child_at(root, entity_member_index(root, "body")) == child
+        && entity_references(owner) == 5, "Retry publishes name without retaining twice");
+    entity_release(root);
+    utility_check(entity_references(owner) == 3, "Published finalizer releases staged ownership");
+    entity_release(source);
+    syntax_trace_release(trace);
+    utility_check(compiler_world_dispose(world) && tower_test_buffer_count() == baseline,
+        "Staged ownership failure releases every allocation");
+    return used;
+}
+
+fn entity_stage_fault_tests(): void {
+    for(var phase: usize = 0; phase < 3; phase++) {
+        var allocations = entity_stage_fault_trial(phase, ~convert(usize, 0));
+        for(var failure: usize = 0; failure < allocations; failure++) {
+            entity_stage_fault_trial(phase, failure);
+        }
+    }
+    puts("Staged names and provenance ownership allocation failures passed");
+}

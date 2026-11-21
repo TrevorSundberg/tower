@@ -4,6 +4,7 @@ import component_kinds;
 import parser_types;
 import syntax_types;
 import .library.entities;
+import .library.entity_stage;
 import .library.vector;
 
 extern fn bytes_assign_text(value: vector(u8)*, source: u8*, length: usize): bool;
@@ -140,6 +141,42 @@ export fn syntax_origin_copy(world: CompilerWorld*, source: Entity*, destination
     target.generated = prior.generated;
     target.expansion = prior.expansion;
     copy(&target.splices, &pending, sizeof(vector(SyntaxExpansion*)));
+    return true;
+}
+
+// Worker copy into a new private node only. The source history is immutable and
+// pinned; shared reference counts transfer on the coordinator after join.
+// Allocate everything before queuing ownership, then install without failure.
+export fn syntax_origin_copy_staged(world: CompilerWorld*, source: Entity*, destination: Entity*, stage: EntityStage*): bool {
+    if world == null || destination == null || stage == null
+        || destination.store != world.store || destination.stage != bits(void*, stage)
+        || destination.id != 0 { return false; }
+    if syntax_origin_get(world, destination) != null { return false; }
+    var prior = syntax_origin_get(world, source);
+    if prior == null { return true; }
+    if prior.splices.length == ~convert(usize, 0) { return false; }
+    var pending: vector(SyntaxExpansion*) = default;
+    defer vector_dispose(&pending);
+    var references: vector(Entity*) = default;
+    defer vector_dispose(&references);
+    if !vector_reserve(&pending, prior.splices.length)
+        || !vector_reserve(&references, prior.splices.length + 1) { return false; }
+    var target = bits(SyntaxOrigin*, compiler_world_component(world, destination, CompilerSyntaxOrigin()));
+    if target == null { return false; }
+    references.data[0] = prior.expansion == null ? null : provenance_owner(prior.expansion);
+    for(var i: usize = 0; i < prior.splices.length; i++) {
+        var trace = prior.splices.data[i];
+        pending.data[i] = trace;
+        references.data[i + 1] = trace == null ? null : provenance_owner(trace);
+    }
+    if !entity_stage_references(stage, references.data, prior.splices.length + 1) { return false; }
+    pending.length = prior.splices.length;
+    target.template_start = prior.template_start;
+    target.template_end = prior.template_end;
+    target.generated = prior.generated;
+    target.expansion = prior.expansion;
+    copy(&target.splices, &pending, sizeof(vector(SyntaxExpansion*)));
+    pending = default;
     return true;
 }
 

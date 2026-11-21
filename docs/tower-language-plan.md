@@ -673,6 +673,15 @@ containers. Benchmark representative compiler workloads before migrating them.
   use body workers when their immutable bindings and existing layouts are ready;
   conservative admission retains first consumers of pending layouts on the
   coordinator and records completed layout dependencies on body queries.
+  Generic function signatures now retain a body root without copying its
+  descendants. Execution demand schedules those copies on workers through the
+  shared query graph; body checking depends on their published receipts. Clone
+  and checking state share the existing body-work component. Stages own copied
+  names and queue provenance references for coordinator transfer before unpinning.
+  Type-constructor copying and structural checking still need continuations.
+  Shared entities now use stable component pages, exact-signature archetype rows,
+  published component columns and view-owned multi-component query plans.
+  These index stable payload pointers; they do not relocate component data.
   A shared-memory
   WASI transport passes Node and isolated Chromium overlap/cancellation tests.
   Browser packaging now includes the shared reactor and nested worker; static

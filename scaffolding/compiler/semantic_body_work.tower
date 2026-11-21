@@ -12,6 +12,7 @@ import semantic_statements;
 import semantic_control;
 import semantic_evaluation;
 import semantic_flow;
+import semantic_generic_body_work;
 import .library.vector;
 import .library.stack;
 import .library.work_graph;
@@ -118,6 +119,7 @@ struct SemanticBodyScope {
 }
 
 struct SemanticBodyWork {
+    cloning: SemanticGenericBodyWork;
     kernel: CompilerKernel;
     ticket: WorkTicket;
     context: SemanticContext*;
@@ -292,6 +294,7 @@ fn sem_body_structural_take(c: SemanticContext*, subject: void*, ordinal: usize,
     query: u32, ticket: WorkTicket*): usize {
     var id = work_request(&c.queries, subject, query, 0);
     sem_require(id != 0);
+    sem_generic_body_dependency(c, subject, id);
     sem_require(work_access(&c.queries, id, 1, 7, ordinal, 1, WorkAccessMode.Write));
     sem_require(work_access(&c.queries, id, 1, 9, 0, ~convert(usize, 0), WorkAccessMode.Write));
     sem_require(work_seal(&c.queries, id) && work_demand(&c.queries, id));
@@ -472,6 +475,8 @@ fn sem_bodies(c: SemanticContext*): void {
     var next: usize = 1;
     while next < c.program.functions.length && sem_ok(c) {
         if c.workers.count == 0 { sem_require(work_pool_open(&c.workers, work_thread_capacity())); }
+        sem_generic_bodies(c, next, kind);
+        if !sem_ok(c) { break; }
         var batch: SemanticBodyWork*[256];
         var count: usize = 0;
         var prepared: usize = 0;
@@ -483,9 +488,10 @@ fn sem_bodies(c: SemanticContext*): void {
             prepared++;
             var subject = c.program.functions.data[next];
             if !sem_body_pending(c, subject) { next++; continue; }
-            var result = bits(SemanticBodyWork*, entity_component_data(entity_component_add(subject, kind)));
-            sem_require(result != null);
-            fill(result, 0, sizeof(SemanticBodyWork));
+            // A preceding structural prefix may have created this signature.
+            // Join/publish the current window before demanding its body copy.
+            if generic_body_pending(c.generics, subject) { break; }
+            var result = sem_body_work(c, subject, kind);
             result.context = c;
             result.subject = subject;
             result.ordinal = next;
@@ -518,6 +524,7 @@ fn sem_bodies(c: SemanticContext*): void {
             }
             var id = work_request(&c.queries, subject, BodyQuery(), 0);
             sem_require(id != 0);
+            sem_generic_body_dependency(c, subject, id);
             if result.resumed {
                 sem_require(work_depend(&c.queries, id, work_find(&c.queries, subject, BodyPrepareQuery(), 0)));
             }
@@ -585,4 +592,17 @@ fn sem_bodies(c: SemanticContext*): void {
         }
     }
     sem_body_prune(c);
+}
+
+// One component owns a function's clone and checking work. Its phase queries
+// share the same subject and preserve completed clone receipts during checking.
+fn sem_body_work(c: SemanticContext*, subject: void*, kind: void*): SemanticBodyWork* {
+    var existing = entity_component_get(subject, kind);
+    if existing != null { return bits(SemanticBodyWork*, entity_component_data(existing)); }
+    var result = bits(SemanticBodyWork*, entity_component_data(entity_component_add(subject, kind)));
+    sem_require(result != null);
+    *result = default;
+    result.context = c;
+    result.subject = subject;
+    return result;
 }

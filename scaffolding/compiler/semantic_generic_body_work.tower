@@ -1,0 +1,99 @@
+import tower;
+import compiler_kernel;
+import generic_body_types;
+import semantic_context;
+import semantic_program_types;
+import semantic_declarations;
+import semantic_support;
+import semantic_body_work;
+import .library.work_graph;
+import .library.work_pool;
+
+const GenericBodyQuery: u32 = 10;
+
+extern fn generic_body_pending(context: void*, node: void*): bool;
+extern fn generic_body_limit(context: void*): usize;
+extern fn generic_body_complete(context: void*, node: void*, copied: usize): void;
+extern fn compiler_generic_body_kernel(payload: void*): void;
+extern fn entity_stage_hold(stage: void*): void;
+extern fn entity_stage_discard(stage: void*): void;
+
+struct SemanticGenericBodyWork {
+    kernel: CompilerKernel;
+    ticket: WorkTicket;
+    request: GenericBodyCopy;
+}
+
+fn sem_generic_body_dependency(c: SemanticContext*, subject: void*, id: usize): void {
+    var cloned = work_find(&c.queries, subject, GenericBodyQuery(), 0);
+    if cloned != 0 { sem_require(work_depend(&c.queries, id, cloned)); }
+}
+
+// Demand only bodies that ordinary checked calls require. Signature-only
+// decltype use leaves the body descendants unmaterialized. A source window
+// bounds retained work independently of the host's worker capacity.
+fn sem_generic_bodies(c: SemanticContext*, next: usize, kind: void*): void {
+    var batch: SemanticGenericBodyWork*[256];
+    var count: usize = 0;
+    var end = next + BodyPreparationWindow();
+    if end > c.program.functions.length { end = c.program.functions.length; }
+    for(var i = next; i < end; i++) {
+        var subject = c.program.functions.data[i];
+        if !sem_body_needed(c, subject) || !generic_body_pending(c.generics, subject) { continue; }
+        var result = &sem_body_work(c, subject, kind).cloning;
+        result.kernel.kind = CompilerKernelKind.GenericBody;
+        result.kernel.payload = bits(void*, &result.request);
+        result.request.context = c.generics;
+        result.request.node = subject;
+        var id = work_request(&c.queries, subject, GenericBodyQuery(), 0);
+        sem_require(id != 0);
+        var signature = sem_declaration_query(c, subject);
+        if signature != 0 { sem_require(work_depend(&c.queries, id, signature)); }
+        // Immutable syntax/type inputs, one private output per function.
+        sem_require(work_access(&c.queries, id, 1, 1, 0, ~convert(usize, 0), WorkAccessMode.Read));
+        sem_require(work_access(&c.queries, id, 1, 9, 0, ~convert(usize, 0), WorkAccessMode.Read));
+        sem_require(work_access(&c.queries, id, 1, 10, i, 1, WorkAccessMode.Write));
+        sem_require(work_seal(&c.queries, id) && work_demand(&c.queries, id));
+        batch[count++] = result;
+    }
+    for(var first: usize = 0; first < count && sem_ok(c);) {
+        var stop = first + c.workers.count;
+        if stop > count { stop = count; }
+        for(var i = first; i < stop; i++) {
+            var result = batch[i];
+            var subject = result.request.node;
+            sem_require(work_take_task(&c.queries, &result.ticket,
+                work_find(&c.queries, subject, GenericBodyQuery(), 0)));
+            result.request.stage = entity_stage_open(c.program.root);
+            sem_require(result.request.stage != null);
+            result.request.limit = generic_body_limit(c.generics);
+        }
+        var view = entity_view_open(c.program.root);
+        sem_require(view != null);
+        for(var i = first; i < stop; i++) {
+            sem_require(work_pool_submit(&c.workers, bits(void*, &batch[i].kernel)));
+        }
+        for(var i = first; i < stop; i++) { sem_require(work_pool_receive(&c.workers, true) != null); }
+        // Histories can have zero references pending reclamation under this pin.
+        // Acquire their queued payload ownership before releasing the last view.
+        for(var i = first; i < stop; i++) { entity_stage_hold(batch[i].request.stage); }
+        entity_view_close(view);
+        for(var i = first; i < stop; i++) {
+            var result = batch[i];
+            var request = &result.request;
+            var accepted = sem_ok(c) && request.success && request.copied <= generic_body_limit(c.generics);
+            if accepted {
+                sem_require(entity_stage_publish(request.stage));
+                generic_body_complete(c.generics, request.node, request.copied);
+            } else {
+                entity_stage_discard(request.stage);
+                if sem_ok(c) {
+                    sem_fail(c, request.node, "Template expansion exceeds 65536 nodes or could not allocate its work stack");
+                }
+            }
+            request.stage = null;
+            sem_require(work_finish(&c.queries, &result.ticket, accepted));
+        }
+        first = stop;
+    }
+}

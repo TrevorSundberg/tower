@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {compilerThreads} from '../src/compiler-threads.mjs';
 import {TowerWASI} from '../src/wasi-host.mjs';
+import {lazyGenericBodySource, demandedGenericBodySource} from './generic_body_cases.mjs';
 
 let bytes;
 try { bytes = await readFile('build/browser-wasi-threads/tower-work-tests.wasm'); }
@@ -50,6 +51,7 @@ test('declaration, body checking, lowering and staging are deterministic at 1/2/
  const aggregateTypes = await readFile('scaffolding/tests/decltype_aggregate.tower', 'utf8');
  const bodyContinuation = await readFile('scaffolding/tests/body_continuation.tower', 'utf8');
  const lazyBodies = await readFile('scaffolding/tests/decltype_lazy_body.tower', 'utf8');
+ const lazyBodyBudget = lazyGenericBodySource();
    const defaults = await readFile('scaffolding/tests/default_initialization.tower', 'utf8');
  const typeFields = (await readFile('scaffolding/tests/decltype_type_fields.tower', 'utf8')).replace('var seed12:u64=0;',
   Array.from({length:244},(_,i)=>`var seed${i+12}:decltype(seed${i+13});`).join('\n')+'\nvar seed256:u64=0;');
@@ -61,6 +63,7 @@ test('declaration, body checking, lowering and staging are deterministic at 1/2/
   + windowFunctions.join('\n') + '\nvar total:i32=0;\n'
   + windowFunctions.map((_,i)=>`total+=window${i}();`).join('\n') + '\nprint(total);';
  let genericCycleDiagnostic;
+ let genericBodyBudgetDiagnostic;
  const functions = Array.from({length:16}, (_, i) => `
 fn f${i}(value: decltype(seed)): decltype(value) {
  var state: Shared;
@@ -249,7 +252,7 @@ fn badSecond(value:MissingSecond):void {}`);
     assert.match(result.error, /duplicate field 'first'/);
     assert.doesNotMatch(result.error, /duplicate field 'second'/);
    } finally { tower.destroyExecution(fieldsInvalid); }
-   for (const fixture of [delayedLayout, genericHeaders, typeFields, aggregateTypes, bodyContinuation, lazyBodies, defaults])
+   for (const fixture of [delayedLayout, genericHeaders, typeFields, aggregateTypes, bodyContinuation, lazyBodies, lazyBodyBudget, defaults])
    for (const pointerBytes of [4,8]) for (let fast=0; fast<2; fast++) {
     const handle=tower.compile(fixture,{pointerBytes});
     try {
@@ -264,6 +267,15 @@ fn badSecond(value:MissingSecond):void {}`);
      assert.equal(text, dependencyCanonical.get(key), `generic/layout dependencies: workers=${capacity}, width=${pointerBytes}, fast=${fast}`);
     } finally { tower.destroyExecution(handle); }
    }
+   const bodyBudget=tower.compile(demandedGenericBodySource());
+   try {
+    const result=tower.execute(bodyBudget);
+    assert.equal(result.status,'error');
+    assert.match(result.error,/Template expansion exceeds 65536 nodes/);
+    assert.equal(result.output,'');
+    genericBodyBudgetDiagnostic ??= result.error;
+    assert.equal(result.error,genericBodyBudgetDiagnostic,`clone budget at ${capacity} workers`);
+   } finally { tower.destroyExecution(bodyBudget); }
    const genericCycle=tower.compile(await readFile('scaffolding/tests/semantic_invalid/decltype_generic_header_cycle.tower','utf8'));
    try {
     const result=tower.execute(genericCycle);

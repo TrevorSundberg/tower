@@ -149,6 +149,9 @@ Do NOT modify todo.txt
   A pinned view is not a payload lock. Publish structural changes, type interning,
   shared indexes and reference ownership on the coordinator after joins, using
   stages/leases. Cancellation must drain work before releasing its inputs.
+  Queue worker-created payload references through the stage; after joining, call
+  `entity_stage_hold` before closing the last input view. Finalizers release that
+  ownership on discard or destruction; never retain shared history on a worker.
   Joining does not release stage leases; publish all affected stages before
   coordinator updates to entities owned by other jobs.
   Component allocation pools belong to a store or one worker stage. Keep payload

@@ -7,6 +7,8 @@ import host_world;
 import parser_types;
 import world;
 import .library.entities;
+import .library.entity_stage;
+import syntax_provenance;
 import .library.vector;
 
 extern fn syntax_identifier_decode_in_place(text: u8*, length: usize): usize;
@@ -146,4 +148,24 @@ export fn compiler_node_copy_metadata(source: Entity*, destination: Entity*): vo
         parser_match_set_label(target, parser_match_get_label(span));
     }
     syntax_copy_origin(source, destination);
+}
+
+
+// Fallible worker copy into a new staged syntax node. The source guarantees its
+// component types already exist in this explicit world; no registration occurs.
+export fn compiler_node_copy_metadata_staged(source: Entity*, destination: Entity*, stage: EntityStage*): bool {
+    var world = compiler_node_world(source);
+    if world == null || destination == null || destination.store != world.store
+        || destination.stage != bits(void*, stage) || destination.id != 0 { return false; }
+    var span = sem_match(source);
+    if span != null {
+        var target = bits(ParserMatchData*, compiler_world_component(world, destination, CompilerParserMatch()));
+        if target == null { return false; }
+        target.id = span.id;
+        target.start = span.start;
+        target.length = span.length;
+        target.rule = span.rule;
+        if !node_match_set_label(target, parser_match_get_label(span)) { return false; }
+    }
+    return syntax_origin_copy_staged(world, source, destination, stage);
 }

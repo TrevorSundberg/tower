@@ -29168,3 +29168,111 @@ deferred reference ownership for syntax/provenance cloning; its graph fixture
 prints 0. That draft is not yet integrated or claimed to move generic work onto
 workers. Shared reference ownership must transfer after join and before releasing
 the last input pin. Current validated sources are frozen for publication.
+
+Published lookup source 29a77cf is pushed after an unchanged pull; Pages
+c00e8a4dc766332f9abab4fde29c352ed3c381ee advances 5ac6d34. Action 44886156413
+succeeds. The first immediate hosted check saw the preceding deployment manifest;
+a rerun after the action matches all 77 assets and continues browser checks.
+
+### 2026-11-21 - Staged containment and provenance ownership
+
+Integrated worker-private names and queued payload reference ownership into the
+existing EntityStage. Publication validates name collisions and reserves all
+storage before committing; existing members are not silently replaced. Names
+transfer into ordinary containment. The worker queues references to immutable
+published entities without updating shared counts. After joins, the coordinator
+holds queued ownership before the last input view closes; a held cursor prevents
+repeat retains on publication retries. Discard holds before ordinary payload
+finalizers, balancing successfully installed private ownership. Caller scheduling
+must preserve input lifetimes and prevent leasing queued reference targets.
+
+Added a staged provenance-copy operation for new private syntax nodes. All
+fallible allocations precede ownership queueing; installed metadata owns private
+splice storage and shared history through the existing finalizer. Failed copies
+may leave an empty private component and are discarded with their stage. The
+first build rejected aggregate assignment of the splice vector (not implemented
+in Tower); corrected it to the existing explicit copy operation. The first
+integrated standalone fixture lacked its direct entities import; fixed that
+module dependency. No native feature code, alternate evaluator or todo.txt edit.
+Allocation-failure sweeps and compiler validation are now running; generic clone
+work is still coordinator-owned until its demand/dispatch integration lands.
+
+Staged ownership passes all eight native suites (47.62s), including the new
+exhaustive named creation/provenance copy/publication failure sweeps and exact
+allocation cleanup. The standalone integrated graph fixture prints 0. The fault
+fixture also needed direct parser_types/syntax_types imports; no implementation
+change was required. The new generic-body demand integration now starts from
+that validated ownership layer. Native logs are stage-ownership-native-*.log.
+
+The lookup checkpoint completes hosted verification, including all 77 hashes and
+desktop/mobile/default-target flows (entity-published-hosted-report.json).
+
+Generic function instantiation now copies the signature and body root but defers
+body descendants. Type constructors still require coordinator-owned full copies.
+Demanded function bodies receive GenericBodyQuery components/tickets, depend on
+existing signature receipts, declare immutable syntax/type reads and distinct
+output ranges, and dispatch through the existing Tower worker pool. The worker
+uses the same explicit clone stack with staged named entities and provenance.
+The coordinator holds queued references before unpinning and publishes in source
+order. Body checking/preparation depends on the clone receipt; instances created
+during a structural prefix wait for the next joined preparation wave. Node-budget
+acceptance also occurs in source order, independently of worker capacity.
+
+A 32-signature fixture with a 240-statement generic body fails the preceding
+compiler at its 65,536 clone-node limit (line 278); the new compiler interprets it
+successfully and prints 1 without demanding that body. The existing lazy-body
+fixture prints 0. A native debugger records 16 actual generic-body clone kernels,
+two each on threads 4 through 11 and none on coordinator thread 1; normal exit.
+This establishes worker execution, not a speedup claim. Sources and logs use
+generic_body_{lazy,workers}.tower and generic-body-* in the audit directory.
+Full backend, determinism and self-bootstrap validation remain in progress.
+
+The first generic-clone native run passes 7/8 but fails the full semantic graph
+fingerprint (72.67s total); its runtime/diagnostic suites up to that assertion
+pass. Both actual successor objects (entities and semantics) are byte-identical
+to their bootstrap-built objects, and the 16-clone sample emits byte-identical
+Foundation to its preceding compiler. The clone scheduler introduced a separate
+owned component-type entity. Reworking clone state into the existing body-work
+component removes that redundant graph leaf and keeps clone/check phases on one
+subject payload. The original field/edge fingerprint assertion remains unchanged;
+its rerun will establish whether this fully accounts for the difference.
+
+Sharing clone state with the existing body-work component restores every original
+semantic graph fingerprint without changing any expected value or assertion.
+The revised native run passes 8/8 (47.53s) and backend API checks. Both revised
+actual successor objects again compare byte-identically. The revised debugger
+trial again observes 16 clones, two on each of eight workers, coordinator zero.
+Portable/shared and LLVM/cross modules rebuild; matching 106-case regressions,
+worker-capacity checks (including deterministic clone-budget failure), editor
+checks and the compiler-package self-build checks follow on frozen sources.
+
+Generic-body worker-capacity checks pass 3/3 (53.94s), including 1/2/4/8-worker
+canonical equality, the signature-only large-body fixture, and identical demanded
+clone-budget diagnostics with no execution output. Editor checks pass 28/28
+(123.99s). Both revised native successor comparisons are cmp0. The frozen bundle
+matches all 77 local assets; browser workflows and two edited self-build
+iterations remain running. The next isolated admission draft targets operator
+expressions in declaration/decltype queries, whose current type checking still
+runs on the coordinator despite dependency discovery already using workers.
+
+Both edited browser generations pass (163.91s/100.98s), with identical sizes
+1,033,695/52,338,781/63,896,223 and hashes:
+parser f976faa6da892cf227a256d5a1717e8993748d324999a81a3880d1615afbf4ae;
+LLVM 9b0cc036dafd750ea47ef81a08c820fd6b1ccc69e361f608e1ae071a0202c628;
+cross 01ecb721db2932939f7805f735549bc6644d34ff5859265a059c444bb9e6e33f.
+Local deployment verification completes all 77 assets and desktop/mobile/default
+workflows. Full regressions have passed both large page/archetype fixtures and
+continue through the remaining storage/scheduling cases. No source mutation is
+occurring during these tests; the expression-admission draft stays in ignored
+audit files. Its baseline debugger records all 32 operator checks on coordinator
+thread 1 (declaration-expressions-before-debug.log).
+
+The complete selected regression run passes 106/106 in 554.71s, without skips.
+This includes all new stage-ownership round trips, lazy/demanded clone-budget
+cases and the existing dependency/cycle, language and backend fixtures. The
+checkpoint is ready for commit/pull/publication with eight native suites, backend
+API/fault cleanup, worker-count equality, 28 editor cases, actual successor cmp0,
+two identical edited browser generations and complete local deployment checks.
+The remaining universal-threading work includes structural type construction,
+more expression/operand continuations and compiler-wide query migration; this is
+not a declaration that the whole compiler is threaded. todo.txt is unchanged.

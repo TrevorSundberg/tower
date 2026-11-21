@@ -2,6 +2,9 @@ import tower;
 import generic_registry;
 import host_metadata;
 import .library.entities;
+import .library.entity_stage;
+import generic_body_types;
+import entity_require;
 
 // Compiler transformations and metadata over the shared entity store.
 
@@ -91,15 +94,23 @@ struct CloneFrame {
     next: usize;
 }
 
-fn compiler_clone_node(source: Entity*, context: GenericContext*, use: Entity*): Entity* {
-    var result = entity_create(source.store);
+fn compiler_clone_node(source: Entity*, context: GenericContext*, use: Entity*, stage: EntityStage*, parent: Entity*, name: u8*): Entity* {
+    var result = stage == null ? entity_create(source.store) : entity_stage_create_named(stage, parent, name);
     if result == null {
         return null;
     }
-    compiler_node_copy_metadata(source, result);
+    if stage == null {
+        compiler_node_copy_metadata(source, result);
+    } else {
+        if !compiler_node_copy_metadata_staged(source, result, stage) { return null; }
+    }
     if context != null {
-        var data = generic_component_add(result, context.origin_type);
-        var origin = bits(GenericOrigin*, data);
+        var component = entity_component_add(result, context.origin_type);
+        if component == null {
+            if stage == null { entity_release(result); }
+            return null;
+        }
+        var origin = bits(GenericOrigin*, entity_component_data(component));
         origin.definition = source;
         origin.use = use;
     }
@@ -107,7 +118,7 @@ fn compiler_clone_node(source: Entity*, context: GenericContext*, use: Entity*):
 }
 
 // An explicit work stack preserves deep-tree support without host recursion.
-fn compiler_clone_branch(source: Entity*, remaining: usize*, context: GenericContext*, use: Entity*): Entity* {
+fn compiler_clone_branch(source: Entity*, remaining: usize*, context: GenericContext*, use: Entity*, stage: EntityStage*, parent: Entity*, name: u8*, skip_children: Entity*): Entity* {
     var exhausted = *remaining == 0;
     if exhausted {
         return null;
@@ -118,7 +129,7 @@ fn compiler_clone_branch(source: Entity*, remaining: usize*, context: GenericCon
     if failed {
         return null;
     }
-    var result = compiler_clone_node(source, context, use);
+    var result = compiler_clone_node(source, context, use, stage, parent, name);
     failed = result == null;
     if failed {
         free(frames);
@@ -135,7 +146,7 @@ fn compiler_clone_branch(source: Entity*, remaining: usize*, context: GenericCon
         }
         var top = length -1;
         var frame = &frames[top];
-        var count = compiler_node_count(frame.source);
+        var count = frame.source == skip_children ? 0 : compiler_node_count(frame.source);
         if frame.next == count {
             length = top;
             continue;
@@ -157,17 +168,16 @@ fn compiler_clone_branch(source: Entity*, remaining: usize*, context: GenericCon
         }
         var child = entity_child_at(frame.source, frame.next);
         var role = entity_child_name(frame.source, frame.next);
-        var copy = compiler_clone_node(child, context, use);
+        var copy = compiler_clone_node(child, context, use, stage, frame.destination, role);
         failed = copy == null;
         if failed {
             break;
         }
         *remaining = *remaining - 1;
-        var attached = entity_attach(copy, frame.destination, role);
-        entity_release(copy);
-        failed = !attached;
-        if failed {
-            break;
+        if stage == null {
+            var attached = entity_attach(copy, frame.destination, role);
+            entity_release(copy);
+            if !attached { failed = true; break; }
         }
         frame.next++;
         frames[length].source = child;
@@ -177,7 +187,7 @@ fn compiler_clone_branch(source: Entity*, remaining: usize*, context: GenericCon
     }
     free(frames);
     if failed {
-        entity_release(result);
+        if stage == null { entity_release(result); }
         return null;
     }
     return result;
@@ -185,7 +195,7 @@ fn compiler_clone_branch(source: Entity*, remaining: usize*, context: GenericCon
 
 export fn compiler_clone_tree(source: Entity*, limit: usize, copied: usize*): Entity* {
     var remaining = limit;
-    var result = compiler_clone_branch(source, &remaining, null, null);
+    var result = compiler_clone_branch(source, &remaining, null, null, null, null, null, null);
     *copied = limit - remaining;
     return result;
 }
@@ -226,7 +236,11 @@ export fn generic_instantiate(context: GenericContext*, definition: Entity*, use
     }
     var remaining = GenericNodeLimit() -context.copied;
     var before = remaining;
-    var node = compiler_clone_branch(definition, &remaining, context, use);
+    // Preserve the body root's shape/provenance for the signature. Descendants
+    // are copied only when execution demands this function's body.
+    var body_source: Entity* = null;
+    if template.kind == GenericKind.Function { body_source = compiler_node_member(definition, "body"); }
+    var node = compiler_clone_branch(definition, &remaining, context, use, null, null, null, body_source);
     var copied = before -remaining;
     context.copied = context.copied + copied;
     if node == null {
@@ -239,6 +253,7 @@ export fn generic_instantiate(context: GenericContext*, definition: Entity*, use
     instance.definition = definition;
     instance.use = use;
     instance.node = node;
+    instance.body_source = body_source;
     instance.count = count;
     for(var i: usize = 0; i < count; i++) {
         instance.arguments[i] = arguments[i];
@@ -352,4 +367,45 @@ export fn generic_type_result(context: GenericContext*, instance: Entity*): Enti
             return returned;
         }
     }
+}
+
+
+export fn generic_body_pending(context: GenericContext*, node: Entity*): bool {
+    var instance = bits(GenericInstance*, compiler_component_get(node, context.instance_type));
+    return instance != null && instance.body_source != null && !instance.body_ready;
+}
+
+export fn generic_body_limit(context: GenericContext*): usize {
+    return GenericNodeLimit() - context.copied;
+}
+
+// The coordinator calls this only after successful structural publication.
+export fn generic_body_complete(context: GenericContext*, node: Entity*, copied: usize): void {
+    compiler_entity_require(generic_body_pending(context, node) && copied <= generic_body_limit(context));
+    var instance = bits(GenericInstance*, compiler_component_get(node, context.instance_type));
+    context.copied += copied;
+    instance.body_ready = true;
+}
+
+// One job owns only its stage and result. Templates, signatures, type identities
+// and provenance are immutable during dispatch; no shared retain/attach occurs.
+export fn compiler_generic_body_kernel(payload: void*): void {
+    var result = bits(GenericBodyCopy*, payload);
+    var context = bits(GenericContext*, result.context);
+    var node = bits(Entity*, result.node);
+    var stage = bits(EntityStage*, result.stage);
+    var instance = bits(GenericInstance*, compiler_component_get(node, context.instance_type));
+    var destination = compiler_node_member(node, "body");
+    var remaining = result.limit;
+    result.success = generic_body_pending(context, node) && destination != null;
+    if !result.success { return; }
+    for(var i: usize = 0; i < entity_child_count(instance.body_source); i++) {
+        var source = entity_child_at(instance.body_source, i);
+        var role = entity_child_name(instance.body_source, i);
+        if compiler_clone_branch(source, &remaining, context, instance.use, stage, destination, role, null) == null {
+            result.success = false;
+            break;
+        }
+    }
+    result.copied = result.limit - remaining;
 }

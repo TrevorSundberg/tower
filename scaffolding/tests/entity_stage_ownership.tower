@@ -1,0 +1,89 @@
+import tower;
+import .library.entity_stage;
+import .library.entities;
+
+var failures:i32=0;
+var finalized:usize=0;
+fn check(ok:bool):void { if !ok { failures++; } }
+struct Holds { first:Entity*; second:Entity*; }
+export fn tower_entity_finalize(lifecycle:usize,component:EntityComponent*,data:u8*):void {
+    check(lifecycle==1 && entity_component_data(component)==data);
+    var value=bits(Holds*,data);
+    if value.first!=null { entity_release(value.first); }
+    if value.second!=null { entity_release(value.second); }
+    finalized++;
+}
+fn held_component(stage:EntityStage*,owner:Entity*,type:Entity*,first:Entity*,second:Entity*):void {
+    var value=bits(Holds*,entity_component_data(entity_component_add(owner,type)));
+    *value=default;
+    var references:Entity*[2];references[0]=first;references[1]=second;
+    check(entity_stage_references(stage,&references[0],2));
+    value.first=first;value.second=second;
+}
+fn retained():void {
+    var store=entity_store_create();
+    var root=entity_create(store);
+    var type=entity_create(store);
+    check(entity_register(type,sizeof(Holds),alignof(Holds),1));
+    var target=entity_create(store);
+    var stage=entity_stage_open(root);
+    var view=entity_view_open(root);
+    var first=entity_stage_create_named(stage,root,"first");
+    var second=entity_stage_create_named(stage,root,"second");
+    var leaf=entity_stage_create_named(stage,first,"leaf");
+    held_component(stage,first,type,target,target);
+    held_component(stage,second,type,target,null);
+    var rejected:Entity*[2];rejected[0]=target;rejected[1]=leaf;
+    check(!entity_stage_references(stage,&rejected[0],2));
+    var other=entity_store_create();var foreign=entity_create(other);
+    rejected[1]=foreign;
+    check(!entity_stage_references(stage,&rejected[0],2));
+    entity_release(foreign);check(entity_store_dispose(other));
+    check(entity_references(target)==1 && entity_child_count(root)==0);
+    check(entity_release(target)==0);
+    entity_stage_hold(stage);
+    check(entity_references(target)==3);
+    entity_stage_hold(stage);
+    check(entity_references(target)==3 && !entity_stage_publish(stage));
+    entity_view_close(view);
+    check(entity_stage_publish(stage));
+    check(entity_child_count(root)==2 && entity_child_count(first)==1);
+    check(entity_child_at(root,entity_member_index(root,"first"))==first);
+    check(entity_child_at(root,entity_member_index(root,"second"))==second);
+    check(entity_child_at(first,entity_member_index(first,"leaf"))==leaf);
+    entity_release(type);entity_release(root);
+    check(finalized==2 && entity_store_dispose(store));
+}
+fn discarded():void {
+    var store=entity_store_create();
+    var root=entity_create(store);
+    var type=entity_create(store);
+    check(entity_register(type,sizeof(Holds),alignof(Holds),1));
+    var target=entity_create(store);
+    var stage=entity_stage_open(root);
+    var view=entity_view_open(root);
+    var child=entity_stage_create_named(stage,root,"value");
+    held_component(stage,child,type,target,null);
+    check(entity_references(target)==1);
+    entity_stage_discard(stage);
+    check(entity_references(target)==1 && entity_child_count(root)==0 && finalized==3);
+    entity_view_close(view);
+    // Duplicate new names fail before any containment or reference publication.
+    stage=entity_stage_open(root);
+    child=entity_stage_create_named(stage,root,"same");
+    held_component(stage,child,type,target,null);
+    check(entity_stage_create_named(stage,root,"same")!=null);
+    check(!entity_stage_publish(stage) && entity_child_count(root)==0 && entity_references(target)==1);
+    entity_stage_discard(stage);
+    check(entity_references(target)==1 && finalized==4);
+    // A new name also cannot silently replace an existing published member.
+    child=entity_create(store);
+    check(entity_attach(child,root,"same"));entity_release(child);
+    stage=entity_stage_open(root);
+    check(entity_stage_create_named(stage,root,"same")!=null);
+    check(!entity_stage_publish(stage) && entity_child_count(root)==1);
+    entity_stage_discard(stage);
+    entity_release(target);entity_release(type);entity_release(root);
+    check(entity_store_dispose(store));
+}
+retained();discarded();print(failures);

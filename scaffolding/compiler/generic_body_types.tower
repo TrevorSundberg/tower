@@ -1,0 +1,11 @@
+import tower;
+
+// Internal worker arguments, borrowing canonical entities from one compiler world.
+struct GenericBodyCopy {
+    context: void*;
+    node: void*;
+    stage: void*;
+    limit: usize;
+    copied: usize;
+    success: bool;
+}

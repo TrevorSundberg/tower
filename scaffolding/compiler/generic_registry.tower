@@ -52,6 +52,8 @@ struct GenericInstance {
     definition: Entity*;
     use: Entity*;
     node: Entity*;
+    body_source: Entity*;
+    body_ready: bool;
     arguments: Entity*[64];
     count: usize;
     next: GenericInstance*;

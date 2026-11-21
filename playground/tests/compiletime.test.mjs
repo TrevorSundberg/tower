@@ -2,6 +2,7 @@ import {test, after} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {loadTower, loadLLVM, executeWasm} from './compiler-fixtures.mjs';
+import {lazyGenericBodySource, demandedGenericBodySource} from './generic_body_cases.mjs';
 
 const foundation = await readFile('scaffolding/foundation.tower', 'utf8');
 const tower = await loadTower(await readFile(process.env.TOWER_TEST_WASM || 'build/browser-wasi/tower.wasm'), undefined, foundation);
@@ -20,6 +21,35 @@ function execute(source, pointerBytes, fast) {
   return tower.foundation(handle).source;
  } finally { tower.destroyExecution(handle); }
 }
+
+test('signature-only generic queries do not clone unused body descendants', async () => {
+ const source = lazyGenericBodySource();
+ for (const width of [4, 8]) {
+  const canonical = execute(source, width, false);
+  assert.doesNotMatch(canonical, /fn `large\(/);
+  assert.equal(execute(source, width, true), canonical);
+  assert.equal(execute(canonical, width, true), canonical);
+ }
+ const compiled = llvm.compile(source);
+ assert.equal(compiled.status, 'compiled', compiled.error);
+ assert.equal((await executeWasm(compiled)).output, '0\n');
+});
+
+test('demanded generic body copies retain the node budget and reject execution', () => {
+ const source = demandedGenericBodySource();
+ for (const width of [4, 8]) {
+  const handle = tower.compile(source, {pointerBytes:width});
+  try {
+   const result = tower.execute(handle);
+   assert.equal(result.status, 'error');
+   assert.match(result.error, /Template expansion exceeds 65536 nodes/);
+   assert.equal(result.output, '');
+  } finally { tower.destroyExecution(handle); }
+ }
+ const compiled = llvm.compile(source);
+ assert.equal(compiled.status, 'error');
+ assert.match(compiled.error, /Template expansion exceeds 65536 nodes/);
+});
 
 for (const name of ['decltype', 'decltype_headers', 'decltype_layout', 'decltype_generic_headers', 'decltype_type_fields', 'decltype_aggregate', 'decltype_lazy_body', 'body_continuation', 'comptime', 'comptime_flow']) {
  test(`${name} preserves types and behavior through Foundation, interpreters and LLVM`, async () => {
