@@ -4,41 +4,53 @@ import wasm_object_types;
 
 // Derived name -> row index. Keys borrow pinned object/argument storage; row
 // identities survive rehashing. Each link request owns its tables independently.
-struct WasmNameSlot { name: WasmBytes; value: u32; occupied: bool; }
+struct WasmNameSlot { name: WasmBytes; value: u32; hash: u32; }
 struct WasmNameMap { slots: WasmNameSlot*; capacity: usize; count: usize; }
+var WasmNameInitialCapacity: usize = 16;
 
 fn wasm_names_dispose(map: WasmNameMap*): void { free(map.slots); *map = default; }
 
-fn wasm_names_slot(map: WasmNameMap*, name: WasmBytes): usize {
-    var at = convert(usize, wasm_bytes_hash(name)) & (map.capacity - 1);
-    while map.slots[at].occupied && !wasm_bytes_equal(map.slots[at].name, name) { at = (at + 1) & (map.capacity - 1); }
+fn wasm_names_hash(name: WasmBytes): u32 {
+    var hash = wasm_bytes_hash(name);
+    // Zero marks an unused slot; full bytes still distinguish hash collisions.
+    return hash == 0 ? 1 : hash;
+}
+
+fn wasm_names_slot(map: WasmNameMap*, name: WasmBytes, hash: u32): usize {
+    var at = convert(usize, hash) & (map.capacity - 1);
+    while map.slots[at].hash != 0 && (map.slots[at].hash != hash || !wasm_bytes_equal(map.slots[at].name, name)) {
+        at = (at + 1) & (map.capacity - 1);
+    }
     return at;
 }
 
 fn wasm_names_get(map: WasmNameMap*, name: WasmBytes): u32 {
     if map.capacity == 0 { return WasmNoIndex; }
-    var at = wasm_names_slot(map, name);
-    return map.slots[at].occupied ? map.slots[at].value : WasmNoIndex;
+    var at = wasm_names_slot(map, name, wasm_names_hash(name));
+    return map.slots[at].hash != 0 ? map.slots[at].value : WasmNoIndex;
 }
 
 fn wasm_names_set(map: WasmNameMap*, name: WasmBytes, value: u32): bool {
+    var hash = wasm_names_hash(name);
+    var at: usize = 0;
     if map.capacity != 0 {
-        var existing = wasm_names_slot(map, name);
-        if map.slots[existing].occupied { map.slots[existing].value = value; return true; }
+        at = wasm_names_slot(map, name, hash);
+        if map.slots[at].hash != 0 { map.slots[at].value = value; return true; }
     }
     if map.capacity == 0 || map.count >= map.capacity / 2 {
-        var capacity: usize = map.capacity == 0 ? 16 : map.capacity * 2;
+        var capacity: usize = map.capacity == 0 ? WasmNameInitialCapacity : map.capacity * 2;
         if capacity < map.capacity || capacity > (~convert(usize, 0)) / sizeof(WasmNameSlot) { return false; }
         var next: WasmNameMap = { slots: alloc(WasmNameSlot, capacity), capacity: capacity, count: map.count };
         if next.slots == null { return false; }
         fill(next.slots, 0, capacity * sizeof(WasmNameSlot));
-        for (var at: usize = 0; at < map.capacity; at++) {
-            if map.slots[at].occupied { next.slots[wasm_names_slot(&next, map.slots[at].name)] = map.slots[at]; }
+        for (var row: usize = 0; row < map.capacity; row++) {
+            var slot = &map.slots[row];
+            if slot.hash != 0 { next.slots[wasm_names_slot(&next, slot.name, slot.hash)] = *slot; }
         }
         free(map.slots); *map = next;
+        at = wasm_names_slot(map, name, hash);
     }
-    var at = wasm_names_slot(map, name);
-    if !map.slots[at].occupied { map.count++; }
-    map.slots[at] = init(WasmNameSlot) { name: name, value: value, occupied: true };
+    map.count++;
+    map.slots[at] = init(WasmNameSlot) { name: name, value: value, hash: hash };
     return true;
 }

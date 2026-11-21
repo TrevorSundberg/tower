@@ -7,27 +7,12 @@ import wasm_link_types;
 import wasm_link_symbols;
 import .library.vector;
 
-fn wasm_link_relocation_row(object: WasmObject*, relocation: WasmRelocationRecord*): u32 {
-    var code = relocation.section == object.code_section;
-    if !code && relocation.section != object.data_section { return WasmNoIndex; }
-    var first: usize = code ? convert(usize, object.imported_functions) : 0;
-    var last = code ? object.functions.length : object.data.length;
-    var begin = first;
-    while first < last {
-        var middle = first + (last - first) / 2;
-        var offset = code ? object.functions.data[middle].code_offset : object.data.data[middle].section_offset;
-        if offset <= relocation.offset { first = middle + 1; }
-        else { last = middle; }
-    }
-    return first == begin ? WasmNoIndex : convert(u32, first - 1);
-}
-
-fn wasm_link_relocation_chunk(link: WasmLink*, input: usize, relocation: WasmRelocationRecord*): WasmChunkLayout* {
+fn wasm_link_relocation_chunk(link: WasmLink*, input: usize, index: usize): WasmChunkLayout* {
     var object = link.world.objects.data[input].object;
-    var row = wasm_link_relocation_row(object, relocation);
+    var row = object.relocation_chunks.data[index];
     if row == WasmNoIndex { return null; }
     var layout = link.layouts.data[input];
-    return relocation.section == object.code_section ? &layout.functions.data[convert(usize, row)] : &layout.data.data[convert(usize, row)];
+    return object.relocations.data[index].section == object.code_section ? &layout.functions.data[convert(usize, row)] : &layout.data.data[convert(usize, row)];
 }
 
 fn wasm_link_relocation_sift(object: WasmObject*, indexes: u32*, root: usize, count: usize): void {
@@ -75,8 +60,8 @@ fn wasm_link_relocation_indexes(link: WasmLink*): bool {
         var object = link.world.objects.data[input].object;
         var layout = link.layouts.data[input];
         var total: usize = 0;
-        foreach (var & relocation in &object.relocations) {
-            var chunk = wasm_link_relocation_chunk(link, input, relocation);
+        for (var row: usize = 0; row < object.relocations.length; row++) {
+            var chunk = wasm_link_relocation_chunk(link, input, row);
             if chunk != null { chunk.relocation_count++; total++; }
         }
         if !vector_reserve(&layout.relocations, total) { return wasm_link_fail(link, WasmLinkError.Allocation, default(WasmBytes)); }
@@ -85,8 +70,7 @@ fn wasm_link_relocation_indexes(link: WasmLink*): bool {
         foreach (var & chunk in &layout.functions) { chunk.relocation_first = first; first += chunk.relocation_count; chunk.relocation_count = 0; }
         foreach (var & chunk in &layout.data) { chunk.relocation_first = first; first += chunk.relocation_count; chunk.relocation_count = 0; }
         for (var row: usize = 0; row < object.relocations.length; row++) {
-            var relocation = &object.relocations.data[row];
-            var chunk = wasm_link_relocation_chunk(link, input, relocation);
+            var chunk = wasm_link_relocation_chunk(link, input, row);
             if chunk != null { layout.relocations.data[chunk.relocation_first + chunk.relocation_count++] = convert(u32, row); }
         }
         if !wasm_link_sort_relocations(link, input, &layout.functions) || !wasm_link_sort_relocations(link, input, &layout.data) { return false; }

@@ -69,10 +69,16 @@ fn wasm_link_patch(link: WasmLink*, kind: WasmRelocation, target: WasmBytes, val
         return true;
     }
     var signed = wasm_link_relocation_signed(kind);
-    var reader: WasmReader = { bytes: target, ..default };
     var width_bits: u64 = width == leb32 ? 32 : 64;
-    if signed { wasm_read_sleb(&reader, width_bits); } else { wasm_read_uleb(&reader, width_bits); }
-    if reader.error != WasmReadError.None || reader.at != target.length {
+    // The old operand's value is unused. Validate the complete padded encoding
+    // directly, including unused/sign bits, rather than decoding it first.
+    var valid = true;
+    for (var at: usize = 0; at + 1 < width; at++) { valid &&= (target.data[at] & WasmLebContinuation) != 0; }
+    var last = target.data[width - 1];
+    var remaining = width_bits - convert(u64, width - 1) * WasmLebPayloadBits;
+    var limit = convert(u8, convert(u64, 1) << (signed ? remaining - 1 : remaining));
+    valid &&= last < limit || (signed && last >= WasmLebContinuation - limit && last < WasmLebContinuation);
+    if !valid {
         return wasm_link_fail(link, WasmLinkError.Input, wasm_text_bytes("relocation requires a padded LEB operand"));
     }
     if width == leb32 { value &= convert(u64, WasmNoIndex); }

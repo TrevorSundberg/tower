@@ -37726,3 +37726,62 @@ Use gh api --input with a UTF-8 JSON request file instead. Pages action
 SHA-256 3045cfd3fba15766d4d076764795e2660284421e44dea6012c071c3721dab208.
 This metadata-only publication reuses the verified runtime and does not rebuild
 compiler/browser assets. Release the owned lock after hosted verification.
+Publication receipt for that milestone: b9550ae is pushed. Pages d6ae0f7 and
+action 44958813317 succeeded; hosted manifest SHA-256 exactly matches
+cdea16f912d08e56295266748a4abe43ac7c661ab326cfb951c56ca7d50b90ec. It preserves
+runtime 6c03edd and all 86 assets. A Git push DNS failure was resolved using the
+address returned by Resolve-DnsName in per-command http.curloptResolve, preserving
+normal HTTPS certificate verification. Publication lock released.
+
+### 2026-11-21: profile and fix Tower linker overhead before further features
+
+User reprioritized profiling/fixing the slowdown ahead of shared-memory/TLS or
+parallel feature work. Keep the previous final generation's LLVM-reactor inputs
+frozen under coordinator-wasm-linker/benchmark-memory and use the same argument
+JSON/rsp. No source-generation/build activity overlaps the timing trials. WSL
+does not have perf installed; install external Valgrind 3.26 and use only its
+Callgrind instruction/call profiler, not a sanitizer or Memcheck. Command:
+valgrind --tool=callgrind --callgrind-out-file=.../tower-baseline.callgrind
+.../static-memory-final <benchmark args> -o .../profile.wasm, then
+callgrind_annotate --auto=no --inclusive=no. The profiler reports a brk-growth
+limitation; allocation continues and the image succeeds. Treat instruction
+counts as attribution and measure actual speed separately without instrumentation.
+
+Baseline: 3,173,339,567 executed instructions. Flat attribution: name insertion
+14.42%, liveness/relocation indexes 12%, relocation emission 10.25%, relocation
+record decoding 9.41%, name reading 7.23%, relocation-owner binary searches 5.15%.
+The important repeated work is hashing a new name repeatedly and hashing every
+stored name again during growth; searching each relocation's owner again in both
+CSR passes; full UTF-8 decoding of long ASCII symbols; and decoding an existing
+padded relocation operand whose value is immediately replaced.
+
+Tower changes: retain a nonzero hash in the existing name-slot padding, compare
+full bytes on hash collisions, reuse the first insertion probe and cached hashes
+at growth. Empty keys/zero values remain valid. Object validation now retains one
+derived u32 owner index per relocation; liveness consumes it directly. Consecutive
+relocations try their previously validated chunk before the bounded binary-search
+fallback, preserving shuffled-input and boundary errors. This is request-owned
+derived indexing on the existing platform-object ECS payload, not a semantic IR.
+ASCII validation skips eight bytes at once using an unaligned copy and an
+endianness-independent high-bit mask, while non-ASCII still uses the same Unicode
+decoder. Padded operand validation checks continuation/unused/sign bits directly
+instead of calculating the discarded value; range checks and output encoding stay.
+
+New Tower fixtures cover an actual full FNV collision (costarring/liquid), empty
+keys, Unicode/truncated/invalid sequences across byte alignments, every last-byte
+value for signed/unsigned 32/64-bit padded encodings against the ordinary decoder,
+early terminators, reversed relocation order and chunk-boundary rejection. Native
+suite passes. One initial fixture compile rejected the reserved word expected as
+a local name; renamed it valid_encoding before running. No new helper scripts.
+
+First three changes reduce instructions to 2,504,110,498; owner hints and direct
+padded validation reduce them to 2,314,630,050 (27.1% below baseline). Original
+and final images compare identical. Five uninstrumented baseline/final/LLD triples
+in seconds: baseline 0.54/0.61/0.53/0.53/0.51; final 0.43/0.42/0.41/0.42/0.42;
+LLD 0.46/0.46/0.42/0.44/0.43. Medians 0.53/0.42/0.44: about 21% faster than
+previous Tower and 5% faster than LLD on this workload. Final RSS 351436-351660 KiB
+versus baseline 344896-345160 and LLD 376380-376436. The retained owner indexes
+cost about 6 MiB but remain about 6.6% below LLD. This supersedes the previous
+slowdown observation for this frozen workload, not every linker/profile/platform.
+Profiles tower-{baseline,indexes,final}.callgrind and all comparison images remain
+in the isolated cache. Final Wasm and compiler-generation validation follows.

@@ -136,6 +136,11 @@ fn wasm_test_variants(): void {
         utility_check(wasm_link_read_object(&link.world, wasm_text_bytes("definition.o"), a)
             && wasm_link_read_object(&link.world, wasm_text_bytes("declaration.o"), b)
             && wasm_link_prepare(&link) && wasm_link_symbols(&link), "variant inputs");
+        var parsed = link.world.objects.data[1].object;
+        utility_check(parsed.relocation_chunks.length == parsed.relocations.length, "validated relocations retain one derived owner row");
+        if parsed.relocations.length != 0 {
+            utility_check(parsed.relocation_chunks.data[0] == parsed.imported_functions, "relocation owner includes imported function prefix");
+        }
         var ok = wasm_link_variants(&link);
         if defined == 0 { utility_check(!ok && link.error == WasmLinkError.Signature, "incompatible unresolved imports diagnosed"); }
         else { if defined == 2 {
@@ -236,6 +241,86 @@ fn wasm_test_names(): void {
     }
     utility_check(map.count == 256 && map.capacity == capacity, "updating names does not grow or duplicate rows");
     utility_check(wasm_names_get(&map, wasm_text_bytes("absent")) == WasmNoIndex, "missing name sentinel");
+    var left = wasm_text_bytes("costarring"); var right = wasm_text_bytes("liquid");
+    utility_check(wasm_bytes_hash(left) == wasm_bytes_hash(right), "fixture has an actual full FNV collision");
+    utility_check(wasm_names_set(&map, left, 42) && wasm_names_set(&map, right, 17)
+        && wasm_names_get(&map, left) == 42 && wasm_names_get(&map, right) == 17, "cached hashes still compare colliding names");
+    utility_check(wasm_names_set(&map, default(WasmBytes), 0) && wasm_names_get(&map, wasm_text_bytes("")) == 0, "empty name and zero value remain valid");
+}
+
+fn wasm_test_name_encoding(): void {
+    var bytes: u8[40];
+    var ascii: u8 = 116;
+    var unicode_width: usize = 4;
+    for (var prefix: usize = 0; prefix < 24; prefix++) {
+        fill(&bytes[0], ascii, sizeof(u8[40]));
+        // U+1F4A9 across all alignments and byte spans; valid ASCII suffixes
+        // must not hide invalid/truncated Unicode before the next word boundary.
+        bytes[prefix] = 240; bytes[prefix + 1] = 159; bytes[prefix + 2] = 146; bytes[prefix + 3] = 169;
+        var name: WasmBytes = { data: &bytes[0], length: sizeof(u8[40]) };
+        utility_check(wasm_bytes_utf8(name), "valid UTF-8 among long ASCII names");
+        name.length = prefix + unicode_width - 1;
+        utility_check(!wasm_bytes_utf8(name), "truncated multibyte name remains invalid");
+        name.length = sizeof(u8[40]); bytes[prefix + 1] = ascii;
+        utility_check(!wasm_bytes_utf8(name), "invalid continuation among ASCII words rejected");
+    }
+    fill(&bytes[0], ascii, sizeof(u8[40]));
+    for (var length: usize = 0; length <= sizeof(u8[40]) - 1; length++) {
+        utility_check(wasm_bytes_utf8(init(WasmBytes) { data: &bytes[1], length: length }), "unaligned ASCII names of every tail length");
+    }
+}
+
+fn wasm_test_padded_encoding(): void {
+    var kinds: WasmRelocation[4];
+    kinds[0] = WasmRelocation.MemoryAddressLeb; kinds[1] = WasmRelocation.MemoryAddressSleb;
+    kinds[2] = WasmRelocation.MemoryAddressLeb64; kinds[3] = WasmRelocation.MemoryAddressSleb64;
+    var storage: u8[10];
+    var byte_values: u32 = 256;
+    for (var kind_index: usize = 0; kind_index < 4; kind_index++) {
+        var kind = kinds[kind_index];
+        var width = convert(usize, wasm_relocation_width(kind));
+        var signed = wasm_link_relocation_signed(kind);
+        var bits: u64 = kind_index < 2 ? 32 : 64;
+        for (var last: u32 = 0; last < byte_values; last++) {
+            for (var at: usize = 0; at + 1 < width; at++) { storage[at] = WasmLebContinuation; }
+            storage[width - 1] = convert(u8, last);
+            var target: WasmBytes = { data: &storage[0], length: width };
+            var reader: WasmReader = { bytes: target, ..default };
+            if signed { wasm_read_sleb(&reader, bits); } else { wasm_read_uleb(&reader, bits); }
+            var valid_encoding = reader.error == WasmReadError.None && reader.at == width;
+            var link: WasmLink = default;
+            utility_check(wasm_link_patch(&link, kind, target, 42) == valid_encoding, "padded operand validation matches ordinary signed/unsigned decoder for every last byte");
+        }
+        for (var stop: usize = 0; stop + 1 < width; stop++) {
+            fill(&storage[0], WasmLebContinuation, width); storage[width - 1] = 0; storage[stop] = 0;
+            var link: WasmLink = default;
+            utility_check(!wasm_link_patch(&link, kind, init(WasmBytes) { data: &storage[0], length: width }, 42), "early LEB terminators are not padded operands");
+        }
+    }
+}
+
+fn wasm_test_relocation_owner(): void {
+    var object: WasmObject = default;
+    defer wasm_object_dispose(&object);
+    var code_section: u32 = 3;
+    var stride: u32 = 16;
+    var code_bytes: usize = 8;
+    var operand_bytes = convert(usize, wasm_relocation_width(WasmRelocation.FunctionIndexLeb));
+    var functions: u32 = 12;
+    object.code_section = code_section;
+    for (var row: u32 = 0; row < functions; row++) {
+        var function: WasmFunctionRecord = { code_offset: row * stride, code: { data: null, length: code_bytes }, ..default };
+        utility_check(vector_push(&object.functions, function), "owner fixture functions");
+    }
+    var hint = WasmNoIndex;
+    for (var iteration: u32 = 0; iteration < functions * 2; iteration++) {
+        var row = iteration < functions ? iteration : functions * 2 - iteration - 1;
+        var relocation: WasmRelocationRecord = { section: code_section, offset: row * stride + 1, ..default };
+        hint = wasm_object_relocation_chunk(&object, &relocation, operand_bytes, hint);
+        utility_check(hint == row && wasm_object_relocation_chunk(&object, &relocation, operand_bytes, hint) == row, "ordered and reverse relocations resolve the same owner");
+        relocation.offset = row * stride + convert(u32, code_bytes) - 1;
+        utility_check(wasm_object_relocation_chunk(&object, &relocation, operand_bytes, hint) == WasmNoIndex, "cached owner still rejects an operand crossing its chunk boundary");
+    }
 }
 
 fn wasm_test_resolution(): void {
@@ -668,8 +753,9 @@ fn wasm_test_memory_imports(): void {
 }
 
 export fn main(): i32 {
-    wasm_test_leb(); wasm_test_objects(); wasm_test_archives(); wasm_test_names(); wasm_test_resolution();
+    wasm_test_leb(); wasm_test_objects(); wasm_test_archives(); wasm_test_names(); wasm_test_name_encoding(); wasm_test_resolution();
     wasm_test_variants(); wasm_test_relocation_patches(); wasm_test_import_policy();
+    wasm_test_padded_encoding(); wasm_test_relocation_owner();
     wasm_test_lazy_archives();
     wasm_test_byte_plans();
     wasm_test_archive_comdat_fallback();

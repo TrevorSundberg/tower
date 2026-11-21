@@ -111,7 +111,18 @@ fn wasm_read_sleb(reader: WasmReader*, width: u64): i64 {
 fn wasm_read_index(reader: WasmReader*): u32 { return convert(u32, wasm_read_uleb(reader, 32)); }
 
 fn wasm_bytes_utf8(name: WasmBytes): bool {
+    var word_bytes: usize = 8;
+    var ascii_high_bits: u64 = 9259542123273814144;
+    var ascii_limit: u8 = 128;
     for (var at: usize = 0; at < name.length;) {
+        // Most platform symbols are long ASCII names. Copy permits unaligned
+        // input and the repeated-byte mask is independent of target endianness.
+        if name.length - at >= word_bytes {
+            var word: u64;
+            copy(&word, name.data + at, word_bytes);
+            if (word & ascii_high_bits) == 0 { at += word_bytes; continue; }
+        }
+        if name.data[at] < ascii_limit { at++; continue; }
         var scalar: u32 = 0;
         var length = tower_utf8_decode(name.data + at, name.length - at, &scalar);
         if length == 0 { return false; }

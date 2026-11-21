@@ -65,6 +65,9 @@ struct WasmObject {
     data: vector(WasmDataRecord);
     symbols: vector(WasmSymbolRecord);
     relocations: vector(WasmRelocationRecord);
+    // Derived validated owner row, parallel to relocations. Custom/debug
+    // relocations use WasmNoIndex; original platform records stay unchanged.
+    relocation_chunks: vector(u32);
     initializers: vector(WasmInitializerRecord);
     comdats: vector(WasmComdatRecord);
     comdat_entries: vector(WasmComdatEntry);
@@ -86,7 +89,7 @@ fn wasm_object_dispose(object: WasmObject*): void {
     vector_dispose(&object.memories); vector_dispose(&object.globals);
     vector_dispose(&object.tags); vector_dispose(&object.exports);
     vector_dispose(&object.elements); vector_dispose(&object.data);
-    vector_dispose(&object.symbols); vector_dispose(&object.relocations);
+    vector_dispose(&object.symbols); vector_dispose(&object.relocations); vector_dispose(&object.relocation_chunks);
     vector_dispose(&object.initializers); vector_dispose(&object.comdats);
     vector_dispose(&object.comdat_entries); vector_dispose(&object.features);
     *object = default;
