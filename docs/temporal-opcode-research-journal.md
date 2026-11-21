@@ -28050,3 +28050,16 @@ including void-pointer diagnostics, recursive layouts, nominal imports, editor
 queries and repeated ownership cleanup. This completes the field/layout source
 checkpoint's checks. The pending generic-signature reproducer above remains an
 explicit next task. No C++ changes and no todo.txt edits were made.
+
+Rebased field/layout checkpoint onto3443f8b, including upstream's Tower
+incremental syntax-session port85a717c. Preserved both append-only journal
+histories. Fresh empty compiletime-fields-session-clean builds using the public
+bcc76755 bootstrap without an override; all native8/8 pass44.01s, backend API
+passes, and the actual successor semantic object compares byte-identically.
+Rebuilt portable/shared/LLVM/cross and compiler-project package on this merge.
+Capacity/overlap checks pass3/3 in44.48s, matching backend checks49/49 in23.78s,
+and shared semantic checks28/28 in19.67s. Logs use declaration-fields-session
+under build/language-next-audit. The prior57-case memory/module suite predates
+this parser rebase; it is not represented as a repeated merged-source run.
+Preparing the merged field/layout release; generic header scheduling remains
+next, with its failing reproducer retained. todo.txt hash remains96a9e58964d7f01e4a97819f259448db81ef5e40.
