@@ -1,5 +1,4 @@
-# Program entry and CLI orchestration are Tower; the existing node callback
-# fixture keeps its native implementation until function addresses are supported.
+# Program entry, CLI orchestration and node/lifecycle fixtures are Tower.
 get_property(main_triple GLOBAL PROPERTY TOWER_COMPILER_TRIPLE)
 set(main_entry main)
 if(main_triple MATCHES "^wasm32-")

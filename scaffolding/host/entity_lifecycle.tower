@@ -1,8 +1,9 @@
 import tower;
 import .compiler.component_kinds;
+import .tests.nodes;
 
-// Reserved high lifecycle IDs belong to Tower compiler payloads. Native
-// callback IDs retain their existing values during the remaining transition.
+// Reserved high lifecycle IDs belong to Tower compiler payloads. The explicit
+// self-test ID exercises this same dispatch without a native callback registry.
 // Keep this object separate from allocation: utility-only clients need no graph.
 extern fn foundation_node_dispose(data: void*): void;
 
@@ -14,9 +15,11 @@ extern fn syntax_origin_dispose(data: void*): void;
 
 extern fn syntax_trace_dispose(data: void*): void;
 
-extern fn compiler_native_finalize(kind: usize, component: void*, data: void*): void;
-
 export fn tower_entity_finalize(kind: usize, component: void*, data: void*): void {
+    if kind == NodeFixtureLifecycle() {
+        node_fixture_finalize(component, data);
+        return;
+    }
     if kind == compiler_origin_lifecycle() {
         syntax_origin_dispose(data);
         return;
@@ -38,5 +41,6 @@ export fn tower_entity_finalize(kind: usize, component: void*, data: void*): voi
         node_payload_dispose(convert(u32, parser_kind), data);
         return;
     }
-    compiler_native_finalize(kind, component, data);
+    // Zero is handled by the entity store. Unknown nonzero IDs are invalid.
+    abort();
 }

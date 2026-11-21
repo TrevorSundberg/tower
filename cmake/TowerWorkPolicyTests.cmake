@@ -46,7 +46,7 @@ function(tower_lr_work_policy_test)
     list(APPEND libraries tower-compiler-evaluation)
   endif()
   add_executable(tower-lr-work-tests ${sources} "${lr-work-main_OBJECT}")
-  target_compile_features(tower-lr-work-tests PRIVATE cxx_std_20)
+  set_target_properties(tower-lr-work-tests PROPERTIES LINKER_LANGUAGE CXX)
   target_compile_options(tower-lr-work-tests PRIVATE -fno-exceptions)
   target_link_libraries(tower-lr-work-tests PRIVATE ${libraries})
   # Keep release coverage, but permit focused development checks without running

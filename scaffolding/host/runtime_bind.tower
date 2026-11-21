@@ -125,8 +125,13 @@ export fn main(argc: i32, argv: u8**): i32 {
             continue;
         }
         if strcmp(argv[i], "--state") == 0 {
-            ok = strcmp(argv[next], "compiler-tests") == 0;
-            ok &&= runtime_test_state(context, module);
+            if strcmp(argv[next], "compiler-tests") == 0 {
+                ok = runtime_test_state(context, module);
+            } else {
+                var diagnostic = strcmp(argv[next], "compiler-host-debug") == 0;
+                ok = diagnostic || strcmp(argv[next], "compiler-host") == 0;
+                ok &&= runtime_host_state(context, module, diagnostic);
+            }
             i = i + 2;
             continue;
         }

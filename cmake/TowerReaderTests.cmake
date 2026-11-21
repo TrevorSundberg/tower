@@ -17,9 +17,8 @@ add_custom_command(OUTPUT "${reader_cases}"
   DEPFILE "${reader_cases}.d" DEPENDS scaffolding/tests/syntax_reader.tower "${TOWER_BOOTSTRAP_COMPILER}" VERBATIM)
 set_source_files_properties("${reader_cases}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
 target_sources(tower-parser-tests PRIVATE "${reader_cases}")
-add_executable(tower-reader-tests "${reader-main_OBJECT}" "${reader_cases}"
-  scaffolding/tower.cpp)
-target_compile_features(tower-reader-tests PRIVATE cxx_std_20)
+add_executable(tower-reader-tests "${reader-main_OBJECT}" "${reader_cases}")
+set_target_properties(tower-reader-tests PROPERTIES LINKER_LANGUAGE CXX)
 target_compile_options(tower-reader-tests PRIVATE -fno-exceptions)
 target_link_libraries(tower-reader-tests PRIVATE tower-compiler-parser-nodes tower-compiler-semantics
   tower-compiler-entities tower-compiler-utilities tower-compiler-memory)

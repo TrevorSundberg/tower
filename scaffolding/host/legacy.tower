@@ -1,0 +1,42 @@
+import tower;
+import memory_types;
+
+// Compatibility transport only: one coordinator owns these process/instance
+// slots. Compiler jobs use explicit worlds and compiler_buffer_allocate/free.
+// The target artifact initializes the slots; ordinary Tower module effects are
+// not repurposed as C static initialization. No worker may enter this adapter.
+struct CompilerLegacyState {
+    world: void*;
+    memory: CompilerNodeMemoryState;
+    diagnostics: usize;
+}
+
+extern fn compiler_legacy_storage(): CompilerLegacyState*;
+extern fn compiler_host_world_create(): void*;
+extern fn compiler_node_allocate(state: CompilerNodeMemoryState*, size: usize, diagnostic: bool): void*;
+extern fn compiler_node_free(state: CompilerNodeMemoryState*, pointer: void*, diagnostic: bool): void;
+extern fn abort(): void;
+
+export fn compiler_host_world(): void* {
+    var state = compiler_legacy_storage();
+    if state.world is null {
+        var world = compiler_host_world_create();
+        if world is null { abort(); return null; }
+        state.world = world;
+    }
+    return state.world;
+}
+
+export fn tower_memory_allocate(size: usize): void* {
+    var state = compiler_legacy_storage();
+    return compiler_node_allocate(&state.memory, size, state.diagnostics != 0);
+}
+
+export fn tower_memory_free(memory: void*): void {
+    var state = compiler_legacy_storage();
+    compiler_node_free(&state.memory, memory, state.diagnostics != 0);
+}
+
+export fn tower_memory_get_allocated_count(): usize {
+    return compiler_legacy_storage().memory.live_allocations;
+}

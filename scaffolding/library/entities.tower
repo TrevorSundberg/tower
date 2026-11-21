@@ -94,8 +94,8 @@ struct EntityComponent {
     page: EntityComponentPage*;
 }
 
-// Transitional host bridge for existing native payload destructors; zero means none.
-// A Tower client can supply its own ordinary Tower dispatch function instead.
+// The owning Tower program supplies its lifecycle dispatch; zero means none.
+// IDs belong to that program, not to a process-wide native callback registry.
 extern fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void;
 
 export fn entity_store_create(): EntityStore* {

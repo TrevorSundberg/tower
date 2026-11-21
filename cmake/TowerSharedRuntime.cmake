@@ -12,6 +12,7 @@ add_custom_command(OUTPUT "${shared_lifecycle}"
     scaffolding/bedrock.tower scaffolding/foundation.tower VERBATIM)
 set_source_files_properties("${shared_lifecycle}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
 target_sources(tower-compiler-entities INTERFACE "${shared_lifecycle}")
+include("${CMAKE_CURRENT_LIST_DIR}/TowerLegacyHost.cmake")
 
 if(TOWER_PARSER_ONLY)
   set(shared_tests "${CMAKE_CURRENT_BINARY_DIR}/tower_shared_runtime_tests.tower")

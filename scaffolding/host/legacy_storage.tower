@@ -1,0 +1,9 @@
+import tower;
+
+// The runtime artifact binder supplies the target's initialized storage through
+// LLVM's C API. This boundary carries no compiler graph or lifecycle algorithm.
+extern fn compiler_legacy_state(): void*;
+
+export fn compiler_legacy_storage(): void* {
+    return compiler_legacy_state();
+}

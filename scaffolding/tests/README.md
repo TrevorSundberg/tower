@@ -25,8 +25,8 @@ WASI exercises the byte guards but has no POSIX protected-page test.
 parser configuration, also executable through `host-wasi.mjs`. Lexer coverage
 preserves 150 seeded NFAs against direct simulation, 500 seeded lexer tables
 against the native reference, and allocation-failure sweeps. Entity coverage
-uses an explicitly owned store and Tower finalizers. The browser's existing
-native node self-test remains until its callback boundary can also be retired.
+uses an explicitly owned store and Tower finalizers. The browser node self-test
+also runs Tower (`nodes.tower`) through the production lifecycle dispatch.
 
 Compiler storage and the compiled Foundation entity-registry checks now execute
 in Tower from the parser aggregate. For a focused native run, configure
@@ -90,8 +90,11 @@ ownership, LR boundaries, rejected edits, cache reuse and lexical definitions.
 Its separate Tower object also supplies `syntax_tests` through the existing
 parser interface. The aggregate entry and `--trace`, `--host-only`, `--parse`
 dispatch live in `parser_main.tower`; the command preserves failure exit codes
-and grammar revision/tree output. Native callback coverage in `nodes.cpp`
-remains until actual function addresses are supported by the Tower compiler.
+and grammar revision/tree output. `nodes.tower` retains attachment, named-member,
+reference-count and payload-lifetime assertions. A Tower lifecycle ID replaces
+the unused native callback registry; the fixture checks userdata/owner/type,
+exactly-once finalization, independent-store ownership and allocation balance.
+This does not introduce general first-class function pointers.
 
 The isolated `cmake/TowerDriver.cmake` fragment adds CLI checks with
 `-DTOWER_DRIVER_TESTS=ON` to a native compiler configuration. Build `towerc` and

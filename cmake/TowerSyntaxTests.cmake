@@ -20,9 +20,8 @@ endif()
 set(live_input "${CMAKE_CURRENT_BINARY_DIR}/tower_syntax_live_main.tower")
 file(GENERATE OUTPUT "${live_input}" CONTENT "import tower;\nimport tests.parser_fixture_setup;\nextern fn syntax_tests(): void;\nexport fn ${live_entry}(argc: i32, argv: u8**): i32 { parser_fixture_setup(); syntax_tests(); return 0; }\n")
 tower_runtime_object(live-main "${live_input}" "${live_triple}")
-add_executable(tower-live-syntax-tests "${live-main_OBJECT}"
-  scaffolding/tower.cpp)
-target_compile_features(tower-live-syntax-tests PRIVATE cxx_std_20)
+add_executable(tower-live-syntax-tests "${live-main_OBJECT}")
+set_target_properties(tower-live-syntax-tests PROPERTIES LINKER_LANGUAGE CXX)
 target_compile_options(tower-live-syntax-tests PRIVATE -fno-exceptions)
 target_link_libraries(tower-live-syntax-tests PRIVATE tower-compiler-parser-nodes tower-compiler-semantics
   tower-compiler-entities tower-compiler-utilities tower-compiler-memory)

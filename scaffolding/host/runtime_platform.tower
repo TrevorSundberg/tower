@@ -27,6 +27,8 @@ extern fn LLVMConstArray2(element: void*, values: void**, count: u64): void*;
 
 extern fn LLVMConstAllOnes(type: void*): void*;
 
+extern fn LLVMConstInt(type: void*, value: u64, signed: i32): void*;
+
 extern fn LLVMGetModuleDataLayout(module: void*): void*;
 
 extern fn LLVMPointerSize(layout: void*): u32;
@@ -156,6 +158,31 @@ export fn runtime_test_state(context: void*, module: void*): bool {
     values[1] = values[0];
     values[2] = LLVMConstAllOnes(integer);
     var global = LLVMAddGlobal(module, LLVMArrayType2(integer, 3), "tower.runtime.compiler.test");
+    LLVMSetLinkage(global, RuntimePrivateLinkage());
+    LLVMSetAlignment(global, width);
+    LLVMSetInitializer(global, LLVMConstArray2(integer, &values[0], 3));
+    runtime_platform_return(context, function, global);
+    return true;
+}
+
+export fn runtime_host_state(context: void*, module: void*, diagnostic: bool): bool {
+    var width = LLVMPointerSize(LLVMGetModuleDataLayout(module));
+    var integer = LLVMInt32TypeInContext(context);
+    if width == 8 { integer = LLVMInt64TypeInContext(context); }
+    else {
+        if width != 4 { puts("Unsupported compiler host-state layout"); return false; }
+    }
+    var pointer = LLVMPointerTypeInContext(context, 0);
+    var function = runtime_platform_declaration(module, "compiler_legacy_state", LLVMFunctionType(pointer, null, 0, 0));
+    if function is null { return false; }
+    // CompilerLegacyState: world pointer, allocation count, diagnostic profile.
+    // All supported host profiles use zero for a null pointer. This private
+    // storage has one coordinator owner, including shared-memory WASI builds.
+    var values: void*[3];
+    values[0] = LLVMConstNull(integer);
+    values[1] = values[0];
+    values[2] = LLVMConstInt(integer, diagnostic ? 1 : 0, 0);
+    var global = LLVMAddGlobal(module, LLVMArrayType2(integer, 3), "tower.runtime.compiler.host");
     LLVMSetLinkage(global, RuntimePrivateLinkage());
     LLVMSetAlignment(global, width);
     LLVMSetInitializer(global, LLVMConstArray2(integer, &values[0], 3));

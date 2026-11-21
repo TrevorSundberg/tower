@@ -32460,3 +32460,48 @@ retaining both journal histories. Installed the new checked-in archive
 into the same isolated cache, rebuilt the guest host library and both Tower tool
 objects, then relinked/reran the focused check successfully. No compiler-source
 syntax migration or bootstrap pin changes are part of this milestone.
+#### Final owned C/C++ retirement: implementation and focused checks
+
+Pulled main with rebase at turn start (459b199; documentation only). The remaining
+469 lines were tower.cpp (55), tests/nodes.cpp (234), and three headers (180).
+The callback registry audit found no production consumer: only the node fixture
+registered a native function address. Replace that obsolete interface with the
+existing Tower lifecycle dispatch, preserving and strengthening the assertions,
+rather than manufacturing function addresses or adding another native shim.
+
+Implemented host/legacy.tower over the existing world constructor and captured
+allocation-owner API. Its process/instance storage is three target words emitted
+by the existing Tower runtime artifact binder through LLVM C APIs: null world,
+zero allocation count, explicit diagnostic profile. Parser/browser and debug
+builds preserve guards; release native builds preserve the former NDEBUG policy.
+This is private platform object storage, not a semantic IR or a new Foundation
+operation. Default-world and legacy counter access remain coordinator-only;
+worker code must use explicit worlds and compiler_buffer_allocate/free. Merely
+translating an adapter does not make its shared mutable state thread-safe.
+
+The ordinary host implementation is an editable compiler-legacy Tower unit.
+The small target storage accessor remains in the existing prebuilt Tower runtime
+artifact support, pending Tower-owned complete package/build recipes. All node
+fixtures now compile from Tower with the existing lifecycle unit/import closure.
+They exercise the real entity store, component pools and archetype transitions;
+no shadow AST/graph was introduced. Finalization checks retain userdata byte123,
+owner/type identity and retained type lifetime, and now prove exactly one call.
+The same component fixture runs against an independent store. Legacy zero-size,
+overflow and captured-owner buffer release are also covered.
+
+Removed the five native files and mechanically connected their targets to these
+Tower objects. Targets with no native translation unit now declare their linker
+language explicitly; upstream LLVM/lld and platform libc remain dependencies.
+No new C/C++/Python/JS implementation or fallback seed. The first compile caught
+an exact-type error (NodeFixturePayload* passed to void*); an explicit bits cast
+fixed it. Native parser selection passes 15/15 in 2.96s using the public 961952b
+bootstrap. Evidence retirement-native-focused-{build,tests}.log under
+C:/Sandbox/build/codex-agents/worker-granularity. Fresh default bootstrap,
+WASI, browser workers/generations, benchmarks and publication remain in progress.
+
+After successful successor validation, the source count will be zero owned
+C/C++ lines. This alone is not the complete portable-release endpoint: the
+committed Linux development bootstrap still needs replacement, native packages
+for other hosts need production/validation, and existing Python/shell packaging
+must move to Tower. Next take those distribution/bootstrap boundaries in that
+order, retaining provenance/hashes and never calling an untested host portable.

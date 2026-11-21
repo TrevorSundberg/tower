@@ -24,8 +24,8 @@ if(format_triple MATCHES "^wasm32-")
       -o "${format_object}" --depfile "${format_object}.d"
     DEPFILE "${format_object}.d" DEPENDS scaffolding/tests/format_wasi.tower "${TOWER_BOOTSTRAP_COMPILER}" VERBATIM)
   set_source_files_properties("${format_object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
-  add_executable(tower-format-tests "${format_object}" scaffolding/tower.cpp)
-  target_compile_features(tower-format-tests PRIVATE cxx_std_20)
+  add_executable(tower-format-tests "${format_object}" )
+  set_target_properties(tower-format-tests PROPERTIES LINKER_LANGUAGE CXX)
   target_compile_options(tower-format-tests PRIVATE -fno-exceptions)
   target_link_libraries(tower-format-tests PRIVATE tower-compiler-parser-nodes tower-compiler-semantics
     tower-compiler-entities tower-compiler-utilities tower-compiler-memory)

@@ -1,0 +1,220 @@
+import tower;
+
+// Translation of the former native node self-test. All assertions use the same
+// production entities, table transitions and lifecycle dispatch as the compiler.
+// The fixture lifecycle is a Tower dispatch ID, not a fabricated function address.
+const NodeFixtureLifecycle: usize = 1;
+
+extern fn abort(): void;
+extern fn puts(text: u8*): i32;
+extern fn strcmp(left: u8*, right: u8*): i32;
+extern fn compiler_host_world(): void*;
+extern fn tower_node_get_allocated_count(): usize;
+extern fn tower_component_get_allocated_count(): usize;
+extern fn tower_memory_get_allocated_count(): usize;
+extern fn tower_memory_allocate(size: usize): void*;
+extern fn tower_memory_free(memory: void*): void;
+extern fn compiler_buffer_allocate(size: usize): void*;
+extern fn tower_node_create(): void*;
+extern fn tower_node_release_ref(node: void*): usize;
+extern fn tower_node_get_ref_count(node: void*): usize;
+extern fn tower_node_get_id(node: void*): usize;
+extern fn tower_node_attach(child: void*, parent: void*): void;
+extern fn tower_node_detach(child: void*): void;
+extern fn tower_node_attach_member(child: void*, parent: void*, name: u8*): void;
+extern fn tower_node_get_parent(child: void*): void*;
+extern fn tower_node_get_child_count(parent: void*): usize;
+extern fn tower_node_get_child(parent: void*, index: usize): void*;
+extern fn tower_node_get_parent_child_index(child: void*): usize;
+extern fn tower_node_get_parent_member_name(child: void*): u8*;
+extern fn tower_node_get_child_member_index(parent: void*, name: u8*): usize;
+extern fn tower_node_get_child_member(parent: void*, name: u8*): void*;
+extern fn tower_node_get_component_count(owner: void*): usize;
+extern fn tower_node_get_component_by_index(owner: void*, index: usize): void*;
+extern fn tower_node_get_component(owner: void*, type: void*): void*;
+extern fn tower_component_get_owner(component: void*): void*;
+extern fn tower_component_get_type(component: void*): void*;
+extern fn tower_component_get_userdata(component: void*): void*;
+extern fn tower_component_from_userdata(data: void*): void*;
+extern fn entity_register(type: void*, bytes: usize, alignment: usize, lifecycle: usize): bool;
+extern fn entity_component_add(owner: void*, type: void*): void*;
+extern fn entity_store_create(): void*;
+extern fn entity_store_dispose(store: void*): bool;
+extern fn entity_store_count(store: void*): usize;
+extern fn entity_store_component_count(store: void*): usize;
+extern fn entity_create(store: void*): void*;
+extern fn entity_release(node: void*): usize;
+
+struct NodeFixturePayload { value: u8; owner: void*; type: void*; calls: usize*; }
+
+fn node_check(ok: bool): void {
+    if !ok { puts("Node ownership/lifecycle contract failed"); abort(); }
+}
+
+fn node_fixture_finalize(component: void*, data: void*): void {
+    var value = bits(NodeFixturePayload*, data);
+    node_check(tower_component_get_userdata(component) == data);
+    node_check(tower_component_from_userdata(bits(void*, data)) == component);
+    node_check(value.value == 123);
+    node_check(value.owner is not null && tower_component_get_owner(component) == value.owner);
+    node_check(value.type is not null && tower_component_get_type(component) == value.type);
+    // The type is still retained and the payload remains valid during destruction.
+    node_check(tower_node_get_ref_count(value.type) == 2);
+    node_check(*value.calls == 0);
+    *value.calls += 1;
+}
+
+fn node_balance(nodes: usize, components: usize, memory: usize): void {
+    node_check(tower_node_get_allocated_count() == nodes);
+    node_check(tower_component_get_allocated_count() == components);
+    node_check(tower_memory_get_allocated_count() == memory);
+}
+
+fn node_component_fixture(owner: void*, type: void*): void {
+    node_check(tower_node_get_ref_count(type) == 1);
+    node_check(tower_node_get_component_count(owner) == 0);
+    node_check(tower_node_get_component_by_index(owner, 0) is null);
+    node_check(tower_component_get_userdata(null) is null);
+    node_check(tower_component_from_userdata(null) is null);
+    node_check(entity_register(type, sizeof(NodeFixturePayload), alignof(NodeFixturePayload), NodeFixtureLifecycle()));
+    var component = entity_component_add(owner, type);
+    node_check(component is not null);
+    node_check(tower_node_get_ref_count(type) == 2 && tower_node_get_ref_count(owner) == 1);
+    node_check(tower_node_get_component_count(owner) == 1);
+    node_check(tower_node_get_component_by_index(owner, 0) == component);
+    node_check(tower_node_get_component_by_index(owner, 1) is null);
+    node_check(tower_node_get_component(owner, type) == component);
+    node_check(tower_component_get_type(component) == type);
+    node_check(tower_component_get_owner(component) == owner);
+    var calls: usize = 0;
+    var data = bits(NodeFixturePayload*, tower_component_get_userdata(component));
+    *data = { value: 123, owner: owner, type: type, calls: &calls };
+    node_check(tower_component_from_userdata(bits(void*, data)) == component);
+    node_check(entity_register(type, sizeof(NodeFixturePayload), alignof(NodeFixturePayload), NodeFixtureLifecycle()));
+    node_check(entity_component_add(owner, type) == component);
+    node_check(calls == 0);
+    node_check(tower_node_release_ref(owner) == 0);
+    node_check(calls == 1 && tower_node_get_ref_count(type) == 1);
+}
+
+export fn tower_tests(): void {
+    var world = compiler_host_world();
+    node_check(world is not null && compiler_host_world() == world);
+    var nodes = tower_node_get_allocated_count();
+    var components = tower_component_get_allocated_count();
+    var memory = tower_memory_get_allocated_count();
+    // Releasing the parent releases its owned child reference.
+    {
+        var parent = tower_node_create();
+        node_check(parent is not null && tower_node_get_allocated_count() == nodes + 1);
+        node_check(tower_node_get_parent(parent) is null);
+        node_check(tower_node_get_ref_count(parent) == 1);
+        node_check(tower_node_get_child_count(parent) == 0 && tower_node_get_component_count(parent) == 0);
+        var child = tower_node_create();
+        node_check(tower_node_get_allocated_count() == nodes + 2);
+        tower_node_attach(child, parent);
+        node_check(tower_node_get_ref_count(parent) == 1 && tower_node_get_ref_count(child) == 2);
+        node_check(tower_node_get_id(child) > tower_node_get_id(parent));
+        node_check(tower_node_get_parent(child) == parent && tower_node_get_child_count(parent) == 1);
+        node_check(tower_node_get_child(parent, 0) == child && tower_node_get_parent_child_index(child) == 0);
+        node_check(tower_node_release_ref(child) == 1);
+        node_check(tower_node_get_ref_count(parent) == 1 && tower_node_get_allocated_count() == nodes + 2);
+        node_check(tower_node_release_ref(parent) == 0);
+    }
+    node_balance(nodes, components, memory);
+    // Detaching destroys a child held only by its parent.
+    {
+        var parent = tower_node_create();
+        var child = tower_node_create();
+        tower_node_attach(child, parent);
+        node_check(tower_node_get_ref_count(parent) == 1 && tower_node_get_ref_count(child) == 2);
+        node_check(tower_node_release_ref(child) == 1);
+        node_check(tower_node_get_ref_count(parent) == 1 && tower_node_get_allocated_count() == nodes + 2);
+        tower_node_detach(child);
+        node_check(tower_node_get_ref_count(parent) == 1 && tower_node_get_allocated_count() == nodes + 1);
+        node_check(tower_node_release_ref(parent) == 0);
+    }
+    node_balance(nodes, components, memory);
+    // A retained child survives detachment and parent destruction.
+    {
+        var parent = tower_node_create();
+        var child = tower_node_create();
+        node_check(tower_node_get_ref_count(parent) == 1 && tower_node_get_ref_count(child) == 1);
+        tower_node_attach(child, parent);
+        node_check(tower_node_get_ref_count(parent) == 1 && tower_node_get_ref_count(child) == 2);
+        tower_node_detach(child);
+        node_check(tower_node_get_ref_count(child) == 1 && tower_node_get_allocated_count() == nodes + 2);
+        node_check(tower_node_release_ref(parent) == 0);
+        node_check(tower_node_release_ref(child) == 0);
+    }
+    node_balance(nodes, components, memory);
+    {
+        var missing = ~convert(usize, 0);
+        var parent = tower_node_create();
+        node_check(tower_node_get_parent_member_name(parent) is null);
+        node_check(tower_node_get_child_member_index(parent, "member1") == missing);
+        node_check(tower_node_get_child_member_index(parent, "member2") == missing);
+        var child1 = tower_node_create();
+        tower_node_attach_member(child1, parent, "member1");
+        node_check(tower_node_get_ref_count(parent) == 1 && tower_node_get_ref_count(child1) == 2);
+        node_check(tower_node_get_parent(child1) == parent);
+        node_check(strcmp(tower_node_get_parent_member_name(child1), "member1") == 0);
+        node_check(tower_node_get_child_member_index(parent, "member1") == 0);
+        node_check(tower_node_get_child_member(parent, "member1") == child1 && tower_node_get_parent_child_index(child1) == 0);
+        var child2 = tower_node_create();
+        tower_node_attach_member(child2, parent, "member2");
+        node_check(tower_node_get_ref_count(parent) == 1);
+        node_check(tower_node_get_ref_count(child1) == 2 && tower_node_get_ref_count(child2) == 2);
+        node_check(tower_node_get_allocated_count() == nodes + 3 && tower_node_get_parent(child2) == parent);
+        node_check(strcmp(tower_node_get_parent_member_name(child2), "member2") == 0);
+        node_check(tower_node_get_child_member_index(parent, "member2") == 1);
+        node_check(tower_node_get_child_member(parent, "member2") == child2 && tower_node_get_parent_child_index(child2) == 1);
+        // Replacing a named member detaches the previous child and compacts order.
+        tower_node_attach_member(child2, parent, "member1");
+        node_check(tower_node_get_ref_count(parent) == 1);
+        node_check(tower_node_get_ref_count(child1) == 1 && tower_node_get_ref_count(child2) == 2);
+        node_check(tower_node_get_allocated_count() == nodes + 3);
+        node_check(tower_node_get_parent(child1) is null && tower_node_get_parent_member_name(child1) is null);
+        node_check(tower_node_get_parent(child2) == parent && strcmp(tower_node_get_parent_member_name(child2), "member1") == 0);
+        node_check(tower_node_get_child_member_index(parent, "member1") == 0);
+        node_check(tower_node_get_child_member_index(parent, "member2") == missing);
+        node_check(tower_node_get_child_member(parent, "member1") == child2 && tower_node_get_child_member(parent, "member2") is null);
+        node_check(tower_node_release_ref(parent) == 0);
+        node_check(tower_node_get_ref_count(child1) == 1 && tower_node_get_ref_count(child2) == 1);
+        node_check(tower_node_get_allocated_count() == nodes + 2);
+        node_check(tower_node_get_parent(child1) is null && tower_node_get_parent(child2) is null);
+        node_check(tower_node_release_ref(child1) == 0 && tower_node_release_ref(child2) == 0);
+    }
+    node_balance(nodes, components, memory);
+    {
+        var owner = tower_node_create();
+        var type = tower_node_create();
+        node_check(tower_node_get_allocated_count() == nodes + 2);
+        node_component_fixture(owner, type);
+        node_check(tower_node_get_allocated_count() == nodes + 1);
+        node_check(tower_component_get_allocated_count() == components);
+        node_check(tower_node_release_ref(type) == 0);
+    }
+    node_balance(nodes, components, memory);
+    // The same lifecycle works in an independently owned store, without touching
+    // the default world's type registry or instrumentation.
+    var store = entity_store_create();
+    node_check(store is not null);
+    var owner = entity_create(store);
+    var type = entity_create(store);
+    node_check(owner is not null && type is not null);
+    node_component_fixture(owner, type);
+    node_check(entity_store_count(store) == 1 && entity_store_component_count(store) == 0);
+    node_check(entity_release(type) == 0 && entity_store_dispose(store));
+    node_balance(nodes, components, memory);
+    // Preserve the legacy counter, zero-size, overflow and captured-owner free.
+    var allocation = tower_memory_allocate(0);
+    node_check(allocation is not null && tower_memory_get_allocated_count() == memory + 1);
+    tower_memory_free(allocation);
+    node_check(tower_memory_allocate(~convert(usize, 0)) is null);
+    allocation = compiler_buffer_allocate(7);
+    node_check(allocation is not null && tower_memory_get_allocated_count() == memory);
+    tower_memory_free(allocation);
+    tower_memory_free(null);
+    node_balance(nodes, components, memory);
+}

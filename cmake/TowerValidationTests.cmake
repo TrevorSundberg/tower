@@ -17,9 +17,8 @@ add_custom_command(OUTPUT "${validation_cases}"
   DEPFILE "${validation_cases}.d" DEPENDS scaffolding/tests/syntax_validation.tower "${TOWER_BOOTSTRAP_COMPILER}" VERBATIM)
 set_source_files_properties("${validation_cases}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
 target_sources(tower-parser-tests PRIVATE "${validation_cases}")
-add_executable(tower-validation-tests "${validation-main_OBJECT}" "${validation_cases}"
-  scaffolding/tower.cpp)
-target_compile_features(tower-validation-tests PRIVATE cxx_std_20)
+add_executable(tower-validation-tests "${validation-main_OBJECT}" "${validation_cases}")
+set_target_properties(tower-validation-tests PROPERTIES LINKER_LANGUAGE CXX)
 target_compile_options(tower-validation-tests PRIVATE -fno-exceptions)
 target_link_libraries(tower-validation-tests PRIVATE tower-compiler-parser-nodes tower-compiler-semantics
   tower-compiler-entities tower-compiler-utilities tower-compiler-memory)

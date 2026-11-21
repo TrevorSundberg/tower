@@ -19,9 +19,8 @@ get_target_property(interpreter_test_sources tower-parser-tests SOURCES)
 # Borrow only native service adapters. The parser target's independently compiled
 # fixture objects may carry host bindings that belong to their own test entry.
 list(FILTER interpreter_test_sources EXCLUDE REGEX "scaffolding/tests/|\\.(o|obj)$")
-list(APPEND interpreter_test_sources scaffolding/tests/nodes.cpp)
 add_executable(tower-interpreter-tests ${interpreter_test_sources} "${execution_object}")
-target_compile_features(tower-interpreter-tests PRIVATE cxx_std_20)
+set_target_properties(tower-interpreter-tests PROPERTIES LINKER_LANGUAGE CXX)
 target_compile_options(tower-interpreter-tests PRIVATE -UNDEBUG -fno-exceptions)
 target_link_libraries(tower-interpreter-tests PRIVATE tower-compiler-interpreter
   tower-compiler-parser-nodes tower-compiler-semantics tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
