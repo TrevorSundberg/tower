@@ -23415,3 +23415,22 @@ all70 served assets against the committed manifest (agents-defer-hosted-assets.j
 sourceef5c5ff). The full desktop/mobile verification recorded above was for oura13
 publication; do not misattribute it to this later artifact set. Agent2's next
 publication must start from this newer source/bootstrap/Pages manifest.
+
+Published main ef5c5ff and deployment c1b54ec, based on the coordinator's a13c7de
+deployment so its changes are retained. Both remote refs were verified. The final
+combined browser regression run passes 148/148 (defer-release-regressions.log).
+Local and live deployment verification both pass completely: the exact manifest,
+all 70 assets, desktop/mobile execution and completion, native downloads, grammar
+edits, module projects and compiler-project cancellation. Logs:
+build/defer-release-deployment-local.log and defer-deployment-live.log. A transient
+DNS failure affected the first post-push ref query; a normal retry verified it.
+
+The feature and audited migrations are complete and published, with the compatible
+bootstrap in the same main history. Foundation/Bedrock and todo.txt are unchanged
+by defer; the pre-existing operator-audit stash remains intact. The full native
+parser/formatter aggregate remains uncompleted after the interrupted rebase runs;
+the passing native evidence is the backend API suite, four integrated CTests,
+relocated fixture checks and clean default compiler builds. A future aggregate
+run should use an immutable validation checkout so concurrent main updates cannot
+invalidate its long repository-wide formatting pass. No full-aggregate pass is
+claimed by this publication.
