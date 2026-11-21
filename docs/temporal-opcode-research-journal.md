@@ -35740,3 +35740,34 @@ Before the final push, verify a clean Git checkout's executable/resource bytes
 and the checksum guard. Then publish metadata while preserving the current
 verified runtime. Continue the Python-first audit by eliminating unnecessary
 steps before considering the smallest required Tower replacements.
+
+Direct-bootstrap final publication receipt: rebasing brought in 8831909's backend
+unit/work scheduling changes, so validated a fresh Git clone of final source
+`261fab235813d67db8a1b37e9cf3bc5f99d48d4a` at
+`/cache/direct_bootstrap_checkout`, with native output at
+`/cache/direct_bootstrap_rebased_native`. Git status was clean and towerc mode
+was 755. With Python unavailable and no private compiler override, all 54 native
+build steps pass. Successor SHA-256 is
+`d7345af0f4e54bff6670e46e6cd128d6628bf5f034d23b14999bd4e36ad649e5`;
+graph/fast known_bindings and native struct_values print zero failures. A separate
+copy of the direct bootstrap first passes the wrapper, then truncating one
+resource causes checksum verification to return failure with no compiler path.
+The real checkout/pin was not mutated by that rejection trial. Source261fab2
+was pushed after these checks; no force push or todo.txt edit.
+
+Metadata-only Pages `888cfef84c0b1e815fade116ba591bdede6c70a0` directly descends
+from `d886fe2cc16414da9c30071618362c74872192e2` and changes only the deployment
+manifest. It preserves current runtime build source b24847b, all 83 asset hashes
+and existing audit/provenance notes, while explicitly superseding the earlier
+archive-based tooling layout. Pages action44948442335 succeeded; the hosted
+manifest exactly matches the prepared bytes, SHA-256
+`7d8b06fc71b9cc3da7e4eefd105791c19ebe5bf42545d016afb16b02eafd41a7`.
+
+Next deletion-first audit: the three docs/research/audit_tower_*.py scanners have
+only historical report commands and mutual imports as callers; preserve their
+reports and point reproduction to Git history rather than porting lexical
+rewrite machinery. inventory-native.py has one documentation caller and reports
+the already-completed native retirement; ordinary git ls-files and Ninja's
+existing input listing can replace that reporting step. These four are the next
+removal candidates. Distribution verification and actual compiler-generation
+tests have live callers and require a separate minimal-behavior audit.
