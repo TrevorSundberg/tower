@@ -38126,3 +38126,14 @@ the 1,989-line baseline. Its build recipe, actual depfile closure, archive-symbo
 selection, exports/imports/wraps and support assets still feed browser self-builds.
 Audit whether packaging/compression steps can reuse existing build capabilities
 before implementing the remaining required behavior in Tower.
+
+Final rebase integrates IDE/UI source through 0d722c1; implementation is 1007d41.
+From a new /cache/measurement_checkout clone, run the documented default
+build-native.sh with TOWER_NATIVE_BUILD=/cache/measurement_native, no private
+bootstrap and Python unavailable. All 54 native plus three driver build steps
+pass. The successor remains byte-identical to public bootstrap
+0d752e7dc35a0a8951872cf52d96873bb1e1cab2b3fe63d9b147e64e5deecca8, so the full
+measurement evidence above remains applicable. The full ordinary driver suite
+passes in 12.65 seconds and the rebased functions native-measurement preset
+passes all five interpret/compile/execute/object samples. Preserve the newer
+hosted runtime/build identity during the metadata-only tooling publication.
