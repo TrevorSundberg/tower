@@ -34789,3 +34789,76 @@ the now-obsolete blanket editor exclusion and all-layout body dependency item.
 Structural type construction/protocols, CLI/backend job integration, general
 staged values/effects/invalidation and measured scaling remain open; this is not
 a claim of full conversion or a measured speedup.
+
+The editor publication rebase brought in 108a1e8's independent Tower archive
+libraries/tools and dependency preference. Compiler, fixture, bootstrap and build
+inputs compare byte-for-byte with the tested editor checkpoint; all journal
+append histories are retained. A fresh default-pin native successor and portable
+browser rebuild are running from rebased 85dc2c1 before the release matrix.
+
+Iteration bottleneck found while checking those builds: the first native build's
+ComposeParserNodes command contains '-DWORK_TESTS=', while the next configure
+contains '-DWORK_TESTS=OFF'. TowerWorkTests declares its option only after parser
+rules are formed. The semantically identical argument change makes Ninja regenerate
+and recompile the large parser unit. Move the existing option declaration before
+those rules; keep fixture selection unchanged and verify repeated configuration
+does not create that rebuild. This is build wiring, not a new tool implementation.
+
+Moved that option declaration to TowerCompilerUtilities, before parser rules.
+A fresh configure followed by a second configure in ecs-option-check produces
+byte-identical parser-generation commands (cmp succeeds; ecs-option-check.log
+and ecs-option-first/second.txt). No compiler semantic code or fixture selection
+changed. The fresh native successor passes all 53 steps and the portable browser
+reactor builds. Release testing then exposed a stall in the existing enum
+completion case after the first three completion cases passed. Terminated that
+stalled test process and added a native enum-completion reproduction to the Tower
+fixture; diagnosis is in progress. Browser tests and publication are not complete.
+
+A separate small Tower probe confirms an existing laziness gap, beyond the
+already-passing nested-stage and conditional-effect tests: `comptime(false ?
+value : 42)` inside a function with runtime parameter value is rejected by the
+syntactic capture preflight. The interpreter never gets to skip the untaken arm.
+Reproduction: build/language-next-audit/lazy_capture_probe.tower through the
+current successor with --interpret; lazy-capture-probe.log records the diagnostic.
+Next investigate checking captured storage at actual strict interpreter access,
+using the existing frame/local ownership and dependency inputs. Keep automatic
+inference admission bounded and preserve rejection of taken runtime captures;
+do not implement an arithmetic/branch folding pass to solve it.
+
+Correction to the suspected editor regression: the isolated existing enum browser
+case passes (editor-enum-browser.log, 40.8 seconds). Native execution under GDB
+with the added enum case also completes normally at workers 1/2/4/8. Interrupted
+stack samples were in lr_items_close / LR state construction underneath
+syntax_replacement_attempt during completion parsing, not editor observation or
+dependency scheduling. Attaching to an existing container process was denied by
+ptrace policy; running the same test as GDB's child worked. Continued that child
+to its passing result and normal exit; its paused time is not a benchmark.
+The original browser sequence was terminated while heavy builds overlapped it.
+Rerun the full completion sequence without those builds to check ordering effects;
+do not label a slow import as a semantic failure or claim this run passed yet.
+
+The complete browser completion sequence now passes all 24 tests, zero failures
+or skips, in 192.1 seconds (ecs-editor-release-completion.log). The enum case
+passes in that sequence too; no ordering-dependent semantic regression was found.
+The source/import-heavy cases account for long gaps between progress records.
+This supersedes the suspected-hang interpretation, not the measured cost of
+repeated grammar construction. The portable/shared-memory reactors both build;
+native execution, frontend-core and backend publication checks continue below.
+
+The full native execution suite passes (ecs-editor-release-execution.log), including
+both interpreter modes, target widths, Foundation/package contracts and editor
+observations. The broad browser frontend-core run passed Foundation storage and
+its first four semantic cases, but was stopped in the unchanged entity_pages
+stress fixture to avoid repeating that matrix during this milestone. It loaded
+the previous LLVM reactor before the new build finished, so those partial results
+are not current-backend release evidence. Current LLVM/cross build and compiler
+project packaging now succeed; focused current-backend and two-generation checks
+follow separately.
+
+Shared-worker release checking found a real packaging mistake in de3d6c0:
+restricting lr_work.tower to native WORK_TESTS omitted the browser determinism
+entry. The separate pool reactor proves overlap/trap propagation, but does not
+replace that fixture. Its first two tests passed; the compiler test failed with
+'missing lr_work_tests', not a scheduler failure. Restore WORK_TESTS inclusion
+for either target, retain default OFF, and rebuild only the affected shared
+reactor. This corrects the earlier 'unused fixtures' rationale explicitly.

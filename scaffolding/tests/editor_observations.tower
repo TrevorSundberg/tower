@@ -84,6 +84,9 @@ fn editor_observation_trial(workers: usize, root: u8*, bedrock: u8*, foundation:
     editor_observation_completion(world, environment,
         "import tower;struct Pair{field:i32;}fn sample(value: ",
         "Pair", snapshot);
+    editor_observation_completion(world, environment,
+        "import tower;enum State:u32{Idle,Busy,Done}fn describe(value:State):i32{return 1;}State.",
+        "Idle", snapshot);
     frontend_modules_destroy(environment);
     units_check(frontend_world_clear(world) && compiler_world_dispose(world), "Observation world releases retained scopes");
 }

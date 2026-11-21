@@ -22,10 +22,9 @@ if(EMISSION_TESTS)
   tower_import("${FORMAT_DIR}/../tests/frontend_cache.tower")
   tower_import("${FORMAT_DIR}/../tests/frontend_modules.tower")
 endif()
-if(BACKEND_TESTS OR (WORK_TESTS AND NATIVE))
-  # The native LR comparison entry belongs to its native test executable.
-  # Browser pool tests have their own Tower reactor; do not compile these unused
-  # fixtures into every published threaded parser.
+if(BACKEND_TESTS OR WORK_TESTS)
+  # Explicit worker fixtures include the shared reactor's LR determinism entry.
+  # The separate pool reactor tests transport overlap, not parser scheduling.
   tower_import("${FORMAT_DIR}/../tests/lr_work.tower")
 endif()
 if(EXPANSION_TESTS)

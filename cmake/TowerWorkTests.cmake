@@ -1,4 +1,3 @@
-option(TOWER_WORK_TESTS "Build the Tower native worker overlap/ownership fixture" OFF)
 if(TOWER_WORK_TESTS AND TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
   get_property(work_triple GLOBAL PROPERTY TOWER_COMPILER_TRIPLE)
   tower_guest_runtime(work-tests "${work_triple}" posix OFF)
