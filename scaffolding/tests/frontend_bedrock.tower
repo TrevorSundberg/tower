@@ -1,6 +1,5 @@
 import tower;
 import .compiler.lr_types;
-import syntax_emission;
 import .compiler.lr_tree;
 import frontend_cache;
 import parser_state;
@@ -18,6 +17,9 @@ import .compiler.lr_parser;
 import .compiler.syntax_nodes;
 import .compiler.syntax_reader;
 import .compiler.frontend_diagnostic_types;
+
+extern fn tower_test_buffer_count(): usize;
+extern fn tower_test_buffer_fail_after(count: usize): void;
 
 extern fn frontend_world_tests(): void;
 

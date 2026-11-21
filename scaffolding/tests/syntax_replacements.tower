@@ -4,6 +4,8 @@ import .compiler.frontend_modules;
 import .compiler.syntax_reader;
 import .compiler.syntax_validation;
 
+extern fn syntax_create(source: u8*, module: FrontendModule*): void*;
+
 // Exercise preparation through the public session API. These same cases will
 // keep running when session ownership itself moves into Tower.
 fn replacement_test_source(source: u8*, count: usize, prefix: u8*): bool {

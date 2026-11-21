@@ -2,7 +2,6 @@ import tower;
 import .compiler.lr_types;
 import .compiler.parser_markers;
 import .compiler.entity_require;
-import syntax_emission;
 import .compiler.syntax_emission;
 import frontend_bedrock;
 import .compiler.parser_state;
@@ -14,6 +13,9 @@ import .compiler.lr_parser;
 import .compiler.lr_tree;
 import .compiler.parser_stream;
 import .library.vector;
+
+extern fn tower_test_buffer_count(): usize;
+extern fn tower_test_buffer_fail_after(count: usize): void;
 
 extern fn parser_stream_destroy(stream: ParserStream*): void;
 
@@ -59,10 +61,17 @@ fn parser_test_streams(): usize {
     ok &&= parser_stream_get_userdata(null) == null;
     var maximum = lr_none();
     ok &&= parser_stream_create(maximum, ParserInputService.Empty) == null;
-    // Preserve the legacy recoverable source-copy allocation boundary.
+    // Stream ownership now uses the tracked compiler buffer allocator. Check
+    // its failure separately, then allow that allocation to test source copying.
     tower_test_buffer_fail_after(0);
     stream = parser_stream_utf8_null_terminated_create("source");
     tower_test_buffer_fail_after(lr_none());
+    ok &&= stream is null;
+    parser_stream_destroy(stream);
+    tower_test_buffer_fail_after(1);
+    stream = parser_stream_utf8_null_terminated_create("source");
+    tower_test_buffer_fail_after(lr_none());
+    if stream is null { return 800; }
     parser_stream_read(stream, &id, &start, &length);
     ok &&= id == ParserStreamEnd();
     ok &&= format_name_is(&stream.error, "Unable to allocate UTF-8 stream source");

@@ -1,0 +1,126 @@
+import tower;
+import .compiler.syntax_session_types;
+import .compiler.syntax_types;
+import .compiler.syntax_view;
+import .compiler.syntax_version_types;
+import .compiler.frontend_revision_types;
+import .compiler.format_types;
+import frontend_world;
+import frontend_format;
+import utility_checks;
+
+extern fn syntax_session_open(world: void*, environment: void*, source: u8*, module: void*, mode: u32): SyntaxSession*;
+extern fn syntax_next(session: void*): void*;
+extern fn syntax_destroy(session: void*): void;
+extern fn syntax_get_error(session: void*): u8*;
+extern fn syntax_session_rule_count(session: SyntaxSession*): usize;
+extern fn syntax_session_rule(session: SyntaxSession*, index: usize): SyntaxRuleView*;
+extern fn syntax_session_rule_pending(session: SyntaxSession*, index: usize): bool;
+extern fn syntax_session_rule_format(session: SyntaxSession*, index: usize, output: FormatResult*): bool;
+extern fn syntax_session_token_count(session: SyntaxSession*): usize;
+extern fn syntax_session_token(session: SyntaxSession*, index: usize): SyntaxNode*;
+extern fn syntax_session_keyword_count(session: SyntaxSession*): usize;
+extern fn syntax_session_keyword(session: SyntaxSession*, index: usize): u8*;
+extern fn syntax_session_lexemes(session: SyntaxSession*, output: SyntaxHighlights*): bool;
+extern fn syntax_highlights_dispose(output: SyntaxHighlights*): void;
+extern fn strcmp(a: u8*, b: u8*): i32;
+extern fn strlen(text: u8*): usize;
+extern fn memcmp(a: u8*, b: u8*, count: usize): i32;
+extern fn compiler_node_world(node: void*): void*;
+extern fn puts(text: u8*): i32;
+extern fn syntax_baseline_install(world: void*, environment: void*, source: u8*, foundation: bool, diagnostic: SyntaxVersionDiagnostic*): bool;
+extern fn syntax_version_diagnostic_dispose(diagnostic: SyntaxVersionDiagnostic*): void;
+
+fn session_view_rule(session: SyntaxSession*, name: u8*): usize {
+    for (var i: usize = 0; i < syntax_session_rule_count(session); ++i) {
+        if strcmp(syntax_session_rule(session, i).name, name) == 0 { return i; }
+    }
+    utility_check(false, "session rule exists");
+    return 0;
+}
+
+fn session_view_read(session: SyntaxSession*): void {
+    loop {
+        var root = syntax_next(bits(void*, session));
+        if root is null { break; }
+        utility_check(compiler_node_world(root) == session.inputs.world, "session views use the owning world");
+        entity_release(root);
+    }
+    var error = syntax_get_error(bits(void*, session));
+    if error[0] != 0 { puts(error); }
+    utility_check(error[0] == 0, "session view fixture parsed");
+}
+
+fn frontend_session_view_tests(): void {
+    var buffers = tower_test_buffer_count();
+    var first = compiler_world_create();
+    var second = compiler_world_create();
+    var diagnostic: SyntaxVersionDiagnostic = default;
+    utility_check(syntax_baseline_install(first, null, "parse Statement = 'base';", true, &diagnostic), "first world baseline");
+    utility_check(syntax_baseline_install(second, null, "parse Statement = 'base';", true, &diagnostic), "second world baseline");
+    syntax_version_diagnostic_dispose(&diagnostic);
+    var source: u8* = "token Mark = /x/ when expected as identifier; parse Choice = | 'y'; parse Statement = Mark ';'; x;";
+    var a = syntax_session_open(first, null, source, null, SyntaxFoundationBaseline());
+    var b = syntax_session_open(second, null, "parse Statement = 'other' ';'; other;", null, SyntaxFoundationBaseline());
+    var pending = syntax_session_open(first, null, "parse Waiting = Missing;", null, SyntaxFoundationBaseline());
+    var declaration = syntax_next(bits(void*, pending));
+    utility_check(declaration is not null && syntax_session_rule_pending(pending, session_view_rule(pending, "Waiting")), "pending rule metadata before activation");
+    entity_release(declaration);
+    syntax_destroy(bits(void*, pending));
+    session_view_read(a);
+    session_view_read(b);
+    var allocations = tower_test_buffer_allocations();
+    var rule_count = syntax_session_rule_count(a);
+    for (var i: usize = 0; i < rule_count; ++i) {
+        var rule = syntax_session_rule(a, i);
+        utility_check(rule == &a.pins.grammar.rules.data[i], "views borrow the pinned revision");
+        if i != 0 { utility_check(strcmp(syntax_session_rule(a, i - 1).name, rule.name) < 0, "rule names remain sorted"); }
+        utility_check(!syntax_session_rule_pending(a, i), "resolved rules are ready");
+    }
+    utility_check(syntax_session_rule(a, rule_count) is null && !syntax_session_rule_pending(a, rule_count), "invalid rule index");
+    var found = false;
+    for (var i: usize = 0; i < syntax_session_token_count(a); ++i) {
+        var item = syntax_session_token(a, i);
+        if strcmp(item.name.data, "Mark") == 0 {
+            found = true;
+            utility_check(item.contextual && item.kind == convert(u32, SyntaxKind.Token), "contextual token metadata");
+            frontend_format_text(item.text.data, "x");
+            frontend_format_text(item.style.data, "identifier");
+        }
+    }
+    utility_check(found && syntax_session_token(a, syntax_session_token_count(a)) is null, "token views and invalid index");
+    found = false;
+    for (var i: usize = 0; i < syntax_session_keyword_count(b); ++i) {
+        if strcmp(syntax_session_keyword(b, i), "other") == 0 { found = true; }
+    }
+    utility_check(found && syntax_session_keyword(b, syntax_session_keyword_count(b)) is null, "keyword views and invalid index");
+    utility_check(tower_test_buffer_allocations() == allocations, "inspection does not allocate copied containers");
+    var formatted: FormatResult = default;
+    var choice = session_view_rule(a, "Choice");
+    utility_check(syntax_session_rule_format(a, choice, &formatted), "rule preview formats");
+    utility_check(formatted.text.length == 8 && memcmp(formatted.text.data, "ε | 'y'", 8) == 0, "epsilon and alternative order");
+    format_dispose(&formatted);
+    formatted = default;
+    tower_test_buffer_fail_after(0);
+    var ready = syntax_session_rule_format(a, choice, &formatted);
+    tower_test_buffer_fail_after(frontend_world_unlimited());
+    utility_check(!ready && formatted.failed && formatted.text.length == 0 && formatted.spans.length == 0, "preview failure releases partial output");
+    format_dispose(&formatted);
+    var highlights: SyntaxHighlights = default;
+    utility_check(syntax_session_lexemes(a, &highlights) && highlights.items.length != 0, "owned lexical rows");
+    syntax_destroy(bits(void*, a));
+    utility_check(frontend_world_clear(first) && compiler_world_dispose(first), "dispose first world before inspecting second");
+    // Highlight style strings belong to their result, independent of the session.
+    found = false;
+    foreach (var &span in &highlights.items) {
+        if span.start == strlen(source) - 2 { found = strcmp(span.kind, "identifier") == 0; }
+    }
+    // The final token carries the installed contextual style after session death.
+    utility_check(found, "highlight styles survive session and world disposal");
+    syntax_highlights_dispose(&highlights);
+    var statement = syntax_session_rule(b, session_view_rule(b, "Statement"));
+    utility_check(compiler_node_world(statement.alternatives[0]) == second, "other world retains its own grammar entities");
+    syntax_destroy(bits(void*, b));
+    utility_check(frontend_world_clear(second) && compiler_world_dispose(second), "dispose second world");
+    utility_check(tower_test_buffer_count() == buffers, "session view ownership cleanup");
+}

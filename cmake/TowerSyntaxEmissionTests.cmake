@@ -13,7 +13,19 @@ add_custom_command(OUTPUT "${emission_oracle}"
 set_source_files_properties("${emission_oracle}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
 target_sources(tower-compiler-parser-nodes INTERFACE "${emission_oracle}")
 
-# The ordinary fixtures stay with the parser; only this entry is standalone.
+set(emission_cases "${CMAKE_CURRENT_BINARY_DIR}/tower-emission-cases.o")
+add_custom_command(OUTPUT "${emission_cases}"
+  COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/syntax_emission.tower"
+    --library --target "${emission_triple}"
+    --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
+    --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
+    -o "${emission_cases}" --depfile "${emission_cases}.d"
+  DEPFILE "${emission_cases}.d"
+  DEPENDS scaffolding/tests/syntax_emission.tower "${TOWER_BOOTSTRAP_COMPILER}" VERBATIM)
+set_source_files_properties("${emission_cases}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
+target_sources(tower-compiler-parser-nodes INTERFACE "${emission_cases}")
+
+# The standalone entry calls the independently compiled production-API fixtures.
 set(emission_entry main)
 if(emission_triple MATCHES "^wasm")
   set(emission_entry __main_argc_argv)

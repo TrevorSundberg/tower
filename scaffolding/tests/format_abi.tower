@@ -9,9 +9,8 @@ import .host.driver_api;
 // the WASI runner uses libc++ alternate strings. CMake restricts these profiles.
 // The permanent assertions operate on the shared Tower FormatResult layout.
 extern fn syntax_format_into(session: void*, output: FormatResult*, error: u8**): bool;
-extern fn `cpp_name(TowerText tower_format(TowerNode*))`(result: usize*, root: void*): void;
+extern fn syntax_format_node(root: void*, result: FormatResult*): void;
 
-fn format_abi_string_words(): usize { return sizeof(usize) == 8 ? convert(usize, 4) : convert(usize, 3); }
 fn format_abi_string_data(value: usize*): u8* {
     if sizeof(usize) == 8 { return bits(u8*, value[0]); }
     var bytes = bits(u8*, value);
@@ -28,30 +27,4 @@ fn format_abi_string_dispose(value: usize*): void {
     } else {
         if (bits(u8*, value)[11] & 128) != 0 { driver_syntax_delete(bits(u8*, value[0])); }
     }
-}
-fn format_abi_dispose(value: usize*): void {
-    var words = format_abi_string_words();
-    format_abi_string_dispose(value);
-    if value[words] != 0 { driver_syntax_delete(bits(u8*, value[words])); }
-    format_abi_string_dispose(value + words + 3);
-}
-fn format_abi_span_count(value: usize*): usize {
-    var words = format_abi_string_words();
-    // SDK 34's bounded vector stores element count; libstdc++ stores end.
-    return sizeof(usize) == 4 ? value[words + 1] : (value[words + 1] - value[words]) / sizeof(FormatSpan);
-}
-fn format_abi_failed(value: usize*): bool {
-    return format_abi_string_length(value + format_abi_string_words() + 3) != 0;
-}
-fn format_abi_copy(out: FormatResult*, value: usize*): void {
-    var words = format_abi_string_words();
-    var error = value + words + 3;
-    if format_abi_string_length(error) != 0 { puts(format_abi_string_data(error)); }
-    utility_check(format_abi_string_length(error) == 0, "Formatter syntax ABI result has no error");
-    utility_check(storage_assign(&out.text, format_abi_string_data(value), format_abi_string_length(value)), "Formatter copied source");
-    var count = format_abi_span_count(value);
-    var spans = bits(FormatSpan*, value[words]);
-    utility_check(vector_reserve(FormatSpan, &out.spans, count), "Formatter copied spans");
-    out.spans.length = count;
-    if count != 0 { copy(out.spans.data, spans, count * sizeof(FormatSpan)); }
 }

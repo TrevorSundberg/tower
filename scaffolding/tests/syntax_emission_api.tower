@@ -1,0 +1,53 @@
+import tower;
+import .compiler.syntax_emission_types;
+import .compiler.syntax_template_types;
+import .compiler.syntax_types;
+import .library.vector;
+
+// Fixture bindings to the real production owner; no second lowering engine.
+extern fn entity_create_related(context: void*): void*;
+extern fn entity_attach(node: void*, parent: void*, name: u8*): bool;
+extern fn entity_release(node: void*): usize;
+extern fn entity_child_at(node: void*, index: usize): void*;
+extern fn entity_child_count(node: void*): usize;
+extern fn entity_component_add(node: void*, kind: void*): void*;
+extern fn entity_component_get(node: void*, kind: void*): void*;
+extern fn entity_component_data(component: void*): void*;
+extern fn syntax_node_init(node: SyntaxNode*): void;
+extern fn bytes_assign_text(out: vector(u8)*, text: u8*, size: usize): bool;
+extern fn strlen(text: u8*): usize;
+extern fn strcmp(a: u8*, b: u8*): i32;
+extern fn memcmp(a: u8*, b: u8*, size: usize): i32;
+extern fn syntax_emit(input: SyntaxEmissionInput*): void*;
+extern fn syntax_emission_destroy(value: void*): void;
+extern fn syntax_emission_name_count(value: void*): usize;
+extern fn syntax_emission_name(value: void*, index: usize, out: SyntaxEmissionName*): void;
+extern fn syntax_emission_production_count(value: void*): usize;
+extern fn syntax_emission_production(value: void*, index: usize, out: SyntaxEmissionProduction*): void;
+extern fn syntax_emission_helper_count(value: void*): usize;
+extern fn syntax_emission_helper(value: void*, index: usize, out: SyntaxEmissionHelper*): void;
+extern fn syntax_template_holes(input: SyntaxTemplateGrammar*): bool;
+extern fn tower_test_buffer_count(): usize;
+extern fn tower_test_buffer_fail_after(count: usize): void;
+
+fn emission_payload(node: void*, kind: void*): void* {
+    var component = entity_component_get(node, kind);
+    return component is null ? null : entity_component_data(component);
+}
+fn emission_text(text: vector(u8)*): u8* { return text.data ?? ""; }
+fn emission_text_set(out: vector(u8)*, text: u8*): bool {
+    return bytes_assign_text(out, text, strlen(text));
+}
+fn emission_name_equal(a: u8*, b: u8*): bool { return strcmp(a, b) == 0; }
+fn emission_compare(a: u8*, na: usize, b: u8*, nb: usize): i32 {
+    var count = na < nb ? na : nb;
+    var order = count == 0 ? 0 : memcmp(a, b, count);
+    return order != 0 ? order : na < nb ? -1 : na > nb ? 1 : 0;
+}
+fn emission_push(T: type, values: vector(T)*, value: T*): bool {
+    var needed = values.length + 1;
+    if needed == 0 || !vector_reserve(values, needed) { return false; }
+    copy(&values.data[values.length], value, sizeof(T));
+    values.length = needed;
+    return true;
+}

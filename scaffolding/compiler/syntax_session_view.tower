@@ -1,0 +1,64 @@
+import tower;
+import format_types;
+import syntax_session_types;
+import syntax_types;
+import syntax_view;
+import .library.vector;
+
+extern fn entity_component_get(node: void*, kind: void*): void*;
+extern fn entity_component_data(component: void*): void*;
+extern fn syntax_pending_contains(pending: void*, name: u8*): bool;
+extern fn syntax_emission_keyword_count(emission: void*): usize;
+extern fn syntax_emission_keywords(emission: void*): u8**;
+extern fn format_entity(out: FormatResult*, node: void*, syntax: void*, foundation: void*, match_kind: void*): void;
+extern fn format_dispose(out: FormatResult*): void;
+extern fn bytes_append(out: vector(u8)*, data: u8*, length: usize): bool;
+
+// Borrowed views into the session's pinned revision. The coordinator keeps the
+// session unchanged until readers finish; callers retain entities before edits.
+export fn syntax_session_rule_count(session: SyntaxSession*): usize {
+    return session.pins.grammar ?. rules.length ?? 0;
+}
+export fn syntax_session_rule(session: SyntaxSession*, index: usize): SyntaxRuleView* {
+    return index < syntax_session_rule_count(session) ? &session.pins.grammar.rules.data[index] : null;
+}
+export fn syntax_session_rule_pending(session: SyntaxSession*, index: usize): bool {
+    var rule = syntax_session_rule(session, index);
+    return rule is not null && session.pins.version is not null && syntax_pending_contains(session.pins.version.pending, rule.name);
+}
+export fn syntax_session_token_count(session: SyntaxSession*): usize {
+    return session.pins.grammar ?. tokens.length ?? 0;
+}
+export fn syntax_session_token(session: SyntaxSession*, index: usize): SyntaxNode* {
+    if index >= syntax_session_token_count(session) || session.pins.version is null { return null; }
+    return bits(SyntaxNode*, entity_component_data(entity_component_get(session.pins.grammar.tokens.data[index], session.pins.version.kinds.syntax)));
+}
+export fn syntax_session_keyword_count(session: SyntaxSession*): usize {
+    return session.pins.version is null ? 0 : syntax_emission_keyword_count(session.pins.version.emission);
+}
+export fn syntax_session_keyword(session: SyntaxSession*, index: usize): u8* {
+    return index < syntax_session_keyword_count(session) ? syntax_emission_keywords(session.pins.version.emission)[index] : null;
+}
+
+// Use the shared formatting engine and result ownership on every host ABI.
+export fn syntax_format_node(node: void*, out: FormatResult*): void {
+    format_entity(out, node, null, null, null);
+    if out.failed { format_dispose(out); }
+}
+
+// Text preview only, preserving alternative order and the existing epsilon
+// spelling. Canonical node/source formatting still uses the same engine above.
+export fn syntax_session_rule_format(session: SyntaxSession*, index: usize, out: FormatResult*): bool {
+    var rule = syntax_session_rule(session, index);
+    if rule is null { return false; }
+    for (var i: usize = 0; i < rule.count; ++i) {
+        var part: FormatResult = default;
+        defer format_dispose(&part);
+        syntax_format_node(rule.alternatives[i], &part);
+        var ok = !part.failed;
+        if i != 0 { ok &&= bytes_append(&out.text, " | ", 3); }
+        if ok { ok = part.text.length == 0 ? bytes_append(&out.text, "ε", 2) : bytes_append(&out.text, part.text.data, part.text.length); }
+        if !ok { out.failed = true; format_dispose(out); return false; }
+    }
+    return true;
+}

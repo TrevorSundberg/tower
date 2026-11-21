@@ -1,5 +1,4 @@
 import tower;
-import syntax_emission;
 import .compiler.regex_lowering;
 import .compiler.syntax_emission;
 import syntax_replacements;
@@ -12,6 +11,9 @@ import .compiler.syntax_expansion;
 import .compiler.syntax_expansion_types;
 import .compiler.syntax_reader;
 import .compiler.syntax_validation;
+
+extern fn tower_test_buffer_count(): usize;
+extern fn tower_test_buffer_fail_after(count: usize): void;
 
 // Test fixtures use the production Tower expander and shared entities directly.
 struct ExpansionFixture {

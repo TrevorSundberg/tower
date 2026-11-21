@@ -3,7 +3,6 @@
 #include "syntax-nodes.hpp"
 #include "format.hpp"
 #include <string>
-#include <vector>
 #include <memory>
 
 struct SyntaxSession;
@@ -12,9 +11,6 @@ struct SyntaxSession;
 extern "C" TowerNode* syntax_native_bedrock(); // read-only borrowed document of generated shared nodes
 std::string syntax_set_bedrock(const char* source);
 SyntaxSession* syntax_create_bedrock(const char* source);
-TowerNode* syntax_document(SyntaxSession* session); // borrowed declaration document
-TowerText syntax_format(SyntaxSession* session);
-bool syntax_can_format(SyntaxSession* session);
 inline constexpr size_t SYNTAX_MAX_CACHED_GRAMMARS = 64;
 // Load foundation with the installed bedrock reader (world seed for legacy
 // callers that have not installed bedrock). Same source is idempotent; failures
@@ -33,8 +29,6 @@ extern "C" void syntax_destroy(SyntaxSession* session);
 // Restart from grammar revision zero, retaining a bounded cache of compiled
 // grammars. Source, errors, highlights and parse progress are always reset.
 extern "C" void syntax_reset(SyntaxSession* session, const char* source, FrontendModule* module = nullptr);
-struct SyntaxCacheStats { size_t builds, hits, entries; };
-SyntaxCacheStats syntax_get_cache_stats(SyntaxSession* session);
 
 // Parse/install one declaration or parse one Statement, transferring one root
 // reference to the caller. Null means EOF or error; inspect syntax_get_error.
@@ -42,23 +36,7 @@ SyntaxCacheStats syntax_get_cache_stats(SyntaxSession* session);
 extern "C" TowerNode* syntax_next(SyntaxSession* session);
 extern "C" const char* syntax_get_error(SyntaxSession* session);
 extern "C" size_t syntax_get_revision(SyntaxSession* session);
-size_t syntax_get_offset(SyntaxSession* session);
 
-// Tooling uses the same lexer as parsing. Offsets are UTF-8 bytes; revision is
-// the grammar active when this token was read. No browser-side keyword list.
-struct SyntaxHighlight {
-  size_t start, end, revision;
-  std::string kind;
-  bool opaque = false; // lexical classification, independent of presentation style
-  uint32_t token = PARSER_ID_EOF; // disposable lexer index, never persisted
-};
-struct SyntaxRuleInfo { std::string name, definition; bool pending = false; };
-struct SyntaxTokenInfo { std::string name, pattern, kind; bool skip, contextual = false; };
-std::vector<SyntaxTokenInfo> syntax_get_tokens(SyntaxSession* session);
-std::vector<SyntaxHighlight> syntax_get_highlights(SyntaxSession* session);
-std::vector<SyntaxHighlight> syntax_get_lexemes(SyntaxSession* session);
-std::vector<SyntaxRuleInfo> syntax_get_rules(SyntaxSession* session);
-std::vector<std::string> syntax_get_keywords(SyntaxSession* session);
 extern "C" void syntax_completion_enable(SyntaxSession*);
 extern "C" FrontendModule* syntax_completion_module(SyntaxSession*);
 // Borrowed shared entities from the active grammar; callers retain as needed.
@@ -72,7 +50,6 @@ extern "C" bool syntax_completion_identifier(SyntaxSession*, const char*);
 extern "C" const char* syntax_completion_close(SyntaxSession*, const char*);
 extern "C" SyntaxSession* syntax_completion_create(const char*, unsigned);
 extern "C" size_t syntax_get_error_offset(SyntaxSession* session);
-bool syntax_get_error_insertion(SyntaxSession* session);
 
 // Copied source coordinates and shared expansion history survive the session.
 // Match spans on generated nodes point to the invocation, while this component
@@ -92,6 +69,5 @@ struct SyntaxOrigin {
 extern "C" const SyntaxOrigin* syntax_get_origin(TowerNode* node);
 extern "C" void syntax_copy_origin(TowerNode* source, TowerNode* destination);
 struct SyntaxExpansionStats { size_t replacements = 0, generated_nodes = 0, copied_nodes = 0; };
-SyntaxExpansionStats syntax_get_expansion_stats(SyntaxSession* session);
 
 extern "C" void syntax_tests();

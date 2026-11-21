@@ -3,9 +3,17 @@ get_property(format_triple GLOBAL PROPERTY TOWER_COMPILER_TRIPLE)
 if(NOT format_triple MATCHES "^wasm32-" AND NOT format_triple MATCHES "^x86_64-.*linux")
   message(FATAL_ERROR "Revalidate the formatter fixture syntax ABI for ${format_triple}")
 endif()
-tower_runtime_object(format-cases "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/format_suite.tower" "${format_triple}"
-  --declare driver_syntax_delete _ZdlPv)
-target_sources(tower-parser-tests PRIVATE "${format-cases_OBJECT}")
+set(format_cases "${CMAKE_CURRENT_BINARY_DIR}/format-cases.o")
+add_custom_command(OUTPUT "${format_cases}"
+  COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/format_suite.tower"
+    --library --target "${format_triple}"
+    --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
+    --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
+    -o "${format_cases}" --depfile "${format_cases}.d"
+  DEPFILE "${format_cases}.d"
+  DEPENDS scaffolding/tests/format_suite.tower "${TOWER_BOOTSTRAP_COMPILER}" VERBATIM)
+set_source_files_properties("${format_cases}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
+target_sources(tower-parser-tests PRIVATE "${format_cases}")
 if(format_triple MATCHES "^wasm32-")
   set(format_object "${CMAKE_CURRENT_BINARY_DIR}/tower-format-wasi.o")
   add_custom_command(OUTPUT "${format_object}"

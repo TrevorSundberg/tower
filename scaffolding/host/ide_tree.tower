@@ -3,7 +3,7 @@ import ide_api;
 import ide_text;
 import ide_state;
 import ide_parser;
-import ide_syntax_wasi;
+import ide_syntax;
 import .library.vector;
 import .library.bytes_types;
 import .compiler.parser_types;
@@ -221,11 +221,10 @@ export fn tw_step(handle: u32): u8* {
     ide_status(out, session.syntax, kind);
     ide_field(out, "previousRevision", before);
     ide_grammar(out, session.syntax, null);
-    var stats: IdeForeignStats;
-    `cpp_name(SyntaxExpansionStats syntax_get_expansion_stats(SyntaxSession*))`(&stats, session.syntax);
-    ide_field(out, "replacementCount", stats.first);
-    ide_field(out, "generatedNodes", stats.second);
-    ide_field(out, "copiedNodes", stats.third);
+    var stats = &ide_syntax_session(session.syntax).expansion_stats;
+    ide_field(out, "replacementCount", stats.replacements);
+    ide_field(out, "generatedNodes", stats.generated_nodes);
+    ide_field(out, "copiedNodes", stats.copied_nodes);
     if found {
         ide_tree(out, entity_child_at(root, 0));
         entity_release(root);

@@ -1,18 +1,10 @@
+import syntax_emission_api;
 import .compiler.syntax_view;
 import .compiler.syntax_emission_types;
 import tower;
-import .compiler.regex_lowering;
-import .compiler.lr_tree;
-import .compiler.syntax_reader;
 import syntax_template;
-import .compiler.lr_analysis;
-import .compiler.lr_grammar;
-import .compiler.parser_nodes;
 import .compiler.parser_types;
-import .compiler.syntax_emission;
-import .compiler.syntax_nodes;
 import .compiler.syntax_types;
-import .compiler.syntax_validation;
 import .library.vector;
 
 // Production and independent test oracle consume the same shared entities.
@@ -94,7 +86,7 @@ fn emission_test_new(f: EmissionFixture*, parent: void*, kind: u32): void* {
 fn emission_test_rule(f: EmissionFixture*, name: u8*): void* {
     var node = emission_test_new(f, f.owner, 1);
     var data = emission_test_node(f, node);
-    var ok = node_text_set(&data.name, name);
+    var ok = emission_text_set(&data.name, name);
     var index: usize = 0;
     loop {
         if index == f.definitions.length {
@@ -102,7 +94,7 @@ fn emission_test_rule(f: EmissionFixture*, name: u8*): void* {
             break;
         }
         var old = emission_test_node(f, f.definitions.data[index]);
-        if lr_name_equal(node_text_get(&old.name), name) {
+        if emission_name_equal(emission_text(&old.name), name) {
             f.definitions.data[index] = node;
             break;
         }
@@ -126,8 +118,8 @@ fn emission_test_sequence(f: EmissionFixture*, rule: void*): void* {
 fn emission_test_term(f: EmissionFixture*, parent: void*, text: u8*, literal: bool, repetition: u8, capture: u8*): void* {
     var node = emission_test_new(f, parent, 5);
     var data = emission_test_node(f, node);
-    var ok = node_text_set(&data.text, text);
-    ok &&= node_text_set(&data.capture, capture);
+    var ok = emission_text_set(&data.text, text);
+    ok &&= emission_text_set(&data.capture, capture);
     data.literal = literal;
     data.repetition = repetition;
     var owner = emission_test_node(f, parent);
@@ -145,7 +137,7 @@ fn emission_test_token(f: EmissionFixture*, name: u8*, skipped: bool, contextual
     }
     var node = emission_test_new(f, f.owner, kind);
     var data = emission_test_node(f, node);
-    var ok = node_text_set(&data.name, name);
+    var ok = emission_text_set(&data.name, name);
     data.contextual = contextual;
     ok &&= vector_push(void*, &f.tokens, node);
     if !ok {
@@ -165,11 +157,11 @@ fn emission_test_input(f: EmissionFixture*): void {
     for(; index != f.definitions.length; index++) {
         var data = emission_test_node(f, f.definitions.data[index]);
         var rule: SyntaxRuleView;
-        rule.name = node_text_get(&data.name);
+        rule.name = emission_text(&data.name);
         rule.name_length = data.name.length;
         rule.alternatives = data.items.data;
         rule.count = data.items.length;
-        if !lr_append(SyntaxRuleView, &f.rules, &rule) {
+        if !emission_push(&f.rules, &rule) {
             f.failed = true;
             return;
         }
@@ -180,7 +172,7 @@ fn emission_test_input(f: EmissionFixture*): void {
             }
             var previous = position -1;
             var left = &f.rules.data[previous];
-            var order = syntax_bytes_compare(left.name, left.name_length, rule.name, rule.name_length);
+            var order = emission_compare(left.name, left.name_length, rule.name, rule.name_length);
             if order <= 0 {
                 break;
             }
@@ -200,7 +192,7 @@ fn emission_test_input(f: EmissionFixture*): void {
 }
 
 fn emission_test_text(left: vector(u8)*, right: vector(u8)*): bool {
-    var order = syntax_bytes_compare(left.data, left.length, right.data, right.length);
+    var order = emission_compare(left.data, left.length, right.data, right.length);
     var same = order == 0;
     return same;
 }
@@ -219,8 +211,8 @@ fn emission_test_tree(f: EmissionFixture*, a: void*, b: void*): bool {
         }
         var left = entity_child_at(a, index);
         var right = entity_child_at(b, index);
-        var ar = bits(ParserRuleData*, lr_grammar_payload(left, f.input.rule_kind));
-        var br = bits(ParserRuleData*, lr_grammar_payload(right, f.input.rule_kind));
+        var ar = bits(ParserRuleData*, emission_payload(left, f.input.rule_kind));
+        var br = bits(ParserRuleData*, emission_payload(right, f.input.rule_kind));
         same = emission_test_text(&ar.name, &br.name);
         same &&= ar.generated == br.generated;
         var children = entity_child_count(left);
@@ -236,12 +228,12 @@ fn emission_test_tree(f: EmissionFixture*, a: void*, b: void*): bool {
             }
             var x = entity_child_at(left, child);
             var y = entity_child_at(right, child);
-            var xr = bits(ParserReferenceData*, lr_grammar_payload(x, f.input.reference_kind));
-            var yr = bits(ParserReferenceData*, lr_grammar_payload(y, f.input.reference_kind));
-            var xs = bits(ParserStringData*, lr_grammar_payload(x, f.input.string_kind));
-            var ys = bits(ParserStringData*, lr_grammar_payload(y, f.input.string_kind));
-            var xt = bits(ParserRangeData*, lr_grammar_payload(x, f.input.range_kind));
-            var yt = bits(ParserRangeData*, lr_grammar_payload(y, f.input.range_kind));
+            var xr = bits(ParserReferenceData*, emission_payload(x, f.input.reference_kind));
+            var yr = bits(ParserReferenceData*, emission_payload(y, f.input.reference_kind));
+            var xs = bits(ParserStringData*, emission_payload(x, f.input.string_kind));
+            var ys = bits(ParserStringData*, emission_payload(y, f.input.string_kind));
+            var xt = bits(ParserRangeData*, emission_payload(x, f.input.range_kind));
+            var yt = bits(ParserRangeData*, emission_payload(y, f.input.range_kind));
             var reference = xr != null;
             var string = xs != null;
             if reference {
@@ -280,7 +272,7 @@ fn emission_test_tree(f: EmissionFixture*, a: void*, b: void*): bool {
     }
 }
 
-fn emission_test_metadata(actual: SyntaxEmission*, reference: void*): bool {
+fn emission_test_metadata(actual: void*, reference: void*): bool {
     var count = syntax_emission_name_count(actual);
     var expected_count = reference_syntax_emission_name_count(reference);
     var found: usize = 0;
@@ -311,7 +303,7 @@ fn emission_test_metadata(actual: SyntaxEmission*, reference: void*): bool {
                 }
                 var b: SyntaxEmissionName;
                 reference_syntax_emission_name(reference, at, &b);
-                var order = syntax_bytes_compare(a.text, a.length, b.text, b.length);
+                var order = emission_compare(a.text, a.length, b.text, b.length);
                 var same = order == 0;
                 if same {
                     same = a.literal == b.literal;
@@ -321,7 +313,7 @@ fn emission_test_metadata(actual: SyntaxEmission*, reference: void*): bool {
                     var other = b.wrapper != null;
                     same &&= wrapper == other;
                     if wrapper {
-                        same &&= lr_name_equal(a.wrapper, b.wrapper);
+                        same &&= emission_name_equal(a.wrapper, b.wrapper);
                     }
                     if !same {
                         return false;
@@ -348,7 +340,7 @@ fn emission_test_metadata(actual: SyntaxEmission*, reference: void*): bool {
         var b: SyntaxEmissionProduction;
         syntax_emission_production(actual, index, &a);
         reference_syntax_emission_production(reference, index, &b);
-        same = lr_name_equal(a.name, b.name);
+        same = emission_name_equal(a.name, b.name);
         same &&= a.index == b.index;
         same &&= a.alternative == b.alternative;
         if !same {
@@ -375,7 +367,7 @@ fn emission_test_metadata(actual: SyntaxEmission*, reference: void*): bool {
             }
             var b: SyntaxEmissionHelper;
             reference_syntax_emission_helper(reference, at, &b);
-            same = lr_name_equal(a.name, b.name);
+            same = emission_name_equal(a.name, b.name);
             if same {
                 same = a.source == b.source;
                 same &&= a.capture == b.capture;
@@ -433,7 +425,7 @@ fn emission_test_both(f: EmissionFixture*): bool {
             item.text = entry.text;
             item.length = entry.length;
             item.id = entry.literal;
-            ok = lr_append(SyntaxEmissionLiteral, &f.literals, &item);
+            ok = emission_push(&f.literals, &item);
         }
         if entry.used {
             emission_test_reserve(f, entry.text);
@@ -461,7 +453,7 @@ fn emission_test_failures(f: EmissionFixture*, category: u8*): bool {
         f.input.root = entity_create_related(f.owner);
         tower_test_buffer_fail_after(failure);
         var result = syntax_emit(&f.input);
-        tower_test_buffer_fail_after(lr_none());
+        tower_test_buffer_fail_after(~convert(usize, 0));
         var success = result != null;
         syntax_emission_destroy(result);
         entity_release(f.input.root);

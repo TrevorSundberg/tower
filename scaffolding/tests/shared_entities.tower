@@ -8,6 +8,7 @@ import .library.vector;
 // Functional entity tests: all mutation, ownership and failure assertions execute
 // in Tower. The test composition reuses FoundationNode's authoritative layout.
 extern fn abort(): void;
+extern fn puts(text: u8*): i32;
 
 extern fn entity_store_create(): void*;
 
@@ -64,6 +65,7 @@ extern fn semantic_component_get(node: void*, type: void*): FoundationNode*;
 extern fn tower_test_buffer_count(): usize;
 
 extern fn tower_test_buffer_fail_next(): void;
+extern fn tower_test_buffer_fail_after(count: usize): void;
 
 fn shared_check(ok: bool): void {
     if !ok {
@@ -73,8 +75,11 @@ fn shared_check(ok: bool): void {
 
 export fn shared_entity_tests(): void {
     shared_world_tests();
+    puts("Shared entity worlds passed");
     shared_provenance_tests();
+    puts("Shared entity provenance passed");
     shared_metadata_tests();
+    puts("Shared entity metadata passed");
     var baseline = tower_test_buffer_count();
     var store = entity_store_create();
     var type = entity_create(store);
@@ -172,13 +177,27 @@ export fn shared_entity_tests(): void {
     }
     ok = entity_query_at(type, 500) == null;
     shared_check(ok);
+    // Reclaimed payload storage is reusable without allocation. A fresh type
+    // still exercises the recoverable allocation failure and atomic insertion.
+    var reused_buffers = tower_test_buffer_count();
     tower_test_buffer_fail_next();
-    ok = entity_component_add(nodes[0], type) == null;
+    var reused = entity_component_add(nodes[0], type);
+    tower_test_buffer_fail_after(~convert(usize, 0));
+    ok = reused is not null && tower_test_buffer_count() == reused_buffers;
+    shared_check(ok);
+    shared_check(entity_component_remove(nodes[0], type));
+    var cold = entity_create(store);
+    shared_check(entity_register(cold, 48, 128, 0));
+    tower_test_buffer_fail_next();
+    ok = entity_component_add(nodes[0], cold) == null;
+    tower_test_buffer_fail_after(~convert(usize, 0));
     shared_check(ok);
     ok = entity_component_count(nodes[0]) == 0;
     shared_check(ok);
     ok = entity_query_count(type) == 500;
     shared_check(ok);
+    shared_check(entity_query_count(cold) == 0);
+    entity_release(cold);
     var parent = entity_create(store);
     shared_check(entity_attach(nodes[0], parent, "value"));
     var borrowed = entity_child_name(parent, 0);

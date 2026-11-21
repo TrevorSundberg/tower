@@ -127,17 +127,16 @@ fn format_test_failures(): void {
     format_test_entity(&oracle, program.root); format_fixture_check(15, &oracle);
     var buffers = tower_test_buffer_count();
     for (var failure: usize = 0; failure < 32; ++failure) {
-        var foreign: usize[11];
+        var actual: FormatResult = default;
         tower_test_buffer_fail_after(failure);
-        `cpp_name(TowerText tower_format(TowerNode*))`(&foreign[0], program.root);
+        syntax_format_node(program.root, &actual);
         tower_test_buffer_fail_after(~convert(usize, 0));
-        if format_abi_failed(&foreign[0]) {
-            utility_check(format_abi_string_length(&foreign[0]) == 0 && format_abi_span_count(&foreign[0]) == 0, "Formatter failure publishes empty source and spans");
+        if actual.failed {
+            utility_check(actual.text.length == 0 && actual.spans.length == 0, "Formatter failure publishes empty source and spans");
         } else {
-            var actual: FormatResult; fill(&actual, 0, sizeof(FormatResult));
-            format_abi_copy(&actual, &foreign[0]); format_test_equal(&actual, &oracle, true); format_dispose(&actual);
+            format_test_equal(&actual, &oracle, true);
         }
-        format_abi_dispose(&foreign[0]);
+        format_dispose(&actual);
         utility_check(tower_test_buffer_count() == buffers, "Foundation failure cleanup releases all partial text/spans");
     }
 }

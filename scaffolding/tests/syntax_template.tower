@@ -1,15 +1,9 @@
+import syntax_emission_api;
 import .compiler.syntax_template_types;
 import .compiler.syntax_emission_types;
 import tower;
-import .compiler.regex_lowering;
-import .compiler.lr_tree;
 import syntax_emission;
-import .compiler.lr_analysis;
-import .compiler.lr_grammar;
-import .compiler.parser_nodes;
 import .compiler.parser_types;
-import .compiler.syntax_emission;
-import .compiler.syntax_template;
 
 // Typed holes preserve scalar/token distinctions and list cardinality. Exercise
 // every allocator failure while retaining the partial grammar's owning root.
@@ -53,7 +47,7 @@ fn template_test_holes(context: SyntaxEmissionInput*): usize {
         input.repetition_count = 5;
         tower_test_buffer_fail_after(budget);
         var ran = syntax_template_holes(&input);
-        tower_test_buffer_fail_after(lr_none());
+        tower_test_buffer_fail_after(~convert(usize, 0));
         var ok: bool = true;
         if ran {
             ok = entity_child_count(input.emission.root) == 7;
@@ -79,8 +73,8 @@ fn template_test_holes(context: SyntaxEmissionInput*): usize {
                     break;
                 }
                 var node = entity_child_at(input.emission.root, index);
-                var data = bits(ParserRuleData*, lr_grammar_payload(node, context.rule_kind));
-                ok = lr_name_equal(node_text_get(&data.name), names[index]);
+                var data = bits(ParserRuleData*, emission_payload(node, context.rule_kind));
+                ok = emission_name_equal(emission_text(&data.name), names[index]);
                 ok &&= data.generated;
                 var count: usize = 1;
                 var recursive = index == 2;
@@ -93,15 +87,15 @@ fn template_test_holes(context: SyntaxEmissionInput*): usize {
                 if ok {
                     var last = count -1;
                     var terminal = entity_child_at(node, last);
-                    var text = bits(ParserStringData*, lr_grammar_payload(terminal, context.string_kind));
+                    var text = bits(ParserStringData*, emission_payload(terminal, context.string_kind));
                     ok = text.ids.length == 1;
                     ok &&= text.ids.data[0] == ids[index];
                 }
                 if ok {
                     if recursive {
                         var first = entity_child_at(node, 0);
-                        var ref = bits(ParserReferenceData*, lr_grammar_payload(first, context.reference_kind));
-                        ok = lr_name_equal(node_text_get(&ref.name), names[index]);
+                        var ref = bits(ParserReferenceData*, emission_payload(first, context.reference_kind));
+                        ok = emission_name_equal(emission_text(&ref.name), names[index]);
                     }
                 }
             }

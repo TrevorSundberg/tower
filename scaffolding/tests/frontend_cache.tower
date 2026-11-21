@@ -1,6 +1,5 @@
 import .compiler.syntax_view;
 import tower;
-import syntax_emission;
 import .compiler.lr_tree;
 import .compiler.frontend_bedrock;
 import .compiler.frontend_cache;
@@ -9,6 +8,9 @@ import .compiler.grammar_types;
 import .compiler.lr_analysis;
 import .compiler.parser_nodes;
 import .compiler.syntax_validation;
+
+extern fn tower_test_buffer_count(): usize;
+extern fn tower_test_buffer_fail_after(count: usize): void;
 
 // Revision lifetime, eviction and failed insertions are tested in Tower. These
 // snapshots reference the same component-bearing nodes as ordinary declarations.

@@ -2,7 +2,9 @@ import tower;
 import ide_api;
 import ide_state;
 import ide_text;
-import ide_syntax_wasi;
+import ide_syntax;
+import .compiler.syntax_session_types;
+import .compiler.syntax_types;
 import .library.vector;
 
 fn ide_consume(syntax: void*): void {
@@ -67,10 +69,10 @@ export fn tw_complete(source: u8*, bytes: usize, cursor: usize, mode: u32, files
     var original = syntax_completion_create(text, mode);
     free(text);
     ide_consume(original);
-    var listing: IdeForeignVector;
-    `cpp_name(std::vector<SyntaxHighlight> syntax_get_lexemes(SyntaxSession*))`(&listing, original);
-    var lexemes = bits(IdeForeignHighlight*, listing.data);
-    var size = ide_foreign_count(&listing, sizeof(IdeForeignHighlight));
+    var listing: SyntaxHighlights = default;
+    ide_require(syntax_session_lexemes(original, &listing));
+    var lexemes = listing.items.data;
+    var size = listing.items.length;
     var spans = alloc(IdeCompletionSpan, size);
     var allocated = spans != null;
     if size == 0 {
@@ -82,9 +84,8 @@ export fn tw_complete(source: u8*, bytes: usize, cursor: usize, mode: u32, files
         spans[i].start = lexemes[i].start;
         spans[i].end = lexemes[i].end;
         spans[i].opaque = lexemes[i].opaque;
-        ide_foreign_dispose(&lexemes[i].kind);
     }
-    ide_foreign_free(&listing);
+    syntax_highlights_dispose(&listing);
     var query = completion_begin(source, bytes, cursor, spans, size);
     free(spans);
     if query == null {
@@ -99,39 +100,24 @@ export fn tw_complete(source: u8*, bytes: usize, cursor: usize, mode: u32, files
     completion_analyze(query, active, mode, files, lengths, count);
     completion_symbols(query);
     // Preserve offering order and priority from the public completion contract.
-    `cpp_name(std::vector<std::string> syntax_get_keywords(SyntaxSession*))`(&listing, active);
-    var keywords = bits(IdeForeignString*, listing.data);
-    size = ide_foreign_count(&listing, sizeof(IdeForeignString));
+    size = syntax_session_keyword_count(active);
     i = 0;
     for(; i < size; i++) {
-        completion_offer(query, ide_foreign_data(&keywords[i]), "keyword", "active grammar", 0);
-        ide_foreign_dispose(&keywords[i]);
+        completion_offer(query, syntax_session_keyword(active, i), "keyword", "active grammar", 0);
     }
-    ide_foreign_free(&listing);
-    `cpp_name(std::vector<SyntaxRuleInfo> syntax_get_rules(SyntaxSession*))`(&listing, active);
-    var rules = bits(IdeForeignRule*, listing.data);
-    size = ide_foreign_count(&listing, sizeof(IdeForeignRule));
+    size = syntax_session_rule_count(active);
     i = 0;
     for(; i < size; i++) {
-        completion_offer(query, ide_foreign_data(&rules[i].name), "type", "grammar rule", 2);
-        ide_foreign_dispose(&rules[i].name);
-        ide_foreign_dispose(&rules[i].definition);
+        completion_offer(query, syntax_session_rule(active, i).name, "type", "grammar rule", 2);
     }
-    ide_foreign_free(&listing);
-    `cpp_name(std::vector<SyntaxTokenInfo> syntax_get_tokens(SyntaxSession*))`(&listing, active);
-    var tokens = bits(IdeForeignToken*, listing.data);
-    size = ide_foreign_count(&listing, sizeof(IdeForeignToken));
+    size = syntax_session_token_count(active);
     i = 0;
     for(; i < size; i++) {
-        var item = &tokens[i];
-        if !(item.`skip`) {
-            completion_offer(query, ide_foreign_data(&item.name), "type", "token rule", 2);
+        var item = syntax_session_token(active, i);
+        if item.kind != convert(u32, SyntaxKind.Skip) {
+            completion_offer(query, item.name.data, "type", "token rule", 2);
         }
-        ide_foreign_dispose(&item.name);
-        ide_foreign_dispose(&item.pattern);
-        ide_foreign_dispose(&item.kind);
     }
-    ide_foreign_free(&listing);
     var state = ide_state();
     ide_assign(&state.completion, completion_end(query));
     completion_dispose(query);

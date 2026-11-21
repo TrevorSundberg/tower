@@ -1,0 +1,21 @@
+import tower;
+import .compiler.syntax_session_types;
+import .compiler.syntax_types;
+import .compiler.syntax_view;
+import .compiler.format_types;
+
+// Shared Tower result layouts, independent of the platform C++ standard library.
+extern fn syntax_session_rule_count(session: void*): usize;
+extern fn syntax_session_rule(session: void*, index: usize): SyntaxRuleView*;
+extern fn syntax_session_rule_pending(session: void*, index: usize): bool;
+extern fn syntax_session_rule_format(session: void*, index: usize, out: FormatResult*): bool;
+extern fn syntax_session_token_count(session: void*): usize;
+extern fn syntax_session_token(session: void*, index: usize): SyntaxNode*;
+extern fn syntax_session_keyword_count(session: void*): usize;
+extern fn syntax_session_keyword(session: void*, index: usize): u8*;
+extern fn syntax_session_lexemes(session: void*, out: SyntaxHighlights*): bool;
+extern fn syntax_highlights_dispose(out: SyntaxHighlights*): void;
+extern fn syntax_format_into(session: void*, out: FormatResult*, error: u8**): bool;
+extern fn format_dispose(out: FormatResult*): void;
+
+fn ide_syntax_session(opaque: void*): SyntaxSession* { return bits(SyntaxSession*, opaque); }

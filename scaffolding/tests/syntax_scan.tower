@@ -1,11 +1,13 @@
 import tower;
-import syntax_emission;
 import .compiler.lr_analysis;
 import .compiler.lr_grammar;
 import .compiler.lr_tree;
 import .compiler.parser_nodes;
 import .compiler.syntax_lexer;
 import .compiler.syntax_scan;
+
+extern fn tower_test_buffer_count(): usize;
+extern fn tower_test_buffer_fail_after(count: usize): void;
 
 // Tokens keep the existing parser EOF contract and shared-node ownership even
 // when any one of the node/payload/text allocations fails.
