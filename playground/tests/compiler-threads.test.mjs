@@ -48,6 +48,7 @@ test('declaration, body checking, lowering and staging are deterministic at 1/2/
  const delayedLayout = await readFile('scaffolding/tests/decltype_layout.tower', 'utf8');
  const genericHeaders = await readFile('scaffolding/tests/decltype_generic_headers.tower', 'utf8');
  const aggregateTypes = await readFile('scaffolding/tests/decltype_aggregate.tower', 'utf8');
+ const bodyContinuation = await readFile('scaffolding/tests/body_continuation.tower', 'utf8');
  const typeFields = (await readFile('scaffolding/tests/decltype_type_fields.tower', 'utf8')).replace('var seed12:u64=0;',
   Array.from({length:244},(_,i)=>`var seed${i+12}:decltype(seed${i+13});`).join('\n')+'\nvar seed256:u64=0;');
  const dependencyCanonical = new Map();
@@ -128,6 +129,22 @@ print(record_value(&record));`;
     assert.match(result.error, /unknownFirst/);
     assert.doesNotMatch(result.error, /unknownSecond/);
    } finally { tower.destroyExecution(invalid); }
+   for (const prefixFailure of [false,true]) {
+    const broken = tower.compile(`import tower;
+fn identity(T:type,value:T):T { return value; }
+fn first():i32 {
+ defer { var cleanup:i32=comptime(3); }
+ var value=identity(${prefixFailure ? 'unknownFirst' : '1'});
+ return ${prefixFailure ? 'value' : 'unknownFirst'};
+}
+fn later():i32 { var value=identity(unknownSecond); return value; }`);
+    try {
+     const result=tower.execute(broken);
+     assert.equal(result.status,'error');
+     assert.match(result.error,/unknownFirst/);
+     assert.doesNotMatch(result.error,/unknownSecond/);
+    } finally { tower.destroyExecution(broken); }
+   }
    // The body alone has no written generic call or parameterized local type.
    // foreach still instantiates its implicit nominal protocol functions.
    const iteration = tower.compile(`import tower; import library.vector;
@@ -202,7 +219,7 @@ fn badSecond(value:MissingSecond):void {}`);
     assert.match(result.error, /duplicate field 'first'/);
     assert.doesNotMatch(result.error, /duplicate field 'second'/);
    } finally { tower.destroyExecution(fieldsInvalid); }
-   for (const fixture of [delayedLayout, genericHeaders, typeFields, aggregateTypes])
+   for (const fixture of [delayedLayout, genericHeaders, typeFields, aggregateTypes, bodyContinuation])
    for (const pointerBytes of [4,8]) for (let fast=0; fast<2; fast++) {
     const handle=tower.compile(fixture,{pointerBytes});
     try {

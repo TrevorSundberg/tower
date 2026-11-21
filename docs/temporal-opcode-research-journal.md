@@ -28299,3 +28299,83 @@ then hand a remaining structurally independent suffix to the normal leased worke
 Structural prefixes must retain source order and finish before worker dispatch;
 no speculative retry of a partially checked AST. Nested structural statements and
 fully general operand continuations remain subsequent work, not claimed support.
+
+### 2026-11-20 - Root-block checking continuation and structural body receipts
+
+Block checking now shares begin/step/finish operations and a private cursor for
+source position, flow, label state and cleanup boundary. Function checking uses
+that same path. A function with a structural prefix and an independent remaining
+suffix can preserve its lexical scopes on the function's ECS work component,
+finish interning/layout publication on the coordinator, and resume ordinary
+checking under a worker lease. No statement or operand is speculatively retried.
+Prefix scope allocations remain compilation-owned; worker scratch remains private;
+flow dependencies and captured cleanup bindings transfer at the join. Clear
+borrowed context pointers on failed preparation as well as successful publication.
+
+Structural prefixes now have BodyPrepareQuery receipts. Their suffix BodyQuery
+explicitly depends on preparation and completed layouts. Entire structural bodies
+also use BodyQuery tickets. Access claims distinguish the owned body range and
+shared interning/index state. These coordinator jobs still execute synchronously
+at a join boundary: being represented in the graph is not itself threading.
+Nested structural blocks, arbitrary operand suspension and parallel interning
+remain unimplemented. Admission currently finishes earlier bodies before preparing
+a later structural prefix, preserving diagnostic and construction order but
+limiting useful batch sizes when adjacent functions both need preparation.
+
+The new body_continuation fixture exercises prefix declarations, parameterized
+records, generic calls, shadowing, deferred captures, compile-time flow, early
+returns, arrays and labels. It exposed a pre-existing label/index bug: lowering
+inserts canonical statements before a label, while the graph interpreter still
+used the parse-time statement index. The old portable reactor also failed to
+terminate; the bounded debug run kept executing after 10,000 steps. Updating
+label body/index when appending it to the lowered canonical block fixes this;
+the same fixture now completes in 298 steps and prints 0 in both interpreters
+and target widths. This updates a derived index, not operation semantics or a
+second execution graph. The label remains an ordinary compilable Foundation node.
+
+A native breakpoint on actual sem_statement calls, using 16 generic-prefix
+functions interspersed with ordinary peers, changes coordinator checks from 49
+to 17 and worker checks from 17 to 49. Workers used threads 4..6 in this probe;
+Foundation output compares byte-identically. This proves useful checking moved,
+not an eight-way speedup. The existing pool barrier separately verifies overlap.
+The prefix/suffix error regressions require the earlier source diagnostic at
+1/2/4/8 workers. Initial expanded capacity tests pass 3/3 in 43.68s; after explicit
+structural query/access receipts they pass 3/3 in 68.80s under concurrent builds.
+Native 8/8 pass in 58.97s, backend API and actual successor object comparison
+pass. Broader backend/editor tests and final cleanup rebuilds are still running.
+All implementation remains Tower; logs use body-continuation-* in the audit dir.
+
+Aggregate-place source d391fde is pushed and published as Pages
+7e4f9672cc692d1558bda232bb7b08cc6631fa33 on 9633055. Action 44874161226 succeeds.
+Local 77-asset plus desktop/mobile/default checks pass. Two edited browser
+generations pass in 123.59s/95.44s, with identical sizes
+1,015,610/52,315,700/63,873,162 and hashes:
+parser fa6acc87a664d57b8dbe5e06ef65682df9d954ac6b096759120658bce45a8f0f;
+LLVM 08fcd7c09c0fbc21cc23b8764d79794ecf505a821274df306b416c1a695951c9;
+cross b46e545313cfb698b9b48a0696cce9a3cb69e432aad66d97b8470b39da9c84a9.
+Hosted verification is in progress. The preceding c431163/Pages 9633055 release
+completed its full hosted verification before this publication.
+
+Final continuation cleanup build passes native 8/8 in 60.91s, backend API checks,
+and actual successor semantic-object cmp0. Final shared capacity and prefix/suffix
+failure checks pass 3/3 in 74.08s; editor checks pass 28/28 in 169.76s. The broader
+suite is still finishing shared library/graph fixtures. Aggregate-place hosted
+verification now completes: all 77 hashes and desktop/mobile/default checks pass.
+
+The next batching bottleneck is confirmed with 16 adjacent generic-prefix bodies:
+16 continuation dispatches run on worker 4, with the generated identity body on
+worker 5; actual statement counts are coordinator 17, worker 4:32, worker 5:1.
+The first trace incorrectly targeted an unavailable/inlined semantic_body_kernel
+symbol and produced no events; discard those counts. The corrected probe asserts
+nonempty dispatch tag 5 and sem_statement counts (body-prefix-batch-before-native2).
+A bounded preparation window independent of worker count is a candidate next
+step: preserve construction order, buffer a later preparation diagnostic until
+earlier continuations finish, and publish joined results in source order. This
+requires explicit cleanup of every prepared continuation and must not let a
+later failure suppress an earlier worker diagnostic. It is not implemented yet.
+
+The broader continuation suite finishes 92/92 in 347.37s: compile-time, inference,
+precedence, defer, for/foreach, backend and shared semantic/library graph cases.
+Together with the final cleanup capacity/native/successor checks above, this
+completes the checkpoint validation. Preparing the final pull and source push;
+no C++ or todo.txt edits. Browser publication will use the frozen matching build.

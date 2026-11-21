@@ -257,67 +257,81 @@ fn sem_labels(c: SemanticContext*, body: void*): void {
     }
 }
 
-fn sem_block(c: SemanticContext*, n: void*, depth: u32): u32 {
+// Private checking continuation. The block entity remains the canonical program;
+// this cursor records progress and lexical cleanup boundaries, never operations.
+struct SemanticBlockCursor {
+    subject: void*;
+    next: usize;
+    depth: u32;
+    flow: u32;
+    labeled: bool;
+    deferred: void*;
+}
+
+fn sem_block_begin(c: SemanticContext*, n: void*, depth: u32, cursor: SemanticBlockCursor*): bool {
+    fill(cursor, 0, sizeof(SemanticBlockCursor));
+    cursor.subject = n;
+    cursor.depth = depth;
+    cursor.flow = FlowNext();
+    cursor.deferred = c.deferred;
     if n == null || !sem_is(n, "CoreBlock") {
         sem_fail(c, n, "Expected a CoreBlock tree");
-        return 1;
+        return false;
     }
-    var value: FoundationNode* = sem_node(c, n, KBlock());
-    var deferred = c.deferred;
-    var step7 = sem_scope(c, c.scope);
-    c.scope = step7;
-    var flow: u32 = 1;
-    var labeled = false;
-    var i: usize = 0;
-    loop {
-        var step8 = sem_child_count(n);
-        if !(i < step8 && sem_ok(c)) {
-            break;
-        }
-        var at: void* = sem_child(n, i);
-        if sem_is(at, "Statement") {
-            at = sem_unwrap(at);
-            var label_call = sem_control_call(c, at, "label");
-            if label_call != null {
-                var falls = flow &1;
-                if labeled {
-                    var open = falls != 0;
-                    if open && c.flow_dependencies.length == 0 {
-                        sem_fail(c, at, "A labeled block must end with jump or return before the next label");
-                    }
+    sem_node(c, n, KBlock());
+    c.scope = sem_scope(c, c.scope);
+    return true;
+}
+
+fn sem_block_step(c: SemanticContext*, cursor: SemanticBlockCursor*): void {
+    var at = sem_child(cursor.subject, cursor.next);
+    cursor.next++;
+    if sem_is(at, "Statement") {
+        at = sem_unwrap(at);
+        var label_call = sem_control_call(c, at, "label");
+        if label_call != null {
+            if cursor.labeled {
+                if (cursor.flow & FlowNext()) != 0 && c.flow_dependencies.length == 0 {
+                    sem_fail(c, at, "A labeled block must end with jump or return before the next label");
                 }
-                labeled = true;
-                flow = 1;
             }
-            var next: u32 = sem_statement(c, at, depth + 1);
-            if sem_is(at, "CoreCallStatement") {
-                at = sem_member(at, "call");
-            }
-            var control = sem_control_call(c, at, "label");
-            if control == null {
-                control = sem_control_call(c, at, "jump");
-            }
-            if control != null {
-                at = control;
-            }
-            sem_push(&value.items, at);
-            if(flow &1) != 0 {
-                flow = flow & 4294967294 | next;
-            }
-        } else {
-            if !sem_is(at, "{") && !sem_is(at, "}") {
-                sem_fail(c, at, "Malformed CoreBlock tree");
-            }
+            cursor.labeled = true;
+            cursor.flow = FlowNext();
         }
-        i++;
+        var next = sem_statement(c, at, cursor.depth + 1);
+        if sem_is(at, "CoreCallStatement") { at = sem_member(at, "call"); }
+        var control = sem_control_call(c, at, "label");
+        if control == null { control = sem_control_call(c, at, "jump"); }
+        if control != null { at = control; }
+        sem_push(&sem_get(cursor.subject).items, at);
+        if (cursor.flow & FlowNext()) != 0 {
+            cursor.flow = (cursor.flow & ~FlowNext()) | next;
+        }
+    } else {
+        if !sem_is(at, "{") && !sem_is(at, "}") {
+            sem_fail(c, at, "Malformed CoreBlock tree");
+        }
     }
+}
+
+fn sem_block_finish(c: SemanticContext*, cursor: SemanticBlockCursor*): u32 {
+    var value = sem_get(cursor.subject);
     sem_scope_locals(c, c.scope, &value.locals);
-    if(flow &FlowNext()) != 0 && c.deferred != deferred && sem_ok(c) {
-        flow =(flow & ~FlowNext()) | sem_defer_emit(c, n, deferred, 0);
+    if (cursor.flow & FlowNext()) != 0 && c.deferred != cursor.deferred && sem_ok(c) {
+        cursor.flow = (cursor.flow & ~FlowNext()) | sem_defer_emit(c, cursor.subject, cursor.deferred, 0);
     }
-    c.deferred = deferred;
+    c.deferred = cursor.deferred;
     c.scope = c.scope.parent;
-    return flow;
+    return cursor.flow;
+}
+
+fn sem_block(c: SemanticContext*, n: void*, depth: u32): u32 {
+    var cursor: SemanticBlockCursor;
+    if !sem_block_begin(c, n, depth, &cursor) { return FlowNext(); }
+    while cursor.next < sem_child_count(n) && sem_ok(c) {
+        sem_block_step(c, &cursor);
+    }
+    return sem_block_finish(c, &cursor);
 }
 
 fn sem_statement(c: SemanticContext*, n: void*, depth: u32): u32 {
@@ -573,11 +587,11 @@ fn sem_function_syntax(n: void*): bool {
     return sem_is(n, "CoreFunction") || sem_is(n, "CoreExternal") || sem_is(n, "CoreExport");
 }
 
-fn sem_function_body(c: SemanticContext*, n: void*): void {
+fn sem_function_begin(c: SemanticContext*, n: void*, cursor: SemanticBlockCursor*): bool {
     var function_node = sem_get(n);
     c.current = n;
-    if c.editor != null && !sem_editor_contains(c, n) { return; }
-    if function_node.external { return; }
+    if c.editor != null && !sem_editor_contains(c, n) { return false; }
+    if function_node.external { return false; }
     c.scope = sem_scope(c, null);
     c.loops = 0;
     c.flow_dependencies.length = 0;
@@ -586,7 +600,12 @@ fn sem_function_body(c: SemanticContext*, n: void*): void {
     }
     function_node.body = sem_member(n, "body");
     sem_labels(c, function_node.body);
-    var flow = sem_block(c, function_node.body, 0);
+    return sem_block_begin(c, function_node.body, 0, cursor);
+}
+
+fn sem_function_finish(c: SemanticContext*, n: void*, cursor: SemanticBlockCursor*): void {
+    var function_node = sem_get(n);
+    var flow = sem_block_finish(c, cursor);
     if c.flow_dependencies.length != 0 {
         if c.entity_stage == null { sem_flow_request(c, n, &c.flow_dependencies); }
         return;
@@ -595,6 +614,15 @@ fn sem_function_body(c: SemanticContext*, n: void*): void {
         sem_fail(c, n, sem_cat(c, "Function '", sem_cat(c, sem_name(function_node),
             "' can finish without returning a value")));
     }
+}
+
+fn sem_function_body(c: SemanticContext*, n: void*): void {
+    var cursor: SemanticBlockCursor;
+    if !sem_function_begin(c, n, &cursor) { return; }
+    while cursor.next < sem_child_count(cursor.subject) && sem_ok(c) {
+        sem_block_step(c, &cursor);
+    }
+    sem_function_finish(c, n, &cursor);
 }
 
 fn sem_run(c: SemanticContext*): void {

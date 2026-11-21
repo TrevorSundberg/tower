@@ -21,7 +21,7 @@ function execute(source, pointerBytes, fast) {
  } finally { tower.destroyExecution(handle); }
 }
 
-for (const name of ['decltype', 'decltype_headers', 'decltype_layout', 'decltype_generic_headers', 'decltype_type_fields', 'decltype_aggregate', 'comptime', 'comptime_flow']) {
+for (const name of ['decltype', 'decltype_headers', 'decltype_layout', 'decltype_generic_headers', 'decltype_type_fields', 'decltype_aggregate', 'body_continuation', 'comptime', 'comptime_flow']) {
  test(`${name} preserves types and behavior through Foundation, interpreters and LLVM`, async () => {
   tower.configureModules({entry: `.tower/tests/${name}.tower`});
   const source = await readFile(`scaffolding/tests/${name}.tower`, 'utf8');
