@@ -1131,6 +1131,10 @@ fn module_validate_cycles(graph: ModuleGraph*): void {
                     declaration ||= module_equal(span.label.data, "CoreExport");
                     declaration ||= module_equal(span.label.data, "CoreStruct");
                     declaration ||= module_equal(span.label.data, "CoreEnum");
+                    // Ordinary variables may be proved fixed compile-time values
+                    // by semantics. Defer only that proof; grammar and executable
+                    // statements still cannot take part in an import cycle.
+                    declaration ||= module_equal(span.label.data, "CoreDeclare");
                     if !declaration {
                         invalid = true;
                     }
@@ -1142,6 +1146,10 @@ fn module_validate_cycles(graph: ModuleGraph*): void {
             }
         }
     }
+}
+
+export fn frontend_module_cyclic(module: FrontendModule*): bool {
+    return module.graph.cycles && module_reaches(module, module);
 }
 
 export fn frontend_module_comment(module: FrontendModule*, first: usize, last: usize): void {

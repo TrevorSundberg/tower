@@ -1,0 +1,4 @@
+import tower;
+import known_cycle_bad_a;
+
+fn read_observed(): i32 { return observed; }

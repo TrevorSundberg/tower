@@ -1,0 +1,6 @@
+import tower;
+import known_cycle_bad_b;
+
+var count = 0;
+var observed = effect();
+fn effect(): i32 { count++; return count; }

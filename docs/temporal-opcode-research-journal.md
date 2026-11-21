@@ -32259,3 +32259,25 @@ execution. No compiler rebuild or bootstrap migration is warranted by these chan
 The deployment metadata will identify the preparation source separately from the
 runtime build identity. Remaining work is independent adoption, explicit sample
 permission, upstream import/classifier tests and eventual authorized submission.
+
+#### Import-cycle integration
+
+The next migration build passed runtime-library production, then reached an older
+frontend restriction: cyclic compiler modules allowed function/type declarations
+but rejected every `CoreDeclare` before its value could be checked. The error
+originated in `syntax_emission_types` / `format_syntax_preview`. Kept migration
+local again and extended the existing module ownership metadata with cycle status.
+Frontend cycle validation now defers ordinary variable declarations, while still
+rejecting grammar updates and executable statements. After normal inference and
+initializer removal, semantic validation rejects any surviving global declaration
+owned by a cyclic module. No literal-only parser evaluator or special constant
+declaration syntax was added. Positive cyclic modules share fixed scalar bindings;
+negative fixtures retain an effectful initializer and must diagnose the absent
+dependency-first initialization order. The same tests include Foundation round
+trips. Publish this compatible reader before adopting the migration.
+
+Cycle integration passes the full native execution suite and semantic oracles
+(`binding-cycle-tests.log`). The positive cycle also compiles as a native library;
+the negative CLI fixture reports the fixed-initializer diagnostic at its source
+declaration. Added the direct `semantic_modules` lifecycle import after the first
+build diagnosed the newly invoked validator as outside that file's import scope.

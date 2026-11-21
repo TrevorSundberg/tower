@@ -63,6 +63,9 @@ Successful fixed bindings and their complete initializer computations disappear
 from runtime execution. Libraries can therefore use named computed values without
 requiring an implicit module initializer. Failed or mutable candidates keep their
 ordinary initialization and effects.
+Import cycles may contain proved fixed compile-time bindings. Parsing admits
+ordinary declarations for semantic checking; any remaining runtime initialization
+in the cycle is rejected, as are grammar updates and executable statements.
 No separate arithmetic folder, declaration grammar, keyword or accessor function
 is involved. The former `const Name: T = value` function shorthand is retired;
 replace it with `var Name: T = value` and read `Name`, without parentheses.

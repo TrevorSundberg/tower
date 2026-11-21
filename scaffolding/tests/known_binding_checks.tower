@@ -30,6 +30,14 @@ fn known_binding_tests(modules: void*, root: u8*): void {
         execution_check(kind == KFunction() || kind == KType(), "Fixed library values leave no runtime initialization");
     }
     execution_roundtrip(&library_session, modules, false);
+    var cycle: ExecutionSession = default;
+    defer execution_session_close(&cycle);
+    execution_compile(&cycle, "import tests.known_cycle_a;print(cycle_total());", 8, modules);
+    execution_check(execution_session_start(&cycle), "Cyclic modules with fixed values start");
+    execution_run(&cycle, 1000, 100000);
+    execution_check(cycle.machine.done && cycle.error.length == 0 && execution_text(&cycle.output, "42\n"), "Cyclic module values retain bindings");
+    execution_roundtrip(&cycle, modules, false);
+    struct_value_reject(modules, "import tests.known_cycle_bad_a;", "Import cycle requires fixed compile-time");
     for(var width: u32 = 4; width <= 8; width += 4) {
         var graph: ExecutionSession = default;
         var fast: ExecutionSession = default;

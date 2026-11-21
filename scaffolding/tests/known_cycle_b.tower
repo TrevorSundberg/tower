@@ -1,0 +1,5 @@
+import tower;
+import known_cycle_a;
+
+var CycleBase: i32 = 40;
+fn cycle_increment(): i32 { return CycleIncrement; }

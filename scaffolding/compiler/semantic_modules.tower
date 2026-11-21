@@ -14,9 +14,11 @@ import semantic_program_types;
 struct SemanticModuleLink {
     module: void*;
     base: usize;
+    cyclic: bool;
 }
 
 extern fn frontend_module_name(module: void*): u8*;
+extern fn frontend_module_cyclic(module: void*): bool;
 
 extern fn frontend_module_import_count(module: void*): usize;
 
@@ -74,6 +76,7 @@ fn sem_module_link(node: void*, kind: void*, scope: void*): void {
     sem_require(present);
     link.module = scope;
     link.base = 0;
+    link.cyclic = false;
 }
 
 fn sem_module_position(program: SemanticProgram*, module: void*, base: usize): void {
@@ -82,6 +85,24 @@ fn sem_module_position(program: SemanticProgram*, module: void*, base: usize): v
     var component = entity_component_get(scope, program.modules.owner_kind);
     var link = bits(SemanticModuleLink*, entity_component_data(component));
     link.base = base;
+    link.cyclic = frontend_module_cyclic(module);
+}
+
+// Parsing defers ordinary variable initialization in cycles to the same semantic
+// proof used everywhere else. Any surviving declaration still needs runtime
+// storage/initialization and has no dependency-first module execution order.
+fn sem_module_initializers(c: SemanticContext*): void {
+    if !sem_ok(c) || c.program.modules == null { return; }
+    foreach(var node in &sem_get(c.program.root).items) {
+        if sem_get(node).kind != KDeclare() { continue; }
+        var owner = sem_owner(c, node);
+        if owner == null { continue; }
+        var link = bits(SemanticModuleLink*, entity_component_data(entity_component_get(owner, c.program.modules.owner_kind)));
+        if link != null && link.cyclic {
+            sem_fail(c, node, "Import cycle requires fixed compile-time variable initializers; runtime initialization has no dependency-first order");
+            return;
+        }
+    }
 }
 
 fn sem_module_record(program: SemanticProgram*, module: void*): void {
