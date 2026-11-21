@@ -41,9 +41,9 @@ function(tower_compiler_evaluation)
   set(input "${CMAKE_CURRENT_BINARY_DIR}/tower_compiler_evaluation.tower")
   set(object "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-evaluation.o")
   add_custom_command(OUTPUT "${input}"
-    COMMAND "${CMAKE_COMMAND}" -DROOT=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT=${input}
+    COMMAND "${CMAKE_COMMAND}" -DROOT=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT=${input} -DTESTS=${TOWER_PARSER_ONLY}
       -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ComposeEvaluation.cmake"
-    DEPENDS cmake/ComposeEvaluation.cmake VERBATIM)
+    DEPENDS cmake/ComposeEvaluation.cmake scaffolding/tests/interpreter_storage.tower VERBATIM)
   add_custom_command(OUTPUT "${object}"
     COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${input}" --library --target "${triple}"
       --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"

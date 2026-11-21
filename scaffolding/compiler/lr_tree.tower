@@ -1,4 +1,5 @@
 import tower;
+import lr_types;
 import component_kinds;
 import frontend_modules;
 import lr_analysis;

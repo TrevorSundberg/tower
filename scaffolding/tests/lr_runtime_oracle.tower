@@ -1,0 +1,187 @@
+import tower;
+import lr_analysis_oracle_types;
+import .library.vector;
+import .compiler.lr_types;
+import utility_checks;
+
+fn oracle_action_less(a: LRAction*, b: LRAction*): bool {
+    if a.first != b.first { return a.first < b.first; }
+    if a.last != b.last { return a.last < b.last; }
+    if a.state != b.state { return a.state < b.state; }
+    return a.rule < b.rule;
+}
+fn oracle_action_sort(values: vector(LRAction)*): void {
+    for (var index: usize = 1; index < values.length; ++index) {
+        var item: LRAction; copy(&item, &values.data[index], sizeof(LRAction)); var position = index;
+        while position != 0 && oracle_action_less(&item, &values.data[position - 1]) {
+            copy(&values.data[position], &values.data[position - 1], sizeof(LRAction)); --position;
+        }
+        copy(&values.data[position], &item, sizeof(LRAction));
+    }
+}
+// Explicit current-contract eligibility, separate from the legacy oracle mode.
+// Return 0 for a conflict, 1/2 for the retained action, 3 for nonassociativity.
+fn oracle_precedence(source: OracleStates*, state: usize, a: LRAction*, b: LRAction*): u32 {
+    if a.first != a.last || b.first != b.last || a.first != b.first { return 0; }
+    var a_shift = a.state != oracle_none(); var b_shift = b.state != oracle_none();
+    if a_shift == b_shift { return 0; }
+    var reduction = a_shift ? b : a;
+    var rule = &source.analysis.rules[reduction.rule];
+    if rule.precedence == 0 { return 0; }
+    var power: u32 = 0; var direction: u32 = 0;
+    var items = &source.states.data[state].items.values;
+    foreach (var &item in items) {
+        var candidate = &source.analysis.rules[item.rule];
+        if item.position >= candidate.count { continue; }
+        var symbol = &source.analysis.symbols[candidate.begin + item.position];
+        if symbol.nonterminal != oracle_none() || symbol.first != a.first || symbol.last != a.last { continue; }
+        if candidate.precedence == 0 { return 0; }
+        if power != 0 && (power != candidate.precedence || direction != candidate.associativity) { return 0; }
+        power = candidate.precedence; direction = candidate.associativity;
+    }
+    if power == 0 { return 0; }
+    var reduce = rule.precedence > power;
+    if rule.precedence == power {
+        if rule.associativity != direction { return 0; }
+        if direction == 3 { return 3; }
+        reduce = direction == 1;
+    }
+    return reduce != a_shift ? 1 : 2;
+}
+fn oracle_runtime_conflict(value: OracleRuntime*, state: usize, a: LRAction*, b: LRAction*): void {
+    value.conflict.state = state;
+    copy(&value.conflict.left, a, sizeof(LRAction)); copy(&value.conflict.right, b, sizeof(LRAction));
+}
+fn oracle_actions_equal(a: vector(LRAction)*, b: vector(LRAction)*): bool {
+    if a.length != b.length { return false; }
+    for (var index: usize = 0; index < a.length; ++index) {
+        if oracle_action_less(&a.data[index], &b.data[index]) || oracle_action_less(&b.data[index], &a.data[index]) { return false; }
+    }
+    return true;
+}
+fn oracle_runtime_create(source: OracleStates*, current_contract: bool): OracleRuntime* {
+    var value = oracle_allocate(OracleRuntime);
+    value.sequence_rule = oracle_none(); value.conflict.state = oracle_none();
+    utility_check(vector_reserve(&value.rules, source.analysis.rule_count), "LR oracle runtime production snapshot");
+    copy(value.rules.data, source.analysis.rules, source.analysis.rule_count * sizeof(LRProduction)); value.rules.length = source.analysis.rule_count;
+    for (var index: usize = 0; index < source.states.length; ++index) {
+        var state = oracle_allocate(OracleRuntimeState); state.reduction = oracle_none();
+        utility_check(vector_push(&value.states, state), "LR oracle runtime state");
+    }
+    var rows: usize = 0;
+    for (var index: usize = 0; index < source.states.length; ++index) {
+        var state = value.states.data[index];
+        var actions: vector(LRAction); vector_init(&actions); defer vector_dispose(&actions);
+        oracle_copy(&actions, &source.states.data[index].actions); oracle_action_sort(&actions);
+        if current_contract {
+            for (var first: usize = 0; first < actions.length; ++first) {
+                var a = &actions.data[first];
+                for (var second = first + 1; second < actions.length; ++second) {
+                    var b = &actions.data[second];
+                    if b.first > a.last { break; }
+                    if (a.state == oracle_none()) == (b.state == oracle_none()) && (a.state != b.state || a.rule != b.rule) {
+                        oracle_runtime_conflict(value, index, a, b); return value;
+                    }
+                }
+            }
+        }
+        for (var position: usize = 0; position < actions.length; ++position) {
+            var action = &actions.data[position];
+            if state.actions.length != 0 {
+                var previous = &state.actions.data[state.actions.length - 1];
+                if previous.rule == action.rule && previous.state == action.state
+                    && convert(u64, action.first) <= convert(u64, previous.last) + 1 {
+                    if action.last > previous.last { previous.last = action.last; }
+                    continue;
+                }
+                if action.first <= previous.last {
+                    var choice: u32 = 0;
+                    if current_contract { choice = oracle_precedence(source, index, previous, action); }
+                    if choice != 0 {
+                        if choice == 2 { copy(previous, action, sizeof(LRAction)); }
+                        if choice == 3 { --state.actions.length; }
+                        continue;
+                    }
+                    oracle_runtime_conflict(value, index, previous, action); return value;
+                }
+            }
+            oracle_append(&state.actions, action);
+        }
+        var shared = false;
+        for (var previous: usize = 0; previous < index; ++previous) {
+            if oracle_actions_equal(&state.actions, &value.states.data[previous].actions) { shared = true; break; }
+        }
+        if !shared { ++rows; }
+        foreach (var &action in &state.actions) {
+            if action.first == LRTokenEnd() && action.last == LRTokenEnd() { state.reduction = action.rule; }
+        }
+        foreach (var &action in &state.actions) {
+            if action.rule != state.reduction { state.reduction = oracle_none(); }
+        }
+        var edges = &source.states.data[index].edges;
+        foreach (var &edge in edges) {
+            var owner = source.analysis.symbols[edge.symbol].nonterminal;
+            if owner != oracle_none() {
+                var next: LRGoto; next.nonterminal = owner; next.state = edge.state;
+                oracle_append(&state.gotos, &next);
+            }
+        }
+        for (var position: usize = 1; position < state.gotos.length; ++position) {
+            var next: LRGoto; copy(&next, &state.gotos.data[position], sizeof(LRGoto)); var target = position;
+            while target != 0 && next.nonterminal < state.gotos.data[target - 1].nonterminal {
+                copy(&state.gotos.data[target], &state.gotos.data[target - 1], sizeof(LRGoto)); --target;
+            }
+            copy(&state.gotos.data[target], &next, sizeof(LRGoto));
+        }
+    }
+    value.rows = rows; return value;
+}
+fn oracle_runtime_destroy(value: OracleRuntime*): void {
+    if value is null { return; }
+    foreach (var state in &value.states) {
+        vector_dispose(&state.actions); vector_dispose(&state.gotos); free(state);
+    }
+    vector_dispose(&value.states); vector_dispose(&value.rules);
+    vector_dispose(&value.sequence); vector_dispose(&value.sequence_states); free(value);
+}
+fn oracle_runtime_action(value: OracleRuntime*, state: usize, id: u32, result: LRAction*): bool {
+    var actions = &value.states.data[state].actions;
+    foreach (var &action in actions) {
+        if id >= action.first && id <= action.last { copy(result, action, sizeof(LRAction)); return true; }
+    }
+    return false;
+}
+fn oracle_runtime_goto(value: OracleRuntime*, state: usize, owner: usize): usize {
+    var gotos = &value.states.data[state].gotos;
+    foreach (var &entry in gotos) {
+        if entry.nonterminal == owner { return entry.state; }
+    }
+    return oracle_none();
+}
+fn oracle_runtime_specialize(value: OracleRuntime*, source: OracleStates*): void {
+    var root = oracle_none();
+    for (var index: usize = 0; index < value.rules.length; ++index) {
+        if value.rules.data[index].owner == 1 {
+            if root != oracle_none() { return; }
+            root = index;
+        }
+    }
+    if root == oracle_none() { return; }
+    var rule = &value.rules.data[root];
+    if rule.count == 0 || rule.count > 4096 { return; }
+    for (var index: usize = 0; index < rule.count; ++index) {
+        var symbol = &source.analysis.symbols[rule.begin + index];
+        if symbol.nonterminal != oracle_none() || symbol.last >= LRTokenPropagation() { return; }
+    }
+    var sequence: vector(SymbolRange); vector_init(&sequence); defer vector_dispose(&sequence);
+    var states: vector(usize); vector_init(&states); defer vector_dispose(&states);
+    utility_check(vector_push(&states, 0), "LR oracle sequence initial state");
+    for (var index: usize = 0; index < rule.count; ++index) {
+        var symbol = &source.analysis.symbols[rule.begin + index]; var action: LRAction;
+        if !oracle_runtime_action(value, states.data[states.length - 1], symbol.first, &action) || action.state == oracle_none() { return; }
+        utility_check(vector_push(&states, action.state), "LR oracle sequence state");
+        var range: SymbolRange; range.first = symbol.first; range.last = symbol.last; oracle_append(&sequence, &range);
+    }
+    value.sequence_rule = root;
+    vector_move(&value.sequence, &sequence); vector_move(&value.sequence_states, &states);
+}

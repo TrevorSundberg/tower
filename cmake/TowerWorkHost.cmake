@@ -1,0 +1,61 @@
+# Keep the platform work transport in its own archive member. Production uses
+# it normally; executables with the single-owner fault-injection allocator link
+# the existing portable transport directly, before archive extraction.
+function(tower_work_host_object name triple imports)
+  set(input "${CMAKE_CURRENT_BINARY_DIR}/${name}.tower")
+  set(object "${CMAKE_CURRENT_BINARY_DIR}/${name}.o")
+  file(GENERATE OUTPUT "${input}" CONTENT "import tower;\n${imports}")
+  add_custom_command(OUTPUT "${object}"
+    COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${input}" --library --target "${triple}"
+      --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
+      --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
+      -o "${object}" --depfile "${object}.d"
+    DEPFILE "${object}.d"
+    DEPENDS "${TOWER_BOOTSTRAP_COMPILER}" "${input}" VERBATIM)
+  set_source_files_properties("${object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
+  set(${name}_OBJECT "${object}" PARENT_SCOPE)
+endfunction()
+
+function(tower_compiler_work_host triple platform)
+  if(TARGET tower-compiler-work-serial)
+    return()
+  endif()
+  if(platform MATCHES "^(linux|macos|windows)$")
+    set(imports "import host.work_${platform};\n")
+  elseif(TOWER_BROWSER_THREADS AND platform STREQUAL "wasi")
+    set(imports "import host.work_wasi;\nimport host.work_memory_wasi;\n")
+  else()
+    set(imports "import host.work_portable;\n")
+  endif()
+  tower_work_host_object(tower_work_host "${triple}" "import host.work_dispatch;\n${imports}")
+  target_sources(tower-compiler-memory PRIVATE "${tower_work_host_OBJECT}")
+  tower_work_host_object(tower_work_serial "${triple}" "import host.work_portable;\n")
+  add_library(tower-compiler-work-serial INTERFACE)
+  target_sources(tower-compiler-work-serial INTERFACE "${tower_work_serial_OBJECT}")
+  if(TOWER_PARSER_ONLY)
+    target_link_libraries(tower-compiler-memory INTERFACE tower-compiler-work-serial)
+  endif()
+  cmake_language(DEFER CALL tower_instrumented_work_profiles)
+endfunction()
+
+function(tower_instrumented_work_profiles)
+  get_property(instrumented GLOBAL PROPERTY TOWER_INSTRUMENTED_RUNTIME_OBJECTS)
+  get_property(targets DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
+  foreach(target IN LISTS targets)
+    get_target_property(kind ${target} TYPE)
+    if(NOT kind STREQUAL "EXECUTABLE")
+      continue()
+    endif()
+    get_target_property(sources ${target} SOURCES)
+    get_target_property(libraries ${target} LINK_LIBRARIES)
+    if("tower-compiler-work-serial" IN_LIST libraries)
+      continue()
+    endif()
+    foreach(object IN LISTS instrumented)
+      if(object IN_LIST sources)
+        target_link_libraries(${target} PRIVATE tower-compiler-work-serial)
+        break()
+      endif()
+    endforeach()
+  endforeach()
+endfunction()

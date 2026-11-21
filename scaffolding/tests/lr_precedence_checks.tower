@@ -1,0 +1,128 @@
+import tower;
+import .compiler.lr_types;
+import utility_checks;
+import storage_api;
+import lr_analysis_api;
+import lr_analysis_failures;
+import lr_analysis_oracle_types;
+
+fn lr_completed_state(states: void*, rule: usize, count: usize): usize {
+    for (var state: usize = 0; state < lr_states_count(states); ++state) {
+        var items = lr_states_items(states, state);
+        for (var index: usize = 0; index < lr_items_count(items); ++index) {
+            var item = &lr_items_data(items)[index];
+            if item.rule == rule && item.position == count { return state; }
+        }
+    }
+    utility_check(false, "LR precedence fixture completed item exists"); return oracle_none();
+}
+// Numeric annotations have explicit table-construction effects. Check those
+// outcomes directly in addition to the independent general reference algorithm.
+fn lr_precedence_trial(direction: u32, precedence: u32, duplicate: bool, range: bool): void {
+    var rules: LRProduction[4]; var symbols: LRSymbol[8];
+    lr_failure_rule(&rules[0], 0, 0, 1); lr_failure_symbol(&symbols[0], 1, 0, 0);
+    lr_failure_rule(&rules[1], 1, 1, 3); rules[1].precedence = precedence; rules[1].associativity = direction;
+    lr_failure_symbol(&symbols[1], 1, 0, 0); lr_failure_symbol(&symbols[2], oracle_none(), 43, range ? 44 : 43); lr_failure_symbol(&symbols[3], 1, 0, 0);
+    lr_failure_rule(&rules[2], 1, 4, 1); lr_failure_symbol(&symbols[4], oracle_none(), 110, 110);
+    var count: usize = 3; var symbol_count: usize = 5;
+    if duplicate {
+        lr_failure_rule(&rules[3], 1, 5, 3); rules[3].precedence = precedence; rules[3].associativity = direction;
+        copy(&symbols[5], &symbols[1], 3 * sizeof(LRSymbol)); count = 4; symbol_count = 8;
+    }
+    var analysis = lr_analysis_create(&rules[0], count, &symbols[0], symbol_count, 2);
+    utility_check(analysis is not null && lr_analysis_compute(analysis), "LR precedence analysis"); defer lr_analysis_destroy(analysis);
+    var states = lr_states_create(analysis); defer lr_states_destroy(states);
+    utility_check(states is not null && lr_states_lalr(states, false), "LR precedence states");
+    var runtime = lr_runtime_create(states); utility_check(runtime is not null, "LR precedence runtime"); defer lr_runtime_destroy(runtime);
+    var conflict: LRConflict; var conflicted = lr_runtime_conflict(runtime, &conflict);
+    if duplicate {
+        utility_check(conflicted && conflict.left.state == oracle_none() && conflict.right.state == oracle_none()
+            && conflict.left.rule == 1 && conflict.right.rule == 3,
+            "LR reduce/reduce conflict survives precedence and nonassociative removal");
+        return;
+    }
+    if precedence == 0 || range {
+        utility_check(conflicted && ((conflict.left.state == oracle_none()) != (conflict.right.state == oracle_none())),
+            "LR unannotated or range-overlap shift/reduce is ineligible for precedence");
+        return;
+    }
+    utility_check(!conflicted, "LR compatible singleton annotation resolves conflict");
+    var state = lr_completed_state(states, 1, 3); var action: LRAction;
+    var found = lr_runtime_action(runtime, state, 43, &action);
+    if direction == 3 { utility_check(!found, "LR nonassociative operator removes both conflicting actions"); }
+    else {
+        utility_check(found, "LR associative operator retains a selected action");
+        if direction == 1 { utility_check(action.state == oracle_none() && action.rule == 1, "LR left associativity selects reduction"); }
+        else { utility_check(action.state != oracle_none() && action.rule == oracle_none(), "LR right associativity selects shift"); }
+    }
+}
+fn lr_precedence_power_trial(): void {
+    var rules: LRProduction[4]; var symbols: LRSymbol[8];
+    lr_failure_rule(&rules[0], 0, 0, 1); lr_failure_symbol(&symbols[0], 1, 0, 0);
+    for (var index: usize = 1; index < 3; ++index) {
+        var begin = 1 + (index - 1) * 3; lr_failure_rule(&rules[index], 1, begin, 3);
+        rules[index].precedence = convert(u32, index); rules[index].associativity = convert(u32, index);
+        lr_failure_symbol(&symbols[begin], 1, 0, 0);
+        var id: u32 = index == 1 ? 43 : 42; lr_failure_symbol(&symbols[begin + 1], oracle_none(), id, id);
+        lr_failure_symbol(&symbols[begin + 2], 1, 0, 0);
+    }
+    lr_failure_rule(&rules[3], 1, 7, 1); lr_failure_symbol(&symbols[7], oracle_none(), 110, 110);
+    var analysis = lr_analysis_create(&rules[0], 4, &symbols[0], 8, 2);
+    utility_check(analysis is not null && lr_analysis_compute(analysis), "LR power analysis"); defer lr_analysis_destroy(analysis);
+    var states = lr_states_create(analysis); defer lr_states_destroy(states);
+    utility_check(states is not null && lr_states_lalr(states, false), "LR power states");
+    var runtime = lr_runtime_create(states); utility_check(runtime is not null, "LR power runtime"); defer lr_runtime_destroy(runtime);
+    var conflict: LRConflict; utility_check(!lr_runtime_conflict(runtime, &conflict), "LR mixed annotated powers resolve conflicts");
+    for (var rule: usize = 1; rule < 3; ++rule) {
+        var state = lr_completed_state(states, rule, 3); var action: LRAction;
+        utility_check(lr_runtime_action(runtime, state, 43, &action) && action.rule == rule && action.state == oracle_none(),
+            "LR lower or equal left-associated lookahead selects completed reduction");
+        utility_check(lr_runtime_action(runtime, state, 42, &action) && action.rule == oracle_none() && action.state != oracle_none(),
+            "LR higher or equal right-associated lookahead selects shift");
+    }
+}
+// Exact first mismatch from the unchanged native harness, seed0x4c525441.
+// The native oracle predates the same-kind conflict prepass. Keep this explicit
+// regression so that modern policy is not mistaken for a translation accident.
+fn lr_conflict_priority_trial(): void {
+    var rules: LRProduction[10]; var symbols: LRSymbol[17];
+    lr_failure_rule(&rules[0], 0, 0, 4); lr_failure_rule(&rules[1], 1, 4, 4);
+    lr_failure_rule(&rules[2], 2, 8, 0); lr_failure_rule(&rules[3], 3, 8, 1);
+    lr_failure_rule(&rules[4], 4, 9, 2); lr_failure_rule(&rules[5], 0, 11, 2);
+    lr_failure_rule(&rules[6], 1, 13, 0); lr_failure_rule(&rules[7], 2, 13, 1);
+    lr_failure_rule(&rules[8], 3, 14, 1); lr_failure_rule(&rules[9], 4, 15, 2);
+    lr_failure_symbol(&symbols[0], oracle_none(), 2097161, 2097162);
+    lr_failure_symbol(&symbols[1], oracle_none(), 2097153, 2097155);
+    lr_failure_symbol(&symbols[2], 2, 0, 0); lr_failure_symbol(&symbols[3], 1, 0, 0);
+    lr_failure_symbol(&symbols[4], oracle_none(), 2097156, 2097156);
+    lr_failure_symbol(&symbols[5], oracle_none(), 2097155, 2097157);
+    lr_failure_symbol(&symbols[6], oracle_none(), 2097153, 2097156);
+    lr_failure_symbol(&symbols[7], oracle_none(), 2097155, 2097156);
+    lr_failure_symbol(&symbols[8], oracle_none(), 2097155, 2097155);
+    lr_failure_symbol(&symbols[9], 3, 0, 0); lr_failure_symbol(&symbols[10], oracle_none(), 2097154, 2097155);
+    lr_failure_symbol(&symbols[11], 2, 0, 0); lr_failure_symbol(&symbols[12], 2, 0, 0); lr_failure_symbol(&symbols[13], 1, 0, 0);
+    lr_failure_symbol(&symbols[14], oracle_none(), 2097153, 2097153);
+    lr_failure_symbol(&symbols[15], oracle_none(), 2097159, 2097162); lr_failure_symbol(&symbols[16], 2, 0, 0);
+    var analysis = lr_analysis_create(&rules[0], 10, &symbols[0], 17, 5);
+    utility_check(analysis is not null, "LR conflict regression analysis"); defer lr_analysis_destroy(analysis);
+    for (var index: usize = 0; index < 5; ++index) { lr_analysis_order(analysis, index, 5 - index); }
+    utility_check(lr_analysis_compute(analysis), "LR conflict regression computes");
+    var states = lr_states_create(analysis); defer lr_states_destroy(states);
+    utility_check(states is not null && lr_states_lalr(states, false), "LR conflict regression states");
+    var runtime = lr_runtime_create(states); utility_check(runtime is not null, "LR conflict regression runtime"); defer lr_runtime_destroy(runtime);
+    var conflict: LRConflict;
+    utility_check(lr_runtime_conflict(runtime, &conflict) && conflict.state == 2
+        && conflict.left.first == 2097156 && conflict.left.last == 2097156 && conflict.left.rule == 2 && conflict.left.state == oracle_none()
+        && conflict.right.first == 2097156 && conflict.right.last == 2097156 && conflict.right.rule == 6 && conflict.right.state == oracle_none(),
+        "LR current conflict priority reports exact reduce2/reduce6 pair before shift/reduce");
+}
+fn lr_analysis_precedence_tests(): void {
+    var baseline = tower_test_buffer_count();
+    for (var direction: u32 = 1; direction <= 3; ++direction) {
+        lr_precedence_trial(direction, 10, false, false); lr_precedence_trial(direction, 10, true, false);
+    }
+    lr_precedence_trial(1, 0, false, false); lr_precedence_trial(1, 10, false, true);
+    lr_precedence_power_trial(); lr_conflict_priority_trial();
+    utility_check(tower_test_buffer_count() == baseline, "LR precedence fixtures release every buffer");
+    puts("LR precedence: left/right/nonassociative, unequal powers, ineligible ranges and exact conflict priority passed.");
+}

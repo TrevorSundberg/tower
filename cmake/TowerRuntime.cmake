@@ -43,6 +43,9 @@ function(tower_runtime_object name input triple)
     DEPFILE "${ir}.d"
     DEPENDS "${input}" "${bind}" tower-runtime-bind "${TOWER_BOOTSTRAP_COMPILER}" VERBATIM)
   set_source_files_properties("${object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
+  if(input STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/host/memory_instrumented.tower")
+    set_property(GLOBAL APPEND PROPERTY TOWER_INSTRUMENTED_RUNTIME_OBJECTS "${object}")
+  endif()
   set(${name}_OBJECT "${object}" PARENT_SCOPE)
 endfunction()
 

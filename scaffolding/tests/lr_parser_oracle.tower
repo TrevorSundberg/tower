@@ -1,0 +1,162 @@
+import tower;
+import lr_analysis_oracle_types;
+import lr_runtime_oracle;
+import lr_control_types;
+import .library.vector;
+import .compiler.lr_types;
+import utility_checks;
+
+struct OracleParser {
+    runtime: OracleRuntime*;
+    stack: vector(LRFrame);
+    work: LRWork;
+    prefix: bool;
+    shifted: bool;
+    finishing: bool;
+    sequence: bool;
+    consumed: usize;
+    evidence: vector(bool);
+    forest: LRFrame;
+}
+struct OracleProbe { runtime: OracleRuntime*; budget: LRProbeBudget*; frames: vector(LRProbeFrame); }
+
+fn oracle_parser_create(runtime: OracleRuntime*, prefix: bool, specialize: bool): OracleParser* {
+    var value = oracle_allocate(OracleParser); value.runtime = runtime; value.prefix = prefix;
+    value.sequence = specialize && runtime.sequence_rule != oracle_none();
+    value.forest.first = oracle_none(); value.forest.last = oracle_none();
+    var initial: LRFrame; fill(&initial, 0, sizeof(LRFrame)); initial.first = oracle_none(); initial.last = oracle_none();
+    oracle_append(&value.stack, &initial);
+    return value;
+}
+fn oracle_parser_destroy(value: OracleParser*): void {
+    if value is null { return; }
+    vector_dispose(&value.stack); vector_dispose(&value.evidence); free(value);
+}
+fn oracle_parser_decide(value: OracleParser*, ready: bool, id: u32, error: bool, result: LRStep*): u32 {
+    var runtime = value.runtime;
+    if value.sequence {
+        var position = value.evidence.length; var complete = position == runtime.sequence.length;
+        var needs_input = !complete || !value.prefix;
+        if needs_input && !ready { return LRNeedInput(); }
+        ++value.work.actions; result.rule = runtime.sequence_rule;
+        if complete {
+            if needs_input && (id != LRTokenEnd() || error) { return LRUnexpected(); }
+            result.next = oracle_runtime_goto(runtime, 0, runtime.rules.data[result.rule].owner);
+            result.start = value.forest.start; result.end = value.forest.start + value.forest.length;
+            return LRSequenceReduce();
+        }
+        var range = &runtime.sequence.data[position];
+        if error || id < range.first || id > range.last { return LRUnexpected(); }
+        result.next = runtime.sequence_states.data[position + 1]; result.pop = position; return LRSequenceShift();
+    }
+    var state = value.stack.data[value.stack.length - 1].state;
+    var action: LRAction; fill(&action, 0, sizeof(LRAction)); action.rule = oracle_none(); action.state = oracle_none();
+    var found = false;
+    if value.prefix && !ready { action.rule = runtime.states.data[state].reduction; found = action.rule != oracle_none(); }
+    if found { ++value.work.actions; }
+    else {
+        if !ready && !value.finishing { return LRNeedInput(); }
+        if value.finishing { id = LRTokenEnd(); error = false; }
+        if !error { ++value.work.actions; found = oracle_runtime_action(runtime, state, id, &action); }
+        if !found && value.prefix && value.shifted && !value.finishing {
+            ++value.work.actions; found = oracle_runtime_action(runtime, state, LRTokenEnd(), &action);
+            if found { value.finishing = true; id = LRTokenEnd(); }
+        }
+    }
+    if !found { return LRUnexpected(); }
+    result.id = id; result.rule = action.rule; result.next = action.state;
+    if action.state != oracle_none() { return LRShift(); }
+    if action.rule == 0 { return value.prefix && !value.shifted ? LREmptyPrefix() : LRAccept(); }
+    var rule = &runtime.rules.data[action.rule];
+    if rule.count >= value.stack.length { return LRInvalid(); }
+    result.pop = rule.count;
+    if !ready || value.finishing { result.start = value.consumed; }
+    result.end = result.start;
+    var begin = value.stack.length - rule.count;
+    if rule.count != 0 {
+        result.start = value.stack.data[begin].start; result.end = result.start;
+        for (var index = begin; index < value.stack.length; ++index) {
+            var end = value.stack.data[index].start + value.stack.data[index].length;
+            if end > result.end { result.end = end; }
+        }
+    }
+    result.next = oracle_runtime_goto(runtime, value.stack.data[begin - 1].state, rule.owner);
+    return result.next == oracle_none() ? LRInvalid() : LRReduce();
+}
+fn oracle_parser_step(value: OracleParser*, ready: bool, id: u32, error: bool, start: usize, length: usize, result: LRStep*): u32 {
+    fill(result, 0, sizeof(LRStep)); result.rule = oracle_none(); result.next = oracle_none();
+    result.start = start; result.end = start + length; result.id = id;
+    result.kind = oracle_parser_decide(value, ready, id, error, result);
+    return result.kind;
+}
+fn oracle_parser_commit(value: OracleParser*, step: LRStep*, first: usize, last: usize): void {
+    if step.kind == LRSequenceShift() {
+        utility_check(vector_push(&value.evidence, step.end != step.start), "LR oracle sequence evidence");
+        var end = value.forest.start + value.forest.length;
+        if step.end > end { end = step.end; }
+        if value.evidence.length == 1 { value.forest.start = step.start; }
+        value.forest.length = end - value.forest.start; value.forest.first = first; value.forest.last = last;
+        value.consumed = step.end; value.shifted = true; ++value.work.shifts; return;
+    }
+    value.stack.length -= step.pop;
+    var frame: LRFrame; frame.state = step.next; frame.first = first; frame.last = last;
+    frame.start = step.start; frame.length = step.end - step.start;
+    oracle_append(&value.stack, &frame);
+    if step.kind == LRShift() { value.consumed = step.end; value.shifted = true; ++value.work.shifts; }
+    else { ++value.work.reductions; value.work.popped += step.pop; value.sequence = false; }
+}
+fn oracle_parser_frame_count(value: OracleParser*): usize { return value.sequence ? value.evidence.length + 1 : value.stack.length; }
+fn oracle_parser_frame(value: OracleParser*, index: usize, result: LRFrame*): void {
+    if value.sequence {
+        fill(result, 0, sizeof(LRFrame)); result.state = value.runtime.sequence_states.data[index];
+        result.first = oracle_none(); result.last = oracle_none();
+        result.length = index != 0 && value.evidence.data[index - 1] ? convert(usize, 1) : convert(usize, 0);
+    } else { copy(result, &value.stack.data[index], sizeof(LRFrame)); }
+}
+fn oracle_probe_create(parser: OracleParser*, budget: LRProbeBudget*): OracleProbe* {
+    var value = oracle_allocate(OracleProbe); value.runtime = parser.runtime; value.budget = budget;
+    for (var index: usize = 0; index < oracle_parser_frame_count(parser); ++index) {
+        var frame: LRFrame; oracle_parser_frame(parser, index, &frame);
+        var probe: LRProbeFrame; probe.state = frame.state; probe.consumed = frame.length != 0;
+        oracle_append(&value.frames, &probe);
+    }
+    return value;
+}
+fn oracle_probe_clone(value: OracleProbe*): OracleProbe* {
+    var next = oracle_allocate(OracleProbe); next.runtime = value.runtime; next.budget = value.budget;
+    oracle_copy(&next.frames, &value.frames); return next;
+}
+fn oracle_probe_destroy(value: OracleProbe*): void {
+    if value is not null { vector_dispose(&value.frames); free(value); }
+}
+fn oracle_probe_reset(value: OracleProbe*): void {
+    value.frames.length = 0;
+    var frame: LRProbeFrame; fill(&frame, 0, sizeof(LRProbeFrame)); oracle_append(&value.frames, &frame);
+}
+fn oracle_probe_accepts(value: OracleProbe*, id: u32): bool {
+    var action: LRAction;
+    return oracle_runtime_action(value.runtime, value.frames.data[value.frames.length - 1].state, id, &action);
+}
+fn oracle_probe_step(value: OracleProbe*, id: u32, before: usize*): u32 {
+    *before = oracle_none();
+    for (var steps: usize = 0; steps < 128 && value.budget.remaining != 0; ++steps) {
+        --value.budget.remaining;
+        var state = value.frames.data[value.frames.length - 1].state; var action: LRAction;
+        if !oracle_runtime_action(value.runtime, state, id, &action) { return 0; }
+        if action.state != oracle_none() {
+            *before = state;
+            var frame: LRProbeFrame; frame.state = action.state; frame.consumed = false;
+            oracle_append(&value.frames, &frame); return 1;
+        }
+        if action.rule == 0 { return 2; }
+        var rule = &value.runtime.rules.data[action.rule];
+        if rule.count >= value.frames.length { return 0; }
+        var begin = value.frames.length - rule.count; var consumed = false;
+        for (var index = begin; index < value.frames.length; ++index) { consumed ||= value.frames.data[index].consumed; }
+        value.frames.length = begin;
+        var next = oracle_runtime_goto(value.runtime, value.frames.data[begin - 1].state, rule.owner);
+        if next == oracle_none() { return 0; }
+        var frame: LRProbeFrame; frame.state = next; frame.consumed = consumed; oracle_append(&value.frames, &frame);
+    }
+    value.budget.complete = false; return 0;
+}

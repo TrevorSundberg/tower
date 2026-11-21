@@ -1,0 +1,173 @@
+import tower;
+import lr_analysis_oracle_types;
+import lr_analysis_oracle;
+import .library.vector;
+import .compiler.lr_types;
+import utility_checks;
+
+fn oracle_kernel(analysis: OracleAnalysis*, item: LRItem*): bool {
+    return item.position != 0 || item.rule == 0 || analysis.rules[item.rule].count == 0;
+}
+fn oracle_kernel_equal(analysis: OracleAnalysis*, left: OracleItems*, right: OracleItems*): bool {
+    var a: usize = 0; var b: usize = 0;
+    loop {
+        while a < left.values.length && !oracle_kernel(analysis, &left.values.data[a]) { ++a; }
+        while b < right.values.length && !oracle_kernel(analysis, &right.values.data[b]) { ++b; }
+        if a == left.values.length || b == right.values.length { return a == left.values.length && b == right.values.length; }
+        if left.values.data[a].rule != right.values.data[b].rule || left.values.data[a].position != right.values.data[b].position { return false; }
+        ++a; ++b;
+    }
+}
+fn oracle_state_intern(value: OracleStates*, items: OracleItems*, origin: usize, pending: vector(usize)*): usize {
+    for (var index: usize = 0; index < value.states.length; ++index) {
+        if oracle_kernel_equal(value.analysis, items, &value.states.data[index].items) { return index; }
+    }
+    var index = value.states.length;
+    var state = oracle_allocate(OracleState);
+    vector_move(&state.items.values, &items.values); state.origin = origin;
+    utility_check(vector_push(&value.states, state) && vector_push(pending, index), "LR oracle state intern");
+    return index;
+}
+fn oracle_symbol_compare(analysis: OracleAnalysis*, left: usize, right: usize): i32 {
+    var a = &analysis.symbols[left]; var b = &analysis.symbols[right];
+    var a_terminal = a.nonterminal == oracle_none(); var b_terminal = b.nonterminal == oracle_none();
+    if a_terminal != b_terminal { return a_terminal ? 1 : -1; }
+    var a_key = a_terminal ? convert(usize, a.first) : analysis.names.data[a.nonterminal].order;
+    var b_key = b_terminal ? convert(usize, b.first) : analysis.names.data[b.nonterminal].order;
+    if a_key != b_key { return a_key < b_key ? -1 : 1; }
+    if a_terminal && a.last != b.last { return a.last < b.last ? -1 : 1; }
+    return 0;
+}
+fn oracle_symbol_insert(analysis: OracleAnalysis*, symbols: vector(usize)*, symbol: usize): void {
+    var position: usize = 0;
+    while position < symbols.length && oracle_symbol_compare(analysis, symbols.data[position], symbol) < 0 { ++position; }
+    if position < symbols.length && oracle_symbol_compare(analysis, symbol, symbols.data[position]) == 0 { return; }
+    utility_check(vector_reserve(symbols, symbols.length + 1), "LR oracle transition symbol order");
+    for (var index = symbols.length; index > position; --index) { symbols.data[index] = symbols.data[index - 1]; }
+    symbols.data[position] = symbol; ++symbols.length;
+}
+fn oracle_states_create(analysis: OracleAnalysis*): OracleStates* {
+    var value = oracle_allocate(OracleStates); value.analysis = analysis;
+    var pending: vector(usize); vector_init(&pending); defer vector_dispose(&pending);
+    {
+        var initial: OracleItems; fill(&initial, 0, sizeof(OracleItems)); defer vector_dispose(&initial.values);
+        var first: LRItem; fill(&first, 0, sizeof(LRItem)); oracle_append(&initial.values, &first);
+        oracle_items_close(analysis, &initial, false); oracle_state_intern(value, &initial, oracle_none(), &pending);
+    }
+    while pending.length != 0 {
+        var state = value.states.data[pending.data[--pending.length]];
+        var symbols: vector(usize); vector_init(&symbols); defer vector_dispose(&symbols);
+        // Kernel symbols win the representative index before closure-only ones.
+        for (var mode: usize = 0; mode < 2; ++mode) {
+            foreach (var &item in &state.items.values) {
+                var rule = &analysis.rules[item.rule];
+                if oracle_kernel(analysis, item) == (mode == 0) && item.position < rule.count {
+                    oracle_symbol_insert(analysis, &symbols, rule.begin + item.position);
+                }
+            }
+        }
+        foreach (var symbol in &symbols) {
+            var next: OracleItems; fill(&next, 0, sizeof(OracleItems)); defer vector_dispose(&next.values);
+            var edge: LRTransition; edge.symbol = symbol;
+            oracle_items_goto(analysis, &state.items, &analysis.symbols[edge.symbol], &next, false);
+            edge.state = oracle_state_intern(value, &next, edge.symbol, &pending);
+            oracle_append(&state.edges, &edge);
+        }
+    }
+    return value;
+}
+fn oracle_states_destroy(value: OracleStates*): void {
+    if value is null { return; }
+    foreach (var state in &value.states) {
+        vector_dispose(&state.items.values); vector_dispose(&state.edges);
+        vector_dispose(&state.actions); free(state);
+    }
+    vector_dispose(&value.states); free(value);
+}
+fn oracle_state_item_index(value: OracleStates*, state: usize, item: LRItem*): usize {
+    var source = value.states.data[state];
+    for (var index: usize = 0; index < source.items.values.length; ++index) {
+        var candidate = &source.items.values.data[index];
+        if candidate.rule == item.rule && candidate.position == item.position && candidate.first == 0 && candidate.last == 0 {
+            return source.base + index;
+        }
+    }
+    return oracle_none();
+}
+fn oracle_state_link(value: OracleStates*, graph: OraclePropagation*, source: usize, state: usize, item: LRItem*): bool {
+    var destination = oracle_state_item_index(value, state, item);
+    if destination == oracle_none() { return false; }
+    if item.first == LRTokenPropagation() { oracle_propagation_edge(graph, source, destination); }
+    else { oracle_propagation_seed(graph, destination, item.first, item.last); }
+    return true;
+}
+fn oracle_states_lalr(value: OracleStates*, constructs: bool): bool {
+    var analysis = value.analysis; var count: usize = 0;
+    foreach (var state in &value.states) {
+        state.base = count; count += state.items.values.length;
+    }
+    var graph = oracle_propagation_create(count); defer oracle_propagation_destroy(graph);
+    var first: LRItem; fill(&first, 0, sizeof(LRItem));
+    var start = oracle_state_item_index(value, 0, &first);
+    if start == oracle_none() { return false; }
+    oracle_propagation_seed(graph, start, LRTokenEnd(), LRTokenEnd());
+    if constructs {
+        var name = analysis.names.data[analysis.rules[0].owner];
+        foreach (var &range in &name.first) {
+            oracle_propagation_seed(graph, start, range.first, range.last);
+        }
+    }
+    for (var state_index: usize = 0; state_index < value.states.length; ++state_index) {
+        var state = value.states.data[state_index];
+        for (var index: usize = 0; index < state.items.values.length; ++index) {
+            var item = &state.items.values.data[index];
+            if !oracle_kernel(analysis, item) { continue; }
+            var source = oracle_state_item_index(value, state_index, item);
+            var closure: OracleItems; fill(&closure, 0, sizeof(OracleItems)); defer vector_dispose(&closure.values);
+            var seed: LRItem; copy(&seed, item, sizeof(LRItem)); seed.first = LRTokenPropagation(); seed.last = LRTokenPropagation();
+            oracle_append(&closure.values, &seed); oracle_items_close(analysis, &closure, true);
+            for (var closed: usize = 0; closed < closure.values.length; ++closed) {
+                var entry = &closure.values.data[closed];
+                if analysis.rules[entry.rule].count == 0 && !oracle_state_link(value, graph, source, state_index, entry) { return false; }
+            }
+            for (var edge_index: usize = 0; edge_index < state.edges.length; ++edge_index) {
+                var edge = &state.edges.data[edge_index]; var symbol = &analysis.symbols[edge.symbol]; var present = false;
+                for (var closed: usize = 0; closed < closure.values.length; ++closed) {
+                    var entry = &closure.values.data[closed]; var rule = &analysis.rules[entry.rule];
+                    if entry.position >= rule.count { continue; }
+                    var next = &analysis.symbols[rule.begin + entry.position];
+                    if next.nonterminal == symbol.nonterminal && (next.nonterminal != oracle_none()
+                        || (next.first == symbol.first && next.last == symbol.last)) { present = true; }
+                }
+                if !present { continue; }
+                var next: OracleItems; fill(&next, 0, sizeof(OracleItems)); defer vector_dispose(&next.values);
+                oracle_items_goto(analysis, &closure, symbol, &next, true);
+                for (var position: usize = 0; position < next.values.length; ++position) {
+                    var entry = &next.values.data[position];
+                    if oracle_kernel(analysis, entry) && !oracle_state_link(value, graph, source, edge.state, entry) { return false; }
+                }
+            }
+        }
+    }
+    oracle_propagation_solve(graph);
+    for (var state_index: usize = 0; state_index < value.states.length; ++state_index) {
+        var state = value.states.data[state_index]; state.actions.length = 0;
+        for (var index: usize = 0; index < state.edges.length; ++index) {
+            var edge = &state.edges.data[index]; var symbol = &analysis.symbols[edge.symbol];
+            if symbol.nonterminal == oracle_none() {
+                var action: LRAction; action.first = symbol.first; action.last = symbol.last; action.rule = oracle_none(); action.state = edge.state;
+                oracle_append(&state.actions, &action);
+            }
+        }
+        for (var index: usize = 0; index < state.items.values.length; ++index) {
+            var item = &state.items.values.data[index];
+            if item.position != analysis.rules[item.rule].count { continue; }
+            var node = graph.nodes.data[state.base + index];
+            for (var range: usize = 0; range < node.ranges.length; ++range) {
+                var action: LRAction; action.first = node.ranges.data[range].first; action.last = node.ranges.data[range].last;
+                action.rule = item.rule; action.state = oracle_none(); oracle_append(&state.actions, &action);
+            }
+        }
+    }
+    return true;
+}

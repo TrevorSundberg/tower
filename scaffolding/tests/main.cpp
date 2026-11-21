@@ -17,7 +17,7 @@ size_t syntax_expansion_test_entry();
 extern "C" size_t syntax_emission_tests(const SyntaxEmissionInput*);
 extern "C" int32_t host_support_tests();
 extern "C" int32_t interpreter_storage_tests();
-void lr_analysis_tests();
+extern "C" void lr_analysis_tests();
 #include <cstdio>
 #include <cstring>
 #include <fstream>

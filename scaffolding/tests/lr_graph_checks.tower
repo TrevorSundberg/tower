@@ -1,0 +1,105 @@
+import tower;
+import lr_analysis_api;
+import lr_control_checks;
+import lr_analysis_oracle_types;
+import lr_analysis_oracle;
+import lr_states_oracle;
+import .library.vector;
+import .compiler.lr_types;
+import utility_checks;
+import mt19937;
+
+fn lr_check_items(actual: void*, oracle: OracleItems*): void {
+    utility_check(lr_items_count(actual) == oracle.values.length, "LR exact item count");
+    var items = lr_items_data(actual);
+    for (var index: usize = 0; index < oracle.values.length; ++index) {
+        var a = &items[index]; var b = &oracle.values.data[index];
+        utility_check(a.rule == b.rule && a.position == b.position && a.first == b.first && a.last == b.last, "LR exact sorted closure items");
+    }
+}
+fn lr_check_graph(rules: vector(LRProduction)*, symbols: vector(LRSymbol)*, names: usize, current_contract: bool): void {
+    var actual = lr_analysis_create(rules.data, rules.length, symbols.data, symbols.length, names);
+    var oracle = oracle_analysis_create(rules.data, rules.length, symbols.data, symbols.length, names);
+    utility_check(actual is not null && oracle is not null, "LR analysis creation");
+    defer lr_analysis_destroy(actual); defer oracle_analysis_destroy(oracle);
+    utility_check(lr_analysis_compute(actual) && oracle_analysis_compute(oracle), "LR analysis fixed point");
+    for (var name: usize = 0; name < names; ++name) {
+        lr_analysis_order(actual, name, names - name - 1); oracle.names.data[name].order = names - name - 1;
+    }
+    for (var name: usize = 0; name < names; ++name) {
+        var reference = oracle.names.data[name];
+        utility_check(lr_analysis_nullable(actual, name) == reference.nullable && lr_analysis_first_count(actual, name) == reference.first.length,
+            "LR nullable and FIRST fixed point");
+        var ranges = lr_analysis_first_data(actual, name);
+        for (var index: usize = 0; index < reference.first.length; ++index) {
+            utility_check(ranges[index].first == reference.first.data[index].first && ranges[index].last == reference.first.data[index].last,
+                "LR exact FIRST ranges");
+        }
+    }
+    for (var mode: usize = 0; mode < 2; ++mode) {
+        var left = lr_items_create(); utility_check(left is not null, "LR closure creation"); defer lr_items_destroy(left);
+        var right = oracle_items_create(); defer oracle_items_destroy(right);
+        for (var rule: usize = 0; rule < rules.length; ++rule) {
+            for (var position: usize = 0; position <= rules.data[rule].count; position += 2) {
+                var item: LRItem; item.rule = rule; item.position = position;
+                item.first = mode != 0 ? LRTokenPropagation() - convert(u32, rule) : convert(u32, 0); item.last = item.first;
+                utility_check(lr_items_insert(left, &item), "LR closure seed insertion"); oracle_item_insert(&right.values, &item);
+            }
+        }
+        utility_check(lr_items_close(actual, left, mode != 0), "LR closure fixed point"); oracle_items_close(oracle, right, mode != 0); lr_check_items(left, right);
+        utility_check(lr_items_close(actual, left, mode != 0), "LR closure idempotence"); lr_check_items(left, right);
+        foreach (var &symbol in symbols) {
+            var next = lr_items_create(); utility_check(next is not null, "LR goto item set"); defer lr_items_destroy(next);
+            var reference = oracle_items_create(); defer oracle_items_destroy(reference);
+            utility_check(lr_items_goto(actual, left, symbol, next, mode != 0), "LR goto closure");
+            oracle_items_goto(oracle, right, symbol, reference, mode != 0); lr_check_items(next, reference);
+        }
+    }
+    var states = lr_states_create(actual); utility_check(states is not null, "LR states creation"); defer lr_states_destroy(states);
+    var reference = oracle_states_create(oracle); defer oracle_states_destroy(reference);
+    utility_check(lr_states_lalr(states, false) && oracle_states_lalr(reference, false), "LR LALR propagation");
+    utility_check(lr_states_count(states) == reference.states.length, "LR exact state count");
+    for (var index: usize = 0; index < reference.states.length; ++index) {
+        var state = reference.states.data[index]; lr_check_items(lr_states_items(states, index), &state.items);
+        utility_check(lr_states_origin(states, index) == state.origin && lr_states_edge_count(states, index) == state.edges.length,
+            "LR state origin and transition count");
+        var edges = lr_states_edges(states, index);
+        for (var edge: usize = 0; edge < state.edges.length; ++edge) {
+            utility_check(edges[edge].symbol == state.edges.data[edge].symbol && edges[edge].state == state.edges.data[edge].state,
+                "LR exact ordered transitions");
+        }
+        utility_check(lr_states_action_count(states, index) == state.actions.length, "LR propagated action count");
+        var actions = lr_states_actions(states, index);
+        for (var action: usize = 0; action < state.actions.length; ++action) { lr_check_action(&actions[action], &state.actions.data[action]); }
+    }
+    lr_check_runtime(states, reference, names, current_contract);
+    utility_check(lr_states_lalr(states, true) && oracle_states_lalr(reference, true), "LR construct-prefix LALR propagation");
+    lr_check_runtime(states, reference, names, current_contract);
+}
+fn lr_check_propagation(random: TestRandom*): void {
+    var count = 1 + convert(usize, test_random(random) % 80);
+    var actual = lr_propagation_create(count); utility_check(actual is not null, "LR propagation creation"); defer lr_propagation_destroy(actual);
+    var oracle = oracle_propagation_create(count); defer oracle_propagation_destroy(oracle);
+    for (var round: usize = 0; round < 3; ++round) {
+        for (var index: usize = 0; index < count * 3; ++index) {
+            var source = convert(usize, test_random(random)) % count; var destination = convert(usize, test_random(random)) % count;
+            utility_check(lr_propagation_edge(actual, source, destination), "LR propagation edge append"); oracle_propagation_edge(oracle, source, destination);
+        }
+        for (var index: usize = 0; index < count; ++index) {
+            var first = test_random(random) % 12 + 2097152; var last = first + test_random(random) % 4;
+            var target = convert(usize, test_random(random)) % count;
+            utility_check(lr_propagation_seed(actual, target, first, last), "LR propagation seed append"); oracle_propagation_seed(oracle, target, first, last);
+        }
+        utility_check(lr_propagation_solve(actual), "LR propagation fixed point after mutation"); oracle_propagation_solve(oracle);
+        utility_check(lr_propagation_solve(actual), "LR propagation idempotence");
+        for (var index: usize = 0; index < count; ++index) {
+            var ranges = &oracle.nodes.data[index].ranges;
+            utility_check(lr_propagation_count(actual, index) == ranges.length, "LR propagation range count");
+            var data = lr_propagation_data(actual, index);
+            for (var range: usize = 0; range < ranges.length; ++range) {
+                utility_check(data[range].first == ranges.data[range].first && data[range].last == ranges.data[range].last,
+                    "LR propagation exact ranges across duplicate, self and cyclic edges");
+            }
+        }
+    }
+}

@@ -9,31 +9,6 @@ import lr_types;
 // LR and proven finite-sequence control over integer symbols. Frames borrow
 // forest handles; the shared entity forest retains ownership of syntax nodes.
 // A pull protocol keeps stream callbacks outside the deterministic control loop.
-struct LRFrame {
-    state: usize;
-    first: usize;
-    last: usize;
-    start: usize;
-    length: usize;
-}
-
-struct LRStep {
-    rule: usize;
-    next: usize;
-    pop: usize;
-    start: usize;
-    end: usize;
-    id: u32;
-    kind: u32;
-}
-
-struct LRWork {
-    actions: usize;
-    shifts: usize;
-    reductions: usize;
-    popped: usize;
-}
-
 struct LRParser {
     runtime: LRRuntime*;
     stack: vector(LRFrame);
@@ -335,16 +310,6 @@ export fn lr_parser_work(value: LRParser*, result: LRWork*): void {
 
 // Error-path probes share one explicit work budget. They never execute semantic
 // actions, consume a source stream, or mutate the real recognizer's stack.
-struct LRProbeFrame {
-    state: usize;
-    consumed: bool;
-}
-
-struct LRProbeBudget {
-    remaining: usize;
-    complete: bool;
-}
-
 struct LRProbe {
     runtime: LRRuntime*;
     budget: LRProbeBudget*;

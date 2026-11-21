@@ -1,4 +1,5 @@
 import tower;
+import lr_types;
 import frontend_diagnostic_types;
 import lr_analysis;
 import lr_parser;

@@ -1,0 +1,76 @@
+import tower;
+import lr_graph_checks;
+import lr_analysis_oracle_types;
+import .library.vector;
+import .compiler.lr_types;
+import utility_checks;
+import mt19937;
+
+extern fn tower_test_buffer_count(): usize;
+fn lr_fixture_rule(rules: vector(LRProduction)*, owner: usize, begin: usize, count: usize): void {
+    var rule: LRProduction; fill(&rule, 0, sizeof(LRProduction)); rule.owner = owner; rule.begin = begin; rule.count = count;
+    oracle_append(rules, &rule);
+}
+fn lr_fixture_symbol(symbols: vector(LRSymbol)*, owner: usize, first: u32, last: u32): void {
+    var symbol: LRSymbol; symbol.nonterminal = owner; symbol.first = first; symbol.last = last; oracle_append(symbols, &symbol);
+}
+fn lr_analysis_comparison_tests(current_contract: bool): void {
+    var baseline = tower_test_buffer_count();
+    {
+        var rules: vector(LRProduction); vector_init(&rules); defer vector_dispose(&rules);
+        var symbols: vector(LRSymbol); vector_init(&symbols); defer vector_dispose(&symbols);
+        lr_fixture_rule(&rules, 0, 0, 1); lr_fixture_rule(&rules, 1, 1, 0); lr_fixture_symbol(&symbols, 1, 0, 0);
+        lr_check_graph(&rules, &symbols, 2, current_contract);
+    }
+    {
+        var rules: vector(LRProduction); vector_init(&rules); defer vector_dispose(&rules);
+        var symbols: vector(LRSymbol); vector_init(&symbols); defer vector_dispose(&symbols);
+        lr_fixture_rule(&rules, 0, 0, 1); lr_fixture_rule(&rules, 1, 1, 1); lr_fixture_rule(&rules, 1, 2, 1);
+        lr_fixture_symbol(&symbols, 1, 0, 0); lr_fixture_symbol(&symbols, oracle_none(), 4294967280, ~convert(u32, 0));
+        lr_fixture_symbol(&symbols, oracle_none(), LRTokenEnd(), LRTokenEnd());
+        lr_check_graph(&rules, &symbols, 2, current_contract);
+    }
+    {
+        var rules: vector(LRProduction); vector_init(&rules); defer vector_dispose(&rules);
+        var symbols: vector(LRSymbol); vector_init(&symbols); defer vector_dispose(&symbols);
+        lr_fixture_rule(&rules, 0, 0, 1); lr_fixture_symbol(&symbols, 1, 0, 0);
+        for (var index: usize = 0; index < 128; ++index) {
+            lr_fixture_rule(&rules, 1, symbols.length, 2);
+            var id = 2097152 + convert(u32, index) * 1024;
+            lr_fixture_symbol(&symbols, oracle_none(), id, id); lr_fixture_symbol(&symbols, 2, 0, 0);
+        }
+        lr_fixture_rule(&rules, 2, symbols.length, 1); lr_fixture_symbol(&symbols, oracle_none(), 1, 4);
+        lr_check_graph(&rules, &symbols, 3, current_contract);
+    }
+    // Guarantee a finite-sequence control comparison, including exact frames,
+    // work counts, prefix/error paths and clone/reset probes in both modes.
+    {
+        var rules: vector(LRProduction); vector_init(&rules); defer vector_dispose(&rules);
+        var symbols: vector(LRSymbol); vector_init(&symbols); defer vector_dispose(&symbols);
+        lr_fixture_rule(&rules, 0, 0, 1); lr_fixture_symbol(&symbols, 1, 0, 0);
+        lr_fixture_rule(&rules, 1, 1, 16);
+        for (var index: u32 = 0; index < 16; ++index) { lr_fixture_symbol(&symbols, oracle_none(), 32 + index, 32 + index); }
+        lr_check_graph(&rules, &symbols, 2, current_contract);
+    }
+    var random: TestRandom; test_random_init(&random, 1280463937);
+    for (var trial: usize = 0; trial < 150; ++trial) {
+        {
+            var rules: vector(LRProduction); vector_init(&rules); defer vector_dispose(&rules);
+            var symbols: vector(LRSymbol); vector_init(&symbols); defer vector_dispose(&symbols);
+            var names = 1 + convert(usize, test_random(&random) % 6);
+            for (var index: usize = 0; index < names * 2; ++index) {
+                var count = convert(usize, test_random(&random) % 5); lr_fixture_rule(&rules, index % names, symbols.length, count);
+                for (var position: usize = 0; position < count; ++position) {
+                    if test_random(&random) % 2 != 0 { lr_fixture_symbol(&symbols, convert(usize, test_random(&random)) % names, 0, 0); }
+                    else {
+                        var first = test_random(&random) % 10 + (trial % 2 != 0 ? convert(u32, 2097152) : convert(u32, 32));
+                        lr_fixture_symbol(&symbols, oracle_none(), first, first + test_random(&random) % 4);
+                    }
+                }
+            }
+            lr_check_graph(&rules, &symbols, names, current_contract); lr_check_propagation(&random);
+        }
+        utility_check(tower_test_buffer_count() == baseline, "LR randomized analysis and oracle release every buffer");
+    }
+    puts("LR comparison: closure, states, runtime actions, control/probes and 150 randomized grammar/propagation trials passed.");
+}

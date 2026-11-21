@@ -1,0 +1,143 @@
+import tower;
+import lr_analysis_oracle_types;
+import .library.vector;
+import .compiler.lr_types;
+import utility_checks;
+
+fn oracle_analysis_destroy(value: OracleAnalysis*): void {
+    if value is null { return; }
+    foreach (var name in &value.names) {
+        vector_dispose(&name.productions); vector_dispose(&name.first); free(name);
+    }
+    vector_dispose(&value.names); free(value);
+}
+fn oracle_analysis_create(rules: LRProduction*, count: usize, symbols: LRSymbol*, symbol_count: usize, names: usize): OracleAnalysis* {
+    var value = oracle_allocate(OracleAnalysis);
+    value.rules = rules; value.rule_count = count; value.symbols = symbols;
+    for (var index: usize = 0; index < names; ++index) {
+        var name = oracle_allocate(OracleName); name.order = index;
+        utility_check(vector_push(&value.names, name), "LR oracle nonterminal");
+    }
+    for (var index: usize = 0; index < count; ++index) {
+        var rule = &rules[index];
+        if rule.owner >= names || rule.begin > symbol_count || rule.count > symbol_count - rule.begin {
+            oracle_analysis_destroy(value); return null;
+        }
+        utility_check(vector_push(&value.names.data[rule.owner].productions, index), "LR oracle production owner index");
+    }
+    return value;
+}
+fn oracle_analysis_compute(value: OracleAnalysis*): bool {
+    var changed = true;
+    while changed {
+        changed = false;
+        for (var index: usize = 0; index < value.rule_count; ++index) {
+            var rule = &value.rules[index]; var owner = value.names.data[rule.owner]; var nullable = true;
+            for (var position: usize = 0; position < rule.count; ++position) {
+                var symbol = &value.symbols[rule.begin + position];
+                if symbol.nonterminal == oracle_none() {
+                    var inserted = oracle_range_insert(&owner.first, symbol.first, symbol.last);
+                    changed = inserted || changed; nullable = false; break;
+                }
+                if symbol.nonterminal >= value.names.length { return false; }
+                var dependency = value.names.data[symbol.nonterminal];
+                if symbol.nonterminal != rule.owner {
+                    foreach (var &item in &dependency.first) {
+                        var inserted = oracle_range_insert(&owner.first, item.first, item.last);
+                        changed = inserted || changed;
+                    }
+                }
+                if !dependency.nullable { nullable = false; break; }
+            }
+            if nullable && !owner.nullable { owner.nullable = true; changed = true; }
+        }
+    }
+    return true;
+}
+fn oracle_items_create(): OracleItems* { return oracle_allocate(OracleItems); }
+fn oracle_items_destroy(value: OracleItems*): void {
+    if value is not null { vector_dispose(&value.values); free(value); }
+}
+fn oracle_items_close(analysis: OracleAnalysis*, items: OracleItems*, lookahead: bool): void {
+    var pending: vector(LRItem); vector_init(&pending); defer vector_dispose(&pending);
+    oracle_copy(&pending, &items.values);
+    while pending.length != 0 {
+        var item: LRItem; copy(&item, &pending.data[--pending.length], sizeof(LRItem));
+        var rule = &analysis.rules[item.rule];
+        if item.position >= rule.count { continue; }
+        var symbol = &analysis.symbols[rule.begin + item.position];
+        if symbol.nonterminal == oracle_none() { continue; }
+        var ranges: vector(SymbolRange); vector_init(&ranges); defer vector_dispose(&ranges);
+        if lookahead {
+            var nullable = true;
+            for (var position = item.position + 1; position < rule.count; ++position) {
+                var next = &analysis.symbols[rule.begin + position];
+                if next.nonterminal == oracle_none() {
+                    oracle_range_insert(&ranges, next.first, next.last); nullable = false; break;
+                }
+                var name = analysis.names.data[next.nonterminal];
+                foreach (var &range in &name.first) {
+                    oracle_range_insert(&ranges, range.first, range.last);
+                }
+                if !name.nullable { nullable = false; break; }
+            }
+            if nullable { oracle_range_insert(&ranges, item.first, item.last); }
+        } else { oracle_range_insert(&ranges, 0, 0); }
+        var name = analysis.names.data[symbol.nonterminal];
+        foreach (var production in &name.productions) {
+            foreach (var &range in &ranges) {
+                var next: LRItem; next.rule = production; next.position = 0;
+                next.first = range.first; next.last = range.last;
+                if oracle_item_insert(&items.values, &next) { oracle_append(&pending, &next); }
+            }
+        }
+    }
+}
+fn oracle_items_goto(analysis: OracleAnalysis*, input: OracleItems*, symbol: LRSymbol*, output: OracleItems*, lookahead: bool): void {
+    for (var index: usize = 0; index < input.values.length; ++index) {
+        var item: LRItem; copy(&item, &input.values.data[index], sizeof(LRItem));
+        var rule = &analysis.rules[item.rule];
+        if item.position >= rule.count { continue; }
+        var next = &analysis.symbols[rule.begin + item.position];
+        if next.nonterminal != symbol.nonterminal { continue; }
+        if next.nonterminal == oracle_none() && (symbol.first < next.first || symbol.last > next.last) { continue; }
+        ++item.position; oracle_item_insert(&output.values, &item);
+    }
+    oracle_items_close(analysis, output, lookahead);
+}
+fn oracle_propagation_create(count: usize): OraclePropagation* {
+    var value = oracle_allocate(OraclePropagation);
+    for (var index: usize = 0; index < count; ++index) {
+        utility_check(vector_push(&value.nodes, oracle_allocate(OraclePropagationNode)), "LR oracle propagation node");
+    }
+    return value;
+}
+fn oracle_propagation_destroy(value: OraclePropagation*): void {
+    if value is null { return; }
+    foreach (var node in &value.nodes) {
+        vector_dispose(&node.ranges); vector_dispose(&node.edges); free(node);
+    }
+    vector_dispose(&value.nodes); free(value);
+}
+fn oracle_propagation_edge(value: OraclePropagation*, source: usize, destination: usize): void {
+    utility_check(vector_push(&value.nodes.data[source].edges, destination), "LR oracle propagation edge");
+}
+fn oracle_propagation_seed(value: OraclePropagation*, index: usize, first: u32, last: u32): void {
+    oracle_range_insert(&value.nodes.data[index].ranges, first, last);
+}
+fn oracle_propagation_solve(value: OraclePropagation*): void {
+    var changed = true;
+    while changed {
+        changed = false;
+        for (var index: usize = 0; index < value.nodes.length; ++index) {
+            var node = value.nodes.data[index];
+            foreach (var target in &node.edges) {
+                if index == target { continue; }
+                foreach (var &item in &node.ranges) {
+                    var inserted = oracle_range_insert(&value.nodes.data[target].ranges, item.first, item.last);
+                    changed = inserted || changed;
+                }
+            }
+        }
+    }
+}

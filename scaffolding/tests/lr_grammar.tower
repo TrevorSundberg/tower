@@ -1,4 +1,5 @@
 import tower;
+import lr_grammar_fixtures;
 import lr_grammar_oracle;
 import mt19937;
 import utility_checks;
@@ -9,49 +10,6 @@ import .compiler.component_kinds;
 import .compiler.grammar_types;
 import .compiler.parser_types;
 
-extern fn compiler_world_create(): void*;
-extern fn compiler_world_store(world: void*): void*;
-extern fn compiler_world_type(world: void*, kind: u32): void*;
-extern fn compiler_world_component(world: void*, node: void*, kind: u32): void*;
-extern fn compiler_world_dispose(world: void*): bool;
-extern fn entity_create(store: void*): void*;
-extern fn entity_attach(node: void*, parent: void*, name: u8*): bool;
-extern fn entity_release(node: void*): usize;
-extern fn entity_store_count(store: void*): usize;
-extern fn entity_view_open(node: void*): void*;
-extern fn entity_view_close(view: void*): void;
-extern fn node_string_append(value: ParserStringData*, text: u8*, length: usize): bool;
-extern fn lr_grammar_generated(grammar: void*, index: usize): bool;
-
-fn lr_grammar_test_kinds(world: void*, kinds: FrontendKinds*): void {
-    fill(kinds, 0, sizeof(FrontendKinds));
-    kinds.rule = compiler_world_type(world, CompilerParserRule());
-    kinds.reference = compiler_world_type(world, CompilerParserReference());
-    kinds.string = compiler_world_type(world, CompilerParserString());
-    kinds.range = compiler_world_type(world, CompilerParserRange());
-    utility_check(kinds.rule is not null && kinds.reference is not null && kinds.string is not null && kinds.range is not null,
-        "LR grammar fixture component kinds");
-}
-fn lr_grammar_test_child(world: void*, parent: void*): void* {
-    var node = entity_create(compiler_world_store(world));
-    utility_check(node is not null && entity_attach(node, parent, null), "LR grammar fixture child ownership");
-    entity_release(node);
-    return node;
-}
-fn lr_grammar_test_rule(world: void*, root: void*, name: u8*, generated: bool): void* {
-    var node = lr_grammar_test_child(world, root);
-    var data = bits(ParserRuleData*, compiler_world_component(world, node, CompilerParserRule()));
-    utility_check(data is not null && node_rule_set_name(data, name), "LR grammar fixture rule name");
-    data.generated = generated;
-    return node;
-}
-fn lr_grammar_test_reference(world: void*, rule: void*, name: u8*, capture: u8*): void* {
-    var node = lr_grammar_test_child(world, rule);
-    var data = bits(ParserReferenceData*, compiler_world_component(world, node, CompilerParserReference()));
-    utility_check(data is not null && node_reference_set_name(data, name) && node_reference_set_capture(data, capture),
-        "LR grammar fixture reference and capture");
-    return node;
-}
 fn lr_grammar_test_string(world: void*, node: void*, text: u8*): void {
     var data = bits(ParserStringData*, compiler_world_component(world, node, CompilerParserString()));
     utility_check(data is not null && node_string_append(data, text, strlen(text)), "LR grammar fixture UTF8 string");

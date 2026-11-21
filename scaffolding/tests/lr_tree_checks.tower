@@ -1,0 +1,111 @@
+import tower;
+import .compiler.lr_api;
+import .compiler.lr_types;
+import .compiler.component_kinds;
+import .compiler.grammar_types;
+import .compiler.parser_types;
+import lr_grammar_fixtures;
+import utility_checks;
+import storage_api;
+import lr_analysis_api;
+import lr_analysis_oracle_types;
+import lr_control_types;
+
+extern fn parse_forest_create(): void*;
+extern fn parse_forest_destroy(forest: void*): void;
+extern fn entity_child_count(node: void*): usize;
+extern fn entity_child_at(node: void*, index: usize): void*;
+extern fn lr_tree_needs_label(node: void*, kind: void*): bool;
+extern fn lr_tree_shift(parser: void*, forest: void*, grammar: void*, kind: void*, step: LRStep*, input: void**, label: u8*): u32;
+extern fn lr_tree_reduce_kind(parser: void*, forest: void*, grammar: void*, kind: void*, step: LRStep*, result: void**): bool;
+extern fn lr_tree_accept(parser: void*, forest: void*): void*;
+
+fn lr_tree_assembly_trial(specialize: bool, fail_after_transfer: bool): void {
+    var world = compiler_world_create(); utility_check(world is not null, "LR tree explicit world");
+    defer utility_check(compiler_world_dispose(world), "LR tree world has no remaining owners");
+    var kinds: FrontendKinds; lr_grammar_test_kinds(world, &kinds);
+    var match_kind = compiler_world_type(world, CompilerParserMatch());
+    utility_check(match_kind is not null, "LR tree match kind");
+    var source = entity_create(compiler_world_store(world)); utility_check(source is not null, "LR tree source");
+    var rule = lr_grammar_test_rule(world, source, "Root", true);
+    lr_grammar_test_reference(world, rule, "first", "first"); lr_grammar_test_reference(world, rule, "second", "second");
+    var view = entity_view_open(source); utility_check(view is not null, "LR tree immutable source read");
+    var grammar = lr_grammar_create(source, kinds.rule, kinds.reference, kinds.string, kinds.range);
+    utility_check(grammar is not null && lr_grammar_missing_count(grammar) == 2, "LR tree grammar external references");
+    defer lr_grammar_destroy(grammar);
+    utility_check(lr_grammar_resolve(grammar, 0, 97) && lr_grammar_resolve(grammar, 1, 98), "LR tree resolved symbols");
+    var runtime: void* = null;
+    {
+        var analysis = lr_analysis_create(lr_grammar_rule_data(grammar), lr_grammar_rule_count(grammar),
+            lr_grammar_symbol_data(grammar), lr_grammar_symbol_count(grammar), lr_grammar_name_count(grammar));
+        utility_check(analysis is not null && lr_analysis_compute(analysis), "LR tree analysis");
+        defer lr_analysis_destroy(analysis);
+        var states = lr_states_create(analysis); defer lr_states_destroy(states);
+        utility_check(states is not null && lr_states_lalr(states, false), "LR tree states");
+        runtime = lr_runtime_create(states); utility_check(runtime is not null, "LR tree runtime");
+        if specialize {
+            lr_runtime_specialize(runtime, states); utility_check(lr_runtime_sequence(runtime) != oracle_none(), "LR tree finite sequence specialization");
+        }
+    }
+    defer lr_runtime_destroy(runtime);
+    lr_grammar_finish(grammar); entity_view_close(view); entity_release(source);
+    utility_check(lr_grammar_generated(grammar, 1) && lr_grammar_rule_node(grammar, 1) is null, "LR tree source metadata detached");
+    var parser = lr_parser_create(runtime, false, specialize); var forest = parse_forest_create();
+    utility_check(parser is not null && forest is not null, "LR tree parser and forest");
+    defer { parse_forest_destroy(forest); lr_parser_destroy(parser); }
+    var step: LRStep;
+    utility_check(lr_parser_step(parser, true, 97, false, 10, 1, &step) == (specialize ? LRSequenceShift() : LRShift()), "LR tree first shift");
+    var parent = entity_create(compiler_world_store(world)); var attached = entity_create(compiler_world_store(world));
+    utility_check(parent is not null && attached is not null && entity_attach(attached, parent, null), "LR tree attached input fixture");
+    var input: void* = attached;
+    utility_check(lr_tree_shift(parser, forest, grammar, match_kind, &step, &input, "attached") == 2 && input == attached,
+        "LR tree rejects an attached input without ownership transfer");
+    entity_release(attached); entity_release(parent);
+    var first = entity_create(compiler_world_store(world)); utility_check(first is not null, "LR tree existing input");
+    var data = bits(ParserMatchData*, compiler_world_component(world, first, CompilerParserMatch()));
+    utility_check(data is not null, "LR tree existing match payload");
+    data.id = 1234; data.start = 77; data.length = 5;
+    utility_check(node_match_set_label(data, "existing stream payload"), "LR tree existing label"); input = first;
+    utility_check(!lr_tree_needs_label(input, match_kind), "LR tree preserves existing label");
+    tower_test_buffer_fail_after(0);
+    utility_check(lr_tree_shift(parser, forest, grammar, match_kind, &step, &input, "unused") == 0 && input == first,
+        "LR tree failed leaf allocation preserves caller ownership");
+    tower_test_buffer_fail_after(oracle_none());
+    utility_check(lr_parser_frame_count(parser) == 1, "LR tree failed shift preserves parser stack");
+    if fail_after_transfer {
+        utility_check(specialize, "LR tree transfer failure targets specialized evidence"); tower_test_buffer_fail_after(1);
+        utility_check(lr_tree_shift(parser, forest, grammar, match_kind, &step, &input, "unused") == 0 && input is null,
+            "LR tree failed evidence after transfer leaves forest owning input exactly once");
+        tower_test_buffer_fail_after(oracle_none());
+    } else {
+        utility_check(lr_tree_shift(parser, forest, grammar, match_kind, &step, &input, "unused") == 1 && input is null, "LR tree first transfer");
+        utility_check(lr_parser_step(parser, true, 98, false, 13, 1, &step) == (specialize ? LRSequenceShift() : LRShift()), "LR tree second shift");
+        utility_check(lr_tree_shift(parser, forest, grammar, match_kind, &step, &input, "second token") == 1 && input is null, "LR tree generated second input");
+        var reduction = lr_parser_step(parser, true, LRTokenEnd(), false, 14, 0, &step);
+        utility_check(reduction == (specialize ? LRSequenceReduce() : LRReduce()), "LR tree reduction kind");
+        var result: void* = null;
+        utility_check(lr_tree_reduce_kind(parser, forest, grammar, match_kind, &step, &result), "LR tree shared entity reduction");
+        if !specialize {
+            utility_check(result is null && lr_parser_step(parser, true, LRTokenEnd(), false, 14, 0, &step) == LRAccept(), "LR tree ordinary acceptance");
+            result = lr_tree_accept(parser, forest);
+        }
+        utility_check(result is not null && entity_child_count(result) == 2, "LR tree two-child root");
+        var root_data = bits(ParserMatchData*, compiler_world_component(world, result, CompilerParserMatch()));
+        utility_check(root_data is not null && strcmp(root_data.label.data, "Root") == 0 && root_data.start == 10 && root_data.length == 4,
+            "LR tree root label and source gap span");
+        utility_check(tower_node_get_child_member(result, "first") == first
+            && tower_node_get_child_member(result, "second") == entity_child_at(result, 1), "LR tree named captures retain child identity");
+        utility_check(data.id == 1234 && data.start == 77 && data.length == 5 && strcmp(data.label.data, "existing stream payload") == 0,
+            "LR tree supplied payload remains unchanged");
+        entity_release(result);
+    }
+}
+fn lr_analysis_tree_tests(): void {
+    // The legacy count query initializes its persistent default store once.
+    // Take that compatibility baseline before measuring our isolated worlds.
+    var nodes = tower_node_get_allocated_count(); var buffers = tower_test_buffer_count();
+    lr_tree_assembly_trial(false, false); lr_tree_assembly_trial(true, false); lr_tree_assembly_trial(true, true);
+    utility_check(tower_node_get_allocated_count() == nodes, "LR tree ownership paths release every node");
+    utility_check(tower_test_buffer_count() == buffers, "LR tree ownership paths release every world and buffer");
+    puts("LR tree: ordinary/specialized assembly, preserved payloads and ownership transfer failures passed.");
+}

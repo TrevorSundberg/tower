@@ -26,6 +26,7 @@ if(TOWER_WORK_TESTS AND TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
   enable_testing()
   add_test(NAME tower-worker-overlap COMMAND tower-work-tests)
   set_tests_properties(tower-worker-overlap PROPERTIES TIMEOUT 30)
+  include("${CMAKE_CURRENT_LIST_DIR}/TowerWorkPolicyTests.cmake")
 endif()
 
 if(TOWER_WORK_TESTS AND TOWER_BROWSER_THREADS)

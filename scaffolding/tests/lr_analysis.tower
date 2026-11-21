@@ -1,0 +1,15 @@
+import tower;
+import lr_analysis_comparisons;
+import lr_analysis_failures;
+import lr_tree_checks;
+import lr_precedence_checks;
+
+extern fn lr_grammar_tests(): void;
+
+export fn lr_analysis_tests(): void {
+    lr_grammar_tests();
+    lr_analysis_tree_tests();
+    lr_analysis_failure_tests();
+    lr_analysis_precedence_tests();
+    lr_analysis_comparison_tests(true);
+}

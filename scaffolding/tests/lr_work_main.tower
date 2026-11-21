@@ -1,0 +1,12 @@
+import tower;
+import utility_checks;
+
+extern fn lr_work_tests(): u32;
+extern fn work_thread_available(): bool;
+
+export fn lr_work_test_main(): i32 {
+    utility_check(work_thread_available(), "LR comparison uses the uninstrumented native worker profile");
+    utility_check(lr_work_tests() == 0, "Real threaded LR and serial tables retain identical records, conflicts and world ownership");
+    puts("Native production worker policy: serial/threaded LR graph and lifetime comparisons passed.");
+    return 0;
+}

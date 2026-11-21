@@ -6,6 +6,47 @@ const LRTokenEnd: u32 = 4294967294;
 const LRTokenPropagation: u32 = 4294967293;
 
 // Shared disposable LR index records, never a separate semantic graph.
+struct SymbolRange {
+    first: u32;
+    last: u32;
+}
+
+// Frames borrow forest handles; the entity forest owns the syntax nodes.
+struct LRFrame {
+    state: usize;
+    first: usize;
+    last: usize;
+    start: usize;
+    length: usize;
+}
+
+struct LRStep {
+    rule: usize;
+    next: usize;
+    pop: usize;
+    start: usize;
+    end: usize;
+    id: u32;
+    kind: u32;
+}
+
+struct LRWork {
+    actions: usize;
+    shifts: usize;
+    reductions: usize;
+    popped: usize;
+}
+
+struct LRProbeFrame {
+    state: usize;
+    consumed: bool;
+}
+
+struct LRProbeBudget {
+    remaining: usize;
+    complete: bool;
+}
+
 struct LRProduction {
     owner: usize;
     begin: usize;

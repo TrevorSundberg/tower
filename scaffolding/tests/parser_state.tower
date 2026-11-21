@@ -1,4 +1,5 @@
 import tower;
+import .compiler.lr_types;
 import .compiler.parser_markers;
 import .compiler.entity_require;
 import syntax_emission;

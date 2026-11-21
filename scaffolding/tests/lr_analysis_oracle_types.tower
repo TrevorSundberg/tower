@@ -1,0 +1,71 @@
+import tower;
+import .library.vector;
+import .compiler.lr_types;
+import utility_checks;
+
+// Independent disposable reference indexes over the shared LR records.
+struct OracleName { productions: vector(usize); first: vector(SymbolRange); nullable: bool; order: usize; }
+struct OracleAnalysis { rules: LRProduction*; rule_count: usize; symbols: LRSymbol*; names: vector(OracleName*); }
+struct OracleItems { values: vector(LRItem); }
+struct OraclePropagationNode { ranges: vector(SymbolRange); edges: vector(usize); }
+struct OraclePropagation { nodes: vector(OraclePropagationNode*); }
+struct OracleState { items: OracleItems; origin: usize; edges: vector(LRTransition); actions: vector(LRAction); base: usize; }
+struct OracleStates { states: vector(OracleState*); analysis: OracleAnalysis*; }
+struct OracleRuntimeState { actions: vector(LRAction); gotos: vector(LRGoto); reduction: usize; }
+struct OracleRuntime {
+    states: vector(OracleRuntimeState*);
+    rules: vector(LRProduction);
+    sequence: vector(SymbolRange);
+    sequence_states: vector(usize);
+    sequence_rule: usize;
+    conflict: LRConflict;
+    rows: usize;
+}
+
+fn oracle_none(): usize { return ~convert(usize, 0); }
+fn oracle_allocate(T: type): T* {
+    var value = alloc(T, 1);
+    utility_check(value is not null, "LR oracle allocation");
+    fill(value, 0, sizeof(T));
+    return value;
+}
+fn oracle_append(T: type, values: vector(T)*, item: T*): void {
+    utility_check(vector_reserve(values, values.length + 1), "LR oracle record append");
+    copy(&values.data[values.length++], item, sizeof(T));
+}
+fn oracle_copy(T: type, target: vector(T)*, source: vector(T)*): void {
+    utility_check(vector_reserve(target, source.length), "LR oracle record copy");
+    copy(target.data, source.data, source.length * sizeof(T)); target.length = source.length;
+}
+fn oracle_range_less(a: SymbolRange*, b: SymbolRange*): bool {
+    return a.first < b.first || (a.first == b.first && a.last < b.last);
+}
+fn oracle_range_insert(values: vector(SymbolRange)*, first: u32, last: u32): bool {
+    var item: SymbolRange; item.first = first; item.last = last;
+    var position: usize = 0;
+    while position < values.length && oracle_range_less(&values.data[position], &item) { ++position; }
+    if position < values.length && !oracle_range_less(&item, &values.data[position]) { return false; }
+    utility_check(vector_reserve(values, values.length + 1), "LR oracle range insertion");
+    for (var index = values.length; index > position; --index) {
+        copy(&values.data[index], &values.data[index - 1], sizeof(SymbolRange));
+    }
+    copy(&values.data[position], &item, sizeof(SymbolRange)); ++values.length;
+    return true;
+}
+fn oracle_item_less(a: LRItem*, b: LRItem*): bool {
+    if a.rule != b.rule { return a.rule < b.rule; }
+    if a.position != b.position { return a.position < b.position; }
+    if a.first != b.first { return a.first < b.first; }
+    return a.last < b.last;
+}
+fn oracle_item_insert(values: vector(LRItem)*, item: LRItem*): bool {
+    var position: usize = 0;
+    while position < values.length && oracle_item_less(&values.data[position], item) { ++position; }
+    if position < values.length && !oracle_item_less(item, &values.data[position]) { return false; }
+    utility_check(vector_reserve(values, values.length + 1), "LR oracle item insertion");
+    for (var index = values.length; index > position; --index) {
+        copy(&values.data[index], &values.data[index - 1], sizeof(LRItem));
+    }
+    copy(&values.data[position], item, sizeof(LRItem)); ++values.length;
+    return true;
+}

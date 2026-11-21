@@ -1,0 +1,55 @@
+# Compare explicit single-owner failure injection with the real worker fixture.
+get_property(policy_triple GLOBAL PROPERTY TOWER_COMPILER_TRIPLE)
+get_property(policy_runtime GLOBAL PROPERTY TOWER_RUNTIME_INSTRUMENTED_OBJECT)
+if(NOT policy_runtime)
+  tower_runtime_object(work-instrumented-runtime "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/host/memory_instrumented.tower" "${policy_triple}"
+    compiler_runtime_allocate tower_allocate compiler_runtime_reallocate tower_reallocate
+    compiler_runtime_deallocate tower_deallocate --state compiler-tests)
+  set(policy_runtime "${work-instrumented-runtime_OBJECT}")
+endif()
+set(policy_objects)
+foreach(unit IN ITEMS tests/work_instrumented host/memory)
+  string(REPLACE "/" "_" name "${unit}")
+  set(object "${CMAKE_CURRENT_BINARY_DIR}/${name}.o")
+  add_custom_command(OUTPUT "${object}"
+    COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/${unit}.tower"
+      --library --target "${policy_triple}"
+      --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
+      --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
+      -o "${object}" --depfile "${object}.d"
+    DEPFILE "${object}.d"
+    DEPENDS "${TOWER_BOOTSTRAP_COMPILER}" "scaffolding/${unit}.tower" VERBATIM)
+  set_source_files_properties("${object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
+  list(APPEND policy_objects "${object}")
+endforeach()
+get_property(policy_trap GLOBAL PROPERTY TOWER_RUNTIME_TRAP_OBJECT)
+add_executable(tower-work-instrumented-tests ${policy_objects} "${policy_runtime}" "${policy_trap}")
+set_target_properties(tower-work-instrumented-tests PROPERTIES LINKER_LANGUAGE C)
+target_link_libraries(tower-work-instrumented-tests PRIVATE tower-compiler-work-serial Threads::Threads ${CMAKE_DL_LIBS})
+target_link_options(tower-work-instrumented-tests PRIVATE -Wl,--export-dynamic-symbol=work_thread_entry)
+add_test(NAME tower-worker-instrumented COMMAND tower-work-instrumented-tests)
+set_tests_properties(tower-worker-instrumented PROPERTIES TIMEOUT 30)
+
+# Backend/frontend registration runs after the native compiler target exists.
+# Reuse its production allocator, without the frontend instrumentation override.
+function(tower_lr_work_policy_test)
+  if(NOT TARGET tower-backend-tests)
+    return()
+  endif()
+  get_property(triple GLOBAL PROPERTY TOWER_COMPILER_TRIPLE)
+  tower_runtime_object(lr-work-main "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/lr_work_main.tower" "${triple}" lr_work_test_main main)
+  get_target_property(sources tower-backend-tests SOURCES)
+  list(REMOVE_ITEM sources "${CMAKE_CURRENT_BINARY_DIR}/tower-backend-test-main.o")
+  get_target_property(libraries tower-backend-tests LINK_LIBRARIES)
+  tower_compiler_evaluation()
+  if(NOT "tower-compiler-evaluation" IN_LIST libraries)
+    list(APPEND libraries tower-compiler-evaluation)
+  endif()
+  add_executable(tower-lr-work-tests ${sources} "${lr-work-main_OBJECT}")
+  target_compile_features(tower-lr-work-tests PRIVATE cxx_std_20)
+  target_compile_options(tower-lr-work-tests PRIVATE -fno-exceptions)
+  target_link_libraries(tower-lr-work-tests PRIVATE ${libraries})
+  add_test(NAME tower-lr-worker-equivalence COMMAND tower-lr-work-tests)
+  set_tests_properties(tower-lr-worker-equivalence PROPERTIES TIMEOUT 60)
+endfunction()
+cmake_language(DEFER CALL tower_lr_work_policy_test)

@@ -142,7 +142,6 @@ if(TOWER_PARSER_ONLY)
   target_compile_definitions(tower-compiler-memory PRIVATE TOWER_COMPILER_MEMORY_TESTS=1)
   tower_compiler_interpreter()
   add_executable(tower-parser-tests scaffolding/tests/main.cpp
-    scaffolding/tests/lr-analysis.cpp
     scaffolding/tower.cpp scaffolding/tests/nodes.cpp
     scaffolding/syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/format.cpp scaffolding/lex-pattern.cpp scaffolding/lex-pattern-common.cpp scaffolding/syntax-tests.cpp)
   target_compile_features(tower-parser-tests PRIVATE cxx_std_20)
@@ -150,8 +149,7 @@ if(TOWER_PARSER_ONLY)
   if(CMAKE_CXX_COMPILER_TARGET MATCHES "^wasm")
     target_compile_options(tower-parser-tests PRIVATE "-ffile-prefix-map=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding=source")
   endif()
-  include(cmake/TowerInterpreterStorageTests.cmake)
-  target_link_libraries(tower-parser-tests PRIVATE tower-interpreter-storage-tests tower-compiler-parser-nodes tower-compiler-semantics tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
+  target_link_libraries(tower-parser-tests PRIVATE tower-compiler-parser-nodes tower-compiler-semantics tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
   if(MSVC)
     string(REPLACE "/EHsc" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
     target_compile_options(tower-parser-tests PRIVATE /utf-8 /UNDEBUG)
@@ -171,21 +169,6 @@ if(TOWER_PARSER_ONLY)
     target_compile_definitions(tower-syntax-emission-reference PRIVATE syntax_emission_${name}=reference_syntax_emission_${name})
   endforeach()
   target_link_libraries(tower-parser-tests PRIVATE tower-syntax-emission-reference)
-  add_library(tower-lr-reference STATIC scaffolding/bootstrap/lr-analysis-seed.cpp)
-  target_compile_features(tower-lr-reference PRIVATE cxx_std_20)
-  foreach(name IN ITEMS analysis_create analysis_destroy analysis_compute analysis_failed analysis_nullable
-      analysis_first_count analysis_first_data items_create items_destroy items_insert items_count items_data items_close items_goto
-      propagation_create propagation_destroy propagation_seed propagation_edge propagation_solve propagation_count propagation_data
-      analysis_order states_create states_destroy states_count states_items states_origin states_edge_count states_edges
-      states_lalr states_action_count states_actions runtime_create runtime_destroy runtime_conflict runtime_row_count
-      runtime_action_count runtime_actions runtime_default runtime_action runtime_goto_count runtime_goto_data runtime_goto
-      runtime_specialize runtime_sequence parser_create parser_destroy parser_step parser_commit parser_frame_count parser_frame
-      parser_frames parser_sequence_forest parser_consumed parser_shifted parser_work
-      probe_create probe_clone probe_destroy probe_reset probe_count probe_frames probe_accepts probe_step
-      tree_needs_label tree_shift tree_reduce tree_accept)
-    target_compile_definitions(tower-lr-reference PRIVATE lr_${name}=reference_lr_${name})
-  endforeach()
-  target_link_libraries(tower-parser-tests PRIVATE tower-lr-reference)
   include(cmake/TowerUtilityTests.cmake)
   include(cmake/TowerParserServiceTests.cmake)
   include(cmake/TowerParserFormatTests.cmake)
@@ -200,9 +183,11 @@ if(TOWER_PARSER_ONLY)
   include(cmake/TowerRegexTests.cmake)
   include(cmake/TowerLexiconTests.cmake)
   include(cmake/TowerLRGrammarTests.cmake)
+  include(cmake/TowerLRAnalysisTests.cmake)
   include(cmake/TowerInterpreterTests.cmake)
+  include(cmake/TowerParserEvaluation.cmake)
   foreach(reference IN ITEMS tower-syntax-validation-reference
-      tower-syntax-emission-reference tower-lr-reference)
+      tower-syntax-emission-reference)
     if(MSVC)
       target_compile_definitions(${reference} PRIVATE _HAS_EXCEPTIONS=0)
     else()

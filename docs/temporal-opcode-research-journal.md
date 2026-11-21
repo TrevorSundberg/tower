@@ -27165,3 +27165,113 @@ The dd6eb85 action bundle was fast-forwarded from upstream ff814ae to Pages
 verification is running against that frozen bundle. The final source pull for
 propagation found main unchanged, so the clean-build and acceptance evidence
 above applies without another source integration.
+### 2026-11-20 — LR analysis/reference retirement in Tower (Agent2)
+
+Ported tests/lr-analysis.cpp (498 lines) and bootstrap/lr-analysis-seed.cpp
+(556 lines) to Tower fixtures and private disposable reference indexes. The
+production LR algorithms remain unchanged. Shared SymbolRange, LRFrame, LRStep,
+LRWork, LRProbeFrame and LRProbeBudget declarations moved unchanged into lr_types;
+audited direct imports, including automaton/frontend/tree/test users. The oracle
+uses these same records and independent fixed-point closure/propagation, linear
+kernel interning and row comparisons. Grammar entities remain authoritative.
+Extracted the existing explicit-world grammar fixture helpers into one module so
+the two suites reuse them without linking duplicate exported test entries.
+
+External proof before retirement: AgentLRAnalysisProof.cmake builds a current
+production runner and a mechanically symbol-renamed runner against the unchanged
+native seed. Native seed/file SHA256 evidence is agent-2-lr-analysis-native-hashes.txt.
+Both modes passed native Linux/Clang19 and SDK34 WASI with the documented bcc76755
+bootstrap. Preserved MT19937 seed0x4c525441,150 interleaved random grammar and
+propagation trials, fixed empty/extreme/colliding/shared-row grammars, closure and
+goto idempotence, exact state/item/transition/action order, nullable/FIRST ranges,
+default reductions, all control modes, source spans, forest evidence, work counts,
+and clone/reset/shared-budget probes. Added a guaranteed16-symbol sequence fixture
+so differential control checks exercise the finite-sequence path explicitly.
+External proof copies remain outside Git; no native implementation was added.
+
+The old reference differs from current conflict policy as diagnosed in the prior
+entry: current tables precheck same-kind overlaps before resolving shift/reduce
+pairs. The historical proof mode matches the native oracle; the current mode
+implements that explicit policy. A separate exact regression reproduces state2,
+token2097156, reduce2/reduce6 (the old oracle chose shift5/reduce2). Direct outcome
+tests cover left/right/nonassociativity, unequal powers, missing annotations,
+ineligible range overlaps and reduce/reduce conflicts that annotations must not
+hide. No production conflict-selection behavior or old assertion was weakened.
+
+Preserved1024 analysis allocation attempts,4096 control/probe attempts in each
+specialization mode,512-symbol kernel resizing, and all three tree assembly
+trials. Tree fixtures now own explicit worlds, register kinds before pinning,
+close immutable views before source release, preserve supplied payload/capture
+identity, and exercise allocation failure before and after reference transfer.
+Initially the new tree fixture measured buffers before the compatibility node
+count query lazily initialized its persistent default store. Moving that query
+before the baseline fixes fixture setup; world disposal and all leak assertions
+remain. No parser algorithm changed for this issue.
+
+Pulled upstream ba1884d (ECS scheduling/comptime) before integration. A fresh empty
+agent-2-lr-analysis-ba1884d successor built with TOWER_BOOTSTRAP_COMPILER unset.
+Repeated both external native/WASI proof modes on this source: PASS, logs
+agent-2-lr-analysis-ba1884d-{current,legacy}-{native,wasi}.log. The new invocation
+evaluator dependency first caused native undefined interpreter_invocation_* and
+WASI unresolved env imports in standalone fixtures. Linking the existing
+compiler-evaluation unit resolves that wiring. Coordinator approved the isolated
+TowerParserEvaluation.cmake registration for compile-only parser executables;
+full interpreter owners are excluded. Composing the existing interpreter storage
+fixture into the parser-only evaluation unit avoids duplicate storage exports
+and retains its aggregate entry. Removed the now-redundant standalone storage
+composition fragment. Agent1 separately owns the equivalent backend/frontend and
+driver-request link fixes discovered on latest main.
+
+After native deletion and with all external proof includes cleared, both parser
+aggregates LINK. Integrated LR grammar/analysis, reader, validation and lexicon
+entries PASS native. All seven WASI entries, also including regex and exact
+formatter fixtures, PASS. Another fresh empty documented successor from the
+shared-record source builds in agent-2-lr-analysis-shared-records. Logs:
+agent-2-lr-analysis-retired-{native,wasi}-build.log and agent-2-lr-retired-wasi-*.
+A requested native formatter target did not exist in the parser-only cache
+(the dedicated entry there is WASI-only); corrected the target list. No broad
+formatter sweep, sanitizer or known-broken full parser execution was run.
+
+Native neighboring regex validation exposed a separate nondeterministic failure:
+its final buffer-baseline assertion failed once, then the identical binary passed
+three direct retries. GDB agent_2_lr_regex_allocator.gdb stops native worker7 in
+compiler_memory_reallocate with nonnull shared instrumentation state;32 LR workers
+exist and many stop in the same allocation function. The instrumentation explicitly
+requires a single owner but updates live_buffers/allocation_calls/fail_after with
+plain accesses. New native worker allocation violates that contract. The WASI
+serial entry passes. Evidence: agent-2-lr-regex-instrumented-workers.log. Reported
+to coordinator/Agent1/Agent3; no assertion was suppressed and retry passes are not
+a claim of deterministic native instrumentation. An explicit allocator/worker
+policy remains needed. This is distinct from the LR retirement's passing own
+allocation/control checks. Publication awaits the current deployment lock release;
+no hosted result for this analysis slice is claimed here.
+
+Instrumentation correction, superseding the unresolved policy above: coordinator
+assigned the runtime fix and selected the existing portable work host for the
+single-owner fault-injection profile. Split platform work transport from the
+common host object into its own archive member (TowerWorkHost.cmake). Instrumented
+runtime objects are registered by the existing runtime builder and their test
+executables link the portable transport directly; parser-only builds use that
+profile throughout. Production compiler targets retain the native/threaded host.
+No allocator counter, assertion, production scheduler algorithm or thread capacity
+was changed. A briefly drafted runtime-capability query was rejected in favor of
+this composition-only selection and removed before commit. No native shim or new
+fallback implementation was added. Ordinary Tower WorkPool dispatch is shared.
+
+New work_instrumented.tower requests four workers, verifies the selected portable
+profile executes on its allocator owner, preserves admission order/results, and
+repeats allocation failures with identical counts/completion prefixes and exact
+cleanup. The separate unchanged production pool fixture requires four distinct
+workers behind one barrier and performs concurrent allocations. A new native
+entry calls the existing lr_work_tests under the production allocator/host to
+compare actual threaded and serial LR tables, conflicts and world cleanup.
+All three policy/overlap/equivalence tests PASS (0.10s), independently of the
+single-owner fixture results. Native parser-side focused tests now PASS9/9 in
+0.63s, including the unchanged regex assertion that previously raced, plus
+UTF8/bytes/entities, reader/validation, lexicon and both LR suites. Both parser
+aggregates link. Logs: agent-2-work-host-profile-tests.log,
+agent-2-work-host-parser-tests.log. The actual clean shared-record successor also
+compiled the integrated LR suite byte-identically to the pinned bootstrap on
+both native and WASI (cmp0). Next: merge Agent1's published evaluation-link fixes,
+repeat the clean successor and complete focused native/browser-thread checks
+before publishing this batch. Coordinator owns separate worker granularity work.
