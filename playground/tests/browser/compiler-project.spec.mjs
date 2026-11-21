@@ -17,7 +17,7 @@ async function hoverValue(page) {
   await page.mouse.move(position.x,position.y);
 }
 test('compiler sources, migration comments, cancellation and persistence are available',async({page},info) => {
-  // The bounded compiler-project parse can use 65 seconds before the remaining
+  // The compiler-project parse assertion allows 65 seconds before the remaining
   // cancellation/persistence checks; it must fit inside the whole-test budget.
   test.setTimeout(120000);
   await page.goto('/'); await expect(page.locator('#status')).toContainText('Complete');

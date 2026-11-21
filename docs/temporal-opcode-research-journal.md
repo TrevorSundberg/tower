@@ -23666,3 +23666,73 @@ parser-nodes on Linux/Wasm before stopping. The browser successor test reached
 its first linked candidate; neither that new two-generation run nor the full
 workbench activation test is claimed complete. A new clean successor and rebuilt
 artifact validation must follow the new rebase before deployment or push.
+
+### Import audit follow-up: final integration through 8d8b4aa
+
+Rebased both audit commits onto 8d8b4aa. The journal was the only conflict;
+upstream entries and both audit entries were retained, and unrelated local
+AGENTS/foundation/journal/todo edits were restored by autostash. Formatted the
+five newly merged Tower files with the production formatter and verified
+idempotence. The filename audit passes for 363 scaffolding sources plus the
+legacy fixture. Deliberately invalid syntax fixtures remain invalid.
+
+A fresh documented default-bootstrap build in
+`/root/.cache/tower/import_followup_8d8b4aa` passed all 55 targets, with
+TOWER_BOOTSTRAP_COMPILER unset. `test-bootstrap.sh` then passed all 28
+predecessor/successor object and optimized-IR comparisons: seven utility/compiler
+units on Linux x64, Wasm32, Windows x64 and macOS ARM64. Explicit custom-grammar
+and missing-grammar checks also pass (bootstrap-latest.log). These comparisons
+do not claim execution of a complete macOS compiler. Native module filesystem
+tests pass again. The earlier five-pack link and Linux/Windows/ARM64 execution
+results remain applicable; their runtime sources did not change in this rebase.
+
+Parser/WASI, LLVM/Wasm, cross and compiler-project packaging passed. All 23
+completion tests and the five focused formatter tests pass. Two successive
+browser compiler generations pass edited-semantic-behavior checks and have
+identical hashes; their final sizes are 906145, 52134869 and 63692225 bytes for
+parser/interpreter, LLVM and cross reactors respectively (successors-latest.log).
+Desktop/mobile verification passed all 70 asset hashes and the complete editor,
+execution, export and persistence flows. Both desktop compiler-workbench tests
+pass, including cancellation, activating edited behavior and reset. Its first
+test now budgets enough time for its own parse assertion, independent of the
+upstream removal of the application's parser deadline.
+
+The broad 380-case Node run completed with 370 passes and ten failures, revealing
+two root causes rather than ten independent compiler regressions. The project
+grammar fixture captured CoreOperand even though Tower now defines call arguments
+as TowerExpression; corrected the capture and added a status assertion so a
+future failure reports the actual diagnostic. All eight project tests pass.
+
+The semantic comparison run exhausted the parser reactor's 256 MiB memory cap
+while recompiling a valid 1,238,513-byte Foundation reconstruction of the unoptimized
+work_graph LLVM program. A temporary unstripped reactor named the failing frame
+as sem_node -> sem_attach -> abort. Subsequent tests reused that aborted instance
+and reported parser-table failures. Relinking the same objects with a 1 GiB cap,
+without changing compiler code, made the entire work_graph case pass for 32/64-bit
+pointers and both optimization settings. Memory grew to 282722304 bytes during
+the failing reconstruction and 291110912 bytes later in the run, confirming the
+256 MiB ceiling was insufficient (semantic-memory-larger.log).
+
+Aligned the normal parser reactor's maximum with the existing LLVM reactors and
+compiler-project recipe: 2 GiB, grown on demand. Its initial memory remains 8 MiB;
+this does not eagerly allocate 2 GiB or add a language limit. Rebuilt through
+build-wasm.sh and repackaged support files. General allocation-failure recovery
+is unchanged; this fix addresses a legitimate existing round trip that had
+outgrown an inconsistent reactor ceiling, not every possible out-of-memory case.
+
+The focused rerun of semantic-port, projects and Wasm tests passed 36/37, exposing
+one additional old enum-operation diagnostic expectation previously masked by
+the abort. Updated it to the Tower operator check's current integer-operand
+diagnostic; the selected diagnostic test now passes for both interpreters' pointer
+widths and LLVM with matching errors/offsets. Thus all failures from the broad run
+have passing focused reruns. The native node/parser/syntax tests embedded in Wasm
+also pass. Logs are in build/import-followup; no tests were removed or marked as
+expected failures. The only skipped check is the duplicate whole-source browser
+formatter sweep, already covered by the native equivalence/idempotence passes.
+
+Publication uses the required-backends static bundle, final commit/pull/rebase,
+the existing gh-pages deployment checkout and exact hosted asset/browser
+verification. Main and the prepared gh-pages commit can be pushed together with
+a normal atomic fast-forward update so source and deployment cannot diverge if
+another writer advances either branch. Existing unrelated local edits, including
+todo.txt, are excluded from these commits.
