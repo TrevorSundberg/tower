@@ -17,6 +17,7 @@ enum WasmLinkingSection: u8 { Segments = 5, Initializers = 6, Comdats = 7, Symbo
 enum WasmSegmentFlag: u32 { Strings = 1, ThreadLocal = 2, Retain = 4 }
 enum WasmComdatKind: u8 { Data = 0, Function = 1, Global = 2, Tag = 3, Table = 4, Section = 5 }
 enum WasmFeaturePrefix: u8 { Used = 43, Disallowed = 45, Required = 61 }
+enum WasmLimitFlag: u32 { Maximum = 1, Shared = 2, Memory64 = 4 }
 enum WasmOpcode: u8 { End = 11, GlobalGet = 35, I32Const = 65, I64Const = 66, F32Const = 67, F64Const = 68, RefNull = 208, RefFunc = 210 }
 enum WasmValueType: u8 { I32 = 127, I64 = 126, F32 = 125, F64 = 124, V128 = 123, FuncRef = 112, ExternRef = 111 }
 var WasmFunctionType: u8 = 96;

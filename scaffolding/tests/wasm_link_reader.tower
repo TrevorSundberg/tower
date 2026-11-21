@@ -226,6 +226,21 @@ fn wasm_test_import_policy(): void {
     utility_check(wasm_link_init(&unsupported), "unsupported profile world"); unsupported.shared_memory = true;
     utility_check(!wasm_link_run(&unsupported) && unsupported.error == WasmLinkError.Unsupported && unsupported.output.length == 0, "shared memory is rejected until TLS initialization is implemented");
     utility_check(wasm_link_close(&unsupported), "unsupported profile cleanup");
+    var input: ByteBuffer = default;
+    var section: ByteBuffer = default;
+    defer bytes_dispose(&input); defer bytes_dispose(&section);
+    var header: u8[8] = default;
+    header[1] = 97; header[2] = 115; header[3] = 109; header[4] = 1;
+    utility_check(bytes_append(&input, &header[0], 8), "shared-memory fixture header");
+    wasm_test_index(&section, 1);
+    wasm_test_index(&section, convert(u64, WasmLimitFlag.Maximum) | convert(u64, WasmLimitFlag.Shared));
+    wasm_test_index(&section, 1); wasm_test_index(&section, 1);
+    wasm_test_section(&input, WasmSection.Memory, &section);
+    wasm_test_name(&section, "linking"); wasm_test_index(&section, convert(u64, WasmLinkingVersion));
+    wasm_test_section(&input, WasmSection.Custom, &section);
+    utility_check(wasm_link_init(&unsupported) && wasm_link_read_object(&unsupported.world, wasm_text_bytes("shared.o"), init(WasmBytes) { data: input.data, length: input.length }), "shared input metadata parses");
+    utility_check(!wasm_link_run(&unsupported) && unsupported.error == WasmLinkError.Unsupported, "static output cannot silently erase shared input memory");
+    utility_check(wasm_link_close(&unsupported), "shared input cleanup");
 }
 
 fn wasm_test_names(): void {

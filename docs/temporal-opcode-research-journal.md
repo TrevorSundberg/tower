@@ -36296,3 +36296,17 @@ Native checks and the Tower-linked WASI checks both PASS. Earlier compiler-sized
 relink evidence remains tied to its recorded object snapshots, not a claim that
 all incoming compiler features were rebuilt by this linker. Scoped whitespace
 corrections only; todo.txt retains045d1e620edf7c67b653fec19df850b370246b1d.
+
+Publication: implementation44f233a and rebased receipt27abf36 are pushed. The
+subsequent a4fe0fd direct bootstrap also rebuilds and passes the native and WASI
+suites. Final review adds a parsed shared-memory input fixture: a static request
+must reject shared/memory64 input limits, not silently emit ordinary memory;
+non-funcref/unsupported table profiles are rejected too. Both reviewed suites PASS.
+Pages357768f/action44950390030 completed successfully; hosted manifest exact
+SHA256 is8ec25cf9d5e9d5a0186756a4b1d71d984004841461d4a20b4a60b16b956f6502.
+The metadata update preserved the newer f4c78cc runtime and all82asset hashes,
+including the concurrent tooling/language receipts. The connector denied writes
+with403; the authenticated gh contents API succeeded with a current-blob lease.
+An initial stale-blob check prevented overwriting a newer publication, which was
+then reread and retained. Final reviewed-source receipt is being synchronized;
+production remains on LLD and the documented remaining gates still apply.

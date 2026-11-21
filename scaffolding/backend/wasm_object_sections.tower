@@ -14,9 +14,9 @@ fn wasm_value_type(reader: WasmReader*): u8 {
 fn wasm_object_limits(reader: WasmReader*): WasmLimits {
     var limits: WasmLimits = default;
     limits.flags = wasm_read_index(reader);
-    var has_maximum: u32 = 1;
-    var shared: u32 = 2;
-    var memory64: u32 = 4;
+    var has_maximum = convert(u32, WasmLimitFlag.Maximum);
+    var shared = convert(u32, WasmLimitFlag.Shared);
+    var memory64 = convert(u32, WasmLimitFlag.Memory64);
     if (limits.flags & ~(has_maximum | shared | memory64)) != 0
         || ((limits.flags & shared) != 0 && (limits.flags & has_maximum) == 0) {
         wasm_read_fail(reader, WasmReadError.Unsupported);

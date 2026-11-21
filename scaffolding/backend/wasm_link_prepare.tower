@@ -98,8 +98,13 @@ fn wasm_link_prepare(link: WasmLink*): bool {
             return wasm_link_fail(link, WasmLinkError.Unsupported, entry.name);
         }
         foreach (var & memory in &object.memories) {
-            var memory64: u32 = 4;
-            if (memory.limits.flags & memory64) != 0 { return wasm_link_fail(link, WasmLinkError.Unsupported, entry.name); }
+            var unsupported = convert(u32, WasmLimitFlag.Memory64) | convert(u32, WasmLimitFlag.Shared);
+            if (memory.limits.flags & unsupported) != 0 { return wasm_link_fail(link, WasmLinkError.Unsupported, entry.name); }
+        }
+        foreach (var & table in &object.tables) {
+            if table.type != convert(u8, WasmValueType.FuncRef) || (table.limits.flags & ~convert(u32, WasmLimitFlag.Maximum)) != 0 {
+                return wasm_link_fail(link, WasmLinkError.Unsupported, entry.name);
+            }
         }
         foreach (var & data in &object.data) {
             var supported_flags = convert(u32, WasmSegmentFlag.Strings) | convert(u32, WasmSegmentFlag.Retain);
