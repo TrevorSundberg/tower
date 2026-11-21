@@ -26640,3 +26640,17 @@ expectation. A new empty compiletime-collections-clean cache and all browser
 reactors are rebuilding with the already published 25765446 bootstrap. Earlier
 browser checks cover the preceding integration; the refreshed bundle will be
 validated before publication. No C++ changes or todo.txt edits in this lane.
+
+The next upstream sync included fcc389c's Tower utility oracles. Clean default
+native build compiletime-utility-clean completes 55/55; current native acceptance
+passes 2/2 (1.84 s), and shared capacity/invocation/world checks pass 6/6 (38.48 s).
+The actual successor again compiles its parser module. Local deployment validation
+reached project-archive import, then failed the output assertion's default
+five-second timeout. Wait for the imported project selection and its output with
+the same compilation budget as other release checks before accepting backend
+status. A focused browser probe completes the new project in 5.24 s and outputs
+42; its first setup incorrectly expected execution from the default syntax-only
+example, corrected by selecting the memory example before import. No product
+semantics were changed for this verifier fix. Full release validation remains
+pending; upstream has since published foreach and reader-oracle changes, requiring
+another source integration before this lane can fast-forward main.

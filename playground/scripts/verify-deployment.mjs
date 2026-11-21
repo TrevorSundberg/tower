@@ -236,8 +236,11 @@ try {
       {path:'assets/notes.txt',text:'Project archive verification'},
     ]);
     await page.locator('#file').setInputFiles({name:'deployment.zip',mimeType:'application/zip',buffer:Buffer.from(await exportProject(project).arrayBuffer())});
+    // Import hydrates asynchronously; the previous project's completed status
+    // can remain visible until the new project starts compiling.
+    await expect(page.locator('#project-kind option:checked')).toHaveText('Deployment project',{timeout:60000});
+    await expect(page.locator('#execution-output')).toHaveText('42\n',{timeout:60000});
     await expect(page.locator('#execution-status')).toContainText('backends match',{timeout:60000});
-    await expect(page.locator('#execution-output')).toHaveText('42\n');
     await expect(page.locator('#project-storage')).toHaveText('Saved in browser');
     await expect(page.locator('#editor .tw-identifier').filter({hasText:/^foundation$/})).toHaveCount(1);
     await expect(page.locator('#editor .tw-identifier').filter({hasText:/^lib$/})).toHaveCount(2);
