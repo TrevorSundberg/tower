@@ -1,0 +1,189 @@
+import tower;
+import compiler_kernel;
+import lr_runtime;
+import lr_states;
+import lr_analysis;
+import lr_types;
+import lr_work;
+import parser_workers;
+import .library.vector;
+import .library.work_graph;
+import .library.work_pool;
+
+// Private derived table rows. Grammar entities remain authoritative; worker
+// results publish in source-state order, including the first conflict.
+struct LRRuntimeResult {
+    row: LRRow*;
+    state: LRRuntimeState;
+    conflict: LRConflict;
+    success: bool;
+}
+
+struct LRRuntimeTask {
+    kernel: CompilerKernel;
+    ticket: WorkTicket;
+    source: LRStates*;
+    results: LRRuntimeResult*;
+    begin: usize;
+    count: usize;
+    success: bool;
+}
+
+const LRRuntimeGrain: usize = 128;
+
+export fn compiler_lr_runtime_kernel(payload: void*): void {
+    var task = bits(LRRuntimeTask*, payload);
+    task.success = false;
+    for(var i = task.begin; i < task.begin + task.count; i++) {
+        var result = &task.results[i];
+        var row = alloc(LRRow, 1);
+        if row == null { return; }
+        *row = default;
+        result.row = row;
+        result.conflict.state = lr_none();
+        var input = task.source.states.data[i];
+        foreach(var &action in &input.actions) {
+            if !lr_action_insert(&row.actions, action) { return; }
+        }
+        lr_row_normalize(row, &result.conflict, i, task.source);
+        if result.conflict.state == lr_none() {
+            row.hash = lr_row_hash(row);
+            if !lr_row_index(row) || !lr_runtime_gotos(&result.state, input, task.source.analysis) { return; }
+        }
+        result.success = true;
+    }
+    task.success = true;
+}
+
+// Hash interning is deterministic publication. Sorting, precedence/conflict
+// checks, direct lookup indexes and goto construction all use private workers.
+export fn lr_runtime_create_parallel(source: LRStates*, anchor: void*): LRRuntime* {
+    var capacity = work_thread_capacity();
+    var count = source.states.length / LRRuntimeGrain();
+    if count > capacity { count = capacity; }
+    if count < 2 || anchor == null { return lr_runtime_create(source); }
+    return lr_runtime_create_work(source, anchor, count);
+}
+
+// Explicit executor width also exercises this ownership path with the serial
+// instrumented transport. Production admission keeps its measured-size policy.
+export fn lr_runtime_create_work(source: LRStates*, anchor: void*, count: usize): LRRuntime* {
+    if count == 0 || count > 256 || count > source.states.length || anchor == null { return null; }
+    var value = alloc(LRRuntime, 1);
+    if value == null { return null; }
+    *value = default;
+    value.conflict.state = lr_none();
+    value.sequence_rule = lr_none();
+    defer lr_runtime_destroy(value);
+    if !vector_reserve(&value.rules, source.analysis.rule_count)
+        || !vector_reserve(&value.states, source.states.length)
+        || !vector_reserve(&value.rows, source.states.length) { return null; }
+    copy(value.rules.data, source.analysis.rules, source.analysis.rule_count * sizeof(LRProduction));
+    value.rules.length = source.analysis.rule_count;
+    fill(value.states.data, 0, source.states.length * sizeof(LRRuntimeState));
+    value.states.length = source.states.length;
+    var results = alloc(LRRuntimeResult, source.states.length);
+    if results == null { return null; }
+    fill(results, 0, source.states.length * sizeof(LRRuntimeResult));
+    defer {
+        for(var i: usize = 0; i < source.states.length; i++) {
+            if results[i].row != null { lr_row_destroy(results[i].row); }
+            vector_dispose(&results[i].state.gotos);
+        }
+        free(results);
+    }
+    var buckets: vector(usize) = default;
+    defer vector_dispose(&buckets);
+    buckets.length = source.states.length * 2 + 1;
+    if !vector_reserve(&buckets, buckets.length) { return null; }
+    fill(buckets.data, 255, buckets.length * sizeof(usize));
+    var owner = entity_create_related(anchor);
+    if owner == null { return null; }
+    defer entity_release(owner);
+    var kind = lr_work_node(owner);
+    if kind == null || !entity_register(kind, sizeof(LRRuntimeTask), alignof(LRRuntimeTask), 0) { return null; }
+    var workers: ParserWorkers = default;
+    if !parser_workers_open(&workers, anchor, count) { return null; }
+    defer parser_workers_close(&workers);
+    if count > workers.pool.count { count = workers.pool.count; }
+    var graph: WorkGraph;
+    work_init(&graph, 1, 0);
+    defer work_dispose(&graph);
+    var jobs: LRRuntimeTask*[256];
+    var position: usize = 0;
+    for(var i: usize = 0; i < count; i++) {
+        var node = lr_work_node(owner);
+        if node == null { return null; }
+        var job = bits(LRRuntimeTask*, entity_component_data(entity_component_add(node, kind)));
+        if job == null { return null; }
+        *job = default;
+        job.kernel.kind = CompilerKernelKind.LRRuntime;
+        job.kernel.payload = bits(void*, job);
+        job.source = source;
+        job.results = results;
+        job.begin = position;
+        job.count = source.states.length / count + (i < source.states.length % count ? 1 : 0);
+        position += job.count;
+        jobs[i] = job;
+        var id = work_request(&graph, node, 1, convert(u64, job.begin));
+        var ok = id != 0;
+        ok &&= work_access(&graph, id, 1, 1, job.begin, job.count, WorkAccessMode.Write);
+        ok &&= work_access(&graph, id, 1, 2, 0, 1, WorkAccessMode.Read);
+        ok &&= work_seal(&graph, id);
+        ok &&= work_demand(&graph, id);
+        ok &&= work_take(&graph, &job.ticket);
+        if !ok { return null; }
+    }
+    var view = entity_view_open(owner);
+    if view == null { return null; }
+    var admitted: usize = 0;
+    var ok = true;
+    for(; admitted < count; admitted++) {
+        if !work_pool_submit(workers.pool, bits(void*, &jobs[admitted].kernel)) { ok = false; break; }
+    }
+    for(var i: usize = 0; i < admitted; i++) {
+        if work_pool_receive(workers.pool, true) == null { ok = false; }
+    }
+    entity_view_close(view);
+    for(var i: usize = 0; i < admitted; i++) {
+        if !work_finish(&graph, &jobs[i].ticket, jobs[i].success) { ok = false; }
+    }
+    if !ok { return null; }
+    // Consume each result in serial order. A later allocation failure cannot
+    // replace an earlier grammar conflict; no partially built table escapes.
+    for(var i: usize = 0; i < source.states.length; i++) {
+        var result = &results[i];
+        if !result.success { return null; }
+        if result.conflict.state != lr_none() {
+            copy(&value.conflict, &result.conflict, sizeof(LRConflict));
+            var published = value;
+            value = null;
+            return published;
+        }
+        var row = result.row;
+        var bucket = row.hash % buckets.length;
+        var existing = buckets.data[bucket];
+        while existing != lr_none() {
+            var other = value.rows.data[existing];
+            if lr_row_equal(row, other) {
+                lr_row_destroy(row);
+                row = other;
+                break;
+            }
+            existing = other.next;
+        }
+        if existing == lr_none() {
+            if !vector_push(&value.rows, row) { return null; }
+            row.next = buckets.data[bucket];
+            buckets.data[bucket] = value.rows.length - 1;
+        }
+        result.row = null;
+        var state = &value.states.data[i];
+        state.row = row;
+        copy(&state.gotos, &result.state.gotos, sizeof(vector(LRGoto)));
+        result.state.gotos = default;
+    }
+    var published = value;
+    value = null;
+    return published;
+}

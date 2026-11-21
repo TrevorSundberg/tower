@@ -1,0 +1,105 @@
+import tower;
+import utility_checks;
+import .compiler.lr_api;
+import .compiler.lr_types;
+
+extern fn compiler_world_create(): void*;
+extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn entity_create(store: void*): void*;
+extern fn entity_release(node: void*): usize;
+extern fn tower_test_buffer_count(): usize;
+extern fn tower_test_buffer_allocations(): usize;
+extern fn tower_test_buffer_fail_after(count: usize): void;
+extern fn work_thread_available(): bool;
+extern fn lr_runtime_create_work(source: void*, anchor: void*, count: usize): void*;
+
+fn lr_fault_equal(left: void*, right: void*, states: usize): bool {
+    var a: LRConflict;
+    var b: LRConflict;
+    var conflict = lr_runtime_conflict(left, &a);
+    if conflict != lr_runtime_conflict(right, &b) { return false; }
+    if conflict {
+        return a.state == b.state && a.left.first == b.left.first && a.left.last == b.left.last
+            && a.left.rule == b.left.rule && a.left.state == b.left.state && a.right.first == b.right.first
+            && a.right.last == b.right.last && a.right.rule == b.right.rule && a.right.state == b.right.state;
+    }
+    if lr_runtime_row_count(left) != lr_runtime_row_count(right) { return false; }
+    for(var i: usize = 0; i < states; i++) {
+        var count = lr_runtime_action_count(left, i);
+        if count != lr_runtime_action_count(right, i) { return false; }
+        var x = lr_runtime_actions(left, i);
+        var y = lr_runtime_actions(right, i);
+        for(var j: usize = 0; j < count; j++) {
+            if x[j].first != y[j].first || x[j].last != y[j].last || x[j].rule != y[j].rule || x[j].state != y[j].state { return false; }
+        }
+        count = lr_runtime_goto_count(left, i);
+        if count != lr_runtime_goto_count(right, i) { return false; }
+        var xg = lr_runtime_goto_data(left, i);
+        var yg = lr_runtime_goto_data(right, i);
+        for(var j: usize = 0; j < count; j++) {
+            if xg[j].state != yg[j].state || xg[j].nonterminal != yg[j].nonterminal { return false; }
+        }
+    }
+    return true;
+}
+
+fn lr_runtime_fault_trial(mode: usize, failure: usize, complete: bool*): usize {
+    var baseline = tower_test_buffer_count();
+    var world = compiler_world_create();
+    utility_check(world != null, "Runtime fault world allocation");
+    var root = entity_create(compiler_world_store(world));
+    utility_check(world != null && root != null, "Runtime fault world");
+    var rules: LRProduction[3] = default;
+    var symbols: LRSymbol[2] = default;
+    rules[0].count = 1;
+    rules[1].owner = 1; rules[1].begin = 1; rules[1].count = 1;
+    copy(&rules[2], &rules[1], sizeof(LRProduction));
+    symbols[0].nonterminal = 1;
+    symbols[1].nonterminal = ~convert(usize,0);
+    symbols[1].first = 65; symbols[1].last = 65;
+    var analysis = lr_analysis_create(&rules[0], 2 + mode, &symbols[0], 2, 2);
+    utility_check(analysis != null && lr_analysis_compute(analysis), "Runtime fault analysis");
+    var states = lr_states_create(analysis);
+    utility_check(states != null && lr_states_lalr(states, false), "Runtime fault source states");
+    var baseline_table = lr_runtime_create(states);
+    var conflict: LRConflict;
+    utility_check(baseline_table != null && lr_runtime_conflict(baseline_table, &conflict) == (mode != 0), "Runtime fault conflict fixture");
+    var before = tower_test_buffer_allocations();
+    tower_test_buffer_fail_after(failure);
+    var value = lr_runtime_create_work(states, root, 2);
+    tower_test_buffer_fail_after(~convert(usize,0));
+    var used = tower_test_buffer_allocations() - before;
+    *complete = value != null;
+    if value != null { utility_check(lr_fault_equal(baseline_table, value, lr_states_count(states)), "Runtime fault preserves the first serial outcome"); }
+    lr_runtime_destroy(value);
+    value = lr_runtime_create_work(states, root, 2);
+    utility_check(value != null && lr_fault_equal(baseline_table, value, lr_states_count(states)), "Runtime fault retries cleanly");
+    lr_runtime_destroy(value);
+    lr_runtime_destroy(baseline_table);
+    lr_states_destroy(states);
+    lr_analysis_destroy(analysis);
+    entity_release(root);
+    utility_check(compiler_world_dispose(world) && tower_test_buffer_count() == baseline, "Runtime fault releases all allocations and entities");
+    return used;
+}
+
+fn lr_runtime_fault_tests(): void {
+    utility_check(!work_thread_available(), "Runtime faults require serial instrumented transport");
+    for(var mode: usize = 0; mode < 2; mode++) {
+        var complete = false;
+        var count = lr_runtime_fault_trial(mode, ~convert(usize,0), &complete);
+        utility_check(complete && count < 1024, "Runtime fault sweep budget");
+        var calls: usize[1024];
+        var outcomes: bool[1024];
+        for(var round: usize = 0; round < 2; round++) {
+            for(var failure: usize = 0; failure <= count; failure++) {
+                var used = lr_runtime_fault_trial(mode, failure, &complete);
+                if round == 0 { calls[failure] = used; outcomes[failure] = complete; }
+                else { utility_check(calls[failure] == used && outcomes[failure] == complete, "Runtime failure counts and outcomes are deterministic"); }
+                if failure == count { utility_check(complete, "Runtime fault sweep reaches success"); }
+            }
+        }
+    }
+    puts("Runtime table allocation failures, retry, conflict order and cleanup passed.");
+}

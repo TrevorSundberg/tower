@@ -29657,3 +29657,98 @@ without racing its counters. Production admission retains its table-size policy.
 The first new fault-fixture compile used reserved token `expected` as a local;
 rename it to baseline_table. This draft-only harness correction does not change
 the operand release or weaken its checks. Full fault sweeps remain pending.
+
+### 2026-11-21 — threaded parser runtime table construction (in progress)
+
+Operand checkpoint 6b9beddefa01815107cd4c8c58114a37ee2e58b3 is pushed after
+an unchanged pull/rebase. Pages 194dcc1e309252ca57c8c53a5f8b5ec820bc83fc follows
+9689cf7c158bb7c57391c0609e6e5632f78ae0e0; action 44895664437 succeeds.
+Hosted verification is running; saved source/deployment records are
+ declaration-operands-{pages,manifest}.json.
+
+Runtime-table allocation sweeps pass twice at every injected allocation point
+for both valid and conflicting grammars, comparing exact allocation counts and
+outcomes, complete cleanup and successful retries. They explicitly execute the
+same staged ownership algorithm on the serial instrumented transport, avoiding
+races in legacy fault counters. Standalone fixture linking initially omitted
+ordinary interpreter helpers that storage_main normally supplies, then adding
+the evaluation unit alongside the fast interpreter duplicated exports. Replacing
+the fast interpreter object with the ordinary evaluation unit, as in the native
+LR harness, correctly links the isolated test. These were harness composition
+errors, not runtime-table failures. Evidence: lr-runtime-fault-tests{,-retry,
+-linked}.log. The integrated storage harness already supplies those helpers.
+
+Integrated lr_runtime_work and its Tower kernel dispatch/opaque API; both parser
+construction paths now choose it for sufficiently large ready tables. Source
+states stay immutable under a view; ECS task components own disjoint result
+ranges; all workers join before serial hash interning or conflict publication.
+The private explicit-width entry point supports deterministic allocation fault
+checks without altering production grain selection. Added full runtime-row
+comparisons to LR worker trials and the fault sweep to the existing storage suite.
+No C++ feature or adapter implementation was added. Next: integrated native,
+shared/portable browser, parser/semantic successor, bootstrap and release checks.
+
+Integrated runtime-table native validation passes 8/8 (87.64s) plus backend API,
+including the new storage fault sweep and unchanged frontend graph fingerprints.
+Capacity checks pass 3/3 (93.47s). Actual parser-nodes and semantics successor
+objects compare byte-for-byte. Shared, portable and LLVM/cross builds/packaging
+succeed. Browser generations, remaining regressions/editor and deployment checks
+are continuing against these frozen sources.
+
+Next world-isolation audit: ExecutionSession creates its root via tower_node_create;
+frontend_modules creates module entities/types and readers through default-world
+adapters. More directly, syntax_session_next uses default syntax/match component
+kinds and frontend_host_pattern_read even though its session already carries an
+explicit world. Session formatting/lexeme preview have similar lookups. This is
+a concrete remaining boundary, not merely a future host-transport concern.
+A separate Tower reproducer formats the immutable seed and installs it first in
+the legacy world and then a fresh explicit world; its execution result is pending.
+World/session/module migration must use node-derived kinds and explicit world
+caches, keep module environments bound to their owning world, and preserve
+existing legacy adapters until their callers are migrated. No C++ rewrite is
+needed to remove these Tower-side hidden default-world accesses.
+
+The separate explicit-world baseline reproducer passes in the legacy world and
+segfaults in a newly created world. GDB places the fault in syntax_next called
+by syntax_baseline_install (explicit-world-session-before{,-debug}.log). Thus the
+remaining Tower-side default-kind lookups are a verified correctness gap, not
+only a concurrency restriction. A small next-work draft changes session node/
+match lookup, declaration reading, pattern-cache selection, formatting and lexeme
+preview to use node/session worlds. It is isolated from runtime-table release
+inputs. Module graph/environment ownership still requires its own migration;
+fixing session baseline parsing alone will not complete native world isolation.
+
+Hosted operand checkpoint 6b9bedd/194dcc1 finishes all assets and browser workflows;
+saved report is declaration-operands-hosted-report.json. Runtime-table editor
+checks pass 28/28 (178.64s). Native/worker/successor checks remain successful;
+full regressions, two edited generations and local deployment are still running.
+
+Runtime-table edited browser generations pass in 148.52s / 97.81s with identical
+1,051,118 / 52,356,228 / 63,913,664-byte modules; exact hashes are saved in
+runtime-tables-generation{1,2}.json. Local verification has passed asset hashes
+and desktop workflows; mobile and the full regression run are still active.
+
+The isolated session-world draft first placed two extern declarations before
+remaining imports, which the documented bootstrap correctly rejected. Moving
+those declarations after all imports fixes the draft. Both legacy and explicit
+world baseline parsing then pass. The initial reproducer returned 3 at disposal
+because it had not cleared retained frontend caches; adding frontend_world_clear
+before compiler_world_dispose yields both-world success (session-world-modules-
+build.log). This corrects a harness cleanup omission without weakening lifetime
+checks. Next draft binds module environments once to a world, owns an entity
+anchor while idle, creates graph/type/entities there, and uses explicit-world
+session construction and node-derived syntax metadata for imports/cache clones.
+Cross-world environment/module inputs must fail before source/cache mutation.
+
+Runtime-table full regressions finish 115/115, no failures/skips (611.21s).
+Local release verification completes all 77 assets, desktop/mobile/native-build,
+editor and default-target workflows; report is runtime-tables-local-report.json.
+Together with native 8/8/API, capacity 3/3, editor 28/28, identical actual native
+parser/semantics successor objects and identical edited browser generations,
+this validates the frozen checkpoint for commit/rebase and publication.
+The next module-world draft exposed a legacy lr_tree_reduce adapter relying on
+a transitive parser_match_get_type extern; keep that declaration at its adapter
+while explicit requests continue using lr_tree_reduce_kind. No legacy kind lookup
+is reintroduced into session/module logic. Its first new trial source also needed
+whitespace between a pointer type and '=' to avoid the '*=' token. Both are draft
+compile errors; module-world behavior is still pending validation.

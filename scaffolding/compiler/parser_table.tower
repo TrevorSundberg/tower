@@ -198,7 +198,7 @@ export fn parser_table_build(table: ParserHostTable*, specialize: bool): bool {
     ok &&= parser_table_contexts(table, analysis, states);
     if ok {
         table.error = "Unable to allocate LR runtime tables";
-        table.runtime = lr_runtime_create(states);
+        table.runtime = lr_runtime_create_parallel(states, table.match_kind);
         ok = table.runtime != null;
     }
     if ok {

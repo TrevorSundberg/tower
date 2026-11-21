@@ -15,6 +15,7 @@ extern fn compiler_lr_state_kernel(payload: void*): void;
 extern fn compiler_lr_action_kernel(payload: void*): void;
 extern fn compiler_lr_propagation_kernel(payload: void*): void;
 extern fn compiler_lr_first_kernel(payload: void*): void;
+extern fn compiler_lr_runtime_kernel(payload: void*): void;
 
 export fn work_kernel_execute(payload: void*): void {
     var kernel = bits(CompilerKernel*, payload);
@@ -70,6 +71,10 @@ export fn work_kernel_execute(payload: void*): void {
     }
     if kernel.kind == CompilerKernelKind.GenericBody {
         compiler_generic_body_kernel(kernel.payload);
+        return;
+    }
+    if kernel.kind == CompilerKernelKind.LRRuntime {
+        compiler_lr_runtime_kernel(kernel.payload);
         return;
     }
     trap("Invalid compiler kernel", 0);

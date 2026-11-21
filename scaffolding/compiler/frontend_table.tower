@@ -9,6 +9,7 @@ import lr_work;
 import lr_state_work;
 import lr_parser;
 import lr_runtime;
+import lr_runtime_work;
 import lr_states;
 import lr_tree;
 import parser_nodes;
@@ -61,7 +62,7 @@ export fn frontend_table_finish(table: FrontendTable*, constructs: bool, special
         ok = lr_states_lalr_parallel(states, constructs, anchor);
     }
     if ok {
-        table.runtime = lr_runtime_create(states);
+        table.runtime = lr_runtime_create_parallel(states, anchor);
         ok = table.runtime != null;
     }
     var status: u32 = 1;

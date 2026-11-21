@@ -2,6 +2,7 @@ import tower;
 import .compiler.lr_work;
 import .compiler.lr_state_work;
 import .compiler.lr_runtime;
+import .compiler.lr_runtime_work;
 import .compiler.lr_analysis;
 import .compiler.lr_first_work;
 import .compiler.lr_lalr;
@@ -125,6 +126,28 @@ fn lr_work_equal(a: LRStates*, b: LRStates*): bool {
 // Both paths derive independent analyses from the same immutable grammar. Compare
 // every item, transition and action, including conflict-bearing tables; verify
 // transient ECS jobs leave neither entities nor components behind.
+fn lr_runtime_work_equal(a: LRRuntime*, b: LRRuntime*): bool {
+    if a.states.length != b.states.length || a.rows.length != b.rows.length { return false; }
+    for(var i: usize = 0; i < a.states.length; i++) {
+        var x = &a.states.data[i];
+        var y = &b.states.data[i];
+        if x.row.actions.length != y.row.actions.length || x.gotos.length != y.gotos.length
+            || x.row.reduction != y.row.reduction || x.row.direct.length != y.row.direct.length { return false; }
+        for(var j: usize = 0; j < x.row.actions.length; j++) {
+            var left = &x.row.actions.data[j];
+            var right = &y.row.actions.data[j];
+            if left.first != right.first || left.last != right.last || left.rule != right.rule || left.state != right.state { return false; }
+        }
+        for(var j: usize = 0; j < x.row.direct.length; j++) {
+            if x.row.direct.data[j] != y.row.direct.data[j] { return false; }
+        }
+        for(var j: usize = 0; j < x.gotos.length; j++) {
+            if x.gotos.data[j].nonterminal != y.gotos.data[j].nonterminal || x.gotos.data[j].state != y.gotos.data[j].state { return false; }
+        }
+    }
+    return true;
+}
+
 fn lr_work_trial(anchor: void*, rules: LRProduction*, count: usize,
                   symbols: LRSymbol*, length: usize, names: usize): bool {
     var analysis = lr_analysis_create(rules, count, symbols, length, names);
@@ -145,7 +168,7 @@ fn lr_work_trial(anchor: void*, rules: LRProduction*, count: usize,
         ok &&= lr_work_equal(serial, threaded);
         if ok {
             var a = lr_runtime_create(serial);
-            var b = lr_runtime_create(threaded);
+            var b = lr_runtime_create_parallel(threaded, anchor);
             ok = a != null && b != null;
             if ok {
                 var x: LRConflict;
@@ -154,8 +177,11 @@ fn lr_work_trial(anchor: void*, rules: LRProduction*, count: usize,
                 ok = conflict == lr_runtime_conflict(b, &y);
                 if conflict && ok {
                     ok = x.state == y.state && x.left.rule == y.left.rule && x.right.rule == y.right.rule
-                        && x.left.first == y.left.first && x.right.first == y.right.first;
+                        && x.left.first == y.left.first && x.right.first == y.right.first
+                        && x.left.last == y.left.last && x.right.last == y.right.last
+                        && x.left.state == y.left.state && x.right.state == y.right.state;
                 }
+                if !conflict && ok { ok = lr_runtime_work_equal(a, b); }
             }
             lr_runtime_destroy(a);
             lr_runtime_destroy(b);

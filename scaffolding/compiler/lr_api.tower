@@ -65,6 +65,7 @@ extern fn lr_items_data(items: void*): LRItem*;
 extern fn lr_kernel(analysis: void*, item: LRItem*): bool;
 
 extern fn lr_runtime_create(states: void*): void*;
+extern fn lr_runtime_create_parallel(states: void*, anchor: void*): void*;
 
 extern fn lr_runtime_destroy(runtime: void*): void;
 
