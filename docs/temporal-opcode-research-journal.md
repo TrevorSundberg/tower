@@ -28764,3 +28764,33 @@ transport is Tower and links existing compiler APIs; it removes the older tool's
 write-back block and also asserts every input file remains byte identical. This
 is a tooling change, not a relaxed parser-tree/idempotence requirement. Final
 formatting and publication results follow below.
+
+Final validation/publication: all 101 migrated files pass parser-tree equivalence
+and formatting idempotence through the shared formatter, combining completed
+Wasm/native checks with 55 remaining files checked by 24 native validation
+processes. Source bytes remain unchanged. The first native audit overlapped the
+rebase and stopped at a generic wrapper assertion for format_dependent.tower;
+that trial is not evidence of a formatter regression. Its stable-input rerun
+passes, as does the complete resumed audit. The old assertion did not identify
+its site, so the exact failure cause is not established. Added site labels using
+existing puts (the standalone validation link has no tower_print runtime), and
+handled PowerShell's UTF-16 redirected logs in the resume inventory. No compiler
+assertion or formatter comparison was weakened. Evidence:
+default-native-format-diagnostic.log and default-migration-format-final.log.
+
+Committed/pushed adoption as a91a4b6 after rebasing onto 79fdee7's journal update.
+Kept both journal entries; compiler, bootstrap and build inputs are byte identical
+across that rebase. Published Pages ec18a1b9346686b11acafd6d94ba7b8685200477,
+preserving the previous ff65162 deployment, from source
+a91a4b6526afe09721a562ec65d7b10a288c5b18. The hosted manifest matches exactly.
+Local and hosted verification each pass all 77 asset hashes, desktop/mobile
+execution and backend agreement, editable grammar, persistence, native builds
+and downloads, completion/highlighting and default-target behavior. Reports:
+default-local-report.json and default-live-report.json; logs:
+default-{local,hosted}-verification.log and default-pages-wait.log. No code changes
+followed publication. The unrelated pre-existing stash remains intact.
+
+Next language work remains named-field construction with explicit completeness
+and ownership contracts, followed by result/option propagation when return and
+move/drop behavior are defined. The 275 field-assignment runs are an audit signal,
+not permission to collapse partial updates or resource initialization blindly.
