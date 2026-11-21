@@ -669,7 +669,10 @@ containers. Benchmark representative compiler workloads before migrating them.
   entities while typed query indexes stay pinned. Ordinary indexed value access,
   local inference, decltype, stage registration and defer use this path. Bodies
   requiring generic/type construction and editor observation retain a coordinator
-  path pending explicit continuations.
+  path pending explicit continuations. Already-instantiated generic bodies now
+  use body workers when their immutable bindings and existing layouts are ready;
+  conservative admission retains first consumers of pending layouts on the
+  coordinator and records completed layout dependencies on body queries.
   A shared-memory
   WASI transport passes Node and isolated Chromium overlap/cancellation tests.
   Browser packaging now includes the shared reactor and nested worker; static
@@ -746,7 +749,7 @@ Current migration audit (after the isolated compiler-worker milestone):
 | --- | --- | --- |
 | Entities | Stable payloads, dense per-type pointer indexes, explicit worlds, pinned views, exclusive attachment leases and staged canonical creation | Complete host-world isolation and non-racing reference ownership |
 | Syntax/grammar | Shared entities; Tower baseline/revision/cache records; worker-owned FIRST/nullable frontiers, LR(0) transitions, LR(1) kernel closures, wide lookahead frontiers and private LALR action ranges | Remaining session orchestration, propagation-edge construction, runtime table partitioning and source/effect order |
-| Semantics/layout | Shared query graph; parallel dependency discovery, layouts, eligible body checking and expression lowering | Generic/type construction continuations, editor queries and structural publication |
+| Semantics/layout | Shared query graph; parallel dependency discovery, layouts, eligible ordinary/instantiated-generic body checking and expression lowering | Generic/type construction continuations, precise body layout dependencies, editor queries and structural publication |
 | Interpreter/staging | Per-invocation contexts over shared Foundation; threaded lazy scalar queries and private execution caches | General ordinary-value execution, explicit effects/inputs and invalidation; no separate folding evaluator |
 | LLVM | Shared Foundation inputs; one mutable LLVM context/module per compiler instance | Function/query boundaries that do not concurrently mutate one LLVM module; preserve target legality |
 | Link/publication | Tower plans/artifacts plus upstream LLD and filesystem interfaces | Keep LLD globals and fixed temporary names isolated/serialized; publish a candidate only after its checks |

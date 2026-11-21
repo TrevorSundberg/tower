@@ -7,6 +7,7 @@ import semantic_definitions;
 import foundation_tags;
 import semantic_support;
 import semantic_types;
+import semantic_layout;
 import semantic_statements;
 import semantic_control;
 import semantic_evaluation;
@@ -55,12 +56,28 @@ fn sem_body_type_structure(c: SemanticContext*, n: void*): bool {
     return false;
 }
 
+fn sem_body_layouts(c: SemanticContext*, consumer: usize): bool {
+    // Root initializers and earlier structural bodies can introduce types after
+    // the initial layout barrier. Keep their first consumers on the coordinator
+    // until every existing nominal/array layout is ready. This is conservative
+    // admission, not eager evaluation of otherwise unused types. A worker must
+    // never discover/mutate a layout query through its shallow context copy.
+    foreach(var type in &c.program.types) {
+        if sem_get(type).type.record == null { continue; }
+        var query = work_find(&c.queries, type, LayoutQuery(), 0);
+        if query == 0 || work_task(&c.queries, query).state != WorkState.Succeeded { return false; }
+        if consumer != 0 && !work_depend(&c.queries, consumer, query) { return false; }
+    }
+    return true;
+}
+
 // Interning a new parameterized type or generic instance is still a structural
 // coordinator operation. These bodies stay on that path until those requests
-// have continuations; ordinary bodies, decltype and stage registration can use
-// disjoint source leases now. No speculative retry mutates a half-checked body.
+// have continuations. An existing specialization's bindings are immutable;
+// its body can use the same leases as an ordinary function once layouts are
+// published. No speculative retry mutates a half-checked body.
 fn sem_body_sources(c: SemanticContext*, subject: void*, nodes: vector(void*)*): bool {
-    if c.editor != null || c.type_uses != null || generic_origin(c.generics, subject) != null { return false; }
+    if c.editor != null || c.type_uses != null || !sem_body_layouts(c, 0) { return false; }
     // The preceding function's lexical scope must not hide a qualified template
     // during admission. False positives only select the structural path.
     var scope = c.scope;
@@ -193,6 +210,7 @@ fn sem_bodies(c: SemanticContext*): void {
             copy(&result.nodes, &nodes, sizeof(vector(void*)));
             var id = work_request(&c.queries, subject, BodyQuery(), 0);
             sem_require(id != 0);
+            sem_require(sem_body_layouts(c, id));
             sem_require(work_access(&c.queries, id, 1, 7, next, 1, WorkAccessMode.Write));
             sem_require(work_access(&c.queries, id, 1, 1, 0, ~convert(usize, 0), WorkAccessMode.Read));
             sem_require(work_seal(&c.queries, id));

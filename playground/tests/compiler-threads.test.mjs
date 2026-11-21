@@ -65,6 +65,27 @@ fn f${i}(value: decltype(seed)): decltype(value) {
   'print(total); print(`control value 1.0`);';
  const canonical = new Map();
  let iterationCanonical;
+ const genericCanonical = new Map();
+ const genericFunctions = Array.from({length:16}, (_, i) => `
+fn generic${i}(T:type, value:T):T {
+ var result:decltype(value) = value;
+ result += comptime(convert(T,3));
+ { defer { result += comptime(convert(T,2)); } }
+ for(var j:usize=0;j<3;j++) { result += convert(T,j+${i}); }
+ return result;
+}`);
+ const genericSource = `import tower;
+fn box(T:type):type { struct Item { value:T; } return Item; }
+fn measure(T:type):usize { return sizeof(T); }
+fn record_value(T:type, value:T*):u64 { return value.value; }
+${genericFunctions.join('\n')}
+var record:box(u64); record.value=73;
+// These root calls create array types after the initial layout barrier.
+// Their consumers must publish layouts before later leaf bodies run in workers.
+print(measure(u32[7])); print(measure(u32[9]));
+print(comptime(${genericFunctions.map((_,i)=>`generic${i}(u64,1)`).join('+')}));
+print(comptime(${genericFunctions.map((_,i)=>`generic${i}(i32,1)`).join('+')}));
+print(record_value(&record));`;
  for (const capacity of [1,2,4,8]) {
   const tower = await loadTower(compiler, undefined, foundation, undefined, undefined, {threads:{capacity}});
   try {
@@ -111,6 +132,29 @@ print(first(&values)); print(second(&values)); print(plain());`);
     iterationCanonical ??= text;
     assert.equal(text, iterationCanonical, `implicit protocol publication at ${capacity} workers`);
    } finally { tower.destroyExecution(iteration); }
+   for (const pointerBytes of [4,8]) for (let fast = 0; fast < 2; fast++) {
+    const handle = tower.compile(genericSource, {pointerBytes});
+    try {
+     if (fast) tower.useFast(handle);
+     let result, output = '';
+     do { result = tower.execute(handle, 10000); output += result.output; } while (result.status === 'executing');
+     assert.equal(result.status, 'done', result.error);
+     assert.equal(output, '28\n36\n504\n504\n73\n');
+     const text = tower.foundation(handle).source;
+     if (!genericCanonical.has(pointerBytes)) genericCanonical.set(pointerBytes, text);
+     assert.equal(text, genericCanonical.get(pointerBytes), `generic bodies: workers=${capacity}, width=${pointerBytes}, fast=${fast}`);
+    } finally { tower.destroyExecution(handle); }
+   }
+   const genericInvalid = tower.compile(`import tower;
+fn badFirst(T:type, value:T):T { return unknownFirst; }
+fn badSecond(T:type, value:T):T { return unknownSecond; }
+print(badFirst(1)); print(badSecond(2));`);
+   try {
+    const result = tower.execute(genericInvalid);
+    assert.equal(result.status, 'error');
+    assert.match(result.error, /unknownFirst/);
+    assert.doesNotMatch(result.error, /unknownSecond/);
+   } finally { tower.destroyExecution(genericInvalid); }
   } finally { tower.close(); }
   assert.throws(() => tower.compile('print(1);'), /compiler is closed/);
   assert.doesNotThrow(() => tower.destroyExecution(0));

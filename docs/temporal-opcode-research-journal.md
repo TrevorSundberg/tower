@@ -27507,3 +27507,67 @@ checks; standalone backend API passes. Shared overlap/trap/determinism passes3/3
 packaging finish. Logs: lr-first-pools-*. The hosted propagation retry has checked
 all77 hashes; its browser workflows are still running. FIRST's browser bundle
 and two-generation checks follow the final source synchronization.
+
+### 2026-11-20 - Existing generic bodies join semantic worker queries
+
+FIRST source is pushed through458ad68; its frozen browser bundle and edited
+successor checks are separate from the following semantic changes. Removed the
+blanket worker exclusion for already-instantiated generic bodies. Bindings and
+headers are coordinator-published; eligible bodies use the existing private
+context, canonical stages, source leases and ordinary evaluation jobs. Creating
+instances/types and implicit foreach protocols still requires the coordinator.
+
+Audit found an additional admission requirement: root statements and structural
+bodies can construct types after sem_run's initial layout barrier. A shallow
+worker context must never call sem_layout's discovery path on such a type.
+Conservatively admit only when all existing nominal/array layouts have successful
+query receipts; record these dependencies on BodyQuery too. Leave first consumers
+of pending layouts on the coordinator, preserving lazy construction and avoiding
+speculative retries or half-checked bodies. This deliberately overapproximates
+layout reads until per-expression continuations can express precise requirements.
+
+The first rebuilt shared suite passes3/3 (25.44 s). Added32 arithmetic generic
+bodies plus nominal field access, array layouts constructed after the initial
+barrier, generic decltype/comptime/defer and ordered specialization diagnostics.
+Outputs and canonical Foundation agree at1/2/4/8 workers, target widths4/8 and
+both interpreters. Explicit BodyQuery layout edges were added after that run;
+repeat affected validation, clean bootstrap and actual worker-admission proof.
+No generic instantiation itself is claimed threaded, and no C++ was introduced.
+
+The rebuilt explicit-edge suite passes3/3 (41.66 s); fresh no-override native
+bootstrap builds56/56 in compiletime-generic-bodies-clean. Native dispatcher
+inspection uses GDB at exported work_kernel_execute, reading the private current
+CompilerKernelKind.Body tag5 on Linux x64. A16-generic-function-only fixture
+records0 body kernels with the prior compiler and16 jobs on8 distinct worker
+threads with the new one; both inferiors exit0. This proves actual worker
+admission, while the separate production barrier test proves pool overlap.
+Debugger stops are not performance measurements. A progress message initially
+said16 threads; corrected immediately after inspecting the log to8 threads.
+
+Reproduction: build/language-next-audit/generic-body-admission.{tower,gdb},
+logs generic-body-admission-{baseline,after}.log, --emit foundation on both
+clean-cache compilers. The first host GDB launch lacked libLLVM.so.19.1; an
+attempt to borrow /proc/container-root libraries was permission denied. Copying
+only the needed non-libc shared dependencies from the existing container to an
+ignored debug directory and setting the inferior's LD_LIBRARY_PATH resolves
+tool loading. Neither failed setup trial is evidence about compiler behavior.
+
+Frozen FIRST source458ad68 passes two edited browser generations (134.85s/95.03s),
+with identical parser/LLVM/cross hashes:
+5cb871f45a98b8a7c6b253efc6478573e19de2d89118398d4a90819f255af6e9,
+3379ca4e8846539d8815d5b9d719e2ddc5512c1df97eb7a3205d932aa1dd95f2,
+0208463f53efbd5563a48c6cf20de0ca5e845afdfed0fa0d3a4080371167e1c1.
+The propagation hosted retry passes desktop checks; mobile remains in progress.
+
+The propagation retry now completes successfully: exact77 assets, desktop/mobile
+workflows and real Linux defaults all pass on Pages f9e5ab3/source9d1ea3d. This
+supersedes its earlier5-second timeout trial. FIRST local release verification
+is now running against its frozen458ad68 bundle; do not attribute the subsequent
+generic body admission changes to that package.
+
+Generic body validation: native acceptance8/8 (48.27s) and standalone backend
+API checks pass. The actual public-bootstrap successor rebuilds the complete
+semantic compiler object byte-identically (generic-body-successor-semantics.o,
+cmp0). Shared compile-time, inference and foreach checks pass34/34 (101.32s),
+alongside the explicit-edge capacity checks above. Portable/LLVM/cross rebuild
+and dependency packaging finish; matching backend/round-trip checks are running.
