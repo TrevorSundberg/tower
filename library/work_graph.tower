@@ -163,18 +163,15 @@ fn work_index(g: WorkGraph*, edges: bool): bool {
         count = g.edges.length;
     }
     var limit = index.length / 2;
-    var enough = count < limit;
-    if enough {
+    if count < limit {
         return true;
     }
     var size = index.length *2;
-    var overflow = size < index.length;
-    if overflow {
+    if size < index.length {
         g.error = WorkError.Memory;
         return false;
     }
-    var small = size < 16;
-    if small {
+    if size < 16 {
         size = 16;
     }
     if !work_memory(g, vector_reserve(usize, index, size)) {
@@ -227,8 +224,7 @@ fn work_request(g: WorkGraph*, subject: void*, query: u32, argument: u64): usize
         at = work_bucket(convert(u64, at), g.task_index.length);
     }
     var size = g.tasks.length + 1;
-    var overflow = size == 0;
-    if overflow {
+    if size == 0 {
         g.error = WorkError.Memory;
         return 0;
     }
@@ -278,8 +274,7 @@ fn work_depend(g: WorkGraph*, consumer: usize, dependency: usize): bool {
         at = work_bucket(convert(u64, at), g.edge_index.length);
     }
     var size = g.edges.length + 1;
-    var overflow = size == 0;
-    if overflow {
+    if size == 0 {
         g.error = WorkError.Memory;
         return false;
     }
@@ -334,8 +329,7 @@ fn work_access(g: WorkGraph*, id: usize, domain: u64, component: u64, first: usi
         return false;
     }
     var size = g.accesses.length + 1;
-    var overflow = size == 0;
-    if overflow {
+    if size == 0 {
         g.error = WorkError.Memory;
         return false;
     }
@@ -419,12 +413,10 @@ fn work_seal(g: WorkGraph*, id: usize): bool {
         var index = at -1;
         var edge = &g.edges.data[index];
         var input = work_task(g, edge.dependency);
-        var failed = input.state == WorkState.Failed;
-        if failed {
+        if input.state == WorkState.Failed {
             blocked = true;
         }
-        var pending = input.state != WorkState.Succeeded;
-        if pending {
+        if input.state != WorkState.Succeeded {
             task.remaining++;
         }
         at = edge.next_dependency;
@@ -456,8 +448,7 @@ fn work_demand(g: WorkGraph*, id: usize): bool {
             continue;
         }
         task.demanded = true;
-        var failed = task.state == WorkState.Failed;
-        if failed {
+        if task.state == WorkState.Failed {
             continue;
         }
         var at = task.dependencies;
@@ -483,8 +474,7 @@ fn work_take(g: WorkGraph*, output: WorkTicket*): bool {
     if !work_ok(g) {
         return false;
     }
-    var missing = output == null;
-    if missing {
+    if output == null {
         return false;
     }
     var i = g.head;
@@ -492,10 +482,8 @@ fn work_take(g: WorkGraph*, output: WorkTicket*): bool {
         var at = i;
         var id = g.ready.data[at];
         i++;
-        var empty = id == 0;
-        if empty {
-            var leading = at == g.head;
-            if leading {
+        if id == 0 {
+            if at == g.head {
                 g.head = i;
             }
             continue;
@@ -506,8 +494,7 @@ fn work_take(g: WorkGraph*, output: WorkTicket*): bool {
             if !work_access_available(g, task) {
                 continue;
             }
-            var shared = task.access != 0;
-            if shared {
+            if task.access != 0 {
                 if !work_memory(g, vector_push(usize, &g.executing, id)) {
                     return false;
                 }
@@ -522,8 +509,7 @@ fn work_take(g: WorkGraph*, output: WorkTicket*): bool {
         }
         g.ready.data[at] = 0;
     }
-    var exhausted = g.head == g.ready.length;
-    if exhausted {
+    if g.head == g.ready.length {
         g.ready.length = 0;
         g.head = 0;
     }
@@ -569,8 +555,7 @@ fn work_finish(g: WorkGraph*, ticket: WorkTicket*, success: bool): bool {
     if !work_ok(g) {
         return false;
     }
-    var absent = ticket == null;
-    if absent {
+    if ticket == null {
         return false;
     }
     var task = work_task(g, ticket.task);
@@ -583,8 +568,7 @@ fn work_finish(g: WorkGraph*, ticket: WorkTicket*, success: bool): bool {
     }
     g.running--;
     for(var i: usize = 0; i < g.executing.length; i++) {
-        var found = g.executing.data[i] == ticket.task;
-        if found {
+        if g.executing.data[i] == ticket.task {
             g.executing.length--;
             g.executing.data[i] = g.executing.data[g.executing.length];
             break;
@@ -599,8 +583,7 @@ fn work_finish(g: WorkGraph*, ticket: WorkTicket*, success: bool): bool {
         var index = at -1;
         var edge = &g.edges.data[index];
         var consumer = work_task(g, edge.consumer);
-        var waiting = consumer.state == WorkState.Waiting;
-        if waiting {
+        if consumer.state == WorkState.Waiting {
             consumer.remaining--;
             if !work_enqueue(g, edge.consumer) {
                 return false;
@@ -622,8 +605,7 @@ fn work_cancel(g: WorkGraph*): void {
     var i: usize = 0;
     for(; i < g.tasks.length; i++) {
         var task = &g.tasks.data[i];
-        var complete = task.state == WorkState.Succeeded;
-        if !complete {
+        if task.state != WorkState.Succeeded {
             task.state = WorkState.Cancelled;
         }
     }
@@ -652,14 +634,12 @@ fn work_cycle(g: WorkGraph*, root: usize, output: vector(usize)*): bool {
     if !work_ok(g) {
         return false;
     }
-    var missing = work_task(g, root) == null;
-    if missing {
+    if work_task(g, root) == null {
         g.error = WorkError.Invalid;
         return false;
     }
     g.sweep++;
-    var overflow = g.sweep == 0;
-    if overflow {
+    if g.sweep == 0 {
         for(var i: usize = 0; i < g.tasks.length; i++) {
             g.tasks.data[i].visit = 0;
         }
@@ -672,8 +652,7 @@ fn work_cycle(g: WorkGraph*, root: usize, output: vector(usize)*): bool {
     while g.frames.length != 0 {
         var top = g.frames.length -1;
         var frame = &g.frames.data[top];
-        var exhausted = frame.edge == 0;
-        if exhausted {
+        if frame.edge == 0 {
             var task = work_task(g, frame.task);
             task.active = false;
             g.frames.length = top;
@@ -683,12 +662,10 @@ fn work_cycle(g: WorkGraph*, root: usize, output: vector(usize)*): bool {
         var edge = &g.edges.data[index];
         frame.edge = edge.next_dependency;
         var task = work_task(g, edge.dependency);
-        var waiting = task.state == WorkState.Waiting;
-        if !waiting {
+        if task.state != WorkState.Waiting {
             continue;
         }
-        var seen = task.visit == g.sweep;
-        if seen {
+        if task.visit == g.sweep {
             if task.active {
                 var i: usize = 0;
                 for(; g.frames.data[i].task != edge.dependency; i++) {}

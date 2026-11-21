@@ -9,13 +9,11 @@ export fn bytes_init(buffer: ByteBuffer*): void {
 }
 
 export fn bytes_reserve(buffer: ByteBuffer*, needed: usize): bool {
-    var enough = needed <= buffer.capacity;
-    if enough {
+    if needed <= buffer.capacity {
         return true;
     }
     var capacity = buffer.capacity *2;
-    var overflow = capacity < buffer.capacity;
-    if overflow {
+    if capacity < buffer.capacity {
         capacity = needed;
     }
     var small = capacity < needed;
@@ -27,8 +25,7 @@ export fn bytes_reserve(buffer: ByteBuffer*, needed: usize): bool {
         capacity = 16;
     }
     var next = realloc(u8, buffer.data, capacity);
-    var failed = next == null;
-    if failed {
+    if next == null {
         return false;
     }
     buffer.data = next;
@@ -38,13 +35,11 @@ export fn bytes_reserve(buffer: ByteBuffer*, needed: usize): bool {
 
 // Source must be readable; self-append may read only the buffer's live bytes.
 export fn bytes_append(buffer: ByteBuffer*, source: u8*, count: usize): bool {
-    var empty = count == 0;
-    if empty {
+    if count == 0 {
         return true;
     }
     var total = buffer.length + count;
-    var overflow = total < buffer.length;
-    if overflow {
+    if total < buffer.length {
         return false;
     }
     var start = bits(usize, source);
@@ -52,13 +47,11 @@ export fn bytes_append(buffer: ByteBuffer*, source: u8*, count: usize): bool {
     var offset = start -base;
     var inside = offset < buffer.capacity;
     if inside {
-        var outside = offset > buffer.length;
-        if outside {
+        if offset > buffer.length {
             return false;
         }
         var remaining = buffer.length -offset;
-        var invalid = count > remaining;
-        if invalid {
+        if count > remaining {
             return false;
         }
     }
@@ -82,8 +75,7 @@ export fn bytes_push(buffer: ByteBuffer*, value: u8): bool {
 // Embedded NUL bytes are copied; source-text validation is a separate policy.
 export fn bytes_assign_text(buffer: ByteBuffer*, source: u8*, count: usize): bool {
     var needed = count + 1;
-    var overflow = needed == 0;
-    if overflow {
+    if needed == 0 {
         return false;
     }
     var start = bits(usize, source);
@@ -91,20 +83,17 @@ export fn bytes_assign_text(buffer: ByteBuffer*, source: u8*, count: usize): boo
     var offset = start -base;
     var inside = offset < buffer.capacity;
     if inside {
-        var outside = offset > buffer.length;
-        if outside {
+        if offset > buffer.length {
             return false;
         }
         var remaining = buffer.length -offset;
-        var invalid = count > remaining;
-        if invalid {
+        if count > remaining {
             return false;
         }
     }
     var ok = bytes_reserve(buffer, needed);
     if ok {
-        var nonempty = count != 0;
-        if nonempty {
+        if count != 0 {
             if inside {
                 source = buffer.data + offset;
             }

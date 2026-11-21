@@ -19,8 +19,7 @@ struct CompilerWork {
 }
 
 export fn compiler_work_close(work: CompilerWork*): void {
-    var present = work != null;
-    if present {
+    if work != null {
         work_dispose(&work.graph);
         free(work);
     }
@@ -33,8 +32,7 @@ export fn compiler_work_create(units: usize, workers: usize, revision: u64, prof
         return null;
     }
     var work = alloc(CompilerWork, 1);
-    var missing = work == null;
-    if missing {
+    if work == null {
         return null;
     }
     fill(work, 0, sizeof(CompilerWork));
@@ -74,19 +72,16 @@ export fn compiler_work_next(work: CompilerWork*): usize {
     if failed {
         return 0;
     }
-    var full = work.graph.running >= work.workers;
-    if full {
+    if work.graph.running >= work.workers {
         return 0;
     }
     var ticket: WorkTicket;
     if work_take(&work.graph, &ticket) {
-        var join = ticket.task > work.units;
-        if join {
+        if ticket.task > work.units {
             work_finish(&work.graph, &ticket, true);
             return 0;
         }
-        var higher = work.graph.running > work.peak;
-        if higher {
+        if work.graph.running > work.peak {
             work.peak = work.graph.running;
         }
         return ticket.task;

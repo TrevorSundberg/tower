@@ -19,20 +19,17 @@ export fn arena_init(arena: ByteArena*, capacity: usize): bool {
 }
 
 export fn arena_take(arena: ByteArena*, count: usize): u8* {
-    var missing: bool = arena.data == null;
-    if missing {
+    if arena.data == null {
         return null;
     }
     var rounded: usize = count + 15;
-    var overflow: bool = rounded < count;
-    if overflow {
+    if rounded < count {
         return null;
     }
     rounded = rounded / 16;
     rounded = rounded * 16;
     var left: usize = arena.capacity -arena.used;
-    var full: bool = rounded > left;
-    if full {
+    if rounded > left {
         return null;
     }
     var result: u8* = arena.data + arena.used;
@@ -80,16 +77,14 @@ fn map_index(key: u32, capacity: usize): usize {
 fn map_insert(map: IntMap*, key: u32, value: i32): void {
     var index: usize = map_index(key, map.capacity);
     loop {
-        var vacant: bool = !map.slots[index].occupied;
-        if vacant {
+        if !map.slots[index].occupied {
             map.slots[index].key = key;
             map.slots[index].value = value;
             map.slots[index].occupied = true;
             map.count++;
             return;
         }
-        var same: bool = map.slots[index].key == key;
-        if same {
+        if map.slots[index].key == key {
             map.slots[index].value = value;
             return;
         }
@@ -100,20 +95,16 @@ fn map_insert(map: IntMap*, key: u32, value: i32): void {
 
 export fn map_set(map: IntMap*, key: u32, value: i32): bool {
     var half: usize = map.capacity / 2;
-    var grow: bool = map.count >= half;
-    if grow {
+    if map.count >= half {
         var capacity: usize = map.capacity *2;
-        var overflow: bool = capacity < map.capacity;
-        if overflow {
+        if capacity < map.capacity {
             return false;
         }
-        var first: bool = capacity == 0;
-        if first {
+        if capacity == 0 {
             capacity = 8;
         }
         var slots: IntMapSlot* = alloc(IntMapSlot, capacity);
-        var failed: bool = slots == null;
-        if failed {
+        if slots == null {
             return false;
         }
         var size: usize = sizeof(IntMapSlot);
@@ -126,8 +117,7 @@ export fn map_set(map: IntMap*, key: u32, value: i32): bool {
         map.count = 0;
         var i: usize = 0;
         loop {
-            var done: bool = i == length;
-            if done {
+            if i == length {
                 break;
             }
             if old[i].occupied {
@@ -142,18 +132,15 @@ export fn map_set(map: IntMap*, key: u32, value: i32): bool {
 }
 
 export fn map_get(map: IntMap*, key: u32, result: i32*): bool {
-    var empty: bool = map.capacity == 0;
-    if empty {
+    if map.capacity == 0 {
         return false;
     }
     var index: usize = map_index(key, map.capacity);
     loop {
-        var vacant: bool = !map.slots[index].occupied;
-        if vacant {
+        if !map.slots[index].occupied {
             return false;
         }
-        var same: bool = map.slots[index].key == key;
-        if same {
+        if map.slots[index].key == key {
             *result = map.slots[index].value;
             return true;
         }

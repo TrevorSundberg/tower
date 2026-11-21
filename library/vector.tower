@@ -19,25 +19,21 @@ fn vector_init(T: type, value: vector(T)*): void {
 }
 
 fn vector_reserve(T: type, value: vector(T)*, needed: usize): bool {
-    var enough = needed <= value.capacity;
-    if enough {
+    if needed <= value.capacity {
         return true;
     }
     var maximum: usize = 0;
     maximum--;
     var size = sizeof(T);
-    var empty_type = size == 0;
-    if empty_type {
+    if size == 0 {
         return false;
     }
     var limit = maximum / size;
-    var impossible = needed > limit;
-    if impossible {
+    if needed > limit {
         return false;
     }
     var capacity = value.capacity *2;
-    var wrapped = capacity < value.capacity;
-    if wrapped {
+    if capacity < value.capacity {
         capacity = needed;
     }
     var small = capacity < 8;
@@ -48,13 +44,11 @@ fn vector_reserve(T: type, value: vector(T)*, needed: usize): bool {
     if small {
         capacity = needed;
     }
-    var large = capacity > limit;
-    if large {
+    if capacity > limit {
         capacity = needed;
     }
     var next = realloc(T, value.data, capacity);
-    var failed = next == null;
-    if failed {
+    if next == null {
         return false;
     }
     value.data = next;
@@ -64,8 +58,7 @@ fn vector_reserve(T: type, value: vector(T)*, needed: usize): bool {
 
 fn vector_push(T: type, value: vector(T)*, element: T): bool {
     var needed = value.length + 1;
-    var overflow = needed == 0;
-    if overflow {
+    if needed == 0 {
         return false;
     }
     var ok = vector_reserve(T, value, needed);
@@ -84,12 +77,10 @@ fn vector_dispose(T: type, value: vector(T)*): void {
 // Empty/null-output failure preserves both storage and the output value.
 // Output must be valid T storage outside the remaining live elements.
 fn vector_pop(T: type, value: vector(T)*, output: T*): bool {
-    var empty = value.length == 0;
-    if empty {
+    if value.length == 0 {
         return false;
     }
-    var missing = output == null;
-    if missing {
+    if output == null {
         return false;
     }
     var last = value.length -1;
@@ -102,8 +93,7 @@ fn vector_pop(T: type, value: vector(T)*, output: T*): bool {
 // Transfer replaces/disposes destination storage and empties the source.
 // Scalar/pointer elements have no implicit destruction or deep ownership here.
 fn vector_move(T: type, destination: vector(T)*, source: vector(T)*): void {
-    var same = destination == source;
-    if same {
+    if destination == source {
         return;
     }
     vector_dispose(T, destination);
