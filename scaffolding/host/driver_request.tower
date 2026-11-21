@@ -15,6 +15,12 @@ extern fn frontend_modules_fallback(modules: void*, root: u8*): void;
 
 extern fn frontend_modules_builtin(modules: void*, name: u8*, path: u8*): void;
 
+extern fn compiler_world_create(): void*;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn frontend_world_clear(world: void*): bool;
+extern fn frontend_modules_bind_world(environment: void*, world: void*): bool;
+extern fn abort(): void;
+
 extern fn fopen(path: u8*, mode: u8*): void*;
 
 extern fn fclose(file: void*): i32;
@@ -25,10 +31,10 @@ const DriverSourceText: usize = 2;
 const DriverCanonicalBedrockText: usize = 3;
 const DriverCanonicalFoundationText: usize = 4;
 
-// One synchronous invocation owns these snapshots and environments. The native
-// adapter lends its legacy module slot only until it returns; this does not make
-// the syntax baseline or that slot safe for concurrent compilation.
+// Each invocation owns its snapshots, environments and compiler world. The
+// legacy slot is borrowed only by the explicit compatibility bind entry point.
 struct DriverRequest {
+    world: void*;
     options: DriverOptions*;
     root: u8*;
     bedrock_path: ByteBuffer;
@@ -144,11 +150,7 @@ export fn driver_request_canonical(request: DriverRequest*): bool {
     return ok;
 }
 
-export fn driver_request_bind(request: DriverRequest*, slot: void**): void {
-    request.slot = slot;
-    request.previous = *slot;
-    request.modules = frontend_modules_create();
-    *slot = request.modules;
+fn driver_request_configure(request: DriverRequest*): void {
     // The parent view borrows the owned path, with its separator retained. This
     // preserves POSIX roots and Windows drive/UNC roots without host stat layouts.
     var path = request.foundation_path.data;
@@ -177,10 +179,36 @@ export fn driver_request_bind(request: DriverRequest*, slot: void**): void {
     }
 }
 
+// Compatibility host/tests only; production compilation owns a world.
+export fn driver_request_bind(request: DriverRequest*, slot: void**): void {
+    request.slot = slot;
+    request.previous = *slot;
+    request.modules = frontend_modules_create();
+    *slot = request.modules;
+    driver_request_configure(request);
+}
+
+export fn driver_request_prepare(request: DriverRequest*): bool {
+    request.world = compiler_world_create();
+    if request.world is null { return false; }
+    request.modules = frontend_modules_create();
+    if !frontend_modules_bind_world(request.modules, request.world) { return false; }
+    driver_request_configure(request);
+    return true;
+}
+
+export fn driver_request_modules(request: DriverRequest*): void* {
+    return request.generated ?? request.modules;
+}
+
 export fn driver_request_stage(request: DriverRequest*): void {
+    if request.generated is not null { return; }
     request.generated = frontend_modules_create();
     frontend_modules_configure(request.generated, request.options.source, request.root);
-    *request.slot = request.generated;
+    if request.world is not null {
+        if !frontend_modules_bind_world(request.generated, request.world) { abort(); }
+    }
+    if request.slot is not null { *request.slot = request.generated; }
 }
 
 export fn driver_request_close(request: DriverRequest*): void {
@@ -194,6 +222,9 @@ export fn driver_request_close(request: DriverRequest*): void {
     present = request.modules != null;
     if present {
         frontend_modules_destroy(request.modules);
+    }
+    if request.world is not null {
+        if !frontend_world_clear(request.world) || !compiler_world_dispose(request.world) { abort(); }
     }
     var i: usize = 0;
     while i < 5 {

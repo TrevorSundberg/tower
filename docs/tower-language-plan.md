@@ -759,8 +759,10 @@ containers. Benchmark representative compiler workloads before migrating them.
    and parser session leases. Module environments now bind to one explicit world;
    module entities, import readers, cached declarations, session formatting and
    execution roots follow that owner. Whole-program independent-world parsing, checking, interpretation and
-   canonical package reconstruction pass native validation. Native CLI unit dispatch and host transport still need migration
-   before concurrent independent compilations can share one native process safely.
+   canonical package reconstruction pass native validation. Native CLI requests now own worlds and install grammar directly through Tower;
+   the integrated release is being validated. Native unit dispatch, IDE adapters
+   and backend publication still need migration before concurrent independent
+   compilations can share one native process safely.
 3. Migrate pure layout, body-analysis and lowering queries individually. Cache
    matching entity/component tuples. Preserve stable sparse payloads where
    address stability matters; introduce dense typed columns only for measured

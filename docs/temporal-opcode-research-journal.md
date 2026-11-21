@@ -29885,3 +29885,49 @@ requiring entity/session-world component identities even in formatting/inspectio
 fallbacks. Compiler sources stayed frozen through these checks. todo.txt retains
 96a9e58964d7f01e4a97819f259448db81ef5e40. Commit/rebase and publication follow;
 then continue the already validated native CLI world draft and unit scheduling.
+
+### 2026-11-21 — native CLI owns its compiler world (in progress)
+
+Session-world source 3a8d1590f13dfb0a009bf6db7df5905272defcd1 is pushed after an
+unchanged pull/rebase. Pages publication is in progress; do not yet claim hosted
+verification. The native CLI draft described above is now integrated: each
+DriverRequest owns an explicit CompilerWorld; production compilation installs
+baselines directly through Tower and selects original/canonical environments
+without borrowing syntax_modules. Normalized Foundation import uses the same
+request world. Closing drains environments/caches and verifies world disposal.
+The old slot adapter remains solely for existing compatibility/test callers.
+The Tower runtime binder preserves target/profile validation and only binds
+legacy syntax declarations that are still present. Independent request/stage/
+teardown tests join the existing instrumented suite. Native rebuild, portable
+CLI profile tests and bootstrap checks follow before publication.
+
+Native-world integrated validation passes all 8 native checks (62.91s) plus the
+backend API, using the documented default bootstrap. The actual new CLI rebuilds
+its own driver LLVM/object byte-for-byte (native-world-driver-successor.log), in
+addition to the prior isolated parser/semantics successor checks. Shared and
+portable Wasm and LLVM/cross packaging succeed. First edited browser generation
+passes with exactly the prior session-world module sizes; generation two and
+local deployment verification remain in progress. Hosted verification of source
+3a8d159 / Pages 49ddc277 has completed all 77 hashes and desktop/mobile/Linux
+workflows; report saved as session-world-hosted-report.json.
+
+Next isolated draft: immutable per-world worker budgets, selected at construction
+before requests/nodes exist. Parser pool leases clamp to that budget and every
+semantic phase uses the same node-derived policy. This prevents outer native-unit
+concurrency from multiplying machine-wide nested pools. A standalone EntityStore
+without a compiler world retains host capacity. No mutable global/thread-local
+current world or worker policy is introduced. This is an execution resource
+policy, not Tower semantics or type identity. Draft tests include invalid widths,
+independent one/two-worker worlds and retained pool reopening; implementation is
+not yet integrated or validated.
+
+Native-world final edited generations pass in 108.79s / 93.04s, byte-identical to
+one another and to the prior session-world browser generations (all three hashes
+saved in native-world-generation{1,2}.json). Changes in this checkpoint are native
+CLI/request/runtime-binding paths; browser compiler artifacts did not change.
+Local deployment verification passes all 77 assets and desktop/mobile/editor/
+native-download/default-target workflows (native-world-local-report.json).
+Together with native 8/8/API, actual driver successor identity, full CLI profile
+coverage and request ownership/cleanup tests, this is the publication checkpoint.
+No C++ or todo.txt changes. Continue the isolated worker-budget/unit-ECS draft
+rather than treating this as completion of compiler-wide threading.

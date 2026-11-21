@@ -4,6 +4,8 @@ import .host.driver_support;
 import .host.driver_types;
 import .host.driver_platform;
 
+extern fn frontend_modules_world(modules: void*): void*;
+
 extern fn tower_test_buffer_count(): usize;
 
 extern fn tower_test_buffer_fail_after(count: usize): void;
@@ -56,6 +58,23 @@ export fn main(argc: i32, argv: u8**): i32 {
     request_check(restored, "borrowed legacy slot restored before teardown");
     frontend_modules_destroy(old);
     driver_request_close(&request);
+    request_counts(baseline);
+
+    // Native preparation never borrows the legacy process slot. Independent
+    // requests keep distinct worlds through stage selection and destruction.
+    request_check(driver_request_open(&request, &options, argv[1]), "open private world request");
+    var second: DriverRequest;
+    request_check(driver_request_open(&second, &options, argv[1]), "open second private world request");
+    request_check(driver_request_prepare(&request) && driver_request_prepare(&second), "prepare independent worlds");
+    request_check(request.world != second.world && request.slot is null && second.slot is null, "no shared world or syntax slot");
+    request_check(frontend_modules_world(request.modules) == request.world && frontend_modules_world(second.modules) == second.world, "request environments own their worlds");
+    original = driver_request_modules(&second);
+    driver_request_stage(&request);
+    request_check(driver_request_modules(&request) == request.generated && frontend_modules_world(request.generated) == request.world, "canonical stage remains in request world");
+    request_check(driver_request_modules(&second) == original, "other request stage unchanged");
+    driver_request_close(&request);
+    request_check(frontend_modules_world(second.modules) == second.world, "second request survives first cleanup");
+    driver_request_close(&second);
     request_counts(baseline);
 
     // Failed open must still be safely closable. Exercise every fallible

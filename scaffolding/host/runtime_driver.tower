@@ -100,15 +100,22 @@ export fn runtime_driver(context: void*, module: void*, profile: u8*): bool {
     if stat_name != null && runtime_driver_name(module, "driver_stat", stat_name) == null {
         return false;
     }
-    var pointer = LLVMPointerTypeInContext(context, 0);
-    var slot = runtime_platform_declaration(module, "driver_syntax_slot", LLVMFunctionType(pointer, null, 0, 0));
-    if slot == null || LLVMGetNamedGlobal(module, slot_name) != null {
-        return false;
+    // Legacy syntax bindings are optional after world-owned Tower orchestration.
+    // Validate every retained declaration; do not synthesize absent host globals.
+    if LLVMGetNamedFunction(module, "driver_syntax_slot") is not null {
+        var pointer = LLVMPointerTypeInContext(context, 0);
+        var slot = runtime_platform_declaration(module, "driver_syntax_slot", LLVMFunctionType(pointer, null, 0, 0));
+        if slot == null || LLVMGetNamedGlobal(module, slot_name) != null { return false; }
+        runtime_platform_return(context, slot, LLVMAddGlobal(module, pointer, slot_name));
     }
-    runtime_platform_return(context, slot, LLVMAddGlobal(module, pointer, slot_name));
-    if runtime_driver_name(module, "driver_syntax_delete", delete_name) == null {
-        return false;
+    if LLVMGetNamedFunction(module, "driver_syntax_delete") is not null {
+        if runtime_driver_name(module, "driver_syntax_delete", delete_name) == null { return false; }
     }
-    return runtime_driver_string(context, module, "driver_syntax_bedrock", bedrock, words)
-    && runtime_driver_string(context, module, "driver_syntax_foundation", foundation, words);
+    if LLVMGetNamedFunction(module, "driver_syntax_bedrock") is not null {
+        if !runtime_driver_string(context, module, "driver_syntax_bedrock", bedrock, words) { return false; }
+    }
+    if LLVMGetNamedFunction(module, "driver_syntax_foundation") is not null {
+        if !runtime_driver_string(context, module, "driver_syntax_foundation", foundation, words) { return false; }
+    }
+    return true;
 }

@@ -1,4 +1,5 @@
 import tower;
+import .compiler.syntax_version_types;
 import .compiler.component_kinds;
 import driver_api;
 import driver_execution;
@@ -31,36 +32,23 @@ struct DriverCompilation {
     packaged: bool;
 }
 
+extern fn syntax_baseline_install(world: void*, environment: void*, source: u8*, foundation: bool, diagnostic: SyntaxVersionDiagnostic*): bool;
+extern fn syntax_version_diagnostic_text(diagnostic: SyntaxVersionDiagnostic*): u8*;
+extern fn syntax_version_diagnostic_dispose(diagnostic: SyntaxVersionDiagnostic*): void;
+
 fn driver_install_grammar(request: DriverRequest*, canonical: bool): bool {
     if canonical && !driver_request_canonical(request) {
         driver_error("", driver_request_error(request));
         return false;
     }
-    var first = canonical ? DriverCanonicalBedrockText(): DriverBedrockText();
-    // Large enough for each explicitly selected 64-bit standard-library profile.
-    // Only the selected foreign callee writes this temporary ABI storage.
-    var foreign: usize[4];
-    driver_syntax_bedrock(&foreign[0], request.text[first].data);
-    var message = driver_syntax_data(&foreign[0]);
-    var ok = message[0] == 0;
-    if !ok {
-        driver_error("", message);
-    }
-    if driver_syntax_heap(&foreign[0]) {
-        driver_syntax_delete(driver_syntax_storage(&foreign[0]));
-    }
-    if !ok {
-        return false;
-    }
-    driver_syntax_foundation(&foreign[0], request.text[first + 1].data);
-    message = driver_syntax_data(&foreign[0]);
-    ok = message[0] == 0;
-    if !ok {
-        driver_error("", message);
-    }
-    if driver_syntax_heap(&foreign[0]) {
-        driver_syntax_delete(driver_syntax_storage(&foreign[0]));
-    }
+    if canonical { driver_request_stage(request); }
+    var first = canonical ? DriverCanonicalBedrockText() : DriverBedrockText();
+    var diagnostic: SyntaxVersionDiagnostic = default;
+    defer syntax_version_diagnostic_dispose(&diagnostic);
+    var modules = driver_request_modules(request);
+    var ok = syntax_baseline_install(request.world, modules, request.text[first].data, false, &diagnostic);
+    ok &&= syntax_baseline_install(request.world, modules, request.text[first + 1].data, true, &diagnostic);
+    if !ok { driver_error("", syntax_version_diagnostic_text(&diagnostic)); }
     return ok;
 }
 
@@ -72,7 +60,7 @@ fn driver_compile_report(state: DriverCompilation*, error: u8*, offset: usize): 
 }
 
 fn driver_compile_program(state: DriverCompilation*): bool {
-    if driver_execution_compile(&state.execution, state.text, state.length, state.width, *state.request.slot) {
+    if driver_execution_compile(&state.execution, state.text, state.length, state.width, driver_request_modules(state.request)) {
         return true;
     }
     driver_compile_report(state, state.execution.error.data ?? "Unable to compile source", state.execution.machine.error_offset);
@@ -137,7 +125,7 @@ fn driver_compile_normalize(state: DriverCompilation*): bool {
         return false;
     }
     var imported: SemanticProgram = default;
-    semantic_initialize(&imported, tower_node_create(), state.width);
+    semantic_initialize(&imported, entity_create(compiler_world_store(state.request.world)), state.width);
     var root = imported.root;
     var ok = backend_import_foundation(state.backend, root);
     if ok {
@@ -162,7 +150,7 @@ fn driver_compile_package(state: DriverCompilation*): bool {
         return false;
     }
     var data = state.text;
-    if !execution_package_load(&state.execution, data, state.length, *state.request.slot) {
+    if !execution_package_load(&state.execution, data, state.length, driver_request_modules(state.request)) {
         if state.execution.program.error.length != 0 {
             driver_compile_report(state, state.execution.error.data, state.execution.machine.error_offset);
         } else {
@@ -224,7 +212,7 @@ fn driver_compile_text_output(state: DriverCompilation*): i32 {
     if driver_same(emit, "bytecode") {
         ok = driver_install_grammar(state.request, true);
         var profile = state.packaged ? state.profile:(options.optimize ? convert(u32, 1): convert(u32, 2));
-        ok &&= execution_package_encode(program, *state.request.slot, profile, &text, &error);
+        ok &&= execution_package_encode(program, driver_request_modules(state.request), profile, &text, &error);
     } else {
         if driver_same(emit, "foundation") {
             ok = driver_compile_format(state, program.root, &text);
@@ -410,7 +398,10 @@ fn driver_compile_run(state: DriverCompilation*): i32 {
 }
 
 export fn driver_compile(options: DriverOptions*, resources: u8*, timing: DriverTiming*, request: DriverRequest*): i32 {
-    driver_request_bind(request, driver_syntax_slot());
+    if !driver_request_prepare(request) {
+        driver_error("", driver_request_error(request));
+        return 1;
+    }
     if !driver_install_grammar(request, false) {
         return 1;
     }
