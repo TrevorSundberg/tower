@@ -1,5 +1,13 @@
 # Parser tree construction and debug output
 
+The isolated tooling check `lld_compat_checks.tower` validates the Tower LLD
+compatibility patcher against exact output and rejection fixtures, including
+real file I/O. Build it as a library object and link `guest-host-library.o`; pass
+an isolated writable fixture path to the resulting executable. The journal's
+2026-11-21 tooling migration entry records full commands and independent Python
+comparison evidence. The production browser build still uses the Python patcher
+until the coordinator's zero-native release permits the tested cutover.
+
 The same runtime/parser now also runs in the [static WASM playground](../../playground/README.md).
 Native and WASM parser builds use explicit error returns with C++ exceptions disabled.
 

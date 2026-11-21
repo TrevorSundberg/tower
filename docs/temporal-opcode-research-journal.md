@@ -32313,3 +32313,150 @@ identifies preparation source 054466c and preserves runtime buildSourceCommit
 8e09a3c552ffda6ffa19da56ccbee85f6b504115. The receipt checkpoint changes only journal
 and deployment metadata; it reuses this exact tested runtime asset set. Upstream
 recognition, sample permission and adoption remain pending as documented.
+
+### 2026-11-21: tooling migration inventory and first isolated Tower port
+
+Assignment: `C:/Sandbox/build/codex-agents/agent_1_tooling_task.txt` supersedes
+agent 1's grammar/session lane. Work starts from `dfe6ce3` on `main`, after
+`git pull --rebase`. The coordinator still owns the zero-native release and
+`publish.lock` (contents: `root Tower native retirement f745254`). Its completion
+notice is not present and this checkout still contains the five native files.
+Consequently this milestone leaves active bootstrap/build/package/deployment
+paths unchanged. It does not replace or downgrade `bootstrap/development.json`.
+
+#### Reachable tooling inventory
+
+Inventory is of tracked project files, excluding upstream submodule contents and
+ignored build products. At `dfe6ce3`, `git ls-files '*.py' '*.sh' '*.ps1' '*.cmake'
+'*CMakeLists.txt' '*.mjs' '*.js' '*.cjs'` identifies **285 files**: 23 Python,
+19 shell, two PowerShell, 53 CMake and 188 JavaScript modules. These counts do not
+include inline Python embedded in shell scripts, Docker instructions, package
+metadata or non-code target/resource manifests. They are not a Tower percentage.
+Callers were checked with `git grep -n` for each removal candidate and `rg -n
+'\.py|\.sh|\.ps1' playground/scripts cmake docker`, then by reading the entry
+points below. No repository-wide formatting or sanitizer command was run.
+
+| Entry point / dependency | Owned non-Tower files at the inventory revision | Decision / required replacement |
+| --- | --- | --- |
+| Docker build and complete validation | `build.sh`, `internal.sh`, `docker/Dockerfile` | Docker and upstream dependency installation remain the canonical Linux x64 route. The top-level orchestration can move to Tower after host process/filesystem tooling exists. `internal.sh` reaches the native/browser/release checks; its sanitizer-backed `test-native-core.sh` must not be run in this lane. |
+| Bootstrap selection and publication | `bootstrap/install.py`, `bootstrap/package.py`, `playground/scripts/build-bootstrap.sh` | Live: every compiler build invokes the installer through `build-bootstrap.sh`; packaging is the manual pin-publication entry. Preserve archive/member SHA-256, exact member set, path checks, relocation resources, dependencies and provenance. Coordinator ownership prevents replacement during this release. |
+| Compiler builds | `playground/scripts/build-native.sh`, `build-wasm.sh`, `build-threads.sh`, `build-llvm.sh` | Live native, portable WASI, shared-memory frontend and LLVM/cross reactors. Call the verified bootstrap and CMake. `build-llvm.sh` also calls the LLD patcher and compiler-project packager and contains two inline Python blocks that temporarily normalize/restore upstream `config.guess`/`config.sub`. |
+| Upstream and export dependencies | `playground/scripts/setup-wasi.sh`, `cache-llvm-source.sh`, `build-targets.sh`, `run-windows.sh` | SDK download/hash/extraction; clean LLVM snapshot by revision; real target runtime objects/import descriptions; Windows executable transport. Retain until replacements preserve those contracts. Shared LLVM caches are read-only to this lane. |
+| Native/bootstrap/release functional gates | `playground/scripts/test-bootstrap.sh`, `test-compiler-distribution.sh`, `test-host-runtime.sh`, `test-native-core.sh`, `test-linking.sh`, `test-target-packs.sh`, `test-windows-linking.sh`, `test-browser-exports.sh` | Live from `internal.sh` or manual development. Includes real successor compilers and exported native artifacts. Distribution also embeds Python report assertions; do not count deleting only its external Python runner as complete retirement. |
+| Host build graph | `CMakeLists.txt`; all `cmake/Tower*.cmake`, `cmake/Compose*.cmake`, `cmake/WasiThreads.cmake` (53 files total) | Root includes Tower host/compiler/runtime/test fragments; nine Compose manifests use `TowerModule.cmake` to construct import units. Browser packaging reads actual Compose manifests. `WasiThreads.cmake` bridges upstream SDK. `TowerParserBenchmark.cmake` is a documented manual opt-in measurement target, not an unconditional root include: retain it rather than calling it dead. Migrate project scheduling/composition to Tower, retaining only necessary upstream CMake. |
+| Required Python tools | `playground/scripts/prepare-lld-compat.py`, `package-compiler-project.py`, `package-roku.py`, `self-build-compiler.py`, `test-distribution-recipe.py`, `verify-compiler.py` | LLD build compatibility; import-unit/support packaging; documented Roku ZIP export; explicit three-generation release recipe, its schema tests and relocation checks. `test-compiler-distribution.sh` imports/runs the latter pair. These need real Tower ports, not deletion. |
+| Native inventory and measurement | `playground/scripts/inventory-native.py`, `benchmark-compiler-native.py`, `benchmark-semantics.py`, `profile-native.py` | Documented manual inventory and paired/native compiler probes. Preserve current measurement/release evidence. Native inventory may become historical after the coordinator completes native retirement; verify callers then. |
+| C/backend/module functional checks | `scaffolding/tests/benchmark-c.py`, `bytecode-llvm.py`, `c-backend-profiles.py`, `c-backend.py`, `c-downloads.py`, `interpreter-llvm.py`, `module_paths.py`; `c-backend-msvc.ps1`, `run.ps1` | Manual C/LLVM/interpreter/module/Windows checks, many with current documentation. `run.ps1` also generates a PowerShell/cmd bootstrap bridge. Keep assertions and actual tool execution when translating. Their absence from `internal.sh` alone does not establish obsolescence. |
+| Language audit helpers | `docs/research/audit_tower_loops.py`, `audit_tower_cleanup.py`, `audit_tower_simplification.py` | Cleanup and simplification import the loop scanner; research documents reference all three, and the ongoing language lane recently used simplification. Retain pending a Tower scanner/audit replacement or explicit historical archival. |
+| Historical completed-port probes | `playground/scripts/profile-grammar-port-native.py`, `profile-grammar-port.mjs`, `profile-replacement-port.mjs` | Only retained callers are historical journal reproduction commands (and two self usage comments). No package/build/test imports or current README entry. Archive this batch as described below. |
+| Playground bundling and verification | `playground/scripts/build.mjs`, `serve.mjs`, `verify-local.mjs`, `verify-deployment.mjs`, `test-compiler-project.mjs`, `test-ide.mjs`; `playground/playwright.config.mjs` | `package.json` exposes build/serve/test/compiler/deployment. Build owns hashing, compression, manifests and asset assembly as well as esbuild integration; reusable data work should move to Tower. Deployment/browser automation and host APIs remain necessary boundaries. Preserve real worker generations, cancellation and downloadable artifacts. |
+| Other JS development tools | Remaining `playground/scripts/*.mjs`: compiler-unit-node, format-tower, interpreter-workloads; eight benchmark modules (compiler-ownership/workers/worlds, completion, hover, interpreters, parser, semantics); profile-compiler/diagnostics/execution/interpreters/parser/replacements/profile | 26 script modules before the two historical JS removals, 24 afterward. Shared fixtures, comparisons, formatting policy and statistics are Tower candidates; Node/WebAssembly/DevTools transport remains a boundary. `format-tower.mjs` currently only offers a whole-repository sweep, so it is not used to format this scoped change. |
+| Browser product | `playground/src/*.mjs` (46) | DOM/CodeMirror, worker creation/messages, network/IndexedDB and Wasm host imports remain JS boundaries. Reusable candidates include project/archive validation, CRC/ZIP, module-input handling, target/build recipes, offsets/source locations, comparison and IDE query logic. Compilation/IDE services belong on the shared Tower world/components, not a new graph in this lane. No complete UI rewrite is attempted. |
+| Browser and host regression suites | `playground/tests/**/*.mjs` (80); `scaffolding/tests/*.mjs` (7: benchmark-interpreters, format-benchmark, guest-runtime-benchmark, host-wasi, interpreter-wasi, run-allocator-wasm, run-guest-runtime) | Node tests and Playwright are reachable via package scripts; CMake also invokes the WASI/allocator hosts. Translate fixtures/assertions into Tower while retaining browser/native execution transport and coverage. |
+| Retained research JS | `docs/research/*.mjs` (28) | README explicitly invokes temporal-validation-all and replacement-shortcuts.test; those import model/reference/adversarial/mutation/example modules. These are reachable research models, not unused production scripts. Preserve research through Tower translation or an explicit archival decision. |
+
+The first safe deletion batch removes the three completed grammar/replacement
+port probes above: one Python and two JS files, 130 lines. Their source and the
+exact journal reproduction environment remain available at
+[the pre-removal revision](https://github.com/TrevorSundberg/tower/tree/dfe6ce3/playground/scripts).
+Earlier journal commands are historical and now require that revision. Current
+generic compiler/interpreter/semantic profiles remain available; this deletion
+does not claim they reproduce the old probes' exact workload/timing methodology.
+No CMake fragment was proven obsolete in this first batch. After this batch the
+tracked inventory is 22 Python, 19 shell, two PowerShell, 53 CMake and 186 JS files.
+
+#### First required-tool port: LLD compatibility
+
+`scaffolding/tools/lld_compat.tower` owns the exact-match patch decision and host
+file operation; `prepare_lld_compat.tower` supplies the Linux/POSIX CLI. It reuses
+`ByteBuffer`, `bytes_*`, the existing `driver_read_file`/`driver_write_file` and
+Tower UTF-8 validator. No ECS entities are needed for a byte-string operation.
+File effects happen only when the tool runs. Paths are arguments, never shell
+commands. The fixed upstream patch still uses `WasmPageSize` and excludes PIC;
+this is third-party compatibility, not new native Tower implementation.
+
+The port matches the predecessor's universal-newline read, marker/anchor guards,
+idempotence and failure status. Missing/duplicate anchors, an existing upstream
+symbol and an altered patch reject without opening the file for writing. A
+no-op preserves the original bytes, including CRLF. Buffer publication happens
+after successful allocation, supports an aliased input/output, and explicitly
+transfers ownership. A physical write/close failure reports failure and may
+leave partial bytes, like the existing driver helper; atomic filesystem replace
+and concurrent mutation protection are not claimed. Invalid UTF-8 is rejected.
+Usage now produces a concise message and exit 2; operational errors use exit 1.
+
+Validation environment: Windows PowerShell invoking Ubuntu WSL as `trevo`,
+Clang/LLVM 19, own caches `/home/trevo/.cache/tower/agent1-tooling-*`. Installed
+the checked-in pin with `python3 bootstrap/install.py --cache
+/home/trevo/.cache/tower/agent1-tooling-bootstrap`; archive SHA-256 is
+`083b7da564f33389f4ca512829e0d50a3982e76632a65d5bbe8dbb683c2f3f35`.
+No private `TOWER_BOOTSTRAP_COMPILER` environment override was used. The CMake
+argument below names that verified installation explicitly for the isolated
+runtime-library target, not an unpublished compiler.
+
+Reproduction (Linux shell, repository root; `pin` abbreviates the installation
+path above and `out` the isolated `agent1-tooling-native` cache):
+
+```sh
+cmake -S . -B "$out" -G Ninja -DTOWER_NATIVE=ON \
+  -DTOWER_BOOTSTRAP_COMPILER="$pin/towerc" \
+  -DCMAKE_PROJECT_scaffolding_INCLUDE="$PWD/cmake/TowerBackend.cmake" \
+  -DLLVM_DIR=/usr/lib/llvm-19/lib/cmake/llvm -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_C_COMPILER=/usr/bin/clang-19 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-19
+cmake --build "$out" --target tower-guest-host-library --parallel 2
+"$pin/towerc" scaffolding/tools/prepare_lld_compat.tower --library \
+  --target x86_64-unknown-linux-gnu --bedrock scaffolding/bedrock.tower \
+  --foundation scaffolding/foundation.tower -o "$out/prepare_lld_compat.o"
+clang-19 "$out/prepare_lld_compat.o" "$out/guest-host-library.o" -o "$out/prepare_lld_compat"
+"$pin/towerc" scaffolding/tests/lld_compat_checks.tower --library \
+  --target x86_64-unknown-linux-gnu --bedrock scaffolding/bedrock.tower \
+  --foundation scaffolding/foundation.tower -o "$out/lld_compat_checks.o"
+clang-19 "$out/lld_compat_checks.o" "$out/guest-host-library.o" -o "$out/lld_compat_checks"
+"$out/lld_compat_checks" "$out/fixture.cpp"
+```
+
+The Tower check runner prints `LLD compatibility checks passed`: exact patch
+bytes, repeat application, missing/duplicate anchor, upstream symbol, altered
+patch, invalid UTF-8, preserved rejection buffers, CRLF normalization, input/output
+aliasing, actual file writes/readback/no-op/rejection and missing-file failure.
+Both CLI compilation and the tests use ordinary `--library` plus the established
+guest host library to avoid an executable-mode duplicate `main` wrapper.
+
+For independent comparison, copied the coordinator's upstream
+`third_party/llvm-project/lld/wasm/Driver.cpp` read-only into two isolated fixture
+trees (this checkout's submodule is unpopulated). Applied the unchanged Python
+patcher to one and the Tower CLI to `after with spaces`; `cmp` exits 0. Patched
+SHA-256: `a131be088ad618758d21dc390cd89a06bd2bcd9d453a248eb683de608bf473c3`.
+Repeated Tower invocation exits 0. Missing root exits 1; missing argument exits 2.
+The shared upstream file/cache was not modified.
+
+Failed trials: initial source omitted an explicit `bytes_types` import (imports
+do not re-export `ByteBuffer`); a fixture variable named `expected` is a grammar
+keyword; `trap()` needs arguments. Fixed the imports/name and used the existing
+libc abort boundary for test failures. A nested PowerShell/bash quoting attempt
+truncated a command containing spaces before comparison ran; repeated using
+direct `wsl -e` arguments and separately verified `cmp`. Do not treat the first
+empty command output as comparison evidence.
+
+The replacement is validated independently but **not wired into build-llvm.sh**
+yet. The Python predecessor remains required until the coordinator publishes the
+zero-native baseline and releases active tooling ownership. Next: integrate the
+tested tool through that baseline, then shared Tower archive/manifest/process
+support for bootstrap/packaging and reusable JS logic. Publication must acquire
+the shared lock and preserve current runtime `buildSourceCommit`; no new runtime
+binaries are warranted by this independent tooling/documentation milestone.
+
+Coordinator update received during the audit: native retirement is locally
+complete but its source/release is still unpublished while merged feature
+validation and a fresh pin run. The shared lock remains held. This is a specific
+deployment blocker, not a failed or completed Pages publication. Independent
+source milestones are authorized to push after rebase; active build integration
+and Pages changes remain deferred until that ownership is released.
+
+Pre-push rebase incorporated `984f6cb` (cycle-aware scalar binding bootstrap)
+and the earlier editor/Linguist additions. Resolved the append conflict by
+retaining both journal histories. Installed the new checked-in archive
+`6d064a5852535255184b0096f33d22060b040499bed69f188d04272fb0cd9c84`
+into the same isolated cache, rebuilt the guest host library and both Tower tool
+objects, then relinked/reran the focused check successfully. No compiler-source
+syntax migration or bootstrap pin changes are part of this milestone.

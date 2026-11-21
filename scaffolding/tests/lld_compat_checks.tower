@@ -1,0 +1,73 @@
+import tower;
+import .tools.lld_compat;
+import .library.bytes;
+import .library.bytes_types;
+import .host.driver_files;
+
+extern fn puts(text: u8*): i32;
+extern fn abort(): void;
+extern fn remove(path: u8*): i32;
+extern fn strlen(text: u8*): usize;
+extern fn memcmp(left: u8*, right: u8*, count: usize): i32;
+
+fn lld_check(ok: bool, message: u8*): void {
+    if !ok { puts(message); abort(); }
+}
+
+fn lld_check_same(buffer: ByteBuffer*, wanted: u8*): bool {
+    return buffer.length == strlen(wanted) && memcmp(buffer.data, wanted, buffer.length) == 0;
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    var required_arguments: i32 = 2;
+    if argc != required_arguments { puts("Supply an isolated writable fixture path"); return 1; }
+    var anchor = "  WasmSym::dsoHandle = symtab->addOptionalDataSymbol(\"__dso_handle\");\n";
+    var original = "// prefix\n  WasmSym::dsoHandle = symtab->addOptionalDataSymbol(\"__dso_handle\");\n// suffix\n";
+    var wanted = "// prefix\n  // Tower WASI SDK 34 compatibility: fixed-size first Wasm page.\n  if (!ctx.isPic)\n    if (auto *firstPageEnd = symtab->addOptionalDataSymbol(\"__wasm_first_page_end\"))\n      firstPageEnd->setVA(WasmPageSize);\n\n  WasmSym::dsoHandle = symtab->addOptionalDataSymbol(\"__dso_handle\");\n// suffix\n";
+    var output: ByteBuffer = default;
+    var input: ByteBuffer = default;
+    defer bytes_dispose(&output);
+    defer bytes_dispose(&input);
+    lld_check(lld_compat_rewrite(original, strlen(original), &output) == LldCompatResult.Patched, "fresh source patches");
+    lld_check(lld_check_same(&output, wanted), "patch bytes preserve prefix/suffix and PIC guard");
+    var saved = output.data;
+    lld_check(lld_compat_rewrite(output.data, output.length, &output) == LldCompatResult.Unchanged, "second application is unchanged");
+    lld_check(output.data == saved && lld_check_same(&output, wanted), "unchanged output retains allocation and bytes");
+    lld_check(lld_text(&input, "unrelated\n"), "build missing-anchor fixture");
+    lld_check(lld_compat_rewrite(input.data, input.length, &output) == LldCompatResult.ReviewRevision, "missing anchor rejected");
+    input.length = 0;
+    lld_check(lld_text(&input, anchor) && lld_text(&input, anchor), "build duplicate-anchor fixture");
+    lld_check(lld_compat_rewrite(input.data, input.length, &output) == LldCompatResult.ReviewRevision, "duplicate anchor rejected");
+    input.length = 0;
+    lld_check(lld_text(&input, anchor) && lld_text(&input, "// __wasm_first_page_end\n"), "build upstream-symbol fixture");
+    lld_check(lld_compat_rewrite(input.data, input.length, &output) == LldCompatResult.ReviewRevision, "upstream symbol rejected");
+    input.length = 0;
+    lld_check(lld_text(&input, "  // Tower WASI SDK 34 compatibility: fixed-size first Wasm page.\n"), "build altered-patch fixture");
+    lld_check(lld_compat_rewrite(input.data, input.length, &output) == LldCompatResult.ModifiedPatch, "altered patch rejected");
+    var invalid_utf8: u8 = 255;
+    lld_check(lld_compat_rewrite(&invalid_utf8, 1, &output) == LldCompatResult.InvalidText, "invalid UTF-8 rejected");
+    lld_check(output.data == saved && lld_check_same(&output, wanted), "rejections leave destination intact");
+    input.length = 0;
+    for (var at: usize = 0; at < strlen(original); at++) {
+        if original[at] == convert(u8, LldTextByte.LF) { lld_check(bytes_push(&input, convert(u8, LldTextByte.CR)), "append CR"); }
+        lld_check(bytes_push(&input, original[at]), "append fixture byte");
+    }
+    lld_check(lld_compat_rewrite(input.data, input.length, &output) == LldCompatResult.Patched, "CRLF accepted");
+    lld_check(lld_check_same(&output, wanted), "CRLF normalizes like predecessor");
+    lld_check(bytes_assign_text(&input, original, strlen(original)), "prepare aliased fixture");
+    lld_check(lld_compat_rewrite(input.data, input.length, &input) == LldCompatResult.Patched && lld_check_same(&input, wanted), "aliased destination is safe");
+    var path = argv[1];
+    lld_check(driver_write_file(path, original, strlen(original)), "write isolated fixture");
+    defer remove(path);
+    lld_check(lld_compat_file(path) == LldCompatResult.Patched, "real file patch");
+    lld_check(driver_read_file(path, &input) && lld_check_same(&input, wanted), "real file exact bytes");
+    lld_check(lld_compat_file(path) == LldCompatResult.Unchanged, "real file idempotence");
+    var rejected = "// no anchor\r\n";
+    lld_check(driver_write_file(path, rejected, strlen(rejected)), "write rejected fixture");
+    lld_check(lld_compat_file(path) == LldCompatResult.ReviewRevision, "real file rejection");
+    lld_check(driver_read_file(path, &input) && lld_check_same(&input, rejected), "rejection preserves original CRLF bytes");
+    lld_check(remove(path) == 0, "remove fixture");
+    lld_check(lld_compat_file(path) == LldCompatResult.ReadFailure, "missing file reports failure");
+    puts("LLD compatibility checks passed");
+    return 0;
+}
