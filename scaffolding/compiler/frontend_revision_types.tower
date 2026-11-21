@@ -1,0 +1,14 @@
+import tower;
+import syntax_view;
+import .library.vector;
+
+// Immutable revision indexes pin the original shared grammar entities. The
+// coordinator owns reference/slot mutation; pinned readers only borrow views.
+struct FrontendRevision {
+    references: usize;
+    slot: usize;
+    rules: vector(SyntaxRuleView);
+    names: vector(u8);
+    alternatives: vector(void*);
+    tokens: vector(void*);
+}

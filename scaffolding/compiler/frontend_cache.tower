@@ -1,5 +1,6 @@
 import syntax_view;
 import tower;
+import frontend_revision_types;
 import lr_analysis;
 import lr_tree;
 import regex_lowering;
@@ -11,22 +12,13 @@ import .library.vector;
 
 // Immutable revision snapshots retain shared grammar entities. Cache slots are
 // disposable host handles; no parser semantics or source is encoded in them.
-struct FrontendRevision {
-    references: usize;
-    slot: usize;
-    rules: vector(SyntaxRuleView);
-    names: vector(u8);
-    alternatives: vector(void*);
-    tokens: vector(void*);
-}
-
 struct FrontendCache {
     entries: vector(FrontendRevision*);
     builds: usize;
     hits: usize;
 }
 
-fn frontend_revision_release(revision: FrontendRevision*): void {
+export fn frontend_revision_release(revision: FrontendRevision*): void {
     var missing = revision == null;
     if missing {
         return;
@@ -49,6 +41,11 @@ fn frontend_revision_release(revision: FrontendRevision*): void {
     vector_dispose(void*, &revision.alternatives);
     vector_dispose(void*, &revision.tokens);
     free(revision);
+}
+
+export fn frontend_revision_retain(revision: FrontendRevision*): FrontendRevision* {
+    if revision is not null { ++revision.references; }
+    return revision;
 }
 
 fn frontend_revision_nodes(target: vector(void*)*, nodes: void**, count: usize): bool {

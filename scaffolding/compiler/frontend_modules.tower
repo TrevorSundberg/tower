@@ -10,6 +10,7 @@ import parser_nodes;
 import regex_lowering;
 import syntax_nodes;
 import syntax_reader;
+import syntax_revision;
 import syntax_source;
 import syntax_types;
 import syntax_validation;

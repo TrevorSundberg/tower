@@ -11,6 +11,7 @@ import frontend_syntax_preview;
 import frontend_diagnostic_text;
 import frontend_emission;
 import frontend_pending;
+import frontend_revision;
 
 // Separate test unit: call the actual production exports, without embedding a
 // second copy of the grammar reader or depending on the native default world.
@@ -448,6 +449,7 @@ export fn frontend_world_tests(): void {
     frontend_diagnostic_text_tests();
     frontend_emission_tests();
     frontend_pending_tests();
+    frontend_revision_tests();
     frontend_world_lifetime_tests();
     frontend_world_failure_tests();
 }

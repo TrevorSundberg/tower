@@ -1,0 +1,186 @@
+import tower;
+import .library.vector;
+import .compiler.frontend_revision_types;
+import .compiler.syntax_view;
+import .compiler.syntax_types;
+import .compiler.component_kinds;
+import .compiler.grammar_types;
+import frontend_world;
+import frontend_format;
+import frontend_syntax_preview;
+
+extern fn syntax_revision_create(rules: SyntaxRuleView*, count: usize, tokens: void**, token_count: usize): FrontendRevision*;
+extern fn frontend_revision_release(revision: FrontendRevision*): void;
+extern fn frontend_revision_retain(revision: FrontendRevision*): FrontendRevision*;
+extern fn syntax_revision_declare(base: FrontendRevision*, node: void*, kind: void*, error: vector(u8)*): FrontendRevision*;
+extern fn syntax_revision_overlay(base: FrontendRevision*, rules: SyntaxRuleView*, count: usize, tokens: void**, token_count: usize, kind: void*): FrontendRevision*;
+extern fn syntax_revision_ready(base: FrontendRevision*, waiting: void**): FrontendRevision*;
+extern fn syntax_revision_rule(base: FrontendRevision*, name: u8*, length: usize): SyntaxRuleView*;
+extern fn syntax_revision_reference(base: FrontendRevision*, name: u8*, length: usize, index: usize, count: usize*, kind: void*): void*;
+
+fn revision_test_node(world: void*, parent: void*, name: u8*, length: usize, tag: u32): void* {
+    var entity = frontend_format_child(compiler_world_store(world), parent, null);
+    var node = preview_syntax(world, entity);
+    node.kind = tag;
+    frontend_world_check(bytes_append(&node.name, name, length));
+    return entity;
+}
+
+fn revision_test_error(error: vector(u8)*, wanted: u8*): void {
+    frontend_world_check(vector_push(u8, error, 0));
+    frontend_format_text(error.data, wanted);
+    vector_dispose(u8, error);
+}
+
+fn frontend_revision_tests(): void {
+    var baseline = tower_test_buffer_count();
+    var world = compiler_world_create();
+    var store = compiler_world_store(world);
+    var kinds: FrontendKinds;
+    frontend_world_check(frontend_world_test_kinds(world, &kinds));
+    var source = entity_create(store);
+    var names: u8[3];
+    copy(&names, "ZAM", 3);
+    var alternatives: void*[3];
+    var rules: SyntaxRuleView[3];
+    var waiting: void*[3];
+    for (var i: usize = 0; i < 3; ++i) {
+        alternatives[i] = revision_test_node(world, source, "", 0, convert(u32, SyntaxKind.Alternative));
+        rules[i].name = &names[i];
+        rules[i].name_length = 1;
+        rules[i].alternatives = &alternatives[i];
+        rules[i].count = 1;
+        waiting[i] = null;
+    }
+    var tokens: void*[2];
+    tokens[0] = revision_test_node(world, source, "First", 5, convert(u32, SyntaxKind.Token));
+    tokens[1] = revision_test_node(world, source, "Second", 6, convert(u32, SyntaxKind.Skip));
+    var revision = syntax_revision_create(&rules[0], 3, &tokens[0], 2);
+    frontend_world_check(revision is not null);
+    frontend_format_text(revision.rules.data[0].name, "A");
+    frontend_format_text(revision.rules.data[1].name, "M");
+    frontend_format_text(revision.rules.data[2].name, "Z");
+    fill(&names, 88, 3);
+    frontend_world_check(syntax_revision_rule(revision, "A!", 1).alternatives[0] == alternatives[1]);
+    frontend_world_check(syntax_revision_rule(revision, "absent", 6) is null);
+
+    var declaration = revision_test_node(world, source, "A", 1, convert(u32, SyntaxKind.Rule));
+    var node = preview_syntax(world, declaration);
+    node.append = true;
+    frontend_world_check(vector_push(void*, &node.items, alternatives[0]));
+    var error: vector(u8);
+    vector_init(u8, &error);
+    var allocations = tower_test_buffer_allocations();
+    var edited = syntax_revision_declare(revision, declaration, kinds.syntax, &error);
+    var construction = tower_test_buffer_allocations() - allocations;
+    frontend_world_check(edited is not null && error.length == 0);
+    var rule = syntax_revision_rule(edited, "A", 1);
+    frontend_world_check(rule.count == 2 && rule.alternatives[0] == alternatives[1] && rule.alternatives[1] == alternatives[0]);
+    frontend_world_check(syntax_revision_rule(revision, "A", 1).count == 1);
+    frontend_revision_release(edited);
+    var buffers = tower_test_buffer_count();
+    var references = entity_references(alternatives[0]);
+    for (var i: usize = 0; i < construction; ++i) {
+        tower_test_buffer_fail_after(i);
+        edited = syntax_revision_declare(revision, declaration, kinds.syntax, &error);
+        tower_test_buffer_fail_after(frontend_world_unlimited());
+        frontend_world_check(edited is null);
+        frontend_world_check(tower_test_buffer_count() == buffers);
+        frontend_world_check(entity_references(alternatives[0]) == references);
+        frontend_world_check(syntax_revision_rule(revision, "A", 1).count == 1);
+    }
+    node.append = false;
+    edited = syntax_revision_declare(revision, declaration, kinds.syntax, &error);
+    frontend_world_check(edited is not null);
+    rule = syntax_revision_rule(edited, "A", 1);
+    frontend_world_check(rule.count == 1 && rule.alternatives[0] == alternatives[0]);
+    frontend_revision_release(edited);
+    node.name.data[0] = 66;
+    node.append = true;
+    frontend_world_check(syntax_revision_declare(revision, declaration, kinds.syntax, &error) is null);
+    revision_test_error(&error, "Cannot extend undefined rule: B");
+    node.name.data[0] = 65;
+    node.kind = convert(u32, SyntaxKind.Token);
+    frontend_world_check(syntax_revision_declare(revision, declaration, kinds.syntax, &error) is null);
+    revision_test_error(&error, "Name already defines a parse rule: A");
+
+    var replacement = revision_test_node(world, source, "First", 5, convert(u32, SyntaxKind.Skip));
+    var appended = revision_test_node(world, source, "Third", 5, convert(u32, SyntaxKind.Token));
+    var overlay: void*[2];
+    overlay[0] = replacement;
+    overlay[1] = appended;
+    allocations = tower_test_buffer_allocations();
+    edited = syntax_revision_overlay(revision, null, 0, &overlay[0], 2, kinds.syntax);
+    construction = tower_test_buffer_allocations() - allocations;
+    frontend_world_check(edited is not null && edited.tokens.length == 3);
+    frontend_world_check(edited.tokens.data[0] == replacement && edited.tokens.data[1] == tokens[1] && edited.tokens.data[2] == appended);
+    frontend_world_check(revision.tokens.length == 2 && revision.tokens.data[0] == tokens[0]);
+    frontend_revision_release(edited);
+    buffers = tower_test_buffer_count();
+    for (var i: usize = 0; i < construction; ++i) {
+        tower_test_buffer_fail_after(i);
+        edited = syntax_revision_overlay(revision, null, 0, &overlay[0], 2, kinds.syntax);
+        tower_test_buffer_fail_after(frontend_world_unlimited());
+        frontend_world_check(edited is null && tower_test_buffer_count() == buffers);
+        frontend_world_check(entity_references(alternatives[0]) == references);
+    }
+    // Ready and empty overlays reuse their immutable owner without allocation.
+    tower_test_buffer_fail_after(0);
+    var ready = syntax_revision_ready(revision, &waiting[0]);
+    edited = syntax_revision_overlay(revision, null, 0, null, 0, kinds.syntax);
+    tower_test_buffer_fail_after(frontend_world_unlimited());
+    frontend_world_check(ready == revision && edited == revision);
+    frontend_revision_release(ready);
+    frontend_revision_release(edited);
+    waiting[1] = alternatives[0];
+    allocations = tower_test_buffer_allocations();
+    ready = syntax_revision_ready(revision, &waiting[0]);
+    construction = tower_test_buffer_allocations() - allocations;
+    frontend_world_check(ready is not null && ready.rules.length == 2);
+    frontend_world_check(syntax_revision_rule(ready, "M", 1) is null);
+    frontend_world_check(syntax_revision_rule(revision, "M", 1) is not null);
+    frontend_revision_release(ready);
+    buffers = tower_test_buffer_count();
+    for (var i: usize = 0; i < construction; ++i) {
+        tower_test_buffer_fail_after(i);
+        ready = syntax_revision_ready(revision, &waiting[0]);
+        tower_test_buffer_fail_after(frontend_world_unlimited());
+        frontend_world_check(ready is null && tower_test_buffer_count() == buffers);
+        frontend_world_check(entity_references(alternatives[0]) == references);
+    }
+
+    var full_tokens: void*[64];
+    for (var i: usize = 0; i < 64; ++i) {
+        var name: u8[1];
+        name[0] = convert(u8, i + 32);
+        full_tokens[i] = revision_test_node(world, source, &name[0], 1, convert(u32, SyntaxKind.Token));
+    }
+    var full = syntax_revision_create(null, 0, &full_tokens[0], 64);
+    frontend_world_check(full is not null);
+    frontend_world_check(syntax_revision_declare(full, appended, kinds.syntax, &error) is null);
+    revision_test_error(&error, "Token rule limit is 64");
+    // Replacing a token remains valid at the limit and preserves its position.
+    edited = syntax_revision_declare(full, full_tokens[17], kinds.syntax, &error);
+    frontend_world_check(edited is not null && edited.tokens.length == 64 && edited.tokens.data[17] == full_tokens[17]);
+    frontend_revision_release(edited);
+    frontend_revision_release(full);
+
+    // Borrowed views survive source destruction and releasing another pin.
+    var pin = frontend_revision_retain(revision);
+    frontend_revision_release(revision);
+    entity_release(source);
+    frontend_format_text(pin.rules.data[0].name, "A");
+    buffers = tower_test_buffer_count();
+    allocations = tower_test_buffer_allocations();
+    for (var i: usize = 0; i < 64; ++i) {
+        var count: usize = 0;
+        frontend_world_check(syntax_revision_reference(pin, "A", 1, 0, &count, kinds.syntax) == alternatives[1] && count == 1);
+        frontend_world_check(syntax_revision_reference(pin, "First", 5, 0, &count, kinds.syntax) == tokens[0] && count == 1);
+        frontend_world_check(syntax_revision_reference(pin, "First", 5, 1, &count, kinds.syntax) is null && count == 1);
+    }
+    frontend_world_check(tower_test_buffer_count() == buffers && tower_test_buffer_allocations() == allocations);
+    frontend_revision_release(pin);
+    vector_dispose(u8, &error);
+    frontend_world_check(compiler_world_dispose(world));
+    frontend_world_check(tower_test_buffer_count() == baseline);
+}

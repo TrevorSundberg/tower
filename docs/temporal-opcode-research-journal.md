@@ -22772,6 +22772,7 @@ for-published-relocated.log). The final native/parser/LLVM artifacts were rebuil
 after formatting, and the complete deployment assets were repackaged. The native
 CTest aggregate is still running at this checkpoint; no complete pass is claimed.
 
+
 ### 2026-11-20 � Agent 3: retire native byte-buffer and UTF-8 test drivers
 
 Assignment: migrate native parser/ECS functional coverage to executable Tower,
@@ -22834,3 +22835,49 @@ parser/ECS/semantic suites are not represented as migrated by this milestone.
 Coordinator explicitly owns the combined browser build/deployment/hosted checks;
 source publication is agent 3's responsibility. Deployment is pending until the
 coordinator reports the exact published SHA and verification.
+
+### 2026-11-20 - Tower-owned syntax revision overlays (agent 1)
+
+Retired syntax.cpp's Definitions map and TokenDefinitions vector. The session,
+compiled version, replacement reader and baseline now pin FrontendRevision views
+owned by Tower. syntax_revision.tower performs name sorting, rule replace/extend,
+token replacement at its existing lexical position, appended token ordering,
+ready-rule filtering and reference lookup. Shared declaration ECS entities remain
+authoritative; these are derived indexes with copied stable names and retained
+alternatives/tokens, not an additional semantic graph or serialized format.
+Candidate publication follows successful validation/table construction. Import
+failure now also leaves the last published revision intact. Cache recency still
+belongs to the coordinator; no concurrent refcount mutation or within-unit phase
+parallelism is claimed. Native session orchestration and installed baseline
+registries remain for the next assigned slice.
+
+Added Tower production-API ownership tests in tests/frontend_revision.tower:
+unsorted length-delimited names, stable lookup, = versus |=, undefined extension,
+rule/token collision, lexical priority, the 64-token boundary and valid replacement
+at that boundary, pending filtering, allocation-free all-ready reuse, source
+release with a surviving pin, repeated allocation-free queries, and failure of
+every allocation in append/overlay/filter construction with unchanged references
+and buffer counts. Existing pending tests still cover the null all-ready owner.
+
+The initial build from a543561 failed on SyntaxRevisionTokenLimit used as a local;
+Tower constants use their generated function spelling, corrected to
+SyntaxRevisionTokenLimit(). The first test compile also diagnosed reserved token
+`expected` used as a parameter; renamed it `wanted`. A WSL shell command stripped
+nested quotes around the CTest regex; reran via `wsl --exec ctest` without shell
+reinterpretation. These were compile/command failures, not successful checks.
+
+Integrated upstream 8290fd2 with `git pull --rebase --autostash`; all edits applied
+without conflicts. Read the new for-loop instructions and used counted for loops
+in the new implementation/tests. A fresh documented-bootstrap build with no
+private override passed all 56 native targets:
+`env -u TOWER_BOOTSTRAP_COMPILER TOWER_NATIVE_BUILD=/home/trevo/.cache/tower/agent-1-native-current TOWER_BUILD_JOBS=4 bash playground/scripts/build-native.sh`.
+This uses published Linux development archive 9bbb2eb8fa039442303d231fd35b5b4ac416df21f19c80f0d5f9dbf6bb01f395,
+not a portable compiler release. Enabled TOWER_BACKEND_TESTS/TOWER_DRIVER_TESTS,
+built towerc/tower-frontend-tests/tower-driver-tests, and ran anchored
+`ctest -R '^tower-(frontend|driver)$' --output-on-failure`: 2/2 passed, 15.40 s.
+The actual successor also passed scaffolding/tests/module_paths.py. Logs live in
+C:/Sandbox/build/codex-agents/agent-1-{native-current-build,checks-build,module-paths}.log;
+CTest records are in agent-1-native-current/Testing/Temporary/LastTest.log.
+Sanitizers and broad formatting sweeps remain skipped as requested. Browser
+reactors, publication and hosted verification are still pending coordination.
+

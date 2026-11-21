@@ -1,5 +1,6 @@
 import tower;
 import frontend_cache;
+import frontend_revision_types;
 import format_api;
 import format_types;
 import syntax_reader;
