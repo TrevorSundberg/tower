@@ -37218,3 +37218,18 @@ and caller link/run on Linux. Raw and optimized emitted C pass strict Clang C89;
 optimized C passes GCC C89 too. Logs include build/narrow-{native,tests,all,
 oracle,backend-build,browser-build}.log. Browser, fresh bootstrap and publication
 validation are pending; this entry is not a publication receipt.
+
+Publication receipt: 81d4600 and 717b25b are pushed. Metadata-only Pages commit
+bb3a8b6a27dfad9cf885a6d02e4e211973a833bc directly follows a317282 and changes
+only deployment-manifest.json. Pages run 44957176973 succeeds. The hosted
+manifest exactly matches prepared SHA-256
+b122a44c08def828e8336de5ffdf234757dd89e481450ad0fa6f95a2588779c1.
+Runtime build identity 85c8a13, all 84 asset entries and all concurrent
+linker/profiling/UI/tooling notes are preserved.
+
+Next packaging audit: package-compiler-project.py remains a live build-llvm.sh
+entry point; build.mjs and compiler-generation/performance drivers consume its
+project.json and support archives. Its dependency closure, export/wrap/import
+metadata and deterministic archive selection cannot simply be discarded. The
+new Tower Wasm archive/object readers may replace some current llvm-nm/text
+parsing; evaluate that reuse before writing another parser or packaging layer.
