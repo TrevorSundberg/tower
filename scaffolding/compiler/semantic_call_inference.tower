@@ -12,6 +12,9 @@ import .library.vector;
 
 // Query-local constraints refer to the existing parameter and canonical type
 // entities. Specialization still uses generic_instantiate and ordinary calls.
+// The owning compilation unit exclusively mutates its context/entity store.
+// CompilerWork can run independent units in workers; these scratch bindings and
+// entity pointers never cross worlds or become process-wide mutable caches.
 struct SemanticCallInference {
     context: SemanticContext*;
     definition: void*;

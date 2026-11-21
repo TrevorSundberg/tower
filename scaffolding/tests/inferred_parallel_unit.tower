@@ -1,0 +1,25 @@
+import tower;
+
+// Independent compiler workers specialize the same ordinary Tower functions in
+// their own ECS worlds. No process-global registry or pointer sharing is needed.
+fn inferred_scale(T: type, value: T, scale: T, offset: T): T {
+    return value *scale + offset;
+}
+
+fn inferred_add(T: type, left: T, right: T): T {
+    return left + right;
+}
+
+export fn inferred_transform(values: u32*, count: usize): void {
+    for(var i: usize = 0; i < count; i++) {
+        values[i] = inferred_scale(values[i], 3, 7);
+    }
+}
+
+export fn inferred_checksum(values: u32*, count: usize): u32 {
+    var sum: u32 = 0;
+    for(var i: usize = 0; i < count; i++) {
+        sum = inferred_add(sum, values[i]);
+    }
+    return sum;
+}

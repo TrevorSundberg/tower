@@ -39,6 +39,14 @@ type/function entities as explicit specialization. Foundation text remains the
 semantic interchange format. Compiler implementation is entirely Tower; Foundation
 and Bedrock need no new grammar or operation.
 
+Inference belongs to the existing ECS compilation world. Constraint scratch is
+owned by that compilation context; registry queries use that world's component
+types. Independent compiler units use the existing `CompilerWork` worker scheduler
+and exchange owned artifacts. Within a unit, graph construction remains under its
+single owner: these changes do not make arbitrary entity mutation thread safe or
+share entity pointers between workers. Serial and parallel compilation must produce
+the same objects and preserve deterministic publication order.
+
 An older compiler may parse omitted arguments but reject their arity. The compatible
 bootstrap must be published and the default clean build verified before migrating
 compiler sources. This rule applies to checker changes as well as new tokens.

@@ -32,6 +32,21 @@ test('real compiler workers preserve Tower fixture objects and publication order
   }
 });
 
+test('generic inference is isolated per ECS world and deterministic across compiler workers',async () => {
+  const inferred = structuredClone(files);
+  const source = (await read('scaffolding/tests/inferred_parallel_unit.tower')).toString();
+  for (const unit of recipe.units) inferred.find(file => file.path === unit.entry).text = source;
+  const serial = await compileUnits({compiler,recipe,files:inferred});
+  for (const workers of [2,4]) {
+    const published = [];
+    const parallel = await compileUnits({compiler,recipe,files:inferred,workers,createWorker,
+      onObject:unit => published.push(unit.object)});
+    assert.deepEqual(parallel.inputs,serial.inputs);
+    assert.deepEqual(published,recipe.units.map(unit => unit.object));
+    assert.equal(parallel.stats.peak,workers);
+  }
+});
+
 test('compiler cancellation terminates children and cannot publish partial artifacts',async () => {
   const controller = new AbortController(), exits = [], published = [];
   let dispatched = false;

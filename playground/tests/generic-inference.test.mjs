@@ -97,3 +97,7 @@ test('inferred calls retain deterministic specializations and typed completion',
  const handle=tower.create(source);
  try{assert.equal(runToEnd(tower,handle).end.status,'done');assert.equal(tower.format(handle).error,undefined);}finally{tower.destroy(handle);}
 });
+test('the shared inferred worker fixture preserves its scalar kernel behavior',async()=>{
+ const kernel=(await read('scaffolding/tests/inferred_parallel_unit.tower')).toString();
+ await compare(kernel+'\nvar values:u32[3];values[0]=1;values[1]=2;values[2]=3;inferred_transform(&values[0],3);print(inferred_checksum(&values[0],3));', '39\n');
+});

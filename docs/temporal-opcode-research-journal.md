@@ -25088,3 +25088,23 @@ inference-native-cases.log, inference-node-all.log and
 inference-existing-interpreters.log. All feature implementation is Tower.
 Formatting, successor packaging and a clean default build are required before
 any compiler call-site migration; no compatible new bootstrap is claimed yet.
+
+User explicitly reinforced ECS/threading integration. Audited the new queries and
+scratch bindings against CompilerWork/work_graph ownership: graph mutation remains
+owned by each compilation unit, workers exchange owned artifacts, and no entity
+pointers or mutable inference caches cross worlds. Added registry tests using two
+contexts in the same entity store, plus inferred_parallel_unit.tower as a shared
+functional fixture. The actual worker integration tests compile that fixture
+serially and with two/four Node workers: object bytes and source-order publication
+agree, with peak concurrency reaching the requested worker count. All six worker
+tests pass, including cancellation and deterministic failure handling; all seven
+inference tests pass across reference/cache interpreters, Foundation round trips
+and LLVM/Wasm (inference-workers.log and inference-node-ecs.log). The kernel's
+runtime result is independently checked, not just its object identity. Iteration
+will keep per-loop state local and preserve ordinary sequential loop semantics.
+
+Rebased the implementation onto 0333904's newer Tower-owned session/formatting
+orchestration, preserving both journal histories. A fresh no-override native build
+at /cache/inference-rebased passes all 55 steps. New code remains Tower; the
+upstream native boundary changes are preserved rather than attributed to this
+feature. Current implementation/fixture formatting passes tree/idempotence checks.
