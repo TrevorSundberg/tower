@@ -78,9 +78,9 @@
     "worker.js": "39213347695a05edc08714b411230ae26f92e38f84858cda39b22b43bae8474b",
     "worker.js.map": "37af2546e2780f6a9cc2a510e06d31d6dd8a006705dc8bdfcdb9d0567bfbe296"
   },
-  "sourceCommit": "e8661ddc00986a12e3b758c5d092564bb135c58f",
+  "sourceCommit": "896eb302e201564460ef163ab67637545d83e935",
   "buildSourceCommit": "fb0a4dbe3264437fbebf57a5ed6e0673e4b1a899",
-  "previousDeployment": "5c1eabe9f3fc945de5551447e9d69136842776b0",
+  "previousDeployment": "c5cdac212d8098260394e35f77e5205d6974f9de",
   "scope": "Named-field initialization with explicit default coverage, ECS query and worker integration, 35 compiler construction cleanups, and LR completion depth correction.",
   "buildNote": "Built with the published development bootstrap. Native execution, named-initializer source formatting, worker determinism, LLVM/Wasm and two browser successor generations passed; see the project journal.",
   "simplificationAudit": {
