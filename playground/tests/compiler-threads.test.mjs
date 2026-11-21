@@ -58,9 +58,10 @@ fn f${i}(value: decltype(seed)): decltype(value) {
  for(var j: u64 = 0; j < 3; j++) { result += j + ${i}; }
  if comptime(true) { return result; }
 }`);
- const source = 'import tower;\nstruct Shared { value: u64; }\n' + functions.join('\n') +
+ const source = 'import tower;\nstruct Shared { value: u64; }\nfn identity(T:type, value:T):T { return value; }\n' + functions.join('\n') +
   '\nvar seed: u64 = 0;\nvar `control value 1.0`: u64 = 7;\n' +
-  'var total = comptime(' + functions.map((_,i) => `f${i}(0)`).join(' + ') + ');\n' +
+  'var inferredType: decltype(identity(seed));\n' +
+  'var total = comptime(identity(' + functions.map((_,i) => `f${i}(0)`).join(' + ') + '));\n' +
   'print(total); print(`control value 1.0`);';
  const canonical = new Map();
  for (const capacity of [1,2,4,8]) {

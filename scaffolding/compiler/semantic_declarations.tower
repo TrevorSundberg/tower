@@ -167,7 +167,9 @@ fn sem_declaration_waiting(c: SemanticContext*, subject: void*): usize {
             var argument: usize = 0;
             while argument < args.length {
                 var type_argument = semantic_builtin_type_argument(builtin, argument);
-                if definition != null && argument < generic_parameter_count(c.generics, definition) {
+                // Omitted generic type arguments leave only value arguments.
+                // Match ordinary call admission before classifying their nodes.
+                if definition != null && args.length == generic_parameter_count(c.generics, definition) {
                     type_argument = generic_type_parameter(c.generics, definition, argument);
                 }
                 sem_declaration_scan_push(&scan, args.data[argument], type_argument);
@@ -231,7 +233,7 @@ fn sem_declaration_dependencies(c: SemanticContext*, subject: void*, result: Sem
             var index: usize = 0;
             while index < args.length {
                 var type_argument = semantic_builtin_type_argument(builtin, index);
-                if definition != null && index < generic_parameter_count(c.generics, definition) {
+                if definition != null && args.length == generic_parameter_count(c.generics, definition) {
                     type_argument = generic_type_parameter(c.generics, definition, index);
                 }
                 sem_declaration_scan_push(&scan, args.data[index], type_argument);

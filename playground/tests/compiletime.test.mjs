@@ -87,3 +87,27 @@ test('forward declaration queries resolve long annotated and inferred chains wit
   } finally { tower.destroyExecution(handle); }
  }
 });
+
+test('inferred generic call arguments retain forward declaration dependencies and cycle diagnostics', () => {
+ for (const explicit of [false, true]) {
+  const lines = ['import tower; fn identity(T:type, value:T):T { return value; }'];
+  for (let index = 0; index < 256; index++) {
+   lines.push(`var value${index} = identity(${explicit ? 'bool, ' : ''}value${index + 1});`);
+  }
+  lines.push('var value256: bool = false;');
+  const handle = tower.compile(lines.join('\n'));
+  try {
+   // Only resolve the declarations; executing these forward initializers would
+   // read runtime storage before its source-ordered initialization.
+   const canonical = tower.foundation(handle);
+   assert.equal(typeof canonical.source, 'string', canonical.error);
+   assert.match(canonical.source, /var value0: bool/);
+  } finally { tower.destroyExecution(handle); }
+ }
+ const handle = tower.compile('import tower; fn identity(T:type, value:T):T { return value; } var a = identity(b); var b = identity(a);');
+ try {
+  const result = tower.execute(handle);
+  assert.equal(result.status, 'error');
+  assert.match(result.error, /initializer dependency cycle a -> b -> a/);
+ } finally { tower.destroyExecution(handle); }
+});

@@ -123,7 +123,9 @@ fn execution_semantic_message(index: usize): u8* {
     if index == 45 { return "Function name 'print' already names a foundation builtin"; }
     if index == 46 { return "Missing or duplicate function 'f'"; }
     if index == 47 { return "Duplicate template parameter 'T'"; }
-    if index == 48 { return "Wrong argument count for template 'f'"; }
+    // Generic inference admits the single value argument, then name resolution
+    // rejects i32 in value position (also verified with the published bootstrap).
+    if index == 48 { return "Unknown local 'i32'"; }
     if index == 49 { return "Type constructor 'typefn' produces a type, not a runtime value"; }
     if index == 50 { return "Recursive type constructor 'bad' has no concrete struct to resolve\nInstantiated by bad(i32) at line 1, column 49."; }
     if index == 51 { return "Expected i32, got bool; use an explicit conversion\nInstantiated by bad(i32) at line 1, column 43."; }
@@ -179,7 +181,7 @@ fn execution_semantic_offset(index: usize): usize {
     if index == 45 { return 0; }
     if index == 46 { return 16; }
     if index == 47 { return 14; }
-    if index == 48 { return 37; }
+    if index == 48 { return 39; }
     if index == 49 { return 45; }
     if index == 50 { return 31; }
     if index == 51 { return 28; }
