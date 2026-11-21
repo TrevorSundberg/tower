@@ -30,6 +30,7 @@ Do NOT modify todo.txt
   sweeps. Keep edits and formatting scoped to the requested implementation.
   Documentation-only deployment reuses verified runtime assets and preserves
   their build-source identity; do not rebuild identical compiler binaries.
+- Compile the smallest changed Tower unit first; batch related fixes, reuse unaffected checks, and keep polling and release builds from displacing the next concrete blocker.
 
 ## Implementation language
 

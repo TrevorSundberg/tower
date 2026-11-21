@@ -35358,3 +35358,49 @@ exercising the actual LLVM registry adapter as well as the isolated callback tes
 (ecs-target-once-native-check.log, exit zero). The macOS/Windows/WASI adapter object
 checks also exit zero (ecs-target-once-cross-retry.log). This validates registry
 initialization ownership; native parallel backend jobs remain the next task.
+
+### 2026-11-21 — Iteration audit and immediate workflow correction
+
+Reviewed the local JSON conversation log for 17:24–20:24 UTC, using existing jq
+queries rather than adding another audit implementation. The window contains 503
+outer tool calls (498 exec, five wait). Of these, 336 mention polling/status,
+47 build scripts, nine browser-generation checks, 39 git integration, and 89
+patching. Categories overlap and include reads/patch text: these are neither
+execution counts nor elapsed-time measurements. No sanitizer command flags occur.
+The ignored build/language-next-audit/iteration-review-calls.jsonl and
+iteration-review-builds.tsv retain the extraction; raw conversation is not committed.
+
+The main avoidable cost was repeatedly escalating adjacent small changes into
+fresh native build directories and portable/shared/LLVM/browser-generation release
+waves. Clean builds after actual bootstrap/import/syntax changes were justified;
+unchanged frontend artifacts need not be rebuilt for an isolated backend adapter.
+The target-once trials also exposed cheap errors inside expensive integration:
+initialized mutable library globals, an optimized-away extern declaration, and
+strict byte-pointer signatures. Inspect existing runtime/library patterns and
+compile the smallest changed unit or fixture before broader linking. Retain real
+ownership, overlap, cycle and cancellation checks for the affected scheduler.
+
+Repeated tail/status calls and wide source reads consumed attention without
+resolving the next blocker. Concurrent heavy builds made validation timing noisy:
+the approximately 101-second shared suite ran under build contention and cannot
+be compared as a regression with the earlier approximately 47-second run.
+Use one heavy build lane, useful implementation work while it runs, and checkpoint
+polling. Rebase/publication churn also repeated packaging and provenance work;
+freeze a coherent snapshot, integrate with explicit committer identity, publish
+promptly after its gates, then continue. Wait for Pages completion and the expected
+manifest before hosted verification; the earlier first check correctly saw the
+previous deployment. Skipping sanitizers offers no further saving in this window.
+
+Working guidance: identify the next concrete compiler blocker and its acceptance
+check; batch its related edits; run the smallest affected check and reuse still-valid
+results; perform full bootstrap/generation/deployment checks once at publication.
+Avoid unrelated cleanup, percentage speculation and new tooling detours. This is
+not permission to skip a check invalidated by merged source or a concurrency fix.
+Added one concise AGENTS.md line reinforcing this loop.
+
+Current checkpoint: the clean native successor at 8e611f0 passes all 54 build
+steps with the public bootstrap; the LLVM/cross package build also completes.
+Ready-query frontend artifacts and their two identical generations remain valid
+for unchanged frontend sources. The backend registration adapter is implemented
+and tested; native backend job dispatch and structural semantic continuations
+remain implementation work, so this audit does not claim complete threading.
