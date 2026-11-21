@@ -53,11 +53,6 @@ struct FormatToken {
     postfix: bool;
 }
 
-struct FormatComment {
-    start: usize;
-    end: usize;
-}
-
 fn format_symbolic(source: u8*, start: usize, end: usize): bool {
     if start == end {
         return false;

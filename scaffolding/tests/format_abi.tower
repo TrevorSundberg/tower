@@ -8,7 +8,7 @@ import .host.driver_api;
 // Explicit temporary syntax adapter ABI. Linux x86_64 uses libstdc++ strings;
 // the WASI runner uses libc++ alternate strings. CMake restricts these profiles.
 // The permanent assertions operate on the shared Tower FormatResult layout.
-extern fn `cpp_name(TowerText syntax_format(SyntaxSession*))`(result: usize*, session: void*): void;
+extern fn syntax_format_into(session: void*, output: FormatResult*, error: u8**): bool;
 extern fn `cpp_name(TowerText tower_format(TowerNode*))`(result: usize*, root: void*): void;
 
 fn format_abi_string_words(): usize { return sizeof(usize) == 8 ? convert(usize, 4) : convert(usize, 3); }

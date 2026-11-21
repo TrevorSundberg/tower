@@ -21,10 +21,10 @@ fn format_test_source(input: u8*, out: FormatResult*): void {
     loop { var root = syntax_next(session); if root is null { break; } tower_node_release_ref(root); }
     if syntax_get_error(session)[0] != 0 { puts(syntax_get_error(session)); puts(input); }
     utility_check(syntax_get_error(session)[0] == 0, "Formatter source parsed");
-    var foreign: usize[11];
-    `cpp_name(TowerText syntax_format(SyntaxSession*))`(&foreign[0], session);
-    defer format_abi_dispose(&foreign[0]);
-    format_abi_copy(out, &foreign[0]);
+    var error: u8*;
+    var ready = syntax_format_into(session, out, &error);
+    if error[0] != 0 { puts(error); }
+    utility_check(ready && error[0] == 0, "Formatter shared source result has no error");
 }
 fn format_test_compile(input: u8*, program: SemanticProgram*): void {
     semantic_initialize(program, tower_node_create(), 4);

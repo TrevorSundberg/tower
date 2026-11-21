@@ -1,0 +1,48 @@
+import tower;
+import .compiler.format_types;
+import .compiler.syntax_session_types;
+import frontend_world;
+import frontend_format;
+import frontend_diagnostic_revision;
+
+extern fn syntax_create(source: u8*, module: void*): void*;
+extern fn syntax_format_into(session: void*, output: FormatResult*, error: u8**): bool;
+
+fn frontend_session_format_tests(): void {
+    // frontend_diagnostic_revision_tests has installed the declaration seed as
+    // this executable's Foundation. Each fixture declares its own statements.
+    var input: u8* = "parse Statement = 'a' ';';a;";
+    var session = syntax_create(input, null);
+    var output: FormatResult;
+    fill(&output, 0, sizeof(FormatResult));
+    defer format_dispose(&output);
+    var error: u8*;
+    frontend_world_check(!syntax_format_into(session, &output, &error));
+    frontend_world_check(output.text.length == 0 && error[0] == 0);
+    diagnostic_revision_read(session);
+    frontend_world_check(syntax_get_error(session)[0] == 0);
+    var state = bits(SyntaxSession*, session);
+    var revision = state.revision;
+    var cursor = state.cursor;
+    var document = state.inputs.document;
+    tower_test_buffer_fail_after(0);
+    var ready = syntax_format_into(session, &output, &error);
+    tower_test_buffer_fail_after(frontend_world_unlimited());
+    frontend_world_check(!ready && error[0] == 0 && output.text.length == 0);
+    frontend_world_check(syntax_format_into(session, &output, &error));
+    frontend_world_check(error[0] == 0 && output.spans.length != 0);
+    frontend_world_check(output.text.data[output.text.length] == 0);
+    frontend_world_check(state.revision == revision && state.cursor == cursor && state.inputs.document == document);
+    frontend_format_text(state.source, input);
+    syntax_destroy(session);
+    frontend_format_text(output.text.data, "parse Statement = 'a' ';';\na;\n");
+    format_dispose(&output);
+    fill(&output, 0, sizeof(FormatResult));
+    session = syntax_create("skip Whitespace = /~+/;parse~Statement~=~'x''y'';';x~y;", null);
+    diagnostic_revision_read(session);
+    frontend_world_check(syntax_get_error(session)[0] == 0);
+    frontend_world_check(!syntax_format_into(session, &output, &error));
+    frontend_world_check(output.text.length == 0 && output.spans.length == 0);
+    syntax_destroy(session);
+    frontend_format_text(error, "Formatting would change the parsed source under this grammar; source was left unchanged");
+}

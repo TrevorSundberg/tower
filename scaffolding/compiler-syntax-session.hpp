@@ -40,6 +40,8 @@ extern "C" SyntaxSession* syntax_session_allocate(void*, void*);
 extern "C" void syntax_session_completion(SyntaxSession*, LRCompletion*);
 extern "C" char* syntax_session_suffix(SyntaxSession*, char*);
 extern "C" void syntax_session_progress(SyntaxSession*);
+struct TowerFormatResult;
+extern "C" bool syntax_format_into(SyntaxSession*, TowerFormatResult*, const char**);
 extern "C" void syntax_highlights_dispose(SyntaxHighlights*);
 extern "C" bool syntax_highlights_copy(SyntaxHighlights*, const SyntaxHighlights*);
 extern "C" void syntax_highlights_style(SyntaxHighlights*, size_t, const char*);

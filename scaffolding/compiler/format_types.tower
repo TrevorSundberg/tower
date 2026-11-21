@@ -8,6 +8,11 @@ struct FormatSpan {
     source: usize;
 }
 
+struct FormatComment {
+    start: usize;
+    end: usize;
+}
+
 struct FormatResult {
     text: vector(u8);
     spans: vector(FormatSpan);

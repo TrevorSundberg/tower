@@ -27,8 +27,10 @@ fn format_repository_source(input: u8*, baseline: u32, invalid: bool, result: Fo
     if invalid { utility_check(syntax_get_error(session)[0] != 0, "Intentionally invalid syntax rejected"); return; }
     if syntax_get_error(session)[0] != 0 { puts(syntax_get_error(session)); }
     utility_check(syntax_get_error(session)[0] == 0, "Repository source parses");
-    var foreign: usize[11]; `cpp_name(TowerText syntax_format(SyntaxSession*))`(&foreign[0], session);
-    defer format_abi_dispose(&foreign[0]); format_abi_copy(result, &foreign[0]);
+    var error: u8*;
+    var ready = syntax_format_into(session, result, &error);
+    if error[0] != 0 { puts(error); }
+    utility_check(ready && error[0] == 0, "Repository formatter shared source result has no error");
 }
 
 // The file list is mechanical CMake packaging, sorted and rooted at scaffolding.

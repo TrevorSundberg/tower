@@ -16,6 +16,7 @@ import syntax_version_presentation;
 import syntax_version_cache;
 import syntax_session_pins;
 import syntax_session_state;
+import syntax_session_format;
 
 extern fn compiler_host_world(): void*;
 

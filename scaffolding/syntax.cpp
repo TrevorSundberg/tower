@@ -26,7 +26,7 @@ ModuleEnvironment* syntax_modules = nullptr;
 
 namespace {
 extern "C" bool syntax_parser_diagnostic_read(void*, size_t*, const ParserLookahead*, uint32_t*);
-constexpr uint32_t MetaName = 0x110000, MetaString = MetaName + 1;
+constexpr uint32_t MetaName = 0x110000;
 constexpr uint32_t FirstToken = 0x120000;
 
 using Node = std::unique_ptr<TowerNode, decltype(&tower_node_release_ref)>;
@@ -339,49 +339,18 @@ bool syntax_can_format(SyntaxSession* session) {
   return session->error.empty() && session->finalized;
 }
 TowerText syntax_format(SyntaxSession* session) {
-  if (!syntax_can_format(session)) return {};
-  // Formatting is opt-in: retain original trees only for this pass, before
-  // replacements rewrite them. Ordinary live parsing does no extra tree copies.
-  std::unique_ptr<SyntaxSession, decltype(&syntax_destroy)> copy_owner(
-    syntax_session_allocate(compiler_host_world(), syntax_modules), syntax_destroy);
-  if (!copy_owner) return {};
-  auto& copy = *copy_owner;
-  syntax_session_pins_baseline(&copy.pins, &session->pins);
-  copy.bootstrapping = session->bootstrapping;
-  copy.building_bedrock = session->building_bedrock;
-  syntax_version_cache_copy(&copy.cache, &session->cache);
-  copy.formatting = true; syntax_reset(&copy, session->source);
-  std::vector<TowerNodeRef> owned; std::vector<TowerNode*> roots;
-  while (auto* root = syntax_next(&copy)) { owned.push_back(TowerNodeRef::adopt(root)); roots.push_back(root); }
-  if (!copy.error.empty()) return {};
-  std::vector<TowerCommentSpan> comments;
-  for (size_t i = 0; i < copy.highlights.items.length; ++i) {
-    const auto& token = copy.highlights.items.data[i];
-    if (std::string_view(token.kind) == "comment") comments.push_back({token.start, token.end});
-  }
-  auto result = tower_format_source(roots, std::string_view(copy.source, copy.source_length), comments);
-  // User grammars may give punctuation or whitespace a different meaning.
-  // Accept layout changes only if the same grammar reads the same source trees.
-  std::unique_ptr<SyntaxSession, decltype(&syntax_destroy)> verify_owner(
-    syntax_session_allocate(compiler_host_world(), syntax_modules), syntax_destroy);
-  if (!verify_owner) return {};
-  auto& verify = *verify_owner;
-  syntax_session_pins_baseline(&verify.pins, &copy.pins);
-  verify.bootstrapping = copy.bootstrapping;
-  verify.building_bedrock = copy.building_bedrock; verify.formatting = true;
-  syntax_version_cache_copy(&verify.cache, &copy.cache);
-  syntax_reset(&verify, result.source.c_str());
-  size_t index = 0; bool same = true;
-  while (auto* raw = syntax_next(&verify)) {
-    auto node = TowerNodeRef::adopt(raw);
-    same &= index < roots.size() && format_same_tree(roots[index], raw, copy.source, copy.source_length,
-      verify.source, verify.source_length, syntax_component_type(), parser_match_get_type()); ++index;
-  }
-  if (!same || index != roots.size() || !verify.error.empty())
-    return {{}, {}, "Formatting would change the parsed source under this grammar; source was left unchanged"};
+  TowerFormatResult output{};
+  const char* error = "";
+  syntax_format_into(session, &output, &error);
+  TowerText result;
+  result.error = error;
+  if (output.text.length)
+    result.source.assign(reinterpret_cast<const char*>(output.text.data), output.text.length);
+  if (output.spans.length)
+    result.spans.assign(output.spans.data, output.spans.data + output.spans.length);
+  format_dispose(&output);
   return result;
 }
-
 namespace {
 void preserve_comments(SyntaxSession& session, SyntaxNode& declaration, size_t through) {
   for (size_t i = 0; i < session.highlights.items.length; ++i) {
