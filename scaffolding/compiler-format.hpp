@@ -26,8 +26,6 @@ struct SyntaxDiagnosticInput {
 struct SyntaxDiagnosticText { TowerFormatResult result; size_t production; bool multiple, insertion; };
 extern "C" {
 void format_entity(TowerFormatResult*, TowerNode*, TowerNode* syntax, TowerNode* foundation, TowerNode* match);
-void format_source(TowerFormatResult*, TowerNode**, size_t, const char*, size_t,
-  const TowerCommentSpan*, size_t, TowerNode* syntax, TowerNode* foundation, TowerNode* match);
 void format_dispose(TowerFormatResult*);
 char* syntax_description_text(TowerNode*, const char*, bool, TowerNode*, TowerNode*);
 char* syntax_origin_text(TowerNode*, const char*, TowerNode*, TowerNode*);
