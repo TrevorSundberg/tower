@@ -28548,3 +28548,73 @@ hashes and desktop/mobile/default workflows. Together with native 8/8, backend
 API, actual successor cmp0, editor 28/28, capacity 3/3 and both edited browser
 generations, this completes checkpoint validation. Preparing the final pull and
 normal source push; broader compiler-wide threading remains ongoing.
+
+### 2026-11-20 - Discovering generic body demand on body workers
+
+Lazy-body source c91bc8c is pushed after an unchanged final pull. Its frozen
+release is Pages ff06a67d5064f7142003ec5cab64f911397f1ff5 on 91424e8; hosted
+verification is next. Continuing the compiler threading work after publication.
+
+The next concrete serial tail is canonical call discovery. A native debugger
+probe of 16 adjacent generic-prefix functions plus their shared generic instance
+counts 18 actual body-demand scans, all on coordinator thread 1. The new draft
+separates collecting canonical call references from attaching callee demand
+components. Body workers use private visited/queue scratch and return references
+on their existing work component. Only after every stage publishes and releases
+leases does the coordinator attach cross-function demand metadata in stable batch
+order. Failed jobs still release the new reference vector. Root expressions,
+serial structural bodies and checked stage expressions retain coordinator scans
+for now. This moves useful traversal work; it does not claim all structural
+checking/interpreter preparation is parallel or promise a speedup.
+
+No new query model, semantic graph, constant evaluator or C++ code. Shared/native
+builds and capacity/error/import regressions are running for the draft. Native
+baseline evidence: body-demand-before-native.log (18 scans on thread 1) and
+body-demand-before.foundation. The new implementation still needs measured
+worker execution and canonical comparison before publication.
+
+Measured native call discovery now performs one root scan on coordinator thread
+1 and 17 body scans across all eight worker threads 4..11 (3,2,2,2,2,2,2,2).
+The debugger assertions require real helper execution, successful compilation,
+eight participating workers and the expected total. Canonical Foundation is
+byte-identical to the coordinator-only baseline (cmp exit 0). Shared capacity,
+window, lazy body, import, diagnostic and cycle checks pass 3/3 in 69.92s.
+Evidence: body-demand-after-native.log and body-demand-foundation-cmp.log.
+The preceding lazy-body deployment action 44878614636 succeeds; hosted asset
+hashes match, with browser workflows still running.
+
+Worker-side discovery native acceptance passes 8/8 in 56.61s, including unchanged
+full semantic graph fingerprints. Backend API checks pass, and the actual native
+successor semantic object compares byte-identically (body-demand-successor.log,
+cmp exit 0). Public bootstrap remains bcc76755, with no private override; portable
+and shared builds also complete. Final LLVM/cross packaging and browser/editor
+regressions remain in progress.
+
+Editor completion/query checks pass 28/28 in 124.58s. LLVM/cross packaging is
+complete; matching 95-case backend/library regressions and two edited browser
+compiler generations are underway. The call-discovery probe used host gdb with
+LD_LIBRARY_PATH=build/language-next-audit/native-debug-libs and a breakpoint on
+`tower.fn.sem_body_collect`, then ran the native towerc on
+body-prefix-batch-proof.tower with `--emit foundation --strip-comments`.
+The baseline breakpoint was `tower.fn.sem_body_calls`. Both scripts count the
+selected native thread at the helper entry; no queue-depth estimate is used.
+
+The c91bc8c/Pages ff06a67 hosted verifier completes successfully: all 77 asset
+hashes, desktop/mobile execution, editor/download workflows and default-target
+selection. The frozen worker-discovery bundle is now undergoing its own local
+verification; the published lazy-body release remains unchanged until that passes.
+
+Two edited browser generations pass in 145.64s/81.18s with identical sizes
+1,023,032/52,323,124/63,880,588 and hashes:
+parser db10f73ecc65ea5e4ccdfdd1c6c017a3cc3d93b56ffced841b6ee5facdf50ae7;
+LLVM d3a3394e1e55220f010250e5597349881056af155e99359688189c802c194b9a;
+cross 56559a70b8a6dde8872606023601b1b3321a41d11575057875b7c1a8c71ed420.
+Local deployment has matched all 77 assets; browser workflows and the remaining
+backend/library regressions are still running.
+
+The matching backend/library suite passes 95/95 in 325.11s. Together with native
+8/8, backend API, actual successor cmp0, editor 28/28, capacity 3/3, measured
+8-worker call traversal and both browser compiler generations, compiler validation
+is complete. Local browser workflows remain in progress against the frozen dist;
+the verifier has already loaded its source inputs, so the final source pull will
+not race a compiler build or source-reading test. No C++ or todo.txt edits.

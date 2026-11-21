@@ -27,7 +27,9 @@ fn sem_body_needed(c: SemanticContext*, subject: void*): bool {
         || entity_component_get(subject, c.body_demands) != null;
 }
 
-fn sem_body_calls(c: SemanticContext*, root: void*): void {
+// Collect only canonical call references. Workers own the traversal scratch;
+// attaching cross-function demand components belongs to publication after joins.
+fn sem_body_collect(c: SemanticContext*, root: void*, calls: vector(void*)*): void {
     var pending: vector(void*);
     vector_init(&pending);
     defer vector_dispose(&pending);
@@ -42,12 +44,7 @@ fn sem_body_calls(c: SemanticContext*, root: void*): void {
         var seen = sem_state(c, c.body_seen, node);
         if seen.number != 0 { continue; }
         seen.number = 1;
-        if value.kind == KCall() && value.binding != null
-            && entity_component_get(value.binding, c.body_demands) == null {
-            var demand = bits(SemanticBodyDemand*, entity_component_data(entity_component_add(value.binding, c.body_demands)));
-            sem_require(demand != null);
-            demand.source = node;
-        }
+        if value.kind == KCall() && value.binding != null { sem_push(calls, node); }
         // Traverse owned canonical operation edges, never syntax children or
         // binding/type back-references. Unevaluated decltype calls are absent.
         sem_push(&pending, value.left);
@@ -58,6 +55,24 @@ fn sem_body_calls(c: SemanticContext*, root: void*): void {
         sem_push(&pending, value.otherwise);
         foreach(var item in &value.items) { sem_push(&pending, item); }
     }
+}
+
+fn sem_body_demand(c: SemanticContext*, calls: vector(void*)*): void {
+    foreach(var node in calls) {
+        var callee = sem_get(node).binding;
+        if entity_component_get(callee, c.body_demands) != null { continue; }
+        var demand = bits(SemanticBodyDemand*, entity_component_data(entity_component_add(callee, c.body_demands)));
+        sem_require(demand != null);
+        demand.source = node;
+    }
+}
+
+fn sem_body_calls(c: SemanticContext*, root: void*): void {
+    var calls: vector(void*);
+    vector_init(&calls);
+    defer vector_dispose(&calls);
+    sem_body_collect(c, root, &calls);
+    sem_body_demand(c, &calls);
 }
 
 fn sem_body_pending(c: SemanticContext*, subject: void*): bool {
@@ -113,6 +128,7 @@ struct SemanticBodyWork {
     surface: bool;
     has_defer: bool;
     nodes: vector(void*);
+    calls: vector(void*);
     evaluations: vector(void*);
     captures: vector(void*);
     flow_dependencies: vector(void*);
@@ -335,6 +351,8 @@ fn semantic_body_kernel(result: SemanticBodyWork*): void {
     vector_init(u8, &context.token_text);
     fill(&context.scan, 0, sizeof(stack(void*)));
     vector_init(u8, &program.error);
+    // Never mutate the coordinator's derived traversal index through this copy.
+    context.body_seen = null;
     if result.resumed {
         sem_body_restore(&context, &result.lexical);
         while result.cursor.next < sem_child_count(result.cursor.subject) && sem_ok(&context) {
@@ -345,6 +363,10 @@ fn semantic_body_kernel(result: SemanticBodyWork*): void {
     } else {
         sem_body_scope_begin(&context, result.ordinal);
         sem_function_body(&context, result.subject);
+    }
+    if sem_ok(&context) {
+        context.body_seen = sem_table(&context);
+        sem_body_collect(&context, sem_get(result.subject).body, &result.calls);
     }
     result.count = context.count;
     result.surface = context.surface_expressions;
@@ -377,6 +399,7 @@ fn semantic_body_kernel(result: SemanticBodyWork*): void {
 fn sem_body_clear(result: SemanticBodyWork*): void {
     result.context = null;
     vector_dispose(&result.nodes);
+    vector_dispose(&result.calls);
     vector_dispose(&result.evaluations);
     vector_dispose(&result.captures);
     vector_dispose(&result.flow_dependencies);
@@ -429,7 +452,6 @@ fn sem_body_publish(c: SemanticContext*, result: SemanticBodyWork*): void {
     }
     if c.count > c.node_limit { sem_fail(c, result.subject, "Foundation component memory budget exceeded"); }
     sem_require(work_finish(&c.queries, &result.ticket, result.error.length == 0 && c.count <= c.node_limit));
-    sem_body_clear(result);
 }
 
 fn sem_bodies(c: SemanticContext*): void {
@@ -534,8 +556,9 @@ fn sem_bodies(c: SemanticContext*): void {
             // A callee can be leased by another job in this batch. Attach demand
             // metadata only after every stage is published and lease released.
             if sem_ok(c) {
-                for(var i = first; i < end; i++) { sem_body_calls(c, sem_get(batch[i].subject).body); }
+                for(var i = first; i < end; i++) { sem_body_demand(c, &batch[i].calls); }
             }
+            for(var i = first; i < end; i++) { sem_body_clear(batch[i]); }
             first = end;
         }
         if failed != null {
