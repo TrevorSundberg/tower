@@ -31621,3 +31621,78 @@ Implementation 7a2f6fd15f63714a4f50a9ade064c8c02395493a is pushed to main. Rebas
 Pages commit 7d1686cf769a1fd6e05c0a06fd110ecedbb1e386 is pushed; action 44927317395 completed successfully. Both local and https://tower-lang.org/ verification PASS: all 77 asset hashes, complete desktop/mobile editing/completion/formatting/backend workflows, native downloads and detected-target defaults. Reports are presentation-local-report.json and presentation-hosted-report.json in the evidence directory above. Network history: initial DNS failure; an established direct-address upload stalled and was stopped; normal DNS then exposed the concurrent documentation Pages commit 6ec0c6a. Rebased the release onto that commit and preserved its metadata; normal non-forced push succeeded. No source or release work was discarded.
 
 Next implementation boundary is the remaining default-host/baseline adapters: syntax_create/completion selection, syntax_set_bedrock/bootstrap, tw_set_bedrock/bootstrap/bedrock_seed, the last format.cpp caller, and their Tower std::string/test/runtime-bind consumers. Keep ordinary compiler APIs explicit-world and transport-independent; host compatibility state belongs to its instance/world. After validated retirement, tackle real function-address/callback contracts for tower.cpp and tests/nodes.cpp. The full C++ removal goal remains active; this milestone does not claim that endpoint or every language-spec goal is complete.
+
+### 2026-11-21 - Named-field destination initialization and future strict policy
+
+Continued on main after `git pull --rebase` (f618cbb, up to date). Implemented
+named-field construction entirely in Tower: contextual `{ field: value }`,
+explicit `init(Type) { ... }`, nested field construction, trailing commas and a
+final `..default`. Every field is required unless that explicit zero baseline is
+present. Fields bind existing declarations on the shared entities; duplicate,
+unknown and missing fields and exact type mismatches have source diagnostics.
+Declarations and aggregate reset destinations lower to existing Foundation stores
+and optional fill, with one destination evaluation and source-order field
+evaluation/writes. This is in-place construction, not an aggregate value, copy,
+constructor, move, drop or return-value feature. Foundation and Bedrock are unchanged.
+
+The user prefers `default` and explicitly wants raw uninitialized storage to remain
+available in low-level code while a future Stronghold language can ban it. Document
+the separation in AGENTS.md and docs/named-field-initialization.md: source policy
+checks inspect typed declarations/field coverage before lowering; a future
+field-sensitive definite-initialization pass follows ordinary control flow and
+needs call/alias/escape summaries, provenance for generated temporaries, and policy
+identity in cache contracts. That strict validator is not implemented here. A
+plain declaration still leaves storage uninitialized. Checking completeness is
+separate from storage lowering, so stricter validation need not alter Foundation.
+
+Parser trials: bare braces initially conflicted with the empty reduction of
+Foundation's `Statement*` block body. Tower alone overrides CoreBlock with an
+explicit empty alternative and a nonempty first Statement; this lets ':' resolve
+fields without changing Foundation. An @160 right annotation then resolves the
+existing standalone pointer-star expression conflict. Empty bare braces remain a
+block; empty typed construction is `init(Empty) {}`. Capturing field values as
+TowerExpression bypassed the ordinary CoreValue/CoreOperand entry point and failed
+with "Unsupported foundation expression TowerExpression"; use CoreValue, which
+already contains the full Tower expression language. Numeric precedence machinery
+and ordinary recursive rules are unchanged.
+
+Worker admission preserves type/value roles through initializer fields and type
+annotations. Explicit nominal constructors wait on field declarations and layouts;
+generic applications use existing structural preparation and lexical continuations.
+A negative inferred declaration `var q = (p = { x: 1 });` first aborted in
+sem_layout_discover on a pinned worker: the reset's destination supplied a layout
+dependency missing from declaration discovery. Added that dependency before worker
+checking; it now produces the intended void diagnostic. Recorded the gdb stack in
+build/named-fields-backtrace.log. No sanitizer was used. Reused field assignment
+entities are normalized to ordinary void KAssign nodes, retaining their field
+binding on the target location rather than inventing a public assignment binding.
+
+Tests are new Tower fixtures/harnesses, with only an existing browser fixture list
+extended for transport. /cache/named-fields-feature is a Release LLVM/Clang 19
+Linux build in tower-c-validation, using the published f7ae2e1c development bootstrap.
+`cmake --build /cache/named-fields-feature --target towerc tower-execution-tests -j4`
+and `tower-execution-tests /work/scaffolding` pass both interpreter engines, exact
+output/memory comparison, Foundation text round trips, target widths 4/8 and
+canonical determinism at 1/2/4/8 workers. Fixture coverage includes forward types,
+generic/nested construction, side-effecting destinations, field write order,
+padding zeroing, defer/for updates and diagnostics. Native raw and optimized exe
+emission of tests/named_initialization.tower with --cc clang-19 both print 0.
+
+Two test expectations were corrected from observed existing semantics: `..default`
+zeros before overrides, so an RHS alias observes that zero state; a loop intended
+to accumulate must initialize all its fields without zeroing first. Also complete
+explicit stack fields work in strict comptime through ordinary addresses/stores;
+only the fill-based baseline currently needs the storage/value capability. Added
+a positive staged field-construction test and kept a negative staged fill test.
+The test harness must configure a synthetic source path before importing Tower;
+using foundation.tower as its entry creates a self-entry import cycle. These were
+harness/expectation fixes, not new evaluator exceptions.
+
+Source formatter validation, bootstrap publication before compiler adoption,
+focused source migration and the final browser/deployment milestone follow below.
+
+The source-format check now passes too: parse/format/reparse, byte-identical second
+format, and execution of formatted output at widths 4/8. The full existing Tower
+execution/package harness passes after the new cases. Initial test-helper builds
+needed a direct format_types import and vector-byte comparison (FormatResult.text
+is vector(u8), not ByteBuffer); no compiler workaround was introduced.

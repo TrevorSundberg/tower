@@ -1,0 +1,95 @@
+import tower;
+import body_runs;
+import frontend_units;
+import execution_support;
+import execution_core;
+import .compiler.execution_session;
+import .compiler.format_types;
+import .library.vector;
+
+extern fn syntax_create(source: u8*, module: void*): void*;
+extern fn syntax_next(session: void*): void*;
+extern fn syntax_get_error(session: void*): u8*;
+extern fn syntax_destroy(session: void*): void;
+extern fn syntax_format_into(session: void*, output: FormatResult*, error: u8**): bool;
+
+fn named_initialization_format(source: u8*, output: FormatResult*): void {
+    var session = syntax_create(source, null);
+    execution_check(session != null, "Named initialization formatting session");
+    defer syntax_destroy(session);
+    loop { var node = syntax_next(session); if node == null { break; } entity_release(node); }
+    execution_check(syntax_get_error(session)[0] == 0, "Named initialization source parses");
+    var error: u8* = null;
+    var ready = syntax_format_into(session, output, &error);
+    if error[0] != 0 { puts(error); }
+    execution_check(ready && error[0] == 0, "Named initialization source formatting preserves grammar");
+}
+
+fn named_initialization_reject(modules: void*, source: u8*, message: u8*): void {
+    var session: ExecutionSession = default;
+    defer execution_session_close(&session);
+    var accepted = execution_session_compile(&session, source, strlen(source), 8, modules);
+    if accepted { puts(source); }
+    execution_check(!accepted, "Invalid named initializer rejected");
+    if strstr(session.error.data, message) == null { puts(session.error.data); }
+    execution_check(strstr(session.error.data, message) != null, message);
+}
+
+fn named_initialization_tests(modules: void*, root: u8*): void {
+    var source: vector(u8) = default;
+    var bedrock: vector(u8) = default;
+    var foundation: vector(u8) = default;
+    defer vector_dispose(&source);
+    defer vector_dispose(&bedrock);
+    defer vector_dispose(&foundation);
+    units_read(root, "/tests/named_initialization.tower", &source);
+    units_read(root, "/bedrock.tower", &bedrock);
+    units_read(root, "/foundation.tower", &foundation);
+    var formatted: FormatResult = default;
+    var again: FormatResult = default;
+    defer format_dispose(&formatted);
+    defer format_dispose(&again);
+    named_initialization_format(source.data, &formatted);
+    named_initialization_format(formatted.text.data, &again);
+    execution_check(formatted.text.length == again.text.length
+        && memcmp(formatted.text.data, again.text.data, formatted.text.length) == 0, "Named initialization source formatting is idempotent");
+    for(var width: u32 = 4; width <= 8; width += 4) {
+        var graph: ExecutionSession = default;
+        var fast: ExecutionSession = default;
+        execution_compile(&graph, source.data, width, modules);
+        execution_compile(&fast, source.data, width, modules);
+        execution_check(execution_session_start(&graph) && execution_session_fast(&fast), "Named initialization engines start");
+        execution_run(&graph, 1000, 100000);
+        execution_run(&fast, 1000, 100000);
+        execution_same(&graph, &fast);
+        execution_check(graph.machine.done && graph.error.length == 0 && execution_text(&graph.output, "0\n"), "Named initialization execution");
+        execution_roundtrip(&graph, modules, false);
+        execution_session_close(&graph);
+        execution_session_close(&fast);
+        execution_compile(&graph, formatted.text.data, width, modules);
+        execution_check(execution_session_start(&graph), "Formatted initialization starts");
+        execution_run(&graph, 1000, 100000);
+        execution_check(graph.machine.done && graph.error.length == 0 && execution_text(&graph.output, "0\n"), "Formatted initialization retains behavior");
+        execution_session_close(&graph);
+        var canonical: vector(u8) = default;
+        defer vector_dispose(&canonical);
+        for(var workers: usize = 1; workers <= 8; workers *= 2) {
+            body_runs_trial(source.data, workers, width, bedrock.data, foundation.data, root, &canonical);
+        }
+    }
+    named_initialization_reject(modules, "import tower;struct P{x:i32;y:i32;}var p:P={x:1};", "Missing initializer field 'y'");
+    named_initialization_reject(modules, "import tower;struct P{x:i32;}var p:P={x:1,x:2};", "Duplicate initializer field 'x'");
+    named_initialization_reject(modules, "import tower;struct P{x:i32;}var p:P={z:1};", "Unknown initializer field 'z'");
+    named_initialization_reject(modules, "import tower;struct P{x:i32;}var p:P={x:true};", "Expected i32");
+    named_initialization_reject(modules, "import tower;struct P{x:i32;}var p:P={..default,x:1};", "once, at the end");
+    named_initialization_reject(modules, "import tower;struct P{x:i32;}var p:P={..default,..default};", "once, at the end");
+    named_initialization_reject(modules, "import tower;var p={x:1};", "requires a target type");
+    named_initialization_reject(modules, "import tower;var p=init(i32){x:1};", "requires a struct type");
+    named_initialization_reject(modules, "import tower;struct P{x:i32;}struct Q{x:i32;}var p:P=init(Q){x:1};", "Expected P");
+    named_initialization_reject(modules, "import tower;struct P{x:i32;}print(init(P){x:1});", "requires a complete declaration initializer");
+    named_initialization_reject(modules, "import tower;struct P{x:i32;}var p:P=default;var q=(p={x:1});", "void");
+    named_initialization_reject(modules, "import tower;struct P{x:i32;}var p:P=default;p+={x:1};", "integer");
+    named_initialization_reject(modules, "import tower;struct P{x:i32;}struct Q{p:P;}var p:P=default;var q:Q={p:p};", "aggregate copies");
+    named_initialization_reject(modules, "import tower;struct P{x:i32;y:i32;}fn staged():i32{var p:P={x:1,..default};return p.x;}print(comptime(staged()));", "storage or value capability");
+    puts("Named initialization: execution, Foundation round trips, worker counts and diagnostics pass.");
+}

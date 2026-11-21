@@ -72,6 +72,19 @@ Do NOT modify todo.txt
 
 ## Writing Tower code
 
+- Prefer named-field initialization for complete struct construction, e.g.
+  `var point: Point = { x: 1, y: 2 };`, or `init(Point) { x: 1, y: 2 }`
+  when inference needs an explicit type. Use a final `..default` only when a
+  zero baseline is intended. Destinations are evaluated once; field expressions
+  and writes run in written order. The default baseline zeros storage before
+  those expressions. Preserve alias/effect order, constructors and ownership.
+  Do not rewrite partial updates as complete construction. See
+  docs/named-field-initialization.md and publish its bootstrap before adoption.
+- Keep initialization policy separate from Foundation storage semantics and
+  lowering. Raw uninitialized declarations remain legal at the low level;
+  future Stronghold must be able to reject them and validate definite field
+  initialization on the shared typed nodes/control flow. Preserve provenance,
+  account for aliases/calls/escapes and include policy identity in cache contracts.
 - Prefer `var value: Type = default;` for complete zero initialization and
   `value = default;` / `*pointer = default;` for complete aggregate resets.
   `default(Type)` supplies an explicit type. These use the target layout and

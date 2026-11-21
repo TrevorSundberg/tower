@@ -250,7 +250,30 @@ fn sem_declaration_waiting(c: SemanticContext*, subject: void*, layout: void**):
         scan.length--;
         var node = scan.data[scan.length].node;
         var type = scan.data[scan.length].type;
-        if sem_is(node, "TowerDefault") {
+        if !type && sem_is(node, "TowerExpression")
+            && sem_is(sem_surface_unwrap(sem_member(node, "right")), "TowerInitializer")
+            && sem_equal(sem_surface_operator(c, node, sem_member(node, "left")), "=") {
+            // Inferred declarations may contain a reset expression. Its target
+            // supplies the initializer type, so discover the field/layout read
+            // before admitting that declaration to a pinned worker.
+            var destination = sem_declaration_location(c, sem_member(node, "left"), &waiting, layout, 0);
+            if waiting == 0 && *layout == null && destination != null && semantic_aggregate(destination) {
+                waiting = sem_declaration_layout_waiting(c, destination.record);
+                var query = work_find(&c.queries, destination.record, LayoutQuery(), 0);
+                if waiting == 0 && (query == 0 || work_task(&c.queries, query).state != WorkState.Succeeded) { *layout = destination.record; }
+            }
+        }
+        if sem_is(node, "TowerDefault") || sem_is(node, "TowerInitializer") {
+            if sem_is(node, "TowerInitializer") {
+                var annotation = sem_member(node, "type");
+                var nominal = annotation == null ? null : sem_resolve(c, c.types, annotation, sem_identifier(c, annotation));
+                if nominal != null {
+                    waiting = sem_declaration_layout_waiting(c, nominal);
+                    var query = work_find(&c.queries, nominal, LayoutQuery(), 0);
+                    if waiting == 0 && (query == 0 || work_task(&c.queries, query).state != WorkState.Succeeded) { *layout = nominal; }
+                }
+                sem_declaration_scan_push(&scan, sem_member(node, "fields"), false);
+            }
             sem_declaration_scan_push(&scan, sem_member(node, "type"), true);
             continue;
         }
@@ -308,6 +331,19 @@ fn sem_declaration_dependencies(c: SemanticContext*, subject: void*, result: Sem
         scan.length--;
         var node = scan.data[scan.length].node;
         var type = scan.data[scan.length].type;
+        if sem_is(node, "TowerDefault") || sem_is(node, "TowerInitializer") {
+            var annotation = sem_member(node, "type");
+            if sem_is(node, "TowerInitializer") {
+                var nominal = annotation == null ? null : sem_resolve(c, c.types, annotation, sem_identifier(c, annotation));
+                if nominal != null {
+                    var dependency = sem_declaration_query(c, nominal);
+                    if dependency != 0 { sem_declaration_input(result, dependency); }
+                }
+                sem_declaration_scan_push(&scan, sem_member(node, "fields"), false);
+            }
+            sem_declaration_scan_push(&scan, annotation, true);
+            continue;
+        }
         if sem_is(node, "TowerDecltype") {
             sem_declaration_scan_push(&scan, sem_member(node, "value"), false);
             continue;
@@ -471,6 +507,11 @@ fn sem_declaration_expression(c: SemanticContext*, root: void*): bool {
     for(var i: usize = 0; i < pending.length; i++) {
         var node = sem_surface_unwrap(pending.data[i]);
         if sem_declaration_leaf(c, node) { continue; }
+        if sem_is(node, "TowerInitializer") {
+            var fields = sem_collect(c, sem_member(node, "fields"), "TowerInitializerField");
+            foreach(var field in fields) { sem_push(pending, sem_member(field, "value")); }
+            continue;
+        }
         if sem_is(node, "TowerComptime") {
             sem_push(pending, sem_member(node, "value"));
             continue;
@@ -530,7 +571,11 @@ fn sem_declaration_syntax(c: SemanticContext*, annotation: void*, nodes: vector(
         var node = pending.data[i].node;
         var type = pending.data[i].type;
         evaluates ||= sem_is(node, "TowerComptime");
-        if sem_is(node, "TowerDefault") {
+        if sem_is(node, "TowerDefault") || sem_is(node, "TowerInitializer") {
+            if sem_is(node, "TowerInitializer") {
+                staged = true;
+                sem_declaration_scan_push(&pending, sem_member(node, "fields"), false);
+            }
             sem_declaration_scan_push(&pending, sem_member(node, "type"), true);
             continue;
         }
@@ -780,7 +825,10 @@ fn sem_declaration_calls(c: SemanticContext*, result: SemanticDeclaration*): voi
         var entry: DeclarationCallScan;
         copy(&entry, &scan.data[scan.length], sizeof(DeclarationCallScan));
         var node = entry.node;
-        if sem_is(node, "TowerDefault") {
+        if sem_is(node, "TowerDefault") || sem_is(node, "TowerInitializer") {
+            if sem_is(node, "TowerInitializer") {
+                sem_declaration_call_push(&scan, sem_member(node, "fields"), false, entry.unevaluated, false, entry.evaluation_depth);
+            }
             sem_declaration_call_push(&scan, sem_member(node, "type"), true, entry.unevaluated, false, entry.evaluation_depth);
             continue;
         }

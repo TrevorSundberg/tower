@@ -58,6 +58,7 @@ test('declaration, body checking, lowering and staging are deterministic at 1/2/
  const declarationOperands = await readFile('scaffolding/tests/declaration_operands.tower', 'utf8');
  const enumExpressions = await readFile('scaffolding/tests/enum_expressions.tower', 'utf8');
  const defaults = await readFile('scaffolding/tests/default_initialization.tower', 'utf8');
+ const namedInitialization = await readFile('scaffolding/tests/named_initialization.tower', 'utf8');
  const typeFields = (await readFile('scaffolding/tests/decltype_type_fields.tower', 'utf8')).replace('var seed12:u64=0;',
   Array.from({length:244},(_,i)=>`var seed${i+12}:decltype(seed${i+13});`).join('\n')+'\nvar seed256:u64=0;');
  const dependencyCanonical = new Map();
@@ -279,7 +280,7 @@ fn badSecond(value:MissingSecond):void {}`);
     assert.match(result.error, /duplicate field 'first'/);
     assert.doesNotMatch(result.error, /duplicate field 'second'/);
    } finally { tower.destroyExecution(fieldsInvalid); }
-   for (const fixture of [delayedLayout, genericHeaders, typeFields, aggregateTypes, bodyContinuation, lazyBodies, lazyBodyBudget, expressionTypes, declarationContinuations, declarationInference, declarationOperands, enumExpressions, defaults])
+   for (const fixture of [delayedLayout, genericHeaders, typeFields, aggregateTypes, bodyContinuation, lazyBodies, lazyBodyBudget, expressionTypes, declarationContinuations, declarationInference, declarationOperands, enumExpressions, defaults, namedInitialization])
    for (const pointerBytes of [4,8]) for (let fast=0; fast<2; fast++) {
     const handle=tower.compile(fixture,{pointerBytes});
     try {

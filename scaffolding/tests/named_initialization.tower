@@ -1,0 +1,71 @@
+import tower;
+
+enum Kind: u8 { Ready = 7 }
+struct Pair { x: i32; y: i32; }
+struct Record { small: u8; pair: Pair; data: i32[3]; next: Record*; kind: Kind; }
+struct Empty {}
+fn Box(T: type): type { struct Value { value: T; next: T*; } return Value; }
+fn id(T: type, value: T): T { return value; }
+
+var failures = 0;
+var forward = init(Later) { value: 31 };
+struct Later { value: i32; }
+var point: Pair = { y: 2, x: 1, };
+var grouped: Pair = ({ x: 3, y: 4 });
+var zeros: Record = { ..default };
+var record: Record = { small: 9, pair: { x: 7, y: 8 }, data: default, next: null, kind: Kind.Ready };
+var inferred = init(Box(u64)) { next: null, value: 18446744073709551615 };
+var empty = init(Empty) {};
+if point.x != 1 || point.y != 2 || grouped.y != 4 || forward.value != 31 { print(101); failures++; }
+if zeros.pair.x != 0 || zeros.data[2] != 0 || zeros.next != null || convert(u8, zeros.kind) != 0 { print(102); failures++; }
+if record.small != 9 || record.pair.y != 8 || record.data[1] != 0 || record.kind != Kind.Ready { print(103); failures++; }
+if inferred.value != 18446744073709551615 || inferred.next != null { print(104); failures++; }
+
+var order = 0;
+fn mark(value: i32): i32 { order = order * 10 + value; return value; }
+var ordered: Pair = { y: mark(2), x: mark(1) };
+if order != 21 || ordered.x != 1 || ordered.y != 2 { print(105); failures++; }
+
+var pairs: Pair[2] = default;
+var calls = 0;
+var index = 0;
+fn destination(): Pair* { calls++; return &pairs[0]; }
+destination()[index++] = { x: mark(3), y: mark(4) };
+if calls != 1 || index != 1 || order != 2134 || pairs[0].x != 3 || pairs[0].y != 4 { print(106); failures++; }
+// In-place construction writes in source order; aliases observe earlier writes.
+pairs[0] = { y: 5, x: pairs[0].y + 1 };
+if pairs[0].x != 6 || pairs[0].y != 5 { print(107); failures++; }
+// Explicit default establishes zero storage before the overrides execute.
+pairs[0] = { x: pairs[0].y + 7, ..default };
+if pairs[0].x != 7 || pairs[0].y != 0 { print(108); failures++; }
+
+fn reset(T: type, value: T*): void { *value = { x: 12, y: 13 }; }
+fn borrowed(value: Pair*): i32 { *value = { y: id(17), x: 18 }; return value.y; }
+fn ordinary(): i32 { var value: Pair = { x: 19, ..default }; return value.x + value.y; }
+fn typed(): i32 { var value = init(Pair) { x: 20, y: 21 }; return value.y; }
+fn nested(): i32 { var value: Record = { pair: { y: id(22), ..default }, ..default }; return value.pair.y; }
+fn deferred(value: Pair*): void { defer *value = { x: 23, ..default }; value.x = 99; }
+fn looped(): i32 {
+    var value: Pair = { ..default };
+    for(var i = 0; i < 3; i++, value = { x: value.x + 1, y: 0 }) { continue; }
+    return value.x;
+}
+fn staged(): i32 { var value: Pair = { y: 27, x: 26 }; return value.x + value.y; }
+if comptime(staged()) != 53 { failures++; }
+reset(&pairs[1]);
+if pairs[1].x != 12 || pairs[1].y != 13 || borrowed(&pairs[1]) != 17 { print(109); failures++; }
+if ordinary() != 19 || typed() != 21 || nested() != 22 || looped() != 3 { print(110); failures++; }
+deferred(&pairs[1]);
+if pairs[1].x != 23 || pairs[1].y != 0 { print(111); failures++; }
+
+fill(&record, 255, sizeof(Record));
+record = { small: 0, ..default };
+var bytes = bits(u8*, &record);
+for(var i: usize = 0; i < sizeof(Record); i++) { if bytes[i] != 0 { failures++; } }
+var raw: Pair;
+raw.x = 24;
+raw.y = 25;
+if raw.x + raw.y != 49 { failures++; }
+if true {} else { failures++; }
+{ var inner: Pair = { x: 1, y: 2 }; if inner.y != 2 { failures++; } }
+print(failures);

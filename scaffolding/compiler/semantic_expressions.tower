@@ -25,6 +25,8 @@ const SurfaceNullField: u32 = 110;
 const SurfaceNullIndex: u32 = 111;
 const SurfaceDefault: u32 = 112;
 const SurfaceDefaultStore: u32 = 113;
+const SurfaceInitializer: u32 = 114;
+const SurfaceInitializerStore: u32 = 115;
 const SurfaceShiftLeft: u32 = 14;
 const SurfaceShiftRight: u32 = 15;
 const SurfaceShiftUnsigned: u32 = 16;
@@ -111,9 +113,89 @@ fn sem_default(c: SemanticContext*, n: void*, expected_type: FoundationType*, de
     return sem_surface_expected(c, n, expected_type);
 }
 
+// Construction checking is independent of storage lowering. The initializer's
+// ordered field nodes bind the same declarations used by ordinary field access.
+// Stronger source policies can inspect completeness/default coverage here, and
+// analyze the resulting ordinary stores without changing Foundation semantics.
+fn sem_named_initialization(c: SemanticContext*, n: void*, expected_type: FoundationType*, destination: bool): void* {
+    var initial = sem_node(c, n, SurfaceInitializer());
+    var type = expected_type;
+    var annotation = sem_member(n, "type");
+    if annotation != null { type = sem_type(c, annotation); }
+    if !sem_ok(c) { return n; }
+    if type == null {
+        sem_fail(c, n, "Named initialization requires a target type or init(Type)");
+        return n;
+    }
+    sem_set_type(&initial.type, type);
+    if type.pointers != 0 || type.scalar != SStruct() || semantic_enum(type) {
+        sem_fail(c, n, "Named initialization requires a struct type");
+        return n;
+    }
+    sem_surface_expected(c, n, expected_type);
+    if !sem_ok(c) { return n; }
+    if !destination {
+        sem_fail(c, n, "Named initialization requires a complete declaration initializer or reset destination");
+        return n;
+    }
+    sem_layout(c, type.record);
+    if !sem_ok(c) { return n; }
+    var fields = &sem_get(type.record).items;
+    var supplied = sem_table(c);
+    var entries = sem_collect(c, sem_member(n, "fields"), "TowerInitializerEntry");
+    for(var i: usize = 0; i < entries.length && sem_ok(c); i++) {
+        var entry = sem_child(entries.data[i], 0);
+        if sem_is(entry, "TowerInitializerDefault") {
+            if initial.op != 0 || i + 1 != entries.length {
+                sem_fail(c, entry, "The ..default initializer must occur once, at the end");
+            }
+            initial.op = 1;
+            continue;
+        }
+        var field = sem_node(c, entry, KAssign());
+        var name = sem_identifier(c, sem_member(entry, "name"));
+        sem_set_name(field, name);
+        foreach(var declaration in fields) {
+            if sem_equal(name, sem_name(sem_get(declaration))) { field.binding = declaration; }
+        }
+        if field.binding == null {
+            sem_fail(c, entry, sem_cat(c, "Unknown initializer field '", sem_cat(c, name, "'")));
+            break;
+        }
+        if !sem_put(c, supplied, name, entry) {
+            sem_fail(c, entry, sem_cat(c, "Duplicate initializer field '", sem_cat(c, name, "'")));
+            break;
+        }
+        sem_set_type(&field.type, &sem_get(field.binding).type);
+        field.value = sem_initial_value(c, sem_member(entry, "value"), &field.type);
+        sem_push(&initial.items, entry);
+    }
+    if sem_ok(c) && initial.op == 0 {
+        foreach(var declaration in fields) {
+            var name = sem_name(sem_get(declaration));
+            if sem_lookup_table(supplied, name) == null {
+                sem_fail(c, n, sem_cat(c, "Missing initializer field '", sem_cat(c, name, "'; provide it or use ..default")));
+                break;
+            }
+        }
+    }
+    c.surface_expressions = true;
+    return n;
+}
+
 fn sem_initial_value(c: SemanticContext*, n: void*, expected_type: FoundationType*): void* {
     var source = sem_surface_unwrap(n);
     if sem_is(source, "TowerDefault") { return sem_default(c, source, expected_type, true); }
+    if sem_is(source, "TowerInitializer") {
+        if c.value_depth >= 128 {
+            sem_fail(c, source, "Foundation expression nesting limit is 128");
+            return source;
+        }
+        c.value_depth++;
+        var result = sem_named_initialization(c, source, expected_type, true);
+        c.value_depth--;
+        return result;
+    }
     return sem_expression(c, n, expected_type);
 }
 
@@ -719,9 +801,11 @@ fn sem_surface(c: SemanticContext*, n: void*, expected_type: FoundationType*): v
                 }
             }
         }
-        if !compound && semantic_aggregate(input) && sem_is(sem_surface_unwrap(right), "TowerDefault") {
-            value.value = sem_default(c, sem_surface_unwrap(right), input, true);
-            value.kind = SurfaceDefaultStore();
+        var initial = sem_surface_unwrap(right);
+        var named = sem_is(initial, "TowerInitializer");
+        if !compound && semantic_aggregate(input) && (sem_is(initial, "TowerDefault") || named) {
+            value.value = sem_initial_value(c, initial, input);
+            value.kind = named ? SurfaceInitializerStore() : SurfaceDefaultStore();
             sem_set_type(&value.type, sem_type_new(c, SVoid(), 0, null));
         } else { value.value = sem_operand(c, right, input); }
         if sem_ok(c) {

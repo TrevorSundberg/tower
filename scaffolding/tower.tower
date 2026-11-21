@@ -92,6 +92,19 @@ parse TowerExpression |= TowerComptime;
 // Contextual zero value. Aggregate defaults initialize their destination in place.
 parse TowerDefault = 'default' | 'default' '(' $type:CoreType ')';
 parse TowerExpression |= TowerDefault;
+// Named construction has a destination, not an implicit aggregate copy.
+// Bare braces require an entry so an empty statement block stays unambiguous.
+parse TowerInitializerDefault = '..' 'default';
+parse TowerInitializerField = $name:Identifier ':' $value:CoreValue;
+parse TowerInitializerEntry = TowerInitializerField | TowerInitializerDefault;
+parse TowerInitializerEntries = TowerInitializerEntry | TowerInitializerEntries ',' TowerInitializerEntry;
+parse TowerInitializerFields = TowerInitializerEntries ','?;
+// A nonempty block starts with its first statement rather than reducing an
+// empty Statement* before that token. This lets ':' distinguish named fields.
+parse CoreBlock = '{' '}' | '{' Statement Statement* '}';
+parse TowerInitializer = '{' $fields:TowerInitializerFields '}'
+    | 'init' '(' $type:CoreType ')' '{' $fields:TowerInitializerFields? '}' @ 160 right;
+parse TowerExpression |= TowerInitializer;
 parse TowerExpressionStatement = $value:TowerComma ';';
 parse TowerDefer = 'defer' $body:TowerExpressionStatement | 'defer' $body:CoreBlock;
 // A scoped initializer, a bool test before each iteration, and an update after

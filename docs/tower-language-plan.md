@@ -742,9 +742,16 @@ containers. Benchmark representative compiler workloads before migrating them.
   and complete in-place struct/array initialization/reset. See
   [default initialization](default-initialization.md). Existing Foundation
   address/sizeof/fill operations preserve target layout and one destination
-  evaluation. This does not implement named-field construction, ownership or
+  evaluation. This does not implement ownership or
   aggregate staging capabilities. Its compatible bootstrap precedes adoption
   across the compiler, libraries, backend and host code.
+  Named-field in-place initialization now supports contextual `{ field: value }`,
+  explicit `init(Type)`, nested construction and final `..default` coverage.
+  See [named-field initialization](named-field-initialization.md) for sequencing,
+  completeness, worker dependencies and the future Stronghold validation boundary.
+  Raw declarations still permit uninitialized storage. Aggregate value transfers,
+  automatic constructors and a strict definite-initialization policy remain future
+  work; publication and bootstrap adoption are recorded in the journal.
 
 ## Next parallel/compiler milestones
 
