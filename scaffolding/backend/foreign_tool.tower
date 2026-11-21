@@ -170,7 +170,7 @@ export fn main(argc: i32, argv: u8**): i32 {
         return 1;
     }
     var source: vector(u8);
-    vector_init(u8, &source);
+    vector_init(&source);
     var buffer: u8[4096];
     loop {
         var count = fread(&buffer[0], 1, 4096, input);
@@ -182,13 +182,13 @@ export fn main(argc: i32, argv: u8**): i32 {
     var failed = ferror(input) != 0;
     fclose(input);
     if failed {
-        vector_dispose(u8, &source);
+        vector_dispose(&source);
         return 1;
     }
     var expanded: vector(u8);
-    vector_init(u8, &expanded);
+    vector_init(&expanded);
     var wraps: vector(u8);
-    vector_init(u8, &wraps);
+    vector_init(&wraps);
     var ok = foreign_expand_source(profile, source.data, source.length, &expanded, &wraps);
     if ok {
         var output = fopen(argv[3], "wb");
@@ -206,7 +206,7 @@ export fn main(argc: i32, argv: u8**): i32 {
     }
     if ok {
         var path: vector(u8);
-        vector_init(u8, &path);
+        vector_init(&path);
         backend_text(&path, argv[3]);
         backend_text(&path, ".wrap.rsp");
         var output = fopen(path.data, "wb");
@@ -221,11 +221,11 @@ export fn main(argc: i32, argv: u8**): i32 {
                 ok = false;
             }
         }
-        vector_dispose(u8, &path);
+        vector_dispose(&path);
     }
-    vector_dispose(u8, &wraps);
-    vector_dispose(u8, &source);
-    vector_dispose(u8, &expanded);
+    vector_dispose(&wraps);
+    vector_dispose(&source);
+    vector_dispose(&expanded);
     if ok {
         return 0;
     }

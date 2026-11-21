@@ -114,7 +114,7 @@ export fn tw_set_foundation(text: u8*, length: usize): i32 {
     var size = heap ? error.words[1]: convert(usize, raw[11]);
     var state = llvm_worker();
     state.foundation_error.length = 0;
-    llvm_worker_require(vector_reserve(u8, &state.foundation_error, size + 1));
+    llvm_worker_require(vector_reserve(&state.foundation_error, size + 1));
     copy(state.foundation_error.data, message, size);
     state.foundation_error.length = size;
     state.foundation_error.data[size] = 0;

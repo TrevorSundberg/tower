@@ -45,7 +45,7 @@ fn frontend_bedrock_entity(b: FrontendBedrock*, kind: u32, parent: void*): void*
         if parent != null {
             var owner = frontend_syntax(parent, b.kinds.syntax);
             var needed = owner.items.length + 1;
-            ok = vector_reserve(void*, &owner.items, needed);
+            ok = vector_reserve(&owner.items, needed);
             ok &&= entity_attach(node, parent, "");
             if ok {
                 owner.items.data[owner.items.length] = node;

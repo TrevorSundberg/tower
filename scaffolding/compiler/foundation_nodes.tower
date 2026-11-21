@@ -15,15 +15,15 @@ export fn foundation_node_init(value: FoundationNode*): void {
 }
 
 export fn foundation_node_dispose(value: FoundationNode*): void {
-    vector_dispose(u8, &value.name);
-    vector_dispose(void*, &value.items);
-    vector_dispose(void*, &value.locals);
-    vector_dispose(void*, &value.parameters);
-    vector_dispose(u8, &value.comments);
+    vector_dispose(&value.name);
+    vector_dispose(&value.items);
+    vector_dispose(&value.locals);
+    vector_dispose(&value.parameters);
+    vector_dispose(&value.comments);
 }
 
 export fn foundation_nodes_push(values: vector(void*)*, node: void*): bool {
-    return vector_push(void*, values, node);
+    return vector_push(values, node);
 }
 
 export fn foundation_nodes_erase(values: vector(void*)*, first: usize, count: usize): bool {
@@ -77,7 +77,7 @@ export fn foundation_nodes_prepend(values: vector(void*)*, source: void**, count
             return false;
         }
     }
-    var ok = vector_reserve(void*, values, total);
+    var ok = vector_reserve(values, total);
     if ok {
         if values.length != 0 {
             bytes = values.length * sizeof(void*);
@@ -99,7 +99,7 @@ export fn foundation_name_append(value: vector(u8)*, byte: u8): bool {
     if needed < value.length {
         return false;
     }
-    var ok = vector_reserve(u8, value, needed);
+    var ok = vector_reserve(value, needed);
     if ok {
         value.data[value.length] = byte;
         value.length++;

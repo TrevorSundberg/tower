@@ -93,8 +93,8 @@ fn lr_kernel_closure_destroy(value: LRKernelClosure*): void {
     for(var index: usize = 0; index != value.next.length; index++) {
         lr_items_destroy(value.next.data[index]);
     }
-    vector_dispose(LRItems*, &value.next);
-    vector_dispose(usize, &value.state.symbols);
+    vector_dispose(&value.next);
+    vector_dispose(&value.state.symbols);
     lr_items_destroy(value.state.items);
     free(value);
 }
@@ -151,7 +151,7 @@ fn lr_kernel_closure(analysis: LRAnalysis*, kernel: LRItem*): LRKernelClosure* {
             ok = false;
             break;
         }
-        ok = vector_push(LRItems*, &cached.next, next);
+        ok = vector_push(&cached.next, next);
         if !ok {
             lr_items_destroy(next);
             break;

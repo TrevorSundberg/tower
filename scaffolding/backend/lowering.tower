@@ -190,7 +190,7 @@ fn backend_address(b: Backend*, entity: void*): void* {
         absent = global == null;
         if absent {
             var name: vector(u8);
-            vector_init(u8, &name);
+            vector_init(&name);
             backend_text(&name, "tower.global.");
             backend_text(&name, backend_name(definition));
             var type = backend_type(b, &definition.type);
@@ -199,7 +199,7 @@ fn backend_address(b: Backend*, entity: void*): void* {
             LLVMSetInitializer(global, LLVMGetUndef(type));
             LLVMSetAlignment(global, convert(u32, semantic_alignment(&definition.type)));
             backend_require(b, backend_associate(&b.globals, binding, global));
-            vector_dispose(u8, &name);
+            vector_dispose(&name);
         }
         return global;
     }
@@ -245,7 +245,7 @@ fn backend_read(b: Backend*, entity: void*): void* {
 
 fn backend_call(b: Backend*, n: FoundationNode*): void* {
     var args: vector(void*);
-    vector_init(void*, &args);
+    vector_init(&args);
     var i: usize = 0;
     loop {
         if i == n.items.length {
@@ -253,7 +253,7 @@ fn backend_call(b: Backend*, n: FoundationNode*): void* {
         }
         // Read each argument once, in source order.
         var value = backend_read(b, n.items.data[i]);
-        backend_require(b, vector_push(void*, &args, value));
+        backend_require(b, vector_push(&args, value));
         i++;
     }
     var definition = sem_get(n.binding);
@@ -274,7 +274,7 @@ fn backend_call(b: Backend*, n: FoundationNode*): void* {
         }
         free(attributes);
     }
-    vector_dispose(void*, &args);
+    vector_dispose(&args);
     return result;
 }
 
@@ -682,7 +682,7 @@ fn backend_statement(b: Backend*, entity: void*): void {
         LLVMBuildBr(b.builder, head);
         LLVMPositionBuilderAtEnd(b.builder, head);
         var needed = b.loops.length + 1;
-        var ok = vector_reserve(BackendLoop, &b.loops, needed);
+        var ok = vector_reserve(&b.loops, needed);
         backend_require(b, ok);
         if !ok {
             return;
@@ -777,8 +777,8 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
         var omit = entry;
         omit &&= library;
         if omit {
-            backend_require(b, vector_push(void*, &b.functions, null));
-            backend_require(b, vector_push(u8*, &b.symbols, null));
+            backend_require(b, vector_push(&b.functions, null));
+            backend_require(b, vector_push(&b.symbols, null));
             i++;
             continue;
         }
@@ -796,7 +796,7 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
             }
         }
         var args: vector(void*);
-        vector_init(void*, &args);
+        vector_init(&args);
         var j: usize = 0;
         loop {
             done = j == n.parameters.length;
@@ -804,13 +804,13 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
                 break;
             }
             var p = sem_get(n.parameters.data[j]);
-            backend_require(b, vector_push(void*, &args, backend_type(b, &p.type)));
+            backend_require(b, vector_push(&args, backend_type(b, &p.type)));
             j++;
         }
         var type = LLVMFunctionType(backend_type(b, &n.type), args.data, convert(u32, args.length), 0);
-        vector_dispose(void*, &args);
+        vector_dispose(&args);
         var name: vector(u8);
-        vector_init(u8, &name);
+        vector_init(&name);
         var convention: u32 = 0;
         if entry {
             backend_text(&name, "tower_main");
@@ -827,7 +827,7 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
                     b.source_offset = n.start;
                     backend_fail(b, error);
                     foreign_name_close(spelling);
-                    vector_dispose(u8, &name);
+                    vector_dispose(&name);
                     return false;
                 }
                 backend_text(&name, foreign_name_text(spelling));
@@ -845,7 +845,7 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
                 b.source_offset = n.start;
                 backend_fail(b, "Duplicate or reserved foreign symbol: ");
                 backend_text(&b.error, name.data);
-                vector_dispose(u8, &name);
+                vector_dispose(&name);
                 return false;
             }
         }
@@ -867,9 +867,9 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
                 backend_attribute(b, function, "wasm-export-name", name.data);
             }
         }
-        backend_require(b, vector_push(u8*, &b.symbols, name.data));
-        backend_require(b, vector_push(void*, &b.functions, function));
-        backend_require(b, vector_push(void*, &b.source_functions, functions[i]));
+        backend_require(b, vector_push(&b.symbols, name.data));
+        backend_require(b, vector_push(&b.functions, function));
+        backend_require(b, vector_push(&b.source_functions, functions[i]));
         i++;
     }
     i = 0;
@@ -906,7 +906,7 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
                 slot = LLVMBuildAlloca(b.builder, backend_type(b, &local.type), backend_name(local));
                 LLVMSetAlignment(slot, convert(u32, semantic_alignment(&local.type)));
             }
-            backend_require(b, vector_push(void*, &b.locals, slot));
+            backend_require(b, vector_push(&b.locals, slot));
             j++;
         }
         j = 0;

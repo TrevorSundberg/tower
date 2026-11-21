@@ -68,8 +68,8 @@ fn foreign_key(out: vector(u8)*, type: ForeignType*): void {
 
 fn foreign_substitute(m: ForeignName*, type: ForeignType*, insert: bool): bool {
     var key: vector(u8);
-    vector_init(u8, &key);
-    defer vector_dispose(u8, &key);
+    vector_init(&key);
+    defer vector_dispose(&key);
     foreign_key(&key, type);
     var i: usize = 0;
     for(; i != m.substitutions.length; i++) {
@@ -86,7 +86,7 @@ fn foreign_substitute(m: ForeignName*, type: ForeignType*, insert: bool): bool {
         }
     }
     if insert {
-        foreign_require(m, vector_push(u8*, &m.substitutions, foreign_copy(m, key.data, key.length)));
+        foreign_require(m, vector_push(&m.substitutions, foreign_copy(m, key.data, key.length)));
     }
     return false;
 }

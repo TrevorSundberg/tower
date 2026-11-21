@@ -36,9 +36,9 @@ fn parser_table_clear_runtime(table: ParserHostTable*): void {
     table.runtime = null;
     var index: usize = 0;
     for(; index < table.states.length; index++) {
-        vector_dispose(FrontendContextPosition, &table.states.data[index].contexts);
+        vector_dispose(&table.states.data[index].contexts);
     }
-    vector_dispose(ParserHostState, &table.states);
+    vector_dispose(&table.states);
     table.built = false;
 }
 
@@ -96,7 +96,7 @@ export fn parser_table_open_host(root: void*, userdata: void*, presentation: Par
 
 fn parser_table_contexts(table: ParserHostTable*, analysis: void*, states: void*): bool {
     var count = lr_states_count(states);
-    var ok = vector_reserve(ParserHostState, &table.states, count);
+    var ok = vector_reserve(&table.states, count);
     if !ok {
         return false;
     }
@@ -113,7 +113,7 @@ fn parser_table_contexts(table: ParserHostTable*, analysis: void*, states: void*
         var items = lr_states_items(states, index);
         var values = lr_items_data(items);
         var size = lr_items_count(items);
-        ok = vector_reserve(FrontendContextPosition, &state.contexts, size);
+        ok = vector_reserve(&state.contexts, size);
         if !ok {
             return false;
         }

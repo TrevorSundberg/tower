@@ -17,7 +17,7 @@ import .library.work_graph;
 
 fn sem_track(c: SemanticContext*, data: u8*): void {
     var step1 = bits(void*, data);
-    sem_require(vector_push(void*, &c.allocations, step1));
+    sem_require(vector_push(&c.allocations, step1));
 }
 
 fn sem_context_init(c: SemanticContext*, program: SemanticProgram*): void {
@@ -58,25 +58,25 @@ fn sem_context_init(c: SemanticContext*, program: SemanticProgram*): void {
 }
 
 fn sem_context_dispose(c: SemanticContext*): void {
-    stack_dispose(void*, &c.scan);
-    vector_dispose(u8, &c.token_text);
+    stack_dispose(&c.scan);
+    vector_dispose(&c.token_text);
     work_dispose(&c.layout_work);
     var i: usize = 0;
     for(; i < c.lists.length; i++) {
         var step3 = bits(vector(void*)*, c.lists.data[i]);
-        vector_dispose(void*, step3);
+        vector_dispose(step3);
     }
-    vector_dispose(void*, &c.lists);
-    vector_dispose(void*, &c.type_arguments);
-    vector_dispose(void*, &c.constant_arguments);
-    vector_dispose(void*, &c.generated);
-    vector_dispose(void*, &c.template_nodes);
-    vector_dispose(void*, &c.inferring);
+    vector_dispose(&c.lists);
+    vector_dispose(&c.type_arguments);
+    vector_dispose(&c.constant_arguments);
+    vector_dispose(&c.generated);
+    vector_dispose(&c.template_nodes);
+    vector_dispose(&c.inferring);
     i = 0;
     for(; i < c.allocations.length; i++) {
         free(c.allocations.data[i]);
     }
-    vector_dispose(void*, &c.allocations);
+    vector_dispose(&c.allocations);
 }
 
 export fn semantic_initialize(program: SemanticProgram*, root: void*, width: u32): void {
@@ -135,9 +135,9 @@ export fn semantic_compile(program: SemanticProgram*, roots: void**, bases: usiz
 }
 
 export fn semantic_program_dispose(program: SemanticProgram*): void {
-    vector_dispose(void*, &program.functions);
-    vector_dispose(void*, &program.types);
-    vector_dispose(u8, &program.error);
+    vector_dispose(&program.functions);
+    vector_dispose(&program.types);
+    vector_dispose(&program.error);
 }
 
 export fn semantic_format_type(t: FoundationType*, output: vector(u8)*): void {
@@ -151,7 +151,7 @@ export fn semantic_format_type(t: FoundationType*, output: vector(u8)*): void {
     var text: u8* = sem_type_name(&context, t);
     var count: usize = sem_length(text);
     var step5 = count + 1;
-    sem_require(vector_reserve(u8, output, step5));
+    sem_require(vector_reserve(output, step5));
     var step7 = count + 1;
     copy(output.data, text, step7);
     output.length = count;
@@ -165,7 +165,7 @@ export fn semantic_format_number(value: u64, t: FoundationType*, output: vector(
     var text: u8* = sem_number(&context, value, t);
     var count: usize = sem_length(text);
     var step4 = count + 1;
-    sem_require(vector_reserve(u8, output, step4));
+    sem_require(vector_reserve(output, step4));
     var step6 = count + 1;
     copy(output.data, text, step6);
     output.length = count;

@@ -18,7 +18,7 @@ fn parser_format_push(request: ParserFormat*, kind: ParserFormatTask, a: usize, 
     }
     var size = request.frames.length + 1;
     var ok = size != 0;
-    ok &&= vector_reserve(ParserFormatFrame, &request.frames, size);
+    ok &&= vector_reserve(&request.frames, size);
     if ok {
         var frame = &request.frames.data[request.frames.length];
         frame.kind = kind;
@@ -389,7 +389,7 @@ export fn parser_format_destroy(request: ParserFormat*): void {
         return;
     }
     format_dispose(&request.result);
-    vector_dispose(ParserFormatFrame, &request.frames);
+    vector_dispose(&request.frames);
     free(request);
 }
 

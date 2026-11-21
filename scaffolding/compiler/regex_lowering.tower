@@ -103,7 +103,7 @@ fn regex_empty(fragment: RegexFragment*): void {
 
 fn regex_visit(context: RegexLowering*, node: void*, depth: usize, finish: bool): void {
     var count = context.visits.length + 1;
-    var ok = vector_reserve(RegexVisit, &context.visits, count);
+    var ok = vector_reserve(&context.visits, count);
     regex_allocation(context, ok);
     if ok {
         var visit = &context.visits.data[context.visits.length];
@@ -116,7 +116,7 @@ fn regex_visit(context: RegexLowering*, node: void*, depth: usize, finish: bool)
 
 fn regex_push(context: RegexLowering*, fragment: RegexFragment*): void {
     var count = context.values.length + 1;
-    var ok = vector_reserve(RegexFragment, &context.values, count);
+    var ok = vector_reserve(&context.values, count);
     regex_allocation(context, ok);
     if ok {
         copy(&context.values.data[context.values.length], fragment, sizeof(RegexFragment));
@@ -132,7 +132,7 @@ fn regex_pop(context: RegexLowering*, fragment: RegexFragment*): void {
 fn regex_end(context: RegexLowering*, fragment: RegexFragment*, state: i32, other: bool): void {
     var index = context.patches.length;
     var count = index + 1;
-    var ok = vector_reserve(RegexPatch, &context.patches, count);
+    var ok = vector_reserve(&context.patches, count);
     regex_allocation(context, ok);
     if ok {
         var end = &context.patches.data[index];
@@ -274,7 +274,7 @@ fn regex_class(context: RegexLowering*, node: void*, index: i32, negated: void*)
     if body == null {
         body = regex_member(node, "body");
     }
-    var ok = vector_push(void*, &context.pending, body);
+    var ok = vector_push(&context.pending, body);
     regex_allocation(context, ok);
     loop {
         if context.error != null {
@@ -289,7 +289,7 @@ fn regex_class(context: RegexLowering*, node: void*, index: i32, negated: void*)
         var character = regex_named(context, at, "RegexClassFirst");
         character ||= regex_named(context, at, "RegexClassCharacter");
         if character {
-            ok = vector_push(void*, &context.characters, at);
+            ok = vector_push(&context.characters, at);
             regex_allocation(context, ok);
         } else {
             var children = entity_child_count(at);
@@ -300,7 +300,7 @@ fn regex_class(context: RegexLowering*, node: void*, index: i32, negated: void*)
                 }
                 children--;
                 var child = entity_child_at(at, children);
-                ok = vector_push(void*, &context.pending, child);
+                ok = vector_push(&context.pending, child);
                 regex_allocation(context, ok);
             }
         }
@@ -571,11 +571,11 @@ export fn regex_compile_tree(root: void*, source: u8*, match_type: void*, table:
     }
     *error_offset = context.cursor;
     var error = context.error;
-    vector_dispose(RegexVisit, &context.visits);
-    vector_dispose(RegexFragment, &context.values);
-    vector_dispose(RegexPatch, &context.patches);
-    vector_dispose(void*, &context.pending);
-    vector_dispose(void*, &context.characters);
+    vector_dispose(&context.visits);
+    vector_dispose(&context.values);
+    vector_dispose(&context.patches);
+    vector_dispose(&context.pending);
+    vector_dispose(&context.characters);
     automaton_destroy(context.automaton);
     return error;
 }

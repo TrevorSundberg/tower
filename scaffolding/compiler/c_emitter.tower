@@ -228,7 +228,7 @@ fn ce_function_name(c: CEmitter*, entity: void*): void {
             }
         }
         if valid {
-            sem_require(vector_push(u8, c.text, b));
+            sem_require(vector_push(c.text, b));
         }
         else {
             ce_text(c, "_");
@@ -364,10 +364,10 @@ fn ce_collect(c: CEmitter*, entity: void*, owner: void*): void {
     if n.kind == KFunction() {
         owner = entity;
     }
-    sem_require(vector_push(void*, &c.nodes, entity));
-    sem_require(vector_push(void*, &c.owners, owner));
-    sem_require(vector_push(bool, &c.active, false));
-    sem_require(vector_push(bool, &c.returning, true));
+    sem_require(vector_push(&c.nodes, entity));
+    sem_require(vector_push(&c.owners, owner));
+    sem_require(vector_push(&c.active, false));
+    sem_require(vector_push(&c.returning, true));
     // Labels point back to their block. Types contain recursive nominal edges.
     if n.kind == KLabel() {
         return;
@@ -413,7 +413,7 @@ fn ce_comments(c: CEmitter*, n: FoundationNode*): void {
             ce_text(c, "\\x5c");
         }
         else {
-            sem_require(vector_push(u8, c.text, b));
+            sem_require(vector_push(c.text, b));
         }
         // Prevent preprocessing trigraphs and backslash/newline splicing in C.
         if b == 63 {
@@ -1222,10 +1222,10 @@ export fn c_emit(text: vector(u8)*, error: vector(u8)*, root: void*, pointer_byt
     ce_text(&c, "int main(void)\n{\n");
     ce_body(&c, root, true);
     ce_text(&c, "#ifdef __cplusplus\n}\n#endif\n");
-    vector_dispose(void*, &c.nodes);
-    vector_dispose(void*, &c.owners);
-    vector_dispose(bool, &c.active);
-    vector_dispose(bool, &c.returning);
+    vector_dispose(&c.nodes);
+    vector_dispose(&c.owners);
+    vector_dispose(&c.active);
+    vector_dispose(&c.returning);
     if error.length != 0 {
         text.length = 0;
     }

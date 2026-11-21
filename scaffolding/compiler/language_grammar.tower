@@ -72,7 +72,7 @@ fn language_match_snapshot(q: CompletionQuery*, node: void*, session: void*, dep
         entry.total = 1;
         language_grammar_keep(&entry, target);
         var needed = q.grammar.length + 1;
-        sem_require(vector_reserve(LanguageGrammar, &q.grammar, needed));
+        sem_require(vector_reserve(&q.grammar, needed));
         copy(&q.grammar.data[q.grammar.length], &entry, sizeof(LanguageGrammar));
         q.grammar.length = needed;
     }
@@ -201,7 +201,7 @@ fn language_snapshot(q: CompletionQuery*, node: void*, session: void*, depth: us
         }
         if grammar_condition12 {
             var needed = q.grammar.length + 1;
-            sem_require(vector_reserve(LanguageGrammar, &q.grammar, needed));
+            sem_require(vector_reserve(&q.grammar, needed));
             copy(&q.grammar.data[q.grammar.length], &entry, sizeof(LanguageGrammar));
             q.grammar.length = needed;
         }
@@ -253,10 +253,10 @@ fn language_grammar_dispose(q: CompletionQuery*): void {
         for(var j: usize = 0; j != entry.targets.length; j++) {
             entity_release(entry.targets.data[j]);
         }
-        vector_dispose(void*, &entry.targets);
-        vector_dispose(u8, &entry.category);
+        vector_dispose(&entry.targets);
+        vector_dispose(&entry.category);
     }
-    vector_dispose(LanguageGrammar, &q.grammar);
+    vector_dispose(&q.grammar);
 }
 
 fn language_grammar_find(q: CompletionQuery*, node: void*): LanguageGrammar* {
@@ -336,7 +336,7 @@ fn language_grammar_docs(q: CompletionQuery*, node: void*): void {
         if syntax != null {
             if syntax.comments.length != 0 {
                 var text: vector(u8);
-                vector_init(u8, &text);
+                vector_init(&text);
                 var i: usize = 0;
                 for(; i != syntax.comments.length; i++) {
                     var comment = &syntax.comments.data[i];
@@ -366,7 +366,7 @@ fn language_grammar_docs(q: CompletionQuery*, node: void*): void {
                 }
                 completion_text(&q.output, ",\"documentation\":");
                 language_quote(q, text.data, text.length);
-                vector_dispose(u8, &text);
+                vector_dispose(&text);
                 return;
             }
         }
@@ -398,7 +398,7 @@ fn language_grammar_targets(q: CompletionQuery*, entry: LanguageGrammar*, docume
     }
     language_number(q, "alternatives", entry.total);
     var text: vector(u8);
-    vector_init(u8, &text);
+    vector_init(&text);
     var i: usize = 0;
     for(; i != entry.targets.length; i++) {
         var preview: FormatResult;
@@ -420,7 +420,7 @@ fn language_grammar_targets(q: CompletionQuery*, entry: LanguageGrammar*, docume
     }
     completion_text(&q.output, ",\"definition\":");
     language_quote(q, text.data, text.length);
-    vector_dispose(u8, &text);
+    vector_dispose(&text);
     language_grammar_location(q, entry.targets.data[0]);
     if documentation {
         language_grammar_docs(q, entry.targets.data[0]);
@@ -581,7 +581,7 @@ fn language_template_capture(leaf: void*, template: LanguageGrammar*): void* {
 
 fn language_capture_categories(q: CompletionQuery*, declaration: SyntaxNode*, capture: SyntaxNode*): void {
     var categories: vector(u8*);
-    vector_init(u8*, &categories);
+    vector_init(&categories);
     var i: usize = 0;
     if declaration != null {
         for(; i != declaration.items.length; i++) {
@@ -599,17 +599,17 @@ fn language_capture_categories(q: CompletionQuery*, declaration: SyntaxNode*, ca
                         }
                     }
                     if !known {
-                        sem_require(vector_push(u8*, &categories, term.text.data));
+                        sem_require(vector_push(&categories, term.text.data));
                     }
                 }
             }
         }
     }
     if categories.length == 0 {
-        sem_require(vector_push(u8*, &categories, capture.text.data));
+        sem_require(vector_push(&categories, capture.text.data));
     }
     var text: vector(u8);
-    vector_init(u8, &text);
+    vector_init(&text);
     i = 0;
     for(; i != categories.length; i++) {
         if i != 0 {
@@ -619,8 +619,8 @@ fn language_capture_categories(q: CompletionQuery*, declaration: SyntaxNode*, ca
     }
     completion_text(&q.output, ",\"category\":");
     language_quote(q, text.data, text.length);
-    vector_dispose(u8, &text);
-    vector_dispose(u8*, &categories);
+    vector_dispose(&text);
+    vector_dispose(&categories);
 }
 
 fn language_template_role(node: void*, kind: u8**, description: u8**): bool {

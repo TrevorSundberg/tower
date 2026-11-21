@@ -36,7 +36,7 @@ fn driver_extension(path: u8*): usize {
 // The platform supplies an absolute spelling; dot segments are normalized here.
 fn driver_path_normalize(path: u8*, out: ByteBuffer*): bool {
     var parts: vector(usize);
-    vector_init(usize, &parts);
+    vector_init(&parts);
     var i: usize = 0;
     var ok = true;
     var protected_parts: usize = 0;
@@ -69,13 +69,13 @@ fn driver_path_normalize(path: u8*, out: ByteBuffer*): bool {
             }
             continue;
         }
-        ok = vector_push(usize, &parts, out.length);
+        ok = vector_push(&parts, out.length);
         if out.length != 0 && out.data[out.length -1] != 47 {
             ok &&= bytes_push(out, 47);
         }
         ok &&= bytes_append(out, path + start, count);
     }
-    vector_dispose(usize, &parts);
+    vector_dispose(&parts);
     return ok && host_text_terminate(out);
 }
 

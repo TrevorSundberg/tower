@@ -61,6 +61,6 @@ export fn syntax_destroy(opaque: void*): void {
     syntax_session_inputs_dispose(&value.inputs);
     syntax_session_pins_dispose(&value.pins);
     syntax_highlights_dispose(&value.highlights);
-    vector_dispose(u8, &value.error);
+    vector_dispose(&value.error);
     free(value);
 }

@@ -110,7 +110,7 @@ fn re_comments(r: RokuEmitter*, n: FoundationNode*): void {
         if b == 13 {
             b = 10;
         }
-        sem_require(vector_push(u8, r.common.text, b));
+        sem_require(vector_push(r.common.text, b));
         if b == 10 {
             re_text(r, "' ");
         }
@@ -855,10 +855,10 @@ export fn roku_emit(text: vector(u8)*, error: vector(u8)*, root: void*, pointer_
     if lines > 60000 {
         re_fail(&r, "Roku source exceeds the 60000-line profile limit; split the program");
     }
-    vector_dispose(void*, &r.common.nodes);
-    vector_dispose(void*, &r.common.owners);
-    vector_dispose(bool, &r.common.active);
-    vector_dispose(bool, &r.common.returning);
+    vector_dispose(&r.common.nodes);
+    vector_dispose(&r.common.owners);
+    vector_dispose(&r.common.active);
+    vector_dispose(&r.common.returning);
     if error.length != 0 {
         text.length = 0;
     }

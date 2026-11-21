@@ -69,10 +69,10 @@ export fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendS
     var roots: vector(void*);
     var bases: vector(usize);
     var modules: vector(void*);
-    vector_init(u8, &source);
-    vector_init(void*, &roots);
-    vector_init(usize, &bases);
-    vector_init(void*, &modules);
+    vector_init(&source);
+    vector_init(&roots);
+    vector_init(&bases);
+    vector_init(&modules);
     var index: usize = 0;
     loop {
         var done = index == count;
@@ -80,7 +80,7 @@ export fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendS
             break;
         }
         var module = frontend_module_root(sources[index].data, environment);
-        sem_require(vector_push(void*, &modules, module));
+        sem_require(vector_push(&modules, module));
         var session = frontend_module_session(module);
         loop {
             var root = syntax_next(session);
@@ -122,7 +122,7 @@ export fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendS
             var data = frontend_module_source(current);
             var length = frontend_module_size(current);
             sem_require(bytes_append(&source, data, length));
-            sem_require(vector_push(u8, &source, 10));
+            sem_require(vector_push(&source, 10));
             var n: usize = 0;
             var trees = frontend_module_roots(current);
             loop {
@@ -141,16 +141,16 @@ export fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendS
                 }
                 sem_require(entity_attach(root, program.root, ""));
                 var target = sem_get(program.root);
-                sem_require(vector_push(void*, &target.items, node));
-                sem_require(vector_push(void*, &roots, root));
-                sem_require(vector_push(usize, &bases, base));
+                sem_require(vector_push(&target.items, node));
+                sem_require(vector_push(&roots, root));
+                sem_require(vector_push(&bases, base));
                 n++;
             }
             dependency++;
         }
         index++;
     }
-    sem_require(vector_push(u8, &source, 0));
+    sem_require(vector_push(&source, 0));
     if program.error.length == 0 {
         semantic_compile(program, roots.data, bases.data, roots.length, source.data);
     }
@@ -186,8 +186,8 @@ export fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendS
     for(; index != modules.length; index++) {
         frontend_module_destroy(modules.data[index]);
     }
-    vector_dispose(void*, &modules);
-    vector_dispose(u8, &source);
-    vector_dispose(void*, &roots);
-    vector_dispose(usize, &bases);
+    vector_dispose(&modules);
+    vector_dispose(&source);
+    vector_dispose(&roots);
+    vector_dispose(&bases);
 }

@@ -42,7 +42,7 @@ fn format_tree_push(pending: vector(FormatTreeEntry)*, node: void*, depth: usize
     if needed == 0 {
         return false;
     }
-    var ok = vector_reserve(FormatTreeEntry, pending, needed);
+    var ok = vector_reserve(pending, needed);
     if ok {
         var entry = &pending.data[pending.length];
         entry.node = node;
@@ -70,7 +70,7 @@ export fn format_parser_tree(result: FormatResult*, root: void*, kind: void*): v
         member = entity_child_name(parent, entity_child_index(parent, root));
     }
     var pending: vector(FormatTreeEntry);
-    vector_init(FormatTreeEntry, &pending);
+    vector_init(&pending);
     var ok = format_tree_push(&pending, root, 0, member);
     if !ok {
         result.failed = true;
@@ -135,7 +135,7 @@ export fn format_parser_tree(result: FormatResult*, root: void*, kind: void*): v
             }
         }
     }
-    vector_dispose(FormatTreeEntry, &pending);
+    vector_dispose(&pending);
 }
 
 enum ParserScalar: u32 {

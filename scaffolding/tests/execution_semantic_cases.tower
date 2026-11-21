@@ -64,7 +64,8 @@ fn execution_semantic_invalid(index: usize): u8* {
     if index == 45 { return "fn print(): void {}"; }
     if index == 46 { return "fn f(): void {} fn f(): void {}"; }
     if index == 47 { return "fn f(T: type, T: type): T { return 1; }"; }
-    if index == 48 { return "fn f(T: type, v: T): T { return v; } f(i32);"; }
+    // Inference accepts one runtime argument; zero still tests invalid arity.
+    if index == 48 { return "fn f(T: type, v: T): T { return v; } f();"; }
     if index == 49 { return "fn typefn(T: type): type { return T; } print(typefn(i32));"; }
     if index == 50 { return "fn bad(T: type): type { return bad(T); } var a: bad(i32);"; }
     if index == 51 { return "fn bad(T: type): T { return true; } print(bad(i32));"; }

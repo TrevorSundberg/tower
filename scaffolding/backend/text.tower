@@ -43,7 +43,7 @@ fn backend_prefix(a: u8*, b: u8*): bool {
 fn backend_text_append(out: vector(u8)*, text: u8*, count: usize): void {
     var end = out.length + count;
     var needed = end + 1;
-    if vector_reserve(u8, out, needed) {
+    if vector_reserve(out, needed) {
         copy(&out.data[out.length], text, count);
         out.length = end;
         out.data[end] = 0;

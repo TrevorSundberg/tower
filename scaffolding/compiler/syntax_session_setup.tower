@@ -98,9 +98,9 @@ export fn syntax_baseline_install(world: void*, environment: void*, source: u8*,
     }
     if session.error.length != 0 {
         // Transfer the diagnostic owner before destroying its session.
-        vector_dispose(u8, &diagnostic.text);
+        vector_dispose(&diagnostic.text);
         copy(&diagnostic.text, &session.error, sizeof(vector(u8)));
-        vector_init(u8, &session.error);
+        vector_init(&session.error);
         diagnostic.offset = session.error_offset;
         return false;
     }

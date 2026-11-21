@@ -25119,3 +25119,18 @@ A completely empty /cache/inference-pinned-clean build with
 TOWER_BOOTSTRAP_COMPILER unset succeeds through all 55 steps using the new default
 pin. This remains the documented hybrid Linux x64 development bootstrap, not a
 portable pure-Tower release. Publish this pin before migrating production calls.
+
+The bootstrap pin was published as 1ee45e5 before adoption. Migrated 809 redundant
+collection type arguments across 92 production Tower files (compiler, backend,
+host, libraries); explicit-argument regression fixtures remain intentional. The
+edit removes only the leading type argument, preserving operands and order.
+The fresh /cache/inference-migrated build succeeds without any private compiler
+override; parser, LLVM and cross-target browser reactors rebuild successfully.
+Four representative migrated modules pass formatter tree/idempotence checks.
+All 13 inference/real-worker backend tests pass (inference-migrated-backends.log).
+The native suite initially exposed the old oracle's f(i32) wrong-arity fixture:
+one argument is now a valid inferred-call count, so it correctly fails during
+value resolution instead. Changed that arity fixture to f(), retaining its call
+offset and expected diagnostic. Native CTests now pass 5/5 in 16.58 seconds and
+backend API checks pass (inference-migrated-native-recheck.log). No C++ feature
+code, Foundation/Bedrock grammar changes or todo.txt edits were introduced.

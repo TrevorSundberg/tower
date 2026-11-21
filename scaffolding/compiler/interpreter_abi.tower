@@ -32,7 +32,7 @@ fn im_cached_node(m: IMState*, node: void*): FoundationNode* {
     hash = hash & 255;
     var index = convert(usize, hash);
     if m.node_cache.length == 0 {
-        im_storage_require(vector_reserve(IMEntry, &m.node_cache, 256));
+        im_storage_require(vector_reserve(&m.node_cache, 256));
         var bytes = sizeof(IMEntry) *256;
         fill(m.node_cache.data, 0, bytes);
         m.node_cache.length = 256;

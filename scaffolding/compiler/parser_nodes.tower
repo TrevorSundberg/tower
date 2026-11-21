@@ -39,26 +39,26 @@ export fn node_payload_dispose(kind: u32, data: void*): void {
     var selected = kind == 0;
     if selected {
         var rule = bits(ParserRuleData*, data);
-        vector_dispose(u8, &rule.name);
+        vector_dispose(&rule.name);
         return;
     }
     selected = kind == 1;
     if selected {
         var reference = bits(ParserReferenceData*, data);
-        vector_dispose(u8, &reference.name);
-        vector_dispose(u8, &reference.capture);
+        vector_dispose(&reference.name);
+        vector_dispose(&reference.capture);
         return;
     }
     selected = kind == 2;
     if selected {
         var string = bits(ParserStringData*, data);
-        vector_dispose(u32, &string.ids);
+        vector_dispose(&string.ids);
         return;
     }
     selected = kind == 4;
     if selected {
         var `match` = bits(ParserMatchData*, data);
-        vector_dispose(u8, &`match`.label);
+        vector_dispose(&`match`.label);
     }
 }
 
@@ -73,7 +73,7 @@ fn node_text_set(text: vector(u8)*, source: u8*): bool {
     var count: usize = 0;
     for(; !(source[count] == 0); count++) {}
     var bytes = count + 1;
-    var ok = vector_reserve(u8, text, bytes);
+    var ok = vector_reserve(text, bytes);
     if ok {
         copy(text.data, source, bytes);
         text.length = count;
@@ -122,7 +122,7 @@ export fn node_string_data(value: ParserStringData*): u32* {
 }
 
 export fn node_string_resize(value: ParserStringData*, length: usize): bool {
-    var ok = vector_reserve(u32, &value.ids, length);
+    var ok = vector_reserve(&value.ids, length);
     if ok {
         for(var i = value.ids.length; i < length; i++) {
             value.ids.data[i] = 4294967294;
@@ -151,7 +151,7 @@ export fn node_string_append(value: ParserStringData*, source: u8*, count: usize
     if end < value.ids.length {
         return false;
     }
-    if !vector_reserve(u32, &value.ids, end) {
+    if !vector_reserve(&value.ids, end) {
         return false;
     }
     var offset: usize = 0;

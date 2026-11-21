@@ -211,7 +211,7 @@ source_b: u8*, size_b: usize, syntax: void*, kind: void*, pending: vector(Format
     if needed < pending.length {
         return false;
     }
-    if !vector_reserve(FormatTreePair, pending, needed) {
+    if !vector_reserve(pending, needed) {
         return false;
     }
     // Reverse push preserves source order while avoiding host recursion.
@@ -230,7 +230,7 @@ source_b: u8*, size_b: usize, syntax: void*, kind: void*, pending: vector(Format
 export fn format_same_tree(a: void*, b: void*, source_a: u8*, size_a: usize,
 source_b: u8*, size_b: usize, syntax: void*, kind: void*): bool {
     var pending: vector(FormatTreePair);
-    vector_init(FormatTreePair, &pending);
+    vector_init(&pending);
     var pair: FormatTreePair;
     pair.left = a;
     pair.right = b;
@@ -244,6 +244,6 @@ source_b: u8*, size_b: usize, syntax: void*, kind: void*): bool {
         pair.right = pending.data[pending.length].right;
         same = format_preview_pair(&pair, source_a, size_a, source_b, size_b, syntax, kind, &pending);
     }
-    vector_dispose(FormatTreePair, &pending);
+    vector_dispose(&pending);
     return same;
 }

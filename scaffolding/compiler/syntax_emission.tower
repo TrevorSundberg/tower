@@ -81,7 +81,7 @@ fn emission_hash(text: u8*, length: usize): usize {
 }
 
 fn emission_rehash(value: SyntaxEmission*, size: usize): bool {
-    if !vector_reserve(usize, &value.buckets, size) {
+    if !vector_reserve(&value.buckets, size) {
         return false;
     }
     value.buckets.length = size;
@@ -148,9 +148,9 @@ fn emission_name(value: SyntaxEmission*, text: u8*, length: usize): usize {
     }
     fill(entry, 0, sizeof(SyntaxEmissionEntry));
     var ok = bytes_assign_text(&entry.text, text, length);
-    ok &&= vector_push(SyntaxEmissionEntry*, &value.names, entry);
+    ok &&= vector_push(&value.names, entry);
     if !ok {
-        vector_dispose(u8, &entry.text);
+        vector_dispose(&entry.text);
         free(entry);
         value.failed = true;
         return lr_none();
@@ -333,7 +333,7 @@ fn emission_wrapper(value: SyntaxEmission*, name: usize): usize {
         return entry.wrapper;
     }
     var prefix: vector(u8);
-    vector_init(u8, &prefix);
+    vector_init(&prefix);
     var ok = node_text_set(&prefix, "token ");
     ok &&= bytes_append(&prefix, entry.text.data, entry.text.length);
     ok &&= bytes_assign_text(&prefix, prefix.data, prefix.length);
@@ -342,7 +342,7 @@ fn emission_wrapper(value: SyntaxEmission*, name: usize): usize {
     } else {
         value.failed = true;
     }
-    vector_dispose(u8, &prefix);
+    vector_dispose(&prefix);
     return entry.wrapper;
 }
 
@@ -465,7 +465,7 @@ fn emission_insert(values: vector(usize)*, item: usize, changed: bool*): bool {
         }
     }
     var count = values.length + 1;
-    var ok = vector_reserve(usize, values, count);
+    var ok = vector_reserve(values, count);
     if ok {
         var index = values.length;
         loop {
@@ -838,7 +838,7 @@ fn emission_visit(value: SyntaxEmission*, name: usize): void {
         return;
     }
     state.visited = true;
-    if !vector_push(usize, &value.queue, rule) {
+    if !vector_push(&value.queue, rule) {
         value.failed = true;
     }
 }
@@ -977,7 +977,7 @@ fn emission_starts(value: SyntaxEmission*, text: u8*): void {
 
 fn emission_declarations(value: SyntaxEmission*): void {
     var count = value.input.count;
-    if !vector_reserve(SyntaxEmissionState, &value.states, count) {
+    if !vector_reserve(&value.states, count) {
         value.failed = true;
         return;
     }
@@ -1063,8 +1063,8 @@ fn emission_index_helpers(value: SyntaxEmission*): bool {
     if size <= captures {
         return false;
     }
-    var ok = vector_reserve(usize, &value.capture_buckets, size);
-    ok &&= vector_reserve(usize, &value.capture_next, value.helpers.length);
+    var ok = vector_reserve(&value.capture_buckets, size);
+    ok &&= vector_reserve(&value.capture_next, value.helpers.length);
     if !ok {
         return false;
     }
@@ -1100,12 +1100,12 @@ export fn syntax_emission_repetitions(value: SyntaxEmission*): SyntaxEmissionHel
 fn emission_discard_scratch(value: SyntaxEmission*): void {
     var index: usize = 0;
     for(; index < value.states.length; index++) {
-        vector_dispose(usize, &value.states.data[index].first);
+        vector_dispose(&value.states.data[index].first);
     }
-    vector_dispose(SyntaxEmissionState, &value.states);
-    vector_dispose(usize, &value.queue);
-    vector_dispose(usize, &value.terminals);
-    vector_dispose(u8, &value.scratch);
+    vector_dispose(&value.states);
+    vector_dispose(&value.queue);
+    vector_dispose(&value.terminals);
+    vector_dispose(&value.scratch);
 }
 
 export fn syntax_emission_destroy(value: SyntaxEmission*): void {
@@ -1115,17 +1115,17 @@ export fn syntax_emission_destroy(value: SyntaxEmission*): void {
     var index: usize = 0;
     for(; index != value.names.length; index++) {
         var entry = value.names.data[index];
-        vector_dispose(u8, &entry.text);
+        vector_dispose(&entry.text);
         free(entry);
     }
     emission_discard_scratch(value);
-    vector_dispose(SyntaxEmissionEntry*, &value.names);
-    vector_dispose(usize, &value.buckets);
-    vector_dispose(SyntaxEmissionProduction, &value.productions);
-    vector_dispose(SyntaxEmissionHelper, &value.helpers);
-    vector_dispose(SyntaxEmissionHelper, &value.repetitions);
-    vector_dispose(usize, &value.capture_buckets);
-    vector_dispose(usize, &value.capture_next);
+    vector_dispose(&value.names);
+    vector_dispose(&value.buckets);
+    vector_dispose(&value.productions);
+    vector_dispose(&value.helpers);
+    vector_dispose(&value.repetitions);
+    vector_dispose(&value.capture_buckets);
+    vector_dispose(&value.capture_next);
     emission_dispose_lexical(&value.lexical);
     free(value);
 }

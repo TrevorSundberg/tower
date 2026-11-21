@@ -21,8 +21,8 @@ export fn syntax_source_release(source: SyntaxSource*): void {
     }
     source.references--;
     if source.references == 0 {
-        vector_dispose(u8, &source.name);
-        vector_dispose(u8, &source.text);
+        vector_dispose(&source.name);
+        vector_dispose(&source.text);
         free(source);
     }
 }
@@ -39,7 +39,7 @@ export fn syntax_source_create(name: u8*, text: u8*, length: usize): SyntaxSourc
     fill(source, 0, sizeof(SyntaxSource));
     source.references = 1;
     var ok = node_text_set(&source.name, name);
-    ok &&= vector_reserve(u8, &source.text, needed);
+    ok &&= vector_reserve(&source.text, needed);
     if ok {
         if length != 0 {
             copy(source.text.data, text, length);

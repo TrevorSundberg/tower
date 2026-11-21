@@ -52,7 +52,7 @@ fn driver_argument(args: DriverArguments*, prefix: u8*, value: u8*): void {
     args.ok = driver_text(&text, prefix);
     args.ok &&= driver_text(&text, value);
     args.ok &&= host_text_terminate(&text);
-    args.ok &&= vector_push(u8*, &args.values, text.data);
+    args.ok &&= vector_push(&args.values, text.data);
     if !args.ok {
         bytes_dispose(&text);
     }
@@ -62,7 +62,7 @@ fn driver_arguments_dispose(args: DriverArguments*): void {
     for(var i: usize = 0; i < args.values.length; i++) {
         free(args.values.data[i]);
     }
-    vector_dispose(u8*, &args.values);
+    vector_dispose(&args.values);
 }
 
 export fn driver_message(stream: i32, message: u8*, detail: u8*, newline: bool): void {
@@ -113,7 +113,7 @@ export fn driver_report(error: u8*, offset: usize, text: u8*, length: usize, sou
 }
 
 fn driver_command(args: DriverArguments*): i32 {
-    args.ok &&= vector_push(u8*, &args.values, null);
+    args.ok &&= vector_push(&args.values, null);
     if !args.ok {
         driver_error("Unable to allocate tool arguments", "");
         return 1;

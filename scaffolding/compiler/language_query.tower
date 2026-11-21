@@ -87,7 +87,7 @@ fn language_documentation(q: CompletionQuery*, value: FoundationNode*): void {
     // Consume the same attached metadata as Foundation/C formatting. Its
     // normalized block delimiters are presentation trivia, not documentation.
     var text: vector(u8);
-    vector_init(u8, &text);
+    vector_init(&text);
     var i: usize = 0;
     loop {
         var done = i >= value.comments.length;
@@ -133,7 +133,7 @@ fn language_documentation(q: CompletionQuery*, value: FoundationNode*): void {
         }
         if last > first {
             if text.length != 0 {
-                sem_require(vector_push(u8, &text, 10));
+                sem_require(vector_push(&text, 10));
             }
             var count = last -first;
             sem_require(bytes_append(&text, &value.comments.data[first], count));
@@ -144,7 +144,7 @@ fn language_documentation(q: CompletionQuery*, value: FoundationNode*): void {
         completion_text(&q.output, ",\"documentation\":");
         sem_require(host_json_quote(&q.output, text.data, text.length));
     }
-    vector_dispose(u8, &text);
+    vector_dispose(&text);
 }
 
 fn language_declaration_location(q: CompletionQuery*, subject: void*): void {

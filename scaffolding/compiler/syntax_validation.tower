@@ -142,7 +142,7 @@ fn syntax_validation_captures(value: SyntaxValidation*, count: usize): bool {
         return false;
     }
     size++;
-    value.allocated = vector_reserve(SyntaxNode*, &value.captures, size);
+    value.allocated = vector_reserve(&value.captures, size);
     if value.allocated {
         value.captures.length = size;
         var bytes = size *sizeof(SyntaxNode*);
@@ -441,7 +441,7 @@ fn syntax_validation_declarations(value: SyntaxValidation*): bool {
 
 fn syntax_validation_wait(value: SyntaxValidation*, owner: usize, term: void*): bool {
     if value.pending[owner] == null {
-        value.allocated = vector_push(usize, &value.queue, owner);
+        value.allocated = vector_push(&value.queue, owner);
         if value.allocated {
             value.pending[owner] = term;
         }
@@ -722,7 +722,7 @@ export fn syntax_validate(rules: SyntaxRuleView*, count: usize, tokens: void**, 
     for(; index != count; index++) {
         pending[index] = null;
     }
-    value.allocated = vector_reserve(SyntaxRuleState, &value.states, count);
+    value.allocated = vector_reserve(&value.states, count);
     var ok = value.allocated;
     if ok {
         var bytes = count *sizeof(SyntaxRuleState);
@@ -743,13 +743,13 @@ export fn syntax_validate(rules: SyntaxRuleView*, count: usize, tokens: void**, 
     }
     index = 0;
     for(; index != value.states.length; index++) {
-        vector_dispose(SyntaxDependent, &value.states.data[index].dependents);
+        vector_dispose(&value.states.data[index].dependents);
     }
-    vector_dispose(SyntaxRuleState, &value.states);
-    vector_dispose(usize, &value.queue);
-    vector_dispose(SyntaxNode*, &value.captures);
+    vector_dispose(&value.states);
+    vector_dispose(&value.queue);
+    vector_dispose(&value.captures);
     if !value.allocated {
-        vector_dispose(u8, error);
+        vector_dispose(error);
         index = 0;
         for(; index != count; index++) {
             pending[index] = null;

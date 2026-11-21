@@ -61,7 +61,7 @@ export fn automaton_destroy(value: Automaton*): void {
     }
     var i: usize = 0;
     for(; i != value.count; i++) {
-        vector_dispose(SymbolRange, &value.states[i].ranges);
+        vector_dispose(&value.states[i].ranges);
     }
     free(value.states);
     free(value);
@@ -92,7 +92,7 @@ export fn automaton_range(value: Automaton*, index: i32, first: u32, last: u32):
     }
     var state = &value.states[index];
     var size = state.ranges.length + 1;
-    var ok = vector_reserve(SymbolRange, &state.ranges, size);
+    var ok = vector_reserve(&state.ranges, size);
     if ok {
         state.ranges.data[state.ranges.length].first = first;
         state.ranges.data[state.ranges.length].last = last;
@@ -252,12 +252,12 @@ fn automaton_intern(value: Automaton*, work: AutomatonWork*, subset: AutomatonSu
         value.error = 3;
         return -1;
     }
-    var ok = vector_reserve(AutomatonSubset, &work.subsets, count);
+    var ok = vector_reserve(&work.subsets, count);
     if !ok {
         value.error = 2;
         return -1;
     }
-    ok = vector_push(i32, &work.links, work.buckets[bucket]);
+    ok = vector_push(&work.links, work.buckets[bucket]);
     if !ok {
         value.error = 2;
         return -1;
@@ -288,7 +288,7 @@ fn automaton_build(value: Automaton*, start: i32, accepting: usize, table: Lexer
         var ranges = value.states[i].ranges.length *2;
         count = count + ranges;
     }
-    var ok = vector_reserve(u32, &work.alphabet, count);
+    var ok = vector_reserve(&work.alphabet, count);
     if !ok {
         return 2;
     }
@@ -345,7 +345,7 @@ fn automaton_build(value: Automaton*, start: i32, accepting: usize, table: Lexer
         return value.error;
     }
     var columns = work.alphabet.length -1;
-    ok = vector_reserve(i32, &work.row, columns);
+    ok = vector_reserve(&work.row, columns);
     if !ok {
         return 2;
     }
@@ -429,10 +429,10 @@ export fn automaton_compile(value: Automaton*, start: i32, accepting: usize, tab
     }
     fill(work, 0, sizeof(AutomatonWork));
     var result = automaton_build(value, start, accepting, table, work, reject_empty);
-    vector_dispose(AutomatonSubset, &work.subsets);
-    vector_dispose(i32, &work.links);
-    vector_dispose(i32, &work.row);
-    vector_dispose(u32, &work.alphabet);
+    vector_dispose(&work.subsets);
+    vector_dispose(&work.links);
+    vector_dispose(&work.row);
+    vector_dispose(&work.alphabet);
     free(work);
     return result;
 }

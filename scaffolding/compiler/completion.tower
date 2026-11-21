@@ -83,7 +83,7 @@ fn completion_attach(q: CompletionQuery*, root: void*, base: usize): void {
     var target = sem_get(q.program.root);
     sem_push(&target.items, node);
     sem_push(&q.roots, root);
-    sem_require(vector_push(usize, &q.bases, base));
+    sem_require(vector_push(&q.bases, base));
 }
 
 fn completion_parse(q: CompletionQuery*, source: u8*, mode: u32, future: bool): bool {
@@ -91,10 +91,10 @@ fn completion_parse(q: CompletionQuery*, source: u8*, mode: u32, future: bool): 
     var base = q.input.length;
     var length = sem_length(source);
     sem_require(bytes_append(&q.input, source, length));
-    sem_require(vector_push(u8, &q.input, 10));
+    sem_require(vector_push(&q.input, 10));
     var session = syntax_completion_create(source, mode);
     var entries: vector(void*);
-    vector_init(void*, &entries);
+    vector_init(&entries);
     var count: usize = 0;
     loop {
         if count == 1024 {
@@ -126,7 +126,7 @@ fn completion_parse(q: CompletionQuery*, source: u8*, mode: u32, future: bool): 
                 // the executable statement list consumed by ordinary checking.
                 sem_require(entity_attach(root, q.program.root, ""));
                 sem_push(&q.roots, root);
-                sem_require(vector_push(usize, &q.bases, base));
+                sem_require(vector_push(&q.bases, base));
             }
             entity_release(root);
         }
@@ -171,12 +171,12 @@ fn completion_parse(q: CompletionQuery*, source: u8*, mode: u32, future: bool): 
                     sem_module_position(&q.program, dependency, dependency_base);
                     if q.inspection {
                         sem_push(&q.comment_modules, dependency);
-                        sem_require(vector_push(usize, &q.comment_bases, dependency_base));
+                        sem_require(vector_push(&q.comment_bases, dependency_base));
                     }
                     var data = frontend_module_source(dependency);
                     var bytes = frontend_module_size(dependency);
                     sem_require(bytes_append(&q.input, data, bytes));
-                    sem_require(vector_push(u8, &q.input, 10));
+                    sem_require(vector_push(&q.input, 10));
                     var n: usize = 0;
                     var trees = frontend_module_roots(dependency);
                     loop {
@@ -196,7 +196,7 @@ fn completion_parse(q: CompletionQuery*, source: u8*, mode: u32, future: bool): 
         completion_attach(q, entries.data[i], base);
         entity_release(entries.data[i]);
     }
-    vector_dispose(void*, &entries);
+    vector_dispose(&entries);
     if q.inspection {
         // Keep the normal module/lexer metadata alive until semantic checking
         // has attached Foundation components for the shared comment pass.
@@ -206,7 +206,7 @@ fn completion_parse(q: CompletionQuery*, source: u8*, mode: u32, future: bool): 
         if present {
             syntax_capture_comments(session, module);
             sem_push(&q.comment_modules, module);
-            sem_require(vector_push(usize, &q.comment_bases, base));
+            sem_require(vector_push(&q.comment_bases, base));
         }
     } else {
         syntax_destroy(session);
@@ -228,7 +228,7 @@ export fn completion_analyze(q: CompletionQuery*, active: void*, mode: u32, file
     // Select a concrete identifier through the current lexer. Its coordinates,
     // not its spelling, mark the query, including under local token overrides.
     var hole: vector(u8);
-    vector_init(u8, &hole);
+    vector_init(&hole);
     var prefix_length = q.cursor -q.from;
     var preferred = &q.source[q.from];
     sem_require(bytes_append(&hole, preferred, prefix_length));
@@ -239,7 +239,7 @@ export fn completion_analyze(q: CompletionQuery*, active: void*, mode: u32, file
             break;
         }
         if attempt == 6 {
-            vector_dispose(u8, &hole);
+            vector_dispose(&hole);
             return;
         }
         var spelling: u8* = "a";
@@ -265,10 +265,10 @@ export fn completion_analyze(q: CompletionQuery*, active: void*, mode: u32, file
     }
     q.editor.length = hole.length;
     var text: vector(u8);
-    vector_init(u8, &text);
+    vector_init(&text);
     sem_require(bytes_append(&text, q.source, q.from));
     completion_text(&text, hole.data);
-    vector_dispose(u8, &hole);
+    vector_dispose(&hole);
     var prefix_end = text.length;
     var suffix_length = q.length -q.to;
     sem_require(bytes_append(&text, &q.source[q.to], suffix_length));
@@ -301,7 +301,7 @@ export fn completion_analyze(q: CompletionQuery*, active: void*, mode: u32, file
         var suffix = syntax_completion_close(probe, semantic_scalar_name(SVoid()));
         if suffix == null {
             syntax_destroy(probe);
-            vector_dispose(u8, &text);
+            vector_dispose(&text);
             return;
         }
         // host_text_terminate writes beyond length; append replaces that terminator.
@@ -310,12 +310,12 @@ export fn completion_analyze(q: CompletionQuery*, active: void*, mode: u32, file
         syntax_destroy(probe);
         valid = completion_parse(q, text.data, mode, false);
         if !valid {
-            vector_dispose(u8, &text);
+            vector_dispose(&text);
             return;
         }
         completion_parse(q, q.recovered.data, mode, true);
     }
-    vector_dispose(u8, &text);
+    vector_dispose(&text);
     var i: usize = 0;
     sem_require(host_text_terminate(&q.input));
     var c = &q.context;
@@ -548,7 +548,7 @@ export fn completion_begin(source: u8*, length: usize, cursor: usize, spans: Com
     // Bounded recovery; deeply malformed input still gets grammar suggestions.
     if depth < 256 {
         for(; depth != 0; depth--) {
-            sem_require(vector_push(u8, &q.recovered, 125));
+            sem_require(vector_push(&q.recovered, 125));
         }
     }
     sem_require(host_text_terminate(&q.recovered));
@@ -756,7 +756,7 @@ export fn completion_offer(q: CompletionQuery*, name: u8*, kind: u8*, detail: u8
     if q.count >= 128 {
         return;
     }
-    sem_require(vector_push(u8*, &q.names, name));
+    sem_require(vector_push(&q.names, name));
     if q.count != 0 {
         completion_text(&q.output, ",");
     }
@@ -782,7 +782,7 @@ fn completion_semantic_node(q: CompletionQuery*, node: void*, kind: u8*, categor
                 return;
             }
         }
-        sem_require(vector_push(u8*, &q.bindings, name));
+        sem_require(vector_push(&q.bindings, name));
     }
     if category != 1 {
         if q.editor.value_required {
@@ -827,7 +827,7 @@ fn completion_table(q: CompletionQuery*, table: SemanticTable*, kind: u8*, categ
     scope.parent = null;
     scope.names = table;
     var nodes: vector(void*);
-    vector_init(void*, &nodes);
+    vector_init(&nodes);
     sem_scope_locals(&q.context, &scope, &nodes);
     var i: usize = 0;
     for(; i != nodes.length; i++) {
@@ -843,7 +843,7 @@ fn completion_table(q: CompletionQuery*, table: SemanticTable*, kind: u8*, categ
             completion_semantic_node(q, candidate, kind, category);
         }
     }
-    vector_dispose(void*, &nodes);
+    vector_dispose(&nodes);
 }
 
 fn completion_templates(q: CompletionQuery*, table: SemanticTable*, kind: u8*, detail: u8*, category: u32): void {
@@ -851,7 +851,7 @@ fn completion_templates(q: CompletionQuery*, table: SemanticTable*, kind: u8*, d
     scope.parent = null;
     scope.names = table;
     var nodes: vector(void*);
-    vector_init(void*, &nodes);
+    vector_init(&nodes);
     sem_scope_locals(&q.context, &scope, &nodes);
     var i: usize = 0;
     for(; i != nodes.length; i++) {
@@ -886,7 +886,7 @@ fn completion_templates(q: CompletionQuery*, table: SemanticTable*, kind: u8*, d
             completion_offer(q, completion_name(node), kind, detail, category);
         }
     }
-    vector_dispose(void*, &nodes);
+    vector_dispose(&nodes);
 }
 
 export fn completion_symbols(q: CompletionQuery*): void {
@@ -1086,14 +1086,14 @@ export fn completion_dispose(q: CompletionQuery*): void {
     if q.inspection_session != null {
         syntax_destroy(q.inspection_session);
     }
-    vector_dispose(void*, &q.comment_modules);
-    vector_dispose(usize, &q.comment_bases);
-    vector_dispose(u8, &q.input);
-    vector_dispose(void*, &q.roots);
-    vector_dispose(usize, &q.bases);
-    vector_dispose(u8, &q.recovered);
-    vector_dispose(u8*, &q.names);
-    vector_dispose(u8*, &q.bindings);
-    vector_dispose(u8, &q.output);
+    vector_dispose(&q.comment_modules);
+    vector_dispose(&q.comment_bases);
+    vector_dispose(&q.input);
+    vector_dispose(&q.roots);
+    vector_dispose(&q.bases);
+    vector_dispose(&q.recovered);
+    vector_dispose(&q.names);
+    vector_dispose(&q.bindings);
+    vector_dispose(&q.output);
     free(q);
 }

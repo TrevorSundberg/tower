@@ -77,14 +77,14 @@ struct FMState {
 
 fn fm_push(T: type, values: vector(T)*, value: T*): void {
     var needed = values.length + 1;
-    im_storage_require(vector_reserve(T, values, needed));
+    im_storage_require(vector_reserve(values, needed));
     copy(&values.data[values.length], value, sizeof(T));
     values.length = needed;
 }
 
 fn fm_trim(T: type, values: vector(T)*): void {
     if values.length == 0 {
-        vector_dispose(T, values);
+        vector_dispose(values);
         return;
     }
     if values.length == values.capacity {
@@ -107,7 +107,7 @@ fn fm_register(f: FMState*): usize {
 }
 
 fn fm_word(f: FMState*, value: usize): void {
-    im_storage_require(vector_push(u32, &f.words, convert(u32, value)));
+    im_storage_require(vector_push(&f.words, convert(u32, value)));
 }
 
 fn fm_emit(f: FMState*, op: usize, a: usize, b: usize, c: usize): usize {
@@ -191,7 +191,7 @@ fn fm_constant(f: FMState*, value: u64): usize {
         }
     }
     if index == f.constants.length {
-        im_storage_require(vector_push(u64, &f.constants, value));
+        im_storage_require(vector_push(&f.constants, value));
     }
     var result = fm_register(f);
     fm_emit(f, 0, result, index, 0);
@@ -216,7 +216,7 @@ fn fm_type(f: FMState*, type: FoundationType*): usize {
             return index;
         }
     }
-    im_storage_require(vector_push(FoundationType*, &f.types, type));
+    im_storage_require(vector_push(&f.types, type));
     return index;
 }
 
@@ -310,7 +310,7 @@ fn fm_collect_addresses(f: FMState*, node: void*): void {
             if target.binding != null {
                 place = target.binding;
             }
-            im_storage_require(vector_push(u64, &f.escaped, im_key(place)));
+            im_storage_require(vector_push(&f.escaped, im_key(place)));
             break;
         }
     }
@@ -495,7 +495,7 @@ fn fm_value(f: FMState*, node: void*): usize {
     }
     if n.kind == KString() {
         var index = f.strings.length;
-        im_storage_require(vector_push(void*, &f.strings, node));
+        im_storage_require(vector_push(&f.strings, node));
         var result = fm_register(f);
         fm_emit(f, 18, result, index, 0);
         return result;
@@ -683,19 +683,19 @@ fn fm_statement(f: FMState*, node: void*, breaks: vector(usize)*, continue_pc: u
     }
     if n.kind == KLoop() {
         var local_breaks: vector(usize);
-        vector_init(usize, &local_breaks);
+        vector_init(&local_breaks);
         var start = f.words.length;
         fm_statement(f, n.body, &local_breaks, start);
         fm_emit(f, 13, start, 0, 0);
         for(var i: usize = 0; i != local_breaks.length; i++) {
             fm_patch(f, local_breaks.data[i], 2, f.words.length);
         }
-        vector_dispose(usize, &local_breaks);
+        vector_dispose(&local_breaks);
         return;
     }
     if n.kind == KBreak() {
         var at = fm_emit(f, 13, 0, 0, 0);
-        im_storage_require(vector_push(usize, breaks, at));
+        im_storage_require(vector_push(breaks, at));
         return;
     }
     if n.kind == KContinue() {
@@ -777,13 +777,13 @@ export fn fast_interpreter_create(m: IMState*): FMState* {
             j++;
         }
     }
-    vector_dispose(IMEntry, &f.labels);
-    vector_dispose(IMEntry, &f.jumps);
-    vector_dispose(IMEntry, &f.locals);
-    vector_dispose(u64, &f.escaped);
+    vector_dispose(&f.labels);
+    vector_dispose(&f.jumps);
+    vector_dispose(&f.locals);
+    vector_dispose(&f.escaped);
     f.base = 16;
     f.register_count = f.functions.data[0].registers;
-    im_storage_require(vector_reserve(u64, &f.registers, f.register_count));
+    im_storage_require(vector_reserve(&f.registers, f.register_count));
     f.registers.length = f.register_count;
     fm_trim(u32, &f.words);
     fm_trim(u64, &f.constants);
@@ -797,29 +797,29 @@ export fn fast_interpreter_create(m: IMState*): FMState* {
     // still the program and is available to formatting/reflection outside us.
     im_frame_pop(m);
     var graph_frame = &m.frames.data[0];
-    vector_dispose(IMTask, &graph_frame.tasks);
-    vector_dispose(IMEntry, &graph_frame.values);
-    vector_dispose(IMEntry, &graph_frame.addresses);
-    vector_dispose(IMFrame, &m.frames);
-    vector_dispose(IMEntry, &m.node_cache);
+    vector_dispose(&graph_frame.tasks);
+    vector_dispose(&graph_frame.values);
+    vector_dispose(&graph_frame.addresses);
+    vector_dispose(&m.frames);
+    vector_dispose(&m.node_cache);
     return f;
 }
 
 export fn fast_interpreter_dispose(f: FMState*): void {
-    vector_dispose(u64, &f.escaped);
-    vector_dispose(IMEntry, &f.labels);
-    vector_dispose(IMEntry, &f.jumps);
-    vector_dispose(IMEntry, &f.locals);
-    vector_dispose(u32, &f.words);
-    vector_dispose(u64, &f.constants);
-    vector_dispose(FMFunction, &f.functions);
-    vector_dispose(FMParameter, &f.parameters);
-    vector_dispose(FoundationType*, &f.types);
-    vector_dispose(FMConversion, &f.conversions);
-    vector_dispose(void*, &f.strings);
-    vector_dispose(FMSource, &f.sources);
-    vector_dispose(u64, &f.registers);
-    vector_dispose(FMFrame, &f.frames);
+    vector_dispose(&f.escaped);
+    vector_dispose(&f.labels);
+    vector_dispose(&f.jumps);
+    vector_dispose(&f.locals);
+    vector_dispose(&f.words);
+    vector_dispose(&f.constants);
+    vector_dispose(&f.functions);
+    vector_dispose(&f.parameters);
+    vector_dispose(&f.types);
+    vector_dispose(&f.conversions);
+    vector_dispose(&f.strings);
+    vector_dispose(&f.sources);
+    vector_dispose(&f.registers);
+    vector_dispose(&f.frames);
     free(f);
 }
 
@@ -1144,7 +1144,7 @@ fn fm_call(m: IMState*, f: FMState*, dest: usize, index: usize, first: usize, of
     fm_push(FMFrame, &f.frames, &frame);
     var register_base = f.register_base + f.register_count;
     var needed = register_base + function.registers;
-    im_storage_require(vector_reserve(u64, &f.registers, needed));
+    im_storage_require(vector_reserve(&f.registers, needed));
     f.registers.length = needed;
     f.register_count = function.registers;
     f.register_base = register_base;

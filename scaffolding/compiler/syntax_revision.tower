@@ -73,15 +73,15 @@ tokens: void**, token_count: usize, kind: void*): FrontendRevision* {
     }
     var selected: vector(SyntaxRuleView);
     var lexical: vector(void*);
-    vector_init(SyntaxRuleView, &selected);
-    vector_init(void*, &lexical);
+    vector_init(&selected);
+    vector_init(&lexical);
     var before = base ?. rules.length ?? 0;
     var before_tokens = base ?. tokens.length ?? 0;
     var total = before + count;
     var total_tokens = before_tokens + token_count;
     var ok = total >= before && total_tokens >= before_tokens;
-    ok &&= vector_reserve(SyntaxRuleView, &selected, total);
-    ok &&= vector_reserve(void*, &lexical, total_tokens);
+    ok &&= vector_reserve(&selected, total);
+    ok &&= vector_reserve(&lexical, total_tokens);
     if ok {
         for(var i: usize = 0; i < before; ++i) {
             copy(&selected.data[i], &base.rules.data[i], sizeof(SyntaxRuleView));
@@ -118,8 +118,8 @@ tokens: void**, token_count: usize, kind: void*): FrontendRevision* {
     if ok {
         revision = syntax_revision_create(selected.data, selected.length, lexical.data, lexical.length);
     }
-    vector_dispose(SyntaxRuleView, &selected);
-    vector_dispose(void*, &lexical);
+    vector_dispose(&selected);
+    vector_dispose(&lexical);
     return revision;
 }
 
@@ -154,10 +154,10 @@ export fn syntax_revision_declare(base: FrontendRevision*, entity: void*, kind: 
         return null;
     }
     var alternatives: vector(void*);
-    vector_init(void*, &alternatives);
+    vector_init(&alternatives);
     var before = node.append ? previous.count: 0;
     var total = before + node.items.length;
-    var ok = total >= before && vector_reserve(void*, &alternatives, total);
+    var ok = total >= before && vector_reserve(&alternatives, total);
     var result: FrontendRevision* = null;
     if ok {
         for(var i: usize = 0; i < before; ++i) {
@@ -173,7 +173,7 @@ export fn syntax_revision_declare(base: FrontendRevision*, entity: void*, kind: 
         rule.count = total;
         result = syntax_revision_overlay(base, &rule, 1, null, 0, kind);
     }
-    vector_dispose(void*, &alternatives);
+    vector_dispose(&alternatives);
     return result;
 }
 
@@ -188,9 +188,9 @@ export fn syntax_revision_ready(base: FrontendRevision*, waiting: void**): Front
         return frontend_revision_retain(base);
     }
     var rules: vector(SyntaxRuleView);
-    vector_init(SyntaxRuleView, &rules);
+    vector_init(&rules);
     var result: FrontendRevision* = null;
-    if vector_reserve(SyntaxRuleView, &rules, count) {
+    if vector_reserve(&rules, count) {
         for(var i: usize = 0; i < base.rules.length; ++i) {
             if waiting[i] is null {
                 copy(&rules.data[rules.length], &base.rules.data[i], sizeof(SyntaxRuleView));
@@ -199,7 +199,7 @@ export fn syntax_revision_ready(base: FrontendRevision*, waiting: void**): Front
         }
         result = frontend_revision_create(rules.data, count, base.tokens.data, base.tokens.length);
     }
-    vector_dispose(SyntaxRuleView, &rules);
+    vector_dispose(&rules);
     return result;
 }
 
@@ -207,7 +207,7 @@ export fn syntax_revision_document(document: void*, kind: void*): FrontendRevisi
     var node = syntax_revision_node(document, kind);
     var revision = syntax_revision_create(null, 0, null, 0);
     var error: vector(u8);
-    vector_init(u8, &error);
+    vector_init(&error);
     var i: usize = 0;
     while revision is not null && i < node.items.length {
         var next = syntax_revision_declare(revision, node.items.data[i], kind, &error);
@@ -215,7 +215,7 @@ export fn syntax_revision_document(document: void*, kind: void*): FrontendRevisi
         revision = next;
         ++i;
     }
-    vector_dispose(u8, &error);
+    vector_dispose(&error);
     return revision;
 }
 

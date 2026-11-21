@@ -56,7 +56,7 @@ fn backend_label_add(d: BackendDecoder*, address: u64, name: u8*, length: usize,
         d.labels.data[index].name.length = 0;
     } else {
         var needed = d.labels.length + 1;
-        var ok = vector_reserve(BackendLabel, &d.labels, needed);
+        var ok = vector_reserve(&d.labels, needed);
         var failed = !ok;
         if failed {
             d.failed = true;
@@ -795,11 +795,11 @@ export fn backend_disassembly_close(d: BackendDecoder*): void {
     if d == null {
         return;
     }
-    vector_dispose(u8, &d.text);
+    vector_dispose(&d.text);
     var i: usize = 0;
     for(; i != d.labels.length; i++) {
-        vector_dispose(u8, &d.labels.data[i].name);
+        vector_dispose(&d.labels.data[i].name);
     }
-    vector_dispose(BackendLabel, &d.labels);
+    vector_dispose(&d.labels);
     free(d);
 }

@@ -310,10 +310,10 @@ export fn syntax_template_remap_to_emission(input: SyntaxTemplateRemap*, destina
 // Helper identity comes from the shared entity, never a caller-owned alias map.
 export fn syntax_template_remap_revisions(input: SyntaxTemplateRemap*, source: SyntaxEmission*, destination: SyntaxEmission*): bool {
     var pending: vector(void*);
-    vector_init(void*, &pending);
+    vector_init(&pending);
     var bytes = input.count *sizeof(usize);
     fill(input.uses, 0, bytes);
-    var ok = vector_push(void*, &pending, input.root);
+    var ok = vector_push(&pending, input.root);
     loop {
         if !ok {
             break;
@@ -330,12 +330,12 @@ export fn syntax_template_remap_revisions(input: SyntaxTemplateRemap*, source: S
         var index: usize = 0;
         var count = entity_child_count(node);
         for(; index != count; index++) {
-            ok = vector_push(void*, &pending, entity_child_at(node, index));
+            ok = vector_push(&pending, entity_child_at(node, index));
             if !ok {
                 break;
             }
         }
     }
-    vector_dispose(void*, &pending);
+    vector_dispose(&pending);
     return ok;
 }

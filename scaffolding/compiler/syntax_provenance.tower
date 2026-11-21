@@ -46,7 +46,7 @@ export fn syntax_trace_release(trace: SyntaxExpansion*): void {
 export fn syntax_trace_dispose(trace: SyntaxExpansion*): void {
     var previous = trace.previous;
     trace.previous = null;
-    vector_dispose(u8, &trace.rule);
+    vector_dispose(&trace.rule);
     syntax_trace_release(previous);
 }
 
@@ -56,7 +56,7 @@ export fn syntax_origin_dispose(origin: SyntaxOrigin*): void {
     for(var index: usize = 0; index < origin.splices.length; index++) {
         syntax_trace_release(origin.splices.data[index]);
     }
-    vector_dispose(SyntaxExpansion*, &origin.splices);
+    vector_dispose(&origin.splices);
 }
 
 export fn syntax_origin_get(world: CompilerWorld*, node: Entity*): SyntaxOrigin* {
@@ -117,14 +117,14 @@ export fn syntax_origin_copy(world: CompilerWorld*, source: Entity*, destination
         return false;
     }
     var pending: vector(SyntaxExpansion*);
-    vector_init(SyntaxExpansion*, &pending);
-    if !vector_reserve(SyntaxExpansion*, &pending, prior.splices.length) {
+    vector_init(&pending);
+    if !vector_reserve(&pending, prior.splices.length) {
         return false;
     }
     var target = bits(SyntaxOrigin*, compiler_world_component(world, destination, CompilerSyntaxOrigin()));
     missing = target == null;
     if missing {
-        vector_dispose(SyntaxExpansion*, &pending);
+        vector_dispose(&pending);
         return false;
     }
     for(var index: usize = 0; index < prior.splices.length; index++) {
@@ -156,7 +156,7 @@ export fn syntax_origin_mark(world: CompilerWorld*, trace: SyntaxExpansion*, nod
     var splice = !generated;
     splice &&= existing != null;
     if splice {
-        var ok = vector_push(SyntaxExpansion*, &existing.splices, trace);
+        var ok = vector_push(&existing.splices, trace);
         if ok {
             syntax_trace_retain(trace);
         }

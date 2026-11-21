@@ -82,7 +82,7 @@ fn coff_import_archive(out: vector(u8)*, machine: u32, symbol: u8*, dll: u8*): b
     total = total + object_size;
     padding = object_size & 1;
     total = total + padding;
-    if !vector_reserve(u8, out, total) {
+    if !vector_reserve(out, total) {
         return false;
     }
     out.length = total;

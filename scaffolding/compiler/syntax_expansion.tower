@@ -179,7 +179,7 @@ fn expansion_mark(state: ExpansionState*, node: void*): bool {
 fn expansion_push_frame(state: ExpansionState*, node: void*, index: usize): bool {
     var count = state.frames.length;
     var needed = count + 1;
-    if vector_reserve(ExpansionFrame, &state.frames, needed) {
+    if vector_reserve(&state.frames, needed) {
         state.frames.data[count].node = node;
         state.frames.data[count].next = 0;
         state.frames.data[count].index = index;
@@ -192,7 +192,7 @@ fn expansion_push_frame(state: ExpansionState*, node: void*, index: usize): bool
 fn expansion_push_work(state: ExpansionState*, work: vector(ExpansionWork)*, source: void*, parent: void*, role: u8*): bool {
     var count = work.length;
     var needed = count + 1;
-    if vector_reserve(ExpansionWork, work, needed) {
+    if vector_reserve(work, needed) {
         work.data[count].source = source;
         work.data[count].parent = parent;
         work.data[count].role = role;
@@ -335,7 +335,7 @@ fn expansion_hole(state: ExpansionState*, rule: SyntaxExpansionRule*, trace: voi
             }
         }
         state.items.length = 0;
-        ok = vector_reserve(void*, &state.items, count);
+        ok = vector_reserve(&state.items, count);
         if ok {
             for(; count != 0; count--) {
                 var item = entity_take_last_child(value);
@@ -375,7 +375,7 @@ fn expansion_instantiate(state: ExpansionState*, rule: SyntaxExpansionRule*, inv
         }
         previous = syntax_expansion_previous(previous);
     }
-    var ok = vector_reserve(ExpansionCapture, &state.captures, rule.count);
+    var ok = vector_reserve(&state.captures, rule.count);
     if !ok {
         expansion_memory(state);
         return null;
@@ -397,7 +397,7 @@ fn expansion_instantiate(state: ExpansionState*, rule: SyntaxExpansionRule*, inv
         expansion_memory(state);
         return null;
     }
-    if !vector_push(void*, &state.traces, trace) {
+    if !vector_push(&state.traces, trace) {
         syntax_trace_release(trace);
         expansion_memory(state);
         return null;
@@ -589,19 +589,19 @@ export fn syntax_expand(input: SyntaxExpansionInput*, result: SyntaxExpansionRes
     state.input = input;
     state.result = result;
     var ok = expansion_run(&state);
-    vector_dispose(usize, &state.normal);
-    vector_dispose(ExpansionFrame, &state.frames);
-    vector_dispose(ExpansionWork, &state.work);
-    vector_dispose(ExpansionWork, &state.clones);
-    vector_dispose(ExpansionCapture, &state.captures);
-    vector_dispose(void*, &state.items);
+    vector_dispose(&state.normal);
+    vector_dispose(&state.frames);
+    vector_dispose(&state.work);
+    vector_dispose(&state.clones);
+    vector_dispose(&state.captures);
+    vector_dispose(&state.items);
     for(var index: usize = 0; index < state.traces.length; index++) {
         syntax_trace_release(state.traces.data[index]);
     }
-    vector_dispose(void*, &state.traces);
+    vector_dispose(&state.traces);
     return ok;
 }
 
 export fn syntax_expansion_result_dispose(result: SyntaxExpansionResult*): void {
-    vector_dispose(u8, &result.error);
+    vector_dispose(&result.error);
 }

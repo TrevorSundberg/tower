@@ -62,7 +62,7 @@ fn ide_trace_insert(index: IdeTraces*, trace: SyntaxExpansion*): void {
         if capacity < 16 {
             capacity = 16;
         }
-        ide_require(vector_reserve(usize, &index.slots, capacity));
+        ide_require(vector_reserve(&index.slots, capacity));
         index.slots.length = capacity;
         var size = capacity *sizeof(usize);
         fill(index.slots.data, 0, size);
@@ -79,7 +79,7 @@ fn ide_trace_insert(index: IdeTraces*, trace: SyntaxExpansion*): void {
             index.slots.data[slot] = i + 1;
         }
     }
-    ide_require(vector_push(SyntaxExpansion*, &index.items, trace));
+    ide_require(vector_push(&index.items, trace));
     var slot = ide_trace_hash(trace, index.slots.length);
     loop {
         var empty = index.slots.data[slot] == 0;
@@ -111,7 +111,7 @@ fn ide_trace_id(index: IdeTraces*, trace: SyntaxExpansion*): usize {
 
 fn ide_tree_push(items: vector(IdeTreeItem)*, node: void*, parent: usize, role: u8*): void {
     var next = items.length + 1;
-    ide_require(vector_reserve(IdeTreeItem, items, next));
+    ide_require(vector_reserve(items, next));
     var item = &items.data[items.length];
     item.node = node;
     item.parent = parent;
@@ -121,7 +121,7 @@ fn ide_tree_push(items: vector(IdeTreeItem)*, node: void*, parent: usize, role: 
 
 fn ide_tree(out: ByteBuffer*, root: void*): void {
     var pending: vector(IdeTreeItem);
-    vector_init(IdeTreeItem, &pending);
+    vector_init(&pending);
     var traces: IdeTraces;
     fill(&traces, 0, sizeof(IdeTraces));
     ide_tree_push(&pending, root, ide_missing(), tower_node_get_parent_member_name(root));
@@ -192,9 +192,9 @@ fn ide_tree(out: ByteBuffer*, root: void*): void {
         ide_text(out, "}");
     }
     ide_text(out, "]");
-    vector_dispose(IdeTreeItem, &pending);
-    vector_dispose(SyntaxExpansion*, &traces.items);
-    vector_dispose(usize, &traces.slots);
+    vector_dispose(&pending);
+    vector_dispose(&traces.items);
+    vector_dispose(&traces.slots);
 }
 
 export fn tw_step(handle: u32): u8* {

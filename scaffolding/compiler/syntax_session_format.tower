@@ -33,7 +33,7 @@ fn syntax_format_clone(source: SyntaxSession*, text: u8*): SyntaxSession* {
 
 fn syntax_format_roots_dispose(roots: vector(void*)*): void {
     for (var i: usize = 0; i < roots.length; ++i) { entity_release(roots.data[i]); }
-    vector_dispose(void*, roots);
+    vector_dispose(roots);
 }
 
 // The caller owns the shared formatter output. Diagnostics are immutable static
@@ -47,12 +47,12 @@ export fn syntax_format_into(opaque: void*, output: FormatResult*, error: u8**):
     if source is null { return false; }
     defer syntax_destroy(bits(void*, source));
     var roots: vector(void*);
-    vector_init(void*, &roots);
+    vector_init(&roots);
     defer syntax_format_roots_dispose(&roots);
     loop {
         var root = syntax_next(bits(void*, source));
         if root is null { break; }
-        if !vector_push(void*, &roots, root) {
+        if !vector_push(&roots, root) {
             entity_release(root);
             *error = "Unable to allocate canonical formatted source";
             return false;
@@ -60,12 +60,12 @@ export fn syntax_format_into(opaque: void*, output: FormatResult*, error: u8**):
     }
     if source.error.length != 0 { return false; }
     var comments: vector(FormatComment);
-    vector_init(FormatComment, &comments);
-    defer vector_dispose(FormatComment, &comments);
+    vector_init(&comments);
+    defer vector_dispose(&comments);
     for (var i: usize = 0; i < source.highlights.items.length; ++i) {
         var row = &source.highlights.items.data[i];
         if syntax_bytes_compare(row.kind, syntax_text_length(row.kind), "comment", 7) != 0 { continue; }
-        if !vector_reserve(FormatComment, &comments, comments.length + 1) {
+        if !vector_reserve(&comments, comments.length + 1) {
             *error = "Unable to allocate canonical formatted source";
             return false;
         }
@@ -77,7 +77,7 @@ export fn syntax_format_into(opaque: void*, output: FormatResult*, error: u8**):
     format_source(output, roots.data, roots.length, source.source, source.source_length,
         comments.data, comments.length, syntax, null, match_kind);
     if !output.failed {
-        output.failed = !vector_reserve(u8, &output.text, output.text.length + 1);
+        output.failed = !vector_reserve(&output.text, output.text.length + 1);
         if !output.failed { output.text.data[output.text.length] = 0; }
     }
     if output.failed {

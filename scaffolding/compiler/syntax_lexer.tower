@@ -116,9 +116,9 @@ export fn lexicon_destroy(value: SyntaxLexicon*): void {
     if value == null {
         return;
     }
-    vector_dispose(LexiconToken, &value.tokens);
-    vector_dispose(LexiconLiteral, &value.literals);
-    vector_dispose(LexiconLiteral, &value.starts);
+    vector_dispose(&value.tokens);
+    vector_dispose(&value.literals);
+    vector_dispose(&value.starts);
     free(value);
 }
 

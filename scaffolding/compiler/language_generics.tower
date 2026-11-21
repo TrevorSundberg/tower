@@ -201,7 +201,7 @@ fn language_generic_documentation(q: CompletionQuery*, declaration: void*): void
                     first = first + 2;
                 }
                 language_documentation(q, &docs);
-                vector_dispose(u8, &docs.comments);
+                vector_dispose(&docs.comments);
             }
             return;
         }

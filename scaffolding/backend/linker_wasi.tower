@@ -47,10 +47,10 @@ export fn backend_link_wasi(link: BackendLink*, triple: u8*): bool {
     if failed {
         backend_text(&link.error, "Link failed: ");
         var diagnostics: vector(u8);
-        vector_init(u8, &diagnostics);
+        vector_init(&diagnostics);
         backend_read_file(&diagnostics, "tower-link.stderr");
         backend_text_append(&link.error, diagnostics.data, diagnostics.length);
-        vector_dispose(u8, &diagnostics);
+        vector_dispose(&diagnostics);
     }
     remove("tower-link.stderr");
     linked &&= backend_link_read_output(link);

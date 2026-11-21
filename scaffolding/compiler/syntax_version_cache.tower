@@ -11,7 +11,7 @@ import .library.vector;
 export fn syntax_version_cache_dispose(value: SyntaxVersionCache*): void {
     frontend_cache_dispose(&value.index);
     for (var i: usize = 0; i < value.versions.length; ++i) { syntax_version_release(value.versions.data[i]); }
-    vector_dispose(SyntaxVersion*, &value.versions);
+    vector_dispose(&value.versions);
 }
 
 // Clone recency and pins together; allocation failure preserves the destination.
@@ -20,7 +20,7 @@ export fn syntax_version_cache_copy(target: SyntaxVersionCache*, source: SyntaxV
     var prepared: SyntaxVersionCache;
     fill(&prepared, 0, sizeof(SyntaxVersionCache));
     defer syntax_version_cache_dispose(&prepared);
-    if !vector_reserve(SyntaxVersion*, &prepared.versions, source.versions.length) ||
+    if !vector_reserve(&prepared.versions, source.versions.length) ||
         !frontend_cache_copy(&prepared.index, &source.index) { return false; }
     for (var i: usize = 0; i < source.versions.length; ++i) {
         prepared.versions.data[i] = syntax_version_retain(source.versions.data[i]);
@@ -48,7 +48,7 @@ export fn syntax_version_cached(value: SyntaxVersionCache*, world: void*, defini
     }
     var version = syntax_version_build(world, definitions, bedrock, diagnostic);
     if version is null { return null; }
-    if !vector_reserve(SyntaxVersion*, &value.versions, FrontendCacheLimit()) { return version; }
+    if !vector_reserve(&value.versions, FrontendCacheLimit()) { return version; }
     if value.versions.length == 0 {
         fill(value.versions.data, 0, FrontendCacheLimit() * sizeof(SyntaxVersion*));
         value.versions.length = FrontendCacheLimit();

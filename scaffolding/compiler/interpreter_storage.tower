@@ -14,7 +14,7 @@ export fn im_memory(m: IMState*): u8* {
 }
 
 export fn im_memory_resize(m: IMState*, count: usize): bool {
-    var ok = vector_reserve(u8, &m.memory, count);
+    var ok = vector_reserve(&m.memory, count);
     if ok {
         if count > m.memory.length {
             var start = m.memory.data + m.memory.length;
@@ -30,17 +30,17 @@ export fn interpreter_storage_dispose(m: IMState*): void {
     var i: usize = 0;
     for(; i != m.frames.capacity; i++) {
         var frame = &m.frames.data[i];
-        vector_dispose(IMTask, &frame.tasks);
-        vector_dispose(IMEntry, &frame.values);
-        vector_dispose(IMEntry, &frame.addresses);
+        vector_dispose(&frame.tasks);
+        vector_dispose(&frame.values);
+        vector_dispose(&frame.addresses);
     }
-    vector_dispose(IMFrame, &m.frames);
-    vector_dispose(IMEntry, &m.node_cache);
-    vector_dispose(IMEntry, &m.allocations);
-    vector_dispose(IMEntry, &m.free_blocks);
-    vector_dispose(IMEntry, &m.strings);
-    vector_dispose(IMEntry, &m.sequenced);
-    vector_dispose(u8, &m.memory);
+    vector_dispose(&m.frames);
+    vector_dispose(&m.node_cache);
+    vector_dispose(&m.allocations);
+    vector_dispose(&m.free_blocks);
+    vector_dispose(&m.strings);
+    vector_dispose(&m.sequenced);
+    vector_dispose(&m.memory);
 }
 
 // Internal container allocation failure retains the previous fatal host policy.
@@ -97,7 +97,7 @@ fn im_map_set(map: vector(IMEntry)*, key: u64, value: u64): void {
     var needed = map.length + 1;
     var valid = needed != 0;
     im_storage_require(valid);
-    im_storage_require(vector_reserve(IMEntry, map, needed));
+    im_storage_require(vector_reserve(map, needed));
     var tail = map.length -index;
     var bytes = tail *sizeof(IMEntry);
     var next = index + 1;
@@ -144,7 +144,7 @@ export fn im_frame_call(m: IMState*): void* {
 export fn im_frame_push(m: IMState*, function: void*, base: usize, offset: usize, call: void*): void {
     var needed = m.frames.length + 1;
     var previous = m.frames.capacity;
-    im_storage_require(vector_reserve(IMFrame, &m.frames, needed));
+    im_storage_require(vector_reserve(&m.frames, needed));
     if m.frames.capacity > previous {
         var extra = m.frames.capacity -previous;
         extra = extra * sizeof(IMFrame);
@@ -181,7 +181,7 @@ export fn im_task_push(m: IMState*, node: void*, loop_resume: bool, phase: usize
     var needed = frame.tasks.length + 1;
     var valid = needed != 0;
     im_storage_require(valid);
-    im_storage_require(vector_reserve(IMTask, &frame.tasks, needed));
+    im_storage_require(vector_reserve(&frame.tasks, needed));
     var task = &frame.tasks.data[frame.tasks.length];
     task.node = node;
     task.loop_resume = convert(u64, loop_resume);

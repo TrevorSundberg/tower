@@ -61,7 +61,7 @@ fn vector_push(T: type, value: vector(T)*, element: T): bool {
     if needed == 0 {
         return false;
     }
-    var ok = vector_reserve(T, value, needed);
+    var ok = vector_reserve(value, needed);
     if ok {
         value.data[value.length] = element;
         value.length = needed;
@@ -71,7 +71,7 @@ fn vector_push(T: type, value: vector(T)*, element: T): bool {
 
 fn vector_dispose(T: type, value: vector(T)*): void {
     free(value.data);
-    vector_init(T, value);
+    vector_init(value);
 }
 
 // Empty/null-output failure preserves both storage and the output value.
@@ -96,9 +96,9 @@ fn vector_move(T: type, destination: vector(T)*, source: vector(T)*): void {
     if destination == source {
         return;
     }
-    vector_dispose(T, destination);
+    vector_dispose(destination);
     destination.data = source.data;
     destination.length = source.length;
     destination.capacity = source.capacity;
-    vector_init(T, source);
+    vector_init(source);
 }

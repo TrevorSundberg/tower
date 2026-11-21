@@ -12,7 +12,7 @@ import .library.vector;
 
 fn bi_edge(c: BackendImport*, from: void*, to: void*): void {
     var copies: vector(BackendAssociation);
-    vector_init(BackendAssociation, &copies);
+    vector_init(&copies);
     var instruction = LLVMGetFirstInstruction(to);
     loop {
         var done = instruction == null;
@@ -47,7 +47,7 @@ fn bi_edge(c: BackendImport*, from: void*, to: void*): void {
         var pair = &copies.data[index];
         bi_assign(c, bi_ref(c, pair.entity), bi_ref(c, pair.value));
     }
-    vector_dispose(BackendAssociation, &copies);
+    vector_dispose(&copies);
     var target = backend_find(&c.blocks, to);
     var label = sem_get(target);
     var entity = bi_node(c, 32, 3);
@@ -346,7 +346,7 @@ fn bi_call(c: BackendImport*, instruction: void*): void* {
         var value = bi_value(c, LLVMGetOperand(instruction, i));
         var parameter = sem_get(function.parameters.data[convert(usize, i)]);
         value = bi_cast_type(c, value, &parameter.type);
-        backend_require(c.backend, vector_push(void*, &n.items, value));
+        backend_require(c.backend, vector_push(&n.items, value));
     }
     if n.type.scalar == 3 {
         bi_append(c, c.block, entity);

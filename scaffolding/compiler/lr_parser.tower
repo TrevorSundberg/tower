@@ -54,8 +54,8 @@ export fn lr_parser_destroy(value: LRParser*): void {
     if value == null {
         return;
     }
-    vector_dispose(LRFrame, &value.stack);
-    vector_dispose(u8, &value.evidence);
+    vector_dispose(&value.stack);
+    vector_dispose(&value.evidence);
     free(value);
 }
 
@@ -244,7 +244,7 @@ export fn lr_parser_commit(value: LRParser*, step: LRStep*, first: usize, last: 
     if step.kind == 6 {
         var evidence = step.end != step.start;
         var byte = convert(u8, evidence);
-        var ok = vector_push(u8, &value.evidence, byte);
+        var ok = vector_push(&value.evidence, byte);
         if !ok {
             return false;
         }
@@ -263,7 +263,7 @@ export fn lr_parser_commit(value: LRParser*, step: LRStep*, first: usize, last: 
     }
     var length = value.stack.length -step.pop;
     var count = length + 1;
-    var ok = vector_reserve(LRFrame, &value.stack, count);
+    var ok = vector_reserve(&value.stack, count);
     if !ok {
         return false;
     }
@@ -355,7 +355,7 @@ export fn lr_probe_destroy(value: LRProbe*): void {
     if value == null {
         return;
     }
-    vector_dispose(LRProbeFrame, &value.frames);
+    vector_dispose(&value.frames);
     free(value);
 }
 
@@ -368,7 +368,7 @@ fn lr_probe_allocate(runtime: LRRuntime*, budget: LRProbeBudget*, count: usize):
     fill(value, 0, sizeof(LRProbe));
     value.runtime = runtime;
     value.budget = budget;
-    if vector_reserve(LRProbeFrame, &value.frames, count) {
+    if vector_reserve(&value.frames, count) {
         value.frames.length = count;
         return value;
     }
@@ -652,7 +652,7 @@ export fn lr_completion_suffix(c: LRCompletion*, ids: u32*, count: usize, result
         return terminated;
     }
     var paths: vector(LRCompletionPath);
-    vector_init(LRCompletionPath, &paths);
+    vector_init(&paths);
     var first: LRCompletionPath;
     fill(&first, 0, sizeof(LRCompletionPath));
     first.probe = lr_probe_clone(c.original);
@@ -730,6 +730,6 @@ export fn lr_completion_suffix(c: LRCompletion*, ids: u32*, count: usize, result
     for(; at != paths.length; at++) {
         lr_probe_destroy(paths.data[at].probe);
     }
-    vector_dispose(LRCompletionPath, &paths);
+    vector_dispose(&paths);
     return length;
 }

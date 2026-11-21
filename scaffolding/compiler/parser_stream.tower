@@ -117,10 +117,10 @@ export fn parser_stream_discard(stream: ParserStream*): void {
 export fn parser_stream_dispose(stream: ParserStream*): void {
     if stream.kind == ParserInputService.Utf8 {
         var data = bits(ParserUtf8Stream*, parser_stream_get_userdata(stream));
-        vector_dispose(u8, &data.source);
+        vector_dispose(&data.source);
     }
-    vector_dispose(u8, &stream.error);
-    vector_dispose(u8, &stream.buffered_error);
+    vector_dispose(&stream.error);
+    vector_dispose(&stream.buffered_error);
     tower_memory_free(bits(void*, stream));
 }
 
@@ -164,7 +164,7 @@ export fn parser_stream_poll(stream: ParserStream*, id: u32*, start: usize*, len
         *id = stream.buffered_id;
         *start = stream.buffered_start;
         *length = stream.buffered_length;
-        vector_dispose(u8, &stream.error);
+        vector_dispose(&stream.error);
         copy(&stream.error, &stream.buffered_error, sizeof(vector(u8)));
         fill(&stream.buffered_error, 0, sizeof(vector(u8)));
         *node = stream.buffered_node;
@@ -240,7 +240,7 @@ export fn parser_stream_return(stream: ParserStream*, node: void**, id: u32, sta
     stream.buffered_id = id;
     stream.buffered_start = start;
     stream.buffered_length = length;
-    vector_dispose(u8, &stream.buffered_error);
+    vector_dispose(&stream.buffered_error);
     copy(&stream.buffered_error, error, sizeof(vector(u8)));
     fill(error, 0, sizeof(vector(u8)));
     parser_state_clear(&stream.error);

@@ -27,11 +27,11 @@ extern fn parser_table_finish(table: ParserHostTable*, error: u8**, specialize: 
 extern fn tower_memory_free(memory: void*): void;
 
 export fn syntax_version_diagnostic_dispose(value: SyntaxVersionDiagnostic*): void {
-    vector_dispose(u8, &value.text);
+    vector_dispose(&value.text);
 }
 
 export fn syntax_version_diagnostic_text(value: SyntaxVersionDiagnostic*): u8* {
-    if value.text.length != 0 && vector_reserve(u8, &value.text, value.text.length + 1) {
+    if value.text.length != 0 && vector_reserve(&value.text, value.text.length + 1) {
         value.text.data[value.text.length] = 0;
         return value.text.data;
     }
@@ -46,9 +46,9 @@ fn syntax_version_validate(definitions: FrontendRevision*, kind: void*, diagnost
     if definitions is null { return null; }
     diagnostic.fallback = "Unable to allocate grammar validation";
     var waiting: vector(void*);
-    vector_init(void*, &waiting);
-    defer vector_dispose(void*, &waiting);
-    if !vector_reserve(void*, &waiting, definitions.rules.length) { return null; }
+    vector_init(&waiting);
+    defer vector_dispose(&waiting);
+    if !vector_reserve(&waiting, definitions.rules.length) { return null; }
     fill(waiting.data, 0, definitions.rules.length * sizeof(void*));
     if !syntax_validate(definitions.rules.data, definitions.rules.length, definitions.tokens.data,
         definitions.tokens.length, kind, &diagnostic.text, &diagnostic.offset, waiting.data) { return null; }
@@ -63,11 +63,11 @@ fn syntax_version_validate(definitions: FrontendRevision*, kind: void*, diagnost
 
 export fn syntax_version_seed(value: SyntaxVersion*, definitions: FrontendRevision*, category: u8*, parent: SyntaxEmission*): bool {
     var reserved: vector(u8*);
-    vector_init(u8*, &reserved);
-    defer vector_dispose(u8*, &reserved);
+    vector_init(&reserved);
+    defer vector_dispose(&reserved);
     var pending = bits(SyntaxPendingRevision*, value.pending);
     for (var i: usize = 0; i < syntax_pending_count(pending); ++i) {
-        if !vector_push(u8*, &reserved, syntax_pending_name(pending, i)) { return false; }
+        if !vector_push(&reserved, syntax_pending_name(pending, i)) { return false; }
     }
     var input: SyntaxEmissionInput;
     fill(&input, 0, sizeof(SyntaxEmissionInput));
@@ -109,7 +109,7 @@ fn syntax_version_replacements(value: SyntaxVersion*, diagnostic: SyntaxVersionD
     if syntax_replacements_prepare(&plan) && syntax_replacement_freeze(owner) { return true; }
     value.replacement_error_offset = plan.offset;
     if plan.offset != lr_none() { diagnostic.offset = plan.offset; }
-    vector_move(u8, &diagnostic.text, &plan.error);
+    vector_move(&diagnostic.text, &plan.error);
     return false;
 }
 

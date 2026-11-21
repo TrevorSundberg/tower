@@ -80,7 +80,7 @@ fn syntax_reader_finish(reader: SyntaxReader*, error: vector(u8)*): bool {
         }
     }
     if !ok {
-        vector_dispose(u8, error);
+        vector_dispose(error);
     }
     return false;
 }
@@ -386,7 +386,7 @@ fn syntax_reader_term(reader: SyntaxReader*, node: void*): bool {
             var ok = syntax_reader_quoted(reader, item, &value.text);
             ok &&= syntax_reader_literal(reader, &value.text);
             if ok {
-                ok = vector_push(void*, &term.items, item);
+                ok = vector_push(&term.items, item);
                 ok = syntax_reader_ok(reader, ok);
             }
             if !ok {
@@ -463,7 +463,7 @@ fn syntax_reader_sequence(reader: SyntaxReader*, node: void*): bool {
         }
         var ok = syntax_reader_term(reader, term);
         if ok {
-            ok = vector_push(void*, &sequence.items, term);
+            ok = vector_push(&sequence.items, term);
             ok = syntax_reader_ok(reader, ok);
         }
         if !ok {
@@ -584,7 +584,7 @@ fn syntax_reader_rule(reader: SyntaxReader*, node: void*): bool {
             data.associativity = rule.associativity;
         }
         if ok {
-            ok = vector_push(void*, &rule.items, sequence);
+            ok = vector_push(&rule.items, sequence);
             ok = syntax_reader_ok(reader, ok);
         }
         if !ok {

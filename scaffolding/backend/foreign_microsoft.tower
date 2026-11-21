@@ -132,7 +132,7 @@ fn foreign_ms_identifier(m: ForeignName*, name: u8*): void {
     backend_text(&m.text, name);
     backend_text(&m.text, "@");
     if m.ms_names.length < 10 {
-        foreign_require(m, vector_push(u8*, &m.ms_names, name));
+        foreign_require(m, vector_push(&m.ms_names, name));
     }
 }
 
@@ -148,7 +148,7 @@ fn foreign_ms_component(m: ForeignName*, type: ForeignType*): void {
     // A template-id is entered as one name into the outer backreference table.
     var outer: vector(u8*);
     copy(&outer, &m.ms_names, sizeof(vector(u8*)));
-    vector_init(u8*, &m.ms_names);
+    vector_init(&m.ms_names);
     var start = m.text.length;
     backend_text(&m.text, "?$");
     foreign_ms_identifier(m, type.name);
@@ -169,7 +169,7 @@ fn foreign_ms_component(m: ForeignName*, type: ForeignType*): void {
     var encoded = foreign_copy(m, &m.text.data[start], count);
     m.text.length = start;
     m.text.data[start] = 0;
-    vector_dispose(u8*, &m.ms_names);
+    vector_dispose(&m.ms_names);
     copy(&m.ms_names, &outer, sizeof(vector(u8*)));
     foreign_ms_identifier(m, encoded);
 }
@@ -220,7 +220,7 @@ fn foreign_ms_cc(m: ForeignName*, cc: u32, member: bool): void {
 fn foreign_ms_parameters(m: ForeignName*, function: ForeignType*): void {
     var saved: vector(u8*);
     copy(&saved, &m.substitutions, sizeof(vector(u8*)));
-    vector_init(u8*, &m.substitutions);
+    vector_init(&m.substitutions);
     if function.args.length == 0 {
         if !function.variadic {
             backend_text(&m.text, "X");
@@ -230,7 +230,7 @@ fn foreign_ms_parameters(m: ForeignName*, function: ForeignType*): void {
     for(; i != function.args.length; i++) {
         var type = function.args.data[i];
         var key: vector(u8);
-        vector_init(u8, &key);
+        vector_init(&key);
         foreign_key(&key, type);
         var j: usize = 0;
         var found = false;
@@ -247,11 +247,11 @@ fn foreign_ms_parameters(m: ForeignName*, function: ForeignType*): void {
             var length = m.text.length -start;
             if length > 1 {
                 if m.substitutions.length < 10 {
-                    foreign_require(m, vector_push(u8*, &m.substitutions, foreign_copy(m, key.data, key.length)));
+                    foreign_require(m, vector_push(&m.substitutions, foreign_copy(m, key.data, key.length)));
                 }
             }
         }
-        vector_dispose(u8, &key);
+        vector_dispose(&key);
     }
     if function.variadic {
         backend_text(&m.text, "Z");
@@ -261,7 +261,7 @@ fn foreign_ms_parameters(m: ForeignName*, function: ForeignType*): void {
             backend_text(&m.text, "@");
         }
     }
-    vector_dispose(u8*, &m.substitutions);
+    vector_dispose(&m.substitutions);
     copy(&m.substitutions, &saved, sizeof(vector(u8*)));
 }
 

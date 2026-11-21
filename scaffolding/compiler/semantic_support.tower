@@ -230,14 +230,14 @@ fn sem_name(n: FoundationNode*): u8* {
 fn sem_set_name(n: FoundationNode*, name: u8*): void {
     var count: usize = sem_length(name);
     var step2 = count + 1;
-    sem_require(vector_reserve(u8, &n.name, step2));
+    sem_require(vector_reserve(&n.name, step2));
     var step4 = count + 1;
     copy(n.name.data, name, step4);
     n.name.length = count;
 }
 
 fn sem_push(v: vector(void*)*, n: void*): void {
-    sem_require(vector_push(void*, v, n));
+    sem_require(vector_push(v, n));
 }
 
 fn sem_list(c: SemanticContext*): vector(void*)* {
@@ -247,7 +247,7 @@ fn sem_list(c: SemanticContext*): vector(void*)* {
     var step4 = sizeof(vector(void*));
     fill(v, 0, step4);
     var step5 = bits(void*, v);
-    sem_require(vector_push(void*, &c.lists, step5));
+    sem_require(vector_push(&c.lists, step5));
     return v;
 }
 
@@ -266,17 +266,17 @@ fn sem_scan_children(c: SemanticContext*, n: void*): void {
     var i = sem_child_count(n);
     while i != 0 {
         i--;
-        sem_require(stack_push(void*, &c.scan, sem_child(n, i)));
+        sem_require(stack_push(&c.scan, sem_child(n, i)));
     }
 }
 
 fn sem_collect(c: SemanticContext*, n: void*, wanted: u8*): vector(void*)* {
     var result = sem_list(c);
     if n != null {
-        sem_require(stack_push(void*, &c.scan, n));
+        sem_require(stack_push(&c.scan, n));
     }
     var at: void* = null;
-    while stack_pop(void*, &c.scan, &at) {
+    while stack_pop(&c.scan, &at) {
         if sem_is(at, wanted) {
             sem_push(result, at);
         } else {
@@ -289,10 +289,10 @@ fn sem_collect(c: SemanticContext*, n: void*, wanted: u8*): vector(void*)* {
 fn sem_tokens(c: SemanticContext*, n: void*): u8* {
     c.token_text.length = 0;
     if n != null {
-        sem_require(stack_push(void*, &c.scan, n));
+        sem_require(stack_push(&c.scan, n));
     }
     var at: void* = null;
-    while stack_pop(void*, &c.scan, &at) {
+    while stack_pop(&c.scan, &at) {
         var parsed = sem_match(at);
         var is_token = parsed != null;
         is_token &&= parsed.rule == sem_maximum();
@@ -569,7 +569,7 @@ fn sem_fail(c: SemanticContext*, n: void*, text: u8*): void {
     }
     var count: usize = sem_length(text);
     var step30 = count + 1;
-    sem_require(vector_reserve(u8, &c.program.error, step30));
+    sem_require(vector_reserve(&c.program.error, step30));
     var step32 = count + 1;
     copy(c.program.error.data, text, step32);
     c.program.error.length = count;

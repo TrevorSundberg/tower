@@ -82,7 +82,7 @@ fn bi_name(c: BackendImport*, entity: void*, prefix: u8*): void {
 
 fn bi_append(c: BackendImport*, block: void*, entity: void*): void {
     var n = sem_get(block);
-    backend_require(c.backend, vector_push(void*, &n.items, entity));
+    backend_require(c.backend, vector_push(&n.items, entity));
 }
 
 fn bi_const(c: BackendImport*, scalar: u32, value: u64): void* {

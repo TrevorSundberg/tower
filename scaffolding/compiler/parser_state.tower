@@ -76,8 +76,8 @@ export fn parser_recognizer_destroy(request: ParserRequest*): void {
     if request.read_node_or_null != null {
         entity_release(request.read_node_or_null);
     }
-    vector_dispose(u8, &request.lookahead_error);
-    vector_dispose(u8, &request.error);
+    vector_dispose(&request.lookahead_error);
+    vector_dispose(&request.error);
     tower_memory_free(bits(void*, request));
 }
 
@@ -401,7 +401,7 @@ export fn parser_diagnostic_destroy(result: ParserDiagnostic*): void {
         tower_memory_free(bits(void*, result.options.data[index].label));
         index = index + 1;
     }
-    vector_dispose(SyntaxDiagnosticOption, &result.options);
+    vector_dispose(&result.options);
     frontend_diagnostic_destroy(bits(FrontendDiagnostic*, result.probe));
     tower_memory_free(bits(void*, result));
 }
@@ -467,7 +467,7 @@ export fn parser_recognizer_diagnostic(request: ParserRequest*, reader: ParserDi
     result.complete = frontend_diagnostic_complete(probe);
     var index: usize = 0;
     var count = frontend_diagnostic_count(probe);
-    if !vector_reserve(SyntaxDiagnosticOption, &result.options, count) {
+    if !vector_reserve(&result.options, count) {
         result.complete = false;
         return result;
     }

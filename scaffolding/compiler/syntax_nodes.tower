@@ -104,15 +104,15 @@ export fn syntax_comments_push(comments: vector(vector(u8))*, text: u8*, length:
         return false;
     }
     var snapshot: vector(u8);
-    vector_init(u8, &snapshot);
-    var ok = vector_reserve(u8, &snapshot, needed);
+    vector_init(&snapshot);
+    var ok = vector_reserve(&snapshot, needed);
     if ok {
         if length != 0 {
             copy(snapshot.data, text, length);
         }
         snapshot.data[length] = 0;
         snapshot.length = length;
-        ok = vector_reserve(vector(u8), comments, count);
+        ok = vector_reserve(comments, count);
     }
     if ok {
         var target = &comments.data[comments.length];
@@ -121,22 +121,22 @@ export fn syntax_comments_push(comments: vector(vector(u8))*, text: u8*, length:
         target.capacity = snapshot.capacity;
         comments.length = count;
     } else {
-        vector_dispose(u8, &snapshot);
+        vector_dispose(&snapshot);
     }
     return ok;
 }
 
 export fn syntax_node_dispose(value: SyntaxNode*): void {
-    vector_dispose(u8, &value.name);
-    vector_dispose(u8, &value.text);
-    vector_dispose(u8, &value.capture);
-    vector_dispose(u8, &value.style);
-    vector_dispose(void*, &value.items);
+    vector_dispose(&value.name);
+    vector_dispose(&value.text);
+    vector_dispose(&value.capture);
+    vector_dispose(&value.style);
+    vector_dispose(&value.items);
     var index: usize = 0;
     for(; index != value.comments.length; index++) {
-        vector_dispose(u8, &value.comments.data[index]);
+        vector_dispose(&value.comments.data[index]);
     }
-    vector_dispose(vector(u8), &value.comments);
+    vector_dispose(&value.comments);
     syntax_node_source(value, null);
     syntax_node_pattern(value, null);
     syntax_node_replacement(value, null);
@@ -170,7 +170,7 @@ fn syntax_comparison_push(pending: vector(SyntaxComparison)*, left: void*, right
     if count == 0 {
         return false;
     }
-    var ok = vector_reserve(SyntaxComparison, pending, count);
+    var ok = vector_reserve(pending, count);
     if ok {
         pending.data[pending.length].left = left;
         pending.data[pending.length].right = right;
@@ -186,7 +186,7 @@ export fn syntax_nodes_equal(left: void*, right: void*, kind: void*, locations: 
         return 1;
     }
     var pending: vector(SyntaxComparison);
-    vector_init(SyntaxComparison, &pending);
+    vector_init(&pending);
     var ok = syntax_comparison_push(&pending, left, right);
     var result: i32 = 1;
     loop {
@@ -260,7 +260,7 @@ export fn syntax_nodes_equal(left: void*, right: void*, kind: void*, locations: 
         }
         ok &&= syntax_comparison_push(&pending, x.replacement, y.replacement);
     }
-    vector_dispose(SyntaxComparison, &pending);
+    vector_dispose(&pending);
     return result;
 }
 

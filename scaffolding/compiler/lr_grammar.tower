@@ -102,9 +102,9 @@ fn lr_grammar_name_add(value: LRGrammar*, name: u8*, index: usize*): bool {
     }
     fill(entry, 0, sizeof(LRGrammarName));
     var ok = node_text_set(&entry.text, name);
-    ok &&= vector_push(LRGrammarName*, &value.names, entry);
+    ok &&= vector_push(&value.names, entry);
     if !ok {
-        vector_dispose(u8, &entry.text);
+        vector_dispose(&entry.text);
         free(entry);
         return false;
     }
@@ -214,20 +214,20 @@ export fn lr_grammar_destroy(value: LRGrammar*): void {
     var index: usize = 0;
     for(; index != value.names.length; index++) {
         var name = value.names.data[index];
-        vector_dispose(u8, &name.text);
+        vector_dispose(&name.text);
         free(name);
     }
     index = 0;
     for(; index != value.symbol_metadata.length; index++) {
-        vector_dispose(u8, &value.symbol_metadata.data[index].capture);
+        vector_dispose(&value.symbol_metadata.data[index].capture);
     }
-    vector_dispose(LRGrammarName*, &value.names);
-    vector_dispose(usize, &value.buckets);
-    vector_dispose(LRProduction, &value.rules);
-    vector_dispose(LRGrammarRule, &value.rule_metadata);
-    vector_dispose(LRSymbol, &value.symbols);
-    vector_dispose(LRGrammarSymbol, &value.symbol_metadata);
-    vector_dispose(LRUnresolved, &value.unresolved);
+    vector_dispose(&value.names);
+    vector_dispose(&value.buckets);
+    vector_dispose(&value.rules);
+    vector_dispose(&value.rule_metadata);
+    vector_dispose(&value.symbols);
+    vector_dispose(&value.symbol_metadata);
+    vector_dispose(&value.unresolved);
     free(value);
 }
 
@@ -246,7 +246,7 @@ fn lr_grammar_add_symbol(value: LRGrammar*, symbol: LRSymbol*, node: void*, capt
     }
     ok &&= lr_append(LRGrammarSymbol, &value.symbol_metadata, &metadata);
     if !ok {
-        vector_dispose(u8, &metadata.capture);
+        vector_dispose(&metadata.capture);
         return false;
     }
     return lr_append(LRSymbol, &value.symbols, symbol);
@@ -256,7 +256,7 @@ fn lr_grammar_rules(value: LRGrammar*, root: void*, kind: void*): bool {
     var count = entity_child_count(root);
     var size = count *2;
     size++;
-    var ok = vector_reserve(usize, &value.buckets, size);
+    var ok = vector_reserve(&value.buckets, size);
     if !ok {
         return false;
     }
@@ -409,7 +409,7 @@ export fn lr_grammar_create(root: void*, rule_kind: void*, reference_kind: void*
     ok &&= lr_grammar_symbols(value, reference_kind, string_kind, range_kind);
     if ok {
         // Name lookup is finished. Runtime tables only need the ordered names.
-        vector_dispose(usize, &value.buckets);
+        vector_dispose(&value.buckets);
         return value;
     }
     lr_grammar_destroy(value);
@@ -497,7 +497,7 @@ export fn lr_grammar_pending(value: LRGrammar*): usize {
 // Source-node addresses are construction-only. Keep numeric records when the
 // table's diagnostics/trace views still consume them; never rebuild native copies.
 export fn lr_grammar_detach(value: LRGrammar*): void {
-    vector_dispose(LRUnresolved, &value.unresolved);
+    vector_dispose(&value.unresolved);
     var index: usize = 0;
     for(; index != value.rule_metadata.length; index++) {
         value.rule_metadata.data[index].node = null;
@@ -511,6 +511,6 @@ export fn lr_grammar_detach(value: LRGrammar*): void {
 // Compact readers only need generated flags, labels and captures after build.
 export fn lr_grammar_finish(value: LRGrammar*): void {
     lr_grammar_detach(value);
-    vector_dispose(LRProduction, &value.rules);
-    vector_dispose(LRSymbol, &value.symbols);
+    vector_dispose(&value.rules);
+    vector_dispose(&value.symbols);
 }

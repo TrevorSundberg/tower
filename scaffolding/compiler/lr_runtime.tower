@@ -72,7 +72,7 @@ fn lr_action_insert(values: vector(LRAction)*, value: LRAction*): bool {
         }
     }
     var count = values.length + 1;
-    if !vector_reserve(LRAction, values, count) {
+    if !vector_reserve(values, count) {
         return false;
     }
     var moved = values.length -low;
@@ -85,8 +85,8 @@ fn lr_action_insert(values: vector(LRAction)*, value: LRAction*): bool {
 }
 
 fn lr_row_destroy(value: LRRow*): void {
-    vector_dispose(LRAction, &value.actions);
-    vector_dispose(usize, &value.direct);
+    vector_dispose(&value.actions);
+    vector_dispose(&value.direct);
     free(value);
 }
 
@@ -96,16 +96,16 @@ export fn lr_runtime_destroy(value: LRRuntime*): void {
     }
     var index: usize = 0;
     for(; index != value.states.length; index++) {
-        vector_dispose(LRGoto, &value.states.data[index].gotos);
+        vector_dispose(&value.states.data[index].gotos);
     }
     index = 0;
     for(; index != value.rows.length; index++) {
         lr_row_destroy(value.rows.data[index]);
     }
-    vector_dispose(LRRuntimeState, &value.states);
-    vector_dispose(LRRow*, &value.rows);
-    vector_dispose(LRProduction, &value.rules);
-    vector_dispose(usize, &value.sequence_states);
+    vector_dispose(&value.states);
+    vector_dispose(&value.rows);
+    vector_dispose(&value.rules);
+    vector_dispose(&value.sequence_states);
     symbol_sequence_destroy(value.sequence);
     free(value);
 }
@@ -337,7 +337,7 @@ fn lr_row_index(row: LRRow*): bool {
         }
         size = size * 2;
     }
-    if !vector_reserve(usize, &row.direct, size) {
+    if !vector_reserve(&row.direct, size) {
         return false;
     }
     row.direct.length = size;
@@ -406,7 +406,7 @@ fn lr_runtime_gotos(state: LRRuntimeState*, input: LRState*, analysis: LRAnalysi
 
 fn lr_runtime_build(value: LRRuntime*, source: LRStates*, buckets: vector(usize)*): bool {
     var rule_count = source.analysis.rule_count;
-    var ok = vector_reserve(LRProduction, &value.rules, rule_count);
+    var ok = vector_reserve(&value.rules, rule_count);
     if !ok {
         return false;
     }
@@ -414,7 +414,7 @@ fn lr_runtime_build(value: LRRuntime*, source: LRStates*, buckets: vector(usize)
     copy(value.rules.data, source.analysis.rules, rule_bytes);
     value.rules.length = rule_count;
     var count = source.states.length;
-    ok = vector_reserve(LRRuntimeState, &value.states, count);
+    ok = vector_reserve(&value.states, count);
     if !ok {
         return false;
     }
@@ -423,7 +423,7 @@ fn lr_runtime_build(value: LRRuntime*, source: LRStates*, buckets: vector(usize)
     value.states.length = count;
     var bucket_count = count *2;
     bucket_count++;
-    ok = vector_reserve(usize, buckets, bucket_count);
+    ok = vector_reserve(buckets, bucket_count);
     if !ok {
         return false;
     }
@@ -485,7 +485,7 @@ fn lr_runtime_build(value: LRRuntime*, source: LRStates*, buckets: vector(usize)
         }
         if !shared {
             ok = lr_row_index(row);
-            ok &&= vector_push(LRRow*, &value.rows, row);
+            ok &&= vector_push(&value.rows, row);
             if !ok {
                 lr_row_destroy(row);
                 return false;
@@ -512,9 +512,9 @@ export fn lr_runtime_create(source: LRStates*): LRRuntime* {
     value.conflict.state = lr_none();
     value.sequence_rule = lr_none();
     var buckets: vector(usize);
-    vector_init(usize, &buckets);
+    vector_init(&buckets);
     var ok = lr_runtime_build(value, source, &buckets);
-    vector_dispose(usize, &buckets);
+    vector_dispose(&buckets);
     if ok {
         return value;
     }
@@ -665,7 +665,7 @@ export fn lr_runtime_specialize(value: LRRuntime*, source: LRStates*): void {
         }
     }
     var count = rule.count + 1;
-    var ok = vector_reserve(usize, &value.sequence_states, count);
+    var ok = vector_reserve(&value.sequence_states, count);
     if !ok {
         return;
     }

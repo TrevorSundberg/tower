@@ -96,10 +96,10 @@ export fn foreign_symbol(profile: u32, name: u8*): ForeignName* {
         if prefix[0] != 0 {
             if result.error.length == 0 {
                 var text: vector(u8);
-                vector_init(u8, &text);
+                vector_init(&text);
                 backend_text(&text, prefix);
                 backend_text(&text, foreign_name_text(result));
-                vector_dispose(u8, &result.text);
+                vector_dispose(&result.text);
                 copy(&result.text, &text, sizeof(vector(u8)));
             }
         }

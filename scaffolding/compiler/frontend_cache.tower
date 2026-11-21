@@ -28,10 +28,10 @@ export fn frontend_revision_release(revision: FrontendRevision*): void {
     for(; i != revision.tokens.length; i++) {
         entity_release(revision.tokens.data[i]);
     }
-    vector_dispose(SyntaxRuleView, &revision.rules);
-    vector_dispose(u8, &revision.names);
-    vector_dispose(void*, &revision.alternatives);
-    vector_dispose(void*, &revision.tokens);
+    vector_dispose(&revision.rules);
+    vector_dispose(&revision.names);
+    vector_dispose(&revision.alternatives);
+    vector_dispose(&revision.tokens);
     free(revision);
 }
 
@@ -47,7 +47,7 @@ fn frontend_revision_nodes(target: vector(void*)*, nodes: void**, count: usize):
     if needed < target.length {
         return false;
     }
-    if !vector_reserve(void*, target, needed) {
+    if !vector_reserve(target, needed) {
         return false;
     }
     var i: usize = 0;
@@ -94,9 +94,9 @@ fn frontend_revision_create(rules: SyntaxRuleView*, count: usize, tokens: void**
         }
         alternatives = next;
     }
-    ok &&= vector_reserve(SyntaxRuleView, &revision.rules, count);
-    ok &&= vector_reserve(u8, &revision.names, names);
-    ok &&= vector_reserve(void*, &revision.alternatives, alternatives);
+    ok &&= vector_reserve(&revision.rules, count);
+    ok &&= vector_reserve(&revision.names, names);
+    ok &&= vector_reserve(&revision.alternatives, alternatives);
     i = 0;
     loop {
         if !ok {
@@ -114,7 +114,7 @@ fn frontend_revision_create(rules: SyntaxRuleView*, count: usize, tokens: void**
             target.alternatives = &revision.alternatives.data[revision.alternatives.length];
         }
         ok = bytes_append(&revision.names, rules[i].name, rules[i].name_length);
-        ok &&= vector_push(u8, &revision.names, 0);
+        ok &&= vector_push(&revision.names, 0);
         ok &&= frontend_revision_nodes(&revision.alternatives, rules[i].alternatives, rules[i].count);
         revision.rules.length++;
         i++;
@@ -188,7 +188,7 @@ export fn frontend_cache_dispose(cache: FrontendCache*): void {
     for(var i: usize = 0; i != cache.entries.length; i++) {
         frontend_revision_release(cache.entries.data[i]);
     }
-    vector_dispose(FrontendRevision*, &cache.entries);
+    vector_dispose(&cache.entries);
     cache.builds = 0;
     cache.hits = 0;
 }
@@ -197,7 +197,7 @@ export fn frontend_cache_dispose(cache: FrontendCache*): void {
 // keep independent recency, counters and compiled-table handle ownership.
 export fn frontend_cache_copy(target: FrontendCache*, source: FrontendCache*): bool {
     var count = source.entries.length;
-    if !vector_reserve(FrontendRevision*, &target.entries, count) {
+    if !vector_reserve(&target.entries, count) {
         return false;
     }
     for(var i: usize = 0; i != count; i++) {
@@ -258,7 +258,7 @@ tokens: void**, token_count: usize): usize {
         frontend_cache_touch(cache, 0);
     } else {
         revision.slot = cache.entries.length;
-        if !vector_push(FrontendRevision*, &cache.entries, revision) {
+        if !vector_push(&cache.entries, revision) {
             frontend_revision_release(revision);
             return lr_none();
         }

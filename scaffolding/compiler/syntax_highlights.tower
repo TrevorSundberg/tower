@@ -17,14 +17,14 @@ fn syntax_highlight_style(value: SyntaxHighlights*, text: u8*): u8* {
     }
     if !vector_reserve(vector(u8), &value.styles, value.styles.length + 1) { return null; }
     var style = &value.styles.data[value.styles.length];
-    vector_init(u8, style);
+    vector_init(style);
     if !node_text_set(style, text) { return null; }
     value.styles.length++;
     return style.data;
 }
 
 export fn syntax_highlights_clear(value: SyntaxHighlights*): void {
-    for (var i: usize = 0; i < value.styles.length; ++i) { vector_dispose(u8, &value.styles.data[i]); }
+    for (var i: usize = 0; i < value.styles.length; ++i) { vector_dispose(&value.styles.data[i]); }
     value.styles.length = 0;
     value.items.length = 0;
 }
@@ -32,12 +32,12 @@ export fn syntax_highlights_clear(value: SyntaxHighlights*): void {
 export fn syntax_highlights_dispose(value: SyntaxHighlights*): void {
     syntax_highlights_clear(value);
     vector_dispose(vector(u8), &value.styles);
-    vector_dispose(SyntaxHighlightSpan, &value.items);
+    vector_dispose(&value.items);
 }
 
 export fn syntax_highlights_push(value: SyntaxHighlights*, start: usize, end: usize, revision: usize, style: u8*, id: u32, opaque: bool): bool {
     var name = syntax_highlight_style(value, style);
-    if name is null || !vector_reserve(SyntaxHighlightSpan, &value.items, value.items.length + 1) { return false; }
+    if name is null || !vector_reserve(&value.items, value.items.length + 1) { return false; }
     var row = &value.items.data[value.items.length++];
     row.start = start;
     row.end = end;

@@ -97,8 +97,8 @@ export fn backend_session_close(s: BackendSession*): void {
     }
     backend_session_reset(s);
     backend_link_close(s.linker);
-    vector_dispose(u8, &s.target);
-    vector_dispose(u8, &s.response);
+    vector_dispose(&s.target);
+    vector_dispose(&s.response);
     free(s);
 }
 
@@ -282,10 +282,10 @@ fn backend_session_report(s: BackendSession*, functions: void**, count: usize): 
                 }
                 var parameter = sem_get(n.parameters.data[j]);
                 var name: vector(u8);
-                vector_init(u8, &name);
+                vector_init(&name);
                 semantic_format_type(&parameter.type, &name);
                 backend_json(out, name.data, name.length);
-                vector_dispose(u8, &name);
+                vector_dispose(&name);
                 j++;
             }
             backend_text(out, "]");

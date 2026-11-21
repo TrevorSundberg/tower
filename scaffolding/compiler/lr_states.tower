@@ -134,7 +134,7 @@ fn lr_state_symbol(analysis: LRAnalysis*, state: LRState*, symbol: usize): bool 
         }
     }
     var count = state.symbols.length + 1;
-    if !vector_reserve(usize, &state.symbols, count) {
+    if !vector_reserve(&state.symbols, count) {
         return false;
     }
     var moved = state.symbols.length -low;
@@ -148,9 +148,9 @@ fn lr_state_symbol(analysis: LRAnalysis*, state: LRState*, symbol: usize): bool 
 
 fn lr_state_destroy(state: LRState*): void {
     lr_items_destroy(state.items);
-    vector_dispose(usize, &state.symbols);
-    vector_dispose(LRTransition, &state.edges);
-    vector_dispose(LRAction, &state.actions);
+    vector_dispose(&state.symbols);
+    vector_dispose(&state.edges);
+    vector_dispose(&state.actions);
     free(state);
 }
 
@@ -161,9 +161,9 @@ export fn lr_states_destroy(value: LRStates*): void {
     for(var index: usize = 0; index != value.states.length; index++) {
         lr_state_destroy(value.states.data[index]);
     }
-    vector_dispose(LRState*, &value.states);
-    vector_dispose(usize, &value.pending);
-    vector_dispose(usize, &value.buckets);
+    vector_dispose(&value.states);
+    vector_dispose(&value.pending);
+    vector_dispose(&value.buckets);
     free(value);
 }
 
@@ -174,7 +174,7 @@ fn lr_states_rehash(value: LRStates*): bool {
     }
     needed = value.buckets.length * 2;
     needed = needed + 17;
-    if !vector_reserve(usize, &value.buckets, needed) {
+    if !vector_reserve(&value.buckets, needed) {
         return false;
     }
     value.buckets.length = needed;
@@ -234,8 +234,8 @@ fn lr_states_intern(value: LRStates*, items: LRItems*, origin: usize): usize {
     state.hash = hash;
     state.next = value.buckets.data[bucket];
     index = value.states.length;
-    ok = vector_push(usize, &value.pending, index);
-    ok &&= vector_push(LRState*, &value.states, state);
+    ok = vector_push(&value.pending, index);
+    ok &&= vector_push(&value.states, state);
     if !ok {
         lr_state_destroy(state);
         return lr_none();

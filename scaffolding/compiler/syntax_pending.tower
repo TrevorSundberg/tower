@@ -28,7 +28,7 @@ export fn syntax_pending_destroy(value: SyntaxPendingRevision*): void {
     }
     frontend_revision_release(value.owner);
     free(value.terms);
-    vector_dispose(u8, &value.message);
+    vector_dispose(&value.message);
     free(value);
 }
 
@@ -66,7 +66,7 @@ fn syntax_pending_format(value: SyntaxPendingRevision*, kind: void*): bool {
     format_text(&format, " (undefined rule '");
     format_write(&format, name, length);
     format_text(&format, "')");
-    var ok = !result.failed && vector_push(u8, &result.text, 0);
+    var ok = !result.failed && vector_push(&result.text, 0);
     if ok {
         copy(&value.message, &result.text, sizeof(vector(u8)));
         fill(&result.text, 0, sizeof(vector(u8)));

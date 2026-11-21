@@ -59,7 +59,7 @@ export fn format_repeat(f: FormatEngine*, byte: u8, count: usize): void {
         f.result.failed = true;
         return;
     }
-    if vector_reserve(u8, text, needed) {
+    if vector_reserve(text, needed) {
         fill(&text.data[text.length], byte, count);
         text.length = needed;
     } else {
@@ -115,7 +115,7 @@ fn format_newline(f: FormatEngine*, blank: bool): void {
 fn format_span(f: FormatEngine*, begin: usize, source: usize): void {
     var spans = &f.result.spans;
     var needed = spans.length + 1;
-    if vector_reserve(FormatSpan, spans, needed) {
+    if vector_reserve(spans, needed) {
         var span = &spans.data[spans.length];
         span.begin = begin;
         span.end = f.result.text.length;
@@ -367,8 +367,8 @@ fn format_column(f: FormatEngine*): usize {
 }
 
 export fn format_dispose(result: FormatResult*): void {
-    vector_dispose(u8, &result.text);
-    vector_dispose(FormatSpan, &result.spans);
+    vector_dispose(&result.text);
+    vector_dispose(&result.spans);
 }
 
 export fn format_entity(result: FormatResult*, entity: void*, syntax: void*, foundation: void*, `match`: void*): void {

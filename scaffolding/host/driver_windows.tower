@@ -130,13 +130,13 @@ export fn driver_platform_run(argv: u8**): i32 {
         var text: ByteBuffer;
         fill(&text, 0, sizeof(ByteBuffer));
         quoted.ok = driver_windows_quote(&text, argv[i]);
-        quoted.ok &&= vector_push(u8*, &quoted.values, text.data);
+        quoted.ok &&= vector_push(&quoted.values, text.data);
         if !quoted.ok {
             bytes_dispose(&text);
             break;
         }
     }
-    quoted.ok &&= vector_push(u8*, &quoted.values, null);
+    quoted.ok &&= vector_push(&quoted.values, null);
     var result: i32 = 1;
     if quoted.ok {
         var code = _spawnvp(0, argv[0], quoted.values.data);

@@ -83,7 +83,7 @@ fn emission_lexical_rows(value: SyntaxEmission*, ordered: SyntaxEmissionEntry**)
         var entry = ordered[index];
         var ok = true;
         if entry.used {
-            ok = vector_push(u8*, &out.reserved, entry.text.data);
+            ok = vector_push(&out.reserved, entry.text.data);
         }
         var word = lexicon_word(entry.text.data, entry.text.length);
         if entry.start {
@@ -97,10 +97,10 @@ fn emission_lexical_rows(value: SyntaxEmission*, ordered: SyntaxEmissionEntry**)
             row.id = entry.literal;
             copy(&out.literals[out.literal_count], &row, sizeof(SyntaxEmissionLiteral));
             ++out.literal_count;
-            ok &&= vector_push(u32, &out.ids, entry.literal);
+            ok &&= vector_push(&out.ids, entry.literal);
             ok &&= lr_append(SyntaxEmissionEntry*, &out.by_id, &entry);
             if word {
-                ok &&= vector_push(u8*, &out.keywords, entry.text.data);
+                ok &&= vector_push(&out.keywords, entry.text.data);
             }
         }
         if !ok {
@@ -154,7 +154,7 @@ fn emission_lexical_tokens(value: SyntaxEmission*): bool {
             }
         }
         var ok = lr_append(LexiconToken, &out.tokens, &row);
-        ok &&= vector_push(u8*, &out.token_names, name);
+        ok &&= vector_push(&out.token_names, name);
         if !ok {
             return false;
         }
@@ -196,15 +196,15 @@ fn emission_dispose_lexical(value: SyntaxEmissionLexical*): void {
         free(value.holes.data[index]);
         ++index;
     }
-    vector_dispose(u8*, &value.holes);
+    vector_dispose(&value.holes);
     free(value.literals);
-    vector_dispose(u32, &value.ids);
-    vector_dispose(SyntaxEmissionEntry*, &value.by_id);
-    vector_dispose(u8*, &value.reserved);
-    vector_dispose(u8*, &value.keywords);
-    vector_dispose(SyntaxEmissionEntry*, &value.starts);
-    vector_dispose(LexiconToken, &value.tokens);
-    vector_dispose(u8*, &value.token_names);
+    vector_dispose(&value.ids);
+    vector_dispose(&value.by_id);
+    vector_dispose(&value.reserved);
+    vector_dispose(&value.keywords);
+    vector_dispose(&value.starts);
+    vector_dispose(&value.tokens);
+    vector_dispose(&value.token_names);
 }
 
 export fn syntax_emission_literal(value: SyntaxEmission*, text: u8*): u32 {
@@ -290,11 +290,11 @@ export fn syntax_emission_lexicon(value: SyntaxEmission*): SyntaxLexicon* {
 // discarded on failure, before any parser table/readers are published.
 fn emission_display_hole(value: SyntaxEmission*, name: u8*): bool {
     var text: vector(u8);
-    vector_init(u8, &text);
+    vector_init(&text);
     var ok = node_text_set(&text, name);
-    ok &&= vector_push(u8*, &value.lexical.holes, text.data);
+    ok &&= vector_push(&value.lexical.holes, text.data);
     if !ok {
-        vector_dispose(u8, &text);
+        vector_dispose(&text);
     }
     return ok;
 }
@@ -389,8 +389,8 @@ fn emission_suffix_candidates(value: SyntaxEmission*, words: vector(u8*)*, ids: 
     while index < SyntaxSuffixPriorityCount() {
         var id = syntax_emission_literal(value, priorities[index]);
         if id != convert(u32, SyntaxTokenId.End) {
-            ok = vector_push(u8*, words, priorities[index]);
-            ok &&= vector_push(u32, ids, id);
+            ok = vector_push(words, priorities[index]);
+            ok &&= vector_push(ids, id);
             if !ok {
                 return false;
             }
@@ -404,8 +404,8 @@ fn emission_suffix_candidates(value: SyntaxEmission*, words: vector(u8*)*, ids: 
         excluded ||= lr_name_equal(row.text, "(") || lr_name_equal(row.text, "[")
         || lr_name_equal(row.text, ".") || lr_name_equal(row.text, ",");
         if !excluded {
-            ok = vector_push(u8*, words, row.text);
-            ok &&= vector_push(u32, ids, row.id);
+            ok = vector_push(words, row.text);
+            ok &&= vector_push(ids, row.id);
             if !ok {
                 return false;
             }
@@ -414,20 +414,20 @@ fn emission_suffix_candidates(value: SyntaxEmission*, words: vector(u8*)*, ids: 
     }
     var number = value.lexical.number;
     if number != convert(u32, SyntaxTokenId.End) {
-        ok = vector_push(u8*, words, "0");
-        ok &&= vector_push(u32, ids, number);
+        ok = vector_push(words, "0");
+        ok &&= vector_push(ids, number);
     }
     return ok;
 }
 
 export fn syntax_emission_completion_close(value: SyntaxEmission*, completion: LRCompletion*, type_name: u8*): u8* {
     var words: vector(u8*);
-    vector_init(u8*, &words);
+    vector_init(&words);
     var ids: vector(u32);
-    vector_init(u32, &ids);
+    vector_init(&ids);
     var ok = emission_suffix_candidates(value, &words, &ids);
-    ok &&= vector_push(u8*, &words, type_name);
-    ok &&= vector_push(u32, &ids, convert(u32, SyntaxTokenId.Name));
+    ok &&= vector_push(&words, type_name);
+    ok &&= vector_push(&ids, convert(u32, SyntaxTokenId.Name));
     var result: FormatResult;
     fill(&result, 0, sizeof(FormatResult));
     var format: FormatEngine;
@@ -448,8 +448,8 @@ export fn syntax_emission_completion_close(value: SyntaxEmission*, completion: L
             ok = !result.failed;
         }
     }
-    vector_dispose(u8*, &words);
-    vector_dispose(u32, &ids);
+    vector_dispose(&words);
+    vector_dispose(&ids);
     if ok {
         return format_parser_host_text(&result);
     }

@@ -33,7 +33,7 @@ fn syntax_baseline_dispose(value: SyntaxBaseline*): void {
     if value.document is not null {
         entity_release(value.document);
     }
-    vector_dispose(u8, &value.source);
+    vector_dispose(&value.source);
     fill(value, 0, sizeof(SyntaxBaseline));
 }
 
@@ -119,7 +119,7 @@ export fn syntax_world_publish(world: void*, source: u8*, length: usize, documen
     }
     var owner = syntax_baselines_owner(world, true);
     if owner is null {
-        vector_dispose(u8, &prepared.source);
+        vector_dispose(&prepared.source);
         return false;
     }
     prepared.document = document;

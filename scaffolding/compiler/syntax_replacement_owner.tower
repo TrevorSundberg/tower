@@ -42,11 +42,11 @@ fn replacement_dispose(value: SyntaxReplacement*): void {
     for (var i: usize = 0; i < value.captures.length; ++i) {
         var capture = &value.captures.data[i];
         replacement_release(capture.source);
-        vector_dispose(u8, &capture.name);
+        vector_dispose(&capture.name);
     }
-    vector_dispose(SyntaxReplacementCapture, &value.captures);
-    vector_dispose(u8, &value.rule);
-    vector_dispose(u8, &value.category);
+    vector_dispose(&value.captures);
+    vector_dispose(&value.rule);
+    vector_dispose(&value.category);
     fill(value, 0, sizeof(SyntaxReplacement));
 }
 
@@ -67,14 +67,14 @@ export fn syntax_replacement_owner_destroy(value: SyntaxReplacementOwner*): void
     replacement_release(value.sequence);
     replacement_release(value.selected);
     for (var i: usize = 0; i < value.entries.length; ++i) { replacement_dispose(&value.entries.data[i]); }
-    vector_dispose(SyntaxReplacement, &value.entries);
-    vector_dispose(usize, &value.productions);
-    vector_dispose(SyntaxExpansionCapture, &value.captures);
-    vector_dispose(SyntaxExpansionRule, &value.rules);
-    vector_dispose(SyntaxExpansionRule*, &value.index);
-    vector_dispose(u8, &value.category);
-    vector_dispose(usize, &value.uses);
-    vector_dispose(u8, &value.diagnostic);
+    vector_dispose(&value.entries);
+    vector_dispose(&value.productions);
+    vector_dispose(&value.captures);
+    vector_dispose(&value.rules);
+    vector_dispose(&value.index);
+    vector_dispose(&value.category);
+    vector_dispose(&value.uses);
+    vector_dispose(&value.diagnostic);
     free(value);
 }
 
@@ -114,8 +114,8 @@ export fn syntax_replacement_capture(context: void*, name: u8*, source: void*): 
     }
     var capture: SyntaxReplacementCapture;
     fill(&capture, 0, sizeof(SyntaxReplacementCapture));
-    if !node_text_set(&capture.name, name) || !vector_reserve(SyntaxReplacementCapture, captures, captures.length + 1) {
-        vector_dispose(u8, &capture.name);
+    if !node_text_set(&capture.name, name) || !vector_reserve(captures, captures.length + 1) {
+        vector_dispose(&capture.name);
         value.failed = true;
         return;
     }
@@ -167,7 +167,7 @@ export fn syntax_replacement_select(context: void*): void {
     var value = bits(SyntaxReplacementOwner*, context);
     if value.failed || value.frozen { return; }
     var captures = &value.current.captures;
-    value.failed = !node_text_set(&value.category, node_text_get(&value.current.category)) || !vector_reserve(usize, &value.uses, captures.length);
+    value.failed = !node_text_set(&value.category, node_text_get(&value.current.category)) || !vector_reserve(&value.uses, captures.length);
     if value.failed { return; }
     value.uses.length = captures.length;
     for (var i: usize = 0; i < captures.length; ++i) { value.uses.data[i] = captures.data[i].uses; }
@@ -187,12 +187,12 @@ export fn syntax_replacement_commit(context: void*, alternative: usize): void {
         if value.productions.data[index] >= production { break; }
     }
     if index < value.productions.length && value.productions.data[index] == production { return; }
-    value.failed = !vector_reserve(SyntaxReplacement, &value.entries, value.entries.length + 1) || !vector_reserve(usize, &value.productions, value.productions.length + 1);
+    value.failed = !vector_reserve(&value.entries, value.entries.length + 1) || !vector_reserve(&value.productions, value.productions.length + 1);
     if value.failed { return; }
     replacement_release(current.tree);
     current.tree = value.selected;
     value.selected = null;
-    vector_move(u8, &current.category, &value.category);
+    vector_move(&current.category, &value.category);
     for (var i: usize = 0; i < current.captures.length; ++i) { current.captures.data[i].uses = value.uses.data[i]; }
     for (var i = value.entries.length; i > index; --i) {
         copy(&value.entries.data[i], &value.entries.data[i - 1], sizeof(SyntaxReplacement));
@@ -217,9 +217,9 @@ export fn syntax_replacement_freeze(value: SyntaxReplacementOwner*): bool {
     var count = value.entries.length;
     var slots = count == 0 ? 0 : value.productions.data[count - 1] + 1;
     if count != 0 && slots == 0 { return false; }
-    if !vector_reserve(SyntaxExpansionCapture, &value.captures, total) ||
-        !vector_reserve(SyntaxExpansionRule, &value.rules, count) ||
-        !vector_reserve(SyntaxExpansionRule*, &value.index, slots) { return false; }
+    if !vector_reserve(&value.captures, total) ||
+        !vector_reserve(&value.rules, count) ||
+        !vector_reserve(&value.index, slots) { return false; }
     fill(value.index.data, 0, slots * sizeof(SyntaxExpansionRule*));
     var offset: usize = 0;
     for (var i: usize = 0; i < count; ++i) {

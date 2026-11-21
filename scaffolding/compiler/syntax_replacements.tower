@@ -70,7 +70,7 @@ fn replacement_text(state: ReplacementPlanState*, text: u8*): void {
 }
 
 fn replacement_queue(state: ReplacementPlanState*, index: usize): bool {
-    state.allocated = vector_push(usize, &state.pending, index);
+    state.allocated = vector_push(&state.pending, index);
     return state.allocated;
 }
 
@@ -156,7 +156,7 @@ fn replacement_parents(state: ReplacementPlanState*): bool {
                                 duplicate = parents.data[last] == index;
                             }
                             if !duplicate {
-                                state.allocated = vector_push(usize, parents, index);
+                                state.allocated = vector_push(parents, index);
                                 if !state.allocated {
                                     return false;
                                 }
@@ -344,7 +344,7 @@ fn replacement_prepare_one(state: ReplacementPlanState*, index: usize, alternati
                 continue;
             }
             state.rules.data[category].visited = state.epoch;
-            state.allocated = vector_push(usize, &state.tried, category);
+            state.allocated = vector_push(&state.tried, category);
             if !state.allocated {
                 return false;
             }
@@ -422,7 +422,7 @@ fn replacement_prepare_all(state: ReplacementPlanState*): bool {
     if !any {
         return true;
     }
-    state.allocated = vector_reserve(ReplacementRuleState, &state.rules, state.plan.count);
+    state.allocated = vector_reserve(&state.rules, state.plan.count);
     if !state.allocated {
         return false;
     }
@@ -471,18 +471,18 @@ export fn syntax_replacements_prepare(plan: SyntaxReplacementPlan*): bool {
     var ok = replacement_prepare_all(&state);
     var index: usize = 0;
     for(; index != state.rules.length; index++) {
-        vector_dispose(usize, &state.rules.data[index].parents);
+        vector_dispose(&state.rules.data[index].parents);
     }
-    vector_dispose(ReplacementRuleState, &state.rules);
-    vector_dispose(usize, &state.pending);
-    vector_dispose(usize, &state.tried);
-    vector_dispose(u8, &state.original);
+    vector_dispose(&state.rules);
+    vector_dispose(&state.pending);
+    vector_dispose(&state.tried);
+    vector_dispose(&state.original);
     if !state.allocated {
-        vector_dispose(u8, &plan.error);
+        vector_dispose(&plan.error);
     }
     return ok;
 }
 
 export fn syntax_replacements_dispose(plan: SyntaxReplacementPlan*): void {
-    vector_dispose(u8, &plan.error);
+    vector_dispose(&plan.error);
 }

@@ -92,7 +92,7 @@ fn backend_name(n: FoundationNode*): u8* {
 
 fn backend_associate(values: vector(BackendAssociation)*, entity: void*, value: void*): bool {
     var needed = values.length + 1;
-    var ok = vector_reserve(BackendAssociation, values, needed);
+    var ok = vector_reserve(values, needed);
     if ok {
         values.data[values.length].entity = entity;
         values.data[values.length].value = value;
@@ -191,15 +191,15 @@ export fn backend_close(b: Backend*): void {
     for(var i: usize = 0; i != b.symbols.length; i++) {
         free(b.symbols.data[i]);
     }
-    vector_dispose(u8*, &b.symbols);
-    vector_dispose(void*, &b.functions);
-    vector_dispose(void*, &b.source_functions);
-    vector_dispose(void*, &b.locals);
-    vector_dispose(BackendAssociation, &b.globals);
-    vector_dispose(BackendAssociation, &b.strings);
-    vector_dispose(BackendLoop, &b.loops);
-    vector_dispose(BackendAssociation, &b.labels);
-    vector_dispose(u8, &b.error);
+    vector_dispose(&b.symbols);
+    vector_dispose(&b.functions);
+    vector_dispose(&b.source_functions);
+    vector_dispose(&b.locals);
+    vector_dispose(&b.globals);
+    vector_dispose(&b.strings);
+    vector_dispose(&b.loops);
+    vector_dispose(&b.labels);
+    vector_dispose(&b.error);
     free(b);
 }
 

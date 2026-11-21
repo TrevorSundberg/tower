@@ -89,15 +89,15 @@ fn work_init(g: WorkGraph*, revision: u64, profile: u64): void {
 }
 
 fn work_dispose(g: WorkGraph*): void {
-    vector_dispose(WorkTask, &g.tasks);
-    vector_dispose(WorkEdge, &g.edges);
-    vector_dispose(usize, &g.task_index);
-    vector_dispose(usize, &g.edge_index);
-    vector_dispose(usize, &g.ready);
-    vector_dispose(usize, &g.scratch);
-    vector_dispose(WorkFrame, &g.frames);
-    vector_dispose(WorkAccess, &g.accesses);
-    vector_dispose(usize, &g.executing);
+    vector_dispose(&g.tasks);
+    vector_dispose(&g.edges);
+    vector_dispose(&g.task_index);
+    vector_dispose(&g.edge_index);
+    vector_dispose(&g.ready);
+    vector_dispose(&g.scratch);
+    vector_dispose(&g.frames);
+    vector_dispose(&g.accesses);
+    vector_dispose(&g.executing);
     fill(g, 0, sizeof(WorkGraph));
 }
 
@@ -174,7 +174,7 @@ fn work_index(g: WorkGraph*, edges: bool): bool {
     if size < 16 {
         size = 16;
     }
-    if !work_memory(g, vector_reserve(usize, index, size)) {
+    if !work_memory(g, vector_reserve(index, size)) {
         return false;
     }
     index.length = size;
@@ -228,7 +228,7 @@ fn work_request(g: WorkGraph*, subject: void*, query: u32, argument: u64): usize
         g.error = WorkError.Memory;
         return 0;
     }
-    if !work_memory(g, vector_reserve(WorkTask, &g.tasks, size)) {
+    if !work_memory(g, vector_reserve(&g.tasks, size)) {
         return 0;
     }
     var task = &g.tasks.data[g.tasks.length];
@@ -278,7 +278,7 @@ fn work_depend(g: WorkGraph*, consumer: usize, dependency: usize): bool {
         g.error = WorkError.Memory;
         return false;
     }
-    if !work_memory(g, vector_reserve(WorkEdge, &g.edges, size)) {
+    if !work_memory(g, vector_reserve(&g.edges, size)) {
         return false;
     }
     var edge = &g.edges.data[g.edges.length];
@@ -299,7 +299,7 @@ fn work_enqueue(g: WorkGraph*, id: usize): bool {
     ready &&= task.remaining == 0;
     ready &&= task.demanded;
     if ready {
-        if !work_memory(g, vector_push(usize, &g.ready, id)) {
+        if !work_memory(g, vector_push(&g.ready, id)) {
             return false;
         }
         task.state = WorkState.Ready;
@@ -333,7 +333,7 @@ fn work_access(g: WorkGraph*, id: usize, domain: u64, component: u64, first: usi
         g.error = WorkError.Memory;
         return false;
     }
-    if !work_memory(g, vector_reserve(WorkAccess, &g.accesses, size)) {
+    if !work_memory(g, vector_reserve(&g.accesses, size)) {
         return false;
     }
     var access = &g.accesses.data[g.accesses.length];
@@ -432,11 +432,11 @@ fn work_demand(g: WorkGraph*, id: usize): bool {
         return false;
     }
     g.scratch.length = 0;
-    if !work_memory(g, vector_push(usize, &g.scratch, id)) {
+    if !work_memory(g, vector_push(&g.scratch, id)) {
         return false;
     }
     var current: usize = 0;
-    while vector_pop(usize, &g.scratch, &current) {
+    while vector_pop(&g.scratch, &current) {
         var task = work_task(g, current);
         var invalid = task == null;
         invalid ||= task.state == WorkState.Building;
@@ -455,7 +455,7 @@ fn work_demand(g: WorkGraph*, id: usize): bool {
         while at != 0 {
             var index = at -1;
             var edge = &g.edges.data[index];
-            if !work_memory(g, vector_push(usize, &g.scratch, edge.dependency)) {
+            if !work_memory(g, vector_push(&g.scratch, edge.dependency)) {
                 return false;
             }
             at = edge.next_dependency;
@@ -495,7 +495,7 @@ fn work_take(g: WorkGraph*, output: WorkTicket*): bool {
                 continue;
             }
             if task.access != 0 {
-                if !work_memory(g, vector_push(usize, &g.executing, id)) {
+                if !work_memory(g, vector_push(&g.executing, id)) {
                     return false;
                 }
             }
@@ -520,11 +520,11 @@ fn work_take(g: WorkGraph*, output: WorkTicket*): bool {
 // language results belong in task payloads, not in this infrastructure status.
 fn work_fail(g: WorkGraph*, id: usize): bool {
     g.scratch.length = 0;
-    if !work_memory(g, vector_push(usize, &g.scratch, id)) {
+    if !work_memory(g, vector_push(&g.scratch, id)) {
         return false;
     }
     var current: usize = 0;
-    while vector_pop(usize, &g.scratch, &current) {
+    while vector_pop(&g.scratch, &current) {
         var task = work_task(g, current);
         var failed = task.state == WorkState.Failed;
         var building = task.state == WorkState.Building;
@@ -542,7 +542,7 @@ fn work_fail(g: WorkGraph*, id: usize): bool {
         while at != 0 {
             var index = at -1;
             var edge = &g.edges.data[index];
-            if !work_memory(g, vector_push(usize, &g.scratch, edge.consumer)) {
+            if !work_memory(g, vector_push(&g.scratch, edge.consumer)) {
                 return false;
             }
             at = edge.next_consumer;
@@ -613,7 +613,7 @@ fn work_cancel(g: WorkGraph*): void {
 
 fn work_frame(g: WorkGraph*, id: usize): bool {
     var size = g.frames.length + 1;
-    if !work_memory(g, vector_reserve(WorkFrame, &g.frames, size)) {
+    if !work_memory(g, vector_reserve(&g.frames, size)) {
         return false;
     }
     var task = work_task(g, id);
@@ -670,11 +670,11 @@ fn work_cycle(g: WorkGraph*, root: usize, output: vector(usize)*): bool {
                 var i: usize = 0;
                 for(; g.frames.data[i].task != edge.dependency; i++) {}
                 for(; i < g.frames.length; i++) {
-                    if !work_memory(g, vector_push(usize, output, g.frames.data[i].task)) {
+                    if !work_memory(g, vector_push(output, g.frames.data[i].task)) {
                         return false;
                     }
                 }
-                return work_memory(g, vector_push(usize, output, edge.dependency));
+                return work_memory(g, vector_push(output, edge.dependency));
             }
         } else {
             if !work_frame(g, edge.dependency) {

@@ -103,7 +103,7 @@ fn format_operator_leaf(f: FormatEngine*, entity: void*, source: u8*): bool {
 fn format_token_push(f: FormatEngine*, tokens: vector(FormatToken)*, start: usize, end: usize,
 comment: bool, pointer: bool, unary: bool, call: bool): void {
     var needed = tokens.length + 1;
-    if vector_reserve(FormatToken, tokens, needed) {
+    if vector_reserve(tokens, needed) {
         var t = &tokens.data[tokens.length];
         t.start = start;
         t.end = end;
@@ -300,7 +300,7 @@ fn format_token_is(source: u8*, entry: FormatToken*, text: u8*): bool {
 fn format_source_statement(f: FormatEngine*, entity: void*, source: u8*, from: usize, end: usize,
 comments: FormatComment*, comment_count: usize, ordered: bool): void {
     var tokens: vector(FormatToken);
-    vector_init(FormatToken, &tokens);
+    vector_init(&tokens);
     format_tokens(f, entity, source, &tokens, false, false, false);
     var i: usize = 0;
     if ordered {
@@ -491,7 +491,7 @@ comments: FormatComment*, comment_count: usize, ordered: bool): void {
         i++;
     }
     format_newline(f, false);
-    vector_dispose(FormatToken, &tokens);
+    vector_dispose(&tokens);
 }
 
 export fn format_source(result: FormatResult*, roots: void**, count: usize, source: u8*, length: usize,

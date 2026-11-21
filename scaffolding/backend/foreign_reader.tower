@@ -103,7 +103,7 @@ fn foreign_copy(m: ForeignName*, source: u8*, count: usize): u8* {
     if present {
         copy(text, source, count);
         text[count] = 0;
-        foreign_require(m, vector_push(void*, &m.memory, bits(void*, text)));
+        foreign_require(m, vector_push(&m.memory, bits(void*, text)));
         return text;
     }
     return "";
@@ -117,7 +117,7 @@ fn foreign_node(m: ForeignName*, kind: u32): ForeignType* {
         fill(type, 0, sizeof(ForeignType));
         type.kind = kind;
         type.name = "";
-        foreign_require(m, vector_push(ForeignType*, &m.types, type));
+        foreign_require(m, vector_push(&m.types, type));
     }
     return type;
 }
@@ -125,10 +125,10 @@ fn foreign_node(m: ForeignName*, kind: u32): ForeignType* {
 fn foreign_clone(m: ForeignName*, type: ForeignType*): ForeignType* {
     var result = foreign_node(m, type.kind);
     copy(result, type, sizeof(ForeignType));
-    vector_init(ForeignType*, &result.args);
+    vector_init(&result.args);
     var i: usize = 0;
     for(; i != type.args.length; i++) {
-        foreign_require(m, vector_push(ForeignType*, &result.args, type.args.data[i]));
+        foreign_require(m, vector_push(&result.args, type.args.data[i]));
     }
     return result;
 }
@@ -219,11 +219,11 @@ fn foreign_lex(m: ForeignName*, source: u8*): void {
             }
         }
         var count = i -start;
-        foreign_require(m, vector_push(u8*, &m.tokens, foreign_copy(m, &source[start], count)));
-        foreign_require(m, vector_push(usize, &m.offsets, start));
+        foreign_require(m, vector_push(&m.tokens, foreign_copy(m, &source[start], count)));
+        foreign_require(m, vector_push(&m.offsets, start));
     }
-    foreign_require(m, vector_push(u8*, &m.tokens, ""));
-    foreign_require(m, vector_push(usize, &m.offsets, length));
+    foreign_require(m, vector_push(&m.tokens, ""));
+    foreign_require(m, vector_push(&m.offsets, length));
 }
 
 fn foreign_peek(m: ForeignName*): u8* {
@@ -518,7 +518,7 @@ fn foreign_name_parts(m: ForeignName*): ForeignType* {
                             argument = foreign_type(m);
                         }
                     }
-                    foreign_require(m, vector_push(ForeignType*, &part.args, argument));
+                    foreign_require(m, vector_push(&part.args, argument));
                     if foreign_take(m, ",") == false {
                         break;
                     }
@@ -556,7 +556,7 @@ fn foreign_alias(m: ForeignName*, type: ForeignType*): ForeignType* {
         return type;
     }
     var name: vector(u8);
-    vector_init(u8, &name);
+    vector_init(&name);
     foreign_simple_name(&name, type);
     var i: usize = 0;
     var result = type;
@@ -566,14 +566,14 @@ fn foreign_alias(m: ForeignName*, type: ForeignType*): ForeignType* {
             break;
         }
     }
-    vector_dispose(u8, &name);
+    vector_dispose(&name);
     return result;
 }
 
 fn foreign_add_alias(m: ForeignName*, name: u8*, type: ForeignType*): void {
     var index = m.aliases.length;
     var needed = index + 1;
-    var ok = vector_reserve(ForeignAlias, &m.aliases, needed);
+    var ok = vector_reserve(&m.aliases, needed);
     foreign_require(m, ok);
     if ok {
         m.aliases.data[index].name = name;
@@ -807,7 +807,7 @@ fn foreign_parameters(m: ForeignName*, function: ForeignType*): void {
                 foreign_fail(m, "void must be the only parameter");
             }
         } else {
-            foreign_require(m, vector_push(ForeignType*, &function.args, type));
+            foreign_require(m, vector_push(&function.args, type));
         }
         if foreign_take(m, ",") == false {
             break;
@@ -826,12 +826,12 @@ fn foreign_declaration(m: ForeignName*): void {
         if foreign_take(m, "using") {
             var name_type = foreign_name_parts(m);
             var name: vector(u8);
-            vector_init(u8, &name);
+            vector_init(&name);
             foreign_simple_name(&name, name_type);
             foreign_expect(m, "=");
             var type = foreign_type(m);
             foreign_add_alias(m, foreign_copy(m, name.data, name.length), type);
-            vector_dispose(u8, &name);
+            vector_dispose(&name);
             foreign_expect(m, ";");
             continue;
         }
@@ -862,10 +862,10 @@ fn foreign_declaration(m: ForeignName*): void {
             if foreign_take(m, ";") {
                 type.tag = tag;
                 var name: vector(u8);
-                vector_init(u8, &name);
+                vector_init(&name);
                 foreign_simple_name(&name, type);
                 foreign_add_alias(m, foreign_copy(m, name.data, name.length), type);
-                vector_dispose(u8, &name);
+                vector_dispose(&name);
                 continue;
             }
             m.at = start;
@@ -879,7 +879,7 @@ fn foreign_declaration(m: ForeignName*): void {
         foreign_expect(m, "(");
         var tag_name = foreign_peek(m);
         m.at++;
-        foreign_require(m, vector_push(u8*, &m.abi_tags, tag_name));
+        foreign_require(m, vector_push(&m.abi_tags, tag_name));
         foreign_expect(m, ")");
     }
     m.access = 2;
@@ -892,7 +892,7 @@ fn foreign_declaration(m: ForeignName*): void {
                 foreign_expect(m, "(");
                 var tag_name = foreign_peek(m);
                 m.at++;
-                foreign_require(m, vector_push(u8*, &m.abi_tags, tag_name));
+                foreign_require(m, vector_push(&m.abi_tags, tag_name));
                 foreign_expect(m, ")");
             }
             m.access = 2;
@@ -980,22 +980,22 @@ export fn foreign_name_close(m: ForeignName*): void {
     }
     var i: usize = 0;
     for(; i != m.types.length; i++) {
-        vector_dispose(ForeignType*, &m.types.data[i].args);
+        vector_dispose(&m.types.data[i].args);
         free(m.types.data[i]);
     }
     i = 0;
     for(; i != m.memory.length; i++) {
         free(m.memory.data[i]);
     }
-    vector_dispose(u8, &m.text);
-    vector_dispose(u8, &m.error);
-    vector_dispose(u8*, &m.tokens);
-    vector_dispose(usize, &m.offsets);
-    vector_dispose(void*, &m.memory);
-    vector_dispose(ForeignType*, &m.types);
-    vector_dispose(ForeignAlias, &m.aliases);
-    vector_dispose(u8*, &m.substitutions);
-    vector_dispose(u8*, &m.ms_names);
-    vector_dispose(u8*, &m.abi_tags);
+    vector_dispose(&m.text);
+    vector_dispose(&m.error);
+    vector_dispose(&m.tokens);
+    vector_dispose(&m.offsets);
+    vector_dispose(&m.memory);
+    vector_dispose(&m.types);
+    vector_dispose(&m.aliases);
+    vector_dispose(&m.substitutions);
+    vector_dispose(&m.ms_names);
+    vector_dispose(&m.abi_tags);
     free(m);
 }

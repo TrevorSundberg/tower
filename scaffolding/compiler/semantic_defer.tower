@@ -22,7 +22,7 @@ fn sem_defer_copy_text(destination: vector(u8)*, source: vector(u8)*): void {
     if source.length == 0 {
         return;
     }
-    sem_require(vector_reserve(u8, destination, source.length + 1));
+    sem_require(vector_reserve(destination, source.length + 1));
     copy(destination.data, source.data, source.length);
     destination.data[source.length] = 0;
     destination.length = source.length;

@@ -69,9 +69,9 @@ export fn lex_table_destroy(table: LexerTable*): void {
     if table == null {
         return;
     }
-    vector_dispose(u32, &table.alphabet);
-    vector_dispose(i32, &table.transitions);
-    vector_dispose(u8, &table.accepting);
+    vector_dispose(&table.alphabet);
+    vector_dispose(&table.transitions);
+    vector_dispose(&table.accepting);
     free(table);
 }
 
@@ -82,7 +82,7 @@ export fn lex_table_set_alphabet(table: LexerTable*, values: u32*, count: usize)
     if table.accepting.length != 0 {
         return false;
     }
-    var ok = vector_reserve(u32, &table.alphabet, count);
+    var ok = vector_reserve(&table.alphabet, count);
     if ok {
         var bytes = count *sizeof(u32);
         copy(table.alphabet.data, values, bytes);
@@ -109,11 +109,11 @@ export fn lex_table_append(table: LexerTable*, transitions: i32*, count: usize, 
     if wrapped {
         return false;
     }
-    var ok = vector_reserve(i32, &table.transitions, end);
+    var ok = vector_reserve(&table.transitions, end);
     if !ok {
         return false;
     }
-    ok = vector_reserve(u8, &table.accepting, rows);
+    ok = vector_reserve(&table.accepting, rows);
     if ok {
         var destination = table.transitions.data + table.transitions.length;
         var bytes = count *sizeof(i32);

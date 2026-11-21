@@ -15,7 +15,7 @@ fn source_comment_targets(entity: void*, base: usize, limit: usize, targets: vec
     var inside = n.start >= base;
     inside &&= n.start < limit;
     if inside {
-        sem_require(vector_push(void*, targets, entity));
+        sem_require(vector_push(targets, entity));
     }
     var function = n.kind == KFunction();
     if n.kind == KLoop() {
@@ -45,10 +45,10 @@ fn source_comment_targets(entity: void*, base: usize, limit: usize, targets: vec
 // when generated nodes share a source position. This index is discarded below.
 fn source_comment_sort(targets: vector(void*)*): void {
     var scratch: vector(void*);
-    vector_init(void*, &scratch);
+    vector_init(&scratch);
     var i: usize = 0;
     for(; i != targets.length; i++) {
-        sem_require(vector_push(void*, &scratch, targets.data[i]));
+        sem_require(vector_push(&scratch, targets.data[i]));
     }
     var width: usize = 1;
     loop {
@@ -110,7 +110,7 @@ fn source_comment_sort(targets: vector(void*)*): void {
         scratch.capacity = capacity;
         width = width * 2;
     }
-    vector_dispose(void*, &scratch);
+    vector_dispose(&scratch);
 }
 
 fn source_comment_append(n: FoundationNode*, source: u8*, first: usize, last: usize): void {
@@ -138,12 +138,12 @@ fn source_comment_append(n: FoundationNode*, source: u8*, first: usize, last: us
             break;
         }
         var c = source[first];
-        sem_require(vector_push(u8, &n.comments, c));
+        sem_require(vector_push(&n.comments, c));
         var next = first + 1;
         if c == 42 {
             if next < last {
                 if source[next] == 47 {
-                    sem_require(vector_push(u8, &n.comments, 32));
+                    sem_require(vector_push(&n.comments, 32));
                 }
             }
         }
@@ -157,7 +157,7 @@ export fn semantic_source_comments(root: void*, source: u8*, spans: usize*, coun
         return;
     }
     var targets: vector(void*);
-    vector_init(void*, &targets);
+    vector_init(&targets);
     var limit = base + length;
     source_comment_targets(root, base, limit, &targets);
     source_comment_sort(&targets);
@@ -193,7 +193,7 @@ export fn semantic_source_comments(root: void*, source: u8*, spans: usize*, coun
         source_comment_append(sem_get(target), source, spans[i], spans[next]);
         i = i + 2;
     }
-    vector_dispose(void*, &targets);
+    vector_dispose(&targets);
 }
 
 fn source_comments_walk(entity: void*, target: vector(u8)*, strip: bool): void {

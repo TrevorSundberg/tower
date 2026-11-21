@@ -109,7 +109,7 @@ fn bi_function(c: BackendImport*, function: void*): void {
     var body = sem_get(n.body);
     var i: usize = 0;
     for(; i != body.items.length; i++) {
-        backend_require(c.backend, vector_push(void*, &declarations.items, body.items.data[i]));
+        backend_require(c.backend, vector_push(&declarations.items, body.items.data[i]));
     }
     n.body = c.declarations;
 }
@@ -199,7 +199,7 @@ export fn backend_import_foundation(b: Backend*, root: void*): bool {
                     copy(&parameter_node.type, &original_parameter.type, sizeof(FoundationType));
                 }
                 bi_name(&c, p, "argument");
-                backend_require(b, vector_push(void*, &n.parameters, p));
+                backend_require(b, vector_push(&n.parameters, p));
                 backend_require(b, backend_associate(&c.values, value, p));
                 parameter++;
             }
@@ -267,9 +267,9 @@ export fn backend_import_foundation(b: Backend*, root: void*): bool {
         }
         function = LLVMGetNextFunction(function);
     }
-    vector_dispose(BackendAssociation, &c.values);
-    vector_dispose(BackendAssociation, &c.literals);
-    vector_dispose(BackendAssociation, &c.blocks);
+    vector_dispose(&c.values);
+    vector_dispose(&c.literals);
+    vector_dispose(&c.blocks);
     var valid = b.error.length == 0;
     return valid;
 }

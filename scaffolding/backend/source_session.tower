@@ -35,7 +35,7 @@ export fn backend_source_close(source: BackendSource*): void {
         return;
     }
     backend_session_close(source.backend);
-    vector_dispose(u8, &source.foundation);
+    vector_dispose(&source.foundation);
     free(source);
 }
 
@@ -56,11 +56,11 @@ fn backend_source_program(program: SemanticProgram*, text: u8*, length: usize, w
 fn backend_source_error(source: BackendSource*, program: SemanticProgram*): u8* {
     // Frontend errors are length-delimited; never assume their storage has a NUL.
     var message: vector(u8);
-    vector_init(u8, &message);
+    vector_init(&message);
     backend_text_append(&message, program.error.data, program.error.length);
     var result = backend_session_failure(source.backend,
     message.data ?? "Unable to allocate compiler diagnostic", program.error_offset);
-    vector_dispose(u8, &message);
+    vector_dispose(&message);
     return result;
 }
 
@@ -74,7 +74,7 @@ fn backend_source_import(source: BackendSource*, program: SemanticProgram*, widt
         var formatted: FormatResult;
         fill(&formatted, 0, sizeof(FormatResult));
         format_entity(&formatted, imported.root, syntax_component_type(), null, parser_match_get_type());
-        if formatted.failed || !vector_reserve(u8, &source.foundation, formatted.text.length + 1) {
+        if formatted.failed || !vector_reserve(&source.foundation, formatted.text.length + 1) {
             result = backend_session_failure(backend, "Unable to allocate canonical formatted source", 0);
         } else {
             copy(source.foundation.data, formatted.text.data, formatted.text.length);
