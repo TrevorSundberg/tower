@@ -131,7 +131,9 @@ LLVM/linker closure, and declare the permitted OS runtime/ABI baseline explicitl
 The host file reader's 16 KiB stack buffer produces a Windows `__chkstk`
 dependency under LLVM lowering; include the matching compiler-rt/platform
 implementation when packaging that target. The cross-object audit permits this
-symbol only for the Windows host module; it does not establish a linked runtime.
+symbol only for Windows host/parser/semantic modules: the parallel LR builders,
+semantic runner and float parser also need stack probes. This does not establish
+a linked runtime.
 
 ## Whole-compiler release requirements
 
@@ -144,6 +146,10 @@ is unnecessary for the current Linux/Docker route.
 
 Use the existing build path for successors. `test-bootstrap.sh` compares selected
 compiler components built by the public predecessor and its native successor;
+its Tower `verify_bootstrap_symbols` check enforces exact reviewed cross-unit and
+platform dependencies from `llvm-nm` output before comparing objects and LLVM IR.
+The tables live in `scaffolding/tools/bootstrap_symbols.tower`; review new imports
+against their declarations/implementations rather than allowing name prefixes.
 `test-compiler-project.mjs` builds two successive edited browser compilers and
 compares their bytes and behavior. These are real checks with narrower scope
 than a complete standalone native release. Relocation verification above remains

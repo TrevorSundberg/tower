@@ -36699,3 +36699,84 @@ inside tower-parser-retirement. Evidence: body-frontier-ordered-native.log.
 No sanitizers, new C++/Python/JavaScript tools, or unrelated test matrices were run.
 The rebuilt successor also compiled tests/body_continuation.tower to a native
 executable and ran it with zero failures (body-frontier-successor.log).
+
+### 2026-11-21: remove inline Python from bootstrap dependency verification
+
+The preceding verifier milestone made progress. Continued the removal-first audit
+of the remaining inline Python. The default LLVM Git-archive snapshot contains
+LF-only config.guess (SHA-256
+104dd279a70e8604f42f5ee1c3c2a3054190e839fc8c288792a615e8131d26d8, zero CR bytes).
+The current Windows vendor checkout is also LF-only; config.sub is not tracked
+at the pinned LLVM revision, so an initial archive command requesting both names
+failed. There is still an explicitly documented direct-edited-source workflow,
+and GetHostTriple unconditionally executes config.guess. Do not silently remove
+CRLF handling for that workflow merely because the default cache does not need
+it. Leave that small remaining helper pending a minimal compatible replacement.
+
+The bootstrap undefined-symbol check remains necessary to enforce reviewed
+component/platform dependencies before predecessor/successor IR/object comparison.
+Replaced its 201-line inline Python body with bootstrap_symbols.tower plus the
+small verify_bootstrap_symbols CLI. No set/report/regex framework is needed:
+scan llvm-nm's final token per line and check exact whitespace-delimited symbol
+names. Preserve underscore normalization across ELF/COFF/Mach-O/Wasm, blank lines,
+LF/CRLF/CR and the no-dependency UTF-8 component. Unknown units and symbols fail;
+the CLI reports all rejected names in input order. Borrowed spans have their own
+typed view, with no ownership-erasing buffers or separate semantic model. File
+reads are bounded to 8 MiB. The existing Tower builder accepts the checker as one
+selected tool, so this test does not build unrelated packagers/verifiers.
+
+The old Python table was stale before this port. Reproduced it directly from
+82dde6f: `git show 82dde6f:playground/scripts/test-bootstrap.sh | sed -n 32,232p |
+python3 - entities /cache/bootstrap_entities_symbols.txt x86_64-pc-linux-gnu`.
+It rejects tower_trap and six work_signal/work_thread APIs already used by the
+current entities object. Other component objects expose newer world/session,
+compiler-buffer, query/stage, generic-body, LR-work and interpreter/float queries.
+Reviewed their Tower declarations/exports in compiler/{world,frontend_units,
+frontend_modules,syntax_session_*,parser_table,parser_integration,format_*,
+generics,lr_*_work,interpreter,semantic_support}.tower, library/{entities,
+entity_stage,compiler_work,work_pool}.tower and host/{memory,work_*,syntax_baseline}.
+Add only the exact required names to their component's table; no work_* or
+compiler_* wildcard. These are existing Tower APIs, not new native libraries.
+
+The cross-target run also exposed Windows stack probes absent from the old table.
+llvm-objdump -dr shows __chkstk relocations in parser lr_states_lalr_parallel,
+lr_analysis_compute_parallel and lr_states_create_parallel (stack adjustments
+0x2278, 0x1228 and 0x1208), and semantic float_parse/sem_run (0x2088 and 0x11b8).
+Allow that platform/compiler-rt symbol only for Windows host, parser and semantic
+units. Other targets/units still reject it. This is an object-level dependency
+audit, not evidence of a complete linked Windows compiler. Update the distribution
+documentation accordingly; no compiler implementation or lowering was changed.
+
+Validation uses tower_build, Linux x64/Ubuntu 24.04 and Clang/LLVM 19.1.1:
+
+- Compile the smallest checker first with the public pin. Tower fixture tests
+  pass for exact/prefix/suffix matching, underscore variants, blank/mixed newline
+  input, first-error ordering, unknown units, unit boundaries, worker APIs,
+  Windows-only probes and rejection of an LLVM API. CLI rejects unreadable and
+  over-limit inputs (including /dev/zero) instead of hanging or accepting them.
+- An old /cache/native configure failed after CMake reset compiler-path cache
+  values and lost the selected native profile. Do not delete shared state or
+  patch around this unrelated cache mismatch. Use fresh own output directories:
+  /cache/bootstrap_symbols_native and /cache/bootstrap_symbols_tools. With
+  /usr/bin/python3.12 unavailable in the disposable container, the normal native
+  build passes all 54 steps and selected-tool build passes all five steps.
+  Successor SHA-256 remains exactly the public pin's
+  1a5b58879eb247e0c2e3ab33804d965b8b157f170af49f71b53a611b7762d8bb.
+- Actual test-bootstrap.sh runs without Python pass 24 component/target pairs
+  before the two Windows probe corrections interrupt their respective groups.
+  Retain passing evidence; resume the four parser/semantic Windows/macOS pairs
+  with the same compiler, llvm-nm, Tower-checker and cmp commands. All 28 pairs
+  (seven units times four targets) have byte-identical predecessor/successor LLVM
+  IR and objects, with both symbol closures checked. Recheck the final checker
+  against the four resumed target outputs with Python unavailable as well.
+- Execute the existing explicit-grammar tail via `sed -n 39,99p
+  playground/scripts/test-bootstrap.sh | bash -euo pipefail`, supplying repo,
+  native and out from the same run. It prints 42 with the supplied custom grammar
+  and rejects a missing grammar; Python is unavailable. No sanitizer or unrelated
+  browser/release matrix is run for this tooling-only change.
+
+test-bootstrap.sh now has no Python; build-llvm.sh is the only shell script with
+remaining inline Python. The 11 tracked .py files still total 777 lines; inline
+removal is measured separately. Bootstrap/runtime assets and todo.txt are not
+modified. Continue auditing required filesystem, benchmark and browser-packaging
+tools before translating their smallest necessary behavior.

@@ -1,0 +1,34 @@
+import tower;
+import bootstrap_symbols;
+import tool_streams_posix;
+import .library.bytes;
+import .library.bytes_types;
+
+extern fn strstr(text: u8*, needle: u8*): u8*;
+extern fn write(stream: i32, data: u8*, count: usize): i64;
+extern fn puts(text: u8*): i32;
+
+export fn main(argc: i32, argv: u8**): i32 {
+    var expected_arguments: i32 = 4; var usage: i32 = 2; var failure: i32 = 1;
+    var input_limit: usize = 8388608; var stderr_stream: i32 = 2;
+    if argc != expected_arguments {
+        puts("Usage: verify_bootstrap_symbols UNIT LLVM_NM_OUTPUT TARGET"); return usage;
+    }
+    var unit = bootstrap_unit(argv[1]);
+    if unit == BootstrapUnit.Unknown { puts("Unknown bootstrap unit"); return usage; }
+    var input: ByteBuffer = default; var rejected: BootstrapSymbol = default;
+    defer bytes_dispose(&input);
+    if !tool_read_file(argv[2], input_limit, &input) { puts("Cannot read bounded llvm-nm output"); return failure; }
+    var remaining: BootstrapSymbol = { data: input.data, length: input.length };
+    var windows = strstr(argv[3], "windows") != null;
+    var accepted = true;
+    while !bootstrap_symbols_check(unit, windows, remaining, &rejected) {
+        accepted = false;
+        var message = "Unexpected runtime dependency: ";
+        write(stderr_stream, message, strlen(message));
+        write(stderr_stream, rejected.data, rejected.length); write(stderr_stream, "\n", 1);
+        var consumed = bits(usize, rejected.data) - bits(usize, remaining.data) + rejected.length;
+        remaining.data += consumed; remaining.length -= consumed;
+    }
+    return accepted ? 0 : failure;
+}

@@ -1,0 +1,53 @@
+import tower;
+import utility_checks;
+import .tools.bootstrap_symbols;
+
+fn symbol_case(unit: BootstrapUnit, windows: bool, text: u8*, bad: u8*): void {
+    var input: BootstrapSymbol = { data: text, length: strlen(text) };
+    var rejected: BootstrapSymbol = default;
+    var accepted = bootstrap_symbols_check(unit, windows, input, &rejected);
+    if bad == null { utility_check(accepted && rejected.data == null, "accepted closure"); }
+    else {
+        utility_check(!accepted && rejected.length == strlen(bad)
+            && memcmp(rejected.data, bad, rejected.length) == 0, "first exact rejected symbol");
+    }
+}
+
+export fn main(): i32 {
+    symbol_case(BootstrapUnit.Utf8, false, "\n \t\r\n", null);
+    symbol_case(BootstrapUnit.Utf8, false, "         U memcpy\n", "memcpy");
+    symbol_case(BootstrapUnit.Bytes, false, " U memcpy\n U __memset\n\tU ___tower_reallocate\r\n", null);
+    symbol_case(BootstrapUnit.Bytes, false, " U memcpy_extra\n", "memcpy_extra");
+    symbol_case(BootstrapUnit.Bytes, false, " U mem\n", "mem");
+    symbol_case(BootstrapUnit.Bytes, false, " U __\n", "__");
+    symbol_case(BootstrapUnit.Bytes, false, " U unknown\r U memcpy\n", "unknown");
+    symbol_case(BootstrapUnit.Bytes, false, " U first_bad\n U second_bad\n", "first_bad");
+    symbol_case(BootstrapUnit.Bytes, false, " U memcpy", null);
+    symbol_case(BootstrapUnit.Bytes, false, " U tower_allocate", "tower_allocate");
+    symbol_case(BootstrapUnit.Host, false, " U _fread\n U opendir\n", null);
+    symbol_case(BootstrapUnit.Host, true, " U ___chkstk\n", null);
+    symbol_case(BootstrapUnit.Host, false, " U ___chkstk\n", "___chkstk");
+    symbol_case(BootstrapUnit.ParserNodes, true, " U __chkstk\n", null);
+    symbol_case(BootstrapUnit.ParserNodes, false, " U __chkstk\n", "__chkstk");
+    symbol_case(BootstrapUnit.Semantics, true, " U __chkstk\n", null);
+    symbol_case(BootstrapUnit.Semantics, false, " U __chkstk\n", "__chkstk");
+    symbol_case(BootstrapUnit.Entities, true, " U __chkstk\n", "__chkstk");
+    symbol_case(BootstrapUnit.Entities, false, " U node_rule_set_generated\n U foundation_node_init\n", null);
+    symbol_case(BootstrapUnit.ParserNodes, false, " U syntax_parser_template_read\n U compiler_world_type\n", null);
+    symbol_case(BootstrapUnit.Interpreter, false, " U semantic_alignment\n U im_foreign\n", null);
+    symbol_case(BootstrapUnit.Interpreter, false, " U fopen\n", "fopen");
+    symbol_case(BootstrapUnit.Semantics, false, " U frontend_module_position\n U syntax_completion_callable\n", null);
+    symbol_case(BootstrapUnit.Entities, false, " U work_signal_wait\n", null);
+    symbol_case(BootstrapUnit.Entities, false, " U work_signal_open\n", "work_signal_open");
+    symbol_case(BootstrapUnit.ParserNodes, false, " U work_signal_open\n U parser_table_finish\n", null);
+    symbol_case(BootstrapUnit.ParserNodes, false, " U work_unknown\n", "work_unknown");
+    symbol_case(BootstrapUnit.ParserNodes, false, " U LLVMContextCreate\n", "LLVMContextCreate");
+    symbol_case(BootstrapUnit.Interpreter, false, " U semantic_float\n U entity_component_get\n", null);
+    symbol_case(BootstrapUnit.Semantics, false, " U compiler_lr_state_kernel\n U entity_stage_hold\n", null);
+    var empty: BootstrapSymbol = default; var rejected: BootstrapSymbol = default;
+    utility_check(!bootstrap_symbols_check(BootstrapUnit.Unknown, false, empty, &rejected), "unknown unit cannot pass an empty closure");
+    utility_check(bootstrap_unit("unknown") == BootstrapUnit.Unknown && bootstrap_unit("parser-nodes") == BootstrapUnit.ParserNodes,
+        "explicit unit identity");
+    puts("Bootstrap symbol checks passed");
+    return 0;
+}

@@ -57,7 +57,8 @@ source through the default clean build before publishing.
 ## Tower build tools
 
 The same environment builds the LLD compatibility patcher, Roku and bootstrap
-packagers, and compiler verifier through the public compiler and existing runtime:
+packagers, and compiler/bootstrap verifiers through the public compiler and
+existing runtime:
 
 ```sh
 tools="$(bash playground/scripts/build-bootstrap.sh --tools)"
@@ -65,7 +66,8 @@ tools="$(bash playground/scripts/build-bootstrap.sh --tools)"
 ```
 
 Pass a tool name after `--tools` to build only `prepare_lld_compat`, `package_roku`,
-`package_bootstrap` or `verify_compiler`. Omitting the name builds all four.
+`package_bootstrap`, `verify_compiler` or `verify_bootstrap_symbols`.
+Omitting the name builds all five.
 
 `build-llvm.sh` invokes `prepare_lld_compat` automatically. The Roku ZIP/CRC/DEFLATE
 implementation is Tower with no zlib link; see the [Roku guide](../docs/roku-backend.md)
