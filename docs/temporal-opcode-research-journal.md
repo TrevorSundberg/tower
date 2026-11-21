@@ -36613,3 +36613,15 @@ selection and native-download verification (build/ui-stability-local-deployment.
 The source rebase changed no UI inputs, so the verified app bundle remains tied
 to public c9521cf. Publish these four UI assets over the retained runtime package;
 record the UI source separately from compiler build identity in the manifest.
+
+Published UI release 43bd0b2 on tower-lang.org. The hosted manifest matches the
+prepared bytes. All four live desktop/mobile edit/recompile frame cases pass
+(build/ui-stability-hosted-frames.log); captures are build/ui_hosted_* with the
+actual 20 -> 200 keystroke and output 222, 22, 7. Visually inspected the immediate
+pending frame and finished frame: panel edges and instructions viewport agree,
+with one Updating status and small activity dots while earlier outputs remain.
+The full hosted verifier passes all 84 asset hashes and desktop/mobile backend,
+grammar, completion/highlighting, persistence, default-target and native-download
+flows (build/ui-stability-hosted-deployment.log). No compiler runtime was rebuilt
+or replaced by this UI publication. The final documentation/manifest receipt
+preserves the verified asset hashes and separate UI/runtime source identities.
