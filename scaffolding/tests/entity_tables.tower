@@ -85,6 +85,8 @@ fn tables():void {
     check(entity_component_add(owners[5],b)==null && !entity_component_remove(owners[2],b));
     check(entity_component_add(owners[1],b)!=null && entity_component_add(owners[1],c)!=null);
     check(entity_component_add(owners[3],b)!=null);
+    check(entity_component_published(owners[1],b)==null && entity_component_get(owners[1],b)!=null);
+    check(entity_component_data(entity_component_published(owners[1],a))==bits(u8*,values[1]));
     for(var i:usize=0;i<10;i++) {
         var left=entity_stage_create(first,root);
         var right=entity_stage_create(second,root);
@@ -136,5 +138,41 @@ fn tables():void {
     for(var i:usize=0;i<256;i++) { check(store.tables[i]==null); }
     check(entity_store_dispose(store));
 }
+fn reserved_tables():void {
+    var store=entity_store_create();
+    var root=entity_create(store);
+    var left=entity_create(store);
+    var right=entity_create(store);
+    var a=entity_create(store);
+    var b=entity_create(store);
+    check(entity_register(a,sizeof(u64),8,1) && entity_register(b,sizeof(u64),8,1));
+    check(entity_component_add(left,a)!=null);
+    var original=left.table;
+    var stage=entity_stage_open(root);
+    check(entity_stage_lease(stage,left) && entity_stage_lease(stage,right));
+    check(entity_component_add(left,b)!=null && entity_component_add(right,a)!=null);
+    // First lease leaves the last old A row. The second lease still owns a
+    // reservation in that same table and must survive its temporary emptiness.
+    check(entity_stage_publish(stage) && right.table==original && left.table!=original);
+    var terms:Entity*[1]; terms[0]=a;
+    var first=entity_view_open(root);
+    var first_query=entity_view_tables(first,&terms[0],1);
+    var second=entity_view_open(root);
+    var second_query=entity_view_tables(second,&terms[0],1);
+    check(first_query!=second_query && entity_table_query_count(first_query)==2);
+    entity_release(right);
+    entity_view_close(first);
+    check(entity_table_query_count(second_query)==2);
+    check(entity_component_published(left,a)==entity_component_get(left,a));
+    entity_view_close(second);
+    first=entity_view_open(root);
+    first_query=entity_view_tables(first,&terms[0],1);
+    check(entity_table_query_count(first_query)==1);
+    entity_view_close(first);
+    entity_release(left); entity_release(a); entity_release(b); entity_release(root);
+    check(entity_store_dispose(store));
+}
+
 tables();
+reserved_tables();
 print(failures);

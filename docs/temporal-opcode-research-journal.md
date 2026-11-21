@@ -29121,3 +29121,50 @@ the final commit/pull and source push. Publication will wait for that verifier.
 All compiler feature logic is Tower; host/build changes only align Wasm resource
 limits. todo.txt remains blob 96a9e58964d7f01e4a97819f259448db81ef5e40. Full structural
 continuations, type interning and compiler-wide query migration remain open.
+
+Archetype source de45da3 is pushed after an unchanged final pull. Its frozen
+normal-link bundle remains under final local verification before publication.
+
+### 2026-11-21 - Published-column lookup throughout shared nodes
+
+Ordinary entity_component_get now probes the entity's published table column
+before considering an owner-private component list. Added explicit
+entity_component_published for readers that must never inspect private staged
+attachments. Existing syntax/Foundation/compiler accessors inherit this index
+through their shared entity lookup; no new node representation or native shim.
+A leased owner can still find its own new components through ordinary get, while
+the published-only operation returns null until publication. Reclamation removes
+its table row before finalizers and retains the existing local lookup fallback.
+
+Extended the table fixture with two simultaneous pinned query views, deferred
+reclamation until the last closes, and two leases where the first removes the
+last row of a table while the second still reserves that same destination.
+The isolated draft passed graph interpretation before integration; production
+build and affected backend/fault/thread checks are next. No pointer relocation,
+new constant-folding pass or claim of universal structural parallelism.
+
+The de45da3 archetype bundle completes local verification (77 assets and all
+browser flows) and publishes as Pages 5ac6d34fd2ac425afd0d5da7ee749740507c650a on
+7225a20. GitHub action 44884759488 succeeds. Hosted verification has matched all
+77 assets and continues through browser flows; records are entity-tables-*.
+
+Published-column lookup passes native 8/8 (52.83s), backend API, allocator failure
+sweeps, capacity 3/3 (60.62s) and an actual entities-unit successor cmp0. Both
+portable/shared frontends and LLVM/cross packaging complete. Matching full
+103-case regressions, editor checks and two edited browser generations follow;
+no claim of their success yet.
+
+Published lookup completes all 103 selected regressions in one run (461.14s),
+editor 28/28 (124.19s), and full local deployment verification: all 77 assets,
+desktop/mobile execution, editing/downloads and target defaults. Both edited
+browser generations pass (149.43s/83.54s), with identical sizes
+1,026,556/52,331,639/63,889,087 and SHA-256 values:
+parser 0561c361679399e0686a3d27a8e07380cc21a89f139267ddea36e851f5e0713c;
+LLVM 81de9f260643ede55063e7111a78aef331372bfa28d49d4dff82772765765db4;
+cross 263bf437aa47b7c97e646646fa72fd175429f7d6df33506b950902333336da69.
+The prior archetype release also completes hosted verification of all assets and
+browser flows. The next isolated Tower draft adds staged named containment and
+deferred reference ownership for syntax/provenance cloning; its graph fixture
+prints 0. That draft is not yet integrated or claimed to move generic work onto
+workers. Shared reference ownership must transfer after join and before releasing
+the last input pin. Current validated sources are frozen for publication.
