@@ -32022,3 +32022,12 @@ control-batch-baseline-clean directory, then refresh browser artifacts and check
 the affected worker/baseline and successor boundaries. Source publication may
 proceed after the native successor/body checks, while browser release work
 continues. Do not repeat unrelated full suites or start another feature mid-release.
+
+
+#### Baseline transport publication complete
+
+Final source rebase preserved the journal-only e8661dd/896eb30 additions. The canonical implementation is cb350533e22ac5b4c61013111039e4f7240532c8, followed by validation record 8ce92ae8447f0d85edd3fc7888ea28adf2aec1ea; both are pushed to main. Comparing 70dcee4 with the rebased tree outside docs produced no differences, so the verified compiler inputs and artifacts were reused. The release manifest identifies the reachable cb35053 implementation, rather than the unpublished pre-rebase commit.
+
+Pages runtime release 32fa67548d887da23b842a8e6a23a9a295cbc77f and manifest line-ending follow-up e7c8abb9ffa63c068aa276fde06cb8bc450a5ea2 are pushed normally. The large upload completed in about three minutes. A transient DNS failure on the small follow-up push succeeded on retry; no force push. PowerShell JSON serialization initially emitted CRLF, which diff-check flagged; normalized only the generated manifest to LF in the follow-up. Pages action 44931839677 completed successfully. Hosted https://tower-lang.org/ verification PASS: all 77 assets and full desktop/mobile workflows, including native builds/downloads and compiler-based completion. Report baseline-hosted-report.json and log baseline-hosted-verify.log are saved beside the other evidence. Final journal-only publication preserves these verified runtime bytes and buildSourceCommit cb35053.
+
+This milestone removed 1,440 compiler C/C++ lines and all 774 historical research C/C++ lines. Remaining tracked owned native source is exactly 469 lines in five files (55 production, 234 node fixtures, 180 headers). todo.txt blob remains 96a9e58964d7f01e4a97819f259448db81ef5e40. No sanitizer, broad formatter sweep, new native implementation, or fallback seed was added. The full migration goal remains active. Next implement the node fixture/lifecycle and default-host/allocation replacement described above, then publish pure-Tower successors and complete portable bootstrap tooling/packages; the current committed bootstrap is still the explicitly documented hybrid Linux x64 development package.
