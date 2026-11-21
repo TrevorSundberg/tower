@@ -323,7 +323,6 @@ try {
     await page.locator('#project-kind').selectOption('tower:compiler');
     await expect(page.locator('#compiler-controls')).toBeVisible();
     await expect(page.locator('#status')).toContainText('Complete',{timeout:65000});
-    await expect(page.locator('#editor .cm-content')).toContainText('Continue adding ports');
     await expect(page.locator('#editor .cm-content')).toContainText('import tower resolves the project file tower.tower');
     await expect(page.locator('button[data-path="tower.tower"]')).toBeVisible();
     await expect(page.locator('button[data-path=".tower/tower.tower"]')).toHaveCount(0);

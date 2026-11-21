@@ -32581,3 +32581,63 @@ compiler/IDE-service logic. It owns separate caches and respects the coordinator
 bootstrap/publication lock. The agent acknowledged and began an independent
 prepare_lld_compat Tower port. Coordinator continues native retirement/bootstrap;
 the broad tooling goal is delegated, not claimed complete here.
+
+### Final integrated Tower-only bootstrap and release checks
+
+The retirement is pushed at 92da0a83331167a604d23b1c5e2db334dcf36c2c.
+Tracked owned C/C++ inventory is now zero files/zero lines, excluding third_party.
+This does not describe LLVM/lld or platform libraries as Tower, nor claim that the
+remaining build/packaging scripts are already migrated. The final pin includes
+upstream struct-value, known-binding and cyclic-initializer work through 984f6cb,
+the editor support changes, and Agent 1's independent tooling milestone f0cac4f.
+
+Source base 8e3d03c39183a3c88b5b99a77fc965198bd208b5 produced the checked-in
+Linux x64 archive fd536ba1ae5cefe891e78690e23c06ef7fcd5d729c0e3395824d8977abf9a9b4
+(689221 bytes). The packaged executable is 1301512 bytes, SHA256
+30dc4eabd1484272f242c6dd2bbcc80a04c94fe8cc55d0c1a34d995d45a9ea58.
+With TOWER_BOOTSTRAP_COMPILER unset, the documented build-native.sh completed
+all 54 steps in a fresh coordinator-retirement-sealed-clean cache and produced
+the identical executable. Docker installed this same hash-verified pin and passed
+version, struct-value LLVM executable, fast known-binding and graph cyclic-binding
+checks. The full native execution/Foundation/package suite also passed at both
+target widths. Evidence is retirement-sealed-clean.log,
+retirement-docker-sealed-pin.log and retirement-sealed-execution.log under
+C:/Sandbox/build/codex-agents/worker-granularity. Earlier incomplete/conflicted
+release builds were terminated and excluded; the sealed build is the final evidence.
+
+All three browser reactors were rebuilt, including the shared-worker reactor,
+with 17 editable Tower units. The 25 affected worker/thread/parser tests passed
+with zero skips (73.37s). Two successive browser generations passed edited
+semantic behavior at 2/4 workers and produced identical outputs: Tower SHA256
+5f58467d3dc010317f2918bf5cc74b630ab7c05f092cc2d098b4de963a8c0d80,
+LLVM f35911cbe9b647088e252d3b7e2b6dacf0a39bea5b9acf78302c6ccea5475151,
+cross 4bb48e94c9087d78669df8fdbf609d049c4f6f272533ddb6169fe351b83ff1f6.
+Their 104.96/62.87s elapsed times include concurrent validation; they are not a
+scaling benchmark. Saved retirement-sealed-generation1/2.json retain sizes,
+hashes and times. Runtime build-source identity remains 92da0a8 during the final
+test/journal-only updates; do not rebuild identical runtime bytes for those edits.
+
+The selected LLVM differential suite initially passed named initialization,
+resumable bodies and known bindings, but hit an obsolete blanket assertion that
+the entire optimized module must contain no alloca. The struct-value recursive
+chain function legitimately passes its 8-byte result storage to its recursive
+callee. Removed that universal assertion; the existing focused increment-helper
+test still requires promotion/inlining and one load/store. The struct-value
+fixture now passes graph/fast interpretation, Foundation round trips, raw and
+optimized Foundation output, linked Wasm execution and disassembly; the focused
+promotion test also passes (2/2, zero skips, 46.94s). No optimizer behavior was
+weakened or changed. An initial name filter used fixture filenames rather than
+human-readable test names and selected zero cases; that run is not evidence.
+The local UI check likewise encountered an obsolete assertion requiring the
+deleted "Continue adding ports" C++ comment; removed only that assertion, keeping
+the actual compiler-project, imports, editing and rebuild checks.
+
+Three interleaved defer_scopes object compiles compare the immediately preceding
+6d064a bootstrap with fd536ba: before 1.01/0.85/0.90s, after 0.87/0.88/0.94s.
+All six objects match SHA256
+78e90f15d161e089ddffa27f6e01ecb07d96637a12429e13ab1a72d042c61ad6.
+This small workload shows no observed regression; it is not a general speedup
+claim. Commands use /usr/bin/time -p and towerc scaffolding/tests/defer_scopes.tower
+--emit object; retirement-benchmark-before/after-1/2/3.txt record each sample.
+No sanitizer or broad formatter sweep was run. Hosted publication and its final
+verification receipt follow separately; they are not claimed complete here.
