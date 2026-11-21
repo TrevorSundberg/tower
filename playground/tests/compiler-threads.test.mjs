@@ -62,7 +62,10 @@ fn f${i}(value: decltype(seed)): decltype(value) {
   '\nvar seed: u64 = 0;\nvar `control value 1.0`: u64 = 7;\n' +
   'var inferredType: decltype(identity(seed));\n' +
   'var total = comptime(identity(' + functions.map((_,i) => `f${i}(0)`).join(' + ') + '));\n' +
-  'print(total); print(`control value 1.0`);';
+  'print(total); print(`control value 1.0`);' +
+  'print(comptime(comptime(10) + comptime(comptime(20) + 12)));' +
+  'print(comptime(false ? comptime(1 / 0) : comptime(42)));' +
+  'print(comptime(false && comptime(1 / 0 == 0)) ? 1 : 0);';
  const canonical = new Map();
  let iterationCanonical;
  const genericCanonical = new Map();
@@ -97,7 +100,7 @@ print(record_value(&record));`;
      let output = '', result;
      do { result = tower.execute(handle, 10000); output += result.output; } while (result.status === 'executing');
      assert.equal(result.status, 'done', result.error);
-     assert.equal(output, '504\n7\n');
+     assert.equal(output, '504\n7\n42\n42\n0\n');
      const text = tower.foundation(handle).source;
      if (!canonical.has(pointerBytes)) canonical.set(pointerBytes, text);
      assert.equal(text, canonical.get(pointerBytes), `workers=${capacity}, width=${pointerBytes}, repeat=${repeat}`);

@@ -5,6 +5,7 @@ import semantic_declarations;
 import semantic_lowering_work;
 import semantic_body_work;
 import semantic_flow;
+import semantic_evaluation_work;
 import interpreter_context_types;
 
 extern fn interpreter_invocation_step(invocation: IMInvocation*, budget: usize): void;
@@ -60,6 +61,10 @@ export fn work_kernel_execute(payload: void*): void {
     }
     if kernel.kind == CompilerKernelKind.LRFirst {
         compiler_lr_first_kernel(kernel.payload);
+        return;
+    }
+    if kernel.kind == CompilerKernelKind.PrepareEvaluation {
+        semantic_evaluation_prepare_kernel(bits(SemanticEvaluationWork*, kernel.payload));
         return;
     }
     trap("Invalid compiler kernel", 0);

@@ -1,0 +1,132 @@
+import tower;
+import compiler_kernel;
+import semantic_context;
+import semantic_program_types;
+import semantic_evaluation;
+import semantic_control;
+import semantic_support;
+import .library.vector;
+import .library.stack;
+import .library.work_graph;
+import .library.work_pool;
+
+const EvaluationPrepareQuery: u32 = 8;
+
+struct SemanticEvaluationWork {
+    kernel: CompilerKernel;
+    ticket: WorkTicket;
+    context: SemanticContext*;
+    evaluation: SemanticEvaluation*;
+    stage: void*;
+    ordinal: usize;
+    count: usize;
+    error: vector(u8);
+    error_offset: usize;
+}
+
+// Each stage expression owns its checked semantic tree. A nested comptime node
+// is an immutable placeholder here; its hidden producer expression belongs to a
+// different job. Lowering never descends through that constant placeholder.
+fn semantic_evaluation_prepare_kernel(result: SemanticEvaluationWork*): void {
+    var context: SemanticContext;
+    var program: SemanticProgram;
+    copy(&context, result.context, sizeof(SemanticContext));
+    copy(&program, context.program, sizeof(SemanticProgram));
+    context.program = &program;
+    context.editor = null;
+    context.entity_stage = result.stage;
+    context.control_reserved = context.control_names;
+    context.control_names = null;
+    context.count = 0;
+    context.node_limit -= result.context.count;
+    vector_init(&context.allocations);
+    vector_init(&context.lists);
+    vector_init(&context.token_text);
+    fill(&context.scan, 0, sizeof(stack(void*)));
+    vector_init(&program.error);
+    context.control_prefix = sem_cat(&context, "control stage ",
+        sem_cat(&context, sem_decimal(&context, convert(u64, result.ordinal)), "."));
+    sem_evaluation_prepare(&context, result.evaluation);
+    result.count = context.count;
+    copy(&result.error, &program.error, sizeof(vector(u8)));
+    result.error_offset = program.error_offset;
+    stack_dispose(&context.scan);
+    vector_dispose(&context.token_text);
+    foreach(var list in &context.lists) { vector_dispose(bits(vector(void*)*, list)); }
+    vector_dispose(&context.lists);
+    foreach(var allocation in &context.allocations) { free(allocation); }
+    vector_dispose(&context.allocations);
+}
+
+fn sem_evaluation_prepare_all(c: SemanticContext*): void {
+    sem_control_names(c);
+    var kind = sem_create(c.program.root);
+    sem_require(entity_register(kind, sizeof(SemanticEvaluationWork), alignof(SemanticEvaluationWork), 0));
+    for(var i: usize = 0; i < c.evaluation_jobs.length; i++) {
+        var evaluation = bits(SemanticEvaluation*, c.evaluation_jobs.data[i]);
+        var component = entity_component_add(evaluation.subject, kind);
+        var result = bits(SemanticEvaluationWork*, entity_component_data(component));
+        sem_require(result != null);
+        fill(result, 0, sizeof(SemanticEvaluationWork));
+        result.context = c;
+        result.evaluation = evaluation;
+        result.ordinal = i;
+        result.kernel.kind = CompilerKernelKind.PrepareEvaluation;
+        result.kernel.payload = bits(void*, result);
+        var id = work_find(&c.queries, evaluation.subject, EvaluationPrepareQuery(), 0);
+        sem_require(id != 0);
+        // Disjoint expression output, immutable types and nested placeholders.
+        // Evaluation reads component 3 and writes component 2, so the graph
+        // also excludes evaluation while a preparation wave owns these inputs.
+        sem_require(work_access(&c.queries, id, 1, 3, i, 1, WorkAccessMode.Write));
+        sem_require(work_access(&c.queries, id, 1, 1, 0, ~convert(usize, 0), WorkAccessMode.Read));
+        sem_require(work_access(&c.queries, id, 1, 2, 0, ~convert(usize, 0), WorkAccessMode.Read));
+        sem_require(work_seal(&c.queries, id));
+        sem_require(work_demand(&c.queries, id));
+    }
+    if c.workers.count == 0 { sem_require(work_pool_open(&c.workers, work_thread_capacity())); }
+    var batch: SemanticEvaluationWork*[256];
+    while sem_ok(c) {
+        var count: usize = 0;
+        var ticket: WorkTicket;
+        while count < c.workers.count && work_take_query(&c.queries, &ticket, EvaluationPrepareQuery()) {
+            var subject = work_task(&c.queries, ticket.task).subject;
+            var result = bits(SemanticEvaluationWork*, entity_component_data(entity_component_get(subject, kind)));
+            copy(&result.ticket, &ticket, sizeof(WorkTicket));
+            result.stage = entity_stage_open(c.program.root);
+            sem_require(result.stage != null);
+            batch[count] = result;
+            count++;
+        }
+        if count == 0 { break; }
+        var view = entity_view_open(c.program.root);
+        sem_require(view != null);
+        for(var i: usize = 0; i < count; i++) {
+            sem_require(work_pool_submit(&c.workers, bits(void*, &batch[i].kernel)));
+        }
+        for(var i: usize = 0; i < count; i++) { sem_require(work_pool_receive(&c.workers, true) != null); }
+        entity_view_close(view);
+        for(var i: usize = 0; i < count; i++) {
+            var result = batch[i];
+            // Failed preparations can still own generated nodes. Publish after
+            // every worker joins so normal program cleanup owns all references.
+            sem_require(entity_stage_publish(result.stage));
+            result.stage = null;
+            c.count += result.count;
+            if result.error.length != 0 && sem_ok(c) {
+                sem_require(vector_reserve(&c.program.error, result.error.length + 1));
+                copy(c.program.error.data, result.error.data, result.error.length + 1);
+                c.program.error.length = result.error.length;
+                c.program.error_offset = result.error_offset;
+            }
+            if c.count > c.node_limit { sem_fail(c, result.evaluation.subject, "Foundation component memory budget exceeded"); }
+            sem_require(work_finish(&c.queries, &result.ticket, result.error.length == 0 && c.count <= c.node_limit));
+            vector_dispose(&result.error);
+        }
+    }
+    foreach(var job in &c.evaluation_jobs) {
+        var evaluation = bits(SemanticEvaluation*, job);
+        var data = entity_component_data(entity_component_get(evaluation.subject, kind));
+        if data != null { bits(SemanticEvaluationWork*, data).context = null; }
+    }
+}

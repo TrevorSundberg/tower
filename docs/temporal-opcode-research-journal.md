@@ -27571,3 +27571,61 @@ semantic compiler object byte-identically (generic-body-successor-semantics.o,
 cmp0). Shared compile-time, inference and foreach checks pass34/34 (101.32s),
 alongside the explicit-edge capacity checks above. Portable/LLVM/cross rebuild
 and dependency packaging finish; matching backend/round-trip checks are running.
+
+Matching generic-body backend/round-trip checks finish48/48 (31.00s). Final pull
+finds main unchanged; source checkpoint fa1e72b is pushed. Its edited browser
+generations run from the packaged snapshot, while the earlier FIRST bundle stays
+frozen for release verification.
+
+### 2026-11-20 - Compile-time preparation becomes a dependency job
+
+Added a working-tree EvaluationPrepare query and ECS result component. Each
+query validates capture eligibility and creates/lowers its interpreter helper
+through the existing Tower routines, using private scratch, diagnostics, stable
+per-query generated names and an EntityStage. Source expression trees are disjoint;
+an inner comptime placeholder is immutable during preparation and its hidden
+producer expression belongs to its own job. Access claims exclude evaluation
+while preparations write expression outputs. Join every batch, then publish
+canonical generated nodes and diagnostics in query order. Evaluation explicitly
+depends on its preparation receipt and still uses ordinary interpreter slices,
+lazy dependency suspension and existing cycle detection. There is no new constant
+folding evaluator. Structural validation still prepares all registered stage
+expressions, as before; execution demand remains lazy.
+
+The first shared rebuild is running. Added deeper nested stage dependencies and
+unselected nested divide-by-zero queries to both the compile-time fixture and
+1/2/4/8-worker comparisons. These changes are not yet validated or published.
+
+Preparation's initial shared capacity/compile-time run passes23/23 (46.73s).
+The expanded nested-stage capacity test, started after its fixture edits, passes
+3/3 (31.37s): unselected nested division-by-zero producers remain unevaluated,
+with exact canonical/output agreement at1/2/4/8 workers and widths4/8. Public
+bootstrap native and matching portable/LLVM builds are running.
+
+FIRST local verification completes all77 assets, desktop/mobile workflows and
+real Linux defaults. Its normal Pages push advances f9e5ab3 to9a829ba from source
+458ad68; the Pages action is running. Generic-body source fa1e72b separately
+passes two edited compiler generations (121.13s/75.05s), byte-identical hashes:
+45d83bd90a60c443f6112bd3005522b7a7b0c40dfd87d6ae97d72955bbb968d9,
+4e03ec6bd4eb14a840a8a9543adc47ace3b7dd53c8e2d4bfa47f101510d95b96,
+e767df02647f52acf38337e31d19e09df3d29aef69255afbf2c27dddb9b12bd1.
+The next browser bundle will combine generic-body and preparation work after
+validation; no separate generic-body Pages release is claimed.
+
+Preparation clean native bootstrap completes56/56. GDB dispatcher inspection
+of private PrepareEvaluation tag11 on the same16-generic-function fixture records
+0 preparation worker jobs in fa1e72b and16 jobs across8 distinct worker threads
+in the new compiler; both exit0. Logs evaluation-prepare-admission-{before,after},
+script evaluation-prepare-admission.gdb with the previously documented inferior
+library path. Native acceptance and actual semantic-successor comparison are
+finishing; portable/LLVM/cross rebuild and compiler-project packaging complete.
+FIRST Pages action44863905827 succeeds, and hosted verification is now running.
+
+Preparation validation completes: native8/8 (47.27s), standalone backend API,
+actual successor semantic-object cmp0, shared compile-time/inference27/27
+(23.99s), and matching portable/LLVM parser/precedence/compile-time/inference
+48/48 (31.31s). Expanded nested-stage worker checks are recorded above. FIRST
+hosted verification has matched all77 assets; browser workflows are pending.
+Next semantic slice: actual resolution of ordinary named/pointer declaration
+types and function signatures in dependency-ready workers, retaining structural
+type creation and unresolved expression/type applications on the coordinator.

@@ -6,6 +6,7 @@ import semantic_values;
 import semantic_expressions;
 import semantic_control;
 import semantic_expression_lowering;
+import semantic_evaluation_work;
 import compiler_kernel;
 import foundation_tags;
 import foundation_types;
@@ -75,6 +76,8 @@ fn sem_evaluation_begin(c: SemanticContext*): void {
 fn sem_evaluation_request(c: SemanticContext*, result: SemanticEvaluation*): void {
     var id = work_request(&c.queries, result.subject, EvaluationQuery(), 0);
     sem_require(id != 0);
+    var preparation = work_request(&c.queries, result.subject, EvaluationPrepareQuery(), 0);
+    sem_require(preparation != 0 && work_depend(&c.queries, id, preparation));
     sem_require(work_access(&c.queries, id, 1, 2, id, 1, WorkAccessMode.Write));
     sem_require(work_access(&c.queries, id, 1, 3, 0, ~convert(usize, 0), WorkAccessMode.Read));
     sem_require(work_seal(&c.queries, id));
@@ -180,10 +183,11 @@ fn sem_evaluation_cycle(c: SemanticContext*, id: usize): void {
 
 fn sem_evaluations(c: SemanticContext*): void {
     if !sem_ok(c) || c.evaluation_jobs.length == 0 { return; }
+    sem_evaluation_prepare_all(c);
+    if !sem_ok(c) { return; }
     var index: usize = 0;
     while index < c.evaluation_jobs.length && sem_ok(c) {
         var result = bits(SemanticEvaluation*, c.evaluation_jobs.data[index]);
-        sem_evaluation_prepare(c, result);
         if result.requested {
             sem_require(work_demand(&c.queries, work_request(&c.queries, result.subject, EvaluationQuery(), 0)));
         }
