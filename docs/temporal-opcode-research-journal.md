@@ -34294,3 +34294,21 @@ superseded; the final pin must include the fix. Local distribution validation
 passed desktop/mobile and 80 asset hashes before the fix; rebuild and repeat
 affected publication checks for the final compiler. Temporary symbolized binaries
 are debugging artifacts, not the intended release assets.
+
+The ownership correction passes the full browser declaration/body/lowering/staging
+matrix at 1/2/4/8 workers (values-enum-worker-check.log), plus the expanded native
+known-binding suite (values-enum-native-tests.log). The next publication pull
+brought only journal receipts through 669a6ad; compiler/build inputs are unchanged.
+Both journal histories were retained.
+
+Final development archive SHA-256:
+`2292bd8abc4761ba0e62f6c2fb8fee2f482c5273f2a267402fe09d5d34d9913a`.
+Its exact source base is 9736da8 and its predecessor is the already published
+e886 archive. `/cache/values-published-clean` builds all 53 steps through the
+default installer with no private bootstrap override. The resulting compiler
+builds/links/runs known_binding_library with status 0; enum_expressions through
+the graph interpreter and struct_values through the fast interpreter each print
+0 (values-published-clean.log, values-published-enums.log,
+values-published-struct.log). This archive includes both the removed shorthand
+grammar/resources and the staged-enum ownership fix. Final browser publication
+uses release binaries rebuilt from these same sources.
