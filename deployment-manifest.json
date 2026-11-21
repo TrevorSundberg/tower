@@ -1,8 +1,8 @@
 {
-  "sourceCommit": "5fdee250f330cd9f64c6471c611a4a8a3142bfb8",
+  "sourceCommit": "baff98d91534cb73653af82e89e61bfbac93f73a",
   "buildSourceCommit": "5fdee250f330cd9f64c6471c611a4a8a3142bfb8",
   "bootstrapSha256": "2292bd8abc4761ba0e62f6c2fb8fee2f482c5273f2a267402fe09d5d34d9913a",
-  "previousDeployment": "fda119542104477724e3458b01006f8282c45c97",
+  "previousDeployment": "0860c6939e7ce6c37feb35aa71fc98adb04e3326",
   "buildNote": "Built from the public 2292bd8 bootstrap. Fresh native successor, shared worker and backend world checks, and two matching browser successor generations passed. Compile-time input eligibility worker changes made after this checkpoint are not included.",
   "scope": "Tower ECS editor queries, lazy executed-capture dependencies, explicit backend world isolation, and integrated upstream parser/playground latency improvements.",
   "toolingMigration": {
@@ -110,5 +110,19 @@
     "tower.wasm": "172b14180b64eafbf16cf9780a5b9f4a3b743af2ca38dc28e133691ff05857b3",
     "worker.js": "6b9f1d2f855b5284afdbbd20559991f0f70220195277486ce77022fcf2326965",
     "worker.js.map": "5ddc472f3172dd38948bf08a1e62cb45e12b0bc2f1f6450e86582e980879b3f2"
+  },
+  "bootstrapToolingMigration": {
+    "sourceCommit": "baff98d91534cb73653af82e89e61bfbac93f73a",
+    "report": "docs/temporal-opcode-research-journal.md",
+    "retired": [
+      "bootstrap/package.py"
+    ],
+    "entryPoint": "playground/scripts/build-bootstrap.sh --tools",
+    "implementation": "Tower bootstrap candidate packager with in-house SHA-256, ustar and gzip over Tower CRC32/DEFLATE; Linux filesystem and process capabilities.",
+    "validation": "Public 2292 bootstrap builds the tools and a fresh 53-step native successor. Raw tar and source/member/predecessor hashes match the former Python packager; repeated Tower archives/manifests match. Independent installer, relocation/execution, SHA vectors and 260 differential fixtures, archive/process/filesystem rejection checks pass.",
+    "limits": "Linux x64 Ubuntu 24.04 LLVM 19.1.1 candidate workflow; buffered 1 GiB ustar bound, no PAX/extractor, fixed-Huffman compression. Existing compiler LLVM dependencies remain.",
+    "remainingPythonFiles": 19,
+    "priority": "Eliminate remaining Python installation, packaging, verification, benchmark and test drivers before wider shell/CMake/JavaScript migration.",
+    "runtimeAssetsChanged": false
   }
 }
