@@ -33,6 +33,51 @@ and MSVC artifact handoff. These modes use the same raw-status capture and
 30-second child limit. They keep generated sources and outputs in their working
 directory; run different modes concurrently only in separate directories.
 
+## Native measurements
+
+Build the same `tower-driver-tests` target with `TOWER_DRIVER_TESTS=ON`. Run under
+Linux in an otherwise empty writable artifact directory, using explicit paths:
+
+```
+tower-driver-tests --measure-compiler BEFORE AFTER SCAFFOLDING [CASE]
+tower-driver-tests --measure-semantics BEFORE AFTER SCAFFOLDING [CASE]
+tower-driver-tests --measure-native COMPILER SCAFFOLDING [CASE]
+tower-driver-tests --measure-c COMPILER SCAFFOLDING CLANG GCC [CASE]
+```
+
+Each command writes `measurements.json` only after all selected cases succeed.
+It removes an old report first and rejects missing/stale products, changed
+outputs, failed processes and incomplete timing reports. Unknown filters fail.
+Run measurements serially without concurrent builds/tests; they are not automatic
+CTest benchmarks. The existing 30-second per-child limit applies. Keep compiler
+executables, their resources and the source/grammar tree unchanged throughout.
+The Linux host description comes from `/usr/bin/uname -srm`.
+
+- `--measure-compiler`: functions, collections and templates; two warmups and
+  twelve alternating before/after pairs. Every emitted object must match.
+- `--measure-semantics`: `structs32`, `structs64`, `semantics32`, `semantics64`;
+  two warmups and nine alternating pairs, matching interpreted stdout.
+- `--measure-native`: memory and functions; five samples each of interpretation,
+  native compilation, execution and object emission in that dependency order.
+  Interpretation and execution must match the known fixture outputs.
+- `--measure-c`: recurrence and memory kernels, 30 million iterations; seven
+  alternating runs of LLVM O2 and raw/optimized C built by Clang/GCC O2. The
+  100,000-iteration variants separately compare graph/fast O0/fast O2 and retain
+  their phase timings. Clang/GCC are required here; multilib is not.
+
+The versioned report records argv, compiler/tool/source/grammar hashes, outputs,
+raw sample order and per-metric medians. Units are nanoseconds; an even median
+may contain `.5`. CLI decimal milliseconds are decoded exactly without host
+floating point. The `wall` metric includes process launch, capture setup and log
+reads; result validation, hashing and report formatting are outside it. CLI
+phases such as `compile` and `execute` exclude launch. This capture method differs
+from the retired Python probes, so do not compare their wall numbers as if the
+harness overhead were identical. Compare paired results from the same runner;
+derive ratios from the recorded medians. The report schema replaces the four
+former script-specific formats; no current downstream reader depended on them.
+Artifacts/logs remain for inspection. C runtime kernels keep separate long and
+short sources and per-case native/C executables.
+
 ## Experimental Wasm linker
 
 The experimental static Wasm linker lives in `backend/wasm_link.tower`.

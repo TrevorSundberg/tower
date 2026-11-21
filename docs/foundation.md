@@ -830,5 +830,8 @@ The Tower fixtures in `scaffolding/tests/semantics.tower` and `semantic_invalid/
 exercise valid and invalid programs; browser tests compare interpretation, LLVM,
 and canonical Foundation round trips. `test-bootstrap.sh` compares optimized LLVM
 and object bytes for the semantic compiler itself across four targets. The
-`benchmark-semantics.py` and `.mjs` scripts accept saved before/after compilers and
-report native and Wasm compilation medians, excluding startup/execution time.
+Tower's `tower-driver-tests --measure-semantics BEFORE AFTER SCAFFOLDING` and the
+browser `benchmark-semantics.mjs` accept saved before/after compilers and report
+native and Wasm compilation medians. Use the `compile` phase for timing that
+excludes startup/execution; the Tower report also records wall time. See the
+[measurement commands](../scaffolding/tests/README.md#native-measurements).

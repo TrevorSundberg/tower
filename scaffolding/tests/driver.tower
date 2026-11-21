@@ -12,6 +12,7 @@ import driver_compilation;
 import driver_module_paths;
 import driver_differentials;
 import driver_c_validation;
+import driver_measure_cases;
 
 extern fn strstr(text: u8*, part: u8*): u8*;
 
@@ -437,6 +438,24 @@ fn driver_test_cli(compiler: u8*): void {
 
 export fn driver_tests(argc: i32, argv: u8**): i32 {
     if argc > 1 {
+        if driver_same(argv[1], "--measure-compiler") || driver_same(argv[1], "--measure-semantics") {
+            var required_arguments: i32 = 5; var filtered_arguments: i32 = 6; var usage: i32 = 2;
+            if argc != required_arguments && argc != filtered_arguments { return usage; }
+            var inputs: MeasureInputs = { before: argv[2], after: argv[3], grammar: argv[4],
+                mode: driver_same(argv[1], "--measure-compiler") ? MeasureMode.Compiler : MeasureMode.Semantics,
+                filter: argc == filtered_arguments ? argv[5] : null, ..default };
+            return driver_test_measure(&inputs);
+        }
+        if driver_same(argv[1], "--measure-native") || driver_same(argv[1], "--measure-c") {
+            var c = driver_same(argv[1], "--measure-c");
+            var native_arguments: i32 = 4; var c_arguments: i32 = 6; var usage: i32 = 2;
+            var required_arguments = c ? c_arguments : native_arguments;
+            if argc != required_arguments && argc != required_arguments + 1 { return usage; }
+            var inputs: MeasureInputs = { after: argv[2], grammar: argv[3], tools: c ? argv + 4 : null,
+                mode: c ? MeasureMode.C : MeasureMode.Native,
+                filter: argc == required_arguments + 1 ? argv[required_arguments] : null, ..default };
+            return driver_test_measure(&inputs);
+        }
         if driver_same(argv[1], "--c-backend") || driver_same(argv[1], "--c-profiles") {
             var required_arguments: i32 = 8; var filtered_arguments: i32 = 9; var usage: i32 = 2;
             if argc != required_arguments && argc != filtered_arguments { return usage; }

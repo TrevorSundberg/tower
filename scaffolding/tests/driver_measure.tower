@@ -1,0 +1,212 @@
+import tower;
+import driver;
+import driver_differentials;
+import driver_c_validation;
+import driver_measure_timings;
+import .host.driver_support;
+import .host.driver_platform;
+import .library.bytes_types;
+import .library.bytes_interface;
+import .library.vector;
+import .library.sha256;
+
+enum MeasureCompare: u32 { None, Output, Product }
+struct MeasureMetric { name: ByteBuffer; values: vector(u64); }
+struct MeasureSeries {
+    name: u8*; args: DriverArguments; product: u8*;
+    compare: MeasureCompare; timings: bool; metrics: vector(MeasureMetric*);
+}
+struct MeasureGroup {
+    name: u8*; source: u8*; target: u8*; warmups: usize; repeats: usize; alternating: bool;
+    series: vector(MeasureSeries*); reference: ByteBuffer; has_reference: bool;
+}
+struct MeasureReport { text: ByteBuffer; groups: usize; }
+var MeasureMedianDivisor: usize = 2;
+
+fn measure_text(out: ByteBuffer*, text: u8*): void { driver_check(driver_text(out, text), "measurement report allocation"); }
+fn measure_number(out: ByteBuffer*, number: usize): void { driver_check(host_json_unsigned(out, convert(u64, number)), "measurement count"); }
+fn measure_string(out: ByteBuffer*, text: u8*): void { driver_check(host_json_quote(out, text, strlen(text)), "measurement string"); }
+
+fn measure_hash(out: ByteBuffer*, bytes: ByteBuffer*): void {
+    var state: Sha256 = default; sha256_init(&state);
+    driver_check(sha256_update(&state, bytes.data, bytes.length), "measurement hash input");
+    var digest = sha256_finish(&state); var hex: u8[65];
+    sha256_hex(&digest, &hex[0]); measure_string(out, &hex[0]);
+}
+
+fn measure_file_hash(out: ByteBuffer*, path: u8*): void {
+    var data: ByteBuffer = default; defer bytes_dispose(&data);
+    driver_check(driver_read_file(path, &data), "read measured input for hashing"); measure_hash(out, &data);
+}
+
+fn measure_group_close(group: MeasureGroup*): void {
+    foreach(var series in &group.series) {
+        foreach(var metric in &series.metrics) {
+            bytes_dispose(&metric.name); vector_dispose(&metric.values); free(metric);
+        }
+        vector_dispose(&series.metrics); driver_arguments_dispose(&series.args); free(series);
+    }
+    vector_dispose(&group.series); bytes_dispose(&group.reference);
+}
+
+fn measure_series(group: MeasureGroup*, name: u8*, product: u8*, compare: MeasureCompare, timings: bool): MeasureSeries* {
+    var series = alloc(MeasureSeries, 1); driver_check(series != null, "measurement series allocation");
+    *series = init(MeasureSeries) { name: name, product: product, compare: compare, timings: timings, ..default };
+    driver_arguments_init(&series.args);
+    driver_check(vector_push(&group.series, series), "measurement series storage");
+    return series;
+}
+
+fn measure_compiler_series(group: MeasureGroup*, name: u8*, compiler: u8*, grammar: u8*, mode: u8*, kind: u8*,
+    product: u8*, compare: MeasureCompare, optimize: bool): void {
+    var series = measure_series(group, name, product, compare, true);
+    var context: DriverDifferentials = { compiler: compiler, grammar: grammar, ..default };
+    driver_execution_arguments(&series.args, &context, group.source, group.target, mode, kind, product, optimize, null);
+    driver_argument(&series.args, "", "--timings");
+}
+
+fn measure_executable_series(group: MeasureGroup*, name: u8*, path: u8*): void {
+    var series = measure_series(group, name, null, MeasureCompare.Output, false);
+    driver_argument(&series.args, "./", path);
+}
+
+fn measure_metric(series: MeasureSeries*, name: u8*, value: u64, sample: usize): void {
+    var found: MeasureMetric* = null;
+    foreach(var metric in &series.metrics) { if driver_same(metric.name.data, name) { found = metric; break; } }
+    if found == null {
+        driver_check(sample == 0, "phase set stable across samples");
+        found = alloc(MeasureMetric, 1); driver_check(found != null, "measurement metric allocation");
+        *found = default;
+        driver_check(driver_text(&found.name, name) && host_text_terminate(&found.name)
+            && vector_push(&series.metrics, found), "measurement metric name");
+    }
+    driver_check(found.values.length == sample && vector_push(&found.values, value), "one value per metric and sample");
+}
+
+fn measure_match(group: MeasureGroup*, actual: ByteBuffer*): void {
+    if !group.has_reference {
+        driver_check(bytes_append(&group.reference, actual.data, actual.length), "measurement reference bytes");
+        group.has_reference = true;
+    } else { driver_check(driver_execution_equal(&group.reference, actual), "measured outputs match exactly"); }
+}
+
+fn measure_sample(group: MeasureGroup*, series: MeasureSeries*, iteration: usize): void {
+    if series.product != null { driver_platform_remove(series.product); }
+    var start = driver_clock();
+    var result = driver_execution_capture(&series.args);
+    var stop = driver_clock();
+    defer driver_execution_close(&result);
+    driver_check(start != 0 && stop >= start, "monotonic measurement clock");
+    driver_check(result.code == DriverExecutionSuccess, "measured process succeeds");
+    if series.compare == MeasureCompare.Output { measure_match(group, &result.output); }
+    if series.product != null {
+        var product: ByteBuffer = default; defer bytes_dispose(&product);
+        driver_check(driver_read_file(series.product, &product) && product.length != 0, "fresh measured artifact");
+        if series.compare == MeasureCompare.Product { measure_match(group, &product); }
+    }
+    var phases: MeasureTimings = default; defer measure_timings_close(&phases);
+    if series.timings {
+        driver_check(measure_timings_parse(&result.error, &phases), "complete CLI timing report");
+        var compile_present = false;
+        foreach(var name in &phases.names.values) { if driver_same(name, "compile") { compile_present = true; } }
+        driver_check(compile_present, "CLI report includes compilation time");
+    }
+    else { driver_check(result.error.length == 0, "measured executable has no diagnostics"); }
+    if iteration < group.warmups { return; }
+    var sample = iteration - group.warmups;
+    measure_metric(series, "wall", stop - start, sample);
+    for(var i: usize = 0; i < phases.values.length; i++) {
+        driver_check(!driver_same(phases.names.values.data[i], "wall"), "CLI phase does not shadow wall measurement");
+        measure_metric(series, phases.names.values.data[i], phases.values.data[i], sample);
+    }
+    foreach(var metric in &series.metrics) { driver_check(metric.values.length == sample + 1, "phase is present in every sample"); }
+}
+
+// Small sample sets: sort a private copy, preserving the reported sample order.
+// The even median can have a half nanosecond; avoid addition overflow or rounding.
+fn measure_median(out: ByteBuffer*, values: vector(u64)*): void {
+    var sorted: vector(u64) = default; defer vector_dispose(&sorted);
+    foreach(var value in values) {
+        driver_check(vector_push(&sorted, value), "median sample copy");
+        var at = sorted.length - 1;
+        while at != 0 && sorted.data[at - 1] > value { sorted.data[at] = sorted.data[at - 1]; at--; }
+        sorted.data[at] = value;
+    }
+    driver_check(sorted.length != 0, "nonempty measurement samples");
+    var low = sorted.data[(sorted.length - 1) / MeasureMedianDivisor];
+    var high = sorted.data[sorted.length / MeasureMedianDivisor];
+    var divisor = convert(u64, MeasureMedianDivisor);
+    var remainder = low % divisor + high % divisor;
+    driver_check(host_json_unsigned(out, low / divisor + high / divisor + remainder / divisor), "median JSON value");
+    if remainder % divisor != 0 { measure_text(out, ".5"); }
+}
+
+fn measure_group_run(report: MeasureReport*, group: MeasureGroup*): void {
+    driver_check(group.series.length != 0 && group.repeats != 0, "measurement workload is nonempty");
+    for(var iteration: usize = 0; iteration < group.warmups + group.repeats; iteration++) {
+        for(var position: usize = 0; position < group.series.length; position++) {
+            var index = group.alternating && iteration % MeasureMedianDivisor != 0 ? group.series.length - 1 - position : position;
+            measure_sample(group, group.series.data[index], iteration);
+        }
+    }
+    var out = &report.text;
+    if report.groups != 0 { measure_text(out, ",\n"); }
+    measure_text(out, "{\"name\":"); measure_string(out, group.name);
+    measure_text(out, ",\"source\":"); measure_string(out, group.source);
+    measure_text(out, ",\"sourceSha256\":"); measure_file_hash(out, group.source);
+    measure_text(out, ",\"target\":"); measure_string(out, group.target ?? "compiler default");
+    measure_text(out, ",\"warmups\":"); measure_number(out, group.warmups);
+    measure_text(out, ",\"samples\":"); measure_number(out, group.repeats);
+    measure_text(out, ",\"alternating\":"); measure_text(out, group.alternating ? "true" : "false");
+    if group.has_reference {
+        measure_text(out, ",\"matchedSha256\":"); measure_hash(out, &group.reference);
+        if group.series.data[0].compare == MeasureCompare.Output {
+            measure_text(out, ",\"stdout\":");
+            driver_check(host_json_quote(out, group.reference.data, group.reference.length), "measured output JSON");
+        }
+    }
+    measure_text(out, ",\"series\":[");
+    for(var index: usize = 0; index < group.series.length; index++) {
+        var series = group.series.data[index];
+        if index != 0 { measure_text(out, ","); }
+        measure_text(out, "{\"name\":"); measure_string(out, series.name);
+        measure_text(out, ",\"executableSha256\":"); measure_file_hash(out, series.args.values.data[0]);
+        measure_text(out, ",\"argv\":[");
+        for(var arg: usize = 0; arg < series.args.values.length; arg++) {
+            if arg != 0 { measure_text(out, ","); } measure_string(out, series.args.values.data[arg]);
+        }
+        measure_text(out, "],\"metrics\":{");
+        for(var i: usize = 0; i < series.metrics.length; i++) {
+            var metric = series.metrics.data[i];
+            if i != 0 { measure_text(out, ","); }
+            measure_string(out, metric.name.data); measure_text(out, ":{\"median\":"); measure_median(out, &metric.values);
+            measure_text(out, ",\"samples\":[");
+            for(var sample: usize = 0; sample < metric.values.length; sample++) {
+                if sample != 0 { measure_text(out, ","); }
+                driver_check(host_json_unsigned(out, metric.values.data[sample]), "raw timing sample");
+            }
+            measure_text(out, "]}");
+        }
+        measure_text(out, "}}");
+    }
+    measure_text(out, "]}"); report.groups++;
+    driver_message(DriverDifferentialStdout, "Measured and checked: ", group.name, true);
+}
+
+fn measure_core_checks(): bool {
+    if !measure_timings_checks() { return false; }
+    var values: vector(u64) = default; var out: ByteBuffer = default;
+    defer vector_dispose(&values); defer bytes_dispose(&out);
+    var a: u64 = 9; var b: u64 = 2; var c: u64 = 5;
+    if !vector_push(&values, a) || !vector_push(&values, b) { return false; }
+    measure_median(&out, &values); host_text_terminate(&out);
+    if !driver_same(out.data, "5.5") || values.data[0] != a || values.data[1] != b { return false; }
+    out.length = 0;
+    if !vector_push(&values, c) { return false; }
+    measure_median(&out, &values); host_text_terminate(&out);
+    if !driver_same(out.data, "5") { return false; }
+    values.length = 0; out.length = 0; a = ~convert(u64, 0); b = a - 1;
+    if !vector_push(&values, a) || !vector_push(&values, b) { return false; }
+    measure_median(&out, &values); host_text_terminate(&out);
+    return driver_same(out.data, "18446744073709551614.5");
+}

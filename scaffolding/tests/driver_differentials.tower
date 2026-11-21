@@ -33,19 +33,24 @@ fn driver_execution_capture(args: DriverArguments*): DriverExecutionResult {
     return result;
 }
 
+fn driver_execution_arguments(args: DriverArguments*, context: DriverDifferentials*, source: u8*, target: u8*,
+    mode: u8*, kind: u8*, destination: u8*, optimize: bool, depfile: u8*): void {
+    driver_argument(args, "", context.compiler); driver_argument(args, "", source);
+    driver_argument(args, "", "--foundation"); driver_argument(args, context.grammar, "/foundation.tower");
+    driver_argument(args, "", "--bedrock"); driver_argument(args, context.grammar, "/bedrock.tower");
+    if target != null { driver_argument(args, "", "--target"); driver_argument(args, "", target); }
+    if mode != null { driver_argument(args, "", mode); }
+    if kind != null { driver_argument(args, "", kind); }
+    if destination != null { driver_argument(args, "", "-o"); driver_argument(args, "", destination); }
+    if !optimize { driver_argument(args, "", "--no-optimize"); }
+    if depfile != null { driver_argument(args, "", "--depfile"); driver_argument(args, "", depfile); }
+}
+
 fn driver_execution_command(context: DriverDifferentials*, source: u8*, target: u8*, mode: u8*, kind: u8*,
     destination: u8*, optimize: bool, depfile: u8*): DriverExecutionResult {
     var args: DriverArguments = default; driver_arguments_init(&args);
     defer driver_arguments_dispose(&args);
-    driver_argument(&args, "", context.compiler); driver_argument(&args, "", source);
-    driver_argument(&args, "", "--foundation"); driver_argument(&args, context.grammar, "/foundation.tower");
-    driver_argument(&args, "", "--bedrock"); driver_argument(&args, context.grammar, "/bedrock.tower");
-    if target != null { driver_argument(&args, "", "--target"); driver_argument(&args, "", target); }
-    if mode != null { driver_argument(&args, "", mode); }
-    if kind != null { driver_argument(&args, "", kind); }
-    if destination != null { driver_argument(&args, "", "-o"); driver_argument(&args, "", destination); }
-    if !optimize { driver_argument(&args, "", "--no-optimize"); }
-    if depfile != null { driver_argument(&args, "", "--depfile"); driver_argument(&args, "", depfile); }
+    driver_execution_arguments(&args, context, source, target, mode, kind, destination, optimize, depfile);
     return driver_execution_capture(&args);
 }
 

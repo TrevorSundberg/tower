@@ -1,0 +1,162 @@
+import tower;
+import driver;
+import driver_measure;
+import driver_differentials;
+import driver_c_validation;
+import .host.driver_support;
+import .host.driver_platform;
+import .library.bytes_types;
+import .library.bytes_interface;
+
+enum MeasureMode: u32 { Compiler, Semantics, Native, C }
+struct MeasureInputs { mode: MeasureMode; before: u8*; after: u8*; grammar: u8*; tools: u8**; filter: u8*; }
+var MeasureWarmups: usize = 2;
+var MeasureCompilerPairs: usize = 12;
+var MeasureSemanticPairs: usize = 9;
+var MeasureNativeSamples: usize = 5;
+var MeasureRuntimeSamples: usize = 7;
+var MeasureRuntimeIterations: usize = 30000000;
+var MeasureInterpreterIterations: usize = 100000;
+var MeasureReportSchemaVersion: usize = 1;
+
+fn measure_selected(inputs: MeasureInputs*, name: u8*): bool { return inputs.filter == null || driver_same(inputs.filter, name); }
+
+fn measure_paired(report: MeasureReport*, inputs: MeasureInputs*, name: u8*, file: u8*, target: u8*): void {
+    if !measure_selected(inputs, name) { return; }
+    var source = driver_c_path(inputs.grammar, file); defer bytes_dispose(&source);
+    var object = inputs.mode == MeasureMode.Compiler;
+    var group: MeasureGroup = { name: name, source: source.data, target: target, warmups: MeasureWarmups,
+        repeats: object ? MeasureCompilerPairs : MeasureSemanticPairs, alternating: true, ..default };
+    defer measure_group_close(&group);
+    var product: u8* = object ? "measured_program.o" : null;
+    var compare = object ? MeasureCompare.Product : MeasureCompare.Output;
+    measure_compiler_series(&group, "baseline", inputs.before, inputs.grammar, object ? "--emit" : "--interpret", object ? "object" : null, product, compare, true);
+    measure_compiler_series(&group, "current", inputs.after, inputs.grammar, object ? "--emit" : "--interpret", object ? "object" : null, product, compare, true);
+    measure_group_run(report, &group);
+}
+
+fn measure_native(report: MeasureReport*, inputs: MeasureInputs*, name: u8*, file: u8*, wanted: u8*): void {
+    if !measure_selected(inputs, name) { return; }
+    var source = driver_c_path(inputs.grammar, file); defer bytes_dispose(&source);
+    var group: MeasureGroup = { name: name, source: source.data, repeats: MeasureNativeSamples, has_reference: true, ..default };
+    defer measure_group_close(&group);
+    driver_check(driver_text(&group.reference, wanted), "native measurement expected output");
+    measure_compiler_series(&group, "interpret", inputs.after, inputs.grammar, "--interpret", null, null, MeasureCompare.Output, true);
+    measure_compiler_series(&group, "compile", inputs.after, inputs.grammar, null, null, "measured_program", MeasureCompare.None, true);
+    measure_executable_series(&group, "execute", "measured_program");
+    measure_compiler_series(&group, "object", inputs.after, inputs.grammar, "--emit", "object", "measured_program.o", MeasureCompare.None, true);
+    measure_group_run(report, &group);
+}
+
+fn measure_kernel(path: u8*, memory: bool, iterations: usize): void {
+    var text: ByteBuffer = default; defer bytes_dispose(&text);
+    if memory { measure_text(&text, "var data=alloc(u32,4096); var i:u32=0; var sum:u32=1; fill(data,0,16384); loop { var done=i=="); }
+    else { measure_text(&text, "var state:u32=7; var i:u32=0; loop { var done=i=="); }
+    measure_number(&text, iterations);
+    if memory {
+        measure_text(&text, "; if done { break; } var slot=i%4096; var value=data[slot]; sum=sum*1664525; sum=sum+value; sum=sum+i; data[slot]=sum; i=i+1; } print(sum); free(data);");
+    } else {
+        measure_text(&text, "; if done { break; } state=state*1664525; state=state+1013904223; var half=state/65536; state=state^half; i=i+1; } print(state);");
+    }
+    driver_check(driver_write_file(path, text.data, text.length), "write measured kernel");
+}
+
+fn measure_c_runtime(report: MeasureReport*, inputs: MeasureInputs*, name: u8*, memory: bool): void {
+    if !measure_selected(inputs, name) { return; }
+    var source = driver_c_path(name, ".tower"); defer bytes_dispose(&source);
+    measure_kernel(source.data, memory, MeasureRuntimeIterations);
+    var context: DriverCValidation = default;
+    context.compiler = init(DriverDifferentials) { compiler: inputs.after, grammar: inputs.grammar, ..default };
+    context.tools = inputs.tools;
+    var group: MeasureGroup = { name: name, source: source.data, warmups: 0, repeats: MeasureRuntimeSamples, alternating: true, ..default };
+    defer measure_group_close(&group);
+    var paths: DriverArguments = default; driver_arguments_init(&paths); defer driver_arguments_dispose(&paths);
+    var native = driver_c_path(name, "_native"); defer bytes_dispose(&native); driver_platform_remove(native.data);
+    var built = driver_execution_command(&context.compiler, source.data, null, null, null, native.data, true, null);
+    defer driver_execution_close(&built);
+    driver_check(built.code == DriverExecutionSuccess, "compile runtime measurement reference");
+    var reference = driver_c_run(native.data); defer driver_execution_close(&reference);
+    driver_check(reference.code == DriverExecutionSuccess && reference.error.length == 0, "runtime measurement reference succeeds");
+    measure_match(&group, &reference.output); measure_executable_series(&group, "LLVM O2", native.data);
+    var compiler_count: usize = 2;
+    for(var option: usize = 0; option < DriverOptimizationVariants; option++) {
+        var stem = driver_c_path(name, option == 0 ? "_raw_" : "_optimized_"); defer bytes_dispose(&stem);
+        var c = driver_c_path(name, option == 0 ? "_raw.c" : "_optimized.c"); defer bytes_dispose(&c);
+        driver_platform_remove(c.data);
+        var emitted = driver_execution_command(&context.compiler, source.data, null, "--emit", "c", c.data, option != 0, null);
+        defer driver_execution_close(&emitted);
+        driver_check(emitted.code == DriverExecutionSuccess, "emit runtime measurement C");
+        for(var tool: usize = 0; tool < compiler_count; tool++) {
+            var path = driver_c_path(stem.data, tool == 0 ? "clang" : "gcc");
+            defer bytes_dispose(&path);
+            driver_argument(&paths, "", path.data); driver_check(paths.ok, "runtime measurement artifact list");
+            var saved = paths.values.data[paths.values.length - 1];
+            driver_c_compile(&context, convert(DriverCTool, tool), c.data, saved, false, DriverCWidth64, true);
+            measure_executable_series(&group, saved, saved);
+        }
+    }
+    measure_group_run(report, &group);
+    // Keep the short source separate so saved long-workload evidence stays reproducible.
+    var short_source = driver_c_path(name, "_short.tower"); defer bytes_dispose(&short_source);
+    measure_kernel(short_source.data, memory, MeasureInterpreterIterations);
+    var short_name = driver_c_path(name, "_interpreter"); defer bytes_dispose(&short_name);
+    var interpreted: MeasureGroup = { name: short_name.data, source: short_source.data, repeats: 1, ..default };
+    defer measure_group_close(&interpreted);
+    measure_compiler_series(&interpreted, "graph", inputs.after, inputs.grammar, "--interpret", null, null, MeasureCompare.Output, true);
+    measure_compiler_series(&interpreted, "fast O0", inputs.after, inputs.grammar, "--interpret-fast", null, null, MeasureCompare.Output, false);
+    measure_compiler_series(&interpreted, "fast O2", inputs.after, inputs.grammar, "--interpret-fast", null, null, MeasureCompare.Output, true);
+    measure_group_run(report, &interpreted);
+}
+
+fn driver_test_measure(inputs: MeasureInputs*): i32 {
+    driver_platform_remove("measurements.json");
+    driver_check(measure_core_checks(), "measurement parsing and median edge cases");
+    var report: MeasureReport = default; defer bytes_dispose(&report.text);
+    measure_text(&report.text, "{\"schemaVersion\":"); measure_number(&report.text, MeasureReportSchemaVersion);
+    measure_text(&report.text, ",\"units\":\"nanoseconds\",\"method\":\"Fresh processes; wall includes launch, capture setup and log reads; validation and hashing excluded. CLI phases exclude launch. Frozen inputs required; run without concurrent workloads.\",\"platform\":");
+    var args: DriverArguments = default; driver_arguments_init(&args); defer driver_arguments_dispose(&args);
+    driver_argument(&args, "", "/usr/bin/uname"); driver_argument(&args, "", "-srm");
+    var host = driver_execution_capture(&args); defer driver_execution_close(&host);
+    driver_check(host.code == DriverExecutionSuccess && host_text_terminate(&host.output), "Linux measurement host description");
+    measure_string(&report.text, host.output.data);
+    measure_text(&report.text, ",\"compiler\":"); measure_string(&report.text, inputs.after);
+    measure_text(&report.text, ",\"compilerSha256\":"); measure_file_hash(&report.text, inputs.after);
+    if inputs.mode == MeasureMode.C {
+        measure_text(&report.text, ",\"clang\":"); measure_string(&report.text, inputs.tools[0]);
+        measure_text(&report.text, ",\"clangSha256\":"); measure_file_hash(&report.text, inputs.tools[0]);
+        measure_text(&report.text, ",\"gcc\":"); measure_string(&report.text, inputs.tools[1]);
+        measure_text(&report.text, ",\"gccSha256\":"); measure_file_hash(&report.text, inputs.tools[1]);
+        measure_text(&report.text, ",\"cFlags\":\"-x c -std=c89 -pedantic -Wall -Wextra -Werror -O2\"");
+    }
+    measure_text(&report.text, ",\"grammarInputs\":{");
+    var foundation = driver_c_path(inputs.grammar, "/foundation.tower"); defer bytes_dispose(&foundation);
+    var bedrock = driver_c_path(inputs.grammar, "/bedrock.tower"); defer bytes_dispose(&bedrock);
+    measure_text(&report.text, "\"foundation\":"); measure_file_hash(&report.text, foundation.data);
+    measure_text(&report.text, ",\"bedrock\":"); measure_file_hash(&report.text, bedrock.data);
+    measure_text(&report.text, "},\"groups\":[\n");
+    match inputs.mode {
+        MeasureMode.Compiler => {
+            measure_paired(&report, inputs, "functions", "/examples/functions.tower", "x86_64-unknown-linux-gnu");
+            measure_paired(&report, inputs, "collections", "/examples/collections.tower", "x86_64-unknown-linux-gnu");
+            measure_paired(&report, inputs, "templates", "/examples/templates.tower", "x86_64-unknown-linux-gnu");
+        }
+        MeasureMode.Semantics => {
+            measure_paired(&report, inputs, "structs32", "/examples/structs.tower", "wasm32-unknown-unknown");
+            measure_paired(&report, inputs, "structs64", "/examples/structs.tower", "x86_64-pc-linux-gnu");
+            measure_paired(&report, inputs, "semantics32", "/tests/semantics.tower", "wasm32-unknown-unknown");
+            measure_paired(&report, inputs, "semantics64", "/tests/semantics.tower", "x86_64-pc-linux-gnu");
+        }
+        MeasureMode.Native => {
+            measure_native(&report, inputs, "memory", "/examples/memory.tower", "5\n84\n42\n");
+            measure_native(&report, inputs, "functions", "/examples/functions.tower", "720\n721\n");
+        }
+        MeasureMode.C => {
+            measure_c_runtime(&report, inputs, "recurrence", false); measure_c_runtime(&report, inputs, "memory", true);
+        }
+        _ => { driver_check(false, "known measurement mode"); }
+    }
+    driver_check(report.groups != 0, "measurement filter selects a case");
+    measure_text(&report.text, "\n]}\n");
+    driver_check(driver_write_file("measurements.json", report.text.data, report.text.length), "publish complete measurements");
+    return 0;
+}

@@ -990,8 +990,11 @@ Unchecked targets do not preload. Browser performance entries named
 `tower-llvm-warm` and `tower-native-warm` measure startup separately
 from the current run's status-bar timings.
 
-For native end-to-end measurements, build `towerc`, then run under Linux/WSL:
-`python3 playground/scripts/profile-native.py build/native/towerc build/native-profile.json --timings`.
+For native end-to-end measurements, build `tower-driver-tests` with
+`TOWER_DRIVER_TESTS=ON`, then run in a writable artifact directory under Linux:
+`tower-driver-tests --measure-native COMPILER SCAFFOLDING`.
+It writes `measurements.json` with five samples of interpretation, compilation,
+execution and object emission, checking the memory/functions outputs.
 
 For compiler-source workloads, save a baseline LLVM reactor before changing the
 compiler, rebuild the compiler project recipe, then run from the repository root:
@@ -1014,9 +1017,11 @@ the timing and sampling counts. For expensive units, start with
 `TOWER_PROFILE_ONLY=1` and `TOWER_PROFILE_REPEATS=1` to sample one compilation
 before selecting repetition counts. Sampling-only elapsed times include profiler
 overhead and are not benchmark results. For paired native CLI measurements use
-`python3 playground/scripts/benchmark-compiler-native.py before-towerc after-towerc build/native-paired.json`
+`tower-driver-tests --measure-compiler BEFORE AFTER SCAFFOLDING`
 under Linux; it checks object equality and includes process startup and grammar
-loading. The Tower `BackendVerifyEach` constant enables extra per-pass LLVM
+loading. The shared [Tower measurement runner](../scaffolding/tests/README.md#native-measurements)
+also covers paired semantic compilation and C-versus-LLVM runtime workloads.
+The Tower `BackendVerifyEach` constant enables extra per-pass LLVM
 verification for debugging; normal compilation verifies at stage boundaries.
 The CLI's `--timings` flag reports bootstrap, frontend/LLVM phases, runtime C
 compilation, linking and interpreter execution to stderr. The probe also measures

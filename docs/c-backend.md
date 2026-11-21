@@ -103,5 +103,7 @@ modes publish `expected.json` only after every selected check succeeds; a new
 run removes stale expectations and compiled outputs. The existing
 `powershell -File scaffolding/tests/c-backend-msvc.ps1 ARTIFACT_DIRECTORY`
 consumes that same JSON and generated C for MSVC checks.
+For the matching-output runtime comparison, use the Tower driver's
+[`--measure-c` workload](../scaffolding/tests/README.md#native-measurements).
 The research journal records measured compiler/platform coverage and performance;
 backend equivalence is tested on defined programs, not inferred from matching C.

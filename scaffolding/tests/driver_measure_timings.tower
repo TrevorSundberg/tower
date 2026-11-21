@@ -1,0 +1,99 @@
+import tower;
+import fixture_json_rows;
+import .host.driver_support;
+import .library.bytes_types;
+import .library.bytes_interface;
+import .library.vector;
+
+extern fn memcmp(left: u8*, right: u8*, length: usize): i32;
+
+struct MeasureTimings { names: DriverArguments; values: vector(u64); }
+var MeasureDecimalRadix: u64 = 10;
+var MeasureNanosecondsPerMillisecond: u64 = 1000000;
+var MeasureFractionDigits: usize = 6;
+
+fn measure_timings_close(timing: MeasureTimings*): void {
+    driver_arguments_dispose(&timing.names); vector_dispose(&timing.values);
+}
+
+// The CLI emits nonnegative milliseconds with at most six decimal places.
+// Parse directly into nanoseconds; host floating point is not part of this format.
+fn measure_timing_number(input: FixtureJson*, result: u64*): bool {
+    fixture_json_space(input);
+    var whole: u64 = 0; var digits: usize = 0; var fraction: u64 = 0;
+    var maximum = ~convert(u64, 0);
+    var leading_zero = input.at < input.length && input.data[input.at] == *"0";
+    while input.at < input.length && input.data[input.at] >= *"0" && input.data[input.at] <= *"9" {
+        var digit = convert(u64, input.data[input.at++] - *"0");
+        if whole > (maximum - digit) / MeasureDecimalRadix { return false; }
+        whole = whole * MeasureDecimalRadix + digit; digits++;
+    }
+    if digits == 0 || (leading_zero && digits != 1) { return false; }
+    digits = 0;
+    if input.at < input.length && input.data[input.at] == *"." {
+        input.at++;
+        while input.at < input.length && input.data[input.at] >= *"0" && input.data[input.at] <= *"9" {
+            if digits == MeasureFractionDigits { return false; }
+            fraction = fraction * MeasureDecimalRadix + convert(u64, input.data[input.at++] - *"0"); digits++;
+        }
+        if digits == 0 { return false; }
+    }
+    while digits < MeasureFractionDigits { fraction *= MeasureDecimalRadix; digits++; }
+    if whole > (maximum - fraction) / MeasureNanosecondsPerMillisecond { return false; }
+    *result = whole * MeasureNanosecondsPerMillisecond + fraction;
+    return true;
+}
+
+fn measure_timings_parse(log: ByteBuffer*, timing: MeasureTimings*): bool {
+    driver_arguments_init(&timing.names);
+    var prefix = "Tower timings (ms): "; var size = strlen(prefix);
+    var start: usize = 0; var found = false;
+    for(var at: usize = 0; at <= log.length; at++) {
+        if log.length - at < size { break; }
+        if (at == 0 || log.data[at - 1] == *"\n") && memcmp(log.data + at, prefix, size) == 0 {
+            start = at + size; found = true; break;
+        }
+    }
+    if !found { return false; }
+    var input: FixtureJson = { data: log.data, length: log.length, at: start };
+    if !fixture_json_take(&input, "{") { return false; }
+    var name: ByteBuffer = default; defer bytes_dispose(&name);
+    loop {
+        var value: u64 = 0;
+        if !fixture_json_string(&input, &name) || name.length == 0
+            || !fixture_json_take(&input, ":") || !measure_timing_number(&input, &value) { return false; }
+        foreach(var previous in &timing.names.values) {
+            if driver_same(previous, name.data) { return false; }
+        }
+        driver_argument(&timing.names, "", name.data);
+        if !timing.names.ok || !vector_push(&timing.values, value) { return false; }
+        if fixture_json_take(&input, "}") { break; }
+        if !fixture_json_take(&input, ",") { return false; }
+    }
+    return fixture_json_end(&input);
+}
+
+fn measure_timings_fixture(text: u8*, valid: bool, value: u64): bool {
+    var log: ByteBuffer = { data: text, length: strlen(text), capacity: 0 };
+    var timings: MeasureTimings = default; defer measure_timings_close(&timings);
+    var parsed = measure_timings_parse(&log, &timings);
+    if parsed != valid { return false; }
+    return !parsed || (timings.values.length == 1 && timings.values.data[0] == value);
+}
+
+fn measure_timings_checks(): bool {
+    return measure_timings_fixture("note\nTower timings (ms): {\"compile\":1.234567}\n", true, 1234567)
+        && measure_timings_fixture("Tower timings (ms): {\"compile\":0}\n", true, 0)
+        && measure_timings_fixture("Tower timings (ms): {\"compile\":0.1}\n", true, 100000)
+        && measure_timings_fixture("Tower timings (ms): {\"compile\":18446744073709.551615}\n", true, ~convert(u64, 0))
+        && measure_timings_fixture("Tower timings (ms): {\"compile\":18446744073709.551616}\n", false, 0)
+        && measure_timings_fixture("Tower timings (ms): {\"compile\":-1}\n", false, 0)
+        && measure_timings_fixture("Tower timings (ms): {\"compile\":01}\n", false, 0)
+        && measure_timings_fixture("Tower timings (ms): {\"compile\":1.}\n", false, 0)
+        && measure_timings_fixture("Tower timings (ms): {\"compile\":1e2}\n", false, 0)
+        && measure_timings_fixture("Tower timings (ms): {\"compile\":0.1234567}\n", false, 0)
+        && measure_timings_fixture("Tower timings (ms): {\"compile\":1,\"compile\":2}\n", false, 0)
+        && measure_timings_fixture("Tower timings (ms): {\"compile\":1", false, 0)
+        && measure_timings_fixture("Tower timings (ms): {\"compile\":1}\nTower timings (ms): {}", false, 0)
+        && measure_timings_fixture("missing report", false, 0);
+}

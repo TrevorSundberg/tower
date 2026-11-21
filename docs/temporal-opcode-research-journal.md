@@ -38036,3 +38036,93 @@ Browser runtime build identity remains frozen 797f54a; reconstruct its build inp
 from public 7425a14 plus git diff 19174dd 1baa366 -- scaffolding. The compiler tree
 matches public 1baa366. The final UI and provenance explicitly distinguish later
 experimental-linker/tooling source changes from these tested runtime bytes.
+
+### 2026-11-21: share native measurement workloads in Tower
+
+Audit benchmark-compiler-native.py, benchmark-semantics.py, profile-native.py and
+benchmark-c.py before translation. Current README/Foundation callers require the
+first three; the fourth preserves the C/LLVM runtime experiment recorded above.
+CLI --timings already supplies phase data but cannot replace paired ordering,
+repeated samples, artifact equality or the distinct runtime kernels. Remove the
+four separate orchestration/statistics implementations and use one measurement
+engine in the existing Tower driver. Reuse its raw-status capture, explicit argv
+builder, C compiler runner, byte comparisons, JSON writer and Tower SHA-256.
+Extract driver_execution_arguments without changing its ordinary callers.
+
+driver_measure.tower owns sample capture, exact output/product agreement, metric
+collection and median/report generation; driver_measure_timings.tower decodes
+the existing CLI decimal-ms record directly into checked u64 nanoseconds.
+driver_measure_cases.tower supplies the four workload presets. No new process,
+filesystem, crypto or floating-point implementation library is needed. Preserve
+the compiler probe's two warmups/twelve alternating pairs and three sources;
+semantic compilation uses two warmups/nine pairs at both pointer widths, now
+alternating order too. Native profiling keeps five dependent interpret/compile/
+execute/object samples for memory/functions with their known expected output.
+C measurement keeps the 30-million-iteration recurrence/memory kernels, seven
+alternating runs of LLVM O2 and raw/optimized C through Clang/GCC O2, plus separate
+100,000-iteration graph/fast O0/fast O2 probes. Keep short sources separate from
+the long sources and retain each C kernel's generated files/executables.
+
+The versioned measurements.json replaces four incompatible manual report shapes;
+no current downstream reader was found. It includes the Linux uname -srm host,
+explicit argv, compiler/tool/source/grammar hashes, checked output/hash, raw sample
+order and medians in nanoseconds. Even medians retain half nanoseconds without
+overflow; raw arrays remain in collection order. Derived ratios need not be
+stored redundantly. Always collect CLI phases, eliminating the optional timing
+switch from the old profiling wrapper. Wall time includes launch, capture setup
+and log-file reads, while hashing/validation/reporting are outside it. This is
+not identical Python harness overhead; compare paired measurements from the same
+runner, not old/new wall numbers as a claimed speed change. Inputs/resources must
+remain frozen and runs must be isolated. Do not add these performance runs to
+automatic CTest. The existing 30-second child limit applies.
+
+Parse exactly one complete timing object with unique phase names, nonnegative
+decimal values and up to six fractional digits; reject missing compile phase,
+duplicate/unstable phases, exponent/negative/leading-zero forms, truncation,
+overflow and extra records. New runs remove old reports and emitted products;
+publish the report only after every selected result succeeds. A zero-valued
+timing remains a real sample. Filters select named workloads and unknown filters
+fail. All new implementation and checks are Tower; old Python is deleted after
+validation, and current documentation points to --measure-* modes.
+
+Use the idle lane-owned tower_agent1_c_checks container (Ubuntu 24.04,
+Clang/LLVM 19.1.1, GCC 13.3, Python unavailable), own frozen
+/cache/c_validation_checkout inputs and /cache/c_validation_native tools. The
+compiler is the previously clean-built public 0d752e7 successor. Compile the
+timing reader first, then the core, then workload unit with that public bootstrap.
+The workload preflight initially omitted match's required wildcard fallback;
+add an explicit unknown-mode rejection, then all units compile. Incremental
+driver rebuild takes three steps; final metadata/path edits require only two.
+No compiler/runtime/bootstrap syntax migration or rebuild is needed for these
+unchanged source inputs.
+
+Run --measure-compiler and --measure-semantics with the same frozen successor as
+before/after to validate the method, not claim an optimization; run all native
+and C presets serially. All 13 groups/38 series pass, retaining 260 measured
+samples plus the prescribed warmups. Fourteen timing-decoder cases cover exact
+scale, zero, u64 maximum and rejected formats. Median cases cover odd/even counts,
+input-order preservation and a half-integer near u64 maximum. Independently read
+the JSON with PowerShell, sort each sample array and compare every median/count;
+all pass. Independently verify source hashes and the compiler hash. C outputs:
+long recurrence 3202183599, short recurrence 1167989999, long memory 2492321792,
+short memory 3197601747. Final C naming/metadata and one semantic pair rerun pass.
+Reports/artifacts are in /cache/measure_compiler, measure_semantics, measure_native,
+measure_c and measure_final. These runs validate measurement behavior, not a
+comparative performance conclusion.
+
+The shared argv refactor passes focused factorial native (two comparisons),
+print package (four width/profile comparisons) and the full ordinary driver
+suite (10.30 seconds). Windows x64/macOS ARM64 workload objects compile, but the
+documented measurement command uses Linux uname; no linked execution there is
+claimed. A functions pair with spaces in compiler and working-directory paths
+passes. Seed a successful old object/report then substitute /usr/bin/true as
+baseline: it cannot pass via the stale object and leaves no report. A missing
+timing record, incorrect known stdout and unknown filter also fail without a
+report. No sanitizer or broad format sweep is used.
+
+Remove 182 Python lines across four scripts. Only the live compiler-project
+packager remains: one tracked Python file/219 lines, down 1,770 lines (89.0%) from
+the 1,989-line baseline. Its build recipe, actual depfile closure, archive-symbol
+selection, exports/imports/wraps and support assets still feed browser self-builds.
+Audit whether packaging/compression steps can reuse existing build capabilities
+before implementing the remaining required behavior in Tower.
