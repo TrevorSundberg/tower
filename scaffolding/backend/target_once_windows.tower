@@ -1,0 +1,21 @@
+import tower;
+import target_api;
+
+// Windows x64/arm64: INIT_ONCE is one pointer-sized opaque word, initially
+// zero. The synchronous protocol admits one writer and publishes its results.
+extern fn InitOnceBeginInitialize(control: usize*, flags: u32, pending: i32*, context: void**): i32;
+extern fn InitOnceComplete(control: usize*, flags: u32, context: void*): i32;
+
+export fn backend_initialize_targets(): void {
+    var pending: i32 = 0;
+    var control = backend_registry_control();
+    if InitOnceBeginInitialize(control, 0, &pending, null) == 0 {
+        trap("Cannot initialize LLVM target registry", 0);
+    }
+    if pending != 0 {
+        backend_register_targets();
+        if InitOnceComplete(control, 0, null) == 0 {
+            trap("Cannot publish LLVM target registry", 0);
+        }
+    }
+}

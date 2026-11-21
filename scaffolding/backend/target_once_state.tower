@@ -1,0 +1,5 @@
+import tower;
+
+// The runtime binder supplies this platform object with a zero-initialized
+// word. No ordinary Tower module initializer or undefined storage is substituted.
+extern fn backend_registry_control(): usize*;

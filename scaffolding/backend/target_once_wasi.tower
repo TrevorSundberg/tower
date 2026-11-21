@@ -1,0 +1,12 @@
+import tower;
+import target_api;
+
+// A backend reactor has one execution owner. Parallel browser jobs use separate
+// instances/memories; this instance-local guard is not a shared-memory lock.
+export fn backend_initialize_targets(): void {
+    var ready = backend_registry_control();
+    if *ready == 0 {
+        backend_register_targets();
+        *ready = 1;
+    }
+}

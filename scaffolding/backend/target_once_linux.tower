@@ -1,0 +1,14 @@
+import tower;
+import target_api;
+
+// Linux glibc x86_64/AArch64: pthread_once_t is an aligned 32-bit integer,
+// PTHREAD_ONCE_INIT is zero. Only pthread_once may access the control word.
+extern fn pthread_once(control: i32*, initialize: void*): i32;
+extern fn dlsym(handle: void*, name: u8*): void*;
+
+export fn backend_initialize_targets(): void {
+    var initialize = dlsym(null, "backend_register_targets");
+    if initialize == null || pthread_once(bits(i32*, backend_registry_control()), initialize) != 0 {
+        trap("Cannot initialize LLVM target registry", 0);
+    }
+}

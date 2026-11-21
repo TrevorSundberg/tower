@@ -57,6 +57,14 @@ be regenerated from their foundation source.
 
 ## Object generation
 
+Target registration uses one-time platform initialization before backend creation
+or disassembly. Native Linux/macOS/Windows callers synchronize through their OS
+once primitive; browser backends use one owner per isolated reactor instance.
+The Tower runtime binder's `backend-registry` profile emits the required zeroed
+control word. This is explicit platform object storage, separate from ordinary
+Tower module initialization and uninitialized Foundation variables. Each backend
+context/module still has one owner; this does not make the LLD linker concurrent.
+
 1. `backend_open(triple)` returns an owned `Backend*`. Check for null, then check
    `backend_error`; a target error still returns a disposable result.
 2. Query `backend_pointer_bytes` **before semantic compilation**. The explicit

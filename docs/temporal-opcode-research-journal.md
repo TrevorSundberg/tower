@@ -35296,3 +35296,65 @@ execution all printing 42. The exact manifest digest is
 21d6474ac896db5ec69cdc87c64120f2270dc48cdb8a413466f6c30efe6a9c0e.
 The initial manifest mismatch was deployment propagation, not an artifact mismatch
 in the completed release. No sanitizer or broad formatting sweep was run.
+
+### Native backend registry ownership and integration work
+
+The ready-query changes pass the shared-memory overlap/failure/determinism checks
+(3/3, zero skips, ecs-ready-shared-tests.log) and two successive browser compiler
+generations with identical bytes: tower 1,132,071; LLVM 52,477,094; cross 64,034,502
+(ecs-ready-generations.log). These generations used the frozen 0aea8d9 source
+snapshot, before the backend registry changes below. Its source push was normally
+rejected because upstream advanced to baff98d's Tower bootstrap-packaging tools;
+integration is pending the active build, with no force push or discarded work.
+
+Confirmed the native backend registration race in upstream LLVM source:
+`llvm/MC/TargetRegistry.h` explicitly requires callers to exclude registry access
+during registration, and its RegisterMC* helpers assign function pointers even on
+repeated initialization. `TargetRegistry.cpp`'s initial name check is not a general
+thread-safety guarantee. backend_open and disassembly previously repeated target
+initialization. Implemented Tower adapters for Linux pthread_once, Darwin
+dispatch_once_f and Windows synchronous InitOnceBeginInitialize/InitOnceComplete;
+WASI backend reactors retain one execution owner per isolated instance. Target
+selection lists now implement backend_register_targets behind those adapters.
+Linux/macOS callback exports are explicit linker requirements, like existing
+compiler thread entry exports. No C/C++ implementation was introduced.
+
+References: [LLVM target registry source](https://github.com/llvm/llvm-project/blob/1e57ee22ca274b663eeb279fd86e7010a8441c99/llvm/include/llvm/MC/TargetRegistry.h),
+[Apple dispatch_once contract](https://raw.githubusercontent.com/apple/swift-corelibs-libdispatch/main/dispatch/once.h),
+[Windows initialization](https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-initoncebegininitialize)
+and [completion](https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-initoncecomplete).
+The container's glibc pthread.h/bits/pthreadtypes.h confirm zero PTHREAD_ONCE_INIT
+and int pthread_once_t for the exercised Linux ABI. The Open Group documentation
+URL returned HTTP 403; it was not used as evidence of retrieved content.
+
+The first build correctly rejected an initialized mutable module global in a
+library. Ordinary uninitialized global storage lowers to LLVM undef, so dropping
+the initializer would not establish a valid once predicate. Instead extended the
+existing Tower runtime binder with an explicit backend-registry object profile:
+one zero-initialized, pointer-aligned target word and an accessor. Native OS APIs
+own that word; the isolated WASI instance uses it as its private readiness flag.
+This is target/platform object production, not a new Foundation initialization
+rule or constant evaluator. The binder also handles an unused declaration removed
+by LLVM optimization by emitting the requested accessor directly.
+
+The initial test fixture hit the same library-global restriction. Replaced its
+mutable test globals with explicitly owned POSIX pipes: the no-argument callback
+reports entry, waits for release, then reports completion through redirected
+fixture stdin/stdout. Four actual workers contend on initialization and repeat
+calls; no completion may return before release, and exactly one entry/completion
+pair must be observed. This tests the production adapter without assuming zero
+for undefined Tower storage. The fixture uses the production allocator. Native
+execution is under validation; macOS arm64, Windows x64 and WASI adapter objects
+cross-compile with public bootstrap 2292bd8, which is not a native execution claim
+for macOS or Windows. Logs retain each failed attempt and corrected retry under
+ecs-target-once-*. No backend parallel job dispatcher is claimed implemented yet.
+
+The corrected native build and target-registry concurrency test now pass, with
+no skips (ecs-target-once-final-build.log / ecs-target-once-tests.log). The fixture
+also needed explicit byte-pointer signatures for its one-byte POSIX I/O; Tower
+correctly rejected implicit u8*-to-void* conversion. The resulting native compiler
+successfully emits both Linux x64 and Wasm objects for known_parallel_unit.tower,
+exercising the actual LLVM registry adapter as well as the isolated callback test
+(ecs-target-once-native-check.log, exit zero). The macOS/Windows/WASI adapter object
+checks also exit zero (ecs-target-once-cross-retry.log). This validates registry
+initialization ownership; native parallel backend jobs remain the next task.

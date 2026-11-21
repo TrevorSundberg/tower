@@ -1,0 +1,15 @@
+import tower;
+import target_api;
+
+// Darwin x86_64/arm64: dispatch_once_t is intptr_t, initially zero.
+// Call the synchronization primitive even after initialization has completed.
+extern fn dispatch_once_f(control: i64*, context: void*, initialize: void*): void;
+extern fn dlsym(handle: void*, name: u8*): void*;
+
+export fn backend_targets_once_entry(context: void*): void { backend_register_targets(); }
+
+export fn backend_initialize_targets(): void {
+    var initialize = dlsym(bits(void*, ~convert(usize, 1)), "backend_targets_once_entry");
+    if initialize == null { trap("Cannot resolve LLVM target initializer", 0); }
+    dispatch_once_f(bits(i64*, backend_registry_control()), null, initialize);
+}

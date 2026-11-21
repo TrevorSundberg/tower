@@ -3,3 +3,11 @@ import tower;
 // The build imports exactly one target initializer implementation. This is an
 // explicit link contract, not a name borrowed from a sibling module.
 extern fn backend_initialize_targets(): void;
+
+// Called only by the selected platform's initialization owner. Registration
+// mutates LLVM's process/instance registry, not a compiler world component.
+extern fn backend_register_targets(): void;
+
+// Explicit zero-initialized platform storage, emitted by the Tower runtime
+// binder. Ordinary uninitialized Tower globals are not a valid once predicate.
+extern fn backend_registry_control(): usize*;

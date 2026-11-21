@@ -165,6 +165,30 @@ export fn runtime_test_state(context: void*, module: void*): bool {
     return true;
 }
 
+export fn runtime_target_registry_state(context: void*, module: void*): bool {
+    var width = LLVMPointerSize(LLVMGetModuleDataLayout(module));
+    var integer = LLVMInt32TypeInContext(context);
+    if width == 8 { integer = LLVMInt64TypeInContext(context); }
+    else {
+        if width != 4 { puts("Unsupported target-registry control layout"); return false; }
+    }
+    var pointer = LLVMPointerTypeInContext(context, 0);
+    var signature = LLVMFunctionType(pointer, null, 0, 0);
+    // An otherwise empty library may optimize away its unused declaration.
+    var function = LLVMGetNamedFunction(module, "backend_registry_control");
+    if function == null { function = LLVMAddFunction(module, "backend_registry_control", signature); }
+    else { function = runtime_platform_declaration(module, "backend_registry_control", signature); }
+    if function == null { return false; }
+    // Native once APIs own this zero-initialized platform word. It is object
+    // production, not a change to Foundation's uninitialized storage semantics.
+    var global = LLVMAddGlobal(module, integer, "tower.runtime.backend.registry");
+    LLVMSetLinkage(global, RuntimePrivateLinkage);
+    LLVMSetAlignment(global, width);
+    LLVMSetInitializer(global, LLVMConstNull(integer));
+    runtime_platform_return(context, function, global);
+    return true;
+}
+
 export fn runtime_host_state(context: void*, module: void*, diagnostic: bool): bool {
     var width = LLVMPointerSize(LLVMGetModuleDataLayout(module));
     var integer = LLVMInt32TypeInContext(context);

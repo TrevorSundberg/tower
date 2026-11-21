@@ -65,6 +65,15 @@ function(tower_runtime_object name input triple)
   set(${name}_OBJECT "${object}" PARENT_SCOPE)
 endfunction()
 
+function(tower_target_registry_runtime triple)
+  get_property(object GLOBAL PROPERTY TOWER_TARGET_REGISTRY_RUNTIME)
+  if(NOT object)
+    tower_runtime_object(backend_registry_runtime "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/backend/target_once_state.tower"
+      "${triple}" --state backend-registry)
+    set_property(GLOBAL PROPERTY TOWER_TARGET_REGISTRY_RUNTIME "${backend_registry_runtime_OBJECT}")
+  endif()
+endfunction()
+
 function(tower_compiler_runtime triple)
   if(TOWER_PARSER_ONLY OR TOWER_ALLOCATOR_TESTS OR TOWER_BACKEND_TESTS OR TOWER_DRIVER_TESTS)
     tower_runtime_object(runtime-instrumented "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/host/memory_instrumented.tower" "${triple}"

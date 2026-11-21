@@ -25,6 +25,32 @@ if(TOWER_WORK_TESTS AND TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
   enable_testing()
   add_test(NAME tower-worker-overlap COMMAND tower-work-tests)
   set_tests_properties(tower-worker-overlap PROPERTIES TIMEOUT 30 SKIP_RETURN_CODE 77)
+  set(target_once_objects)
+  tower_target_registry_runtime("${work_triple}")
+  get_property(target_registry_runtime GLOBAL PROPERTY TOWER_TARGET_REGISTRY_RUNTIME)
+  foreach(unit IN ITEMS tests/target_once backend/target_once_linux)
+    string(REPLACE "/" "_" once_name "${unit}")
+    set(once_object "${CMAKE_CURRENT_BINARY_DIR}/${once_name}.o")
+    add_custom_command(OUTPUT "${once_object}"
+      COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/${unit}.tower"
+        --library --target "${work_triple}"
+        --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
+        --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
+        -o "${once_object}" --depfile "${once_object}.d"
+      DEPFILE "${once_object}.d"
+      DEPENDS "${TOWER_BOOTSTRAP_COMPILER}" "scaffolding/${unit}.tower" VERBATIM)
+    set_source_files_properties("${once_object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
+    list(APPEND target_once_objects "${once_object}")
+  endforeach()
+  add_executable(tower-target-once-tests ${target_once_objects}
+    "${target_registry_runtime}"
+    "${CMAKE_CURRENT_BINARY_DIR}/host_work_linux.o" "${CMAKE_CURRENT_BINARY_DIR}/host_work_dispatch.o" "${work_runtime}")
+  set_target_properties(tower-target-once-tests PROPERTIES LINKER_LANGUAGE C)
+  target_link_libraries(tower-target-once-tests PRIVATE Threads::Threads ${CMAKE_DL_LIBS})
+  target_link_options(tower-target-once-tests PRIVATE
+    -Wl,--export-dynamic-symbol=work_thread_entry -Wl,--export-dynamic-symbol=backend_register_targets)
+  add_test(NAME tower-target-registry-once COMMAND tower-target-once-tests)
+  set_tests_properties(tower-target-registry-once PROPERTIES TIMEOUT 30 SKIP_RETURN_CODE 77)
   include("${CMAKE_CURRENT_LIST_DIR}/TowerWorkPolicyTests.cmake")
 endif()
 
