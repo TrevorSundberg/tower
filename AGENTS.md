@@ -84,6 +84,16 @@ Do NOT modify todo.txt
 
 ## Writing Tower code
 
+- Use typed noncapturing callbacks as `function(Result, Parameters...)`, with
+  ordinary function names or `&name`, instead of untyped addresses or bespoke
+  dispatch IDs when actual callable values fit the API. Use nullable callbacks
+  and `??`/`??=` for optional hooks; preserve callee-before-argument ordering,
+  effects, thread ownership and the lifetime of data passed to callbacks.
+  Keep protocol/serialized IDs where they identify data rather than callable
+  values. Do not assume a function carries captures or transfers ownership.
+  See docs/function-values.md. Publish the compatible complete bootstrap before
+  adopting these signatures in compiler/build sources.
+
 - Use `i8`/`u8` and `i16`/`u16` for signed/unsigned byte and short storage when
   those widths describe the data or foreign contract. Keep wider counters and
   intermediates where required; Tower does not apply C integer promotions.

@@ -16,6 +16,7 @@ import .compiler.execution_package;
 import .compiler.execution_session;
 import execution_support;
 import execution_suite;
+import execution_semantics;
 import execution_world;
 import named_initialization_checks;
 import struct_value_checks;
@@ -23,6 +24,7 @@ import known_binding_checks;
 import floating_checks;
 import floating_oracle;
 import narrow_checks;
+import function_checks;
 import integer_negation_checks;
 import body_runs;
 import editor_observations;
@@ -38,11 +40,13 @@ export fn main(argc: i32, argv: u8**): i32 {
     var known = strcmp(suite, "known") == 0;
     var floating = strcmp(suite, "floating") == 0;
     var narrow = strcmp(suite, "narrow") == 0;
+    var functions = strcmp(suite, "functions") == 0;
+    var semantics = strcmp(suite, "semantics") == 0;
     var oracle = strcmp(suite, "floating-oracle") == 0;
     var negation = strcmp(suite, "negation") == 0;
     var bodies = strcmp(suite, "body-smoke") == 0;
     var editor = strcmp(suite, "editor") == 0;
-    execution_check(all || known || bodies || editor || floating || oracle || negation || narrow, "known execution suite");
+    execution_check(all || known || bodies || editor || floating || oracle || negation || narrow || functions || semantics, "known execution suite");
     if all || editor { editor_observation_tests(argv[1]); }
     if editor { return 0; }
     if bodies {
@@ -68,6 +72,14 @@ export fn main(argc: i32, argv: u8**): i32 {
     execution_check(syntax_host_install(compiler_host_world(), request.text[DriverFoundationText].data, true, &result), "install Foundation" );
     frontend_modules_configure(request.modules, "named_initialization_input.tower", argv[1]);
     if oracle { floating_oracle_tests(request.modules); return 0; }
+    if semantics {
+        frontend_modules_configure(request.modules, options.source, argv[1]);
+        execution_semantic_tests(request.modules);
+        execution_world_tests(&request);
+        return 0;
+    }
+    if all || functions { function_tests(request.modules, argv[1]); }
+    if functions { return 0; }
     if all || narrow { narrow_tests(request.modules, argv[1]); }
     if narrow { return 0; }
     if all || negation { integer_negation_tests(request.modules, argv[1]); }

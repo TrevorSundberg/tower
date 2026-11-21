@@ -261,7 +261,7 @@ fn sem_lift_coalesce(c: SemanticContext*, block: void*, left: void*, right: void
     var selected = block;
     var first = sem_lift_guarded_path(c, &selected, left);
     first = sem_lift_value(c, selected, first);
-    if type.pointers != 0 {
+    if type.pointers != 0 || type.scalar == SFunction {
         var present = sem_lift_nonnull(c, selected, first);
         var yes = sem_control_node(c, selected, KBlock);
         sem_control_branch(c, selected, present, yes);

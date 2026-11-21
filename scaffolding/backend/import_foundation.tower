@@ -13,6 +13,7 @@ var BackendImportPointer: u32 = FoundationScalarLimit;
 var LLVMFloatTypeKind: u32 = 2;
 var LLVMDoubleTypeKind: u32 = 3;
 var LLVMConstantIntegerValueKind: u32 = 18;
+var LLVMFunctionValueKind: u32 = 5;
 struct BackendImport {
     backend: Backend*;
     root: void*;
@@ -257,6 +258,7 @@ fn bi_binary(c: BackendImport*, op: u32, left: void*, right: void*, scalar: u32)
 }
 
 fn bi_cast_type(c: BackendImport*, value: void*, type: FoundationType*): void* {
+    if semantic_type_equal(&sem_get(value).type, type) { return value; }
     var entity = bi_node(c, 10, type.scalar);
     var n = sem_get(entity);
     copy(&n.type, type, sizeof(FoundationType));
@@ -274,6 +276,34 @@ fn bi_cast_type(c: BackendImport*, value: void*, type: FoundationType*): void* {
         }
     }
     return bi_temp(c, entity);
+}
+
+fn bi_function_type(c: BackendImport*, result: FoundationType*, parameters: vector(void*)*): FoundationType* {
+    var entity = bi_node(c, KType, SFunction);
+    var signature = sem_get(entity);
+    signature.type.record = entity;
+    signature.element = *result;
+    foreach(var source in parameters) {
+        var parameter = bi_node(c, KParameter, SVoid);
+        sem_get(parameter).type = sem_get(source).type;
+        backend_require(c.backend, vector_push(&signature.parameters, parameter));
+    }
+    return &signature.type;
+}
+
+fn bi_llvm_function_type(c: BackendImport*, type: void*): FoundationType* {
+    if LLVMIsFunctionVarArg(type) != 0 { backend_fail(c.backend, "Variadic indirect calls are not supported"); }
+    var count = LLVMCountParamTypes(type);
+    var types = alloc(void*, convert(usize, count));
+    defer free(types);
+    LLVMGetParamTypes(type, types);
+    var parameters: vector(void*) = default;
+    defer vector_dispose(&parameters);
+    for(var i: u32 = 0; i < count; i++) {
+        backend_require(c.backend, vector_push(&parameters, bi_node(c, KParameter, bi_scalar(c, types[i]))));
+    }
+    var result = bi_node(c, KType, bi_scalar(c, LLVMGetReturnType(type)));
+    return bi_function_type(c, &sem_get(result).type, &parameters);
 }
 
 fn bi_address(c: BackendImport*, object: void*): void* {

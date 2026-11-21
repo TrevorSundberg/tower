@@ -20,6 +20,9 @@ var FMUInt16: usize = 6;
 var FMInt16: usize = 7;
 var FMFloat32BinaryBase: usize = 192;
 var FMFloat64BinaryBase: usize = 208;
+var FMIndirectCall: usize = 25;
+var FMCheckFunction: usize = 26;
+var FMDirectCall: usize = 15;
 
 // Private, disposable execution cache of checked foundation nodes. This is not
 // an interchange format or a second semantic IR. No graph pointers or compiler
@@ -216,16 +219,7 @@ fn fm_type(f: FMState*, type: FoundationType*): usize {
     var index: usize = 0;
     for(; index != f.types.length; index++) {
         var other = f.types.data[index];
-        var same = type.scalar == other.scalar;
-        var fm_condition_5 = type.pointers == other.pointers;
-
-        same = im_and(same, fm_condition_5);
-        var fm_condition_6 = type.record == other.record;
-
-        same = im_and(same, fm_condition_6);
-        var fm_condition_7 = type.pointer_bytes == other.pointer_bytes;
-
-        same = im_and(same, fm_condition_7);
+        var same = semantic_type_equal(type, other);
         if same {
             return index;
         }
@@ -469,6 +463,10 @@ fn fm_value(f: FMState*, node: void*): usize {
         return fm_constant(f, 0);
     }
     var n = im_node(node);
+    if n.kind == KFunctionReference {
+        fm_function(f, n.binding);
+        return fm_constant(f, convert(u64, im_node(n.binding).index) + 1);
+    }
     var fm_condition_10 = n.kind == KOperand;
 
     var constant = im_and(fm_condition_10, n.constant);
@@ -526,6 +524,8 @@ fn fm_value(f: FMState*, node: void*): usize {
         return result;
     }
     if n.kind == KCall {
+        var callee: usize = 0;
+        if n.value != null { callee = fm_value(f, n.value); }
         var result = fm_register(f);
         var first = f.next_register;
         var i: usize = 0;
@@ -538,7 +538,11 @@ fn fm_value(f: FMState*, node: void*): usize {
             var dest = first + i;
             fm_emit(f, 1, dest, arg, 0);
         }
-        fm_emit(f, 15, result, fm_function(f, n.binding), first);
+        if n.value == null { fm_emit(f, FMDirectCall, result, fm_function(f, n.binding), first); }
+        else {
+            fm_emit(f, FMCheckFunction, callee, fm_type(f, &im_node(n.value).type), 0);
+            fm_emit(f, FMIndirectCall, result, callee, first);
+        }
         return result;
     }
     var fm_condition_14 = n.kind == KAllocate;
@@ -920,6 +924,19 @@ export fn fast_interpreter_step(m: IMState*, f: FMState*, budget: usize): void {
         var r = &f.registers.data[f.register_base];
         count++;
         m.steps++;
+        if op == FMCheckFunction || op == FMIndirectCall {
+            var reference = r[op == FMCheckFunction ? a : b];
+            var index: usize = 0;
+            while index < f.functions.length && convert(u64, im_node(f.functions.data[index].node).index) + 1 != reference { index++; }
+            var offset = fm_offset(f, pc);
+            if reference == 0 { im_fail(m, "Cannot call a null function", offset); }
+            else { if index == f.functions.length { im_fail(m, "Invalid function reference", offset); }
+            else { if op == FMCheckFunction {
+                if !im_function_matches(f.functions.data[index].node, f.types.data[b]) { im_fail(m, "Function reference signature mismatch", offset); }
+            } else { fm_call(m, f, a, index, c, offset); } } }
+            if m.failed { m.done = true; }
+            continue;
+        }
         if op == 22 {
             f.preserve_error_offset = true;
             im_raise(m, r[a], r[b]);
@@ -1022,7 +1039,7 @@ export fn fast_interpreter_step(m: IMState*, f: FMState*, budget: usize): void {
                                                             }
                                                         }
                                                         else {
-                                                            selected = op == 15;
+                                                            selected = op == FMDirectCall;
                                                             if selected {
                                                                 fm_call(m, f, a, b, c, 0);
                                                             }

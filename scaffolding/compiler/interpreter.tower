@@ -70,6 +70,15 @@ fn ix_strict_node(m: IMExecution*, n: FoundationNode*, offset: usize): bool {
     if !ix_strict(m) {
         return true;
     }
+    if n.kind == KBits || n.kind == KConvert {
+        var source = im_cached_node(m.state, n.value);
+        var function = source.type.pointers == 0 && source.type.scalar == SFunction
+            || n.type.pointers == 0 && n.type.scalar == SFunction;
+        if function && !semantic_type_equal(&source.type, &n.type) {
+            ix_fail(m, "Compile-time function values require relocatable typed references, not representation casts", offset);
+            return false;
+        }
+    }
     // Optional source folding must not substitute an interpreter stack address
     // or an address comparison for a result obtained in another execution.
     // Explicit stages retain their existing target-address execution policy.
@@ -78,6 +87,7 @@ fn ix_strict_node(m: IMExecution*, n: FoundationNode*, offset: usize): bool {
         if n.kind == KBits || n.kind == KConvert {
             var source = im_cached_node(m.state, n.value);
             address_value = (source.type.pointers != 0) != (n.type.pointers != 0);
+            address_value ||= (source.type.scalar == SFunction) != (n.type.scalar == SFunction);
         }
         if n.kind == KBinary && n.type.pointers == 0 {
             address_value ||= im_cached_node(m.state, n.left).type.pointers != 0;
@@ -557,6 +567,7 @@ fn ix_evaluate_uncached(m: IMExecution*, node: void*, n: FoundationNode*, offset
     if !ix_strict_node(m, n, offset) {
         return 0;
     }
+    if n.kind == KFunctionReference { return im_function_reference(m.state, n.binding); }
     if n.kind == KCall {
         ix_fail(m, "Missing suspended call result", offset);
         return 0;
@@ -850,7 +861,20 @@ fn ix_returned(m: IMExecution*, value: u64): void {
 
 fn ix_call(m: IMExecution*, node: void*, offset: usize): void {
     var n = im_cached_node(m.state, node);
-    var function = im_cached_node(m.state, n.binding);
+    var binding = n.binding;
+    if n.value != null {
+        var reference = ix_read(m, n.value, offset);
+        if !ix_ok(m) { return; }
+        if reference == 0 { ix_fail(m, "Cannot call a null function", offset); return; }
+        if reference > convert(u64, m.state.function_values.length) {
+            ix_fail(m, "Invalid function reference", offset); return;
+        }
+        binding = m.state.function_values.data[convert(usize, reference - 1)];
+        if binding == null || !im_function_matches(binding, &im_cached_node(m.state, n.value).type) {
+            ix_fail(m, "Function reference signature mismatch", offset); return;
+        }
+    }
+    var function = im_cached_node(m.state, binding);
     var base: usize = 0;
     {
         var small_args: u64[16];
@@ -881,10 +905,10 @@ fn ix_call(m: IMExecution*, node: void*, offset: usize): void {
         }
         if function.external {
             if ix_has_foreign(m) == false {
-                ix_missing_foreign(m, n.binding, offset);
+                ix_missing_foreign(m, binding, offset);
                 return;
             }
-            var result = ix_foreign(m, n.binding, args, n.items.length);
+            var result = ix_foreign(m, binding, args, n.items.length);
             if ix_ok(m) {
                 im_values_set(m.state, im_key(node), result);
             }
@@ -919,7 +943,7 @@ fn ix_call(m: IMExecution*, node: void*, offset: usize): void {
             i++;
         }
     }
-    im_frame_push(m.state, n.binding, base, offset, node);
+    im_frame_push(m.state, binding, base, offset, node);
     ix_enter(m, function.body);
 }
 
@@ -1185,6 +1209,7 @@ export fn ix_step(m: IMExecution*, budget: usize): void {
                         i--;
                         ix_queue(m, n.items.data[i], 2, offset);
                     }
+                    ix_queue(m, n.value, 2, offset);
                 } else {
                     if n.kind == KAddress {
                         ix_queue(m, n.value, 3, offset);

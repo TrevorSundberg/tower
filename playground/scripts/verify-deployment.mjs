@@ -13,7 +13,7 @@ if (!base.pathname.endsWith('/')) throw new Error('Deployment URL must end in /'
 const output = new URL('../../build/deployment-verification/', import.meta.url);
 await mkdir(output, {recursive:true});
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
-const bytecodeContainerVersion = 1, bytecodeSemanticsVersion = 4, bytecodeExecutionCacheVersion = 4;
+const bytecodeContainerVersion = 1, bytecodeSemanticsVersion = 5, bytecodeExecutionCacheVersion = 5;
 const report = {url:base.href, assets:[], browsers:[]};
 const manifest = JSON.parse(await readFile(new URL('../dist/deployment-manifest.json', import.meta.url), 'utf8'));
 // .nojekyll is a hosting marker; GitHub Pages does not serve dotfiles.

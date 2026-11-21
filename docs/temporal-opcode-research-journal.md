@@ -38266,3 +38266,81 @@ symbol/weak/reference behavior before selecting that path. Compression cannot
 simply disappear: compiler-build strips the .gz suffix, browser fetchBytes
 decompresses gzip, and native browser-generation probes explicitly gunzip support
 assets. Reuse these existing Tower primitives before adding implementation.
+### First-class function implementation: shared signatures and worker ownership
+
+Started from main 7425a14 after `git pull --rebase` reported up to date. The
+accepted next milestone is noncapturing typed function values and indirect calls,
+implemented entirely in Tower. The chosen type spelling is
+`function(ReturnType, ParameterTypes...)`: ordinary parenthesized type application
+reuses the Foundation type grammar, and a trailing `*` addresses callback storage.
+Signatures use shared KType/parameter entities, structural equality, target pointer
+width, and a new SFunction scalar. KFunctionReference binds a function declaration;
+KCall retains its ordinary argument list and uses its value edge for an indirect
+callee. Canonical Foundation spells references as `&name` and indirect calls through
+ordinary locations. No independent function-pointer instruction ABI was introduced.
+
+Initial native build: `TOWER_NATIVE_BUILD=/cache/functions-native
+TOWER_BUILD_JOBS=3 bash /work/playground/scripts/build-native.sh` in the existing
+tower-c-validation Ubuntu/LLVM19 container, using the public 0d752e7d bootstrap.
+Small semantic_support, semantic_values, fast_interpreter and backend/lowering
+units compiled first. Inputs were frozen during each subsequent incremental build.
+The first fixture ran correctly in graph/cache interpretation and LLVM native
+output after fixing nullable-function coalescing: the existing guarded scalar path
+had treated every non-data-pointer as present, so `??=` skipped its fallback.
+
+Failures retained as useful evidence: a worker initially called sem_create against
+the shared root while constructing a signature. GDB stopped at SIGABRT in
+sem_function_type; construction now uses sem_control_node under the leased source,
+and private signature indexes publish after joins. Struct callbacks exposed that
+type observations had previously been optional editor metadata. Function-signature
+observations must also publish in ordinary compilation so the existing aggregate
+signature barrier can rewrite every privately constructed equivalent. Declaration
+workers now own their signature scratch too. Bytecode re-encoding initially grew
+Foundation temporaries because indirect CoreCall checking incorrectly requested
+surface lowering; canonical Foundation must not request another normalization pass.
+The cache type index now uses shared structural type equality.
+
+In-progress checks are Tower-owned function_values/function_checks fixtures and the
+`functions` execution suite: graph/cache agreement, 32/64-bit layouts, Foundation
+round trips, verified package reconstruction/re-encoding and 1/2/4/8 worker output.
+The expanded fixture adds recursion, callee-before-argument mutation, null fallback,
+narrow/float signatures, struct shallow copies/returns and staged callback results.
+Staged function values relocate by their bound declaration, never by copying a
+private interpreter number into canonical text. These broader checks and publication
+are still in progress at this entry; no new bootstrap or deployment is claimed yet.
+
+The expanded `functions` suite now passes at both widths, including exact graph/cache
+memory and diagnostics, canonical package re-encoding, staged returned functions,
+struct-copy callbacks and 1/2/4/8-worker determinism. Signature observations now
+publish even without editor metadata; declaration workers own their type-argument
+scratch. A second ownership failure in unoptimized LLVM reconstruction traced to
+sem_type_entity while building pointer parameters inside a function type; those
+temporary parameters now use the same leased-node construction path.
+
+Added TowerInvoke rules for computed/chained calls without changing Foundation or
+Bedrock grammars. Runtime explicit equal-width bits casts retain low-level raw
+representation support, while strict staging rejects representation-changing
+function casts. Interpreter call validation checks ABI classes/widths so LLVM's
+signless integer reconstruction remains executable; ordinary source assignments
+still require exact signatures. LLVM import now reconstructs function references
+and actual indirect calls rather than rejecting them. C/BrightScript source output
+diagnoses this capability as unsupported instead of emitting invalid code.
+
+Observed passes with `/cache/functions-native/towerc`: function_values via the
+existing run-guest-runtime transport at 32/64-bit interpretation, native execution
+and Wasm execution; `--interpret-fast --no-optimize` (preserving indirect calls)
+prints 0; optimized `.towerbc` emission succeeds. Separately compiled
+function_foreign_provider/client objects print 0 natively and through executeWasm,
+including returned callbacks and signed i8 callbacks. The Tower-owned driver test
+now keeps a cross-object callback/return regression. CTest tower-driver,
+tower-driver-module-paths and tower-worker-overlap all pass (14.00s combined).
+
+The full native execution run passed editor/feature suites, 156 graph/cache trials,
+allocation/package/core round trips, then stopped on the intentionally changed
+null diagnostic. Updated that oracle to "null requires a pointer or function type"
+and ran the newly focused semantics suite plus world-isolation tests: both pass.
+No semantic graph fingerprints were changed. An existing scalar variable/function
+name coexistence case also remains valid: callable bindings take precedence, while
+ordinary scalar variables retain Foundation's separate call namespace. All source
+implementation and assertions are Tower; JavaScript additions are existing browser
+test transport/version metadata only. Release/bootstrap/browser publication is next.

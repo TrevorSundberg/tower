@@ -45,4 +45,5 @@ struct IMState {
     sequenced: vector(IMEntry);
     frames: vector(IMFrame);
     node_cache: vector(IMEntry);
+    function_values: vector(void*);
 }

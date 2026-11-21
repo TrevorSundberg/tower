@@ -1,5 +1,6 @@
 import tower;
 import foundation_types;
+import foundation_tags;
 import interpreter_storage;
 import .library.vector;
 
@@ -19,6 +20,44 @@ extern fn semantic_mask(type: FoundationType*): u64;
 extern fn semantic_signed(type: FoundationType*): bool;
 extern fn semantic_float(type: FoundationType*): bool;
 extern fn semantic_width(type: FoundationType*): u32;
+extern fn semantic_type_equal(a: FoundationType*, b: FoundationType*): bool;
+
+// Code references are opaque, deterministic values in the interpreter's target
+// address space. Only this derived table contains entity handles, never memory.
+fn im_function_reference(m: IMState*, function: void*): u64 {
+    var index = im_node(function).index;
+    if m.function_values.length <= index {
+        var previous = m.function_values.length;
+        im_storage_require(vector_reserve(&m.function_values, index + 1));
+        m.function_values.length = index + 1;
+        for(var i = previous; i <= index; i++) { m.function_values.data[i] = null; }
+    }
+    im_storage_require(m.function_values.data[index] == null || m.function_values.data[index] == function);
+    m.function_values.data[index] = function;
+    return convert(u64, index) + 1;
+}
+
+fn im_function_matches(function: void*, type: FoundationType*): bool {
+    var definition = im_node(function);
+    var signature = im_node(type.record);
+    if !im_call_type_equal(&definition.type, &signature.element) || definition.parameters.length != signature.parameters.length { return false; }
+    for(var i: usize = 0; i < signature.parameters.length; i++) {
+        if !im_call_type_equal(&im_node(definition.parameters.data[i]).type, &im_node(signature.parameters.data[i]).type) { return false; }
+    }
+    return true;
+}
+
+// Ordinary assignment/calls require exact source signatures. Explicit bits
+// reinterpretation and reconstructed LLVM pointers may erase signedness, while
+// the target ABI still passes identical bits. Never conflate float/int registers.
+fn im_call_type_equal(a: FoundationType*, b: FoundationType*): bool {
+    if semantic_type_equal(a, b) { return true; }
+    var pointer_a = a.pointers != 0 || a.scalar == SFunction;
+    var pointer_b = b.pointers != 0 || b.scalar == SFunction;
+    if pointer_a || pointer_b { return pointer_a && pointer_b && a.pointer_bytes == b.pointer_bytes; }
+    if a.scalar == SVoid || b.scalar == SVoid || semantic_float(a) || semantic_float(b) { return false; }
+    return semantic_width(a) == semantic_width(b);
+}
 
 fn im_node(node: void*): FoundationNode* {
     return sem_get(node);

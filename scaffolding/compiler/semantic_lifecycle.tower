@@ -99,7 +99,7 @@ export fn semantic_initialize(program: SemanticProgram*, root: void*, width: u32
         if scalar >= FoundationScalarLimit {
             break;
         }
-        if scalar == SStruct || scalar == SArray {
+        if scalar == SStruct || scalar == SArray || scalar == SFunction {
             scalar++;
             continue;
         }

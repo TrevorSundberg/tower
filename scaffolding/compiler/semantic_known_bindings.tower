@@ -230,9 +230,11 @@ fn sem_known_publish(c: SemanticContext*): void {
             var value = sem_get(patch.subject);
             if patch.declaration { value.value = patch.literal; }
             else {
-                value.constant = true;
-                value.bits = sem_get(patch.literal).bits;
-                value.binding = null;
+                var literal = sem_get(patch.literal);
+                value.kind = literal.kind;
+                value.constant = literal.constant;
+                value.bits = literal.bits;
+                value.binding = literal.binding;
             }
         }
     }

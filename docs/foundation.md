@@ -583,9 +583,10 @@ Callers initialize/dispose containers and check allocation results.
 Reallocation invalidates old views; arena reset invalidates its views. Import the library with `import library.storage;`, or link exported functions
 from a separately compiled object with matching declarations. See [modules](modules.md).
 
-Extern/export signatures support scalars, raw pointers and void returns under
-the selected C ABI. Structs/arrays pass by pointer. C++ classes, variadics, indirect
-function pointers, dynamic loading and exception propagation are not implemented.
+Extern/export signatures support scalars, raw pointers, typed noncapturing function
+values and void returns under the selected C ABI. Structs/arrays pass by pointer.
+See [function values](function-values.md) for indirect calls and callback contracts.
+C++ classes, variadics, dynamic loading and exception propagation are not implemented.
 The interpreter needs registered host functions; it cannot execute a native
 object. Its addresses refer to its byte arena, and browser Wasm addresses refer
 to that instance's linear memory. They are not interchangeable across instances.

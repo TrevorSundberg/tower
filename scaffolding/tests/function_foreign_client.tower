@@ -1,0 +1,8 @@
+import tower;
+extern fn invoke(callback: function(i32, i32), value: i32): i32;
+extern fn obtain(): function(i32, i32);
+extern fn invoke_small(callback: function(i8, i8), value: i8): i8;
+fn twice(value: i32): i32 { return value * 2; }
+fn previous(value: i8): i8 { return value - 1; }
+var callback = obtain();
+print(convert(i32, invoke(twice, 21) != 42 || callback(41) != 42 || invoke_small(previous, -127) != -128));

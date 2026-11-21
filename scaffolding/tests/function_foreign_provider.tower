@@ -1,0 +1,5 @@
+import tower;
+fn successor(value: i32): i32 { return value + 1; }
+export fn invoke(callback: function(i32, i32), value: i32): i32 { return callback(value); }
+export fn obtain(): function(i32, i32) { return successor; }
+export fn invoke_small(callback: function(i8, i8), value: i8): i8 { return callback(value); }

@@ -167,7 +167,7 @@ fn sem_layout_all(c: SemanticContext*): void {
     var index = c.layout_checked;
     while index < c.program.types.length {
         var type = c.program.types.data[index];
-        if sem_get(type).type.record != null {
+        if sem_get(type).type.record != null && sem_get(type).type.scalar != SFunction {
             var query = sem_layout_discover(c, type);
             if work_task(&c.queries, query).state != WorkState.Succeeded {
                 sem_require(vector_push(&pending, query));

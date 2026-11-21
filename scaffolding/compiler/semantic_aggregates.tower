@@ -37,6 +37,28 @@ fn sem_aggregate_parameter(c: SemanticContext*, subject: void*, type: Foundation
 
 fn sem_aggregate_prepare(c: SemanticContext*): void {
     sem_lower_transform(c, true);
+    // Publish executable callback signatures at the same barrier as function
+    // signatures, before expression-lowering workers consume either form.
+    foreach(var type in &c.type_arguments) { sem_aggregate_function_type(c, &sem_get(type).type); }
+}
+
+fn sem_aggregate_function_type(c: SemanticContext*, type: FoundationType*): void {
+    if type.scalar != SFunction { return; }
+    var signature = sem_get(type.record);
+    foreach(var parameter in &signature.parameters) {
+        var input = &sem_get(parameter).type;
+        sem_aggregate_function_type(c, input);
+        if semantic_aggregate(input) { input.pointers++; }
+    }
+    sem_aggregate_function_type(c, &signature.element);
+    if semantic_aggregate(&signature.element) {
+        var parameter = sem_create(type.record);
+        var value = sem_attach(parameter, KParameter);
+        value.type = signature.element;
+        value.type.pointers++;
+        sem_push(&signature.parameters, parameter);
+        sem_set_type(&signature.element, sem_type_new(c, SVoid, 0, null));
+    }
 }
 
 fn sem_aggregate_needed(subject: void*): bool {
@@ -213,6 +235,7 @@ fn sem_aggregate_value(c: SemanticContext*, block: void*, n: void*): void* {
         return sem_lift_result(n, result);
     }
     if value.kind == KCall {
+        value.value = sem_lift_value(c, block, value.value);
         sem_aggregate_arguments(c, block, n);
         sem_push(&value.items, sem_get(sem_lift_target(c, block, result)).value);
         sem_set_type(&value.type, sem_type_new(c, SVoid, 0, null));

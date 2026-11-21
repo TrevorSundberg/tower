@@ -11,6 +11,7 @@ import semantic_values;
 import semantic_expressions;
 import semantic_declarations;
 import semantic_work_ids;
+import semantic_control;
 import .library.vector;
 import .library.work_graph;
 
@@ -49,7 +50,7 @@ fn sem_type_uses_begin(c: SemanticContext*): void {
 }
 
 fn sem_type_use(c: SemanticContext*, node: void*, type: FoundationType*): void {
-    if c.type_uses == null {
+    if c.type_uses == null && type.scalar != SFunction {
         return;
     }
     if c.type_observations != null {
@@ -57,6 +58,8 @@ fn sem_type_use(c: SemanticContext*, node: void*, type: FoundationType*): void {
         sem_require(vector_push(c.type_observations, observation));
         return;
     }
+    if type.scalar == SFunction && !sem_has(&c.type_arguments, type.record) { sem_push(&c.type_arguments, type.record); }
+    if c.type_uses == null { return; }
     var component = entity_component_add(node, c.type_uses);
     var use = bits(SemanticTypeUse*, entity_component_data(component));
     var allocated = use != null;
@@ -67,6 +70,11 @@ fn sem_type_use(c: SemanticContext*, node: void*, type: FoundationType*): void {
 fn sem_type_observations_publish(c: SemanticContext*, observations: vector(SemanticTypeObservation)*): void {
     sem_require(c.entity_stage == null && c.type_observations == null);
     foreach(var &observation in observations) {
+        // Keep each privately constructed signature reachable for the later
+        // signature-lowering barrier, even when its type is structurally equal.
+        if observation.type.scalar == SFunction && !sem_has(&c.type_arguments, observation.type.record) {
+            sem_push(&c.type_arguments, observation.type.record);
+        }
         sem_type_use(c, observation.node, &observation.type);
     }
     vector_dispose(observations);
@@ -226,6 +234,23 @@ fn sem_type_call(c: SemanticContext*, n: void*): FoundationType* {
     var step1 = sem_member(n, "name");
     var name: u8* = sem_identifier(c, step1);
     var definition: void* = sem_resolve(c, c.type_functions, step1, name);
+    if definition == null && sem_equal(name, "function") {
+        var arguments = sem_collect(c, sem_member(n, "args"), sem_is(n, "CoreCall") ? "CoreCallArgument" : "CoreTypeArgument");
+        if arguments.length == 0 {
+            sem_fail(c, n, "function requires a return type followed by its parameter types");
+            return sem_type_new(c, SI32, 0, null);
+        }
+        var result = sem_type(c, arguments.data[0]);
+        var parameters = sem_list(c);
+        for(var i: usize = 1; i < arguments.length && sem_ok(c); i++) {
+            var type = sem_type(c, arguments.data[i]);
+            if type.pointers == 0 && type.scalar == SVoid { sem_fail(c, arguments.data[i], "A function parameter cannot have void type"); }
+            var parameter = sem_control_node(c, n, KParameter);
+            sem_set_type(&sem_get(parameter).type, type);
+            sem_push(parameters, parameter);
+        }
+        return sem_function_type(c, n, result, parameters);
+    }
     var invalid: FoundationType* = sem_type_new(c, SI32, 0, null);
     if definition == null {
         var step6 = sem_cat(c, "Unknown type constructor '", name);
@@ -602,6 +627,78 @@ fn sem_add_local(c: SemanticContext*, n: void*): void {
         sem_fail(c, n, "Foundation local storage exceeds 4 MiB");
     }
     sem_push(&function.locals, n);
+}
+
+fn sem_value_binding(c: SemanticContext*, n: void*): void* {
+    n = sem_surface_unwrap(n);
+    var name = sem_identifier(c, n);
+    var module = sem_namespace(c, n);
+    if module != null { return sem_owned(c.globals, module, sem_identifier(c, sem_member(n, "field"))); }
+    if sem_member(n, "base") != null { return null; }
+    var scope = c.scope;
+    while scope != null {
+        var found = sem_lookup_table(scope.names, name);
+        if found != null { return found; }
+        scope = scope.parent;
+    }
+    return sem_resolve(c, c.globals, n, name);
+}
+
+// Preserve Foundation's existing distinct value/function namespaces: a scalar
+// variable named like a function does not hide that function in call position.
+// An already typed callable binding does take precedence for indirect calls.
+fn sem_call_uses_value(c: SemanticContext*, name: void*): bool {
+    var binding = sem_value_binding(c, name);
+    if binding != null {
+        var type = &sem_get(binding).type;
+        if type.scalar == SFunction && type.pointers == 0 { return true; }
+        return sem_resolve(c, c.functions, name, sem_identifier(c, name)) == null;
+    }
+    return sem_member(name, "base") != null && sem_namespace(c, name) == null;
+}
+
+// Signatures are structural type objects on the same ECS model. Workers may
+// construct private equivalents; equality never depends on their allocation.
+fn sem_function_type(c: SemanticContext*, owner: void*, result: FoundationType*, parameters: vector(void*)*): FoundationType* {
+    if parameters.length > FoundationParameterLimit || semantic_aggregate(result) && parameters.length == FoundationParameterLimit {
+        sem_fail(c, owner, "Function signature exceeds the Foundation parameter limit");
+    }
+    foreach(var entity in &c.type_arguments) {
+        var signature = sem_get(entity);
+        if signature.type.scalar != SFunction || !semantic_type_equal(&signature.element, result)
+        || signature.parameters.length != parameters.length { continue; }
+        var same = true;
+        for(var i: usize = 0; i < parameters.length; i++) {
+            same &&= semantic_type_equal(&sem_get(signature.parameters.data[i]).type, &sem_get(parameters.data[i]).type);
+        }
+        if same { return &signature.type; }
+    }
+    var entity = sem_control_node(c, owner, KType);
+    var signature = sem_get(entity);
+    sem_set_type(&signature.type, sem_type_new(c, SFunction, 0, entity));
+    sem_set_type(&signature.element, result);
+    foreach(var source in parameters) {
+        var parameter = sem_control_node(c, entity, KParameter);
+        sem_set_type(&sem_get(parameter).type, &sem_get(source).type);
+        sem_push(&signature.parameters, parameter);
+    }
+    sem_set_name(signature, sem_type_name(c, &signature.type));
+    sem_push(&c.type_arguments, entity);
+    return &signature.type;
+}
+
+fn sem_function_reference(c: SemanticContext*, source: void*, name: void*): bool {
+    name = sem_surface_unwrap(name);
+    if sem_value_binding(c, name) != null { return false; }
+    var function = sem_resolve(c, c.functions, name, sem_identifier(c, name));
+    if function == null { return false; }
+    sem_query_input(c, function, convert(u32, SemanticQuery.Declaration));
+    var definition = sem_get(function);
+    var value = sem_node(c, source, KFunctionReference);
+    value.binding = function;
+    sem_set_type(&value.type, sem_function_type(c, source, &definition.type, &definition.parameters));
+    sem_type_use(c, source, &value.type);
+    return true;
 }
 
 fn sem_lookup(c: SemanticContext*, n: void*): void* {

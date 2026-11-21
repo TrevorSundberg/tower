@@ -1,5 +1,9 @@
 import tower;
 import .compiler.foundation_types;
+extern fn LLVMGetCalledFunctionType(call: void*): void*;
+extern fn LLVMCountParamTypes(type: void*): u32;
+extern fn LLVMGetParamTypes(type: void*, destination: void**): void;
+extern fn LLVMIsFunctionVarArg(type: void*): i32;
 
 // LLVM's C API is the inspection boundary. All reconstructed semantics live on
 // the same Foundation components as parsing, formatting and execution.

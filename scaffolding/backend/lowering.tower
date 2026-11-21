@@ -15,7 +15,7 @@ import .library.float_bits;
 var BackendFunctionAttributeIndex: u32 = ~convert(u32, 0);
 
 fn backend_type(b: Backend*, t: FoundationType*): void* {
-    if t.pointers != 0 {
+    if t.pointers != 0 || t.scalar == SFunction {
         return b.pointer_type;
     }
     if semantic_aggregate(t) {
@@ -34,7 +34,7 @@ fn backend_size_value(b: Backend*, value: usize): void* {
 }
 
 fn backend_constant(b: Backend*, t: FoundationType*, value: u64): void* {
-    if t.pointers != 0 {
+    if t.pointers != 0 || t.scalar == SFunction {
         return LLVMConstNull(b.pointer_type);
     }
     if semantic_float(t) {
@@ -113,7 +113,9 @@ fn backend_extension_attribute(b: Backend*, value: void*, index: u32, call: bool
 }
 
 fn backend_abi(b: Backend*, value: void*, n: FoundationNode*, call: bool): void {
-    var public = n.external;
+    // Function values use the target's ordinary C calling convention. Keep
+    // narrow extension attributes identical for internal and public callees.
+    var public = true;
     if n.exported {
         public = true;
     }
@@ -261,6 +263,13 @@ fn backend_address(b: Backend*, entity: void*): void* {
 
 fn backend_read(b: Backend*, entity: void*): void* {
     var n = sem_get(entity);
+    if n.kind == KFunctionReference {
+        var function = b.functions.data[sem_get(n.binding).index];
+        if LLVMGetFunctionCallConv(function) != 0 {
+            backend_fail(b, "Function values require the target C calling convention; use a Tower wrapper for this foreign function");
+        }
+        return function;
+    }
     if n.kind == KAddress {
         return backend_address(b, n.value);
     }
@@ -297,6 +306,8 @@ fn backend_read(b: Backend*, entity: void*): void* {
 }
 
 fn backend_call(b: Backend*, n: FoundationNode*): void* {
+    var indirect: void* = null;
+    if n.value != null { indirect = backend_read(b, n.value); }
     var args: vector(void*);
     vector_init(&args);
     var i: usize = 0;
@@ -308,6 +319,22 @@ fn backend_call(b: Backend*, n: FoundationNode*): void* {
         var value = backend_read(b, n.items.data[i]);
         backend_require(b, vector_push(&args, value));
         i++;
+    }
+    if n.value != null {
+        var signature = sem_get(sem_get(n.value).type.record);
+        var parameters: vector(void*) = default;
+        defer vector_dispose(&parameters);
+        foreach(var parameter in &signature.parameters) {
+            backend_require(b, vector_push(&parameters, backend_type(b, &sem_get(parameter).type)));
+        }
+        var type = LLVMFunctionType(backend_type(b, &signature.element), parameters.data, convert(u32, parameters.length), 0);
+        backend_guard(b, LLVMBuildICmp(b.builder, 33, indirect, LLVMConstNull(b.pointer_type), ""), "Cannot call a null function");
+        var result = LLVMBuildCall2(b.builder, type, indirect, args.data, convert(u32, args.length), "");
+        var abi = *signature;
+        abi.type = signature.element;
+        backend_abi(b, result, &abi, true);
+        vector_dispose(&args);
+        return result;
     }
     var definition = sem_get(n.binding);
     var function = b.functions.data[definition.index];
@@ -375,6 +402,7 @@ fn backend_conversion(b: Backend*, n: FoundationNode*, from: FoundationType*, va
 
 fn backend_expression(b: Backend*, entity: void*): void* {
     var n = sem_get(entity);
+    if n.kind == KFunctionReference { return backend_read(b, entity); }
     var ordinary = n.kind == KOperand;
     var `match` = n.kind == KString;
     if `match` {
@@ -439,8 +467,8 @@ fn backend_expression(b: Backend*, entity: void*): void* {
     `match` = n.kind == KBits;
     if `match` {
         if semantic_float(from) || semantic_float(&n.type) { return LLVMBuildBitCast(b.builder, a, backend_type(b, &n.type), ""); }
-        var pointer = n.type.pointers != 0;
-        var source_pointer = from.pointers != 0;
+        var pointer = n.type.pointers != 0 || n.type.scalar == SFunction;
+        var source_pointer = from.pointers != 0 || from.scalar == SFunction;
         var both = pointer;
         both &&= source_pointer;
         if both {

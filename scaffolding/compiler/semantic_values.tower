@@ -281,7 +281,7 @@ fn sem_operand_leaf(c: SemanticContext*, n: void*, expected_type: FoundationType
         }
         n = sem_child(n, 0);
     }
-    var step11 = sem_is(n, "CoreCall");
+    var step11 = sem_is(n, "CoreCall") || sem_is(n, "TowerInvoke");
     if sem_editor_contains(c, n) {
         if c.editor.has_expected {
             if sem_is(n, "CoreAddress") {
@@ -310,6 +310,9 @@ fn sem_operand_leaf(c: SemanticContext*, n: void*, expected_type: FoundationType
             }
             var address: bool = sem_is(n, "CoreAddress");
             var kind: u32 = KLoad;
+            if address && sem_function_reference(c, n, sem_member(n, "name")) {
+                return sem_surface_expected(c, n, expected_type);
+            }
             if address {
                 kind = KAddress;
             }
@@ -347,7 +350,7 @@ fn sem_operand_leaf(c: SemanticContext*, n: void*, expected_type: FoundationType
             }
         } else {
             if !sem_literal(c, n) {
-                if !sem_enum_operand(c, n) {
+                if !sem_enum_operand(c, n) && !sem_function_reference(c, n, n) {
                     n = sem_location(c, n, 0);
                 }
             }
@@ -385,8 +388,8 @@ fn sem_operand_leaf(c: SemanticContext*, n: void*, expected_type: FoundationType
                     sem_set_type(&value.type, step60);
                 }
                 value.bits = 0;
-                if value.type.pointers == 0 {
-                    sem_fail(c, n, "null requires a pointer type");
+                if value.type.pointers == 0 && value.type.scalar != SFunction {
+                    sem_fail(c, n, "null requires a pointer or function type");
                 }
             } else {
                 if text[0] == 39 || text[0] == 34 {
@@ -604,6 +607,9 @@ fn sem_builtin(c: SemanticContext*, n: void*, kind: u32, args: vector(void*)*): 
         if sem_ok(c) && semantic_aggregate(&sem_get(step14).type) {
             sem_fail(c, step14, "print requires a scalar or pointer value");
         }
+        if sem_ok(c) && sem_get(step14).type.pointers == 0 && sem_get(step14).type.scalar == SFunction {
+            sem_fail(c, step14, "Function values cannot be printed; compare their identities or print a descriptive name");
+        }
     } else {
         if kind == KFree || kind == KCopy || kind == KFill {
             var step21 = sem_operand(c, args.data[0], null);
@@ -682,6 +688,12 @@ fn sem_builtin(c: SemanticContext*, n: void*, kind: u32, args: vector(void*)*): 
                         if semantic_aggregate(source) || semantic_aggregate(&value.type) || value.type.pointers == 0 && value.type.scalar == SVoid {
                             sem_fail(c, n, "Conversion requires scalar values");
                         }
+                        var function = value.type.pointers == 0 && value.type.scalar == SFunction
+                            || source.pointers == 0 && source.scalar == SFunction;
+                        if function && (kind != KBits || semantic_float(source) || semantic_float(&value.type)) {
+                            sem_fail(c, n, "Function representation casts require equal-width integer/pointer bits");
+                            return n;
+                        }
                         if kind == KConvert &&(value.type.pointers != 0 || source.pointers != 0) {
                             sem_fail(c, n, "Pointer reinterpretation requires bits");
                         }
@@ -689,7 +701,7 @@ fn sem_builtin(c: SemanticContext*, n: void*, kind: u32, args: vector(void*)*): 
                         if step76 {
                             var step77 = semantic_width(&value.type);
                             var step78 = semantic_width(source);
-                            step76 = step77 != step78 || !semantic_integer(&value.type) && !semantic_float(&value.type) && value.type.pointers == 0 || !semantic_integer(source) && !semantic_float(source) && source.pointers == 0;
+                            step76 = step77 != step78 || !semantic_integer(&value.type) && !semantic_float(&value.type) && value.type.pointers == 0 && value.type.scalar != SFunction || !semantic_integer(source) && !semantic_float(source) && source.pointers == 0 && source.scalar != SFunction;
                             step76 ||= semantic_float(&value.type) && source.pointers != 0;
                             step76 ||= semantic_float(source) && value.type.pointers != 0;
                         }
@@ -821,6 +833,9 @@ fn sem_prepare_call(c: SemanticContext*, use: void*, arguments: vector(void*)*):
 }
 
 fn sem_call(c: SemanticContext*, n: void*): void* {
+    if sem_is(n, "TowerInvoke") {
+        return sem_indirect_call(c, n, sem_member(n, "callee"), sem_collect(c, sem_member(n, "args"), "CoreCallArgument"));
+    }
     if sem_editor_symbol(c, sem_member(n, "name"), 4) {
         sem_node(c, n, KCall);
         return n;
@@ -832,6 +847,9 @@ fn sem_call(c: SemanticContext*, n: void*): void* {
     var name: u8* = sem_identifier(c, step3);
     var step5 = sem_member(n, "args");
     var args: vector(void*)* = sem_collect(c, step5, "CoreCallArgument");
+    if sem_call_uses_value(c, step3) {
+        return sem_indirect_call(c, n, step3, args);
+    }
     var builtin: u32 = semantic_builtin_kind(name);
     if builtin != 0 {
         return sem_builtin(c, n, builtin, args);
@@ -899,6 +917,28 @@ fn sem_call(c: SemanticContext*, n: void*): void* {
         var step59 = sem_get(callee.parameters.data[i]);
         var step60 = sem_operand(c, args.data[i], &step59.type);
         sem_push(&value.items, step60);
+    }
+    return n;
+}
+
+fn sem_indirect_call(c: SemanticContext*, n: void*, callee: void*, args: vector(void*)*): void* {
+    var target = sem_operand(c, callee, null);
+    if !sem_ok(c) { return n; }
+    var type = &sem_get(target).type;
+    if type.pointers != 0 || type.scalar != SFunction {
+        sem_fail(c, n, "Call requires a function value");
+        return n;
+    }
+    var signature = sem_get(type.record);
+    var call = sem_node(c, n, KCall);
+    call.value = target;
+    sem_set_type(&call.type, &signature.element);
+    if args.length != signature.parameters.length {
+        sem_fail(c, n, "Wrong argument count for function value");
+        return n;
+    }
+    for(var i: usize = 0; i < args.length && sem_ok(c); i++) {
+        sem_push(&call.items, sem_operand(c, args.data[i], &sem_get(signature.parameters.data[i]).type));
     }
     return n;
 }

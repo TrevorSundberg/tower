@@ -1,0 +1,61 @@
+import tower;
+
+fn increment(value: i32): i32 { return value + 1; }
+fn double(value: i32): i32 { return value * 2; }
+fn apply(callback: function(i32, i32), value: i32): i32 { return callback(value); }
+fn choose(first: bool): function(i32, i32) { return first ? increment : &double; }
+struct Callbacks { next: function(i32, i32); }
+struct Pair { x: i32; y: i32; }
+fn changed(pair: Pair): Pair { pair.x++; return pair; }
+fn replace_callback(callback: function(i32, i32)*): i32 { *callback = double; return 41; }
+fn recursive(value: i32): i32 {
+    if value == 0 { return 1; }
+    var next = recursive;
+    return value * next(value - 1);
+}
+fn record_call(value: i32*): void { (*value)++; }
+fn half(value: f64): f64 { return value / 2.0; }
+fn small(value: i8): i8 { return value - 1; }
+enum FunctionFailure: i32 { None, Local, Argument, Table, Field, NullFallback, Identity, Stage, Order, Recursion, Void, Float, Narrow, Aggregate, Relocation }
+
+fn check(): FunctionFailure {
+    var selected = choose(true);
+    if selected(41) != 42 { return FunctionFailure.Local; }
+    if apply(double, 21) != 42 { return FunctionFailure.Argument; }
+    var callbacks: function(i32, i32)[2];
+    callbacks[0] = increment;
+    callbacks[1] = &double;
+    var index: usize = 1;
+    if callbacks[index--](21) != 42 || index != 0 { return FunctionFailure.Table; }
+    var record: Callbacks = { next: increment };
+    if record.next(41) != 42 { return FunctionFailure.Field; }
+    var missing: function(i32, i32) = null;
+    missing ??= double;
+    if missing(21) != 42 { return FunctionFailure.NullFallback; }
+    if selected != increment || missing == null { return FunctionFailure.Identity; }
+    if comptime(apply(increment, 41)) != 42 { return FunctionFailure.Stage; }
+    if selected(replace_callback(&selected)) != 42 || selected(21) != 42 { return FunctionFailure.Order; }
+    if recursive(6) != 720 { return FunctionFailure.Recursion; }
+    var count = 0;
+    var action = record_call;
+    action(&count);
+    if count != 1 { return FunctionFailure.Void; }
+    var fractional = half;
+    if fractional(3.0) != 1.5 { return FunctionFailure.Float; }
+    var narrow = small;
+    if narrow(-127) != -128 { return FunctionFailure.Narrow; }
+    var aggregate = changed;
+    var pair: Pair = { x: 41, y: 3 };
+    var copy = aggregate(pair);
+    if copy.x != 42 || copy.y != 3 || pair.x != 41 { return FunctionFailure.Aggregate; }
+    var staged = comptime(choose(true));
+    if staged(41) != 42 || staged != increment { return FunctionFailure.Relocation; }
+    if choose(true)(41) != 42 || (selected)(21) != 42 { return FunctionFailure.Local; }
+    var slot = &selected;
+    if (*slot)(21) != 42 { return FunctionFailure.Local; }
+    var raw = bits(usize, selected);
+    var restored = bits(function(i32, i32), raw);
+    if restored(21) != 42 || restored != selected { return FunctionFailure.Relocation; }
+    return FunctionFailure.None;
+}
+print(convert(i32, check()));

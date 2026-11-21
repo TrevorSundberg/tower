@@ -285,10 +285,10 @@ fn sem_evaluations(c: SemanticContext*): void {
                 interpreter_invocation_dispose(invocation);
             } else {
                 if invocation.state.done {
-                    sem_get(result.subject).bits = invocation.context.result;
-                    sem_get(result.literal).bits = invocation.context.result;
+                    sem_evaluation_value(result.subject, invocation);
+                    sem_evaluation_value(result.literal, invocation);
                     for(var alias: usize = 0; alias < result.aliases.length; alias++) {
-                        sem_get(result.aliases.data[alias]).bits = invocation.context.result;
+                        sem_evaluation_value(result.aliases.data[alias], invocation);
                     }
                     result.ready.ready = true;
                     sem_require(work_finish(&c.queries, &result.ticket, true));
@@ -319,6 +319,21 @@ fn sem_evaluations(c: SemanticContext*): void {
             } else { sem_evaluation_cycle(c, index + 1); }
         }
         index++;
+    }
+}
+
+// Function results relocate through their bound Foundation declaration. The
+// interpreter's private numeric reference never becomes a serialized constant.
+fn sem_evaluation_value(node: void*, invocation: IMInvocation*): void {
+    var value = sem_get(node);
+    value.bits = invocation.context.result;
+    if value.type.scalar == SFunction && value.type.pointers == 0 && value.bits != 0 {
+        sem_require(value.bits <= convert(u64, invocation.state.function_values.length));
+        value.binding = invocation.state.function_values.data[convert(usize, value.bits - 1)];
+        sem_require(value.binding != null);
+        value.kind = KFunctionReference;
+        value.constant = false;
+        value.bits = 0;
     }
 }
 

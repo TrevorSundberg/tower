@@ -368,6 +368,9 @@ fn ce_collect(c: CEmitter*, entity: void*, owner: void*): void {
     if n.kind != KType && (semantic_float(&n.type) || semantic_float(&n.element)) {
         ce_fail(c, "This source backend does not yet implement strict floating-point values; use LLVM native/Wasm output");
     }
+    if n.kind == KFunctionReference || n.kind == KCall && n.value != null || n.type.scalar == SFunction || n.element.scalar == SFunction {
+        ce_fail(c, "This source backend does not yet implement function values; use LLVM native/Wasm output");
+    }
     if n.kind == KFunction {
         owner = entity;
     }

@@ -304,12 +304,12 @@ fn driver_test_outputs(compiler: u8*, source: u8*): void {
     driver_test_read("driver stdout.txt", "42\n", true);
     driver_arguments_dispose(&args);
 
-    var library = "import tower;\nexport fn answer(): i32 { return 42; }\n";
+    var library = "import tower;\nexport fn answer(): i32 { return 42; }\nexport fn invoke(callback:function(i32,i32),value:i32):i32{return callback(value);}\nexport fn obtain():function(i32){return answer;}\n";
     driver_check(driver_write_file("driver library.tower", library, strlen(library)), "library fixture");
     result = driver_test_compile(compiler, "driver library.tower", "object", "driver library.o", "--library", null);
     ok = result == 0;
     driver_check(ok, "library object");
-    var program = "import tower;\nextern fn answer(): i32;\nprint(answer());\n";
+    var program = "import tower;\nextern fn answer(): i32;\nextern fn invoke(callback:function(i32,i32),value:i32):i32;\nextern fn obtain():function(i32);\nfn twice(value:i32):i32{return value*2;}\nvar callback=obtain();\nprint(answer());print(invoke(twice,21));print(callback());\n";
     driver_check(driver_write_file("driver link.tower", program, strlen(program)), "link fixture");
     result = driver_test_compile(compiler, "driver link.tower", "exe", "driver linked", "--link", "driver library.o");
     ok = result == 0;
@@ -319,7 +319,7 @@ fn driver_test_outputs(compiler: u8*, source: u8*): void {
     result = driver_test_capture(&args);
     ok = result == 0;
     driver_check(ok, "linked library execution");
-    driver_test_read("driver stdout.txt", "42\n", true);
+    driver_test_read("driver stdout.txt", "42\n42\n42\n", true);
     driver_arguments_dispose(&args);
 }
 

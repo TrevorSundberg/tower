@@ -267,6 +267,18 @@ fn format_semantic_name(f: FormatEngine*, entity: void*, fallback: vector(u8)*):
 }
 
 fn format_type(f: FormatEngine*, t: FoundationType*): void {
+    if t.scalar == SFunction {
+        var signature = format_foundation(f, t.record);
+        format_text(f, "function(");
+        format_type(f, &signature.element);
+        foreach(var parameter in &signature.parameters) {
+            format_text(f, ", ");
+            format_type(f, &format_foundation(f, parameter).type);
+        }
+        format_text(f, ")");
+        format_repeat(f, 42, convert(usize, t.pointers));
+        return;
+    }
     if format_array(t) {
         var a = format_foundation(f, t.record);
         format_type(f, &a.element);
@@ -383,7 +395,7 @@ fn format_expression(f: FormatEngine*, entity: void*): void {
                 format_identifier(f, &member.name);
                 return;
             }
-            if n.type.pointers != 0 {
+            if n.type.pointers != 0 || n.type.scalar == SFunction {
                 format_text(f, "null");
             }
             else {
@@ -434,14 +446,19 @@ fn format_expression(f: FormatEngine*, entity: void*): void {
         format_expression(f, n.value);
         return;
     }
+    if n.kind == KFunctionReference {
+        format_text(f, "&");
+        format_identifier(f, &format_foundation(f, n.binding).name);
+        return;
+    }
     if format_is_Load(n) {
         format_text(f, "*");
         format_expression(f, n.value);
         return;
     }
     if format_is_Call(n) {
-        var binding = format_foundation(f, n.binding);
-        format_identifier(f, &binding.name);
+        if n.value != null { format_expression(f, n.value); }
+        else { format_identifier(f, &format_foundation(f, n.binding).name); }
         format_text(f, "(");
         var i: usize = 0;
         loop {

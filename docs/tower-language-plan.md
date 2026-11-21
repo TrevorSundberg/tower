@@ -43,6 +43,10 @@ in Tower and use the shared ECS/dependency/worker architecture.
    support plain noncapturing functions before closures. Verify recursion,
    callback tables, native foreign callbacks and Wasm table signatures. Exported
    callbacks must not depend on an unexecuted module initializer.
+   The noncapturing implementation now uses `function(Result, Parameters...)`;
+   see [function values](function-values.md) for supported behavior and remaining
+   closure, variadic and external aggregate ABI work. Publication evidence is
+   recorded in the ongoing journal.
 3. **Unions and bit-fields.** Shared storage/layout, explicit overlap and access
    rules, named fields, target-controlled packing/alignment and diagnostics.
    Distinguish raw C-style storage from later safe tagged variants. Preserve

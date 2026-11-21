@@ -55,7 +55,7 @@ fn sem_body_collect(c: SemanticContext*, root: void*, calls: vector(void*)*): vo
             continue;
         }
         seen.number = 1;
-        if value.kind == KCall && value.binding != null {
+        if (value.kind == KCall || value.kind == KFunctionReference) && value.binding != null {
             sem_push(calls, node);
         }
         // Traverse owned canonical operation edges, never syntax children or

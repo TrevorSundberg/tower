@@ -168,6 +168,13 @@ fn bi_value(c: BackendImport*, value: void*): void* {
     var entity = backend_find(&c.values, value);
     if entity != null {
         var n = sem_get(entity);
+        if n.kind == KFunction {
+            var reference = bi_node(c, KFunctionReference, SFunction);
+            var result = sem_get(reference);
+            result.binding = entity;
+            result.type = *bi_function_type(c, &n.type, &n.parameters);
+            return bi_cast(c, reference, BackendImportPointer, true);
+        }
         if n.global {
             return bi_address(c, bi_ref(c, entity));
         }

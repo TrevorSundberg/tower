@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile,writeFile} from 'node:fs/promises';
 import {loadTower} from './compiler-fixtures.mjs';
 const read=path=>readFile(new URL('../../'+path,import.meta.url));
-const bytecodeContainerVersion=1, bytecodeSemanticsVersion=4, bytecodeExecutionCacheVersion=4;
+const bytecodeContainerVersion=1, bytecodeSemanticsVersion=5, bytecodeExecutionCacheVersion=5;
 const tower=await loadTower(await read('build/browser-wasi/tower.wasm'),undefined,(await read('scaffolding/foundation.tower')).toString());
 test('Tower package preparation owns independent verified execution sessions', {skip:!tower.exports.ide_package_tests}, () => {
   assert.equal(tower.exports.ide_package_tests(),0);

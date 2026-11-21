@@ -406,16 +406,25 @@ fn bi_call(c: BackendImport*, instruction: void*): void* {
         return bi_select(c, condition, a, b, bi_scalar(c, type));
     }
     var binding = backend_find(&c.values, callee);
-    if binding == null {
+    var direct = binding != null && sem_get(binding).kind == KFunction;
+    if !direct && LLVMGetValueKind(callee) == LLVMFunctionValueKind {
         backend_fail(c.backend, "Unsupported LLVM intrinsic or indirect call: ");
         backend_text(&c.backend.error, name);
         return null;
     }
-    var entity = bi_node(c, 11, bi_scalar(c, LLVMTypeOf(instruction)));
+    var entity = bi_node(c, KCall, bi_scalar(c, LLVMTypeOf(instruction)));
     var n = sem_get(entity);
-    n.binding = binding;
-    var function = sem_get(binding);
-    copy(&n.type, &function.type, sizeof(FoundationType));
+    var function: FoundationNode* = null;
+    if direct {
+        n.binding = binding;
+        function = sem_get(binding);
+        n.type = function.type;
+    } else {
+        var type = bi_llvm_function_type(c, LLVMGetCalledFunctionType(instruction));
+        function = sem_get(type.record);
+        n.value = bi_cast_type(c, bi_value(c, callee), type);
+        n.type = function.element;
+    }
     var count = LLVMGetNumArgOperands(instruction);
     var i: u32 = 0;
     for(; i != count; i++) {

@@ -15,10 +15,19 @@ import .library.float_text;
 // Temporary indexes and scratch allocations are scoped to one compilation.
 
 export fn semantic_type_equal(a: FoundationType*, b: FoundationType*): bool {
-    if a.scalar != b.scalar || a.pointers != b.pointers || a.record != b.record {
+    if a.scalar != b.scalar || a.pointers != b.pointers {
         return false;
     }
-    if a.pointers != 0 || a.scalar == SUSize {
+    if a.record != b.record {
+        if a.scalar != SFunction || a.record == null || b.record == null { return false; }
+        var left = sem_get(a.record);
+        var right = sem_get(b.record);
+        if !semantic_type_equal(&left.element, &right.element) || left.parameters.length != right.parameters.length { return false; }
+        for(var i: usize = 0; i < left.parameters.length; i++) {
+            if !semantic_type_equal(&sem_get(left.parameters.data[i]).type, &sem_get(right.parameters.data[i]).type) { return false; }
+        }
+    }
+    if a.pointers != 0 || a.scalar == SUSize || a.scalar == SFunction {
         return a.pointer_bytes == b.pointer_bytes;
     }
     return true;
@@ -30,6 +39,7 @@ export fn semantic_enum(t: FoundationType*): bool {
     var nominal = t.record != null;
     nominal &&= t.scalar != SStruct;
     nominal &&= t.scalar != SArray;
+    nominal &&= t.scalar != SFunction;
     return nominal;
 }
 
@@ -75,7 +85,7 @@ export fn semantic_unsigned_scalar(scalar: u32): u32 {
 }
 
 export fn semantic_size(t: FoundationType*): usize {
-    if t.pointers != 0 || t.scalar == SUSize {
+    if t.pointers != 0 || t.scalar == SUSize || t.scalar == SFunction {
         return convert(usize, t.pointer_bytes);
     }
     if semantic_aggregate(t) {
@@ -98,7 +108,7 @@ export fn semantic_size(t: FoundationType*): usize {
 }
 
 export fn semantic_alignment(t: FoundationType*): usize {
-    if t.pointers != 0 || t.scalar == SUSize {
+    if t.pointers != 0 || t.scalar == SUSize || t.scalar == SFunction {
         return convert(usize, t.pointer_bytes);
     }
     if semantic_aggregate(t) {
@@ -216,7 +226,14 @@ fn sem_set_type(out: FoundationType*, t: FoundationType*): void {
 
 fn sem_type_name(c: SemanticContext*, t: FoundationType*): u8* {
     var name: u8* = "";
-    if t.scalar == SArray {
+    if t.scalar == SFunction {
+        var signature = sem_get(t.record);
+        name = sem_cat(c, "function(", sem_type_name(c, &signature.element));
+        foreach(var parameter in &signature.parameters) {
+            name = sem_cat(c, name, sem_cat(c, ", ", sem_type_name(c, &sem_get(parameter).type)));
+        }
+        name = sem_cat(c, name, ")");
+    } else { if t.scalar == SArray {
         var a: FoundationNode* = sem_get(t.record);
         var step4 = sem_cat(c, sem_type_name(c, &a.element), "[");
         var step6 = sem_decimal(c, convert(u64, a.length));
@@ -231,6 +248,7 @@ fn sem_type_name(c: SemanticContext*, t: FoundationType*): u8* {
         } else {
             name = semantic_scalar_name(t.scalar);
         }
+    }
     }
     for(var i: u32 = 0; i < t.pointers; i++) {
         name = sem_cat(c, name, "*");

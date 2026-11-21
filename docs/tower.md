@@ -5,7 +5,16 @@ same layer. The [development plan](tower-language-plan.md) distinguishes shipped
 features and implementation work from upcoming overloads, general compile-time
 values, result types and ownership rules.
 
-## Type queries and scalar compile-time execution
+## Function values
+
+Use `function(Result, Parameters...)` for typed noncapturing callbacks. They work
+in locals, fields, arrays, arguments and results, including struct copies/returns.
+Function names and `&name` produce values; `callback(x)`, `factory()(x)` and
+`(*slot)(x)` invoke them. Nullable callbacks support `??` and `??=`. Callees are
+evaluated once before arguments. See [function values](function-values.md) for
+staging, exact typing, target/foreign contracts and the remaining limitations.
+
+## Type queries and compile-time execution
 
 The published compiler accepts `decltype(expression)` and `comptime(expression)`
 above Foundation. This is the scalar staging implementation described below;
@@ -24,7 +33,7 @@ references. Signature parameter names shadow module names; return annotations ca
 inspect parameter types and fields. Cycles are reported as dependency paths.
 Block locals retain their ordinary lexical scope.
 
-`comptime` currently produces integer or bool values by invoking the ordinary
+`comptime` currently produces numeric, bool or noncapturing function values by invoking the ordinary
 Foundation interpreter with explicit target data. Evaluation may suspend on a
 pending staged value; nested values are demanded only when execution reaches them.
 It does not run module initialization. Runtime captures, global storage, heap
@@ -33,7 +42,8 @@ policy. Local storage and loops work, with initialization/lifetime checks and an
 execution budget. This bounded scalar implementation precedes the general value
 and capability model below.
 
-Canonical Foundation contains the checked types and evaluated scalar constants;
+Canonical Foundation contains the checked types, evaluated scalar constants and
+bound function references;
 it needs no `decltype` or `comptime` syntax. Declaration dependency discovery,
 layout, eligible body checking, expression lowering, evaluation and dependent
 return-path validation use Tower ECS queries and worker pools. Deferred cleanup

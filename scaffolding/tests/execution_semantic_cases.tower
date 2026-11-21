@@ -99,7 +99,7 @@ fn execution_semantic_message(index: usize): u8* {
     if index == 19 { return "Integer literal out of range for u64"; }
     if index == 20 { return "Integer literal out of range for i64"; }
     if index == 21 { return "Expected i32, got bool; use an explicit conversion"; }
-    if index == 22 { return "null requires a pointer type"; }
+    if index == 22 { return "null requires a pointer or function type"; }
     if index == 23 { return "An integer literal needs an integer type"; }
     if index == 24 { return "Field access requires a struct or a single pointer to a struct"; }
     if index == 25 { return "Unknown field 'no' in 'A'"; }

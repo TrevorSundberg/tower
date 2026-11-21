@@ -627,6 +627,9 @@ fn sem_surface(c: SemanticContext*, n: void*, expected_type: FoundationType*): v
             indirect = true;
         }
         if indirect {
+            if address && sem_function_reference(c, n, right) {
+                return sem_surface_expected(c, n, expected_type);
+            }
             var kind = KLoad;
             if address {
                 kind = KAddress;
@@ -803,7 +806,7 @@ fn sem_surface(c: SemanticContext*, n: void*, expected_type: FoundationType*): v
             return n;
         }
         var first = sem_get(value.left);
-        if !sem_surface_optional(first) && first.type.pointers == 0 {
+        if !sem_surface_optional(first) && first.type.pointers == 0 && first.type.scalar != SFunction {
             sem_fail(c, n, "Null coalescing requires a pointer or null-conditional access");
             return n;
         }
@@ -829,7 +832,7 @@ fn sem_surface(c: SemanticContext*, n: void*, expected_type: FoundationType*): v
                 }
             } else {
                 if code == SurfaceCoalesce {
-                    if !pointer {
+                    if !pointer && input.scalar != SFunction {
                         sem_fail(c, n, "Null-coalescing assignment requires a pointer location");
                     }
                 } else {
