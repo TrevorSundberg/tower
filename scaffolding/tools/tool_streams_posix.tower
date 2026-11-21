@@ -1,0 +1,36 @@
+import tower;
+import .library.bytes;
+import .library.bytes_types;
+import .host.driver_files;
+
+// Caller owns the stream and its current position. Bound collected bytes while
+// reading, and publish the complete bytes only on success.
+fn tool_read_stream(file: void*, limit: usize, out: ByteBuffer*): bool {
+    var next: ByteBuffer = default;
+    defer bytes_dispose(&next);
+    var chunk: u8[4096]; var chunk_bytes: usize = 4096;
+    loop {
+        var count = fread(&chunk[0], 1, chunk_bytes, file);
+        if count > limit - next.length || !bytes_append(&next, &chunk[0], count) || ferror(file) != 0 { return false; }
+        if feof(file) != 0 { break; }
+        if count == 0 { return false; }
+    }
+    bytes_dispose(out);
+    *out = next;
+    next = default;
+    return true;
+}
+
+fn tool_read_file(path: u8*, limit: usize, out: ByteBuffer*): bool {
+    var file = fopen(path, "rb");
+    if file == null { return false; }
+    var next: ByteBuffer = default;
+    defer bytes_dispose(&next);
+    var ok = tool_read_stream(file, limit, &next);
+    if fclose(file) != 0 { ok = false; }
+    if !ok { return false; }
+    bytes_dispose(out);
+    *out = next;
+    next = default;
+    return true;
+}

@@ -16,10 +16,25 @@ directories byte for byte. Both build as library objects linked with the existin
 entry records the Docker/WSL commands, codec scope and compression tradeoff.
 
 `tool_process_checks.tower` validates the Linux tool runner with exact child
-arguments, empty strings, ordinary exits, signals and exec failures. Build it as
+arguments, empty strings, ordinary exits, signals, exec/redirection failures,
+large binary stdout capture and unchanged output on failure. Build it as
 a library object, link `guest-host-library.o`, then run it by absolute path.
 The argument helper avoids the published bootstrap's duplicate-literal issue
 when string literals are passed directly to inferred generic calls.
+
+`sha256_checks.tower` checks standard SHA-256 vectors, all chunk splits, a million
+`a` bytes, non-consuming finalization and rejected input. Pass a writable fixture
+directory, then independently verify its 260 binary fixtures with
+`sha256sum --quiet -c <directory>/checksums.txt`. `bootstrap_archive_checks.tower`
+checks tar/gzip output, long UTF-8 names, modes, aliasing, limits and rejection;
+pass a fixture directory, extract `fixture.tar.gz` with GNU tar, compare with
+`expected`, check `bin/runner` mode 755, and run `gzip -t` on `empty.gz`.
+`tool_files_checks.tower` takes a new fixture directory and checks bounded reads,
+resource traversal, file/directory symlink policy and atomic publication refusing
+file, directory and dangling-symlink collisions. All three build as library
+objects linked with `guest-host-library.o`. The journal records the independent
+Python packager comparison and unchanged installer's verification of a real
+Tower-produced compiler candidate; no new Python test helper is required.
 
 The same runtime/parser now also runs in the [static WASM playground](../../playground/README.md).
 Native and WASM parser builds use explicit error returns with C++ exceptions disabled.

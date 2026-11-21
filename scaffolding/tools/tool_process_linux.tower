@@ -3,7 +3,7 @@ import .library.vector;
 
 // Explicit Linux process ABI. Arguments borrow caller-owned, NUL-terminated
 // strings until synchronous completion. No PATH lookup or shell interpretation.
-enum ToolProcessKind: i32 { Exited, Signaled, PipeFailed, ForkFailed, ExecFailed, WaitFailed, ReadFailed }
+enum ToolProcessKind: i32 { Exited, Signaled, PipeFailed, ForkFailed, ExecFailed, WaitFailed, ReadFailed, RedirectFailed }
 struct ToolProcessResult {
     kind: ToolProcessKind;
     exit_code: i32;
@@ -11,6 +11,7 @@ struct ToolProcessResult {
     error: i32;
 }
 struct ToolPipe { reader: i32; writer: i32; }
+struct ToolLaunchFailure { error: i32; kind: ToolProcessKind; }
 
 extern fn pipe2(descriptors: i32*, flags: i32): i32;
 extern fn fork(): i32;
@@ -21,6 +22,7 @@ extern fn close(fd: i32): i32;
 extern fn read(fd: i32, data: u8*, length: usize): i64;
 extern fn write(fd: i32, data: u8*, length: usize): i64;
 extern fn __errno_location(): i32*;
+extern fn dup2(source: i32, destination: i32): i32;
 
 // A typed boundary also keeps literal arguments out of generic deduction in
 // the current published bootstrap, which otherwise duplicates their bytes.
@@ -29,6 +31,13 @@ fn tool_process_argument(args: vector(u8*)*, text: u8*): bool {
 }
 
 fn tool_process(executable: u8*, args: u8**): ToolProcessResult {
+    var inherit_stdout: i32 = -1;
+    return tool_process_output(executable, args, inherit_stdout);
+}
+
+// An explicit nonnegative descriptor redirects stdout. The caller retains its
+// descriptor; the child closes its extra copy before exec. Stderr is inherited.
+fn tool_process_output(executable: u8*, args: u8**, output: i32): ToolProcessResult {
     var close_on_exec: i32 = 524288;
     var interrupted: i32 = 4;
     var io_error: i32 = 5;
@@ -40,11 +49,17 @@ fn tool_process(executable: u8*, args: u8**): ToolProcessResult {
     var pid = fork();
     if pid == 0 {
         close(pipe.reader);
-        execv(executable, args);
-        var error = *__errno_location();
+        var failure: ToolLaunchFailure = { kind: ToolProcessKind.ExecFailed, ..default };
+        var stdout_stream: i32 = 1; var last_standard_stream: i32 = 2;
+        if output >= 0 && dup2(output, stdout_stream) < 0 { failure.kind = ToolProcessKind.RedirectFailed; }
+        else {
+            if output > last_standard_stream { close(output); }
+            execv(executable, args);
+        }
+        failure.error = *__errno_location();
         var sent: usize = 0;
-        while sent < sizeof(i32) {
-            var count = write(pipe.writer, bits(u8*, &error) + sent, sizeof(i32) - sent);
+        while sent < sizeof(ToolLaunchFailure) {
+            var count = write(pipe.writer, bits(u8*, &failure) + sent, sizeof(ToolLaunchFailure) - sent);
             if count < 0 && *__errno_location() == interrupted { continue; }
             if count <= 0 { break; }
             sent += convert(usize, count);
@@ -57,11 +72,11 @@ fn tool_process(executable: u8*, args: u8**): ToolProcessResult {
         close(pipe.reader);
         return init(ToolProcessResult) { kind: ToolProcessKind.ForkFailed, error: fork_error, ..default };
     }
-    var exec_error: i32 = 0;
+    var failure: ToolLaunchFailure = default;
     var read_error: i32 = 0;
     var received: usize = 0;
-    while received < sizeof(i32) {
-        var count = read(pipe.reader, bits(u8*, &exec_error) + received, sizeof(i32) - received);
+    while received < sizeof(ToolLaunchFailure) {
+        var count = read(pipe.reader, bits(u8*, &failure) + received, sizeof(ToolLaunchFailure) - received);
         if count < 0 {
             if *__errno_location() == interrupted { continue; }
             read_error = *__errno_location();
@@ -78,9 +93,9 @@ fn tool_process(executable: u8*, args: u8**): ToolProcessResult {
         if waited < 0 && *__errno_location() == interrupted { continue; }
         return init(ToolProcessResult) { kind: ToolProcessKind.WaitFailed, error: *__errno_location(), ..default };
     }
-    if received != 0 && received != sizeof(i32) { read_error = io_error; }
+    if received != 0 && received != sizeof(ToolLaunchFailure) { read_error = io_error; }
     if read_error != 0 { return init(ToolProcessResult) { kind: ToolProcessKind.ReadFailed, error: read_error, ..default }; }
-    if exec_error != 0 { return init(ToolProcessResult) { kind: ToolProcessKind.ExecFailed, error: exec_error, ..default }; }
+    if failure.error != 0 { return init(ToolProcessResult) { kind: failure.kind, error: failure.error, ..default }; }
     var signal_mask: i32 = 127;
     var exit_shift: i32 = 8;
     var exit_mask: i32 = 255;

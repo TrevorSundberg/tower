@@ -2,6 +2,7 @@ import tower;
 import .library.bytes;
 import .library.bytes_types;
 import .host.driver_files;
+import .compiler.host_text;
 
 // Native Linux/POSIX tooling only. File handles and path resolution are explicit
 // runtime capabilities, never strict compile-time effects. realpath follows
@@ -12,6 +13,20 @@ extern fn opendir(path: u8*): void*;
 extern fn closedir(directory: void*): i32;
 extern fn strlen(text: u8*): usize;
 extern fn strcmp(left: u8*, right: u8*): i32;
+
+// Owned NUL-terminated path; length excludes the terminator. Inputs may borrow
+// out until successful publication. Filesystem paths do not change module identity.
+fn tool_join(out: ByteBuffer*, left: u8*, right: u8*): bool {
+    var next: ByteBuffer = default;
+    defer bytes_dispose(&next);
+    var slash: u8 = 47;
+    if !bytes_append(&next, left, strlen(left)) || !bytes_push(&next, slash)
+        || !bytes_append(&next, right, strlen(right)) || !host_text_terminate(&next) { return false; }
+    bytes_dispose(out);
+    *out = next;
+    next = default;
+    return true;
+}
 
 enum ToolPathByte: u8 { Nul = 0, Slash = 47 }
 

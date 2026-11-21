@@ -1,0 +1,87 @@
+import tower;
+import utility_checks;
+import .library.sha256;
+import .library.bytes;
+import .library.bytes_types;
+import .compiler.host_text;
+import .host.driver_files;
+import .tools.tool_files_posix;
+
+extern fn strlen(text: u8*): usize;
+extern fn strcmp(left: u8*, right: u8*): i32;
+
+fn sha256_check_vector(text: u8*, wanted: u8*): void {
+    var hex_bytes: usize = 64;
+    utility_check(strlen(wanted) == hex_bytes, "vector digest has 64 hex digits");
+    var state: Sha256 = default;
+    sha256_init(&state);
+    utility_check(sha256_update(&state, text, strlen(text)), "hash vector update");
+    var digest = sha256_finish(&state);
+    var hex: u8[65];
+    sha256_hex(&digest, &hex[0]);
+    if strcmp(&hex[0], wanted) != 0 { puts(&hex[0]); puts(wanted); }
+    utility_check(strcmp(&hex[0], wanted) == 0, "SHA-256 published vector");
+    for (var split: usize = 0; split <= strlen(text); split++) {
+        sha256_init(&state);
+        utility_check(sha256_update(&state, text, split) && sha256_update(&state, text + split, strlen(text) - split), "split vector");
+        digest = sha256_finish(&state);
+        sha256_hex(&digest, &hex[0]);
+        utility_check(strcmp(&hex[0], wanted) == 0, "every vector split");
+    }
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    var arguments: i32 = 2; var usage: i32 = 2;
+    if argc != arguments { puts("Supply an isolated fixture directory"); return usage; }
+    sha256_check_vector("", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+    sha256_check_vector("abc", "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+    sha256_check_vector("abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq", "248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1");
+    sha256_check_vector("abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu", "cf5b16a778af8380036ce59e7b0492370b249b11e8f07a51afac45037afee9d1");
+    var state: Sha256 = default;
+    sha256_init(&state);
+    var chunk: u8[1000];
+    var chunk_size: usize = 1000; var chunk_count: usize = 1000; var letter_a: u8 = 97;
+    fill(&chunk[0], letter_a, chunk_size);
+    for (var at: usize = 0; at < chunk_count; at++) { utility_check(sha256_update(&state, &chunk[0], chunk_size), "million-a update"); }
+    var digest = sha256_finish(&state);
+    var hex: u8[65];
+    sha256_hex(&digest, &hex[0]);
+    utility_check(strcmp(&hex[0], "cdc76e5c9914fb9281a1c7e284d73e67f1809a48a497200e046d39ccc7112cd0") == 0, "million-a vector");
+    var before = sha256_finish(&state);
+    utility_check(!sha256_update(&state, null, 1), "null nonempty rejected");
+    digest = sha256_finish(&state);
+    utility_check(utility_equal(&before.bytes[0], &digest.bytes[0], Sha256DigestBytes), "rejected update unchanged");
+    state.bytes = (~convert(u64, 0)) / convert(u64, Sha256ByteBits);
+    utility_check(!sha256_update(&state, &chunk[0], 1), "bit-length overflow rejected");
+
+    var source: ByteBuffer = default; var sums: ByteBuffer = default; var path: ByteBuffer = default;
+    defer bytes_dispose(&source); defer bytes_dispose(&sums); defer bytes_dispose(&path);
+    var cases: usize = 260; var random: u32 = 1789;
+    var digest_hex_bytes: usize = 64;
+    for (var length: usize = 0; length < cases; length++) {
+        sha256_init(&state);
+        utility_check(sha256_update(&state, source.data, source.length), "boundary whole update");
+        digest = sha256_finish(&state);
+        sha256_hex(&digest, &hex[0]);
+        var incremental: Sha256 = default; sha256_init(&incremental);
+        for (var at: usize = 0; at < source.length; at++) {
+            utility_check(sha256_update(&incremental, source.data + at, 1), "single-byte update");
+            var snapshot = sha256_finish(&incremental);
+        }
+        var streaming = sha256_finish(&incremental);
+        utility_check(utility_equal(&digest.bytes[0], &streaming.bytes[0], Sha256DigestBytes), "finish is non-consuming");
+        path.length = 0;
+        utility_check(bytes_append(&path, argv[1], strlen(argv[1])) && bytes_append(&path, "/case_", strlen("/case_"))
+            && host_json_unsigned(&path, convert(u64, length)) && bytes_append(&path, ".bin", strlen(".bin"))
+            && host_text_terminate(&path) && tool_output_parents(path.data)
+            && driver_write_file(path.data, source.data, source.length), "write independent hash fixture");
+        utility_check(bytes_append(&sums, &hex[0], digest_hex_bytes) && bytes_append(&sums, "  ", 2)
+            && bytes_append(&sums, path.data, path.length) && bytes_push(&sums, 10), "append checksum line");
+        utility_check(bytes_push(&source, convert(u8, utility_random(&random) & convert(u32, ~convert(u8, 0)))), "grow binary fixture");
+    }
+    path.length = 0;
+    utility_check(bytes_append(&path, argv[1], strlen(argv[1])) && bytes_append(&path, "/checksums.txt", strlen("/checksums.txt"))
+        && host_text_terminate(&path) && driver_write_file(path.data, sums.data, sums.length), "write sha256sum manifest");
+    puts("Tower SHA-256 checks passed; verify checksums.txt with sha256sum -c");
+    return 0;
+}

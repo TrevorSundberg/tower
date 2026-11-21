@@ -1,0 +1,39 @@
+import tower;
+import tool_process_linux;
+import tool_streams_posix;
+import .library.bytes;
+import .library.bytes_types;
+import .host.driver_files;
+
+extern fn tmpfile(): void*;
+extern fn fileno(file: void*): i32;
+extern fn fseek(file: void*, offset: i64, origin: i32): i32;
+
+// Trusted synchronous build tools only. An OS-owned anonymous temporary file
+// avoids pipe-buffer deadlocks. limit bounds memory publication, not child disk
+// writes. No shell, process cwd/environment mutation or named temporary path.
+// Nonzero exit/capture failure preserves out; child status is returned exactly.
+fn tool_capture(executable: u8*, args: u8**, limit: usize, out: ByteBuffer*): i32 {
+    var failure: i32 = 1;
+    var file = tmpfile();
+    if file == null { return failure; }
+    var closed = false;
+    defer { if !closed { fclose(file); } }
+    var descriptor = fileno(file);
+    if descriptor < 0 { return failure; }
+    var result = tool_process_output(executable, args, descriptor);
+    var status = tool_process_status(result);
+    if status != 0 { return status; }
+    var seek_start: i32 = 0;
+    if fseek(file, 0, seek_start) != 0 { return failure; }
+    var next: ByteBuffer = default;
+    defer bytes_dispose(&next);
+    if !tool_read_stream(file, limit, &next) { return failure; }
+    var close_status = fclose(file);
+    closed = true;
+    if close_status != 0 { return failure; }
+    bytes_dispose(out);
+    *out = next;
+    next = default;
+    return 0;
+}

@@ -65,8 +65,9 @@ an updated pin.
 
 ## Tower build tools
 
-The same Linux x64/Docker environment builds the LLD compatibility patcher and
-Roku packager from Tower, using the verified pin and existing guest runtime:
+The same Linux x64/Docker environment builds the LLD compatibility patcher,
+Roku packager and bootstrap packager from Tower, using the verified pin and
+existing guest runtime:
 
 ```sh
 tools="$(bash playground/scripts/build-bootstrap.sh --tools)"
@@ -74,7 +75,7 @@ tools="$(bash playground/scripts/build-bootstrap.sh --tools)"
 ```
 
 `build-llvm.sh` invokes the resulting `prepare_lld_compat` automatically. The
-two former Python tools are retired. The Roku ZIP writer, CRC and small raw
+former Python tools are retired. The Roku ZIP writer, CRC and small raw
 DEFLATE compressor are in-house Tower; no zlib link is needed. Their scope and
 device-testing limits are documented in [the Roku guide](../docs/roku-backend.md).
 
@@ -83,6 +84,56 @@ device-testing limits are documented in [the Roku guide](../docs/roku-backend.md
 (default `llvm-config-19`). The wrapper's stdout is only the tools directory;
 build output goes to stderr. A small CMake bridge builds `build_tools.tower` and
 the shared host runtime, then Tower passes explicit compiler/linker arguments
-without a shell. The builder rebuilds the two small tools on each invocation
+without a shell. The builder rebuilds the three tools on each invocation
 and writes import depfiles. Bootstrap installation and upstream build bridges
 remain Python/shell/CMake migration work; this is not a portable native release.
+
+## Preparing a bootstrap candidate
+
+After building and validating a compiler in the documented Ubuntu 24.04/LLVM
+19.1.1 environment, package it with its adjacent `share` directory:
+
+```sh
+predecessor="$(bash playground/scripts/build-bootstrap.sh)"
+tools="$(bash playground/scripts/build-bootstrap.sh --tools)"
+"$tools/package_bootstrap" build/native/towerc "$predecessor" "$PWD" \
+  build/bootstrap_candidate 'bash playground/scripts/build-native.sh'
+```
+
+The output directory must not exist. The tool publishes the archive, manifest
+and optional source patch together by an atomic directory rename, refusing an
+existing file, directory or symlink. It does not replace the active pin. Stage
+new source files before packaging so Git includes them in the source hashes and
+patch. Package the compiler from that exact source snapshot; keep its inputs
+unchanged during packaging. The build-command argument records the command
+already run; the packager does not execute or attest that build.
+
+The manifest retains schema 1, SHA-256 archive/member/source/predecessor hashes,
+member sizes, source revision and a binary Git patch when needed. Dependency
+observations retain `ldd` library names and paths while omitting ASLR addresses.
+Git patches use full object IDs and disable color, external diff and textconv.
+The default tools are `/usr/bin/git` and `/usr/bin/ldd`; optional final `GIT LDD`
+arguments select explicit executable paths. There is no shell expansion or
+implicit executable search. Only package trusted compiler executables.
+
+SHA-256, regular-file ustar, gzip, CRC32 and DEFLATE are implemented in Tower.
+The packager links libc for platform calls, with no new zlib or crypto-library
+dependency. Compression currently uses fixed Huffman codes with bounded LZ77
+and a stored-block fallback; its output can be larger than zlib's. The writer
+supports portable UTF-8 member names representable by ustar's 100-byte name and
+155-byte prefix fields, no PAX extensions, and at most 1 GiB of padded tar data.
+It buffers the inputs and archives in memory. Resource recursion is bounded to
+128 levels; file symlinks are read under their lexical names and directory
+symlinks are skipped. Missing resource directories and unsupported names fail.
+Captured tool output is limited to 64 MiB in memory; temporary disk output is
+not bounded. These are explicit initial limits, not a complete archive library.
+
+Validate a candidate with the existing independent installer by copying
+`bootstrap/install.py` into the candidate directory and running it there with
+an isolated `--cache` path. Check relocation, execution and a clean successor
+build. Then publish the candidate's `development.json`, `linux-x64/towerc.tar.gz`
+and optional `source-changes.patch` together under `bootstrap/`, removing an old
+patch if the new manifest has none. Revalidate the documented default build
+without a private compiler override before committing the new pin. A packaging
+test alone does not authorize adopting unsupported compiler syntax or establish
+a portable release.

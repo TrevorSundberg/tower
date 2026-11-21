@@ -1,0 +1,251 @@
+import tower;
+import tool_files_posix;
+import tool_files_linux;
+import tool_process_linux;
+import tool_capture_linux;
+import tool_streams_posix;
+import .library.vector;
+import .library.bytes;
+import .library.bytes_types;
+import .library.sha256;
+import .library.tar_archive;
+import .library.gzip_archive;
+import .compiler.host_text;
+import .compiler.utf8;
+import .host.driver_files;
+
+var BootstrapCaptureLimit: usize = 67108864;
+var BootstrapArchiveLimit: usize = 1073741824;
+var BootstrapSchema: u64 = 1;
+var BootstrapHexBytes: usize = 64;
+var BootstrapRegularMode: u32 = 420;
+var BootstrapExecutableMode: u32 = 493;
+
+struct BootstrapFile { name: ByteBuffer; data: ByteBuffer; }
+struct BootstrapInputs {
+    compiler: u8*;
+    predecessor: u8*;
+    repository: u8*;
+    output: u8*;
+    command: u8*;
+    git: u8*;
+    ldd: u8*;
+}
+
+fn bootstrap_text(out: ByteBuffer*, text: u8*): bool { return bytes_append(out, text, strlen(text)); }
+fn bootstrap_string(out: ByteBuffer*, text: u8*, length: usize): bool {
+    return tower_utf8_validate(text, length, 0) != 0 && host_json_quote(out, text, length);
+}
+fn bootstrap_hash(out: ByteBuffer*, data: u8*, length: usize): bool {
+    var state: Sha256 = default; sha256_init(&state);
+    if !sha256_update(&state, data, length) { return false; }
+    var digest = sha256_finish(&state); var hex: u8[65];
+    sha256_hex(&digest, &hex[0]);
+    return host_json_quote(out, &hex[0], BootstrapHexBytes);
+}
+
+fn bootstrap_files_dispose(files: vector(BootstrapFile*)*): void {
+    foreach (var file in files) { bytes_dispose(&file.name); bytes_dispose(&file.data); free(file); }
+    vector_dispose(files);
+}
+
+fn bootstrap_file_add(files: vector(BootstrapFile*)*, name: u8*, path: u8*, total: usize*): bool {
+    var file = alloc(BootstrapFile, 1);
+    if file == null { return false; }
+    *file = default;
+    var retained = false;
+    defer { if !retained { bytes_dispose(&file.name); bytes_dispose(&file.data); free(file); } }
+    if tool_file_kind(path, true) != ToolFileKind.Regular || !bytes_assign_text(&file.name, name, strlen(name))
+        || tower_utf8_validate(file.name.data, file.name.length, 1) == 0
+        || !tool_read_file(path, BootstrapArchiveLimit - *total, &file.data) { return false; }
+    if !vector_push(files, file) { return false; }
+    *total += file.data.length;
+    retained = true;
+    return true;
+}
+
+fn bootstrap_collect(input: BootstrapInputs*, files: vector(BootstrapFile*)*): bool {
+    var compiler = realpath(input.compiler, null);
+    if compiler == null { return false; }
+    defer free(compiler);
+    var parent: ByteBuffer = default; var path: ByteBuffer = default;
+    var names: vector(u8*) = default;
+    defer bytes_dispose(&parent); defer bytes_dispose(&path); defer tool_paths_dispose(&names);
+    var slash: u8 = 47;
+    var cut = strlen(compiler);
+    while cut != 0 && compiler[cut - 1] != slash { cut--; }
+    if cut == 0 || !bytes_assign_text(&parent, compiler, cut == 1 ? cut : cut - 1)
+        || !tool_tree_files(parent.data, "share", 0, &names) { return false; }
+    tool_paths_sort(&names);
+    var total: usize = 0;
+    if !tool_join(&path, input.repository, "third_party/llvm-project/llvm/LICENSE.TXT")
+        || !bootstrap_file_add(files, "LLVM-LICENSE.txt", path.data, &total) { return false; }
+    foreach (var name in &names) {
+        if !tool_join(&path, parent.data, name) || !bootstrap_file_add(files, name, path.data, &total) { return false; }
+    }
+    return bootstrap_file_add(files, "towerc", compiler, &total);
+}
+
+fn bootstrap_git(input: BootstrapInputs*, operation: u8*, out: ByteBuffer*): bool {
+    var args: vector(u8*) = default;
+    defer vector_dispose(&args);
+    if !tool_process_argument(&args, input.git) || !tool_process_argument(&args, "-C")
+        || !tool_process_argument(&args, input.repository) { return false; }
+    if strcmp(operation, "revision") == 0 {
+        if !tool_process_argument(&args, "rev-parse") || !tool_process_argument(&args, "HEAD") { return false; }
+    } else {
+        if strcmp(operation, "inputs") == 0 {
+            if !tool_process_argument(&args, "ls-files") || !tool_process_argument(&args, "-z") { return false; }
+        } else {
+            if !tool_process_argument(&args, "diff") || !tool_process_argument(&args, "--binary")
+                || !tool_process_argument(&args, "--full-index") || !tool_process_argument(&args, "--no-color")
+                || !tool_process_argument(&args, "--no-ext-diff") || !tool_process_argument(&args, "--no-textconv")
+                || !tool_process_argument(&args, "HEAD") { return false; }
+        }
+        if !tool_process_argument(&args, "--") || !tool_process_argument(&args, "scaffolding")
+            || !tool_process_argument(&args, "cmake") || !tool_process_argument(&args, "CMakeLists.txt") { return false; }
+    }
+    return tool_process_argument(&args, null) && tool_capture(input.git, args.data, BootstrapCaptureLimit, out) == 0;
+}
+
+fn bootstrap_dependencies(input: BootstrapInputs*, out: ByteBuffer*): bool {
+    var args: vector(u8*) = default; var captured: ByteBuffer = default;
+    defer vector_dispose(&args); defer bytes_dispose(&captured);
+    var compiler = realpath(input.compiler, null);
+    if compiler == null { return false; }
+    defer free(compiler);
+    if !tool_process_argument(&args, input.ldd) || !tool_process_argument(&args, compiler)
+        || !tool_process_argument(&args, null) || tool_capture(input.ldd, args.data, BootstrapCaptureLimit, &captured) != 0 { return false; }
+    if !bootstrap_text(out, "[") { return false; }
+    var lf: u8 = 10; var cr: u8 = 13;
+    var first = true;
+    var start: usize = 0;
+    while start < captured.length {
+        var end = start;
+        while end < captured.length && captured.data[end] != lf { end++; }
+        var length = end - start;
+        if length != 0 && captured.data[start + length - 1] == cr { length--; }
+        // ASLR load addresses are not dependency identity. Retain library names
+        // and resolved paths but omit the terminal " (0x...)" observation.
+        var address_prefix = " (0x"; var prefix_bytes = strlen(address_prefix); var closing: u8 = 41;
+        if length != 0 && captured.data[start + length - 1] == closing {
+            for (var at: usize = 0; at + prefix_bytes < length; at++) {
+                var matches = true;
+                for (var byte: usize = 0; byte < prefix_bytes; byte++) {
+                    if captured.data[start + at + byte] != address_prefix[byte] { matches = false; }
+                }
+                if matches { length = at; break; }
+            }
+        }
+        if !first && !bootstrap_text(out, ",") { return false; }
+        if !bootstrap_string(out, captured.data + start, length) { return false; }
+        first = false;
+        start = end == captured.length ? end : end + 1;
+    }
+    return bootstrap_text(out, "]");
+}
+
+fn bootstrap_source_hashes(input: BootstrapInputs*, out: ByteBuffer*): bool {
+    var names: ByteBuffer = default; var path: ByteBuffer = default; var source: ByteBuffer = default;
+    defer bytes_dispose(&names); defer bytes_dispose(&path); defer bytes_dispose(&source);
+    if !bootstrap_git(input, "inputs", &names) || names.length == 0 || names.data[names.length - 1] != 0
+        || !bootstrap_text(out, "{") { return false; }
+    var start: usize = 0;
+    while start < names.length {
+        var end = start;
+        while names.data[end] != 0 { end++; }
+        if end == start || !tool_join(&path, input.repository, names.data + start)
+            || !tool_read_file(path.data, BootstrapArchiveLimit, &source) { return false; }
+        if start != 0 && !bootstrap_text(out, ",") { return false; }
+        if !bootstrap_string(out, names.data + start, end - start) || !bootstrap_text(out, ":")
+            || !bootstrap_hash(out, source.data, source.length) { return false; }
+        start = end + 1;
+    }
+    return bootstrap_text(out, "}");
+}
+
+fn bootstrap_manifest(input: BootstrapInputs*, files: vector(BootstrapFile*)*, archive: ByteBuffer*,
+    patch: ByteBuffer*, out: ByteBuffer*): bool {
+    var predecessor: ByteBuffer = default; var revision: ByteBuffer = default;
+    defer bytes_dispose(&predecessor); defer bytes_dispose(&revision);
+    if !tool_read_file(input.predecessor, BootstrapArchiveLimit, &predecessor) || !bootstrap_git(input, "revision", &revision) { return false; }
+    var lf: u8 = 10; var cr: u8 = 13;
+    while revision.length != 0 && (revision.data[revision.length - 1] == lf || revision.data[revision.length - 1] == cr) { revision.length--; }
+    if revision.length == 0 || !bootstrap_text(out, "{\n  \"archive\":\"linux-x64/towerc.tar.gz\",\n  \"build\":{\"command\":")
+        || !bootstrap_string(out, input.command, strlen(input.command))
+        || !bootstrap_text(out, ",\"compiler\":\"Clang 19.1.1\",\"configuration\":\"Release\",\"llvm\":\"19.1.1\",\"predecessor_sha256\":")
+        || !bootstrap_hash(out, predecessor.data, predecessor.length)
+        || !bootstrap_text(out, "},\n  \"dynamic_dependencies\":") || !bootstrap_dependencies(input, out)
+        || !bootstrap_text(out, ",\n  \"files\":{") { return false; }
+    var first = true;
+    foreach (var file in files) {
+        if !first && !bootstrap_text(out, ",") { return false; }
+        if !bootstrap_string(out, file.name.data, file.name.length) || !bootstrap_text(out, ":{\"sha256\":")
+            || !bootstrap_hash(out, file.data.data, file.data.length) || !bootstrap_text(out, ",\"size\":")
+            || !host_json_unsigned(out, convert(u64, file.data.length)) || !bootstrap_text(out, "}") { return false; }
+        first = false;
+    }
+    if !bootstrap_text(out, "},\n  \"host\":\"linux-x64-ubuntu24-llvm19\",\n  \"schema\":")
+        || !host_json_unsigned(out, BootstrapSchema) || !bootstrap_text(out, ",\n  \"sha256\":")
+        || !bootstrap_hash(out, archive.data, archive.length) || !bootstrap_text(out, ",\n  \"source_base_revision\":")
+        || !bootstrap_string(out, revision.data, revision.length) || !bootstrap_text(out, ",\n  \"source_files\":")
+        || !bootstrap_source_hashes(input, out)
+        || !bootstrap_text(out, ",\n  \"source_identity\":\"Exact source_files hashes include the working changes accompanying this bootstrap update.\"") { return false; }
+    if patch.length != 0 {
+        if !bootstrap_text(out, ",\n  \"source_patch\":{\"path\":\"source-changes.patch\",\"sha256\":")
+            || !bootstrap_hash(out, patch.data, patch.length) || !bootstrap_text(out, "}") { return false; }
+    }
+    return bootstrap_text(out, "\n}\n");
+}
+
+// Write only a new candidate directory. The active repository pin is a separate
+// release decision after clean successor/relocation tests. Publish the whole
+// candidate atomically; a failed attempt leaves no partial authoritative pin.
+fn bootstrap_publish(input: BootstrapInputs*, archive: ByteBuffer*, manifest: ByteBuffer*, patch: ByteBuffer*): bool {
+    if tool_file_kind(input.output, false) != ToolFileKind.Missing { return false; }
+    var stage: ByteBuffer = default; var path: ByteBuffer = default;
+    var archive_path: ByteBuffer = default; var manifest_path: ByteBuffer = default; var patch_path: ByteBuffer = default;
+    defer bytes_dispose(&stage); defer bytes_dispose(&path); defer bytes_dispose(&archive_path);
+    defer bytes_dispose(&manifest_path); defer bytes_dispose(&patch_path);
+    if !bootstrap_text(&stage, input.output) || !bootstrap_text(&stage, ".stage_XXXXXX") || !host_text_terminate(&stage)
+        || !tool_output_parents(stage.data) || mkdtemp(stage.data) == null { return false; }
+    var published = false;
+    defer {
+        if !published {
+            if archive_path.data != null { remove(archive_path.data); }
+            if manifest_path.data != null { remove(manifest_path.data); }
+            if patch_path.data != null { remove(patch_path.data); }
+            if path.data != null { rmdir(path.data); }
+            rmdir(stage.data);
+        }
+    }
+    if !tool_join(&path, stage.data, "linux-x64")
+        || !tool_join(&archive_path, stage.data, "linux-x64/towerc.tar.gz")
+        || !tool_join(&manifest_path, stage.data, "development.json")
+        || !tool_join(&patch_path, stage.data, "source-changes.patch")
+        || !tool_output_parents(archive_path.data)
+        || !driver_write_file(archive_path.data, archive.data, archive.length)
+        || !driver_write_file(manifest_path.data, manifest.data, manifest.length) { return false; }
+    if patch.length != 0 && !driver_write_file(patch_path.data, patch.data, patch.length) { return false; }
+    published = tool_publish_directory(stage.data, input.output);
+    return published;
+}
+
+fn bootstrap_package(input: BootstrapInputs*): bool {
+    var files: vector(BootstrapFile*) = default; var entries: vector(TarEntry) = default;
+    var tar: ByteBuffer = default; var archive: ByteBuffer = default; var manifest: ByteBuffer = default; var patch: ByteBuffer = default;
+    defer bootstrap_files_dispose(&files); defer vector_dispose(&entries);
+    defer bytes_dispose(&tar); defer bytes_dispose(&archive); defer bytes_dispose(&manifest); defer bytes_dispose(&patch);
+    if tool_file_kind(input.output, false) != ToolFileKind.Missing || !bootstrap_collect(input, &files)
+        || !vector_reserve(&entries, files.length) { return false; }
+    foreach (var file in &files) {
+        entries.data[entries.length] = init(TarEntry) { name: file.name.data, name_length: file.name.length,
+            data: file.data.data, length: file.data.length,
+            mode: strcmp(file.name.data, "towerc") == 0 ? BootstrapExecutableMode : BootstrapRegularMode };
+        entries.length++;
+    }
+    return tar_write(entries.data, entries.length, BootstrapArchiveLimit, &tar) == TarResult.Ok
+        && gzip_compress(tar.data, tar.length, &archive) && bootstrap_git(input, "patch", &patch)
+        && bootstrap_manifest(input, &files, &archive, &patch, &manifest)
+        && bootstrap_publish(input, &archive, &manifest, &patch);
+}

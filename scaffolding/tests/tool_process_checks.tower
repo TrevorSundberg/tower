@@ -1,6 +1,7 @@
 import tower;
 import utility_checks;
 import .tools.tool_process_linux;
+import .tools.tool_capture_linux;
 import .library.vector;
 import .library.bytes;
 import .library.bytes_types;
@@ -24,12 +25,21 @@ export fn main(argc: i32, argv: u8**): i32 {
     var exec_like_exit: i32 = 127;
     var terminate_signal: i32 = 15;
     var unexpected_return: i32 = 1;
+    var binary_chunk: usize = 256; var binary_repeats: usize = 512;
     if argc != 1 {
         utility_check(argc == child_count && strcmp(argv[1], "--child") == 0, "child mode arguments");
         utility_check(strcmp(argv[3], "literal spaces;$(no_command)") == 0 && argv[4][0] == 0,
             "child received exact shell-free arguments including empty string");
         if strcmp(argv[2], "signal") == 0 { raise(terminate_signal); return unexpected_return; }
         if strcmp(argv[2], "exec-like") == 0 { return exec_like_exit; }
+        if strcmp(argv[2], "capture") == 0 {
+            var data: u8[256]; var stdout_stream: i32 = 1;
+            for (var at: usize = 0; at < binary_chunk; at++) { data[at] = convert(u8, at); }
+            for (var at: usize = 0; at < binary_repeats; at++) {
+                utility_check(write(stdout_stream, &data[0], binary_chunk) == convert(i64, binary_chunk), "child binary output");
+            }
+            return 0;
+        }
         return fixture_exit;
     }
     var ordinary = process_check_run(argv[0], "ordinary");
@@ -47,6 +57,24 @@ export fn main(argc: i32, argv: u8**): i32 {
     var failed = process_check_run(missing.data, "ordinary");
     var no_entry: i32 = 2;
     utility_check(failed.kind == ToolProcessKind.ExecFailed && failed.error == no_entry, "exec failure errno preserved");
+    var args: vector(u8*) = default; var captured: ByteBuffer = default;
+    defer vector_dispose(&args); defer bytes_dispose(&captured);
+    utility_check(tool_process_argument(&args, argv[0]) && tool_process_argument(&args, "--child")
+        && tool_process_argument(&args, "capture") && tool_process_argument(&args, "literal spaces;$(no_command)")
+        && tool_process_argument(&args, "") && tool_process_argument(&args, null), "capture arguments");
+    var limit = binary_chunk * binary_repeats;
+    utility_check(tool_capture(argv[0], args.data, limit, &captured) == 0 && captured.length == limit, "capture exceeds pipe capacity");
+    for (var at: usize = 0; at < captured.length; at++) {
+        utility_check(captured.data[at] == convert(u8, at % binary_chunk), "exact binary capture including NUL");
+    }
+    var saved = captured.data;
+    utility_check(tool_capture(argv[0], args.data, limit - 1, &captured) != 0
+        && captured.data == saved && captured.length == limit, "capture limit preserves output");
+    var invalid_descriptor: i32 = 2147483647; var bad_descriptor: i32 = 9;
+    var redirected = tool_process_output(argv[0], args.data, invalid_descriptor);
+    utility_check(redirected.kind == ToolProcessKind.RedirectFailed && redirected.error == bad_descriptor, "redirect failure distinguished");
+    args.data[2] = "ordinary";
+    utility_check(tool_capture(argv[0], args.data, limit, &captured) == fixture_exit && captured.data == saved, "capture propagates failed child status");
     puts("Tower process checks passed");
     return 0;
 }

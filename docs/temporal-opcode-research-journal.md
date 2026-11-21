@@ -34984,3 +34984,150 @@ alongside the editor/lazy-capture work. Backend compiler-project packaging follo
 For this in-flight rebase only, the same journal union attribute is also recorded
 in local .git/info/attributes so it remains effective before its introducing
 .gitattributes commit is replayed; no source merge driver is changed.
+
+## 2026-11-21: Tower bootstrap packaging and in-house archive/hash capabilities
+
+The tooling lane replaces the required `bootstrap/package.py` entry point with
+`scaffolding/tools/package_bootstrap.tower`, built by the established
+`playground/scripts/build-bootstrap.sh --tools` path. The independent installer
+remains unchanged for this milestone. The user clarified that actual source
+should become overwhelmingly Tower, with essential platform/browser bindings,
+and subsequently prioritized eliminating Python completely before the wider
+shell/CMake/JavaScript migration. This is actual implementation retirement,
+separate from GitHub recognizing Tower in its language chart. This lane has now
+removed four Python files (23 initially, 19 remaining; 147 lines in those four
+files) and two obsolete JavaScript probes (94 lines). Three Python replacements
+are live tools; the fourth removal was the obsolete grammar-port profiler.
+Other concurrent source changes are not attributed to this lane's totals.
+
+Architecture and contracts:
+
+- New `library/sha256.tower` implements FIPS 180-4 SHA-256 with explicit bytes,
+  wrapping u32 arithmetic, incremental updates and non-consuming finalization.
+  It rejects a null nonempty input or a message reaching 2^64 bits before changing
+  state. Specification constants are decoded from hexadecimal text once per
+  initialized state because the public bootstrap lacks hex integer literals.
+  This is an implementation with differential evidence, not FIPS certification.
+- `tar_archive.tower` writes deterministic regular-file POSIX ustar, and
+  `gzip_archive.tower` frames the existing Tower CRC32/DEFLATE compressor. File
+  order is explicit, ownership/time fields are zero, modes are 0644 or 0755, and
+  the gzip timestamp is zero with OS 255. No zlib, native crypto or tar library
+  was added. The packager executable's `ldd` lists only libc plus loader/vDSO.
+  The compiler being packaged still has existing LLVM transitive dependencies,
+  including libz; this milestone does not remove LLVM's dependency closure.
+- The small writer rejects unsafe/duplicate/file-parent-colliding names,
+  unsupported ustar name splits, modes, sizes and padded output limits. It has
+  no PAX, link-member, base-256 or extraction implementation. Buffers publish
+  atomically and allow input aliases. Package input/padded tar is capped at
+  1 GiB; memory includes inputs, tar and compressed buffers. These are initial
+  reusable capabilities, not a claim of a complete archive library.
+- Linux tooling exposes file type, bounded reads, lexical resource traversal,
+  child stdout capture and no-replace directory publication. File symlinks keep
+  their lexical member names and read targets; directory symlinks are skipped.
+  Directory recursion is bounded at 128 levels. `statx` and `renameat2` are
+  explicit Linux x64 capabilities. Child stdout uses an anonymous temporary
+  file, avoiding pipe-buffer deadlock; the 64 MiB capture bound limits published
+  memory, not temporary disk writes. Stderr is inherited. Exit, signal, exec and
+  redirection failures remain distinguishable in the process result.
+- The new CLI is `package_bootstrap COMPILER PREDECESSOR REPOSITORY
+  NEW_OUTPUT_DIRECTORY BUILD_COMMAND [GIT LDD]`. It publishes a complete new
+  candidate directory by atomic no-replace rename; it never overwrites the live
+  pin. The manifest retains schema, archive/member/source/predecessor hashes,
+  member sizes, revision and optional source patch. Git/ldd are explicit trusted
+  executables, defaulting to `/usr/bin/git` and `/usr/bin/ldd`, without a shell.
+  Build command is recorded provenance supplied by the caller, not execution or
+  independent attestation. Inputs must remain unchanged during packaging, and
+  staged new files are needed for Git to include them in source provenance.
+
+Research used the primary [SHA-256 specification](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf),
+[gzip format](https://www.rfc-editor.org/rfc/rfc1952) and
+[Linux statx interface](https://man7.org/linux/man-pages/man2/statx.2.html).
+Independent GNU tar/gzip, sha256sum, and the unmodified Python packager/installer
+were reference tools, not new project-owned implementations or test helpers.
+
+Trials, findings and corrections:
+
+- SHA-256 standard empty/abc/56-byte/112-byte vectors, every chunk split,
+  million-`a`, continuation after finalization, null and overflow rejection pass.
+  260 generated binary fixtures (lengths 0 through 259) agree with system
+  `sha256sum --quiet -c`; per-byte and whole-buffer Tower hashing also agree.
+  The first 112-byte expected digest had a transcription error (65 hex digits).
+  Corrected the test data and added a length guard; this was not an algorithm
+  defect. Initial packager draft syntax errors were fixed before execution.
+- Archive fixtures cover empty data, a 513-byte binary boundary, UTF-8 names,
+  the 155-byte-prefix/100-byte-name boundary, executable permissions, aliasing,
+  complete padding bounds and failed-output preservation. GNU tar extraction
+  followed by `diff -r expected actual` passes; `bin/runner` mode is 755 and
+  `gzip -t empty.gz` passes.
+- Initial raw-tar comparison differed at the header checksum and device fields:
+  Tower wrote octal zero device numbers while Python leaves those fields empty
+  for regular files. Both readers accepted it; retaining empty device fields
+  now produces byte-identical raw tar for the real 34-member compiler package.
+- Initial patch hashes differed between the checkout and isolated reference
+  clone because Git selected eight versus seven abbreviated object digits.
+  The tool now requests full object IDs, no color, no external diff and no
+  textconv. Applying its patch in the clone and regenerating with the same Git
+  flags produces identical patch bytes. Manifest dependency observations omit
+  nondeterministic terminal ASLR addresses while preserving names/paths.
+- Large binary process capture (131072 bytes), capture-limit rejection, child
+  exit propagation, invalid descriptor EBADF, ordinary exits/signals/exec
+  failures and exact arguments pass. Filesystem tests verify bounded reads,
+  regular-file aliases, skipped directory/dangling resource symlinks, and
+  no-replace publication against files, directories and dangling symlinks.
+- CLI attempts with an existing output, missing resource directory, failed Git
+  and missing ldd return failure. Failed attempts publish no candidate; existing
+  candidate archive/manifest remain byte-identical. Failed publication can leave
+  newly created parent directories, but never a partial authoritative candidate.
+
+Reproduction environment: Docker `tower_build`, explicit `linux/amd64`, Ubuntu
+24.04/Clang 19.1.1; repository `/work`, private `tower_agent1_tooling` volume at
+`/cache` and `/root/.cache`. No private bootstrap override. Start-of-turn upstream
+integration brought main to `5fdee250f330cd9f64c6471c611a4a8a3142bfb8`; local
+staged work was stashed, pulled and restored intact. The public archive remains
+`2292bd8abc4761ba0e62f6c2fb8fee2f482c5273f2a267402fe09d5d34d9913a`.
+
+`TOWER_NATIVE_BUILD=/cache/tooling_successor_5fdee25 bash
+playground/scripts/build-native.sh` completed all 53 steps using that public pin.
+Successor SHA-256 is
+`ccd71f326e3cdbded9227973a33f8afb7b881c05ae8e51332806bcc9c9561712`.
+`TOWER_TOOLS_BUILD='/cache/bootstrap package tools' bash
+playground/scripts/build-bootstrap.sh --tools` builds all three tools, including
+paths with spaces. Focused checks compile with the public `towerc` using
+`--library --target x86_64-unknown-linux-gnu --bedrock scaffolding/bedrock.tower
+--foundation scaffolding/foundation.tower`, then link the resulting object with
+that tools build's `guest-host-library.o` using clang-19. Run `sha256_checks`,
+`bootstrap_archive_checks`, `tool_process_checks` and `tool_files_checks` as
+documented in `scaffolding/tests/README.md`.
+
+The new tool packaged the fresh successor into `/cache/bootstrap_candidate_final`
+and repeated it into `/cache/bootstrap_candidate_repeat`. Archive and manifest
+bytes match. Candidate archive is 830635 bytes, SHA-256
+`75a40ba38417fc93afea9eea7ac04010f4835f515df29206d88bfe9152e1cd31`.
+Its source patch SHA-256 is
+`e8ff5e655bc0a3eb7d51f3ff8c6fd9f5b39395610f030cd34bc202803698e674`.
+This records the implementation snapshot before the later filesystem test/docs,
+not a newly published bootstrap pin. In a separate clone of 5fdee25, apply that
+patch with `git apply --index`, then run the unmodified retired packager against
+the same compiler/predecessor and LLVM license. Its gzip is 706833 bytes,
+SHA-256 `b9d8ffd3eb3635b050c9049ce63ebcbeee44c349252c8ffe7cf552ce21392ad6`;
+decompressed tar bytes match exactly. Tower's current compressor costs about
+17.5% more bytes on this package. Sorted JSON differs only in compressed archive
+hash, intentionally omitted ASLR addresses and the full-index patch hash; all
+source/member/predecessor hashes and sizes agree with Python.
+
+Copying the unchanged installer into the Tower candidate and running
+`python3 /cache/bootstrap_candidate_final/install.py --cache
+/cache/bootstrap_relocated_final` verifies archive/member hashes, sizes, names,
+types and executable mode. The relocated compiler executes known_bindings via
+the graph interpreter and compiles/runs struct_values natively, both printing
+zero failures. The fresh successor's fast interpreter also prints zero. One
+validation command unnecessarily tried to link CLI `-o ...fixture.o` again;
+the CLI had already emitted an executable despite that suffix. Running that
+executable directly passed. No compiler/runtime semantics or actual pin changed.
+
+Next: publish this tooling milestone with the existing verified runtime assets,
+then port the remaining Python bootstrap installer (JSON/DEFLATE/tar reading and
+verification need reusable Tower capabilities). Continue all remaining Python
+packaging, verification, benchmark and test drivers before wider shell/CMake/JS
+migration. Native Windows/macOS packages and full archive-library coverage remain
+future work. No todo.txt edits, sanitizer or broad formatting sweep.

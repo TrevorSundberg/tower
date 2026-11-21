@@ -1,0 +1,61 @@
+import tower;
+import utility_checks;
+import .tools.tool_files_posix;
+import .tools.tool_files_linux;
+import .tools.tool_streams_posix;
+import .library.bytes;
+import .library.bytes_types;
+import .library.vector;
+import .host.driver_files;
+
+extern fn symlink(target: u8*, path: u8*): i32;
+
+export fn main(argc: i32, argv: u8**): i32 {
+    var arguments: i32 = 2; var usage: i32 = 2; var directory_mode: u32 = 448;
+    if argc != arguments { puts("Supply a new isolated fixture directory"); return usage; }
+    var root = argv[1];
+    utility_check(mkdir(root, directory_mode) == 0, "new isolated root");
+    var path: ByteBuffer = default; var stage: ByteBuffer = default; var destination: ByteBuffer = default;
+    var data: ByteBuffer = default; var names: vector(u8*) = default;
+    defer bytes_dispose(&path); defer bytes_dispose(&stage); defer bytes_dispose(&destination);
+    defer bytes_dispose(&data); defer tool_paths_dispose(&names);
+    utility_check(tool_join(&path, root, "tree/nested/data") && tool_output_parents(path.data)
+        && driver_write_file(path.data, "abc", 3), "regular tree file");
+    utility_check(bytes_assign_text(&data, "keep", 4), "previous read result");
+    var saved = data.data;
+    utility_check(!tool_read_file(path.data, 2, &data) && data.data == saved && data.length == 4,
+        "bounded file read preserves destination");
+    utility_check(tool_read_file(path.data, 3, &data) && data.length == 3 && utility_equal(data.data, "abc", 3),
+        "exact bounded file read");
+    utility_check(tool_join(&path, root, "tree/file_link") && symlink("nested/data", path.data) == 0
+        && tool_file_kind(path.data, false) == ToolFileKind.Symlink
+        && tool_file_kind(path.data, true) == ToolFileKind.Regular, "explicit symlink follow policy");
+    utility_check(tool_join(&path, root, "tree/dir_link") && symlink("nested", path.data) == 0, "directory symlink");
+    utility_check(tool_join(&path, root, "tree/missing_link") && symlink("absent", path.data) == 0, "dangling symlink");
+    utility_check(tool_tree_files(root, "tree", 0, &names), "collect tree");
+    tool_paths_sort(&names);
+    var expected_files: usize = 2;
+    utility_check(names.length == expected_files && strcmp(names.data[0], "tree/file_link") == 0
+        && strcmp(names.data[1], "tree/nested/data") == 0, "lexical file aliases retained, directory links not traversed");
+    utility_check(!tool_tree_files(root, "absent", 0, &names), "missing resource directory rejected");
+    utility_check(tool_join(&stage, root, "stage_first") && mkdir(stage.data, directory_mode) == 0
+        && tool_join(&path, stage.data, "marker") && driver_write_file(path.data, "abc", 3)
+        && tool_join(&destination, root, "published") && tool_publish_directory(stage.data, destination.data),
+        "complete candidate directory publication");
+    utility_check(tool_file_kind(stage.data, false) == ToolFileKind.Missing
+        && tool_join(&path, destination.data, "marker") && tool_read_file(path.data, 3, &data)
+        && utility_equal(data.data, "abc", 3), "published directory preserves contents");
+    utility_check(tool_join(&stage, root, "stage_second") && mkdir(stage.data, directory_mode) == 0
+        && !tool_publish_directory(stage.data, destination.data), "existing directory never replaced");
+    utility_check(tool_join(&destination, root, "destination_link") && symlink("published", destination.data) == 0
+        && !tool_publish_directory(stage.data, destination.data)
+        && tool_file_kind(destination.data, false) == ToolFileKind.Symlink, "existing symlink never replaced");
+    utility_check(tool_join(&destination, root, "destination_dangling") && symlink("absent", destination.data) == 0
+        && !tool_publish_directory(stage.data, destination.data), "dangling destination never replaced");
+    utility_check(tool_join(&destination, root, "destination_file") && driver_write_file(destination.data, "keep", 4)
+        && !tool_publish_directory(stage.data, destination.data) && tool_read_file(destination.data, 4, &data)
+        && utility_equal(data.data, "keep", 4) && tool_file_kind(stage.data, false) == ToolFileKind.Directory,
+        "file collision preserves both candidate and destination");
+    puts("Tower filesystem checks passed");
+    return 0;
+}

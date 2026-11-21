@@ -1,0 +1,38 @@
+import tower;
+import bytes;
+import bytes_types;
+import crc32;
+import deflate;
+
+// Deterministic RFC 1952 single-member writer. No filename/comment, timestamp
+// zero, unspecified OS. Compression is the shared Tower raw DEFLATE encoder.
+// Complete input must remain readable until atomic output publication.
+fn gzip_compress(data: u8*, length: usize, out: ByteBuffer*): bool {
+    if length != 0 && data == null { return false; }
+    var compressed: ByteBuffer = default;
+    var archive: ByteBuffer = default;
+    defer bytes_dispose(&compressed);
+    defer bytes_dispose(&archive);
+    if !deflate_compress(data, length, &compressed) { return false; }
+    var identity_first: u8 = 31; var identity_second: u8 = 139; var method_deflate: u8 = 8;
+    var unspecified_os: u8 = 255; var header_zero_fields: usize = 6;
+    if !bytes_push(&archive, identity_first) || !bytes_push(&archive, identity_second)
+        || !bytes_push(&archive, method_deflate) { return false; }
+    for (var at: usize = 0; at < header_zero_fields; at++) { if !bytes_push(&archive, 0) { return false; } }
+    if !bytes_push(&archive, unspecified_os) || !bytes_append(&archive, compressed.data, compressed.length) { return false; }
+    var checksum = crc32_update(0, data, length);
+    var size = convert(u32, convert(u64, length) & convert(u64, ~convert(u32, 0)));
+    var word_bytes: usize = 4; var byte_bits: u32 = 8; var mask = convert(u32, ~convert(u8, 0));
+    for (var at: usize = 0; at < word_bytes; at++) {
+        if !bytes_push(&archive, convert(u8, checksum & mask)) { return false; }
+        checksum >>= byte_bits;
+    }
+    for (var at: usize = 0; at < word_bytes; at++) {
+        if !bytes_push(&archive, convert(u8, size & mask)) { return false; }
+        size >>= byte_bits;
+    }
+    bytes_dispose(out);
+    *out = archive;
+    archive = default;
+    return true;
+}

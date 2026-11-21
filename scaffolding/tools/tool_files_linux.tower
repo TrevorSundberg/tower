@@ -1,0 +1,102 @@
+import tower;
+import tool_files_posix;
+import tool_process_linux;
+import .host.module_path_linux;
+import .library.vector;
+import .library.bytes;
+import .library.bytes_types;
+
+extern fn statx(directory: i32, path: u8*, flags: i32, mask: u32, output: void*): i32;
+extern fn readdir(directory: void*): void*;
+extern fn mkdtemp(pattern: u8*): u8*;
+extern fn rmdir(path: u8*): i32;
+extern fn remove(path: u8*): i32;
+extern fn renameat2(old_directory: i32, old_path: u8*, new_directory: i32, new_path: u8*, flags: u32): i32;
+
+enum ToolFileKind: i32 { Error, Missing, Regular, Directory, Symlink, Other }
+
+// Linux x64 little-endian statx ABI: 256-byte, 8-byte-aligned result. Only type
+// is requested/consumed; no dependency on libc's architecture-specific stat.
+fn tool_file_kind(path: u8*, follow: bool): ToolFileKind {
+    var status: u64[32];
+    var working_directory: i32 = -100;
+    var no_follow: i32 = 256;
+    var type_mask: u32 = 1;
+    var mode_offset: usize = 28;
+    var byte_bits: u32 = 8;
+    var no_entry: i32 = 2;
+    if statx(working_directory, path, follow ? 0 : no_follow, type_mask, bits(void*, &status[0])) != 0 {
+        return *__errno_location() == no_entry ? ToolFileKind.Missing : ToolFileKind.Error;
+    }
+    var data = bits(u8*, &status[0]);
+    if (convert(u32, data[0]) & type_mask) == 0 { return ToolFileKind.Error; }
+    var mode = convert(u32, data[mode_offset]) | (convert(u32, data[mode_offset + 1]) << byte_bits);
+    var type_bits: u32 = 61440; var regular: u32 = 32768; var directory: u32 = 16384; var symlink: u32 = 40960;
+    mode &= type_bits;
+    if mode == regular { return ToolFileKind.Regular; }
+    if mode == directory { return ToolFileKind.Directory; }
+    if mode == symlink { return ToolFileKind.Symlink; }
+    return ToolFileKind.Other;
+}
+
+fn tool_paths_dispose(paths: vector(u8*)*): void {
+    foreach (var path in paths) { free(path); }
+    vector_dispose(paths);
+}
+
+fn tool_path_keep(paths: vector(u8*)*, path: u8*): bool {
+    var copy: ByteBuffer = default;
+    if !bytes_assign_text(&copy, path, strlen(path)) { return false; }
+    if !vector_push(paths, copy.data) { bytes_dispose(&copy); return false; }
+    return true;
+}
+
+fn tool_paths_sort(paths: vector(u8*)*): void {
+    for (var at: usize = 1; at < paths.length; at++) {
+        var value = paths.data[at];
+        var destination = at;
+        while destination != 0 && strcmp(paths.data[destination - 1], value) > 0 {
+            paths.data[destination] = paths.data[destination - 1];
+            destination--;
+        }
+        paths.data[destination] = value;
+    }
+}
+
+// Collect regular files with relative names; file symlinks retain their lexical
+// names and read their targets. Directory symlinks are skipped like Path.rglob.
+// Partial append on failure remains caller-owned. No filesystem writes here.
+fn tool_tree_files(root: u8*, relative: u8*, depth: usize, paths: vector(u8*)*): bool {
+    var depth_limit: usize = 128;
+    if depth == depth_limit { return false; }
+    var full: ByteBuffer = default;
+    var child: ByteBuffer = default;
+    defer bytes_dispose(&full); defer bytes_dispose(&child);
+    if !tool_join(&full, root, relative) { return false; }
+    var directory = opendir(full.data);
+    if directory == null { return false; }
+    defer closedir(directory);
+    loop {
+        *__errno_location() = 0;
+        var entry = readdir(directory);
+        if entry == null { return *__errno_location() == 0; }
+        var name = module_dirent_name(entry);
+        if strcmp(name, ".") == 0 || strcmp(name, "..") == 0 { continue; }
+        if !tool_join(&child, relative, name) || !tool_join(&full, root, child.data) { return false; }
+        var kind = tool_file_kind(full.data, false);
+        if kind == ToolFileKind.Directory {
+            if !tool_tree_files(root, child.data, depth + 1, paths) { return false; }
+        } else {
+            if kind == ToolFileKind.Symlink { kind = tool_file_kind(full.data, true); }
+            if kind == ToolFileKind.Error { return false; }
+            if kind == ToolFileKind.Regular && !tool_path_keep(paths, child.data) { return false; }
+        }
+    }
+}
+
+// Atomic new-directory publication. Refuses an existing file, directory or
+// symlink at destination, including one that appeared after the caller checked.
+fn tool_publish_directory(stage: u8*, destination: u8*): bool {
+    var working_directory: i32 = -100; var no_replace: u32 = 1;
+    return renameat2(working_directory, stage, working_directory, destination, no_replace) == 0;
+}
