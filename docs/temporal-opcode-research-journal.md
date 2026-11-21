@@ -32689,3 +32689,20 @@ completeness audit rather than being silently claimed as implemented here.
 The final relocation-eligibility suite passes all native execution, Foundation
 round-trip, worker-count and semantic oracle checks
 (`binding-relocatable-final-tests.log`).
+
+The publication pull then integrated c53a077 through 92da0a8: final owned native
+adapters/fixtures were retired, the canonical bootstrap became Tower-built Linux
+x64, and upstream deliberately raised the semantic payload policy from 64 MiB to
+128 MiB for its aggregate-heavy compiler workload. Preserve those changes. This
+supersedes the earlier assumption that the final release would still use a hybrid
+compiler or the old default budget. Our input-eligibility filter remains useful
+and changes no resource limit itself. Discarded the unpublished old-build package;
+rebuild the integrated compiler from the newly published Tower-only pin before
+packaging the final inference policies and restoring the migration. No project
+native implementation is to be reintroduced by this feature release.
+
+The fresh integrated default-pin build in `/cache/values-integrated` and its full
+native execution suite pass (`values-integrated-native.log`,
+`values-integrated-tests.log`). This includes the new inference restrictions,
+struct/library/cyclic-module cases and prior semantic oracle fixtures, using the
+Tower node fixtures and adapters from the merged native retirement.
