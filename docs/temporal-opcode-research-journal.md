@@ -32706,3 +32706,16 @@ native execution suite pass (`values-integrated-native.log`,
 `values-integrated-tests.log`). This includes the new inference restrictions,
 struct/library/cyclic-module cases and prior semantic oracle fixtures, using the
 Tower node fixtures and adapters from the merged native retirement.
+
+Packaged the integrated Tower-only compiler at 3125c40 as SHA-256
+e886c65dff84c83b8647d516eaa1de6754f58f04932022238680f8d1489f9e32,
+using the upstream fd536ba1ae5cefe891e78690e23c06ef7fcd5d729c0e3395824d8977abf9a9b4
+predecessor. A new default-pin successor in `/cache/values-final-clean` passes all
+53 steps (`values-final-clean.log`). Its library fixture links/runs with exit 0,
+and the known-binding/struct fixtures print 0. This is the pin to publish before
+restoring the complete source migration and rerunning the larger threaded build.
+
+The push raced upstream a4aa3e7; rebased normally and preserved its journal and
+obsolete-release-assertion removals. Compiler/build inputs compare byte-for-byte
+equal between 3125c40 and reachable 6f3834c, so retained the verified archive and
+updated its source-base provenance to 6f3834c. No force push or redundant rebuild.

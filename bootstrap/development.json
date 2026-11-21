@@ -1,28 +1,31 @@
 {
   "archive": "linux-x64/towerc.tar.gz",
   "build": {
-    "command": "env -u TOWER_BOOTSTRAP_COMPILER TOWER_NATIVE_BUILD=/home/trevo/.cache/tower/coordinator-retirement-cycle-clean TOWER_BUILD_JOBS=4 bash playground/scripts/build-native.sh",
+    "command": "playground/scripts/build-native.sh",
     "compiler": "Clang 19.1.1",
     "configuration": "Release",
     "llvm": "19.1.1",
-    "predecessor_sha256": "a3bf60344531e1a99fac05fa1c9aa13fe001066adf7df32f10f57ff1c103c3d8"
+    "predecessor_sha256": "30dc4eabd1484272f242c6dd2bbcc80a04c94fe8cc55d0c1a34d995d45a9ea58"
   },
   "dynamic_dependencies": [
-    "\tlinux-vdso.so.1 (0x00007d0bedce9000)",
-    "\tlibLLVM.so.19.1 => /usr/lib/llvm-19/lib/libLLVM.so.19.1 (0x00007d0be6000000)",
-    "\tlibstdc++.so.6 => /usr/lib/x86_64-linux-gnu/libstdc++.so.6 (0x00007d0be5c00000)",
-    "\tlibm.so.6 => /usr/lib/x86_64-linux-gnu/libm.so.6 (0x00007d0be5eda000)",
-    "\tlibgcc_s.so.1 => /usr/lib/x86_64-linux-gnu/libgcc_s.so.1 (0x00007d0bedb85000)",
-    "\tlibc.so.6 => /usr/lib/x86_64-linux-gnu/libc.so.6 (0x00007d0be5800000)",
-    "\tlibffi.so.8 => /usr/lib/x86_64-linux-gnu/libffi.so.8 (0x00007d0bedb72000)",
-    "\tlibedit.so.2 => /usr/lib/x86_64-linux-gnu/libedit.so.2 (0x00007d0bedb38000)",
-    "\tlibz.so.1 => /usr/lib/x86_64-linux-gnu/libz.so.1 (0x00007d0bedb1a000)",
-    "\tlibzstd.so.1 => /usr/lib/x86_64-linux-gnu/libzstd.so.1 (0x00007d0be5b3d000)",
-    "\tlibxml2.so.16 => /usr/lib/x86_64-linux-gnu/libxml2.so.16 (0x00007d0be569d000)",
-    "\t/lib64/ld-linux-x86-64.so.2 (0x00007d0bedceb000)",
-    "\tlibtinfo.so.6 => /usr/lib/x86_64-linux-gnu/libtinfo.so.6 (0x00007d0be5ea5000)",
-    "\tlibbsd.so.0 => /usr/lib/x86_64-linux-gnu/libbsd.so.0 (0x00007d0be5b27000)",
-    "\tlibmd.so.0 => /usr/lib/x86_64-linux-gnu/libmd.so.0 (0x00007d0be5b18000)"
+    "\tlinux-vdso.so.1 (0x00007f8c001ed000)",
+    "\tlibLLVM.so.19.1 => /usr/lib/llvm-19/lib/libLLVM.so.19.1 (0x00007f8bf8527000)",
+    "\tlibstdc++.so.6 => /lib/x86_64-linux-gnu/libstdc++.so.6 (0x00007f8bf82a4000)",
+    "\tlibm.so.6 => /lib/x86_64-linux-gnu/libm.so.6 (0x00007f8bf81bb000)",
+    "\tlibgcc_s.so.1 => /lib/x86_64-linux-gnu/libgcc_s.so.1 (0x00007f8bf818d000)",
+    "\tlibc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007f8bf7f7a000)",
+    "\tlibffi.so.8 => /lib/x86_64-linux-gnu/libffi.so.8 (0x00007f8bf7f6c000)",
+    "\tlibedit.so.2 => /lib/x86_64-linux-gnu/libedit.so.2 (0x00007f8bf7f32000)",
+    "\tlibz.so.1 => /lib/x86_64-linux-gnu/libz.so.1 (0x00007f8bf7f16000)",
+    "\tlibzstd.so.1 => /lib/x86_64-linux-gnu/libzstd.so.1 (0x00007f8bf7e5c000)",
+    "\tlibxml2.so.2 => /lib/x86_64-linux-gnu/libxml2.so.2 (0x00007f8bf7c7a000)",
+    "\t/lib64/ld-linux-x86-64.so.2 (0x00007f8c001ef000)",
+    "\tlibtinfo.so.6 => /lib/x86_64-linux-gnu/libtinfo.so.6 (0x00007f8bf7c44000)",
+    "\tlibbsd.so.0 => /lib/x86_64-linux-gnu/libbsd.so.0 (0x00007f8bf7c2e000)",
+    "\tlibicuuc.so.74 => /lib/x86_64-linux-gnu/libicuuc.so.74 (0x00007f8bf7a21000)",
+    "\tliblzma.so.5 => /lib/x86_64-linux-gnu/liblzma.so.5 (0x00007f8bf79ef000)",
+    "\tlibmd.so.0 => /lib/x86_64-linux-gnu/libmd.so.0 (0x00007f8bf79e0000)",
+    "\tlibicudata.so.74 => /lib/x86_64-linux-gnu/libicudata.so.74 (0x00007f8bf5c7e000)"
   ],
   "files": {
     "LLVM-LICENSE.txt": {
@@ -94,54 +97,54 @@
       "size": 5543
     },
     "share/tower/runtime-host-linux-arm64.ll": {
-      "sha256": "cd6efec0c3af376def3d516509b7daf610d4c057e75fc2a9333559e1a73301e4",
-      "size": 67399
+      "sha256": "df37c8bc27024f6025d19fe1bb5b41ffc6a76f67d8731b2fb726e661350e1517",
+      "size": 67364
     },
     "share/tower/runtime-host-linux-x64.ll": {
-      "sha256": "f14e5481592c129453629d12ef3003252b76bff3f36d3c417d8f486deebac5b1",
-      "size": 67419
+      "sha256": "7ce91684d10387527bbd349d7cfa769191450b8bc5ab7e17ca7e8b9786b8da99",
+      "size": 67384
     },
     "share/tower/runtime-linux-arm64.ll": {
-      "sha256": "975fb7aa14950c36ded05ed29c241fa1b319d58ad0dcf91775e159a0195c66d2",
-      "size": 103569
+      "sha256": "6e02de96d6e010e87c3b5ed76e7140a5a617803479f86398ed56adca53f6d8c7",
+      "size": 103534
     },
     "share/tower/runtime-linux-x64.ll": {
-      "sha256": "9ba6c64c00b2de954d91c6cdf68845f693f811be3948a8c9555f8be3ff7710ce",
-      "size": 103700
+      "sha256": "fd4e414dc2d698b890e997510b890cfa10e423667f71cb0f6db3034299ce2d52",
+      "size": 103665
     },
     "share/tower/runtime-macos-arm64.ll": {
-      "sha256": "3d5b57a0d83cf83d46a5048a36c878d02f8bfca59f97dcd5576f787b3c60ffc7",
-      "size": 67370
+      "sha256": "8f95aa63b35042aff21f9c1eb3eff98ef3655aa49c6fe2d44601b4867e26fe29",
+      "size": 67335
     },
     "share/tower/runtime-macos-x64.ll": {
-      "sha256": "46f6f0b2c9884a3d75dd004e21b1a76824fbd493aa74249e3600f8413159514d",
-      "size": 67410
+      "sha256": "25cf29a18b059ffac8ef9fe26638700a8105fa91b55c461528a3f7d904c63588",
+      "size": 67375
     },
     "share/tower/runtime-wasm32.ll": {
-      "sha256": "b38f0bc050285babbe487fdcbc35230966a7c808212d80b29364e8325ac9965d",
-      "size": 148833
+      "sha256": "bedf73f45ef2d3e7b5d8765f7ca84d3641ece9e7d8f498c3dea676fad0259d47",
+      "size": 148798
     },
     "share/tower/runtime-windows-arm64.ll": {
-      "sha256": "15442d0e22e84d681238b771b75e576cbba9ca1e8457e3072fca0e53e4d4fb84",
-      "size": 96242
+      "sha256": "548c82eba47ef822eb73cb498f2b1a6294e81c8fdcdf5b99e3e9d6f791e9d02a",
+      "size": 96207
     },
     "share/tower/runtime-windows-x64.ll": {
-      "sha256": "26941e6e2cdf8e02e808cc9749ea7a8eaa825b55ac4341faed214763958901cf",
-      "size": 96265
+      "sha256": "709e741b366d8f07bb4c0388d6af4a99868c42eec361654849c56dca4c67e444",
+      "size": 96230
     },
     "share/tower/tower.tower": {
       "sha256": "c2fe8dfb51afa7a846e9633e91e4ac36831d25abeebd098b62edd66109a97f99",
       "size": 8676
     },
     "towerc": {
-      "sha256": "30dc4eabd1484272f242c6dd2bbcc80a04c94fe8cc55d0c1a34d995d45a9ea58",
-      "size": 1301512
+      "sha256": "24fa5adb794d245001369d5dda93acb58a662e5ec1d6f0e6ad672272dad0ae71",
+      "size": 1305744
     }
   },
   "host": "linux-x64-ubuntu24-llvm19",
   "schema": 1,
-  "sha256": "fd536ba1ae5cefe891e78690e23c06ef7fcd5d729c0e3395824d8977abf9a9b4",
-  "source_base_revision": "8e3d03c39183a3c88b5b99a77fc965198bd208b5",
+  "sha256": "e886c65dff84c83b8647d516eaa1de6754f58f04932022238680f8d1489f9e32",
+  "source_base_revision": "6f3834c1d74f64beedfd50076fe0caa5f5edc4f2",
   "source_files": {
     "CMakeLists.txt": "d8e127a9650b1e9d36db4d59c77b259965cec188e0a5f8fbc6ef5896c08a2e40",
     "cmake/ComposeBackend.cmake": "e862abd5dcefc7f36418892c6b80a068c689dc98094d5770c3a5a51102394319",
@@ -297,10 +300,10 @@
     "scaffolding/compiler/host_text.tower": "52a9b8dfed4fb893dde6b1cfe3478dba15cb88dcf614fbb76bc679af8bde57dd",
     "scaffolding/compiler/host_world.tower": "252467a7851b20d0fae7fcdc32c8189b450d7edf888a301066612738db391f28",
     "scaffolding/compiler/inspection_policy.tower": "4060da26c089756699c30aaee7a255709db5cb42348c213c735e2816b38910d3",
-    "scaffolding/compiler/interpreter.tower": "60a8a6f4abf3831c85d7b4038022b460225413f5893b289f18ff1158657138a8",
+    "scaffolding/compiler/interpreter.tower": "28251d78c9e98ecf25eccc2e12c13a74fe24654418b83be6e994a4b97da4d5e3",
     "scaffolding/compiler/interpreter_abi.tower": "6719807513977faf96c6207f0ad9591643a1d2a68793e67504186399cea8b2fd",
     "scaffolding/compiler/interpreter_context.tower": "2a2f557798786462a39c3ed3eec7d028bd81ff6276ac0fc68e5b403798cfdd36",
-    "scaffolding/compiler/interpreter_context_types.tower": "68eac1cfc3a2d71a38866a8b24be03e35d38fc02a34886b167a273aa424fa92a",
+    "scaffolding/compiler/interpreter_context_types.tower": "99f33f103ffd591e16765bd6cbcadda14d6d905208e2309155adec187dec9d01",
     "scaffolding/compiler/interpreter_storage.tower": "5247f4a599af8523f4e6191a41b9fb40425bc2c6d83d750260e120017b40cc8b",
     "scaffolding/compiler/interpreter_types.tower": "cf138e6b06f43d1c8de39f56d92d5651e71859e7db700a590226ba90da52cd90",
     "scaffolding/compiler/language_components.tower": "18fb4ca84779d4c2b4760e81e50b134a924bf90e3c469845b0550a3b67f1bdc1",
@@ -346,7 +349,7 @@
     "scaffolding/compiler/semantic_defer.tower": "6f426b94879536972c53b07b92022d23867c0eb2214565dcaa0898979b26481a",
     "scaffolding/compiler/semantic_definitions.tower": "74f67ca92ca1b53bd4a27666e4bd22995c57b4bb0afba6be6be68c00a814b3d4",
     "scaffolding/compiler/semantic_enums.tower": "f3f9907fc0b3c782d9b41ab6debd24fc423654522db5b3b023dc7b4df8fae6d3",
-    "scaffolding/compiler/semantic_evaluation.tower": "851262188468a7c02ad60d01af3341870ee40799a1aca8e9db7018466e3591a1",
+    "scaffolding/compiler/semantic_evaluation.tower": "92cd841cf16a762c54f42ace1fda961f593affc911e7e0c0dd87c7ae215f370a",
     "scaffolding/compiler/semantic_evaluation_work.tower": "2f81772cc72861f20ddfd84f10b27efb1584d94f697663ade60b3e516887e315",
     "scaffolding/compiler/semantic_expression_lowering.tower": "3a35657ccd6fbf36314b4d37d88d850432907eb568b47ec4b5de51bef1124f4a",
     "scaffolding/compiler/semantic_expressions.tower": "06105d66d57a6db29e63542b002cdd8877d545b5b23ea2218aeff760464440b1",
@@ -355,7 +358,7 @@
     "scaffolding/compiler/semantic_generic_info.tower": "5120561af054ccc5d8e31ff4db347c8d633dd135f564c533bf2f166800a619fa",
     "scaffolding/compiler/semantic_generic_values.tower": "9d2b4efa59f2f15a15d2d908d3b0113695f879bc2f25cc2b0140729965f06c93",
     "scaffolding/compiler/semantic_iteration.tower": "24bf3711fd7efe17bef1839967d9fa23d936415066ca6d7b0c0f952fbf84c8dc",
-    "scaffolding/compiler/semantic_known_bindings.tower": "a2c77375b45ad51e43fe8cfa8f98e7c9188206397066213c6522c9242f3c1332",
+    "scaffolding/compiler/semantic_known_bindings.tower": "6c41d6e453340848859796b2d95190827165747175f4241837b90c861308dcf2",
     "scaffolding/compiler/semantic_layout.tower": "d51e722915662fd8ef10eda54ac6b8067ff5bdc162da4dcbf26539cf7392a243",
     "scaffolding/compiler/semantic_layout_kernel.tower": "ae1c6fb212adc5127c37d8b98a3695e7b3b91a8b75779415f3c8cd37f124bcf3",
     "scaffolding/compiler/semantic_lifecycle.tower": "f1213813f0b835d714cc3f80c2e6a97161dbe408211121f89e0ae40ae6d9282e",
@@ -669,7 +672,7 @@
     "scaffolding/tests/interpreter_invocation.tower": "4d0e251443e8b078ceb3eb2c5f42afc982784a63a4c54abd2634990936e0e27d",
     "scaffolding/tests/interpreter_storage.tower": "8a7af781f1b887936c48b34d233945cceca71a7d02ecfd9775a8c4162db188c7",
     "scaffolding/tests/iteration_parallel_unit.tower": "e59dc34c96137c42b4e86ccb16f4c875dbeb6cf7ef1db3e0c2fde005510cad7f",
-    "scaffolding/tests/known_binding_checks.tower": "7e9088c2e49e0df9fbd3dc535a1d0dc223af948157172d2c9ad7ce9cada06735",
+    "scaffolding/tests/known_binding_checks.tower": "1b7322fc0fe6808c2cbbfec93424759372a35b9d78f6c43e83c6068d860469e2",
     "scaffolding/tests/known_binding_library.tower": "47f8b184042db9a897c6567d74366a8a9da2581477caa7fe7ca0f02670225829",
     "scaffolding/tests/known_bindings.tower": "31bf7333aa3a2ee16a20c8ba310884829d967a54bffade98130d62d980760588",
     "scaffolding/tests/known_cycle_a.tower": "886c7d718bd23281ac9426a2c051a75ff1e587c10acb3f5d13e3deaa5b97feb2",
