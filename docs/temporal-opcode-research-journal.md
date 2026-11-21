@@ -27091,3 +27091,63 @@ also passing. Shared capacity/staging/foreach checks pass 30/30 (132.48 s);
 their LLVM comparisons use the preceding backend artifact as a reference while
 the matching backend rebuild runs. Current portable/shared reactors also build.
 Logs: lr-actions-iteration-{clean,native-tests,backend,successor,shared-tests}.
+
+Source publication for the action checkpoint completed normally through dd6eb85
+(after the final pull found no new main changes). All matching portable/LLVM
+parser, precedence and compile-time checks now pass 41/41 (17.27 s). The complete
+bundle for that snapshot is frozen; local desktop/mobile validation and edited
+two-generation self-build verification are running before its Pages publication.
+This is distinct from the already verified 58a0aaf deployment.
+
+### 2026-11-20 - Lookahead fixed-point worker continuation
+
+The next working-tree slice splits propagation graph construction from solving.
+For a wide frontier, group changed source contributions by unique destination,
+then dispatch ECS range jobs through the existing closure/action pool and shared
+WorkGraph. Each job clones its destination's prior ranges into a private buffer
+and invokes the ordinary range-merge routines over immutable source ranges.
+Join all jobs, publish changed destinations in deterministic frontier order,
+then enqueue the next frontier. Reuse vector capacity across waves and reset
+work receipts with a new revision only after joining. Narrow frontiers use the
+existing serial worklist. This is ordinary parser fixed-point evaluation, not a
+constant-folding pass or parser specialization/code generation.
+
+Legal grammar cycles converge monotonically; dependency cycles in compile-time
+queries remain errors under the separate existing query contract. The new Tower
+fixture compares all ranges/queue flags with serial results for 128 seeded cyclic
+lanes, duplicate/self/diamond edges, overlapping ranges and one empty cycle.
+It also requires multiple admitted jobs and multiple joined revisions when more
+than one worker is available, alongside the existing real-overlap pool fixture.
+The shared reactor builds 9/9; validation is running. FIRST/nullable computation
+and structural semantic continuation work remain outstanding. No C++ introduced.
+
+The propagation capacity/ownership suite passes 3/3 (38.97 s), including the
+new multi-wave cycle fixture at 1/2/4/8 workers; shared compile-time/inference
+checks pass 27/27 (60.46 s) against the preceding LLVM reference artifact.
+The public-bootstrap native build from empty compiletime-lookahead-clean finishes
+55/55, and portable builds 8/8. Native acceptance, actual successor comparison and
+matching LLVM/cross packaging are in progress. The remaining parser inventory
+explicitly includes serial propagation-edge construction as well as FIRST/nullable
+computation; parallel solving does not imply all table construction is parallel.
+
+The frozen dd6eb85 browser package passes two complete edited successor builds
+(124.57 s / 82.02 s). Both generations have identical parser, LLVM and cross bytes:
+436662adce38534bb99b7195d6cde64cbbffec53e87cce0d587fa4960adf6599,
+457e04ffc06891d8f9bdba89e71e55a5f54d1870f129fbe4f9f79e9ab165c54a,
+d10341c5250dc2b3b6c72aa6ad73e56821d510a16b39fa4c3f091ba79100f39c.
+Its local desktop verification passes; mobile verification is still running.
+These package results describe the committed action-range checkpoint, not the
+following uncommitted propagation workers.
+
+Propagation validation: native acceptance passes 6/6 (59.66 s), standalone
+backend API checks pass, and the actual clean successor's parser object matches
+byte-for-byte. Portable parser/precedence checks pass 21/21 (15.04 s). Matching
+LLVM/cross rebuild and compiler-project dependency packaging complete. A controlled
+comparison with the saved action-only reactor is now running; no speedup claim
+has been established for this new fixed-point schedule.
+
+Local release verification of the frozen action checkpoint dd6eb85 completes
+successfully for desktop and mobile, all 77 assets, native exports and project
+workflows. Its normal Pages publication is now in progress. The following
+propagation edits are excluded from that frozen bundle and will receive their
+own publication after validation and source synchronization.

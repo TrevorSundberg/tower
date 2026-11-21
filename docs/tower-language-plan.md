@@ -662,7 +662,7 @@ containers. Benchmark representative compiler workloads before migrating them.
   are available in that shared scheduler. Native Tower worker pools and pinned layout/evaluation publication now exist.
   Declaration discovery/readiness (including signature parameters), eligible
   function body checking, expression lowering, LR transition/kernel closures and
-  LALR action ranges run through that same pool. Canonical
+  LALR lookahead frontiers/action ranges run through that same pool. Canonical
   generated entities are staged privately and published after worker joins;
   exclusive leases permit body workers to attach components to their own source
   entities while typed query indexes stay pinned. Ordinary indexed value access,
@@ -742,7 +742,7 @@ Current migration audit (after the isolated compiler-worker milestone):
 | Area | Authoritative/shared data and present storage | Concurrency work still required |
 | --- | --- | --- |
 | Entities | Stable payloads, dense per-type pointer indexes, explicit worlds, pinned views, exclusive attachment leases and staged canonical creation | Complete host-world isolation and non-racing reference ownership |
-| Syntax/grammar | Shared entities; Tower baseline/revision/cache records; worker-owned LR(0) transitions, LR(1) kernel closures and private LALR action ranges | Remaining session orchestration, FIRST/lookahead fixed points and source/effect order |
+| Syntax/grammar | Shared entities; Tower baseline/revision/cache records; worker-owned LR(0) transitions, LR(1) kernel closures, wide lookahead frontiers and private LALR action ranges | Remaining session orchestration, FIRST/nullable computation, propagation-edge construction and source/effect order |
 | Semantics/layout | Shared query graph; parallel dependency discovery, layouts, eligible body checking and expression lowering | Generic/type construction continuations, editor queries and structural publication |
 | Interpreter/staging | Per-invocation contexts over shared Foundation; threaded lazy scalar queries and private execution caches | General ordinary-value execution, explicit effects/inputs and invalidation; no separate folding evaluator |
 | LLVM | Shared Foundation inputs; one mutable LLVM context/module per compiler instance | Function/query boundaries that do not concurrently mutate one LLVM module; preserve target legality |

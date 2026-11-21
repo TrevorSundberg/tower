@@ -292,7 +292,7 @@ fn lr_lalr_seed(value: LRStates*, graph: LRPropagation*, constructs: bool): bool
     return true;
 }
 
-fn lr_states_lookahead_cached(value: LRStates*, constructs: bool, cache: LRKernelClosure**): LRPropagation* {
+fn lr_states_propagation_cached(value: LRStates*, constructs: bool, cache: LRKernelClosure**): LRPropagation* {
     var count: usize = 0;
     var index: usize = 0;
     for(; index != value.states.length; index++) {
@@ -334,16 +334,15 @@ fn lr_states_lookahead_cached(value: LRStates*, constructs: bool, cache: LRKerne
         }
         state_index++;
     }
-    ok &&= lr_propagation_solve(graph);
     if !ok { lr_propagation_destroy(graph); return null; }
     return graph;
 }
 
 export fn lr_states_lalr_cached(value: LRStates*, constructs: bool, cache: LRKernelClosure**): bool {
-    var graph = lr_states_lookahead_cached(value, constructs, cache);
+    var graph = lr_states_propagation_cached(value, constructs, cache);
     if graph == null { return false; }
     defer lr_propagation_destroy(graph);
-    return lr_lalr_actions(value, graph);
+    return lr_propagation_solve(graph) && lr_lalr_actions(value, graph);
 }
 
 export fn lr_states_lalr(value: LRStates*, constructs: bool): bool {
