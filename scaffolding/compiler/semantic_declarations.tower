@@ -32,6 +32,10 @@ struct SemanticDeclaration {
     discover: bool;
     worker_check: bool;
     checked: bool;
+    stage: void*;
+    nodes: vector(void*);
+    count: usize;
+    surface: bool;
     waiting: usize;
     dependencies: vector(usize);
     error: vector(u8);
@@ -290,29 +294,53 @@ fn sem_declaration_input(result: SemanticDeclaration*, input: usize): void {
     sem_require(vector_push(usize, &result.dependencies, input));
 }
 
-// Named types and pointer spellings only read the published type/name registry.
-// Type applications, array construction and expression-based types retain the
-// structural coordinator path until their continuations can request ownership.
-fn sem_declaration_worker(c: SemanticContext*, subject: void*): bool {
+// Leaf value queries need no type construction or layout discovery. Their
+// ordinary checker still attaches canonical semantic components, under leases.
+fn sem_declaration_leaf(c: SemanticContext*, node: void*): bool {
+    node = sem_surface_unwrap(node);
+    if sem_is(node, "CoreLocation") { return sem_member(node, "base") == null; }
+    var parsed = sem_match(node);
+    var literal_shape = sem_is(node, "Number") || sem_is(node, "String")
+        || sem_is(node, "CoreOperand") || sem_is(node, "TowerExpression");
+    literal_shape ||= parsed != null && parsed.rule == sem_maximum();
+    return literal_shape && sem_literal(c, node);
+}
+
+// Named/pointer annotations are read-only. Leaf decltype and inferred values
+// attach only to their own syntax, with all referenced types dependency-ready.
+// Calls, field/index access and type construction retain coordinator ownership.
+fn sem_declaration_worker(c: SemanticContext*, result: SemanticDeclaration*): bool {
     if c.editor != null || c.type_uses != null { return false; }
+    var subject = result.subject;
     if !sem_is(subject, "CoreDeclare") && !sem_is(subject, "CoreParameter") && !sem_function_syntax(subject) { return false; }
     var annotation = sem_member(subject, "type");
-    if annotation == null { return false; }
+    var staged = annotation == null;
+    if staged {
+        annotation = sem_member(subject, "value");
+        if annotation == null || !sem_declaration_leaf(c, annotation) { return false; }
+    }
     var pending = sem_list(c);
     sem_push(pending, annotation);
     for(var i: usize = 0; i < pending.length; i++) {
         var node = pending.data[i];
-        if sem_is(node, "TowerDecltype") || sem_is(node, "CoreCall") || sem_is(node, "CoreArrayCount") { return false; }
+        if sem_is(node, "TowerDecltype") {
+            if !sem_declaration_leaf(c, sem_member(node, "value")) { return false; }
+            staged = true;
+        }
+        if sem_is(node, "CoreCall") || sem_is(node, "CoreArrayCount") { return false; }
         if sem_member(node, "args") != null || sem_member(node, "count") != null || sem_member(node, "index") != null { return false; }
         for(var j: usize = 0; j < sem_child_count(node); j++) { sem_push(pending, sem_child(node, j)); }
+    }
+    if staged {
+        foreach(var node in pending) { sem_push(&result.nodes, node); }
     }
     return true;
 }
 
 // Workers borrow immutable scope/graph indexes and own scratch/diagnostics.
-// Ready ordinary type queries may write their declared subject payload. Function
-// headers wait for all parameter receipts and only read those published types;
-// no registration, type interning or shared index mutation occurs under the pin.
+// Ready type queries may write their declared subject payload and leased syntax.
+// Headers wait for parameter types before assigning their frame slots. Stages
+// publish new components after joins; type/name/query indexes remain immutable.
 fn semantic_declaration_kernel(result: SemanticDeclaration*): void {
     var context: SemanticContext;
     var program: SemanticProgram;
@@ -321,6 +349,9 @@ fn semantic_declaration_kernel(result: SemanticDeclaration*): void {
     context.program = &program;
     context.editor = null;
     context.scope = result.scope;
+    context.entity_stage = result.stage;
+    context.count = 0;
+    context.node_limit -= result.context.count;
     vector_init(void*, &context.allocations);
     vector_init(void*, &context.lists);
     vector_init(&context.inferring);
@@ -337,6 +368,8 @@ fn semantic_declaration_kernel(result: SemanticDeclaration*): void {
             else { sem_declaration_type(&context, result.subject); }
         }
     }
+    result.count = context.count;
+    result.surface = context.surface_expressions;
     copy(&result.error, &program.error, sizeof(vector(u8)));
     result.error_offset = program.error_offset;
     stack_dispose(void*, &context.scan);
@@ -376,6 +409,7 @@ fn sem_declaration_dispose(c: SemanticContext*): void {
         for(var i: usize = 0; i < entity_query_count(c.declaration_state); ++i) {
             var result = bits(SemanticDeclaration*, entity_component_data(entity_query_at(c.declaration_state, i)));
             vector_dispose(usize, &result.dependencies);
+            vector_dispose(&result.nodes);
             vector_dispose(u8, &result.error);
             // These scratch scopes/context are owned only for this compilation.
             result.context = null;
@@ -418,7 +452,7 @@ fn sem_declarations(c: SemanticContext*, statements: vector(void*)*): void {
             result.kernel.kind = CompilerKernelKind.Declaration;
             result.kernel.payload = bits(void*, result);
             result.discover = true;
-            result.worker_check = sem_declaration_worker(c, node);
+            result.worker_check = sem_declaration_worker(c, result);
             sem_require(vector_push(void*, &c.declaration_jobs, bits(void*, result)));
             sem_require(work_access(&c.queries, id, 1, 4, id, 1, WorkAccessMode.Write));
             result.discovery = work_request(&c.queries, node, DeclarationDiscoveryQuery(), 0);
@@ -490,17 +524,22 @@ fn sem_declarations(c: SemanticContext*, statements: vector(void*)*): void {
     }
     loop {
         if !sem_ok(c) { break; }
-        var view = entity_view_open(c.program.root);
-        sem_require(view != null);
         var count: usize = 0;
         var ticket: WorkTicket;
         while count < c.workers.count && work_take_query(&c.queries, &ticket, DeclarationQuery()) {
             var result = sem_declaration_state(c, work_task(&c.queries, ticket.task).subject);
             copy(&result.ticket, &ticket, sizeof(WorkTicket));
             result.kernel.kind = result.worker_check ? CompilerKernelKind.DeclarationType : CompilerKernelKind.Declaration;
+            if result.nodes.length != 0 {
+                result.stage = entity_stage_open(c.program.root);
+                sem_require(result.stage != null);
+                foreach(var node in &result.nodes) { sem_require(entity_stage_lease(result.stage, node)); }
+            }
             batch[count] = result;
             count++;
         }
+        var view = entity_view_open(c.program.root);
+        sem_require(view != null);
         // Readiness checks inspect graph states, including newly discovered
         // field dependencies. Finish every Ready -> Running transition before
         // dispatch so workers read an immutable graph throughout this wave.
@@ -515,6 +554,13 @@ fn sem_declarations(c: SemanticContext*, statements: vector(void*)*): void {
         while index < count {
             var result = batch[index];
             var node = result.subject;
+            if result.stage != null {
+                sem_require(entity_stage_publish(result.stage));
+                result.stage = null;
+            }
+            c.count += result.count;
+            c.surface_expressions ||= result.surface;
+            if c.count > c.node_limit { sem_fail(c, node, "Foundation component memory budget exceeded"); }
             var success = !sem_declaration_error(c, result) && sem_ok(c);
             if success && result.waiting != 0 {
                 sem_require(work_suspend(&c.queries, &result.ticket, result.waiting));

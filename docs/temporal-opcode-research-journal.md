@@ -27886,3 +27886,63 @@ native successor also reproduces its semantic object exactly. Release bundle and
 two edited browser generations have started from the frozen9ac5d80 compiler
 source; source bytes will remain associated with that commit even while the next
 staged declaration implementation proceeds.
+
+### 2026-11-20 - Staged leaf decltype and inferred declaration queries
+
+Ordinary declaration workers are pushed as7ca9562 with notesfc7d420. A final
+pull first hit a transient index lock because a status command overlapped its
+pending Git operation; a prematurely attempted normal push was correctly
+rejected as non-fast-forward. Waited for both processes, confirmed the lock and
+rebase directories were absent, then rebased sequentially ontoe3bfe9e. That
+upstream commit only adds release notes; all non-journal bytes compare exactly
+to the validatedbf12503 tree. Preserved both appended histories and normal push
+succeeded. The frozen9ac5d80 release bundle is therefore code-identical to7ca9562;
+use the latter source identity for publication. Upstream Pages948a6a5 is preserved
+as the next deployment parent, rather than rolling it back.
+
+Next implementation now admits leaf decltype operands and simple inferred value
+initializers through the same DeclarationQuery. Ordinary checking attaches
+Foundation components to exclusively leased annotation/initializer syntax, with
+job-private scratch/counts/diagnostics; newly created canonical nodes and sparse
+component indexes publish in query order after all joins. Header queries already
+wait for parameter type receipts. Inputs are never evaluated to resolve decltype;
+there is no new folding/evaluation implementation. Runtime initializers retain
+source order. Type applications, calls, qualified/member/indexed value operands,
+struct/enum fields and editor inspection still retain coordinator ownership.
+
+Capacity fixtures add independent negative literal initializers and dependent
+copies, signed-minimum inference, deterministic unknown-name errors and a leaf
+cycle at1/2/4/8 workers. Existing1024-declaration annotated/inferred chains also
+exercise the new path. Validation is pending. Type construction/layout discovery
+and broader expression queries remain the next dependency/ownership work.
+
+First staged-declaration bootstrap trial rejected the local name `match`, a
+Tower keyword, at semantic_declarations.tower:302. Renamed it `parsed`; no grammar
+or bootstrap change is needed. The chained tests did not run after that failure.
+The preceding ordinary-declaration release independently passed both edited
+browser compiler generations, including the newly packaged Tower worker-host
+and live syntax units. Saved declaration-type-generation{1,2}.json reports.
+
+Staged leaf validation: shared capacity/compile-time/inference30/30 in52.51s,
+including1024-element declaration chains, lease-owned negative-literal lowering,
+signed minimum and deterministic cycle/name diagnostics. Native dispatcher proof
+on declaration-stage-admission.tower goes from one tag-12 job (only typed seed)
+to65 jobs across8 threads (16 parameter+return pairs,32 inferred globals,seed).
+Both compiler invocations exit0 and emit identical Foundation (`cmp`0). The
+actual native successor also rebuilds its semantic object byte-identically.
+Native acceptance and matching portable/backend builds are still finishing.
+
+Ordinary declaration release7ca9562 passed both edited browser generations
+(124.10s/87.63s), byte-identical modules sized1,002,899/52,302,273/63,859,727,
+and all77 local assets plus full desktop/mobile/default checks. Normal Pages
+push db435d2d15fca4dccea8ee261285d1de071cb79f preserves newer upstream948a6a5.
+The local bundle was frozen before staged-leaf implementation; no mixed-source
+reactor is being published. Hosted verification is still pending.
+
+Staged leaf checkpoint completes native8/8 in40.94s, backend API checks, actual
+successor object equivalence, and matching portable/LLVM/cross package rebuild.
+The matching compile-time/inference/parser/precedence suite passes48/48 in29.33s.
+All implementation is Tower. Shared and native proofs above establish real
+worker execution; no overall compiler speedup or fully concurrent type/generic
+construction is claimed. Ordinary struct fields and qualified leaf dependencies
+are the next prepared extension; their draft is not in this checkpoint.
