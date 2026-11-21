@@ -24863,3 +24863,15 @@ Logs are C:/Sandbox/build/codex-agents/agent-2-final-{native,wasi}*.log.
 The coordinator's already-validated contextual lexer fixture retirement has an
 accepted final source slot before Agent 2 publication; repeat affected checks
 after that merge. No source publication or final hosted result is claimed yet.
+
+Final publication merge: coordinator7737acb adds only contextual lexer fixtures,
+reference retirement and test build wiring; production compiler sources remain
+those of the clean successor above. Preserved its journal and parser source-list
+changes. Rebuilt all affected native and WASI targets: six native CTests passed
+6/6 in17.13s and backend API passed. WASI execution, host/storage, exact formatter,
+syntax payload, regex and contextual lexer all passed; parser aggregate links.
+Contextual checks cover165inputs at every byte offset in six contexts and both
+declaration modes. No live native core/header consumers remain, git diff --check
+passes and todo.txt is unchanged. Logs agent-2-final-merged-{native,wasi}-tests.log.
+The exclusive Agent2 publication lock now covers the final source push and
+combined reactor/package/Pages validation; hosted completion is still pending.
