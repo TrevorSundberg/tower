@@ -34188,3 +34188,30 @@ this WSL successor is a4d20cbd0fa7eff0b54d9b84cec23301025c7e84e206443368e6344661
 These upstream/container and WSL builds are recorded separately, not claimed
 byte-identical across environments. The earlier fd536 same-environment native
 equality and both browser-generation equalities remain the determinism evidence.
+
+Release receipt: Pages 5ee830621e0cc936615f8da9c4bb1527358c863d deployed successfully
+(GitHub Actions run 44939822700). `node playground/scripts/verify-deployment.mjs
+https://tower-lang.org/` passed all 77 exact asset hashes and full desktop/mobile
+flows: backend agreement, editable grammar/compiler project, persistence,
+completion/highlighting, and native builds/downloads. The saved report and log
+are retirement-current-hosted-report.json and retirement-current-hosted-verify.log.
+Runtime buildSourceCommit remains 6443f6d; final journal-only publication updates
+preserve these verified bytes and all prior audit/checkpoint metadata.
+
+The final source pull also preserves the newer ECS inference/signature worker
+changes and Agent 1's archive-tooling milestone through 108a1e8. A fresh default
+bootstrap build in coordinator-retirement-handoff-clean passed all 54 steps;
+known-bindings fast interpretation, resumable-body graph interpretation and linked
+struct-value execution each printed0 (retirement-handoff-clean/cli.log). These
+newer source features remain distinct from the frozen 6443f6d hosted runtime and
+belong in the next runtime release; the C/C++ retirement is present in both.
+
+Owned C/C++ inventory is zero tracked files/lines. The bootstrap compiler is Tower;
+LLVM/lld and platform libraries remain external. Docker is the canonical shared
+bootstrap route; standalone native Windows/macOS packages and the remaining
+Python/shell/CMake/JS tooling migration are separate distribution/tooling work.
+Agent 1 remains active in its visible PowerShell checkout, with f0cac4f and 108a1e8
+pushed; after the publication lock is released it can connect its validated Tower
+LLD/archive tools to live build/package entry points. No sanitizer or broad
+formatter run, new native shim, hidden third-party implementation, or local
+todo.txt edit was introduced by this retirement lane.
