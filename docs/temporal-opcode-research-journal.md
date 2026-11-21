@@ -38370,3 +38370,50 @@ with matching text. The Tower negative regression passes. The raw expected outpu
 fixture now uses .expected rather than pretending to be Tower source. Updated the
 existing browser self-build transport's edited-diagnostic sentinel for nullable
 function types; it continues to test a real semantic edit across generations.
+
+Publication candidate validation: integrated the clean rebase onto 0d722c1,
+including upstream shared-frontend/package preparation and offscreen-output work.
+Those changes affect browser host sources; the native driver/compiler source
+closure is unchanged. Rebuilt the browser reactors and editable project from
+adf5534. The final native function suite and guest-runtime transport pass; the
+49 browser LLVM/interpreter checks pass. Raw-memory/package/threading checks pass
+33/34 with the existing optional ide_package_tests export skipped; after rebasing,
+the affected package/thread checks pass 7/8 with that same skip. All eight real
+compiler-worker tests pass. These counts describe distinct focused runs, not a
+claim that every browser test was rerun after every documentation change.
+
+Two actual edited browser compiler generations (two then four workers) pass with
+identical hashes: tower 2fc5fa91f65255da39edc395894a60dadd9eae566da7a74409673e618876ac4b,
+llvm 2eafa5aebb76ad068db6fa819cdfd29b122049962ed0c78c2a2c4fff5444549e,
+cross efe14e03248b522b5f64b8dfea14fbac4a1aca08fc7beff995e0c556dc127eb6.
+Evidence: build/functions-{generations,workers,browser-llvm,browser-core,
+rebase-browser,local-verification}.log and build/compiler-workbench/generation2.json.
+Local publication checks pass all 86 assets and desktop/mobile execution,
+backend agreement, native downloads, completion, highlighting and persistence.
+
+Tower package_bootstrap packaged the integrated compiler with public predecessor
+0d752e7d, complete resources/checksums and source base adf5534. All member hashes
+pass. Tower verify_compiler from /tmp passes its relocation, diagnostics,
+interpretation, deterministic object, separate linking and executable checks.
+Installed executable SHA-256:
+81928f54125bd182cad2e0f52a0b6a543d59fa454ab87b18a0b69fd28a5e59c8.
+The obsolete source patch is removed; this pin references a committed source base.
+A fresh documented-default build in /cache/functions-published-successor, with
+TOWER_BOOTSTRAP_COMPILER unset, completes all 54 steps and runs function_values
+and body_continuation with zero failures. Logs: /cache/functions-successor.log,
+/cache/functions-verification/checks.txt. This is the Linux x64 development pin,
+not a standalone portable release. Main/Pages publication and hosted checks follow.
+
+The user asks which language feature should follow callbacks. Recommendation:
+first audit genuine callable hooks for adoption now that a compatible pin exists,
+then implement fixed logical vector values following the recorded f32_3/f32_4
+and vec(f32, N) direction. The current growable vector(T) remains a container.
+Start with explicit layouts, construction, component operations and swizzle
+read/write sequencing on shared nodes, ordinary interpreter semantics and
+canonical Foundation round trips. CPU SIMD and GPU lowering must preserve the
+selected numeric profile; neither register width nor automatic parallelism defines
+a vector value. Existing compiler code has many growable containers but little
+geometric vector math, so this is language/CPU-GPU capability work, not a claim of
+the largest immediate compiler line reduction. Unions/bit-fields, broader foreign
+aggregate ABI and other C completeness gaps remain separate milestones. No next
+feature implementation or todo.txt edit is included in this recommendation.

@@ -50,6 +50,10 @@ See [byte and short integers](../docs/narrow-integers.md). It supports scalar
 `f32`/`f64`, strict shared staged/runtime arithmetic,
 and ordinary unary negation including integer `-0` and exact signed minima.
 See [the floating contract](../docs/floating-point.md) for numeric and backend limits.
+Typed `function(Result, Parameters...)` values and indirect calls work in the
+portable interpreter and LLVM native/Wasm output, including compile-time calls,
+callback inference and internal struct arguments/results. See
+[function values](../docs/function-values.md) for ABI and backend limits.
 It also supports struct copies/by-value calls, named-field/default initialization,
 expression operators, `for`/`defer`, borrowed `foreach`, generic call inference,
 identifier module paths and exact quoted imports. Build new syntax with the
