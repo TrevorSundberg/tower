@@ -100,12 +100,17 @@ part of it.
 
 ## Reproduction and scope
 
+The one-off scanner is retired. Its
+[archived source](https://github.com/TrevorSundberg/tower/blob/f81f5dd/docs/research/audit_tower_simplification.py)
+and shared scanner are available at that Git checkpoint. The following command
+records historical reproduction from that checkout, not a current tool dependency:
+
 ```sh
 python3 docs/research/audit_tower_simplification.py --revision 0987aa5 --output audit.json
 ```
 
-The script is read-only. Without `--revision` it inventories the working tree.
-It records candidate filenames, functions and line numbers. It scans all 397
+The archived script is read-only. It records candidate filenames, functions and
+line numbers. At the audited revision it scans all 397
 tracked project-owned `.tower` files: 77,128 lines, with 379 direct Tower importers
 containing 76,725 lines. The other 18 files include bootstrap grammar, forwarding
 modules and grammar/negative fixtures; importing Tower into them is not a cleanup

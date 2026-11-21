@@ -4,15 +4,20 @@ Baseline: `479962bc8ded95b64a2ff0cb8dbf6513bafb2f29`, 2026-11-20.
 The audit includes every tracked `.tower` file, including compiler, backend,
 runtime, libraries, examples and tests. It does not edit `todo.txt`.
 
-Reproduce the inventory and conservative migration estimate:
+This is a historical audit. The one-off scanner/migration helper is retired;
+its [archived source](https://github.com/TrevorSundberg/tower/blob/f81f5dd/docs/research/audit_tower_loops.py)
+and report remain reproducible from that Git checkpoint. It is not a current
+build tool or an automatic rewrite recommendation.
+
+Original inventory command, from the archived checkout:
 
 ```sh
 python3 docs/research/audit_tower_loops.py --revision 479962b > audit.json
 ```
 
-The script defaults to a read-only report. Without `--revision`, it audits the
-working checkout. `--apply` performs the narrowly checked loop rewrites; review
-the diff, format it and run compiler/bootstrap validation before publishing.
+The archived script defaults to a read-only report. Its lexical rewrite mode
+was used for the historical migration; current changes should use the compiler's
+actual syntax/binding information and preserve the contracts in AGENTS.md.
 
 ## Evidence and decision
 

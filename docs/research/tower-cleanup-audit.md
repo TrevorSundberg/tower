@@ -7,11 +7,14 @@ semantics. It adds no native code, Foundation instruction or runtime cleanup ABI
 
 ## Inventory and choice
 
-Run `python3 docs/research/audit_tower_cleanup.py --revision 8290fd2` to reproduce
+This historical scanner is retired; its
+[archived source](https://github.com/TrevorSundberg/tower/blob/f81f5dd/docs/research/audit_tower_cleanup.py)
+and shared scanner remain in Git history. From that archived checkout,
+`python3 docs/research/audit_tower_cleanup.py --revision 8290fd2` reproduces
 the baseline: 64 tracked Tower functions contain 142 extra copies of identical
 `free`, `*_dispose` or `*_destroy` expressions. The scanner examines all tracked
-`.tower` files; it reports candidates, not ownership proofs. Run without
-`--revision` for the current working tree. The loop audit's earlier 60/136 count
+`.tower` files; it reports candidates, not ownership proofs. The tool is not a
+required current build step. The loop audit's earlier 60/136 count
 predated the upstream parser/CLI integration.
 
 The language plan already calls for cleanup on early exits and defines iterator

@@ -35825,3 +35825,66 @@ the existing earliest-body diagnostic contract across independent suspended bodi
 Reuse the shared query/components and ordinary interpreter; do not paper over this
 with recursive worker waits or replaying statements. This is a design constraint
 for the next implementation, not completed structural threading.
+
+### 2026-11-21: remove unnecessary Python steps before translating
+
+Applied the user's removal-first rule across historical scanners, reporting and
+the speculative standalone release frontend. This supersedes the initial tooling
+inventory's recommendation to port every listed recipe/scanner: caller evidence
+and the current Linux/Docker policy justify removing these six files instead.
+
+- Retired docs/research/audit_tower_loops.py, audit_tower_cleanup.py and
+  audit_tower_simplification.py (464 lines). Their only remaining references are
+  historical reports/journal commands and imports between the scanners. Preserve
+  the reports and counts; their reproduction sections now explicitly require the
+  archived f81f5dd checkout. No automatic lexical rewrite step is recommended for
+  current sources.
+- Retired inventory-native.py (52 lines). Its sole documentation caller measured
+  the completed owned-native retirement. Existing `git ls-files -- '*.c' '*.cc'
+  '*.cpp' '*.h' '*.hpp' '*.inc' ':(exclude)third_party/**'` returns no owned files;
+  `ninja -C /cache/direct_bootstrap_rebased_native -t inputs towerc` successfully
+  lists actual build inputs. Document both commands without another report format.
+- Retired self-build-compiler.py and test-distribution-recipe.py (350 lines).
+  Repository-wide recipe-field/caller searches found no production input recipe;
+  only the mock schema test invoked its validator, and its test data explicitly
+  uses a pretend linker. Remove that schema-only invocation from the distribution
+  runner. Preserve an archive link and all substantive standalone release
+  requirements in docs/bootstrap-distribution.md: complete declared input/runtime/
+  dependency/license closure, paths and provenance, actual host execution,
+  deterministic whole generations, strict verification, failure evidence and
+  non-overwriting candidate publication. These gates remain future work, not
+  newly satisfied by deleting the unused frontend. Current native component and
+  edited-browser successor tests remain in place.
+
+The six deleted Python files total 866 lines, with no replacement implementation.
+Twelve tracked Python files remain, down from 18 at the preceding milestone and
+23 at the original dfe6ce3 inventory. Inline Python still exists in build-llvm.sh,
+test-bootstrap.sh and test-compiler-distribution.sh; file counts do not include
+that code or imply Python retirement is complete. No claim about GitHub's Tower
+language recognition follows from these source counts.
+
+Focused verification exposed two pre-existing stale references in the retained
+verify-compiler.py. Its distribution fixture lookup used hyphenated filenames
+removed by 943f73b, and its diagnostic expected line 2 although the explicit
+Tower import puts the invalid declaration at line 4. Correct only those two
+references; no Python implementation or helper was added. Before correction,
+the actual relocation command failed with missing distribution-program.tower.
+After correction, `docker run --rm --platform linux/amd64 -v
+C:/Sandbox/tower-agent-1:/work -w /work tower_build bash
+playground/scripts/test-compiler-distribution.sh` passes all 16 development checks,
+including relocation to a path with spaces, diagnostics, interpreted output,
+three byte-identical objects, separate library linking and native execution.
+It uses the already-validated compiler SHA
+138eb52384e7a2995889de64c62b5833a202d9fb202cf24029c730d95a509858.
+The restricted run passes its first ten checks, then fails exactly at link with
+`Cannot find tool: clang`; the transitional assertion passes. Restricted release
+verification is still failed by design, not a portable-package success.
+
+Scoped whitespace checks pass. Searches of active build/test/CI directories find
+no references to the six deleted scripts. The three historical report archive
+links point to the last checkpoint containing their shared imports. No compiler,
+runtime, bootstrap binary or browser asset changed, so reuse their existing
+validation and publish metadata preserving runtime build-source identity. No
+todo.txt edit or sanitizer/format sweep. Next audit: the required packager and
+verification/measurement drivers, plus inline Python; first simplify the step,
+then translate only necessary behavior with existing Tower capabilities.

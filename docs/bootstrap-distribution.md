@@ -9,8 +9,9 @@ Docker build. LLVM/lld and platform libraries remain third-party dependencies.
 The current policy is one Linux x64 bootstrap and a documented Docker build,
 usable from Windows/macOS/Linux. Native CLI packages for those hosts remain
 distribution goals; separate bootstrap chains for every OS are not required now.
-The existing build/install/package scripts still need translation to Tower and
-the external dependency closure is not bundled as a standalone portable release.
+Audit remaining build/package scripts for removal or simplification before
+translating required behavior to Tower. The external dependency closure is not
+bundled as a standalone portable release.
 See [the development bootstrap](../bootstrap/README.md) for runnable commands.
 
 The retirement inventory and reproducible validation are recorded in the ongoing
@@ -119,63 +120,38 @@ dependency under LLVM lowering; include the matching compiler-rt/platform
 implementation when packaging that target. The cross-object audit permits this
 symbol only for the Windows host module; it does not establish a linked runtime.
 
-## Three-generation whole-compiler recipe
+## Whole-compiler release requirements
 
-`self-build-compiler.py` prepares a candidate from an explicit, reviewed recipe.
-This older strict standalone-package recipe is not the current Docker build.
-The Tower frontend/backend/runtime/host implementations now exist and the actual
-CMake/browser successor paths are validated. A complete declared portable
-dependency closure and editable runtime-artifact build stage still need integration
-before this separate standalone release gate can pass.
+The speculative Python recipe builder and its mock-schema tests are retired.
+There was no complete production recipe or build caller; its only executable
+caller tested schema validation with a pretend linker. The
+[archived builder](https://github.com/TrevorSundberg/tower/blob/f81f5dd/playground/scripts/self-build-compiler.py)
+and the former schema remain in Git history. A second build-description format
+is unnecessary for the current Linux/Docker route.
 
-```sh
-python3 playground/scripts/self-build-compiler.py /inputs/recipe.json \
-  --bootstrap /existing/bootstrap/towerc --output /new/empty-build
-```
+Use the existing build path for successors. `test-bootstrap.sh` compares selected
+compiler components built by the public predecessor and its native successor;
+`test-compiler-project.mjs` builds two successive edited browser compilers and
+compares their bytes and behavior. These are real checks with narrower scope
+than a complete standalone native release. Relocation verification above remains
+required too; retiring the unused recipe frontend does not satisfy release gates.
 
-The output directory must not exist. Recipe paths are relative to its directory.
-Inputs cannot escape that root or be symlinks; hash actual dependency files,
-including the platform loader if bundling it. JSON is a build recipe, not Tower
-program storage. Every source unit is ordinary compilable Tower text; generated
-objects/executables are platform artifacts.
+A future standalone release must still declare and verify its complete input
+closure: Tower sources and fixtures, target runtimes, LLVM/linker dependencies,
+licenses, hashes, executable modes, source revision and actual host/target profile.
+Package-relative paths must not escape their root. Loader/linker policy must be
+explicit and deterministic, without undeclared tool or library searches. Do not
+classify project native objects as third-party inputs or silently substitute a
+native seed. Validate on the actual host in a clean environment.
 
-| Field | Contract |
-| --- | --- |
-| `schema` | Integer `1`. |
-| `source_revision` | Full Git commit ID; input hashes identify exact contents. |
-| `target` | A host profile listed below, matching the executing OS/architecture. |
-| `compiler` | `towerc` or `towerc.exe` at package root. |
-| `files` | Object keyed by package-relative path; items have `sha256`, `role`, optional `executable`. |
-| `files.*.role` | `tower-source`, `fixture`, `third-party`, or `license`. Project implementations and fixtures must be `.tower`. |
-| Third-party items | Also require `origin`, `version`, and `licenses` naming declared license files. Include LLVM, linker and dependent libraries. |
-| `units` | Ordered `{name, sources, output?}` entries; declared Tower sources become ordered imports in a generated manifest (each source declares its own dependencies). Default output: `objects/NAME.o`. |
-| Runtime unit output | Use `share/tower/NAME.o` to retain the built target runtime in the candidate. |
-| `compiler_units` | Names of units linked into the compiler; other units must be packaged target runtimes. |
-| `link` | `{tool, args}`; tool is a declared third-party executable such as LLD. |
-| Link placeholders | `{object:NAME}`, `{file:PATH}`, `{output}`, also inside arguments such as `/out:{output}`. No shell expansion. |
-
-Required inputs include `share/tower/bedrock.tower`, `share/tower/foundation.tower`
-and the four `tests/distribution-{program,library,link,invalid}.tower` fixtures
-from this checkout. Do not classify project native objects as third-party inputs.
-Role and revision declarations require review; they do not prove authorship or
-dependency closure by themselves.
-
-Generation N's compiler builds every unit; the declared linker links generation
-N+1. The strict host verifier must pass before that successor builds the next
-generation. After three builds, generations two and three must have identical
-object and executable bytes. Command logs, timings and failure evidence remain
-in each stage. A failed build produces no candidate. Compilers identifying
-themselves as hybrid are rejected.
-
-Candidates include source, target runtimes, dependencies, licenses, recipe and
-a sorted manifest with hashes, sizes and executable bits. Total size includes
-the manifest. Recipes supply relative loader paths and deterministic linker
-options (including COFF timestamp policy); the script does not guess ABI policy.
-Link-time library search flags and undeclared file placeholders are rejected.
-No bootstrap binary, source download or C/C++ compiler is implicitly substituted.
-The complete source closure, clean-environment dependency checks and the full
-compiler differential/round-trip/determinism suite remain required: these few
-host fixtures alone cannot establish compiler correctness.
+Generation N must build every compiler/runtime unit for generation N+1. Verify
+each successor before using it; generations two and three must have identical
+object and executable bytes. Preserve commands, timings, failure evidence and
+complete candidate manifests; failed builds must not publish candidates or
+overwrite prior trials. Full differential, round-trip and determinism checks
+remain necessary. The standalone dependency closure and editable browser runtime
+artifact stage still need integration; the removed schema tests never proved
+either requirement.
 
 ## Remaining ownership and release gates
 
@@ -184,7 +160,7 @@ host fixtures alone cannot establish compiler correctness.
 | Compiler | Preserve shared-node contracts and deterministic serial/worker behavior as the Tower language grows. Owned C/C++ retirement is complete. |
 | Backend | Bundle and validate the upstream LLVM/linker closure for each native host release. |
 | Runtime | Make the existing Tower-generated ABI artifacts rebuildable in the browser package recipe. |
-| Host/distribution | Translate existing external build/package tooling to Tower; produce and execute native host packages when native distribution is prioritized. Keep the Linux/Docker pin usable meanwhile. |
+| Host/distribution | Remove or simplify unnecessary build/package steps, then translate required tooling to Tower; produce and execute native host packages when native distribution is prioritized. Keep the Linux/Docker pin usable meanwhile. |
 
 The shared-runtime cutover at `dfdf95b` supplies `TowerSharedRuntime.cmake`,
 explicit semantic-component queries, `host/guest_memory.tower` and
@@ -213,16 +189,16 @@ retain these generated ABI objects as prebuilt support while rebuilding their
 Tower host policies. Browser compiler-result transport and syntax-session
 ownership are Tower; an editable runtime-object build stage remains work.
 
-Generate the native artifact inventory:
+Inspect tracked owned native source with Git, and build inputs with Ninja's
+existing listing. A separate inventory script/report format is unnecessary:
 
 ```sh
-./build.sh python3 playground/scripts/inventory-native.py \
-  --build /tmp/tower-home/.cache/tower/native \
-  --output build/distribution/native-inventory.json
+git ls-files -- '*.c' '*.cc' '*.cpp' '*.h' '*.hpp' '*.inc' ':(exclude)third_party/**'
+ninja -C /path/to/native-build -t inputs towerc
 ```
 
-This inventories tracked project native artifacts and optional Ninja inputs,
-including bootstrap dependencies. Third-party sources are excluded. The current
+The Git query excludes third-party sources; the Ninja listing includes all
+target inputs and should be inspected in that build's context. The current
 tracked owned C/C++ source count is zero; historical research prototypes and
 native reference fixtures have been removed after preserving their results and
 replacement tests. Git history remains their archive.

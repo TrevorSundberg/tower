@@ -61,7 +61,7 @@ def verify(compiler, fixtures, directory, allow_tools=False):
         for name in [*[f"program-{i}.o" for i in range(3)], "library.o", "linked" + suffix, "program" + suffix]:
             (directory / name).unlink(missing_ok=True)
         for name in ("program", "library", "link", "invalid"):
-            shutil.copy2(fixtures / f"distribution-{name}.tower", directory / f"{name}.tower")
+            shutil.copy2(fixtures / f"distribution_{name}.tower", directory / f"{name}.tower")
         help_result = run("help", [compiler, "--help"])
         if b"--target" not in help_result.stdout:
             raise RuntimeError("Help did not describe compiler options")
@@ -70,7 +70,7 @@ def verify(compiler, fixtures, directory, allow_tools=False):
         run("invalid-option", [compiler, "--not-an-option"], fails=True, diagnostic="Unexpected argument")
         run("missing-source", [compiler, "missing.tower"], fails=True)
         run("diagnostic", [compiler, "invalid.tower", "--interpret"], fails=True,
-            diagnostic=r"invalid\.tower:2:\d+:")
+            diagnostic=r"invalid\.tower:4:\d+:")
         run("interpret", [compiler, "program.tower", "--interpret"], b"42\n")
         for iteration in range(3):
             run(f"compile-{iteration}", [compiler, "program.tower", "--emit", "object", "-o", f"program-{iteration}.o"])

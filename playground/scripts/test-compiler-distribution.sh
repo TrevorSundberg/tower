@@ -4,7 +4,6 @@ set -euo pipefail
 repo="$(cd "$(dirname "$0")/../.." && pwd)"
 out="$repo/build/distribution"
 mkdir -p "$out"
-PYTHONDONTWRITEBYTECODE=1 python3 "$repo/playground/scripts/test-distribution-recipe.py"
 stage="$(mktemp -d "$out/moved compiler.XXXXXX")"
 trap 'rm -rf "$stage"' EXIT
 cp "$repo/build/native/towerc" "$stage/towerc"
