@@ -140,6 +140,8 @@ Do NOT modify todo.txt
 - Pass world/session ownership explicitly; keep mutable globals and default-world
   access confined to legacy adapters. Workers own their scratch, diagnostics and
   interpreter state; shared inputs must remain immutable during dispatch.
+  Derive component kinds from the entity/session world, including formatter and
+  inspection fallbacks; never borrow another world's component identity.
 - Schedule compiler queries through the shared dependency graph. Request only
   needed type/body/layout/evaluation work; suspend on newly discovered dependencies
   rather than blocking a worker or recursively forcing completion. Diagnose cycles

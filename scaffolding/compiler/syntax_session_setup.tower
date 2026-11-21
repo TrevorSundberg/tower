@@ -26,6 +26,10 @@ fn syntax_session_error(value: SyntaxSession*, text: u8*): void {
 
 export fn syntax_reset(opaque: void*, source: u8*, module: FrontendModule*): void {
     var value = bits(SyntaxSession*, opaque);
+    if module is not null && frontend_module_world(module) != value.inputs.world {
+        syntax_session_error(value, "Syntax session module belongs to another compiler world");
+        return;
+    }
     var mode = value.building_bedrock ? SyntaxSeedBaseline() : value.bootstrapping ? SyntaxBedrockBaseline() : SyntaxFoundationBaseline();
     var ready = syntax_session_inputs_reset(&value.inputs, source, syntax_text_length(source), mode, module);
     syntax_session_progress(value);
@@ -50,6 +54,14 @@ export fn syntax_reset(opaque: void*, source: u8*, module: FrontendModule*): voi
 export fn syntax_session_open(world: void*, environment: void*, source: u8*, module: FrontendModule*, mode: u32): SyntaxSession* {
     var value = syntax_session_allocate(world, environment);
     if value is null { abort(); return null; }
+    if module is not null && frontend_module_world(module) != world {
+        syntax_session_error(value, "Syntax session module belongs to another compiler world");
+        return value;
+    }
+    if !frontend_modules_bind_world(bits(ModuleEnvironment*, environment), world) {
+        syntax_session_error(value, "Syntax session environment belongs to another compiler world or cannot be bound");
+        return value;
+    }
     if mode == SyntaxFoundationBaseline() {
         syntax_session_inputs_module(&value.inputs, source, module);
         var grammar = module is null ? null : frontend_module_grammar(module);
@@ -86,6 +98,10 @@ export fn syntax_get_revision(opaque: void*): usize { return bits(SyntaxSession*
 export fn syntax_get_error_offset(opaque: void*): usize { return bits(SyntaxSession*, opaque).error_offset; }
 
 export fn syntax_baseline_install(world: void*, environment: void*, source: u8*, foundation: bool, diagnostic: SyntaxVersionDiagnostic*): bool {
+    if !frontend_modules_bind_world(bits(ModuleEnvironment*, environment), world) {
+        diagnostic.fallback = "Syntax session environment belongs to another compiler world or cannot be bound";
+        return false;
+    }
     var length = syntax_text_length(source);
     if syntax_world_matches(world, source, length, foundation) { return true; }
     var session = syntax_session_open(world, environment, source, null, foundation ? SyntaxBedrockBaseline() : SyntaxSeedBaseline());

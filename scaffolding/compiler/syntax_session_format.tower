@@ -1,4 +1,5 @@
 import tower;
+import component_kinds;
 import format_types;
 import frontend_modules;
 import lr_tree;
@@ -9,6 +10,8 @@ import syntax_session_types;
 import syntax_validation;
 import syntax_version_cache;
 import .library.vector;
+
+extern fn compiler_world_type(world: void*, kind: u32): void*;
 
 // Formatting remains in its existing compiled unit. These calls share its
 // result and comment records without importing its independent LR bindings.
@@ -87,8 +90,8 @@ export fn syntax_format_into(opaque: void*, output: FormatResult*, error: u8**):
         comments.data[comments.length].start = row.start;
         comments.data[comments.length++].end = row.end;
     }
-    var syntax = syntax_component_type();
-    var match_kind = parser_match_get_type();
+    var syntax = compiler_world_type(source.inputs.world, CompilerSyntax());
+    var match_kind = compiler_world_type(source.inputs.world, CompilerParserMatch());
     format_source(output, roots.data, roots.length, source.source, source.source_length,
     comments.data, comments.length, syntax, null, match_kind);
     if !output.failed {

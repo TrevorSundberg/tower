@@ -25,11 +25,13 @@ export fn syntax_session_inputs_dispose(value: SyntaxSessionInputs*): void {
 
 export fn syntax_session_inputs_module(value: SyntaxSessionInputs*, source: u8*, module: FrontendModule*): void {
     if value.module is not null { return; }
+    if module is not null && frontend_module_world(module) != value.world { return; }
+    if !frontend_modules_bind_world(bits(ModuleEnvironment*, value.environment), value.world) { return; }
     if module is not null {
         value.module = bits(void*, module);
         value.owns_module = false;
     } else {
-        value.module = bits(void*, frontend_module_root(source, bits(ModuleEnvironment*, value.environment)));
+        value.module = bits(void*, frontend_module_root_world(value.world, source, bits(ModuleEnvironment*, value.environment)));
         value.owns_module = true;
     }
 }
@@ -47,6 +49,8 @@ export fn syntax_session_inputs_source(value: SyntaxSessionInputs*, source: u8*,
 // failed reset may silently reuse its recorded declarations on the next parse.
 export fn syntax_session_inputs_reset(value: SyntaxSessionInputs*, source: u8*, length: usize,
 mode: u32, module: FrontendModule*): bool {
+    if module is not null && frontend_module_world(module) != value.world { return false; }
+    if !frontend_modules_bind_world(bits(ModuleEnvironment*, value.environment), value.world) { return false; }
     var selected = module ?? bits(FrontendModule*, value.module);
     var name = mode == SyntaxSeedBaseline() ? "bedrock.tower" : mode == SyntaxBedrockBaseline() ? "foundation.tower" : "this file";
     if selected is not null { name = frontend_module_name(selected); }
@@ -68,7 +72,7 @@ mode: u32, module: FrontendModule*): bool {
     var ready: bool = true;
     if replace_owned {
         frontend_module_destroy(bits(FrontendModule*, value.module));
-        value.module = bits(void*, frontend_module_root(prepared.text.data, bits(ModuleEnvironment*, value.environment)));
+        value.module = bits(void*, frontend_module_root_world(value.world, prepared.text.data, bits(ModuleEnvironment*, value.environment)));
         name = frontend_module_name(bits(FrontendModule*, value.module));
         if syntax_bytes_compare(prepared.name.data, prepared.name.length, name, syntax_text_length(name)) != 0 {
             ready = node_text_set(&prepared.name, name);

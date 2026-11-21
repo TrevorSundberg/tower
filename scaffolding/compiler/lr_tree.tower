@@ -18,6 +18,9 @@ struct ParserForestSpan {
     last: usize;
 }
 
+// Legacy reduction adapter only; explicit requests pass their match kind.
+extern fn parser_match_get_type(): void*;
+
 extern fn entity_parent(node: void*): void*;
 
 extern fn entity_release(node: void*): usize;

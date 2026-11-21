@@ -1,0 +1,75 @@
+import tower;
+import .host.driver_request;
+import .compiler.execution_session;
+import .compiler.execution_package;
+import .compiler.syntax_version_types;
+import .compiler.semantic_program_types;
+import .library.bytes_types;
+import .library.bytes_interface;
+import execution_support;
+
+extern fn compiler_world_create(): void*;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn compiler_node_world(node: void*): void*;
+extern fn frontend_world_clear(world: void*): bool;
+extern fn syntax_baseline_install(world: void*, environment: void*, source: u8*, foundation: bool, diagnostic: SyntaxVersionDiagnostic*): bool;
+extern fn syntax_version_diagnostic_text(diagnostic: SyntaxVersionDiagnostic*): u8*;
+extern fn syntax_version_diagnostic_dispose(diagnostic: SyntaxVersionDiagnostic*): void;
+
+fn execution_world_prepare(world: void*, modules: void*, request: DriverRequest*): void {
+    frontend_modules_configure(modules, "world_unit.tower", request.root);
+    var diagnostic: SyntaxVersionDiagnostic = default;
+    defer syntax_version_diagnostic_dispose(&diagnostic);
+    var ready = syntax_baseline_install(world, modules, request.text[DriverBedrockText()].data, false, &diagnostic);
+    ready &&= syntax_baseline_install(world, modules, request.text[DriverFoundationText()].data, true, &diagnostic);
+    if !ready { puts(syntax_version_diagnostic_text(&diagnostic)); }
+    execution_check(ready, "install independent world baselines");
+}
+
+fn execution_world_tests(request: DriverRequest*): void {
+    var first = compiler_world_create();
+    var second = compiler_world_create();
+    var first_modules = frontend_modules_create();
+    var second_modules = frontend_modules_create();
+    execution_world_prepare(first, first_modules, request);
+    execution_world_prepare(second, second_modules, request);
+    var source: u8* = "import tower; fn identity(T:type,value:T):T { return value; } fn answer():i32 { return 42; } var staged=comptime(answer()); var result:decltype(identity(staged))=staged; print(result);";
+    var graph: ExecutionSession = default;
+    var fast: ExecutionSession = default;
+    execution_compile(&graph, source, 8, first_modules);
+    execution_compile(&fast, source, 8, second_modules);
+    execution_check(compiler_node_world(graph.program.root) == first && compiler_node_world(fast.program.root) == second,
+    "execution roots follow their module worlds");
+    execution_check(execution_session_fast(&fast), "independent world execution cache");
+    execution_run(&graph, 7, 1000000);
+    execution_run(&fast, 7, 1000000);
+    execution_same(&graph, &fast);
+    execution_check(execution_text(&graph.output, "42\n") && !graph.machine.failed, "world compiletime/decltype result");
+    var package: ByteBuffer = default;
+    var error: ByteBuffer = default;
+    defer bytes_dispose(&package);
+    defer bytes_dispose(&error);
+    execution_check(execution_package_encode(&graph.program, first_modules, 1, &package, &error), "explicit world canonical package");
+    var restored: ExecutionSession = default;
+    execution_check(execution_package_load(&restored, package.data, package.length, second_modules), "package reconstructs in another world");
+    execution_check(compiler_node_world(restored.program.root) == second, "package reconstruction world");
+    execution_run(&restored, 7, 1000000);
+    execution_check(execution_text(&restored.output, "42\n") && !restored.machine.failed, "reconstructed world result");
+    execution_session_close(&restored);
+    var failed: ExecutionSession = default;
+    var input: FrontendSource;
+    input.data = source;
+    input.length = strlen(source);
+    execution_check(!execution_session_compile_sources_world(&failed, first, &input, 1, 8, second_modules), "foreign compiler environment rejected");
+    execution_check(strstr(failed.error.data, "another compiler world") is not null, "foreign compiler environment diagnostic");
+    execution_session_close(&failed);
+    execution_close_checked(&graph);
+    frontend_modules_destroy(first_modules);
+    execution_check(frontend_world_clear(first) && compiler_world_dispose(first), "first execution world drains");
+    execution_compile(&fast, source, 8, second_modules);
+    execution_run(&fast, 7, 1000000);
+    execution_check(execution_text(&fast.output, "42\n") && !fast.machine.failed, "remaining execution world stays usable");
+    execution_close_checked(&fast);
+    frontend_modules_destroy(second_modules);
+    execution_check(frontend_world_clear(second) && compiler_world_dispose(second), "second execution world drains");
+}

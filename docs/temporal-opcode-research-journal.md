@@ -29752,3 +29752,136 @@ while explicit requests continue using lr_tree_reduce_kind. No legacy kind looku
 is reintroduced into session/module logic. Its first new trial source also needed
 whitespace between a pointer type and '=' to avoid the '*=' token. Both are draft
 compile errors; module-world behavior is still pending validation.
+
+### 2026-11-21 — explicit-world module and syntax-session ownership (in progress)
+
+Runtime-table source 4e83f0fbf4c99eae5396b9e90adcc3979a2693ce is committed and
+pushed after an unchanged pull/rebase. Pages 89596ba954d1bf5c6311b3a628f46db88ab4e347
+follows 194dcc1e309252ca57c8c53a5f8b5ec820bc83fc; action 44896939843 succeeds.
+Hosted verification has matched all 77 assets and continues browser workflows.
+
+The isolated module-world trial passes (world-module-trial.log): two live worlds
+install baselines, import and reuse cached grammar modules, format their sources,
+reject foreign environment/root/reset inputs, destroy one world and continue
+using the other. Its initial helper name parse was a reserved grammar keyword;
+rename it to parse_trial. The production logic is now integrated with explicit
+ModuleEnvironment binding and an owned idle anchor, world-owned module graphs,
+node-derived syntax metadata and explicit-world import/session construction.
+frontend_compile_sources derives the world from its program root and diagnoses
+foreign environments. Session setup/formatting/lexeme scanning stop reading host
+component kinds or the host pattern cache. The legacy root/reduction adapters
+remain explicit compatibility boundaries; the CLI/ExecutionSession still creates
+its root in the host world and is not yet migrated. No C++ changes were made.
+
+Add native regression coverage for two worlds, cached import invalidation in only
+one environment, cycle failure/recovery, canonical source formatting, foreign
+reset non-mutation, matching-baseline foreign rejection, lifetime guards and full
+allocation cleanup. Existing owned/borrowed module-input tests now run in a fresh
+explicit world. Integrated build/tests and a whole-program explicit-world semantic
+trial remain before publishing this checkpoint. The changes establish isolation;
+interleaving two worlds alone is not evidence of concurrent unit execution.
+
+Hosted runtime-table verification completes all assets and desktop/mobile/native,
+editor and default-target workflows. Saved report: runtime-tables-hosted-report.json.
+
+Extended the integrated world change through ExecutionSession: a bound module
+environment selects its explicit world, while a separate explicit-world compile
+entry point avoids the compatibility fallback. Roots and canonical package/source
+formatting now derive component kinds from their own world. Add a whole-program
+native test using two separately installed full language environments, generic
+inference, lazy decltype/comptime, graph/fast execution, .towerbc reconstruction in
+another world, foreign-environment diagnostics and lifetime cleanup. Default
+CLI callers still bind the legacy host world; this does not claim native unit
+scheduling is complete. Native/shared/portable validation is running.
+
+The first integrated native rebuild successfully compiles/links the compiler,
+frontend and storage targets, then rejects the new execution fixture because its
+ByteBuffer type import was only transitive. Add direct byte-buffer and semantic
+program type imports to that test. Compiler source is unchanged by the correction.
+Shared and portable frontend builds already succeed; native tests, capacity and
+LLVM/cross rebuild continue on the frozen compiler sources.
+
+Integrated native run is 7/8, with the new cross-world execution/package path
+segfaulting; frontend explicit-world regressions pass (2.23s). GDB places the
+fault in format_node -> format_entity -> execution_package_encode, not in the
+interpreter. format.tower still resolves a missing Foundation-kind argument via
+core_component_type(), which selects the host world. Fix that generic fallback
+with node-derived read-only Foundation lookup; preserve explicitly supplied
+component kinds. This is another concrete remaining default-world dependency.
+The LLVM compiler-project packager is still reading sources, so defer the source
+edit until it finishes. Capacity validation already passes 3/3 (67.50s).
+
+The formatter fallback now uses compiler_node_get(CompilerFoundation) without
+registering types or consulting the host world. After rebuilding, native checks
+pass 8/8 (47.57s) plus backend API, including two-world semantic compilation,
+lazy comptime/decltype, graph/fast execution and package reconstruction. Earlier
+editor checks pass 28/28 (108.77s); capacity is 3/3. Fixed shared/portable builds
+succeed. Actual parser/semantics successor checks and LLVM/package validation
+continue; repeat affected formatter/editor coverage on the final artifacts.
+
+The next native CLI draft gives DriverRequest its own world, selects module
+stages explicitly and installs grammar through the Tower syntax_baseline_install
+API. Production driver IR no longer references driver_syntax_slot/syntax_modules.
+The existing Tower runtime binding tool rejects that absence because its legacy
+syntax bindings were mandatory. A draft makes only absent legacy declarations
+optional while preserving profile/type checks for every retained declaration;
+stat/target contracts remain unchanged. This is isolated next-work, not part of
+the currently validating session-world checkpoint. No C++ is added.
+
+Actual native parser-nodes and semantics successor objects compare byte-for-byte
+(session-world-successor.log). The isolated next CLI draft now executes the
+operand regression in graph and normalized fast modes, emits identical canonical
+Foundation to the current CLI, encodes/reloads its package and reports 0 in every
+execution (native-cli-world-trial.log). A debugger probe records one explicit
+compiler_world_create and one compiler_world_dispose, with zero calls to the
+legacy compiler_host_world accessor and normal exit. Evidence:
+native-cli-world-debug.log/.foundation. This verifies that specific CLI path's
+world isolation, not concurrent native dispatch or all frontend/backend paths.
+The draft and optional retained legacy binding logic remain outside release
+sources while the session-world checkpoint finishes browser/bootstrap checks.
+
+Final-artifact editor checks pass 28/28 (165.90s). The next private-world CLI
+also recompiles actual parser-nodes and semantics objects byte-for-byte
+(native-cli-world-successor.log), and its full native driver suite is running.
+
+Next concurrency audit (not implemented): CompilerWork currently creates unit
+queries with null subjects; represent unit recipes/results as real entity
+components before adding its in-process executor. Unit worlds must be exclusive,
+with immutable snapshots and deterministic source-order receipts. Share the same
+WorkGraph, not another scheduler/semantic representation. Bound nested parser and
+semantic worker counts explicitly per world to avoid multiplying hardware-wide
+pools across units. Backend contexts can remain per unit; target initialization,
+LLD global state and linker temporary naming still need audit and explicit
+coordinator ownership. Body checking also retains a coordinator prefix through
+the last structural statement; finer continuations require preserving lexical
+scratch across yields and diagnostic order independently of worker capacity.
+
+Session-world edited browser generations pass in 175.39s / 105.40s with identical
+1,053,151 / 52,358,263 / 63,915,698-byte modules. Exact hashes are saved in
+session-world-generation{1,2}.json. Local verification passes all 77 assets and
+desktop/mobile/native-download, editor and default-target workflows; saved report
+is session-world-local-report.json. Full regressions have reached the expensive
+entity/storage differential cases without failure. The isolated next CLI passes
+the complete native driver suite (native-cli-world-driver-tests.log, exit 0);
+the missing-tool message in that log is the existing deliberate negative case.
+Additional next-draft request tests cover separate world/environment ownership,
+canonical stage selection without a process slot, and independent teardown.
+
+The isolated CLI request ownership tests pass, including two private worlds,
+separate canonical stages, closing one while the other remains valid, and exact
+instrumented buffer cleanup (native-cli-world-request-tests.log). The first test
+build unnecessarily applied --driver binding to this existing test target, which
+does not contain the production driver_stat declaration; the binder correctly
+rejected it. The following link also failed because that rejected binding had
+produced no object. Compile the already emitted LLVM directly, matching the
+existing TowerDriverRequestTests.cmake target, then link/run successfully.
+No binding validation was relaxed for this harness correction.
+
+Session-world final regressions pass 115/115 with no skips (570.08s). Validation
+now includes fixed native 8/8/API, capacity 3/3, fixed editor 28/28, byte-identical
+native parser/semantics successor objects, two identical edited browser compiler
+generations, and complete local deployment checks. Add a concise AGENTS.md rule
+requiring entity/session-world component identities even in formatting/inspection
+fallbacks. Compiler sources stayed frozen through these checks. todo.txt retains
+96a9e58964d7f01e4a97819f259448db81ef5e40. Commit/rebase and publication follow;
+then continue the already validated native CLI world draft and unit scheduling.

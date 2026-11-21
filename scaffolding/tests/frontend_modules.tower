@@ -4,6 +4,9 @@ import .compiler.frontend_modules;
 import .compiler.syntax_reader;
 import .library.vector;
 
+// Exercise the compatibility host entry point in this legacy test suite.
+extern fn syntax_create(source: u8*, module: FrontendModule*): void*;
+
 fn module_test_source(environment: ModuleEnvironment*, name: u8*, source: u8*): void {
     module_require(frontend_modules_source(environment, name, source, syntax_text_length(source)));
 }

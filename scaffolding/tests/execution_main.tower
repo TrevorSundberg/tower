@@ -14,6 +14,7 @@ import .compiler.execution_package;
 import .compiler.execution_session;
 import execution_support;
 import execution_suite;
+import execution_world;
 
 
 
@@ -42,5 +43,6 @@ export fn main(argc: i32, argv: u8**): i32 {
     execution_check(driver_syntax_data(&result[0])[0] == 0, "install Foundation");
     if driver_syntax_heap(&result[0]) { driver_syntax_delete(driver_syntax_storage(&result[0])); }
     execution_tests(request.modules);
+    execution_world_tests(&request);
     return 0;
 }

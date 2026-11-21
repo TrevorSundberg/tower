@@ -1,0 +1,182 @@
+import tower;
+import .compiler.format_types;
+import .compiler.frontend_revision_types;
+import .compiler.syntax_version_types;
+import .compiler.component_kinds;
+import .compiler.syntax_session_types;
+
+extern fn compiler_world_create(): void*;
+
+extern fn compiler_world_dispose(world: void*): bool;
+
+extern fn compiler_world_type(world: void*, kind: u32): void*;
+
+extern fn compiler_node_world(node: void*): void*;
+
+extern fn frontend_world_clear(world: void*): bool;
+
+extern fn frontend_world_bedrock(world: void*): void*;
+
+extern fn syntax_baseline_install(world: void*, environment: void*, source: u8*, foundation: bool, diagnostic: SyntaxVersionDiagnostic*): bool;
+
+extern fn syntax_version_diagnostic_text(diagnostic: SyntaxVersionDiagnostic*): u8*;
+
+extern fn syntax_version_diagnostic_dispose(diagnostic: SyntaxVersionDiagnostic*): void;
+
+extern fn format_entity(output: FormatResult*, root: void*, syntax: void*, foundation: void*, match_kind: void*): void;
+
+extern fn format_dispose(output: FormatResult*): void;
+
+extern fn frontend_modules_create(): void*;
+
+extern fn frontend_modules_destroy(environment: void*): void;
+
+extern fn frontend_modules_configure(environment: void*, entry: u8*, library: u8*): void;
+
+extern fn frontend_modules_source(environment: void*, name: u8*, text: u8*, length: usize): bool;
+
+extern fn frontend_modules_bind_world(environment: void*, world: void*): bool;
+
+extern fn frontend_module_root_world(world: void*, source: u8*, environment: void*): void*;
+
+extern fn frontend_module_world(module: void*): void*;
+
+extern fn frontend_module_session(module: void*): void*;
+
+extern fn frontend_module_finish(module: void*): void;
+
+extern fn frontend_module_destroy(module: void*): void;
+
+extern fn syntax_next(session: void*): void*;
+
+extern fn syntax_get_error(session: void*): u8*;
+
+extern fn syntax_reset(session: void*, source: u8*, module: void*): void;
+
+extern fn syntax_destroy(session: void*): void;
+
+extern fn syntax_session_open(world: void*, environment: void*, source: u8*, module: void*, mode: u32): SyntaxSession*;
+
+extern fn syntax_format_into(session: void*, output: FormatResult*, error: u8**): bool;
+
+extern fn entity_release(node: void*): usize;
+
+extern fn puts(text: u8*): i32;
+
+extern fn strlen(text: u8*): usize;
+
+extern fn abort(): void;
+
+extern fn tower_test_buffer_count(): usize;
+
+fn world_session_check(ok: bool, message: u8*): void {
+    if !ok {
+        puts(message);
+        abort();
+    }
+}
+
+fn world_session_install(world: void*, env: void*, text: u8*, foundation: bool): void {
+    var d: SyntaxVersionDiagnostic = default;
+    defer syntax_version_diagnostic_dispose(&d);
+    var ok = syntax_baseline_install(world, env, text, foundation, &d);
+    if !ok {
+        puts(syntax_version_diagnostic_text(&d));
+    }
+    world_session_check(ok, "baseline installation");
+}
+
+fn world_session_prepare(world: void*, env: void*): void {
+    var out: FormatResult = default;
+    defer format_dispose(&out);
+    format_entity(&out, frontend_world_bedrock(world), compiler_world_type(world, CompilerSyntax()), null, compiler_world_type(world, CompilerParserMatch()));
+    world_session_check(!out.failed, "seed formatting");
+    world_session_install(world, env, out.text.data, false);
+    world_session_install(world, env, "parse Statement = 'base';", true);
+    frontend_modules_configure(env, "main.tower", "");
+    var text: u8* = "parse Statement = 'hello';";
+    world_session_check(frontend_modules_source(env, "shared.tower", text, strlen(text)), "module source");
+}
+
+fn world_session_parse(world: void*, env: void*, text: u8*, succeeds: bool): void {
+    var module = frontend_module_root_world(world, text, env);
+    world_session_check(module is not null && frontend_module_world(module) == world, "module ownership");
+    defer frontend_module_destroy(module);
+    var session = frontend_module_session(module);
+    var count: usize = 0;
+    loop {
+        var root = syntax_next(session);
+        if root is null {
+            break;
+        }
+        world_session_check(compiler_node_world(root) == world, "parse entity ownership");
+        entity_release(root);
+        count++;
+    }
+    var error = syntax_get_error(session);
+    if(error[0] == 0) != succeeds {
+        puts(error);
+    }
+    world_session_check((error[0] == 0) == succeeds, "import parsing");
+    if !succeeds {
+        return;
+    }
+    world_session_check(count == 2, "import root count");
+    frontend_module_finish(module);
+    var output: FormatResult = default;
+    defer format_dispose(&output);
+    var message: u8* = "";
+    var formatted = syntax_format_into(session, &output, &message);
+    if !formatted {
+        puts(message);
+    }
+    world_session_check(formatted, "world source formatting");
+}
+
+fn frontend_session_world_tests(): void {
+    var baseline = tower_test_buffer_count();
+    var a = compiler_world_create();
+    var b = compiler_world_create();
+    var first = frontend_modules_create();
+    var second = frontend_modules_create();
+    world_session_prepare(a, first);
+    world_session_prepare(b, second);
+    world_session_parse(a, first, "import shared; hello", true);
+    world_session_parse(b, second, "import shared; hello", true);
+    world_session_parse(a, first, "import shared; hello", true);
+    world_session_parse(b, second, "import shared; hello", true);
+    var changed: u8* = "parse Statement = 'other';";
+    world_session_check(frontend_modules_source(first, "shared.tower", changed, strlen(changed)), "change only first world source");
+    world_session_parse(a, first, "import shared; other", true);
+    world_session_parse(a, first, "import shared; hello", false);
+    world_session_parse(b, second, "import shared; hello", true);
+    var cycle: u8* = "import b;";
+    world_session_check(frontend_modules_source(first, "a.tower", cycle, strlen(cycle)), "cycle first module");
+    cycle = "import a;";
+    world_session_check(frontend_modules_source(first, "b.tower", cycle, strlen(cycle)), "cycle second module");
+    world_session_parse(a, first, "import a;", false);
+    world_session_parse(a, first, "import shared; other", true);
+    var diagnostic: SyntaxVersionDiagnostic = default;
+    world_session_check(!syntax_baseline_install(a, second, "parse Statement = 'base';", true, &diagnostic), "foreign environment rejected even for matching baseline");
+    syntax_version_diagnostic_dispose(&diagnostic);
+    world_session_check(!frontend_modules_bind_world(first, b), "foreign environment rejection");
+    world_session_check(frontend_module_root_world(b, "bad", first) is null, "foreign root rejection");
+    var ma = frontend_module_root_world(a, "base", first);
+    var mb = frontend_module_root_world(b, "base", second);
+    var sa = bits(SyntaxSession*, frontend_module_session(ma));
+    var old = sa.inputs.source;
+    syntax_reset(bits(void*, sa), "bad", mb);
+    world_session_check(sa.inputs.source == old && syntax_get_error(bits(void*, sa))[0] != 0, "foreign reset isolation");
+    var bad = syntax_session_open(b, first, "bad", null, SyntaxFoundationBaseline());
+    world_session_check(syntax_get_error(bits(void*, bad))[0] != 0, "foreign session rejection");
+    syntax_destroy(bits(void*, bad));
+    frontend_module_destroy(ma);
+    frontend_module_destroy(mb);
+    world_session_check(!compiler_world_dispose(a), "environment owns world");
+    frontend_modules_destroy(first);
+    world_session_check(frontend_world_clear(a) && compiler_world_dispose(a), "first world cleanup");
+    world_session_parse(b, second, "import shared; hello", true);
+    frontend_modules_destroy(second);
+    world_session_check(frontend_world_clear(b) && compiler_world_dispose(b), "second world cleanup");
+    world_session_check(tower_test_buffer_count() == baseline, "explicit world sessions release all allocations");
+}

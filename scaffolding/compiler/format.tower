@@ -1,6 +1,7 @@
 import format_types;
 import format_dependent;
 import tower;
+import component_kinds;
 import format_foundation;
 import foundation_types;
 import parser_types;
@@ -11,7 +12,7 @@ import .library.vector;
 
 // Canonical text and source mapping over the existing shared components.
 // Composed after their definitions; these buffers are output, not another IR.
-extern fn core_component_type(): void*;
+extern fn compiler_node_get(node: void*, kind: u32): void*;
 
 fn format_syntax(f: FormatEngine*, entity: void*): SyntaxNode* {
     var component = entity_component_get(entity, f.syntax_kind);
@@ -20,7 +21,9 @@ fn format_syntax(f: FormatEngine*, entity: void*): SyntaxNode* {
 
 fn format_foundation(f: FormatEngine*, entity: void*): FoundationNode* {
     if f.foundation_kind == null {
-        f.foundation_kind = core_component_type();
+        // Formatting is a read-only query. Do not register a type or consult
+        // the legacy host world when the caller leaves this kind implicit.
+        return bits(FoundationNode*, compiler_node_get(entity, CompilerFoundation()));
     }
     var component = entity_component_get(entity, f.foundation_kind);
     return bits(FoundationNode*, entity_component_data(component));

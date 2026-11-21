@@ -756,9 +756,11 @@ containers. Benchmark representative compiler workloads before migrating them.
    borrowed owner context on the entity store, and four interpreter jobs across
    two explicit worlds pass through one pool. The production host still exposes
    a default-world handle. Tower now owns grammar baseline/revision/cache records
-   and parser session leases; the remaining native session orchestration and host
-   transport still need migration before complete independent compilations can
-   share one native process safely.
+   and parser session leases. Module environments now bind to one explicit world;
+   module entities, import readers, cached declarations, session formatting and
+   execution roots follow that owner. Whole-program independent-world parsing, checking, interpretation and
+   canonical package reconstruction pass native validation. Native CLI unit dispatch and host transport still need migration
+   before concurrent independent compilations can share one native process safely.
 3. Migrate pure layout, body-analysis and lowering queries individually. Cache
    matching entity/component tuples. Preserve stable sparse payloads where
    address stability matters; introduce dense typed columns only for measured
@@ -777,7 +779,7 @@ Current migration audit (after the isolated compiler-worker milestone):
 | Area | Authoritative/shared data and present storage | Concurrency work still required |
 | --- | --- | --- |
 | Entities | Stable payloads, dense per-type pointer indexes, explicit worlds, pinned views, exclusive attachment leases and staged canonical creation | Complete host-world isolation and non-racing reference ownership |
-| Syntax/grammar | Shared entities; Tower baseline/revision/cache records; worker-owned FIRST/nullable frontiers, LR(0) transitions, LR(1) kernel closures, wide lookahead frontiers, LALR actions and runtime action/direct-index/goto rows | Remaining session orchestration, propagation-edge construction, runtime sequence specialization and source/effect order; row interning publishes after joins |
+| Syntax/grammar | Shared entities; world-bound module/session/baseline/revision/cache ownership; worker-owned FIRST/nullable frontiers, LR(0) transitions, LR(1) kernel closures, wide lookahead frontiers, LALR actions and runtime action/direct-index/goto rows | Native unit scheduling, propagation-edge construction, runtime sequence specialization and source/effect order; row interning publishes after joins |
 | Semantics/layout | Shared query graph; parallel dependency discovery, layouts, eligible ordinary/instantiated-generic body checking and expression lowering | Generic/type construction continuations, precise body layout dependencies, editor queries and structural publication |
 | Interpreter/staging | Per-invocation contexts over shared Foundation; ECS preparation/lowering dependencies, threaded lazy scalar evaluation and private execution caches | General ordinary-value execution, explicit effects/inputs and invalidation; no separate folding evaluator |
 | LLVM | Shared Foundation inputs; one mutable LLVM context/module per compiler instance | Function/query boundaries that do not concurrently mutate one LLVM module; preserve target legality |

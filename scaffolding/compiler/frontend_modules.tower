@@ -1,5 +1,8 @@
 import syntax_view;
 import tower;
+import component_kinds;
+import frontend_revision_types;
+import syntax_session_types;
 import syntax_tags;
 import foundation_nodes;
 import frontend_bedrock;
@@ -18,11 +21,12 @@ import .library.vector;
 
 // Imports retain source, declaration and ordinary parse entities in one graph.
 // Grammar views below are derived indexes over those entities, never another IR.
-extern fn syntax_component_type(): void*;
-
-extern fn parser_match_get_type(): void*;
-
-extern fn syntax_create(source: u8*, module: FrontendModule*): void*;
+extern fn compiler_host_world(): void*;
+extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_type(world: void*, kind: u32): void*;
+extern fn compiler_node_get(node: void*, kind: u32): void*;
+extern fn entity_create(store: void*): void*;
+extern fn syntax_session_open(world: void*, environment: void*, source: u8*, module: FrontendModule*, mode: u32): SyntaxSession*;
 
 extern fn syntax_destroy(session: void*): void;
 
@@ -37,8 +41,6 @@ extern fn semantic_source_comments(root: void*, source: u8*, spans: usize*, coun
 extern fn syntax_get_error(session: void*): u8*;
 
 extern fn syntax_get_error_offset(session: void*): usize;
-
-extern fn tower_node_create(): void*;
 
 extern fn compiler_clone_tree(source: void*, limit: usize, copied: usize*): void*;
 
@@ -87,6 +89,10 @@ struct ModuleGrammar {
 }
 
 struct ModuleEnvironment {
+    // A bound environment and all of its caches belong to exactly one world.
+    // The anchor keeps even an idle environment from outliving that world.
+    world: void*;
+    anchor: void*;
     inputs: vector(ModuleInput);
     aliases: vector(ModuleAlias);
     entry: vector(u8);
@@ -107,6 +113,7 @@ struct ModuleEnvironment {
 }
 
 struct ModuleGraph {
+    world: void*;
     environment: ModuleEnvironment*;
     owns_environment: bool;
     kind: void*;
@@ -424,10 +431,10 @@ fn module_node(graph: ModuleGraph*, entity: void*): FrontendModule* {
 
 fn module_new(graph: ModuleGraph*, name: u8*, text: u8*): FrontendModule* {
     if graph.kind == null {
-        graph.kind = tower_node_create();
+        graph.kind = entity_create(compiler_world_store(graph.world));
         module_require(entity_register(graph.kind, sizeof(FrontendModule), alignof(FrontendModule), 0));
     }
-    var entity = tower_node_create();
+    var entity = entity_create(compiler_world_store(graph.world));
     var allocated2 = entity != null;
     module_require(allocated2);
     var component = entity_component_add(entity, graph.kind);
@@ -454,15 +461,44 @@ fn module_new(graph: ModuleGraph*, name: u8*, text: u8*): FrontendModule* {
     return value;
 }
 
+// Coordinator-owned binding. A foreign world is rejected before changing any
+// source, cache, session or active-graph bookkeeping.
+export fn frontend_modules_bind_world(environment: ModuleEnvironment*, world: void*): bool {
+    if world is null { return false; }
+    if environment is null { return true; }
+    if environment.world is not null { return environment.world == world; }
+    var anchor = entity_create(compiler_world_store(world));
+    if anchor is null { return false; }
+    environment.anchor = anchor;
+    environment.world = world;
+    return true;
+}
+
+export fn frontend_module_world(module: FrontendModule*): void* {
+    return module.graph.world;
+}
+
+export fn frontend_modules_world(environment: ModuleEnvironment*): void* {
+    return environment is null ? null : environment.world;
+}
+
+// Compatibility entry point; explicit-world callers use root_world.
 export fn frontend_module_root(source: u8*, environment: ModuleEnvironment*): FrontendModule* {
+    return frontend_module_root_world(compiler_host_world(), source, environment);
+}
+
+export fn frontend_module_root_world(world: void*, source: u8*, environment: ModuleEnvironment*): FrontendModule* {
+    if !frontend_modules_bind_world(environment, world) { return null; }
     var graph = alloc(ModuleGraph, 1);
     var allocated5 = graph != null;
     module_require(allocated5);
     *graph = default;
+    graph.world = world;
     graph.tracked = true;
     graph.environment = environment;
     if environment == null {
         environment = frontend_modules_create();
+        module_require(frontend_modules_bind_world(environment, world));
         graph.environment = environment;
         graph.owns_environment = true;
     }
@@ -512,7 +548,7 @@ fn module_grammar_clear(grammar: ModuleGrammar*): void {
 }
 
 fn module_grammar_add(grammar: ModuleGrammar*, entity: void*): void {
-    var value = frontend_syntax(entity, syntax_component_type());
+    var value = bits(SyntaxNode*, compiler_node_get(entity, CompilerSyntax()));
     var rule = value.kind == SyntaxRule();
     var i: usize = 0;
     if rule {
@@ -559,7 +595,7 @@ fn module_grammar_add(grammar: ModuleGrammar*, entity: void*): void {
             return;
         }
         for(; i != grammar.tokens.length; i++) {
-            var old = frontend_syntax(grammar.tokens.data[i], syntax_component_type());
+            var old = bits(SyntaxNode*, compiler_node_get(grammar.tokens.data[i], CompilerSyntax()));
             var same = module_equal(old.name.data, value.name.data);
             if same {
                 grammar.tokens.data[i] = entity;
@@ -593,7 +629,7 @@ export fn frontend_module_grammar(module: FrontendModule*): ModuleGrammar* {
         return null;
     }
     module_grammar_clear(&module.grammar);
-    var seed = frontend_syntax(syntax_native_bedrock(), syntax_component_type());
+    var seed = bits(SyntaxNode*, compiler_node_get(frontend_world_bedrock(module.graph.world), CompilerSyntax()));
     foreach(var & item in &seed.items) {
         module_grammar_add(&module.grammar, *item);
     }
@@ -781,7 +817,7 @@ fn module_load(parent: FrontendModule*, name: u8*, literal: bool): FrontendModul
                     var session = parent.graph.import_session;
                     parent.graph.import_session = null;
                     if session == null {
-                        session = syntax_create(result.source.text.data, result);
+                        session = bits(void*, syntax_session_open(parent.graph.world, bits(void*, parent.graph.environment), result.source.text.data, result, SyntaxFoundationBaseline()));
                     }
                     else {
                         syntax_reset(session, result.source.text.data, result);
@@ -968,8 +1004,8 @@ fn module_read_import(reader: SyntaxReader*, node: void*): bool {
 export fn frontend_module_import(module: FrontendModule*, node: void*, source: SyntaxSource*): bool {
     var reader: SyntaxReader = default;
     reader.source = source;
-    reader.match_kind = parser_match_get_type();
-    reader.syntax_kind = syntax_component_type();
+    reader.match_kind = compiler_world_type(module.graph.world, CompilerParserMatch());
+    reader.syntax_kind = compiler_world_type(module.graph.world, CompilerSyntax());
     var ok = module_read_import(&reader, node);
     var value = frontend_syntax(node, reader.syntax_kind);
     var aliased = syntax_reader_member(node, "alias") != null;
@@ -1007,7 +1043,7 @@ export fn frontend_module_import(module: FrontendModule*, node: void*, source: S
 export fn frontend_module_record(module: FrontendModule*, root: void*, declaration: bool): void {
     var node = entity_child_at(root, 0);
     if declaration {
-        var value = frontend_syntax(node, syntax_component_type());
+        var value = bits(SyntaxNode*, compiler_node_get(node, CompilerSyntax()));
         if value.kind == SyntaxImport() {
             return;
         }
@@ -1084,7 +1120,7 @@ fn module_validate_cycles(graph: ModuleGraph*): void {
                 foreach(var & root in &current.roots) {
                     var node = entity_child_at(*root, 0);
                     var reader: SyntaxReader = default;
-                    reader.match_kind = parser_match_get_type();
+                    reader.match_kind = compiler_world_type(graph.world, CompilerParserMatch());
                     var span = syntax_reader_span(&reader, node);
                     if module_equal(span.label.data, "Statement") {
                         node = entity_child_at(node, 0);
@@ -1158,7 +1194,7 @@ export fn frontend_module_dependency_at(module: FrontendModule*, index: usize): 
 }
 
 export fn frontend_module_alias(module: FrontendModule*, index: usize): u8* {
-    var value = frontend_syntax(module.imports.data[index], syntax_component_type());
+    var value = bits(SyntaxNode*, compiler_node_get(module.imports.data[index], CompilerSyntax()));
     return module_text(&value.capture);
 }
 
@@ -1272,7 +1308,7 @@ export fn frontend_module_session(module: FrontendModule*): void* {
     var session = environment.compilation_session;
     environment.compilation_session = null;
     if session == null {
-        session = syntax_create(module.source.text.data, module);
+        session = bits(void*, syntax_session_open(module.graph.world, bits(void*, environment), module.source.text.data, module, SyntaxFoundationBaseline()));
     }
     else {
         syntax_reset(session, module.source.text.data, module);
@@ -1333,6 +1369,7 @@ export fn frontend_modules_destroy(environment: ModuleEnvironment*): void {
     frontend_modules_sources_clear(environment);
     vector_dispose(&environment.sources);
     vector_dispose(&environment.bases);
+    if environment.anchor is not null { entity_release(environment.anchor); }
     free(environment);
 }
 
@@ -1381,7 +1418,7 @@ fn module_cache_valid(environment: ModuleEnvironment*, module: FrontendModule*):
         var path: vector(u8);
         vector_init(&path);
         vector_init(&text);
-        var declaration = frontend_syntax(module.imports.data[i], syntax_component_type());
+        var declaration = bits(SyntaxNode*, compiler_node_get(module.imports.data[i], CompilerSyntax()));
         status = module_resolve(module, declaration.name.data, declaration.literal, &path, &text);
         ok = status == ModuleReady();
         ok &&= module_equal(path.data, module.dependencies.data[i].source.name.data);
@@ -1453,8 +1490,8 @@ fn module_clone(graph: ModuleGraph*, source: FrontendModule*): FrontendModule* {
         module_require(present);
         var reader: SyntaxReader = default;
         reader.source = result.source;
-        reader.match_kind = parser_match_get_type();
-        reader.syntax_kind = syntax_component_type();
+        reader.match_kind = compiler_world_type(graph.world, CompilerParserMatch());
+        reader.syntax_kind = compiler_world_type(graph.world, CompilerSyntax());
         module_require(module_read_import(&reader, declaration));
         module_require(vector_push(&result.imports, declaration));
         i++;
@@ -1474,6 +1511,7 @@ fn module_cache_store(module: FrontendModule*): void {
     var present = graph != null;
     module_require(present);
     *graph = default;
+    graph.world = module.graph.world;
     graph.environment = environment;
     var snapshot = module_clone(graph, module);
     if environment.cache.length == ModuleCacheEntries() {

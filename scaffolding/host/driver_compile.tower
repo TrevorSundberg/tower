@@ -1,4 +1,5 @@
 import tower;
+import .compiler.component_kinds;
 import driver_api;
 import driver_execution;
 import .compiler.execution_session;
@@ -101,7 +102,8 @@ fn driver_backend_failed(state: DriverCompilation*): bool {
 
 fn driver_compile_format(state: DriverCompilation*, root: void*, out: ByteBuffer*): bool {
     var formatted: FormatResult = default;
-    format_entity(&formatted, root, syntax_component_type(), null, parser_match_get_type());
+    format_entity(&formatted, root, compiler_node_type(root, CompilerSyntax()), null,
+    compiler_node_type(root, CompilerParserMatch()));
     var ok = !formatted.failed && bytes_assign_text(out, formatted.text.data, formatted.text.length);
     format_dispose(&formatted);
     if !ok {

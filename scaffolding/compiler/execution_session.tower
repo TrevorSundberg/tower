@@ -18,7 +18,10 @@ struct ExecutionSession {
     started: bool;
 }
 
-extern fn tower_node_create(): void*;
+extern fn compiler_host_world(): void*;
+extern fn compiler_world_store(world: void*): void*;
+extern fn frontend_modules_world(modules: void*): void*;
+extern fn entity_create(store: void*): void*;
 
 extern fn entity_release(node: void*): usize;
 
@@ -72,8 +75,21 @@ fn execution_session_fail(execution: ExecutionSession*, text: u8*, offset: usize
 }
 
 fn execution_session_compile_sources(execution: ExecutionSession*, sources: FrontendSource*, count: usize, width: u32, modules: void*): bool {
+    // Compatibility callers may supply an unbound environment. A bound one
+    // selects its own world; no process-wide current-world switch is needed.
+    var world = frontend_modules_world(modules) ?? compiler_host_world();
+    return execution_session_compile_sources_world(execution, world, sources, count, width, modules);
+}
+
+fn execution_session_compile_sources_world(execution: ExecutionSession*, world: void*, sources: FrontendSource*, count: usize, width: u32, modules: void*): bool {
     execution_session_close(execution);
-    semantic_initialize(&execution.program, tower_node_create(), width);
+    var root = world is null ? null : entity_create(compiler_world_store(world));
+    if root is null {
+        execution_session_fail(execution, "Unable to allocate compiler root", 0);
+        execution.machine.done = true;
+        return false;
+    }
+    semantic_initialize(&execution.program, root, width);
     // The remaining frontend boundary reads NUL-terminated source. Preserve the
     // request's explicit bounds even for formatter buffers and package sections.
     var inputs = alloc(FrontendSource, count);

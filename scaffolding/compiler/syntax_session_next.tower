@@ -1,4 +1,5 @@
 import tower;
+import component_kinds;
 import format_types;
 import frontend_cache;
 import frontend_modules;
@@ -41,6 +42,8 @@ import .library.vector;
 // Advances one session through the shared syntax entities. Grammar changes are
 // published only after the recognizer and its lookahead have been released.
 extern fn entity_component_get(entity: void*, kind: void*): void*;
+extern fn compiler_node_get(node: void*, kind: u32): void*;
+extern fn compiler_world_type(world: void*, kind: u32): void*;
 extern fn entity_component_data(component: void*): void*;
 extern fn entity_child_at(parent: void*, index: usize): void*;
 extern fn tower_node_attach(child: void*, parent: void*): void;
@@ -52,10 +55,10 @@ extern fn bytes_assign_text(value: vector(u8)*, source: u8*, length: usize): boo
 extern fn bytes_append(value: vector(u8)*, source: u8*, length: usize): bool;
 
 fn syntax_session_node(entity: void*): SyntaxNode* {
-    return bits(SyntaxNode*, entity_component_data(entity_component_get(entity, syntax_component_type())));
+    return bits(SyntaxNode*, compiler_node_get(entity, CompilerSyntax()));
 }
 fn syntax_session_match(entity: void*): ParserMatchData* {
-    return bits(ParserMatchData*, entity_component_data(entity_component_get(entity, parser_match_get_type())));
+    return bits(ParserMatchData*, compiler_node_get(entity, CompilerParserMatch()));
 }
 fn syntax_session_text(text: u8*, wanted: u8*): bool {
     return syntax_bytes_compare(text, syntax_text_length(text), wanted, syntax_text_length(wanted)) == 0;
@@ -101,7 +104,7 @@ fn syntax_session_declare(value: SyntaxSession*, construct: void*): bool {
     var error: vector(u8);
     vector_init(&error);
     defer vector_dispose(&error);
-    var candidate = syntax_revision_declare(value.pins.grammar, construct, syntax_component_type(), &error);
+    var candidate = syntax_revision_declare(value.pins.grammar, construct, compiler_world_type(value.inputs.world, CompilerSyntax()), &error);
     defer frontend_revision_release(candidate);
     if candidate is null {
         if error.length == 0 { syntax_session_error(value, "Unable to allocate grammar revision"); }
@@ -115,8 +118,8 @@ fn syntax_session_read_declaration(value: SyntaxSession*, construct: void*, rule
     var error: vector(u8);
     vector_init(&error);
     defer vector_dispose(&error);
-    var ready = rule ? syntax_read_rule(construct, value.inputs.source, parser_match_get_type(), syntax_component_type(), &error)
-        : syntax_read_token(construct, value.inputs.source, parser_match_get_type(), syntax_component_type(), skipped, &error);
+    var ready = rule ? syntax_read_rule(construct, value.inputs.source, compiler_world_type(value.inputs.world, CompilerParserMatch()), compiler_world_type(value.inputs.world, CompilerSyntax()), &error)
+        : syntax_read_token(construct, value.inputs.source, compiler_world_type(value.inputs.world, CompilerParserMatch()), compiler_world_type(value.inputs.world, CompilerSyntax()), skipped, &error);
     if !ready {
         if error.length == 0 { syntax_session_error(value, "Unable to allocate grammar declaration"); }
         else { syntax_session_error_bytes(value, error.data, error.length); }
@@ -133,11 +136,11 @@ fn syntax_session_pattern(value: SyntaxSession*, construct: void*): bool {
         value.error.data[value.error.length] = 0;
         return false;
     }
-    frontend_cache_pattern(&value.cache.index, construct, syntax_component_type());
+    frontend_cache_pattern(&value.cache.index, construct, compiler_world_type(value.inputs.world, CompilerSyntax()));
     if entry.compiled is not null { return true; }
     var error: FormatResult = default;
     defer format_dispose(&error);
-    var pattern = frontend_host_pattern_read(entry.text.data, entry.text.length, &error);
+    var pattern = frontend_world_pattern(value.inputs.world, entry.text.data, entry.text.length, &error);
     syntax_node_pattern(entry, pattern);
     syntax_pattern_release(pattern);
     if entry.compiled is not null { return true; }
@@ -182,7 +185,7 @@ fn syntax_session_finish(value: SyntaxSession*): void {
         var diagnostic: SyntaxVersionDiagnostic = default;
         defer syntax_version_diagnostic_dispose(&diagnostic);
         diagnostic.offset = value.error_offset;
-        syntax_version_bedrock(value.pins.grammar, syntax_component_type(), &diagnostic);
+        syntax_version_bedrock(value.pins.grammar, compiler_world_type(value.inputs.world, CompilerSyntax()), &diagnostic);
         syntax_session_error(value, syntax_version_diagnostic_text(&diagnostic));
         value.error_offset = diagnostic.offset;
         syntax_version_diagnostic_dispose(&diagnostic);

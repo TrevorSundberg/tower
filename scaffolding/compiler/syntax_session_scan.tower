@@ -1,5 +1,6 @@
 import syntax_template_types;
 import tower;
+import component_kinds;
 import frontend_modules;
 import lr_parser;
 import lr_runtime;
@@ -17,6 +18,8 @@ import syntax_session_types;
 import syntax_template;
 import syntax_types;
 import syntax_validation;
+
+extern fn compiler_node_get(node: void*, kind: u32): void*;
 
 extern fn entity_component_get(node: void*, kind: void*): void*;
 
@@ -138,7 +141,7 @@ export fn syntax_session_lexemes(value: SyntaxSession*, output: SyntaxHighlights
         if index >= value.pins.grammar.tokens.length {
             continue;
         }
-        var definition = bits(SyntaxNode*, entity_component_data(entity_component_get(value.pins.grammar.tokens.data[index], syntax_component_type())));
+        var definition = bits(SyntaxNode*, compiler_node_get(value.pins.grammar.tokens.data[index], CompilerSyntax()));
         row.opaque ||= syntax_bytes_compare(definition.name.data, definition.name.length, "GrammarPattern", 14) == 0;
     }
     return true;

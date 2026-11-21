@@ -1,5 +1,6 @@
 import tower;
 import frontend_world;
+import frontend_session_world;
 import parser_failures;
 import frontend_diagnostic_revision;
 import frontend_session_format;
@@ -13,6 +14,7 @@ extern fn parser_tests(): void;
 // This entry does not walk or reformat the repository's source files.
 export fn main(argc: i32, argv: u8**): i32 {
     frontend_world_tests();
+    frontend_session_world_tests();
     parser_tests();
     parser_failure_tests();
     frontend_diagnostic_revision_tests();

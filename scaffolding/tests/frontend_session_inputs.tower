@@ -12,7 +12,7 @@ extern fn syntax_session_inputs_module(value: SyntaxSessionInputs*, source: u8*,
 extern fn syntax_session_inputs_source(value: SyntaxSessionInputs*, source: u8*, length: usize, name: u8*): bool;
 extern fn syntax_session_inputs_reset(value: SyntaxSessionInputs*, source: u8*, length: usize, mode: u32, module: void*): bool;
 extern fn syntax_source_retain(source: SyntaxSource*): void;
-extern fn frontend_module_root(source: u8*, environment: void*): void*;
+extern fn frontend_module_root_world(world: void*, source: u8*, environment: void*): void*;
 extern fn frontend_module_source(module: void*): u8*;
 extern fn frontend_module_destroy(module: void*): void;
 
@@ -68,12 +68,11 @@ fn frontend_session_inputs_tests(): void {
 }
 
 fn frontend_session_module_tests(): void {
-    // Module construction still uses the legacy host-world ABI. This port moves
-    // the existing owned/borrowed lease policy, not module-world selection.
-    var world = compiler_host_world();
+    // Owned and borrowed module graphs must stay in the explicit session world.
+    var world = compiler_world_create();
     var kinds: FrontendKinds;
     frontend_world_check(frontend_world_test_kinds(world, &kinds));
-    var warm = frontend_module_root("warm", null);
+    var warm = frontend_module_root_world(world, "warm", null);
     frontend_module_destroy(warm);
     var warmed: SyntaxSessionInputs;
     fill(&warmed, 0, sizeof(SyntaxSessionInputs));
@@ -96,11 +95,12 @@ fn frontend_session_module_tests(): void {
     frontend_format_text(frontend_module_source(value.module), "first");
     frontend_world_check(syntax_session_inputs_reset(&value, "second", 6, SyntaxFoundationBaseline(), null));
     frontend_format_text(frontend_module_source(value.module), "second");
-    var borrowed = frontend_module_root("borrowed", null);
+    var borrowed = frontend_module_root_world(world, "borrowed", null);
     frontend_world_check(syntax_session_inputs_reset(&value, "borrowed", 8, SyntaxFoundationBaseline(), borrowed));
     frontend_world_check(!value.owns_module && value.module == borrowed);
     syntax_session_inputs_dispose(&value);
     frontend_format_text(frontend_module_source(borrowed), "borrowed");
     frontend_module_destroy(borrowed);
     frontend_world_check(tower_test_buffer_count() == baseline);
+    frontend_world_check(compiler_world_dispose(world));
 }
