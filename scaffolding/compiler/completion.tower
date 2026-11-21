@@ -647,6 +647,15 @@ export fn completion_offer(q: CompletionQuery*, name: u8*, kind: u8*, detail: u8
             }
         }
         if q.editor.found {
+            if sem_equal(name, "return") {
+                var scope_node = q.editor.node;
+                while scope_node != null {
+                    if sem_is(scope_node, "TowerDefer") {
+                        return;
+                    }
+                    scope_node = sem_parent(scope_node);
+                }
+            }
             var loop_control = sem_equal(name, "break");
             if sem_equal(name, "continue") {
                 loop_control = true;

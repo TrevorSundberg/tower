@@ -23175,3 +23175,65 @@ then supplies its own token/Statement definitions. A missing direct test import
 was corrected. Focused native frontend runner passes. No native implementation
 or wrapper was introduced; the native edit only reconnects the Tower interface.
 Final repackaging, non-formatter integration checks and publication follow below.
+
+
+### 2026-11-20: Published for; explicit scoped cleanup in Tower
+
+Published main 8290fd2 and deployment 0226784. Live verification matched all 70
+assets and passed desktop/mobile checks (build/for-live-deployment.log). The
+subsequent native aggregate passed four suites but its parser suite stopped on
+the formatter's parse-equivalence guard for backend/lowering.tower. That run
+overlapped editing tower.tower for defer, so it did not use a frozen grammar.
+An isolated check with the stable grammar passed (defer-lowering-format-check.log);
+concurrent grammar loading is a plausible explanation, not a proven root cause.
+A complete frozen-source rerun is still required.
+
+Selected explicit scoped defer after for. The reproducible read-only inventory
+in docs/research/audit_tower_cleanup.py finds 64 functions with 142 extra copies
+of identical cleanup expressions at 8290fd2, superseding the pre-rebase 60/136
+count. These are review candidates: repeated initialization, ownership transfer,
+prompt release before later allocation and cleanup-before-abort all require
+individual review. General foreach still needs the iterator/invalidation contract;
+implicit destruction would additionally need ownership semantics. Neither is
+silently introduced by explicit defer.
+
+Implemented TowerDefer in tower.tower, with checking and lowering entirely in
+compiler/semantic_defer.tower and the existing Tower semantic pipeline. A checked
+cleanup prototype binds names at registration, while its values and arguments
+are evaluated at exit. Ordinary Foundation blocks, fresh locals and existing
+operations implement LIFO cleanup on fallthrough, return, break and continue.
+Return values are evaluated once before cleanup. The compilation-local pending
+list is analysis scratch, not runtime state or a separate instruction model.
+Nested cleanup and cleanup-local loops work; escaping return/jump and functions
+combining defer with explicit labels are diagnosed. Traps and process abort do
+not unwind, and a trapping cleanup stops the remaining cleanup. No Foundation,
+Bedrock, C++ or todo.txt change is needed for this feature.
+
+Two correctness issues emerged during implementation. Cloning a cleanup at an
+exit inside a shadowing block needs hygienic Foundation names, even though direct
+ECS bindings already execute correctly. Captured declarations are renamed after
+name resolution, and editor analysis retains source names. The first version
+iterated a pointer-keyed membership table to assign names; that could make
+serialization depend on addresses. Replaced it with deterministic encounter
+order, retaining the hash table only for membership. Separate native compilations
+now produce byte-identical Foundation (build/defer-native-canonical.log).
+
+A cleanup can also be expanded at a much deeper exit than its registration.
+Added final executable-block depth validation after expression lowering, against
+the same 128-level Foundation limit. Prototype locals are removed from the live
+frame, each emitted clone receives fresh slots, and existing component/frame
+budgets still apply. Completion suppresses escaping return and outer-loop control
+inside cleanup while retaining lexical local and type filtering.
+
+The first native fixture and browser run passed: 19 observable fixture checks,
+graph and fast interpretation at pointer widths 4/8, Foundation reconstruction
+and idempotence, raw/optimized LLVM/Wasm, lexical/control-flow diagnostics and
+trap behavior. The initial browser suite was 5/5 (build/defer-tests.log); the
+expanded six-test suite adds completion, deterministic names and expansion-depth
+diagnostics. Final expanded results and the bootstrap/migration follow below.
+
+The expanded run passed 35/35 tests across defer, for-loops and completion
+(build/defer-focused-final.log). Native, parser reactor and LLVM/cross builds all
+passed using the published for-capable 9bbb2eb8 predecessor. Package this validated
+successor before using defer in compiler implementations, then validate a fresh
+default build without a private compiler override after the cleanup migration.

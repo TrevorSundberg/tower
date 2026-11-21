@@ -1,0 +1,233 @@
+import tower;
+
+var trace: i64 = 0;
+
+fn record(value: i32): void {
+    trace = trace * 10 + convert(i64, value);
+}
+
+fn early(take: bool): i32 {
+    var value = 5;
+    defer {
+        value = 90;
+        record(1);
+    }
+    defer record(2);
+    if take {
+        return value++;
+    }
+    record(3);
+    return value;
+}
+
+print(early(true) == 5 && trace == 21);
+trace = 0;
+print(early(false) == 5 && trace == 321);
+
+fn lexical(): void {
+    var value = 2;
+    defer {
+        var local = value + 1;
+        var pointer = &local;
+        defer record(*pointer);
+        record(local);
+    }
+    {
+        var value = 9;
+        record(value);
+    }
+    value = 5;
+}
+
+trace = 0;
+lexical();
+print(trace == 966);
+
+fn shadow_return(): i32 {
+    var value = 1;
+    defer record(value);
+    {
+        var value = 8;
+        return value;
+    }
+}
+
+trace = 0;
+print(shadow_return() == 8 && trace == 1);
+var shared = 4;
+
+fn shadow_global(): i32 {
+    defer record(shared);
+    {
+        var shared = 7;
+        return shared;
+    }
+}
+
+trace = 0;
+print(shadow_global() == 7 && trace == 4);
+
+fn shadow_parameter(value: i32): i32 {
+    defer record(value);
+    {
+        var value = 9;
+        return value;
+    }
+}
+
+trace = 0;
+print(shadow_parameter(2) == 9 && trace == 2);
+
+struct Resource {
+    value: i32;
+}
+
+fn shadow_record(): i32 {
+    var entry: Resource;
+    entry.value = 4;
+    defer record(entry.value);
+    {
+        var entry: Resource;
+        entry.value = 7;
+        return entry.value;
+    }
+}
+
+trace = 0;
+print(shadow_record() == 7 && trace == 4);
+
+fn cloned_local(early: bool): i32 {
+    defer {
+        var local = 4;
+        var pointer = &local;
+        record(*pointer);
+    }
+    if early {
+        return 1;
+    }
+    return 2;
+}
+
+trace = 0;
+print(cloned_local(true) == 1 && cloned_local(false) == 2 && trace == 44);
+
+fn loops(): void {
+    defer record(9);
+    for(var i = 0; i < 3; i++) {
+        defer record(i + 1);
+        if i == 0 {
+            continue;
+        }
+        for(;;) {
+            defer record(7);
+            break;
+        }
+        record(8);
+        break;
+    }
+}
+
+trace = 0;
+loops();
+print(trace == 17829);
+
+fn conditional(flag: bool): void {
+    defer record(1);
+    if flag {
+        defer record(2);
+        record(3);
+        return;
+    }
+    record(4);
+    return;
+    defer record(5);
+}
+
+trace = 0;
+conditional(true);
+print(trace == 321);
+trace = 0;
+conditional(false);
+print(trace == 41);
+
+fn own_loop(): void {
+    defer {
+        for(var i = 0; i < 5; i++) {
+            if i == 0 {
+                continue;
+            }
+            if i == 3 {
+                break;
+            }
+            record(i);
+        }
+    }
+}
+
+trace = 0;
+own_loop();
+print(trace == 12);
+
+fn recurse(depth: i32): i32 {
+    defer record(depth);
+    if depth == 1 {
+        return 1;
+    }
+    return recurse(depth -1) + depth;
+}
+
+trace = 0;
+print(recurse(3) == 6 && trace == 123);
+
+fn memory(): i32 {
+    var storage = alloc(i32, 1);
+    defer free(storage);
+    *storage = 42;
+    return *storage;
+}
+
+print(memory() == 42);
+
+var cleaned = 0;
+var stepped = 0;
+for (var i = 0; i < 4; i++, stepped = cleaned) {
+    defer cleaned++;
+    if i < 3 {
+        continue;
+    }
+    break;
+}
+print(cleaned == 4 && stepped == 3);
+
+fn match_exit(value: i32): i32 {
+    defer record(1);
+    match value {
+        0 => {
+            defer record(2);
+            return 3;
+        }
+        _ => {
+            defer record(4);
+            return 5;
+        }
+    }
+}
+
+trace = 0;
+print(match_exit(0) == 3 && trace == 21);
+trace = 0;
+print(match_exit(8) == 5 && trace == 41);
+
+fn `control value 0`(): i32 {
+    var `control value 1` = 8;
+    defer `control value 1`++;
+    return `control value 1`;
+}
+
+print(`control value 0`() == 8);
+
+// Module cleanup sees the latest value and runs after ordinary statements.
+trace = 0;
+defer print(trace == 21);
+defer record(1);
+defer record(2);

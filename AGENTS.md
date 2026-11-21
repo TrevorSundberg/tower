@@ -56,6 +56,16 @@ Do NOT modify todo.txt
   preserve dynamic bounds, counter visibility, effects and skipped updates; an
   old `continue` may intentionally bypass a trailing increment. General collection
   `foreach` still requires the planned iterator/ownership contract.
+- Use `defer cleanup(resource);` or `defer { ... }` for explicit cleanup that
+  belongs to a lexical scope, especially repeated early-return cleanup. Register
+  it after successful initialization. Cleanups run in reverse registration order
+  on fallthrough, return, break and continue; return values are evaluated first.
+  Names bind where defer is written, but values and call arguments are evaluated
+  at scope exit. Preserve ownership transfers, cleanup order and prompt release;
+  use a smaller block when a resource must be released before later work. Keep
+  explicit cleanup when those conditions do not match. This is not automatic
+  destruction or trap unwinding. Deferred code may use its own loops but cannot
+  return or jump out; functions combining defer with explicit labels are rejected.
 - In files that import `tower`, prefer its normal expression syntax: nested
   calls, parentheses, arithmetic/comparison/bitwise operators, `!`/`~`, `&&`/`||`,
   `?:`, and prefix/postfix `++`/`--`. Use clear expressions instead of generated

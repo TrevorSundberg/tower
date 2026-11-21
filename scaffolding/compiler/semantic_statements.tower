@@ -1,5 +1,6 @@
 import tower;
 import semantic_control;
+import semantic_defer;
 import foundation_tags;
 import foundation_types;
 import semantic_context;
@@ -318,6 +319,7 @@ fn sem_block(c: SemanticContext*, n: void*, depth: u32): u32 {
         return 1;
     }
     var value: FoundationNode* = sem_node(c, n, KBlock());
+    var deferred = c.deferred;
     var step7 = sem_scope(c, c.scope);
     c.scope = step7;
     var flow: u32 = 1;
@@ -387,11 +389,27 @@ fn sem_block(c: SemanticContext*, n: void*, depth: u32): u32 {
         i++;
     }
     sem_scope_locals(c, c.scope, &value.locals);
+    if(flow &FlowNext()) != 0 && c.deferred != deferred && sem_ok(c) {
+        flow =(flow & ~FlowNext()) | sem_defer_emit(c, n, deferred, 0);
+    }
+    c.deferred = deferred;
     c.scope = c.scope.parent;
     return flow;
 }
 
 fn sem_statement(c: SemanticContext*, n: void*, depth: u32): u32 {
+    if c.deferring != 0 && sem_control_call(c, n, "jump") != null {
+        sem_fail(c, n, "A deferred cleanup cannot jump out of its scope");
+        return FlowNext();
+    }
+    var flow = sem_statement_impl(c, n, depth);
+    if(c.deferred != null || c.deferring != 0) && sem_ok(c) {
+        sem_defer_exit(c, n);
+    }
+    return flow;
+}
+
+fn sem_statement_impl(c: SemanticContext*, n: void*, depth: u32): u32 {
     var label_call = sem_control_call(c, n, "label");
     var explicit_label = label_call != null;
     if explicit_label {
@@ -434,6 +452,9 @@ fn sem_statement(c: SemanticContext*, n: void*, depth: u32): u32 {
     }
     if sem_is(n, "TowerWhile") {
         return sem_control_while(c, n, depth);
+    }
+    if sem_is(n, "TowerDefer") {
+        return sem_defer_register(c, n, depth);
     }
     if sem_is(n, "TowerFor") {
         return sem_control_for(c, n, depth);
@@ -888,6 +909,8 @@ fn sem_run(c: SemanticContext*): void {
             }
         }
     }
+    sem_defer_emit(c, c.program.root, null, 0);
+    c.deferred = null;
     i = 1;
     loop {
         var step65 = i < c.program.functions.length;

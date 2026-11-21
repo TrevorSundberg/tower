@@ -5,6 +5,7 @@ import foundation_types;
 import semantic_context;
 import semantic_definitions;
 import semantic_statements;
+import semantic_defer;
 import semantic_support;
 import semantic_expression_lowering;
 import .library.stack;
@@ -126,7 +127,9 @@ export fn semantic_compile_budget(program: SemanticProgram*, roots: void**, base
         step4.number = bases[i];
     }
     sem_run(c);
+    sem_defer_hygiene(c);
     sem_lower_expressions(c);
+    sem_defer_validate(c);
     sem_context_dispose(c);
 }
 

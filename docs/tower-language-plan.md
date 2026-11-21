@@ -30,7 +30,9 @@ for all remaining stages, including parallel execution at large project sizes.
    canonical Foundation round trips. This is the first implementation slice.
    Scoped C-style `for` is also implemented above Foundation, following the
    [whole-source loop audit](research/tower-loop-audit.md). It does not depend on
-   the general borrowed iterator/ownership work in stage 6.
+   the general borrowed iterator/ownership work in stage 6. Explicit scoped `defer`
+   is implemented using existing Foundation blocks at structured exits; this does
+   not implement implicit destruction or the future ownership system.
 2. **Bindings and dependency queries.** Make a file's canonical module identity
    its namespace. Add `import "path" as alias;` and selective imports (proposed
    `import {Name, Other as Local} from "path";`). Bare filenames alone are not
@@ -317,12 +319,13 @@ hiding source dependencies that were actually read.
 
 ## Operators, pointers and syntax decisions
 
-Proposed order, strongest first: postfix call/index/member; unary; multiplicative;
-additive; shifts; relational; equality; bitwise AND/XOR/OR; short-circuit AND/OR;
-conditional; assignment. Binary arithmetic groups left; unary, conditional and
-assignment group right. Assignment may remain statement-only initially. No comma
-operator is planned. Braces are mandatory for all control-flow bodies and create
-lexical scopes (already true in Foundation).
+Tower now implements postfix call/index/member, unary, multiplicative, additive,
+shift, comparison, equality, bitwise and short-circuit operators above Foundation,
+including null coalescing, conditional, assignment and comma expressions. Binary
+arithmetic groups left; unary, conditional and assignment group right. This
+supersedes the earlier proposal to omit comma and keep assignment statement-only.
+See tower.md for the complete implemented operator contract. Braces are mandatory
+for control-flow bodies and create lexical scopes (already true in Foundation).
 
 Associativity describes grouping, not permission to reorder evaluation.
 Commutativity/algebraic reassociation are separate, proved optimization properties,

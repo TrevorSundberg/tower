@@ -1,0 +1,252 @@
+import tower;
+import foundation_tags;
+import foundation_types;
+import semantic_context;
+import semantic_control;
+import semantic_statements;
+import semantic_support;
+import semantic_types;
+import .library.vector;
+
+// Compilation-local scope analysis. Programs retain only ordinary Foundation
+// blocks and operations; this list is neither a runtime stack nor a public IR.
+struct SemanticDeferred {
+    previous: SemanticDeferred*;
+    body: void*;
+    loops: usize;
+    flow: u32;
+}
+
+fn sem_defer_copy_text(destination: vector(u8)*, source: vector(u8)*): void {
+    fill(destination, 0, sizeof(vector(u8)));
+    if source.length == 0 {
+        return;
+    }
+    sem_require(vector_reserve(u8, destination, source.length + 1));
+    copy(destination.data, source.data, source.length);
+    destination.data[source.length] = 0;
+    destination.length = source.length;
+}
+
+fn sem_defer_clone(c: SemanticContext*, parent: void*, original: void*, clones: SemanticTable*, to: vector(void*)*): void* {
+    if original == null || !sem_ok(c) {
+        return null;
+    }
+    var found = sem_state(c, clones, original);
+    if found.value != null {
+        return found.value;
+    }
+    var source = sem_get(original);
+    if source == null {
+        sem_fail(c, original, "Deferred cleanup has an unchecked operation");
+        return null;
+    }
+    var entity = sem_control_node(c, parent, source.kind);
+    var value = sem_get(entity);
+    found.value = entity;
+    sem_push(to, entity);
+    // Types and external bindings are shared references. Owned vectors and
+    // operation edges are copied; a second pass remaps internal local bindings.
+    copy(value, source, sizeof(FoundationNode));
+    sem_defer_copy_text(&value.name, &source.name);
+    sem_defer_copy_text(&value.comments, &source.comments);
+    fill(&value.items, 0, sizeof(vector(void*)));
+    fill(&value.locals, 0, sizeof(vector(void*)));
+    fill(&value.parameters, 0, sizeof(vector(void*)));
+    value.left = sem_defer_clone(c, entity, source.left, clones, to);
+    value.right = sem_defer_clone(c, entity, source.right, clones, to);
+    value.value = sem_defer_clone(c, entity, source.value, clones, to);
+    value.target = sem_defer_clone(c, entity, source.target, clones, to);
+    value.body = sem_defer_clone(c, entity, source.body, clones, to);
+    value.otherwise = sem_defer_clone(c, entity, source.otherwise, clones, to);
+    for(var i: usize = 0; i < source.items.length; i++) {
+        sem_push(&value.items, sem_defer_clone(c, entity, source.items.data[i], clones, to));
+    }
+    for(var i: usize = 0; i < source.locals.length; i++) {
+        sem_push(&value.locals, sem_defer_clone(c, entity, source.locals.data[i], clones, to));
+    }
+    for(var i: usize = 0; i < source.parameters.length; i++) {
+        sem_push(&value.parameters, sem_defer_clone(c, entity, source.parameters.data[i], clones, to));
+    }
+    if value.kind == KDeclare() {
+        sem_add_local(c, entity);
+    }
+    return entity;
+}
+
+fn sem_defer_emit(c: SemanticContext*, block: void*, stop: void*, loops: usize): u32 {
+    var pending = bits(SemanticDeferred*, c.deferred);
+    var flow = FlowNext();
+    while pending != bits(SemanticDeferred*, stop) && sem_ok(c) {
+        if pending == null || pending.loops < loops {
+            break;
+        }
+        var clones = sem_table(c);
+        var to = sem_list(c);
+        var body = sem_defer_clone(c, block, pending.body, clones, to);
+        for(var i: usize = 0; i < to.length; i++) {
+            var value = sem_get(to.data[i]);
+            if value.binding != null {
+                var local = sem_find(clones, null, value.binding);
+                if local != null {
+                    value.binding = local.value;
+                } else {
+                    var binding = sem_get(value.binding);
+                    if binding.kind == KDeclare() || binding.kind == KParameter() {
+                        if c.defer_bindings == null {
+                            c.defer_bindings = sem_table(c);
+                            c.defer_order = sem_list(c);
+                        }
+                        var captured = sem_state(c, c.defer_bindings, value.binding);
+                        if captured.value == null {
+                            captured.value = value.binding;
+                            sem_push(c.defer_order, value.binding);
+                        }
+                    }
+                }
+            }
+        }
+        sem_push(&sem_get(block).items, body);
+        if(flow &FlowNext()) != 0 {
+            flow =(flow & ~FlowNext()) | pending.flow;
+        }
+        pending = pending.previous;
+    }
+    return flow;
+}
+
+// An exit can occur inside a scope that shadows a captured source name. Give
+// captured declarations unique Foundation spellings only after name resolution,
+// so text reconstruction retains the direct bindings of the checked graph.
+// Editor analysis keeps source names and never publishes an execution graph.
+fn sem_defer_hygiene(c: SemanticContext*): void {
+    if c.defer_bindings == null || c.editor != null || !sem_ok(c) {
+        return;
+    }
+    // Encounter order is stable across hosts; pointer-keyed hash-table iteration
+    // must never decide serialized names.
+    for(var i: usize = 0; i < c.defer_order.length; i++) {
+        sem_set_name(sem_get(c.defer_order.data[i]), sem_control_name(c));
+    }
+}
+
+fn sem_defer_register(c: SemanticContext*, n: void*, depth: u32): u32 {
+    if depth > 125 {
+        sem_fail(c, n, "defer lowering exceeds Foundation block nesting limit of 128");
+        return FlowNext();
+    }
+    if c.labels != null && c.labels.count != 0 {
+        sem_fail(c, n, "defer cannot be combined with explicit function labels or jumps");
+        return FlowNext();
+    }
+    sem_node(c, n, KBlock());
+    c.has_defer = true;
+    var body = sem_member(n, "body");
+    var saved = c.deferred;
+    var loops = c.loops;
+    var function = sem_get(c.current);
+    var locals = function.locals.length;
+    var frame = function.frame_size;
+    c.deferred = null;
+    c.loops = 0;
+    c.deferring++;
+    var flow = sem_statement(c, body, depth + 1);
+    c.deferring--;
+    c.loops = loops;
+    c.deferred = saved;
+    // The checked prototype is metadata, not an executable local allocation.
+    // Each emitted cleanup owns fresh declarations and frame slots.
+    function.locals.length = locals;
+    function.frame_size = frame;
+    if !sem_ok(c) {
+        return FlowNext();
+    }
+    var pending = bits(SemanticDeferred*, sem_allocate(c, sizeof(SemanticDeferred)));
+    pending.previous = bits(SemanticDeferred*, saved);
+    pending.body = body;
+    pending.loops = loops;
+    pending.flow = flow;
+    c.deferred = bits(void*, pending);
+    return FlowNext();
+}
+
+fn sem_defer_exit(c: SemanticContext*, n: void*): void {
+    var value = sem_get(n);
+    if value == null {
+        return;
+    }
+    var returned = value.kind == KReturn();
+    if returned && c.deferring != 0 {
+        sem_fail(c, n, "A deferred cleanup cannot return from its enclosing function");
+        return;
+    }
+    if !returned && value.kind != KBreak() && value.kind != KContinue() {
+        return;
+    }
+    var pending = bits(SemanticDeferred*, c.deferred);
+    if pending == null {
+        return;
+    }
+    var loops: usize = 0;
+    if !returned {
+        loops = c.loops;
+        if pending.loops < loops {
+            return;
+        }
+    }
+    var kind = value.kind;
+    var result = value.value;
+    value.kind = KBlock();
+    value.value = null;
+    // Evaluate a return value once before any cleanup can mutate its operands.
+    if result != null {
+        result = sem_control_read(c, n, sem_control_local(c, n, result));
+    }
+    sem_defer_emit(c, n, null, loops);
+    var terminal = sem_control_node(c, n, kind);
+    sem_get(terminal).value = result;
+    sem_push(&value.items, terminal);
+}
+
+fn sem_defer_depth(c: SemanticContext*, n: void*, depth: u32): void {
+    if n == null || !sem_ok(c) {
+        return;
+    }
+    if depth > 128 {
+        sem_fail(c, n, "defer expansion exceeds Foundation block nesting limit of 128");
+        return;
+    }
+    var value = sem_get(n);
+    if value == null {
+        return;
+    }
+    if value.kind == KBlock() || value.kind == KProgram() {
+        var child_depth = depth;
+        if value.kind == KBlock() {
+            child_depth++;
+        }
+        for(var i: usize = 0; i < value.items.length && sem_ok(c); i++) {
+            sem_defer_depth(c, value.items.data[i], child_depth);
+        }
+    }
+    if value.kind == KIf() || value.kind == KLoop() {
+        sem_defer_depth(c, value.body, depth);
+        sem_defer_depth(c, value.otherwise, depth);
+    }
+}
+
+// An exit may be much deeper than the registration, and expression lifting may
+// add branches. Check the final executable structure, not the prototype's depth.
+fn sem_defer_validate(c: SemanticContext*): void {
+    if !c.has_defer || !sem_ok(c) {
+        return;
+    }
+    for(var i: usize = 0; i < c.program.functions.length && sem_ok(c); i++) {
+        var function = c.program.functions.data[i];
+        var body = sem_get(function).body;
+        if function == c.program.root {
+            body = function;
+        }
+        sem_defer_depth(c, body, 0);
+    }
+}

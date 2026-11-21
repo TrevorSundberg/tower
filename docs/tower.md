@@ -118,6 +118,44 @@ than its surface braces suggest. The additional arm-count ceiling is 128.
 with those names may be written as quoted identifiers, such as `` `match` ``.
 Foundation alone does not import these keywords or control-flow rules.
 
+## Scoped cleanup
+
+```tower
+fn first(): i32 {
+    var data = alloc(i32, 1);
+    defer free(data);
+    *data = 42;
+    return *data;
+}
+```
+
+`defer expression;` and `defer { statements }` register explicit cleanup for the
+current lexical scope. Reached registrations run in reverse order on ordinary
+fallthrough, `return`, `break` and `continue`. A return value is evaluated once
+before cleanup. Loop-body cleanup runs before a `for` update; breaking an inner
+loop leaves outer-scope registrations pending. Module-scope cleanup runs after
+ordinary module execution finishes.
+
+Names resolve at the registration, including locals, parameters and globals.
+Values and call arguments are read when cleanup executes. Assigning a new pointer
+therefore changes what `defer free(pointer);` will free; use a separate binding
+when the original pointer must be retained. A registration skipped by an earlier
+exit never runs. Defers in a nested block finish when that block exits.
+
+Cleanup blocks can declare locals, use their own loops and register nested
+cleanup. They cannot return or jump out of their cleanup scope. The initial
+implementation rejects functions combining defer with explicit `label`/`jump`
+control flow. Traps and process termination stop execution without unwinding;
+a trap during cleanup stops the remaining cleanup too.
+
+The implementation is Tower code on the shared entities. Checked cleanup is
+expanded into ordinary Foundation blocks at structured exits, with fresh locals
+and preserved bindings. Captured declarations receive deterministic unique
+Foundation names so serialization preserves bindings across shadowing scopes.
+Source formatting and editor completion retain their source names. No destructor
+inference, ownership transfer rule, new Foundation opcode or backend ABI is added.
+Existing component, frame-size and nesting budgets still apply.
+
 ## Collection basics
 
 ```tower

@@ -102,6 +102,11 @@ struct SemanticContext {
     scan: stack(void*);
     token_text: vector(u8);
     surface_expressions: bool;
+    deferred: void*;
+    deferring: usize;
+    defer_bindings: SemanticTable*;
+    defer_order: vector(void*)*;
+    has_defer: bool;
 }
 
 fn sem_editor_contains(c: SemanticContext*, n: void*): bool {
