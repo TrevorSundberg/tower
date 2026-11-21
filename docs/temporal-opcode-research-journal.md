@@ -32668,3 +32668,24 @@ the published old-spelling compiler remains buildable throughout.
 The native execution suite passes with eligibility filtering, including explicit
 capture/effect failures, dependency cycles, both target widths, worker determinism
 and prior semantic oracles (`binding-budget-tests.log`).
+
+Before final publication, review found that effect freedom alone is insufficient
+for automatic substitution: an otherwise pure helper can convert its local
+address to an integer or compare addresses, observing interpreter placement instead
+of runtime placement. Inferred invocations now request relocation-independent
+results. The same strict interpreter refuses pointer/integer conversions and
+pointer comparisons for that optional evaluation; the runtime calculation remains.
+Explicit `comptime` invocations retain their existing target-address policy, so an
+explicitly staged scalar initializer is still a valid known input. Added rejection
+tests for implicitly inferred address integers and address comparison. Arithmetic,
+loads/stores and call execution still use the ordinary handlers; there is no
+separate evaluator or host-address serialization.
+
+The first address-comparison test used `<`, which the current pointer type checker
+already rejects as requiring integer operands. Changed the eligibility regression
+to supported pointer equality; pointer ordering/difference belongs in the C-level
+completeness audit rather than being silently claimed as implemented here.
+
+The final relocation-eligibility suite passes all native execution, Foundation
+round-trip, worker-count and semantic oracle checks
+(`binding-relocatable-final-tests.log`).

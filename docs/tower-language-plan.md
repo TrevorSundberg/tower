@@ -52,7 +52,7 @@ in Tower and use the shared ECS/dependency/worker architecture.
    foreign boundaries, callback conventions, data linkage and library coverage.
    Test each supported ABI with existing third-party toolchains; internal struct
    value lowering alone is not evidence of external ABI compatibility.
-5. **Completeness audit.** Inventory volatile accesses, static local storage,
+5. **Completeness audit.** Inventory pointer ordering/difference, volatile accesses, static local storage,
    initializer/string/character/numeric spellings, control-flow equivalents and
    standard-library facilities. Give every C89 capability an implemented,
    intentionally different, externally supplied or missing status with a test.

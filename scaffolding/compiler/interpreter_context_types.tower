@@ -17,6 +17,7 @@ struct IMContext {
     initialized: vector(u8);
     dependency_kind: void*;
     value_inputs: void*;
+    require_relocatable: bool;
     waiting: void*;
 }
 

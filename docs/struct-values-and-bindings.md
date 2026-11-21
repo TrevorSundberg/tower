@@ -58,6 +58,9 @@ and compilation dependency graph. Reads of other proved inputs suspend until tho
 inputs publish. Unsupported automatic evaluation leaves runtime behavior intact;
 an explicit `comptime(...)` request still reports failures. Initialization order
 and effects are retained, including reads through functions before initialization.
+Automatic inference also declines pointer/integer conversions and address
+comparisons: an interpreter storage address is not a relocatable runtime value.
+Explicit staged execution retains its separately requested target-address policy.
 Results publish after worker joins and materialize as typed Foundation literals.
 Successful fixed bindings and their complete initializer computations disappear
 from runtime execution. Libraries can therefore use named computed values without

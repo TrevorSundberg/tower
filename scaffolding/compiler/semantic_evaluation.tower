@@ -243,6 +243,7 @@ fn sem_evaluations(c: SemanticContext*): void {
                 interpreter_invocation_init(&result.invocation, result.function, convert(usize, c.program.pointer_bytes), null, 0, true, EvaluationFuel());
                 result.invocation.context.dependency_kind = c.evaluation_ready;
                 result.invocation.context.value_inputs = c.value_inputs;
+                result.invocation.context.require_relocatable = result.inferred;
                 result.started = true;
             }
             batch[count] = result;

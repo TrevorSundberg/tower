@@ -60,6 +60,24 @@ fn ix_strict_node(m: IMExecution*, n: FoundationNode*, offset: usize): bool {
     if !ix_strict(m) {
         return true;
     }
+    // Optional source folding must not substitute an interpreter stack address
+    // or an address comparison for a result obtained in another execution.
+    // Explicit stages retain their existing target-address execution policy.
+    if m.context.require_relocatable {
+        var address_value = false;
+        if n.kind == KBits() || n.kind == KConvert() {
+            var source = im_cached_node(m.state, n.value);
+            address_value = (source.type.pointers != 0) != (n.type.pointers != 0);
+        }
+        if n.kind == KBinary() && n.type.pointers == 0 {
+            address_value ||= im_cached_node(m.state, n.left).type.pointers != 0;
+            address_value ||= im_cached_node(m.state, n.right).type.pointers != 0;
+        }
+        if address_value {
+            ix_fail(m, "Automatic compile-time value depends on an address representation", offset);
+            return false;
+        }
+    }
     // Ordinary lowering captures places with local addresses, including scalar
     // compound assignments. Strict stack addresses use the same target-byte
     // representation and initialization checks; they never expose host memory.
