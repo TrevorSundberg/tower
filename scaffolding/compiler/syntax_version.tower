@@ -8,8 +8,10 @@ import syntax_pending;
 import syntax_replacement_owner;
 import syntax_version_types;
 import frontend_revision_types;
+import component_kinds;
 
 extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_type(world: void*, kind: u32): void*;
 extern fn entity_create(store: void*): void*;
 extern fn parser_table_destroy(table: void*): void;
 
@@ -20,6 +22,17 @@ export fn syntax_version_create(world: void*, grammar: FrontendRevision*, bedroc
     value.rules = entity_create(compiler_world_store(world));
     if value.rules is null { free(value); return null; }
     value.references = 1;
+    value.kinds.rule = compiler_world_type(world, CompilerParserRule());
+    value.kinds.reference = compiler_world_type(world, CompilerParserReference());
+    value.kinds.string = compiler_world_type(world, CompilerParserString());
+    value.kinds.range = compiler_world_type(world, CompilerParserRange());
+    value.kinds.`match` = compiler_world_type(world, CompilerParserMatch());
+    value.kinds.syntax = compiler_world_type(world, CompilerSyntax());
+    if value.kinds.rule is null || value.kinds.reference is null || value.kinds.string is null ||
+        value.kinds.range is null || value.kinds.`match` is null || value.kinds.syntax is null {
+        syntax_version_release(value);
+        return null;
+    }
     value.grammar = frontend_revision_retain(grammar);
     value.bedrock = frontend_revision_retain(bedrock);
     value.replacement_error_offset = ~convert(usize, 0);

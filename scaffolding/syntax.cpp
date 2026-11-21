@@ -17,7 +17,6 @@
 #include "format.hpp"
 #include "compiler-format.hpp"
 #include <array>
-#include <cassert>
 #include <cstring>
 #include <memory>
 #include <string>
@@ -34,119 +33,11 @@ using Node = std::unique_ptr<TowerNode, decltype(&tower_node_release_ref)>;
 Node owned(TowerNode* node) { return Node(node, tower_node_release_ref); }
 
 using Revision = std::shared_ptr<const FrontendRevision>;
-using PendingRules = std::unique_ptr<SyntaxPendingRevision, decltype(&syntax_pending_destroy)>;
+
 SyntaxNode& semantic(const TowerNodeRef& node) { return syntax_node(node.get()); }
 SyntaxNode& semantic(TowerNode* node) { return syntax_node(node); }
 
 using Version = SyntaxVersion;
-
-char* copy_string(const std::string& text) {
-  auto* result = (char*)tower_memory_allocate(text.size() + 1);
-  memcpy(result, text.c_str(), text.size() + 1);
-  return result;
-}
-
-std::string describe_production(const Version& version, const FrontendRevision* definitions, size_t index, bool name_only = false) {
-  auto* found = syntax_emission_find_index(version.emission, index);
-  if (!found) return {};
-  auto* rule = syntax_revision_rule(definitions, found->name, std::strlen(found->name));
-  if (!rule || found->alternative >= rule->count) return {};
-  auto* text = syntax_description_text(rule->alternatives[name_only ? 0 : found->alternative], found->name, name_only,
-    syntax_component_type(), parser_match_get_type());
-  std::string result(text); tower_memory_free(text); return result;
-}
-extern "C" char* syntax_parser_describe(void* context, size_t index) {
-  const auto& v = *static_cast<Version*>(context);
-  // Generated repetition/capture rules refer back to the user's term.
-  auto text = describe_production(v, v.grammar, index);
-  if (!text.empty()) return copy_string(text);
-  auto* node = index ? tower_node_get_child(v.rules, index - 1) : nullptr;
-  if (!node) return copy_string("start of input");
-  auto* rule = static_cast<Rule*>(tower_node_get_component_userdata(node, parser_rule_get_type()));
-  const auto* helper = syntax_emission_find_helper(v.emission, parser_rule_get_name(rule));
-  if (helper) return syntax_origin_text(helper->source, helper->capture ? "capture " : "repetition ",
-    syntax_component_type(), parser_match_get_type());
-  return copy_string("start of a statement or grammar declaration");
-}
-
-bool build_lexicon(Version& version) {
-  assert(!version.lexicon);
-  version.lexicon = syntax_emission_lexicon(version.emission);
-  return version.lexicon != nullptr;
-}
-extern "C" uint32_t syntax_parser_resolve(void* context, const char* name) {
-  return syntax_emission_terminal(((Version*)context)->emission, name);
-}
-
-extern "C" char* syntax_parser_token_name(void* context, uint32_t id) {
-  auto& version = *(Version*)context;
-  return syntax_emission_token_text(version.emission, id);
-}
-
-// Borrowed source views; Tower owns the derived revision indexes.
-bool seed(Version& version, const Revision& definitions, const char* category = nullptr, const SyntaxEmission* parent = nullptr) {
-  std::vector<const char*> reserved;
-  for (size_t i = 0; i < syntax_pending_count(version.pending); ++i)
-    reserved.push_back(syntax_pending_name(version.pending, i));
-  SyntaxEmissionInput input{definitions->rules.data, definitions->rules.length, definitions->tokens.data, definitions->tokens.length,
-    reserved.data(), reserved.size(), nullptr, 0, category,
-    version.rules, syntax_component_type(), parser_rule_get_type(), parser_reference_get_type(),
-    parser_string_get_type(), parser_range_get_type()};
-  version.emission = syntax_emit_inherit(&input, parent);
-  return version.emission != nullptr;
-}
-
-std::string validate(Revision& defs, size_t* error_offset, PendingRules& pending) {
-  if (!defs) return "Unable to allocate grammar revision";
-  std::vector<TowerNode*> waiting(defs->rules.length);
-  TowerByteBuffer error{}; size_t location = TOWER_INVALID_INDEX;
-  bool ok = syntax_validate(defs->rules.data, defs->rules.length, defs->tokens.data, defs->tokens.length, syntax_component_type(),
-    &error, error_offset ? error_offset : &location, waiting.data());
-  std::string message = ok ? "" : error.length ? std::string(reinterpret_cast<const char*>(error.data), error.length)
-    : "Unable to allocate grammar validation";
-  bytes_dispose(&error);
-  SyntaxPendingRevision* revision = nullptr;
-  if (ok && !syntax_pending_create(defs->rules.data, defs->rules.length, waiting.data(), syntax_component_type(), &revision))
-    return "Unable to allocate grammar validation";
-  pending.reset(revision);
-  // Only the executable revision excludes pending rules. Source entities survive.
-  if (ok) {
-    Revision ready(syntax_revision_ready(defs.get(), waiting.data()), frontend_revision_release);
-    if (!ready) return "Unable to allocate grammar validation";
-    defs = std::move(ready);
-  }
-  return message;
-}
-
-bool prepare_replacements(Version& version, const Revision& defs, std::string& message);
-std::shared_ptr<Version> build(const Revision& defs,
-    Revision bedrock, std::string& message, size_t* error_offset) {
-  // Import by reference: both readers and downstream grammars use the original
-  // semantic entities until a local declaration replaces or extends a binding.
-  Revision definitions(syntax_revision_overlay(bedrock.get(),
-    defs ? defs->rules.data : nullptr, defs ? defs->rules.length : 0,
-    defs ? defs->tokens.data : nullptr, defs ? defs->tokens.length : 0, syntax_component_type()), frontend_revision_release);
-  PendingRules pending{nullptr, syntax_pending_destroy};
-  message = validate(definitions, error_offset, pending);
-  if (!message.empty()) return nullptr;
-  std::shared_ptr<Version> v(syntax_version_create(compiler_host_world(), definitions.get(), bedrock.get()), syntax_version_release);
-  if (!v) { message = "Unable to allocate grammar construction"; return nullptr; }
-  v->pending = pending.release();
-  if (!seed(*v, definitions)) { message = "Unable to allocate grammar construction"; return nullptr; }
-  char* error = nullptr;
-  v->table = parser_table_create(v->rules, v.get(), ParserPresentation::Syntax, &error, ParserTableMode::Constructs);
-  if (!v->table) {
-    message = error ? error : "Unable to build grammar";
-    tower_memory_free(error);
-    return nullptr;
-  }
-  if (!build_lexicon(*v)) { message = "Unable to allocate lexical indexes"; return nullptr; }
-  if (!prepare_replacements(*v, definitions, message)) {
-    if (error_offset && v->replacement_error_offset != TOWER_INVALID_INDEX) *error_offset = v->replacement_error_offset;
-    return nullptr;
-  }
-  return v;
-}
 
 Match* match(TowerNode* node) {
   return (Match*)tower_node_get_component_userdata(node, parser_match_get_type());
@@ -210,8 +101,9 @@ std::string syntax_diagnostic(SyntaxSession& session, Recognizer* recognizer, bo
   SyntaxDiagnosticText output{};
   format_syntax_diagnostic(&input, &output);
   if (output.insertion) { session.error_offset = diagnostic->insertion_offset; session.error_insertion = true; }
-  const auto description = describe_production(*session.version, definitions.get(), output.production, output.multiple);
-  auto* text = syntax_diagnostic_text_finish(&output, description.c_str());
+  auto* description = syntax_version_description(session.version.get(), definitions.get(), output.production, output.multiple);
+  auto* text = syntax_diagnostic_text_finish(&output, description ? description : "");
+  tower_memory_free(description);
   std::string result(text); tower_memory_free(text); return result;
 }
 
@@ -220,7 +112,11 @@ std::shared_ptr<Version> compiled(SyntaxSession& session, const Revision& defini
   const auto slot = frontend_cache_find(&session.cache, definitions->rules.data, definitions->rules.length,
     definitions->tokens.data, definitions->tokens.length, syntax_component_type());
   if (slot != TOWER_INVALID_INDEX) { error.clear(); return session.versions[slot]; }
-  std::shared_ptr<Version> version = build(definitions, session.bedrock, error, &session.error_offset);
+  SyntaxVersionDiagnostic diagnostic{{}, nullptr, session.error_offset};
+  std::shared_ptr<Version> version(syntax_version_build(session.inputs.world, definitions.get(), session.bedrock.get(), &diagnostic), syntax_version_release);
+  error = syntax_version_diagnostic_text(&diagnostic);
+  session.error_offset = diagnostic.offset;
+  syntax_version_diagnostic_dispose(&diagnostic);
   if (version) {
     const auto stored = frontend_cache_store(&session.cache, definitions->rules.data, definitions->rules.length, definitions->tokens.data, definitions->tokens.length);
     if (stored != TOWER_INVALID_INDEX) session.versions[stored] = version;
@@ -301,7 +197,7 @@ bool compile_template(Version& version, const Revision& defs, TowerNode* seq,
   grammar_error = false;
   std::shared_ptr<Version> grammar(syntax_version_create(compiler_host_world(), defs.get(), version.bedrock), syntax_version_release);
   if (!grammar) { error = "Unable to allocate replacement grammar"; return false; }
-  if (!seed(*grammar, defs, replacement.category.c_str(), version.emission)) {
+  if (!syntax_version_seed(grammar.get(), defs.get(), replacement.category.c_str(), version.emission)) {
     error = "Unable to allocate replacement grammar"; return false;
   }
   TemplateInput input;
@@ -338,7 +234,7 @@ bool compile_template(Version& version, const Revision& defs, TowerNode* seq,
     if (diagnostic) tower_memory_free(diagnostic);
     return false;
   }
-  if (!build_lexicon(*grammar)) { error = "Unable to allocate replacement lexical indexes"; return false; }
+  if (!syntax_version_lexicon(grammar.get())) { error = "Unable to allocate replacement lexical indexes"; return false; }
   std::unique_ptr<Stream, decltype(&parser_stream_destroy)> stream(
     parser_stream_create(sizeof(TemplateInput*), ParserInputService::Template), parser_stream_destroy);
   *(TemplateInput**)parser_stream_get_userdata(stream.get()) = &input;
@@ -368,26 +264,6 @@ bool compile_template(Version& version, const Revision& defs, TowerNode* seq,
   return true;
 }
 
-struct ReplacementPlanHost {
-  Version& version;
-  const Revision& definitions;
-};
-
-bool prepare_replacements(Version& version, const Revision& defs, std::string& message) {
-  ReplacementPlanHost host{version, defs};
-  version.replacements = syntax_replacement_owner_create(&host, version.emission, syntax_component_type(), parser_match_get_type());
-  if (!version.replacements) { message = "Unable to allocate replacement preparation storage"; return false; }
-  SyntaxReplacementPlan plan{defs->rules.data, defs->rules.length, syntax_component_type(), version.replacements, {}, TOWER_INVALID_INDEX};
-  const bool ok = syntax_replacements_prepare(&plan) && syntax_replacement_freeze(version.replacements);
-  if (!ok) {
-    version.replacement_error_offset = plan.offset;
-    message = plan.error.length ? std::string(reinterpret_cast<const char*>(plan.error.data), plan.error.length)
-      : "Unable to allocate replacement preparation storage";
-  }
-  syntax_replacements_dispose(&plan);
-  return ok;
-}
-
 bool expand(SyntaxSession& session, Node& root) {
   SyntaxExpansionResult result{root.release(), session.expansion_stats.replacements,
     session.expansion_stats.generated_nodes, session.expansion_stats.copied_nodes,
@@ -408,10 +284,11 @@ extern "C" unsigned syntax_replacement_attempt(void* context, const char* catego
   auto* owner = static_cast<SyntaxReplacementOwner*>(context);
   auto* current = syntax_replacement_candidate(owner, category);
   if (!current) return 0;
-  auto& host = *static_cast<ReplacementPlanHost*>(syntax_replacement_host(owner));
+  auto& host = *static_cast<Version*>(syntax_replacement_host(owner));
+  Revision definitions(frontend_revision_retain(host.grammar), frontend_revision_release);
   std::string diagnostic;
   bool grammar_error = false;
-  const bool ok = compile_template(host.version, host.definitions, syntax_replacement_sequence(owner), owner, *current, diagnostic, grammar_error);
+  const bool ok = compile_template(host, definitions, syntax_replacement_sequence(owner), owner, *current, diagnostic, grammar_error);
   syntax_replacement_error(owner, diagnostic.c_str());
   return ok ? 1 : grammar_error ? 2 : 0;
 }
@@ -532,13 +409,6 @@ TowerText syntax_format(SyntaxSession* session) {
 }
 
 namespace {
-std::string validate_bedrock(const Revision& module, size_t& error_offset) {
-  auto definitions = module; PendingRules pending{nullptr, syntax_pending_destroy};
-  auto error = validate(definitions, &error_offset, pending);
-  if (!error.empty()) return error;
-  if (syntax_pending_count(pending.get())) return syntax_pending_message(pending.get(), &error_offset);
-  return syntax_revision_bedrock_error(module.get(), syntax_component_type());
-}
 void preserve_comments(SyntaxSession& session, SyntaxNode& declaration, size_t through) {
   for (const auto& token : session.highlights) {
     if (token.kind != "comment" || token.start < session.comment_cursor || token.end > through) continue;
@@ -572,9 +442,16 @@ TowerNode* syntax_next(SyntaxSession* session) {
         session->error = syntax_pending_message(session->version->pending, &session->error_offset);
       if (session->building_bedrock && session->error.empty()) {
         const auto& module = session->grammar;
-        session->error = validate_bedrock(module, session->error_offset);
+        SyntaxVersionDiagnostic diagnostic{{}, nullptr, session->error_offset};
+        syntax_version_bedrock(module.get(), syntax_component_type(), &diagnostic);
+        session->error = syntax_version_diagnostic_text(&diagnostic);
+        session->error_offset = diagnostic.offset;
+        syntax_version_diagnostic_dispose(&diagnostic);
         if (session->error.empty()) {
-          auto version = build({}, module, session->error, &session->error_offset);
+          std::shared_ptr<Version> version(syntax_version_build(session->inputs.world, nullptr, module.get(), &diagnostic), syntax_version_release);
+          session->error = syntax_version_diagnostic_text(&diagnostic);
+          session->error_offset = diagnostic.offset;
+          syntax_version_diagnostic_dispose(&diagnostic);
           if (version && !syntax_emission_keyword_starts(version->emission))
             session->error = "Bedrock declarations must begin with literal keywords";
         }

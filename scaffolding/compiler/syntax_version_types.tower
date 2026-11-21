@@ -1,5 +1,7 @@
 import tower;
 import frontend_revision_types;
+import grammar_types;
+import .library.vector;
 
 // Private execution owner. Grammar meaning remains on the retained entities;
 // tables, lexicons and expansion views are disposable derived data.
@@ -14,4 +16,11 @@ struct SyntaxVersion {
     bedrock: FrontendRevision*;
     replacements: void*;
     replacement_error_offset: usize;
+    kinds: FrontendKinds;
+}
+
+struct SyntaxVersionDiagnostic {
+    text: vector(u8);
+    fallback: u8*;
+    offset: usize;
 }

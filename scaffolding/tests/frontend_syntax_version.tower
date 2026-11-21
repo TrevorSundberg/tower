@@ -15,11 +15,16 @@ import frontend_emission;
 import frontend_pending;
 import frontend_replacement_owner;
 import frontend_table_owner;
+import frontend_baselines;
 
 extern fn syntax_version_create(world: void*, grammar: FrontendRevision*, bedrock: FrontendRevision*): SyntaxVersion*;
 extern fn syntax_version_retain(value: SyntaxVersion*): SyntaxVersion*;
 extern fn syntax_version_release(value: SyntaxVersion*): void;
 extern fn syntax_emission_lexicon(value: void*): void*;
+extern fn syntax_version_build(world: void*, source: FrontendRevision*, bedrock: FrontendRevision*, diagnostic: SyntaxVersionDiagnostic*): SyntaxVersion*;
+extern fn syntax_version_bedrock(module: FrontendRevision*, kind: void*, diagnostic: SyntaxVersionDiagnostic*): bool;
+extern fn syntax_version_diagnostic_dispose(value: SyntaxVersionDiagnostic*): void;
+extern fn syntax_version_diagnostic_text(value: SyntaxVersionDiagnostic*): u8*;
 
 fn frontend_syntax_version_tests(): void {
     var baseline = tower_test_buffer_count();
@@ -105,4 +110,86 @@ fn frontend_syntax_version_tests(): void {
     frontend_world_check(tower_test_buffer_count() == baseline);
     frontend_world_check(syntax_version_retain(null) is null);
     syntax_version_release(null);
+}
+
+fn frontend_syntax_construction_tests(): void {
+    var baseline = tower_test_buffer_count();
+    var world = compiler_world_create();
+    var store = compiler_world_store(world);
+    var kinds: FrontendKinds;
+    frontend_world_check(frontend_world_test_kinds(world, &kinds));
+    var source = entity_create(store);
+    var alternatives: void*[2];
+    var rules: SyntaxRuleView[2];
+    var terms: SyntaxNode*[2];
+    for (var i: usize = 0; i < 2; ++i) {
+        alternatives[i] = frontend_format_child(store, source, null);
+        var sequence = preview_syntax(world, alternatives[i]);
+        sequence.kind = convert(u32, SyntaxKind.Alternative);
+        var child = frontend_format_child(store, alternatives[i], null);
+        terms[i] = preview_syntax(world, child);
+        terms[i].kind = convert(u32, SyntaxKind.Term);
+        terms[i].literal = i == 0;
+        frontend_world_check(bytes_append(&terms[i].text, i == 0 ? "x" : "Missing", i == 0 ? 1 : 7));
+        frontend_world_check(vector_push(void*, &sequence.items, child));
+        rules[i].name = i == 0 ? "Statement" : "Future";
+        rules[i].name_length = i == 0 ? 9 : 6;
+        rules[i].alternatives = &alternatives[i];
+        rules[i].count = 1;
+    }
+    var revision = syntax_revision_create(&rules[0], 2, null, 0);
+    var bedrock = syntax_world_revision(world, SyntaxSeedBaseline());
+    frontend_world_check(revision is not null && bedrock is not null);
+    var diagnostic: SyntaxVersionDiagnostic;
+    fill(&diagnostic, 0, sizeof(SyntaxVersionDiagnostic));
+    diagnostic.offset = frontend_world_unlimited();
+    var version = syntax_version_build(world, revision, bedrock, &diagnostic);
+    frontend_world_check(version is not null);
+    frontend_world_check(version.table is not null && version.lexicon is not null);
+    frontend_world_check(syntax_pending_count(version.pending) == 1);
+    frontend_world_check(syntax_revision_rule(version.grammar, "Future", 6) is null);
+    frontend_world_check(syntax_revision_rule(revision, "Future", 6) is not null);
+    frontend_format_text(syntax_version_diagnostic_text(&diagnostic), "");
+    syntax_version_release(version);
+    syntax_version_diagnostic_dispose(&diagnostic);
+    var buffers = tower_test_buffer_count();
+    var allocations = tower_test_buffer_allocations();
+    version = syntax_version_build(world, revision, bedrock, &diagnostic);
+    frontend_world_check(version is not null);
+    allocations = tower_test_buffer_allocations() - allocations;
+    syntax_version_release(version);
+    syntax_version_diagnostic_dispose(&diagnostic);
+    frontend_world_check(tower_test_buffer_count() == buffers);
+    for (var i: usize = 0; i < allocations; ++i) {
+        tower_test_buffer_fail_after(i);
+        version = syntax_version_build(world, revision, bedrock, &diagnostic);
+        tower_test_buffer_fail_after(frontend_world_unlimited());
+        // Optional analysis/storage may degrade gracefully, but every outcome
+        // must own a complete releasable result and leave source pins intact.
+        if version is not null { frontend_world_check(version.table is not null && version.lexicon is not null); }
+        else { frontend_world_check(syntax_version_diagnostic_text(&diagnostic)[0] != 0); }
+        syntax_version_release(version);
+        syntax_version_diagnostic_dispose(&diagnostic);
+        frontend_world_check(revision.references == 1 && bedrock.references == 2);
+        frontend_world_check(tower_test_buffer_count() == buffers);
+    }
+    // Module completion reports unresolved rules, unlike the execution filter.
+    frontend_world_check(!syntax_version_bedrock(revision, kinds.syntax, &diagnostic));
+    frontend_world_check(diagnostic.text.length != 0);
+    syntax_version_diagnostic_dispose(&diagnostic);
+    // Validation errors retain their complete text, including a terminating NUL
+    // for the native transport, without replacing the current source revision.
+    terms[0].literal = false;
+    vector_dispose(u8, &terms[0].text);
+    frontend_world_check(bytes_append(&terms[0].text, "Statement", 9));
+    version = syntax_version_build(world, revision, bedrock, &diagnostic);
+    frontend_world_check(version is null);
+    frontend_format_text(syntax_version_diagnostic_text(&diagnostic), "Unproductive grammar rule: Statement");
+    syntax_version_diagnostic_dispose(&diagnostic);
+    frontend_revision_release(revision);
+    frontend_revision_release(bedrock);
+    entity_release(source);
+    frontend_world_check(frontend_world_clear(world));
+    frontend_world_check(compiler_world_dispose(world));
+    frontend_world_check(tower_test_buffer_count() == baseline);
 }

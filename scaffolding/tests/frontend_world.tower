@@ -459,6 +459,7 @@ export fn frontend_world_tests(): void {
     frontend_session_inputs_tests();
     frontend_replacement_owner_tests();
     frontend_syntax_version_tests();
+    frontend_syntax_construction_tests();
     frontend_session_module_tests();
     frontend_world_lifetime_tests();
     frontend_world_failure_tests();

@@ -24351,3 +24351,47 @@ native build then passed; frontend/driver/execution CTests pass 3/3 (15.64 s).
 Build log: C:/Sandbox/build/codex-agents/agent-1-version-build.log. No new bootstrap
 is required; all validation uses documented fb1ab1. This follow-up is private
 while Agent 2 integrates the already-pushed session/replacement batch for Pages.
+
+
+### 2026-11-20 - Tower syntax construction and parser presentation (agent 1)
+
+Moved native seed/validation/build/replacement-preparation orchestration into
+syntax_version_build.tower, plus production descriptions and parser presentation
+callbacks into syntax_version_presentation.tower. The same retained version now
+owns construction, pending filtering, emission, parser table, lexical indexes,
+replacement candidate selection and the published expansion views. Its component
+kinds come from its explicit world. The parser table uses the existing explicit
+open/finish APIs, preserves tracing selection and Construct mode, and stays on
+shared declaration/rule entities. Template parsing remains native orchestration;
+its world/module behavior is not advertised as arbitrary-world execution.
+Native session formatting/tooling and shared_ptr transport remain for later slices.
+
+The new construction fixture uses an isolated world's real immutable Bedrock seed
+plus Statement and an unresolved Future rule. It checks that execution filters
+Future while the original revision and module-completion diagnostic retain it,
+then exercises every allocation point in the full build (optional derived work
+may legitimately recover). Every result must be releasable with unchanged source
+pins and exact buffer-count restoration. Also checks unproductive-rule text and
+NUL termination at the native string boundary. The initial fixture wrongly used
+an empty Bedrock revision: ordinary emission always references the four shared
+declaration roots, so construction correctly rejected that invalid fixture. Using
+the actual seed fixed the setup; no compiler fallback was added.
+
+Failure injection then caught a real allocator-domain bug in the new code at
+budget 1062: a parser diagnostic allocated by tower_memory_allocate had been
+released with ordinary Tower free, decreasing the instrumented buffer counter
+by one even though those were different ownership domains. Restored the existing
+tower_memory_free contract for parser/formatter diagnostics and made presentation
+fallback strings use the same host allocation API. The strict count assertion
+was preserved. Temporary libc tracing and numbered assertion markers were removed.
+The presentation module also needed a direct syntax_emission_lexical import;
+Tower does not expose helper names transitively through another import.
+
+Current documented-bootstrap native build succeeds. Frontend/driver/execution
+CTests pass 3/3 (17.13 s; frontend including full allocation sweep 0.44 s), and the
+actual compiler passes module_paths.py. git diff --check passes. Sanitizers and
+broad formatter sweeps remain skipped. Construction build log:
+C:/Sandbox/build/codex-agents/agent-1-version-construction-build.log; final build
+and CTest output are in agent-1-replacement-clean. This follow-up stays private
+until Agent 2 completes the already frozen ba8aaca browser publication, after
+which final rebase, clean successor and publication remain required.

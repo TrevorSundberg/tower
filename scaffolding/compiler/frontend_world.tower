@@ -11,6 +11,8 @@ import syntax_baselines;
 import syntax_session_inputs;
 import syntax_replacement_owner;
 import syntax_version;
+import syntax_version_build;
+import syntax_version_presentation;
 
 extern fn compiler_host_world(): void*;
 

@@ -1,0 +1,167 @@
+import tower;
+import component_kinds;
+import frontend_cache;
+import frontend_revision_types;
+import grammar_types;
+import lr_tree;
+import parser_nodes;
+import parser_table_types;
+import regex_lowering;
+import syntax_emission;
+import syntax_emission_types;
+import syntax_emission_lexical;
+import syntax_lexer;
+import syntax_pending;
+import syntax_reader;
+import syntax_replacement_owner;
+import syntax_replacements;
+import syntax_revision;
+import syntax_validation;
+import syntax_version;
+import syntax_version_types;
+import .library.vector;
+
+extern fn parser_table_open(root: void*, kinds: FrontendKinds*, userdata: void*, presentation: ParserPresentation, mode: u32): ParserHostTable*;
+extern fn parser_table_finish(table: ParserHostTable*, error: u8**, specialize: bool): ParserHostTable*;
+extern fn tower_memory_free(memory: void*): void;
+
+export fn syntax_version_diagnostic_dispose(value: SyntaxVersionDiagnostic*): void {
+    vector_dispose(u8, &value.text);
+}
+
+export fn syntax_version_diagnostic_text(value: SyntaxVersionDiagnostic*): u8* {
+    if value.text.length != 0 && vector_reserve(u8, &value.text, value.text.length + 1) {
+        value.text.data[value.text.length] = 0;
+        return value.text.data;
+    }
+    return value.fallback ?? "";
+}
+
+// The caller retains the original revision. Only the returned execution view
+// excludes pending declarations; ready revisions may share the original pin.
+fn syntax_version_validate(definitions: FrontendRevision*, kind: void*, diagnostic: SyntaxVersionDiagnostic*, pending: SyntaxPendingRevision**): FrontendRevision* {
+    *pending = null;
+    diagnostic.fallback = "Unable to allocate grammar revision";
+    if definitions is null { return null; }
+    diagnostic.fallback = "Unable to allocate grammar validation";
+    var waiting: vector(void*);
+    vector_init(void*, &waiting);
+    defer vector_dispose(void*, &waiting);
+    if !vector_reserve(void*, &waiting, definitions.rules.length) { return null; }
+    fill(waiting.data, 0, definitions.rules.length * sizeof(void*));
+    if !syntax_validate(definitions.rules.data, definitions.rules.length, definitions.tokens.data,
+        definitions.tokens.length, kind, &diagnostic.text, &diagnostic.offset, waiting.data) { return null; }
+    if !syntax_pending_create(definitions.rules.data, definitions.rules.length, waiting.data, kind, pending) { return null; }
+    var ready = syntax_revision_ready(definitions, waiting.data);
+    if ready is null {
+        syntax_pending_destroy(*pending);
+        *pending = null;
+    }
+    return ready;
+}
+
+export fn syntax_version_seed(value: SyntaxVersion*, definitions: FrontendRevision*, category: u8*, parent: SyntaxEmission*): bool {
+    var reserved: vector(u8*);
+    vector_init(u8*, &reserved);
+    defer vector_dispose(u8*, &reserved);
+    var pending = bits(SyntaxPendingRevision*, value.pending);
+    for (var i: usize = 0; i < syntax_pending_count(pending); ++i) {
+        if !vector_push(u8*, &reserved, syntax_pending_name(pending, i)) { return false; }
+    }
+    var input: SyntaxEmissionInput;
+    fill(&input, 0, sizeof(SyntaxEmissionInput));
+    input.rules = definitions.rules.data;
+    input.count = definitions.rules.length;
+    input.tokens = definitions.tokens.data;
+    input.token_count = definitions.tokens.length;
+    input.reserved = reserved.data;
+    input.reserved_count = reserved.length;
+    input.category = category;
+    input.root = value.rules;
+    input.syntax_kind = value.kinds.syntax;
+    input.rule_kind = value.kinds.rule;
+    input.reference_kind = value.kinds.reference;
+    input.string_kind = value.kinds.string;
+    input.range_kind = value.kinds.range;
+    value.emission = bits(void*, syntax_emit_inherit(&input, parent));
+    return value.emission is not null;
+}
+
+export fn syntax_version_lexicon(value: SyntaxVersion*): bool {
+    value.lexicon = bits(void*, syntax_emission_lexicon(bits(SyntaxEmission*, value.emission)));
+    return value.lexicon is not null;
+}
+
+fn syntax_version_replacements(value: SyntaxVersion*, diagnostic: SyntaxVersionDiagnostic*): bool {
+    diagnostic.fallback = "Unable to allocate replacement preparation storage";
+    var owner = syntax_replacement_owner_create(bits(void*, value), bits(SyntaxEmission*, value.emission), value.kinds.syntax, value.kinds.`match`);
+    if owner is null { return false; }
+    value.replacements = bits(void*, owner);
+    var plan: SyntaxReplacementPlan;
+    fill(&plan, 0, sizeof(SyntaxReplacementPlan));
+    plan.rules = value.grammar.rules.data;
+    plan.count = value.grammar.rules.length;
+    plan.kind = value.kinds.syntax;
+    plan.host = bits(void*, owner);
+    plan.offset = ~convert(usize, 0);
+    defer syntax_replacements_dispose(&plan);
+    if syntax_replacements_prepare(&plan) && syntax_replacement_freeze(owner) { return true; }
+    value.replacement_error_offset = plan.offset;
+    if plan.offset != ~convert(usize, 0) { diagnostic.offset = plan.offset; }
+    vector_move(u8, &diagnostic.text, &plan.error);
+    return false;
+}
+
+export fn syntax_version_build(world: void*, source: FrontendRevision*, bedrock: FrontendRevision*, diagnostic: SyntaxVersionDiagnostic*): SyntaxVersion* {
+    diagnostic.text.length = 0;
+    diagnostic.fallback = "Unable to allocate grammar revision";
+    var kind = compiler_world_type(world, CompilerSyntax());
+    if kind is null { return null; }
+    var definitions = syntax_revision_overlay(bedrock, source ?. rules.data, source ?. rules.length ?? 0,
+        source ?. tokens.data, source ?. tokens.length ?? 0, kind);
+    if definitions is null { return null; }
+    defer frontend_revision_release(definitions);
+    var pending: SyntaxPendingRevision*;
+    var ready = syntax_version_validate(definitions, kind, diagnostic, &pending);
+    if ready is null { return null; }
+    defer frontend_revision_release(ready);
+    defer syntax_pending_destroy(pending);
+    diagnostic.fallback = "Unable to allocate grammar construction";
+    var value = syntax_version_create(world, ready, bedrock);
+    if value is null { return null; }
+    var published = false;
+    defer { if !published { syntax_version_release(value); } }
+    value.pending = bits(void*, pending);
+    pending = null;
+    if !syntax_version_seed(value, ready, null, null) { return null; }
+    diagnostic.fallback = "Unable to build grammar";
+    var error: u8* = null;
+    defer tower_memory_free(bits(void*, error));
+    var table = parser_table_open(value.rules, &value.kinds, bits(void*, value), ParserPresentation.Syntax, convert(u32, ParserReadMode.Constructs));
+    if table is not null { table.trace = entity_member_index(value.kinds.`match`, "parser.trace") != ~convert(usize, 0); }
+    value.table = bits(void*, parser_table_finish(table, &error, true));
+    if value.table is null {
+        if error is not null { node_text_set(&diagnostic.text, error); }
+        return null;
+    }
+    diagnostic.fallback = "Unable to allocate lexical indexes";
+    if !syntax_version_lexicon(value) || !syntax_version_replacements(value, diagnostic) { return null; }
+    diagnostic.fallback = "";
+    published = true;
+    return value;
+}
+
+export fn syntax_version_bedrock(module: FrontendRevision*, kind: void*, diagnostic: SyntaxVersionDiagnostic*): bool {
+    diagnostic.text.length = 0;
+    var pending: SyntaxPendingRevision*;
+    var ready = syntax_version_validate(module, kind, diagnostic, &pending);
+    if ready is null { return false; }
+    defer frontend_revision_release(ready);
+    defer syntax_pending_destroy(pending);
+    if syntax_pending_count(pending) != 0 {
+        node_text_set(&diagnostic.text, syntax_pending_message(pending, &diagnostic.offset));
+        return false;
+    }
+    diagnostic.fallback = syntax_revision_bedrock_error(module, kind);
+    return diagnostic.fallback[0] == 0;
+}
