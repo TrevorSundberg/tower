@@ -38505,3 +38505,8 @@ cross 13cd3e43f86a6889271aa41fbbb3545dbc8e567571b126d63b7b0f270581a611.
 Local publication verification passes all 86 assets and desktop/mobile flows.
 Logs: build/functions-final-{generations,local}.log,
 /cache/functions-final-{successor.log,verification/checks.txt}.
+
+The final rebase onto 04f4ec9 adds only journal receipts. Verified every pinned
+source-file SHA-256 against the rebased checkout, then updated the final pin's
+source base to published ancestor 51c038e; compiler inputs and validated binaries
+are unchanged. This corrects provenance after Git rewrote the local commit IDs.
