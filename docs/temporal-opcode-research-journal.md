@@ -37919,3 +37919,60 @@ descends from f92b0bad and changes only deployment-manifest.json. Preserve all
 Pages action 44960880845 succeeds; hosted bytes match the prepared manifest,
 SHA-256 0f324916ff5dd2d72c4c1867e8815ee1dbd4ee8926b7ce065fc045644224e987.
 The owned publication lock is released after this verification.
+### 2026-11-21: reduce heap handoffs and duplicate browser compilation
+
+Pulled main 717b25b before work and preserved todo.txt. Traced the preceding
+profiling hotspots: allocator releases unconditionally notified an empty wait
+queue; all three execution workers compiled original Tower independently; and
+the fast branch compiled LLVM Foundation before packaging formatted/reparsed
+the same program. Native target profiles remain separate because their layout
+can differ from the graph/fast/Wasm branches.
+
+The host shared-memory mutex now uses free/locked/contended states: contenders
+publish before waiting, retain the marker on acquisition, and release wakes one
+waiter only when marked. It keeps failure checks, timed waits and the locked
+memory-size refresh needed by older V8. Tower skips the no-access free(null) path.
+This is browser/platform transport, not a replacement allocator or a change to
+compiler job admission, world ownership or ECS semantics.
+
+Tower's new direct Foundation package entry point checks the exact text included
+in the distribution envelope, creates its execution cache, validates the envelope
+and matches the cache before publishing independent guest memory/session ownership.
+Existing handle snapshots still format/reconstruct, and external packages still
+reconstruct/check independently. The worker now calls this entry on LLVM's shared
+formatter output, removing one compile/format/reparse. Older editable generations
+retain their checked compatibility path. New package fixtures are Tower. They
+check both pointer widths, exact package bytes, independent execution, invalid
+text/profile/layout and stable lifetime counts. Initial fixture debugging caught
+use of the JSON transport response as source; corrected it to use FormatResult
+before validation. Both portable and shared-memory bytecode suites pass (5 each).
+
+The UI forwards only canonical Foundation and source locations from the first
+execution frontend to the other selected same-profile backend workers. Request
+identity guards the handoff; each worker owns its compiler state and execution
+memory. A failed producer releases pending requests through normal diagnostics.
+The existing execution permit still rejects obsolete work before guest effects.
+Transport tests observe one frontend producer plus fast/LLVM consumers. Eight
+desktop/mobile worker-reuse, stale-permit and cancellation/recovery checks pass.
+The existing real-overlap/growth, trapped-worker delivery and 1/2/4/8-worker
+determinism checks pass; the rebuilt work fixture also passes overlap/failure.
+
+Built the smallest changed Tower units with the actual checked-in public compiler
+before rebuilding affected reactors. Baseline and candidate frontends both use
+frozen 717b25b inputs; only this patch differs. Both browser sites retain identical
+published LLVM/native assets for the isolated comparison. Three alternating pairs
+produce 30 warm samples per action/device and three independent cold processes,
+with no sampling/build/test overlap. All 660 observations complete with expected
+outputs and no page errors. Desktop cold completion: 4405 to 2899 ms; Memory edits:
+228 to 120 ms; Structs 20/200 edits: 173 to 124 ms. Mobile cold: 3539 to 2661 ms;
+Memory: 202 to 135 ms; Structs: 144 to 126 ms. New-project desktop graph median
+increases 74 to 87 ms while total completion improves 113 to 101 ms. Preserve
+that limitation rather than claiming uniform speedup. Full tables/method are in
+playground/PERFORMANCE.md; raw evidence is build/pipeline_pair_*.
+
+Focused build/check evidence: pipeline_preflight.log, pipeline_candidate_build.log,
+pipeline_fixture_build.log, pipeline_package_{serial,threads}.log,
+pipeline_threads_checks.log, pipeline_heap_checks.log and pipeline_browser.log.
+The existing browser config/work-fixture transport accepts explicit frozen inputs
+so verification need not depend on mutable default build outputs. No sanitizer,
+broad formatting sweep, new C++/Python code or compiler syntax migration.

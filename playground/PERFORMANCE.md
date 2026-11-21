@@ -1,3 +1,72 @@
+# Shared frontend and direct package preparation — 2026-11-21
+
+The graph, fast and LLVM execution branches now share the first successful
+frontend's canonical Foundation text and source locations for the current request.
+They retain independent compiler/guest state. Different native target layouts
+still compile separately. Revision checks discard obsolete replies, execution
+still requires the UI permit, and a failed producer releases waiting branches
+through their normal diagnostic path. No mutable ECS graph crosses a worker.
+
+LLVM's already formatted Foundation can now enter Tower package preparation
+directly. Tower checks those exact bytes, builds the derived cache, validates the
+envelope and matches the cache before publishing an independently owned execution
+session. This removes the intervening compile/format/reparse. Handle-based package
+snapshots and untrusted package loading retain their existing independent checks;
+older editable compiler generations use the checked compatibility path.
+
+The shared-memory host mutex now records contention and only notifies waiters
+when necessary. Memory-size refresh, failure checks, blocking waits and exclusive
+allocator ownership remain. Tower's allocator wrapper also skips `free(null)`.
+The threaded runtime remains enabled, with its ECS/work-graph policy unchanged.
+
+## Controlled before/after comparison
+
+Three alternating-order pairs, each with fresh desktop and Pixel 7 emulation
+browser processes, ten warm actions per pair/device. Both frontend variants use
+main `717b25b`; the candidate adds the changes above. Both sites retain identical
+published LLVM/native binaries and other assets. This isolates the patch from
+concurrent compiler development. No builds, tests or sampling overlapped timings.
+Windows/Ryzen 9 5900HX, Chromium 159.0.8154.6; loopback with warm OS file cache,
+not WAN or physical-phone measurements. Cold has three observations and warm has
+30 per action/device. All 660 observed actions completed with expected backend
+results and no page errors. Medians in milliseconds:
+
+| Result | Desktop before → after | Mobile emulation before → after |
+| --- | ---: | ---: |
+| Cold highlight | 1569.6 → 1330.1 | 1487.6 → 1213.8 |
+| Cold first instructions | 3915.3 → 2325.0 | 3042.3 → 2071.8 |
+| Cold graph result | 3919.5 → 2328.7 | 3046.1 → 2076.2 |
+| Cold all outputs | 4405.2 → 2899.4 | 3538.7 → 2661.3 |
+| Warm Execute, all outputs | 99.9 → 71.2 | 91.7 → 67.0 |
+| New project, graph result | 74.4 → 86.8 | 69.8 → 70.2 |
+| New project, all outputs | 112.6 → 101.2 | 98.6 → 86.5 |
+| Memory edit, highlight | 45.8 → 36.9 | 50.7 → 37.4 |
+| Memory edit, graph result | 122.4 → 66.1 | 97.5 → 66.9 |
+| Memory edit, all outputs | 228.3 → 120.3 | 201.6 → 135.3 |
+| Structs 20/200 edit, graph result | 87.5 → 47.1 | 63.6 → 43.4 |
+| Structs 20/200 edit, all outputs | 173.4 → 123.8 | 143.9 → 126.3 |
+| Structs syntax-only edit, highlight | 27.1 → 26.7 | 28.0 → 27.3 |
+
+Cold completion falls 34% desktop / 25% mobile; Memory edit completion falls
+47% / 33%. This is not a claim that every metric improves: desktop's new-project
+graph result arrives 12 ms later at the median despite earlier instructions and
+earlier full completion. Syntax-only warm latency is essentially unchanged.
+
+Desktop Memory frontend compilation falls from 53.0 to 12.8 ms in the graph
+worker; fast/LLVM workers reuse its Foundation. Fast reconstruction plus packaging
+was 35.2 + 43.5 ms; direct preparation is 24.3 ms, with a 0.2 ms cached canonical
+runtime lookup. These overlapping phase medians are not an additive end-to-end
+model, nor do the combined changes isolate each change's individual contribution.
+
+Evidence: `build/pipeline_pair_{1..3}_{before,after}.json`. Reproduce with
+`scripts/profile-execution.mjs`, `TOWER_PROFILE_REPEATS=10` and the frozen site's
+`TOWER_PROFILE_URL`. Tower package fixtures cover both widths, byte-for-byte
+equivalence, independent execution after original-session destruction, invalid
+input/profile/layout and steady lifetime counts. Existing cache-tampering tests,
+real shared-memory overlap/growth/failure tests and 1/2/4/8-worker determinism pass.
+Browser transport checks confirm one producer and two Foundation consumers, warm
+worker retention, stale permit rejection and cancellation/recovery on both devices.
+
 # Cold and warm profiling passes — 2026-11-21
 
 The published threaded browser path still spends seconds before its first result.

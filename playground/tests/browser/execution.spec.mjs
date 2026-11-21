@@ -288,12 +288,23 @@ test('projects and edits reuse idle execution workers with replaced environments
   await expect(page.locator('#execution-status')).toContainText('backends match');
   const workers = page.workers().filter(worker => worker.url().includes('execution-worker'));
   expect(workers).toHaveLength(3);
+  for (const worker of workers) await worker.evaluate(() => {
+    self.__frontendMessages = [];
+    const post = self.postMessage.bind(self);
+    self.postMessage = (data,...args) => {
+      if (data.foundation !== undefined) self.__frontendMessages.push({backend:data.backend,shared:data.timings.frontendShared === true});
+      return post(data,...args);
+    };
+  });
   const requests = []; page.on('request', request => requests.push(request.url()));
   await selectDocument(page, 'memory.tower');
   await expect(page.locator('#execution-output')).toHaveText('5\n84\n42\n');
   await expect(page.locator('#execution-status')).toContainText('backends match');
   const nextWorkers = page.workers().filter(worker => worker.url().includes('execution-worker'));
   expect(nextWorkers).toEqual(workers);
+  const frontends = (await Promise.all(workers.map(worker => worker.evaluate(() => self.__frontendMessages)))).flat();
+  expect([...new Set(frontends.filter(item=>!item.shared).map(item=>item.backend))]).toEqual(['interpreter']);
+  expect([...new Set(frontends.filter(item=>item.shared).map(item=>item.backend))].sort()).toEqual(['fast','llvm']);
   // Focus now prewarms the independent completion compiler. Finish a language
   // query before measuring execution-worker reuse, so its first load is excluded.
   await setSource(page,'pri');await page.keyboard.press('Control+Space');

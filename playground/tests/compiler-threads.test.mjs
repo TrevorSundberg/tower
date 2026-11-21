@@ -6,7 +6,7 @@ import {TowerWASI} from '../src/wasi-host.mjs';
 import {lazyGenericBodySource, demandedGenericBodySource} from './generic_body_cases.mjs';
 
 let bytes;
-try { bytes = await readFile('build/browser-wasi-threads/tower-work-tests.wasm'); }
+try { bytes = await readFile(process.env.TOWER_TEST_WORK_WASM ?? 'build/browser-wasi-threads/tower-work-tests.wasm'); }
 catch (error) {
  if (error.code !== 'ENOENT' || process.env.TOWER_REQUIRE_THREADS === '1') throw error;
 }

@@ -5,10 +5,11 @@ import .host.ide_state;
 import .host.ide_parser;
 import .host.ide_execution;
 import .host.ide_artifacts;
+import .compiler.format_types;
 
 enum PackageCheck: u32 {
     Passed = 0, Prepare = 1, Load = 2, Foundation = 3, Execution = 4,
-    Profile = 5, InvalidProgram = 6, Lifetime = 7
+    Profile = 5, InvalidProgram = 6, Lifetime = 7, PackageBytes = 8, Input = 9
 }
 var BaselinePackageProfile: u32 = 0;
 
@@ -39,6 +40,16 @@ fn package_check_width(width: u32): PackageCheck {
     var saved = ide_copy(first, ide_length(first));
     defer free(saved);
     if !package_check_equal(saved, tw_exec_foundation(loaded)) { return PackageCheck.Foundation; }
+    var canonical_source: FormatResult;
+    ide_program_format(ide_execution(prepared), &canonical_source);
+    defer format_dispose(&canonical_source);
+    var direct = tw_exec_prepare_foundation_package(canonical_source.text.data, canonical_source.text.length, width, BaselinePackageProfile);
+    if direct == 0 { return PackageCheck.Prepare; }
+    defer tw_exec_destroy(direct);
+    if tw_exec_bytecode_size() != size { return PackageCheck.PackageBytes; }
+    for (var i: usize = 0; i < size; i++) {
+        if packet[i] != tw_exec_bytecode_data()[i] { return PackageCheck.PackageBytes; }
+    }
     tw_exec_destroy(original);
     original = 0;
     var budget: u32 = 1000;
@@ -46,9 +57,15 @@ fn package_check_width(width: u32): PackageCheck {
     var execution = ide_copy(first, ide_length(first));
     defer free(execution);
     if !package_check_equal(execution, tw_exec_step(loaded, budget)) { return PackageCheck.Execution; }
+    if !package_check_equal(execution, tw_exec_step(direct, budget)) { return PackageCheck.Execution; }
     if !ide_execution(prepared).machine.done || ide_execution(prepared).machine.failed { return PackageCheck.Execution; }
     var invalid_profile: u32 = 3;
     if tw_exec_prepare_package(prepared, invalid_profile) != 0 || tw_exec_bytecode_size() != 0 { return PackageCheck.Profile; }
+    if tw_exec_prepare_foundation_package(canonical_source.text.data, canonical_source.text.length, width, invalid_profile) != 0 || tw_exec_bytecode_size() != 0 { return PackageCheck.Profile; }
+    var invalid_width: u32 = 16;
+    if tw_exec_prepare_foundation_package(canonical_source.text.data, canonical_source.text.length, invalid_width, BaselinePackageProfile) != 0 || tw_exec_bytecode_size() != 0 { return PackageCheck.Input; }
+    saved[0] = 0;
+    if tw_exec_prepare_foundation_package(saved, 1, width, BaselinePackageProfile) != 0 || tw_exec_bytecode_size() != 0 { return PackageCheck.Input; }
     return PackageCheck.Passed;
 }
 
@@ -67,6 +84,7 @@ export fn ide_package_tests(): u32 {
         var handle = tw_exec_create_target(invalid, ide_length(invalid), narrow);
         var rejected = tw_exec_prepare_package(handle, BaselinePackageProfile) == 0;
         tw_exec_destroy(handle);
+        rejected &&= tw_exec_prepare_foundation_package(invalid, ide_length(invalid), narrow, BaselinePackageProfile) == 0;
         if !rejected { return convert(u32, PackageCheck.InvalidProgram); }
         var now = tw_live_nodes();
         var memory = tw_live_allocations();

@@ -17,6 +17,8 @@ extern fn compiler_node_type(node: void*, kind: u32): void*;
 
 enum IdePackageError: u32 { CacheMismatch = 9 }
 var IdePackageHeaderBytes: usize = 56;
+var IdePackageNarrowPointerBytes: u32 = 4;
+var IdePackageWidePointerBytes: u32 = 8;
 
 fn ide_program_format(session: IdeExecution*, formatted: FormatResult*): void {
     *formatted = default;
@@ -74,37 +76,27 @@ export fn tw_exec_strip_comments(handle: u32): void {
     }
 }
 
-// Reconstruct canonical Foundation once and keep its owning execution session.
-// Encoding and verification use that same freshly checked graph. The caller can
-// publish it for execution or dispose it when only the package bytes are wanted.
-fn ide_prepare_package(handle: u32, profile: u32): IdeExecution* {
+fn ide_package_reset(): void {
     var state = ide_state();
     bytecode_free(state.bytecode);
     state.bytecode = null;
     state.bytecode_size = 0;
-    var session = ide_execution(handle);
-    var invalid = session == null;
-    invalid ||= session.program.error.length != 0;
-    if invalid {
-        ide_error("Cannot package an invalid program");
-        return null;
-    }
     ide_error("");
-    var formatted: FormatResult;
-    ide_program_format(session, &formatted);
-    defer format_dispose(&formatted);
-    if formatted.failed {
-        ide_error("Cannot format .towerbc Foundation source");
-        return null;
-    }
-    var canonical = ide_execution_text(formatted.text.data, formatted.text.length, session.program.pointer_bytes, true);
+}
+
+// Check the exact Foundation bytes stored in the envelope once. Encoding and
+// verification use that graph; an external package loader reconstructs the same
+// text independently. The returned session owns fresh guest storage and nodes.
+fn ide_prepare_package_text(source: u8*, length: usize, width: u32, profile: u32): IdeExecution* {
+    var state = ide_state();
+    var canonical = ide_execution_text(source, length, width, true);
     var failed = canonical.error.length != 0;
     if failed {
         ide_error(ide_result(&canonical.error));
     }
     else {
         if ide_execution_fast(canonical) {
-            state.bytecode = bytecode_encode(canonical.fast, formatted.text.data, formatted.text.length, convert(usize, session.program.pointer_bytes), profile, &state.bytecode_size);
+            state.bytecode = bytecode_encode(canonical.fast, source, length, convert(usize, width), profile, &state.bytecode_size);
         }
         failed = state.bytecode == null;
         if failed {
@@ -131,6 +123,41 @@ fn ide_prepare_package(handle: u32, profile: u32): IdeExecution* {
         return null;
     }
     return canonical;
+}
+
+// A handle may already have executed or contain noncanonical source. Preserve
+// its snapshot contract by formatting and reconstructing independent storage.
+fn ide_prepare_package(handle: u32, profile: u32): IdeExecution* {
+    ide_package_reset();
+    var session = ide_execution(handle);
+    if session is null || session.program.error.length != 0 {
+        ide_error("Cannot package an invalid program");
+        return null;
+    }
+    var formatted: FormatResult;
+    ide_program_format(session, &formatted);
+    defer format_dispose(&formatted);
+    if formatted.failed {
+        ide_error("Cannot format .towerbc Foundation source");
+        return null;
+    }
+    return ide_prepare_package_text(formatted.text.data, formatted.text.length, session.program.pointer_bytes, profile);
+}
+
+// LLVM already supplies Foundation through the shared formatter. Accept that
+// interchange text directly instead of compiling, formatting and parsing it
+// again. No checked graph, execution cache or mutable world crosses workers.
+export fn tw_exec_prepare_foundation_package(source: u8*, length: usize, width: u32, profile: u32): u32 {
+    ide_package_reset();
+    if !ide_valid(source, length) { return 0; }
+    if width != IdePackageNarrowPointerBytes && width != IdePackageWidePointerBytes {
+        ide_error("Unsupported target pointer width");
+        return 0;
+    }
+    if !ide_execution_capacity() { return 0; }
+    var canonical = ide_prepare_package_text(source, length, width, profile);
+    if canonical is null { return 0; }
+    return ide_execution_publish(canonical);
 }
 
 export fn tw_exec_prepare_package(handle: u32, profile: u32): u32 {

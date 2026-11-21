@@ -26,26 +26,33 @@ async function receive(event) {
   const send = data => postMessage({ id, backend, ...data, ...(data.result ? {result:projectDiagnostic(data.result, files)} : {}) });
   try {
     send({ phase: 'Loading…' });
-    const frontend = await getTower(foundation, bedrock, builtins.tower); tower = frontend.tower;
-    if (command === 'disassemble') {
-      await getCanonicalTower();
-      handle = tower.loadBytecode(bytecode);
-      send({disassembly:tower.foundation(handle).source, pointerBytes:new DataView(bytecode.buffer,bytecode.byteOffset).getUint32(20,true)});
-      return;
+    let formatted = backend === 'interpreter' ? undefined : event.data.formatted;
+    if (!formatted) {
+      const frontend = await getTower(foundation, bedrock, builtins.tower); tower = frontend.tower;
+      if (command === 'disassemble') {
+        await getCanonicalTower();
+        handle = tower.loadBytecode(bytecode);
+        send({disassembly:tower.foundation(handle).source, pointerBytes:new DataView(bytecode.buffer,bytecode.byteOffset).getUint32(20,true)});
+        return;
+      }
+      timings.load = frontend.loadMs; timings.loadCached = frontend.cached;
+      let at = performance.now();
+      tower.mountFiles(drive);
+      tower.configureModules({entry, files:drive, builtins:{...builtins,bedrock,foundation}, library, replaceBuiltins:true});
+      handle = tower.compile(files?.[0]?.text ?? source,{pointerBytes});
+      timings.tower = performance.now() - at;
+      const checked = tower.execute(handle, 0);
+      if (checked.status === 'error') { send({ result: checked, timings }); return; }
+      at = performance.now();
+      if (!comments) tower.stripComments(handle);
+      formatted = tower.foundation(handle);
+      timings.instructions = performance.now() - at;
+    } else {
+      // The coordinator forwards only canonical text and source locations for
+      // this revision/profile. Each backend retains its own compiler and memory.
+      timings.frontendShared = true;
     }
-    timings.load = frontend.loadMs; timings.loadCached = frontend.cached;
-    let at = performance.now();
-    tower.mountFiles(drive);
-    tower.configureModules({entry, files:drive, builtins:{...builtins,bedrock,foundation}, library, replaceBuiltins:true});
-    handle = tower.compile(files?.[0]?.text ?? source,{pointerBytes});
-    timings.tower = performance.now() - at;
-    const checked = tower.execute(handle, 0);
-    if (checked.status === 'error') { send({ result: checked, timings }); return; }
-    at = performance.now();
-    if (!comments) tower.stripComments(handle);
-    const formatted = tower.foundation(handle);
-    timings.instructions = performance.now() - at;
-    send({ foundation: formatted.source, timings });
+    send({ foundation: formatted.source, formatted, timings });
     if (backend === 'interpreter' || backend === 'fast') {
       if (backend === 'fast') {
         send({phase:optimize?'Optimizing with LLVM…':'Lowering through LLVM…'});
@@ -55,21 +62,17 @@ async function receive(event) {
         timings.optimize = performance.now() - optimizationStart;
         timings.llvmLoad = llvmCompiler.loadMs; timings.llvmLoadCached = llvmCompiler.cached;
         if(compiled.status==='error'){send({result:originalDiagnostic(compiled,formatted.spans,formatted.sourceMap),timings});return;}
-        await getCanonicalTower();
-        tower.destroyExecution(handle);
-        const reconstructionStart = performance.now();
-        handle = tower.compile(compiled.foundation,{pointerBytes});
-        timings.reconstruct = performance.now() - reconstructionStart;
-        const checked = tower.execute(handle,0);
-        if(checked.status==='error'){send({result:checked,timings});return;}
-        send({optimizedFoundation:compiled.foundation,optimizationProfile:compiled.optimizationProfile,fastLLVM:{before:compiled.before,after:compiled.after},timings});
+        const canonical = await getCanonicalTower();
+        timings.canonicalLoad = canonical.loadMs; timings.canonicalLoadCached = canonical.cached;
+        tower = canonical.tower;
+        tower.mountFiles(drive);
+        if (handle) tower.destroyExecution(handle); handle = undefined;
         const packageStart = performance.now();
-        await getCanonicalTower();
-        const prepared = tower.preparePackage(handle,{optimizationProfile:compiled.optimizationProfile});
-        tower.destroyExecution(handle);
+        const prepared = tower.prepareFoundationPackage(compiled.foundation,{pointerBytes,optimizationProfile:compiled.optimizationProfile});
         handle = prepared.handle;
         const disassembly = tower.foundation(handle).source;
         timings.package = performance.now() - packageStart;
+        send({optimizedFoundation:compiled.foundation,optimizationProfile:compiled.optimizationProfile,fastLLVM:{before:compiled.before,after:compiled.after},timings});
         send({bytecode:prepared.bytecode,disassembly,cache:tower.fastStats(handle),timings});
       }
       if (!await permitExecution(event)) return;
@@ -94,7 +97,7 @@ async function receive(event) {
       const loaded = await getCompiler('./tower-llvm.wasm.gz'), compiler = loaded.compiler;
       timings.llvmLoad = loaded.loadMs; timings.llvmLoadCached = loaded.cached;
       send({ phase: 'Compiling LLVM…' });
-      at = performance.now();
+      const at = performance.now();
       const compiled = compiler.compile(formatted.source,{inputs,optimize});
       timings.llvm = performance.now() - at;
       Object.assign(timings, compiled.timings);

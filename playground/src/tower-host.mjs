@@ -149,6 +149,22 @@ export async function loadTower(bytes, log = () => {}, bootstrap, foundation, be
         return {bytecode,handle:canonical};
       } catch (error) { exports.tw_exec_destroy(canonical); throw error; }
     },
+    prepareFoundationPackage(source, {pointerBytes=4,optimizationProfile=0}={}) {
+      // Older editable generations keep their existing checked round trip.
+      if (!exports.tw_exec_prepare_foundation_package) {
+        const original = host.compile(source,{pointerBytes});
+        try { return host.preparePackage(original,{optimizationProfile}); }
+        finally { host.destroyExecution(original); }
+      }
+      const canonical = withSource(source,(pointer,length) =>
+        exports.tw_exec_prepare_foundation_package(pointer,length,pointerBytes,optimizationProfile));
+      if (!canonical) throw new Error(string(exports.tw_last_error()));
+      try {
+        const size = exports.tw_exec_bytecode_size();
+        const bytecode = new Uint8Array(exports.memory.buffer,exports.tw_exec_bytecode_data(),size).slice();
+        return {bytecode,handle:canonical};
+      } catch (error) { exports.tw_exec_destroy(canonical); throw error; }
+    },
     loadBytecode(bytes) {
       if (!(bytes instanceof Uint8Array) || bytes.length > 256 * 1024 * 1024) throw new Error('Invalid .towerbc input');
       const pointer = exports.tw_alloc(bytes.length || 1);

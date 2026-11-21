@@ -32,6 +32,8 @@ export fn __wrap_realloc(pointer: void*, size: usize): void* {
     return result;
 }
 export fn __wrap_free(pointer: void*): void {
+    // libc free(null) has no memory access and needs no cross-worker refresh.
+    if pointer is null { return; }
     work_host_heap_enter();
     __real_free(pointer);
     work_host_heap_leave();

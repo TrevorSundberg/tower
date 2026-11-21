@@ -410,12 +410,25 @@ function execute() {
   setExecutionStatus('Updating…');
   $('execute').disabled = true; $('cancel-execution').disabled = false;
   const id = executionId, text = editor.state.doc.toString();
-  for (const backend of selectedBackends()) {
+  const backends = selectedBackends(), frontendBackend = backends[0];
+  const dispatchDependents = formatted => {
+    if (id !== executionId) return;
+    for (const backend of backends) {
+      const runner = runners[backend];
+      if (!runner?.request) continue;
+      runner.worker.postMessage({...runner.request,formatted});
+      runner.request = null;
+    }
+  };
+  for (const backend of backends) {
     const worker = idleExecutionWorkers.get(backend) ?? new Worker(new URL('./execution-worker.js', import.meta.url), { type: 'module' });
     idleExecutionWorkers.delete(backend);
     const runner = runners[backend] = { id, worker, output: '', timings: {} };
     setPhase(backend,'Loading…');
     const finish = () => {
+      // If frontend production failed, let waiting backends report their own
+      // diagnostic through the ordinary request path instead of stranding them.
+      if (backend === frontendBackend) dispatchDependents();
       worker.onmessage = worker.onerror = null;
       if (runner.failure) worker.terminate(); else { worker.cancelledCompilation=false; idleExecutionWorkers.set(backend, worker); }
       runner.worker = null; showTimings(); updateComparison();
@@ -438,6 +451,7 @@ function execute() {
       if (data.error) { fail(data.error); return; }
       if (data.phase) setPhase(backend,data.phase);
       if (data.foundation !== undefined) {
+        if (backend === frontendBackend) dispatchDependents(data.formatted);
         // Semantic compilation has succeeded. A previous run's diagnostic no
         // longer applies, even if this new program executes indefinitely.
         if (!executionError && diagnosticPhase === 'execution') executionDiagnostic(null);
@@ -476,7 +490,9 @@ function execute() {
       }
       finish();
     };
-    worker.postMessage({compiler:compilerSelection(), library:project.library ?? '.tower',  id, source: text, foundation, bedrock, backend, files:editingModule ? undefined : projectSources(project), drive:project.files, builtins:project.builtins, entry:editingModule ? activePath : projectSources(project)[0]?.path, pointerBytes:selectedTargets.wasm || !selectedNativeKeys().length ? 4 : 8, inputs:linkInputsForTarget(linkInputs,'wasm') ,optimize:$('optimize').checked,comments:$('preserve-comments').checked});
+    const request = {compiler:compilerSelection(), library:project.library ?? '.tower',  id, source: text, foundation, bedrock, backend, files:editingModule ? undefined : projectSources(project), drive:project.files, builtins:project.builtins, entry:editingModule ? activePath : projectSources(project)[0]?.path, pointerBytes:selectedTargets.wasm || !selectedNativeKeys().length ? 4 : 8, inputs:linkInputsForTarget(linkInputs,'wasm') ,optimize:$('optimize').checked,comments:$('preserve-comments').checked};
+    if (backend === frontendBackend) worker.postMessage(request);
+    else runner.request = request;
   }
   if(buildKeys().length) compileNative(id,text);
   updateComparison();

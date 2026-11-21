@@ -2,6 +2,8 @@
 // continuations and publication. wasi-libc owns thread stacks, TLS and allocation.
 const READY = 1, RUNNING = 2, FAILED = 3;
 const FAILURE_BYTES = 8192;
+const HEAP_FREE = 0, HEAP_LOCKED = 1, HEAP_CONTENDED = 2;
+const HEAP_WAIT_MS = 100, WASM_PAGE_BYTES = 65536;
 export function compilerWorkerError(status, failures) {
   for (let slot = 0; slot < status.length; slot++) {
     if (Atomics.load(status, slot) !== FAILED) continue;
@@ -13,21 +15,28 @@ export function compilerWorkerError(status, failures) {
 }
 export function compilerHeap(memory, heap, check) {
   let refreshed = 0;
+  const release = () => {
+    if (Atomics.exchange(heap, 0, HEAP_FREE) === HEAP_CONTENDED) Atomics.notify(heap, 0, 1);
+  };
   return {
     work_host_heap_enter: () => {
       check();
-      while (Atomics.compareExchange(heap, 0, 0, 1) !== 0) {
-        Atomics.wait(heap, 0, 1, 100);
-        check();
+      if (Atomics.compareExchange(heap, 0, HEAP_FREE, HEAP_LOCKED) !== HEAP_FREE) {
+        // A waiter publishes contention before sleeping. A waking waiter keeps
+        // that marker while owning the lock, handing off to any remaining waiters.
+        while (Atomics.exchange(heap, 0, HEAP_CONTENDED) !== HEAP_FREE) {
+          Atomics.wait(heap, 0, HEAP_CONTENDED, HEAP_WAIT_MS);
+          check();
+        }
       }
       // Refresh after acquisition: the previous owner may have grown memory.
       // This is a platform compatibility primitive, not a Tower allocator.
       try {
-        if (memory.buffer.byteLength !== refreshed) refreshed = memory.grow(0) * 65536;
+        if (memory.buffer.byteLength !== refreshed) refreshed = memory.grow(0) * WASM_PAGE_BYTES;
       }
-      catch (error) { Atomics.store(heap, 0, 0); Atomics.notify(heap, 0); throw error; }
+      catch (error) { release(); throw error; }
     },
-    work_host_heap_leave: () => { Atomics.store(heap, 0, 0); Atomics.notify(heap, 0, 1); },
+    work_host_heap_leave: release,
   };
 }
 export async function compilerThreads(module, {memory,
