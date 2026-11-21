@@ -1,0 +1,4 @@
+import tower;
+struct Record { value:decltype(read(&record)); }
+var record:Record;
+fn read(T:type, item:T*):decltype(item.value) { return item.value; }

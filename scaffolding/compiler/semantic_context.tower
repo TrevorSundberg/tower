@@ -90,6 +90,8 @@ struct SemanticContext {
     queries: WorkGraph;
     declaration_state: void*;
     declaration_jobs: vector(void*);
+    declaration_subjects: vector(void*)*;
+    prepared_calls: void*;
     control_names: SemanticTable*;
     control_reserved: SemanticTable*;
     control_prefix: u8*;

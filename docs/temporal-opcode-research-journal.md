@@ -28063,3 +28063,78 @@ under build/language-next-audit. The prior57-case memory/module suite predates
 this parser rebase; it is not represented as a repeated merged-source run.
 Preparing the merged field/layout release; generic header scheduling remains
 next, with its failing reproducer retained. todo.txt hash remains96a9e58964d7f01e4a97819f259448db81ef5e40.
+
+### 2026-11-20 - Generic signature continuations in declaration queries
+
+Implemented coordinator preparation for generic calls in declaration annotations
+and inferred initializers. Ordinary generic argument deduction is factored into
+one helper shared with runtime-call checking. A prepared-call component retains
+the instance and argument syntax on the same call entity; declaration components
+retain ordered call cursors. Newly instantiated signatures predeclare their
+ordinary function/parameter entities, discover and seal the same declaration
+queries, then suspend their consumers through WorkGraph. Eligible instantiated
+parameters/returns use the existing type workers. Structural instance creation
+and deduction remain coordinator work; no new C++ or alternate evaluator.
+
+Postorder discovery preserves operand order and type-argument roles, carries
+unevaluated decltype context, and checks newly exposed field dependencies before
+deducing an enclosing call. It never retries a partly checked containing
+expression. Pointer-only generic returns do not invent record-layout dependencies.
+Prepared scratch references are cleared with compilation-local query disposal.
+
+First public-bootstrap draft build rejected aggregate vector_push/pop: Tower
+has no by-value aggregate copies. Replaced those queue operations with reserve,
+field writes and an explicit copy into local traversal storage. Build2 succeeds.
+The pre-existing declaration-generic-delayed.tower now reports16 with both widths
+and interpreters instead of Unknown field 'first'. New permanent fixtures cover
+nested/explicit/inferred calls, generic parameter dependencies, qualified module
+calls, unevaluated comptime(1/0), recursive pointer-only records and genuine
+signature cycles. The latter reports Record -> read(Record) -> Record. Initial
+capacity/overlap/trap checks pass3/3 in41.98s (generic-header-capacity1.log).
+Full bootstrap/backend validation and source publication remain pending.
+
+This closes the reproduced declaration-time generic-header gap, not every
+structural continuation: generic calls discovered while checking function bodies
+and type-function construction still have coordinator/synchronous paths. Keep
+those explicit next tasks; do not claim universal threading from this slice.
+
+Frozen field/layout sourcee7e7fcc passes local77-asset and desktop/mobile/default
+checks plus edited browser generations121.78s/91.74s. Generations have identical
+sizes1,007,419/52,307,529/63,864,984 and hashes:
+parser f715b3471940fa091cb48e60ad36b00cb1fecf49433ba71b9d527d6d1bd6b92a;
+LLVM 0f4a6f0ce37fd297d61e59402282c5ddf0acd12f6bc2f676550f5e636984350d;
+cross 592c4b67b180fbe457ea7f8bc0d98bd14ba0298ffe6afba0673691b41f5e6f8f.
+The frozen release is being published while generic-header development continues;
+the latter is not included in those release results.
+
+Validation: fresh compiletime-generic-header-clean public-bootstrap successor
+passes native8/8 in47.72s plus backend API and actual successor semantic-object
+cmp0. Matching backends51/51 pass28.94s, shared semantics30/30 pass26.55s.
+Expanded capacity checks, including exact generic/layout canonical text and cycle
+diagnostics plus once-only ordered argument effects, pass3/3 in66.77s. Native
+GDB's16-template fixture rises from1 tag-12 declaration job to33 across8 threads,
+with identical Foundation text and normal exits. This is measured admission,
+not a speedup claim. Editor compatibility is still running.
+
+Additional audit reproduced the same delayed-field gap through an explicit
+unary dereference: decltype((*value).inner.first). The readiness projection did
+not follow address/dereference syntax to the nominal record, although ordinary
+checking supports it. Added that projection for both surface and foundation
+forms, leaving pointer-depth/addressability validation in the ordinary checker.
+Extended the permanent generic-header fixture; the above build/backend counts
+predate this small correction and will be repeated as appropriate before push.
+
+Field/layout publication is complete: sourcee7e7fcc, Pages4646cd1554ae33f6b5848dfd54bc7356acc77b21,
+parent2e6c87e, GitHub action44869678845 succeeds. Hosted verification passes all77
+exact assets and desktop/mobile/default checks (declaration-fields-hosted-deployment.log).
+No private bootstrap or force push. Generic-header editor compatibility passes
+28/28 in105.61s, including module/generic completion and query ownership; this
+reactor predates the address/dereference dependency projection correction.
+
+The address/dereference correction now passes its previously failing reproducer
+(all four width/interpreter combinations), capacity/overlap checks3/3 in49.84s,
+matching backends51/51 in23.01s, native8/8 in42.65s plus backend API, and a repeated
+actual successor semantic-object cmp0. Compiler-project packaging also completed
+on the corrected source. Logs use generic-header-indirect. Source checkpoint is
+ready for the final pull and normal push; the already verified Pages4646cd1
+continues to contain the earlier field/layout checkpoint only.

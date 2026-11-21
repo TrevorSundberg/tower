@@ -1,0 +1,52 @@
+import tower;
+
+struct Inner { first:decltype(seed0); second:u64; }
+struct Outer { inner:Inner; other:u64; }
+var outer:Outer;
+fn read(T:type, value:T*):decltype(value.inner.first) { return value.inner.first; }
+fn indirect(T:type, value:T*):decltype((*value).inner.first) { return (*value).inner.first; }
+fn identity(T:type, value:T):T { return value; }
+fn size(T:type, value:T*):decltype(value.inner.first) {
+    return convert(decltype(value.inner.first), sizeof(T));
+}
+fn parameter(T:type, value:T*, other:decltype(value.inner.first)):decltype(other) { return other; }
+
+var early:decltype(read(&outer));
+var dereferenced:decltype(indirect(&outer));
+var explicit:decltype(read(Outer, &outer));
+var nested:decltype(identity(read(&outer)));
+var member:decltype(identity(&outer).inner.first);
+var ignored:decltype(identity(comptime(1 / 0)));
+var inferred=size(&outer);
+var from_parameter=parameter(&outer, 7);
+// Merely returning a pointer must not invent a record-layout dependency.
+struct Node { next:decltype(identity(&node)); }
+var node:Node;
+var sequence:i32=0;
+fn bump():i32 { sequence++; return sequence; }
+fn pair(T:type, first:T, second:T):T { return first * 10 + second; }
+var ordered=pair(identity(bump()), identity(bump()));
+
+var seed0:decltype(seed1);
+var seed1:decltype(seed2);
+var seed2:decltype(seed3);
+var seed3:decltype(seed4);
+var seed4:decltype(seed5);
+var seed5:decltype(seed6);
+var seed6:decltype(seed7);
+var seed7:decltype(seed8);
+var seed8:decltype(seed9);
+var seed9:decltype(seed10);
+var seed10:decltype(seed11);
+var seed11:decltype(seed12);
+var seed12:u64=0;
+
+var failures:i32=0;
+outer.inner.first=11;
+if read(&outer)!=11 || inferred!=24 || from_parameter!=7 { failures++; }
+if indirect(&outer)!=11 || sizeof(decltype(dereferenced))!=8 { failures++; }
+if sizeof(decltype(early))!=8 || sizeof(decltype(explicit))!=8 { failures++; }
+if sizeof(decltype(nested))!=8 || sizeof(decltype(member))!=8 { failures++; }
+if sizeof(decltype(ignored))!=4 || sizeof(Node)!=sizeof(Node*) { failures++; }
+if sequence!=2 || ordered!=12 { failures++; }
+print(failures);

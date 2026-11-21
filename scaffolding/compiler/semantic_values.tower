@@ -12,7 +12,9 @@ import semantic_types;
 import semantic_expressions;
 import semantic_call_inference;
 import semantic_evaluation;
+import semantic_declarations;
 import .library.vector;
+import .library.work_graph;
 
 // Semantic compiler over shared Foundation components.
 // Temporary indexes and scratch allocations are scoped to one compilation.
@@ -668,12 +670,55 @@ fn sem_builtin(c: SemanticContext*, n: void*, kind: u32, args: vector(void*)*): 
     return n;
 }
 
-fn sem_call_specialization(c: SemanticContext*, definition: void*, use: void*, arguments: vector(void*)*): void* {
+// Prepared generic calls retain their ordinary instance and argument syntax on
+// the call entity. They are compilation-local continuations, not another IR.
+struct SemanticPreparedCall {
+    instance: void*;
+    values: vector(void*)*;
+}
+
+fn sem_prepared_call(c: SemanticContext*, node: void*): SemanticPreparedCall* {
+    if c.prepared_calls == null { return null; }
+    return bits(SemanticPreparedCall*, entity_component_data(entity_component_get(node, c.prepared_calls)));
+}
+
+fn sem_call_arguments(c: SemanticContext*, definition: void*, use: void*, args: vector(void*)*, values: vector(void*)*): vector(void*)* {
+    var count = generic_parameter_count(c.generics, definition);
+    var runtime: usize = 0;
+    for(var i: usize = 0; i < count; i++) {
+        if !generic_type_parameter(c.generics, definition, i) { runtime++; }
+    }
+    var arguments = sem_list(c);
+    if args.length == count {
+        for(var i: usize = 0; i < count && sem_ok(c); i++) {
+            if generic_type_parameter(c.generics, definition, i) {
+                sem_push(arguments, sem_type_entity(c, sem_type(c, args.data[i])));
+            } else { sem_push(values, args.data[i]); }
+        }
+    } else {
+        if args.length == runtime {
+            foreach(var argument in args) { sem_push(values, argument); }
+            arguments = sem_infer_arguments(c, definition, use, values);
+        } else {
+            var name = sem_identifier(c, sem_member(use, "name"));
+            sem_fail(c, use, sem_cat(c, "Wrong argument count for template '", sem_cat(c, name, "'")));
+        }
+    }
+    return arguments;
+}
+
+fn sem_call_instance(c: SemanticContext*, definition: void*, use: void*, arguments: vector(void*)*): void* {
     var instance = generic_instantiate(c.generics, definition, use, arguments.data, arguments.length);
     if !sem_generic_ok(c, use) || instance == null {
         return null;
     }
     sem_state(c, c.source_bases, instance).number = sem_source_base(c, definition);
+    return instance;
+}
+
+fn sem_call_specialization(c: SemanticContext*, definition: void*, use: void*, arguments: vector(void*)*): void* {
+    var instance = sem_call_instance(c, definition, use, arguments);
+    if instance == null { return null; }
     if sem_get(instance) == null {
         sem_header(c, instance, sem_instance_name(c, definition, arguments), definition);
         if !sem_ok(c) {
@@ -682,6 +727,42 @@ fn sem_call_specialization(c: SemanticContext*, definition: void*, use: void*, a
         sem_push(&c.generated, instance);
     }
     return instance;
+}
+
+// The coordinator publishes a nominal instance and parameter scopes, then
+// requests their existing declaration queries. No return/parameter type is
+// forced here; the consumer suspends until the signature receipt is ready.
+fn sem_prepare_call(c: SemanticContext*, use: void*): SemanticPreparedCall* {
+    var prepared = sem_prepared_call(c, use);
+    if prepared != null { return prepared; }
+    var name = sem_member(use, "name");
+    var definition = sem_resolve(c, c.templates, name, sem_identifier(c, name));
+    sem_require(definition != null && c.declaration_subjects != null);
+    var values = sem_list(c);
+    var arguments = sem_call_arguments(c, definition, use, sem_collect(c, sem_member(use, "args"), "CoreCallArgument"), values);
+    if !sem_ok(c) { return null; }
+    var instance = sem_call_instance(c, definition, use, arguments);
+    if instance == null { return null; }
+    if sem_get(instance) == null {
+        sem_function_declare(c, instance, sem_instance_name(c, definition, arguments));
+        if !sem_ok(c) { return null; }
+        sem_parameters(c, instance, definition);
+        if !sem_ok(c) { return null; }
+        sem_push(&c.generated, instance);
+        sem_declaration_add(c, instance);
+        foreach(var parameter in &sem_get(instance).parameters) { sem_declaration_add(c, parameter); }
+        sem_declaration_discover(c);
+        if !sem_ok(c) { return null; }
+    }
+    if c.prepared_calls == null {
+        c.prepared_calls = sem_create(c.program.root);
+        sem_require(entity_register(c.prepared_calls, sizeof(SemanticPreparedCall), alignof(SemanticPreparedCall), 0));
+    }
+    prepared = bits(SemanticPreparedCall*, entity_component_data(entity_component_add(use, c.prepared_calls)));
+    sem_require(prepared != null);
+    prepared.instance = instance;
+    prepared.values = values;
+    return prepared;
 }
 
 fn sem_call(c: SemanticContext*, n: void*): void* {
@@ -708,35 +789,19 @@ fn sem_call(c: SemanticContext*, n: void*): void* {
     }
     var definition: void* = sem_resolve(c, c.templates, step3, name);
     if definition != null {
-        var count = generic_parameter_count(c.generics, definition);
-        var runtime: usize = 0;
-        for(var i: usize = 0; i < count; i++) {
-            if !generic_type_parameter(c.generics, definition, i) {
-                runtime++;
-            }
-        }
-        var arguments: vector(void*)* = sem_list(c);
-        var values: vector(void*)* = sem_list(c);
-        if args.length == count {
-            for(var i: usize = 0; i < count && sem_ok(c); i++) {
-                if generic_type_parameter(c.generics, definition, i) {
-                    sem_push(arguments, sem_type_entity(c, sem_type(c, args.data[i])));
-                } else {
-                    sem_push(values, args.data[i]);
-                }
-            }
+        var prepared = sem_prepared_call(c, n);
+        var values = sem_list(c);
+        var instance: void* = null;
+        if prepared != null {
+            instance = prepared.instance;
+            values = prepared.values;
+            var query = sem_declaration_query(c, instance);
+            sem_require(query == 0 || work_task(&c.queries, query).state == WorkState.Succeeded);
         } else {
-            if args.length == runtime {
-                values = args;
-                arguments = sem_infer_arguments(c, definition, n, values);
-            } else {
-                sem_fail(c, n, sem_cat(c, "Wrong argument count for template '", sem_cat(c, name, "'")));
-            }
+            var arguments = sem_call_arguments(c, definition, n, args, values);
+            if !sem_ok(c) { return n; }
+            instance = sem_call_specialization(c, definition, n, arguments);
         }
-        if !sem_ok(c) {
-            return n;
-        }
-        var instance = sem_call_specialization(c, definition, n, arguments);
         if !sem_ok(c) || instance == null {
             return n;
         }

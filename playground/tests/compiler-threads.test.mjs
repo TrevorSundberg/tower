@@ -46,6 +46,9 @@ test('declaration, body checking, lowering and staging are deterministic at 1/2/
  const compiler = await readFile('build/browser-wasi-threads/tower.wasm');
  const foundation = await readFile('scaffolding/foundation.tower', 'utf8');
  const delayedLayout = await readFile('scaffolding/tests/decltype_layout.tower', 'utf8');
+ const genericHeaders = await readFile('scaffolding/tests/decltype_generic_headers.tower', 'utf8');
+ const dependencyCanonical = new Map();
+ let genericCycleDiagnostic;
  const functions = Array.from({length:16}, (_, i) => `
 fn f${i}(value: decltype(seed)): decltype(value) {
  var state: Shared;
@@ -196,18 +199,31 @@ fn badSecond(value:MissingSecond):void {}`);
     assert.match(result.error, /duplicate field 'first'/);
     assert.doesNotMatch(result.error, /duplicate field 'second'/);
    } finally { tower.destroyExecution(fieldsInvalid); }
+   for (const fixture of [delayedLayout, genericHeaders])
    for (const pointerBytes of [4,8]) for (let fast=0; fast<2; fast++) {
-    const handle=tower.compile(delayedLayout,{pointerBytes});
+    const handle=tower.compile(fixture,{pointerBytes});
     try {
      if (fast) tower.useFast(handle);
      let result, output='';
      do { result=tower.execute(handle,10000); output+=result.output; } while(result.status==='executing');
      assert.equal(result.status,'done',result.error);
      assert.equal(output,'0\n',`delayed layout: workers=${capacity}, width=${pointerBytes}, fast=${fast}`);
+     const key = fixture + pointerBytes;
+     const text = tower.foundation(handle).source;
+     if (!dependencyCanonical.has(key)) dependencyCanonical.set(key, text);
+     assert.equal(text, dependencyCanonical.get(key), `generic/layout dependencies: workers=${capacity}, width=${pointerBytes}, fast=${fast}`);
     } finally { tower.destroyExecution(handle); }
    }
+   const genericCycle=tower.compile(await readFile('scaffolding/tests/semantic_invalid/decltype_generic_header_cycle.tower','utf8'));
+   try {
+    const result=tower.execute(genericCycle);
+    assert.equal(result.status,'error');
+    assert.match(result.error,/initializer dependency cycle/);
+    genericCycleDiagnostic ??= result.error;
+    assert.equal(result.error, genericCycleDiagnostic, `signature cycle at ${capacity} workers`);
+   } finally { tower.destroyExecution(genericCycle); }
    tower.configureModules({entry:'main.tower', files:[
-    {path:'left.tower', text:'import tower; var seed:u64=3; struct Item { value:decltype(seed); next:Item*; }'},
+    {path:'left.tower', text:'import tower; var seed:u64=3; struct Item { value:decltype(seed); next:Item*; } fn read(T:type,item:T*):decltype(item.value) { return item.value; }'},
     {path:'right.tower', text:'import tower; var seed:u64=7; struct Item { value:decltype(seed); next:Item*; }'},
    ]});
    const modules = `import tower; import left as l; import right as r;
@@ -217,6 +233,7 @@ var pair:Pair; pair.first=from_left; pair.second=from_right;
 // Parameter l hides the module alias. This needs the record's field/layout
 // dependencies, so admission must use the signature's actual lexical scope.
 fn shadow(l:r.Item*):decltype(l.value) { return l.value; }
+var returned:decltype(l.read(&item));
 var item:r.Item; item.value=9; print(shadow(&item)); print(pair.first+pair.second);`;
    for (const pointerBytes of [4,8]) for (let fast=0; fast<2; fast++) {
     const handle=tower.compile(modules,{pointerBytes});
