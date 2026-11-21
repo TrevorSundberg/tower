@@ -94,11 +94,11 @@
                                  "sourceCommit":  "3c9a01c8d05b88872d56aaff11b029e7cb630aba",
                                  "report":  "docs/temporal-opcode-research-journal.md"
                              },
-    "previousDeployment":  "450dba541c8908499fdd5c386e93d83d3820cbfa",
-    "buildNote":  "Editor/documentation-only checkpoint. Preserves every previously verified runtime asset and its original buildSourceCommit.",
+    "previousDeployment":  "14978d72030a1942e924ff697359db7ba33af12e",
+    "buildNote":  "Documentation-only checkpoint. Runtime assets retain their previously verified buildSourceCommit.",
     "buildSourceCommit":  "8e09a3c552ffda6ffa19da56ccbee85f6b504115",
-    "sourceCommit":  "08b152b4cc91ae30e0a8f594b4d2427102647c22",
-    "scope":  "Verified Tower language-support preparation: grammar CI, local/live desktop and mobile validation, and publication receipt; runtime assets unchanged.",
+    "sourceCommit":  "1a4fcf324fed301aef958625d5e30a6987eaf791",
+    "scope":  "Checkpoint all preserved local architecture research and planning notes; runtime assets unchanged.",
     "languageSupportPreparation":  {
                                        "sourceCommit":  "054466c4bd33430834ff2353ddb23dd5d52607ba",
                                        "report":  "docs/github_language_support.md",
@@ -106,5 +106,10 @@
                                        "githubRecognition":  false,
                                        "scopeAssertions":  54,
                                        "validationCommit":  "08b152b4cc91ae30e0a8f594b4d2427102647c22"
-                                   }
+                                   },
+    "localNotesCheckpoint":  {
+                                 "sourceCommit":  "1a4fcf324fed301aef958625d5e30a6987eaf791",
+                                 "report":  "docs/temporal-opcode-research-journal.md",
+                                 "existingTodoContentPreserved":  true
+                             }
 }
