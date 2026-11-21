@@ -26628,3 +26628,15 @@ comparison after enabling test exports differs, so no byte-identity claim applie
 to this differently configured pair. Logs: inference-{integrated-tests,
 shared-checks,capacity-checks,invalid-reference,native-checks,native-final}.log.
 The full matching browser bundle is built and local deployment checks are running.
+
+Native acceptance with the inference diagnostic updated passes 2/2 in 1.87 s.
+The matching local desktop/mobile shared-worker/isolation/portable-fallback suite
+passes 4/4 in 40.0 s. Final synchronization brought eea0037's 92-module inferred
+collection-call migration and Pages 999df00. Preserved those simplifications while
+resolving the scheduler/layout/lifecycle overlaps; retained all journal entries.
+Upstream also changed its arity fixture to f(). Keep that test and add f(i32) as a
+separate value-resolution case, rather than combining the new source with the old
+expectation. A new empty compiletime-collections-clean cache and all browser
+reactors are rebuilding with the already published 25765446 bootstrap. Earlier
+browser checks cover the preceding integration; the refreshed bundle will be
+validated before publication. No C++ changes or todo.txt edits in this lane.
