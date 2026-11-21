@@ -29,6 +29,26 @@ allocator; it covers UTF-8 source locations, deep copies and ownership transfers
 Foundation payloads, borrowed edges, aliasing, failure atomicity, 600-level tree
 clones, 100 session resets and source provenance surviving session destruction.
 
+Formatter fixtures now run in Tower. Configure the native build with
+`-DTOWER_FORMAT_TESTS=ON`, build `tower-format-tests`, and run
+`ctest --test-dir <build> -R '^tower-format$' --output-on-failure`.
+The WASI parser configuration provides the same standalone target, executable
+through `host-wasi.mjs`. The parser aggregate also calls the focused suite.
+Sixteen frozen fixtures preserve exact UTF-8 text and ordered source-span triples
+independently verified against the unchanged former native formatter on Linux
+and WASI before its retirement. Coverage includes source and Foundation round
+trips, generated names/literals containing NUL, comment order, 32 source-layout
+allocation failures and 32 Foundation-result failures with empty published
+output and complete cleanup. The temporary syntax-result ABI is explicitly
+restricted to Linux x86_64/libstdc++ and WASI SDK 34/libc++.
+
+The broad repository formatting check remains available as the separate native
+`-DTOWER_FORMAT_SWEEP=ON` / `tower-format-repository` CTest. It checks canonical
+source, idempotence, filename-relative modules, Bedrock/Foundation baselines and
+invalid syntax fixtures. It is off by default and was not run during this
+migration; a two-file check exercised its valid/invalid file-list path. The
+existing playground formatting tools remain available.
+
 The isolated `cmake/TowerDriver.cmake` fragment adds CLI checks with
 `-DTOWER_DRIVER_TESTS=ON` to a native compiler configuration. Build `towerc` and
 `tower-driver-tests`, then run `ctest --test-dir <build> -R tower-driver

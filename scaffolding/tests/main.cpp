@@ -4,7 +4,7 @@
 #include "../compiler-syntax-emission.hpp"
 #include <cassert>
 extern "C" int host_runtime_tests();
-void formatter_tests();
+extern "C" void formatter_tests();
 extern "C" void compiler_storage_tests();
 extern "C" void shared_entity_tests();
 extern "C" void entity_registry_tests();

@@ -1,0 +1,71 @@
+import tower;
+import .compiler.format_types;
+import .host.driver_types;
+import .host.driver_support;
+import .host.driver_request;
+import .host.driver_api;
+import .library.bytes_types;
+import .library.bytes_interface;
+import storage_api;
+import format_abi;
+import format_suite;
+import utility_checks;
+
+extern fn `cpp_name(SyntaxSession* syntax_create_bedrock(char const*))`(source: u8*): void*;
+extern fn `cpp_name(SyntaxSession* syntax_create_foundation(char const*))`(source: u8*): void*;
+
+fn format_repository_source(input: u8*, baseline: u32, invalid: bool, result: FormatResult*): void {
+    var session: void*;
+    if baseline == 1 { session = `cpp_name(SyntaxSession* syntax_create_bedrock(char const*))`(input); }
+    else {
+        if baseline == 2 { session = `cpp_name(SyntaxSession* syntax_create_foundation(char const*))`(input); }
+        else { session = syntax_create(input, null); }
+    }
+    utility_check(session is not null, "Repository formatter source session");
+    defer syntax_destroy(session);
+    loop { var root = syntax_next(session); if root is null { break; } tower_node_release_ref(root); }
+    if invalid { utility_check(syntax_get_error(session)[0] != 0, "Intentionally invalid syntax rejected"); return; }
+    if syntax_get_error(session)[0] != 0 { puts(syntax_get_error(session)); }
+    utility_check(syntax_get_error(session)[0] == 0, "Repository source parses");
+    var foreign: usize[11]; `cpp_name(TowerText syntax_format(SyntaxSession*))`(&foreign[0], session);
+    defer format_abi_dispose(&foreign[0]); format_abi_copy(result, &foreign[0]);
+}
+
+// The file list is mechanical CMake packaging, sorted and rooted at scaffolding.
+// All read/parse/format/canonical/invalid-fixture assertions remain Tower code.
+fn format_repository_tests(list_path: u8*, library: u8*, modules: void*): void {
+    var listing: ByteBuffer; fill(&listing, 0, sizeof(ByteBuffer)); defer bytes_dispose(&listing);
+    utility_check(driver_read_file(list_path, &listing) && host_text_terminate(&listing), "Read repository formatter file list");
+    var files: usize = 0; var invalid_files: usize = 0; var begin: usize = 0;
+    for (var end: usize = 0; end <= listing.length; ++end) {
+        if end != listing.length && listing.data[end] != 10 { continue; }
+        listing.data[end] = 0;
+        if begin == end { begin = end + 1; continue; }
+        var path = &listing.data[begin]; var name = path; var invalid = false;
+        for (var at: usize = 0; path[at] != 0; ++at) {
+            if path[at] == 47 {
+                name = path + at + 1;
+                if strlen(name) >= 15 && utility_equal(name, "syntax_invalid/", 15) { invalid = true; }
+            }
+        }
+        puts(path);
+        frontend_modules_configure(modules, path, library);
+        var input: ByteBuffer; fill(&input, 0, sizeof(ByteBuffer)); defer bytes_dispose(&input);
+        utility_check(driver_read_file(path, &input) && host_text_terminate(&input), "Read repository formatter source");
+        var baseline: u32 = 0;
+        if strcmp(name, "bedrock.tower") == 0 { baseline = 1; }
+        if strcmp(name, "foundation.tower") == 0 { baseline = 2; }
+        var actual: FormatResult; fill(&actual, 0, sizeof(FormatResult)); defer format_dispose(&actual);
+        format_repository_source(input.data, baseline, invalid, &actual);
+        if invalid { ++invalid_files; }
+        else {
+            utility_check(actual.text.length == input.length && utility_equal(actual.text.data, input.data, input.length), "Repository source already canonical");
+            var again: FormatResult; fill(&again, 0, sizeof(FormatResult)); defer format_dispose(&again);
+            format_repository_source(actual.text.data, baseline, false, &again);
+            format_test_equal(&actual, &again, false); ++files;
+        }
+        begin = end + 1;
+    }
+    utility_check(files != 0 && invalid_files != 0, "Repository sweep covers source and invalid fixtures");
+    puts("Repository canonical source, idempotence and invalid fixtures passed.");
+}

@@ -1,0 +1,321 @@
+import tower;
+import .compiler.format_types;
+import storage_api;
+import utility_checks;
+
+// Frozen exact text and ordered spans, independently checked against unchanged
+// native format-seed.cpp from 3167766 (SHA-256 recorded in the project journal).
+// Generated names deliberately contain NUL, represented as bytes rather than a
+// terminated string. Expected data does not call formatter implementation code.
+fn format_fixture_bytes(actual: FormatResult*, text: u8*, length: usize, count: usize): void {
+    utility_check(!actual.failed && actual.text.length == length && utility_equal(actual.text.data, text, length), "Frozen formatter reference text");
+    utility_check(actual.spans.length == count, "Frozen formatter reference span count");
+}
+fn format_fixture_text(actual: FormatResult*, text: u8*, count: usize): void {
+    format_fixture_bytes(actual, text, strlen(text), count);
+}
+fn format_fixture_span(actual: FormatResult*, index: usize, begin: usize, end: usize, source: usize): void {
+    var span = &actual.spans.data[index];
+    utility_check(span.begin == begin && span.end == end && span.source == source, "Frozen formatter reference ordered span triple");
+}
+fn format_fixture_check(id: usize, actual: FormatResult*): void {
+    if id == 0 {
+        format_fixture_text(actual, "// before\nvar x: i32 = 1;\n\n// inline\n\n/* block */\nfn f(a: i32*): i32 {\n    return *a;\n}\n// after\n", 26);
+        format_fixture_span(actual, 0, 0, 9, 0);
+        format_fixture_span(actual, 1, 10, 13, 10);
+        format_fixture_span(actual, 2, 14, 15, 14);
+        format_fixture_span(actual, 3, 15, 16, 15);
+        format_fixture_span(actual, 4, 17, 20, 16);
+        format_fixture_span(actual, 5, 21, 22, 19);
+        format_fixture_span(actual, 6, 23, 24, 20);
+        format_fixture_span(actual, 7, 24, 25, 21);
+        format_fixture_span(actual, 8, 27, 36, 23);
+        format_fixture_span(actual, 9, 38, 49, 34);
+        format_fixture_span(actual, 10, 50, 52, 46);
+        format_fixture_span(actual, 11, 53, 54, 49);
+        format_fixture_span(actual, 12, 54, 55, 50);
+        format_fixture_span(actual, 13, 55, 56, 51);
+        format_fixture_span(actual, 14, 56, 57, 52);
+        format_fixture_span(actual, 15, 58, 61, 53);
+        format_fixture_span(actual, 16, 61, 62, 56);
+        format_fixture_span(actual, 17, 62, 63, 57);
+        format_fixture_span(actual, 18, 63, 64, 58);
+        format_fixture_span(actual, 19, 65, 68, 59);
+        format_fixture_span(actual, 20, 69, 70, 62);
+        format_fixture_span(actual, 21, 75, 81, 63);
+        format_fixture_span(actual, 22, 82, 83, 70);
+        format_fixture_span(actual, 23, 83, 84, 71);
+        format_fixture_span(actual, 24, 84, 85, 72);
+        format_fixture_span(actual, 25, 86, 87, 73);
+        return;
+    }
+    if id == 1 {
+        format_fixture_text(actual, "parse Statement |= 'show' $x:CoreOperand ';'\n    => replace { print($x); };\nshow 42;\n", 4);
+        format_fixture_span(actual, 0, 0, 76, 0);
+        format_fixture_span(actual, 1, 76, 80, 72);
+        format_fixture_span(actual, 2, 81, 83, 77);
+        format_fixture_span(actual, 3, 83, 84, 79);
+        return;
+    }
+    if id == 2 {
+        format_fixture_text(actual, "parse Prefix = '~~' Identifier;\nparse Statement |= 'prefix' Prefix ';';\nprefix ~~x;\n", 6);
+        format_fixture_span(actual, 0, 0, 32, 0);
+        format_fixture_span(actual, 1, 32, 72, 32);
+        format_fixture_span(actual, 2, 72, 78, 72);
+        format_fixture_span(actual, 3, 79, 81, 79);
+        format_fixture_span(actual, 4, 81, 82, 82);
+        format_fixture_span(actual, 5, 82, 83, 83);
+        return;
+    }
+    if id == 3 {
+        format_fixture_text(actual, "parse Statement |= 'postfix' Identifier '!!' ';';\npostfix x !!;\n", 5);
+        format_fixture_span(actual, 0, 0, 50, 0);
+        format_fixture_span(actual, 1, 50, 57, 50);
+        format_fixture_span(actual, 2, 58, 59, 58);
+        format_fixture_span(actual, 3, 60, 62, 60);
+        format_fixture_span(actual, 4, 62, 63, 62);
+        return;
+    }
+    if id == 4 {
+        format_fixture_text(actual, "token Context = /abc/ when expected as identifier;\nparse Extra = Context;\nparse Statement = Extra ';';\nabc;\n", 5);
+        format_fixture_span(actual, 0, 0, 51, 0);
+        format_fixture_span(actual, 1, 51, 74, 51);
+        format_fixture_span(actual, 2, 74, 103, 74);
+        format_fixture_span(actual, 3, 103, 106, 103);
+        format_fixture_span(actual, 4, 106, 107, 106);
+        return;
+    }
+    if id == 5 {
+        format_fixture_text(actual, "var `if`: i32 = 1;\nvar `with space`: i32 = `if`;\nprint(`with space`);\n", 19);
+        format_fixture_span(actual, 0, 0, 3, 0);
+        format_fixture_span(actual, 1, 4, 8, 4);
+        format_fixture_span(actual, 2, 8, 9, 8);
+        format_fixture_span(actual, 3, 10, 13, 9);
+        format_fixture_span(actual, 4, 14, 15, 12);
+        format_fixture_span(actual, 5, 16, 17, 13);
+        format_fixture_span(actual, 6, 17, 18, 14);
+        format_fixture_span(actual, 7, 19, 22, 16);
+        format_fixture_span(actual, 8, 23, 35, 20);
+        format_fixture_span(actual, 9, 35, 36, 32);
+        format_fixture_span(actual, 10, 37, 40, 33);
+        format_fixture_span(actual, 11, 41, 42, 36);
+        format_fixture_span(actual, 12, 43, 47, 37);
+        format_fixture_span(actual, 13, 47, 48, 41);
+        format_fixture_span(actual, 14, 49, 54, 43);
+        format_fixture_span(actual, 15, 54, 55, 48);
+        format_fixture_span(actual, 16, 55, 67, 49);
+        format_fixture_span(actual, 17, 67, 68, 61);
+        format_fixture_span(actual, 18, 68, 69, 62);
+        return;
+    }
+    if id == 6 {
+        format_fixture_text(actual, "struct Pair {\n    a: i32;\n    b: u8;\n}\n\nfn f(p: Pair*): i32 {\n    if true {\n        return p.a;\n    } else {\n        return 0;\n    }\n}\n", 39);
+        format_fixture_span(actual, 0, 0, 6, 0);
+        format_fixture_span(actual, 1, 7, 11, 7);
+        format_fixture_span(actual, 2, 12, 13, 11);
+        format_fixture_span(actual, 3, 18, 19, 12);
+        format_fixture_span(actual, 4, 19, 20, 13);
+        format_fixture_span(actual, 5, 21, 24, 14);
+        format_fixture_span(actual, 6, 24, 25, 17);
+        format_fixture_span(actual, 7, 30, 31, 18);
+        format_fixture_span(actual, 8, 31, 32, 19);
+        format_fixture_span(actual, 9, 33, 35, 20);
+        format_fixture_span(actual, 10, 35, 36, 22);
+        format_fixture_span(actual, 11, 37, 38, 23);
+        format_fixture_span(actual, 12, 40, 42, 25);
+        format_fixture_span(actual, 13, 43, 44, 28);
+        format_fixture_span(actual, 14, 44, 45, 29);
+        format_fixture_span(actual, 15, 45, 46, 30);
+        format_fixture_span(actual, 16, 46, 47, 31);
+        format_fixture_span(actual, 17, 48, 52, 32);
+        format_fixture_span(actual, 18, 52, 53, 36);
+        format_fixture_span(actual, 19, 53, 54, 37);
+        format_fixture_span(actual, 20, 54, 55, 38);
+        format_fixture_span(actual, 21, 56, 59, 39);
+        format_fixture_span(actual, 22, 60, 61, 42);
+        format_fixture_span(actual, 23, 66, 68, 43);
+        format_fixture_span(actual, 24, 69, 73, 46);
+        format_fixture_span(actual, 25, 74, 75, 50);
+        format_fixture_span(actual, 26, 84, 90, 51);
+        format_fixture_span(actual, 27, 91, 92, 58);
+        format_fixture_span(actual, 28, 92, 93, 59);
+        format_fixture_span(actual, 29, 93, 94, 60);
+        format_fixture_span(actual, 30, 94, 95, 61);
+        format_fixture_span(actual, 31, 100, 101, 62);
+        format_fixture_span(actual, 32, 102, 106, 63);
+        format_fixture_span(actual, 33, 107, 108, 67);
+        format_fixture_span(actual, 34, 117, 123, 68);
+        format_fixture_span(actual, 35, 124, 125, 75);
+        format_fixture_span(actual, 36, 125, 126, 76);
+        format_fixture_span(actual, 37, 131, 132, 77);
+        format_fixture_span(actual, 38, 133, 134, 78);
+        return;
+    }
+    if id == 7 {
+        format_fixture_text(actual, "var a: i32[2];\nvar p: i32* = &a[0];\n*p = 1;\nvar x: i32 = *p + a[1];\n", 38);
+        format_fixture_span(actual, 0, 0, 3, 0);
+        format_fixture_span(actual, 1, 4, 5, 4);
+        format_fixture_span(actual, 2, 5, 6, 5);
+        format_fixture_span(actual, 3, 7, 10, 6);
+        format_fixture_span(actual, 4, 10, 11, 9);
+        format_fixture_span(actual, 5, 11, 12, 10);
+        format_fixture_span(actual, 6, 12, 13, 11);
+        format_fixture_span(actual, 7, 13, 14, 12);
+        format_fixture_span(actual, 8, 15, 18, 14);
+        format_fixture_span(actual, 9, 19, 20, 18);
+        format_fixture_span(actual, 10, 20, 21, 19);
+        format_fixture_span(actual, 11, 22, 25, 20);
+        format_fixture_span(actual, 12, 25, 26, 23);
+        format_fixture_span(actual, 13, 27, 28, 24);
+        format_fixture_span(actual, 14, 29, 30, 25);
+        format_fixture_span(actual, 15, 30, 31, 26);
+        format_fixture_span(actual, 16, 31, 32, 27);
+        format_fixture_span(actual, 17, 32, 33, 28);
+        format_fixture_span(actual, 18, 33, 34, 29);
+        format_fixture_span(actual, 19, 34, 35, 30);
+        format_fixture_span(actual, 20, 36, 37, 32);
+        format_fixture_span(actual, 21, 37, 38, 33);
+        format_fixture_span(actual, 22, 39, 40, 34);
+        format_fixture_span(actual, 23, 41, 42, 35);
+        format_fixture_span(actual, 24, 42, 43, 36);
+        format_fixture_span(actual, 25, 44, 47, 38);
+        format_fixture_span(actual, 26, 48, 49, 42);
+        format_fixture_span(actual, 27, 49, 50, 43);
+        format_fixture_span(actual, 28, 51, 54, 44);
+        format_fixture_span(actual, 29, 55, 56, 47);
+        format_fixture_span(actual, 30, 57, 58, 48);
+        format_fixture_span(actual, 31, 58, 59, 49);
+        format_fixture_span(actual, 32, 60, 61, 51);
+        format_fixture_span(actual, 33, 62, 63, 53);
+        format_fixture_span(actual, 34, 63, 64, 54);
+        format_fixture_span(actual, 35, 64, 65, 55);
+        format_fixture_span(actual, 36, 65, 66, 56);
+        format_fixture_span(actual, 37, 66, 67, 57);
+        return;
+    }
+    if id == 8 {
+        format_fixture_text(actual, "// only comment\n/* final */\n", 0);
+        return;
+    }
+    if id == 9 {
+        format_fixture_text(actual, "var lo: i64 = -9223372036854775808;\nvar hi: u64 = 18446744073709551615;\nvar b: bool = true;\nvar p: i32* = null;\n", 4);
+        format_fixture_span(actual, 0, 0, 35, 0);
+        format_fixture_span(actual, 1, 36, 71, 33);
+        format_fixture_span(actual, 2, 72, 91, 66);
+        format_fixture_span(actual, 3, 92, 111, 83);
+        return;
+    }
+    if id == 10 {
+        format_fixture_text(actual, "struct S {\n    x: i32;\n}\n\nextern fn ext(a: i32): i32;\n\nexport fn f(a: i32): i32 {\n    var x: i32 = ext(a);\n    return x;\n}\n", 5);
+        format_fixture_span(actual, 0, 0, 24, 0);
+        format_fixture_span(actual, 1, 26, 53, 20);
+        format_fixture_span(actual, 2, 86, 106, 71);
+        format_fixture_span(actual, 3, 111, 120, 89);
+        format_fixture_span(actual, 4, 55, 122, 46);
+        return;
+    }
+    if id == 11 {
+        format_fixture_text(actual, "var p: i32* = alloc(i32, 2);\np = realloc(i32, p, 3);\nfill(p, 0, 12);\ncopy(p, p, 12);\nvar x: usize = sizeof(i32);\nx = alignof(i32);\nfree(p);\n", 7);
+        format_fixture_span(actual, 0, 0, 28, 0);
+        format_fixture_span(actual, 1, 29, 52, 25);
+        format_fixture_span(actual, 2, 53, 68, 45);
+        format_fixture_span(actual, 3, 69, 84, 59);
+        format_fixture_span(actual, 4, 85, 112, 73);
+        format_fixture_span(actual, 5, 113, 130, 98);
+        format_fixture_span(actual, 6, 131, 139, 114);
+        return;
+    }
+    if id == 12 {
+        format_fixture_text(actual, "var x: u32 = convert(u32, 1);\nvar y: i32 = bits(i32, x);\nloop {\n    if true {\n        break;\n    } else {\n        continue;\n    }\n}\nprint(y);\n", 7);
+        format_fixture_span(actual, 0, 0, 29, 0);
+        format_fixture_span(actual, 1, 30, 56, 26);
+        format_fixture_span(actual, 2, 86, 92, 66);
+        format_fixture_span(actual, 3, 114, 123, 82);
+        format_fixture_span(actual, 4, 68, 129, 56);
+        format_fixture_span(actual, 5, 57, 131, 49);
+        format_fixture_span(actual, 6, 132, 141, 96);
+        return;
+    }
+    if id == 13 {
+        var bytes: u8[48];
+        bytes[0] = 118;
+        bytes[1] = 97;
+        bytes[2] = 114;
+        bytes[3] = 32;
+        bytes[4] = 96;
+        bytes[5] = 97;
+        bytes[6] = 0;
+        bytes[7] = 92;
+        bytes[8] = 110;
+        bytes[9] = 92;
+        bytes[10] = 114;
+        bytes[11] = 92;
+        bytes[12] = 116;
+        bytes[13] = 92;
+        bytes[14] = 96;
+        bytes[15] = 92;
+        bytes[16] = 92;
+        bytes[17] = 195;
+        bytes[18] = 169;
+        bytes[19] = 96;
+        bytes[20] = 58;
+        bytes[21] = 32;
+        bytes[22] = 117;
+        bytes[23] = 56;
+        bytes[24] = 42;
+        bytes[25] = 32;
+        bytes[26] = 61;
+        bytes[27] = 32;
+        bytes[28] = 39;
+        bytes[29] = 113;
+        bytes[30] = 117;
+        bytes[31] = 111;
+        bytes[32] = 116;
+        bytes[33] = 101;
+        bytes[34] = 92;
+        bytes[35] = 39;
+        bytes[36] = 92;
+        bytes[37] = 92;
+        bytes[38] = 92;
+        bytes[39] = 110;
+        bytes[40] = 92;
+        bytes[41] = 114;
+        bytes[42] = 92;
+        bytes[43] = 116;
+        bytes[44] = 0;
+        bytes[45] = 39;
+        bytes[46] = 59;
+        bytes[47] = 10;
+        format_fixture_bytes(actual, &bytes[0], 48, 1);
+        format_fixture_span(actual, 0, 0, 47, 0);
+        return;
+    }
+    if id == 14 {
+        format_fixture_text(actual, "// header\nfn f(): void {\n    /* body */\n    print(1); /* after */\n}\n// tail\n", 16);
+        format_fixture_span(actual, 0, 0, 9, 0);
+        format_fixture_span(actual, 1, 10, 12, 10);
+        format_fixture_span(actual, 2, 13, 14, 13);
+        format_fixture_span(actual, 3, 14, 15, 14);
+        format_fixture_span(actual, 4, 15, 16, 15);
+        format_fixture_span(actual, 5, 16, 17, 16);
+        format_fixture_span(actual, 6, 18, 22, 17);
+        format_fixture_span(actual, 7, 23, 24, 22);
+        format_fixture_span(actual, 8, 29, 39, 24);
+        format_fixture_span(actual, 9, 44, 49, 35);
+        format_fixture_span(actual, 10, 49, 50, 40);
+        format_fixture_span(actual, 11, 50, 51, 41);
+        format_fixture_span(actual, 12, 51, 52, 42);
+        format_fixture_span(actual, 13, 52, 53, 43);
+        format_fixture_span(actual, 14, 54, 65, 45);
+        format_fixture_span(actual, 15, 66, 67, 57);
+        return;
+    }
+    if id == 15 {
+        format_fixture_text(actual, "fn f(): i32 {\n    return 42;\n}\n\nvar x: i32 = f();\n", 3);
+        format_fixture_span(actual, 0, 18, 28, 13);
+        format_fixture_span(actual, 1, 0, 30, 0);
+        format_fixture_span(actual, 2, 32, 49, 26);
+        return;
+    }
+    utility_check(false, "Unknown formatter fixture");
+}

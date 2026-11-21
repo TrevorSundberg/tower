@@ -1,5 +1,5 @@
-// Run from the repository root with a pre-port reactor path. Production build
-// must have TOWER_FORMAT_DIFFERENTIAL=OFF; reference assertions double the work.
+// Run from the repository root with a pre-port reactor path. Exact-output
+// regression fixtures run separately from this production formatter benchmark.
 // Reports observations, never enforces a timing threshold on shared machines.
 import {readFile} from 'node:fs/promises';
 import {performance} from 'node:perf_hooks';
