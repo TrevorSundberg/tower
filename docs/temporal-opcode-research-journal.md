@@ -28682,3 +28682,35 @@ pointee/type match and a whole sizeof(Type) extent; comments, aliases with other
 spellings, batches and byte ranges are excluded. Reviewed the reset list including
 frontend/interpreter lifetimes and work graph/pool state. Its original fill has
 identical storage extent/order; no field-assignment constructor is inferred.
+
+Rebased the feature onto 782d73a's worker-side canonical call discovery, preserving
+its private traversal scratch and coordinator publication. Rebuilt native and
+portable/shared reactors; feature+capacity checks pass 9/9 (22.78 s), all native
+acceptance tests pass 8/8 (20.90 s), and backend API passes. The actual native
+successor emits a byte-identical semantic compiler object (cmp exit 0).
+
+Packaged the predecessor-compatible feature checkpoint 1500366 as development
+bootstrap SHA256 5d1d298c48f8f3b9bdf8f21d4d96384183b873b50472ccf170ba8e06486429e0
+(652539 bytes), with complete hashed resources and source inputs. A previously
+empty /cache/default-bootstrap-clean builds all 54 steps using the documented
+pin without TOWER_BOOTSTRAP_COMPILER. Its reference interpreter, cache interpreter
+and native executable each print 0 for default_initialization.tower. This remains
+the documented hybrid Linux x64/LLVM19 development bootstrap, not the future pure
+portable compiler distribution. Publish this pin before applying the 200-site
+migration. Logs: default-rebase-native.log, default-bootstrap-clean.log,
+default-native-execution.log and default-rebase-acceptance.log.
+
+Final integration also includes 7ae5d78's Tower replacement-template/inspection
+port and f68b1f9's validation notes. Rebuilt the bootstrap from that merged source
+using the previous published bcc76755 predecessor; native frontend and full
+execution/round-trip/package checks pass. The actual published feature checkpoint
+is 18ff584; its compiler/CMake inputs are identical to the packaged build (git diff
+--quiet on those paths). Point provenance at that reachable public revision.
+This supersedes the unpublished 5d1d298c trial pin and its pre-port source ID above.
+Final archive SHA256 f7ae2e1c6a4704b6264441782c06839824bf78e6a869d6820386dd32b1f781ce
+is 650405 bytes. A newly empty /cache/default-template-clean builds all 55 steps
+through the normal pin with no override, then both interpreters print 0. Added
+explicit parameterized default types and forward decltype coverage; all six
+feature/round-trip/LLVM/formatter tests pass. The source push raced a journal-only
+upstream update; resolved append-only history and pushed normally, without force.
+The bootstrap is published before any compiler migration to default syntax.

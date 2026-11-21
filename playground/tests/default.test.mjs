@@ -66,6 +66,8 @@ test('generic inference and ordinary compile-time execution share default semant
  fn clear(T:type,p:T*):void{*p=default;}
  var typed:u64=42;print(same(default,typed));print(same(default(u64),42));
  var values:vector(i32)=default;defer vector_dispose(&values);vector_push(&values,42);print(values.data[0]);
+ var explicit=default(vector(i32));vector_push(&explicit,7);vector_dispose(&explicit);
+ var forward=default(decltype(later));var later:u64=9;if forward!=0{print(99);}
  struct Cell{n:i32;flag:bool;}var cell:Cell=default;cell.n=9;clear(&cell);print(cell.n);
  fn stage():i32{var n:i32=default;n=17;n=default;return n;}
  print(comptime(stage()));`, '0\n0\n42\n0\n0\n');
