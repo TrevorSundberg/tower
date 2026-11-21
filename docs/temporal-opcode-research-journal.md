@@ -31783,3 +31783,51 @@ rebuild or repeat the browser suite. The main checkout and Pages worktree are
 clean after publication; unrelated stash 30babcc remains preserved. Remaining
 language work is aggregate value/return and ownership contracts plus the future
 Stronghold validation policy, not an implicit part of named-field construction.
+
+### 2026-11-21 - Next language slice after named-field initialization
+
+Pulled main with `git pull --rebase`; e8661dd was already current. Reviewed the
+language plan, simplification audit, named-initialization contract and current
+compiler/library sources in response to the user's next-feature question. This
+is a recommendation, not an implementation or a new measured migration count.
+
+Recommend struct return values first, with construction into caller-provided
+destination storage. Named-field initialization can populate that destination,
+but semantic_statements.tower still explicitly rejects struct parameters and
+returns, while semantic_values.tower rejects aggregate value copies. The gap is
+visible in regex_lowering.tower's RegexFragment output parameters and in the
+work graph's WorkTicket output APIs. vector_pop, stack_pop and queue_pop also
+use bool plus an output pointer; their empty/failure cases need an absence/result
+contract rather than an unconditional struct return. Output-named parameters in
+formatters and semantic workers also include append buffers and persistent job
+state, so they are not automatically return-value migration candidates.
+
+The first bounded implementation should permit fully initialized plain records
+returned directly into a declaration or another return destination, without
+requiring arbitrary aggregate copying. Specify destination aliasing, evaluation
+and cleanup order, recursive calls and target layout. Preserve owned-resource
+constructors and explicit transfers; pointer fields alone do not prove that a
+record is non-owning. Returning an existing owner, replacement and aggregate
+arguments need explicit move/borrow/drop contracts before broad adoption.
+
+Lower internal return destinations to existing typed pointer parameters, stores,
+calls and void returns on the shared Foundation entities. This is a proposed
+Tower calling convention, not a claim of native external aggregate ABI support.
+Keep source signature/provenance metadata on the same ECS nodes, discover the
+signature/layout dependencies through the existing work graph, and use existing
+worker stages with deterministic publication. Implement and test in Tower only;
+validate recursive/forward calls, lifetime/alias cases, Foundation round trips,
+both interpreters, LLVM and worker-count output/diagnostic equivalence. Publish
+the compatible bootstrap before migrating compiler callers.
+
+Then add ordinary tagged result(T, E)/option(T), exhaustive payload matching and
+finally explicit try propagation once active-payload ownership and early-return
+cleanup are defined. This follows the existing errors-as-values plan and targets
+repeated status/output/error plumbing. Exact overloads and receiver-call sugar
+remain useful, but struct returns unlock these larger API improvements. Actual
+line reductions require a subsequent reviewed migration; no savings or speedup
+are claimed from this source inspection.
+
+Validation for this recommendation is source/document review and `git diff
+--check`. No compiler inputs changed. Documentation publication reuses the
+verified runtime assets and retains their build-source identity.
