@@ -218,6 +218,8 @@ Do NOT modify todo.txt
   Compiler buffers use `compiler_buffer_allocate/free`, never the legacy global
   allocation counter. A legacy adapter being implemented in Tower does not make
   its process-wide state safe to share.
+  Freeze context descriptors before dispatch; copying a changing coordinator
+  context on a worker does not create a thread-safe snapshot.
 - Schedule compiler queries through the shared dependency graph. Request only
   needed type/body/layout/evaluation work; suspend on newly discovered dependencies
   rather than blocking a worker or recursively forcing completion. Diagnose cycles
@@ -247,6 +249,8 @@ Do NOT modify todo.txt
   diagnostics must be deterministic across worker counts. Exercise real overlap,
   dependency failures/cycles, cancellation and lifetime cleanup; queue width alone
   is not proof of threading. Measure useful batch sizes before claiming speedups.
+  Refill idle workers from ready queries when ownership permits; avoid fixed
+  batch barriers. Keep semantic publication and diagnostic selection deterministic.
 - Keep allocation-failure injection deterministic: the legacy single-owner test
   allocator requires the serial test transport. Exercise real worker overlap with
   the production allocator or explicitly synchronized/per-worker instrumentation.

@@ -12,7 +12,7 @@ import .library.vector;
 import .library.work_graph;
 import .library.work_pool;
 
-enum SemanticKnownAction: u32 { Scan, Order, Publish }
+enum SemanticKnownAction: u32 { Scan, Order, Publish, Inputs }
 
 struct SemanticKnownCandidate { subject: void*; ordinal: usize; }
 struct SemanticKnownPatch { subject: void*; literal: void*; declaration: bool; }
@@ -86,6 +86,20 @@ fn sem_known_write(result: SemanticKnownWork*, place: void*): void {
 }
 
 fn semantic_known_kernel(result: SemanticKnownWork*): void {
+    if result.action == SemanticKnownAction.Inputs {
+        var pending: vector(void*) = default;
+        defer vector_dispose(&pending);
+        var selected: usize = 0;
+        foreach(var &candidate in &result.candidates) {
+            var binding = sem_known_binding(result.context, candidate.subject);
+            if binding != null && binding.immutable && binding.ordered
+                && sem_known_inputs(result.context, sem_get(candidate.subject).value, &pending) {
+                result.candidates.data[selected++] = *candidate;
+            }
+        }
+        result.candidates.length = selected;
+        return;
+    }
     var context = *result.context;
     context.allocations = default;
     context.lists = default;
@@ -270,9 +284,13 @@ fn sem_known_jobs(c: SemanticContext*, kind: void*, count: usize, query_kind: Se
     foreach(var result in &jobs) {
         var id = work_request(&c.queries, result.subject, convert(u32, query_kind), 0);
         sem_require(id != 0);
-        if query_kind != SemanticQuery.KnownPublish {
+        if query_kind == SemanticQuery.KnownScan || query_kind == SemanticQuery.KnownOrder {
             var proof = work_find(&c.queries, c.program.root, convert(u32, SemanticQuery.KnownProof), 0);
             sem_require(proof != 0 && work_depend(&c.queries, proof, id));
+        }
+        if query_kind == SemanticQuery.KnownInputs {
+            var proof = work_find(&c.queries, c.program.root, convert(u32, SemanticQuery.KnownProof), 0);
+            sem_require(proof != 0 && work_depend(&c.queries, id, proof));
         }
         var input_kind = query_kind == SemanticQuery.KnownPublish ? SemanticQuery.Lowering : SemanticQuery.Body;
         var input = work_find(&c.queries, result.subject, convert(u32, input_kind), 0);
@@ -289,26 +307,32 @@ fn sem_known_jobs(c: SemanticContext*, kind: void*, count: usize, query_kind: Se
             convert(u64, SemanticAccess.Evaluation), 0, ~convert(usize, 0), WorkAccessMode.Read));
         sem_require(work_seal(&c.queries, id) && work_demand(&c.queries, id));
     }
-    for(var next: usize = 0; next < count;) {
-        var active = count - next;
-        if active > c.workers.count { active = c.workers.count; }
-        view = entity_view_open(c.program.root);
-        sem_require(view != null);
-        for(var index: usize = 0; index < active; index++) {
-            var result = jobs.data[next + index];
+    // Workers copy this frozen context, never the coordinator's changing
+    // scheduler fields. Their only graph reads resolve already-published body
+    // or evaluation inputs through the fixed task index. No tasks are added
+    // until every worker joins; dependency receipts may grow the edge index.
+    var context = *c;
+    foreach(var result in &jobs) { result.context = &context; }
+    view = entity_view_open(c.program.root);
+    sem_require(view != null);
+    var next: usize = 0;
+    while next < count || c.workers.running != 0 {
+        while next < count && c.workers.running < c.workers.count {
+            var result = jobs.data[next++];
             sem_require(work_take_task(&c.queries, &result.ticket,
                 work_find(&c.queries, result.subject, convert(u32, query_kind), 0)));
             sem_require(work_pool_submit(&c.workers, bits(void*, &result.kernel)));
         }
-        for(var index: usize = 0; index < active; index++) { sem_require(work_pool_receive(&c.workers, true) != null); }
-        entity_view_close(view);
-        for(var index: usize = 0; index < active; index++) {
-            var result = jobs.data[next + index];
-            sem_query_observe(c, &result.ticket, &result.query_reads);
-            sem_require(work_finish(&c.queries, &result.ticket, true));
-        }
-        next += active;
+        var completed = bits(CompilerKernel*, work_pool_receive(&c.workers, true));
+        sem_require(completed != null);
+        var result = bits(SemanticKnownWork*, completed.payload);
+        sem_query_observe(c, &result.ticket, &result.query_reads);
+        sem_require(work_finish(&c.queries, &result.ticket, true));
     }
+    entity_view_close(view);
+    // Component results stay private until the caller publishes this stable
+    // source-ordered vector. A slow job no longer stalls unrelated ready jobs.
+    foreach(var result in &jobs) { result.context = null; }
     return jobs;
 }
 

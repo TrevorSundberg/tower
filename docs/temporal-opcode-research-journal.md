@@ -35207,3 +35207,92 @@ comparison reports desktop all-output median 407 to 275 ms and mobile emulation
 391 to 187 ms. Final source synchronization and publication validation follow.
 The native/worker ECS query policy is unchanged; this is browser request transport
 and ownership reuse of an already checked Tower canonical package session.
+## 2026-11-21: ECS architecture assessment, known-input queries and worker refill
+
+The architectural objective remains one authoritative entity/component model and
+dependency-driven execution. Archetypes can improve homogeneous traversal, but do
+not by themselves make irregular dependency walks parallel or fast. Schedule the
+ready frontier, suspend consumers on missing inputs, share producers and detect
+cycles; do not assign fixed dependency chains to threads. Keep nominal structural
+publication explicit. Tiny jobs, excessive archetype transitions, broad barriers
+and repeated full-world scans can outweigh parallelism. Judge progress by useful
+work and end-to-end latency/throughput at increasing worker counts, not occupied
+cores or the fraction of functions named ECS. Existing overlap/determinism checks
+are correctness evidence, not a whole-compiler scaling benchmark.
+
+Primary references reviewed: rustc's [overview and query architecture](https://rustc-dev-guide.rust-lang.org/overview.html),
+[parallel compiler discussion](https://rustc-dev-guide.rust-lang.org/parallel-rustc.html),
+LLVM's [ThinLTO design](https://clang.llvm.org/docs/ThinLTO.html), and
+[Flecs systems/staging](https://www.flecs.dev/flecs/Systems.html#staging).
+Rust documents demand-driven queries; its parallelism page explicitly warns that
+parts are outdated, so it is not evidence for current default threading settings.
+ThinLTO separates combined summary analysis from parallel backend work. Flecs
+defers structural mutations and merges them at synchronization points; direct
+component payload access still needs ownership. These support the design rationale,
+not a claim that production compilers generally use Flecs or that Tower will
+outperform them without measurements.
+
+Implemented KnownInputs on the existing per-function SemanticKnownWork components.
+Mutation and ordering jobs publish their facts, then complete KnownProof; parallel
+input-eligibility jobs depend on that proof and own their traversal scratch. The
+coordinator publishes selected candidates in source order and records each
+KnownClone query's eligibility dependency. Eligibility still checks mandatory
+inputs only; values and conditional control flow execute through the ordinary
+interpreter. No separate folding evaluator was introduced. Candidate components
+are reused between scan and eligibility rather than rebuilding another graph.
+
+Native incremental build and the focused `known` suite pass with public bootstrap
+2292bd8 (ecs-known-inputs-retry.log / ecs-known-inputs-tests.log). The initial build
+correctly rejected an aggregate foreach copy; corrected it to the documented
+borrow form `foreach (var &candidate ...)` with an explicit value assignment.
+The suite covers graph/fast execution, target pointer widths 4/8, canonical output
+at 1/2/4/8 workers, effects, lazy captures, dependencies and negative cycles.
+
+The follow-on known-analysis scheduler now refills a free slot on each completion
+instead of waiting for the slowest member of a fixed batch. Workers copy a frozen
+context descriptor prepared before dispatch, avoiding reads of the coordinator's
+changing scheduler descriptor. Task lookup storage and the completed body/value
+states read by these kernels stay fixed. The coordinator records joined receipts
+and releases claims as jobs complete; semantic patches and candidates remain
+private until all readers join, then publish in source order. The native `known`
+suite passes again (ecs-known-refill-build.log / ecs-known-refill-tests.log).
+
+The same improvement is under validation for type layout: publish a completed
+layout under its exclusive query claim, release dependents immediately and refill
+available slots. Independent kernels keep running under the pinned entity view.
+Collect failures and choose the earliest deterministic query-discovery ordinal
+after draining ready work, rather than letting completion timing pick an error.
+This removes the bounded-batch result vector. It is not yet a measured speedup.
+AGENTS now calls out frozen context descriptors and avoiding unnecessary batch
+barriers while preserving deterministic publication/diagnostics.
+
+Published checkpoint 5fdee250f330cd9f64c6471c611a4a8a3142bfb8 remains distinct from
+these subsequent source changes. Its merged backend-world/module checks pass
+14/14 with zero skips (ecs-latency-merged-boundaries.log). Both subsequent browser
+compiler generations pass with identical outputs: tower 1,129,487 bytes, LLVM
+52,474,510 bytes, cross 64,031,918 bytes (ecs-latency-merged-generations.log).
+Normal gh-pages push 0860c6939e7ce6c37feb35aa71fc98adb04e3326 succeeded, preserving
+fda1195 as its parent. Pages run 44944414150 completed successfully. The previous
+manifest now supplies publishedBuildSourceCommit 736f8f1 and compilerSourceTree
+450ef63e; verified that source's ancestry and matching scaffolding tree before
+publication. New manifest identifies the actual public 5fdee25 build and tree
+318760a8; no unavailable old hash was treated as verified ancestry. Used the
+established separate-index/commit-tree/normal-push process directly because the
+old local Python publisher does not understand the new provenance field.
+
+Initial hosted verification correctly rejected the old manifest while Pages was
+still deploying. After deployment, exact comparison of the hosted manifest and
+all 79 served assets passes (80 requests including the manifest; .nojekyll is
+checked locally). Desktop/mobile execution verification is still running. Logs:
+ecs-published-verification.log and ecs-published-verification-retry.log.
+Structural type/generic/protocol checking and native backend job/target-registration
+integration still remain; this checkpoint does not mark the compiler fully threaded.
+
+Follow-up results: the layout-refill native build and `body-smoke` suite pass
+(ecs-layout-refill-build.log / ecs-layout-refill-tests.log), covering serial/worker
+canonical execution and ordered continuation diagnostics/cycles. Hosted verification
+also completes successfully on desktop and mobile, with graph, fast and LLVM
+execution all printing 42. The exact manifest digest is
+21d6474ac896db5ec69cdc87c64120f2270dc48cdb8a413466f6c30efe6a9c0e.
+The initial manifest mismatch was deployment propagation, not an artifact mismatch
+in the completed release. No sanitizer or broad formatting sweep was run.

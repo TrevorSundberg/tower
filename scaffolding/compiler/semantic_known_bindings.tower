@@ -23,6 +23,7 @@ struct SemanticKnownBinding {
     ordinal: usize;
     immutable: bool;
     ordered: bool;
+    input_query: usize;
     evaluation: void*;
     block: void*;
     begin: usize;
@@ -142,8 +143,11 @@ fn sem_known_infer(c: SemanticContext*): void {
             if binding != null { binding.immutable = false; }
         }
     }
-    sem_known_jobs_dispose(&scans);
-    if c.known_bindings == null { return; }
+    if c.known_bindings == null {
+        sem_known_jobs_dispose(&scans);
+        return;
+    }
+    var scan_kind = kind;
     kind = sem_known_kind(c);
     count = 0;
     for(var index: usize = 0; index < root.items.length; index++) {
@@ -157,15 +161,24 @@ fn sem_known_infer(c: SemanticContext*): void {
     foreach(var job in &orders) {
         foreach(var declaration in &job.mutations) { sem_known_binding(c, declaration).ordered = false; }
     }
-    var inputs = sem_list(c);
     sem_known_jobs_dispose(&orders);
     sem_require(work_seal(&c.queries, proof) && work_demand(&c.queries, proof));
     var proof_ticket: WorkTicket = default;
     sem_require(work_take_task(&c.queries, &proof_ticket, proof));
+    sem_require(work_finish(&c.queries, &proof_ticket, sem_ok(c)));
+    // Reuse the per-function candidate components after mutation/order facts
+    // publish. Each worker owns its eligibility scratch and candidate output.
+    foreach(var job in &scans) { job.action = SemanticKnownAction.Inputs; }
+    var inputs = sem_known_jobs(c, scan_kind, scans.length, SemanticQuery.KnownInputs);
+    vector_dispose(&scans);
+    foreach(var job in &inputs) {
+        var query = work_find(&c.queries, job.subject, convert(u32, SemanticQuery.KnownInputs), 0);
+        foreach(var &candidate in &job.candidates) { sem_known_binding(c, candidate.subject).input_query = query; }
+    }
+    sem_known_jobs_dispose(&inputs);
     foreach(var node in nodes) {
         var binding = sem_known_binding(c, node);
-        if binding == null || !binding.immutable || !binding.ordered { continue; }
-        if !sem_known_inputs(c, sem_get(node).value, inputs) { continue; }
+        if binding == null || binding.input_query == 0 { continue; }
         sem_evaluation_begin(c);
         var subject = sem_control_node(c, node, KOperand);
         var literal = sem_get(subject);
@@ -187,6 +200,8 @@ fn sem_known_infer(c: SemanticContext*): void {
         result.kernel.payload = bits(void*, &result.invocation);
         sem_push(&c.evaluation_jobs, bits(void*, result));
         sem_evaluation_request(c, result);
+        sem_require(work_depend(&c.queries,
+            work_find(&c.queries, subject, convert(u32, SemanticQuery.KnownClone), 0), binding.input_query));
         binding.evaluation = subject;
         var input = bits(IMValueInput*, entity_component_data(entity_component_add(node, c.value_inputs)));
         sem_require(input != null);
@@ -197,7 +212,6 @@ fn sem_known_infer(c: SemanticContext*): void {
         result.expression = sem_get(node).value;
         c.surface_expressions = true;
     }
-    sem_require(work_finish(&c.queries, &proof_ticket, sem_ok(c)));
     sem_evaluation_clone_all(c);
 }
 

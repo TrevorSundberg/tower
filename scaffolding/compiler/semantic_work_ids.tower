@@ -4,7 +4,7 @@ import tower;
 enum SemanticQuery: u32 {
     Layout = 1, Evaluation, Declaration, DeclarationDiscovery, Lowering, Body,
     Flow, EvaluationPrepare, BodyPrepare, GenericBody, KnownScan, KnownOrder,
-    KnownPublish, KnownProof, AggregatePrepare, KnownClone
+    KnownPublish, KnownProof, AggregatePrepare, KnownClone, KnownInputs
 }
 
 enum SemanticWorkDomain: u64 { Compiler = 1 }

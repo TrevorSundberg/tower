@@ -97,52 +97,42 @@ fn sem_layout_execute(c: SemanticContext*): void {
     // entity mutation or uses the coordinator's semantic scratch/diagnostics.
     var view = entity_view_open(c.program.root);
     sem_require(view != null);
-    var batch: vector(SemanticLayoutWork*) = default;
-    defer vector_dispose(&batch);
-    sem_require(vector_reserve(&batch, c.workers.count));
+    var failed: SemanticLayoutWork* = null;
     loop {
-        var count: usize = 0;
         var ticket: WorkTicket;
-        while count < c.workers.count && work_take_query(&c.queries, &ticket, convert(u32, SemanticQuery.Layout)) {
+        while c.workers.running < c.workers.count
+            && work_take_query(&c.queries, &ticket, convert(u32, SemanticQuery.Layout)) {
             var task = work_task(&c.queries, ticket.task);
             sem_require(task.query == convert(u32, SemanticQuery.Layout));
             var component = entity_component_get(task.subject, c.layout_results);
             var result = bits(SemanticLayoutWork*, entity_component_data(component));
-            copy(&result.ticket, &ticket, sizeof(WorkTicket));
-            batch.data[count] = result;
+            result.ticket = ticket;
             sem_require(work_pool_submit(&c.workers, bits(void*, &result.kernel)));
-            count++;
         }
-        if count == 0 { break; }
-        // Join a bounded batch, then publish in deterministic admission order.
-        // Completion order cannot select a diagnostic or alter dependent work.
-        var index: usize = 0;
-        while index < count {
-            sem_require(work_pool_receive(&c.workers, true) != null);
-            index++;
-        }
-        index = 0;
-        while index < count {
-            var result = batch.data[index];
-            var success = result.error == null;
-            if success {
-                var type = sem_get(result.subject);
-                type.size = result.size;
-                type.alignment = result.alignment;
-                var field: usize = 0;
-                while field < result.offsets.length {
-                    sem_get(type.items.data[field]).byte_offset = result.offsets.data[field];
-                    field++;
-                }
-            } else {
-                sem_fail(c, result.error_node, result.error);
+        if c.workers.running == 0 { break; }
+        var completed = bits(CompilerKernel*, work_pool_receive(&c.workers, true));
+        sem_require(completed != null);
+        var result = bits(SemanticLayoutWork*, completed.payload);
+        var success = result.error == null;
+        if success {
+            // The query owns this layout's write range. Its consumers cannot
+            // run until these fields publish and work_finish releases them;
+            // unrelated layouts can keep running under the same pinned view.
+            var type = sem_get(result.subject);
+            type.size = result.size;
+            type.alignment = result.alignment;
+            for(var field: usize = 0; field < result.offsets.length; field++) {
+                sem_get(type.items.data[field]).byte_offset = result.offsets.data[field];
             }
-            sem_require(work_finish(&c.queries, &result.ticket, success));
-            index++;
+        } else {
+            // Completion order must not choose the diagnostic. Drain every
+            // independent ready query and select the first discovery ordinal.
+            if failed == null || result.ticket.task < failed.ticket.task { failed = result; }
         }
-        if !sem_ok(c) { break; }
+        sem_require(work_finish(&c.queries, &result.ticket, success));
     }
     entity_view_close(view);
+    if failed != null { sem_fail(c, failed.error_node, failed.error); }
 }
 
 fn sem_layout(c: SemanticContext*, n: void*): void {
