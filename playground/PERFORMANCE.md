@@ -20,8 +20,9 @@ dependency scheduling and deterministic publication remain authoritative.
 Windows, Ryzen 9 5900HX, Node 21.7.3, Playwright 1.65.1 Chromium. Both bundles were
 served from the same local origin, without concurrent builds or tests. The baseline
 is the previously published bundle (runtime source `8e09a3c`); the final candidate
-is `2f6ce16`, including upstream `7d50641`, its published bootstrap/source migration
-and this change. Mobile is Pixel 7 emulation on the same computer,
+was built at `2f6ce16` (published as `736f8f1` after a documentation-only rebase),
+including upstream `7d50641`, its published bootstrap/source migration and this
+change. Mobile is Pixel 7 emulation on the same computer,
 not a physical phone. Warm rows are medians of three actions; cold rows are one
 fresh browser context per bundle and include the isolation-service-worker reload.
 All times are milliseconds from the action to its observed DOM result. “Complete”

@@ -34724,3 +34724,24 @@ the earlier same-source CPU trial isolates the LR change. Warm automatic-edit
 completion remains about 485 ms desktop and 420 ms mobile; no material improvement
 is claimed there. Full tables and reproduction instructions are updated in
 playground/PERFORMANCE.md. The runtime asset build-source identity is 2f6ce16.
+
+Publication: exact local verification passed all 80 assets and the desktop/mobile
+backend, grammar, completion, persistence, target-default and native-download
+flows. Published gh-pages 4c65306 with a normal push. A concurrent journal-only
+commit (3b2e2bf) then caused the main push to be rejected; pulled/rebased, retained
+both journal additions, and pushed main normally at 2973483. No force push.
+The implementation commit is now 736f8f1; its scaffolding tree is identical to
+the compiled 2f6ce16 snapshot (450ef63ee1655353750380116c87c94730f7411a).
+Only journal text changed in that rebase. Preserve the original runtime build
+identity in deployment metadata and record the public equivalent commit; no
+identical runtime rebuild is needed for these documentation changes.
+Hosted verification matches all 80 assets and passes desktop behavior. HTTP,
+www and the GitHub Pages URL all redirect to the HTTPS apex with final status 200.
+
+Hosted mobile verification also passes; verify-deployment.mjs exits successfully
+for https://tower-lang.org/. Evidence: build/latency-hosted-deployment.log and
+build/deployment-verification/report.json. The final documentation publication
+reuses these exact verified runtime assets and updates only manifest provenance.
+Remaining measured work is independent cold frontend initialization and warm
+edit execution/backend completion, not worker lifecycle or highlight debounce.
+The user's todo.txt changes remain outside all commits.
