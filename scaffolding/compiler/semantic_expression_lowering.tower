@@ -293,6 +293,24 @@ fn sem_lift_logical(c: SemanticContext*, block: void*, left: void*, right: void*
     return sem_control_read(c, block, result);
 }
 
+// The ordinary fill operation defines byte initialization, including padding.
+// Capture a destination once; sizeof consumes its explicit target layout.
+fn sem_lift_default(c: SemanticContext*, block: void*, target: void*): void* {
+    target = sem_lift_target(c, block, target);
+    var type = &sem_get(target).type;
+    var count = sem_control_node(c, block, KSizeOf());
+    sem_set_type(&sem_get(count).element, type);
+    sem_set_type(&sem_get(count).type, sem_type_new(c, SUSize(), 0, null));
+    var result = sem_control_node(c, block, KFill());
+    var value = sem_get(result);
+    value.left = sem_get(target).value;
+    value.right = sem_surface_constant(c, result, sem_type_new(c, SU8(), 0, null), 0);
+    value.value = sem_lift_value(c, block, count);
+    sem_set_type(&value.type, sem_type_new(c, SVoid(), 0, null));
+    sem_lift_append(block, result);
+    return result;
+}
+
 fn sem_lift_value(c: SemanticContext*, block: void*, n: void*): void* {
     var absent = n == null;
     if absent {
@@ -301,6 +319,13 @@ fn sem_lift_value(c: SemanticContext*, block: void*, n: void*): void* {
     var value = sem_get(n);
     if value.constant {
         return n;
+    }
+    if value.kind == SurfaceDefaultStore() {
+        var result = sem_lift_default(c, block, value.target);
+        value.kind = KBlock();
+        value.target = null;
+        value.value = null;
+        return result;
     }
     if sem_surface_optional(value) {
         var absent = sem_surface_constant(c, block, &value.type, 0);
@@ -496,6 +521,15 @@ fn sem_lift_block(c: SemanticContext*, block: void*): void {
             }
         }
         var declaration = statement.kind == KDeclare();
+        if declaration && statement.value != null && sem_get(statement.value).kind == SurfaceDefault() {
+            var initial = sem_get(statement.value);
+            initial.kind = KBlock();
+            sem_set_type(&initial.type, sem_type_new(c, SVoid(), 0, null));
+            statement.value = null;
+            sem_lift_append(block, n);
+            sem_lift_default(c, block, sem_control_read(c, n, n));
+            continue;
+        }
         var assignment = statement.kind == KAssign();
         var returned = statement.kind == KReturn();
         if assignment {

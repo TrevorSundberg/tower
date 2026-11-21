@@ -28633,3 +28633,52 @@ Final pull integrated782d73a's worker-side body call discovery; only the append-
 Final browser selection passes44/44 in115.73s plus completion/inspection28/28 in56.97s, zero skips. First generation attempt accidentally loaded the previous package recipe while packaging was completing and failed with missing syntax_inspection_match import; it is not validation evidence. Reran only after the package completed and confirmed both new modules were in its unit closure. Two edited generations then pass55.04s/36.95s at2/4 workers with identical hashes: parser7f364f73b99e2fd99a7cf0e501e1c30c53e30d07f0be19317f73ccf93d129d36; LLVMe79b62bc347f92e374438c7984d950be10ac1bc2a6225d7de0dfab1494cad509; cross561fe39955ea7234e6cbd880bcf7df5a978b33d2926caa3777da6c990c7560d0. External evidence uses template-* logs/reports under worker-granularity.
 
 Two interleaved defer_scopes native compile samples: before0.83/0.82s, after0.82/0.80s; all four objects SHA2562d21ad368470475aa007e72060b0c7f572cde608fef12adb032402b0be148386. PowerShell treated time's stderr as a native error record; explicit subsequent cmp/hash checks returned0. This older comparator predates intervening semantic worker changes, so these measurements show no observed regression for this input, not an isolated universal speedup. Compiler scaffolding now totals2017 physical native lines:461 implementation (142syntax.cpp,234callback tests,55tower.cpp,26format.cpp,4syntax-nodes.cpp) plus1556 headers. Historical research remains774 additional native lines. New logic/tests are Tower, native edits only remove code, todo.txt unchanged, no broad sanitizer/formatter sweep. Next production work is the remaining std::string/vector editor/format transport, followed by real function-address support for callback registry/test retirement. Frozen7ae bundle passed77 local asset hashes and desktop workflows; mobile/hosted verification remain pending in this entry.
+### 2026-11-20 - Target-typed default initialization after borrowed iteration
+
+Pulled/rebased to c91bc8c before starting. Re-ran the read-only simplification
+inventory over 538 Tower files: 506 sizeof zero-fill sites, 271 in production;
+275 field-assignment runs/1,173 assignments. Selected target-typed default as the
+next bounded code-reduction feature. Named-field completeness, allocation and
+move/drop protocols remain subsequent stage-6 work; zero initialization does not
+invent those ownership contracts. todo.txt is read only and remains unchanged.
+
+Implemented TowerDefault grammar and checking entirely in Tower. Bare default
+uses an exact contextual type; default(Type) resolves ordinary type names and
+applications. Scalars become typed zero/null/false; enum zero uses an ordinary
+conversion so unnamed zero values retain compilable Foundation spelling.
+Complete aggregate initializers/resets lower through existing ECS expression jobs
+to address/sizeof/fill, with one destination evaluation and target-sized storage
+including padding. Reset has void type; no hidden aggregate copy, allocation,
+destructor or new Foundation opcode. Declaration discovery treats explicit type
+operands as types, typed peers constrain generic default arguments, and structural
+type applications use existing coordinator preparation before worker suffixes.
+
+First portable trials pass aggregate padding, arrays, side-effecting destinations,
+defer and generic reset. Found/fixed unnamed enum zero's invalid `Kind.` formatter
+spelling by preserving convert(Kind, 0); direct enum constants require members.
+The strict staged interpreter rejects aggregate memory operations without a
+storage/value capability, including handwritten fill, so retained that boundary
+and test its diagnostic. Scalar defaults use the ordinary staged interpreter.
+Fixture corrections: separate pointer `*` from assignment `=` (otherwise `*=` is
+one token), comma/brace enum syntax, and braced else blocks required by Tower.
+Initial fresh native /cache/default-feature builds all 54 steps using the public
+bcc76755 bootstrap without overrides. Final enum/worker/backend validation follows.
+
+Feature validation: native default-bootstrap build passes; six initially built
+native suites pass, then explicitly building the two new upstream worker test
+targets resolves their initial CTest Not Run entries. Those worker/instrumented/LR
+checks and backend API pass. No failing assertion was removed. Portable/shared,
+LLVM and cross reactors build. Five semantic cases plus formatter/Foundation
+identifier coverage pass 6/6; the broader expression/inference/iteration/staging
+selection passes 88/88. Expanded shared-world tests pass 3/3, including default
+initializers/resets, inferred globals and resumed generic prefixes at widths 4/8,
+both interpreters and capacities 1/2/4/8. Logs: default-complete-tests.log,
+default-regressions.log, default-shared-tests.log, default-native-added-tests.log.
+
+Prepared (not yet applied) a bounded zero-fill migration: 200 sites/100 production
+files, 97 declaration+fill pairs, 51 typed allocation destinations, 52 existing
+place resets. It requires a unique local/parameter binding, an exact syntactic
+pointee/type match and a whole sizeof(Type) extent; comments, aliases with other
+spellings, batches and byte ranges are excluded. Reviewed the reset list including
+frontend/interpreter lifetimes and work graph/pool state. Its original fill has
+identical storage extent/order; no field-assignment constructor is inferred.

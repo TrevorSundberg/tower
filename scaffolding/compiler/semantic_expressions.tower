@@ -23,6 +23,8 @@ const SurfaceDiscard: u32 = 108;
 const SurfaceCoalesce: u32 = 109;
 const SurfaceNullField: u32 = 110;
 const SurfaceNullIndex: u32 = 111;
+const SurfaceDefault: u32 = 112;
+const SurfaceDefaultStore: u32 = 113;
 const SurfaceShiftLeft: u32 = 14;
 const SurfaceShiftRight: u32 = 15;
 const SurfaceShiftUnsigned: u32 = 16;
@@ -67,6 +69,52 @@ fn sem_surface_expected(c: SemanticContext*, n: void*, expected_type: Foundation
         }
     }
     return n;
+}
+
+// Aggregate defaults belong to complete initializers/resets, never temporaries.
+fn sem_default(c: SemanticContext*, n: void*, expected_type: FoundationType*, destination: bool): void* {
+    var value = sem_node(c, n, KOperand());
+    var type = expected_type;
+    var annotation = sem_member(n, "type");
+    if annotation != null { type = sem_type(c, annotation); }
+    if !sem_ok(c) { return n; }
+    if type == null {
+        sem_fail(c, n, "default requires a target type or an explicit default(Type)");
+        return n;
+    }
+    sem_set_type(&value.type, type);
+    if type.pointers == 0 && type.scalar == SVoid() {
+        sem_fail(c, n, "default requires a non-void type");
+        return n;
+    }
+    if semantic_aggregate(type) {
+        if !destination {
+            sem_fail(c, n, "Aggregate default requires a complete declaration initializer or reset destination");
+            return n;
+        }
+        value.kind = SurfaceDefault();
+        c.surface_expressions = true;
+    } else {
+        if semantic_enum(type) {
+            // Zero need not name an enum member. Preserve its ordinary compilable
+            // conversion spelling instead of creating an unnamed enum constant.
+            var underlying = sem_type_copy(c, type);
+            underlying.record = null;
+            value.kind = KConvert();
+            value.value = sem_surface_constant(c, n, underlying, 0);
+            c.surface_expressions = true;
+        } else {
+            value.constant = true;
+            value.bits = 0;
+        }
+    }
+    return sem_surface_expected(c, n, expected_type);
+}
+
+fn sem_initial_value(c: SemanticContext*, n: void*, expected_type: FoundationType*): void* {
+    var source = sem_surface_unwrap(n);
+    if sem_is(source, "TowerDefault") { return sem_default(c, source, expected_type, true); }
+    return sem_expression(c, n, expected_type);
 }
 
 fn sem_surface_integer(c: SemanticContext*, n: void*): bool {
@@ -662,7 +710,11 @@ fn sem_surface(c: SemanticContext*, n: void*, expected_type: FoundationType*): v
                 }
             }
         }
-        value.value = sem_operand(c, right, input);
+        if !compound && semantic_aggregate(input) && sem_is(sem_surface_unwrap(right), "TowerDefault") {
+            value.value = sem_default(c, sem_surface_unwrap(right), input, true);
+            value.kind = SurfaceDefaultStore();
+            sem_set_type(&value.type, sem_type_new(c, SVoid(), 0, null));
+        } else { value.value = sem_operand(c, right, input); }
         if sem_ok(c) {
             if input == null {
                 sem_surface_integer(c, value.value);

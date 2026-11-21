@@ -438,7 +438,7 @@ fn sem_statement_impl(c: SemanticContext*, n: void*, depth: u32): u32 {
         }
         var initial: void* = sem_member(n, "value");
         if initial != null && value.value == null {
-            var step28 = sem_expression(c, initial, &value.type);
+            var step28 = sem_initial_value(c, initial, &value.type);
             value.value = step28;
         }
     } else {

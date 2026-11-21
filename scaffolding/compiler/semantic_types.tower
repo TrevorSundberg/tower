@@ -678,7 +678,7 @@ fn sem_declaration_type(c: SemanticContext*, n: void*): bool {
         }
         state.number = 1;
         sem_push(&c.inferring, n);
-        var step34 = sem_expression(c, initial, null);
+        var step34 = sem_initial_value(c, initial, null);
         value.value = step34;
         c.inferring.length--;
         if !sem_ok(c) || value.value == null {

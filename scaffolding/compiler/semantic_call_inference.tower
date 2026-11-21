@@ -244,7 +244,8 @@ fn sem_infer_arguments(c: SemanticContext*, definition: void*, use: void*, value
             }
             var parameter = sem_infer_parameter(&inference, annotation);
             if parameter != sem_maximum() && bindings.data[parameter] == null &&
-            !sem_equal(sem_tokens(c, sem_surface_unwrap(argument)), "null") {
+            !sem_equal(sem_tokens(c, sem_surface_unwrap(argument)), "null") &&
+            !sem_is(sem_surface_unwrap(argument), "TowerDefault") {
                 var value = sem_operand(c, argument, null);
                 if sem_ok(c) {
                     sem_infer_bind(&inference, parameter, &sem_get(value).type);

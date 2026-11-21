@@ -45,6 +45,14 @@ Do NOT modify todo.txt
 
 ## Writing Tower code
 
+- Prefer `var value: Type = default;` for complete zero initialization and
+  `value = default;` / `*pointer = default;` for complete aggregate resets.
+  `default(Type)` supplies an explicit type. These use the target layout and
+  evaluate the destination once; they do not allocate, dispose, move or clone.
+  Preserve required library constructors and release owned resources before
+  resetting. Keep partial, nonzero and dynamically sized byte fills explicit.
+  See docs/default-initialization.md; publish its compatible bootstrap before
+  migrating compiler sources. Bare default needs a contextual type.
 - Use the existing ECS entities/components and compilation-local scratch for new
   checking/lowering. Independent units use CompilerWork's isolated workers and
   deterministic publication; never share mutable entity pointers or iteration

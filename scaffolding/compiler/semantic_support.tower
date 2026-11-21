@@ -335,6 +335,7 @@ fn sem_literal(c: SemanticContext*, n: void*): bool {
             }
         }
     }
+    if sem_is(n, "TowerDefault") { return sem_member(n, "type") == null; }
     if sem_is(n, "TowerExpression") || sem_is(n, "TowerComma") {
         var right = sem_member(n, "right");
         if right == null || sem_member(n, "left") != null {

@@ -225,6 +225,10 @@ fn sem_declaration_waiting(c: SemanticContext*, subject: void*, layout: void**):
         scan.length--;
         var node = scan.data[scan.length].node;
         var type = scan.data[scan.length].type;
+        if sem_is(node, "TowerDefault") {
+            sem_declaration_scan_push(&scan, sem_member(node, "type"), true);
+            continue;
+        }
         if sem_is(node, "TowerDecltype") {
             sem_declaration_scan_push(&scan, sem_member(node, "value"), false);
             continue;
@@ -385,6 +389,7 @@ fn sem_declaration_place(c: SemanticContext*, node: void*, depth: usize): bool {
 // Literal and place queries attach ordinary canonical components under leases.
 fn sem_declaration_leaf(c: SemanticContext*, node: void*): bool {
     node = sem_surface_unwrap(node);
+    if sem_is(node, "TowerDefault") { return true; }
     if sem_declaration_place(c, node, 0) { return true; }
     var parsed = sem_match(node);
     var literal_shape = sem_is(node, "Number") || sem_is(node, "String")
@@ -562,6 +567,10 @@ fn sem_declaration_calls(c: SemanticContext*, result: SemanticDeclaration*): voi
         var entry: DeclarationCallScan;
         copy(&entry, &scan.data[scan.length], sizeof(DeclarationCallScan));
         var node = entry.node;
+        if sem_is(node, "TowerDefault") {
+            sem_declaration_call_push(&scan, sem_member(node, "type"), true, entry.unevaluated, false);
+            continue;
+        }
         if entry.complete {
             sem_require(vector_reserve(&result.calls, result.calls.length + 1));
             var call = &result.calls.data[result.calls.length];

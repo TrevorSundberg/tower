@@ -241,6 +241,7 @@ fn sem_operand_impl(c: SemanticContext*, n: void*, expected_type: FoundationType
     }
     n = sem_surface_unwrap(n);
     if sem_is(n, "TowerComptime") { return sem_comptime(c, n, expected_type); }
+    if sem_is(n, "TowerDefault") { return sem_default(c, n, expected_type, false); }
     if sem_is(n, "TowerNullAccess") {
         var result = sem_surface_nullable(c, n, expected_type);
         if sem_ok(c) {

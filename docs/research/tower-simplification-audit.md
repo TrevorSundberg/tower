@@ -1,5 +1,28 @@
 # Next simplification milestone
 
+## Follow-up after iteration (2026-11-20)
+
+The new inventory at `c91bc8c` covers 538 Tower files (520 direct Tower importers).
+It finds 506 sizeof-based zero fills, including 271 in production compiler,
+backend, host and library code. There are also 275 field-assignment runs containing
+1,173 assignments. These are opportunities, not a safe mechanical rewrite count.
+The original expression/inference/iteration milestones below are now published.
+
+The next bounded language feature is target-typed `default` initialization and
+reset, plus explicit `default(Type)`. It removes repeated address/type/size
+information using existing Foundation constants, conversions, address, sizeof and
+fill operations. Complete struct/array storage is initialized in place, including
+padding, with a single destination evaluation. It introduces no aggregate copies,
+constructor calls, allocation or ownership transfer. This makes the safe portion
+of the observed zero-fill boilerplate directly expressible without preempting the
+stage-6 move/drop and named-field initializer contracts.
+
+Audit complete typed destinations only. Keep allocation batches, raw byte ranges,
+partial layouts, nonzero patterns, aliases with different byte extents and reset
+helpers whose public contract intentionally describes bytes. Preserve explicit
+library initialization when zero state does not establish its invariant. Validate
+the successor/bootstrap before adoption and keep negative/ABI fixtures explicit.
+
 Baseline: `0987aa5c0d1577d00264f6498fbdfcd4b6a981bc`, 2026-11-20.
 
 **Recommendation: finish adopting Tower expressions throughout the compiler;

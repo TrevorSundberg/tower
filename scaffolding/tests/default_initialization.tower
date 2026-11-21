@@ -1,0 +1,19 @@
+import tower;
+
+struct Cell { value:u64; next:Cell*; }
+var first:Cell = default;
+var inferred = default(Cell);
+var numbers:u32[4] = default;
+fn clear(T:type, pointer:T*):void { *pointer = default; }
+fn typed():u64 { var local:Cell = default; local.value=9; local=default; return local.value; }
+fn inferred_local():u64 { var local=default(Cell); return local.value; }
+fn borrowed(pointer:Cell*):u64 { pointer.value=8; *pointer=default; return pointer.value; }
+fn deferred(pointer:Cell*):void { defer *pointer=default; pointer.value=9; }
+fn prepared():u64 { var local:Cell=default; clear(&local); local.value=9; local=default; return local.value; }
+fn scalar():u64 { var value:u64=default; return value; }
+var failures=0;
+if first.value!=0 || first.next!=null || inferred.value!=0 || numbers[3]!=0 { failures++; }
+if typed()!=0 || inferred_local()!=0 || borrowed(&first)!=0 || prepared()!=0 { failures++; }
+deferred(&first);
+if first.value!=0 || comptime(scalar())!=0 { failures++; }
+print(failures);
