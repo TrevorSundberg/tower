@@ -1,0 +1,47 @@
+import tower;
+import frontend_world;
+import frontend_baselines;
+import frontend_revision;
+import .compiler.frontend_revision_types;
+
+extern fn syntax_completion_create(text: u8*, mode: u32): void*;
+extern fn syntax_reset(session: void*, text: u8*, module: void*): void;
+extern fn syntax_next(session: void*): void*;
+extern fn syntax_get_error(session: void*): u8*;
+extern fn syntax_destroy(session: void*): void;
+extern fn entity_release(node: void*): usize;
+extern fn strstr(text: u8*, part: u8*): u8*;
+extern fn puts(text: u8*): i32;
+
+fn diagnostic_revision_read(session: void*): void {
+    loop {
+        var node = syntax_next(session);
+        if node == null { break; }
+        entity_release(node);
+    }
+}
+
+fn diagnostic_revision_expect(session: void*, wanted: u8*): void {
+    var error = syntax_get_error(session);
+    var ok = strstr(error, wanted) != null;
+    if !ok { puts(error); }
+    frontend_world_check(ok);
+}
+
+fn frontend_diagnostic_revision_tests(): void {
+    // This standalone harness has no installed Foundation. The declaration seed
+    // is sufficient for this fixture's own token and Statement definitions.
+    var world = compiler_host_world();
+    var seed = syntax_world_revision(world, SyntaxSeedBaseline());
+    frontend_world_check(seed is not null);
+    frontend_world_check(syntax_world_publish(world, "diagnostic fixture", 18, frontend_world_bedrock(world), seed, true));
+    frontend_revision_release(seed);
+    var session = syntax_completion_create("token Number = /[0-9]+/; parse Statement = 'say' Number ';';\nsay 42", 0);
+    frontend_world_check(session != null);
+    diagnostic_revision_read(session);
+    diagnostic_revision_expect(session, "input.tower:1:");
+    syntax_reset(session, "// moved\n\ntoken Number = /[0-9]+/; parse Statement = 'say' Number ';';\nsay 42", null);
+    diagnostic_revision_read(session);
+    diagnostic_revision_expect(session, "input.tower:3:");
+    syntax_destroy(session);
+}

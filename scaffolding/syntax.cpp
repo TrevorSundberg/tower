@@ -233,7 +233,11 @@ bool set_source(SyntaxSession& session, std::string_view text, const char* name)
 std::string syntax_diagnostic(SyntaxSession& session, Recognizer* recognizer, bool repairs = true) {
   const std::unique_ptr<ParserDiagnostic, decltype(&parser_diagnostic_destroy)> diagnostic(
     parser_recognizer_diagnostic(recognizer, repairs ? ParserDiagnosticReader::Syntax : ParserDiagnosticReader::None, &session), parser_diagnostic_destroy);
-  const auto& definitions = session.version->grammar;
+  // Cached tables retain their original declarations; diagnostic provenance
+  // follows the current source revision, including source-only edits.
+  Revision definitions(syntax_revision_overlay(session.bedrock.get(),
+    session.grammar ? session.grammar->rules.data : nullptr, session.grammar ? session.grammar->rules.length : 0,
+    nullptr, 0, syntax_component_type()), frontend_revision_release);
   const SyntaxDiagnosticInput input{session.source.data(), session.source.size(), session.cursor,
     diagnostic->offset, diagnostic->insertion_offset, parser_recognizer_get_error(recognizer),
     diagnostic->options.data, diagnostic->options.length,

@@ -23142,3 +23142,36 @@ browser backends again passed backend API and source ownership fixtures three
 times. Changes to the fixture's flag spellings now use named Tower constants.
 Shared deployment includes the agents' separately pushed, validated milestones;
 publication remains pending until final combined build and hosted checks below.
+### Combined migration integration and cached diagnostic correction (2026-11-20)
+
+Integrated agent milestones 27a50c8 (Tower byte/UTF-8 differential suites),
+d78e5d4/d79e449 (retained declaration revisions and world-owned syntax baselines),
+and 877af74/726767d (shared Tower execution sessions/packages and tests), with the
+coordinator's native LLVM adapter retirement. Fresh default published-bootstrap
+build in /home/trevo/.cache/tower/agents-combined-clean completed all 56 targets;
+frontend/driver/execution CTest passed 3/3 in 16.17s and backend API checks passed.
+Test-enabled LLVM and cross reactors passed backend/source ownership checks three
+times. The editable browser compiler built two successor generations with 2 then
+4 isolated workers and byte-identical output; within-unit mutation remains serial.
+
+An initial broad Node run reported 410/415 passing. Three worker failures read an
+old compiler recipe while packaging was still running: after packaging completed,
+all five compiler-worker tests passed without source changes. Packaging must finish
+before consumers start. One failure was the accidentally included broad formatter
+sweep, which remains intentionally skipped at the user's request; no repository
+format rewrite was performed. Sanitizer remains skipped too.
+
+The fifth failure exposed a real retained-revision regression: cached parser
+versions intentionally retain equivalent grammar entities from earlier source,
+so diagnostic descriptions using version.grammar reported the old line after a
+comment-only edit. Agent 1 reviewed the correction. syntax_diagnostic now calls
+the existing Tower revision overlay with current session declaration entities and
+the Bedrock baseline; cached parse tables stay immutable. Existing browser
+cached-grammar regression passes (diagnostics suite 10/10). New Tower fixture
+frontend_diagnostic_revision verifies the diagnostic moves from input.tower:1 to
+:3 after reset. Its standalone native harness initially had no installed Foundation;
+it now publishes the declaration seed through the production Tower world API,
+then supplies its own token/Statement definitions. A missing direct test import
+was corrected. Focused native frontend runner passes. No native implementation
+or wrapper was introduced; the native edit only reconnects the Tower interface.
+Final repackaging, non-formatter integration checks and publication follow below.
