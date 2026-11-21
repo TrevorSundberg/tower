@@ -4,34 +4,6 @@
 #include <utility>
 #include "compiler-host.hpp"
 
-extern "C" void c_emit(TowerByteBuffer*, TowerByteBuffer*, TowerNode*, unsigned, bool);
-extern "C" void roku_emit(TowerByteBuffer*, TowerByteBuffer*, TowerNode*, unsigned, bool);
-extern "C" void semantic_strip_comments(TowerNode*);
-
-CoreText core_c_source(const CoreProgram& program, bool comments) {
-  CoreText result;
-  TowerByteBuffer source{}, error{};
-  c_emit(&source, &error, program.root, program.pointer_bytes, comments);
-  if (source.length) result.source.assign(reinterpret_cast<const char*>(source.data), source.length);
-  if (error.length) result.error.assign(reinterpret_cast<const char*>(error.data), error.length);
-  bytes_dispose(&source); bytes_dispose(&error);
-  return result;
-}
-void core_strip_comments(CoreProgram& program) { semantic_strip_comments(program.root); }
-
-CoreText core_roku_source(const CoreProgram& program, bool comments) {
-  CoreText result;
-  TowerByteBuffer source{}, error{};
-  roku_emit(&source, &error, program.root, program.pointer_bytes, comments);
-  if (source.length) result.source.assign(reinterpret_cast<const char*>(source.data), source.length);
-  if (error.length) result.error.assign(reinterpret_cast<const char*>(error.data), error.length);
-  bytes_dispose(&source); bytes_dispose(&error);
-  return result;
-}
-
-namespace {
-std::string foundation_grammar;
-}
 namespace {
 // Temporary native API ownership view. Source orchestration and semantic work
 // execute in Tower on the same entities; only strings/containers cross this ABI.
@@ -52,14 +24,3 @@ CoreProgram compile(const std::vector<std::string>& sources, unsigned width) {
 }
 }
 CoreProgram core_compile(const char* source, unsigned pointer_bytes) { return compile({source}, pointer_bytes); }
-CoreProgram core_compile_files(const std::vector<std::string>& sources, unsigned pointer_bytes) { return compile(sources, pointer_bytes); }
-void core_set_foundation(const std::string& grammar) { foundation_grammar = syntax_set_bootstrap(grammar.c_str()); }
-CoreProgram core_compile_foundation(const char* source, unsigned pointer_bytes) {
-  if (!foundation_grammar.empty()) { CoreProgram p; p.error = foundation_grammar; return p; }
-  return compile({source}, pointer_bytes);
-}
-#if defined(__wasm__)
-extern "C" __attribute__((export_name("tw_set_foundation"))) int tw_set_foundation(const char* source, size_t length) {
-  if (!source || length > 131072) return 0; core_set_foundation(std::string(source, length)); return 1;
-}
-#endif

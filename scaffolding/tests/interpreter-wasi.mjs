@@ -1,6 +1,6 @@
-// Run the full-state differential suite using the same portable WASI host as
+// Run the Tower graph/cache suite using the same portable WASI host as
 // the playground (including in-memory grammar inputs).
-// Usage: node scaffolding/tests/interpreter-wasi.mjs program.wasm [--benchmark]
+// Usage: node scaffolding/tests/interpreter-wasi.mjs program.wasm [arguments...]
 import { readFile } from 'node:fs/promises';
 import { TowerWASI, WASIExit } from '../../playground/src/wasi-host.mjs';
 const host = new TowerWASI({ log: text => process.stdout.write(text + '\n') });

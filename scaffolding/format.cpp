@@ -1,8 +1,6 @@
 // Transitional ABI only. Formatting policy and traversal live in compiler/format*.tower.
 #include "compiler-format.hpp"
-#include "compiler-semantic.hpp"
 #include <string_view>
-#include "core.hpp"
 #include "compiler-syntax-reader.hpp"
 #include "syntax-nodes.hpp"
 #include "parser.hpp"

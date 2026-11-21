@@ -1,32 +1,31 @@
-# Differential reference is never linked into production execution.
-add_library(tower-interpreter-reference STATIC scaffolding/bootstrap/interpreter-seed.cpp)
-target_compile_features(tower-interpreter-reference PRIVATE cxx_std_20)
+# The old C++ interpreter/reference harness is replaced by Tower graph/cache
+# contracts. Native hosts run TowerExecutionTests.cmake with TOWER_NATIVE; the
+# portable WASI path reuses the identical suite and a small Tower fixture entry.
+if(NOT CMAKE_SYSTEM_NAME STREQUAL "WASI")
+  return()
+endif()
+get_property(triple GLOBAL PROPERTY TOWER_COMPILER_TRIPLE)
+set(execution_object "${CMAKE_CURRENT_BINARY_DIR}/tower-execution-wasi-tests.o")
+add_custom_command(OUTPUT "${execution_object}"
+  COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/execution_wasi.tower"
+    --library --target "${triple}"
+    --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
+    --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
+    -o "${execution_object}" --depfile "${execution_object}.d"
+  DEPFILE "${execution_object}.d"
+  DEPENDS scaffolding/tests/execution_wasi.tower "${TOWER_BOOTSTRAP_COMPILER}" VERBATIM)
+set_source_files_properties("${execution_object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
 get_target_property(interpreter_test_sources tower-parser-tests SOURCES)
-list(FILTER interpreter_test_sources EXCLUDE REGEX "scaffolding/tests/|scaffolding/core-tests.cpp")
+list(FILTER interpreter_test_sources EXCLUDE REGEX "scaffolding/tests/|scaffolding/core.*cpp")
 list(APPEND interpreter_test_sources scaffolding/tests/nodes.cpp)
-add_executable(tower-interpreter-tests ${interpreter_test_sources} scaffolding/tests/interpreter.cpp)
+add_executable(tower-interpreter-tests ${interpreter_test_sources} "${execution_object}")
 target_compile_features(tower-interpreter-tests PRIVATE cxx_std_20)
 target_compile_definitions(tower-interpreter-tests PRIVATE TOWER_EXPANSION_TESTS=1)
-target_link_libraries(tower-interpreter-tests PRIVATE tower-interpreter-reference tower-compiler-interpreter
+target_compile_options(tower-interpreter-tests PRIVATE -UNDEBUG -fno-exceptions)
+target_link_libraries(tower-interpreter-tests PRIVATE tower-compiler-interpreter
   tower-compiler-parser-nodes tower-compiler-semantics tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
-if(MSVC)
-  target_compile_definitions(tower-interpreter-reference PRIVATE _HAS_EXCEPTIONS=0)
-  target_compile_options(tower-interpreter-tests PRIVATE /utf-8 /UNDEBUG)
-  target_compile_definitions(tower-interpreter-tests PRIVATE _HAS_EXCEPTIONS=0)
-else()
-  target_compile_options(tower-interpreter-reference PRIVATE -fno-exceptions)
-  target_compile_options(tower-interpreter-tests PRIVATE -UNDEBUG -fno-exceptions)
-endif()
-add_test(NAME tower-interpreter-tests COMMAND tower-interpreter-tests)
-
-set_tests_properties(tower-interpreter-tests PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
-# The shared parser test object also contains the grammar port's Tower tests.
-# Satisfy their reference ABI when linking the interpreter test executable.
+# The existing parser test object still contains grammar differential checks.
 if(TARGET tower-syntax-emission-reference)
   target_link_libraries(tower-interpreter-tests PRIVATE tower-syntax-emission-reference)
-  if(MSVC)
-    target_compile_definitions(tower-syntax-emission-reference PRIVATE _HAS_EXCEPTIONS=0)
-  else()
-    target_compile_options(tower-syntax-emission-reference PRIVATE -fno-exceptions)
-  endif()
+  target_compile_options(tower-syntax-emission-reference PRIVATE -fno-exceptions)
 endif()

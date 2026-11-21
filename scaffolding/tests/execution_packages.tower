@@ -1,8 +1,4 @@
 import tower;
-import .host.driver_types;
-import .host.driver_support;
-import .host.driver_request;
-import .host.driver_api;
 import .library.bytes_interface;
 import .library.bytes_types;
 
@@ -29,9 +25,7 @@ fn execution_package_tests(modules: void*): void {
         fill(&repeated, 0, sizeof(ByteBuffer));
         fill(&error, 0, sizeof(ByteBuffer));
         var encoded = execution_package_encode(&original.program, modules, 0, &bytes, &error);
-        if !encoded {
-            driver_error("Package: ", error.data ?? "no diagnostic");
-        }
+        if !encoded { execution_error("Package: ", error.data ?? "no diagnostic"); }
         execution_check(encoded, "package encodes");
         execution_check(bytes.length >= 56, "complete envelope");
         execution_check(execution_package_load(&decoded, bytes.data, bytes.length, modules), "package reconstructs checked graph");
@@ -46,11 +40,26 @@ fn execution_package_tests(modules: void*): void {
         execution_check(execution_text(&decoded.error, ".towerbc checksum mismatch"), "exact checksum diagnostic");
         execution_check(decoded.fast == null && decoded.program.root == null, "invalid package never publishes executable state");
         execution_check(!execution_package_load(&decoded, bytes.data, 55, modules), "truncated header rejected");
-        execution_session_close(&original);
-        execution_session_close(&decoded);
-        bytes_dispose(&bytes);
-        bytes_dispose(&repeated);
-        bytes_dispose(&error);
+        execution_compile(&original, "print(42);", width, modules);
+        execution_check(execution_session_fast(&original), "cache verification fixture starts");
+        var size: usize = 0;
+        // The public envelope encoder supplies a valid checksum. Only checking
+        // its reconstructed Foundation against the derived cache can reject this.
+        var mismatch = bytecode_encode(original.fast, "print(43);", 10, convert(usize, width), 0, &size);
+        execution_check(mismatch != null && bytecode_validate(mismatch, size) == 0, "mismatched cache has valid envelope/checksum");
+        execution_check(!execution_package_load(&decoded, mismatch, size, modules)
+            && execution_text(&decoded.error, bytecode_error(9)), "Foundation/cache mismatch rejected");
+        execution_session_step(&decoded, 1000);
+        execution_check(decoded.machine.steps == 0 && decoded.output.length == 0, "unverified cache cannot execute");
+        bytecode_free(mismatch);
+        var nul: u8[3]; nul[0] = 120; nul[1] = 0; nul[2] = 121;
+        var embedded = bytecode_encode(original.fast, &nul[0], 3, convert(usize, width), 0, &size);
+        execution_check(embedded != null && bytecode_validate(embedded, size) == 0, "embedded NUL has valid envelope/checksum");
+        execution_check(!execution_package_load(&decoded, embedded, size, modules)
+            && execution_text(&decoded.error, "NUL in .towerbc Foundation source"), "bounded source NUL rejected before parsing");
+        bytecode_free(embedded);
+        execution_session_close(&original); execution_session_close(&decoded);
+        bytes_dispose(&bytes); bytes_dispose(&repeated); bytes_dispose(&error);
 
     }
 }

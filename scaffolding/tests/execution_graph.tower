@@ -1,0 +1,88 @@
+import tower;
+import execution_support;
+import .compiler.foundation_types;
+import .compiler.semantic_program_types;
+import .library.vector;
+
+extern fn entity_child_count(node: void*): usize;
+extern fn entity_child_at(node: void*, index: usize): void*;
+
+// Test evidence only. Canonical Foundation remains the only semantic storage
+// format. The traversal IDs erase host addresses while checking every field the
+// retired native semantic oracle compared, including source positions and order.
+fn execution_graph_word(hash: u64*, value: u64): void { *hash = (*hash ^ value) * 1099511628211; }
+fn execution_graph_id(nodes: vector(void*)*, node: void*): u64 {
+    if node == null { return 0; }
+    for (var i: usize = 0; i < nodes.length; i++) {
+        if nodes.data[i] == node { return convert(u64, i) + 1; }
+    }
+    execution_check(false, "semantic edge belongs to owned entity tree");
+    return 0;
+}
+fn execution_graph_edge(hash: u64*, nodes: vector(void*)*, node: void*): void { execution_graph_word(hash, execution_graph_id(nodes, node)); }
+fn execution_graph_type(hash: u64*, nodes: vector(void*)*, type: FoundationType*): void {
+    execution_graph_word(hash, convert(u64, type.scalar));
+    execution_graph_word(hash, convert(u64, type.pointers));
+    execution_graph_word(hash, convert(u64, type.pointer_bytes));
+    execution_graph_edge(hash, nodes, type.record);
+}
+fn execution_graph_list(hash: u64*, nodes: vector(void*)*, list: vector(void*)*): void {
+    execution_graph_word(hash, convert(u64, list.length));
+    for (var i: usize = 0; i < list.length; i++) { execution_graph_edge(hash, nodes, list.data[i]); }
+}
+fn execution_graph_text(hash: u64*, text: u8*, length: usize): void {
+    execution_graph_word(hash, convert(u64, length));
+    for (var i: usize = 0; i < length; i++) { execution_graph_word(hash, convert(u64, text[i])); }
+}
+fn execution_graph_hash(program: SemanticProgram*): u64 {
+    var nodes: vector(void*);
+    vector_init(void*, &nodes);
+    execution_check(vector_push(void*, &nodes, program.root), "graph evidence storage");
+    for (var i: usize = 0; i < nodes.length; i++) {
+        for (var j: usize = 0; j < entity_child_count(nodes.data[i]); j++) {
+            execution_check(vector_push(void*, &nodes, entity_child_at(nodes.data[i], j)), "graph evidence storage");
+        }
+    }
+    var hash: u64 = 14695981039346656037;
+    execution_graph_word(&hash, convert(u64, program.pointer_bytes));
+    execution_graph_word(&hash, convert(u64, program.error_offset));
+    execution_graph_text(&hash, program.error.data, program.error.length);
+    execution_graph_list(&hash, &nodes, &program.functions);
+    execution_graph_list(&hash, &nodes, &program.types);
+    for (var i: usize = 0; i < nodes.length; i++) {
+        var node = sem_get(nodes.data[i]);
+        if node == null { continue; }
+        execution_graph_edge(&hash, &nodes, nodes.data[i]);
+        execution_graph_word(&hash, convert(u64, node.kind));
+        execution_graph_word(&hash, convert(u64, node.op));
+        execution_graph_text(&hash, node.name.data, node.name.length);
+        execution_graph_type(&hash, &nodes, &node.type);
+        execution_graph_type(&hash, &nodes, &node.element);
+        execution_graph_edge(&hash, &nodes, node.binding);
+        execution_graph_edge(&hash, &nodes, node.left);
+        execution_graph_edge(&hash, &nodes, node.right);
+        execution_graph_edge(&hash, &nodes, node.value);
+        execution_graph_edge(&hash, &nodes, node.target);
+        execution_graph_edge(&hash, &nodes, node.body);
+        execution_graph_edge(&hash, &nodes, node.otherwise);
+        execution_graph_list(&hash, &nodes, &node.items);
+        execution_graph_list(&hash, &nodes, &node.locals);
+        execution_graph_list(&hash, &nodes, &node.parameters);
+        execution_graph_word(&hash, convert(u64, node.size));
+        execution_graph_word(&hash, convert(u64, node.alignment));
+        execution_graph_word(&hash, convert(u64, node.length));
+        execution_graph_word(&hash, convert(u64, node.byte_offset));
+        execution_graph_word(&hash, convert(u64, node.frame_size));
+        execution_graph_word(&hash, convert(u64, node.index));
+        execution_graph_word(&hash, convert(u64, node.start));
+        execution_graph_word(&hash, convert(u64, node.end));
+        execution_graph_word(&hash, node.bits);
+        execution_graph_word(&hash, convert(u64, node.constant));
+        execution_graph_word(&hash, convert(u64, node.indirect));
+        execution_graph_word(&hash, convert(u64, node.external));
+        execution_graph_word(&hash, convert(u64, node.exported));
+        execution_graph_word(&hash, convert(u64, node.global));
+    }
+    vector_dispose(void*, &nodes);
+    return hash;
+}

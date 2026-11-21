@@ -780,13 +780,18 @@ and marshal the existing query interfaces.
 CMake compiles these ordinary Tower modules to the compiler host's target using
 explicit Tower imports and a supplied import-capable Tower bootstrap. The unused
 native seed/stage1 targets and their unreferenced support implementations have
-been retired. `bootstrap/core-seed.cpp` remains a semantic differential reference;
-production native and Wasm compilers use the Tower implementation. Portable
+been retired. The native semantic reference seed and interpreter adapters have
+also been retired after native/WASI Tower execution checks passed; production
+native and Wasm compilers use the Tower implementation. Portable
 compiler distribution is still required; this does not establish a source-only
 bootstrap or a fully interpreted parser/host integration.
 
-The native semantic differential suite compares fields, bindings, layout, order,
-effects and lifetime indexes against the reference pass for both pointer widths.
+Before its retirement, the unmodified native semantic differential suite verified
+fields, bindings, layout, order, effects and lifetime indexes at both pointer
+widths. The Tower execution suite retains those fixtures, exact diagnostics and
+offsets, complete semantic-field/edge fingerprints, graph/cache agreement and
+canonical Foundation round trips on native and WASI. The fingerprints are test
+evidence; they are not a semantic interchange format.
 The Tower fixtures in `scaffolding/tests/semantics.tower` and `semantic_invalid/`
 exercise valid and invalid programs; browser tests compare interpretation, LLVM,
 and canonical Foundation round trips. `test-bootstrap.sh` compares optimized LLVM

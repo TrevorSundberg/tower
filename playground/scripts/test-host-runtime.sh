@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Execute the Tower host policies and interpreter differential suite on wasm32.
+# Execute Tower host policies and the Tower graph/cache execution suite on wasm32.
 set -euo pipefail
 repo="$(cd "$(dirname "$0")/../.." && pwd)"
 sdk="${WASI_SDK_PATH:-$HOME/.cache/tower/wasi-sdk/wasi-sdk-34.0-x86_64-linux}"

@@ -23978,3 +23978,115 @@ with Clang19.1.7, LLVM19 and the default published fb1 bootstrap. No private
 bootstrap environment variable. Rebuilt affected services in the focused cache;
 frontend/driver/storage passed 3/3 in16.36seconds. Coordinator has taken ownership
 of the independent regex-test lane; agent3 continues the focused formatter port.
+### 2026-11-20 - Agent 2: native interpreter adapter and semantic reference retirement
+
+The second execution slice removes `core-machine.cpp`, `interpreter-abi.hpp`,
+`CoreMachine`/its native state layout from `core.hpp`, the native interpreter
+harness/reference, and the native semantic harness/reference. The shared Tower
+execution suite now runs unchanged on native and WASI; only fixture setup differs.
+The WASI entry uses the same existing SDK34 libc++ alternate-string boundary as
+IDE setup to install Foundation. No new C/C++ implementation, native test,
+callback wrapper, fallback seed, synchronization or language feature was added.
+The obsolete interpreter native size/offset exports were removed. Unused native
+C/Roku emission, type-query, builtin-list and place-name convenience adapters were
+also deleted; production Tower services remain authoritative.
+
+Agent 3 explicitly transferred `tests/semantics.cpp` and its test-only
+`bootstrap/core-seed.cpp` retirement to this lane. Before deletion, the existing
+unmodified semantic suite was run in isolation against its existing native seed
+at both target widths: PASS, exit0. This compares every semantic field/edge,
+source offsets, canonical formatting and execution. A temporary Tower entry
+called `cpp_name(void semantic_port_tests())`; no native code was added or changed
+for that trial. Reproduction artifacts are external to Git at
+`C:/Sandbox/build/codex-agents/agent_2_semantic_oracle.tower` and
+`AgentSemanticOracle.cmake`; the latter added an isolated target using the
+existing parser target's sources/libraries with its main replaced by the Tower
+entry. Build cache: `/home/trevo/.cache/tower/agent-2-interpreter-wasi`, SDK34,
+Release, four jobs. Run:
+```
+node scaffolding/tests/host-wasi.mjs \\wsl.localhost\Ubuntu\home\trevo\.cache\tower\agent-2-interpreter-wasi\agent-semantic-oracle
+```
+The existing host runner mounted the repository fixtures, including the original
+`semantics.tower`; C++ `__FILE__` used the same `source/` prefix as the parser
+aggregate. This isolated oracle succeeded despite the separately documented
+aggregate parser/LR failures; those unrelated failures were not bypassed or
+represented as passing.
+
+The Tower replacement retains the 12 valid semantic sources and 53 invalid
+sources at both 4/8-byte target widths, the two explicit cycle-path diagnostics,
+and ordered multifile success/failure. Exact messages and offsets were captured
+from the just-oracle-validated implementation. Multiline generic diagnostics keep
+both the primary error and instantiation note: an initial mechanical capture read
+only one line, which produced an invalid numeric offset fixture; capture was
+corrected to consume the full message and final numeric offset. No diagnostic
+comparison was weakened. Complete field/edge fingerprints use deterministic
+entity traversal IDs to exclude host addresses; the same fingerprints pass on
+native and WASI. They include semantic types, bindings, arrays, layout/lifetime
+indexes, flags and source positions and are test evidence only, never a language
+IR/storage format. Canonical Foundation and execution remain independently
+checked, with explicit expected output and graph/fast memory agreement.
+
+The shared tests no longer import CLI transport implementation. Native setup
+still borrows the existing driver grammar/request boundary; WASI setup reads its
+mounted grammar explicitly. Parser storage fault-injection tests are compiled as
+a separate Tower object so a parser-only executable no longer needs an unused
+interpreter host adapter. The original native/WASI host-runtime test commands
+remain usable. The WASI execution binary links without core.cpp/core-nodes.cpp/
+core-machine.cpp, and the parser `--host-only` path passes with the storage-only
+object.
+
+Additional package evidence constructs a checksum-valid envelope whose Foundation
+prints 43 while its cache prints 42, using the existing encoder. Reconstruction
+rejects it with the exact cache-mismatch diagnostic, and stepping the rejected
+session produces zero steps/output. Another checksum-valid package containing an
+embedded NUL is rejected before parsing. This tests reconstruction/cache agreement
+separately from checksum corruption and truncated-section checks.
+
+Validation completed so far:
+- Fresh documented-bootstrap native successor in `agent-2-retired-native`, with
+  `TOWER_BOOTSTRAP_COMPILER` unset, after pulling d79e449: PASS. Native execution
+  and driver CTests passed 2/2 in 16.07s (execution 0.36s). This is still a Linux
+  development successor, not a portable-release claim.
+- WASI `tower-parser-tests` and `tower-interpreter-tests` rebuilt and linked after
+  native deletion and core-query trimming. Existing interpreter-wasi.mjs runner
+  passes the full shared suite; the same runner with the parser binary and
+  `--host-only` passes host/storage tests. Logs: agent-2-wasi-retired.log,
+  agent-2-package-proof.log, agent-2-core-trim-build.log in the coordination folder.
+- The ordinary default bootstrap pin remains 9bbb2eb8; no private compiler/cache
+  requirement was introduced. A typed u64 intermediate fixed a fixture compile
+  error: `convert(u64, large_literal)` first inferred an out-of-range i32 operand.
+
+At this point 1846 native cpp/hpp lines have been deleted in this slice, with zero
+native lines added. CoreProgram/CoreNode views remain for agent3's remaining
+formatter/entity/component-storage callers. Coordinator approved dropping the
+unused core/interpreter dependency in its backend/frontend test fragment after
+its backend-adapter source push; that integrated validation and publication are
+still pending. Its publication lock is held for the prior combined deployment.
+No second-slice source push or hosted-deployment success is claimed here.
+Sanitizers, full parser aggregate and broad formatter sweeps remain skipped.
+
+Integrated follow-up: coordinator explicitly authorized reading its unpublished
+local main while holding the publication lock. After fetching/rebasing onto
+781c4d5 (backend retirement plus diagnostic provenance fix), the journal append
+conflict was resolved by preserving both complete entries. A fresh empty
+`agent-2-final-native` cache built through `playground/scripts/build-native.sh`
+with `TOWER_BOOTSTRAP_COMPILER` unset and four jobs. Backend test source/link lists
+now omit the unused native core sources and interpreter host dependency; production
+CLI dependencies remain unchanged. Native frontend/driver/execution CTests passed
+3/3 in 18.48s, and `tower-backend-tests` passed its API checks. The WASI parser and
+execution binaries were rebuilt after this integration: the full shared execution
+suite and parser `--host-only` storage checks both passed again. Build logs are
+`agent-2-final-native-build.log` and `agent-2-wasi-integrated.log` in the external
+coordination directory. The coordinator also approved removal of the two unused
+core/semantic header includes from `format.cpp`; no formatting algorithm changed.
+After final dead-adapter trimming, this slice deletes 1867 native cpp/hpp lines
+with zero added (superseding the earlier 1846 count). Remaining compiler headers
+still have real CoreProgram/test callers and will be retired with those callers.
+The previously published bootstrap manifest remains historical provenance and is
+not rewritten to erase source paths retired after that bootstrap was produced.
+Final include-cleanup verification: native frontend/driver/execution passed 3/3
+in 17.36s, backend API passed, and rebuilt WASI execution plus parser host/storage
+checks passed. This confirms format.cpp has no hidden dependency on the removed
+headers. Coordinator assigned Agent 2 the next combined browser deployment after
+Agents 1 and 3 publish their independently validated source milestones; no second
+milestone deployment is claimed before those merged builds and hosted checks.

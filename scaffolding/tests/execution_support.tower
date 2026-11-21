@@ -1,5 +1,4 @@
 import tower;
-import .host.driver_types;
 import .library.bytes_interface;
 import .library.bytes_types;
 
@@ -10,9 +9,6 @@ import .compiler.interpreter_types;
 import .compiler.execution_session;
 import .compiler.execution_package;
 import .compiler.foundation_tags;
-import .host.driver_api;
-import .host.driver_request;
-import .host.driver_support;
 
 extern fn exit(status: i32): void;
 
@@ -39,7 +35,13 @@ extern fn entity_store_count(store: void*): usize;
 extern fn compiler_world_store(world: void*): void*;
 
 extern fn compiler_host_world(): void*;
+extern fn sem_get(node: void*): FoundationNode*;
+extern fn host_text_terminate(text: ByteBuffer*): bool;
+extern fn syntax_component_type(): void*;
+extern fn parser_match_get_type(): void*;
 
+fn execution_error(message: u8*, detail: u8*): void { puts(message); puts(detail); }
+fn execution_append_text(text: ByteBuffer*, value: u8*): bool { return bytes_append(text, value, strlen(value)); }
 extern fn entity_retain(node: void*): usize;
 
 extern fn entity_references(node: void*): usize;
@@ -55,11 +57,9 @@ fn execution_close_checked(session: ExecutionSession*): void {
     && session.error.data == null && session.output.data == null, "close clears owned storage");
     execution_session_close(session);
 }
-
 fn execution_check(ok: bool, message: u8*): void {
     if !ok {
-        driver_error("Execution test: ", message);
-
+        execution_error("Execution test: ", message);
         exit(1);
     }
 }
@@ -74,9 +74,7 @@ fn execution_text(text: ByteBuffer*, wanted: u8*): bool {
 
 fn execution_compile(session: ExecutionSession*, text: u8*, width: u32, modules: void*): void {
     var ok = execution_session_compile(session, text, strlen(text), width, modules);
-    if !ok {
-        driver_error("Compilation: ", session.error.data ?? "allocation failure");
-    }
+    if !ok { execution_error("Compilation: ", session.error.data ?? "allocation failure"); }
     execution_check(ok, "fixture compiles");
 }
 
@@ -122,9 +120,9 @@ export fn im_missing_foreign(machine: IMState*, node: void*, offset: usize): voi
     var text: ByteBuffer;
     fill(&text, 0, sizeof(ByteBuffer));
     var function = sem_get(node);
-    execution_check(driver_text(&text, "No interpreter implementation registered for external function '")
-    && bytes_append(&text, function.name.data, function.name.length)
-    && driver_text(&text, "'") && host_text_terminate(&text), "foreign diagnostic allocation");
+    execution_check(execution_append_text(&text, "No interpreter implementation registered for external function '")
+        && bytes_append(&text, function.name.data, function.name.length)
+        && execution_append_text(&text, "'") && host_text_terminate(&text), "foreign diagnostic allocation");
     im_fail(machine, text.data, offset);
     bytes_dispose(&text);
 }

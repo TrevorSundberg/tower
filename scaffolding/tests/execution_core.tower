@@ -1,8 +1,4 @@
 import tower;
-import .host.driver_types;
-import .host.driver_support;
-import .host.driver_request;
-import .host.driver_api;
 import .library.bytes_interface;
 import .library.bytes_types;
 

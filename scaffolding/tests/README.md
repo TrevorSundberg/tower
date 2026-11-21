@@ -288,8 +288,15 @@ canonical Foundation round trips, generic identity, target layouts, quoted names
 and request ownership. Package trials reconstruct checked Foundation, verify its
 execution cache, reproduce identical bytes, and reject checksum corruption and
 truncated envelopes. These tests use the production Tower execution session used
-by the CLI. The legacy native interpreter reference harness remains temporarily
-for the WASI host-runtime test path until that caller is migrated.
+by the CLI. The same suite runs on WASI through `execution_wasi.tower` and the
+existing `playground/scripts/test-host-runtime.sh` path. The native interpreter
+adapter, reference interpreter and semantic reference seed have been retired.
+Before removal, the unmodified semantic reference suite passed at both widths.
+Tower fixtures retain its 53 exact invalid-program messages and offsets, complete
+semantic-field/edge fingerprints for 12 valid programs per width, multifile
+bindings and effects, and canonical/execution agreement. Fingerprints are test
+evidence only, not a program format. The parser aggregate links the independent
+Tower storage fault-injection tests without an interpreter host adapter.
 
 The browser/WASM suite in `playground/tests/execution.test.mjs` additionally
 exercises numeric conversions and traps, binary operations, control flow,

@@ -13,105 +13,9 @@ import .compiler.interpreter_types;
 import .compiler.execution_package;
 import .compiler.execution_session;
 import execution_support;
-import execution_cases;
-import execution_packages;
-import execution_core;
+import execution_suite;
 
-fn execution_matrix(modules: void*): void {
-    for(var width: u32 = 4; width <= 8; width += 4) {
-        for(var fixture: usize = 0; execution_cases(fixture) != null; fixture++) {
-            var execution_fixture = execution_cases(fixture);
-            puts(execution_fixture);
-            for(var trial: usize = 0; trial < 3; trial++) {
-                var budget: usize = trial == 0 ? 1:(trial == 1 ? 7: 1000);
 
-                var graph: ExecutionSession;
-                var fast: ExecutionSession;
-                fill(&graph, 0, sizeof(ExecutionSession));
-                fill(&fast, 0, sizeof(ExecutionSession));
-                execution_compile(&graph, execution_fixture, width, modules);
-                execution_compile(&fast, execution_fixture, width, modules);
-                execution_check(execution_session_start(&graph), "graph starts");
-                execution_check(execution_session_fast(&fast), "cache builds");
-                var graph_frames = graph.machine.frame_count;
-                var fast_frames = fast.machine.frame_count;
-                execution_session_step(&graph, 0);
-                execution_session_step(&fast, 0);
-                execution_check(graph.machine.steps == 0 && fast.machine.steps == 0
-                && graph_frames == graph.machine.frame_count && fast_frames == fast.machine.frame_count, "zero budget preserves state");
-                var endless = fixture >= 24;
-                execution_run(&graph, budget, endless ? 128: 12000);
-                execution_run(&fast, budget, endless ? 128: 1000000);
-                if endless {
-                    execution_check(!graph.machine.done && !fast.machine.done, "infinite loop remains cancellable");
-                    execution_session_step(&graph, 120000);
-                    execution_session_step(&fast, 120000);
-                    if fixture == 24 {
-                        execution_check(graph.machine.output_truncated && fast.machine.output_truncated, "bounded output truncates");
-                    }
-                } else {
-                    execution_check(graph.machine.done && fast.machine.done, "bounded fixture completes");
-                    execution_same(&graph, &fast);
-                    if fixture == 10 {
-                        execution_check(execution_text(&graph.output, "83\n42\n93\n"), "foreign side effects and relocation");
-                    }
-                    if fixture == 11 {
-                        execution_check(execution_text(&graph.error, "foreign failure") && graph.machine.error_offset == 17, "foreign failure diagnostic");
-                    }
-                    if fixture == 3 {
-                        execution_check(execution_text(&graph.output, "5040\n"), "recursive result");
-                    }
-                    if fixture == 5 {
-                        execution_check(execution_text(&graph.output, "42\n0\n"), "assignment captures destination before RHS");
-                    }
-                }
-                var steps = graph.machine.steps;
-                execution_session_step(&graph, 0);
-                execution_check(graph.machine.steps == steps, "zero budget after execution");
-                execution_check(!execution_session_fast(&graph), "cannot change engines after execution begins");
-                execution_session_close(&graph);
-                execution_session_close(&fast);
-                execution_session_close(&graph);
-                execution_session_close(&fast);
-
-            }
-
-        }
-
-    }
-    puts("156 graph/fast execution trials passed");
-}
-
-fn execution_allocations(modules: void*): void {
-    puts("Allocation ordering, coalescing, realloc failure");
-    var session: ExecutionSession;
-    fill(&session, 0, sizeof(ExecutionSession));
-    execution_compile(&session, "", 4, modules);
-    execution_check(execution_session_start(&session), "allocation session starts");
-    var blocks: u64[100];
-    for(var i: usize = 0; i < 100; i++) {
-        blocks[i] = interpreter_allocate(&session.machine, i *7);
-        execution_check(blocks[i] != 0, "allocation succeeds");
-        if i != 0 {
-            execution_check(blocks[i] > blocks[i -1], "ascending fresh addresses");
-        }
-    }
-    for(var i: usize = 0; i < 100; i += 2) {
-        interpreter_deallocate(&session.machine, blocks[i]);
-    }
-    for(var i: usize = 1; i < 100; i += 2) {
-        interpreter_deallocate(&session.machine, blocks[i]);
-    }
-    execution_check(session.machine.allocations.length == 0, "all blocks released");
-    execution_check(session.machine.free_blocks.length == 1, "adjacent free blocks coalesce");
-    var address = interpreter_reallocate(&session.machine, 0, 0);
-    execution_check(address == blocks[0], "lowest free block reused for zero allocation");
-    interpreter_bytes(&session.machine, address, 1, 0)[0] = 93;
-    execution_check(interpreter_reallocate(&session.machine, address, 268435457) == 0, "oversized realloc fails");
-    execution_check(interpreter_bytes(&session.machine, address, 1, 0)[0] == 93, "failed realloc preserves old block");
-    execution_check(interpreter_reallocate(&session.machine, address, 0) == 0, "zero realloc frees");
-    execution_session_close(&session);
-}
 
 export fn main(argc: i32, argv: u8**): i32 {
     execution_check(argc == 2, "resource root argument");
@@ -134,15 +38,10 @@ export fn main(argc: i32, argv: u8**): i32 {
     }
     driver_syntax_foundation(&result[0], request.text[DriverFoundationText()].data);
     execution_check(driver_syntax_data(&result[0])[0] == 0, "install Foundation");
-    if driver_syntax_heap(&result[0]) {
-        driver_syntax_delete(driver_syntax_storage(&result[0]));
-    }
-    execution_matrix(request.modules);
-    execution_allocations(request.modules);
-    execution_package_tests(request.modules);
-    execution_core_tests(request.modules);
+    if driver_syntax_heap(&result[0]) { driver_syntax_delete(driver_syntax_storage(&result[0])); }
+    execution_tests(request.modules);
     driver_request_close(&request);
     bytes_dispose(&path);
-    puts("Tower execution, Foundation round trips and package contracts passed");
+
     return 0;
 }

@@ -139,7 +139,7 @@ if(TOWER_PARSER_ONLY)
   tower_compiler_interpreter()
   add_executable(tower-parser-tests scaffolding/tests/main.cpp
     scaffolding/tests/regex.cpp scaffolding/tests/lr-analysis.cpp scaffolding/tests/lr-grammar.cpp scaffolding/tests/syntax-lexer.cpp scaffolding/tests/syntax-nodes.cpp scaffolding/tests/syntax-reader.cpp scaffolding/tests/syntax-validation.cpp
-    scaffolding/core.cpp scaffolding/core-nodes.cpp scaffolding/core-machine.cpp
+    scaffolding/core.cpp scaffolding/core-nodes.cpp
     scaffolding/tower.cpp scaffolding/tests/nodes.cpp
     scaffolding/syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/format.cpp scaffolding/lex-pattern.cpp scaffolding/lex-pattern-common.cpp scaffolding/syntax-tests.cpp)
   target_compile_features(tower-parser-tests PRIVATE cxx_std_20)
@@ -149,7 +149,8 @@ if(TOWER_PARSER_ONLY)
   endif()
   tower_format_reference(tower-parser-tests)
   target_sources(tower-parser-tests PRIVATE scaffolding/tests/format.cpp)
-  target_link_libraries(tower-parser-tests PRIVATE tower-compiler-interpreter tower-compiler-parser-nodes tower-compiler-semantics tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
+  include(cmake/TowerInterpreterStorageTests.cmake)
+  target_link_libraries(tower-parser-tests PRIVATE tower-interpreter-storage-tests tower-compiler-parser-nodes tower-compiler-semantics tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
   if(MSVC)
     string(REPLACE "/EHsc" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
     target_compile_options(tower-parser-tests PRIVATE /utf-8 /UNDEBUG)
@@ -157,13 +158,6 @@ if(TOWER_PARSER_ONLY)
   else()
     target_compile_options(tower-parser-tests PRIVATE -UNDEBUG -fno-exceptions)
   endif()
-  target_sources(tower-parser-tests PRIVATE scaffolding/tests/semantics.cpp)
-  add_library(tower-semantic-reference STATIC scaffolding/bootstrap/core-seed.cpp)
-  target_compile_features(tower-semantic-reference PRIVATE cxx_std_20)
-  target_compile_definitions(tower-semantic-reference PRIVATE TOWER_SEMANTIC_REFERENCE=1
-    core_compile=reference_core_compile core_compile_files=reference_core_compile_files
-    core_compile_foundation=reference_core_compile_foundation core_set_foundation=reference_core_set_foundation)
-  target_link_libraries(tower-parser-tests PRIVATE tower-semantic-reference)
   enable_testing()
   add_library(tower-lexer-reference STATIC scaffolding/bootstrap/lexer-table-seed.cpp)
   target_compile_features(tower-lexer-reference PRIVATE cxx_std_20)

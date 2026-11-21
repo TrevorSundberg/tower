@@ -1,0 +1,48 @@
+import tower;
+import execution_suite;
+import execution_support;
+import .compiler.execution_session;
+import .library.bytes_types;
+import .library.bytes_interface;
+
+// The existing WASI SDK 34 libc++ alternate-string ABI, as used by the IDE.
+// Only this fixture setup calls the remaining native syntax baseline boundary.
+// Test and execution behavior stay in Tower; this is not a bootstrap fallback.
+struct ExecutionForeignString { words: usize[3]; }
+extern fn `cpp_name(std::string syntax_set_bootstrap(char const*))`(result: ExecutionForeignString*, source: u8*): void;
+extern fn `cpp_name(void operator delete(void*))`(data: u8*): void;
+extern fn fopen(path: u8*, mode: u8*): void*;
+extern fn fread(data: u8*, size: usize, count: usize, file: void*): usize;
+extern fn ferror(file: void*): i32;
+extern fn feof(file: void*): i32;
+extern fn fclose(file: void*): i32;
+extern fn frontend_modules_create(): void*;
+extern fn frontend_modules_destroy(modules: void*): void;
+
+export fn __main_argc_argv(argc: i32, argv: u8**): i32 {
+    var file = fopen("foundation.tower", "rb");
+    execution_check(file != null, "open bundled Foundation");
+    var grammar: ByteBuffer;
+    fill(&grammar, 0, sizeof(ByteBuffer));
+    var chunk: u8[4096];
+    while feof(file) == 0 {
+        var count = fread(&chunk[0], 1, 4096, file);
+        execution_check(ferror(file) == 0 && (count != 0 || feof(file) != 0), "read bundled Foundation");
+        execution_check(bytes_append(&grammar, &chunk[0], count), "grammar storage");
+    }
+    execution_check(fclose(file) == 0 && host_text_terminate(&grammar), "close and terminate grammar snapshot");
+    var result: ExecutionForeignString;
+    fill(&result, 0, sizeof(ExecutionForeignString));
+    `cpp_name(std::string syntax_set_bootstrap(char const*))`(&result, grammar.data);
+    var raw = bits(u8*, &result);
+    var heap = (raw[11] & 128) != 0;
+    var data = heap ? bits(u8*, result.words[0]) : raw;
+    if data[0] != 0 { execution_error("Foundation setup: ", data); }
+    execution_check(data[0] == 0, "install bundled Foundation");
+    if heap { `cpp_name(void operator delete(void*))`(data); }
+    bytes_dispose(&grammar);
+    var modules = frontend_modules_create();
+    execution_tests(modules);
+    frontend_modules_destroy(modules);
+    return 0;
+}
