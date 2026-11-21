@@ -44,7 +44,10 @@ their own directly built executable. The archive and installer are retired, not 
 required formats. Preserve frozen resource bytes and the compiler's executable
 mode when publishing or checking out a pin.
 
-The current pin supports scalar `f32`/`f64`, strict shared staged/runtime arithmetic,
+The current pin supports signed `i8`/`i16` and unsigned `u16` in addition to `u8`,
+including exact layouts, checked conversions and ordinary staged arithmetic.
+See [byte and short integers](../docs/narrow-integers.md). It supports scalar
+`f32`/`f64`, strict shared staged/runtime arithmetic,
 and ordinary unary negation including integer `-0` and exact signed minima.
 See [the floating contract](../docs/floating-point.md) for numeric and backend limits.
 It also supports struct copies/by-value calls, named-field/default initialization,

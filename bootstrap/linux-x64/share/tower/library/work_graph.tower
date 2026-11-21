@@ -525,6 +525,48 @@ fn work_take_task(g: WorkGraph*, output: WorkTicket*, task: usize): bool {
     return work_take_matching(g, output, false, 0, task);
 }
 
+fn work_ready_sift(values: usize*, count: usize, parent: usize): void {
+    var value = values[parent];
+    while parent < count / 2 {
+        var child = parent * 2 + 1;
+        if child + 1 < count && values[child] < values[child + 1] { child++; }
+        if values[child] <= value { break; }
+        values[parent] = values[child];
+        parent = child;
+    }
+    values[parent] = value;
+}
+
+// At a joined phase boundary, restore coordinator request order after parallel
+// completions released consumers in timing-dependent order. This only orders
+// the derived ready index; task identities, claims and receipts stay intact.
+// Ordinary dispatch remains FIFO unless its phase explicitly requests ordering.
+fn work_order_ready(g: WorkGraph*): bool {
+    if !work_ok(g) || g.running != 0 { return false; }
+    var count: usize = 0;
+    var ordered = true;
+    for(var i = g.head; i < g.ready.length; i++) {
+        var id = g.ready.data[i];
+        if id == 0 || work_task(g, id).state != WorkState.Ready { continue; }
+        if count != 0 && g.ready.data[count - 1] > id { ordered = false; }
+        g.ready.data[count++] = id;
+    }
+    g.head = 0;
+    g.ready.length = count;
+    if ordered { return true; }
+    for(var parent = count / 2; parent != 0;) {
+        work_ready_sift(g.ready.data, count, --parent);
+    }
+    for(var end = count; end > 1;) {
+        end--;
+        var value = g.ready.data[end];
+        g.ready.data[end] = g.ready.data[0];
+        g.ready.data[0] = value;
+        work_ready_sift(g.ready.data, end, 0);
+    }
+    return true;
+}
+
 fn work_take_matching(g: WorkGraph*, output: WorkTicket*, filtered: bool, query: u32, wanted: usize): bool {
     if !work_ok(g) {
         return false;

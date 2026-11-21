@@ -1,11 +1,11 @@
 import tower;
 import library.vector;
+import library.platform;
 
 var failures: u32 = 0;
 var BytePatterns: u32 = 256;
 var ByteSign: u32 = 128;
 var ByteMaximum: u32 = 255;
-extern fn platform_write(stream: u32, data: u8*, length: usize): u64;
 fn check(condition: bool, message: u8*): void {
     if !condition {
         var length: usize = 0;

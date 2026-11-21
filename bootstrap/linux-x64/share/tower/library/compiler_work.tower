@@ -1,6 +1,7 @@
 import tower;
 import work_graph;
 import entities;
+import entity_types;
 import compiler_work_types;
 
 // Coordinator metadata on ordinary ECS entities. Worker recipe/result components

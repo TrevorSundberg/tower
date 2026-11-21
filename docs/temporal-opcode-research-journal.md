@@ -37246,3 +37246,90 @@ build steps pass; successor SHA-256 is
 The complete driver suite passes in 9.99 seconds and module-path checks in 3.08
 seconds. The verified metadata deployment remains bb3a8b6; its publication lock
 has been released. The narrow-integer runtime publication belongs to its lane.
+Release integration: rebased the source checkpoint to fb0509a over 5ca3c3d's
+batched body-declaration continuations and the intervening UI-stability work.
+The first validation command named an unavailable tower-lr-work-tests target;
+corrected it to the configured tower-work-tests target. Fresh documented-default
+native build in /cache/narrow-integrated completed all 54 steps, then its full
+execution suite and reversed-dependency worker-order checks passed. Rebuilt all
+browser reactors/project inputs from the integrated compiler sources. The earlier
+C helper regression matrix passed 416 warning-free Clang/GCC C89/C++98 O0/O2
+checks; the narrow fixture additionally passes exact two-byte unaligned access.
+The Tower package_bootstrap tool produced /cache/narrow-release-pin from the
+integrated executable and public predecessor 1a5b5887. Every member checksum
+passes. Tower verify_compiler, run from /tmp in development mode, passed its
+clean child-environment/relocation/deterministic object/link/execution checks;
+the relocated candidate also compiled and ran narrow_integers.tower with zero
+failures. This remains a Linux x64 development pin with system LLVM/Clang, not
+a standalone portable release. Browser verification and installed-pin clean
+successor validation follow.
+
+Installed direct pin executable SHA-256 is
+057f0d4697431b40ca5cd5930d1bfa18648a3ef35a48961e295f2b4db53418d2,
+with complete resources/checksums and source base fb0509a. A new default build
+in /cache/narrow-pin-successor, with TOWER_BOOTSTRAP_COMPILER unset, completed
+all 54 steps and compiled/runs both narrow_integers and body_continuation with
+zero failures. No compiler/build implementation adopts the narrow storage types
+before this publication.
+
+The integrated browser matrix passed 88 checks initially, skipped its pre-existing
+optional ide_package_tests export, and exposed two setup failures: concatenating
+two fixture files put an import after statements, and Windows' default Node 21
+cannot load the Node-22+ Roku simulator. Replaced fixture concatenation with
+ordinary Tower imports; the foreign-call test now passes both interpretation and
+compiled Wasm. Linux Node 22 could not load the Windows-installed canvas addon;
+used the already established isolated Windows Node 22 npm execution path instead.
+The simulator then correctly rejected the fixture's handwritten platform_write
+return type; imported library.platform's actual i64 contract. Native graph/cache,
+package, workers and native/Wasm execution were rechecked after that fixture fix.
+
+The exhaustive/container fixture's unoptimized Roku source exceeds its existing
+1.9 MB single-file profile. Retained that fixture for native/Wasm/interpreters
+and added narrow_scalar.tower for the bounded source profile. Its arithmetic,
+wrap/conversion/shift checks, signed pointer indexing and unaligned neighbor
+sentinels, plus narrow_output, pass O0/O2 reconstruction and simulator execution.
+Stopped a superseded full-fixture simulation after it exceeded the bounded
+validation scope; this is not a passing full-fixture Roku claim. Five unaffected
+Roku emitter checks also pass, including scalar idioms/popcount and trap behavior;
+the original two corpus checks are rerunning with their original bounded inputs.
+
+Two successive actual browser compiler generations (2 then 4 workers, including
+edited semantic behavior) pass with identical hashes: tower e9c2fb02b70f0e2b3b84b81002579bc290fded62c300528edb6c4ff32f878799,
+llvm 1e54c9e7dfbe556b0bbec0b96e4088ee1f5a0d09c05683c602734c05a57c2f2f,
+cross 5d9062eb22a135b6eed6347a48efac39b519f2319dd5b97844d705e8489ef371.
+Static deployment and local desktop/mobile verification pass all 84 asset hashes,
+execution/backend agreement, downloads, completion, highlighting and persistence.
+Runtime build inputs remain fb0509a and public predecessor 1a5b5887; test-transport
+fixes and documentation do not change those runtime bytes. Hosted publication
+and final push follow. Evidence: build/narrow-{generations,successor,foreign-browser,
+roku-scalar,fixture-retest,local-verification}.log.
+
+Final integration supersedes the intermediate pin/runtime identities above.
+Rebased over 4bbb2b9's lazy Tower Wasm linker and entity API split, then over
+717b25b's test-only import-driver retirement. Production compiler inputs are
+unchanged by that last rebase. Published source checkpoint is 6c03edd. Kept the
+release commit unpublished while replacing its intermediate bootstrap, so the
+final pin's source base is reachable on main. Final executable SHA-256 is
+0d752e7dc35a0a8951872cf52d96873bb1e1cab2b3fe63d9b147e64e5deecca8;
+it includes entity_api/entity_types resources and a hashed source-changes.patch
+for the accompanying fixture fixes. The patch is byte-preserved in Git. Its
+recorded build predecessor is the validated intermediate 057f0d46 candidate,
+which was built from the published 1a5b5887 predecessor; 057f was not separately
+published as a pin. Users need only the complete final checked-in directory.
+
+Fresh final-source native build, full execution/semantic oracle/package suite
+and worker-order checks pass again. Rebuilt portable/shared/LLVM/cross reactors
+and their compiler project from the integrated production inputs. Final browser
+selection: 89 pass, zero fail, one existing optional export skip. The seven
+existing Roku emitter checks and added narrow scalar/output check pass across
+the corrected focused runs; no full-container Roku claim. The final two browser
+generations are identical: tower e85de8823964a6ff4a6d830d0f3a55d547509f2819676eb5b7e997e285b05bbb,
+llvm bbe7f866fc40e4177ecfdcf678f4225c71425342d971d91b7c66f610b7d2cef5,
+cross 0da125bbdd0acdc993aa9d6fe749b439d1d6a4558ebff9a8886c09bb2837d9db.
+Final pin relocation/host verification passes. Installed final pin passes a new
+54-step default build in /cache/narrow-published-successor, with no bootstrap
+override, followed by zero-failure narrow integer and latest body-continuation
+executables. Site now contains 86 assets due to the upstream library split.
+Final local/hosted verification and publication receipts follow; no prior passing
+run is used to claim verification of changed compiler inputs. Logs use
+build/narrow-final-*, narrow-published-successor.log and narrow-module-paths.log.

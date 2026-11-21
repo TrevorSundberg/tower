@@ -14,6 +14,7 @@ third_party/** linguist-vendored=true
 bootstrap/linux-x64/towerc binary linguist-generated=true
 bootstrap/linux-x64/** -text linguist-generated=true
 bootstrap/linux-x64/SHA256SUMS text eol=lf
+bootstrap/source-changes.patch -text linguist-generated=true
 playground/dist/** linguist-generated=true
 
 # Scope-test fixtures are editor tests, not upstream classifier samples.

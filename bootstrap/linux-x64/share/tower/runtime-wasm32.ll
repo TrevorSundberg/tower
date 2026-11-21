@@ -1,4 +1,4 @@
-; ModuleID = '/cache/float-direct-clean/guest-wasm32-unbound.ll'
+; ModuleID = '/cache/narrow-final-integrated/guest-wasm32-unbound.ll'
 source_filename = "Tower"
 target datalayout = "e-m:e-p:32:32-p10:8:8-p20:8:8-i64:64-n32:64-S128-ni:1:10:20"
 target triple = "wasm32-unknown-unknown"
@@ -15988,29 +15988,31 @@ entry:
   %"control value 21.8" = alloca i32, align 4
   %"control value 21.9" = alloca i8, align 1
   %"control value 21.10" = alloca i32, align 4
-  %"control value 21.11" = alloca ptr, align 4
-  %"control value 21.12" = alloca i32, align 4
+  %"control value 21.11" = alloca i32, align 4
+  %"control value 21.12" = alloca ptr, align 4
   %"control value 21.13" = alloca i32, align 4
-  %"control value 21.14" = alloca i8, align 1
+  %"control value 21.14" = alloca i32, align 4
   %"control value 21.15" = alloca i8, align 1
-  %"control value 21.16" = alloca ptr, align 4
-  %"control value 21.17" = alloca i32, align 4
+  %"control value 21.16" = alloca i8, align 1
+  %"control value 21.17" = alloca ptr, align 4
   %"control value 21.18" = alloca i32, align 4
-  %"control value 21.19" = alloca ptr, align 4
-  %"control value 21.20" = alloca i32, align 4
+  %"control value 21.19" = alloca i32, align 4
+  %"control value 21.20" = alloca ptr, align 4
   %"control value 21.21" = alloca i32, align 4
-  %"control value 21.22" = alloca ptr, align 4
-  %"control value 21.23" = alloca i32, align 4
+  %"control value 21.22" = alloca i32, align 4
+  %"control value 21.23" = alloca ptr, align 4
   %"control value 21.24" = alloca i32, align 4
-  %"control value 21.25" = alloca i8, align 1
-  %"control value 21.26" = alloca ptr, align 4
-  %"control value 21.27" = alloca i32, align 4
+  %"control value 21.25" = alloca i32, align 4
+  %"control value 21.26" = alloca i8, align 1
+  %"control value 21.27" = alloca ptr, align 4
   %"control value 21.28" = alloca i32, align 4
-  %"control value 21.29" = alloca ptr, align 4
-  %"control value 21.30" = alloca i32, align 4
+  %"control value 21.29" = alloca i32, align 4
+  %"control value 21.30" = alloca ptr, align 4
   %"control value 21.31" = alloca i32, align 4
-  %"control value 21.32" = alloca i8, align 1
-  %"control value 21.33" = alloca i32, align 4
+  %"control value 21.32" = alloca i32, align 4
+  %"control value 21.33" = alloca i8, align 1
+  %"control value 21.34" = alloca i32, align 4
+  %"control value 21.35" = alloca i32, align 4
   store ptr %0, ptr %a, align 1
   store ptr %1, ptr %b, align 1
   %2 = load ptr, ptr %a, align 1
@@ -16062,17 +16064,19 @@ if.else:                                          ; preds = %entry
 
 if.end:                                           ; preds = %if.else
   %30 = load ptr, ptr %a, align 1
-  store ptr %30, ptr %"control value 21.11", align 1
-  %31 = load ptr, ptr %"control value 21.11", align 1
+  store ptr %30, ptr %"control value 21.12", align 1
+  %31 = load ptr, ptr %"control value 21.12", align 1
   %32 = getelementptr i8, ptr %31, i32 2048
   %33 = load i32, ptr %32, align 1
-  store i32 %33, ptr %"control value 21.12", align 1
-  %34 = load i32, ptr %"control value 21.12", align 1
+  store i32 %33, ptr %"control value 21.13", align 1
+  %34 = load i32, ptr %"control value 21.13", align 1
   store i32 %34, ptr %i, align 1
   br label %loop
 
 if.body1:                                         ; preds = %if.body
-  store i32 -1, ptr %"control value 21.10", align 1
+  store i32 -1, ptr %"control value 21.11", align 1
+  %35 = load i32, ptr %"control value 21.11", align 1
+  store i32 %35, ptr %"control value 21.10", align 1
   br label %if.end3
 
 if.else2:                                         ; preds = %if.body
@@ -16080,68 +16084,68 @@ if.else2:                                         ; preds = %if.body
   br label %if.end3
 
 if.end3:                                          ; preds = %if.else2, %if.body1
-  %35 = load i32, ptr %"control value 21.10", align 1
-  ret i32 %35
+  %36 = load i32, ptr %"control value 21.10", align 1
+  ret i32 %36
 
 loop:                                             ; preds = %if.end6, %if.end
-  %36 = load i32, ptr %i, align 1
-  store i32 %36, ptr %"control value 21.13", align 1
-  %37 = load i32, ptr %"control value 21.13", align 1
-  %38 = icmp ne i32 %37, 0
-  %39 = zext i1 %38 to i8
-  store i8 %39, ptr %"control value 21.14", align 1
-  %40 = load i8, ptr %"control value 21.14", align 1
-  store i8 %40, ptr %"control check 21.0", align 1
-  %41 = load i8, ptr %"control check 21.0", align 1
-  store i8 %41, ptr %"control value 21.15", align 1
-  %42 = load i8, ptr %"control value 21.15", align 1
-  %43 = icmp ne i8 %42, 0
-  br i1 %43, label %if.body4, label %if.else5
+  %37 = load i32, ptr %i, align 1
+  store i32 %37, ptr %"control value 21.14", align 1
+  %38 = load i32, ptr %"control value 21.14", align 1
+  %39 = icmp ne i32 %38, 0
+  %40 = zext i1 %39 to i8
+  store i8 %40, ptr %"control value 21.15", align 1
+  %41 = load i8, ptr %"control value 21.15", align 1
+  store i8 %41, ptr %"control check 21.0", align 1
+  %42 = load i8, ptr %"control check 21.0", align 1
+  store i8 %42, ptr %"control value 21.16", align 1
+  %43 = load i8, ptr %"control value 21.16", align 1
+  %44 = icmp ne i8 %43, 0
+  br i1 %44, label %if.body4, label %if.else5
 
 loop.end:                                         ; preds = %if.else5
   ret i32 0
 
 if.body4:                                         ; preds = %loop
-  store ptr %i, ptr %"control value 21.16", align 1
-  %44 = load ptr, ptr %"control value 21.16", align 1
-  %45 = load i32, ptr %44, align 1
-  store i32 %45, ptr %"control value 21.17", align 1
-  %46 = load i32, ptr %"control value 21.17", align 1
-  %47 = sub i32 %46, 1
-  store i32 %47, ptr %"control value 21.18", align 1
-  %48 = load ptr, ptr %"control value 21.16", align 1
-  %49 = load i32, ptr %"control value 21.18", align 1
-  store i32 %49, ptr %48, align 1
-  %50 = load ptr, ptr %a, align 1
-  store ptr %50, ptr %"control value 21.19", align 1
-  %51 = load i32, ptr %i, align 1
-  store i32 %51, ptr %"control value 21.20", align 1
-  %52 = load ptr, ptr %"control value 21.19", align 1
-  %53 = getelementptr i8, ptr %52, i32 0
-  %54 = load i32, ptr %"control value 21.20", align 1
-  %55 = mul i32 %54, 4
-  %56 = getelementptr i8, ptr %53, i32 %55
-  %57 = load i32, ptr %56, align 1
-  store i32 %57, ptr %"control value 21.21", align 1
-  %58 = load ptr, ptr %b, align 1
-  store ptr %58, ptr %"control value 21.22", align 1
-  %59 = load i32, ptr %i, align 1
-  store i32 %59, ptr %"control value 21.23", align 1
-  %60 = load ptr, ptr %"control value 21.22", align 1
-  %61 = getelementptr i8, ptr %60, i32 0
-  %62 = load i32, ptr %"control value 21.23", align 1
-  %63 = mul i32 %62, 4
-  %64 = getelementptr i8, ptr %61, i32 %63
-  %65 = load i32, ptr %64, align 1
-  store i32 %65, ptr %"control value 21.24", align 1
-  %66 = load i32, ptr %"control value 21.21", align 1
-  %67 = load i32, ptr %"control value 21.24", align 1
-  %68 = icmp ne i32 %66, %67
-  %69 = zext i1 %68 to i8
-  store i8 %69, ptr %"control value 21.25", align 1
-  %70 = load i8, ptr %"control value 21.25", align 1
-  %71 = icmp ne i8 %70, 0
-  br i1 %71, label %if.body7, label %if.else8
+  store ptr %i, ptr %"control value 21.17", align 1
+  %45 = load ptr, ptr %"control value 21.17", align 1
+  %46 = load i32, ptr %45, align 1
+  store i32 %46, ptr %"control value 21.18", align 1
+  %47 = load i32, ptr %"control value 21.18", align 1
+  %48 = sub i32 %47, 1
+  store i32 %48, ptr %"control value 21.19", align 1
+  %49 = load ptr, ptr %"control value 21.17", align 1
+  %50 = load i32, ptr %"control value 21.19", align 1
+  store i32 %50, ptr %49, align 1
+  %51 = load ptr, ptr %a, align 1
+  store ptr %51, ptr %"control value 21.20", align 1
+  %52 = load i32, ptr %i, align 1
+  store i32 %52, ptr %"control value 21.21", align 1
+  %53 = load ptr, ptr %"control value 21.20", align 1
+  %54 = getelementptr i8, ptr %53, i32 0
+  %55 = load i32, ptr %"control value 21.21", align 1
+  %56 = mul i32 %55, 4
+  %57 = getelementptr i8, ptr %54, i32 %56
+  %58 = load i32, ptr %57, align 1
+  store i32 %58, ptr %"control value 21.22", align 1
+  %59 = load ptr, ptr %b, align 1
+  store ptr %59, ptr %"control value 21.23", align 1
+  %60 = load i32, ptr %i, align 1
+  store i32 %60, ptr %"control value 21.24", align 1
+  %61 = load ptr, ptr %"control value 21.23", align 1
+  %62 = getelementptr i8, ptr %61, i32 0
+  %63 = load i32, ptr %"control value 21.24", align 1
+  %64 = mul i32 %63, 4
+  %65 = getelementptr i8, ptr %62, i32 %64
+  %66 = load i32, ptr %65, align 1
+  store i32 %66, ptr %"control value 21.25", align 1
+  %67 = load i32, ptr %"control value 21.22", align 1
+  %68 = load i32, ptr %"control value 21.25", align 1
+  %69 = icmp ne i32 %67, %68
+  %70 = zext i1 %69 to i8
+  store i8 %70, ptr %"control value 21.26", align 1
+  %71 = load i8, ptr %"control value 21.26", align 1
+  %72 = icmp ne i8 %71, 0
+  br i1 %72, label %if.body7, label %if.else8
 
 if.else5:                                         ; preds = %loop
   br label %loop.end
@@ -16150,37 +16154,37 @@ if.end6:                                          ; preds = %if.end9
   br label %loop
 
 if.body7:                                         ; preds = %if.body4
-  %72 = load ptr, ptr %a, align 1
-  store ptr %72, ptr %"control value 21.26", align 1
-  %73 = load i32, ptr %i, align 1
-  store i32 %73, ptr %"control value 21.27", align 1
-  %74 = load ptr, ptr %"control value 21.26", align 1
-  %75 = getelementptr i8, ptr %74, i32 0
-  %76 = load i32, ptr %"control value 21.27", align 1
-  %77 = mul i32 %76, 4
-  %78 = getelementptr i8, ptr %75, i32 %77
-  %79 = load i32, ptr %78, align 1
-  store i32 %79, ptr %"control value 21.28", align 1
-  %80 = load ptr, ptr %b, align 1
-  store ptr %80, ptr %"control value 21.29", align 1
-  %81 = load i32, ptr %i, align 1
-  store i32 %81, ptr %"control value 21.30", align 1
-  %82 = load ptr, ptr %"control value 21.29", align 1
-  %83 = getelementptr i8, ptr %82, i32 0
-  %84 = load i32, ptr %"control value 21.30", align 1
-  %85 = mul i32 %84, 4
-  %86 = getelementptr i8, ptr %83, i32 %85
-  %87 = load i32, ptr %86, align 1
-  store i32 %87, ptr %"control value 21.31", align 1
-  %88 = load i32, ptr %"control value 21.28", align 1
-  %89 = load i32, ptr %"control value 21.31", align 1
-  %90 = icmp ult i32 %88, %89
-  %91 = zext i1 %90 to i8
-  store i8 %91, ptr %"control value 21.32", align 1
-  store i32 0, ptr %"control value 21.33", align 1
-  %92 = load i8, ptr %"control value 21.32", align 1
-  %93 = icmp ne i8 %92, 0
-  br i1 %93, label %if.body10, label %if.else11
+  %73 = load ptr, ptr %a, align 1
+  store ptr %73, ptr %"control value 21.27", align 1
+  %74 = load i32, ptr %i, align 1
+  store i32 %74, ptr %"control value 21.28", align 1
+  %75 = load ptr, ptr %"control value 21.27", align 1
+  %76 = getelementptr i8, ptr %75, i32 0
+  %77 = load i32, ptr %"control value 21.28", align 1
+  %78 = mul i32 %77, 4
+  %79 = getelementptr i8, ptr %76, i32 %78
+  %80 = load i32, ptr %79, align 1
+  store i32 %80, ptr %"control value 21.29", align 1
+  %81 = load ptr, ptr %b, align 1
+  store ptr %81, ptr %"control value 21.30", align 1
+  %82 = load i32, ptr %i, align 1
+  store i32 %82, ptr %"control value 21.31", align 1
+  %83 = load ptr, ptr %"control value 21.30", align 1
+  %84 = getelementptr i8, ptr %83, i32 0
+  %85 = load i32, ptr %"control value 21.31", align 1
+  %86 = mul i32 %85, 4
+  %87 = getelementptr i8, ptr %84, i32 %86
+  %88 = load i32, ptr %87, align 1
+  store i32 %88, ptr %"control value 21.32", align 1
+  %89 = load i32, ptr %"control value 21.29", align 1
+  %90 = load i32, ptr %"control value 21.32", align 1
+  %91 = icmp ult i32 %89, %90
+  %92 = zext i1 %91 to i8
+  store i8 %92, ptr %"control value 21.33", align 1
+  store i32 0, ptr %"control value 21.34", align 1
+  %93 = load i8, ptr %"control value 21.33", align 1
+  %94 = icmp ne i8 %93, 0
+  br i1 %94, label %if.body10, label %if.else11
 
 if.else8:                                         ; preds = %if.body4
   br label %if.end9
@@ -16189,16 +16193,18 @@ if.end9:                                          ; preds = %if.else8
   br label %if.end6
 
 if.body10:                                        ; preds = %if.body7
-  store i32 -1, ptr %"control value 21.33", align 1
+  store i32 -1, ptr %"control value 21.35", align 1
+  %95 = load i32, ptr %"control value 21.35", align 1
+  store i32 %95, ptr %"control value 21.34", align 1
   br label %if.end12
 
 if.else11:                                        ; preds = %if.body7
-  store i32 1, ptr %"control value 21.33", align 1
+  store i32 1, ptr %"control value 21.34", align 1
   br label %if.end12
 
 if.end12:                                         ; preds = %if.else11, %if.body10
-  %94 = load i32, ptr %"control value 21.33", align 1
-  ret i32 %94
+  %96 = load i32, ptr %"control value 21.34", align 1
+  ret i32 %96
 }
 
 define internal void @tower.fn.float_big_subtract(ptr %0, ptr %1) {
@@ -22081,7 +22087,7 @@ entry:
   store i32 %8, ptr %"control value 30.3", align 1
   %9 = load i32, ptr %"control value 30.3", align 1
   store i32 %9, ptr %length, align 1
-  store i32 12, ptr %"control value 30.4", align 1
+  store i32 256, ptr %"control value 30.4", align 1
   %10 = getelementptr i8, ptr %text, i32 0
   store ptr %10, ptr %"control value 30.5", align 1
   %11 = load ptr, ptr %"control value 30.5", align 1
@@ -22105,7 +22111,7 @@ valid:                                            ; preds = %entry
   br i1 %22, label %valid1, label %error2
 
 error:                                            ; preds = %entry
-  call void @tower_trap(ptr @98, i32 40952)
+  call void @tower_trap(ptr @98, i32 40953)
   unreachable
 
 valid1:                                           ; preds = %valid
@@ -22117,7 +22123,7 @@ valid1:                                           ; preds = %valid
   ret void
 
 error2:                                           ; preds = %valid
-  call void @tower_trap(ptr @99, i32 40952)
+  call void @tower_trap(ptr @99, i32 40953)
   unreachable
 }
 
@@ -22362,7 +22368,7 @@ valid:                                            ; preds = %if.body
   br i1 %28, label %if.body1, label %if.else2
 
 error:                                            ; preds = %if.body
-  call void @tower_trap(ptr @100, i32 40952)
+  call void @tower_trap(ptr @100, i32 40953)
   unreachable
 
 if.body1:                                         ; preds = %valid
@@ -22842,7 +22848,7 @@ valid:                                            ; preds = %entry
   br label %loop
 
 error:                                            ; preds = %entry
-  call void @tower_trap(ptr @101, i32 43312)
+  call void @tower_trap(ptr @101, i32 43313)
   unreachable
 
 loop:                                             ; preds = %if.end, %valid
@@ -23063,7 +23069,7 @@ valid:                                            ; preds = %if.end3
   br i1 %57, label %if.body4, label %if.else5
 
 error:                                            ; preds = %if.end3
-  call void @tower_trap(ptr @102, i32 44451)
+  call void @tower_trap(ptr @102, i32 44452)
   unreachable
 
 if.body4:                                         ; preds = %valid
@@ -23294,7 +23300,7 @@ valid:                                            ; preds = %if.body
   br i1 %50, label %if.body3, label %if.else4
 
 error:                                            ; preds = %if.body
-  call void @tower_trap(ptr @103, i32 44451)
+  call void @tower_trap(ptr @103, i32 44452)
   unreachable
 
 if.body3:                                         ; preds = %valid
@@ -23354,7 +23360,7 @@ valid9:                                           ; preds = %if.end8
   br i1 %71, label %if.body11, label %if.else12
 
 error10:                                          ; preds = %if.end8
-  call void @tower_trap(ptr @104, i32 44451)
+  call void @tower_trap(ptr @104, i32 44452)
   unreachable
 
 if.body11:                                        ; preds = %valid9
@@ -24587,7 +24593,7 @@ valid:                                            ; preds = %if.body
   br i1 %36, label %if.body1, label %if.else2
 
 error:                                            ; preds = %if.body
-  call void @tower_trap(ptr @105, i32 44451)
+  call void @tower_trap(ptr @105, i32 44452)
   unreachable
 
 if.body1:                                         ; preds = %valid
@@ -24807,7 +24813,7 @@ valid:                                            ; preds = %entry
   br i1 %15, label %if.body, label %if.else
 
 error:                                            ; preds = %entry
-  call void @tower_trap(ptr @106, i32 50485)
+  call void @tower_trap(ptr @106, i32 50486)
   unreachable
 
 if.body:                                          ; preds = %valid
@@ -24834,7 +24840,7 @@ valid1:                                           ; preds = %if.end
   ret i32 %22
 
 error2:                                           ; preds = %if.end
-  call void @tower_trap(ptr @107, i32 50485)
+  call void @tower_trap(ptr @107, i32 50486)
   unreachable
 }
 
@@ -25064,7 +25070,7 @@ valid:                                            ; preds = %if.end3
   br i1 %45, label %valid4, label %error5
 
 error:                                            ; preds = %if.end3
-  call void @tower_trap(ptr @108, i32 50485)
+  call void @tower_trap(ptr @108, i32 50486)
   unreachable
 
 valid4:                                           ; preds = %valid
@@ -25088,7 +25094,7 @@ valid4:                                           ; preds = %valid
   br i1 %56, label %valid6, label %error7
 
 error5:                                           ; preds = %valid
-  call void @tower_trap(ptr @109, i32 50485)
+  call void @tower_trap(ptr @109, i32 50486)
   unreachable
 
 valid6:                                           ; preds = %valid4
@@ -25118,7 +25124,7 @@ valid6:                                           ; preds = %valid4
   br i1 %71, label %if.body8, label %if.else9
 
 error7:                                           ; preds = %valid4
-  call void @tower_trap(ptr @110, i32 50485)
+  call void @tower_trap(ptr @110, i32 50486)
   unreachable
 
 if.body8:                                         ; preds = %valid6
@@ -25186,7 +25192,7 @@ valid14:                                          ; preds = %if.end13
   br i1 %99, label %valid16, label %error17
 
 error15:                                          ; preds = %if.end13
-  call void @tower_trap(ptr @111, i32 50485)
+  call void @tower_trap(ptr @111, i32 50486)
   unreachable
 
 valid16:                                          ; preds = %valid14
@@ -25225,7 +25231,7 @@ valid16:                                          ; preds = %valid14
   br i1 %119, label %if.body18, label %if.else19
 
 error17:                                          ; preds = %valid14
-  call void @tower_trap(ptr @112, i32 50485)
+  call void @tower_trap(ptr @112, i32 50486)
   unreachable
 
 if.body18:                                        ; preds = %valid16

@@ -1,4 +1,4 @@
-; ModuleID = '/cache/float-direct-clean/guest-macos-x64-unbound.ll'
+; ModuleID = '/cache/narrow-final-integrated/guest-macos-x64-unbound.ll'
 source_filename = "Tower"
 target datalayout = "e-m:o-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-apple-macos11"
@@ -123,12 +123,15 @@ target triple = "x86_64-apple-macos11"
 @tower.string.11 = private global [17 x i8] c"0123456789abcdef\00", align 1
 @106 = private unnamed_addr constant [17 x i8] c"Division by zero\00", align 1
 @107 = private unnamed_addr constant [17 x i8] c"Division by zero\00", align 1
-@108 = private unnamed_addr constant [17 x i8] c"Division by zero\00", align 1
-@109 = private unnamed_addr constant [67 x i8] c"Numeric conversion out of range; use bits for bit reinterpretation\00", align 1
+@108 = private unnamed_addr constant [67 x i8] c"Numeric conversion out of range; use bits for bit reinterpretation\00", align 1
+@109 = private unnamed_addr constant [17 x i8] c"Division by zero\00", align 1
 @110 = private unnamed_addr constant [17 x i8] c"Division by zero\00", align 1
-@111 = private unnamed_addr constant [67 x i8] c"Numeric conversion out of range; use bits for bit reinterpretation\00", align 1
+@111 = private unnamed_addr constant [17 x i8] c"Division by zero\00", align 1
 @112 = private unnamed_addr constant [67 x i8] c"Numeric conversion out of range; use bits for bit reinterpretation\00", align 1
-@113 = private unnamed_addr constant [67 x i8] c"Numeric conversion out of range; use bits for bit reinterpretation\00", align 1
+@113 = private unnamed_addr constant [17 x i8] c"Division by zero\00", align 1
+@114 = private unnamed_addr constant [67 x i8] c"Numeric conversion out of range; use bits for bit reinterpretation\00", align 1
+@115 = private unnamed_addr constant [67 x i8] c"Numeric conversion out of range; use bits for bit reinterpretation\00", align 1
+@116 = private unnamed_addr constant [67 x i8] c"Numeric conversion out of range; use bits for bit reinterpretation\00", align 1
 @tower.string.12 = private global [2 x i8] c"\0A\00", align 1
 
 define internal void @tower.fn.float_layout(i32 %0, ptr %1) {
@@ -15990,29 +15993,31 @@ entry:
   %"control value 21.8" = alloca i64, align 8
   %"control value 21.9" = alloca i8, align 1
   %"control value 21.10" = alloca i32, align 4
-  %"control value 21.11" = alloca ptr, align 8
-  %"control value 21.12" = alloca i64, align 8
+  %"control value 21.11" = alloca i32, align 4
+  %"control value 21.12" = alloca ptr, align 8
   %"control value 21.13" = alloca i64, align 8
-  %"control value 21.14" = alloca i8, align 1
+  %"control value 21.14" = alloca i64, align 8
   %"control value 21.15" = alloca i8, align 1
-  %"control value 21.16" = alloca ptr, align 8
-  %"control value 21.17" = alloca i64, align 8
+  %"control value 21.16" = alloca i8, align 1
+  %"control value 21.17" = alloca ptr, align 8
   %"control value 21.18" = alloca i64, align 8
-  %"control value 21.19" = alloca ptr, align 8
-  %"control value 21.20" = alloca i64, align 8
-  %"control value 21.21" = alloca i32, align 4
-  %"control value 21.22" = alloca ptr, align 8
-  %"control value 21.23" = alloca i64, align 8
-  %"control value 21.24" = alloca i32, align 4
-  %"control value 21.25" = alloca i8, align 1
-  %"control value 21.26" = alloca ptr, align 8
-  %"control value 21.27" = alloca i64, align 8
-  %"control value 21.28" = alloca i32, align 4
-  %"control value 21.29" = alloca ptr, align 8
-  %"control value 21.30" = alloca i64, align 8
-  %"control value 21.31" = alloca i32, align 4
-  %"control value 21.32" = alloca i8, align 1
-  %"control value 21.33" = alloca i32, align 4
+  %"control value 21.19" = alloca i64, align 8
+  %"control value 21.20" = alloca ptr, align 8
+  %"control value 21.21" = alloca i64, align 8
+  %"control value 21.22" = alloca i32, align 4
+  %"control value 21.23" = alloca ptr, align 8
+  %"control value 21.24" = alloca i64, align 8
+  %"control value 21.25" = alloca i32, align 4
+  %"control value 21.26" = alloca i8, align 1
+  %"control value 21.27" = alloca ptr, align 8
+  %"control value 21.28" = alloca i64, align 8
+  %"control value 21.29" = alloca i32, align 4
+  %"control value 21.30" = alloca ptr, align 8
+  %"control value 21.31" = alloca i64, align 8
+  %"control value 21.32" = alloca i32, align 4
+  %"control value 21.33" = alloca i8, align 1
+  %"control value 21.34" = alloca i32, align 4
+  %"control value 21.35" = alloca i32, align 4
   store ptr %0, ptr %a, align 1
   store ptr %1, ptr %b, align 1
   %2 = load ptr, ptr %a, align 1
@@ -16064,17 +16069,19 @@ if.else:                                          ; preds = %entry
 
 if.end:                                           ; preds = %if.else
   %30 = load ptr, ptr %a, align 1
-  store ptr %30, ptr %"control value 21.11", align 1
-  %31 = load ptr, ptr %"control value 21.11", align 1
+  store ptr %30, ptr %"control value 21.12", align 1
+  %31 = load ptr, ptr %"control value 21.12", align 1
   %32 = getelementptr i8, ptr %31, i64 2048
   %33 = load i64, ptr %32, align 1
-  store i64 %33, ptr %"control value 21.12", align 1
-  %34 = load i64, ptr %"control value 21.12", align 1
+  store i64 %33, ptr %"control value 21.13", align 1
+  %34 = load i64, ptr %"control value 21.13", align 1
   store i64 %34, ptr %i, align 1
   br label %loop
 
 if.body1:                                         ; preds = %if.body
-  store i32 -1, ptr %"control value 21.10", align 1
+  store i32 -1, ptr %"control value 21.11", align 1
+  %35 = load i32, ptr %"control value 21.11", align 1
+  store i32 %35, ptr %"control value 21.10", align 1
   br label %if.end3
 
 if.else2:                                         ; preds = %if.body
@@ -16082,68 +16089,68 @@ if.else2:                                         ; preds = %if.body
   br label %if.end3
 
 if.end3:                                          ; preds = %if.else2, %if.body1
-  %35 = load i32, ptr %"control value 21.10", align 1
-  ret i32 %35
+  %36 = load i32, ptr %"control value 21.10", align 1
+  ret i32 %36
 
 loop:                                             ; preds = %if.end6, %if.end
-  %36 = load i64, ptr %i, align 1
-  store i64 %36, ptr %"control value 21.13", align 1
-  %37 = load i64, ptr %"control value 21.13", align 1
-  %38 = icmp ne i64 %37, 0
-  %39 = zext i1 %38 to i8
-  store i8 %39, ptr %"control value 21.14", align 1
-  %40 = load i8, ptr %"control value 21.14", align 1
-  store i8 %40, ptr %"control check 21.0", align 1
-  %41 = load i8, ptr %"control check 21.0", align 1
-  store i8 %41, ptr %"control value 21.15", align 1
-  %42 = load i8, ptr %"control value 21.15", align 1
-  %43 = icmp ne i8 %42, 0
-  br i1 %43, label %if.body4, label %if.else5
+  %37 = load i64, ptr %i, align 1
+  store i64 %37, ptr %"control value 21.14", align 1
+  %38 = load i64, ptr %"control value 21.14", align 1
+  %39 = icmp ne i64 %38, 0
+  %40 = zext i1 %39 to i8
+  store i8 %40, ptr %"control value 21.15", align 1
+  %41 = load i8, ptr %"control value 21.15", align 1
+  store i8 %41, ptr %"control check 21.0", align 1
+  %42 = load i8, ptr %"control check 21.0", align 1
+  store i8 %42, ptr %"control value 21.16", align 1
+  %43 = load i8, ptr %"control value 21.16", align 1
+  %44 = icmp ne i8 %43, 0
+  br i1 %44, label %if.body4, label %if.else5
 
 loop.end:                                         ; preds = %if.else5
   ret i32 0
 
 if.body4:                                         ; preds = %loop
-  store ptr %i, ptr %"control value 21.16", align 1
-  %44 = load ptr, ptr %"control value 21.16", align 1
-  %45 = load i64, ptr %44, align 1
-  store i64 %45, ptr %"control value 21.17", align 1
-  %46 = load i64, ptr %"control value 21.17", align 1
-  %47 = sub i64 %46, 1
-  store i64 %47, ptr %"control value 21.18", align 1
-  %48 = load ptr, ptr %"control value 21.16", align 1
-  %49 = load i64, ptr %"control value 21.18", align 1
-  store i64 %49, ptr %48, align 1
-  %50 = load ptr, ptr %a, align 1
-  store ptr %50, ptr %"control value 21.19", align 1
-  %51 = load i64, ptr %i, align 1
-  store i64 %51, ptr %"control value 21.20", align 1
-  %52 = load ptr, ptr %"control value 21.19", align 1
-  %53 = getelementptr i8, ptr %52, i64 0
-  %54 = load i64, ptr %"control value 21.20", align 1
-  %55 = mul i64 %54, 4
-  %56 = getelementptr i8, ptr %53, i64 %55
-  %57 = load i32, ptr %56, align 1
-  store i32 %57, ptr %"control value 21.21", align 1
-  %58 = load ptr, ptr %b, align 1
-  store ptr %58, ptr %"control value 21.22", align 1
-  %59 = load i64, ptr %i, align 1
-  store i64 %59, ptr %"control value 21.23", align 1
-  %60 = load ptr, ptr %"control value 21.22", align 1
-  %61 = getelementptr i8, ptr %60, i64 0
-  %62 = load i64, ptr %"control value 21.23", align 1
-  %63 = mul i64 %62, 4
-  %64 = getelementptr i8, ptr %61, i64 %63
-  %65 = load i32, ptr %64, align 1
-  store i32 %65, ptr %"control value 21.24", align 1
-  %66 = load i32, ptr %"control value 21.21", align 1
-  %67 = load i32, ptr %"control value 21.24", align 1
-  %68 = icmp ne i32 %66, %67
-  %69 = zext i1 %68 to i8
-  store i8 %69, ptr %"control value 21.25", align 1
-  %70 = load i8, ptr %"control value 21.25", align 1
-  %71 = icmp ne i8 %70, 0
-  br i1 %71, label %if.body7, label %if.else8
+  store ptr %i, ptr %"control value 21.17", align 1
+  %45 = load ptr, ptr %"control value 21.17", align 1
+  %46 = load i64, ptr %45, align 1
+  store i64 %46, ptr %"control value 21.18", align 1
+  %47 = load i64, ptr %"control value 21.18", align 1
+  %48 = sub i64 %47, 1
+  store i64 %48, ptr %"control value 21.19", align 1
+  %49 = load ptr, ptr %"control value 21.17", align 1
+  %50 = load i64, ptr %"control value 21.19", align 1
+  store i64 %50, ptr %49, align 1
+  %51 = load ptr, ptr %a, align 1
+  store ptr %51, ptr %"control value 21.20", align 1
+  %52 = load i64, ptr %i, align 1
+  store i64 %52, ptr %"control value 21.21", align 1
+  %53 = load ptr, ptr %"control value 21.20", align 1
+  %54 = getelementptr i8, ptr %53, i64 0
+  %55 = load i64, ptr %"control value 21.21", align 1
+  %56 = mul i64 %55, 4
+  %57 = getelementptr i8, ptr %54, i64 %56
+  %58 = load i32, ptr %57, align 1
+  store i32 %58, ptr %"control value 21.22", align 1
+  %59 = load ptr, ptr %b, align 1
+  store ptr %59, ptr %"control value 21.23", align 1
+  %60 = load i64, ptr %i, align 1
+  store i64 %60, ptr %"control value 21.24", align 1
+  %61 = load ptr, ptr %"control value 21.23", align 1
+  %62 = getelementptr i8, ptr %61, i64 0
+  %63 = load i64, ptr %"control value 21.24", align 1
+  %64 = mul i64 %63, 4
+  %65 = getelementptr i8, ptr %62, i64 %64
+  %66 = load i32, ptr %65, align 1
+  store i32 %66, ptr %"control value 21.25", align 1
+  %67 = load i32, ptr %"control value 21.22", align 1
+  %68 = load i32, ptr %"control value 21.25", align 1
+  %69 = icmp ne i32 %67, %68
+  %70 = zext i1 %69 to i8
+  store i8 %70, ptr %"control value 21.26", align 1
+  %71 = load i8, ptr %"control value 21.26", align 1
+  %72 = icmp ne i8 %71, 0
+  br i1 %72, label %if.body7, label %if.else8
 
 if.else5:                                         ; preds = %loop
   br label %loop.end
@@ -16152,37 +16159,37 @@ if.end6:                                          ; preds = %if.end9
   br label %loop
 
 if.body7:                                         ; preds = %if.body4
-  %72 = load ptr, ptr %a, align 1
-  store ptr %72, ptr %"control value 21.26", align 1
-  %73 = load i64, ptr %i, align 1
-  store i64 %73, ptr %"control value 21.27", align 1
-  %74 = load ptr, ptr %"control value 21.26", align 1
-  %75 = getelementptr i8, ptr %74, i64 0
-  %76 = load i64, ptr %"control value 21.27", align 1
-  %77 = mul i64 %76, 4
-  %78 = getelementptr i8, ptr %75, i64 %77
-  %79 = load i32, ptr %78, align 1
-  store i32 %79, ptr %"control value 21.28", align 1
-  %80 = load ptr, ptr %b, align 1
-  store ptr %80, ptr %"control value 21.29", align 1
-  %81 = load i64, ptr %i, align 1
-  store i64 %81, ptr %"control value 21.30", align 1
-  %82 = load ptr, ptr %"control value 21.29", align 1
-  %83 = getelementptr i8, ptr %82, i64 0
-  %84 = load i64, ptr %"control value 21.30", align 1
-  %85 = mul i64 %84, 4
-  %86 = getelementptr i8, ptr %83, i64 %85
-  %87 = load i32, ptr %86, align 1
-  store i32 %87, ptr %"control value 21.31", align 1
-  %88 = load i32, ptr %"control value 21.28", align 1
-  %89 = load i32, ptr %"control value 21.31", align 1
-  %90 = icmp ult i32 %88, %89
-  %91 = zext i1 %90 to i8
-  store i8 %91, ptr %"control value 21.32", align 1
-  store i32 0, ptr %"control value 21.33", align 1
-  %92 = load i8, ptr %"control value 21.32", align 1
-  %93 = icmp ne i8 %92, 0
-  br i1 %93, label %if.body10, label %if.else11
+  %73 = load ptr, ptr %a, align 1
+  store ptr %73, ptr %"control value 21.27", align 1
+  %74 = load i64, ptr %i, align 1
+  store i64 %74, ptr %"control value 21.28", align 1
+  %75 = load ptr, ptr %"control value 21.27", align 1
+  %76 = getelementptr i8, ptr %75, i64 0
+  %77 = load i64, ptr %"control value 21.28", align 1
+  %78 = mul i64 %77, 4
+  %79 = getelementptr i8, ptr %76, i64 %78
+  %80 = load i32, ptr %79, align 1
+  store i32 %80, ptr %"control value 21.29", align 1
+  %81 = load ptr, ptr %b, align 1
+  store ptr %81, ptr %"control value 21.30", align 1
+  %82 = load i64, ptr %i, align 1
+  store i64 %82, ptr %"control value 21.31", align 1
+  %83 = load ptr, ptr %"control value 21.30", align 1
+  %84 = getelementptr i8, ptr %83, i64 0
+  %85 = load i64, ptr %"control value 21.31", align 1
+  %86 = mul i64 %85, 4
+  %87 = getelementptr i8, ptr %84, i64 %86
+  %88 = load i32, ptr %87, align 1
+  store i32 %88, ptr %"control value 21.32", align 1
+  %89 = load i32, ptr %"control value 21.29", align 1
+  %90 = load i32, ptr %"control value 21.32", align 1
+  %91 = icmp ult i32 %89, %90
+  %92 = zext i1 %91 to i8
+  store i8 %92, ptr %"control value 21.33", align 1
+  store i32 0, ptr %"control value 21.34", align 1
+  %93 = load i8, ptr %"control value 21.33", align 1
+  %94 = icmp ne i8 %93, 0
+  br i1 %94, label %if.body10, label %if.else11
 
 if.else8:                                         ; preds = %if.body4
   br label %if.end9
@@ -16191,16 +16198,18 @@ if.end9:                                          ; preds = %if.else8
   br label %if.end6
 
 if.body10:                                        ; preds = %if.body7
-  store i32 -1, ptr %"control value 21.33", align 1
+  store i32 -1, ptr %"control value 21.35", align 1
+  %95 = load i32, ptr %"control value 21.35", align 1
+  store i32 %95, ptr %"control value 21.34", align 1
   br label %if.end12
 
 if.else11:                                        ; preds = %if.body7
-  store i32 1, ptr %"control value 21.33", align 1
+  store i32 1, ptr %"control value 21.34", align 1
   br label %if.end12
 
 if.end12:                                         ; preds = %if.else11, %if.body10
-  %94 = load i32, ptr %"control value 21.33", align 1
-  ret i32 %94
+  %96 = load i32, ptr %"control value 21.34", align 1
+  ret i32 %96
 }
 
 define internal void @tower.fn.float_big_subtract(ptr %0, ptr %1) {
@@ -22081,7 +22090,7 @@ entry:
   store i64 %8, ptr %"control value 30.3", align 1
   %9 = load i64, ptr %"control value 30.3", align 1
   store i64 %9, ptr %length, align 1
-  store i32 12, ptr %"control value 30.4", align 1
+  store i32 256, ptr %"control value 30.4", align 1
   %10 = getelementptr i8, ptr %text, i64 0
   store ptr %10, ptr %"control value 30.5", align 1
   %11 = load ptr, ptr %"control value 30.5", align 1
@@ -22102,7 +22111,7 @@ valid:                                            ; preds = %entry
   br i1 %19, label %valid1, label %error2
 
 error:                                            ; preds = %entry
-  call void @tower_trap(ptr @98, i64 40952)
+  call void @tower_trap(ptr @98, i64 40953)
   unreachable
 
 valid1:                                           ; preds = %valid
@@ -22115,7 +22124,7 @@ valid1:                                           ; preds = %valid
   ret void
 
 error2:                                           ; preds = %valid
-  call void @tower_trap(ptr @99, i64 40952)
+  call void @tower_trap(ptr @99, i64 40953)
   unreachable
 }
 
@@ -22360,7 +22369,7 @@ valid:                                            ; preds = %if.body
   br i1 %28, label %if.body1, label %if.else2
 
 error:                                            ; preds = %if.body
-  call void @tower_trap(ptr @100, i64 40952)
+  call void @tower_trap(ptr @100, i64 40953)
   unreachable
 
 if.body1:                                         ; preds = %valid
@@ -22583,19 +22592,21 @@ entry:
   %"control value 47.7" = alloca i8, align 1
   %"control value 47.8" = alloca i8, align 1
   %"control value 47.9" = alloca i8, align 1
-  %"control value 47.10" = alloca i32, align 4
+  %"control value 47.10" = alloca i64, align 8
   %"control value 47.11" = alloca i32, align 4
-  %"control value 47.12" = alloca ptr, align 8
-  %"control value 47.13" = alloca i64, align 8
+  %"control value 47.12" = alloca i32, align 4
+  %"control value 47.13" = alloca ptr, align 8
   %"control value 47.14" = alloca i64, align 8
-  %"control value 47.15" = alloca ptr, align 8
-  %"control value 47.16" = alloca i64, align 8
+  %"control value 47.15" = alloca i64, align 8
+  %"control value 47.16" = alloca ptr, align 8
   %"control value 47.17" = alloca i64, align 8
   %"control value 47.18" = alloca i64, align 8
   %"control value 47.19" = alloca i64, align 8
-  %"control value 47.20" = alloca i8, align 1
-  %"control value 47.21" = alloca i64, align 8
+  %"control value 47.20" = alloca i64, align 8
+  %"control value 47.21" = alloca i8, align 1
   %"control value 47.22" = alloca i64, align 8
+  %"control value 47.23" = alloca i64, align 8
+  %"control value 47.24" = alloca i64, align 8
   store i32 %0, ptr %stream, align 1
   store ptr %1, ptr %bytes, align 1
   store i64 %2, ptr %count, align 1
@@ -22648,82 +22659,86 @@ if.end:                                           ; preds = %if.else, %if.body
   br i1 %26, label %if.body1, label %if.else2
 
 if.body1:                                         ; preds = %if.end
-  ret i64 -1
+  store i64 -1, ptr %"control value 47.10", align 1
+  %27 = load i64, ptr %"control value 47.10", align 1
+  ret i64 %27
 
 if.else2:                                         ; preds = %if.end
   br label %if.end3
 
 if.end3:                                          ; preds = %if.else2
-  %27 = load i32, ptr %stream, align 1
-  store i32 %27, ptr %"control value 47.10", align 1
-  %28 = load i32, ptr %"control value 47.10", align 1
-  %29 = zext i32 %28 to i64
-  %30 = icmp ule i64 %29, 2147483647
-  %31 = and i1 true, %30
-  br i1 %31, label %valid4, label %error
+  %28 = load i32, ptr %stream, align 1
+  store i32 %28, ptr %"control value 47.11", align 1
+  %29 = load i32, ptr %"control value 47.11", align 1
+  %30 = zext i32 %29 to i64
+  %31 = icmp ule i64 %30, 2147483647
+  %32 = and i1 true, %31
+  br i1 %32, label %valid4, label %error
 
 valid4:                                           ; preds = %if.end3
-  store i32 %28, ptr %"control value 47.11", align 1
-  %32 = load ptr, ptr %bytes, align 1
-  store ptr %32, ptr %"control value 47.12", align 1
-  %33 = load i64, ptr %count, align 1
-  store i64 %33, ptr %"control value 47.13", align 1
-  %34 = load i32, ptr %"control value 47.11", align 1
-  %35 = load ptr, ptr %"control value 47.12", align 1
-  %36 = load i64, ptr %"control value 47.13", align 1
-  %37 = call i64 @write(i32 %34, ptr %35, i64 %36)
-  store i64 %37, ptr %"control value 47.14", align 1
-  %38 = load i64, ptr %"control value 47.14", align 1
-  store i64 %38, ptr %result, align 1
+  store i32 %29, ptr %"control value 47.12", align 1
+  %33 = load ptr, ptr %bytes, align 1
+  store ptr %33, ptr %"control value 47.13", align 1
+  %34 = load i64, ptr %count, align 1
+  store i64 %34, ptr %"control value 47.14", align 1
+  %35 = load i32, ptr %"control value 47.12", align 1
+  %36 = load ptr, ptr %"control value 47.13", align 1
+  %37 = load i64, ptr %"control value 47.14", align 1
+  %38 = call i64 @write(i32 %35, ptr %36, i64 %37)
+  store i64 %38, ptr %"control value 47.15", align 1
+  %39 = load i64, ptr %"control value 47.15", align 1
+  store i64 %39, ptr %result, align 1
   store i64 0, ptr %maximum, align 1
-  store ptr %maximum, ptr %"control value 47.15", align 1
-  %39 = load ptr, ptr %"control value 47.15", align 1
-  %40 = load i64, ptr %39, align 1
-  store i64 %40, ptr %"control value 47.16", align 1
-  %41 = load i64, ptr %"control value 47.16", align 1
-  %42 = sub i64 %41, 1
-  store i64 %42, ptr %"control value 47.17", align 1
-  %43 = load ptr, ptr %"control value 47.15", align 1
-  %44 = load i64, ptr %"control value 47.17", align 1
-  store i64 %44, ptr %43, align 1
-  %45 = load i64, ptr %result, align 1
-  store i64 %45, ptr %"control value 47.18", align 1
-  %46 = load i64, ptr %maximum, align 1
+  store ptr %maximum, ptr %"control value 47.16", align 1
+  %40 = load ptr, ptr %"control value 47.16", align 1
+  %41 = load i64, ptr %40, align 1
+  store i64 %41, ptr %"control value 47.17", align 1
+  %42 = load i64, ptr %"control value 47.17", align 1
+  %43 = sub i64 %42, 1
+  store i64 %43, ptr %"control value 47.18", align 1
+  %44 = load ptr, ptr %"control value 47.16", align 1
+  %45 = load i64, ptr %"control value 47.18", align 1
+  store i64 %45, ptr %44, align 1
+  %46 = load i64, ptr %result, align 1
   store i64 %46, ptr %"control value 47.19", align 1
-  %47 = load i64, ptr %"control value 47.18", align 1
+  %47 = load i64, ptr %maximum, align 1
+  store i64 %47, ptr %"control value 47.20", align 1
   %48 = load i64, ptr %"control value 47.19", align 1
-  %49 = icmp eq i64 %47, %48
-  %50 = zext i1 %49 to i8
-  store i8 %50, ptr %"control value 47.20", align 1
-  %51 = load i8, ptr %"control value 47.20", align 1
-  %52 = icmp ne i8 %51, 0
-  br i1 %52, label %if.body5, label %if.else6
+  %49 = load i64, ptr %"control value 47.20", align 1
+  %50 = icmp eq i64 %48, %49
+  %51 = zext i1 %50 to i8
+  store i8 %51, ptr %"control value 47.21", align 1
+  %52 = load i8, ptr %"control value 47.21", align 1
+  %53 = icmp ne i8 %52, 0
+  br i1 %53, label %if.body5, label %if.else6
 
 error:                                            ; preds = %if.end3
-  call void @tower_trap(ptr @101, i64 44042)
+  call void @tower_trap(ptr @101, i64 44043)
   unreachable
 
 if.body5:                                         ; preds = %valid4
-  ret i64 -1
+  store i64 -1, ptr %"control value 47.22", align 1
+  %54 = load i64, ptr %"control value 47.22", align 1
+  ret i64 %54
 
 if.else6:                                         ; preds = %valid4
   br label %if.end7
 
 if.end7:                                          ; preds = %if.else6
-  %53 = load i64, ptr %result, align 1
-  store i64 %53, ptr %"control value 47.21", align 1
-  %54 = load i64, ptr %"control value 47.21", align 1
-  %55 = icmp ule i64 %54, 9223372036854775807
-  %56 = and i1 true, %55
-  br i1 %56, label %valid8, label %error9
+  %55 = load i64, ptr %result, align 1
+  store i64 %55, ptr %"control value 47.23", align 1
+  %56 = load i64, ptr %"control value 47.23", align 1
+  %57 = icmp ule i64 %56, 9223372036854775807
+  %58 = and i1 true, %57
+  br i1 %58, label %valid8, label %error9
 
 valid8:                                           ; preds = %if.end7
-  store i64 %54, ptr %"control value 47.22", align 1
-  %57 = load i64, ptr %"control value 47.22", align 1
-  ret i64 %57
+  store i64 %56, ptr %"control value 47.24", align 1
+  %59 = load i64, ptr %"control value 47.24", align 1
+  ret i64 %59
 
 error9:                                           ; preds = %if.end7
-  call void @tower_trap(ptr @102, i64 44042)
+  call void @tower_trap(ptr @102, i64 44043)
   unreachable
 }
 
@@ -22754,7 +22769,9 @@ entry:
   %hex = alloca ptr, align 8
   %done = alloca i8, align 1
   %index = alloca i64, align 8
-  %narrow = alloca i8, align 1
+  %width = alloca i32, align 4
+  %mask = alloca i64, align 8
+  %signed = alloca i8, align 1
   %negative = alloca i8, align 1
   %digits1 = alloca [24 x i8], align 1
   %count = alloca i64, align 8
@@ -22809,118 +22826,163 @@ entry:
   %"control value 49.45" = alloca i64, align 8
   %"control value 49.46" = alloca i64, align 8
   %"control value 49.47" = alloca i32, align 4
-  %"control value 49.48" = alloca i8, align 1
-  %"control value 49.49" = alloca i64, align 8
-  %"control value 49.50" = alloca i8, align 1
-  %"control value 49.51" = alloca ptr, align 8
+  %"control value 49.48" = alloca i32, align 4
+  %"control value 49.49" = alloca i8, align 1
+  %"control value 49.50" = alloca i64, align 8
+  %"control value 49.51" = alloca i8, align 1
   %"control value 49.52" = alloca ptr, align 8
   %"control value 49.53" = alloca ptr, align 8
   %"control value 49.54" = alloca ptr, align 8
-  %"control value 49.55" = alloca i32, align 4
-  %"control value 49.56" = alloca i8, align 1
+  %"control value 49.55" = alloca ptr, align 8
+  %"control value 49.56" = alloca i32, align 4
   %"control value 49.57" = alloca i32, align 4
   %"control value 49.58" = alloca i8, align 1
-  %"control value 49.59" = alloca ptr, align 8
+  %"control value 49.59" = alloca i32, align 4
   %"control value 49.60" = alloca i8, align 1
-  %"control value 49.61" = alloca i8, align 1
+  %"control value 49.61" = alloca ptr, align 8
   %"control value 49.62" = alloca i8, align 1
-  %"control value 49.63" = alloca i32, align 4
+  %"control value 49.63" = alloca i8, align 1
   %"control value 49.64" = alloca i8, align 1
-  %"control value 49.65" = alloca i8, align 1
+  %"control value 49.65" = alloca i32, align 4
   %"control value 49.66" = alloca i8, align 1
-  %"control value 49.67" = alloca ptr, align 8
-  %"control value 49.68" = alloca ptr, align 8
-  %"control value 49.69" = alloca i32, align 4
-  %"control value 49.70" = alloca i64, align 8
-  %"control value 49.71" = alloca i64, align 8
-  %"control value 49.72" = alloca ptr, align 8
+  %"control value 49.67" = alloca i8, align 1
+  %"control value 49.68" = alloca i8, align 1
+  %"control value 49.69" = alloca ptr, align 8
+  %"control value 49.70" = alloca ptr, align 8
+  %"control value 49.71" = alloca i32, align 4
+  %"control value 49.72" = alloca i64, align 8
   %"control value 49.73" = alloca i64, align 8
-  %"control value 49.74" = alloca i64, align 8
+  %"control value 49.74" = alloca ptr, align 8
   %"control value 49.75" = alloca i64, align 8
   %"control value 49.76" = alloca i64, align 8
-  %"control value 49.77" = alloca i8, align 1
-  %"control value 49.78" = alloca i8, align 1
-  %"control value 49.79" = alloca ptr, align 8
-  %"control value 49.80" = alloca i64, align 8
-  %"control value 49.81" = alloca i64, align 8
+  %"control value 49.77" = alloca i64, align 8
+  %"control value 49.78" = alloca i64, align 8
+  %"control value 49.79" = alloca i8, align 1
+  %"control value 49.80" = alloca i8, align 1
+  %"control value 49.81" = alloca ptr, align 8
   %"control value 49.82" = alloca i64, align 8
   %"control value 49.83" = alloca i64, align 8
   %"control value 49.84" = alloca i64, align 8
-  %"control value 49.85" = alloca ptr, align 8
-  %"control value 49.86" = alloca ptr, align 8
-  %"control value 49.87" = alloca i64, align 8
-  %"control value 49.88" = alloca i8, align 1
-  %"control value 49.89" = alloca ptr, align 8
-  %"control value 49.90" = alloca i64, align 8
-  %"control value 49.91" = alloca i64, align 8
-  %"control value 49.92" = alloca i32, align 4
-  %"control value 49.93" = alloca i8, align 1
-  %"control value 49.94" = alloca i8, align 1
-  %"control value 49.95" = alloca ptr, align 8
-  %"control value 49.96" = alloca i64, align 8
-  %"control value 49.97" = alloca i64, align 8
+  %"control value 49.85" = alloca i64, align 8
+  %"control value 49.86" = alloca i64, align 8
+  %"control value 49.87" = alloca ptr, align 8
+  %"control value 49.88" = alloca ptr, align 8
+  %"control value 49.89" = alloca i64, align 8
+  %"control value 49.90" = alloca i8, align 1
+  %"control value 49.91" = alloca ptr, align 8
+  %"control value 49.92" = alloca i64, align 8
+  %"control value 49.93" = alloca i64, align 8
+  %"control value 49.94" = alloca i32, align 4
+  %"control value 49.95" = alloca i32, align 4
+  %"control value 49.96" = alloca i32, align 4
+  %"control value 49.97" = alloca i8, align 1
   %"control value 49.98" = alloca ptr, align 8
-  %"control value 49.99" = alloca i64, align 8
-  %"control value 49.100" = alloca i8, align 1
+  %"control value 49.99" = alloca i32, align 4
+  %"control value 49.100" = alloca i32, align 4
   %"control value 49.101" = alloca i32, align 4
   %"control value 49.102" = alloca i8, align 1
   %"control value 49.103" = alloca ptr, align 8
-  %"control value 49.104" = alloca i64, align 8
-  %"control value 49.105" = alloca i8, align 1
-  %"control value 49.106" = alloca i8, align 1
-  %"control value 49.107" = alloca ptr, align 8
+  %"control value 49.104" = alloca i32, align 4
+  %"control value 49.105" = alloca i32, align 4
+  %"control value 49.106" = alloca i32, align 4
+  %"control value 49.107" = alloca i8, align 1
   %"control value 49.108" = alloca ptr, align 8
-  %"control value 49.109" = alloca ptr, align 8
+  %"control value 49.109" = alloca i32, align 4
   %"control value 49.110" = alloca i64, align 8
   %"control value 49.111" = alloca i64, align 8
-  %"control value 49.112" = alloca i64, align 8
-  %"control value 49.113" = alloca i8, align 1
-  %"control value 49.114" = alloca ptr, align 8
-  %"control value 49.115" = alloca i64, align 8
-  %"control value 49.116" = alloca i64, align 8
+  %"control value 49.112" = alloca i32, align 4
+  %"control value 49.113" = alloca i32, align 4
+  %"control value 49.114" = alloca i32, align 4
+  %"control value 49.115" = alloca i32, align 4
+  %"control value 49.116" = alloca i32, align 4
   %"control value 49.117" = alloca i64, align 8
-  %"control value 49.118" = alloca i64, align 8
-  %"control value 49.119" = alloca ptr, align 8
-  %"control value 49.120" = alloca i64, align 8
-  %"control value 49.121" = alloca i64, align 8
+  %"control value 49.118" = alloca i8, align 1
+  %"control value 49.119" = alloca i64, align 8
+  %"control value 49.120" = alloca i32, align 4
+  %"control value 49.121" = alloca ptr, align 8
   %"control value 49.122" = alloca i64, align 8
-  %"control value 49.123" = alloca ptr, align 8
+  %"control value 49.123" = alloca i64, align 8
   %"control value 49.124" = alloca i64, align 8
-  %"control value 49.125" = alloca i8, align 1
-  %"control value 49.126" = alloca ptr, align 8
-  %"control value 49.127" = alloca i64, align 8
-  %"control value 49.128" = alloca i64, align 8
-  %"control value 49.129" = alloca ptr, align 8
-  %"control value 49.130" = alloca i64, align 8
-  %"control value 49.131" = alloca i64, align 8
-  %"control value 49.132" = alloca i64, align 8
-  %"control value 49.133" = alloca i8, align 1
-  %"control value 49.134" = alloca i8, align 1
-  %"control value 49.135" = alloca i64, align 8
+  %"control value 49.125" = alloca i32, align 4
+  %"control value 49.126" = alloca i32, align 4
+  %"control value 49.127" = alloca i8, align 1
+  %"control value 49.128" = alloca i8, align 1
+  %"control value 49.129" = alloca i32, align 4
+  %"control value 49.130" = alloca i32, align 4
+  %"control value 49.131" = alloca i8, align 1
+  %"control value 49.132" = alloca i8, align 1
+  %"control value 49.133" = alloca i32, align 4
+  %"control value 49.134" = alloca i32, align 4
+  %"control value 49.135" = alloca i8, align 1
   %"control value 49.136" = alloca i8, align 1
-  %"control value 49.137" = alloca i8, align 1
-  %"control value 49.138" = alloca ptr, align 8
-  %"control value 49.139" = alloca i64, align 8
-  %"control value 49.140" = alloca i64, align 8
-  %"control value 49.141" = alloca i64, align 8
-  %"control value 49.142" = alloca ptr, align 8
+  %"control value 49.137" = alloca i32, align 4
+  %"control value 49.138" = alloca i32, align 4
+  %"control value 49.139" = alloca i8, align 1
+  %"control value 49.140" = alloca i8, align 1
+  %"control value 49.141" = alloca i8, align 1
+  %"control value 49.142" = alloca i64, align 8
   %"control value 49.143" = alloca i64, align 8
-  %"control value 49.144" = alloca i8, align 1
-  %"control value 49.145" = alloca ptr, align 8
+  %"control value 49.144" = alloca i32, align 4
+  %"control value 49.145" = alloca i32, align 4
   %"control value 49.146" = alloca i64, align 8
-  %"control value 49.147" = alloca i64, align 8
+  %"control value 49.147" = alloca i8, align 1
   %"control value 49.148" = alloca i64, align 8
-  %"control value 49.149" = alloca ptr, align 8
-  %"control value 49.150" = alloca ptr, align 8
-  %"control value 49.151" = alloca i64, align 8
-  %"control value 49.152" = alloca i64, align 8
-  %"control value 49.153" = alloca i64, align 8
-  %"control value 49.154" = alloca i64, align 8
-  %"control value 49.155" = alloca i8, align 1
-  %"control value 49.156" = alloca ptr, align 8
-  %"control value 49.157" = alloca ptr, align 8
-  %"control value 49.158" = alloca i64, align 8
+  %"control value 49.149" = alloca i32, align 4
+  %"control value 49.150" = alloca i8, align 1
+  %"control value 49.151" = alloca i8, align 1
+  %"control value 49.152" = alloca ptr, align 8
+  %"control value 49.153" = alloca ptr, align 8
+  %"control value 49.154" = alloca ptr, align 8
+  %"control value 49.155" = alloca i64, align 8
+  %"control value 49.156" = alloca i64, align 8
+  %"control value 49.157" = alloca i64, align 8
+  %"control value 49.158" = alloca ptr, align 8
   %"control value 49.159" = alloca i64, align 8
+  %"control value 49.160" = alloca i64, align 8
+  %"control value 49.161" = alloca i64, align 8
+  %"control value 49.162" = alloca i64, align 8
+  %"control value 49.163" = alloca i64, align 8
+  %"control value 49.164" = alloca ptr, align 8
+  %"control value 49.165" = alloca i64, align 8
+  %"control value 49.166" = alloca i64, align 8
+  %"control value 49.167" = alloca i64, align 8
+  %"control value 49.168" = alloca ptr, align 8
+  %"control value 49.169" = alloca i64, align 8
+  %"control value 49.170" = alloca i8, align 1
+  %"control value 49.171" = alloca ptr, align 8
+  %"control value 49.172" = alloca i64, align 8
+  %"control value 49.173" = alloca i64, align 8
+  %"control value 49.174" = alloca ptr, align 8
+  %"control value 49.175" = alloca i64, align 8
+  %"control value 49.176" = alloca i64, align 8
+  %"control value 49.177" = alloca i64, align 8
+  %"control value 49.178" = alloca i8, align 1
+  %"control value 49.179" = alloca i8, align 1
+  %"control value 49.180" = alloca i64, align 8
+  %"control value 49.181" = alloca i8, align 1
+  %"control value 49.182" = alloca i8, align 1
+  %"control value 49.183" = alloca ptr, align 8
+  %"control value 49.184" = alloca i64, align 8
+  %"control value 49.185" = alloca i64, align 8
+  %"control value 49.186" = alloca i64, align 8
+  %"control value 49.187" = alloca ptr, align 8
+  %"control value 49.188" = alloca i64, align 8
+  %"control value 49.189" = alloca i8, align 1
+  %"control value 49.190" = alloca ptr, align 8
+  %"control value 49.191" = alloca i64, align 8
+  %"control value 49.192" = alloca i64, align 8
+  %"control value 49.193" = alloca i64, align 8
+  %"control value 49.194" = alloca ptr, align 8
+  %"control value 49.195" = alloca ptr, align 8
+  %"control value 49.196" = alloca i64, align 8
+  %"control value 49.197" = alloca i64, align 8
+  %"control value 49.198" = alloca i64, align 8
+  %"control value 49.199" = alloca i64, align 8
+  %"control value 49.200" = alloca i8, align 1
+  %"control value 49.201" = alloca ptr, align 8
+  %"control value 49.202" = alloca ptr, align 8
+  %"control value 49.203" = alloca i64, align 8
+  %"control value 49.204" = alloca i64, align 8
   store ptr %0, ptr %output, align 1
   store i64 %1, ptr %capacity, align 1
   store i32 %2, ptr %kind, align 1
@@ -22929,7 +22991,7 @@ entry:
   store i64 0, ptr %length, align 1
   %5 = load i32, ptr %kind, align 1
   store i32 %5, ptr %"control value 49.0", align 1
-  store i32 12, ptr %"control value 49.1", align 1
+  store i32 256, ptr %"control value 49.1", align 1
   %6 = load i32, ptr %"control value 49.0", align 1
   %7 = load i32, ptr %"control value 49.1", align 1
   %8 = icmp eq i32 %6, %7
@@ -22987,7 +23049,7 @@ valid3:                                           ; preds = %if.body
   br i1 %35, label %if.body4, label %if.else5
 
 error:                                            ; preds = %if.body
-  call void @tower_trap(ptr @103, i64 45991)
+  call void @tower_trap(ptr @103, i64 46216)
   unreachable
 
 if.body4:                                         ; preds = %valid3
@@ -23037,7 +23099,7 @@ valid7:                                           ; preds = %if.end6
   ret i64 %57
 
 error8:                                           ; preds = %if.end6
-  call void @tower_trap(ptr @104, i64 45991)
+  call void @tower_trap(ptr @104, i64 46216)
   unreachable
 
 if.body9:                                         ; preds = %if.end
@@ -23084,65 +23146,67 @@ if.else13:                                        ; preds = %if.end11
 if.end14:                                         ; preds = %if.else13
   %74 = load i32, ptr %kind, align 1
   store i32 %74, ptr %"control value 49.47", align 1
+  store i32 2, ptr %"control value 49.48", align 1
   %75 = load i32, ptr %"control value 49.47", align 1
-  %76 = icmp eq i32 %75, 2
-  %77 = zext i1 %76 to i8
-  store i8 %77, ptr %"control value 49.48", align 1
-  %78 = load i8, ptr %"control value 49.48", align 1
-  %79 = icmp ne i8 %78, 0
-  br i1 %79, label %if.body21, label %if.else22
+  %76 = load i32, ptr %"control value 49.48", align 1
+  %77 = icmp eq i32 %75, %76
+  %78 = zext i1 %77 to i8
+  store i8 %78, ptr %"control value 49.49", align 1
+  %79 = load i8, ptr %"control value 49.49", align 1
+  %80 = icmp ne i8 %79, 0
+  br i1 %80, label %if.body21, label %if.else22
 
 if.body15:                                        ; preds = %if.body12
   store i32 32, ptr %"control value 49.32", align 1
-  %80 = load i32, ptr %"control value 49.32", align 1
-  store i32 %80, ptr %"control value 49.31", align 1
+  %81 = load i32, ptr %"control value 49.32", align 1
+  store i32 %81, ptr %"control value 49.31", align 1
   br label %if.end17
 
 if.else16:                                        ; preds = %if.body12
   store i32 64, ptr %"control value 49.33", align 1
-  %81 = load i32, ptr %"control value 49.33", align 1
-  store i32 %81, ptr %"control value 49.31", align 1
+  %82 = load i32, ptr %"control value 49.33", align 1
+  store i32 %82, ptr %"control value 49.31", align 1
   br label %if.end17
 
 if.end17:                                         ; preds = %if.else16, %if.body15
-  %82 = getelementptr i8, ptr %buffer, i64 0
-  store ptr %82, ptr %"control value 49.34", align 1
-  %83 = load i64, ptr %"control value 49.27", align 1
-  %84 = load i32, ptr %"control value 49.31", align 1
-  %85 = load ptr, ptr %"control value 49.34", align 1
-  %86 = call i64 @tower.fn.float_text(i64 %83, i32 %84, ptr %85)
-  store i64 %86, ptr %"control value 49.35", align 1
-  %87 = load ptr, ptr %"control value 49.26", align 1
-  %88 = load i64, ptr %"control value 49.35", align 1
-  store i64 %88, ptr %87, align 1
+  %83 = getelementptr i8, ptr %buffer, i64 0
+  store ptr %83, ptr %"control value 49.34", align 1
+  %84 = load i64, ptr %"control value 49.27", align 1
+  %85 = load i32, ptr %"control value 49.31", align 1
+  %86 = load ptr, ptr %"control value 49.34", align 1
+  %87 = call i64 @tower.fn.float_text(i64 %84, i32 %85, ptr %86)
+  store i64 %87, ptr %"control value 49.35", align 1
+  %88 = load ptr, ptr %"control value 49.26", align 1
+  %89 = load i64, ptr %"control value 49.35", align 1
+  store i64 %89, ptr %88, align 1
   store ptr %length, ptr %"control value 49.36", align 1
-  %89 = load ptr, ptr %"control value 49.36", align 1
-  %90 = load i64, ptr %89, align 1
-  store i64 %90, ptr %"control value 49.37", align 1
-  %91 = load i64, ptr %"control value 49.37", align 1
-  %92 = add i64 %91, 1
-  store i64 %92, ptr %"control value 49.38", align 1
-  %93 = load ptr, ptr %"control value 49.36", align 1
-  %94 = load i64, ptr %"control value 49.38", align 1
-  store i64 %94, ptr %93, align 1
-  %95 = load i64, ptr %"control value 49.37", align 1
-  %96 = mul i64 %95, 1
-  %97 = getelementptr i8, ptr %buffer, i64 %96
-  store ptr %97, ptr %"control value 49.39", align 1
-  %98 = load ptr, ptr %"control value 49.39", align 1
-  store i8 10, ptr %98, align 1
-  %99 = load i64, ptr %capacity, align 1
-  store i64 %99, ptr %"control value 49.40", align 1
-  %100 = load i64, ptr %length, align 1
-  store i64 %100, ptr %"control value 49.41", align 1
-  %101 = load i64, ptr %"control value 49.40", align 1
-  %102 = load i64, ptr %"control value 49.41", align 1
-  %103 = icmp ult i64 %101, %102
-  %104 = zext i1 %103 to i8
-  store i8 %104, ptr %"control value 49.42", align 1
-  %105 = load i8, ptr %"control value 49.42", align 1
-  %106 = icmp ne i8 %105, 0
-  br i1 %106, label %if.body18, label %if.else19
+  %90 = load ptr, ptr %"control value 49.36", align 1
+  %91 = load i64, ptr %90, align 1
+  store i64 %91, ptr %"control value 49.37", align 1
+  %92 = load i64, ptr %"control value 49.37", align 1
+  %93 = add i64 %92, 1
+  store i64 %93, ptr %"control value 49.38", align 1
+  %94 = load ptr, ptr %"control value 49.36", align 1
+  %95 = load i64, ptr %"control value 49.38", align 1
+  store i64 %95, ptr %94, align 1
+  %96 = load i64, ptr %"control value 49.37", align 1
+  %97 = mul i64 %96, 1
+  %98 = getelementptr i8, ptr %buffer, i64 %97
+  store ptr %98, ptr %"control value 49.39", align 1
+  %99 = load ptr, ptr %"control value 49.39", align 1
+  store i8 10, ptr %99, align 1
+  %100 = load i64, ptr %capacity, align 1
+  store i64 %100, ptr %"control value 49.40", align 1
+  %101 = load i64, ptr %length, align 1
+  store i64 %101, ptr %"control value 49.41", align 1
+  %102 = load i64, ptr %"control value 49.40", align 1
+  %103 = load i64, ptr %"control value 49.41", align 1
+  %104 = icmp ult i64 %102, %103
+  %105 = zext i1 %104 to i8
+  store i8 %105, ptr %"control value 49.42", align 1
+  %106 = load i8, ptr %"control value 49.42", align 1
+  %107 = icmp ne i8 %106, 0
+  br i1 %107, label %if.body18, label %if.else19
 
 if.body18:                                        ; preds = %if.end17
   ret i64 0
@@ -23151,165 +23215,167 @@ if.else19:                                        ; preds = %if.end17
   br label %if.end20
 
 if.end20:                                         ; preds = %if.else19
-  %107 = load ptr, ptr %output, align 1
-  store ptr %107, ptr %"control value 49.43", align 1
-  %108 = getelementptr i8, ptr %buffer, i64 0
-  store ptr %108, ptr %"control value 49.44", align 1
-  %109 = load i64, ptr %length, align 1
-  store i64 %109, ptr %"control value 49.45", align 1
-  %110 = load ptr, ptr %"control value 49.43", align 1
-  %111 = load ptr, ptr %"control value 49.44", align 1
-  %112 = load i64, ptr %"control value 49.45", align 1
-  call void @llvm.memmove.p0.p0.i64(ptr align 1 %110, ptr align 1 %111, i64 %112, i1 false)
-  %113 = load i64, ptr %length, align 1
-  store i64 %113, ptr %"control value 49.46", align 1
-  %114 = load i64, ptr %"control value 49.46", align 1
-  ret i64 %114
+  %108 = load ptr, ptr %output, align 1
+  store ptr %108, ptr %"control value 49.43", align 1
+  %109 = getelementptr i8, ptr %buffer, i64 0
+  store ptr %109, ptr %"control value 49.44", align 1
+  %110 = load i64, ptr %length, align 1
+  store i64 %110, ptr %"control value 49.45", align 1
+  %111 = load ptr, ptr %"control value 49.43", align 1
+  %112 = load ptr, ptr %"control value 49.44", align 1
+  %113 = load i64, ptr %"control value 49.45", align 1
+  call void @llvm.memmove.p0.p0.i64(ptr align 1 %111, ptr align 1 %112, i64 %113, i1 false)
+  %114 = load i64, ptr %length, align 1
+  store i64 %114, ptr %"control value 49.46", align 1
+  %115 = load i64, ptr %"control value 49.46", align 1
+  ret i64 %115
 
 if.body21:                                        ; preds = %if.end14
-  %115 = load i64, ptr %value, align 1
-  store i64 %115, ptr %"control value 49.49", align 1
-  %116 = load i64, ptr %"control value 49.49", align 1
-  %117 = icmp ne i64 %116, 0
-  %118 = zext i1 %117 to i8
-  store i8 %118, ptr %"control value 49.50", align 1
-  %119 = load i8, ptr %"control value 49.50", align 1
-  %120 = icmp ne i8 %119, 0
-  br i1 %120, label %if.body24, label %if.else25
+  %116 = load i64, ptr %value, align 1
+  store i64 %116, ptr %"control value 49.50", align 1
+  %117 = load i64, ptr %"control value 49.50", align 1
+  %118 = icmp ne i64 %117, 0
+  %119 = zext i1 %118 to i8
+  store i8 %119, ptr %"control value 49.51", align 1
+  %120 = load i8, ptr %"control value 49.51", align 1
+  %121 = icmp ne i8 %120, 0
+  br i1 %121, label %if.body24, label %if.else25
 
 if.else22:                                        ; preds = %if.end14
-  %121 = load i32, ptr %kind, align 1
-  store i32 %121, ptr %"control value 49.55", align 1
-  %122 = load i32, ptr %"control value 49.55", align 1
-  %123 = icmp eq i32 %122, 3
-  %124 = zext i1 %123 to i8
-  store i8 %124, ptr %"control value 49.56", align 1
-  %125 = load i8, ptr %"control value 49.56", align 1
-  %126 = icmp ne i8 %125, 0
-  br i1 %126, label %if.body27, label %if.else28
+  %122 = load i32, ptr %kind, align 1
+  store i32 %122, ptr %"control value 49.56", align 1
+  store i32 3, ptr %"control value 49.57", align 1
+  %123 = load i32, ptr %"control value 49.56", align 1
+  %124 = load i32, ptr %"control value 49.57", align 1
+  %125 = icmp eq i32 %123, %124
+  %126 = zext i1 %125 to i8
+  store i8 %126, ptr %"control value 49.58", align 1
+  %127 = load i8, ptr %"control value 49.58", align 1
+  %128 = icmp ne i8 %127, 0
+  br i1 %128, label %if.body27, label %if.else28
 
 if.end23:                                         ; preds = %if.end29, %if.end26
-  %127 = load i64, ptr %capacity, align 1
-  store i64 %127, ptr %"control value 49.153", align 1
-  %128 = load i64, ptr %length, align 1
-  store i64 %128, ptr %"control value 49.154", align 1
-  %129 = load i64, ptr %"control value 49.153", align 1
-  %130 = load i64, ptr %"control value 49.154", align 1
-  %131 = icmp uge i64 %129, %130
-  %132 = zext i1 %131 to i8
-  store i8 %132, ptr %"control value 49.155", align 1
-  %133 = load i8, ptr %"control value 49.155", align 1
-  %134 = icmp ne i8 %133, 0
-  br i1 %134, label %if.body73, label %if.else74
+  %129 = load i64, ptr %capacity, align 1
+  store i64 %129, ptr %"control value 49.198", align 1
+  %130 = load i64, ptr %length, align 1
+  store i64 %130, ptr %"control value 49.199", align 1
+  %131 = load i64, ptr %"control value 49.198", align 1
+  %132 = load i64, ptr %"control value 49.199", align 1
+  %133 = icmp uge i64 %131, %132
+  %134 = zext i1 %133 to i8
+  store i8 %134, ptr %"control value 49.200", align 1
+  %135 = load i8, ptr %"control value 49.200", align 1
+  %136 = icmp ne i8 %135, 0
+  br i1 %136, label %if.body101, label %if.else102
 
 if.body24:                                        ; preds = %if.body21
-  %135 = getelementptr i8, ptr %buffer, i64 0
-  store ptr %135, ptr %"control value 49.51", align 1
-  %136 = load ptr, ptr %"control value 49.51", align 1
-  call void @llvm.memmove.p0.p0.i64(ptr align 1 %136, ptr align 1 @tower.string.9, i64 5, i1 false)
-  store ptr %length, ptr %"control value 49.52", align 1
-  %137 = load ptr, ptr %"control value 49.52", align 1
-  store i64 5, ptr %137, align 1
+  %137 = getelementptr i8, ptr %buffer, i64 0
+  store ptr %137, ptr %"control value 49.52", align 1
+  %138 = load ptr, ptr %"control value 49.52", align 1
+  call void @llvm.memmove.p0.p0.i64(ptr align 1 %138, ptr align 1 @tower.string.9, i64 5, i1 false)
+  store ptr %length, ptr %"control value 49.53", align 1
+  %139 = load ptr, ptr %"control value 49.53", align 1
+  store i64 5, ptr %139, align 1
   br label %if.end26
 
 if.else25:                                        ; preds = %if.body21
-  %138 = getelementptr i8, ptr %buffer, i64 0
-  store ptr %138, ptr %"control value 49.53", align 1
-  %139 = load ptr, ptr %"control value 49.53", align 1
-  call void @llvm.memmove.p0.p0.i64(ptr align 1 %139, ptr align 1 @tower.string.10, i64 6, i1 false)
-  store ptr %length, ptr %"control value 49.54", align 1
-  %140 = load ptr, ptr %"control value 49.54", align 1
-  store i64 6, ptr %140, align 1
+  %140 = getelementptr i8, ptr %buffer, i64 0
+  store ptr %140, ptr %"control value 49.54", align 1
+  %141 = load ptr, ptr %"control value 49.54", align 1
+  call void @llvm.memmove.p0.p0.i64(ptr align 1 %141, ptr align 1 @tower.string.10, i64 6, i1 false)
+  store ptr %length, ptr %"control value 49.55", align 1
+  %142 = load ptr, ptr %"control value 49.55", align 1
+  store i64 6, ptr %142, align 1
   br label %if.end26
 
 if.end26:                                         ; preds = %if.else25, %if.body24
   br label %if.end23
 
 if.body27:                                        ; preds = %if.else22
-  %141 = load i32, ptr %pointer_bytes, align 1
-  store i32 %141, ptr %"control value 49.57", align 1
-  %142 = load i32, ptr %"control value 49.57", align 1
-  %143 = icmp eq i32 %142, 4
-  %144 = zext i1 %143 to i8
-  store i8 %144, ptr %"control value 49.58", align 1
-  %145 = load i8, ptr %"control value 49.58", align 1
-  store i8 %145, ptr %valid, align 1
-  store ptr %valid, ptr %"control value 49.59", align 1
-  %146 = load ptr, ptr %"control value 49.59", align 1
-  %147 = load i8, ptr %146, align 1
-  store i8 %147, ptr %"control value 49.60", align 1
-  %148 = load i8, ptr %"control value 49.60", align 1
-  store i8 %148, ptr %"control value 49.61", align 1
-  %149 = load i8, ptr %"control value 49.61", align 1
+  %143 = load i32, ptr %pointer_bytes, align 1
+  store i32 %143, ptr %"control value 49.59", align 1
+  %144 = load i32, ptr %"control value 49.59", align 1
+  %145 = icmp eq i32 %144, 4
+  %146 = zext i1 %145 to i8
+  store i8 %146, ptr %"control value 49.60", align 1
+  %147 = load i8, ptr %"control value 49.60", align 1
+  store i8 %147, ptr %valid, align 1
+  store ptr %valid, ptr %"control value 49.61", align 1
+  %148 = load ptr, ptr %"control value 49.61", align 1
+  %149 = load i8, ptr %148, align 1
   store i8 %149, ptr %"control value 49.62", align 1
-  %150 = load i8, ptr %"control value 49.61", align 1
-  %151 = icmp ne i8 %150, 0
-  br i1 %151, label %if.body30, label %if.else31
+  %150 = load i8, ptr %"control value 49.62", align 1
+  store i8 %150, ptr %"control value 49.63", align 1
+  %151 = load i8, ptr %"control value 49.63", align 1
+  store i8 %151, ptr %"control value 49.64", align 1
+  %152 = load i8, ptr %"control value 49.63", align 1
+  %153 = icmp ne i8 %152, 0
+  br i1 %153, label %if.body30, label %if.else31
 
 if.else28:                                        ; preds = %if.else22
-  %152 = load i32, ptr %kind, align 1
-  store i32 %152, ptr %"control value 49.92", align 1
-  %153 = load i32, ptr %"control value 49.92", align 1
-  %154 = icmp eq i32 %153, 0
-  %155 = zext i1 %154 to i8
-  store i8 %155, ptr %"control value 49.93", align 1
-  %156 = load i8, ptr %"control value 49.93", align 1
-  store i8 %156, ptr %narrow, align 1
-  store i8 0, ptr %negative, align 1
-  %157 = load i8, ptr %narrow, align 1
-  store i8 %157, ptr %"control value 49.94", align 1
-  %158 = load i8, ptr %"control value 49.94", align 1
-  %159 = icmp ne i8 %158, 0
-  br i1 %159, label %if.body45, label %if.else46
+  store i32 64, ptr %"control value 49.94", align 1
+  %154 = load i32, ptr %"control value 49.94", align 1
+  store i32 %154, ptr %width, align 1
+  %155 = load i32, ptr %kind, align 1
+  store i32 %155, ptr %"control value 49.95", align 1
+  store i32 12, ptr %"control value 49.96", align 1
+  %156 = load i32, ptr %"control value 49.95", align 1
+  %157 = load i32, ptr %"control value 49.96", align 1
+  %158 = icmp eq i32 %156, %157
+  %159 = zext i1 %158 to i8
+  store i8 %159, ptr %"control value 49.97", align 1
+  %160 = load i8, ptr %"control value 49.97", align 1
+  %161 = icmp ne i8 %160, 0
+  br i1 %161, label %if.body45, label %if.else46
 
-if.end29:                                         ; preds = %loop.end69, %loop.end
-  %160 = load i64, ptr %length, align 1
-  store i64 %160, ptr %"control value 49.148", align 1
-  %161 = load i64, ptr %"control value 49.148", align 1
-  %162 = mul i64 %161, 1
-  %163 = getelementptr i8, ptr %buffer, i64 %162
-  store ptr %163, ptr %"control value 49.149", align 1
-  %164 = load ptr, ptr %"control value 49.149", align 1
-  store i8 10, ptr %164, align 1
-  store ptr %length, ptr %"control value 49.150", align 1
-  %165 = load ptr, ptr %"control value 49.150", align 1
-  %166 = load i64, ptr %165, align 1
-  store i64 %166, ptr %"control value 49.151", align 1
-  %167 = load i64, ptr %"control value 49.151", align 1
-  %168 = add i64 %167, 1
-  store i64 %168, ptr %"control value 49.152", align 1
-  %169 = load ptr, ptr %"control value 49.150", align 1
-  %170 = load i64, ptr %"control value 49.152", align 1
-  store i64 %170, ptr %169, align 1
+if.end29:                                         ; preds = %loop.end97, %loop.end
+  %162 = load i64, ptr %length, align 1
+  store i64 %162, ptr %"control value 49.193", align 1
+  %163 = load i64, ptr %"control value 49.193", align 1
+  %164 = mul i64 %163, 1
+  %165 = getelementptr i8, ptr %buffer, i64 %164
+  store ptr %165, ptr %"control value 49.194", align 1
+  %166 = load ptr, ptr %"control value 49.194", align 1
+  store i8 10, ptr %166, align 1
+  store ptr %length, ptr %"control value 49.195", align 1
+  %167 = load ptr, ptr %"control value 49.195", align 1
+  %168 = load i64, ptr %167, align 1
+  store i64 %168, ptr %"control value 49.196", align 1
+  %169 = load i64, ptr %"control value 49.196", align 1
+  %170 = add i64 %169, 1
+  store i64 %170, ptr %"control value 49.197", align 1
+  %171 = load ptr, ptr %"control value 49.195", align 1
+  %172 = load i64, ptr %"control value 49.197", align 1
+  store i64 %172, ptr %171, align 1
   br label %if.end23
 
 if.body30:                                        ; preds = %if.body27
   br label %if.end32
 
 if.else31:                                        ; preds = %if.body27
-  %171 = load i32, ptr %pointer_bytes, align 1
-  store i32 %171, ptr %"control value 49.63", align 1
-  %172 = load i32, ptr %"control value 49.63", align 1
-  %173 = icmp eq i32 %172, 8
-  %174 = zext i1 %173 to i8
-  store i8 %174, ptr %"control value 49.64", align 1
-  %175 = load i8, ptr %"control value 49.64", align 1
-  store i8 %175, ptr %"control value 49.62", align 1
-  %176 = load ptr, ptr %"control value 49.59", align 1
-  %177 = load i8, ptr %"control value 49.64", align 1
-  store i8 %177, ptr %176, align 1
+  %173 = load i32, ptr %pointer_bytes, align 1
+  store i32 %173, ptr %"control value 49.65", align 1
+  %174 = load i32, ptr %"control value 49.65", align 1
+  %175 = icmp eq i32 %174, 8
+  %176 = zext i1 %175 to i8
+  store i8 %176, ptr %"control value 49.66", align 1
+  %177 = load i8, ptr %"control value 49.66", align 1
+  store i8 %177, ptr %"control value 49.64", align 1
+  %178 = load ptr, ptr %"control value 49.61", align 1
+  %179 = load i8, ptr %"control value 49.66", align 1
+  store i8 %179, ptr %178, align 1
   br label %if.end32
 
 if.end32:                                         ; preds = %if.else31, %if.body30
-  %178 = load i8, ptr %valid, align 1
-  store i8 %178, ptr %"control value 49.65", align 1
-  %179 = load i8, ptr %"control value 49.65", align 1
-  %180 = icmp eq i8 0, %179
-  %181 = zext i1 %180 to i8
-  store i8 %181, ptr %"control value 49.66", align 1
-  %182 = load i8, ptr %"control value 49.66", align 1
-  %183 = icmp ne i8 %182, 0
-  br i1 %183, label %if.body33, label %if.else34
+  %180 = load i8, ptr %valid, align 1
+  store i8 %180, ptr %"control value 49.67", align 1
+  %181 = load i8, ptr %"control value 49.67", align 1
+  %182 = icmp eq i8 0, %181
+  %183 = zext i1 %182 to i8
+  store i8 %183, ptr %"control value 49.68", align 1
+  %184 = load i8, ptr %"control value 49.68", align 1
+  %185 = icmp ne i8 %184, 0
+  br i1 %185, label %if.body33, label %if.else34
 
 if.body33:                                        ; preds = %if.end32
   ret i64 0
@@ -23318,64 +23384,64 @@ if.else34:                                        ; preds = %if.end32
   br label %if.end35
 
 if.end35:                                         ; preds = %if.else34
-  %184 = getelementptr i8, ptr %buffer, i64 0
-  store ptr %184, ptr %"control value 49.67", align 1
-  %185 = load ptr, ptr %"control value 49.67", align 1
-  store i8 48, ptr %185, align 1
-  %186 = getelementptr i8, ptr %buffer, i64 1
-  store ptr %186, ptr %"control value 49.68", align 1
-  %187 = load ptr, ptr %"control value 49.68", align 1
-  store i8 120, ptr %187, align 1
-  %188 = load i32, ptr %pointer_bytes, align 1
-  store i32 %188, ptr %"control value 49.69", align 1
-  %189 = load i32, ptr %"control value 49.69", align 1
-  %190 = zext i32 %189 to i64
-  %191 = icmp ule i64 %190, -1
-  %192 = and i1 true, %191
-  br i1 %192, label %valid36, label %error37
+  %186 = getelementptr i8, ptr %buffer, i64 0
+  store ptr %186, ptr %"control value 49.69", align 1
+  %187 = load ptr, ptr %"control value 49.69", align 1
+  store i8 48, ptr %187, align 1
+  %188 = getelementptr i8, ptr %buffer, i64 1
+  store ptr %188, ptr %"control value 49.70", align 1
+  %189 = load ptr, ptr %"control value 49.70", align 1
+  store i8 120, ptr %189, align 1
+  %190 = load i32, ptr %pointer_bytes, align 1
+  store i32 %190, ptr %"control value 49.71", align 1
+  %191 = load i32, ptr %"control value 49.71", align 1
+  %192 = zext i32 %191 to i64
+  %193 = icmp ule i64 %192, -1
+  %194 = and i1 true, %193
+  br i1 %194, label %valid36, label %error37
 
 valid36:                                          ; preds = %if.end35
-  %193 = zext i32 %189 to i64
-  store i64 %193, ptr %"control value 49.70", align 1
-  %194 = load i64, ptr %"control value 49.70", align 1
-  %195 = mul i64 %194, 2
-  store i64 %195, ptr %"control value 49.71", align 1
-  %196 = load i64, ptr %"control value 49.71", align 1
-  store i64 %196, ptr %digits, align 1
-  store ptr %length, ptr %"control value 49.72", align 1
-  %197 = load i64, ptr %digits, align 1
+  %195 = zext i32 %191 to i64
+  store i64 %195, ptr %"control value 49.72", align 1
+  %196 = load i64, ptr %"control value 49.72", align 1
+  %197 = mul i64 %196, 2
   store i64 %197, ptr %"control value 49.73", align 1
   %198 = load i64, ptr %"control value 49.73", align 1
-  %199 = add i64 %198, 2
-  store i64 %199, ptr %"control value 49.74", align 1
-  %200 = load ptr, ptr %"control value 49.72", align 1
-  %201 = load i64, ptr %"control value 49.74", align 1
-  store i64 %201, ptr %200, align 1
-  %202 = load i64, ptr %length, align 1
-  store i64 %202, ptr %"control value 49.75", align 1
-  %203 = load i64, ptr %"control value 49.75", align 1
-  store i64 %203, ptr %at, align 1
+  store i64 %198, ptr %digits, align 1
+  store ptr %length, ptr %"control value 49.74", align 1
+  %199 = load i64, ptr %digits, align 1
+  store i64 %199, ptr %"control value 49.75", align 1
+  %200 = load i64, ptr %"control value 49.75", align 1
+  %201 = add i64 %200, 2
+  store i64 %201, ptr %"control value 49.76", align 1
+  %202 = load ptr, ptr %"control value 49.74", align 1
+  %203 = load i64, ptr %"control value 49.76", align 1
+  store i64 %203, ptr %202, align 1
+  %204 = load i64, ptr %length, align 1
+  store i64 %204, ptr %"control value 49.77", align 1
+  %205 = load i64, ptr %"control value 49.77", align 1
+  store i64 %205, ptr %at, align 1
   store ptr @tower.string.11, ptr %hex, align 1
   br label %loop
 
 error37:                                          ; preds = %if.end35
-  call void @tower_trap(ptr @105, i64 45991)
+  call void @tower_trap(ptr @105, i64 46216)
   unreachable
 
 loop:                                             ; preds = %valid43, %valid36
-  %204 = load i64, ptr %at, align 1
-  store i64 %204, ptr %"control value 49.76", align 1
-  %205 = load i64, ptr %"control value 49.76", align 1
-  %206 = icmp eq i64 %205, 2
-  %207 = zext i1 %206 to i8
-  store i8 %207, ptr %"control value 49.77", align 1
-  %208 = load i8, ptr %"control value 49.77", align 1
-  store i8 %208, ptr %done, align 1
-  %209 = load i8, ptr %done, align 1
-  store i8 %209, ptr %"control value 49.78", align 1
-  %210 = load i8, ptr %"control value 49.78", align 1
-  %211 = icmp ne i8 %210, 0
-  br i1 %211, label %if.body38, label %if.else39
+  %206 = load i64, ptr %at, align 1
+  store i64 %206, ptr %"control value 49.78", align 1
+  %207 = load i64, ptr %"control value 49.78", align 1
+  %208 = icmp eq i64 %207, 2
+  %209 = zext i1 %208 to i8
+  store i8 %209, ptr %"control value 49.79", align 1
+  %210 = load i8, ptr %"control value 49.79", align 1
+  store i8 %210, ptr %done, align 1
+  %211 = load i8, ptr %done, align 1
+  store i8 %211, ptr %"control value 49.80", align 1
+  %212 = load i8, ptr %"control value 49.80", align 1
+  %213 = icmp ne i8 %212, 0
+  br i1 %213, label %if.body38, label %if.else39
 
 loop.end:                                         ; preds = %if.body38
   br label %if.end29
@@ -23387,358 +23453,584 @@ if.else39:                                        ; preds = %loop
   br label %if.end40
 
 if.end40:                                         ; preds = %if.else39
-  store ptr %at, ptr %"control value 49.79", align 1
-  %212 = load ptr, ptr %"control value 49.79", align 1
-  %213 = load i64, ptr %212, align 1
-  store i64 %213, ptr %"control value 49.80", align 1
-  %214 = load i64, ptr %"control value 49.80", align 1
-  %215 = sub i64 %214, 1
-  store i64 %215, ptr %"control value 49.81", align 1
-  %216 = load ptr, ptr %"control value 49.79", align 1
-  %217 = load i64, ptr %"control value 49.81", align 1
-  store i64 %217, ptr %216, align 1
-  %218 = load i64, ptr %value, align 1
-  store i64 %218, ptr %"control value 49.82", align 1
-  %219 = load i64, ptr %"control value 49.82", align 1
+  store ptr %at, ptr %"control value 49.81", align 1
+  %214 = load ptr, ptr %"control value 49.81", align 1
+  %215 = load i64, ptr %214, align 1
+  store i64 %215, ptr %"control value 49.82", align 1
+  %216 = load i64, ptr %"control value 49.82", align 1
+  %217 = sub i64 %216, 1
+  store i64 %217, ptr %"control value 49.83", align 1
+  %218 = load ptr, ptr %"control value 49.81", align 1
+  %219 = load i64, ptr %"control value 49.83", align 1
+  store i64 %219, ptr %218, align 1
+  %220 = load i64, ptr %value, align 1
+  store i64 %220, ptr %"control value 49.84", align 1
+  %221 = load i64, ptr %"control value 49.84", align 1
   br i1 true, label %valid41, label %error42
 
 valid41:                                          ; preds = %if.end40
-  %220 = urem i64 %219, 16
-  store i64 %220, ptr %"control value 49.83", align 1
-  %221 = load i64, ptr %"control value 49.83", align 1
-  store i64 %221, ptr %index, align 1
-  %222 = load i64, ptr %at, align 1
-  store i64 %222, ptr %"control value 49.84", align 1
-  %223 = load i64, ptr %"control value 49.84", align 1
-  %224 = mul i64 %223, 1
-  %225 = getelementptr i8, ptr %buffer, i64 %224
-  store ptr %225, ptr %"control value 49.85", align 1
-  %226 = load ptr, ptr %hex, align 1
-  store ptr %226, ptr %"control value 49.86", align 1
-  %227 = load i64, ptr %index, align 1
-  store i64 %227, ptr %"control value 49.87", align 1
-  %228 = load ptr, ptr %"control value 49.86", align 1
-  %229 = load i64, ptr %"control value 49.87", align 1
-  %230 = mul i64 %229, 1
-  %231 = getelementptr i8, ptr %228, i64 %230
-  %232 = load i8, ptr %231, align 1
-  store i8 %232, ptr %"control value 49.88", align 1
-  %233 = load ptr, ptr %"control value 49.85", align 1
-  %234 = load i8, ptr %"control value 49.88", align 1
-  store i8 %234, ptr %233, align 1
-  store ptr %value, ptr %"control value 49.89", align 1
-  %235 = load i64, ptr %value, align 1
-  store i64 %235, ptr %"control value 49.90", align 1
-  %236 = load i64, ptr %"control value 49.90", align 1
+  %222 = urem i64 %221, 16
+  store i64 %222, ptr %"control value 49.85", align 1
+  %223 = load i64, ptr %"control value 49.85", align 1
+  store i64 %223, ptr %index, align 1
+  %224 = load i64, ptr %at, align 1
+  store i64 %224, ptr %"control value 49.86", align 1
+  %225 = load i64, ptr %"control value 49.86", align 1
+  %226 = mul i64 %225, 1
+  %227 = getelementptr i8, ptr %buffer, i64 %226
+  store ptr %227, ptr %"control value 49.87", align 1
+  %228 = load ptr, ptr %hex, align 1
+  store ptr %228, ptr %"control value 49.88", align 1
+  %229 = load i64, ptr %index, align 1
+  store i64 %229, ptr %"control value 49.89", align 1
+  %230 = load ptr, ptr %"control value 49.88", align 1
+  %231 = load i64, ptr %"control value 49.89", align 1
+  %232 = mul i64 %231, 1
+  %233 = getelementptr i8, ptr %230, i64 %232
+  %234 = load i8, ptr %233, align 1
+  store i8 %234, ptr %"control value 49.90", align 1
+  %235 = load ptr, ptr %"control value 49.87", align 1
+  %236 = load i8, ptr %"control value 49.90", align 1
+  store i8 %236, ptr %235, align 1
+  store ptr %value, ptr %"control value 49.91", align 1
+  %237 = load i64, ptr %value, align 1
+  store i64 %237, ptr %"control value 49.92", align 1
+  %238 = load i64, ptr %"control value 49.92", align 1
   br i1 true, label %valid43, label %error44
 
 error42:                                          ; preds = %if.end40
-  call void @tower_trap(ptr @106, i64 45991)
+  call void @tower_trap(ptr @106, i64 46216)
   unreachable
 
 valid43:                                          ; preds = %valid41
-  %237 = udiv i64 %236, 16
-  store i64 %237, ptr %"control value 49.91", align 1
-  %238 = load ptr, ptr %"control value 49.89", align 1
-  %239 = load i64, ptr %"control value 49.91", align 1
-  store i64 %239, ptr %238, align 1
+  %239 = udiv i64 %238, 16
+  store i64 %239, ptr %"control value 49.93", align 1
+  %240 = load ptr, ptr %"control value 49.91", align 1
+  %241 = load i64, ptr %"control value 49.93", align 1
+  store i64 %241, ptr %240, align 1
   br label %loop
 
 error44:                                          ; preds = %valid41
-  call void @tower_trap(ptr @107, i64 45991)
+  call void @tower_trap(ptr @107, i64 46216)
   unreachable
 
 if.body45:                                        ; preds = %if.else28
-  store ptr %value, ptr %"control value 49.95", align 1
-  %240 = load i64, ptr %value, align 1
-  store i64 %240, ptr %"control value 49.96", align 1
-  %241 = load i64, ptr %"control value 49.96", align 1
-  %242 = and i64 %241, 4294967295
-  store i64 %242, ptr %"control value 49.97", align 1
-  %243 = load ptr, ptr %"control value 49.95", align 1
-  %244 = load i64, ptr %"control value 49.97", align 1
-  store i64 %244, ptr %243, align 1
-  store ptr %negative, ptr %"control value 49.98", align 1
-  %245 = load i64, ptr %value, align 1
-  store i64 %245, ptr %"control value 49.99", align 1
-  %246 = load i64, ptr %"control value 49.99", align 1
-  %247 = icmp uge i64 %246, 2147483648
-  %248 = zext i1 %247 to i8
-  store i8 %248, ptr %"control value 49.100", align 1
-  %249 = load ptr, ptr %"control value 49.98", align 1
-  %250 = load i8, ptr %"control value 49.100", align 1
-  store i8 %250, ptr %249, align 1
+  store ptr %width, ptr %"control value 49.98", align 1
+  store i32 8, ptr %"control value 49.99", align 1
+  %242 = load ptr, ptr %"control value 49.98", align 1
+  %243 = load i32, ptr %"control value 49.99", align 1
+  store i32 %243, ptr %242, align 1
   br label %if.end47
 
 if.else46:                                        ; preds = %if.else28
-  %251 = load i32, ptr %kind, align 1
-  store i32 %251, ptr %"control value 49.101", align 1
-  %252 = load i32, ptr %"control value 49.101", align 1
-  %253 = icmp eq i32 %252, 6
-  %254 = zext i1 %253 to i8
-  store i8 %254, ptr %"control value 49.102", align 1
-  %255 = load i8, ptr %"control value 49.102", align 1
-  %256 = icmp ne i8 %255, 0
-  br i1 %256, label %if.body48, label %if.else49
+  br label %if.end47
 
-if.end47:                                         ; preds = %if.end50, %if.body45
-  %257 = load i8, ptr %negative, align 1
-  store i8 %257, ptr %"control value 49.106", align 1
-  %258 = load i8, ptr %"control value 49.106", align 1
-  %259 = icmp ne i8 %258, 0
-  br i1 %259, label %if.body51, label %if.else52
+if.end47:                                         ; preds = %if.else46, %if.body45
+  %244 = load i32, ptr %kind, align 1
+  store i32 %244, ptr %"control value 49.100", align 1
+  store i32 13, ptr %"control value 49.101", align 1
+  %245 = load i32, ptr %"control value 49.100", align 1
+  %246 = load i32, ptr %"control value 49.101", align 1
+  %247 = icmp eq i32 %245, %246
+  %248 = zext i1 %247 to i8
+  store i8 %248, ptr %"control value 49.102", align 1
+  %249 = load i8, ptr %"control value 49.102", align 1
+  %250 = icmp ne i8 %249, 0
+  br i1 %250, label %if.body48, label %if.else49
 
-if.body48:                                        ; preds = %if.else46
-  store ptr %negative, ptr %"control value 49.103", align 1
-  %260 = load i64, ptr %value, align 1
-  store i64 %260, ptr %"control value 49.104", align 1
-  %261 = load i64, ptr %"control value 49.104", align 1
-  %262 = icmp uge i64 %261, -9223372036854775808
-  %263 = zext i1 %262 to i8
-  store i8 %263, ptr %"control value 49.105", align 1
-  %264 = load ptr, ptr %"control value 49.103", align 1
-  %265 = load i8, ptr %"control value 49.105", align 1
-  store i8 %265, ptr %264, align 1
+if.body48:                                        ; preds = %if.end47
+  store ptr %width, ptr %"control value 49.103", align 1
+  store i32 16, ptr %"control value 49.104", align 1
+  %251 = load ptr, ptr %"control value 49.103", align 1
+  %252 = load i32, ptr %"control value 49.104", align 1
+  store i32 %252, ptr %251, align 1
   br label %if.end50
 
-if.else49:                                        ; preds = %if.else46
+if.else49:                                        ; preds = %if.end47
   br label %if.end50
 
 if.end50:                                         ; preds = %if.else49, %if.body48
-  br label %if.end47
+  %253 = load i32, ptr %kind, align 1
+  store i32 %253, ptr %"control value 49.105", align 1
+  store i32 0, ptr %"control value 49.106", align 1
+  %254 = load i32, ptr %"control value 49.105", align 1
+  %255 = load i32, ptr %"control value 49.106", align 1
+  %256 = icmp eq i32 %254, %255
+  %257 = zext i1 %256 to i8
+  store i8 %257, ptr %"control value 49.107", align 1
+  %258 = load i8, ptr %"control value 49.107", align 1
+  %259 = icmp ne i8 %258, 0
+  br i1 %259, label %if.body51, label %if.else52
 
-if.body51:                                        ; preds = %if.end47
-  %266 = getelementptr i8, ptr %buffer, i64 0
-  store ptr %266, ptr %"control value 49.107", align 1
-  %267 = load ptr, ptr %"control value 49.107", align 1
-  store i8 45, ptr %267, align 1
-  store ptr %length, ptr %"control value 49.108", align 1
-  %268 = load ptr, ptr %"control value 49.108", align 1
-  store i64 1, ptr %268, align 1
-  store ptr %value, ptr %"control value 49.109", align 1
+if.body51:                                        ; preds = %if.end50
+  store ptr %width, ptr %"control value 49.108", align 1
+  store i32 32, ptr %"control value 49.109", align 1
+  %260 = load ptr, ptr %"control value 49.108", align 1
+  %261 = load i32, ptr %"control value 49.109", align 1
+  store i32 %261, ptr %260, align 1
+  br label %if.end53
+
+if.else52:                                        ; preds = %if.end50
+  br label %if.end53
+
+if.end53:                                         ; preds = %if.else52, %if.body51
+  br i1 true, label %valid54, label %error55
+
+valid54:                                          ; preds = %if.end53
   store i64 0, ptr %"control value 49.110", align 1
-  %269 = load i64, ptr %value, align 1
-  store i64 %269, ptr %"control value 49.111", align 1
-  %270 = load i64, ptr %"control value 49.110", align 1
+  %262 = load i64, ptr %"control value 49.110", align 1
+  %263 = xor i64 -1, %262
+  store i64 %263, ptr %"control value 49.111", align 1
+  store i32 64, ptr %"control value 49.112", align 1
+  %264 = load i32, ptr %width, align 1
+  store i32 %264, ptr %"control value 49.113", align 1
+  %265 = load i32, ptr %"control value 49.112", align 1
+  %266 = load i32, ptr %"control value 49.113", align 1
+  %267 = sub i32 %265, %266
+  store i32 %267, ptr %"control value 49.114", align 1
+  %268 = load i32, ptr %"control value 49.114", align 1
+  %269 = and i32 %268, 63
+  store i32 %269, ptr %"control value 49.115", align 1
+  %270 = load i32, ptr %"control value 49.115", align 1
+  store i32 %270, ptr %"control value 49.116", align 1
   %271 = load i64, ptr %"control value 49.111", align 1
-  %272 = sub i64 %270, %271
-  store i64 %272, ptr %"control value 49.112", align 1
-  %273 = load ptr, ptr %"control value 49.109", align 1
-  %274 = load i64, ptr %"control value 49.112", align 1
-  store i64 %274, ptr %273, align 1
-  %275 = load i8, ptr %narrow, align 1
-  store i8 %275, ptr %"control value 49.113", align 1
-  %276 = load i8, ptr %"control value 49.113", align 1
-  %277 = icmp ne i8 %276, 0
-  br i1 %277, label %if.body54, label %if.else55
+  store i64 %271, ptr %"control value 49.117", align 1
+  br label %loop56
 
-if.else52:                                        ; preds = %if.end47
-  br label %if.end53
+error55:                                          ; preds = %if.end53
+  call void @tower_trap(ptr @108, i64 46216)
+  unreachable
 
-if.end53:                                         ; preds = %if.end56, %if.else52
+loop56:                                           ; preds = %valid61, %valid54
+  %272 = load i32, ptr %"control value 49.116", align 1
+  %273 = icmp eq i32 %272, 0
+  %274 = zext i1 %273 to i8
+  store i8 %274, ptr %"control value 49.118", align 1
+  %275 = load i8, ptr %"control value 49.118", align 1
+  %276 = icmp ne i8 %275, 0
+  br i1 %276, label %if.body58, label %if.else59
+
+loop.end57:                                       ; preds = %if.body58
+  %277 = load i64, ptr %"control value 49.117", align 1
+  store i64 %277, ptr %mask, align 1
+  store ptr %value, ptr %"control value 49.121", align 1
+  %278 = load ptr, ptr %"control value 49.121", align 1
+  %279 = load i64, ptr %278, align 1
+  store i64 %279, ptr %"control value 49.122", align 1
+  %280 = load i64, ptr %mask, align 1
+  store i64 %280, ptr %"control value 49.123", align 1
+  %281 = load i64, ptr %"control value 49.122", align 1
+  %282 = load i64, ptr %"control value 49.123", align 1
+  %283 = and i64 %281, %282
+  store i64 %283, ptr %"control value 49.124", align 1
+  %284 = load ptr, ptr %"control value 49.121", align 1
+  %285 = load i64, ptr %"control value 49.124", align 1
+  store i64 %285, ptr %284, align 1
+  %286 = load i32, ptr %kind, align 1
+  store i32 %286, ptr %"control value 49.125", align 1
+  store i32 12, ptr %"control value 49.126", align 1
+  %287 = load i32, ptr %"control value 49.125", align 1
+  %288 = load i32, ptr %"control value 49.126", align 1
+  %289 = icmp eq i32 %287, %288
+  %290 = zext i1 %289 to i8
+  store i8 %290, ptr %"control value 49.127", align 1
+  %291 = load i8, ptr %"control value 49.127", align 1
+  store i8 %291, ptr %"control value 49.128", align 1
+  %292 = load i8, ptr %"control value 49.127", align 1
+  %293 = icmp ne i8 %292, 0
+  br i1 %293, label %if.body63, label %if.else64
+
+if.body58:                                        ; preds = %loop56
+  br label %loop.end57
+
+if.else59:                                        ; preds = %loop56
+  br label %if.end60
+
+if.end60:                                         ; preds = %if.else59
+  %294 = load i64, ptr %"control value 49.117", align 1
+  br i1 true, label %valid61, label %error62
+
+valid61:                                          ; preds = %if.end60
+  %295 = udiv i64 %294, 2
+  store i64 %295, ptr %"control value 49.119", align 1
+  %296 = load i64, ptr %"control value 49.119", align 1
+  store i64 %296, ptr %"control value 49.117", align 1
+  %297 = load i32, ptr %"control value 49.116", align 1
+  %298 = sub i32 %297, 1
+  store i32 %298, ptr %"control value 49.120", align 1
+  %299 = load i32, ptr %"control value 49.120", align 1
+  store i32 %299, ptr %"control value 49.116", align 1
+  br label %loop56
+
+error62:                                          ; preds = %if.end60
+  call void @tower_trap(ptr @109, i64 46216)
+  unreachable
+
+if.body63:                                        ; preds = %loop.end57
+  br label %if.end65
+
+if.else64:                                        ; preds = %loop.end57
+  %300 = load i32, ptr %kind, align 1
+  store i32 %300, ptr %"control value 49.129", align 1
+  store i32 13, ptr %"control value 49.130", align 1
+  %301 = load i32, ptr %"control value 49.129", align 1
+  %302 = load i32, ptr %"control value 49.130", align 1
+  %303 = icmp eq i32 %301, %302
+  %304 = zext i1 %303 to i8
+  store i8 %304, ptr %"control value 49.131", align 1
+  %305 = load i8, ptr %"control value 49.131", align 1
+  store i8 %305, ptr %"control value 49.128", align 1
+  br label %if.end65
+
+if.end65:                                         ; preds = %if.else64, %if.body63
+  %306 = load i8, ptr %"control value 49.128", align 1
+  store i8 %306, ptr %"control value 49.132", align 1
+  %307 = load i8, ptr %"control value 49.128", align 1
+  %308 = icmp ne i8 %307, 0
+  br i1 %308, label %if.body66, label %if.else67
+
+if.body66:                                        ; preds = %if.end65
+  br label %if.end68
+
+if.else67:                                        ; preds = %if.end65
+  %309 = load i32, ptr %kind, align 1
+  store i32 %309, ptr %"control value 49.133", align 1
+  store i32 0, ptr %"control value 49.134", align 1
+  %310 = load i32, ptr %"control value 49.133", align 1
+  %311 = load i32, ptr %"control value 49.134", align 1
+  %312 = icmp eq i32 %310, %311
+  %313 = zext i1 %312 to i8
+  store i8 %313, ptr %"control value 49.135", align 1
+  %314 = load i8, ptr %"control value 49.135", align 1
+  store i8 %314, ptr %"control value 49.132", align 1
+  br label %if.end68
+
+if.end68:                                         ; preds = %if.else67, %if.body66
+  %315 = load i8, ptr %"control value 49.132", align 1
+  store i8 %315, ptr %"control value 49.136", align 1
+  %316 = load i8, ptr %"control value 49.132", align 1
+  %317 = icmp ne i8 %316, 0
+  br i1 %317, label %if.body69, label %if.else70
+
+if.body69:                                        ; preds = %if.end68
+  br label %if.end71
+
+if.else70:                                        ; preds = %if.end68
+  %318 = load i32, ptr %kind, align 1
+  store i32 %318, ptr %"control value 49.137", align 1
+  store i32 6, ptr %"control value 49.138", align 1
+  %319 = load i32, ptr %"control value 49.137", align 1
+  %320 = load i32, ptr %"control value 49.138", align 1
+  %321 = icmp eq i32 %319, %320
+  %322 = zext i1 %321 to i8
+  store i8 %322, ptr %"control value 49.139", align 1
+  %323 = load i8, ptr %"control value 49.139", align 1
+  store i8 %323, ptr %"control value 49.136", align 1
+  br label %if.end71
+
+if.end71:                                         ; preds = %if.else70, %if.body69
+  %324 = load i8, ptr %"control value 49.136", align 1
+  store i8 %324, ptr %signed, align 1
+  %325 = load i8, ptr %signed, align 1
+  store i8 %325, ptr %"control value 49.140", align 1
+  %326 = load i8, ptr %"control value 49.140", align 1
+  store i8 %326, ptr %"control value 49.141", align 1
+  %327 = load i8, ptr %"control value 49.140", align 1
+  %328 = icmp ne i8 %327, 0
+  br i1 %328, label %if.body72, label %if.else73
+
+if.body72:                                        ; preds = %if.end71
+  %329 = load i64, ptr %value, align 1
+  store i64 %329, ptr %"control value 49.142", align 1
+  %330 = load i64, ptr %mask, align 1
+  store i64 %330, ptr %"control value 49.143", align 1
+  store i32 1, ptr %"control value 49.144", align 1
+  %331 = load i32, ptr %"control value 49.144", align 1
+  store i32 %331, ptr %"control value 49.145", align 1
+  %332 = load i64, ptr %"control value 49.143", align 1
+  store i64 %332, ptr %"control value 49.146", align 1
+  br label %loop75
+
+if.else73:                                        ; preds = %if.end71
+  br label %if.end74
+
+if.end74:                                         ; preds = %loop.end76, %if.else73
+  %333 = load i8, ptr %"control value 49.141", align 1
+  store i8 %333, ptr %negative, align 1
+  %334 = load i8, ptr %negative, align 1
+  store i8 %334, ptr %"control value 49.151", align 1
+  %335 = load i8, ptr %"control value 49.151", align 1
+  %336 = icmp ne i8 %335, 0
+  br i1 %336, label %if.body82, label %if.else83
+
+loop75:                                           ; preds = %valid80, %if.body72
+  %337 = load i32, ptr %"control value 49.145", align 1
+  %338 = icmp eq i32 %337, 0
+  %339 = zext i1 %338 to i8
+  store i8 %339, ptr %"control value 49.147", align 1
+  %340 = load i8, ptr %"control value 49.147", align 1
+  %341 = icmp ne i8 %340, 0
+  br i1 %341, label %if.body77, label %if.else78
+
+loop.end76:                                       ; preds = %if.body77
+  %342 = load i64, ptr %"control value 49.142", align 1
+  %343 = load i64, ptr %"control value 49.146", align 1
+  %344 = icmp ugt i64 %342, %343
+  %345 = zext i1 %344 to i8
+  store i8 %345, ptr %"control value 49.150", align 1
+  %346 = load i8, ptr %"control value 49.150", align 1
+  store i8 %346, ptr %"control value 49.141", align 1
+  br label %if.end74
+
+if.body77:                                        ; preds = %loop75
+  br label %loop.end76
+
+if.else78:                                        ; preds = %loop75
+  br label %if.end79
+
+if.end79:                                         ; preds = %if.else78
+  %347 = load i64, ptr %"control value 49.146", align 1
+  br i1 true, label %valid80, label %error81
+
+valid80:                                          ; preds = %if.end79
+  %348 = udiv i64 %347, 2
+  store i64 %348, ptr %"control value 49.148", align 1
+  %349 = load i64, ptr %"control value 49.148", align 1
+  store i64 %349, ptr %"control value 49.146", align 1
+  %350 = load i32, ptr %"control value 49.145", align 1
+  %351 = sub i32 %350, 1
+  store i32 %351, ptr %"control value 49.149", align 1
+  %352 = load i32, ptr %"control value 49.149", align 1
+  store i32 %352, ptr %"control value 49.145", align 1
+  br label %loop75
+
+error81:                                          ; preds = %if.end79
+  call void @tower_trap(ptr @110, i64 46216)
+  unreachable
+
+if.body82:                                        ; preds = %if.end74
+  %353 = getelementptr i8, ptr %buffer, i64 0
+  store ptr %353, ptr %"control value 49.152", align 1
+  %354 = load ptr, ptr %"control value 49.152", align 1
+  store i8 45, ptr %354, align 1
+  store ptr %length, ptr %"control value 49.153", align 1
+  %355 = load ptr, ptr %"control value 49.153", align 1
+  store i64 1, ptr %355, align 1
+  store ptr %value, ptr %"control value 49.154", align 1
+  store i64 0, ptr %"control value 49.155", align 1
+  %356 = load i64, ptr %value, align 1
+  store i64 %356, ptr %"control value 49.156", align 1
+  %357 = load i64, ptr %"control value 49.155", align 1
+  %358 = load i64, ptr %"control value 49.156", align 1
+  %359 = sub i64 %357, %358
+  store i64 %359, ptr %"control value 49.157", align 1
+  %360 = load ptr, ptr %"control value 49.154", align 1
+  %361 = load i64, ptr %"control value 49.157", align 1
+  store i64 %361, ptr %360, align 1
+  store ptr %value, ptr %"control value 49.158", align 1
+  %362 = load ptr, ptr %"control value 49.158", align 1
+  %363 = load i64, ptr %362, align 1
+  store i64 %363, ptr %"control value 49.159", align 1
+  %364 = load i64, ptr %mask, align 1
+  store i64 %364, ptr %"control value 49.160", align 1
+  %365 = load i64, ptr %"control value 49.159", align 1
+  %366 = load i64, ptr %"control value 49.160", align 1
+  %367 = and i64 %365, %366
+  store i64 %367, ptr %"control value 49.161", align 1
+  %368 = load ptr, ptr %"control value 49.158", align 1
+  %369 = load i64, ptr %"control value 49.161", align 1
+  store i64 %369, ptr %368, align 1
+  br label %if.end84
+
+if.else83:                                        ; preds = %if.end74
+  br label %if.end84
+
+if.end84:                                         ; preds = %if.else83, %if.body82
   store i64 0, ptr %count, align 1
-  br label %loop57
+  br label %loop85
 
-if.body54:                                        ; preds = %if.body51
-  store ptr %value, ptr %"control value 49.114", align 1
-  %278 = load i64, ptr %value, align 1
-  store i64 %278, ptr %"control value 49.115", align 1
-  %279 = load i64, ptr %"control value 49.115", align 1
-  %280 = and i64 %279, 4294967295
-  store i64 %280, ptr %"control value 49.116", align 1
-  %281 = load ptr, ptr %"control value 49.114", align 1
-  %282 = load i64, ptr %"control value 49.116", align 1
-  store i64 %282, ptr %281, align 1
-  br label %if.end56
+loop85:                                           ; preds = %if.end95, %if.end84
+  %370 = load i64, ptr %value, align 1
+  store i64 %370, ptr %"control value 49.162", align 1
+  %371 = load i64, ptr %"control value 49.162", align 1
+  br i1 true, label %valid87, label %error88
 
-if.else55:                                        ; preds = %if.body51
-  br label %if.end56
+loop.end86:                                       ; preds = %if.body93
+  br label %loop96
 
-if.end56:                                         ; preds = %if.else55, %if.body54
-  br label %if.end53
+valid87:                                          ; preds = %loop85
+  %372 = urem i64 %371, 10
+  store i64 %372, ptr %"control value 49.163", align 1
+  %373 = load i64, ptr %"control value 49.163", align 1
+  store i64 %373, ptr %digit, align 1
+  store ptr %digit, ptr %"control value 49.164", align 1
+  %374 = load i64, ptr %digit, align 1
+  store i64 %374, ptr %"control value 49.165", align 1
+  %375 = load i64, ptr %"control value 49.165", align 1
+  %376 = add i64 %375, 48
+  store i64 %376, ptr %"control value 49.166", align 1
+  %377 = load ptr, ptr %"control value 49.164", align 1
+  %378 = load i64, ptr %"control value 49.166", align 1
+  store i64 %378, ptr %377, align 1
+  %379 = load i64, ptr %count, align 1
+  store i64 %379, ptr %"control value 49.167", align 1
+  %380 = load i64, ptr %"control value 49.167", align 1
+  %381 = mul i64 %380, 1
+  %382 = getelementptr i8, ptr %digits1, i64 %381
+  store ptr %382, ptr %"control value 49.168", align 1
+  %383 = load i64, ptr %digit, align 1
+  store i64 %383, ptr %"control value 49.169", align 1
+  %384 = load i64, ptr %"control value 49.169", align 1
+  %385 = icmp ule i64 %384, 255
+  %386 = and i1 true, %385
+  br i1 %386, label %valid89, label %error90
 
-loop57:                                           ; preds = %if.end67, %if.end53
-  %283 = load i64, ptr %value, align 1
-  store i64 %283, ptr %"control value 49.117", align 1
-  %284 = load i64, ptr %"control value 49.117", align 1
-  br i1 true, label %valid59, label %error60
-
-loop.end58:                                       ; preds = %if.body65
-  br label %loop68
-
-valid59:                                          ; preds = %loop57
-  %285 = urem i64 %284, 10
-  store i64 %285, ptr %"control value 49.118", align 1
-  %286 = load i64, ptr %"control value 49.118", align 1
-  store i64 %286, ptr %digit, align 1
-  store ptr %digit, ptr %"control value 49.119", align 1
-  %287 = load i64, ptr %digit, align 1
-  store i64 %287, ptr %"control value 49.120", align 1
-  %288 = load i64, ptr %"control value 49.120", align 1
-  %289 = add i64 %288, 48
-  store i64 %289, ptr %"control value 49.121", align 1
-  %290 = load ptr, ptr %"control value 49.119", align 1
-  %291 = load i64, ptr %"control value 49.121", align 1
-  store i64 %291, ptr %290, align 1
-  %292 = load i64, ptr %count, align 1
-  store i64 %292, ptr %"control value 49.122", align 1
-  %293 = load i64, ptr %"control value 49.122", align 1
-  %294 = mul i64 %293, 1
-  %295 = getelementptr i8, ptr %digits1, i64 %294
-  store ptr %295, ptr %"control value 49.123", align 1
-  %296 = load i64, ptr %digit, align 1
-  store i64 %296, ptr %"control value 49.124", align 1
-  %297 = load i64, ptr %"control value 49.124", align 1
-  %298 = icmp ule i64 %297, 255
-  %299 = and i1 true, %298
-  br i1 %299, label %valid61, label %error62
-
-error60:                                          ; preds = %loop57
-  call void @tower_trap(ptr @108, i64 45991)
+error88:                                          ; preds = %loop85
+  call void @tower_trap(ptr @111, i64 46216)
   unreachable
 
-valid61:                                          ; preds = %valid59
-  %300 = trunc i64 %297 to i8
-  store i8 %300, ptr %"control value 49.125", align 1
-  %301 = load ptr, ptr %"control value 49.123", align 1
-  %302 = load i8, ptr %"control value 49.125", align 1
-  store i8 %302, ptr %301, align 1
-  store ptr %count, ptr %"control value 49.126", align 1
-  %303 = load ptr, ptr %"control value 49.126", align 1
-  %304 = load i64, ptr %303, align 1
-  store i64 %304, ptr %"control value 49.127", align 1
-  %305 = load i64, ptr %"control value 49.127", align 1
-  %306 = add i64 %305, 1
-  store i64 %306, ptr %"control value 49.128", align 1
-  %307 = load ptr, ptr %"control value 49.126", align 1
-  %308 = load i64, ptr %"control value 49.128", align 1
-  store i64 %308, ptr %307, align 1
-  store ptr %value, ptr %"control value 49.129", align 1
-  %309 = load i64, ptr %value, align 1
-  store i64 %309, ptr %"control value 49.130", align 1
-  %310 = load i64, ptr %"control value 49.130", align 1
-  br i1 true, label %valid63, label %error64
+valid89:                                          ; preds = %valid87
+  %387 = trunc i64 %384 to i8
+  store i8 %387, ptr %"control value 49.170", align 1
+  %388 = load ptr, ptr %"control value 49.168", align 1
+  %389 = load i8, ptr %"control value 49.170", align 1
+  store i8 %389, ptr %388, align 1
+  store ptr %count, ptr %"control value 49.171", align 1
+  %390 = load ptr, ptr %"control value 49.171", align 1
+  %391 = load i64, ptr %390, align 1
+  store i64 %391, ptr %"control value 49.172", align 1
+  %392 = load i64, ptr %"control value 49.172", align 1
+  %393 = add i64 %392, 1
+  store i64 %393, ptr %"control value 49.173", align 1
+  %394 = load ptr, ptr %"control value 49.171", align 1
+  %395 = load i64, ptr %"control value 49.173", align 1
+  store i64 %395, ptr %394, align 1
+  store ptr %value, ptr %"control value 49.174", align 1
+  %396 = load i64, ptr %value, align 1
+  store i64 %396, ptr %"control value 49.175", align 1
+  %397 = load i64, ptr %"control value 49.175", align 1
+  br i1 true, label %valid91, label %error92
 
-error62:                                          ; preds = %valid59
-  call void @tower_trap(ptr @109, i64 45991)
+error90:                                          ; preds = %valid87
+  call void @tower_trap(ptr @112, i64 46216)
   unreachable
 
-valid63:                                          ; preds = %valid61
-  %311 = udiv i64 %310, 10
-  store i64 %311, ptr %"control value 49.131", align 1
-  %312 = load ptr, ptr %"control value 49.129", align 1
-  %313 = load i64, ptr %"control value 49.131", align 1
-  store i64 %313, ptr %312, align 1
-  %314 = load i64, ptr %value, align 1
-  store i64 %314, ptr %"control value 49.132", align 1
-  %315 = load i64, ptr %"control value 49.132", align 1
-  %316 = icmp eq i64 %315, 0
-  %317 = zext i1 %316 to i8
-  store i8 %317, ptr %"control value 49.133", align 1
-  %318 = load i8, ptr %"control value 49.133", align 1
-  store i8 %318, ptr %done2, align 1
-  %319 = load i8, ptr %done2, align 1
-  store i8 %319, ptr %"control value 49.134", align 1
-  %320 = load i8, ptr %"control value 49.134", align 1
-  %321 = icmp ne i8 %320, 0
-  br i1 %321, label %if.body65, label %if.else66
+valid91:                                          ; preds = %valid89
+  %398 = udiv i64 %397, 10
+  store i64 %398, ptr %"control value 49.176", align 1
+  %399 = load ptr, ptr %"control value 49.174", align 1
+  %400 = load i64, ptr %"control value 49.176", align 1
+  store i64 %400, ptr %399, align 1
+  %401 = load i64, ptr %value, align 1
+  store i64 %401, ptr %"control value 49.177", align 1
+  %402 = load i64, ptr %"control value 49.177", align 1
+  %403 = icmp eq i64 %402, 0
+  %404 = zext i1 %403 to i8
+  store i8 %404, ptr %"control value 49.178", align 1
+  %405 = load i8, ptr %"control value 49.178", align 1
+  store i8 %405, ptr %done2, align 1
+  %406 = load i8, ptr %done2, align 1
+  store i8 %406, ptr %"control value 49.179", align 1
+  %407 = load i8, ptr %"control value 49.179", align 1
+  %408 = icmp ne i8 %407, 0
+  br i1 %408, label %if.body93, label %if.else94
 
-error64:                                          ; preds = %valid61
-  call void @tower_trap(ptr @110, i64 45991)
+error92:                                          ; preds = %valid89
+  call void @tower_trap(ptr @113, i64 46216)
   unreachable
 
-if.body65:                                        ; preds = %valid63
-  br label %loop.end58
+if.body93:                                        ; preds = %valid91
+  br label %loop.end86
 
-if.else66:                                        ; preds = %valid63
-  br label %if.end67
+if.else94:                                        ; preds = %valid91
+  br label %if.end95
 
-if.end67:                                         ; preds = %if.else66
-  br label %loop57
+if.end95:                                         ; preds = %if.else94
+  br label %loop85
 
-loop68:                                           ; preds = %if.end72, %loop.end58
-  %322 = load i64, ptr %count, align 1
-  store i64 %322, ptr %"control value 49.135", align 1
-  %323 = load i64, ptr %"control value 49.135", align 1
-  %324 = icmp ne i64 %323, 0
-  %325 = zext i1 %324 to i8
-  store i8 %325, ptr %"control value 49.136", align 1
-  %326 = load i8, ptr %"control value 49.136", align 1
-  store i8 %326, ptr %"control check 49.0", align 1
-  %327 = load i8, ptr %"control check 49.0", align 1
-  store i8 %327, ptr %"control value 49.137", align 1
-  %328 = load i8, ptr %"control value 49.137", align 1
-  %329 = icmp ne i8 %328, 0
-  br i1 %329, label %if.body70, label %if.else71
+loop96:                                           ; preds = %if.end100, %loop.end86
+  %409 = load i64, ptr %count, align 1
+  store i64 %409, ptr %"control value 49.180", align 1
+  %410 = load i64, ptr %"control value 49.180", align 1
+  %411 = icmp ne i64 %410, 0
+  %412 = zext i1 %411 to i8
+  store i8 %412, ptr %"control value 49.181", align 1
+  %413 = load i8, ptr %"control value 49.181", align 1
+  store i8 %413, ptr %"control check 49.0", align 1
+  %414 = load i8, ptr %"control check 49.0", align 1
+  store i8 %414, ptr %"control value 49.182", align 1
+  %415 = load i8, ptr %"control value 49.182", align 1
+  %416 = icmp ne i8 %415, 0
+  br i1 %416, label %if.body98, label %if.else99
 
-loop.end69:                                       ; preds = %if.else71
+loop.end97:                                       ; preds = %if.else99
   br label %if.end29
 
-if.body70:                                        ; preds = %loop68
-  store ptr %count, ptr %"control value 49.138", align 1
-  %330 = load ptr, ptr %"control value 49.138", align 1
-  %331 = load i64, ptr %330, align 1
-  store i64 %331, ptr %"control value 49.139", align 1
-  %332 = load i64, ptr %"control value 49.139", align 1
-  %333 = sub i64 %332, 1
-  store i64 %333, ptr %"control value 49.140", align 1
-  %334 = load ptr, ptr %"control value 49.138", align 1
-  %335 = load i64, ptr %"control value 49.140", align 1
-  store i64 %335, ptr %334, align 1
-  %336 = load i64, ptr %length, align 1
-  store i64 %336, ptr %"control value 49.141", align 1
-  %337 = load i64, ptr %"control value 49.141", align 1
-  %338 = mul i64 %337, 1
-  %339 = getelementptr i8, ptr %buffer, i64 %338
-  store ptr %339, ptr %"control value 49.142", align 1
-  %340 = load i64, ptr %count, align 1
-  store i64 %340, ptr %"control value 49.143", align 1
-  %341 = load i64, ptr %"control value 49.143", align 1
-  %342 = mul i64 %341, 1
-  %343 = getelementptr i8, ptr %digits1, i64 %342
-  %344 = load i8, ptr %343, align 1
-  store i8 %344, ptr %"control value 49.144", align 1
-  %345 = load ptr, ptr %"control value 49.142", align 1
-  %346 = load i8, ptr %"control value 49.144", align 1
-  store i8 %346, ptr %345, align 1
-  br label %if.end72
+if.body98:                                        ; preds = %loop96
+  store ptr %count, ptr %"control value 49.183", align 1
+  %417 = load ptr, ptr %"control value 49.183", align 1
+  %418 = load i64, ptr %417, align 1
+  store i64 %418, ptr %"control value 49.184", align 1
+  %419 = load i64, ptr %"control value 49.184", align 1
+  %420 = sub i64 %419, 1
+  store i64 %420, ptr %"control value 49.185", align 1
+  %421 = load ptr, ptr %"control value 49.183", align 1
+  %422 = load i64, ptr %"control value 49.185", align 1
+  store i64 %422, ptr %421, align 1
+  %423 = load i64, ptr %length, align 1
+  store i64 %423, ptr %"control value 49.186", align 1
+  %424 = load i64, ptr %"control value 49.186", align 1
+  %425 = mul i64 %424, 1
+  %426 = getelementptr i8, ptr %buffer, i64 %425
+  store ptr %426, ptr %"control value 49.187", align 1
+  %427 = load i64, ptr %count, align 1
+  store i64 %427, ptr %"control value 49.188", align 1
+  %428 = load i64, ptr %"control value 49.188", align 1
+  %429 = mul i64 %428, 1
+  %430 = getelementptr i8, ptr %digits1, i64 %429
+  %431 = load i8, ptr %430, align 1
+  store i8 %431, ptr %"control value 49.189", align 1
+  %432 = load ptr, ptr %"control value 49.187", align 1
+  %433 = load i8, ptr %"control value 49.189", align 1
+  store i8 %433, ptr %432, align 1
+  br label %if.end100
 
-if.else71:                                        ; preds = %loop68
-  br label %loop.end69
+if.else99:                                        ; preds = %loop96
+  br label %loop.end97
 
-if.end72:                                         ; preds = %if.body70
-  store ptr %length, ptr %"control value 49.145", align 1
-  %347 = load ptr, ptr %"control value 49.145", align 1
-  %348 = load i64, ptr %347, align 1
-  store i64 %348, ptr %"control value 49.146", align 1
-  %349 = load i64, ptr %"control value 49.146", align 1
-  %350 = add i64 %349, 1
-  store i64 %350, ptr %"control value 49.147", align 1
-  %351 = load ptr, ptr %"control value 49.145", align 1
-  %352 = load i64, ptr %"control value 49.147", align 1
-  store i64 %352, ptr %351, align 1
-  br label %loop68
+if.end100:                                        ; preds = %if.body98
+  store ptr %length, ptr %"control value 49.190", align 1
+  %434 = load ptr, ptr %"control value 49.190", align 1
+  %435 = load i64, ptr %434, align 1
+  store i64 %435, ptr %"control value 49.191", align 1
+  %436 = load i64, ptr %"control value 49.191", align 1
+  %437 = add i64 %436, 1
+  store i64 %437, ptr %"control value 49.192", align 1
+  %438 = load ptr, ptr %"control value 49.190", align 1
+  %439 = load i64, ptr %"control value 49.192", align 1
+  store i64 %439, ptr %438, align 1
+  br label %loop96
 
-if.body73:                                        ; preds = %if.end23
-  %353 = load ptr, ptr %output, align 1
-  store ptr %353, ptr %"control value 49.156", align 1
-  %354 = getelementptr i8, ptr %buffer, i64 0
-  store ptr %354, ptr %"control value 49.157", align 1
-  %355 = load i64, ptr %length, align 1
-  store i64 %355, ptr %"control value 49.158", align 1
-  %356 = load ptr, ptr %"control value 49.156", align 1
-  %357 = load ptr, ptr %"control value 49.157", align 1
-  %358 = load i64, ptr %"control value 49.158", align 1
-  call void @llvm.memmove.p0.p0.i64(ptr align 1 %356, ptr align 1 %357, i64 %358, i1 false)
-  %359 = load i64, ptr %length, align 1
-  store i64 %359, ptr %"control value 49.159", align 1
-  %360 = load i64, ptr %"control value 49.159", align 1
-  ret i64 %360
+if.body101:                                       ; preds = %if.end23
+  %440 = load ptr, ptr %output, align 1
+  store ptr %440, ptr %"control value 49.201", align 1
+  %441 = getelementptr i8, ptr %buffer, i64 0
+  store ptr %441, ptr %"control value 49.202", align 1
+  %442 = load i64, ptr %length, align 1
+  store i64 %442, ptr %"control value 49.203", align 1
+  %443 = load ptr, ptr %"control value 49.201", align 1
+  %444 = load ptr, ptr %"control value 49.202", align 1
+  %445 = load i64, ptr %"control value 49.203", align 1
+  call void @llvm.memmove.p0.p0.i64(ptr align 1 %443, ptr align 1 %444, i64 %445, i1 false)
+  %446 = load i64, ptr %length, align 1
+  store i64 %446, ptr %"control value 49.204", align 1
+  %447 = load i64, ptr %"control value 49.204", align 1
+  ret i64 %447
 
-if.else74:                                        ; preds = %if.end23
-  br label %if.end75
+if.else102:                                       ; preds = %if.end23
+  br label %if.end103
 
-if.end75:                                         ; preds = %if.else74
+if.end103:                                        ; preds = %if.else102
   ret i64 0
 }
 
@@ -23941,7 +24233,7 @@ valid10:                                          ; preds = %if.end9
   br i1 %70, label %valid11, label %error12
 
 error:                                            ; preds = %if.end9
-  call void @tower_trap(ptr @111, i64 45991)
+  call void @tower_trap(ptr @114, i64 46216)
   unreachable
 
 valid11:                                          ; preds = %valid10
@@ -23956,7 +24248,7 @@ valid11:                                          ; preds = %valid10
   br i1 %76, label %if.body13, label %if.else14
 
 error12:                                          ; preds = %valid10
-  call void @tower_trap(ptr @112, i64 45991)
+  call void @tower_trap(ptr @115, i64 46216)
   unreachable
 
 if.body13:                                        ; preds = %valid11
@@ -23988,7 +24280,7 @@ valid16:                                          ; preds = %if.end15
   br label %loop
 
 error17:                                          ; preds = %if.end15
-  call void @tower_trap(ptr @113, i64 45991)
+  call void @tower_trap(ptr @116, i64 46216)
   unreachable
 }
 

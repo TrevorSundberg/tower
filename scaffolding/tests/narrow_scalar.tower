@@ -1,0 +1,33 @@
+import tower;
+
+// Compact portable fixture for source-emission profiles with single-file limits.
+// The full narrow_integers fixture additionally covers exhaustive byte patterns
+// and generic containers in native/Wasm/interpreted execution.
+var failures: u32 = 0;
+fn check(value: bool): void { if !value { failures++; } }
+export fn add(a: i8, b: i8): i8 { return a + b; }
+export fn multiply(a: i16, b: i16): i16 { return a * b; }
+export fn divide(a: i16, b: i16): i16 { return a / b; }
+var byte: i8 = -128;
+var short: i16 = -32768;
+var unsigned: u16 = 65535;
+check(add(127, 1) == byte && add(byte, -1) == 127);
+check(multiply(256, 128) == short && divide(-1234, 3) == -411);
+check((short >> 15) == -1 && (short >>> 15) == 1);
+check((byte >>> 7) == 1 && convert(i16, byte) == -128);
+check(convert(i64, short) == -32768 && convert(u32, unsigned) == 65535);
+check(unsigned++ == 65535 && unsigned == 0 && --unsigned == 65535);
+check(bits(u16, short) == 32768 && ~unsigned == 0);
+var raw: u8[4];
+var sentinel: u8 = 90;
+fill(&raw[0], sentinel, sizeof(u8[4]));
+var pointer = bits(i16*, &raw[1]);
+*pointer = -1234;
+check(*pointer == -1234 && raw[0] == sentinel && raw[3] == sentinel);
+var values: i16[2];
+values[0] = short; values[1] = 1234;
+var last = &values[1];
+check(last[-1] == short && last[0] == 1234);
+check(sizeof(i8) == 1 && sizeof(i16) == 2 && alignof(u16) == 2);
+print(failures);
+if failures != 0 { trap("Narrow scalar tests failed", failures); }

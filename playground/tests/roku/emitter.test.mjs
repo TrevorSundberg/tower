@@ -30,11 +30,18 @@ function reference(source) {
 }
 
 for(const optimize of [false,true]) test(`optimized foundation to Roku (${optimize?'O2':'O0'}) executes shared semantics`,{timeout:180000},async()=>{
-  for(const file of ['tests/backend_semantics.tower','tests/narrow_integers.tower','tests/narrow_output.tower','examples/functions.tower','examples/structs.tower','examples/memory.tower','examples/collections.tower','examples/match.tower']) {
+  for(const file of ['tests/backend_semantics.tower','examples/functions.tower','examples/structs.tower','examples/memory.tower','examples/collections.tower','examples/match.tower']) {
     const source=await text('scaffolding/'+file);
     const emitted=compile(source,optimize);
     const expected=reference(source);
     assert.equal(await runBrightScript(emitted),expected,`${file} O${optimize?2:0}`);
+  }
+});
+
+test('narrow integer operations and output survive scalar reconstruction', {timeout:180000}, async()=>{
+  for(const file of ['narrow_scalar','narrow_output']) {
+    const source=await text('scaffolding/tests/'+file+'.tower');
+    for(const optimize of [false,true]) assert.equal(await runBrightScript(compile(source,optimize)),reference(source),file);
   }
 });
 
