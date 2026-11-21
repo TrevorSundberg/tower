@@ -327,7 +327,7 @@
                                  "validation":  "79 runtime/LLVM/package checks; eight threaded package/worker checks; two edited browser compiler generations; four final worker-reuse/stale-permit browser checks; ten output/viewport/frame checks. Fresh native successor after final compiler-source rebase. All 86 local deployment asset hashes and full desktop/mobile flows pass."
                              },
     "scope":  "Typed function values and indirect calls, integrated shared-memory linker and frontend improvements; standard Tower-defined types before vectors.",
-    "previousDeployment":  "ba49d1f39eaebcbeb6274fd2dc9bef33bc3802a7",
+    "previousDeployment":  "384cecb60e4f1ec2e180016f441b53bca01960c9",
     "measurementToolingMigration":  {
                                         "implementationCommit":  "1007d4179107c6c5372afcb9d1233a406695e992",
                                         "validationCommit":  "824af121b0441df8c2a6af9e6a328bd6a0164018",
@@ -367,7 +367,7 @@
     "bootstrapExecutableSha256":  "81928f54125bd182cad2e0f52a0b6a543d59fa454ab87b18a0b69fd28a5e59c8",
     "publishedBootstrapSha256":  "9bf8779c9b5844e6f5b0df6688a3ac517b2b4f9924b84c36f19c572b93b8e459",
     "bootstrapSha256":  "81928f54125bd182cad2e0f52a0b6a543d59fa454ab87b18a0b69fd28a5e59c8",
-    "sourceCommit":  "d357f3be54a435025807cc7abba5cd2521661d02",
+    "sourceCommit":  "ccb245f18cfcbea2dc62858f7d5f1bee7a330534",
     "publicationNote":  "Complete typed callback milestone in Tower, integrated with the current shared-memory Wasm linker and frontend/UI. Final source hashes verified after journal-only rebase. Standard type definitions in Tower, imported by Foundation rather than Bedrock, are the next priority before vectors; these future tasks are documented, not implemented. Hosted verification passed every asset and desktop/mobile flow for ba49d1f. The subsequent receipt and AGENTS guidance preserve those runtime bytes and build identity.",
     "buildNote":  "Built from source identical to rebased 51c038e using the validated 81928f54 intermediate bootstrap. Final 9bf8779c pin passes relocation and a fresh default successor. Two edited browser compiler generations agree byte-for-byte; callback/worker/native/Wasm checks and all 86 local assets plus desktop/mobile flows pass.",
     "buildSourceCommit":  "51c038e0d15480256f7dfd7991155874b97d2cab",
@@ -379,5 +379,11 @@
                            "limits":  "Noncapturing callbacks; C/BrightScript source emission, external aggregate callback ABI and JS host adaptation remain separate work.",
                            "report":  "docs/function-values.md",
                            "validationCommit":  "d357f3be54a435025807cc7abba5cd2521661d02"
-                       }
+                       },
+    "typeProtocolDiscussion":  {
+                                   "status":  "Proposal: typed ECS components and ordinary Tower implementations; attributes and programmatic construction populate the same protocol.",
+                                   "sourceCommit":  "ccb245f18cfcbea2dc62858f7d5f1bee7a330534",
+                                   "runtimeAssetsChanged":  false,
+                                   "report":  "docs/temporal-opcode-research-journal.md"
+                               }
 }
