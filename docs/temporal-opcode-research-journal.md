@@ -37589,3 +37589,45 @@ result. Host memories with initial=1 or maximum=5 fail at Wasm instantiation as
 expected. Only environment-selected memory provisioning was added to the existing
 JS host; all new linker and functional assertion code is Tower. No new native,
 Python, shell implementation, sanitizer or broad formatter run.
+
+Final rebase preserved the narrow-integer publication and new public bootstrap
+0d752e7dc35a0a8951872cf52d96873bb1e1cab2b3fe63d9b147e64e5deecca8.
+The documented build-bootstrap.sh verifies and selects it. A fresh native
+successor-memory-final builds and passes backend API and actual worker checks;
+its SHA-256 is 6945a6e187f87cc22b66f5784cc4c7f2be9c0fa8b0abd685d07afbeee83636d9.
+Small native/WASI linker checks pass with the new public pin, as do raw and
+optimized imported-memory program execution. Rebuild all current browser units
+and package into build/compiler-project-memory-final, then select the lazy Tower
+recipe. Both edited generations pass again (49.45/40.92 s) with identical hashes:
+portable 2fce8692291a98278a8bdb2a9c6274f0ea15b8ac3f790c7595a9cb23a20b71d0,
+LLVM 361466038559fa5d295268fb38fc3fbe3af7ae3993523974056933b32b378133,
+cross b6348b13931dc8232de4be78cfe613767bfbe37ce8cb6b504aee93f28b97bf46.
+The native standalone linker is itself rebuilt by this fresh Tower successor.
+
+Paired warm Linux-filesystem link trial on the final generation's LLVM objects
+and current support archives: Tower 0.70/0.55/0.57 s at 344884-345148 KiB RSS;
+SDK34 LLD 0.47/0.46/0.50 s at 376404-376436 KiB. Median Tower is about 21% slower
+and uses 8% less memory; sizes are 53,624,291 versus 52,641,221 bytes. No speedup
+claim. Source/pin/input changes and system load prevent comparing absolute times
+with the prior journal sample. To check this change specifically, pair the prior
+static-publish Tower executable with static-memory-final on identical inputs:
+0.69/0.64/0.60 versus 0.63/0.63/0.57 s, essentially equal RSS, and cmp returns 0
+for their outputs. This finds no added slowdown or output change for defined
+memory, but does not close the existing LLD performance gap. Reproduction metadata
+is build/wasm_link_memory_benchmark_args.json and the isolated benchmark-memory
+cache; the latter contains the objects, archives, export list and lld.rsp.
+
+Next implementation plan, based on pinned upstream lld/wasm/Writer.cpp
+populateTargetFeatures/createInitMemoryFunction/createApplyTLSRelocationsFunction:
+require the atomics/bulk-memory profile and reject disallowed shared-mem inputs;
+emit passive segments/data-count/start initialization, with an atomic once flag
+and wait/notify handoff so later instances cannot overwrite shared data. Keep TLS
+template segments available for each thread, define TLS size/alignment/base and
+relocations explicitly, and validate real repeated/concurrent instantiation with
+the existing worker transport. Do not merely set the shared bit on active data.
+Then schedule independent object-read/relocation batches on WorkGraph/WorkPool:
+prepare typed components and access ranges before pinning, use private result
+buffers, drain on cancellation, and publish errors/bytes in input order. Add real
+overlap and serial-equivalence fixtures and measure grain sizes before enabling
+parallel defaults. These are planned gates, not implemented behavior in this
+milestone. Existing production LLD and hosted runtime remain unchanged.
