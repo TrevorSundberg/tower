@@ -36286,3 +36286,13 @@ build/wasm_link_audit_final.log and the isolated cache objects named *-final.o.
 This confirms the correction above and supersedes the initial eleven-variant
 audit. Deployment of this experimental standalone milestone preserves the latest
 verified runtime; no production dependency cutover is included.
+
+Pre-push rebase incorporated f4c78cc, including the new floating/named-work
+bootstrap and the tooling agent's direct checked-in Linux executable. The
+current build-bootstrap.sh verifies SHA256SUMS and selects
+bootstrap/linux-x64/towerc (no Python installer). Recompiled the native suite,
+WASI suite and static linker with that documented compiler after the rebase.
+Native checks and the Tower-linked WASI checks both PASS. Earlier compiler-sized
+relink evidence remains tied to its recorded object snapshots, not a claim that
+all incoming compiler features were rebuilt by this linker. Scoped whitespace
+corrections only; todo.txt retains045d1e620edf7c67b653fec19df850b370246b1d.

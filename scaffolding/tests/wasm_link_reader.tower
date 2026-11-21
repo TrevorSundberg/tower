@@ -352,4 +352,3 @@ export fn main(): i32 {
     puts("Wasm linker reader and world checks passed");
     return 0;
 }
-
