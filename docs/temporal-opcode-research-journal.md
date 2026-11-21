@@ -25420,3 +25420,13 @@ both interpreters and native LLVM (iteration-native-cases.log). Compiler scratch
 and iterator state remain owned by each compilation; foreach itself is sequential.
 The compiler's initial native build succeeds with published inference bootstrap
 257654. A fresh pinned successor build/publication must precede old-loop adoption.
+
+Final iteration validation rejects void element protocols and publishes the
+synthetic item's checked type before lexical lookup. All seven feature tests pass
+again. Native CTests pass 5/5 in 16.30 seconds; backend API checks pass. Packaged
+source 9086e5d as development bootstrap
+603e2d7563c4a5c68f898b6e80151b81557d8bfc8192585a35bfcb7fcad1eda9.
+A relocated install runs collection/borrow/ring fixtures successfully with its
+own resources. A previously empty /cache/iteration-pinned-clean builds all 55
+steps with no TOWER_BOOTSTRAP_COMPILER override, using that pin. Publish this
+bootstrap before the forthcoming production foreach migration.
