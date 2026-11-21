@@ -1,10 +1,6 @@
 #include "core.hpp"
 #include <cassert>
-#include "compiler-foundation.hpp"
 #include "compiler-semantic.hpp"
-#include "compiler-syntax-reader.hpp"
-#include <cstring>
-#include <new>
 #include <utility>
 
 const char* core_builtin_name(CoreKind kind) {
@@ -30,15 +26,6 @@ CoreProgram::CoreProgram(unsigned width) : pointer_bytes(width) {
 CoreProgram::~CoreProgram() { if (root) tower_node_release_ref(root); }
 CoreProgram::CoreProgram(CoreProgram&& other) noexcept : pointer_bytes(other.pointer_bytes), root(std::exchange(other.root, nullptr)),
   functions(std::move(other.functions)), types(std::move(other.types)), error(std::move(other.error)), error_offset(other.error_offset) {}
-CoreProgram& CoreProgram::operator=(CoreProgram&& other) noexcept {
-  if (this != &other) {
-    if (root) tower_node_release_ref(root); root = std::exchange(other.root, nullptr);
-    pointer_bytes = other.pointer_bytes; functions = std::move(other.functions);
-    types = std::move(other.types);
-    error = std::move(other.error); error_offset = other.error_offset;
-  }
-  return *this;
-}
 std::string core_type_name(CoreType t) {
   TowerByteBuffer text{}; semantic_format_type(&t, &text);
   std::string result(reinterpret_cast<const char*>(text.data), text.length);
@@ -50,7 +37,3 @@ std::string core_number(uint64_t bits, CoreType t) {
   bytes_dispose(&text); return result;
 }
 const char* core_operator(CoreOp op) { return semantic_operator(unsigned(op)); }
-
-CoreText core_format(const CoreProgram& program) {
-  return program.error.empty() ? tower_format(program.root) : CoreText{};
-}

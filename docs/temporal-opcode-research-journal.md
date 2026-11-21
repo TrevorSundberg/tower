@@ -24121,3 +24121,13 @@ and its target packs. Agent 1 and Agent 3 explicitly delegate their next browser
 publication to Agent 2; source slots remain Agent 1, Agent 3, then Agent 2. Root
 checkout/cache reuse is authorized only for clean published-source integration
 and generated deployment artifacts, under Agent 2's exclusive publication lock.
+
+While the preceding source slots completed, a final native caller audit found
+the CoreProgram move-assignment and `core_format` convenience wrapper had no
+remaining callers. Their definitions, declarations/aliases and unused includes
+were removed: 23 further native lines, zero added, bringing this slice to 1890
+native lines deleted. The WASI parser target rebuilt all remaining native
+format/entity/storage consumers plus the format reference and linked successfully;
+its focused host/storage test passed. CoreProgram compilation, construction and
+the reference's actual field/format queries remain until Agent 3 retires those
+consumers. The broad formatter sweep remains skipped.

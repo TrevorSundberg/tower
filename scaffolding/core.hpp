@@ -57,7 +57,6 @@ struct CoreProgram {
   explicit CoreProgram(unsigned pointer_bytes = 4);
   ~CoreProgram();
   CoreProgram(CoreProgram&&) noexcept;
-  CoreProgram& operator=(CoreProgram&&) noexcept;
   CoreProgram(const CoreProgram&) = delete;
   CoreProgram& operator=(const CoreProgram&) = delete;
 };
@@ -65,6 +64,3 @@ CoreProgram core_compile(const char* source, unsigned pointer_bytes = 4);
 std::string core_type_name(CoreType type);
 std::string core_number(uint64_t bits, CoreType type);
 const char* core_operator(CoreOp op);
-using CoreSourceSpan = TowerSourceSpan;
-using CoreText = TowerText;
-CoreText core_format(const CoreProgram& program);

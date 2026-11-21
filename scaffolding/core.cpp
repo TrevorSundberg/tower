@@ -1,8 +1,6 @@
 #include "core.hpp"
 #include "compiler-semantic.hpp"
 #include "compiler-frontend.hpp"
-#include <utility>
-#include "compiler-host.hpp"
 
 namespace {
 // Temporary native API ownership view. Source orchestration and semantic work
