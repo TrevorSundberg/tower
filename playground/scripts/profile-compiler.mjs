@@ -4,16 +4,18 @@
 import assert from 'node:assert/strict';
 import {readFile, writeFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
+import {resolve, join} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {Session} from 'node:inspector';
 import os from 'node:os';
 import {loadLLVM} from '../src/llvm-host.mjs';
 
 const [current, destination, baseline] = process.argv.slice(2);
 assert(current && destination, 'Supply a reactor path and report path');
-const root = new URL('../../', import.meta.url);
-const read = path => readFile(new URL(path, root));
+const assets = resolve(process.env.TOWER_PROFILE_ASSETS ?? fileURLToPath(new URL('../dist/',import.meta.url)));
+const read = path => readFile(join(assets, path));
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
-const recipeBytes = await read('build/compiler-project/project.json');
+const recipeBytes = await read('compiler/project.json');
 const {files} = JSON.parse(recipeBytes);
 const grammar = Object.fromEntries(['bedrock', 'foundation', 'tower'].map(name =>
   [name, files.find(file => file.path === name + '.tower').text]));
@@ -26,9 +28,9 @@ for (const [name, path] of Object.entries(paths)) {
   hashes[name] = hash(bytes);
 }
 const cases = [
-  ['examples/functions.tower', (await read('scaffolding/examples/functions.tower')).toString(), false],
-  ['examples/collections.tower', (await read('scaffolding/examples/collections.tower')).toString(), false],
-  ...['compiler-host', 'compiler-entities', 'compiler-semantics'].map(name => {
+  ['functions.tower', (await read('functions.tower')).toString(), false],
+  ['collections.tower', (await read('collections.tower')).toString(), false],
+  ...['compiler_host', 'compiler_entities', 'compiler_semantics'].map(name => {
     const entry = 'units/' + name + '.tower';
     return [entry, files.find(file => file.path === entry).text, true];
   }),
@@ -45,7 +47,7 @@ const summary = values => {
   return {median:sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2,
     p95:sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * .95))], samples:values};
 };
-const report = {node:process.version, cpu:os.cpus()[0].model, paths, hashes,
+const report = {node:process.version, cpu:os.cpus()[0].model, paths, hashes, assets,
   recipeHash:hash(recipeBytes), warmups, pairs, repeats, profileOnly:!!process.env.TOWER_PROFILE_ONLY,
   workloads:cases.map(([entry]) => entry), startupMs:startup, cases:{},
   method:'Alternating pairs, fresh compilation with warm grammar caches; configuration excluded, parse through object emission and output transport included. Sampling follows timing.'};

@@ -1,3 +1,160 @@
+# Cold and warm profiling passes — 2026-11-21
+
+The published threaded browser path still spends seconds before its first result.
+Small warm edits are much quicker, but the portable serial comparison exposes
+substantial shared-memory/worker overhead. This is a diagnostic comparison, not
+a change to production threading or the ECS/dependency-graph architecture.
+
+## Inputs and method
+
+Frozen Pages deployment `c4ae217`, manifest source `780276a`, UI `c9521cf` and
+runtime build `85c8a13` (equivalent retained public compiler sources `2776318`).
+Every copied asset was verified against its manifest. The newer body-frontier
+batching on main `5ca3c3d` is **not** in these measured runtime bytes.
+Windows, Ryzen 9 5900HX, Node 21.7.3, Chromium 159.0.8154.6. Pixel 7 emulation
+uses this same computer. Desktop also selects the Windows native backend;
+mobile does not, so their totals are different configurations.
+
+Five passes produced 50 observations per repeated action per device. Cold
+means a fresh browser process/context and app/Wasm state on loopback, with a
+warm OS file cache. It includes the isolation service-worker reload, not WAN
+download latency. The initial mobile passes followed desktop in the same process;
+five separate mobile processes replaced those cold observations. The profiler
+now launches a fresh process for each device automatically. No builds, tests or
+CPU sampling ran alongside browser timings. Action-to-DOM times include browser
+automation delivery; animation callbacks do not measure physical display latency.
+
+## Cold startup
+
+Five observations each; milliseconds, median (observed minimum–maximum).
+The sample is too small to estimate a cold-start percentile.
+
+| Result | Desktop | Mobile emulation, isolated process |
+| --- | ---: | ---: |
+| Highlight | 1531.6 (1521.6–1546.8) | 1459.3 (1429.4–1514.8) |
+| First Foundation instructions | 3856.5 (3811.2–3965.8) | 2914.1 (2827.0–3064.3) |
+| Graph result | 3861.0 (3817.3–3969.8) | 2917.4 (2830.0–3067.8) |
+| LLVM/Wasm result | 4042.6 (3993.9–4133.7) | 3028.1 (2984.2–3137.2) |
+| All selected outputs | 4372.8 (4319.0–4466.7) | 3433.1 (3328.5–3621.3) |
+
+Desktop parser work is 900 ms median. Each independent graph/fast/LLVM worker
+then spends about 693 ms loading its frontend and 1.60 seconds compiling Tower.
+LLVM compilation itself is about 125 ms; the fast worker's additional LLVM load
+is 436 ms. These overlapping worker phases must not be added as serial costs.
+
+## Warm actions
+
+50 observations per row/device. Milliseconds, median / empirical p95 (sorted
+sample index floor(0.95*n), zero based); these are local benchmark tails, not
+production latency guarantees. Memory edits append a short comment; value edits
+alternate `pair.first = 20` and `200` in Structs and check changed output.
+
+| Action/result | Desktop | Mobile emulation |
+| --- | ---: | ---: |
+| Execute unchanged Functions, complete | 100.4 / 120.1 | 89.0 / 108.4 |
+| New project, highlight | 52.5 / 110.1 | 52.9 / 109.1 |
+| New project, complete | 113.1 / 174.6 | 94.4 / 153.7 |
+| Memory edit, highlight | 46.1 / 57.6 | 54.2 / 86.0 |
+| Memory edit, graph result | 119.5 / 143.7 | 118.4 / 149.7 |
+| Memory edit, complete | 232.0 / 274.8 | 234.5 / 287.8 |
+| Structs value edit, highlight | 33.3 / 39.4 | 31.8 / 40.0 |
+| Structs value edit, first instructions | 72.0 / 88.7 | 56.6 / 79.7 |
+| Structs value edit, graph result | 79.5 / 110.9 | 71.7 / 103.4 |
+| Structs value edit, complete | 163.0 / 187.9 | 153.0 / 183.5 |
+| Structs whitespace, auto execution off, highlight | 28.0 / 31.0 | 27.9 / 31.9 |
+
+The parser and all three execution workers survived all warm actions in every
+pass; desktop's native target worker also survived. All 550 observed actions
+completed without page errors. Project switching remains workload dependent:
+the first switch to Execution (its own grammar declarations) took 751 ms desktop
+and 626 ms mobile to complete, versus 176/152 ms for Functions, 274/239 ms for
+Memory and 141/145 ms for Structs (five observations per project). These first
+visits do not establish fully warmed grammar-switch latency.
+
+For desktop Memory edits the fast worker spends 58 ms compiling Tower, 31 ms
+optimizing through LLVM, 36 ms reconstructing Foundation and 44 ms preparing the
+checked package. LLVM/Wasm output arrives at 142 ms median, before fast output
+at 232 ms. Structs has less work: about 34, 6, 16 and 19 ms respectively. Runtime
+loading is already cached; repeated frontend/package work remains significant.
+
+## Paired portable/shared-memory comparison
+
+Three alternating-order desktop pairs, fresh processes, ten warm actions per
+pair. A second frozen site changes only `capabilities.json` to select the existing
+portable serial reactor; its manifest records that override. UI, examples and
+LLVM bytes are identical. This compares complete runtime variants, including
+their allocators and host transport, not just a scheduler worker-count setting.
+
+| Desktop result, median ms | Portable serial | Published threaded |
+| --- | ---: | ---: |
+| Cold highlight (3 samples) | 1095.4 | 1591.9 |
+| Cold graph result (3 samples) | 1895.7 | 3914.7 |
+| Cold complete (3 samples) | 2289.6 | 4411.1 |
+| Warm Execute complete (30 samples) | 61.8 | 101.5 |
+| Warm Memory edit complete (30 samples) | 112.2 | 237.4 |
+| Warm Structs value edit complete (30 samples) | 124.7 | 165.3 |
+
+In these pairs cold frontend load is 108 versus 678 ms, and graph-worker Tower
+compile is 635 versus 1628 ms. Warm Memory Tower compilation is 7.4 versus
+56.3 ms; package preparation is 16.6 versus 42.5 ms. All requested outputs match.
+This supports reducing small-job overhead and allocation traffic while retaining
+worker isolation, access contracts and deterministic publication. It does not
+establish how the variants compare on large parallel compiler workloads.
+
+## Separate CPU and larger-unit probes
+
+Eight Node inspector captures cover Functions, Memory, Structs and Execution
+with each published frontend reactor. Three additional warm-only Memory captures
+sample the first retained-parser reset plus recompile, after initialization/cold
+work. Of 219 coordinator samples, 85 (39%) land in `work_host_heap_enter/leave`;
+another 31 are in the memory `buffer` getter. This is sample attribution, not
+39% of end-to-end wall time, and does not include child-worker CPU. Published
+reactors are stripped, so remaining numeric Wasm frames cannot safely be assigned
+Tower names. Parser reset now mirrors the UI's retained handle; the older
+create/destroy probe measured new-session work and is excluded here.
+
+The existing LLVM ABI profiler also compiled frozen Tower inputs to deterministic
+object bytes, with sampling after timing. Functions: six warmups, 16 measurements,
+9.92 ms median / 13.64 ms maximum. ECS `units/compiler_entities.tower`: two
+warmups, eight measurements, 3341 ms median / 3613 ms maximum, including 2080 ms
+frontend, 103 ms LLVM lowering, 744 ms optimization and 372 ms emission medians.
+Module configuration is excluded; compile/output transport is included. This
+larger-unit result is distinct from editor response time and the threaded frontend.
+
+The next performance work should prioritize the shared-heap ABI traffic and
+worker startup/admission cost for small jobs, avoid redundant frontend work across
+backends, and reduce checked package reconstruction without weakening validation.
+Large compiler-unit frontend work needs its own profiling alongside those changes.
+Keep immutable shared inputs, world ownership, ECS nodes and dependency scheduling;
+the measurements do not justify abandoning the threading work.
+
+## Reproduction and retained evidence
+
+From `playground`, set `TOWER_PROFILE_URL` to the frozen site's origin,
+`TOWER_PROFILE_REPEATS=10`, then run
+`node scripts/profile-execution.mjs ../build/cold_warm_pass_1.json`.
+`TOWER_PROFILE_DEVICE=desktop` or `mobile` selects one device. Zero repeats
+retains cold startup and project visits. The new semantic edit case uses the
+existing Tower Structs fixture; JavaScript is limited to browser/ABI transport.
+
+For CPU captures set `TOWER_PROFILE_ASSETS` to that snapshot's `dist`,
+`TOWER_PROFILE_REACTOR` to its `tower.wasm` or `tower-threads.wasm`, and
+`TOWER_PROFILE_SOURCE` to the example filename. Optional
+`TOWER_PROFILE_CPU_PHASE=warm` excludes initialization/cold work from sampling.
+For LLVM, use `node scripts/profile-compiler.mjs <reactor> <report>` with the same
+assets directory; `TOWER_PROFILE_CASE=compiler_entities` selects the larger unit.
+The profiler now reads the served recipe/examples and current underscore unit
+names instead of mixing stale local build inputs with a measured reactor.
+
+Ignored local evidence: `build/cold_warm_pass_{1..5}.json`,
+`cold_mobile_isolated_{1..5}.json`, `cold_warm_pair_{1..3}_{serial,threads}.json`,
+`cold_warm_cpu_{tower,tower-threads}_{functions,memory,structs,execution}.json`,
+`cold_warm_warm_cpu_{1..3}.json`, `cold_warm_{llvm,entities}_cpu.json` and companion
+`.cpuprofile` files. Final transport validation: `cold_warm_final_transport.json`
+(both devices, fresh processes, ten completed observations, no page errors).
+These changes update profiling transport/documentation only; publication reuses
+the verified runtime assets and preserves their original build identity.
+
 # Warm edit execution — 2026-11-21
 
 Automatic execution no longer waits for a fixed 200 ms typing pause. Parsing

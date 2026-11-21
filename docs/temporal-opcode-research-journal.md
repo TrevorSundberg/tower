@@ -37018,3 +37018,47 @@ suite and actual reactor byte-service check PASS after relinking. The earlier
 not a current-source browser self-build claim. The metadata publication will
 preserve the other lane's current runtime and assets; the default runtime remains
 on upstream LLD. todo.txt still hashes to 045d1e620edf7c67b653fec19df850b370246b1d.
+## 2026-11-21: repeated cold/warm browser and compiler profiling
+
+Pulled main to 5ca3c3d before profiling; preserved the user's todo.txt edits.
+Froze Pages c4ae217 assets and checked each manifest hash. These runtime bytes
+come from local build 85c8a13 with equivalent retained public sources 2776318;
+UI c9521cf and manifest source 780276a. They do not include main's newer body
+frontier batching. No compiler source or deployment runtime bytes changed here.
+
+Five browser passes measured 50 warm actions per kind/device, including real
+Structs 20/200 value changes. A loose initial text locator matched two assignment
+lines; narrowed it before the complete pass set. The incomplete trial log is
+excluded. Mobile initially shared desktop's browser process; repeated five mobile
+cold starts in separate processes and corrected the transport for future runs.
+All 550 main observations and 330 serial/threaded paired observations completed
+with expected graph/fast/Wasm outputs and no page errors. Worker identities confirm
+parser and execution reuse. First project visits are reported separately from
+fully warmed edit/Execute measurements.
+
+Detailed results, scope and commands are in playground/PERFORMANCE.md. Desktop
+cold completion is 4.37 seconds median; warm Memory edits 232 ms and Structs
+constant edits 163 ms. Three alternating-order pairs isolate the existing portable
+serial capability selection: 2.29 versus 4.41 seconds cold and 112 versus 237 ms
+for warm Memory edits. This includes allocator/host/runtime differences and does
+not establish scaling on large parallel programs. Production threading stays on.
+
+Eight separate Node CPU captures use frozen examples/grammars/reactors. Three
+warm-only retained-parser/reset captures find 85 of 219 coordinator samples in
+heap-enter/leave host calls; child CPU is outside that capture. Stripped Wasm
+frames remain unnamed rather than borrowing names from stale local binaries.
+Separate LLVM timing/sampling gives 9.92 ms warm Functions compile (16 samples)
+and 3341 ms ECS entities compile (eight samples), with 2080 ms frontend and
+744 ms optimization medians. Existing deterministic object-byte checks pass.
+The CPU parser probe now retains its session like the browser. Updated existing
+profiling shims to load the frozen served recipe/examples and underscore unit
+names, expose warm-only inspector capture and record the reactor hash/browser
+version. No new project algorithm, fixture language or implementation tool added.
+
+Evidence: build/cold_warm_pass_*, cold_mobile_isolated_*, cold_warm_pair_*,
+cold_warm_cpu_*, cold_warm_warm_cpu_* and cold_warm_{llvm,entities}_cpu.json,
+with companion CPU profiles. Final fresh-process transport validation completed
+five observations on each device without errors (cold_warm_final_transport.json).
+Both changed scripts pass node --check. CPU sampling, larger-unit compiles and
+browser timing sets ran sequentially; no sanitizers or broad release rebuilds.
+Publication reuses verified assets, retaining their compiler/bootstrap/UI identity.

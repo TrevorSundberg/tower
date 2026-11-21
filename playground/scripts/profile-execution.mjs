@@ -2,6 +2,9 @@
 // Run without concurrent builds/tests; CPU sampling is a separate experiment.
 import {chromium, devices} from '@playwright/test';
 import {readFile, writeFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+import {resolve, join} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {selectDocument} from '../tests/browser/project-helpers.mjs';
 
 // Node inspector and ABI transport for isolated compiler CPU samples. Timing
@@ -10,29 +13,36 @@ if (process.env.TOWER_PROFILE_REACTOR) {
   const {Session} = await import('node:inspector');
   const {loadTower,runToEnd} = await import('../src/tower-host.mjs');
   const reactor = await readFile(process.env.TOWER_PROFILE_REACTOR);
+  const assets = resolve(process.env.TOWER_PROFILE_ASSETS ?? fileURLToPath(new URL('../dist/',import.meta.url)));
   const builtins = Object.fromEntries(await Promise.all(['bedrock','foundation','tower'].map(async name =>
-    [name,await readFile(new URL('../../scaffolding/'+name+'.tower',import.meta.url),'utf8')])));
-  const source = await readFile(new URL('../../scaffolding/examples/functions.tower',import.meta.url),'utf8');
+    [name,await readFile(join(assets,name+'.tower'),'utf8')])));
+  const sourceName = process.env.TOWER_PROFILE_SOURCE ?? 'functions.tower';
+  const source = await readFile(join(assets,sourceName),'utf8');
+  const samplingPhase = process.env.TOWER_PROFILE_CPU_PHASE ?? 'all';
+  if (!['all','warm'].includes(samplingPhase)) throw new Error('CPU phase must be all or warm');
   const session = new Session(); session.connect();
   const post = (method,params={}) => new Promise((resolve,reject) =>
     session.post(method,params,(error,result)=>error?reject(error):resolve(result)));
   const phases = [];
-  let tower;
+  let tower, parser;
   try {
-    await post('Profiler.enable'); await post('Profiler.start');
+    await post('Profiler.enable');
+    if (samplingPhase === 'all') await post('Profiler.start');
     let at = performance.now();
     tower = await loadTower(reactor,undefined,builtins.foundation,undefined,builtins.bedrock,{tower:builtins.tower});
     phases.push({phase:'initialize',ms:performance.now()-at});
     for (const phase of ['cold','warm']) {
+      if (samplingPhase === 'warm' && phase === 'warm') await post('Profiler.start');
       at = performance.now();
-      tower.configureModules({entry:'functions.tower',files:[{path:'functions.tower',text:source}],builtins,replaceBuiltins:true});
+      tower.configureModules({entry:sourceName,files:[{path:sourceName,text:source}],builtins,replaceBuiltins:true});
       phases.push({phase:phase+' configure',ms:performance.now()-at});
       at = performance.now();
-      const parser = tower.create(source), parsed = runToEnd(tower,parser);
+      if (parser) tower.reset(parser,source);
+      else parser = tower.create(source);
+      const parsed = runToEnd(tower,parser);
       phases.push({phase:phase+' parse',ms:performance.now()-at,status:parsed.end.status});
       at = performance.now(); tower.inspect(parser);
       phases.push({phase:phase+' inspect',ms:performance.now()-at});
-      tower.destroy(parser);
       at = performance.now(); const execution = tower.compile(source);
       phases.push({phase:phase+' compile',ms:performance.now()-at});
       at = performance.now(); tower.foundation(execution);
@@ -44,24 +54,32 @@ if (process.env.TOWER_PROFILE_REACTOR) {
     const {profile} = await post('Profiler.stop');
     const destination = process.argv[2] || '../build/execution-cpu.json';
     await writeFile(destination+'.cpuprofile',JSON.stringify(profile));
-    await writeFile(destination,JSON.stringify({reactor:process.env.TOWER_PROFILE_REACTOR,phases,sampling:true},null,2)+'\n');
+    await writeFile(destination,JSON.stringify({reactor:process.env.TOWER_PROFILE_REACTOR,
+      reactorHash:createHash('sha256').update(reactor).digest('hex'),assets,sourceName,phases,sampling:true,samplingPhase,
+      measurement:'Retained parser reset; compile follows parsing in the same instance. Threaded profiles sample the coordinator only.'},null,2)+'\n');
     console.log(JSON.stringify(phases,null,2));
-  } finally {tower?.close(); session.disconnect();}
+  } finally {if (parser) tower.destroy(parser); tower?.close(); session.disconnect();}
   process.exit();
 }
 
 const url = process.env.TOWER_PROFILE_URL || 'http://127.0.0.1:4173/';
 const destination = process.argv[2] || '../build/execution-profile.json';
-const source = await readFile(new URL('../../scaffolding/examples/functions.tower', import.meta.url), 'utf8');
+const source = await fetch(new URL('functions.tower',url)).then(response=>{
+  if (!response.ok) throw new Error('Cannot load the served profiling workload');
+  return response.text();
+});
 const timeout = Number(process.env.TOWER_PROFILE_TIMEOUT ?? 180000);
 const repeats = Number(process.env.TOWER_PROFILE_REPEATS ?? 3);
 const report = {url, at:new Date().toISOString(), units:'milliseconds', profiles:[],
   measurement:'Browser action to DOM result; frame markers are animation callbacks, not physical display latency.'};
 report.manifest = await fetch(new URL('deployment-manifest.json',url)).then(response=>response.json());
-const browser = await chromium.launch();
+let browser;
 try {
   for (const [name, options] of [['desktop',{viewport:{width:1440,height:1000}}], ['mobile',devices['Pixel 7']]]) {
     if (process.env.TOWER_PROFILE_DEVICE && name !== process.env.TOWER_PROFILE_DEVICE) continue;
+    // A new context alone can inherit process-level Wasm compilation caches.
+    browser = await chromium.launch();
+    report.browserVersion = browser.version();
     const context = await browser.newContext(options), page = await context.newPage();
     page.setDefaultTimeout(timeout);
     const errors = [];
@@ -158,19 +176,30 @@ try {
       await editor.press('ControlOrMeta+End');
       await start('edit','5\n84\n42\n'); await page.keyboard.insertText('\n// latency'); await finish();
     }
+    await start('project','42\n22\n7\n',{file:'structs.tower'});
+    await selectDocument(page,'structs.tower'); await finish();
+    for (let i=0;i<repeats;i++) {
+      await editor.press('ControlOrMeta+Home');
+      await page.locator('#editor .cm-line').filter({hasText:/^\s*pair\.first = (20|200);$/}).click();
+      await editor.press('End'); await editor.press('ArrowLeft');
+      await start('value-edit',i % 2 ? '42\n22\n7\n' : '222\n22\n7\n',{file:'structs.tower'});
+      if (i % 2) await editor.press('Backspace'); else await page.keyboard.insertText('0');
+      await finish();
+    }
     await page.locator('#auto-execute').uncheck();
     for (let i=0;i<repeats;i++) {
       await editor.press('ControlOrMeta+End');
-      await start('typing'); await page.keyboard.insertText(' '); await finish();
+      await start('typing',undefined,{file:'structs.tower'}); await page.keyboard.insertText(' '); await finish();
     }
     const measured = await page.evaluate(() => ({...window.__performanceProbe,
       isolated:crossOriginIsolated, resources:performance.getEntriesByType('resource').map(r=>r.toJSON()),
       measures:performance.getEntriesByType('measure').map(r=>r.toJSON())}));
     report.profiles.push({name,...measured,errors});
     await context.close();
+    await browser.close(); browser = undefined;
     await writeFile(destination, JSON.stringify(report,null,2)+'\n');
   }
 } finally {
   await writeFile(destination, JSON.stringify(report,null,2)+'\n');
-  await browser.close();
+  await browser?.close();
 }
