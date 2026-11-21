@@ -33893,3 +33893,27 @@ when both native and worker-test flags are set. Browser pool/overlap tests retai
 their separate Tower reactor. This avoids compiling and shipping unused native test
 code; it does not disable their native coverage or claim the native oversized test
 unit has been repaired. todo.txt remains byte-identical.
+
+Publication rebase pulled f0cac4f, including library-capable fixed bindings and
+cycle-aware module initialization, plus editor/tooling work. Preserved both journal
+histories and integrated initializer removal with the worker publication pass:
+workers collect successful lowered ranges, compute the removed declaration closure,
+and prepare compacted block/local indexes privately. The coordinator transfers only
+changed vectors after joins and updates surviving local indices. Runtime effects
+and rejected candidates remain. Function entities themselves participate so their
+storage indexes are compacted too. This retains upstream library/cyclic binding
+behavior without reinstating serial whole-tree scans. The new public bootstrap is
+6d064a5852535255184b0096f33d22060b040499bed69f188d04272fb0cd9c84;
+a fresh 53-step native successor build succeeds in query-proof-rebased-clean.log.
+The earlier import-cycle/library initialization limitation is superseded by these
+upstream features; arbitrary values in type arguments remain a separate limitation.
+The focused merged suite now includes upstream library and import-cycle cases.
+
+The rebased production successor and both focused native suites pass, including
+upstream library constants/import cycles: query-proof-rebased-clean.log and
+query-proof-rebased-focused.log. Source push was rejected because another writer
+advanced main during validation; no force push was attempted. Rebase/validation
+continues below. Browser artifacts have not yet been rebuilt or published for this
+checkpoint. The latest upstream journal also reports an external Windows-side
+publication lock for the native-retirement release; no ownership of that lock or
+completion of that deployment is assumed here.
