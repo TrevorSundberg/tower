@@ -23134,3 +23134,11 @@ paired median deltas -10.51%, -2.37%, -0.99%, with 5/4/6 slower pairs of 12.
 This noisy warm-request trial eliminates the observed fixed overhead; it is not
 an across-platform throughput guarantee. Reports: llvm-worker-benchmark.json and
 llvm-worker-pinned-benchmark.json. Sanitizer/broad formatter sweeps remain skipped.
+
+Native focused checks for the backend retirement also passed: tower-backend-tests
+reported its Tower API checks passed; anchored frontend/driver CTest passed 2/2
+in 16.07s. After pulling agent 1's retained-revision milestone, both test-enabled
+browser backends again passed backend API and source ownership fixtures three
+times. Changes to the fixture's flag spellings now use named Tower constants.
+Shared deployment includes the agents' separately pushed, validated milestones;
+publication remains pending until final combined build and hosted checks below.
