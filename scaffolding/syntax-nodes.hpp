@@ -49,6 +49,5 @@ extern "C" TowerNode* syntax_component_type();
 extern "C" SyntaxNode* syntax_get(TowerNode* node);
 extern "C" SyntaxNode* syntax_component_attach(TowerNode* node, SyntaxKind kind);
 SyntaxNode& syntax_node(TowerNode* node);
-SyntaxNode& syntax_attach(TowerNode* node, SyntaxKind kind);
 extern "C" bool syntax_equal(TowerNode* a, TowerNode* b, bool locations = false);
 extern "C" const char* syntax_kind_name(SyntaxKind kind);
