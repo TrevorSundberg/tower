@@ -38519,3 +38519,33 @@ persistence checks. Evidence: build/functions-hosted-verification.log. Added the
 user's type-module/Foundation-before-vectors priority to AGENTS.md as ongoing
 guidance. This receipt/guidance update reuses the verified assets and retains
 their build-source identity; it does not implement the pending type migration.
+
+### 2026-11-21: proposed relationship between attributes and type protocols
+
+User asks whether attributes should express the common protocol for Tower-defined
+types. Recommendation under discussion: define the protocol as composable typed
+components on the existing type/operation entities, with ordinary Tower functions
+implementing construction, layout, literal conversion and supported operations.
+Attributes may attach those values and associate implementation functions; ordinary
+type-construction code must be able to produce the same components directly.
+This supports parameterized pointer/array/function/struct types without requiring
+generated annotation text. Both paths share identity, checking, provenance and
+compilable canonical Foundation rather than maintaining an attribute-only model.
+
+An integer definition can supply width/signedness and arithmetic implementations;
+pointer, aggregate and callable definitions supply their applicable capabilities.
+Avoid a mandatory table of every possible operation for every type. Distinguish
+metadata on a declaration/binding from metadata on its resulting type object:
+aliases must not silently acquire different arithmetic or layout. Resolve ordinary
+typed operations during compilation; a callback-based compiler protocol does not
+imply guest runtime dispatch on each arithmetic operation. Backend implementations
+must satisfy the operation's explicit semantics and target legality, not infer
+correctness merely from an attribute name or matching storage width. Staging uses
+the ordinary interpreter, with dependency queries and worker-owned output as before.
+
+The minimum primitive execution/representation contract remains explicit. Attributes
+do not remove bootstrapping requirements or make arbitrary annotations executable
+compiler extensions. Implement the smallest typed metadata/protocol mechanism needed
+for the standard-type migration, with attribute syntax over it where useful; this
+does not require finishing every proposed reflection/attribute feature first.
+This is a design proposal, not new syntax, a finalized API or implemented behavior.
