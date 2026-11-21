@@ -36822,3 +36822,13 @@ until that coverage is mapped; an absent caller alone is not grounds to discard
 a meaningful standalone validation entry point. Tracked Python remains 11 files,
 777 lines (down from 23 files and 1,989 lines); this milestone separately removes
 201 inline Python lines. Tracked owned C/C++ source remains zero.
+
+Publication receipt: source commits 41df88a and d20583c are pushed. Metadata-only
+Pages commit 16b39d0d3382ff7537de6201c95da3fc78906b9d directly follows c4ae217
+and changes only deployment-manifest.json. Pages run 44956135297 succeeds; the
+hosted manifest exactly matches the prepared SHA-256
+a4b2601ac03ec69c9fdbdde18eb7e7f14661b2f0426848da13182d6e62ad4907.
+Preserve runtime build source 85c8a138e098f2dd84706d3f9d6e7bbcfa592887, all 84
+asset records and the concurrent compiler/UI notes. The manifest explicitly
+records the post-rebase strict comparison limitation above; no runtime binary
+was rebuilt for this tooling publication.
