@@ -311,7 +311,23 @@ export fn entity_register(type: Entity*, size: usize, alignment: usize, lifecycl
     return true;
 }
 
+// Published membership only. This never reads a worker's mutable private
+// component list. Borrow under a view across dispatch; payload access still
+// requires the scheduler's declared permissions.
+export fn entity_component_published(owner: Entity*, type: Entity*): EntityComponent* {
+    if type == null || type.store != owner.store || type.stage != null { return null; }
+    var table = owner.table;
+    if table == null { return null; }
+    var column = entity_table_column(table, type.id);
+    if column == table.arity { return null; }
+    return table.columns[column * table.capacity + owner.table_row];
+}
+
 export fn entity_component_get(owner: Entity*, type: Entity*): EntityComponent* {
+    var published = entity_component_published(owner, type);
+    if published != null || (owner.stage == null && owner.table != null) { return published; }
+    // A stage can see its own additions before publication. Reclamation removes
+    // the row before invoking finalizers; keep their existing local lookup path.
     var i: usize = 0;
     loop {
         if i == owner.component_count {
