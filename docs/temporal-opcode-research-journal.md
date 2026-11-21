@@ -26919,3 +26919,90 @@ cancellation, ordered failure selection, and serial/two/four-worker determinism.
 Five focused formatter behavior tests pass; their unrelated full-repository sweep
 is excluded because the changed-file tree/idempotence audit already checked all
 51 files. The three final address/dereference cleanups pass that check again.
+
+Before the final source rebase, all 177 selected Node regressions passed and two
+successive complete browser compiler generations (two then four workers) produced
+byte-identical reactors with the deliberately edited semantic diagnostic verified.
+Logs: iteration-final-node.log and iteration-successor-generations.log. These
+results describe 9480641 before the following integration, not the final release.
+
+Final pull incorporated ba1884d's substantial shared-world worker and lazy
+compile-time/declaration query implementation. Git auto-maintenance delayed the
+rebase while packing prior generated assets; no history was discarded. Preserved
+its new staged body pipeline, layout kernels, query-state components, runtime
+contracts and worker admission. Resolved conflicts by moving the parameter-loop
+simplification to sem_function_body and retaining the new layout kernel rather
+than restoring its retired predecessor. That kernel now coordinates field/output
+indices, so its old conversion no longer applies: final adoption is 107 loops
+across 51 files (the earlier 108 count describes the pre-rebase
+pass). Preserved upstream's foreach admission guard: implicit protocol generation
+must run on the structural coordinator, and generated item state uses
+sem_declaration_state on the existing ECS query component. This is explicit
+integration with the shared graph, not a claim that protocol instantiation is
+already parallel. New shared-world 1/2/4/8 worker tests cover the combined path.
+A previously empty /cache/iteration-ecs-clean builds the merged source through all
+55 steps with the published bcc76755 bootstrap and no private override. Rebuilt
+portable, threaded, LLVM and cross reactors; final tests/publication follow.
+
+Post-rebase integration found and corrected three independent regressions. The
+native compile-only backend/frontend/request targets removed the driver interpreter
+but did not link the new ordinary invocation evaluation unit; explicitly link
+`tower-compiler-evaluation` there. The browser project recipe omitted
+`tests/interpreter_invocation.tower`, newly imported by ComposeInterpreter; ship
+that source alongside parser_integration so user-rebuilt successors are complete.
+The early ECS function-declaration pass checked duplicate names before validating
+required captures, producing `Missing or duplicate function ''` for an edited
+CoreFunction grammar. Validate name/type/body before attaching Foundation state;
+the existing malformed-rule regression retains its precise diagnostic assertion.
+
+The first merged native frontend/storage runs aborted in allocation-count checks.
+GDB localized the fixtures; temporary Tower logging narrowed the failures to
+baseline/session cleanup. Repeated identical runs failed at different fixtures,
+including one storage pass and a frontend run with buffers 15 -> 15 before a later
+failure. The legacy instrumented allocator explicitly owns unsynchronized counters
+and failure position, but the new native LR workers now called it concurrently.
+Fault-injection executables now link Tower serial-transport wrappers; production
+and dedicated real-overlap executables retain native transport and the ordinary
+allocator. This preserves deterministic allocation-failure schedules, not a claim
+that a serial test validates worker races. Temporary logging is removed. Reproduce
+with the default bootstrap in /cache/iteration-ecs-clean, configure backend,
+execution, driver, storage and work tests, build, then ctest --output-on-failure.
+Logs include iteration-ecs-native-fixed.log and iteration-storage-probe.log.
+
+Before these focused fixes, merged feature/compile-time/invocation/shared-worker
+checks passed 40/40; whole-unit workers passed 7/7 and desktop/mobile threading and
+portable-fallback browser checks passed 4/4. The broader 164-test run had exactly
+the malformed-function diagnostic failure described above. Rebuilding all reactors
+and repeating affected checks and complete successor generations follows.
+
+A further pull incorporates 58a0aaf's dependency-closure packaging fix. It replaces
+our temporary two-fixture list with the compiler's actual depfiles and also covers
+semantic_world; retain that upstream implementation and repack before successor
+validation. No compiler implementation changed in this second rebase. All six
+native suites now pass (122.50 s), including real native overlap, and backend API
+checks pass. Three repeated frontend/storage runs also pass with deterministic
+fault injection. The restored uninstrumented test source is rebuilt separately
+because copying its backup preserved an old timestamp; no debug logging is shipped.
+
+Final merged validation passes 207/207 selected Node regressions (213.70 s),
+including the unchanged malformed-function test, expressions, control flow,
+imports, borrowed iteration, exact generic inference, compile-time evaluation,
+Foundation round trips and LLVM execution. Shared-world worker checks pass 3/3
+with real four-thread overlap, trap cancellation and canonical determinism at
+1/2/4/8 workers. Desktop/mobile isolation and portable fallback pass 4/4 (15.7 s).
+After dependency-closure repackaging, two complete browser compiler generations
+(two then four unit workers) pass edited-diagnostic verification and have identical
+reactor bytes: parser 998266, LLVM 52254002, cross 63811443 bytes. Evidence:
+iteration-ecs-regression-fixed.log, iteration-ecs-shared-fixed.log,
+iteration-ecs-browser-final.log and iteration-ecs-generations-fixed.log. The
+clean restored frontend test source also passes after recompilation. No new C++
+implementation or Foundation/Bedrock grammar changes are part of this milestone.
+
+Final local release verification matches all 77 assets and passes full desktop and
+mobile flows: backend agreement, native builds/downloads, editable grammar,
+completion, project imports, output formatting and target selection. Saved report
+as build/iteration-local-report.json. Last pull includes 748d981 and its preceding
+journal updates plus the same evaluation-library fix already tested here; deduplicate
+that fix and preserve all journal entries. No additional compiler/runtime source
+changed in this final rebase. Source and Pages publication follow through normal
+fast-forward pushes, with hosted hash and browser verification required.

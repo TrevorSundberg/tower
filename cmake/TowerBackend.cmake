@@ -120,6 +120,8 @@ function(tower_backend_integrate)
       list(REMOVE_ITEM test_sources "${CMAKE_CURRENT_BINARY_DIR}/tower-driver.o")
       get_target_property(test_libraries towerc LINK_LIBRARIES)
       list(REMOVE_ITEM test_libraries tower-compiler-interpreter)
+      # Compile-only tests omit the driver-owned interpreter callbacks, but
+      # semantic staging still needs the ordinary invocation interpreter.
       tower_compiler_evaluation()
       list(APPEND test_libraries tower-compiler-evaluation)
       add_executable(tower-backend-tests ${test_sources} "${test_object}")

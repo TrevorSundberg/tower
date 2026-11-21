@@ -212,6 +212,7 @@ Validation and publication details are recorded in the ongoing project journal.
 Published inference removed 809 repeated type arguments from 92 production Tower
 files. Explicit generic regression fixtures still exercise the original spelling.
 Both call forms use the same exact specialization entities and ordinary calls.
+The iteration pass removes two further nested-vector arguments, for 811 total.
 
 The iteration audit reviewed 114 zero-based, index-only vector traversal shapes
 across production Tower code. It selected 108 loops in 51 files, including parser,
@@ -229,3 +230,9 @@ parallel arrays and nonzero bounds) remain outside this mechanical candidate set
 This is a source audit, not proof of arbitrary alias safety or a speed claim.
 The migration follows publication of the validated iteration bootstrap; validation
 and final adoption counts are recorded in the journal.
+
+Rebasing onto the new ECS query/worker pipeline preserves 107 conversions across
+the same 51 files. The remaining selected loop was replaced upstream by a layout
+kernel that coordinates field/output indices, so it stays counted. Parameter
+traversal now belongs to the new body query; implicit foreach protocol construction
+uses its structural coordinator path and generated locals use ECS declaration state.

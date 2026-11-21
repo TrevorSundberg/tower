@@ -23,6 +23,8 @@ import .library.vector;
 
 fn sem_function_declare(c: SemanticContext*, n: void*, name: u8*): void {
     var external = sem_is(n, "CoreExternal");
+    if !sem_shape(c, n, "name") || !sem_shape(c, n, "type") { return; }
+    if !external && !sem_shape(c, n, "body") { return; }
     var function_node: FoundationNode* = sem_node(c, n, KFunction());
     if name[0] == 0 {
         var step15 = sem_member(n, "name");

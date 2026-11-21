@@ -147,6 +147,9 @@ Do NOT modify todo.txt
   diagnostics must be deterministic across worker counts. Exercise real overlap,
   dependency failures/cycles, cancellation and lifetime cleanup; queue width alone
   is not proof of threading. Measure useful batch sizes before claiming speedups.
+- Keep allocation-failure injection deterministic: the legacy single-owner test
+  allocator requires the serial test transport. Exercise real worker overlap with
+  the production allocator or explicitly synchronized/per-worker instrumentation.
 
 ## Compiler direction
 

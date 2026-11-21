@@ -58,3 +58,9 @@ Compilation scratch and state belong to the existing ECS compilation context.
 Independent units use CompilerWork's isolated workers; no mutable inference or
 iterator state is shared across them. Deterministic serial/2/4-worker object tests
 and runtime/interpreter/backend checks cover the same Tower fixture.
+Within a compilation world, implicit protocol specialization currently requires
+the structural coordinator. Body-worker admission recognizes `TowerForeach` and
+keeps those bodies off pinned worker stages until protocol construction supports
+dependency continuations. Generated item declarations use the ordinary ECS-backed
+declaration query state. Shared-world tests compare iteration and staging at
+1/2/4/8 workers; this does not make runtime foreach parallel.
