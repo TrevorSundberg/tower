@@ -25557,3 +25557,16 @@ commands/results are agent_2_lr_analysis.gdb and agent-2-lr-analysis-gdb-values.
 The analysis migration will need an independently verified legacy oracle plus
 explicit tests of current conflict selection/precedence. It is not part of this
 validated grammar retirement and no old-analysis pass is claimed.
+
+Upstream inference integration: preserved eea0037 and its already-published
+bootstrap257654461fa38f9febb0a56492ba3999713bab5f458dfbb5f4bf6d310232bb3a.
+Read the new AGENTS rule and converted11eligible vector calls in the new grammar
+oracle to inferred arguments. A fresh empty agent-2-lr-inference-successor cache
+built through the documented installer with TOWER_BOOTSTRAP_COMPILER unset.
+Native6/6 passed in21.38s plus backend API. Native/WASI grammar entries passed;
+both parser aggregates linked. The actual freshly built towerc compiled the
+current grammar fixture to a native object byte-identical to the bootstrap
+object (cmp0). Updated both focused CMake caches to the documented new bootstrap,
+cleared temporary project includes, and repeated the relevant checks. Logs:
+agent-2-lr-inference-*, agent-2-lr-actual-successor.log. This remains a pinned
+Linux development bootstrap; no portable compiler release is claimed.
