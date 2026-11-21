@@ -11,7 +11,7 @@
                    "capabilities.json":  "beb929d7896b760e4a190875af67a895bc6599978a1566614dc7f39df7277bb2",
                    "collections.tower":  "f6e2bceb516d9ff9f073aa5504827db60f55d113a2389e9a0e2c17a25d26aef7",
                    "compiler/imports-tower-18.txt.gz":  "76cbfb102617244559e18489b218e92cee8b70360363b1382f7f269e7fb39f6c",
-                   "compiler/project.json":  "2dd107989b4f7a7c153c676d4eaf26ebcc54d17d8a5a50bc04107a426ed60639",
+                   "compiler/project.json":  "62d0050b242db783343b0d43224288578737469e7dd65560f31ee12d76522d29",
                    "compiler/support-cross-0.a.gz":  "b6ca52204af5e700744b0ef702e40f17985d42f6d5ef72fa1a4e56319adf9a69",
                    "compiler/support-cross-1.a.gz":  "afe90514b774538211fa28740fe487d971a4adb20d41d2ffea6107290cb50191",
                    "compiler/support-cross-2.a.gz":  "a979a82a5b94f59888ca0775cd6a9bec82ccbee75d538aac1b6002bfd5800f58",
@@ -69,20 +69,15 @@
                    "targets/x86_64-unknown-linux-gnu-runtime.o":  "dd9017a54b2e683f35ed8289eebf6d13175beddd9020ddbdfba3c4933e5c847b",
                    "templates.tower":  "2045b87e45eda35945fea88cf70b904d8f695c93e36eea08aa0a14b4354682dc",
                    "tokens.tower":  "594b7d7efd13e3568819e6830e4fda1651f102ee9f2a633339d092f2c4721774",
-                   "tower-cross.wasm.gz":  "65c944531158f194ad4eec0b5d8111a0faa74a204852650c029ebb3064c38d52",
-                   "tower-llvm.wasm":  "bae0381689db2d04568e2db65ea7c75644307a3b8b5fe482672bbe14037da532",
-                   "tower-llvm.wasm.gz":  "4491fc5ec6ed2ed40f97670572f386e70c0d7110ce92892f52ddcd293064db17",
-                   "tower-threads.wasm":  "c349256b9a0d372224b69171f895061011f12269325ae358c45be0dd34bce9ea",
+                   "tower-cross.wasm.gz":  "b76fa2fe7b6d8fe518f87c59dda32d81c5806c95ac6f10eeb522977826cf9a98",
+                   "tower-llvm.wasm":  "01ead57af310c40cc017a99b8e269fa5f075fd7e77135ebd7d50694a208278ff",
+                   "tower-llvm.wasm.gz":  "eb41baa99298a8565bc82cb625724be8a06ca3a8926ca14be0dfc18b44d61bde",
+                   "tower-threads.wasm":  "e0038c4a88db16624d2651683711510e7788ff2ad5406c5946ae7d7afdb36278",
                    "tower.tower":  "c2fe8dfb51afa7a846e9633e91e4ac36831d25abeebd098b62edd66109a97f99",
-                   "tower.wasm":  "8ce1ed1f3dbd5ae7f4f7d3c49aa5b8a8c5efc7034b508a266c4e7c5fbee17498",
+                   "tower.wasm":  "4e9c0458a598a10c5ca065aafb8d957af5aaf9f80adf8a5cbc7cb616d3185312",
                    "worker.js":  "39213347695a05edc08714b411230ae26f92e38f84858cda39b22b43bae8474b",
                    "worker.js.map":  "37af2546e2780f6a9cc2a510e06d31d6dd8a006705dc8bdfcdb9d0567bfbe296"
                },
-    "buildSourceCommit":  "92da0a83331167a604d23b1c5e2db334dcf36c2c",
-    "sourceCommit":  "1a4fcf324fed301aef958625d5e30a6987eaf791",
-    "previousDeployment":  "3682ded02f438c0c6a96897d01876be3b5653842",
-    "scope":  "Integrated Tower-only compiler, shared entity lifecycle, struct values and known/cyclic bindings; zero owned C/C++ source",
-    "buildNote":  "Runtime built and verified at 92da0a8: Tower-only compiler, fd536 bootstrap, identical successor, native/Docker/browser checks. Later source and documentation checkpoints are preserved in sourceCommit and metadata; subsequent inference changes are not claimed to be in these frozen runtime bytes.",
     "simplificationAudit":  {
                                 "sourceCommit":  "f618cbb118b21721a137bdf04006599f02b0bb01",
                                 "baseline":  "6fcad397a10797b879011755a838e8a9c916779f",
@@ -111,5 +106,10 @@
                                  "sourceCommit":  "1a4fcf324fed301aef958625d5e30a6987eaf791",
                                  "report":  "docs/temporal-opcode-research-journal.md",
                                  "existingTodoContentPreserved":  true
-                             }
+                             },
+    "previousDeployment":  "24daf70e46f049a82c40e7eda0176baf2272ad34",
+    "buildNote":  "Runtime rebuilt at 6443f6d with the latest e886 Tower-only bootstrap; preserves complete source checkpoint and audit metadata. Native default successor and Docker CLI verified; browser publication validates these exact assets.",
+    "buildSourceCommit":  "6443f6d20499baa9847e4c19782b89db4e9876a7",
+    "sourceCommit":  "6443f6d20499baa9847e4c19782b89db4e9876a7",
+    "scope":  "Tower-only compiler and shared entity lifecycle, with bounded relocation-independent inferred values"
 }
