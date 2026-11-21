@@ -37888,3 +37888,24 @@ sweep is used. Remove 193 Python lines across the three scripts: five tracked
 Python files/401 lines remain, down 1,588 lines (79.8%) from the 1,989 baseline.
 Next audit the four measurement scripts and live compiler-project packager;
 prefer shared existing capabilities or removing steps before translation.
+
+Final rebase integrates linker performance changes through 8c05a96; the tooling
+implementation is 0f61bb1. Clone that commit into /cache/c_validation_checkout
+and use the documented default build-native.sh with
+TOWER_NATIVE_BUILD=/cache/c_validation_native, no private bootstrap override and
+Python unavailable. All 54 native plus three driver steps pass. The successor
+still matches the public 0d752e7 executable byte-for-byte. Run the actual optional
+CTest registrations: tower-driver-c-backend passes in 73.26 seconds (416 checks),
+tower-driver-c-profiles in 12.75 seconds (96 checks plus layout rejections), and
+the ordinary tower-driver test in 10.07 seconds. Logs/artifacts remain under
+/cache/c_validation_native/Testing and its per-test directories. Saved-download
+and path/failure evidence above is unaffected; no browser runtime rebuild needed.
+
+The next-step audit confirms three measurement scripts have current README or
+Foundation-documentation callers; benchmark-c.py preserves a distinct measured
+C-versus-LLVM workload recorded in this journal. The plain CLI --timings flag
+supplies phase data but not paired ordering, repeated samples or output equality.
+Prefer one shared Tower measurement runner with workload presets over four
+separate translations; keep reproducible measurement behavior while reducing
+duplicate command/capture/statistics handling. The live compiler-project packager
+still feeds browser self-build recipes and cannot simply be removed.
