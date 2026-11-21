@@ -1,4 +1,4 @@
-# Functional validation tests stay Tower; retain the existing independent oracle.
+# Functional validation tests and the independent reference both run in Tower.
 get_property(validation_triple GLOBAL PROPERTY TOWER_COMPILER_TRIPLE)
 set(validation_entry main)
 set(validation_bedrock _Z18syntax_set_bedrockB5cxx11PKc)
@@ -29,6 +29,6 @@ add_executable(tower-validation-tests "${validation-main_OBJECT}" "${validation_
 target_compile_features(tower-validation-tests PRIVATE cxx_std_20)
 target_compile_options(tower-validation-tests PRIVATE -fno-exceptions)
 target_link_libraries(tower-validation-tests PRIVATE tower-compiler-parser-nodes tower-compiler-semantics
-  tower-compiler-entities tower-compiler-utilities tower-compiler-memory tower-syntax-validation-reference)
+  tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
 add_test(NAME tower-validation COMMAND tower-validation-tests)
 set_tests_properties(tower-validation PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")

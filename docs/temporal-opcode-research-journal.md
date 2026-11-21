@@ -27629,3 +27629,35 @@ hosted verification has matched all77 assets; browser workflows are pending.
 Next semantic slice: actual resolution of ordinary named/pointer declaration
 types and function signatures in dependency-ready workers, retaining structural
 type creation and unresolved expression/type applications on the coordinator.
+### 2026-11-20 - Agent 3: independent grammar-validation reference in Tower
+
+Translated the frozen syntax-validation-seed.cpp (SHA-256
+094f9e736b6ab469a30630a7effd81ddb9b706f9af6d85df6d870a4168eb8850)
+into validation_oracle.tower. The reference preserves lexical definition order,
+first pending dependency selection, breadth-first propagation, root activation
+order, exact error bytes/offsets, declaration capture policy and the original
+nullable/productive fixed point. It borrows existing shared entities and owns
+only temporary sorted rule/alternative views. It scans dependencies directly
+rather than calling production validation or reusing its adjacency index.
+Literal policy uses the independently proven Tower reader oracle. Duplicate
+input views merge their alternatives and output remains in caller order, as in
+the frozen native wrapper.
+
+A temporary three-way harness compared native reference, translated reference
+and production on all fixed fixtures,1500 captures,600 seeded dependency graphs,
+exact pending entity identities and every error offset. Native CTest passed0.14s
+and WASI SDK34 executed successfully. Preserved the temporary proof harness at
+C:/Sandbox/build/codex-agents/agent_3_validation_oracle_proof.tower. Only then
+removed the155-line native seed and its CMake archive/renames/dependencies.
+Permanent native CTest passes0.12s and WASI execution passes after deletion;
+both parser aggregates link with the Tower reference. Production allocation
+failure sweeps and exact node/buffer cleanup still run unchanged.
+
+Initial compilation rejected the grammar keyword token as a local name. The
+rename accidentally changed two diagnostic string literals; the three-way
+comparison aborted as intended. Restored the frozen wording and reran both
+platforms successfully. The standalone test uses the already-published25765446
+inference bootstrap; no new compiler/bootstrap feature was introduced. No
+sanitizer or broad formatter sweep. This follow-up is private during the
+Agent1 combined release of0f63985 and the ready Agent2 LR batch; no deployment
+claim is made for it yet.

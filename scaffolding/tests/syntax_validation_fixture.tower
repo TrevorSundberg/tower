@@ -6,6 +6,7 @@ import .library.bytes_types;
 import .library.bytes_interface;
 import storage_api;
 import utility_checks;
+import validation_oracle;
 
 extern fn syntax_native_bedrock(): void*;
 extern fn syntax_component_type(): void*;
@@ -13,7 +14,6 @@ extern fn syntax_component_attach(node: void*, kind: u32): SyntaxNode*;
 extern fn tower_node_add_ref(node: void*): usize;
 extern fn tower_node_attach(child: void*, parent: void*): void;
 extern fn syntax_validate(rules: SyntaxRuleView*, count: usize, tokens: void**, token_count: usize, kind: void*, error: ByteBuffer*, offset: usize*, pending: void**): bool;
-extern fn reference_syntax_validate(rules: SyntaxRuleView*, count: usize, tokens: void**, token_count: usize, kind: void*, error: ByteBuffer*, offset: usize*, pending: void**): bool;
 
 struct ValidationRule { name: vector(u8); alternatives: vector(void*); }
 struct ValidationFixture { rules: vector(ValidationRule*); tokens: vector(void*); }
@@ -126,8 +126,8 @@ fn validation_compare(f: ValidationFixture*, message: u8*, wanted_offset: usize)
     var ax: usize = 777777; var bx = ax;
     var buffers = tower_test_buffer_count(); var nodes = tower_node_get_allocated_count();
     var actual = syntax_validate(x.rules.data, x.rules.length, f.tokens.data, f.tokens.length, syntax_component_type(), &a, &ax, x.pending.data);
-    var reference = reference_syntax_validate(y.rules.data, y.rules.length, f.tokens.data, f.tokens.length, syntax_component_type(), &b, &bx, y.pending.data);
-    utility_check(actual == reference && a.length == b.length && utility_equal(a.data, b.data, a.length) && ax == bx, "Validation exact native result, message and offset");
+    var reference = validation_oracle(y.rules.data, y.rules.length, f.tokens.data, f.tokens.length, &b, &bx, y.pending.data);
+    utility_check(actual == reference && a.length == b.length && utility_equal(a.data, b.data, a.length) && ax == bx, "Validation exact independent reference result, message and offset");
     for (var index: usize = 0; index < x.pending.length; ++index) { utility_check(x.pending.data[index] == y.pending.data[index], "Validation exact pending term identity/order"); }
     if message is not null { utility_check(validation_message(&a, message) && actual == (a.length == 0), "Validation fixed expected diagnostic/result"); }
     if wanted_offset != ValidationNoOffset() { utility_check(ax == wanted_offset, "Validation fixed source offset"); }

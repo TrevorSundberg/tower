@@ -63,12 +63,18 @@ diagnostics, shared source provenance, canonical declaration output and allocati
 failures. Native CTest sets its working directory to the grammar resources;
 WASI uses `host-wasi.mjs`. The parser aggregate calls the same cases.
 
-`tower-validation-tests` checks grammar validation against the retained native
+`tower-validation-tests` checks grammar validation against the independent Tower
 oracle on Linux and WASI. It compares exact result/error/offset/pending-term
 identity and order, required declaration captures, nullable/productive rules,
 forward references, NUL-containing names, 1,500 captures, 600 seeded dependency
 graphs and allocation-failure cleanup. It uses the same grammar setup and runner
 conventions as `tower-reader-tests`.
+The reference was translated from the frozen native seed with SHA-256
+`094f9e736b6ab469a30630a7effd81ddb9b706f9af6d85df6d870a4168eb8850`.
+Native/Tower-reference/production three-way comparisons passed on both targets
+before removing the native seed; the permanent tests keep the independent
+reference comparison. Its sorted borrowed views and reference dependency scan
+do not reuse the production validator's indexes or checking policy.
 
 The isolated `cmake/TowerDriver.cmake` fragment adds CLI checks with
 `-DTOWER_DRIVER_TESTS=ON` to a native compiler configuration. Build `towerc` and

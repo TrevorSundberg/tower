@@ -132,5 +132,5 @@ export fn syntax_validation_tests(): void {
     var buffers = tower_test_buffer_count(); var nodes = tower_node_get_allocated_count();
     validation_dependency_tests(); validation_capture_tests(); validation_declaration_tests(); validation_large_capture_tests(); validation_random_tests();
     utility_check(tower_test_buffer_count() == buffers && tower_node_get_allocated_count() == nodes, "All validation fixtures release entities and buffers");
-    puts("Syntax validation: exact native diagnostics/pending terms, 1500 captures, 600 dependency graphs and allocation failures passed.");
+    puts("Syntax validation: exact independent Tower diagnostics/pending terms, 1500 captures, 600 dependency graphs and allocation failures passed.");
 }

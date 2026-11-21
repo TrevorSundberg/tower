@@ -1,0 +1,226 @@
+import tower;
+import .compiler.syntax_types;
+import .compiler.syntax_view;
+import .library.vector;
+import .library.bytes_types;
+import .library.bytes_interface;
+import storage_api;
+import utility_checks;
+import reader_oracle;
+
+// Independent translation of syntax-validation-seed.cpp. These records borrow
+// the shared grammar nodes; only the temporary reference analysis lives here.
+struct ValidationOracleRule {
+    name: u8*; length: usize; alternatives: vector(void*);
+    pending: void*; nullable: bool; productive: bool;
+}
+struct ValidationOracle {
+    rules: vector(ValidationOracleRule*); tokens: void**; token_count: usize;
+    error: ByteBuffer*; offset: usize*;
+}
+const ValidationOracleNoIndex: usize = ~convert(usize, 0);
+fn validation_oracle_equal(a: u8*, an: usize, b: u8*, bn: usize): bool {
+    return an == bn && utility_equal(a, b, an);
+}
+fn validation_oracle_order(a: u8*, an: usize, b: u8*, bn: usize): i32 {
+    for (var index: usize = 0; index < an && index < bn; ++index) {
+        if a[index] < b[index] { return -1; } if a[index] > b[index] { return 1; }
+    }
+    return an < bn ? -1 : (an > bn ? 1 : 0);
+}
+fn validation_oracle_find(v: ValidationOracle*, name: u8*, length: usize): ValidationOracleRule* {
+    for (var index: usize = 0; index < v.rules.length; ++index) {
+        var rule = v.rules.data[index]; if validation_oracle_equal(rule.name, rule.length, name, length) { return rule; }
+    }
+    return null;
+}
+fn validation_oracle_token(v: ValidationOracle*, name: u8*, length: usize, include_skip: bool): bool {
+    for (var index: usize = 0; index < v.token_count; ++index) {
+        var terminal = syntax_get(v.tokens[index]);
+        if (include_skip || terminal.kind != convert(u32, SyntaxKind.Skip)) && validation_oracle_equal(terminal.name.data, terminal.name.length, name, length) { return true; }
+    }
+    return false;
+}
+fn validation_oracle_append(v: ValidationOracle*, text: u8*, length: usize): void {
+    utility_check(bytes_append(v.error, text, length), "Validation reference diagnostic allocation");
+}
+fn validation_oracle_text(v: ValidationOracle*, text: u8*): void { validation_oracle_append(v, text, strlen(text)); }
+fn validation_oracle_error(v: ValidationOracle*, prefix: u8*, text: u8*, length: usize): bool {
+    validation_oracle_text(v, prefix); validation_oracle_append(v, text, length); return false;
+}
+fn validation_oracle_offset(v: ValidationOracle*, offset: usize): void {
+    if v.offset is not null && offset != ValidationOracleNoIndex() { *v.offset = offset; }
+}
+fn validation_oracle_capture(sequence: SyntaxNode*, name: u8*): bool {
+    for (var index: usize = 0; index < sequence.items.length; ++index) {
+        var term = syntax_get(sequence.items.data[index]);
+        if validation_oracle_equal(term.capture.data, term.capture.length, name, strlen(name)) { return true; }
+    }
+    return false;
+}
+fn validation_oracle_declaration(v: ValidationOracle*, name: u8*, captures: u8**, count: usize, empty_allowed: bool, atom: bool): bool {
+    var rule = validation_oracle_find(v, name, strlen(name));
+    if rule is null { return validation_oracle_error(v, "Missing declaration rule: ", name, strlen(name)); }
+    for (var index: usize = 0; index < rule.alternatives.length; ++index) {
+        var sequence = syntax_get(rule.alternatives.data[index]); if empty_allowed && sequence.items.length == 0 { continue; }
+        for (var capture: usize = 0; capture < count; ++capture) {
+            if !validation_oracle_capture(sequence, captures[capture]) {
+                validation_oracle_offset(v, sequence.start); validation_oracle_text(v, "Declaration rule "); validation_oracle_text(v, name);
+                validation_oracle_text(v, " must preserve capture '"); validation_oracle_text(v, captures[capture]); validation_oracle_text(v, "'"); return false;
+            }
+        }
+        if atom && !validation_oracle_capture(sequence, "literal") && !validation_oracle_capture(sequence, "reference") && !validation_oracle_capture(sequence, "capture") && !validation_oracle_capture(sequence, "set") {
+            return validation_oracle_error(v, "GrammarAtom must capture a literal, reference or capture name", null, 0);
+        }
+    }
+    return true;
+}
+fn validation_oracle_declarations(v: ValidationOracle*): bool {
+    // std::map order from the frozen reference, including capture-list order.
+    var captures: u8*[4]; captures[0] = "sequence";
+    if !validation_oracle_declaration(v, "GrammarAlternatives", &captures[0], 1, false, false) { return false; }
+    if !validation_oracle_declaration(v, "GrammarAssignment", null, 0, false, false) || !validation_oracle_declaration(v, "GrammarAtom", null, 0, false, true) { return false; }
+    captures[0] = "name"; captures[1] = "op"; captures[2] = "alternatives"; captures[3] = "replacement";
+    if !validation_oracle_declaration(v, "GrammarDeclaration", &captures[0], 4, false, false) { return false; }
+    captures[0] = "body";
+    if !validation_oracle_declaration(v, "GrammarReplacement", &captures[0], 1, true, false) { return false; }
+    captures[0] = "previous"; captures[1] = "term";
+    if !validation_oracle_declaration(v, "GrammarSequence", &captures[0], 2, true, false) { return false; }
+    captures[0] = "name"; captures[1] = "pattern"; captures[2] = "style";
+    if !validation_oracle_declaration(v, "GrammarSkipDeclaration", &captures[0], 3, false, false) { return false; }
+    captures[0] = "kind";
+    if !validation_oracle_declaration(v, "GrammarStyle", &captures[0], 1, true, false) || !validation_oracle_declaration(v, "GrammarSuffix", null, 0, false, false) { return false; }
+    captures[0] = "atom"; captures[1] = "suffix";
+    if !validation_oracle_declaration(v, "GrammarTerm", &captures[0], 2, false, false) { return false; }
+    captures[0] = "name"; captures[1] = "pattern"; captures[2] = "style";
+    return validation_oracle_declaration(v, "GrammarTokenDeclaration", &captures[0], 3, false, false);
+}
+fn validation_oracle_pending(v: ValidationOracle*): void {
+    var queue: vector(ValidationOracleRule*); vector_init(&queue); defer vector_dispose(&queue);
+    for (var index: usize = 0; index < v.rules.length; ++index) {
+        var rule = v.rules.data[index];
+        for (var alternative: usize = 0; alternative < rule.alternatives.length; ++alternative) {
+            var sequence = syntax_get(rule.alternatives.data[alternative]);
+            for (var at: usize = 0; at < sequence.items.length; ++at) {
+                var entity = sequence.items.data[at]; var term = syntax_get(entity);
+                if term.literal || term.terminal_set || validation_oracle_token(v, term.text.data, term.text.length, false) { continue; }
+                if rule.pending is null && validation_oracle_find(v, term.text.data, term.text.length) is null {
+                    rule.pending = entity; utility_check(vector_push(&queue, rule), "Validation reference queue allocation");
+                }
+            }
+        }
+    }
+    for (var head: usize = 0; head < queue.length; ++head) {
+        var dependency = queue.data[head];
+        // Scan in reference dependent-insertion order instead of sharing the
+        // production adjacency index. First pending cause remains authoritative.
+        for (var index: usize = 0; index < v.rules.length; ++index) {
+            var rule = v.rules.data[index]; if rule.pending is not null { continue; }
+            for (var alternative: usize = 0; alternative < rule.alternatives.length; ++alternative) {
+                var sequence = syntax_get(rule.alternatives.data[alternative]);
+                for (var at: usize = 0; at < sequence.items.length; ++at) {
+                    var entity = sequence.items.data[at]; var term = syntax_get(entity);
+                    if term.literal || term.terminal_set || validation_oracle_token(v, term.text.data, term.text.length, false) { continue; }
+                    if rule.pending is null && validation_oracle_equal(term.text.data, term.text.length, dependency.name, dependency.length) {
+                        rule.pending = entity; utility_check(vector_push(&queue, rule), "Validation reference propagation allocation");
+                    }
+                }
+            }
+        }
+    }
+}
+fn validation_oracle_active(v: ValidationOracle*, name: u8*): bool {
+    var rule = validation_oracle_find(v, name, strlen(name)); if rule is null || rule.pending is null { return true; }
+    validation_oracle_text(v, "Cannot activate incomplete grammar: "); validation_oracle_text(v, name);
+    var missing: SyntaxNode* = null;
+    while rule is not null && rule.pending is not null {
+        missing = syntax_get(rule.pending); validation_oracle_offset(v, missing.start);
+        validation_oracle_text(v, " -> "); validation_oracle_append(v, missing.text.data, missing.text.length);
+        rule = validation_oracle_find(v, missing.text.data, missing.text.length);
+    }
+    validation_oracle_text(v, " (undefined rule '"); validation_oracle_append(v, missing.text.data, missing.text.length); validation_oracle_text(v, "')"); return false;
+}
+fn validation_oracle_run(v: ValidationOracle*): bool {
+    for (var index: usize = 0; index < v.rules.length; ++index) {
+        var rule = v.rules.data[index];
+        if validation_oracle_token(v, rule.name, rule.length, true) { return validation_oracle_error(v, "Name already defines a token or skip rule: ", rule.name, rule.length); }
+        for (var alternative: usize = 0; alternative < rule.alternatives.length; ++alternative) {
+            var sequence = syntax_get(rule.alternatives.data[alternative]);
+            for (var at: usize = 0; at < sequence.items.length; ++at) {
+                var term = syntax_get(sequence.items.data[at]);
+                if term.literal {
+                    var status = reader_oracle_literal(term.text.data, term.text.length);
+                    if status != 0 {
+                        validation_oracle_offset(v, term.start);
+                        if status == 1 { return validation_oracle_error(v, "Token literal is empty. Expected at least one character between the quotes.", null, 0); }
+                        return validation_oracle_error(v, "Unsupported token literal: ", term.text.data, term.text.length);
+                    }
+                }
+                if term.capture.length != 0 {
+                    for (var previous: usize = 0; previous < at; ++previous) {
+                        var prior = syntax_get(sequence.items.data[previous]);
+                        if validation_oracle_equal(term.capture.data, term.capture.length, prior.capture.data, prior.capture.length) { return validation_oracle_error(v, "Duplicate capture: ", term.capture.data, term.capture.length); }
+                    }
+                }
+            }
+        }
+    }
+    if !validation_oracle_declarations(v) { return false; }
+    validation_oracle_pending(v);
+    if !validation_oracle_active(v, "GrammarDeclaration") || !validation_oracle_active(v, "GrammarTokenDeclaration") || !validation_oracle_active(v, "GrammarSkipDeclaration") || !validation_oracle_active(v, "Statement") { return false; }
+    var changed = true;
+    while changed {
+        changed = false;
+        for (var index: usize = 0; index < v.rules.length; ++index) {
+            var rule = v.rules.data[index]; if rule.pending is not null { continue; }
+            for (var alternative: usize = 0; alternative < rule.alternatives.length; ++alternative) {
+                var sequence = syntax_get(rule.alternatives.data[alternative]); var nullable = true; var productive = true;
+                for (var at: usize = 0; at < sequence.items.length; ++at) {
+                    var term = syntax_get(sequence.items.data[at]); var optional = term.repetition == 42 || term.repetition == 63;
+                    var dependency = validation_oracle_find(v, term.text.data, term.text.length);
+                    nullable &&= optional || (!term.literal && !term.terminal_set && dependency is not null && dependency.nullable);
+                    productive &&= optional || term.literal || validation_oracle_token(v, term.text.data, term.text.length, false) || term.terminal_set || (dependency is not null && dependency.productive);
+                }
+                if nullable && !rule.nullable { rule.nullable = true; changed = true; }
+                if productive && !rule.productive { rule.productive = true; changed = true; }
+            }
+        }
+    }
+    var statement = validation_oracle_find(v, "Statement", 9);
+    if statement is not null && statement.nullable { return validation_oracle_error(v, "Statement must consume input", null, 0); }
+    for (var index: usize = 0; index < v.rules.length; ++index) {
+        var rule = v.rules.data[index]; if rule.pending is not null { continue; }
+        if !rule.productive { return validation_oracle_error(v, "Unproductive grammar rule: ", rule.name, rule.length); }
+        for (var alternative: usize = 0; alternative < rule.alternatives.length; ++alternative) {
+            var sequence = syntax_get(rule.alternatives.data[alternative]);
+            for (var at: usize = 0; at < sequence.items.length; ++at) {
+                var term = syntax_get(sequence.items.data[at]); var dependency = validation_oracle_find(v, term.text.data, term.text.length);
+                if (term.repetition == 42 || term.repetition == 43) && !term.literal && dependency is not null && dependency.nullable { return validation_oracle_error(v, "Cannot repeat nullable rule: ", term.text.data, term.text.length); }
+            }
+        }
+    }
+    return true;
+}
+fn validation_oracle_dispose(v: ValidationOracle*): void {
+    for (var index: usize = 0; index < v.rules.length; ++index) { var rule = v.rules.data[index]; vector_dispose(&rule.alternatives); free(rule); }
+    vector_dispose(&v.rules);
+}
+fn validation_oracle(rules: SyntaxRuleView*, count: usize, tokens: void**, token_count: usize, error: ByteBuffer*, offset: usize*, pending: void**): bool {
+    var value: ValidationOracle; fill(&value, 0, sizeof(ValidationOracle)); defer validation_oracle_dispose(&value);
+    value.tokens = tokens; value.token_count = token_count; value.error = error; value.offset = offset;
+    for (var index: usize = 0; index < count; ++index) {
+        pending[index] = null; var view = &rules[index]; var rule = validation_oracle_find(&value, view.name, view.name_length);
+        if rule is null {
+            rule = alloc(ValidationOracleRule, 1); utility_check(rule is not null, "Validation reference record allocation"); fill(rule, 0, sizeof(ValidationOracleRule));
+            rule.name = view.name; rule.length = view.name_length; var at: usize = 0;
+            while at < value.rules.length && validation_oracle_order(value.rules.data[at].name, value.rules.data[at].length, rule.name, rule.length) < 0 { ++at; }
+            utility_check(vector_reserve(&value.rules, value.rules.length + 1), "Validation reference sorted index allocation");
+            for (var shift = value.rules.length; shift > at; --shift) { value.rules.data[shift] = value.rules.data[shift - 1]; }
+            value.rules.data[at] = rule; ++value.rules.length;
+        }
+        for (var alternative: usize = 0; alternative < view.count; ++alternative) { utility_check(vector_push(&rule.alternatives, view.alternatives[alternative]), "Validation reference alternative view allocation"); }
+    }
+    var success = validation_oracle_run(&value);
+    for (var index: usize = 0; index < count; ++index) { pending[index] = validation_oracle_find(&value, rules[index].name, rules[index].name_length).pending; }
+    return success;
+}
