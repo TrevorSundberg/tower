@@ -23296,3 +23296,19 @@ original break/continue/return flag. It now removes that exit when cleanup canno
 fall through, using the same flow result as ordinary scope cleanup. Added loop
 and endless-for break/continue regressions; no runtime or Foundation change is
 needed. Rebuild and retest this correction before final packaging.
+
+Final native, browser parser and LLVM/cross builds completed after source
+formatting. The rebuilt flow probe now reaches its intended cleanup-stop trap,
+instead of failing missing-return checking. All four integrated native suites
+pass again (build/defer-final-integrated-tests.log).
+
+Final bootstrap archive
+4230a7c50d2df72c3c751b4e46413e30db857ea4824722d28b93f9d6041ae422
+is built from reachable combined revision 5358968, with complete resources,
+source hashes and no source patch. Its relocated install passes all eight
+for/operators/null-operators/defer graph/fast checks. A fresh default successor
+in /cache/defer-published-clean passes all 55 targets with the private bootstrap
+override unset (build/defer-published-clean.log, defer-published-relocated.log).
+This remains the documented Linux development bootstrap, not a portable release.
+The frozen-source native aggregate and final browser/deployment checks are still
+running at this checkpoint; final results follow below.
