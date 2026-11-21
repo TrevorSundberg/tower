@@ -23830,3 +23830,22 @@ manifest/hash plus desktop/mobile verification. No force-push or discard of
 unrelated working changes is part of the release. Hosted results are recorded
 in build/import-followup/verify-hosted-final.log and the deployment report after
 publication, rather than being asserted before they have run.
+
+### Import audit follow-up: retain the latest input and replacement ownership ports
+
+The final pull advanced through ba8aaca, including 0defe0f's Tower-owned syntax
+input leases and ba8aaca's replacement candidate/expansion indexes. Preserved
+these changes and upstream publication journal entries; only the append-only
+journal conflicted. A new default-bootstrap clean build passed all 55 targets
+in `/root/.cache/tower/import_followup_ba8aaca`; WASI rebuilt successfully and
+the native real-filesystem module tests and filename audit pass again.
+
+The explicit native parser-unit dependency check exposed three new legitimate
+dependencies from syntax_session_inputs.tower: compiler_world_store,
+compiler_world_component and entity_create. Added those exact symbols to the
+parser unit's allowlist and reran all five unit dependency checks. This retains
+the narrow audit instead of allowing every external symbol. Further focused
+parser/completion/diagnostic/import/project checks and the refreshed LLVM/cross
+package use `*-owners.log` in build/import-followup. The 100-test defer run and
+two-generation browser results above refer to the preceding integrated revision;
+the newer ownership paths receive their own affected checks before publication.
