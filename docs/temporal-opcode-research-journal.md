@@ -35131,3 +35131,29 @@ verification need reusable Tower capabilities). Continue all remaining Python
 packaging, verification, benchmark and test drivers before wider shell/CMake/JS
 migration. Native Windows/macOS packages and full archive-library coverage remain
 future work. No todo.txt edits, sanitizer or broad formatting sweep.
+
+Bootstrap-packager publication receipt: source `baff98d` pushed after a clean
+pull/rebase. Metadata-only Pages commit
+`093dd04b648d50819eea43234fed55f6d69a6319` directly descends from
+`0860c6939e7ce6c37feb35aa71fc98adb04e3326` and changes only
+`deployment-manifest.json`. It preserves runtime build source 5fdee25, its
+80-entry asset hash map, bootstrap pin, existing audits and notes. The earlier
+unavailable runtime source identifier recorded above is not the current runtime
+identity; the predecessor manifest now identifies the published 5fdee25 source.
+The existing authorized gh contents API published the update with the expected
+old blob SHA (the connector's write permission had previously returned 403).
+Pages action `44945348822` completed successfully. Hosted manifest bytes exactly
+match the prepared manifest, SHA-256
+`a6532dba212386d2854ce4cdd6c78dab479fb09d116585129440a7b5552e4d8c`.
+No identical runtime binaries were rebuilt for this metadata deployment.
+
+The next Python audit confirms `build-bootstrap.sh` directly invokes
+`bootstrap/install.py`; installation therefore needs a published Tower-built
+Linux installer executable to avoid a circular requirement to compile the tool
+before unpacking the compiler. The proposed next milestone adds verified JSON,
+gzip/DEFLATE and tar-reading capabilities, then publishes that installer with
+hashes/provenance and validates a fresh default Docker path. This is planned,
+not implemented. Nineteen tracked `.py` files are not the whole remaining Python
+surface: inline Python also remains in build-llvm.sh, test-bootstrap.sh and
+test-compiler-distribution.sh. Include those callers in the Python-first
+retirement audit; do not declare Python eliminated from file counts alone.
