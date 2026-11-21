@@ -1,0 +1,33 @@
+import tower;
+var failures:i32=0;
+fn check(ok:bool):void { if !ok { failures++; } }
+fn identity(T:type,value:T):T { return value; }
+fn pair(T:type,first:T,second:T):T { return first*10+second; }
+var explicit=identity(u64,20+1);
+var inferred=identity(explicit+1);
+var nested=identity(identity(u64,20+1));
+var annotation:decltype(identity(u64,20+1))=0;
+fn header(value:decltype(identity(u64,20+1))):decltype(identity(value)) { return value; }
+var effects:i32=0;
+fn bump():i32 { effects++; return effects; }
+var ignored:decltype(pair(identity(bump()),identity(bump())))=0;
+check(effects==0 && ignored==0);
+var ordered=pair(identity(bump()),identity(bump()));
+check(effects==2 && ordered==12);
+check(explicit==21 && inferred==22 && nested==21 && annotation==0 && header(42)==42);
+var constant=comptime(identity(u64,20+22));
+var nested_constant=comptime(comptime(20)+comptime(22));
+var skipped=comptime(false ? identity(comptime(1/0)) : 42);
+var skipped_logical=comptime(false && identity(comptime(1/0))==0);
+var selected=comptime(true ? identity(comptime(20+22)) : 0);
+var ignored_constant:decltype(comptime(identity(comptime(1/0))))=0;
+check(constant==42 && nested_constant==42 && skipped==42 && !skipped_logical && selected==42);
+check(ignored_constant==0);
+struct Record { value:decltype(later0); }
+var record:Record;
+fn read(T:type,value:T*):decltype(value.value) { return value.value; }
+var delayed:decltype(read(&record))=0;
+var later0:decltype(later1);
+var later1:u64=0;
+check(sizeof(decltype(delayed))==8);
+print(failures);

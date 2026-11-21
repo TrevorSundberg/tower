@@ -29357,3 +29357,86 @@ semantic cross-backend/round-trip storage/scheduler fixtures and default syntax.
 Command and complete TAP output: declaration-calls-regressions.log. Native
 8/8, backend API, object comparisons, two edited generations, capacity/editor
 checks and local deployment are all complete before the source publication.
+
+### 2026-11-21 — declaration continuations and lazy stage demand (in progress)
+
+The operator/ordinary-call checkpoint is committed and pushed as 4d58b83;
+publication verification is tracked below. Continue with prepared generic calls
+and inferred scalar comptime declarations, entirely in Tower. Every prepared
+signature now gets an explicit dependency/read claim, even when already ready
+for another consumer. After preparation, eligible syntax yields its current
+receipt and is readmitted to the worker pool. Type deduction/interning itself
+still belongs to the coordinator; this does not claim all structural work is
+threaded. Publish every declaration stage before structural continuations.
+
+Workers collect new evaluation components in private output vectors. After joins
+and stage publication, the coordinator registers them with the existing ordinary
+interpreter query graph. There is no new folding evaluator. Admission initializes
+needed evaluation registries before dispatch and retains structural exclusions.
+
+The lazy deduction reproducer fails on the previous compiler as expected. Call
+continuations now preserve evaluation depth as well as unevaluated state, so
+checking a generic argument inside an enclosing comptime expression does not
+make a nested skipped stage eagerly demanded. Added declaration_continuations
+for explicit/inferred calls, header/field dependencies, runtime effect order,
+lazy conditional/logical stages and unevaluated nested stages. These changes are
+under validation; success and actual dispatch evidence follow separately.
+
+The first native build rejects the draft unbraced `else if` at line 890; the
+published bootstrap requires an ordinary braced else containing the next if.
+Corrected both occurrences without changing bootstrap syntax or native code.
+Added the selected-branch division-by-zero counterpart to prove the laziness fix
+does not suppress a demanded stage. Initial hosted verification saw the previous
+manifest while Pages action 44889929784 was still running; retry after deployment.
+
+The documented default-bootstrap native build now succeeds. The combined
+continuation fixture prints 0, including the formerly eager skipped stage.
+Two independent GDB trials each move all 16 sampled binary checks from thread 1
+to threads 4–11 (two per worker, coordinator zero): explicit generic arguments
+and inferred comptime expressions. Both canonical Foundation files compare
+byte-for-byte with their prior-compiler baselines. Scripts reuse the 16-check
+assertions in declaration-calls-after.gdb; inputs/results are declaration_prepared_workers,
+declaration_comptime_workers and declaration-{prepared,comptime}-{before,after}.
+Full native validation and all browser module builds now run on frozen sources.
+Pages 8bddddcdd057b69d70eb9f3f048731efbf65228c deployed 4d58b83 successfully
+(action 44889929784); retry of hosted verification matches all 77 asset hashes
+and is checking browser workflows.
+
+Native validation passes all 8 suites (50.22s) and backend API checks, with
+unchanged semantic graph fingerprints and storage/failure cleanup expectations.
+Portable/shared and LLVM/cross modules link successfully; the packager is still
+finishing. The 109-case browser regressions, expanded capacity diagnostics,
+editor tests and actual semantics successor comparison are running.
+
+Hosted verification of 4d58b83/8bddddc completes all 77 assets and desktop/mobile,
+editor, native-download and default-target workflows; saved report is
+declaration-calls-hosted-report.json. The continuation checkpoint passes expanded
+capacity checks 3/3 (75.68s), including unchanged diagnostics at 1/2/4/8 workers,
+and its actual native semantics successor object compares byte-for-byte.
+
+Editor tests pass 28/28 (163.63s). Two edited browser generations pass at
+2/4 workers (139.53s / 100.31s), with identical sizes/hashes: 1038533, 52343630, 63901070. Saved records:
+declaration-continuations-generation{1,2}.json. All native and successor checks
+remain successful. The next deduction audit confirms 16 inferred-argument binary
+checks still execute on thread 1 (declaration-inference-before-debug.log). A
+worker continuation needs private FoundationType constraints, source-order
+coordinator interning and read-only alias inspection that cannot write the shared
+GenericContext.error; that next change is drafted outside the frozen sources.
+
+Local deployment of the continuation build passes all 77 hashes and browser
+workflows (declaration-continuations-local-report.json). All source-reading
+release checks remain frozen; a separate ignored import overlay is checking
+the next inference draft against the documented default bootstrap without
+changing these release inputs. It is only a compile check, not worker validation.
+
+Frozen-source continuation regressions pass 109/109, zero skips/failures
+(599.76s), including the selected-stage error counterpart and all existing
+Foundation/interpreter/LLVM round trips. The checkpoint also passes native 8/8
+and backend API, capacity 3/3, editor 28/28, an identical native semantics
+successor object, two identical edited browser generations and local deployment.
+
+The separate next-inference draft compiles its entities unit to Foundation with
+the default bootstrap, but its semantics overlay exits 139 without a diagnostic.
+No inference draft is integrated or included in this release. Investigate that
+bootstrap crash before adopting it. The prospective inference fixture passes
+on the current validated compiler, and its debugger baseline remains thread 1.

@@ -1,0 +1,4 @@
+import tower;
+fn identity(T:type,value:T):T { return value; }
+var value=comptime(true ? identity(comptime(1/0)) : 42);
+print(value);

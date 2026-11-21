@@ -53,6 +53,7 @@ test('declaration, body checking, lowering and staging are deterministic at 1/2/
  const lazyBodies = await readFile('scaffolding/tests/decltype_lazy_body.tower', 'utf8');
  const lazyBodyBudget = lazyGenericBodySource();
  const expressionTypes = await readFile('scaffolding/tests/decltype_expressions.tower', 'utf8');
+ const declarationContinuations = await readFile('scaffolding/tests/declaration_continuations.tower', 'utf8');
    const defaults = await readFile('scaffolding/tests/default_initialization.tower', 'utf8');
  const typeFields = (await readFile('scaffolding/tests/decltype_type_fields.tower', 'utf8')).replace('var seed12:u64=0;',
   Array.from({length:244},(_,i)=>`var seed${i+12}:decltype(seed${i+13});`).join('\n')+'\nvar seed256:u64=0;');
@@ -66,6 +67,7 @@ test('declaration, body checking, lowering and staging are deterministic at 1/2/
  let genericCycleDiagnostic;
  let genericBodyBudgetDiagnostic;
  let operatorCycleDiagnostic;
+ const continuationDiagnostics = new Map();
  const functions = Array.from({length:16}, (_, i) => `
 fn f${i}(value: decltype(seed)): decltype(value) {
  var state: Shared;
@@ -247,6 +249,20 @@ fn badSecond(value:MissingSecond):void {}`);
     assert.equal(result.status, 'error');
     assert.match(result.error, /initializer dependency cycle first -> second -> first/);
    } finally { tower.destroyExecution(leafCycle); }
+   for (const source of [
+    'import tower; fn identity(T:type,value:T):T { return value; } var value=comptime(true ? identity(comptime(1/0)) : 42);',
+    'import tower; fn identity(T:type,value:T):T { return value; } var warm:decltype(identity(u64,1)); var first=identity(i32,false); var second=identity(u64,false);',
+   ]) {
+    const handle=tower.compile(source);
+    try {
+     const result=tower.execute(handle);
+     assert.equal(result.status,'error');
+     assert.match(result.error,/Division by zero|Expected (i32|u64), got bool/);
+     const diagnostic={error:result.error,offset:result.errorOffset};
+     if (!continuationDiagnostics.has(source)) continuationDiagnostics.set(source,diagnostic);
+     assert.deepEqual(diagnostic,continuationDiagnostics.get(source),`declaration continuation errors at ${capacity} workers`);
+    } finally { tower.destroyExecution(handle); }
+   }
    const fieldsInvalid = tower.compile('import tower; struct First { first:i32; first:u64; } struct Second { second:i32; second:u64; }');
    try {
     const result = tower.execute(fieldsInvalid);
@@ -254,7 +270,7 @@ fn badSecond(value:MissingSecond):void {}`);
     assert.match(result.error, /duplicate field 'first'/);
     assert.doesNotMatch(result.error, /duplicate field 'second'/);
    } finally { tower.destroyExecution(fieldsInvalid); }
-   for (const fixture of [delayedLayout, genericHeaders, typeFields, aggregateTypes, bodyContinuation, lazyBodies, lazyBodyBudget, expressionTypes, defaults])
+   for (const fixture of [delayedLayout, genericHeaders, typeFields, aggregateTypes, bodyContinuation, lazyBodies, lazyBodyBudget, expressionTypes, declarationContinuations, defaults])
    for (const pointerBytes of [4,8]) for (let fast=0; fast<2; fast++) {
     const handle=tower.compile(fixture,{pointerBytes});
     try {

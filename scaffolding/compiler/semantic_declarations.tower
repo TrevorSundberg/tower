@@ -9,6 +9,7 @@ import semantic_modules;
 import semantic_support;
 import semantic_types;
 import semantic_expressions;
+import semantic_evaluation;
 import semantic_values;
 import semantic_statements;
 import semantic_enums;
@@ -40,6 +41,7 @@ struct SemanticDeclaration {
     calls_scanned: bool;
     call_index: usize;
     calls: vector(DeclarationCall);
+    evaluations: vector(void*);
     waiting: usize;
     layout: void*;
     dependencies: vector(usize);
@@ -55,6 +57,7 @@ struct DeclarationScan {
 struct DeclarationCall {
     node: void*;
     unevaluated: bool;
+    evaluation_depth: usize;
 }
 
 struct DeclarationCallScan {
@@ -62,6 +65,7 @@ struct DeclarationCallScan {
     type: bool;
     unevaluated: bool;
     complete: bool;
+    evaluation_depth: usize;
 }
 
 fn sem_declaration_state(c: SemanticContext*, node: void*): SemanticDeclaration* {
@@ -293,6 +297,8 @@ fn sem_declaration_dependencies(c: SemanticContext*, subject: void*, result: Sem
             var builtin = semantic_builtin_kind(name);
             var definition = sem_resolve(c, c.templates, name_node, name);
             var function = sem_resolve(c, c.functions, name_node, name);
+            var prepared = sem_prepared_call(c, node);
+            if prepared != null { function = prepared.instance; }
             if function != null {
                 var input = sem_declaration_query(c, function);
                 if input != 0 { sem_declaration_input(result, input); }
@@ -355,13 +361,14 @@ fn sem_declaration_dependencies(c: SemanticContext*, subject: void*, result: Sem
     vector_dispose(DeclarationScan, &scan);
 }
 
-fn sem_declaration_input(result: SemanticDeclaration*, input: usize): void {
+fn sem_declaration_input(result: SemanticDeclaration*, input: usize): bool {
     var index: usize = 0;
     while index < result.dependencies.length {
-        if result.dependencies.data[index] == input { return; }
+        if result.dependencies.data[index] == input { return false; }
         index++;
     }
     sem_require(vector_push(usize, &result.dependencies, input));
+    return true;
 }
 
 // These places consume existing declarations and layouts. They never intern
@@ -398,30 +405,38 @@ fn sem_declaration_leaf(c: SemanticContext*, node: void*): bool {
     return literal_shape && sem_literal(c, node);
 }
 
-// Ordinary calls consume published signatures. Generic preparation, builtins
-// with type operands and type constructors still use structural continuations.
+// Ordinary and prepared generic calls consume published signatures. Preparation
+// publishes the instance and records its dependency before worker readmission.
 fn sem_declaration_function(c: SemanticContext*, node: void*): bool {
     var name_node = sem_member(node, "name");
     if name_node == null { return false; }
     var name = sem_identifier(c, name_node);
-    return semantic_builtin_kind(name) == 0
-        && sem_resolve(c, c.templates, name_node, name) == null
-        && sem_resolve(c, c.type_functions, name_node, name) == null
-        && sem_resolve(c, c.functions, name_node, name) != null;
+    if semantic_builtin_kind(name) != 0
+        || sem_resolve(c, c.type_functions, name_node, name) != null { return false; }
+    if sem_resolve(c, c.templates, name_node, name) != null {
+        return sem_prepared_call(c, node) != null;
+    }
+    return sem_resolve(c, c.functions, name_node, name) != null;
 }
 
 // These expressions only enrich their leased syntax or create private children.
-// Their declaration/layout dependencies must be ready before execution. Generic
-// calls, staging and indexed/type construction still need structural continuations.
+// Their declaration/layout dependencies must be ready before execution. Type
+// construction and indexed operands still need structural continuations.
 fn sem_declaration_expression(c: SemanticContext*, root: void*): bool {
     var pending = sem_list(c);
     sem_push(pending, root);
     for(var i: usize = 0; i < pending.length; i++) {
         var node = sem_surface_unwrap(pending.data[i]);
         if sem_declaration_leaf(c, node) { continue; }
+        if sem_is(node, "TowerComptime") {
+            sem_push(pending, sem_member(node, "value"));
+            continue;
+        }
         if sem_is(node, "CoreCall") {
             if !sem_declaration_function(c, node) { return false; }
-            var args = sem_collect(c, sem_member(node, "args"), "CoreCallArgument");
+            var prepared = sem_prepared_call(c, node);
+            var args = prepared != null ? prepared.values
+                : sem_collect(c, sem_member(node, "args"), "CoreCallArgument");
             foreach(var argument in args) { sem_push(pending, argument); }
             continue;
         }
@@ -446,7 +461,7 @@ fn sem_declaration_expression(c: SemanticContext*, root: void*): bool {
 // Named/pointer annotations are read-only. Eligible decltype and inferred values
 // attach only to their own syntax, with all referenced types dependency-ready.
 // Module-qualified leaves and ordinary struct fields use the same ownership.
-// Generic calls, indexing and type construction retain the coordinator.
+// Generic preparation, indexing and type construction retain the coordinator.
 fn sem_declaration_worker(c: SemanticContext*, result: SemanticDeclaration*): bool {
     if c.editor != null || c.type_uses != null { return false; }
     var subject = result.subject;
@@ -457,6 +472,7 @@ fn sem_declaration_worker(c: SemanticContext*, result: SemanticDeclaration*): bo
     defer { c.scope = previous_scope; }
     var annotation = sem_member(subject, record ? "fields" : "type");
     var staged = record || annotation == null;
+    var evaluates = false;
     if annotation == null {
         annotation = sem_member(subject, "value");
         if annotation == null || !sem_declaration_expression(c, annotation) { return false; }
@@ -465,6 +481,7 @@ fn sem_declaration_worker(c: SemanticContext*, result: SemanticDeclaration*): bo
     sem_push(pending, annotation);
     for(var i: usize = 0; i < pending.length; i++) {
         var node = pending.data[i];
+        evaluates ||= sem_is(node, "TowerComptime");
         if sem_is(node, "TowerDecltype") {
             if !sem_declaration_expression(c, sem_member(node, "value")) { return false; }
             staged = true;
@@ -473,6 +490,13 @@ fn sem_declaration_worker(c: SemanticContext*, result: SemanticDeclaration*): bo
         if call {
             if !sem_declaration_function(c, node) { return false; }
             staged = true;
+            var prepared = sem_prepared_call(c, node);
+            if prepared != null {
+                // Preparation already checked type arguments. Only runtime
+                // operands can be enriched by the readmitted call checker.
+                foreach(var argument in prepared.values) { sem_push(pending, argument); }
+                continue;
+            }
         }
         if sem_is(node, "CoreArrayCount") { return false; }
         if (!call && sem_member(node, "args") != null)
@@ -482,6 +506,7 @@ fn sem_declaration_worker(c: SemanticContext*, result: SemanticDeclaration*): bo
     // A worker may update its own existing field-state entry, never grow the
     // shared field index. Struct duplicate-name scratch does not escape the job.
     if record { sem_state(c, c.fields_done, subject); }
+    if evaluates { sem_evaluation_begin(c); }
     if staged {
         foreach(var node in pending) { sem_push(&result.nodes, node); }
     }
@@ -506,6 +531,7 @@ fn semantic_declaration_kernel(result: SemanticDeclaration*): void {
     vector_init(void*, &context.allocations);
     vector_init(void*, &context.lists);
     vector_init(&context.inferring);
+    vector_init(&context.evaluation_jobs);
     vector_init(u8, &context.token_text);
     fill(&context.scan, 0, sizeof(stack(void*)));
     vector_init(u8, &program.error);
@@ -524,6 +550,7 @@ fn semantic_declaration_kernel(result: SemanticDeclaration*): void {
     }
     result.count = context.count;
     result.surface = context.surface_expressions;
+    copy(&result.evaluations, &context.evaluation_jobs, sizeof(vector(void*)));
     copy(&result.error, &program.error, sizeof(vector(u8)));
     result.error_offset = program.error_offset;
     stack_dispose(void*, &context.scan);
@@ -572,6 +599,7 @@ fn sem_declaration_dispose(c: SemanticContext*): void {
             vector_dispose(usize, &result.dependencies);
             vector_dispose(&result.nodes);
             vector_dispose(&result.calls);
+            vector_dispose(&result.evaluations);
             vector_dispose(u8, &result.error);
             // These scratch scopes/context are owned only for this compilation.
             result.context = null;
@@ -586,7 +614,7 @@ fn sem_declaration_subject(node: void*): bool {
         || sem_is(node, "CoreStruct") || sem_is(node, "CoreEnum");
 }
 
-fn sem_declaration_call_push(scan: vector(DeclarationCallScan)*, node: void*, type: bool, unevaluated: bool, complete: bool): void {
+fn sem_declaration_call_push(scan: vector(DeclarationCallScan)*, node: void*, type: bool, unevaluated: bool, complete: bool, evaluation_depth: usize): void {
     if node == null { return; }
     sem_require(vector_reserve(scan, scan.length + 1));
     var entry = &scan.data[scan.length];
@@ -594,6 +622,7 @@ fn sem_declaration_call_push(scan: vector(DeclarationCallScan)*, node: void*, ty
     entry.type = type;
     entry.unevaluated = unevaluated;
     entry.complete = complete;
+    entry.evaluation_depth = evaluation_depth;
     scan.length++;
 }
 
@@ -611,7 +640,7 @@ fn sem_declaration_calls(c: SemanticContext*, result: SemanticDeclaration*): voi
     vector_init(&scan);
     defer vector_dispose(&scan);
     for(var i: usize = roots.length; i != 0; i--) {
-        sem_declaration_call_push(&scan, roots.data[i - 1].node, roots.data[i - 1].type, c.unevaluated, false);
+        sem_declaration_call_push(&scan, roots.data[i - 1].node, roots.data[i - 1].type, c.unevaluated, false, c.evaluation_depth);
     }
     while scan.length != 0 {
         scan.length--;
@@ -619,7 +648,7 @@ fn sem_declaration_calls(c: SemanticContext*, result: SemanticDeclaration*): voi
         copy(&entry, &scan.data[scan.length], sizeof(DeclarationCallScan));
         var node = entry.node;
         if sem_is(node, "TowerDefault") {
-            sem_declaration_call_push(&scan, sem_member(node, "type"), true, entry.unevaluated, false);
+            sem_declaration_call_push(&scan, sem_member(node, "type"), true, entry.unevaluated, false, entry.evaluation_depth);
             continue;
         }
         if entry.complete {
@@ -627,11 +656,17 @@ fn sem_declaration_calls(c: SemanticContext*, result: SemanticDeclaration*): voi
             var call = &result.calls.data[result.calls.length];
             call.node = node;
             call.unevaluated = entry.unevaluated;
+            call.evaluation_depth = entry.evaluation_depth;
             result.calls.length++;
             continue;
         }
         if sem_is(node, "TowerDecltype") {
-            sem_declaration_call_push(&scan, sem_member(node, "value"), false, true, false);
+            sem_declaration_call_push(&scan, sem_member(node, "value"), false, true, false, entry.evaluation_depth);
+            continue;
+        }
+        if sem_is(node, "TowerComptime") {
+            sem_declaration_call_push(&scan, sem_member(node, "value"), false,
+                entry.unevaluated, false, entry.evaluation_depth + 1);
             continue;
         }
         if !entry.type && sem_is(node, "CoreCall") {
@@ -639,7 +674,7 @@ fn sem_declaration_calls(c: SemanticContext*, result: SemanticDeclaration*): voi
             var name = sem_identifier(c, name_node);
             var builtin = semantic_builtin_kind(name);
             var definition = sem_resolve(c, c.templates, name_node, name);
-            if definition != null { sem_declaration_call_push(&scan, node, false, entry.unevaluated, true); }
+            if definition != null { sem_declaration_call_push(&scan, node, false, entry.unevaluated, true, entry.evaluation_depth); }
             var args = sem_collect(c, sem_member(node, "args"), "CoreCallArgument");
             for(var i: usize = args.length; i != 0; i--) {
                 var index = i - 1;
@@ -647,12 +682,12 @@ fn sem_declaration_calls(c: SemanticContext*, result: SemanticDeclaration*): voi
                 if definition != null && args.length == generic_parameter_count(c.generics, definition) {
                     type = generic_type_parameter(c.generics, definition, index);
                 }
-                sem_declaration_call_push(&scan, args.data[index], type, entry.unevaluated, false);
+                sem_declaration_call_push(&scan, args.data[index], type, entry.unevaluated, false, entry.evaluation_depth);
             }
             continue;
         }
         for(var i: usize = sem_child_count(node); i != 0; i--) {
-            sem_declaration_call_push(&scan, sem_child(node, i - 1), entry.type, entry.unevaluated, false);
+            sem_declaration_call_push(&scan, sem_child(node, i - 1), entry.type, entry.unevaluated, false, entry.evaluation_depth);
         }
     }
 }
@@ -660,7 +695,8 @@ fn sem_declaration_calls(c: SemanticContext*, result: SemanticDeclaration*): voi
 fn sem_declaration_prepare(c: SemanticContext*, result: SemanticDeclaration*): usize {
     sem_declaration_calls(c, result);
     var previous = c.unevaluated;
-    defer { c.unevaluated = previous; }
+    var previous_depth = c.evaluation_depth;
+    defer { c.unevaluated = previous; c.evaluation_depth = previous_depth; }
     while result.call_index < result.calls.length && sem_ok(c) {
         // A ready inner call can expose another field/layout dependency needed
         // for deduction of the enclosing call. Observe it before typing operands.
@@ -668,9 +704,13 @@ fn sem_declaration_prepare(c: SemanticContext*, result: SemanticDeclaration*): u
         if waiting != 0 || result.layout != null { return waiting; }
         var call = &result.calls.data[result.call_index];
         c.unevaluated = call.unevaluated;
+        c.evaluation_depth = call.evaluation_depth;
         var prepared = sem_prepare_call(c, call.node);
         if !sem_ok(c) { return 0; }
         var query = sem_declaration_query(c, prepared.instance);
+        // Even a signature completed for another consumer needs an explicit
+        // dependency/read claim. Suspension installs it before readmission.
+        if query != 0 && sem_declaration_input(result, query) { return query; }
         if query != 0 && work_task(&c.queries, query).state != WorkState.Succeeded { return query; }
         result.call_index++;
     }
@@ -815,29 +855,46 @@ fn sem_declarations(c: SemanticContext*, statements: vector(void*)*): void {
         var layouts: vector(usize);
         vector_init(&layouts);
         defer vector_dispose(&layouts);
-        index = 0;
-        while index < count {
-            var result = batch[index];
-            var node = result.subject;
+        // Release every lease before a structural continuation can discover
+        // declarations or prepare syntax owned by another completed job.
+        for(var i: usize = 0; i < count; i++) {
+            var result = batch[i];
             if result.stage != null {
                 sem_require(entity_stage_publish(result.stage));
                 result.stage = null;
             }
+        }
+        index = 0;
+        while index < count {
+            var result = batch[index];
+            var node = result.subject;
+            foreach(var job in &result.evaluations) {
+                var evaluation = bits(SemanticEvaluation*, job);
+                sem_push(&c.evaluation_jobs, job);
+                sem_evaluation_request(c, evaluation);
+            }
+            vector_dispose(&result.evaluations);
             c.count += result.count;
             c.surface_expressions ||= result.surface;
             if c.count > c.node_limit { sem_fail(c, node, "Foundation component memory budget exceeded"); }
             var success = !sem_declaration_error(c, result) && sem_ok(c);
+            var readmit = false;
             if success && !result.checked && result.waiting == 0 && result.layout == null {
                 var saved_scope = c.scope;
                 c.scope = result.scope;
                 result.waiting = sem_declaration_prepare(c, result);
                 if result.waiting == 0 && result.layout == null && sem_ok(c) {
-                    if sem_is(node, "CoreDeclare") || sem_is(node, "CoreParameter") { sem_declaration_type(c, node); }
-                    else {
-                        if sem_function_syntax(node) { sem_header(c, node, "", null); }
+                    if sem_declaration_worker(c, result) {
+                        result.worker_check = true;
+                        readmit = true;
+                    } else {
+                        if sem_is(node, "CoreDeclare") || sem_is(node, "CoreParameter") { sem_declaration_type(c, node); }
                         else {
-                            if sem_is(node, "CoreStruct") { sem_type_fields(c, node); }
-                            else { sem_enum_fields(c, node); }
+                            if sem_function_syntax(node) { sem_header(c, node, "", null); }
+                            else {
+                                if sem_is(node, "CoreStruct") { sem_type_fields(c, node); }
+                                else { sem_enum_fields(c, node); }
+                            }
                         }
                     }
                 }
@@ -850,8 +907,14 @@ fn sem_declarations(c: SemanticContext*, statements: vector(void*)*): void {
                 sem_require(work_suspend_access(&c.queries, &result.ticket, result.waiting,
                     1, 1, result.waiting, 1, WorkAccessMode.Read));
             } else {
-                if success && result.waiting != 0 { sem_require(work_suspend(&c.queries, &result.ticket, result.waiting)); }
-                else { sem_require(work_finish(&c.queries, &result.ticket, success)); }
+                if success && result.waiting != 0 {
+                    sem_declaration_input(result, result.waiting);
+                    sem_require(work_suspend_access(&c.queries, &result.ticket, result.waiting,
+                        1, 4, result.waiting, 1, WorkAccessMode.Read));
+                } else {
+                    if success && readmit { sem_require(work_yield(&c.queries, &result.ticket)); }
+                    else { sem_require(work_finish(&c.queries, &result.ticket, success)); }
+                }
             }
             index++;
         }
