@@ -10,7 +10,7 @@ extern "C" void shared_entity_tests();
 extern "C" void entity_registry_tests();
 extern "C" void regex_tests();
 void syntax_lexer_tests();
-void syntax_nodes_tests();
+extern "C" void syntax_nodes_tests();
 void syntax_reader_tests();
 void syntax_validation_tests();
 size_t syntax_expansion_test_entry();

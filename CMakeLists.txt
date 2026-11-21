@@ -129,7 +129,7 @@ if(TOWER_PARSER_ONLY)
   target_compile_definitions(tower-compiler-memory PRIVATE TOWER_COMPILER_MEMORY_TESTS=1)
   tower_compiler_interpreter()
   add_executable(tower-parser-tests scaffolding/tests/main.cpp
-    scaffolding/tests/lr-analysis.cpp scaffolding/tests/lr-grammar.cpp scaffolding/tests/syntax-lexer.cpp scaffolding/tests/syntax-nodes.cpp scaffolding/tests/syntax-reader.cpp scaffolding/tests/syntax-validation.cpp
+    scaffolding/tests/lr-analysis.cpp scaffolding/tests/lr-grammar.cpp scaffolding/tests/syntax-lexer.cpp scaffolding/tests/syntax-reader.cpp scaffolding/tests/syntax-validation.cpp
     scaffolding/core.cpp scaffolding/core-nodes.cpp
     scaffolding/tower.cpp scaffolding/tests/nodes.cpp
     scaffolding/syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/format.cpp scaffolding/lex-pattern.cpp scaffolding/lex-pattern-common.cpp scaffolding/syntax-tests.cpp)
@@ -212,6 +212,7 @@ if(TOWER_PARSER_ONLY)
   include(cmake/TowerUtilityTests.cmake)
   include(cmake/TowerParserServiceTests.cmake)
   include(cmake/TowerParserFormatTests.cmake)
+  include(cmake/TowerSyntaxPayloadTests.cmake)
   add_test(NAME tower-parser-tests COMMAND tower-parser-tests)
   add_test(NAME tower-foreach-example COMMAND tower-parser-tests --parse
     "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/examples/foreach.tower")

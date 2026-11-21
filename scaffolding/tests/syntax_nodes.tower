@@ -1,0 +1,188 @@
+import tower;
+import .compiler.syntax_types;
+import .library.vector;
+import storage_api;
+import utility_checks;
+
+extern fn syntax_component_type(): void*;
+extern fn syntax_component_attach(node: void*, kind: u32): SyntaxNode*;
+extern fn syntax_node_size(): usize;
+extern fn syntax_pattern_size(): usize;
+extern fn syntax_node_offset(field: usize): usize;
+extern fn syntax_node_source(node: SyntaxNode*, source: SyntaxSource*): void;
+extern fn syntax_node_pattern(node: SyntaxNode*, pattern: SyntaxPattern*): void;
+extern fn syntax_node_replacement(node: SyntaxNode*, replacement: void*): void;
+extern fn syntax_pattern_create(grammar: void*): SyntaxPattern*;
+extern fn syntax_pattern_retain(pattern: SyntaxPattern*): void;
+extern fn syntax_pattern_release(pattern: SyntaxPattern*): void;
+extern fn syntax_comments_push(comments: vector(vector(u8))*, text: u8*, length: usize): bool;
+extern fn syntax_nodes_equal(left: void*, right: void*, kind: void*, locations: bool): i32;
+extern fn syntax_equal(left: void*, right: void*, locations: bool): bool;
+extern fn tower_node_get_ref_count(node: void*): usize;
+extern fn tower_node_attach(child: void*, parent: void*): void;
+
+fn syntax_test_node(kind: SyntaxKind): void* {
+    var node = tower_node_create(); syntax_component_attach(node, convert(u32, kind)); return node;
+}
+fn syntax_test_bytes(left: vector(u8)*, right: vector(u8)*): bool {
+    return left.length == right.length && utility_equal(left.data, right.data, left.length);
+}
+// Independent field comparison and iterative traversal. Metadata deliberately
+// ignored by semantic equality is tested separately below.
+fn syntax_test_reference_equal(left: void*, right: void*, locations: bool): bool {
+    var pending: vector(void*); vector_init(void*, &pending); defer vector_dispose(void*, &pending);
+    utility_check(vector_push(void*, &pending, left) && vector_push(void*, &pending, right), "Reference comparison stack");
+    while pending.length != 0 {
+        var b = pending.data[--pending.length]; var a = pending.data[--pending.length];
+        if a == b { continue; }
+        if a is null || b is null { return false; }
+        var x = syntax_get(a); var y = syntax_get(b);
+        if x is null || y is null { return false; }
+        if x.kind != y.kind || !syntax_test_bytes(&x.name, &y.name) || !syntax_test_bytes(&x.text, &y.text)
+            || !syntax_test_bytes(&x.capture, &y.capture) || !syntax_test_bytes(&x.style, &y.style)
+            || x.literal != y.literal || x.append != y.append || x.contextual != y.contextual
+            || x.terminal_set != y.terminal_set || x.repetition != y.repetition || x.items.length != y.items.length { return false; }
+        if locations && x.kind == convert(u32, SyntaxKind.Template) && (x.start != y.start || x.end != y.end) { return false; }
+        for (var index: usize = 0; index < x.items.length; ++index) {
+            utility_check(vector_push(void*, &pending, x.items.data[index]) && vector_push(void*, &pending, y.items.data[index]), "Reference child pair");
+        }
+        utility_check(vector_push(void*, &pending, x.replacement) && vector_push(void*, &pending, y.replacement), "Reference replacement pair");
+    }
+    return true;
+}
+fn syntax_test_compare(left: void*, right: void*): void {
+    for (var mode: usize = 0; mode < 2; ++mode) {
+        utility_check(syntax_equal(left, right, mode != 0) == syntax_test_reference_equal(left, right, mode != 0), "Syntax equality agrees with independent traversal");
+        utility_check(syntax_equal(right, left, mode != 0) == syntax_test_reference_equal(right, left, mode != 0), "Syntax equality symmetric reference traversal");
+    }
+}
+fn syntax_test_layout(): void {
+    utility_check(syntax_node_size() == sizeof(SyntaxNode) && syntax_pattern_size() == sizeof(SyntaxPattern), "Syntax payload exported sizes");
+    var value: SyntaxNode; var fields: usize[17]; var base = bits(usize, &value);
+    fields[0] = bits(usize, &value.kind); fields[1] = bits(usize, &value.name); fields[2] = bits(usize, &value.text);
+    fields[3] = bits(usize, &value.capture); fields[4] = bits(usize, &value.style); fields[5] = bits(usize, &value.source);
+    fields[6] = bits(usize, &value.literal); fields[7] = bits(usize, &value.append); fields[8] = bits(usize, &value.contextual);
+    fields[9] = bits(usize, &value.terminal_set); fields[10] = bits(usize, &value.repetition); fields[11] = bits(usize, &value.items);
+    fields[12] = bits(usize, &value.replacement); fields[13] = bits(usize, &value.comments); fields[14] = bits(usize, &value.start);
+    fields[15] = bits(usize, &value.end); fields[16] = bits(usize, &value.compiled);
+    for (var index: usize = 0; index < 17; ++index) { utility_check(syntax_node_offset(index) == fields[index] - base, "Syntax exported field offset"); }
+}
+fn syntax_test_fields(): void {
+    var a = syntax_test_node(SyntaxKind.Rule); defer tower_node_release_ref(a);
+    var b = syntax_test_node(SyntaxKind.Rule); defer tower_node_release_ref(b);
+    var x = syntax_get(a); var y = syntax_get(b);
+    utility_check(x.start == ~convert(usize, 0) && x.end == ~convert(usize, 0) && x.source is null && x.replacement is null && x.compiled is null
+        && x.name.length == 0 && x.items.length == 0 && x.comments.length == 0, "Syntax payload defaults");
+    syntax_test_compare(a, b); syntax_test_compare(a, null);
+    var left_fields: vector(u8)*[4]; var right_fields: vector(u8)*[4];
+    left_fields[0] = &x.name; left_fields[1] = &x.text; left_fields[2] = &x.capture; left_fields[3] = &x.style;
+    right_fields[0] = &y.name; right_fields[1] = &y.text; right_fields[2] = &y.capture; right_fields[3] = &y.style;
+    var text: u8[3]; text[0] = 97; text[1] = 0; text[2] = 98;
+    for (var index: usize = 0; index < 4; ++index) {
+        text[2] = 98; utility_check(storage_assign(left_fields[index], &text[0], 3), "Syntax NUL field assignment");
+        syntax_test_compare(a, b); utility_check(!syntax_equal(a, b, false), "Syntax byte field difference");
+        text[2] = 99; utility_check(storage_assign(right_fields[index], &text[0], 3), "Syntax NUL peer assignment");
+        syntax_test_compare(a, b); utility_check(!syntax_equal(a, b, false), "Syntax compares beyond NUL");
+        utility_check(storage_assign(right_fields[index], left_fields[index].data, left_fields[index].length), "Syntax copied field");
+        syntax_test_compare(a, b); utility_check(syntax_equal(a, b, false), "Syntax copied field equal");
+    }
+    var left_flags: bool*[4]; var right_flags: bool*[4];
+    left_flags[0] = &x.literal; left_flags[1] = &x.append; left_flags[2] = &x.contextual; left_flags[3] = &x.terminal_set;
+    right_flags[0] = &y.literal; right_flags[1] = &y.append; right_flags[2] = &y.contextual; right_flags[3] = &y.terminal_set;
+    for (var index: usize = 0; index < 4; ++index) {
+        *left_flags[index] = true; syntax_test_compare(a, b); utility_check(!syntax_equal(a, b, false), "Syntax flag difference");
+        *right_flags[index] = true; syntax_test_compare(a, b); utility_check(syntax_equal(a, b, false), "Syntax matched flag");
+    }
+    x.repetition = 42; syntax_test_compare(a, b); utility_check(!syntax_equal(a, b, false), "Syntax repetition difference"); y.repetition = 42;
+    x.start = 7; x.end = 11; y.start = 70; y.end = 110;
+    syntax_test_compare(a, b); utility_check(syntax_equal(a, b, true), "Non-template locations ignored");
+    x.kind = convert(u32, SyntaxKind.Template); syntax_test_compare(a, b); utility_check(!syntax_equal(a, b, false), "Syntax kind difference");
+    y.kind = convert(u32, SyntaxKind.Template); syntax_test_compare(a, b);
+    utility_check(syntax_equal(a, b, false) && !syntax_equal(a, b, true), "Template location-sensitive equality"); y.start = x.start; y.end = x.end;
+    var source = syntax_source_create("retained.tower", "source", 6);
+    syntax_node_source(x, source); syntax_node_source(x, source); utility_check(source.references == 2, "Syntax source self assignment retains once");
+    utility_check(syntax_comments_push(&x.comments, "comment", 7), "Syntax comment append");
+    syntax_test_compare(a, b); utility_check(syntax_equal(a, b, true), "Source/comment metadata ignored by equality");
+    text[0] = 113; text[2] = 114;
+    while x.comments.length < 8 { utility_check(syntax_comments_push(&x.comments, &text[0], 3), "NUL comment append"); }
+    var saved = x.comments.data[1].data;
+    utility_check(syntax_comments_push(&x.comments, saved, 3), "Comment alias preserved across list growth");
+    utility_check(x.comments.data[8].length == 3 && utility_equal(x.comments.data[8].data, saved, 3) && x.comments.data[8].data[3] == 0, "NUL comment bytes and terminator");
+    var c = syntax_test_node(SyntaxKind.Template); defer tower_node_release_ref(c);
+    var d = syntax_test_node(SyntaxKind.Template); defer tower_node_release_ref(d);
+    syntax_node_replacement(x, c); syntax_node_replacement(x, c); utility_check(tower_node_get_ref_count(c) == 2, "Replacement self assignment retains once");
+    syntax_test_compare(a, b); utility_check(!syntax_equal(a, b, false), "Missing replacement unequal");
+    syntax_node_replacement(y, d); syntax_test_compare(a, b); utility_check(syntax_equal(a, b, true), "Replacement structural equality");
+    var pattern = syntax_pattern_create(c); utility_check(pattern is not null && pattern.references == 1 && tower_node_get_ref_count(c) == 3, "Pattern retains grammar");
+    syntax_node_pattern(x, pattern); syntax_node_pattern(x, pattern); utility_check(pattern.references == 2, "Pattern self assignment retains once");
+    syntax_pattern_retain(pattern); var retained = pattern; var moved = retained; retained = null;
+    utility_check(retained is null && moved == pattern, "Explicit pattern ownership transfer");
+    syntax_test_compare(a, b); utility_check(syntax_equal(a, b, true), "Compiled pattern ignored by equality");
+    syntax_source_release(source); syntax_pattern_release(pattern); syntax_pattern_release(moved);
+    utility_check(x.source.references == 1 && x.compiled.references == 1, "Payload retains source and pattern after external release");
+    utility_check(tower_node_remove_component(a, syntax_component_type()), "Syntax payload removal");
+    utility_check(tower_node_get_ref_count(c) == 1, "Removed payload releases replacement and pattern grammar");
+    var fresh = syntax_component_attach(a, convert(u32, SyntaxKind.Document));
+    utility_check(fresh.source is null && fresh.compiled is null && fresh.replacement is null && fresh.comments.length == 0, "Reattached payload clean defaults");
+}
+fn syntax_test_decimal(value: usize, text: u8*): usize {
+    if value < 10 { text[0] = convert(u8, 48 + value); return 1; }
+    text[0] = convert(u8, 48 + value / 10); text[1] = convert(u8, 48 + value % 10); return 2;
+}
+fn syntax_test_children(): void {
+    var a = syntax_test_node(SyntaxKind.Rule); defer tower_node_release_ref(a);
+    var b = syntax_test_node(SyntaxKind.Rule); defer tower_node_release_ref(b);
+    var x = syntax_get(a); var y = syntax_get(b); var digits: u8[2];
+    for (var index: usize = 0; index < 64; ++index) {
+        var left = syntax_test_node(SyntaxKind.Term); var right = syntax_test_node(SyntaxKind.Term);
+        var count = syntax_test_decimal(index, &digits[0]);
+        utility_check(storage_assign(&syntax_get(left).text, &digits[0], count) && storage_assign(&syntax_get(right).text, &digits[0], count), "Child decimal fixture");
+        tower_node_attach(left, a); tower_node_attach(right, b);
+        utility_check(vector_push(void*, &x.items, left) && vector_push(void*, &y.items, right), "Child semantic item views");
+        tower_node_release_ref(left); tower_node_release_ref(right);
+    }
+    syntax_test_compare(a, b); utility_check(syntax_equal(a, b, false), "64 equal child fixtures");
+    var live = tower_test_buffer_count(); var success = false;
+    for (var failure: usize = 0; failure < 16 && !success; ++failure) {
+        tower_test_buffer_fail_after(failure); var result = syntax_nodes_equal(a, b, syntax_component_type(), false); tower_test_buffer_fail_after(~convert(usize, 0));
+        utility_check(result == -1 || result == 1, "Comparison reports allocation failure or true"); success = result == 1;
+        utility_check(tower_test_buffer_count() == live, "Comparison temporary storage cleanup");
+    }
+    utility_check(success, "Comparison allocation sweep reaches success");
+    for (var index: usize = 0; index < x.items.length; ++index) {
+        utility_check(storage_assign(&syntax_get(x.items.data[index]).text, "different", 9), "Mutate one child");
+        syntax_test_compare(a, b); utility_check(!syntax_equal(a, b, false), "Each child difference observed");
+        utility_check(storage_assign(&syntax_get(x.items.data[index]).text, &digits[0], syntax_test_decimal(index, &digits[0])), "Restore child decimal");
+    }
+    var empty = tower_node_create(); defer tower_node_release_ref(empty); syntax_test_compare(a, empty);
+}
+fn syntax_test_failures(): void {
+    var owner = syntax_test_node(SyntaxKind.Term); defer tower_node_release_ref(owner); var comments = &syntax_get(owner).comments;
+    for (var index: usize = 0; index < 8; ++index) { utility_check(syntax_comments_push(comments, "preserved", 9), "Comment failure fixture"); }
+    var live = tower_test_buffer_count();
+    for (var failure: usize = 0; failure < 2; ++failure) {
+        var data = comments.data; var capacity = comments.capacity;
+        tower_test_buffer_fail_after(failure); var ok = syntax_comments_push(comments, comments.data[0].data, 9); tower_test_buffer_fail_after(~convert(usize, 0));
+        utility_check(!ok && comments.data == data && comments.capacity == capacity && comments.length == 8, "Comment alias failure is atomic");
+        for (var index: usize = 0; index < comments.length; ++index) { utility_check(comments.data[index].length == 9 && utility_equal(comments.data[index].data, "preserved", 9), "Comment failure preserves all bytes"); }
+        utility_check(tower_test_buffer_count() == live, "Comment alias failure cleanup");
+    }
+    utility_check(!syntax_comments_push(comments, null, ~convert(usize, 0)), "Comment overflow rejected");
+    for (var failure: usize = 0; failure < 2; ++failure) {
+        tower_test_buffer_fail_after(failure); var pattern = syntax_pattern_create(owner); tower_test_buffer_fail_after(~convert(usize, 0));
+        utility_check(pattern is null && tower_node_get_ref_count(owner) == 1 && tower_test_buffer_count() == live, "Pattern allocation failure ownership cleanup");
+    }
+}
+export fn syntax_nodes_tests(): void {
+    syntax_component_type();
+    // The old aggregate had already populated the persistent component index.
+    var warm = syntax_test_node(SyntaxKind.Term); tower_node_release_ref(warm);
+    var buffers = tower_test_buffer_count(); var nodes = tower_node_get_allocated_count();
+    syntax_test_layout(); syntax_test_fields();
+    utility_check(tower_test_buffer_count() == buffers && tower_node_get_allocated_count() == nodes, "Syntax fields ownership cleanup");
+    syntax_test_children();
+    utility_check(tower_test_buffer_count() == buffers && tower_node_get_allocated_count() == nodes, "Syntax children ownership cleanup");
+    syntax_test_failures();
+    utility_check(tower_test_buffer_count() == buffers && tower_node_get_allocated_count() == nodes, "Syntax failure fixture cleanup");
+    puts("Syntax nodes: layout, independent equality, retained ownership and allocation failures passed.");
+}

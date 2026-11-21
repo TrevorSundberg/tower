@@ -24588,3 +24588,62 @@ the old semantic reference's __cxa_allocate_exception/__cxa_throw, unrelated to
 the formatter replacement; agent2's already-published retirement removes that
 reference. Recheck aggregate linkage after merging its source. No aggregate
 execution success is claimed here.
+
+Formatter integration follow-up: rebased onto1e50000, preserving agent2's
+interpreter-storage CMake target and its unused native include cleanup plus all
+journal histories. The full WASI parser aggregate now links successfully; the
+old semantic exception-symbol blocker above is resolved by agent2's retirement.
+Focused formatter WASI execution passes. A new empty default-bootstrap build in
+agent-3-native-successor-1e50000 passed with Clang19/LLVM19 and no private compiler
+override. Native frontend/driver/storage/formatter CTests passed4/4 in18.96seconds.
+Browser publication of earlier agent3 milestone3167766 is now verified by agent2:
+Pagesec60a942d59a595cdbf6e12bdf1c44df92f444d9, exact action44849731181 SUCCESS,
+70asset hashes plus desktop/mobile and redirects passed. The formatter slice
+remains queued for the next explicitly agent2-owned combined deployment.
+
+### 2026-11-20 - Agent 3: syntax payload fixture retirement
+
+While the formatter source slot waited behind coordinator regex and agent1
+ownership work, translated the complete tests/syntax-nodes.cpp suite into
+syntax_nodes.tower. Production syntax component APIs are unchanged. The new
+standalone Tower entry compiled and ran on Linux and WASI before deleting the
+native file; both report complete success. The native parser aggregate now calls
+the same extern-C Tower entry from a separate object. No extra native test or
+adapter was introduced and no reference assertions were dropped.
+
+Preserved all17 exported field-offset checks and payload/pattern sizes; every
+byte field with embedded NUL; each boolean flag, repetition and kind difference;
+location-sensitive Template comparison; source/comment/compiled-pattern metadata
+exclusion; reference counts across repeated self-assignment, explicit retain and
+ownership transfer; comment alias growth including terminator; component removal
+and reattachment; all64 independent child mutations; comparison allocation
+failure until success; both comment-growth failure points, overflow rejection
+and both pattern-creation failure points. The independent iterative field/tree
+comparison remains a test-only oracle and checks both argument orders and
+location modes. Immediate releases remain explicit where assertions observe the
+ownership transition; lexical fixture cleanup uses defer. A single syntax
+component warms the persistent type index before exact allocation baselines,
+matching the earlier aggregate's already-initialized registry.
+
+Commands: cmake --build /home/trevo/.cache/tower/agent-3-parser --parallel4
+--target tower-syntax-nodes-tests, execute that binary (PASS); same target in
+agent-3-parser-wasi and node scaffolding/tests/host-wasi.mjs <binary> (PASS).
+The fixture uses current published fb1 bootstrap and shared production nodes,
+without a private compiler or changes to entity lifetime semantics. Native node
+self-test callback ABI and remaining reader/validation/LR suites are still
+pending; contextual lexer test/reference ownership transferred to coordinator
+by explicit inbox coordination. Sanitizers and broad formatter sweep stay off.
+Final source-slot validation after agent1 ownership6a3af2d: preserved all Version,
+cache and session-pin changes and every append-only journal entry during rebase.
+A fresh empty agent-3-native-successor-6a3af2d completed build-native.sh using the
+published fb1 bootstrap with TOWER_BOOTSTRAP_COMPILER unset and Clang19/LLVM19.
+Rebuilt native services: frontend/driver/storage/formatter passed4/4 in16.85seconds.
+Rebuilt WASI parser aggregate (link PASS), standalone formatter and syntax-node
+entries (both execution PASS). The coordinator's existing regex target also
+rebuilt and executed successfully on WASI with the new fixture objects present;
+its proposed object-source filtering cleanup is not a demonstrated current link
+failure and remains coordinator-owned. Sanitizers and broad formatting stayed
+skipped. Source publication precedes the coordinator contextual-lexer source slot,
+then agent2 final CoreProgram deletion and its explicitly accepted combined
+browser deployment/hosted verification. These new agent3 commits are not claimed
+published on Pages before that handoff completes.

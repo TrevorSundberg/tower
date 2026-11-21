@@ -49,6 +49,13 @@ invalid syntax fixtures. It is off by default and was not run during this
 migration; a two-file check exercised its valid/invalid file-list path. The
 existing playground formatting tools remain available.
 
+`tower-syntax-nodes-tests` is a focused native/WASI parser-configuration target.
+It retains the native syntax-payload suite's independent equality traversal,
+all 17 exported field offsets, NUL-containing fields/comments, retained
+source/pattern/replacement ownership, 64-child comparisons and allocation-failure
+atomicity. The parser aggregate calls the same Tower cases. Run the native binary
+or pass the WASI binary to `host-wasi.mjs`.
+
 The isolated `cmake/TowerDriver.cmake` fragment adds CLI checks with
 `-DTOWER_DRIVER_TESTS=ON` to a native compiler configuration. Build `towerc` and
 `tower-driver-tests`, then run `ctest --test-dir <build> -R tower-driver
