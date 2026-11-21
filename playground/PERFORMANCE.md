@@ -23,23 +23,25 @@ same local origin without concurrent builds or tests. These are medians of seven
 small trailing-comment edits to the Memory example with automatic execution on.
 Times run from editor input to the observed DOM result; completion includes all
 selected outputs, including LLVM/native compilation and the optimized fast
-interpreter package. Baseline source is `5fdee25`; candidate source is `6f73a74`.
+interpreter package. Baseline source is `5fdee25`; published build source is
+`b24847b`, including the integrated known-input and ready-query threading changes.
 
 | Configuration | Highlight before → after | First instructions before → after | Graph result before → after | Complete before → after |
 | --- | ---: | ---: | ---: | ---: |
-| Desktop | 43.2 → 46.0 ms | 256.5 → 123.8 ms | 257.5 → 132.4 ms | 407.0 → 252.1 ms |
-| Mobile emulation | 64.3 → 58.8 ms | 242.4 → 107.7 ms | 249.8 → 120.7 ms | 390.7 → 228.5 ms |
+| Desktop | 43.2 → 45.1 ms | 256.5 → 116.7 ms | 257.5 → 140.6 ms | 407.0 → 242.5 ms |
+| Mobile emulation | 64.3 → 56.7 ms | 242.4 → 114.2 ms | 249.8 → 122.2 ms | 390.7 → 251.2 ms |
 
-Full-output latency fell 38% and 42%, respectively. Highlight timing did not
+Full-output latency fell 40% and 36%, respectively. Highlight timing did not
 materially improve. These small samples do not establish tail latency or costs
 for large semantic edits. Source parsing and independent backend compilation
 still perform work on each edit; this is not incremental semantic compilation.
 
 Run the existing profiler from `playground` with `TOWER_PROFILE_REPEATS=7`:
-`node scripts/profile-execution.mjs ../build/warm-edit-release-profile.json`.
+`node scripts/profile-execution.mjs ../build/warm-edit-integrated-profile.json`.
 The ignored before/after reports are `build/warm-edit-before.json` and
-`build/warm-edit-release-profile.json`. The earlier `warm-edit-after.json`
-measured an intermediate queue implementation and is superseded by these numbers.
+`build/warm-edit-integrated-profile.json`. Earlier `warm-edit-after.json` and
+`warm-edit-release-profile.json` measured intermediate queue/source checkpoints
+and are superseded by these numbers.
 
 Browser checks cover semantic edits, a continuous 44-character typing burst,
 retention of all three warm execution workers without reactor downloads,

@@ -230,6 +230,21 @@ Nested ranges use the most specific containing span for diagnostics. Copy this
 result before another execution call. `tw_exec_destroy(handle)` releases the
 machine and its owned tree; unknown handles are harmless to destroy.
 
+`tw_exec_prepare_package(handle, profile)` is an optional ABI 3 extension. It
+formats the input program as canonical Foundation, reconstructs and checks that
+program, prepares its execution cache, and validates the encoded `.towerbc`
+envelope/cache against the checked graph. Success returns a new, independently
+owned execution handle, ready to run from the beginning; it does not consume or
+advance the input handle. The caller destroys both handles when finished. Failure
+returns zero and sets `tw_last_error`, including when no machine slot is available.
+`tw_exec_bytecode_size()` and `tw_exec_bytecode_data()` expose the prepared bytes;
+copy them before the next packaging call replaces that borrowed buffer.
+The existing `tw_exec_bytecode_options(handle, profile)` returns only the byte
+count and discards the reconstructed session. `tw_exec_load_bytecode(data, size)`
+continues to validate external packages by reconstructing their Foundation and
+checking their cache independently. Hosts supporting older compiler generations
+can fall back to those two calls when the new export is absent.
+
 `types` reads the same program-owned type entities used for semantic checking.
 Entries contain `{ name, kind, size, alignment, fields }`, with kind `scalar`,
 `void` or `struct`. Fields contain `{ name, type, offset, size, alignment }`.
@@ -239,12 +254,19 @@ not the interpreter's auxiliary checked-cell storage or a host/native ABI.
 This is inspection metadata, not a second program interchange representation or
 Tower-language reflection API.
 
-`src/execution-worker.mjs` receives one `{ id, source, foundation, backend }` request per worker.
-Backend is `interpreter` or `llvm`; the UI starts both concurrently. Messages
+`src/execution-worker.mjs` serializes `{ id, source, foundation, backend }` requests
+and retains only the latest pending source revision. Backend is `interpreter`,
+`fast` or `llvm`; the UI starts selected backends concurrently. Messages
 include `backend` and return `{ id, foundation }`, then `{ id, result }` updates (same step fields), or
 `{ id, error }` for host failures. Output updates are batched at approximately
-50 ms, with a final update immediately on completion/error. The UI owns worker
-termination on cancellation/edit and rejects messages from earlier runs. This
+50 ms, with a final update immediately on completion/error. Before running a
+compiled program, the worker sends `{ id, ready: true }` and waits for
+`{ command: 'execute', id }`. The UI grants this only to the current revision.
+`{ command: 'cancel', id }` rejects a pending permission and drops that queued
+revision; a newer request also invalidates the old permission. Reactor calls and
+source-capability changes remain serialized. The UI rejects obsolete results,
+preserves workers still compiling on automatic edits, and owns worker termination
+for running programs and explicit cancellation. This
 worker is distinct from `src/worker.mjs`; running code cannot stall live parsing.
 
 LLVM work reports `{ id, phase }` and `{ id, llvm: { before, after, wasm } }` before
@@ -254,7 +276,9 @@ It reports mismatches or unavailable backends explicitly. LLVM compilation, link
 module instantiation and execution all stay in this worker. Cancellation is
 worker termination rather than a cooperative interrupt or language exception.
 Each message may carry `timings`: `load`, `tower`, `instructions`, `llvmLoad`,
-`llvm`, `parse`, `before`, `after`, `emit`, `execute`, in milliseconds. LLVM's native
+`llvm`, `parse`, `before`, `after`, `emit`, `execute`, in milliseconds. Fast execution
+also reports `optimize`, `reconstruct` and `package`; package timing includes
+canonical reconstruction, cache preparation, encoding and verification. LLVM's native
 clock measures source checking, lowering/unoptimized IR, optimization/optimized IR,
 and emission/linking separately. Host timing includes calls and result copying.
 Instruction timing is shared-node formatting, not a compact bytecode compilation.

@@ -35539,3 +35539,29 @@ Next in this same milestone: publish the complete installer executable with
 source/build/hash provenance, switch the minimal bootstrap shell boundary to it,
 remove install.py, and validate a fresh documented default build with Python
 unavailable to that path. Wider Python entry points remain the next priority.
+Added the package ownership and current-revision worker permission contracts to
+playground/ABI.md. The post-rebase clean native build initially omitted the
+CMAKE_PROJECT_scaffolding_INCLUDE backend hook in a handwritten configure command,
+so linking reported missing backend_* symbols. This was a validation command
+error, not a compiler failure. Retried the same fresh directory through the
+established playground/scripts/build-native.sh entry point with no private
+bootstrap override; keep the failed log as warm-edit-integrated-native.log.
+The smallest new backend target-once unit compiled before broader linking.
+
+The integrated public b24847b checkpoint now passes the corrected clean native
+successor build, both known_bindings interpreters (zero failures), native worker
+overlap/target-once checks, portable/shared/backend release builds, 32 host checks
+(one production-excluded optional fixture), all three shared tests at 1/2/4/8
+workers, and two matching edited browser generations. The original package-fixture
+and warm-worker/permission/cancellation evidence remains valid; those sources did
+not change during integration. Logs are build/warm-edit-integrated-*.log.
+
+A final isolated seven-edit probe of b24847b supersedes the 6f73a74 numbers above.
+Desktop highlight 45.115 ms, instructions 116.710, graph 140.585, complete 242.510;
+mobile emulation highlight 56.650, instructions 114.195, graph 122.170, complete
+251.175. Compared with the same 5fdee25 baseline, completion improves 40%/36%.
+No browser errors. Updated playground/PERFORMANCE.md with those final medians and
+explicit limitations; build/warm-edit-integrated-profile.json is the raw report.
+Publication uses b24847b as buildSourceCommit, a reachable public checkpoint,
+with the public 2292bd8 bootstrap and normal gh-pages history. Runtime assets are
+frozen at that tested checkpoint; subsequent documentation records verification.
