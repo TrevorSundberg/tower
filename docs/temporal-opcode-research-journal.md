@@ -24131,3 +24131,36 @@ format/entity/storage consumers plus the format reference and linked successfull
 its focused host/storage test passed. CoreProgram compilation, construction and
 the reference's actual field/format queries remain until Agent 3 retires those
 consumers. The broad formatter sweep remains skipped.
+
+### 2026-11-20 - Agent 2: final combined source validation and publication handoff
+
+Rebased the three retirement/validation commits onto Agent 1's session-input and
+replacement ownership changes (ba8aaca), then Agent 3's lexer/storage/entity test
+retirements (3167766), including upstream import/completion changes 0987aa5.
+Journal conflicts preserved both complete additions. The parser target conflict
+keeps both agents' source removals and links the independent interpreter storage
+object; Agent 3's new test fragments and main declarations remain intact.
+
+After ba8aaca, a fresh empty `agent-2-ownership-successor` built through the
+documented default-bootstrap path, with native frontend/driver/execution/request
+4/4 passing in 16.32s, backend API passing, and rebuilt WASI execution/host-storage
+passing. After the final 3167766 merge, another empty `agent-2-batch-successor`
+built with the same published fb1ab1f9 bootstrap and no private environment
+override. Upstream's build script now selects Clang beside LLVM19; Agent 3
+installed the missing clang-19 package before handoff, and this fresh build used
+that documented compiler path. Native frontend/driver/storage/execution/request
+passed 5/5 in 16.98s, backend API passed, and the rebuilt WASI execution plus
+parser host/storage checks passed. Significant logs are
+`agent-2-{ownership,batch}-{successor,wasi,wasi-test}.log` in the coordination
+directory. No new native implementation was added; the final native deletion
+count remains 1890 lines for this slice.
+
+Agent 2 acquired the exclusive final publication lock after Agent 3 released its
+source slot. The current Pages predecessor is ace8c13 (source 0987aa5), newer than
+the previously recorded c1b54ec. Its target packs and metadata must be preserved.
+Coordinator explicitly keeps root clean and performs its next regex work outside
+the root checkout while Agent 2 uses that checkout only for published-source
+deployment integration. The source is validated; combined reactor packaging,
+browser successor/integration checks and hosted publication follow this record.
+The final CoreProgram/CoreNode reference views still await Agent 3's focused
+formatter-oracle retirement; no completed removal of those files is claimed.
