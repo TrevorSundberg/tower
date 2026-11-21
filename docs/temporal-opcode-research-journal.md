@@ -34929,3 +34929,24 @@ snapshots to each Tower fixture environment. The existing BackendSource fixture
 then passed; the old new-world fixture returned its expected Baseline failure
 before rebuilding those snapshot additions. This is corrected harness setup,
 not evidence that a foreign world was accepted.
+
+The backend ownership fixture now passes both its existing service cases and
+new explicit-world cases with no skips (ecs-lazy-capture-backend-worlds-final.log).
+The LLVM/cross build and compiler-project packaging complete successfully. Rebased
+onto 7d50641's documentation-only tooling/vector-direction updates, preserving
+all appended journal history. Compiler, fixtures, build configuration and public
+bootstrap are byte-identical to tested 6e69bca after this rebase; no binary rebuild
+is needed for those documentation changes. Six selected current-backend unit
+checks pass in 40.7 seconds, zero skips: real object equality/overlap, inferred
+generic and staged isolation, deterministic failures and cancellation/recovery
+(ecs-lazy-capture-units.log). Two actual browser compiler generations are running.
+
+Next implementation audit: mandatory-input eligibility in sem_known_infer still
+walks each candidate on the coordinator after the worker scan/order proofs join.
+Reuse the existing per-function ECS work components for a KnownInputs query wave,
+with private traversal scratch and a dependency on the completed absence/order
+proof. Publish selected candidates deterministically before creating evaluation
+subjects. Keep every value computation in the interpreter and record each clone's
+eligibility-query dependency. This is a pending change, not an implemented phase.
+Structural type/generic/protocol work and native LLVM job/target-registration
+integration remain larger subsequent items; publication does not mark 100%.
